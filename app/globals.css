@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─────────────────────────────────────────────
+   별콩이 디자인 시스템 (Tailwind v4 @theme)
+   캐릭터 외형에서 추출한 컬러 + 폰트 + 모티프
+   ───────────────────────────────────────────── */
+
+@theme {
+  /* 컬러 — 크림빛 몸 / 연보라 구름 / 금색 별 */
+  --color-cream: #FAF6F0;
+  --color-cream-warm: #FFF8F0;
+  --color-lilac-soft: #E8DEF5;
+  --color-lilac: #D4C7EE;
+  --color-lilac-mid: #B8A8D8;
+  --color-lilac-deep: #9F8AD0;
+  --color-gold: #E8C26A;
+  --color-gold-soft: #F2D78A;
+  --color-eye-purple: #5A3E8C;
+  --color-text-light: #7A6BA0;
+  --color-night: #1F1735;
+  --color-night-deep: #2A1F4D;
+
+  /* 폰트 — Noto Sans KR (본문) / 비비체 (디스플레이, .ttf 추가 후 활성) */
+  --font-sans: var(--font-noto-sans-kr), system-ui, sans-serif;
+  --font-display: var(--font-bibi), var(--font-noto-sans-kr), system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* 메인 배경 — 크림 → 연보라 그라데이션 (별콩이 외형 톤) */
+html {
+  background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
+  background-attachment: fixed;
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-eye-purple);
+  font-family: var(--font-sans);
+}
+
+/* ─────────────────────────────────────────────
+   애니메이션 — 별 깜빡임 + 캐릭터 떠다니기
+   ───────────────────────────────────────────── */
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.animate-star-twinkle {
+  animation: star-twinkle 2.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
 }
