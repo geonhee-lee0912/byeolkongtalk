@@ -168,11 +168,16 @@ public/
 
 - [x] **Phase 0** — 도메인 구매 (byeolkongtalk.com via Cloudflare Registrar)
 - [x] **Phase 1** — 레포 부트스트랩 (Next 16 + Tailwind 4 + 디자인 시스템 + 랜딩 페이지)
-- [ ] **Phase 2** — dev/prod 인프라 셋업 (Supabase × 2, 카카오 dev 앱, Vercel 프로젝트)
-- [ ] **Phase 3** — 외부 서비스 dev 인스턴스 (토스 테스트, GA dev)
-- [ ] **Phase 4** — 검증된 인프라 이식 (auth/payment/stars/admin/logger/sensitive — v1에서 패턴 가져옴)
+- [x] **Phase 2** — dev/prod 인프라 셋업 (Supabase Branching + Git sync, 카카오 dev/prod 앱, Vercel 프로젝트 + 도메인 매핑, env 22개)
+- [ ] **Phase 3** — 외부 서비스 추가 (PG사 결정 후 결제 / GA4 — 선택)
+- [ ] **Phase 4** — 검증된 인프라 이식 (logger, auth, stars, admin, sensitive — v1에서 패턴 가져옴)
 - [ ] **Phase 5** — 사주 도메인 신규 설계 (manseryeok + 페르소나 + UI + 가격표)
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
+
+### Phase 2 결정 사항
+- Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
+- 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
+- AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
 
 ## 관련 레포
 
