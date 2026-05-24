@@ -43,8 +43,9 @@ components/
   consultations/saju/
   common/
 data/
-  migrations/                   # 마이그레이션 — dev/prod Supabase 양쪽 모두 적용
   persona/                      # 별콩이 system prompt
+supabase/
+  migrations/                   # SQL 마이그레이션 — Supabase GitHub 연동으로 양쪽 브랜치에 자동 적용
 public/
   byeolkong-main.png            # 캐릭터 메인 이미지 (확보 완료)
   fonts/                        # Bibi.ttf 등 (추후)
@@ -130,8 +131,11 @@ public/
 - **AUTH_TOKEN_SECRET**: dev/prod 다른 시크릿 (32자 hex)
 - **로컬 개발**: `.env.local`은 **dev Supabase/카카오/토스** 가리킴 (prod 리소스로 로컬 돌리기 금지)
 
-### 마이그레이션 동기화 규칙 ⚠️
-새 마이그레이션 (`data/migrations/00X_*.sql`)은 **dev Supabase + prod Supabase 양쪽 모두 적용**. 한쪽만 적용 시 스키마 드리프트 → 버그 추적 지옥. PR 머지 전 양쪽 적용 완료 체크.
+### 마이그레이션 동기화 규칙
+
+- 새 마이그레이션은 **`supabase/migrations/<timestamp>_<name>.sql`** 컨벤션 (Supabase CLI 표준)
+- Supabase의 GitHub 연동이 활성화되어 있어, `dev` 브랜치 push → Supabase `dev` 브랜치에 자동 적용 / `main` 머지 → Supabase `main` 브랜치에 자동 적용
+- 즉 코드(GitHub) 흐름이 DB(Supabase) 흐름과 자동 동기화됨 — 수동 양쪽 적용 불필요
 
 ## 환경변수 (필수)
 
