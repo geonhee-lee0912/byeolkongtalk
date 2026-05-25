@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
 import ChatBubble from "@/components/saju/ChatBubble";
+import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SajuResult } from "@/lib/saju/calc";
+import type { SensitiveCategory } from "@/lib/sensitive";
 
 interface Message {
   role: "user" | "assistant";
@@ -31,6 +33,10 @@ export default function ReadingPage() {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showSajuBoard, setShowSajuBoard] = useState(true);
+  const [safety, setSafety] = useState<{
+    category: SensitiveCategory;
+    severity: number;
+  } | null>(null);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +96,16 @@ export default function ReadingPage() {
         setError(data?.error || "연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
         setIsStreaming(false);
         return;
+      }
+
+      // sensitive 응답 헤더 확인 (서버가 박은 경우만 존재)
+      const sCat = r.headers.get("X-Sensitive-Category");
+      const sSev = r.headers.get("X-Sensitive-Severity");
+      if (sCat) {
+        setSafety({
+          category: sCat as SensitiveCategory,
+          severity: Number(sSev ?? 1),
+        });
       }
 
       const reader = r.body.getReader();
@@ -182,6 +198,13 @@ export default function ReadingPage() {
         style={{ maxHeight: "calc(100vh - 180px)" }}
       >
         <div className="max-w-md mx-auto px-5 py-5">
+          {safety && (
+            <SafetyBanner
+              category={safety.category}
+              severity={safety.severity}
+              onClose={() => setSafety(null)}
+            />
+          )}
           {messages.map((m, i) => (
             <ChatBubble
               key={i}

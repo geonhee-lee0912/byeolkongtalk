@@ -1,22 +1,31 @@
 // 사주 풀이 채팅 — readingId 기반 컨텍스트 + Claude SSE 스트리밍 + messages INSERT.
 //
+// Phase 5 (e) 통합: 사용자 메시지 진입 시 detectSensitiveSync → 응답 헤더로
+//   X-Sensitive-Category / Severity 박고 sensitive_alerts INSERT + readings.has_sensitive=true.
+//   회색지대(certainty low) 면 Claude haiku 2차 분류 fire-and-forget.
+//
 // Phase 5 (c) 시점 미적용:
 //   - rate limit (Phase 5 d 또는 이후 강화)
-//   - sensitive 감지 (Phase 5 d 위기 시그널 안전망)
 //
 // 흐름:
 //   1. 세션 + body 검증 (readingId + messages)
 //   2. readings 조회 + 소유권 (user_id 매칭)
-//   3. messages 테이블에서 누적 assistant turn 수 + chars 계산
-//   4. buildSystemMessage(saju + concern + 턴 메타) → streamChat
-//   5. SSE response stream — chunk 받을 때마다 client 에 enqueue + 누적
-//   6. stream 완료 시 user message + assistant response 둘 다 messages INSERT
+//   3. 사용자 마지막 메시지 sensitive 1차 감지 + 응답 헤더
+//   4. messages 테이블에서 누적 assistant turn 수 + chars 계산
+//   5. buildSystemMessage(saju + concern + 턴 메타) → streamChat
+//   6. SSE response stream — chunk 받을 때마다 client 에 enqueue + 누적
+//   7. stream 완료 시 user/assistant 메시지 INSERT + sensitive 후처리 (DB INSERT + Claude 2차)
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildSystemMessage, streamChat } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import {
+  detectSensitiveSync,
+  detectSensitiveAsync,
+  recordSensitiveAlert,
+} from "@/lib/sensitive";
 import type { SajuResult } from "@/lib/saju/calc";
 
 export const runtime = "nodejs";
@@ -116,6 +125,19 @@ export async function POST(request: NextRequest) {
     cumulativeAssistantChars,
   });
 
+  // sensitive 1차 감지 (regex ~1ms, 응답 헤더용)
+  const sensitiveSync = detectSensitiveSync(lastMessage.content);
+
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+  };
+  if (sensitiveSync) {
+    responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;
+    responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
+  }
+
   const encoder = new TextEncoder();
   let assistantText = "";
 
@@ -141,6 +163,35 @@ export async function POST(request: NextRequest) {
           },
         ]);
 
+        // sensitive 후처리 (스트림 끝난 뒤 비동기 — 클라 응답 지연 X)
+        if (sensitiveSync) {
+          // 1차 매칭은 즉시 기록
+          void recordSensitiveAlert({
+            match: sensitiveSync,
+            userId,
+            readingId: reading.id,
+            messageText: lastMessage.content,
+          });
+          await supabase
+            .from("readings")
+            .update({ has_sensitive: true })
+            .eq("id", reading.id);
+
+          // 회색지대면 Claude 2차 분류 fire-and-forget — false positive 정리용 (regex high 면 skip)
+          if (sensitiveSync.certainty !== "high") {
+            void detectSensitiveAsync(lastMessage.content).then((m) => {
+              if (m && m.method !== "regex") {
+                void recordSensitiveAlert({
+                  match: m,
+                  userId,
+                  readingId: reading.id,
+                  messageText: lastMessage.content,
+                });
+              }
+            });
+          }
+        }
+
         controller.close();
       } catch (err) {
         await logError(
@@ -156,11 +207,5 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      "X-Accel-Buffering": "no",
-    },
-  });
+  return new Response(stream, { headers: responseHeaders });
 }
