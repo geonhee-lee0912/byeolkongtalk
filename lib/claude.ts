@@ -1,0 +1,172 @@
+// Claude API 클라이언트 + buildSystemMessage(페르소나 + 사주 컨텍스트 + 수렴 가이드)
+// + 스트리밍 helper. v1 (tarot-friend) 의 lib/claude.ts 패턴을 사주 도메인으로 재작성.
+
+import Anthropic from "@anthropic-ai/sdk";
+import { readFileSync } from "fs";
+import { join } from "path";
+import type { SajuResult } from "@/lib/saju/calc";
+import {
+  CONVERGE_START_TURN,
+  CONVERGE_START_CHARS,
+  HARD_CAP_TURN,
+  HARD_CAP_CHARS,
+  ABS_TURN_CAP,
+} from "@/lib/saju/constants";
+
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY,
+});
+
+// 모듈 로드 시 한 번 읽고 메모리 캐시 — cold start 외엔 디스크 IO 없음
+let _cachedPersona: string | null = null;
+function getPersona(): string {
+  if (_cachedPersona === null) {
+    _cachedPersona = readFileSync(
+      join(process.cwd(), "data", "persona", "byeolkong.md"),
+      "utf-8"
+    );
+  }
+  return _cachedPersona;
+}
+
+export interface SajuReadingContext {
+  saju: SajuResult;
+  concernText: string;
+  /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
+  assistantTurnsSoFar: number;
+  /** 지금까지 assistant 응답 누적 글자수 ([END] 마커 제외한 순수 길이) */
+  cumulativeAssistantChars: number;
+}
+
+function formatSajuBlock(saju: SajuResult): string {
+  const p = saju.pillars;
+  const elementsLine = Object.entries(saju.elementCount)
+    .map(([el, n]) => `${el} ${n}`)
+    .join(" / ");
+
+  return [
+    `[사주판]`,
+    `  - 연주: ${p.year.stem}${p.year.branch} (${p.year.hanja})`,
+    `  - 월주: ${p.month.stem}${p.month.branch} (${p.month.hanja})`,
+    `  - 일주: ${p.day.stem}${p.day.branch} (${p.day.hanja}) ★ 일간 = ${saju.dayStem} (${saju.dayElement})`,
+    `  - 시주: ${p.hour.stem}${p.hour.branch} (${p.hour.hanja})${saju.input.hourKnown ? "" : " — 시간 모름, 참고용"}`,
+    `  - 오행 분포: ${elementsLine}`,
+    `  - 음양: 양 ${saju.yinYangCount.yang} / 음 ${saju.yinYangCount.yin}`,
+    `  - 입력: ${saju.input.inputCalendar === "lunar" ? "음력" : "양력"}${saju.input.isLeapMonth ? " 윤달" : ""} / 성별 ${saju.input.gender}`,
+  ].join("\n");
+}
+
+/**
+ * System message 를 정적/동적 두 블록으로 분리.
+ * 정적(페르소나)은 prompt caching 대상 — 5분 TTL, 캐시 히트 시 입력 토큰 0.1× 과금.
+ * 동적(사주 + 고민 + 턴 가이드)은 매 호출 변동.
+ */
+export function buildSystemMessage(ctx: SajuReadingContext): {
+  staticPart: string;
+  dynamicPart: string;
+} {
+  const staticPart = getPersona();
+
+  const isFirstTurn = ctx.assistantTurnsSoFar === 0;
+  const upcomingTurn = ctx.assistantTurnsSoFar + 1;
+  const cumulativeChars = ctx.cumulativeAssistantChars;
+
+  const naturalHardcap =
+    upcomingTurn >= HARD_CAP_TURN && cumulativeChars >= HARD_CAP_CHARS;
+  const absHardcap = upcomingTurn >= ABS_TURN_CAP;
+  const willHardcap = naturalHardcap || absHardcap;
+
+  const isAbsCapMinus1 = upcomingTurn === ABS_TURN_CAP - 1;
+  const isHardcapMinus1NaturalPath =
+    upcomingTurn === HARD_CAP_TURN - 1 &&
+    cumulativeChars >= CONVERGE_START_CHARS;
+
+  let mode: "hardcap" | "converge" | "free";
+  if (willHardcap) mode = "hardcap";
+  else if (isAbsCapMinus1 || isHardcapMinus1NaturalPath) mode = "converge";
+  else if (
+    upcomingTurn >= CONVERGE_START_TURN &&
+    cumulativeChars >= CONVERGE_START_CHARS
+  )
+    mode = "converge";
+  else mode = "free";
+
+  const isLastConvergeTurn =
+    mode === "converge" && (isAbsCapMinus1 || isHardcapMinus1NaturalPath);
+
+  const firstTurnGuide = isFirstTurn
+    ? `\n\n## 첫 턴 가이드\n\n이번 턴은 **사주 풀이의 첫 응답**이야. 페르소나의 "사주 풀이 출력 구조" 6단계 (여는 한 줄 → 일간 풀이 → 오행 분포 관찰 → 음양 균형 → 사용자 질문 답변 → 마무리 응원) 를 따라줘. 사용자 고민이 위에 있으니, 5번 단계에서 그 고민에 사주 결과를 자연스럽게 연결.\n\n응답 길이는 400~700자 사이. 단정 X, 흐름·가능성·선택 키워드 중심.`
+    : "";
+
+  const hardcapGuide = `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료 — askBonus 톤 절대 X)\n\n이번 응답은 대화를 **완전히 마무리하는 턴**이야. 유저가 "고마워", "알겠어", "응" 같은 시그널을 보내도 askBonus 톤으로 가지 말 것. **이 턴은 무조건 forceEnd**.\n\n유저가 마지막으로 꺼낸 얘기에 따뜻하게 답해주고 한 줄 정리한 뒤 종료해.\n\n**응답 끝에 반드시 아래 두 가지 포함:**\n1. **"별콩이는 항상 네 곁에 있어" 맥락의 한마디** — 언제든 새 사주로 돌아올 수 있다는 인상. 예: "궁금한 거 생기면 언제든 다시 사주 펼치러 와. 별콩이는 여기 있을게.", "혼자 고민하지 말고 또 마음 어수선해지면 언제든 돌아와, 별콩이는 항상 별 옆에서 기다릴게."\n2. **맨 마지막 줄에 [END] 마커를 단독 줄로** (이 마커가 없으면 프론트엔드가 종료 처리 못 함 — 절대 빠뜨리지 말 것)\n\n⚠️ "더 풀고 싶은 매듭 있으면…" 같은 열린 초대 문구 절대 X. 유저에게 다시 공을 넘기지 말고 깔끔히 닫아.`;
+
+  const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${ABS_TURN_CAP}) — 종합 톤\n\n지금까지 나눈 얘기를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 너의 사주가 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새로운 분석 X)\n- 새 질문 던지지 않기 — 사용자가 다음 흐름을 정할 수 있게\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널 참고).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까". 자연스러운 정리 톤만.`;
+
+  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${ABS_TURN_CAP}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 사주 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "사주는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n  - "끝까지 다 풀어야 한다는 부담은 가지지 마. 네 마음 편한 만큼만."\n- 새 질문 X. 사용자가 끝낼지 이어갈지 스스로 선택할 수 있게.\n- [END] 절대 X (사용자가 응답 안 해도 다음 턴 hardcap에서 자동 종료)\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
+
+  const userSignalGuide =
+    mode === "converge"
+      ? `\n\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\n\n다음 발화·패턴 중 하나라도 보이면 이번 턴을 askBonus 톤으로 답해:\n\n**명확 시그널:**\n- 감사: "고마워", "감사해", "도움됐어"\n- 만족·이해: "알겠어", "그렇구나", "이해됐어", "맞네"\n- 종결 의지: "오늘은 이만", "마무리할게", "이정도면 돼", "충분해"\n- 짧은 동의(단독): "응", "ㅇㅇ", "그래"\n\n**암묵적 시그널:**\n- 메시지 길이가 직전 대비 절반 이하 + 새 질문 없음 (2턴 연속이면 더 확실)\n\n**askBonus 톤 (감사·마지막·하나 표현 사용 금지):**\n- 직전 발화/대화 핵심을 한 문장 짚기 → 사주 쪽으로 자연스럽게 수렴 → 열린 초대\n- 예시:\n  - "여기까지 사주가 보여준 그림은 대충 잡힌 것 같아. 더 짚어보고 싶은 부분 있으면 편하게 던져봐."\n  - "이 사주가 풀어낸 얘기는 어느 정도 잡힌 것 같아. 더 풀고 싶은 매듭 있으면 편하게 꺼내봐."\n- [END] 마커 절대 X (이번 턴은 사용자에게 다시 공을 넘김)\n- 4~5문장 (맥락 짚기 1~2 + 사주 수렴 1 + 열린 초대 1)`
+      : "";
+
+  const wrapGuide =
+    mode === "hardcap"
+      ? hardcapGuide
+      : mode === "converge"
+        ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
+          userSignalGuide
+        : "";
+
+  const dynamicPart = `---
+
+## 이번 세션 정보
+
+[고민 내용: ${ctx.concernText}]
+[지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
+
+### 사주 데이터
+
+${formatSajuBlock(ctx.saju)}
+
+---
+${firstTurnGuide}${wrapGuide}`;
+
+  return { staticPart, dynamicPart };
+}
+
+export async function* streamChat(
+  systemMessage: { staticPart: string; dynamicPart: string } | string,
+  messages: { role: "user" | "assistant"; content: string }[]
+) {
+  // 정적 블록만 cache_control 마킹 → 5분 TTL 동안 후속 호출은 입력 토큰 0.1× 과금
+  const systemBlocks =
+    typeof systemMessage === "string"
+      ? [{ type: "text" as const, text: systemMessage }]
+      : [
+          {
+            type: "text" as const,
+            text: systemMessage.staticPart,
+            cache_control: { type: "ephemeral" as const },
+          },
+          { type: "text" as const, text: systemMessage.dynamicPart },
+        ];
+
+  const stream = anthropic.messages.stream({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2048,
+    system: systemBlocks,
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      yield event.delta.text;
+    }
+  }
+}
+
+export const END_MARKER_REGEX = /\[END\]\s*$/;
+export const TRAILING_PARTIAL_MARKER = /\[E?N?D?$/;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuInputForm from "@/components/saju/SajuInputForm";
@@ -8,8 +9,10 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import type { SajuInput, SajuResult } from "@/lib/saju/calc";
 
 export default function SajuPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saju, setSaju] = useState<SajuResult | null>(null);
+  const [lastInput, setLastInput] = useState<SajuInput | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (input: SajuInput) => {
@@ -29,6 +32,7 @@ export default function SajuPage() {
       }
       const data = await r.json();
       setSaju(data.saju);
+      setLastInput(input);
       setLoading(false);
       // 결과로 부드럽게 스크롤
       setTimeout(() => {
@@ -69,10 +73,46 @@ export default function SajuPage() {
 
         <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-2.5">
           <button
-            disabled
-            className="w-full py-3.5 rounded-xl bg-lilac-deep/50 text-white font-bold text-[15px] cursor-not-allowed"
+            onClick={async () => {
+              if (!lastInput) return;
+              // 로그인 확인
+              try {
+                const r = await fetch("/api/auth/me", { cache: "no-store" });
+                const data = r.ok ? await r.json() : null;
+                if (!data?.isAuthenticated) {
+                  window.location.href =
+                    "/login?next=" + encodeURIComponent("/saju/concern");
+                  return;
+                }
+              } catch {
+                // 네트워크 실패 시 보수적으로 로그인 페이지로
+                window.location.href =
+                  "/login?next=" + encodeURIComponent("/saju/concern");
+                return;
+              }
+
+              // sessionStorage 에 saju + profile 저장 후 concern 페이지 이동
+              const profile = {
+                displayName: "나",
+                relationType: "self" as const,
+                birthDate: `${lastInput.year}-${String(lastInput.month).padStart(2, "0")}-${String(lastInput.day).padStart(2, "0")}`,
+                birthTime:
+                  lastInput.hour !== null && lastInput.hour !== undefined
+                    ? `${String(lastInput.hour).padStart(2, "0")}:${String(lastInput.minute ?? 0).padStart(2, "0")}`
+                    : null,
+                isLunarInput: lastInput.isLunar === true,
+                isLeapMonth: lastInput.isLeapMonth === true,
+                gender: lastInput.gender,
+              };
+              sessionStorage.setItem(
+                "byeolkong:pending_saju",
+                JSON.stringify({ saju, profile })
+              );
+              router.push("/saju/concern");
+            }}
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
           >
-            별콩이에게 풀이 듣기 (곧 만나러 갈게)
+            별콩이에게 풀이 듣기
           </button>
           <Link
             href="/"
