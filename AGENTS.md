@@ -175,19 +175,32 @@ public/
   - [x] (b) auth — 카카오 OAuth + 익명 식별자 + 쿠키 세션 + `/api/auth/*`. `users` 마이그레이션 + error_logs FK ALTER, `lib/session` (Next 16 `await cookies()`) + `lib/auth-token` HMAC + `lib/kakao` + `lib/admin`, `middleware.ts` (anon + admin guard), `AuthBootstrap` + `KakaoSdkLoader`, `app/login`
   - [x] (c) stars — `star_balances` + `star_transactions` + `spend_stars`/`charge_stars` RPC (SELECT FOR UPDATE + 멱등성), `lib/stars`, `/api/stars/balance` + `/api/stars/spend`. `/api/auth/kakao` 신규 유저 잔액 INSERT + `/api/auth/withdraw` stars 삭제 단계도 보강. **단**: `chargeStars` 호출처(결제 confirm) 는 Phase 3 PG 결정 후, `star_transactions.reading_id` FK + spend 의 reading 소유권 검증은 Phase 5 readings 추가 후
   - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
-  - [ ] (e) sensitive — 위기 시그널 감지 + SafetyBanner + alerts 테이블
+  - [x] (e) sensitive — Phase 5 (e1) 과 통합 완료 (위 Phase 5 e1 항목 참고)
 - [ ] **Phase 5** — 사주 도메인 신규 설계
   - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + `data/persona/byeolkong.md` 시스템 프롬프트
   - [x] (b) 입력 폼 + 사주판 + `/api/consultations/saju/calc` — 분리 셀렉트 + 12지지 시간 + 양/음력 + 윤달 + 시간모름. 4기둥 그리드 + 오행 막대 + 일주 ★. 랜딩에 CTA. **검증**: dev/prod 양쪽 브라우저에서 본인 사주 정확도 spot check + 음력 변환 + 시간모름 분기 모두 통과
   - [x] (c) Claude 풀이 채팅 — `SAJU_READING_COST=22` 단일 가격. `lib/claude` (페르소나 caching + 사주 컨텍스트 + 수렴 가이드 동적 주입) + `/api/readings` POST (profile+reading+spendStars 원자) + `/api/consultations/saju/chat` SSE 스트림 + `/saju/concern` 고민 입력 + `/saju/reading` 채팅 UI + ChatBubble + SajuBoardCompact. [END] 마커 자동 종료. **검증**: dev + prod 양쪽 카카오 로그인 → 사주 입력 → 22별 차감 → 별콩이 자동 풀이 SSE 통과
-  - [ ] (d) 위기 시그널 안전망 (Phase 4 e 통합)
-  - [ ] (e) 결과 / 공유 / 마이페이지
+  - [x] (e1 / Phase 4 e) 위기 시그널 안전망 — `sensitive_alerts` (5 카테고리 + severity 1-3) + `lib/sensitive` (regex 1차 + Claude haiku 2차) + `/api/consultations/saju/chat` 통합 (응답 헤더 + DB INSERT + readings.has_sensitive) + `SafetyBanner` (카테고리별 hotline + 익명·무료 강조 + 별콩이 톤 안내). **검증**: dev "죽고 싶어" 키워드로 SafetyBanner 노출 + sensitive_alerts row 생성 확인
+  - [ ] (e2) 결과 / 공유 / 마이페이지 — result 페이지 + OG 이미지 + 카카오 공유 + /mypage 히스토리 + 위기 readings 공유 차단 분기
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 5 (e1) / Phase 4 (e) 운영 노트 — 위기 시그널 안전망
+- 감지 흐름: chat 라우트 → user 마지막 메시지 → `detectSensitiveSync` (~1ms) → 매칭 시 응답 헤더 `X-Sensitive-Category` + `X-Sensitive-Severity` → 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 회색지대(low certainty)면 `detectSensitiveAsync` (Claude haiku) fire-and-forget — false positive 검수 + alert 보강
+- regex 패턴 (5 카테고리): `lib/sensitive.ts` PATTERNS — 한국어 변형 (받침/띄어쓰기/단축) 일부 흡수. 추가 키워드 등록은 이 배열에 row 추가
+- 카테고리별 hotline (`components/safety/SafetyBanner.tsx` `HOTLINES`):
+  - suicide → 1393, 1577-0199
+  - school_violence → 117, 1388
+  - domestic_violence → 1366, 112
+  - sexual_violence → 1366, 해바라기센터
+  - substance_abuse → 1342, 129
+- 페르소나 (`data/persona/byeolkong.md`) 의 위기 안내 톤과 일치. 별콩이 응답 자체도 페르소나 가이드로 위기 시 hotline 안내 우선
+- 운영자 검토: Phase 4 (d) admin 콘솔 (`/admin/sensitive`) 까지는 Supabase SQL Editor 에서 수동 — `SELECT * FROM sensitive_alerts WHERE reviewed_at IS NULL ORDER BY severity DESC, created_at DESC;` 후 reviewed_at + action_taken 마킹
+- `readings.has_sensitive=true` 인 reading 은 Phase 5 (e2) 결과 화면에서 공유 비활성화 분기 (v1 패턴) 들어갈 예정
 
 ### Phase 5 (c) 운영 노트 — 풀이 채팅 + Claude
 - 가격: 단일 22별/풀이. `SAJU_READING_COST` 상수만 바꾸면 일괄 변경. 무료 정책 X
