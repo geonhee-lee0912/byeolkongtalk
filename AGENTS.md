@@ -178,7 +178,7 @@ public/
   - [ ] (e) sensitive — 위기 시그널 감지 + SafetyBanner + alerts 테이블
 - [ ] **Phase 5** — 사주 도메인 신규 설계
   - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + `data/persona/byeolkong.md` 시스템 프롬프트
-  - [ ] (b) 입력 폼 + 사주판 시각화 + `/api/consultations/saju/calc` (결정적 계산)
+  - [x] (b) 입력 폼 + 사주판 + `/api/consultations/saju/calc` — 분리 셀렉트 + 12지지 시간 + 양/음력 + 윤달 + 시간모름. 4기둥 그리드 + 오행 막대 + 일주 ★. 랜딩에 CTA. **검증**: dev/prod 양쪽 브라우저에서 본인 사주 정확도 spot check + 음력 변환 + 시간모름 분기 모두 통과
   - [ ] (c) Claude 풀이 채팅 + 가격 정책 + spendStars 호출처 완성
   - [ ] (d) 위기 시그널 안전망 (Phase 4 e 통합)
   - [ ] (e) 결과 / 공유 / 마이페이지
@@ -188,6 +188,13 @@ public/
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 5 (b) 운영 노트 — 사주판
+- 12지지 시간 매핑: 시진 시작값 (자시→0, 축시→2, …, 해시→22). 학설별 조자시/야자시 차이는 MVP 후 검토
+- 시간 모름 = `hour: null` 로 calc 라우트 호출 → `SajuResult.input.hourKnown=false` + 자정 기준 계산. UI 에서 "시주는 참고용" 안내
+- 오행 색상: 별콩이 톤 (cream/lilac/gold 와 어울리는 부드러운 톤). `components/saju/SajuBoard` 의 `ELEMENT_COLORS` 에 정의. 전통 채도와 다름 — 일관 유지
+- 음력 입력 시 manseryeok 가 자동 양력 변환 후 4기둥 계산. UI 는 `SajuResult.input.inputCalendar` 로 원래 입력 표기 보존
+- `/api/consultations/saju/calc` 는 로그인 가드 없음 (계산만, DB 저장 X). 로그인 + readings INSERT 는 Phase 5 (c) chat 진입 시
 
 ### Phase 5 (a) 운영 노트 — 사주 도메인 코어
 - `lib/saju/calc.ts` 의 `calcSaju(input)` 만 호출. manseryeok API 직접 호출 X (wrapper 가 정규화 + JSONB 직렬화 책임)
