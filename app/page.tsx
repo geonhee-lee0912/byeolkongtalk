@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -37,10 +38,12 @@ export default function Home() {
         선택의 방향을 함께 살펴봐.
       </p>
 
-      {/* 임시 안내 (Phase 5에서 실제 CTA로 교체) */}
-      <div className="mt-12 px-5 py-3 rounded-full bg-lilac-soft text-eye-purple text-sm">
-        ✨ 곧 만나러 갈게 (개발 중)
-      </div>
+      <Link
+        href="/saju"
+        className="mt-12 px-7 py-3.5 rounded-full bg-lilac-deep text-white text-[15px] font-bold hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+      >
+        ✨ 내 사주 보기
+      </Link>
     </main>
   );
 }
