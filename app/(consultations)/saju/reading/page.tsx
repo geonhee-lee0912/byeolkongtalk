@@ -239,10 +239,10 @@ export default function ReadingPage() {
                 별콩이의 풀이가 마무리됐어 ✨
               </p>
               <Link
-                href="/saju"
+                href={`/saju/result?id=${ctx.readingId}`}
                 className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"
               >
-                새 사주 보러 가기
+                결과 보기 →
               </Link>
             </div>
           ) : (
