@@ -176,13 +176,26 @@ public/
   - [x] (c) stars — `star_balances` + `star_transactions` + `spend_stars`/`charge_stars` RPC (SELECT FOR UPDATE + 멱등성), `lib/stars`, `/api/stars/balance` + `/api/stars/spend`. `/api/auth/kakao` 신규 유저 잔액 INSERT + `/api/auth/withdraw` stars 삭제 단계도 보강. **단**: `chargeStars` 호출처(결제 confirm) 는 Phase 3 PG 결정 후, `star_transactions.reading_id` FK + spend 의 reading 소유권 검증은 Phase 5 readings 추가 후
   - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
   - [ ] (e) sensitive — 위기 시그널 감지 + SafetyBanner + alerts 테이블
-- [ ] **Phase 5** — 사주 도메인 신규 설계 (manseryeok + 페르소나 + UI + 가격표)
+- [ ] **Phase 5** — 사주 도메인 신규 설계
+  - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + `data/persona/byeolkong.md` 시스템 프롬프트
+  - [ ] (b) 입력 폼 + 사주판 시각화 + `/api/consultations/saju/calc` (결정적 계산)
+  - [ ] (c) Claude 풀이 채팅 + 가격 정책 + spendStars 호출처 완성
+  - [ ] (d) 위기 시그널 안전망 (Phase 4 e 통합)
+  - [ ] (e) 결과 / 공유 / 마이페이지
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 5 (a) 운영 노트 — 사주 도메인 코어
+- `lib/saju/calc.ts` 의 `calcSaju(input)` 만 호출. manseryeok API 직접 호출 X (wrapper 가 정규화 + JSONB 직렬화 책임)
+- `SajuResult.input` 메타에 `inputCalendar`/`hourKnown`/`isLeapMonth` 저장 — 음력 입력은 표시용으로 보존 (UI 에서 다시 음력으로 보여줄 때)
+- 시간 모름 = `hour: null` 로 calcSaju 호출 → 자정(0시)으로 계산 + `hourKnown: false` 마킹. UI 에서 "시주는 참고용" 안내 필요
+- ON DELETE CASCADE 체인 (`users → user_profiles → readings → messages`) 덕분에 withdraw 라우트가 추가 코드 없이 자동 정리. `star_transactions.reading_id` 만 SET NULL (audit 유지)
+- `user_profiles.is_primary` partial unique index 로 user 당 primary 1개 보장. 새 primary 설정 시 기존 primary 를 false 로 먼저 update 필요 (트랜잭션)
+- 페르소나 system prompt 는 정적 (12-15K 토큰 추정) → Claude API 호출 시 `cache_control: { type: "ephemeral" }` 로 마킹 권장 (Phase 5 c 에서). saju_data 는 turn-specific 이라 user message 에 동적 주입
 
 ### Phase 4 (c) 운영 노트 — 별 재화 RPC
 - `spend_stars(p_user_id, p_amount, p_reading_id?, p_source?)` — readingId 는 Phase 5 까지 NULL 허용. SELECT FOR UPDATE 로 동시 차감 직렬화. 잔액 < amount 시 `success=false reason=insufficient`
