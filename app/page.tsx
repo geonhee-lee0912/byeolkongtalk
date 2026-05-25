@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-5 py-12 max-w-md mx-auto w-full animate-fade-in">
-      {/* 별콩이 캐릭터 + 별 파티클 */}
+    <>
+      <main className="flex flex-1 flex-col items-center justify-center px-5 py-12 max-w-md mx-auto w-full animate-fade-in">
+        {/* 별콩이 캐릭터 + 별 파티클 */}
       <div className="relative animate-float">
         <Image
           src="/byeolkong-main.png"
@@ -38,12 +40,15 @@ export default function Home() {
         선택의 방향을 함께 살펴봐.
       </p>
 
-      <Link
-        href="/saju"
-        className="mt-12 px-7 py-3.5 rounded-full bg-lilac-deep text-white text-[15px] font-bold hover:bg-lilac-deep/90 active:scale-[0.98] transition"
-      >
-        ✨ 내 사주 보기
-      </Link>
-    </main>
+        <Link
+          href="/saju"
+          className="mt-12 px-7 py-3.5 rounded-full bg-lilac-deep text-white text-[15px] font-bold hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        >
+          ✨ 내 사주 보기
+        </Link>
+      </main>
+
+      <Footer />
+    </>
   );
 }
