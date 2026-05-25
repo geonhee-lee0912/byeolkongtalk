@@ -5,6 +5,7 @@ import { Noto_Sans_KR } from "next/font/google";
 import { Suspense } from "react";
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
+import AppShell from "@/components/layout/AppShell";
 import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
@@ -58,7 +59,7 @@ export default function RootLayout({
           <AuthBootstrap />
         </Suspense>
         <KakaoSdkLoader />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

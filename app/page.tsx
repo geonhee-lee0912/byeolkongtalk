@@ -3,15 +3,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-5 py-16 max-w-md mx-auto w-full animate-fade-in relative">
-      {/* 우상단 MY 진입점 */}
-      <Link
-        href="/mypage"
-        className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-[11px] font-bold text-eye-purple bg-cream-warm border border-lilac-mid/40"
-      >
-        MY
-      </Link>
-
+    <main className="flex flex-1 flex-col items-center justify-center px-5 py-12 max-w-md mx-auto w-full animate-fade-in">
       {/* 별콩이 캐릭터 + 별 파티클 */}
       <div className="relative animate-float">
         <Image
