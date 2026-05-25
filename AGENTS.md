@@ -172,7 +172,7 @@ public/
 - [ ] **Phase 3** — 외부 서비스 추가 (PG사 결정 후 결제 / GA4 — 선택)
 - [ ] **Phase 4** — 검증된 인프라 이식
   - [x] (a) logger + /api/health + boundary 페이지 — `error_logs` 마이그레이션, `lib/supabase`/`lib/env`/`lib/logger`, `/api/health`, `/api/log/error`, `app/error.tsx` + `app/global-error.tsx` + `app/not-found.tsx`. dev/prod 양쪽 `/api/health` 200 OK
-  - [ ] (b) auth — 카카오 OAuth + 익명→유저 마이그레이션 + 쿠키 세션 + `/api/auth/*`
+  - [x] (b) auth — 카카오 OAuth + 익명 식별자 + 쿠키 세션 + `/api/auth/*`. `users` 마이그레이션 + error_logs FK ALTER, `lib/session` (Next 16 `await cookies()`) + `lib/auth-token` HMAC + `lib/kakao` + `lib/admin`, `middleware.ts` (anon + admin guard), `AuthBootstrap` + `KakaoSdkLoader`, `app/login`. **단**: `migrate_anonymous_readings` RPC + `star_balances` 초기화 + withdraw 의 stars/readings 삭제는 Phase 4 (c) / Phase 5 에서 보강 (현재는 TODO 주석으로 표시)
   - [ ] (c) stars — 별 잔액/트랜잭션 + RPC + `/api/stars/*`
   - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
   - [ ] (e) sensitive — 위기 시그널 감지 + SafetyBanner + alerts 테이블
@@ -183,6 +183,15 @@ public/
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 4 (b) 운영 노트 — 카카오 OAuth 흐름 + 알려진 부채
+- 쿠키/storage prefix 통일: 모든 `byeolkong_` (`byeolkong_user_id`/`_anon_id`/`_admin_token`/`_oauth_state` + localStorage `byeolkong_user`/`_token`)
+- Next 16 의 `cookies()` 는 async → 서버 컴포넌트/API 라우트에서 `await getSession()` 필수
+- OAuth state CSRF: 32자 hex nonce 를 `byeolkong_oauth_state` 쿠키에 5분 TTL 로 저장 → 콜백에서 일치 검증 + 1회용 즉시 삭제 + open redirect 방지 (`/` 시작 + `//` 차단)
+- 어드민 토큰 자동 발급: 카카오 콜백 → `setUserCookie` 가 ADMIN_USER_IDS 화이트리스트에 매칭되면 `byeolkong_admin_token` (HMAC-SHA256 32자 hex) 도 같이 발급
+- 회원탈퇴: 카카오 unlink 실패 시 503 + DB 삭제 중단 (좀비 OAuth 방지). Phase 4 (b) 시점엔 users 만 삭제, stars/readings/payments 는 Phase 4 c+ 에서 보강
+- `middleware.ts` deprecation: Next 16 에서 `middleware` → `proxy` 컨벤션 권장. 빌드 동작은 OK 지만 추후 chore commit 으로 rename 예정
+- 카카오 redirect URI: dev=`https://dev.byeolkongtalk.com/api/auth/kakao`, prod=`https://byeolkongtalk.com/api/auth/kakao` 둘 다 카카오 콘솔에 등록 필수
 
 ### Phase 4 (a) 운영 노트 — Supabase main 자동 sync
 - main(production) 브랜치는 GitHub Integration 첫 활성화 시점에 `<timestamp> / remote_schema` baseline row 가 `supabase_migrations.schema_migrations` 에 자동 생성됨. 그 timestamp 의 .sql 파일은 git repo 엔 없으므로 매 main push 마다 drift 로 abort → 한 번 수동 정리 필요
