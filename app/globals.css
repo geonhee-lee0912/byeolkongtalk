@@ -20,9 +20,9 @@
   --color-night: #1F1735;
   --color-night-deep: #2A1F4D;
 
-  /* 폰트 — Noto Sans KR (본문) / 비비체 (디스플레이, .ttf 추가 후 활성) */
+  /* 폰트 — Noto Sans KR (본문) / Cafe24 Ssurround (디스플레이/타이틀) */
   --font-sans: var(--font-noto-sans-kr), system-ui, sans-serif;
-  --font-display: var(--font-bibi), var(--font-noto-sans-kr), system-ui, sans-serif;
+  --font-display: var(--font-cafe24), var(--font-noto-sans-kr), system-ui, sans-serif;
 }
 
 /* 메인 배경 — 크림 → 연보라 그라데이션 (별콩이 외형 톤) */

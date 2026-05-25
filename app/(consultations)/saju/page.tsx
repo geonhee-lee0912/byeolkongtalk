@@ -7,6 +7,7 @@ import Image from "next/image";
 import SajuInputForm from "@/components/saju/SajuInputForm";
 import SajuBoard from "@/components/saju/SajuBoard";
 import type { SajuInput, SajuResult } from "@/lib/saju/calc";
+import { PENDING_KEY, type PendingConsultation } from "@/lib/emotions";
 
 export default function SajuPage() {
   const router = useRouter();
@@ -91,7 +92,6 @@ export default function SajuPage() {
                 return;
               }
 
-              // sessionStorage 에 saju + profile 저장 후 concern 페이지 이동
               const profile = {
                 displayName: "나",
                 relationType: "self" as const,
@@ -104,6 +104,66 @@ export default function SajuPage() {
                 isLeapMonth: lastInput.isLeapMonth === true,
                 gender: lastInput.gender,
               };
+
+              // /concern 에서 넘어온 케이스 → /saju/concern 건너뛰고 바로 readings INSERT
+              const pendingRaw = sessionStorage.getItem(PENDING_KEY);
+              let pending: PendingConsultation | null = null;
+              try {
+                pending = pendingRaw ? (JSON.parse(pendingRaw) as PendingConsultation) : null;
+              } catch {
+                pending = null;
+              }
+
+              if (pending && pending.type === "saju" && pending.concern) {
+                try {
+                  const res = await fetch("/api/readings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      profile,
+                      sajuData: saju,
+                      question: pending.concern,
+                    }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    if (data?.code === "INSUFFICIENT_STARS") {
+                      window.location.href = "/shop";
+                      return;
+                    }
+                    // 그 외 실패: pending 유지하고 legacy concern 페이지로 폴백
+                    sessionStorage.setItem(
+                      "byeolkong:pending_saju",
+                      JSON.stringify({ saju, profile })
+                    );
+                    router.push("/saju/concern");
+                    return;
+                  }
+                  const data = await res.json();
+                  sessionStorage.setItem(
+                    "byeolkong:current_reading",
+                    JSON.stringify({
+                      readingId: data.id,
+                      saju,
+                      question: pending.concern,
+                    })
+                  );
+                  sessionStorage.removeItem(PENDING_KEY);
+                  sessionStorage.removeItem("byeolkong:emotion");
+                  router.push(`/saju/reading?id=${data.id}`);
+                  return;
+                } catch {
+                  // 네트워크 실패: legacy concern 페이지로 폴백
+                  sessionStorage.setItem(
+                    "byeolkong:pending_saju",
+                    JSON.stringify({ saju, profile })
+                  );
+                  router.push("/saju/concern");
+                  return;
+                }
+              }
+
+              // legacy 흐름: pending 없으면 기존 concern 페이지에서 입력받기
               sessionStorage.setItem(
                 "byeolkong:pending_saju",
                 JSON.stringify({ saju, profile })
