@@ -184,31 +184,63 @@ public/
   - [x] (e2) 결과 / 공유 / 마이페이지 — `lib/saju/closing` 마무리 한마디 추출 + `/api/readings/[id]` 단건 + `/api/readings` 리스트 + `/saju/result` (사주판 + 한마디 카드 + 대화 다시보기 + 공유) + `ShareButtons` (Web Share + 클립보드 + has_sensitive 차단) + `/api/og/saju/[readingId]` next/og 1200×630 + `lib/kakao-share` SDK feed + `/mypage` (프로필 + 잔액 + 히스토리 + 로그아웃/탈퇴) + 랜딩 MY 진입점. reading [END] → result 자동 이동
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
 
-### MVP 골든 패스 완성 후 다음 단계 — 화면 단위 UX 정제
+### MVP 골든 패스 완성 후 다음 단계 — 화면 단위 UX 정제 + 타로 도입
 
-Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주판 → 22별 차감 → 별콩이 SSE 풀이 → [END] → 결과/공유 → 마이페이지 히스토리** 가 dev/prod 양쪽 end-to-end 동작. 코드 골격 잡힌 상태.
+Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주판 → 22별 차감 → 별콩이 SSE 풀이 → [END] → 결과/공유 → 마이페이지 히스토리** 가 dev/prod 양쪽 end-to-end 동작.
 
-**다음 작업 = 한 화면씩 디테일 다듬기.** 진입 순서:
+**컨셉 피벗 (2026-05-25)**: v2 = 사주 단일 → **사주 + 타로 듀얼**. 진입 흐름도 v1 스타일로 회귀.
 
-1. `/` 랜딩 (별콩이 + 타이틀 + CTA + MY 진입)
-2. `/login` 로그인 (별콩이 카피 + 카카오 버튼)
-3. `/saju` 사주 입력 + 사주판
-4. `/saju/concern` 고민 입력 + 22별 안내
-5. `/saju/reading` 풀이 채팅 (sticky 사주판 + 타이핑 + [END])
-6. `/saju/result` 결과 + 공유
-7. `/mypage` 프로필 + 잔액 + 히스토리
-8. `/error` / `/not-found` 폴백
+**현재 사용자 흐름** (dev 반영 완료):
+- `/` 홈 → v1 톤 감정 태그 그리드 (6개, 인기 2 / 다른 4. "오늘의 카드" 제외)
+- 감정 클릭 → 로그인 가드 → `sessionStorage.byeolkong:emotion` 저장 후 `/concern`
+- `/concern` (신규) → 감정 컨텍스트 + 고민 textarea (10~200자) + **사주/타로 동등 picker**
+- 선택 후 `byeolkong:pending_consultation = {emotion, concern, type}` 저장 후 분기
+  - `saju` → `/saju` (생일 입력 → 사주판 → "풀이 듣기" 클릭 시 pending 있으면 `/saju/concern` 건너뛰고 바로 `/api/readings` → `/saju/reading` 직행)
+  - `tarot` → `/tarot` (placeholder "곧 만나" — 다음 단계에 본격 포팅)
+- 사주 흐름은 기존과 동일 (SSE → [END] → 결과/공유/마이페이지)
+- legacy: `/concern` 없이 `/saju` 직접 진입해도 기존 `/saju/concern` 흐름 작동 (폴백)
+
+**Header / BottomTab / Footer** ([components/layout/](components/layout)):
+- `Header` — 로고 별콩톡(Cafe24) + ⭐ 잔액 칩 (→/shop) + MY 아바타 칩 (→/mypage). `/login` 만 제외 모든 라우트에 sticky top
+- `BottomTab` 4탭 — 고민 상담(/) / 내 고민톡(/readings) / 별콩 상점(/shop) / 내 정보(/mypage). iOS safe-area, active = lilac-deep
+- `AppShell` — pathname 기반 (/login 제외) Header + BottomTab 자동 부착. `pb-20` 으로 탭 가림 방지
+- `Footer` — v1 베이스, 홈에서만 마운트. 사업자 정보 + 약관/개인정보/환불 링크 v1 그대로 (해당 페이지는 v2 에 없음 → 404, 출시 전 포팅 필요)
+
+**폰트**: `public/fonts/Cafe24Ssurround.otf` → `next/font/local` → `--font-display` (타이틀/디스플레이). 본문은 Noto Sans KR 유지.
+
+**다음 사이클 후보** (사용자가 캡처/지적해주거나 다음 진행 결정):
+
+1. **타로 본격 도입** (가장 큰 부채)
+   - v1 `data/tarot_card_data.json` 78장 + `public/cards/`, `public/cards-webp/` 자산 포팅
+   - `/tarot` placeholder → 스프레드 선택 (원/투/쓰리/관계, 가격 10/15/22/35별)
+   - `/tarot/draw` — 가로 스와이프 덱 + FLIP 애니메이션 + 방향 선택 (v1 패턴)
+   - `/tarot/reading` — `[CARD:n]` 마커 + 스프레드별 system prompt + 별 차감 + SSE
+   - DB 스키마: `readings.consultation_type` ('saju' | 'tarot') + `readings.spread_type` / `drawn_cards JSONB` 추가 마이그레이션
+   - 별도 API 라우트 `/api/consultations/tarot/*` 또는 chat 라우트 분기
+
+2. **화면 디테일 다듬기** (사용자 캡처 보고 결정)
+   - 홈 (히어로 톤/타이틀 카피/감정 태그 카드)
+   - `/concern` (사주/타로 picker 비주얼)
+   - 기존 `/saju`, `/saju/reading`, `/saju/result`, `/mypage` (Header/BottomTab 추가로 인한 패딩/위계 충돌 확인)
+
+3. **운영/legal 정리**
+   - `/terms`, `/privacy`, `/refund` 페이지 — Footer 링크가 가리키는데 v2 에 없음 (현재 404)
+   - Footer 부제 "AI 타로 친구" 톤 정리 (이제 사주+타로 듀얼)
+   - 동일 사업자 가정으로 사업자 정보/이메일 그대로 — 변경 필요 시 [components/layout/Footer.tsx](components/layout/Footer.tsx) 수정
 
 **진행 컨벤션** (이 흐름으로 새 세션 진입):
 - 사용자가 해당 페이지 dev 에서 열어 캡처 + 어색한 부분 짚음
 - 코드 변경 → 빌드 → dev push → 사용자 새로고침 검증 → 좋으면 main fast-forward
 - 한 화면당 1~3 사이클이면 보통 정리됨
+- 큰 작업 (타로 도입) 은 단계 나눠서 (스키마 → 자산 → draw → reading) 사이클 다회로 끊어서 진행
 
 **보류된 큰 부채** (출시 전 처리):
 - Phase 3 PG 결정 + `chargeStars` 호출처 (별 재충전 안 되면 출시 불가)
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
 - `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
 - 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용
+- v2 `/terms`, `/privacy`, `/refund` 페이지 (Footer 가 가리키는 중)
+- 타로 도입 (위 1번)
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
