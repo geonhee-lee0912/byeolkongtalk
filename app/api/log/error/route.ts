@@ -5,12 +5,11 @@
 // - rate limit (IP 분당 30건)
 // - body 사이즈 제한 (32KB)
 // - source 강제 'client' 로 덮어쓰기 (위조 방지)
-//
-// Phase 4 (a) 시점: 세션 미구현. user_id/anonymous_id 는 null 로만 적재.
-// Phase 4 (b) auth 이식 후 lib/session 에서 세션 추출 보강 예정.
+// - user_id/anonymous_id 는 서버 세션에서 추출 (클라이언트가 보낸 값 무시)
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +64,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no_message" }, { status: 400 });
   }
 
+  // 세션 정보 보강 (클라이언트가 보낸 user_id 신뢰 X)
+  const session = await getSession();
+
   const payload = {
     level,
     source: "client" as const, // 클라 라우트는 무조건 client
@@ -76,8 +78,8 @@ export async function POST(req: NextRequest) {
         ? body.fingerprint.slice(0, 64)
         : "00000000",
     route: typeof body.route === "string" ? body.route : null,
-    user_id: null, // Phase 4 (b) 에서 세션 보강
-    anonymous_id: null,
+    user_id: session.userId ?? null,
+    anonymous_id: session.anonymousId ?? null,
     user_agent: req.headers.get("user-agent")?.slice(0, 500) ?? null,
     ip: ip.slice(0, 64),
     context:

@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 // 비비체 활성화: public/fonts/Bibi.ttf 추가 후 아래 주석 해제
 // import localFont from "next/font/local";
+import { Suspense } from "react";
+import AuthBootstrap from "@/components/auth/AuthBootstrap";
+import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
 import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
@@ -50,7 +53,13 @@ export default function RootLayout({
       lang="ko"
       className={`${notoSansKR.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <AuthBootstrap />
+        </Suspense>
+        <KakaoSdkLoader />
+        {children}
+      </body>
     </html>
   );
 }
