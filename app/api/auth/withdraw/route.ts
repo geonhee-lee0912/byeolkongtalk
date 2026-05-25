@@ -57,8 +57,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // TODO (Phase 4 c+): star_transactions/readings 순환 FK 끊기 + 본인 row 삭제
-  // (Phase 4 b 시점엔 해당 테이블 없음)
+  // 본인 row 삭제 — star_transactions / star_balances 는 users ON DELETE CASCADE 라
+  // users 삭제 시 자동 정리되지만, 명시적으로 먼저 비워서 의도 분명히 (감사 추적).
+  // TODO (Phase 5): readings/messages 추가 + readings.transaction_id ↔ star_transactions.reading_id
+  //                 순환 FK 끊기 단계 추가 (v1 패턴 참고)
+  await Promise.all([
+    supabase.from("star_transactions").delete().eq("user_id", userId),
+    supabase.from("star_balances").delete().eq("user_id", userId),
+  ]);
 
   // users 삭제 — error_logs.user_id FK 는 ON DELETE SET NULL 이라 자동 처리
   const { error: userErr } = await supabase

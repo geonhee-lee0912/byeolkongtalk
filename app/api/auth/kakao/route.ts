@@ -110,7 +110,13 @@ export async function GET(request: NextRequest) {
       userId = newUser.id;
       isNewUser = true;
 
-      // TODO (Phase 4 c): star_balances 신규 row INSERT — stars 테이블 추가 후 활성화
+      // 별 잔액 초기화 (신규 유저). RLS 우회 service_role 라 직접 INSERT.
+      await supabase.from("star_balances").insert({
+        user_id: userId,
+        balance: 0,
+        total_earned: 0,
+        total_spent: 0,
+      });
     }
 
     // TODO (Phase 5): byeolkong_anon_id 의 readings 를 user_id 로 이관 (migrate_anonymous_readings RPC)
