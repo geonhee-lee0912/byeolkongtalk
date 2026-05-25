@@ -181,13 +181,20 @@ public/
   - [x] (b) 입력 폼 + 사주판 + `/api/consultations/saju/calc` — 분리 셀렉트 + 12지지 시간 + 양/음력 + 윤달 + 시간모름. 4기둥 그리드 + 오행 막대 + 일주 ★. 랜딩에 CTA. **검증**: dev/prod 양쪽 브라우저에서 본인 사주 정확도 spot check + 음력 변환 + 시간모름 분기 모두 통과
   - [x] (c) Claude 풀이 채팅 — `SAJU_READING_COST=22` 단일 가격. `lib/claude` (페르소나 caching + 사주 컨텍스트 + 수렴 가이드 동적 주입) + `/api/readings` POST (profile+reading+spendStars 원자) + `/api/consultations/saju/chat` SSE 스트림 + `/saju/concern` 고민 입력 + `/saju/reading` 채팅 UI + ChatBubble + SajuBoardCompact. [END] 마커 자동 종료. **검증**: dev + prod 양쪽 카카오 로그인 → 사주 입력 → 22별 차감 → 별콩이 자동 풀이 SSE 통과
   - [x] (e1 / Phase 4 e) 위기 시그널 안전망 — `sensitive_alerts` (5 카테고리 + severity 1-3) + `lib/sensitive` (regex 1차 + Claude haiku 2차) + `/api/consultations/saju/chat` 통합 (응답 헤더 + DB INSERT + readings.has_sensitive) + `SafetyBanner` (카테고리별 hotline + 익명·무료 강조 + 별콩이 톤 안내). **검증**: dev "죽고 싶어" 키워드로 SafetyBanner 노출 + sensitive_alerts row 생성 확인
-  - [ ] (e2) 결과 / 공유 / 마이페이지 — result 페이지 + OG 이미지 + 카카오 공유 + /mypage 히스토리 + 위기 readings 공유 차단 분기
+  - [x] (e2) 결과 / 공유 / 마이페이지 — `lib/saju/closing` 마무리 한마디 추출 + `/api/readings/[id]` 단건 + `/api/readings` 리스트 + `/saju/result` (사주판 + 한마디 카드 + 대화 다시보기 + 공유) + `ShareButtons` (Web Share + 클립보드 + has_sensitive 차단) + `/api/og/saju/[readingId]` next/og 1200×630 + `lib/kakao-share` SDK feed + `/mypage` (프로필 + 잔액 + 히스토리 + 로그아웃/탈퇴) + 랜딩 MY 진입점. reading [END] → result 자동 이동
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 5 (e2) 운영 노트 — 결과 / 공유 / 마이페이지
+- 마무리 한마디 추출 (`lib/saju/closing`): 마지막 assistant 메시지 `[END]` 제거 + 마지막 문단 (250자 cap). 페르소나가 응답 끝에 응원 한마디를 보장하니까 거의 항상 자연스러운 문단
+- 공유 흐름: 1) 카카오톡 (Kakao.Share.sendDefault feed — OG 이미지 + 마무리 한마디 + 링크) 2) 링크/텍스트 (Web Share API → 클립보드 폴백)
+- 위기 차단 분기: `readings.has_sensitive=true` → result 페이지의 ShareButtons 가 "🤍 너만의 기록으로 둘게" 안내 박스로 자동 대체. OG 이미지 라우트도 403 반환 (URL 직접 접근 차단)
+- OG 이미지 라우트 (`/api/og/saju/[readingId]`): UUID 형식 검증 → has_sensitive 차단 → readings + messages 조회 → Pretendard CDN 폰트 모듈 캐싱 → 1200×630 다크 그라데이션 + 4기둥 한자 + 한마디 + 일간/도메인 워터마크. 카카오톡 미리보기 / 트위터 카드용
+- 마이페이지: 회원 탈퇴는 동의 체크박스 → `/api/auth/withdraw` (CSRF Origin 검증 + 카카오 unlink + users CASCADE). 충전 버튼은 PG 결정 (Phase 3) 까지 disabled
 
 ### Phase 5 (e1) / Phase 4 (e) 운영 노트 — 위기 시그널 안전망
 - 감지 흐름: chat 라우트 → user 마지막 메시지 → `detectSensitiveSync` (~1ms) → 매칭 시 응답 헤더 `X-Sensitive-Category` + `X-Sensitive-Severity` → 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 회색지대(low certainty)면 `detectSensitiveAsync` (Claude haiku) fire-and-forget — false positive 검수 + alert 보강
