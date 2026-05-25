@@ -170,7 +170,12 @@ public/
 - [x] **Phase 1** — 레포 부트스트랩 (Next 16 + Tailwind 4 + 디자인 시스템 + 랜딩 페이지)
 - [x] **Phase 2** — dev/prod 인프라 셋업 (Supabase Branching + Git sync, 카카오 dev/prod 앱, Vercel 프로젝트 + 도메인 매핑, env 22개)
 - [ ] **Phase 3** — 외부 서비스 추가 (PG사 결정 후 결제 / GA4 — 선택)
-- [ ] **Phase 4** — 검증된 인프라 이식 (logger, auth, stars, admin, sensitive — v1에서 패턴 가져옴)
+- [ ] **Phase 4** — 검증된 인프라 이식
+  - [x] (a) logger + /api/health + boundary 페이지 — `error_logs` 마이그레이션, `lib/supabase`/`lib/env`/`lib/logger`, `/api/health`, `/api/log/error`, `app/error.tsx` + `app/global-error.tsx` + `app/not-found.tsx`. dev/prod 양쪽 `/api/health` 200 OK
+  - [ ] (b) auth — 카카오 OAuth + 익명→유저 마이그레이션 + 쿠키 세션 + `/api/auth/*`
+  - [ ] (c) stars — 별 잔액/트랜잭션 + RPC + `/api/stars/*`
+  - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
+  - [ ] (e) sensitive — 위기 시그널 감지 + SafetyBanner + alerts 테이블
 - [ ] **Phase 5** — 사주 도메인 신규 설계 (manseryeok + 페르소나 + UI + 가격표)
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
 
@@ -178,6 +183,13 @@ public/
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 4 (a) 운영 노트 — Supabase main 자동 sync
+- main(production) 브랜치는 GitHub Integration 첫 활성화 시점에 `<timestamp> / remote_schema` baseline row 가 `supabase_migrations.schema_migrations` 에 자동 생성됨. 그 timestamp 의 .sql 파일은 git repo 엔 없으므로 매 main push 마다 drift 로 abort → 한 번 수동 정리 필요
+- 진단 위치: Branches → main → **Workflow logs** (Migrations FAILED + 마지막 줄 `Remote migration versions not found in local migrations directory`)
+- 해결: main DB SQL Editor 에서 `DELETE FROM supabase_migrations.schema_migrations WHERE version = '<baseline_ts>';` → 빈 commit (`git commit --allow-empty`) 으로 재트리거
+- 이후 새 마이그레이션 push 마다 main Workflow logs 에서 SUCCESS 확인 습관화
+- Vercel env 새로 등록 직후엔 `/api/health` 로 URL/Key mismatch 검증 (Phase 4 a 진행 중 prod env 한 번 잘못 매칭됐던 사례)
 
 ## 관련 레포
 
