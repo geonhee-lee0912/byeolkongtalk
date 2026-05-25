@@ -14,6 +14,40 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+// GET /api/readings — 본인 readings 리스트 (마이페이지용)
+export async function GET() {
+  const { userId } = await getSession();
+  if (!userId) {
+    return NextResponse.json({ readings: [] });
+  }
+
+  const supabase = getServiceSupabase();
+  const { data, error } = await supabase
+    .from("readings")
+    .select(
+      "id, question, saju_data, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return NextResponse.json({ readings: [], error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    readings: (data ?? []).map((r) => ({
+      id: r.id,
+      question: r.question,
+      sajuData: r.saju_data,
+      starsSpent: r.stars_spent,
+      hasSensitive: r.has_sensitive,
+      createdAt: r.created_at,
+      profile: r.profile,
+    })),
+  });
+}
+
 const VALID_RELATIONS = ["self", "family", "friend", "partner", "other"] as const;
 const VALID_GENDERS = ["male", "female", "other"] as const;
 

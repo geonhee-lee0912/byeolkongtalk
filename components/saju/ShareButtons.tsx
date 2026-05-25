@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 
 export interface ShareButtonsProps {
   readingId: string;
@@ -89,13 +90,39 @@ export default function ShareButtons({
     }
   };
 
+  const handleKakaoShare = () => {
+    if (typeof window === "undefined") return;
+    const link = `${window.location.origin}/saju/result?id=${readingId}`;
+    const imageUrl = `${window.location.origin}/api/og/saju/${readingId}`;
+    const ok = shareToKakao({
+      title: "별콩이의 사주 풀이",
+      description: closingLine ?? `일간 ${dayStem} (${dayElement})`,
+      imageUrl,
+      link,
+    });
+    if (!ok) {
+      setToast("카카오 SDK 가 아직 준비 안 됐어");
+      setTimeout(() => setToast(null), 2200);
+    }
+  };
+
   return (
-    <div className="relative">
+    <div className="relative flex flex-col gap-2">
+      <button
+        onClick={handleKakaoShare}
+        disabled={!isKakaoReady()}
+        className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[14px] flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+        </svg>
+        카카오톡으로 공유하기
+      </button>
       <button
         onClick={handleShare}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
       >
-        친구에게 이 풀이 공유하기
+        링크 / 텍스트로 공유하기
       </button>
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-[12px] whitespace-nowrap shadow-lg">
