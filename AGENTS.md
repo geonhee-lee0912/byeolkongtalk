@@ -179,7 +179,7 @@ public/
 - [ ] **Phase 5** — 사주 도메인 신규 설계
   - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + `data/persona/byeolkong.md` 시스템 프롬프트
   - [x] (b) 입력 폼 + 사주판 + `/api/consultations/saju/calc` — 분리 셀렉트 + 12지지 시간 + 양/음력 + 윤달 + 시간모름. 4기둥 그리드 + 오행 막대 + 일주 ★. 랜딩에 CTA. **검증**: dev/prod 양쪽 브라우저에서 본인 사주 정확도 spot check + 음력 변환 + 시간모름 분기 모두 통과
-  - [ ] (c) Claude 풀이 채팅 + 가격 정책 + spendStars 호출처 완성
+  - [x] (c) Claude 풀이 채팅 — `SAJU_READING_COST=22` 단일 가격. `lib/claude` (페르소나 caching + 사주 컨텍스트 + 수렴 가이드 동적 주입) + `/api/readings` POST (profile+reading+spendStars 원자) + `/api/consultations/saju/chat` SSE 스트림 + `/saju/concern` 고민 입력 + `/saju/reading` 채팅 UI + ChatBubble + SajuBoardCompact. [END] 마커 자동 종료. **검증**: dev + prod 양쪽 카카오 로그인 → 사주 입력 → 22별 차감 → 별콩이 자동 풀이 SSE 통과
   - [ ] (d) 위기 시그널 안전망 (Phase 4 e 통합)
   - [ ] (e) 결과 / 공유 / 마이페이지
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
@@ -188,6 +188,14 @@ public/
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
 - 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
+
+### Phase 5 (c) 운영 노트 — 풀이 채팅 + Claude
+- 가격: 단일 22별/풀이. `SAJU_READING_COST` 상수만 바꾸면 일괄 변경. 무료 정책 X
+- 수렴 임계치 (단일): convergeStart 4턴/1800자, hardcap 6턴/2200자, abs 9턴. 짧은 핑퐁 사용자도 abs 에서 안전 종료
+- 페르소나 system prompt 는 매 호출 정적 (12-15K 토큰 추정) → `cache_control: ephemeral` 마킹. 첫 턴 cache write 1.25× / 후속 cache read 0.1× → 5턴 세션 ~33-40% 비용 절감 추정
+- chat 라우트는 readings 소유권 검증 + messages 테이블에서 누적 turn/chars 직접 계산 (서버 권위). 클라가 보낸 messages history 는 Claude 입력용으로만 사용, DB 신뢰 X
+- 첫 풀이는 readings.question 을 user 메시지로 전송 → 별콩이가 자동 풀이 (UX 흐름: concern 입력 → readings INSERT → reading 페이지가 question 전달)
+- KOE006/KOE101 트라이아지: 카카오 콘솔 1) Redirect URI 등록 2) Web 도메인 등록 (별개) 3) Client Secret 활성화 4) Vercel env 추가 후 redeploy 필수 (저장만으로 안 반영)
 
 ### Phase 5 (b) 운영 노트 — 사주판
 - 12지지 시간 매핑: 시진 시작값 (자시→0, 축시→2, …, 해시→22). 학설별 조자시/야자시 차이는 MVP 후 검토
