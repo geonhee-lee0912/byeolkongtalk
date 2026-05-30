@@ -358,10 +358,13 @@ function ShopContent() {
         )}
       </div>
 
-      {/* 하단 sticky 결제 버튼 */}
+      {/* 하단 sticky 결제 버튼 — BottomTab(h-16) 위로 띄움 */}
       {!isProcessing && selectedPkg && (
-        <div className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
-          <div className="max-w-md mx-auto px-5 pb-5 pt-3 pointer-events-auto">
+        <div
+          className="fixed inset-x-0 z-40 pointer-events-none"
+          style={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+        >
+          <div className="max-w-md mx-auto px-5 pb-3 pt-3 pointer-events-auto">
             <button
               onClick={handlePay}
               disabled={loading || !widgetReady}
