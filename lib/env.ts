@@ -2,8 +2,7 @@
 // /api/health 가 사용. 새 의존성(예: 토스/네이버페이) 추가 시 여기 한 줄 추가하면
 // 전 환경에서 자동으로 검증됨.
 //
-// Phase 4 (a) 시점 = 11개 (Claude 1 + 카카오 5 + Supabase 3 + Base URL 1 + Auth Secret 1).
-// 토스/PG 는 Phase 3 결정 후 추가.
+// 13개 (Claude 1 + 카카오 5 + Supabase 3 + Base URL 1 + Auth Secret 1 + 토스 2).
 
 export const REQUIRED_ENV = [
   "CLAUDE_API_KEY",
@@ -17,6 +16,8 @@ export const REQUIRED_ENV = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_BASE_URL",
   "AUTH_TOKEN_SECRET",
+  "NEXT_PUBLIC_TOSS_CLIENT_KEY",
+  "TOSS_SECRET_KEY",
 ] as const;
 
 export const OPTIONAL_ENV = ["NEXT_PUBLIC_GA_ID", "ADMIN_USER_IDS"] as const;

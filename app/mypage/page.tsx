@@ -141,12 +141,12 @@ export default function MyPage() {
               ⭐ {balance ?? 0}별
             </div>
           </div>
-          <button
-            disabled
-            className="px-4 py-2 rounded-xl bg-lilac-deep/50 text-white font-bold text-[12px] cursor-not-allowed"
+          <Link
+            href="/shop"
+            className="px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
           >
-            충전 (준비 중)
-          </button>
+            충전
+          </Link>
         </div>
       </div>
 

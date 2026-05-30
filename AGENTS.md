@@ -35,9 +35,14 @@ app/
   admin/                        # 어드민 콘솔 (Phase 4)
   api/
     consultations/saju/         # 사주 API
-    auth/, payment/, stars/, admin/, log/, health/   # 공통 인프라
+    auth/, payment/, payments/, stars/, admin/, log/, health/   # 공통 인프라
+    #   payment/ready · payment/confirm — 토스페이먼츠 결제 준비/승인
+    #   payments/list — 결제 내역
+  shop/                         # 별 충전소 (토스 결제위젯)
 lib/
   consultations/saju/           # manseryeok wrapper, 페르소나
+  toss.ts                       # 토스페이먼츠 서버 유틸 (confirm/cancel/getPayment)
+  constants.ts                  # STAR_PACKAGES 등 공용 상수
   auth/, payment/, stars/, sensitive/, logger/      # 공통
 components/
   consultations/saju/
@@ -169,11 +174,11 @@ public/
 - [x] **Phase 0** — 도메인 구매 (byeolkongtalk.com via Cloudflare Registrar)
 - [x] **Phase 1** — 레포 부트스트랩 (Next 16 + Tailwind 4 + 디자인 시스템 + 랜딩 페이지)
 - [x] **Phase 2** — dev/prod 인프라 셋업 (Supabase Branching + Git sync, 카카오 dev/prod 앱, Vercel 프로젝트 + 도메인 매핑, env 22개)
-- [ ] **Phase 3** — 외부 서비스 추가 (PG사 결정 후 결제 / GA4 — 선택)
+- [x] **Phase 3** — 외부 서비스 추가 — 토스페이먼츠 결제 채택 (v1 패턴 이식: `lib/toss` + `/api/payment/ready`·`/confirm` + `/api/payments/list` + `payments` 마이그레이션 + `/shop` 충전소). GA4 는 선택(미적용)
 - [ ] **Phase 4** — 검증된 인프라 이식
   - [x] (a) logger + /api/health + boundary 페이지 — `error_logs` 마이그레이션, `lib/supabase`/`lib/env`/`lib/logger`, `/api/health`, `/api/log/error`, `app/error.tsx` + `app/global-error.tsx` + `app/not-found.tsx`. dev/prod 양쪽 `/api/health` 200 OK
   - [x] (b) auth — 카카오 OAuth + 익명 식별자 + 쿠키 세션 + `/api/auth/*`. `users` 마이그레이션 + error_logs FK ALTER, `lib/session` (Next 16 `await cookies()`) + `lib/auth-token` HMAC + `lib/kakao` + `lib/admin`, `middleware.ts` (anon + admin guard), `AuthBootstrap` + `KakaoSdkLoader`, `app/login`
-  - [x] (c) stars — `star_balances` + `star_transactions` + `spend_stars`/`charge_stars` RPC (SELECT FOR UPDATE + 멱등성), `lib/stars`, `/api/stars/balance` + `/api/stars/spend`. `/api/auth/kakao` 신규 유저 잔액 INSERT + `/api/auth/withdraw` stars 삭제 단계도 보강. **단**: `chargeStars` 호출처(결제 confirm) 는 Phase 3 PG 결정 후, `star_transactions.reading_id` FK + spend 의 reading 소유권 검증은 Phase 5 readings 추가 후
+  - [x] (c) stars — `star_balances` + `star_transactions` + `spend_stars`/`charge_stars` RPC (SELECT FOR UPDATE + 멱등성), `lib/stars`, `/api/stars/balance` + `/api/stars/spend`. `/api/auth/kakao` 신규 유저 잔액 INSERT + `/api/auth/withdraw` stars 삭제 단계도 보강. `chargeStars` 호출처(결제 confirm)는 Phase 3 토스 결제로 연결 완료. `star_transactions.reading_id` FK + spend 의 reading 소유권 검증은 Phase 5 readings 추가 후
   - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
   - [x] (e) sensitive — Phase 5 (e1) 과 통합 완료 (위 Phase 5 e1 항목 참고)
 - [ ] **Phase 5** — 사주 도메인 신규 설계
@@ -235,7 +240,6 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 큰 작업 (타로 도입) 은 단계 나눠서 (스키마 → 자산 → draw → reading) 사이클 다회로 끊어서 진행
 
 **보류된 큰 부채** (출시 전 처리):
-- Phase 3 PG 결정 + `chargeStars` 호출처 (별 재충전 안 되면 출시 불가)
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
 - `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
 - 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용
@@ -244,7 +248,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
-- 결제: 토스 → 보류, PG사 미정 (Phase 4 시점 결정 — 카카오페이/네이버페이/부트페이 등 후보)
+- 결제: **토스페이먼츠 채택** (v1 패턴 이식, Phase 3). 결제위젯 v2 SDK + `/api/payment/ready`·`/confirm` + `payments` 테이블 + `/shop` 충전소
 - AUTH_TOKEN_SECRET: dev/prod 다른 32 hex 시크릿 (Vercel env 등록 완료)
 
 ### Phase 5 (e2) 운영 노트 — 결과 / 공유 / 마이페이지
@@ -252,7 +256,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 공유 흐름: 1) 카카오톡 (Kakao.Share.sendDefault feed — OG 이미지 + 마무리 한마디 + 링크) 2) 링크/텍스트 (Web Share API → 클립보드 폴백)
 - 위기 차단 분기: `readings.has_sensitive=true` → result 페이지의 ShareButtons 가 "🤍 너만의 기록으로 둘게" 안내 박스로 자동 대체. OG 이미지 라우트도 403 반환 (URL 직접 접근 차단)
 - OG 이미지 라우트 (`/api/og/saju/[readingId]`): UUID 형식 검증 → has_sensitive 차단 → readings + messages 조회 → Pretendard CDN 폰트 모듈 캐싱 → 1200×630 다크 그라데이션 + 4기둥 한자 + 한마디 + 일간/도메인 워터마크. 카카오톡 미리보기 / 트위터 카드용
-- 마이페이지: 회원 탈퇴는 동의 체크박스 → `/api/auth/withdraw` (CSRF Origin 검증 + 카카오 unlink + users CASCADE). 충전 버튼은 PG 결정 (Phase 3) 까지 disabled
+- 마이페이지: 회원 탈퇴는 동의 체크박스 → `/api/auth/withdraw` (CSRF Origin 검증 + 카카오 unlink + users CASCADE). 충전 버튼은 `/shop` (토스 충전소) 로 연결
 
 ### Phase 5 (e1) / Phase 4 (e) 운영 노트 — 위기 시그널 안전망
 - 감지 흐름: chat 라우트 → user 마지막 메시지 → `detectSensitiveSync` (~1ms) → 매칭 시 응답 헤더 `X-Sensitive-Category` + `X-Sensitive-Severity` → 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 회색지대(low certainty)면 `detectSensitiveAsync` (Claude haiku) fire-and-forget — false positive 검수 + alert 보강
