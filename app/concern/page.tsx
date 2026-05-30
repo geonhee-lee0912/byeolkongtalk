@@ -8,10 +8,10 @@ import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
   PENDING_KEY,
-  type ConsultationType,
   type EmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
+import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -20,7 +20,6 @@ export default function ConcernPage() {
   const router = useRouter();
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
   const [concern, setConcern] = useState("");
-  const [type, setType] = useState<ConsultationType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,8 +45,7 @@ export default function ConcernPage() {
   const option = EMOTION_OPTIONS.find((o) => o.tag === emotion);
   const remain = MAX_LEN - concern.length;
 
-  const canProceed =
-    concern.length >= MIN_LEN && concern.length <= MAX_LEN && type !== null;
+  const canProceed = concern.length >= MIN_LEN && concern.length <= MAX_LEN;
 
   const handleNext = () => {
     if (concern.length < MIN_LEN) {
@@ -58,27 +56,23 @@ export default function ConcernPage() {
       setError(`${MAX_LEN}자까지만 적을 수 있어`);
       return;
     }
-    if (!type) {
-      setError("어떤 방식으로 상담할지 골라줘");
-      return;
-    }
 
-    const payload: PendingConsultation = { emotion, concern, type };
+    const payload: PendingConsultation = { emotion, concern };
     sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
-
-    if (type === "saju") {
-      router.push("/saju");
-    } else {
-      router.push("/tarot");
-    }
+    router.push("/select");
   };
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-5">
+      <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center justify-between">
         <Link href="/" className="text-[12px] text-text-light/70">
           ‹ 다른 고민 고르기
         </Link>
+      </div>
+
+      {/* 진행 단계 */}
+      <div className="mb-5">
+        <ProgressSteps current={1} />
       </div>
 
       {/* 감정 컨텍스트 칩 — 선택한 고민 분류 싱크 */}
@@ -86,15 +80,19 @@ export default function ConcernPage() {
         <div className="w-full max-w-md mx-auto px-5 mb-5 flex justify-center">
           <div className="flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 bg-white/85 backdrop-blur-sm rounded-full border border-lilac-soft/70 text-[12px] shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
             <span
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[13px] flex-shrink-0"
+              className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
               style={{ background: EMOTION_GRADIENTS[emotion] }}
               aria-hidden
             >
-              {option.emoji}
+              <Image
+                src={option.icon}
+                alt=""
+                width={18}
+                height={18}
+                className="object-contain"
+              />
             </span>
             <span className="font-bold text-eye-purple">{option.tag}</span>
-            <span className="text-text-light/40">·</span>
-            <span className="text-text-light">{option.description}</span>
           </div>
         </div>
       )}
@@ -117,11 +115,11 @@ export default function ConcernPage() {
           >
             <span className="relative w-9 h-9 flex-shrink-0">
               <Image
-                src="/byeolkong-main.png"
+                src="/profile.png"
                 alt="별콩이"
                 fill
                 sizes="36px"
-                className="object-contain"
+                className="rounded-full object-cover"
               />
             </span>
             <div className="flex-1 min-w-0">
@@ -218,55 +216,6 @@ export default function ConcernPage() {
         </div>
       </div>
 
-      {/* 사주 / 타로 picker */}
-      <div className="w-full max-w-md mx-auto px-5 mb-6">
-        <h2 className="font-display text-[18px] text-eye-purple font-bold mb-3">
-          어떻게 봐줄까?
-        </h2>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            onClick={() => setType("saju")}
-            className={[
-              "flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/90 transition-all text-center",
-              type === "saju"
-                ? "border-2 border-lilac-deep shadow-[0_0_0_3px_rgba(159,138,208,0.18)]"
-                : "border border-lilac-soft hover:border-lilac-deep/40",
-            ].join(" ")}
-            aria-pressed={type === "saju"}
-          >
-            <span className="text-3xl" aria-hidden>
-              🪷
-            </span>
-            <p className="font-bold text-eye-purple text-[15px]">별콩이 사주</p>
-            <p className="text-[11px] text-text-light leading-snug">
-              생일·시간으로 흐름을 풀어줘
-            </p>
-            <p className="text-[11px] font-bold text-lilac-deep mt-1">⭐ 22별</p>
-          </button>
-
-          <button
-            onClick={() => setType("tarot")}
-            className={[
-              "flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/90 transition-all text-center",
-              type === "tarot"
-                ? "border-2 border-gold shadow-[0_0_0_3px_rgba(232,194,106,0.22)]"
-                : "border border-lilac-soft hover:border-gold/50",
-            ].join(" ")}
-            aria-pressed={type === "tarot"}
-          >
-            <span className="text-3xl" aria-hidden>
-              🃏
-            </span>
-            <p className="font-bold text-eye-purple text-[15px]">별콩이 타로</p>
-            <p className="text-[11px] text-text-light leading-snug">
-              카드를 뽑아 지금을 봐줘
-            </p>
-            <p className="text-[11px] font-bold text-gold mt-1">곧 만나</p>
-          </button>
-        </div>
-      </div>
-
       {error && (
         <p className="text-[12px] text-red-500 text-center px-5 max-w-md mb-3">
           {error}
@@ -281,9 +230,7 @@ export default function ConcernPage() {
         >
           {concern.length < MIN_LEN
             ? `${MIN_LEN}자 이상 적어줘`
-            : !type
-            ? "상담 방식을 골라줘"
-            : "별콩이한테 고민 보여주기"}
+            : "운세 선택하러 가기"}
         </button>
       </div>
     </main>

@@ -140,7 +140,7 @@ export type ConsultationType = "saju" | "tarot";
 export interface PendingConsultation {
   emotion: EmotionTag;
   concern: string;
-  type: ConsultationType;
+  type?: ConsultationType;
 }
 
 export const PENDING_KEY = "byeolkong:pending_consultation";

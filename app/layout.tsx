@@ -21,8 +21,13 @@ const cafe24Ssurround = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://byeolkongtalk.com"),
-  title: "별콩이 — 사주로 흐름을 봐줘",
+  title: "별콩톡",
   description: "별의 수호자 별콩이가 너의 사주를 펼쳐 흐름과 가능성을 안내해.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
   openGraph: {
     title: "별콩이 — 사주로 흐름을 봐줘",
     description: "별의 수호자 별콩이가 너의 사주를 펼쳐 흐름과 가능성을 안내해.",

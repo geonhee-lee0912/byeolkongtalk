@@ -34,10 +34,11 @@ export default function ChatBubble({
           <div className="flex items-center gap-2 mb-1">
             <div className="w-7 h-7 rounded-full bg-cream-warm overflow-hidden flex items-center justify-center border border-lilac-mid/40">
               <Image
-                src="/byeolkong-main.png"
+                src="/profile.png"
                 alt="별콩이"
                 width={28}
                 height={28}
+                className="w-full h-full object-cover"
               />
             </div>
             <span className="text-[12px] font-bold text-eye-purple">별콩이</span>

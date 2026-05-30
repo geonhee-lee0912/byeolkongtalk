@@ -21,6 +21,7 @@ import {
   type TarotSpreadSelection,
   type TarotDrawResult,
 } from "@/lib/tarot/session";
+import ProgressSteps from "@/components/concern/ProgressSteps";
 
 type Phase = "pick" | "direction";
 type Direction = "upright" | "reversed";
@@ -121,6 +122,10 @@ export default function TarotDrawPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-6 w-full animate-fade-in">
+      <div className="mb-5">
+        <ProgressSteps current={3} />
+      </div>
+
       <div className="w-full max-w-md mx-auto px-5">
         <h1 className="font-display text-[22px] text-eye-purple font-bold text-center">
           {phase === "pick" ? "카드를 골라봐" : "카드 방향을 정해줘"}

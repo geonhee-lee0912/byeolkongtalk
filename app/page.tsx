@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Footer from "@/components/layout/Footer";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
@@ -277,8 +276,6 @@ export default function Home() {
           </div>
         </section>
       </div>
-
-      <Footer />
     </>
   );
 }
