@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   // readings 조회 + 소유권 확인
   const { data: reading, error: rErr } = await supabase
     .from("readings")
-    .select("id, user_id, question, saju_data")
+    .select("id, user_id, question, saju_data, emotion_tag")
     .eq("id", body.readingId)
     .maybeSingle();
 
@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     concernText: reading.question ?? "",
+    emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
   });

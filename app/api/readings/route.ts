@@ -11,6 +11,9 @@ import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import { EMOTION_OPTIONS } from "@/lib/emotions";
+
+const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +71,7 @@ interface ReadingPostBody {
   profile: ProfileInput;
   sajuData: unknown; // SajuResult 직렬화 — 그대로 JSONB 저장
   question: string;
+  emotion?: string; // 감정 분류 (홈에서 고른 태그) — 없으면 null 저장
 }
 
 function validateProfile(p: unknown): ProfileInput | { error: string } {
@@ -216,6 +220,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // 감정 태그 — 화이트리스트에 없으면 무시 (null 저장)
+  const emotionTag =
+    typeof body.emotion === "string" && VALID_EMOTIONS.includes(body.emotion)
+      ? body.emotion
+      : null;
+
   // readings INSERT
   const { data: reading, error: rErr } = await supabase
     .from("readings")
@@ -224,6 +234,7 @@ export async function POST(request: NextRequest) {
       profile_id: profileRow.id,
       question: body.question,
       saju_data: body.sajuData,
+      emotion_tag: emotionTag,
       stars_spent: SAJU_READING_COST,
       has_sensitive: false,
     })

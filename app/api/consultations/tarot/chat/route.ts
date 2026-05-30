@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
     spreadCategory: reading.spread_category as SpreadCategory,
     concernText: reading.question ?? "",
     drawnCards: (reading.drawn_cards as DrawnCard[]) ?? [],
+    emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
   });

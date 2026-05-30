@@ -22,6 +22,8 @@ import type {
   SpreadCategory,
   DrawnCard,
 } from "@/lib/tarot/spreads";
+import type { EmotionTag } from "@/lib/emotions";
+import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -42,6 +44,8 @@ function getPersona(): string {
 export interface SajuReadingContext {
   saju: SajuResult;
   concernText: string;
+  /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
+  emotionTag?: EmotionTag | string | null;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END] 마커 제외한 순수 길이) */
@@ -127,6 +131,8 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
           userSignalGuide
         : "";
 
+  const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
+
   const dynamicPart = `---
 
 ## 이번 세션 정보
@@ -139,7 +145,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ${formatSajuBlock(ctx.saju)}
 
 ---
-${firstTurnGuide}${wrapGuide}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}`;
 
   return { staticPart, dynamicPart };
 }
@@ -211,6 +217,8 @@ export interface TarotReadingContext {
   spreadCategory: SpreadCategory;
   concernText: string;
   drawnCards: DrawnCard[];
+  /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
+  emotionTag?: EmotionTag | string | null;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END]·[CARD:n] 마커 제외) */
@@ -302,6 +310,8 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
           userSignalGuide
         : "";
 
+  const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
+
   const dynamicPart = `---
 
 ## 이번 세션 정보
@@ -313,7 +323,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${firstTurnGuide}${wrapGuide}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}`;
 
   return { staticPart, dynamicPart };
 }
