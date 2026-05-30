@@ -46,7 +46,7 @@ export default function Home() {
 
   return (
     <>
-      <div className="flex flex-col items-center relative w-full">
+      <div className="flex flex-col items-center relative w-full max-w-md mx-auto">
         {/* ━━━ 히어로 ━━━ */}
         <section
           className="w-full relative overflow-hidden rounded-b-3xl"
@@ -81,7 +81,7 @@ export default function Home() {
           <div className="max-w-md mx-auto px-5 pt-10 pb-12 relative z-10 animate-fade-in flex flex-col items-center">
             <div className="relative w-[180px] h-[180px] mb-3 animate-float">
               <Image
-                src="/byeolkong-main.png"
+                src="/byeolkong-hero.png"
                 alt="별콩이"
                 fill
                 sizes="180px"
@@ -94,9 +94,9 @@ export default function Home() {
               className="font-display text-[28px] text-eye-purple leading-snug tracking-wide text-center"
               style={{ textShadow: "0 2px 12px rgba(255,255,255,0.4)" }}
             >
-              오늘, 마음에 걸리는 거
+              나는 별콩이!
               <br />
-              별콩이한테 풀어볼래?
+              궁금한건 못참는 우주의 신령이야!
             </h1>
           </div>
         </section>
@@ -113,10 +113,10 @@ export default function Home() {
               style={{ boxShadow: "0 4px 20px rgba(90,62,140,0.08)" }}
             >
               <p className="text-eye-purple text-[14px] font-medium">
-                요즘 어떤 게 제일 마음에 걸려?
+                궁금한거나 고민이 있으면 나에게 말해봐!
               </p>
               <p className="text-lilac-deep text-[14px] mt-0.5 font-extrabold">
-                사주랑 타로로 같이 풀어볼게
+                내가 너의 대화 상대가 되어줄게
               </p>
             </div>
           </div>
@@ -124,6 +124,12 @@ export default function Home() {
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section className="w-full max-w-md mx-auto px-5 pt-7 pb-8 relative z-10">
+          <p className="text-[13px] text-text-light leading-relaxed mb-6 px-1">
+            말하기 어려운 고민도 괜찮아요. 별콩이가 운세를 기반으로 별빛처럼
+            조심스럽게 마음의 흐름을 읽어줄게요. 별콩이와의 대화를 통해 고민과
+            궁금증을 풀어봐요.
+          </p>
+
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 인기 고민
           </p>
