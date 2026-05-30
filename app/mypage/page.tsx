@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import SajuInputForm from "@/components/saju/SajuInputForm";
+import SajuBoard from "@/components/saju/SajuBoard";
+import type { SajuInput, SajuResult } from "@/lib/saju/calc";
+
+const MY_SAJU_KEY = "byeolkong:my_saju";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -31,6 +36,56 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawAck, setWithdrawAck] = useState(false);
+  const [saju, setSaju] = useState<SajuResult | null>(null);
+  const [sajuLoading, setSajuLoading] = useState(false);
+  const [sajuError, setSajuError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(MY_SAJU_KEY);
+      if (raw) setSaju(JSON.parse(raw) as SajuResult);
+    } catch {
+      // 손상된 캐시는 무시
+    }
+  }, []);
+
+  const handleSajuSubmit = async (input: SajuInput) => {
+    setSajuLoading(true);
+    setSajuError(null);
+    try {
+      const r = await fetch("/api/consultations/saju/calc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!r.ok) {
+        setSajuError("사주를 펼치지 못했어. 입력을 확인하고 다시 해줄래?");
+        return;
+      }
+      const d = await r.json();
+      const result = d.saju as SajuResult;
+      setSaju(result);
+      try {
+        localStorage.setItem(MY_SAJU_KEY, JSON.stringify(result));
+      } catch {
+        // 저장 실패는 표시에 영향 없음
+      }
+    } catch {
+      setSajuError("사주를 펼치지 못했어. 잠시 후 다시 시도해줘.");
+    } finally {
+      setSajuLoading(false);
+    }
+  };
+
+  const handleSajuReset = () => {
+    setSaju(null);
+    setSajuError(null);
+    try {
+      localStorage.removeItem(MY_SAJU_KEY);
+    } catch {
+      // 무시
+    }
+  };
 
   useEffect(() => {
     void (async () => {
@@ -150,60 +205,35 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 리딩 히스토리 */}
-      <div className="w-full max-w-md mx-auto px-5">
-        <div className="text-[12px] font-bold text-eye-purple mb-2">
-          나의 사주 풀이 ({readings.length})
-        </div>
-        {readings.length === 0 ? (
-          <div className="bg-cream-warm rounded-2xl p-6 border border-lilac-mid/30 text-center">
-            <p className="text-[13px] text-text-light leading-relaxed">
-              아직 풀이가 없어.
-              <br />첫 사주를 별콩이랑 펼쳐볼까?
-            </p>
-            <Link
-              href="/saju"
-              className="mt-3 inline-block px-5 py-2 rounded-xl bg-lilac-deep text-white text-[12px] font-bold"
+      {/* 나의 사주 정보 */}
+      <div className="w-full">
+        <div className="max-w-md mx-auto px-5 flex items-center justify-between mb-2">
+          <div className="text-[12px] font-bold text-eye-purple">나의 사주</div>
+          {saju && (
+            <button
+              onClick={handleSajuReset}
+              className="text-[11px] text-text-light/60 underline"
             >
-              사주 보러가기
-            </Link>
-          </div>
+              다시 입력
+            </button>
+          )}
+        </div>
+
+        {saju ? (
+          <SajuBoard saju={saju} />
         ) : (
-          <div className="flex flex-col gap-2">
-            {readings.map((r) => (
-              <Link
-                key={r.id}
-                href={`/saju/result?id=${r.id}`}
-                className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[13px] font-bold text-eye-purple">
-                  {r.sajuData?.dayStem ?? "-"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
-                    {r.question}
-                  </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
-                    <span>
-                      {new Date(r.createdAt).toLocaleDateString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                    <span>·</span>
-                    <span>⭐ {r.starsSpent}</span>
-                    {r.hasSensitive && (
-                      <>
-                        <span>·</span>
-                        <span className="text-rose-400">🤍</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="text-text-light/40 text-sm">›</span>
-              </Link>
-            ))}
-          </div>
+          <>
+            <p className="max-w-md mx-auto px-5 text-[12px] text-text-light leading-relaxed mb-4">
+              생년월일을 알려주면 너의 사주 여덟 글자를 펼쳐줄게.
+            </p>
+            <SajuInputForm onSubmit={handleSajuSubmit} loading={sajuLoading} />
+          </>
+        )}
+
+        {sajuError && (
+          <p className="max-w-md mx-auto px-5 mt-3 text-[12px] text-rose-500 text-center">
+            {sajuError}
+          </p>
         )}
       </div>
 
