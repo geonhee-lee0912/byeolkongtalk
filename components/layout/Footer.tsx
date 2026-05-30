@@ -15,7 +15,7 @@ export default function Footer() {
           <div>
             <p className="font-display text-[14px] text-eye-purple">별콩톡</p>
             <p className="text-[11px] text-text-light/50">
-              네 마음을 봐주는 AI 타로 친구
+              네 마음을 봐주는 AI 사주·타로 친구
             </p>
           </div>
         </div>
