@@ -12,6 +12,16 @@ import {
   HARD_CAP_CHARS,
   ABS_TURN_CAP,
 } from "@/lib/saju/constants";
+import { getCard } from "@/lib/tarot/cards";
+import {
+  WRAP_THRESHOLDS,
+  type WrapThresholds,
+} from "@/lib/tarot/constants";
+import type {
+  SpreadType,
+  SpreadCategory,
+  DrawnCard,
+} from "@/lib/tarot/spreads";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -170,3 +180,128 @@ export async function* streamChat(
 
 export const END_MARKER_REGEX = /\[END\]\s*$/;
 export const TRAILING_PARTIAL_MARKER = /\[E?N?D?$/;
+
+// ===== 타로 도메인 =====
+
+let _cachedTarotPersona: string | null = null;
+function getTarotPersona(): string {
+  if (_cachedTarotPersona === null) {
+    _cachedTarotPersona = readFileSync(
+      join(process.cwd(), "data", "persona", "byeolkong_tarot.md"),
+      "utf-8"
+    );
+  }
+  return _cachedTarotPersona;
+}
+
+export interface TarotReadingContext {
+  spreadType: SpreadType;
+  spreadCategory: SpreadCategory;
+  concernText: string;
+  drawnCards: DrawnCard[];
+  /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
+  assistantTurnsSoFar: number;
+  /** 지금까지 assistant 응답 누적 글자수 ([END]·[CARD:n] 마커 제외) */
+  cumulativeAssistantChars: number;
+}
+
+function formatDrawnCardsBlock(cards: DrawnCard[]): string {
+  const lines = cards.map((c, i) => {
+    const card = getCard(c.card_id);
+    const name = card?.name_kr ?? `카드 ${c.card_id}`;
+    const dir = c.direction === "reversed" ? "역방향" : "정방향";
+    const keywords =
+      card != null
+        ? (c.direction === "reversed" ? card.reversed : card.upright).join(", ")
+        : "";
+    return `  ${i + 1}. [${c.label}] ${name} (${dir}) — ${keywords}`;
+  });
+  return [`[뽑은 카드]`, ...lines].join("\n");
+}
+
+type WrapMode = "hardcap" | "converge" | "free";
+
+function computeWrapMode(
+  upcomingTurn: number,
+  cumulativeChars: number,
+  t: WrapThresholds
+): { mode: WrapMode; isLastConvergeTurn: boolean } {
+  const naturalHardcap =
+    upcomingTurn >= t.hardCapTurn && cumulativeChars >= t.hardCapChars;
+  const absHardcap = upcomingTurn >= t.absTurnCap;
+  if (naturalHardcap || absHardcap) {
+    return { mode: "hardcap", isLastConvergeTurn: false };
+  }
+
+  const isAbsCapMinus1 = upcomingTurn === t.absTurnCap - 1;
+  const isHardcapMinus1NaturalPath =
+    upcomingTurn === t.hardCapTurn - 1 &&
+    cumulativeChars >= t.convergeStartChars;
+
+  if (isAbsCapMinus1 || isHardcapMinus1NaturalPath) {
+    return { mode: "converge", isLastConvergeTurn: true };
+  }
+  if (
+    upcomingTurn >= t.convergeStartTurn &&
+    cumulativeChars >= t.convergeStartChars
+  ) {
+    return { mode: "converge", isLastConvergeTurn: false };
+  }
+  return { mode: "free", isLastConvergeTurn: false };
+}
+
+export function buildTarotSystemMessage(ctx: TarotReadingContext): {
+  staticPart: string;
+  dynamicPart: string;
+} {
+  const staticPart = getTarotPersona();
+
+  const isFirstTurn = ctx.assistantTurnsSoFar === 0;
+  const upcomingTurn = ctx.assistantTurnsSoFar + 1;
+  const t = WRAP_THRESHOLDS[ctx.spreadType];
+  const absCap = t.absTurnCap;
+
+  const { mode, isLastConvergeTurn } = computeWrapMode(
+    upcomingTurn,
+    ctx.cumulativeAssistantChars,
+    t
+  );
+
+  const firstTurnGuide = isFirstTurn
+    ? `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
+    : "";
+
+  const hardcapGuide = `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료 — askBonus 톤 절대 X)\n\n이번 응답은 대화를 **완전히 마무리하는 턴**이야. 유저가 "고마워", "알겠어", "응" 같은 시그널을 보내도 askBonus 톤으로 가지 말 것. **이 턴은 무조건 forceEnd**.\n\n유저가 마지막으로 꺼낸 얘기에 따뜻하게 답해주고 한 줄 정리한 뒤 종료해.\n\n**응답 끝에 반드시 아래 두 가지 포함:**\n1. **"별콩이는 항상 네 곁에 있어" 맥락의 한마디** — 언제든 새 카드로 돌아올 수 있다는 인상. 예: "궁금한 거 생기면 언제든 다시 카드 펼치러 와. 별콩이는 여기 있을게."\n2. **맨 마지막 줄에 [END] 마커를 단독 줄로** (이 마커가 없으면 프론트엔드가 종료 처리 못 함 — 절대 빠뜨리지 말 것)\n\n⚠️ "더 풀고 싶은 매듭 있으면…" 같은 열린 초대 문구 절대 X. 깔끔히 닫아.`;
+
+  const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}) — 종합 톤\n\n지금까지 나눈 얘기와 카드를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 이 카드들이 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새 분석 X)\n- 새 질문 던지지 않기\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까".`;
+
+  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 카드 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "카드는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n- 새 질문 X. [END] 절대 X (다음 턴 hardcap에서 자동 종료).\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
+
+  const userSignalGuide =
+    mode === "converge"
+      ? `\n\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\n\n다음 발화·패턴 중 하나라도 보이면 이번 턴을 askBonus 톤으로 답해:\n\n**명확 시그널:** "고마워"/"감사해", "알겠어"/"그렇구나"/"이해됐어", "이정도면 돼"/"충분해", 짧은 동의("응"/"ㅇㅇ"/"그래")\n**암묵적 시그널:** 메시지 길이가 직전 대비 절반 이하 + 새 질문 없음 (2턴 연속이면 더 확실)\n\n**askBonus 톤 (감사·마지막·하나 표현 사용 금지):**\n- 직전 발화/대화 핵심을 한 문장 짚기 → 카드 쪽으로 자연스럽게 수렴 → 열린 초대\n- 예: "여기까지 카드가 보여준 그림은 대충 잡힌 것 같아. 더 짚어보고 싶은 부분 있으면 편하게 던져봐."\n- [END] 마커 절대 X (이번 턴은 사용자에게 다시 공을 넘김)\n- 4~5문장`
+      : "";
+
+  const wrapGuide =
+    mode === "hardcap"
+      ? hardcapGuide
+      : mode === "converge"
+        ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
+          userSignalGuide
+        : "";
+
+  const dynamicPart = `---
+
+## 이번 세션 정보
+
+[고민 내용: ${ctx.concernText}]
+[스프레드: ${ctx.spreadType} / 카테고리: ${ctx.spreadCategory}]
+[지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
+
+${formatDrawnCardsBlock(ctx.drawnCards)}
+
+---
+${firstTurnGuide}${wrapGuide}`;
+
+  return { staticPart, dynamicPart };
+}
