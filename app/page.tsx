@@ -9,6 +9,7 @@ import {
   NORMAL_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
+import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   const router = useRouter();
@@ -276,6 +277,8 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <Footer />
     </>
   );
 }

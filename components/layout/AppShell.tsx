@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import BottomTab from "./BottomTab";
-import Footer from "./Footer";
 
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
 const HIDE_SHELL_PREFIXES: string[] = [
@@ -27,10 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <div className="flex-1 flex flex-col pb-20">
-        {children}
-        <Footer />
-      </div>
+      <div className="flex-1 flex flex-col pb-20">{children}</div>
       <BottomTab />
     </>
   );
