@@ -14,7 +14,7 @@ export default function Footer() {
           />
           <div>
             <p className="font-display text-[14px] text-eye-purple">별콩톡</p>
-            <p className="text-[11px] text-text-light/50">
+            <p className="text-[11px] text-text-light/80">
               네 마음을 봐주는 AI 사주·타로 친구
             </p>
           </div>
@@ -24,7 +24,7 @@ export default function Footer() {
         <div className="h-px bg-lilac-soft/40 mb-4" />
 
         {/* 사업자 정보 */}
-        <div className="text-[11px] text-text-light/50 leading-loose space-y-0.5">
+        <div className="text-[11px] text-text-light/90 leading-loose space-y-0.5">
           <p>상호: 브레이브샤인</p>
           <p>대표자: 이건희</p>
           <p>사업자등록번호: 537-29-02059</p>
@@ -38,25 +38,25 @@ export default function Footer() {
         <div className="flex items-center gap-4 mt-5 pt-4 border-t border-lilac-soft/30">
           <Link
             href="/terms"
-            className="text-[11px] text-text-light/50 hover:text-text-light transition-colors"
+            className="text-[11px] text-text-light/90 hover:text-eye-purple transition-colors"
           >
             이용약관
           </Link>
           <Link
             href="/privacy"
-            className="text-[11px] text-text-light/50 hover:text-text-light transition-colors"
+            className="text-[11px] text-text-light/90 hover:text-eye-purple transition-colors"
           >
             개인정보처리방침
           </Link>
           <Link
             href="/refund"
-            className="text-[11px] text-text-light/50 hover:text-text-light transition-colors"
+            className="text-[11px] text-text-light/90 hover:text-eye-purple transition-colors"
           >
             환불정책
           </Link>
         </div>
 
-        <p className="text-[10px] text-text-light/30 mt-4">
+        <p className="text-[10px] text-text-light/60 mt-4">
           © 2026 별콩톡. All rights reserved.
         </p>
       </div>

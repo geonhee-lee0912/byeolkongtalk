@@ -52,29 +52,61 @@ export default function Home() {
           className="w-full relative overflow-hidden rounded-b-3xl"
           style={{
             background:
-              "linear-gradient(180deg, #E8DEF5 0%, #D4C7EE 60%, #B8A8D8 100%)",
+              "linear-gradient(180deg, #16122E 0%, #241C49 40%, #382C6B 75%, #4A3A82 100%)",
           }}
         >
           {/* 별 파티클 */}
           <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-[10%] left-[18%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
+            <div className="absolute top-[8%] left-[18%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
             <div
-              className="absolute top-[16%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[14%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
               style={{ animationDelay: "0.4s" }}
             />
             <div
-              className="absolute top-[38%] left-[8%] w-1 h-1 bg-gold rounded-full animate-star-twinkle"
+              className="absolute top-[34%] left-[8%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
               style={{ animationDelay: "0.8s" }}
             />
             <div
-              className="absolute top-[28%] right-[8%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[24%] right-[9%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
               style={{ animationDelay: "1.2s" }}
             />
             <div
-              className="absolute top-[60%] right-[24%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
+              className="absolute top-[58%] right-[22%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
               style={{ animationDelay: "0.6s" }}
             />
-            <div className="absolute -top-12 -right-12 w-56 h-56 bg-white/30 rounded-full blur-3xl" />
+            <div
+              className="absolute top-[12%] left-[44%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.6s" }}
+            />
+            <div
+              className="absolute top-[20%] left-[30%] w-1.5 h-1.5 bg-white/90 rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.2s" }}
+            />
+            <div
+              className="absolute top-[46%] right-[12%] w-1 h-1 bg-gold rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.0s" }}
+            />
+            <div
+              className="absolute top-[52%] left-[14%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.4s" }}
+            />
+            <div
+              className="absolute top-[70%] left-[26%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.5s" }}
+            />
+            <div
+              className="absolute top-[40%] left-[50%] w-1 h-1 bg-white/80 rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.8s" }}
+            />
+            <div
+              className="absolute top-[66%] right-[16%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.9s" }}
+            />
+            <div
+              className="absolute top-[30%] right-[30%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.3s" }}
+            />
+            <div className="absolute -top-12 -right-12 w-56 h-56 bg-lilac/20 rounded-full blur-3xl" />
             <div className="absolute top-1/3 -left-16 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
           </div>
 
@@ -86,17 +118,17 @@ export default function Home() {
                 fill
                 sizes="180px"
                 priority
-                className="relative object-contain drop-shadow-md"
+                className="relative object-contain drop-shadow-lg"
               />
             </div>
 
             <h1
-              className="font-display text-[28px] text-eye-purple leading-snug tracking-wide text-center"
-              style={{ textShadow: "0 2px 12px rgba(255,255,255,0.4)" }}
+              className="font-display text-[28px] text-white leading-snug tracking-wide text-center"
+              style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
             >
-              나는 별콩이!
+              너를 기다리고 있었어.
               <br />
-              궁금한건 못참는 우주의 신령이야!
+              편하게 앉아서 이야기해
             </h1>
           </div>
         </section>
@@ -113,10 +145,10 @@ export default function Home() {
               style={{ boxShadow: "0 4px 20px rgba(90,62,140,0.08)" }}
             >
               <p className="text-eye-purple text-[14px] font-medium">
-                궁금한거나 고민이 있으면 나에게 말해봐!
+                궁금한거나 고민을 나에게 말해봐!
               </p>
               <p className="text-lilac-deep text-[14px] mt-0.5 font-extrabold">
-                내가 너의 대화 상대가 되어줄게
+                오늘 너의 마음은 어떤 흐름일까?
               </p>
             </div>
           </div>
@@ -124,11 +156,16 @@ export default function Home() {
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section className="w-full max-w-md mx-auto px-5 pt-7 pb-8 relative z-10">
-          <p className="text-[13px] text-text-light leading-relaxed mb-6 px-1">
-            말하기 어려운 고민도 괜찮아요. 별콩이가 운세를 기반으로 별빛처럼
-            조심스럽게 마음의 흐름을 읽어줄게요. 별콩이와의 대화를 통해 고민과
-            궁금증을 풀어봐요.
-          </p>
+          <div className="flex items-start gap-2.5 mb-6 px-4 py-3.5 rounded-2xl bg-lilac-soft/40 border border-lilac/30">
+            <span className="text-[15px] leading-none mt-0.5" aria-hidden>
+              💡
+            </span>
+            <p className="text-[12.5px] text-text-light leading-relaxed">
+              고민을 입력하면 별콩이가 타로나 사주 같은 운세를 기반으로 고민
+              상담을 해줄거예요. 말하기 어려운 고민도 괜찮아요. 별빛처럼
+              조심스럽게 마음의 흐름을 읽어줄게요.
+            </p>
+          </div>
 
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 인기 고민
