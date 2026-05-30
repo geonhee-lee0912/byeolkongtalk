@@ -1,44 +1,127 @@
-// 별콩톡 감정 카테고리 — v1 워딩 그대로, "오늘의 카드"는 v2 에서 제외
+// 별콩톡 감정/고민 카테고리 — v2 10종 리뉴얼 (이미지 아이콘 + 해시태그)
 
 export type EmotionTag =
-  | "연애 고민"
-  | "진로·미래"
-  | "사람·관계"
-  | "돈 걱정"
-  | "불안하고 지쳐"
-  | "결정을 못 하겠어";
+  | "그 사람 마음이 궁금해"
+  | "관계 때문에 마음이 쓰여"
+  | "내 앞날의 방향이 궁금해"
+  | "요즘 하는 일이 버거워"
+  | "어떤 선택이 맞을지 모르겠어"
+  | "요즘 내 흐름이 궁금해"
+  | "좋은 신호인지 확인하고 싶어"
+  | "새로운 시작이 기대돼"
+  | "잘하고 있는지 듣고 싶어"
+  | "그냥 별콩이한테 털어놓고 싶어";
 
 export interface EmotionOption {
   tag: EmotionTag;
   emoji: string;
   description: string;
+  /** public 폴더의 아이콘 이미지 (홈 카드에 사용) */
+  icon: string;
+  hashtags: string[];
 }
 
 export const EMOTION_OPTIONS: EmotionOption[] = [
-  { tag: "연애 고민", emoji: "💕", description: "자꾸 그 사람 생각이 나지?" },
-  { tag: "진로·미래", emoji: "🧭", description: "이대로 괜찮은 건지 불안하지?" },
-  { tag: "사람·관계", emoji: "👥", description: "말 못 할 사람 때문에 힘들지?" },
-  { tag: "돈 걱정", emoji: "💰", description: "돈 생각하면 한숨 나오지?" },
-  { tag: "불안하고 지쳐", emoji: "🌧️", description: "괜찮은 척 하느라 힘들었지?" },
-  { tag: "결정을 못 하겠어", emoji: "⚖️", description: "어느 쪽이든 후회할 것 같지?" },
+  {
+    tag: "그 사람 마음이 궁금해",
+    emoji: "💕",
+    description: "연애, 썸, 이별, 재회처럼 자꾸 마음이 향하는 사람이 있을 때",
+    icon: "/class01.png",
+    hashtags: ["연애", "썸", "재회", "상대마음"],
+  },
+  {
+    tag: "관계 때문에 마음이 쓰여",
+    emoji: "👥",
+    description: "친구, 가족, 동료와의 일이 마음에 남아 있거나 거리감이 느껴질 때",
+    icon: "/class02.png",
+    hashtags: ["인간관계", "가족", "친구", "서운함"],
+  },
+  {
+    tag: "내 앞날의 방향이 궁금해",
+    emoji: "🧭",
+    description: "진로와 미래, 지금 가는 길이 나에게 맞는지 알고 싶을 때",
+    icon: "/class03.png",
+    hashtags: ["진로", "미래", "방향", "인생고민"],
+  },
+  {
+    tag: "요즘 하는 일이 버거워",
+    emoji: "💼",
+    description: "회사, 공부, 해야 할 일들이 무겁고 지치게 느껴질 때",
+    icon: "/class04.png",
+    hashtags: ["일", "공부", "직장", "번아웃"],
+  },
+  {
+    tag: "어떤 선택이 맞을지 모르겠어",
+    emoji: "⚖️",
+    description: "여러 선택지 사이에서 고민되거나, 타이밍이 헷갈릴 때",
+    icon: "/class05.png",
+    hashtags: ["선택", "결정", "타이밍", "고민"],
+  },
+  {
+    tag: "요즘 내 흐름이 궁금해",
+    emoji: "🔮",
+    description: "특별한 고민은 없어도 지금의 운, 기회, 가까운 미래가 궁금할 때",
+    icon: "/class06.png",
+    hashtags: ["운세", "흐름", "기회", "가까운미래"],
+  },
+  {
+    tag: "좋은 신호인지 확인하고 싶어",
+    emoji: "✨",
+    description: "요즘 생긴 변화나 관계가 좋은 방향으로 가고 있는지 궁금할 때",
+    icon: "/class07.png",
+    hashtags: ["좋은신호", "확인", "기대", "관계흐름"],
+  },
+  {
+    tag: "새로운 시작이 기대돼",
+    emoji: "🌱",
+    description: "새 인연, 새 일, 새 선택 앞에서 앞으로의 흐름을 보고 싶을 때",
+    icon: "/class08.png",
+    hashtags: ["새출발", "설렘", "변화", "시작"],
+  },
+  {
+    tag: "잘하고 있는지 듣고 싶어",
+    emoji: "🌟",
+    description: "지금의 선택이나 노력이 괜찮은 방향인지 따뜻하게 확인받고 싶을 때",
+    icon: "/class09.png",
+    hashtags: ["응원", "확신", "자기확인", "위로"],
+  },
+  {
+    tag: "그냥 별콩이한테 털어놓고 싶어",
+    emoji: "💬",
+    description: "정확히 뭐라고 말해야 할지 몰라도, 지금 마음을 편하게 이야기하고 싶을 때",
+    icon: "/class10.png",
+    hashtags: ["자유상담", "마음정리", "그냥대화", "털어놓기"],
+  },
 ];
 
-export const HIGHLIGHT_TAGS: EmotionTag[] = ["연애 고민", "불안하고 지쳐"];
+// 1·5·9번 → 인기 고민, 나머지 → 다른 고민
+export const HIGHLIGHT_TAGS: EmotionTag[] = [
+  "그 사람 마음이 궁금해",
+  "어떤 선택이 맞을지 모르겠어",
+  "잘하고 있는지 듣고 싶어",
+];
 export const NORMAL_TAGS: EmotionTag[] = [
-  "진로·미래",
-  "사람·관계",
-  "돈 걱정",
-  "결정을 못 하겠어",
+  "관계 때문에 마음이 쓰여",
+  "내 앞날의 방향이 궁금해",
+  "요즘 하는 일이 버거워",
+  "요즘 내 흐름이 궁금해",
+  "좋은 신호인지 확인하고 싶어",
+  "새로운 시작이 기대돼",
+  "그냥 별콩이한테 털어놓고 싶어",
 ];
 
 /** 인라인 그라데이션 (Tailwind v4 @theme 기본 팔레트 의존 회피) */
 export const EMOTION_GRADIENTS: Record<EmotionTag, string> = {
-  "연애 고민":       "linear-gradient(135deg, #FCE7EE 0%, #F8D4DC 100%)",
-  "불안하고 지쳐":   "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
-  "진로·미래":       "linear-gradient(135deg, #FFF4DC 0%, #F2D78A 100%)",
-  "사람·관계":       "linear-gradient(135deg, #E3F1FA 0%, #C7E2F5 100%)",
-  "돈 걱정":         "linear-gradient(135deg, #E5F5EA 0%, #C9EAD4 100%)",
-  "결정을 못 하겠어": "linear-gradient(135deg, #ECE4F8 0%, #D4C7EE 100%)",
+  "그 사람 마음이 궁금해":     "linear-gradient(135deg, #FCE7EE 0%, #F8D4DC 100%)",
+  "관계 때문에 마음이 쓰여":   "linear-gradient(135deg, #E3F1FA 0%, #C7E2F5 100%)",
+  "내 앞날의 방향이 궁금해":   "linear-gradient(135deg, #FFF4DC 0%, #F2D78A 100%)",
+  "요즘 하는 일이 버거워":     "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+  "어떤 선택이 맞을지 모르겠어": "linear-gradient(135deg, #ECE4F8 0%, #D4C7EE 100%)",
+  "요즘 내 흐름이 궁금해":     "linear-gradient(135deg, #EDE4FA 0%, #D9C7F0 100%)",
+  "좋은 신호인지 확인하고 싶어": "linear-gradient(135deg, #FFF0E6 0%, #FAD7BE 100%)",
+  "새로운 시작이 기대돼":      "linear-gradient(135deg, #E5F5EA 0%, #C9EAD4 100%)",
+  "잘하고 있는지 듣고 싶어":   "linear-gradient(135deg, #FFF4DC 0%, #FAE2A6 100%)",
+  "그냥 별콩이한테 털어놓고 싶어": "linear-gradient(135deg, #EDEAF5 0%, #D7D0EC 100%)",
 };
 
 export type ConsultationType = "saju" | "tarot";

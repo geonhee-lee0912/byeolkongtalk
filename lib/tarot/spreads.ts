@@ -136,12 +136,16 @@ export const SPREAD_LABELS: Record<SpreadType, Record<string, string[]>> = {
 };
 
 export const EMOTION_TO_CATEGORY: Record<EmotionTag, SpreadCategory> = {
-  "연애 고민": "love",
-  "진로·미래": "career",
-  "사람·관계": "interpersonal",
-  "돈 걱정": "worry",
-  "불안하고 지쳐": "mental",
-  "결정을 못 하겠어": "decision",
+  "그 사람 마음이 궁금해": "love",
+  "관계 때문에 마음이 쓰여": "interpersonal",
+  "내 앞날의 방향이 궁금해": "career",
+  "요즘 하는 일이 버거워": "mental",
+  "어떤 선택이 맞을지 모르겠어": "decision",
+  "요즘 내 흐름이 궁금해": "default",
+  "좋은 신호인지 확인하고 싶어": "default",
+  "새로운 시작이 기대돼": "default",
+  "잘하고 있는지 듣고 싶어": "mental",
+  "그냥 별콩이한테 털어놓고 싶어": "default",
 };
 
 export function getSpreadOptions(category: SpreadCategory): SpreadType[] {
