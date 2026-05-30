@@ -64,7 +64,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-cream/85 backdrop-blur-md border-b border-lilac-soft/60">
-      <div className="max-w-md mx-auto h-14 flex items-center justify-between px-5">
+      <div className="max-w-md mx-auto h-14 flex items-center justify-between px-4">
         <Link
           href="/"
           className="font-display text-[22px] text-eye-purple tracking-wide font-bold"

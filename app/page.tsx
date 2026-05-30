@@ -126,9 +126,9 @@ export default function Home() {
               className="font-display text-[28px] text-white leading-snug tracking-wide text-center"
               style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
             >
-              안녕? 나는 별콩이야.
+              안녕! 나는 별콩이야
               <br />
-              편하게 앉아서 이야기해
+              편하게 이야기 나누자
             </h1>
           </div>
         </section>

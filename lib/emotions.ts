@@ -112,16 +112,26 @@ export const NORMAL_TAGS: EmotionTag[] = [
 
 /** 인라인 그라데이션 (Tailwind v4 @theme 기본 팔레트 의존 회피) */
 export const EMOTION_GRADIENTS: Record<EmotionTag, string> = {
-  "그 사람 마음이 궁금해":     "linear-gradient(135deg, #FCE7EE 0%, #F8D4DC 100%)",
-  "관계 때문에 마음이 쓰여":   "linear-gradient(135deg, #E3F1FA 0%, #C7E2F5 100%)",
-  "내 앞날의 방향이 궁금해":   "linear-gradient(135deg, #FFF4DC 0%, #F2D78A 100%)",
-  "요즘 하는 일이 버거워":     "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
-  "어떤 선택이 맞을지 모르겠어": "linear-gradient(135deg, #ECE4F8 0%, #D4C7EE 100%)",
-  "요즘 내 흐름이 궁금해":     "linear-gradient(135deg, #EDE4FA 0%, #D9C7F0 100%)",
-  "좋은 신호인지 확인하고 싶어": "linear-gradient(135deg, #FFF0E6 0%, #FAD7BE 100%)",
-  "새로운 시작이 기대돼":      "linear-gradient(135deg, #E5F5EA 0%, #C9EAD4 100%)",
-  "잘하고 있는지 듣고 싶어":   "linear-gradient(135deg, #FFF4DC 0%, #FAE2A6 100%)",
-  "그냥 별콩이한테 털어놓고 싶어": "linear-gradient(135deg, #EDEAF5 0%, #D7D0EC 100%)",
+  // 연애 — 로즈 핑크
+  "그 사람 마음이 궁금해":     "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
+  // 인간관계 — 스카이 블루
+  "관계 때문에 마음이 쓰여":   "linear-gradient(135deg, #E3F1FA 0%, #C2DEF5 100%)",
+  // 진로·방향 — 앰버 골드
+  "내 앞날의 방향이 궁금해":   "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
+  // 번아웃 — 차분한 민트 틸
+  "요즘 하는 일이 버거워":     "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
+  // 선택·결정 — 페리윙클 인디고
+  "어떤 선택이 맞을지 모르겠어": "linear-gradient(135deg, #E4E6FA 0%, #C3C8F0 100%)",
+  // 운세·흐름 — 미스틱 바이올렛
+  "요즘 내 흐름이 궁금해":     "linear-gradient(135deg, #EEE0FB 0%, #D4B6F0 100%)",
+  // 좋은 신호 — 코랄 피치
+  "좋은 신호인지 확인하고 싶어": "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
+  // 새 시작 — 프레시 그린
+  "새로운 시작이 기대돼":      "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
+  // 응원·확신 — 써니 레몬
+  "잘하고 있는지 듣고 싶어":   "linear-gradient(135deg, #FFF8DD 0%, #FBE89E 100%)",
+  // 자유상담 — 소프트 라일락 그레이
+  "그냥 별콩이한테 털어놓고 싶어": "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
 };
 
 export type ConsultationType = "saju" | "tarot";
