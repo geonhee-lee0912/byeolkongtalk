@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat } from "@/lib/claude";
+import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
   detectSensitiveSync,
@@ -34,6 +35,28 @@ export async function POST(request: NextRequest) {
   const { userId } = await getSession();
   if (!userId) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });
+  }
+
+  // Rate limit: Claude API 비용 보호 — 세션당 분당 20건 + IP당 분당 60건
+  maybeSweepExpired();
+  const ip = getClientIp(request);
+  const bySession = checkRateLimit({
+    namespace: "tarot_chat_session",
+    key: userId,
+    max: 20,
+    windowMs: 60_000,
+  });
+  const byIp = checkRateLimit({
+    namespace: "tarot_chat_ip",
+    key: ip,
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!bySession.ok || !byIp.ok) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
   }
 
   let body: ChatBody;

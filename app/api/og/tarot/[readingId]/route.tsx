@@ -1,14 +1,14 @@
-// 사주 풀이 OG 이미지 — 카카오톡 공유 / 트위터 등 미리보기용.
-// 1200×630 (카카오 권장 비율). 다크 그라데이션 + 4기둥 한자 + 별콩이 한마디 + 워터마크.
-//
-// 폰트는 Pretendard CDN 에서 fetch — 모듈 레벨 캐싱으로 cold start 외엔 IO 없음.
-// 카드 이미지 / 별콩이 캐릭터 png 는 일단 텍스트 / 별 파티클로 대체 (sharp 미설치)
+// 타로 풀이 OG 이미지 — 카카오톡 공유 / 트위터 등 미리보기용.
+// 1200×630 (카카오 권장 비율). 다크 그라데이션 + 뽑은 카드 + 별콩이 한마디 + 워터마크.
+// 사주 OG 와 동일 톤, 4기둥 대신 뽑은 카드 카드명/포지션 노출 (카드 이미지는 생략 — sharp 미설치).
 
 import { ImageResponse } from "next/og";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
-import type { SajuResult } from "@/lib/saju/calc";
+import { getCard } from "@/lib/tarot/cards";
+import { SPREAD_INFO } from "@/lib/tarot/spreads";
+import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 
 export const runtime = "nodejs";
 
@@ -24,6 +24,8 @@ async function getFont(): Promise<ArrayBuffer> {
   return fontCache;
 }
 
+const MARKER_RE = /\[CARD:\d+\]/g;
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ readingId: string }> }
@@ -31,7 +33,7 @@ export async function GET(
   // Rate limit: ImageResponse CPU 보호 — IP당 분당 30건
   maybeSweepExpired();
   const rl = checkRateLimit({
-    namespace: "og_saju_ip",
+    namespace: "og_tarot_ip",
     key: getClientIp(req),
     max: 30,
     windowMs: 60_000,
@@ -45,7 +47,6 @@ export async function GET(
 
   const { readingId } = await params;
 
-  // UUID 형식 검증 — 잘못된 ID로 무한 sharp 호출 차단
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(readingId)) {
     return new Response("invalid_id", { status: 400 });
   }
@@ -53,15 +54,14 @@ export async function GET(
   const supabase = getServiceSupabase();
   const { data: reading } = await supabase
     .from("readings")
-    .select("saju_data, question, has_sensitive")
+    .select("spread_type, drawn_cards, question, consultation_type, has_sensitive")
     .eq("id", readingId)
     .maybeSingle();
 
-  if (!reading) {
+  if (!reading || reading.consultation_type !== "tarot") {
     return new Response("not_found", { status: 404 });
   }
   if (reading.has_sensitive) {
-    // 위기 readings 는 공유 이미지 자체 생성 X
     return new Response("forbidden", { status: 403 });
   }
 
@@ -71,8 +71,17 @@ export async function GET(
     .eq("reading_id", readingId)
     .order("created_at", { ascending: true });
 
-  const saju = reading.saju_data as SajuResult;
-  const closingLine = extractClosingLine(messages ?? []) ?? "별콩이가 응원할게 ✨";
+  const cleaned = (messages ?? []).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content:
+      m.role === "assistant"
+        ? m.content.replace(MARKER_RE, "")
+        : m.content,
+  }));
+  const closingLine = extractClosingLine(cleaned) ?? "별콩이가 응원할게 ✨";
+  const cards = (reading.drawn_cards as DrawnCard[]) ?? [];
+  const spreadLabel =
+    SPREAD_INFO[reading.spread_type as SpreadType]?.label ?? "타로 풀이";
 
   const font = await getFont();
 
@@ -84,14 +93,14 @@ export async function GET(
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "linear-gradient(135deg, #1F1735 0%, #2A1F4D 55%, #5A3E8C 100%)",
+          background:
+            "linear-gradient(135deg, #1F1735 0%, #2A1F4D 55%, #5A3E8C 100%)",
           padding: "60px 70px",
           color: "white",
           fontFamily: "Pretendard",
           position: "relative",
         }}
       >
-        {/* 별 파티클 */}
         {[
           { top: 60, left: 110, size: 8, op: 0.9 },
           { top: 130, left: 880, size: 6, op: 0.7 },
@@ -127,11 +136,11 @@ export async function GET(
             marginBottom: 10,
           }}
         >
-          <span style={{ color: "#E8C26A" }}>✨</span>
-          <span>별콩이의 사주 풀이</span>
+          <span style={{ color: "#E8C26A" }}>🃏</span>
+          <span>별콩이의 타로 풀이 · {spreadLabel}</span>
         </div>
 
-        {/* 4기둥 */}
+        {/* 뽑은 카드 */}
         <div
           style={{
             display: "flex",
@@ -141,62 +150,39 @@ export async function GET(
             justifyContent: "center",
           }}
         >
-          {(["year", "month", "day", "hour"] as const).map((k, i) => {
-            const p = saju.pillars[k];
-            const labels = ["연", "월", "일", "시"];
+          {cards.slice(0, 5).map((c, i) => {
+            const card = getCard(c.card_id);
             return (
               <div
-                key={k}
+                key={i}
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 8,
                 }}
               >
-                <div style={{ fontSize: 16, opacity: 0.6 }}>{labels[i]}</div>
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "column",
-                    width: 110,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    width: 130,
                     height: 180,
+                    padding: "12px",
                     background: "rgba(255,255,255,0.08)",
                     borderRadius: 16,
                     border: "1px solid rgba(232,194,106,0.3)",
-                    overflow: "hidden",
+                    fontSize: 22,
+                    color: "#F2D78A",
+                    lineHeight: 1.3,
                   }}
                 >
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 56,
-                      color: "#F2D78A",
-                    }}
-                  >
-                    {p.hanja[0]}
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 56,
-                      color: "#F2D78A",
-                      borderTop: "1px solid rgba(255,255,255,0.1)",
-                    }}
-                  >
-                    {p.hanja[1]}
-                  </div>
+                  {card?.name_kr ?? "?"}
+                  {c.direction === "reversed" ? " (역)" : ""}
                 </div>
-                <div style={{ fontSize: 14, opacity: 0.7 }}>
-                  {p.stem}
-                  {p.branch}
-                </div>
+                <div style={{ fontSize: 15, opacity: 0.7 }}>{c.label}</div>
               </div>
             );
           })}
@@ -232,7 +218,7 @@ export async function GET(
             opacity: 0.6,
           }}
         >
-          <span>일간 {saju.dayStem} · {saju.dayElement}</span>
+          <span>{spreadLabel}</span>
           <span>byeolkongtalk.com</span>
         </div>
       </div>

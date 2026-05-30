@@ -21,7 +21,7 @@ export async function GET(
   const { data: reading, error } = await supabase
     .from("readings")
     .select(
-      "id, user_id, profile_id, question, saju_data, stars_spent, has_sensitive, created_at"
+      "id, user_id, profile_id, question, saju_data, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, stars_spent, has_sensitive, created_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -52,6 +52,11 @@ export async function GET(
       id: reading.id,
       question: reading.question,
       sajuData: reading.saju_data,
+      consultationType: reading.consultation_type,
+      spreadType: reading.spread_type,
+      spreadCategory: reading.spread_category,
+      emotionTag: reading.emotion_tag,
+      drawnCards: reading.drawn_cards,
       starsSpent: reading.stars_spent,
       hasSensitive: reading.has_sensitive,
       createdAt: reading.created_at,

@@ -10,7 +10,9 @@ interface ReadingItem {
   sajuData: {
     dayStem: string;
     dayElement: string;
-  };
+  } | null;
+  consultationType?: string;
+  spreadType?: string | null;
   starsSpent: number;
   hasSensitive: boolean;
   createdAt: string;
@@ -73,14 +75,20 @@ export default function ReadingsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {readings.map((r) => (
+            {readings.map((r) => {
+              const isTarot = r.consultationType === "tarot";
+              return (
               <Link
                 key={r.id}
-                href={`/saju/result?id=${r.id}`}
+                href={
+                  isTarot
+                    ? `/tarot/result?id=${r.id}`
+                    : `/saju/result?id=${r.id}`
+                }
                 className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
               >
                 <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[13px] font-bold text-eye-purple">
-                  {r.sajuData?.dayStem ?? "-"}
+                  {isTarot ? "🃏" : r.sajuData?.dayStem ?? "-"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
@@ -105,7 +113,8 @@ export default function ReadingsPage() {
                 </div>
                 <span className="text-text-light/40 text-sm">›</span>
               </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

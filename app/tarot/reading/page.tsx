@@ -313,10 +313,16 @@ export default function TarotReadingPage() {
                 별콩이의 풀이가 마무리됐어 ✨
               </p>
               <Link
-                href="/mypage"
+                href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
                 className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"
               >
-                마이페이지에서 다시 보기 →
+                결과 보기 →
+              </Link>
+              <Link
+                href="/mypage"
+                className="w-full py-2.5 text-[12px] text-text-light/70 text-center"
+              >
+                마이페이지에서 다시 보기
               </Link>
             </div>
           ) : (
