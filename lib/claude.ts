@@ -178,6 +178,18 @@ export async function* streamChat(
   }
 }
 
+/** 비스트리밍 — streamChat 을 끝까지 모아 전체 텍스트 한 번에 반환 (운세 리포트용). */
+export async function generateOnce(
+  systemMessage: { staticPart: string; dynamicPart: string } | string,
+  messages: { role: "user" | "assistant"; content: string }[]
+): Promise<string> {
+  let out = "";
+  for await (const chunk of streamChat(systemMessage, messages)) {
+    out += chunk;
+  }
+  return out.trim();
+}
+
 export const END_MARKER_REGEX = /\[END\]\s*$/;
 export const TRAILING_PARTIAL_MARKER = /\[E?N?D?$/;
 

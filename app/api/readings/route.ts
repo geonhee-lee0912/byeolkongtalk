@@ -25,7 +25,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("readings")
     .select(
-      "id, question, saju_data, consultation_type, spread_type, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
+      "id, question, saju_data, consultation_type, spread_type, emotion_tag, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -42,6 +42,7 @@ export async function GET() {
       sajuData: r.saju_data,
       consultationType: r.consultation_type,
       spreadType: r.spread_type,
+      emotionTag: r.emotion_tag,
       starsSpent: r.stars_spent,
       hasSensitive: r.has_sensitive,
       createdAt: r.created_at,

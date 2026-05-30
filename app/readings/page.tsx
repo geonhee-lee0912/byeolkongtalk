@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 interface ReadingItem {
   id: string;
@@ -13,6 +14,7 @@ interface ReadingItem {
   } | null;
   consultationType?: string;
   spreadType?: string | null;
+  emotionTag?: string | null;
   starsSpent: number;
   hasSensitive: boolean;
   createdAt: string;
@@ -76,19 +78,26 @@ export default function ReadingsPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {readings.map((r) => {
+              const fortuneType = fortuneTypeFromTag(r.emotionTag);
               const isTarot = r.consultationType === "tarot";
+              const href = fortuneType
+                ? `/fortune/result?id=${r.id}`
+                : isTarot
+                  ? `/tarot/result?id=${r.id}`
+                  : `/saju/result?id=${r.id}`;
+              const icon = fortuneType
+                ? FORTUNE_CONFIG[fortuneType].emoji
+                : isTarot
+                  ? "🃏"
+                  : r.sajuData?.dayStem ?? "-";
               return (
               <Link
                 key={r.id}
-                href={
-                  isTarot
-                    ? `/tarot/result?id=${r.id}`
-                    : `/saju/result?id=${r.id}`
-                }
+                href={href}
                 className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
               >
                 <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[13px] font-bold text-eye-purple">
-                  {isTarot ? "🃏" : r.sajuData?.dayStem ?? "-"}
+                  {icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">

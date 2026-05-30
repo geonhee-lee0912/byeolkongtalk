@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type TabKey = "consult" | "history" | "shop" | "me";
+type TabKey = "consult" | "fortune" | "history" | "shop" | "me";
 
 interface TabDef {
   key: TabKey;
@@ -34,6 +34,27 @@ const TABS: TabDef[] = [
         aria-hidden
       >
         <path d="M21 12c0 4.4-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.5-4.2C3.5 15.5 3 13.8 3 12c0-4.4 4-8 9-8s9 3.6 9 8z" />
+      </svg>
+    ),
+  },
+  {
+    key: "fortune",
+    label: "별콩 운세",
+    href: "/fortune",
+    matchPrefixes: ["/fortune"],
+    icon: (active) => (
+      <svg
+        className={ICON_CLASS}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M12 3l1.9 4.6L18.8 8l-3.6 3.2 1 4.9L12 13.7 7.8 16l1-4.9L5.2 8l4.9-.4L12 3z" />
+        <path d="M19 14l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5.5-1.6z" />
       </svg>
     ),
   },
