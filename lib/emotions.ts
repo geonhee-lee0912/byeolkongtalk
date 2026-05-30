@@ -88,7 +88,7 @@ export const EMOTION_OPTIONS: EmotionOption[] = [
   {
     tag: "그냥 별콩이한테 털어놓고 싶어",
     emoji: "💬",
-    description: "뭐라고 말할지 몰라도, 지금 마음을 편하게 이야기하고 싶을 때",
+    description: "뭐라고 말할지 몰라도, 마음을 편하게 이야기하고 싶을 때",
     icon: "/class10.png",
     hashtags: ["자유상담", "마음정리", "그냥대화", "털어놓기"],
   },

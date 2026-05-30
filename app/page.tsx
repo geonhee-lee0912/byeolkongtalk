@@ -155,7 +155,7 @@ export default function Home() {
         </div>
 
         {/* ━━━ 고민 카테고리 ━━━ */}
-        <section className="w-full max-w-md mx-auto px-5 pt-7 pb-8 relative z-10">
+        <section className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10">
           <div
             className="mb-6 p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
             style={{
@@ -183,7 +183,7 @@ export default function Home() {
           </p>
 
           {/* 인기 고민 (1·5·9번) */}
-          <div className="flex flex-col gap-2.5 mb-6">
+          <div className="flex flex-col gap-3 mb-6">
             {highlightOptions.map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
               return (
@@ -232,7 +232,7 @@ export default function Home() {
             <span className="text-gold text-[12px]">✦</span> 다른 고민
           </p>
 
-          <div className="flex flex-col gap-2.5 mb-3">
+          <div className="flex flex-col gap-3 mb-3">
             {normalOptions.map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
               return (
