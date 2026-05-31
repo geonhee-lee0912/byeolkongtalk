@@ -455,12 +455,12 @@ export default function SelectPage() {
                 boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
               }}
             >
-              {/* 카드 미니어처 — v1 번호 사각형, 가로 나열 */}
-              <div className="flex flex-shrink-0 items-center justify-center gap-1 min-w-[58px]">
+              {/* 카드 미니어처 — 번호+색상 카드, 겹쳐서 부채꼴 펼침 */}
+              <div className="flex flex-shrink-0 items-center justify-center -space-x-3.5 w-[58px]">
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-4 h-[22px] rounded-[3px] border flex items-center justify-center transition-all"
+                    className="w-[26px] aspect-[2/3] rounded-[4px] border flex items-center justify-center shadow-sm transition-all"
                     style={{
                       background: isSelected
                         ? `linear-gradient(135deg, ${info.accent}3d, ${info.accent}14)`
@@ -468,10 +468,14 @@ export default function SelectPage() {
                       borderColor: isSelected
                         ? `${info.accent}aa`
                         : `${info.accent}50`,
+                      transform: `rotate(${
+                        (i - (info.cardCount - 1) / 2) * 6
+                      }deg)`,
+                      zIndex: i,
                     }}
                   >
                     <span
-                      className="text-[9px] font-black leading-none tabular-nums"
+                      className="text-[10px] font-black leading-none tabular-nums"
                       style={{
                         color: isSelected ? info.accent : `${info.accent}cc`,
                       }}
