@@ -32,6 +32,17 @@ export default function ConcernPage() {
       return;
     }
     setEmotion(stored as EmotionTag);
+
+    // /select에서 뒤로 돌아온 경우: 기 입력한 고민 복원
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as PendingConsultation;
+        if (parsed.concern) setConcern(parsed.concern.slice(0, MAX_LEN));
+      } catch {
+        /* ignore */
+      }
+    }
   }, [router]);
 
   if (!emotion) {
