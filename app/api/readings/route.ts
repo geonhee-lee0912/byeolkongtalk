@@ -1,6 +1,6 @@
 // readings INSERT — 사주 풀이 세션 시작 시 호출.
 //
-// 흐름: 입력 검증 → 잔액 사전 확인 → user_profiles INSERT → readings INSERT → spendStars(22)
+// 흐름: 입력 검증 → 잔액 사전 확인 → user_profiles INSERT → readings INSERT → spendStars(20)
 //      → 실패 시 readings/profile 롤백.
 //
 // Phase 5 (c) 시점: 자기 사주만 입력 (isPrimary 결정 = user 의 첫 self profile 인지). 가족/지인은 추후.
