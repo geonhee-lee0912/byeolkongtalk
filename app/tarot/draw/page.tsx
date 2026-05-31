@@ -261,7 +261,7 @@ export default function TarotDrawPage() {
 
   return (
     <main
-      className={`flex flex-1 flex-col items-center w-full animate-fade-in pt-6 ${containerPb}`}
+      className={`flex flex-1 flex-col items-center w-full animate-fade-in pt-14 ${containerPb}`}
     >
       {/* 단계 인디케이터 */}
       <div className="mb-8">
