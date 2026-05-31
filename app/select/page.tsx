@@ -39,12 +39,13 @@ const SAJU_ICONS: Record<SajuProduct, string> = {
   good_days: "/days.png",
 };
 
-// 사주 4종 키컬러 — 타로(#6B8DD6/#65B28F/#E0976B/#D4708F)와 겹치지 않게
+// 사주 4종 키컬러 — 타로(#6B8DD6/#65B28F/#E0976B/#D4708F)와 같은 파스텔 톤,
+// 겹치지 않는 색상(바이올렛/틸/골드/오키드)
 const SAJU_PRODUCT_ACCENT: Record<SajuProduct, string> = {
-  today_letters: "#7C6BD6", // 바이올렛
-  nature: "#2FA8A0", // 틸
-  choice: "#C49A3A", // 골드
-  good_days: "#B85FB0", // 플럼
+  today_letters: "#8579D4", // 바이올렛
+  nature: "#6FB8AE", // 틸
+  choice: "#E0B964", // 골드
+  good_days: "#C783C9", // 오키드
 };
 
 type Selection = SajuProduct | SpreadType;
