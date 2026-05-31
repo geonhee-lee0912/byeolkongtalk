@@ -10,6 +10,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
+import { calcTemporalLuck } from "@/lib/saju/calc";
+import { isSajuProduct, type SajuProduct } from "@/lib/saju/products";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 
@@ -72,6 +74,7 @@ interface ReadingPostBody {
   sajuData: unknown; // SajuResult 직렬화 — 그대로 JSONB 저장
   question: string;
   emotion?: string; // 감정 분류 (홈에서 고른 태그) — 없으면 null 저장
+  sajuProduct?: string; // 사주 상품 — 화이트리스트 검증, 없으면 today_letters
 }
 
 function validateProfile(p: unknown): ProfileInput | { error: string } {
@@ -163,6 +166,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_question" }, { status: 400 });
   }
 
+  const sajuProduct: SajuProduct = isSajuProduct(body.sajuProduct)
+    ? body.sajuProduct
+    : "today_letters";
+
+  // 출생 연도 (대운 참고 나이용) — birthDate "YYYY-MM-DD"
+  const birthYear = Number(profile.birthDate.slice(0, 4));
+
+  // 오늘 기준 시간 기둥 — good_days 면 30일 일진 포함
+  const temporal = calcTemporalLuck(new Date(), birthYear, {
+    includeMonth: sajuProduct === "good_days",
+  });
+
+  // saju_data 에 temporal 병합 (legacy 호출이면 sajuData 그대로 + temporal)
+  const sajuDataWithTemporal = {
+    ...(body.sajuData as Record<string, unknown>),
+    temporal,
+  };
+
   // 잔액 사전 확인 (UX 빠른 실패)
   const balance = await getStarBalance(userId);
   if (balance < SAJU_READING_COST) {
@@ -233,9 +254,10 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       profile_id: profileRow.id,
       question: body.question,
-      saju_data: body.sajuData,
+      saju_data: sajuDataWithTemporal,
       emotion_tag: emotionTag,
       stars_spent: SAJU_READING_COST,
+      saju_product: sajuProduct,
       has_sensitive: false,
     })
     .select("id")
