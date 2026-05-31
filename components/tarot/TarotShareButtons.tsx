@@ -56,7 +56,12 @@ export default function TarotShareButtons({
         : "";
     const text = buildShareText({ question, spreadLabel, closingLine, url });
 
-    if (typeof navigator !== "undefined" && navigator.share) {
+    // 모바일에서만 네이티브 공유 시트. 데스크톱은 텍스트 복사로.
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+    if (isMobile && navigator.share) {
       try {
         await navigator.share({ title: "별콩이의 타로 풀이", text, url });
         return;
@@ -129,7 +134,7 @@ export default function TarotShareButtons({
         onClick={handleShare}
         className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
       >
-        링크 / 텍스트로 공유하기
+        링크로 공유하기
       </button>
       <button
         onClick={handleInstaSave}

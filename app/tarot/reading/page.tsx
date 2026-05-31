@@ -339,6 +339,8 @@ function TarotReadingInner() {
 
         const latest = getLatestCardIndex(nextVisible);
         if (latest !== null) setActiveCardIndex(latest - 1);
+        // 답변 첫 글자가 뜨는 순간 스크롤 억제 해제 — 첫 말풍선부터 따라 내려가도록
+        if (currentIndex === 0) suppressScrollUntilRef.current = 0;
         scrollToBottom();
       } else if (fetchDoneRef.current) {
         stopTyping();
@@ -592,7 +594,12 @@ function TarotReadingInner() {
     }
     pendingFragmentsRef.current = [];
 
-    const merged = frags.length > 0 ? frags.join("\n") : "이제 대화 마무리할게";
+    // 마무리 의사 표시 — user 말풍선으로 띄우고 전송 내용에도 포함
+    const FINISH_PHRASE = "대화 마무리할게";
+    frags.push(FINISH_PHRASE);
+    setMessages((prev) => [...prev, { role: "user", content: FINISH_PHRASE }]);
+
+    const merged = frags.join("\n");
 
     const apiHistory: Message[] = [
       ...base.filter((m) => !m.ephemeral),
