@@ -30,6 +30,7 @@ import {
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const SAJU_ACCENT = "#9F8AD0";
+const SAJU_LABEL_COLOR = "#3B4D8F";
 const SAJU_COST = 20;
 
 const SAJU_ICONS: Record<SajuProduct, string> = {
@@ -415,7 +416,7 @@ export default function SelectPage() {
                 <div className="flex items-center gap-1.5 mb-1">
                   <span
                     className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
-                    style={{ backgroundColor: SAJU_ACCENT }}
+                    style={{ backgroundColor: SAJU_LABEL_COLOR }}
                   >
                     {info.label}
                   </span>
@@ -436,7 +437,7 @@ export default function SelectPage() {
                 </p>
                 <p
                   className="text-[11px] font-bold leading-snug truncate"
-                  style={{ color: SAJU_ACCENT }}
+                  style={{ color: SAJU_LABEL_COLOR }}
                 >
                   {info.flow}
                 </p>
