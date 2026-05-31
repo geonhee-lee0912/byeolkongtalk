@@ -235,7 +235,7 @@ export default function ConcernPage() {
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl border border-lilac-soft/70 text-center text-text-light/70 font-medium text-[14px] hover:text-text-light hover:border-lilac-soft transition"
+          className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
         >
           뒤로
         </Link>
