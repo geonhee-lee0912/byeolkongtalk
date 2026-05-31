@@ -405,6 +405,7 @@ export default function TarotDrawPage() {
             onTap={setPendingCardId}
             accent={accent}
             isShuffling={isShuffling}
+            totalSlots={cardCount}
           />
         </div>
       )}
@@ -656,6 +657,7 @@ function HorizontalDeck({
   onTap,
   accent,
   isShuffling,
+  totalSlots,
 }: {
   deck: number[];
   pickedSlotByCard: Map<number, number>;
@@ -664,6 +666,7 @@ function HorizontalDeck({
   onTap: (cardId: number | null) => void;
   accent: string;
   isShuffling: boolean;
+  totalSlots: number;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [centeredIndex, setCenteredIndex] = useState(0);
@@ -716,6 +719,23 @@ function HorizontalDeck({
       behavior: smooth ? "smooth" : "auto",
     });
   };
+
+  // 한 장 뽑히면 마커를 옆 카드로 자동 이동 — 바로 다음 카드 선택 가능하게
+  // 오른쪽 끝 카드를 뽑았는데 뽑을 카드가 남았으면 왼쪽으로 이동
+  const prevPickedCountRef = useRef(0);
+  useEffect(() => {
+    const pickedCount = pickedSlotByCard.size;
+    const prev = prevPickedCountRef.current;
+    prevPickedCountRef.current = pickedCount;
+    if (pickedCount > prev && pickedCount < totalSlots) {
+      const last = visibleCards.length - 1;
+      const target = centeredIndex < last ? centeredIndex + 1 : centeredIndex - 1;
+      if (target >= 0 && target !== centeredIndex) {
+        jumpTo(target, true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedSlotByCard, totalSlots, visibleCards.length]);
 
   // 드래그 스크롤 — touch/mouse 공통, 1.8배 가속
   const DRAG_MULTIPLIER = 1.8;
