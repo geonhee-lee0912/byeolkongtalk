@@ -415,7 +415,7 @@ export default function SelectPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span
-                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
+                    className="text-[12px] font-black px-1.5 py-0.5 rounded-md text-white"
                     style={{ backgroundColor: SAJU_LABEL_COLOR }}
                   >
                     {info.label}
