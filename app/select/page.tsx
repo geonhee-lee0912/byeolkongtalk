@@ -463,11 +463,11 @@ export default function SelectPage() {
                     className="w-[26px] aspect-[2/3] rounded-[4px] border flex items-center justify-center shadow-sm transition-all"
                     style={{
                       background: isSelected
-                        ? `linear-gradient(135deg, ${info.accent}3d, ${info.accent}14)`
-                        : `${info.accent}14`,
+                        ? `color-mix(in srgb, ${info.accent} 26%, white)`
+                        : `color-mix(in srgb, ${info.accent} 12%, white)`,
                       borderColor: isSelected
-                        ? `${info.accent}aa`
-                        : `${info.accent}50`,
+                        ? info.accent
+                        : `color-mix(in srgb, ${info.accent} 42%, white)`,
                       transform: `rotate(${
                         (i - (info.cardCount - 1) / 2) * 6
                       }deg)`,
@@ -476,9 +476,7 @@ export default function SelectPage() {
                   >
                     <span
                       className="text-[10px] font-black leading-none tabular-nums"
-                      style={{
-                        color: isSelected ? info.accent : `${info.accent}cc`,
-                      }}
+                      style={{ color: info.accent }}
                     >
                       {i + 1}
                     </span>
