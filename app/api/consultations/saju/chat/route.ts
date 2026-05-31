@@ -27,6 +27,7 @@ import {
   recordSensitiveAlert,
 } from "@/lib/sensitive";
 import type { SajuResult } from "@/lib/saju/calc";
+import { isSajuProduct } from "@/lib/saju/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
   // readings 조회 + 소유권 확인
   const { data: reading, error: rErr } = await supabase
     .from("readings")
-    .select("id, user_id, question, saju_data, emotion_tag")
+    .select("id, user_id, question, saju_data, emotion_tag, saju_product")
     .eq("id", body.readingId)
     .maybeSingle();
 
@@ -142,6 +143,9 @@ export async function POST(request: NextRequest) {
 
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
+    sajuProduct: isSajuProduct(reading.saju_product)
+      ? reading.saju_product
+      : "today_letters",
     concernText: reading.question ?? "",
     emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
