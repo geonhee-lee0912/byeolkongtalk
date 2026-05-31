@@ -63,9 +63,9 @@ export default function ConcernPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
       {/* 진행 단계 */}
-      <div className="mb-12">
+      <div className="mb-8">
         <ProgressSteps current={1} />
       </div>
 
@@ -235,7 +235,7 @@ export default function ConcernPage() {
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl text-center text-text-light/70 font-medium text-[14px] hover:text-text-light transition"
+          className="w-full py-3 rounded-xl border border-lilac-soft/70 text-center text-text-light/70 font-medium text-[14px] hover:text-text-light hover:border-lilac-soft transition"
         >
           뒤로
         </Link>
