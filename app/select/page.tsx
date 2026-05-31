@@ -20,7 +20,6 @@ import {
   type SpreadType,
   type SpreadCategory,
 } from "@/lib/tarot/spreads";
-import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
@@ -405,7 +404,10 @@ export default function SelectPage() {
                 ⭐ {SAJU_COST}별
               </span>
               {sajuRecommended && (
-                <span className="text-[10px] font-bold text-lilac-deep ml-auto">
+                <span
+                  className="text-[10px] font-black ml-auto px-1.5 py-0.5 rounded-full text-white"
+                  style={{ background: "#E5484D" }}
+                >
                   추천 ✨
                 </span>
               )}
@@ -453,24 +455,29 @@ export default function SelectPage() {
                 boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
               }}
             >
-              {/* 카드 미니어처 — 겹친 카드 백 */}
-              <div className="flex flex-shrink-0 items-center -space-x-3.5 w-[58px] justify-center">
+              {/* 카드 미니어처 — v1 번호 사각형, 가로 나열 */}
+              <div className="flex flex-shrink-0 items-center justify-center gap-1 min-w-[58px]">
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[26px] aspect-[2/3] rounded-[4px] overflow-hidden border border-white shadow-sm"
+                    className="w-4 h-[22px] rounded-[3px] border flex items-center justify-center transition-all"
                     style={{
-                      transform: `rotate(${
-                        (i - (info.cardCount - 1) / 2) * 6
-                      }deg)`,
+                      background: isSelected
+                        ? `linear-gradient(135deg, ${info.accent}3d, ${info.accent}14)`
+                        : `${info.accent}14`,
+                      borderColor: isSelected
+                        ? `${info.accent}aa`
+                        : `${info.accent}50`,
                     }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={CARD_BACK_IMAGE}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                    <span
+                      className="text-[9px] font-black leading-none tabular-nums"
+                      style={{
+                        color: isSelected ? info.accent : `${info.accent}cc`,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
                   </div>
                 ))}
               </div>
