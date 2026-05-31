@@ -75,6 +75,28 @@ export default function TarotShareButtons({
     }
   };
 
+  const handleInstaSave = async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const res = await fetch(`/api/og/tarot/${readingId}?format=instagram`);
+      if (!res.ok) throw new Error("og_failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `byeolkong-tarot-${readingId.slice(0, 8)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setToast("이미지를 저장했어! 스토리에 올려봐 ✨");
+      setTimeout(() => setToast(null), 2600);
+    } catch {
+      setToast("이미지 저장에 실패했어");
+      setTimeout(() => setToast(null), 2200);
+    }
+  };
+
   const handleKakaoShare = () => {
     if (typeof window === "undefined") return;
     const link = `${window.location.origin}/tarot/result?id=${readingId}`;
@@ -105,9 +127,15 @@ export default function TarotShareButtons({
       </button>
       <button
         onClick={handleShare}
-        className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
       >
         링크 / 텍스트로 공유하기
+      </button>
+      <button
+        onClick={handleInstaSave}
+        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+      >
+        이미지로 저장
       </button>
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-[12px] whitespace-nowrap shadow-lg">

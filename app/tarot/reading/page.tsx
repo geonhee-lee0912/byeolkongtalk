@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
@@ -74,7 +74,23 @@ function getLatestCardIndex(text: string): number | null {
 }
 
 export default function TarotReadingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex flex-1 items-center justify-center px-5">
+          <p className="text-text-light text-sm">카드를 펼치는 중…</p>
+        </main>
+      }
+    >
+      <TarotReadingInner />
+    </Suspense>
+  );
+}
+
+function TarotReadingInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resumeId = searchParams.get("id");
   const [draw, setDraw] = useState<TarotDrawResult | null>(null);
   const [readingId, setReadingId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -109,6 +125,58 @@ export default function TarotReadingPage() {
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
+
+    // 이어하기 모드 — 기존 reading 을 불러와 대화를 복원 (별 재차감 X)
+    if (resumeId) {
+      void (async () => {
+        try {
+          const r = await fetch(`/api/readings/${resumeId}`, {
+            cache: "no-store",
+          });
+          if (!r.ok) {
+            router.replace("/readings");
+            return;
+          }
+          const d = await r.json();
+          const reading = d.reading as {
+            spreadType: TarotDrawResult["spreadType"];
+            spreadCategory: TarotDrawResult["spreadCategory"];
+            emotionTag: string | null;
+            question: string;
+            drawnCards: TarotDrawResult["drawnCards"] | null;
+          };
+          const msgs = (d.messages ?? []) as Message[];
+          if (!reading.drawnCards || reading.drawnCards.length === 0) {
+            router.replace("/readings");
+            return;
+          }
+          setDraw({
+            spreadType: reading.spreadType,
+            spreadCategory: reading.spreadCategory,
+            emotion: (reading.emotionTag ?? "") as TarotDrawResult["emotion"],
+            concern: reading.question,
+            drawnCards: reading.drawnCards,
+          });
+          setReadingId(resumeId);
+          setMessages(msgs);
+          const lastAssistant = [...msgs]
+            .reverse()
+            .find((m) => m.role === "assistant");
+          if (lastAssistant && END_MARKER_REGEX.test(lastAssistant.content)) {
+            setIsEnded(true);
+          }
+          END_MARKER_REGEX.lastIndex = 0;
+          // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
+          setTimeout(() => {
+            const el = scrollRef.current;
+            if (el) el.scrollTo({ top: el.scrollHeight });
+          }, 120);
+        } catch {
+          router.replace("/readings");
+        }
+      })();
+      return;
+    }
 
     const raw =
       typeof window !== "undefined"
@@ -165,7 +233,7 @@ export default function TarotReadingPage() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, [router, resumeId]);
 
   useEffect(() => {
     return () => stopTyping();
@@ -366,13 +434,14 @@ export default function TarotReadingPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-stretch w-full">
+    <main
+      className="flex flex-col items-stretch w-full min-h-0"
+      style={{
+        height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
+      }}
+    >
       {/* 스크롤 영역 — 고민 + 카드 스프레드 + 대화 */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto"
-        style={{ maxHeight: "calc(100vh - 160px)" }}
-      >
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-4">
           {safety && (
             <SafetyBanner
@@ -491,7 +560,7 @@ export default function TarotReadingPage() {
       </div>
 
       {/* 하단 입력창 또는 종료 CTA */}
-      <div className="border-t border-lilac-mid/30 bg-cream">
+      <div className="shrink-0 border-t border-lilac-mid/30 bg-cream">
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">

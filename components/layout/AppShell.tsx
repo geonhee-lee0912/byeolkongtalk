@@ -26,7 +26,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <div className="flex-1 flex flex-col pb-20">{children}</div>
+      <div
+        className="flex-1 flex flex-col"
+        style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+      >
+        {children}
+      </div>
       <BottomTab />
     </>
   );

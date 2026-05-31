@@ -40,6 +40,20 @@ export async function GET() {
     return NextResponse.json({ readings: [], error: error.message }, { status: 500 });
   }
 
+  // 종료 여부 — assistant 메시지에 [END] 마커가 있으면 마무리된 풀이.
+  // 마커가 없는 풀이는 "이어할 수 있는 대화" 로 노출.
+  const ids = (data ?? []).map((r) => r.id);
+  const endedSet = new Set<string>();
+  if (ids.length > 0) {
+    const { data: endedRows } = await supabase
+      .from("messages")
+      .select("reading_id")
+      .in("reading_id", ids)
+      .eq("role", "assistant")
+      .ilike("content", "%[END]%");
+    for (const row of endedRows ?? []) endedSet.add(row.reading_id);
+  }
+
   return NextResponse.json({
     readings: (data ?? []).map((r) => ({
       id: r.id,
@@ -51,6 +65,7 @@ export async function GET() {
       starsSpent: r.stars_spent,
       hasSensitive: r.has_sensitive,
       createdAt: r.created_at,
+      ended: endedSet.has(r.id),
       profile: r.profile,
     })),
   });

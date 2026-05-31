@@ -18,6 +18,7 @@ interface ReadingItem {
   starsSpent: number;
   hasSensitive: boolean;
   createdAt: string;
+  ended?: boolean;
   profile: { display_name: string; relation_type: string } | null;
 }
 
@@ -80,11 +81,15 @@ export default function ReadingsPage() {
             {readings.map((r) => {
               const fortuneType = fortuneTypeFromTag(r.emotionTag);
               const isTarot = r.consultationType === "tarot";
+              // 타로 + 미종료 → 대화 이어하기 (result 대신 reading 으로)
+              const canResume = isTarot && !fortuneType && r.ended === false;
               const href = fortuneType
                 ? `/fortune/result?id=${r.id}`
-                : isTarot
-                  ? `/tarot/result?id=${r.id}`
-                  : `/saju/result?id=${r.id}`;
+                : canResume
+                  ? `/tarot/reading?id=${r.id}`
+                  : isTarot
+                    ? `/tarot/result?id=${r.id}`
+                    : `/saju/result?id=${r.id}`;
               const icon = fortuneType
                 ? FORTUNE_CONFIG[fortuneType].emoji
                 : isTarot
@@ -100,8 +105,15 @@ export default function ReadingsPage() {
                   {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
-                    {r.question}
+                  <div className="flex items-center gap-1.5">
+                    {canResume && (
+                      <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-2 py-0.5">
+                        이어하기
+                      </span>
+                    )}
+                    <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+                      {r.question}
+                    </div>
                   </div>
                   <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
                     <span>

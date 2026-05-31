@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   EMOTION_OPTIONS,
@@ -9,10 +11,37 @@ import {
   NORMAL_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   const router = useRouter();
+  const [hasResumable, setHasResumable] = useState(false);
+
+  // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출
+  useEffect(() => {
+    void (async () => {
+      try {
+        const list = await fetch("/api/readings", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null);
+        const readings = (list?.readings ?? []) as Array<{
+          consultationType?: string;
+          emotionTag?: string | null;
+          ended?: boolean;
+        }>;
+        const resumable = readings.some(
+          (r) =>
+            r.consultationType === "tarot" &&
+            !fortuneTypeFromTag(r.emotionTag ?? null) &&
+            r.ended === false
+        );
+        setHasResumable(resumable);
+      } catch {
+        // noop
+      }
+    })();
+  }, []);
 
   const handleSelect = (tag: EmotionTag) => {
     if (typeof window !== "undefined") {
@@ -156,6 +185,23 @@ export default function Home() {
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10">
+          {hasResumable && (
+            <Link
+              href="/readings"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
+            >
+              <span className="text-[20px] shrink-0">💬</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold leading-tight">
+                  이어서 나눌 수 있는 대화가 있어
+                </p>
+                <p className="text-[11.5px] text-white/80 mt-0.5 leading-tight">
+                  내 고민톡에서 별콩이와 다시 이야기해볼까?
+                </p>
+              </div>
+              <span className="text-white/70 text-[16px] shrink-0">›</span>
+            </Link>
+          )}
           <div
             className="mb-6 p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
             style={{
