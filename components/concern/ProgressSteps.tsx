@@ -1,21 +1,18 @@
-const STEPS = ["고민", "운세 선택", "카드"] as const;
+const STEPS = ["고민", "운세 선택", "카드 (타로 운세 선택시)"] as const;
 
 /** 고민 → 운세 선택 → 카드 3단 진행 표시 (current: 1~3) */
 export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
   return (
     <div className="w-full max-w-md mx-auto px-5">
-      <ol className="flex items-center">
+      <ol className="flex items-center justify-center gap-1.5">
         {STEPS.map((label, i) => {
           const step = i + 1;
           const done = step < current;
           const active = step === current;
           const isLast = step === STEPS.length;
           return (
-            <li
-              key={label}
-              className={`flex items-center ${isLast ? "" : "flex-1"}`}
-            >
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+            <li key={label} className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <span
                   className={[
                     "w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold leading-none transition-colors",
@@ -43,7 +40,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
               </div>
               {!isLast && (
                 <span
-                  className={`flex-1 h-px mx-2 ${
+                  className={`w-4 h-[2px] rounded-full ${
                     done ? "bg-lilac-deep/50" : "bg-lilac-soft/70"
                   }`}
                 />

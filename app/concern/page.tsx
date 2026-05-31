@@ -64,21 +64,15 @@ export default function ConcernPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center justify-between">
-        <Link href="/" className="text-[12px] text-text-light/70">
-          ‹ 다른 고민 고르기
-        </Link>
-      </div>
-
       {/* 진행 단계 */}
-      <div className="mb-5">
+      <div className="mb-12">
         <ProgressSteps current={1} />
       </div>
 
       {/* 감정 컨텍스트 칩 — 선택한 고민 분류 싱크 */}
       {option && (
-        <div className="w-full max-w-md mx-auto px-5 mb-5 flex justify-center">
-          <div className="flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
+        <div className="w-full max-w-md mx-auto px-5 mb-5">
+          <div className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
             <div className="flex items-center gap-2">
               <span
                 className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
@@ -128,14 +122,14 @@ export default function ConcernPage() {
                 sizes="36px"
                 className="rounded-full object-cover"
               />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#4A3877]" />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] text-white leading-tight">
+              <p className="text-[14px] font-bold text-white leading-tight">
                 별콩이
               </p>
-              <p className="text-[11px] text-white/60 leading-snug mt-0.5 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                지금 대화 중
+              <p className="text-[11px] text-white/60 leading-snug mt-0.5">
+                고민이 있는 날에도, 괜히 마음이 궁금한 날에도 별콩이는 여기 있어
               </p>
             </div>
           </div>
@@ -177,11 +171,11 @@ export default function ConcernPage() {
                   boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
                 }}
               >
-                <p className="text-[16px] text-eye-purple leading-tight">
+                <p className="text-[14px] font-bold text-eye-purple leading-tight">
                   어떤 고민이야?
                 </p>
                 <p className="text-[12px] text-eye-purple/85 mt-1 leading-relaxed">
-                  편하게 말해줘. 별콩이가 들어볼게 💜
+                  편하게 말해줘. 별콩이가 들어볼게 ❤️
                 </p>
               </div>
             </div>
@@ -203,7 +197,7 @@ export default function ConcernPage() {
                 />
                 <div className="flex justify-between items-center px-4 pb-2.5 text-[11px]">
                   <span className="text-text-light/70">
-                    구체적일수록 더 잘 봐줄게
+                    구체적일수록 더 깊은 대화가 가능해
                   </span>
                   <span
                     className={`font-semibold tabular-nums ${
@@ -229,7 +223,7 @@ export default function ConcernPage() {
         </p>
       )}
 
-      <div className="w-full max-w-md mx-auto px-5">
+      <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
         <button
           onClick={handleNext}
           disabled={!canProceed}
@@ -239,6 +233,12 @@ export default function ConcernPage() {
             ? `${MIN_LEN}자 이상 적어줘`
             : "운세 선택하러 가기"}
         </button>
+        <Link
+          href="/"
+          className="w-full py-3 rounded-xl text-center text-text-light/70 font-medium text-[14px] hover:text-text-light transition"
+        >
+          뒤로
+        </Link>
       </div>
     </main>
   );
