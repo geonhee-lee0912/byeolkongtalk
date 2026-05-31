@@ -255,6 +255,8 @@ export interface TarotReadingContext {
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END]·[CARD:n] 마커 제외) */
   cumulativeAssistantChars: number;
+  /** 사용자가 "대화 마무리" 버튼을 눌러 강제 종료를 요청한 턴 — hardcap 가이드 강제 */
+  forceEnd?: boolean;
 }
 
 function formatDrawnCardsBlock(cards: DrawnCard[]): string {
@@ -334,8 +336,9 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
       ? `\n\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\n\n다음 발화·패턴 중 하나라도 보이면 이번 턴을 askBonus 톤으로 답해:\n\n**명확 시그널:** "고마워"/"감사해", "알겠어"/"그렇구나"/"이해됐어", "이정도면 돼"/"충분해", 짧은 동의("응"/"ㅇㅇ"/"그래")\n**암묵적 시그널:** 메시지 길이가 직전 대비 절반 이하 + 새 질문 없음 (2턴 연속이면 더 확실)\n\n**askBonus 톤 (감사·마지막·하나 표현 사용 금지):**\n- 직전 발화/대화 핵심을 한 문장 짚기 → 카드 쪽으로 자연스럽게 수렴 → 열린 초대\n- 예: "여기까지 카드가 보여준 그림은 대충 잡힌 것 같아. 더 짚어보고 싶은 부분 있으면 편하게 던져봐."\n- [END] 마커 절대 X (이번 턴은 사용자에게 다시 공을 넘김)\n- 4~5문장`
       : "";
 
-  const wrapGuide =
-    mode === "hardcap"
+  const wrapGuide = ctx.forceEnd
+    ? hardcapGuide
+    : mode === "hardcap"
       ? hardcapGuide
       : mode === "converge"
         ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +

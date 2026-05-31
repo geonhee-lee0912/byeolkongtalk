@@ -24,6 +24,8 @@ export const dynamic = "force-dynamic";
 interface ChatBody {
   readingId: string;
   messages: { role: "user" | "assistant"; content: string }[];
+  /** "대화 마무리" 버튼 — 별콩이 강제 마무리 + [END] */
+  forceEnd?: boolean;
 }
 
 const MAX_MESSAGES = 30;
@@ -139,6 +141,7 @@ export async function POST(request: NextRequest) {
     emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
+    forceEnd: body.forceEnd === true,
   });
 
   const sensitiveSync = detectSensitiveSync(lastMessage.content);

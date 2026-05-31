@@ -337,7 +337,7 @@ function TarotReadingInner() {
     }, 80);
   }
 
-  async function sendMessage(history: Message[], rid: string) {
+  async function sendMessage(history: Message[], rid: string, forceEnd = false) {
     setMessages(history);
     setIsStreaming(true);
     setStreamingBubbles([]);
@@ -355,7 +355,7 @@ function TarotReadingInner() {
       const r = await fetch("/api/consultations/tarot/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readingId: rid, messages: history }),
+        body: JSON.stringify({ readingId: rid, messages: history, forceEnd }),
       });
       if (!r.ok || !r.body) {
         const data = await r.json().catch(() => ({}));
@@ -401,6 +401,32 @@ function TarotReadingInner() {
     void sendMessage(history, readingId);
 
     // 유저 발화 직후 — 유저 버블이 컨테이너 상단 근처에 오도록 스크롤
+    suppressScrollUntilRef.current = Date.now() + 1500;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const userBubbles = el.querySelectorAll<HTMLElement>(".justify-end");
+        const last = userBubbles[userBubbles.length - 1];
+        if (last) {
+          el.scrollTo({
+            top: Math.max(0, last.offsetTop - 16),
+            behavior: "smooth",
+          });
+        }
+      });
+    });
+  };
+
+  const handleFinish = () => {
+    if (isStreaming || isEnded || !readingId) return;
+    const text = input.trim() || "이제 대화 마무리할게";
+    setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
+
+    const history = [...messages, { role: "user" as const, content: text }];
+    void sendMessage(history, readingId, true);
+
     suppressScrollUntilRef.current = Date.now() + 1500;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -564,7 +590,7 @@ function TarotReadingInner() {
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">
-              <p className="text-[12px] text-text-light text-center">
+              <p className="text-[12px] text-text-light text-center pb-2.5">
                 별콩이의 풀이가 마무리됐어 ✨
               </p>
               <Link
@@ -573,15 +599,9 @@ function TarotReadingInner() {
               >
                 결과 보기 →
               </Link>
-              <Link
-                href="/mypage"
-                className="w-full py-2.5 text-[12px] text-text-light/70 text-center"
-              >
-                마이페이지에서 다시 보기
-              </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex items-end gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -612,16 +632,30 @@ function TarotReadingInner() {
                     : "별콩이에게 더 물어보기 (Shift+Enter 줄바꿈)"
                 }
                 disabled={isStreaming || !readingId}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide"
+                maxLength={500}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
-              <button
-                type="submit"
-                disabled={isStreaming || !input.trim() || !readingId}
-                className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                전송
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFinish}
+                  disabled={isStreaming || !readingId}
+                  className="flex-1 h-[44px] rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  대화 마무리
+                </button>
+                <button
+                  type="submit"
+                  disabled={isStreaming || !input.trim() || !readingId}
+                  className="flex-1 h-[44px] rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  전송
+                  <span className="text-[11px] font-normal text-white/70">
+                    {input.length}/500
+                  </span>
+                </button>
+              </div>
             </form>
           )}
         </div>
