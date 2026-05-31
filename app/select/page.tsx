@@ -34,7 +34,7 @@ const SAJU_COST = 20;
 
 const SAJU_ICONS: Record<SajuProduct, string> = {
   today_letters: "/2words.png",
-  nature: "/flow.png",
+  nature: "/flows.png",
   choice: "/choice.png",
   good_days: "/days.png",
 };
