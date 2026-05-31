@@ -124,6 +124,7 @@ export default function SajuPage() {
                       sajuData: saju,
                       question: pending.concern,
                       emotion: pending.emotion,
+                      sajuProduct: pending.sajuProduct,
                     }),
                   });
                   if (!res.ok) {
@@ -135,7 +136,7 @@ export default function SajuPage() {
                     // 그 외 실패: pending 유지하고 legacy concern 페이지로 폴백
                     sessionStorage.setItem(
                       "byeolkong:pending_saju",
-                      JSON.stringify({ saju, profile, emotion: pending.emotion })
+                      JSON.stringify({ saju, profile, emotion: pending.emotion, sajuProduct: pending.sajuProduct })
                     );
                     router.push("/saju/concern");
                     return;
@@ -157,7 +158,7 @@ export default function SajuPage() {
                   // 네트워크 실패: legacy concern 페이지로 폴백
                   sessionStorage.setItem(
                     "byeolkong:pending_saju",
-                    JSON.stringify({ saju, profile, emotion: pending.emotion })
+                    JSON.stringify({ saju, profile, emotion: pending.emotion, sajuProduct: pending.sajuProduct })
                   );
                   router.push("/saju/concern");
                   return;

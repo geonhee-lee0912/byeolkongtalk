@@ -22,6 +22,7 @@ interface PendingSaju {
   saju: SajuResult;
   profile: PendingProfile;
   emotion?: string;
+  sajuProduct?: string;
 }
 
 const MAX_LEN = 200;
@@ -88,6 +89,7 @@ export default function ConcernPage() {
           sajuData: pending.saju,
           question: concern,
           emotion: pending.emotion,
+          sajuProduct: pending.sajuProduct,
         }),
       });
       if (!r.ok) {
