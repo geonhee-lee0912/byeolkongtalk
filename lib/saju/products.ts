@@ -48,7 +48,11 @@ export const SAJU_PRODUCT_INFO: Record<SajuProduct, SajuProductInfo> = {
   },
 };
 
-/** 선택지 비교 노출 대상 감정 분류 (선택/진로/새출발). */
+/**
+ * 선택지 비교 노출 대상 감정 분류 (선택/진로/새출발).
+ * "새로운 시작이 기대돼"는 설렘 톤이지만, 새 출발에는 보통 A/B 갈림길이 깔려 있어
+ * 의도적으로 포함한다 (제품 결정).
+ */
 const CHOICE_ELIGIBLE_EMOTIONS: EmotionTag[] = [
   "어떤 선택이 맞을지 모르겠어",
   "내 앞날의 방향이 궁금해",
