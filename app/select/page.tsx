@@ -20,6 +20,7 @@ import {
   type SpreadType,
   type SpreadCategory,
 } from "@/lib/tarot/spreads";
+import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
@@ -279,7 +280,7 @@ export default function SelectPage() {
       </div>
 
       {/* 뒤로가기 + 고민(분류 + 내용) 다크 박스 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col gap-2">
+      <div className="w-full max-w-md mx-auto px-5 mb-9 flex flex-col gap-2">
         <Link
           href="/concern"
           className="self-start flex items-center gap-1.5 text-text-light/80 hover:text-eye-purple text-[13px] font-semibold px-2 py-1.5 rounded-lg transition-colors"
@@ -410,20 +411,20 @@ export default function SelectPage() {
               )}
             </div>
             <p className="text-[12px] text-text-light leading-snug mb-1.5">
-              오늘 일주 기반으로 너의 팔자를 짚어 고민을 풀어줄게
+              오늘 일운 기반으로 너의 팔자를 짚어 고민을 풀어줄게
             </p>
             <p
               className="text-[11px] font-bold leading-snug truncate"
               style={{ color: SAJU_ACCENT }}
             >
-              사주 4기둥 · 오행 흐름 · 별콩이 풀이
+              사주 4기둥 · 오행 흐름 · 오늘 일운
             </p>
           </div>
         </button>
       </div>
 
       {/* 타로 섹션 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-5 mb-2.5">
+      <div className="w-full max-w-md mx-auto px-5 mt-8 mb-2.5">
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-lilac-soft/70" />
           <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
@@ -452,33 +453,26 @@ export default function SelectPage() {
                 boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
               }}
             >
-              {/* 카드 미니어처 — v1 번호 그리드 */}
-              <div className="flex flex-shrink-0 items-center justify-center w-[44px]">
-                <div className="grid grid-cols-2 gap-1 w-[36px]">
-                  {Array.from({ length: info.cardCount }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-4 h-[22px] rounded-[3px] border flex items-center justify-center transition-all"
-                      style={{
-                        background: isSelected
-                          ? `linear-gradient(135deg, ${info.accent}3d, ${info.accent}14)`
-                          : `${info.accent}14`,
-                        borderColor: isSelected
-                          ? `${info.accent}aa`
-                          : `${info.accent}50`,
-                      }}
-                    >
-                      <span
-                        className="text-[9px] font-black leading-none tabular-nums"
-                        style={{
-                          color: isSelected ? info.accent : `${info.accent}cc`,
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+              {/* 카드 미니어처 — 겹친 카드 백 */}
+              <div className="flex flex-shrink-0 items-center -space-x-3.5 w-[58px] justify-center">
+                {Array.from({ length: info.cardCount }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-[26px] aspect-[2/3] rounded-[4px] overflow-hidden border border-white shadow-sm"
+                    style={{
+                      transform: `rotate(${
+                        (i - (info.cardCount - 1) / 2) * 6
+                      }deg)`,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={CARD_BACK_IMAGE}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
               </div>
 
               <div className="flex-1 min-w-0">
@@ -514,7 +508,7 @@ export default function SelectPage() {
       </div>
 
       {/* 시작 버튼 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6">
+      <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
         <button
           onClick={handleStart}
           disabled={!selected}
@@ -522,6 +516,12 @@ export default function SelectPage() {
         >
           {startLabel}
         </button>
+        <Link
+          href="/concern"
+          className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+        >
+          뒤로
+        </Link>
       </div>
     </main>
   );

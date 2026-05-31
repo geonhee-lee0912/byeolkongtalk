@@ -1,4 +1,4 @@
-const STEPS = ["고민", "운세 선택", "카드 (타로 운세 선택시)"] as const;
+const STEPS = ["고민", "운세 선택", "카드 (타로만)"] as const;
 
 /** 고민 → 운세 선택 → 카드 3단 진행 표시 (current: 1~3) */
 export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
