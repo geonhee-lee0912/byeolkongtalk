@@ -23,6 +23,36 @@ export interface SajuInput {
   gender: SajuGender;
 }
 
+/** 시간 기둥(대운 제외) — 오늘 기준 세운/월운/일운. */
+export interface PillarLite {
+  stem: string;
+  branch: string;
+  hanja: string;
+  element: FiveElement;
+}
+
+export interface DailyLuck {
+  date: string; // "2026-05-31"
+  stem: string;
+  branch: string;
+  element: FiveElement;
+}
+
+export interface TemporalLuck {
+  /** 계산 기준일 "YYYY-MM-DD" */
+  date: string;
+  /** 만 나이 (근사 — 대운 큰 흐름 참고용. 연도 차이만 사용) */
+  age: number;
+  /** 세운 (오늘의 연주) */
+  year: PillarLite;
+  /** 월운 (오늘의 월주) */
+  month: PillarLite;
+  /** 일운 = 오늘 들어온 두 글자 (오늘의 일주) */
+  day: PillarLite;
+  /** good_days 상품 전용 — 오늘부터 30일 일진 */
+  dailyLuck?: DailyLuck[];
+}
+
 /** readings.saju_data JSONB 직렬화 형태. */
 export interface SajuResult {
   pillars: {
@@ -50,6 +80,8 @@ export interface SajuResult {
     inputCalendar: "solar" | "lunar";
     isLeapMonth: boolean;
   };
+  /** 오늘 기준 시간 기둥 — reading 생성 시 서버가 주입 (legacy reading 은 없음) */
+  temporal?: TemporalLuck;
 }
 
 function countElements(detail: FourPillarsDetail): Record<FiveElement, number> {
@@ -149,5 +181,79 @@ export function calcSaju(input: SajuInput): SajuResult {
       inputCalendar: input.isLunar ? "lunar" : "solar",
       isLeapMonth: input.isLeapMonth === true,
     },
+  };
+}
+
+function toPillarLite(
+  pillar: { heavenlyStem: string; earthlyBranch: string },
+  hanja: string,
+  element: FiveElement
+): PillarLite {
+  return {
+    stem: pillar.heavenlyStem,
+    branch: pillar.earthlyBranch,
+    hanja,
+    element,
+  };
+}
+
+function fmtDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * 오늘(baseDate) 기준 세운/월운/일운 계산. manseryeok 에 양력 날짜를 그대로 넣는다.
+ * @param includeMonth true 면 오늘부터 30일 일진(dailyLuck) 도 채운다 (good_days 전용).
+ */
+export function calcTemporalLuck(
+  baseDate: Date,
+  birthYear: number,
+  opts?: { includeMonth?: boolean }
+): TemporalLuck {
+  const base: BirthInfo = {
+    year: baseDate.getFullYear(),
+    month: baseDate.getMonth() + 1,
+    day: baseDate.getDate(),
+    hour: 0,
+    minute: 0,
+    isLunar: false,
+    isLeapMonth: false,
+  };
+  const d = calculateFourPillars(base);
+
+  let dailyLuck: DailyLuck[] | undefined;
+  if (opts?.includeMonth) {
+    dailyLuck = [];
+    for (let i = 0; i < 30; i++) {
+      const cur = new Date(baseDate);
+      cur.setDate(cur.getDate() + i);
+      const dd = calculateFourPillars({
+        year: cur.getFullYear(),
+        month: cur.getMonth() + 1,
+        day: cur.getDate(),
+        hour: 0,
+        minute: 0,
+        isLunar: false,
+        isLeapMonth: false,
+      });
+      dailyLuck.push({
+        date: fmtDate(cur),
+        stem: dd.day.heavenlyStem,
+        branch: dd.day.earthlyBranch,
+        element: dd.dayElement.stem,
+      });
+    }
+  }
+
+  return {
+    date: fmtDate(baseDate),
+    age: baseDate.getFullYear() - birthYear,
+    year: toPillarLite(d.year, d.yearHanja, d.yearElement.stem),
+    month: toPillarLite(d.month, d.monthHanja, d.monthElement.stem),
+    day: toPillarLite(d.day, d.dayHanja, d.dayElement.stem),
+    dailyLuck,
   };
 }
