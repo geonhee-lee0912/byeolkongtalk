@@ -4,7 +4,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "fs";
 import { join } from "path";
-import type { SajuResult } from "@/lib/saju/calc";
+import type { SajuResult, TemporalLuck } from "@/lib/saju/calc";
+import type { SajuProduct } from "@/lib/saju/products";
 import {
   CONVERGE_START_TURN,
   CONVERGE_START_CHARS,
@@ -43,6 +44,8 @@ function getPersona(): string {
 
 export interface SajuReadingContext {
   saju: SajuResult;
+  /** 어떤 사주 상품인지 — 첫 턴 출력 구조 분기 */
+  sajuProduct: SajuProduct;
   concernText: string;
   /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
   emotionTag?: EmotionTag | string | null;
@@ -69,6 +72,34 @@ function formatSajuBlock(saju: SajuResult): string {
     `  - 입력: ${saju.input.inputCalendar === "lunar" ? "음력" : "양력"}${saju.input.isLeapMonth ? " 윤달" : ""} / 성별 ${saju.input.gender}`,
   ].join("\n");
 }
+
+function formatTemporalBlock(
+  temporal: TemporalLuck | undefined,
+  product: SajuProduct
+): string {
+  if (!temporal) return "";
+  const lines = [
+    `[오늘의 기운] (기준일 ${temporal.date}, 만 ${temporal.age}세)`,
+    `  - 세운(올해): ${temporal.year.stem}${temporal.year.branch} (${temporal.year.hanja}) / ${temporal.year.element}`,
+    `  - 월운(이달): ${temporal.month.stem}${temporal.month.branch} (${temporal.month.hanja}) / ${temporal.month.element}`,
+    `  - ★ 일운(오늘 들어온 두 글자): ${temporal.day.stem}${temporal.day.branch} (${temporal.day.hanja}) / ${temporal.day.element}`,
+    `  - 대운: 정밀 간지 없음 — 만 나이를 참고해 '인생의 큰 흐름' 정도로만 가볍게 언급할 것 (간지 단정 금지)`,
+  ];
+  if (product === "good_days" && temporal.dailyLuck?.length) {
+    lines.push(`  - [향후 30일 일진] (이 목록에서만 날짜를 골라 추천. 목록 밖 날짜·간지 지어내기 금지)`);
+    for (const d of temporal.dailyLuck) {
+      lines.push(`      ${d.date}: ${d.stem}${d.branch} / ${d.element}`);
+    }
+  }
+  return "\n\n" + lines.join("\n");
+}
+
+const SAJU_PRODUCT_FIRST_TURN_GUIDE: Record<SajuProduct, string> = {
+  today_letters: `\n\n## 첫 턴 가이드 — "오늘 들어온 글자"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) **오늘 일운 두 글자**(위 [오늘의 기운]의 ★ 일운)를 사용자에게 또렷이 강조하며 풀이 — "오늘 너에게 들어온 글자는 OO이야" 식 → (3) 이 글자가 사용자 고민과 어떻게 연결되는지 중심으로 → (4) **오늘의 금기/주의 포인트** 한두 가지 → (5) 짧은 응원. 원국 일간·오행은 거들 뿐, 오늘 일운이 주인공. 400~700자, 단정 X.`,
+  nature: `\n\n## 첫 턴 가이드 — "타고난 성향 기반 상담"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) 일간·오행 분포로 본 **타고난 기질** 풀이 → (3) 지금 세운/월운(+대운 큰 흐름)이 그 기질을 어떻게 건드리는지 → (4) 그 본질에서 출발해 사용자 고민에 적용 → (5) 응원. 오늘 일운은 보조 근거로만. 400~700자, 단정 X.`,
+  choice: `\n\n## 첫 턴 가이드 — "선택지 비교"\n\n이번 턴 흐름: (1) 여는 한 줄 + 고민 속 선택지를 A/B로 정리(사용자 고민에서 추출, 불명확하면 가볍게 되물어도 됨) → (2) 선택지 A의 기운 → (3) 선택지 B의 기운 → (4) 일운·오행 관점에서 두 선택지 비교 → (5) 지금 결대로면 어느 쪽이 더 순한지(흐름·가능성 톤, 단정·강요 X). 400~700자.`,
+  good_days: `\n\n## 첫 턴 가이드 — "좋은 날 추천"\n\n이번 턴 흐름: (1) 여는 한 줄 + 고민 맥락을 팔자/세운/월운으로 짧게 해석 → (2) 위 [향후 30일 일진] **목록에서만** 골라 고민에 좋은 날 2~4개(날짜 + 왜 좋은지 일운 글자 근거) → (3) 피하면 좋을 날 1~3개(이유) → (4) 응원. 목록 밖 날짜를 지어내지 말 것. 400~800자.`,
+};
 
 /**
  * System message 를 정적/동적 두 블록으로 분리.
@@ -109,7 +140,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
     mode === "converge" && (isAbsCapMinus1 || isHardcapMinus1NaturalPath);
 
   const firstTurnGuide = isFirstTurn
-    ? `\n\n## 첫 턴 가이드\n\n이번 턴은 **사주 풀이의 첫 응답**이야. 페르소나의 "사주 풀이 출력 구조" 6단계 (여는 한 줄 → 일간 풀이 → 오행 분포 관찰 → 음양 균형 → 사용자 질문 답변 → 마무리 응원) 를 따라줘. 사용자 고민이 위에 있으니, 5번 단계에서 그 고민에 사주 결과를 자연스럽게 연결.\n\n응답 길이는 400~700자 사이. 단정 X, 흐름·가능성·선택 키워드 중심.`
+    ? SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct]
     : "";
 
   const hardcapGuide = `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료 — askBonus 톤 절대 X)\n\n이번 응답은 대화를 **완전히 마무리하는 턴**이야. 유저가 "고마워", "알겠어", "응" 같은 시그널을 보내도 askBonus 톤으로 가지 말 것. **이 턴은 무조건 forceEnd**.\n\n유저가 마지막으로 꺼낸 얘기에 따뜻하게 답해주고 한 줄 정리한 뒤 종료해.\n\n**응답 끝에 반드시 아래 두 가지 포함:**\n1. **"별콩이는 항상 네 곁에 있어" 맥락의 한마디** — 언제든 새 사주로 돌아올 수 있다는 인상. 예: "궁금한 거 생기면 언제든 다시 사주 펼치러 와. 별콩이는 여기 있을게.", "혼자 고민하지 말고 또 마음 어수선해지면 언제든 돌아와, 별콩이는 항상 별 옆에서 기다릴게."\n2. **맨 마지막 줄에 [END] 마커를 단독 줄로** (이 마커가 없으면 프론트엔드가 종료 처리 못 함 — 절대 빠뜨리지 말 것)\n\n⚠️ "더 풀고 싶은 매듭 있으면…" 같은 열린 초대 문구 절대 X. 유저에게 다시 공을 넘기지 말고 깔끔히 닫아.`;
@@ -138,11 +169,12 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ## 이번 세션 정보
 
 [고민 내용: ${ctx.concernText}]
+[사주 상품: ${ctx.sajuProduct}]
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 
 ### 사주 데이터
 
-${formatSajuBlock(ctx.saju)}
+${formatSajuBlock(ctx.saju)}${formatTemporalBlock(ctx.saju.temporal, ctx.sajuProduct)}
 
 ---
 ${emotionBlock}${firstTurnGuide}${wrapGuide}`;
