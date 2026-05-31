@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ChatBubble from "@/components/saju/ChatBubble";
+import ChatBubble from "@/components/tarot/ChatBubble";
+import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
-import { getCard, getCardImagePath } from "@/lib/tarot/cards";
+import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
-import {
-  TAROT_DRAW_KEY,
-  type TarotDrawResult,
-} from "@/lib/tarot/session";
+import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
 
 interface Message {
@@ -18,27 +16,62 @@ interface Message {
   content: string;
 }
 
-const END_MARKER = /\[END\]\s*$/;
-const CARD_MARKER = /\[CARD:(\d+)\]/g;
-// 화면 끝에 걸린 미완성 마커 ([, [C, [CARD:1, [E, [END …) 임시 숨김
-const TRAILING_PARTIAL = /\[[A-Z:0-9]*$/;
+const TYPING_SPEED = 45;
+const THINKING_PROBABILITY = 0.2; // 새 버블 생성 전 "생각 중" pause 확률
+const CARD_MARKER_REGEX = /\[CARD:(\d+)\]/g;
+const END_MARKER_REGEX = /\[END\]/gi;
+// 미완성 마커 (e.g., "[CA", "[CARD:", "[CARD:1", "[E", "[EN", "[END") 제거용 — 버블 깜빡임 방지
+const TRAILING_PARTIAL_MARKER =
+  /\[(?:C(?:A(?:R(?:D(?::\d*)?)?)?)?|E(?:N(?:D)?)?)?$/;
 
-function stripForDisplay(raw: string): string {
-  return raw
-    .replace(CARD_MARKER, "")
-    .replace(END_MARKER, "")
-    .replace(TRAILING_PARTIAL, "")
-    .trimStart();
+interface Bubble {
+  text: string;
+  cardIndex: number | null;
+  showCardImage: boolean;
 }
 
-function lastCardIndex(raw: string): number | null {
-  let m: RegExpExecArray | null;
-  let last: number | null = null;
-  const re = new RegExp(CARD_MARKER.source, "g");
-  while ((m = re.exec(raw)) !== null) {
-    last = Number(m[1]) - 1;
+/** 원문 버퍼를 문단 + [CARD:n] 마커 기준으로 버블 배열로 파싱 */
+function parseIntoBubbles(raw: string): Bubble[] {
+  const bubbles: Bubble[] = [];
+  const cleaned = raw
+    .replace(TRAILING_PARTIAL_MARKER, "")
+    .replace(END_MARKER_REGEX, "");
+  const tokens = cleaned.split(/(\[CARD:\d+\])/g);
+  let currentCardIndex: number | null = null;
+  let nextIsFirstInSection = false;
+
+  for (const token of tokens) {
+    const markerMatch = /^\[CARD:(\d+)\]$/.exec(token);
+    if (markerMatch) {
+      currentCardIndex = parseInt(markerMatch[1], 10) - 1;
+      nextIsFirstInSection = true;
+      continue;
+    }
+    const paras = token
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    for (const p of paras) {
+      bubbles.push({
+        text: p,
+        cardIndex: currentCardIndex,
+        showCardImage: nextIsFirstInSection,
+      });
+      nextIsFirstInSection = false;
+    }
   }
-  return last;
+  return bubbles;
+}
+
+/** 버퍼에서 가장 최근에 등장한 [CARD:n] 의 n 반환 (1-based) */
+function getLatestCardIndex(text: string): number | null {
+  let lastMatch: RegExpExecArray | null = null;
+  const regex = new RegExp(CARD_MARKER_REGEX.source, "g");
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    lastMatch = m;
+  }
+  return lastMatch ? parseInt(lastMatch[1], 10) : null;
 }
 
 export default function TarotReadingPage() {
@@ -46,18 +79,32 @@ export default function TarotReadingPage() {
   const [draw, setDraw] = useState<TarotDrawResult | null>(null);
   const [readingId, setReadingId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [streamingText, setStreamingText] = useState("");
+  const [streamingBubbles, setStreamingBubbles] = useState<Bubble[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showPendingDots, setShowPendingDots] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
+  const [concernExpanded, setConcernExpanded] = useState(false);
   const [safety, setSafety] = useState<{
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
+
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bufferRef = useRef("");
+  const displayIndexRef = useRef(0);
+  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fetchDoneRef = useRef(false);
+  const lastScrollRef = useRef(0);
+  const pauseUntilRef = useRef(0);
+  const lastStableBubbleCountRef = useRef(0);
+  const suppressScrollUntilRef = useRef(0);
+  const showPendingDotsRef = useRef(false);
+  const composingRef = useRef(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // 컨텍스트 로드 + reading 생성 + 첫 풀이 자동 시작
   useEffect(() => {
@@ -109,9 +156,11 @@ export default function TarotReadingPage() {
         }
         const data = await r.json();
         setReadingId(data.id);
-        void sendMessage(parsed.concern, [
-          { role: "user", content: parsed.concern },
-        ], data.id);
+        // 첫 풀이 — concern 은 messages[0] 로 전송하지만 화면 버블로는 안 그림
+        void sendMessage(
+          [{ role: "user", content: parsed.concern }],
+          data.id
+        );
       } catch {
         setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       }
@@ -120,23 +169,120 @@ export default function TarotReadingPage() {
   }, [router]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  }, [messages, streamingText]);
+    return () => stopTyping();
+  }, []);
 
-  async function sendMessage(
-    _userContent: string,
-    history: Message[],
-    rid: string
-  ) {
+  const emotionEmoji = useMemo(() => {
+    if (!draw) return "✨";
+    return (
+      EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.emoji ?? "✨"
+    );
+  }, [draw]);
+
+  // 컨테이너 하단 스크롤 — 쓰로틀 + 유저 전송 직후 일시정지 존중
+  function scrollToBottom() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const now = Date.now();
+    if (now < suppressScrollUntilRef.current) return;
+    if (now - lastScrollRef.current < 120) return;
+    lastScrollRef.current = now;
+    requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+    });
+  }
+
+  function startTyping() {
+    if (typingIntervalRef.current) return;
+    pauseUntilRef.current = 0;
+    lastStableBubbleCountRef.current = 0;
+
+    typingIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      if (now < pauseUntilRef.current) return;
+
+      if (showPendingDotsRef.current) {
+        showPendingDotsRef.current = false;
+        setShowPendingDots(false);
+      }
+
+      const buffer = bufferRef.current;
+      const currentIndex = displayIndexRef.current;
+
+      if (currentIndex < buffer.length) {
+        const nextIndex = currentIndex + 1;
+        const nextVisible = buffer.slice(0, nextIndex);
+        const parsed = parseIntoBubbles(nextVisible);
+
+        const isNewBubble =
+          parsed.length > lastStableBubbleCountRef.current &&
+          lastStableBubbleCountRef.current > 0;
+
+        if (isNewBubble && Math.random() < THINKING_PROBABILITY) {
+          pauseUntilRef.current = now + 700 + Math.floor(Math.random() * 700);
+          showPendingDotsRef.current = true;
+          setShowPendingDots(true);
+          lastStableBubbleCountRef.current = parsed.length;
+          return;
+        }
+
+        lastStableBubbleCountRef.current = parsed.length;
+        displayIndexRef.current = nextIndex;
+        setStreamingBubbles(parsed);
+
+        const latest = getLatestCardIndex(nextVisible);
+        if (latest !== null) setActiveCardIndex(latest - 1);
+        scrollToBottom();
+      } else if (fetchDoneRef.current) {
+        stopTyping();
+        finishMessage();
+      }
+    }, TYPING_SPEED);
+  }
+
+  function stopTyping() {
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+  }
+
+  function finishMessage() {
+    const finalContent = bufferRef.current;
+    if (!finalContent) {
+      setIsStreaming(false);
+      setStreamingBubbles([]);
+      return;
+    }
+
+    const hasEnd = END_MARKER_REGEX.test(finalContent);
+    END_MARKER_REGEX.lastIndex = 0;
+
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: finalContent },
+      ]);
+      setStreamingBubbles([]);
+      setIsStreaming(false);
+      setActiveCardIndex(null);
+      if (hasEnd) setIsEnded(true);
+    }, 80);
+  }
+
+  async function sendMessage(history: Message[], rid: string) {
     setMessages(history);
     setIsStreaming(true);
-    setStreamingText("");
+    setStreamingBubbles([]);
+    setShowPendingDots(false);
+    showPendingDotsRef.current = false;
+    bufferRef.current = "";
+    displayIndexRef.current = 0;
+    fetchDoneRef.current = false;
+    setActiveCardIndex(null);
     setError(null);
+
+    startTyping();
 
     try {
       const r = await fetch("/api/consultations/tarot/chat", {
@@ -147,6 +293,7 @@ export default function TarotReadingPage() {
       if (!r.ok || !r.body) {
         const data = await r.json().catch(() => ({}));
         setError(data?.error || "연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+        stopTyping();
         setIsStreaming(false);
         return;
       }
@@ -162,25 +309,15 @@ export default function TarotReadingPage() {
 
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setStreamingText(stripForDisplay(accumulated));
-        const idx = lastCardIndex(accumulated);
-        if (idx !== null) setActiveCard(idx);
+        bufferRef.current += decoder.decode(value, { stream: true });
       }
-
-      const ended = END_MARKER.test(accumulated);
-      const finalText = stripForDisplay(accumulated);
-
-      setMessages([...history, { role: "assistant", content: finalText }]);
-      setStreamingText("");
-      setIsStreaming(false);
-      setActiveCard(null);
-      if (ended) setIsEnded(true);
+      fetchDoneRef.current = true;
     } catch {
+      fetchDoneRef.current = true;
+      stopTyping();
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setIsStreaming(false);
     }
@@ -191,11 +328,34 @@ export default function TarotReadingPage() {
     if (!input.trim() || isStreaming || isEnded || !readingId) return;
     const text = input.trim();
     setInput("");
-    void sendMessage(
-      text,
-      [...messages, { role: "user", content: text }],
-      readingId
-    );
+    if (inputRef.current) inputRef.current.style.height = "auto";
+
+    const history = [...messages, { role: "user" as const, content: text }];
+    void sendMessage(history, readingId);
+
+    // 유저 발화 직후 — 유저 버블이 컨테이너 상단 근처에 오도록 스크롤
+    suppressScrollUntilRef.current = Date.now() + 1500;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const userBubbles = el.querySelectorAll<HTMLElement>(".justify-end");
+        const last = userBubbles[userBubbles.length - 1];
+        if (last) {
+          el.scrollTo({
+            top: Math.max(0, last.offsetTop - 16),
+            behavior: "smooth",
+          });
+        }
+      });
+    });
+  };
+
+  const autoResizeInput = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
   if (!draw) {
@@ -206,72 +366,27 @@ export default function TarotReadingPage() {
     );
   }
 
-  const isFirstAssistantInGroup = (idx: number): boolean => {
-    if (messages[idx]?.role !== "assistant") return false;
-    if (idx === 0) return true;
-    return messages[idx - 1].role !== "assistant";
-  };
-
   return (
     <main className="flex flex-1 flex-col items-stretch w-full">
-      {/* 상단 카드 스프레드 (sticky) */}
-      <div className="sticky top-0 z-10 bg-night/95 backdrop-blur border-b border-lilac-mid/20">
-        <div className="max-w-md mx-auto px-5 py-3 flex items-center justify-between">
-          <span className="text-[12px] font-bold text-card-gold">
+      {/* 상단 바 */}
+      <div className="sticky top-0 z-10 bg-cream/95 backdrop-blur border-b border-lilac-mid/20">
+        <div className="max-w-md mx-auto px-5 py-2.5 flex items-center justify-between">
+          <span className="text-[12px] font-bold text-eye-purple">
             {SPREAD_INFO[draw.spreadType].label}
           </span>
-          <Link href="/tarot" className="text-[11px] text-white/60">
+          <Link href="/tarot" className="text-[11px] text-text-light/70">
             ‹ 스프레드 다시 고르기
           </Link>
         </div>
-        <div className="max-w-md mx-auto px-5 pb-3">
-          <div className="flex flex-wrap justify-center gap-2.5">
-            {draw.drawnCards.map((c, i) => {
-              const card = getCard(c.card_id);
-              const active = activeCard === i;
-              return (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div
-                    className={`relative w-[44px] aspect-[2/3] rounded-md overflow-hidden border transition-all ${
-                      active
-                        ? "ring-2 ring-card-gold scale-105 border-card-gold"
-                        : "border-white/20 opacity-90"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getCardImagePath(c.card_id)}
-                      alt={card?.name_kr ?? ""}
-                      className="w-full h-full object-cover"
-                      style={{
-                        transform:
-                          c.direction === "reversed"
-                            ? "rotate(180deg)"
-                            : "none",
-                      }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[9px] leading-tight text-center max-w-[48px] ${
-                      active ? "text-card-gold" : "text-white/70"
-                    }`}
-                  >
-                    {c.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
-      {/* 채팅 영역 */}
+      {/* 스크롤 영역 — 고민 + 카드 스프레드 + 대화 */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ maxHeight: "calc(100vh - 220px)" }}
+        style={{ maxHeight: "calc(100vh - 160px)" }}
       >
-        <div className="max-w-md mx-auto px-5 py-5">
+        <div className="max-w-md mx-auto px-5 py-4">
           {safety && (
             <SafetyBanner
               category={safety.category}
@@ -279,28 +394,112 @@ export default function TarotReadingPage() {
               onClose={() => setSafety(null)}
             />
           )}
-          {messages.map((m, i) => (
-            <ChatBubble
-              key={i}
-              role={m.role}
-              content={m.content}
-              isFirstInTurn={isFirstAssistantInGroup(i)}
-            />
-          ))}
-          {isStreaming && (
-            <ChatBubble
-              role="assistant"
-              content={streamingText}
-              isFirstInTurn={
-                messages.length === 0 ||
-                messages[messages.length - 1].role !== "assistant"
+
+          {/* 고민 컨텍스트 — 접기/펼치기 토글, 디폴트 접힘 */}
+          <button
+            type="button"
+            onClick={() => setConcernExpanded((v) => !v)}
+            className="w-full text-left mb-4 px-4 py-3 bg-cream-warm rounded-2xl border border-lilac-mid/20 hover:border-lilac-mid/40 transition-colors"
+            aria-expanded={concernExpanded}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-[14px] shrink-0">{emotionEmoji}</span>
+              <span className="text-[12px] font-bold text-text-light tracking-wide shrink-0">
+                {draw.emotion}
+              </span>
+              {!concernExpanded && (
+                <span className="text-[12px] text-text-light/70 truncate flex-1 ml-1">
+                  · {draw.concern || "지금 내 흐름이 궁금해"}
+                </span>
+              )}
+              <span
+                className={`text-text-light text-[14px] shrink-0 transition-transform ml-auto ${
+                  concernExpanded ? "rotate-180" : ""
+                }`}
+              >
+                ▾
+              </span>
+            </div>
+            {concernExpanded && (
+              <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap break-words mt-2">
+                {draw.concern || "지금 내 흐름이 궁금해"}
+              </p>
+            )}
+          </button>
+
+          {/* 카드 영역 (다크 배경 + 별 파티클) */}
+          <CardSpreadView
+            drawnCards={draw.drawnCards}
+            spreadType={draw.spreadType}
+            activeIndex={activeCardIndex}
+          />
+
+          {/* 대화 영역 */}
+          <div className="mt-5 flex flex-col">
+            {messages.map((msg, msgI) => {
+              // 첫 user 메시지(고민)는 위 컨텍스트 박스에 있으므로 버블 생략
+              if (msg.role === "user") {
+                if (msgI === 0) return null;
+                return (
+                  <ChatBubble key={msgI} role="user" content={msg.content} />
+                );
               }
-              streaming
-            />
-          )}
-          {error && (
-            <p className="text-[12px] text-red-500 text-center mt-2">{error}</p>
-          )}
+              const bubbles = parseIntoBubbles(msg.content);
+              return bubbles.map((b, bI) => {
+                const isTurnFirst = bI === 0;
+                return (
+                  <ChatBubble
+                    key={`${msgI}-${bI}`}
+                    role="assistant"
+                    content={b.text}
+                    showAvatar={isTurnFirst}
+                    showName={isTurnFirst}
+                    cardIndex={b.cardIndex}
+                    showCardImage={b.showCardImage}
+                    drawnCards={draw.drawnCards}
+                  />
+                );
+              });
+            })}
+
+            {isStreaming &&
+              streamingBubbles.map((b, i, arr) => {
+                const isLast = i === arr.length - 1;
+                const isTurnFirst = i === 0;
+                return (
+                  <ChatBubble
+                    key={`stream-${i}`}
+                    role="assistant"
+                    content={b.text}
+                    showAvatar={isTurnFirst}
+                    showName={isTurnFirst}
+                    cardIndex={b.cardIndex}
+                    showCardImage={b.showCardImage}
+                    drawnCards={draw.drawnCards}
+                    streaming={isLast && !showPendingDots}
+                  />
+                );
+              })}
+
+            {/* 신규 버블 직전 또는 스트림 시작 직후 dots 인디케이터 */}
+            {isStreaming &&
+              (showPendingDots || streamingBubbles.length === 0) && (
+                <ChatBubble
+                  role="assistant"
+                  content=""
+                  showAvatar={streamingBubbles.length === 0}
+                  showName={streamingBubbles.length === 0}
+                  drawnCards={draw.drawnCards}
+                  streaming
+                />
+              )}
+
+            {error && (
+              <p className="text-[12px] text-red-500 text-center mt-2">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -326,21 +525,44 @@ export default function TarotReadingPage() {
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex items-center gap-2">
-              <input
-                type="text"
+            <form onSubmit={handleSubmit} className="flex items-end gap-2">
+              <textarea
+                ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  autoResizeInput();
+                }}
+                onCompositionStart={() => {
+                  composingRef.current = true;
+                }}
+                onCompositionEnd={() => {
+                  composingRef.current = false;
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !composingRef.current
+                  ) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+                rows={1}
                 placeholder={
-                  isStreaming ? "별콩이가 답하는 중…" : "별콩이에게 더 물어보기"
+                  isStreaming
+                    ? "별콩이가 답하는 중…"
+                    : "별콩이에게 더 물어보기 (Shift+Enter 줄바꿈)"
                 }
                 disabled={isStreaming || !readingId}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] placeholder:text-text-light/50 disabled:opacity-60"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide"
+                style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
                 type="submit"
                 disabled={isStreaming || !input.trim() || !readingId}
-                className="px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 전송
               </button>
