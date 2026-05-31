@@ -374,8 +374,101 @@ export default function SelectPage() {
         </div>
       </div>
 
-      {/* 사주 섹션 */}
+      {/* 타로 섹션 */}
       <div className="w-full max-w-md mx-auto px-5 mb-2.5">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-lilac-soft/70" />
+          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+            타로
+          </span>
+          <div className="flex-1 h-px bg-lilac-soft/70" />
+        </div>
+      </div>
+
+      <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
+        {spreadOptions.map((type) => {
+          const info = SPREAD_INFO[type];
+          const isSelected = selected === type;
+          const isRecommended = rec.kind === "tarot" && rec.spread === type;
+          const positions = getPositionLabels(type, category);
+          return (
+            <button
+              key={type}
+              onClick={() => setSelected(type)}
+              aria-pressed={isSelected}
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
+              style={{
+                border: isSelected
+                  ? `2px solid ${info.accent}`
+                  : "1px solid #E8DEF5",
+                boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
+              }}
+            >
+              {/* 카드 미니어처 — 번호+색상 카드, 겹쳐서 부채꼴 펼침 */}
+              <div className="flex flex-shrink-0 items-center justify-center -space-x-3.5 w-[58px]">
+                {Array.from({ length: info.cardCount }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-[26px] aspect-[2/3] rounded-[4px] border flex items-center justify-center shadow-sm transition-all"
+                    style={{
+                      background: isSelected
+                        ? `color-mix(in srgb, ${info.accent} 26%, white)`
+                        : `color-mix(in srgb, ${info.accent} 12%, white)`,
+                      borderColor: isSelected
+                        ? info.accent
+                        : `color-mix(in srgb, ${info.accent} 42%, white)`,
+                      transform: `rotate(${
+                        (i - (info.cardCount - 1) / 2) * 6
+                      }deg)`,
+                      zIndex: i,
+                    }}
+                  >
+                    {i === info.cardCount - 1 && (
+                      <span
+                        className="text-[10px] font-black leading-none tabular-nums"
+                        style={{ color: info.accent }}
+                      >
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span
+                    className="text-[12px] font-black px-1.5 py-0.5 rounded-md text-white"
+                    style={{ backgroundColor: info.accent }}
+                  >
+                    {info.label}
+                  </span>
+                  <span className="text-[11px] font-bold text-text-light">
+                    ⭐ {info.starCost}별
+                  </span>
+                  {isRecommended && (
+                    <span className="text-[10px] font-bold text-lilac-deep ml-auto">
+                      추천 ✨
+                    </span>
+                  )}
+                </div>
+                <p className="text-[12px] text-text-light leading-snug mb-1.5">
+                  {getSpreadDescription(type, category)}
+                </p>
+                <p
+                  className="text-[11px] font-bold leading-snug truncate"
+                  style={{ color: info.accent }}
+                >
+                  {positions.join(" · ")}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 사주 섹션 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-8 mb-2.5">
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-lilac-soft/70" />
           <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
@@ -440,99 +533,6 @@ export default function SelectPage() {
                   style={{ color: SAJU_LABEL_COLOR }}
                 >
                   {info.flow}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 타로 섹션 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-8 mb-2.5">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-lilac-soft/70" />
-          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
-            타로
-          </span>
-          <div className="flex-1 h-px bg-lilac-soft/70" />
-        </div>
-      </div>
-
-      <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
-        {spreadOptions.map((type) => {
-          const info = SPREAD_INFO[type];
-          const isSelected = selected === type;
-          const isRecommended = rec.kind === "tarot" && rec.spread === type;
-          const positions = getPositionLabels(type, category);
-          return (
-            <button
-              key={type}
-              onClick={() => setSelected(type)}
-              aria-pressed={isSelected}
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
-              style={{
-                border: isSelected
-                  ? `2px solid ${info.accent}`
-                  : "1px solid #E8DEF5",
-                boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
-              }}
-            >
-              {/* 카드 미니어처 — 번호+색상 카드, 겹쳐서 부채꼴 펼침 */}
-              <div className="flex flex-shrink-0 items-center justify-center -space-x-3.5 w-[58px]">
-                {Array.from({ length: info.cardCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-[26px] aspect-[2/3] rounded-[4px] border flex items-center justify-center shadow-sm transition-all"
-                    style={{
-                      background: isSelected
-                        ? `color-mix(in srgb, ${info.accent} 26%, white)`
-                        : `color-mix(in srgb, ${info.accent} 12%, white)`,
-                      borderColor: isSelected
-                        ? info.accent
-                        : `color-mix(in srgb, ${info.accent} 42%, white)`,
-                      transform: `rotate(${
-                        (i - (info.cardCount - 1) / 2) * 6
-                      }deg)`,
-                      zIndex: i,
-                    }}
-                  >
-                    {i === info.cardCount - 1 && (
-                      <span
-                        className="text-[10px] font-black leading-none tabular-nums"
-                        style={{ color: info.accent }}
-                      >
-                        {i + 1}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span
-                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
-                    style={{ backgroundColor: info.accent }}
-                  >
-                    {info.label}
-                  </span>
-                  <span className="text-[11px] font-bold text-text-light">
-                    ⭐ {info.starCost}별
-                  </span>
-                  {isRecommended && (
-                    <span className="text-[10px] font-bold text-lilac-deep ml-auto">
-                      추천 ✨
-                    </span>
-                  )}
-                </div>
-                <p className="text-[12px] text-text-light leading-snug mb-1.5">
-                  {getSpreadDescription(type, category)}
-                </p>
-                <p
-                  className="text-[11px] font-bold leading-snug truncate"
-                  style={{ color: info.accent }}
-                >
-                  {positions.join(" · ")}
                 </p>
               </div>
             </button>
