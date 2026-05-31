@@ -21,12 +21,18 @@ import {
   type SpreadCategory,
 } from "@/lib/tarot/spreads";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
+import {
+  getSajuProducts,
+  isSajuProduct,
+  SAJU_PRODUCT_INFO,
+  type SajuProduct,
+} from "@/lib/saju/products";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const SAJU_ACCENT = "#9F8AD0";
-const SAJU_COST = 22;
+const SAJU_COST = 20;
 
-type Selection = "saju" | SpreadType;
+type Selection = SajuProduct | SpreadType;
 
 // 사주가 더 적합한 감정 — 장기 흐름·방향·새 시작
 const SAJU_EMOTIONS: EmotionTag[] = [
@@ -166,10 +172,10 @@ function getRecommendation(
     const c = SAJU_REC_COPY[emotion] ?? SAJU_REC_COPY.default;
     return {
       kind: "saju",
-      selection: "saju",
+      selection: "today_letters",
       headline: c.headline,
       reason: c.reason,
-      label: "별콩이 사주",
+      label: SAJU_PRODUCT_INFO.today_letters.label,
       accent: SAJU_ACCENT,
     };
   }
@@ -197,6 +203,10 @@ export default function SelectPage() {
     [pending]
   );
   const spreadOptions = useMemo(() => getSpreadOptions(category), [category]);
+  const sajuProducts = useMemo(
+    () => (pending ? getSajuProducts(pending.emotion) : []),
+    [pending]
+  );
   const rec = useMemo(
     () =>
       pending
@@ -242,11 +252,12 @@ export default function SelectPage() {
 
   const handleStart = () => {
     if (!selected) return;
-    if (selected === "saju") {
+    if (isSajuProduct(selected)) {
       const payload: PendingConsultation = {
         emotion: pending.emotion,
         concern: pending.concern,
         type: "saju",
+        sajuProduct: selected,
       };
       sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
       router.push("/saju");
@@ -262,14 +273,11 @@ export default function SelectPage() {
     router.push("/tarot/draw");
   };
 
-  const startLabel =
-    selected === "saju"
-      ? "별콩이 사주 보러 가기"
-      : selected
-      ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기`
-      : "방식을 골라줘";
-
-  const sajuRecommended = rec.kind === "saju";
+  const startLabel = isSajuProduct(selected)
+    ? `${SAJU_PRODUCT_INFO[selected].label} 보러 가기`
+    : selected
+    ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기`
+    : "방식을 골라줘";
 
   return (
     <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
@@ -369,60 +377,66 @@ export default function SelectPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-5">
-        <button
-          onClick={() => setSelected("saju")}
-          aria-pressed={selected === "saju"}
-          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
-          style={{
-            border:
-              selected === "saju"
-                ? `2px solid ${SAJU_ACCENT}`
-                : "1px solid #E8DEF5",
-            boxShadow:
-              selected === "saju" ? `0 0 0 3px ${SAJU_ACCENT}1f` : "none",
-          }}
-        >
-          <div className="flex flex-shrink-0 items-center justify-center w-[44px]">
-            <Image
-              src="/saju.png"
-              alt=""
-              width={40}
-              height={40}
-              className="object-contain"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span
-                className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
-                style={{ backgroundColor: SAJU_ACCENT }}
-              >
-                별콩이 사주
-              </span>
-              <span className="text-[11px] font-bold text-text-light">
-                ⭐ {SAJU_COST}별
-              </span>
-              {sajuRecommended && (
-                <span
-                  className="text-[10px] font-black ml-auto px-1.5 py-0.5 rounded-full text-white"
-                  style={{ background: "#E5484D" }}
-                >
-                  추천 ✨
-                </span>
-              )}
-            </div>
-            <p className="text-[12px] text-text-light leading-snug mb-1.5">
-              오늘 일운 기반으로 너의 팔자를 짚어 고민을 풀어줄게
-            </p>
-            <p
-              className="text-[11px] font-bold leading-snug truncate"
-              style={{ color: SAJU_ACCENT }}
+      <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
+        {sajuProducts.map((p) => {
+          const info = SAJU_PRODUCT_INFO[p];
+          const isSelected = selected === p;
+          const isRecommended = rec.kind === "saju" && rec.selection === p;
+          return (
+            <button
+              key={p}
+              onClick={() => setSelected(p)}
+              aria-pressed={isSelected}
+              className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
+              style={{
+                border: isSelected
+                  ? `2px solid ${SAJU_ACCENT}`
+                  : "1px solid #E8DEF5",
+                boxShadow: isSelected ? `0 0 0 3px ${SAJU_ACCENT}1f` : "none",
+              }}
             >
-              사주 4기둥 · 오행 흐름 · 오늘 일운
-            </p>
-          </div>
-        </button>
+              <div className="flex flex-shrink-0 items-center justify-center w-[44px]">
+                <Image
+                  src="/saju.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span
+                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
+                    style={{ backgroundColor: SAJU_ACCENT }}
+                  >
+                    {info.label}
+                  </span>
+                  <span className="text-[11px] font-bold text-text-light">
+                    ⭐ {SAJU_COST}별
+                  </span>
+                  {isRecommended && (
+                    <span
+                      className="text-[10px] font-black ml-auto px-1.5 py-0.5 rounded-full text-white"
+                      style={{ background: "#E5484D" }}
+                    >
+                      추천 ✨
+                    </span>
+                  )}
+                </div>
+                <p className="text-[12px] text-text-light leading-snug mb-1.5">
+                  {info.description}
+                </p>
+                <p
+                  className="text-[11px] font-bold leading-snug truncate"
+                  style={{ color: SAJU_ACCENT }}
+                >
+                  {info.flow}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* 타로 섹션 */}
