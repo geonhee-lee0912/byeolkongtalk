@@ -78,21 +78,28 @@ export default function ConcernPage() {
       {/* 감정 컨텍스트 칩 — 선택한 고민 분류 싱크 */}
       {option && (
         <div className="w-full max-w-md mx-auto px-5 mb-5 flex justify-center">
-          <div className="flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 bg-white/85 backdrop-blur-sm rounded-full border border-lilac-soft/70 text-[12px] shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
-            <span
-              className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
-              style={{ background: EMOTION_GRADIENTS[emotion] }}
-              aria-hidden
-            >
-              <Image
-                src={option.icon}
-                alt=""
-                width={18}
-                height={18}
-                className="object-contain"
-              />
-            </span>
-            <span className="font-bold text-eye-purple">{option.tag}</span>
+          <div className="flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={{ background: EMOTION_GRADIENTS[emotion] }}
+                aria-hidden
+              >
+                <Image
+                  src={option.icon}
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="object-contain"
+                />
+              </span>
+              <span className="font-bold text-eye-purple text-[13px]">
+                {option.tag}
+              </span>
+            </div>
+            <p className="text-[11px] text-text-light/80 text-center leading-relaxed">
+              {option.description}
+            </p>
           </div>
         </div>
       )}
@@ -123,7 +130,7 @@ export default function ConcernPage() {
               />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="font-display text-[15px] text-white leading-tight">
+              <p className="text-[15px] text-white leading-tight">
                 별콩이
               </p>
               <p className="text-[11px] text-white/60 leading-snug mt-0.5 flex items-center gap-1">
@@ -170,7 +177,7 @@ export default function ConcernPage() {
                   boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
                 }}
               >
-                <p className="font-display text-[16px] text-eye-purple leading-tight">
+                <p className="text-[16px] text-eye-purple leading-tight">
                   어떤 고민이야?
                 </p>
                 <p className="text-[12px] text-eye-purple/85 mt-1 leading-relaxed">
