@@ -30,7 +30,6 @@ import {
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const SAJU_ACCENT = "#9F8AD0";
-const SAJU_LABEL_COLOR = "#3B4D8F";
 const SAJU_COST = 20;
 
 const SAJU_ICONS: Record<SajuProduct, string> = {
@@ -38,6 +37,14 @@ const SAJU_ICONS: Record<SajuProduct, string> = {
   nature: "/flow.png",
   choice: "/choice.png",
   good_days: "/days.png",
+};
+
+// 사주 4종 키컬러 — 타로(#6B8DD6/#65B28F/#E0976B/#D4708F)와 겹치지 않게
+const SAJU_PRODUCT_ACCENT: Record<SajuProduct, string> = {
+  today_letters: "#7C6BD6", // 바이올렛
+  nature: "#2FA8A0", // 틸
+  choice: "#C49A3A", // 골드
+  good_days: "#B85FB0", // 플럼
 };
 
 type Selection = SajuProduct | SpreadType;
@@ -375,10 +382,10 @@ export default function SelectPage() {
       </div>
 
       {/* 타로 섹션 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-2.5">
+      <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-lilac-soft/70" />
-          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+          <span className="text-[13px] font-bold text-text-light tracking-[0.15em]">
             타로
           </span>
           <div className="flex-1 h-px bg-lilac-soft/70" />
@@ -468,10 +475,10 @@ export default function SelectPage() {
       </div>
 
       {/* 사주 섹션 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-8 mb-2.5">
+      <div className="w-full max-w-md mx-auto px-5 mt-8 mb-4">
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-lilac-soft/70" />
-          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+          <span className="text-[13px] font-bold text-text-light tracking-[0.15em]">
             사주
           </span>
           <div className="flex-1 h-px bg-lilac-soft/70" />
@@ -481,6 +488,7 @@ export default function SelectPage() {
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
         {sajuProducts.map((p) => {
           const info = SAJU_PRODUCT_INFO[p];
+          const accent = SAJU_PRODUCT_ACCENT[p];
           const isSelected = selected === p;
           const isRecommended = rec.kind === "saju" && rec.selection === p;
           return (
@@ -491,9 +499,9 @@ export default function SelectPage() {
               className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
               style={{
                 border: isSelected
-                  ? `2px solid ${SAJU_ACCENT}`
+                  ? `2px solid ${accent}`
                   : "1px solid #E8DEF5",
-                boxShadow: isSelected ? `0 0 0 3px ${SAJU_ACCENT}1f` : "none",
+                boxShadow: isSelected ? `0 0 0 3px ${accent}1f` : "none",
               }}
             >
               <div className="flex flex-shrink-0 items-center justify-center w-[44px]">
@@ -509,7 +517,7 @@ export default function SelectPage() {
                 <div className="flex items-center gap-1.5 mb-1">
                   <span
                     className="text-[12px] font-black px-1.5 py-0.5 rounded-md text-white"
-                    style={{ backgroundColor: SAJU_LABEL_COLOR }}
+                    style={{ backgroundColor: accent }}
                   >
                     {info.label}
                   </span>
@@ -530,7 +538,7 @@ export default function SelectPage() {
                 </p>
                 <p
                   className="text-[11px] font-bold leading-snug truncate"
-                  style={{ color: SAJU_LABEL_COLOR }}
+                  style={{ color: accent }}
                 >
                   {info.flow}
                 </p>
