@@ -72,19 +72,24 @@ function TarotResultInner() {
       setError("리딩 정보가 없어");
       return;
     }
-    void fetch(`/api/readings/${id}`, { cache: "no-store" })
-      .then(async (r) => {
+    void (async () => {
+      try {
+        let r = await fetch(`/api/readings/${id}`, { cache: "no-store" });
+        // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
+        if (r.status === 401 || r.status === 403) {
+          r = await fetch(`/api/readings/${id}/public`, { cache: "no-store" });
+        }
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
           setError(d?.error || "결과를 불러오지 못했어");
-          return null;
+          return;
         }
-        return r.json();
-      })
-      .then((d) => {
-        if (d) setData(d as FetchData);
-      })
-      .catch(() => setError("연결이 흔들렸어"));
+        const d = await r.json();
+        setData(d as FetchData);
+      } catch {
+        setError("연결이 흔들렸어");
+      }
+    })();
   }, [id]);
 
   if (error) {
@@ -117,6 +122,13 @@ function TarotResultInner() {
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
   const cards = reading.drawnCards ?? [];
+  const cardsText = cards
+    .map((c) => {
+      const card = getCard(c.card_id);
+      const dir = c.direction === "reversed" ? " (역)" : "";
+      return `· ${c.label}: ${card?.name_kr ?? ""}${dir}`;
+    })
+    .join("\n");
   const spreadLabel = SPREAD_INFO[reading.spreadType]?.label ?? "타로 풀이";
   const emotionIcon = EMOTION_OPTIONS.find(
     (o) => o.tag === reading.emotionTag
@@ -294,6 +306,7 @@ function TarotResultInner() {
           readingId={reading.id}
           question={reading.question}
           spreadLabel={spreadLabel}
+          cardsText={cardsText}
           closingLine={closingLine}
           hasSensitive={reading.hasSensitive}
         />

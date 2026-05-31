@@ -7,6 +7,8 @@ export interface TarotShareButtonsProps {
   readingId: string;
   question: string;
   spreadLabel: string;
+  /** 뽑은 카드 목록 (포지션: 카드명 줄단위) */
+  cardsText: string;
   closingLine: string | null;
   hasSensitive: boolean;
 }
@@ -14,15 +16,17 @@ export interface TarotShareButtonsProps {
 function buildShareText(args: {
   question: string;
   spreadLabel: string;
+  cardsText: string;
   closingLine: string | null;
   url: string;
 }) {
-  const { question, spreadLabel, closingLine, url } = args;
+  const { question, spreadLabel, cardsText, closingLine, url } = args;
   const parts = [
     "[별콩이의 타로 풀이]",
     `💭 ${question}`,
     `🃏 ${spreadLabel}`,
   ];
+  if (cardsText) parts.push(cardsText);
   if (closingLine) parts.push(`✨ ${closingLine}`);
   parts.push(`🌙 ${url}`);
   return parts.join("\n\n");
@@ -32,6 +36,7 @@ export default function TarotShareButtons({
   readingId,
   question,
   spreadLabel,
+  cardsText,
   closingLine,
   hasSensitive,
 }: TarotShareButtonsProps) {
@@ -54,7 +59,13 @@ export default function TarotShareButtons({
       typeof window !== "undefined"
         ? `${window.location.origin}/tarot/result?id=${readingId}`
         : "";
-    const text = buildShareText({ question, spreadLabel, closingLine, url });
+    const text = buildShareText({
+      question,
+      spreadLabel,
+      cardsText,
+      closingLine,
+      url,
+    });
 
     // 모바일에서만 네이티브 공유 시트. 데스크톱은 텍스트 복사로.
     const isMobile =
