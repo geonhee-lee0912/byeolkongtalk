@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,7 +12,11 @@ interface TabDef {
   href: string;
   /** 활성 판단용 prefix 목록 — 첫 매치되는 prefix 가 있으면 active */
   matchPrefixes: string[];
-  icon: (active: boolean) => React.ReactNode;
+  /** Material Design Icons (Pictogrammers, Apache 2.0) 24x24 single-path */
+  /** 비선택 — line(outline) */
+  iconLine: string;
+  /** 선택 — filled */
+  iconFill: string;
 }
 
 const ICON_CLASS = "w-[22px] h-[22px]";
@@ -22,103 +27,54 @@ const TABS: TabDef[] = [
     label: "고민 상담",
     href: "/",
     matchPrefixes: ["/", "/saju"],
-    icon: (active) => (
-      <svg
-        className={ICON_CLASS}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <path d="M21 12c0 4.4-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.5-4.2C3.5 15.5 3 13.8 3 12c0-4.4 4-8 9-8s9 3.6 9 8z" />
-      </svg>
-    ),
+    // mdi message-text-outline / message-text
+    iconLine:
+      "M20,2A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H6L2,22V4C2,2.89 2.9,2 4,2H20M4,4V17.17L5.17,16H20V4H4M6,7H18V9H6V7M6,11H15V13H6V11Z",
+    iconFill:
+      "M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18",
   },
   {
     key: "fortune",
     label: "별콩 운세",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
-    icon: (active) => (
-      <svg
-        className={ICON_CLASS}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <path d="M12 3l1.9 4.6L18.8 8l-3.6 3.2 1 4.9L12 13.7 7.8 16l1-4.9L5.2 8l4.9-.4L12 3z" />
-        <path d="M19 14l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5.5-1.6z" />
-      </svg>
-    ),
+    // mdi star-four-points-outline / star-four-points
+    iconLine:
+      "M12,6.7L13.45,10.55L17.3,12L13.45,13.45L12,17.3L10.55,13.45L6.7,12L10.55,10.55L12,6.7M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z",
+    iconFill: "M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z",
   },
   {
     key: "history",
     label: "내 고민톡",
     href: "/readings",
     matchPrefixes: ["/readings"],
-    icon: (active) => (
-      <svg
-        className={ICON_CLASS}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <path d="M4 5h13a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8l-4 3V5z" />
-        <path d="M8 10h8M8 13h5" />
-      </svg>
-    ),
+    // mdi clock-outline / clock
+    iconLine:
+      "M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z",
+    iconFill:
+      "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z",
   },
   {
     key: "shop",
     label: "별콩 상점",
     href: "/shop",
     matchPrefixes: ["/shop"],
-    icon: (active) => (
-      <svg
-        className={ICON_CLASS}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <path d="M12 3l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16l-5.1 2.6 1-5.6L3.8 9l5.7-.8L12 3z" />
-      </svg>
-    ),
+    // mdi star-circle-outline / star-circle
+    iconLine:
+      "M8.58,17.25L9.5,13.36L6.5,10.78L10.45,10.41L12,6.8L13.55,10.45L17.5,10.78L14.5,13.36L15.42,17.25L12,15.19L8.58,17.25M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z",
+    iconFill:
+      "M16.23,18L12,15.45L7.77,18L8.89,13.19L5.16,9.96L10.08,9.54L12,5L13.92,9.53L18.84,9.95L15.11,13.18L16.23,18M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
   },
   {
     key: "me",
     label: "내 정보",
     href: "/mypage",
     matchPrefixes: ["/mypage"],
-    icon: (active) => (
-      <svg
-        className={ICON_CLASS}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-      </svg>
-    ),
+    // mdi account-outline / account
+    iconLine:
+      "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13M12,14.9C9.03,14.9 5.9,16.36 5.9,17V18.1H18.1V17C18.1,16.36 14.97,14.9 12,14.9Z",
+    iconFill:
+      "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z",
   },
 ];
 
@@ -138,31 +94,45 @@ export default function BottomTab() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="주요 메뉴"
     >
-      <div className="max-w-md mx-auto h-16 flex items-stretch">
-        {TABS.map((tab) => {
+      <div className="max-w-md mx-auto h-16 flex items-stretch px-1">
+        {TABS.map((tab, i) => {
           const active = isActive(pathname, tab);
           return (
-            <Link
-              key={tab.key}
-              href={tab.href}
-              className={[
-                "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
-                active
-                  ? "text-lilac-deep"
-                  : "text-text-light hover:text-eye-purple",
-              ].join(" ")}
-              aria-current={active ? "page" : undefined}
-            >
-              {tab.icon(active)}
-              <span
+            <Fragment key={tab.key}>
+              {i > 0 && (
+                <span
+                  className="my-3 w-px self-stretch bg-lilac-soft/70"
+                  aria-hidden
+                />
+              )}
+              <Link
+                href={tab.href}
                 className={[
-                  "text-[10.5px] leading-none tracking-tight",
-                  active ? "font-bold" : "font-medium",
+                  "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
+                  active
+                    ? "text-lilac-deep"
+                    : "text-text-light hover:text-eye-purple",
                 ].join(" ")}
+                aria-current={active ? "page" : undefined}
               >
-                {tab.label}
-              </span>
-            </Link>
+                <svg
+                  className={ICON_CLASS}
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path d={active ? tab.iconFill : tab.iconLine} />
+                </svg>
+                <span
+                  className={[
+                    "text-[10.5px] leading-none tracking-tight",
+                    active ? "font-bold" : "font-medium",
+                  ].join(" ")}
+                >
+                  {tab.label}
+                </span>
+              </Link>
+            </Fragment>
           );
         })}
       </div>

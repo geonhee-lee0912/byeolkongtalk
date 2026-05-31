@@ -586,7 +586,7 @@ function TarotReadingInner() {
       </div>
 
       {/* 하단 입력창 또는 종료 CTA */}
-      <div className="shrink-0 border-t border-lilac-mid/30 bg-cream">
+      <div className="shrink-0 border-t border-lilac-mid/30 bg-white">
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">
@@ -633,7 +633,7 @@ function TarotReadingInner() {
                 }
                 disabled={isStreaming || !readingId}
                 maxLength={500}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <div className="flex items-center gap-2">
