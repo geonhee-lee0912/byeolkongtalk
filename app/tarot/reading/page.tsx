@@ -13,10 +13,24 @@ import type { SensitiveCategory } from "@/lib/sensitive";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  /** 부재 감지 멘트 — 화면 표시 전용. API/ DB/ 턴 카운트 제외 */
+  ephemeral?: boolean;
 }
 
 const TYPING_SPEED = 45;
 const THINKING_PROBABILITY = 0.2; // 새 버블 생성 전 "생각 중" pause 확률
+const DEBOUNCE_FLUSH_MS = 2000;
+const IDLE_NUDGE_1_MS = 10000;
+const IDLE_NUDGE_2_MS = 40000; // 1단계 멘트 이후 추가 대기
+const NUDGE_STAGE_1 = [
+  "어디 갔어~? 천천히 생각해도 괜찮아 :)",
+  "음, 아직 거기 있어? 별콩이 여기서 기다릴게",
+  "다른 거 하는 중이야? 돌아오면 마저 봐줄게",
+];
+const NUDGE_STAGE_2 = [
+  "별콩이 여기 있을게, 천천히 와",
+  "급할 거 없어. 마음 정리되면 다시 얘기하자",
+];
 const CARD_MARKER_REGEX = /\[CARD:(\d+)\]/g;
 const END_MARKER_REGEX = /\[END\]/gi;
 // 미완성 마커 (e.g., "[CA", "[CARD:", "[CARD:1", "[E", "[EN", "[END") 제거용 — 버블 깜빡임 방지
@@ -120,6 +134,15 @@ function TarotReadingInner() {
   const showPendingDotsRef = useRef(false);
   const composingRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const messagesRef = useRef<Message[]>([]);
+  const pendingFragmentsRef = useRef<string[]>([]);
+  const baseHistoryRef = useRef<Message[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=종료
+  const flushPendingRef = useRef<() => void>(() => {});
+  const runIdleNudgeRef = useRef<() => void>(() => {});
 
   // 컨텍스트 로드 + reading 생성 + 첫 풀이 자동 시작
   useEffect(() => {
@@ -236,7 +259,24 @@ function TarotReadingInner() {
   }, [router, resumeId]);
 
   useEffect(() => {
-    return () => stopTyping();
+    messagesRef.current = messages;
+  });
+
+  useEffect(() => {
+    flushPendingRef.current = flushPending;
+  });
+
+  useEffect(() => {
+    runIdleNudgeRef.current = runIdleNudge;
+  });
+
+  useEffect(() => {
+    return () => {
+      stopTyping();
+      clearFlushTimer();
+      clearIdleTimer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const emotionEmoji = useMemo(() => {
@@ -314,6 +354,36 @@ function TarotReadingInner() {
     }
   }
 
+  function clearFlushTimer() {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+  }
+
+  function clearIdleTimer() {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  }
+
+  function armFlushTimer() {
+    clearFlushTimer();
+    flushTimerRef.current = setTimeout(
+      () => flushPendingRef.current(),
+      DEBOUNCE_FLUSH_MS
+    );
+  }
+
+  function armIdleTimer(delay: number) {
+    clearIdleTimer();
+    idleTimerRef.current = setTimeout(
+      () => runIdleNudgeRef.current(),
+      delay
+    );
+  }
+
   function finishMessage() {
     const finalContent = bufferRef.current;
     if (!finalContent) {
@@ -333,12 +403,24 @@ function TarotReadingInner() {
       setStreamingBubbles([]);
       setIsStreaming(false);
       setActiveCardIndex(null);
-      if (hasEnd) setIsEnded(true);
+      if (hasEnd) {
+        setIsEnded(true);
+      } else {
+        idleStageRef.current = 0;
+        armIdleTimer(IDLE_NUDGE_1_MS);
+      }
     }, 80);
   }
 
-  async function sendMessage(history: Message[], rid: string, forceEnd = false) {
-    setMessages(history);
+  async function sendMessage(
+    history: Message[],
+    rid: string,
+    opts?: { forceEnd?: boolean; skipSetMessages?: boolean }
+  ) {
+    const forceEnd = opts?.forceEnd ?? false;
+    clearFlushTimer();
+    clearIdleTimer();
+    if (!opts?.skipSetMessages) setMessages(history);
     setIsStreaming(true);
     setStreamingBubbles([]);
     setShowPendingDots(false);
@@ -355,7 +437,16 @@ function TarotReadingInner() {
       const r = await fetch("/api/consultations/tarot/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readingId: rid, messages: history, forceEnd }),
+        body: JSON.stringify({
+          readingId: rid,
+          // ephemeral(부재 멘트) 제외 + role/content 만 추려 전송.
+          // 이어하기로 불러온 메시지에 붙은 created_at 등 DB 필드를 보내면
+          // Anthropic API 가 "Extra inputs are not permitted" 로 거절함.
+          messages: history
+            .filter((m) => !m.ephemeral)
+            .map((m) => ({ role: m.role, content: m.content })),
+          forceEnd,
+        }),
       });
       if (!r.ok || !r.body) {
         const data = await r.json().catch(() => ({}));
@@ -390,15 +481,78 @@ function TarotReadingInner() {
     }
   }
 
+  function flushPending() {
+    if (pendingFragmentsRef.current.length === 0) return;
+    if (input.trim()) return; // 입력창에 글자 남아있으면 보류 (다음 활동 때 재무장)
+    if (isStreaming || isEnded || !readingId) return;
+
+    const merged = pendingFragmentsRef.current.join("\n");
+    pendingFragmentsRef.current = [];
+    clearFlushTimer();
+
+    const apiHistory: Message[] = [
+      ...baseHistoryRef.current.filter((m) => !m.ephemeral),
+      { role: "user", content: merged },
+    ];
+    void sendMessage(apiHistory, readingId, { skipSetMessages: true });
+
+    suppressScrollUntilRef.current = Date.now() + 1500;
+  }
+
+  function pushNudge(pool: string[]) {
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: text, ephemeral: true },
+    ]);
+    requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+  }
+
+  function runIdleNudge() {
+    // 게이트: 대기 조각 없음 + 입력 빔 + 비스트리밍 + 미종료 + 별콩이가 1회 이상 응답
+    if (pendingFragmentsRef.current.length > 0) return;
+    if (input.trim()) return;
+    if (isStreaming || isEnded || !readingId) return;
+    const assistantSpoke = messagesRef.current.some(
+      (m) => m.role === "assistant" && !m.ephemeral
+    );
+    if (!assistantSpoke) return;
+
+    const stage = idleStageRef.current;
+    if (stage === 0) {
+      pushNudge(NUDGE_STAGE_1);
+      idleStageRef.current = 1;
+      armIdleTimer(IDLE_NUDGE_2_MS);
+    } else if (stage === 1) {
+      pushNudge(NUDGE_STAGE_2);
+      idleStageRef.current = 2;
+      // 종료 — 더는 무장하지 않음
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming || isEnded || !readingId) return;
     const text = input.trim();
+    if (!text || isStreaming || isEnded || !readingId) return;
+
+    // 대기 묶음 시작(0→1) 시점에 현재까지의 히스토리를 base로 스냅샷
+    if (pendingFragmentsRef.current.length === 0) {
+      baseHistoryRef.current = messagesRef.current;
+    }
+    pendingFragmentsRef.current.push(text);
+
+    // 화면엔 보낸 대로 user 버블 즉시 표시
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
 
-    const history = [...messages, { role: "user" as const, content: text }];
-    void sendMessage(history, readingId);
+    // idle 중단 + 플러시 타이머 재무장
+    clearIdleTimer();
+    idleStageRef.current = 0;
+    armFlushTimer();
 
     // 유저 발화 직후 — 유저 버블이 컨테이너 상단 근처에 오도록 스크롤
     suppressScrollUntilRef.current = Date.now() + 1500;
@@ -420,12 +574,34 @@ function TarotReadingInner() {
 
   const handleFinish = () => {
     if (isStreaming || isEnded || !readingId) return;
-    const text = input.trim() || "이제 대화 마무리할게";
-    setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
+    clearFlushTimer();
+    clearIdleTimer();
+    idleStageRef.current = 0;
 
-    const history = [...messages, { role: "user" as const, content: text }];
-    void sendMessage(history, readingId, true);
+    const tail = input.trim();
+    const hadPending = pendingFragmentsRef.current.length > 0;
+    const base = hadPending ? baseHistoryRef.current : messagesRef.current;
+    const frags = [...pendingFragmentsRef.current];
+
+    if (tail) {
+      frags.push(tail);
+      // 아직 버블이 없는 현재 입력은 화면에도 추가
+      setMessages((prev) => [...prev, { role: "user", content: tail }]);
+      setInput("");
+      if (inputRef.current) inputRef.current.style.height = "auto";
+    }
+    pendingFragmentsRef.current = [];
+
+    const merged = frags.length > 0 ? frags.join("\n") : "이제 대화 마무리할게";
+
+    const apiHistory: Message[] = [
+      ...base.filter((m) => !m.ephemeral),
+      { role: "user", content: merged },
+    ];
+    void sendMessage(apiHistory, readingId, {
+      forceEnd: true,
+      skipSetMessages: true,
+    });
 
     suppressScrollUntilRef.current = Date.now() + 1500;
     requestAnimationFrame(() => {
@@ -608,6 +784,9 @@ function TarotReadingInner() {
                 onChange={(e) => {
                   setInput(e.target.value);
                   autoResizeInput();
+                  clearIdleTimer();
+                  idleStageRef.current = 0;
+                  if (pendingFragmentsRef.current.length > 0) armFlushTimer();
                 }}
                 onCompositionStart={() => {
                   composingRef.current = true;

@@ -156,13 +156,21 @@ export async function POST(request: NextRequest) {
     responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
   }
 
+  // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
+  // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
+  // 여기서 role/content 만 추려 방어한다 (클라이언트 stripping 의 서버측 안전망).
+  const apiMessages = body.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
   const encoder = new TextEncoder();
   let assistantText = "";
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(systemMessage, body.messages)) {
+        for await (const chunk of streamChat(systemMessage, apiMessages)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }
