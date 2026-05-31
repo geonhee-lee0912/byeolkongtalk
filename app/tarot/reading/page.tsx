@@ -7,7 +7,6 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
-import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
 
@@ -368,18 +367,6 @@ export default function TarotReadingPage() {
 
   return (
     <main className="flex flex-1 flex-col items-stretch w-full">
-      {/* 상단 바 */}
-      <div className="sticky top-0 z-10 bg-cream/95 backdrop-blur border-b border-lilac-mid/20">
-        <div className="max-w-md mx-auto px-5 py-2.5 flex items-center justify-between">
-          <span className="text-[12px] font-bold text-eye-purple">
-            {SPREAD_INFO[draw.spreadType].label}
-          </span>
-          <Link href="/tarot" className="text-[11px] text-text-light/70">
-            ‹ 스프레드 다시 고르기
-          </Link>
-        </div>
-      </div>
-
       {/* 스크롤 영역 — 고민 + 카드 스프레드 + 대화 */}
       <div
         ref={scrollRef}
