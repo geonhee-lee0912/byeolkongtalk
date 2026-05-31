@@ -67,3 +67,38 @@ body {
 .animate-fade-in {
   animation: fade-in 0.5s ease-out both;
 }
+
+/* 카드 덱 펼치기 — 진입 시 좌→우로 퍼짐 */
+@keyframes deck-deal {
+  from {
+    transform: translateX(-24px) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-deck-deal {
+  animation: deck-deal 420ms cubic-bezier(0.22, 0.68, 0.28, 1) both;
+}
+
+/* 활성 슬롯 부드러운 펄스 */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+/* 가로 스와이프 덱 — 네이티브 스크롤바 숨김 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
