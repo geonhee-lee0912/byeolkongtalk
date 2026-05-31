@@ -1,4 +1,5 @@
 // 별콩톡 감정/고민 카테고리 — v2 10종 리뉴얼 (이미지 아이콘 + 해시태그)
+import type { SajuProduct } from "@/lib/saju/products";
 
 export type EmotionTag =
   | "그 사람 마음이 궁금해"
@@ -141,6 +142,8 @@ export interface PendingConsultation {
   emotion: EmotionTag;
   concern: string;
   type?: ConsultationType;
+  /** 사주 선택 시 어떤 상품인지 (type === "saju" 일 때만 의미) */
+  sajuProduct?: SajuProduct;
 }
 
 export const PENDING_KEY = "byeolkong:pending_consultation";
