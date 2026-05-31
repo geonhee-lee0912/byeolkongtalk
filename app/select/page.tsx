@@ -32,6 +32,13 @@ import ProgressSteps from "@/components/concern/ProgressSteps";
 const SAJU_ACCENT = "#9F8AD0";
 const SAJU_COST = 20;
 
+const SAJU_ICONS: Record<SajuProduct, string> = {
+  today_letters: "/2words.png",
+  nature: "/flow.png",
+  choice: "/choice.png",
+  good_days: "/days.png",
+};
+
 type Selection = SajuProduct | SpreadType;
 
 // 사주가 더 적합한 감정 — 장기 흐름·방향·새 시작
@@ -397,7 +404,7 @@ export default function SelectPage() {
             >
               <div className="flex flex-shrink-0 items-center justify-center w-[44px]">
                 <Image
-                  src="/saju.png"
+                  src={SAJU_ICONS[p]}
                   alt=""
                   width={40}
                   height={40}
@@ -488,12 +495,14 @@ export default function SelectPage() {
                       zIndex: i,
                     }}
                   >
-                    <span
-                      className="text-[10px] font-black leading-none tabular-nums"
-                      style={{ color: info.accent }}
-                    >
-                      {i + 1}
-                    </span>
+                    {i === info.cardCount - 1 && (
+                      <span
+                        className="text-[10px] font-black leading-none tabular-nums"
+                        style={{ color: info.accent }}
+                      >
+                        {i + 1}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
