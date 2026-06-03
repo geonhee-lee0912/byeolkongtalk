@@ -7,7 +7,7 @@ const SHIM_DATE = "준비 중";
 export default function TermsPage() {
   const router = useRouter();
   return (
-    <div className="px-5 pt-3 pb-16 animate-fade-in">
+    <div className="w-full max-w-md mx-auto px-5 pt-3 pb-16 animate-fade-in">
       <button
         onClick={() => router.back()}
         className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
