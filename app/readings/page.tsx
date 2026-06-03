@@ -3,20 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { SPREAD_INFO } from "@/lib/tarot/spreads";
+import { SPREAD_INFO, type DrawnCard } from "@/lib/tarot/spreads";
+import { getCardImagePath } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 
 interface ReadingItem {
   id: string;
   question: string;
   sajuData: {
-    dayStem: string;
-    dayElement: string;
+    dayStem?: string;
+    dayElement?: string;
+    pillars?: { day?: { stem: string; branch: string } };
   } | null;
   consultationType?: string;
   spreadType?: string | null;
   sajuProduct?: string | null;
+  drawnCards?: DrawnCard[] | null;
   emotionTag?: string | null;
   starsSpent: number;
   hasSensitive: boolean;
@@ -41,6 +45,12 @@ function choiceLabel(r: ReadingItem): string | null {
     return SAJU_PRODUCT_INFO[r.sajuProduct].label;
   }
   return null;
+}
+
+/** 사주 상담 카드의 일주 (일간+일지, 예: "갑자") — 없으면 null */
+function dayPillar(r: ReadingItem): string | null {
+  const d = r.sajuData?.pillars?.day;
+  return d ? `${d.stem}${d.branch}` : null;
 }
 
 function formatDate(iso: string): string {
@@ -158,12 +168,50 @@ export default function ReadingsPage() {
                   ? `/tarot/result?id=${r.id}`
                   : `/saju/result?id=${r.id}`;
               const choice = choiceLabel(r);
+              const cards = r.drawnCards ?? [];
+              const pillar = dayPillar(r);
               return (
                 <Link
                   key={r.id}
                   href={href}
                   className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 hover:border-lilac-deep/50 transition"
                 >
+                  {isTarot ? (
+                    cards.length > 0 ? (
+                      <div className="shrink-0 self-center flex items-center">
+                        {cards.map((c, i) => (
+                          <Image
+                            key={i}
+                            src={getCardImagePath(c.card_id)}
+                            alt=""
+                            width={28}
+                            height={44}
+                            style={{ marginLeft: i === 0 ? 0 : -16, zIndex: i }}
+                            className={`rounded-[3px] border border-white/90 shadow-sm ${
+                              c.direction === "reversed" ? "rotate-180" : ""
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="shrink-0 self-center w-11 h-11 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+                        🃏
+                      </div>
+                    )
+                  ) : (
+                    <div className="shrink-0 self-center w-11 h-11 rounded-xl bg-lilac-soft/50 flex flex-col items-center justify-center">
+                      {pillar ? (
+                        <>
+                          <span className="text-[15px] font-bold text-eye-purple leading-none">
+                            {pillar}
+                          </span>
+                          <span className="text-[9px] text-text-light/60 mt-0.5">일주</span>
+                        </>
+                      ) : (
+                        <span className="text-[18px]">🔮</span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {canResume && (
