@@ -40,7 +40,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     base: "saju",
     cost: 0,
     freeLimit: 5,
-    paidCost: 7,
+    paidCost: 5,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}daily`,
     href: "/fortune/daily",
     active: true,
@@ -62,7 +62,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🪷",
     tagline: "타고난 기질부터 2026년 한 해 흐름까지 한 장에",
     base: "saju",
-    cost: 30,
+    cost: 50,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_full`,
     href: "/fortune/saju_full",
     active: true,
@@ -98,6 +98,15 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.tarot_oneshot,
   FORTUNE_CONFIG.compat,
 ];
+
+/** 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트) */
+export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
+  daily: 1536,
+  monthly: 2560,
+  saju_full: 8192,
+  tarot_oneshot: 2048,
+  compat: 2048,
+};
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */
 export function fortuneTypeFromTag(tag: string | null | undefined): FortuneType | null {
