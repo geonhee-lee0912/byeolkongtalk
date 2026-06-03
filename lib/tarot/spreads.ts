@@ -49,7 +49,7 @@ export const SPREAD_INFO: Record<SpreadType, SpreadInfo> = {
   three_card: {
     type: "three_card",
     cardCount: 3,
-    starCost: 22,
+    starCost: 25,
     label: "쓰리카드",
     tagline: "세 장으로 입체적으로",
     description: "너와 상대방 그리고 관계의 흐름까지 짚어서 더 깊이",
@@ -58,7 +58,7 @@ export const SPREAD_INFO: Record<SpreadType, SpreadInfo> = {
   relationship_5: {
     type: "relationship_5",
     cardCount: 5,
-    starCost: 35,
+    starCost: 40,
     label: "관계 스프레드",
     tagline: "다섯 장으로 두 사람을",
     description: "너와 상대방의 관계, 서로의 기대와 앞으로의 방향까지",
