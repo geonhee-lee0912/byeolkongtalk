@@ -9,8 +9,8 @@ export interface StarPackage {
 
 export const STAR_PACKAGES: StarPackage[] = [
   { id: "star_10", stars: 10, price: 1000, label: "10별" },
-  { id: "star_35", stars: 35, price: 2900, label: "35별" },
-  { id: "star_80", stars: 80, price: 5900, label: "80별" },
-  { id: "star_150", stars: 150, price: 9900, label: "150별" },
-  { id: "star_230", stars: 230, price: 12900, label: "230별" },
+  { id: "star_30", stars: 30, price: 2800, label: "30별" },
+  { id: "star_70", stars: 70, price: 5900, label: "70별" },
+  { id: "star_150", stars: 150, price: 11000, label: "150별" },
+  { id: "star_300", stars: 300, price: 19900, label: "300별" },
 ];
