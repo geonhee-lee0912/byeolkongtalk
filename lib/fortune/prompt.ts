@@ -42,6 +42,13 @@ const TODAY_KR = () =>
     timeZone: "Asia/Seoul",
   });
 
+const THIS_MONTH_KR = () =>
+  new Date().toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    timeZone: "Asia/Seoul",
+  });
+
 interface FortuneInput {
   saju?: SajuResult;
 }
@@ -56,14 +63,25 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `## 일 · 돈  (일/공부/금전)`,
     `## 별콩이의 한마디  (오늘 실천할 따뜻한 조언 한 가지)`,
   ].join("\n"),
+  monthly: [
+    `이번 달: ${"{{THIS_MONTH}}"}`,
+    ``,
+    `위 사주판을 가진 사람의 **이번 한 달** 운세 리포트를 써줘. 아래 섹션을 정확히 이 순서·제목으로:`,
+    `## 이번 달 큰 흐름  (이번 달 전반 기운·테마 한 단락)`,
+    `## 마음 · 관계  (이번 달 감정·사람 관계 흐름)`,
+    `## 일 · 돈  (이번 달 일/공부/금전 흐름)`,
+    `## 별콩이의 한마디  (이번 달 챙기면 좋을 따뜻한 조언 한 가지)`,
+  ].join("\n"),
   saju_full: [
-    `위 사주판을 가진 사람의 **사주 종합 분석** 리포트를 써줘. 아래 섹션을 정확히 이 순서·제목으로:`,
-    `## 타고난 기질  (일간·오행 기반 성격)`,
-    `## 강점과 약점  (오행 균형 관점)`,
-    `## 관계 흐름  (사람·인연)`,
-    `## 일과 재물  (적성·금전 흐름)`,
-    `## 올해의 흐름  (올해 큰 그림)`,
-    `## 별콩이의 한마디  (살아갈 때 도움되는 조언)`,
+    `기준 연도: 2026년 (병오년)`,
+    ``,
+    `위 사주판을 가진 사람의 **2026년 사주 분석** 리포트를 써줘. 타고난 사주를 바탕으로 2026년 한 해 흐름에 초점을 맞춰. 아래 섹션을 정확히 이 순서·제목으로:`,
+    `## 타고난 기질  (일간·오행 기반 성격 — 2026년을 어떻게 살아갈 사람인지로 연결)`,
+    `## 2026년 큰 흐름  (병오년 기운이 이 사주에 주는 한 해 전반 테마)`,
+    `## 마음 · 관계  (2026년 사람·인연·감정 흐름)`,
+    `## 일 · 재물  (2026년 적성·일·금전 흐름)`,
+    `## 2026년 분기별 포인트  (상반기/하반기 또는 분기로 짚는 시기별 조언)`,
+    `## 별콩이의 한마디  (2026년 한 해 챙기면 좋을 따뜻한 조언)`,
   ].join("\n"),
   // Phase 1 미사용 (tarot/compat 는 추후 확장)
   tarot_oneshot: `타로 한 장 리딩 리포트를 써줘.`,
@@ -77,7 +95,11 @@ export function buildFortuneSystem(
   const parts: string[] = [];
   if (input.saju) parts.push(sajuBlock(input.saju));
   parts.push("");
-  parts.push(SECTION_GUIDE[type].replace("{{TODAY}}", TODAY_KR()));
+  parts.push(
+    SECTION_GUIDE[type]
+      .replace("{{TODAY}}", TODAY_KR())
+      .replace("{{THIS_MONTH}}", THIS_MONTH_KR())
+  );
 
   return {
     staticPart: getFortunePersona(),

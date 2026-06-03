@@ -19,7 +19,7 @@ export default function FortunePage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-6">
-        <div className="relative animate-float">
+        <div className="relative">
           <Image src="/byeolkong-main.png" alt="별콩이" width={110} height={110} priority />
         </div>
         <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">

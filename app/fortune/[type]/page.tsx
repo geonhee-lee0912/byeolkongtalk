@@ -1,46 +1,46 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuInputForm from "@/components/saju/SajuInputForm";
 import type { SajuInput } from "@/lib/saju/calc";
+import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
-interface DailyStatus {
-  used: number;
-  limit: number;
-  remaining: number;
-  nextCost: number;
-}
-
-export default function FortuneDailyPage() {
+export default function FortuneInputPage() {
   const router = useRouter();
+  const params = useParams<{ type: string }>();
+  const type = params.type as FortuneType;
+  const cfg = type in FORTUNE_CONFIG ? FORTUNE_CONFIG[type] : null;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<DailyStatus | null>(null);
+  const [needCharge, setNeedCharge] = useState(false);
+
+  // daily 는 전용 페이지, tarot/비활성은 동적 입력 대상 아님
+  const valid = !!cfg && cfg.active && cfg.base === "saju" && cfg.type !== "daily";
 
   useEffect(() => {
-    void fetch("/api/fortune/daily-status", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setStatus(d))
-      .catch(() => {});
-  }, []);
+    if (!valid) router.replace("/fortune");
+  }, [valid, router]);
+
+  if (!cfg || !valid) return null;
 
   const handleSubmit = async (input: SajuInput) => {
     setLoading(true);
     setError(null);
+    setNeedCharge(false);
 
-    // 로그인 확인
     try {
       const me = await fetch("/api/auth/me", { cache: "no-store" });
       const data = me.ok ? await me.json() : null;
       if (!data?.isAuthenticated) {
-        window.location.href = "/login?next=" + encodeURIComponent("/fortune/daily");
+        window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
         return;
       }
     } catch {
-      window.location.href = "/login?next=" + encodeURIComponent("/fortune/daily");
+      window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
       return;
     }
 
@@ -48,15 +48,20 @@ export default function FortuneDailyPage() {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "daily", input }),
+        body: JSON.stringify({ type: cfg.type, input }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(
-          data?.error === "rate_limited"
-            ? "조금만 천천히! 잠시 후 다시 시도해줄래?"
-            : "운세를 못 펼쳤어. 잠시 후 다시 시도해줄래?"
-        );
+        if (data?.code === "INSUFFICIENT_STARS") {
+          setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
+          setNeedCharge(true);
+        } else {
+          setError(
+            data?.error === "rate_limited"
+              ? "조금만 천천히! 잠시 후 다시 시도해줄래?"
+              : "운세를 못 펼쳤어. 잠시 후 다시 시도해줄래?"
+          );
+        }
         setLoading(false);
         return;
       }
@@ -75,29 +80,27 @@ export default function FortuneDailyPage() {
           <Image src="/byeolkong-main.png" alt="별콩이" width={120} height={120} priority />
         </div>
         <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">
-          오늘의 운세
+          {cfg.label}
         </h1>
         <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
-          생일·시간·성별을 알려주면
-          <br />
-          별콩이가 오늘 하루 흐름을 한 장으로 정리해줄게.
+          {cfg.tagline}
         </p>
-        {status &&
-          (status.remaining > 0 ? (
-            <span className="mt-3 text-[11px] font-bold text-sub-warm bg-gold-soft/30 px-2.5 py-1 rounded-full">
-              무료 {status.remaining}/{status.limit}회 남음
-            </span>
-          ) : (
-            <span className="mt-3 text-[11px] font-bold text-text-light/70 bg-lilac-soft/50 px-2.5 py-1 rounded-full">
-              무료 소진 · 이번부터 ⭐ {status.nextCost}
-            </span>
-          ))}
+        <span className="mt-3 text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2.5 py-1 rounded-full">
+          ⭐ {cfg.cost}
+        </span>
       </div>
 
       <SajuInputForm onSubmit={handleSubmit} loading={loading} />
 
       {error && (
-        <p className="mt-4 text-[12px] text-red-500 text-center px-5 max-w-md">{error}</p>
+        <div className="mt-4 text-center px-5 max-w-md">
+          <p className="text-[12px] text-red-500">{error}</p>
+          {needCharge && (
+            <Link href="/shop" className="mt-1 inline-block text-[12px] text-lilac-deep underline">
+              별콩 상점 가기
+            </Link>
+          )}
+        </div>
       )}
 
       <Link href="/fortune" className="mt-6 text-[12px] text-text-light/70 underline">

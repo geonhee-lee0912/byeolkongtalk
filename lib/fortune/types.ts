@@ -1,7 +1,12 @@
 // 별콩 운세 — 대화형(채팅) 아님. 입력 → 한 번에 분석형 리포트 1장.
 // 기존 readings 테이블 재사용 (스키마 변경 없음): emotion_tag 에 센티넬로 운세 종류 표시.
 
-export type FortuneType = "daily" | "saju_full" | "tarot_oneshot" | "compat";
+export type FortuneType =
+  | "daily"
+  | "monthly"
+  | "saju_full"
+  | "tarot_oneshot"
+  | "compat";
 
 export interface FortuneConfig {
   type: FortuneType;
@@ -12,6 +17,10 @@ export interface FortuneConfig {
   base: "saju" | "tarot";
   /** 별 비용. 0 = 무료 */
   cost: number;
+  /** 계정당 평생 누적 무료 횟수. 설정 시 소진 후 paidCost 과금 */
+  freeLimit?: number;
+  /** 무료 소진 후 회당 비용 */
+  paidCost?: number;
   /** readings.emotion_tag 센티넬 — `${PREFIX}${type}` */
   emotionTag: string;
   /** 입력 화면 라우트 */
@@ -30,20 +39,33 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     tagline: "생일만 알려주면 오늘 하루 흐름을 짚어줄게",
     base: "saju",
     cost: 0,
+    freeLimit: 5,
+    paidCost: 7,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}daily`,
     href: "/fortune/daily",
     active: true,
   },
-  saju_full: {
-    type: "saju_full",
-    label: "사주 종합 분석",
-    emoji: "🪷",
-    tagline: "타고난 기질부터 올해 흐름까지 한 장에 정리",
+  monthly: {
+    type: "monthly",
+    label: "이번달 어떤 일들이?",
+    emoji: "🗓️",
+    tagline: "이번 한 달, 너에게 들어올 흐름을 미리 짚어줄게",
     base: "saju",
     cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}monthly`,
+    href: "/fortune/monthly",
+    active: true,
+  },
+  saju_full: {
+    type: "saju_full",
+    label: "2026년 사주 분석",
+    emoji: "🪷",
+    tagline: "타고난 기질부터 2026년 한 해 흐름까지 한 장에",
+    base: "saju",
+    cost: 30,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_full`,
-    href: "/fortune/saju",
-    active: false,
+    href: "/fortune/saju_full",
+    active: true,
   },
   tarot_oneshot: {
     type: "tarot_oneshot",
@@ -71,6 +93,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
 
 export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.daily,
+  FORTUNE_CONFIG.monthly,
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.tarot_oneshot,
   FORTUNE_CONFIG.compat,

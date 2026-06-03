@@ -103,12 +103,24 @@ export async function POST(req: NextRequest) {
     saju = calcSaju(validated);
   }
 
+  // 무료 한도 운세(오늘의 운세): 계정당 평생 누적 무료 횟수 소진 후 paidCost 과금
+  let effectiveCost = cfg.cost;
+  if (cfg.freeLimit && cfg.paidCost !== undefined) {
+    const { count } = await getServiceSupabase()
+      .from("readings")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("emotion_tag", cfg.emotionTag)
+      .eq("stars_spent", 0);
+    if ((count ?? 0) >= cfg.freeLimit) effectiveCost = cfg.paidCost;
+  }
+
   // 유료 운세 잔액 사전 확인
-  if (cfg.cost > 0) {
+  if (effectiveCost > 0) {
     const balance = await getStarBalance(userId);
-    if (balance < cfg.cost) {
+    if (balance < effectiveCost) {
       return NextResponse.json(
-        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", balance, required: cfg.cost },
+        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", balance, required: effectiveCost },
         { status: 402 }
       );
     }
@@ -138,7 +150,7 @@ export async function POST(req: NextRequest) {
       saju_data: saju ?? null,
       consultation_type: cfg.base,
       emotion_tag: cfg.emotionTag,
-      stars_spent: cfg.cost,
+      stars_spent: effectiveCost,
       has_sensitive: false,
     })
     .select("id")
@@ -164,8 +176,8 @@ export async function POST(req: NextRequest) {
 
   // 유료면 별 차감 (실패 시 롤백)
   let balance: number | undefined;
-  if (cfg.cost > 0) {
-    const spend = await spendStars(userId, cfg.cost, {
+  if (effectiveCost > 0) {
+    const spend = await spendStars(userId, effectiveCost, {
       readingId: reading.id,
       source: `fortune_${cfg.type}`,
     });
@@ -173,12 +185,12 @@ export async function POST(req: NextRequest) {
       await supabase.from("messages").delete().eq("reading_id", reading.id);
       await supabase.from("readings").delete().eq("id", reading.id);
       return NextResponse.json(
-        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: cfg.cost },
+        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: effectiveCost },
         { status: 402 }
       );
     }
     balance = spend.balance;
   }
 
-  return NextResponse.json({ id: reading.id, success: true, cost: cfg.cost, balance });
+  return NextResponse.json({ id: reading.id, success: true, cost: effectiveCost, balance });
 }

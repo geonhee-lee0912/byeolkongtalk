@@ -116,7 +116,7 @@ function FortuneResultInner() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-        <div className="relative animate-float">
+        <div className="relative">
           <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
         </div>
         <h1 className="mt-3 font-display text-[22px] font-bold text-eye-purple text-center">
