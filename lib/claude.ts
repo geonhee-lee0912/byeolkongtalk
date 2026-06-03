@@ -184,7 +184,8 @@ ${emotionBlock}${firstTurnGuide}${wrapGuide}`;
 
 export async function* streamChat(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
-  messages: { role: "user" | "assistant"; content: string }[]
+  messages: { role: "user" | "assistant"; content: string }[],
+  maxTokens: number = 2048
 ) {
   // 정적 블록만 cache_control 마킹 → 5분 TTL 동안 후속 호출은 입력 토큰 0.1× 과금
   const systemBlocks =
@@ -201,7 +202,7 @@ export async function* streamChat(
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 2048,
+    max_tokens: maxTokens,
     system: systemBlocks,
     messages,
   });
@@ -219,10 +220,11 @@ export async function* streamChat(
 /** 비스트리밍 — streamChat 을 끝까지 모아 전체 텍스트 한 번에 반환 (운세 리포트용). */
 export async function generateOnce(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
-  messages: { role: "user" | "assistant"; content: string }[]
+  messages: { role: "user" | "assistant"; content: string }[],
+  maxTokens: number = 2048
 ): Promise<string> {
   let out = "";
-  for await (const chunk of streamChat(systemMessage, messages)) {
+  for await (const chunk of streamChat(systemMessage, messages, maxTokens)) {
     out += chunk;
   }
   return out.trim();
