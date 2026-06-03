@@ -352,6 +352,7 @@ function ShopContent() {
                   </Link>
                   에 따라 처리됩니다
                 </li>
+                <li>· 위 상품의 최대 이용기간은 1년입니다</li>
               </ul>
             </div>
           </>
