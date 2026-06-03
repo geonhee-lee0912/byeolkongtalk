@@ -42,13 +42,16 @@ export async function GET() {
 
   // 종료 여부 — assistant 메시지에 [END] 마커가 있으면 마무리된 풀이.
   // 마커가 없는 풀이는 "이어할 수 있는 대화" 로 노출.
-  const ids = (data ?? []).map((r) => r.id);
+  // '이어하기' 는 타로 상담만 해당 → 타로 reading 만 [END] 스캔 (사주/운세는 스킵).
+  const tarotIds = (data ?? [])
+    .filter((r) => r.consultation_type === "tarot")
+    .map((r) => r.id);
   const endedSet = new Set<string>();
-  if (ids.length > 0) {
+  if (tarotIds.length > 0) {
     const { data: endedRows } = await supabase
       .from("messages")
       .select("reading_id")
-      .in("reading_id", ids)
+      .in("reading_id", tarotIds)
       .eq("role", "assistant")
       .ilike("content", "%[END]%");
     for (const row of endedRows ?? []) endedSet.add(row.reading_id);

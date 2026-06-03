@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 
@@ -45,11 +43,6 @@ function choiceLabel(r: ReadingItem): string | null {
   return null;
 }
 
-function emotionIcon(tag: string | null | undefined): string | null {
-  if (!tag) return null;
-  return EMOTION_OPTIONS.find((o) => o.tag === tag)?.icon ?? null;
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
@@ -62,17 +55,18 @@ export default function ReadingsPage() {
 
   useEffect(() => {
     void (async () => {
-      const r = await fetch("/api/auth/me", { cache: "no-store" }).then((x) =>
-        x.ok ? x.json() : null
-      );
-      if (!r?.isAuthenticated) {
+      const [me, list] = await Promise.all([
+        fetch("/api/auth/me", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
+        fetch("/api/readings", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
+      ]);
+      if (!me?.isAuthenticated) {
         router.replace("/login?next=/readings");
         return;
       }
-
-      const list = await fetch("/api/readings", { cache: "no-store" })
-        .then((x) => (x.ok ? x.json() : null))
-        .catch(() => null);
       if (list?.readings) setReadings(list.readings);
       setLoading(false);
     })();
@@ -163,7 +157,6 @@ export default function ReadingsPage() {
                 : isTarot
                   ? `/tarot/result?id=${r.id}`
                   : `/saju/result?id=${r.id}`;
-              const icon = emotionIcon(r.emotionTag);
               const choice = choiceLabel(r);
               return (
                 <Link
@@ -171,13 +164,6 @@ export default function ReadingsPage() {
                   href={href}
                   className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-lilac-soft/50 flex items-center justify-center shrink-0 overflow-hidden">
-                    {icon ? (
-                      <Image src={icon} alt="" width={28} height={28} />
-                    ) : (
-                      <span className="text-[18px]">{isTarot ? "🃏" : "🔮"}</span>
-                    )}
-                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {canResume && (
@@ -197,6 +183,8 @@ export default function ReadingsPage() {
                     </p>
                     <div className="text-[11px] text-text-light/60 mt-1.5 flex items-center gap-1.5">
                       <span>{formatDate(r.createdAt)}</span>
+                      <span>·</span>
+                      <span>{isTarot ? "타로" : "사주"}</span>
                       <span>·</span>
                       <span>⭐ {r.starsSpent}</span>
                       {r.hasSensitive && (

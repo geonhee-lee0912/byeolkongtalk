@@ -89,16 +89,10 @@ export default function MyPage() {
 
   useEffect(() => {
     void (async () => {
-      const r = await fetch("/api/auth/me", { cache: "no-store" }).then((x) =>
-        x.ok ? x.json() : null
-      );
-      if (!r?.isAuthenticated) {
-        router.replace("/login?next=/mypage");
-        return;
-      }
-      setMe(r as Me);
-
-      const [bal, list] = await Promise.all([
+      const [r, bal, list] = await Promise.all([
+        fetch("/api/auth/me", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
         fetch("/api/stars/balance", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
@@ -106,6 +100,11 @@ export default function MyPage() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
       ]);
+      if (!r?.isAuthenticated) {
+        router.replace("/login?next=/mypage");
+        return;
+      }
+      setMe(r as Me);
       if (bal) setBalance(bal.balance ?? 0);
       if (list?.readings) setReadings(list.readings);
       setLoading(false);
