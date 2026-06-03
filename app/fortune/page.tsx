@@ -1,10 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_LIST } from "@/lib/fortune/types";
 
+const FORTUNE_TABS = [
+  { key: "saju", label: "사주" },
+  { key: "tarot", label: "타로" },
+] as const;
+
+type FortuneTab = (typeof FORTUNE_TABS)[number]["key"];
+
 export default function FortunePage() {
+  const [tab, setTab] = useState<FortuneTab>("saju");
+  const items = FORTUNE_LIST.filter((f) => f.base === tab);
+
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-6">
@@ -21,8 +32,28 @@ export default function FortunePage() {
         </p>
       </div>
 
+      <div className="w-full max-w-md mx-auto px-5 mb-4">
+        <div className="flex gap-1 bg-lilac-soft/40 rounded-full p-1">
+          {FORTUNE_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={[
+                "flex-1 py-2 rounded-full text-[14px] font-bold transition",
+                tab === t.key
+                  ? "bg-cream-warm text-eye-purple shadow-sm"
+                  : "text-text-light/70",
+              ].join(" ")}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
-        {FORTUNE_LIST.map((f) => {
+        {items.map((f) => {
           const inner = (
             <div
               className={[
