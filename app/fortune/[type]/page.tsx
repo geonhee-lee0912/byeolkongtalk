@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import SajuInputForm from "@/components/saju/SajuInputForm";
-import type { SajuInput } from "@/lib/saju/calc";
+import ProfilePicker, { type PickerResult } from "@/components/saju/ProfilePicker";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 export default function FortuneInputPage() {
@@ -27,7 +26,7 @@ export default function FortuneInputPage() {
 
   if (!cfg || !valid) return null;
 
-  const handleSubmit = async (input: SajuInput) => {
+  const handleConfirm = async (result: PickerResult) => {
     setLoading(true);
     setError(null);
     setNeedCharge(false);
@@ -44,11 +43,32 @@ export default function FortuneInputPage() {
       return;
     }
 
+    const body =
+      result.kind === "saved"
+        ? { type: cfg.type, profileId: result.profileId }
+        : {
+            type: cfg.type,
+            input: {
+              year: Number(result.payload.birthDate.slice(0, 4)),
+              month: Number(result.payload.birthDate.slice(5, 7)),
+              day: Number(result.payload.birthDate.slice(8, 10)),
+              hour: result.payload.birthTime
+                ? Number(result.payload.birthTime.slice(0, 2))
+                : null,
+              minute: result.payload.birthTime
+                ? Number(result.payload.birthTime.slice(3, 5))
+                : null,
+              isLunar: result.payload.isLunarInput,
+              isLeapMonth: result.payload.isLeapMonth,
+              gender: result.payload.gender,
+            },
+          };
+
     try {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: cfg.type, input }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -90,7 +110,11 @@ export default function FortuneInputPage() {
         </span>
       </div>
 
-      <SajuInputForm onSubmit={handleSubmit} loading={loading} />
+      <ProfilePicker
+        onConfirm={handleConfirm}
+        confirmLabel="이 사주로 운세 보기"
+        loading={loading}
+      />
 
       {error && (
         <div className="mt-4 text-center px-5 max-w-md">

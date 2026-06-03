@@ -26,20 +26,43 @@ const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1900;
 const MAX_YEAR = CURRENT_YEAR;
 
+export interface SajuInputFormInitial {
+  year: number;
+  month: number;
+  day: number;
+  hour: number | null;
+  isLunar: boolean;
+  isLeapMonth: boolean;
+  gender: SajuGender;
+}
+
 export interface SajuInputFormProps {
   onSubmit: (input: SajuInput) => void;
   loading?: boolean;
+  initial?: SajuInputFormInitial;
+  submitLabel?: string;
 }
 
-export default function SajuInputForm({ onSubmit, loading }: SajuInputFormProps) {
+export default function SajuInputForm({
+  onSubmit,
+  loading,
+  initial,
+  submitLabel,
+}: SajuInputFormProps) {
   const today = new Date();
-  const [year, setYear] = useState<number>(today.getFullYear() - 30);
-  const [month, setMonth] = useState<number>(1);
-  const [day, setDay] = useState<number>(1);
-  const [hourValue, setHourValue] = useState<string>(HOUR_UNKNOWN); // "unknown" 또는 시진 hour 값
-  const [calendar, setCalendar] = useState<"solar" | "lunar">("solar");
-  const [isLeapMonth, setIsLeapMonth] = useState<boolean>(false);
-  const [gender, setGender] = useState<SajuGender>("male");
+  const [year, setYear] = useState<number>(initial?.year ?? today.getFullYear() - 30);
+  const [month, setMonth] = useState<number>(initial?.month ?? 1);
+  const [day, setDay] = useState<number>(initial?.day ?? 1);
+  const [hourValue, setHourValue] = useState<string>(
+    initial?.hour !== null && initial?.hour !== undefined
+      ? String(initial.hour)
+      : HOUR_UNKNOWN
+  ); // "unknown" 또는 시진 hour 값
+  const [calendar, setCalendar] = useState<"solar" | "lunar">(
+    initial?.isLunar ? "lunar" : "solar"
+  );
+  const [isLeapMonth, setIsLeapMonth] = useState<boolean>(initial?.isLeapMonth ?? false);
+  const [gender, setGender] = useState<SajuGender>(initial?.gender ?? "male");
 
   const years = useMemo(() => {
     const arr: number[] = [];
@@ -216,7 +239,7 @@ export default function SajuInputForm({ onSubmit, loading }: SajuInputFormProps)
         disabled={loading}
         className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {loading ? "별콩이가 펼치는 중…" : "사주 펼쳐보기"}
+        {loading ? "별콩이가 펼치는 중…" : (submitLabel ?? "사주 펼쳐보기")}
       </button>
     </form>
   );

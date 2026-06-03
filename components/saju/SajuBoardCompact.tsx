@@ -40,11 +40,12 @@ export interface SajuBoardCompactProps {
   saju: SajuResult;
 }
 
+// 시주-left 정렬 (항상).
 const PILLARS: { key: "year" | "month" | "day" | "hour"; label: string }[] = [
-  { key: "year", label: "연" },
-  { key: "month", label: "월" },
-  { key: "day", label: "일" },
   { key: "hour", label: "시" },
+  { key: "day", label: "일" },
+  { key: "month", label: "월" },
+  { key: "year", label: "연" },
 ];
 
 export default function SajuBoardCompact({ saju }: SajuBoardCompactProps) {

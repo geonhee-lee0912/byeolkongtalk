@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getStarBalance, spendStars } from "@/lib/stars";
 import { calcSaju, type SajuInput, type SajuGender } from "@/lib/saju/calc";
+import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
 import { generateOnce } from "@/lib/claude";
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { type?: unknown; input?: unknown };
+  let body: { type?: unknown; input?: unknown; profileId?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -96,11 +97,28 @@ export async function POST(req: NextRequest) {
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju = undefined;
   if (cfg.base === "saju") {
-    const validated = validateSajuInput(body.input);
-    if ("error" in validated) {
-      return NextResponse.json({ error: validated.error }, { status: 400 });
+    if (typeof body.profileId === "string" && body.profileId.length > 0) {
+      // 저장된 프로필 재사용 — 소유권 + birth 로드
+      const supabase = getServiceSupabase();
+      const { data: owned } = await supabase
+        .from("user_profiles")
+        .select(
+          "birth_date, birth_time, is_lunar_input, is_leap_month, gender"
+        )
+        .eq("id", body.profileId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!owned) {
+        return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+      }
+      saju = calcSaju(profileRowToSajuInput(owned));
+    } else {
+      const validated = validateSajuInput(body.input);
+      if ("error" in validated) {
+        return NextResponse.json({ error: validated.error }, { status: 400 });
+      }
+      saju = calcSaju(validated);
     }
-    saju = calcSaju(validated);
   }
 
   // 무료 한도 운세(오늘의 운세): 계정당 평생 누적 무료 횟수 소진 후 paidCost 과금

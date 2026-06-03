@@ -14,6 +14,7 @@ import { calcTemporalLuck } from "@/lib/saju/calc";
 import { isSajuProduct, type SajuProduct } from "@/lib/saju/products";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
+import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
@@ -76,76 +77,14 @@ export async function GET() {
   });
 }
 
-const VALID_RELATIONS = ["self", "family", "friend", "partner", "other"] as const;
-const VALID_GENDERS = ["male", "female", "other"] as const;
-
-interface ProfileInput {
-  displayName: string;
-  relationType: (typeof VALID_RELATIONS)[number];
-  birthDate: string; // YYYY-MM-DD
-  birthTime: string | null; // HH:MM 또는 null
-  isLunarInput: boolean;
-  isLeapMonth: boolean;
-  gender: (typeof VALID_GENDERS)[number];
-}
-
 interface ReadingPostBody {
-  profile: ProfileInput;
+  profileId?: string; // 저장된 프로필 재사용 (소유권 확인)
+  profile?: ProfileInput; // inline 입력 (일회성 또는 save=true 시 신규 저장)
+  save?: boolean; // inline 입력을 지인 목록에 저장할지
   sajuData: unknown; // SajuResult 직렬화 — 그대로 JSONB 저장
   question: string;
   emotion?: string; // 감정 분류 (홈에서 고른 태그) — 없으면 null 저장
   sajuProduct?: string; // 사주 상품 — 화이트리스트 검증, 없으면 today_letters
-}
-
-function validateProfile(p: unknown): ProfileInput | { error: string } {
-  if (!p || typeof p !== "object") return { error: "profile_required" };
-  const x = p as Record<string, unknown>;
-
-  if (
-    typeof x.displayName !== "string" ||
-    x.displayName.length < 1 ||
-    x.displayName.length > 50
-  )
-    return { error: "invalid_display_name" };
-
-  if (
-    typeof x.relationType !== "string" ||
-    !VALID_RELATIONS.includes(x.relationType as (typeof VALID_RELATIONS)[number])
-  )
-    return { error: "invalid_relation_type" };
-
-  if (
-    typeof x.birthDate !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(x.birthDate)
-  )
-    return { error: "invalid_birth_date" };
-
-  if (
-    x.birthTime !== null &&
-    (typeof x.birthTime !== "string" || !/^\d{2}:\d{2}$/.test(x.birthTime))
-  )
-    return { error: "invalid_birth_time" };
-
-  if (typeof x.isLunarInput !== "boolean")
-    return { error: "invalid_lunar_flag" };
-  if (typeof x.isLeapMonth !== "boolean")
-    return { error: "invalid_leap_flag" };
-
-  if (
-    typeof x.gender !== "string" ||
-    !VALID_GENDERS.includes(x.gender as (typeof VALID_GENDERS)[number])
-  )
-    return { error: "invalid_gender" };
-
-  return {
-    displayName: x.displayName,
-    relationType: x.relationType as (typeof VALID_RELATIONS)[number],
-    birthDate: x.birthDate,
-    birthTime: x.birthTime as string | null,
-    isLunarInput: x.isLunarInput,
-    isLeapMonth: x.isLeapMonth,
-    gender: x.gender as (typeof VALID_GENDERS)[number],
-  };
 }
 
 export async function POST(request: NextRequest) {
@@ -163,12 +102,6 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-
-  const profileValidated = validateProfile(body.profile);
-  if ("error" in profileValidated) {
-    return NextResponse.json({ error: profileValidated.error }, { status: 400 });
-  }
-  const profile = profileValidated;
 
   if (
     !body.sajuData ||
@@ -190,20 +123,6 @@ export async function POST(request: NextRequest) {
     ? body.sajuProduct
     : "today_letters";
 
-  // 출생 연도 (대운 참고 나이용) — birthDate "YYYY-MM-DD"
-  const birthYear = Number(profile.birthDate.slice(0, 4));
-
-  // 오늘 기준 시간 기둥 — good_days 면 30일 일진 포함
-  const temporal = calcTemporalLuck(new Date(), birthYear, {
-    includeMonth: sajuProduct === "good_days",
-  });
-
-  // saju_data 에 temporal 병합 (legacy 호출이면 sajuData 그대로 + temporal)
-  const sajuDataWithTemporal = {
-    ...(body.sajuData as Record<string, unknown>),
-    temporal,
-  };
-
   // 잔액 사전 확인 (UX 빠른 실패)
   const balance = await getStarBalance(userId);
   if (balance < SAJU_READING_COST) {
@@ -220,46 +139,88 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // primary 결정: self 인데 user 의 기존 self primary 없으면 primary=true
-  let isPrimary = false;
-  if (profile.relationType === "self") {
-    const { data: existing } = await supabase
+  // profile_id 결정: profileId(재사용) | inline+save(신규) | inline 일회성(null)
+  let resolvedProfileId: string | null = null;
+  let birthDateForLuck: string;
+
+  if (typeof body.profileId === "string" && body.profileId.length > 0) {
+    // 저장된 프로필 재사용 — 소유권 + birth 로드
+    const { data: owned } = await supabase
       .from("user_profiles")
-      .select("id")
+      .select("id, birth_date")
+      .eq("id", body.profileId)
       .eq("user_id", userId)
-      .eq("is_primary", true)
       .maybeSingle();
-    if (!existing) isPrimary = true;
+    if (!owned) {
+      return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+    }
+    resolvedProfileId = owned.id;
+    birthDateForLuck = owned.birth_date;
+  } else {
+    // inline 입력 (일회성 또는 저장)
+    const profileValidated = validateProfile(body.profile);
+    if ("error" in profileValidated) {
+      return NextResponse.json({ error: profileValidated.error }, { status: 400 });
+    }
+    const profile = profileValidated;
+    birthDateForLuck = profile.birthDate;
+
+    if (body.save === true) {
+      // 지인 목록에 저장 (self 면 기존 self/primary 없을 때만 primary)
+      let isPrimary = false;
+      if (profile.relationType === "self") {
+        const { data: existing } = await supabase
+          .from("user_profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("is_primary", true)
+          .maybeSingle();
+        if (!existing) isPrimary = true;
+      }
+      const { data: profileRow, error: pErr } = await supabase
+        .from("user_profiles")
+        .insert({
+          user_id: userId,
+          display_name: profile.displayName,
+          relation_type: profile.relationType,
+          birth_date: profile.birthDate,
+          birth_time: profile.birthTime,
+          is_lunar_input: profile.isLunarInput,
+          is_leap_month: profile.isLeapMonth,
+          gender: profile.gender,
+          is_primary: isPrimary,
+        })
+        .select("id")
+        .single();
+      if (pErr || !profileRow) {
+        await logError(pErr ?? new Error("profile insert null"), {
+          route: "/api/readings",
+          userId,
+          extra: { stage: "profile_insert" },
+        });
+        return NextResponse.json(
+          { error: pErr?.message ?? "profile_insert_failed" },
+          { status: 500 }
+        );
+      }
+      resolvedProfileId = profileRow.id;
+    }
+    // save=false → resolvedProfileId 는 null (일회성)
   }
 
-  // user_profiles INSERT
-  const { data: profileRow, error: pErr } = await supabase
-    .from("user_profiles")
-    .insert({
-      user_id: userId,
-      display_name: profile.displayName,
-      relation_type: profile.relationType,
-      birth_date: profile.birthDate,
-      birth_time: profile.birthTime,
-      is_lunar_input: profile.isLunarInput,
-      is_leap_month: profile.isLeapMonth,
-      gender: profile.gender,
-      is_primary: isPrimary,
-    })
-    .select("id")
-    .single();
+  // 출생 연도 (대운 참고 나이용) — birthDate "YYYY-MM-DD"
+  const birthYear = Number(birthDateForLuck.slice(0, 4));
 
-  if (pErr || !profileRow) {
-    await logError(pErr ?? new Error("profile insert null"), {
-      route: "/api/readings",
-      userId,
-      extra: { stage: "profile_insert" },
-    });
-    return NextResponse.json(
-      { error: pErr?.message ?? "profile_insert_failed" },
-      { status: 500 }
-    );
-  }
+  // 오늘 기준 시간 기둥 — good_days 면 30일 일진 포함
+  const temporal = calcTemporalLuck(new Date(), birthYear, {
+    includeMonth: sajuProduct === "good_days",
+  });
+
+  // saju_data 에 temporal 병합 (legacy 호출이면 sajuData 그대로 + temporal)
+  const sajuDataWithTemporal = {
+    ...(body.sajuData as Record<string, unknown>),
+    temporal,
+  };
 
   // 감정 태그 — 화이트리스트에 없으면 무시 (null 저장)
   const emotionTag =
@@ -272,7 +233,7 @@ export async function POST(request: NextRequest) {
     .from("readings")
     .insert({
       user_id: userId,
-      profile_id: profileRow.id,
+      profile_id: resolvedProfileId,
       question: body.question,
       saju_data: sajuDataWithTemporal,
       emotion_tag: emotionTag,
@@ -284,8 +245,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (rErr || !reading) {
-    // profile 롤백
-    await supabase.from("user_profiles").delete().eq("id", profileRow.id);
+    // 이번 요청에서 새로 만든 프로필만 롤백 (재사용/일회성은 건드리지 않음)
+    if (resolvedProfileId && body.save === true && !body.profileId) {
+      await supabase.from("user_profiles").delete().eq("id", resolvedProfileId);
+    }
     await logError(rErr ?? new Error("reading insert null"), {
       route: "/api/readings",
       userId,
@@ -305,7 +268,10 @@ export async function POST(request: NextRequest) {
   if (!spend.success) {
     // readings + profile 롤백
     await supabase.from("readings").delete().eq("id", reading.id);
-    await supabase.from("user_profiles").delete().eq("id", profileRow.id);
+    // 이번 요청에서 새로 만든 프로필만 롤백 (재사용/일회성은 건드리지 않음)
+    if (resolvedProfileId && body.save === true && !body.profileId) {
+      await supabase.from("user_profiles").delete().eq("id", resolvedProfileId);
+    }
     return NextResponse.json(
       {
         error: "Insufficient stars",

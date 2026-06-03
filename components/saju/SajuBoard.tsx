@@ -13,11 +13,12 @@ const ELEMENT_COLORS: Record<FiveElement, { bg: string; text: string; bar: strin
   수: { bg: "#C8CFE5", text: "#27325A", bar: "#7A85B0" },
 };
 
+// 시주-left 정렬 (항상). 강조는 key === "day"로 판정하므로 순서만 반전.
 const PILLAR_LABELS: { key: "year" | "month" | "day" | "hour"; label: string }[] = [
-  { key: "year", label: "연주" },
-  { key: "month", label: "월주" },
-  { key: "day", label: "일주" },
   { key: "hour", label: "시주" },
+  { key: "day", label: "일주" },
+  { key: "month", label: "월주" },
+  { key: "year", label: "연주" },
 ];
 
 const ELEMENTS: FiveElement[] = ["목", "화", "토", "금", "수"];
