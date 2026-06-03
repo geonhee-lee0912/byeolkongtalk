@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getStarBalance, spendStars } from "@/lib/stars";
 import { calcSaju, type SajuInput, type SajuGender } from "@/lib/saju/calc";
-import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
+import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   let report: string;
   try {
     const system = buildFortuneSystem(cfg.type, { saju });
-    report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }]);
+    report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
   } catch (err) {
     await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type } }));
     return NextResponse.json({ error: "generation_failed" }, { status: 502 });
