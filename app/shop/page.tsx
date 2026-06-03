@@ -34,10 +34,10 @@ type PackageMeta = {
 };
 const PKG_META: Record<string, PackageMeta> = {
   star_10: {},
-  star_35: { badge: { label: "기본", tone: "gold" } },
-  star_80: { badge: { label: "추천", tone: "primary" }, highlight: true },
+  star_30: { badge: { label: "기본", tone: "gold" } },
+  star_70: { badge: { label: "추천", tone: "primary" }, highlight: true },
   star_150: { badge: { label: "깊게", tone: "primary" } },
-  star_230: { badge: { label: "가장 알뜰", tone: "rose" } },
+  star_300: { badge: { label: "가장 알뜰", tone: "rose" } },
 };
 
 const BASE_PER_STAR = STAR_PACKAGES[0].price / STAR_PACKAGES[0].stars; // 10별 1000원 = 100원/별
@@ -54,7 +54,7 @@ function ShopContent() {
   const amount = searchParams.get("amount");
 
   const [balance, setBalance] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<string>("star_80");
+  const [selectedId, setSelectedId] = useState<string>("star_70");
   const [loading, setLoading] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
   const [confirmTone, setConfirmTone] = useState<"progress" | "success" | "fail">(
