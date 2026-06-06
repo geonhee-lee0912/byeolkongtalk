@@ -20,6 +20,7 @@ import {
   serializeMonthlyReport,
 } from "@/lib/fortune/monthly-report";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
+import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -110,6 +111,16 @@ export async function POST(req: NextRequest) {
     const existingId = await findTodaysDailyReadingId(userId);
     if (existingId) {
       return NextResponse.json({ id: existingId, success: true, cost: 0, alreadyToday: true });
+    }
+  }
+
+  // 이번달 운세는 한 달 한 장(프로필별) — 같은 달(KST) 같은 프로필로 이미 본 게 있으면 과금·생성 없이 그 리딩으로.
+  // 클라 picker CTA(다시보기)의 서버측 방어 — fetch 실패/레이스/직접 POST 시 중복 과금 방지.
+  if (cfg.type === "monthly" && typeof body.profileId === "string" && body.profileId.length > 0) {
+    const existing = await findThisMonthMonthlyByProfile(userId);
+    const existingId = existing[body.profileId];
+    if (existingId) {
+      return NextResponse.json({ id: existingId, success: true, cost: 0, alreadyThisMonth: true });
     }
   }
 
