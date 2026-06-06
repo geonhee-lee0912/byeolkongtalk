@@ -52,9 +52,16 @@ function FortuneResultInner() {
       return;
     }
     void (async () => {
-      const r = await fetch(`/api/readings/${id}`, { cache: "no-store" })
-        .then((x) => (x.ok ? x.json() : null))
-        .catch(() => null);
+      let res = await fetch(`/api/readings/${id}`, { cache: "no-store" }).catch(
+        () => null
+      );
+      // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
+      if (res && (res.status === 401 || res.status === 403)) {
+        res = await fetch(`/api/readings/${id}/public`, {
+          cache: "no-store",
+        }).catch(() => null);
+      }
+      const r = res && res.ok ? await res.json().catch(() => null) : null;
       if (!r?.reading) {
         setError(true);
         setLoading(false);
