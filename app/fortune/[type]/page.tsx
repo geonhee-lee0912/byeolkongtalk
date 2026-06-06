@@ -21,6 +21,7 @@ export default function FortuneInputPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
+  const [reviewable, setReviewable] = useState<Record<string, string>>({});
 
   // daily 는 전용 페이지, tarot/비활성은 동적 입력 대상 아님
   const valid = !!cfg && cfg.active && cfg.base === "saju" && cfg.type !== "daily";
@@ -28,6 +29,17 @@ export default function FortuneInputPage() {
   useEffect(() => {
     if (!valid) router.replace("/fortune");
   }, [valid, router]);
+
+  // monthly: 같은 달에 이미 본 프로필 → 다시보기 대상 조회
+  useEffect(() => {
+    if (cfg?.type !== "monthly") return;
+    void (async () => {
+      const r = await fetch("/api/fortune/monthly-existing", { cache: "no-store" })
+        .then((x) => (x.ok ? x.json() : null))
+        .catch(() => null);
+      if (r?.existing) setReviewable(r.existing);
+    })();
+  }, [cfg?.type]);
 
   if (!cfg || !valid) return null;
 
@@ -125,6 +137,12 @@ export default function FortuneInputPage() {
         confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
         showBoardDetail={false}
+        reviewableByProfile={cfg.type === "monthly" ? reviewable : undefined}
+        onReview={
+          cfg.type === "monthly"
+            ? (rid) => router.push(`/fortune/result?id=${rid}&from=history`)
+            : undefined
+        }
       />
 
       {error && (
