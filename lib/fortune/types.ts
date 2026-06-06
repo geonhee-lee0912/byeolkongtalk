@@ -36,7 +36,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     type: "daily",
     label: "오늘의 운세",
     emoji: "🌤️",
-    tagline: "생일만 알려주면 오늘 하루 흐름을 짚어줄게",
+    tagline: "오늘 하루 흐름을 짚어줄게",
     base: "saju",
     cost: 0,
     freeLimit: 5,

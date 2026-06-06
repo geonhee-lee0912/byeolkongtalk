@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 interface Section {
   title: string;
@@ -41,6 +41,8 @@ function FortuneResultInner() {
   const [error, setError] = useState(false);
   const [label, setLabel] = useState("별콩 운세");
   const [emoji, setEmoji] = useState("🌤️");
+  const [ftType, setFtType] = useState<FortuneType | null>(null);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -60,9 +62,11 @@ function FortuneResultInner() {
       }
       const ft = fortuneTypeFromTag(r.reading.emotionTag);
       if (ft) {
+        setFtType(ft);
         setLabel(FORTUNE_CONFIG[ft].label);
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
+      if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
       const report =
         (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
           ?.content ?? "";
@@ -72,27 +76,48 @@ function FortuneResultInner() {
   }, [id, router]);
 
   const handleShare = async () => {
-    const text =
-      `[별콩 운세] ${label}\n\n` +
-      sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
-      `\n\n🌙 ${typeof window !== "undefined" ? window.location.origin : ""}`;
-    try {
-      if (navigator.share) {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints ?? 0) > 1);
+
+    // 모바일: 네이티브 공유 시트
+    if (isMobile && navigator.share) {
+      const text =
+        `[별콩 운세] ${label}\n\n` +
+        sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
+        `\n\n🌙 ${url}`;
+      try {
         await navigator.share({ title: `별콩 운세 · ${label}`, text });
         return;
+      } catch {
+        /* 취소 — 링크 복사로 폴백 */
       }
-    } catch {
-      /* 취소 등 — 클립보드로 폴백 */
     }
+
+    // 데스크탑: 링크 클립보드 복사
     try {
-      await navigator.clipboard.writeText(text);
-      setToast("운세 내용을 복사했어");
+      await navigator.clipboard.writeText(url);
+      setToast("링크를 복사했어");
       setTimeout(() => setToast(null), 2000);
     } catch {
       setToast("복사를 못 했어");
       setTimeout(() => setToast(null), 2000);
     }
   };
+
+  const isDaily = ftType === "daily";
+  const dateLabel =
+    isDaily && createdAt
+      ? new Date(createdAt).toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+          timeZone: "Asia/Seoul",
+        })
+      : null;
 
   if (loading) {
     return (
@@ -119,31 +144,49 @@ function FortuneResultInner() {
         <div className="relative">
           <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
         </div>
-        <h1 className="mt-3 font-display text-[22px] font-bold text-eye-purple text-center">
+        {dateLabel && (
+          <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
+        )}
+        <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center">
           {emoji} {label}
         </h1>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
-        {sections.map((s, i) => (
-          <div
-            key={i}
-            className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
-          >
-            {s.title && (
-              <h2 className="text-[14px] font-bold text-lilac-deep mb-2">{s.title}</h2>
-            )}
-            {s.body.split(/\n{2,}/).map((p, j) => (
+      {isDaily ? (
+        <div className="w-full max-w-md mx-auto px-5">
+          <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
+            {sections.flatMap((s) => s.body.split(/\n{2,}/)).map((p, j) => (
               <p
                 key={j}
-                className="text-[13.5px] text-text leading-relaxed whitespace-pre-line [&:not(:first-child)]:mt-2"
+                className="text-[14.5px] text-text leading-[1.9] whitespace-pre-line [&:not(:first-child)]:mt-4"
               >
-                {p}
+                {p.trim()}
               </p>
             ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
+          {sections.map((s, i) => (
+            <div
+              key={i}
+              className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
+            >
+              {s.title && (
+                <h2 className="text-[14px] font-bold text-lilac-deep mb-2">{s.title}</h2>
+              )}
+              {s.body.split(/\n{2,}/).map((p, j) => (
+                <p
+                  key={j}
+                  className="text-[13.5px] text-text leading-relaxed whitespace-pre-line [&:not(:first-child)]:mt-2"
+                >
+                  {p}
+                </p>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
         <button

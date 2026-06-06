@@ -24,6 +24,7 @@ export default function FortuneDailyPage() {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [birthLine, setBirthLine] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
@@ -116,6 +117,11 @@ export default function FortuneDailyPage() {
           <br />
           오늘 하루 흐름을 한 장으로 정리해줄게.
         </p>
+        {birthLine && (
+          <p className="mt-1.5 text-[12px] font-medium text-lilac-deep text-center">
+            {birthLine}
+          </p>
+        )}
         {status &&
           (status.remaining > 0 ? (
             <span className="mt-3 text-[11px] font-bold text-sub-warm bg-gold-soft/30 px-2.5 py-1 rounded-full">
@@ -133,6 +139,9 @@ export default function FortuneDailyPage() {
         confirmLabel="오늘의 운세 보기"
         loading={balanceLoading}
         lockPrimary
+        showBoardDetail={false}
+        hideBirthLine
+        onSelectedBirthLine={setBirthLine}
       />
 
       {error && (

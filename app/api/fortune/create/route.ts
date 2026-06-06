@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getStarBalance, spendStars } from "@/lib/stars";
-import { calcSaju, type SajuInput, type SajuGender } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
 
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju = undefined;
+  let sajuInput: SajuInput | undefined;
   if (cfg.base === "saju") {
     if (typeof body.profileId === "string" && body.profileId.length > 0) {
       // 저장된 프로필 재사용 — 소유권 + birth 로드
@@ -111,13 +112,18 @@ export async function POST(req: NextRequest) {
       if (!owned) {
         return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
       }
-      saju = calcSaju(profileRowToSajuInput(owned));
+      sajuInput = profileRowToSajuInput(owned);
     } else {
       const validated = validateSajuInput(body.input);
       if ("error" in validated) {
         return NextResponse.json({ error: validated.error }, { status: 400 });
       }
-      saju = calcSaju(validated);
+      sajuInput = validated;
+    }
+    saju = calcSaju(sajuInput);
+    // 오늘 들어온 두 글자(일진) — daily 리포트에서 오늘 기운 설명에 사용
+    if (cfg.type === "daily") {
+      saju.temporal = calcTemporalLuck(new Date(), sajuInput.year);
     }
   }
 

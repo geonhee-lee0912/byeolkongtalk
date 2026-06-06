@@ -62,6 +62,12 @@ export interface FortuneSajuPickerProps {
   /** 오늘의 운세: 내 사주(primary)만 고정 노출, 목록 숨김 */
   lockPrimary?: boolean;
   nickname?: string;
+  /** 사주판 아래 일간/음양 디테일 표시 여부 (기본 true) */
+  showBoardDetail?: boolean;
+  /** 사주판 아래 생년월일 줄 숨김 (상단 서브타이틀로 옮길 때) */
+  hideBirthLine?: boolean;
+  /** 선택된 사주의 생년월일 줄 변화 콜백 */
+  onSelectedBirthLine?: (line: string | null) => void;
 }
 
 const LIST_PAGE_SIZE = 5;
@@ -72,6 +78,9 @@ export default function FortuneSajuPicker({
   loading,
   lockPrimary,
   nickname,
+  showBoardDetail = true,
+  hideBirthLine,
+  onSelectedBirthLine,
 }: FortuneSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -95,6 +104,10 @@ export default function FortuneSajuPicker({
   const selected = lockPrimary
     ? self
     : profiles.find((p) => p.id === selectedId) ?? null;
+
+  useEffect(() => {
+    onSelectedBirthLine?.(selected ? birthLine(selected) : null);
+  }, [selected, onSelectedBirthLine]);
 
   if (!ready) {
     return <p className="text-center text-[13px] text-text-light py-6">잠시만…</p>;
@@ -148,11 +161,13 @@ export default function FortuneSajuPicker({
               </span>
             </div>
             <div className="-mx-4">
-              <SajuBoard saju={selected.saju} />
+              <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
             </div>
-            <p className="text-[11px] text-text-light/60 text-center mt-2">
-              {birthLine(selected)}
-            </p>
+            {!hideBirthLine && (
+              <p className="text-[11px] text-text-light/60 text-center mt-2">
+                {birthLine(selected)}
+              </p>
+            )}
           </>
         )}
       </div>

@@ -21,7 +21,7 @@ function sajuBlock(saju: SajuResult): string {
   const elementsLine = Object.entries(saju.elementCount)
     .map(([el, n]) => `${el} ${n}`)
     .join(" / ");
-  return [
+  const lines = [
     `[사주판]`,
     `  - 연주: ${p.year.stem}${p.year.branch}`,
     `  - 월주: ${p.month.stem}${p.month.branch}`,
@@ -30,7 +30,18 @@ function sajuBlock(saju: SajuResult): string {
     `  - 오행 분포: ${elementsLine}`,
     `  - 음양: 양 ${saju.yinYangCount.yang} / 음 ${saju.yinYangCount.yin}`,
     `  - 입력: ${saju.input.inputCalendar === "lunar" ? "음력" : "양력"}${saju.input.isLeapMonth ? " 윤달" : ""} / 성별 ${saju.input.gender}`,
-  ].join("\n");
+  ];
+  // 오늘의 일진 — daily 리포트에서 "오늘 들어온 두 글자" 설명에 필수로 사용
+  if (saju.temporal) {
+    const d = saju.temporal.day;
+    lines.push(
+      ``,
+      `[오늘 들어온 두 글자 — 오늘의 일진]`,
+      `  - 오늘의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
+      `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 오늘 하루 기운의 핵심.`
+    );
+  }
+  return lines.join("\n");
 }
 
 const TODAY_KR = () =>
@@ -57,11 +68,11 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
   daily: [
     `오늘 날짜: ${"{{TODAY}}"}`,
     ``,
-    `위 사주판을 가진 사람의 **오늘 하루** 운세 리포트를 써줘. 아래 섹션을 정확히 이 순서·제목으로:`,
-    `## 오늘의 흐름  (오늘 전반 기운 한 단락)`,
-    `## 마음 · 관계  (감정·사람 관계)`,
-    `## 일 · 돈  (일/공부/금전)`,
-    `## 별콩이의 한마디  (오늘 실천할 따뜻한 조언 한 가지)`,
+    `위 사주판을 가진 사람의 **오늘 하루** 운세 리포트를 써줘.`,
+    ``,
+    `[형식] 섹션 제목(##)으로 쪼개지 말고, 자연스럽게 이어지는 하나의 리포트로 써. 문단(빈 줄로 구분)은 3~5개 정도로 나눠서 눈에 잘 들어오게. 각 문단은 2~4문장.`,
+    ``,
+    `[반드시 지킬 것] 리포트를 시작할 때, 위 [오늘 들어온 두 글자]의 그 두 글자(${"{{TODAY_PILLAR}}"})가 어떤 기운인지, 그리고 그 기운이 이 사람의 일간·사주와 만나 오늘 하루에 어떤 영향을 주는지를 먼저 쉽게 풀어줘. (전문 용어는 친구가 알아듣게 풀어서.) 그 다음 문단들에서 마음·관계, 일·돈 흐름을 자연스럽게 이어가고, 마지막 문단은 오늘 실천할 따뜻한 조언 한 가지로 마무리해줘.`,
   ].join("\n"),
   monthly: [
     `이번 달: ${"{{THIS_MONTH}}"}`,
@@ -98,10 +109,14 @@ export function buildFortuneSystem(
   const parts: string[] = [];
   if (input.saju) parts.push(sajuBlock(input.saju));
   parts.push("");
+  const todayPillar = input.saju?.temporal
+    ? `${input.saju.temporal.day.stem}${input.saju.temporal.day.branch}`
+    : "오늘의 일진";
   parts.push(
     SECTION_GUIDE[type]
       .replace("{{TODAY}}", TODAY_KR())
       .replace("{{THIS_MONTH}}", THIS_MONTH_KR())
+      .replace("{{TODAY_PILLAR}}", todayPillar)
   );
 
   return {
