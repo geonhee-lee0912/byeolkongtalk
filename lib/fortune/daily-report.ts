@@ -4,6 +4,10 @@
 
 import type { FiveElement } from "manseryeok";
 import type { TemporalLuck } from "@/lib/saju/calc";
+import { ELEMENT_COLOR, STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
+
+// DailyReportCard 등 기존 사용처(@/lib/fortune/daily-report 에서 import)가 깨지지 않게 re-export.
+export { ELEMENT_COLOR };
 
 export type DailySectionKey = "money" | "work" | "love" | "health" | "study";
 
@@ -23,25 +27,6 @@ export const DAILY_SECTIONS: DailySectionMeta[] = [
 ];
 
 const SECTION_KEYS: DailySectionKey[] = DAILY_SECTIONS.map((s) => s.key);
-
-/** 오행 → 색 (일진 글자 점 색). 브랜드 톤 고정. */
-export const ELEMENT_COLOR: Record<FiveElement, string> = {
-  목: "#5FA36A",
-  화: "#D9694C",
-  토: "#C99A4E",
-  금: "#8E8E93",
-  수: "#5B86C9",
-};
-
-// 천간/지지(한글) → 오행. PillarLite.stem/branch 는 한글("갑","자")이다.
-const STEM_ELEMENT: Record<string, FiveElement> = {
-  갑: "목", 을: "목", 병: "화", 정: "화", 무: "토",
-  기: "토", 경: "금", 신: "금", 임: "수", 계: "수",
-};
-const BRANCH_ELEMENT: Record<string, FiveElement> = {
-  자: "수", 축: "토", 인: "목", 묘: "목", 진: "토", 사: "화",
-  오: "화", 미: "토", 신: "금", 유: "금", 술: "토", 해: "수",
-};
 
 /** AI 가 생성하는 부분. */
 export interface DailyReportAI {
