@@ -81,7 +81,7 @@ export default function MyPage() {
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
-  const [showSelfSaju, setShowSelfSaju] = useState(false);
+  const [listPage, setListPage] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -119,6 +119,14 @@ export default function MyPage() {
   const allProfiles = [...(self ? [self] : []), ...acquaintances];
   const relationBadge = (p: ProfileItem) =>
     p.isPrimary ? "나" : RELATION_LABEL[p.relationType] ?? "지인";
+
+  const LIST_PAGE_SIZE = 5;
+  const totalListPages = Math.max(1, Math.ceil(allProfiles.length / LIST_PAGE_SIZE));
+  const safeListPage = Math.min(listPage, totalListPages - 1);
+  const pagedProfiles = allProfiles.slice(
+    safeListPage * LIST_PAGE_SIZE,
+    safeListPage * LIST_PAGE_SIZE + LIST_PAGE_SIZE
+  );
 
   const saveSelf = async (payload: ProfilePayload) => {
     setSavingProfile(true);
@@ -214,6 +222,33 @@ export default function MyPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+      {/* 별 잔액 + 결제·별 내역 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-7">
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] text-white/75 mb-1">내 별 잔액</div>
+              <div className="text-[22px] font-bold text-gold-soft">
+                ⭐ {balance ?? 0}별
+              </div>
+            </div>
+            <Link
+              href="/shop"
+              className="px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
+            >
+              충전
+            </Link>
+          </div>
+          <Link
+            href="/mypage/payments"
+            className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between text-[12px] text-white/85"
+          >
+            <span>결제 · 별 내역 보기</span>
+            <span className="text-white/60">›</span>
+          </Link>
+        </div>
+      </div>
+
       {/* 프로필 카드 (명식 통합) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
@@ -261,68 +296,41 @@ export default function MyPage() {
             )}
           </div>
 
-          {/* 내 사주 입력/수정 (명식은 아래 사주 목록에서 확인) */}
-          {(editingSelf || !self) && (
-            <div className="mt-3 pt-3 border-t border-lilac-mid/20">
-              {editingSelf ? (
-                <>
-                  <ProfileForm
-                    mode="self"
-                    initial={self ? toInitial(self) : undefined}
-                    defaultSelfName={me.user.nickname}
-                    submitLabel="저장하기"
-                    loading={savingProfile}
-                    onSubmit={saveSelf}
-                  />
-                  <button
-                    onClick={() => setEditingSelf(false)}
-                    className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
-                  >
-                    취소
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-[12px] text-text-light/70 text-center mb-3">
-                    아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
-                  </p>
-                  <button
-                    onClick={() => setEditingSelf(true)}
-                    className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
-                  >
-                    내 사주 입력하기
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 별 잔액 + 결제·별 내역 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] text-white/75 mb-1">내 별 잔액</div>
-              <div className="text-[22px] font-bold text-gold-soft">
-                ⭐ {balance ?? 0}별
+          {/* 내 명식 */}
+          <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
+            {self && !editingSelf ? (
+              <SajuBoard saju={self.saju} showDetail={false} />
+            ) : editingSelf ? (
+              <div className="px-4">
+                <ProfileForm
+                  mode="self"
+                  initial={self ? toInitial(self) : undefined}
+                  defaultSelfName={me.user.nickname}
+                  submitLabel="저장하기"
+                  loading={savingProfile}
+                  onSubmit={saveSelf}
+                />
+                <button
+                  onClick={() => setEditingSelf(false)}
+                  className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
+                >
+                  취소
+                </button>
               </div>
-            </div>
-            <Link
-              href="/shop"
-              className="px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
-            >
-              충전
-            </Link>
+            ) : (
+              <div className="px-4">
+                <p className="text-[12px] text-text-light/70 text-center mb-3">
+                  아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
+                </p>
+                <button
+                  onClick={() => setEditingSelf(true)}
+                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+                >
+                  내 사주 입력하기
+                </button>
+              </div>
+            )}
           </div>
-          <Link
-            href="/mypage/payments"
-            className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between text-[12px] text-white/85"
-          >
-            <span>결제 · 별 내역 보기</span>
-            <span className="text-white/60">›</span>
-          </Link>
         </div>
       </div>
 
@@ -377,7 +385,7 @@ export default function MyPage() {
         )}
 
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
-          {allProfiles.map((p) => (
+          {pagedProfiles.map((p) => (
             <div key={p.id} className="p-3">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
@@ -396,29 +404,6 @@ export default function MyPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
-                  {p.isPrimary && (
-                    <button
-                      onClick={() => setShowSelfSaju((v) => !v)}
-                      aria-label={showSelfSaju ? "명식 접기" : "명식 보기"}
-                      className="p-1.5 rounded-lg text-lilac-deep hover:bg-lilac-soft/50"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`transition-transform ${
-                          showSelfSaju ? "rotate-180" : ""
-                        }`}
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       if (p.isPrimary) {
@@ -469,14 +454,48 @@ export default function MyPage() {
                   )}
                 </div>
               </div>
-              {p.isPrimary && showSelfSaju && (
-                <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-3">
-                  <SajuBoard saju={p.saju} showDetail={false} />
-                </div>
-              )}
             </div>
           ))}
         </div>
+
+        {totalListPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <button
+              onClick={() => setListPage((n) => Math.max(0, n - 1))}
+              disabled={safeListPage === 0}
+              aria-label="이전"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            {Array.from({ length: totalListPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setListPage(i)}
+                aria-label={`${i + 1}페이지`}
+                className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                  i === safeListPage
+                    ? "bg-lilac-deep text-white"
+                    : "text-text-light/70 hover:bg-lilac-soft/50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setListPage((n) => Math.min(totalListPages - 1, n + 1))}
+              disabled={safeListPage === totalListPages - 1}
+              aria-label="다음"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 계정·고객 메뉴 */}
@@ -488,7 +507,7 @@ export default function MyPage() {
             e.preventDefault();
             alert("고객센터는 곧 열릴 예정이야!");
           }}
-          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 shadow-sm flex items-center justify-between"
+          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
         >
           <span className="text-[14px] text-eye-purple font-medium">
             고객센터 / 문의
@@ -497,7 +516,7 @@ export default function MyPage() {
         </a>
         <button
           onClick={() => setShowWithdrawConfirm(true)}
-          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 shadow-sm flex items-center justify-between"
+          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
         >
           <span className="text-[14px] text-text-light/70 font-medium">
             회원 탈퇴
@@ -536,7 +555,7 @@ export default function MyPage() {
       <div className="w-full max-w-md mx-auto px-5 mt-6 mb-24">
         <button
           onClick={handleLogout}
-          className="w-full py-3 rounded-xl border border-lilac-mid/40 text-eye-purple font-bold text-[14px]"
+          className="w-full py-3 rounded-xl bg-lilac-soft text-eye-purple font-bold text-[14px]"
         >
           로그아웃
         </button>
