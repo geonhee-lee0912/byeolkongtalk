@@ -25,6 +25,8 @@ const ELEMENTS: FiveElement[] = ["목", "화", "토", "금", "수"];
 
 export interface SajuBoardProps {
   saju: SajuResult;
+  // false면 오행 카운트만 노출하고 일간·음양 요약은 숨김 (마이페이지 프로필 카드용)
+  showDetail?: boolean;
 }
 
 function getStemElement(stem: string): FiveElement {
@@ -44,7 +46,7 @@ function getBranchElement(branch: string): FiveElement {
   return "수"; // 자/해
 }
 
-export default function SajuBoard({ saju }: SajuBoardProps) {
+export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
   const maxCount = Math.max(...Object.values(saju.elementCount));
 
   return (
@@ -134,15 +136,19 @@ export default function SajuBoard({ saju }: SajuBoardProps) {
             </span>
           );
         })}
-        <span className="text-lilac-mid/60 mx-0.5">·</span>
-        <span className="text-[12px] text-text-light">
-          일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
-          ({saju.dayElement})
-        </span>
-        <span className="text-lilac-mid/60 mx-0.5">·</span>
-        <span className="text-[12px] text-text-light">
-          양 {saju.yinYangCount.yang} · 음 {saju.yinYangCount.yin}
-        </span>
+        {showDetail && (
+          <>
+            <span className="text-lilac-mid/60 mx-0.5">·</span>
+            <span className="text-[12px] text-text-light">
+              일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
+              ({saju.dayElement})
+            </span>
+            <span className="text-lilac-mid/60 mx-0.5">·</span>
+            <span className="text-[12px] text-text-light">
+              양 {saju.yinYangCount.yang} · 음 {saju.yinYangCount.yin}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
-import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
+import Footer from "@/components/layout/Footer";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -54,6 +54,31 @@ function birthTimeToBranchHour(t: string | null): number | null {
   // 자시 23-01 → 0, 이후 2시간 단위. 23시는 자시(0)로.
   if (h === 23) return 0;
   return h - (h % 2);
+}
+
+// 12시진 (자시 23~01 시작). 인덱스 0 = 자시.
+const SIJIN = [
+  { name: "자시", range: "23~01" },
+  { name: "축시", range: "01~03" },
+  { name: "인시", range: "03~05" },
+  { name: "묘시", range: "05~07" },
+  { name: "진시", range: "07~09" },
+  { name: "사시", range: "09~11" },
+  { name: "오시", range: "11~13" },
+  { name: "미시", range: "13~15" },
+  { name: "신시", range: "15~17" },
+  { name: "유시", range: "17~19" },
+  { name: "술시", range: "19~21" },
+  { name: "해시", range: "21~23" },
+];
+
+// HH:MM → "미시 (13~15시)". null이면 null(시간 모름).
+function birthTimeToSijin(t: string | null): string | null {
+  if (!t) return null;
+  const h = Number(t.slice(0, 2));
+  const idx = h === 23 ? 0 : Math.floor((h + 1) / 2) % 12;
+  const s = SIJIN[idx];
+  return `${s.name} (${s.range}시)`;
 }
 
 export default function MyPage() {
@@ -207,15 +232,6 @@ export default function MyPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        <Link href="/" className="text-[12px] text-text-light/70">
-          ‹ 홈으로
-        </Link>
-        <button onClick={handleLogout} className="text-[12px] text-text-light/70">
-          로그아웃
-        </button>
-      </div>
-
       {/* 프로필 카드 (명식 통합) */}
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
@@ -259,11 +275,13 @@ export default function MyPage() {
           <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
             {self && !editingSelf ? (
               <>
-                <SajuBoard saju={self.saju} />
+                <SajuBoard saju={self.saju} showDetail={false} />
                 <p className="text-[11px] text-text-light/70 text-center mt-2">
                   {self.birthDate.replace(/-/g, ". ")}
                   {self.isLunarInput ? " · 음력" : " · 양력"}
-                  {self.birthTime ? ` · ${self.birthTime}` : " · 시간 모름"}
+                  {birthTimeToSijin(self.birthTime)
+                    ? ` · ${birthTimeToSijin(self.birthTime)}`
+                    : " · 시간 모름"}
                 </p>
               </>
             ) : editingSelf ? (
@@ -285,6 +303,9 @@ export default function MyPage() {
               </div>
             ) : (
               <div className="px-4">
+                <p className="text-[12px] text-text-light/70 text-center mb-3">
+                  아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
+                </p>
                 <button
                   onClick={() => setEditingSelf(true)}
                   className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
@@ -297,20 +318,29 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 별 잔액 */}
+      {/* 별 잔액 + 결제·별 내역 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="bg-gradient-to-br from-gold-soft/30 via-cream-warm to-lilac-soft/40 rounded-2xl p-4 border border-gold-soft/40 flex items-center justify-between">
-          <div>
-            <div className="text-[11px] text-text-light/80 mb-1">내 별 잔액</div>
-            <div className="text-[20px] font-bold text-eye-purple">
-              ⭐ {balance ?? 0}별
+        <div className="bg-gradient-to-br from-gold-soft/30 via-cream-warm to-lilac-soft/40 rounded-2xl p-4 border border-gold-soft/40">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] text-text-light/80 mb-1">내 별 잔액</div>
+              <div className="text-[20px] font-bold text-eye-purple">
+                ⭐ {balance ?? 0}별
+              </div>
             </div>
+            <Link
+              href="/shop"
+              className="px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
+            >
+              충전
+            </Link>
           </div>
           <Link
-            href="/shop"
-            className="px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
+            href="/mypage/payments"
+            className="mt-3 pt-3 border-t border-gold-soft/40 flex items-center justify-between text-[12px] text-text-light/80"
           >
-            충전
+            <span>결제 · 별 내역 보기</span>
+            <span className="text-text-light/50">›</span>
           </Link>
         </div>
       </div>
@@ -387,6 +417,9 @@ export default function MyPage() {
                     <div className="text-[11px] text-text-light/70 mt-0.5">
                       {p.birthDate.replace(/-/g, ". ")}
                       {p.isLunarInput ? " · 음력" : " · 양력"}
+                      {birthTimeToSijin(p.birthTime)
+                        ? ` · ${birthTimeToSijin(p.birthTime)}`
+                        : " · 시간 모름"}
                     </div>
                   </div>
                   <span className="text-text-light/50 text-[12px]">
@@ -395,11 +428,8 @@ export default function MyPage() {
                 </button>
 
                 {open && (
-                  <div className="px-3 pb-3 pt-1 border-t border-lilac-mid/20">
-                    <div className="py-2 flex justify-center">
-                      <SajuBoardCompact saju={p.saju} />
-                    </div>
-                    <div className="flex items-center justify-end gap-3 mt-1">
+                  <div className="px-3 pb-3 pt-2 border-t border-lilac-mid/20">
+                    <div className="flex items-center justify-end gap-3">
                       <button
                         onClick={() => {
                           if (p.isPrimary) {
@@ -434,15 +464,6 @@ export default function MyPage() {
 
       {/* 계정·고객 메뉴 */}
       <div className="w-full max-w-md mx-auto px-5 mb-2 flex flex-col gap-2">
-        <Link
-          href="/mypage/payments"
-          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
-        >
-          <span className="text-[14px] text-eye-purple font-medium">
-            결제 / 별 내역
-          </span>
-          <span className="text-text-light/50">›</span>
-        </Link>
         {/* 고객센터: 연락 채널 미정 → 타겟 보류 (UI만). 채널 확정 시 href 교체. */}
         <a
           href="#"
@@ -457,15 +478,6 @@ export default function MyPage() {
           </span>
           <span className="text-text-light/50">›</span>
         </a>
-      </div>
-
-      {/* 약관 링크 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-2 flex items-center justify-center gap-2 text-[11px] text-text-light/60">
-        <Link href="/terms" className="underline">이용약관</Link>
-        <span>·</span>
-        <Link href="/privacy" className="underline">개인정보처리방침</Link>
-        <span>·</span>
-        <Link href="/refund" className="underline">환불정책</Link>
       </div>
 
       {/* 지인 삭제 확인 모달 */}
@@ -494,8 +506,18 @@ export default function MyPage() {
         </div>
       )}
 
+      {/* 로그아웃 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-6">
+        <button
+          onClick={handleLogout}
+          className="w-full py-3 rounded-xl border border-lilac-mid/40 text-eye-purple font-bold text-[14px]"
+        >
+          로그아웃
+        </button>
+      </div>
+
       {/* 회원 탈퇴 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-10 pt-5 border-t border-lilac-mid/20">
+      <div className="w-full max-w-md mx-auto px-5 mt-6 pt-5 border-t border-lilac-mid/20">
         {!showWithdrawConfirm ? (
           <button
             onClick={() => setShowWithdrawConfirm(true)}
@@ -542,6 +564,8 @@ export default function MyPage() {
           </div>
         )}
       </div>
+
+      <Footer />
     </main>
   );
 }

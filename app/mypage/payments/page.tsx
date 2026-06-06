@@ -34,8 +34,11 @@ function fmtDate(ms: number): string {
   return `${d.getFullYear()}. ${p(d.getMonth() + 1)}. ${p(d.getDate())}`;
 }
 
+type Row =
+  | { kind: "payment"; id: string; time: number; payment: Payment }
+  | { kind: "star"; id: string; time: number; tx: StarTx };
+
 export default function PaymentsPage() {
-  const [tab, setTab] = useState<"payments" | "stars">("payments");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [txs, setTxs] = useState<StarTx[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
@@ -65,6 +68,15 @@ export default function PaymentsPage() {
     .filter((p) => p.status === "completed")
     .reduce((s, p) => s + p.amount, 0);
 
+  const rows: Row[] = [
+    ...payments.map(
+      (p): Row => ({ kind: "payment", id: `p-${p.id}`, time: p.paidAt, payment: p })
+    ),
+    ...txs.map(
+      (t): Row => ({ kind: "star", id: `s-${t.id}`, time: t.createdAt, tx: t })
+    ),
+  ].sort((a, b) => b.time - a.time);
+
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5">
@@ -91,88 +103,61 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* 탭 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-4 flex gap-2">
-        {([["payments", "결제 내역"], ["stars", "별 내역"]] as const).map(
-          ([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex-1 py-2 rounded-xl text-[13px] font-bold ${
-                tab === key
-                  ? "bg-lilac-deep text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/30"
-              }`}
-            >
-              {label}
-            </button>
-          )
-        )}
-      </div>
-
-      {/* 리스트 */}
+      {/* 통합 내역 */}
       <div className="w-full max-w-md mx-auto px-5">
         {loading ? (
           <p className="text-text-light text-[13px] text-center py-8">잠시만…</p>
-        ) : tab === "payments" ? (
-          payments.length === 0 ? (
-            <p className="text-text-light/70 text-[13px] text-center py-8">
-              아직 결제 내역이 없어
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {payments.map((p) => (
+        ) : rows.length === 0 ? (
+          <p className="text-text-light/70 text-[13px] text-center py-8">
+            아직 내역이 없어
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {rows.map((row) =>
+              row.kind === "payment" ? (
                 <div
-                  key={p.id}
+                  key={row.id}
                   className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
                 >
                   <div>
                     <div className="text-[14px] font-bold text-eye-purple">
-                      {p.packageLabel}
+                      {row.payment.packageLabel}
                       <span className="ml-2 text-[11px] font-normal text-text-light/70">
-                        {PAYMENT_STATUS_LABEL[p.status]}
+                        결제 · {PAYMENT_STATUS_LABEL[row.payment.status]}
                       </span>
                     </div>
                     <div className="text-[11px] text-text-light/70 mt-0.5">
-                      {fmtDate(p.paidAt)} · ⭐{p.stars}별
+                      {fmtDate(row.payment.paidAt)} · ⭐{row.payment.stars}별
                     </div>
                   </div>
                   <div className="text-[14px] font-bold text-eye-purple">
-                    {p.amount.toLocaleString()}원
+                    {row.payment.amount.toLocaleString()}원
                   </div>
                 </div>
-              ))}
-            </div>
-          )
-        ) : txs.length === 0 ? (
-          <p className="text-text-light/70 text-[13px] text-center py-8">
-            아직 별 사용 내역이 없어
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {txs.map((t) => (
-              <div
-                key={t.id}
-                className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-[14px] font-bold text-eye-purple">
-                    {t.typeLabel}
-                  </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5">
-                    {fmtDate(t.createdAt)} · 잔액 {t.balanceAfter}별
-                  </div>
-                </div>
+              ) : (
                 <div
-                  className={`text-[14px] font-bold ${
-                    t.signedAmount < 0 ? "text-text-light" : "text-eye-purple"
-                  }`}
+                  key={row.id}
+                  className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
                 >
-                  {t.signedAmount > 0 ? "+" : ""}
-                  {t.signedAmount}별
+                  <div>
+                    <div className="text-[14px] font-bold text-eye-purple">
+                      {row.tx.typeLabel}
+                    </div>
+                    <div className="text-[11px] text-text-light/70 mt-0.5">
+                      {fmtDate(row.tx.createdAt)} · 잔액 {row.tx.balanceAfter}별
+                    </div>
+                  </div>
+                  <div
+                    className={`text-[14px] font-bold ${
+                      row.tx.signedAmount < 0 ? "text-text-light" : "text-eye-purple"
+                    }`}
+                  >
+                    {row.tx.signedAmount > 0 ? "+" : ""}
+                    {row.tx.signedAmount}별
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </div>
