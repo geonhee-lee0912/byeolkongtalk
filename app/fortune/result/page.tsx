@@ -6,11 +6,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
+import MonthlyReportView from "@/components/fortune/monthly/MonthlyReportView";
 import {
   tryParseStoredDailyReport,
   DAILY_SECTIONS,
   type DailyReport,
 } from "@/lib/fortune/daily-report";
+import {
+  tryParseStoredMonthlyReport,
+  type MonthlyReport,
+} from "@/lib/fortune/monthly-report";
 
 interface Section {
   title: string;
@@ -58,6 +63,29 @@ function buildDailyShareText(r: DailyReport, label: string, url: string): string
   );
 }
 
+function buildMonthlyShareText(r: MonthlyReport, label: string, url: string): string {
+  const stars = "★".repeat(r.stars) + "☆".repeat(5 - r.stars);
+  const weekly = r.weekly.map((w) => `${w.week}주차\n${w.body}`).join("\n\n");
+  const domains = DAILY_SECTIONS.map((m) => {
+    const sec = r.sections.find((s) => s.key === m.key);
+    return sec ? `▪ ${m.title}\n${sec.body}` : "";
+  })
+    .filter(Boolean)
+    .join("\n\n");
+  return (
+    `[별콩 운세] ${label}\n` +
+    `${r.wolgeon.hanja} · ${r.theme}\n` +
+    `이번 달 종합운 ${stars}\n${r.summary}\n\n` +
+    `${r.intro}\n\n` +
+    `[주차별 흐름]\n${weekly}\n\n` +
+    `${domains}\n\n` +
+    `[주목할 시기]\n흐름이 좋아: ${r.timing.good}\n점검할 때: ${r.timing.caution}\n\n` +
+    `✅ ${r.balance.good}\n⚠️ ${r.balance.warn}\n\n` +
+    `🌙 별콩이의 한마디\n${r.note}\n\n` +
+    `${url}`
+  );
+}
+
 function FortuneResultInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -72,6 +100,7 @@ function FortuneResultInner() {
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
+  const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,8 +136,11 @@ function FortuneResultInner() {
         (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
           ?.content ?? "";
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
+      const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
       if (daily) {
         setDailyReport(daily);
+      } else if (monthly) {
+        setMonthlyReport(monthly);
       } else {
         setSections(parseSections(report));
       }
@@ -125,9 +157,11 @@ function FortuneResultInner() {
 
     const shareText = dailyReport
       ? buildDailyShareText(dailyReport, label, url)
-      : `[별콩 운세] ${label}\n\n` +
-        sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
-        `\n\n🌙 ${url}`;
+      : monthlyReport
+        ? buildMonthlyShareText(monthlyReport, label, url)
+        : `[별콩 운세] ${label}\n\n` +
+          sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
+          `\n\n🌙 ${url}`;
 
     // 모바일: 네이티브 공유 시트
     if (isMobile && navigator.share) {
@@ -161,6 +195,15 @@ function FortuneResultInner() {
           timeZone: "Asia/Seoul",
         })
       : null;
+  const isMonthly = ftType === "monthly";
+  const monthLabel =
+    isMonthly && createdAt
+      ? new Date(createdAt).toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          timeZone: "Asia/Seoul",
+        })
+      : null;
 
   if (loading) {
     return (
@@ -183,7 +226,7 @@ function FortuneResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {!(isDaily && dailyReport) && (
+      {!((isDaily && dailyReport) || (isMonthly && monthlyReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">
             <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
@@ -199,6 +242,8 @@ function FortuneResultInner() {
 
       {isDaily && dailyReport ? (
         <DailyReportCard report={dailyReport} dateLabel={dateLabel} />
+      ) : isMonthly && monthlyReport ? (
+        <MonthlyReportView report={monthlyReport} monthLabel={monthLabel} />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
