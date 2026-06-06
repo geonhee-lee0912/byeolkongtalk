@@ -126,8 +126,11 @@ export default function PaymentsPage() {
                         결제 · {PAYMENT_STATUS_LABEL[row.payment.status]}
                       </span>
                     </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5">
-                      {fmtDate(row.payment.paidAt)} · ⭐{row.payment.stars}별
+                    <div className="text-[11px] mt-0.5">
+                      <span className="font-bold text-eye-purple/80">
+                        {fmtDate(row.payment.paidAt)}
+                      </span>
+                      <span className="text-text-light/70"> · ⭐{row.payment.stars}별</span>
                     </div>
                   </div>
                   <div className="text-[14px] font-bold text-eye-purple">
@@ -143,8 +146,11 @@ export default function PaymentsPage() {
                     <div className="text-[14px] font-bold text-eye-purple">
                       {row.tx.typeLabel}
                     </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5">
-                      {fmtDate(row.tx.createdAt)} · 잔액 {row.tx.balanceAfter}별
+                    <div className="text-[11px] mt-0.5">
+                      <span className="font-bold text-eye-purple/80">
+                        {fmtDate(row.tx.createdAt)}
+                      </span>
+                      <span className="text-text-light/70"> · 잔액 {row.tx.balanceAfter}별</span>
                     </div>
                   </div>
                   <div

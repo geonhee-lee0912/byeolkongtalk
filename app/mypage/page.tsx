@@ -14,19 +14,6 @@ interface Me {
   isAuthenticated: boolean;
 }
 
-interface ReadingItem {
-  id: string;
-  question: string;
-  sajuData: {
-    dayStem: string;
-    dayElement: string;
-  };
-  starsSpent: number;
-  hasSensitive: boolean;
-  createdAt: string;
-  profile: { display_name: string; relation_type: string } | null;
-}
-
 interface ProfileItem {
   id: string;
   displayName: string;
@@ -85,7 +72,6 @@ export default function MyPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
-  const [readings, setReadings] = useState<ReadingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawAck, setWithdrawAck] = useState(false);
@@ -99,14 +85,11 @@ export default function MyPage() {
 
   useEffect(() => {
     void (async () => {
-      const [r, bal, list, profs] = await Promise.all([
+      const [r, bal, profs] = await Promise.all([
         fetch("/api/auth/me", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         fetch("/api/stars/balance", { cache: "no-store" })
-          .then((x) => (x.ok ? x.json() : null))
-          .catch(() => null),
-        fetch("/api/readings", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         fetch("/api/profiles", { cache: "no-store" })
@@ -119,7 +102,6 @@ export default function MyPage() {
       }
       setMe(r as Me);
       if (bal) setBalance(bal.balance ?? 0);
-      if (list?.readings) setReadings(list.readings);
       if (profs?.profiles) setProfiles(profs.profiles as ProfileItem[]);
       setLoading(false);
     })();
@@ -258,7 +240,15 @@ export default function MyPage() {
                 {me.user.nickname}
               </div>
               <div className="text-[11px] text-text-light/70 mt-0.5">
-                카카오 · 풀이 {readings.length}회
+                {self
+                  ? `${self.birthDate.replace(/-/g, ". ")}${
+                      self.isLunarInput ? " · 음력" : " · 양력"
+                    }${
+                      birthTimeToSijin(self.birthTime)
+                        ? ` · ${birthTimeToSijin(self.birthTime)}`
+                        : " · 시간 모름"
+                    }`
+                  : "카카오"}
               </div>
             </div>
             {self && !editingSelf && (
@@ -274,16 +264,7 @@ export default function MyPage() {
           {/* 내 명식 */}
           <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
             {self && !editingSelf ? (
-              <>
-                <SajuBoard saju={self.saju} showDetail={false} />
-                <p className="text-[11px] text-text-light/70 text-center mt-2">
-                  {self.birthDate.replace(/-/g, ". ")}
-                  {self.isLunarInput ? " · 음력" : " · 양력"}
-                  {birthTimeToSijin(self.birthTime)
-                    ? ` · ${birthTimeToSijin(self.birthTime)}`
-                    : " · 시간 모름"}
-                </p>
-              </>
+              <SajuBoard saju={self.saju} showDetail={false} />
             ) : editingSelf ? (
               <div className="px-4">
                 <ProfileForm
@@ -320,27 +301,27 @@ export default function MyPage() {
 
       {/* 별 잔액 + 결제·별 내역 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="bg-gradient-to-br from-gold-soft/30 via-cream-warm to-lilac-soft/40 rounded-2xl p-4 border border-gold-soft/40">
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] text-text-light/80 mb-1">내 별 잔액</div>
-              <div className="text-[20px] font-bold text-eye-purple">
+              <div className="text-[11px] text-white/75 mb-1">내 별 잔액</div>
+              <div className="text-[22px] font-bold text-gold-soft">
                 ⭐ {balance ?? 0}별
               </div>
             </div>
             <Link
               href="/shop"
-              className="px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
+              className="px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
             >
               충전
             </Link>
           </div>
           <Link
             href="/mypage/payments"
-            className="mt-3 pt-3 border-t border-gold-soft/40 flex items-center justify-between text-[12px] text-text-light/80"
+            className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between text-[12px] text-white/85"
           >
             <span>결제 · 별 내역 보기</span>
-            <span className="text-text-light/50">›</span>
+            <span className="text-white/60">›</span>
           </Link>
         </div>
       </div>
@@ -395,14 +376,11 @@ export default function MyPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
+        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
           {allProfiles.map((p) => {
             const open = expandedId === p.id;
             return (
-              <div
-                key={p.id}
-                className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden"
-              >
+              <div key={p.id}>
                 <button
                   onClick={() => setExpandedId(open ? null : p.id)}
                   className="w-full p-3 flex items-center justify-between text-left"
@@ -478,6 +456,15 @@ export default function MyPage() {
           </span>
           <span className="text-text-light/50">›</span>
         </a>
+        <button
+          onClick={() => setShowWithdrawConfirm(true)}
+          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
+        >
+          <span className="text-[14px] text-text-light/70 font-medium">
+            회원 탈퇴
+          </span>
+          <span className="text-text-light/50">›</span>
+        </button>
       </div>
 
       {/* 지인 삭제 확인 모달 */}
@@ -516,25 +503,18 @@ export default function MyPage() {
         </button>
       </div>
 
-      {/* 회원 탈퇴 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6 pt-5 border-t border-lilac-mid/20">
-        {!showWithdrawConfirm ? (
-          <button
-            onClick={() => setShowWithdrawConfirm(true)}
-            className="text-[11px] text-text-light/50 underline"
-          >
-            회원 탈퇴
-          </button>
-        ) : (
-          <div className="bg-cream-warm rounded-2xl p-4 border border-rose-200">
-            <p className="text-[13px] text-eye-purple mb-2 font-bold">
+      {/* 회원 탈퇴 확인 모달 */}
+      {showWithdrawConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
+            <p className="text-[14px] font-bold text-eye-purple mb-2">
               정말 떠나려고?
             </p>
-            <p className="text-[11px] text-text-light leading-relaxed mb-3">
+            <p className="text-[12px] text-text-light leading-relaxed mb-3">
               탈퇴하면 너의 사주 풀이, 별 잔액, 모든 기록이 영구적으로 삭제돼.
               되돌릴 수 없어.
             </p>
-            <label className="flex items-center gap-2 text-[12px] text-text-light mb-3">
+            <label className="flex items-center gap-2 text-[12px] text-text-light mb-4">
               <input
                 type="checkbox"
                 checked={withdrawAck}
@@ -562,8 +542,8 @@ export default function MyPage() {
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <Footer />
     </main>
