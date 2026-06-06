@@ -14,6 +14,11 @@ import {
   buildDailyReport,
   serializeDailyReport,
 } from "@/lib/fortune/daily-report";
+import {
+  parseMonthlyReportJson,
+  buildMonthlyReport,
+  serializeMonthlyReport,
+} from "@/lib/fortune/monthly-report";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -111,6 +116,7 @@ export async function POST(req: NextRequest) {
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju = undefined;
   let sajuInput: SajuInput | undefined;
+  let usedProfileId: string | null = null;
   if (cfg.base === "saju") {
     if (typeof body.profileId === "string" && body.profileId.length > 0) {
       // 저장된 프로필 재사용 — 소유권 + birth 로드
@@ -127,6 +133,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
       }
       sajuInput = profileRowToSajuInput(owned);
+      usedProfileId = body.profileId;
     } else {
       const validated = validateSajuInput(body.input);
       if ("error" in validated) {
@@ -135,8 +142,8 @@ export async function POST(req: NextRequest) {
       sajuInput = validated;
     }
     saju = calcSaju(sajuInput);
-    // 오늘 들어온 두 글자(일진) — daily 리포트에서 오늘 기운 설명에 사용
-    if (cfg.type === "daily") {
+    // 오늘/이번 달 들어온 두 글자(일진·월건) — daily/monthly 리포트에서 기운 설명에 사용
+    if (cfg.type === "daily" || cfg.type === "monthly") {
       saju.temporal = calcTemporalLuck(new Date(), sajuInput.year);
     }
   }
@@ -204,6 +211,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
     }
     storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
+  } else if (cfg.type === "monthly") {
+    let ai = parseMonthlyReportJson(report);
+    if (!ai) {
+      try {
+        const system = buildFortuneSystem(cfg.type, { saju });
+        const retry = await generateOnce(
+          system,
+          [{ role: "user", content: FORTUNE_KICKOFF }],
+          MAX_TOKENS_BY_FORTUNE[cfg.type]
+        );
+        ai = parseMonthlyReportJson(retry);
+      } catch (err) {
+        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } }));
+      }
+    }
+    if (!ai || !saju?.temporal) {
+      await logError(new Error("monthly report parse failed"), {
+        route: "/api/fortune/create",
+        userId,
+        extra: { stage: "monthly_parse", type },
+      });
+      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+    }
+    storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
   }
 
   const supabase = getServiceSupabase();
@@ -212,7 +243,7 @@ export async function POST(req: NextRequest) {
     .from("readings")
     .insert({
       user_id: userId,
-      profile_id: null,
+      profile_id: usedProfileId,
       question: cfg.label,
       saju_data: saju ?? null,
       consultation_type: cfg.base,
