@@ -139,7 +139,7 @@ function FortuneResultInner() {
 
     // 데스크탑: 링크 클립보드 복사
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(url);
       setToast("링크를 복사했어");
       setTimeout(() => setToast(null), 2000);
     } catch {
