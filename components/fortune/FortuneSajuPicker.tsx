@@ -68,6 +68,10 @@ export interface FortuneSajuPickerProps {
   hideBirthLine?: boolean;
   /** 선택된 사주의 생년월일 줄 변화 콜백 */
   onSelectedBirthLine?: (line: string | null) => void;
+  /** profileId → 기존 이번 달 리딩 id. 선택 프로필이 여기 있으면 CTA 가 '다시보기'로 바뀜. */
+  reviewableByProfile?: Record<string, string>;
+  /** 다시보기 클릭 핸들러 (reviewable 일 때만 호출) */
+  onReview?: (readingId: string) => void;
 }
 
 const LIST_PAGE_SIZE = 5;
@@ -81,6 +85,8 @@ export default function FortuneSajuPicker({
   showBoardDetail = true,
   hideBirthLine,
   onSelectedBirthLine,
+  reviewableByProfile,
+  onReview,
 }: FortuneSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -271,10 +277,17 @@ export default function FortuneSajuPicker({
 
       <button
         disabled={!selected || loading}
-        onClick={() => selected && onConfirm(selected.id)}
+        onClick={() => {
+          if (!selected) return;
+          const reviewId = reviewableByProfile?.[selected.id];
+          if (reviewId && onReview) onReview(reviewId);
+          else onConfirm(selected.id);
+        }}
         className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
       >
-        {confirmLabel ?? "이 사주로 운세 보기"}
+        {selected && reviewableByProfile?.[selected.id]
+          ? "이번 달 운세 다시보기"
+          : confirmLabel ?? "이 사주로 운세 보기"}
       </button>
     </div>
   );
