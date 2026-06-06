@@ -101,7 +101,7 @@ export const FORTUNE_LIST: FortuneConfig[] = [
 
 /** 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트) */
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
-  daily: 1536,
+  daily: 2600,
   monthly: 2560,
   saju_full: 8192,
   tarot_oneshot: 2048,
