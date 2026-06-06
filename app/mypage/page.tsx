@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
+import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -108,6 +109,9 @@ export default function MyPage() {
 
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
+  const allProfiles = [...(self ? [self] : []), ...acquaintances];
+  const relationBadge = (p: ProfileItem) =>
+    p.isPrimary ? "나" : RELATION_LABEL[p.relationType] ?? "지인";
 
   const saveSelf = async (payload: ProfilePayload) => {
     setSavingProfile(true);
@@ -198,6 +202,8 @@ export default function MyPage() {
       </main>
     );
   }
+
+  const selfNickname = me.user.nickname;
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -309,10 +315,10 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 지인 사주 목록 */}
+      {/* 사주 목록 (나 + 지인) */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-bold text-eye-purple">지인 사주</div>
+          <div className="text-[12px] font-bold text-eye-purple">사주 목록</div>
           {!showAddAcq && !editAcqId && (
             <button
               onClick={() => setShowAddAcq(true)}
@@ -359,50 +365,71 @@ export default function MyPage() {
           </div>
         )}
 
-        {acquaintances.length === 0 && !showAddAcq ? (
-          <p className="text-[12px] text-text-light/70 text-center py-4">
-            아직 등록한 지인 사주가 없어
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {acquaintances.map((a) => (
+        <div className="flex flex-col gap-2">
+          {allProfiles.map((p) => {
+            const open = expandedId === p.id;
+            return (
               <div
-                key={a.id}
-                className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
+                key={p.id}
+                className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden"
               >
-                <div>
-                  <div className="text-[14px] font-bold text-eye-purple">
-                    {a.displayName}
-                    <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                      {RELATION_LABEL[a.relationType] ?? ""}
-                    </span>
+                <button
+                  onClick={() => setExpandedId(open ? null : p.id)}
+                  className="w-full p-3 flex items-center justify-between text-left"
+                >
+                  <div>
+                    <div className="text-[14px] font-bold text-eye-purple">
+                      {p.isPrimary ? selfNickname : p.displayName}
+                      <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                        {relationBadge(p)}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-text-light/70 mt-0.5">
+                      {p.birthDate.replace(/-/g, ". ")}
+                      {p.isLunarInput ? " · 음력" : " · 양력"}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5">
-                    {a.birthDate.replace(/-/g, ". ")}
-                    {a.isLunarInput ? " · 음력" : " · 양력"}
+                  <span className="text-text-light/50 text-[12px]">
+                    {open ? "▴" : "▾"}
+                  </span>
+                </button>
+
+                {open && (
+                  <div className="px-3 pb-3 pt-1 border-t border-lilac-mid/20">
+                    <div className="py-2 flex justify-center">
+                      <SajuBoardCompact saju={p.saju} />
+                    </div>
+                    <div className="flex items-center justify-end gap-3 mt-1">
+                      <button
+                        onClick={() => {
+                          if (p.isPrimary) {
+                            setEditingSelf(true);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          } else {
+                            setEditAcqId(p.id);
+                            setShowAddAcq(false);
+                            setExpandedId(null);
+                          }
+                        }}
+                        className="text-[11px] text-text-light/60 underline"
+                      >
+                        수정
+                      </button>
+                      {!p.isPrimary && (
+                        <button
+                          onClick={() => setDeleteAcqId(p.id)}
+                          className="text-[11px] text-rose-400 underline"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setEditAcqId(a.id);
-                      setShowAddAcq(false);
-                    }}
-                    className="text-[11px] text-text-light/60 underline"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={() => setDeleteAcqId(a.id)}
-                    className="text-[11px] text-rose-400 underline"
-                  >
-                    삭제
-                  </button>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
       {/* 지인 삭제 확인 모달 */}
