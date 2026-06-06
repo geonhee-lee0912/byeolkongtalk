@@ -152,22 +152,24 @@ export default function FortuneSajuPicker({
       <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 mb-5">
         {selected && (
           <>
-            <div className="flex items-center gap-2 mb-3 px-1">
-              <span className="text-[14px] font-bold text-eye-purple">
-                {displayName(selected)}
-              </span>
-              <span className="text-[11px] text-text-light/70">
-                {relationBadge(selected)}
-              </span>
+            <div className="mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-bold text-eye-purple">
+                  {displayName(selected)}
+                </span>
+                <span className="text-[11px] text-text-light/70">
+                  {relationBadge(selected)}
+                </span>
+              </div>
+              {!hideBirthLine && (
+                <p className="text-[11px] text-text-light/60 mt-0.5">
+                  {birthLine(selected)}
+                </p>
+              )}
             </div>
             <div className="-mx-4">
               <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
             </div>
-            {!hideBirthLine && (
-              <p className="text-[11px] text-text-light/60 text-center mt-2">
-                {birthLine(selected)}
-              </p>
-            )}
           </>
         )}
       </div>

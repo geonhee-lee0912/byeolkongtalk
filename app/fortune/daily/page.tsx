@@ -19,6 +19,7 @@ interface DailyStatus {
 export default function FortuneDailyPage() {
   const router = useRouter();
   const [status, setStatus] = useState<DailyStatus | null>(null);
+  const [checking, setChecking] = useState(true);
 
   const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -30,9 +31,17 @@ export default function FortuneDailyPage() {
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setStatus(d))
-      .catch(() => {});
-  }, []);
+      .then((d: DailyStatus | null) => {
+        // 오늘 이미 본 운세가 있으면 사주 확인 화면 없이 바로 결과로
+        if (d?.todayId) {
+          router.replace(`/fortune/result?id=${d.todayId}`);
+          return;
+        }
+        if (d) setStatus(d);
+        setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, [router]);
 
   // 무료 잔여면 바로 생성, 소진 후면 별 차감 팝업
   const handleConfirm = async (profileId: string) => {
@@ -47,12 +56,6 @@ export default function FortuneDailyPage() {
       }
     } catch {
       window.location.href = "/login?next=" + encodeURIComponent("/fortune/daily");
-      return;
-    }
-
-    // 오늘 이미 본 운세가 있으면 새로 만들지 않고 그 리딩으로 이동
-    if (status?.todayId) {
-      router.push(`/fortune/result?id=${status.todayId}`);
       return;
     }
 
@@ -108,6 +111,14 @@ export default function FortuneDailyPage() {
 
   if (generating) {
     return <FortuneGeneratingScreen label="오늘의 운세" emoji="🌤️" />;
+  }
+
+  if (checking) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-5">
+        <p className="text-text-light text-sm">별콩이가 오늘 운세를 확인하는 중…</p>
+      </main>
+    );
   }
 
   return (

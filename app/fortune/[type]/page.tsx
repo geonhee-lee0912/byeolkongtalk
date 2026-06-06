@@ -124,6 +124,7 @@ export default function FortuneInputPage() {
         onConfirm={openConfirm}
         confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
+        showBoardDetail={false}
       />
 
       {error && (
@@ -137,7 +138,10 @@ export default function FortuneInputPage() {
         </div>
       )}
 
-      <Link href="/fortune" className="mt-6 text-[12px] text-text-light/70 underline">
+      <Link
+        href="/fortune"
+        className="mt-6 px-6 py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+      >
         다른 운세 보기
       </Link>
 
