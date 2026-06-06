@@ -81,7 +81,6 @@ export default function MyPage() {
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -215,7 +214,7 @@ export default function MyPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 프로필 카드 (명식 통합) */}
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
+      <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center">
@@ -300,7 +299,7 @@ export default function MyPage() {
       </div>
 
       {/* 별 잔액 + 결제·별 내역 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-5">
+      <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
           <div className="flex items-center justify-between">
             <div>
@@ -377,66 +376,75 @@ export default function MyPage() {
         )}
 
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
-          {allProfiles.map((p) => {
-            const open = expandedId === p.id;
-            return (
-              <div key={p.id}>
-                <button
-                  onClick={() => setExpandedId(open ? null : p.id)}
-                  className="w-full p-3 flex items-center justify-between text-left"
-                >
-                  <div>
-                    <div className="text-[14px] font-bold text-eye-purple">
-                      {p.isPrimary ? selfNickname : p.displayName}
-                      <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                        {relationBadge(p)}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5">
-                      {p.birthDate.replace(/-/g, ". ")}
-                      {p.isLunarInput ? " · 음력" : " · 양력"}
-                      {birthTimeToSijin(p.birthTime)
-                        ? ` · ${birthTimeToSijin(p.birthTime)}`
-                        : " · 시간 모름"}
-                    </div>
-                  </div>
-                  <span className="text-text-light/50 text-[12px]">
-                    {open ? "▴" : "▾"}
+          {allProfiles.map((p) => (
+            <div key={p.id} className="p-3 flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-[14px] font-bold text-eye-purple">
+                  {p.isPrimary ? selfNickname : p.displayName}
+                  <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                    {relationBadge(p)}
                   </span>
+                </div>
+                <div className="text-[11px] text-text-light/70 mt-0.5">
+                  {p.birthDate.replace(/-/g, ". ")}
+                  {p.isLunarInput ? " · 음력" : " · 양력"}
+                  {birthTimeToSijin(p.birthTime)
+                    ? ` · ${birthTimeToSijin(p.birthTime)}`
+                    : " · 시간 모름"}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
+                <button
+                  onClick={() => {
+                    if (p.isPrimary) {
+                      setEditingSelf(true);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    } else {
+                      setEditAcqId(p.id);
+                      setShowAddAcq(false);
+                    }
+                  }}
+                  aria-label="수정"
+                  className="p-1.5 rounded-lg text-text-light/70 hover:bg-lilac-soft/50"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
                 </button>
-
-                {open && (
-                  <div className="px-3 pb-3 pt-2 border-t border-lilac-mid/20">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => {
-                          if (p.isPrimary) {
-                            setEditingSelf(true);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          } else {
-                            setEditAcqId(p.id);
-                            setShowAddAcq(false);
-                            setExpandedId(null);
-                          }
-                        }}
-                        className="text-[11px] text-text-light/60 underline"
-                      >
-                        수정
-                      </button>
-                      {!p.isPrimary && (
-                        <button
-                          onClick={() => setDeleteAcqId(p.id)}
-                          className="text-[11px] text-rose-400 underline"
-                        >
-                          삭제
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                {!p.isPrimary && (
+                  <button
+                    onClick={() => setDeleteAcqId(p.id)}
+                    aria-label="삭제"
+                    className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-50"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
                 )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -449,7 +457,7 @@ export default function MyPage() {
             e.preventDefault();
             alert("고객센터는 곧 열릴 예정이야!");
           }}
-          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
+          className="bg-lilac-soft/50 rounded-2xl p-3.5 border border-lilac/50 flex items-center justify-between"
         >
           <span className="text-[14px] text-eye-purple font-medium">
             고객센터 / 문의
@@ -458,7 +466,7 @@ export default function MyPage() {
         </a>
         <button
           onClick={() => setShowWithdrawConfirm(true)}
-          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
+          className="bg-lilac-soft/50 rounded-2xl p-3.5 border border-lilac/50 flex items-center justify-between"
         >
           <span className="text-[14px] text-text-light/70 font-medium">
             회원 탈퇴
@@ -494,7 +502,7 @@ export default function MyPage() {
       )}
 
       {/* 로그아웃 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6">
+      <div className="w-full max-w-md mx-auto px-5 mt-6 mb-24">
         <button
           onClick={handleLogout}
           className="w-full py-3 rounded-xl border border-lilac-mid/40 text-eye-purple font-bold text-[14px]"

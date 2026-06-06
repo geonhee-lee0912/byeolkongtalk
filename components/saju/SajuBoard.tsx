@@ -78,10 +78,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
                   color: ELEMENT_COLORS[stemEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-serif">
+                <div className="text-[28px] font-bold leading-none font-sans">
                   {stemHanja}
                 </div>
-                <div className="text-[11px] mt-1 opacity-80">{pillar.stem}</div>
+                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.stem}</div>
               </div>
 
               {/* 지지 */}
@@ -92,10 +92,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
                   color: ELEMENT_COLORS[branchEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-serif">
+                <div className="text-[28px] font-bold leading-none font-sans">
                   {branchHanja}
                 </div>
-                <div className="text-[11px] mt-1 opacity-80">{pillar.branch}</div>
+                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.branch}</div>
               </div>
             </div>
           );
@@ -110,7 +110,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
       )}
 
       {/* 오행 한 줄 요약 */}
-      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         {ELEMENTS.map((el) => {
           const count = saju.elementCount[el];
           const isMax = count === maxCount && maxCount > 0;

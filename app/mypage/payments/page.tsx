@@ -87,16 +87,16 @@ export default function PaymentsPage() {
 
       {/* 요약 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="bg-gradient-to-br from-gold-soft/30 via-cream-warm to-lilac-soft/40 rounded-2xl p-4 border border-gold-soft/40 flex items-center justify-between">
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30 flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-text-light/80 mb-1">현재 별 잔액</div>
-            <div className="text-[20px] font-bold text-eye-purple">
+            <div className="text-[11px] text-white/75 mb-1">현재 별 잔액</div>
+            <div className="text-[22px] font-bold text-gold-soft">
               ⭐ {balance ?? 0}별
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] text-text-light/80 mb-1">누적 결제</div>
-            <div className="text-[15px] font-bold text-eye-purple">
+            <div className="text-[11px] text-white/75 mb-1">누적 결제</div>
+            <div className="text-[15px] font-bold text-white">
               {totalCharged.toLocaleString()}원
             </div>
           </div>
