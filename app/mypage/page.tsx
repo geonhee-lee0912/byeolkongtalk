@@ -432,6 +432,42 @@ export default function MyPage() {
         </div>
       </div>
 
+      {/* 계정·고객 메뉴 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-2 flex flex-col gap-2">
+        <Link
+          href="/mypage/payments"
+          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
+        >
+          <span className="text-[14px] text-eye-purple font-medium">
+            결제 / 별 내역
+          </span>
+          <span className="text-text-light/50">›</span>
+        </Link>
+        {/* 고객센터: 연락 채널 미정 → 타겟 보류 (UI만). 채널 확정 시 href 교체. */}
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            alert("고객센터는 곧 열릴 예정이야!");
+          }}
+          className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
+        >
+          <span className="text-[14px] text-eye-purple font-medium">
+            고객센터 / 문의
+          </span>
+          <span className="text-text-light/50">›</span>
+        </a>
+      </div>
+
+      {/* 약관 링크 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-2 flex items-center justify-center gap-2 text-[11px] text-text-light/60">
+        <Link href="/terms" className="underline">이용약관</Link>
+        <span>·</span>
+        <Link href="/privacy" className="underline">개인정보처리방침</Link>
+        <span>·</span>
+        <Link href="/refund" className="underline">환불정책</Link>
+      </div>
+
       {/* 지인 삭제 확인 모달 */}
       {deleteAcqId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5">
