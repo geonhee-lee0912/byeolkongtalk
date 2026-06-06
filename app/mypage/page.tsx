@@ -69,6 +69,7 @@ export default function MyPage() {
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -209,33 +210,83 @@ export default function MyPage() {
         </button>
       </div>
 
-      {/* 프로필 카드 */}
+      {/* 프로필 카드 (명식 통합) */}
       <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center">
-            {me.user.profile_img ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={me.user.profile_img}
-                alt="프로필"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Image
-                src="/byeolkong-main.png"
-                alt="별콩이"
-                width={56}
-                height={56}
-              />
+        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center">
+              {me.user.profile_img ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={me.user.profile_img}
+                  alt="프로필"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Image
+                  src="/byeolkong-main.png"
+                  alt="별콩이"
+                  width={56}
+                  height={56}
+                />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="text-[15px] font-bold text-eye-purple">
+                {me.user.nickname}
+              </div>
+              <div className="text-[11px] text-text-light/70 mt-0.5">
+                카카오 · 풀이 {readings.length}회
+              </div>
+            </div>
+            {self && !editingSelf && (
+              <button
+                onClick={() => setEditingSelf(true)}
+                className="text-[11px] text-text-light/60 underline self-start"
+              >
+                수정
+              </button>
             )}
           </div>
-          <div className="flex-1">
-            <div className="text-[15px] font-bold text-eye-purple">
-              {me.user.nickname}
-            </div>
-            <div className="text-[11px] text-text-light/70 mt-0.5">
-              카카오 · 풀이 {readings.length}회
-            </div>
+
+          {/* 내 명식 */}
+          <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
+            {self && !editingSelf ? (
+              <>
+                <SajuBoard saju={self.saju} />
+                <p className="text-[11px] text-text-light/70 text-center mt-2">
+                  {self.birthDate.replace(/-/g, ". ")}
+                  {self.isLunarInput ? " · 음력" : " · 양력"}
+                  {self.birthTime ? ` · ${self.birthTime}` : " · 시간 모름"}
+                </p>
+              </>
+            ) : editingSelf ? (
+              <div className="px-4">
+                <ProfileForm
+                  mode="self"
+                  initial={self ? toInitial(self) : undefined}
+                  defaultSelfName={me.user.nickname}
+                  submitLabel="저장하기"
+                  loading={savingProfile}
+                  onSubmit={saveSelf}
+                />
+                <button
+                  onClick={() => setEditingSelf(false)}
+                  className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
+                >
+                  취소
+                </button>
+              </div>
+            ) : (
+              <div className="px-4">
+                <button
+                  onClick={() => setEditingSelf(true)}
+                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+                >
+                  내 사주 입력하기
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -256,56 +307,6 @@ export default function MyPage() {
             충전
           </Link>
         </div>
-      </div>
-
-      {/* 계정 사주 (프로필 카드 영역) */}
-      <div className="w-full max-w-md mx-auto px-5 mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-bold text-eye-purple">내 사주</div>
-          {self && !editingSelf && (
-            <button
-              onClick={() => setEditingSelf(true)}
-              className="text-[11px] text-text-light/60 underline"
-            >
-              수정
-            </button>
-          )}
-        </div>
-
-        {self && !editingSelf ? (
-          <>
-            <SajuBoard saju={self.saju} />
-            <p className="text-[11px] text-text-light/70 text-center mt-2">
-              {self.birthDate.replace(/-/g, ". ")}
-              {self.isLunarInput ? " · 음력" : " · 양력"}
-              {self.birthTime ? ` · ${self.birthTime}` : " · 시간 모름"}
-            </p>
-          </>
-        ) : editingSelf ? (
-          <>
-            <ProfileForm
-              mode="self"
-              initial={self ? toInitial(self) : undefined}
-              defaultSelfName={me.user.nickname}
-              submitLabel="저장하기"
-              loading={savingProfile}
-              onSubmit={saveSelf}
-            />
-            <button
-              onClick={() => setEditingSelf(false)}
-              className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
-            >
-              취소
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setEditingSelf(true)}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
-          >
-            내 사주 입력하기
-          </button>
-        )}
       </div>
 
       {/* 지인 사주 목록 */}
