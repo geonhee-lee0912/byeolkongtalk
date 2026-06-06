@@ -92,11 +92,34 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
   monthly: [
     `이번 달: ${"{{THIS_MONTH}}"}`,
     ``,
-    `위 사주판을 가진 사람의 **이번 한 달** 운세 리포트를 써줘. 아래 섹션을 정확히 이 순서·제목으로:`,
-    `## 이번 달 큰 흐름  (이번 달 전반 기운·테마 한 단락)`,
-    `## 마음 · 관계  (이번 달 감정·사람 관계 흐름)`,
-    `## 일 · 돈  (이번 달 일/공부/금전 흐름)`,
-    `## 별콩이의 한마디  (이번 달 챙기면 좋을 따뜻한 조언 한 가지)`,
+    `위 사주판을 가진 사람의 **이번 한 달** 운세 리포트를 작성해줘.`,
+    `이 리포트는 예외적으로 마크다운이 아니라 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
+    ``,
+    `{`,
+    `  "stars": <이번 달 종합운 1~5 정수. 이번 달 월건(${"{{THIS_MONTH_PILLAR}}"})과 이 사람 일간의 조화를 정직하게 반영. 매번 4~5만 주지 말 것. 1처럼 겁주는 점수는 지양(보통 2~5).>,`,
+    `  "theme": "<이번 달을 관통하는 테마 한 줄. 20자 내외. 예: '매듭을 정리하고 새 흐름을 여는 달'>",`,
+    `  "summary": "<이번 달을 한 줄로 요약한 따뜻한 총평. 30자 내외.>",`,
+    `  "lucky": { "keyword": "<이번 달 기운에서 끌어낸 키워드 한 단어>", "color": "<행운 색 이름, 예: 라벤더>" },`,
+    `  "intro": "<이번 달 들어온 월건 두 글자(${"{{THIS_MONTH_PILLAR}}"}) 풀이. 그 두 글자가 어떤 기운인지, 이 사람의 일간·사주와 만나 이번 한 달에 어떤 흐름을 만드는지 쉽게 풀어줘. 전문 용어는 친구가 알아듣게. 5~6문장.>",`,
+    `  "weekly": [`,
+    `    { "week": 1, "body": "<이번 달 1주차(상순 초입) 흐름과 조언. 3문장.>" },`,
+    `    { "week": 2, "body": "<2주차 흐름과 조언. 3문장.>" },`,
+    `    { "week": 3, "body": "<3주차 흐름과 조언. 3문장.>" },`,
+    `    { "week": 4, "body": "<4주차(하순 마무리) 흐름과 조언. 3문장.>" }`,
+    `  ],`,
+    `  "sections": [`,
+    `    { "key": "money",  "body": "<이번 달 재물운. 5~6문장.>" },`,
+    `    { "key": "work",   "body": "<이번 달 직장·업무운. 5~6문장.>" },`,
+    `    { "key": "love",   "body": "<이번 달 애정·인간관계운. 5~6문장.>" },`,
+    `    { "key": "health", "body": "<이번 달 건강·멘탈운. 5~6문장.>" },`,
+    `    { "key": "study",  "body": "<이번 달 학업·공부·문서·이동·변동운. 5~6문장.>" }`,
+    `  ],`,
+    `  "timing": { "good": "<이번 달 흐름이 좋은 시기. 상순/중순/하순 같은 정성적 표현으로. 날짜 콕 집지 말 것. 2문장.>", "caution": "<조심하거나 점검하면 좋은 시기. 정성적. 2문장.>" },`,
+    `  "balance": { "good": "<이번 달 하면 좋은 일 한 줄>", "warn": "<이번 달 주의할 점 한 줄. 겁주지 말고 따뜻한 대비로.>" },`,
+    `  "note": "<별콩이의 한마디. 이번 달 챙기면 좋을 따뜻한 응원 2~3문장.>"`,
+    `}`,
+    ``,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인·주차는 이번 달 월건 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
   ].join("\n"),
   saju_full: [
     `기준 연도: 2026년 (병오년)`,
@@ -127,11 +150,15 @@ export function buildFortuneSystem(
   const todayPillar = input.saju?.temporal
     ? `${input.saju.temporal.day.stem}${input.saju.temporal.day.branch}`
     : "오늘의 일진";
+  const thisMonthPillar = input.saju?.temporal
+    ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
+    : "이번 달 월건";
   parts.push(
     SECTION_GUIDE[type]
       .replace("{{TODAY}}", TODAY_KR())
       .replace("{{THIS_MONTH}}", THIS_MONTH_KR())
       .replace("{{TODAY_PILLAR}}", todayPillar)
+      .replaceAll("{{THIS_MONTH_PILLAR}}", thisMonthPillar)
   );
 
   return {
