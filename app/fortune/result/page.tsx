@@ -5,6 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
+import DailyReportCard from "@/components/fortune/DailyReportCard";
+import {
+  tryParseStoredDailyReport,
+  DAILY_SECTIONS,
+  type DailyReport,
+} from "@/lib/fortune/daily-report";
 
 interface Section {
   title: string;
@@ -32,6 +38,26 @@ function parseSections(text: string): Section[] {
     .filter((s) => s.title || s.body);
 }
 
+function buildDailyShareText(r: DailyReport, label: string, url: string): string {
+  const stars = "★".repeat(r.stars) + "☆".repeat(5 - r.stars);
+  const domains = DAILY_SECTIONS.map((m) => {
+    const sec = r.sections.find((s) => s.key === m.key);
+    return sec ? `▪ ${m.title}\n${sec.body}` : "";
+  })
+    .filter(Boolean)
+    .join("\n\n");
+  return (
+    `[별콩 운세] ${label}\n` +
+    `${r.iljin.hanja} · ${r.summary}\n` +
+    `오늘 종합운 ${stars}\n\n` +
+    `${r.intro}\n\n` +
+    `${domains}\n\n` +
+    `✅ ${r.balance.good}\n⚠️ ${r.balance.warn}\n\n` +
+    `🌙 별콩이의 한마디\n${r.note}\n\n` +
+    `${url}`
+  );
+}
+
 function FortuneResultInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -44,6 +70,7 @@ function FortuneResultInner() {
   const [ftType, setFtType] = useState<FortuneType | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
+  const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,7 +104,12 @@ function FortuneResultInner() {
       const report =
         (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
           ?.content ?? "";
-      setSections(parseSections(report));
+      const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
+      if (daily) {
+        setDailyReport(daily);
+      } else {
+        setSections(parseSections(report));
+      }
       setLoading(false);
     })();
   }, [id, router]);
@@ -89,14 +121,16 @@ function FortuneResultInner() {
       (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
         (navigator.maxTouchPoints ?? 0) > 1);
 
-    // 모바일: 네이티브 공유 시트
-    if (isMobile && navigator.share) {
-      const text =
-        `[별콩 운세] ${label}\n\n` +
+    const shareText = dailyReport
+      ? buildDailyShareText(dailyReport, label, url)
+      : `[별콩 운세] ${label}\n\n` +
         sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
         `\n\n🌙 ${url}`;
+
+    // 모바일: 네이티브 공유 시트
+    if (isMobile && navigator.share) {
       try {
-        await navigator.share({ title: `별콩 운세 · ${label}`, text });
+        await navigator.share({ title: `별콩 운세 · ${label}`, text: shareText });
         return;
       } catch {
         /* 취소 — 링크 복사로 폴백 */
@@ -105,7 +139,7 @@ function FortuneResultInner() {
 
     // 데스크탑: 링크 클립보드 복사
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareText);
       setToast("링크를 복사했어");
       setTimeout(() => setToast(null), 2000);
     } catch {
@@ -147,19 +181,23 @@ function FortuneResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-        <div className="relative">
-          <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
+      {!(isDaily && dailyReport) && (
+        <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
+          <div className="relative">
+            <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
+          </div>
+          {dateLabel && (
+            <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
+          )}
+          <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center">
+            {emoji} {label}
+          </h1>
         </div>
-        {dateLabel && (
-          <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
-        )}
-        <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center">
-          {emoji} {label}
-        </h1>
-      </div>
+      )}
 
-      {isDaily ? (
+      {isDaily && dailyReport ? (
+        <DailyReportCard report={dailyReport} dateLabel={dateLabel} />
+      ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
             {sections.flatMap((s) => s.body.split(/\n{2,}/)).map((p, j) => (
