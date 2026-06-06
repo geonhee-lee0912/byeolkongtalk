@@ -81,6 +81,7 @@ export default function MyPage() {
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
+  const [showSelfSaju, setShowSelfSaju] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -260,41 +261,41 @@ export default function MyPage() {
             )}
           </div>
 
-          {/* 내 명식 */}
-          <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
-            {self && !editingSelf ? (
-              <SajuBoard saju={self.saju} showDetail={false} />
-            ) : editingSelf ? (
-              <div className="px-4">
-                <ProfileForm
-                  mode="self"
-                  initial={self ? toInitial(self) : undefined}
-                  defaultSelfName={me.user.nickname}
-                  submitLabel="저장하기"
-                  loading={savingProfile}
-                  onSubmit={saveSelf}
-                />
-                <button
-                  onClick={() => setEditingSelf(false)}
-                  className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
-                >
-                  취소
-                </button>
-              </div>
-            ) : (
-              <div className="px-4">
-                <p className="text-[12px] text-text-light/70 text-center mb-3">
-                  아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
-                </p>
-                <button
-                  onClick={() => setEditingSelf(true)}
-                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
-                >
-                  내 사주 입력하기
-                </button>
-              </div>
-            )}
-          </div>
+          {/* 내 사주 입력/수정 (명식은 아래 사주 목록에서 확인) */}
+          {(editingSelf || !self) && (
+            <div className="mt-3 pt-3 border-t border-lilac-mid/20">
+              {editingSelf ? (
+                <>
+                  <ProfileForm
+                    mode="self"
+                    initial={self ? toInitial(self) : undefined}
+                    defaultSelfName={me.user.nickname}
+                    submitLabel="저장하기"
+                    loading={savingProfile}
+                    onSubmit={saveSelf}
+                  />
+                  <button
+                    onClick={() => setEditingSelf(false)}
+                    className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[12px] text-text-light/70 text-center mb-3">
+                    아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
+                  </p>
+                  <button
+                    onClick={() => setEditingSelf(true)}
+                    className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+                  >
+                    내 사주 입력하기
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -377,55 +378,59 @@ export default function MyPage() {
 
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
           {allProfiles.map((p) => (
-            <div key={p.id} className="p-3 flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="text-[14px] font-bold text-eye-purple">
-                  {p.isPrimary ? selfNickname : p.displayName}
-                  <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                    {relationBadge(p)}
-                  </span>
+            <div key={p.id} className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="text-[14px] font-bold text-eye-purple">
+                    {p.isPrimary ? selfNickname : p.displayName}
+                    <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                      {relationBadge(p)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-text-light/70 mt-0.5">
+                    {p.birthDate.replace(/-/g, ". ")}
+                    {p.isLunarInput ? " · 음력" : " · 양력"}
+                    {birthTimeToSijin(p.birthTime)
+                      ? ` · ${birthTimeToSijin(p.birthTime)}`
+                      : " · 시간 모름"}
+                  </div>
                 </div>
-                <div className="text-[11px] text-text-light/70 mt-0.5">
-                  {p.birthDate.replace(/-/g, ". ")}
-                  {p.isLunarInput ? " · 음력" : " · 양력"}
-                  {birthTimeToSijin(p.birthTime)
-                    ? ` · ${birthTimeToSijin(p.birthTime)}`
-                    : " · 시간 모름"}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0 ml-2">
-                <button
-                  onClick={() => {
-                    if (p.isPrimary) {
-                      setEditingSelf(true);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    } else {
-                      setEditAcqId(p.id);
-                      setShowAddAcq(false);
-                    }
-                  }}
-                  aria-label="수정"
-                  className="p-1.5 rounded-lg text-text-light/70 hover:bg-lilac-soft/50"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                  </svg>
-                </button>
-                {!p.isPrimary && (
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  {p.isPrimary && (
+                    <button
+                      onClick={() => setShowSelfSaju((v) => !v)}
+                      aria-label={showSelfSaju ? "명식 접기" : "명식 보기"}
+                      className="p-1.5 rounded-lg text-lilac-deep hover:bg-lilac-soft/50"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-transform ${
+                          showSelfSaju ? "rotate-180" : ""
+                        }`}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  )}
                   <button
-                    onClick={() => setDeleteAcqId(p.id)}
-                    aria-label="삭제"
-                    className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-50"
+                    onClick={() => {
+                      if (p.isPrimary) {
+                        setEditingSelf(true);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      } else {
+                        setEditAcqId(p.id);
+                        setShowAddAcq(false);
+                      }
+                    }}
+                    aria-label="수정"
+                    className="p-1.5 rounded-lg text-text-light/70 hover:bg-lilac-soft/50"
                   >
                     <svg
                       width="16"
@@ -437,12 +442,38 @@ export default function MyPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                     </svg>
                   </button>
-                )}
+                  {!p.isPrimary && (
+                    <button
+                      onClick={() => setDeleteAcqId(p.id)}
+                      aria-label="삭제"
+                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-50"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
+              {p.isPrimary && showSelfSaju && (
+                <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-3">
+                  <SajuBoard saju={p.saju} showDetail={false} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -457,7 +488,7 @@ export default function MyPage() {
             e.preventDefault();
             alert("고객센터는 곧 열릴 예정이야!");
           }}
-          className="bg-lilac-soft/50 rounded-2xl p-3.5 border border-lilac/50 flex items-center justify-between"
+          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 shadow-sm flex items-center justify-between"
         >
           <span className="text-[14px] text-eye-purple font-medium">
             고객센터 / 문의
@@ -466,7 +497,7 @@ export default function MyPage() {
         </a>
         <button
           onClick={() => setShowWithdrawConfirm(true)}
-          className="bg-lilac-soft/50 rounded-2xl p-3.5 border border-lilac/50 flex items-center justify-between"
+          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 shadow-sm flex items-center justify-between"
         >
           <span className="text-[14px] text-text-light/70 font-medium">
             회원 탈퇴
