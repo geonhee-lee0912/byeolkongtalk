@@ -45,7 +45,6 @@ function getBranchElement(branch: string): FiveElement {
 }
 
 export default function SajuBoard({ saju }: SajuBoardProps) {
-  const totalElements = 8;
   const maxCount = Math.max(...Object.values(saju.elementCount));
 
   return (
@@ -108,57 +107,42 @@ export default function SajuBoard({ saju }: SajuBoardProps) {
         </p>
       )}
 
-      {/* 오행 막대 */}
-      <div className="bg-cream-warm rounded-xl p-4 border border-lilac-mid/30">
-        <div className="text-[12px] font-bold text-eye-purple mb-3">
-          오행 분포
-        </div>
-        <div className="flex flex-col gap-2">
-          {ELEMENTS.map((el) => {
-            const count = saju.elementCount[el];
-            const pct = (count / totalElements) * 100;
-            const isMax = count === maxCount && maxCount > 0;
-            return (
-              <div key={el} className="flex items-center gap-2">
-                <div
-                  className="w-7 h-7 rounded-md flex items-center justify-center text-[13px] font-bold"
-                  style={{
-                    backgroundColor: ELEMENT_COLORS[el].bg,
-                    color: ELEMENT_COLORS[el].text,
-                  }}
-                >
-                  {el}
-                </div>
-                <div className="flex-1 bg-white/60 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: ELEMENT_COLORS[el].bar,
-                    }}
-                  />
-                </div>
-                <div
-                  className={`text-[12px] w-6 text-right ${
-                    isMax ? "font-bold text-eye-purple" : "text-text-light"
-                  }`}
-                >
-                  {count}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-3 pt-3 border-t border-lilac-mid/20 text-[11px] text-text-light flex justify-between">
-          <span>
-            일간:{" "}
-            <span className="text-eye-purple font-bold">{saju.dayStem}</span>{" "}
-            ({saju.dayElement})
-          </span>
-          <span>
-            양 {saju.yinYangCount.yang} · 음 {saju.yinYangCount.yin}
-          </span>
-        </div>
+      {/* 오행 한 줄 요약 */}
+      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        {ELEMENTS.map((el) => {
+          const count = saju.elementCount[el];
+          const isMax = count === maxCount && maxCount > 0;
+          return (
+            <span
+              key={el}
+              className="inline-flex items-center gap-1 text-[12px]"
+            >
+              <span
+                className={`inline-flex w-5 h-5 rounded items-center justify-center text-[11px] font-bold ${
+                  isMax ? "ring-1 ring-eye-purple/40" : ""
+                }`}
+                style={{
+                  backgroundColor: ELEMENT_COLORS[el].bg,
+                  color: ELEMENT_COLORS[el].text,
+                }}
+              >
+                {el}
+              </span>
+              <span className={isMax ? "font-bold text-eye-purple" : "text-text-light"}>
+                {count}
+              </span>
+            </span>
+          );
+        })}
+        <span className="text-lilac-mid/60 mx-0.5">·</span>
+        <span className="text-[12px] text-text-light">
+          일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
+          ({saju.dayElement})
+        </span>
+        <span className="text-lilac-mid/60 mx-0.5">·</span>
+        <span className="text-[12px] text-text-light">
+          양 {saju.yinYangCount.yang} · 음 {saju.yinYangCount.yin}
+        </span>
       </div>
     </div>
   );
