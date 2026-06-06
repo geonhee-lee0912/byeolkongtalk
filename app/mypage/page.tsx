@@ -384,6 +384,19 @@ export default function MyPage() {
           </div>
         )}
 
+        {allProfiles.length === 0 && !showAddAcq && !editAcqId ? (
+          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6">
+            <p className="text-[12px] text-text-light/70 text-center mb-3">
+              아직 저장된 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
+            </p>
+            <button
+              onClick={() => setShowAddAcq(true)}
+              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+            >
+              지인 추가하기
+            </button>
+          </div>
+        ) : (
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
           {pagedProfiles.map((p) => (
             <div key={p.id} className="p-3">
@@ -457,6 +470,7 @@ export default function MyPage() {
             </div>
           ))}
         </div>
+        )}
 
         {totalListPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -496,6 +510,11 @@ export default function MyPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* 디바이더 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-4">
+        <div className="h-px bg-lilac-mid/30" />
       </div>
 
       {/* 계정·고객 메뉴 */}
