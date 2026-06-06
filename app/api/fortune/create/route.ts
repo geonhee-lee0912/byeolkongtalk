@@ -14,6 +14,7 @@ import {
   buildDailyReport,
   serializeDailyReport,
 } from "@/lib/fortune/daily-report";
+import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -97,6 +98,14 @@ export async function POST(req: NextRequest) {
   const cfg = type && (type in FORTUNE_CONFIG) ? FORTUNE_CONFIG[type] : null;
   if (!cfg || !cfg.active) {
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
+  }
+
+  // 오늘의 운세는 하루 한 장 — 같은 날(KST) 이미 본 게 있으면 생성·과금 없이 그 리딩으로 보낸다.
+  if (cfg.type === "daily") {
+    const existingId = await findTodaysDailyReadingId(userId);
+    if (existingId) {
+      return NextResponse.json({ id: existingId, success: true, cost: 0, alreadyToday: true });
+    }
   }
 
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)

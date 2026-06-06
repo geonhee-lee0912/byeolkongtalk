@@ -65,6 +65,7 @@ function FortuneResultInner() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
   const [label, setLabel] = useState("별콩 운세");
   const [emoji, setEmoji] = useState("🌤️");
   const [ftType, setFtType] = useState<FortuneType | null>(null);
@@ -84,6 +85,7 @@ function FortuneResultInner() {
       );
       // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
       if (res && (res.status === 401 || res.status === 403)) {
+        setIsPublic(true);
         res = await fetch(`/api/readings/${id}/public`, {
           cache: "no-store",
         }).catch(() => null);
@@ -234,24 +236,35 @@ function FortuneResultInner() {
       )}
 
       <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
-        <button
-          onClick={handleShare}
-          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
-        >
-          친구한테 이 운세 공유하기
-        </button>
-        <Link
-          href="/fortune"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
-        >
-          다른 운세 보기
-        </Link>
-        <Link
-          href="/readings"
-          className="w-full py-2 text-text-light/70 text-[12px] text-center"
-        >
-          내 고민톡에서 다시 보기
-        </Link>
+        {isPublic ? (
+          <Link
+            href="/login"
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          >
+            로그인하고 오늘의 운세 무료로 보기
+          </Link>
+        ) : (
+          <>
+            <button
+              onClick={handleShare}
+              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            >
+              친구한테 이 운세 공유하기
+            </button>
+            <Link
+              href="/fortune"
+              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
+            >
+              다른 운세 보기
+            </Link>
+            <Link
+              href="/readings"
+              className="w-full py-2 text-text-light/70 text-[12px] text-center"
+            >
+              내 고민톡에서 다시 보기
+            </Link>
+          </>
+        )}
       </div>
 
       <p className="mt-5 text-[11px] text-text-light/45 text-center px-8 leading-relaxed">

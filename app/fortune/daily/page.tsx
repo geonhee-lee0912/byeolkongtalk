@@ -13,6 +13,7 @@ interface DailyStatus {
   limit: number;
   remaining: number;
   nextCost: number;
+  todayId: string | null;
 }
 
 export default function FortuneDailyPage() {
@@ -46,6 +47,12 @@ export default function FortuneDailyPage() {
       }
     } catch {
       window.location.href = "/login?next=" + encodeURIComponent("/fortune/daily");
+      return;
+    }
+
+    // 오늘 이미 본 운세가 있으면 새로 만들지 않고 그 리딩으로 이동
+    if (status?.todayId) {
+      router.push(`/fortune/result?id=${status.todayId}`);
       return;
     }
 

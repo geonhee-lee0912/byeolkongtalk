@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET() {
 
   const { userId } = await getSession();
   if (!userId) {
-    return NextResponse.json({ used: 0, limit, remaining: limit, nextCost });
+    return NextResponse.json({ used: 0, limit, remaining: limit, nextCost, todayId: null });
   }
 
   const { count } = await getServiceSupabase()
@@ -26,5 +27,6 @@ export async function GET() {
 
   const used = count ?? 0;
   const remaining = Math.max(0, limit - used);
-  return NextResponse.json({ used, limit, remaining, nextCost });
+  const todayId = await findTodaysDailyReadingId(userId);
+  return NextResponse.json({ used, limit, remaining, nextCost, todayId });
 }
