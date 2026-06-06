@@ -3,6 +3,9 @@
 // 별 결제 확인 팝업 — 타로 카드 뽑기 + 별콩 운세 공용.
 // 타로는 spreadLabel 기반 기본 카피, 운세는 title/subtitle 직접 전달.
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 export interface StarConfirmModalProps {
   cost: number;
   balance: number | null;
@@ -32,12 +35,19 @@ export default function StarConfirmModal({
   onCharge,
   onClose,
 }: StarConfirmModalProps) {
+  // 팝업은 body 로 포털 — 페이지 <main> 의 animate-fade-in(transform) 이 만드는
+  // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const insufficient = balance !== null && balance < cost;
   const afterBalance = balance !== null ? balance - cost : null;
   const heading = title ?? `별 ${cost}개로 상담을 시작할까?`;
   const sub = subtitle ?? (spreadLabel ? `${spreadLabel} 풀이가 바로 시작돼` : "");
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
@@ -120,10 +130,11 @@ export default function StarConfirmModal({
             onClick={onClose}
             className="w-full py-3 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
           >
-            다시 볼게
+            취소
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

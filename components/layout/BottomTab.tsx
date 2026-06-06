@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type TabKey = "consult" | "fortune" | "history" | "shop" | "me";
 
@@ -87,6 +87,9 @@ function isActive(pathname: string, tab: TabDef): boolean {
 
 export default function BottomTab() {
   const pathname = usePathname() || "/";
+  // 내 고민톡에서 다시보기로 진입하면 (?from=history) 목적지 탭이 아니라
+  // 항상 "내 고민톡" 탭이 filled 되도록 강제한다.
+  const fromHistory = useSearchParams().get("from") === "history";
 
   return (
     <nav
@@ -96,7 +99,9 @@ export default function BottomTab() {
     >
       <div className="max-w-md mx-auto h-16 flex items-stretch px-1">
         {TABS.map((tab, i) => {
-          const active = isActive(pathname, tab);
+          const active = fromHistory
+            ? tab.key === "history"
+            : isActive(pathname, tab);
           return (
             <Fragment key={tab.key}>
               {i > 0 && (

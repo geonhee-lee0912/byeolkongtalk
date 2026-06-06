@@ -163,10 +163,10 @@ export default function ReadingsPage() {
               const isTarot = r.consultationType === "tarot";
               const canResume = isTarot && r.ended === false;
               const href = canResume
-                ? `/tarot/reading?id=${r.id}`
+                ? `/tarot/reading?id=${r.id}&from=history`
                 : isTarot
-                  ? `/tarot/result?id=${r.id}`
-                  : `/saju/result?id=${r.id}`;
+                  ? `/tarot/result?id=${r.id}&from=history`
+                  : `/saju/result?id=${r.id}&from=history`;
               const choice = choiceLabel(r);
               const cards = r.drawnCards ?? [];
               const pillar = dayPillar(r);
@@ -256,7 +256,7 @@ export default function ReadingsPage() {
               return (
                 <Link
                   key={r.id}
-                  href={`/fortune/result?id=${r.id}`}
+                  href={`/fortune/result?id=${r.id}&from=history`}
                   className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
                 >
                   <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">

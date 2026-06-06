@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import BottomTab from "./BottomTab";
@@ -32,7 +33,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </div>
-      <BottomTab />
+      <Suspense fallback={null}>
+        <BottomTab />
+      </Suspense>
     </>
   );
 }
