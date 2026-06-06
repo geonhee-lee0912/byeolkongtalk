@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import ProfilePicker, { type PickerResult } from "@/components/saju/ProfilePicker";
+import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
+import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
+import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 export default function FortuneInputPage() {
@@ -13,7 +15,10 @@ export default function FortuneInputPage() {
   const type = params.type as FortuneType;
   const cfg = type in FORTUNE_CONFIG ? FORTUNE_CONFIG[type] : null;
 
-  const [loading, setLoading] = useState(false);
+  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
 
@@ -26,8 +31,8 @@ export default function FortuneInputPage() {
 
   if (!cfg || !valid) return null;
 
-  const handleConfirm = async (result: PickerResult) => {
-    setLoading(true);
+  // 별 차감 팝업 오픈 — 로그인 확인 후 잔액 조회
+  const openConfirm = async (profileId: string) => {
     setError(null);
     setNeedCharge(false);
 
@@ -43,32 +48,33 @@ export default function FortuneInputPage() {
       return;
     }
 
-    const body =
-      result.kind === "saved"
-        ? { type: cfg.type, profileId: result.profileId }
-        : {
-            type: cfg.type,
-            input: {
-              year: Number(result.payload.birthDate.slice(0, 4)),
-              month: Number(result.payload.birthDate.slice(5, 7)),
-              day: Number(result.payload.birthDate.slice(8, 10)),
-              hour: result.payload.birthTime
-                ? Number(result.payload.birthTime.slice(0, 2))
-                : null,
-              minute: result.payload.birthTime
-                ? Number(result.payload.birthTime.slice(3, 5))
-                : null,
-              isLunar: result.payload.isLunarInput,
-              isLeapMonth: result.payload.isLeapMonth,
-              gender: result.payload.gender,
-            },
-          };
+    setPendingProfileId(profileId);
+    setBalanceLoading(true);
+    setBalance(null);
+    try {
+      const r = await fetch("/api/stars/balance", { cache: "no-store" });
+      const d = r.ok ? await r.json() : null;
+      setBalance(typeof d?.balance === "number" ? d.balance : 0);
+    } catch {
+      setBalance(0);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // 결제 확인 → 리포트 생성
+  const handleGenerate = async () => {
+    if (!pendingProfileId) return;
+    setPendingProfileId(null);
+    setGenerating(true);
+    setError(null);
+    setNeedCharge(false);
 
     try {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ type: cfg.type, profileId: pendingProfileId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -82,16 +88,20 @@ export default function FortuneInputPage() {
               : "운세를 못 펼쳤어. 잠시 후 다시 시도해줄래?"
           );
         }
-        setLoading(false);
+        setGenerating(false);
         return;
       }
       const data = await res.json();
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
-      setLoading(false);
+      setGenerating(false);
     }
   };
+
+  if (generating) {
+    return <FortuneGeneratingScreen label={cfg.label} emoji={cfg.emoji} />;
+  }
 
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
@@ -110,10 +120,10 @@ export default function FortuneInputPage() {
         </span>
       </div>
 
-      <ProfilePicker
-        onConfirm={handleConfirm}
+      <FortuneSajuPicker
+        onConfirm={openConfirm}
         confirmLabel="이 사주로 운세 보기"
-        loading={loading}
+        loading={balanceLoading && pendingProfileId !== null}
       />
 
       {error && (
@@ -130,6 +140,21 @@ export default function FortuneInputPage() {
       <Link href="/fortune" className="mt-6 text-[12px] text-text-light/70 underline">
         다른 운세 보기
       </Link>
+
+      {pendingProfileId && (
+        <StarConfirmModal
+          cost={cfg.cost}
+          balance={balance}
+          loading={balanceLoading}
+          accent="#9F8AD0"
+          title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
+          subtitle={`${cfg.label} 리포트가 바로 만들어져`}
+          confirmLabel="확인하고 운세 보기"
+          onConfirm={handleGenerate}
+          onCharge={() => router.push("/shop")}
+          onClose={() => setPendingProfileId(null)}
+        />
+      )}
     </main>
   );
 }

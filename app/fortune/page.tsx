@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_LIST } from "@/lib/fortune/types";
+
+interface DailyStatus {
+  used: number;
+  limit: number;
+  remaining: number;
+  nextCost: number;
+}
 
 const FORTUNE_TABS = [
   { key: "saju", label: "사주" },
@@ -14,7 +21,15 @@ type FortuneTab = (typeof FORTUNE_TABS)[number]["key"];
 
 export default function FortunePage() {
   const [tab, setTab] = useState<FortuneTab>("saju");
+  const [daily, setDaily] = useState<DailyStatus | null>(null);
   const items = FORTUNE_LIST.filter((f) => f.base === tab);
+
+  useEffect(() => {
+    void fetch("/api/fortune/daily-status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setDaily(d))
+      .catch(() => {});
+  }, []);
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -70,9 +85,15 @@ export default function FortunePage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[15px] font-bold text-eye-purple">{f.label}</span>
                   {f.cost === 0 ? (
-                    <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
-                      무료
-                    </span>
+                    f.type === "daily" && daily && daily.remaining <= 0 ? (
+                      <span className="text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                        무료 소진 · ⭐ {daily.nextCost}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                        무료{f.type === "daily" && daily ? ` ${daily.remaining}/${daily.limit}회` : ""}
+                      </span>
+                    )
                   ) : (
                     <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                       ⭐ {f.cost}
