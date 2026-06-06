@@ -9,6 +9,11 @@ import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender } from "@/l
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
+import {
+  parseDailyReportJson,
+  buildDailyReport,
+  serializeDailyReport,
+} from "@/lib/fortune/daily-report";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -163,6 +168,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "empty_report" }, { status: 502 });
   }
 
+  // daily 는 구조화 JSON — 파싱·검증 후 일진(결정론적) 병합본을 저장한다.
+  // 파싱 실패 시 1회 재생성, 그래도 실패면 생성 실패 처리(깨진 템플릿 저장 금지).
+  let storedContent = report;
+  if (cfg.type === "daily") {
+    let ai = parseDailyReportJson(report);
+    if (!ai) {
+      try {
+        const system = buildFortuneSystem(cfg.type, { saju });
+        const retry = await generateOnce(
+          system,
+          [{ role: "user", content: FORTUNE_KICKOFF }],
+          MAX_TOKENS_BY_FORTUNE[cfg.type]
+        );
+        ai = parseDailyReportJson(retry);
+      } catch (err) {
+        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } }));
+      }
+    }
+    if (!ai || !saju?.temporal) {
+      await logError(new Error("daily report parse failed"), {
+        route: "/api/fortune/create",
+        userId,
+        extra: { stage: "daily_parse", type },
+      });
+      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+    }
+    storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
+  }
+
   const supabase = getServiceSupabase();
 
   const { data: reading, error: rErr } = await supabase
@@ -191,7 +225,7 @@ export async function POST(req: NextRequest) {
 
   const { error: mErr } = await supabase
     .from("messages")
-    .insert([{ reading_id: reading.id, role: "assistant", content: report }]);
+    .insert([{ reading_id: reading.id, role: "assistant", content: storedContent }]);
   if (mErr) {
     await supabase.from("readings").delete().eq("id", reading.id);
     await logError(mErr, { route: "/api/fortune/create", userId, extra: { stage: "message_insert", type } });
