@@ -553,6 +553,7 @@ export default function MyPage() {
 
       {/* 로그아웃 */}
       <div className="w-full max-w-md mx-auto px-5 mt-6 mb-24">
+        <div className="h-px bg-lilac-mid/30 mb-6" />
         <button
           onClick={handleLogout}
           className="w-full py-3 rounded-xl bg-lilac-soft text-eye-purple font-bold text-[14px]"
