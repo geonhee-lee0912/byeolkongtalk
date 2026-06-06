@@ -275,20 +275,25 @@ export default function FortuneSajuPicker({
         </div>
       )}
 
-      <button
-        disabled={!selected || loading}
-        onClick={() => {
-          if (!selected) return;
-          const reviewId = reviewableByProfile?.[selected.id];
-          if (reviewId && onReview) onReview(reviewId);
-          else onConfirm(selected.id);
-        }}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
-      >
-        {selected && reviewableByProfile?.[selected.id]
-          ? "이번 달 운세 다시보기"
-          : confirmLabel ?? "이 사주로 운세 보기"}
-      </button>
+      {(() => {
+        const isReview = !!(selected && reviewableByProfile?.[selected.id]);
+        return (
+          <button
+            disabled={!selected || loading}
+            onClick={() => {
+              if (!selected) return;
+              const reviewId = reviewableByProfile?.[selected.id];
+              if (reviewId && onReview) onReview(reviewId);
+              else onConfirm(selected.id);
+            }}
+            className={`w-full py-3.5 rounded-xl font-bold text-[15px] disabled:opacity-60 ${
+              isReview ? "bg-gold text-night" : "bg-lilac-deep text-white"
+            }`}
+          >
+            {isReview ? "이번 달 운세 다시보기" : confirmLabel ?? "이 사주로 운세 보기"}
+          </button>
+        );
+      })()}
     </div>
   );
 }
