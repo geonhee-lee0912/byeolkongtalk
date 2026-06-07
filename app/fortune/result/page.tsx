@@ -16,6 +16,12 @@ import {
   tryParseStoredMonthlyReport,
   type MonthlyReport,
 } from "@/lib/fortune/monthly-report";
+import {
+  tryParseStoredSajuFullReport,
+  type SajuFullReport,
+} from "@/lib/fortune/saju-full-report";
+import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
+import type { SajuResult } from "@/lib/saju/calc";
 
 interface Section {
   title: string;
@@ -86,6 +92,25 @@ function buildMonthlyShareText(r: MonthlyReport, label: string, url: string): st
   );
 }
 
+function buildSajuFullShareText(r: SajuFullReport, label: string, url: string): string {
+  const months = r.monthly.map((m) => `${m.month}월: ${m.body}`).join("\n");
+  return (
+    `[별콩 운세] ${label}\n` +
+    `${r.year2026.hanja}년 · ${r.theme}\n` +
+    `${r.summary}\n\n` +
+    `🍀 행운: ${r.lucky.color} · ${r.lucky.direction} · ${r.lucky.months} · ${r.lucky.keyword}\n\n` +
+    `[나라는 사람]\n${r.self.nature}\n\n${r.self.strength}\n\n${r.self.caution}\n\n` +
+    `오행 밸런스: ${r.self.balance.lack}\n적성: ${r.self.aptitude}\n\n` +
+    `[2026년 총운]\n큰 흐름: ${r.year.flow}\n마음: ${r.year.mind}\n사랑: ${r.year.love}\n` +
+    `관계: ${r.year.relationship}\n일: ${r.year.career}\n재물: ${r.year.wealth}\n건강: ${r.year.health}\n\n` +
+    `[월별 흐름]\n${months}\n\n` +
+    `[주목할 시기]\n흐름 좋은 달: ${r.timing.good}\n점검할 달: ${r.timing.caution}\n\n` +
+    `[올해 실천]\n${r.actions.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\n` +
+    `🌙 별콩이의 한마디\n${r.note}\n\n` +
+    `${url}`
+  );
+}
+
 function FortuneResultInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -101,6 +126,8 @@ function FortuneResultInner() {
   const [sections, setSections] = useState<Section[]>([]);
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
+  const [sajuFullReport, setSajuFullReport] = useState<SajuFullReport | null>(null);
+  const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,15 +159,19 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
+      if (r.reading.sajuData) setSajuData(r.reading.sajuData as SajuResult);
       const report =
         (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
           ?.content ?? "";
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
       const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
+      const sajuFull = ft === "saju_full" ? tryParseStoredSajuFullReport(report) : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
         setMonthlyReport(monthly);
+      } else if (sajuFull) {
+        setSajuFullReport(sajuFull);
       } else {
         setSections(parseSections(report));
       }
@@ -159,7 +190,9 @@ function FortuneResultInner() {
       ? buildDailyShareText(dailyReport, label, url)
       : monthlyReport
         ? buildMonthlyShareText(monthlyReport, label, url)
-        : `[별콩 운세] ${label}\n\n` +
+        : sajuFullReport
+          ? buildSajuFullShareText(sajuFullReport, label, url)
+          : `[별콩 운세] ${label}\n\n` +
           sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
           `\n\n🌙 ${url}`;
 
@@ -196,6 +229,7 @@ function FortuneResultInner() {
         })
       : null;
   const isMonthly = ftType === "monthly";
+  const isSajuFull = ftType === "saju_full";
   const monthLabel =
     isMonthly && createdAt
       ? new Date(createdAt).toLocaleDateString("ko-KR", {
@@ -226,7 +260,18 @@ function FortuneResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {!((isDaily && dailyReport) || (isMonthly && monthlyReport)) && (
+      {!isPublic && (
+        <div className="w-full max-w-md mx-auto px-5 mb-1">
+          <button
+            onClick={() => router.back()}
+            aria-label="뒤로 가기"
+            className="inline-flex items-center gap-1 text-text-light/70 text-[13px] font-medium hover:text-text-light transition"
+          >
+            <span className="text-[16px] leading-none">‹</span> 뒤로
+          </button>
+        </div>
+      )}
+      {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">
             <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
@@ -244,6 +289,8 @@ function FortuneResultInner() {
         <DailyReportCard report={dailyReport} dateLabel={dateLabel} />
       ) : isMonthly && monthlyReport ? (
         <MonthlyReportView report={monthlyReport} monthLabel={monthLabel} />
+      ) : isSajuFull && sajuFullReport ? (
+        <SajuFullReportView report={sajuFullReport} saju={sajuData} />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
