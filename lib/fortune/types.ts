@@ -103,7 +103,7 @@ export const FORTUNE_LIST: FortuneConfig[] = [
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 2600,
   monthly: 5000,
-  saju_full: 8192,
+  saju_full: 12000,
   tarot_oneshot: 2048,
   compat: 2048,
 };
