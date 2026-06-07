@@ -20,7 +20,13 @@ import {
   tryParseStoredSajuFullReport,
   type SajuFullReport,
 } from "@/lib/fortune/saju-full-report";
+import {
+  tryParseStoredCompatReport,
+  type CompatReport,
+  type CompatSajuPair,
+} from "@/lib/fortune/compat-report";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
+import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import type { SajuResult } from "@/lib/saju/calc";
 
 interface Section {
@@ -111,6 +117,21 @@ function buildSajuFullShareText(r: SajuFullReport, label: string, url: string): 
   );
 }
 
+function buildCompatShareText(r: CompatReport, label: string, url: string): string {
+  return (
+    `[별콩 운세] ${label}\n` +
+    `${r.grade} · ${r.theme}\n` +
+    `${r.summary}\n\n` +
+    `[오행 케미]\n${r.chemistry}\n\n` +
+    `[끌림·성격]\n${r.attraction}\n\n` +
+    `[갈등 포인트]\n${r.conflict}\n\n` +
+    `[장기 전망]\n${r.longterm}\n\n` +
+    `[관계 조언]\n${r.advice.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\n` +
+    `🌙 별콩이의 한마디\n${r.note}\n\n` +
+    `${url}`
+  );
+}
+
 function FortuneResultInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -127,7 +148,9 @@ function FortuneResultInner() {
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
   const [sajuFullReport, setSajuFullReport] = useState<SajuFullReport | null>(null);
+  const [compatReport, setCompatReport] = useState<CompatReport | null>(null);
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
+  const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,19 +182,28 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
-      if (r.reading.sajuData) setSajuData(r.reading.sajuData as SajuResult);
+      if (r.reading.sajuData) {
+        if (ft === "compat") {
+          setCompatSaju(r.reading.sajuData as CompatSajuPair);
+        } else {
+          setSajuData(r.reading.sajuData as SajuResult);
+        }
+      }
       const report =
         (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
           ?.content ?? "";
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
       const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
       const sajuFull = ft === "saju_full" ? tryParseStoredSajuFullReport(report) : null;
+      const compat = ft === "compat" ? tryParseStoredCompatReport(report) : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
         setMonthlyReport(monthly);
       } else if (sajuFull) {
         setSajuFullReport(sajuFull);
+      } else if (compat) {
+        setCompatReport(compat);
       } else {
         setSections(parseSections(report));
       }
@@ -192,9 +224,11 @@ function FortuneResultInner() {
         ? buildMonthlyShareText(monthlyReport, label, url)
         : sajuFullReport
           ? buildSajuFullShareText(sajuFullReport, label, url)
-          : `[별콩 운세] ${label}\n\n` +
-          sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
-          `\n\n🌙 ${url}`;
+          : compatReport
+            ? buildCompatShareText(compatReport, label, url)
+            : `[별콩 운세] ${label}\n\n` +
+            sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
+            `\n\n🌙 ${url}`;
 
     // 모바일: 네이티브 공유 시트
     if (isMobile && navigator.share) {
@@ -230,6 +264,7 @@ function FortuneResultInner() {
       : null;
   const isMonthly = ftType === "monthly";
   const isSajuFull = ftType === "saju_full";
+  const isCompat = ftType === "compat";
   const monthLabel =
     isMonthly && createdAt
       ? new Date(createdAt).toLocaleDateString("ko-KR", {
@@ -271,7 +306,7 @@ function FortuneResultInner() {
           </button>
         </div>
       )}
-      {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport)) && (
+      {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">
             <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
@@ -291,6 +326,8 @@ function FortuneResultInner() {
         <MonthlyReportView report={monthlyReport} monthLabel={monthLabel} />
       ) : isSajuFull && sajuFullReport ? (
         <SajuFullReportView report={sajuFullReport} saju={sajuData} />
+      ) : isCompat && compatReport ? (
+        <CompatReportView report={compatReport} saju={compatSaju} />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
