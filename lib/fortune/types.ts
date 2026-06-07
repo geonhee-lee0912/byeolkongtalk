@@ -87,7 +87,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat`,
     href: "/fortune/compat",
-    active: false,
+    active: true,
   },
 };
 
@@ -105,7 +105,7 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   monthly: 5000,
   saju_full: 12000,
   tarot_oneshot: 2048,
-  compat: 2048,
+  compat: 6000,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */
