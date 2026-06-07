@@ -24,12 +24,17 @@ type FortuneTab = (typeof FORTUNE_TABS)[number]["key"];
 export default function FortunePage() {
   const [tab, setTab] = useState<FortuneTab>("saju");
   const [daily, setDaily] = useState<DailyStatus | null>(null);
+  const [tarotDaily, setTarotDaily] = useState<DailyStatus | null>(null);
   const items = FORTUNE_LIST.filter((f) => f.base === tab);
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setDaily(d))
+      .catch(() => {});
+    void fetch("/api/fortune/tarot-daily-status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setTarotDaily(d))
       .catch(() => {});
   }, []);
 
@@ -73,6 +78,8 @@ export default function FortunePage() {
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
+          const freeStatus =
+            f.type === "daily" ? daily : f.type === "tarot_daily" ? tarotDaily : null;
           const inner = (
             <div
               className={[
@@ -89,13 +96,13 @@ export default function FortunePage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[15px] font-bold text-eye-purple">{f.label}</span>
                   {f.cost === 0 ? (
-                    f.type === "daily" && daily && daily.remaining <= 0 ? (
+                    freeStatus && freeStatus.remaining <= 0 ? (
                       <span className="text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                        무료 소진 · ⭐ {daily.nextCost}
+                        무료 소진 · ⭐ {freeStatus.nextCost}
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
-                        무료{f.type === "daily" && daily ? ` ${daily.remaining}/${daily.limit}회` : ""}
+                        무료{freeStatus ? ` ${freeStatus.remaining}/${freeStatus.limit}회` : ""}
                       </span>
                     )
                   ) : (
