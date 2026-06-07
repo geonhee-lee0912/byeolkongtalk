@@ -8,6 +8,7 @@ import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
+import { setPendingFortune, clearPendingFortune } from "@/lib/fortune/pending";
 
 export default function FortuneInputPage() {
   const router = useRouter();
@@ -82,6 +83,9 @@ export default function FortuneInputPage() {
     setError(null);
     setNeedCharge(false);
 
+    // 이탈 복구 마커 — 생성 직전 기록, 응답 받으면 삭제
+    setPendingFortune(cfg.type);
+
     try {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
@@ -89,6 +93,7 @@ export default function FortuneInputPage() {
         body: JSON.stringify({ type: cfg.type, profileId: pendingProfileId }),
       });
       if (!res.ok) {
+        clearPendingFortune();
         const data = await res.json().catch(() => ({}));
         if (data?.code === "INSUFFICIENT_STARS") {
           setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
@@ -104,8 +109,10 @@ export default function FortuneInputPage() {
         return;
       }
       const data = await res.json();
+      clearPendingFortune();
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
+      clearPendingFortune();
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       setGenerating(false);
     }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_LIST } from "@/lib/fortune/types";
+import FortuneRecoveryBanner from "@/components/fortune/FortuneRecoveryBanner";
 
 interface DailyStatus {
   used: number;
@@ -46,6 +47,8 @@ export default function FortunePage() {
           별콩이가 한 장으로 정리해줄게.
         </p>
       </div>
+
+      <FortuneRecoveryBanner />
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex gap-1 bg-lilac-soft/40 rounded-full p-1">
