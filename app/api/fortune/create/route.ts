@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getStarBalance, spendStars } from "@/lib/stars";
-import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
@@ -24,6 +24,11 @@ import {
   buildSajuFullReport,
   serializeSajuFullReport,
 } from "@/lib/fortune/saju-full-report";
+import {
+  parseCompatReportJson,
+  buildCompatReport,
+  serializeCompatReport,
+} from "@/lib/fortune/compat-report";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
@@ -98,7 +103,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { type?: unknown; input?: unknown; profileId?: unknown };
+  let body: {
+    type?: unknown;
+    input?: unknown;
+    profileId?: unknown;
+    profileA?: unknown;
+    profileB?: unknown;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -130,10 +141,40 @@ export async function POST(req: NextRequest) {
   }
 
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
-  let saju = undefined;
+  let saju: SajuResult | undefined = undefined;
+  let sajuB: SajuResult | undefined = undefined;
+  let names: { a: string; b: string } | undefined;
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
-  if (cfg.base === "saju") {
+  let sajuDataToStore: unknown = null;
+
+  if (cfg.type === "compat") {
+    // 궁합: 두 프로필 id 만 받는다 (즉석 입력도 클라가 먼저 POST /api/profiles 로 저장 후 id 전달).
+    const profileA = typeof body.profileA === "string" ? body.profileA : "";
+    const profileB = typeof body.profileB === "string" ? body.profileB : "";
+    if (!profileA || !profileB) {
+      return NextResponse.json({ error: "profile_required" }, { status: 400 });
+    }
+    if (profileA === profileB) {
+      return NextResponse.json({ error: "same_profile" }, { status: 400 });
+    }
+    const supabase = getServiceSupabase();
+    const { data: rows } = await supabase
+      .from("user_profiles")
+      .select("id, display_name, birth_date, birth_time, is_lunar_input, is_leap_month, gender")
+      .in("id", [profileA, profileB])
+      .eq("user_id", userId);
+    const rowA = rows?.find((r) => r.id === profileA);
+    const rowB = rows?.find((r) => r.id === profileB);
+    if (!rowA || !rowB) {
+      return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+    }
+    saju = calcSaju(profileRowToSajuInput(rowA));
+    sajuB = calcSaju(profileRowToSajuInput(rowB));
+    names = { a: rowA.display_name, b: rowB.display_name };
+    sajuDataToStore = { a: saju, b: sajuB, names };
+    usedProfileId = profileA;
+  } else if (cfg.base === "saju") {
     if (typeof body.profileId === "string" && body.profileId.length > 0) {
       // 저장된 프로필 재사용 — 소유권 + birth 로드
       const supabase = getServiceSupabase();
@@ -162,6 +203,7 @@ export async function POST(req: NextRequest) {
     if (cfg.type === "daily" || cfg.type === "monthly") {
       saju.temporal = calcTemporalLuck(new Date(), sajuInput.year);
     }
+    sajuDataToStore = saju;
   }
 
   // 무료 한도 운세(오늘의 운세): 계정당 평생 누적 무료 횟수 소진 후 paidCost 과금
@@ -188,9 +230,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Claude 1회 호출 → 리포트
+  const systemInput =
+    cfg.type === "compat" ? { saju, sajuB, names } : { saju };
   let report: string;
   try {
-    const system = buildFortuneSystem(cfg.type, { saju });
+    const system = buildFortuneSystem(cfg.type, systemInput);
     report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
   } catch (err) {
     await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type } }));
@@ -275,6 +319,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
     }
     storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
+  } else if (cfg.type === "compat") {
+    let ai = parseCompatReportJson(report);
+    if (!ai) {
+      try {
+        const system = buildFortuneSystem(cfg.type, systemInput);
+        const retry = await generateOnce(
+          system,
+          [{ role: "user", content: FORTUNE_KICKOFF }],
+          MAX_TOKENS_BY_FORTUNE[cfg.type]
+        );
+        ai = parseCompatReportJson(retry);
+      } catch (err) {
+        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } }));
+      }
+    }
+    if (!ai) {
+      await logError(new Error("compat report parse failed"), {
+        route: "/api/fortune/create",
+        userId,
+        extra: { stage: "compat_parse", type },
+      });
+      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+    }
+    storedContent = serializeCompatReport(buildCompatReport(ai));
   }
 
   const supabase = getServiceSupabase();
@@ -285,7 +353,7 @@ export async function POST(req: NextRequest) {
       user_id: userId,
       profile_id: usedProfileId,
       question: cfg.label,
-      saju_data: saju ?? null,
+      saju_data: sajuDataToStore,
       consultation_type: cfg.base,
       emotion_tag: cfg.emotionTag,
       stars_spent: effectiveCost,
