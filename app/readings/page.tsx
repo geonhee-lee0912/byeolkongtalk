@@ -9,7 +9,6 @@ import { SPREAD_INFO, type DrawnCard } from "@/lib/tarot/spreads";
 import { getCardImagePath } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
-import { readPendingFortune, clearPendingFortune, type PendingFortune } from "@/lib/fortune/pending";
 
 interface ReadingItem {
   id: string;
@@ -28,6 +27,7 @@ interface ReadingItem {
   hasSensitive: boolean;
   createdAt: string;
   ended?: boolean;
+  generating?: boolean;
   profile: { display_name: string; relation_type: string } | null;
 }
 
@@ -100,7 +100,6 @@ export default function ReadingsPage() {
   const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [pending, setPending] = useState<PendingFortune | null>(null);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
@@ -119,7 +118,6 @@ export default function ReadingsPage() {
         return;
       }
       await loadReadings();
-      setPending(readPendingFortune());
       setLoading(false);
     })();
   }, [router]);
@@ -134,66 +132,25 @@ export default function ReadingsPage() {
     return { consult, fortune };
   }, [readings]);
 
-  // 생성 중 마커가 이미 목록에 반영됐는지
-  const pendingResolved = useMemo(() => {
-    if (!pending) return true;
-    const tag = FORTUNE_CONFIG[pending.type].emotionTag;
-    const afterMs = new Date(pending.after).getTime();
-    return fortune.some(
-      (r) => r.emotionTag === tag && new Date(r.createdAt).getTime() >= afterMs
-    );
-  }, [pending, fortune]);
-
-  // 생성 완료를 폴링으로 따라잡아 placeholder → 실제 카드로 교체
+  // 백그라운드 생성 중인 리딩(메시지 없음)이 있으면 완료될 때까지 목록을 폴링.
+  const hasGenerating = useMemo(() => fortune.some((r) => r.generating), [fortune]);
   useEffect(() => {
-    if (!pending || pendingResolved) {
-      if (pending && pendingResolved) {
-        clearPendingFortune();
-        setPending(null);
-      }
-      return;
-    }
+    if (!hasGenerating) return;
     let cancelled = false;
-    let attempts = 0;
-    const MAX = 40; // 약 2.5분
-
-    const tick = async () => {
-      if (cancelled) return;
-      const d = await fetch(
-        `/api/fortune/recent?type=${encodeURIComponent(pending.type)}&after=${encodeURIComponent(pending.after)}`,
-        { cache: "no-store" }
-      )
-        .then((x) => (x.ok ? x.json() : null))
-        .catch(() => null);
-      if (cancelled) return;
-      if (d?.id) {
-        await loadReadings();
-        clearPendingFortune();
-        setPending(null);
-      }
-    };
-
-    void tick();
     const timer = setInterval(() => {
-      attempts += 1;
-      if (attempts >= MAX) {
-        clearInterval(timer);
-        return;
-      }
-      void tick();
-    }, 4000);
-
+      if (cancelled) return;
+      void loadReadings();
+    }, 3000);
     const onVisible = () => {
-      if (document.visibilityState === "visible") void tick();
+      if (document.visibilityState === "visible") void loadReadings();
     };
     document.addEventListener("visibilitychange", onVisible);
-
     return () => {
       cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [pending, pendingResolved]);
+  }, [hasGenerating]);
 
   const handleDelete = async (id: string) => {
     setDeleting(true);
@@ -220,7 +177,6 @@ export default function ReadingsPage() {
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
   const pagedItems = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-  const showPending = tab === "fortune" && pending && !pendingResolved && safePage === 0;
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -255,7 +211,7 @@ export default function ReadingsPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5">
-        {items.length === 0 && !showPending ? (
+        {items.length === 0 ? (
           <div className="bg-cream-warm rounded-2xl p-6 border border-lilac-mid/30 text-center">
             <p className="text-[13px] text-text-light leading-relaxed">
               {tab === "consult" ? (
@@ -377,51 +333,60 @@ export default function ReadingsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {showPending && pending && (
-              <div className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 opacity-95">
-                <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
-                  {fortuneIcon(FORTUNE_CONFIG[pending.type].emotionTag, 24)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-eye-purple font-medium line-clamp-1">
-                    {FORTUNE_CONFIG[pending.type].label}
+            {pagedItems.map((r) => {
+              if (r.generating) {
+                const ft = fortuneTypeFromTag(r.emotionTag);
+                const genLabel = ft ? FORTUNE_CONFIG[ft].label : r.question;
+                return (
+                  <div
+                    key={r.id}
+                    className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+                      {fortuneIcon(r.emotionTag, 24)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+                        {genLabel}
+                      </div>
+                      <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
+                        별콩이가 리포트를 만들고 있어…
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-1 flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-3 rounded-full border-2 border-lilac-mid/40 border-t-lilac-deep animate-spin" />
-                    별콩이가 리포트를 만들고 있어…
+                );
+              }
+              return (
+                <Link
+                  key={r.id}
+                  href={`/fortune/result?id=${r.id}&from=history`}
+                  className="relative bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
+                >
+                  <DeleteButton
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeleteId(r.id);
+                    }}
+                  />
+                  <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
+                    {fortuneIcon(r.emotionTag, 24)}
                   </div>
-                </div>
-              </div>
-            )}
-            {pagedItems.map((r) => (
-              <Link
-                key={r.id}
-                href={`/fortune/result?id=${r.id}&from=history`}
-                className="relative bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
-              >
-                <DeleteButton
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDeleteId(r.id);
-                  }}
-                />
-                <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
-                  {fortuneIcon(r.emotionTag, 24)}
-                </div>
-                <div className="flex-1 min-w-0 pr-5">
-                  <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
-                    {r.question}
+                  <div className="flex-1 min-w-0 pr-5">
+                    <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+                      {r.question}
+                    </div>
+                    <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+                      <span>{formatDate(r.createdAt)}</span>
+                      <span>·</span>
+                      <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
-                    <span>{formatDate(r.createdAt)}</span>
-                    <span>·</span>
-                    <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
-                  </div>
-                </div>
-                <span className="text-text-light/40 text-sm">›</span>
-              </Link>
-            ))}
+                  <span className="text-text-light/40 text-sm">›</span>
+                </Link>
+              );
+            })}
           </div>
         )}
 

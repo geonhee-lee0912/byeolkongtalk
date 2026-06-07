@@ -1,7 +1,7 @@
 // 별콩 운세 생성 — 대화 아님. 입력 → Claude 1회 → 리포트 저장 → id 반환.
 // 저장: 기존 readings (emotion_tag 센티넬로 운세 종류 표시) + messages(assistant 리포트 1건).
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { spendStars, chargeStars } from "@/lib/stars";
@@ -33,11 +33,13 @@ import {
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// 생성(Claude 호출)을 응답 이후 백그라운드(after)에서 진행 — 가장 긴 사주 풀이(~240s)도 끝까지 돌도록.
+export const maxDuration = 300;
 
 function isInt(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v);
@@ -239,132 +241,17 @@ export async function POST(req: NextRequest) {
     }
   };
 
-  // Claude 1회 호출 → 리포트
   const systemInput =
     cfg.type === "compat" || cfg.type === "compat_social"
       ? { saju, sajuB, names }
       : { saju };
-  let report: string;
-  try {
-    const system = buildFortuneSystem(cfg.type, systemInput);
-    report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
-  } catch (err) {
-    await refundOnFailure();
-    await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type } }));
-    return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
-  }
-  if (!report || report.length < 20) {
-    await refundOnFailure();
-    return NextResponse.json({ error: "empty_report", refunded: effectiveCost > 0 }, { status: 502 });
-  }
-
-  // daily 는 구조화 JSON — 파싱·검증 후 일진(결정론적) 병합본을 저장한다.
-  // 파싱 실패 시 1회 재생성, 그래도 실패면 생성 실패 처리(깨진 템플릿 저장 금지).
-  let storedContent = report;
-  if (cfg.type === "daily") {
-    let ai = parseDailyReportJson(report);
-    if (!ai) {
-      try {
-        const system = buildFortuneSystem(cfg.type, { saju });
-        const retry = await generateOnce(
-          system,
-          [{ role: "user", content: FORTUNE_KICKOFF }],
-          MAX_TOKENS_BY_FORTUNE[cfg.type]
-        );
-        ai = parseDailyReportJson(retry);
-      } catch (err) {
-        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } }));
-      }
-    }
-    if (!ai || !saju?.temporal) {
-      await refundOnFailure();
-      await logError(new Error("daily report parse failed"), {
-        route: "/api/fortune/create",
-        userId,
-        extra: { stage: "daily_parse", type },
-      });
-      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
-    }
-    storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
-  } else if (cfg.type === "monthly") {
-    let ai = parseMonthlyReportJson(report);
-    if (!ai) {
-      try {
-        const system = buildFortuneSystem(cfg.type, { saju });
-        const retry = await generateOnce(
-          system,
-          [{ role: "user", content: FORTUNE_KICKOFF }],
-          MAX_TOKENS_BY_FORTUNE[cfg.type]
-        );
-        ai = parseMonthlyReportJson(retry);
-      } catch (err) {
-        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } }));
-      }
-    }
-    if (!ai || !saju?.temporal) {
-      await refundOnFailure();
-      await logError(new Error("monthly report parse failed"), {
-        route: "/api/fortune/create",
-        userId,
-        extra: { stage: "monthly_parse", type },
-      });
-      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
-    }
-    storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
-  } else if (cfg.type === "saju_full") {
-    let ai = parseSajuFullReportJson(report);
-    if (!ai) {
-      try {
-        const system = buildFortuneSystem(cfg.type, { saju });
-        const retry = await generateOnce(
-          system,
-          [{ role: "user", content: FORTUNE_KICKOFF }],
-          MAX_TOKENS_BY_FORTUNE[cfg.type]
-        );
-        ai = parseSajuFullReportJson(retry);
-      } catch (err) {
-        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } }));
-      }
-    }
-    if (!ai) {
-      await refundOnFailure();
-      await logError(new Error("saju_full report parse failed"), {
-        route: "/api/fortune/create",
-        userId,
-        extra: { stage: "saju_full_parse", type },
-      });
-      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
-    }
-    storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
-  } else if (cfg.type === "compat" || cfg.type === "compat_social") {
-    let ai = parseCompatReportJson(report);
-    if (!ai) {
-      try {
-        const system = buildFortuneSystem(cfg.type, systemInput);
-        const retry = await generateOnce(
-          system,
-          [{ role: "user", content: FORTUNE_KICKOFF }],
-          MAX_TOKENS_BY_FORTUNE[cfg.type]
-        );
-        ai = parseCompatReportJson(retry);
-      } catch (err) {
-        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } }));
-      }
-    }
-    if (!ai) {
-      await refundOnFailure();
-      await logError(new Error("compat report parse failed"), {
-        route: "/api/fortune/create",
-        userId,
-        extra: { stage: "compat_parse", type },
-      });
-      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
-    }
-    storedContent = serializeCompatReport(buildCompatReport(ai));
-  }
 
   const supabase = getServiceSupabase();
 
+  // 빈 리딩(assistant 메시지 없음)을 먼저 만들고 id 를 즉시 돌려준다.
+  // 실제 Claude 생성·메시지 저장은 응답 이후 백그라운드(after)에서 진행 —
+  // 클라가 이탈/새로고침해도 요청 abort 와 분리돼 끝까지 완료된다(리포트 유실·차감 누락 버그 방지).
+  // "assistant 메시지가 아직 없는 리딩" = 생성 중 상태 (DB 로 판단).
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .insert({
@@ -390,15 +277,106 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: rErr?.message ?? "reading_insert_failed", refunded: effectiveCost > 0 }, { status: 500 });
   }
 
-  const { error: mErr } = await supabase
-    .from("messages")
-    .insert([{ reading_id: reading.id, role: "assistant", content: storedContent }]);
-  if (mErr) {
-    await supabase.from("readings").delete().eq("id", reading.id);
-    await refundOnFailure();
-    await logError(mErr, { route: "/api/fortune/create", userId, extra: { stage: "message_insert", type } });
-    return NextResponse.json({ error: "message_insert_failed", refunded: effectiveCost > 0 }, { status: 500 });
-  }
+  const readingId = reading.id as string;
 
-  return NextResponse.json({ id: reading.id, success: true, cost: effectiveCost, balance: spentBalance });
+  // 생성 실패 시: 빈 리딩 삭제 + 환불. (result/목록은 "메시지 없음→생성 중", "리딩 없음→실패"로 판단)
+  const failGeneration = async (err: unknown, stage: string) => {
+    await supabase.from("readings").delete().eq("id", readingId);
+    await refundOnFailure();
+    await logError(err, { route: "/api/fortune/create", userId, extra: { stage, type } });
+  };
+
+  after(async () => {
+    // Claude 1회 호출 → 리포트
+    let report: string;
+    try {
+      const system = buildFortuneSystem(cfg.type, systemInput);
+      report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+    } catch (err) {
+      await failGeneration(err, "generate");
+      return;
+    }
+    if (!report || report.length < 20) {
+      await failGeneration(new Error("empty_report"), "empty_report");
+      return;
+    }
+
+    // daily 는 구조화 JSON — 파싱·검증 후 일진(결정론적) 병합본을 저장한다.
+    // 파싱 실패 시 1회 재생성, 그래도 실패면 생성 실패 처리(깨진 템플릿 저장 금지).
+    let storedContent = report;
+    if (cfg.type === "daily") {
+      let ai = parseDailyReportJson(report);
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, { saju });
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+          ai = parseDailyReportJson(retry);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } });
+        }
+      }
+      if (!ai || !saju?.temporal) {
+        await failGeneration(new Error("daily report parse failed"), "daily_parse");
+        return;
+      }
+      storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
+    } else if (cfg.type === "monthly") {
+      let ai = parseMonthlyReportJson(report);
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, { saju });
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+          ai = parseMonthlyReportJson(retry);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } });
+        }
+      }
+      if (!ai || !saju?.temporal) {
+        await failGeneration(new Error("monthly report parse failed"), "monthly_parse");
+        return;
+      }
+      storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
+    } else if (cfg.type === "saju_full") {
+      let ai = parseSajuFullReportJson(report);
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, { saju });
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+          ai = parseSajuFullReportJson(retry);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("saju_full report parse failed"), "saju_full_parse");
+        return;
+      }
+      storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
+    } else if (cfg.type === "compat" || cfg.type === "compat_social") {
+      let ai = parseCompatReportJson(report);
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, systemInput);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+          ai = parseCompatReportJson(retry);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("compat report parse failed"), "compat_parse");
+        return;
+      }
+      storedContent = serializeCompatReport(buildCompatReport(ai));
+    }
+
+    const { error: mErr } = await supabase
+      .from("messages")
+      .insert([{ reading_id: readingId, role: "assistant", content: storedContent }]);
+    if (mErr) {
+      await failGeneration(mErr, "message_insert");
+    }
+  });
+
+  return NextResponse.json({ id: readingId, success: true, cost: effectiveCost, balance: spentBalance });
 }

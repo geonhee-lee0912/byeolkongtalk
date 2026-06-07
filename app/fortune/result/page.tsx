@@ -28,6 +28,7 @@ import {
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
 
 interface Section {
@@ -139,6 +140,7 @@ function FortuneResultInner() {
   const id = params.get("id");
 
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [label, setLabel] = useState("별콩 운세");
@@ -159,16 +161,31 @@ function FortuneResultInner() {
       router.replace("/fortune");
       return;
     }
-    void (async () => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 120; // ~5분 (2.5초 간격) — 백그라운드 생성 대기
+
+    const load = async () => {
+      if (cancelled) return;
       let res = await fetch(`/api/readings/${id}`, { cache: "no-store" }).catch(
         () => null
       );
       // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
+      let usedPublic = false;
       if (res && (res.status === 401 || res.status === 403)) {
-        setIsPublic(true);
+        usedPublic = true;
         res = await fetch(`/api/readings/${id}/public`, {
           cache: "no-store",
         }).catch(() => null);
+      }
+      if (cancelled) return;
+      // 404 — 백그라운드 생성 실패로 리딩이 삭제됨(별은 환불됨)
+      if (res && res.status === 404) {
+        setGenerating(false);
+        setError(true);
+        setLoading(false);
+        return;
       }
       const r = res && res.ok ? await res.json().catch(() => null) : null;
       if (!r?.reading) {
@@ -177,6 +194,28 @@ function FortuneResultInner() {
         return;
       }
       const ft = fortuneTypeFromTag(r.reading.emotionTag);
+      const report =
+        (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
+          ?.content ?? "";
+
+      // assistant 메시지가 아직 없으면 백그라운드 생성 중 — 폴링하며 생성 화면 노출
+      if (!report) {
+        if (usedPublic) setIsPublic(true);
+        if (ft) {
+          setFtType(ft);
+          setLabel(FORTUNE_CONFIG[ft].label);
+          setEmoji(FORTUNE_CONFIG[ft].emoji);
+        }
+        setGenerating(true);
+        setLoading(false);
+        attempts += 1;
+        if (attempts < MAX_ATTEMPTS) {
+          timer = setTimeout(() => void load(), 2500);
+        }
+        return;
+      }
+
+      if (usedPublic) setIsPublic(true);
       if (ft) {
         setFtType(ft);
         setLabel(FORTUNE_CONFIG[ft].label);
@@ -190,9 +229,6 @@ function FortuneResultInner() {
           setSajuData(r.reading.sajuData as SajuResult);
         }
       }
-      const report =
-        (r.messages ?? []).find((m: { role: string }) => m.role === "assistant")
-          ?.content ?? "";
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
       const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
       const sajuFull = ft === "saju_full" ? tryParseStoredSajuFullReport(report) : null;
@@ -211,8 +247,21 @@ function FortuneResultInner() {
       } else {
         setSections(parseSections(report));
       }
+      setGenerating(false);
       setLoading(false);
-    })();
+      // 생성 직후 차감이 DB 에 반영됐으니 헤더 별 잔액을 새로고침
+      try {
+        window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [id, router]);
 
   const handleShare = async () => {
@@ -278,6 +327,10 @@ function FortuneResultInner() {
           timeZone: "Asia/Seoul",
         })
       : null;
+
+  if (generating) {
+    return <FortuneGeneratingScreen label={label} emoji={emoji} type={ftType ?? undefined} />;
+  }
 
   if (loading) {
     return (

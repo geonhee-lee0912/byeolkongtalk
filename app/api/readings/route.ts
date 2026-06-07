@@ -15,6 +15,7 @@ import { isSajuProduct, type SajuProduct } from "@/lib/saju/products";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
@@ -58,6 +59,20 @@ export async function GET() {
     for (const row of endedRows ?? []) endedSet.add(row.reading_id);
   }
 
+  // 운세 리포트 생성 중 판정 — 운세 리딩인데 assistant 메시지가 아직 없으면 백그라운드 생성 중.
+  const fortuneIds = (data ?? [])
+    .filter((r) => fortuneTypeFromTag(r.emotion_tag))
+    .map((r) => r.id);
+  const hasMsgSet = new Set<string>();
+  if (fortuneIds.length > 0) {
+    const { data: msgRows } = await supabase
+      .from("messages")
+      .select("reading_id")
+      .in("reading_id", fortuneIds)
+      .eq("role", "assistant");
+    for (const row of msgRows ?? []) hasMsgSet.add(row.reading_id);
+  }
+
   return NextResponse.json({
     readings: (data ?? []).map((r) => ({
       id: r.id,
@@ -72,6 +87,7 @@ export async function GET() {
       hasSensitive: r.has_sensitive,
       createdAt: r.created_at,
       ended: endedSet.has(r.id),
+      generating: fortuneIds.includes(r.id) && !hasMsgSet.has(r.id),
       profile: r.profile,
     })),
   });
