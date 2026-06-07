@@ -44,6 +44,22 @@ function sajuBlock(saju: SajuResult, heading = "사주판"): string {
   return lines.join("\n");
 }
 
+function tarotBlock(cards: TarotDrawnForPrompt[]): string {
+  const lines = cards.map((c, i) => {
+    const kw =
+      c.direction === "upright"
+        ? c.uprightKeywords.join(", ")
+        : c.reversedKeywords.join(", ");
+    const dirKr = c.direction === "upright" ? "정방향" : "역방향";
+    return `${i + 1}. [${c.position}] ${c.cardName} (${dirKr}) — 키워드: ${kw}`;
+  });
+  return [
+    "## 뽑힌 타로 카드",
+    "아래는 사용자가 직접 뽑은 카드다. position/cardName/direction은 그대로 echo 하고, reading만 새로 작성해라.",
+    ...lines,
+  ].join("\n");
+}
+
 const TODAY_KR = () =>
   new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -60,10 +76,45 @@ const THIS_MONTH_KR = () =>
     timeZone: "Asia/Seoul",
   });
 
+export interface TarotDrawnForPrompt {
+  position: string;
+  cardName: string;
+  direction: "upright" | "reversed";
+  uprightKeywords: string[];
+  reversedKeywords: string[];
+}
+
 interface FortuneInput {
   saju?: SajuResult;
   sajuB?: SajuResult;
   names?: { a: string; b: string };
+  tarotCards?: TarotDrawnForPrompt[];
+}
+
+function tarotGuide(opts: { domainLabel: string; oneCard?: boolean }): string {
+  const { domainLabel, oneCard } = opts;
+  const cardsNote = oneCard
+    ? "카드는 1장이다. reading은 3~5문장으로 따뜻하게."
+    : "카드는 3장이다. 각 카드 reading은 4~6문장, 포지션의 의미를 살려서.";
+  const lengthNote = oneCard
+    ? "summary와 advice는 각각 2~3문장으로 짧게."
+    : "summary는 세 카드를 엮은 5~7문장, advice는 3~5문장의 구체적 행동 제안.";
+  return [
+    `너는 별콩이야. ${domainLabel} 주제로 타로 리포트를 JSON으로만 출력해라.`,
+    "마크다운/설명/코드펜스 없이 순수 JSON 객체 하나만 출력해라.",
+    cardsNote,
+    lengthNote,
+    "스키마:",
+    `{
+  "headline": "한 줄 요약 (15자 내외)",
+  "cards": [
+    { "position": "주입된 position 그대로", "cardName": "주입된 cardName 그대로", "direction": "upright|reversed (주입값 그대로)", "reading": "이 카드 해석" }
+  ],
+  "summary": "전체 종합 해석",
+  "advice": "구체적인 조언"
+}`,
+    "cards 배열 길이와 순서는 주입된 '뽑힌 타로 카드'와 정확히 일치시켜라.",
+  ].join("\n");
 }
 
 const SECTION_GUIDE: Record<FortuneType, string> = {
@@ -179,8 +230,11 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     ``,
     `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. monthly 는 1~12월 전부, actions 는 정확히 3개. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
   ].join("\n"),
-  // Phase 1 미사용 (tarot/compat 는 추후 확장)
-  tarot_oneshot: `타로 한 장 리딩 리포트를 써줘.`,
+  tarot_daily: tarotGuide({ domainLabel: "오늘의 운세", oneCard: true }),
+  tarot_love: tarotGuide({ domainLabel: "연애운" }),
+  tarot_money: tarotGuide({ domainLabel: "금전운" }),
+  tarot_career: tarotGuide({ domainLabel: "직장·진로" }),
+  tarot_relation: tarotGuide({ domainLabel: "인간관계" }),
   compat: [
     `위 두 사람의 사주판을 바탕으로 **연애·결혼 궁합** 리포트를 작성해줘. 두 일간·오행이 만나 만드는 관계의 흐름이 핵심이야.`,
     `이 리포트는 예외적으로 마크다운이 아니라 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
@@ -234,6 +288,8 @@ export function buildFortuneSystem(
     parts.push("위 두 사람의 일간이 만났을 때 만들어지는 관계가 이 리포트의 핵심이야.");
   } else if (input.saju) {
     parts.push(sajuBlock(input.saju));
+  } else if (input.tarotCards) {
+    parts.push(tarotBlock(input.tarotCards));
   }
   parts.push("");
   const todayPillar = input.saju?.temporal
