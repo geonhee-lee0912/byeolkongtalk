@@ -25,6 +25,12 @@ import {
   type CompatReport,
   type CompatSajuPair,
 } from "@/lib/fortune/compat-report";
+import {
+  tryParseStoredTarotReport,
+  type TarotReport,
+} from "@/lib/fortune/tarot-report";
+import type { DrawnCard } from "@/lib/tarot/spreads";
+import TarotReportView from "@/components/fortune/TarotReportView";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
@@ -134,6 +140,19 @@ function buildCompatShareText(r: CompatReport, label: string, url: string): stri
   );
 }
 
+function buildTarotShareText(label: string, report: TarotReport, url: string): string {
+  const cards = report.cards
+    .map((c) => `${c.position}: ${c.cardName}(${c.direction === "upright" ? "정" : "역"})`)
+    .join("\n");
+  return (
+    `[별콩 타로] ${label}\n` +
+    `${report.headline}\n\n` +
+    `${cards}\n\n` +
+    `✨ ${report.summary}\n\n` +
+    `${url}`
+  );
+}
+
 function FortuneResultInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -152,6 +171,8 @@ function FortuneResultInner() {
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
   const [sajuFullReport, setSajuFullReport] = useState<SajuFullReport | null>(null);
   const [compatReport, setCompatReport] = useState<CompatReport | null>(null);
+  const [tarotReport, setTarotReport] = useState<TarotReport | null>(null);
+  const [tarotDrawn, setTarotDrawn] = useState<DrawnCard[]>([]);
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -236,6 +257,10 @@ function FortuneResultInner() {
         ft === "compat" || ft === "compat_social"
           ? tryParseStoredCompatReport(report)
           : null;
+      const tarot =
+        ft && FORTUNE_CONFIG[ft].base === "tarot"
+          ? tryParseStoredTarotReport(report)
+          : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
@@ -244,6 +269,9 @@ function FortuneResultInner() {
         setSajuFullReport(sajuFull);
       } else if (compat) {
         setCompatReport(compat);
+      } else if (tarot) {
+        setTarotReport(tarot);
+        setTarotDrawn((r.reading.drawnCards as DrawnCard[] | null) ?? []);
       } else {
         setSections(parseSections(report));
       }
@@ -279,9 +307,11 @@ function FortuneResultInner() {
           ? buildSajuFullShareText(sajuFullReport, label, url)
           : compatReport
             ? buildCompatShareText(compatReport, label, url)
-            : `[별콩 운세] ${label}\n\n` +
-            sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
-            `\n\n🌙 ${url}`;
+            : tarotReport
+              ? buildTarotShareText(label, tarotReport, url)
+              : `[별콩 운세] ${label}\n\n` +
+              sections.map((s) => (s.title ? `▪ ${s.title}\n${s.body}` : s.body)).join("\n\n") +
+              `\n\n🌙 ${url}`;
 
     // 모바일: 네이티브 공유 시트
     if (isMobile && navigator.share) {
@@ -318,6 +348,7 @@ function FortuneResultInner() {
   const isMonthly = ftType === "monthly";
   const isSajuFull = ftType === "saju_full";
   const isCompat = ftType === "compat" || ftType === "compat_social";
+  const isTarot = ftType ? FORTUNE_CONFIG[ftType].base === "tarot" : false;
   const compatVariant = ftType === "compat_social" ? "social" : "romantic";
   const monthLabel =
     isMonthly && createdAt
@@ -364,7 +395,7 @@ function FortuneResultInner() {
           </button>
         </div>
       )}
-      {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport)) && (
+      {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">
             <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
@@ -391,6 +422,8 @@ function FortuneResultInner() {
         <SajuFullReportView report={sajuFullReport} saju={sajuData} />
       ) : isCompat && compatReport ? (
         <CompatReportView report={compatReport} saju={compatSaju} variant={compatVariant} />
+      ) : isTarot && tarotReport ? (
+        <TarotReportView report={tarotReport} drawnCards={tarotDrawn} />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
