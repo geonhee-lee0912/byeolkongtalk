@@ -356,9 +356,17 @@ export async function POST(req: NextRequest) {
   const readingId = reading.id as string;
 
   // 생성 실패 시: 빈 리딩 삭제 + 환불. (result/목록은 "메시지 없음→생성 중", "리딩 없음→실패"로 판단)
+  // 리딩이 사라지므로 환불 사실을 fortune_refund_notices 에 남긴다 — /fortune 상단 카드로 노출.
   const failGeneration = async (err: unknown, stage: string) => {
     await supabase.from("readings").delete().eq("id", readingId);
     await refundOnFailure();
+    if (effectiveCost > 0) {
+      await supabase.from("fortune_refund_notices").insert({
+        user_id: userId,
+        emotion_tag: cfg.emotionTag,
+        refunded_stars: effectiveCost,
+      });
+    }
     await logError(err, { route: "/api/fortune/create", userId, extra: { stage, type } });
   };
 
