@@ -19,6 +19,11 @@ import {
   buildMonthlyReport,
   serializeMonthlyReport,
 } from "@/lib/fortune/monthly-report";
+import {
+  parseSajuFullReportJson,
+  buildSajuFullReport,
+  serializeSajuFullReport,
+} from "@/lib/fortune/saju-full-report";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
@@ -246,6 +251,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
     }
     storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
+  } else if (cfg.type === "saju_full") {
+    let ai = parseSajuFullReportJson(report);
+    if (!ai) {
+      try {
+        const system = buildFortuneSystem(cfg.type, { saju });
+        const retry = await generateOnce(
+          system,
+          [{ role: "user", content: FORTUNE_KICKOFF }],
+          MAX_TOKENS_BY_FORTUNE[cfg.type]
+        );
+        ai = parseSajuFullReportJson(retry);
+      } catch (err) {
+        await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } }));
+      }
+    }
+    if (!ai) {
+      await logError(new Error("saju_full report parse failed"), {
+        route: "/api/fortune/create",
+        userId,
+        extra: { stage: "saju_full_parse", type },
+      });
+      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+    }
+    storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
   }
 
   const supabase = getServiceSupabase();
