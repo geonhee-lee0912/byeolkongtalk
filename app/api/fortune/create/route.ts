@@ -8,8 +8,14 @@ import { spendStars, chargeStars } from "@/lib/stars";
 import { randomUUID } from "crypto";
 import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
-import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
+import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
+import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
+import { getCard } from "@/lib/tarot/cards";
+import {
+  parseTarotReportJson,
+  buildTarotReport,
+  serializeTarotReport,
+} from "@/lib/fortune/tarot-report";
 import {
   parseDailyReportJson,
   buildDailyReport,
@@ -43,6 +49,42 @@ export const maxDuration = 300;
 
 function isInt(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v);
+}
+
+interface ValidDrawn {
+  position: number;
+  label: string;
+  card_id: number;
+  direction: "upright" | "reversed";
+}
+
+// 클라이언트가 보낸 drawnCards를 포지션 정의에 맞춰 검증·정규화.
+function validateDrawnCards(
+  raw: unknown,
+  positions: string[]
+): ValidDrawn[] | null {
+  if (!Array.isArray(raw)) return null;
+  if (raw.length !== positions.length) return null;
+  const seen = new Set<number>();
+  const out: ValidDrawn[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (typeof c !== "object" || c === null) return null;
+    const cc = c as Record<string, unknown>;
+    const cardId = cc.card_id;
+    if (!isInt(cardId) || cardId < 0 || cardId > 77) return null;
+    if (seen.has(cardId)) return null;
+    seen.add(cardId);
+    const dir = cc.direction;
+    if (dir !== "upright" && dir !== "reversed") return null;
+    out.push({
+      position: i,
+      label: positions[i],
+      card_id: cardId,
+      direction: dir,
+    });
+  }
+  return out;
 }
 
 function validateSajuInput(body: unknown): SajuInput | { error: string } {
@@ -112,6 +154,7 @@ export async function POST(req: NextRequest) {
     profileId?: unknown;
     profileA?: unknown;
     profileB?: unknown;
+    drawnCards?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -141,6 +184,36 @@ export async function POST(req: NextRequest) {
     if (existingId) {
       return NextResponse.json({ id: existingId, success: true, cost: 0, alreadyThisMonth: true });
     }
+  }
+
+  // 타로 운세는 클라가 이미 카드를 뽑아 보낸다 — 포지션 정의에 맞춰 검증 후 키워드를 프롬프트에 주입.
+  let drawnCardsToStore: ValidDrawn[] | null = null;
+  let tarotCardsForPrompt: TarotDrawnForPrompt[] | null = null;
+  if (cfg.base === "tarot") {
+    const positions = getTarotPositions(cfg.type);
+    if (!positions) {
+      return NextResponse.json({ error: "invalid_type" }, { status: 400 });
+    }
+    const validated = validateDrawnCards(body.drawnCards, positions);
+    if (!validated) {
+      return NextResponse.json({ error: "invalid_cards" }, { status: 400 });
+    }
+    drawnCardsToStore = validated;
+    const forPrompt: TarotDrawnForPrompt[] = [];
+    for (const d of validated) {
+      const card = getCard(d.card_id);
+      if (!card) {
+        return NextResponse.json({ error: "invalid_cards" }, { status: 400 });
+      }
+      forPrompt.push({
+        position: d.label,
+        cardName: card.name_kr,
+        direction: d.direction,
+        uprightKeywords: card.upright,
+        reversedKeywords: card.reversed,
+      });
+    }
+    tarotCardsForPrompt = forPrompt;
   }
 
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
@@ -244,7 +317,9 @@ export async function POST(req: NextRequest) {
   const systemInput =
     cfg.type === "compat" || cfg.type === "compat_social"
       ? { saju, sajuB, names }
-      : { saju };
+      : cfg.base === "tarot"
+        ? { tarotCards: tarotCardsForPrompt! }
+        : { saju };
 
   const supabase = getServiceSupabase();
 
@@ -263,6 +338,7 @@ export async function POST(req: NextRequest) {
       emotion_tag: cfg.emotionTag,
       stars_spent: effectiveCost,
       has_sensitive: false,
+      drawn_cards: drawnCardsToStore,
     })
     .select("id")
     .single();
@@ -368,6 +444,22 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeCompatReport(buildCompatReport(ai));
+    } else if (cfg.base === "tarot") {
+      let ai = parseTarotReportJson(report);
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, systemInput);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
+          ai = parseTarotReportJson(retry);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "tarot_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("tarot report parse failed"), "tarot_parse");
+        return;
+      }
+      storedContent = serializeTarotReport(buildTarotReport(ai));
     }
 
     const { error: mErr } = await supabase
