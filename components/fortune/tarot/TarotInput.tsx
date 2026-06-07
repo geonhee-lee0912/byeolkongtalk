@@ -48,19 +48,29 @@ export default function TarotInput({ type }: { type: FortuneType }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, drawnCards: drawn }),
-    }).then((x) => x.json().then((j) => ({ ok: x.ok, status: x.status, j })));
+    })
+      .then(async (x) => ({
+        ok: x.ok,
+        status: x.status,
+        j: await x.json().catch(() => null),
+      }))
+      .catch(() => null);
     setSubmitting(false);
-    if (!res.ok) {
-      if (res.j?.code === "INSUFFICIENT_STARS") {
+    if (!res || !res.ok) {
+      if (res?.j?.code === "INSUFFICIENT_STARS") {
         setError("별이 부족해. 충전소에서 채우고 다시 올래?");
         setShowConfirm(true);
         return;
       }
       setError(
-        res.j?.error === "rate_limited"
+        res?.j?.error === "rate_limited"
           ? "조금만 천천히! 잠시 후 다시 시도해줄래?"
           : "카드를 못 펼쳤어. 잠시 후 다시 시도해줄래?"
       );
+      return;
+    }
+    if (!res.j?.id) {
+      setError("카드를 못 펼쳤어. 잠시 후 다시 시도해줄래?");
       return;
     }
     window.dispatchEvent(new Event("byeolkong:balance-updated"));
