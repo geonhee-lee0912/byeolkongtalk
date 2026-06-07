@@ -4,13 +4,28 @@
 
 import type { SajuResult } from "@/lib/saju/calc";
 
-/** 정성 등급 5단계 (고정 enum). AI 는 이 중 하나만 고른다. */
-export const COMPAT_GRADES = [
+/** 연애·결혼 궁합(compat) 등급 5단계. AI 는 이 중 하나만 고른다. */
+export const COMPAT_ROMANTIC_GRADES = [
   "천생연분",
   "찰떡궁합",
   "좋은 인연",
   "서로 배우는 인연",
   "노력이 필요한 인연",
+] as const;
+
+/** 인간 관계 궁합(compat_social) 등급 5단계 — 친구·가족·동료 전용. */
+export const COMPAT_SOCIAL_GRADES = [
+  "환상의 케미",
+  "든든한 사이",
+  "잘 맞는 사이",
+  "노력하면 좋은 사이",
+  "서로 다른 결",
+] as const;
+
+/** 두 상품 등급 합집합 — 파서·저장은 둘 다 허용(프롬프트가 종류별 등급을 강제). */
+export const COMPAT_GRADES = [
+  ...COMPAT_ROMANTIC_GRADES,
+  ...COMPAT_SOCIAL_GRADES,
 ] as const;
 export type CompatGrade = (typeof COMPAT_GRADES)[number];
 

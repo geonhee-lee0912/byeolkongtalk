@@ -6,7 +6,8 @@ export type FortuneType =
   | "monthly"
   | "saju_full"
   | "tarot_oneshot"
-  | "compat";
+  | "compat"
+  | "compat_social";
 
 export interface FortuneConfig {
   type: FortuneType;
@@ -59,7 +60,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   saju_full: {
     type: "saju_full",
     label: "2026년 사주 분석",
-    emoji: "🪷",
+    emoji: "2️⃣6️⃣",
     tagline: "타고난 기질부터 2026년 한 해 흐름까지 한 장에",
     base: "saju",
     cost: 50,
@@ -80,13 +81,24 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   },
   compat: {
     type: "compat",
-    label: "궁합·관계 분석",
+    label: "사랑하는 사람과의 궁합 분석",
     emoji: "💞",
-    tagline: "두 사람 사주로 관계 흐름과 궁합을",
+    tagline: "두 사람 사주로 연애·결혼 궁합을 깊이 봐줄게",
     base: "saju",
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat`,
     href: "/fortune/compat",
+    active: true,
+  },
+  compat_social: {
+    type: "compat_social",
+    label: "인간 관계 궁합 분석",
+    emoji: "🤝",
+    tagline: "친구·가족·동료, 두 사람 사주로 관계 케미를",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat_social`,
+    href: "/fortune/compat-social",
     active: true,
   },
 };
@@ -97,6 +109,7 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.tarot_oneshot,
   FORTUNE_CONFIG.compat,
+  FORTUNE_CONFIG.compat_social,
 ];
 
 /** 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트) */
@@ -106,6 +119,7 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   saju_full: 12000,
   tarot_oneshot: 2048,
   compat: 6000,
+  compat_social: 6000,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */

@@ -10,11 +10,33 @@ import {
 const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
 const GRADE_COLOR: Record<CompatGrade, string> = {
+  // 연애 궁합
   천생연분: "#E8C26A",
   찰떡궁합: "#E08AB0",
   "좋은 인연": "#9F8AD0",
   "서로 배우는 인연": "#7FB0A0",
   "노력이 필요한 인연": "#B8A8D8",
+  // 인간 관계 궁합
+  "환상의 케미": "#E8C26A",
+  "든든한 사이": "#7FB0A0",
+  "잘 맞는 사이": "#9F8AD0",
+  "노력하면 좋은 사이": "#B8A8D8",
+  "서로 다른 결": "#C9A6C0",
+};
+
+type CompatVariant = "romantic" | "social";
+
+const SECTION_LABELS: Record<CompatVariant, { attraction: string; conflict: string; longterm: string }> = {
+  romantic: {
+    attraction: "💘 끌림·성격 케미",
+    conflict: "🌗 갈등 포인트",
+    longterm: "🌱 장기 전망",
+  },
+  social: {
+    attraction: "🤝 성향 케미",
+    conflict: "🌗 부딪히는 지점",
+    longterm: "🌱 관계의 미래",
+  },
 };
 
 function Card({ title, body }: { title: string; body: string }) {
@@ -29,11 +51,14 @@ function Card({ title, body }: { title: string; body: string }) {
 export default function CompatReportView({
   report,
   saju,
+  variant = "romantic",
 }: {
   report: CompatReport;
   saju: CompatSajuPair | null;
+  variant?: CompatVariant;
 }) {
   const gradeColor = GRADE_COLOR[report.grade];
+  const labels = SECTION_LABELS[variant];
 
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
@@ -89,9 +114,9 @@ export default function CompatReportView({
       <Card title="🔮 오행 케미" body={report.chemistry} />
 
       {/* 섹션 카드 3개 */}
-      <Card title="💘 끌림·성격 케미" body={report.attraction} />
-      <Card title="🌗 갈등 포인트" body={report.conflict} />
-      <Card title="🌱 장기 전망" body={report.longterm} />
+      <Card title={labels.attraction} body={report.attraction} />
+      <Card title={labels.conflict} body={report.conflict} />
+      <Card title={labels.longterm} body={report.longterm} />
 
       {/* 관계 조언 */}
       <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">

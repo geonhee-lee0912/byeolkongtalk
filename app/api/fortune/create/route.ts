@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
   let usedProfileId: string | null = null;
   let sajuDataToStore: unknown = null;
 
-  if (cfg.type === "compat") {
+  if (cfg.type === "compat" || cfg.type === "compat_social") {
     // 궁합: 두 프로필 id 만 받는다 (즉석 입력도 클라가 먼저 POST /api/profiles 로 저장 후 id 전달).
     const profileA = typeof body.profileA === "string" ? body.profileA : "";
     const profileB = typeof body.profileB === "string" ? body.profileB : "";
@@ -231,7 +231,9 @@ export async function POST(req: NextRequest) {
 
   // Claude 1회 호출 → 리포트
   const systemInput =
-    cfg.type === "compat" ? { saju, sajuB, names } : { saju };
+    cfg.type === "compat" || cfg.type === "compat_social"
+      ? { saju, sajuB, names }
+      : { saju };
   let report: string;
   try {
     const system = buildFortuneSystem(cfg.type, systemInput);
@@ -319,7 +321,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
     }
     storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
-  } else if (cfg.type === "compat") {
+  } else if (cfg.type === "compat" || cfg.type === "compat_social") {
     let ai = parseCompatReportJson(report);
     if (!ai) {
       try {

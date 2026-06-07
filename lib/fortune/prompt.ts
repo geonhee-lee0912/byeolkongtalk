@@ -199,6 +199,24 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     ``,
     `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
   ].join("\n"),
+  compat_social: [
+    `위 두 사람의 사주판을 바탕으로 **인간 관계 궁합**(친구·가족·동료 등 연애가 아닌 관계) 리포트를 작성해줘. 두 일간·오행이 만나 만드는 관계의 결이 핵심이야. 연애·결혼·이성적 끌림 얘기는 하지 마.`,
+    `이 리포트는 예외적으로 마크다운이 아니라 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
+    ``,
+    `{`,
+    `  "grade": "<환상의 케미 | 든든한 사이 | 잘 맞는 사이 | 노력하면 좋은 사이 | 서로 다른 결 중 정확히 하나. 두 사주 조화를 정직하게 반영하되 낮은 등급도 겁주는 톤은 지양.>",`,
+    `  "theme": "<두 사람 관계를 관통하는 한 줄 테마. 20자 내외.>",`,
+    `  "summary": "<두 일간·오행이 만나 만드는 관계의 큰 그림. 따뜻한 핵심 요약. 3~4문장.>",`,
+    `  "chemistry": "<오행 케미: 첫 번째 사람 일간과 두 번째 사람 일간(및 두 사주 오행)이 상생인지 상극인지, 그게 관계에 어떻게 작용하는지 쉽게 풀이. 5~6문장.>",`,
+    `  "attraction": "<성향 케미: 두 사람 성격·태도가 어떻게 맞물리고 어떤 점에서 잘 통하는지. 4~5문장.>",`,
+    `  "conflict": "<부딪히는 지점: 의견·온도차로 어긋나기 쉬운 부분. 겁주지 말고 '이럴 땐 이렇게 이해하면 좋아' 톤. 4~5문장.>",`,
+    `  "longterm": "<관계의 미래: 시간이 지나며 이 관계가 어떻게 흐를지, 오래 잘 지내려면. 4~5문장.>",`,
+    `  "advice": ["<관계를 위한 실천 1>", "<실천 2>", "<실천 3>"],`,
+    `  "note": "<별콩이의 한마디. 두 사람에게 건네는 따뜻한 응원 2~3문장.>"`,
+    `}`,
+    ``,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. 연애·이성 관계 표현 금지. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+  ].join("\n"),
 };
 
 export function buildFortuneSystem(
@@ -206,7 +224,7 @@ export function buildFortuneSystem(
   input: FortuneInput
 ): { staticPart: string; dynamicPart: string } {
   const parts: string[] = [];
-  if (type === "compat" && input.saju && input.sajuB) {
+  if ((type === "compat" || type === "compat_social") && input.saju && input.sajuB) {
     const nameA = input.names?.a ?? "첫 번째 사람";
     const nameB = input.names?.b ?? "두 번째 사람";
     parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`));

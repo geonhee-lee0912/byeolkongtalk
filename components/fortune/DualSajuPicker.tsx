@@ -33,6 +33,8 @@ export interface DualSajuPickerProps {
   confirmLabel?: string;
   loading?: boolean;
   nickname?: string;
+  /** 새 사람 입력 시 기본 관계 (연애 궁합=partner, 인간 관계 궁합=friend) */
+  newPersonRelation?: "family" | "friend" | "partner" | "other";
 }
 
 export default function DualSajuPicker({
@@ -40,6 +42,7 @@ export default function DualSajuPicker({
   confirmLabel,
   loading,
   nickname,
+  newPersonRelation = "partner",
 }: DualSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -204,7 +207,7 @@ export default function DualSajuPicker({
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 py-4 mb-3">
           <ProfileForm
             mode="acquaintance"
-            initialRelation="partner"
+            initialRelation={newPersonRelation}
             submitLabel="저장하고 선택"
             loading={saving}
             onSubmit={handleAddSubmit}

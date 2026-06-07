@@ -183,7 +183,7 @@ function FortuneResultInner() {
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
       if (r.reading.sajuData) {
-        if (ft === "compat") {
+        if (ft === "compat" || ft === "compat_social") {
           setCompatSaju(r.reading.sajuData as CompatSajuPair);
         } else {
           setSajuData(r.reading.sajuData as SajuResult);
@@ -195,7 +195,10 @@ function FortuneResultInner() {
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
       const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
       const sajuFull = ft === "saju_full" ? tryParseStoredSajuFullReport(report) : null;
-      const compat = ft === "compat" ? tryParseStoredCompatReport(report) : null;
+      const compat =
+        ft === "compat" || ft === "compat_social"
+          ? tryParseStoredCompatReport(report)
+          : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
@@ -264,7 +267,8 @@ function FortuneResultInner() {
       : null;
   const isMonthly = ftType === "monthly";
   const isSajuFull = ftType === "saju_full";
-  const isCompat = ftType === "compat";
+  const isCompat = ftType === "compat" || ftType === "compat_social";
+  const compatVariant = ftType === "compat_social" ? "social" : "romantic";
   const monthLabel =
     isMonthly && createdAt
       ? new Date(createdAt).toLocaleDateString("ko-KR", {
@@ -327,7 +331,7 @@ function FortuneResultInner() {
       ) : isSajuFull && sajuFullReport ? (
         <SajuFullReportView report={sajuFullReport} saju={sajuData} />
       ) : isCompat && compatReport ? (
-        <CompatReportView report={compatReport} saju={compatSaju} />
+        <CompatReportView report={compatReport} saju={compatSaju} variant={compatVariant} />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
