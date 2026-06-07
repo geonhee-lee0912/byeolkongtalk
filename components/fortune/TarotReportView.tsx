@@ -50,106 +50,15 @@ export default function TarotReportView({
 }) {
   const items = buildCardItems(report, drawnCards);
   const isDaily = variant === "daily";
+  const imgW = isDaily ? 132 : 120;
+  const imgH = isDaily ? 204 : 185;
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-5 animate-fade-in">
       <h1 className="text-[20px] font-bold text-eye-purple text-center leading-snug">
         {report.headline}
       </h1>
 
-      <div className="flex flex-col gap-4">
-        {items.map((card) =>
-          isDaily ? (
-            <div
-              key={card.key}
-              className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col items-center text-center"
-            >
-              <div className="text-[12px] text-text-light/70">{card.position}</div>
-              <div className="text-[16px] font-bold text-eye-purple mt-0.5">
-                {card.cardName}
-              </div>
-              {card.cardId !== null && (
-                <div className="mt-3">
-                  <Image
-                    src={getCardImagePath(card.cardId)}
-                    alt={card.cardName}
-                    width={132}
-                    height={204}
-                    className={`rounded-xl ${
-                      card.direction === "reversed" ? "rotate-180" : ""
-                    }`}
-                    style={{ objectFit: "cover" }}
-                  />
-                </div>
-              )}
-              <div className="text-[12px] text-text-light/70 mt-2">
-                {card.direction === "upright" ? "정방향" : "역방향"}
-              </div>
-              <p className="text-[13px] text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">
-                {card.reading}
-              </p>
-              <div className="w-full mt-4 pt-4 border-t border-lilac-mid/30 text-left">
-                <div
-                  className="text-[12px] font-bold mb-1.5"
-                  style={{ color: accent }}
-                >
-                  종합 해석
-                </div>
-                <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
-                  {report.summary}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div
-              key={card.key}
-              className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
-            >
-              <div className="flex gap-3">
-                {card.cardId !== null && (
-                  <div className="shrink-0">
-                    <Image
-                      src={getCardImagePath(card.cardId)}
-                      alt={card.cardName}
-                      width={64}
-                      height={99}
-                      className={`rounded-lg ${
-                        card.direction === "reversed" ? "rotate-180" : ""
-                      }`}
-                      style={{ objectFit: "cover" }}
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] text-text-light/70">
-                    {card.position}
-                  </div>
-                  <div className="text-[14px] font-bold text-eye-purple">
-                    {card.cardName}
-                    <span className="ml-1.5 text-[11px] font-normal text-text-light/70">
-                      {card.direction === "upright" ? "정방향" : "역방향"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[13px] text-text-light leading-relaxed mt-3 whitespace-pre-wrap">
-                {card.reading}
-              </p>
-            </div>
-          )
-        )}
-      </div>
-
-      {!isDaily && (
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-          <div className="text-[12px] font-bold mb-1.5" style={{ color: accent }}>
-            종합 해석
-          </div>
-          <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
-            {report.summary}
-          </p>
-        </div>
-      )}
-
+      {/* 별콩이의 조언 — 헤드라인 바로 아래로 이동 */}
       <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
         <div className="text-[12px] font-bold text-gold-soft mb-1.5">
           별콩이의 조언
@@ -157,6 +66,46 @@ export default function TarotReportView({
         <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">
           {report.advice}
         </p>
+      </div>
+
+      {/* 카드별 해석 + 종합 해석을 하나의 박스로 통합 */}
+      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col gap-6">
+        {items.map((card) => (
+          <div key={card.key} className="flex flex-col items-center text-center">
+            <div className="text-[12px] text-text-light/70">{card.position}</div>
+            <div className="text-[16px] font-bold text-eye-purple mt-0.5">
+              {card.cardName}
+            </div>
+            {card.cardId !== null && (
+              <div className="mt-3">
+                <Image
+                  src={getCardImagePath(card.cardId)}
+                  alt={card.cardName}
+                  width={imgW}
+                  height={imgH}
+                  className={`rounded-xl ${
+                    card.direction === "reversed" ? "rotate-180" : ""
+                  }`}
+                  style={{ objectFit: "cover" }}
+                />
+              </div>
+            )}
+            <div className="text-[12px] text-text-light/70 mt-2">
+              {card.direction === "upright" ? "정방향" : "역방향"}
+            </div>
+            <p className="text-[13px] text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">
+              {card.reading}
+            </p>
+          </div>
+        ))}
+        <div className="w-full pt-4 border-t border-lilac-mid/30 text-left">
+          <div className="text-[12px] font-bold mb-1.5" style={{ color: accent }}>
+            종합 해석
+          </div>
+          <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
+            {report.summary}
+          </p>
+        </div>
       </div>
     </div>
   );

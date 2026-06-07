@@ -398,17 +398,6 @@ function FortuneResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {!isPublic && !isTarotDaily && (
-        <div className="w-full max-w-md mx-auto px-5 mb-1">
-          <button
-            onClick={() => (isTarot ? router.push("/fortune") : router.back())}
-            aria-label="뒤로 가기"
-            className="inline-flex items-center gap-1 text-text-light/70 text-[13px] font-medium hover:text-text-light transition"
-          >
-            <span className="text-[16px] leading-none">‹</span> 뒤로
-          </button>
-        </div>
-      )}
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">

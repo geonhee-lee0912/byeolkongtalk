@@ -95,10 +95,10 @@ function tarotGuide(opts: { domainLabel: string; oneCard?: boolean }): string {
   const { domainLabel, oneCard } = opts;
   const cardsNote = oneCard
     ? "카드는 1장이다. reading은 3~5문장으로 따뜻하게."
-    : "카드는 3장이다. 각 카드 reading은 4~6문장, 포지션의 의미를 살려서.";
+    : "카드는 3장이다. 각 카드 reading은 5~6줄(문장 5~6개) 분량으로, 포지션의 의미를 충분히 살려서 풍부하게.";
   const lengthNote = oneCard
     ? "summary와 advice는 각각 2~3문장으로 짧게."
-    : "summary는 세 카드를 엮은 5~7문장, advice는 3~5문장의 구체적 행동 제안.";
+    : "summary는 세 카드를 엮은 종합 해석으로, 각 5~6문장짜리 2개 문단으로 작성하고 두 문단 사이는 빈 줄(\\n\\n)로 구분해라. advice는 3~5문장의 구체적 행동 제안.";
   return [
     `너는 별콩이야. ${domainLabel} 주제로 타로 리포트를 JSON으로만 출력해라.`,
     "마크다운/설명/코드펜스 없이 순수 JSON 객체 하나만 출력해라.",
