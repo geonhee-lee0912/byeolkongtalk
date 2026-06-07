@@ -513,12 +513,12 @@ export default function MyPage() {
       </div>
 
       {/* 디바이더 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
+      <div className="w-full max-w-md mx-auto px-5 mb-5">
         <div className="h-px bg-lilac-mid/30" />
       </div>
 
       {/* 계정·고객 메뉴 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-2 flex flex-col gap-2">
+      <div className="w-full max-w-md mx-auto px-5 mb-5 flex flex-col gap-2">
         {/* 고객센터: 연락 채널 미정 → 타겟 보류 (UI만). 채널 확정 시 href 교체. */}
         <a
           href="#"
@@ -571,8 +571,8 @@ export default function MyPage() {
       )}
 
       {/* 로그아웃 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6 mb-24">
-        <div className="h-px bg-lilac-mid/30 mb-6" />
+      <div className="w-full max-w-md mx-auto px-5 mb-24">
+        <div className="h-px bg-lilac-mid/30 mb-5" />
         <button
           onClick={handleLogout}
           className="w-full py-3 rounded-xl bg-lilac-soft text-eye-purple font-bold text-[14px]"

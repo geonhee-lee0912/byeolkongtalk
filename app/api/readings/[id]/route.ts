@@ -65,3 +65,36 @@ export async function GET(
     messages: messages ?? [],
   });
 }
+
+// 고민톡 단건 삭제 — 소유권 검증 후 messages 먼저, 그다음 reading 삭제.
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { userId } = await getSession();
+  if (!userId) {
+    return NextResponse.json({ error: "Login required" }, { status: 401 });
+  }
+
+  const supabase = getServiceSupabase();
+  const { data: reading } = await supabase
+    .from("readings")
+    .select("id, user_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!reading) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (reading.user_id !== userId) {
+    return NextResponse.json({ error: "not_authorized" }, { status: 403 });
+  }
+
+  await supabase.from("messages").delete().eq("reading_id", id);
+  const { error } = await supabase.from("readings").delete().eq("id", id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
+}

@@ -27,6 +27,7 @@ import {
 } from "@/lib/fortune/compat-report";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
+import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 import type { SajuResult } from "@/lib/saju/calc";
 
 interface Section {
@@ -318,8 +319,13 @@ function FortuneResultInner() {
           {dateLabel && (
             <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
           )}
-          <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center">
-            {emoji} {label}
+          <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
+            {ftType === "saju_full" ? (
+              <RedHorseIcon size={26} className="inline-block" />
+            ) : (
+              <span>{emoji}</span>
+            )}
+            {label}
           </h1>
         </div>
       )}

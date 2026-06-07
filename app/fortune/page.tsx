@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_LIST } from "@/lib/fortune/types";
 import FortuneRecoveryBanner from "@/components/fortune/FortuneRecoveryBanner";
+import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 
 interface DailyStatus {
   used: number;
@@ -82,7 +83,7 @@ export default function FortunePage() {
               ].join(" ")}
             >
               <div className="w-12 h-12 rounded-xl bg-lilac-soft/60 flex items-center justify-center text-[24px] shrink-0">
-                {f.emoji}
+                {f.type === "saju_full" ? <RedHorseIcon size={30} /> : f.emoji}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

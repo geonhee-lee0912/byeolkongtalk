@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import type { FortuneType } from "@/lib/fortune/types";
 
 const STEPS = [
   "사주판을 펼치는 중…",
@@ -13,6 +15,7 @@ const STEPS = [
 export interface FortuneGeneratingScreenProps {
   label: string;
   emoji?: string;
+  type?: FortuneType;
 }
 
 // 리포트 생성중 안내 — create 요청이 진행되는 동안 표시.
@@ -20,6 +23,7 @@ export interface FortuneGeneratingScreenProps {
 export default function FortuneGeneratingScreen({
   label,
   emoji,
+  type,
 }: FortuneGeneratingScreenProps) {
   const [progress, setProgress] = useState(8);
   const [step, setStep] = useState(0);
@@ -52,8 +56,12 @@ export default function FortuneGeneratingScreen({
           />
         </div>
 
-        <h1 className="font-display text-[22px] font-bold text-eye-purple text-center">
-          {emoji ? `${emoji} ` : ""}
+        <h1 className="font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
+          {type === "saju_full" ? (
+            <RedHorseIcon size={26} className="inline-block" />
+          ) : emoji ? (
+            <span>{emoji}</span>
+          ) : null}
           {label}
         </h1>
         <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">

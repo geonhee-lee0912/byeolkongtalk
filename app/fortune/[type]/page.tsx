@@ -123,7 +123,7 @@ export default function FortuneInputPage() {
   };
 
   if (generating) {
-    return <FortuneGeneratingScreen label={cfg.label} emoji={cfg.emoji} />;
+    return <FortuneGeneratingScreen label={cfg.label} emoji={cfg.emoji} type={cfg.type} />;
   }
 
   return (
