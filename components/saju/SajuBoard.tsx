@@ -52,7 +52,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
   return (
     <div className="w-full max-w-md mx-auto px-5">
       {/* 4기둥 그리드 */}
-      <div className="grid grid-cols-4 gap-2.5 mb-6">
+      <div className="grid grid-cols-4 gap-2.5 mb-6 max-w-[300px] mx-auto">
         {PILLAR_LABELS.map(({ key, label }) => {
           const pillar = saju.pillars[key];
           const stemEl = getStemElement(pillar.stem);
