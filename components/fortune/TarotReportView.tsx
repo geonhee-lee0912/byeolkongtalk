@@ -66,9 +66,6 @@ export default function TarotReportView({
               <div className="text-[12px] text-text-light/70">{card.position}</div>
               <div className="text-[16px] font-bold text-eye-purple mt-0.5">
                 {card.cardName}
-                <span className="ml-1.5 text-[12px] font-normal text-text-light/70">
-                  {card.direction === "upright" ? "정방향" : "역방향"}
-                </span>
               </div>
               {card.cardId !== null && (
                 <div className="mt-3">
@@ -84,9 +81,23 @@ export default function TarotReportView({
                   />
                 </div>
               )}
+              <div className="text-[12px] text-text-light/70 mt-2">
+                {card.direction === "upright" ? "정방향" : "역방향"}
+              </div>
               <p className="text-[13px] text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">
                 {card.reading}
               </p>
+              <div className="w-full mt-4 pt-4 border-t border-lilac-mid/30 text-left">
+                <div
+                  className="text-[12px] font-bold mb-1.5"
+                  style={{ color: accent }}
+                >
+                  종합 해석
+                </div>
+                <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
+                  {report.summary}
+                </p>
+              </div>
             </div>
           ) : (
             <div
@@ -128,14 +139,16 @@ export default function TarotReportView({
         )}
       </div>
 
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-        <div className="text-[12px] font-bold mb-1.5" style={{ color: accent }}>
-          종합 해석
+      {!isDaily && (
+        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+          <div className="text-[12px] font-bold mb-1.5" style={{ color: accent }}>
+            종합 해석
+          </div>
+          <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
+            {report.summary}
+          </p>
         </div>
-        <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
-          {report.summary}
-        </p>
-      </div>
+      )}
 
       <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
         <div className="text-[12px] font-bold text-gold-soft mb-1.5">

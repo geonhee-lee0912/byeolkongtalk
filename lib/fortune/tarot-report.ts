@@ -24,6 +24,16 @@ function isNonEmptyString(v: unknown): v is string {
 }
 
 /**
+ * AI가 echo 하는 direction은 비권위적(화면은 서버 truth drawnCards.direction을 쓴다).
+ * 모델이 주입 카드의 한글 표기("정방향")를 그대로 뱉어도 파싱이 실패하지 않도록 정규화한다.
+ * 알 수 없는 값은 정방향으로 폴백 — 이 필드 하나 때문에 리포트 전체를 버리지 않는다.
+ */
+function normalizeDirection(v: unknown): "upright" | "reversed" {
+  if (v === "reversed" || v === "역방향") return "reversed";
+  return "upright";
+}
+
+/**
  * AI 원문에서 JSON 본문을 잘라 파싱한다. 형식이 어긋나면 null.
  */
 export function parseTarotReportJson(raw: string): TarotReportAI | null {
@@ -53,11 +63,10 @@ export function parseTarotReportJson(raw: string): TarotReportAI | null {
     if (!isNonEmptyString(cc.position)) return null;
     if (!isNonEmptyString(cc.cardName)) return null;
     if (!isNonEmptyString(cc.reading)) return null;
-    if (cc.direction !== "upright" && cc.direction !== "reversed") return null;
     cards.push({
       position: cc.position.trim(),
       cardName: cc.cardName.trim(),
-      direction: cc.direction,
+      direction: normalizeDirection(cc.direction),
       reading: cc.reading.trim(),
     });
   }
