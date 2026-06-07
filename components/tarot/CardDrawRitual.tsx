@@ -112,9 +112,9 @@ export default function CardDrawRitual({
 
   if (!mounted) {
     return (
-      <main className="flex flex-1 items-center justify-center px-5">
+      <div className="flex flex-1 items-center justify-center px-5">
         <p className="text-text-light text-sm">카드를 섞는 중…</p>
-      </main>
+      </div>
     );
   }
 
@@ -233,8 +233,8 @@ export default function CardDrawRitual({
     : "pb-16";
 
   return (
-    <main
-      className={`flex flex-1 flex-col items-center w-full animate-fade-in pt-14 ${containerPb}`}
+    <div
+      className={`flex flex-1 flex-col items-center w-full animate-fade-in ${containerPb}`}
     >
       <div className="w-full max-w-md mx-auto px-5">
         {/* 호흡 가이드 + 스프레드 요약 pill */}
@@ -425,7 +425,7 @@ export default function CardDrawRitual({
       )}
 
       {flight && <FlyingCardOverlay flight={flight} accent={accent} />}
-    </main>
+    </div>
   );
 }
 
