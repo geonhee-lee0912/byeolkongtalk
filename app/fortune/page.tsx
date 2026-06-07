@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_LIST } from "@/lib/fortune/types";
-import FortuneRecoveryBanner from "@/components/fortune/FortuneRecoveryBanner";
+import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 
 interface DailyStatus {
@@ -49,7 +49,7 @@ export default function FortunePage() {
         </p>
       </div>
 
-      <FortuneRecoveryBanner />
+      <FortuneGeneratingList />
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex gap-1 bg-lilac-soft/40 rounded-full p-1">
