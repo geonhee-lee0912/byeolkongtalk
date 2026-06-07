@@ -16,13 +16,13 @@ function getFortunePersona(): string {
   return _persona;
 }
 
-function sajuBlock(saju: SajuResult): string {
+function sajuBlock(saju: SajuResult, heading = "사주판"): string {
   const p = saju.pillars;
   const elementsLine = Object.entries(saju.elementCount)
     .map(([el, n]) => `${el} ${n}`)
     .join(" / ");
   const lines = [
-    `[사주판]`,
+    `[${heading}]`,
     `  - 연주: ${p.year.stem}${p.year.branch}`,
     `  - 월주: ${p.month.stem}${p.month.branch}`,
     `  - 일주: ${p.day.stem}${p.day.branch} ★ 일간 = ${saju.dayStem} (${saju.dayElement})`,
@@ -62,6 +62,8 @@ const THIS_MONTH_KR = () =>
 
 interface FortuneInput {
   saju?: SajuResult;
+  sajuB?: SajuResult;
+  names?: { a: string; b: string };
 }
 
 const SECTION_GUIDE: Record<FortuneType, string> = {
@@ -179,7 +181,24 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
   ].join("\n"),
   // Phase 1 미사용 (tarot/compat 는 추후 확장)
   tarot_oneshot: `타로 한 장 리딩 리포트를 써줘.`,
-  compat: `두 사람 궁합 리포트를 써줘.`,
+  compat: [
+    `위 두 사람의 사주판을 바탕으로 **연애·결혼 궁합** 리포트를 작성해줘. 두 일간·오행이 만나 만드는 관계의 흐름이 핵심이야.`,
+    `이 리포트는 예외적으로 마크다운이 아니라 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
+    ``,
+    `{`,
+    `  "grade": "<천생연분 | 찰떡궁합 | 좋은 인연 | 서로 배우는 인연 | 노력이 필요한 인연 중 정확히 하나. 두 사주 조화를 정직하게 반영하되 낮은 등급도 겁주는 톤은 지양.>",`,
+    `  "theme": "<두 사람 관계를 관통하는 한 줄 테마. 20자 내외.>",`,
+    `  "summary": "<두 일간·오행이 만나 만드는 관계의 큰 그림. 따뜻한 핵심 요약. 3~4문장.>",`,
+    `  "chemistry": "<오행 케미: 첫 번째 사람 일간과 두 번째 사람 일간(및 두 사주 오행)이 상생인지 상극인지, 그게 관계에 어떻게 작용하는지 쉽게 풀이. 5~6문장.>",`,
+    `  "attraction": "<끌림·성격 케미: 서로 왜 끌리고 어떤 점이 잘 맞는지. 4~5문장.>",`,
+    `  "conflict": "<갈등 포인트: 부딪히기 쉬운 지점·온도차. 겁주지 말고 '이럴 땐 이렇게 이해하면 좋아' 톤. 4~5문장.>",`,
+    `  "longterm": "<장기 전망: 시간이 지나며 관계가 어떻게 흐를지, 결혼·장기 관점. 4~5문장.>",`,
+    `  "advice": ["<관계를 위한 실천 1>", "<실천 2>", "<실천 3>"],`,
+    `  "note": "<별콩이의 한마디. 두 사람에게 건네는 따뜻한 응원 2~3문장.>"`,
+    `}`,
+    ``,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+  ].join("\n"),
 };
 
 export function buildFortuneSystem(
@@ -187,7 +206,17 @@ export function buildFortuneSystem(
   input: FortuneInput
 ): { staticPart: string; dynamicPart: string } {
   const parts: string[] = [];
-  if (input.saju) parts.push(sajuBlock(input.saju));
+  if (type === "compat" && input.saju && input.sajuB) {
+    const nameA = input.names?.a ?? "첫 번째 사람";
+    const nameB = input.names?.b ?? "두 번째 사람";
+    parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`));
+    parts.push("");
+    parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`));
+    parts.push("");
+    parts.push("위 두 사람의 일간이 만났을 때 만들어지는 관계가 이 리포트의 핵심이야.");
+  } else if (input.saju) {
+    parts.push(sajuBlock(input.saju));
+  }
   parts.push("");
   const todayPillar = input.saju?.temporal
     ? `${input.saju.temporal.day.stem}${input.saju.temporal.day.branch}`
