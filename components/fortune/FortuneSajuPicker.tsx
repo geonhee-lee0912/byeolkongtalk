@@ -56,7 +56,7 @@ function birthLine(p: PickerProfile): string {
 }
 
 export interface FortuneSajuPickerProps {
-  onConfirm: (profileId: string) => void;
+  onConfirm: (profileId: string, displayName: string) => void;
   confirmLabel?: string;
   loading?: boolean;
   /** 오늘의 운세: 내 사주(primary)만 고정 노출, 목록 숨김 */
@@ -281,7 +281,7 @@ export default function FortuneSajuPicker({
           if (!selected) return;
           const reviewId = reviewableByProfile?.[selected.id];
           if (reviewId && onReview) onReview(reviewId);
-          else onConfirm(selected.id);
+          else onConfirm(selected.id, displayName(selected));
         }}
         className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
       >

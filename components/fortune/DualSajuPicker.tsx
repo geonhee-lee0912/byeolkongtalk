@@ -29,7 +29,12 @@ function birthShort(p: PickerProfile): string {
 }
 
 export interface DualSajuPickerProps {
-  onConfirm: (profileA: string, profileB: string) => void;
+  onConfirm: (
+    profileA: string,
+    profileB: string,
+    nameA: string,
+    nameB: string
+  ) => void;
   confirmLabel?: string;
   loading?: boolean;
   nickname?: string;
@@ -235,7 +240,13 @@ export default function DualSajuPicker({
       <button
         disabled={!canConfirm}
         onClick={() => {
-          if (slotA && slotB) onConfirm(slotA, slotB);
+          if (slotA && slotB)
+            onConfirm(
+              slotA,
+              slotB,
+              slotName(slotA) ?? "첫 번째 사람",
+              slotName(slotB) ?? "두 번째 사람"
+            );
         }}
         className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
       >

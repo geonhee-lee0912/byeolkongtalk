@@ -102,6 +102,8 @@ export default function FortuneDailyPage() {
         return;
       }
       const data = await res.json();
+      // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");

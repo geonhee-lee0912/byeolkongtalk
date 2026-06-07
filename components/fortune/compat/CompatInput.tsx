@@ -17,7 +17,12 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const router = useRouter();
   const cfg = FORTUNE_CONFIG[type];
 
-  const [pending, setPending] = useState<{ a: string; b: string } | null>(null);
+  const [pending, setPending] = useState<{
+    a: string;
+    b: string;
+    nameA: string;
+    nameB: string;
+  } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -26,7 +31,12 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const [refunded, setRefunded] = useState(false);
 
   // 별 차감 팝업 오픈 — 로그인 확인 후 잔액 조회
-  const openConfirm = async (profileA: string, profileB: string) => {
+  const openConfirm = async (
+    profileA: string,
+    profileB: string,
+    nameA: string,
+    nameB: string
+  ) => {
     setError(null);
     setNeedCharge(false);
 
@@ -42,7 +52,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       return;
     }
 
-    setPending({ a: profileA, b: profileB });
+    setPending({ a: profileA, b: profileB, nameA, nameB });
     setBalanceLoading(true);
     setBalance(null);
     try {
@@ -94,6 +104,8 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       }
       const data = await res.json();
       clearPendingFortune();
+      // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
       clearPendingFortune();
@@ -161,6 +173,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 궁합 보기"
+          targetName={`${pending.nameA} · ${pending.nameB}`}
           onConfirm={handleGenerate}
           onCharge={() => router.push("/shop")}
           onClose={() => setPending(null)}

@@ -15,6 +15,8 @@ export interface StarConfirmModalProps {
   title?: string;
   subtitle?: string;
   confirmLabel?: string;
+  /** 풀이 대상 (사주 운세 상품 — 오늘의 운세 제외). 지정 시 요약 박스에 "대상" 줄 노출 */
+  targetName?: string;
   /** 기본 카피용 (타로) */
   spreadLabel?: string;
   onConfirm: () => void;
@@ -30,6 +32,7 @@ export default function StarConfirmModal({
   title,
   subtitle,
   confirmLabel,
+  targetName,
   spreadLabel,
   onConfirm,
   onCharge,
@@ -77,6 +80,12 @@ export default function StarConfirmModal({
 
         {/* 비용/잔액 요약 */}
         <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-[13px]">
+          {targetName && (
+            <div className="flex items-center justify-between py-1 border-b border-lilac-mid/15 mb-1 pb-2">
+              <span className="text-text-light">대상</span>
+              <span className="font-bold text-eye-purple">{targetName}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
             <span className="font-bold text-eye-purple tabular-nums">⭐ {cost}</span>

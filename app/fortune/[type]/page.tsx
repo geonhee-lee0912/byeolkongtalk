@@ -18,6 +18,7 @@ export default function FortuneInputPage() {
   const cfg = type in FORTUNE_CONFIG ? FORTUNE_CONFIG[type] : null;
 
   const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -47,9 +48,10 @@ export default function FortuneInputPage() {
   if (!cfg || !valid) return null;
 
   // 별 차감 팝업 오픈 — 로그인 확인 후 잔액 조회
-  const openConfirm = async (profileId: string) => {
+  const openConfirm = async (profileId: string, displayName: string) => {
     setError(null);
     setNeedCharge(false);
+    setPendingName(displayName);
 
     try {
       const me = await fetch("/api/auth/me", { cache: "no-store" });
@@ -114,6 +116,8 @@ export default function FortuneInputPage() {
       }
       const data = await res.json();
       clearPendingFortune();
+      // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
       clearPendingFortune();
@@ -185,6 +189,7 @@ export default function FortuneInputPage() {
           title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 운세 보기"
+          targetName={pendingName ?? undefined}
           onConfirm={handleGenerate}
           onCharge={() => router.push("/shop")}
           onClose={() => setPendingProfileId(null)}
