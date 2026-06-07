@@ -9,7 +9,6 @@ import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScree
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { setPendingFortune, clearPendingFortune } from "@/lib/fortune/pending";
 
 type CompatKind = "compat" | "compat_social";
 
@@ -75,9 +74,6 @@ export default function CompatInput({ type }: { type: CompatKind }) {
     setError(null);
     setNeedCharge(false);
 
-    // 이탈 복구 마커 — 생성 직전 기록, 응답 받으면 삭제
-    setPendingFortune(type);
-
     try {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
@@ -85,7 +81,6 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         body: JSON.stringify({ type, profileA: a, profileB: b }),
       });
       if (!res.ok) {
-        clearPendingFortune();
         const data = await res.json().catch(() => ({}));
         if (data?.code === "INSUFFICIENT_STARS") {
           setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
@@ -103,12 +98,10 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         return;
       }
       const data = await res.json();
-      clearPendingFortune();
       // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
-      clearPendingFortune();
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       setGenerating(false);
     }

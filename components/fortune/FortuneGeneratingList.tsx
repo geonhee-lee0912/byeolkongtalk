@@ -2,7 +2,6 @@
 
 // 별콩 운세 페이지에서 백그라운드 생성 중인 리포트를 서버 상태 기반으로 보여준다.
 // 내 고민톡(/readings)의 '생성 중' 카드와 동일한 모양 — 생성이 끝나면 '보러가기' 카드로 전환.
-// (마커 기반 FortuneRecoveryBanner 와 달리 localStorage 의존 없이 어디서 결제했든 노출.)
 
 import { useEffect, useState } from "react";
 import Link from "next/link";

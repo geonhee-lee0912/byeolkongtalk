@@ -68,38 +68,12 @@ function fortuneIcon(emotionTag: string | null | undefined, size: number) {
   return <span>{ft ? FORTUNE_CONFIG[ft].emoji : "✨"}</span>;
 }
 
-function DeleteButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label="삭제"
-      className="absolute top-1.5 right-1.5 p-1 rounded-md text-text-light/30 hover:text-rose-400 hover:bg-rose-50 transition"
-    >
-      <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="3 6 5 6 21 6" />
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      </svg>
-    </button>
-  );
-}
-
 export default function ReadingsPage() {
   const router = useRouter();
   const [readings, setReadings] = useState<ReadingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<ReadingsTab>("consult");
   const [page, setPage] = useState(0);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
@@ -151,14 +125,6 @@ export default function ReadingsPage() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [hasGenerating]);
-
-  const handleDelete = async (id: string) => {
-    setDeleting(true);
-    const r = await fetch(`/api/readings/${id}`, { method: "DELETE" }).catch(() => null);
-    if (r?.ok) setReadings((prev) => prev.filter((x) => x.id !== id));
-    setDeleteId(null);
-    setDeleting(false);
-  };
 
   const switchTab = (t: ReadingsTab) => {
     setTab(t);
@@ -250,15 +216,8 @@ export default function ReadingsPage() {
                 <Link
                   key={r.id}
                   href={href}
-                  className="relative bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 hover:border-lilac-deep/50 transition"
+                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <DeleteButton
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeleteId(r.id);
-                    }}
-                  />
                   {isTarot ? (
                     cards.length > 0 ? (
                       <div className="shrink-0 self-center flex items-center">
@@ -296,7 +255,7 @@ export default function ReadingsPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap pr-5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {canResume && (
                         <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-2 py-0.5">
                           이어하기
@@ -361,19 +320,12 @@ export default function ReadingsPage() {
                 <Link
                   key={r.id}
                   href={`/fortune/result?id=${r.id}&from=history`}
-                  className="relative bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
+                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <DeleteButton
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeleteId(r.id);
-                    }}
-                  />
                   <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
                     {fortuneIcon(r.emotionTag, 24)}
                   </div>
-                  <div className="flex-1 min-w-0 pr-5">
+                  <div className="flex-1 min-w-0">
                     <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
                       {r.question}
                     </div>
@@ -430,32 +382,6 @@ export default function ReadingsPage() {
         )}
       </div>
 
-      {/* 삭제 확인 모달 */}
-      {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
-            <p className="text-[14px] font-bold text-eye-purple mb-2">기록 삭제</p>
-            <p className="text-[12px] text-text-light leading-relaxed mb-4">
-              이 기록을 삭제할까? 삭제하면 다시 볼 수 없어.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => handleDelete(deleteId)}
-                disabled={deleting}
-                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
