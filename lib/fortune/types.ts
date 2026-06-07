@@ -5,9 +5,20 @@ export type FortuneType =
   | "daily"
   | "monthly"
   | "saju_full"
-  | "tarot_oneshot"
+  | "tarot_daily"
+  | "tarot_love"
+  | "tarot_money"
+  | "tarot_career"
+  | "tarot_relation"
   | "compat"
   | "compat_social";
+
+export type TarotFortuneType =
+  | "tarot_daily"
+  | "tarot_love"
+  | "tarot_money"
+  | "tarot_career"
+  | "tarot_relation";
 
 export interface FortuneConfig {
   type: FortuneType;
@@ -68,16 +79,62 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     href: "/fortune/saju_full",
     active: true,
   },
-  tarot_oneshot: {
-    type: "tarot_oneshot",
-    label: "타로 원샷 리딩",
+  tarot_daily: {
+    type: "tarot_daily",
+    label: "오늘의 타로",
     emoji: "🃏",
-    tagline: "카드 한 장으로 지금 질문에 바로 답을",
+    tagline: "오늘 너에게 오는 한 장의 메시지",
     base: "tarot",
-    cost: 10,
-    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_oneshot`,
-    href: "/fortune/tarot",
-    active: false,
+    cost: 0,
+    freeLimit: 5,
+    paidCost: 5,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_daily`,
+    href: "/fortune/tarot/tarot_daily",
+    active: true,
+  },
+  tarot_love: {
+    type: "tarot_love",
+    label: "연애운 타로",
+    emoji: "💗",
+    tagline: "지금 너의 연애, 카드 세 장으로 풀어볼게",
+    base: "tarot",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_love`,
+    href: "/fortune/tarot/tarot_love",
+    active: true,
+  },
+  tarot_money: {
+    type: "tarot_money",
+    label: "금전운 타로",
+    emoji: "💰",
+    tagline: "돈의 흐름과 기회를 카드로 짚어줄게",
+    base: "tarot",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_money`,
+    href: "/fortune/tarot/tarot_money",
+    active: true,
+  },
+  tarot_career: {
+    type: "tarot_career",
+    label: "직장·진로 타로",
+    emoji: "💼",
+    tagline: "일과 진로의 갈림길, 카드가 길을 보여줄게",
+    base: "tarot",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_career`,
+    href: "/fortune/tarot/tarot_career",
+    active: true,
+  },
+  tarot_relation: {
+    type: "tarot_relation",
+    label: "인간관계 타로",
+    emoji: "🤝",
+    tagline: "사람 사이의 거리, 카드로 들여다볼게",
+    base: "tarot",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_relation`,
+    href: "/fortune/tarot/tarot_relation",
+    active: true,
   },
   compat: {
     type: "compat",
@@ -107,7 +164,11 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.daily,
   FORTUNE_CONFIG.monthly,
   FORTUNE_CONFIG.saju_full,
-  FORTUNE_CONFIG.tarot_oneshot,
+  FORTUNE_CONFIG.tarot_daily,
+  FORTUNE_CONFIG.tarot_love,
+  FORTUNE_CONFIG.tarot_money,
+  FORTUNE_CONFIG.tarot_career,
+  FORTUNE_CONFIG.tarot_relation,
   FORTUNE_CONFIG.compat,
   FORTUNE_CONFIG.compat_social,
 ];
@@ -117,7 +178,11 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 2600,
   monthly: 5000,
   saju_full: 12000,
-  tarot_oneshot: 2048,
+  tarot_daily: 1024,
+  tarot_love: 2048,
+  tarot_money: 2048,
+  tarot_career: 2048,
+  tarot_relation: 2048,
   compat: 6000,
   compat_social: 6000,
 };
@@ -127,4 +192,19 @@ export function fortuneTypeFromTag(tag: string | null | undefined): FortuneType 
   if (!tag || !tag.startsWith(FORTUNE_SENTINEL_PREFIX)) return null;
   const t = tag.slice(FORTUNE_SENTINEL_PREFIX.length) as FortuneType;
   return t in FORTUNE_CONFIG ? t : null;
+}
+
+// 타로 운세 타입별 카드 포지션. cardCount의 단일 진실 원천(length로 카드 수 결정).
+export const TAROT_POSITIONS: Record<TarotFortuneType, string[]> = {
+  tarot_daily: ["오늘의 메시지"],
+  tarot_love: ["나의 마음", "상대의 마음", "관계의 흐름"],
+  tarot_money: ["현재 흐름", "장애물", "기회·조언"],
+  tarot_career: ["현재 위치", "변화의 기류", "나아갈 길"],
+  tarot_relation: ["나", "상대·무리", "관계의 방향"],
+};
+
+export function getTarotPositions(type: string): string[] | null {
+  return type in TAROT_POSITIONS
+    ? TAROT_POSITIONS[type as TarotFortuneType]
+    : null;
 }
