@@ -34,6 +34,16 @@ function fmtDate(ms: number): string {
   return `${d.getFullYear()}. ${p(d.getMonth() + 1)}. ${p(d.getDate())}`;
 }
 
+function fmtTime(ms: number): string {
+  const d = new Date(ms);
+  const h = d.getHours();
+  const ampm = h < 12 ? "오전" : "오후";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${ampm} ${h12}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+const PAGE_SIZE = 8;
+
 type Row =
   | { kind: "payment"; id: string; time: number; payment: Payment }
   | { kind: "star"; id: string; time: number; tx: StarTx };
@@ -43,6 +53,7 @@ export default function PaymentsPage() {
   const [txs, setTxs] = useState<StarTx[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -76,6 +87,15 @@ export default function PaymentsPage() {
       (t): Row => ({ kind: "star", id: `s-${t.id}`, time: t.createdAt, tx: t })
     ),
   ].sort((a, b) => b.time - a.time);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pagedRows = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
+  const goPage = (n: number) => {
+    setPage(Math.max(0, Math.min(totalPages - 1, n)));
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -113,7 +133,7 @@ export default function PaymentsPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {rows.map((row) =>
+            {pagedRows.map((row) =>
               row.kind === "payment" ? (
                 <div
                   key={row.id}
@@ -128,7 +148,7 @@ export default function PaymentsPage() {
                     </div>
                     <div className="text-[11px] mt-0.5">
                       <span className="font-bold text-eye-purple/80">
-                        {fmtDate(row.payment.paidAt)}
+                        {fmtDate(row.payment.paidAt)} {fmtTime(row.payment.paidAt)}
                       </span>
                       <span className="text-text-light/70"> · ⭐{row.payment.stars}별</span>
                     </div>
@@ -148,7 +168,7 @@ export default function PaymentsPage() {
                     </div>
                     <div className="text-[11px] mt-0.5">
                       <span className="font-bold text-eye-purple/80">
-                        {fmtDate(row.tx.createdAt)}
+                        {fmtDate(row.tx.createdAt)} {fmtTime(row.tx.createdAt)}
                       </span>
                       <span className="text-text-light/70"> · 잔액 {row.tx.balanceAfter}별</span>
                     </div>
@@ -164,6 +184,34 @@ export default function PaymentsPage() {
                 </div>
               )
             )}
+          </div>
+        )}
+
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={() => goPage(safePage - 1)}
+              disabled={safePage === 0}
+              aria-label="이전"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <span className="text-[12px] font-bold text-eye-purple tabular-nums">
+              {safePage + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => goPage(safePage + 1)}
+              disabled={safePage === totalPages - 1}
+              aria-label="다음"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
           </div>
         )}
       </div>
