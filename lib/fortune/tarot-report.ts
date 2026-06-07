@@ -27,6 +27,7 @@ function isNonEmptyString(v: unknown): v is string {
  * AI 원문에서 JSON 본문을 잘라 파싱한다. 형식이 어긋나면 null.
  */
 export function parseTarotReportJson(raw: string): TarotReportAI | null {
+  if (typeof raw !== "string") return null;
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return null;
@@ -81,6 +82,7 @@ export function serializeTarotReport(report: TarotReport): string {
  * 저장된 content 문자열을 TarotReport로 복원. 실패 시 null.
  */
 export function tryParseStoredTarotReport(content: string): TarotReport | null {
+  if (typeof content !== "string") return null;
   const trimmed = content.trimStart();
   if (!trimmed.startsWith("{")) return null;
   let parsed: unknown;
