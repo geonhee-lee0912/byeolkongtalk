@@ -140,7 +140,7 @@ export default function FortuneGeneratingList() {
               {labelFromTag(r.emotionTag)}
             </div>
             <div className="text-[11px] text-cream/60 mt-1">
-              리포트를 못 만들어서 {r.refundedStars}별을 돌려줬어 🙏
+              리포트를 못 만들어서 {r.refundedStars}별을 돌려줬어
             </div>
           </div>
           <button
