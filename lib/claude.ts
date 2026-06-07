@@ -25,6 +25,7 @@ import type {
 } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
+import { logWarn } from "@/lib/logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -207,14 +208,18 @@ export async function* streamChat(
     messages,
   });
 
+  let stopReason: string | null = null;
   for await (const event of stream) {
     if (
       event.type === "content_block_delta" &&
       event.delta.type === "text_delta"
     ) {
       yield event.delta.text;
+    } else if (event.type === "message_delta") {
+      stopReason = event.delta.stop_reason ?? stopReason;
     }
   }
+  return stopReason;
 }
 
 /** 비스트리밍 — streamChat 을 끝까지 모아 전체 텍스트 한 번에 반환 (운세 리포트용). */
@@ -224,8 +229,18 @@ export async function generateOnce(
   maxTokens: number = 2048
 ): Promise<string> {
   let out = "";
-  for await (const chunk of streamChat(systemMessage, messages, maxTokens)) {
-    out += chunk;
+  const it = streamChat(systemMessage, messages, maxTokens);
+  let res = await it.next();
+  while (!res.done) {
+    out += res.value;
+    res = await it.next();
+  }
+  // stop_reason === "max_tokens" 면 응답이 잘린 것 — 운세 리포트 JSON 파싱 실패의 주범.
+  // 토큰 한도를 올리라는 신호로 경고 로그를 남긴다(조용한 truncation 방지).
+  if (res.value === "max_tokens") {
+    void logWarn("generateOnce hit max_tokens — response truncated", {
+      extra: { maxTokens, outputLen: out.length },
+    });
   }
   return out.trim();
 }

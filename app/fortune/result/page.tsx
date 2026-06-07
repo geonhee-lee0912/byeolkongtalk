@@ -277,6 +277,19 @@ function FortuneResultInner() {
       }
       setGenerating(false);
       setLoading(false);
+      // 리포트를 실제로 열어봤으니 /fortune 의 '보러가기' 인디케이터에서 이 id 를 제거한다.
+      try {
+        const raw = sessionStorage.getItem("byeolkong:fortune-seen-generating");
+        if (raw) {
+          const arr = (JSON.parse(raw) as string[]).filter((x) => x !== id);
+          sessionStorage.setItem(
+            "byeolkong:fortune-seen-generating",
+            JSON.stringify(arr)
+          );
+        }
+      } catch {
+        /* ignore */
+      }
       // 생성 직후 차감이 DB 에 반영됐으니 헤더 별 잔액을 새로고침
       try {
         window.dispatchEvent(new Event("byeolkong:balance-updated"));
@@ -349,6 +362,7 @@ function FortuneResultInner() {
   const isSajuFull = ftType === "saju_full";
   const isCompat = ftType === "compat" || ftType === "compat_social";
   const isTarot = ftType ? FORTUNE_CONFIG[ftType].base === "tarot" : false;
+  const isTarotDaily = ftType === "tarot_daily";
   const compatVariant = ftType === "compat_social" ? "social" : "romantic";
   const monthLabel =
     isMonthly && createdAt
@@ -384,10 +398,10 @@ function FortuneResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {!isPublic && (
+      {!isPublic && !isTarotDaily && (
         <div className="w-full max-w-md mx-auto px-5 mb-1">
           <button
-            onClick={() => router.back()}
+            onClick={() => (isTarot ? router.push("/fortune") : router.back())}
             aria-label="뒤로 가기"
             className="inline-flex items-center gap-1 text-text-light/70 text-[13px] font-medium hover:text-text-light transition"
           >
@@ -423,7 +437,11 @@ function FortuneResultInner() {
       ) : isCompat && compatReport ? (
         <CompatReportView report={compatReport} saju={compatSaju} variant={compatVariant} />
       ) : isTarot && tarotReport ? (
-        <TarotReportView report={tarotReport} drawnCards={tarotDrawn} />
+        <TarotReportView
+          report={tarotReport}
+          drawnCards={tarotDrawn}
+          variant={isTarotDaily ? "daily" : "default"}
+        />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">

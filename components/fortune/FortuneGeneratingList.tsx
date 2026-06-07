@@ -15,6 +15,28 @@ interface FortuneReading {
   generating?: boolean;
 }
 
+// 생성 중이었던 id 를 세션에 보관 — 완료 후 '보러가기' 카드가 페이지 재진입에도 유지된다.
+// 결과를 실제로 열어보면 result 페이지가 이 목록에서 해당 id 를 제거한다(확인 전까지 유지).
+const SEEN_KEY = "byeolkong:fortune-seen-generating";
+
+function loadSeen(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = sessionStorage.getItem(SEEN_KEY);
+    return new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSeen(s: Set<string>): void {
+  try {
+    sessionStorage.setItem(SEEN_KEY, JSON.stringify([...s]));
+  } catch {
+    /* ignore */
+  }
+}
+
 function icon(emotionTag: string | null | undefined, size: number) {
   const ft = fortuneTypeFromTag(emotionTag);
   if (ft === "saju_full") return <RedHorseIcon size={size} />;
@@ -28,8 +50,8 @@ function label(r: FortuneReading): string {
 
 export default function FortuneGeneratingList() {
   const [readings, setReadings] = useState<FortuneReading[]>([]);
-  // 이번 세션에서 생성 중이었던 id — 완료 후 '보러가기' 카드로 잠시 노출
-  const [seenGenerating, setSeenGenerating] = useState<Set<string>>(new Set());
+  // 이번 세션에서 생성 중이었던 id — 완료 후 '보러가기' 카드로 노출. 세션에 보관해 재진입에도 유지.
+  const [seenGenerating, setSeenGenerating] = useState<Set<string>>(() => loadSeen());
 
   const load = async () => {
     const d = await fetch("/api/readings", { cache: "no-store" })
@@ -41,6 +63,7 @@ export default function FortuneGeneratingList() {
     setSeenGenerating((prev) => {
       const next = new Set(prev);
       for (const r of fortune) if (r.generating) next.add(r.id);
+      saveSeen(next);
       return next;
     });
   };

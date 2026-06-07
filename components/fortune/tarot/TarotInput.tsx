@@ -74,7 +74,8 @@ export default function TarotInput({ type }: { type: FortuneType }) {
       return;
     }
     window.dispatchEvent(new Event("byeolkong:balance-updated"));
-    router.push(`/fortune/result?id=${res.j.id}`);
+    // replace: 카드 선택 화면을 히스토리에서 빼서, 결과/생성중 화면에서 뒤로가면 /fortune 목록으로 간다.
+    router.replace(`/fortune/result?id=${res.j.id}`);
   };
 
   const onComplete = async (drawn: DrawnCard[]) => {

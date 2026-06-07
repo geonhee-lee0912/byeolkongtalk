@@ -58,7 +58,13 @@ function dayPillar(r: ReadingItem): string | null {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleString("ko-KR", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Seoul",
+  });
 }
 
 /** 운세 종류별 아이콘 — saju_full 은 붉은 말, 나머지는 이모지 */
