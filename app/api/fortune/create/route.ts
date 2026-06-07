@@ -251,11 +251,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     await refundOnFailure();
     await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type } }));
-    return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+    return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
   }
   if (!report || report.length < 20) {
     await refundOnFailure();
-    return NextResponse.json({ error: "empty_report" }, { status: 502 });
+    return NextResponse.json({ error: "empty_report", refunded: effectiveCost > 0 }, { status: 502 });
   }
 
   // daily 는 구조화 JSON — 파싱·검증 후 일진(결정론적) 병합본을 저장한다.
@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
         userId,
         extra: { stage: "daily_parse", type },
       });
-      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
     }
     storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
   } else if (cfg.type === "monthly") {
@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
         userId,
         extra: { stage: "monthly_parse", type },
       });
-      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
     }
     storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
   } else if (cfg.type === "saju_full") {
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
         userId,
         extra: { stage: "saju_full_parse", type },
       });
-      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
     }
     storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
   } else if (cfg.type === "compat" || cfg.type === "compat_social") {
@@ -358,7 +358,7 @@ export async function POST(req: NextRequest) {
         userId,
         extra: { stage: "compat_parse", type },
       });
-      return NextResponse.json({ error: "generation_failed" }, { status: 502 });
+      return NextResponse.json({ error: "generation_failed", refunded: effectiveCost > 0 }, { status: 502 });
     }
     storedContent = serializeCompatReport(buildCompatReport(ai));
   }
@@ -387,7 +387,7 @@ export async function POST(req: NextRequest) {
       userId,
       extra: { stage: "reading_insert", type },
     });
-    return NextResponse.json({ error: rErr?.message ?? "reading_insert_failed" }, { status: 500 });
+    return NextResponse.json({ error: rErr?.message ?? "reading_insert_failed", refunded: effectiveCost > 0 }, { status: 500 });
   }
 
   const { error: mErr } = await supabase
@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
     await supabase.from("readings").delete().eq("id", reading.id);
     await refundOnFailure();
     await logError(mErr, { route: "/api/fortune/create", userId, extra: { stage: "message_insert", type } });
-    return NextResponse.json({ error: "message_insert_failed" }, { status: 500 });
+    return NextResponse.json({ error: "message_insert_failed", refunded: effectiveCost > 0 }, { status: 500 });
   }
 
   return NextResponse.json({ id: reading.id, success: true, cost: effectiveCost, balance: spentBalance });

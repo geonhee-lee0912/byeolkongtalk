@@ -7,6 +7,7 @@ import Image from "next/image";
 import DualSajuPicker from "@/components/fortune/DualSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { setPendingFortune, clearPendingFortune } from "@/lib/fortune/pending";
 
@@ -22,6 +23,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
+  const [refunded, setRefunded] = useState(false);
 
   // 별 차감 팝업 오픈 — 로그인 확인 후 잔액 조회
   const openConfirm = async (profileA: string, profileB: string) => {
@@ -78,6 +80,8 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         if (data?.code === "INSUFFICIENT_STARS") {
           setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
           setNeedCharge(true);
+        } else if (data?.refunded) {
+          setRefunded(true);
         } else {
           setError(
             data?.error === "rate_limited"
@@ -161,6 +165,10 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           onCharge={() => router.push("/shop")}
           onClose={() => setPending(null)}
         />
+      )}
+
+      {refunded && (
+        <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />
       )}
     </main>
   );

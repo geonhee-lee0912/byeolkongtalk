@@ -7,6 +7,7 @@ import Image from "next/image";
 import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import { setPendingFortune, clearPendingFortune } from "@/lib/fortune/pending";
 
@@ -22,6 +23,7 @@ export default function FortuneInputPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
+  const [refunded, setRefunded] = useState(false);
   const [reviewable, setReviewable] = useState<Record<string, string>>({});
 
   // daily 는 전용 페이지, tarot/비활성은 동적 입력 대상 아님
@@ -98,6 +100,8 @@ export default function FortuneInputPage() {
         if (data?.code === "INSUFFICIENT_STARS") {
           setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
           setNeedCharge(true);
+        } else if (data?.refunded) {
+          setRefunded(true);
         } else {
           setError(
             data?.error === "rate_limited"
@@ -185,6 +189,10 @@ export default function FortuneInputPage() {
           onCharge={() => router.push("/shop")}
           onClose={() => setPendingProfileId(null)}
         />
+      )}
+
+      {refunded && (
+        <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />
       )}
     </main>
   );
