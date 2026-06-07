@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { getStarBalance, spendStars } from "@/lib/stars";
+import { spendStars, chargeStars } from "@/lib/stars";
+import { randomUUID } from "crypto";
 import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, type FortuneType } from "@/lib/fortune/types";
@@ -218,16 +219,25 @@ export async function POST(req: NextRequest) {
     if ((count ?? 0) >= cfg.freeLimit) effectiveCost = cfg.paidCost;
   }
 
-  // 유료 운세 잔액 사전 확인
+  // 즉시 차감 — 확인을 누른 시점에 별을 먼저 뺀다(고민톡과 동일 감각).
+  // 생성·저장이 실패하면 차감했던 별을 자동 환불한다(refundOnFailure).
+  let spentBalance: number | undefined;
   if (effectiveCost > 0) {
-    const balance = await getStarBalance(userId);
-    if (balance < effectiveCost) {
+    const spend = await spendStars(userId, effectiveCost, { source: `fortune_${cfg.type}` });
+    if (!spend.success) {
       return NextResponse.json(
-        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", balance, required: effectiveCost },
+        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: effectiveCost },
         { status: 402 }
       );
     }
+    spentBalance = spend.balance;
   }
+
+  const refundOnFailure = async () => {
+    if (effectiveCost > 0) {
+      await chargeStars(userId, effectiveCost, `refund_${randomUUID()}`, `fortune_refund_${cfg.type}`);
+    }
+  };
 
   // Claude 1회 호출 → 리포트
   const systemInput =
@@ -239,10 +249,12 @@ export async function POST(req: NextRequest) {
     const system = buildFortuneSystem(cfg.type, systemInput);
     report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type]);
   } catch (err) {
+    await refundOnFailure();
     await logError(err, ctxFromRequest(req, { route: "/api/fortune/create", userId, extra: { type } }));
     return NextResponse.json({ error: "generation_failed" }, { status: 502 });
   }
   if (!report || report.length < 20) {
+    await refundOnFailure();
     return NextResponse.json({ error: "empty_report" }, { status: 502 });
   }
 
@@ -265,6 +277,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!ai || !saju?.temporal) {
+      await refundOnFailure();
       await logError(new Error("daily report parse failed"), {
         route: "/api/fortune/create",
         userId,
@@ -289,6 +302,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!ai || !saju?.temporal) {
+      await refundOnFailure();
       await logError(new Error("monthly report parse failed"), {
         route: "/api/fortune/create",
         userId,
@@ -313,6 +327,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!ai) {
+      await refundOnFailure();
       await logError(new Error("saju_full report parse failed"), {
         route: "/api/fortune/create",
         userId,
@@ -337,6 +352,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!ai) {
+      await refundOnFailure();
       await logError(new Error("compat report parse failed"), {
         route: "/api/fortune/create",
         userId,
@@ -365,6 +381,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (rErr || !reading) {
+    await refundOnFailure();
     await logError(rErr ?? new Error("reading insert null"), {
       route: "/api/fortune/create",
       userId,
@@ -378,27 +395,10 @@ export async function POST(req: NextRequest) {
     .insert([{ reading_id: reading.id, role: "assistant", content: storedContent }]);
   if (mErr) {
     await supabase.from("readings").delete().eq("id", reading.id);
+    await refundOnFailure();
     await logError(mErr, { route: "/api/fortune/create", userId, extra: { stage: "message_insert", type } });
     return NextResponse.json({ error: "message_insert_failed" }, { status: 500 });
   }
 
-  // 유료면 별 차감 (실패 시 롤백)
-  let balance: number | undefined;
-  if (effectiveCost > 0) {
-    const spend = await spendStars(userId, effectiveCost, {
-      readingId: reading.id,
-      source: `fortune_${cfg.type}`,
-    });
-    if (!spend.success) {
-      await supabase.from("messages").delete().eq("reading_id", reading.id);
-      await supabase.from("readings").delete().eq("id", reading.id);
-      return NextResponse.json(
-        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: effectiveCost },
-        { status: 402 }
-      );
-    }
-    balance = spend.balance;
-  }
-
-  return NextResponse.json({ id: reading.id, success: true, cost: effectiveCost, balance });
+  return NextResponse.json({ id: reading.id, success: true, cost: effectiveCost, balance: spentBalance });
 }
