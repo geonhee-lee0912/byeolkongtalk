@@ -282,8 +282,8 @@ export default function ReadingsPage() {
                         <Image
                           src={getCardImagePath(cards[0].card_id)}
                           alt=""
-                          width={30}
-                          height={46}
+                          width={24}
+                          height={38}
                           className={`rounded-[3px] shadow-sm ${
                             cards[0].direction === "reversed" ? "rotate-180" : ""
                           }`}
