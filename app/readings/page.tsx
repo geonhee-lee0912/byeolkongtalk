@@ -281,7 +281,7 @@ export default function ReadingsPage() {
                             alt=""
                             width={32}
                             height={50}
-                            style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i }}
+                            style={{ marginLeft: i === 0 ? 0 : -27, zIndex: i }}
                             className={`rounded-[4px] border border-white/90 shadow-sm ${
                               c.direction === "reversed" ? "rotate-180" : ""
                             }`}
@@ -367,9 +367,9 @@ export default function ReadingsPage() {
                 <Link
                   key={r.id}
                   href={`/fortune/result?id=${r.id}&from=history`}
-                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center gap-3 hover:border-lilac-deep/50 transition"
+                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-start gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
+                  <div className="shrink-0 self-center w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
                     {fortuneIcon(r.emotionTag, 24)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -381,8 +381,12 @@ export default function ReadingsPage() {
                       <span>·</span>
                       <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
                     </div>
+                    {r.preview?.trim() && (
+                      <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                        {r.preview.trim()}
+                      </p>
+                    )}
                   </div>
-                  <span className="text-text-light/40 text-sm">›</span>
                 </Link>
               );
             })}
