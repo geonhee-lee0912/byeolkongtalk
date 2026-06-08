@@ -301,6 +301,15 @@ export default function ReadingsPage() {
                       <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
                         {r.emotionTag ?? "고민 상담"}
                       </span>
+                      {r.hasSensitive && (
+                        <span
+                          className="shrink-0 text-[11px] text-rose-400"
+                          role="img"
+                          aria-label="민감 시그널이 감지된 대화"
+                        >
+                          🤍
+                        </span>
+                      )}
                       {chip && (
                         <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
                           {chip}
