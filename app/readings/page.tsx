@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { SPREAD_INFO, type DrawnCard } from "@/lib/tarot/spreads";
+import { type DrawnCard } from "@/lib/tarot/spreads";
 import { getCardImagePath } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
@@ -29,6 +29,7 @@ interface ReadingItem {
   ended?: boolean;
   generating?: boolean;
   profile: { display_name: string; relation_type: string } | null;
+  preview?: string | null;
 }
 
 const READINGS_TABS = [
@@ -39,17 +40,6 @@ const READINGS_TABS = [
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
 
 const PAGE_SIZE = 8;
-
-/** 고민 상담 카드의 '운세 선택' 라벨 — 타로 스프레드 또는 사주 상품 */
-function choiceLabel(r: ReadingItem): string | null {
-  if (r.consultationType === "tarot" && r.spreadType) {
-    return (SPREAD_INFO as Record<string, { label: string }>)[r.spreadType]?.label ?? null;
-  }
-  if (isSajuProduct(r.sajuProduct)) {
-    return SAJU_PRODUCT_INFO[r.sajuProduct].label;
-  }
-  return null;
-}
 
 /** 사주 상담 카드의 일주 (일간+일지, 예: "갑자") — 없으면 null */
 function dayPillar(r: ReadingItem): string | null {
@@ -65,6 +55,60 @@ function formatDate(iso: string): string {
     minute: "2-digit",
     timeZone: "Asia/Seoul",
   });
+}
+
+/** 상대 시간 — 오늘/어제/N일 전/그 이전은 M/D */
+function relativeDate(iso: string): string {
+  const then = new Date(iso);
+  const now = new Date();
+  const startOf = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(then)) / 86400000);
+  if (days <= 0) return "오늘";
+  if (days === 1) return "어제";
+  if (days < 7) return `${days}일 전`;
+  return then.toLocaleDateString("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    timeZone: "Asia/Seoul",
+  });
+}
+
+/** 사주 행 서브텍스트 — "상품명 · OO 사주 甲子" */
+function sajuSubtext(r: ReadingItem): string | null {
+  if (!isSajuProduct(r.sajuProduct)) return null;
+  const product = SAJU_PRODUCT_INFO[r.sajuProduct].label;
+  const who = r.profile?.relation_type === "self" || !r.profile ? "내" : r.profile.display_name;
+  const pillar = dayPillar(r);
+  return pillar ? `${product} · ${who} 사주 ${pillar}` : product;
+}
+
+/** 프로필 칩 라벨 — 본인이면 숨김(null), 아니면 display_name */
+function profileChip(r: ReadingItem): string | null {
+  if (!r.profile || r.profile.relation_type === "self") return null;
+  return r.profile.display_name;
+}
+
+/** 사주 상담 아바타 — 4종 일러스트를 중립 소프트 타일 위에 얹음. 상품 미상이면 fallback */
+function sajuAvatar(r: ReadingItem) {
+  if (isSajuProduct(r.sajuProduct)) {
+    return (
+      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
+        <Image
+          src={`/icons/saju/${r.sajuProduct}.png`}
+          alt=""
+          width={40}
+          height={40}
+          className="object-contain"
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+      🔮
+    </div>
+  );
 }
 
 /** 운세 종류별 아이콘 — saju_full 은 붉은 말, 나머지는 이모지 */
@@ -215,14 +259,15 @@ export default function ReadingsPage() {
                 : isTarot
                   ? `/tarot/result?id=${r.id}&from=history`
                   : `/saju/result?id=${r.id}&from=history`;
-              const choice = choiceLabel(r);
               const cards = r.drawnCards ?? [];
-              const pillar = dayPillar(r);
+              const subtext = isTarot ? null : sajuSubtext(r);
+              const chip = profileChip(r);
+              const preview = r.preview?.trim();
               return (
                 <Link
                   key={r.id}
                   href={href}
-                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 hover:border-lilac-deep/50 transition"
+                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 items-start hover:border-lilac-deep/50 transition"
                 >
                   {isTarot ? (
                     cards.length > 0 ? (
@@ -232,66 +277,58 @@ export default function ReadingsPage() {
                             key={i}
                             src={getCardImagePath(c.card_id)}
                             alt=""
-                            width={28}
-                            height={44}
-                            style={{ marginLeft: i === 0 ? 0 : -16, zIndex: i }}
-                            className={`rounded-[3px] border border-white/90 shadow-sm ${
+                            width={32}
+                            height={50}
+                            style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i }}
+                            className={`rounded-[4px] border border-white/90 shadow-sm ${
                               c.direction === "reversed" ? "rotate-180" : ""
                             }`}
                           />
                         ))}
                       </div>
                     ) : (
-                      <div className="shrink-0 self-center w-11 h-11 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+                      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
                         🃏
                       </div>
                     )
                   ) : (
-                    <div className="shrink-0 self-center w-11 h-11 rounded-xl bg-lilac-soft/50 flex flex-col items-center justify-center">
-                      {pillar ? (
-                        <>
-                          <span className="text-[15px] font-bold text-eye-purple leading-none">
-                            {pillar}
-                          </span>
-                          <span className="text-[9px] text-text-light/60 mt-0.5">일주</span>
-                        </>
-                      ) : (
-                        <span className="text-[18px]">🔮</span>
-                      )}
-                    </div>
+                    sajuAvatar(r)
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+                        {r.emotionTag ?? "고민 상담"}
+                      </span>
+                      {chip && (
+                        <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+                          {chip}
+                        </span>
+                      )}
                       {canResume && (
-                        <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-2 py-0.5">
+                        <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
                           이어하기
                         </span>
                       )}
-                      <span className="text-[13px] font-bold text-eye-purple">
-                        {r.emotionTag ?? "고민 상담"}
+                      <span className="ml-auto shrink-0 text-[10px] text-text-light/60">
+                        {relativeDate(r.createdAt)}
                       </span>
-                      {choice && (
-                        <span className="text-[11px] text-text-light/60">· {choice}</span>
-                      )}
                     </div>
-                    <p className="text-[12px] text-text-light/80 mt-1 leading-snug line-clamp-3">
-                      {r.question}
+                    {subtext && (
+                      <p className="text-[10px] text-text-light/60 mt-0.5 truncate">
+                        {subtext}
+                      </p>
+                    )}
+                    <p
+                      className="text-[11.5px] text-text-light/80 mt-1 leading-snug overflow-hidden"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
                     </p>
-                    <div className="text-[11px] text-text-light/60 mt-1.5 flex items-center gap-1.5">
-                      <span>{formatDate(r.createdAt)}</span>
-                      <span>·</span>
-                      <span>{isTarot ? "타로" : "사주"}</span>
-                      <span>·</span>
-                      <span>⭐ {r.starsSpent}</span>
-                      {r.hasSensitive && (
-                        <>
-                          <span>·</span>
-                          <span className="text-rose-400">🤍</span>
-                        </>
-                      )}
-                    </div>
                   </div>
-                  <span className="text-text-light/40 text-sm self-center">›</span>
                 </Link>
               );
             })}
