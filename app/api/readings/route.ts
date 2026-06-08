@@ -74,50 +74,34 @@ export async function GET() {
     return NextResponse.json({ readings: [], error: error.message }, { status: 500 });
   }
 
-  // 종료 여부 — assistant 메시지에 [END] 마커가 있으면 마무리된 풀이.
-  // 마커가 없는 풀이는 "이어할 수 있는 대화" 로 노출.
-  // '이어하기' 는 타로 상담만 해당 → 타로 reading 만 [END] 스캔 (사주/운세는 스킵).
-  const tarotIds = (data ?? [])
-    .filter((r) => r.consultation_type === "tarot")
-    .map((r) => r.id);
-  const endedSet = new Set<string>();
-  if (tarotIds.length > 0) {
-    const { data: endedRows } = await supabase
-      .from("messages")
-      .select("reading_id")
-      .in("reading_id", tarotIds)
-      .eq("role", "assistant")
-      .ilike("content", "%[END]%");
-    for (const row of endedRows ?? []) endedSet.add(row.reading_id);
-  }
-
-  // 운세 리포트 생성 중 판정 — 운세 리딩인데 assistant 메시지가 아직 없으면 백그라운드 생성 중.
+  // 종료/생성중/미리보기 — 셋 다 assistant 메시지가 필요하므로 reading 묶음으로 한 번만 조회.
+  // (reading_id, created_at) 인덱스 활용. created_at 오름차순 1패스로:
+  //   - ended:      타로 + [END] 마커 보유 (이어할 수 없는 마무리된 대화)
+  //   - hasMsg:     assistant 메시지 1개라도 존재 (운세 생성중 판정용)
+  //   - preview:    reading 별 첫 assistant 메시지 도입부
+  const tarotIdSet = new Set(
+    (data ?? []).filter((r) => r.consultation_type === "tarot").map((r) => r.id)
+  );
   const fortuneIds = (data ?? [])
     .filter((r) => fortuneTypeFromTag(r.emotion_tag))
     .map((r) => r.id);
-  const hasMsgSet = new Set<string>();
-  if (fortuneIds.length > 0) {
-    const { data: msgRows } = await supabase
-      .from("messages")
-      .select("reading_id")
-      .in("reading_id", fortuneIds)
-      .eq("role", "assistant");
-    for (const row of msgRows ?? []) hasMsgSet.add(row.reading_id);
-  }
-
-  // 미리보기 — 각 reading 의 첫 assistant 메시지 도입부.
-  // (reading_id, created_at) 인덱스 활용. 전체 assistant 메시지를 created_at 오름차순으로
-  // 가져와, reading 별 첫 행만 채택한다.
   const allIds = (data ?? []).map((r) => r.id);
+
+  const endedSet = new Set<string>();
+  const hasMsgSet = new Set<string>();
   const previewMap = new Map<string, string>();
   if (allIds.length > 0) {
-    const { data: previewRows } = await supabase
+    const { data: msgRows } = await supabase
       .from("messages")
       .select("reading_id, content")
       .in("reading_id", allIds)
       .eq("role", "assistant")
       .order("created_at", { ascending: true });
-    for (const row of previewRows ?? []) {
+    for (const row of msgRows ?? []) {
+      hasMsgSet.add(row.reading_id);
+      if (tarotIdSet.has(row.reading_id) && row.content.includes("[END]")) {
+        endedSet.add(row.reading_id);
+      }
       if (!previewMap.has(row.reading_id)) {
         const p = buildPreview(row.content);
         if (p) previewMap.set(row.reading_id, p);

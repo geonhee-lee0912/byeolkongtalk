@@ -150,14 +150,16 @@ export default function ReadingsPage() {
 
   useEffect(() => {
     void (async () => {
-      const me = await fetch("/api/auth/me", { cache: "no-store" })
-        .then((x) => (x.ok ? x.json() : null))
-        .catch(() => null);
+      const [me] = await Promise.all([
+        fetch("/api/auth/me", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
+        loadReadings(),
+      ]);
       if (!me?.isAuthenticated) {
         router.replace("/login?next=/readings");
         return;
       }
-      await loadReadings();
       setLoading(false);
     })();
   }, [router]);
