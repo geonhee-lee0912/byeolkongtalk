@@ -61,8 +61,10 @@ function formatDate(iso: string): string {
 function relativeDate(iso: string): string {
   const then = new Date(iso);
   const now = new Date();
-  const startOf = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const startOf = (d: Date) => {
+    const kst = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+    return new Date(kst.getFullYear(), kst.getMonth(), kst.getDate()).getTime();
+  };
   const days = Math.round((startOf(now) - startOf(then)) / 86400000);
   if (days <= 0) return "오늘";
   if (days === 1) return "어제";
@@ -105,7 +107,7 @@ function sajuAvatar(r: ReadingItem) {
     );
   }
   return (
-    <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
       🔮
     </div>
   );
@@ -318,14 +320,7 @@ export default function ReadingsPage() {
                         {subtext}
                       </p>
                     )}
-                    <p
-                      className="text-[11.5px] text-text-light/80 mt-1 leading-snug overflow-hidden"
-                      style={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                      }}
-                    >
+                    <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
                       {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
                     </p>
                   </div>
