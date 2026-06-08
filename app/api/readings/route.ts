@@ -24,7 +24,8 @@ function buildPreview(content: string): string {
     .replace(/\[END\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
-  return cleaned.length > 90 ? cleaned.slice(0, 90) + "…" : cleaned;
+  const chars = [...cleaned];
+  return chars.length > 90 ? chars.slice(0, 90).join("") + "…" : cleaned;
 }
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
@@ -91,7 +92,7 @@ export async function GET() {
   if (allIds.length > 0) {
     const { data: previewRows } = await supabase
       .from("messages")
-      .select("reading_id, content, created_at")
+      .select("reading_id, content")
       .in("reading_id", allIds)
       .eq("role", "assistant")
       .order("created_at", { ascending: true });
