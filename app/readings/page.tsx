@@ -278,20 +278,16 @@ export default function ReadingsPage() {
                 >
                   {isTarot ? (
                     cards.length > 0 ? (
-                      <div className="shrink-0 self-center w-12 flex items-center justify-center">
-                        {cards.map((c, i) => (
-                          <Image
-                            key={i}
-                            src={getCardImagePath(c.card_id)}
-                            alt=""
-                            width={34}
-                            height={52}
-                            style={{ marginLeft: i === 0 ? 0 : -27, zIndex: i }}
-                            className={`rounded-[4px] border border-white/90 shadow-sm ${
-                              c.direction === "reversed" ? "rotate-180" : ""
-                            }`}
-                          />
-                        ))}
+                      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
+                        <Image
+                          src={getCardImagePath(cards[0].card_id)}
+                          alt=""
+                          width={30}
+                          height={46}
+                          className={`rounded-[3px] shadow-sm ${
+                            cards[0].direction === "reversed" ? "rotate-180" : ""
+                          }`}
+                        />
                       </div>
                     ) : (
                       <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
