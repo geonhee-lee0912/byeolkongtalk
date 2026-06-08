@@ -17,9 +17,30 @@ import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
-// 별콩이 답변 도입부 미리보기용 — 카드/종료 마커 제거 후 한 줄로 정리하고 절단.
+// 운세/궁합 등 리포트형 리딩은 messages.content 에 JSON 구조체(v:1)로 저장된다.
+// JSON 이면 읽을 수 있는 텍스트 필드만 뽑고, 아니면(타로 상담 채팅 등) 원문 그대로 쓴다.
+function extractReportText(content: string): string | null {
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith("{")) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const o = parsed as Record<string, unknown>;
+  for (const key of ["summary", "theme", "headline", "intro", "advice"]) {
+    const v = o[key];
+    if (typeof v === "string" && v.trim().length > 0) return v.trim();
+  }
+  return null;
+}
+
+// 별콩이 답변 도입부 미리보기용 — 리포트는 텍스트 필드 추출, 카드/종료 마커 제거 후 절단.
 function buildPreview(content: string): string {
-  const cleaned = content
+  const base = extractReportText(content) ?? content;
+  const cleaned = base
     .replace(/\[CARD:\d+\]/g, "")
     .replace(/\[END\]/g, "")
     .replace(/\s+/g, " ")
@@ -98,7 +119,8 @@ export async function GET() {
       .order("created_at", { ascending: true });
     for (const row of previewRows ?? []) {
       if (!previewMap.has(row.reading_id)) {
-        previewMap.set(row.reading_id, buildPreview(row.content));
+        const p = buildPreview(row.content);
+        if (p) previewMap.set(row.reading_id, p);
       }
     }
   }

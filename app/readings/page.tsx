@@ -262,7 +262,12 @@ export default function ReadingsPage() {
                   ? `/tarot/result?id=${r.id}&from=history`
                   : `/saju/result?id=${r.id}&from=history`;
               const cards = r.drawnCards ?? [];
-              const subtext = isTarot ? null : sajuSubtext(r);
+              const subParts = [relativeDate(r.createdAt)];
+              if (!isTarot) {
+                const s = sajuSubtext(r);
+                if (s) subParts.push(s);
+              }
+              const subtitle = subParts.join(" · ");
               const chip = profileChip(r);
               const preview = r.preview?.trim();
               return (
@@ -273,14 +278,14 @@ export default function ReadingsPage() {
                 >
                   {isTarot ? (
                     cards.length > 0 ? (
-                      <div className="shrink-0 self-center flex items-center">
+                      <div className="shrink-0 self-center w-12 flex items-center justify-center">
                         {cards.map((c, i) => (
                           <Image
                             key={i}
                             src={getCardImagePath(c.card_id)}
                             alt=""
-                            width={32}
-                            height={50}
+                            width={34}
+                            height={52}
                             style={{ marginLeft: i === 0 ? 0 : -27, zIndex: i }}
                             className={`rounded-[4px] border border-white/90 shadow-sm ${
                               c.direction === "reversed" ? "rotate-180" : ""
@@ -320,15 +325,10 @@ export default function ReadingsPage() {
                           이어하기
                         </span>
                       )}
-                      <span className="ml-auto shrink-0 text-[10px] text-text-light/60">
-                        {relativeDate(r.createdAt)}
-                      </span>
                     </div>
-                    {subtext && (
-                      <p className="text-[10px] text-text-light/60 mt-0.5 truncate">
-                        {subtext}
-                      </p>
-                    )}
+                    <p className="text-[10px] text-text-light/60 mt-0.5 truncate">
+                      {subtitle}
+                    </p>
                     <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
                       {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
                     </p>
