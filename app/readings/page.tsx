@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { type DrawnCard } from "@/lib/tarot/spreads";
-import { getCardImagePath } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 
@@ -261,7 +260,6 @@ export default function ReadingsPage() {
                 : isTarot
                   ? `/tarot/result?id=${r.id}&from=history`
                   : `/saju/result?id=${r.id}&from=history`;
-              const cards = r.drawnCards ?? [];
               const subParts = [relativeDate(r.createdAt)];
               if (!isTarot) {
                 const s = sajuSubtext(r);
@@ -277,23 +275,15 @@ export default function ReadingsPage() {
                   className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 items-start hover:border-lilac-deep/50 transition"
                 >
                   {isTarot ? (
-                    cards.length > 0 ? (
-                      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
-                        <Image
-                          src={getCardImagePath(cards[0].card_id)}
-                          alt=""
-                          width={24}
-                          height={38}
-                          className={`rounded-[3px] shadow-sm ${
-                            cards[0].direction === "reversed" ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
-                    ) : (
-                      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
-                        🃏
-                      </div>
-                    )
+                    <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
+                      <Image
+                        src="/icons/tarot.png"
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
                   ) : (
                     sajuAvatar(r)
                   )}
