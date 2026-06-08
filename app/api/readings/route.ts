@@ -17,6 +17,16 @@ import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
+// 별콩이 답변 도입부 미리보기용 — 카드/종료 마커 제거 후 한 줄로 정리하고 절단.
+function buildPreview(content: string): string {
+  const cleaned = content
+    .replace(/\[CARD:\d+\]/g, "")
+    .replace(/\[END\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > 90 ? cleaned.slice(0, 90) + "…" : cleaned;
+}
+
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
 export const dynamic = "force-dynamic";
@@ -73,6 +83,25 @@ export async function GET() {
     for (const row of msgRows ?? []) hasMsgSet.add(row.reading_id);
   }
 
+  // 미리보기 — 각 reading 의 첫 assistant 메시지 도입부.
+  // (reading_id, created_at) 인덱스 활용. 전체 assistant 메시지를 created_at 오름차순으로
+  // 가져와, reading 별 첫 행만 채택한다.
+  const allIds = (data ?? []).map((r) => r.id);
+  const previewMap = new Map<string, string>();
+  if (allIds.length > 0) {
+    const { data: previewRows } = await supabase
+      .from("messages")
+      .select("reading_id, content, created_at")
+      .in("reading_id", allIds)
+      .eq("role", "assistant")
+      .order("created_at", { ascending: true });
+    for (const row of previewRows ?? []) {
+      if (!previewMap.has(row.reading_id)) {
+        previewMap.set(row.reading_id, buildPreview(row.content));
+      }
+    }
+  }
+
   return NextResponse.json({
     readings: (data ?? []).map((r) => ({
       id: r.id,
@@ -89,6 +118,7 @@ export async function GET() {
       ended: endedSet.has(r.id),
       generating: fortuneIds.includes(r.id) && !hasMsgSet.has(r.id),
       profile: r.profile,
+      preview: previewMap.get(r.id) ?? null,
     })),
   });
 }
