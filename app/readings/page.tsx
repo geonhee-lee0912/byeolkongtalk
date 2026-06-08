@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { type DrawnCard } from "@/lib/tarot/spreads";
+import { type DrawnCard, type SpreadType, SPREAD_INFO } from "@/lib/tarot/spreads";
+import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 
@@ -82,6 +83,20 @@ function sajuSubtext(r: ReadingItem): string | null {
   const who = r.profile?.relation_type === "self" || !r.profile ? "내" : r.profile.display_name;
   const pillar = dayPillar(r);
   return pillar ? `${product} · ${who} 사주 ${pillar}` : product;
+}
+
+/** 타로 상담 서브텍스트 — 리딩 방법 · 뽑은 카드 이름 나열 */
+function tarotSubtext(r: ReadingItem): string | null {
+  const parts: string[] = [];
+  const info = r.spreadType ? SPREAD_INFO[r.spreadType as SpreadType] : undefined;
+  if (info) parts.push(info.label);
+  if (r.drawnCards && r.drawnCards.length > 0) {
+    const names = r.drawnCards
+      .map((c) => getCard(c.card_id)?.name_kr)
+      .filter((n): n is string => !!n);
+    if (names.length > 0) parts.push(names.join(", "));
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 /** 프로필 칩 라벨 — 본인이면 숨김(null), 아니면 display_name */
@@ -261,7 +276,10 @@ export default function ReadingsPage() {
                   ? `/tarot/result?id=${r.id}&from=history`
                   : `/saju/result?id=${r.id}&from=history`;
               const subParts = [relativeDate(r.createdAt)];
-              if (!isTarot) {
+              if (isTarot) {
+                const t = tarotSubtext(r);
+                if (t) subParts.push(t);
+              } else {
                 const s = sajuSubtext(r);
                 if (s) subParts.push(s);
               }
@@ -312,7 +330,7 @@ export default function ReadingsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-text-light/60 mt-0.5 truncate">
+                    <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
                       {subtitle}
                     </p>
                     <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
