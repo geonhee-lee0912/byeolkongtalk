@@ -10,9 +10,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (gate instanceof NextResponse) return gate;
   const { id } = await params;
   const supabase = getServiceSupabase();
-  const { error } = await supabase.from("error_logs")
-    .update({ resolved_at: new Date().toISOString(), resolved_by: gate.userId }).eq("id", id);
-  if (error) return NextResponse.json({ error: "update_failed" }, { status: 500 });
+  const { data: updated, error } = await supabase.from("error_logs")
+    .update({ resolved_at: new Date().toISOString(), resolved_by: gate.userId })
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (error && error.code !== "PGRST116") return NextResponse.json({ error: "update_failed" }, { status: 500 });
+  if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
   await logAdminAction({ adminId: gate.userId, action: "error_resolve", targetType: "error_log", targetId: id });
   return NextResponse.json({ success: true });
 }

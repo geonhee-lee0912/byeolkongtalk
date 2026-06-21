@@ -19,15 +19,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const note = typeof body.note === "string" ? body.note.slice(0, 500) : null;
 
   const supabase = getServiceSupabase();
-  const { error } = await supabase.from("sensitive_alerts")
+  const { data: updated, error } = await supabase.from("sensitive_alerts")
     .update({
       reviewed_at: new Date().toISOString(),
       reviewed_by: gate.userId,
       action_taken: actionTaken,
       review_note: note,
     })
-    .eq("id", id);
-  if (error) return NextResponse.json({ error: "update_failed" }, { status: 500 });
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (error && error.code !== "PGRST116") return NextResponse.json({ error: "update_failed" }, { status: 500 });
+  if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   await logAdminAction({ adminId: gate.userId, action: "sensitive_review", targetType: "sensitive_alert", targetId: id, payload: { actionTaken, note } });
   return NextResponse.json({ success: true });
