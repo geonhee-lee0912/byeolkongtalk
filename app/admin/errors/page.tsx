@@ -1,6 +1,7 @@
 // app/admin/errors/page.tsx
 import { getServiceSupabase } from "@/lib/supabase";
 import Link from "next/link";
+import { ResolveAllErrorsButton } from "@/components/admin/ResolveAllErrorsButton";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,10 @@ export default async function AdminErrors() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">에러 로그</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">에러 로그</h1>
+        <ResolveAllErrorsButton />
+      </div>
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
           <tr>
