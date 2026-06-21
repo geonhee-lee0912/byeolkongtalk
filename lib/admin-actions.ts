@@ -26,13 +26,36 @@ export async function requireAdmin(): Promise<{ userId: string } | NextResponse>
 export async function requireAdminWrite(
   req: NextRequest
 ): Promise<{ userId: string } | NextResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const allowedOrigin = new URL(baseUrl).origin;
-  const origin = req.headers.get("origin");
-  const referer = req.headers.get("referer");
-  const originOk = origin === allowedOrigin;
-  const refererOk = referer ? referer.startsWith(allowedOrigin) : false;
-  if (!originOk && !refererOk) {
+  // 동일 출처(same-origin) 요청만 허용. 요청이 실제 도달한 호스트 + 설정된
+  // BASE_URL 호스트를 허용 목록으로 → 커스텀 도메인/www/vercel.app/로컬 모두 동작.
+  // (cross-site 요청의 Origin/Referer 는 우리 호스트와 다르므로 차단됨.)
+  const allowedHosts = new Set<string>();
+  const selfHost =
+    req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (selfHost) allowedHosts.add(selfHost);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (baseUrl) {
+    try {
+      allowedHosts.add(new URL(baseUrl).host);
+    } catch {
+      // 무시 — 잘못된 BASE_URL 이어도 selfHost 로 검증
+    }
+  }
+
+  const hostOf = (value: string | null): string | null => {
+    if (!value) return null;
+    try {
+      return new URL(value).host;
+    } catch {
+      return null;
+    }
+  };
+  const originHost = hostOf(req.headers.get("origin"));
+  const refererHost = hostOf(req.headers.get("referer"));
+  const ok =
+    (!!originHost && allowedHosts.has(originHost)) ||
+    (!!refererHost && allowedHosts.has(refererHost));
+  if (!ok) {
     return NextResponse.json({ error: "csrf_blocked" }, { status: 403 });
   }
   return requireAdmin();
