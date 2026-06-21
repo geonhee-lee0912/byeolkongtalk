@@ -50,7 +50,7 @@ export function UserActions({ userId }: { userId: string }) {
       <div className="space-y-2">
         <div className="text-sm font-bold">무료 운세 횟수 부여</div>
         <div className="flex gap-2">
-          <select value={kind} onChange={(e) => setKind(e.target.value)} className="bg-white/10 rounded px-2 py-1 text-sm">
+          <select value={kind} onChange={(e) => setKind(e.target.value)} className="bg-white text-night rounded px-2 py-1 text-sm">
             <option value="daily">오늘의 운세</option>
             <option value="tarot_daily">오늘의 타로</option>
           </select>

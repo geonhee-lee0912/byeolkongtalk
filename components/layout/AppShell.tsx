@@ -8,6 +8,7 @@ import BottomTab from "./BottomTab";
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
 const HIDE_SHELL_PREFIXES: string[] = [
   "/login",
+  "/admin",
 ];
 
 function shouldHideShell(pathname: string): boolean {

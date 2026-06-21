@@ -1,6 +1,13 @@
 // app/admin/readings/page.tsx — 리딩 목록.
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
+import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
+
+function readingTitle(emotionTag: string | null, consultationType: string): string {
+  const ft = fortuneTypeFromTag(emotionTag);
+  if (ft) return FORTUNE_CONFIG[ft].label;
+  return emotionTag ?? "고민 상담";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +17,7 @@ export default async function AdminReadings({
   const { type, free } = await searchParams;
   const supabase = getServiceSupabase();
   let query = supabase.from("readings")
-    .select("id, consultation_type, emotion_tag, stars_spent, created_at")
+    .select("id, user_id, consultation_type, emotion_tag, stars_spent, created_at")
     .order("created_at", { ascending: false }).limit(50);
   if (type === "saju" || type === "tarot") query = query.eq("consultation_type", type);
   if (free === "1") query = query.eq("stars_spent", 0);
@@ -31,13 +38,14 @@ export default async function AdminReadings({
       </div>
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
-          <tr><th className="py-2">타입</th><th>태그</th><th>별</th><th>일시</th><th></th></tr>
+          <tr><th className="py-2">사용자</th><th>타입</th><th>제목</th><th>별</th><th>일시</th><th></th></tr>
         </thead>
         <tbody>
           {(data ?? []).map((r) => (
             <tr key={r.id} className="border-t border-white/10">
-              <td className="py-2">{r.consultation_type}</td>
-              <td>{r.emotion_tag ?? "-"}</td>
+              <td className="py-2 font-mono text-xs">{r.user_id.slice(0, 8)}</td>
+              <td>{r.consultation_type}</td>
+              <td>{readingTitle(r.emotion_tag, r.consultation_type)}</td>
               <td>{r.stars_spent}</td>
               <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
               <td className="text-right"><Link href={`/admin/readings/${r.id}`} className="text-lilac underline">보기</Link></td>

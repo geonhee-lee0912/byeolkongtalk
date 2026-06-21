@@ -33,7 +33,7 @@ export function ReviewButton({ id }: { id: string }) {
   }
   return (
     <div className="flex flex-col gap-1 items-end">
-      <select value={action} onChange={(e) => setAction(e.target.value)} className="bg-white/10 rounded px-1 py-0.5 text-xs">
+      <select value={action} onChange={(e) => setAction(e.target.value)} className="bg-white text-night rounded px-1 py-0.5 text-xs">
         {ACTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
       </select>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="메모(선택)" className="bg-white/10 rounded px-1 py-0.5 text-xs" />
