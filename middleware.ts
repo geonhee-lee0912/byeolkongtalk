@@ -18,8 +18,8 @@ const ADMIN_IDS = new Set(
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // /admin/* 가드 — 1차: 화이트리스트, 2차: HMAC 토큰. 둘 다 통과해야 진입
-  if (pathname.startsWith("/admin")) {
+  // /admin/* 및 /api/admin/* 가드 — 1차: 화이트리스트, 2차: HMAC 토큰. 둘 다 통과해야 진입
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const userId = req.cookies.get(USER_COOKIE)?.value?.toLowerCase();
     const adminToken = req.cookies.get(ADMIN_TOKEN_COOKIE)?.value;
 

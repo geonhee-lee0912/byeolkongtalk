@@ -1,25 +1,21 @@
 // app/admin/page.tsx — 대시보드.
 import { getServiceSupabase } from "@/lib/supabase";
+import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
-function startOfToday(): string {
-  const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString();
-}
-function daysAgo(n: number): string {
-  const d = new Date(); d.setDate(d.getDate() - n); d.setHours(0, 0, 0, 0); return d.toISOString();
-}
-
 async function loadStats() {
   const supa = getServiceSupabase();
-  const today = startOfToday();
-  const week = daysAgo(6);
+  const today = startOfTodayKstIso();
+  const week = daysAgoKstIso(6);
   const cnt = (t: string, s: string) =>
     supa.from(t).select("id", { count: "exact", head: true }).gte("created_at", s);
   const [tu, wu, tr, wr, tp, wp, errs, sens] = await Promise.all([
     cnt("users", today), cnt("users", week), cnt("readings", today), cnt("readings", week),
-    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", today),
-    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", week),
+    // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
+    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", today).limit(100000),
+    // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
+    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", week).limit(100000),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
