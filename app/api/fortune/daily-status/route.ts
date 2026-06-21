@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
+import { getFortuneBonus } from "@/lib/fortune/free-grant";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,8 @@ export async function GET() {
     .eq("stars_spent", 0);
 
   const used = count ?? 0;
-  const remaining = Math.max(0, limit - used);
+  const bonus = await getFortuneBonus(userId, "daily");
+  const remaining = Math.max(0, limit + bonus - used);
   const todayId = await findTodaysDailyReadingId(userId);
   return NextResponse.json({ used, limit, remaining, nextCost, todayId });
 }

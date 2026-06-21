@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { getFortuneBonus } from "@/lib/fortune/free-grant";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export async function GET() {
     .eq("stars_spent", 0);
 
   const used = count ?? 0;
-  const remaining = Math.max(0, limit - used);
+  const bonus = await getFortuneBonus(userId, "tarot_daily");
+  const remaining = Math.max(0, limit + bonus - used);
   return NextResponse.json({ used, limit, remaining, nextCost });
 }
