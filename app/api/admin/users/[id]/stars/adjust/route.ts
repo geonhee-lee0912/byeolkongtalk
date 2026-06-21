@@ -2,12 +2,12 @@
 // 양수 = chargeStars(멱등키 admin:<uuid>), 음수 = spendStars. star_transactions audit 유지.
 import { NextRequest, NextResponse } from "next/server";
 import { chargeStars, spendStars } from "@/lib/stars";
-import { requireAdmin, logAdminAction } from "@/lib/admin-actions";
+import { requireAdminWrite, logAdminAction } from "@/lib/admin-actions";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await requireAdmin();
+  const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
   const { id } = await params;
 

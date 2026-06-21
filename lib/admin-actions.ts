@@ -1,5 +1,5 @@
 // lib/admin-actions.ts — 어드민 API 공통 가드 + 감사 로그.
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdminAuthorized } from "@/lib/admin";
 import { getServiceSupabase } from "@/lib/supabase";
@@ -17,6 +17,25 @@ export async function requireAdmin(): Promise<{ userId: string } | NextResponse>
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   return { userId };
+}
+
+/**
+ * write 라우트용 가드: CSRF Origin/Referer 검증 + 어드민 가드.
+ * 읽기(GET) 라우트는 requireAdmin 그대로 사용.
+ */
+export async function requireAdminWrite(
+  req: NextRequest
+): Promise<{ userId: string } | NextResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const allowedOrigin = new URL(baseUrl).origin;
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+  const originOk = origin === allowedOrigin;
+  const refererOk = referer ? referer.startsWith(allowedOrigin) : false;
+  if (!originOk && !refererOk) {
+    return NextResponse.json({ error: "csrf_blocked" }, { status: 403 });
+  }
+  return requireAdmin();
 }
 
 export type AdminActionName =

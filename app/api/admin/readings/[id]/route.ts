@@ -1,7 +1,7 @@
 // app/api/admin/readings/[id]/route.ts — 리딩 상세 + 삭제.
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
-import { requireAdmin, logAdminAction } from "@/lib/admin-actions";
+import { requireAdmin, requireAdminWrite, logAdminAction } from "@/lib/admin-actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +20,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ reading: reading.data, messages: messages.data ?? [] });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await requireAdmin();
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
   const { id } = await params;
 

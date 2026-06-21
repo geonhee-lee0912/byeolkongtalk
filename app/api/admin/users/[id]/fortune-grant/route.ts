@@ -1,13 +1,13 @@
 // app/api/admin/users/[id]/fortune-grant/route.ts — 무료 운세 보너스 횟수 부여.
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
-import { requireAdmin, logAdminAction } from "@/lib/admin-actions";
+import { requireAdminWrite, logAdminAction } from "@/lib/admin-actions";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await requireAdmin();
+  const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
   const { id } = await params;
 
