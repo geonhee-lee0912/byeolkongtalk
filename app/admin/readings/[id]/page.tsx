@@ -1,6 +1,9 @@
 // app/admin/readings/[id]/page.tsx — 리딩 상세.
 import { getServiceSupabase } from "@/lib/supabase";
 import { DeleteReadingButton } from "@/components/admin/DeleteReadingButton";
+import ReadingDetailView, {
+  type AdminMessageRow,
+} from "@/components/admin/ReadingDetailView";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +26,10 @@ export default async function AdminReadingDetail({ params }: { params: Promise<{
       <div className="text-sm text-white/60">
         타입 {reading.data.consultation_type} · 태그 {reading.data.emotion_tag ?? "-"} · 별 {reading.data.stars_spent}
       </div>
-      <div className="space-y-2">
-        {(messages.data ?? []).map((m, i) => (
-          <div key={i} className={`rounded-lg p-3 text-sm ${m.role === "user" ? "bg-white/10" : "bg-lilac-deep/30"}`}>
-            <div className="text-[10px] text-white/40 mb-1">{m.role}</div>
-            <div className="whitespace-pre-wrap">{m.content}</div>
-          </div>
-        ))}
-      </div>
+      <ReadingDetailView
+        reading={reading.data}
+        messages={(messages.data ?? []) as AdminMessageRow[]}
+      />
     </div>
   );
 }
