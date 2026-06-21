@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-const SHIM_DATE = "준비 중";
+const SHIM_DATE = "2026년 6월 22일";
 
 export default function PrivacyPage() {
   const router = useRouter();
