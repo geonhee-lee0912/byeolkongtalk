@@ -31,23 +31,46 @@ export default async function AdminPayments() {
     }
   }
 
+  // 환불 판단용: 사용자별 별 사용 현황(누적 사용 + 잔액). 별은 계정 공용이라
+  // "이 결제분"만 콕 집어낼 순 없고, 계정 누적 사용량으로 정책 판단을 돕는다.
+  const userIds = [...new Set(payments.map((p) => p.user_id))];
+  const starMap = new Map<string, { balance: number; spent: number }>();
+  if (userIds.length > 0) {
+    const { data: bals } = await supabase.from("star_balances")
+      .select("user_id, balance, total_spent")
+      .in("user_id", userIds);
+    for (const b of bals ?? []) {
+      starMap.set(b.user_id, { balance: b.balance ?? 0, spent: b.total_spent ?? 0 });
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">결제/정산</h1>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-white/50 text-left">
-            <tr><th className="py-2">사용자</th><th>패키지</th><th>금액</th><th>별</th><th>상태</th><th>일시</th><th></th></tr>
+            <tr><th className="py-2">사용자</th><th>패키지</th><th>금액</th><th>별</th><th>별 사용</th><th>상태</th><th>일시</th><th></th></tr>
           </thead>
           <tbody>
             {payments.map((p) => {
               const refund = p.status === "refunded" ? refundMap.get(p.id) : undefined;
+              const star = starMap.get(p.user_id);
               return (
                 <tr key={p.id} className="border-t border-white/10 align-top">
                   <td className="py-2 font-mono text-xs">{p.user_id.slice(0, 8)}</td>
                   <td>{p.package_type}</td>
                   <td>{p.amount_won.toLocaleString()}원</td>
                   <td>{p.stars_given}</td>
+                  <td className="whitespace-nowrap">
+                    {!star ? (
+                      <span className="text-white/40">-</span>
+                    ) : star.spent === 0 ? (
+                      <span className="text-emerald-300">미사용 · 잔액 {star.balance}</span>
+                    ) : (
+                      <span className="text-amber-300">사용 {star.spent} · 잔액 {star.balance}</span>
+                    )}
+                  </td>
                   <td>
                     {p.status === "refunded" ? (
                       <div>
