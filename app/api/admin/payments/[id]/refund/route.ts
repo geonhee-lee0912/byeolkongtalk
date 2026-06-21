@@ -30,7 +30,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch {
     return NextResponse.json({ error: "toss_cancel_failed" }, { status: 502 });
   }
-  await supabase.from("payments").update({ status: "refunded" }).eq("id", id);
+  const { error: dbErr } = await supabase.from("payments").update({ status: "refunded" }).eq("id", id);
+  if (dbErr) {
+    console.error("[admin refund] toss canceled but DB update failed", { id, dbErr });
+    return NextResponse.json({ error: "db_update_failed" }, { status: 500 });
+  }
   await logAdminAction({
     adminId: gate.userId, action: "payment_refund", targetType: "payment", targetId: id,
     payload: { reason },

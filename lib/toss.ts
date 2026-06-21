@@ -69,7 +69,14 @@ export async function cancelPayment(
     body: JSON.stringify({ cancelReason }),
   });
 
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    throw new TossPaymentError(
+      data?.code ?? "CANCEL_FAILED",
+      data?.message ?? "결제 취소 실패"
+    );
+  }
+  return data;
 }
 
 // ===== Types =====

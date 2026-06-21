@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPayments() {
   const supabase = getServiceSupabase();
   const { data } = await supabase.from("payments")
-    .select("id, amount_won, stars_given, package_type, status, created_at")
+    .select("id, pg_tid, amount_won, stars_given, package_type, status, created_at")
     .order("created_at", { ascending: false }).limit(50);
 
   return (
@@ -25,7 +25,7 @@ export default async function AdminPayments() {
               <td>{p.stars_given}</td>
               <td>{p.status}</td>
               <td>{new Date(p.created_at).toLocaleDateString("ko-KR")}</td>
-              <td className="text-right">{p.status === "completed" && <RefundButton id={p.id} />}</td>
+              <td className="text-right">{p.status === "completed" && p.pg_tid && <RefundButton id={p.id} />}</td>
             </tr>
           ))}
         </tbody>
