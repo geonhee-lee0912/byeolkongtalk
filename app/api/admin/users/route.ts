@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
     .select("id, nickname, kakao_id, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(page * size, page * size + size - 1);
-  if (q) query = query.ilike("nickname", `%${q}%`);
+  if (q) {
+    const escaped = q.replace(/[%_]/g, "\\$&");
+    query = query.ilike("nickname", `%${escaped}%`);
+  }
 
   const { data, count } = await query;
   return NextResponse.json({ users: data ?? [], total: count ?? 0, page, size });

@@ -12,7 +12,10 @@ export default async function AdminUsers({
   let query = supabase.from("users")
     .select("id, nickname, created_at")
     .order("created_at", { ascending: false }).limit(50);
-  if (q) query = query.ilike("nickname", `%${q}%`);
+  if (q) {
+    const escaped = q.replace(/[%_]/g, "\\$&");
+    query = query.ilike("nickname", `%${escaped}%`);
+  }
   const { data: users } = await query;
 
   return (

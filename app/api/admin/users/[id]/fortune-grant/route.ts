@@ -27,9 +27,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const supabase = getServiceSupabase();
-  await supabase.from("fortune_free_grants").insert({
+  const { error: insertError } = await supabase.from("fortune_free_grants").insert({
     user_id: id, fortune_kind: fortuneKind, bonus_count: bonus, granted_by: gate.userId, reason,
   });
+  if (insertError) return NextResponse.json({ error: "db_error" }, { status: 500 });
   await logAdminAction({
     adminId: gate.userId, action: "fortune_grant", targetType: "user", targetId: id,
     payload: { fortuneKind, bonus, reason },
