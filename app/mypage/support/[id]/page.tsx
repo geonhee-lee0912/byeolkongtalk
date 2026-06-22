@@ -3,7 +3,11 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { INQUIRY_CATEGORIES, type InquiryCategory } from "@/lib/inquiries";
+import {
+  INQUIRY_CATEGORIES,
+  INQUIRY_CATEGORY_ICON,
+  type InquiryCategory,
+} from "@/lib/inquiries";
 
 interface InquiryDetail {
   id: string;
@@ -94,17 +98,35 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
         {/* 내 질문 */}
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[11px] text-lilac-deep font-bold">
-              {INQUIRY_CATEGORIES[item.category]}
-            </span>
-            <span className="text-[11px] text-text-light/60">· {fmtDateTime(item.created_at)}</span>
+        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="shrink-0 w-10 h-10 rounded-xl bg-lilac-soft flex items-center justify-center">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                <path d={INQUIRY_CATEGORY_ICON[item.category]} />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-lilac-deep font-bold">
+                {INQUIRY_CATEGORIES[item.category]}
+              </div>
+              <div className="text-[11px] text-text-light/60">
+                {fmtDateTime(item.created_at)}
+              </div>
+            </div>
           </div>
           <h1 className="text-[16px] font-bold text-eye-purple mb-2">{item.title}</h1>
           <p className="text-[14px] text-eye-purple/90 whitespace-pre-wrap leading-relaxed">
             {item.body}
           </p>
+        </div>
+
+        {/* 디바이더 (질문 ↔ 별콩이 답변) */}
+        <div className="flex items-center gap-2" aria-hidden>
+          <div className="flex-1 h-px bg-lilac-mid/30" />
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-gold">
+            <path d="M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z" />
+          </svg>
+          <div className="flex-1 h-px bg-lilac-mid/30" />
         </div>
 
         {/* 답변 */}

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { INQUIRY_CATEGORIES, type InquiryCategory } from "@/lib/inquiries";
+import {
+  INQUIRY_CATEGORIES,
+  INQUIRY_CATEGORY_ICON,
+  type InquiryCategory,
+} from "@/lib/inquiries";
 
 interface InquiryListItem {
   id: string;
@@ -19,15 +23,6 @@ function fmtDate(iso: string): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}. ${p(d.getMonth() + 1)}. ${p(d.getDate())}`;
 }
-
-// 카테고리별 리딩 타일 아이콘 (MDI single-path)
-const CATEGORY_ICON: Record<InquiryCategory, string> = {
-  bug: "M20,8H17.19C16.74,7.22 16.12,6.55 15.37,6.04L17,4.41L15.59,3L13.42,5.17C12.96,5.06 12.5,5 12,5C11.5,5 11.04,5.06 10.59,5.17L8.41,3L7,4.41L8.62,6.04C7.88,6.55 7.26,7.22 6.81,8H4V10H6.09C6.04,10.33 6,10.66 6,11V12H4V14H6V15C6,15.34 6.04,15.67 6.09,16H4V18H6.81C7.85,19.79 9.78,21 12,21C14.22,21 16.15,19.79 17.19,18H20V16H17.91C17.96,15.67 18,15.34 18,15V14H20V12H18V11C18,10.66 17.96,10.33 17.91,10H20V8M14,16H10V14H14V16M14,12H10V10H14V12Z",
-  refund: "M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z",
-  suggestion: "M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21Z",
-  usage: "M15.07,11.25L14.17,12.17C13.45,12.89 13,13.5 13,15H11V14.5C11,13.39 11.45,12.39 12.17,11.67L13.41,10.41C13.78,10.05 14,9.55 14,9C14,7.89 13.1,7 12,7A2,2 0 0,0 10,9H8A4,4 0 0,1 12,5A4,4 0 0,1 16,9C16,9.88 15.64,10.67 15.07,11.25M13,19H11V17H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
-  etc: "M12,3C6.5,3 2,6.58 2,11C2.05,13.15 3.06,15.17 4.75,16.5C4.75,17.1 4.33,18.67 2,21C4.37,20.89 6.64,20 8.47,18.5C9.61,18.83 10.81,19 12,19C17.5,19 22,15.42 22,11C22,6.58 17.5,3 12,3Z",
-};
 
 const PAGE_SIZE = 5;
 
@@ -100,7 +95,7 @@ export default function SupportListPage() {
                 >
                   <div className="shrink-0 w-11 h-11 rounded-xl bg-lilac-soft flex items-center justify-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
-                      <path d={CATEGORY_ICON[it.category]} />
+                      <path d={INQUIRY_CATEGORY_ICON[it.category]} />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
