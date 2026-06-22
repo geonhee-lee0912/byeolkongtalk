@@ -253,7 +253,7 @@ export default function MyPage() {
 
       {/* 프로필 카드 (명식 통합) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center">
               {me.user.profile_img ? (
@@ -301,7 +301,10 @@ export default function MyPage() {
           {/* 내 명식 */}
           <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
             {self && !editingSelf ? (
-              <SajuBoard saju={self.saju} showDetail={false} />
+              <>
+                <div className="px-4 text-[11px] font-bold text-text-light/70 mb-1">내 명식</div>
+                <SajuBoard saju={self.saju} showDetail={false} />
+              </>
             ) : editingSelf ? (
               <div className="px-4">
                 <ProfileForm
