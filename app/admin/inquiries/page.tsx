@@ -11,7 +11,7 @@ interface Row {
   title: string;
   status: "open" | "answered";
   created_at: string;
-  users: { nickname: string | null } | null;
+  user_id: string;
 }
 
 export default async function AdminInquiries({
@@ -23,16 +23,28 @@ export default async function AdminInquiries({
   const supabase = getServiceSupabase();
   // 정렬은 최신순만. 미답변 우선 트리아지는 "미답변" 필터 탭 + 빨강 하이라이트로 처리
   // (Postgres 기본 정렬로는 status 커스텀 순서를 깔끔히 못 줌 → 굳이 넣지 않음).
+  // 작성자 닉네임은 별도 조회로 매핑한다 — inquiries 는 users 로 향하는 FK 가 둘
+  // (user_id, answered_by) 이라 PostgREST 임베드(users(...))가 모호해서 실패한다.
   let query = supabase
     .from("inquiries")
-    .select("id, category, title, status, created_at, users(nickname)")
+    .select("id, category, title, status, created_at, user_id")
     .order("created_at", { ascending: false })
     .limit(200);
   if (status === "open" || status === "answered") {
     query = query.eq("status", status);
   }
   const { data } = await query;
-  const rows = (data ?? []) as unknown as Row[];
+  const rows = (data ?? []) as Row[];
+
+  const userIds = [...new Set(rows.map((r) => r.user_id))];
+  const nameById = new Map<string, string | null>();
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, nickname")
+      .in("id", userIds);
+    for (const u of users ?? []) nameById.set(u.id, u.nickname);
+  }
 
   const tab = (key: string, label: string) => (
     <Link
@@ -72,7 +84,7 @@ export default async function AdminInquiries({
             >
               <td className="py-2">{INQUIRY_CATEGORIES[r.category] ?? r.category}</td>
               <td className="max-w-[16rem] truncate">{r.title}</td>
-              <td>{r.users?.nickname ?? "—"}</td>
+              <td>{nameById.get(r.user_id) ?? "—"}</td>
               <td>{r.status === "answered" ? "✅ 완료" : "미답변"}</td>
               <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
               <td className="text-right">

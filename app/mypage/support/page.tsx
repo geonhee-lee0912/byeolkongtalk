@@ -40,12 +40,15 @@ export default function SupportListPage() {
         <Link href="/mypage" className="text-[12px] text-text-light/70">
           ‹ 내 정보
         </Link>
-        <Link
-          href="/mypage/support/new"
-          className="px-3 py-1.5 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
-        >
-          문의하기
-        </Link>
+        {/* 빈 상태에선 목록 안 "첫 문의 작성하기" 버튼과 중복 → 숨김 */}
+        {!loading && items.length > 0 && (
+          <Link
+            href="/mypage/support/new"
+            className="px-3 py-1.5 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
+          >
+            문의하기
+          </Link>
+        )}
       </div>
 
       <div className="w-full max-w-md mx-auto px-5">
