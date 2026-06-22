@@ -47,16 +47,6 @@ function dayPillar(r: ReadingItem): string | null {
   return d ? `${d.stem}${d.branch}` : null;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Seoul",
-  });
-}
-
 /** 상대 시간 — 오늘/어제/N일 전/그 이전은 M/D */
 function relativeDate(iso: string): string {
   const then = new Date(iso);
@@ -383,7 +373,7 @@ export default function ReadingsPage() {
                       {r.question}
                     </div>
                     <div className="text-[10px] text-text-light/60 mt-0.5 leading-snug flex items-center gap-1.5">
-                      <span>{formatDate(r.createdAt)}</span>
+                      <span>{relativeDate(r.createdAt)}</span>
                       <span>·</span>
                       <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
                     </div>
