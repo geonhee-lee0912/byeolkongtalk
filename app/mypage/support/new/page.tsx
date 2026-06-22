@@ -34,12 +34,12 @@ export default function SupportNewPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ category, title: title.trim(), body: body.trim() }),
-    });
-    if (res.status === 401) {
+    }).catch(() => null);
+    if (res?.status === 401) {
       router.replace("/login?next=/mypage/support/new");
       return;
     }
-    if (!res.ok) {
+    if (!res?.ok) {
       setBusy(false);
       setError("문의 전송에 실패했어. 잠시 후 다시 시도해줘.");
       return;

@@ -79,7 +79,12 @@ export default function SupportListPage() {
                       <span className="text-[11px] text-lilac-deep font-bold">
                         {INQUIRY_CATEGORIES[it.category]}
                       </span>
-                      {unread && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+                      {unread && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full bg-rose-500"
+                          aria-label="새 답변"
+                        />
+                      )}
                     </div>
                     <div className="text-[14px] font-bold text-eye-purple truncate mt-0.5">
                       {it.title}

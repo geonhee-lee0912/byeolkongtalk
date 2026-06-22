@@ -50,8 +50,10 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
   async function handleDelete() {
     setDeleting(true);
-    const res = await fetch(`/api/inquiries/${id}`, { method: "DELETE" });
-    if (res.ok) {
+    const res = await fetch(`/api/inquiries/${id}`, { method: "DELETE" }).catch(
+      () => null
+    );
+    if (res?.ok) {
       router.replace("/mypage/support");
     } else {
       setDeleting(false);
