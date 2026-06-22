@@ -173,6 +173,34 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.compat_social,
 ];
 
+/** 운세 종류별 카드 그라데이션 (홈 EMOTION_GRADIENTS 팔레트 재사용) */
+export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
+  daily: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
+  monthly: "linear-gradient(135deg, #E4E6FA 0%, #C3C8F0 100%)",
+  saju_full: "linear-gradient(135deg, #EEE0FB 0%, #D4B6F0 100%)",
+  compat: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
+  compat_social: "linear-gradient(135deg, #E3F1FA 0%, #C2DEF5 100%)",
+  tarot_daily: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+  tarot_love: "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
+  tarot_money: "linear-gradient(135deg, #FFF8DD 0%, #FBE89E 100%)",
+  tarot_career: "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
+  tarot_relation: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
+};
+
+/** 운세 종류별 해시태그 (홈 카드 #태그 칩 스타일) */
+export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
+  daily: ["오늘", "하루흐름", "가볍게"],
+  monthly: ["이번달", "한달흐름", "미리보기"],
+  saju_full: ["신년사주", "총운", "타고난기질"],
+  compat: ["궁합", "연애", "결혼"],
+  compat_social: ["관계궁합", "케미", "친구가족"],
+  tarot_daily: ["오늘", "한장", "메시지"],
+  tarot_love: ["연애", "썸", "상대마음"],
+  tarot_money: ["금전", "기회", "재물운"],
+  tarot_career: ["직장", "진로", "이직"],
+  tarot_relation: ["인간관계", "거리", "소통"],
+};
+
 /** 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트) */
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 2600,
