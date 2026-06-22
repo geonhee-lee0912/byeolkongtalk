@@ -8,6 +8,7 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import Footer from "@/components/layout/Footer";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
+import { ELEMENT_COLORS } from "@/lib/saju/elements";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -82,6 +83,7 @@ export default function MyPage() {
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
   const [listPage, setListPage] = useState(0);
+  const [sheetId, setSheetId] = useState<string | null>(null);
   const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
@@ -121,14 +123,11 @@ export default function MyPage() {
 
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
-  const allProfiles = [...(self ? [self] : []), ...acquaintances];
-  const relationBadge = (p: ProfileItem) =>
-    p.isPrimary ? "나" : RELATION_LABEL[p.relationType] ?? "지인";
 
   const LIST_PAGE_SIZE = 5;
-  const totalListPages = Math.max(1, Math.ceil(allProfiles.length / LIST_PAGE_SIZE));
+  const totalListPages = Math.max(1, Math.ceil(acquaintances.length / LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
-  const pagedProfiles = allProfiles.slice(
+  const pagedProfiles = acquaintances.slice(
     safeListPage * LIST_PAGE_SIZE,
     safeListPage * LIST_PAGE_SIZE + LIST_PAGE_SIZE
   );
@@ -222,8 +221,6 @@ export default function MyPage() {
       </main>
     );
   }
-
-  const selfNickname = me.user.nickname;
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -339,10 +336,13 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 사주 목록 (나 + 지인) */}
+      {/* 지인 사주 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-bold text-eye-purple">사주 목록</div>
+          <div className="text-[12px] font-bold text-eye-purple">
+            지인 사주{" "}
+            <span className="text-text-light/60 font-normal">{acquaintances.length}</span>
+          </div>
           {!showAddAcq && !editAcqId && (
             <button
               onClick={() => setShowAddAcq(true)}
@@ -389,10 +389,10 @@ export default function MyPage() {
           </div>
         )}
 
-        {allProfiles.length === 0 && !showAddAcq && !editAcqId ? (
+        {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
           <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6">
             <p className="text-[12px] text-text-light/70 text-center mb-3">
-              아직 저장된 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
+              아직 함께 보는 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
             </p>
             <button
               onClick={() => setShowAddAcq(true)}
@@ -402,79 +402,52 @@ export default function MyPage() {
             </button>
           </div>
         ) : (
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
-          {pagedProfiles.map((p) => (
-            <div key={p.id} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <div className="text-[14px] font-bold text-eye-purple">
-                    {p.isPrimary ? selfNickname : p.displayName}
-                    <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                      {relationBadge(p)}
+          <div className="flex flex-col gap-2">
+            {pagedProfiles.map((p) => (
+              <div
+                key={p.id}
+                className="bg-cream-warm rounded-2xl border border-lilac-mid/25 p-3 flex items-center gap-3"
+              >
+                <div
+                  className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/20 flex items-center justify-center"
+                  style={{
+                    backgroundColor: ELEMENT_COLORS[p.saju.dayElement].bg,
+                    color: ELEMENT_COLORS[p.saju.dayElement].text,
+                  }}
+                >
+                  <span className="text-[16px] font-bold leading-none">
+                    {p.saju.pillars.day.hanja}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-bold text-eye-purple truncate">
+                    {p.displayName}
+                    <span className="ml-1.5 text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                      {RELATION_LABEL[p.relationType] ?? "지인"}
                     </span>
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5">
-                    {p.birthDate.replace(/-/g, ". ")}
-                    {p.isLunarInput ? " · 음력" : " · 양력"}
+                  <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+                    {p.saju.dayStem}
+                    {p.saju.dayElement} 일간 · {p.birthDate.replace(/-/g, ". ")}
                     {birthTimeToSijin(p.birthTime)
                       ? ` · ${birthTimeToSijin(p.birthTime)}`
                       : " · 시간 모름"}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <button
-                    onClick={() => {
-                      if (p.isPrimary) {
-                        setEditingSelf(true);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      } else {
-                        setEditAcqId(p.id);
-                        setShowAddAcq(false);
-                      }
-                    }}
-                    aria-label="수정"
-                    className="p-1.5 rounded-lg text-text-light/70 hover:bg-lilac-soft/50"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                    </svg>
-                  </button>
-                  {!p.isPrimary && (
-                    <button
-                      onClick={() => setDeleteAcqId(p.id)}
-                      aria-label="삭제"
-                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-50"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={() => setSheetId(p.id)}
+                  aria-label="더보기"
+                  className="shrink-0 p-1.5 rounded-lg text-text-light/60 hover:bg-lilac-soft/50"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.6" />
+                    <circle cx="12" cy="12" r="1.6" />
+                    <circle cx="12" cy="19" r="1.6" />
+                  </svg>
+                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
 
         {totalListPages > 1 && (
@@ -549,6 +522,46 @@ export default function MyPage() {
           <span className="text-text-light/50">›</span>
         </button>
       </div>
+
+      {/* 지인 행 케밥 시트 */}
+      {sheetId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
+          onClick={() => setSheetId(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-md p-2 pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                setEditAcqId(sheetId);
+                setShowAddAcq(false);
+                setSheetId(null);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-full py-3.5 rounded-xl text-[14px] text-eye-purple font-medium hover:bg-lilac-soft/40"
+            >
+              수정
+            </button>
+            <button
+              onClick={() => {
+                setDeleteAcqId(sheetId);
+                setSheetId(null);
+              }}
+              className="w-full py-3.5 rounded-xl text-[14px] text-rose-500 font-medium hover:bg-rose-50"
+            >
+              삭제
+            </button>
+            <button
+              onClick={() => setSheetId(null)}
+              className="w-full py-3.5 rounded-xl text-[14px] text-text-light/70"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 지인 삭제 확인 모달 */}
       {deleteAcqId && (
