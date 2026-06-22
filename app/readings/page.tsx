@@ -47,6 +47,16 @@ function dayPillar(r: ReadingItem): string | null {
   return d ? `${d.stem}${d.branch}` : null;
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString("ko-KR", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Seoul",
+  });
+}
+
 /** 상대 시간 — 오늘/어제/N일 전/그 이전은 M/D */
 function relativeDate(iso: string): string {
   const then = new Date(iso);
@@ -365,15 +375,15 @@ export default function ReadingsPage() {
                   href={`/fortune/result?id=${r.id}&from=history`}
                   className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+                  <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
                     {fortuneIcon(r.emotionTag, 24)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13.5px] font-bold text-eye-purple line-clamp-1">
+                    <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
                       {r.question}
                     </div>
-                    <div className="text-[10px] text-text-light/60 mt-0.5 leading-snug flex items-center gap-1.5">
-                      <span>{relativeDate(r.createdAt)}</span>
+                    <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+                      <span>{formatDate(r.createdAt)}</span>
                       <span>·</span>
                       <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
                     </div>
