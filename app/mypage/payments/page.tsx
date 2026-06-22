@@ -42,7 +42,7 @@ function fmtTime(ms: number): string {
   return `${ampm} ${h12}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 type Row =
   | { kind: "payment"; id: string; time: number; payment: Payment }
@@ -188,25 +188,36 @@ export default function PaymentsPage() {
         )}
 
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-4">
             <button
               onClick={() => goPage(safePage - 1)}
               disabled={safePage === 0}
               aria-label="이전"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <span className="text-[12px] font-bold text-eye-purple tabular-nums">
-              {safePage + 1} / {totalPages}
-            </span>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goPage(i)}
+                aria-label={`${i + 1}페이지`}
+                className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                  i === safePage
+                    ? "bg-lilac-deep text-white"
+                    : "text-text-light/70 hover:bg-lilac-soft/50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
             <button
               onClick={() => goPage(safePage + 1)}
               disabled={safePage === totalPages - 1}
               aria-label="다음"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />

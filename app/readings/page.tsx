@@ -39,7 +39,7 @@ const READINGS_TABS = [
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 /** 사주 상담 카드의 일주 (일간+일지, 예: "갑자") — 없으면 null */
 function dayPillar(r: ReadingItem): string | null {

@@ -124,7 +124,7 @@ export default function MyPage() {
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
 
-  const LIST_PAGE_SIZE = 5;
+  const LIST_PAGE_SIZE = 3;
   const totalListPages = Math.max(1, Math.ceil(acquaintances.length / LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
   const pagedProfiles = acquaintances.slice(
