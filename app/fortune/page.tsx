@@ -111,7 +111,10 @@ export default function FortunePage() {
                   : "bg-white/40 border-lilac-mid/15 opacity-70",
               ].join(" ")}
             >
-              <div className="w-12 h-12 rounded-xl bg-lilac-soft/60 flex items-center justify-center text-[24px] shrink-0">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
+                style={{ background: FORTUNE_GRADIENTS[f.type] }}
+              >
                 {f.type === "saju_full" ? <RedHorseIcon size={30} /> : f.emoji}
               </div>
               <div className="flex-1 min-w-0">
@@ -133,13 +136,21 @@ export default function FortunePage() {
                     </span>
                   )}
                 </div>
-                <p className="text-[12px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
                   {f.tagline}
                 </p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {FORTUNE_HASHTAGS[f.type].map((h) => (
+                    <span
+                      key={h}
+                      className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    >
+                      #{h}
+                    </span>
+                  ))}
+                </div>
               </div>
-              {f.active ? (
-                <span className="text-text-light/40 text-lg shrink-0">›</span>
-              ) : (
+              {!f.active && (
                 <span className="text-[10px] text-text-light/50 shrink-0">준비 중</span>
               )}
             </div>
