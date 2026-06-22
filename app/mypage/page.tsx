@@ -82,6 +82,7 @@ export default function MyPage() {
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
   const [listPage, setListPage] = useState(0);
+  const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -103,6 +104,10 @@ export default function MyPage() {
       setMe(r as Me);
       if (bal) setBalance(bal.balance ?? 0);
       if (profs?.profiles) setProfiles(profs.profiles as ProfileItem[]);
+      const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
+        .then((x) => (x.ok ? x.json() : null))
+        .catch(() => null);
+      if (unread) setSupportUnread(unread.count ?? 0);
       setLoading(false);
     })();
   }, [router]);
@@ -519,20 +524,18 @@ export default function MyPage() {
 
       {/* 계정·고객 메뉴 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex flex-col gap-2">
-        {/* 고객센터: 연락 채널 미정 → 타겟 보류 (UI만). 채널 확정 시 href 교체. */}
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            alert("고객센터는 곧 열릴 예정이야!");
-          }}
+        <Link
+          href="/mypage/support"
           className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
         >
-          <span className="text-[14px] text-eye-purple font-medium">
+          <span className="text-[14px] text-eye-purple font-medium flex items-center gap-2">
             고객센터 / 문의
+            {supportUnread > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-500" aria-label="새 답변" />
+            )}
           </span>
           <span className="text-text-light/50">›</span>
-        </a>
+        </Link>
         <button
           onClick={() => setShowWithdrawConfirm(true)}
           className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"

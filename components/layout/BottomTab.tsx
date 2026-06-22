@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -90,6 +90,15 @@ export default function BottomTab() {
   // 내 고민톡에서 다시보기로 진입하면 (?from=history) 목적지 탭이 아니라
   // 항상 "내 고민톡" 탭이 filled 되도록 강제한다.
   const fromHistory = useSearchParams().get("from") === "history";
+  const [meUnread, setMeUnread] = useState(0);
+  useEffect(() => {
+    void fetch("/api/inquiries/unread-count", { cache: "no-store" })
+      .then((x) => (x.ok ? x.json() : null))
+      .then((d) => {
+        if (d) setMeUnread(d.count ?? 0);
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   return (
     <nav
@@ -120,14 +129,22 @@ export default function BottomTab() {
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >
-                <svg
-                  className={ICON_CLASS}
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d={active ? tab.iconFill : tab.iconLine} />
-                </svg>
+                <span className="relative">
+                  <svg
+                    className={ICON_CLASS}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden
+                  >
+                    <path d={active ? tab.iconFill : tab.iconLine} />
+                  </svg>
+                  {tab.key === "me" && meUnread > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500"
+                      aria-label="새 답변"
+                    />
+                  )}
+                </span>
                 <span
                   className={[
                     "text-[10.5px] leading-none tracking-tight",
