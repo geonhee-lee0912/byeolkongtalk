@@ -2,10 +2,10 @@
 CREATE TABLE IF NOT EXISTS inquiries (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  category    TEXT NOT NULL,        -- 'bug'|'refund'|'suggestion'|'usage'|'etc'
+  category    TEXT NOT NULL CHECK (category IN ('bug','refund','suggestion','usage','etc')),
   title       TEXT NOT NULL,
   body        TEXT NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'open',   -- 'open' | 'answered'
+  status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','answered')),
   answer_body TEXT,                 -- 어드민 답변 (null = 미답변)
   answered_at TIMESTAMPTZ,
   answered_by UUID REFERENCES users(id) ON DELETE SET NULL,
