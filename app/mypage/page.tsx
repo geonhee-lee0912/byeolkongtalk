@@ -490,37 +490,38 @@ export default function MyPage() {
         )}
       </div>
 
-      {/* 디바이더 */}
+      {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="h-px bg-lilac-mid/30" />
-      </div>
-
-      {/* 계정·고객 메뉴 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-5 flex flex-col gap-2">
-        <Link
-          href="/mypage/support"
-          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
-        >
-          <span className="text-[14px] text-eye-purple font-medium flex items-center gap-2">
-            고객센터 / 문의
-            {supportUnread > 0 && (
-              <span className="relative flex h-2 w-2" aria-label="새 답변">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
-              </span>
-            )}
-          </span>
-          <span className="text-text-light/50">›</span>
-        </Link>
-        <button
-          onClick={() => setShowWithdrawConfirm(true)}
-          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/30 flex items-center justify-between"
-        >
-          <span className="text-[14px] text-text-light/70 font-medium">
-            회원 탈퇴
-          </span>
-          <span className="text-text-light/50">›</span>
-        </button>
+        <div className="text-[12px] font-bold text-eye-purple mb-2">계정</div>
+        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/25 overflow-hidden divide-y divide-lilac-mid/15">
+          <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep shrink-0" aria-hidden>
+              <path d="M12,1C7,1 3,5 3,10V17A3,3 0 0,0 6,20H9V12H5V10A7,7 0 0,1 12,3A7,7 0 0,1 19,10V12H15V20H19A3,3 0 0,0 22,17V10C22,5 17,1 12,1Z" />
+            </svg>
+            <span className="flex-1 text-[14px] text-eye-purple font-medium flex items-center gap-2">
+              고객센터 / 문의
+              {supportUnread > 0 && (
+                <span className="relative flex h-2 w-2" aria-label="새 답변">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
+                </span>
+              )}
+            </span>
+            <span className="text-text-light/40">›</span>
+          </Link>
+          <button
+            onClick={() => setShowWithdrawConfirm(true)}
+            className="w-full flex items-center gap-3 p-3.5"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-text-light/50 shrink-0" aria-hidden>
+              <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
+            </svg>
+            <span className="flex-1 text-left text-[14px] text-text-light/70 font-medium">
+              회원 탈퇴
+            </span>
+            <span className="text-text-light/40">›</span>
+          </button>
+        </div>
       </div>
 
       {/* 지인 행 케밥 시트 */}
