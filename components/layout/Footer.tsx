@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="w-full mt-auto -mb-20">
-      <div className="max-w-md mx-auto px-5 pt-6 pb-24 bg-white/[0.75] backdrop-blur-sm border-t border-lilac-soft/40">
+      <div className="max-w-md mx-auto px-5 pt-6 pb-24 bg-white/[0.75] backdrop-blur-sm border-t border-lilac-soft/40 rounded-t-3xl">
         {/* 브랜딩 */}
         <div className="flex items-center gap-2.5 mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}

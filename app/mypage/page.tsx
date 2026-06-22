@@ -531,7 +531,10 @@ export default function MyPage() {
           <span className="text-[14px] text-eye-purple font-medium flex items-center gap-2">
             고객센터 / 문의
             {supportUnread > 0 && (
-              <span className="w-2 h-2 rounded-full bg-lilac-deep" aria-label="새 답변" />
+              <span className="relative flex h-2 w-2" aria-label="새 답변">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
+              </span>
             )}
           </span>
           <span className="text-text-light/50">›</span>
@@ -578,7 +581,7 @@ export default function MyPage() {
         <div className="h-px bg-lilac-mid/30 mb-5" />
         <button
           onClick={handleLogout}
-          className="w-full py-3 rounded-xl bg-lilac-soft text-eye-purple font-bold text-[14px]"
+          className="w-full py-3 rounded-xl bg-eye-purple text-white font-bold text-[14px]"
         >
           로그아웃
         </button>
