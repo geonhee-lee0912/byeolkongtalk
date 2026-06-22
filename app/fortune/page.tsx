@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FORTUNE_LIST } from "@/lib/fortune/types";
+import { FORTUNE_LIST, FORTUNE_GRADIENTS, FORTUNE_HASHTAGS } from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 
@@ -55,6 +55,28 @@ export default function FortunePage() {
       </div>
 
       <FortuneGeneratingList />
+
+      <div className="w-full max-w-md mx-auto px-5 mb-4">
+        <div
+          className="p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
+          style={{
+            background: "linear-gradient(135deg, #F6EFFF 0%, #EFE6FB 50%, #FBEFF4 100%)",
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-[14px] leading-none" aria-hidden>
+              💡
+            </span>
+            <span className="text-[12px] font-extrabold text-lilac-deep tracking-wide">
+              이렇게 사용해요
+            </span>
+          </div>
+          <p className="text-[12.5px] text-text-light leading-relaxed">
+            별콩 운세는 대화가 아니라, 생일·고민을 입력하면 별콩이가 한 장의 리포트로
+            정리해주는 방식이에요. 가볍게 골라봐요.
+          </p>
+        </div>
+      </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex gap-1 bg-lilac-soft/40 rounded-full p-1">
