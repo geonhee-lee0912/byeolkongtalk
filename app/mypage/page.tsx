@@ -500,7 +500,7 @@ export default function MyPage() {
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           계정
         </div>
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white/90 rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
