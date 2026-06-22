@@ -19,7 +19,7 @@ export default async function AdminInquiryDetail({
 
   const [user, balance] = await Promise.all([
     supabase.from("users").select("nickname, created_at").eq("id", inq.user_id).single(),
-    supabase.from("star_balances").select("balance").eq("user_id", inq.user_id).single(),
+    supabase.from("star_balances").select("balance").eq("user_id", inq.user_id).maybeSingle(),
   ]);
 
   const category = inq.category as InquiryCategory;
