@@ -375,7 +375,7 @@ export default function ReadingsPage() {
                   href={`/fortune/result?id=${r.id}&from=history`}
                   className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
                 >
-                  <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
+                  <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
                     {fortuneIcon(r.emotionTag, 24)}
                   </div>
                   <div className="flex-1 min-w-0">
