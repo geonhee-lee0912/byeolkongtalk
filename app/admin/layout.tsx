@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { isAdminAuthorized } from "@/lib/admin";
+import { getServiceSupabase } from "@/lib/supabase";
 import { EnvBanner } from "@/components/admin/EnvBanner";
 
 export const metadata = {
@@ -15,6 +16,7 @@ const NAV = [
   { href: "/admin/users", label: "사용자", emoji: "👥" },
   { href: "/admin/readings", label: "리딩/상담", emoji: "🔮" },
   { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
+  { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
   { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
   { href: "/admin/sensitive", label: "민감 알림", emoji: "🚑" },
   { href: "/admin/errors", label: "에러 로그", emoji: "🚨" },
@@ -29,6 +31,11 @@ export default async function AdminLayout({
   if (!(await isAdminAuthorized(userId))) {
     redirect("/?admin=denied");
   }
+
+  const { count: openInquiries } = await getServiceSupabase()
+    .from("inquiries")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "open");
 
   return (
     <div className="min-h-screen bg-night text-white flex">
@@ -47,7 +54,12 @@ export default async function AdminLayout({
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-white/80 hover:bg-white/5 hover:text-white transition-colors"
             >
               <span>{item.emoji}</span>
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.href === "/admin/inquiries" && (openInquiries ?? 0) > 0 && (
+                <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                  {openInquiries}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
