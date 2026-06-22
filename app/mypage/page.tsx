@@ -255,7 +255,7 @@ export default function MyPage() {
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-lilac-mid/50">
               {me.user.profile_img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -302,7 +302,7 @@ export default function MyPage() {
           <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
             {self && !editingSelf ? (
               <>
-                <div className="px-4 text-[11px] font-bold text-text-light/70 mb-1">내 명식</div>
+                <div className="px-4 text-[11px] font-bold text-lilac-deep mb-1">내 명식</div>
                 <SajuBoard saju={self.saju} showDetail={false} />
               </>
             ) : editingSelf ? (
@@ -342,9 +342,10 @@ export default function MyPage() {
       {/* 지인 사주 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-bold text-eye-purple">
-            지인 사주{" "}
-            <span className="text-text-light/60 font-normal">{acquaintances.length}</span>
+          <div className="text-[12px] font-bold text-eye-purple flex items-center">
+            <span className="inline-block w-[7px] h-[7px] rounded-full bg-gold mr-1.5" aria-hidden />
+            지인 사주
+            <span className="ml-1 text-text-light/60 font-normal">{acquaintances.length}</span>
           </div>
           {!showAddAcq && !editAcqId && (
             <button
@@ -357,7 +358,7 @@ export default function MyPage() {
         </div>
 
         {(showAddAcq || editAcqId) && (
-          <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 mb-3">
+          <div className="bg-white rounded-2xl p-4 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] mb-3">
             <ProfileForm
               mode="acquaintance"
               initial={
@@ -393,7 +394,7 @@ export default function MyPage() {
         )}
 
         {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6">
+          <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] px-4 py-6">
             <p className="text-[12px] text-text-light/70 text-center mb-3">
               아직 함께 보는 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
             </p>
@@ -409,10 +410,10 @@ export default function MyPage() {
             {pagedProfiles.map((p) => (
               <div
                 key={p.id}
-                className="bg-cream-warm rounded-2xl border border-lilac-mid/25 p-3 flex items-center gap-3"
+                className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-3 flex items-center gap-3"
               >
                 <div
-                  className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/20 flex items-center justify-center"
+                  className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center"
                   style={{
                     backgroundColor: ELEMENT_COLORS[p.saju.dayElement].bg,
                     color: ELEMENT_COLORS[p.saju.dayElement].text,
@@ -495,10 +496,13 @@ export default function MyPage() {
 
       {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="text-[12px] font-bold text-eye-purple mb-2">계정</div>
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/25 overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="text-[12px] font-bold text-eye-purple mb-2 flex items-center">
+          <span className="inline-block w-[7px] h-[7px] rounded-full bg-text-light/40 mr-1.5" aria-hidden />
+          계정
+        </div>
+        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep shrink-0" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-text-light/60 shrink-0" aria-hidden>
               <path d="M12,1C7,1 3,5 3,10V17A3,3 0 0,0 6,20H9V12H5V10A7,7 0 0,1 12,3A7,7 0 0,1 19,10V12H15V20H19A3,3 0 0,0 22,17V10C22,5 17,1 12,1Z" />
             </svg>
             <span className="flex-1 text-[14px] text-eye-purple font-medium flex items-center gap-2">
