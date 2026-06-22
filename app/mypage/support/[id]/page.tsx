@@ -109,14 +109,14 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
         {/* 답변 */}
         {item.status === "answered" && item.answer_body ? (
-          <div className="bg-gradient-to-br from-lilac-soft/60 to-cream-warm rounded-2xl p-4 border border-lilac-mid/40">
+          <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-lilac-deep/30 shadow-lg shadow-night/30">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[13px] font-bold text-lilac-deep">별콩이 답변</span>
+              <span className="text-[13px] font-bold text-gold-soft">✨ 별콩이 답변</span>
               {item.answered_at && (
-                <span className="text-[11px] text-text-light/60">· {fmtDateTime(item.answered_at)}</span>
+                <span className="text-[11px] text-white/45">· {fmtDateTime(item.answered_at)}</span>
               )}
             </div>
-            <p className="text-[14px] text-eye-purple/90 whitespace-pre-wrap leading-relaxed">
+            <p className="text-[14px] text-white/90 whitespace-pre-wrap leading-relaxed">
               {item.answer_body}
             </p>
           </div>

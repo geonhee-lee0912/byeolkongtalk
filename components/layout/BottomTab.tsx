@@ -140,9 +140,12 @@ export default function BottomTab() {
                   </svg>
                   {tab.key === "me" && meUnread > 0 && (
                     <span
-                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500"
+                      className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
                       aria-label="새 답변"
-                    />
+                    >
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
+                    </span>
                   )}
                 </span>
                 <span

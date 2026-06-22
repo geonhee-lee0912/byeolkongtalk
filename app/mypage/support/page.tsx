@@ -84,7 +84,7 @@ export default function SupportListPage() {
                       </span>
                       {unread && (
                         <span
-                          className="w-1.5 h-1.5 rounded-full bg-rose-500"
+                          className="w-1.5 h-1.5 rounded-full bg-lilac-deep"
                           aria-label="새 답변"
                         />
                       )}

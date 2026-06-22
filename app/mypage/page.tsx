@@ -531,7 +531,7 @@ export default function MyPage() {
           <span className="text-[14px] text-eye-purple font-medium flex items-center gap-2">
             고객센터 / 문의
             {supportUnread > 0 && (
-              <span className="w-2 h-2 rounded-full bg-rose-500" aria-label="새 답변" />
+              <span className="w-2 h-2 rounded-full bg-lilac-deep" aria-label="새 답변" />
             )}
           </span>
           <span className="text-text-light/50">›</span>
