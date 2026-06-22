@@ -233,7 +233,7 @@ export default function ReadingsPage() {
                 className={[
                   "flex-1 py-2 rounded-full text-[14px] font-bold transition",
                   tab === t.key
-                    ? "bg-cream-warm text-eye-purple shadow-sm"
+                    ? "bg-white text-eye-purple shadow-sm"
                     : "text-text-light/70",
                 ].join(" ")}
               >
@@ -246,7 +246,7 @@ export default function ReadingsPage() {
 
       <div className="w-full max-w-md mx-auto px-5">
         {items.length === 0 ? (
-          <div className="bg-cream-warm rounded-2xl p-6 border border-lilac-mid/30 text-center">
+          <div className="bg-white rounded-2xl p-6 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] text-center">
             <p className="text-[13px] text-text-light leading-relaxed">
               {tab === "consult" ? (
                 <>
@@ -292,7 +292,7 @@ export default function ReadingsPage() {
                 <Link
                   key={r.id}
                   href={href}
-                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex gap-3 items-start hover:border-lilac-deep/50 transition"
+                  className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
                 >
                   {isTarot ? (
                     <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
@@ -373,7 +373,7 @@ export default function ReadingsPage() {
                 <Link
                   key={r.id}
                   href={`/fortune/result?id=${r.id}&from=history`}
-                  className="bg-cream-warm rounded-2xl p-3.5 border border-lilac-mid/30 flex items-start gap-3 hover:border-lilac-deep/50 transition"
+                  className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
                 >
                   <div className="shrink-0 self-center w-10 h-10 rounded-lg bg-gold-soft/30 flex items-center justify-center text-[18px]">
                     {fortuneIcon(r.emotionTag, 24)}
