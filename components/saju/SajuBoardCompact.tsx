@@ -9,7 +9,7 @@ const ELEMENT_BG: Record<FiveElement, string> = {
   목: "#D8E8C9",
   화: "#F4CFC4",
   토: "#F4E0B8",
-  금: "#E5E5EA",
+  금: "#FFFFFF",
   수: "#C8CFE5",
 };
 const ELEMENT_TEXT: Record<FiveElement, string> = {

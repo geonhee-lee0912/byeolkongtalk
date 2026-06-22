@@ -9,7 +9,7 @@ const ELEMENT_COLORS: Record<FiveElement, { bg: string; text: string; bar: strin
   목: { bg: "#D8E8C9", text: "#3D5C2B", bar: "#A8C88A" },
   화: { bg: "#F4CFC4", text: "#7C3527", bar: "#E89B8C" },
   토: { bg: "#F4E0B8", text: "#6E4F1C", bar: "#E8C26A" },
-  금: { bg: "#E5E5EA", text: "#4A4A52", bar: "#B0B0B8" },
+  금: { bg: "#FFFFFF", text: "#4A4A52", bar: "#B0B0B8" },
   수: { bg: "#C8CFE5", text: "#27325A", bar: "#7A85B0" },
 };
 
