@@ -17,12 +17,18 @@ export default async function AdminInquiryDetail({
   const { data: inq } = await supabase.from("inquiries").select("*").eq("id", id).single();
   if (!inq) notFound();
 
-  const [user, balance] = await Promise.all([
+  const [user, balance, payments] = await Promise.all([
     supabase.from("users").select("nickname, created_at").eq("id", inq.user_id).single(),
     supabase.from("star_balances").select("balance").eq("user_id", inq.user_id).maybeSingle(),
+    supabase
+      .from("payments")
+      .select("amount_won")
+      .eq("user_id", inq.user_id)
+      .eq("status", "completed"),
   ]);
 
   const category = inq.category as InquiryCategory;
+  const totalPaid = (payments.data ?? []).reduce((s, p) => s + (p.amount_won ?? 0), 0);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -71,6 +77,7 @@ export default async function AdminInquiryDetail({
           </Link>
         </div>
         <div className="text-white/70">별 잔액: <b>{balance.data?.balance ?? 0}</b></div>
+        <div className="text-white/70">누적 결제: <b>{totalPaid.toLocaleString()}원</b></div>
         {user.data?.created_at && (
           <div className="text-white/70">
             가입일: {new Date(user.data.created_at).toLocaleDateString("ko-KR")}
