@@ -379,10 +379,10 @@ export default function ReadingsPage() {
                     {fortuneIcon(r.emotionTag, 24)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+                    <div className="text-[13.5px] font-bold text-eye-purple line-clamp-1">
                       {r.question}
                     </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+                    <div className="text-[10px] text-text-light/60 mt-0.5 leading-snug flex items-center gap-1.5">
                       <span>{formatDate(r.createdAt)}</span>
                       <span>·</span>
                       <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
