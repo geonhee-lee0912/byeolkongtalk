@@ -341,7 +341,7 @@ export default function MyPage() {
 
       {/* 지인 사주 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="text-[12px] font-bold text-eye-purple flex items-center">
             <span className="inline-block w-[7px] h-[7px] rounded-full bg-gold mr-1.5" aria-hidden />
             지인 사주
@@ -350,7 +350,7 @@ export default function MyPage() {
           {!showAddAcq && !editAcqId && (
             <button
               onClick={() => setShowAddAcq(true)}
-              className="text-[11px] text-lilac-deep font-bold underline"
+              className="text-[11px] text-lilac-deep font-bold underline mr-2"
             >
               + 지인 추가
             </button>
@@ -496,7 +496,7 @@ export default function MyPage() {
 
       {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="text-[12px] font-bold text-eye-purple mb-2 flex items-center">
+        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           계정
         </div>
