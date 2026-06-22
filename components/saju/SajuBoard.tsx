@@ -1,17 +1,7 @@
 "use client";
 
 import type { SajuResult } from "@/lib/saju/calc";
-
-type FiveElement = "목" | "화" | "토" | "금" | "수";
-
-// 별콩이 톤 (cream/lilac/gold 와 어울리는 부드러운 톤). 전통 오행 색 채도 낮춤.
-const ELEMENT_COLORS: Record<FiveElement, { bg: string; text: string; bar: string }> = {
-  목: { bg: "#D8E8C9", text: "#3D5C2B", bar: "#A8C88A" },
-  화: { bg: "#F4CFC4", text: "#7C3527", bar: "#E89B8C" },
-  토: { bg: "#F4E0B8", text: "#6E4F1C", bar: "#E8C26A" },
-  금: { bg: "#FFFFFF", text: "#4A4A52", bar: "#B0B0B8" },
-  수: { bg: "#C8CFE5", text: "#27325A", bar: "#7A85B0" },
-};
+import { ELEMENT_COLORS, type FiveElement } from "@/lib/saju/elements";
 
 // 시주-left 정렬 (항상). 강조는 key === "day"로 판정하므로 순서만 반전.
 const PILLAR_LABELS: { key: "year" | "month" | "day" | "hour"; label: string }[] = [
