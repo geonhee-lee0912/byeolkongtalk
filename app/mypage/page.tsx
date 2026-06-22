@@ -527,14 +527,14 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 지인 행 케밥 시트 */}
+      {/* 지인 행 케밥 팝업 */}
       {sheetId && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5"
           onClick={() => setSheetId(null)}
         >
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md p-2 pb-6"
+            className="bg-white rounded-2xl w-full max-w-xs p-2"
             onClick={(e) => e.stopPropagation()}
           >
             <button
