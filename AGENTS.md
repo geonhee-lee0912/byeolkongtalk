@@ -245,6 +245,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용
 - v2 `/terms`, `/privacy`, `/refund` 페이지 (Footer 가 가리키는 중)
 - 타로 도입 (위 1번)
+- **[다음 세션 우선순위 — 2026-06-28 결정]** ① 사주 resume 먼저 → ② 고민 이어가기 브레인스토밍 (아래 두 항목 순서대로).
 - **"고민 이어가기" 연속성 기능** (QA B-2 후속) — 결과/히스토리에 "이 고민 이어가기" CTA: 이전 감정·고민 프리필 + "지난번 ~ 얘기 나눴었지" 한 줄 컨텍스트 주입한 새 reading. 별콩이 마무리 화법이 "다음에 이어서 보자"고 약속하므로 이를 받쳐줄 실기능 필요. (별도 브레인스토밍 예정)
 - **사주 resume 기능 추가** — 현재 [readings/page.tsx](app/readings/page.tsx) `canResume = isTarot && r.ended === false` 라 타로 미완료 reading만 이어하기 가능. 사주는 미완료 reading resume이 빠져 있음 → 타로와 파리티 맞춰 추가 필요.
 
