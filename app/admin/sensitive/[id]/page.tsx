@@ -7,7 +7,7 @@ import { ReviewButton } from "@/components/admin/ReviewButton";
 export const dynamic = "force-dynamic";
 
 const CATEGORY_INFO: Record<string, { label: string; hotlines: string[] }> = {
-  suicide: { label: "자살/자해", hotlines: ["자살예방 1393", "정신건강 1577-0199"] },
+  suicide: { label: "자살/자해", hotlines: ["자살예방 109", "정신건강 1577-0199", "보건복지 129"] },
   school_violence: { label: "학교폭력", hotlines: ["학교폭력 117", "청소년 1388"] },
   domestic_violence: { label: "가정폭력", hotlines: ["여성긴급 1366", "경찰 112"] },
   sexual_violence: { label: "성폭력", hotlines: ["여성긴급 1366", "해바라기센터"] },

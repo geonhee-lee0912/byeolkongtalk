@@ -264,7 +264,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 감지 흐름: chat 라우트 → user 마지막 메시지 → `detectSensitiveSync` (~1ms) → 매칭 시 응답 헤더 `X-Sensitive-Category` + `X-Sensitive-Severity` → 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 회색지대(low certainty)면 `detectSensitiveAsync` (Claude haiku) fire-and-forget — false positive 검수 + alert 보강
 - regex 패턴 (5 카테고리): `lib/sensitive.ts` PATTERNS — 한국어 변형 (받침/띄어쓰기/단축) 일부 흡수. 추가 키워드 등록은 이 배열에 row 추가
 - 카테고리별 hotline (`components/safety/SafetyBanner.tsx` `HOTLINES`):
-  - suicide → 1393, 1577-0199
+  - suicide → 109(자살예방상담전화, 2024 통합), 1577-0199(정신건강위기상담), 129(보건복지상담센터)
   - school_violence → 117, 1388
   - domestic_violence → 1366, 112
   - sexual_violence → 1366, 해바라기센터

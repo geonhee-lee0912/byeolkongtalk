@@ -144,7 +144,12 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
     ? SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct]
     : "";
 
-  const hardcapGuide = `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료 — askBonus 톤 절대 X)\n\n이번 응답은 대화를 **완전히 마무리하는 턴**이야. 유저가 "고마워", "알겠어", "응" 같은 시그널을 보내도 askBonus 톤으로 가지 말 것. **이 턴은 무조건 forceEnd**.\n\n유저가 마지막으로 꺼낸 얘기에 따뜻하게 답해주고 한 줄 정리한 뒤 종료해.\n\n**응답 끝에 반드시 아래 두 가지 포함:**\n1. **"별콩이는 항상 네 곁에 있어" 맥락의 한마디** — 언제든 새 사주로 돌아올 수 있다는 인상. 예: "궁금한 거 생기면 언제든 다시 사주 펼치러 와. 별콩이는 여기 있을게.", "혼자 고민하지 말고 또 마음 어수선해지면 언제든 돌아와, 별콩이는 항상 별 옆에서 기다릴게."\n2. **맨 마지막 줄에 [END] 마커를 단독 줄로** (이 마커가 없으면 프론트엔드가 종료 처리 못 함 — 절대 빠뜨리지 말 것)\n\n⚠️ "더 풀고 싶은 매듭 있으면…" 같은 열린 초대 문구 절대 X. 유저에게 다시 공을 넘기지 말고 깔끔히 닫아.`;
+  // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap(하드·종료) 분리
+  const gracefulClosingBlock = `\n\n### 그레이스풀 마무리 화법 (급발진 금지)\n- 사용자가 아직 고민·감정을 열어둔 상태면, 그 매듭을 콕 짚어 인정해: "그 '무섭다'는 마음, 오늘 다 풀긴 어려운 주제인 거 별콩이도 알아."\n- 내치는 톤 금지: "끝났으니 또 와", "오늘은 여기까지", "감사", "마지막 질문" X.\n- 돌아옴을 '이어짐'으로 프레이밍: "이건 다음에 새로 사주를 펼쳐서 같이 더 봐도 좋아. 별콩이는 여기서 기다릴게." (지금은 [END] 뒤 같은 대화를 재개하는 기능이 없으니 '새로 펼쳐서'로 표현 — 빈 약속 금지)\n- 사용자가 '덜 풀린 채 끊겼다'가 아니라 '여기까지 같이 왔고 다음이 있다'고 느끼게.\n- 맨 마지막 줄에 [END] 마커를 단독 줄로 (없으면 프론트가 종료 처리 못 함).`;
+
+  const naturalHardcapGuide = `\n\n## 마무리 단계 (턴 ${upcomingTurn}) — 상황 보고 닫기\n\n지금까지 충분히 풀어냈어. **기본값은 이번 턴 그레이스풀 마무리 + 맨 끝 [END]**.\n\n**예외 — 연장**: 사용자가 직전에 *진짜 새롭거나 미해결인 고민·무거운 감정을 막 열었으면*("무섭다", "뭘 하고 싶은지 모르겠다" 류) 닫지 말고 그 매듭을 이번 턴에 먼저 따뜻하게 짚어줘 ([END] 보류 가능, 새 주제는 열지 말 것). 그런 신호 없이 정리되는 분위기면 미루지 말고 마무리해.${gracefulClosingBlock}`;
+
+  const absHardcapGuide = `\n\n## ⚠️ 마무리 의무 (턴 ${upcomingTurn} — 이번 턴에 반드시 종료)\n\n이번 응답에서 **반드시 대화를 닫아**. 단, 급발진 금지 — 미해결 매듭이 남아도 아래 그레이스풀 화법으로 매끄럽게 닫는 게 핵심이야 (사용자가 내쳐졌다고 느끼지 않게).${gracefulClosingBlock}`;
 
   const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${ABS_TURN_CAP}) — 종합 톤\n\n지금까지 나눈 얘기를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 너의 사주가 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새로운 분석 X)\n- 새 질문 던지지 않기 — 사용자가 다음 흐름을 정할 수 있게\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널 참고).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까". 자연스러운 정리 톤만.`;
 
@@ -157,7 +162,9 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 
   const wrapGuide =
     mode === "hardcap"
-      ? hardcapGuide
+      ? absHardcap
+        ? absHardcapGuide
+        : naturalHardcapGuide
       : mode === "converge"
         ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
           userSignalGuide
@@ -296,12 +303,12 @@ function computeWrapMode(
   upcomingTurn: number,
   cumulativeChars: number,
   t: WrapThresholds
-): { mode: WrapMode; isLastConvergeTurn: boolean } {
+): { mode: WrapMode; isLastConvergeTurn: boolean; absHardcap: boolean } {
   const naturalHardcap =
     upcomingTurn >= t.hardCapTurn && cumulativeChars >= t.hardCapChars;
   const absHardcap = upcomingTurn >= t.absTurnCap;
   if (naturalHardcap || absHardcap) {
-    return { mode: "hardcap", isLastConvergeTurn: false };
+    return { mode: "hardcap", isLastConvergeTurn: false, absHardcap };
   }
 
   const isAbsCapMinus1 = upcomingTurn === t.absTurnCap - 1;
@@ -310,15 +317,15 @@ function computeWrapMode(
     cumulativeChars >= t.convergeStartChars;
 
   if (isAbsCapMinus1 || isHardcapMinus1NaturalPath) {
-    return { mode: "converge", isLastConvergeTurn: true };
+    return { mode: "converge", isLastConvergeTurn: true, absHardcap: false };
   }
   if (
     upcomingTurn >= t.convergeStartTurn &&
     cumulativeChars >= t.convergeStartChars
   ) {
-    return { mode: "converge", isLastConvergeTurn: false };
+    return { mode: "converge", isLastConvergeTurn: false, absHardcap: false };
   }
-  return { mode: "free", isLastConvergeTurn: false };
+  return { mode: "free", isLastConvergeTurn: false, absHardcap: false };
 }
 
 export function buildTarotSystemMessage(ctx: TarotReadingContext): {
@@ -332,7 +339,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   const t = WRAP_THRESHOLDS[ctx.spreadType];
   const absCap = t.absTurnCap;
 
-  const { mode, isLastConvergeTurn } = computeWrapMode(
+  const { mode, isLastConvergeTurn, absHardcap } = computeWrapMode(
     upcomingTurn,
     ctx.cumulativeAssistantChars,
     t
@@ -342,7 +349,12 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
     ? `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
     : "";
 
-  const hardcapGuide = `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료 — askBonus 톤 절대 X)\n\n이번 응답은 대화를 **완전히 마무리하는 턴**이야. 유저가 "고마워", "알겠어", "응" 같은 시그널을 보내도 askBonus 톤으로 가지 말 것. **이 턴은 무조건 forceEnd**.\n\n유저가 마지막으로 꺼낸 얘기에 따뜻하게 답해주고 한 줄 정리한 뒤 종료해.\n\n**응답 끝에 반드시 아래 두 가지 포함:**\n1. **"별콩이는 항상 네 곁에 있어" 맥락의 한마디** — 언제든 새 카드로 돌아올 수 있다는 인상. 예: "궁금한 거 생기면 언제든 다시 카드 펼치러 와. 별콩이는 여기 있을게."\n2. **맨 마지막 줄에 [END] 마커를 단독 줄로** (이 마커가 없으면 프론트엔드가 종료 처리 못 함 — 절대 빠뜨리지 말 것)\n\n⚠️ "더 풀고 싶은 매듭 있으면…" 같은 열린 초대 문구 절대 X. 깔끔히 닫아.`;
+  // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리
+  const gracefulClosingBlock = `\n\n### 그레이스풀 마무리 화법 (급발진 금지)\n- 사용자가 아직 고민·감정을 열어둔 상태면, 그 매듭을 콕 짚어 인정해: "그 마음, 오늘 카드 한 번으로 다 풀긴 어려운 주제인 거 별콩이도 알아."\n- 내치는 톤 금지: "끝났으니 또 와", "오늘은 여기까지", "감사", "마지막 질문" X.\n- 돌아옴을 '이어짐'으로 프레이밍: "이건 다음에 새로 카드를 펼쳐서 같이 더 봐도 좋아. 별콩이는 여기서 기다릴게." (지금은 [END] 뒤 같은 대화를 재개하는 기능이 없으니 '새로 펼쳐서'로 표현 — 빈 약속 금지)\n- 사용자가 '덜 풀린 채 끊겼다'가 아니라 '여기까지 같이 왔고 다음이 있다'고 느끼게.\n- 맨 마지막 줄에 [END] 마커를 단독 줄로 (없으면 프론트가 종료 처리 못 함).`;
+
+  const naturalHardcapGuide = `\n\n## 마무리 단계 (턴 ${upcomingTurn}) — 상황 보고 닫기\n\n지금까지 충분히 풀어냈어. **기본값은 이번 턴 그레이스풀 마무리 + 맨 끝 [END]**.\n\n**예외 — 연장**: 사용자가 직전에 *진짜 새롭거나 미해결인 고민·무거운 감정을 막 열었으면* 닫지 말고 그 매듭을 이번 턴에 먼저 따뜻하게 짚어줘 ([END] 보류 가능, 새 카드 해석은 열지 말 것). 그런 신호 없이 정리되는 분위기면 미루지 말고 마무리해.${gracefulClosingBlock}`;
+
+  const absHardcapGuide = `\n\n## ⚠️ 마무리 의무 (턴 ${upcomingTurn} — 이번 턴에 반드시 종료)\n\n이번 응답에서 **반드시 대화를 닫아**. 단, 급발진 금지 — 미해결 매듭이 남아도 아래 그레이스풀 화법으로 매끄럽게 닫는 게 핵심이야 (사용자가 내쳐졌다고 느끼지 않게).${gracefulClosingBlock}`;
 
   const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}) — 종합 톤\n\n지금까지 나눈 얘기와 카드를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 이 카드들이 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새 분석 X)\n- 새 질문 던지지 않기\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까".`;
 
@@ -354,9 +366,11 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
       : "";
 
   const wrapGuide = ctx.forceEnd
-    ? hardcapGuide
+    ? absHardcapGuide
     : mode === "hardcap"
-      ? hardcapGuide
+      ? absHardcap
+        ? absHardcapGuide
+        : naturalHardcapGuide
       : mode === "converge"
         ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
           userSignalGuide

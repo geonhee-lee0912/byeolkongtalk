@@ -15,32 +15,33 @@ export interface WrapThresholds {
 }
 
 export const WRAP_THRESHOLDS: Record<SpreadType, WrapThresholds> = {
+  // B-2: absTurnCap 에 그레이스풀 마무리용 +2 연장 예산 포함 (미해결 고민 시).
   one_card: {
     convergeStartTurn: 3,
     convergeStartChars: 1400,
     hardCapTurn: 5,
     hardCapChars: 1700,
-    absTurnCap: 9,
+    absTurnCap: 11,
   },
   two_card: {
     convergeStartTurn: 4,
     convergeStartChars: 1800,
     hardCapTurn: 6,
     hardCapChars: 2200,
-    absTurnCap: 10,
+    absTurnCap: 12,
   },
   three_card: {
     convergeStartTurn: 5,
     convergeStartChars: 2200,
     hardCapTurn: 7,
     hardCapChars: 2700,
-    absTurnCap: 11,
+    absTurnCap: 13,
   },
   relationship_5: {
     convergeStartTurn: 7,
     convergeStartChars: 3000,
     hardCapTurn: 9,
     hardCapChars: 3700,
-    absTurnCap: 13,
+    absTurnCap: 15,
   },
 };

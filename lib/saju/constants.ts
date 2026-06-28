@@ -11,5 +11,6 @@ export const CONVERGE_START_CHARS = 1800;
 export const HARD_CAP_TURN = 6;
 export const HARD_CAP_CHARS = 2200;
 
-// 절대 turn cap (chars 미달이어도 이 turn 도달 시 [END] — 짧은 핑퐁 안전망)
-export const ABS_TURN_CAP = 9;
+// 절대 turn cap (chars 미달이어도 이 turn 도달 시 [END] — 짧은 핑퐁 안전망).
+// B-2: 미해결 고민 시 그레이스풀하게 마무리할 +2 연장 예산 포함 (9→11).
+export const ABS_TURN_CAP = 11;

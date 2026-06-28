@@ -10,8 +10,9 @@ interface Hotline {
 
 const HOTLINES: Record<SensitiveCategory, Hotline[]> = {
   suicide: [
-    { name: "자살예방상담전화", number: "1393", note: "24시간 익명·무료" },
+    { name: "자살예방상담전화", number: "109", note: "24시간 익명·무료" },
     { name: "정신건강위기상담", number: "1577-0199" },
+    { name: "보건복지상담센터", number: "129" },
   ],
   school_violence: [
     { name: "학교폭력신고센터", number: "117", note: "24시간 익명" },
@@ -31,7 +32,7 @@ const HOTLINES: Record<SensitiveCategory, Hotline[]> = {
   ],
   other: [
     { name: "정신건강위기상담", number: "1577-0199", note: "24시간 익명" },
-    { name: "자살예방상담전화", number: "1393", note: "24시간 익명·무료" },
+    { name: "자살예방상담전화", number: "109", note: "24시간 익명·무료" },
   ],
 };
 
