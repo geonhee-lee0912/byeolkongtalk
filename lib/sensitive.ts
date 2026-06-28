@@ -53,6 +53,11 @@ const PATTERNS: Pattern[] = [
   { re: /칼.*(긋|손목)/, category: "suicide", severity: 3, certainty: "high" },
   { re: /힘들어\s*죽/, category: "suicide", severity: 1, certainty: "low" },
   { re: /지쳐\s*죽/, category: "suicide", severity: 1, certainty: "low" },
+  // 모호한 실존적 절망 — banner + Claude 2차 검토 유도 (회색지대)
+  { re: /사는\s*게\s*(의미\s*없|싫|힘들|버겁)/, category: "suicide", severity: 2, certainty: "medium" },
+  { re: /(다|모든\s*게|전부)\s*의미\s*없/, category: "suicide", severity: 1, certainty: "low" },
+  { re: /더는?\s*못\s*버티/, category: "suicide", severity: 1, certainty: "low" },
+  { re: /(다|전부)\s*(놓|포기)\s*(아?\s*버리|하)?\s*고\s*싶/, category: "suicide", severity: 2, certainty: "medium" },
 
   // 학교폭력 / 따돌림
   { re: /왕따/, category: "school_violence", severity: 2, certainty: "high" },
