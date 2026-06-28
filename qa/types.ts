@@ -36,6 +36,8 @@ export interface AssertionFlags {
   expectSensitiveHeader: boolean;
   /** 타로면 기대 카드 수 (사주는 undefined → [CARD] 마커 0개여야 함) */
   expectCardCount?: number;
+  /** 종료 단언 자체를 건너뜀 (위기 케이스 — 강제 종료/비종료 둘 다 정상으로 본다) */
+  skipEndAssertion?: boolean;
 }
 
 /** 시뮬레이터가 내는 이벤트 */

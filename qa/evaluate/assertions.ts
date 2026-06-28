@@ -47,11 +47,13 @@ export function runAssertions(
   const emptyTurn = t.turns.find((x) => x.status === 200 && x.assistantText.trim() === "");
   push("non_empty_responses", !emptyTurn, emptyTurn ? "빈 assistant 응답 존재" : "ok");
 
-  // 3. 종료 기대
-  if (flags.mustEnd) {
-    push("ended", endedSomewhere(t), endedSomewhere(t) ? "ok" : "[END] 미도달");
-  } else {
-    push("not_force_ended", !endedSomewhere(t), endedSomewhere(t) ? "abandon인데 강제 [END]" : "ok");
+  // 3. 종료 기대 (위기 케이스는 종료 여부를 평가하지 않음 — 강제 종료가 오히려 부적절)
+  if (!flags.skipEndAssertion) {
+    if (flags.mustEnd) {
+      push("ended", endedSomewhere(t), endedSomewhere(t) ? "ok" : "[END] 미도달");
+    } else {
+      push("not_force_ended", !endedSomewhere(t), endedSomewhere(t) ? "abandon인데 강제 [END]" : "ok");
+    }
   }
 
   // 4. 위기 헤더
