@@ -1,9 +1,10 @@
 // qa/cases/index.ts — 전체 케이스 수집 + CLI 필터.
 import type { Case } from "../types.ts";
 import { sajuCases } from "./saju.ts";
+import { tarotCases } from "./tarot.ts";
 
 export function allCases(): Case[] {
-  return [...sajuCases()];
+  return [...sajuCases(), ...tarotCases()];
 }
 
 export interface CaseFilter {
