@@ -5,7 +5,7 @@ import { collectCases, type CaseFilter } from "./cases/index.ts";
 import { runConversation } from "./driver.ts";
 import { runAssertions } from "./evaluate/assertions.ts";
 import { judge } from "./evaluate/judge.ts";
-import { writeReport } from "./report.ts";
+import { ensureRunDir, writeCaseResult, writeSummary } from "./report.ts";
 import type { CaseResult } from "./types.ts";
 
 function parseArgs(argv: string[]): { filter: CaseFilter; judgeOnly: boolean; clean: boolean } {
@@ -47,6 +47,11 @@ async function main() {
   if (clean) await cleanTestData();
   await topUpStars();
 
+  // runId = 타임스탬프 (node 런타임이라 Date 사용 OK). 디렉토리를 미리 만들어 증분 저장.
+  const runId = new Date().toISOString().replace(/[:.]/g, "-");
+  const dir = ensureRunDir(runId);
+  console.log(`[qa] 출력: ${dir} (케이스 완료마다 즉시 저장)`);
+
   const results: CaseResult[] = [];
   for (const c of cases) {
     process.stdout.write(`\n[qa] ▶ ${c.id} ... `);
@@ -58,16 +63,17 @@ async function main() {
     } catch (e) {
       console.error(`심판 실패: ${(e as Error).message}`);
     }
-    results.push({ transcript, assertions, judge: judgeResult });
+    const result = { transcript, assertions, judge: judgeResult };
+    results.push(result);
+
+    // 증분 저장 — 런이 중단돼도 여기까지 결과는 남는다
+    writeCaseResult(dir, result);
+    writeSummary(dir, results);
 
     const aFail = assertions.filter((a) => !a.pass).length;
     const jFail = judgeResult?.dimensions.filter((d) => !d.pass).length ?? 0;
     process.stdout.write(aFail || jFail ? `❌단언${aFail}/⚠️심판${jFail}` : "✅");
   }
-
-  // runId = 타임스탬프 (node 런타임이라 Date 사용 OK)
-  const runId = new Date().toISOString().replace(/[:.]/g, "-");
-  const dir = writeReport(runId, results);
 
   const pass = results.filter(
     (r) => !r.assertions.some((a) => !a.pass) && !(r.judge?.dimensions.some((d) => !d.pass))

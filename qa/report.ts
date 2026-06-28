@@ -53,13 +53,23 @@ export function buildSummaryMd(results: CaseResult[]): string {
   return lines.join("\n");
 }
 
-/** runId(타임스탬프)는 호출자가 넘긴다 (스크립트 내 Date 사용 가능 — node 런타임). */
-export function writeReport(runId: string, results: CaseResult[]): string {
+/** 런 출력 디렉토리 생성 후 경로 반환. runId(타임스탬프)는 호출자가 넘긴다. */
+export function ensureRunDir(runId: string): string {
   const dir = join(process.cwd(), "qa", "out", runId);
   mkdirSync(dir, { recursive: true });
-  for (const r of results) {
-    writeFileSync(join(dir, `${r.transcript.caseId}.json`), JSON.stringify(r, null, 2), "utf-8");
-  }
-  writeFileSync(join(dir, "summary.md"), buildSummaryMd(results), "utf-8");
   return dir;
+}
+
+/** 케이스 1건 결과를 즉시 JSON으로 저장 (장시간 런 중단 대비 증분 저장). */
+export function writeCaseResult(dir: string, r: CaseResult): void {
+  writeFileSync(
+    join(dir, `${r.transcript.caseId}.json`),
+    JSON.stringify(r, null, 2),
+    "utf-8"
+  );
+}
+
+/** 누적 결과로 요약 md 작성 (매 케이스 후 갱신해도 됨 — 부분 진행도 읽을 수 있게). */
+export function writeSummary(dir: string, results: CaseResult[]): void {
+  writeFileSync(join(dir, "summary.md"), buildSummaryMd(results), "utf-8");
 }
