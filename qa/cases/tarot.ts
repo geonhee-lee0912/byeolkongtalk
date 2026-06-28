@@ -13,13 +13,15 @@ const SPREAD_SETUP: { spread: SpreadType; category: SpreadCategory; emotion: Cas
 export function tarotCases(): Case[] {
   const cases: Case[] = [];
   for (const s of SPREAD_SETUP) {
-    const cardCount = SPREAD_INFO[s.spread].cardCount;
+    // one_card 는 단일 카드라 [CARD:n] 마커를 쓰지 않음(페르소나 설계) → 기대 0개.
+    // 멀티카드(2/3/5)는 카드 직전 마커가 카드 수만큼 등장.
+    const expectCardCount = s.spread === "one_card" ? 0 : SPREAD_INFO[s.spread].cardCount;
     cases.push(
       ...buildSharedCases(
         { kind: "tarot", spreadType: s.spread, spreadCategory: s.category },
         s.emotion,
         `tarot.${s.spread}`,
-        { mustEnd: true, expectSensitiveHeader: false, expectCardCount: cardCount }
+        { mustEnd: true, expectSensitiveHeader: false, expectCardCount }
       )
     );
   }

@@ -23,15 +23,6 @@ function endedSomewhere(t: Transcript): boolean {
   return t.turns.some((turn) => hasEndMarker(turn.assistantText));
 }
 
-/** user 직전 발화가 물음표로 끝났는데 같은 응답에 [END]가 붙은 경우 → 강제종료 의심 */
-export function lateForcedEndFlag(t: Transcript): boolean {
-  return t.turns.some(
-    (turn) =>
-      hasEndMarker(turn.assistantText) &&
-      /[?？]\s*$/.test(turn.userText.trim())
-  );
-}
-
 export function runAssertions(
   t: Transcript,
   flags: AssertionFlags
@@ -65,16 +56,18 @@ export function runAssertions(
     push("sensitive_header", hasSensitive, hasSensitive ? "ok" : "X-Sensitive 헤더 없음");
   }
 
-  // 5. 카드 마커 (타로=일치, 사주=0개)
-  const maxCards = Math.max(0, ...t.turns.map((x) => countCardMarkers(x.assistantText)));
-  if (flags.expectCardCount != null) {
-    push(
-      "card_count",
-      maxCards === flags.expectCardCount,
-      `기대 ${flags.expectCardCount} / 실제 ${maxCards}`
-    );
-  } else {
-    push("no_card_markers", maxCards === 0, `사주인데 [CARD] ${maxCards}개`);
+  // 5. 카드 마커 (타로=일치, 사주=0개). 위기 케이스는 카드보다 안전 안내 우선이라 생략.
+  if (!flags.skipCardAssertion) {
+    const maxCards = Math.max(0, ...t.turns.map((x) => countCardMarkers(x.assistantText)));
+    if (flags.expectCardCount != null) {
+      push(
+        "card_count",
+        maxCards === flags.expectCardCount,
+        `기대 ${flags.expectCardCount} / 실제 ${maxCards}`
+      );
+    } else {
+      push("no_card_markers", maxCards === 0, `사주인데 [CARD] ${maxCards}개`);
+    }
   }
 
   // 6. 별 차감 (응답에서 받은 cost만큼 줄었는가)
@@ -84,12 +77,6 @@ export function runAssertions(
     `start ${t.startBalance} - end ${t.endBalance} = ${t.startBalance - t.endBalance}, cost ${t.cost}`
   );
 
-  // 7. 마무리 강제종료 휴리스틱 (실패가 아니라 심판에 넘길 플래그 — warn)
-  push(
-    "late_forced_end_flag",
-    !lateForcedEndFlag(t),
-    lateForcedEndFlag(t) ? "물음표 발화 직후 [END] — 심판 확인 필요" : "ok"
-  );
-
+  // (마무리 강제종료는 심판의 "마무리 적절성" 차원이 평가 — 휴리스틱 단언은 오탐만 내어 제거)
   return out;
 }

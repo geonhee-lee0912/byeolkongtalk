@@ -27,8 +27,9 @@ export const config = {
   // chat 콜 간 대기 (레이트리밋 20/분 아래 유지)
   PACING_MS: 3500,
 
-  // 안전 상한 — 한 대화의 최대 chat 콜 수 (시뮬레이터 폭주 방지)
-  MAX_CHAT_CALLS_PER_CASE: 14,
+  // 안전 상한 — 한 대화의 최대 chat 콜 수 (시뮬레이터 폭주 방지).
+  // 타로 relationship_5 의 absTurnCap(13)까지 자연 [END] 도달 여유를 두고 16.
+  MAX_CHAT_CALLS_PER_CASE: 16,
 
   // idle_resume 케이스에서 실제로 대기할 시간 (테스트 속도 위해 짧게; 0이면 sleep 생략하고 재로딩만)
   IDLE_SLEEP_MS: 0,

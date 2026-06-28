@@ -85,9 +85,9 @@ export async function runConversation(c: Case): Promise<Transcript> {
       return t;
     }
 
+    // 자연 종료(stop/abandon/[END]) 또는 MAX_CHAT_CALLS_PER_CASE 까지 진행.
+    // (이전엔 maxTurns+4 소프트캡이 타로 멀티카드를 [END] 도달 전에 끊어 false fail 유발 → 제거)
     while (t.turns.length < config.MAX_CHAT_CALLS_PER_CASE) {
-      // 케이스별 소프트 캡 — burst 포함 모든 이벤트 경로에 균일 적용 (비용 보호)
-      if (t.turns.length >= c.maxTurns + 4) { t.finishReason = "max_turns"; break; }
       const ev = await nextEvent(c, t);
 
       if (ev.type === "stop") {

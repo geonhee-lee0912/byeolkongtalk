@@ -38,6 +38,8 @@ export interface AssertionFlags {
   expectCardCount?: number;
   /** 종료 단언 자체를 건너뜀 (위기 케이스 — 강제 종료/비종료 둘 다 정상으로 본다) */
   skipEndAssertion?: boolean;
+  /** 카드 단언 자체를 건너뜀 (위기 케이스 — 카드보다 안전 안내 우선이라 카드 수 무관) */
+  skipCardAssertion?: boolean;
 }
 
 /** 시뮬레이터가 내는 이벤트 */
