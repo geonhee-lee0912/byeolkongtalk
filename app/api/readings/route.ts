@@ -76,11 +76,14 @@ export async function GET() {
 
   // 종료/생성중/미리보기 — 셋 다 assistant 메시지가 필요하므로 reading 묶음으로 한 번만 조회.
   // (reading_id, created_at) 인덱스 활용. created_at 오름차순 1패스로:
-  //   - ended:      타로 + [END] 마커 보유 (이어할 수 없는 마무리된 대화)
+  //   - ended:      고민 상담(사주/타로) + [END] 마커 보유 (이어할 수 없는 마무리된 대화)
   //   - hasMsg:     assistant 메시지 1개라도 존재 (운세 생성중 판정용)
   //   - preview:    reading 별 첫 assistant 메시지 도입부
-  const tarotIdSet = new Set(
-    (data ?? []).filter((r) => r.consultation_type === "tarot").map((r) => r.id)
+  // 운세 리포트(JSON content)는 이어하기 대상이 아니므로 ended 판정에서 제외.
+  const consultIdSet = new Set(
+    (data ?? [])
+      .filter((r) => !fortuneTypeFromTag(r.emotion_tag))
+      .map((r) => r.id)
   );
   const fortuneIds = (data ?? [])
     .filter((r) => fortuneTypeFromTag(r.emotion_tag))
@@ -99,7 +102,7 @@ export async function GET() {
       .order("created_at", { ascending: true });
     for (const row of msgRows ?? []) {
       hasMsgSet.add(row.reading_id);
-      if (tarotIdSet.has(row.reading_id) && row.content.includes("[END]")) {
+      if (consultIdSet.has(row.reading_id) && row.content.includes("[END]")) {
         endedSet.add(row.reading_id);
       }
       if (!previewMap.has(row.reading_id)) {

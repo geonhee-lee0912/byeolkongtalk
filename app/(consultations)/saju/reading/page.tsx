@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
 import ChatBubble from "@/components/saju/ChatBubble";
@@ -24,7 +24,23 @@ const END_MARKER = /\[END\]\s*$/;
 const TRAILING_PARTIAL = /\[E?N?D?\]?\s*$/;
 
 export default function ReadingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex flex-1 items-center justify-center px-5">
+          <p className="text-text-light text-sm">잠시만…</p>
+        </main>
+      }
+    >
+      <ReadingInner />
+    </Suspense>
+  );
+}
+
+function ReadingInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resumeId = searchParams.get("id");
   const [ctx, setCtx] = useState<CurrentReading | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState<string>("");
@@ -42,6 +58,56 @@ export default function ReadingPage() {
 
   // 컨텍스트 로드 + 첫 풀이 자동 시작
   useEffect(() => {
+    // 이어하기 모드 — 기존 reading 을 불러와 대화를 복원 (별 재차감 X).
+    // 메시지가 있으면 startedRef 로 자동 첫 풀이를 막고, 비어 있으면(첫 스트림 도중
+    // 이탈해 미저장) 그대로 둬서 아래 자동 시작 effect 가 첫 풀이를 복구한다.
+    if (resumeId) {
+      void (async () => {
+        try {
+          const r = await fetch(`/api/readings/${resumeId}`, {
+            cache: "no-store",
+          });
+          if (!r.ok) {
+            router.replace("/readings");
+            return;
+          }
+          const d = await r.json();
+          const reading = d.reading as {
+            sajuData: SajuResult | null;
+            question: string;
+            consultationType?: string;
+          };
+          if (!reading?.sajuData || reading.consultationType === "tarot") {
+            router.replace("/readings");
+            return;
+          }
+          const rawMsgs = (d.messages ?? []) as Message[];
+          if (rawMsgs.length > 0) {
+            startedRef.current = true;
+            const restored = rawMsgs.map((m) => ({
+              role: m.role,
+              content: m.content.replace(/\[END\]/g, "").trim(),
+            }));
+            setMessages(restored);
+            const lastAssistant = [...rawMsgs]
+              .reverse()
+              .find((m) => m.role === "assistant");
+            if (lastAssistant && /\[END\]/.test(lastAssistant.content)) {
+              setIsEnded(true);
+            }
+          }
+          setCtx({
+            readingId: resumeId,
+            saju: reading.sajuData,
+            question: reading.question,
+          });
+        } catch {
+          router.replace("/readings");
+        }
+      })();
+      return;
+    }
+
     try {
       const raw = sessionStorage.getItem("byeolkong:current_reading");
       if (!raw) {
@@ -57,7 +123,7 @@ export default function ReadingPage() {
     } catch {
       router.replace("/saju");
     }
-  }, [router]);
+  }, [router, resumeId]);
 
   useEffect(() => {
     if (!ctx) return;

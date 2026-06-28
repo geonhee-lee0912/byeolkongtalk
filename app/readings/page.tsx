@@ -271,9 +271,11 @@ export default function ReadingsPage() {
           <div className="flex flex-col gap-2">
             {pagedItems.map((r) => {
               const isTarot = r.consultationType === "tarot";
-              const canResume = isTarot && r.ended === false;
+              const canResume = r.ended === false;
               const href = canResume
-                ? `/tarot/reading?id=${r.id}&from=history`
+                ? isTarot
+                  ? `/tarot/reading?id=${r.id}&from=history`
+                  : `/saju/reading?id=${r.id}&from=history`
                 : isTarot
                   ? `/tarot/result?id=${r.id}&from=history`
                   : `/saju/result?id=${r.id}&from=history`;
