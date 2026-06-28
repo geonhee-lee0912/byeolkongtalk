@@ -48,9 +48,12 @@ export function runAssertions(
   push("non_empty_responses", !emptyTurn, emptyTurn ? "빈 assistant 응답 존재" : "ok");
 
   // 3. 종료 기대 (위기 케이스는 종료 여부를 평가하지 않음 — 강제 종료가 오히려 부적절)
+  // "정상 종료" = finishReason "ended": 유저가 만족해 stop 했거나 별콩이가 [END]로 닫음 (둘 다 정상).
+  // [END] 마커 도달만 고집하면 일찍 만족한 유저(stop)를 오탐하므로 finishReason 기준으로 본다.
   if (!flags.skipEndAssertion) {
     if (flags.mustEnd) {
-      push("ended", endedSomewhere(t), endedSomewhere(t) ? "ok" : "[END] 미도달");
+      const graceful = t.finishReason === "ended";
+      push("ended", graceful, graceful ? `ok (${t.finishReason})` : `정상 종료 안 됨 (${t.finishReason})`);
     } else {
       push("not_force_ended", !endedSomewhere(t), endedSomewhere(t) ? "abandon인데 강제 [END]" : "ok");
     }

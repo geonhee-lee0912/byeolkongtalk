@@ -60,6 +60,30 @@ test("runAssertions: 사주 happy_path 종료 통과", () => {
   assert.ok(res.every((r) => r.pass), JSON.stringify(res, null, 2));
 });
 
+test("runAssertions: 유저 stop으로 [END] 마커 없이 종료해도 ended 통과", () => {
+  const t = tx({
+    cost: 20,
+    startBalance: 100,
+    endBalance: 80,
+    turns: [
+      { userText: "고민", assistantText: "풀이 (마커 없음)", headers: {}, status: 200, eventType: "say" },
+      { userText: "고마워 됐어", assistantText: "응 언제든 와", headers: {}, status: 200, eventType: "say" },
+    ],
+    finishReason: "ended",
+  });
+  const res = runAssertions(t, { mustEnd: true, expectSensitiveHeader: false });
+  assert.ok(res.find((r) => r.name === "ended")?.pass, JSON.stringify(res, null, 2));
+});
+
+test("runAssertions: max_calls로 끝나면 ended 실패", () => {
+  const t = tx({
+    turns: [{ userText: "x", assistantText: "y", headers: {}, status: 200, eventType: "say" }],
+    finishReason: "max_calls",
+  });
+  const res = runAssertions(t, { mustEnd: true, expectSensitiveHeader: false });
+  assert.ok(!res.find((r) => r.name === "ended")?.pass);
+});
+
 test("runAssertions: 위기 헤더 누락 시 실패", () => {
   const t = tx({
     turns: [

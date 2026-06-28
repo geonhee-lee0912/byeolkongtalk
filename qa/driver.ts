@@ -86,6 +86,8 @@ export async function runConversation(c: Case): Promise<Transcript> {
     }
 
     while (t.turns.length < config.MAX_CHAT_CALLS_PER_CASE) {
+      // 케이스별 소프트 캡 — burst 포함 모든 이벤트 경로에 균일 적용 (비용 보호)
+      if (t.turns.length >= c.maxTurns + 4) { t.finishReason = "max_turns"; break; }
       const ev = await nextEvent(c, t);
 
       if (ev.type === "stop") {
@@ -110,11 +112,8 @@ export async function runConversation(c: Case): Promise<Transcript> {
       if (ev.type === "idle_resume" && config.IDLE_SLEEP_MS > 0) {
         await sleep(config.IDLE_SLEEP_MS);
       }
-      const userText = ev.type === "say" ? ev.text : ev.text;
-      const turn = await sendOne(c, t, userText, ev.type);
+      const turn = await sendOne(c, t, ev.text, ev.type);
       if (hasEndMarker(turn.assistantText)) { t.finishReason = "ended"; break; }
-
-      if (t.turns.length >= c.maxTurns + 4) { t.finishReason = "max_turns"; break; }
     }
     if (t.turns.length >= config.MAX_CHAT_CALLS_PER_CASE) t.finishReason = "max_calls";
   } catch (e) {

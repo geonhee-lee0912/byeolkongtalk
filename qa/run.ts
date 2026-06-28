@@ -23,7 +23,14 @@ function parseArgs(argv: string[]): { filter: CaseFilter; judgeOnly: boolean; cl
 }
 
 async function main() {
-  const { filter, clean } = parseArgs(process.argv.slice(2));
+  const { filter, clean, judgeOnly } = parseArgs(process.argv.slice(2));
+
+  // --judge-only: 저장본 재평가는 미구현 (의도적 deferral) — 실수로 비싼 런 트리거 방지
+  if (judgeOnly) {
+    console.error("[qa] --judge-only 는 아직 미구현이야 (저장된 트랜스크립트 재평가). 플래그 빼고 다시 실행해.");
+    process.exit(1);
+  }
+
   const cases = collectCases(filter);
 
   if (cases.length === 0) {
