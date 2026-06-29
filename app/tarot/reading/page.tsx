@@ -220,6 +220,16 @@ function TarotReadingInner() {
 
     void (async () => {
       try {
+        const contRaw =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem("byeolkong:continuation")
+            : null;
+        let cont: { previousReadingId?: string; mode?: string } = {};
+        try {
+          cont = contRaw ? JSON.parse(contRaw) : {};
+        } catch {
+          cont = {};
+        }
         const r = await fetch("/api/consultations/tarot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -229,8 +239,13 @@ function TarotReadingInner() {
             emotion: parsed.emotion,
             concern: parsed.concern,
             drawnCards: parsed.drawnCards,
+            previousReadingId: cont.previousReadingId,
+            continuationMode: cont.mode === "fresh" ? "fresh" : undefined,
           }),
         });
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("byeolkong:continuation");
+        }
         if (!r.ok) {
           const data = await r.json().catch(() => ({}));
           if (data?.code === "LOGIN_REQUIRED") {
