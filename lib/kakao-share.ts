@@ -21,6 +21,7 @@ export interface KakaoSajuShareInput {
   description: string; // 카드 하단 설명 (마무리 한마디)
   imageUrl: string; // OG 이미지 URL (1200×630)
   link: string; // 클릭 시 이동할 URL
+  buttonTitle?: string; // 카드 하단 버튼 라벨 (기본 "나도 보러가기")
 }
 
 /**
@@ -44,7 +45,7 @@ export function shareToKakao(input: KakaoSajuShareInput): boolean {
       },
       buttons: [
         {
-          title: "나도 사주 보기",
+          title: input.buttonTitle ?? "나도 보러가기",
           link: {
             mobileWebUrl: input.link,
             webUrl: input.link,

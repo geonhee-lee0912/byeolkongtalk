@@ -99,6 +99,7 @@ export default function ShareButtons({
       description: closingLine ?? `일간 ${dayStem} (${dayElement})`,
       imageUrl,
       link,
+      buttonTitle: "나도 사주 보기",
     });
     if (!ok) {
       setToast("카카오 SDK 가 아직 준비 안 됐어");

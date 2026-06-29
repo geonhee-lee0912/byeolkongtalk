@@ -122,6 +122,7 @@ export default function TarotShareButtons({
       description: closingLine ?? spreadLabel,
       imageUrl,
       link,
+      buttonTitle: "나도 타로 보기",
     });
     if (!ok) {
       setToast("카카오 SDK 가 아직 준비 안 됐어");
@@ -144,13 +145,13 @@ export default function TarotShareButtons({
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleShare}
-          className="py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          className="py-3.5 rounded-xl bg-white text-lilac-deep border border-lilac-mid/40 font-bold text-[13px] hover:bg-lilac-soft/30 active:scale-[0.98] transition"
         >
           링크로 공유하기
         </button>
         <button
           onClick={handleInstaSave}
-          className="py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          className="py-3.5 rounded-xl bg-white text-lilac-deep border border-lilac-mid/40 font-bold text-[13px] hover:bg-lilac-soft/30 active:scale-[0.98] transition"
         >
           이미지로 저장
         </button>

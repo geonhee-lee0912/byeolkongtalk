@@ -160,7 +160,7 @@ export async function GET(
   const brandTitleSize = isStory ? 34 : 20;
   const gapHeaderToCards = isStory ? 64 : 18;
   const gapCardsToSummary = isStory ? 56 : 18;
-  const closeCap = isStory ? 110 : 64;
+  const closeCap = isStory ? 160 : 120;
   const trimmedClosing =
     closingLine.length > closeCap
       ? closingLine.slice(0, closeCap - 2) + "…"
