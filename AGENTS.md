@@ -239,15 +239,17 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 한 화면당 1~3 사이클이면 보통 정리됨
 - 큰 작업 (타로 도입) 은 단계 나눠서 (스키마 → 자산 → draw → reading) 사이클 다회로 끊어서 진행
 
+**완료 (2026-06-29 세션)**:
+- ✅ **타로 도입** — 스프레드 선택/draw/reading/result/공유/OG 전부 라이브.
+- ✅ **사주 resume** — 미완료 사주 reading 이어하기 (타로와 파리티). readings 리스트 API `ended` 판정을 고민 상담(사주+타로)으로 확장 + `/saju/reading?id=` resume (빈 메시지면 첫 풀이 자동 복구).
+- ✅ **"고민 이어가기" 연속성 기능** — 완료 reading 참조 새 reading (`previous_reading_id` + `continuation_mode` 마이그레이션). `/api/readings/continue`(서버 복사: saju-fresh/saju-deep/tarot-deep) + tarot-fresh 는 draw 흐름에 `byeolkong:continuation` sessionStorage 마커 + chat 라우트가 부모 요약(지난 고민 + 마지막 한마디, excludeInvite) 주입 + 첫 턴 가이드 교체. UI 는 `ContinuationModal` 팝업(포털, 헤더/탭/풋터 가림). 2경로 — 타로: "타로 카드 새로 뽑아 상담"(정가) / "동일한 카드로 이어서 상담"(deep), 사주: 단일 "지난 대화를 이어서 상담"(deep). 가격 deep = 상품 정가 × 0.6 반올림("40% 할인"). 스펙/계획: `docs/superpowers/{specs,plans}/2026-06-29-reading-continuation*`.
+  - 동반 수정: 결과 페이지 뒤로가기 → 내 고민톡, 타로 공유 버튼 2단 그리드(흰배경+보라텍스트), 사주 선택 페이지네이션(3/page), 카카오 공유 버튼 라벨 버그 수정, 타로 OG 한마디 closeCap 상향.
+
 **보류된 큰 부채** (출시 전 처리):
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
 - `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
-- 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용
+- 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용. dev 앱은 `dev.byeolkongtalk.com` 등록 시 4019 해소. **단 dev 는 Vercel Deployment Protection(SSO)** 때문에 외부 스크래퍼가 OG 이미지/`/cards-webp` 에셋을 못 받아 → 카카오 미리보기 이미지·"이미지로 저장"의 카드 그림이 빔. prod(보호 없음)에선 정상. dev 에서 확인하려면 Vercel Settings → Deployment Protection 해제 필요(보안 트레이드오프).
 - v2 `/terms`, `/privacy`, `/refund` 페이지 (Footer 가 가리키는 중)
-- 타로 도입 (위 1번)
-- **[다음 세션 우선순위 — 2026-06-28 결정]** ① 사주 resume 먼저 → ② 고민 이어가기 브레인스토밍 (아래 두 항목 순서대로).
-- **"고민 이어가기" 연속성 기능** (QA B-2 후속) — 결과/히스토리에 "이 고민 이어가기" CTA: 이전 감정·고민 프리필 + "지난번 ~ 얘기 나눴었지" 한 줄 컨텍스트 주입한 새 reading. 별콩이 마무리 화법이 "다음에 이어서 보자"고 약속하므로 이를 받쳐줄 실기능 필요. (별도 브레인스토밍 예정)
-- **사주 resume 기능 추가** — 현재 [readings/page.tsx](app/readings/page.tsx) `canResume = isTarot && r.ended === false` 라 타로 미완료 reading만 이어하기 가능. 사주는 미완료 reading resume이 빠져 있음 → 타로와 파리티 맞춰 추가 필요.
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
