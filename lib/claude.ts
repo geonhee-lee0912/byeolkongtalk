@@ -43,6 +43,26 @@ function getPersona(): string {
   return _cachedPersona;
 }
 
+export interface ContinuationContext {
+  prevQuestion: string;
+  prevClosing: string | null;
+  mode: "fresh" | "deep";
+}
+
+/** 이어가기 세션 동적 블록 — dynamicPart 말미에 붙음. */
+function buildContinuationBlock(c: ContinuationContext, subject: "사주판" | "카드"): string {
+  const toneLine =
+    c.mode === "deep"
+      ? `같은 ${subject}을 더 깊이 파는 톤으로.`
+      : `새로 펼친 결을 지난 맥락과 연결해서.`;
+  return `\n\n## 이어가기 세션 (지난 고민 연속)\n[지난 고민: ${c.prevQuestion}]\n[지난번 별콩이 마지막 한마디: ${c.prevClosing ?? "(기록 없음)"}]\n- 첫 응답을 "지난번에 ~ 얘기 나눴었지" 식으로 자연스럽게 이어서 열 것.\n- ${toneLine}`;
+}
+
+/** 이어가기 첫 턴 가이드 — product/tarot 첫 턴 가이드를 대체. */
+function continuationFirstTurnGuide(subject: "사주" | "카드"): string {
+  return `\n\n## 첫 턴 가이드 — 이어가기 세션\n\n이번 턴은 지난 고민을 이어받는 첫 응답이야. (1) "지난번에 ~ 얘기 나눴었지" 식으로 지난 맥락을 가볍게 짚으며 연결 → (2) 그 위에서 이번 고민을 ${subject}로 풀이 (처음 만난 듯 새로 소개하지 말 것) → (3) 흐름·가능성·선택 키워드 중심 → (4) 응원. 단정 X. 400~700자.`;
+}
+
 export interface SajuReadingContext {
   saju: SajuResult;
   /** 어떤 사주 상품인지 — 첫 턴 출력 구조 분기 */
@@ -54,6 +74,8 @@ export interface SajuReadingContext {
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END] 마커 제외한 순수 길이) */
   cumulativeAssistantChars: number;
+  /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
+  continuation?: ContinuationContext | null;
 }
 
 function formatSajuBlock(saju: SajuResult): string {
@@ -141,7 +163,9 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
     mode === "converge" && (isAbsCapMinus1 || isHardcapMinus1NaturalPath);
 
   const firstTurnGuide = isFirstTurn
-    ? SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct]
+    ? ctx.continuation
+      ? continuationFirstTurnGuide("사주")
+      : SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct]
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap(하드·종료) 분리
@@ -185,7 +209,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ${formatSajuBlock(ctx.saju)}${formatTemporalBlock(ctx.saju.temporal, ctx.sajuProduct)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
 
   return { staticPart, dynamicPart };
 }
@@ -281,6 +305,8 @@ export interface TarotReadingContext {
   cumulativeAssistantChars: number;
   /** 사용자가 "대화 마무리" 버튼을 눌러 강제 종료를 요청한 턴 — hardcap 가이드 강제 */
   forceEnd?: boolean;
+  /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
+  continuation?: ContinuationContext | null;
 }
 
 function formatDrawnCardsBlock(cards: DrawnCard[]): string {
@@ -346,7 +372,9 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   );
 
   const firstTurnGuide = isFirstTurn
-    ? `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
+    ? ctx.continuation
+      ? continuationFirstTurnGuide("카드")
+      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리
@@ -389,7 +417,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
 
   return { staticPart, dynamicPart };
 }
