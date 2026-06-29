@@ -7,6 +7,7 @@ import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
+import ContinuationModal from "@/components/continuation/ContinuationModal";
 import { extractClosingLine } from "@/lib/saju/closing";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -42,6 +43,7 @@ function ResultPageInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [continueOpen, setContinueOpen] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -186,12 +188,12 @@ function ResultPageInner() {
           hasSensitive={reading.hasSensitive}
         />
         {!reading.hasSensitive && (
-          <Link
-            href={`/continue/${reading.id}`}
+          <button
+            onClick={() => setContinueOpen(true)}
             className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center hover:bg-lilac-deep/90 transition"
           >
             이 고민 이어가기 →
-          </Link>
+          </button>
         )}
         <Link
           href="/saju"
@@ -200,6 +202,11 @@ function ResultPageInner() {
           새 사주 보러가기
         </Link>
       </div>
+
+      <ContinuationModal
+        readingId={continueOpen ? reading.id : null}
+        onClose={() => setContinueOpen(false)}
+      />
     </main>
   );
 }

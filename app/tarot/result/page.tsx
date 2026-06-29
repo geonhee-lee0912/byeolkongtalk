@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ChatBubble from "@/components/saju/ChatBubble";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
+import ContinuationModal from "@/components/continuation/ContinuationModal";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
@@ -54,6 +55,7 @@ function TarotResultInner() {
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showBackGuide, setShowBackGuide] = useState(false);
+  const [continueOpen, setContinueOpen] = useState(false);
 
   // 결과 페이지에서 뒤로가기 시 — 진행 중이던 대화창으로 돌아갈 수 없으니
   // 빈 history state 를 하나 쌓아두고 popstate 를 가로채 안내 오버레이를 띄운다.
@@ -311,12 +313,12 @@ function TarotResultInner() {
           hasSensitive={reading.hasSensitive}
         />
         {!reading.hasSensitive && (
-          <Link
-            href={`/continue/${reading.id}`}
+          <button
+            onClick={() => setContinueOpen(true)}
             className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center hover:bg-lilac-deep/90 transition"
           >
             이 고민 이어가기 →
-          </Link>
+          </button>
         )}
         <Link
           href="/tarot"
@@ -325,6 +327,11 @@ function TarotResultInner() {
           새 카드 뽑으러 가기
         </Link>
       </div>
+
+      <ContinuationModal
+        readingId={continueOpen ? reading.id : null}
+        onClose={() => setContinueOpen(false)}
+      />
     </main>
   );
 }

@@ -9,6 +9,7 @@ import { type DrawnCard, type SpreadType, SPREAD_INFO } from "@/lib/tarot/spread
 import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import ContinuationModal from "@/components/continuation/ContinuationModal";
 
 interface ReadingItem {
   id: string;
@@ -140,6 +141,7 @@ export default function ReadingsPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<ReadingsTab>("consult");
   const [page, setPage] = useState(0);
+  const [continueId, setContinueId] = useState<string | null>(null);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
@@ -291,7 +293,7 @@ export default function ReadingsPage() {
               const chip = profileChip(r);
               const preview = r.preview?.trim();
               return (
-                <div key={r.id} className="flex flex-col">
+                <div key={r.id} className="relative">
                   <Link
                     href={href}
                     className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
@@ -343,12 +345,12 @@ export default function ReadingsPage() {
                   </div>
                   </Link>
                   {!canResume && !r.hasSensitive && (
-                    <Link
-                      href={`/continue/${r.id}`}
-                      className="self-end mt-1 mr-1 text-[11px] font-bold text-lilac-deep hover:underline"
+                    <button
+                      onClick={() => setContinueId(r.id)}
+                      className="absolute top-2.5 right-2.5 text-[10px] font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
                     >
-                      이 고민 이어가기 →
-                    </Link>
+                      후속 상담
+                    </button>
                   )}
                 </div>
               );
@@ -450,6 +452,10 @@ export default function ReadingsPage() {
         )}
       </div>
 
+      <ContinuationModal
+        readingId={continueId}
+        onClose={() => setContinueId(null)}
+      />
     </main>
   );
 }
