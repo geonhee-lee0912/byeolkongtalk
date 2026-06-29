@@ -185,6 +185,14 @@ function ResultPageInner() {
           closingLine={closingLine}
           hasSensitive={reading.hasSensitive}
         />
+        {!reading.hasSensitive && (
+          <Link
+            href={`/continue/${reading.id}`}
+            className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center hover:bg-lilac-deep/90 transition"
+          >
+            이 고민 이어가기 →
+          </Link>
+        )}
         <Link
           href="/saju"
           className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
