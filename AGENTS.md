@@ -249,7 +249,6 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
 - `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
 - 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용. dev 앱은 `dev.byeolkongtalk.com` 등록 시 4019 해소. **단 dev 는 Vercel Deployment Protection(SSO)** 때문에 외부 스크래퍼가 OG 이미지/`/cards-webp` 에셋을 못 받아 → 카카오 미리보기 이미지·"이미지로 저장"의 카드 그림이 빔. prod(보호 없음)에선 정상. dev 에서 확인하려면 Vercel Settings → Deployment Protection 해제 필요(보안 트레이드오프).
-- v2 `/terms`, `/privacy`, `/refund` 페이지 (Footer 가 가리키는 중)
 
 ### Phase 2 결정 사항
 - Supabase: 단일 프로젝트 + **Branching with Git sync** 채택 (별도 프로젝트 X). dev 브랜치 ~₩13k/월
