@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
@@ -38,12 +38,23 @@ interface FetchData {
 }
 
 function ResultPageInner() {
+  const router = useRouter();
   const sp = useSearchParams();
   const id = sp.get("id");
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [continueOpen, setContinueOpen] = useState(false);
+
+  // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
+  useEffect(() => {
+    window.history.pushState({ sajuResult: true }, "");
+    const onPop = () => {
+      router.replace("/readings");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [router]);
 
   useEffect(() => {
     if (!id) {

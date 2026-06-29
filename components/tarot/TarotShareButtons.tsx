@@ -141,18 +141,20 @@ export default function TarotShareButtons({
         </svg>
         카카오톡으로 공유하기
       </button>
-      <button
-        onClick={handleShare}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
-      >
-        링크로 공유하기
-      </button>
-      <button
-        onClick={handleInstaSave}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
-      >
-        이미지로 저장
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={handleShare}
+          className="py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        >
+          링크로 공유하기
+        </button>
+        <button
+          onClick={handleInstaSave}
+          className="py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        >
+          이미지로 저장
+        </button>
+      </div>
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-[12px] whitespace-nowrap shadow-lg">
           {toast}

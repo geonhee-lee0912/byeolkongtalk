@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import ChatBubble from "@/components/saju/ChatBubble";
@@ -49,25 +49,23 @@ function cleanContent(raw: string): string {
 }
 
 function TarotResultInner() {
+  const router = useRouter();
   const sp = useSearchParams();
   const id = sp.get("id");
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showBackGuide, setShowBackGuide] = useState(false);
   const [continueOpen, setContinueOpen] = useState(false);
 
-  // 결과 페이지에서 뒤로가기 시 — 진행 중이던 대화창으로 돌아갈 수 없으니
-  // 빈 history state 를 하나 쌓아두고 popstate 를 가로채 안내 오버레이를 띄운다.
+  // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
     window.history.pushState({ tarotResult: true }, "");
     const onPop = () => {
-      setShowBackGuide(true);
-      window.history.pushState({ tarotResult: true }, "");
+      router.replace("/readings");
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!id) {
@@ -138,42 +136,6 @@ function TarotResultInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      {showBackGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-night/60 backdrop-blur-sm px-6 animate-fade-in">
-          <div className="w-full max-w-xs bg-cream rounded-2xl p-6 border border-lilac-mid/30 text-center shadow-xl">
-            <div className="text-3xl mb-2">🌙</div>
-            <h2 className="text-[15px] font-bold text-eye-purple mb-2">
-              나눈 대화는 여기까지야
-            </h2>
-            <p className="text-[12.5px] text-text-light leading-relaxed mb-5">
-              방금 나눈 대화창으로는 다시 돌아갈 수 없어.
-              <br />
-              지난 풀이는 <b className="text-eye-purple">내 고민톡</b>에서 언제든
-              다시 볼 수 있어.
-            </p>
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/readings"
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px]"
-              >
-                내 고민톡으로 가기
-              </Link>
-              <Link
-                href="/"
-                className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13px]"
-              >
-                고민 상담하러 가기
-              </Link>
-              <button
-                onClick={() => setShowBackGuide(false)}
-                className="w-full py-2 text-[12px] text-text-light/70"
-              >
-                결과 계속 보기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         <Link href="/" className="text-[12px] text-text-light/70">
           ‹ 홈으로
