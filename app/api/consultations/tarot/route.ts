@@ -36,6 +36,8 @@ interface TarotPostBody {
   emotion: EmotionTag;
   concern: string;
   drawnCards: DrawnCard[];
+  previousReadingId?: string;
+  continuationMode?: "fresh" | "deep";
 }
 
 function validateDrawnCards(
@@ -143,6 +145,11 @@ export async function POST(request: NextRequest) {
       drawn_cards: drawnCards,
       stars_spent: cost,
       has_sensitive: false,
+      previous_reading_id:
+        typeof body.previousReadingId === "string" && body.previousReadingId
+          ? body.previousReadingId
+          : null,
+      continuation_mode: body.continuationMode === "fresh" ? "fresh" : null,
     })
     .select("id")
     .single();
