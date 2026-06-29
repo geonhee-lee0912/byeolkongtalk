@@ -181,19 +181,28 @@ function TarotReadingInner() {
             drawnCards: reading.drawnCards,
           });
           setReadingId(resumeId);
-          setMessages(msgs);
-          const lastAssistant = [...msgs]
-            .reverse()
-            .find((m) => m.role === "assistant");
-          if (lastAssistant && END_MARKER_REGEX.test(lastAssistant.content)) {
-            setIsEnded(true);
+          // 메시지가 없으면(이어가기 deep 로 갓 생성됐거나 첫 스트림 도중 이탈해 미저장)
+          // 첫 풀이를 자동 생성, 있으면 대화 복원.
+          if (msgs.length === 0) {
+            void sendMessage(
+              [{ role: "user", content: reading.question }],
+              resumeId
+            );
+          } else {
+            setMessages(msgs);
+            const lastAssistant = [...msgs]
+              .reverse()
+              .find((m) => m.role === "assistant");
+            if (lastAssistant && END_MARKER_REGEX.test(lastAssistant.content)) {
+              setIsEnded(true);
+            }
+            END_MARKER_REGEX.lastIndex = 0;
+            // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
+            setTimeout(() => {
+              const el = scrollRef.current;
+              if (el) el.scrollTo({ top: el.scrollHeight });
+            }, 120);
           }
-          END_MARKER_REGEX.lastIndex = 0;
-          // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
-          setTimeout(() => {
-            const el = scrollRef.current;
-            if (el) el.scrollTo({ top: el.scrollHeight });
-          }, 120);
         } catch {
           router.replace("/readings");
         }

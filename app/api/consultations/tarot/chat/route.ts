@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
       .from("readings")
       .select("question")
       .eq("id", reading.previous_reading_id)
+      .eq("user_id", userId)
       .maybeSingle();
     if (parent) {
       const { data: parentMsgs } = await supabase

@@ -131,6 +131,30 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // 이어가기(tarot-fresh) 마커 검증 — 클라가 보낸 previousReadingId 를 신뢰하지 않는다.
+  // 부모 소유권 + 비민감 + ended([END]) 를 확인해야 chat 라우트가 부모 요약을 주입할 자격이 됨.
+  let continuationPrevId: string | null = null;
+  if (typeof body.previousReadingId === "string" && body.previousReadingId) {
+    const { data: parent } = await supabase
+      .from("readings")
+      .select("id, user_id, has_sensitive")
+      .eq("id", body.previousReadingId)
+      .maybeSingle();
+    if (!parent || parent.user_id !== userId || parent.has_sensitive) {
+      return NextResponse.json({ error: "invalid_previous_reading" }, { status: 400 });
+    }
+    const { data: parentMsgs } = await supabase
+      .from("messages")
+      .select("content")
+      .eq("reading_id", parent.id)
+      .eq("role", "assistant");
+    const ended = (parentMsgs ?? []).some((m) => m.content.includes("[END]"));
+    if (!ended) {
+      return NextResponse.json({ error: "parent_not_ended" }, { status: 400 });
+    }
+    continuationPrevId = parent.id;
+  }
+
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .insert({
@@ -145,11 +169,8 @@ export async function POST(request: NextRequest) {
       drawn_cards: drawnCards,
       stars_spent: cost,
       has_sensitive: false,
-      previous_reading_id:
-        typeof body.previousReadingId === "string" && body.previousReadingId
-          ? body.previousReadingId
-          : null,
-      continuation_mode: body.continuationMode === "fresh" ? "fresh" : null,
+      previous_reading_id: continuationPrevId,
+      continuation_mode: continuationPrevId ? "fresh" : null,
     })
     .select("id")
     .single();
