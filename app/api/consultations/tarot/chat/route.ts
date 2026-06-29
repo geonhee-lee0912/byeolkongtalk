@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat } from "@/lib/claude";
+import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .select(
-      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards"
+      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, previous_reading_id, continuation_mode"
     )
     .eq("id", body.readingId)
     .maybeSingle();
@@ -133,6 +134,32 @@ export async function POST(request: NextRequest) {
       0
     ) ?? 0;
 
+  // 이어가기면 부모 요약(지난 고민 + 마지막 한마디) 조회
+  let continuation:
+    | { prevQuestion: string; prevClosing: string | null; mode: "fresh" | "deep" }
+    | null = null;
+  if (reading.previous_reading_id) {
+    const { data: parent } = await supabase
+      .from("readings")
+      .select("question")
+      .eq("id", reading.previous_reading_id)
+      .maybeSingle();
+    if (parent) {
+      const { data: parentMsgs } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("reading_id", reading.previous_reading_id)
+        .order("created_at", { ascending: true });
+      continuation = {
+        prevQuestion: parent.question ?? "",
+        prevClosing: extractClosingLine(
+          (parentMsgs ?? []) as { role: "user" | "assistant"; content: string }[]
+        ),
+        mode: (reading.continuation_mode as "fresh" | "deep") ?? "deep",
+      };
+    }
+  }
+
   const systemMessage = buildTarotSystemMessage({
     spreadType: reading.spread_type as SpreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
@@ -141,6 +168,7 @@ export async function POST(request: NextRequest) {
     emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
+    continuation,
     forceEnd: body.forceEnd === true,
   });
 
