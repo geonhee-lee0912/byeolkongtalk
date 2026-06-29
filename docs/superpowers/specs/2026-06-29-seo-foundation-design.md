@@ -21,7 +21,7 @@
 
 발견한 제약/문제:
 1. **공개 페이지가 전부 `"use client"`** (홈/약관/개인정보/환불/select/shop/tarot/fortune). 클라이언트 컴포넌트는 `export const metadata` 불가 → 페이지별 메타데이터는 라우트 세그먼트에 서버 `layout.tsx`를 얹어 해결.
-2. **`/favicon.png` 자산 없음.** `app/layout.tsx`가 참조하지만 `public/`에 파일이 없어 탭/검색결과 아이콘 깨짐.
+2. **파비콘 링크 일원화 필요.** `public/favicon.png`(134KB)는 존재하나 `metadata.icons`가 `/favicon.png`를 수동 참조 중. Next 16 파일 컨벤션(`app/icon.png`)으로 일원화하는 게 깔끔.
 
 ## 작업 항목
 
@@ -66,8 +66,8 @@
 - Next 16 파일 컨벤션 사용:
   - `app/icon.png` — 자동 favicon(여러 크기 파생).
   - `app/apple-icon.png` — iOS 홈 추가용.
-- 자산 출처: **기존 `public/byeolkong-main.png`에서 정사각 크롭/리사이즈로 파생** (별도 제공 자산 없음). 추후 전용 파비콘으로 교체 가능.
-- `app/layout.tsx`의 기존 `icons` 블록(`/favicon.png` 참조)은 파일 컨벤션과 충돌하지 않도록 정리 — 파일 컨벤션으로 일원화하거나 실제 경로로 수정.
+- 자산 출처: **기존 `public/favicon.png`(목적에 맞게 제작된 파비콘, 134KB)를 `app/icon.png`/`app/apple-icon.png`로 복사**. (캐릭터 원본 `byeolkong-main.png`은 1.1MB로 과대 → 사용 안 함.)
+- `app/layout.tsx`의 기존 `icons` 블록(`/favicon.png` 수동 참조)은 제거하고 파일 컨벤션으로 일원화.
 
 검증: 배포 후 브라우저 탭 + 검색결과 미리보기에 별콩이 아이콘 노출.
 
