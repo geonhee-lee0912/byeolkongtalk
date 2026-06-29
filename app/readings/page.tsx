@@ -291,11 +291,11 @@ export default function ReadingsPage() {
               const chip = profileChip(r);
               const preview = r.preview?.trim();
               return (
-                <Link
-                  key={r.id}
-                  href={href}
-                  className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-                >
+                <div key={r.id} className="flex flex-col">
+                  <Link
+                    href={href}
+                    className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
+                  >
                   {isTarot ? (
                     <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
                       <Image
@@ -341,7 +341,16 @@ export default function ReadingsPage() {
                       {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
                     </p>
                   </div>
-                </Link>
+                  </Link>
+                  {!canResume && !r.hasSensitive && (
+                    <Link
+                      href={`/continue/${r.id}`}
+                      className="self-end mt-1 mr-1 text-[11px] font-bold text-lilac-deep hover:underline"
+                    >
+                      이 고민 이어가기 →
+                    </Link>
+                  )}
+                </div>
               );
             })}
           </div>
