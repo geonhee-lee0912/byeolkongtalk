@@ -28,6 +28,7 @@ import {
 } from "@/lib/sensitive";
 import type { SajuResult } from "@/lib/saju/calc";
 import { isSajuProduct } from "@/lib/saju/products";
+import { extractClosingLine } from "@/lib/saju/closing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
   // readings 조회 + 소유권 확인
   const { data: reading, error: rErr } = await supabase
     .from("readings")
-    .select("id, user_id, question, saju_data, emotion_tag, saju_product")
+    .select("id, user_id, question, saju_data, emotion_tag, saju_product, previous_reading_id, continuation_mode")
     .eq("id", body.readingId)
     .maybeSingle();
 
@@ -141,6 +142,32 @@ export async function POST(request: NextRequest) {
       0
     ) ?? 0;
 
+  // 이어가기면 부모 요약(지난 고민 + 마지막 한마디) 조회
+  let continuation:
+    | { prevQuestion: string; prevClosing: string | null; mode: "fresh" | "deep" }
+    | null = null;
+  if (reading.previous_reading_id) {
+    const { data: parent } = await supabase
+      .from("readings")
+      .select("question")
+      .eq("id", reading.previous_reading_id)
+      .maybeSingle();
+    if (parent) {
+      const { data: parentMsgs } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("reading_id", reading.previous_reading_id)
+        .order("created_at", { ascending: true });
+      continuation = {
+        prevQuestion: parent.question ?? "",
+        prevClosing: extractClosingLine(
+          (parentMsgs ?? []) as { role: "user" | "assistant"; content: string }[]
+        ),
+        mode: (reading.continuation_mode as "fresh" | "deep") ?? "deep",
+      };
+    }
+  }
+
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     sajuProduct: isSajuProduct(reading.saju_product)
@@ -150,6 +177,7 @@ export async function POST(request: NextRequest) {
     emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
+    continuation,
   });
 
   // sensitive 1차 감지 (regex ~1ms, 응답 헤더용)
