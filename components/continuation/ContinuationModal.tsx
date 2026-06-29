@@ -204,12 +204,12 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
             </p>
           ) : (
             <>
-              {/* 지난 맥락 */}
-              <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 mb-2">
-                <div className="text-[11px] font-bold text-text-light mb-1">
+              {/* 지난 맥락 — 다크톤 */}
+              <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-night-deep mb-2">
+                <div className="text-[11px] font-bold text-lilac-soft/70 mb-1">
                   지난번 고민
                 </div>
-                <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
+                <p className="text-[13px] text-cream leading-relaxed whitespace-pre-wrap">
                   {parent.question}
                 </p>
               </div>
@@ -241,31 +241,39 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   {concern.length} / {MAX_LEN}
                 </span>
               </div>
-              {balance !== null && (
-                <div className="text-[11px] text-text-light/80 text-right">
-                  내 별 잔액: {balance}별
-                </div>
-              )}
               {error && (
                 <p className="text-[12px] text-red-500 text-center mt-1">{error}</p>
               )}
 
-              {/* 두 경로 */}
-              <button
-                onClick={() => start("fresh")}
-                disabled={submitting || concern.length < MIN_LEN}
-                className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ✨ 새로 펼쳐 이어보기 (⭐ {fullCost})
-              </button>
-              <button
-                onClick={() => start("deep")}
-                disabled={submitting || concern.length < MIN_LEN}
-                className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                🔍 같은 결로 더 깊이 (⭐ {deepCost}
-                <span className="text-[11px] text-lilac-deep/70">40% 할인</span>)
-              </button>
+              {/* 경로 — 타로는 2개(새로 뽑기 / 같은 카드 이어서), 사주는 1개(이어서 상담) */}
+              {consultationType === "tarot" ? (
+                <>
+                  <button
+                    onClick={() => start("fresh")}
+                    disabled={submitting || concern.length < MIN_LEN}
+                    className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    타로 카드 새로 뽑기 (⭐ {fullCost})
+                  </button>
+                  <button
+                    onClick={() => start("deep")}
+                    disabled={submitting || concern.length < MIN_LEN}
+                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  >
+                    동일한 카드로 이어서 상담 (⭐ {deepCost}
+                    <span className="text-[11px] text-lilac-deep/70">40% 할인</span>)
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => start("deep")}
+                  disabled={submitting || concern.length < MIN_LEN}
+                  className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  지난 대화를 이어서 상담 (⭐ {deepCost}
+                  <span className="text-[11px] text-white/70">40% 할인</span>)
+                </button>
+              )}
             </>
           )}
         </div>
