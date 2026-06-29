@@ -20,7 +20,12 @@ export const REQUIRED_ENV = [
   "TOSS_SECRET_KEY",
 ] as const;
 
-export const OPTIONAL_ENV = ["NEXT_PUBLIC_GA_ID", "ADMIN_USER_IDS"] as const;
+export const OPTIONAL_ENV = [
+  "NEXT_PUBLIC_GA_ID",
+  "ADMIN_USER_IDS",
+  "NAVER_SITE_VERIFICATION",
+  "GOOGLE_SITE_VERIFICATION",
+] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];
 

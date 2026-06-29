@@ -19,26 +19,39 @@ const cafe24Ssurround = localFont({
   display: "swap",
 });
 
+const verification: Metadata["verification"] = {};
+if (process.env.GOOGLE_SITE_VERIFICATION) {
+  verification.google = process.env.GOOGLE_SITE_VERIFICATION;
+}
+if (process.env.NAVER_SITE_VERIFICATION) {
+  verification.other = {
+    "naver-site-verification": process.env.NAVER_SITE_VERIFICATION,
+  };
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://byeolkongtalk.com"),
-  title: "별콩톡",
-  description: "별의 수호자 별콩이가 너의 사주를 펼쳐 흐름과 가능성을 안내해.",
-  icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+  title: {
+    default: "별콩톡 — 사주·타로로 마음의 흐름을 봐줘",
+    template: "%s · 별콩톡",
   },
+  description:
+    "별의 수호자 별콩이가 너의 사주와 타로로 흐름과 가능성, 선택의 방향을 안내해.",
+  alternates: { canonical: "/" },
+  verification,
   openGraph: {
-    title: "별콩이 — 사주로 흐름을 봐줘",
-    description: "별의 수호자 별콩이가 너의 사주를 펼쳐 흐름과 가능성을 안내해.",
+    title: "별콩이 — 사주·타로로 흐름을 봐줘",
+    description:
+      "별의 수호자 별콩이가 너의 사주와 타로로 흐름과 가능성을 안내해.",
     locale: "ko_KR",
     type: "website",
     siteName: "별콩톡",
   },
   twitter: {
     card: "summary_large_image",
-    title: "별콩이 — 사주로 흐름을 봐줘",
-    description: "별의 수호자 별콩이가 너의 사주를 펼쳐 흐름과 가능성을 안내해.",
+    title: "별콩이 — 사주·타로로 흐름을 봐줘",
+    description:
+      "별의 수호자 별콩이가 너의 사주와 타로로 흐름과 가능성을 안내해.",
   },
 };
 
@@ -59,6 +72,26 @@ export default function RootLayout({
       className={`${notoSansKR.variable} ${cafe24Ssurround.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "별콩톡",
+                url: "https://byeolkongtalk.com",
+                logo: "https://byeolkongtalk.com/byeolkong-main.png",
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "별콩톡",
+                url: "https://byeolkongtalk.com",
+              },
+            ]),
+          }}
+        />
         <Suspense fallback={null}>
           <AuthBootstrap />
         </Suspense>
