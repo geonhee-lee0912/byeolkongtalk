@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -88,17 +89,22 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     };
   }, [readingId, onClose]);
 
-  // ESC 로 닫기
+  // ESC 로 닫기 + 열려 있는 동안 배경 스크롤 잠금
   useEffect(() => {
     if (!readingId) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [readingId, onClose]);
 
-  if (!readingId) return null;
+  if (!readingId || typeof document === "undefined") return null;
 
   const consultationType =
     (parent?.consultationType as "saju" | "tarot") ?? "saju";
@@ -167,9 +173,9 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-night/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -253,7 +259,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                     disabled={submitting || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    타로 카드 새로 뽑기 (⭐ {fullCost})
+                    타로 카드 새로 뽑아 상담 (⭐ {fullCost})
                   </button>
                   <button
                     onClick={() => start("deep")}
@@ -278,6 +284,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
