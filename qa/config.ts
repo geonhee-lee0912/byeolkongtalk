@@ -22,7 +22,7 @@ export const config = {
 
   // 모델 티어
   SIMULATOR_MODEL: "claude-haiku-4-5-20251001",
-  JUDGE_MODEL: "claude-sonnet-4-6",
+  JUDGE_MODEL: "claude-sonnet-5",
 
   // chat 콜 간 대기 (레이트리밋 20/분 아래 유지)
   PACING_MS: 3500,

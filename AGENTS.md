@@ -19,7 +19,7 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 - DB: Supabase (PostgreSQL) — dev/prod 별도 프로젝트
 - Auth: 카카오 로그인 (OAuth) + 익명 → 카카오 마이그레이션 + httpOnly 쿠키 세션
 - Payment: 토스페이먼츠 결제위젯 v2
-- AI: Claude API (`claude-sonnet-4-6`, SSE 스트리밍)
+- AI: Claude API (`claude-sonnet-5`, SSE 스트리밍)
 - 사주 계산: `manseryeok` (라이브러리, 결정적 계산) + Claude (해석만)
 - Deploy: Vercel (단일 프로젝트, Production=main / Preview=dev 환경 분리)
 - Domain: byeolkongtalk.com (prod) / dev.byeolkongtalk.com (dev)

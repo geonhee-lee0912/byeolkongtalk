@@ -69,7 +69,9 @@ export async function judge(t: Transcript): Promise<JudgeResult> {
   }
   const res = await client.messages.create({
     model: config.JUDGE_MODEL,
-    max_tokens: 1500,
+    // Sonnet 5: 새 토크나이저(+~30%) 보정으로 1500→2000, adaptive thinking 은 OFF(JSON 예산 보존).
+    max_tokens: 2000,
+    thinking: { type: "disabled" },
     messages: [{ role: "user", content: buildJudgePrompt(t) }],
   });
   const text = res.content

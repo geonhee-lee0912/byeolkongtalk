@@ -217,7 +217,7 @@ ${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.continuation ? buildContinuati
 export async function* streamChat(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
-  maxTokens: number = 2048
+  maxTokens: number = 2660
 ) {
   // 정적 블록만 cache_control 마킹 → 5분 TTL 동안 후속 호출은 입력 토큰 0.1× 과금
   const systemBlocks =
@@ -233,8 +233,11 @@ export async function* streamChat(
         ];
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5",
     max_tokens: maxTokens,
+    // Sonnet 5 는 adaptive thinking 이 기본 ON — max_tokens(=thinking+응답 총합)를
+    // thinking 이 잠식해 [END] 마커·리포트 JSON 이 잘릴 수 있어 4.6 과 동일하게 OFF 유지.
+    thinking: { type: "disabled" },
     system: systemBlocks,
     messages,
   });
@@ -257,7 +260,7 @@ export async function* streamChat(
 export async function generateOnce(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
-  maxTokens: number = 2048
+  maxTokens: number = 2660
 ): Promise<string> {
   let out = "";
   const it = streamChat(systemMessage, messages, maxTokens);

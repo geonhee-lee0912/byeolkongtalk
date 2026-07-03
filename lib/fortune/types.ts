@@ -201,18 +201,22 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
   tarot_relation: ["인간관계", "거리", "소통"],
 };
 
-/** 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트) */
+/**
+ * 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트).
+ * Sonnet 5 새 토크나이저는 같은 글자가 ~30% 더 많은 토큰이라, 기존 4.6 캡을
+ * ×1.3 상향해 동일 분량을 보존(안 그러면 리포트가 짧아지고 [END]/JSON 이 잘림).
+ */
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
-  daily: 2600,
-  monthly: 5000,
-  saju_full: 12000,
-  tarot_daily: 2048,
-  tarot_love: 4000,
-  tarot_money: 4000,
-  tarot_career: 4000,
-  tarot_relation: 4000,
-  compat: 6000,
-  compat_social: 6000,
+  daily: 3380,
+  monthly: 6500,
+  saju_full: 15600,
+  tarot_daily: 2660,
+  tarot_love: 5200,
+  tarot_money: 5200,
+  tarot_career: 5200,
+  tarot_relation: 5200,
+  compat: 7800,
+  compat_social: 7800,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */
