@@ -73,6 +73,9 @@ export default function AuthBootstrap() {
         // 콜백 파라미터 정리 전에 이미 다른 페이지로 이동했다면(/start 자동 진행 등)
         // stale pathname 으로 replace 하면 사용자를 도로 끌어온다 — 건너뛴다.
         if (window.location.pathname !== pathname) return;
+        // /start 는 login/welcome 파라미터를 스스로 소비·정리한다(웰컴 팝업/자동 진행).
+        // 여기서 먼저 지우면 Suspense 하이드레이션 타이밍에 따라 팝업이 유실된다.
+        if (pathname === "/start") return;
         const params = new URLSearchParams(sp.toString());
         params.delete("login");
         params.delete("welcome");

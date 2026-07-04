@@ -130,7 +130,6 @@ function StartPageInner() {
     "branch"
   );
   const [welcomeOpen, setWelcomeOpen] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
 
   // 로그인 복귀: 신규가입(welcome=1)이면 팝업, 기존 유저면 pending 바로 진행
   useEffect(() => {
@@ -138,12 +137,6 @@ function StartPageInner() {
     if (sp.get("login") !== "success") return;
     if (sp.get("welcome") === "1") {
       setWelcomeOpen(true);
-      void fetch("/api/stars/balance", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) =>
-          setBalance(typeof d?.balance === "number" ? d.balance : null)
-        )
-        .catch(() => {});
       return;
     }
     const pending = readPending();
@@ -173,45 +166,81 @@ function StartPageInner() {
 
   return (
     <main className="min-h-dvh w-full flex flex-col items-center animate-fade-in">
-      {/* 다크 히어로 — 광고 카피 매칭 */}
-      <section
-        className="w-full"
-        style={{
-          background:
-            "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)",
-        }}
-      >
-        <div className="max-w-md mx-auto px-5 pt-12 pb-8 flex flex-col items-center">
-          <div className="relative w-[120px] h-[120px] mb-3 animate-float">
-            <Image
-              src="/byeolkong-hero.png"
-              alt="별콩이"
-              fill
-              sizes="120px"
-              priority
-              className="object-contain drop-shadow-lg"
+      <div className="w-full max-w-md mx-auto flex flex-col">
+        {/* 다크 히어로 — 광고 카피 매칭 (홈처럼 max-w-md 안 + 둥근 하단) */}
+        <section
+          className="relative w-full overflow-hidden rounded-b-3xl"
+          style={{
+            background:
+              "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)",
+          }}
+        >
+          {/* 별 파티클 */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden>
+            <div className="absolute top-[10%] left-[16%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
+            <div
+              className="absolute top-[18%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.4s" }}
             />
+            <div
+              className="absolute top-[34%] left-[9%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.8s" }}
+            />
+            <div
+              className="absolute top-[26%] right-[26%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.2s" }}
+            />
+            <div
+              className="absolute top-[56%] right-[12%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.6s" }}
+            />
+            <div
+              className="absolute top-[14%] left-[42%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.6s" }}
+            />
+            <div
+              className="absolute top-[48%] left-[20%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              style={{ animationDelay: "1.0s" }}
+            />
+            <div
+              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white/80 rounded-full animate-star-twinkle"
+              style={{ animationDelay: "0.2s" }}
+            />
+            <div className="absolute -top-10 -right-10 w-44 h-44 bg-lilac/20 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 -left-12 w-40 h-40 bg-gold/10 rounded-full blur-3xl" />
           </div>
-          <h1
-            className="font-display text-[26px] text-white leading-snug text-center"
-            style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
-          >
-            {heroCopy.line1}
-            <br />
-            {heroCopy.line2}
-          </h1>
+
+          <div className="relative z-10 px-5 pt-12 pb-8 flex flex-col items-center">
+            <div className="relative w-[120px] h-[120px] mb-3 animate-float">
+              <Image
+                src="/byeolkong-hero.png"
+                alt="별콩이"
+                fill
+                sizes="120px"
+                priority
+                className="object-contain drop-shadow-lg"
+              />
+            </div>
+            <h1
+              className="font-display text-[26px] text-white leading-snug text-center"
+              style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
+            >
+              {heroCopy.line1}
+              <br />
+              {heroCopy.line2}
+            </h1>
+          </div>
+        </section>
+
+        {/* 골드 리본 — "무료" 약속 없이 웰컴 별만 */}
+        <div className="mx-5 mt-4 rounded-full bg-gold-soft/90 py-2.5 text-center shadow-[0_2px_10px_rgba(232,194,106,0.3)]">
+          <p className="text-[13px] font-extrabold text-eye-purple">
+            지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
+          </p>
         </div>
-      </section>
 
-      {/* 골드 리본 — "무료" 약속 없이 웰컴 별만 */}
-      <div className="w-full bg-gold-soft/90 py-2.5 text-center">
-        <p className="text-[13px] font-extrabold text-eye-purple">
-          지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
-        </p>
-      </div>
-
-      {/* 서비스 메뉴 — variant 분기 */}
-      <section className="w-full max-w-md mx-auto px-5 py-6 flex flex-col gap-3">
+        {/* 서비스 메뉴 — variant 분기 */}
+        <section className="w-full px-5 py-6 flex flex-col gap-3">
         {variant === "counsel" && (
           <>
             <p className="text-[13px] font-bold text-eye-purple px-1">
@@ -302,10 +331,9 @@ function StartPageInner() {
             />
           </>
         )}
-      </section>
-      {welcomeOpen && (
-        <WelcomeStarsModal balance={balance} onStart={handleWelcomeClose} />
-      )}
+        </section>
+      </div>
+      {welcomeOpen && <WelcomeStarsModal onStart={handleWelcomeClose} />}
     </main>
   );
 }
@@ -384,11 +412,6 @@ function FortuneMenuList({
                 {f.cost > 0 && (
                   <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                     ⭐ {f.cost}
-                  </span>
-                )}
-                {highlighted && (
-                  <span className="text-[10px] font-bold text-eye-purple bg-gold-soft/70 px-1.5 py-0.5 rounded-full">
-                    광고에서 본 그거 ✨
                   </span>
                 )}
               </div>
