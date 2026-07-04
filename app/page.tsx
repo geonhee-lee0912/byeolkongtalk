@@ -13,10 +13,12 @@ import {
 } from "@/lib/emotions";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
+import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
 export default function Home() {
   const router = useRouter();
   const [hasResumable, setHasResumable] = useState(false);
+  const [welcomeNudge, setWelcomeNudge] = useState(false);
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출
   useEffect(() => {
@@ -37,6 +39,16 @@ export default function Home() {
             r.ended === false
         );
         setHasResumable(resumable);
+
+        // 웰컴 넛지: 로그인했는데 리딩이 하나도 없는 유저 (광고 가입 후 이탈 재방문 등)
+        let loggedIn = false;
+        try {
+          const raw = localStorage.getItem("byeolkong_user");
+          loggedIn = !!(raw && JSON.parse(raw));
+        } catch {
+          loggedIn = false;
+        }
+        setWelcomeNudge(loggedIn && list !== null && readings.length === 0);
       } catch {
         // noop
       }
@@ -184,7 +196,32 @@ export default function Home() {
         </div>
 
         {/* ━━━ 고민 카테고리 ━━━ */}
-        <section className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10">
+        <section
+          id="emotion-grid"
+          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10"
+        >
+          {welcomeNudge && (
+            <button
+              onClick={() =>
+                document
+                  .getElementById("emotion-grid")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in"
+            >
+              <span className="text-[20px] shrink-0">⭐</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-eye-purple leading-tight">
+                  웰컴 별 {WELCOME_BONUS_STARS}개가 기다리고 있어
+                </p>
+                <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
+                  아래에서 첫 고민을 골라봐 · 운세 리포트는 하단 별콩 운세
+                  탭에서!
+                </p>
+              </div>
+              <span className="text-eye-purple/60 text-[16px] shrink-0">↓</span>
+            </button>
+          )}
           {hasResumable && (
             <Link
               href="/readings"
