@@ -1,5 +1,6 @@
 // app/admin/users/page.tsx — 사용자 목록.
 import Link from "next/link";
+import { createHash } from "crypto";
 import { getServiceSupabase } from "@/lib/supabase";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
@@ -11,7 +12,7 @@ export default async function AdminUsers({
   const { q } = await searchParams;
   const supabase = getServiceSupabase();
   let query = supabase.from("users")
-    .select("id, nickname, profile_img, created_at")
+    .select("id, nickname, profile_img, created_at, kakao_id")
     .order("created_at", { ascending: false }).limit(50);
   if (q) {
     const escaped = q.replace(/[%_]/g, "\\$&");
@@ -58,6 +59,25 @@ export default async function AdminUsers({
     readMap.set(r.user_id, cur);
   }
 
+  // 재가입 판별 — account_withdrawals(탈퇴 원장)에 이 유저의 kakao 해시가 있으면 과거 탈퇴 이력
+  const hashByUser = new Map<string, string>();
+  const withdrawalHashes: string[] = [];
+  for (const u of users ?? []) {
+    if (u.kakao_id) {
+      const h = createHash("sha256").update(String(u.kakao_id)).digest("hex");
+      hashByUser.set(u.id, h);
+      withdrawalHashes.push(h);
+    }
+  }
+  const rejoinedHashes = new Set<string>();
+  if (withdrawalHashes.length > 0) {
+    const { data: wd } = await supabase
+      .from("account_withdrawals")
+      .select("kakao_id_hash")
+      .in("kakao_id_hash", withdrawalHashes);
+    for (const r of wd ?? []) rejoinedHashes.add(r.kakao_id_hash as string);
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">사용자</h1>
@@ -94,7 +114,12 @@ export default async function AdminUsers({
                       ? <img src={u.profile_img} alt="" className="w-7 h-7 rounded-full object-cover" />
                       : <div className="w-7 h-7 rounded-full bg-white/20" />}
                   </td>
-                  <td className="pr-3">{u.nickname ?? "(없음)"}</td>
+                  <td className="pr-3">
+                    {u.nickname ?? "(없음)"}
+                    {hashByUser.has(u.id) && rejoinedHashes.has(hashByUser.get(u.id)!) && (
+                      <span className="ml-1.5 inline-block text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">재가입</span>
+                    )}
+                  </td>
                   <td className="pr-3">{pay.count.toLocaleString()}</td>
                   <td className="pr-3">{avg.toLocaleString()}원</td>
                   <td className="pr-3">{pay.total.toLocaleString()}원</td>
