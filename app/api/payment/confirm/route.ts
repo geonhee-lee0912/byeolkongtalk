@@ -4,7 +4,7 @@ import { chargeStars } from "@/lib/stars";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError, ctxFromRequest } from "@/lib/logger";
-import { STAR_PACKAGES } from "@/lib/constants";
+import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 
 /**
  * 토스페이먼츠 결제 승인
@@ -180,10 +180,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ━━ 첫 충전 보너스: 이 유저의 completed 결제가 이번 건뿐이면 +50% 별 지급.
+    // 멱등 키 first_bonus:{userId} → 동시 결제 레이스에도 평생 1회만 지급된다.
+    let bonusStars = 0;
+    const { count: paidCount } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "completed");
+    if (charge.success && paidCount === 1) {
+      bonusStars = Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE);
+      const bonus = await chargeStars(
+        userId,
+        bonusStars,
+        `first_bonus:${userId}`,
+        "first_charge_bonus"
+      );
+      if (!bonus.success) bonusStars = 0;
+      else if (bonus.idempotent) bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
+    }
+
     return NextResponse.json({
       success: true,
       stars: pkg.stars,
-      balance: charge.balance,
+      bonusStars,
+      balance: bonusStars > 0 ? charge.balance + bonusStars : charge.balance,
       paymentKey: paymentResult.paymentKey,
     });
   } catch (error) {
