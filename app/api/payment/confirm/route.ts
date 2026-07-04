@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { cancelPayment, confirmPayment, TossPaymentError } from "@/lib/toss";
 import { chargeStars } from "@/lib/stars";
 import { getServiceSupabase } from "@/lib/supabase";
@@ -181,42 +182,59 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ━━ 첫 충전 보너스: 이 유저의 completed 결제가 이번 건뿐이면 +50% 별 지급.
-    // 멱등 키 first_bonus:{userId} → 동시 결제 레이스에도 평생 1회만 지급된다.
+    // ━━ 첫 충전 보너스 파밍 방지: kakao 해시 원장에 'first_charge' 1회 청구.
+    // 탈퇴→재가입해도 1인 1회. 청구가 처음일 때만 지급(payments count 대신 원장이 권위).
     let bonusStars = 0;
     let bonusBalance: number | null = null;
-    const { count: paidCount, error: countErr } = await supabase
-      .from("payments")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "completed");
-    if (countErr) {
-      // 카운트 실패 시 보너스는 조용히 스킵되므로, 누락 관측용 로그는 남긴다
-      await logError(countErr, {
-        route: "/api/payment/confirm",
-        userId,
-        extra: { paymentId: payment.id, severity: "FIRST_BONUS_COUNT_ERROR" },
-      });
-    }
-    if (charge.success && paidCount === 1) {
-      bonusStars = Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE);
-      const bonus = await chargeStars(
-        userId,
-        bonusStars,
-        `first_bonus:${userId}`,
-        "first_charge_bonus"
-      );
-      if (!bonus.success) {
-        await logError(new Error("first charge bonus grant failed"), {
+    if (charge.success) {
+      const { data: chargerRow, error: chargerErr } = await supabase
+        .from("users")
+        .select("kakao_id")
+        .eq("id", userId)
+        .single();
+      if (chargerErr || !chargerRow?.kakao_id) {
+        await logError(chargerErr ?? new Error("kakao_id lookup failed for first bonus"), {
           route: "/api/payment/confirm",
           userId,
-          extra: { paymentId: payment.id, bonusStars, severity: "FIRST_BONUS_FAILED" },
+          extra: { paymentId: payment.id, severity: "FIRST_BONUS_KAKAO_LOOKUP_FAILED" },
         });
-        bonusStars = 0;
-      } else if (bonus.idempotent) {
-        bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
       } else {
-        bonusBalance = bonus.balance; // 보너스까지 반영된 권위 잔액
+        const kakaoIdHash = createHash("sha256").update(String(chargerRow.kakao_id)).digest("hex");
+        const { data: firstChargeClaim, error: claimErr } = await supabase
+          .from("bonus_claims")
+          .upsert(
+            { kakao_id_hash: kakaoIdHash, bonus_type: "first_charge" },
+            { onConflict: "kakao_id_hash,bonus_type", ignoreDuplicates: true }
+          )
+          .select("kakao_id_hash");
+        if (claimErr) {
+          await logError(claimErr, {
+            route: "/api/payment/confirm",
+            userId,
+            extra: { paymentId: payment.id, severity: "FIRST_BONUS_CLAIM_CHECK_FAILED" },
+          });
+        }
+        if (!claimErr && (firstChargeClaim?.length ?? 0) > 0) {
+          bonusStars = Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE);
+          const bonus = await chargeStars(
+            userId,
+            bonusStars,
+            `first_bonus:${userId}`,
+            "first_charge_bonus"
+          );
+          if (!bonus.success) {
+            await logError(new Error("first charge bonus grant failed"), {
+              route: "/api/payment/confirm",
+              userId,
+              extra: { paymentId: payment.id, bonusStars, severity: "FIRST_BONUS_FAILED" },
+            });
+            bonusStars = 0;
+          } else if (bonus.idempotent) {
+            bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
+          } else {
+            bonusBalance = bonus.balance; // 보너스까지 반영된 권위 잔액
+          }
+        }
       }
     }
 

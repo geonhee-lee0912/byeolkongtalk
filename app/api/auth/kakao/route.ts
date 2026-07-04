@@ -3,6 +3,7 @@
 // Phase 4 (c) stars 이식 + Phase 5 readings 추가 시 보강 (아래 TODO 주석 참고).
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { getKakaoToken, getKakaoUser } from "@/lib/kakao";
 import { getServiceSupabase } from "@/lib/supabase";
 import { setUserCookie } from "@/lib/session";
@@ -120,20 +121,39 @@ export async function GET(request: NextRequest) {
         total_spent: 0,
       });
 
-      // 웰컴 별 지급 — charge_stars RPC 멱등 키(welcome:{userId})로 유저당 1회 보장
-      // payment_id 유니크 인덱스 + RPC unique_violation 예외 처리로 DB 레벨 중복 지급 방지
-      const welcome = await chargeStars(
-        userId,
-        WELCOME_BONUS_STARS,
-        `welcome:${userId}`,
-        "welcome_bonus"
-      );
-      if (!welcome.success) {
-        await logError(new Error("welcome bonus grant failed"), {
+      // 웰컴 별 파밍 방지: 탈퇴해도 남는 원장에 kakao 해시로 1회 청구.
+      // upsert(ignoreDuplicates)가 새 row 반환 → 처음 → 지급. 이미 있으면 빈 배열 → 스킵.
+      // 청구 판정 에러면 안전하게 스킵(파밍 재개 방지) + 로그.
+      const kakaoIdHash = createHash("sha256").update(String(kakaoId)).digest("hex");
+      const { data: welcomeClaim, error: welcomeClaimErr } = await supabase
+        .from("bonus_claims")
+        .upsert(
+          { kakao_id_hash: kakaoIdHash, bonus_type: "welcome" },
+          { onConflict: "kakao_id_hash,bonus_type", ignoreDuplicates: true }
+        )
+        .select("kakao_id_hash");
+      if (welcomeClaimErr) {
+        await logError(welcomeClaimErr, {
           route: "/api/auth/kakao",
           userId,
-          extra: { severity: "WELCOME_BONUS_FAILED" },
+          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED" },
         });
+      }
+      if (!welcomeClaimErr && (welcomeClaim?.length ?? 0) > 0) {
+        // charge_stars RPC 멱등 키(welcome:{userId}) — 같은 계정 더블 콜백 방어
+        const welcome = await chargeStars(
+          userId,
+          WELCOME_BONUS_STARS,
+          `welcome:${userId}`,
+          "welcome_bonus"
+        );
+        if (!welcome.success) {
+          await logError(new Error("welcome bonus grant failed"), {
+            route: "/api/auth/kakao",
+            userId,
+            extra: { severity: "WELCOME_BONUS_FAILED" },
+          });
+        }
       }
     }
 
