@@ -9,10 +9,12 @@ DELETE FROM star_transactions a
  WHERE a.payment_id IS NOT NULL
    AND a.payment_id = b.payment_id
    AND a.type = 'charge' AND b.type = 'charge'
-   AND a.created_at > b.created_at;
+   -- created_at 동률(같은 트랜잭션 등)이면 id 로 타이브레이크 — 한 행은 반드시 남긴다
+   AND (a.created_at > b.created_at
+        OR (a.created_at = b.created_at AND a.id > b.id));
 
 DROP INDEX IF EXISTS idx_star_tx_payment;
-CREATE UNIQUE INDEX idx_star_tx_payment
+CREATE UNIQUE INDEX IF NOT EXISTS idx_star_tx_payment
   ON star_transactions(payment_id) WHERE payment_id IS NOT NULL;
 
 -- ─── charge_stars (교체) ────────────────────────────────────────
