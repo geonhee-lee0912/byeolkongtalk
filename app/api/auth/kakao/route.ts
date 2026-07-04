@@ -7,6 +7,8 @@ import { getKakaoToken, getKakaoUser } from "@/lib/kakao";
 import { getServiceSupabase } from "@/lib/supabase";
 import { setUserCookie } from "@/lib/session";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import { chargeStars } from "@/lib/stars";
+import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -117,6 +119,21 @@ export async function GET(request: NextRequest) {
         total_earned: 0,
         total_spent: 0,
       });
+
+      // 웰컴 별 지급 — charge_stars RPC 멱등 키(welcome:{userId})로 유저당 1회 보장
+      const welcome = await chargeStars(
+        userId,
+        WELCOME_BONUS_STARS,
+        `welcome:${userId}`,
+        "welcome_bonus"
+      );
+      if (!welcome.success) {
+        await logError(new Error("welcome bonus grant failed"), {
+          route: "/api/auth/kakao",
+          userId,
+          extra: { severity: "WELCOME_BONUS_FAILED" },
+        });
+      }
     }
 
     // TODO (Phase 5): byeolkong_anon_id 의 readings 를 user_id 로 이관 (migrate_anonymous_readings RPC)

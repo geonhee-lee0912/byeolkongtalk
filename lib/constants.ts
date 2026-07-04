@@ -14,3 +14,8 @@ export const STAR_PACKAGES: StarPackage[] = [
   { id: "star_150", stars: 150, price: 11000, label: "150별" },
   { id: "star_300", stars: 300, price: 19900, label: "300별" },
 ];
+
+/** 카카오 신규 가입 웰컴 별 — 사주 상담(20)·타로 원/투/쓰리(10/15/25)·이번달(20) 1회 커버 */
+export const WELCOME_BONUS_STARS = 30;
+/** 첫 충전 보너스 비율 — 첫 결제 패키지 별의 +50% (반올림) */
+export const FIRST_CHARGE_BONUS_RATE = 0.5;
