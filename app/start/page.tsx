@@ -108,15 +108,9 @@ function StartPageInner() {
     try {
       sessionStorage.setItem(START_PENDING_KEY, JSON.stringify(pending));
     } catch {}
-    // 홈과 동일한 로그인 가드 패턴 (localStorage byeolkong_user)
-    let loggedIn = false;
-    try {
-      const raw = localStorage.getItem("byeolkong_user");
-      loggedIn = !!(raw && JSON.parse(raw));
-    } catch {
-      loggedIn = false;
-    }
-    if (!loggedIn) {
+    // 로그인 판정은 loggedIn state 재사용 (login=success + AuthBootstrap sync 반영).
+    // 미판정(null)이면 보수적으로 로그인 페이지로 — 세션 있으면 즉시 복귀한다.
+    if (loggedIn !== true) {
       router.push(
         `/login?next=${encodeURIComponent(`/start?${sp.toString()}`)}`
       );
@@ -130,16 +124,30 @@ function StartPageInner() {
     "branch"
   );
   const [welcomeOpen, setWelcomeOpen] = useState(false);
-  // 가입 유도 박스 노출 판정 — 로그인 유저에겐 "지금 가입하면" 이 어긋나니 숨김
+  // 가입 유도 박스 노출 판정 — 로그인 유저에겐 "지금 가입하면" 이 어긋나니 숨김.
+  // localStorage 는 AuthBootstrap 이 비동기로 sync 하므로 마운트 시점 값만 믿으면
+  // 로그인 직후 복귀에서 오판한다 — login=success 는 즉시 로그인 취급 + sync 이벤트 구독.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("byeolkong_user");
-      setLoggedIn(!!(raw && JSON.parse(raw)));
-    } catch {
-      setLoggedIn(false);
+    const check = () => {
+      try {
+        const raw = localStorage.getItem("byeolkong_user");
+        setLoggedIn(!!(raw && JSON.parse(raw)));
+      } catch {
+        setLoggedIn(false);
+      }
+    };
+    if (sp.get("login") === "success") {
+      setLoggedIn(true); // 카카오 콜백 복귀 — 세션 쿠키가 방금 생김
+    } else {
+      check();
     }
+    // AuthBootstrap 이 서버 세션 ↔ localStorage sync 를 마치면 재판정
+    window.addEventListener("byeolkong:user-updated", check);
+    return () => window.removeEventListener("byeolkong:user-updated", check);
+    // 마운트 1회 + 이벤트 구독 (sp 는 초기값만 필요)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 로그인 복귀: 신규가입(welcome=1)이면 팝업, 기존 유저면 pending 바로 진행
@@ -151,7 +159,15 @@ function StartPageInner() {
       return;
     }
     const pending = readPending();
-    if (pending) proceed(pending, true); // hard — AuthBootstrap replace 레이스 회피
+    if (pending) {
+      proceed(pending, true); // hard — AuthBootstrap replace 레이스 회피
+      return;
+    }
+    // 진행할 선택이 없으면(가입 박스 직행 등) 콜백 파라미터만 정리하고 랜딩에 머무름
+    const clean = new URLSearchParams(sp.toString());
+    clean.delete("login");
+    clean.delete("welcome");
+    router.replace(`/start?${clean.toString()}`);
     // 마운트 1회 판정 (로그인 복귀는 항상 fresh mount)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valid]);
