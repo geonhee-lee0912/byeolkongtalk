@@ -4,7 +4,8 @@
 -- kakao_id 는 sha256 해시로만 저장(원본 미보관, 부정 방지 목적 식별자).
 CREATE TABLE IF NOT EXISTS bonus_claims (
   kakao_id_hash TEXT NOT NULL,
-  bonus_type TEXT NOT NULL,          -- 'welcome' | 'first_charge'
+  -- CHECK: 오타(예: 'first-charge')가 별도 청구 네임스페이스를 만들어 파밍이 재개되는 것 방지
+  bonus_type TEXT NOT NULL CHECK (bonus_type IN ('welcome', 'first_charge')),
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (kakao_id_hash, bonus_type)
 );

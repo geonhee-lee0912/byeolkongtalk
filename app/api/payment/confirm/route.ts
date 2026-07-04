@@ -199,6 +199,7 @@ export async function POST(request: NextRequest) {
           extra: { paymentId: payment.id, severity: "FIRST_BONUS_KAKAO_LOOKUP_FAILED" },
         });
       } else {
+        // kakao_id(BIGINT)는 안전정수 범위(~10자리)라 양 라우트 모두 JS number → 문자열화 → 해시 일치
         const kakaoIdHash = createHash("sha256").update(String(chargerRow.kakao_id)).digest("hex");
         const { data: firstChargeClaim, error: claimErr } = await supabase
           .from("bonus_claims")
@@ -223,10 +224,12 @@ export async function POST(request: NextRequest) {
             "first_charge_bonus"
           );
           if (!bonus.success) {
-            await logError(new Error("first charge bonus grant failed"), {
+            // 원장은 이미 청구됨(위 upsert) → 재시도해도 스킵되어 유료 유저가 보너스를
+            // 영구히 잃음. 재시도로 복구 불가라 운영자 수동 지급 필요 → CRITICAL.
+            await logError(new Error("first charge bonus grant failed after ledger claim"), {
               route: "/api/payment/confirm",
               userId,
-              extra: { paymentId: payment.id, bonusStars, severity: "FIRST_BONUS_FAILED" },
+              extra: { paymentId: payment.id, bonusStars, severity: "CRITICAL_FIRST_BONUS_LOST" },
             });
             bonusStars = 0;
           } else if (bonus.idempotent) {
