@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
 import AppShell from "@/components/layout/AppShell";
+import MetaPixel from "@/components/analytics/MetaPixel";
 import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
@@ -96,6 +97,7 @@ export default function RootLayout({
           <AuthBootstrap />
         </Suspense>
         <KakaoSdkLoader />
+        <MetaPixel />
         <AppShell>{children}</AppShell>
       </body>
     </html>
