@@ -99,8 +99,11 @@ function StartPageInner() {
     // 홈과 동일한 로그인 가드 패턴 (localStorage byeolkong_user)
     let loggedIn = false;
     try {
-      loggedIn = !!localStorage.getItem("byeolkong_user");
-    } catch {}
+      const raw = localStorage.getItem("byeolkong_user");
+      loggedIn = !!(raw && JSON.parse(raw));
+    } catch {
+      loggedIn = false;
+    }
     if (!loggedIn) {
       router.push(
         `/login?next=${encodeURIComponent(`/start?${sp.toString()}`)}`
@@ -114,6 +117,11 @@ function StartPageInner() {
   const [tarotStep, setTarotStep] = useState<"branch" | "counsel" | "fortune">(
     "branch"
   );
+
+  // variant 가 바뀌면(이례적 — 쿼리만 바뀌는 내비게이션) 갈래 스텝 초기화
+  useEffect(() => {
+    setTarotStep("branch");
+  }, [variant]);
 
   if (!valid) return null;
   const heroCopy = HERO_COPY[variant];
