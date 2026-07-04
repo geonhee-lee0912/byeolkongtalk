@@ -19,6 +19,7 @@ import {
   FORTUNE_GRADIENTS,
   type FortuneConfig,
 } from "@/lib/fortune/types";
+import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
 
 const VARIANTS = ["counsel", "daily", "tarot"] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -117,6 +118,39 @@ function StartPageInner() {
   const [tarotStep, setTarotStep] = useState<"branch" | "counsel" | "fortune">(
     "branch"
   );
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
+
+  // 로그인 복귀: 신규가입(welcome=1)이면 팝업, 기존 유저면 pending 바로 진행
+  useEffect(() => {
+    if (!valid) return;
+    if (sp.get("login") !== "success") return;
+    if (sp.get("welcome") === "1") {
+      setWelcomeOpen(true);
+      void fetch("/api/stars/balance", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) =>
+          setBalance(typeof d?.balance === "number" ? d.balance : null)
+        )
+        .catch(() => {});
+      return;
+    }
+    const pending = readPending();
+    if (pending) proceed(pending);
+    // 마운트 1회 판정 (로그인 복귀는 항상 fresh mount)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valid]);
+
+  const handleWelcomeClose = () => {
+    setWelcomeOpen(false);
+    // 새로고침 시 팝업 재노출 방지 — login/welcome 파라미터만 제거 (utm 유지)
+    const clean = new URLSearchParams(sp.toString());
+    clean.delete("login");
+    clean.delete("welcome");
+    router.replace(`/start?${clean.toString()}`);
+    const pending = readPending();
+    if (pending) proceed(pending);
+  };
 
   // variant 가 바뀌면(이례적 — 쿼리만 바뀌는 내비게이션) 갈래 스텝 초기화
   useEffect(() => {
@@ -258,6 +292,9 @@ function StartPageInner() {
           </>
         )}
       </section>
+      {welcomeOpen && (
+        <WelcomeStarsModal balance={balance} onStart={handleWelcomeClose} />
+      )}
     </main>
   );
 }
@@ -355,5 +392,3 @@ function FortuneMenuList({
   );
 }
 
-// Task 4 에서 사용: 로그인 복귀 후 pending 복원
-void readPending;
