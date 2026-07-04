@@ -29,6 +29,7 @@ import {
 import type { SajuResult } from "@/lib/saju/calc";
 import { isSajuProduct } from "@/lib/saju/products";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -218,6 +219,21 @@ export async function POST(request: NextRequest) {
             content: assistantText,
           },
         ]);
+
+        // Meta CAPI 체험완료 — 이 유저의 첫 리딩이면 StartTrial. eventId=trial:{userId} 로 dedup.
+        const { count: doneCount } = await supabase
+          .from("readings")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId);
+        if ((doneCount ?? 0) <= 1) {
+          const signals = capiSignalsFromRequest(request);
+          void sendCapiEvent({
+            eventName: "StartTrial",
+            userId,
+            eventId: `trial:${userId}`,
+            ...signals,
+          });
+        }
 
         // sensitive 후처리 (스트림 끝난 뒤 비동기 — 클라 응답 지연 X)
         if (sensitiveSync) {

@@ -6,6 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 /**
  * 토스페이먼츠 결제 승인
@@ -240,6 +241,16 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Meta CAPI 구매 전환. eventId=purchase:{paymentId} 로 중복 제거, value=원화.
+    const signals = capiSignalsFromRequest(request);
+    void sendCapiEvent({
+      eventName: "Purchase",
+      userId,
+      eventId: `purchase:${payment.id}`,
+      value: amount,
+      ...signals,
+    });
 
     return NextResponse.json({
       success: true,

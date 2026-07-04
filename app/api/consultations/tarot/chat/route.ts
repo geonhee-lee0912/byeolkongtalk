@@ -18,6 +18,7 @@ import type {
   SpreadCategory,
   DrawnCard,
 } from "@/lib/tarot/spreads";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -208,6 +209,21 @@ export async function POST(request: NextRequest) {
           { reading_id: reading.id, role: "user", content: lastMessage.content },
           { reading_id: reading.id, role: "assistant", content: assistantText },
         ]);
+
+        // Meta CAPI 체험완료 — 이 유저의 첫 리딩이면 StartTrial. eventId=trial:{userId} 로 dedup.
+        const { count: doneCount } = await supabase
+          .from("readings")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId);
+        if ((doneCount ?? 0) <= 1) {
+          const signals = capiSignalsFromRequest(request);
+          void sendCapiEvent({
+            eventName: "StartTrial",
+            userId,
+            eventId: `trial:${userId}`,
+            ...signals,
+          });
+        }
 
         if (sensitiveSync) {
           void recordSensitiveAlert({

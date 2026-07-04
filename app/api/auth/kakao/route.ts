@@ -10,6 +10,7 @@ import { setUserCookie } from "@/lib/session";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { chargeStars } from "@/lib/stars";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -155,6 +156,15 @@ export async function GET(request: NextRequest) {
           });
         }
       }
+
+      // Meta CAPI 가입 전환 (신규 유저만). eventId=reg:{userId} 로 Pixel/재시도 중복 제거.
+      const signals = capiSignalsFromRequest(request);
+      void sendCapiEvent({
+        eventName: "CompleteRegistration",
+        userId,
+        eventId: `reg:${userId}`,
+        ...signals,
+      });
     }
 
     // TODO (Phase 5): byeolkong_anon_id 의 readings 를 user_id 로 이관 (migrate_anonymous_readings RPC)

@@ -41,6 +41,7 @@ import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
 import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -354,6 +355,8 @@ export async function POST(req: NextRequest) {
   }
 
   const readingId = reading.id as string;
+  // CAPI 매칭 신호는 원 요청에서 미리 캡처 — after() 백그라운드에서 사용
+  const capiSignals = capiSignalsFromRequest(req);
 
   // 생성 실패 시: 빈 리딩 삭제 + 환불. (result/목록은 "메시지 없음→생성 중", "리딩 없음→실패"로 판단)
   // 리딩이 사라지므로 환불 사실을 fortune_refund_notices 에 남긴다 — /fortune 상단 카드로 노출.
@@ -475,6 +478,21 @@ export async function POST(req: NextRequest) {
       .insert([{ reading_id: readingId, role: "assistant", content: storedContent }]);
     if (mErr) {
       await failGeneration(mErr, "message_insert");
+      return;
+    }
+
+    // Meta CAPI 체험완료 — 이 유저의 첫 리딩이면 StartTrial. eventId=trial:{userId} 로 dedup.
+    const { count: doneCount } = await supabase
+      .from("readings")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if ((doneCount ?? 0) <= 1) {
+      void sendCapiEvent({
+        eventName: "StartTrial",
+        userId,
+        eventId: `trial:${userId}`,
+        ...capiSignals,
+      });
     }
   });
 
