@@ -78,29 +78,26 @@ function StartPageInner() {
     if (!valid) router.replace("/");
   }, [valid, router]);
 
-  // 핸드오프: 저장된 선택을 기존 흐름으로. router.push 라 브라우저 백 = /start 복귀.
-  // hard=true 는 window.location.replace — 로그인 콜백 직후 AuthBootstrap 의
-  // URL 정리 replace 가 진행 중인 SPA push 를 취소시키는 레이스를 피한다.
-  const proceed = (pending: StartPending, hard = false) => {
+  // 핸드오프: 저장된 선택을 기존 흐름으로. router.push(소프트) 라 브라우저 백 = /start
+  // 복귀. 하드 내비게이션 금지 — 로그인 콜백 직후엔 AuthBootstrap 의 세션 sync fetch 가
+  // 진행 중이라 풀 페이지 이동이 sync 를 죽여 앱 전체가 비로그인으로 고착된다.
+  // (AuthBootstrap 의 URL 정리 replace 는 /start 예외로 스킵되므로 push 레이스 없음)
+  const proceed = (pending: StartPending) => {
     try {
       sessionStorage.removeItem(START_PENDING_KEY);
     } catch {}
-    const go = (path: string) => {
-      if (hard) window.location.replace(path);
-      else router.push(path);
-    };
     if (pending.kind === "emotion") {
       try {
         sessionStorage.setItem("byeolkong:emotion", pending.tag);
       } catch {}
-      go("/concern");
+      router.push("/concern");
     } else if (
       // sessionStorage 위조/파손 방어 — 내부 path 만 push
       typeof pending.href === "string" &&
       pending.href.startsWith("/") &&
       !pending.href.startsWith("//")
     ) {
-      go(pending.href);
+      router.push(pending.href);
     }
   };
 
@@ -160,7 +157,7 @@ function StartPageInner() {
     }
     const pending = readPending();
     if (pending) {
-      proceed(pending, true); // hard — AuthBootstrap replace 레이스 회피
+      proceed(pending);
       return;
     }
     // 진행할 선택이 없으면(가입 박스 직행 등) 콜백 파라미터만 정리하고 랜딩에 머무름

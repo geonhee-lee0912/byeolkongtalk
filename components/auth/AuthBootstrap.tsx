@@ -40,20 +40,28 @@ export default function AuthBootstrap() {
     const login = sp.get("login");
     const isCallback = login === "success";
 
-    // sessionStorage flag — 같은 탭 중복 sync 방지 (callback 케이스는 강제 갱신)
-    if (
-      !isCallback &&
-      typeof window !== "undefined" &&
-      sessionStorage.getItem(SYNC_FLAG) === "1"
-    ) {
-      return;
+    // sessionStorage flag — 같은 탭 중복 sync 방지 (callback 케이스는 강제 갱신).
+    // 지난 sync 결과("authed"|"anon")가 현재 localStorage 와 일치할 때만 스킵 —
+    // 어긋나 있으면(콜백 직후 이동으로 sync 가 끊긴 경우 등) 재동기화로 자가 치유.
+    if (!isCallback && typeof window !== "undefined") {
+      const prev = sessionStorage.getItem(SYNC_FLAG);
+      let hasLocal = false;
+      try {
+        hasLocal = !!localStorage.getItem("byeolkong_user");
+      } catch {}
+      const consistent =
+        (prev === "authed" && hasLocal) || (prev === "anon" && !hasLocal);
+      if (consistent) return;
     }
 
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (typeof window === "undefined") return;
-        sessionStorage.setItem(SYNC_FLAG, "1");
+        sessionStorage.setItem(
+          SYNC_FLAG,
+          data?.isAuthenticated && data.user ? "authed" : "anon"
+        );
 
         if (data?.isAuthenticated && data.user) {
           setAuthLocalStorage(data.user);

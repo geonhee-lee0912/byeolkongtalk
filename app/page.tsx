@@ -20,9 +20,11 @@ export default function Home() {
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
 
-  // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출
+  // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
+  // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
+  // 로그인 직후 새로고침 없이 배너가 따라오게.
   useEffect(() => {
-    void (async () => {
+    const load = async () => {
       try {
         const list = await fetch("/api/readings", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
@@ -52,7 +54,12 @@ export default function Home() {
       } catch {
         // noop
       }
-    })();
+    };
+    void load();
+    const onUserUpdated = () => void load();
+    window.addEventListener("byeolkong:user-updated", onUserUpdated);
+    return () =>
+      window.removeEventListener("byeolkong:user-updated", onUserUpdated);
   }, []);
 
   const handleSelect = (tag: EmotionTag) => {
