@@ -88,7 +88,12 @@ function StartPageInner() {
         sessionStorage.setItem("byeolkong:emotion", pending.tag);
       } catch {}
       router.push("/concern");
-    } else {
+    } else if (
+      // sessionStorage 위조/파손 방어 — 내부 path 만 push
+      typeof pending.href === "string" &&
+      pending.href.startsWith("/") &&
+      !pending.href.startsWith("//")
+    ) {
       router.push(pending.href);
     }
   };

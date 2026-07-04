@@ -20,7 +20,10 @@ function LoginPageInner() {
 
   // 이미 로그인 상태면 next 경로로 즉시 이동
   useEffect(() => {
-    const next = sp.get("next") || "/";
+    // open redirect 차단 — 서버 콜백과 동일하게 내부 path 만 허용
+    const rawNext = sp.get("next") || "/";
+    const next =
+      rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
