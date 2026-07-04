@@ -121,6 +121,7 @@ export async function GET(request: NextRequest) {
       });
 
       // 웰컴 별 지급 — charge_stars RPC 멱등 키(welcome:{userId})로 유저당 1회 보장
+      // payment_id 유니크 인덱스 + RPC unique_violation 예외 처리로 DB 레벨 중복 지급 방지
       const welcome = await chargeStars(
         userId,
         WELCOME_BONUS_STARS,
