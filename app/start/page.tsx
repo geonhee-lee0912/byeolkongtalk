@@ -4,10 +4,21 @@
 // 유효 utm_content 없이 직접 진입하면 홈으로 (오가닉 유저는 이 페이지를 모르게).
 // 선택 → (비로그인) 카카오 로그인 → 웰컴 팝업 → 기존 흐름 핸드오프.
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import {
+  EMOTION_OPTIONS,
+  EMOTION_GRADIENTS,
+  type EmotionTag,
+} from "@/lib/emotions";
+import {
+  FORTUNE_CONFIG,
+  FORTUNE_LIST,
+  FORTUNE_GRADIENTS,
+  type FortuneConfig,
+} from "@/lib/fortune/types";
 
 const VARIANTS = ["counsel", "daily", "tarot"] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -18,8 +29,33 @@ const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
   tarot: { line1: "카드는 네가", line2: "직접 뽑아" },
 };
 
+// daily variant: 광고가 약속한 "오늘의 운세"를 맨 위로 (별콩 운세 10종 전체)
+const DAILY_ORDERED: FortuneConfig[] = [
+  FORTUNE_CONFIG.daily,
+  ...FORTUNE_LIST.filter((f) => f.type !== "daily"),
+];
+
+const TAROT_FORTUNES: FortuneConfig[] = FORTUNE_LIST.filter(
+  (f) => f.base === "tarot"
+);
+
 function isVariant(v: string | null): v is Variant {
   return VARIANTS.includes(v as Variant);
+}
+
+const START_PENDING_KEY = "byeolkong:start_pending";
+
+type StartPending =
+  | { kind: "emotion"; tag: EmotionTag }
+  | { kind: "fortune"; href: string };
+
+function readPending(): StartPending | null {
+  try {
+    const raw = sessionStorage.getItem(START_PENDING_KEY);
+    return raw ? (JSON.parse(raw) as StartPending) : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function StartPage() {
@@ -40,6 +76,44 @@ function StartPageInner() {
   useEffect(() => {
     if (!valid) router.replace("/");
   }, [valid, router]);
+
+  // 핸드오프: 저장된 선택을 기존 흐름으로. router.push 라 브라우저 백 = /start 복귀
+  const proceed = (pending: StartPending) => {
+    try {
+      sessionStorage.removeItem(START_PENDING_KEY);
+    } catch {}
+    if (pending.kind === "emotion") {
+      try {
+        sessionStorage.setItem("byeolkong:emotion", pending.tag);
+      } catch {}
+      router.push("/concern");
+    } else {
+      router.push(pending.href);
+    }
+  };
+
+  const handleSelect = (pending: StartPending) => {
+    try {
+      sessionStorage.setItem(START_PENDING_KEY, JSON.stringify(pending));
+    } catch {}
+    // 홈과 동일한 로그인 가드 패턴 (localStorage byeolkong_user)
+    let loggedIn = false;
+    try {
+      loggedIn = !!localStorage.getItem("byeolkong_user");
+    } catch {}
+    if (!loggedIn) {
+      router.push(
+        `/login?next=${encodeURIComponent(`/start?${sp.toString()}`)}`
+      );
+      return;
+    }
+    proceed(pending);
+  };
+
+  // 타로 갈래 스텝: branch(2택) → counsel(감정 10종) | fortune(타로 운세 5종)
+  const [tarotStep, setTarotStep] = useState<"branch" | "counsel" | "fortune">(
+    "branch"
+  );
 
   if (!valid) return null;
   const heroCopy = HERO_COPY[variant];
@@ -83,8 +157,195 @@ function StartPageInner() {
         </p>
       </div>
 
-      {/* 서비스 메뉴 — Task 2 에서 채움 */}
-      <section className="w-full max-w-md mx-auto px-5 py-6 flex flex-col gap-3" />
+      {/* 서비스 메뉴 — variant 분기 */}
+      <section className="w-full max-w-md mx-auto px-5 py-6 flex flex-col gap-3">
+        {variant === "counsel" && (
+          <>
+            <p className="text-[13px] font-bold text-eye-purple px-1">
+              어떤 고민이야? 골라봐
+            </p>
+            <EmotionList
+              onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
+            />
+          </>
+        )}
+
+        {variant === "daily" && (
+          <>
+            <p className="text-[13px] font-bold text-eye-purple px-1">
+              보고 싶은 운세 리포트를 골라봐
+            </p>
+            <FortuneMenuList
+              items={DAILY_ORDERED}
+              highlightType="daily"
+              onSelect={(href) => handleSelect({ kind: "fortune", href })}
+            />
+          </>
+        )}
+
+        {variant === "tarot" && tarotStep === "branch" && (
+          <>
+            <p className="text-[13px] font-bold text-eye-purple px-1">
+              타로, 어떻게 볼까?
+            </p>
+            <button
+              onClick={() => setTarotStep("counsel")}
+              className="flex flex-col items-center gap-1.5 p-6 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
+            >
+              <span className="text-[28px]">🔮</span>
+              <span className="text-[16px] font-bold text-eye-purple">
+                타로로 고민 상담
+              </span>
+              <span className="text-[12px] text-text-light">
+                별콩이와 대화하며 카드를 풀어가
+              </span>
+            </button>
+            <button
+              onClick={() => setTarotStep("fortune")}
+              className="flex flex-col items-center gap-1.5 p-6 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
+            >
+              <span className="text-[28px]">🃏</span>
+              <span className="text-[16px] font-bold text-eye-purple">
+                타로 운세 보기
+              </span>
+              <span className="text-[12px] text-text-light">
+                한 장의 리포트로 빠르게
+              </span>
+            </button>
+          </>
+        )}
+
+        {variant === "tarot" && tarotStep === "counsel" && (
+          <>
+            <button
+              onClick={() => setTarotStep("branch")}
+              className="self-start text-[12px] text-text-light/80 px-1"
+            >
+              ‹ 다시 고르기
+            </button>
+            <p className="text-[13px] font-bold text-eye-purple px-1">
+              어떤 고민이야? 골라봐
+            </p>
+            <EmotionList
+              onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
+            />
+          </>
+        )}
+
+        {variant === "tarot" && tarotStep === "fortune" && (
+          <>
+            <button
+              onClick={() => setTarotStep("branch")}
+              className="self-start text-[12px] text-text-light/80 px-1"
+            >
+              ‹ 다시 고르기
+            </button>
+            <p className="text-[13px] font-bold text-eye-purple px-1">
+              보고 싶은 타로 운세를 골라봐
+            </p>
+            <FortuneMenuList
+              items={TAROT_FORTUNES}
+              onSelect={(href) => handleSelect({ kind: "fortune", href })}
+            />
+          </>
+        )}
+      </section>
     </main>
   );
 }
+
+function EmotionList({ onSelect }: { onSelect: (tag: EmotionTag) => void }) {
+  return (
+    <>
+      {EMOTION_OPTIONS.map((option) => (
+        <button
+          key={option.tag}
+          onClick={() => onSelect(option.tag)}
+          className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition text-left"
+        >
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ background: EMOTION_GRADIENTS[option.tag] }}
+          >
+            <Image
+              src={option.icon}
+              alt=""
+              width={42}
+              height={42}
+              className="object-contain"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-eye-purple text-[15px] leading-snug">
+              {option.tag}
+            </p>
+            <p className="text-[12px] text-text-light mt-0.5 leading-relaxed">
+              {option.description}
+            </p>
+          </div>
+        </button>
+      ))}
+    </>
+  );
+}
+
+function FortuneMenuList({
+  items,
+  highlightType,
+  onSelect,
+}: {
+  items: FortuneConfig[];
+  /** 이 type 카드에 "광고에서 본 그거" 뱃지 + 강조 보더 */
+  highlightType?: string;
+  onSelect: (href: string) => void;
+}) {
+  return (
+    <>
+      {items.map((f) => {
+        const highlighted = f.type === highlightType;
+        return (
+          <button
+            key={f.type}
+            onClick={() => onSelect(f.href)}
+            className={[
+              "flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl text-left transition",
+              highlighted
+                ? "border-2 border-gold shadow-[0_0_0_3px_rgba(232,194,106,0.18)]"
+                : "border border-lilac-soft hover:border-lilac-deep/40",
+            ].join(" ")}
+          >
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
+              style={{ background: FORTUNE_GRADIENTS[f.type] }}
+            >
+              {f.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[15px] font-bold text-eye-purple">
+                  {f.label}
+                </span>
+                {f.cost > 0 && (
+                  <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                    ⭐ {f.cost}
+                  </span>
+                )}
+                {highlighted && (
+                  <span className="text-[10px] font-bold text-eye-purple bg-gold-soft/70 px-1.5 py-0.5 rounded-full">
+                    광고에서 본 그거 ✨
+                  </span>
+                )}
+              </div>
+              <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                {f.tagline}
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+// Task 4 에서 사용: 로그인 복귀 후 pending 복원
+void readPending;
