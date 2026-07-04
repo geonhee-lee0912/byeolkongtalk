@@ -9,6 +9,7 @@ import BottomTab from "./BottomTab";
 const HIDE_SHELL_PREFIXES: string[] = [
   "/login",
   "/admin",
+  "/start",
 ];
 
 function shouldHideShell(pathname: string): boolean {
