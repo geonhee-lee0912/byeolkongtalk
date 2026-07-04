@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { STAR_PACKAGES, type StarPackage } from "@/lib/constants";
+import {
+  STAR_PACKAGES,
+  FIRST_CHARGE_BONUS_RATE,
+  type StarPackage,
+} from "@/lib/constants";
 import {
   loadTossPayments,
   type TossPaymentsWidgets,
@@ -54,6 +58,7 @@ function ShopContent() {
   const amount = searchParams.get("amount");
 
   const [balance, setBalance] = useState<number | null>(null);
+  const [firstChargeEligible, setFirstChargeEligible] = useState(false);
   const [selectedId, setSelectedId] = useState<string>("star_70");
   const [loading, setLoading] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
@@ -82,6 +87,14 @@ function ShopContent() {
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
+
+  // 첫 충전 보너스 자격 조회 — 자격 있을 때만 배너/보너스 표기 (서버가 권위)
+  useEffect(() => {
+    fetch("/api/stars/first-charge-status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setFirstChargeEligible(!!d?.eligible))
+      .catch(() => {});
+  }, []);
 
   // 로그인 확인 + userId 확보 (위젯 customerKey 로 사용)
   useEffect(() => {
@@ -129,6 +142,10 @@ function ShopContent() {
         setConfirmMessage(
           data.alreadyProcessed
             ? "이미 처리된 결제야"
+            : data.bonusStars > 0
+            ? `${data.stars}별 + 보너스 ${data.bonusStars}별 = ${
+                data.stars + data.bonusStars
+              }별 충전 완료!`
             : `${data.stars}별 충전 완료!`
         );
         fetchBalance();
@@ -311,6 +328,9 @@ function ShopContent() {
             )}
             {status === "cancel" && <Banner tone="warn">결제가 취소됐어</Banner>}
 
+            {/* 첫 충전 한정 보너스 배너 — 자격 있을 때만 */}
+            {firstChargeEligible && <FirstChargeBanner />}
+
             {/* 패키지 섹션 */}
             <SectionDivider label="패키지 고르기" />
 
@@ -322,6 +342,7 @@ function ShopContent() {
                   selected={selectedId === pkg.id}
                   onSelect={() => setSelectedId(pkg.id)}
                   disabled={loading}
+                  showBonus={firstChargeEligible}
                 />
               ))}
             </div>
@@ -375,6 +396,11 @@ function ShopContent() {
               <span className="tabular-nums">
                 {!widgetReady && !widgetError
                   ? "잠시만, 결제 준비 중..."
+                  : firstChargeEligible
+                  ? `${
+                      selectedPkg.stars +
+                      Math.round(selectedPkg.stars * FIRST_CHARGE_BONUS_RATE)
+                    }별 받기 · ${selectedPkg.price.toLocaleString()}원`
                   : `${selectedPkg.stars}별 · ${selectedPkg.price.toLocaleString()}원 결제하기`}
               </span>
             </button>
@@ -430,15 +456,18 @@ function PackageCard({
   selected,
   onSelect,
   disabled,
+  showBonus,
 }: {
   pkg: StarPackage;
   selected: boolean;
   onSelect: () => void;
   disabled?: boolean;
+  showBonus?: boolean;
 }) {
   const meta = PKG_META[pkg.id] ?? {};
   const perStar = pkg.price / pkg.stars;
   const discountPct = Math.round((1 - perStar / BASE_PER_STAR) * 100);
+  const bonus = showBonus ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE) : 0;
 
   return (
     <button
@@ -468,6 +497,11 @@ function PackageCard({
               별
             </span>
           </p>
+          {bonus > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-lilac-soft text-lilac-deep tracking-wide">
+              +50%
+            </span>
+          )}
           {meta.badge && (
             <InlineBadge tone={meta.badge.tone}>{meta.badge.label}</InlineBadge>
           )}
@@ -478,10 +512,16 @@ function PackageCard({
             · 별당 {Math.round(perStar)}원
           </span>
         </p>
-        {discountPct > 0 && (
-          <span className="inline-block mt-1.5 text-[10px] font-black text-[#3F7A2F] bg-[#E5F4E0] px-2 py-0.5 rounded-full tabular-nums tracking-wide">
-            {discountPct}% 더 알뜰
-          </span>
+        {bonus > 0 ? (
+          <p className="mt-1 text-[12px] font-black text-lilac-deep tabular-nums">
+            첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별
+          </p>
+        ) : (
+          discountPct > 0 && (
+            <span className="inline-block mt-1.5 text-[10px] font-black text-[#3F7A2F] bg-[#E5F4E0] px-2 py-0.5 rounded-full tabular-nums tracking-wide">
+              {discountPct}% 더 알뜰
+            </span>
+          )
         )}
       </div>
 
@@ -644,6 +684,28 @@ function SectionDivider({ label }: { label: string }) {
         {label}
       </span>
       <div className="flex-1 h-px bg-lilac-mid/30" />
+    </div>
+  );
+}
+
+// ━━━━━━━━━━ 첫 충전 보너스 배너 ━━━━━━━━━━
+
+function FirstChargeBanner() {
+  return (
+    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] border border-gold-soft/50 shadow-sm">
+      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-sm shrink-0">
+        <span className="text-[22px]" aria-hidden>
+          🎁
+        </span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[14px] font-black text-[#7A5A1F] leading-tight">
+          첫 충전 한정 · 별 +50% 보너스
+        </p>
+        <p className="text-[11px] text-[#9A7B3F] mt-0.5 leading-snug">
+          처음 충전하면 별을 1.5배로 드려요 (딱 한 번)
+        </p>
+      </div>
     </div>
   );
 }
