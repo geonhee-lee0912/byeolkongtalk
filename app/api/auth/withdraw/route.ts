@@ -5,6 +5,7 @@
 //   Phase 4 (c): star_balances, star_transactions, payments
 //   Phase 5: readings (transaction_id 순환 FK 끊기), messages (CASCADE)
 
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession, clearAllCookies } from "@/lib/session";
@@ -54,6 +55,24 @@ export async function POST(request: NextRequest) {
         },
         { status: 503 }
       );
+    }
+  }
+
+  // 탈퇴 이력 기록 — users 삭제 전에 kakao 해시로 append(재가입/탈퇴 횟수 집계용).
+  // 실패해도 탈퇴는 계속 진행(best-effort) + 로그.
+  if (userRow?.kakao_id) {
+    const kakaoIdHash = createHash("sha256")
+      .update(String(userRow.kakao_id))
+      .digest("hex");
+    const { error: wErr } = await supabase
+      .from("account_withdrawals")
+      .insert({ kakao_id_hash: kakaoIdHash });
+    if (wErr) {
+      await logError(wErr, {
+        route: "/api/auth/withdraw",
+        userId,
+        extra: { severity: "WITHDRAWAL_LOG_FAILED" },
+      });
     }
   }
 
