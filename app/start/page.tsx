@@ -130,6 +130,17 @@ function StartPageInner() {
     "branch"
   );
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  // 가입 유도 박스 노출 판정 — 로그인 유저에겐 "지금 가입하면" 이 어긋나니 숨김
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("byeolkong_user");
+      setLoggedIn(!!(raw && JSON.parse(raw)));
+    } catch {
+      setLoggedIn(false);
+    }
+  }, []);
 
   // 로그인 복귀: 신규가입(welcome=1)이면 팝업, 기존 유저면 pending 바로 진행
   useEffect(() => {
@@ -232,12 +243,31 @@ function StartPageInner() {
           </div>
         </section>
 
-        {/* 골드 리본 — "무료" 약속 없이 웰컴 별만 */}
-        <div className="mx-5 mt-4 rounded-full bg-gold-soft/90 py-2.5 text-center shadow-[0_2px_10px_rgba(232,194,106,0.3)]">
-          <p className="text-[13px] font-extrabold text-eye-purple">
-            지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
-          </p>
-        </div>
+        {/* 가입 유도 박스 — 웰컴 별 안내 + 카카오 가입 (비로그인만) */}
+        {loggedIn === false && (
+          <div className="mx-5 mt-4 p-4 rounded-2xl bg-white/90 border border-gold/50 shadow-[0_4px_18px_rgba(232,194,106,0.25)] flex flex-col items-center gap-3">
+            <p className="text-[14px] font-extrabold text-eye-purple">
+              지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
+            </p>
+            <a
+              href={`/api/auth/login/kakao?next=${encodeURIComponent(
+                `/start?${sp.toString()}`
+              )}`}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[14px] hover:brightness-95 active:scale-[0.98] transition"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+              </svg>
+              카카오로 3초만에 가입하고 별 받기
+            </a>
+          </div>
+        )}
 
         {/* 서비스 메뉴 — variant 분기 */}
         <section className="w-full px-5 py-6 flex flex-col gap-3">
