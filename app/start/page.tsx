@@ -78,23 +78,29 @@ function StartPageInner() {
     if (!valid) router.replace("/");
   }, [valid, router]);
 
-  // 핸드오프: 저장된 선택을 기존 흐름으로. router.push 라 브라우저 백 = /start 복귀
-  const proceed = (pending: StartPending) => {
+  // 핸드오프: 저장된 선택을 기존 흐름으로. router.push 라 브라우저 백 = /start 복귀.
+  // hard=true 는 window.location.replace — 로그인 콜백 직후 AuthBootstrap 의
+  // URL 정리 replace 가 진행 중인 SPA push 를 취소시키는 레이스를 피한다.
+  const proceed = (pending: StartPending, hard = false) => {
     try {
       sessionStorage.removeItem(START_PENDING_KEY);
     } catch {}
+    const go = (path: string) => {
+      if (hard) window.location.replace(path);
+      else router.push(path);
+    };
     if (pending.kind === "emotion") {
       try {
         sessionStorage.setItem("byeolkong:emotion", pending.tag);
       } catch {}
-      router.push("/concern");
+      go("/concern");
     } else if (
       // sessionStorage 위조/파손 방어 — 내부 path 만 push
       typeof pending.href === "string" &&
       pending.href.startsWith("/") &&
       !pending.href.startsWith("//")
     ) {
-      router.push(pending.href);
+      go(pending.href);
     }
   };
 
@@ -141,7 +147,7 @@ function StartPageInner() {
       return;
     }
     const pending = readPending();
-    if (pending) proceed(pending);
+    if (pending) proceed(pending, true); // hard — AuthBootstrap replace 레이스 회피
     // 마운트 1회 판정 (로그인 복귀는 항상 fresh mount)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valid]);

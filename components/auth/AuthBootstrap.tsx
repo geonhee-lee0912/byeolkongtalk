@@ -70,6 +70,9 @@ export default function AuthBootstrap() {
       })
       .finally(() => {
         if (!isCallback) return;
+        // 콜백 파라미터 정리 전에 이미 다른 페이지로 이동했다면(/start 자동 진행 등)
+        // stale pathname 으로 replace 하면 사용자를 도로 끌어온다 — 건너뛴다.
+        if (window.location.pathname !== pathname) return;
         const params = new URLSearchParams(sp.toString());
         params.delete("login");
         params.delete("welcome");
