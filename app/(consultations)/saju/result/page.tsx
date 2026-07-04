@@ -8,6 +8,7 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
+import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { extractClosingLine } from "@/lib/saju/closing";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -213,6 +214,8 @@ function ResultPageInner() {
           새 사주 보러가기
         </Link>
       </div>
+
+      <ResultUpsell variant="counsel" />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}

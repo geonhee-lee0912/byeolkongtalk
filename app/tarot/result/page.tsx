@@ -7,6 +7,7 @@ import Image from "next/image";
 import ChatBubble from "@/components/saju/ChatBubble";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
+import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
@@ -289,6 +290,8 @@ function TarotResultInner() {
           새 카드 뽑으러 가기
         </Link>
       </div>
+
+      <ResultUpsell variant="counsel" />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}
