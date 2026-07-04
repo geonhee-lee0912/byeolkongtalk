@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         success: true,
         alreadyProcessed: true,
         stars: existing.stars_given,
+        bonusStars: 0,
         balance: bal?.balance ?? null,
         paymentKey,
       });
@@ -183,11 +184,20 @@ export async function POST(request: NextRequest) {
     // ━━ 첫 충전 보너스: 이 유저의 completed 결제가 이번 건뿐이면 +50% 별 지급.
     // 멱등 키 first_bonus:{userId} → 동시 결제 레이스에도 평생 1회만 지급된다.
     let bonusStars = 0;
-    const { count: paidCount } = await supabase
+    let bonusBalance: number | null = null;
+    const { count: paidCount, error: countErr } = await supabase
       .from("payments")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("status", "completed");
+    if (countErr) {
+      // 카운트 실패 시 보너스는 조용히 스킵되므로, 누락 관측용 로그는 남긴다
+      await logError(countErr, {
+        route: "/api/payment/confirm",
+        userId,
+        extra: { paymentId: payment.id, severity: "FIRST_BONUS_COUNT_ERROR" },
+      });
+    }
     if (charge.success && paidCount === 1) {
       bonusStars = Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE);
       const bonus = await chargeStars(
@@ -196,15 +206,25 @@ export async function POST(request: NextRequest) {
         `first_bonus:${userId}`,
         "first_charge_bonus"
       );
-      if (!bonus.success) bonusStars = 0;
-      else if (bonus.idempotent) bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
+      if (!bonus.success) {
+        await logError(new Error("first charge bonus grant failed"), {
+          route: "/api/payment/confirm",
+          userId,
+          extra: { paymentId: payment.id, bonusStars, severity: "FIRST_BONUS_FAILED" },
+        });
+        bonusStars = 0;
+      } else if (bonus.idempotent) {
+        bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
+      } else {
+        bonusBalance = bonus.balance; // 보너스까지 반영된 권위 잔액
+      }
     }
 
     return NextResponse.json({
       success: true,
       stars: pkg.stars,
       bonusStars,
-      balance: bonusStars > 0 ? charge.balance + bonusStars : charge.balance,
+      balance: bonusBalance ?? charge.balance,
       paymentKey: paymentResult.paymentKey,
     });
   } catch (error) {
