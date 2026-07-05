@@ -40,7 +40,6 @@ const READINGS_TABS = [
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
 
-const PAGE_SIZE = 5;
 
 /** 사주 상담 카드의 일주 (일간+일지, 예: "갑자") — 없으면 null */
 function dayPillar(r: ReadingItem): string | null {
@@ -140,7 +139,6 @@ export default function ReadingsPage() {
   const [readings, setReadings] = useState<ReadingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<ReadingsTab>("consult");
-  const [page, setPage] = useState(0);
   const [continueId, setContinueId] = useState<string | null>(null);
 
   const loadReadings = async () => {
@@ -198,7 +196,6 @@ export default function ReadingsPage() {
 
   const switchTab = (t: ReadingsTab) => {
     setTab(t);
-    setPage(0);
   };
 
   if (loading) {
@@ -210,9 +207,6 @@ export default function ReadingsPage() {
   }
 
   const items = tab === "consult" ? consult : fortune;
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pagedItems = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -279,7 +273,7 @@ export default function ReadingsPage() {
           </div>
         ) : tab === "consult" ? (
           <div className="flex flex-col gap-2">
-            {pagedItems.map((r) => {
+            {items.map((r) => {
               const isTarot = r.consultationType === "tarot";
               const canResume = r.ended === false;
               const href = canResume
@@ -366,7 +360,7 @@ export default function ReadingsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {pagedItems.map((r) => {
+            {items.map((r) => {
               if (r.generating) {
                 const ft = fortuneTypeFromTag(r.emotionTag);
                 const genLabel = ft ? FORTUNE_CONFIG[ft].label : r.question;
@@ -420,44 +414,6 @@ export default function ReadingsPage() {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <button
-              onClick={() => setPage((n) => Math.max(0, n - 1))}
-              disabled={safePage === 0}
-              aria-label="이전"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i)}
-                aria-label={`${i + 1}페이지`}
-                className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
-                  i === safePage
-                    ? "bg-lilac-deep text-white"
-                    : "text-text-light/70 hover:bg-lilac-soft/50"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage((n) => Math.min(totalPages - 1, n + 1))}
-              disabled={safePage === totalPages - 1}
-              aria-label="다음"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
 
       <ContinuationModal
