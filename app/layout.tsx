@@ -24,11 +24,15 @@ const verification: Metadata["verification"] = {};
 if (process.env.GOOGLE_SITE_VERIFICATION) {
   verification.google = process.env.GOOGLE_SITE_VERIFICATION;
 }
+// 메타(페이스북) 도메인 인증 — 페이지 소스에 공개 노출되는 값이라 하드코딩 (비밀 아님)
+const otherVerification: Record<string, string> = {
+  "facebook-domain-verification": "a41fr6o1ai92wldbrg6u9cztb0zm0y",
+};
 if (process.env.NAVER_SITE_VERIFICATION) {
-  verification.other = {
-    "naver-site-verification": process.env.NAVER_SITE_VERIFICATION,
-  };
+  otherVerification["naver-site-verification"] =
+    process.env.NAVER_SITE_VERIFICATION;
 }
+verification.other = otherVerification;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://byeolkongtalk.com"),
