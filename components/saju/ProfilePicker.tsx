@@ -16,8 +16,21 @@ interface PickerProfile {
   saju: SajuResult;
 }
 
+/** 리딩 헤더 등 표시용 프로필 요약 */
+export interface PickerProfileSummary {
+  displayName: string;
+  relationType: string;
+  birthDate: string;
+  birthTime: string | null;
+}
+
 export type PickerResult =
-  | { kind: "saved"; profileId: string; saju: SajuResult }
+  | {
+      kind: "saved";
+      profileId: string;
+      saju: SajuResult;
+      profile: PickerProfileSummary;
+    }
   | { kind: "inline"; payload: ProfilePayload; save: boolean; saju: SajuResult };
 
 export interface ProfilePickerProps {
@@ -158,7 +171,17 @@ export default function ProfilePicker({
         disabled={!selected || loading}
         onClick={() =>
           selected &&
-          onConfirm({ kind: "saved", profileId: selected.id, saju: selected.saju })
+          onConfirm({
+            kind: "saved",
+            profileId: selected.id,
+            saju: selected.saju,
+            profile: {
+              displayName: selected.displayName,
+              relationType: selected.relationType,
+              birthDate: selected.birthDate,
+              birthTime: selected.birthTime,
+            },
+          })
         }
         className="w-full mt-5 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
       >

@@ -71,10 +71,25 @@ export default function SajuPage() {
         return;
       }
       const data = await res.json();
+      // 리딩 헤더 표시용 프로필 요약 (이름/생년월일/시진)
+      const profileSummary =
+        result.kind === "saved"
+          ? result.profile
+          : {
+              displayName: result.payload.displayName,
+              relationType: result.payload.relationType,
+              birthDate: result.payload.birthDate,
+              birthTime: result.payload.birthTime,
+            };
       // reading 페이지는 byeolkong:current_reading 세션에서 컨텍스트를 로드한다.
       sessionStorage.setItem(
         "byeolkong:current_reading",
-        JSON.stringify({ readingId: data.id, saju: result.saju, question })
+        JSON.stringify({
+          readingId: data.id,
+          saju: result.saju,
+          question,
+          profile: profileSummary,
+        })
       );
       sessionStorage.removeItem(PENDING_KEY);
       sessionStorage.removeItem("byeolkong:emotion");

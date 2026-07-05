@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import SajuIdentityRow from "@/components/saju/SajuIdentityRow";
+import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -14,11 +14,27 @@ interface Message {
   content: string;
 }
 
+interface ReadingProfile {
+  displayName: string;
+  relationType: string;
+  birthDate: string;
+  birthTime: string | null;
+}
+
 interface CurrentReading {
   readingId: string;
   saju: SajuResult;
   question: string;
+  /** 표시용 — 구버전 세션 핸드오프엔 없을 수 있음 */
+  profile?: ReadingProfile;
 }
+
+const RELATION_LABEL: Record<string, string> = {
+  family: "가족",
+  friend: "친구",
+  partner: "연인",
+  other: "기타",
+};
 
 const END_MARKER = /\[END\]\s*$/;
 const TRAILING_PARTIAL = /\[E?N?D?\]?\s*$/;
@@ -96,10 +112,24 @@ function ReadingInner() {
               setIsEnded(true);
             }
           }
+          const p = d.profile as {
+            display_name: string;
+            relation_type: string;
+            birth_date: string;
+            birth_time: string | null;
+          } | null;
           setCtx({
             readingId: resumeId,
             saju: reading.sajuData,
             question: reading.question,
+            profile: p
+              ? {
+                  displayName: p.display_name,
+                  relationType: p.relation_type,
+                  birthDate: p.birth_date,
+                  birthTime: p.birth_time,
+                }
+              : undefined,
           });
         } catch {
           router.replace("/readings");
@@ -248,11 +278,26 @@ function ReadingInner() {
             <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
               <SajuIdentityRow
                 saju={ctx.saju}
-                title={`${ctx.saju.dayStem}${ctx.saju.dayElement} 일간`}
-                caption={[
-                  ctx.saju.input.inputCalendar === "lunar" ? "음력" : "양력",
-                  ...(ctx.saju.input.hourKnown ? [] : ["시간 모름"]),
-                ].join(" · ")}
+                title={
+                  ctx.profile
+                    ? ctx.profile.relationType === "self"
+                      ? "내 사주"
+                      : ctx.profile.displayName
+                    : `${ctx.saju.dayStem}${ctx.saju.dayElement} 일간`
+                }
+                badge={
+                  ctx.profile && ctx.profile.relationType !== "self"
+                    ? (RELATION_LABEL[ctx.profile.relationType] ?? "지인")
+                    : null
+                }
+                caption={
+                  ctx.profile
+                    ? sajuCaption(ctx.saju, ctx.profile)
+                    : [
+                        ctx.saju.input.inputCalendar === "lunar" ? "음력" : "양력",
+                        ...(ctx.saju.input.hourKnown ? [] : ["시간 모름"]),
+                      ].join(" · ")
+                }
               />
             </div>
           </div>
