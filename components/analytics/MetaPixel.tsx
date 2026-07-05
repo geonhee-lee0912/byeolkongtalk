@@ -2,7 +2,8 @@
 
 import Script from "next/script";
 
-/** Meta Pixel — PageView 자동 추적. 표준 전환 이벤트(가입/구매)는 서버 CAPI에서 전송(중복 방지 분담). */
+/** Meta Pixel — PageView 자동 추적. 표준 전환 이벤트(가입/구매)는 서버 CAPI에서 전송(중복 방지 분담).
+ *  NEXT_PUBLIC_META_PIXEL_ID 는 빌드 시 인라인되는 값 — env 변경 후엔 소스 변경(캐시 무효화)으로 재빌드해야 반영됨. */
 export default function MetaPixel() {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   if (!pixelId) return null;
