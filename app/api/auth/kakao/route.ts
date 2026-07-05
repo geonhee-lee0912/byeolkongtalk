@@ -11,6 +11,7 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 import { chargeStars } from "@/lib/stars";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { ACQ_COOKIE, parseAcqCookie } from "@/lib/acquisition";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -114,6 +115,24 @@ export async function GET(request: NextRequest) {
       userId = newUser.id;
       isNewUser = true;
 
+      // first-touch 유입 출처 저장 (신규 유저 1회). 쿠키 없으면(오가닉) 스킵.
+      const acq = parseAcqCookie(request.cookies.get(ACQ_COOKIE)?.value);
+      if (acq) {
+        await supabase.from("user_acquisition").insert({
+          user_id: userId,
+          utm_source: acq.utm_source ?? null,
+          utm_medium: acq.utm_medium ?? null,
+          utm_campaign: acq.utm_campaign ?? null,
+          utm_content: acq.utm_content ?? null,
+          utm_term: acq.utm_term ?? null,
+          fbclid: acq.fbclid ?? null,
+          fbc: acq.fbc ?? null,
+          landing_variant: acq.landing_variant ?? null,
+          referrer: acq.referrer ?? null,
+          first_seen_at: acq.first_seen_at ?? null,
+        });
+      }
+
       // 별 잔액 초기화 (신규 유저). RLS 우회 service_role 라 직접 INSERT.
       await supabase.from("star_balances").insert({
         user_id: userId,
@@ -181,6 +200,11 @@ export async function GET(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    // acq 쿠키 1회성 소비 — 저장 후 삭제(신규/기존 무관 정리)
+    res.cookies.set(ACQ_COOKIE, "", {
       path: "/",
       maxAge: 0,
     });

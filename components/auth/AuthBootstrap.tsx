@@ -10,6 +10,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ACQ_COOKIE, ACQ_KEYS, buildAcqPayload } from "@/lib/acquisition";
 
 const SYNC_FLAG = "byeolkong:auth-sync";
 
@@ -32,6 +33,37 @@ export default function AuthBootstrap() {
   const sp = useSearchParams();
   const pathname = usePathname();
   const handledRef = useRef(false);
+
+  // first-touch 유입 캡처: utm/fbclid 가 있고 아직 acq 쿠키가 없으면 1회 기록.
+  // 쿠키가 이미 있으면 덮어쓰지 않음(first-touch 보존). 오가닉(파라미터 없음)은 무시.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (document.cookie.includes(`${ACQ_COOKIE}=`)) return;
+
+    const params: Record<string, string | undefined> = {};
+    for (const k of ACQ_KEYS) params[k] = sp.get(k) ?? undefined;
+    const payload = buildAcqPayload(params);
+    if (!payload) return;
+
+    // 보조 신호
+    payload.first_seen_at = new Date().toISOString();
+    if (pathname === "/start") {
+      const v = sp.get("utm_content");
+      if (v) payload.landing_variant = v;
+    }
+    try {
+      if (document.referrer) payload.referrer = document.referrer.slice(0, 200);
+    } catch {}
+    const fbc = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("_fbc="))
+      ?.split("=")[1];
+    if (fbc) payload.fbc = decodeURIComponent(fbc);
+
+    const value = encodeURIComponent(JSON.stringify(payload));
+    // 30일, 로그인 왕복(same-site 네비게이션)에 실려 서버로 감. httpOnly 아님(클라 기록).
+    document.cookie = `${ACQ_COOKIE}=${value}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  }, [sp, pathname]);
 
   useEffect(() => {
     if (handledRef.current) return;
