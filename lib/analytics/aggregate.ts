@@ -132,3 +132,79 @@ export function buildTrends(input: {
   }
   return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
+
+export type FunnelRow = {
+  creative: string; // utm_content 또는 '(organic)'
+  signups: number;
+  tried: number;
+  firstPaid: number;
+  repaid: number;
+  signupToPaidPct: number; // 0~100, 소수 1자리
+  revenueWon: number;
+  spendWon: number | null;
+  cac: number | null;
+  roas: number | null;
+};
+
+const ORGANIC = "(organic)";
+
+export function buildFunnel(input: {
+  acquisitions: { user_id: string; utm_content: string | null }[];
+  readings: { user_id: string }[];
+  payments: { user_id: string; status: string | null; amount_won: number | null }[];
+  spend: { creative_key: string; spend_won: number }[];
+}): FunnelRow[] {
+  const creativeOf = new Map<string, string>();
+  const groups = new Map<string, { users: Set<string> }>();
+  for (const a of input.acquisitions) {
+    const c = a.utm_content || ORGANIC;
+    creativeOf.set(a.user_id, c);
+    (groups.get(c) ?? groups.set(c, { users: new Set() }).get(c)!).users.add(a.user_id);
+  }
+
+  const triedUsers = new Set(input.readings.map((r) => r.user_id));
+  const paidCount = new Map<string, number>(); // completed 결제 수
+  const revByUser = new Map<string, number>();
+  for (const p of input.payments) {
+    if (p.status !== "completed") continue;
+    paidCount.set(p.user_id, (paidCount.get(p.user_id) ?? 0) + 1);
+    revByUser.set(p.user_id, (revByUser.get(p.user_id) ?? 0) + (p.amount_won ?? 0));
+  }
+
+  const spendByCreative = new Map<string, number>();
+  for (const s of input.spend) {
+    spendByCreative.set(s.creative_key, (spendByCreative.get(s.creative_key) ?? 0) + s.spend_won);
+  }
+
+  const rows: FunnelRow[] = [];
+  for (const [creative, g] of groups) {
+    let tried = 0, firstPaid = 0, repaid = 0, revenueWon = 0;
+    for (const u of g.users) {
+      if (triedUsers.has(u)) tried += 1;
+      const pc = paidCount.get(u) ?? 0;
+      if (pc >= 1) firstPaid += 1;
+      if (pc >= 2) repaid += 1;
+      revenueWon += revByUser.get(u) ?? 0;
+    }
+    const signups = g.users.size;
+    const spendWon = creative === ORGANIC ? null : spendByCreative.get(creative) ?? null;
+    rows.push({
+      creative,
+      signups,
+      tried,
+      firstPaid,
+      repaid,
+      signupToPaidPct: signups ? Math.round((firstPaid / signups) * 1000) / 10 : 0,
+      revenueWon,
+      spendWon,
+      cac: spendWon && signups ? Math.round(spendWon / signups) : null,
+      roas: spendWon ? Math.round((revenueWon / spendWon) * 100) / 100 : null,
+    });
+  }
+  // organic 은 맨 아래, 나머지는 가입 내림차순
+  return rows.sort((a, b) => {
+    if (a.creative === ORGANIC) return 1;
+    if (b.creative === ORGANIC) return -1;
+    return b.signups - a.signups;
+  });
+}

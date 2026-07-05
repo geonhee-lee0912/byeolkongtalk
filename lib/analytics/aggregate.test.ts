@@ -65,3 +65,37 @@ test("buildTrends — 일자별 가입/리딩/매출 (KST 일자 버킷)", () =>
   const d2 = t.find((x) => x.date === "2026-07-02");
   assert.equal(d2?.newUsers, 0);
 });
+
+import { buildFunnel } from "./aggregate.ts";
+
+test("buildFunnel — 소재별 퍼널 + ad_spend 조인 CAC/ROAS", () => {
+  const rows = buildFunnel({
+    acquisitions: [
+      { user_id: "u1", utm_content: "vid_a" },
+      { user_id: "u2", utm_content: "vid_a" },
+      { user_id: "u3", utm_content: null }, // organic
+    ],
+    readings: [
+      { user_id: "u1" }, { user_id: "u3" },
+    ],
+    payments: [
+      { user_id: "u1", status: "completed", amount_won: 2800 },
+      { user_id: "u1", status: "completed", amount_won: 1000 }, // 재결제
+    ],
+    spend: [{ creative_key: "vid_a", spend_won: 10000 }],
+  });
+  const a = rows.find((r) => r.creative === "vid_a")!;
+  assert.equal(a.signups, 2);
+  assert.equal(a.tried, 1);       // u1 만 리딩
+  assert.equal(a.firstPaid, 1);   // u1
+  assert.equal(a.repaid, 1);      // u1 2건
+  assert.equal(a.revenueWon, 3800);
+  assert.equal(a.spendWon, 10000);
+  assert.equal(a.cac, 5000);      // 10000 / 2
+  assert.equal(a.roas, 0.38);     // 3800 / 10000
+  const org = rows.find((r) => r.creative === "(organic)")!;
+  assert.equal(org.signups, 1);
+  assert.equal(org.spendWon, null);
+  assert.equal(org.cac, null);
+  assert.equal(org.roas, null);
+});
