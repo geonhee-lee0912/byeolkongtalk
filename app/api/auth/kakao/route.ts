@@ -116,21 +116,29 @@ export async function GET(request: NextRequest) {
       isNewUser = true;
 
       // first-touch 유입 출처 저장 (신규 유저 1회). 쿠키 없으면(오가닉) 스킵.
+      // 어트리뷰션은 로그인의 부수 작업 — 실패해도 가입/로그인을 막지 않도록 swallow + 로그.
       const acq = parseAcqCookie(request.cookies.get(ACQ_COOKIE)?.value);
       if (acq) {
-        await supabase.from("user_acquisition").insert({
-          user_id: userId,
-          utm_source: acq.utm_source ?? null,
-          utm_medium: acq.utm_medium ?? null,
-          utm_campaign: acq.utm_campaign ?? null,
-          utm_content: acq.utm_content ?? null,
-          utm_term: acq.utm_term ?? null,
-          fbclid: acq.fbclid ?? null,
-          fbc: acq.fbc ?? null,
-          landing_variant: acq.landing_variant ?? null,
-          referrer: acq.referrer ?? null,
-          first_seen_at: acq.first_seen_at ?? null,
-        });
+        try {
+          const { error: acqErr } = await supabase.from("user_acquisition").insert({
+            user_id: userId,
+            utm_source: acq.utm_source ?? null,
+            utm_medium: acq.utm_medium ?? null,
+            utm_campaign: acq.utm_campaign ?? null,
+            utm_content: acq.utm_content ?? null,
+            utm_term: acq.utm_term ?? null,
+            fbclid: acq.fbclid ?? null,
+            fbc: acq.fbc ?? null,
+            landing_variant: acq.landing_variant ?? null,
+            referrer: acq.referrer ?? null,
+            first_seen_at: acq.first_seen_at ?? null,
+          });
+          if (acqErr) {
+            await logError(acqErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
+          }
+        } catch (acqCatch) {
+          await logError(acqCatch, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
+        }
       }
 
       // 별 잔액 초기화 (신규 유저). RLS 우회 service_role 라 직접 INSERT.
