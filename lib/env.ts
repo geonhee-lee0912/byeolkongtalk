@@ -25,6 +25,8 @@ export const OPTIONAL_ENV = [
   "ADMIN_USER_IDS",
   "NAVER_SITE_VERIFICATION",
   "GOOGLE_SITE_VERIFICATION",
+  "NEXT_PUBLIC_META_PIXEL_ID",
+  "META_CAPI_ACCESS_TOKEN",
 ] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];
