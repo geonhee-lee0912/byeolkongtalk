@@ -97,3 +97,38 @@ export function buildProductBreakdown(
     packages: [...packages.values()].sort((a, b) => b.revenueWon - a.revenueWon),
   };
 }
+
+export type TrendPoint = { date: string; newUsers: number; readings: number; revenueWon: number };
+
+/** UTC ISO → KST 날짜(YYYY-MM-DD). */
+function kstDate(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+export function buildTrends(input: {
+  users: { created_at: string }[];
+  readings: { created_at: string }[];
+  payments: { created_at: string; amount_won: number | null; status: string | null }[];
+  days: number;
+  todayKst: string; // 'YYYY-MM-DD' (KST 오늘)
+}): TrendPoint[] {
+  const map = new Map<string, TrendPoint>();
+  // 날짜 축 미리 채움 (todayKst 부터 과거로 days 개)
+  const base = new Date(`${input.todayKst}T00:00:00Z`);
+  for (let i = 0; i < input.days; i++) {
+    const d = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
+    map.set(d, { date: d, newUsers: 0, readings: 0, revenueWon: 0 });
+  }
+  const bump = (iso: string, f: (p: TrendPoint) => void) => {
+    const p = map.get(kstDate(iso));
+    if (p) f(p);
+  };
+  for (const u of input.users) bump(u.created_at, (p) => (p.newUsers += 1));
+  for (const r of input.readings) bump(r.created_at, (p) => (p.readings += 1));
+  for (const pay of input.payments) {
+    if (pay.status !== "completed") continue;
+    bump(pay.created_at, (p) => (p.revenueWon += pay.amount_won ?? 0));
+  }
+  return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+}

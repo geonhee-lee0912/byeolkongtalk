@@ -46,3 +46,22 @@ test("별 구매 — completed 만, package_type 그룹 + 매출", () => {
   assert.equal(p30?.count, 1);
   assert.equal(p30?.revenueWon, 2800);
 });
+
+import { buildTrends } from "./aggregate.ts";
+
+test("buildTrends — 일자별 가입/리딩/매출 (KST 일자 버킷)", () => {
+  const t = buildTrends({
+    users: [{ created_at: "2026-07-01T02:00:00Z" }, { created_at: "2026-07-01T14:00:00Z" }],
+    readings: [{ created_at: "2026-07-01T05:00:00Z" }],
+    payments: [{ created_at: "2026-07-01T05:00:00Z", amount_won: 2800, status: "completed" }],
+    days: 2,
+    todayKst: "2026-07-02",
+  });
+  const d1 = t.find((x) => x.date === "2026-07-01");
+  assert.equal(d1?.newUsers, 2);
+  assert.equal(d1?.readings, 1);
+  assert.equal(d1?.revenueWon, 2800);
+  // 빈 날짜도 0으로 채워짐
+  const d2 = t.find((x) => x.date === "2026-07-02");
+  assert.equal(d2?.newUsers, 0);
+});
