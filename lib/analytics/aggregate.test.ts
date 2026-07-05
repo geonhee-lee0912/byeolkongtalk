@@ -99,3 +99,28 @@ test("buildFunnel — 소재별 퍼널 + ad_spend 조인 CAC/ROAS", () => {
   assert.equal(org.cac, null);
   assert.equal(org.roas, null);
 });
+
+import { buildCohorts } from "./aggregate.ts";
+
+test("buildCohorts — 가입 주차별 누적 LTV(유저 평균) + 리텐션", () => {
+  const c = buildCohorts({
+    users: [
+      { id: "u1", created_at: "2026-06-01T00:00:00Z" }, // 월요일 주차
+      { id: "u2", created_at: "2026-06-02T00:00:00Z" },
+    ],
+    payments: [
+      { user_id: "u1", amount_won: 3000, status: "completed", created_at: "2026-06-03T00:00:00Z" }, // week 0
+      { user_id: "u1", amount_won: 2000, status: "completed", created_at: "2026-06-10T00:00:00Z" }, // week 1
+    ],
+    activity: [
+      { user_id: "u1", created_at: "2026-06-10T00:00:00Z" }, // D7 재활동
+    ],
+    weeks: 3,
+  });
+  assert.equal(c.length, 1); // 같은 주차 코호트 1개
+  const wk = c[0];
+  assert.equal(wk.cohortSize, 2);
+  // week0 누적 3000, week1 누적 5000 → 유저 평균 (2명 기준)
+  assert.equal(wk.cumRevenuePerUser[0], 1500); // 3000/2
+  assert.equal(wk.cumRevenuePerUser[1], 2500); // 5000/2
+});

@@ -208,3 +208,89 @@ export function buildFunnel(input: {
     return b.signups - a.signups;
   });
 }
+
+export type CohortRow = {
+  weekStart: string;             // 코호트 주차 시작(YYYY-MM-DD, KST 월요일)
+  cohortSize: number;
+  cumRevenuePerUser: number[];   // index = 경과 주차, 누적 결제액/코호트크기
+  retention: { d1: number; d7: number; d30: number }; // 재활동 유저 비율 0~100
+};
+
+/** iso → KST 기준 그 주 월요일(YYYY-MM-DD). */
+function kstWeekStart(iso: string): string {
+  const kst = new Date(new Date(iso).getTime() + 9 * 3600000);
+  const day = kst.getUTCDay(); // 0=일
+  const diff = (day === 0 ? -6 : 1) - day; // 월요일로
+  kst.setUTCDate(kst.getUTCDate() + diff);
+  return kst.toISOString().slice(0, 10);
+}
+function daysBetween(aIso: string, bIso: string): number {
+  return Math.floor((new Date(bIso).getTime() - new Date(aIso).getTime()) / 86400000);
+}
+
+export function buildCohorts(input: {
+  users: { id: string; created_at: string }[];
+  payments: { user_id: string; amount_won: number | null; status: string | null; created_at: string }[];
+  activity: { user_id: string; created_at: string }[]; // 재활동 신호(리딩 등)
+  weeks: number;
+}): CohortRow[] {
+  const signup = new Map<string, string>(); // userId → created_at
+  const cohortOf = new Map<string, string>(); // userId → weekStart
+  const cohorts = new Map<string, Set<string>>();
+  for (const u of input.users) {
+    signup.set(u.id, u.created_at);
+    const w = kstWeekStart(u.created_at);
+    cohortOf.set(u.id, w);
+    (cohorts.get(w) ?? cohorts.set(w, new Set()).get(w)!).add(u.id);
+  }
+
+  // 누적 결제(주차별)
+  const rev = new Map<string, number[]>(); // weekStart → 주차별 결제 합
+  for (const p of input.payments) {
+    if (p.status !== "completed") continue;
+    const su = signup.get(p.user_id);
+    const w = cohortOf.get(p.user_id);
+    if (!su || !w) continue;
+    const wi = Math.max(0, Math.floor(daysBetween(su, p.created_at) / 7));
+    if (wi >= input.weeks) continue;
+    const arr = rev.get(w) ?? new Array(input.weeks).fill(0);
+    arr[wi] += p.amount_won ?? 0;
+    rev.set(w, arr);
+  }
+
+  // 리텐션(재활동 D1/D7/D30 — 가입 이후 해당 시점 이후 활동한 유저 수)
+  const ret = new Map<string, { d1: Set<string>; d7: Set<string>; d30: Set<string> }>();
+  for (const a of input.activity) {
+    const su = signup.get(a.user_id);
+    const w = cohortOf.get(a.user_id);
+    if (!su || !w) continue;
+    const d = daysBetween(su, a.created_at);
+    const r = ret.get(w) ?? { d1: new Set(), d7: new Set(), d30: new Set() };
+    if (d >= 1) r.d1.add(a.user_id);
+    if (d >= 7) r.d7.add(a.user_id);
+    if (d >= 30) r.d30.add(a.user_id);
+    ret.set(w, r);
+  }
+
+  const pct = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : 0);
+  const out: CohortRow[] = [];
+  for (const [weekStart, users] of cohorts) {
+    const size = users.size;
+    const revArr = rev.get(weekStart) ?? new Array(input.weeks).fill(0);
+    // 누적화
+    const cum: number[] = [];
+    let running = 0;
+    for (let i = 0; i < input.weeks; i++) {
+      running += revArr[i];
+      cum.push(size ? Math.round(running / size) : 0);
+    }
+    const r = ret.get(weekStart) ?? { d1: new Set(), d7: new Set(), d30: new Set() };
+    out.push({
+      weekStart,
+      cohortSize: size,
+      cumRevenuePerUser: cum,
+      retention: { d1: pct(r.d1.size, size), d7: pct(r.d7.size, size), d30: pct(r.d30.size, size) },
+    });
+  }
+  return out.sort((a, b) => b.weekStart.localeCompare(a.weekStart)); // 최신 주차 먼저
+}
