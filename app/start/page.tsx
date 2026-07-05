@@ -171,11 +171,13 @@ function StartPageInner() {
 
   const handleWelcomeClose = () => {
     setWelcomeOpen(false);
-    // 새로고침 시 팝업 재노출 방지 — login/welcome 파라미터만 제거 (utm 유지)
+    // 새로고침/뒤로가기 시 팝업 재노출 방지 — login/welcome 파라미터만 제거 (utm 유지).
+    // router.replace 는 바로 뒤 proceed 의 push 에 밀려 히스토리에 안 남으므로,
+    // 네이티브 replaceState 로 현재 엔트리를 동기 정리한다.
     const clean = new URLSearchParams(sp.toString());
     clean.delete("login");
     clean.delete("welcome");
-    router.replace(`/start?${clean.toString()}`);
+    window.history.replaceState(null, "", `/start?${clean.toString()}`);
     const pending = readPending();
     if (pending) proceed(pending);
   };
@@ -302,7 +304,6 @@ function StartPageInner() {
             </p>
             <FortuneMenuList
               items={DAILY_ORDERED}
-              highlightType="daily"
               onSelect={(href) => handleSelect({ kind: "fortune", href })}
             />
           </>
@@ -418,28 +419,19 @@ function EmotionList({ onSelect }: { onSelect: (tag: EmotionTag) => void }) {
 
 function FortuneMenuList({
   items,
-  highlightType,
   onSelect,
 }: {
   items: FortuneConfig[];
-  /** 이 type 카드에 "광고에서 본 그거" 뱃지 + 강조 보더 */
-  highlightType?: string;
   onSelect: (href: string) => void;
 }) {
   return (
     <>
       {items.map((f) => {
-        const highlighted = f.type === highlightType;
         return (
           <button
             key={f.type}
             onClick={() => onSelect(f.href)}
-            className={[
-              "flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl text-left transition",
-              highlighted
-                ? "border-2 border-gold shadow-[0_0_0_3px_rgba(232,194,106,0.18)]"
-                : "border border-lilac-soft hover:border-lilac-deep/40",
-            ].join(" ")}
+            className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl text-left transition border border-lilac-soft hover:border-lilac-deep/40"
           >
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
