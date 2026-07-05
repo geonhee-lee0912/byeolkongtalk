@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
+import SajuIdentityRow from "@/components/saju/SajuIdentityRow";
 import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -245,13 +245,15 @@ function ReadingInner() {
         </div>
         {showSajuBoard && (
           <div className="max-w-md mx-auto px-5 pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <SajuBoardCompact saju={ctx.saju} />
-              <div className="text-[10px] text-text-light/80 text-right leading-tight">
-                일간 {ctx.saju.dayStem}
-                <br />
-                {ctx.saju.input.inputCalendar === "lunar" ? "음력" : "양력"}
-              </div>
+            <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
+              <SajuIdentityRow
+                saju={ctx.saju}
+                title={`${ctx.saju.dayStem}${ctx.saju.dayElement} 일간`}
+                caption={[
+                  ctx.saju.input.inputCalendar === "lunar" ? "음력" : "양력",
+                  ...(ctx.saju.input.hourKnown ? [] : ["시간 모름"]),
+                ].join(" · ")}
+              />
             </div>
           </div>
         )}

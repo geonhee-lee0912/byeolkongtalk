@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SajuBoard from "@/components/saju/SajuBoard";
-import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
+import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -11,6 +11,8 @@ interface PickerProfile {
   displayName: string;
   relationType: string;
   isPrimary: boolean;
+  birthDate: string;
+  birthTime: string | null;
   saju: SajuResult;
 }
 
@@ -128,23 +130,18 @@ export default function ProfilePicker({
           <button
             key={p.id}
             onClick={() => setSelectedId(p.id)}
-            className={`flex items-center justify-between rounded-2xl p-3 border transition ${
+            className={`flex items-center gap-3 rounded-2xl p-3 border transition ${
               selectedId === p.id
                 ? "border-lilac-deep bg-lilac-soft/40"
-                : "border-lilac-mid/30 bg-cream-warm"
+                : "border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
             }`}
           >
-            <div className="text-left">
-              <div className="text-[14px] font-bold text-eye-purple">
-                {p.isPrimary ? "내 사주" : p.displayName}
-                {!p.isPrimary && (
-                  <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                    {RELATION_LABEL[p.relationType] ?? ""}
-                  </span>
-                )}
-              </div>
-            </div>
-            <SajuBoardCompact saju={p.saju} />
+            <SajuIdentityRow
+              saju={p.saju}
+              title={p.isPrimary ? "내 사주" : p.displayName}
+              badge={p.isPrimary ? null : (RELATION_LABEL[p.relationType] ?? "지인")}
+              caption={sajuCaption(p.saju, p)}
+            />
           </button>
         ))}
         <button

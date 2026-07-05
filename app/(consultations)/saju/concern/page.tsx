@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import SajuBoardCompact from "@/components/saju/SajuBoardCompact";
+import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import type { SajuResult } from "@/lib/saju/calc";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 
@@ -27,6 +27,13 @@ interface PendingSaju {
 
 const MAX_LEN = 200;
 const MIN_LEN = 10;
+
+const RELATION_LABEL: Record<string, string> = {
+  family: "가족",
+  friend: "친구",
+  partner: "연인",
+  other: "기타",
+};
 
 export default function ConcernPage() {
   const router = useRouter();
@@ -161,13 +168,21 @@ export default function ConcernPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="bg-cream-warm rounded-xl p-3 border border-lilac-mid/30 flex items-center justify-between gap-3">
-          <SajuBoardCompact saju={pending.saju} />
-          <div className="text-[10px] text-text-light/80 text-right leading-tight">
-            {pending.saju.input.inputCalendar === "lunar" ? "음력" : "양력"}
-            <br />
-            일간 {pending.saju.dayStem}
-          </div>
+        <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
+          <SajuIdentityRow
+            saju={pending.saju}
+            title={
+              pending.profile.relationType === "self"
+                ? "내 사주"
+                : pending.profile.displayName
+            }
+            badge={
+              pending.profile.relationType === "self"
+                ? null
+                : (RELATION_LABEL[pending.profile.relationType] ?? "지인")
+            }
+            caption={sajuCaption(pending.saju, pending.profile)}
+          />
         </div>
       </div>
 
