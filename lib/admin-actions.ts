@@ -68,7 +68,9 @@ export type AdminActionName =
   | "sensitive_review"
   | "error_resolve"
   | "fortune_grant"
-  | "inquiry_reply";
+  | "inquiry_reply"
+  | "ad_spend_upsert"
+  | "ad_spend_delete";
 
 export async function logAdminAction(params: {
   adminId: string;
