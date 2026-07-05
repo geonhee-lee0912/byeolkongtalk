@@ -13,6 +13,7 @@ export const metadata = {
 
 const NAV = [
   { href: "/admin", label: "대시보드", emoji: "📊" },
+  { href: "/admin/analytics", label: "애널리틱스", emoji: "📈" },
   { href: "/admin/users", label: "사용자", emoji: "👥" },
   { href: "/admin/readings", label: "리딩/상담", emoji: "🔮" },
   { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
