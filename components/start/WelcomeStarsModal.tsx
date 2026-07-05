@@ -23,7 +23,7 @@ export default function WelcomeStarsModal({
           <div className="absolute inset-0 bg-gold/40 rounded-full blur-xl scale-110" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/byeolkong-main.png"
+            src="/byeolkong-joy.png"
             alt="별콩이"
             className="relative w-full h-full object-contain"
           />

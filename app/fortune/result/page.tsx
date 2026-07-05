@@ -402,7 +402,7 @@ function FortuneResultInner() {
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
           <div className="relative">
-            <Image src="/byeolkong-main.png" alt="별콩이" width={84} height={84} />
+            <Image src="/byeolkong-joy.png" alt="별콩이" width={84} height={84} />
           </div>
           {dateLabel && (
             <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>

@@ -47,7 +47,7 @@ export default function FortuneGeneratingScreen({
         <div className="relative w-28 h-28 mb-6">
           <div className="absolute inset-0 bg-gold/25 rounded-full blur-2xl scale-110 animate-pulse-soft" />
           <Image
-            src="/byeolkong-main.png"
+            src="/byeolkong-focus.png"
             alt="별콩이"
             width={112}
             height={112}

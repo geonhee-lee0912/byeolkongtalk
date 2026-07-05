@@ -113,7 +113,7 @@ export default function TarotSpreadPage() {
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex items-center gap-2.5">
           <Image
-            src="/byeolkong-main.png"
+            src="/byeolkong-tarot.png"
             alt="별콩이"
             width={36}
             height={36}

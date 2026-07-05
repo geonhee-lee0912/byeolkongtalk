@@ -89,7 +89,7 @@ export default function SajuPage() {
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
         <div className="relative animate-float">
-          <Image src="/byeolkong-main.png" alt="별콩이" width={140} height={140} priority />
+          <Image src="/byeolkong-saju.png" alt="별콩이" width={140} height={140} priority />
         </div>
         <h1 className="mt-5 font-display text-2xl font-bold text-eye-purple text-center">
           누구 사주를 볼까?

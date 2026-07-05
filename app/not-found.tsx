@@ -1,11 +1,17 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-5 text-center animate-fade-in">
-      <div className="text-6xl mb-4" aria-hidden>
-        🌠
-      </div>
+      <Image
+        src="/byeolkong-curious.png"
+        alt=""
+        width={120}
+        height={120}
+        className="mb-4"
+        aria-hidden
+      />
       <h1 className="font-display text-[28px] text-eye-purple mb-2">
         별콩이도 못 찾는 길이야
       </h1>

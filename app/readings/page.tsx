@@ -249,6 +249,14 @@ export default function ReadingsPage() {
       <div className="w-full max-w-md mx-auto px-5">
         {items.length === 0 ? (
           <div className="bg-white rounded-2xl p-6 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] text-center">
+            <Image
+              src="/byeolkong-curious.png"
+              alt=""
+              width={88}
+              height={88}
+              className="mx-auto mb-3"
+              aria-hidden
+            />
             <p className="text-[13px] text-text-light leading-relaxed">
               {tab === "consult" ? (
                 <>

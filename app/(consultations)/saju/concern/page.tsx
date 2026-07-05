@@ -146,7 +146,7 @@ export default function ConcernPage() {
 
       <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
         <Image
-          src="/byeolkong-main.png"
+          src="/byeolkong-listen.png"
           alt="별콩이"
           width={100}
           height={100}

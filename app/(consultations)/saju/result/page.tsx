@@ -144,7 +144,7 @@ function ResultPageInner() {
             </div>
             <div className="flex items-center gap-2 mb-2 relative">
               <Image
-                src="/byeolkong-main.png"
+                src="/byeolkong-cheer.png"
                 alt="별콩이"
                 width={28}
                 height={28}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import {
   STAR_PACKAGES,
@@ -288,6 +289,15 @@ function ShopContent() {
           <span>뒤로</span>
         </button>
 
+        <div className="flex justify-center mb-2">
+          <Image
+            src="/byeolkong-shop.png"
+            alt="별콩이"
+            width={96}
+            height={96}
+            priority
+          />
+        </div>
         <h1 className="font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
           별 충전소
         </h1>
