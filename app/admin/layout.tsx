@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
   { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
   { href: "/admin/sensitive", label: "민감 알림", emoji: "🚑" },
+  { href: "/admin/ads", label: "광고 지출", emoji: "📣" },
   { href: "/admin/errors", label: "에러 로그", emoji: "🚨" },
 ];
 
