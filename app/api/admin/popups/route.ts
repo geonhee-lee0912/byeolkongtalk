@@ -13,11 +13,24 @@ export async function POST(req: NextRequest) {
   const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
 
-  const { title, body, targetUserId } = await req.json().catch(() => ({}));
+  const { title, body, imageUrl, targetUserId } = await req
+    .json()
+    .catch(() => ({}));
   if (typeof title !== "string" || !title.trim() || title.length > 100) {
     return NextResponse.json({ error: "invalid_title" }, { status: 400 });
   }
-  if (typeof body !== "string" || !body.trim() || body.length > 2000) {
+
+  // 이미지 팝업: 우리 스토리지(popup-images) URL 만 허용. body 는 무시(null).
+  // 텍스트 팝업: body 필수.
+  let image: string | null = null;
+  if (imageUrl != null) {
+    const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/popup-images/`;
+    if (typeof imageUrl !== "string" || !imageUrl.startsWith(prefix)) {
+      return NextResponse.json({ error: "invalid_image" }, { status: 400 });
+    }
+    image = imageUrl;
+  }
+  if (!image && (typeof body !== "string" || !body.trim() || body.length > 2000)) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
@@ -43,7 +56,8 @@ export async function POST(req: NextRequest) {
     .insert({
       target_user_id: target,
       title: title.trim(),
-      body: body.trim(),
+      body: image ? null : (body as string).trim(),
+      image_url: image,
       created_by: gate.userId,
     })
     .select("id")
@@ -61,6 +75,7 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       broadcast: target === null,
       targetUserId: target,
+      hasImage: image !== null,
     },
   });
 

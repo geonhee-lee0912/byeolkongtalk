@@ -14,7 +14,7 @@ export async function GET() {
   const supa = getServiceSupabase();
   const { data: candidates } = await supa
     .from("popups")
-    .select("id, title, body")
+    .select("id, title, body, image_url")
     .or(`target_user_id.eq.${userId},target_user_id.is.null`)
     .order("created_at", { ascending: true })
     .limit(20);
@@ -31,5 +31,9 @@ export async function GET() {
   const acked = new Set((acks ?? []).map((a) => a.popup_id));
   const next = candidates.find((p) => !acked.has(p.id)) ?? null;
 
-  return NextResponse.json({ popup: next });
+  return NextResponse.json({
+    popup: next
+      ? { id: next.id, title: next.title, body: next.body, imageUrl: next.image_url }
+      : null,
+  });
 }

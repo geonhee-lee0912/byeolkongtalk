@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import PopupCard, { type PopupContent } from "./PopupCard";
 
-interface Popup {
+interface Popup extends PopupContent {
   id: string;
-  title: string;
-  body: string;
 }
 
 /**
@@ -53,29 +51,7 @@ export default function UserPopupGate() {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 bg-night/45 backdrop-blur-[2px] animate-fade-in">
-      <div className="w-full max-w-sm bg-cream rounded-3xl border border-lilac-mid/40 shadow-2xl p-6 text-center">
-        <div className="flex justify-center mb-3">
-          <Image
-            src="/byeolkong-main.png"
-            alt="별콩이"
-            width={72}
-            height={72}
-          />
-        </div>
-        <h2 className="font-display text-[20px] text-eye-purple mb-2">
-          {popup.title}
-        </h2>
-        <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap text-left mb-5">
-          {popup.body}
-        </p>
-        <button
-          onClick={ack}
-          disabled={busy}
-          className="w-full py-3 bg-lilac-deep text-white rounded-full text-[14px] font-bold hover:bg-lilac-deep/90 transition-colors disabled:opacity-60"
-        >
-          확인했어
-        </button>
-      </div>
+      <PopupCard content={popup} onConfirm={ack} busy={busy} />
     </div>,
     document.body
   );

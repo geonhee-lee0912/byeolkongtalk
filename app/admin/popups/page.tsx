@@ -9,7 +9,7 @@ export default async function AdminPopupsPage() {
   const [{ data: popups }, usersCount] = await Promise.all([
     supa
       .from("popups")
-      .select("id, target_user_id, title, body, created_at")
+      .select("id, target_user_id, title, body, image_url, created_at")
       .order("created_at", { ascending: false })
       .limit(100),
     supa.from("users").select("id", { count: "exact", head: true }),
@@ -39,6 +39,7 @@ export default async function AdminPopupsPage() {
           id: p.id,
           title: p.title,
           body: p.body,
+          imageUrl: p.image_url,
           broadcast: p.target_user_id === null,
           targetUserId: p.target_user_id,
           createdAt: p.created_at,
