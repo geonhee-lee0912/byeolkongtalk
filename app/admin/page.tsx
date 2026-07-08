@@ -1,5 +1,6 @@
 // app/admin/page.tsx — 대시보드.
 import { getServiceSupabase } from "@/lib/supabase";
+import { adminExclusionList } from "@/lib/admin";
 import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
@@ -8,14 +9,24 @@ async function loadStats() {
   const supa = getServiceSupabase();
   const today = startOfTodayKstIso();
   const week = daysAgoKstIso(6);
-  const cnt = (t: string, s: string) =>
-    supa.from(t).select("id", { count: "exact", head: true }).gte("created_at", s);
+  // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩 지표 오염 방지
+  const excl = adminExclusionList();
+  const cnt = (t: string, idCol: string, s: string) => {
+    let q = supa.from(t).select("id", { count: "exact", head: true }).gte("created_at", s);
+    if (excl) q = q.not(idCol, "in", excl);
+    return q;
+  };
+  // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
+  const pay = (s: string) => {
+    let q = supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", s).limit(100000);
+    if (excl) q = q.not("user_id", "in", excl);
+    return q;
+  };
   const [tu, wu, tr, wr, tp, wp, errs, sens] = await Promise.all([
-    cnt("users", today), cnt("users", week), cnt("readings", today), cnt("readings", week),
-    // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
-    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", today).limit(100000),
-    // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
-    supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", week).limit(100000),
+    cnt("users", "id", today), cnt("users", "id", week),
+    cnt("readings", "user_id", today), cnt("readings", "user_id", week),
+    pay(today),
+    pay(week),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
