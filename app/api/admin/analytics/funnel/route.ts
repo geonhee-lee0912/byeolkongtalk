@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
+import { adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { buildFunnel } from "@/lib/analytics/aggregate";
 
@@ -17,11 +18,15 @@ export async function GET(req: NextRequest) {
   const supa = getServiceSupabase();
 
   // 선택 기간에 '가입'한 유저를 코호트로 (user_acquisition 은 users 와 1:1, created_at 동일 시점)
-  const { data: acqs } = await supa
+  // 어드민 활동 제외 — 코호트에서 빠지면 하위 readings/payments 도 자동 제외
+  const excl = adminExclusionList();
+  let acqQ = supa
     .from("user_acquisition")
     .select("user_id, utm_content, created_at")
     .gte("created_at", since)
     .limit(100000);
+  if (excl) acqQ = acqQ.not("user_id", "in", excl);
+  const { data: acqs } = await acqQ;
 
   const userIds = (acqs ?? []).map((a) => a.user_id);
   const [{ data: readings }, { data: payments }, { data: spend }] = await Promise.all([

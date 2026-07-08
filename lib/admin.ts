@@ -26,6 +26,14 @@ export function adminCount(): number {
 }
 
 /**
+ * 애널리틱스/통계 집계에서 어드민(운영자) 활동 제외용 PostgREST in-리스트.
+ * `.not("user_id", "in", list)` 형태로 사용. 화이트리스트 비어있으면 null.
+ */
+export function adminExclusionList(): string | null {
+  return ADMIN_IDS.size ? `(${[...ADMIN_IDS].join(",")})` : null;
+}
+
+/**
  * 1차 화이트리스트 + 2차 HMAC 토큰 둘 다 검증. 둘 다 통과 못 하면 throw.
  */
 export async function assertAdmin(

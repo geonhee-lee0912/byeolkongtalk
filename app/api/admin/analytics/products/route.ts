@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
+import { adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { buildProductBreakdown } from "@/lib/analytics/aggregate";
 
@@ -16,17 +17,25 @@ export async function GET(req: NextRequest) {
   const since = daysAgoKstIso(days - 1);
   const supa = getServiceSupabase();
 
+  // 어드민(운영자) 활동 제외 — 테스트 결제/리딩 지표 오염 방지
+  const excl = adminExclusionList();
+  let readingsQ = supa
+    .from("readings")
+    .select("user_id, consultation_type, emotion_tag, saju_product, stars_spent, created_at")
+    .gte("created_at", since)
+    .limit(100000);
+  let paymentsQ = supa
+    .from("payments")
+    .select("user_id, amount_won, package_type, status, created_at")
+    .gte("created_at", since)
+    .limit(100000);
+  if (excl) {
+    readingsQ = readingsQ.not("user_id", "in", excl);
+    paymentsQ = paymentsQ.not("user_id", "in", excl);
+  }
   const [{ data: readings }, { data: payments }] = await Promise.all([
-    supa
-      .from("readings")
-      .select("user_id, consultation_type, emotion_tag, saju_product, stars_spent, created_at")
-      .gte("created_at", since)
-      .limit(100000),
-    supa
-      .from("payments")
-      .select("user_id, amount_won, package_type, status, created_at")
-      .gte("created_at", since)
-      .limit(100000),
+    readingsQ,
+    paymentsQ,
   ]);
 
   return NextResponse.json({
