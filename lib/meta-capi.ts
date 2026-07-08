@@ -1,6 +1,7 @@
 // Meta Conversions API — 서버 발화 전환 이벤트 (iOS/쿠키 차단 대응).
 // Pixel(클라)은 PageView만, 전환(가입/체험완료/구매)은 여기서만 보내 중복을 원천 차단.
 import { createHash } from "crypto";
+import { waitUntil } from "@vercel/functions";
 import { logError } from "./logger";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -11,7 +12,7 @@ type CapiEventName =
   | "StartTrial" // 무료 리딩(체험) 완료
   | "Purchase"; // 별 충전 결제
 
-export async function sendCapiEvent(params: {
+type CapiEventParams = {
   eventName: CapiEventName;
   userId: string; // external_id 로 해시 전송
   eventId: string; // 멱등/중복제거 키 (예: reg:{userId}, purchase:{paymentId})
@@ -21,8 +22,17 @@ export async function sendCapiEvent(params: {
   clientIp?: string | null;
   userAgent?: string | null;
   sourceUrl?: string;
-}): Promise<void> {
+};
+
+// fire-and-forget 호출용 — waitUntil 로 응답 반환 후에도 전송 완료까지 인스턴스 유지.
+// (void sendCapiEvent(...) 만 하면 Vercel 이 함수를 얼리면서 소켓이 끊겨
+//  TypeError: fetch failed + 전환 이벤트 유실이 발생)
+export function sendCapiEvent(params: CapiEventParams): void {
   if (!PIXEL_ID || !ACCESS_TOKEN) return; // 미설정 시 no-op (dev 안전)
+  waitUntil(deliverCapiEvent(params));
+}
+
+async function deliverCapiEvent(params: CapiEventParams): Promise<void> {
   try {
     const body = {
       data: [
@@ -53,6 +63,8 @@ export async function sendCapiEvent(params: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        // Meta 응답 지연 시 waitUntil 이 인스턴스를 오래 붙잡지 않도록 상한
+        signal: AbortSignal.timeout(5000),
       }
     );
     if (!res.ok) {
@@ -60,10 +72,15 @@ export async function sendCapiEvent(params: {
       await logError(new Error(`CAPI ${params.eventName} failed: ${text}`), {
         route: "lib/meta-capi",
         userId: params.userId,
+        extra: { eventName: params.eventName, eventId: params.eventId },
       });
     }
   } catch (e) {
-    await logError(e, { route: "lib/meta-capi", userId: params.userId });
+    await logError(e, {
+      route: "lib/meta-capi",
+      userId: params.userId,
+      extra: { eventName: params.eventName, eventId: params.eventId },
+    });
   }
 }
 
