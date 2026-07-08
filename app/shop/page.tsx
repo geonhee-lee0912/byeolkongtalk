@@ -121,9 +121,23 @@ function ShopContent() {
     };
   }, [router]);
 
+  // 성공 리다이렉트 쿼리(paymentKey 등)는 1회 캡처 — 결제창 방식은 전체 리다이렉트라
+  // /shop?paymentKey=... 가 히스토리에 실제 엔트리로 남고, 뒤로가기/재방문 시
+  // confirm 이 재실행되며 "이미 처리된 결제" 화면이 반복됨 → 캡처 후 URL에서 즉시 제거
+  const pendingConfirmRef = useRef<{
+    paymentKey: string;
+    orderId: string;
+    amount: number;
+  } | null>(null);
+  if (paymentKey && orderId && amount && !pendingConfirmRef.current) {
+    pendingConfirmRef.current = { paymentKey, orderId, amount: Number(amount) };
+  }
+  const confirmStartedRef = useRef(false);
+
   // 결제 승인 처리 (successUrl redirect 후)
   const confirmPayment = useCallback(async () => {
-    if (!paymentKey || !orderId || !amount) return;
+    const pending = pendingConfirmRef.current;
+    if (!pending) return;
     setLoading(true);
     setConfirmTone("progress");
     setConfirmMessage("결제 승인 중...");
@@ -132,11 +146,7 @@ function ShopContent() {
       const res = await fetch("/api/payment/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentKey,
-          orderId,
-          amount: Number(amount),
-        }),
+        body: JSON.stringify(pending),
       });
 
       if (res.ok) {
@@ -152,6 +162,8 @@ function ShopContent() {
             : `${data.stars}별 충전 완료!`
         );
         fetchBalance();
+        // 헤더 잔액 칩도 같은 이벤트로 갱신 (Header 가 listen)
+        window.dispatchEvent(new Event("byeolkong:balance-updated"));
         setTimeout(() => router.replace("/shop?status=success"), 1500);
       } else {
         const data = await res.json().catch(() => ({}));
@@ -167,9 +179,13 @@ function ShopContent() {
     } finally {
       setLoading(false);
     }
-  }, [paymentKey, orderId, amount, router, fetchBalance]);
+  }, [router, fetchBalance]);
 
   useEffect(() => {
+    if (!pendingConfirmRef.current || confirmStartedRef.current) return;
+    confirmStartedRef.current = true;
+    // 결제 파라미터를 히스토리에서 즉시 제거 — 이 엔트리로 되돌아와도 재승인 안 됨
+    window.history.replaceState(null, "", "/shop");
     confirmPayment();
   }, [confirmPayment]);
 
@@ -266,7 +282,7 @@ function ShopContent() {
               confirmTone === "success" ||
               status === "success" ||
               status === "fail" ||
-              paymentKey
+              pendingConfirmRef.current
             ) {
               router.replace("/");
             } else {
