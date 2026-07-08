@@ -8,6 +8,14 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
+// 개별 결제 실패가 아니라 상점 계정/키 자체가 막힌 상태 — 전 유저 결제 불능.
+// 토스 대시보드 상점 상태 확인 + 고객센터(1544-7772) 문의로만 해소 가능.
+const MERCHANT_BLOCKED_CODES = [
+  "NOT_AVAILABLE_PAYMENT_BY_MERCHANT",
+  "UNAUTHORIZED_KEY",
+  "INVALID_API_KEY",
+];
+
 /**
  * 토스페이먼츠 결제 승인
  * 프론트엔드 successUrl 콜백 → 이 라우트에서 최종 승인 처리
@@ -260,21 +268,34 @@ export async function POST(request: NextRequest) {
       paymentKey: paymentResult.paymentKey,
     });
   } catch (error) {
+    const tossCode = error instanceof TossPaymentError ? error.code : null;
+    const merchantBlocked =
+      tossCode !== null && MERCHANT_BLOCKED_CODES.includes(tossCode);
+
     await logError(
       error,
       ctxFromRequest(request, {
         route: "/api/payment/confirm",
         userId,
         extra: {
-          tossErrorCode: error instanceof TossPaymentError ? error.code : null,
+          tossErrorCode: tossCode,
+          ...(merchantBlocked
+            ? { severity: "CRITICAL_PAYMENT_BLOCKED" }
+            : {}),
         },
       })
     );
 
     if (error instanceof TossPaymentError) {
       return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: 400 }
+        {
+          // 상점 차단은 토스 원문("상점으로 문의해주세요")이 유저에게 혼란만 줌 → 안내 교체
+          error: merchantBlocked
+            ? "지금 결제 시스템에 문제가 생겨서 잠시 충전이 어려워. 조금 뒤에 다시 시도해줘"
+            : error.message,
+          code: error.code,
+        },
+        { status: merchantBlocked ? 503 : 400 }
       );
     }
 
