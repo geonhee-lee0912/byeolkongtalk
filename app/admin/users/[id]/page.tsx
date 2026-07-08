@@ -2,6 +2,7 @@
 import { createHash } from "crypto";
 import { getServiceSupabase } from "@/lib/supabase";
 import { UserActions } from "@/components/admin/UserActions";
+import { PopupSend } from "@/components/admin/PopupSend";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,24 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   const bonusRows = bonusTx.data ?? [];
   const welcomeBonus = bonusRows.find((t) => t.source === "welcome_bonus");
   const firstChargeBonus = bonusRows.find((t) => t.source === "first_charge_bonus");
+
+  // 이 유저 대상 개별 팝업 이력 + 확인 여부
+  const { data: userPopups } = await supabase
+    .from("popups")
+    .select("id, title, created_at")
+    .eq("target_user_id", id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const popupIds = (userPopups ?? []).map((p) => p.id);
+  const ackedAt = new Map<string, string>();
+  if (popupIds.length) {
+    const { data: acks } = await supabase
+      .from("popup_acks")
+      .select("popup_id, acknowledged_at")
+      .eq("user_id", id)
+      .in("popup_id", popupIds);
+    for (const a of acks ?? []) ackedAt.set(a.popup_id, a.acknowledged_at);
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -86,6 +105,31 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
         )}
       </div>
       <UserActions userId={id} />
+      <div>
+        <div className="text-sm text-white/60 mb-2">
+          보낸 팝업 ({(userPopups ?? []).length})
+        </div>
+        {(userPopups ?? []).length === 0 ? (
+          <p className="text-sm text-white/40 mb-2">없음</p>
+        ) : (
+          <ul className="text-sm space-y-1 mb-3">
+            {(userPopups ?? []).map((p) => {
+              const acked = ackedAt.get(p.id);
+              return (
+                <li key={p.id} className="rounded bg-white/5 px-3 py-2 flex justify-between gap-2">
+                  <span>{p.title}</span>
+                  <span className="text-white/40 shrink-0">
+                    {acked
+                      ? `확인 ${new Date(acked).toLocaleDateString("ko-KR")}`
+                      : "미확인"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <PopupSend userId={id} />
+      </div>
     </div>
   );
 }

@@ -70,7 +70,9 @@ export type AdminActionName =
   | "fortune_grant"
   | "inquiry_reply"
   | "ad_spend_upsert"
-  | "ad_spend_delete";
+  | "ad_spend_delete"
+  | "popup_send"
+  | "popup_revoke";
 
 export async function logAdminAction(params: {
   adminId: string;

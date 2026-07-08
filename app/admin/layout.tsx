@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/readings", label: "리딩/상담", emoji: "🔮" },
   { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
   { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
+  { href: "/admin/popups", label: "공지 팝업", emoji: "📢" },
   { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
   { href: "/admin/sensitive", label: "민감 알림", emoji: "🚑" },
   { href: "/admin/ads", label: "광고 지출", emoji: "📣" },

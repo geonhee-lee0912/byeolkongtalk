@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import BottomTab from "./BottomTab";
+import UserPopupGate from "@/components/popup/UserPopupGate";
 
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
 const HIDE_SHELL_PREFIXES: string[] = [
@@ -38,6 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <BottomTab />
       </Suspense>
+      <UserPopupGate />
     </>
   );
 }
