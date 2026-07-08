@@ -11,9 +11,11 @@ import {
 } from "@/lib/constants";
 import {
   loadTossPayments,
-  type TossPaymentsWidgets,
+  type TossPaymentsPayment,
 } from "@tosspayments/tosspayments-sdk";
 
+// API 개별 연동 키(live_ck_/live_sk_) — 결제창 방식.
+// 위젯 연동 키(gck/gsk)는 계정 단위 1세트라 상점(MID)을 못 고름 → 심사된 상점으로 결제하려면 개별 연동 키 필요.
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
@@ -67,12 +69,12 @@ function ShopContent() {
     "progress"
   );
 
-  // 결제위젯 (Toss Payment Widget) 상태
+  // 토스 결제창 (Payment Window) 상태
   const [userId, setUserId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState<string | null>(null);
-  const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
-  const [widgetReady, setWidgetReady] = useState(false);
-  const [widgetError, setWidgetError] = useState<string | null>(null);
+  const paymentRef = useRef<TossPaymentsPayment | null>(null);
+  const [paymentReady, setPaymentReady] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // 결제 완료 후 뒤로가기 인터셉트용 sentinel 추적
   const sentinelPushedRef = useRef(false);
@@ -112,7 +114,7 @@ function ShopContent() {
         }
       })
       .catch(() => {
-        if (!cancelled) setWidgetError("auth_check_failed");
+        if (!cancelled) setPaymentError("auth_check_failed");
       });
     return () => {
       cancelled = true;
@@ -192,21 +194,21 @@ function ShopContent() {
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
   const isProcessing = !!confirmMessage;
 
-  // 위젯 SDK 1회 로드 (userId 확보 후 / 결제 결과 처리 중엔 스킵)
+  // 결제창 SDK 1회 로드 (userId 확보 후 / 결제 결과 처리 중엔 스킵)
   useEffect(() => {
-    if (!userId || isProcessing || widgetsRef.current) return;
+    if (!userId || isProcessing || paymentRef.current) return;
     let cancelled = false;
     (async () => {
       try {
         const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
         if (cancelled) return;
-        const w = tossPayments.widgets({ customerKey: userId });
+        const p = tossPayments.payment({ customerKey: userId });
         if (cancelled) return;
-        widgetsRef.current = w;
-        setWidgetReady(true);
+        paymentRef.current = p;
+        setPaymentReady(true);
       } catch (err) {
-        console.error("Toss widget init failed", err);
-        if (!cancelled) setWidgetError("widget_init_failed");
+        console.error("Toss payment init failed", err);
+        if (!cancelled) setPaymentError("payment_init_failed");
       }
     })();
     return () => {
@@ -215,7 +217,7 @@ function ShopContent() {
   }, [userId, isProcessing]);
 
   const handlePay = async () => {
-    if (!selectedPkg || !widgetsRef.current) return;
+    if (!selectedPkg || !paymentRef.current) return;
     setLoading(true);
     try {
       const readyRes = await fetch("/api/payment/ready", {
@@ -233,8 +235,9 @@ function ShopContent() {
 
       const baseUrl = window.location.origin;
 
-      // 결제창(모달) 방식 — requestPaymentWindow 호출 시 토스가 결제수단/약관/결제 모두 모달 안에서 처리
-      await widgetsRef.current.requestPaymentWindow({
+      // 결제창 방식 (API 개별 연동) — method CARD 는 카드/간편결제 통합결제창
+      await paymentRef.current.requestPayment({
+        method: "CARD",
         amount: { value: readyData.amount, currency: "KRW" },
         orderId: readyData.orderId,
         orderName: readyData.orderName,
@@ -357,8 +360,8 @@ function ShopContent() {
               ))}
             </div>
 
-            {/* 위젯 SDK 로드 실패 시 */}
-            {widgetError && (
+            {/* 결제창 SDK 로드 실패 시 */}
+            {paymentError && (
               <Banner tone="fail">
                 결제 모듈을 불러오지 못했어. 새로고침해줘.
               </Banner>
@@ -399,12 +402,12 @@ function ShopContent() {
           <div className="max-w-md mx-auto px-5 pb-3 pt-3 pointer-events-auto">
             <button
               onClick={handlePay}
-              disabled={loading || !widgetReady}
+              disabled={loading || !paymentReady}
               className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-[14px] font-bold shadow-lg hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
             >
               <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
               <span className="tabular-nums">
-                {!widgetReady && !widgetError
+                {!paymentReady && !paymentError
                   ? "잠시만, 결제 준비 중..."
                   : firstChargeEligible
                   ? `${
