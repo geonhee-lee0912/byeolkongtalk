@@ -31,7 +31,6 @@ import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const SAJU_ACCENT = "#9F8AD0";
 const SAJU_COST = 20;
-const SAJU_PAGE_SIZE = 3;
 
 const SAJU_ICONS: Record<SajuProduct, string> = {
   today_letters: "/2words.png",
@@ -213,7 +212,6 @@ export default function SelectPage() {
   const router = useRouter();
   const [pending, setPending] = useState<PendingConsultation | null>(null);
   const [selected, setSelected] = useState<Selection | null>(null);
-  const [sajuPage, setSajuPage] = useState(0);
 
   const category = useMemo(
     () =>
@@ -296,17 +294,6 @@ export default function SelectPage() {
     : selected
     ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기`
     : "방식을 골라줘";
-
-  // 사주 목록 페이지네이션 (페이지당 3개)
-  const sajuTotalPages = Math.max(
-    1,
-    Math.ceil(sajuProducts.length / SAJU_PAGE_SIZE)
-  );
-  const sajuSafePage = Math.min(sajuPage, sajuTotalPages - 1);
-  const pagedSaju = sajuProducts.slice(
-    sajuSafePage * SAJU_PAGE_SIZE,
-    sajuSafePage * SAJU_PAGE_SIZE + SAJU_PAGE_SIZE
-  );
 
   return (
     <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
@@ -500,7 +487,7 @@ export default function SelectPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-2.5">
-        {pagedSaju.map((p) => {
+        {sajuProducts.map((p) => {
           const info = SAJU_PRODUCT_INFO[p];
           const accent = SAJU_PRODUCT_ACCENT[p];
           const isSelected = selected === p;
@@ -561,43 +548,6 @@ export default function SelectPage() {
           );
         })}
       </div>
-
-      {sajuTotalPages > 1 && (
-        <div className="w-full max-w-md mx-auto px-5 mt-3 flex items-center justify-center gap-2">
-          <button
-            onClick={() => setSajuPage((n) => Math.max(0, n - 1))}
-            disabled={sajuSafePage === 0}
-            aria-label="이전"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
-          >
-            ‹
-          </button>
-          {Array.from({ length: sajuTotalPages }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setSajuPage(i)}
-              aria-label={`${i + 1}페이지`}
-              className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
-                i === sajuSafePage
-                  ? "bg-lilac-deep text-white"
-                  : "text-text-light/70 hover:bg-lilac-soft/50"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button
-            onClick={() =>
-              setSajuPage((n) => Math.min(sajuTotalPages - 1, n + 1))
-            }
-            disabled={sajuSafePage === sajuTotalPages - 1}
-            aria-label="다음"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
-          >
-            ›
-          </button>
-        </div>
-      )}
 
       {/* 시작 버튼 */}
       <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
