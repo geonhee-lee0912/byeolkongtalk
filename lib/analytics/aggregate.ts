@@ -134,7 +134,7 @@ export function buildTrends(input: {
 }
 
 export type FunnelRow = {
-  creative: string; // utm_content 또는 '(organic)'
+  creative: string; // utm_content · '(organic)'(utm 빈 캡처) · '(추적 안 됨)'(acquisition 없음)
   signups: number;
   tried: number;
   firstPaid: number;
@@ -147,12 +147,15 @@ export type FunnelRow = {
 };
 
 const ORGANIC = "(organic)";
+const UNTRACKED = "(추적 안 됨)";
 
 export function buildFunnel(input: {
   acquisitions: { user_id: string; utm_content: string | null }[];
   readings: { user_id: string }[];
   payments: { user_id: string; status: string | null; amount_won: number | null }[];
   spend: { creative_key: string; spend_won: number }[];
+  /** 전체 window 유저(추적 안 된 유입 포함). 주면 acquisitions 에 없는 유저를 '(추적 안 됨)' 행으로. */
+  allUserIds?: string[];
 }): FunnelRow[] {
   const creativeOf = new Map<string, string>();
   const groups = new Map<string, { users: Set<string> }>();
@@ -160,6 +163,12 @@ export function buildFunnel(input: {
     const c = a.utm_content || ORGANIC;
     creativeOf.set(a.user_id, c);
     (groups.get(c) ?? groups.set(c, { users: new Set() }).get(c)!).users.add(a.user_id);
+  }
+  // acquisition 레코드가 없는 유저 = 추적 안 됨 (utm 없이 공유링크·직접 유입)
+  const tracked = new Set(input.acquisitions.map((a) => a.user_id));
+  for (const uid of input.allUserIds ?? []) {
+    if (tracked.has(uid)) continue;
+    (groups.get(UNTRACKED) ?? groups.set(UNTRACKED, { users: new Set() }).get(UNTRACKED)!).users.add(uid);
   }
 
   const triedUsers = new Set(input.readings.map((r) => r.user_id));
@@ -201,11 +210,11 @@ export function buildFunnel(input: {
       roas: spendWon ? Math.round((revenueWon / spendWon) * 100) / 100 : null,
     });
   }
-  // organic 은 맨 아래, 나머지는 가입 내림차순
+  // (organic) → (추적 안 됨) 순으로 맨 아래, 나머지는 가입 내림차순
+  const rank = (c: string) => (c === UNTRACKED ? 2 : c === ORGANIC ? 1 : 0);
   return rows.sort((a, b) => {
-    if (a.creative === ORGANIC) return 1;
-    if (b.creative === ORGANIC) return -1;
-    return b.signups - a.signups;
+    const d = rank(a.creative) - rank(b.creative);
+    return d !== 0 ? d : b.signups - a.signups;
   });
 }
 

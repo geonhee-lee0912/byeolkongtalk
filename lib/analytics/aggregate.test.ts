@@ -100,6 +100,24 @@ test("buildFunnel — 소재별 퍼널 + ad_spend 조인 CAC/ROAS", () => {
   assert.equal(org.roas, null);
 });
 
+test("buildFunnel — allUserIds 로 '(추적 안 됨)' 행 (acquisition 없는 유입)", () => {
+  const rows = buildFunnel({
+    acquisitions: [{ user_id: "u1", utm_content: "vid_a" }],
+    readings: [{ user_id: "u2" }], // 추적 안 된 u2 가 리딩
+    payments: [{ user_id: "u2", status: "completed", amount_won: 5900 }], // 추적 안 된 u2 가 결제
+    spend: [],
+    allUserIds: ["u1", "u2"], // u2 는 acquisitions 에 없음 → 추적 안 됨
+  });
+  const un = rows.find((r) => r.creative === "(추적 안 됨)")!;
+  assert.equal(un.signups, 1);
+  assert.equal(un.tried, 1);
+  assert.equal(un.firstPaid, 1);
+  assert.equal(un.revenueWon, 5900);
+  assert.equal(un.spendWon, null);
+  assert.equal(un.cac, null);
+  assert.equal(rows[rows.length - 1].creative, "(추적 안 됨)"); // 맨 아래 정렬
+});
+
 import { buildCohorts } from "./aggregate.ts";
 
 test("buildCohorts — 가입 주차별 누적 LTV(유저 평균) + 리텐션", () => {
