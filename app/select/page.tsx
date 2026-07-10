@@ -18,19 +18,16 @@ import {
   getSpreadDescription,
   getPositionLabels,
   type SpreadType,
-  type SpreadCategory,
 } from "@/lib/tarot/spreads";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import {
   getSajuProducts,
-  isChoiceEligible,
   isSajuProduct,
   SAJU_PRODUCT_INFO,
   type SajuProduct,
 } from "@/lib/saju/products";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
-const SAJU_ACCENT = "#9F8AD0";
 const SAJU_COST = 20;
 
 const SAJU_ICONS: Record<SajuProduct, string> = {
@@ -51,178 +48,6 @@ const SAJU_PRODUCT_ACCENT: Record<SajuProduct, string> = {
 
 type Selection = SajuProduct | SpreadType;
 
-// 사주가 더 적합한 감정 — 장기 흐름·방향·새 시작
-const SAJU_EMOTIONS: EmotionTag[] = [
-  "내 앞날의 방향이 궁금해",
-  "요즘 내 흐름이 궁금해",
-  "새로운 시작이 기대돼",
-];
-
-function recommendSpread(concern: string): SpreadType {
-  const len = concern.trim().length;
-  if (len < 30) return "one_card";
-  return len % 2 === 0 ? "two_card" : "three_card";
-}
-
-// 고민 텍스트 의도 신호 → 사주 상품 추천 (부분일치)
-const CHOICE_SIGNALS = ["할까 말까", "둘 중", "어느 쪽", "선택", "비교", "아니면", "vs", "VS"];
-const TIMING_SIGNALS = ["언제", "시기", "타이밍", "몇 월", "몇 달", "몇달", "언제쯤", "날짜", "며칠", "얼마나 걸", "언제까지"];
-const NATURE_SIGNALS = ["나는 어떤", "내 성향", "타고난", "팔자", "내 성격", "나란 사람"];
-
-/** 고민 텍스트 의도로 사주 상품 추천 (우선순위: 선택→시점→성향→기본). choice 는 노출 대상일 때만. */
-function pickSajuProduct(emotion: EmotionTag, concern: string): SajuProduct {
-  const has = (kws: string[]) => kws.some((k) => concern.includes(k));
-  if (isChoiceEligible(emotion) && has(CHOICE_SIGNALS)) return "choice";
-  if (has(TIMING_SIGNALS)) return "good_days";
-  if (has(NATURE_SIGNALS)) return "nature";
-  return "today_letters";
-}
-
-type RecCopy = { headline: string; reason: string };
-
-// 추천 상품별 별콩이 카피 (headline/reason)
-const SAJU_REC_COPY: Record<SajuProduct, RecCopy> = {
-  today_letters: {
-    headline: "오늘 들어온 글자로 네 고민을 짚어볼까?",
-    reason: "오늘 너에게 들어온 일운으로 지금 결을 봐줄게",
-  },
-  good_days: {
-    headline: "시점이 궁금하면 좋은 날 흐름부터 볼까?",
-    reason: "정확한 날짜 대신, 너에게 흐름이 트이는 날을 짚어줄게",
-  },
-  choice: {
-    headline: "갈림길이라면 선택지를 나란히 비교해줄까?",
-    reason: "고민 속 선택지를 일운·오행 흐름으로 견줘줄게",
-  },
-  nature: {
-    headline: "너란 사람부터 사주로 짚어볼까?",
-    reason: "타고난 기질에서 출발해 지금 흐름으로 풀어줄게",
-  },
-};
-
-const TAROT_REC_COPY: Record<
-  SpreadType,
-  Partial<Record<SpreadCategory, RecCopy>> & { default: RecCopy }
-> = {
-  one_card: {
-    default: {
-      headline: "고민이 간결하니까 한 장이면 충분해",
-      reason: "짧고 가벼운 질문엔 한 줄 답이 제일 빠르거든",
-    },
-  },
-  two_card: {
-    love: {
-      headline: "지금 상황이랑 조언을 같이 볼까?",
-      reason: "연애는 상황부터 짚어야 조언이 맞아져",
-    },
-    interpersonal: {
-      headline: "관계 상황이랑 조언을 같이 볼까?",
-      reason: "지금 어떤 관계인지 짚고 풀어갈 실마리까지",
-    },
-    career: {
-      headline: "상황이랑 조언을 함께 봐줄게",
-      reason: "진로는 지금 위치부터 확인하는 게 좋아",
-    },
-    decision: {
-      headline: "찬반 양쪽을 나란히 놓고 볼까?",
-      reason: "결정할 땐 한 면만 보면 답이 안 보이거든",
-    },
-    mental: {
-      headline: "의식이랑 무의식 두 장으로 비춰볼까?",
-      reason: "눈에 안 잡히는 부분까지 봐야 마음이 풀려",
-    },
-    default: {
-      headline: "두 장으로 상황이랑 조언을 같이 볼까?",
-      reason: "지금 상황 먼저 짚고 조언까지 받아보자",
-    },
-  },
-  three_card: {
-    love: {
-      headline: "나·상대·방향 세 장으로 들여다볼까?",
-      reason: "두 사람 얘긴 흐름까지 봐야 명확해져",
-    },
-    interpersonal: {
-      headline: "나·상대·흐름 세 장으로 풀어볼까?",
-      reason: "서로 어떻게 엮여 있는지 보면 답이 가까워져",
-    },
-    career: {
-      headline: "과거·현재·미래로 흐름을 볼까?",
-      reason: "진로는 그동안 흐름이 답을 알려주거든",
-    },
-    decision: {
-      headline: "선택지랑 지금 상태를 같이 볼까?",
-      reason: "둘 다 보면서 내가 어디 있는지도 알아야 해",
-    },
-    mental: {
-      headline: "마음·몸·영혼 세 층으로 볼까?",
-      reason: "감정은 여러 결이 겹쳐 있거든",
-    },
-    worry: {
-      headline: "상황·장애물·조언 순서로 풀어줄까?",
-      reason: "막힌 걸 찾아야 조언이 구체적이 돼",
-    },
-    default: {
-      headline: "흐름까지 짚어보게 세 장으로 갈까?",
-      reason: "상황이 얽혀 보여서 시간 순서로 보자",
-    },
-  },
-  relationship_5: {
-    default: {
-      headline: "두 사람 마음까지 다 비춰줄까?",
-      reason: "관계는 나랑 상대 둘 다 봐야 풀려",
-    },
-  },
-};
-
-type Rec =
-  | {
-      kind: "saju";
-      selection: Selection;
-      headline: string;
-      reason: string;
-      label: string;
-      accent: string;
-    }
-  | {
-      kind: "tarot";
-      selection: Selection;
-      spread: SpreadType;
-      headline: string;
-      reason: string;
-      label: string;
-      accent: string;
-    };
-
-function getRecommendation(
-  emotion: EmotionTag,
-  concern: string,
-  category: SpreadCategory
-): Rec {
-  if (SAJU_EMOTIONS.includes(emotion)) {
-    const product = pickSajuProduct(emotion, concern);
-    const c = SAJU_REC_COPY[product];
-    return {
-      kind: "saju",
-      selection: product,
-      headline: c.headline,
-      reason: c.reason,
-      label: SAJU_PRODUCT_INFO[product].label,
-      accent: SAJU_ACCENT,
-    };
-  }
-  const spread = recommendSpread(concern);
-  const c = TAROT_REC_COPY[spread][category] ?? TAROT_REC_COPY[spread].default;
-  return {
-    kind: "tarot",
-    selection: spread,
-    spread,
-    headline: c.headline,
-    reason: c.reason,
-    label: SPREAD_INFO[spread].label,
-    accent: SPREAD_INFO[spread].accent,
-  };
-}
-
 export default function SelectPage() {
   const router = useRouter();
   const [pending, setPending] = useState<PendingConsultation | null>(null);
@@ -238,14 +63,6 @@ export default function SelectPage() {
     () => (pending ? getSajuProducts(pending.emotion) : []),
     [pending]
   );
-  const rec = useMemo(
-    () =>
-      pending
-        ? getRecommendation(pending.emotion, pending.concern, category)
-        : null,
-    [pending, category]
-  );
-
   useEffect(() => {
     const raw =
       typeof window !== "undefined"
@@ -262,16 +79,12 @@ export default function SelectPage() {
         return;
       }
       setPending(parsed);
-      const cat = EMOTION_TO_CATEGORY[parsed.emotion as EmotionTag];
-      setSelected(
-        getRecommendation(parsed.emotion, parsed.concern, cat).selection
-      );
     } catch {
       router.replace("/concern");
     }
   }, [router]);
 
-  if (!pending || !rec) {
+  if (!pending) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
         <p className="text-text-light text-sm">잠시만…</p>
@@ -360,7 +173,7 @@ export default function SelectPage() {
         </div>
       </div>
 
-      {/* 별콩이 추천 — 사주/타로 중 한 가지 + 추천 이유 */}
+      {/* 별콩이 인사 — 방식 선택 안내 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
         <div className="flex flex-col items-center px-2">
           <div className="relative w-14 h-14 mb-1.5">
@@ -373,27 +186,12 @@ export default function SelectPage() {
               className="relative rounded-full object-cover"
             />
           </div>
-          <p className="font-display text-[17px] text-eye-purple leading-tight text-center">
-            {rec.headline}
+          <p className="font-display text-[18px] text-eye-purple leading-tight text-center">
+            너의 고민을 내가 해결해 줄게
           </p>
           <p className="text-[12px] text-text-light/85 mt-1.5 leading-relaxed text-center max-w-[280px]">
-            &ldquo;{rec.reason}&rdquo;
+            사주와 타로 중에 마음이 가는 방식을 골라줘
           </p>
-          <div
-            className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/85 border"
-            style={{ borderColor: `${rec.accent}38` }}
-          >
-            <span className="text-[11px]">✨</span>
-            <span
-              className="text-[11px] font-bold"
-              style={{ color: rec.accent }}
-            >
-              {rec.label}
-            </span>
-            <span className="text-[11px] text-text-light/70">
-              추천 · 다른 것도 괜찮아
-            </span>
-          </div>
         </div>
       </div>
 
@@ -412,7 +210,6 @@ export default function SelectPage() {
         {spreadOptions.map((type) => {
           const info = SPREAD_INFO[type];
           const isSelected = selected === type;
-          const isRecommended = rec.kind === "tarot" && rec.spread === type;
           const positions = getPositionLabels(type, category);
           return (
             <button
@@ -469,11 +266,6 @@ export default function SelectPage() {
                   <span className="text-[11px] font-bold text-text-light">
                     ⭐ {info.starCost}별
                   </span>
-                  {isRecommended && (
-                    <span className="text-[10px] font-bold text-lilac-deep ml-auto">
-                      추천 ✨
-                    </span>
-                  )}
                 </div>
                 <p className="text-[12px] text-text-light leading-snug mb-1.5">
                   {getSpreadDescription(type, category)}
@@ -506,7 +298,6 @@ export default function SelectPage() {
           const info = SAJU_PRODUCT_INFO[p];
           const accent = SAJU_PRODUCT_ACCENT[p];
           const isSelected = selected === p;
-          const isRecommended = rec.kind === "saju" && rec.selection === p;
           return (
             <button
               key={p}
@@ -540,14 +331,6 @@ export default function SelectPage() {
                   <span className="text-[11px] font-bold text-text-light">
                     ⭐ {SAJU_COST}별
                   </span>
-                  {isRecommended && (
-                    <span
-                      className="text-[10px] font-black ml-auto px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: "#E5484D" }}
-                    >
-                      추천 ✨
-                    </span>
-                  )}
                 </div>
                 <p className="text-[12px] text-text-light leading-snug mb-1.5">
                   {info.description}
