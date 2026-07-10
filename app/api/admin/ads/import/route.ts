@@ -70,11 +70,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "데이터 행이 없어요." }, { status: 400 });
   }
   const headers = table[0].map((h) => h.trim().toLowerCase());
+  const exact = (h: string) => headers.findIndex((x) => x === h);
+  const dateCol = (() => {
+    const i = findCol(headers, "day", "date", "reporting starts", "보고 시작", "날짜");
+    return i >= 0 ? i : exact("일"); // 한국어 일별 분해 컬럼 헤더는 정확히 "일"
+  })();
   const idx = {
-    date: findCol(headers, "day", "date", "reporting starts"),
-    campaign: findCol(headers, "campaign"),
-    adset: findCol(headers, "ad set"),
-    ad: findCol(headers, "ad name"),
+    date: dateCol,
+    campaign: findCol(headers, "campaign", "캠페인"),
+    adset: findCol(headers, "ad set", "광고 세트"),
+    ad: findCol(headers, "ad name", "광고 이름"),
     spend: findCol(headers, "amount spent", "지출"),
     impr: findCol(headers, "impression", "노출"),
     clicks: findCol(headers, "link click", "clicks", "클릭"),
