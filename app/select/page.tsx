@@ -23,6 +23,7 @@ import {
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import {
   getSajuProducts,
+  isChoiceEligible,
   isSajuProduct,
   SAJU_PRODUCT_INFO,
   type SajuProduct,
@@ -63,26 +64,39 @@ function recommendSpread(concern: string): SpreadType {
   return len % 2 === 0 ? "two_card" : "three_card";
 }
 
+// 고민 텍스트 의도 신호 → 사주 상품 추천 (부분일치)
+const CHOICE_SIGNALS = ["할까 말까", "둘 중", "어느 쪽", "선택", "비교", "아니면", "vs", "VS"];
+const TIMING_SIGNALS = ["언제", "시기", "타이밍", "몇 월", "몇 달", "몇달", "언제쯤", "날짜", "며칠", "얼마나 걸", "언제까지"];
+const NATURE_SIGNALS = ["나는 어떤", "내 성향", "타고난", "팔자", "내 성격", "나란 사람"];
+
+/** 고민 텍스트 의도로 사주 상품 추천 (우선순위: 선택→시점→성향→기본). choice 는 노출 대상일 때만. */
+function pickSajuProduct(emotion: EmotionTag, concern: string): SajuProduct {
+  const has = (kws: string[]) => kws.some((k) => concern.includes(k));
+  if (isChoiceEligible(emotion) && has(CHOICE_SIGNALS)) return "choice";
+  if (has(TIMING_SIGNALS)) return "good_days";
+  if (has(NATURE_SIGNALS)) return "nature";
+  return "today_letters";
+}
+
 type RecCopy = { headline: string; reason: string };
 
-const SAJU_REC_COPY: Partial<Record<EmotionTag, RecCopy>> & {
-  default: RecCopy;
-} = {
-  "내 앞날의 방향이 궁금해": {
-    headline: "네 앞날은 사주로 큰 흐름부터 볼까?",
-    reason: "방향 고민은 타고난 기둥을 짚어야 또렷해져",
+// 추천 상품별 별콩이 카피 (headline/reason)
+const SAJU_REC_COPY: Record<SajuProduct, RecCopy> = {
+  today_letters: {
+    headline: "오늘 들어온 글자로 네 고민을 짚어볼까?",
+    reason: "오늘 너에게 들어온 일운으로 지금 결을 봐줄게",
   },
-  "요즘 내 흐름이 궁금해": {
-    headline: "지금 네 흐름, 사주로 짚어줄까?",
-    reason: "오늘 일주 기준으로 운의 결을 봐줄게",
+  good_days: {
+    headline: "시점이 궁금하면 좋은 날 흐름부터 볼까?",
+    reason: "정확한 날짜 대신, 너에게 흐름이 트이는 날을 짚어줄게",
   },
-  "새로운 시작이 기대돼": {
-    headline: "새 시작이라면 사주로 큰 그림부터",
-    reason: "타고난 흐름을 알면 첫발이 가벼워져",
+  choice: {
+    headline: "갈림길이라면 선택지를 나란히 비교해줄까?",
+    reason: "고민 속 선택지를 일운·오행 흐름으로 견줘줄게",
   },
-  default: {
-    headline: "사주로 너의 큰 흐름을 짚어볼까?",
-    reason: "타고난 기둥을 보면 길이 또렷해져",
+  nature: {
+    headline: "너란 사람부터 사주로 짚어볼까?",
+    reason: "타고난 기질에서 출발해 지금 흐름으로 풀어줄게",
   },
 };
 
@@ -185,13 +199,14 @@ function getRecommendation(
   category: SpreadCategory
 ): Rec {
   if (SAJU_EMOTIONS.includes(emotion)) {
-    const c = SAJU_REC_COPY[emotion] ?? SAJU_REC_COPY.default;
+    const product = pickSajuProduct(emotion, concern);
+    const c = SAJU_REC_COPY[product];
     return {
       kind: "saju",
-      selection: "today_letters",
+      selection: product,
       headline: c.headline,
       reason: c.reason,
-      label: SAJU_PRODUCT_INFO.today_letters.label,
+      label: SAJU_PRODUCT_INFO[product].label,
       accent: SAJU_ACCENT,
     };
   }
