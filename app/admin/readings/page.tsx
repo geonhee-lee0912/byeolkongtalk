@@ -47,7 +47,7 @@ export default async function AdminReadings({
               <td>{r.consultation_type}</td>
               <td>{readingTitle(r.emotion_tag, r.consultation_type)}</td>
               <td>{r.stars_spent}</td>
-              <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
+              <td>{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right"><Link href={`/admin/readings/${r.id}`} className="text-lilac underline">보기</Link></td>
             </tr>
           ))}

@@ -1,20 +1,31 @@
 // app/admin/users/[id]/page.tsx — 사용자 상세.
+import Link from "next/link";
 import { createHash } from "crypto";
 import { getServiceSupabase } from "@/lib/supabase";
 import { UserActions } from "@/components/admin/UserActions";
 import { PopupSend } from "@/components/admin/PopupSend";
 import { notFound } from "next/navigation";
+import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
+
+function readingTitle(emotionTag: string | null, consultationType: string): string {
+  const ft = fortuneTypeFromTag(emotionTag);
+  if (ft) return FORTUNE_CONFIG[ft].label;
+  return emotionTag ?? "고민 상담";
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUserDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = getServiceSupabase();
-  const [user, balance, profiles, readingCount, actions, bonusTx] = await Promise.all([
+  const [user, balance, profiles, readings, actions, bonusTx] = await Promise.all([
     supabase.from("users").select("*").eq("id", id).single(),
     supabase.from("star_balances").select("balance").eq("user_id", id).single(),
     supabase.from("user_profiles").select("*").eq("user_id", id),
-    supabase.from("readings").select("id", { count: "exact", head: true }).eq("user_id", id),
+    supabase.from("readings")
+      .select("id, consultation_type, emotion_tag, stars_spent, created_at")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false }),
     supabase.from("admin_actions")
       .select("action, payload, created_at")
       .eq("target_type", "user").eq("target_id", id)
@@ -67,7 +78,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
       <h1 className="text-xl font-bold">{user.data.nickname ?? id}</h1>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded bg-white/5 p-3">별 잔액: <b>{balance.data?.balance ?? 0}</b></div>
-        <div className="rounded bg-white/5 p-3">리딩 수: <b>{readingCount.count ?? 0}</b></div>
+        <div className="rounded bg-white/5 p-3">리딩 수: <b>{(readings.data ?? []).length}</b></div>
         <div className="rounded bg-white/5 p-3">웰컴 별: <b>{welcomeBonus ? `지급 (${welcomeBonus.amount}별)` : "미지급"}</b></div>
         <div className="rounded bg-white/5 p-3">첫 충전 보너스: <b>{firstChargeBonus ? `지급 (${firstChargeBonus.amount}별)` : "미지급"}</b></div>
         <div className="rounded bg-white/5 p-3">과거 탈퇴: <b>{withdrawalCount}회</b>{withdrawalCount > 0 ? " · 재가입 유저" : ""}</div>
@@ -81,6 +92,32 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
             </li>
           ))}
         </ul>
+      </div>
+      <div>
+        <div className="text-sm text-white/60 mb-2">리딩 목록 ({(readings.data ?? []).length})</div>
+        {(readings.data ?? []).length === 0 ? (
+          <p className="text-sm text-white/40">리딩 없음</p>
+        ) : (
+          <ul className="text-sm space-y-1">
+            {(readings.data ?? []).map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/readings/${r.id}`}
+                  className="rounded bg-white/5 px-3 py-2 flex justify-between gap-2 hover:bg-white/10 transition"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="text-white/40 mr-2">{r.consultation_type}</span>
+                    {readingTitle(r.emotion_tag, r.consultation_type)}
+                  </span>
+                  <span className="text-white/40 shrink-0">
+                    {r.stars_spent === 0 ? "무료" : `⭐${r.stars_spent}`} ·{" "}
+                    {new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div>
         <div className="text-sm text-white/60 mb-2">조정 이력</div>
