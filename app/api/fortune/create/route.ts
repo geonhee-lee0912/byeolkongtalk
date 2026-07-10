@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { spendStars, chargeStars } from "@/lib/stars";
+import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
+import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { randomUUID } from "crypto";
 import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
@@ -293,6 +294,30 @@ export async function POST(req: NextRequest) {
       .eq("emotion_tag", cfg.emotionTag)
       .eq("stars_spent", 0);
     if ((count ?? 0) >= cfg.freeLimit) effectiveCost = cfg.paidCost;
+  }
+
+  // 중복 생성 방어 — 더블클릭·재시도로 인한 동일 운세 재생성 차단(별 중복 차감 방지).
+  // daily/monthly 는 위에서 이미 단건 처리됨. 나머지(saju_full·compat·tarot)를 여기서 커버.
+  {
+    const dup = await findRecentDuplicateReading(
+      userId,
+      {
+        emotionTag: cfg.emotionTag,
+        question: cfg.label,
+        profileId: usedProfileId,
+        drawnCards: drawnCardsToStore,
+      },
+      "/api/fortune/create"
+    );
+    if (dup) {
+      return NextResponse.json({
+        id: dup.id,
+        success: true,
+        cost: dup.starsSpent,
+        balance: await getStarBalance(userId),
+        duplicate: true,
+      });
+    }
   }
 
   // 즉시 차감 — 확인을 누른 시점에 별을 먼저 뺀다(고민톡과 동일 감각).

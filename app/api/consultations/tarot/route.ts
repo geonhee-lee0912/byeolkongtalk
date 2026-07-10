@@ -8,6 +8,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
 import { logError } from "@/lib/logger";
+import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import {
   SPREAD_INFO,
   type SpreadType,
@@ -127,6 +128,31 @@ export async function POST(request: NextRequest) {
       },
       { status: 402 }
     );
+  }
+
+  // 중복 생성 방어 — 더블클릭·재시도·remount 로 인한 동일 리딩 재생성 차단(별 중복 차감 방지).
+  // 이어가기(previousReadingId)는 의도적 새 리딩이므로 스킵.
+  if (!body.previousReadingId) {
+    const dup = await findRecentDuplicateReading(
+      userId,
+      {
+        consultationType: "tarot",
+        emotionTag: body.emotion,
+        question: body.concern,
+        spreadType: body.spreadType,
+        drawnCards,
+      },
+      "/api/consultations/tarot"
+    );
+    if (dup) {
+      return NextResponse.json({
+        id: dup.id,
+        success: true,
+        cost: dup.starsSpent,
+        balance: await getStarBalance(userId),
+        duplicate: true,
+      });
+    }
   }
 
   const supabase = getServiceSupabase();

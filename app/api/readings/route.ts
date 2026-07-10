@@ -13,6 +13,7 @@ import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { calcTemporalLuck } from "@/lib/saju/calc";
 import { isSajuProduct, type SajuProduct } from "@/lib/saju/products";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
@@ -191,6 +192,37 @@ export async function POST(request: NextRequest) {
       },
       { status: 402 }
     );
+  }
+
+  // 중복 생성 방어 — 더블클릭·재시도로 인한 동일 리딩 재생성 차단(별 중복 차감 방지).
+  // 프로필 resolve/생성 전에 검사해 orphan 프로필도 방지. sajuProduct 가 사주 리딩을 판별.
+  {
+    const emotionForSig =
+      typeof body.emotion === "string" && VALID_EMOTIONS.includes(body.emotion)
+        ? body.emotion
+        : null;
+    const dup = await findRecentDuplicateReading(
+      userId,
+      {
+        emotionTag: emotionForSig,
+        question: body.question,
+        sajuProduct,
+        profileId:
+          typeof body.profileId === "string" && body.profileId.length > 0
+            ? body.profileId
+            : undefined,
+      },
+      "/api/readings"
+    );
+    if (dup) {
+      return NextResponse.json({
+        id: dup.id,
+        success: true,
+        cost: dup.starsSpent,
+        balance: await getStarBalance(userId),
+        duplicate: true,
+      });
+    }
   }
 
   const supabase = getServiceSupabase();
