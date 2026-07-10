@@ -2,6 +2,9 @@
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { Pager } from "@/components/admin/Pager";
+
+const PER_PAGE = 25;
 
 function readingTitle(emotionTag: string | null, consultationType: string): string {
   const ft = fortuneTypeFromTag(emotionTag);
@@ -13,15 +16,27 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminReadings({
   searchParams,
-}: { searchParams: Promise<{ type?: string; free?: string }> }) {
-  const { type, free } = await searchParams;
+}: { searchParams: Promise<{ type?: string; free?: string; page?: string }> }) {
+  const { type, free, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const offset = (page - 1) * PER_PAGE;
   const supabase = getServiceSupabase();
   let query = supabase.from("readings")
-    .select("id, user_id, consultation_type, emotion_tag, stars_spent, created_at")
-    .order("created_at", { ascending: false }).limit(50);
+    .select("id, user_id, consultation_type, emotion_tag, stars_spent, created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PER_PAGE - 1);
   if (type === "saju" || type === "tarot") query = query.eq("consultation_type", type);
   if (free === "1") query = query.eq("stars_spent", 0);
-  const { data } = await query;
+  const { data, count } = await query;
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+  const makeHref = (p: number) => {
+    const sp = new URLSearchParams();
+    if (type) sp.set("type", type);
+    if (free) sp.set("free", free);
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return qs ? `/admin/readings?${qs}` : "/admin/readings";
+  };
 
   const Tab = ({ label, href }: { label: string; href: string }) => (
     <Link href={href} className="px-3 py-1 rounded-full bg-white/10 text-xs">{label}</Link>
@@ -53,6 +68,7 @@ export default async function AdminReadings({
           ))}
         </tbody>
       </table>
+      <Pager page={page} totalPages={totalPages} makeHref={makeHref} />
     </div>
   );
 }

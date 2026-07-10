@@ -3,22 +3,36 @@ import Link from "next/link";
 import { createHash } from "crypto";
 import { getServiceSupabase } from "@/lib/supabase";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
+import { Pager } from "@/components/admin/Pager";
+
+const PER_PAGE = 25;
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsers({
   searchParams,
-}: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+}: { searchParams: Promise<{ q?: string; page?: string }> }) {
+  const { q, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const offset = (page - 1) * PER_PAGE;
   const supabase = getServiceSupabase();
   let query = supabase.from("users")
-    .select("id, nickname, profile_img, created_at, kakao_id")
-    .order("created_at", { ascending: false }).limit(50);
+    .select("id, nickname, profile_img, created_at, kakao_id", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PER_PAGE - 1);
   if (q) {
     const escaped = q.replace(/[%_]/g, "\\$&");
     query = query.ilike("nickname", `%${escaped}%`);
   }
-  const { data: users } = await query;
+  const { data: users, count } = await query;
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+  const makeHref = (p: number) => {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return qs ? `/admin/users?${qs}` : "/admin/users";
+  };
 
   const ids = (users ?? []).map((u) => u.id);
 
@@ -136,6 +150,7 @@ export default async function AdminUsers({
           </tbody>
         </table>
       </div>
+      <Pager page={page} totalPages={totalPages} makeHref={makeHref} />
     </div>
   );
 }
