@@ -226,6 +226,12 @@ function TarotReadingInner() {
       return;
     }
     setDraw(parsed);
+    // 드로우 키 1회성 소비 — 뒤로가기/재마운트로 startedRef 가 초기화되면 이 리딩이
+    // 재생성돼 별이 중복 차감되던 크리티컬 버그 방지. parsed 는 이미 state 로 확보됨.
+    // 재마운트 시엔 키가 없어 위 !raw 분기로 /tarot 에 안전하게 유도된다.
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(TAROT_DRAW_KEY);
+    }
 
     void (async () => {
       try {
