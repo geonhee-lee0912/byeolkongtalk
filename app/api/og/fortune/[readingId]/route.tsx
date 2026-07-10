@@ -1,10 +1,11 @@
-// 별콩 운세 OG 이미지 — 카카오톡 공유 / 미리보기용. 1200×630.
-// 사주 OG(app/api/og/saju) 구조를 미러링하되, 리포트 종류 무관 범용 카드:
-// 운세 라벨 + 별콩이 한마디(note/summary/headline) + 워터마크.
+// 별콩 운세 공유 카드용 OG 이미지 — 1200×630.
+// 리포트 내용은 이미지에 넣지 않는다(길면 카카오 카드에서 잘림). 대신 내용 없는
+// 범용 브랜드 카드(별콩 운세 워드마크 + 고정 태그라인)만 렌더 — 짧고 중앙 정렬이라
+// 어떤 크롭에도 안 잘림. 실제 리포트 정보는 카카오 카드의 제목/설명 텍스트가 전달.
+//
+// readingId 는 URL 형식 검증만 하고 내용엔 쓰지 않는다(범용 이미지).
 
 import { ImageResponse } from "next/og";
-import { getServiceSupabase } from "@/lib/supabase";
-import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -19,20 +20,6 @@ async function getFont(): Promise<ArrayBuffer> {
   if (!res.ok) throw new Error(`font fetch failed: ${res.status}`);
   fontCache = await res.arrayBuffer();
   return fontCache;
-}
-
-/** 리포트 JSON 에서 카드에 쓸 한마디 추출 (종류 무관, 방어적). */
-function extractFortuneLine(content: string): string {
-  try {
-    const o = JSON.parse(content) as Record<string, unknown>;
-    const pick = (o.note ?? o.summary ?? o.headline ?? o.theme) as
-      | string
-      | undefined;
-    if (typeof pick === "string" && pick.trim()) return pick.trim();
-  } catch {
-    /* JSON 아니면 무시 */
-  }
-  return "별콩이가 너의 흐름을 읽어줬어 ✨";
 }
 
 export async function GET(
@@ -62,28 +49,6 @@ export async function GET(
     return new Response("invalid_id", { status: 400 });
   }
 
-  const supabase = getServiceSupabase();
-  const { data: reading } = await supabase
-    .from("readings")
-    .select("emotion_tag, has_sensitive")
-    .eq("id", readingId)
-    .maybeSingle();
-
-  if (!reading) return new Response("not_found", { status: 404 });
-  if (reading.has_sensitive) return new Response("forbidden", { status: 403 });
-
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("role, content")
-    .eq("reading_id", readingId)
-    .order("created_at", { ascending: true });
-
-  const ft = fortuneTypeFromTag(reading.emotion_tag);
-  const label = ft ? FORTUNE_CONFIG[ft].label : "별콩 운세";
-  const content =
-    (messages ?? []).find((m) => m.role === "assistant")?.content ?? "";
-  const line = extractFortuneLine(content);
-
   const font = await getFont();
 
   return new ImageResponse(
@@ -99,65 +64,63 @@ export async function GET(
           textAlign: "center",
           background:
             "linear-gradient(135deg, #1F1735 0%, #2A1F4D 55%, #5A3E8C 100%)",
-          padding: "70px 60px",
           color: "white",
           fontFamily: "Pretendard",
           position: "relative",
         }}
       >
-        {/* 카카오 피드 카드가 좌우를 크롭하므로 모든 텍스트를 중앙 세이프존(폭 760)에 모은다 */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            fontSize: 24,
-            opacity: 0.75,
-            marginBottom: 24,
-          }}
-        >
-          <span style={{ color: "#E8C26A" }}>✨</span>
-          <span>별콩 운세</span>
-        </div>
+        {[
+          { top: 90, left: 150, size: 10, op: 0.9 },
+          { top: 140, left: 980, size: 7, op: 0.7 },
+          { top: 80, left: 1080, size: 6, op: 0.8 },
+          { top: 470, left: 120, size: 8, op: 0.7 },
+          { top: 520, left: 1010, size: 7, op: 0.8 },
+          { top: 300, left: 60, size: 5, op: 0.6 },
+          { top: 340, left: 1140, size: 6, op: 0.7 },
+        ].map((s, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: s.top,
+              left: s.left,
+              width: s.size,
+              height: s.size,
+              borderRadius: "50%",
+              background: "#E8C26A",
+              opacity: s.op,
+            }}
+          />
+        ))}
 
+        <div style={{ display: "flex", fontSize: 90, marginBottom: 12 }}>✨</div>
         <div
           style={{
             display: "flex",
-            textAlign: "center",
-            fontSize: 60,
-            lineHeight: 1.2,
+            fontSize: 92,
             color: "#F2D78A",
-            maxWidth: 760,
-            marginBottom: 30,
+            letterSpacing: 2,
           }}
         >
-          {label.length > 22 ? label.slice(0, 21) + "…" : label}
+          별콩 운세
         </div>
-
         <div
           style={{
             display: "flex",
-            textAlign: "center",
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(232,194,106,0.25)",
-            borderRadius: 20,
-            padding: "26px 30px",
-            fontSize: 29,
-            lineHeight: 1.5,
+            fontSize: 34,
             color: "#FFF8F0",
-            maxWidth: 760,
+            opacity: 0.85,
+            marginTop: 22,
           }}
         >
-          {line.length > 80 ? line.slice(0, 78) + "…" : line}
+          별콩이가 너의 흐름을 읽어줄게
         </div>
-
         <div
           style={{
             position: "absolute",
-            bottom: 40,
+            bottom: 44,
             display: "flex",
-            fontSize: 18,
+            fontSize: 20,
             opacity: 0.55,
           }}
         >
