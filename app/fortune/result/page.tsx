@@ -37,6 +37,7 @@ import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
+import { shareToKakao } from "@/lib/kakao-share";
 
 interface Section {
   title: string;
@@ -348,6 +349,32 @@ function FortuneResultInner() {
     }
   };
 
+  // 카카오톡 카드(피드) 공유 — OG 이미지 + 한마디. SDK 미준비 시 텍스트 공유로 폴백.
+  const shareDescription = (): string => {
+    const raw =
+      dailyReport?.note ??
+      monthlyReport?.note ??
+      sajuFullReport?.note ??
+      compatReport?.note ??
+      tarotReport?.summary ??
+      sections[0]?.body ??
+      "별콩이가 너의 흐름을 읽어줬어 ✨";
+    return raw.length > 120 ? raw.slice(0, 118) + "…" : raw;
+  };
+
+  const handleKakaoShare = () => {
+    if (typeof window === "undefined" || !id) return;
+    const origin = window.location.origin;
+    const ok = shareToKakao({
+      title: `별콩 운세 · ${label}`,
+      description: shareDescription(),
+      imageUrl: `${origin}/api/og/fortune/${id}`,
+      link: `${origin}/fortune/result?id=${id}`,
+      buttonTitle: "나도 운세 보기",
+    });
+    if (!ok) void handleShare();
+  };
+
   const isDaily = ftType === "daily";
   const dateLabel =
     isDaily && createdAt
@@ -479,10 +506,19 @@ function FortuneResultInner() {
         ) : (
           <>
             <button
-              onClick={handleShare}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              onClick={handleKakaoShare}
+              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
             >
-              친구한테 이 운세 공유하기
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+              </svg>
+              카카오톡으로 공유하기
+            </button>
+            <button
+              onClick={handleShare}
+              className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            >
+              링크 / 텍스트로 공유하기
             </button>
             <Link
               href="/fortune"
