@@ -25,7 +25,7 @@ export default async function AdminFortuneRefunds() {
               <td>{n.emotion_tag ?? "-"}</td>
               <td>{n.refunded_stars}</td>
               <td>{n.acknowledged_at ? "✅" : "—"}</td>
-              <td>{new Date(n.created_at).toLocaleString("ko-KR")}</td>
+              <td>{new Date(n.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
             </tr>
           ))}
         </tbody>

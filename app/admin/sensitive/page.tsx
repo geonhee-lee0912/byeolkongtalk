@@ -26,7 +26,7 @@ export default async function AdminSensitive() {
               <td className="py-2">{a.category}</td>
               <td>{a.severity}</td>
               <td>{a.reviewed_at ? "✅ " + (a.action_taken ?? "") : "미검토"}</td>
-              <td>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
+              <td>{new Date(a.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right">{!a.reviewed_at && <ReviewButton id={a.id} />}</td>
               <td className="py-2 text-right pl-2">
                 <Link href={`/admin/sensitive/${a.id}`} className="text-lilac-deep hover:text-lilac underline text-xs">상세</Link>

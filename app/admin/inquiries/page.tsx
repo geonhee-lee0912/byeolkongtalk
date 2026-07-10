@@ -86,7 +86,7 @@ export default async function AdminInquiries({
               <td className="max-w-[16rem] truncate">{r.title}</td>
               <td>{nameById.get(r.user_id) ?? "—"}</td>
               <td>{r.status === "answered" ? "✅ 완료" : "미답변"}</td>
-              <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
+              <td>{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right">
                 <Link
                   href={`/admin/inquiries/${r.id}`}

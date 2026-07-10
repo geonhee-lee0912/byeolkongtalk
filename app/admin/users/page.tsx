@@ -126,7 +126,7 @@ export default async function AdminUsers({
                   <td className="pr-3">{read.gomintalk.toLocaleString()}</td>
                   <td className="pr-3">{read.fortuneTarot.toLocaleString()}</td>
                   <td className="pr-3">{read.fortuneSaju.toLocaleString()}</td>
-                  <td className="pr-3">{new Date(u.created_at).toLocaleDateString("ko-KR")}</td>
+                  <td className="pr-3">{new Date(u.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                   <td className="text-right">
                     <Link href={`/admin/users/${u.id}`} className="text-lilac underline">상세</Link>
                   </td>

@@ -56,7 +56,7 @@ export default async function SensitiveAlertDetail({
           심각도 {alert.severity}
         </span>
         <span className="text-white/50 text-sm">
-          {new Date(alert.created_at).toLocaleString("ko-KR")}
+          {new Date(alert.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
         </span>
       </div>
 
@@ -139,7 +139,7 @@ export default async function SensitiveAlertDetail({
             {alert.review_note && (
               <div className="text-white/70">메모: <span className="text-white/90">{alert.review_note}</span></div>
             )}
-            <div className="text-white/40 text-xs">{new Date(alert.reviewed_at as string).toLocaleString("ko-KR")}</div>
+            <div className="text-white/40 text-xs">{new Date(alert.reviewed_at as string).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</div>
           </div>
         ) : (
           <div className="flex items-start">

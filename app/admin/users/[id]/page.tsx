@@ -127,7 +127,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
           <ul className="text-sm space-y-1">
             {(actions.data ?? []).map((a, i) => {
               const p = (a.payload ?? {}) as Record<string, unknown>;
-              const date = new Date(a.created_at).toLocaleDateString("ko-KR");
+              const date = new Date(a.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
               const desc = a.action === "star_adjust"
                 ? `별 ${p.delta} 조정 · ${p.reason ?? ""}`
                 : `무료 ${p.fortuneKind} ${p.bonus}회 부여 · ${p.reason ?? ""}`;
@@ -157,7 +157,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
                   <span>{p.title}</span>
                   <span className="text-white/40 shrink-0">
                     {acked
-                      ? `확인 ${new Date(acked).toLocaleDateString("ko-KR")}`
+                      ? `확인 ${new Date(acked).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}`
                       : "미확인"}
                   </span>
                 </li>

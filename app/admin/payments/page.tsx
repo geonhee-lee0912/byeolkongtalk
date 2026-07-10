@@ -77,7 +77,7 @@ export default async function AdminPayments() {
                         <span className="text-red-300 font-medium">환불됨</span>
                         {refund && (
                           <div className="text-[11px] text-white/50 mt-0.5">
-                            {new Date(refund.at).toLocaleString("ko-KR")}
+                            {new Date(refund.at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
                             {refund.reason ? ` · ${refund.reason}` : ""}
                           </div>
                         )}
@@ -88,7 +88,7 @@ export default async function AdminPayments() {
                       "대기"
                     )}
                   </td>
-                  <td className="whitespace-nowrap">{new Date(p.created_at).toLocaleDateString("ko-KR")}</td>
+                  <td className="whitespace-nowrap">{new Date(p.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                   <td className="text-right">{p.status === "completed" && p.pg_tid && <RefundButton id={p.id} />}</td>
                 </tr>
               );

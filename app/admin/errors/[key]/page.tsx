@@ -99,12 +99,12 @@ export default async function AdminErrorDetail({
         </div>
         <div className="bg-white/5 rounded p-3">
           <div className="text-white/40 text-xs mb-1">최근 발생</div>
-          <div className="text-xs">{new Date(latest.created_at).toLocaleString("ko-KR")}</div>
+          <div className="text-xs">{new Date(latest.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</div>
         </div>
         <div className="bg-white/5 rounded p-3">
           <div className="text-white/40 text-xs mb-1">최초 발생</div>
           <div className="text-xs">
-            {new Date(rows[rows.length - 1].created_at).toLocaleString("ko-KR")}
+            {new Date(rows[rows.length - 1].created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
           </div>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default async function AdminErrorDetail({
             {recent.map((r) => (
               <tr key={r.id} className="border-t border-white/10">
                 <td className="py-1 pr-3 text-white/60 whitespace-nowrap">
-                  {new Date(r.created_at).toLocaleString("ko-KR")}
+                  {new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
                 </td>
                 <td className="py-1 pr-3 text-white/50">{r.route ?? "—"}</td>
                 <td className="py-1">

@@ -107,7 +107,7 @@ export default async function AdminErrors() {
               </td>
               <td className="py-2 pr-3 text-right font-mono text-white/70">{g.count}</td>
               <td className="py-2 pr-3 text-white/60 text-xs whitespace-nowrap">
-                {new Date(g.latest.created_at).toLocaleString("ko-KR")}
+                {new Date(g.latest.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
               </td>
               <td className="py-2 pr-3">
                 {g.anyUnresolved ? (

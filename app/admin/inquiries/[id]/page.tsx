@@ -49,7 +49,7 @@ export default async function AdminInquiryDetail({
           {inq.status === "answered" ? "답변완료" : "미답변"}
         </span>
         <span className="text-white/50 text-sm">
-          {new Date(inq.created_at).toLocaleString("ko-KR")}
+          {new Date(inq.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
         </span>
       </div>
 
@@ -80,7 +80,7 @@ export default async function AdminInquiryDetail({
         <div className="text-white/70">누적 결제: <b>{totalPaid.toLocaleString()}원</b></div>
         {user.data?.created_at && (
           <div className="text-white/70">
-            가입일: {new Date(user.data.created_at).toLocaleDateString("ko-KR")}
+            가입일: {new Date(user.data.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
           </div>
         )}
       </div>
@@ -106,7 +106,7 @@ export default async function AdminInquiryDetail({
         <InquiryReply id={inq.id} initial={inq.answer_body ?? ""} />
         {inq.answered_at && (
           <div className="text-white/40 text-xs mt-2">
-            마지막 답변: {new Date(inq.answered_at).toLocaleString("ko-KR")}
+            마지막 답변: {new Date(inq.answered_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
           </div>
         )}
       </div>
