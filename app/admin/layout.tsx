@@ -35,10 +35,19 @@ export default async function AdminLayout({
     redirect("/?admin=denied");
   }
 
-  const { count: openInquiries } = await getServiceSupabase()
-    .from("inquiries")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "open");
+  // 메뉴 미처리 뱃지 — 신규 발생 시 빨간 pill (처리하면 자동 소멸)
+  const supa = getServiceSupabase();
+  const [inqRes, sensRes, errRes] = await Promise.all([
+    supa.from("inquiries").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
+    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
+  ]);
+  const badges: Record<string, number> = {
+    "/admin/inquiries": inqRes.count ?? 0,
+    "/admin/sensitive": sensRes.count ?? 0,
+    "/admin/errors": errRes.count ?? 0,
+  };
+  const fmtBadge = (n: number) => (n > 99 ? "99+" : String(n));
 
   return (
     <div className="min-h-screen bg-night text-white flex">
@@ -58,9 +67,9 @@ export default async function AdminLayout({
             >
               <span>{item.emoji}</span>
               <span className="flex-1">{item.label}</span>
-              {item.href === "/admin/inquiries" && (openInquiries ?? 0) > 0 && (
+              {(badges[item.href] ?? 0) > 0 && (
                 <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
-                  {openInquiries}
+                  {fmtBadge(badges[item.href])}
                 </span>
               )}
             </Link>
