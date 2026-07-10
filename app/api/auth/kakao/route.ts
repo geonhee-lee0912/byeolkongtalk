@@ -7,7 +7,7 @@ import { createHash } from "crypto";
 import { getKakaoToken, getKakaoUser } from "@/lib/kakao";
 import { getServiceSupabase } from "@/lib/supabase";
 import { setUserCookie } from "@/lib/session";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import { chargeStars } from "@/lib/stars";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
@@ -63,6 +63,29 @@ export async function GET(request: NextRequest) {
     // 1. 카카오 토큰 발급
     const tokenData = await getKakaoToken(code);
     if (!tokenData.access_token) {
+      // KOE320/invalid_grant = 이미 사용된(중복 콜백) 또는 만료된 인가 코드.
+      // 카카오톡 인앱 브라우저의 콜백 더블로드·브라우저 재시도 등으로 흔히 발생하는 '정상' 상황이야:
+      // 첫 요청이 코드를 소비해 로그인은 이미 됐고, 두 번째 요청이 여기로 옴 → 서버 버그 아님.
+      // error 로 찍어 대시보드를 오염시키지 말고 warn 으로 남기고, 실패 화면 대신 조용히 목적지로 보냄
+      // (첫 요청이 세션을 이미 세팅했을 수 있으므로 login=fail 로 로그인된 유저를 놀래키지 않음).
+      const benign =
+        tokenData.error === "invalid_grant" || tokenData.error_code === "KOE320";
+      if (benign) {
+        await logWarn(
+          `Kakao token invalid_grant (중복/만료 콜백): ${tokenData.error_code ?? tokenData.error}`,
+          ctxFromRequest(request, { route: "/api/auth/kakao" })
+        );
+        const u = new URL(next.startsWith("/") ? next : "/", baseUrl);
+        const r = NextResponse.redirect(u);
+        r.cookies.set(STATE_COOKIE, "", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 0,
+        });
+        return r;
+      }
       await logError(
         new Error(`Kakao token failed: ${JSON.stringify(tokenData)}`),
         ctxFromRequest(request, { route: "/api/auth/kakao" })
