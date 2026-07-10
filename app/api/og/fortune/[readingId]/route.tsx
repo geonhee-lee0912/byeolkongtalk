@@ -94,46 +94,27 @@ export async function GET(
           height: "100%",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
           background:
             "linear-gradient(135deg, #1F1735 0%, #2A1F4D 55%, #5A3E8C 100%)",
-          padding: "60px 70px",
+          padding: "70px 60px",
           color: "white",
           fontFamily: "Pretendard",
           position: "relative",
         }}
       >
-        {[
-          { top: 60, left: 110, size: 8, op: 0.9 },
-          { top: 130, left: 880, size: 6, op: 0.7 },
-          { top: 80, left: 1050, size: 5, op: 0.8 },
-          { top: 240, left: 60, size: 4, op: 0.6 },
-          { top: 380, left: 1130, size: 7, op: 0.85 },
-          { top: 510, left: 90, size: 5, op: 0.7 },
-          { top: 540, left: 1080, size: 6, op: 0.75 },
-        ].map((s, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              top: s.top,
-              left: s.left,
-              width: s.size,
-              height: s.size,
-              borderRadius: "50%",
-              background: "#E8C26A",
-              opacity: s.op,
-            }}
-          />
-        ))}
-
+        {/* 카카오 피드 카드가 좌우를 크롭하므로 모든 텍스트를 중앙 세이프존(폭 760)에 모은다 */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 12,
-            fontSize: 22,
-            opacity: 0.7,
-            marginBottom: 10,
+            fontSize: 24,
+            opacity: 0.75,
+            marginBottom: 24,
           }}
         >
           <span style={{ color: "#E8C26A" }}>✨</span>
@@ -143,43 +124,44 @@ export async function GET(
         <div
           style={{
             display: "flex",
-            fontSize: 68,
+            textAlign: "center",
+            fontSize: 60,
+            lineHeight: 1.2,
             color: "#F2D78A",
-            marginTop: 30,
-            marginBottom: 34,
+            maxWidth: 760,
+            marginBottom: 30,
           }}
         >
-          {label}
+          {label.length > 22 ? label.slice(0, 21) + "…" : label}
         </div>
 
         <div
           style={{
             display: "flex",
+            textAlign: "center",
             background: "rgba(255,255,255,0.06)",
             border: "1px solid rgba(232,194,106,0.25)",
             borderRadius: 20,
-            padding: "28px 32px",
-            fontSize: 30,
+            padding: "26px 30px",
+            fontSize: 29,
             lineHeight: 1.5,
             color: "#FFF8F0",
+            maxWidth: 760,
           }}
         >
-          {line.length > 120 ? line.slice(0, 118) + "…" : line}
+          {line.length > 80 ? line.slice(0, 78) + "…" : line}
         </div>
 
         <div
           style={{
+            position: "absolute",
+            bottom: 40,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: "auto",
-            paddingTop: 24,
             fontSize: 18,
-            opacity: 0.6,
+            opacity: 0.55,
           }}
         >
-          <span>별콩이의 운세 리포트</span>
-          <span>byeolkongtalk.com</span>
+          byeolkongtalk.com
         </div>
       </div>
     ),
