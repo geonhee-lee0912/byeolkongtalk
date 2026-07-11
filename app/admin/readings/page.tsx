@@ -44,7 +44,9 @@ export default async function AdminReadings({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">리딩/상담</h1>
+      <h1 className="text-xl font-bold">
+        리딩/상담 <span className="text-white/40 text-sm font-normal">전체 {(count ?? 0).toLocaleString()}건</span>
+      </h1>
       <div className="flex gap-2">
         <Tab label="전체" href="/admin/readings" />
         <Tab label="사주" href="/admin/readings?type=saju" />

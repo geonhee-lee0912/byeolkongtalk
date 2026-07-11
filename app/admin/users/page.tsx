@@ -94,7 +94,9 @@ export default async function AdminUsers({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">사용자</h1>
+      <h1 className="text-xl font-bold">
+        사용자 <span className="text-white/40 text-sm font-normal">전체 {(count ?? 0).toLocaleString()}명</span>
+      </h1>
       <form className="flex gap-2">
         <input name="q" defaultValue={q ?? ""} placeholder="닉네임 검색"
           className="bg-white/10 rounded px-3 py-2 text-sm" />
