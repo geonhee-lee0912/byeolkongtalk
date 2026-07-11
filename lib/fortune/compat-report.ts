@@ -3,6 +3,7 @@
 // 두 사람 사주는 readings.saju_data 에 별도 저장(이 모듈은 본문만 다룸).
 
 import type { SajuResult } from "@/lib/saju/calc";
+import { parseReportJson } from "./json-recover";
 
 /** 연애·결혼 궁합(compat) 등급 5단계. AI 는 이 중 하나만 고른다. */
 export const COMPAT_ROMANTIC_GRADES = [
@@ -78,19 +79,8 @@ function isGrade(v: unknown): v is CompatGrade {
  * 실패하거나 필수 필드 누락 시 null.
  */
 export function parseCompatReportJson(raw: string): CompatReportAI | null {
-  if (typeof raw !== "string") return null;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== "object") return null;
-  const o = obj as Record<string, unknown>;
+  const o = parseReportJson(raw);
+  if (!o) return null;
 
   if (!isGrade(o.grade)) return null;
   if (!isNonEmptyString(o.theme)) return null;

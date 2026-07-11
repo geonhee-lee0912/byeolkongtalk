@@ -2,6 +2,8 @@
 // daily-report.ts / monthly-report.ts 와 동형. 저장은 messages.content 에 병합 JSON 문자열(v:1).
 // 2026 은 고정 연도라 temporal(일진/월건) 의존이 없다.
 
+import { parseReportJson } from "./json-recover";
+
 /** 2026 병오년 — 코드 고정 결정론적 값. */
 export const YEAR_2026 = { stem: "병", branch: "오", hanja: "丙午" } as const;
 
@@ -74,19 +76,8 @@ function cleanStringArray(v: unknown, min: number, max: number): string[] | null
  * 실패하거나 필수 필드 누락 시 null. monthly 는 1~12월 순서로 정렬해서 반환.
  */
 export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
-  if (typeof raw !== "string") return null;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== "object") return null;
-  const o = obj as Record<string, unknown>;
+  const o = parseReportJson(raw);
+  if (!o) return null;
 
   if (!isNonEmptyString(o.theme)) return null;
   if (!isNonEmptyString(o.summary)) return null;

@@ -5,6 +5,7 @@ import type { FiveElement } from "manseryeok";
 import type { TemporalLuck } from "@/lib/saju/calc";
 import { DAILY_SECTIONS } from "./daily-report";
 import { STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
+import { parseReportJson } from "./json-recover";
 
 // 도메인 5개는 daily 와 동일 집합을 재사용 (아이콘/제목/순서는 DAILY_SECTIONS 가 정본).
 export type MonthlySectionKey = "money" | "work" | "love" | "health" | "study";
@@ -56,19 +57,8 @@ function isNonEmptyString(v: unknown): v is string {
  * 실패하거나 필수 필드 누락 시 null. 성공 시 sections 는 표준 순서, weekly 는 1~4주 순서로 반환.
  */
 export function parseMonthlyReportJson(raw: string): MonthlyReportAI | null {
-  if (typeof raw !== "string") return null;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== "object") return null;
-  const o = obj as Record<string, unknown>;
+  const o = parseReportJson(raw);
+  if (!o) return null;
 
   // stars 1~5 정수로 클램프
   const starsNum = typeof o.stars === "number" ? Math.round(o.stars) : NaN;

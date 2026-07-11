@@ -1,6 +1,8 @@
 // 타로 운세 리포트 JSON 파싱/직렬화. compat-report.ts와 동일 패턴.
 // 저장 형식: messages.content 에 JSON 문자열, v:1.
 
+import { parseReportJson } from "./json-recover";
+
 export interface TarotReportCardAI {
   position: string;
   cardName: string;
@@ -34,63 +36,12 @@ function normalizeDirection(v: unknown): "upright" | "reversed" {
 }
 
 /**
- * 문자열 리터럴 안의 raw 제어문자(개행·탭)를 escape 시퀀스로 바꾼다.
- * 타로 프롬프트는 summary 에 빈 줄(\n\n)을 넣으라고 지시하는데, 모델이 escape 된
- * "\n" 두 글자 대신 실제 개행을 뱉으면 JSON.parse 가 깨진다 — 그 경우를 복구한다.
- */
-function escapeRawControlCharsInStrings(json: string): string {
-  let out = "";
-  let inString = false;
-  let escaped = false;
-  for (const ch of json) {
-    if (escaped) {
-      out += ch;
-      escaped = false;
-      continue;
-    }
-    if (ch === "\\") {
-      out += ch;
-      escaped = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      out += ch;
-      continue;
-    }
-    if (inString) {
-      if (ch === "\n") { out += "\\n"; continue; }
-      if (ch === "\r") { out += "\\r"; continue; }
-      if (ch === "\t") { out += "\\t"; continue; }
-    }
-    out += ch;
-  }
-  return out;
-}
-
-/**
  * AI 원문에서 JSON 본문을 잘라 파싱한다. 형식이 어긋나면 null.
+ * 문자열 안 raw 개행 등의 복구는 parseReportJson 가 담당한다.
  */
 export function parseTarotReportJson(raw: string): TarotReportAI | null {
-  if (typeof raw !== "string") return null;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-
-  const slice = raw.slice(start, end + 1);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(slice);
-  } catch {
-    // 문자열 안 raw 개행 등으로 1차 실패 시 제어문자 복구 후 재시도.
-    try {
-      parsed = JSON.parse(escapeRawControlCharsInStrings(slice));
-    } catch {
-      return null;
-    }
-  }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const o = parsed as Record<string, unknown>;
+  const o = parseReportJson(raw);
+  if (!o) return null;
 
   if (!isNonEmptyString(o.headline)) return null;
   if (!isNonEmptyString(o.summary)) return null;

@@ -5,6 +5,7 @@
 import type { FiveElement } from "manseryeok";
 import type { TemporalLuck } from "@/lib/saju/calc";
 import { ELEMENT_COLOR, STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
+import { parseReportJson } from "./json-recover";
 
 // DailyReportCard 등 기존 사용처(@/lib/fortune/daily-report 에서 import)가 깨지지 않게 re-export.
 export { ELEMENT_COLOR };
@@ -63,19 +64,8 @@ function isNonEmptyString(v: unknown): v is string {
  * 실패하거나 필수 필드 누락 시 null. 성공 시 sections 는 표준 순서로 정렬해서 반환.
  */
 export function parseDailyReportJson(raw: string): DailyReportAI | null {
-  if (typeof raw !== "string") return null;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== "object") return null;
-  const o = obj as Record<string, unknown>;
+  const o = parseReportJson(raw);
+  if (!o) return null;
 
   // stars 1~5 정수로 클램프
   const starsNum = typeof o.stars === "number" ? Math.round(o.stars) : NaN;
