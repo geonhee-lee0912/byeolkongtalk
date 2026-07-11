@@ -66,6 +66,36 @@ export async function GET(
   });
 }
 
+// 결과 화면 열람 마킹 — 소유자가 result 페이지를 처음 열 때 1회. 완료 퍼널의 "결과 열람" 단계.
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { userId } = await getSession();
+  if (!userId) {
+    return NextResponse.json({ error: "Login required" }, { status: 401 });
+  }
+  const supabase = getServiceSupabase();
+  const { data: reading } = await supabase
+    .from("readings")
+    .select("id, user_id, result_viewed_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (!reading) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (reading.user_id !== userId) {
+    return NextResponse.json({ error: "not_authorized" }, { status: 403 });
+  }
+  // 최초 열람만 기록 (첫 열람 시점 보존, 재방문으로 덮어쓰지 않음)
+  if (!reading.result_viewed_at) {
+    await supabase
+      .from("readings")
+      .update({ result_viewed_at: new Date().toISOString() })
+      .eq("id", id);
+  }
+  return NextResponse.json({ ok: true });
+}
+
 // 고민톡 단건 삭제 — 소유권 검증 후 messages 먼저, 그다음 reading 삭제.
 export async function DELETE(
   _req: Request,

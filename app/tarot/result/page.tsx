@@ -77,6 +77,7 @@ function TarotResultInner() {
     void (async () => {
       try {
         let r = await fetch(`/api/readings/${id}`, { cache: "no-store" });
+        const isOwner = r.ok; // 첫 조회 성공 = 소유자 (공개 폴백 아님)
         // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
         if (r.status === 401 || r.status === 403) {
           r = await fetch(`/api/readings/${id}/public`, { cache: "no-store" });
@@ -88,6 +89,10 @@ function TarotResultInner() {
         }
         const d = await r.json();
         setData(d as FetchData);
+        // 소유자가 결과 화면을 연 경우만 열람 마킹 (완료 퍼널 계량용, fire-and-forget)
+        if (isOwner) {
+          void fetch(`/api/readings/${id}`, { method: "POST" }).catch(() => {});
+        }
       } catch {
         setError("연결이 흔들렸어");
       }

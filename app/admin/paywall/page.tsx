@@ -4,6 +4,8 @@
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
+import { daysAgoKstIso } from "@/lib/admin-time";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,40 @@ export default async function PaywallPage() {
     for (const r of reads ?? []) readCount.set(r.user_id, (readCount.get(r.user_id) ?? 0) + 1);
   }
 
+  // 상담 완료 퍼널 (최근 30일, 상담 리딩만 = 운세 리포트 제외):
+  // 시작 → 대화 완료([END]) → 결과 화면(재충전 블록) 열람. 각 단계 이탈 계량.
+  const since = daysAgoKstIso(29);
+  let readQ = supa
+    .from("readings")
+    .select("id, emotion_tag, result_viewed_at")
+    .gte("created_at", since)
+    .limit(100000);
+  if (excl) readQ = readQ.not("user_id", "in", excl);
+  const { data: readRows } = await readQ;
+  const consultReads = (readRows ?? []).filter(
+    (r) => !fortuneTypeFromTag(r.emotion_tag)
+  );
+  const consultIds = consultReads.map((r) => r.id);
+  const endedSet = new Set<string>();
+  if (consultIds.length) {
+    const { data: msgs } = await supa
+      .from("messages")
+      .select("reading_id, content")
+      .in("reading_id", consultIds)
+      .eq("role", "assistant")
+      .limit(100000);
+    for (const m of msgs ?? []) {
+      if (m.content.includes("[END]")) endedSet.add(m.reading_id);
+    }
+  }
+  const cfStarted = consultReads.length;
+  const cfEnded = endedSet.size;
+  const cfViewed = consultReads.filter(
+    (r) => endedSet.has(r.id) && r.result_viewed_at
+  ).length;
+  const pct = (n: number, d: number) =>
+    d ? Math.round((n / d) * 1000) / 10 : 0;
+
   const reachedRate =
     spent.length ? Math.round((reached.length / spent.length) * 1000) / 10 : 0;
   const convRate =
@@ -96,6 +132,26 @@ export default async function PaywallPage() {
         />
         <Stat label="페이월 도달" value={reached.length} sub={`별 사용자의 ${reachedRate}%`} />
         <Stat label="결제 전환" value={converted.length} sub={`도달자의 ${convRate}%`} />
+      </div>
+
+      <div>
+        <h2 className="text-sm text-white/60 mb-1">상담 완료 퍼널 <span className="text-white/35">(최근 30일 · 상담 리딩)</span></h2>
+        <p className="text-[12px] text-white/40 mb-2">
+          대화를 끝내고(대화 완료) 결과 화면(재충전 블록)까지 도달하는지 — 각 단계 이탈 지점. 결과 열람은 이 기능 배포 이후 생성분부터 집계돼 초기엔 낮게 보입니다.
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label="상담 시작" value={cfStarted} />
+          <Stat
+            label="대화 완료 ([END])"
+            value={cfEnded}
+            sub={`완료율 ${pct(cfEnded, cfStarted)}% · 도중 이탈 ${cfStarted - cfEnded}`}
+          />
+          <Stat
+            label="결과 화면 열람"
+            value={cfViewed}
+            sub={`완료의 ${pct(cfViewed, cfEnded)}% · 미열람 ${cfEnded - cfViewed}`}
+          />
+        </div>
       </div>
 
       <div>

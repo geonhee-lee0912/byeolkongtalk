@@ -74,7 +74,11 @@ function ResultPageInner() {
         return r.json();
       })
       .then((d) => {
-        if (d) setData(d as FetchData);
+        if (d) {
+          setData(d as FetchData);
+          // 결과 화면 열람 마킹 (완료 퍼널 계량용, fire-and-forget)
+          void fetch(`/api/readings/${id}`, { method: "POST" }).catch(() => {});
+        }
       })
       .catch(() => setError("연결이 흔들렸어"));
   }, [id]);
