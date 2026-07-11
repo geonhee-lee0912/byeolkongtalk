@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
-import type { FortuneType } from "@/lib/fortune/types";
+import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
-const STEPS = [
+const SAJU_STEPS = [
   "사주판을 펼치는 중…",
   "오행의 흐름을 살피는 중…",
+  "별콩이가 한 장으로 정리하는 중…",
+  "마지막으로 다듬는 중…",
+];
+
+const TAROT_STEPS = [
+  "카드를 펼치는 중…",
+  "카드의 메시지를 읽는 중…",
   "별콩이가 한 장으로 정리하는 중…",
   "마지막으로 다듬는 중…",
 ];
@@ -28,12 +35,15 @@ export default function FortuneGeneratingScreen({
   const [progress, setProgress] = useState(8);
   const [step, setStep] = useState(0);
 
+  const steps =
+    type && FORTUNE_CONFIG[type].base === "tarot" ? TAROT_STEPS : SAJU_STEPS;
+
   useEffect(() => {
     const p = setInterval(() => {
       setProgress((v) => (v >= 92 ? 92 : v + Math.max(1, Math.round((92 - v) / 12))));
     }, 600);
     const s = setInterval(() => {
-      setStep((v) => (v + 1) % STEPS.length);
+      setStep((v) => (v + 1) % steps.length);
     }, 2200);
     return () => {
       clearInterval(p);
@@ -79,7 +89,7 @@ export default function FortuneGeneratingScreen({
             />
           </div>
           <p className="mt-3 text-[12px] text-text-light/80 text-center transition-opacity">
-            {STEPS[step]}
+            {steps[step]}
           </p>
         </div>
       </div>
