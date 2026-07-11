@@ -174,7 +174,11 @@ function ReadingInner() {
     }
   }, [messages, streamingText]);
 
-  async function sendMessage(_userContent: string, history: Message[]) {
+  async function sendMessage(
+    _userContent: string,
+    history: Message[],
+    opts?: { forceEnd?: boolean }
+  ) {
     if (!ctx) return;
     setMessages(history);
     setIsStreaming(true);
@@ -185,7 +189,11 @@ function ReadingInner() {
       const r = await fetch("/api/consultations/saju/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readingId: ctx.readingId, messages: history }),
+        body: JSON.stringify({
+          readingId: ctx.readingId,
+          messages: history,
+          forceEnd: opts?.forceEnd ?? false,
+        }),
       });
       if (!r.ok || !r.body) {
         const data = await r.json().catch(() => ({}));
@@ -235,6 +243,17 @@ function ReadingInner() {
     const text = input.trim();
     setInput("");
     void sendMessage(text, [...messages, { role: "user", content: text }]);
+  };
+
+  // 대화 마무리 — 그레이스풀 종료([END])를 강제해 결과 화면으로 유도
+  const handleFinish = () => {
+    if (isStreaming || isEnded || !ctx) return;
+    const FINISH_PHRASE = "대화 마무리할게";
+    void sendMessage(
+      FINISH_PHRASE,
+      [...messages, { role: "user", content: FINISH_PHRASE }],
+      { forceEnd: true }
+    );
   };
 
   if (!ctx) {
@@ -359,23 +378,33 @@ function ReadingInner() {
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  isStreaming ? "별콩이가 답하는 중…" : "별콩이에게 더 물어보기"
-                }
-                disabled={isStreaming}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] placeholder:text-text-light/50 disabled:opacity-60"
-              />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={
+                    isStreaming ? "별콩이가 답하는 중…" : "별콩이에게 더 물어보기"
+                  }
+                  disabled={isStreaming}
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] placeholder:text-text-light/50 disabled:opacity-60"
+                />
+                <button
+                  type="submit"
+                  disabled={isStreaming || !input.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  전송
+                </button>
+              </div>
               <button
-                type="submit"
-                disabled={isStreaming || !input.trim()}
-                className="px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+                onClick={handleFinish}
+                disabled={isStreaming}
+                className="w-full py-2 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[12px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                전송
+                대화 마무리하고 결과 보기
               </button>
             </form>
           )}

@@ -37,6 +37,8 @@ export const dynamic = "force-dynamic";
 interface ChatBody {
   readingId: string;
   messages: { role: "user" | "assistant"; content: string }[];
+  /** "대화 마무리" 버튼 — 이번 턴 그레이스풀 종료([END]) 강제 */
+  forceEnd?: boolean;
 }
 
 const MAX_MESSAGES = 30;
@@ -179,6 +181,7 @@ export async function POST(request: NextRequest) {
     emotionTag: reading.emotion_tag as string | null,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
+    forceEnd: body.forceEnd === true,
     continuation,
   });
 
