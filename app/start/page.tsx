@@ -282,6 +282,16 @@ function StartPageInner() {
           </div>
         )}
 
+        {/* 본체 진입점 — 선택 없이도 앱 전체를 둘러볼 수 있게 (소프트 내비: 하단탭·헤더 있는 본체로) */}
+        <div className="mx-5 mt-3">
+          <button
+            onClick={() => router.push("/")}
+            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13.5px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+          >
+            별콩톡 전체 보러가기 →
+          </button>
+        </div>
+
         {/* 서비스 메뉴 — variant 분기 */}
         <section className="w-full px-5 py-6 flex flex-col gap-3">
         {variant === "counsel" && (
@@ -374,16 +384,6 @@ function StartPageInner() {
           </>
         )}
         </section>
-
-        {/* 본체 진입점 — 선택 없이도 홈을 둘러볼 수 있게 (소프트 내비: 하단탭·헤더 있는 본체로) */}
-        <div className="w-full px-5 pb-8 flex justify-center">
-          <button
-            onClick={() => router.push("/")}
-            className="text-[12.5px] text-text-light/80 hover:text-eye-purple underline underline-offset-4 transition"
-          >
-            별콩톡 둘러보기 →
-          </button>
-        </div>
       </div>
       {welcomeOpen && <WelcomeStarsModal onStart={handleWelcomeClose} />}
     </main>
