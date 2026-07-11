@@ -160,11 +160,8 @@ function StartPageInner() {
       proceed(pending);
       return;
     }
-    // 진행할 선택이 없으면(가입 박스 직행 등) 콜백 파라미터만 정리하고 랜딩에 머무름
-    const clean = new URLSearchParams(sp.toString());
-    clean.delete("login");
-    clean.delete("welcome");
-    router.replace(`/start?${clean.toString()}`);
+    // 진행할 선택이 없으면(가입 박스 직행 등) 본체 홈으로 보낸다 — 광고 랜딩에 고이지 않게.
+    router.push("/");
     // 마운트 1회 판정 (로그인 복귀는 항상 fresh mount)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valid]);
@@ -180,6 +177,7 @@ function StartPageInner() {
     window.history.replaceState(null, "", `/start?${clean.toString()}`);
     const pending = readPending();
     if (pending) proceed(pending);
+    else router.push("/"); // 선택 없이 가입 → 본체 홈으로
   };
 
   // variant 가 바뀌면(이례적 — 쿼리만 바뀌는 내비게이션) 갈래 스텝 초기화
