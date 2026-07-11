@@ -9,6 +9,8 @@ import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
+import RechargeBlock from "@/components/upsell/RechargeBlock";
+import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -189,8 +191,17 @@ function ResultPageInner() {
         )}
       </div>
 
-      {/* CTA */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
+      {/* ① 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
+      <RechargeBlock
+        allowContinue={!reading.hasSensitive}
+        onContinue={() => setContinueOpen(true)}
+        newHref="/saju"
+        newLabel="새 사주 보기"
+        newCostLabel={`⭐${SAJU_READING_COST}`}
+      />
+
+      {/* ② 공유 — 아래로 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-4">
         <ShareButtons
           readingId={reading.id}
           question={reading.question}
@@ -199,23 +210,10 @@ function ResultPageInner() {
           closingLine={closingLine}
           hasSensitive={reading.hasSensitive}
         />
-        {!reading.hasSensitive && (
-          <button
-            onClick={() => setContinueOpen(true)}
-            className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center hover:bg-lilac-deep/90 transition"
-          >
-            이 고민 이어가기 →
-          </button>
-        )}
-        <Link
-          href="/saju"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
-        >
-          새 사주 보러가기
-        </Link>
       </div>
 
-      <ResultUpsell variant="counsel" />
+      {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
+      <ResultUpsell variant="counsel" showBonus={false} />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}

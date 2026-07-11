@@ -58,23 +58,27 @@ function crossCards(variant: "counsel" | FortuneType): CrossCard[] {
 
 export default function ResultUpsell({
   variant,
+  showBonus = true,
 }: {
   variant: "counsel" | FortuneType;
+  /** 첫충전 +50% 배너 노출 여부. 결과 화면이 RechargeBlock 에서 이미 보여주면 false. */
+  showBonus?: boolean;
 }) {
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
 
   useEffect(() => {
+    if (!showBonus) return;
     void fetch("/api/stars/first-charge-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setFirstChargeEligible(d?.eligible === true))
       .catch(() => {});
-  }, []);
+  }, [showBonus]);
 
   const cards = crossCards(variant);
 
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
-      {firstChargeEligible && (
+      {showBonus && firstChargeEligible && (
         <Link
           href="/shop"
           className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50"

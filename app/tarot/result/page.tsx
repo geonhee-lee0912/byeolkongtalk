@@ -8,6 +8,7 @@ import ChatBubble from "@/components/saju/ChatBubble";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
+import RechargeBlock from "@/components/upsell/RechargeBlock";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
@@ -265,8 +266,17 @@ function TarotResultInner() {
         )}
       </div>
 
-      {/* CTA */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
+      {/* ① 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
+      <RechargeBlock
+        allowContinue={!reading.hasSensitive}
+        onContinue={() => setContinueOpen(true)}
+        newHref="/tarot"
+        newLabel="새 카드 뽑기"
+        newCostLabel="⭐10~"
+      />
+
+      {/* ② 공유 — 아래로 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-4">
         <TarotShareButtons
           readingId={reading.id}
           question={reading.question}
@@ -275,23 +285,10 @@ function TarotResultInner() {
           closingLine={closingLine}
           hasSensitive={reading.hasSensitive}
         />
-        {!reading.hasSensitive && (
-          <button
-            onClick={() => setContinueOpen(true)}
-            className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center hover:bg-lilac-deep/90 transition"
-          >
-            이 고민 이어가기 →
-          </button>
-        )}
-        <Link
-          href="/tarot"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
-        >
-          새 카드 뽑으러 가기
-        </Link>
       </div>
 
-      <ResultUpsell variant="counsel" />
+      {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
+      <ResultUpsell variant="counsel" showBonus={false} />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}
