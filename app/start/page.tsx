@@ -376,6 +376,16 @@ function StartPageInner() {
           </>
         )}
         </section>
+
+        {/* 본체 진입점 — 선택 없이도 홈을 둘러볼 수 있게 (소프트 내비: 하단탭·헤더 있는 본체로) */}
+        <div className="w-full px-5 pb-8 flex justify-center">
+          <button
+            onClick={() => router.push("/")}
+            className="text-[12.5px] text-text-light/80 hover:text-eye-purple underline underline-offset-4 transition"
+          >
+            별콩톡 둘러보기 →
+          </button>
+        </div>
       </div>
       {welcomeOpen && <WelcomeStarsModal onStart={handleWelcomeClose} />}
     </main>
