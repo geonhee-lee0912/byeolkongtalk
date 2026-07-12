@@ -17,6 +17,7 @@ import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
+import { PROMPT_VERSION } from "@/lib/prompt-version";
 
 // 운세/궁합 등 리포트형 리딩은 messages.content 에 JSON 구조체(v:1)로 저장된다.
 // JSON 이면 읽을 수 있는 텍스트 필드만 뽑고, 아니면(타로 상담 채팅 등) 원문 그대로 쓴다.
@@ -328,6 +329,7 @@ export async function POST(request: NextRequest) {
       stars_spent: SAJU_READING_COST,
       saju_product: sajuProduct,
       has_sensitive: false,
+      prompt_version: PROMPT_VERSION,
     })
     .select("id")
     .single();

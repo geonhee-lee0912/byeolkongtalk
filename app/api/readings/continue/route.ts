@@ -10,6 +10,7 @@ import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
 import { logError } from "@/lib/logger";
 import { continuationPrice, fullCostFor, type ContinuationMode } from "@/lib/continuation";
+import { PROMPT_VERSION } from "@/lib/prompt-version";
 import type { SpreadType } from "@/lib/tarot/spreads";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +119,7 @@ export async function POST(request: NextRequest) {
       has_sensitive: false,
       previous_reading_id: parent.id,
       continuation_mode: body.mode,
+      prompt_version: PROMPT_VERSION,
     })
     .select("id")
     .single();

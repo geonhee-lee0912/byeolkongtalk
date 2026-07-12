@@ -16,6 +16,7 @@ import {
   type DrawnCard,
 } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS, type EmotionTag } from "@/lib/emotions";
+import { PROMPT_VERSION } from "@/lib/prompt-version";
 
 export const dynamic = "force-dynamic";
 
@@ -197,6 +198,7 @@ export async function POST(request: NextRequest) {
       has_sensitive: false,
       previous_reading_id: continuationPrevId,
       continuation_mode: continuationPrevId ? "fresh" : null,
+      prompt_version: PROMPT_VERSION,
     })
     .select("id")
     .single();
