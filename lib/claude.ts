@@ -119,9 +119,6 @@ function formatTemporalBlock(
   return "\n\n" + lines.join("\n");
 }
 
-// 첫 풀이 응답 끝에 다음 턴을 초대하는 공용 문구 (칩과 짝). 이어가기 세션엔 미적용.
-const FIRST_TURN_INVITE = `\n\n## 첫 응답 마무리 — 다음 턴 초대\n\n이 첫 풀이의 맨 끝에, 사용자가 이어서 물어볼 수 있게 따뜻하게 초대하는 한 줄을 붙여줘 (예: "더 궁금한 게 있으면 편하게 물어봐 — 예를 들면 연애운이나 조심할 시기 같은 거 👇"). 재촉·단정 금지, 별콩이 화법 유지. 이 턴엔 [END] 를 절대 붙이지 마.`;
-
 const SAJU_PRODUCT_FIRST_TURN_GUIDE: Record<SajuProduct, string> = {
   today_letters: `\n\n## 첫 턴 가이드 — "오늘 들어온 글자"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) **오늘 일운 두 글자**(위 [오늘의 기운]의 ★ 일운)를 사용자에게 또렷이 강조하며 풀이 — "오늘 너에게 들어온 글자는 OO이야" 식 → (3) 이 글자가 사용자 고민과 어떻게 연결되는지 중심으로 → (4) **오늘의 금기/주의 포인트** 한두 가지 → (5) 고민에 연결한 열린 질문 하나 + 짧은 응원. 원국 일간·오행은 거들 뿐, 오늘 일운이 주인공. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자, 단정 X.`,
   nature: `\n\n## 첫 턴 가이드 — "타고난 성향 기반 상담"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) 일간·오행 분포로 본 **타고난 기질** 풀이 → (3) 지금 세운/월운(+대운 큰 흐름)이 그 기질을 어떻게 건드리는지 → (4) 그 본질에서 출발해 사용자 고민에 적용 → (5) 고민에 연결한 열린 질문 하나 + 짧은 응원. 오늘 일운은 보조 근거로만. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자, 단정 X.`,
@@ -170,7 +167,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
   const firstTurnGuide = isFirstTurn
     ? ctx.continuation
       ? continuationFirstTurnGuide("사주")
-      : SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct] + FIRST_TURN_INVITE
+      : SAJU_PRODUCT_FIRST_TURN_GUIDE[ctx.sajuProduct]
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap(하드·종료) 분리
@@ -383,8 +380,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   const firstTurnGuide = isFirstTurn
     ? ctx.continuation
       ? continuationFirstTurnGuide("카드")
-      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.` +
-        FIRST_TURN_INVITE
+      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리

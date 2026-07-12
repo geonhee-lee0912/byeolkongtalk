@@ -6,8 +6,6 @@ import Link from "next/link";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
-import SuggestionChips from "@/components/consultations/SuggestionChips";
-import { getSuggestions, shouldShowSuggestions } from "@/lib/consultations/suggestions";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
@@ -609,12 +607,6 @@ function TarotReadingInner() {
     submitText(text);
   };
 
-  // 추천 질문 칩 탭 — 타이핑 입력과 동일 경로
-  const pickSuggestion = (q: string) => {
-    if (isStreaming || isEnded || !readingId) return;
-    submitText(q);
-  };
-
   const handleFinish = () => {
     if (isStreaming || isEnded || !readingId) return;
     clearFlushTimer();
@@ -825,80 +817,65 @@ function TarotReadingInner() {
               </Link>
             </div>
           ) : (
-            <>
-              {shouldShowSuggestions({
-                assistantCount: messages.filter(
-                  (m) => m.role === "assistant" && !m.ephemeral
-                ).length,
-                isStreaming,
-                isEnded,
-              }) && (
-                <SuggestionChips
-                  suggestions={getSuggestions("tarot")}
-                  onPick={pickSuggestion}
-                  disabled={isStreaming}
-                />
-              )}
-              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  autoResizeInput();
-                  clearIdleTimer();
-                  idleStageRef.current = 0;
-                  if (pendingFragmentsRef.current.length > 0) armFlushTimer();
-                }}
-                onCompositionStart={() => {
-                  composingRef.current = true;
-                }}
-                onCompositionEnd={() => {
-                  composingRef.current = false;
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter" &&
-                    !e.shiftKey &&
-                    !composingRef.current
-                  ) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }}
-                rows={1}
-                placeholder={
-                  isStreaming
-                    ? "별콩이가 답하는 중…"
-                    : "별콩이에게 더 물어보기 (Shift+Enter 줄바꿈)"
-                }
-                disabled={isStreaming || !readingId}
-                maxLength={500}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
-                style={{ minHeight: "44px", maxHeight: "120px" }}
-              />
-              <div className="flex items-center gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      autoResizeInput();
+                      clearIdleTimer();
+                      idleStageRef.current = 0;
+                      if (pendingFragmentsRef.current.length > 0) armFlushTimer();
+                    }}
+                    onCompositionStart={() => {
+                      composingRef.current = true;
+                    }}
+                    onCompositionEnd={() => {
+                      composingRef.current = false;
+                    }}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !e.shiftKey &&
+                        !composingRef.current
+                      ) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
+                    rows={1}
+                    placeholder={
+                      isStreaming
+                        ? "별콩이가 답하는 중…"
+                        : "별콩이에게 더 물어보기 (Shift+Enter 줄바꿈)"
+                    }
+                    disabled={isStreaming || !readingId}
+                    maxLength={500}
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                    style={{ minHeight: "44px", maxHeight: "120px" }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isStreaming || !input.trim() || !readingId}
+                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  >
+                    전송
+                    <span className="text-[11px] font-normal text-white/70">
+                      {input.length}/500
+                    </span>
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleFinish}
                   disabled={isStreaming || !readingId}
-                  className="flex-1 h-[44px] rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ✨ 결과 카드 받기
                 </button>
-                <button
-                  type="submit"
-                  disabled={isStreaming || !input.trim() || !readingId}
-                  className="flex-1 h-[44px] rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                >
-                  전송
-                  <span className="text-[11px] font-normal text-white/70">
-                    {input.length}/500
-                  </span>
-                </button>
-              </div>
-            </form>
-            </>
+              </form>
           )}
         </div>
       </div>

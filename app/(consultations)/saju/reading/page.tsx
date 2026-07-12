@@ -6,8 +6,6 @@ import Link from "next/link";
 import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
-import SuggestionChips from "@/components/consultations/SuggestionChips";
-import { getSuggestions, shouldShowSuggestions } from "@/lib/consultations/suggestions";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
 
@@ -258,12 +256,6 @@ function ReadingInner() {
     );
   };
 
-  // 추천 질문 칩 탭 — 사용자가 직접 입력한 것과 동일 경로로 전송
-  const pickSuggestion = (q: string) => {
-    if (isStreaming || isEnded) return;
-    void sendMessage(q, [...messages, { role: "user", content: q }]);
-  };
-
   if (!ctx) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
@@ -386,19 +378,7 @@ function ReadingInner() {
               </Link>
             </div>
           ) : (
-            <>
-              {shouldShowSuggestions({
-                assistantCount: messages.filter((m) => m.role === "assistant").length,
-                isStreaming,
-                isEnded,
-              }) && (
-                <SuggestionChips
-                  suggestions={getSuggestions("saju")}
-                  onPick={pickSuggestion}
-                  disabled={isStreaming}
-                />
-              )}
-              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -427,7 +407,6 @@ function ReadingInner() {
                 ✨ 이 풀이로 결과 카드 받기
               </button>
             </form>
-            </>
           )}
         </div>
       </div>
