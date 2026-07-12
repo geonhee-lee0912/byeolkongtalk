@@ -4,7 +4,7 @@ import { cancelPayment, confirmPayment, TossPaymentError } from "@/lib/toss";
 import { chargeStars } from "@/lib/stars";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
@@ -14,6 +14,21 @@ const MERCHANT_BLOCKED_CODES = [
   "NOT_AVAILABLE_PAYMENT_BY_MERCHANT",
   "UNAUTHORIZED_KEY",
   "INVALID_API_KEY",
+];
+
+// 유저/카드사 귀책 결제 거절 — 시스템 오류가 아니라 정상적인 결제 실패.
+// 잔액부족·한도초과·정지카드 등. error 로 쌓으면 실제 사고 알림에 묻히므로 warn 으로만 남김.
+const USER_DECLINE_CODES = [
+  "REJECT_ACCOUNT_PAYMENT", // 계좌 잔액 부족
+  "REJECT_CARD_PAYMENT", // 카드 결제 거절(한도/잔액)
+  "REJECT_CARD_COMPANY", // 카드사 승인 거절
+  "INVALID_STOPPED_CARD", // 정지/분실 카드
+  "EXCEED_MAX_DAILY_PAYMENT_COUNT", // 일 결제 횟수 초과
+  "EXCEED_MAX_ONE_DAY_AMOUNT", // 일 결제 한도 초과
+  "EXCEED_MAX_AMOUNT", // 결제 한도 초과
+  "INVALID_CARD_EXPIRATION", // 카드 유효기간 오류
+  "EXCEED_MAX_CARD_INSTALLMENT_PLAN", // 할부 개월 초과
+  "NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT", // 할부 미지원 카드
 ];
 
 /**
@@ -26,8 +41,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });
   }
 
+  // catch 에서 ALREADY_PROCESSED 재조회에 쓰려고 try 밖으로 hoist.
+  let paymentKey: string | null = null;
+
   try {
-    const { paymentKey, orderId, amount } = await request.json();
+    const body = await request.json();
+    paymentKey = body.paymentKey ?? null;
+    const orderId = body.orderId;
+    const amount = body.amount;
 
     if (!paymentKey || !orderId || !amount) {
       return NextResponse.json(
@@ -271,20 +292,56 @@ export async function POST(request: NextRequest) {
     const tossCode = error instanceof TossPaymentError ? error.code : null;
     const merchantBlocked =
       tossCode !== null && MERCHANT_BLOCKED_CODES.includes(tossCode);
+    // 유저 귀책 결제 거절은 정상적인 실패 → error 알림에서 제외하고 warn 으로만 기록.
+    const userDeclined =
+      tossCode !== null && USER_DECLINE_CODES.includes(tossCode);
 
-    await logError(
-      error,
-      ctxFromRequest(request, {
-        route: "/api/payment/confirm",
-        userId,
-        extra: {
-          tossErrorCode: tossCode,
-          ...(merchantBlocked
-            ? { severity: "CRITICAL_PAYMENT_BLOCKED" }
-            : {}),
-        },
-      })
-    );
+    const logCtx = ctxFromRequest(request, {
+      route: "/api/payment/confirm",
+      userId,
+      extra: {
+        tossErrorCode: tossCode,
+        ...(merchantBlocked ? { severity: "CRITICAL_PAYMENT_BLOCKED" } : {}),
+      },
+    });
+
+    // 이미 토스에서 승인된 결제 — 동시 중복 confirm(레이스) 또는 successUrl 새로고침 재호출.
+    // 승자 요청이 payments/stars 를 기록하므로 시스템 오류가 아님. 우리 기록이 있으면
+    // 멱등 성공으로 응답하고 warn 으로만 남긴다(pg_tid 유니크라 row 는 항상 1개).
+    // 기록이 없으면(결제됐는데 별 미지급 우려) 아래 generic error 경로로 흘려 운영자가 보게 둔다.
+    if (tossCode === "ALREADY_PROCESSED_PAYMENT" && paymentKey) {
+      const supa = getServiceSupabase();
+      const { data: paid } = await supa
+        .from("payments")
+        .select("stars_given")
+        .eq("pg_tid", paymentKey)
+        .maybeSingle();
+      if (paid) {
+        await logWarn(
+          `Toss payment already processed (idempotent): ${paymentKey}`,
+          logCtx
+        );
+        const { data: bal } = await supa
+          .from("star_balances")
+          .select("balance")
+          .eq("user_id", userId)
+          .maybeSingle();
+        return NextResponse.json({
+          success: true,
+          alreadyProcessed: true,
+          stars: paid.stars_given,
+          bonusStars: 0,
+          balance: bal?.balance ?? null,
+          paymentKey,
+        });
+      }
+    }
+
+    if (userDeclined) {
+      await logWarn(`Toss payment declined: ${tossCode}`, logCtx);
+    } else {
+      await logError(error, logCtx);
+    }
 
     if (error instanceof TossPaymentError) {
       return NextResponse.json(
