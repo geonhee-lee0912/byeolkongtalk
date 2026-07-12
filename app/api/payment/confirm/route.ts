@@ -8,27 +8,37 @@ import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
-// 개별 결제 실패가 아니라 상점 계정/키 자체가 막힌 상태 — 전 유저 결제 불능.
+// 개별 결제 실패가 아니라 상점 계정/키/설정 자체가 막힌 상태 — 전 유저 결제 불능.
 // 토스 대시보드 상점 상태 확인 + 고객센터(1544-7772) 문의로만 해소 가능.
+// 코드 출처: https://docs.tosspayments.com/reference/error-codes
 const MERCHANT_BLOCKED_CODES = [
-  "NOT_AVAILABLE_PAYMENT_BY_MERCHANT",
-  "UNAUTHORIZED_KEY",
-  "INVALID_API_KEY",
+  "NOT_AVAILABLE_PAYMENT_BY_MERCHANT", // 상점에서 결제 불가 상태
+  "UNAUTHORIZED_KEY", // 인증되지 않은 키
+  "INVALID_API_KEY", // 잘못된 시크릿 키
+  "INVALID_UNREGISTERED_SUBMALL", // 등록되지 않은 서브몰
+  "NOT_REGISTERED_BUSINESS", // 등록되지 않은 사업자
+  "NOT_FOUND_TERMINAL_ID", // 단말기 번호 없음
 ];
 
 // 유저/카드사 귀책 결제 거절 — 시스템 오류가 아니라 정상적인 결제 실패.
 // 잔액부족·한도초과·정지카드 등. error 로 쌓으면 실제 사고 알림에 묻히므로 warn 으로만 남김.
+// 토스 공식 문서에서 확인된 고객측 거절 코드만 등재. 미확인/시스템(PROVIDER_ERROR·FAILED_*)
+// 코드는 일부러 제외 → 새 코드는 error 로 남아 운영자가 보고 여기 추가하는 fail-safe 구조.
+// 코드 출처: https://docs.tosspayments.com/reference/error-codes
 const USER_DECLINE_CODES = [
   "REJECT_ACCOUNT_PAYMENT", // 계좌 잔액 부족
   "REJECT_CARD_PAYMENT", // 카드 결제 거절(한도/잔액)
-  "REJECT_CARD_COMPANY", // 카드사 승인 거절
-  "INVALID_STOPPED_CARD", // 정지/분실 카드
-  "EXCEED_MAX_DAILY_PAYMENT_COUNT", // 일 결제 횟수 초과
-  "EXCEED_MAX_ONE_DAY_AMOUNT", // 일 결제 한도 초과
-  "EXCEED_MAX_AMOUNT", // 결제 한도 초과
+  "INVALID_REJECT_CARD", // 카드 사용 거절
+  "INVALID_STOPPED_CARD", // 정지된 카드
+  "INVALID_CARD_LOST_OR_STOLEN", // 분실/도난 카드
   "INVALID_CARD_EXPIRATION", // 카드 유효기간 오류
-  "EXCEED_MAX_CARD_INSTALLMENT_PLAN", // 할부 개월 초과
-  "NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT", // 할부 미지원 카드
+  "INVALID_CARD_NUMBER", // 카드번호 오류
+  "EXCEED_MAX_DAILY_PAYMENT_COUNT", // 일 결제 횟수 초과
+  "EXCEED_MAX_PAYMENT_AMOUNT", // 일 결제 금액 초과
+  "EXCEED_MAX_MONTHLY_PAYMENT_AMOUNT", // 월 결제 한도 초과
+  "NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT", // 할부 미지원 카드/가맹점
+  "EXCEED_MAX_AUTH_COUNT", // 최대 인증 횟수 초과
+  "INVALID_PASSWORD", // 결제 비밀번호 불일치
 ];
 
 /**
