@@ -6,6 +6,8 @@ import Link from "next/link";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
+import SuggestionChips from "@/components/consultations/SuggestionChips";
+import { getSuggestions, shouldShowSuggestions } from "@/lib/consultations/suggestions";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
@@ -565,11 +567,7 @@ function TarotReadingInner() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || isStreaming || isEnded || !readingId) return;
-
+  const submitText = (text: string) => {
     // 대기 묶음 시작(0→1) 시점에 현재까지의 히스토리를 base로 스냅샷
     if (pendingFragmentsRef.current.length === 0) {
       baseHistoryRef.current = messagesRef.current;
@@ -602,6 +600,19 @@ function TarotReadingInner() {
         }
       });
     });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isStreaming || isEnded || !readingId) return;
+    submitText(text);
+  };
+
+  // 추천 질문 칩 탭 — 타이핑 입력과 동일 경로
+  const pickSuggestion = (q: string) => {
+    if (isStreaming || isEnded || !readingId) return;
+    submitText(q);
   };
 
   const handleFinish = () => {
@@ -814,7 +825,21 @@ function TarotReadingInner() {
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <>
+              {shouldShowSuggestions({
+                assistantCount: messages.filter(
+                  (m) => m.role === "assistant" && !m.ephemeral
+                ).length,
+                isStreaming,
+                isEnded,
+              }) && (
+                <SuggestionChips
+                  suggestions={getSuggestions("tarot")}
+                  onPick={pickSuggestion}
+                  disabled={isStreaming}
+                />
+              )}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -857,9 +882,9 @@ function TarotReadingInner() {
                   type="button"
                   onClick={handleFinish}
                   disabled={isStreaming || !readingId}
-                  className="flex-1 h-[44px] rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-[44px] rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  대화 마무리
+                  ✨ 결과 카드 받기
                 </button>
                 <button
                   type="submit"
@@ -873,6 +898,7 @@ function TarotReadingInner() {
                 </button>
               </div>
             </form>
+            </>
           )}
         </div>
       </div>
