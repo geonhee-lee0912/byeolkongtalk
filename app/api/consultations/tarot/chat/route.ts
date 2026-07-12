@@ -205,9 +205,20 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(chunk));
         }
 
+        const turnTs = Date.now();
         await supabase.from("messages").insert([
-          { reading_id: reading.id, role: "user", content: lastMessage.content },
-          { reading_id: reading.id, role: "assistant", content: assistantText },
+          {
+            reading_id: reading.id,
+            role: "user",
+            content: lastMessage.content,
+            created_at: new Date(turnTs).toISOString(),
+          },
+          {
+            reading_id: reading.id,
+            role: "assistant",
+            content: assistantText,
+            created_at: new Date(turnTs + 1).toISOString(),
+          },
         ]);
 
         // Meta CAPI 체험완료 — 이 유저의 첫 리딩이면 StartTrial. eventId=trial:{userId} 로 dedup.

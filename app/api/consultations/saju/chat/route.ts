@@ -210,16 +210,19 @@ export async function POST(request: NextRequest) {
         }
 
         // 스트림 완료 — user 마지막 메시지 + assistant 응답 둘 다 INSERT
+        const turnTs = Date.now();
         await supabase.from("messages").insert([
           {
             reading_id: reading.id,
             role: "user",
             content: lastMessage.content,
+            created_at: new Date(turnTs).toISOString(),
           },
           {
             reading_id: reading.id,
             role: "assistant",
             content: assistantText,
+            created_at: new Date(turnTs + 1).toISOString(),
           },
         ]);
 

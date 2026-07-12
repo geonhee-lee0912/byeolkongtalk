@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const supabase = getServiceSupabase();
   const [reading, messages] = await Promise.all([
     supabase.from("readings").select("*").eq("id", id).single(),
-    supabase.from("messages").select("role, content, created_at").eq("reading_id", id).order("created_at", { ascending: true }),
+    supabase.from("messages").select("role, content, created_at").eq("reading_id", id).order("created_at", { ascending: true }).order("role", { ascending: false }),
   ]);
   if (!reading.data) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ reading: reading.data, messages: messages.data ?? [] });

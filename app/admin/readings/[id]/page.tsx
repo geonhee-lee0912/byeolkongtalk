@@ -13,7 +13,7 @@ export default async function AdminReadingDetail({ params }: { params: Promise<{
   const supabase = getServiceSupabase();
   const [reading, messages] = await Promise.all([
     supabase.from("readings").select("*").eq("id", id).single(),
-    supabase.from("messages").select("role, content, created_at").eq("reading_id", id).order("created_at", { ascending: true }),
+    supabase.from("messages").select("role, content, created_at").eq("reading_id", id).order("created_at", { ascending: true }).order("role", { ascending: false }),
   ]);
   if (!reading.data) notFound();
 

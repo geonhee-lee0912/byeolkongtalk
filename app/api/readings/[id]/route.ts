@@ -37,7 +37,8 @@ export async function GET(
     .from("messages")
     .select("role, content, created_at")
     .eq("reading_id", reading.id)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("role", { ascending: false });
 
   const { data: profile } = await supabase
     .from("user_profiles")
