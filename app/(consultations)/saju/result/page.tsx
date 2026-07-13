@@ -10,9 +10,11 @@ import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import RecoCard from "@/components/reco/RecoCard";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
+import type { NextReco } from "@/lib/reco-utils";
 import type { SajuResult } from "@/lib/saju/calc";
 
 export default function ResultPage() {
@@ -36,6 +38,7 @@ interface FetchData {
     sajuData: SajuResult;
     starsSpent: number;
     hasSensitive: boolean;
+    nextReco: NextReco | null;
     createdAt: string;
   };
   messages: MessageRow[];
@@ -199,7 +202,19 @@ function ResultPageInner() {
         )}
       </div>
 
-      {/* ① 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
+      {/* ① 추천 카드 — next_reco 있을 때만 */}
+      {reading.nextReco && (
+        <RecoCard
+          reco={reading.nextReco}
+          readingId={reading.id}
+          question={reading.question}
+          emotionTag={null}
+          hasSensitive={reading.hasSensitive}
+          onContinue={() => setContinueOpen(true)}
+        />
+      )}
+
+      {/* ② 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
       <RechargeBlock
         allowContinue={!reading.hasSensitive}
         onContinue={() => setContinueOpen(true)}

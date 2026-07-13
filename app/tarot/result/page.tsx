@@ -9,8 +9,10 @@ import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import RecoCard from "@/components/reco/RecoCard";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
+import type { NextReco } from "@/lib/reco-utils";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
@@ -40,6 +42,7 @@ interface FetchData {
     drawnCards: DrawnCard[] | null;
     starsSpent: number;
     hasSensitive: boolean;
+    nextReco: NextReco | null;
     createdAt: string;
   };
   messages: MessageRow[];
@@ -272,7 +275,19 @@ function TarotResultInner() {
         )}
       </div>
 
-      {/* ① 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
+      {/* ① 추천 카드 — next_reco 있을 때만 */}
+      {reading.nextReco && (
+        <RecoCard
+          reco={reading.nextReco}
+          readingId={reading.id}
+          question={reading.question}
+          emotionTag={reading.emotionTag ?? null}
+          hasSensitive={reading.hasSensitive}
+          onContinue={() => setContinueOpen(true)}
+        />
+      )}
+
+      {/* ② 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
       <RechargeBlock
         allowContinue={!reading.hasSensitive}
         onContinue={() => setContinueOpen(true)}
