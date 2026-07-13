@@ -13,6 +13,7 @@ import type { SensitiveCategory } from "@/lib/sensitive";
 import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, RECO_MARKER_REGEX, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
 
 interface Message {
   role: "user" | "assistant";
@@ -83,6 +84,12 @@ function ReadingInner() {
   const pendingRecoJumpRef = useRef<RecoProduct | null>(null);
   // extend 칩 상태
   const [extendState, setExtendState] = useState<ExtendChipState>("idle");
+  // RechargeSheet
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
+  // pending_upsell 재개 배너
+  const [pendingResumeBanner, setPendingResumeBanner] = useState<{
+    type: "clarifier" | "extend";
+  } | null>(null);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -192,6 +199,35 @@ function ReadingInner() {
     void sendMessage(ctx.question, [{ role: "user", content: ctx.question }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx]);
+
+  // pending_upsell 복원 — ctx(readingId) 확보 후 체크
+  useEffect(() => {
+    if (!ctx?.readingId) return;
+    const raw = sessionStorage.getItem("byeolkong:pending_upsell");
+    if (!raw) return;
+    try {
+      const pending = JSON.parse(raw) as { readingId: string; type: "clarifier" | "extend" };
+      if (pending.readingId !== ctx.readingId) {
+        sessionStorage.removeItem("byeolkong:pending_upsell");
+        return;
+      }
+      fetch("/api/stars/balance", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const bal: number = d?.balance ?? 0;
+          if (bal >= 10) {
+            setPendingResumeBanner({ type: pending.type });
+          } else {
+            sessionStorage.removeItem("byeolkong:pending_upsell");
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem("byeolkong:pending_upsell");
+        });
+    } catch {
+      sessionStorage.removeItem("byeolkong:pending_upsell");
+    }
+  }, [ctx?.readingId]);
 
   // 메시지 추가 시 하단 스크롤
   useEffect(() => {
@@ -342,9 +378,8 @@ function ReadingInner() {
       const res = await fetch(`/api/readings/${ctx.readingId}/extend`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) {
-        // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
-        setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${(data as {balance?:number}).balance ?? 0})`);
         setExtendState("idle");
+        setRechargeSheetOpen(true);
         return;
       }
       if (!res.ok) {
@@ -567,6 +602,50 @@ function ReadingInner() {
         onCancel={() => setRecoModalOpen(false)}
         onConfirm={handleRecoConfirm}
       />
+
+      {/* 충전 시트 */}
+      {ctx && (
+        <RechargeSheet
+          open={rechargeSheetOpen}
+          returnTo={`/saju/reading?id=${ctx.readingId}`}
+          pendingUpsell={{ readingId: ctx.readingId, type: "extend" }}
+          onClose={() => setRechargeSheetOpen(false)}
+        />
+      )}
+
+      {/* pending_upsell 재개 배너 */}
+      {pendingResumeBanner && (
+        <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
+          <div
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-[15px] shrink-0">⭐</span>
+            <p className="flex-1 text-[13px] font-bold text-eye-purple leading-snug">
+              충전 완료! 이어갈까?
+            </p>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem("byeolkong:pending_upsell");
+                setPendingResumeBanner(null);
+                void handleExtendTap();
+              }}
+              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-[12px] font-bold hover:bg-lilac-deep/90"
+            >
+              좋아
+            </button>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem("byeolkong:pending_upsell");
+                setPendingResumeBanner(null);
+              }}
+              className="shrink-0 text-[11px] text-text-light/70 hover:text-text-light"
+            >
+              나중에
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

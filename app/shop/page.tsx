@@ -9,14 +9,7 @@ import {
   FIRST_CHARGE_BONUS_RATE,
   type StarPackage,
 } from "@/lib/constants";
-import {
-  loadTossPayments,
-  type TossPaymentsPayment,
-} from "@tosspayments/tosspayments-sdk";
-
-// API 개별 연동 키(live_ck_/live_sk_) — 결제창 방식.
-// 위젯 연동 키(gck/gsk)는 계정 단위 1세트라 상점(MID)을 못 고름 → 심사된 상점으로 결제하려면 개별 연동 키 필요.
-const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
+import { useTossPayment } from "@/lib/use-toss-payment";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -71,10 +64,7 @@ function ShopContent() {
 
   // 토스 결제창 (Payment Window) 상태
   const [userId, setUserId] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState<string | null>(null);
-  const paymentRef = useRef<TossPaymentsPayment | null>(null);
-  const [paymentReady, setPaymentReady] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const { paymentReady, paymentError, startPayment } = useTossPayment();
 
   // 결제 완료 후 뒤로가기 인터셉트용 sentinel 추적
   const sentinelPushedRef = useRef(false);
@@ -99,7 +89,7 @@ function ShopContent() {
       .catch(() => {});
   }, []);
 
-  // 로그인 확인 + userId 확보 (위젯 customerKey 로 사용)
+  // 로그인 확인 + userId 확보 (리다이렉트 가드)
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/me", { cache: "no-store" })
@@ -108,14 +98,11 @@ function ShopContent() {
         if (cancelled) return;
         if (data?.isAuthenticated && data.user?.id) {
           setUserId(data.user.id);
-          setCustomerName(data.user.nickname ?? null);
         } else {
           router.replace(`/login?next=${encodeURIComponent("/shop")}`);
         }
       })
-      .catch(() => {
-        if (!cancelled) setPaymentError("auth_check_failed");
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -164,7 +151,20 @@ function ShopContent() {
         fetchBalance();
         // 헤더 잔액 칩도 같은 이벤트로 갱신 (Header 가 listen)
         window.dispatchEvent(new Event("byeolkong:balance-updated"));
-        setTimeout(() => router.replace("/shop?status=success"), 1500);
+
+        // returnTo 쿼리 있으면 — 검증 후 대화로 복귀 (토스트 없이)
+        const rawReturnTo = searchParams.get("returnTo");
+        const validReturnTo =
+          rawReturnTo &&
+          rawReturnTo.startsWith("/") &&
+          !rawReturnTo.startsWith("//")
+            ? rawReturnTo
+            : null;
+        if (validReturnTo && !data.alreadyProcessed) {
+          setTimeout(() => router.replace(validReturnTo), 1200);
+        } else {
+          setTimeout(() => router.replace("/shop?status=success"), 1500);
+        }
       } else {
         const data = await res.json().catch(() => ({}));
         setConfirmTone("fail");
@@ -210,57 +210,12 @@ function ShopContent() {
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
   const isProcessing = !!confirmMessage;
 
-  // 결제창 SDK 1회 로드 (userId 확보 후 / 결제 결과 처리 중엔 스킵)
-  useEffect(() => {
-    if (!userId || isProcessing || paymentRef.current) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
-        if (cancelled) return;
-        const p = tossPayments.payment({ customerKey: userId });
-        if (cancelled) return;
-        paymentRef.current = p;
-        setPaymentReady(true);
-      } catch (err) {
-        console.error("Toss payment init failed", err);
-        if (!cancelled) setPaymentError("payment_init_failed");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, isProcessing]);
-
   const handlePay = async () => {
-    if (!selectedPkg || !paymentRef.current) return;
+    if (!selectedPkg) return;
     setLoading(true);
     try {
-      const readyRes = await fetch("/api/payment/ready", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          packageType: selectedPkg.id,
-          stars: selectedPkg.stars,
-          amount: selectedPkg.price,
-        }),
-      });
-
-      if (!readyRes.ok) throw new Error("Payment ready failed");
-      const readyData = await readyRes.json();
-
-      const baseUrl = window.location.origin;
-
-      // 결제창 방식 (API 개별 연동) — method CARD 는 카드/간편결제 통합결제창
-      await paymentRef.current.requestPayment({
-        method: "CARD",
-        amount: { value: readyData.amount, currency: "KRW" },
-        orderId: readyData.orderId,
-        orderName: readyData.orderName,
-        successUrl: `${baseUrl}/shop`,
-        failUrl: `${baseUrl}/shop?status=fail`,
-        customerName: customerName ?? undefined,
-      });
+      await startPayment(selectedPkg);
+      // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
     } catch (error) {
       const err = error as { code?: string; message?: string };
       if (err.code === "USER_CANCEL" || err.code === "STOP") {
@@ -343,18 +298,35 @@ function ShopContent() {
             {status === "success" && (
               <Banner tone="success">충전 완료! 별이 추가됐어 ⭐</Banner>
             )}
-            {status === "fail" && (
-              <Banner tone="fail">
-                {failMessage
-                  ? `결제 실패: ${failMessage}`
-                  : "결제에 실패했어. 다시 시도해볼래?"}
-                {failCode && (
-                  <span className="block mt-1 text-[10px] opacity-70 font-mono">
-                    code: {failCode}
-                  </span>
-                )}
-              </Banner>
-            )}
+            {status === "fail" && (() => {
+              const rawReturnTo = searchParams.get("returnTo");
+              const validReturnTo =
+                rawReturnTo &&
+                rawReturnTo.startsWith("/") &&
+                !rawReturnTo.startsWith("//")
+                  ? rawReturnTo
+                  : null;
+              return (
+                <Banner tone="fail">
+                  {failMessage
+                    ? `결제 실패: ${failMessage}`
+                    : "결제에 실패했어. 다시 시도해볼래?"}
+                  {failCode && (
+                    <span className="block mt-1 text-[10px] opacity-70 font-mono">
+                      code: {failCode}
+                    </span>
+                  )}
+                  {validReturnTo && (
+                    <button
+                      onClick={() => router.replace(validReturnTo)}
+                      className="block mt-2 text-[11px] underline opacity-80"
+                    >
+                      ← 대화로 돌아가기
+                    </button>
+                  )}
+                </Banner>
+              );
+            })()}
             {status === "cancel" && <Banner tone="warn">결제가 취소됐어</Banner>}
 
             {/* 첫 충전 한정 보너스 배너 — 자격 있을 때만 */}

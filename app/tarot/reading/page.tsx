@@ -16,6 +16,7 @@ import { setRecoSessionStorage } from "@/lib/reco-nav";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet from "@/components/upsell/ClarifierSheet";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 
 interface Message {
@@ -148,6 +149,13 @@ function TarotReadingInner() {
   const [extendState, setExtendState] = useState<ExtendChipState>("idle");
   // ClarifierSheet 열림 여부
   const [clarifierSheetOpen, setClarifierSheetOpen] = useState(false);
+  // RechargeSheet
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
+  const [rechargeUpsellType, setRechargeUpsellType] = useState<"clarifier" | "extend">("extend");
+  // pending_upsell 재개 배너
+  const [pendingResumeBanner, setPendingResumeBanner] = useState<{
+    type: "clarifier" | "extend";
+  } | null>(null);
 
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -328,6 +336,38 @@ function TarotReadingInner() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, resumeId]);
+
+  // pending_upsell 복원 — readingId 확보 후 체크
+  useEffect(() => {
+    if (!readingId) return;
+    const raw = sessionStorage.getItem("byeolkong:pending_upsell");
+    if (!raw) return;
+    try {
+      const pending = JSON.parse(raw) as { readingId: string; type: "clarifier" | "extend" };
+      if (pending.readingId !== readingId) {
+        sessionStorage.removeItem("byeolkong:pending_upsell");
+        return;
+      }
+      // 잔액 확인
+      fetch("/api/stars/balance", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const bal: number = d?.balance ?? 0;
+          const needed = 10; // CLARIFIER_COST = EXTEND_COST = 10
+          if (bal >= needed) {
+            setPendingResumeBanner({ type: pending.type });
+          } else {
+            // 잔액 여전히 부족 — 키 삭제
+            sessionStorage.removeItem("byeolkong:pending_upsell");
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem("byeolkong:pending_upsell");
+        });
+    } catch {
+      sessionStorage.removeItem("byeolkong:pending_upsell");
+    }
+  }, [readingId]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -711,9 +751,9 @@ function TarotReadingInner() {
       const res = await fetch(`/api/readings/${readingId}/extend`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) {
-        // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
-        setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${(data as {balance?:number}).balance ?? 0})`);
         setExtendState("idle");
+        setRechargeUpsellType("extend");
+        setRechargeSheetOpen(true);
         return;
       }
       if (!res.ok) {
@@ -1082,12 +1122,68 @@ function TarotReadingInner() {
           accent={SPREAD_INFO[draw.spreadType]?.accent ?? "#6B8DD6"}
           onClose={() => setClarifierSheetOpen(false)}
           onDrawn={handleClarifierDrawn}
-          onInsufficient={(balance) => {
-            // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
-            setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${balance})`);
+          onInsufficient={() => {
             setClarifierSheetOpen(false);
+            setRechargeUpsellType("clarifier");
+            setRechargeSheetOpen(true);
           }}
         />
+      )}
+
+      {/* 충전 시트 */}
+      {readingId && (
+        <RechargeSheet
+          open={rechargeSheetOpen}
+          returnTo={`/tarot/reading?id=${readingId}`}
+          pendingUpsell={
+            readingId
+              ? { readingId, type: rechargeUpsellType }
+              : undefined
+          }
+          onClose={() => setRechargeSheetOpen(false)}
+        />
+      )}
+
+      {/* pending_upsell 재개 배너 */}
+      {pendingResumeBanner && (
+        <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
+          <div
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-[15px] shrink-0">⭐</span>
+            <p className="flex-1 text-[13px] font-bold text-eye-purple leading-snug">
+              충전 완료!{" "}
+              {pendingResumeBanner.type === "clarifier"
+                ? "이어서 뽑을까?"
+                : "이어갈까?"}
+            </p>
+            <button
+              onClick={() => {
+                const type = pendingResumeBanner.type;
+                sessionStorage.removeItem("byeolkong:pending_upsell");
+                setPendingResumeBanner(null);
+                if (type === "clarifier") {
+                  setClarifierSheetOpen(true);
+                } else {
+                  void handleExtendTap();
+                }
+              }}
+              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-[12px] font-bold hover:bg-lilac-deep/90"
+            >
+              좋아
+            </button>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem("byeolkong:pending_upsell");
+                setPendingResumeBanner(null);
+              }}
+              className="shrink-0 text-[11px] text-text-light/70 hover:text-text-light"
+            >
+              나중에
+            </button>
+          </div>
+        </div>
       )}
     </main>
   );
