@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import type { NextReco } from "@/lib/reco-utils";
 import { RECO_DISPLAY } from "@/lib/reco-utils";
-import { PENDING_KEY } from "@/lib/emotions";
+import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Props {
   reco: NextReco;
@@ -37,22 +37,14 @@ export default function RecoCard({
       return;
     }
 
-    // cross-type: sessionStorage 2키 세팅 후 라우팅
-    sessionStorage.setItem(
-      "byeolkong:continuation",
-      JSON.stringify({ previousReadingId: readingId, mode: "fresh" })
-    );
-    const pending: Record<string, unknown> = {
-      emotion: emotionTag ?? "",
-      concern: question,
-      type: display.target,
-    };
-    if (display.sajuProduct) {
-      pending.sajuProduct = display.sajuProduct;
-    }
-    sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
-
-    router.push(display.target === "saju" ? "/saju" : "/tarot");
+    // cross-type: sessionStorage 2키 세팅 후 라우팅 (헬퍼 공통 사용)
+    const dest = setRecoSessionStorage({
+      product: reco.product,
+      readingId,
+      question,
+      emotionTag,
+    });
+    router.push(dest);
   };
 
   return (

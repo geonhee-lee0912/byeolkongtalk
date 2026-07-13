@@ -6,9 +6,12 @@ import Link from "next/link";
 import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
+import RecoInlineCard from "@/components/reco/RecoInlineCard";
+import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { stripRecoMarkers } from "@/lib/reco-utils";
+import { stripRecoMarkers, parseRecoMarker, type RecoProduct } from "@/lib/reco-utils";
+import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Message {
   role: "user" | "assistant";
@@ -71,6 +74,11 @@ function ReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
+  // 인챗 추천 카드 — 대화당 1개, 첫 cross-type 마커만. continue 제외.
+  const [recoAttach, setRecoAttach] = useState<{ messageIndex: number; product: RecoProduct } | null>(null);
+  const [recoModalOpen, setRecoModalOpen] = useState(false);
+  // [END] 감지 전 펜딩 이동 — [마무리하고 넘어가기] 탭 후 세팅
+  const pendingRecoJumpRef = useRef<RecoProduct | null>(null);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +122,16 @@ function ReadingInner() {
               .find((m) => m.role === "assistant");
             if (lastAssistant && /\[END\]/.test(lastAssistant.content)) {
               setIsEnded(true);
+            }
+            // 복원 시 cross-type RECO 마커 감지 (원본 rawMsgs에서 — strip 전)
+            for (let i = 0; i < rawMsgs.length; i++) {
+              if (rawMsgs[i].role === "assistant") {
+                const rp = parseRecoMarker(rawMsgs[i].content);
+                if (rp && rp !== "continue") {
+                  setRecoAttach({ messageIndex: i, product: rp });
+                  break;
+                }
+              }
             }
           }
           const p = d.profile as {
@@ -231,10 +249,34 @@ function ReadingInner() {
       const ended = END_MARKER.test(accumulated);
       const finalText = stripRecoMarkers(accumulated.replace(END_MARKER, "")).trim();
 
-      setMessages([...history, { role: "assistant", content: finalText }]);
+      // 스트리밍 완료 — cross-type RECO 마커 감지 (원본 accumulated에서, 첫 1개만)
+      const recoProduct = parseRecoMarker(accumulated);
+
+      const newMessages: Message[] = [...history, { role: "assistant", content: finalText }];
+      setMessages(newMessages);
+      if (recoProduct && recoProduct !== "continue") {
+        setRecoAttach((existing) =>
+          existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
+        );
+      }
       setStreamingText("");
       setIsStreaming(false);
-      if (ended) setIsEnded(true);
+      if (ended) {
+        // pendingRecoJumpRef 있으면 결과 화면 대신 추천 상품으로 직행
+        const pendingProduct = pendingRecoJumpRef.current;
+        if (pendingProduct && ctx) {
+          pendingRecoJumpRef.current = null;
+          const dest = setRecoSessionStorage({
+            product: pendingProduct,
+            readingId: ctx.readingId,
+            question: ctx.question,
+            emotionTag: null,
+          });
+          router.replace(dest);
+        } else {
+          setIsEnded(true);
+        }
+      }
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setIsStreaming(false);
@@ -247,6 +289,29 @@ function ReadingInner() {
     const text = input.trim();
     setInput("");
     void sendMessage(text, [...messages, { role: "user", content: text }]);
+  };
+
+  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러
+  const handleRecoConfirm = () => {
+    setRecoModalOpen(false);
+    if (!recoAttach || !ctx) return;
+    const product = recoAttach.product;
+
+    if (isEnded) {
+      // 이미 종료된 대화 — 결과 스킵하고 바로 이동
+      const dest = setRecoSessionStorage({
+        product,
+        readingId: ctx.readingId,
+        question: ctx.question,
+        emotionTag: null,
+      });
+      router.replace(dest);
+      return;
+    }
+
+    // 진행 중인 대화 — pendingRecoJumpRef 세팅 후 그레이스풀 종료
+    pendingRecoJumpRef.current = product;
+    handleFinish();
   };
 
   // 대화 마무리 — 그레이스풀 종료([END])를 강제해 결과 화면으로 유도
@@ -341,14 +406,24 @@ function ReadingInner() {
               onClose={() => setSafety(null)}
             />
           )}
-          {messages.map((m, i) => (
-            <ChatBubble
-              key={i}
-              role={m.role}
-              content={m.content}
-              isFirstInTurn={isFirstAssistantInGroup(i)}
-            />
-          ))}
+          {messages.map((m, i) => {
+            const isRecoMessage = recoAttach?.messageIndex === i && m.role === "assistant";
+            return (
+              <div key={i}>
+                <ChatBubble
+                  role={m.role}
+                  content={m.content}
+                  isFirstInTurn={isFirstAssistantInGroup(i)}
+                />
+                {isRecoMessage && recoAttach && (
+                  <RecoInlineCard
+                    product={recoAttach.product}
+                    onTap={() => setRecoModalOpen(true)}
+                  />
+                )}
+              </div>
+            );
+          })}
           {isStreaming && (
             <ChatBubble
               role="assistant"
@@ -414,6 +489,14 @@ function ReadingInner() {
           )}
         </div>
       </div>
+
+      {/* 인챗 추천 확인 모달 */}
+      <RecoConfirmModal
+        open={recoModalOpen}
+        product={recoAttach?.product ?? null}
+        onCancel={() => setRecoModalOpen(false)}
+        onConfirm={handleRecoConfirm}
+      />
     </main>
   );
 }

@@ -6,10 +6,13 @@ import Link from "next/link";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
+import RecoInlineCard from "@/components/reco/RecoInlineCard";
+import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { RECO_MARKER_REGEX, stripRecoMarkers } from "@/lib/reco-utils";
+import { RECO_MARKER_REGEX, stripRecoMarkers, parseRecoMarker, type RecoProduct } from "@/lib/reco-utils";
+import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Message {
   role: "user" | "assistant";
@@ -127,6 +130,12 @@ function TarotReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
+  // 인챗 추천 카드 — 대화당 1개, 첫 cross-type 마커만. continue 제외.
+  const [recoAttach, setRecoAttach] = useState<{ messageIndex: number; product: RecoProduct } | null>(null);
+  // 확인 모달 열림 여부
+  const [recoModalOpen, setRecoModalOpen] = useState(false);
+  // [END] 감지 전 펜딩 이동 — [마무리하고 넘어가기] 탭 후 세팅
+  const pendingRecoJumpRef = useRef<RecoProduct | null>(null);
 
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -204,6 +213,16 @@ function TarotReadingInner() {
               setIsEnded(true);
             }
             END_MARKER_REGEX.lastIndex = 0;
+            // 복원 시 cross-type RECO 마커 감지 (첫 등장 메시지에 카드 부착)
+            for (let i = 0; i < msgs.length; i++) {
+              if (msgs[i].role === "assistant") {
+                const rp = parseRecoMarker(msgs[i].content);
+                if (rp && rp !== "continue") {
+                  setRecoAttach({ messageIndex: i, product: rp });
+                  break;
+                }
+              }
+            }
             // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
             setTimeout(() => {
               const el = scrollRef.current;
@@ -434,16 +453,38 @@ function TarotReadingInner() {
     const hasEnd = END_MARKER_REGEX.test(finalContent);
     END_MARKER_REGEX.lastIndex = 0;
 
+    // 스트리밍 완료 — 이 메시지에 cross-type RECO 마커가 있는지 감지 (첫 1개만)
+    const recoProduct = parseRecoMarker(finalContent);
+
     setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: finalContent },
-      ]);
+      setMessages((prev) => {
+        const newMessages = [...prev, { role: "assistant" as const, content: finalContent }];
+        // 인챗 추천 카드: cross-type 이고 아직 부착 안 됐으면 인덱스 기록
+        if (recoProduct && recoProduct !== "continue") {
+          setRecoAttach((existing) =>
+            existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
+          );
+        }
+        return newMessages;
+      });
       setStreamingBubbles([]);
       setIsStreaming(false);
       setActiveCardIndex(null);
       if (hasEnd) {
-        setIsEnded(true);
+        // pendingRecoJumpRef 있으면 결과 화면 대신 추천 상품으로 직행
+        const pendingProduct = pendingRecoJumpRef.current;
+        if (pendingProduct && draw && readingId) {
+          pendingRecoJumpRef.current = null;
+          const dest = setRecoSessionStorage({
+            product: pendingProduct,
+            readingId,
+            question: draw.concern,
+            emotionTag: draw.emotion ?? null,
+          });
+          router.replace(dest);
+        } else {
+          setIsEnded(true);
+        }
       } else {
         idleStageRef.current = 0;
         armIdleTimer(IDLE_NUDGE_1_MS);
@@ -614,6 +655,29 @@ function TarotReadingInner() {
     submitText(text);
   };
 
+  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러
+  const handleRecoConfirm = () => {
+    setRecoModalOpen(false);
+    if (!recoAttach || !readingId || !draw) return;
+    const product = recoAttach.product;
+
+    if (isEnded) {
+      // 이미 종료된 대화 — 결과 스킵하고 바로 이동
+      const dest = setRecoSessionStorage({
+        product,
+        readingId,
+        question: draw.concern,
+        emotionTag: draw.emotion ?? null,
+      });
+      router.replace(dest);
+      return;
+    }
+
+    // 진행 중인 대화 — pendingRecoJumpRef 세팅 후 그레이스풀 종료
+    pendingRecoJumpRef.current = product;
+    handleFinish();
+  };
+
   const handleFinish = () => {
     if (isStreaming || isEnded || !readingId) return;
     clearFlushTimer();
@@ -750,21 +814,32 @@ function TarotReadingInner() {
                 );
               }
               const bubbles = parseIntoBubbles(msg.content);
-              return bubbles.map((b, bI) => {
-                const isTurnFirst = bI === 0;
-                return (
-                  <ChatBubble
-                    key={`${msgI}-${bI}`}
-                    role="assistant"
-                    content={b.text}
-                    showAvatar={isTurnFirst}
-                    showName={isTurnFirst}
-                    cardIndex={b.cardIndex}
-                    showCardImage={b.showCardImage}
-                    drawnCards={draw.drawnCards}
-                  />
-                );
-              });
+              const isRecoMessage = recoAttach?.messageIndex === msgI;
+              return (
+                <div key={msgI}>
+                  {bubbles.map((b, bI) => {
+                    const isTurnFirst = bI === 0;
+                    return (
+                      <ChatBubble
+                        key={`${msgI}-${bI}`}
+                        role="assistant"
+                        content={b.text}
+                        showAvatar={isTurnFirst}
+                        showName={isTurnFirst}
+                        cardIndex={b.cardIndex}
+                        showCardImage={b.showCardImage}
+                        drawnCards={draw.drawnCards}
+                      />
+                    );
+                  })}
+                  {isRecoMessage && recoAttach && (
+                    <RecoInlineCard
+                      product={recoAttach.product}
+                      onTap={() => setRecoModalOpen(true)}
+                    />
+                  )}
+                </div>
+              );
             })}
 
             {isStreaming &&
@@ -886,6 +961,14 @@ function TarotReadingInner() {
           )}
         </div>
       </div>
+
+      {/* 인챗 추천 확인 모달 */}
+      <RecoConfirmModal
+        open={recoModalOpen}
+        product={recoAttach?.product ?? null}
+        onCancel={() => setRecoModalOpen(false)}
+        onConfirm={handleRecoConfirm}
+      />
     </main>
   );
 }
