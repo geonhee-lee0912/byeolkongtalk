@@ -43,5 +43,23 @@ export function tarotCases(): Case[] {
       skipEndAssertion: true,
     },
   });
+  // C1 크로스셀: 달력 수준 시기 질문을 파고들 때 방향 답 + 사주 '좋은 날' 안내가 나오는지.
+  cases.push({
+    id: "tarot.three_card.timing_push",
+    product: { kind: "tarot", spreadType: "three_card", spreadCategory: "love" },
+    emotion: "그 사람 마음이 궁금해",
+    seed: {},
+    seedConcern: "헤어진 사람이랑 재회하고 싶어. 언제쯤 연락하면 좋을까?",
+    userPersona:
+      "'좋은 날이 언제야?', '몇 월에?', '며칠에 연락할까?' 처럼 구체적인 날짜를 집요하게 묻는 사용자",
+    inputStyle: { tone: "조급한 반말", habits: [] },
+    maxTurns: 5,
+    expects: {
+      mustEnd: false,
+      expectSensitiveHeader: false,
+      expectCardCount: 3,
+      skipEndAssertion: true,
+    },
+  });
   return cases;
 }
