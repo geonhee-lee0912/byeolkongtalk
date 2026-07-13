@@ -78,6 +78,10 @@ export interface SajuReadingContext {
   forceEnd?: boolean;
   /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
   continuation?: ContinuationContext | null;
+  /** 대화 연장 업셀 가능 여부 — convergeLastGuide 에서 [RECO:extend] 조건부 지시 */
+  extendAvailable?: boolean;
+  /** 업셀 보정 후 임계치 — extra_turns 반영. 없으면 lib/saju/constants 기본값 사용 */
+  thresholdOverride?: { convergeStartTurn: number; convergeStartChars: number; hardCapTurn: number; hardCapChars: number; absTurnCap: number };
 }
 
 function formatSajuBlock(saju: SajuResult): string {
@@ -141,22 +145,29 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
   const upcomingTurn = ctx.assistantTurnsSoFar + 1;
   const cumulativeChars = ctx.cumulativeAssistantChars;
 
+  // 업셀 보정 임계치 — thresholdOverride 우선, 없으면 상수 기본값
+  const effConvergeStartTurn = ctx.thresholdOverride?.convergeStartTurn ?? CONVERGE_START_TURN;
+  const effConvergeStartChars = ctx.thresholdOverride?.convergeStartChars ?? CONVERGE_START_CHARS;
+  const effHardCapTurn = ctx.thresholdOverride?.hardCapTurn ?? HARD_CAP_TURN;
+  const effHardCapChars = ctx.thresholdOverride?.hardCapChars ?? HARD_CAP_CHARS;
+  const effAbsTurnCap = ctx.thresholdOverride?.absTurnCap ?? ABS_TURN_CAP;
+
   const naturalHardcap =
-    upcomingTurn >= HARD_CAP_TURN && cumulativeChars >= HARD_CAP_CHARS;
-  const absHardcap = upcomingTurn >= ABS_TURN_CAP;
+    upcomingTurn >= effHardCapTurn && cumulativeChars >= effHardCapChars;
+  const absHardcap = upcomingTurn >= effAbsTurnCap;
   const willHardcap = naturalHardcap || absHardcap;
 
-  const isAbsCapMinus1 = upcomingTurn === ABS_TURN_CAP - 1;
+  const isAbsCapMinus1 = upcomingTurn === effAbsTurnCap - 1;
   const isHardcapMinus1NaturalPath =
-    upcomingTurn === HARD_CAP_TURN - 1 &&
-    cumulativeChars >= CONVERGE_START_CHARS;
+    upcomingTurn === effHardCapTurn - 1 &&
+    cumulativeChars >= effConvergeStartChars;
 
   let mode: "hardcap" | "converge" | "free";
   if (willHardcap) mode = "hardcap";
   else if (isAbsCapMinus1 || isHardcapMinus1NaturalPath) mode = "converge";
   else if (
-    upcomingTurn >= CONVERGE_START_TURN &&
-    cumulativeChars >= CONVERGE_START_CHARS
+    upcomingTurn >= effConvergeStartTurn &&
+    cumulativeChars >= effConvergeStartChars
   )
     mode = "converge";
   else mode = "free";
@@ -177,9 +188,9 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 
   const absHardcapGuide = `\n\n## ⚠️ 마무리 의무 (턴 ${upcomingTurn} — 이번 턴에 반드시 종료)\n\n이번 응답에서 **반드시 대화를 닫아**. 단, 급발진 금지 — 미해결 매듭이 남아도 아래 그레이스풀 화법으로 매끄럽게 닫는 게 핵심이야 (사용자가 내쳐졌다고 느끼지 않게). **직전 사용자 발화가 아직 답 못 받은 확답/시기 질문이면("언제 돼?", "될까?", "연락 올까?" 류) 작별 인사 전에 §"언제·될까·얼마나" 방식의 방향성 있는 답부터 짧게 준 다음 닫아 — 회피 문장으로 시작해서 닫지 마.**${gracefulClosingBlock}`;
 
-  const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${ABS_TURN_CAP}) — 종합 톤\n\n지금까지 나눈 얘기를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 너의 사주가 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새로운 분석 X)\n- 새 질문 던지지 않기 — 사용자가 다음 흐름을 정할 수 있게\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널 참고).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까". 자연스러운 정리 톤만.`;
+  const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${effAbsTurnCap}) — 종합 톤\n\n지금까지 나눈 얘기를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 너의 사주가 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새로운 분석 X)\n- 새 질문 던지지 않기 — 사용자가 다음 흐름을 정할 수 있게\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널 참고).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까". 자연스러운 정리 톤만.`;
 
-  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${ABS_TURN_CAP}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 사주 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "사주는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n  - "끝까지 다 풀어야 한다는 부담은 가지지 마. 네 마음 편한 만큼만."\n- 새 질문 X. 사용자가 끝낼지 이어갈지 스스로 선택할 수 있게.\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- [END] 절대 X (사용자가 응답 안 해도 다음 턴 hardcap에서 자동 종료)\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
+  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${effAbsTurnCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 사주 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "사주는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n  - "끝까지 다 풀어야 한다는 부담은 가지지 마. 네 마음 편한 만큼만."\n- 새 질문 X. 사용자가 끝낼지 이어갈지 스스로 선택할 수 있게.\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- [END] 절대 X (사용자가 응답 안 해도 다음 턴 hardcap에서 자동 종료)${ctx.extendAvailable ? `\n- 이번 턴에 "여기서 정리해도 되고, 더 풀고 싶으면 이어서 볼 수도 있어" 결의 한 문장을 자연스럽게 녹이고, 응답 맨 끝에 [RECO:extend] 마커를 단독 줄로 붙여. 가격·별·결제 언급 금지 — 확장 가능성만.` : ""}\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
 
   const userSignalGuide =
     mode === "converge"
@@ -313,6 +324,10 @@ export interface TarotReadingContext {
   forceEnd?: boolean;
   /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
   continuation?: ContinuationContext | null;
+  /** 대화 연장 업셀 가능 여부 — convergeLastGuide 에서 [RECO:extend] 조건부 지시 */
+  extendAvailable?: boolean;
+  /** 업셀 보정 후 임계치 — extra_turns/clarifier_count 반영. 없으면 WRAP_THRESHOLDS 기본값 사용 */
+  thresholdOverride?: WrapThresholds;
 }
 
 function formatDrawnCardsBlock(cards: DrawnCard[]): string {
@@ -368,7 +383,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const isFirstTurn = ctx.assistantTurnsSoFar === 0;
   const upcomingTurn = ctx.assistantTurnsSoFar + 1;
-  const t = WRAP_THRESHOLDS[ctx.spreadType];
+  const t = ctx.thresholdOverride ?? WRAP_THRESHOLDS[ctx.spreadType];
   const absCap = t.absTurnCap;
 
   const { mode, isLastConvergeTurn, absHardcap } = computeWrapMode(
@@ -392,7 +407,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}) — 종합 톤\n\n지금까지 나눈 얘기와 카드를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제·꼬리질문 X. 사용자가 흐름을 주도하게 두기.\n\n**톤 가이드:**\n- "결국 이 카드들이 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새 분석 X)\n- 새 질문 던지지 않기\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까".`;
 
-  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 카드 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "카드는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- 새 질문 X. [END] 절대 X (다음 턴 hardcap에서 자동 종료).\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
+  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 카드 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "카드는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "이 정도로 충분하면 여기서 멈춰도 돼. 더 풀고 싶은 매듭 있으면 던져봐도 좋고."\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- 새 질문 X. [END] 절대 X (다음 턴 hardcap에서 자동 종료).${ctx.extendAvailable ? `\n- 이번 턴에 "여기서 정리해도 되고, 더 풀고 싶으면 이어서 볼 수도 있어" 결의 한 문장을 자연스럽게 녹이고, 응답 맨 끝에 [RECO:extend] 마커를 단독 줄로 붙여. 가격·별·결제 언급 금지 — 확장 가능성만.` : ""}\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
 
   const userSignalGuide =
     mode === "converge"

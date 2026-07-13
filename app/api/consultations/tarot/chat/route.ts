@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat } from "@/lib/claude";
+import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .select(
-      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, previous_reading_id, continuation_mode"
+      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, previous_reading_id, continuation_mode, extra_turns, clarifier_count"
     )
     .eq("id", body.readingId)
     .maybeSingle();
@@ -163,8 +164,30 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자)
+  const spreadType = reading.spread_type as SpreadType;
+  const baseT = WRAP_THRESHOLDS[spreadType];
+  const extraTurns = (reading.extra_turns ?? 0) as number;
+  const clarifierCount = (reading.clarifier_count ?? 0) as number;
+  const bonusTurns = extraTurns + clarifierCount * 2;
+  const bonusChars = clarifierCount * 800;
+  const effT =
+    bonusTurns > 0 || bonusChars > 0
+      ? {
+          convergeStartTurn: baseT.convergeStartTurn + bonusTurns,
+          convergeStartChars: baseT.convergeStartChars + bonusChars,
+          hardCapTurn: baseT.hardCapTurn + bonusTurns,
+          hardCapChars: baseT.hardCapChars + bonusChars,
+          absTurnCap: baseT.absTurnCap + bonusTurns,
+        }
+      : undefined;
+
+  // 대화 연장 업셀 가능: extra_turns 0 + forceEnd 아님 + EXTEND_MAX 이내 (현재 max 1)
+  const extendAvailable =
+    extraTurns === 0 && body.forceEnd !== true;
+
   const systemMessage = buildTarotSystemMessage({
-    spreadType: reading.spread_type as SpreadType,
+    spreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
     concernText: reading.question ?? "",
     drawnCards: (reading.drawn_cards as DrawnCard[]) ?? [],
@@ -173,6 +196,8 @@ export async function POST(request: NextRequest) {
     cumulativeAssistantChars,
     continuation,
     forceEnd: body.forceEnd === true,
+    extendAvailable,
+    thresholdOverride: effT,
   });
 
   const sensitiveSync = detectSensitiveSync(lastMessage.content);

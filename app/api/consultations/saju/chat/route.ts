@@ -29,6 +29,13 @@ import {
 import { parseRecoMarker, tagNextRecoAsync, INCHAT_ONLY_PRODUCTS } from "@/lib/reco";
 import type { SajuResult } from "@/lib/saju/calc";
 import { isSajuProduct } from "@/lib/saju/products";
+import {
+  CONVERGE_START_TURN,
+  CONVERGE_START_CHARS,
+  HARD_CAP_TURN,
+  HARD_CAP_CHARS,
+  ABS_TURN_CAP,
+} from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
   // readings 조회 + 소유권 확인
   const { data: reading, error: rErr } = await supabase
     .from("readings")
-    .select("id, user_id, question, saju_data, emotion_tag, saju_product, previous_reading_id, continuation_mode")
+    .select("id, user_id, question, saju_data, emotion_tag, saju_product, previous_reading_id, continuation_mode, extra_turns")
     .eq("id", body.readingId)
     .maybeSingle();
 
@@ -173,6 +180,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // 업셀 보정 임계치 — extra_turns(연장) 반영 (사주엔 clarifier 없음)
+  const extraTurns = (reading.extra_turns ?? 0) as number;
+  const thresholdOverride =
+    extraTurns > 0
+      ? {
+          convergeStartTurn: CONVERGE_START_TURN + extraTurns,
+          convergeStartChars: CONVERGE_START_CHARS,
+          hardCapTurn: HARD_CAP_TURN + extraTurns,
+          hardCapChars: HARD_CAP_CHARS,
+          absTurnCap: ABS_TURN_CAP + extraTurns,
+        }
+      : undefined;
+
+  // 대화 연장 업셀 가능: extra_turns 0 + forceEnd 아님
+  const extendAvailable = extraTurns === 0 && body.forceEnd !== true;
+
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     sajuProduct: isSajuProduct(reading.saju_product)
@@ -184,6 +207,8 @@ export async function POST(request: NextRequest) {
     cumulativeAssistantChars,
     forceEnd: body.forceEnd === true,
     continuation,
+    extendAvailable,
+    thresholdOverride,
   });
 
   // sensitive 1차 감지 (regex ~1ms, 응답 헤더용)
