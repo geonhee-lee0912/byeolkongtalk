@@ -51,13 +51,14 @@ export async function POST(
 
   const extraTurns = (reading.extra_turns as number) ?? 0;
 
-  // 슬롯 원자 선점 — extra_turns < EXTEND_TURNS * EXTEND_MAX 조건부 +EXTEND_TURNS.
-  // 반환 0행 → 이미 한도 소진 (동시 요청 포함), 차감 없이 400.
+  // 슬롯 원자 선점 — CAS: 읽었던 값과 정확히 일치할 때만 +EXTEND_TURNS.
+  // 반환 0행 → 한도 소진 또는 동시 경합 — 어느 쪽이든 차감 없이 400.
   const { data: slotRows, error: slotErr } = await supabase
     .from("readings")
     .update({ extra_turns: extraTurns + EXTEND_TURNS })
     .eq("id", id)
     .eq("user_id", userId)
+    .eq("extra_turns", extraTurns)
     .lt("extra_turns", EXTEND_TURNS * EXTEND_MAX)
     .select("extra_turns");
 

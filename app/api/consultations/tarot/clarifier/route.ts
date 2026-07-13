@@ -86,13 +86,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "card_already_drawn" }, { status: 400 });
   }
 
-  // 슬롯 원자 선점 — clarifier_count < CLARIFIER_MAX 조건부 +1.
-  // 반환 0행 → 이미 한도 소진 (동시 요청 포함), 차감 없이 400.
+  // 슬롯 원자 선점 — CAS: 읽었던 값과 정확히 일치할 때만 +1 (MAX>1이라 .lt만으론
+  // 동시 요청이 둘 다 stale+1 을 써서 별만 2회 차감되는 구멍이 남음).
+  // 반환 0행 → 한도 소진 또는 동시 경합 — 어느 쪽이든 차감 없이 400 (재시도 가능).
   const { data: slotRows, error: slotErr } = await supabase
     .from("readings")
     .update({ clarifier_count: reading.clarifier_count + 1 })
     .eq("id", reading.id)
     .eq("user_id", userId)
+    .eq("clarifier_count", reading.clarifier_count)
     .lt("clarifier_count", CLARIFIER_MAX)
     .select("clarifier_count");
 
