@@ -25,5 +25,23 @@ export function tarotCases(): Case[] {
       )
     );
   }
+  // C1 전환 규칙: 카드를 더 뽑아달라는 구매 의사 신호를 말리지 않고 경로+선택권으로 안내하는지.
+  cases.push({
+    id: "tarot.three_card.more_cards",
+    product: { kind: "tarot", spreadType: "three_card", spreadCategory: "love" },
+    emotion: "그 사람 마음이 궁금해",
+    seed: {},
+    seedConcern: "헤어진 사람한테 연락이 올까? 계속 생각나",
+    userPersona:
+      "풀이를 듣다가 '카드 더 뽑아줘', '타로 새로 봐줘'를 두 번 이상 요청하는 사용자",
+    inputStyle: { tone: "간절한 반말", habits: [] },
+    maxTurns: 5,
+    expects: {
+      mustEnd: false,
+      expectSensitiveHeader: false,
+      expectCardCount: 3,
+      skipEndAssertion: true,
+    },
+  });
   return cases;
 }
