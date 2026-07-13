@@ -65,9 +65,9 @@ export default function RecoCard({
         </p>
         <button
           onClick={handleClick}
-          className="w-full py-3 rounded-xl bg-gold/90 text-eye-purple font-bold text-[14px] hover:bg-gold active:scale-[0.98] transition"
+          className="w-full py-3 rounded-xl bg-gold/90 text-night font-bold text-[14px] hover:bg-gold active:scale-[0.98] transition"
         >
-          {display.label}
+          {display.ctaLabel ?? display.label}
         </button>
       </div>
     </div>

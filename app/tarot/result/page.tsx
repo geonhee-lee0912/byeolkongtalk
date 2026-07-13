@@ -293,7 +293,7 @@ function TarotResultInner() {
         onContinue={() => setContinueOpen(true)}
         newHref="/tarot"
         newLabel="새 카드 뽑기"
-        newCostLabel="⭐10~"
+        newCostLabel="⭐10부터"
       />
 
       {/* ② 공유 — 아래로 */}
