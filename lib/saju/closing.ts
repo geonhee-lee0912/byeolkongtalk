@@ -1,6 +1,7 @@
 // 별콩이 마무리 한마디 자동 추출 — result 페이지 + OG 이미지 description 노출용.
 // 페르소나 가이드: 응답 끝에 "별콩이가 응원할게" 류 응원 한마디 포함.
 // 마지막 assistant 메시지의 마지막 문단을 그대로 사용.
+import { stripRecoMarkers } from "@/lib/reco-utils";
 
 // 종료 턴의 "초대/작별" 문단 식별 패턴.
 // forceEnd 턴은 "유저 답변 → 요약 → 언제든 다시 와" 구조라 마지막 문단은 보통 초대 문구.
@@ -22,8 +23,8 @@ export function extractClosingLine(
   }
   if (!last) return null;
 
-  // [END] 마커 제거
-  const cleaned = last.replace(/\[END\]\s*$/, "").trim();
+  // [END] + [RECO:] 마커 제거 (OG 이미지·공유 카피에 마커 노출 방지)
+  const cleaned = stripRecoMarkers(last.replace(/\[END\]\s*$/, "")).trim();
   if (!cleaned) return null;
 
   // 마지막 문단 추출 (빈 줄로 분리된 블록)

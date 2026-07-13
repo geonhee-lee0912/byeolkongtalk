@@ -12,6 +12,7 @@ import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { stripRecoMarkers } from "@/lib/reco-utils";
 import type { SajuResult } from "@/lib/saju/calc";
 
 export default function ResultPage() {
@@ -105,7 +106,14 @@ function ResultPageInner() {
     );
   }
 
-  const { reading, messages } = data;
+  const { reading } = data;
+  // [END] + [RECO:] 마커 제거한 메시지로 통일 (한마디 추출 + 다시보기 둘 다)
+  const messages = data.messages.map((m) => ({
+    ...m,
+    content: m.role === "assistant"
+      ? stripRecoMarkers(m.content.replace(/\[END\]\s*$/, "")).trim()
+      : m.content,
+  }));
   const closingLine = extractClosingLine(messages);
   const saju = reading.sajuData;
 
@@ -180,11 +188,7 @@ function ResultPageInner() {
               <ChatBubble
                 key={i}
                 role={m.role}
-                content={
-                  m.role === "assistant"
-                    ? m.content.replace(/\[END\]\s*$/, "").trim()
-                    : m.content
-                }
+                content={m.content}
                 isFirstInTurn={
                   m.role === "assistant" &&
                   (i === 0 || messages[i - 1].role !== "assistant")

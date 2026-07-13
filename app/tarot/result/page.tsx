@@ -10,6 +10,7 @@ import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { stripRecoMarkers } from "@/lib/reco-utils";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
@@ -44,10 +45,10 @@ interface FetchData {
   messages: MessageRow[];
 }
 
-// 저장된 assistant 메시지에는 [CARD:n] / [END] 마커가 섞여 있음 — 표시 전 제거
+// 저장된 assistant 메시지에는 [CARD:n] / [END] / [RECO:] 마커가 섞여 있음 — 표시 전 제거
 const MARKER_RE = /\[CARD:\d+\]/g;
 function cleanContent(raw: string): string {
-  return raw.replace(MARKER_RE, "").replace(/\[END\]\s*$/, "").trim();
+  return stripRecoMarkers(raw.replace(MARKER_RE, "").replace(/\[END\]\s*$/, "")).trim();
 }
 
 function TarotResultInner() {

@@ -8,6 +8,7 @@ import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
+import { stripRecoMarkers } from "@/lib/reco-utils";
 
 interface Message {
   role: "user" | "assistant";
@@ -37,7 +38,8 @@ const RELATION_LABEL: Record<string, string> = {
 };
 
 const END_MARKER = /\[END\]\s*$/;
-const TRAILING_PARTIAL = /\[E?N?D?\]?\s*$/;
+// 미완성 마커 ([E, [EN, [END, [RECO:, [RECO:saju 등) 스트리밍 중 깜빡임 방지
+const TRAILING_PARTIAL = /\[(?:E(?:N(?:D)?)?|R(?:E(?:C(?:O(?::[a-z0-9_:]*)?)?)?)?)?]?\s*$/;
 
 export default function ReadingPage() {
   return (
@@ -102,7 +104,9 @@ function ReadingInner() {
             startedRef.current = true;
             const restored = rawMsgs.map((m) => ({
               role: m.role,
-              content: m.content.replace(/\[END\]/g, "").trim(),
+              content: m.role === "assistant"
+                ? stripRecoMarkers(m.content.replace(/\[END\]/g, "")).trim()
+                : m.content,
             }));
             setMessages(restored);
             const lastAssistant = [...rawMsgs]
@@ -219,13 +223,13 @@ function ReadingInner() {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        // 미완성 [END] 마커 임시 제거 (스트리밍 깜빡임 방지)
-        const display = accumulated.replace(TRAILING_PARTIAL, "");
+        // 미완성 [END]/[RECO:] 마커 임시 제거 (스트리밍 깜빡임 방지)
+        const display = stripRecoMarkers(accumulated.replace(TRAILING_PARTIAL, ""));
         setStreamingText(display);
       }
 
       const ended = END_MARKER.test(accumulated);
-      const finalText = accumulated.replace(END_MARKER, "").trim();
+      const finalText = stripRecoMarkers(accumulated.replace(END_MARKER, "")).trim();
 
       setMessages([...history, { role: "assistant", content: finalText }]);
       setStreamingText("");
