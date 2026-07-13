@@ -5,4 +5,5 @@
 //   2026-07-12-persona-tuning — 확답 회피·심문 피로·길이 완화 + [END] 유예 (커밋 3fe4d6b·68934e5)
 //   2026-07-13-conversion-c1  — 더보고싶다 신호·방향먼저·회피구1회·크로스셀 문구·종료턴 방향답 우선 (spec: 2026-07-13-conversion-moment)
 //   2026-07-13-conversion-c2  — [RECO:] 마커 방출 (인챗 추천 카드·결과 추천 인프라)
-export const PROMPT_VERSION = "2026-07-13-conversion-c2";
+//   2026-07-13-conversion-c3  — clarifier·연장 제안 ([RECO:tarot:clarifier]/[RECO:extend] + 더보고싶다 3갈래)
+export const PROMPT_VERSION = "2026-07-13-conversion-c3";
