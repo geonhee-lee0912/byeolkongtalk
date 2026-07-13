@@ -341,7 +341,20 @@ function formatDrawnCardsBlock(cards: DrawnCard[]): string {
         : "";
     return `  ${i + 1}. [${c.label}] ${name} (${dir}) — ${keywords}`;
   });
-  return [`[뽑은 카드]`, ...lines].join("\n");
+  // 보조 카드(clarifier)가 있으면 명시 안내 — 스프레드 기본 장수("쓰리카드=3장") 규칙 때문에
+  // 모델이 추가 카드를 "안 보인다"고 불신하는 행동 방지 (2026-07-13 prod 스모크에서 발견).
+  const clarifiers = cards
+    .map((c, i) => ({ c, n: i + 1 }))
+    .filter(({ c }) => c.label === "보조 카드");
+  const note =
+    clarifiers.length > 0
+      ? `\n[보조 카드 안내] 위 목록의 ${clarifiers
+          .map(({ n }) => `${n}번`)
+          .join(
+            "·"
+          )} 카드는 사용자가 대화 중에 추가로 뽑은 보조 카드야 — 스프레드 기본 장수와 별개로 이미 네 앞에 펼쳐져 있어. 사용자가 "방금 카드를 뽑았어"라고 하면 이 카드를 말하는 거니까, [CARD:해당번호] 마커와 함께 기존 카드들과 엮어서 바로 해석해줘. "안 보인다"고 하지 마.`
+      : "";
+  return [`[뽑은 카드]`, ...lines].join("\n") + note;
 }
 
 type WrapMode = "hardcap" | "converge" | "free";

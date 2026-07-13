@@ -19,6 +19,7 @@ import ClarifierSheet from "@/components/upsell/ClarifierSheet";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
+import { getCard } from "@/lib/tarot/cards";
 
 interface Message {
   role: "user" | "assistant";
@@ -778,8 +779,13 @@ function TarotReadingInner() {
     // draw state 갱신 (CardSpreadView 반영)
     setDraw((prev) => prev ? { ...prev, drawnCards: newDrawnCards } : prev);
     setClarifierState("done");
-    // synthetic user 턴 자동 전송
-    const syntheticMsg = "방금 카드 한 장을 더 뽑았어. 같이 봐줘";
+    // synthetic user 턴 자동 전송 — 카드 이름 명시 (모델이 "안 보인다"고 불신하지 않게)
+    const newCard = newDrawnCards[newDrawnCards.length - 1];
+    const cardInfo = newCard ? getCard(newCard.card_id) : null;
+    const cardDesc = cardInfo
+      ? `'${cardInfo.name_kr}' (${newCard.direction === "reversed" ? "역방향" : "정방향"})`
+      : "카드 한 장";
+    const syntheticMsg = `방금 보조 카드로 ${cardDesc}를 더 뽑았어. 지금까지 흐름이랑 이어서 봐줘`;
     const currentHistory = messagesRef.current.filter((m) => !m.ephemeral);
     const newHistory: Message[] = [
       ...currentHistory,
