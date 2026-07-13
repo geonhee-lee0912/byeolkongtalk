@@ -42,12 +42,23 @@ export default function SajuPage() {
     const emotion = pending?.emotion;
     const sajuProduct = pending?.sajuProduct;
 
+    // continuation 마커 소비 (cross-type fresh: 타로→사주)
+    const contRaw = sessionStorage.getItem("byeolkong:continuation");
+    let cont: { previousReadingId?: string; mode?: string } = {};
+    try {
+      cont = contRaw ? (JSON.parse(contRaw) as { previousReadingId?: string; mode?: string }) : {};
+    } catch {
+      cont = {};
+    }
+
     // readings POST 본문: saved → profileId, inline → profile + save
     const base = {
       sajuData: result.saju,
       question,
       emotion,
       sajuProduct,
+      previousReadingId: cont.previousReadingId,
+      continuationMode: cont.mode === "fresh" ? ("fresh" as const) : undefined,
     };
     const body =
       result.kind === "saved"
@@ -70,6 +81,8 @@ export default function SajuPage() {
         setLoading(false);
         return;
       }
+      // continuation 마커 1회성 소비 — POST 성공 직후 삭제
+      sessionStorage.removeItem("byeolkong:continuation");
       const data = await res.json();
       // 리딩 헤더 표시용 프로필 요약 (이름/생년월일/시진)
       const profileSummary =

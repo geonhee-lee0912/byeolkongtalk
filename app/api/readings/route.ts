@@ -143,6 +143,8 @@ interface ReadingPostBody {
   question: string;
   emotion?: string; // 감정 분류 (홈에서 고른 태그) — 없으면 null 저장
   sajuProduct?: string; // 사주 상품 — 화이트리스트 검증, 없으면 today_letters
+  previousReadingId?: string; // cross-type fresh 이어가기 (e.g. 타로→사주)
+  continuationMode?: "fresh" | "deep";
 }
 
 export async function POST(request: NextRequest) {
@@ -317,6 +319,29 @@ export async function POST(request: NextRequest) {
       ? body.emotion
       : null;
 
+  // cross-type fresh 이어가기 검증 — 부모 소유권 + ended 확인
+  // (타로 라우트와 동일 패턴. has_sensitive 부모는 이어가기 불허)
+  let continuationPrevId: string | null = null;
+  if (typeof body.previousReadingId === "string" && body.previousReadingId) {
+    const { data: parent } = await supabase
+      .from("readings")
+      .select("id, user_id, has_sensitive")
+      .eq("id", body.previousReadingId)
+      .maybeSingle();
+    if (parent && parent.user_id === userId && !parent.has_sensitive) {
+      const { data: parentMsgs } = await supabase
+        .from("messages")
+        .select("content")
+        .eq("reading_id", parent.id)
+        .eq("role", "assistant");
+      const ended = (parentMsgs ?? []).some((m) => m.content.includes("[END]"));
+      if (ended) {
+        continuationPrevId = parent.id;
+      }
+    }
+    // 검증 실패는 조용히 무시하고 일반 생성으로 진행 (cross-type fresh라 에러 반환 불필요)
+  }
+
   // readings INSERT
   const { data: reading, error: rErr } = await supabase
     .from("readings")
@@ -329,6 +354,8 @@ export async function POST(request: NextRequest) {
       stars_spent: SAJU_READING_COST,
       saju_product: sajuProduct,
       has_sensitive: false,
+      previous_reading_id: continuationPrevId,
+      continuation_mode: continuationPrevId ? "fresh" : null,
       prompt_version: PROMPT_VERSION,
     })
     .select("id")
