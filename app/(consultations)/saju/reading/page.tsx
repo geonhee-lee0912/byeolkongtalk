@@ -10,7 +10,7 @@ import RecoInlineCard from "@/components/reco/RecoInlineCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { stripRecoMarkers, parseRecoMarker, type RecoProduct } from "@/lib/reco-utils";
+import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Message {
@@ -254,7 +254,7 @@ function ReadingInner() {
 
       const newMessages: Message[] = [...history, { role: "assistant", content: finalText }];
       setMessages(newMessages);
-      if (recoProduct && recoProduct !== "continue") {
+      if (recoProduct && recoProduct !== "continue" && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
         setRecoAttach((existing) =>
           existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
         );

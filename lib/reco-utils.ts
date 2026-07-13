@@ -6,7 +6,9 @@ export type RecoProduct =
   | "saju:nature"
   | "saju:choice"
   | "tarot:relationship_5"
-  | "continue";
+  | "continue"
+  | "tarot:clarifier"
+  | "extend";
 
 export const RECO_PRODUCTS: RecoProduct[] = [
   "saju:good_days",
@@ -14,7 +16,12 @@ export const RECO_PRODUCTS: RecoProduct[] = [
   "saju:choice",
   "tarot:relationship_5",
   "continue",
+  "tarot:clarifier",
+  "extend",
 ];
+
+/** 결과 카드로 렌더하지 않는 인챗 전용 product — 칩 UI에서만 사용. */
+export const INCHAT_ONLY_PRODUCTS: RecoProduct[] = ["tarot:clarifier", "extend"];
 
 export interface NextReco {
   product: RecoProduct;
@@ -27,7 +34,7 @@ export interface NextReco {
 /** 결과 카드 표시 메타 — 라벨·기본 훅 카피·진입 대상. */
 export const RECO_DISPLAY: Record<
   RecoProduct,
-  { label: string; defaultHook: string; target: "saju" | "tarot" | "continue"; sajuProduct?: string; spreadType?: string }
+  { label: string; defaultHook: string; target: "saju" | "tarot" | "continue" | "inchat"; sajuProduct?: string; spreadType?: string }
 > = {
   "saju:good_days": {
     label: "사주 · 좋은 날",
@@ -57,6 +64,16 @@ export const RECO_DISPLAY: Record<
     label: "이 고민 이어가기",
     defaultHook: "오늘 못다 푼 매듭 — 지난 맥락 그대로 이어서 볼 수 있어",
     target: "continue",
+  },
+  "tarot:clarifier": {
+    label: "카드 한 장 더 뽑기",
+    defaultHook: "이 대화에서 바로 카드 한 장 더 볼 수 있어",
+    target: "inchat",
+  },
+  extend: {
+    label: "별콩이랑 더 얘기하기",
+    defaultHook: "대화를 4턴 더 이어갈 수 있어",
+    target: "inchat",
   },
 };
 

@@ -11,7 +11,7 @@ import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { RECO_MARKER_REGEX, stripRecoMarkers, parseRecoMarker, type RecoProduct } from "@/lib/reco-utils";
+import { RECO_MARKER_REGEX, stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Message {
@@ -460,7 +460,7 @@ function TarotReadingInner() {
       setMessages((prev) => {
         const newMessages = [...prev, { role: "assistant" as const, content: finalContent }];
         // 인챗 추천 카드: cross-type 이고 아직 부착 안 됐으면 인덱스 기록
-        if (recoProduct && recoProduct !== "continue") {
+        if (recoProduct && recoProduct !== "continue" && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
           setRecoAttach((existing) =>
             existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
           );

@@ -4,7 +4,7 @@
 // hasSensitive=true 또는 reco 없으면 null 반환.
 import { useRouter } from "next/navigation";
 import type { NextReco } from "@/lib/reco-utils";
-import { RECO_DISPLAY } from "@/lib/reco-utils";
+import { RECO_DISPLAY, INCHAT_ONLY_PRODUCTS } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 
 interface Props {
@@ -27,6 +27,8 @@ export default function RecoCard({
   const router = useRouter();
 
   if (hasSensitive) return null;
+  // 인챗 전용 product는 결과 카드로 렌더하지 않음 (칩 전용)
+  if (INCHAT_ONLY_PRODUCTS.includes(reco.product)) return null;
 
   const display = RECO_DISPLAY[reco.product];
   const hook = reco.hook ?? display.defaultHook;

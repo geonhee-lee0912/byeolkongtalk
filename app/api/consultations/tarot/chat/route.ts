@@ -13,7 +13,7 @@ import {
   detectSensitiveAsync,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
-import { parseRecoMarker, tagNextRecoAsync } from "@/lib/reco";
+import { parseRecoMarker, tagNextRecoAsync, INCHAT_ONLY_PRODUCTS } from "@/lib/reco";
 import type {
   SpreadType,
   SpreadCategory,
@@ -266,8 +266,9 @@ export async function POST(request: NextRequest) {
         // reco 후처리 — sensitive 턴이면 스킵 (위기 대화엔 추천 없음)
         if (!sensitiveSync) {
           const recoProduct = parseRecoMarker(assistantText);
-          if (recoProduct) {
+          if (recoProduct && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
             // [RECO:] 마커 → 즉시 저장, 기존 next_reco 덮어쓰기 금지
+            // 인챗 전용 product(tarot:clarifier, extend)는 칩 전용 — DB 저장 생략
             void supabase
               .from("readings")
               .update({

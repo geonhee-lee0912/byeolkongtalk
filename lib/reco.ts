@@ -8,6 +8,7 @@ export type {
 } from "./reco-utils";
 export {
   RECO_PRODUCTS,
+  INCHAT_ONLY_PRODUCTS,
   RECO_DISPLAY,
   RECO_MARKER_REGEX,
   stripRecoMarkers,
