@@ -10,8 +10,9 @@ import RecoInlineCard from "@/components/reco/RecoInlineCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, RECO_MARKER_REGEX, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
+import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 
 interface Message {
   role: "user" | "assistant";
@@ -74,11 +75,14 @@ function ReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
-  // 인챗 추천 카드 — 대화당 1개, 첫 cross-type 마커만. continue 제외.
-  const [recoAttach, setRecoAttach] = useState<{ messageIndex: number; product: RecoProduct } | null>(null);
+  // 인챗 추천 카드 — product별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
+  const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});
   const [recoModalOpen, setRecoModalOpen] = useState(false);
+  const [recoModalProduct, setRecoModalProduct] = useState<RecoProduct | null>(null);
   // [END] 감지 전 펜딩 이동 — [마무리하고 넘어가기] 탭 후 세팅
   const pendingRecoJumpRef = useRef<RecoProduct | null>(null);
+  // extend 칩 상태
+  const [extendState, setExtendState] = useState<ExtendChipState>("idle");
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -123,15 +127,18 @@ function ReadingInner() {
             if (lastAssistant && /\[END\]/.test(lastAssistant.content)) {
               setIsEnded(true);
             }
-            // 복원 시 cross-type RECO 마커 감지 (원본 rawMsgs에서 — strip 전)
-            for (let i = 0; i < rawMsgs.length; i++) {
-              if (rawMsgs[i].role === "assistant") {
-                const rp = parseRecoMarker(rawMsgs[i].content);
-                if (rp && rp !== "continue") {
-                  setRecoAttach({ messageIndex: i, product: rp });
-                  break;
+            // 복원 시 RECO 마커 감지 — product별 최초 등장 인덱스 기록
+            {
+              const restored: Partial<Record<RecoProduct, number>> = {};
+              for (let i = 0; i < rawMsgs.length; i++) {
+                if (rawMsgs[i].role !== "assistant") continue;
+                for (const m of rawMsgs[i].content.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
+                  const v = m[1].toLowerCase() as RecoProduct;
+                  if (v === "continue") continue;
+                  if (restored[v] === undefined) restored[v] = i;
                 }
               }
+              if (Object.keys(restored).length > 0) setRecoAttach(restored);
             }
           }
           const p = d.profile as {
@@ -249,15 +256,26 @@ function ReadingInner() {
       const ended = END_MARKER.test(accumulated);
       const finalText = stripRecoMarkers(accumulated.replace(END_MARKER, "")).trim();
 
-      // 스트리밍 완료 — cross-type RECO 마커 감지 (원본 accumulated에서, 첫 1개만)
-      const recoProduct = parseRecoMarker(accumulated);
+      // 스트리밍 완료 — 모든 RECO 마커 감지 (product별 1개 제한)
+      const allRecoMarkers: RecoProduct[] = [];
+      for (const m of accumulated.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
+        const v = m[1].toLowerCase() as RecoProduct;
+        if (!allRecoMarkers.includes(v)) allRecoMarkers.push(v);
+      }
 
       const newMessages: Message[] = [...history, { role: "assistant", content: finalText }];
       setMessages(newMessages);
-      if (recoProduct && recoProduct !== "continue" && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
-        setRecoAttach((existing) =>
-          existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
-        );
+      const msgIdx = newMessages.length - 1;
+      if (allRecoMarkers.length > 0) {
+        setRecoAttach((existing) => {
+          const updated = { ...existing };
+          for (const rp of allRecoMarkers) {
+            if (rp === "continue") continue;
+            if (updated[rp] !== undefined) continue;
+            updated[rp] = msgIdx;
+          }
+          return updated;
+        });
       }
       setStreamingText("");
       setIsStreaming(false);
@@ -293,11 +311,11 @@ function ReadingInner() {
     void sendMessage(text, [...messages, { role: "user", content: text }]);
   };
 
-  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러
+  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러 (cross-type 전용)
   const handleRecoConfirm = () => {
     setRecoModalOpen(false);
-    if (!recoAttach || !ctx) return;
-    const product = recoAttach.product;
+    const product = recoModalProduct;
+    if (!product || !ctx) return;
 
     if (isEnded) {
       // 이미 종료된 대화 — 결과 스킵하고 바로 이동
@@ -314,6 +332,34 @@ function ReadingInner() {
     // 진행 중인 대화 — pendingRecoJumpRef 세팅 후 그레이스풀 종료
     pendingRecoJumpRef.current = product;
     handleFinish();
+  };
+
+  // ExtendChip 탭 핸들러
+  const handleExtendTap = async () => {
+    if (!ctx || extendState !== "idle") return;
+    setExtendState("loading");
+    try {
+      const res = await fetch(`/api/readings/${ctx.readingId}/extend`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 402) {
+        // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
+        setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${(data as {balance?:number}).balance ?? 0})`);
+        setExtendState("idle");
+        return;
+      }
+      if (!res.ok) {
+        const msg = (data as {error?:string}).error === "extend_limit_reached"
+          ? "이미 연장했어. 더 연장은 안 돼"
+          : "연장이 안 됐어. 잠시 후 다시 시도해줄래?";
+        setError(msg);
+        setExtendState("idle");
+        return;
+      }
+      setExtendState("done");
+    } catch {
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+      setExtendState("idle");
+    }
   };
 
   // 대화 마무리 — 그레이스풀 종료([END])를 강제해 결과 화면으로 유도
@@ -409,7 +455,11 @@ function ReadingInner() {
             />
           )}
           {messages.map((m, i) => {
-            const isRecoMessage = recoAttach?.messageIndex === i && m.role === "assistant";
+            const attachedProducts = m.role === "assistant"
+              ? (Object.entries(recoAttach) as [RecoProduct, number][])
+                  .filter(([, idx]) => idx === i)
+                  .map(([p]) => p)
+              : [];
             return (
               <div key={i}>
                 <ChatBubble
@@ -417,12 +467,30 @@ function ReadingInner() {
                   content={m.content}
                   isFirstInTurn={isFirstAssistantInGroup(i)}
                 />
-                {isRecoMessage && recoAttach && (
-                  <RecoInlineCard
-                    product={recoAttach.product}
-                    onTap={() => setRecoModalOpen(true)}
-                  />
-                )}
+                {attachedProducts.map((product) => {
+                  if (INCHAT_ONLY_PRODUCTS.includes(product)) {
+                    if (product === "extend") {
+                      return (
+                        <ExtendChip
+                          key={product}
+                          state={extendState}
+                          onTap={() => void handleExtendTap()}
+                        />
+                      );
+                    }
+                    return null;
+                  }
+                  return (
+                    <RecoInlineCard
+                      key={product}
+                      product={product}
+                      onTap={() => {
+                        setRecoModalProduct(product);
+                        setRecoModalOpen(true);
+                      }}
+                    />
+                  );
+                })}
               </div>
             );
           })}
@@ -492,10 +560,10 @@ function ReadingInner() {
         </div>
       </div>
 
-      {/* 인챗 추천 확인 모달 */}
+      {/* 인챗 추천 확인 모달 (cross-type 전용) */}
       <RecoConfirmModal
         open={recoModalOpen}
-        product={recoAttach?.product ?? null}
+        product={recoModalProduct}
         onCancel={() => setRecoModalOpen(false)}
         onConfirm={handleRecoConfirm}
       />

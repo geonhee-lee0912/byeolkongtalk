@@ -13,6 +13,10 @@ import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { RECO_MARKER_REGEX, stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
+import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
+import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
+import ClarifierSheet from "@/components/upsell/ClarifierSheet";
+import { SPREAD_INFO } from "@/lib/tarot/spreads";
 
 interface Message {
   role: "user" | "assistant";
@@ -130,12 +134,20 @@ function TarotReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
-  // 인챗 추천 카드 — 대화당 1개, 첫 cross-type 마커만. continue 제외.
-  const [recoAttach, setRecoAttach] = useState<{ messageIndex: number; product: RecoProduct } | null>(null);
-  // 확인 모달 열림 여부
+  // 인챗 추천 카드 — product 별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
+  // { [product]: messageIndex } 맵
+  const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});
+  // 확인 모달 열림 여부 (cross-type용)
   const [recoModalOpen, setRecoModalOpen] = useState(false);
+  // 현재 확인 모달에 표시 중인 product (cross-type)
+  const [recoModalProduct, setRecoModalProduct] = useState<RecoProduct | null>(null);
   // [END] 감지 전 펜딩 이동 — [마무리하고 넘어가기] 탭 후 세팅
   const pendingRecoJumpRef = useRef<RecoProduct | null>(null);
+  // 업셀 칩 상태
+  const [clarifierState, setClarifierState] = useState<ClarifierChipState>("idle");
+  const [extendState, setExtendState] = useState<ExtendChipState>("idle");
+  // ClarifierSheet 열림 여부
+  const [clarifierSheetOpen, setClarifierSheetOpen] = useState(false);
 
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -213,15 +225,18 @@ function TarotReadingInner() {
               setIsEnded(true);
             }
             END_MARKER_REGEX.lastIndex = 0;
-            // 복원 시 cross-type RECO 마커 감지 (첫 등장 메시지에 카드 부착)
-            for (let i = 0; i < msgs.length; i++) {
-              if (msgs[i].role === "assistant") {
-                const rp = parseRecoMarker(msgs[i].content);
-                if (rp && rp !== "continue") {
-                  setRecoAttach({ messageIndex: i, product: rp });
-                  break;
+            // 복원 시 RECO 마커 감지 — product별 최초 등장 인덱스 기록
+            {
+              const restored: Partial<Record<RecoProduct, number>> = {};
+              for (let i = 0; i < msgs.length; i++) {
+                if (msgs[i].role !== "assistant") continue;
+                for (const m of msgs[i].content.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
+                  const v = m[1].toLowerCase() as RecoProduct;
+                  if (v === "continue") continue;
+                  if (restored[v] === undefined) restored[v] = i;
                 }
               }
+              if (Object.keys(restored).length > 0) setRecoAttach(restored);
             }
             // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
             setTimeout(() => {
@@ -453,18 +468,26 @@ function TarotReadingInner() {
     const hasEnd = END_MARKER_REGEX.test(finalContent);
     END_MARKER_REGEX.lastIndex = 0;
 
-    // 스트리밍 완료 — 이 메시지에 cross-type RECO 마커가 있는지 감지 (첫 1개만)
-    const recoProduct = parseRecoMarker(finalContent);
+    // 스트리밍 완료 — 이 메시지의 모든 RECO 마커 감지 (product 별 1개 제한)
+    const allRecoMarkers: RecoProduct[] = [];
+    for (const m of finalContent.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
+      const v = m[1].toLowerCase() as RecoProduct;
+      if (!allRecoMarkers.includes(v)) allRecoMarkers.push(v);
+    }
 
     setTimeout(() => {
       setMessages((prev) => {
         const newMessages = [...prev, { role: "assistant" as const, content: finalContent }];
-        // 인챗 추천 카드: cross-type 이고 아직 부착 안 됐으면 인덱스 기록
-        if (recoProduct && recoProduct !== "continue" && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
-          setRecoAttach((existing) =>
-            existing ? existing : { messageIndex: newMessages.length - 1, product: recoProduct }
-          );
-        }
+        const msgIdx = newMessages.length - 1;
+        setRecoAttach((existing) => {
+          const updated = { ...existing };
+          for (const rp of allRecoMarkers) {
+            if (rp === "continue") continue;
+            if (updated[rp] !== undefined) continue; // 이미 등록됨
+            updated[rp] = msgIdx;
+          }
+          return updated;
+        });
         return newMessages;
       });
       setStreamingBubbles([]);
@@ -657,11 +680,11 @@ function TarotReadingInner() {
     submitText(text);
   };
 
-  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러
+  // 인챗 추천 카드 [마무리하고 넘어가기] 확인 핸들러 (cross-type 전용)
   const handleRecoConfirm = () => {
     setRecoModalOpen(false);
-    if (!recoAttach || !readingId || !draw) return;
-    const product = recoAttach.product;
+    const product = recoModalProduct;
+    if (!product || !readingId || !draw) return;
 
     if (isEnded) {
       // 이미 종료된 대화 — 결과 스킵하고 바로 이동
@@ -678,6 +701,52 @@ function TarotReadingInner() {
     // 진행 중인 대화 — pendingRecoJumpRef 세팅 후 그레이스풀 종료
     pendingRecoJumpRef.current = product;
     handleFinish();
+  };
+
+  // ExtendChip 탭 핸들러
+  const handleExtendTap = async () => {
+    if (!readingId || extendState !== "idle") return;
+    setExtendState("loading");
+    try {
+      const res = await fetch(`/api/readings/${readingId}/extend`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 402) {
+        // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
+        setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${(data as {balance?:number}).balance ?? 0})`);
+        setExtendState("idle");
+        return;
+      }
+      if (!res.ok) {
+        const msg = (data as {error?:string}).error === "extend_limit_reached"
+          ? "이미 연장했어. 더 연장은 안 돼"
+          : "연장이 안 됐어. 잠시 후 다시 시도해줄래?";
+        setError(msg);
+        setExtendState("idle");
+        return;
+      }
+      setExtendState("done");
+    } catch {
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+      setExtendState("idle");
+    }
+  };
+
+  // ClarifierSheet onDrawn — drawnCards 갱신 + synthetic user 턴 전송
+  const handleClarifierDrawn = (newDrawnCards: TarotDrawResult["drawnCards"]) => {
+    if (!draw || !readingId) return;
+    // draw state 갱신 (CardSpreadView 반영)
+    setDraw((prev) => prev ? { ...prev, drawnCards: newDrawnCards } : prev);
+    setClarifierState("done");
+    // synthetic user 턴 자동 전송
+    const syntheticMsg = "방금 카드 한 장을 더 뽑았어. 같이 봐줘";
+    const currentHistory = messagesRef.current.filter((m) => !m.ephemeral);
+    const newHistory: Message[] = [
+      ...currentHistory,
+      { role: "user", content: syntheticMsg },
+    ];
+    void sendMessage(newHistory, readingId, { skipSetMessages: true });
+    setMessages((prev) => [...prev, { role: "user", content: syntheticMsg }]);
+    suppressScrollUntilRef.current = Date.now() + 1500;
   };
 
   const handleFinish = () => {
@@ -816,7 +885,10 @@ function TarotReadingInner() {
                 );
               }
               const bubbles = parseIntoBubbles(msg.content);
-              const isRecoMessage = recoAttach?.messageIndex === msgI;
+              // 이 메시지에 부착된 product들
+              const attachedProducts = (Object.entries(recoAttach) as [RecoProduct, number][])
+                .filter(([, idx]) => idx === msgI)
+                .map(([p]) => p);
               return (
                 <div key={msgI}>
                   {bubbles.map((b, bI) => {
@@ -834,12 +906,41 @@ function TarotReadingInner() {
                       />
                     );
                   })}
-                  {isRecoMessage && recoAttach && (
-                    <RecoInlineCard
-                      product={recoAttach.product}
-                      onTap={() => setRecoModalOpen(true)}
-                    />
-                  )}
+                  {attachedProducts.map((product) => {
+                    if (INCHAT_ONLY_PRODUCTS.includes(product)) {
+                      // 인챗 전용 칩
+                      if (product === "tarot:clarifier") {
+                        return (
+                          <ClarifierChip
+                            key={product}
+                            state={clarifierState}
+                            onTap={() => setClarifierSheetOpen(true)}
+                          />
+                        );
+                      }
+                      if (product === "extend") {
+                        return (
+                          <ExtendChip
+                            key={product}
+                            state={extendState}
+                            onTap={() => void handleExtendTap()}
+                          />
+                        );
+                      }
+                      return null;
+                    }
+                    // cross-type → RecoInlineCard
+                    return (
+                      <RecoInlineCard
+                        key={product}
+                        product={product}
+                        onTap={() => {
+                          setRecoModalProduct(product);
+                          setRecoModalOpen(true);
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               );
             })}
@@ -964,13 +1065,30 @@ function TarotReadingInner() {
         </div>
       </div>
 
-      {/* 인챗 추천 확인 모달 */}
+      {/* 인챗 추천 확인 모달 (cross-type) */}
       <RecoConfirmModal
         open={recoModalOpen}
-        product={recoAttach?.product ?? null}
+        product={recoModalProduct}
         onCancel={() => setRecoModalOpen(false)}
         onConfirm={handleRecoConfirm}
       />
+
+      {/* 보조 카드 드로우 시트 */}
+      {draw && readingId && (
+        <ClarifierSheet
+          open={clarifierSheetOpen}
+          readingId={readingId}
+          drawnCards={draw.drawnCards}
+          accent={SPREAD_INFO[draw.spreadType]?.accent ?? "#6B8DD6"}
+          onClose={() => setClarifierSheetOpen(false)}
+          onDrawn={handleClarifierDrawn}
+          onInsufficient={(balance) => {
+            // TODO(Task 7): RechargeSheet 오픈. 지금은 임시 에러 표시.
+            setError(`별이 부족해. 충전 후 다시 시도해줄래? (잔액: ⭐${balance})`);
+            setClarifierSheetOpen(false);
+          }}
+        />
+      )}
     </main>
   );
 }

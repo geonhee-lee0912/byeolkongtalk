@@ -33,6 +33,10 @@ interface CardDrawRitualProps {
   backLabel?: string; // pick phase 좌측 버튼 라벨 (없으면 버튼 숨김)
   onBack?: () => void;
   onComplete: (drawn: DrawnCard[]) => void;
+  /** true면 호흡 pill·섹션 디바이더·별콩이 프로필 숨김 (ClarifierSheet용 슬림 모드) */
+  slim?: boolean;
+  /** 이미 뽑힌 card_id 목록 — shuffleDeck 결과에서 제외 */
+  excludeCardIds?: number[];
 }
 
 export default function CardDrawRitual({
@@ -45,6 +49,8 @@ export default function CardDrawRitual({
   backLabel,
   onBack,
   onComplete,
+  slim = false,
+  excludeCardIds,
 }: CardDrawRitualProps) {
   const [mounted, setMounted] = useState(false);
   const [deck, setDeck] = useState<number[]>([]);
@@ -94,7 +100,11 @@ export default function CardDrawRitual({
 
   // 덱 섞기 + 슬롯/방향 초기화
   useEffect(() => {
-    setDeck(shuffleDeck());
+    const full = shuffleDeck();
+    setDeck(excludeCardIds && excludeCardIds.length > 0
+      ? full.filter((id) => !excludeCardIds.includes(id))
+      : full
+    );
     setSlotCards(new Array(cardCount).fill(null));
     setDirections(new Array(cardCount).fill("upright"));
     setMounted(true);
@@ -237,51 +247,57 @@ export default function CardDrawRitual({
       className={`flex flex-1 flex-col items-center w-full animate-fade-in ${containerPb}`}
     >
       <div className="w-full max-w-md mx-auto px-5">
-        {/* 호흡 가이드 + 스프레드 요약 pill */}
-        <div className="flex justify-center mb-5">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
-            style={{
-              background:
-                "linear-gradient(135deg, #FFF8F0 0%, #F7ECDB 60%, #F2E2D2 100%)",
-              border: "1px solid rgba(232,194,106,0.45)",
-              boxShadow: "0 2px 8px rgba(232,194,106,0.25)",
-            }}
-          >
-            <span className="text-[13px]">✨</span>
-            <span
-              className="text-[11px] font-black tracking-wide"
-              style={{ color: accent }}
+        {/* 호흡 가이드 + 스프레드 요약 pill — slim 모드에서 숨김 */}
+        {!slim && (
+          <div className="flex justify-center mb-5">
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              style={{
+                background:
+                  "linear-gradient(135deg, #FFF8F0 0%, #F7ECDB 60%, #F2E2D2 100%)",
+                border: "1px solid rgba(232,194,106,0.45)",
+                boxShadow: "0 2px 8px rgba(232,194,106,0.25)",
+              }}
             >
-              {ritualLabel}
-            </span>
-            <span className="w-[1px] h-3 bg-gold/40" />
-            <span className="text-[12px] font-medium text-[#8A6A2A]">
-              숨 고르고 고민에 집중해봐
-            </span>
+              <span className="text-[13px]">✨</span>
+              <span
+                className="text-[11px] font-black tracking-wide"
+                style={{ color: accent }}
+              >
+                {ritualLabel}
+              </span>
+              <span className="w-[1px] h-3 bg-gold/40" />
+              <span className="text-[12px] font-medium text-[#8A6A2A]">
+                숨 고르고 고민에 집중해봐
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 섹션 디바이더 */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-lilac-soft" />
-          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
-            {phase === "direction" ? "방향 선택" : "카드 뽑기"}
-          </span>
-          <div className="flex-1 h-px bg-lilac-soft" />
-        </div>
-
-        {/* 별콩이 + 메시지 */}
-        <div className="flex flex-col items-center mb-5">
-          <div className="relative w-14 h-14 mb-2">
-            <div className="absolute inset-0 bg-gold/30 rounded-full blur-xl scale-110" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/profile.png"
-              alt="별콩이"
-              className="relative w-full h-full object-contain animate-float"
-            />
+        {/* 섹션 디바이더 — slim 모드에서 숨김 */}
+        {!slim && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-lilac-soft" />
+            <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+              {phase === "direction" ? "방향 선택" : "카드 뽑기"}
+            </span>
+            <div className="flex-1 h-px bg-lilac-soft" />
           </div>
+        )}
+
+        {/* 별콩이 + 메시지 — slim 모드에서 프로필 이미지 숨김 */}
+        <div className={`flex flex-col items-center ${slim ? "mb-3" : "mb-5"}`}>
+          {!slim && (
+            <div className="relative w-14 h-14 mb-2">
+              <div className="absolute inset-0 bg-gold/30 rounded-full blur-xl scale-110" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/profile.png"
+                alt="별콩이"
+                className="relative w-full h-full object-contain animate-float"
+              />
+            </div>
+          )}
           {phase === "pick" ? (
             <>
               <p className="font-display text-[17px] text-eye-purple leading-tight text-center">
