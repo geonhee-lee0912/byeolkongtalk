@@ -112,6 +112,15 @@
 
 ---
 
+## 제외 규칙 (모든 쿼리 적용)
+
+UUID 앞 8자리로 매칭(`left(...::text,8)`). 두 스코프:
+
+- **관리자 완전 제외** — `b9e5dd5a` : 유저·리딩·잔액·결제 **모든 모수에서 제거**.
+- **테스트 결제 제외** — `9ff43266, b9e5dd5a, 7f83a4d7, a3bcc2c7, 3d648ebe` : 이 유저들의 **결제 row만** 매출·전환 집계에서 제거. (관리자 외 4명은 가입/리딩/대화 모수엔 **남는다** → 결제가 빠지므로 "도달했으나 미전환"으로 잡힐 수 있음. 이 4명까지 전부 제외하고 싶으면 말해줘 — `users`/`readings`/`star_balances` 필터도 5개로 바꿀게.)
+
+아래 쿼리에 두 필터를 인라인으로 심어둠(`/* 관리자 제외 */`, `/* 테스트결제 제외 */`).
+
 ## 실행 SQL
 
 > 순서대로 실행해 각 결과를 전달. Q6은 원문 포함이라 마지막에.
@@ -121,14 +130,20 @@
 ```sql
 WITH u AS (
   SELECT id AS user_id FROM users
-  -- 관리자/테스트 제외 시: WHERE id NOT IN ('<uuid>', ...)
+  WHERE left(id::text,8) <> 'b9e5dd5a'                         /* 관리자 제외 */
 ),
-bal AS (SELECT user_id, balance, total_spent FROM star_balances),
+bal AS (
+  SELECT user_id, balance, total_spent FROM star_balances
+  WHERE left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
+),
 pay AS (
   SELECT user_id,
     COUNT(*) FILTER (WHERE status='completed') AS paid_cnt,
     COALESCE(SUM(amount_won) FILTER (WHERE status='completed'),0) AS rev_won
-  FROM payments GROUP BY user_id
+  FROM payments
+  WHERE left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+  GROUP BY user_id
 ),
 flags AS (
   SELECT u.user_id,
@@ -154,16 +169,23 @@ FROM flags;
 ### Q1b — 소재(utm_content)별 퍼널 + CAC/ROAS
 
 ```sql
-WITH bal AS (SELECT user_id, balance, total_spent FROM star_balances),
+WITH bal AS (
+  SELECT user_id, balance, total_spent FROM star_balances
+  WHERE left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
+),
 pay AS (
   SELECT user_id,
     COUNT(*) FILTER (WHERE status='completed') AS paid_cnt,
     COALESCE(SUM(amount_won) FILTER (WHERE status='completed'),0) AS rev_won
-  FROM payments GROUP BY user_id
+  FROM payments
+  WHERE left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+  GROUP BY user_id
 ),
 acq AS (
   SELECT u.id AS user_id, COALESCE(a.utm_content, '(organic/untracked)') AS creative
   FROM users u LEFT JOIN user_acquisition a ON a.user_id = u.id
+  WHERE left(u.id::text,8) <> 'b9e5dd5a'                       /* 관리자 제외 */
 ),
 flags AS (
   SELECT acq.creative, acq.user_id,
@@ -199,9 +221,14 @@ WITH r AS (
     COUNT(*) AS readings_all,
     COUNT(*) FILTER (WHERE emotion_tag IS NULL OR emotion_tag NOT LIKE 'fortune:%') AS consult_readings,
     COUNT(*) FILTER (WHERE emotion_tag LIKE 'fortune:%') AS fortune_readings
-  FROM readings GROUP BY user_id
+  FROM readings
+  WHERE left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
+  GROUP BY user_id
 ),
-b AS (SELECT user_id, total_spent FROM star_balances WHERE total_spent > 0)
+b AS (
+  SELECT user_id, total_spent FROM star_balances
+  WHERE total_spent > 0 AND left(user_id::text,8) <> 'b9e5dd5a'  /* 관리자 제외 */
+)
 SELECT
   COUNT(*)                                        AS tried_users,
   ROUND(AVG(r.readings_all), 2)                   AS avg_readings,
@@ -227,6 +254,7 @@ WITH base AS (
   FROM readings r
   LEFT JOIN messages m ON m.reading_id = r.id
   WHERE (r.emotion_tag IS NULL OR r.emotion_tag NOT LIKE 'fortune:%')
+    AND left(r.user_id::text,8) <> 'b9e5dd5a'                  /* 관리자 제외 */
   GROUP BY r.id
 ),
 cls AS (
@@ -240,7 +268,11 @@ cls AS (
     END AS state
   FROM base b
 ),
-conv AS (SELECT DISTINCT user_id FROM payments WHERE status='completed')
+conv AS (
+  SELECT DISTINCT user_id FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+)
 SELECT
   c.consultation_type,
   c.prompt_version,
@@ -258,14 +290,25 @@ ORDER BY c.consultation_type, c.prompt_version, n DESC;
 ```sql
 WITH act AS (
   SELECT user_id, (created_at AT TIME ZONE 'Asia/Seoul')::date AS d FROM readings
+  WHERE left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
   UNION
-  SELECT user_id, (created_at AT TIME ZONE 'Asia/Seoul')::date FROM payments WHERE status='completed'
+  SELECT user_id, (created_at AT TIME ZONE 'Asia/Seoul')::date FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
 ),
 u AS (
   SELECT id AS user_id, (created_at AT TIME ZONE 'Asia/Seoul')::date AS signup_d FROM users
+  WHERE left(id::text,8) <> 'b9e5dd5a'                         /* 관리자 제외 */
 ),
-bal AS (SELECT user_id, (total_spent>0 AND balance<10) AS reached FROM star_balances),
-conv AS (SELECT DISTINCT user_id FROM payments WHERE status='completed'),
+bal AS (
+  SELECT user_id, (total_spent>0 AND balance<10) AS reached FROM star_balances
+  WHERE left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
+),
+conv AS (
+  SELECT DISTINCT user_id FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+),
 per AS (
   SELECT u.user_id, u.signup_d,
     COUNT(DISTINCT a.d)              AS active_days,
@@ -302,13 +345,18 @@ FROM per WHERE reached;
 
 ```sql
 WITH reached AS (
-  SELECT user_id FROM star_balances WHERE total_spent > 0 AND balance < 10
+  SELECT user_id FROM star_balances
+  WHERE total_spent > 0 AND balance < 10
+    AND left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
 ),
 p AS (
   SELECT user_id,
     BOOL_OR(status='completed') AS has_completed,
     COUNT(*)                    AS pay_rows
-  FROM payments GROUP BY user_id
+  FROM payments
+  WHERE left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+  GROUP BY user_id
 )
 SELECT
   COUNT(*)                                                            AS reached,
@@ -318,17 +366,25 @@ SELECT
   COUNT(*) FILTER (WHERE p.user_id IS NULL)                           AS never_attempted
 FROM reached rc
 LEFT JOIN p ON p.user_id = rc.user_id;
--- 참고: 전체 결제 상태 분포
--- SELECT status, COUNT(*) n, COUNT(DISTINCT user_id) users FROM payments GROUP BY status;
+-- 참고: 전체 결제 상태 분포 (테스트결제 제외)
+-- SELECT status, COUNT(*) n, COUNT(DISTINCT user_id) users FROM payments
+--  WHERE left(user_id::text,8) NOT IN ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')
+--  GROUP BY status;
 ```
 
 ### Q6 — 정성 대화 덤프 : 페이월 도달자, 전환자 vs 미전환자 (민감 제외)
 
 ```sql
 WITH reached AS (
-  SELECT user_id FROM star_balances WHERE total_spent > 0 AND balance < 10
+  SELECT user_id FROM star_balances
+  WHERE total_spent > 0 AND balance < 10
+    AND left(user_id::text,8) <> 'b9e5dd5a'                    /* 관리자 제외 */
 ),
-conv AS (SELECT DISTINCT user_id FROM payments WHERE status='completed')
+conv AS (
+  SELECT DISTINCT user_id FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+)
 SELECT
   (r.user_id IN (SELECT user_id FROM conv)) AS converted,
   r.user_id, r.id AS reading_id,
@@ -351,8 +407,13 @@ WITH r AS (
     COALESCE(r.emotion_tag, '(없음)') AS topic
   FROM readings r
   WHERE (r.emotion_tag IS NULL OR r.emotion_tag NOT LIKE 'fortune:%')
+    AND left(r.user_id::text,8) <> 'b9e5dd5a'                  /* 관리자 제외 */
 ),
-conv AS (SELECT DISTINCT user_id FROM payments WHERE status='completed')
+conv AS (
+  SELECT DISTINCT user_id FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+)
 SELECT
   r.consultation_type,
   r.topic,
@@ -374,6 +435,8 @@ SELECT
   COALESCE(SUM(amount_won),0) AS amount_won,
   COUNT(DISTINCT user_id)     AS users
 FROM payments
+WHERE left(user_id::text,8) NOT IN
+  ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')     /* 테스트결제 제외 */
 GROUP BY package_type, status
 ORDER BY package_type, status;
 ```
@@ -385,10 +448,14 @@ WITH u AS (
   SELECT id AS user_id,
     date_trunc('week', (created_at AT TIME ZONE 'Asia/Seoul'))::date AS cohort_week
   FROM users
+  WHERE left(id::text,8) <> 'b9e5dd5a'                         /* 관리자 제외 */
 ),
 rev AS (
   SELECT user_id, SUM(amount_won) AS rev_won
-  FROM payments WHERE status='completed' GROUP BY user_id
+  FROM payments
+  WHERE status='completed' AND left(user_id::text,8) NOT IN
+    ('9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe')   /* 테스트결제 제외 */
+  GROUP BY user_id
 )
 SELECT
   u.cohort_week,
