@@ -45,6 +45,7 @@ function buildPreview(content: string): string {
   const cleaned = base
     .replace(/\[CARD:\d+\]/g, "")
     .replace(/\[END\]/g, "")
+    .replace(/\[RECO:[a-z0-9_:]+\]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
   const chars = [...cleaned];

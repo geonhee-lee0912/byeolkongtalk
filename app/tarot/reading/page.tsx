@@ -558,6 +558,8 @@ function TarotReadingInner() {
       stopTyping();
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setIsStreaming(false);
+      // 스트림 실패 시 직행 예약 해제 — 이후 일반 턴의 [END]가 예상 밖 점프를 만들지 않게
+      pendingRecoJumpRef.current = null;
     }
   }
 
