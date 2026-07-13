@@ -67,8 +67,13 @@ function parseSections(text: string): Section[] {
 }
 
 // 타로 상담 assistant 메시지 마커 제거 (tarot/result 와 동일)
+// 단 [RECO:] 마커는 어드민에선 "칩 노출" 배지 텍스트로 치환 — 유저가 그 시점에 뭘 봤는지 확인용.
 function cleanTarotContent(raw: string): string {
-  return raw.replace(/\[CARD:\d+\]/g, "").replace(/\[END\]\s*$/, "").trim();
+  return raw
+    .replace(/\[CARD:\d+\]/g, "")
+    .replace(/\[RECO:([a-z0-9_:]+)\]/gi, "〔🔔 칩 노출: $1〕")
+    .replace(/\[END\]\s*$/, "")
+    .trim();
 }
 
 // 컴포넌트들이 light 테마라 흰/크림 컨테이너 위에 얹는다.
@@ -333,7 +338,12 @@ export default function ReadingDetailView({
         <div className="mx-auto mt-4 w-full max-w-md px-5">
           <ChatHistory
             messages={messages}
-            clean={(raw) => raw.replace(/\[END\]\s*$/, "").trim()}
+            clean={(raw) =>
+              raw
+                .replace(/\[RECO:([a-z0-9_:]+)\]/gi, "〔🔔 칩 노출: $1〕")
+                .replace(/\[END\]\s*$/, "")
+                .trim()
+            }
           />
         </div>
       </LightStage>
