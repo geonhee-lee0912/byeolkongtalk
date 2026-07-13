@@ -17,6 +17,7 @@ import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/Clar
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet from "@/components/upsell/ClarifierSheet";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 
 interface Message {
@@ -353,7 +354,7 @@ function TarotReadingInner() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           const bal: number = d?.balance ?? 0;
-          const needed = 10; // CLARIFIER_COST = EXTEND_COST = 10
+          const needed = pending.type === "clarifier" ? CLARIFIER_COST : EXTEND_COST;
           if (bal >= needed) {
             setPendingResumeBanner({ type: pending.type });
           } else {

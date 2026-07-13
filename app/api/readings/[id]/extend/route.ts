@@ -49,14 +49,34 @@ export async function POST(
     return NextResponse.json({ error: "reading_already_ended" }, { status: 400 });
   }
 
-  // 한도 검증 — extra_turns < EXTEND_TURNS * EXTEND_MAX (= 4), 즉 0일 때만
   const extraTurns = (reading.extra_turns as number) ?? 0;
-  if (extraTurns >= EXTEND_TURNS * EXTEND_MAX) {
+
+  // 슬롯 원자 선점 — extra_turns < EXTEND_TURNS * EXTEND_MAX 조건부 +EXTEND_TURNS.
+  // 반환 0행 → 이미 한도 소진 (동시 요청 포함), 차감 없이 400.
+  const { data: slotRows, error: slotErr } = await supabase
+    .from("readings")
+    .update({ extra_turns: extraTurns + EXTEND_TURNS })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .lt("extra_turns", EXTEND_TURNS * EXTEND_MAX)
+    .select("extra_turns");
+
+  if (slotErr) {
+    await logError(slotErr, {
+      route: `/api/readings/${id}/extend`,
+      userId,
+      extra: { stage: "slot_atomic", readingId: id },
+    });
+    return NextResponse.json({ error: "slot_error" }, { status: 500 });
+  }
+  if (!slotRows || slotRows.length === 0) {
     return NextResponse.json(
       { error: "extend_limit_reached", max: EXTEND_MAX },
       { status: 400 }
     );
   }
+
+  const newExtraTurns = slotRows[0].extra_turns as number;
 
   // 별 차감
   const spend = await spendStars(userId, EXTEND_COST, {
@@ -64,31 +84,23 @@ export async function POST(
     source: "extend",
   });
   if (!spend.success) {
+    // 선점 반납
+    const { error: rollbackErr } = await supabase
+      .from("readings")
+      .update({ extra_turns: newExtraTurns - EXTEND_TURNS })
+      .eq("id", id);
+    if (rollbackErr) {
+      console.error("[extend] 선점 반납 실패 — 수동 보정 필요:", { readingId: id, userId });
+      await logError(rollbackErr, {
+        route: `/api/readings/${id}/extend`,
+        userId,
+        extra: { stage: "slot_rollback", readingId: id },
+      });
+    }
     return NextResponse.json(
       { error: "insufficient", balance: spend.balance },
       { status: 402 }
     );
-  }
-
-  // extra_turns 업데이트
-  const newExtraTurns = extraTurns + EXTEND_TURNS;
-  const { error: updateErr } = await supabase
-    .from("readings")
-    .update({ extra_turns: newExtraTurns })
-    .eq("id", id);
-
-  if (updateErr) {
-    // 차감 성공 후 업데이트 실패 — 수동 보정 필요
-    console.error(
-      "[extend] extra_turns UPDATE 실패 — 수동 보정 필요:",
-      { readingId: id, userId, newExtraTurns, updateErr }
-    );
-    await logError(updateErr, {
-      route: `/api/readings/${id}/extend`,
-      userId,
-      extra: { stage: "update_extra_turns", readingId: id },
-    });
-    return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ extraTurns: newExtraTurns });

@@ -80,20 +80,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "reading_already_ended" }, { status: 400 });
   }
 
-  // 한도 검증
-  const clarifierCount = (reading.clarifier_count as number) ?? 0;
-  if (clarifierCount >= CLARIFIER_MAX) {
+  // 카드 중복 검증 — 기존 drawn_cards에 동일 card_id 없어야 함
+  const drawnCards = ((reading.drawn_cards as DrawnCard[]) ?? []);
+  if (drawnCards.some((c) => c.card_id === body.card.card_id)) {
+    return NextResponse.json({ error: "card_already_drawn" }, { status: 400 });
+  }
+
+  // 슬롯 원자 선점 — clarifier_count < CLARIFIER_MAX 조건부 +1.
+  // 반환 0행 → 이미 한도 소진 (동시 요청 포함), 차감 없이 400.
+  const { data: slotRows, error: slotErr } = await supabase
+    .from("readings")
+    .update({ clarifier_count: reading.clarifier_count + 1 })
+    .eq("id", reading.id)
+    .eq("user_id", userId)
+    .lt("clarifier_count", CLARIFIER_MAX)
+    .select("clarifier_count");
+
+  if (slotErr) {
+    await logError(slotErr, {
+      route: "/api/consultations/tarot/clarifier",
+      userId,
+      extra: { stage: "slot_atomic", readingId: reading.id },
+    });
+    return NextResponse.json({ error: "slot_error" }, { status: 500 });
+  }
+  if (!slotRows || slotRows.length === 0) {
     return NextResponse.json(
       { error: "clarifier_limit_reached", max: CLARIFIER_MAX },
       { status: 400 }
     );
   }
 
-  // 카드 중복 검증 — 기존 drawn_cards에 동일 card_id 없어야 함
-  const drawnCards = ((reading.drawn_cards as DrawnCard[]) ?? []);
-  if (drawnCards.some((c) => c.card_id === body.card.card_id)) {
-    return NextResponse.json({ error: "card_already_drawn" }, { status: 400 });
-  }
+  const newClarifierCount = slotRows[0].clarifier_count as number;
 
   // 별 차감
   const spend = await spendStars(userId, CLARIFIER_COST, {
@@ -101,6 +119,19 @@ export async function POST(request: NextRequest) {
     source: "clarifier",
   });
   if (!spend.success) {
+    // 선점 반납
+    const { error: rollbackErr } = await supabase
+      .from("readings")
+      .update({ clarifier_count: newClarifierCount - 1 })
+      .eq("id", reading.id);
+    if (rollbackErr) {
+      console.error("[clarifier] 선점 반납 실패 — 수동 보정 필요:", { readingId: reading.id, userId });
+      await logError(rollbackErr, {
+        route: "/api/consultations/tarot/clarifier",
+        userId,
+        extra: { stage: "slot_rollback", readingId: reading.id },
+      });
+    }
     return NextResponse.json(
       { error: "insufficient", balance: spend.balance },
       { status: 402 }
@@ -115,18 +146,14 @@ export async function POST(request: NextRequest) {
     direction: body.card.direction,
   };
   const updatedCards = [...drawnCards, newCard];
-  const newClarifierCount = clarifierCount + 1;
 
   const { error: updateErr } = await supabase
     .from("readings")
-    .update({
-      drawn_cards: updatedCards,
-      clarifier_count: newClarifierCount,
-    })
+    .update({ drawn_cards: updatedCards })
     .eq("id", reading.id);
 
   if (updateErr) {
-    // 차감 성공 후 업데이트 실패 — 수동 보정 필요
+    // 차감·선점 성공 후 drawn_cards 업데이트 실패 — 수동 보정 필요
     console.error(
       "[clarifier] drawn_cards UPDATE 실패 — 수동 보정 필요:",
       { readingId: reading.id, userId, newCard, updateErr }
