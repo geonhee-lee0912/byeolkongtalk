@@ -55,7 +55,7 @@ export default function RecoCard({
         <div className="text-[11px] font-bold text-text-light mb-1.5">
           별콩이 추천
         </div>
-        {reco.question && (
+        {reco.question && !hook.includes(reco.question) && (
           <p className="text-[12px] text-eye-purple/70 mb-1 leading-relaxed">
             &ldquo;{reco.question}&rdquo;
           </p>
