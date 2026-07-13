@@ -68,7 +68,25 @@
 ### 렌즈 6. 대화를 제대로 안 끝내고 나가는 페르소나 문제 (어제 A·D 심화)
 정성 핵심 스레드. **유저 답변 길이의 턴별 궤적**(예: 15자→5자→2자→이탈)을 Q6 덤프에서 추적해, **답이 짧아지기 직전 별콩이가 뭘 했는지**(질문 강요? 3문단 독백? 공감 생략?)를 페르소나 규칙 번호에 매핑. "단답 2회 연속 = 지침 신호"인데 규칙 5(열린 질문 마무리)가 오히려 더 캐묻게 만드는 구조적 결함을 정량(abandon_mid율, Q3)+정성(사례, Q6)으로 이중 확인.
 
-## 정성 방법 — 전환자 vs 미전환자 비교
+### 렌즈 7. 고민 분류(topic)별 전환 + 상품/매출 믹스 (어드민 보강)
+어드민 애널리틱스(`app/admin/analytics`)가 이미 보여주는데 위 렌즈에 빠졌던 축을 편입:
+- **고민 분류(`emotion_tag`)별 건수·유료·전환** — **연애 고민이 압도적**이라는 관찰을 정량 확인하고, 분류별 전환율 차이를 본다("연애가 물량은 많은데 전환은 낮은가" 등).
+- **별 구매 상품별 매출 믹스 + 환불** — 어떤 패키지가 실제 매출을 만드는가, `refunded` 비율(불만족 신호).
+- **코호트 LTV** — 리텐션%(렌즈 4)에 더해 가입 주차별 **누적 결제액/인**(어드민 CohortHeatmap 대응).
+→ 쿼리 **Q7**(분류×전환), **Q8**(상품/매출/환불), **Q9**(코호트 LTV).
+
+## 정성 방법 — 전환자 vs 미전환자 × 고민 종류
+
+페이월 **도달 52명**의 대화를 **전환자 vs 미전환자로 태깅해 나란히 정독**(Q6), **그리고 고민 종류(`emotion_tag`)별로 다시 층화**한다.
+
+**종류별 축이 왜 중요한가**: 고민 종류마다 유저의 **핵심 갈증이 다르고, 페르소나의 실패 방식도 다르다.** 연애가 압도적이니 특히 깊게:
+- **연애·재회·짝사랑** (최다) → 갈증 = "될까 / 언제 / (그 사람이) 올까". 확답 회피(패턴 B)가 **여기서 가장 치명적** — 재회/썸은 "정해진 게 아니야"가 반복되면 "그럼 왜 봤지"로 직결. 종류별로 별콩이가 방향성 있는 답을 주는지 vs 회피 상용구를 도는지 집중 관찰.
+- **취업·진로** → 갈증 = "언제 / 붙을까". 타이밍 질문 처리(커밋 이력상 timing-question-handling 있음)가 실제로 갈증을 푸는지.
+- **금전·건강·인간관계 등 기타** → 표본 적으면 묶어서, 공통 실패만.
+
+각 종류에 대해: (1) 대표 갈증 문장, (2) 별콩이의 응답이 그 갈증을 푸는가/도는가, (3) 종류별 이탈·전환 차이, (4) 종류별로 다른 페르소나 처방.
+
+### 공통 정독 축 (전 종류 공통)
 
 페이월 **도달 52명**의 대화를 **전환자 vs 미전환자로 태깅해 나란히 정독**(Q6). 축:
 1. 마지막 리딩(벽에 닿기 직전 경험)에서 두 집단이 뭐가 달랐나.
@@ -80,10 +98,10 @@
 
 `docs/superpowers/specs/2026-07-13-paywall-funnel-conversation-findings.md`:
 
-1. **퍼널 진단** — 단계별 수·% 표, 최대 절벽, 소재별 편차.
+1. **퍼널 진단** — 단계별 수·% 표, 최대 절벽, 소재별 편차, **고민 분류별 물량↔전환 + 상품/매출 믹스·환불**.
 2. **전환 이유 진단** — H1~H5 확인/기각 + 근거.
-3. **대화 품질 진단** — 전환자/미전환자 대비, 패턴 매핑, 답변길이 궤적, 가린 예시.
-4. **리텐션 진단** — 재방문율·좋은 마무리↔재방문 상관.
+3. **대화 품질 진단** — 전환자/미전환자 대비, **고민 종류별(특히 연애) 갈증↔응답 진단**, 패턴 매핑, 답변길이 궤적, 가린 예시.
+4. **리텐션 진단** — 재방문율·좋은 마무리↔재방문 상관, **코호트 LTV(누적 결제액/인)**.
 5. **우선순위 액션** — 각 발견을 아래 4범주 액션으로, **[고치는 퍼널 단계 · 지렛대 크기 · 공수]** 태깅해 우선순위화:
    - **① 페르소나 편집** (`data/persona/byeolkong.md`) — 규칙 5/후속대화/규칙 1 예외·상한 (어제 findings §3 제안 계승·구체화)
    - **② 대화흐름/코드** — 수렴 종료 타이밍, `[END]` 유예(패턴 C), 후속 길이 상한
@@ -324,6 +342,78 @@ WHERE (r.emotion_tag IS NULL OR r.emotion_tag NOT LIKE 'fortune:%')
   AND r.has_sensitive = false
 ORDER BY converted, r.user_id, r.created_at, m.created_at;
 ```
+
+### Q7 — 고민 분류(emotion_tag)별 물량 + 전환 (운세 제외)
+
+```sql
+WITH r AS (
+  SELECT r.id, r.user_id, r.consultation_type,
+    COALESCE(r.emotion_tag, '(없음)') AS topic
+  FROM readings r
+  WHERE (r.emotion_tag IS NULL OR r.emotion_tag NOT LIKE 'fortune:%')
+),
+conv AS (SELECT DISTINCT user_id FROM payments WHERE status='completed')
+SELECT
+  r.consultation_type,
+  r.topic,
+  COUNT(*)                  AS readings,
+  COUNT(DISTINCT r.user_id) AS users,
+  COUNT(DISTINCT r.user_id) FILTER (WHERE r.user_id IN (SELECT user_id FROM conv)) AS converted_users
+FROM r
+GROUP BY r.consultation_type, r.topic
+ORDER BY readings DESC;
+```
+
+### Q8 — 별 구매 상품별 매출 믹스 + 환불
+
+```sql
+SELECT
+  package_type,
+  status,
+  COUNT(*)                    AS n,
+  COALESCE(SUM(amount_won),0) AS amount_won,
+  COUNT(DISTINCT user_id)     AS users
+FROM payments
+GROUP BY package_type, status
+ORDER BY package_type, status;
+```
+
+### Q9 — 코호트 LTV (가입 주차별 누적 결제액/인, KST 월요일 기준)
+
+```sql
+WITH u AS (
+  SELECT id AS user_id,
+    date_trunc('week', (created_at AT TIME ZONE 'Asia/Seoul'))::date AS cohort_week
+  FROM users
+),
+rev AS (
+  SELECT user_id, SUM(amount_won) AS rev_won
+  FROM payments WHERE status='completed' GROUP BY user_id
+)
+SELECT
+  u.cohort_week,
+  COUNT(*)                                                       AS cohort_size,
+  COUNT(*) FILTER (WHERE COALESCE(r.rev_won,0) > 0)              AS payers,
+  COALESCE(SUM(r.rev_won),0)                                     AS total_rev_won,
+  ROUND(COALESCE(SUM(r.rev_won),0)::numeric / NULLIF(COUNT(*),0)) AS rev_per_user_won
+FROM u LEFT JOIN rev r ON r.user_id = u.user_id
+GROUP BY u.cohort_week
+ORDER BY u.cohort_week DESC;
+```
+
+## 어드민 대비 커버리지
+
+이 진단이 어드민 애널리틱스(`app/admin/analytics`, `app/admin/paywall`)의 지표를 다 흡수하는지 대조:
+
+| 어드민 뷰 | 대응 쿼리 |
+|---|---|
+| 페이월 퍼널 (도달/전환) | Q1a, Q5 |
+| 소재별 퍼널 · CAC · ROAS | Q1b |
+| 고민톡 고민 분류별 (건수·유료) | Q7 |
+| 별 구매 상품별 매출 | Q8 |
+| 코호트 LTV / 리텐션 | Q4(리텐션) + Q9(LTV) |
+| 상담 완료 퍼널 (시작→[END]→결과열람) | Q3 |
+| 일별 추세(가입/리딩/매출) | 어드민에서 직접 확인(진단 핵심 아님, 쿼리 생략) |
 
 ## 코드 검토 (SQL 밖, H4 확인용)
 
