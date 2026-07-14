@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession, clearAllCookies } from "@/lib/session";
 import { unlinkKakao } from "@/lib/kakao";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   // CSRF: Origin/Referer 가 우리 도메인인지 확인
@@ -32,20 +32,24 @@ export async function POST(request: NextRequest) {
   const supabase = getServiceSupabase();
 
   // kakao_id 조회 → unlink. 실패 시 503 + DB 삭제 중단 (좀비 OAuth 방지)
+  // 단 -101(이미 연결 없음 — 유저가 카카오 설정에서 직접 끊은 경우)은 링크가
+  // 이미 없으므로 탈퇴 진행. 안 그러면 해당 유저는 영구 탈퇴 불가.
   const { data: userRow } = await supabase
     .from("users")
     .select("kakao_id")
     .eq("id", userId)
     .single();
   if (userRow?.kakao_id) {
-    const ok = await unlinkKakao(userRow.kakao_id);
-    if (!ok) {
+    const unlink = await unlinkKakao(userRow.kakao_id);
+    if (!unlink.ok && !unlink.alreadyUnlinked) {
       await logError(new Error("Kakao unlink failed during withdraw"), {
         route: "/api/auth/withdraw",
         userId,
         extra: {
           kakaoId: userRow.kakao_id,
           severity: "WITHDRAW_UNLINK_FAILED",
+          kakaoStatus: unlink.status ?? null,
+          kakaoCode: unlink.code ?? null,
         },
       });
       return NextResponse.json(
@@ -55,6 +59,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 503 }
       );
+    }
+    if (unlink.alreadyUnlinked) {
+      await logWarn("Kakao already unlinked before withdraw — proceeding", {
+        route: "/api/auth/withdraw",
+        userId,
+        extra: { kakaoId: userRow.kakao_id },
+      });
     }
   }
 
