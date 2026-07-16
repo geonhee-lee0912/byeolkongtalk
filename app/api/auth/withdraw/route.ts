@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession, clearAllCookies } from "@/lib/session";
 import { unlinkKakao } from "@/lib/kakao";
-import { logError, logWarn } from "@/lib/logger";
+import { logError, logInfo } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   // CSRF: Origin/Referer 가 우리 도메인인지 확인
@@ -60,8 +60,9 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
+    // 유저가 카카오 설정에서 직접 끊은 정상 시나리오 — 대응 불필요, 빈도 추적용 info
     if (unlink.alreadyUnlinked) {
-      await logWarn("Kakao already unlinked before withdraw — proceeding", {
+      await logInfo("Kakao already unlinked before withdraw — proceeding", {
         route: "/api/auth/withdraw",
         userId,
         extra: { kakaoId: userRow.kakao_id },

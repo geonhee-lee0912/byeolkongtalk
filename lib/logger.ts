@@ -149,6 +149,22 @@ export async function logWarn(
   }
 }
 
+// 대응 불필요한 정보성 기록 (예상된 폴백 경로 등) — /admin/errors 트리아지 대상 아님
+export async function logInfo(
+  message: string,
+  ctx: LogContext = {}
+): Promise<void> {
+  const payload = buildPayload("info", message, null, ctx);
+
+  if (isServer) {
+    console.info(`[info] ${payload.route ?? "?"}`, message, ctx.extra ?? "");
+    await writeServer(payload);
+  } else {
+    console.info(`[info]`, message, ctx.extra ?? "");
+    await writeClient(payload);
+  }
+}
+
 // 서버 라우트에서 Request 받아서 user_agent/ip 자동 추출
 export function ctxFromRequest(
   req: Request,
