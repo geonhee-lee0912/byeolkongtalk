@@ -168,6 +168,7 @@ public/
 - 단정적 예언 톤 금지 (페르소나 화법 원칙 따름)
 - Server Components 기본, Client Components는 인터랙션 필요한 경우만
 - Cache Components (Next.js 16) — Phase 5+에서 활용 검토
+- **`users(id)` 참조 FK 는 반드시 `ON DELETE CASCADE` 또는 `SET NULL` 명시** — 규칙 없으면(NO ACTION) 회원 탈퇴의 users DELETE 가 23503 으로 차단됨 (2026-07-17 ad_spend.created_by 사례: unlink 만 성공한 반쪽 탈퇴 → 재시도마다 -101 info 루프)
 
 ## 진행 상황 (Phase)
 
