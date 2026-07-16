@@ -215,7 +215,7 @@ export default function TermsPage() {
         <Article title="제14조 (문의)">
           서비스 이용 관련 문의는 다음 연락처로 보내주시기 바랍니다.
           <p className="mt-2">이메일: oneulcard@gmail.com</p>
-          <p>대표전화: 010-7456-6473</p>
+          <p>대표전화: 0502-1924-6473</p>
         </Article>
 
         <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">

@@ -129,7 +129,7 @@ export default function RefundPage() {
         <Article title="제9조 (문의)">
           환불 및 결제 관련 문의는 다음 연락처로 부탁드립니다.
           <p className="mt-2">이메일: oneulcard@gmail.com</p>
-          <p>대표전화: 010-7456-6473</p>
+          <p>대표전화: 0502-1924-6473</p>
           <p>처리 시간: 평일 10:00 ~ 18:00 (주말·공휴일 제외)</p>
         </Article>
 

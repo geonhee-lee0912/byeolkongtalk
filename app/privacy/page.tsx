@@ -252,7 +252,7 @@ export default function PrivacyPage() {
           <p>성명: 이건희</p>
           <p>직책: 대표</p>
           <p>이메일: oneulcard@gmail.com</p>
-          <p>대표전화: 010-7456-6473</p>
+          <p>대표전화: 0502-1924-6473</p>
         </Article>
 
         <Article title="제11조 (권익침해 구제 방법)">
