@@ -41,13 +41,14 @@ interface Pattern {
 
 const PATTERNS: Pattern[] = [
   // 자살 / 자해
-  { re: /자\s*살(?!\s*(놈|자|문|로|님))/, category: "suicide", severity: 3, certainty: "high" },
+  // (?<![가-힣]) — "혼자 살고", "헤어지자 해" 처럼 앞 어절 끝 '자' 와 붙는 오탐 차단
+  { re: /(?<![가-힣])자\s*살(?!\s*(놈|자|문|로|님))/, category: "suicide", severity: 3, certainty: "high" },
   { re: /죽\s*고\s*싶/, category: "suicide", severity: 3, certainty: "high" },
   { re: /(끝내|마감)\s*고?\s*싶/, category: "suicide", severity: 2, certainty: "medium" },
   { re: /사라\s*지\s*고\s*싶/, category: "suicide", severity: 2, certainty: "medium" },
   { re: /살\s*기\s*싫/, category: "suicide", severity: 2, certainty: "medium" },
   { re: /없어\s*졌으면/, category: "suicide", severity: 1, certainty: "low" },
-  { re: /자\s*해/, category: "suicide", severity: 3, certainty: "high" },
+  { re: /(?<![가-힣])자\s*해/, category: "suicide", severity: 3, certainty: "high" },
   { re: /(약|수면제|수면유도제).*(먹고|털어|모아)/, category: "suicide", severity: 3, certainty: "high" },
   { re: /(뛰어\s*내리|투신|목\s*매)/, category: "suicide", severity: 3, certainty: "high" },
   { re: /칼.*(긋|손목)/, category: "suicide", severity: 3, certainty: "high" },
