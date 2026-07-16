@@ -8,11 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdsPage() {
   const supa = getServiceSupabase();
-  const [{ data: rows }, { data: acqs }] = await Promise.all([
+  const [{ data: rows }, { data: acqs }, { data: allSpend }] = await Promise.all([
     supa.from("ad_spend").select("*").order("spend_date", { ascending: false }).limit(500),
     supa.from("user_acquisition").select("utm_content").gte("created_at", daysAgoKstIso(89)).limit(100000),
+    supa.from("ad_spend").select("spend_won").limit(100000),
   ]);
   const suggestions = [...new Set((acqs ?? []).map((a) => a.utm_content).filter(Boolean) as string[])];
+  const totalSpend = (allSpend ?? []).reduce((a, r) => a + (Number(r.spend_won) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -20,6 +22,11 @@ export default async function AdsPage() {
       <p className="text-[13px] text-white/50">메타 Ads Manager 숫자를 일자·소재별로 입력하면 애널리틱스의 CAC·ROAS가 채워집니다. 입력 안 해도 다른 지표는 모두 동작합니다.</p>
       <AdSpendUpload />
       <AdSpendForm creativeSuggestions={suggestions} />
+
+      <div className="rounded-xl bg-white/5 border border-white/10 p-4 inline-block">
+        <div className="text-[12px] text-white/50">업로드된 총 지출 (전체 누적)</div>
+        <div className="text-xl font-bold mt-1">₩ {totalSpend.toLocaleString()}</div>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
