@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
@@ -29,6 +29,9 @@ export default function TarotInput({ type }: { type: FortuneType }) {
   const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
   const [effectiveCost, setEffectiveCost] = useState(cfg.cost);
 
+  // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
+  const inFlightRef = useRef(false);
+
   useEffect(() => {
     if (type !== "tarot_daily") return;
     void fetch("/api/fortune/tarot-daily-status", { cache: "no-store" })
@@ -42,6 +45,8 @@ export default function TarotInput({ type }: { type: FortuneType }) {
   }, [type]);
 
   const submit = async (drawn: DrawnCard[]) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setSubmitting(true);
     setError(null);
     const res = await fetch("/api/fortune/create", {
@@ -57,6 +62,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
       .catch(() => null);
     setSubmitting(false);
     if (!res || !res.ok) {
+      inFlightRef.current = false;
       if (res?.j?.code === "INSUFFICIENT_STARS") {
         setError("별이 부족해. 충전소에서 채우고 다시 올래?");
         setShowConfirm(true);
@@ -70,6 +76,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
       return;
     }
     if (!res.j?.id) {
+      inFlightRef.current = false;
       setError("카드를 못 펼쳤어. 잠시 후 다시 시도해줄래?");
       return;
     }
@@ -79,6 +86,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
   };
 
   const onComplete = async (drawn: DrawnCard[]) => {
+    if (inFlightRef.current) return;
     setError(null);
     const me = await fetch("/api/auth/me", { cache: "no-store" })
       .then((x) => (x.ok ? x.json() : null))
