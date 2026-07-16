@@ -104,8 +104,23 @@ export async function POST(request: NextRequest) {
     .eq("id", userId);
 
   if (userErr) {
-    console.error("user delete error:", userErr);
-    return NextResponse.json({ error: userErr.message }, { status: 500 });
+    // 여기서 실패하면 unlink 만 끝난 반쪽 탈퇴 상태 — 재시도마다 -101 info 가 반복되므로
+    // 어드민 에러 로그에 반드시 남겨서 원인(FK 등)을 추적 가능하게 한다.
+    await logError(userErr, {
+      route: "/api/auth/withdraw",
+      userId,
+      extra: {
+        severity: "WITHDRAW_USER_DELETE_FAILED",
+        dbCode: userErr.code ?? null,
+      },
+    });
+    return NextResponse.json(
+      {
+        error:
+          "탈퇴 처리 중 문제가 생겼어. 잠시 후 다시 시도하거나 고객센터로 문의해줘",
+      },
+      { status: 500 }
+    );
   }
 
   const res = NextResponse.json({ success: true });
