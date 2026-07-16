@@ -37,17 +37,20 @@ export default async function AdminLayout({
   }
 
   // 메뉴 미처리 뱃지 — 신규 발생 시 빨간 pill (처리하면 자동 소멸)
+  // 에러 로그는 레벨 분리: error=빨강, warn=노랑 (info 는 대응 불필요 신호라 뱃지 제외)
   const supa = getServiceSupabase();
-  const [inqRes, sensRes, errRes] = await Promise.all([
+  const [inqRes, sensRes, errRes, warnRes] = await Promise.all([
     supa.from("inquiries").select("id", { count: "exact", head: true }).eq("status", "open"),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
-    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
+    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null).eq("level", "error"),
+    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null).eq("level", "warn"),
   ]);
   const badges: Record<string, number> = {
     "/admin/inquiries": inqRes.count ?? 0,
     "/admin/sensitive": sensRes.count ?? 0,
-    "/admin/errors": errRes.count ?? 0,
   };
+  const errCount = errRes.count ?? 0;
+  const warnCount = warnRes.count ?? 0;
   const fmtBadge = (n: number) => (n > 99 ? "99+" : String(n));
 
   return (
@@ -68,10 +71,27 @@ export default async function AdminLayout({
             >
               <span>{item.emoji}</span>
               <span className="flex-1">{item.label}</span>
-              {(badges[item.href] ?? 0) > 0 && (
-                <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
-                  {fmtBadge(badges[item.href])}
-                </span>
+              {item.href === "/admin/errors" ? (
+                (errCount > 0 || warnCount > 0) && (
+                  <span className="ml-auto flex items-center gap-1">
+                    {errCount > 0 && (
+                      <span className="bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                        {fmtBadge(errCount)}
+                      </span>
+                    )}
+                    {warnCount > 0 && (
+                      <span className="bg-yellow-400 text-night text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                        {fmtBadge(warnCount)}
+                      </span>
+                    )}
+                  </span>
+                )
+              ) : (
+                (badges[item.href] ?? 0) > 0 && (
+                  <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                    {fmtBadge(badges[item.href])}
+                  </span>
+                )
               )}
             </Link>
           ))}
