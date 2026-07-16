@@ -76,6 +76,7 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawAck, setWithdrawAck] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editingSelf, setEditingSelf] = useState(false);
@@ -200,17 +201,23 @@ export default function MyPage() {
   };
 
   const handleWithdraw = async () => {
-    if (!withdrawAck) return;
-    const r = await fetch("/api/auth/withdraw", { method: "POST" });
-    if (r.ok) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("byeolkong_user");
-        localStorage.removeItem("byeolkong_token");
+    // 연타 시 동시 POST 2건 → 두 번째가 카카오 -101 + account_withdrawals 중복 기록
+    if (!withdrawAck || withdrawing) return;
+    setWithdrawing(true);
+    try {
+      const r = await fetch("/api/auth/withdraw", { method: "POST" });
+      if (r.ok) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("byeolkong_user");
+          localStorage.removeItem("byeolkong_token");
+        }
+        router.replace("/");
+      } else {
+        const d = await r.json().catch(() => ({}));
+        alert(d?.error || "탈퇴에 실패했어. 잠시 후 다시 시도해줘.");
       }
-      router.replace("/");
-    } else {
-      const d = await r.json().catch(() => ({}));
-      alert(d?.error || "탈퇴에 실패했어. 잠시 후 다시 시도해줘.");
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -644,7 +651,7 @@ export default function MyPage() {
               </button>
               <button
                 onClick={handleWithdraw}
-                disabled={!withdrawAck}
+                disabled={!withdrawAck || withdrawing}
                 className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 탈퇴하기
