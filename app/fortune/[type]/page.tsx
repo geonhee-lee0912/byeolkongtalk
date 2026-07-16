@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,6 +25,9 @@ export default function FortuneInputPage() {
   const [needCharge, setNeedCharge] = useState(false);
   const [refunded, setRefunded] = useState(false);
   const [reviewable, setReviewable] = useState<Record<string, string>>({});
+
+  // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
+  const inFlightRef = useRef(false);
 
   // daily 는 전용 페이지, tarot/비활성은 동적 입력 대상 아님
   const valid = !!cfg && cfg.active && cfg.base === "saju" && cfg.type !== "daily";
@@ -80,7 +83,8 @@ export default function FortuneInputPage() {
 
   // 결제 확인 → 리포트 생성
   const handleGenerate = async () => {
-    if (!pendingProfileId) return;
+    if (!pendingProfileId || inFlightRef.current) return;
+    inFlightRef.current = true;
     setPendingProfileId(null);
     setGenerating(true);
     setError(null);
@@ -94,6 +98,7 @@ export default function FortuneInputPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        inFlightRef.current = false;
         if (data?.code === "INSUFFICIENT_STARS") {
           setError("별이 모자라. 충전소에서 별을 채우고 다시 올래?");
           setNeedCharge(true);
@@ -114,6 +119,7 @@ export default function FortuneInputPage() {
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
+      inFlightRef.current = false;
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       setGenerating(false);
     }

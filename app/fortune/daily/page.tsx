@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -28,6 +28,9 @@ export default function FortuneDailyPage() {
   const [error, setError] = useState<string | null>(null);
   const [birthLine, setBirthLine] = useState<string | null>(null);
 
+  // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
+  const inFlightRef = useRef(false);
+
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -45,6 +48,7 @@ export default function FortuneDailyPage() {
 
   // 무료 잔여면 바로 생성, 소진 후면 별 차감 팝업
   const handleConfirm = async (profileId: string) => {
+    if (inFlightRef.current) return;
     setError(null);
 
     try {
@@ -81,6 +85,8 @@ export default function FortuneDailyPage() {
   };
 
   const runGenerate = async (profileId: string) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setPendingProfileId(null);
     setGenerating(true);
     setError(null);
@@ -93,6 +99,7 @@ export default function FortuneDailyPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        inFlightRef.current = false;
         setError(
           data?.error === "rate_limited"
             ? "조금만 천천히! 잠시 후 다시 시도해줄래?"
@@ -106,6 +113,7 @@ export default function FortuneDailyPage() {
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
+      inFlightRef.current = false;
       setError("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       setGenerating(false);
     }
