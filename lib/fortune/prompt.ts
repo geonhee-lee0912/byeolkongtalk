@@ -40,9 +40,15 @@ function sajuBlock(saju: SajuResult, heading = "사주판"): string {
       `  - 오늘의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
       `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 오늘 하루 기운의 핵심.`
     );
-    // good_days 리포트 전용 — 향후 30일 일진. 이 목록 밖 날짜는 절대 지어내지 말 것.
+    // good_days 리포트 전용 — 세운/월운 + 향후 30일 일진. 이 목록 밖 날짜·간지는 절대 지어내지 말 것.
     if (saju.temporal.dailyLuck?.length) {
+      const ty = saju.temporal.year;
+      const tm = saju.temporal.month;
       lines.push(
+        ``,
+        `[지금 흐름의 근거 — 세운·월운]`,
+        `  - 올해 세운: ${ty.stem}${ty.branch} (${ty.hanja}) / 오행 ${ty.element}`,
+        `  - 이번 달 월운: ${tm.stem}${tm.branch} (${tm.hanja}) / 오행 ${tm.element}`,
         ``,
         `[향후 30일 일진] (good_days 리포트는 이 목록에서만 날짜를 골라 추천 — 목록 밖 날짜·간지 지어내기 금지)`
       );
