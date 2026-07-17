@@ -1,7 +1,10 @@
 "use client";
 
-// 광고 전용 랜딩 — utm_content(counsel|daily|tarot)별 메뉴만 노출.
-// 유효 utm_content 없이 직접 진입하면 홈으로 (오가닉 유저는 이 페이지를 모르게).
+// 광고 전용 랜딩 — variant(counsel|daily|tarot|reunion|contact)별 메뉴만 노출.
+// variant 파라미터 규약: 전용 `v` 우선, utm_content 는 레거시 폴백 (기존 라이브 광고
+// URL 호환). 신규 광고는 /start?v=<variant>&utm_content={{ad.name}}&utm_term={{placement}}
+// 형태 — utm_content 는 어트리뷰션(개별 소재명) 전용으로 분리.
+// 유효 variant 없이 직접 진입하면 홈으로 (오가닉 유저는 이 페이지를 모르게).
 // 선택 → (비로그인) 카카오 로그인 → 웰컴 팝업 → 기존 흐름 핸드오프.
 
 import { Suspense, useEffect, useState } from "react";
@@ -81,10 +84,11 @@ export default function StartPage() {
 function StartPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const variant = sp.get("utm_content");
+  // 전용 v 파라미터 우선, utm_content 는 레거시 폴백 (기존 라이브 광고 URL 호환)
+  const variant = sp.get("v") ?? sp.get("utm_content");
   const valid = isVariant(variant);
 
-  // 광고 전용 가드 — 유효 utm_content 없으면 홈으로
+  // 광고 전용 가드 — 유효 variant 없으면 홈으로
   useEffect(() => {
     if (!valid) router.replace("/");
   }, [valid, router]);
