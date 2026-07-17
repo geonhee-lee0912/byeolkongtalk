@@ -425,8 +425,11 @@ function LoveDirectMenu({
 
   return (
     <>
-      <div className="p-5 bg-white/95 rounded-2xl border-2 border-[#D4537E]/50 shadow-[0_4px_20px_rgba(212,83,126,0.18)] flex flex-col items-center gap-3 text-center">
-        <span className="text-[12px] font-bold text-[#D4537E] bg-[#D4537E]/10 px-3 py-1 rounded-full">
+      <div className="p-5 bg-white/95 rounded-2xl border-2 border-lilac-deep/50 shadow-[0_4px_20px_rgba(90,62,140,0.15)] flex flex-col items-center gap-3 text-center">
+        <span
+          className="text-[12px] font-bold px-3 py-1 rounded-full bg-[#E48BA0]/10"
+          style={{ color: "#E48BA0" }}
+        >
           네가 보고 온 그 고민
         </span>
         <div
@@ -446,7 +449,7 @@ function LoveDirectMenu({
         </p>
         <button
           onClick={() => onSelect(tag)}
-          className="w-full mt-1 py-3.5 rounded-xl bg-[#D4537E] text-white font-bold text-[15px] hover:brightness-95 active:scale-[0.98] transition"
+          className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
         >
           별콩이한테 물어보기
         </button>
