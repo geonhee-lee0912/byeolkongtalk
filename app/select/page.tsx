@@ -8,13 +8,13 @@ import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
   PENDING_KEY,
-  type EmotionTag,
+  normalizeEmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
 import {
   SPREAD_INFO,
   EMOTION_TO_CATEGORY,
-  getSpreadOptions,
+  getSpreadOptionsForTag,
   getSpreadDescription,
   getPositionLabels,
   type SpreadType,
@@ -53,12 +53,15 @@ export default function SelectPage() {
   const [pending, setPending] = useState<PendingConsultation | null>(null);
   const [selected, setSelected] = useState<Selection | null>(null);
 
-  const category = useMemo(
-    () =>
-      pending ? EMOTION_TO_CATEGORY[pending.emotion as EmotionTag] : "default",
+  const category = useMemo(() => {
+    if (!pending) return "default";
+    const tag = normalizeEmotionTag(pending.emotion);
+    return tag ? EMOTION_TO_CATEGORY[tag] : "default";
+  }, [pending]);
+  const spreadOptions = useMemo(
+    () => (pending ? getSpreadOptionsForTag(pending.emotion) : []),
     [pending]
   );
-  const spreadOptions = useMemo(() => getSpreadOptions(category), [category]);
   const sajuProducts = useMemo(
     () => (pending ? getSajuProducts(pending.emotion) : []),
     [pending]
@@ -210,7 +213,7 @@ export default function SelectPage() {
         {spreadOptions.map((type) => {
           const info = SPREAD_INFO[type];
           const isSelected = selected === type;
-          const positions = getPositionLabels(type, category);
+          const positions = getPositionLabels(type, category, pending.emotion);
           return (
             <button
               key={type}

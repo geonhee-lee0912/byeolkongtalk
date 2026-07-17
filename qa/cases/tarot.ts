@@ -4,10 +4,10 @@ import { buildSharedCases } from "./shared.ts";
 import { SPREAD_INFO, type SpreadType, type SpreadCategory } from "../../lib/tarot/spreads.ts";
 
 const SPREAD_SETUP: { spread: SpreadType; category: SpreadCategory; emotion: Case["emotion"] }[] = [
-  { spread: "one_card", category: "worry", emotion: "요즘 내 흐름이 궁금해" },
+  { spread: "one_card", category: "worry", emotion: "그냥 별콩이한테 털어놓고 싶어" },
   { spread: "two_card", category: "decision", emotion: "어떤 선택이 맞을지 모르겠어" },
-  { spread: "three_card", category: "love", emotion: "그 사람 마음이 궁금해" },
-  { spread: "relationship_5", category: "interpersonal", emotion: "관계 때문에 마음이 쓰여" },
+  { spread: "three_card", category: "love", emotion: "걔 속마음이 궁금해" },
+  { spread: "relationship_5", category: "interpersonal", emotion: "직장·학교에서 사람이 어려워" },
 ];
 
 export function tarotCases(): Case[] {
@@ -29,7 +29,7 @@ export function tarotCases(): Case[] {
   cases.push({
     id: "tarot.three_card.more_cards",
     product: { kind: "tarot", spreadType: "three_card", spreadCategory: "love" },
-    emotion: "그 사람 마음이 궁금해",
+    emotion: "걔 속마음이 궁금해",
     seed: {},
     seedConcern: "헤어진 사람한테 연락이 올까? 계속 생각나",
     userPersona:
@@ -47,7 +47,7 @@ export function tarotCases(): Case[] {
   cases.push({
     id: "tarot.three_card.timing_push",
     product: { kind: "tarot", spreadType: "three_card", spreadCategory: "love" },
-    emotion: "그 사람 마음이 궁금해",
+    emotion: "걔 속마음이 궁금해",
     seed: {},
     seedConcern: "헤어진 사람이랑 재회하고 싶어. 언제쯤 연락하면 좋을까?",
     userPersona:

@@ -7,13 +7,13 @@ import Image from "next/image";
 import {
   EMOTION_OPTIONS,
   PENDING_KEY,
-  type EmotionTag,
+  normalizeEmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
 import {
   SPREAD_INFO,
   EMOTION_TO_CATEGORY,
-  getSpreadOptions,
+  getSpreadOptionsForTag,
   getSpreadDescription,
   getPositionLabels,
   type SpreadType,
@@ -54,11 +54,15 @@ export default function TarotSpreadPage() {
     }
   }, [router]);
 
-  const category = useMemo(
-    () => (pending ? EMOTION_TO_CATEGORY[pending.emotion as EmotionTag] : "default"),
+  const category = useMemo(() => {
+    if (!pending) return "default";
+    const tag = normalizeEmotionTag(pending.emotion);
+    return tag ? EMOTION_TO_CATEGORY[tag] : "default";
+  }, [pending]);
+  const options = useMemo(
+    () => (pending ? getSpreadOptionsForTag(pending.emotion) : []),
     [pending]
   );
-  const options = useMemo(() => getSpreadOptions(category), [category]);
   const recommended = useMemo(
     () => (pending ? recommendSpread(pending.concern) : "one_card"),
     [pending]
@@ -132,7 +136,7 @@ export default function TarotSpreadPage() {
         {options.map((type) => {
           const info = SPREAD_INFO[type];
           const isSelected = selected === type;
-          const positions = getPositionLabels(type, category);
+          const positions = getPositionLabels(type, category, pending.emotion);
           return (
             <button
               key={type}

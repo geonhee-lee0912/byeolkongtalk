@@ -44,4 +44,78 @@ export const WRAP_THRESHOLDS: Record<SpreadType, WrapThresholds> = {
     hardCapChars: 3700,
     absTurnCap: 15,
   },
+  // W1 신설 10종 — relationship_5 값을 카드 수 기준으로 스케일 (Task 3 임시 배치, 실측 후 조정 예정)
+  // 5장: relationship_5와 동일
+  deep_feelings_5: {
+    convergeStartTurn: 7,
+    convergeStartChars: 3000,
+    hardCapTurn: 9,
+    hardCapChars: 3700,
+    absTurnCap: 15,
+  },
+  reunion_5: {
+    convergeStartTurn: 7,
+    convergeStartChars: 3000,
+    hardCapTurn: 9,
+    hardCapChars: 3700,
+    absTurnCap: 15,
+  },
+  new_love_5: {
+    convergeStartTurn: 7,
+    convergeStartChars: 3000,
+    hardCapTurn: 9,
+    hardCapChars: 3700,
+    absTurnCap: 15,
+  },
+  // 6장: relationship_5 +1턴/+300자
+  checkin_6: {
+    convergeStartTurn: 8,
+    convergeStartChars: 3300,
+    hardCapTurn: 10,
+    hardCapChars: 4000,
+    absTurnCap: 16,
+  },
+  stay_or_go_6: {
+    convergeStartTurn: 8,
+    convergeStartChars: 3300,
+    hardCapTurn: 10,
+    hardCapChars: 4000,
+    absTurnCap: 16,
+  },
+  readiness_6: {
+    convergeStartTurn: 8,
+    convergeStartChars: 3300,
+    hardCapTurn: 10,
+    hardCapChars: 4000,
+    absTurnCap: 16,
+  },
+  healing_6: {
+    convergeStartTurn: 8,
+    convergeStartChars: 3300,
+    hardCapTurn: 10,
+    hardCapChars: 4000,
+    absTurnCap: 16,
+  },
+  // 7장: relationship_5 +2턴/+600자
+  reunion_deep_7: {
+    convergeStartTurn: 9,
+    convergeStartChars: 3600,
+    hardCapTurn: 11,
+    hardCapChars: 4300,
+    absTurnCap: 17,
+  },
+  potential_7: {
+    convergeStartTurn: 9,
+    convergeStartChars: 3600,
+    hardCapTurn: 11,
+    hardCapChars: 4300,
+    absTurnCap: 17,
+  },
+  chakra_7: {
+    convergeStartTurn: 9,
+    convergeStartChars: 3600,
+    hardCapTurn: 11,
+    hardCapChars: 4300,
+    absTurnCap: 17,
+  },
 };

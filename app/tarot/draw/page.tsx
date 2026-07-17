@@ -49,7 +49,11 @@ export default function TarotDrawPage() {
   const labels = useMemo(
     () =>
       selection
-        ? getPositionLabels(selection.spreadType, selection.spreadCategory)
+        ? getPositionLabels(
+            selection.spreadType,
+            selection.spreadCategory,
+            selection.emotion
+          )
         : [],
     [selection]
   );

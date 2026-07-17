@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
-  HIGHLIGHT_TAGS,
-  NORMAL_TAGS,
+  LOVE_TAGS,
+  OTHER_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
@@ -86,10 +86,10 @@ export default function Home() {
   };
 
   const highlightOptions = EMOTION_OPTIONS.filter((o) =>
-    HIGHLIGHT_TAGS.includes(o.tag)
+    LOVE_TAGS.includes(o.tag)
   );
   const normalOptions = EMOTION_OPTIONS.filter((o) =>
-    NORMAL_TAGS.includes(o.tag)
+    OTHER_TAGS.includes(o.tag)
   );
 
   return (

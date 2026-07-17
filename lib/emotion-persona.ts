@@ -7,7 +7,11 @@
 
 import type { EmotionTag } from "@/lib/emotions";
 
-const EMOTION_PERSONA: Record<EmotionTag, string> = {
+// NOTE(W1 태그 v3): 아래 블록은 구 태그(v2) 10종 키를 그대로 유지한다 — 신규 태그 v3용 톤 블록은
+// 별도 작업(플랜 W1 사이클1 Task 3/6 계열)에서 채운다. 타입만 Record<string, string> 으로 완화해
+// 구 태그 키가 새 EmotionTag 유니온과 안 맞아도 컴파일되게 한다 (buildEmotionPersonaBlock 은 이미
+// string 도 받으므로 동작엔 영향 없음 — 새 태그는 매칭 블록이 없어 빈 문자열 반환).
+const EMOTION_PERSONA: Record<string, string> = {
   "그 사람 마음이 궁금해": `사랑·썸·이별·재회처럼 마음이 누군가에게 향해 있는 고민이야.
 - 그 사람을 탓하거나 상대 마음을 단정하지 마 ("걔는 널 좋아해/싫어해" ✕). 별콩이는 늘 **네 마음이 지금 어떤 결인지**를 먼저 짚어줘.
 - 재결합·고백 결과 같은 확정 예언은 금지 — 흐름과 가능성, 그리고 네가 쥐고 있는 선택으로 풀어줘.

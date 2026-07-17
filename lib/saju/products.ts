@@ -49,14 +49,12 @@ export const SAJU_PRODUCT_INFO: Record<SajuProduct, SajuProductInfo> = {
 };
 
 /**
- * 선택지 비교 노출 대상 감정 분류 (선택/진로/새출발).
- * "새로운 시작이 기대돼"는 설렘 톤이지만, 새 출발에는 보통 A/B 갈림길이 깔려 있어
- * 의도적으로 포함한다 (제품 결정).
+ * 선택지 비교 노출 대상 감정 분류 (선택/진로).
+ * W1 태그 v3 전환으로 목록을 새 태그로 갱신 (사주 상담 자체는 이후 사이클에서 진열대 재편 예정).
  */
 const CHOICE_ELIGIBLE_EMOTIONS: EmotionTag[] = [
   "어떤 선택이 맞을지 모르겠어",
-  "내 앞날의 방향이 궁금해",
-  "새로운 시작이 기대돼",
+  "진로·방향이 고민이야",
 ];
 
 export function isChoiceEligible(emotion: EmotionTag | string | null | undefined): boolean {

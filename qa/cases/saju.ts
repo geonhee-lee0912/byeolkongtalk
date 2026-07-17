@@ -9,7 +9,7 @@ export function sajuCases(): Case[] {
   cases.push(
     ...buildSharedCases(
       { kind: "saju", sajuProduct: "today_letters" },
-      "내 앞날의 방향이 궁금해",
+      "진로·방향이 고민이야",
       "saju.today_letters",
       { mustEnd: true, expectSensitiveHeader: false }
     )
@@ -19,7 +19,7 @@ export function sajuCases(): Case[] {
   cases.push(
     ...buildSharedCases(
       { kind: "saju", sajuProduct: "nature" },
-      "요즘 내 흐름이 궁금해",
+      "그냥 별콩이한테 털어놓고 싶어",
       "saju.nature",
       { mustEnd: true, expectSensitiveHeader: false }
     )

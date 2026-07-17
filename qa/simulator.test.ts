@@ -7,7 +7,7 @@ import type { Case } from "./types.ts";
 const baseCase: Case = {
   id: "x",
   product: { kind: "saju", sajuProduct: "today_letters" },
-  emotion: "내 앞날의 방향이 궁금해",
+  emotion: "진로·방향이 고민이야",
   seed: {},
   seedConcern: "이직할지 고민이야",
   userPersona: "확답을 강하게 요구하는 사람",
