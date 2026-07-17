@@ -59,7 +59,7 @@ export default function FortunePage() {
             </span>
           </div>
           <p className="text-[12.5px] text-text-light leading-relaxed">
-            별콩 운세는 대화가 아니라, 생일·고민을 입력하면 별콩이가 한 장의 리포트로
+            사주 운세 리포트는 대화가 아니라, 생일·고민을 입력하면 별콩이가 한 장의 리포트로
             정리해주는 방식이에요. 가볍게 골라봐요.
           </p>
         </div>
