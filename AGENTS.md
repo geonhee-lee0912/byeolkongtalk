@@ -196,19 +196,17 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 
 **컨셉 피벗 (2026-05-25)**: v2 = 사주 단일 → **사주 + 타로 듀얼**. 진입 흐름도 v1 스타일로 회귀.
 
-**현재 사용자 흐름** (dev 반영 완료):
-- `/` 홈 → v1 톤 감정 태그 그리드 (6개, 인기 2 / 다른 4. "오늘의 카드" 제외)
-- 감정 클릭 → 로그인 가드 → `sessionStorage.byeolkong:emotion` 저장 후 `/concern`
-- `/concern` (신규) → 감정 컨텍스트 + 고민 textarea (10~200자) + **사주/타로 동등 picker**
-- 선택 후 `byeolkong:pending_consultation = {emotion, concern, type}` 저장 후 분기
-  - `saju` → `/saju` (생일 입력 → 사주판 → "풀이 듣기" 클릭 시 pending 있으면 `/saju/concern` 건너뛰고 바로 `/api/readings` → `/saju/reading` 직행)
-  - `tarot` → `/tarot` (placeholder "곧 만나" — 다음 단계에 본격 포팅)
-- 사주 흐름은 기존과 동일 (SSE → [END] → 결과/공유/마이페이지)
-- legacy: `/concern` 없이 `/saju` 직접 진입해도 기존 `/saju/concern` 흐름 작동 (폴백)
+**현재 사용자 흐름** (W1 사이클 1 반영, 2026-07-17):
+- `/` 홈 → 연애 존 6태그 전면(`LOVE_TAGS`) + 궁합 크로스링크 카드 + 비연애 4태그(`OTHER_TAGS`)
+- 태그 클릭 → 로그인 가드 → `sessionStorage.byeolkong:emotion` 저장 후 `/concern`
+- `/concern` → 감정 컨텍스트 칩(탭하면 태그 변경 가능) + 고민 textarea (10~200자). **사주/타로 picker 제거 — 타로 직행**
+- 제출 시 `byeolkong:pending_consultation = {emotion, concern, type:"tarot"}` 저장 후 `/tarot`으로 이동
+- `/tarot` → 태그별 큐레이션 5개(`TAG_SPREADS`) 진열 → `/tarot/draw`(카드 뽑기+별 확인) → `/tarot/reading`(SSE → [END] → 결과/공유)
+- **사주는 상담 진입 폐쇄** — `/select`(구 방식 선택)는 `/concern`으로 리다이렉트하는 폐쇄 스텁 (코드 보존, 구 링크 하위호환). `/saju`·`/saju/reading`·`/saju/result`는 기존 reading 열람/resume 전용으로 보존. 새 사주 진입은 `/fortune` 운세 리포트 진열대(대화형 아님, one-shot 리포트)로 대체
 
 **Header / BottomTab / Footer** ([components/layout/](components/layout)):
 - `Header` — 로고 별콩톡(Cafe24) + ⭐ 잔액 칩 (→/shop) + MY 아바타 칩 (→/mypage). `/login` 만 제외 모든 라우트에 sticky top
-- `BottomTab` 4탭 — 고민 상담(/) / 내 고민톡(/readings) / 별콩 상점(/shop) / 내 정보(/mypage). iOS safe-area, active = lilac-deep
+- `BottomTab` 5탭 — 고민톡(/) / 사주(/fortune) / 내 고민톡(/readings) / 별콩 상점(/shop) / 내 정보(/mypage). iOS safe-area, active = lilac-deep. ("내 고민톡"은 사이클 2에서 "우리 사이"로 교체 예정 — 아직 미착수, 지금은 그대로 유지)
 - `AppShell` — pathname 기반 (/login 제외) Header + BottomTab 자동 부착. `pb-20` 으로 탭 가림 방지
 - `Footer` — v1 베이스, 홈에서만 마운트. 사업자 정보 + 약관/개인정보/환불 링크 v1 그대로 (해당 페이지는 v2 에 없음 → 404, 출시 전 포팅 필요)
 
@@ -245,6 +243,15 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - ✅ **사주 resume** — 미완료 사주 reading 이어하기 (타로와 파리티). readings 리스트 API `ended` 판정을 고민 상담(사주+타로)으로 확장 + `/saju/reading?id=` resume (빈 메시지면 첫 풀이 자동 복구).
 - ✅ **"고민 이어가기" 연속성 기능** — 완료 reading 참조 새 reading (`previous_reading_id` + `continuation_mode` 마이그레이션). `/api/readings/continue`(서버 복사: saju-fresh/saju-deep/tarot-deep) + tarot-fresh 는 draw 흐름에 `byeolkong:continuation` sessionStorage 마커 + chat 라우트가 부모 요약(지난 고민 + 마지막 한마디, excludeInvite) 주입 + 첫 턴 가이드 교체. UI 는 `ContinuationModal` 팝업(포털, 헤더/탭/풋터 가림). 2경로 — 타로: "타로 카드 새로 뽑아 상담"(정가) / "동일한 카드로 이어서 상담"(deep), 사주: 단일 "지난 대화를 이어서 상담"(deep). 가격 deep = 상품 정가 × 0.6 반올림("40% 할인"). 스펙/계획: `docs/superpowers/{specs,plans}/2026-06-29-reading-continuation*`.
   - 동반 수정: 결과 페이지 뒤로가기 → 내 고민톡, 타로 공유 버튼 2단 그리드(흰배경+보라텍스트), 사주 선택 페이지네이션(3/page), 카카오 공유 버튼 라벨 버그 수정, 타로 OG 한마디 closeCap 상향.
+
+**완료 (2026-07-17 세션 — W1 사이클 1, 구조 전환)**:
+- ✅ **태그 체계 v3** — 연애 존 6 + 비연애 4 (`lib/emotions.ts` `LOVE_TAGS`/`OTHER_TAGS`). 구 태그는 `LEGACY_EMOTION_TAGS` 매핑으로 과거 reading 렌더·구 딥링크 하위호환.
+- ✅ **스프레드 14종 + 태그당 5 큐레이션** — `lib/tarot/spreads.ts` `TAG_SPREADS`(태그당 5개 진열) + `SPREAD_LABELS`/`TAG_LABEL_OVERRIDES`(포지션 라벨) + `WRAP_THRESHOLDS`(카드 수 기준 [END] 수렴 임계치 확장, `lib/tarot/constants.ts`).
+- ✅ **고민톡 타로 직행** — `/concern`의 사주/타로 방식 선택 UI 제거(타입 `tarot` 고정) + `/select` 폐쇄 리다이렉트(코드 보존, 구 링크 하위호환).
+- ✅ **사주 → 운세 리포트 진열대 전환** — 사주 상담(4상품) 진입 폐쇄. `/fortune` 진열 6종(궁합 40 / 관계궁합 35 / 사주풀이 60 / 이번 달 20 / **좋은 날 35 신설** / 오늘 무료). 타로 리포트 5종은 `active:false`로 진열만 제거(과거 reading 렌더용 config는 보존).
+- ✅ **홈 연애 존 전면** — 연애 6태그 그리드 + 궁합 크로스링크 카드(`/fortune/compat`) + 비연애 4태그.
+- ✅ **탭 라벨 + `/start` variant** — BottomTab "고민톡"/"사주" 라벨 갱신. `/start`에 연애 직행 variant(`reunion`/`contact`) 추가 + variant 파라미터는 전용 `v` 우선(`utm_content`는 어트리뷰션 분리를 위한 레거시 폴백).
+- 스펙: `docs/superpowers/specs/2026-07-17-w1-love-restructure-w6-ads-design.md` / 플랜: `docs/superpowers/plans/2026-07-17-w1-cycle1-structure.md`
 
 **보류된 큰 부채** (출시 전 처리):
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
