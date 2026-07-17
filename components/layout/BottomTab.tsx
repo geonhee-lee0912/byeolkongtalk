@@ -24,7 +24,7 @@ const ICON_CLASS = "w-[22px] h-[22px]";
 const TABS: TabDef[] = [
   {
     key: "consult",
-    label: "고민 상담",
+    label: "고민톡",
     href: "/",
     matchPrefixes: ["/", "/saju"],
     // mdi message-text-outline / message-text
@@ -35,7 +35,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "fortune",
-    label: "별콩 운세",
+    label: "사주",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
     // mdi star-four-points-outline / star-four-points

@@ -35,8 +35,8 @@ interface ReadingItem {
 }
 
 const READINGS_TABS = [
-  { key: "consult", label: "고민 상담" },
-  { key: "fortune", label: "별콩 운세" },
+  { key: "consult", label: "고민톡" },
+  { key: "fortune", label: "사주" },
 ] as const;
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];

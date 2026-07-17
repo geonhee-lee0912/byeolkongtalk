@@ -159,6 +159,9 @@ export default function Home() {
           </div>
 
           <div className="max-w-md mx-auto px-5 pt-16 pb-12 relative z-10 animate-fade-in flex flex-col items-center">
+            <span className="mb-2 inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold tracking-wide text-white/80 backdrop-blur-sm">
+              타로 고민톡
+            </span>
             <div className="relative w-[180px] h-[180px] mb-3 animate-float">
               <Image
                 src="/byeolkong-hero.png"
@@ -222,7 +225,7 @@ export default function Home() {
                   웰컴 별 {WELCOME_BONUS_STARS}개가 기다리고 있어
                 </p>
                 <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
-                  아래에서 첫 고민을 골라봐 · 운세 리포트는 하단 별콩 운세
+                  아래에서 첫 고민을 골라봐 · 운세 리포트는 하단 사주
                   탭에서!
                 </p>
               </div>

@@ -32,7 +32,7 @@ export default function FortunePage() {
           <Image src="/byeolkong-main.png" alt="별콩이" width={110} height={110} priority />
         </div>
         <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">
-          별콩 운세
+          사주 운세
         </h1>
         <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
           길게 얘기할 시간 없을 땐,
