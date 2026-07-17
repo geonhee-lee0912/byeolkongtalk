@@ -11,22 +11,26 @@ async function loadStats() {
   const week = daysAgoKstIso(6);
   // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩 지표 오염 방지
   const excl = adminExclusionList();
-  const cnt = (t: string, idCol: string, s: string) => {
-    let q = supa.from(t).select("id", { count: "exact", head: true }).gte("created_at", s);
+  // since 생략 시 날짜 필터 없이 전체(누적) 집계
+  const cnt = (t: string, idCol: string, s?: string) => {
+    let q = supa.from(t).select("id", { count: "exact", head: true });
+    if (s) q = q.gte("created_at", s);
     if (excl) q = q.not(idCol, "in", excl);
     return q;
   };
   // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
-  const pay = (s: string) => {
-    let q = supa.from("payments").select("amount_won").eq("status", "completed").gte("created_at", s).limit(100000);
+  const pay = (s?: string) => {
+    let q = supa.from("payments").select("amount_won").eq("status", "completed").limit(100000);
+    if (s) q = q.gte("created_at", s);
     if (excl) q = q.not("user_id", "in", excl);
     return q;
   };
-  const [tu, wu, tr, wr, tp, wp, errs, sens] = await Promise.all([
-    cnt("users", "id", today), cnt("users", "id", week),
-    cnt("readings", "user_id", today), cnt("readings", "user_id", week),
+  const [tu, wu, au, tr, wr, ar, tp, wp, ap, errs, sens] = await Promise.all([
+    cnt("users", "id", today), cnt("users", "id", week), cnt("users", "id"),
+    cnt("readings", "user_id", today), cnt("readings", "user_id", week), cnt("readings", "user_id"),
     pay(today),
     pay(week),
+    pay(),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
@@ -34,6 +38,7 @@ async function loadStats() {
   return {
     today: { newUsers: tu.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
     week: { newUsers: wu.count ?? 0, readings: wr.count ?? 0, revenueWon: sum(wp.data) },
+    all: { newUsers: au.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
   };
 }
@@ -66,6 +71,14 @@ export default async function AdminDashboard() {
           <Stat label="신규 가입" value={s.week.newUsers} />
           <Stat label="리딩" value={s.week.readings} />
           <Stat label="매출(원)" value={s.week.revenueWon.toLocaleString()} />
+        </div>
+      </section>
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Stat label="신규 가입" value={s.all.newUsers} />
+          <Stat label="리딩" value={s.all.readings} />
+          <Stat label="매출(원)" value={s.all.revenueWon.toLocaleString()} />
         </div>
       </section>
       <section>
