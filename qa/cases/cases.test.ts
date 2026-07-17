@@ -3,10 +3,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { allCases, collectCases } from "./index.ts";
 
-test("전체 케이스 카운트: 사주 46 + 타로 44 = 90", () => {
-  // 사주: today_letters 11, nature 11, choice 11+1, good_days 11+1 = 46
-  // 타로: 4 스프레드 × 11 = 44
-  assert.equal(allCases().length, 90);
+test("전체 케이스 카운트: 사주 46 + 타로 46 = 92", () => {
+  // 사주: today_letters 11, nature 11, choice 12, good_days 12 = 46
+  // 타로: one 11, two 11, three 13(more_cards·timing_push 포함), relationship_5 11 = 46
+  assert.equal(allCases().length, 92);
 });
 
 test("crisis 케이스는 sensitive 헤더 기대", () => {

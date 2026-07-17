@@ -31,14 +31,29 @@ const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
-// 모듈 로드 시 한 번 읽고 메모리 캐시 — cold start 외엔 디스크 IO 없음
+// 모듈 로드 시 한 번 읽고 메모리 캐시 — cold start 외엔 디스크 IO 없음.
+// W4 v3: 공통 코어(byeolkong_core.md) + 도메인 파일 합성. staticPart 캐싱 구조는 동일.
+let _cachedCore: string | null = null;
+function getCore(): string {
+  if (_cachedCore === null) {
+    _cachedCore = readFileSync(
+      join(process.cwd(), "data", "persona", "byeolkong_core.md"),
+      "utf-8"
+    );
+  }
+  return _cachedCore;
+}
+
 let _cachedPersona: string | null = null;
 function getPersona(): string {
   if (_cachedPersona === null) {
-    _cachedPersona = readFileSync(
-      join(process.cwd(), "data", "persona", "byeolkong.md"),
-      "utf-8"
-    );
+    _cachedPersona =
+      getCore() +
+      "\n\n---\n\n" +
+      readFileSync(
+        join(process.cwd(), "data", "persona", "byeolkong_saju.md"),
+        "utf-8"
+      );
   }
   return _cachedPersona;
 }
@@ -66,7 +81,7 @@ function buildContinuationBlock(c: ContinuationContext, subject: "사주판" | "
 
 /** 이어가기 첫 턴 가이드 — product/tarot 첫 턴 가이드를 대체. */
 function continuationFirstTurnGuide(subject: "사주" | "카드"): string {
-  return `\n\n## 첫 턴 가이드 — 이어가기 세션\n\n이번 턴은 지난 고민을 이어받는 첫 응답이야. (1) "지난번에 ~ 얘기 나눴었지" 식으로 지난 맥락을 가볍게 짚으며 연결 → (2) 그 위에서 이번 고민을 ${subject}로 풀이 (처음 만난 듯 새로 소개하지 말 것) → (3) 흐름·가능성·선택 키워드 중심 → (4) 응원. 단정 X. 400~700자.`;
+  return `\n\n## 첫 턴 가이드 — 이어가기 세션\n\n이번 턴은 지난 고민을 이어받는 첫 응답이야. (1) "지난번에 ~ 얘기 나눴었지" 식으로 지난 맥락을 가볍게 짚으며 연결 → (2) 그 위에서 이번 고민을 ${subject}로 풀이 (처음 만난 듯 새로 소개하지 말 것) → (3) §답 먼저 그대로 소신 있는 방향 답 → (4) 마무리는 공통 코어 §턴 마무리 3택 중 하나. 400~700자.`;
 }
 
 export interface SajuReadingContext {
@@ -76,6 +91,8 @@ export interface SajuReadingContext {
   concernText: string;
   /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
   emotionTag?: EmotionTag | string | null;
+  /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
+  nickname?: string | null;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END] 마커 제외한 순수 길이) */
@@ -130,10 +147,10 @@ function formatTemporalBlock(
 }
 
 const SAJU_PRODUCT_FIRST_TURN_GUIDE: Record<SajuProduct, string> = {
-  today_letters: `\n\n## 첫 턴 가이드 — "오늘 들어온 글자"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) **오늘 일운 두 글자**(위 [오늘의 기운]의 ★ 일운)를 사용자에게 또렷이 강조하며 풀이 — "오늘 너에게 들어온 글자는 OO이야" 식 → (3) 이 글자가 사용자 고민과 어떻게 연결되는지 중심으로 → (4) **오늘의 금기/주의 포인트** 한두 가지 → (5) 고민에 연결한 열린 질문 하나 + 짧은 응원. 원국 일간·오행은 거들 뿐, 오늘 일운이 주인공. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자, 단정 X.`,
-  nature: `\n\n## 첫 턴 가이드 — "타고난 성향 기반 상담"\n\n이번 턴 흐름: (1) 여는 한 줄 → (2) 일간·오행 분포로 본 **타고난 기질** 풀이 → (3) 지금 세운/월운(+대운 큰 흐름)이 그 기질을 어떻게 건드리는지 → (4) 그 본질에서 출발해 사용자 고민에 적용 → (5) 고민에 연결한 열린 질문 하나 + 짧은 응원. 오늘 일운은 보조 근거로만. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자, 단정 X.`,
-  choice: `\n\n## 첫 턴 가이드 — "선택지 비교"\n\n이번 턴 흐름: (1) 여는 한 줄 + 고민 속 선택지를 A/B로 정리(사용자 고민에서 추출, 불명확하면 가볍게 되물어도 됨) → (2) 선택지 A의 기운 → (3) 선택지 B의 기운 → (4) 일운·오행 관점에서 두 선택지 비교 → (5) 지금 결대로면 어느 쪽이 더 순한지(흐름·가능성 톤, 단정·강요 X) + 어느 쪽으로 마음이 기우는지 되묻는 열린 질문 하나. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자.`,
-  good_days: `\n\n## 첫 턴 가이드 — "좋은 날 추천"\n\n이번 턴 흐름: (1) 여는 한 줄 + 고민 맥락을 팔자/세운/월운으로 짧게 해석 → (2) 위 [향후 30일 일진] **목록에서만** 골라 고민에 좋은 날 2~4개(날짜 + 왜 좋은지 일운 글자 근거) → (3) 피하면 좋을 날 1~3개(이유) → (4) 고민에 연결한 열린 질문 하나 + 짧은 응원. 목록 밖 날짜를 지어내지 말 것. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~900자.`,
+  today_letters: `\n\n## 첫 턴 가이드 — "오늘 들어온 글자"\n\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일간·오행 근거로 유저 성향을 관찰형으로 — 공통 코어 §관찰형 적중 훅) → (2) **오늘 일운 두 글자**(위 [오늘의 기운]의 ★ 일운)를 사용자에게 또렷이 강조하며 풀이 — "오늘 너에게 들어온 글자는 OO이야" 식 → (3) 이 글자가 사용자 고민과 어떻게 연결되는지, §답 먼저 그대로 소신 있는 방향 답 → (4) **오늘의 금기/주의 포인트** 한두 가지 → (5) 마무리는 공통 코어 §턴 마무리 3택 중 하나. 원국 일간·오행은 거들 뿐, 오늘 일운이 주인공. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자.`,
+  nature: `\n\n## 첫 턴 가이드 — "타고난 성향 기반 상담"\n\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일간·오행 근거 — 공통 코어 §관찰형 적중 훅) → (2) 일간·오행 분포로 본 **타고난 기질** 풀이 → (3) 지금 세운/월운(+대운 큰 흐름)이 그 기질을 어떻게 건드리는지 → (4) 그 본질에서 출발해 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 → (5) 마무리는 공통 코어 §턴 마무리 3택 중 하나. 오늘 일운은 보조 근거로만. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자.`,
+  choice: `\n\n## 첫 턴 가이드 — "선택지 비교"\n\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일간·오행 근거 — 공통 코어 §관찰형 적중 훅) + 고민 속 선택지를 A/B로 정리(사용자 고민에서 추출, 불명확하면 가볍게 되물어도 됨) → (2) 선택지 A의 기운 → (3) 선택지 B의 기운 → (4) 일운·오행 관점에서 두 선택지 비교 → (5) §답 먼저 그대로, 지금 결대로면 어느 쪽이 더 맞는지 내 소신을 분명히 (강요 X, 결정은 유저 몫) + 마무리는 공통 코어 §턴 마무리 3택 중 하나. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~800자.`,
+  good_days: `\n\n## 첫 턴 가이드 — "좋은 날 추천"\n\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일간·오행 근거 — 공통 코어 §관찰형 적중 훅) + 고민 맥락을 팔자/세운/월운으로 짧게 해석 → (2) 위 [향후 30일 일진] **목록에서만** 골라 고민에 좋은 날 2~4개(날짜 + 왜 좋은지 일운 글자 근거) → (3) 피하면 좋을 날 1~3개(이유) → (4) 마무리는 공통 코어 §턴 마무리 3택 중 하나. 목록 밖 날짜를 지어내지 말 것. 각 단계는 빈 줄로 문단을 나눠 단계적으로 보여줘(한 덩어리 산문 금지). 각 단계 머리에 가벼운 이모지나 짧은 라벨 한 줄을 붙이면 더 또렷해. 출력엔 마크다운 별표(**)를 쓰지 마 — 화면에 그대로 보이니까 강조는 따옴표나 이모지로. 500~900자.`,
 };
 
 /**
@@ -216,12 +233,16 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 
   const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
 
+  const nicknameLine = ctx.nickname?.trim()
+    ? `\n[호칭: ${ctx.nickname.trim()}]`
+    : "";
+
   const dynamicPart = `---
 
 ## 이번 세션 정보
 
 [고민 내용: ${ctx.concernText}]
-[사주 상품: ${ctx.sajuProduct}]
+[사주 상품: ${ctx.sajuProduct}]${nicknameLine}
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 
 ### 사주 데이터
@@ -307,10 +328,13 @@ export const TRAILING_PARTIAL_MARKER = /\[E?N?D?$/;
 let _cachedTarotPersona: string | null = null;
 function getTarotPersona(): string {
   if (_cachedTarotPersona === null) {
-    _cachedTarotPersona = readFileSync(
-      join(process.cwd(), "data", "persona", "byeolkong_tarot.md"),
-      "utf-8"
-    );
+    _cachedTarotPersona =
+      getCore() +
+      "\n\n---\n\n" +
+      readFileSync(
+        join(process.cwd(), "data", "persona", "byeolkong_tarot.md"),
+        "utf-8"
+      );
   }
   return _cachedTarotPersona;
 }
@@ -322,6 +346,8 @@ export interface TarotReadingContext {
   drawnCards: DrawnCard[];
   /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
   emotionTag?: EmotionTag | string | null;
+  /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
+  nickname?: string | null;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END]·[CARD:n] 마커 제외) */
@@ -414,7 +440,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   const firstTurnGuide = isFirstTurn
     ? ctx.continuation
       ? continuationFirstTurnGuide("카드")
-      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로 넣고, 마지막에 사용자 고민과 카드를 엮어서 답을 줘. 단정 X, 흐름·가능성·선택 키워드 중심.`
+      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로, 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나.`
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리
@@ -446,12 +472,16 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
 
+  const nicknameLine = ctx.nickname?.trim()
+    ? `\n[호칭: ${ctx.nickname.trim()}]`
+    : "";
+
   const dynamicPart = `---
 
 ## 이번 세션 정보
 
 [고민 내용: ${ctx.concernText}]
-[스프레드: ${ctx.spreadType} / 카테고리: ${ctx.spreadCategory}]
+[스프레드: ${ctx.spreadType} / 카테고리: ${ctx.spreadCategory}]${nicknameLine}
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 
 ${formatDrawnCardsBlock(ctx.drawnCards)}

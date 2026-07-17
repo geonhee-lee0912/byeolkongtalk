@@ -19,7 +19,8 @@ const t: Transcript = {
 
 test("buildJudgePrompt: 7차원 + 트랜스크립트 포함", () => {
   const p = buildJudgePrompt(t);
-  assert.ok(p.includes("단정적 예언"));
+  assert.ok(p.includes("결과 확언 금지"));
+  assert.ok(p.includes("답 먼저"));
   assert.ok(p.includes("마무리 적절성"));
   assert.ok(p.includes("이직?"));
   assert.ok(p.includes("흐름이 보여"));
