@@ -11,7 +11,9 @@ import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
+  LOVE_TAGS,
   type EmotionTag,
+  type EmotionOption,
 } from "@/lib/emotions";
 import {
   FORTUNE_CONFIG,
@@ -21,13 +23,21 @@ import {
 } from "@/lib/fortune/types";
 import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
 
-const VARIANTS = ["counsel", "daily", "tarot"] as const;
+const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact"] as const;
 type Variant = (typeof VARIANTS)[number];
 
 const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
   counsel: { line1: "요즘 마음 복잡하지?", line2: "별콩이가 들어줄게" },
   daily: { line1: "오늘 하루,", line2: "어떤 흐름일까?" },
   tarot: { line1: "카드는 네가", line2: "직접 뽑아" },
+  reunion: { line1: "헤어진 그 사람,", line2: "아직 나를 생각할까?" },
+  contact: { line1: "핸드폰만 보고 있는", line2: "너에게" },
+};
+
+/** 연애 직행 variant → 하이라이트 태그 */
+const LOVE_VARIANT_TAG: Partial<Record<Variant, EmotionTag>> = {
+  reunion: "재회할 수 있을까",
+  contact: "언제 연락 올까, 타이밍이 궁금해",
 };
 
 // daily variant: 광고가 약속한 "오늘의 운세"를 맨 위로 (별콩 운세 10종 전체)
@@ -36,8 +46,9 @@ const DAILY_ORDERED: FortuneConfig[] = [
   ...FORTUNE_LIST.filter((f) => f.type !== "daily"),
 ];
 
-const TAROT_FORTUNES: FortuneConfig[] = FORTUNE_LIST.filter(
-  (f) => f.base === "tarot"
+// 연애 존 태그만 (EMOTION_OPTIONS 순서 유지)
+const LOVE_OPTIONS: EmotionOption[] = EMOTION_OPTIONS.filter((o) =>
+  LOVE_TAGS.includes(o.tag)
 );
 
 function isVariant(v: string | null): v is Variant {
@@ -305,6 +316,14 @@ function StartPageInner() {
           </>
         )}
 
+        {LOVE_VARIANT_TAG[variant] && (
+          <LoveDirectMenu
+            tag={LOVE_VARIANT_TAG[variant]!}
+            onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
+            onOther={() => router.push("/")}
+          />
+        )}
+
         {variant === "daily" && (
           <>
             <p className="text-[13px] font-bold text-eye-purple px-1">
@@ -375,11 +394,11 @@ function StartPageInner() {
               ‹ 다시 고르기
             </button>
             <p className="text-[13px] font-bold text-eye-purple px-1">
-              보고 싶은 타로 운세를 골라봐
+              어떤 연애 고민인지 골라봐
             </p>
-            <FortuneMenuList
-              items={TAROT_FORTUNES}
-              onSelect={(href) => handleSelect({ kind: "fortune", href })}
+            <EmotionList
+              options={LOVE_OPTIONS}
+              onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
             />
           </>
         )}
@@ -390,10 +409,74 @@ function StartPageInner() {
   );
 }
 
-function EmotionList({ onSelect }: { onSelect: (tag: EmotionTag) => void }) {
+/** reunion/contact 등 연애 직행 variant — 하이라이트 태그 + 나머지 연애 존 목록 */
+function LoveDirectMenu({
+  tag,
+  onSelect,
+  onOther,
+}: {
+  tag: EmotionTag;
+  onSelect: (tag: EmotionTag) => void;
+  onOther: () => void;
+}) {
+  const option = EMOTION_OPTIONS.find((o) => o.tag === tag);
+  const otherOptions = LOVE_OPTIONS.filter((o) => o.tag !== tag);
+  if (!option) return null;
+
   return (
     <>
-      {EMOTION_OPTIONS.map((option) => (
+      <div className="p-5 bg-white/95 rounded-2xl border-2 border-[#D4537E]/50 shadow-[0_4px_20px_rgba(212,83,126,0.18)] flex flex-col items-center gap-3 text-center">
+        <span className="text-[12px] font-bold text-[#D4537E] bg-[#D4537E]/10 px-3 py-1 rounded-full">
+          네가 보고 온 그 고민
+        </span>
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
+          style={{ background: EMOTION_GRADIENTS[tag] }}
+        >
+          <Image
+            src={option.icon}
+            alt=""
+            width={48}
+            height={48}
+            className="object-contain"
+          />
+        </div>
+        <p className="font-display text-[19px] text-eye-purple leading-snug">
+          {tag}
+        </p>
+        <button
+          onClick={() => onSelect(tag)}
+          className="w-full mt-1 py-3.5 rounded-xl bg-[#D4537E] text-white font-bold text-[15px] hover:brightness-95 active:scale-[0.98] transition"
+        >
+          별콩이한테 물어보기
+        </button>
+      </div>
+
+      <p className="text-[13px] font-bold text-eye-purple px-1 mt-2">
+        다른 연애 고민이라면
+      </p>
+      <EmotionList options={otherOptions} onSelect={onSelect} />
+
+      <button
+        onClick={onOther}
+        className="text-[12.5px] text-text-light/80 hover:text-eye-purple transition text-center mt-1"
+      >
+        연애 말고 다른 고민이 있다면 →
+      </button>
+    </>
+  );
+}
+
+function EmotionList({
+  options = EMOTION_OPTIONS,
+  onSelect,
+}: {
+  options?: EmotionOption[];
+  onSelect: (tag: EmotionTag) => void;
+}) {
+  return (
+    <>
+      {options.map((option) => (
         <button
           key={option.tag}
           onClick={() => onSelect(option.tag)}
