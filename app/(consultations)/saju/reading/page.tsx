@@ -292,6 +292,14 @@ function ReadingInner() {
       const ended = END_MARKER.test(accumulated);
       const finalText = stripRecoMarkers(accumulated.replace(END_MARKER, "")).trim();
 
+      // 빈 응답 방어 — 서버 가드를 혹시 통과해도 빈 말풍선을 히스토리에 남기지 않는다
+      if (!finalText && !ended) {
+        setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+        setStreamingText("");
+        setIsStreaming(false);
+        return;
+      }
+
       // 스트리밍 완료 — 모든 RECO 마커 감지 (product별 1개 제한)
       const allRecoMarkers: RecoProduct[] = [];
       for (const m of accumulated.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {

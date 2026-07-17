@@ -196,6 +196,11 @@ export async function POST(request: NextRequest) {
   // 대화 연장 업셀 가능: extra_turns 0 + forceEnd 아님
   const extendAvailable = extraTurns === 0 && body.forceEnd !== true;
 
+  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리면 서버가 보장
+  const effAbsTurnCap = thresholdOverride?.absTurnCap ?? ABS_TURN_CAP;
+  const mustEnd =
+    body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
+
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     sajuProduct: isSajuProduct(reading.saju_product)
@@ -233,6 +238,20 @@ export async function POST(request: NextRequest) {
         for await (const chunk of streamChat(systemMessage, body.messages)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
+        }
+
+        // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
+        // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
+        if (!assistantText.trim()) {
+          throw new Error("empty_assistant_stream");
+        }
+
+        // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
+        // (마무리 버튼·절대 턴캡이 "안 눌린 것처럼" 보이는 상태 방지)
+        if (mustEnd && !assistantText.includes("[END]")) {
+          const tail = "\n\n[END]";
+          assistantText += tail;
+          controller.enqueue(encoder.encode(tail));
         }
 
         // 스트림 완료 — user 마지막 메시지 + assistant 응답 둘 다 INSERT

@@ -186,6 +186,11 @@ export async function POST(request: NextRequest) {
   const extendAvailable =
     extraTurns === 0 && body.forceEnd !== true;
 
+  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리면 서버가 보장
+  const effAbsTurnCap = (effT ?? baseT).absTurnCap;
+  const mustEnd =
+    body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
+
   const systemMessage = buildTarotSystemMessage({
     spreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
@@ -229,6 +234,20 @@ export async function POST(request: NextRequest) {
         for await (const chunk of streamChat(systemMessage, apiMessages)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
+        }
+
+        // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
+        // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
+        if (!assistantText.trim()) {
+          throw new Error("empty_assistant_stream");
+        }
+
+        // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
+        // (마무리 버튼·절대 턴캡이 "안 눌린 것처럼" 보이는 상태 방지)
+        if (mustEnd && !assistantText.includes("[END]")) {
+          const tail = "\n\n[END]";
+          assistantText += tail;
+          controller.enqueue(encoder.encode(tail));
         }
 
         const turnTs = Date.now();
