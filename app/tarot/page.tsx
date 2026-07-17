@@ -25,7 +25,7 @@ function recommendSpread(tag: string, concern: string): SpreadType {
   const options = getSpreadOptionsForTag(tag);
   // 특화 ①(4번째)을 기본 추천, 고민이 짧으면(30자 미만) 쓰리카드
   if (concern.trim().length < 30) return options[2];
-  return options[3];
+  return options[3] ?? options[options.length - 1];
 }
 
 export default function TarotSpreadPage() {
