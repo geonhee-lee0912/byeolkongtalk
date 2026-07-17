@@ -269,11 +269,11 @@ export default function Home() {
           </div>
 
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
-            <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 인기 고민
+            <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 연애 고민
           </p>
 
-          {/* 인기 고민 (1·5·9번) */}
-          <div className="flex flex-col gap-3 mb-6">
+          {/* 연애 고민 (LOVE_TAGS 6개) */}
+          <div className="flex flex-col gap-3 mb-4">
             {highlightOptions.map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
               return (
@@ -316,6 +316,24 @@ export default function Home() {
               );
             })}
           </div>
+
+          {/* 궁합 크로스링크 */}
+          <Link
+            href="/fortune/compat"
+            className="block p-4 mb-6 rounded-2xl border-2 border-lilac-mid/50 bg-white/80 hover:border-lilac-deep/40 transition-all"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[13.5px] font-bold text-eye-purple">
+                  💞 우리 궁합은 어떨까?
+                </p>
+                <p className="text-[11.5px] text-text-light mt-0.5">
+                  두 사람 생년월일로 사주 궁합 보기
+                </p>
+              </div>
+              <span className="text-text-light">›</span>
+            </div>
+          </Link>
 
           {/* 다른 고민 */}
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
