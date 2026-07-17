@@ -10,6 +10,13 @@ interface Props {
   activeIndex?: number | null;
 }
 
+// 5장(비관계) 3+2 그리드 / 6장 2x3 그리드 / 7장 3+3(+마지막 1장은 중앙 단독 렌더)
+const MULTI_ROW_LAYOUTS: Record<number, number[][]> = {
+  5: [[0, 1, 2], [3, 4]],
+  6: [[0, 1, 2], [3, 4, 5]],
+  7: [[0, 1, 2], [3, 4, 5]],
+};
+
 export default function CardSpreadView({
   drawnCards,
   spreadType,
@@ -23,6 +30,7 @@ export default function CardSpreadView({
         </div>
       );
     }
+    // generic length 분기보다 반드시 먼저 — relationship_5 전용 레이아웃 보존
     if (spreadType === "relationship_5") {
       return (
         <div className="flex items-center justify-center gap-4">
@@ -40,11 +48,12 @@ export default function CardSpreadView({
         </div>
       );
     }
-    // 비관계 5장 (deep_feelings_5, reunion_5, new_love_5): 3+2 그리드
-    if (drawnCards.length === 5) {
+    // 5장(비관계): 3+2 / 6장: 3+3 / 7장: 3+3 + 마지막 1장 중앙 단독(sm)
+    const rows = MULTI_ROW_LAYOUTS[drawnCards.length];
+    if (rows) {
       return (
         <div className="flex flex-col gap-4 items-center">
-          {[[0, 1, 2], [3, 4]].map((row, rowIdx) => (
+          {rows.map((row, rowIdx) => (
             <div key={rowIdx} className="flex items-start justify-center gap-3">
               {row.map((i) => (
                 <CardTile
@@ -56,45 +65,9 @@ export default function CardSpreadView({
               ))}
             </div>
           ))}
-        </div>
-      );
-    }
-    // 6장: 2행 x 3열 (상단 3, 하단 3)
-    if (drawnCards.length === 6) {
-      return (
-        <div className="flex flex-col gap-4 items-center">
-          {[[0, 1, 2], [3, 4, 5]].map((row, rowIdx) => (
-            <div key={rowIdx} className="flex items-start justify-center gap-3">
-              {row.map((i) => (
-                <CardTile
-                  key={i}
-                  dc={drawnCards[i]}
-                  active={activeIndex === i}
-                  size="xs"
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    // 7장: 상단 3 + 중단 3 + 하단 1(중앙) 피라미드
-    if (drawnCards.length === 7) {
-      return (
-        <div className="flex flex-col gap-4 items-center">
-          {[[0, 1, 2], [3, 4, 5]].map((row, rowIdx) => (
-            <div key={rowIdx} className="flex items-start justify-center gap-3">
-              {row.map((i) => (
-                <CardTile
-                  key={i}
-                  dc={drawnCards[i]}
-                  active={activeIndex === i}
-                  size="xs"
-                />
-              ))}
-            </div>
-          ))}
-          <CardTile dc={drawnCards[6]} active={activeIndex === 6} size="sm" />
+          {drawnCards.length === 7 && (
+            <CardTile dc={drawnCards[6]} active={activeIndex === 6} size="sm" />
+          )}
         </div>
       );
     }

@@ -886,6 +886,13 @@ function DeckScrollbar({
 const SLOT_W = 56;
 const SLOT_H = 84;
 
+// 5장(비관계) 3+2 / 6장 2x3 / 7장 3+3+1(중앙) — 행 단위 슬롯 배치
+const MULTI_ROW_SLOT_LAYOUTS: Record<number, number[][]> = {
+  5: [[0, 1, 2], [3, 4]],
+  6: [[0, 1, 2], [3, 4, 5]],
+  7: [[0, 1, 2], [3, 4, 5], [6]],
+};
+
 function SlotRow({
   labels,
   slotCards,
@@ -929,6 +936,7 @@ function SlotRow({
     />
   );
 
+  // generic length 분기보다 반드시 먼저 — relationship_5 전용 레이아웃 보존
   if (relationshipLayout) {
     // 좌측 2x2 그리드 + 우측 중앙 5번 카드 (모두 세로):
     //   [0 나]        [1 상대방]
@@ -951,49 +959,20 @@ function SlotRow({
     );
   }
 
-  // 비관계 5장 (deep_feelings_5, reunion_5, new_love_5): 3+2 그리드
+  // 5장(비관계): 3+2 / 6장: 3+3 / 7장: 3+3+1(중앙) 피라미드
   // (5슬롯 단일 행 = 56*5 + 20*4 = 360px > 375px 뷰포트 가용폭 335px)
-  if (labels.length === 5) {
-    return (
-      <div className="flex flex-col gap-6 items-center">
-        <div className="flex items-start gap-5 justify-center">
-          {[0, 1, 2].map((i) => renderSlot(i))}
+  const renderRows = (rows: number[][]) => (
+    <div className="flex flex-col gap-6 items-center">
+      {rows.map((row, rowIdx) => (
+        <div key={rowIdx} className="flex items-start gap-5 justify-center">
+          {row.map((i) => renderSlot(i))}
         </div>
-        <div className="flex items-start gap-5 justify-center">
-          {[3, 4].map((i) => renderSlot(i))}
-        </div>
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
-  // 6장: 2행 x 3열 (상단 3, 하단 3)
-  if (labels.length === 6) {
-    return (
-      <div className="flex flex-col gap-6 items-center">
-        <div className="flex items-start gap-5 justify-center">
-          {[0, 1, 2].map((i) => renderSlot(i))}
-        </div>
-        <div className="flex items-start gap-5 justify-center">
-          {[3, 4, 5].map((i) => renderSlot(i))}
-        </div>
-      </div>
-    );
-  }
-
-  // 7장: 상단 3 + 중단 3 + 하단 1(중앙) 피라미드
-  if (labels.length === 7) {
-    return (
-      <div className="flex flex-col gap-6 items-center">
-        <div className="flex items-start gap-5 justify-center">
-          {[0, 1, 2].map((i) => renderSlot(i))}
-        </div>
-        <div className="flex items-start gap-5 justify-center">
-          {[3, 4, 5].map((i) => renderSlot(i))}
-        </div>
-        <div className="flex items-start justify-center">{renderSlot(6)}</div>
-      </div>
-    );
-  }
+  const multiRow = MULTI_ROW_SLOT_LAYOUTS[labels.length];
+  if (multiRow) return renderRows(multiRow);
 
   const rows: number[][] = [labels.map((_, i) => i)];
 
