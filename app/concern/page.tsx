@@ -4,10 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
+  LOVE_TAGS,
+  OTHER_TAGS,
   PENDING_KEY,
+  normalizeEmotionTag,
+  type EmotionOption,
   type EmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
@@ -15,12 +20,15 @@ import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
+// 정규화 실패(완전히 낯선 문자열)일 때 흐름을 이어갈 안전 기본값
+const DEFAULT_TAG: EmotionTag = "그냥 별콩이한테 털어놓고 싶어";
 
 export default function ConcernPage() {
   const router = useRouter();
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [tagSheetOpen, setTagSheetOpen] = useState(false);
 
   useEffect(() => {
     const stored =
@@ -31,9 +39,10 @@ export default function ConcernPage() {
       router.replace("/");
       return;
     }
-    setEmotion(stored as EmotionTag);
+    // 구 태그(v2)·낯선 문자열도 정규화해서 흐름을 계속 이어간다
+    setEmotion(normalizeEmotionTag(stored) ?? DEFAULT_TAG);
 
-    // /select에서 뒤로 돌아온 경우: 기 입력한 고민 복원
+    // /tarot에서 뒤로 돌아온 경우: 기 입력한 고민 복원
     const raw = sessionStorage.getItem(PENDING_KEY);
     if (raw) {
       try {
@@ -58,6 +67,12 @@ export default function ConcernPage() {
 
   const canProceed = concern.length >= MIN_LEN && concern.length <= MAX_LEN;
 
+  const handleSelectTag = (tag: EmotionTag) => {
+    setEmotion(tag);
+    sessionStorage.setItem("byeolkong:emotion", tag);
+    setTagSheetOpen(false);
+  };
+
   const handleNext = () => {
     if (concern.length < MIN_LEN) {
       setError(`고민을 ${MIN_LEN}자 이상 적어줘`);
@@ -68,22 +83,27 @@ export default function ConcernPage() {
       return;
     }
 
-    const payload: PendingConsultation = { emotion, concern };
+    const payload: PendingConsultation = { emotion, concern, type: "tarot" };
     sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
-    router.push("/select");
+    router.push("/tarot");
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
+    <>
+      <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
       {/* 진행 단계 */}
       <div className="mb-8">
         <ProgressSteps current={1} />
       </div>
 
-      {/* 감정 컨텍스트 칩 — 선택한 고민 분류 싱크 */}
+      {/* 감정 컨텍스트 칩 — 탭하면 태그 변경 */}
       {option && (
         <div className="w-full max-w-md mx-auto px-5 mb-5">
-          <div className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)]">
+          <button
+            type="button"
+            onClick={() => setTagSheetOpen(true)}
+            className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)] hover:border-lilac-deep/40 transition-colors"
+          >
             <div className="flex items-center gap-2">
               <span
                 className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
@@ -101,11 +121,12 @@ export default function ConcernPage() {
               <span className="font-bold text-eye-purple text-[13px]">
                 {option.tag}
               </span>
+              <span className="text-text-light/50 text-[11px]">변경</span>
             </div>
             <p className="text-[11px] text-text-light/80 text-center leading-relaxed">
               {option.description}
             </p>
-          </div>
+          </button>
         </div>
       )}
 
@@ -242,7 +263,7 @@ export default function ConcernPage() {
         >
           {concern.length < MIN_LEN
             ? `${MIN_LEN}자 이상 적어줘`
-            : "운세 선택하러 가기"}
+            : "타로 카드 뽑으러 가기"}
         </button>
         <Link
           href="/"
@@ -252,5 +273,128 @@ export default function ConcernPage() {
         </Link>
       </div>
     </main>
+
+    {tagSheetOpen && (
+      <EmotionTagSheet
+        current={emotion}
+        onSelect={handleSelectTag}
+        onClose={() => setTagSheetOpen(false)}
+      />
+    )}
+    </>
+  );
+}
+
+/** 감정 컨텍스트 칩 탭 → 태그 변경 바텀시트 (연애 6 + 비연애 4) */
+function EmotionTagSheet({
+  current,
+  onSelect,
+  onClose,
+}: {
+  current: EmotionTag;
+  onSelect: (tag: EmotionTag) => void;
+  onClose: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const loveOptions = EMOTION_OPTIONS.filter((o) => LOVE_TAGS.includes(o.tag));
+  const otherOptions = EMOTION_OPTIONS.filter((o) => OTHER_TAGS.includes(o.tag));
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="고민 태그 변경"
+    >
+      <div
+        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 그랩바 */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
+        </div>
+
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 pt-2 pb-3">
+          <h2 className="font-display text-[16px] font-bold text-eye-purple">
+            어떤 고민이야?
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-5 pb-6">
+          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+            연애 고민
+          </p>
+          <div className="flex flex-col gap-2 mb-4">
+            {loveOptions.map((option) => (
+              <TagSheetItem
+                key={option.tag}
+                option={option}
+                active={option.tag === current}
+                onClick={() => onSelect(option.tag)}
+              />
+            ))}
+          </div>
+
+          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+            다른 고민
+          </p>
+          <div className="flex flex-col gap-2">
+            {otherOptions.map((option) => (
+              <TagSheetItem
+                key={option.tag}
+                option={option}
+                active={option.tag === current}
+                onClick={() => onSelect(option.tag)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function TagSheetItem({
+  option,
+  active,
+  onClick,
+}: {
+  option: EmotionOption;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`w-full flex items-center gap-3 p-3 rounded-2xl bg-white/90 text-left transition-all border ${
+        active ? "border-2 border-lilac-deep bg-lilac-soft/30" : "border-lilac-soft/70"
+      }`}
+    >
+      <span
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+        style={{ background: EMOTION_GRADIENTS[option.tag] }}
+        aria-hidden
+      >
+        <Image src={option.icon} alt="" width={28} height={28} className="object-contain" />
+      </span>
+      <span className="flex-1 min-w-0 font-bold text-eye-purple text-[13.5px] leading-snug">
+        {option.tag}
+      </span>
+    </button>
   );
 }

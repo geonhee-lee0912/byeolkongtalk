@@ -111,7 +111,7 @@ export default function TarotDrawPage() {
         completeLabel="고민 상담 시작하기"
         relationshipLayout={spreadType === "relationship_5"}
         backLabel="리딩 방법 선택"
-        onBack={() => router.push("/select")}
+        onBack={() => router.push("/tarot")}
         onComplete={(drawn) => {
           setPendingDrawn(drawn);
           openConfirm();
