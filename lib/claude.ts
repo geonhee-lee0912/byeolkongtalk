@@ -64,6 +64,69 @@ const SUMMARY_END_RULE = `
 ### 정리 요청 = 마무리
 사용자가 대화의 정리/요약/마무리를 명시적으로 요청하면("정리해줘", "요약해줘", "마무리하자" 류) 다른 모드 지시와 무관하게 이번 턴은 핵심 요약 + 따뜻한 응원으로 닫고, 맨 마지막 줄에 [END] 마커를 단독 줄로 붙여.`;
 
+/** 직전 턴 상태 기반 동적 경고 — 정적 규칙(질문 2연속 금지·심문 피로)이 실전에서 새는 걸 서버가 강제 */
+export interface TurnSignals {
+  /** 직전 별콩이 턴이 물음표로 끝남 → 이번 턴 질문 마무리 금지 */
+  lastTurnEndedWithQuestion?: boolean;
+  /** 유저 단답 2연속 → 질문 대신 정리/예고 */
+  userShortStreak?: boolean;
+}
+
+/** DB 메시지 + 이번 유저 발화로 TurnSignals 계산 (chat 라우트 공용) */
+export function computeTurnSignals(
+  pastMessages: { role: string; content: string }[],
+  currentUserText: string
+): TurnSignals {
+  // 직전 별콩이 턴이 물음표로 끝났는가 (마커 제거 후)
+  let lastAssistant: string | null = null;
+  for (let i = pastMessages.length - 1; i >= 0; i--) {
+    if (pastMessages[i].role === "assistant") {
+      lastAssistant = pastMessages[i].content;
+      break;
+    }
+  }
+  const stripped = (lastAssistant ?? "")
+    .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi, "")
+    .trim();
+  // "?"로 끝나거나, 마지막 "?" 뒤 꼬리가 짧으면(부연 한 문장) 기능적으로 질문 마무리
+  const lastQ = Math.max(stripped.lastIndexOf("?"), stripped.lastIndexOf("？"));
+  const lastTurnEndedWithQuestion =
+    lastQ >= 0 && stripped.length - lastQ - 1 <= 60;
+
+  // 유저 단답 2연속 (직전 user 메시지 + 이번 발화 둘 다 짧음)
+  let prevUser: string | null = null;
+  for (let i = pastMessages.length - 1; i >= 0; i--) {
+    if (pastMessages[i].role === "user") {
+      prevUser = pastMessages[i].content;
+      break;
+    }
+  }
+  const SHORT_LEN = 12;
+  const userShortStreak =
+    prevUser !== null &&
+    prevUser.trim().length <= SHORT_LEN &&
+    currentUserText.trim().length <= SHORT_LEN;
+
+  return { lastTurnEndedWithQuestion, userShortStreak };
+}
+
+function buildTurnSignalBlock(s: TurnSignals | undefined): string {
+  if (!s) return "";
+  const lines: string[] = [];
+  if (s.lastTurnEndedWithQuestion) {
+    lines.push(
+      "- ⚠️ 직전 별콩이 턴이 질문으로 끝났어. **이번 턴은 절대 질문으로 마무리하지 마** — 마무리 3택의 ②(다음 볼거리 예고)나 ③(소신 정리+여백)으로."
+    );
+  }
+  if (s.userShortStreak) {
+    lines.push(
+      "- ⚠️ 유저 답이 연속으로 짧아지고 있어 (지친 신호). 질문으로 밀어붙이지 말고 정리·예고·여백으로 부드럽게 받아줘."
+    );
+  }
+  if (lines.length === 0) return "";
+  return `\n\n### 이번 턴 신호 (서버 감지 — 반드시 따를 것)\n${lines.join("\n")}`;
+}
+
 export interface ContinuationContext {
   prevQuestion: string;
   prevClosing: string | null;
@@ -93,6 +156,8 @@ export interface SajuReadingContext {
   emotionTag?: EmotionTag | string | null;
   /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
   nickname?: string | null;
+  /** 직전 턴 상태 기반 동적 경고 (질문 2연속·단답 스트릭) */
+  turnSignals?: TurnSignals;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END] 마커 제외한 순수 길이) */
@@ -250,7 +315,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ${formatSajuBlock(ctx.saju)}${formatTemporalBlock(ctx.saju.temporal, ctx.sajuProduct)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
 
   return { staticPart, dynamicPart };
 }
@@ -348,6 +413,8 @@ export interface TarotReadingContext {
   emotionTag?: EmotionTag | string | null;
   /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
   nickname?: string | null;
+  /** 직전 턴 상태 기반 동적 경고 (질문 2연속·단답 스트릭) */
+  turnSignals?: TurnSignals;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
   assistantTurnsSoFar: number;
   /** 지금까지 assistant 응답 누적 글자수 ([END]·[CARD:n] 마커 제외) */
@@ -487,7 +554,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
 
   return { staticPart, dynamicPart };
 }

@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { buildTarotSystemMessage, streamChat, computeWrapMode } from "@/lib/claude";
+import { buildTarotSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
 import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -212,6 +212,7 @@ export async function POST(request: NextRequest) {
     drawnCards: (reading.drawn_cards as DrawnCard[]) ?? [],
     emotionTag: reading.emotion_tag as string | null,
     nickname: (userRow?.nickname as string | null) ?? null,
+    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
     assistantTurnsSoFar,
     cumulativeAssistantChars,
     continuation,

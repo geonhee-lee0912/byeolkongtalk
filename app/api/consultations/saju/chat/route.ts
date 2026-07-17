@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { buildSystemMessage, streamChat, computeWrapMode } from "@/lib/claude";
+import { buildSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -229,6 +229,7 @@ export async function POST(request: NextRequest) {
     concernText: reading.question ?? "",
     emotionTag: reading.emotion_tag as string | null,
     nickname: (userRow?.nickname as string | null) ?? null,
+    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
     assistantTurnsSoFar,
     cumulativeAssistantChars,
     forceEnd: body.forceEnd === true,
