@@ -40,6 +40,45 @@ export default function CardSpreadView({
         </div>
       );
     }
+    // 6장: 2행 x 3열 (상단 3, 하단 3)
+    if (drawnCards.length === 6) {
+      return (
+        <div className="flex flex-col gap-4 items-center">
+          {[[0, 1, 2], [3, 4, 5]].map((row, rowIdx) => (
+            <div key={rowIdx} className="flex items-start justify-center gap-3">
+              {row.map((i) => (
+                <CardTile
+                  key={i}
+                  dc={drawnCards[i]}
+                  active={activeIndex === i}
+                  size="xs"
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    // 7장: 상단 3 + 중단 3 + 하단 1(중앙) 피라미드
+    if (drawnCards.length === 7) {
+      return (
+        <div className="flex flex-col gap-4 items-center">
+          {[[0, 1, 2], [3, 4, 5]].map((row, rowIdx) => (
+            <div key={rowIdx} className="flex items-start justify-center gap-3">
+              {row.map((i) => (
+                <CardTile
+                  key={i}
+                  dc={drawnCards[i]}
+                  active={activeIndex === i}
+                  size="xs"
+                />
+              ))}
+            </div>
+          ))}
+          <CardTile dc={drawnCards[6]} active={activeIndex === 6} size="sm" />
+        </div>
+      );
+    }
     const size = spreadType === "two_card" ? "md" : "sm";
     return (
       <div className="flex items-start justify-center gap-5">

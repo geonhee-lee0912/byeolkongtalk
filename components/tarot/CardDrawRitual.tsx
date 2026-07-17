@@ -951,6 +951,35 @@ function SlotRow({
     );
   }
 
+  // 6장: 2행 x 3열 (상단 3, 하단 3)
+  if (labels.length === 6) {
+    return (
+      <div className="flex flex-col gap-6 items-center">
+        <div className="flex items-start gap-5 justify-center">
+          {[0, 1, 2].map((i) => renderSlot(i))}
+        </div>
+        <div className="flex items-start gap-5 justify-center">
+          {[3, 4, 5].map((i) => renderSlot(i))}
+        </div>
+      </div>
+    );
+  }
+
+  // 7장: 상단 3 + 중단 3 + 하단 1(중앙) 피라미드
+  if (labels.length === 7) {
+    return (
+      <div className="flex flex-col gap-6 items-center">
+        <div className="flex items-start gap-5 justify-center">
+          {[0, 1, 2].map((i) => renderSlot(i))}
+        </div>
+        <div className="flex items-start gap-5 justify-center">
+          {[3, 4, 5].map((i) => renderSlot(i))}
+        </div>
+        <div className="flex items-start justify-center">{renderSlot(6)}</div>
+      </div>
+    );
+  }
+
   const rows: number[][] = [labels.map((_, i) => i)];
 
   return (
