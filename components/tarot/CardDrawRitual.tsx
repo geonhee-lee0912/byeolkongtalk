@@ -951,6 +951,21 @@ function SlotRow({
     );
   }
 
+  // 비관계 5장 (deep_feelings_5, reunion_5, new_love_5): 3+2 그리드
+  // (5슬롯 단일 행 = 56*5 + 20*4 = 360px > 375px 뷰포트 가용폭 335px)
+  if (labels.length === 5) {
+    return (
+      <div className="flex flex-col gap-6 items-center">
+        <div className="flex items-start gap-5 justify-center">
+          {[0, 1, 2].map((i) => renderSlot(i))}
+        </div>
+        <div className="flex items-start gap-5 justify-center">
+          {[3, 4].map((i) => renderSlot(i))}
+        </div>
+      </div>
+    );
+  }
+
   // 6장: 2행 x 3열 (상단 3, 하단 3)
   if (labels.length === 6) {
     return (

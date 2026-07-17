@@ -40,6 +40,25 @@ export default function CardSpreadView({
         </div>
       );
     }
+    // 비관계 5장 (deep_feelings_5, reunion_5, new_love_5): 3+2 그리드
+    if (drawnCards.length === 5) {
+      return (
+        <div className="flex flex-col gap-4 items-center">
+          {[[0, 1, 2], [3, 4]].map((row, rowIdx) => (
+            <div key={rowIdx} className="flex items-start justify-center gap-3">
+              {row.map((i) => (
+                <CardTile
+                  key={i}
+                  dc={drawnCards[i]}
+                  active={activeIndex === i}
+                  size="xs"
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
     // 6장: 2행 x 3열 (상단 3, 하단 3)
     if (drawnCards.length === 6) {
       return (
