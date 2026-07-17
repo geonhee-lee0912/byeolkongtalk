@@ -42,6 +42,14 @@ const NUDGE_STAGE_2 = [
   "별콩이 여기 있을게, 천천히 와",
   "급할 거 없어. 마음 정리되면 다시 얘기하자",
 ];
+// W3 출구 nudge — 수렴 이후 무응답 지속 시 "마무리하고 결과 보기" 제안 (로컬 멘트, API 호출 X)
+const IDLE_EXIT_MS = 60000; // 2단계 멘트 이후 출구 제안까지 추가 대기
+const EXIT_NUDGE = [
+  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
+  "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
+];
+const FINISH_PHRASE = "대화 마무리할게"; // 하단 골드 버튼 경유
+const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
 const CARD_MARKER_REGEX = /\[CARD:(\d+)\]/g;
 const END_MARKER_REGEX = /\[END\]/gi;
 // 미완성 마커 (e.g., "[CA", "[CARD:", "[CARD:1", "[E", "[EN", "[END", "[RECO:", "[RECO:saju") 제거용 — 버블 깜빡임 방지
@@ -178,9 +186,12 @@ function TarotReadingInner() {
   const baseHistoryRef = useRef<Message[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=종료
+  const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=2단계 후, 3=종료
   const flushPendingRef = useRef<() => void>(() => {});
   const runIdleNudgeRef = useRef<() => void>(() => {});
+  // W3 출구 nudge — 마지막 응답의 wrap-mode (X-Wrap-Mode 헤더) + 출구 칩 노출 상태
+  const wrapModeRef = useRef<"free" | "converge" | "hardcap">("free");
+  const [exitOffer, setExitOffer] = useState(false);
 
   // 컨텍스트 로드 + reading 생성 + 첫 풀이 자동 시작
   useEffect(() => {
@@ -565,6 +576,7 @@ function TarotReadingInner() {
     const forceEnd = opts?.forceEnd ?? false;
     clearFlushTimer();
     clearIdleTimer();
+    setExitOffer(false);
     if (!opts?.skipSetMessages) setMessages(history);
     setIsStreaming(true);
     setStreamingBubbles([]);
@@ -608,6 +620,12 @@ function TarotReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
+      }
+
+      // W3: wrap-mode 저장 — 출구 nudge 발동 기준
+      const wm = r.headers.get("X-Wrap-Mode");
+      if (wm === "free" || wm === "converge" || wm === "hardcap") {
+        wrapModeRef.current = wm;
       }
 
       const reader = r.body.getReader();
@@ -676,7 +694,16 @@ function TarotReadingInner() {
     } else if (stage === 1) {
       pushNudge(NUDGE_STAGE_2);
       idleStageRef.current = 2;
-      // 종료 — 더는 무장하지 않음
+      armIdleTimer(IDLE_EXIT_MS);
+    } else if (stage === 2) {
+      // W3 출구 — 수렴 이후(또는 RECO 노출 후)에만. 초반 증발 유도 방지.
+      idleStageRef.current = 3; // 종료 — 더는 무장하지 않음
+      const exitEligible =
+        wrapModeRef.current !== "free" || Object.keys(recoAttach).length > 0;
+      if (exitEligible) {
+        pushNudge(EXIT_NUDGE);
+        setExitOffer(true);
+      }
     }
   }
 
@@ -796,7 +823,7 @@ function TarotReadingInner() {
     suppressScrollUntilRef.current = Date.now() + 1500;
   };
 
-  const handleFinish = () => {
+  const handleFinish = (phrase: string = FINISH_PHRASE) => {
     if (isStreaming || isEnded || !readingId) return;
     clearFlushTimer();
     clearIdleTimer();
@@ -817,9 +844,8 @@ function TarotReadingInner() {
     pendingFragmentsRef.current = [];
 
     // 마무리 의사 표시 — user 말풍선으로 띄우고 전송 내용에도 포함
-    const FINISH_PHRASE = "대화 마무리할게";
-    frags.push(FINISH_PHRASE);
-    setMessages((prev) => [...prev, { role: "user", content: FINISH_PHRASE }]);
+    frags.push(phrase);
+    setMessages((prev) => [...prev, { role: "user", content: phrase }]);
 
     const merged = frags.join("\n");
 
@@ -992,6 +1018,19 @@ function TarotReadingInner() {
               );
             })}
 
+            {/* W3 출구 칩 — 출구 nudge 멘트 바로 아래 */}
+            {exitOffer && !isStreaming && !isEnded && (
+              <div className="flex justify-start pl-10 mt-1 mb-2">
+                <button
+                  type="button"
+                  onClick={() => handleFinish(FINISH_PHRASE_EXIT)}
+                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
+                >
+                  ✨ 결과 카드 보기
+                </button>
+              </div>
+            )}
+
             {isStreaming &&
               streamingBubbles.map((b, i, arr) => {
                 const isLast = i === arr.length - 1;
@@ -1101,7 +1140,7 @@ function TarotReadingInner() {
                 </div>
                 <button
                   type="button"
-                  onClick={handleFinish}
+                  onClick={() => handleFinish()}
                   disabled={isStreaming || !readingId}
                   className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >

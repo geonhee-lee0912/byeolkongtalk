@@ -54,6 +54,9 @@ function buildPreview(content: string): string {
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
+// W3: [END] 없는 미완료 상담을 결과 화면 진입 가능(resultReady)으로 lazy 판정하는 무응답 기준
+const STALE_RESULT_MS = 6 * 60 * 60 * 1000; // 6시간
+
 export const dynamic = "force-dynamic";
 
 // GET /api/readings — 본인 readings 리스트 (마이페이지용)
@@ -96,10 +99,11 @@ export async function GET() {
   const endedSet = new Set<string>();
   const hasMsgSet = new Set<string>();
   const previewMap = new Map<string, string>();
+  const lastAssistantAtMap = new Map<string, string>(); // W3 stale 판정용
   if (allIds.length > 0) {
     const { data: msgRows } = await supabase
       .from("messages")
-      .select("reading_id, content")
+      .select("reading_id, content, created_at")
       .in("reading_id", allIds)
       .eq("role", "assistant")
       .order("created_at", { ascending: true });
@@ -112,6 +116,7 @@ export async function GET() {
         const p = buildPreview(row.content);
         if (p) previewMap.set(row.reading_id, p);
       }
+      lastAssistantAtMap.set(row.reading_id, row.created_at); // asc 순회 — 마지막 값이 최신
     }
   }
 
@@ -129,6 +134,15 @@ export async function GET() {
       hasSensitive: r.has_sensitive,
       createdAt: r.created_at,
       ended: endedSet.has(r.id),
+      // W3: [END] 없이 증발한 상담도 일정 시간 지나면 결과 화면 진입 허용 (lazy stale 판정)
+      resultReady:
+        endedSet.has(r.id) ||
+        (consultIdSet.has(r.id) &&
+          hasMsgSet.has(r.id) &&
+          (() => {
+            const last = lastAssistantAtMap.get(r.id);
+            return !!last && Date.now() - new Date(last).getTime() > STALE_RESULT_MS;
+          })()),
       generating: fortuneIds.includes(r.id) && !hasMsgSet.has(r.id),
       profile: r.profile,
       preview: previewMap.get(r.id) ?? null,

@@ -18,6 +18,8 @@ import RechargeSheet from "@/components/upsell/RechargeSheet";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  /** 클라 전용 부재/출구 멘트 — DB 저장 X, API 히스토리 전송에서 제외 */
+  ephemeral?: boolean;
 }
 
 interface ReadingProfile {
@@ -45,6 +47,14 @@ const RELATION_LABEL: Record<string, string> = {
 const END_MARKER = /\[END\]\s*$/;
 // 미완성 마커 ([E, [EN, [END, [RECO:, [RECO:saju 등) 스트리밍 중 깜빡임 방지
 const TRAILING_PARTIAL = /\[(?:E(?:N(?:D)?)?|R(?:E(?:C(?:O(?::[a-z0-9_:]*)?)?)?)?)?]?\s*$/;
+// W3 출구 nudge — 수렴 이후 무응답 60초에 "마무리하고 결과 보기" 제안 (로컬 멘트, API 호출 X)
+const IDLE_EXIT_MS = 60000;
+const EXIT_NUDGE = [
+  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
+  "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
+];
+const FINISH_PHRASE = "대화 마무리할게"; // 하단 골드 버튼 경유
+const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
 
 export default function ReadingPage() {
   return (
@@ -92,6 +102,11 @@ function ReadingInner() {
   } | null>(null);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // W3 출구 nudge — 마지막 응답의 wrap-mode (X-Wrap-Mode 헤더) + 출구 칩 상태
+  const wrapModeRef = useRef<"free" | "converge" | "hardcap">("free");
+  const [exitOffer, setExitOffer] = useState(false);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runExitNudgeRef = useRef<() => void>(() => {});
 
   // 컨텍스트 로드 + 첫 풀이 자동 시작
   useEffect(() => {
@@ -239,12 +254,50 @@ function ReadingInner() {
     }
   }, [messages, streamingText]);
 
+  // W3 출구 nudge — 어시스턴트 턴 완료 후 무응답 지속 + 수렴 이후(또는 RECO 노출 후)에만
+  function clearExitTimer() {
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+  }
+
+  function armExitTimer() {
+    clearExitTimer();
+    exitTimerRef.current = setTimeout(() => runExitNudgeRef.current(), IDLE_EXIT_MS);
+  }
+
+  function runExitNudge() {
+    if (isStreaming || isEnded || !ctx) return;
+    if (input.trim()) return;
+    const exitEligible =
+      wrapModeRef.current !== "free" || Object.keys(recoAttach).length > 0;
+    if (!exitEligible) return;
+    const text = EXIT_NUDGE[Math.floor(Math.random() * EXIT_NUDGE.length)];
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: text, ephemeral: true },
+    ]);
+    setExitOffer(true);
+  }
+
+  useEffect(() => {
+    runExitNudgeRef.current = runExitNudge;
+  });
+
+  useEffect(() => {
+    return () => clearExitTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function sendMessage(
     _userContent: string,
     history: Message[],
     opts?: { forceEnd?: boolean }
   ) {
     if (!ctx) return;
+    clearExitTimer();
+    setExitOffer(false);
     setMessages(history);
     setIsStreaming(true);
     setStreamingText("");
@@ -256,7 +309,10 @@ function ReadingInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           readingId: ctx.readingId,
-          messages: history,
+          // ephemeral(부재/출구 멘트) 제외 + role/content 만 추려 전송
+          messages: history
+            .filter((m) => !m.ephemeral)
+            .map((m) => ({ role: m.role, content: m.content })),
           forceEnd: opts?.forceEnd ?? false,
         }),
       });
@@ -275,6 +331,12 @@ function ReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
+      }
+
+      // W3: wrap-mode 저장 — 출구 nudge 발동 기준
+      const wm = r.headers.get("X-Wrap-Mode");
+      if (wm === "free" || wm === "converge" || wm === "hardcap") {
+        wrapModeRef.current = wm;
       }
 
       const reader = r.body.getReader();
@@ -338,6 +400,9 @@ function ReadingInner() {
         } else {
           setIsEnded(true);
         }
+      } else {
+        // 미종료 턴 — 무응답 지속 시 출구 nudge 무장
+        armExitTimer();
       }
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
@@ -406,12 +471,11 @@ function ReadingInner() {
   };
 
   // 대화 마무리 — 그레이스풀 종료([END])를 강제해 결과 화면으로 유도
-  const handleFinish = () => {
+  const handleFinish = (phrase: string = FINISH_PHRASE) => {
     if (isStreaming || isEnded || !ctx) return;
-    const FINISH_PHRASE = "대화 마무리할게";
     void sendMessage(
-      FINISH_PHRASE,
-      [...messages, { role: "user", content: FINISH_PHRASE }],
+      phrase,
+      [...messages, { role: "user", content: phrase }],
       { forceEnd: true }
     );
   };
@@ -537,6 +601,18 @@ function ReadingInner() {
               </div>
             );
           })}
+          {/* W3 출구 칩 — 출구 nudge 멘트 바로 아래 */}
+          {exitOffer && !isStreaming && !isEnded && (
+            <div className="flex justify-start pl-10 mt-1 mb-2">
+              <button
+                type="button"
+                onClick={() => handleFinish(FINISH_PHRASE_EXIT)}
+                className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
+              >
+                ✨ 결과 카드 보기
+              </button>
+            </div>
+          )}
           {isStreaming && (
             <ChatBubble
               role="assistant"
@@ -592,7 +668,7 @@ function ReadingInner() {
               </div>
               <button
                 type="button"
-                onClick={handleFinish}
+                onClick={() => handleFinish()}
                 disabled={isStreaming}
                 className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { buildSystemMessage, streamChat } from "@/lib/claude";
+import { buildSystemMessage, streamChat, computeWrapMode } from "@/lib/claude";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -201,6 +201,19 @@ export async function POST(request: NextRequest) {
   const mustEnd =
     body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
 
+  // wrap-mode — 클라 출구 nudge 발동 기준 (X-Wrap-Mode 헤더)
+  const wrapMode = computeWrapMode(
+    assistantTurnsSoFar + 1,
+    cumulativeAssistantChars,
+    {
+      convergeStartTurn: thresholdOverride?.convergeStartTurn ?? CONVERGE_START_TURN,
+      convergeStartChars: thresholdOverride?.convergeStartChars ?? CONVERGE_START_CHARS,
+      hardCapTurn: thresholdOverride?.hardCapTurn ?? HARD_CAP_TURN,
+      hardCapChars: thresholdOverride?.hardCapChars ?? HARD_CAP_CHARS,
+      absTurnCap: effAbsTurnCap,
+    }
+  ).mode;
+
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     sajuProduct: isSajuProduct(reading.saju_product)
@@ -223,6 +236,7 @@ export async function POST(request: NextRequest) {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
+    "X-Wrap-Mode": wrapMode,
   };
   if (sensitiveSync) {
     responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;

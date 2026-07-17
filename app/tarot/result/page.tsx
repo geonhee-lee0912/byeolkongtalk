@@ -132,6 +132,10 @@ function TarotResultInner() {
     content: m.role === "assistant" ? cleanContent(m.content) : m.content,
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
+  // W3: [END] 없이 증발한(stale) 리딩 — "이어서 대화하기" 보조 버튼 노출용 (strip 전 원본에서 판정)
+  const ended = data.messages.some(
+    (m) => m.role === "assistant" && m.content.includes("[END]")
+  );
   const cards = reading.drawnCards ?? [];
   const cardsText = cards
     .map((c) => {
@@ -274,6 +278,18 @@ function TarotResultInner() {
           </div>
         )}
       </div>
+
+      {/* W3: 미완료(증발) 리딩 — 대화 복귀 경로 보존 */}
+      {!ended && (
+        <div className="w-full max-w-md mx-auto px-5 mt-3">
+          <Link
+            href={`/tarot/reading?id=${reading.id}`}
+            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-[12.5px] font-bold text-lilac-deep flex items-center justify-center"
+          >
+            💬 이어서 대화하기
+          </Link>
+        </div>
+      )}
 
       {/* ① 추천 카드 — next_reco 있을 때만 */}
       {reading.nextReco && (

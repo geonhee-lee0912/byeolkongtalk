@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { buildTarotSystemMessage, streamChat } from "@/lib/claude";
+import { buildTarotSystemMessage, streamChat, computeWrapMode } from "@/lib/claude";
 import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -191,6 +191,13 @@ export async function POST(request: NextRequest) {
   const mustEnd =
     body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
 
+  // wrap-mode — 클라 출구 nudge 발동 기준 (X-Wrap-Mode 헤더)
+  const wrapMode = computeWrapMode(
+    assistantTurnsSoFar + 1,
+    cumulativeAssistantChars,
+    effT ?? baseT
+  ).mode;
+
   const systemMessage = buildTarotSystemMessage({
     spreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
@@ -211,6 +218,7 @@ export async function POST(request: NextRequest) {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
+    "X-Wrap-Mode": wrapMode,
   };
   if (sensitiveSync) {
     responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;

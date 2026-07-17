@@ -43,6 +43,12 @@ function getPersona(): string {
   return _cachedPersona;
 }
 
+// W3: "정리 요청→요약 후 유저가 종료 방법을 몰라 증발" 봉합 — 명시적 정리 요청은 그 턴에 닫는다.
+const SUMMARY_END_RULE = `
+
+### 정리 요청 = 마무리
+사용자가 대화의 정리/요약/마무리를 명시적으로 요청하면("정리해줘", "요약해줘", "마무리하자" 류) 다른 모드 지시와 무관하게 이번 턴은 핵심 요약 + 따뜻한 응원으로 닫고, 맨 마지막 줄에 [END] 마커를 단독 줄로 붙여.`;
+
 export interface ContinuationContext {
   prevQuestion: string;
   prevClosing: string | null;
@@ -223,7 +229,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ${formatSajuBlock(ctx.saju)}${formatTemporalBlock(ctx.saju.temporal, ctx.sajuProduct)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
 
   return { staticPart, dynamicPart };
 }
@@ -357,9 +363,9 @@ function formatDrawnCardsBlock(cards: DrawnCard[]): string {
   return [`[뽑은 카드]`, ...lines].join("\n") + note;
 }
 
-type WrapMode = "hardcap" | "converge" | "free";
+export type WrapMode = "hardcap" | "converge" | "free";
 
-function computeWrapMode(
+export function computeWrapMode(
   upcomingTurn: number,
   cumulativeChars: number,
   t: WrapThresholds
@@ -451,7 +457,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
 
   return { staticPart, dynamicPart };
 }

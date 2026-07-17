@@ -28,6 +28,7 @@ interface ReadingItem {
   hasSensitive: boolean;
   createdAt: string;
   ended?: boolean;
+  resultReady?: boolean;
   generating?: boolean;
   profile: { display_name: string; relation_type: string } | null;
   preview?: string | null;
@@ -275,7 +276,8 @@ export default function ReadingsPage() {
           <div className="flex flex-col gap-2">
             {items.map((r) => {
               const isTarot = r.consultationType === "tarot";
-              const canResume = r.ended === false;
+              // W3: stale 미완료 리딩(resultReady)은 결과 화면으로 — 증발 리딩도 추천/공유/이어가기 노출
+              const canResume = r.ended === false && !r.resultReady;
               const href = canResume
                 ? isTarot
                   ? `/tarot/reading?id=${r.id}&from=history`
