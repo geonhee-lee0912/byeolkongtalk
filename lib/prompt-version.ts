@@ -6,4 +6,6 @@
 //   2026-07-13-conversion-c1  — 더보고싶다 신호·방향먼저·회피구1회·크로스셀 문구·종료턴 방향답 우선 (spec: 2026-07-13-conversion-moment)
 //   2026-07-13-conversion-c2  — [RECO:] 마커 방출 (인챗 추천 카드·결과 추천 인프라)
 //   2026-07-13-conversion-c3  — clarifier·연장 제안 ([RECO:tarot:clarifier]/[RECO:extend] + 더보고싶다 3갈래)
-export const PROMPT_VERSION = "2026-07-13-conversion-c3";
+//   2026-07-17-persona-v3     — 당기는 별콩이: 공통 코어 분리 + 소신 화법·관찰형 훅·마무리 3택·회피구 0회
+//                               + 턴 신호 동적 강제 + 호칭 (spec: 2026-07-17-w4-persona-v3, 커밋 1efd649·eee051f)
+export const PROMPT_VERSION = "2026-07-17-persona-v3";
