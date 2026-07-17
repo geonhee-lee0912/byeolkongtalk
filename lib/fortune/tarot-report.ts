@@ -45,8 +45,10 @@ export function parseTarotReportJson(raw: string): TarotReportAI | null {
 
   if (!isNonEmptyString(o.headline)) return null;
   if (!isNonEmptyString(o.summary)) return null;
-  if (!isNonEmptyString(o.advice)) return null;
   if (!Array.isArray(o.cards) || o.cards.length === 0) return null;
+  // advice 는 모델이 종종 통째로 누락한다(연애운 재현율 ~37%). 카드·summary 가 다 있는
+  // 완결 리포트를 이 필드 하나 때문에 버리면 유저는 "생성 실패"+환불만 받는다.
+  // 없거나 비면 빈 문자열로 폴백하고, UI 는 조언 박스를 숨긴다(TarotReportView).
 
   const cards: TarotReportCardAI[] = [];
   for (const c of o.cards) {
@@ -67,7 +69,7 @@ export function parseTarotReportJson(raw: string): TarotReportAI | null {
     headline: o.headline.trim(),
     cards,
     summary: o.summary.trim(),
-    advice: o.advice.trim(),
+    advice: isNonEmptyString(o.advice) ? o.advice.trim() : "",
   };
 }
 

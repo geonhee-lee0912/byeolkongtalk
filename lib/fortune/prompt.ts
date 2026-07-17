@@ -114,6 +114,7 @@ function tarotGuide(opts: { domainLabel: string; oneCard?: boolean }): string {
   "advice": "구체적인 조언"
 }`,
     "cards 배열 길이와 순서는 주입된 '뽑힌 타로 카드'와 정확히 일치시켜라.",
+    "필수: headline, cards, summary, advice 네 필드를 모두 포함해라. 특히 advice(구체적 조언) 필드는 자주 빠뜨리기 쉬우니 절대 생략하지 말고 마지막에 반드시 넣어라.",
     "JSON 문자열 안에서 큰따옴표는 escape(\\\")해라. 문단 구분이 필요하면 실제 줄바꿈(엔터)을 넣지 말고 반드시 \\n 두 글자로 써라.",
   ].join("\n");
 }

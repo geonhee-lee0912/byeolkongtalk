@@ -58,15 +58,17 @@ export default function TarotReportView({
         {report.headline}
       </h1>
 
-      {/* 별콩이의 조언 — 헤드라인 바로 아래로 이동 */}
-      <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
-        <div className="text-[12px] font-bold text-gold-soft mb-1.5">
-          별콩이의 조언
+      {/* 별콩이의 조언 — 헤드라인 바로 아래로 이동. advice 누락 시(파서가 ""로 폴백) 박스 숨김 */}
+      {report.advice && (
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+          <div className="text-[12px] font-bold text-gold-soft mb-1.5">
+            별콩이의 조언
+          </div>
+          <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">
+            {report.advice}
+          </p>
         </div>
-        <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">
-          {report.advice}
-        </p>
-      </div>
+      )}
 
       {/* 카드별 해석 + 종합 해석을 하나의 박스로 통합 */}
       <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col gap-6">

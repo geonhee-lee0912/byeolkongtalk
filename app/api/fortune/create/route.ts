@@ -385,7 +385,7 @@ export async function POST(req: NextRequest) {
 
   // 생성 실패 시: 빈 리딩 삭제 + 환불. (result/목록은 "메시지 없음→생성 중", "리딩 없음→실패"로 판단)
   // 리딩이 사라지므로 환불 사실을 fortune_refund_notices 에 남긴다 — /fortune 상단 카드로 노출.
-  const failGeneration = async (err: unknown, stage: string) => {
+  const failGeneration = async (err: unknown, stage: string, extra?: Record<string, unknown>) => {
     await supabase.from("readings").delete().eq("id", readingId);
     await refundOnFailure();
     if (effectiveCost > 0) {
@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
         refunded_stars: effectiveCost,
       });
     }
-    await logError(err, { route: "/api/fortune/create", userId, extra: { stage, type } });
+    await logError(err, { route: "/api/fortune/create", userId, extra: { stage, type, ...extra } });
   };
 
   after(async () => {
@@ -492,7 +492,11 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai) {
-        await failGeneration(new Error("tarot report parse failed"), "tarot_parse");
+        // 파싱 실패 원인 진단용 — 원문 꼬리(마지막 필드/절단 여부가 드러남) + 길이.
+        await failGeneration(new Error("tarot report parse failed"), "tarot_parse", {
+          rawLen: report.length,
+          rawTail: report.slice(-240),
+        });
         return;
       }
       storedContent = serializeTarotReport(buildTarotReport(ai));

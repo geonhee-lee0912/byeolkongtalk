@@ -4,34 +4,42 @@
 // compat/tarot)가 이 복구 단계를 공유해, 리포트 종류가 늘어도 같은 버그가 재발하지 않게 한다.
 
 /**
- * 문자열 리터럴 안의 raw 제어문자(개행·탭)를 escape 시퀀스로 바꾼다.
- * 문자열 밖(구조)의 개행/공백은 건드리지 않으므로 정상 JSON 은 그대로 통과한다.
+ * 문자열 리터럴 안의 raw 제어문자 + escape 안 된 내부 큰따옴표를 한 번에 복구한다.
+ * 모델이 조언 등에 대화 인용("요즘 어때?")을 escape 없이 넣으면 문자열이 조기 종료돼
+ * JSON.parse 가 깨진다("Expected ',' or '}'..."). 내부 따옴표 판별은 look-ahead:
+ * 닫는 따옴표라면 그 뒤 첫 non-ws 가 구조 토큰(: , } ])이어야 한다 — 아니면 내용 따옴표로
+ * 보고 escape 한다. 정상 JSON 은 그대로 통과(내부 따옴표가 없으므로 분기 안 탐).
  */
-export function escapeRawControlCharsInStrings(json: string): string {
+export function recoverModelJson(json: string): string {
   let out = "";
   let inString = false;
   let escaped = false;
-  for (const ch of json) {
-    if (escaped) {
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (escaped) { out += ch; escaped = false; continue; }
+    if (ch === "\\") { out += ch; escaped = true; continue; }
+    if (!inString) {
+      if (ch === '"') { inString = true; }
       out += ch;
-      escaped = false;
       continue;
     }
-    if (ch === "\\") {
-      out += ch;
-      escaped = true;
-      continue;
-    }
+    // inString
     if (ch === '"') {
-      inString = !inString;
-      out += ch;
+      let k = i + 1;
+      while (k < json.length && (json[k] === " " || json[k] === "\n" || json[k] === "\r" || json[k] === "\t")) k++;
+      const nxt = json[k];
+      if (nxt === undefined || nxt === ":" || nxt === "," || nxt === "}" || nxt === "]") {
+        out += '"';
+        inString = false;
+      } else {
+        out += '\\"'; // 내용 따옴표 — escape 하고 문자열 계속
+      }
       continue;
     }
-    if (inString) {
-      if (ch === "\n") { out += "\\n"; continue; }
-      if (ch === "\r") { out += "\\r"; continue; }
-      if (ch === "\t") { out += "\\t"; continue; }
-    }
+    if (ch === "\n") { out += "\\n"; continue; }
+    if (ch === "\r") { out += "\\r"; continue; }
+    if (ch === "\t") { out += "\\t"; continue; }
+    if (ch.charCodeAt(0) < 0x20) { out += "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0"); continue; }
     out += ch;
   }
   return out;
@@ -39,7 +47,7 @@ export function escapeRawControlCharsInStrings(json: string): string {
 
 /**
  * AI 원문에서 첫 '{' ~ 마지막 '}' 를 잘라 파싱한다(코드펜스/잡텍스트 허용).
- * 1차 실패 시 문자열 안 raw 제어문자를 복구해 재파싱. 그래도 실패면 null.
+ * 1차 실패 시 문자열 안 raw 제어문자·내부 따옴표를 복구해 재파싱. 그래도 실패면 null.
  * 반환은 검증 전 raw 객체 — 필드 검증은 각 파서가 담당한다.
  */
 export function parseReportJson(raw: string): Record<string, unknown> | null {
@@ -54,7 +62,7 @@ export function parseReportJson(raw: string): Record<string, unknown> | null {
     parsed = JSON.parse(slice);
   } catch {
     try {
-      parsed = JSON.parse(escapeRawControlCharsInStrings(slice));
+      parsed = JSON.parse(recoverModelJson(slice));
     } catch {
       return null;
     }
