@@ -1,7 +1,5 @@
 // 사주 4종 상품 정의 — /select UI + 프롬프트 분기 + readings 검증이 공유하는 단일 소스.
 
-import type { EmotionTag } from "@/lib/emotions";
-
 export type SajuProduct = "today_letters" | "nature" | "choice" | "good_days";
 
 export const SAJU_PRODUCTS: SajuProduct[] = [
@@ -47,24 +45,6 @@ export const SAJU_PRODUCT_INFO: Record<SajuProduct, SajuProductInfo> = {
     flow: "팔자 해석 · 좋은 날 · 피할 날",
   },
 };
-
-/**
- * 선택지 비교 노출 대상 감정 분류 (선택/진로).
- * W1 태그 v3 전환으로 목록을 새 태그로 갱신 (사주 상담 자체는 이후 사이클에서 진열대 재편 예정).
- */
-const CHOICE_ELIGIBLE_EMOTIONS: EmotionTag[] = [
-  "어떤 선택이 맞을지 모르겠어",
-  "진로·방향이 고민이야",
-];
-
-export function isChoiceEligible(emotion: EmotionTag | string | null | undefined): boolean {
-  return !!emotion && (CHOICE_ELIGIBLE_EMOTIONS as string[]).includes(emotion);
-}
-
-/** 주어진 감정에서 노출할 상품 목록 (choice 게이팅 적용). */
-export function getSajuProducts(emotion: EmotionTag | string | null | undefined): SajuProduct[] {
-  return SAJU_PRODUCTS.filter((p) => p !== "choice" || isChoiceEligible(emotion));
-}
 
 export function isSajuProduct(v: unknown): v is SajuProduct {
   return typeof v === "string" && (SAJU_PRODUCTS as string[]).includes(v);

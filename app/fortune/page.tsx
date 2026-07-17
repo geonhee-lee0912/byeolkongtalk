@@ -14,27 +14,14 @@ interface DailyStatus {
   nextCost: number;
 }
 
-const FORTUNE_TABS = [
-  { key: "saju", label: "사주" },
-  { key: "tarot", label: "타로" },
-] as const;
-
-type FortuneTab = (typeof FORTUNE_TABS)[number]["key"];
-
 export default function FortunePage() {
-  const [tab, setTab] = useState<FortuneTab>("saju");
   const [daily, setDaily] = useState<DailyStatus | null>(null);
-  const [tarotDaily, setTarotDaily] = useState<DailyStatus | null>(null);
-  const items = FORTUNE_LIST.filter((f) => f.base === tab);
+  const items = FORTUNE_LIST;
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setDaily(d))
-      .catch(() => {});
-    void fetch("/api/fortune/tarot-daily-status", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setTarotDaily(d))
       .catch(() => {});
   }, []);
 
@@ -78,30 +65,9 @@ export default function FortunePage() {
         </div>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="flex gap-1 bg-lilac-soft/40 rounded-full p-1">
-          {FORTUNE_TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={[
-                "flex-1 py-2 rounded-full text-[14px] font-bold transition",
-                tab === t.key
-                  ? "bg-white text-eye-purple shadow-sm"
-                  : "text-text-light/70",
-              ].join(" ")}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
-          const freeStatus =
-            f.type === "daily" ? daily : f.type === "tarot_daily" ? tarotDaily : null;
+          const freeStatus = f.type === "daily" ? daily : null;
           const inner = (
             <div
               className={[

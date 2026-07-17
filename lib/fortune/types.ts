@@ -11,7 +11,8 @@ export type FortuneType =
   | "tarot_career"
   | "tarot_relation"
   | "compat"
-  | "compat_social";
+  | "compat_social"
+  | "good_days";
 
 export type TarotFortuneType =
   | "tarot_daily"
@@ -79,6 +80,8 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     href: "/fortune/saju_full",
     active: true,
   },
+  // 진열대(FORTUNE_LIST)에서는 제거됨(W1 사주 진열대 재편) — 과거 reading 렌더 + fortuneTypeFromTag
+  // 하위호환을 위해 config는 유지. active: false → 직링크 진입 시 /fortune/tarot/[type] 이 notFound() 처리.
   tarot_daily: {
     type: "tarot_daily",
     label: "오늘의 타로",
@@ -90,7 +93,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     paidCost: 5,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_daily`,
     href: "/fortune/tarot/tarot_daily",
-    active: true,
+    active: false,
   },
   tarot_love: {
     type: "tarot_love",
@@ -101,7 +104,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_love`,
     href: "/fortune/tarot/tarot_love",
-    active: true,
+    active: false,
   },
   tarot_money: {
     type: "tarot_money",
@@ -112,7 +115,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_money`,
     href: "/fortune/tarot/tarot_money",
-    active: true,
+    active: false,
   },
   tarot_career: {
     type: "tarot_career",
@@ -123,7 +126,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_career`,
     href: "/fortune/tarot/tarot_career",
-    active: true,
+    active: false,
   },
   tarot_relation: {
     type: "tarot_relation",
@@ -134,7 +137,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 20,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}tarot_relation`,
     href: "/fortune/tarot/tarot_relation",
-    active: true,
+    active: false,
   },
   compat: {
     type: "compat",
@@ -142,7 +145,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💞",
     tagline: "두 사람 사주로 연애·결혼 궁합을 깊이 봐줄게",
     base: "saju",
-    cost: 30,
+    cost: 40,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat`,
     href: "/fortune/compat",
     active: true,
@@ -153,24 +156,31 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🤝",
     tagline: "친구·가족·동료, 두 사람 사주로 관계 케미를",
     base: "saju",
-    cost: 30,
+    cost: 35,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat_social`,
     href: "/fortune/compat-social",
+    active: true,
+  },
+  good_days: {
+    type: "good_days",
+    label: "좋은 날 리포트",
+    emoji: "📅",
+    tagline: "앞으로 한 달, 너에게 좋은 날과 조심할 날",
+    base: "saju",
+    cost: 35,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}good_days`,
+    href: "/fortune/good_days",
     active: true,
   },
 };
 
 export const FORTUNE_LIST: FortuneConfig[] = [
-  FORTUNE_CONFIG.daily,
-  FORTUNE_CONFIG.monthly,
-  FORTUNE_CONFIG.saju_full,
-  FORTUNE_CONFIG.tarot_daily,
-  FORTUNE_CONFIG.tarot_love,
-  FORTUNE_CONFIG.tarot_money,
-  FORTUNE_CONFIG.tarot_career,
-  FORTUNE_CONFIG.tarot_relation,
   FORTUNE_CONFIG.compat,
   FORTUNE_CONFIG.compat_social,
+  FORTUNE_CONFIG.saju_full,
+  FORTUNE_CONFIG.monthly,
+  FORTUNE_CONFIG.good_days,
+  FORTUNE_CONFIG.daily,
 ];
 
 /** 운세 종류별 카드 그라데이션 (홈 EMOTION_GRADIENTS 팔레트 재사용) */
@@ -185,6 +195,7 @@ export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
   tarot_money: "linear-gradient(135deg, #FFF8DD 0%, #FBE89E 100%)",
   tarot_career: "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
   tarot_relation: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
+  good_days: "linear-gradient(135deg, #FBEAF0 0%, #F4C0D1 100%)",
 };
 
 /** 운세 종류별 해시태그 (홈 카드 #태그 칩 스타일) */
@@ -199,6 +210,7 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
   tarot_money: ["금전", "기회", "재물운"],
   tarot_career: ["직장", "진로", "이직"],
   tarot_relation: ["인간관계", "거리", "소통"],
+  good_days: ["좋은날", "택일", "한달흐름"],
 };
 
 /**
@@ -217,6 +229,7 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   tarot_relation: 5200,
   compat: 7800,
   compat_social: 7800,
+  good_days: 6500,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */

@@ -278,8 +278,11 @@ export async function POST(req: NextRequest) {
     }
     saju = calcSaju(sajuInput);
     // 오늘/이번 달 들어온 두 글자(일진·월건) — daily/monthly 리포트에서 기운 설명에 사용
+    // good_days 는 향후 30일 일진(dailyLuck) 도 채워서 프롬프트에 날짜 목록을 주입한다.
     if (cfg.type === "daily" || cfg.type === "monthly") {
       saju.temporal = calcTemporalLuck(new Date(), sajuInput.year);
+    } else if (cfg.type === "good_days") {
+      saju.temporal = calcTemporalLuck(new Date(), sajuInput.year, { includeMonth: true });
     }
     sajuDataToStore = saju;
   }
