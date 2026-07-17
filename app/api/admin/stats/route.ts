@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionList } from "@/lib/admin";
-import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
+import { startOfAdminTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET() {
   if (gate instanceof NextResponse) return gate;
 
   const supa = getServiceSupabase();
-  const today = startOfTodayKstIso();
+  const today = startOfAdminTodayKstIso(); // 오전 10시 롤오버 (밤샘 유입 짤림 방지)
   const week = daysAgoKstIso(6);
   // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩이 지표 오염 방지
   const excl = adminExclusionList();

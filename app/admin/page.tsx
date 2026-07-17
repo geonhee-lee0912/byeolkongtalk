@@ -1,13 +1,13 @@
 // app/admin/page.tsx — 대시보드.
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
-import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
+import { startOfAdminTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
 async function loadStats() {
   const supa = getServiceSupabase();
-  const today = startOfTodayKstIso();
+  const today = startOfAdminTodayKstIso(); // 오전 10시 롤오버 (밤샘 유입 짤림 방지)
   const week = daysAgoKstIso(6);
   // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩 지표 오염 방지
   const excl = adminExclusionList();
@@ -53,7 +53,7 @@ export default async function AdminDashboard() {
     <div className="space-y-8">
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
-        <h2 className="text-sm text-white/60 mb-3">오늘</h2>
+        <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <Stat label="신규 가입" value={s.today.newUsers} />
           <Stat label="리딩" value={s.today.readings} />
