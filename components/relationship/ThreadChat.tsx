@@ -291,23 +291,22 @@ export default function ThreadChat({
       <div className="shrink-0 border-t border-lilac-mid/30 bg-white">
         <div className="max-w-md mx-auto px-5 py-3">
           {capReachedLocal ? (
-            <div className="flex flex-col items-center gap-2 py-1">
+            <div className="flex flex-col items-center gap-1.5 py-1">
               <button
                 type="button"
                 onClick={() => void handleExtend()}
                 disabled={extending}
-                className="w-full py-3 rounded-xl bg-gold text-night font-bold text-[13.5px] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-full bg-lilac-deep text-white font-bold text-[12.5px] px-4 py-2.5 active:scale-[0.97] transition disabled:opacity-60"
               >
+                <span aria-hidden>💬</span>
                 {extending
                   ? "연장하는 중…"
-                  : `오늘 대화는 여기까지 · ${EXTEND_COST}별로 ${EXTEND_TURNS}번 더 이어가기`}
+                  : `오늘 대화 추가 구매 · ⭐${EXTEND_COST}로 ${EXTEND_TURNS}번 더`}
               </button>
               <p className="text-[11px] text-text-light text-center">
-                내일 자정에 다시 채워져
+                오늘은 여기까지 · 내일 자정에 다시 채워져
               </p>
-              {extendError && (
-                <p className="text-[11px] text-red-500">{extendError}</p>
-              )}
+              {extendError && <p className="text-[11px] text-red-500">{extendError}</p>}
             </div>
           ) : canSend ? (
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
