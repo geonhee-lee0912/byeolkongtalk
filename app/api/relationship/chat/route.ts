@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   const { data: rel } = await supabase
     .from("relationships")
     .select(
-      "id, user_id, label, status, self_profile_id, partner_profile_id, thread_reading_id, rolling_summary, summarized_msg_count, memo"
+      "id, user_id, label, status, self_profile_id, partner_profile_id, thread_reading_id, rolling_summary, summarized_msg_count, memo, last_visited_at"
     )
     .eq("id", body.relationshipId)
     .maybeSingle();
@@ -134,11 +134,22 @@ export async function POST(request: NextRequest) {
     .eq("id", userId)
     .maybeSingle();
 
+  // 복귀 안부 — pending 처방이 있고 마지막 방문에서 6h+ 지났으면 이번 턴 별콩이가 먼저 안부 (T17)
+  const CHECKIN_GAP_MS = 6 * 60 * 60 * 1000;
+  const memoNow = (rel.memo ?? {}) as RelationshipMemo;
+  const lastVisit = rel.last_visited_at
+    ? new Date(rel.last_visited_at as string).getTime()
+    : 0;
+  const checkinPrompt =
+    memoNow.pending_checkin && Date.now() - lastVisit > CHECKIN_GAP_MS
+      ? memoNow.pending_checkin.text
+      : null;
+
   const systemMessage = buildRelationshipSystemMessage({
     fileBlock,
     nickname: (userRow?.nickname as string | null) ?? null,
     isFirstEver,
-    checkinPrompt: null /* Task 17에서 pending_checkin 주입 */,
+    checkinPrompt,
     dailyClose,
   });
 
@@ -187,9 +198,22 @@ export async function POST(request: NextRequest) {
           },
         ]);
 
-        // last_visited_at 갱신 + [CHECKIN:] 파싱 → 다음 방문 안부 소재로 memo 에 저장
-        const checkin = assistantText.match(CHECKIN_RE);
+        // last_visited_at 갱신 + 복귀 안부 소진 + [CHECKIN:] 신규 파싱
         const memo = (rel.memo ?? {}) as RelationshipMemo;
+        // 이번 턴이 복귀 안부였으면(주입됨) pending 소진 → prescriptions 에 resolved 로 이동
+        if (checkinPrompt && memo.pending_checkin) {
+          memo.prescriptions = [
+            ...(memo.prescriptions ?? []),
+            {
+              text: memo.pending_checkin.text,
+              created_at: memo.pending_checkin.created_at,
+              resolved_at: new Date().toISOString(),
+            },
+          ].slice(-30);
+          memo.pending_checkin = null;
+        }
+        // 이번 응답에 새 [CHECKIN:] 이 있으면 다음 방문 안부 소재로 세팅 (소진 뒤에 세팅)
+        const checkin = assistantText.match(CHECKIN_RE);
         if (checkin) {
           memo.pending_checkin = {
             text: checkin[1].trim(),
