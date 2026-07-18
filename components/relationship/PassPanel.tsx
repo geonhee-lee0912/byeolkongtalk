@@ -56,7 +56,7 @@ export default function PassPanel({
 
       <div className="rounded-xl border border-gold/50 bg-gold-soft/20 p-3">
         <p className="text-[11.5px] text-eye-purple leading-relaxed">
-          패스가 있는 동안 하루 최대 <b>{DAILY_TURN_CAP}번</b> 대화 · 다 쓰면{" "}
+          패스가 있는 동안 하루 대략 <b>{DAILY_TURN_CAP}번</b> 대화 · 다 쓰면{" "}
           <b>{EXTEND_COST}별</b>마다 <b>{EXTEND_TURNS}번</b>씩 횟수 제한 없이
           연장 · 매일 자정 초기화
         </p>
