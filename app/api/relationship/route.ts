@@ -100,7 +100,14 @@ export async function POST(request: NextRequest) {
       birth_date: v.birthDate, birth_time: v.birthTime, is_lunar_input: v.isLunarInput,
       is_leap_month: v.isLeapMonth, gender: v.gender, is_primary: false,
     }).select("id").single();
-    if (pErr || !pRow) return NextResponse.json({ error: "partner_profile_failed" }, { status: 500 });
+    if (pErr || !pRow) {
+      await logError(pErr ?? new Error("partner profile insert null"), {
+        route: "/api/relationship",
+        userId,
+        extra: { stage: "partner_profile" },
+      });
+      return NextResponse.json({ error: "partner_profile_failed", detail: pErr?.message }, { status: 500 });
+    }
     partnerProfileId = pRow.id;
   }
 
@@ -112,8 +119,8 @@ export async function POST(request: NextRequest) {
   if (rErr || !rel) {
     // 이번 요청에서 만든 partner 프로필만 롤백 (orphan 방지)
     if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
-    await logError(rErr ?? new Error("relationship insert null"), { route: "/api/relationship", userId });
-    return NextResponse.json({ error: "relationship_failed" }, { status: 500 });
+    await logError(rErr ?? new Error("relationship insert null"), { route: "/api/relationship", userId, extra: { stage: "relationship_insert" } });
+    return NextResponse.json({ error: "relationship_failed", detail: rErr?.message }, { status: 500 });
   }
 
   const { data: thread, error: tErr } = await supabase.from("readings").insert({
@@ -123,7 +130,12 @@ export async function POST(request: NextRequest) {
   if (tErr || !thread) {
     await supabase.from("relationships").delete().eq("id", rel.id);
     if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
-    return NextResponse.json({ error: "thread_failed" }, { status: 500 });
+    await logError(tErr ?? new Error("thread reading insert null"), {
+      route: "/api/relationship",
+      userId,
+      extra: { stage: "thread_reading" },
+    });
+    return NextResponse.json({ error: "thread_failed", detail: tErr?.message }, { status: 500 });
   }
   await supabase.from("relationships").update({ thread_reading_id: thread.id }).eq("id", rel.id);
 

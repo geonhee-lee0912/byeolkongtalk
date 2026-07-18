@@ -94,7 +94,12 @@ export default function RegisterOnboarding({
         return;
       }
       if (!res.ok) {
-        setError("등록에 실패했어. 잠시 후 다시 시도해줘.");
+        const data = await res
+          .json()
+          .catch(() => ({}) as Record<string, unknown>);
+        const code = (data?.error as string) ?? String(res.status);
+        console.error("[relationship register] 실패:", res.status, data);
+        setError(`등록에 실패했어 (${code}). 잠시 후 다시 시도해줘.`);
         return;
       }
       onRegistered();
