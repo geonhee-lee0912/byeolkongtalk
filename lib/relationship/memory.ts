@@ -19,7 +19,10 @@ export interface ThreadSplit {
  * older = 최근창 밖. 미요약 older(older.slice(summarizedCount))가 SUMMARY_TRIGGER 이상이면 요약.
  */
 export function splitThreadMessages(all: ThreadMsg[], summarizedCount: number): ThreadSplit {
-  const recentStart = Math.max(0, all.length - RECENT_MSGS);
+  let recentStart = Math.max(0, all.length - RECENT_MSGS);
+  // 최근 창은 반드시 user 발화로 시작해야 함 (Anthropic: 첫 메시지 role=user).
+  // 짝(user,assistant) 경계에서 잘려 assistant로 시작하면 한 칸 밀어 user부터.
+  if (all[recentStart]?.role === "assistant") recentStart += 1;
   const apiMessages = all.slice(recentStart);
   const older = all.slice(0, recentStart);
   const alreadic = Math.min(summarizedCount, older.length);
