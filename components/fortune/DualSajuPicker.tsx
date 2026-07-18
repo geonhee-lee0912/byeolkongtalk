@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
+import NewPersonModal from "@/components/fortune/NewPersonModal";
 
 interface PickerProfile {
   id: string;
@@ -27,6 +27,8 @@ function birthShort(p: PickerProfile): string {
     (p.birthTime ? "" : " · 시간 모름")
   );
 }
+
+const LIST_PAGE_SIZE = 5;
 
 export interface DualSajuPickerProps {
   onConfirm: (
@@ -54,9 +56,8 @@ export default function DualSajuPicker({
   const [slotA, setSlotA] = useState<string | null>(null);
   const [slotB, setSlotB] = useState<string | null>(null);
   const [active, setActive] = useState<"A" | "B">("A");
-  const [adding, setAdding] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(0);
+  const [showNewPerson, setShowNewPerson] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -80,7 +81,6 @@ export default function DualSajuPicker({
     p.isPrimary ? "나" : RELATION_LABEL[p.relationType] ?? "지인";
 
   const assign = (id: string) => {
-    setErr(null);
     // 다른 슬롯에 이미 들어간 프로필이면 무시 (중복 방지)
     if (active === "A") {
       if (slotB === id) return;
@@ -92,35 +92,14 @@ export default function DualSajuPicker({
     }
   };
 
-  const handleAddSubmit = async (payload: ProfilePayload) => {
-    setSaving(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        setErr("저장을 못 했어. 잠시 후 다시 시도해줄래?");
-        setSaving(false);
-        return;
-      }
-      const data = await res.json();
-      const created = data.profile as PickerProfile;
-      setProfiles((prev) => [...prev, created]);
-      // 방금 만든 사람을 현재 슬롯에 배정
-      if (active === "A") {
-        setSlotA(created.id);
-        if (!slotB) setActive("B");
-      } else {
-        setSlotB(created.id);
-      }
-      setAdding(false);
-    } catch {
-      setErr("연결이 잠시 흔들렸어. 다시 시도해줄래?");
-    } finally {
-      setSaving(false);
+  // 새 사람 모달 저장 성공 — 목록에 추가하고 현재 활성 슬롯에 배정
+  const handleNewPersonSaved = (profile: PickerProfile) => {
+    setProfiles((prev) => [...prev, profile]);
+    if (active === "A") {
+      setSlotA(profile.id);
+      if (!slotB) setActive("B");
+    } else {
+      setSlotB(profile.id);
     }
   };
 
@@ -136,6 +115,13 @@ export default function DualSajuPicker({
 
   const canConfirm = !!slotA && !!slotB && slotA !== slotB && !loading;
 
+  const totalListPages = Math.max(1, Math.ceil(profiles.length / LIST_PAGE_SIZE));
+  const safeListPage = Math.min(listPage, totalListPages - 1);
+  const pagedProfiles = profiles.slice(
+    safeListPage * LIST_PAGE_SIZE,
+    safeListPage * LIST_PAGE_SIZE + LIST_PAGE_SIZE
+  );
+
   return (
     <div className="w-full max-w-md mx-auto px-5">
       {/* 두 슬롯 */}
@@ -147,10 +133,7 @@ export default function DualSajuPicker({
           return (
             <button
               key={slot}
-              onClick={() => {
-                setActive(slot);
-                setAdding(false);
-              }}
+              onClick={() => setActive(slot)}
               className={`rounded-2xl border px-4 py-5 text-center transition ${
                 isActive
                   ? "border-lilac-deep bg-lilac-soft/40"
@@ -168,13 +151,22 @@ export default function DualSajuPicker({
         })}
       </div>
 
-      <p className="text-[12px] font-bold text-eye-purple mb-2">
-        {active === "A" ? "첫 번째 사람" : "두 번째 사람"} 고르기
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[12px] font-bold text-eye-purple">
+          {active === "A" ? "첫 번째 사람" : "두 번째 사람"} 고르기
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowNewPerson(true)}
+          className="text-[11px] font-bold text-lilac-deep"
+        >
+          + 새 사람 입력
+        </button>
+      </div>
 
       {/* 프로필 목록 */}
       <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20 mb-3">
-        {profiles.map((p) => {
+        {pagedProfiles.map((p) => {
           const usedInOther =
             (active === "A" && slotB === p.id) || (active === "B" && slotA === p.id);
           const isPicked =
@@ -207,35 +199,44 @@ export default function DualSajuPicker({
         })}
       </div>
 
-      {/* 새 사람 입력 */}
-      {adding ? (
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 py-4 mb-3">
-          <ProfileForm
-            mode="acquaintance"
-            initialRelation={newPersonRelation}
-            submitLabel="저장하고 선택"
-            loading={saving}
-            onSubmit={handleAddSubmit}
-          />
-          <div className="px-5">
+      {totalListPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <button
+            onClick={() => setListPage((n) => Math.max(0, n - 1))}
+            disabled={safeListPage === 0}
+            aria-label="이전"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          {Array.from({ length: totalListPages }).map((_, i) => (
             <button
-              onClick={() => setAdding(false)}
-              className="w-full mt-2 py-2 text-[12px] text-text-light/70"
+              key={i}
+              onClick={() => setListPage(i)}
+              aria-label={`${i + 1}페이지`}
+              className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                i === safeListPage
+                  ? "bg-lilac-deep text-white"
+                  : "text-text-light/70 hover:bg-lilac-soft/50"
+              }`}
             >
-              취소
+              {i + 1}
             </button>
-          </div>
+          ))}
+          <button
+            onClick={() => setListPage((n) => Math.min(totalListPages - 1, n + 1))}
+            disabled={safeListPage === totalListPages - 1}
+            aria-label="다음"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="w-full py-3 mb-3 rounded-xl border border-dashed border-lilac-deep/40 text-lilac-deep font-bold text-[13px]"
-        >
-          + 새 사람 입력
-        </button>
       )}
-
-      {err && <p className="text-[12px] text-red-500 text-center mb-3">{err}</p>}
 
       <button
         disabled={!canConfirm}
@@ -252,6 +253,14 @@ export default function DualSajuPicker({
       >
         {confirmLabel ?? "궁합 보기"}
       </button>
+
+      {showNewPerson && (
+        <NewPersonModal
+          relation={newPersonRelation}
+          onSaved={(profile) => handleNewPersonSaved(profile as PickerProfile)}
+          onClose={() => setShowNewPerson(false)}
+        />
+      )}
     </div>
   );
 }
