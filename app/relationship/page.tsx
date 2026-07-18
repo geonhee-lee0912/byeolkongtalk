@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
 import PassPanel from "@/components/relationship/PassPanel";
+import PassSheet from "@/components/relationship/PassSheet";
+import RelationshipEditModal from "@/components/relationship/RelationshipEditModal";
+import SkillChipRow from "@/components/relationship/SkillChipRow";
 import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
 import {
   DAILY_TURN_CAP,
@@ -79,6 +82,8 @@ export default function RelationshipPage() {
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [messages, setMessages] = useState<ThreadChatMsg[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPassSheet, setShowPassSheet] = useState(false);
 
   const load = async () => {
     const [me, rel] = await Promise.all([
@@ -126,24 +131,56 @@ export default function RelationshipPage() {
     const showPartnerBanner = relationship.partnerProfileId === null;
 
     const headerCard = (
-      <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-5 shadow-lg shadow-lilac-deep/30 text-center">
-        <p className="text-[12px] text-white/70 mb-1">우리 사이</p>
-        <h1 className="text-[22px] font-bold text-white">{relationship.label}</h1>
-        <p className="mt-2 inline-block text-[12px] font-bold text-gold-soft bg-white/10 rounded-full px-3 py-1">
-          {RELATIONSHIP_STATUS_LABELS[relationship.status]}
-        </p>
+      <div className="bg-white rounded-2xl px-4 py-3 border border-lilac-soft shadow-sm flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10.5px] text-text-light">우리 사이</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <h1 className="text-[16px] font-bold text-eye-purple truncate">
+              {relationship.label}
+            </h1>
+            <span className="shrink-0 text-[10.5px] font-bold text-lilac-deep bg-lilac-soft/60 rounded-full px-2 py-0.5">
+              {RELATIONSHIP_STATUS_LABELS[relationship.status]}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowEditModal(true)}
+          aria-label="관계 정보 수정"
+          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-lilac-deep hover:bg-lilac-soft/40 active:scale-95 transition"
+        >
+          <span aria-hidden className="text-[15px]">
+            ✏️
+          </span>
+        </button>
       </div>
     );
 
     const partnerBanner = showPartnerBanner && (
-      <div className="mt-3 flex items-center gap-2 rounded-xl border border-gold/50 bg-gold-soft/20 px-3.5 py-2.5">
+      <button
+        type="button"
+        onClick={() => setShowEditModal(true)}
+        className="mt-3 w-full flex items-center gap-2 rounded-xl border border-gold/50 bg-gold-soft/20 px-3.5 py-2.5 text-left hover:bg-gold-soft/30 active:scale-[0.99] transition"
+      >
         <span className="text-[13px] shrink-0" aria-hidden>
           💡
         </span>
         <p className="text-[11.5px] text-eye-purple leading-snug">
           상대 생년월일이 없어 — 궁합 볼 때 필요해
         </p>
-      </div>
+      </button>
+    );
+
+    const editModal = showEditModal && (
+      <RelationshipEditModal
+        currentLabel={relationship.label}
+        currentStatus={relationship.status}
+        onClose={() => setShowEditModal(false)}
+        onSaved={() => {
+          setShowEditModal(false);
+          void load();
+        }}
+      />
     );
 
     // S2 — 활성 패스 없음: 히스토리(있으면 읽기전용) + 패스 패널이 주 CTA
@@ -183,6 +220,7 @@ export default function RelationshipPage() {
               />
             </div>
           </div>
+          {editModal}
         </main>
       );
     }
@@ -195,13 +233,25 @@ export default function RelationshipPage() {
           height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
         }}
       >
-        <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3">
+        <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3 border-b border-lilac-soft">
           {headerCard}
+          <div className="mt-2.5">
+            <SkillChipRow />
+          </div>
           {partnerBanner}
           {daily && pass && (
             <div className="mt-3 flex items-center justify-between px-1 text-[11.5px] text-text-light">
               <span>오늘 {Math.max(0, daily.allowance - daily.used)}번 남음</span>
-              <span>{formatPassDDay(pass.expiresAt)}</span>
+              <div className="flex items-center gap-2.5">
+                <span>{formatPassDDay(pass.expiresAt)}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPassSheet(true)}
+                  className="text-[11px] font-bold text-lilac-deep underline underline-offset-2"
+                >
+                  패스 연장·구매
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -216,6 +266,18 @@ export default function RelationshipPage() {
           onExtended={() => void load()}
           onPassRequired={() => void load()}
         />
+
+        {editModal}
+        {showPassSheet && (
+          <PassSheet
+            relationshipId={relationship.id}
+            onClose={() => setShowPassSheet(false)}
+            onPurchased={() => {
+              setShowPassSheet(false);
+              void load();
+            }}
+          />
+        )}
       </main>
     );
   }
