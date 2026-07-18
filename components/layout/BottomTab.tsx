@@ -35,7 +35,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "fortune",
-    label: "사주톡",
+    label: "별콩 운세",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
     // mdi star-four-points-outline / star-four-points
@@ -45,7 +45,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "history",
-    label: "우리 사이",
+    label: "연애 상담",
     href: "/relationship",
     matchPrefixes: ["/relationship"],
     // mdi heart-outline / heart
