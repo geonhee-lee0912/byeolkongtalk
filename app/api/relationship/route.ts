@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         userId,
         extra: { stage: "partner_profile" },
       });
-      return NextResponse.json({ error: "partner_profile_failed", detail: pErr?.message }, { status: 500 });
+      return NextResponse.json({ error: "partner_profile_failed" }, { status: 500 });
     }
     partnerProfileId = pRow.id;
   }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     // 이번 요청에서 만든 partner 프로필만 롤백 (orphan 방지)
     if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
     await logError(rErr ?? new Error("relationship insert null"), { route: "/api/relationship", userId, extra: { stage: "relationship_insert" } });
-    return NextResponse.json({ error: "relationship_failed", detail: rErr?.message }, { status: 500 });
+    return NextResponse.json({ error: "relationship_failed" }, { status: 500 });
   }
 
   const { data: thread, error: tErr } = await supabase.from("readings").insert({
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       userId,
       extra: { stage: "thread_reading" },
     });
-    return NextResponse.json({ error: "thread_failed", detail: tErr?.message }, { status: 500 });
+    return NextResponse.json({ error: "thread_failed" }, { status: 500 });
   }
   await supabase.from("relationships").update({ thread_reading_id: thread.id }).eq("id", rel.id);
 
