@@ -1,6 +1,6 @@
 // qa/driver.ts — 시뮬레이터 이벤트를 chat 콜로 실행해 한 대화를 끝까지 진행.
 import { config } from "./config.ts";
-import { postChat } from "./client.ts";
+import { postChat, postRelChat, type ChatResponse } from "./client.ts";
 import { nextEvent } from "./simulator.ts";
 import { getBalance } from "./seed.ts";
 import { createReading } from "./readings.ts";
@@ -8,9 +8,16 @@ import { hasEndMarker } from "./evaluate/assertions.ts";
 import type { Case, Transcript, TurnRecord, SimEvent } from "./types.ts";
 
 function chatPath(c: Case): string {
-  return c.product.kind === "saju"
-    ? "/api/consultations/saju/chat"
-    : "/api/consultations/tarot/chat";
+  switch (c.product.kind) {
+    case "saju":
+      return "/api/consultations/saju/chat";
+    case "tarot":
+      return "/api/consultations/tarot/chat";
+    case "relationship":
+      return "/api/relationship/chat";
+    case "verdict":
+      return "/api/relationship/verdict/chat";
+  }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -32,9 +39,18 @@ async function sendOne(
   userText: string,
   eventType: SimEvent["type"]
 ): Promise<TurnRecord> {
-  const messages = [...toApiMessages(t), { role: "user" as const, content: userText }];
   await sleep(config.PACING_MS);
-  const res = await postChat(chatPath(c), { readingId: t.readingId, messages });
+  let res: ChatResponse;
+  if (c.product.kind === "relationship") {
+    // 스레드는 서버가 히스토리 관리 → 단발 message + relationshipId(= t.readingId 에 저장됨)
+    res = await postRelChat(chatPath(c), {
+      relationshipId: t.readingId,
+      message: userText,
+    });
+  } else {
+    const messages = [...toApiMessages(t), { role: "user" as const, content: userText }];
+    res = await postChat(chatPath(c), { readingId: t.readingId, messages });
+  }
   const turn: TurnRecord = {
     userText,
     assistantText: res.text,
@@ -44,6 +60,24 @@ async function sendOne(
   };
   t.turns.push(turn);
   return turn;
+}
+
+/** 이 턴으로 대화를 종료해야 하는지 판정 + finishReason 설정.
+ *  관계 스레드(패스게이트 402·소프트캡 X-Daily-Cap)와 [END] 수렴을 모두 처리. */
+function checkStop(t: Transcript, turn: TurnRecord): boolean {
+  if (turn.status === 402) {
+    t.finishReason = "pass_gated";
+    return true;
+  }
+  if (turn.headers["x-daily-cap"] === "reached") {
+    t.finishReason = "daily_cap";
+    return true;
+  }
+  if (hasEndMarker(turn.assistantText)) {
+    t.finishReason = "ended";
+    return true;
+  }
+  return false;
 }
 
 export async function runConversation(c: Case): Promise<Transcript> {
@@ -76,18 +110,23 @@ export async function runConversation(c: Case): Promise<Transcript> {
     finishReason: "max_turns",
   };
 
+  const maxCalls =
+    c.product.kind === "relationship"
+      ? config.REL_MAX_TURNS
+      : config.MAX_CHAT_CALLS_PER_CASE;
+
   try {
-    // 첫 턴: 별콩이 자동 풀이 (서비스 흐름 = reading.question을 첫 user 메시지로)
-    await sendOne(c, t, c.seedConcern, "say");
-    if (hasEndMarker(t.turns[0].assistantText)) {
-      t.finishReason = "ended";
+    // 첫 턴: 별콩이 자동 풀이 (서비스 흐름 = seedConcern 을 첫 user 메시지로)
+    const first = await sendOne(c, t, c.seedConcern, "say");
+    if (checkStop(t, first)) {
       t.endBalance = await getBalance();
       return t;
     }
 
-    // 자연 종료(stop/abandon/[END]) 또는 MAX_CHAT_CALLS_PER_CASE 까지 진행.
-    // (이전엔 maxTurns+4 소프트캡이 타로 멀티카드를 [END] 도달 전에 끊어 false fail 유발 → 제거)
-    while (t.turns.length < config.MAX_CHAT_CALLS_PER_CASE) {
+    // 자연 종료(stop/abandon/[END]/소프트캡/패스게이트) 또는 maxCalls 까지 진행.
+    // 관계 스레드는 [END] 가 없어 REL_MAX_TURNS·시뮬 stop·소프트캡으로 종료.
+    // (이전엔 maxTurns+4 소프트캡이 타로 멀티카드를 [END] 전에 끊어 false fail → 제거)
+    while (t.turns.length < maxCalls) {
       const ev = await nextEvent(c, t);
 
       if (ev.type === "stop") {
@@ -99,13 +138,13 @@ export async function runConversation(c: Case): Promise<Transcript> {
         break;
       }
       if (ev.type === "burst") {
-        let ended = false;
+        let stopped = false;
         for (const line of ev.texts) {
-          if (t.turns.length >= config.MAX_CHAT_CALLS_PER_CASE) break;
+          if (t.turns.length >= maxCalls) break;
           const turn = await sendOne(c, t, line, "burst");
-          if (hasEndMarker(turn.assistantText)) { ended = true; break; }
+          if (checkStop(t, turn)) { stopped = true; break; }
         }
-        if (ended) { t.finishReason = "ended"; break; }
+        if (stopped) break;
         continue;
       }
       // say / idle_resume
@@ -113,9 +152,11 @@ export async function runConversation(c: Case): Promise<Transcript> {
         await sleep(config.IDLE_SLEEP_MS);
       }
       const turn = await sendOne(c, t, ev.text, ev.type);
-      if (hasEndMarker(turn.assistantText)) { t.finishReason = "ended"; break; }
+      if (checkStop(t, turn)) break;
     }
-    if (t.turns.length >= config.MAX_CHAT_CALLS_PER_CASE) t.finishReason = "max_calls";
+    if (t.turns.length >= maxCalls && t.finishReason === "max_turns") {
+      t.finishReason = "max_calls";
+    }
   } catch (e) {
     t.finishReason = "error";
     t.error = (e as Error).message;

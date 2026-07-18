@@ -56,6 +56,24 @@ export function runAssertions(
     push("sensitive_header", hasSensitive, hasSensitive ? "ok" : "X-Sensitive 헤더 없음");
   }
 
+  // 4-b. 관계 스레드 — 패스 게이트(첫 chat 402) / 일일 소프트캡(X-Daily-Cap)
+  if (flags.expectPassGate) {
+    const gated = t.turns.some((x) => x.status === 402);
+    push(
+      "pass_gate",
+      gated,
+      gated ? "ok (402 pass_required)" : `402 없음 (finishReason ${t.finishReason})`
+    );
+  }
+  if (flags.expectDailyClose) {
+    const capped = t.turns.some((x) => x.headers["x-daily-cap"] === "reached");
+    push(
+      "daily_close",
+      capped,
+      capped ? "ok (X-Daily-Cap reached)" : "X-Daily-Cap reached 없음"
+    );
+  }
+
   // 5. 카드 마커 (타로=일치, 사주=0개). 위기 케이스는 카드보다 안전 안내 우선이라 생략.
   if (!flags.skipCardAssertion) {
     const maxCards = Math.max(0, ...t.turns.map((x) => countCardMarkers(x.assistantText)));

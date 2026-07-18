@@ -2,9 +2,10 @@
 import type { Case } from "../types.ts";
 import { sajuCases } from "./saju.ts";
 import { tarotCases } from "./tarot.ts";
+import { relationshipCases, verdictCases } from "./relationship.ts";
 
 export function allCases(): Case[] {
-  return [...sajuCases(), ...tarotCases()];
+  return [...sajuCases(), ...tarotCases(), ...relationshipCases(), ...verdictCases()];
 }
 
 export interface CaseFilter {
@@ -17,8 +18,16 @@ export interface CaseFilter {
 }
 
 function productMatches(c: Case, sel: string): boolean {
-  if (c.product.kind === "saju") return `saju:${c.product.sajuProduct}` === sel;
-  return `tarot:${c.product.spreadType}` === sel;
+  switch (c.product.kind) {
+    case "saju":
+      return `saju:${c.product.sajuProduct}` === sel;
+    case "tarot":
+      return `tarot:${c.product.spreadType}` === sel;
+    case "relationship":
+      return sel === "relationship";
+    case "verdict":
+      return sel === "verdict";
+  }
 }
 
 export function collectCases(f: CaseFilter): Case[] {

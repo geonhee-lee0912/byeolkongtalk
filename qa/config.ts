@@ -31,6 +31,9 @@ export const config = {
   // 타로 relationship_5 의 absTurnCap(13)까지 자연 [END] 도달 여유를 두고 16.
   MAX_CHAT_CALLS_PER_CASE: 16,
 
+  // 관계 스레드는 [END] 자연 종료가 없어(소프트캡까지 무한) 행동 케이스를 이 콜 수로 끊는다.
+  REL_MAX_TURNS: 6,
+
   // idle_resume 케이스에서 실제로 대기할 시간 (테스트 속도 위해 짧게; 0이면 sleep 생략하고 재로딩만)
   IDLE_SLEEP_MS: 0,
 

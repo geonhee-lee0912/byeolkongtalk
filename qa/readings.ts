@@ -1,8 +1,11 @@
 // qa/readings.ts — 사주/타로 reading을 실제 API로 생성.
 import { postJson } from "./client.ts";
+import { resetRelationship, preseedThreadTurns } from "./seed.ts";
 import type { Case } from "./types.ts";
 import type { ProfileInput } from "../lib/saju/profile-input.ts";
 import { SPREAD_INFO } from "../lib/tarot/spreads.ts";
+import { PASS_PLAN_BY_KIND } from "../lib/relationship/types.ts";
+import { getSkill } from "../lib/relationship/skills.ts";
 
 const DEFAULT_PROFILE: ProfileInput = {
   displayName: "QA봇",
@@ -84,6 +87,80 @@ export async function createTarotReading(c: Case): Promise<CreatedReading> {
   return { readingId: r.json.id, cost: r.json.cost ?? 0 };
 }
 
+export async function createRelationshipReading(c: Case): Promise<CreatedReading> {
+  if (c.product.kind !== "relationship") throw new Error("not relationship case");
+  // 유저당 관계 1개(unique index) → 케이스마다 초기화 후 새로 등록 (상태 격리)
+  await resetRelationship();
+
+  const reg = await postJson<{ id?: string; threadReadingId?: string; error?: string }>(
+    "/api/relationship",
+    { label: "QA상대", status: c.product.status }
+  );
+  if (reg.status !== 200 || !reg.json.id)
+    throw new Error(`[readings] relationship 등록 실패 ${reg.status}: ${JSON.stringify(reg.json)}`);
+  const relationshipId = reg.json.id;
+
+  let cost = 0;
+  // pass_gate 케이스는 패스 미구매 → 첫 chat 이 402 pass_required
+  if (!c.seed.skipPass) {
+    const plan = PASS_PLAN_BY_KIND[c.product.passKind];
+    const pass = await postJson<{ success?: boolean; error?: string }>(
+      "/api/relationship/pass",
+      { relationshipId, kind: c.product.passKind }
+    );
+    if (pass.status !== 200 || !pass.json.success)
+      throw new Error(`[readings] 패스 구매 실패 ${pass.status}: ${JSON.stringify(pass.json)}`);
+    cost += plan.cost;
+  }
+  // daily_close 케이스: 오늘자 user 턴 프리시드로 다음 1콜이 소프트캡을 넘게
+  if (c.seed.preseedTurns && reg.json.threadReadingId) {
+    await preseedThreadTurns(reg.json.threadReadingId, c.seed.preseedTurns);
+  }
+  // 스레드 chat 은 relationshipId 로 호출 → readingId 필드에 담아 driver 가 사용
+  return { readingId: relationshipId, cost };
+}
+
+export async function createVerdictReading(c: Case): Promise<CreatedReading> {
+  if (c.product.kind !== "verdict") throw new Error("not verdict case");
+  await resetRelationship();
+
+  const reg = await postJson<{ id?: string; error?: string }>(
+    "/api/relationship",
+    { label: "QA상대", status: c.product.status }
+  );
+  if (reg.status !== 200 || !reg.json.id)
+    throw new Error(`[readings] verdict용 relationship 등록 실패 ${reg.status}: ${JSON.stringify(reg.json)}`);
+  const relationshipId = reg.json.id;
+
+  // verdict 세션 생성은 활성 패스를 요구함(402 pass_required 방지)
+  const plan = PASS_PLAN_BY_KIND[c.product.passKind];
+  const pass = await postJson<{ success?: boolean }>(
+    "/api/relationship/pass",
+    { relationshipId, kind: c.product.passKind }
+  );
+  if (pass.status !== 200 || !pass.json.success)
+    throw new Error(`[readings] verdict용 패스 구매 실패 ${pass.status}`);
+
+  const v = await postJson<{ id?: string; error?: string }>(
+    "/api/relationship/verdict",
+    { relationshipId }
+  );
+  if (v.status !== 200 || !v.json.id)
+    throw new Error(`[readings] verdict 생성 실패 ${v.status}: ${JSON.stringify(v.json)}`);
+
+  const verdictCost = getSkill("verdict")?.starCost ?? 0;
+  return { readingId: v.json.id, cost: plan.cost + verdictCost };
+}
+
 export function createReading(c: Case): Promise<CreatedReading> {
-  return c.product.kind === "saju" ? createSajuReading(c) : createTarotReading(c);
+  switch (c.product.kind) {
+    case "saju":
+      return createSajuReading(c);
+    case "tarot":
+      return createTarotReading(c);
+    case "relationship":
+      return createRelationshipReading(c);
+    case "verdict":
+      return createVerdictReading(c);
+  }
 }

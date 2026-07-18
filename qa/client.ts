@@ -40,3 +40,20 @@ export async function postChat(
   res.headers.forEach((v, k) => (headers[k] = v)); // 키는 소문자
   return { text, headers, status: res.status };
 }
+
+/** 관계 스레드 chat POST — 단발 message(서버가 히스토리 관리). plain text 스트림 소비.
+ *  postChat 과 body 계약이 다름: {relationshipId, message}. 402/404 는 JSON 이 text 로 옴. */
+export async function postRelChat(
+  path: string,
+  body: { relationshipId: string; message: string }
+): Promise<ChatResponse> {
+  const res = await fetch(`${config.BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader() },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  const headers: Record<string, string> = {};
+  res.headers.forEach((v, k) => (headers[k] = v));
+  return { text, headers, status: res.status };
+}

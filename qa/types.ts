@@ -4,10 +4,13 @@ import type { SajuProduct } from "../lib/saju/products";
 import type { SpreadType, SpreadCategory, DrawnCard } from "../lib/tarot/spreads";
 import type { EmotionTag } from "../lib/emotions";
 import type { ProfileInput } from "../lib/saju/profile-input";
+import type { RelationshipStatus, PassKind } from "../lib/relationship/types";
 
 export type ProductRef =
   | { kind: "saju"; sajuProduct: SajuProduct }
-  | { kind: "tarot"; spreadType: SpreadType; spreadCategory: SpreadCategory };
+  | { kind: "tarot"; spreadType: SpreadType; spreadCategory: SpreadCategory }
+  | { kind: "relationship"; status: RelationshipStatus; passKind: PassKind }
+  | { kind: "verdict"; status: RelationshipStatus; passKind: PassKind };
 
 export interface InputStyle {
   /** 시뮬레이터 시스템 프롬프트에 주입되는 말투 묘사 */
@@ -20,8 +23,9 @@ export interface Case {
   id: string;
   product: ProductRef;
   emotion: EmotionTag;
-  /** reading 생성 입력 (사주=profile, 타로=drawnCards는 readings.ts가 채움) */
-  seed: { profile?: ProfileInput };
+  /** reading 생성 입력 (사주=profile, 타로=drawnCards는 readings.ts가 채움,
+   *  관계=skipPass[패스게이트 검증]·preseedTurns[소프트캡 프리시드 쌍 수]) */
+  seed: { profile?: ProfileInput; skipPass?: boolean; preseedTurns?: number };
   seedConcern: string;
   userPersona: string;
   inputStyle: InputStyle;
@@ -40,6 +44,10 @@ export interface AssertionFlags {
   skipEndAssertion?: boolean;
   /** 카드 단언 자체를 건너뜀 (위기 케이스 — 카드보다 안전 안내 우선이라 카드 수 무관) */
   skipCardAssertion?: boolean;
+  /** 관계 스레드: 패스 없이 첫 chat 이 402 pass_required 여야 함 */
+  expectPassGate?: boolean;
+  /** 관계 스레드: 일일 소프트캡 도달(X-Daily-Cap: reached) 기대 */
+  expectDailyClose?: boolean;
 }
 
 /** 시뮬레이터가 내는 이벤트 */
@@ -70,7 +78,14 @@ export interface Transcript {
   endBalance: number;
   turns: TurnRecord[];
   /** 대화가 끝난 이유 */
-  finishReason: "ended" | "abandoned" | "max_calls" | "max_turns" | "error";
+  finishReason:
+    | "ended"
+    | "abandoned"
+    | "max_calls"
+    | "max_turns"
+    | "error"
+    | "daily_cap"
+    | "pass_gated";
   error?: string;
 }
 
