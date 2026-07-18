@@ -19,3 +19,10 @@ test("일일 허용 = 20 + 5*연장횟수", () => {
   assert.equal(dailyTurnAllowance(3), 35);
   assert.equal(dailyTurnAllowance(-1), 20); // 방어
 });
+
+test("PASS_PLANS 라벨은 시간권(일 병기) 표기", () => {
+  const byKind = Object.fromEntries(PASS_PLANS.map((p) => [p.kind, p.label]));
+  assert.equal(byKind.day1, "24시간(1일)");
+  assert.equal(byKind.day3, "72시간(3일)");
+  assert.equal(byKind.day7, "168시간(7일)");
+});
