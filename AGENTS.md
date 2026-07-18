@@ -206,7 +206,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 
 **Header / BottomTab / Footer** ([components/layout/](components/layout)):
 - `Header` — 로고 별콩톡(Cafe24) + ⭐ 잔액 칩 (→/shop) + MY 아바타 칩 (→/mypage). `/login` 만 제외 모든 라우트에 sticky top
-- `BottomTab` 5탭 — 고민톡(/) / 사주(/fortune) / 내 고민톡(/readings) / 별콩 상점(/shop) / 내 정보(/mypage). iOS safe-area, active = lilac-deep. ("내 고민톡"은 사이클 2에서 "우리 사이"로 교체 예정 — 아직 미착수, 지금은 그대로 유지)
+- `BottomTab` 5탭 — 고민톡(/) / 사주(/fortune) / **우리 사이(/relationship)** / 별콩 상점(/shop) / 내 정보(/mypage). iOS safe-area, active = lilac-deep. (사이클 2에서 "내 고민톡" → "우리 사이" 교체 완료; 보관함(/readings)은 내 정보에서 진입, `?from=history` 상세 진입 시 "내 정보" 탭 하이라이트)
 - `AppShell` — pathname 기반 (/login 제외) Header + BottomTab 자동 부착. `pb-20` 으로 탭 가림 방지
 - `Footer` — v1 베이스, 홈에서만 마운트. 사업자 정보 + 약관/개인정보/환불 링크 v1 그대로 (해당 페이지는 v2 에 없음 → 404, 출시 전 포팅 필요)
 
@@ -252,6 +252,17 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - ✅ **홈 연애 존 전면** — 연애 6태그 그리드 + 궁합 크로스링크 카드(`/fortune/compat`) + 비연애 4태그.
 - ✅ **탭 라벨 + `/start` variant** — BottomTab "고민톡"/"사주" 라벨 갱신. `/start`에 연애 직행 variant(`reunion`/`contact`) 추가 + variant 파라미터는 전용 `v` 우선(`utm_content`는 어트리뷰션 분리를 위한 레거시 폴백).
 - 스펙: `docs/superpowers/specs/2026-07-17-w1-love-restructure-w6-ads-design.md` / 플랜: `docs/superpowers/plans/2026-07-17-w1-cycle1-structure.md`
+
+**완료 (2026-07-18 세션 — W1 사이클 2 "우리 사이" v1, dev 배포·통합 QA 대기)**:
+- ✅ **신설 종목 "우리 사이"** — 지속 대화형 연애 상담 에이전트(세션 종결 없는 영원한 스레드). 탭 `/relationship`: 미등록=콜드스타트+상대등록 온보딩, 등록=스레드(S2 패스없음/S3 활성/S4 캡도달).
+- ✅ **하이브리드 스키마** — `relationships`(관계파일, 유저당1: 호칭·상태·self/partner_profile_id·thread_reading_id·rolling_summary·summarized_msg_count·memo·last_visited_at) + `relationship_passes`(기간권) + readings 확장(`consultation_type='relationship'` 스레드본체 + `relationship_id`/`skill_key` 스킬 태깅). 상대 등록=user_profiles(relation_type='partner') 재사용. 마이그레이션 20260718000000/010000/**020000**. ⚠️ **020000 = consultation_type VARCHAR(10)→(20)**: 'relationship'(12자)이 폭 초과 → 등록 thread_failed(22001) 버그 수정(CHECK엔 값 추가했으나 컬럼 폭 미확장이 원인). **신규 consultation_type 값 추가 시 컬럼 폭 확인 습관.**
+- ✅ **패스(기간권)** — 1일20/3일40/7일60별, `purchase_relationship_pass` RPC(원자 차감 + 활성 중 재구매=만료 이어붙임). 소프트캡 20턴/일(KST `startOfTodayKstIso`) + **5별=+5턴 무제한 연장**(source='rel_extend', cap 없음). 구매는 확인모달(PassConfirmModal) 경유 — S2 목록 + S3 "패스 연장·구매" 시트.
+- ✅ **기억(파일+임계치 요약)** — 최근 24메시지 원문 + 초과분 haiku 델타 요약(`lib/relationship/memory.ts` rolling_summary/summarized_msg_count 커서). 최근창은 항상 user 발화로 시작(Anthropic 규칙). 관계 페르소나 `data/persona/byeolkong_relationship.md`([END] 안 씀) + `buildRelationshipSystemMessage`. 채팅 `/api/relationship/chat`(패스 게이트·소프트캡·SSE·요약·[CHECKIN:] 파싱).
+- ✅ **스킬 4종 (확장 레지스트리 `lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`)** — 관계체크인 45(checkin_6 draw)·걔속마음 40(deep_feelings_5 draw)·우리궁합 40(compat, 등록 두 프로필)·싸움판정 30(verdict 대화형 5턴 수렴, `/api/relationship/verdict`). 마커 `[SKILL:key]` 칩 + 접힌 칩 메뉴(SkillChipRow) → `lib/relationship/useSkillLaunch` 디스패치. 결과 `logSkillToThread`→memo.skill_log 적립. 스킬은 활성 패스 필요. 스레드본체·verdict는 보관함(neq relationship) 제외 / tarot_draw·compat 스킬 reading은 기존 타입이라 보관함 노출.
+- ✅ **인앱 체크인** — `[CHECKIN:내용]` 마커 → memo.pending_checkin → 다음 방문(6h+) 시 별콩이 먼저 안부 → 소진(prescriptions resolved).
+- ✅ **관계 수정 PATCH `/api/relationship`**(호칭·상태·상대생일) + 헤더 ✏️·partner 누락 배너 → 수정 모달(RelationshipEditModal). 마이페이지 지인 프로필 삭제 시 "우리 사이 사용중" 경고+체크박스(FK SET NULL 우아한 강등). 탈퇴는 users CASCADE로 relationships/passes/스레드 자동 정리(코드 추가 불필요).
+- ✅ **안전망** — 관계 스레드·verdict에 위기 SafetyBanner(X-Sensitive-*) 타로/사주 패리티. 헤더 흰색·축소 리디자인, 프로필↔대화 디바이더.
+- 스펙 `docs/superpowers/specs/2026-07-18-w1-cycle2-우리사이-design.md` / 플랜 `docs/superpowers/plans/2026-07-18-w1-cycle2-우리사이.md`. ⚠️ 등록실패 진단 계측(클라 에러코드 표시 + 라우트 응답 raw `detail`) dev 잔존 — **prod 전 `detail` 정리**. 통합 QA(하네스+브라우저 E2E) + prod 일괄 배포는 사이클 3.
 
 **보류된 큰 부채** (출시 전 처리):
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
