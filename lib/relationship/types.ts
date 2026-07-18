@@ -23,7 +23,7 @@ export interface PassPlan {
 export const PASS_PLANS: PassPlan[] = [
   { kind: "day1", days: 1, cost: 20, label: "1일권" },
   { kind: "day3", days: 3, cost: 40, label: "3일권" },
-  { kind: "day7", days: 7, cost: 60, label: "7일권", recommended: true },
+  { kind: "day7", days: 7, cost: 60, label: "7일권" },
 ];
 
 export const PASS_PLAN_BY_KIND: Record<PassKind, PassPlan> = Object.fromEntries(

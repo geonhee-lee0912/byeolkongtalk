@@ -7,6 +7,7 @@ import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
 import {
   DAILY_TURN_CAP,
   EXTEND_COST,
+  EXTEND_TURNS,
   PASS_PLANS,
   RELATIONSHIP_STATUS_LABELS,
   type RelationshipStatus,
@@ -147,21 +148,43 @@ export default function RelationshipPage() {
                 우리 사이
               </span>
               <h1 className="font-display text-[22px] text-eye-purple leading-snug">
-                너의 연애, 별콩이가
+                너의 연애, 별콩이랑
                 <br />
-                계속 같이 지켜볼게
+                계속 이야기하자
               </h1>
               <p className="mt-3 text-[13px] text-text-light leading-relaxed">
                 한 번 보고 끝나는 상담이 아니야.
                 <br />
-                상대를 등록하면 별콩이가 이 관계를 계속 기억하면서 함께 봐줄 거야.
+                상대를 등록하면 별콩이랑{" "}
+                <b className="text-eye-purple">언제든 이어서 대화</b>할 수 있어 —
+                지난 얘기를 다 기억하니까 매번 처음부터 말 안 해도 돼.
               </p>
             </div>
 
-            {/* 스킬 미리보기 */}
+            {/* 무엇을 할 수 있나 — 핵심은 지속 대화, 스킬은 부가 */}
             <div className="mb-7">
               <p className="text-[13px] font-bold text-eye-purple mb-3 px-1">
                 이런 걸 할 수 있어
+              </p>
+              {/* 핵심 — 지속 대화 */}
+              <div className="rounded-2xl p-4 border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm mb-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[24px] leading-none" aria-hidden>
+                    💬
+                  </span>
+                  <div>
+                    <p className="text-[14px] font-bold text-eye-purple leading-snug">
+                      별콩이와 연애 상담 대화
+                    </p>
+                    <p className="text-[11.5px] text-text-light mt-1 leading-relaxed">
+                      지금 이 마음, 언제든 별콩이랑 편하게 이야기해. 매번 처음부터
+                      설명 안 해도 — 지난 대화를 다 기억하고 이어가.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11.5px] text-text-light/80 mb-2 px-1">
+                여기에 더해, 이런 것도 꺼내 쓸 수 있어
               </p>
               <div className="grid grid-cols-2 gap-2.5">
                 {SKILL_PREVIEWS.map((s) => (
@@ -184,7 +207,7 @@ export default function RelationshipPage() {
             </div>
 
             {/* 패스 가격 */}
-            <div className="mb-7">
+            <div className="mb-4">
               <p className="text-[13px] font-bold text-eye-purple mb-3 px-1">
                 이용권 안내
               </p>
@@ -192,31 +215,32 @@ export default function RelationshipPage() {
                 {PASS_PLANS.map((p) => (
                   <div
                     key={p.kind}
-                    className={`flex items-center justify-between rounded-2xl px-4 py-3 border ${
-                      p.recommended
-                        ? "border-gold bg-gold-soft/20"
-                        : "border-lilac-mid/30 bg-white/80"
-                    }`}
+                    className="flex items-center justify-between rounded-2xl px-4 py-3 border border-lilac-mid/30 bg-white/80"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-bold text-eye-purple">
-                        {p.label}
-                      </span>
-                      {p.recommended && (
-                        <span className="text-[10px] font-bold text-white bg-gold rounded-full px-2 py-0.5">
-                          추천
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-[14px] font-bold text-eye-purple">
+                      {p.label}
+                    </span>
                     <span className="text-[14px] font-bold text-lilac-deep">
                       ⭐ {p.cost}별
                     </span>
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] text-text-light/80 leading-relaxed text-center">
-                하루 최대 {DAILY_TURN_CAP}번의 대화 · 다 쓰면 {EXTEND_COST}별로 더
-                이야기할 수 있어
+            </div>
+
+            {/* 하루 대화 한도 — 또렷하게 (무제한 오인·환불 분쟁 방지) */}
+            <div className="mb-7 rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
+              <p className="text-[13.5px] font-bold text-eye-purple flex items-center gap-1.5">
+                <span aria-hidden>📌</span> 하루 대화는 몇 번까지?
+              </p>
+              <p className="mt-2 text-[12.5px] text-eye-purple/90 leading-relaxed">
+                하루 <b>최대 {DAILY_TURN_CAP}번</b> 주고받을 수 있어. 한 번에 여러
+                문장씩이라 대략 <b>4천~8천 자</b> 분량 — 웬만한 고민 하나는 그날
+                깊이 풀어낼 수 있는 양이야.
+              </p>
+              <p className="mt-1.5 text-[11.5px] text-text-light leading-relaxed">
+                다 쓰면 {EXTEND_COST}별로 {EXTEND_TURNS}번씩 더 이어갈 수 있고,
+                매일 자정에 다시 채워져.
               </p>
             </div>
 
