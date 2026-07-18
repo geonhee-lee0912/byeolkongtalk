@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ChatBubble from "@/components/tarot/ChatBubble";
+import SafetyBanner from "@/components/safety/SafetyBanner";
+import type { SensitiveCategory } from "@/lib/sensitive";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
 
 export interface ThreadChatMsg {
@@ -56,6 +58,8 @@ export default function ThreadChat({
   const [capReachedLocal, setCapReachedLocal] = useState(capReached);
   const [extending, setExtending] = useState(false);
   const [extendError, setExtendError] = useState<string | null>(null);
+  // 위기 시그널 — chat 라우트가 X-Sensitive-* 헤더로 알림 (타로/사주와 동일 안전망)
+  const [safety, setSafety] = useState<{ category: SensitiveCategory; severity: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -103,6 +107,13 @@ export default function ThreadChat({
       }
 
       const capHeader = res.headers.get("X-Daily-Cap");
+      const sCat = res.headers.get("X-Sensitive-Category");
+      if (sCat) {
+        setSafety({
+          category: sCat as SensitiveCategory,
+          severity: Number(res.headers.get("X-Sensitive-Severity")) || 1,
+        });
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -212,6 +223,14 @@ export default function ThreadChat({
               showAvatar
               showName
               streaming={sending}
+            />
+          )}
+
+          {safety && (
+            <SafetyBanner
+              category={safety.category}
+              severity={safety.severity}
+              onClose={() => setSafety(null)}
             />
           )}
 
