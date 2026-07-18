@@ -110,7 +110,7 @@ export default function RefundPage() {
         </Article>
 
         <Article title="제7조 (기간제 이용권)">
-          기간 단위로 제공되는 이용권(예: 우리 사이 패스)에는 다음이 적용됩니다.
+          기간 단위로 제공되는 이용권(예: 연애 상담 패스)에는 다음이 적용됩니다.
           <ol className="list-decimal pl-5 space-y-1 mt-2">
             <li><b>이용 개시 전</b>: 구매 후 대화 등 서비스 이용을 시작하지 않은 경우,
               사용한 별 전액이 잔액으로 반환됩니다.</li>

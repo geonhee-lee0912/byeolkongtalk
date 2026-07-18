@@ -198,7 +198,7 @@ export default function VerdictChatPage({
           href="/relationship"
           className="text-[13px] font-bold text-lilac-deep underline"
         >
-          우리 사이로 돌아가기
+          연애 상담으로 돌아가기
         </Link>
       </main>
     );
