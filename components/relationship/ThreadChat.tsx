@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
+import { getSkill } from "@/lib/relationship/skills";
+import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -17,9 +20,16 @@ const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|CHECKIN:[^\]]+)\]/g;
 // 스트리밍 중 아직 안 닫힌 마커의 꼬리 — 닫히기 전까지 미리보여 깜빡이지 않게 숨김
 const TRAILING_PARTIAL_MARKER =
   /\[(?:S(?:K(?:I(?:L(?:L(?::[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?)?)?$/;
+// 완성된 [SKILL:key] 캡처용 — 마커 존재 시 그 자리에 실행 칩을 띄우기 위해 key 를 뽑아낸다.
+const SKILL_MARKER_CAPTURE = /\[SKILL:([a-z_]+)\]/;
 
 function displayText(raw: string): string {
   return raw.replace(TRAILING_PARTIAL_MARKER, "").replace(MARKER_REGEX, "").trim();
+}
+
+function extractSkillKey(raw: string): string | null {
+  const m = SKILL_MARKER_CAPTURE.exec(raw);
+  return m ? m[1] : null;
 }
 
 interface ThreadChatProps {
@@ -29,6 +39,9 @@ interface ThreadChatProps {
   canSend: boolean;
   /** 마운트 시점 기준 오늘 소프트캡 도달 여부(S4). 이후 전환은 내부 상태로 관리. */
   capReached: boolean;
+  /** [SKILL:key] 마커 칩 실행(useSkillLaunch)에 필요 — compat 궁합용 자기/상대 프로필 id. */
+  selfProfileId?: string | null;
+  partnerProfileId?: string | null;
   /** 이번 턴 응답으로 오늘 캡에 새로 도달했을 때(S3→S4) — 부모가 잔여 턴 표시 등을 새로고침하도록 알림 */
   onDailyCapReached?: () => void;
   /** 연장 구매 성공(S4→S3) — 부모가 상태를 새로고침하도록 알림 */
@@ -43,12 +56,19 @@ export default function ThreadChat({
   initialMessages,
   canSend,
   capReached,
+  selfProfileId = null,
+  partnerProfileId = null,
   onDailyCapReached,
   onExtended,
   onPassRequired,
   className = "",
 }: ThreadChatProps) {
   const router = useRouter();
+  const { launch, busyKey, toastMsg } = useSkillLaunch({
+    relationshipId,
+    selfProfileId,
+    partnerProfileId,
+  });
   const [messages, setMessages] = useState<ThreadChatMsg[]>(initialMessages);
   const [liveText, setLiveText] = useState("");
   const [sending, setSending] = useState(false);
@@ -202,19 +222,42 @@ export default function ThreadChat({
             </div>
           )}
 
-          {messages.map((msg, i) =>
-            msg.role === "user" ? (
-              <ChatBubble key={i} role="user" content={msg.content} />
-            ) : (
-              <ChatBubble
-                key={i}
-                role="assistant"
-                content={displayText(msg.content)}
-                showAvatar
-                showName
-              />
-            )
-          )}
+          {messages.map((msg, i) => {
+            if (msg.role === "user") {
+              return <ChatBubble key={i} role="user" content={msg.content} />;
+            }
+            // 완료된 assistant 메시지에 [SKILL:key] 마커가 있으면 그 자리에 실행 칩 노출.
+            const skillKey = extractSkillKey(msg.content);
+            const skill = skillKey ? getSkill(skillKey) : null;
+            return (
+              <div key={i}>
+                <ChatBubble
+                  role="assistant"
+                  content={displayText(msg.content)}
+                  showAvatar
+                  showName
+                />
+                {skill && skill.active && (
+                  <div className="flex justify-start pl-10 -mt-1 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => launch(skill.key)}
+                      disabled={busyKey === skill.key}
+                      className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
+                    >
+                      <span aria-hidden>{skill.emoji}</span>
+                      <span className="text-[12px] font-bold text-eye-purple">
+                        {busyKey === skill.key ? "여는 중…" : skill.label}
+                      </span>
+                      <span className="text-[11px] font-bold text-lilac-deep">
+                        ⭐{skill.starCost}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {(sending || liveText) && (
             <ChatBubble
@@ -310,6 +353,17 @@ export default function ThreadChat({
           ) : null}
         </div>
       </div>
+
+      {toastMsg &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed bottom-24 inset-x-0 z-[90] flex justify-center px-8 pointer-events-none">
+            <div className="max-w-xs text-center bg-night/90 text-cream text-[12.5px] rounded-full px-4 py-2.5 shadow-lg animate-fade-in">
+              {toastMsg}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

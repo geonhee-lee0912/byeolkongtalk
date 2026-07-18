@@ -210,6 +210,8 @@ export default function RelationshipPage() {
                     initialMessages={messages}
                     canSend={false}
                     capReached={false}
+                    selfProfileId={relationship.selfProfileId}
+                    partnerProfileId={relationship.partnerProfileId}
                   />
                 </div>
               )}
@@ -266,6 +268,8 @@ export default function RelationshipPage() {
           initialMessages={messages}
           canSend={!capReached}
           capReached={capReached}
+          selfProfileId={relationship.selfProfileId}
+          partnerProfileId={relationship.partnerProfileId}
           onDailyCapReached={() => void load()}
           onExtended={() => void load()}
           onPassRequired={() => void load()}

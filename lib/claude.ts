@@ -602,6 +602,57 @@ ${ctx.fileBlock}
   return { staticPart, dynamicPart };
 }
 
+// ===== 관계 스킬 — 싸움 잘잘못 판정 (dialogue, 수렴형) =====
+let _cachedVerdictPersona: string | null = null;
+function getVerdictPersona(): string {
+  if (_cachedVerdictPersona === null) {
+    _cachedVerdictPersona =
+      getCore() + "\n\n---\n\n" +
+      readFileSync(join(process.cwd(), "data", "persona", "byeolkong_verdict.md"), "utf-8");
+  }
+  return _cachedVerdictPersona;
+}
+
+/** 짧은 고정 턴캡 — WRAP_THRESHOLDS 처럼 단계적 수렴 없이, 이 턴에 도달하면 서버가 [END]를 보장. */
+export const VERDICT_ABS_TURN_CAP = 5;
+
+export interface VerdictTurnContext {
+  /** 유저 호칭 (users.nickname) */
+  nickname?: string | null;
+  /** 상대 호칭 (relationships.label) */
+  label?: string | null;
+  /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
+  assistantTurnsSoFar: number;
+  /** 이번 턴에 반드시 판정+[END]로 마무리해야 하는지 (턴캡 도달) */
+  forceEnd: boolean;
+}
+
+export function buildVerdictSystemMessage(ctx: VerdictTurnContext): {
+  staticPart: string;
+  dynamicPart: string;
+} {
+  const staticPart = getVerdictPersona();
+  const isFirstTurn = ctx.assistantTurnsSoFar === 0;
+
+  const nicknameLine = ctx.nickname?.trim() ? `\n[호칭(유저): ${ctx.nickname.trim()}]` : "";
+  const labelLine = ctx.label?.trim() ? `\n[상대 호칭: ${ctx.label.trim()}]` : "";
+
+  const firstTurnGuide = isFirstTurn
+    ? `\n\n## 첫 턴 가이드\n이번 턴은 판정의 시작이야. 아직 판정하지 말고, 무슨 일이 있었는지 유저의 입장부터 따뜻하게 물어봐 (도메인 규칙 §1단계).`
+    : "";
+
+  const forceEndGuide = ctx.forceEnd
+    ? `\n\n## ⚠️ 마무리 의무 (이번 턴에 반드시 종료)\n지금까지 들은 내용만으로 이번 응답에서 비율 판정 + 근거 + 화해 처방을 반드시 마무리해 (도메인 규칙 §3단계). 더 캐묻지 말고 지금 가진 정보로 판정해. 맨 마지막 줄에 [END] 마커를 단독으로.`
+    : "";
+
+  const dynamicPart = `---
+## 이번 세션 정보${nicknameLine}${labelLine}
+[지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
+---${firstTurnGuide}${forceEndGuide}`;
+
+  return { staticPart, dynamicPart };
+}
+
 /** older 메시지 델타 요약 (haiku, 저비용). 이전 요약과 합쳐 갱신된 요약 반환. */
 export async function summarizeOlder(
   prevSummary: string | null,
