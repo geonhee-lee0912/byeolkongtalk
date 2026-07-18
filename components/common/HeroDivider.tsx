@@ -3,7 +3,7 @@
 export default function HeroDivider() {
   return (
     <div
-      className="w-full max-w-md mx-auto px-8 mt-4 mb-6 flex items-center gap-3"
+      className="w-full max-w-md mx-auto px-8 mt-6 mb-6 flex items-center gap-3"
       aria-hidden
     >
       <div className="flex-1 h-px bg-lilac-mid/30" />
