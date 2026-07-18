@@ -83,13 +83,15 @@ export default function MyPage() {
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
+  const [deleteAck, setDeleteAck] = useState(false);
+  const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
   const [listPage, setListPage] = useState(0);
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     void (async () => {
-      const [r, bal, profs] = await Promise.all([
+      const [r, bal, profs, rel] = await Promise.all([
         fetch("/api/auth/me", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
@@ -97,6 +99,9 @@ export default function MyPage() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         fetch("/api/profiles", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
+        fetch("/api/relationship", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
       ]);
@@ -107,6 +112,13 @@ export default function MyPage() {
       setMe(r as Me);
       if (bal) setBalance(bal.balance ?? 0);
       if (profs?.profiles) setProfiles(profs.profiles as ProfileItem[]);
+      if (rel?.relationship) {
+        setRelationshipProfileIds(
+          [rel.relationship.selfProfileId, rel.relationship.partnerProfileId].filter(
+            (v: unknown): v is string => typeof v === "string"
+          )
+        );
+      }
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
         .then((x) => (x.ok ? x.json() : null))
         .catch(() => null);
@@ -177,6 +189,7 @@ export default function MyPage() {
     if (res.ok) {
       await reloadProfiles();
       setDeleteAcqId(null);
+      setDeleteAck(false);
     }
   };
 
@@ -578,6 +591,7 @@ export default function MyPage() {
             <button
               onClick={() => {
                 setDeleteAcqId(sheetId);
+                setDeleteAck(false);
                 setSheetId(null);
               }}
               className="w-full py-3.5 rounded-xl text-[14px] text-rose-500 font-medium hover:bg-rose-50"
@@ -602,16 +616,37 @@ export default function MyPage() {
             <p className="text-[12px] text-text-light leading-relaxed mb-4">
               이 지인 사주를 삭제할까? 과거 풀이 기록은 그대로 남아.
             </p>
+            {relationshipProfileIds.includes(deleteAcqId) && (
+              <div className="mb-4 rounded-xl bg-gold-soft/20 border border-gold/50 p-3">
+                <p className="text-[12px] text-eye-purple leading-relaxed mb-2">
+                  이 프로필은 &apos;우리 사이&apos;에서 사용 중이야 — 삭제하면 궁합을
+                  다시 보려면 생년월일을 다시 등록해야 해.
+                </p>
+                <label className="flex items-center gap-2 text-[11.5px] text-text-light">
+                  <input
+                    type="checkbox"
+                    checked={deleteAck}
+                    onChange={(e) => setDeleteAck(e.target.checked)}
+                    className="w-4 h-4 accent-rose-500"
+                  />
+                  확인했어, 그래도 삭제할게
+                </label>
+              </div>
+            )}
             <div className="flex gap-2">
               <button
-                onClick={() => setDeleteAcqId(null)}
+                onClick={() => {
+                  setDeleteAcqId(null);
+                  setDeleteAck(false);
+                }}
                 className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
               >
                 취소
               </button>
               <button
                 onClick={() => deleteAcquaintance(deleteAcqId)}
-                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold"
+                disabled={relationshipProfileIds.includes(deleteAcqId) && !deleteAck}
+                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 삭제
               </button>
