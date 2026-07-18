@@ -307,7 +307,7 @@ export default function RelationshipPage() {
                 <span aria-hidden style={{ color: "#E48BA0" }}>
                   ♥
                 </span>
-                우리 사이
+                연애 상담
               </span>
               <h1 className="font-display text-[22px] text-eye-purple leading-snug">
                 너의 연애, 별콩이랑
@@ -315,32 +315,27 @@ export default function RelationshipPage() {
                 계속 이야기하자
               </h1>
               <p className="mt-3 text-[13px] text-text-light leading-relaxed">
-                한 번 보고 끝나는 상담이 아니야.
-                <br />
-                상대를 등록하면 별콩이랑{" "}
-                <b className="text-eye-purple">언제든 이어서 대화</b>할 수 있어 —
-                지난 얘기를 다 기억하니까 매번 처음부터 말 안 해도 돼.
+                한 번 보고 끝나는 상담이 아니야. 상대를 등록하면 별콩이랑 언제든 이어서
+                대화할 수 있어, 지난 얘기를 다 기억하니까.
               </p>
             </div>
 
             {/* 무엇을 할 수 있나 — 핵심은 지속 대화, 스킬은 부가 */}
             <div className="mb-7">
               <p className="text-[13px] font-bold text-eye-purple mb-3 px-1">
-                이런 걸 할 수 있어
+                별콩이는 이런 친구야
               </p>
               {/* 핵심 — 지속 대화 */}
               <div className="rounded-2xl p-4 border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm mb-3">
                 <div className="flex items-start gap-2.5">
-                  <span className="text-[24px] leading-none" aria-hidden>
-                    💬
-                  </span>
+                  <span className="text-[24px] leading-none" aria-hidden>💜</span>
                   <div>
                     <p className="text-[14px] font-bold text-eye-purple leading-snug">
-                      별콩이와 연애 상담 대화
+                      너만의 연애 상담 친구
                     </p>
                     <p className="text-[11.5px] text-text-light mt-1 leading-relaxed">
-                      지금 이 마음, 언제든 별콩이랑 편하게 이야기해. 매번 처음부터
-                      설명 안 해도 — 지난 대화를 다 기억하고 이어가.
+                      설레는 것도, 서운한 것도, 어떻게 해야 할지 모를 때도 그냥 편하게
+                      털어놔. 별콩이가 네 편에서 같이 고민해줄게.
                     </p>
                   </div>
                 </div>
@@ -370,23 +365,14 @@ export default function RelationshipPage() {
 
             {/* 패스 가격 */}
             <div className="mb-4">
-              <p className="text-[13px] font-bold text-eye-purple mb-3 px-1">
-                이용권 안내
-              </p>
-              <div className="flex flex-col gap-2">
-                {PASS_PLANS.map((p) => (
-                  <div
-                    key={p.kind}
-                    className="flex items-center justify-between rounded-2xl px-4 py-3 border border-lilac-mid/30 bg-white/80"
-                  >
-                    <span className="text-[14px] font-bold text-eye-purple">
-                      {p.label}
-                    </span>
-                    <span className="text-[14px] font-bold text-lilac-deep">
-                      ⭐ {p.cost}별
-                    </span>
-                  </div>
-                ))}
+              <p className="text-[13px] font-bold text-eye-purple mb-2 px-1">이용권</p>
+              <div className="rounded-2xl border border-lilac-mid/30 bg-white/70 p-4">
+                <p className="text-[12.5px] text-text-light leading-relaxed mb-2.5">
+                  패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
+                </p>
+                <p className="text-[13px] font-bold text-eye-purple text-center">
+                  {PASS_PLANS.map((p) => `${p.label} ⭐${p.cost}`).join("  ·  ")}
+                </p>
               </div>
             </div>
 
@@ -396,9 +382,8 @@ export default function RelationshipPage() {
                 <span aria-hidden>📌</span> 하루에 얼마나 대화할 수 있어?
               </p>
               <p className="mt-2 text-[12.5px] text-eye-purple/90 leading-relaxed">
-                패스가 있는 동안 하루 <b>{DAILY_TURN_CAP}번</b>은 그냥 주고받을 수
-                있어. 한 번에 여러 문장씩이라 대략 <b>4천~8천 자</b> 분량 — 웬만한
-                고민 하나는 그날 깊이 풀어낼 양이야.
+                패스가 있는 동안 하루 <b>대략 {DAILY_TURN_CAP}번</b>(4천~8천 자쯤) 주고받을
+                수 있어. 웬만한 고민 하나는 그날 깊이 풀 양이야.
               </p>
               <p className="mt-1.5 text-[11.5px] text-text-light leading-relaxed">
                 {DAILY_TURN_CAP}번을 다 써도 {EXTEND_COST}별마다 대화{" "}
