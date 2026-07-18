@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import HeroBanner from "@/components/common/HeroBanner";
+import HeroDivider from "@/components/common/HeroDivider";
 import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 import {
   FORTUNE_CONFIG,
@@ -121,6 +122,8 @@ export default function TarotInput({ type }: { type: FortuneType }) {
         subtitle={cfg.tagline}
         compact
       />
+
+      <HeroDivider />
 
       {type === "tarot_daily" && freeRemaining !== null && (
         <div className="w-full max-w-md mx-auto px-5 mt-3 mb-1 text-center">

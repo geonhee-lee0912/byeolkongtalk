@@ -7,6 +7,7 @@ import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import HeroBanner from "@/components/common/HeroBanner";
+import HeroDivider from "@/components/common/HeroDivider";
 import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 
 interface DailyStatus {
@@ -147,6 +148,8 @@ export default function FortuneDailyPage() {
         }
         compact
       />
+
+      <HeroDivider />
 
       <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
         {birthLine && (

@@ -8,6 +8,7 @@ import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScree
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import HeroBanner from "@/components/common/HeroBanner";
+import HeroDivider from "@/components/common/HeroDivider";
 import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
@@ -139,8 +140,9 @@ export default function FortuneInputPage() {
         subtitle={cfg.tagline}
         badge={`⭐ ${cfg.cost}`}
         compact
-        className="mb-6"
       />
+
+      <HeroDivider />
 
       <FortuneSajuPicker
         onConfirm={openConfirm}
