@@ -304,23 +304,18 @@ function EmotionTagSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[90] flex items-center justify-center px-5 bg-night/70 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="고민 태그 변경"
     >
       <div
-        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 그랩바 */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
-        </div>
-
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-3">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <h2 className="font-display text-[16px] font-bold text-eye-purple">
             어떤 고민이야?
           </h2>

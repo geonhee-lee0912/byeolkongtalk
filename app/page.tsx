@@ -265,9 +265,9 @@ export default function Home() {
               </span>
             </div>
             <p className="text-[12.5px] text-text-light leading-relaxed">
-              고민을 입력하면 별콩이가 타로나 사주 같은 운세를 기반으로 고민
-              상담을 해줄거예요. 말하기 어려운 고민도 괜찮아요. 별빛처럼
-              조심스럽게 마음의 흐름을 읽어줄게요.
+              고민을 입력하면 별콩이가 타로를 기반으로 고민 상담을 해줄거예요.
+              말하기 어려운 고민도 괜찮아요. 별빛처럼 조심스럽게 마음의 흐름을
+              읽어줄게요.
             </p>
           </div>
 
@@ -320,21 +320,48 @@ export default function Home() {
             })}
           </div>
 
-          {/* 궁합 크로스링크 */}
+          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
+          <div className="flex items-center gap-3 mb-4" aria-hidden>
+            <span className="flex-1 h-px bg-lilac-mid/40" />
+            <span className="text-gold text-[11px]">✦</span>
+            <span className="flex-1 h-px bg-lilac-mid/40" />
+          </div>
+
+          {/* 궁합 크로스링크 — 연애 카드와 동일 골격 + 사주 강조 */}
           <Link
             href="/fortune/compat"
-            className="block p-4 mb-6 rounded-2xl border-2 border-lilac-mid/50 bg-white/80 hover:border-lilac-deep/40 transition-all"
+            className="flex items-center gap-3.5 p-4 mb-6 bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-gold/50 hover:border-gold transition-all text-left group"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[13.5px] font-bold text-eye-purple">
-                  💞 우리 궁합은 어떨까?
-                </p>
-                <p className="text-[11.5px] text-text-light mt-0.5">
-                  두 사람 생년월일로 사주 궁합 보기
-                </p>
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
+              }}
+            >
+              <span className="text-[32px] group-hover:scale-110 transition-transform" aria-hidden>
+                💞
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-eye-purple text-[16px] flex items-center gap-1.5">
+                우리 궁합은 어떨까?
+                <span className="text-[10px] font-bold text-gold-soft bg-night px-2 py-0.5 rounded-full">
+                  사주
+                </span>
+              </p>
+              <p className="text-[12.5px] text-text-light mt-0.5 leading-relaxed">
+                두 사람 생년월일로 사주 궁합 보기
+              </p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {["궁합", "사주", "두사람"].map((h) => (
+                  <span
+                    key={h}
+                    className="text-[11px] font-bold text-eye-purple bg-gold-soft/40 px-2 py-0.5 rounded-full"
+                  >
+                    #{h}
+                  </span>
+                ))}
               </div>
-              <span className="text-text-light">›</span>
             </div>
           </Link>
 

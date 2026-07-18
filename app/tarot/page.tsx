@@ -21,13 +21,7 @@ import {
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 
-function recommendSpread(tag: string, concern: string): SpreadType {
-  const options = getSpreadOptionsForTag(tag);
-  // 특화 ①(4번째)을 기본 추천, 고민이 짧으면(30자 미만) 쓰리카드
-  if (concern.trim().length < 30) return options[2];
-  return options[3] ?? options[options.length - 1];
-}
-
+// 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
 export default function TarotSpreadPage() {
   const router = useRouter();
   const [pending, setPending] = useState<PendingConsultation | null>(null);
@@ -49,7 +43,6 @@ export default function TarotSpreadPage() {
         return;
       }
       setPending(parsed);
-      setSelected(recommendSpread(parsed.emotion, parsed.concern));
     } catch {
       router.replace("/");
     }
@@ -62,10 +55,6 @@ export default function TarotSpreadPage() {
   }, [pending]);
   const options = useMemo(
     () => (pending ? getSpreadOptionsForTag(pending.emotion) : []),
-    [pending]
-  );
-  const recommended = useMemo(
-    () => (pending ? recommendSpread(pending.emotion, pending.concern) : "one_card"),
     [pending]
   );
 
@@ -116,7 +105,7 @@ export default function TarotSpreadPage() {
         </div>
       </div>
 
-      {/* 별콩이 추천 */}
+      {/* 별콩이 안내 (추천 없음 — 0697771 제품 결정) */}
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <div className="flex items-center gap-2.5">
           <Image
@@ -127,9 +116,9 @@ export default function TarotSpreadPage() {
             className="rounded-full bg-cream-warm"
           />
           <p className="text-[13px] text-eye-purple leading-snug">
-            별콩이는{" "}
-            <b className="text-lilac-deep">{SPREAD_INFO[recommended].label}</b>
-            를 추천해. 다른 방식도 골라봐 ✨
+            <b className="text-lilac-deep">너의 고민을 내가 해결해 줄게.</b>
+            <br />
+            카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨
           </p>
         </div>
       </div>
@@ -182,17 +171,12 @@ export default function TarotSpreadPage() {
                   <span className="text-[11px] font-bold text-text-light">
                     ⭐ {info.starCost}별
                   </span>
-                  {recommended === type && (
-                    <span className="text-[10px] font-bold text-lilac-deep ml-auto">
-                      추천 ✨
-                    </span>
-                  )}
                 </div>
                 <p className="text-[12px] text-text-light leading-snug mb-1.5">
                   {getSpreadDescription(type, category)}
                 </p>
                 <p
-                  className="text-[11px] font-bold leading-snug truncate"
+                  className="text-[11px] font-bold leading-snug"
                   style={{ color: info.accent }}
                 >
                   {positions.join(" · ")}

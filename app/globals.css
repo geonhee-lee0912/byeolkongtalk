@@ -102,3 +102,25 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* 오버레이 스크롤 — 평소엔 숨기고 hover 시 얇은 썸만 표시 (트랙 없음) */
+.scrollbar-hover {
+  scrollbar-width: none;
+}
+.scrollbar-hover:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 138, 208, 0.45) transparent;
+}
+.scrollbar-hover::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 99px;
+}
+.scrollbar-hover:hover::-webkit-scrollbar-thumb {
+  background: rgba(159, 138, 208, 0.45);
+}
