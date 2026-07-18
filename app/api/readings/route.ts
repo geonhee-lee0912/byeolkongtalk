@@ -73,6 +73,8 @@ export async function GET() {
       "id, question, saju_data, consultation_type, spread_type, saju_product, drawn_cards, emotion_tag, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
     )
     .eq("user_id", userId)
+    // 스레드 본체·관계 스킬 제외 (우리 사이 탭에서 노출)
+    .neq("consultation_type", "relationship")
     .order("created_at", { ascending: false })
     .limit(50);
 

@@ -508,6 +508,18 @@ export default function MyPage() {
           계정
         </div>
         <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
+          <Link href="/readings" className="flex items-center gap-3 p-3.5">
+            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" />
+              </svg>
+            </span>
+            <span className="flex-1">
+              <span className="block text-[14px] text-eye-purple font-medium">내 고민톡 보관함</span>
+              <span className="block text-[11px] text-text-light/70 mt-0.5">지난 상담 다시 보기</span>
+            </span>
+            <span className="text-text-light/40">›</span>
+          </Link>
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
