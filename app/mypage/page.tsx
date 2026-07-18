@@ -619,7 +619,7 @@ export default function MyPage() {
             {relationshipProfileIds.includes(deleteAcqId) && (
               <div className="mb-4 rounded-xl bg-gold-soft/20 border border-gold/50 p-3">
                 <p className="text-[12px] text-eye-purple leading-relaxed mb-2">
-                  이 프로필은 &apos;우리 사이&apos;에서 사용 중이야 — 삭제하면 궁합을
+                  이 프로필은 &apos;연애 상담&apos;에서 사용 중이야 — 삭제하면 궁합을
                   다시 보려면 생년월일을 다시 등록해야 해.
                 </p>
                 <label className="flex items-center gap-2 text-[11.5px] text-text-light">
