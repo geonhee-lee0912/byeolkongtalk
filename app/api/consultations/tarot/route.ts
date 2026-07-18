@@ -17,6 +17,8 @@ import {
 } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS, type EmotionTag } from "@/lib/emotions";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
+import { getSkill } from "@/lib/relationship/skills";
+import { getActivePass } from "@/lib/relationship/passes";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,9 @@ interface TarotPostBody {
   drawnCards: DrawnCard[];
   previousReadingId?: string;
   continuationMode?: "fresh" | "deep";
+  /** "우리 사이" 스킬(tarot_draw) 실행 — 둘 다 있을 때만 태깅 검증 (없으면 기존 동작 그대로). */
+  relationshipId?: string;
+  skillKey?: string;
 }
 
 function validateDrawnCards(
@@ -158,6 +163,33 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // "우리 사이" 스킬(tarot_draw) 태깅 — relationshipId+skillKey 둘 다 있을 때만 검증.
+  // skill.spread !== body.spreadType 이면 위조(싼 스프레드로 비싼 스킬 라벨 붙이기) 로 간주해 차단.
+  let relationshipTag: { relationshipId: string; skillKey: string } | null = null;
+  if (
+    typeof body.relationshipId === "string" &&
+    body.relationshipId &&
+    typeof body.skillKey === "string" &&
+    body.skillKey
+  ) {
+    const skill = getSkill(body.skillKey);
+    if (!skill || skill.kind !== "tarot_draw" || skill.spread !== body.spreadType) {
+      return NextResponse.json({ error: "invalid_skill" }, { status: 400 });
+    }
+    const { data: relRow } = await supabase
+      .from("relationships")
+      .select("id, user_id")
+      .eq("id", body.relationshipId)
+      .maybeSingle();
+    if (!relRow || relRow.user_id !== userId) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (!(await getActivePass(body.relationshipId))) {
+      return NextResponse.json({ error: "pass_required" }, { status: 402 });
+    }
+    relationshipTag = { relationshipId: body.relationshipId, skillKey: body.skillKey };
+  }
+
   // 이어가기(tarot-fresh) 마커 검증 — 클라가 보낸 previousReadingId 를 신뢰하지 않는다.
   // 부모 소유권 + 비민감 + ended([END]) 를 확인해야 chat 라우트가 부모 요약을 주입할 자격이 됨.
   let continuationPrevId: string | null = null;
@@ -199,6 +231,8 @@ export async function POST(request: NextRequest) {
       previous_reading_id: continuationPrevId,
       continuation_mode: continuationPrevId ? "fresh" : null,
       prompt_version: PROMPT_VERSION,
+      relationship_id: relationshipTag?.relationshipId ?? null,
+      skill_key: relationshipTag?.skillKey ?? null,
     })
     .select("id")
     .single();

@@ -236,7 +236,11 @@ export default function RelationshipPage() {
         <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3 border-b border-lilac-soft">
           {headerCard}
           <div className="mt-2.5">
-            <SkillChipRow />
+            <SkillChipRow
+              relationshipId={relationship.id}
+              selfProfileId={relationship.selfProfileId}
+              partnerProfileId={relationship.partnerProfileId}
+            />
           </div>
           {partnerBanner}
           {daily && pass && (

@@ -39,6 +39,8 @@ import {
 } from "@/lib/fortune/compat-report";
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
+import { getActivePass } from "@/lib/relationship/passes";
+import { logSkillToThread } from "@/lib/relationship/skill-log";
 import { generateOnce } from "@/lib/claude";
 import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -157,6 +159,7 @@ export async function POST(req: NextRequest) {
     profileA?: unknown;
     profileB?: unknown;
     drawnCards?: unknown;
+    relationshipId?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -225,6 +228,8 @@ export async function POST(req: NextRequest) {
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
   let sajuDataToStore: unknown = null;
+  // "우리 사이" 스킬(compat) 태깅 — relationshipId 있을 때만(아래 compat 분기에서) 검증 후 세팅.
+  let relationshipId: string | null = null;
 
   if (cfg.type === "compat" || cfg.type === "compat_social") {
     // 궁합: 두 프로필 id 만 받는다 (즉석 입력도 클라가 먼저 POST /api/profiles 로 저장 후 id 전달).
@@ -247,6 +252,23 @@ export async function POST(req: NextRequest) {
     if (!rowA || !rowB) {
       return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
     }
+
+    // "우리 사이" 스킬(compat) 태깅 — relationshipId 있을 때만 검증(anti-forgery). compat_social 은 미대상.
+    if (cfg.type === "compat" && typeof body.relationshipId === "string" && body.relationshipId) {
+      const { data: relRow } = await supabase
+        .from("relationships")
+        .select("id, user_id")
+        .eq("id", body.relationshipId)
+        .maybeSingle();
+      if (!relRow || relRow.user_id !== userId) {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+      }
+      if (!(await getActivePass(body.relationshipId))) {
+        return NextResponse.json({ error: "pass_required" }, { status: 402 });
+      }
+      relationshipId = body.relationshipId;
+    }
+
     saju = calcSaju(profileRowToSajuInput(rowA));
     sajuB = calcSaju(profileRowToSajuInput(rowB));
     names = { a: rowA.display_name, b: rowB.display_name };
@@ -368,6 +390,8 @@ export async function POST(req: NextRequest) {
       stars_spent: effectiveCost,
       has_sensitive: false,
       drawn_cards: drawnCardsToStore,
+      relationship_id: relationshipId,
+      skill_key: relationshipId ? "compat" : null,
     })
     .select("id")
     .single();
@@ -483,6 +507,14 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeCompatReport(buildCompatReport(ai));
+
+      // "우리 사이" 스킬(compat) 결과 — 관계 스레드 memo.skill_log 에 요약 적립(별콩이 기억용).
+      // fire-and-forget + 자체 가드 — 실패해도 리포트 저장에는 영향 없음.
+      if (relationshipId) {
+        void logSkillToThread(relationshipId, "compat", readingId, ai.summary).catch((e) => {
+          console.warn("[relationship] compat skill-log 실패 (무시):", e instanceof Error ? e.message : e);
+        });
+      }
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {
