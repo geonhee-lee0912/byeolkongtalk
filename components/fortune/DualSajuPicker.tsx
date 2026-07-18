@@ -173,7 +173,7 @@ export default function DualSajuPicker({
       </p>
 
       {/* 프로필 목록 */}
-      <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20 mb-3">
+      <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20 mb-3">
         {profiles.map((p) => {
           const usedInOther =
             (active === "A" && slotB === p.id) || (active === "B" && slotA === p.id);

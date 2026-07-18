@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SajuBoard from "@/components/saju/SajuBoard";
+import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
 
 interface PickerProfile {
@@ -92,6 +93,35 @@ export default function FortuneSajuPicker({
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listPage, setListPage] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [addErr, setAddErr] = useState<string | null>(null);
+
+  const handleAddSubmit = async (payload: ProfilePayload) => {
+    setSaving(true);
+    setAddErr(null);
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        setAddErr("저장을 못 했어. 잠시 후 다시 시도해줄래?");
+        setSaving(false);
+        return;
+      }
+      const data = await res.json();
+      const created = data.profile as PickerProfile; // saju 포함 (serializeProfile)
+      setProfiles((prev) => [...prev, created]);
+      setSelectedId(created.id); // 방금 만든 사람 자동 선택
+      setAdding(false);
+    } catch {
+      setAddErr("연결이 잠시 흔들렸어. 다시 시도해줄래?");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     void (async () => {
@@ -183,16 +213,10 @@ export default function FortuneSajuPicker({
       {/* 사주 목록 (선택 전용) — lockPrimary 면 숨김 */}
       {!lockPrimary && (
         <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center mb-2">
             <div className="text-[12px] font-bold text-eye-purple">사주 목록</div>
-            <Link
-              href="/mypage"
-              className="text-[11px] text-text-light/60 underline"
-            >
-              내 정보에서 관리
-            </Link>
           </div>
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
+          <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20">
             {pagedProfiles.map((p) => {
               const isSelected = selectedId === p.id;
               return (
@@ -271,6 +295,36 @@ export default function FortuneSajuPicker({
                 </svg>
               </button>
             </div>
+          )}
+
+          {/* 새 사람 입력 — 저장 시 내 정보 사주 목록에도 반영(POST /api/profiles) */}
+          {adding ? (
+            <div className="bg-white rounded-2xl border border-lilac-mid/30 py-4 mt-3">
+              <ProfileForm
+                mode="acquaintance"
+                submitLabel="저장하고 선택"
+                loading={saving}
+                onSubmit={handleAddSubmit}
+              />
+              <div className="px-5">
+                <button
+                  onClick={() => setAdding(false)}
+                  className="w-full mt-2 py-2 text-[12px] text-text-light/70"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full py-3 mt-3 rounded-xl border border-dashed border-lilac-deep/40 text-lilac-deep font-bold text-[13px]"
+            >
+              + 새 사람 입력
+            </button>
+          )}
+          {addErr && (
+            <p className="text-[12px] text-red-500 text-center mt-2">{addErr}</p>
           )}
         </div>
       )}
