@@ -95,7 +95,7 @@ export default function PassSheet({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="패스 연장·구매"
+      aria-label="패스 · 오늘 대화"
     >
       <div
         className="w-full max-w-md mx-auto bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),16px)]"
