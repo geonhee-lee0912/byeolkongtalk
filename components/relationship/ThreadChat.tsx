@@ -9,6 +9,8 @@ import type { SensitiveCategory } from "@/lib/sensitive";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
 import { getSkill } from "@/lib/relationship/skills";
 import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
+import SkillSheet from "./SkillSheet";
+import { listActiveSkills } from "@/lib/relationship/skills";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -80,6 +82,7 @@ export default function ThreadChat({
   const [extendError, setExtendError] = useState<string | null>(null);
   // 위기 시그널 — chat 라우트가 X-Sensitive-* 헤더로 알림 (타로/사주와 동일 안전망)
   const [safety, setSafety] = useState<{ category: SensitiveCategory; severity: number } | null>(null);
+  const [showSkills, setShowSkills] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -308,6 +311,16 @@ export default function ThreadChat({
             </div>
           ) : canSend ? (
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSkills(true)}
+                aria-label="스킬 열기"
+                className="shrink-0 h-[44px] w-[44px] rounded-xl bg-lilac-soft/50 text-lilac-deep flex items-center justify-center active:scale-95 transition"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M11,15H6L13,1V9H18L11,23V15Z" />
+                </svg>
+              </button>
               <textarea
                 ref={inputRef}
                 value={input}
@@ -364,6 +377,18 @@ export default function ThreadChat({
           </div>,
           document.body
         )}
+
+      {showSkills && (
+        <SkillSheet
+          skills={listActiveSkills()}
+          busyKey={busyKey}
+          onLaunch={(k) => {
+            setShowSkills(false);
+            launch(k);
+          }}
+          onClose={() => setShowSkills(false)}
+        />
+      )}
     </div>
   );
 }
