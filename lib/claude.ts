@@ -338,28 +338,61 @@ export async function* streamChat(
           { type: "text" as const, text: systemMessage.dynamicPart },
         ];
 
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-5",
-    max_tokens: maxTokens,
-    // Sonnet 5 는 adaptive thinking 이 기본 ON — max_tokens(=thinking+응답 총합)를
-    // thinking 이 잠식해 [END] 마커·리포트 JSON 이 잘릴 수 있어 4.6 과 동일하게 OFF 유지.
-    thinking: { type: "disabled" },
-    system: systemBlocks,
-    messages,
-  });
+  // 빈 응답(0자 완료) 재시도 — Anthropic SDK 는 실패 요청(429/5xx)만 재시도하고
+  // "성공했지만 빈" 완료(모델이 end_turn 을 빈 본문으로 내거나 특정 입력에서 refusal 로
+  // 멈춤)는 재시도하지 않는다. 그대로 두면 라우트의 empty_assistant_stream 가드가 턴 전체를
+  // 실패시킨다 → 아직 텍스트를 방출하기 전이면(부분 출력 없음) 1회 재호출로 대부분(일시적
+  // hiccup)을 성공으로 전환. 정상(비어있지 않은) 경로는 첫 조각에서 확정되어 오버헤드 0.
+  const MAX_ATTEMPTS = 2;
+  let lastStopReason: string | null = null;
 
-  let stopReason: string | null = null;
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      yield event.delta.text;
-    } else if (event.type === "message_delta") {
-      stopReason = event.delta.stop_reason ?? stopReason;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const stream = anthropic.messages.stream({
+      model: "claude-sonnet-5",
+      max_tokens: maxTokens,
+      // Sonnet 5 는 adaptive thinking 이 기본 ON — max_tokens(=thinking+응답 총합)를
+      // thinking 이 잠식해 [END] 마커·리포트 JSON 이 잘릴 수 있어 4.6 과 동일하게 OFF 유지.
+      thinking: { type: "disabled" },
+      system: systemBlocks,
+      messages,
+    });
+
+    let yielded = false;
+    let stopReason: string | null = null;
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        yielded = true;
+        yield event.delta.text;
+      } else if (event.type === "message_delta") {
+        stopReason = event.delta.stop_reason ?? stopReason;
+      }
     }
+
+    // 텍스트를 한 조각이라도 냈으면 이 시도로 확정 — 이미 소비자에 전달돼 재시도 불가.
+    if (yielded) return stopReason;
+
+    // 0자 완료 — 왜 비었는지(stop_reason: refusal/end_turn/max_tokens 등) 남겨 진단 가능하게.
+    lastStopReason = stopReason;
+    void logWarn(
+      attempt < MAX_ATTEMPTS
+        ? "streamChat empty completion — retrying"
+        : "streamChat empty after all retries",
+      {
+        extra: {
+          attempt,
+          stopReason: stopReason ?? "unknown",
+          model: "claude-sonnet-5",
+        },
+      }
+    );
   }
-  return stopReason;
+
+  // 모든 시도가 0자 — 실제 턴 실패 처리는 각 라우트의 empty_assistant_stream 가드가
+  // 담당(readingId 등 리치 컨텍스트 포함). 여기선 stop_reason 만 남기고 stopReason 반환.
+  return lastStopReason;
 }
 
 /** 비스트리밍 — streamChat 을 끝까지 모아 전체 텍스트 한 번에 반환 (운세 리포트용). */
