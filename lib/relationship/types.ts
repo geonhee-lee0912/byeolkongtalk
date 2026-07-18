@@ -30,12 +30,12 @@ export const PASS_PLAN_BY_KIND: Record<PassKind, PassPlan> = Object.fromEntries(
   PASS_PLANS.map((p) => [p.kind, p])
 ) as Record<PassKind, PassPlan>;
 
-/** 일일 자유대화 소프트캡 + 연장(결정: 5별 → +5턴, 반복 가능) */
+/** 일일 자유대화 소프트캡 + 연장(결정: 5별 → +5턴, 횟수 제한 없이 반복) */
 export const DAILY_TURN_CAP = 20;
 export const EXTEND_COST = 5;
 export const EXTEND_TURNS = 5;
 
-/** 오늘 연장 횟수 → 허용 턴 수 */
+/** 오늘 연장 횟수 → 허용 턴 수. 상한 없음 — 연장 횟수는 무제한. */
 export function dailyTurnAllowance(todayExtendCount: number): number {
   return DAILY_TURN_CAP + EXTEND_TURNS * Math.max(0, todayExtendCount);
 }

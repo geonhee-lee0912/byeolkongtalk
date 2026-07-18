@@ -228,19 +228,21 @@ export default function RelationshipPage() {
               </div>
             </div>
 
-            {/* 하루 대화 한도 — 또렷하게 (무제한 오인·환불 분쟁 방지) */}
+            {/* 하루 대화 한도 — 또렷하게 (연장 무제한 명시 · 환불 분쟁 방지) */}
             <div className="mb-7 rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
               <p className="text-[13.5px] font-bold text-eye-purple flex items-center gap-1.5">
-                <span aria-hidden>📌</span> 하루 대화는 몇 번까지?
+                <span aria-hidden>📌</span> 하루에 얼마나 대화할 수 있어?
               </p>
               <p className="mt-2 text-[12.5px] text-eye-purple/90 leading-relaxed">
-                하루 <b>최대 {DAILY_TURN_CAP}번</b> 주고받을 수 있어. 한 번에 여러
-                문장씩이라 대략 <b>4천~8천 자</b> 분량 — 웬만한 고민 하나는 그날
-                깊이 풀어낼 수 있는 양이야.
+                패스가 있는 동안 하루 <b>{DAILY_TURN_CAP}번</b>은 그냥 주고받을 수
+                있어. 한 번에 여러 문장씩이라 대략 <b>4천~8천 자</b> 분량 — 웬만한
+                고민 하나는 그날 깊이 풀어낼 양이야.
               </p>
               <p className="mt-1.5 text-[11.5px] text-text-light leading-relaxed">
-                다 쓰면 {EXTEND_COST}별로 {EXTEND_TURNS}번씩 더 이어갈 수 있고,
-                매일 자정에 다시 채워져.
+                {DAILY_TURN_CAP}번을 다 써도 {EXTEND_COST}별마다 대화{" "}
+                {EXTEND_TURNS}번씩{" "}
+                <b className="text-eye-purple/80">횟수 제한 없이</b> 더 이어갈 수
+                있고, 매일 자정엔 {DAILY_TURN_CAP}번이 다시 채워져.
               </p>
             </div>
 
