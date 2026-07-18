@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
     self_profile_id: selfProfileId, partner_profile_id: partnerProfileId,
   }).select("id").single();
   if (rErr || !rel) {
+    // 이번 요청에서 만든 partner 프로필만 롤백 (orphan 방지)
+    if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
     await logError(rErr ?? new Error("relationship insert null"), { route: "/api/relationship", userId });
     return NextResponse.json({ error: "relationship_failed" }, { status: 500 });
   }
@@ -110,6 +112,7 @@ export async function POST(request: NextRequest) {
   }).select("id").single();
   if (tErr || !thread) {
     await supabase.from("relationships").delete().eq("id", rel.id);
+    if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
     return NextResponse.json({ error: "thread_failed" }, { status: 500 });
   }
   await supabase.from("relationships").update({ thread_reading_id: thread.id }).eq("id", rel.id);
