@@ -91,7 +91,7 @@ export default function TarotSpreadPage() {
       </div>
 
       {/* 감정 + 고민 컨텍스트 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-6">
+      <div className="w-full max-w-md mx-auto px-5 mb-5">
         <div className="p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-lilac-soft">
           <div className="flex items-center gap-2 mb-2">
             {option && <span className="text-lg">{option.emoji}</span>}
@@ -105,19 +105,29 @@ export default function TarotSpreadPage() {
         </div>
       </div>
 
+      {/* 디바이더 — 고민 내용 ↔ 리딩 목록 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-5" aria-hidden>
+        <div className="flex items-center gap-3">
+          <span className="flex-1 h-px bg-lilac-mid/40" />
+          <span className="text-gold text-[11px]">✦</span>
+          <span className="flex-1 h-px bg-lilac-mid/40" />
+        </div>
+      </div>
+
       {/* 별콩이 안내 (추천 없음 — 0697771 제품 결정) */}
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="flex items-center gap-2.5">
+      <div className="w-full max-w-md mx-auto px-5 mb-5">
+        <div className="flex flex-col items-center text-center gap-2">
           <Image
             src="/byeolkong-tarot.png"
             alt="별콩이"
-            width={36}
-            height={36}
-            className="rounded-full bg-cream-warm"
+            width={88}
+            height={88}
+            className="object-contain"
           />
-          <p className="text-[13px] text-eye-purple leading-snug">
-            <b className="text-lilac-deep">너의 고민을 내가 해결해 줄게.</b>
-            <br />
+          <p className="text-[15px] font-bold text-lilac-deep leading-snug">
+            너의 고민을 내가 해결해 줄게
+          </p>
+          <p className="text-[12.5px] text-text-light leading-snug -mt-1">
             카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨
           </p>
         </div>
@@ -167,6 +177,7 @@ export default function TarotSpreadPage() {
                     style={{ backgroundColor: info.accent }}
                   >
                     {info.label}
+                    {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
                   <span className="text-[11px] font-bold text-text-light">
                     ⭐ {info.starCost}별

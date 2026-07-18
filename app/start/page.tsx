@@ -297,16 +297,6 @@ function StartPageInner() {
           </div>
         )}
 
-        {/* 본체 진입점 — 선택 없이도 앱 전체를 둘러볼 수 있게 (소프트 내비: 하단탭·헤더 있는 본체로) */}
-        <div className="mx-5 mt-3">
-          <button
-            onClick={() => router.push("/")}
-            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13.5px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
-          >
-            별콩톡 전체 보러가기 →
-          </button>
-        </div>
-
         {/* 서비스 메뉴 — variant 분기 */}
         <section className="w-full px-5 py-6 flex flex-col gap-3">
         {variant === "counsel" && (
@@ -324,7 +314,6 @@ function StartPageInner() {
           <LoveDirectMenu
             tag={LOVE_VARIANT_TAG[variant]!}
             onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
-            onOther={() => router.push("/")}
           />
         )}
 
@@ -407,6 +396,16 @@ function StartPageInner() {
           </>
         )}
         </section>
+
+        {/* 본체 진입점 — 메뉴를 다 본 뒤의 탈출구 (소프트 내비: 하단탭·헤더 있는 본체로) */}
+        <div className="mx-5 mb-10">
+          <button
+            onClick={() => router.push("/")}
+            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13.5px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+          >
+            별콩톡 전체 보러가기 →
+          </button>
+        </div>
       </div>
       {welcomeOpen && <WelcomeStarsModal onStart={handleWelcomeClose} />}
     </main>
@@ -417,11 +416,9 @@ function StartPageInner() {
 function LoveDirectMenu({
   tag,
   onSelect,
-  onOther,
 }: {
   tag: EmotionTag;
   onSelect: (tag: EmotionTag) => void;
-  onOther: () => void;
 }) {
   const option = EMOTION_OPTIONS.find((o) => o.tag === tag);
   const otherOptions = LOVE_OPTIONS.filter((o) => o.tag !== tag);
@@ -451,6 +448,9 @@ function LoveDirectMenu({
         <p className="font-display text-[19px] text-eye-purple leading-snug">
           {tag}
         </p>
+        <p className="text-[12.5px] text-text-light leading-relaxed -mt-1.5">
+          {option.description}
+        </p>
         <button
           onClick={() => onSelect(tag)}
           className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
@@ -463,13 +463,6 @@ function LoveDirectMenu({
         다른 연애 고민이라면
       </p>
       <EmotionList options={otherOptions} onSelect={onSelect} />
-
-      <button
-        onClick={onOther}
-        className="text-[12.5px] text-text-light/80 hover:text-eye-purple transition text-center mt-1"
-      >
-        연애 말고 다른 고민이 있다면 →
-      </button>
     </>
   );
 }

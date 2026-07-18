@@ -35,7 +35,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "fortune",
-    label: "사주",
+    label: "사주톡",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
     // mdi star-four-points-outline / star-four-points

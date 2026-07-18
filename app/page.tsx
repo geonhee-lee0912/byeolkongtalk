@@ -11,7 +11,7 @@ import {
   OTHER_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
-import { fortuneTypeFromTag } from "@/lib/fortune/types";
+import { FORTUNE_CONFIG, fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
@@ -266,8 +266,7 @@ export default function Home() {
             </div>
             <p className="text-[12.5px] text-text-light leading-relaxed">
               고민을 입력하면 별콩이가 타로를 기반으로 고민 상담을 해줄거예요.
-              말하기 어려운 고민도 괜찮아요. 별빛처럼 조심스럽게 마음의 흐름을
-              읽어줄게요.
+              말하기 어려운 고민도 괜찮아요. 별빛처럼 마음의 흐름을 읽어줄게요.
             </p>
           </div>
 
@@ -345,8 +344,8 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[16px] flex items-center gap-1.5">
                 우리 궁합은 어떨까?
-                <span className="text-[10px] font-bold text-gold-soft bg-night px-2 py-0.5 rounded-full">
-                  사주
+                <span className="text-[11px] font-bold text-text-light">
+                  ⭐ {FORTUNE_CONFIG.compat.cost}별
                 </span>
               </p>
               <p className="text-[12.5px] text-text-light mt-0.5 leading-relaxed">
