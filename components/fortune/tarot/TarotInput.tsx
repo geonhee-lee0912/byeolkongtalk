@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import HeroBanner from "@/components/common/HeroBanner";
+import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 import {
   FORTUNE_CONFIG,
   TAROT_POSITIONS,
@@ -111,21 +113,24 @@ export default function TarotInput({ type }: { type: FortuneType }) {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center py-6 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-4 text-center">
-        <div className="text-[28px]">{cfg.emoji}</div>
-        <h1 className="text-[20px] font-bold text-eye-purple mt-1">
-          {cfg.label}
-        </h1>
-        <p className="text-[12px] text-text-light/80 mt-1">{cfg.tagline}</p>
-        {type === "tarot_daily" && freeRemaining !== null && (
-          <p className="text-[11px] text-gold-soft mt-1">
+    <main className="flex flex-1 flex-col items-center pb-6 w-full animate-fade-in">
+      <HeroBanner
+        image="/byeolkong-main.png"
+        gradient={FORTUNE_HERO_GRADIENT}
+        title={cfg.label}
+        subtitle={cfg.tagline}
+        compact
+      />
+
+      {type === "tarot_daily" && freeRemaining !== null && (
+        <div className="w-full max-w-md mx-auto px-5 mt-3 mb-1 text-center">
+          <p className="text-[11px] text-gold-soft">
             {freeRemaining > 0
               ? `무료 ${freeRemaining}회 남음`
               : `무료 소진 · ⭐${cfg.paidCost}별`}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       <CardDrawRitual
         cardCount={positions.length}

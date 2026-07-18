@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import HeroBanner from "@/components/common/HeroBanner";
+import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 
 interface DailyStatus {
   used: number;
@@ -132,19 +133,22 @@ export default function FortuneDailyPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
-        <div className="relative">
-          <Image src="/byeolkong-main.png" alt="별콩이" width={120} height={120} priority />
-        </div>
-        <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">
-          오늘의 운세
-        </h1>
-        <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
-          별콩이가 네 사주로
-          <br />
-          오늘 하루 흐름을 한 장으로 정리해줄게.
-        </p>
+    <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
+      <HeroBanner
+        image="/byeolkong-main.png"
+        gradient={FORTUNE_HERO_GRADIENT}
+        title="오늘의 운세"
+        subtitle={
+          <>
+            별콩이가 네 사주로
+            <br />
+            오늘 하루 흐름을 한 장으로 정리해줄게.
+          </>
+        }
+        compact
+      />
+
+      <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
         {birthLine && (
           <p className="mt-1.5 text-[12px] font-medium text-lilac-deep text-center">
             {birthLine}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { FORTUNE_LIST, FORTUNE_GRADIENTS, FORTUNE_HASHTAGS } from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import HeroBanner from "@/components/common/HeroBanner";
+import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 
 interface DailyStatus {
   used: number;
@@ -16,7 +17,12 @@ interface DailyStatus {
 
 export default function FortunePage() {
   const [daily, setDaily] = useState<DailyStatus | null>(null);
-  const items = FORTUNE_LIST;
+  // 오늘의 운세(daily·무료)를 맨 위로 — 나머지는 기존 순서 유지
+  const items = useMemo(() => {
+    const d = FORTUNE_LIST.filter((f) => f.type === "daily");
+    const rest = FORTUNE_LIST.filter((f) => f.type !== "daily");
+    return [...d, ...rest];
+  }, []);
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
@@ -26,20 +32,20 @@ export default function FortunePage() {
   }, []);
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-6">
-        <div className="relative">
-          <Image src="/byeolkong-main.png" alt="별콩이" width={110} height={110} priority />
-        </div>
-        <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">
-          사주 운세
-        </h1>
-        <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
-          길게 얘기할 시간 없을 땐,
-          <br />
-          별콩이가 한 장으로 정리해줄게.
-        </p>
-      </div>
+    <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
+      <HeroBanner
+        image="/byeolkong-main.png"
+        gradient={FORTUNE_HERO_GRADIENT}
+        title="사주 운세"
+        subtitle={
+          <>
+            길게 얘기할 시간 없을 땐,
+            <br />
+            별콩이가 한 장으로 정리해줄게.
+          </>
+        }
+        className="mb-6"
+      />
 
       <FortuneGeneratingList />
 
@@ -59,8 +65,8 @@ export default function FortunePage() {
             </span>
           </div>
           <p className="text-[12.5px] text-text-light leading-relaxed">
-            사주 운세 리포트는 대화가 아니라, 생일·고민을 입력하면 별콩이가 한 장의 리포트로
-            정리해주는 방식이에요. 가볍게 골라봐요.
+            사주 운세 리포트는 대화가 아니라, 생일을 입력하면 별콩이가 한 장의 리포트로
+            정리해주는 방식이니 가볍게 골라봐요.
           </p>
         </div>
       </div>

@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import DualSajuPicker from "@/components/fortune/DualSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
+import HeroBanner from "@/components/common/HeroBanner";
+import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 type CompatKind = "compat" | "compat_social";
@@ -120,18 +121,17 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const newPersonRelation = type === "compat_social" ? "friend" : "partner";
 
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
-        <div className="relative">
-          <Image src="/byeolkong-main.png" alt="별콩이" width={120} height={120} priority />
-        </div>
-        <h1 className="mt-4 font-display text-2xl font-bold text-eye-purple text-center">
-          {cfg.label}
-        </h1>
-        <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
-          {cfg.tagline}
-        </p>
-        <span className="mt-3 text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2.5 py-1 rounded-full">
+    <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
+      <HeroBanner
+        image="/byeolkong-main.png"
+        gradient={FORTUNE_HERO_GRADIENT}
+        title={cfg.label}
+        subtitle={cfg.tagline}
+        compact
+      />
+
+      <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
+        <span className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2.5 py-1 rounded-full">
           ⭐ {cfg.cost}
         </span>
       </div>
