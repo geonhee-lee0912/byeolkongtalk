@@ -558,3 +558,64 @@ ${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${buildTurnSignal
 
   return { staticPart, dynamicPart };
 }
+
+// ===== 관계(우리 사이) 도메인 =====
+let _cachedRelPersona: string | null = null;
+function getRelationshipPersona(): string {
+  if (_cachedRelPersona === null) {
+    _cachedRelPersona =
+      getCore() + "\n\n---\n\n" +
+      readFileSync(join(process.cwd(), "data", "persona", "byeolkong_relationship.md"), "utf-8");
+  }
+  return _cachedRelPersona;
+}
+
+export interface RelationshipTurnContext {
+  fileBlock: string;              // buildRelationshipFileBlock 결과
+  nickname?: string | null;
+  isFirstEver: boolean;          // 스레드 최초 진입(메시지 0)
+  checkinPrompt?: string | null; // pending 체크인 → 먼저 안부
+  dailyClose: boolean;           // 오늘 소프트캡 도달 → 하루 마무리 톤
+}
+
+export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
+  staticPart: string; dynamicPart: string;
+} {
+  const staticPart = getRelationshipPersona();
+  const nicknameLine = ctx.nickname?.trim() ? `\n[호칭(유저): ${ctx.nickname.trim()}]` : "";
+
+  const firstGuide = ctx.isFirstEver
+    ? `\n\n## 첫 진입 가이드\n관계 파일을 보고 {호칭}과의 지금 상황을 가볍게 짚으며 따뜻하게 열어. 처음 만난 낯선 상담이 아니라, 앞으로 이 관계를 계속 함께 볼 친구로. 무겁지 않게, 유저가 편하게 털어놓게.`
+    : "";
+  const checkinGuide = ctx.checkinPrompt
+    ? `\n\n## 복귀 안부 (먼저 물어보기)\n지난번에 이런 처방/약속이 있었어: "${ctx.checkinPrompt}". 이번 응답은 그것부터 자연스럽게 안부로 물어("저번에 ~ 해보기로 했잖아, 어떻게 됐어?"). 확인 후 대화를 이어가.`
+    : "";
+  const closeGuide = ctx.dailyClose
+    ? `\n\n## 오늘 마무리 톤 (하루 소프트캡 도달)\n오늘 나눈 대화가 충분히 쌓였어. 이번 응답은 오늘 얘기를 따뜻하게 매듭짓고 "내일 또 이어서 얘기하자"로 부드럽게 닫아. 단, [END] 마커는 절대 쓰지 마 — 스레드는 계속돼(내일 다시 열려). 새 주제를 크게 벌이지 말고 오늘 흐름을 정리.`
+    : "";
+
+  const dynamicPart = `---
+## 이번 세션 정보${nicknameLine}
+${ctx.fileBlock}
+---${firstGuide}${checkinGuide}${closeGuide}`;
+
+  return { staticPart, dynamicPart };
+}
+
+/** older 메시지 델타 요약 (haiku, 저비용). 이전 요약과 합쳐 갱신된 요약 반환. */
+export async function summarizeOlder(
+  prevSummary: string | null,
+  older: { role: "user" | "assistant"; content: string }[]
+): Promise<string> {
+  const convo = older.map((m) => `${m.role === "user" ? "유저" : "별콩이"}: ${m.content}`).join("\n");
+  const sys = `너는 연애 상담 대화의 기록 요약가야. 아래 [이전 요약]과 [새 대화]를 합쳐, 이 관계에서 오간 핵심(상황 변화·감정·별콩이 조언/처방·유저 반응)을 한국어 불릿 6~10개로 압축해. 사소한 잡담은 버리고, 나중에 대화를 이어갈 때 필요한 사실만. 200~500자.`;
+  const user = `[이전 요약]\n${prevSummary ?? "(없음)"}\n\n[새 대화]\n${convo}`;
+  const resp = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 700,
+    system: sys,
+    messages: [{ role: "user", content: user }],
+  });
+  const text = resp.content.find((b) => b.type === "text");
+  return text && text.type === "text" ? text.text.trim() : (prevSummary ?? "");
+}
