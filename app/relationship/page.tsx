@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
+import PassPanel from "@/components/relationship/PassPanel";
+import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
 import {
   DAILY_TURN_CAP,
   EXTEND_COST,
@@ -25,6 +27,25 @@ interface RelationshipData {
   partnerProfileId: string | null;
   threadReadingId: string | null;
   memo: unknown;
+}
+
+interface PassData {
+  kind: string;
+  expiresAt: string;
+}
+
+interface DailyData {
+  used: number;
+  allowance: number;
+  extendCount: number;
+}
+
+/** 패스 만료까지 남은 날짜 표기 (예: "패스 3일 남음", 오늘 만료면 "패스 오늘 만료"). */
+function formatPassDDay(expiresAt: string): string {
+  const diffMs = new Date(expiresAt).getTime() - Date.now();
+  if (diffMs <= 0) return "패스 오늘 만료";
+  const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  return `패스 ${days}일 남음`;
 }
 
 const SKILL_PREVIEWS = [
@@ -54,6 +75,9 @@ export default function RelationshipPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [relationship, setRelationship] = useState<RelationshipData | null>(null);
+  const [pass, setPass] = useState<PassData | null>(null);
+  const [daily, setDaily] = useState<DailyData | null>(null);
+  const [messages, setMessages] = useState<ThreadChatMsg[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const load = async () => {
@@ -70,6 +94,9 @@ export default function RelationshipPage() {
       return;
     }
     setRelationship((rel?.relationship as RelationshipData | null) ?? null);
+    setPass((rel?.pass as PassData | null) ?? null);
+    setDaily((rel?.daily as DailyData | null) ?? null);
+    setMessages((rel?.messages as ThreadChatMsg[] | undefined) ?? []);
     setLoading(false);
   };
 
@@ -92,28 +119,103 @@ export default function RelationshipPage() {
     );
   }
 
-  // 등록됨 — S2~S4 실제 스레드/패스 UI는 Stage 2b에서. 지금은 헤더 + 준비중 placeholder만.
+  // 등록됨 — S2(패스없음)/S3(활성)/S4(오늘 캡 도달) 실제 스레드/패스 UI
   if (relationship) {
-    return (
-      <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
-        <div className="w-full max-w-md mx-auto px-5">
-          <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-5 shadow-lg shadow-lilac-deep/30 text-center">
-            <p className="text-[12px] text-white/70 mb-1">우리 사이</p>
-            <h1 className="text-[22px] font-bold text-white">{relationship.label}</h1>
-            <p className="mt-2 inline-block text-[12px] font-bold text-gold-soft bg-white/10 rounded-full px-3 py-1">
-              {RELATIONSHIP_STATUS_LABELS[relationship.status]}
-            </p>
-          </div>
+    const hasPass = !!pass;
+    const capReached = !!daily && daily.used >= daily.allowance;
+    const showPartnerBanner = relationship.partnerProfileId === null;
 
-          <div className="mt-5 bg-cream-warm rounded-2xl p-6 border border-lilac-mid/20 text-center">
-            <p className="text-[14px] text-eye-purple font-bold mb-1.5">
-              준비 중이야
-            </p>
-            <p className="text-[13px] text-text-light leading-relaxed">
-              곧 별콩이랑 대화할 수 있어 — 조금만 기다려줘.
-            </p>
+    const headerCard = (
+      <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-5 shadow-lg shadow-lilac-deep/30 text-center">
+        <p className="text-[12px] text-white/70 mb-1">우리 사이</p>
+        <h1 className="text-[22px] font-bold text-white">{relationship.label}</h1>
+        <p className="mt-2 inline-block text-[12px] font-bold text-gold-soft bg-white/10 rounded-full px-3 py-1">
+          {RELATIONSHIP_STATUS_LABELS[relationship.status]}
+        </p>
+      </div>
+    );
+
+    const partnerBanner = showPartnerBanner && (
+      <div className="mt-3 flex items-center gap-2 rounded-xl border border-gold/50 bg-gold-soft/20 px-3.5 py-2.5">
+        <span className="text-[13px] shrink-0" aria-hidden>
+          💡
+        </span>
+        <p className="text-[11.5px] text-eye-purple leading-snug">
+          상대 생년월일이 없어 — 궁합 볼 때 필요해
+        </p>
+      </div>
+    );
+
+    // S2 — 활성 패스 없음: 히스토리(있으면 읽기전용) + 패스 패널이 주 CTA
+    if (!hasPass) {
+      return (
+        <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
+          <div className="w-full max-w-md mx-auto px-5">
+            {headerCard}
+            {partnerBanner}
+
+            <div className="mt-5">
+              {messages.length === 0 ? (
+                <p className="text-[13px] text-text-light text-center mb-4 leading-relaxed">
+                  아직 별콩이랑 나눈 얘기가 없어 — 패스를 시작하면 바로 이야기할 수
+                  있어.
+                </p>
+              ) : (
+                <p className="text-[13px] font-bold text-eye-purple text-center mb-4 leading-relaxed">
+                  패스가 만료됐어, 다시 이어가자
+                </p>
+              )}
+
+              {messages.length > 0 && (
+                <div className="mb-5 max-h-[40vh] overflow-y-auto rounded-2xl border border-lilac-mid/20 bg-cream-warm/50">
+                  <ThreadChat
+                    relationshipId={relationship.id}
+                    initialMessages={messages}
+                    canSend={false}
+                    capReached={false}
+                  />
+                </div>
+              )}
+
+              <PassPanel
+                relationshipId={relationship.id}
+                onPurchased={() => void load()}
+              />
+            </div>
           </div>
+        </main>
+      );
+    }
+
+    // S3(입력 가능) / S4(오늘 캡 도달 — 연장 칩) — 상단 컨텍스트는 고정, 대화는 내부 스크롤
+    return (
+      <main
+        className="flex flex-col items-stretch w-full min-h-0"
+        style={{
+          height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
+        }}
+      >
+        <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3">
+          {headerCard}
+          {partnerBanner}
+          {daily && pass && (
+            <div className="mt-3 flex items-center justify-between px-1 text-[11.5px] text-text-light">
+              <span>오늘 {Math.max(0, daily.allowance - daily.used)}번 남음</span>
+              <span>{formatPassDDay(pass.expiresAt)}</span>
+            </div>
+          )}
         </div>
+
+        <ThreadChat
+          className="flex-1 min-h-0"
+          relationshipId={relationship.id}
+          initialMessages={messages}
+          canSend={!capReached}
+          capReached={capReached}
+          onDailyCapReached={() => void load()}
+          onExtended={() => void load()}
+          onPassRequired={() => void load()}
+        />
       </main>
     );
   }

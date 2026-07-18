@@ -27,6 +27,15 @@ export async function GET() {
   const todayTurns = pass ? await getTodayThreadTurns(rel.thread_reading_id) : 0;
   const todayExtend = pass ? await getTodayExtendCount(userId) : 0;
 
+  // 스레드 메시지 히스토리 — 클라가 신규/재방문 판단 + 대화 렌더에 사용
+  const { data: msgRows } = rel.thread_reading_id
+    ? await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("reading_id", rel.thread_reading_id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
+
   return NextResponse.json({
     relationship: {
       id: rel.id, label: rel.label, status: rel.status,
@@ -37,6 +46,7 @@ export async function GET() {
     daily: pass
       ? { used: todayTurns, allowance: dailyTurnAllowance(todayExtend), extendCount: todayExtend }
       : null,
+    messages: msgRows ?? [],
   });
 }
 
