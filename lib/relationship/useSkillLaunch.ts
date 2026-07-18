@@ -1,7 +1,7 @@
 "use client";
 
 // lib/relationship/useSkillLaunch.ts — 스킬 실행 공용 launcher.
-// SkillChipRow(헤더 칩)와 ThreadChat([SKILL:key] 마커 칩) 양쪽에서 재사용 —
+// 스킬 시트(⚡ 입력창)와 ThreadChat([SKILL:key] 마커 칩) 양쪽에서 재사용 —
 // kind별 실행 경로(tarot_draw/compat/dialogue)를 여기 한 곳에서 관리.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";

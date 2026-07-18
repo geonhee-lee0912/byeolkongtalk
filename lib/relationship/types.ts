@@ -46,7 +46,7 @@ export interface RelationshipMemo {
   skill_log?: { skill: string; reading_id: string; summary: string; created_at: string }[];
 }
 
-/** SkillChipRow(tarot_draw 스킬) → /tarot/draw 로 넘기는 sessionStorage marker. */
+/** 스킬 런처(useSkillLaunch, tarot_draw) → /tarot/draw 로 넘기는 sessionStorage marker. */
 export interface RelSkillMarker {
   relationshipId: string;
   skillKey: string;

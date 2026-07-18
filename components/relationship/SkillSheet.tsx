@@ -26,7 +26,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="스킬"
+      aria-label="이런 것도 꺼내 쓸 수 있어"
     >
       <div
         className="w-full max-w-md mx-auto bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] pb-[max(env(safe-area-inset-bottom),16px)]"
