@@ -141,3 +141,91 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ id: rel.id, threadReadingId: thread.id, success: true });
 }
+
+interface PatchBody {
+  label?: string;
+  status?: RelationshipStatus;
+  partnerProfile?: unknown; // 상대 생년월일 신규/교체
+}
+
+// 관계 수정 — 호칭·관계상태·상대 생년월일
+export async function PATCH(request: NextRequest) {
+  const { userId } = await getSession();
+  if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
+
+  let body: PatchBody;
+  try { body = (await request.json()) as PatchBody; }
+  catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
+
+  const supabase = getServiceSupabase();
+  const { data: rel } = await supabase
+    .from("relationships")
+    .select("id, partner_profile_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!rel) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const updates: Record<string, unknown> = {};
+  if (body.label !== undefined) {
+    if (typeof body.label !== "string" || body.label.trim().length < 1 || body.label.length > 50)
+      return NextResponse.json({ error: "invalid_label" }, { status: 400 });
+    updates.label = body.label.trim();
+  }
+  if (body.status !== undefined) {
+    if (!VALID_STATUS.includes(body.status))
+      return NextResponse.json({ error: "invalid_status" }, { status: 400 });
+    updates.status = body.status;
+  }
+
+  // 상대 생년월일 신규/교체 (validateProfile 은 relationType 요구 → 주입, 저장은 'partner' 고정)
+  if (body.partnerProfile) {
+    const partnerInput =
+      typeof body.partnerProfile === "object" && body.partnerProfile !== null
+        ? { ...(body.partnerProfile as Record<string, unknown>), relationType: "partner" }
+        : body.partnerProfile;
+    const v = validateProfile(partnerInput);
+    if ("error" in v) return NextResponse.json({ error: v.error }, { status: 400 });
+    const profileFields = {
+      display_name: v.displayName,
+      relation_type: "partner",
+      birth_date: v.birthDate,
+      birth_time: v.birthTime,
+      is_lunar_input: v.isLunarInput,
+      is_leap_month: v.isLeapMonth,
+      gender: v.gender,
+    };
+    if (rel.partner_profile_id) {
+      const { error: uErr } = await supabase
+        .from("user_profiles")
+        .update({ ...profileFields, updated_at: new Date().toISOString() })
+        .eq("id", rel.partner_profile_id)
+        .eq("user_id", userId);
+      if (uErr) {
+        await logError(uErr, { route: "/api/relationship", userId, extra: { stage: "partner_update" } });
+        return NextResponse.json({ error: "partner_profile_failed" }, { status: 500 });
+      }
+    } else {
+      const { data: pRow, error: pErr } = await supabase
+        .from("user_profiles")
+        .insert({ user_id: userId, ...profileFields, is_primary: false })
+        .select("id")
+        .single();
+      if (pErr || !pRow) {
+        await logError(pErr ?? new Error("partner profile insert null"), { route: "/api/relationship", userId, extra: { stage: "partner_insert_patch" } });
+        return NextResponse.json({ error: "partner_profile_failed" }, { status: 500 });
+      }
+      updates.partner_profile_id = pRow.id;
+    }
+  }
+
+  if (Object.keys(updates).length > 0) {
+    updates.updated_at = new Date().toISOString();
+    const { error: rErr } = await supabase.from("relationships").update(updates).eq("id", rel.id);
+    if (rErr) {
+      await logError(rErr, { route: "/api/relationship", userId, extra: { stage: "relationship_update" } });
+      return NextResponse.json({ error: "update_failed" }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ success: true });
+}
