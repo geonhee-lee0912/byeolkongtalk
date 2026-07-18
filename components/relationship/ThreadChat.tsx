@@ -76,7 +76,8 @@ export default function ThreadChat({
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // capReached prop은 마운트 시점 초기값일 뿐 — 이후 전환(캡 도달/연장)은 이 상태가 단일 진실 원천.
+  // capReachedLocal: 전송 캡도달/인라인 연장은 즉시 로컬로 반영(낙관적) + 아래 effect가
+  // capReached prop 변경 시 재동기화 — 부모(prop)가 최종 단일 진실 원천.
   const [capReachedLocal, setCapReachedLocal] = useState(capReached);
   const [extending, setExtending] = useState(false);
   const [extendError, setExtendError] = useState<string | null>(null);
@@ -93,6 +94,12 @@ export default function ThreadChat({
     if (!el) return;
     requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight }));
   }, [messages.length, liveText]);
+
+  // capReached prop이 바뀔 때마다 로컬 상태를 재동기화 — PassSheet 등 다른 연장 진입점이
+  // 부모 load()를 트리거해 prop이 바뀐 경우에도 반영되도록 (중복 청구 방지).
+  useEffect(() => {
+    setCapReachedLocal(capReached);
+  }, [capReached]);
 
   const autoResize = () => {
     const el = inputRef.current;
