@@ -41,6 +41,8 @@ export interface HeroBannerProps {
   className?: string;
   /** 서브페이지용 — 상하 padding 축소 + 타이틀 폰트 소폭 축소 */
   compact?: boolean;
+  /** 히어로 안에 표시할 가격/뱃지 칩 (예: "⭐ 20") */
+  badge?: ReactNode;
 }
 
 export default function HeroBanner({
@@ -52,10 +54,11 @@ export default function HeroBanner({
   gradient,
   className = "",
   compact = false,
+  badge,
 }: HeroBannerProps) {
   return (
     <section
-      className={`w-full relative overflow-hidden rounded-b-3xl ${className}`}
+      className={`w-full max-w-md mx-auto relative overflow-hidden rounded-b-3xl ${className}`}
       style={{ background: gradient }}
     >
       {/* 별 파티클 + 블러 블롭 */}
@@ -107,6 +110,12 @@ export default function HeroBanner({
           <p className="mt-2 text-[13px] text-white/80 text-center leading-relaxed">
             {subtitle}
           </p>
+        )}
+
+        {badge && (
+          <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[12px] font-bold text-white backdrop-blur-sm">
+            {badge}
+          </span>
         )}
       </div>
     </section>

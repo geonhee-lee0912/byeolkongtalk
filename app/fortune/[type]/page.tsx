@@ -137,14 +137,10 @@ export default function FortuneInputPage() {
         gradient={FORTUNE_HERO_GRADIENT}
         title={cfg.label}
         subtitle={cfg.tagline}
+        badge={`⭐ ${cfg.cost}`}
         compact
+        className="mb-6"
       />
-
-      <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
-        <span className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2.5 py-1 rounded-full">
-          ⭐ {cfg.cost}
-        </span>
-      </div>
 
       <FortuneSajuPicker
         onConfirm={openConfirm}

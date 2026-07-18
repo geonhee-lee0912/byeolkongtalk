@@ -216,7 +216,7 @@ export default function TarotSpreadPage() {
       </div>
 
       {/* 시작 버튼 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-6">
+      <div className="w-full max-w-md mx-auto px-5 mt-2">
         <button
           onClick={handleStart}
           disabled={!selected}
