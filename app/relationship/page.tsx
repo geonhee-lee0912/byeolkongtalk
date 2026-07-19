@@ -94,7 +94,13 @@ export default function RelationshipPage() {
     setRelationship((rel?.relationship as RelationshipData | null) ?? null);
     setPass((rel?.pass as PassData | null) ?? null);
     setDaily((rel?.daily as DailyData | null) ?? null);
-    setMessages((rel?.messages as ThreadChatMsg[] | undefined) ?? []);
+    setMessages(
+      (
+        (rel?.messages as
+          | { role: "user" | "assistant"; content: string; created_at?: string }[]
+          | undefined) ?? []
+      ).map((m) => ({ role: m.role, content: m.content, createdAt: m.created_at }))
+    );
     setLoading(false);
   };
 

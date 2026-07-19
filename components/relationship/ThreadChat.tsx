@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import ChatBubble from "@/components/tarot/ChatBubble";
@@ -15,6 +15,8 @@ import { listActiveSkills } from "@/lib/relationship/skills";
 export interface ThreadChatMsg {
   role: "user" | "assistant";
   content: string;
+  /** ISO 타임스탬프 — 날짜 구분선용. 없으면 구분선 생략 */
+  createdAt?: string;
 }
 
 // 완성된 마커 — 화면에 절대 노출 금지 (백엔드 전용 기록/제안 마커)
@@ -32,6 +34,30 @@ function displayText(raw: string): string {
 function extractSkillKey(raw: string): string | null {
   const m = SKILL_MARKER_CAPTURE.exec(raw);
   return m ? m[1] : null;
+}
+
+/** KST 날짜 키 — 메시지 간 날짜 경계 비교용. createdAt 없으면 null. */
+function dayKey(createdAt?: string): string | null {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Seoul",
+  });
+}
+
+/** 날짜 구분선 라벨 — "2026년 7월 19일 일요일" (KST) */
+function dayLabel(createdAt: string): string {
+  return new Date(createdAt).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: "Asia/Seoul",
+  });
 }
 
 interface ThreadChatProps {
@@ -111,7 +137,10 @@ export default function ThreadChat({
   const send = async (text: string) => {
     if (!text.trim() || sending || capReachedLocal || !canSend) return;
     setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: text, createdAt: new Date().toISOString() },
+    ]);
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
     setSending(true);
@@ -156,7 +185,10 @@ export default function ThreadChat({
       }
 
       if (acc.trim()) {
-        setMessages((prev) => [...prev, { role: "assistant", content: acc }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: acc, createdAt: new Date().toISOString() },
+        ]);
       }
       setLiveText("");
       setSending(false);
@@ -233,39 +265,62 @@ export default function ThreadChat({
           )}
 
           {messages.map((msg, i) => {
+            // 날짜 경계 — 직전 메시지와 KST 날짜가 다르면(또는 첫 메시지) 가운데 날짜 칩.
+            const curKey = dayKey(msg.createdAt);
+            const prevKey = i > 0 ? dayKey(messages[i - 1].createdAt) : null;
+            const dateDivider =
+              curKey !== null && curKey !== prevKey ? (
+                <div className="flex justify-center my-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/50 px-3 py-1 text-[11px] font-medium text-text-light/80">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d="M19,4H18V2H16V4H8V2H6V4H5A2,2 0 0,0 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z" />
+                    </svg>
+                    {dayLabel(msg.createdAt!)}
+                  </span>
+                </div>
+              ) : null;
+
             if (msg.role === "user") {
-              return <ChatBubble key={i} role="user" content={msg.content} />;
+              return (
+                <Fragment key={i}>
+                  {dateDivider}
+                  <ChatBubble role="user" content={msg.content} />
+                </Fragment>
+              );
             }
             // 완료된 assistant 메시지에 [SKILL:key] 마커가 있으면 그 자리에 실행 칩 노출.
             const skillKey = extractSkillKey(msg.content);
             const skill = skillKey ? getSkill(skillKey) : null;
             return (
-              <div key={i}>
-                <ChatBubble
-                  role="assistant"
-                  content={displayText(msg.content)}
-                  showAvatar
-                  showName
-                />
-                {skill && skill.active && (
-                  <div className="flex justify-start pl-10 -mt-1 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => launch(skill.key)}
-                      disabled={busyKey === skill.key}
-                      className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
-                    >
-                      <span aria-hidden>{skill.emoji}</span>
-                      <span className="text-[12px] font-bold text-eye-purple">
-                        {busyKey === skill.key ? "여는 중…" : skill.label}
-                      </span>
-                      <span className="text-[11px] font-bold text-lilac-deep">
-                        ⭐{skill.starCost}
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <Fragment key={i}>
+                {dateDivider}
+                <div>
+                  <ChatBubble
+                    role="assistant"
+                    content={displayText(msg.content)}
+                    showAvatar
+                    showName
+                  />
+                  {skill && skill.active && (
+                    <div className="flex justify-start pl-10 -mt-1 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => launch(skill.key)}
+                        disabled={busyKey === skill.key}
+                        className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
+                      >
+                        <span aria-hidden>{skill.emoji}</span>
+                        <span className="text-[12px] font-bold text-eye-purple">
+                          {busyKey === skill.key ? "여는 중…" : skill.label}
+                        </span>
+                        <span className="text-[11px] font-bold text-lilac-deep">
+                          ⭐{skill.starCost}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Fragment>
             );
           })}
 
