@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   EMOTION_OPTIONS,
   PENDING_KEY,
@@ -19,7 +20,6 @@ import {
 } from "@/lib/tarot/spreads";
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
-import HeroBanner from "@/components/common/HeroBanner";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
 // 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
@@ -85,24 +85,53 @@ export default function TarotSpreadPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
-      {/* 히어로 — 타로 팔레트 (짙은 보라 → 마젠타/로즈) */}
-      <HeroBanner
-        image="/byeolkong-tarot.png"
-        imageSize={104}
-        gradient={TAROT_HERO_GRADIENT}
-        title="너의 고민을 내가 해결해 줄게"
-        subtitle="카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨"
-      />
-
-      <div className="w-full max-w-md mx-auto px-5 mt-4 mb-5">
-        <Link href="/concern" className="text-[12px] text-text-light/70">
-          ‹ 고민 다시 적기
+      {/* 최상단 — 고민 다시 적기 */}
+      <div className="w-full max-w-md mx-auto px-5 pt-3">
+        <Link
+          href="/concern"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 18 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <polyline points="11.5 3 5 9 11.5 15" />
+          </svg>
+          <span>고민 다시 적기</span>
         </Link>
       </div>
 
-      {/* 감정 + 고민 컨텍스트 — 다크톤 (히어로와 톤 통일) */}
+      {/* 별콩이 + 타이틀 + 설명 (히어로 대체) */}
+      <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mt-2 mb-5">
+        <Image
+          src="/byeolkong-tarot.png"
+          alt="별콩이"
+          width={96}
+          height={96}
+          priority
+          className="drop-shadow-lg"
+        />
+        <h1 className="font-display text-[24px] text-eye-purple text-center mt-2 tracking-wide leading-snug">
+          너의 고민을 내가 해결해 줄게
+        </h1>
+        <p className="text-[12px] text-text-light text-center mt-1">
+          카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨
+        </p>
+      </div>
+
+      {/* 고민 내용 — 히어로 팔레트 배경 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="p-4 bg-night/90 backdrop-blur-sm rounded-2xl border border-lilac-mid/25">
+        <div
+          className="p-4 rounded-2xl border border-lilac-mid/25"
+          style={{ background: TAROT_HERO_GRADIENT }}
+        >
           <div className="flex items-center gap-2 mb-2">
             {option && <span className="text-lg">{option.emoji}</span>}
             <span className="text-[13px] font-bold text-gold-soft">
@@ -115,13 +144,13 @@ export default function TarotSpreadPage() {
         </div>
       </div>
 
-      {/* 디바이더 — 고민 내용 ↔ 리딩 목록 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-5" aria-hidden>
-        <div className="flex items-center gap-3">
-          <span className="flex-1 h-px bg-lilac-mid/40" />
-          <span className="text-gold text-[11px]">✦</span>
-          <span className="flex-1 h-px bg-lilac-mid/40" />
-        </div>
+      {/* 디바이더 — 리딩 방법 고르기 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center gap-3">
+        <span className="flex-1 h-px bg-lilac-mid/30" />
+        <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+          리딩 방법 고르기
+        </span>
+        <span className="flex-1 h-px bg-lilac-mid/30" />
       </div>
 
       {/* 스프레드 카드 */}

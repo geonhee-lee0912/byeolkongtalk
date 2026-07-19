@@ -7,9 +7,7 @@ import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
-import HeroBanner from "@/components/common/HeroBanner";
-import HeroDivider from "@/components/common/HeroDivider";
-import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
+import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 export default function FortuneInputPage() {
@@ -133,16 +131,11 @@ export default function FortuneInputPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
-      <HeroBanner
-        image="/byeolkong-main.png"
-        gradient={FORTUNE_HERO_GRADIENT}
+      <FortuneReportHeader
         title={cfg.label}
         subtitle={cfg.tagline}
-        badge={`⭐ ${cfg.cost}`}
-        compact
+        cost={cfg.cost}
       />
-
-      <HeroDivider />
 
       <FortuneSajuPicker
         onConfirm={openConfirm}

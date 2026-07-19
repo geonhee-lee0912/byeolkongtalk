@@ -6,9 +6,7 @@ import Link from "next/link";
 import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
-import HeroBanner from "@/components/common/HeroBanner";
-import HeroDivider from "@/components/common/HeroDivider";
-import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
+import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
 
 interface DailyStatus {
   used: number;
@@ -135,9 +133,7 @@ export default function FortuneDailyPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
-      <HeroBanner
-        image="/byeolkong-main.png"
-        gradient={FORTUNE_HERO_GRADIENT}
+      <FortuneReportHeader
         title="오늘의 운세"
         subtitle={
           <>
@@ -146,10 +142,7 @@ export default function FortuneDailyPage() {
             오늘 하루 흐름을 한 장으로 정리해줄게.
           </>
         }
-        compact
       />
-
-      <HeroDivider />
 
       <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
         {birthLine && (

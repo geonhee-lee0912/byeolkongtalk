@@ -133,7 +133,7 @@ export default function ConcernPage() {
         {/* 고민 입력 — 별콩이 채팅창 */}
         <div className="w-full max-w-md mx-auto px-5 mb-6">
           <div
-            className="relative rounded-3xl border border-lilac-deep/30 overflow-hidden"
+            className="relative rounded-2xl border border-lilac-deep/30 overflow-hidden"
             style={{
               background:
                 "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)",

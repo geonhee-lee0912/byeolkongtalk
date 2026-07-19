@@ -340,7 +340,7 @@ export default function Home() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[16px] flex items-center gap-1.5">
-                우리 사주 궁합은 어떨까?
+                우리 사주 연애 궁합은 어떨까?
                 <span className="text-[11px] font-bold text-text-light">
                   ⭐ {FORTUNE_CONFIG.compat.cost}별
                 </span>
