@@ -88,10 +88,11 @@ export function computeTurnSignals(
   const stripped = (lastAssistant ?? "")
     .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi, "")
     .trim();
-  // "?"로 끝나거나, 마지막 "?" 뒤 꼬리가 짧으면(부연 한 문장) 기능적으로 질문 마무리
+  // "?"로 끝나거나, 마지막 "?" 뒤 꼬리가 짧으면(부연 한두 문장) 기능적으로 질문 마무리.
+  // 110자: 별콩이가 질문 뒤 설명 꼬리를 붙여 60자 가드를 빠져나가던 심문피로 누수 봉합(3d QA).
   const lastQ = Math.max(stripped.lastIndexOf("?"), stripped.lastIndexOf("？"));
   const lastTurnEndedWithQuestion =
-    lastQ >= 0 && stripped.length - lastQ - 1 <= 60;
+    lastQ >= 0 && stripped.length - lastQ - 1 <= 110;
 
   // 유저 단답 2연속 (직전 user 메시지 + 이번 발화 둘 다 짧음)
   let prevUser: string | null = null;
