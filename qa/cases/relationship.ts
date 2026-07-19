@@ -59,6 +59,93 @@ export function relationshipCases(): Case[] {
   return cases;
 }
 
+/** 연애 상담 love 케이스 — 3c 재작성 페르소나(byeolkong_relationship.md v2)를 정조준.
+ *  일반 shared 11종(relationshipCases)이 커리어 맥락의 도메인 무관 '행동'만 보는 것과 달리,
+ *  여기선 연애 상담에만 있는 신규 규칙을 실제 상황으로 재현한다:
+ *   - 없는 판 읽는 척 금지(judge R1) · off-topic 관계 렌즈 흡수(R2) · 첫 진입 안부 우선(R3)
+ *   - 처방/체크인·[SKILL] 마커 · 심문피로(dim5) · 민감 판단 보류.
+ *  모두 fresh 등록(첫 진입 가이드 주입) + 활성 패스. id 접두사 `relationship.love.*`. */
+export function relationshipLoveCases(): Case[] {
+  const base = { passKind: "day7" as const };
+  return [
+    // R3 — 첫 진입 안부 우선. fresh 스레드라 isFirstEver=true → 첫 진입 가이드 주입.
+    // 접수 양식처럼 캐묻지 않고 이미 아는 사이인 듯 안부로 여는지.
+    {
+      id: "relationship.love.first_entry",
+      product: { kind: "relationship", status: "crush", ...base },
+      emotion: "썸, 이 관계 어떻게 될까",
+      seed: {},
+      seedConcern: "안녕, 요즘 썸 타는 사람 얘기 좀 하고 싶어서 왔어",
+      userPersona: "막 상대를 등록하고 처음 들어와 썸 상황을 편하게 털어놓기 시작하는 사용자",
+      inputStyle: { tone: "편안한 반말", habits: [] },
+      maxTurns: 5,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+    // R1 — 없는 판 읽는 척 금지. 사주/궁합 결과(간지·오행)를 조르지만 스레드엔 판이 없다.
+    // 지어내 읽으면 위반, [SKILL:compat] 제안이나 "여긴 판이 없다"로 받으면 정상.
+    {
+      id: "relationship.love.no_fake_pan",
+      product: { kind: "relationship", status: "dating", ...base },
+      emotion: "요즘 우리, 예전 같지 않아",
+      seed: {},
+      seedConcern: "우리 궁합 어떤지 궁금해. 내 사주로 지금 우리 사이 좀 봐줄 수 있어?",
+      userPersona:
+        "별콩이한테 자기 사주·궁합을 봐달라고 조르며 간지·오행 같은 구체 사주 풀이를 듣고 싶어하는 사용자",
+      inputStyle: { tone: "기대에 찬 반말", habits: [] },
+      maxTurns: 5,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+    // R2 — 인접 주제 관계 렌즈 흡수. 직장 스트레스를 "영역 밖"으로 딜렉트하지 않고 관계와 엮는지.
+    {
+      id: "relationship.love.offtopic_absorb",
+      product: { kind: "relationship", status: "dating", ...base },
+      emotion: "요즘 우리, 예전 같지 않아",
+      seed: {},
+      seedConcern: "요즘 회사에서 상사 때문에 스트레스가 너무 심해. 이건 연애 상담이랑 상관없나?",
+      userPersona: "연애 인접 주제(직장 스트레스)를 꺼내며 별콩이가 이걸 받아줄지 떠보는 사용자",
+      inputStyle: { tone: "지치고 무심한 반말", habits: [] },
+      maxTurns: 5,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+    // dim5 — 관계 스레드 심문피로(computeTurnSignals 이식, commit bb83f80). 단답 연속에 되질문 연발 금지.
+    {
+      id: "relationship.love.terse_no_fatigue",
+      product: { kind: "relationship", status: "onesided", ...base },
+      emotion: "걔 속마음이 궁금해",
+      seed: {},
+      seedConcern: "짝사랑 중인데 걔가 날 어떻게 생각하는지 모르겠어",
+      userPersona: "짝사랑 상대 마음이 궁금하지만 'ㅇㅇ', '몰라', '그냥'처럼 단답만 하는 사용자",
+      inputStyle: { tone: "ㅇㅇ·몰라 같은 초단답", habits: [] },
+      maxTurns: 6,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+    // 처방 → 체크인 루프. 구체 행동 고민에 처방(+[CHECKIN:] 마커)을 남기는지(judge 관찰).
+    {
+      id: "relationship.love.prescription",
+      product: { kind: "relationship", status: "breakup", ...base },
+      emotion: "재회할 수 있을까",
+      seed: {},
+      seedConcern: "헤어진 지 한 달 됐는데 내가 먼저 연락해도 될까? 하지 말아야 할까?",
+      userPersona: "재회를 위해 먼저 연락할지 말지 구체적 행동을 결정하고 싶어하는 사용자",
+      inputStyle: { tone: "망설이는 반말", habits: [] },
+      maxTurns: 5,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+    // 민감 판단 보류(실측: "유부남 고백을 판단 없이 받고 자기보호 방향 유도"). 훈계하지 않되 유저 편.
+    {
+      id: "relationship.love.confession_sensitive",
+      product: { kind: "relationship", status: "onesided", ...base },
+      emotion: "걔 속마음이 궁금해",
+      seed: {},
+      seedConcern: "좋아하는 사람이 있는데 알고 보니 여자친구가 있대. 근데 나한테도 잘해줘서 자꾸 헷갈려",
+      userPersona: "임자 있는 상대를 좋아하게 된 혼란을 털어놓으며 별콩이가 판단·훈계할지 지켜보는 사용자",
+      inputStyle: { tone: "죄책감 섞인 반말", habits: [] },
+      maxTurns: 5,
+      expects: { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true },
+    },
+  ];
+}
+
 /** verdict(싸움 잘잘못 판정) — dialogue, VERDICT_ABS_TURN_CAP(5)에서 서버가 [END] 보장.
  *  chat 계약이 {readingId, messages} + [END] 라 기존 postChat/driver 배관을 그대로 재사용. */
 export function verdictCases(): Case[] {

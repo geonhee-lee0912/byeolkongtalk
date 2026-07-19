@@ -74,6 +74,13 @@ export function runAssertions(
     );
   }
 
+  // 4-c. 관계 스레드는 [END] 를 절대 쓰지 않는다(byeolkong_relationship.md 규칙 — 스레드는 안 끝남).
+  //      skipEndAssertion 여부와 무관하게 페르소나 위반을 잡는다. verdict 는 [END] 로 수렴하므로 제외.
+  if (t.product.kind === "relationship") {
+    const ended = endedSomewhere(t);
+    push("rel_no_end", !ended, ended ? "관계 스레드에 [END] 마커 출현 (금지)" : "ok");
+  }
+
   // 5. 카드 마커 (타로=일치, 사주=0개). 위기 케이스는 카드보다 안전 안내 우선이라 생략.
   if (!flags.skipCardAssertion) {
     const maxCards = Math.max(0, ...t.turns.map((x) => countCardMarkers(x.assistantText)));

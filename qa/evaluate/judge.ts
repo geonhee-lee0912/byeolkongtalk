@@ -16,6 +16,15 @@ const RUBRIC = [
   "7. 마무리 적절성 — (a) 사용자 직전 발화가 새 질문/미해결 고민인데 무시하고 [END]로 닫지 않았는가 (b) 작별이 갑작스럽거나 사용자를 내치는 톤이 아닌가 (c) 마무리 지시 전에 작별 뉘앙스('오늘 얘기 고마워' 류)를 미리 내지 않았는가 (예외 2가지: ⑴ 사용자가 별콩이가 안내한 다른 상담/이어가기를 수락한 직후(\"그거 볼래\", \"예약할게\" 류)의 따뜻한 한두 문장 + [END]는 위반이 아니다 — 설계된 전환이다. ⑵ 대화 후반의 마무리 턴에서 직전 질문/불만에 짧게라도 방향을 준 다음 그레이스풀하게 닫은 것은 위반이 아니다 — 시스템이 지시한 종료다. 방향도 안 주고 무시하며 닫은 경우만 위반.)",
 ];
 
+// 연애 상담(관계 스레드) 전용 차원 — 3c 재작성 페르소나(byeolkong_relationship.md v2) 규칙.
+// product.kind === "relationship" 일 때만 위 7차원에 이어 붙는다. verdict 은 [END] 수렴이라 제외.
+const REL_RUBRIC = [
+  "R1. 없는 판을 지어내지 않음 — 연애 상담 스레드엔 사주판·타로 카드 데이터가 없다. '네 사주를 보면', '카드가 말하길', 구체 간지·오행·카드 이름처럼 존재하지 않는 판을 지어내 읽으면 위반. 근거는 유저가 한 말·관계 맥락이어야 한다. 사주·타로가 필요한 주제를 [SKILL:...] 마커로 제안하는 건 정상(위반 아님)",
+  "R2. 인접 주제 관계 렌즈 흡수 — 유저가 일·가족·건강 등 연애 인접 주제를 꺼냈을 때 '그건 내 영역 밖이야/못 봐줘' 식으로 딜렉트하면 위반. 관계와 엮어 받아야 한다 (코드 짜줘·번역 같은 완전 무관 요청을 부드럽게 관계로 되돌리는 건 정상)",
+  "R3. 첫 진입/복귀 안부 우선 — 스레드 첫 진입이나 복귀 턴에서 접수 양식처럼 상황을 처음부터 캐묻지 않고, 이미 아는 사이인 듯 안부로 자연스럽게 열었는가 (진행 중인 턴엔 해당 없음 — 통과 처리)",
+  "R4. 스레드는 끝나지 않음 — 응답에 [END] 마커가 있거나, '오늘은 여기까지/다음에 또 봐' 식으로 유저가 원하지 않았는데 대화를 닫으려 하면 위반. (세션 정보에 '하루 마무리 톤' 지시가 온 경우의 '내일 또 이어서'는 정상)",
+];
+
 function renderTranscript(t: Transcript): string {
   return t.turns
     .map((turn, i) => `### 턴 ${i + 1}\n[사용자] ${turn.userText}\n[별콩이] ${turn.assistantText}`)
@@ -23,12 +32,14 @@ function renderTranscript(t: Transcript): string {
 }
 
 export function buildJudgePrompt(t: Transcript): string {
+  // 연애 상담(관계 스레드)은 신규 규칙 R1~R4 를 7차원에 이어 붙인다.
+  const rubric = t.product.kind === "relationship" ? [...RUBRIC, ...REL_RUBRIC] : RUBRIC;
   return [
     "너는 운세 상담 챗봇 '별콩이'의 응답 품질을 평가하는 엄격한 심판이야.",
     "아래 대화를 읽고, 별콩이(상담사)의 응답들이 각 화법 원칙을 지켰는지 차원별로 판정해라.",
     "",
     "## 평가 차원",
-    ...RUBRIC,
+    ...rubric,
     "",
     "## 대화 종료 사유",
     t.finishReason,
@@ -37,7 +48,8 @@ export function buildJudgePrompt(t: Transcript): string {
     renderTranscript(t),
     "",
     "## 출력 — JSON 하나만 (코드펜스/설명 금지)",
-    '{"dimensions":[{"dimension":"결과 확언 금지","pass":true,"evidence":"근거 또는 위반 인용"}, ...7개],"summary":"한 줄 총평"}',
+    '{"dimensions":[{"dimension":"결과 확언 금지","pass":true,"evidence":"근거 또는 위반 인용"}, ...위 평가 차원마다 하나씩 전부],"summary":"한 줄 총평"}',
+    "위 평가 차원(번호 붙은 항목)마다 정확히 하나씩, 빠짐없이 판정해라.",
     "pass는 별콩이가 원칙을 지켰으면 true. 위반이면 false + evidence에 위반 문장 인용.",
   ].join("\n");
 }
