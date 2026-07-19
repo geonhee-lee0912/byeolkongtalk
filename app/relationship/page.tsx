@@ -131,7 +131,7 @@ export default function RelationshipPage() {
 
     const headerCard = (
       <div
-        className="rounded-2xl px-3.5 py-1 min-h-[48px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
+        className="rounded-2xl px-3.5 h-[48px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
         style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
       >
         <div className="min-w-0">
@@ -145,7 +145,7 @@ export default function RelationshipPage() {
               type="button"
               onClick={() => setShowEditModal(true)}
               aria-label="관계 정보 수정"
-              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition"
+              className="shrink-0 w-6 h-6 mt-[1px] rounded-full flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition"
             >
               <svg
                 width="13"
