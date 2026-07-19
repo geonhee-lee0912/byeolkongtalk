@@ -130,36 +130,45 @@ export default function RelationshipPage() {
         : null;
 
     const headerCard = (
-      <div className="bg-white rounded-2xl px-4 py-2.5 border border-lilac-soft shadow-sm flex items-center gap-2.5">
+      <div
+        className="rounded-2xl px-3.5 py-2.5 border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
+        style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
+      >
+        {/* 프로필 이니셜 아바타 (파트너 호칭 첫 글자) */}
+        <span
+          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-lilac-deep/50 text-white font-bold text-[15px]"
+          aria-hidden
+        >
+          {relationship.label.trim().charAt(0) || "❤"}
+        </span>
         <div className="min-w-0">
-          <p className="text-[10.5px] text-text-light leading-none">연애 상담</p>
-          <div className="flex items-center gap-1 mt-1 text-[14px] text-eye-purple">
+          <p className="text-[10.5px] text-white/55 leading-none">
+            {RELATIONSHIP_STATUS_LABELS[relationship.status]}
+          </p>
+          <div className="flex items-center gap-1 mt-1 text-[14px] text-white">
             <span className="font-bold truncate">{relationship.label}</span>
-            <span aria-hidden style={{ color: "#C4488A" }}>❤</span>
-            <span className="shrink-0 text-text-light">
-              {RELATIONSHIP_STATUS_LABELS[relationship.status]}
-            </span>
+            <span aria-hidden style={{ color: "#F4A6C0" }}>❤</span>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setShowEditModal(true)}
           aria-label="관계 정보 수정"
-          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-lilac-deep hover:bg-lilac-soft/40 active:scale-95 transition"
+          className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center self-center text-white/70 hover:bg-white/10 active:scale-95 transition"
         >
-          <span aria-hidden className="text-[13px]">✏️</span>
+          <span aria-hidden className="text-[12px]">✏️</span>
         </button>
         <span className="flex-1" />
         {passStatus && (
           <button
             type="button"
             onClick={() => setShowPassSheet(true)}
-            className="shrink-0 whitespace-nowrap text-[11px] text-text-light active:scale-95 transition"
+            className="shrink-0 whitespace-nowrap text-[11px] active:scale-95 transition"
           >
-            <span className="font-bold text-eye-purple">{passStatus}</span>
-            <span className="mx-1.5 text-lilac-mid/60">|</span>
-            <span className="font-bold text-lilac-deep">패스권 구매</span>
-            <span className="ml-0.5 text-lilac-mid">›</span>
+            <span className="font-bold text-white">{passStatus}</span>
+            <span className="mx-1.5 text-white/30">|</span>
+            <span className="font-bold text-gold-soft">패스권 구매</span>
+            <span className="ml-0.5 text-white/50">›</span>
           </button>
         )}
       </div>

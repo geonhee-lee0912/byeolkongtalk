@@ -229,23 +229,6 @@ export default function Home() {
               <span className="text-eye-purple/60 text-[16px] shrink-0">↓</span>
             </button>
           )}
-          {hasResumable && (
-            <Link
-              href="/readings"
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
-            >
-              <span className="text-[20px] shrink-0">💬</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold leading-tight">
-                  이어서 나눌 수 있는 대화가 있어
-                </p>
-                <p className="text-[11.5px] text-white/80 mt-0.5 leading-tight">
-                  내 고민톡에서 별콩이와 다시 이야기해볼까?
-                </p>
-              </div>
-              <span className="text-white/70 text-[16px] shrink-0">›</span>
-            </Link>
-          )}
           <div
             className="mb-6 p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
             style={{
@@ -266,6 +249,23 @@ export default function Home() {
               말하기 어려운 고민도 괜찮아요. 별빛처럼 마음의 흐름을 읽어줄게요.
             </p>
           </div>
+          {hasResumable && (
+            <Link
+              href="/readings"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
+            >
+              <span className="text-[20px] shrink-0">💬</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold leading-tight">
+                  이어서 나눌 수 있는 대화가 있어
+                </p>
+                <p className="text-[11.5px] text-white/80 mt-0.5 leading-tight">
+                  내 고민톡에서 별콩이와 다시 이야기해볼까?
+                </p>
+              </div>
+              <span className="text-white/70 text-[16px] shrink-0">›</span>
+            </Link>
+          )}
 
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 연애 고민

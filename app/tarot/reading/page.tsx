@@ -1142,9 +1142,10 @@ function TarotReadingInner() {
                   type="button"
                   onClick={() => handleFinish()}
                   disabled={isStreaming || !readingId}
-                  className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 rounded-xl font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: "#ffe29e", color: "#48464d" }}
                 >
-                  ✨ 결과 카드 받기
+                  대화 마무리하고 결과 확인하기
                 </button>
               </form>
           )}
