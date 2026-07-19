@@ -11,6 +11,16 @@ export function hasEndMarker(text: string): boolean {
   return /\[END\]\s*$/.test(text);
 }
 
+/** 별콩이 턴이 기능적으로 질문으로 마무리됐는가 — 마지막 "?" 뒤 꼬리가 110자 이내.
+ *  computeTurnSignals(lib/claude)와 같은 휴리스틱. 심문피로 객관 측정용. */
+export function endsWithQuestion(text: string): boolean {
+  const s = text
+    .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+|SKILL:[a-z_]+|CHECKIN:[^\]]+)\]/gi, "")
+    .trim();
+  const q = Math.max(s.lastIndexOf("?"), s.lastIndexOf("？"));
+  return q >= 0 && s.length - q - 1 <= 110;
+}
+
 export function lastAssistantText(t: Transcript): string {
   for (let i = t.turns.length - 1; i >= 0; i--) {
     if (t.turns[i].assistantText) return t.turns[i].assistantText;
@@ -93,6 +103,29 @@ export function runAssertions(
     } else {
       push("no_card_markers", maxCards === 0, `사주인데 [CARD] ${maxCards}개`);
     }
+  }
+
+  // 5-b. 심문피로 (객관) — 질문 마무리 2연속(별콩이 턴 i, i+1 둘 다 질문으로 종료).
+  //      LLM 심판 dim5가 "질문=심문" 프라이어로 과대평가해 신뢰 불가 → 기계로 확정 측정.
+  //      위기(안전확인 질문 예외)는 제외.
+  const crisisCtx =
+    flags.expectSensitiveHeader ||
+    t.turns.some((x) => !!x.headers["x-sensitive-category"]);
+  if (!crisisCtx) {
+    let consec = false;
+    let at = -1;
+    for (let i = 0; i + 1 < t.turns.length; i++) {
+      if (endsWithQuestion(t.turns[i].assistantText) && endsWithQuestion(t.turns[i + 1].assistantText)) {
+        consec = true;
+        at = i + 1;
+        break;
+      }
+    }
+    push(
+      "no_consecutive_question_close",
+      !consec,
+      consec ? `질문 마무리 2연속 (턴 ${at}·${at + 1}) — 심문피로` : "ok"
+    );
   }
 
   // 6. 별 차감 (응답에서 받은 cost만큼 줄었는가)
