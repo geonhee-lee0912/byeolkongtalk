@@ -131,7 +131,7 @@ export default function RelationshipPage() {
 
     const headerCard = (
       <div
-        className="rounded-2xl px-3.5 h-[48px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
+        className="rounded-2xl px-3.5 h-[64px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
         style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
       >
         <div className="min-w-0">

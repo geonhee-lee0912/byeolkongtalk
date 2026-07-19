@@ -212,6 +212,25 @@ export default function ReadingsPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-4">
+        <Link
+          href="/mypage"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 18 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <polyline points="11.5 3 5 9 11.5 15" />
+          </svg>
+          <span>뒤로</span>
+        </Link>
         <h1 className="text-[18px] font-bold text-eye-purple">내 고민톡</h1>
         <p className="text-[12px] text-text-light/70 mt-1">
           별콩이와 나눈 상담과 운세를 다시 볼 수 있어
