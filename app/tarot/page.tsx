@@ -113,12 +113,12 @@ export default function TarotSpreadPage() {
         <Image
           src="/byeolkong-tarot.png"
           alt="별콩이"
-          width={96}
-          height={96}
+          width={120}
+          height={120}
           priority
           className="drop-shadow-lg"
         />
-        <h1 className="font-display text-[24px] text-eye-purple text-center mt-2 tracking-wide leading-snug">
+        <h1 className="font-display text-[24px] text-eye-purple text-center mt-4 tracking-wide leading-snug">
           너의 고민을 내가 해결해 줄게
         </h1>
         <p className="text-[12px] text-text-light text-center mt-1">

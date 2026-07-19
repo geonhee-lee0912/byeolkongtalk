@@ -142,9 +142,10 @@ export default function FortuneDailyPage() {
             오늘 하루 흐름을 한 장으로 정리해줄게.
           </>
         }
+        dividerStar
       />
 
-      <div className="w-full max-w-md mx-auto px-5 mt-4 mb-6 flex flex-col items-center">
+      <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
         {birthLine && (
           <p className="mt-1.5 text-[12px] font-medium text-lilac-deep text-center">
             {birthLine}
@@ -176,9 +177,14 @@ export default function FortuneDailyPage() {
         <p className="mt-4 text-[12px] text-red-500 text-center px-5 max-w-md">{error}</p>
       )}
 
-      <Link href="/fortune" className="mt-6 text-[12px] text-text-light/70 underline">
-        다른 운세 보기
-      </Link>
+      <div className="w-full max-w-md mx-auto px-5 mt-3">
+        <Link
+          href="/fortune"
+          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+        >
+          다른 운세 보기
+        </Link>
+      </div>
 
       {pendingProfileId && status && (
         <StarConfirmModal

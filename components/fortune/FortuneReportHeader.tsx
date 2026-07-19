@@ -12,6 +12,8 @@ interface FortuneReportHeaderProps {
   cost?: number;
   /** 디바이더 라벨 (기본 "사주 고르기") */
   dividerLabel?: string;
+  /** true면 라벨 대신 ✦ 별 표시 (오늘의 운세 — 사주 자동선택이라 '고르기' 없음) */
+  dividerStar?: boolean;
   /** 뒤로 버튼 목적지 (기본 /fortune 진열대) */
   backHref?: string;
 }
@@ -21,6 +23,7 @@ export default function FortuneReportHeader({
   subtitle,
   cost,
   dividerLabel = "사주 고르기",
+  dividerStar = false,
   backHref = "/fortune",
 }: FortuneReportHeaderProps) {
   return (
@@ -53,12 +56,12 @@ export default function FortuneReportHeader({
         <Image
           src="/byeolkong-main.png"
           alt="별콩이"
-          width={92}
-          height={92}
+          width={120}
+          height={120}
           priority
           className="drop-shadow-lg"
         />
-        <h1 className="font-display text-[22px] text-eye-purple text-center mt-2 tracking-wide leading-snug">
+        <h1 className="font-display text-[22px] text-eye-purple text-center mt-4 tracking-wide leading-snug">
           {title}
         </h1>
         {subtitle && (
@@ -73,12 +76,18 @@ export default function FortuneReportHeader({
         )}
       </div>
 
-      {/* 디바이더 — 사주 고르기 (별 대신 라벨) */}
+      {/* 디바이더 — 기본 "사주 고르기" 라벨 / dividerStar면 ✦ 별 (오늘의 운세) */}
       <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center gap-3">
         <span className="flex-1 h-px bg-lilac-mid/30" />
-        <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
-          {dividerLabel}
-        </span>
+        {dividerStar ? (
+          <span className="text-gold text-[11px] leading-none" aria-hidden>
+            ✦
+          </span>
+        ) : (
+          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+            {dividerLabel}
+          </span>
+        )}
         <span className="flex-1 h-px bg-lilac-mid/30" />
       </div>
     </>
