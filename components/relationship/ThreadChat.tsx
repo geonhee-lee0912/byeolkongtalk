@@ -321,7 +321,7 @@ export default function ThreadChat({
                 type="button"
                 onClick={() => setShowSkills(true)}
                 aria-label="스킬 열기"
-                className="shrink-0 h-[44px] w-[44px] rounded-xl bg-lilac-soft/50 text-lilac-deep flex items-center justify-center active:scale-95 transition"
+                className="shrink-0 h-[44px] w-[44px] rounded-xl bg-lilac-soft/50 text-gold flex items-center justify-center active:scale-95 transition"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M11,15H6L13,1V9H18L11,23V15Z" />

@@ -131,33 +131,39 @@ export default function RelationshipPage() {
 
     const headerCard = (
       <div
-        className="rounded-2xl px-3.5 py-2.5 border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
+        className="rounded-2xl px-3.5 py-1 min-h-[48px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
         style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
       >
-        {/* 프로필 이니셜 아바타 (파트너 호칭 첫 글자) */}
-        <span
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-lilac-deep/50 text-white font-bold text-[15px]"
-          aria-hidden
-        >
-          {relationship.label.trim().charAt(0) || "❤"}
-        </span>
         <div className="min-w-0">
-          <p className="text-[10.5px] text-white/55 leading-none">
-            {RELATIONSHIP_STATUS_LABELS[relationship.status]}
-          </p>
-          <div className="flex items-center gap-1 mt-1 text-[14px] text-white">
-            <span className="font-bold truncate">{relationship.label}</span>
+          <div className="flex items-center gap-1 text-[10.5px] text-white leading-none">
+            <span>{RELATIONSHIP_STATUS_LABELS[relationship.status]}</span>
             <span aria-hidden style={{ color: "#F4A6C0" }}>❤</span>
           </div>
+          <div className="flex items-center gap-1.5 mt-1 text-[14px] text-white">
+            <span className="font-bold truncate">{relationship.label}</span>
+            <button
+              type="button"
+              onClick={() => setShowEditModal(true)}
+              aria-label="관계 정보 수정"
+              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowEditModal(true)}
-          aria-label="관계 정보 수정"
-          className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center self-center text-white/70 hover:bg-white/10 active:scale-95 transition"
-        >
-          <span aria-hidden className="text-[12px]">✏️</span>
-        </button>
         <span className="flex-1" />
         {passStatus && (
           <button
@@ -253,7 +259,7 @@ export default function RelationshipPage() {
           height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
         }}
       >
-        <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3 border-b border-lilac-soft">
+        <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-5">
           {headerCard}
           {partnerBanner}
         </div>
