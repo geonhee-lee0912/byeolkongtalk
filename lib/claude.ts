@@ -609,6 +609,7 @@ export interface RelationshipTurnContext {
   isFirstEver: boolean;          // 스레드 최초 진입(메시지 0)
   checkinPrompt?: string | null; // pending 체크인 → 먼저 안부
   dailyClose: boolean;           // 오늘 소프트캡 도달 → 하루 마무리 톤
+  turnSignals?: TurnSignals;     // 직전 질문 마무리·단답 연속 동적 경고 (심문 피로 방지)
 }
 
 export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
@@ -630,7 +631,7 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
   const dynamicPart = `---
 ## 이번 세션 정보${nicknameLine}
 ${ctx.fileBlock}
----${firstGuide}${checkinGuide}${closeGuide}`;
+---${firstGuide}${checkinGuide}${closeGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
 
   return { staticPart, dynamicPart };
 }

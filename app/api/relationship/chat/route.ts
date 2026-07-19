@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { buildRelationshipSystemMessage, streamChat, summarizeOlder } from "@/lib/claude";
+import { buildRelationshipSystemMessage, streamChat, summarizeOlder, computeTurnSignals } from "@/lib/claude";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     isFirstEver,
     checkinPrompt,
     dailyClose,
+    turnSignals: computeTurnSignals(past, body.message),
   });
 
   const sensitiveSync = detectSensitiveSync(body.message);
