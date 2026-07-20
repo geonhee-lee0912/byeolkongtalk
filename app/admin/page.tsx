@@ -2,6 +2,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
 import { startOfAdminTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
+import { buildStarSpendBreakdown, type StarTxRow, type ReadingInfo } from "@/lib/analytics/aggregate";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +36,52 @@ async function loadStats() {
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
   const sum = (rows: { amount_won: number }[] | null) => (rows ?? []).reduce((a, r) => a + (r.amount_won ?? 0), 0);
+
+  // 별 소모 (최근 7일) — 종목별 별 합계
+  let txQ = supa
+    .from("star_transactions")
+    .select("user_id, type, amount, source, reading_id, created_at")
+    .eq("type", "spend")
+    .gte("created_at", week)
+    .limit(100000);
+  if (excl) txQ = txQ.not("user_id", "in", excl);
+  const { data: wtx } = await txQ;
+  const rids = [...new Set((wtx ?? []).map((t) => t.reading_id).filter(Boolean))] as string[];
+  const rById = new Map<string, ReadingInfo>();
+  if (rids.length) {
+    const { data: rinfo } = await supa
+      .from("readings")
+      .select("id, consultation_type, emotion_tag, relationship_id, skill_key")
+      .in("id", rids);
+    for (const r of rinfo ?? [])
+      rById.set(r.id, { consultation_type: r.consultation_type, emotion_tag: r.emotion_tag, relationship_id: r.relationship_id, skill_key: r.skill_key });
+  }
+  const spend = buildStarSpendBreakdown((wtx ?? []) as StarTxRow[], rById);
+  const domStars = (d: string) => spend.filter((g) => g.domain === d).reduce((s, g) => s + g.stars, 0);
+  const starWeek = {
+    saju: domStars("saju"), tarot: domStars("tarot"), fortune: domStars("fortune"),
+    relationship: domStars("relationship"), upsell: domStars("upsell"),
+  };
+
+  // 연애 상담 KPI
+  const nowIso = new Date().toISOString();
+  let apQ = supa.from("relationship_passes").select("id", { count: "exact", head: true }).gt("expires_at", nowIso);
+  if (excl) apQ = apQ.not("user_id", "in", excl);
+  let pbQ = supa.from("star_transactions").select("id", { count: "exact", head: true }).eq("source", "relationship_pass").gte("created_at", week);
+  if (excl) pbQ = pbQ.not("user_id", "in", excl);
+  // skill_key IS NOT NULL + (선택)excl — .not() 재할당 누적은 타입 깊이 폭발이라 삼항 한 표현식으로
+  const skQ = excl
+    ? supa.from("readings").select("id", { count: "exact", head: true }).gte("created_at", week).not("skill_key", "is", null).not("user_id", "in", excl)
+    : supa.from("readings").select("id", { count: "exact", head: true }).gte("created_at", week).not("skill_key", "is", null);
+  const [apRes, pbRes, skRes] = await Promise.all([apQ, pbQ, skQ]);
+  const rel = { activePasses: apRes.count ?? 0, passBuys: pbRes.count ?? 0, skillCalls: skRes.count ?? 0 };
+
   return {
     today: { newUsers: tu.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
     week: { newUsers: wu.count ?? 0, readings: wr.count ?? 0, revenueWon: sum(wp.data) },
     all: { newUsers: au.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
+    starWeek,
+    rel,
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
   };
 }
@@ -79,6 +122,24 @@ export default async function AdminDashboard() {
           <Stat label="신규 가입" value={s.all.newUsers} />
           <Stat label="리딩" value={s.all.readings} />
           <Stat label="매출(원)" value={s.all.revenueWon.toLocaleString()} />
+        </div>
+      </section>
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(최근 7일 · 별)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Stat label="사주 대화" value={s.starWeek.saju.toLocaleString()} />
+          <Stat label="타로 대화" value={s.starWeek.tarot.toLocaleString()} />
+          <Stat label="운세 리포트" value={s.starWeek.fortune.toLocaleString()} />
+          <Stat label="연애 상담" value={s.starWeek.relationship.toLocaleString()} />
+          <Stat label="인챗 업셀" value={s.starWeek.upsell.toLocaleString()} />
+        </div>
+      </section>
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">연애 상담 <span className="text-white/35">(활성 / 최근 7일)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Stat label="활성 패스" value={s.rel.activePasses} />
+          <Stat label="패스 구매(7일)" value={s.rel.passBuys} />
+          <Stat label="스킬 호출(7일)" value={s.rel.skillCalls} />
         </div>
       </section>
       <section>
