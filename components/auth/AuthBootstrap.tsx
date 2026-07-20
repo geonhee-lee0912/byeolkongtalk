@@ -47,10 +47,10 @@ export default function AuthBootstrap() {
 
     // 보조 신호
     payload.first_seen_at = new Date().toISOString();
-    if (pathname === "/start") {
-      const v = sp.get("utm_content");
-      if (v) payload.landing_variant = v;
-    }
+    // 랜딩 종류: 전용 v 우선(어느 광고 랜딩이든), utm_content 는 레거시 /start 폴백.
+    // (utm_content 는 이제 소재명 전용이라 v 없이 이걸 landing_variant 로 쓰면 오염)
+    const lv = sp.get("v") ?? (pathname === "/start" ? sp.get("utm_content") : null);
+    if (lv) payload.landing_variant = lv;
     try {
       if (document.referrer) payload.referrer = document.referrer.slice(0, 200);
     } catch {}
