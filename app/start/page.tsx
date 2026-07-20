@@ -26,7 +26,7 @@ import {
 } from "@/lib/fortune/types";
 import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
 
-const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact"] as const;
+const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love"] as const;
 type Variant = (typeof VARIANTS)[number];
 
 const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
@@ -35,12 +35,14 @@ const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
   tarot: { line1: "카드는 네가", line2: "직접 뽑아" },
   reunion: { line1: "헤어진 그 사람,", line2: "아직 나를 생각할까?" },
   contact: { line1: "핸드폰만 보고 있는", line2: "너에게" },
+  love: { line1: "그 사람은 지금", line2: "무슨 생각을 할까" },
 };
 
 /** 연애 직행 variant → 하이라이트 태그 */
 const LOVE_VARIANT_TAG: Partial<Record<Variant, EmotionTag>> = {
   reunion: "재회할 수 있을까",
   contact: "언제 연락 올까, 타이밍이 궁금해",
+  love: "걔 속마음이 궁금해", // 범용연애 캐치올 (의도적 모호 태그)
 };
 
 // daily variant: 광고가 약속한 "오늘의 운세"를 맨 위로 (별콩 운세 10종 전체)
