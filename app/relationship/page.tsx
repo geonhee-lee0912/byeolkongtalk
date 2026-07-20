@@ -14,6 +14,7 @@ import {
   EXTEND_TURNS,
   PASS_PLANS,
   PASS_PLAN_BY_KIND,
+  RELATIONSHIP_SKILL_PREVIEWS,
   RELATIONSHIP_STATUS_LABELS,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
@@ -43,28 +44,7 @@ interface DailyData {
   extendCount: number;
 }
 
-const SKILL_PREVIEWS = [
-  {
-    emoji: "💬",
-    label: "관계 체크인",
-    tagline: "두 사람의 상태와 서로의 필요를 나란히",
-  },
-  {
-    emoji: "🔍",
-    label: "걔 속마음",
-    tagline: "겉모습 뒤의 진짜 속마음까지",
-  },
-  {
-    emoji: "💞",
-    label: "우리 궁합",
-    tagline: "두 사람 사주로 보는 궁합",
-  },
-  {
-    emoji: "⚖️",
-    label: "싸움 잘잘못 판정",
-    tagline: "양쪽 입장을 듣고 비율로 판정 + 화해 처방",
-  },
-];
+const SKILL_PREVIEWS = RELATIONSHIP_SKILL_PREVIEWS;
 
 export default function RelationshipPage() {
   const router = useRouter();

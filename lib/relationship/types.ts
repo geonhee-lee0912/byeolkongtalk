@@ -35,6 +35,14 @@ export const DAILY_TURN_CAP = 20;
 export const EXTEND_COST = 5;
 export const EXTEND_TURNS = 5;
 
+/** 스킬 프리뷰 카피 — S1 콜드스타트(/relationship)와 광고 랜딩(/start?v=relationship) 공유 */
+export const RELATIONSHIP_SKILL_PREVIEWS = [
+  { emoji: "💬", label: "관계 체크인", tagline: "두 사람의 상태와 서로의 필요를 나란히" },
+  { emoji: "🔍", label: "걔 속마음", tagline: "겉모습 뒤의 진짜 속마음까지" },
+  { emoji: "💞", label: "우리 궁합", tagline: "두 사람 사주로 보는 궁합" },
+  { emoji: "⚖️", label: "싸움 잘잘못 판정", tagline: "양쪽 입장을 듣고 비율로 판정 + 화해 처방" },
+] as const;
+
 /** 오늘 연장 횟수 → 허용 턴 수. 상한 없음 — 연장 횟수는 무제한. */
 export function dailyTurnAllowance(todayExtendCount: number): number {
   return DAILY_TURN_CAP + EXTEND_TURNS * Math.max(0, todayExtendCount);
