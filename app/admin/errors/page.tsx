@@ -77,6 +77,7 @@ export default async function AdminErrors() {
         <h1 className="text-xl font-bold">에러 로그</h1>
         <ResolveAllErrorsButton />
       </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
           <tr>
@@ -128,6 +129,7 @@ export default async function AdminErrors() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

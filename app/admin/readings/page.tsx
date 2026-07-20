@@ -47,12 +47,13 @@ export default async function AdminReadings({
       <h1 className="text-xl font-bold">
         리딩/상담 <span className="text-white/40 text-sm font-normal">전체 {(count ?? 0).toLocaleString()}건</span>
       </h1>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Tab label="전체" href="/admin/readings" />
         <Tab label="사주" href="/admin/readings?type=saju" />
         <Tab label="타로" href="/admin/readings?type=tarot" />
         <Tab label="무료만" href="/admin/readings?free=1" />
       </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
           <tr><th className="py-2">사용자</th><th>타입</th><th>제목</th><th>별</th><th>일시</th><th></th></tr>
@@ -64,12 +65,13 @@ export default async function AdminReadings({
               <td>{r.consultation_type}</td>
               <td>{readingTitle(r.emotion_tag, r.consultation_type)}</td>
               <td>{r.stars_spent}</td>
-              <td>{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
+              <td className="whitespace-nowrap">{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right"><Link href={`/admin/readings/${r.id}`} className="text-lilac underline">보기</Link></td>
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
       <Pager page={page} totalPages={totalPages} makeHref={makeHref} />
     </div>
   );

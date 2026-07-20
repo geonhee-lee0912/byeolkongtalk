@@ -60,11 +60,12 @@ export default async function AdminInquiries({
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">문의 / 고객센터</h1>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {tab("", "전체")}
         {tab("open", "미답변")}
         {tab("answered", "답변완료")}
       </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
           <tr>
@@ -86,7 +87,7 @@ export default async function AdminInquiries({
               <td className="max-w-[16rem] truncate">{r.title}</td>
               <td>{nameById.get(r.user_id) ?? "—"}</td>
               <td>{r.status === "answered" ? "✅ 완료" : "미답변"}</td>
-              <td>{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
+              <td className="whitespace-nowrap">{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right">
                 <Link
                   href={`/admin/inquiries/${r.id}`}
@@ -106,6 +107,7 @@ export default async function AdminInquiries({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

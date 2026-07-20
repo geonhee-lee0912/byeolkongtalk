@@ -16,6 +16,7 @@ export default async function AdminSensitive() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">민감 알림</h1>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
           <tr><th className="py-2">카테고리</th><th>심각도</th><th>검토</th><th>일시</th><th></th><th></th></tr>
@@ -26,7 +27,7 @@ export default async function AdminSensitive() {
               <td className="py-2">{a.category}</td>
               <td>{a.severity}</td>
               <td>{a.reviewed_at ? "✅ " + (a.action_taken ?? "") : "미검토"}</td>
-              <td>{new Date(a.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
+              <td className="whitespace-nowrap">{new Date(a.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right">{!a.reviewed_at && <ReviewButton id={a.id} />}</td>
               <td className="py-2 text-right pl-2">
                 <Link href={`/admin/sensitive/${a.id}`} className="text-lilac-deep hover:text-lilac underline text-xs">상세</Link>
@@ -35,6 +36,7 @@ export default async function AdminSensitive() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

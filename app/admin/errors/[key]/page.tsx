@@ -137,6 +137,7 @@ export default async function AdminErrorDetail({
       {/* Recent occurrences */}
       <div>
         <h2 className="text-sm font-semibold text-white/60 mb-2">최근 발생 목록 (최대 20건)</h2>
+        <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="text-white/40 text-left">
             <tr>
@@ -163,6 +164,7 @@ export default async function AdminErrorDetail({
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
