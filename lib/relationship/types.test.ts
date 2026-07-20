@@ -5,10 +5,10 @@ import {
   PASS_PLAN_BY_KIND, PASS_PLANS, dailyTurnAllowance, DAILY_TURN_CAP,
 } from "./types.ts";
 
-test("패스 상품 = 1일20/3일40/7일60", () => {
-  assert.equal(PASS_PLAN_BY_KIND.day1.cost, 20);
-  assert.equal(PASS_PLAN_BY_KIND.day3.cost, 40);
-  assert.equal(PASS_PLAN_BY_KIND.day7.cost, 60);
+test("패스 상품 = 1일30/3일60/7일100", () => {
+  assert.equal(PASS_PLAN_BY_KIND.day1.cost, 30);
+  assert.equal(PASS_PLAN_BY_KIND.day3.cost, 60);
+  assert.equal(PASS_PLAN_BY_KIND.day7.cost, 100);
   assert.equal(PASS_PLAN_BY_KIND.day7.days, 7);
   assert.equal(PASS_PLANS.filter((p) => p.recommended).length, 0); // 추천 뱃지 제거됨
 });

@@ -19,11 +19,11 @@ export interface PassPlan {
   recommended?: boolean;
 }
 
-/** 패스 상품 — 서버 권위(클라가 보낸 cost 신뢰 X). 스펙 §6: 1일20/3일40/7일60. */
+/** 패스 상품 — 서버 권위(클라가 보낸 cost 신뢰 X). 가격 조정(2026-07-20): 1일30/3일60/7일100 (C2안, 7일=star_70+star_30 정합). */
 export const PASS_PLANS: PassPlan[] = [
-  { kind: "day1", days: 1, cost: 20, label: "24시간(1일)" },
-  { kind: "day3", days: 3, cost: 40, label: "72시간(3일)" },
-  { kind: "day7", days: 7, cost: 60, label: "168시간(7일)" },
+  { kind: "day1", days: 1, cost: 30, label: "24시간(1일)" },
+  { kind: "day3", days: 3, cost: 60, label: "72시간(3일)" },
+  { kind: "day7", days: 7, cost: 100, label: "168시간(7일)" },
 ];
 
 export const PASS_PLAN_BY_KIND: Record<PassKind, PassPlan> = Object.fromEntries(

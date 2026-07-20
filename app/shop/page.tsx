@@ -500,7 +500,7 @@ function PackageCard({
           </p>
           {bonus > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-lilac-soft text-lilac-deep tracking-wide">
-              +50%
+              +20%
             </span>
           )}
           {meta.badge && (
@@ -701,7 +701,7 @@ function FirstChargeBanner() {
       </div>
       <div className="min-w-0">
         <p className="text-[14px] font-black text-[#7A5A1F] leading-tight">
-          첫 충전 한정 · 별 +50% 보너스
+          첫 충전 한정 · 별 +20% 보너스
         </p>
         <p className="text-[11px] text-[#9A7B3F] mt-0.5 leading-snug">
           처음 충전하면 별을 1.5배로 드려요 (딱 한 번)

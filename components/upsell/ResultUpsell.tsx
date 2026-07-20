@@ -1,6 +1,6 @@
 "use client";
 
-// 결과 화면 하단 공용 업셀 — 첫 충전 +50% 배너(자격자만) + 크로스셀 카드 2장.
+// 결과 화면 하단 공용 업셀 — 첫 충전 +20% 배너(자격자만) + 크로스셀 카드 2장.
 // 크로스셀 규칙(정적, 개인화 없음):
 //   상담 결과(variant="counsel") → 오늘의 운세 + 이번달
 //   운세 결과(variant=FortuneType) → 상담 진입 1개 + 같은 base 의 다음 운세 1개
@@ -61,7 +61,7 @@ export default function ResultUpsell({
   showBonus = true,
 }: {
   variant: "counsel" | FortuneType;
-  /** 첫충전 +50% 배너 노출 여부. 결과 화면이 RechargeBlock 에서 이미 보여주면 false. */
+  /** 첫충전 +20% 배너 노출 여부. 결과 화면이 RechargeBlock 에서 이미 보여주면 false. */
   showBonus?: boolean;
 }) {
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
@@ -86,7 +86,7 @@ export default function ResultUpsell({
           <span className="text-[22px]">🎁</span>
           <div className="flex-1 min-w-0">
             <p className="text-[13.5px] font-extrabold text-eye-purple">
-              첫 충전하면 별 +50% 보너스
+              첫 충전하면 별 +20% 보너스
             </p>
             <p className="text-[11.5px] text-eye-purple/70 mt-0.5">
               처음 딱 한 번, 어떤 패키지든 절반을 더 얹어줘

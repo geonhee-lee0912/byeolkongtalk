@@ -1,7 +1,7 @@
 "use client";
 
 // 결과 화면 최상단 재충전 블록 — 리딩 직후 따끈한 순간에 매출 CTA를 앞세운다.
-// 이 고민 이어가기(-40%) + 새 고민 + (자격자) 첫충전 +50% 보너스 인라인.
+// 이 고민 이어가기(-40%) + 새 고민 + (자격자) 첫충전 +20% 보너스 인라인.
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -59,7 +59,7 @@ export default function RechargeBlock({
             <span className="text-[16px]">🎁</span>
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-extrabold text-eye-purple">
-                지금 첫 충전하면 별 +50%
+                지금 첫 충전하면 별 +20%
               </p>
               <p className="text-[10.5px] text-eye-purple/70 mt-0.5">
                 별이 부족해도 충전하면 바로 이어서 볼 수 있어
