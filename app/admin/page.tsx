@@ -7,7 +7,6 @@ import {
   attributeFreeSpend,
   buildStarSpendBreakdown,
   type StarLedgerRow,
-  type StarSpendDomain,
   type StarTxRow,
   type ReadingInfo,
 } from "@/lib/analytics/aggregate";
@@ -84,12 +83,18 @@ async function loadStats() {
   const yestTx = tx.filter((t) => Date.parse(t.created_at) < cut);
   const spendT = buildStarSpendBreakdown(todayTx, rById, freeById);
   const spendY = buildStarSpendBreakdown(yestTx, rById, freeById);
-  const domSum = (list: typeof spendT, d: StarSpendDomain) =>
-    list.filter((g) => g.domain === d).reduce((s, g) => ({ stars: s.stars + g.stars, free: s.free + g.freeStars }), { stars: 0, free: 0 });
-  const starDomain = (d: StarSpendDomain) => ({ today: domSum(spendT, d), yesterday: domSum(spendY, d).stars });
+  type SpendGroup = (typeof spendT)[number];
+  const sumBy = (list: typeof spendT, pred: (g: SpendGroup) => boolean) =>
+    list.filter(pred).reduce((s, g) => ({ stars: s.stars + g.stars, free: s.free + g.freeStars }), { stars: 0, free: 0 });
+  const starOf = (pred: (g: SpendGroup) => boolean) => ({ today: sumBy(spendT, pred), yesterday: sumBy(spendY, pred).stars });
+  // 연애 상담은 스킬 몫 분리 — 연애 상담(패스·연장·스레드) + 연애 스킬 소환(스킬:*) 합 = relationship 총액
+  const isRelSkill = (g: SpendGroup) => g.domain === "relationship" && g.product.startsWith("스킬:");
   const star = {
-    saju: starDomain("saju"), tarot: starDomain("tarot"), fortune: starDomain("fortune"),
-    relationship: starDomain("relationship"), upsell: starDomain("upsell"),
+    tarot: starOf((g) => g.domain === "tarot"),
+    fortune: starOf((g) => g.domain === "fortune"),
+    upsell: starOf((g) => g.domain === "upsell"),
+    relationship: starOf((g) => g.domain === "relationship" && !isRelSkill(g)),
+    relSkill: starOf(isRelSkill),
   };
 
   // 연애 상담 KPI — 활성 패스는 현재 시점, 구매/스킬은 오늘 vs 어제
@@ -152,8 +157,6 @@ function Stat({ label, value, paren, children }: { label: string; value: string 
 
 export default async function AdminDashboard() {
   const s = await loadStats();
-  // 사주 대화는 신규 진입 폐쇄 — 이어가기(saju-fresh/deep) 잔여 소모 있을 때만 노출
-  const showSaju = s.star.saju.today.stars + s.star.saju.yesterday > 0;
   const starCard = (label: string, d: { today: { stars: number; free: number }; yesterday: number }) => (
     <Stat label={label} value={d.today.stars.toLocaleString()} paren={`무료 ${d.today.free.toLocaleString()}`}>
       <Delta today={d.today.stars} yesterday={d.yesterday} />
@@ -192,12 +195,12 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · 오전 10시 기준)</span></h2>
-        <div className={`grid grid-cols-2 gap-3 ${showSaju ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
-          {showSaju && starCard("사주 대화", s.star.saju)}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {starCard("타로 대화", s.star.tarot)}
           {starCard("운세 리포트", s.star.fortune)}
-          {starCard("연애 상담", s.star.relationship)}
           {starCard("인챗 업셀", s.star.upsell)}
+          {starCard("연애 상담", s.star.relationship)}
+          {starCard("연애 스킬 소환", s.star.relSkill)}
         </div>
       </section>
       <section>
