@@ -6,6 +6,7 @@ import { isAdminAuthorized } from "@/lib/admin";
 import { getServiceSupabase } from "@/lib/supabase";
 import { EnvBanner } from "@/components/admin/EnvBanner";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 
 export const metadata = {
   title: "별콩 어드민",
@@ -56,6 +57,7 @@ export default async function AdminLayout({
       </aside>
       <main className="flex-1 min-w-0 p-4 md:p-8">
         <div className="md:hidden mb-4 flex items-center gap-2">
+          <AdminMobileNav badges={badges} errBadge={{ err: errCount, warn: warnCount }} />
           <span className="font-display text-lg">별콩 어드민</span>
           <EnvBanner />
         </div>
