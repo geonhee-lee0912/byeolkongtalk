@@ -264,6 +264,13 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - ✅ **안전망** — 관계 스레드·verdict에 위기 SafetyBanner(X-Sensitive-*) 타로/사주 패리티. 헤더 흰색·축소 리디자인, 프로필↔대화 디바이더.
 - 스펙 `docs/superpowers/specs/2026-07-18-w1-cycle2-우리사이-design.md` / 플랜 `docs/superpowers/plans/2026-07-18-w1-cycle2-우리사이.md`. ⚠️ 등록실패 진단 계측(클라 에러코드 표시 + 라우트 응답 raw `detail`) dev 잔존 — **prod 전 `detail` 정리**. 통합 QA(하네스+브라우저 E2E) + prod 일괄 배포는 사이클 3.
 
+**완료 (2026-07-20 세션 — 사이클 1~3 prod 일괄 배포)**:
+- ✅ **사이클 1~3 prod 일괄 배포** (`ba20fb2→75340d2` fast-forward, 112커밋 + 스테일 테스트 픽스 1). `git push origin dev:main` 무중단 배포. 마이그레이션 3개(relationship_core/pass_rpc/widen_consultation_type) prod 원장 적용 확인 · Vercel READY(~70초) · `/api/health` 200(env 완비·DB ok) · 공개 라우트 13개 200 · **`/relationship` 상대등록 22001 실증 통과**(widen 컬럼 작동) · 신규 가격 라이브. 프리플라이트 A1빌드/A2유닛 79/A4 additive+새env 0 그린. **무중단(Vercel 원자적)+additive 마이그레이션 → 배포 중 광고 유지 가능(중지 불필요)**. 저트래픽 오후 KST 진행.
+- ✅ **가격 조정 라이브** (커밋 075ebe8): 연애 패스 **30/60/100**(구 20/40/60 → 위 259줄은 구가격, 현행 정본 = `lib/relationship/types.ts` PASS_PLANS) · 첫충전 보너스 50%→20%.
+- ✅ **persona-v3 효과 판정** (배포 전 순수 persona 창 마지막 스냅샷, prod 쿼리): 대화 품질 명백 개선(질문마무리 74.5→35.8% 반토막 · 결과열람 46→56% · 유저턴 5.40→4.90 수렴↑), 전환 6.6→11.6%(traffic-mix 교란 있음), 리텐션 여전히 ~0(W5 통로 필요). `docs/superpowers/specs/2026-07-20-persona-v3-effect-findings.md` · [[persona-tuning-baseline]].
+- ✅ **스테일 부채 해소**: 등록실패 raw `detail` 제거(08e13de) · legal 페이지(`/terms`·`/privacy`·`/refund`) 존재(빌드 라우트 확인 200) · Phase 4(d) admin 콘솔 dev 완료(별소모 분석 + `/admin/relationship`, 실렌더 검증은 잔여).
+- 📢 **광고 교체(3f)**: 코드 prod 라이브(`/start?v=love`·landing_variant `v` 우선). Meta 작업(counsel OFF · 신규 3본 love/relationship/tarot 대조군 · 지면 IG 피드+릴스+스토리 수동 · utm `utm_content={{ad.name}}&utm_term={{placement}}`)은 사용자 진행. 소재 `ad-assets/final/ad_{love,relationship}_*`(git 미추적).
+
 **보류된 큰 부채** (출시 전 처리):
 - Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
 - `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
