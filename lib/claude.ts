@@ -64,6 +64,15 @@ const SUMMARY_END_RULE = `
 ### 정리 요청 = 마무리
 사용자가 대화의 정리/요약/마무리를 명시적으로 요청하면("정리해줘", "요약해줘", "마무리하자" 류) 다른 모드 지시와 무관하게 이번 턴은 핵심 요약 + 따뜻한 응원으로 닫고, 맨 마지막 줄에 [END] 마커를 단독 줄로 붙여.`;
 
+// 위기 게이트 — has_sensitive 턴이면(마무리 버튼 제외) 수렴·하드캡·강제종료·정리요청 지시를
+// 이 블록으로 대체. 페르소나 §위기의 "[END] 금지"를 코드로 강제(하드캡이 못 이기던 누수 봉합, 3d QA).
+const CRISIS_STAY_GUIDE = `
+
+## ⚠️ 위기 시그널 감지 — 종료 금지 (최우선, 다른 마무리 지시 무시)
+이 대화엔 위기 시그널이 있었어. 수렴·마무리·강제 종료·정리 요청 지시가 있어도 **[END] 마커를 절대 쓰지 마** — 스레드를 닫지 말고 곁에 머물러.
+- 공통 코어 §위기 그대로: 판단·재촉 없이 수용하고, 안전·상담 정보(핫라인 번호)를 한 번 더 자연스럽게 얹어.
+- 먼저 작별하지 마. "오늘은 여기까지" 류로 내치지 말고, 유저가 스스로 나갈 수 있게 열어둬.`;
+
 /** 직전 턴 상태 기반 동적 경고 — 정적 규칙(질문 2연속 금지·심문 피로)이 실전에서 새는 걸 서버가 강제 */
 export interface TurnSignals {
   /** 직전 별콩이 턴이 물음표로 끝남 → 이번 턴 질문 마무리 금지 */
@@ -165,6 +174,8 @@ export interface SajuReadingContext {
   cumulativeAssistantChars: number;
   /** 사용자가 "대화 마무리" 버튼을 눌러 강제 종료를 요청한 턴 — hardcap 가이드 강제 */
   forceEnd?: boolean;
+  /** 위기 시그널(현재 메시지 sensitive 또는 reading.has_sensitive) — 버튼 아닌 자동 종료([END]/수렴) 억제 */
+  crisisActive?: boolean;
   /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
   continuation?: ContinuationContext | null;
   /** 대화 연장 업셀 가능 여부 — convergeLastGuide 에서 [RECO:extend] 조건부 지시 */
@@ -286,7 +297,9 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
       ? `\n\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\n\n다음 발화·패턴 중 하나라도 보이면 이번 턴을 askBonus 톤으로 답해:\n\n**명확 시그널:**\n- 감사: "고마워", "감사해", "도움됐어"\n- 만족·이해: "알겠어", "그렇구나", "이해됐어", "맞네"\n- 종결 의지: "오늘은 이만", "마무리할게", "이정도면 돼", "충분해"\n- 짧은 동의(단독): "응", "ㅇㅇ", "그래"\n\n**암묵적 시그널:**\n- 메시지 길이가 직전 대비 절반 이하 + 새 질문 없음 (2턴 연속이면 더 확실)\n\n**askBonus 톤 (감사·마지막·하나 표현 사용 금지):**\n- 직전 발화/대화 핵심을 한 문장 짚기 → 사주 쪽으로 자연스럽게 수렴 → 열린 초대\n- 예시:\n  - "여기까지 사주가 보여준 그림은 대충 잡힌 것 같아. 더 짚어보고 싶은 부분 있으면 편하게 던져봐."\n  - "이 사주가 풀어낸 얘기는 어느 정도 잡힌 것 같아. 더 풀고 싶은 매듭 있으면 편하게 꺼내봐."\n- [END] 마커 절대 X (이번 턴은 사용자에게 다시 공을 넘김)\n- 4~5문장 (맥락 짚기 1~2 + 사주 수렴 1 + 열린 초대 1)`
       : "";
 
-  const wrapGuide = ctx.forceEnd
+  const wrapGuide = (ctx.crisisActive && !ctx.forceEnd)
+    ? CRISIS_STAY_GUIDE
+    : ctx.forceEnd
     ? absHardcapGuide
     : mode === "hardcap"
       ? absHardcap
@@ -316,7 +329,7 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 ${formatSajuBlock(ctx.saju)}${formatTemporalBlock(ctx.saju.temporal, ctx.sajuProduct)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.crisisActive ? "" : SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "사주판") : ""}`;
 
   return { staticPart, dynamicPart };
 }
@@ -455,6 +468,8 @@ export interface TarotReadingContext {
   cumulativeAssistantChars: number;
   /** 사용자가 "대화 마무리" 버튼을 눌러 강제 종료를 요청한 턴 — hardcap 가이드 강제 */
   forceEnd?: boolean;
+  /** 위기 시그널(현재 메시지 sensitive 또는 reading.has_sensitive) — 버튼 아닌 자동 종료([END]/수렴) 억제 */
+  crisisActive?: boolean;
   /** 이어가기 세션이면 부모 요약 — 없으면 일반 reading */
   continuation?: ContinuationContext | null;
   /** 대화 연장 업셀 가능 여부 — convergeLastGuide 에서 [RECO:extend] 조건부 지시 */
@@ -560,7 +575,9 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
       ? `\n\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\n\n다음 발화·패턴 중 하나라도 보이면 이번 턴을 askBonus 톤으로 답해:\n\n**명확 시그널:** "고마워"/"감사해", "알겠어"/"그렇구나"/"이해됐어", "이정도면 돼"/"충분해", 짧은 동의("응"/"ㅇㅇ"/"그래")\n**암묵적 시그널:** 메시지 길이가 직전 대비 절반 이하 + 새 질문 없음 (2턴 연속이면 더 확실)\n\n**askBonus 톤 (감사·마지막·하나 표현 사용 금지):**\n- 직전 발화/대화 핵심을 한 문장 짚기 → 카드 쪽으로 자연스럽게 수렴 → 열린 초대\n- 예: "여기까지 카드가 보여준 그림은 대충 잡힌 것 같아. 더 짚어보고 싶은 부분 있으면 편하게 던져봐."\n- [END] 마커 절대 X (이번 턴은 사용자에게 다시 공을 넘김)\n- 4~5문장`
       : "";
 
-  const wrapGuide = ctx.forceEnd
+  const wrapGuide = (ctx.crisisActive && !ctx.forceEnd)
+    ? CRISIS_STAY_GUIDE
+    : ctx.forceEnd
     ? absHardcapGuide
     : mode === "hardcap"
       ? absHardcap
@@ -588,7 +605,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.crisisActive ? "" : SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
 
   return { staticPart, dynamicPart };
 }

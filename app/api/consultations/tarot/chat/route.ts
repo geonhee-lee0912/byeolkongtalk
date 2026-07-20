@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .select(
-      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, previous_reading_id, continuation_mode, extra_turns, clarifier_count, relationship_id, skill_key"
+      "id, user_id, question, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, previous_reading_id, continuation_mode, extra_turns, clarifier_count, relationship_id, skill_key, has_sensitive"
     )
     .eq("id", body.readingId)
     .maybeSingle();
@@ -206,6 +206,11 @@ export async function POST(request: NextRequest) {
     effT ?? baseT
   ).mode;
 
+  // sensitive 1차 감지 (regex ~1ms) — 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
+  const sensitiveSync = detectSensitiveSync(lastMessage.content);
+  // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
+  const crisisActive = !!sensitiveSync || reading.has_sensitive === true;
+
   const systemMessage = buildTarotSystemMessage({
     spreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
@@ -218,11 +223,10 @@ export async function POST(request: NextRequest) {
     cumulativeAssistantChars,
     continuation,
     forceEnd: body.forceEnd === true,
+    crisisActive,
     extendAvailable,
     thresholdOverride: effT,
   });
-
-  const sensitiveSync = detectSensitiveSync(lastMessage.content);
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
@@ -262,7 +266,8 @@ export async function POST(request: NextRequest) {
 
         // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
         // (마무리 버튼·절대 턴캡이 "안 눌린 것처럼" 보이는 상태 방지)
-        if (mustEnd && !assistantText.includes("[END]")) {
+        // 단, 위기 대화(버튼 아님)면 자동 [END] 강제 주입을 억제 — §위기 [END]금지 코드 강제(3d)
+        if (mustEnd && !(crisisActive && body.forceEnd !== true) && !assistantText.includes("[END]")) {
           const tail = "\n\n[END]";
           assistantText += tail;
           controller.enqueue(encoder.encode(tail));
