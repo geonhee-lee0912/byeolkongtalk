@@ -234,7 +234,7 @@ export default function RelationshipPage() {
               )}
 
               {messages.length > 0 && (
-                <div className="mb-5 max-h-[40vh] overflow-y-auto rounded-2xl border border-lilac-mid/20 bg-cream-warm/50">
+                <div className="mb-5 max-h-[40vh] overflow-y-auto scrollbar-hover rounded-2xl border border-lilac-mid/20 bg-cream-warm/50">
                   <ThreadChat
                     relationshipId={relationship.id}
                     initialMessages={messages}
