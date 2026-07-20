@@ -220,44 +220,47 @@ export default function RelationshipPage() {
     // S2 — 활성 패스 없음: 히스토리(있으면 읽기전용) + 패스 패널이 주 CTA
     if (!hasPass) {
       return (
-        <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
-          <div className="w-full max-w-md mx-auto px-5">
-            {headerCard}
-            {partnerBanner}
-
-            <div className="mt-5">
-              {messages.length === 0 ? (
-                <p className="text-[13px] text-text-light text-center mb-4 leading-relaxed">
-                  아직 별콩이랑 나눈 얘기가 없어 — 패스를 시작하면 바로 이야기할 수
-                  있어.
-                </p>
-              ) : (
-                <p className="text-[13px] font-bold text-eye-purple text-center mb-4 leading-relaxed">
-                  패스가 만료됐어, 다시 이어가자
-                </p>
-              )}
-
-              {messages.length > 0 && (
-                <div className="mb-5 max-h-[40vh] overflow-y-auto scrollbar-hover rounded-2xl border border-lilac-mid/20 bg-cream-warm/50">
-                  <ThreadChat
-                    relationshipId={relationship.id}
-                    initialMessages={messages}
-                    canSend={false}
-                    capReached={false}
-                    selfProfileId={relationship.selfProfileId}
-                    partnerProfileId={relationship.partnerProfileId}
-                  />
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setShowPassSheet(true)}
-                className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        <main
+          className="flex flex-col items-stretch w-full min-h-0 animate-fade-in"
+          style={{ height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))" }}
+        >
+          <div className="flex flex-col flex-1 min-h-0 w-full max-w-md mx-auto px-5 pt-4 pb-4">
+            <div className="shrink-0">
+              {headerCard}
+              {partnerBanner}
+              <p
+                className={`text-[13px] text-center mt-4 leading-relaxed ${
+                  messages.length === 0 ? "text-text-light" : "font-bold text-eye-purple"
+                }`}
               >
-                {messages.length > 0 ? "패스 연장하기" : "패스 시작하기"}
-              </button>
+                {messages.length === 0
+                  ? "아직 별콩이랑 나눈 얘기가 없어 — 패스를 시작하면 바로 이야기할 수 있어."
+                  : "패스가 만료됐어, 다시 이어가자"}
+              </p>
             </div>
+
+            {messages.length > 0 ? (
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hover rounded-2xl border border-lilac-mid/20 bg-cream-warm/50 mt-4">
+                <ThreadChat
+                  relationshipId={relationship.id}
+                  initialMessages={messages}
+                  canSend={false}
+                  capReached={false}
+                  selfProfileId={relationship.selfProfileId}
+                  partnerProfileId={relationship.partnerProfileId}
+                />
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowPassSheet(true)}
+              className="shrink-0 mt-4 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            >
+              {messages.length > 0 ? "패스 연장하기" : "패스 시작하기"}
+            </button>
           </div>
           {editModal}
           {showPassSheet && (
