@@ -5,26 +5,12 @@ import { getSession } from "@/lib/session";
 import { isAdminAuthorized } from "@/lib/admin";
 import { getServiceSupabase } from "@/lib/supabase";
 import { EnvBanner } from "@/components/admin/EnvBanner";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 export const metadata = {
   title: "별콩 어드민",
   robots: { index: false, follow: false },
 };
-
-const NAV = [
-  { href: "/admin", label: "대시보드", emoji: "📊" },
-  { href: "/admin/analytics", label: "애널리틱스", emoji: "📈" },
-  { href: "/admin/paywall", label: "페이월", emoji: "🔒" },
-  { href: "/admin/users", label: "사용자", emoji: "👥" },
-  { href: "/admin/readings", label: "리딩/상담", emoji: "🔮" },
-  { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
-  { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
-  { href: "/admin/popups", label: "공지 팝업", emoji: "📢" },
-  { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
-  { href: "/admin/sensitive", label: "민감 알림", emoji: "🚑" },
-  { href: "/admin/ads", label: "광고 지출", emoji: "📣" },
-  { href: "/admin/errors", label: "에러 로그", emoji: "🚨" },
-];
 
 export default async function AdminLayout({
   children,
@@ -51,7 +37,6 @@ export default async function AdminLayout({
   };
   const errCount = errRes.count ?? 0;
   const warnCount = warnRes.count ?? 0;
-  const fmtBadge = (n: number) => (n > 99 ? "99+" : String(n));
 
   return (
     <div className="min-h-screen bg-night text-white flex">
@@ -62,40 +47,7 @@ export default async function AdminLayout({
           </Link>
           <EnvBanner />
         </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-white/80 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              <span>{item.emoji}</span>
-              <span className="flex-1">{item.label}</span>
-              {item.href === "/admin/errors" ? (
-                (errCount > 0 || warnCount > 0) && (
-                  <span className="ml-auto flex items-center gap-1">
-                    {errCount > 0 && (
-                      <span className="bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
-                        {fmtBadge(errCount)}
-                      </span>
-                    )}
-                    {warnCount > 0 && (
-                      <span className="bg-yellow-400 text-night text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
-                        {fmtBadge(warnCount)}
-                      </span>
-                    )}
-                  </span>
-                )
-              ) : (
-                (badges[item.href] ?? 0) > 0 && (
-                  <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
-                    {fmtBadge(badges[item.href])}
-                  </span>
-                )
-              )}
-            </Link>
-          ))}
-        </nav>
+        <AdminNav badges={badges} errBadge={{ err: errCount, warn: warnCount }} />
         <div className="p-3 border-t border-white/10">
           <Link href="/" className="px-3 py-2 text-[12px] text-white/60 hover:text-white">
             ← 사용자 화면으로
