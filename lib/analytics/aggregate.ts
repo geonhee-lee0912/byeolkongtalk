@@ -3,7 +3,7 @@ import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
 export type ReadingRow = {
   user_id: string;
-  consultation_type: "saju" | "tarot";
+  consultation_type: "saju" | "tarot" | "relationship";
   emotion_tag: string | null;
   saju_product: string | null;
   stars_spent: number | null;
@@ -302,4 +302,92 @@ export function buildCohorts(input: {
     });
   }
   return out.sort((a, b) => b.weekStart.localeCompare(a.weekStart)); // 최신 주차 먼저
+}
+
+// ── 별 소모 분류 엔진 (star_transactions → 종목·상품) ──────────────────────
+
+export type StarTxRow = {
+  user_id: string;
+  type: string;
+  amount: number;
+  source: string;
+  reading_id: string | null;
+  created_at: string;
+};
+
+export type ReadingInfo = {
+  consultation_type: "saju" | "tarot" | "relationship";
+  emotion_tag: string | null;
+  relationship_id: string | null;
+  skill_key: string | null;
+};
+
+export type StarSpendDomain = "saju" | "tarot" | "fortune" | "relationship" | "upsell";
+export type StarSpendGroup = {
+  domain: StarSpendDomain;
+  product: string;
+  count: number;
+  stars: number;
+  users: number;
+};
+
+// 충전·보너스·환불·수동조정 = 상품 아님(별 소모 상품 분석에서 제외)
+const NON_PRODUCT_SOURCES = new Set(["pg", "welcome_bonus", "first_charge_bonus", "admin_adjust"]);
+
+/**
+ * star_transactions 를 (종목, 상품)으로 분류. 분류 규칙:
+ * reading_id 조인 우선(연애상담=relationship_id/skill_key → 운세=fortune tag → 대화상담) →
+ * reading 없으면 source 파싱(fortune_* / rel_* / clarifier·extend) → 비상품(충전·보너스) 제외.
+ */
+export function buildStarSpendBreakdown(
+  starTx: StarTxRow[],
+  readingsById: Map<string, ReadingInfo>
+): StarSpendGroup[] {
+  const groups = new Map<
+    string,
+    { domain: StarSpendDomain; product: string; count: number; stars: number; users: Set<string> }
+  >();
+  const add = (domain: StarSpendDomain, product: string, tx: StarTxRow) => {
+    const key = `${domain}|${product}`;
+    const g = groups.get(key) ?? { domain, product, count: 0, stars: 0, users: new Set<string>() };
+    g.count += 1;
+    g.stars += tx.amount;
+    g.users.add(tx.user_id);
+    groups.set(key, g);
+  };
+
+  for (const tx of starTx) {
+    if (tx.type !== "spend") continue;
+    const src = tx.source;
+    if (NON_PRODUCT_SOURCES.has(src) || src.startsWith("fortune_refund")) continue;
+
+    // source 특수 케이스 우선(reading_id 유무 무관) — 업셀/패스/연장/판정은 source 가 권위.
+    // (clarifier·extend 는 reading_id 가 있어도 종목 조인이 아니라 '업셀'로 별도 집계)
+    if (src === "clarifier" || src === "extend") { add("upsell", src, tx); continue; }
+    if (src === "relationship_pass") { add("relationship", "패스", tx); continue; }
+    if (src === "rel_extend") { add("relationship", "스레드 연장", tx); continue; }
+    if (src === "rel_skill_verdict") { add("relationship", "스킬:verdict", tx); continue; }
+
+    // reading 조인(사주/타로 대화 · 연애상담 타로 스킬 · 운세 리포트)
+    const r = tx.reading_id ? readingsById.get(tx.reading_id) : undefined;
+    if (r) {
+      if (r.relationship_id || r.skill_key) {
+        add("relationship", r.skill_key ? `스킬:${r.skill_key}` : "스레드 대화", tx);
+      } else {
+        const ft = fortuneTypeFromTag(r.emotion_tag);
+        if (ft) add("fortune", ft, tx);
+        else if (r.consultation_type === "saju" || r.consultation_type === "tarot")
+          add(r.consultation_type, r.emotion_tag ?? "(없음)", tx);
+        else add("relationship", "스레드 대화", tx); // consultation_type='relationship' 인데 태그 없음
+      }
+      continue;
+    }
+    // reading 없음 → source 폴백
+    if (src.startsWith("fortune_")) add("fortune", src.slice("fortune_".length), tx);
+    else add("upsell", src, tx); // reading(레거시) 등 미상
+  }
+
+  return [...groups.values()]
+    .map((g) => ({ domain: g.domain, product: g.product, count: g.count, stars: g.stars, users: g.users.size }))
+    .sort((a, b) => b.stars - a.stars);
 }

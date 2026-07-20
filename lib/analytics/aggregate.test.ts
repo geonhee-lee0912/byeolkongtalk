@@ -142,3 +142,31 @@ test("buildCohorts — 가입 주차별 누적 LTV(유저 평균) + 리텐션", 
   assert.equal(wk.cumRevenuePerUser[0], 1500); // 3000/2
   assert.equal(wk.cumRevenuePerUser[1], 2500); // 5000/2
 });
+
+import { buildStarSpendBreakdown, type StarTxRow, type ReadingInfo } from "./aggregate.ts";
+
+test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품 제외)", () => {
+  const reads = new Map<string, ReadingInfo>([
+    ["r1", { consultation_type: "saju", emotion_tag: "재회할 수 있을까", relationship_id: null, skill_key: null }],
+    ["r2", { consultation_type: "tarot", emotion_tag: null, relationship_id: "rel1", skill_key: "checkin" }], // 연애상담 타로 스킬
+    ["r3", { consultation_type: "saju", emotion_tag: "fortune:compat", relationship_id: null, skill_key: null }], // 운세 리포트
+  ]);
+  const tx: StarTxRow[] = [
+    { user_id: "u1", type: "spend", amount: 22, source: "saju_reading", reading_id: "r1", created_at: "" },
+    { user_id: "u1", type: "spend", amount: 45, source: "tarot_reading", reading_id: "r2", created_at: "" }, // → relationship
+    { user_id: "u2", type: "spend", amount: 40, source: "fortune_compat", reading_id: "r3", created_at: "" }, // → fortune
+    { user_id: "u2", type: "spend", amount: 40, source: "fortune_good_days", reading_id: null, created_at: "" }, // reading 없음 → source
+    { user_id: "u3", type: "spend", amount: 20, source: "relationship_pass", reading_id: null, created_at: "" }, // → relationship
+    { user_id: "u3", type: "spend", amount: 30, source: "rel_skill_verdict", reading_id: null, created_at: "" }, // → relationship
+    { user_id: "u1", type: "spend", amount: 5, source: "clarifier", reading_id: "r1", created_at: "" }, // → upsell
+    { user_id: "u9", type: "charge", amount: 100, source: "pg", reading_id: null, created_at: "" }, // 제외(charge)
+    { user_id: "u9", type: "spend", amount: 999, source: "admin_adjust", reading_id: null, created_at: "" }, // 제외(비상품)
+  ];
+  const out = buildStarSpendBreakdown(tx, reads);
+  const byDomain = (d: string) => out.filter((g) => g.domain === d);
+  assert.equal(byDomain("saju").length, 1); // r1 사주 대화
+  assert.equal(byDomain("relationship").reduce((s, g) => s + g.count, 0), 3); // checkin 스킬 + 패스 + verdict
+  assert.equal(byDomain("fortune").reduce((s, g) => s + g.count, 0), 2); // compat(조인) + good_days(source)
+  assert.equal(byDomain("upsell").length, 1); // clarifier
+  assert.ok(!out.some((g) => g.product === "pg" || g.product === "admin_adjust")); // 비상품 제외
+});
