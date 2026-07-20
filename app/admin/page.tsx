@@ -124,14 +124,14 @@ async function loadStats() {
 }
 
 function Delta({ today, yesterday, label = "어제" }: { today: number; yesterday: number; label?: string }) {
-  if (yesterday === 0) return <div className="text-[11px] text-white/40 mt-1">{label} 0</div>;
+  if (yesterday === 0) return <span className="text-lg font-normal text-white/40">{label} 0</span>;
   const pct = ((today - yesterday) / yesterday) * 100;
   const cls = pct > 0 ? "text-emerald-400" : pct < 0 ? "text-red-400" : "text-white/40";
   return (
-    <div className="text-[11px] mt-1">
+    <span className="text-lg font-normal whitespace-nowrap">
       <span className={cls}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>{" "}
       <span className="text-white/40">({label} {yesterday.toLocaleString()})</span>
-    </div>
+    </span>
   );
 }
 
@@ -139,11 +139,13 @@ function Stat({ label, value, paren, children }: { label: string; value: string 
   return (
     <div className="rounded-xl bg-white/5 border border-white/10 p-4">
       <div className="text-[12px] text-white/60">{label}</div>
-      <div className="text-2xl font-bold mt-1">
-        {value}
-        {paren && <span className="text-sm font-normal text-white/50 ml-1.5">({paren})</span>}
+      <div className="text-2xl font-bold mt-1 flex items-baseline gap-x-2 flex-wrap">
+        <span>
+          {value}
+          {paren && <span className="text-sm font-normal text-white/50 ml-1.5">({paren})</span>}
+        </span>
+        {children}
       </div>
-      {children}
     </div>
   );
 }
@@ -190,7 +192,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · 오전 10시 기준)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-2 gap-3 ${showSaju ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
           {showSaju && starCard("사주 대화", s.star.saju)}
           {starCard("타로 대화", s.star.tarot)}
           {starCard("운세 리포트", s.star.fortune)}
