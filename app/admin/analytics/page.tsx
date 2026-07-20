@@ -78,6 +78,32 @@ export default async function AnalyticsPage() {
       </section>
 
       <section>
+        <h2 className="text-sm text-white/60 mb-3">별 소모 상품 <span className="text-white/40 text-xs">(종목 → 상품 · 건수 / 별 / 유니크)</span></h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {(["saju", "tarot", "fortune", "relationship", "upsell"] as const).map((dom) => {
+            const rows = ((products?.starSpend ?? []) as { domain: string; product: string; count: number; stars: number; users: number }[]).filter((g) => g.domain === dom);
+            if (!rows.length) return null;
+            const LABEL: Record<string, string> = { saju: "사주 대화", tarot: "타로 대화", fortune: "운세 리포트", relationship: "연애 상담", upsell: "인챗 업셀" };
+            return (
+              <div key={dom}>
+                <h3 className="text-sm text-white/70 mb-2">{LABEL[dom]}</h3>
+                <table className="w-full text-[12px]">
+                  <thead className="text-white/40 text-left"><tr><th className="py-1">상품</th><th>건수</th><th>별</th><th>유니크</th></tr></thead>
+                  <tbody>
+                    {rows.map((g) => (
+                      <tr key={g.product} className="border-t border-white/10">
+                        <td className="py-1">{g.product}</td><td>{g.count}</td><td>{g.stars.toLocaleString()}</td><td>{g.users}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
         <h2 className="text-sm text-white/60 mb-3">코호트 LTV / 리텐션 (누적 결제액/인, 최근 {cohorts?.weeks ?? 12}주)</h2>
         <CohortHeatmap cohorts={cohorts?.cohorts ?? []} weeks={cohorts?.weeks ?? 12} />
       </section>

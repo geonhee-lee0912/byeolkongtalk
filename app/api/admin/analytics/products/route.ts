@@ -4,7 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
-import { buildProductBreakdown } from "@/lib/analytics/aggregate";
+import { buildProductBreakdown, buildStarSpendBreakdown, type StarTxRow, type ReadingInfo } from "@/lib/analytics/aggregate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,8 +38,35 @@ export async function GET(req: NextRequest) {
     paymentsQ,
   ]);
 
+  // 별 소모 분석 — star_transactions(spend) + reading 조인으로 종목·상품 분류
+  let txQ = supa
+    .from("star_transactions")
+    .select("user_id, type, amount, source, reading_id, created_at")
+    .eq("type", "spend")
+    .gte("created_at", since)
+    .limit(100000);
+  if (excl) txQ = txQ.not("user_id", "in", excl);
+  const { data: tx } = await txQ;
+  const rids = [...new Set((tx ?? []).map((t) => t.reading_id).filter(Boolean))] as string[];
+  const readingsById = new Map<string, ReadingInfo>();
+  if (rids.length) {
+    const { data: rinfo } = await supa
+      .from("readings")
+      .select("id, consultation_type, emotion_tag, relationship_id, skill_key")
+      .in("id", rids);
+    for (const r of rinfo ?? [])
+      readingsById.set(r.id, {
+        consultation_type: r.consultation_type,
+        emotion_tag: r.emotion_tag,
+        relationship_id: r.relationship_id,
+        skill_key: r.skill_key,
+      });
+  }
+  const starSpend = buildStarSpendBreakdown((tx ?? []) as StarTxRow[], readingsById);
+
   return NextResponse.json({
     days,
     ...buildProductBreakdown(readings ?? [], payments ?? []),
+    starSpend,
   });
 }

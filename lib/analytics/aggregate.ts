@@ -50,6 +50,8 @@ export function buildProductBreakdown(
   const fortune = new Map<string, FortuneGroup>();
 
   for (const r of readings) {
+    // 연애상담 스레드는 counsel(사주/타로 대화)에서 제외 — 별 소모 분석·연애상담 메뉴에서 다룸
+    if (r.consultation_type === "relationship") continue;
     const paid = (r.stars_spent ?? 0) > 0;
     const stars = r.stars_spent ?? 0;
     const kind = fortuneTypeFromTag(r.emotion_tag);
