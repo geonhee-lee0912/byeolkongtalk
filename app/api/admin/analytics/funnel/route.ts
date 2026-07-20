@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { buildFunnel } from "@/lib/analytics/aggregate";
+import { canonicalCreative } from "@/lib/analytics/creative-alias";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     days,
     rows: buildFunnel({
-      acquisitions: (acqs ?? []).map((a) => ({ user_id: a.user_id, utm_content: a.utm_content })),
+      acquisitions: (acqs ?? []).map((a) => ({ user_id: a.user_id, utm_content: canonicalCreative(a.utm_content) })),
       readings: readings ?? [],
       payments: payments ?? [],
       spend: spend ?? [],

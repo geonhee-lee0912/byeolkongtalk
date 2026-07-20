@@ -6,6 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
+import { canonicalCreative } from "@/lib/analytics/creative-alias";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function PaywallPage() {
       supa.from("readings").select("user_id").in("user_id", ids).limit(100000),
     ]);
     for (const u of users ?? []) userMap.set(u.id, { nickname: u.nickname, created_at: u.created_at });
-    for (const a of acqs ?? []) utmMap.set(a.user_id, a.utm_content);
+    for (const a of acqs ?? []) utmMap.set(a.user_id, canonicalCreative(a.utm_content));
     for (const r of reads ?? []) readCount.set(r.user_id, (readCount.get(r.user_id) ?? 0) + 1);
   }
 

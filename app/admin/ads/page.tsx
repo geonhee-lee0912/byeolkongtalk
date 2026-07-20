@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 import { AdSpendUpload } from "@/components/admin/AdSpendUpload";
+import { canonicalCreative } from "@/lib/analytics/creative-alias";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function AdsPage() {
     supa.from("user_acquisition").select("utm_content").gte("created_at", daysAgoKstIso(89)).limit(100000),
     supa.from("ad_spend").select("spend_won").limit(100000),
   ]);
-  const suggestions = [...new Set((acqs ?? []).map((a) => a.utm_content).filter(Boolean) as string[])];
+  const suggestions = [...new Set((acqs ?? []).map((a) => canonicalCreative(a.utm_content)).filter(Boolean) as string[])];
   const totalSpend = (allSpend ?? []).reduce((a, r) => a + (Number(r.spend_won) || 0), 0);
 
   return (
