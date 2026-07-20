@@ -309,6 +309,7 @@ export function buildCohorts(input: {
 // ── 별 소모 분류 엔진 (star_transactions → 종목·상품) ──────────────────────
 
 export type StarTxRow = {
+  id?: string; // freeById 귀속용 (없으면 무료 별 0 처리)
   user_id: string;
   type: string;
   amount: number;
@@ -330,6 +331,7 @@ export type StarSpendGroup = {
   product: string;
   count: number;
   stars: number;
+  freeStars: number; // free-first 귀속 무료 별 (freeById 없으면 0)
   users: number;
 };
 
@@ -343,17 +345,19 @@ const NON_PRODUCT_SOURCES = new Set(["pg", "welcome_bonus", "first_charge_bonus"
  */
 export function buildStarSpendBreakdown(
   starTx: StarTxRow[],
-  readingsById: Map<string, ReadingInfo>
+  readingsById: Map<string, ReadingInfo>,
+  freeById?: Map<string, number> // attributeFreeSpend 결과 (spend tx id → 무료 별)
 ): StarSpendGroup[] {
   const groups = new Map<
     string,
-    { domain: StarSpendDomain; product: string; count: number; stars: number; users: Set<string> }
+    { domain: StarSpendDomain; product: string; count: number; stars: number; freeStars: number; users: Set<string> }
   >();
   const add = (domain: StarSpendDomain, product: string, tx: StarTxRow) => {
     const key = `${domain}|${product}`;
-    const g = groups.get(key) ?? { domain, product, count: 0, stars: 0, users: new Set<string>() };
+    const g = groups.get(key) ?? { domain, product, count: 0, stars: 0, freeStars: 0, users: new Set<string>() };
     g.count += 1;
     g.stars += tx.amount;
+    g.freeStars += (tx.id && freeById?.get(tx.id)) || 0;
     g.users.add(tx.user_id);
     groups.set(key, g);
   };
@@ -390,8 +394,58 @@ export function buildStarSpendBreakdown(
   }
 
   return [...groups.values()]
-    .map((g) => ({ domain: g.domain, product: g.product, count: g.count, stars: g.stars, users: g.users.size }))
+    .map((g) => ({ domain: g.domain, product: g.product, count: g.count, stars: g.stars, freeStars: g.freeStars, users: g.users.size }))
     .sort((a, b) => b.stars - a.stars);
+}
+
+// ── 무료 별 귀속 (free-first) ────────────────────────────────────────────────
+
+export type StarLedgerRow = {
+  id: string;
+  user_id: string;
+  type: string; // 'charge' | 'spend'
+  amount: number;
+  source: string;
+  created_at: string;
+};
+
+// fortune_refund_* 충전은 새 재화가 아니라 직전 소모의 복원
+const isRefundSource = (s: string) => s.startsWith("fortune_refund");
+
+/**
+ * 유저별 전체 원장을 시간순으로 걸어 spend 트랜잭션의 무료 별 몫을 계산.
+ * 잔액 풀은 하나지만 분석상 무료 충전(pg 이외: welcome/first_charge 보너스·admin_adjust)이
+ * 먼저 소모된다고 가정(free-first). 환불 충전은 무료로 나간 몫부터 복원.
+ * 반환: spend 트랜잭션 id → 무료 별 수 (무료 몫 0 이면 미기록).
+ */
+export function attributeFreeSpend(ledger: StarLedgerRow[]): Map<string, number> {
+  const byUser = new Map<string, StarLedgerRow[]>();
+  for (const row of ledger)
+    (byUser.get(row.user_id) ?? byUser.set(row.user_id, []).get(row.user_id)!).push(row);
+
+  const freeById = new Map<string, number>();
+  for (const rows of byUser.values()) {
+    rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    let freePool = 0;
+    let freeUsed = 0; // 지금까지 소모된 무료 별 (환불 복원 상한)
+    for (const row of rows) {
+      if (row.type === "charge") {
+        if (isRefundSource(row.source)) {
+          const restore = Math.min(row.amount, freeUsed);
+          freePool += restore;
+          freeUsed -= restore;
+        } else if (row.source !== "pg") {
+          freePool += row.amount;
+        }
+      } else if (row.type === "spend") {
+        const free = Math.min(row.amount, freePool);
+        freePool -= free;
+        freeUsed += free;
+        if (free > 0) freeById.set(row.id, free);
+      }
+    }
+  }
+  return freeById;
 }
 
 // ── 연애 상담 대화 흐름 (방문 세션 분리 + 소프트캡) ──────────────────────────

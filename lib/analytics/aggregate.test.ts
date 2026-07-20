@@ -171,6 +171,39 @@ test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품
   assert.ok(!out.some((g) => g.product === "pg" || g.product === "admin_adjust")); // 비상품 제외
 });
 
+import { attributeFreeSpend, type StarLedgerRow } from "./aggregate.ts";
+
+test("attributeFreeSpend: free-first 귀속 + 환불 복원", () => {
+  const L = (id: string, type: string, amount: number, source: string, at: string): StarLedgerRow =>
+    ({ id, user_id: "u1", type, amount, source, created_at: at });
+  const ledger = [
+    L("c1", "charge", 30, "welcome_bonus", "2026-07-01T00:00:00Z"),
+    L("c2", "charge", 100, "pg", "2026-07-02T00:00:00Z"),
+    L("s1", "spend", 40, "tarot_reading", "2026-07-03T00:00:00Z"), // 무료 30 + 유료 10
+    L("r1", "charge", 40, "fortune_refund_compat", "2026-07-04T00:00:00Z"), // 복원 — 무료 30 몫부터
+    L("s2", "spend", 35, "fortune_compat", "2026-07-05T00:00:00Z"), // 무료 30 + 유료 5
+    L("s3", "spend", 50, "relationship_pass", "2026-07-06T00:00:00Z"), // 무료 소진 후 → 전액 유료
+    // 다른 유저 원장은 독립
+    { id: "s9", user_id: "u2", type: "spend", amount: 10, source: "tarot_reading", created_at: "2026-07-03T00:00:00Z" },
+  ];
+  const free = attributeFreeSpend(ledger);
+  assert.equal(free.get("s1"), 30);
+  assert.equal(free.get("s2"), 30);
+  assert.equal(free.get("s3"), undefined); // 무료 몫 0 → 미기록
+  assert.equal(free.get("s9"), undefined); // u2 는 무료 충전 없음
+});
+
+test("buildStarSpendBreakdown: freeById 로 그룹별 무료 별 합산", () => {
+  const tx: StarTxRow[] = [
+    { id: "s1", user_id: "u1", type: "spend", amount: 20, source: "fortune_monthly", reading_id: null, created_at: "" },
+    { id: "s2", user_id: "u1", type: "spend", amount: 20, source: "fortune_monthly", reading_id: null, created_at: "" },
+  ];
+  const out = buildStarSpendBreakdown(tx, new Map(), new Map([["s1", 15]]));
+  const g = out.find((x) => x.domain === "fortune")!;
+  assert.equal(g.stars, 40);
+  assert.equal(g.freeStars, 15);
+});
+
 import { buildRelationshipFlow, type RelMsgRow } from "./aggregate.ts";
 
 test("buildRelationshipFlow: 6h 갭 세션 분리 + 방문당 턴", () => {
