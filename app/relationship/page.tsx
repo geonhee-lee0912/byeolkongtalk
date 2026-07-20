@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
-import PassPanel from "@/components/relationship/PassPanel";
 import PassSheet from "@/components/relationship/PassSheet";
 import RelationshipEditModal from "@/components/relationship/RelationshipEditModal";
 import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
@@ -77,13 +76,17 @@ export default function RelationshipPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPassSheet, setShowPassSheet] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
 
   const load = async () => {
-    const [me, rel] = await Promise.all([
+    const [me, rel, bal] = await Promise.all([
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<Me>) : null))
         .catch(() => null),
       fetch("/api/relationship", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("/api/stars/balance", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
     ]);
@@ -101,6 +104,7 @@ export default function RelationshipPage() {
           | undefined) ?? []
       ).map((m) => ({ role: m.role, content: m.content, createdAt: m.created_at }))
     );
+    setBalance(typeof bal?.balance === "number" ? bal.balance : null);
     setLoading(false);
   };
 
@@ -246,13 +250,30 @@ export default function RelationshipPage() {
                 </div>
               )}
 
-              <PassPanel
-                relationshipId={relationship.id}
-                onPurchased={() => void load()}
-              />
+              <button
+                type="button"
+                onClick={() => setShowPassSheet(true)}
+                className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              >
+                {messages.length > 0 ? "패스 연장하기" : "패스 시작하기"}
+              </button>
             </div>
           </div>
           {editModal}
+          {showPassSheet && (
+            <PassSheet
+              relationshipId={relationship.id}
+              pass={null}
+              daily={null}
+              balance={balance ?? undefined}
+              onClose={() => setShowPassSheet(false)}
+              onExtended={() => void load()}
+              onPurchased={() => {
+                setShowPassSheet(false);
+                void load();
+              }}
+            />
+          )}
         </main>
       );
     }
@@ -289,6 +310,7 @@ export default function RelationshipPage() {
             relationshipId={relationship.id}
             pass={pass}
             daily={daily}
+            balance={balance ?? undefined}
             onClose={() => setShowPassSheet(false)}
             onExtended={() => void load()}
             onPurchased={() => {

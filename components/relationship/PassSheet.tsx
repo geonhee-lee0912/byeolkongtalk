@@ -25,6 +25,8 @@ interface PassSheetProps {
   relationshipId: string;
   pass: PassInfo | null;
   daily: DailyInfo | null;
+  /** 보유 별 — 팝업 상단(패스 선택 카드)에 표기 */
+  balance?: number;
   onClose: () => void;
   onPurchased: () => void;
   onExtended: () => void;
@@ -34,6 +36,7 @@ export default function PassSheet({
   relationshipId,
   pass,
   daily,
+  balance,
   onClose,
   onPurchased,
   onExtended,
@@ -105,7 +108,7 @@ export default function PassSheet({
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">패스 · 오늘 대화</h2>
+          <h2 className="font-display text-[16px] font-bold text-eye-purple">{pass ? "패스 · 오늘 대화" : "패스 선택하기"}</h2>
           <button
             onClick={onClose}
             aria-label="닫기"
@@ -145,7 +148,7 @@ export default function PassSheet({
             </div>
           )}
 
-          <PassPanel relationshipId={relationshipId} onPurchased={onPurchased} />
+          <PassPanel relationshipId={relationshipId} balance={balance} onPurchased={onPurchased} />
         </div>
       </div>
     </div>,
