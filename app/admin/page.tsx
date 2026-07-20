@@ -167,7 +167,7 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Stat label="신규 가입" value={s.today.newUsers}>
             <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
           </Stat>
@@ -181,7 +181,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Stat label="신규 가입" value={s.all.newUsers}>
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />
           </Stat>
@@ -195,7 +195,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · 오전 10시 기준)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           {starCard("타로 대화", s.star.tarot)}
           {starCard("운세 리포트", s.star.fortune)}
           {starCard("인챗 업셀", s.star.upsell)}
@@ -205,7 +205,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">연애 상담 <span className="text-white/35">(오늘 · 활성 패스는 현재 시점)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Stat label="활성 패스" value={s.rel.activePasses} />
           <Stat label="패스 구매" value={s.rel.passBuys.today}>
             <Delta today={s.rel.passBuys.today} yesterday={s.rel.passBuys.yesterday} />
