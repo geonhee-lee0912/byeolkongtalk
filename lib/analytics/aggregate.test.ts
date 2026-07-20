@@ -170,3 +170,32 @@ test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품
   assert.equal(byDomain("upsell").length, 1); // clarifier
   assert.ok(!out.some((g) => g.product === "pg" || g.product === "admin_adjust")); // 비상품 제외
 });
+
+import { buildRelationshipFlow, type RelMsgRow } from "./aggregate.ts";
+
+test("buildRelationshipFlow: 6h 갭 세션 분리 + 방문당 턴", () => {
+  const msgs: RelMsgRow[] = [
+    { reading_id: "t1", role: "user", created_at: "2026-07-01T01:00:00Z" },
+    { reading_id: "t1", role: "user", created_at: "2026-07-01T01:05:00Z" },
+    { reading_id: "t1", role: "user", created_at: "2026-07-01T01:10:00Z" },
+    { reading_id: "t1", role: "user", created_at: "2026-07-01T08:30:00Z" }, // 7h+ 후 → 새 방문
+    { reading_id: "t1", role: "assistant", created_at: "2026-07-01T01:01:00Z" }, // 무시
+  ];
+  const f = buildRelationshipFlow(msgs);
+  assert.equal(f.visits, 2); // 6h 갭으로 2방문
+  assert.equal(f.avgTurnsPerVisit, 2); // user 4턴 / 2방문
+  assert.equal(f.softCapDays, 0);
+});
+
+test("buildRelationshipFlow: 소프트캡(하루 20턴) 도달", () => {
+  const msgs: RelMsgRow[] = [];
+  for (let i = 0; i < 20; i++) {
+    const min = i * 5; // 5분 간격 → 6h 미만, 1방문 20턴
+    const hh = String(Math.floor(min / 60)).padStart(2, "0");
+    const mm = String(min % 60).padStart(2, "0");
+    msgs.push({ reading_id: "t1", role: "user", created_at: `2026-07-01T${hh}:${mm}:00Z` });
+  }
+  const f = buildRelationshipFlow(msgs);
+  assert.equal(f.visits, 1);
+  assert.equal(f.softCapDays, 1);
+});

@@ -393,3 +393,49 @@ export function buildStarSpendBreakdown(
     .map((g) => ({ domain: g.domain, product: g.product, count: g.count, stars: g.stars, users: g.users.size }))
     .sort((a, b) => b.stars - a.stars);
 }
+
+// ── 연애 상담 대화 흐름 (방문 세션 분리 + 소프트캡) ──────────────────────────
+
+export type RelMsgRow = { reading_id: string; role: string; created_at: string };
+export type RelFlow = {
+  visits: number; // 총 방문(세션) 수 — 같은 스레드 내 6시간 이상 갭이면 새 방문
+  avgTurnsPerVisit: number; // 세션당 평균 user 턴
+  softCapDays: number; // 소프트캡(하루 20턴) 도달한 (스레드,날짜) 수
+};
+
+const SESSION_GAP_MS = 6 * 3600 * 1000; // 6시간 갭 = 새 방문
+const SOFTCAP_TURNS = 20;
+
+/** 연애상담 스레드 messages(user 발화)로 방문 세션/소프트캡 집계. reading_id 별로 분리. */
+export function buildRelationshipFlow(messages: RelMsgRow[]): RelFlow {
+  const byThread = new Map<string, number[]>();
+  for (const m of messages) {
+    if (m.role !== "user") continue;
+    const t = new Date(m.created_at).getTime();
+    const arr = byThread.get(m.reading_id) ?? byThread.set(m.reading_id, []).get(m.reading_id)!;
+    arr.push(t);
+  }
+  let visits = 0;
+  let totalTurns = 0;
+  const capDays = new Set<string>();
+  for (const [rid, raw] of byThread) {
+    const ts = [...raw].sort((a, b) => a - b);
+    let prev = -Infinity;
+    for (const t of ts) {
+      if (t - prev > SESSION_GAP_MS) visits += 1; // 새 방문
+      prev = t;
+    }
+    totalTurns += ts.length;
+    const perDay = new Map<string, number>();
+    for (const t of ts) {
+      const day = new Date(t + 9 * 3600000).toISOString().slice(0, 10); // KST 날짜
+      perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    }
+    for (const [day, c] of perDay) if (c >= SOFTCAP_TURNS) capDays.add(`${rid}|${day}`);
+  }
+  return {
+    visits,
+    avgTurnsPerVisit: visits ? Math.round((totalTurns / visits) * 10) / 10 : 0,
+    softCapDays: capDays.size,
+  };
+}
