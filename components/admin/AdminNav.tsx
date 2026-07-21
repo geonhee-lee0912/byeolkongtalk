@@ -20,6 +20,7 @@ const GROUPS: Group[] = [
   { key: "ops", label: "운영·고객", emoji: "👥", items: [
     { href: "/admin/users", label: "사용자", emoji: "👤" },
     { href: "/admin/readings", label: "리딩/상담", emoji: "🔮" },
+    { href: "/admin/relationship-readings", label: "연애 상담 리딩", emoji: "💌" },
     { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
     { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
     { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
@@ -35,7 +36,9 @@ const GROUPS: Group[] = [
 
 export function AdminNav({ badges, errBadge }: { badges: Record<string, number>; errBadge: { err: number; warn: number } }) {
   const pathname = usePathname();
-  const activeGroup = GROUPS.find((g) => g.items.some((it) => pathname.startsWith(it.href)))?.key;
+  // 경로 프리픽스 충돌 방지 (예: /admin/relationship-readings 가 /admin/relationship 에 매칭되지 않게)
+  const matches = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const activeGroup = GROUPS.find((g) => g.items.some((it) => matches(it.href)))?.key;
   const [open, setOpen] = useState<Record<string, boolean>>(
     Object.fromEntries(GROUPS.map((g) => [g.key, g.key === activeGroup]))
   );

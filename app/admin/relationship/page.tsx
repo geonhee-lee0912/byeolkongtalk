@@ -1,7 +1,6 @@
-// app/admin/relationship/page.tsx — 연애 상담(우리 사이) 지표 + 대화 흐름 + 스레드 목록.
-import Link from "next/link";
+// app/admin/relationship/page.tsx — 연애 상담(우리 사이) 지표 + 대화 흐름.
 import { getServiceSupabase } from "@/lib/supabase";
-import { isAdminUserId } from "@/lib/admin";
+import { adminExclusionList } from "@/lib/admin";
 import { buildRelationshipFlow, type RelMsgRow } from "@/lib/analytics/aggregate";
 
 export const dynamic = "force-dynamic";
@@ -20,107 +19,54 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
   );
 }
 
-interface ThreadRow {
-  id: string;
-  userId: string;
-  isAdmin: boolean;
-  label: string;
-  status: string;
-  msgCount: number;
-  activePass: { kind: string; expiresAt: string } | null;
-  totalSpend: number;
-  lastVisitedAt: string | null;
-  createdAt: string;
-}
-
 async function load() {
   const supa = getServiceSupabase();
+  const excl = adminExclusionList();
   const nowIso = new Date().toISOString();
   const weekAgo = Date.now() - 7 * 86400000;
 
-  // 전체 조회 → 통계는 운영자 제외(JS 필터), 스레드 목록(관리)은 전체 노출
-  const [{ data: relsAll }, { data: passesAll }, { data: extendsAll }, { data: skillsAll }] = await Promise.all([
-    supa.from("relationships")
-      .select("id, user_id, label, status, thread_reading_id, last_visited_at, created_at")
-      .order("created_at", { ascending: false }),
-    supa.from("relationship_passes").select("user_id, relationship_id, kind, stars_spent, expires_at"),
-    supa.from("star_transactions").select("user_id, reading_id, amount").eq("source", "rel_extend"),
-    supa.from("readings").select("user_id, relationship_id, skill_key, stars_spent").not("skill_key", "is", null),
-  ]);
-  const rels = relsAll ?? [];
-  const passes = passesAll ?? [];
-  const extendTxs = extendsAll ?? [];
-  const skills = skillsAll ?? [];
+  let relQ = supa.from("relationships").select("user_id, status, thread_reading_id, last_visited_at, created_at");
+  if (excl) relQ = relQ.not("user_id", "in", excl);
+  let passQ = supa.from("relationship_passes").select("user_id, kind, stars_spent, expires_at");
+  if (excl) passQ = passQ.not("user_id", "in", excl);
+  let extQ = supa.from("star_transactions").select("id", { count: "exact", head: true }).eq("source", "rel_extend");
+  if (excl) extQ = extQ.not("user_id", "in", excl);
+  // skill_key IS NOT NULL + excl — 삼항 한 표현식(재할당 누적 타입 폭발 회피)
+  const skQ = excl
+    ? supa.from("readings").select("skill_key").not("skill_key", "is", null).not("user_id", "in", excl)
+    : supa.from("readings").select("skill_key").not("skill_key", "is", null);
 
-  const statsRels = rels.filter((r) => !isAdminUserId(r.user_id));
-  const statsPasses = passes.filter((p) => !isAdminUserId(p.user_id));
-  const statsExtends = extendTxs.filter((t) => !isAdminUserId(t.user_id));
-  const statsSkills = skills.filter((s) => !isAdminUserId(s.user_id));
+  const [{ data: rels }, { data: passes }, { count: extendCount }, { data: skills }] = await Promise.all([relQ, passQ, extQ, skQ]);
 
-  const threadIds = rels.map((r) => r.thread_reading_id).filter(Boolean) as string[];
+  const threadIds = (rels ?? []).map((r) => r.thread_reading_id).filter(Boolean) as string[];
   let msgs: RelMsgRow[] = [];
   if (threadIds.length) {
     const { data } = await supa.from("messages").select("reading_id, role, created_at").in("reading_id", threadIds).limit(100000);
     msgs = (data ?? []) as RelMsgRow[];
   }
-  const statsThreadIds = new Set(statsRels.map((r) => r.thread_reading_id).filter(Boolean));
-  const flow = buildRelationshipFlow(msgs.filter((m) => statsThreadIds.has(m.reading_id)));
+  const flow = buildRelationshipFlow(msgs);
 
   const statusDist: Record<string, number> = {};
-  for (const r of statsRels) statusDist[r.status] = (statusDist[r.status] ?? 0) + 1;
-  const activeThreads = statsRels.filter((r) => r.last_visited_at && new Date(r.last_visited_at).getTime() > weekAgo).length;
+  for (const r of rels ?? []) statusDist[r.status] = (statusDist[r.status] ?? 0) + 1;
+  const activeThreads = (rels ?? []).filter((r) => r.last_visited_at && new Date(r.last_visited_at).getTime() > weekAgo).length;
 
   const passByKind: Record<string, number> = {};
   let passRevenue = 0;
   const passUserCount = new Map<string, number>();
-  for (const p of statsPasses) {
+  for (const p of passes ?? []) {
     passByKind[p.kind] = (passByKind[p.kind] ?? 0) + 1;
     passRevenue += p.stars_spent ?? 0;
     passUserCount.set(p.user_id, (passUserCount.get(p.user_id) ?? 0) + 1);
   }
-  const activePasses = statsPasses.filter((p) => p.expires_at > nowIso).length;
+  const activePasses = (passes ?? []).filter((p) => p.expires_at > nowIso).length;
   const passBuyers = passUserCount.size;
   const renewers = [...passUserCount.values()].filter((c) => c >= 2).length;
 
   const skillDist: Record<string, number> = {};
-  for (const s of statsSkills) if (s.skill_key) skillDist[s.skill_key] = (skillDist[s.skill_key] ?? 0) + 1;
-
-  // ── 스레드 목록 (관계당 1행) ──
-  const msgCountByThread = new Map<string, number>();
-  for (const m of msgs) msgCountByThread.set(m.reading_id, (msgCountByThread.get(m.reading_id) ?? 0) + 1);
-
-  const spendByRel = new Map<string, number>();
-  const addSpend = (relId: string | null, amount: number | null) => {
-    if (!relId || !amount) return;
-    spendByRel.set(relId, (spendByRel.get(relId) ?? 0) + Math.abs(amount));
-  };
-  const activePassByRel = new Map<string, { kind: string; expiresAt: string }>();
-  for (const p of passes) {
-    addSpend(p.relationship_id, p.stars_spent);
-    if (p.expires_at > nowIso) {
-      const cur = activePassByRel.get(p.relationship_id);
-      if (!cur || p.expires_at > cur.expiresAt) activePassByRel.set(p.relationship_id, { kind: p.kind, expiresAt: p.expires_at });
-    }
-  }
-  const relByThread = new Map(rels.filter((r) => r.thread_reading_id).map((r) => [r.thread_reading_id as string, r.id]));
-  for (const t of extendTxs) addSpend(t.reading_id ? relByThread.get(t.reading_id) ?? null : null, t.amount);
-  for (const s of skills) addSpend(s.relationship_id, s.stars_spent);
-
-  const threads: ThreadRow[] = rels.map((r) => ({
-    id: r.id,
-    userId: r.user_id,
-    isAdmin: isAdminUserId(r.user_id),
-    label: r.label,
-    status: r.status,
-    msgCount: r.thread_reading_id ? msgCountByThread.get(r.thread_reading_id) ?? 0 : 0,
-    activePass: activePassByRel.get(r.id) ?? null,
-    totalSpend: spendByRel.get(r.id) ?? 0,
-    lastVisitedAt: r.last_visited_at,
-    createdAt: r.created_at,
-  }));
+  for (const s of skills ?? []) if (s.skill_key) skillDist[s.skill_key] = (skillDist[s.skill_key] ?? 0) + 1;
 
   return {
-    totalRels: statsRels.length,
+    totalRels: (rels ?? []).length,
     statusDist,
     activeThreads,
     activePasses,
@@ -128,16 +74,10 @@ async function load() {
     passRevenue,
     passBuyers,
     renewers,
-    extendCount: statsExtends.length,
+    extendCount: extendCount ?? 0,
     skillDist,
     flow,
-    threads,
   };
-}
-
-function fmtDate(iso: string | null) {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
 }
 
 export default async function AdminRelationshipPage() {
@@ -192,47 +132,6 @@ export default async function AdminRelationshipPage() {
           <Stat label="총 방문(세션)" value={s.flow.visits} />
           <Stat label="방문당 평균 턴" value={s.flow.avgTurnsPerVisit} />
           <Stat label="소프트캡 도달" value={s.flow.softCapDays} sub="하루 20턴 소진 (스레드·일)" />
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-sm text-white/60 mb-3">
-          스레드 목록 <span className="text-white/35">전체 {s.threads.length}건 · 통계와 달리 운영자 포함</span>
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-white/50 text-left">
-              <tr>
-                <th className="py-2">사용자</th><th>호칭</th><th>상태</th><th>메시지</th>
-                <th>활성 패스</th><th>누적 지출</th><th>최근 방문</th><th>등록</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {s.threads.map((t) => (
-                <tr key={t.id} className="border-t border-white/10">
-                  <td className="py-2 font-mono text-xs whitespace-nowrap">
-                    {t.userId.slice(0, 8)}
-                    {t.isAdmin && <span className="ml-1 rounded bg-white/10 px-1 text-[10px] font-sans text-white/50">운영자</span>}
-                  </td>
-                  <td className="whitespace-nowrap">{t.label}</td>
-                  <td className="whitespace-nowrap">{STATUS_LABEL[t.status] ?? t.status}</td>
-                  <td>{t.msgCount}</td>
-                  <td className="whitespace-nowrap">
-                    {t.activePass
-                      ? <>{KIND_LABEL[t.activePass.kind] ?? t.activePass.kind} <span className="text-white/40">~{fmtDate(t.activePass.expiresAt)}</span></>
-                      : <span className="text-white/30">없음</span>}
-                  </td>
-                  <td>⭐{t.totalSpend}</td>
-                  <td className="whitespace-nowrap">{fmtDate(t.lastVisitedAt)}</td>
-                  <td className="whitespace-nowrap">{fmtDate(t.createdAt)}</td>
-                  <td className="text-right"><Link href={`/admin/relationship/${t.id}`} className="text-lilac underline">보기</Link></td>
-                </tr>
-              ))}
-              {s.threads.length === 0 && (
-                <tr><td colSpan={9} className="py-4 text-center text-white/40">등록된 관계 없음</td></tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </section>
     </div>

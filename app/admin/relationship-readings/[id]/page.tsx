@@ -1,4 +1,4 @@
-// app/admin/relationship/[id]/page.tsx — 우리 사이 스레드 상세.
+// app/admin/relationship-readings/[id]/page.tsx — 우리 사이 스레드 상세.
 // 대화 메시지 + 이벤트(패스 구매·턴 연장·스킬 호출)를 시간순 한 줄기로 인터리브.
 import Link from "next/link";
 import { notFound } from "next/navigation";
