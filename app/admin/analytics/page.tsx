@@ -5,6 +5,8 @@ import { CohortHeatmap } from "@/components/admin/CohortHeatmap";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 const REL_SKILL_LABEL: Record<string, string> = { checkin: "관계 체크인", deep_feelings: "걔 속마음", compat: "우리 궁합", verdict: "싸움 판정" };
+const UPSELL_LABEL: Record<string, string> = { clarifier: "카드 더 뽑기", extend: "대화 연장" };
+const PASS_KIND_LABEL: Record<string, string> = { day1: "1일권", day3: "3일권", day7: "7일권" };
 
 function productLabel(domain: string, product: string): string {
   if (domain === "fortune")
@@ -139,7 +141,18 @@ function StarProductGrid({ products }: { products: Record<string, unknown> | nul
     fortune.set(g.product, m);
   }
 
-  const relationship = starSpend.filter((g) => g.domain === "relationship");
+  // 연애 상담 — 패스는 relationship_passes 기준 종류별(1/3/7일권), 스킬·연장은 starSpend
+  const relPasses = ((products as { relPasses?: { kind: string; count: number; stars: number; users: number }[] })?.relPasses ?? [])
+    .sort((a, b) => b.stars - a.stars);
+  const relOthers = starSpend.filter((g) => g.domain === "relationship" && g.product !== "패스");
+
+  // 인챗 업셀 — product = "src|출처 대화 태그"
+  const upsell = starSpend
+    .filter((g) => g.domain === "upsell")
+    .map((g) => {
+      const [src, origin] = g.product.includes("|") ? g.product.split("|") : [g.product, ""];
+      return { ...g, label: `${UPSELL_LABEL[src] ?? src}${origin ? ` · ${origin}` : ""}` };
+    });
 
   const Dash = () => <span className="text-white/30">-</span>;
 
@@ -184,13 +197,35 @@ function StarProductGrid({ products }: { products: Record<string, unknown> | nul
         <table className="w-full text-[12px]">
           <thead className="text-white/40 text-left"><tr><th className="py-1">상품</th><th>건수</th><th>별</th><th>유니크</th></tr></thead>
           <tbody>
-            {relationship.map((g) => (
+            {relPasses.map((p) => (
+              <tr key={p.kind} className="border-t border-white/10">
+                <td className="py-1">패스 · {PASS_KIND_LABEL[p.kind] ?? p.kind}</td>
+                <td>{p.count}</td><td>{p.stars.toLocaleString()}</td><td>{p.users}</td>
+              </tr>
+            ))}
+            {relOthers.map((g) => (
               <tr key={g.product} className="border-t border-white/10">
                 <td className="py-1">{productLabel("relationship", g.product)}</td>
                 <td>{g.count}</td><td>{g.stars.toLocaleString()}</td><td>{g.users}</td>
               </tr>
             ))}
-            {relationship.length === 0 && <tr><td colSpan={4} className="py-2 text-white/30">데이터 없음</td></tr>}
+            {relPasses.length === 0 && relOthers.length === 0 && <tr><td colSpan={4} className="py-2 text-white/30">데이터 없음</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 className="text-sm text-white/70 mb-2">인챗 업셀 <span className="text-white/35 font-normal">(상품 · 출처 대화)</span></h3>
+        <table className="w-full text-[12px]">
+          <thead className="text-white/40 text-left"><tr><th className="py-1">상품</th><th>건수</th><th>별</th><th>유니크</th></tr></thead>
+          <tbody>
+            {upsell.map((g) => (
+              <tr key={g.product} className="border-t border-white/10">
+                <td className="py-1">{g.label}</td>
+                <td>{g.count}</td><td>{g.stars.toLocaleString()}</td><td>{g.users}</td>
+              </tr>
+            ))}
+            {upsell.length === 0 && <tr><td colSpan={4} className="py-2 text-white/30">데이터 없음</td></tr>}
           </tbody>
         </table>
       </div>

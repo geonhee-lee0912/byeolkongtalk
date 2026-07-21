@@ -368,8 +368,14 @@ export function buildStarSpendBreakdown(
     if (NON_PRODUCT_SOURCES.has(src) || src.startsWith("fortune_refund")) continue;
 
     // source 특수 케이스 우선(reading_id 유무 무관) — 업셀/패스/연장/판정은 source 가 권위.
-    // (clarifier·extend 는 reading_id 가 있어도 종목 조인이 아니라 '업셀'로 별도 집계)
-    if (src === "clarifier" || src === "extend") { add("upsell", src, tx); continue; }
+    // (clarifier·extend 는 reading_id 가 있어도 종목 조인이 아니라 '업셀'로 별도 집계.
+    //  product = "src|출처" — 출처는 업셀이 발생한 대화의 감정 태그)
+    if (src === "clarifier" || src === "extend") {
+      const r = tx.reading_id ? readingsById.get(tx.reading_id) : undefined;
+      const origin = r ? r.emotion_tag ?? "(태그 없음)" : "(리딩 유실)";
+      add("upsell", `${src}|${origin}`, tx);
+      continue;
+    }
     if (src === "relationship_pass") { add("relationship", "패스", tx); continue; }
     if (src === "rel_extend") { add("relationship", "스레드 연장", tx); continue; }
     if (src === "rel_skill_verdict") { add("relationship", "스킬:verdict", tx); continue; }

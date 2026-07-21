@@ -64,9 +64,33 @@ export async function GET(req: NextRequest) {
   }
   const starSpend = buildStarSpendBreakdown((tx ?? []) as StarTxRow[], readingsById);
 
+  // 연애 상담 패스 — 종류(1/3/7일권)별 구매 건수·별·유니크 (kind 는 relationship_passes 가 권위)
+  let passQ = supa
+    .from("relationship_passes")
+    .select("user_id, kind, stars_spent, created_at")
+    .gte("created_at", since)
+    .limit(100000);
+  if (excl) passQ = passQ.not("user_id", "in", excl);
+  const { data: passRows } = await passQ;
+  const passAgg = new Map<string, { count: number; stars: number; users: Set<string> }>();
+  for (const p of passRows ?? []) {
+    const g = passAgg.get(p.kind) ?? { count: 0, stars: 0, users: new Set<string>() };
+    g.count += 1;
+    g.stars += p.stars_spent ?? 0;
+    g.users.add(p.user_id);
+    passAgg.set(p.kind, g);
+  }
+  const relPasses = [...passAgg.entries()].map(([kind, g]) => ({
+    kind,
+    count: g.count,
+    stars: g.stars,
+    users: g.users.size,
+  }));
+
   return NextResponse.json({
     days,
     ...buildProductBreakdown(readings ?? [], payments ?? []),
     starSpend,
+    relPasses,
   });
 }
