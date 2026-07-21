@@ -23,11 +23,26 @@ export default async function AdminReadings({
   const supabase = getServiceSupabase();
   let query = supabase.from("readings")
     .select("id, user_id, consultation_type, emotion_tag, stars_spent, created_at", { count: "exact" })
+    .is("relationship_id", null) // 우리 사이(스레드/verdict/스킬)는 /admin/relationship 에서 관리
     .order("created_at", { ascending: false })
     .range(offset, offset + PER_PAGE - 1);
   if (type === "saju" || type === "tarot") query = query.eq("consultation_type", type);
   if (free === "1") query = query.eq("stars_spent", 0);
   const { data, count } = await query;
+
+  // 인챗 추가 구매(카드 더 뽑기·대화 연장) 합산 — 목록 별 칼럼에 (+N) 표기
+  const inchatByReading = new Map<string, number>();
+  const ids = (data ?? []).map((r) => r.id);
+  if (ids.length) {
+    const { data: txs } = await supabase.from("star_transactions")
+      .select("reading_id, amount")
+      .in("reading_id", ids)
+      .in("source", ["clarifier", "extend"]);
+    for (const t of txs ?? []) {
+      if (!t.reading_id) continue;
+      inchatByReading.set(t.reading_id, (inchatByReading.get(t.reading_id) ?? 0) + Math.abs(t.amount));
+    }
+  }
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
   const makeHref = (p: number) => {
     const sp = new URLSearchParams();
@@ -64,7 +79,12 @@ export default async function AdminReadings({
               <td className="py-2 font-mono text-xs">{r.user_id.slice(0, 8)}</td>
               <td>{r.consultation_type}</td>
               <td>{readingTitle(r.emotion_tag, r.consultation_type)}</td>
-              <td>{r.stars_spent}</td>
+              <td className="whitespace-nowrap">
+                {r.stars_spent}
+                {(inchatByReading.get(r.id) ?? 0) > 0 && (
+                  <span className="text-emerald-300"> +{inchatByReading.get(r.id)}</span>
+                )}
+              </td>
               <td className="whitespace-nowrap">{new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
               <td className="text-right"><Link href={`/admin/readings/${r.id}`} className="text-lilac underline">보기</Link></td>
             </tr>
