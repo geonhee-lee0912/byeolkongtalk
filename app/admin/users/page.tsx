@@ -44,15 +44,18 @@ export default async function AdminUsers({
   let payRows: PayRow[] = [];
   let readRows: ReadRow[] = [];
   let passRows: PassRow[] = [];
+  const hasRelationship = new Set<string>();
   if (ids.length > 0) {
-    const [payRes, readRes, passRes] = await Promise.all([
+    const [payRes, readRes, passRes, relRes] = await Promise.all([
       supabase.from("payments").select("user_id, amount_won, status").in("user_id", ids).eq("status", "completed"),
       supabase.from("readings").select("user_id, consultation_type, emotion_tag, relationship_id, skill_key").in("user_id", ids),
       supabase.from("relationship_passes").select("user_id").in("user_id", ids),
+      supabase.from("relationships").select("user_id").in("user_id", ids),
     ]);
     payRows = (payRes.data ?? []) as PayRow[];
     readRows = (readRes.data ?? []) as ReadRow[];
     passRows = (passRes.data ?? []) as PassRow[];
+    for (const r of relRes.data ?? []) hasRelationship.add(r.user_id as string);
   }
 
   // 결제 집계
@@ -149,7 +152,7 @@ export default async function AdminUsers({
                   <td className="pr-3">{pay.total.toLocaleString()}원</td>
                   <td className="pr-3">{read.gomintalk.toLocaleString()}</td>
                   <td className="pr-3">
-                    {passCount === 0 && read.relSkill === 0
+                    {!hasRelationship.has(u.id)
                       ? <span className="text-white/30">-</span>
                       : <>{passCount} <span className="text-white/40">({read.relSkill})</span></>}
                   </td>
