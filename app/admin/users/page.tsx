@@ -38,17 +38,21 @@ export default async function AdminUsers({
 
   // 집계 쿼리 — ids가 빈 배열이면 스킵
   type PayRow = { user_id: string; amount_won: number; status: string };
-  type ReadRow = { user_id: string; consultation_type: string; emotion_tag: string | null };
+  type ReadRow = { user_id: string; consultation_type: string; emotion_tag: string | null; relationship_id: string | null; skill_key: string | null };
+  type PassRow = { user_id: string };
 
   let payRows: PayRow[] = [];
   let readRows: ReadRow[] = [];
+  let passRows: PassRow[] = [];
   if (ids.length > 0) {
-    const [payRes, readRes] = await Promise.all([
+    const [payRes, readRes, passRes] = await Promise.all([
       supabase.from("payments").select("user_id, amount_won, status").in("user_id", ids).eq("status", "completed"),
-      supabase.from("readings").select("user_id, consultation_type, emotion_tag").in("user_id", ids),
+      supabase.from("readings").select("user_id, consultation_type, emotion_tag, relationship_id, skill_key").in("user_id", ids),
+      supabase.from("relationship_passes").select("user_id").in("user_id", ids),
     ]);
     payRows = (payRes.data ?? []) as PayRow[];
     readRows = (readRes.data ?? []) as ReadRow[];
+    passRows = (passRes.data ?? []) as PassRow[];
   }
 
   // 결제 집계
@@ -58,20 +62,23 @@ export default async function AdminUsers({
     payMap.set(r.user_id, { count: cur.count + 1, total: cur.total + r.amount_won });
   }
 
-  // 리딩 집계 — 3버킷
-  const readMap = new Map<string, { gomintalk: number; fortuneTarot: number; fortuneSaju: number }>();
+  // 리딩 집계 — 고민톡/운세사주 + 연애 상담(스킬)은 별도 버킷 (스레드 본체·verdict는 카운트 제외)
+  const readMap = new Map<string, { gomintalk: number; fortuneSaju: number; relSkill: number }>();
   for (const r of readRows) {
-    const cur = readMap.get(r.user_id) ?? { gomintalk: 0, fortuneTarot: 0, fortuneSaju: 0 };
-    const ft = fortuneTypeFromTag(r.emotion_tag);
-    if (ft === null) {
-      cur.gomintalk += 1;
-    } else if (r.consultation_type === "tarot") {
-      cur.fortuneTarot += 1;
+    const cur = readMap.get(r.user_id) ?? { gomintalk: 0, fortuneSaju: 0, relSkill: 0 };
+    if (r.relationship_id || r.consultation_type === "relationship") {
+      if (r.skill_key) cur.relSkill += 1;
     } else {
-      cur.fortuneSaju += 1;
+      const ft = fortuneTypeFromTag(r.emotion_tag);
+      if (ft === null) cur.gomintalk += 1;
+      else if (r.consultation_type !== "tarot") cur.fortuneSaju += 1;
     }
     readMap.set(r.user_id, cur);
   }
+
+  // 연애 상담 패스 구매 집계
+  const passCountMap = new Map<string, number>();
+  for (const r of passRows) passCountMap.set(r.user_id, (passCountMap.get(r.user_id) ?? 0) + 1);
 
   // 재가입 판별 — account_withdrawals(탈퇴 원장)에 이 유저의 kakao 해시가 있으면 과거 탈퇴 이력
   const hashByUser = new Map<string, string>();
@@ -112,7 +119,7 @@ export default async function AdminUsers({
               <th className="pr-3">평균결제</th>
               <th className="pr-3">누적결제</th>
               <th className="pr-3">고민톡</th>
-              <th className="pr-3">운세타로</th>
+              <th className="pr-3">연애상담</th>
               <th className="pr-3">운세사주</th>
               <th className="pr-3">가입일</th>
               <th></th>
@@ -122,7 +129,8 @@ export default async function AdminUsers({
             {(users ?? []).map((u) => {
               const pay = payMap.get(u.id) ?? { count: 0, total: 0 };
               const avg = pay.count > 0 ? Math.round(pay.total / pay.count) : 0;
-              const read = readMap.get(u.id) ?? { gomintalk: 0, fortuneTarot: 0, fortuneSaju: 0 };
+              const read = readMap.get(u.id) ?? { gomintalk: 0, fortuneSaju: 0, relSkill: 0 };
+              const passCount = passCountMap.get(u.id) ?? 0;
               return (
                 <tr key={u.id} className="border-t border-white/10">
                   <td className="py-2 pr-3">
@@ -140,7 +148,11 @@ export default async function AdminUsers({
                   <td className="pr-3">{avg.toLocaleString()}원</td>
                   <td className="pr-3">{pay.total.toLocaleString()}원</td>
                   <td className="pr-3">{read.gomintalk.toLocaleString()}</td>
-                  <td className="pr-3">{read.fortuneTarot.toLocaleString()}</td>
+                  <td className="pr-3">
+                    {passCount === 0 && read.relSkill === 0
+                      ? <span className="text-white/30">-</span>
+                      : <>{passCount} <span className="text-white/40">({read.relSkill})</span></>}
+                  </td>
                   <td className="pr-3">{read.fortuneSaju.toLocaleString()}</td>
                   <td className="pr-3">{new Date(u.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                   <td className="text-right">
