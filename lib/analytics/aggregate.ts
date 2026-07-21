@@ -390,6 +390,8 @@ export function buildStarSpendBreakdown(
     }
     // reading 없음 → source 폴백
     if (src.startsWith("fortune_")) add("fortune", src.slice("fortune_".length), tx);
+    else if (src === "tarot_reading") add("tarot", "(리딩 삭제·유실)", tx); // 리딩 삭제 시 reading_id SET NULL
+    else if (src === "saju_reading") add("saju", "(리딩 삭제·유실)", tx);
     else add("upsell", src, tx); // reading(레거시) 등 미상
   }
 
