@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
+import { splitEmphasis } from "@/lib/text-emphasis";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 
 interface Props {
@@ -86,7 +87,10 @@ export default function ChatBubble({
         )}
 
         <div className="w-full px-4 py-3 bg-cream-warm text-eye-purple rounded-2xl rounded-tl-md text-[14px] leading-relaxed whitespace-pre-wrap border border-lilac-mid/20">
-          {content || (
+          {(content &&
+            splitEmphasis(content).map((s, i) =>
+              s.bold ? <strong key={i}>{s.text}</strong> : s.text
+            )) || (
             <span className="inline-flex gap-1 items-center py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lilac-deep/50 animate-pulse-soft" />
               <span

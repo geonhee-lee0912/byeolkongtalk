@@ -126,13 +126,6 @@ export async function POST(request: NextRequest) {
     rel.rolling_summary
   );
 
-  // 호칭 (users.nickname) — 별콩이 이름 불러주기용
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("nickname")
-    .eq("id", userId)
-    .maybeSingle();
-
   // 복귀 안부 — pending 처방이 있고 마지막 방문에서 6h+ 지났으면 이번 턴 별콩이가 먼저 안부 (T17)
   const CHECKIN_GAP_MS = 6 * 60 * 60 * 1000;
   const memoNow = (rel.memo ?? {}) as RelationshipMemo;
@@ -146,7 +139,6 @@ export async function POST(request: NextRequest) {
 
   const systemMessage = buildRelationshipSystemMessage({
     fileBlock,
-    nickname: (userRow?.nickname as string | null) ?? null,
     isFirstEver,
     checkinPrompt,
     dailyClose,

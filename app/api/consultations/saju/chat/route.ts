@@ -134,13 +134,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "not_authorized" }, { status: 403 });
   }
 
-  // 호칭 (users.nickname) — 별콩이 이름 불러주기용
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("nickname")
-    .eq("id", userId)
-    .maybeSingle();
-
   // 누적 assistant turn 수 + chars 계산 (DB 의 messages 기준)
   const { data: pastMessages } = await supabase
     .from("messages")
@@ -233,7 +226,6 @@ export async function POST(request: NextRequest) {
       : "today_letters",
     concernText: reading.question ?? "",
     emotionTag: reading.emotion_tag as string | null,
-    nickname: (userRow?.nickname as string | null) ?? null,
     turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
     assistantTurnsSoFar,
     cumulativeAssistantChars,

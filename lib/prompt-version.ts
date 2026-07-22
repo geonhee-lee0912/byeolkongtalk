@@ -8,4 +8,5 @@
 //   2026-07-13-conversion-c3  — clarifier·연장 제안 ([RECO:tarot:clarifier]/[RECO:extend] + 더보고싶다 3갈래)
 //   2026-07-17-persona-v3     — 당기는 별콩이: 공통 코어 분리 + 소신 화법·관찰형 훅·마무리 3택·회피구 0회
 //                               + 턴 신호 동적 강제 + 호칭 (spec: 2026-07-17-w4-persona-v3, 커밋 1efd649·eee051f)
-export const PROMPT_VERSION = "2026-07-17-persona-v3";
+//   2026-07-22-card-noname    — 원카드 [CARD:1] 마커 필수 + 유저 이름 호출 제거(항상 "너", [호칭:] 주입 삭제)
+export const PROMPT_VERSION = "2026-07-22-card-noname";

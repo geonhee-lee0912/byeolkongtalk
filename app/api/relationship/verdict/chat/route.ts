@@ -106,13 +106,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "not_a_verdict_reading" }, { status: 400 });
   }
 
-  // 호칭(유저) + 상대 호칭 — 별콩이가 둘 다 이름으로 불러주기용
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("nickname")
-    .eq("id", userId)
-    .maybeSingle();
-
+  // 상대 호칭 — 별콩이가 상대를 이름으로 불러주기용 (유저 본인은 항상 "너")
   let partnerLabel: string | null = null;
   if (reading.relationship_id) {
     const { data: relRow } = await supabase
@@ -137,7 +131,6 @@ export async function POST(request: NextRequest) {
   const mustEnd = assistantTurnsSoFar + 1 >= VERDICT_ABS_TURN_CAP;
 
   const systemMessage = buildVerdictSystemMessage({
-    nickname: (userRow?.nickname as string | null) ?? null,
     label: partnerLabel,
     assistantTurnsSoFar,
     forceEnd: mustEnd,

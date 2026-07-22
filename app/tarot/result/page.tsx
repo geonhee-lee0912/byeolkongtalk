@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import ChatBubble from "@/components/saju/ChatBubble";
+import ChatBubble from "@/components/tarot/ChatBubble";
+import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
@@ -126,7 +127,7 @@ function TarotResultInner() {
   }
 
   const { reading } = data;
-  // 마커 제거한 메시지로 통일 (한마디 추출 + 다시보기 둘 다)
+  // 마커 제거한 메시지 — 한마디 추출용 (다시보기는 원본을 parseIntoBubbles 로 렌더)
   const messages = data.messages.map((m) => ({
     ...m,
     content: m.role === "assistant" ? cleanContent(m.content) : m.content,
@@ -264,17 +265,28 @@ function TarotResultInner() {
         </button>
         {showHistory && (
           <div className="mt-3 bg-cream-warm/40 rounded-2xl p-3 border border-lilac-mid/20">
-            {messages.map((m, i) => (
-              <ChatBubble
-                key={i}
-                role={m.role}
-                content={m.content}
-                isFirstInTurn={
-                  m.role === "assistant" &&
-                  (i === 0 || messages[i - 1].role !== "assistant")
-                }
-              />
-            ))}
+            {data.messages.map((m, i) => {
+              if (m.role === "user") {
+                return <ChatBubble key={i} role="user" content={m.content} />;
+              }
+              // 라이브 채팅과 동일하게 [CARD:n] 마커 기준 버블 분할 + 카드 이미지 인터리브
+              return (
+                <div key={i}>
+                  {parseIntoBubbles(m.content).map((b, bI) => (
+                    <ChatBubble
+                      key={`${i}-${bI}`}
+                      role="assistant"
+                      content={b.text}
+                      showAvatar={bI === 0}
+                      showName={bI === 0}
+                      cardIndex={b.cardIndex}
+                      showCardImage={b.showCardImage}
+                      drawnCards={cards}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

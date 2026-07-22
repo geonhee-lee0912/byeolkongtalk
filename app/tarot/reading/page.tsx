@@ -11,7 +11,7 @@ import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { RECO_MARKER_REGEX, stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { RECO_MARKER_REGEX, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
@@ -20,6 +20,12 @@ import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { getCard } from "@/lib/tarot/cards";
+import {
+  END_MARKER_REGEX,
+  parseIntoBubbles,
+  getLatestCardIndex,
+  type Bubble,
+} from "@/lib/tarot/bubbles";
 
 interface Message {
   role: "user" | "assistant";
@@ -50,67 +56,7 @@ const EXIT_NUDGE = [
 ];
 const FINISH_PHRASE = "대화 마무리할게"; // 하단 골드 버튼 경유
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
-const CARD_MARKER_REGEX = /\[CARD:(\d+)\]/g;
-const END_MARKER_REGEX = /\[END\]/gi;
-// 미완성 마커 (e.g., "[CA", "[CARD:", "[CARD:1", "[E", "[EN", "[END", "[RECO:", "[RECO:saju") 제거용 — 버블 깜빡임 방지
-const TRAILING_PARTIAL_MARKER =
-  /\[(?:C(?:A(?:R(?:D(?::\d*)?)?)?)?|E(?:N(?:D)?)?|R(?:E(?:C(?:O(?::[a-z0-9_:]*)?)?)?)?)?$/;
-
-interface Bubble {
-  text: string;
-  cardIndex: number | null;
-  showCardImage: boolean;
-}
-
-/** 원문 버퍼를 문단 + [CARD:n] 마커 기준으로 버블 배열로 파싱 */
-function parseIntoBubbles(raw: string): Bubble[] {
-  const bubbles: Bubble[] = [];
-  // RECO 마커는 파싱 전 원본에서 감지(parseRecoMarker) 가능하도록 raw 는 보존.
-  // 표시 텍스트에서만 제거한다.
-  const cleaned = stripRecoMarkers(
-    raw
-      .replace(TRAILING_PARTIAL_MARKER, "")
-      .replace(END_MARKER_REGEX, "")
-  );
-  // RECO_MARKER_REGEX 는 lastIndex 를 공유하지 않도록 stripRecoMarkers 내부에서 처리됨.
-  RECO_MARKER_REGEX.lastIndex = 0;
-  const tokens = cleaned.split(/(\[CARD:\d+\])/g);
-  let currentCardIndex: number | null = null;
-  let nextIsFirstInSection = false;
-
-  for (const token of tokens) {
-    const markerMatch = /^\[CARD:(\d+)\]$/.exec(token);
-    if (markerMatch) {
-      currentCardIndex = parseInt(markerMatch[1], 10) - 1;
-      nextIsFirstInSection = true;
-      continue;
-    }
-    const paras = token
-      .split(/\n{2,}/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-    for (const p of paras) {
-      bubbles.push({
-        text: p,
-        cardIndex: currentCardIndex,
-        showCardImage: nextIsFirstInSection,
-      });
-      nextIsFirstInSection = false;
-    }
-  }
-  return bubbles;
-}
-
-/** 버퍼에서 가장 최근에 등장한 [CARD:n] 의 n 반환 (1-based) */
-function getLatestCardIndex(text: string): number | null {
-  let lastMatch: RegExpExecArray | null = null;
-  const regex = new RegExp(CARD_MARKER_REGEX.source, "g");
-  let m;
-  while ((m = regex.exec(text)) !== null) {
-    lastMatch = m;
-  }
-  return lastMatch ? parseInt(lastMatch[1], 10) : null;
-}
+// [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
 
 export default function TarotReadingPage() {
   return (

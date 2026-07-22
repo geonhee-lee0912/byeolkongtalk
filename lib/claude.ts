@@ -164,8 +164,6 @@ export interface SajuReadingContext {
   concernText: string;
   /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
   emotionTag?: EmotionTag | string | null;
-  /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
-  nickname?: string | null;
   /** 직전 턴 상태 기반 동적 경고 (질문 2연속·단답 스트릭) */
   turnSignals?: TurnSignals;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
@@ -312,16 +310,12 @@ export function buildSystemMessage(ctx: SajuReadingContext): {
 
   const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
 
-  const nicknameLine = ctx.nickname?.trim()
-    ? `\n[호칭: ${ctx.nickname.trim()}]`
-    : "";
-
   const dynamicPart = `---
 
 ## 이번 세션 정보
 
 [고민 내용: ${ctx.concernText}]
-[사주 상품: ${ctx.sajuProduct}]${nicknameLine}
+[사주 상품: ${ctx.sajuProduct}]
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 
 ### 사주 데이터
@@ -458,8 +452,6 @@ export interface TarotReadingContext {
   drawnCards: DrawnCard[];
   /** 사용자가 고른 감정 분류 — 별콩이 톤 조정용 (없으면 기본 톤) */
   emotionTag?: EmotionTag | string | null;
-  /** 유저 호칭 (users.nickname) — 별콩이가 이름 불러주기용. 없으면 생략 */
-  nickname?: string | null;
   /** 직전 턴 상태 기반 동적 경고 (질문 2연속·단답 스트릭) */
   turnSignals?: TurnSignals;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
@@ -556,7 +548,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   const firstTurnGuide = isFirstTurn
     ? ctx.continuation
       ? continuationFirstTurnGuide("카드")
-      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 여러 장이면 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로, 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나.`
+      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로(원카드도 [CARD:1] 필수), 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나.`
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리
@@ -590,16 +582,12 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
 
-  const nicknameLine = ctx.nickname?.trim()
-    ? `\n[호칭: ${ctx.nickname.trim()}]`
-    : "";
-
   const dynamicPart = `---
 
 ## 이번 세션 정보
 
 [고민 내용: ${ctx.concernText}]
-[스프레드: ${ctx.spreadType} / 카테고리: ${ctx.spreadCategory}]${nicknameLine}
+[스프레드: ${ctx.spreadType} / 카테고리: ${ctx.spreadCategory}]
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 
 ${formatDrawnCardsBlock(ctx.drawnCards)}
@@ -623,7 +611,6 @@ function getRelationshipPersona(): string {
 
 export interface RelationshipTurnContext {
   fileBlock: string;              // buildRelationshipFileBlock 결과
-  nickname?: string | null;
   isFirstEver: boolean;          // 스레드 최초 진입(메시지 0)
   checkinPrompt?: string | null; // pending 체크인 → 먼저 안부
   dailyClose: boolean;           // 오늘 소프트캡 도달 → 하루 마무리 톤
@@ -634,7 +621,6 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
   staticPart: string; dynamicPart: string;
 } {
   const staticPart = getRelationshipPersona();
-  const nicknameLine = ctx.nickname?.trim() ? `\n[호칭(유저): ${ctx.nickname.trim()}]` : "";
 
   const firstGuide = ctx.isFirstEver
     ? `\n\n## 첫 진입 가이드\n관계 파일을 보고 {호칭}과의 지금 상황을 가볍게 짚으며 따뜻하게 열어. 처음 만난 낯선 상담이 아니라, 앞으로 이 관계를 계속 함께 볼 친구로. 무겁지 않게, 유저가 편하게 털어놓게.`
@@ -647,7 +633,7 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
     : "";
 
   const dynamicPart = `---
-## 이번 세션 정보${nicknameLine}
+## 이번 세션 정보
 ${ctx.fileBlock}
 ---${firstGuide}${checkinGuide}${closeGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
 
@@ -669,8 +655,6 @@ function getVerdictPersona(): string {
 export const VERDICT_ABS_TURN_CAP = 5;
 
 export interface VerdictTurnContext {
-  /** 유저 호칭 (users.nickname) */
-  nickname?: string | null;
   /** 상대 호칭 (relationships.label) */
   label?: string | null;
   /** 지금까지 assistant 가 응답한 턴 수 (0 = 첫 턴) */
@@ -686,7 +670,6 @@ export function buildVerdictSystemMessage(ctx: VerdictTurnContext): {
   const staticPart = getVerdictPersona();
   const isFirstTurn = ctx.assistantTurnsSoFar === 0;
 
-  const nicknameLine = ctx.nickname?.trim() ? `\n[호칭(유저): ${ctx.nickname.trim()}]` : "";
   const labelLine = ctx.label?.trim() ? `\n[상대 호칭: ${ctx.label.trim()}]` : "";
 
   const firstTurnGuide = isFirstTurn
@@ -698,7 +681,7 @@ export function buildVerdictSystemMessage(ctx: VerdictTurnContext): {
     : "";
 
   const dynamicPart = `---
-## 이번 세션 정보${nicknameLine}${labelLine}
+## 이번 세션 정보${labelLine}
 [지금까지 별콩이 턴 수: ${ctx.assistantTurnsSoFar}]
 ---${firstTurnGuide}${forceEndGuide}`;
 

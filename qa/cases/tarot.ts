@@ -13,9 +13,8 @@ const SPREAD_SETUP: { spread: SpreadType; category: SpreadCategory; emotion: Cas
 export function tarotCases(): Case[] {
   const cases: Case[] = [];
   for (const s of SPREAD_SETUP) {
-    // one_card 는 단일 카드라 [CARD:n] 마커를 쓰지 않음(페르소나 설계) → 기대 0개.
-    // 멀티카드(2/3/5)는 카드 직전 마커가 카드 수만큼 등장.
-    const expectCardCount = s.spread === "one_card" ? 0 : SPREAD_INFO[s.spread].cardCount;
+    // 원카드 포함 모든 스프레드가 카드 직전 [CARD:n] 마커를 카드 수만큼 방출 (2026-07-22 원카드 예외 제거 — 채팅 카드 이미지 인터리브).
+    const expectCardCount = SPREAD_INFO[s.spread].cardCount;
     cases.push(
       ...buildSharedCases(
         { kind: "tarot", spreadType: s.spread, spreadCategory: s.category },
