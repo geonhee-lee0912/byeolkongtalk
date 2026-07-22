@@ -12,6 +12,8 @@ import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import TarotReportView from "@/components/fortune/TarotReportView";
 import SajuBoard from "@/components/saju/SajuBoard";
 import ChatBubble from "@/components/saju/ChatBubble";
+import TarotChatBubble from "@/components/tarot/ChatBubble";
+import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import { tryParseStoredDailyReport } from "@/lib/fortune/daily-report";
 import { tryParseStoredMonthlyReport } from "@/lib/fortune/monthly-report";
 import { tryParseStoredSajuFullReport } from "@/lib/fortune/saju-full-report";
@@ -66,14 +68,10 @@ function parseSections(text: string): Section[] {
     .filter((s) => s.title || s.body);
 }
 
-// 타로 상담 assistant 메시지 마커 제거 (tarot/result 와 동일)
-// 단 [RECO:] 마커는 어드민에선 "칩 노출" 배지 텍스트로 치환 — 유저가 그 시점에 뭘 봤는지 확인용.
-function cleanTarotContent(raw: string): string {
-  return raw
-    .replace(/\[CARD:\d+\]/g, "")
-    .replace(/\[RECO:([a-z0-9_:]+)\]/gi, "〔🔔 칩 노출: $1〕")
-    .replace(/\[END\]\s*$/, "")
-    .trim();
+// [RECO:] 마커만 "칩 노출" 배지 텍스트로 치환 — 유저가 그 시점에 뭘 봤는지 확인용(어드민 전용).
+// [CARD:n]/[END] 는 남겨서 parseIntoBubbles 가 카드 인터리브·정리하게 둔다.
+function recoToBadge(raw: string): string {
+  return raw.replace(/\[RECO:([a-z0-9_:]+)\]/gi, "〔🔔 칩 노출: $1〕");
 }
 
 // 컴포넌트들이 light 테마라 흰/크림 컨테이너 위에 얹는다.
@@ -135,6 +133,49 @@ function ChatHistory({
           }
         />
       ))}
+    </div>
+  );
+}
+
+// 타로 상담 다시보기 — 유저 결과 페이지(tarot/result)와 동일하게 [CARD:n] 마커로
+// 카드 이미지·버블 인터리브. [RECO:] 는 배지로 보존(어드민 확인용).
+function TarotChatHistory({
+  messages,
+  drawnCards,
+}: {
+  messages: AdminMessageRow[];
+  drawnCards: DrawnCard[];
+}) {
+  if (messages.length === 0) {
+    return (
+      <div className="rounded-2xl bg-cream-warm/40 p-4 text-center text-[13px] text-text-light">
+        아직 대화가 없어 (생성 중이거나 비어 있음)
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-lilac-mid/20 bg-cream-warm/40 p-3">
+      {messages.map((m, i) => {
+        if (m.role === "user") {
+          return <TarotChatBubble key={i} role="user" content={m.content} />;
+        }
+        return (
+          <div key={i}>
+            {parseIntoBubbles(recoToBadge(m.content)).map((b, bI) => (
+              <TarotChatBubble
+                key={`${i}-${bI}`}
+                role="assistant"
+                content={b.text}
+                showAvatar={bI === 0}
+                showName={bI === 0}
+                cardIndex={b.cardIndex}
+                showCardImage={b.showCardImage}
+                drawnCards={drawnCards}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -309,7 +350,7 @@ export default function ReadingDetailView({
           )}
 
           <div className="mx-auto mt-4 w-full max-w-md px-5">
-            <ChatHistory messages={messages} clean={cleanTarotContent} />
+            <TarotChatHistory messages={messages} drawnCards={drawnCards} />
           </div>
         </LightStage>
         <RawDump messages={messages} />
