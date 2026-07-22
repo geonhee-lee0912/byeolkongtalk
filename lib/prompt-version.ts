@@ -9,4 +9,5 @@
 //   2026-07-17-persona-v3     — 당기는 별콩이: 공통 코어 분리 + 소신 화법·관찰형 훅·마무리 3택·회피구 0회
 //                               + 턴 신호 동적 강제 + 호칭 (spec: 2026-07-17-w4-persona-v3, 커밋 1efd649·eee051f)
 //   2026-07-22-card-noname    — 원카드 [CARD:1] 마커 필수 + 유저 이름 호출 제거(항상 "너", [호칭:] 주입 삭제)
-export const PROMPT_VERSION = "2026-07-22-card-noname";
+//   2026-07-22-premium-depth  — 타로 3장+ 첫 풀이 확대(볼륨 디스카운트 사다리, 카드당 4~6문장·별당 60→65) (spec: 2026-07-22-premium-reading-depth-design)
+export const PROMPT_VERSION = "2026-07-22-premium-depth";
