@@ -8,8 +8,7 @@ import { buildRelationshipSystemMessage, streamChat, summarizeOlder, computeTurn
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
-  detectSensitiveSync,
-  detectSensitiveAsync,
+  resolveSensitive,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
@@ -154,7 +153,8 @@ export async function POST(request: NextRequest) {
     turnSignals: computeTurnSignals(past, body.message),
   });
 
-  const sensitiveSync = detectSensitiveSync(body.message);
+  // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대는 haiku 2차 판정 후 확정(오탐 차단)
+  const sensitiveMatch = await resolveSensitive(body.message);
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
@@ -162,9 +162,9 @@ export async function POST(request: NextRequest) {
     "X-Accel-Buffering": "no",
     "X-Daily-Cap": dailyClose ? "reached" : "ok",
   };
-  if (sensitiveSync) {
-    responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;
-    responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
+  if (sensitiveMatch) {
+    responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
+    responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
 
   const encoder = new TextEncoder();
@@ -242,9 +242,9 @@ export async function POST(request: NextRequest) {
         }
 
         // 민감 감지 — 타로 chat 라우트와 동일 패턴 (regex 1차 + 회색지대 haiku 2차)
-        if (sensitiveSync) {
+        if (sensitiveMatch) {
           void recordSensitiveAlert({
-            match: sensitiveSync,
+            match: sensitiveMatch,
             userId,
             readingId: rel.thread_reading_id,
             messageText: body.message,
@@ -253,19 +253,6 @@ export async function POST(request: NextRequest) {
             .from("readings")
             .update({ has_sensitive: true })
             .eq("id", rel.thread_reading_id);
-
-          if (sensitiveSync.certainty !== "high") {
-            void detectSensitiveAsync(body.message).then((m) => {
-              if (m && m.method !== "regex") {
-                void recordSensitiveAlert({
-                  match: m,
-                  userId,
-                  readingId: rel.thread_reading_id!,
-                  messageText: body.message,
-                });
-              }
-            });
-          }
         }
 
         controller.close();

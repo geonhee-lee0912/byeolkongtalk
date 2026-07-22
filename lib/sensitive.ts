@@ -191,6 +191,36 @@ export async function detectSensitiveAsync(
   return regexMatch;
 }
 
+// 게이트 감지 — chat 라우트가 스트림 시작 전에 호출하는 단일 진입점.
+// high certainty regex 는 즉시 확정 (같은 턴 배너 + 위기 게이트).
+// 회색지대(medium/low)는 haiku 2차 판정을 기다려 확정 — 오탐이면 null 로 걸러짐.
+// (2026-07-21 prod 오탐 4건: "끝내고 싶"·"못버티" 연애 어휘가 sync 확정으로 배너 노출)
+// 2차 실패/타임아웃 시 regex 결과 유지 (안전한 방향 폴백). 회색지대 턴만 ~1초 지연.
+export async function resolveSensitive(
+  text: string,
+  opts?: {
+    timeoutMs?: number;
+    secondPass?: (text: string) => Promise<SensitiveMatch | null>;
+  }
+): Promise<SensitiveMatch | null> {
+  const sync = detectSensitiveSync(text);
+  if (!sync) return null;
+  if (sync.certainty === "high") return sync;
+
+  const secondPass = opts?.secondPass ?? detectSensitiveAsync;
+  const timeoutMs = opts?.timeoutMs ?? 3000;
+  try {
+    return await Promise.race([
+      secondPass(text),
+      new Promise<SensitiveMatch>((resolve) =>
+        setTimeout(() => resolve(sync), timeoutMs)
+      ),
+    ]);
+  } catch {
+    return sync;
+  }
+}
+
 export async function recordSensitiveAlert(args: {
   match: SensitiveMatch;
   userId?: string | null;

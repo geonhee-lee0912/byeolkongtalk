@@ -11,8 +11,7 @@ import { logSkillToThread } from "@/lib/relationship/skill-log";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
-  detectSensitiveSync,
-  detectSensitiveAsync,
+  resolveSensitive,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
 import { parseRecoMarker, tagNextRecoAsync, INCHAT_ONLY_PRODUCTS } from "@/lib/reco";
@@ -206,10 +205,11 @@ export async function POST(request: NextRequest) {
     effT ?? baseT
   ).mode;
 
-  // sensitive 1차 감지 (regex ~1ms) — 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
-  const sensitiveSync = detectSensitiveSync(lastMessage.content);
+  // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대(medium/low)는 haiku 2차 판정을
+  // 기다려 확정(오탐이면 null). 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
+  const sensitiveMatch = await resolveSensitive(lastMessage.content);
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
-  const crisisActive = !!sensitiveSync || reading.has_sensitive === true;
+  const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 
   const systemMessage = buildTarotSystemMessage({
     spreadType,
@@ -234,9 +234,9 @@ export async function POST(request: NextRequest) {
     "X-Accel-Buffering": "no",
     "X-Wrap-Mode": wrapMode,
   };
-  if (sensitiveSync) {
-    responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;
-    responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
+  if (sensitiveMatch) {
+    responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
+    responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
 
   // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
@@ -324,9 +324,9 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        if (sensitiveSync) {
+        if (sensitiveMatch) {
           void recordSensitiveAlert({
-            match: sensitiveSync,
+            match: sensitiveMatch,
             userId,
             readingId: reading.id,
             messageText: lastMessage.content,
@@ -335,23 +335,10 @@ export async function POST(request: NextRequest) {
             .from("readings")
             .update({ has_sensitive: true })
             .eq("id", reading.id);
-
-          if (sensitiveSync.certainty !== "high") {
-            void detectSensitiveAsync(lastMessage.content).then((m) => {
-              if (m && m.method !== "regex") {
-                void recordSensitiveAlert({
-                  match: m,
-                  userId,
-                  readingId: reading.id,
-                  messageText: lastMessage.content,
-                });
-              }
-            });
-          }
         }
 
         // reco 후처리 — sensitive 턴이면 스킵 (위기 대화엔 추천 없음)
-        if (!sensitiveSync) {
+        if (!sensitiveMatch) {
           const recoProduct = parseRecoMarker(assistantText);
           if (recoProduct && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
             // [RECO:] 마커 → 즉시 저장, 기존 next_reco 덮어쓰기 금지

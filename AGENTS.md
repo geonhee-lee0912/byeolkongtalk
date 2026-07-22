@@ -289,7 +289,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 - 마이페이지: 회원 탈퇴는 동의 체크박스 → `/api/auth/withdraw` (CSRF Origin 검증 + 카카오 unlink + users CASCADE). 충전 버튼은 `/shop` (토스 충전소) 로 연결
 
 ### Phase 5 (e1) / Phase 4 (e) 운영 노트 — 위기 시그널 안전망
-- 감지 흐름: chat 라우트 → user 마지막 메시지 → `detectSensitiveSync` (~1ms) → 매칭 시 응답 헤더 `X-Sensitive-Category` + `X-Sensitive-Severity` → 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 회색지대(low certainty)면 `detectSensitiveAsync` (Claude haiku) fire-and-forget — false positive 검수 + alert 보강
+- 감지 흐름 (2026-07-22 게이트 구조로 개편): chat 라우트 4곳(타로/사주/관계/판정) → user 마지막 메시지 → `resolveSensitive` 게이트 — regex high certainty 는 즉시 확정, **회색지대(medium/low)는 스트림 시작 전에 haiku 2차 판정을 await(~1초, 3초 타임아웃 시 regex 폴백)해서 오탐이면 null**. 확정된 매칭만 응답 헤더 `X-Sensitive-Category`/`-Severity` + 스트림 완료 후 `sensitive_alerts` INSERT + `readings.has_sensitive=true`. 배경: 2026-07-21 prod 오탐 4건("끝내고 싶"·"못버티" 연애 어휘) — 당시 fire-and-forget 2차는 정확히 판정했지만 UX에 미반영이 근본 원인
 - regex 패턴 (5 카테고리): `lib/sensitive.ts` PATTERNS — 한국어 변형 (받침/띄어쓰기/단축) 일부 흡수. 추가 키워드 등록은 이 배열에 row 추가
 - 카테고리별 hotline (`components/safety/SafetyBanner.tsx` `HOTLINES`):
   - suicide → 109(자살예방상담전화, 2024 통합), 1577-0199(정신건강위기상담), 129(보건복지상담센터)

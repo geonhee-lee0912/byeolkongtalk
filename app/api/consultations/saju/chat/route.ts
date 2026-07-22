@@ -1,8 +1,8 @@
 // 사주 풀이 채팅 — readingId 기반 컨텍스트 + Claude SSE 스트리밍 + messages INSERT.
 //
-// Phase 5 (e) 통합: 사용자 메시지 진입 시 detectSensitiveSync → 응답 헤더로
+// Phase 5 (e) 통합: 사용자 메시지 진입 시 resolveSensitive 게이트 → 확정 시 응답 헤더로
 //   X-Sensitive-Category / Severity 박고 sensitive_alerts INSERT + readings.has_sensitive=true.
-//   회색지대(certainty low) 면 Claude haiku 2차 분류 fire-and-forget.
+//   회색지대(medium/low)는 haiku 2차 판정을 스트림 전에 기다려 오탐 차단.
 //
 // Rate limit: 세션당 분당 20건 + IP당 분당 60건 (Claude API 비용 보호).
 //
@@ -22,8 +22,7 @@ import { buildSystemMessage, streamChat, computeWrapMode, computeTurnSignals } f
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
-  detectSensitiveSync,
-  detectSensitiveAsync,
+  resolveSensitive,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
 import { parseRecoMarker, tagNextRecoAsync, INCHAT_ONLY_PRODUCTS } from "@/lib/reco";
@@ -221,10 +220,11 @@ export async function POST(request: NextRequest) {
     }
   ).mode;
 
-  // sensitive 1차 감지 (regex ~1ms) — 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
-  const sensitiveSync = detectSensitiveSync(lastMessage.content);
+  // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대(medium/low)는 haiku 2차 판정을
+  // 기다려 확정(오탐이면 null). 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
+  const sensitiveMatch = await resolveSensitive(lastMessage.content);
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
-  const crisisActive = !!sensitiveSync || reading.has_sensitive === true;
+  const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
@@ -250,9 +250,9 @@ export async function POST(request: NextRequest) {
     "X-Accel-Buffering": "no",
     "X-Wrap-Mode": wrapMode,
   };
-  if (sensitiveSync) {
-    responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;
-    responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
+  if (sensitiveMatch) {
+    responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
+    responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
 
   const encoder = new TextEncoder();
@@ -313,11 +313,10 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // sensitive 후처리 (스트림 끝난 뒤 비동기 — 클라 응답 지연 X)
-        if (sensitiveSync) {
-          // 1차 매칭은 즉시 기록
+        // sensitive 후처리 (스트림 끝난 뒤 — 게이트에서 이미 확정된 매칭만 기록)
+        if (sensitiveMatch) {
           void recordSensitiveAlert({
-            match: sensitiveSync,
+            match: sensitiveMatch,
             userId,
             readingId: reading.id,
             messageText: lastMessage.content,
@@ -326,24 +325,10 @@ export async function POST(request: NextRequest) {
             .from("readings")
             .update({ has_sensitive: true })
             .eq("id", reading.id);
-
-          // 회색지대면 Claude 2차 분류 fire-and-forget — false positive 정리용 (regex high 면 skip)
-          if (sensitiveSync.certainty !== "high") {
-            void detectSensitiveAsync(lastMessage.content).then((m) => {
-              if (m && m.method !== "regex") {
-                void recordSensitiveAlert({
-                  match: m,
-                  userId,
-                  readingId: reading.id,
-                  messageText: lastMessage.content,
-                });
-              }
-            });
-          }
         }
 
         // reco 후처리 — sensitive 턴이면 스킵 (위기 대화엔 추천 없음)
-        if (!sensitiveSync) {
+        if (!sensitiveMatch) {
           const recoProduct = parseRecoMarker(assistantText);
           if (recoProduct && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
             // [RECO:] 마커 → 즉시 저장, 기존 next_reco 덮어쓰기 금지

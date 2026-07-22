@@ -11,8 +11,7 @@ import { logSkillToThread } from "@/lib/relationship/skill-log";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
-  detectSensitiveSync,
-  detectSensitiveAsync,
+  resolveSensitive,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
 
@@ -144,16 +143,17 @@ export async function POST(request: NextRequest) {
     forceEnd: mustEnd,
   });
 
-  const sensitiveSync = detectSensitiveSync(lastMessage.content);
+  // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대는 haiku 2차 판정 후 확정(오탐 차단)
+  const sensitiveMatch = await resolveSensitive(lastMessage.content);
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
   };
-  if (sensitiveSync) {
-    responseHeaders["X-Sensitive-Category"] = sensitiveSync.category;
-    responseHeaders["X-Sensitive-Severity"] = String(sensitiveSync.severity);
+  if (sensitiveMatch) {
+    responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
+    responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
 
   // Anthropic API 는 role/content 외 필드를 거절함 — 클라가 보낸 messages 에서 role/content 만 추림.
@@ -222,9 +222,9 @@ export async function POST(request: NextRequest) {
         }
 
         // 민감 감지 — 타로 chat 라우트와 동일 패턴 (regex 1차 + 회색지대 haiku 2차)
-        if (sensitiveSync) {
+        if (sensitiveMatch) {
           void recordSensitiveAlert({
-            match: sensitiveSync,
+            match: sensitiveMatch,
             userId,
             readingId: reading.id,
             messageText: lastMessage.content,
@@ -233,19 +233,6 @@ export async function POST(request: NextRequest) {
             .from("readings")
             .update({ has_sensitive: true })
             .eq("id", reading.id);
-
-          if (sensitiveSync.certainty !== "high") {
-            void detectSensitiveAsync(lastMessage.content).then((m) => {
-              if (m && m.method !== "regex") {
-                void recordSensitiveAlert({
-                  match: m,
-                  userId,
-                  readingId: reading.id,
-                  messageText: lastMessage.content,
-                });
-              }
-            });
-          }
         }
 
         controller.close();
