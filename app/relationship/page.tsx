@@ -58,6 +58,7 @@ export default function RelationshipPage() {
   const [showPassSheet, setShowPassSheet] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [recap, setRecap] = useState<{ skill: string; summary: string } | null>(null);
+  const [activeSkill, setActiveSkill] = useState<string | null>(null);
 
   const load = async () => {
     const [me, rel, bal] = await Promise.all([
@@ -87,6 +88,7 @@ export default function RelationshipPage() {
     );
     setBalance(typeof bal?.balance === "number" ? bal.balance : null);
     setRecap((rel?.recap as { skill: string; summary: string } | null) ?? null);
+    setActiveSkill((rel?.activeSkill as string | null) ?? null);
     setLoading(false);
   };
 
@@ -285,9 +287,11 @@ export default function RelationshipPage() {
           selfProfileId={relationship.selfProfileId}
           partnerProfileId={relationship.partnerProfileId}
           skillRecap={recap}
+          initialActiveSkill={activeSkill}
           onDailyCapReached={() => void load()}
           onExtended={() => void load()}
           onPassRequired={() => void load()}
+          onSkillDone={() => void load()}
         />
 
         {editModal}
