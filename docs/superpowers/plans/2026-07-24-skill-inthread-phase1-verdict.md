@@ -760,6 +760,36 @@ git add app/api/relationship/chat/route.ts
 git commit -m "feat(relationship): chat 라우트에 skillStart + 인-스레드 판정 모드"
 ```
 
+- [ ] **Step 4: (리뷰 후속 하드닝) `splitThreadMessages` — 인접 assistant 트리밍**
+
+인-스레드 판정 인트로(및 기존 복귀 인사 버블)는 lone-assistant 로 저장돼 스레드에 인접 assistant 가 생길 수 있다. `lib/relationship/memory.ts:25`의 최근창 시작 보정이 단일 `if`라, 최근창 경계가 인접 assistant 쌍에 걸리면 한 칸만 밀려 **여전히 assistant 로 시작** → Anthropic "첫 메시지는 user" 400 위험(단일 판정은 parity상 안전하나 다중 판정·복귀 인사에서 도달 가능). `if`→`while`로 하드닝하고 TDD 테스트를 추가한다.
+
+`lib/relationship/memory.ts:24-25`:
+```ts
+  // 최근 창은 반드시 user 발화로 시작해야 함 (Anthropic: 첫 메시지 role=user).
+  // 인-스레드 스킬 인트로/복귀 인사 등 lone-assistant 로 인접 assistant 가 생길 수 있어,
+  // 단일 if 로는 한 칸만 밀려 여전히 assistant 로 시작할 수 있다 → while 로 user 가 나올 때까지.
+  while (recentStart < all.length && all[recentStart]?.role === "assistant") recentStart += 1;
+```
+
+`lib/relationship/memory.test.ts`에 테스트 추가(먼저 실패 확인 → while 적용 후 통과):
+```ts
+test("splitThreadMessages — 최근창 경계가 인접 assistant 쌍에 걸려도 user 로 시작", () => {
+  const all: ThreadMsg[] = [];
+  all.push({ role: "user", content: "u0" }, { role: "assistant", content: "a0" });
+  // index 2,3 = 인접 assistant (RECENT_MSGS=24, all.length=26 → recentStart=2 가 여기 걸림)
+  all.push({ role: "assistant", content: "lone-1" }, { role: "assistant", content: "lone-2" });
+  for (let i = 0; i < 11; i++) all.push({ role: "user", content: `u${i}` }, { role: "assistant", content: `a${i}` });
+  const split = splitThreadMessages(all, 0);
+  assert.equal(split.apiMessages[0]?.role, "user"); // Anthropic 400 방지
+});
+```
+(`ThreadMsg`를 test 파일 import에 추가.) Verify: `node --import tsx --test lib/relationship/memory.test.ts` → 신규 테스트가 while 적용 전 FAIL, 후 PASS. 커밋:
+```bash
+git add lib/relationship/memory.ts lib/relationship/memory.test.ts
+git commit -m "fix(relationship): splitThreadMessages 인접 assistant while 트리밍(스킬 인트로 400 방지)"
+```
+
 ---
 
 ## Task 7: GET `/api/relationship` — `activeSkill` 노출
