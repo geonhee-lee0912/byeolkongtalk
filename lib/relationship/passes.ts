@@ -19,7 +19,8 @@ export async function getActivePass(relationshipId: string): Promise<ActivePass 
   return data ?? null;
 }
 
-/** 오늘(KST) 스레드에 쌓인 user 턴 수. */
+/** 오늘(KST) 스레드에 쌓인 user 턴 수. 스킬 세그먼트(판정 등, skill_key 태깅) 턴은
+ *  유료라 무료 자유대화 소프트캡에서 제외 — skill_key IS NULL 만 카운트. */
 export async function getTodayThreadTurns(threadReadingId: string | null): Promise<number> {
   if (!threadReadingId) return 0;
   const supabase = getServiceSupabase();
@@ -28,6 +29,7 @@ export async function getTodayThreadTurns(threadReadingId: string | null): Promi
     .select("id", { count: "exact", head: true })
     .eq("reading_id", threadReadingId)
     .eq("role", "user")
+    .is("skill_key", null)
     .gte("created_at", startOfTodayKstIso());
   return count ?? 0;
 }
