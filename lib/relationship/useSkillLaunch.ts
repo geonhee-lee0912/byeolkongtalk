@@ -3,6 +3,7 @@
 // lib/relationship/useSkillLaunch.ts — 스킬 실행 공용 launcher.
 // 스킬 시트(⚡ 입력창)와 ThreadChat([SKILL:key] 마커 칩) 양쪽에서 재사용 —
 // kind별 실행 경로(tarot_draw/compat/dialogue)를 여기 한 곳에서 관리.
+// 궁합·판정(즉시 차감)은 실행 전 구매 확인 모달을 거친다(pendingSkill). 카드뽑기는 /tarot/draw가 확인.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSkill, type RelationshipSkill } from "./skills";
@@ -20,12 +21,20 @@ export interface UseSkillLaunchArgs {
 }
 
 export interface UseSkillLaunchResult {
-  /** skillKey 로 실행 (kind 별 분기는 내부에서). */
+  /** skillKey 로 실행. tarot_draw 는 즉시 이동, compat/dialogue 는 구매 확인 모달을 먼저 연다. */
   launch: (skillKey: string) => void;
   /** 지금 실행 중인 스킬 key (compat/dialogue 는 네트워크 왕복 있음). */
   busyKey: string | null;
   /** 에러/안내 토스트 메시지 (2.2s 후 자동 소멸). */
   toastMsg: string | null;
+  /** 구매 확인 대기 중인 스킬 (compat/dialogue). null 이면 모달 닫힘. */
+  pendingSkill: RelationshipSkill | null;
+  /** 확인 모달용 현재 별 잔액 (조회 전 null). */
+  confirmBalance: number | null;
+  /** 확인 모달 "확인하고 시작" — 실제 실행. */
+  confirmLaunch: () => void;
+  /** 확인 모달 취소. */
+  cancelConfirm: () => void;
 }
 
 export function useSkillLaunch({
@@ -36,6 +45,8 @@ export function useSkillLaunch({
   const router = useRouter();
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [pendingSkill, setPendingSkill] = useState<RelationshipSkill | null>(null);
+  const [confirmBalance, setConfirmBalance] = useState<number | null>(null);
   const inFlightRef = useRef(false);
 
   useEffect(() => {
@@ -83,7 +94,6 @@ export function useSkillLaunch({
         setToastMsg(GENERIC_ERROR_MSG);
         return;
       }
-      // 생성 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신 (기존 궁합 플로우와 동일)
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
@@ -114,7 +124,6 @@ export function useSkillLaunch({
         setToastMsg(GENERIC_ERROR_MSG);
         return;
       }
-      // 생성 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신 (compat 플로우와 동일)
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/relationship/verdict/${data.id}`);
     } catch {
@@ -124,8 +133,38 @@ export function useSkillLaunch({
     }
   };
 
-  const launch = (skillKey: string) => {
+  // 궁합·판정 구매 확인 모달 열기 + 현재 별 잔액 조회
+  const openConfirm = (skill: RelationshipSkill) => {
+    setPendingSkill(skill);
+    setConfirmBalance(null);
+    void (async () => {
+      try {
+        const r = await fetch("/api/stars/balance");
+        const data = await r.json();
+        setConfirmBalance(typeof data?.balance === "number" ? data.balance : 0);
+      } catch {
+        setConfirmBalance(0);
+      }
+    })();
+  };
+
+  const runLaunch = (skill: RelationshipSkill) => {
     if (inFlightRef.current || busyKey) return;
+    inFlightRef.current = true;
+    const done = () => {
+      inFlightRef.current = false;
+    };
+    if (skill.kind === "compat") {
+      void launchCompat(skill).finally(done);
+    } else if (skill.kind === "dialogue") {
+      void launchDialogue(skill).finally(done);
+    } else {
+      done();
+    }
+  };
+
+  const launch = (skillKey: string) => {
+    if (inFlightRef.current || busyKey || pendingSkill) return;
     const skill = getSkill(skillKey);
     if (!skill || !skill.active) {
       setToastMsg(GENERIC_ERROR_MSG);
@@ -135,20 +174,35 @@ export function useSkillLaunch({
       launchTarotDraw(skill);
       return;
     }
-    inFlightRef.current = true;
-    const done = () => {
-      inFlightRef.current = false;
-    };
-    if (skill.kind === "compat") {
-      void launchCompat(skill).finally(done);
+    // compat 은 상대 생년월일 없으면 확인 모달 열기 전에 안내
+    if (skill.kind === "compat" && skill.requiresPartnerBirth && !partnerProfileId) {
+      setToastMsg(PARTNER_BIRTH_MSG);
       return;
     }
-    if (skill.kind === "dialogue") {
-      void launchDialogue(skill).finally(done);
-      return;
-    }
-    done();
+    // compat/dialogue — 즉시 차감이라 구매 확인 모달 먼저
+    openConfirm(skill);
   };
 
-  return { launch, busyKey, toastMsg };
+  const confirmLaunch = () => {
+    const skill = pendingSkill;
+    if (!skill) return;
+    setPendingSkill(null);
+    setConfirmBalance(null);
+    runLaunch(skill);
+  };
+
+  const cancelConfirm = () => {
+    setPendingSkill(null);
+    setConfirmBalance(null);
+  };
+
+  return {
+    launch,
+    busyKey,
+    toastMsg,
+    pendingSkill,
+    confirmBalance,
+    confirmLaunch,
+    cancelConfirm,
+  };
 }

@@ -10,6 +10,7 @@ import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
 import { getSkill, buildSkillRecapText } from "@/lib/relationship/skills";
 import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
 import SkillSheet from "./SkillSheet";
+import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { listActiveSkills } from "@/lib/relationship/skills";
 
 export interface ThreadChatMsg {
@@ -95,11 +96,12 @@ export default function ThreadChat({
   className = "",
 }: ThreadChatProps) {
   const router = useRouter();
-  const { launch, busyKey, toastMsg } = useSkillLaunch({
-    relationshipId,
-    selfProfileId,
-    partnerProfileId,
-  });
+  const { launch, busyKey, toastMsg, pendingSkill, confirmBalance, confirmLaunch, cancelConfirm } =
+    useSkillLaunch({
+      relationshipId,
+      selfProfileId,
+      partnerProfileId,
+    });
   const [messages, setMessages] = useState<ThreadChatMsg[]>(initialMessages);
   const [liveText, setLiveText] = useState("");
   const [sending, setSending] = useState(false);
@@ -492,6 +494,21 @@ export default function ThreadChat({
             launch(k);
           }}
           onClose={() => setShowSkills(false)}
+        />
+      )}
+
+      {pendingSkill && (
+        <StarConfirmModal
+          cost={pendingSkill.starCost}
+          balance={confirmBalance}
+          loading={confirmBalance === null}
+          accent="#9F8AD0"
+          title={`${pendingSkill.label} 시작할까?`}
+          subtitle={pendingSkill.tagline}
+          confirmLabel="확인하고 시작하기"
+          onConfirm={confirmLaunch}
+          onCharge={() => router.push("/shop")}
+          onClose={cancelConfirm}
         />
       )}
     </div>
