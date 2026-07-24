@@ -20,13 +20,16 @@ export interface ThreadChatMsg {
   createdAt?: string;
 }
 
-// 완성된 마커 — 화면에 절대 노출 금지 (백엔드 전용 기록/제안 마커)
-const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|CHECKIN:[^\]]+)\]/g;
+// 완성된 마커 — 화면에 절대 노출 금지 (백엔드 전용 기록/제안/종료 마커)
+const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+)\]/g;
 // 스트리밍 중 아직 안 닫힌 마커의 꼬리 — 닫히기 전까지 미리보여 깜빡이지 않게 숨김
+// (SKILL 브랜치에 _DONE 부분 매칭 추가 — [SKILL_DONE] 스트리밍 꼬리 커버)
 const TRAILING_PARTIAL_MARKER =
-  /\[(?:S(?:K(?:I(?:L(?:L(?::[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?)?)?$/;
+  /\[(?:S(?:K(?:I(?:L(?:L(?:_(?:D(?:O(?:N(?:E)?)?)?)?|:[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?)?)?$/;
 // 완성된 [SKILL:key] 캡처용 — 마커 존재 시 그 자리에 실행 칩을 띄우기 위해 key 를 뽑아낸다.
 const SKILL_MARKER_CAPTURE = /\[SKILL:([a-z_]+)\]/;
+// 인-스레드 스킬 종료 마커 — 감지 시 활성 스킬 해제.
+const SKILL_DONE_RE = /\[SKILL_DONE\]/;
 
 function displayText(raw: string): string {
   return raw.replace(TRAILING_PARTIAL_MARKER, "").replace(MARKER_REGEX, "").trim();
@@ -80,6 +83,10 @@ interface ThreadChatProps {
   className?: string;
   /** 스킬 결과를 보고 복귀했을 때 1회 노출할 인사 버블(무과금·비영속). 활성 스레드(S3)에서만 전달. */
   skillRecap?: { skill: string; summary: string } | null;
+  /** 마운트 시점의 진행 중 스킬 key (GET /api/relationship activeSkill). 없으면 null. */
+  initialActiveSkill?: string | null;
+  /** 인-스레드 스킬이 [SKILL_DONE]으로 종료됐을 때 — 부모가 상태 새로고침(캡·activeSkill 재동기화). */
+  onSkillDone?: () => void;
 }
 
 export default function ThreadChat({
@@ -90,17 +97,21 @@ export default function ThreadChat({
   selfProfileId = null,
   partnerProfileId = null,
   skillRecap = null,
+  initialActiveSkill = null,
   onDailyCapReached,
   onExtended,
   onPassRequired,
+  onSkillDone,
   className = "",
 }: ThreadChatProps) {
   const router = useRouter();
+  const [activeSkill, setActiveSkill] = useState<string | null>(initialActiveSkill);
   const { launch, busyKey, toastMsg, pendingSkill, confirmBalance, confirmLaunch, cancelConfirm } =
     useSkillLaunch({
       relationshipId,
       selfProfileId,
       partnerProfileId,
+      onInThreadSkill: (key) => void sendSkillStart(key),
     });
   const [messages, setMessages] = useState<ThreadChatMsg[]>(initialMessages);
   const [liveText, setLiveText] = useState("");
@@ -181,7 +192,9 @@ export default function ThreadChat({
   };
 
   const send = async (text: string) => {
-    if (!text.trim() || sending || capReachedLocal || !canSend) return;
+    // 판정(activeSkill) 중엔 소프트캡·canSend 게이트를 우회(유료 세그먼트).
+    if (!text.trim() || sending) return;
+    if (!activeSkill && (capReachedLocal || !canSend)) return;
     setError(null);
     setMessages((prev) => [
       ...prev,
@@ -235,6 +248,11 @@ export default function ThreadChat({
           ...prev,
           { role: "assistant", content: acc, createdAt: new Date().toISOString() },
         ]);
+        // 인-스레드 스킬 종료 — 활성 해제 + 부모 새로고침(캡·activeSkill 재동기화)
+        if (SKILL_DONE_RE.test(acc)) {
+          setActiveSkill(null);
+          onSkillDone?.();
+        }
       }
       setLiveText("");
       setSending(false);
@@ -246,6 +264,59 @@ export default function ThreadChat({
     } catch {
       setSending(false);
       // liveText는 지우지 않음 — 이미 스트리밍된 내용은 화면에 남기고 에러만 아래에 표기
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+    }
+  };
+
+  // 인-스레드 스킬 개시 — 유저 발화 없이 skillStart 전송, 별콩이 도입을 스트리밍.
+  const sendSkillStart = async (skillKey: string) => {
+    if (sending || activeSkill) return;
+    setError(null);
+    setActiveSkill(skillKey); // 낙관적 — 실패 시 아래에서 롤백
+    setSending(true);
+    setLiveText("");
+    try {
+      const res = await fetch("/api/relationship/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relationshipId, skillStart: skillKey }),
+      });
+      if (res.status === 402) {
+        setSending(false);
+        setActiveSkill(null);
+        router.push("/shop");
+        return;
+      }
+      if (!res.ok || !res.body) {
+        setSending(false);
+        setActiveSkill(null);
+        setError("지금은 시작할 수 없어. 잠시 후 다시 시도해줄래?");
+        return;
+      }
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setLiveText(acc);
+      }
+      if (acc.trim()) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: acc, createdAt: new Date().toISOString() },
+        ]);
+      } else {
+        setActiveSkill(null); // 빈 도입 = 서버가 환불 처리 → 활성 롤백
+        setError("별콩이가 잠깐 멈칫했어. 다시 시도해줄래?");
+      }
+      setLiveText("");
+      setSending(false);
+    } catch {
+      setSending(false);
+      setActiveSkill(null);
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
     }
   };
@@ -352,7 +423,7 @@ export default function ThreadChat({
                       <button
                         type="button"
                         onClick={() => launch(skill.key)}
-                        disabled={busyKey === skill.key}
+                        disabled={busyKey === skill.key || !!activeSkill}
                         className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
                       >
                         <span aria-hidden>{skill.emoji}</span>
@@ -398,7 +469,7 @@ export default function ThreadChat({
 
       <div className="shrink-0 border-t border-lilac-mid/30 bg-white">
         <div className="max-w-md mx-auto px-5 py-3">
-          {capReachedLocal ? (
+          {!activeSkill && capReachedLocal ? (
             <div className="flex flex-col items-center gap-1.5 py-1">
               <button
                 type="button"
@@ -416,13 +487,14 @@ export default function ThreadChat({
               </p>
               {extendError && <p className="text-[11px] text-red-500">{extendError}</p>}
             </div>
-          ) : canSend ? (
+          ) : (canSend || activeSkill) ? (
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowSkills(true)}
+                onClick={() => { if (!activeSkill) setShowSkills(true); }}
+                disabled={!!activeSkill}
                 aria-label="스킬 열기"
-                className="shrink-0 h-[44px] w-[44px] rounded-xl bg-gold-soft/40 text-gold flex items-center justify-center active:scale-95 transition"
+                className="shrink-0 h-[44px] w-[44px] rounded-xl bg-gold-soft/40 text-gold flex items-center justify-center active:scale-95 transition disabled:opacity-40"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M11,15H6L13,1V9H18L11,23V15Z" />
