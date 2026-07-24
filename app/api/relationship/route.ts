@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 import { logError } from "@/lib/logger";
 import { validateProfile } from "@/lib/saju/profile-input";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
-import { dailyTurnAllowance, type RelationshipStatus } from "@/lib/relationship/types";
+import { dailyTurnAllowance, type RelationshipStatus, type RelationshipMemo } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
 const VALID_STATUS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
@@ -47,6 +47,7 @@ export async function GET() {
       ? { used: todayTurns, allowance: dailyTurnAllowance(todayExtend), extendCount: todayExtend }
       : null,
     messages: msgRows ?? [],
+    recap: (rel.memo as RelationshipMemo | null)?.pending_skill_recap ?? null,
   });
 }
 
