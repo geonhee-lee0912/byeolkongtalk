@@ -641,7 +641,7 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
   const staticPart = getRelationshipPersona();
 
   const firstGuide = ctx.isFirstEver
-    ? `\n\n## 첫 진입 가이드\n관계 파일을 보고 {호칭}과의 지금 상황을 가볍게 짚으며 따뜻하게 열어. 처음 만난 낯선 상담이 아니라, 앞으로 이 관계를 계속 함께 볼 친구로. 무겁지 않게, 유저가 편하게 털어놓게.`
+    ? `\n\n## 첫 진입 가이드\n관계 파일의 호칭으로 상대를 부르며 지금 상황을 가볍게 짚으며 따뜻하게 열어. 처음 만난 낯선 상담이 아니라, 앞으로 이 관계를 계속 함께 볼 친구로. 무겁지 않게, 유저가 편하게 털어놓게.`
     : "";
   const checkinGuide = ctx.checkinPrompt
     ? `\n\n## 복귀 안부 (먼저 물어보기)\n지난번에 이런 처방/약속이 있었어: "${ctx.checkinPrompt}". 이번 응답은 그것부터 자연스럽게 안부로 물어("저번에 ~ 해보기로 했잖아, 어떻게 됐어?"). 확인 후 대화를 이어가.`
