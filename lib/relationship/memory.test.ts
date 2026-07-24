@@ -1,7 +1,7 @@
 // lib/relationship/memory.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock, applySkillToMemo, appendSkillLog, cleanSummary } from "./memory.ts";
+import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock, applySkillToMemo, appendSkillLog, cleanSummary, type ThreadMsg } from "./memory.ts";
 import type { RelationshipMemo } from "./types.ts";
 
 const mk = (n: number) => Array.from({ length: n }, (_, i) => ({
@@ -111,4 +111,14 @@ test("appendSkillLog — skill_log는 최근 20개로 제한", () => {
 test("applySkillToMemo(이동형)는 여전히 pending_skill_recap을 세팅 — 회귀 가드", () => {
   const out = applySkillToMemo({}, "compat", "r1", "궁합 요약", "2026-07-24T00:00:00Z");
   assert.ok(out.pending_skill_recap); // 궁합·카드뽑기는 아직 이동형 → recap 유지
+});
+
+test("splitThreadMessages — 최근창 경계가 인접 assistant 쌍에 걸려도 user 로 시작", () => {
+  const all: ThreadMsg[] = [];
+  all.push({ role: "user", content: "u0" }, { role: "assistant", content: "a0" });
+  // index 2,3 = 인접 assistant (RECENT_MSGS=24, all.length=26 → recentStart=2 가 여기 걸림)
+  all.push({ role: "assistant", content: "lone-1" }, { role: "assistant", content: "lone-2" });
+  for (let i = 0; i < 11; i++) all.push({ role: "user", content: `u${i}` }, { role: "assistant", content: `a${i}` });
+  const split = splitThreadMessages(all, 0);
+  assert.equal(split.apiMessages[0]?.role, "user"); // Anthropic 400 방지
 });

@@ -22,7 +22,9 @@ export function splitThreadMessages(all: ThreadMsg[], summarizedCount: number): 
   let recentStart = Math.max(0, all.length - RECENT_MSGS);
   // 최근 창은 반드시 user 발화로 시작해야 함 (Anthropic: 첫 메시지 role=user).
   // 짝(user,assistant) 경계에서 잘려 assistant로 시작하면 한 칸 밀어 user부터.
-  if (all[recentStart]?.role === "assistant") recentStart += 1;
+  // 인-스레드 스킬 인트로/복귀 인사 등 lone-assistant 로 인접 assistant 가 생길 수 있어,
+  // 단일 if 로는 한 칸만 밀려 여전히 assistant 로 시작할 수 있다 → while 로 user 가 나올 때까지.
+  while (recentStart < all.length && all[recentStart]?.role === "assistant") recentStart += 1;
   const apiMessages = all.slice(recentStart);
   const older = all.slice(0, recentStart);
   const alreadic = Math.min(summarizedCount, older.length);
