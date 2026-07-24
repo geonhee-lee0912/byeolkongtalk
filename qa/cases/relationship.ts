@@ -146,8 +146,8 @@ export function relationshipLoveCases(): Case[] {
   ];
 }
 
-/** verdict(싸움 잘잘못 판정) — dialogue, VERDICT_ABS_TURN_CAP(5)에서 서버가 [END] 보장.
- *  chat 계약이 {readingId, messages} + [END] 라 기존 postChat/driver 배관을 그대로 재사용. */
+/** verdict(싸움 잘잘못 판정) — 인-스레드. skillStart로 개시 → 관계 스레드에서 진행 →
+ *  VERDICT_INTHREAD_TURN_CAP(6)에서 서버가 [SKILL_DONE] 보장. driver가 skillStart+postRelChat로 구동. */
 export function verdictCases(): Case[] {
   const product = { kind: "verdict", status: "dating", passKind: "day7" } as const;
   return [

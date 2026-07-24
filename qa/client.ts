@@ -45,7 +45,7 @@ export async function postChat(
  *  postChat 과 body 계약이 다름: {relationshipId, message}. 402/404 는 JSON 이 text 로 옴. */
 export async function postRelChat(
   path: string,
-  body: { relationshipId: string; message: string }
+  body: { relationshipId: string; message?: string; skillStart?: string }
 ): Promise<ChatResponse> {
   const res = await fetch(`${config.BASE_URL}${path}`, {
     method: "POST",

@@ -132,7 +132,6 @@ export async function createVerdictReading(c: Case): Promise<CreatedReading> {
     throw new Error(`[readings] verdict용 relationship 등록 실패 ${reg.status}: ${JSON.stringify(reg.json)}`);
   const relationshipId = reg.json.id;
 
-  // verdict 세션 생성은 활성 패스를 요구함(402 pass_required 방지)
   const plan = PASS_PLAN_BY_KIND[c.product.passKind];
   const pass = await postJson<{ success?: boolean }>(
     "/api/relationship/pass",
@@ -141,15 +140,9 @@ export async function createVerdictReading(c: Case): Promise<CreatedReading> {
   if (pass.status !== 200 || !pass.json.success)
     throw new Error(`[readings] verdict용 패스 구매 실패 ${pass.status}`);
 
-  const v = await postJson<{ id?: string; error?: string }>(
-    "/api/relationship/verdict",
-    { relationshipId }
-  );
-  if (v.status !== 200 || !v.json.id)
-    throw new Error(`[readings] verdict 생성 실패 ${v.status}: ${JSON.stringify(v.json)}`);
-
+  // 판정 개시(30별 차감)는 driver가 skillStart로 수행. 총 차감 = 패스 + 판정 30.
   const verdictCost = getSkill("verdict")?.starCost ?? 0;
-  return { readingId: v.json.id, cost: plan.cost + verdictCost };
+  return { readingId: relationshipId, cost: plan.cost + verdictCost };
 }
 
 export function createReading(c: Case): Promise<CreatedReading> {

@@ -11,11 +11,16 @@ export function hasEndMarker(text: string): boolean {
   return /\[END\]\s*$/.test(text);
 }
 
+/** 인-스레드 스킬(판정) 종료 마커. */
+export function hasSkillDoneMarker(text: string): boolean {
+  return /\[SKILL_DONE\]/.test(text);
+}
+
 /** 별콩이 턴이 기능적으로 질문으로 마무리됐는가 — 마지막 "?" 뒤 꼬리가 110자 이내.
  *  computeTurnSignals(lib/claude)와 같은 휴리스틱. 심문피로 객관 측정용. */
 export function endsWithQuestion(text: string): boolean {
   const s = text
-    .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+|SKILL:[a-z_]+|CHECKIN:[^\]]+)\]/gi, "")
+    .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+|SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+)\]/gi, "")
     .trim();
   const q = Math.max(s.lastIndexOf("?"), s.lastIndexOf("？"));
   return q >= 0 && s.length - q - 1 <= 110;

@@ -4,7 +4,7 @@ import { postChat, postRelChat, type ChatResponse } from "./client.ts";
 import { nextEvent } from "./simulator.ts";
 import { getBalance } from "./seed.ts";
 import { createReading } from "./readings.ts";
-import { hasEndMarker } from "./evaluate/assertions.ts";
+import { hasEndMarker, hasSkillDoneMarker } from "./evaluate/assertions.ts";
 import type { Case, Transcript, TurnRecord, SimEvent } from "./types.ts";
 
 function chatPath(c: Case): string {
@@ -14,9 +14,8 @@ function chatPath(c: Case): string {
     case "tarot":
       return "/api/consultations/tarot/chat";
     case "relationship":
-      return "/api/relationship/chat";
     case "verdict":
-      return "/api/relationship/verdict/chat";
+      return "/api/relationship/chat";
   }
 }
 
@@ -41,8 +40,8 @@ async function sendOne(
 ): Promise<TurnRecord> {
   await sleep(config.PACING_MS);
   let res: ChatResponse;
-  if (c.product.kind === "relationship") {
-    // 스레드는 서버가 히스토리 관리 → 단발 message + relationshipId(= t.readingId 에 저장됨)
+  if (c.product.kind === "relationship" || c.product.kind === "verdict") {
+    // 스레드/판정 모두 서버가 히스토리 관리 → 단발 message + relationshipId(= t.readingId)
     res = await postRelChat(chatPath(c), {
       relationshipId: t.readingId,
       message: userText,
@@ -73,7 +72,7 @@ function checkStop(t: Transcript, turn: TurnRecord): boolean {
     t.finishReason = "daily_cap";
     return true;
   }
-  if (hasEndMarker(turn.assistantText)) {
+  if (hasEndMarker(turn.assistantText) || hasSkillDoneMarker(turn.assistantText)) {
     t.finishReason = "ended";
     return true;
   }
@@ -116,6 +115,19 @@ export async function runConversation(c: Case): Promise<Transcript> {
       : config.MAX_CHAT_CALLS_PER_CASE;
 
   try {
+    // verdict: 판정 개시 — skillStart로 30별 차감 + 별콩이 도입(유저 발화 없음)
+    if (c.product.kind === "verdict") {
+      await sleep(config.PACING_MS);
+      const kickoff = await postRelChat("/api/relationship/chat", {
+        relationshipId: t.readingId,
+        skillStart: "verdict",
+      });
+      t.turns.push({ userText: "", assistantText: kickoff.text, headers: kickoff.headers, status: kickoff.status, eventType: "say" });
+      if (checkStop(t, t.turns[t.turns.length - 1])) {
+        t.endBalance = await getBalance();
+        return t;
+      }
+    }
     // 첫 턴: 별콩이 자동 풀이 (서비스 흐름 = seedConcern 을 첫 user 메시지로)
     const first = await sendOne(c, t, c.seedConcern, "say");
     if (checkStop(t, first)) {
