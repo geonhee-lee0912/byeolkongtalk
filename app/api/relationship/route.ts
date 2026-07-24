@@ -36,6 +36,7 @@ export async function GET() {
         .order("created_at", { ascending: true })
     : { data: [] };
 
+  const memoData = rel.memo as RelationshipMemo | null;
   return NextResponse.json({
     relationship: {
       id: rel.id, label: rel.label, status: rel.status,
@@ -47,7 +48,8 @@ export async function GET() {
       ? { used: todayTurns, allowance: dailyTurnAllowance(todayExtend), extendCount: todayExtend }
       : null,
     messages: msgRows ?? [],
-    recap: (rel.memo as RelationshipMemo | null)?.pending_skill_recap ?? null,
+    recap: memoData?.pending_skill_recap ?? null,
+    activeSkill: memoData?.active_skill?.key ?? null,
   });
 }
 
