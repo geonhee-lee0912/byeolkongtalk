@@ -501,7 +501,7 @@ export default function ThreadChat({
         <StarConfirmModal
           cost={pendingSkill.starCost}
           balance={confirmBalance}
-          loading={confirmBalance === null}
+          loading={confirmBalance === null || busyKey === pendingSkill.key}
           accent="#9F8AD0"
           title={`${pendingSkill.label} 시작할까?`}
           subtitle={pendingSkill.tagline}

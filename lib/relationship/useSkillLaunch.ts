@@ -186,8 +186,8 @@ export function useSkillLaunch({
   const confirmLaunch = () => {
     const skill = pendingSkill;
     if (!skill) return;
-    setPendingSkill(null);
-    setConfirmBalance(null);
+    // 모달을 닫지 않고 실행 — 차감 요청이 도는 동안 모달이 로딩 상태로 남아 피드백을 준다.
+    // 성공 시 라우팅으로 언마운트, 실패 시 토스트와 함께 모달이 다시 상호작용 가능.
     runLaunch(skill);
   };
 
