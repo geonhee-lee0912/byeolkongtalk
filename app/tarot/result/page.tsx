@@ -45,6 +45,7 @@ interface FetchData {
     hasSensitive: boolean;
     nextReco: NextReco | null;
     createdAt: string;
+    relationshipId: string | null;
   };
   messages: MessageRow[];
 }
@@ -160,6 +161,17 @@ function TarotResultInner() {
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>
       </div>
+
+      {reading.relationshipId && (
+        <div className="w-full max-w-md mx-auto px-5 mb-4">
+          <Link
+            href="/relationship"
+            className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+          >
+            💬 우리 사이로 돌아가 이어 얘기하기
+          </Link>
+        </div>
+      )}
 
       {/* 고민 분류 + 나의 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
