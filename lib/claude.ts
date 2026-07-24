@@ -655,7 +655,7 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
     ctx.activeSkill?.key === "verdict"
       ? getVerdictInthreadGuide() +
         (ctx.activeSkill.assistantTurns === 0
-          ? `\n\n## 이번 턴 — 판정 개시(첫 턴)\n아직 판정하지 마. 무슨 일이 있었는지 유저의 입장부터 따뜻하게 물어봐(판정 §1단계). 심문하듯 다그치지 말고.`
+          ? `\n\n## 이번 턴 — 판정 개시(첫 턴)\n아직 판정하지 마. 무슨 일이 있었는지 유저가 편하게 다 풀어놓도록 **열린 초대**로 열어(판정 §1단계) — "무슨 일이 있었는지 다 얘기해줘, 양쪽 듣고 판정해줄게" 식으로. 질문 하나로 콕 찌르며 끝내지 말고(다음 턴 연속 질문 방지), 심문하듯 다그치지 마.`
           : "") +
         (ctx.activeSkill.forceEnd
           ? `\n\n## ⚠️ 판정 마무리 의무 (이번 턴에 반드시 종료)\n지금까지 들은 내용만으로 이번 응답에서 비율 판정 + 근거 + 화해 처방을 마무리하고, 맨 마지막 줄에 [SKILL_DONE] 마커를 단독으로 붙여. 더 캐묻지 마.`
