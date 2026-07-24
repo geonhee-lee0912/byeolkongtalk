@@ -253,7 +253,11 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(systemMessage, body.messages)) {
+        for await (const chunk of streamChat(systemMessage, body.messages, undefined, {
+          route: "/api/consultations/saju/chat",
+          userId,
+          extra: { readingId: reading.id },
+        })) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }

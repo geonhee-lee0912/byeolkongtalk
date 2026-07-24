@@ -25,7 +25,7 @@ import type {
 } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
-import { logWarn } from "@/lib/logger";
+import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -331,7 +331,8 @@ ${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.crisisActive ? "" : SUMMARY_EN
 export async function* streamChat(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
-  maxTokens: number = 2660
+  maxTokens: number = 2660,
+  logCtx?: LogContext
 ) {
   // 정적 블록만 cache_control 마킹 → 5분 TTL 동안 후속 호출은 입력 토큰 0.1× 과금
   const systemBlocks =
@@ -383,19 +384,25 @@ export async function* streamChat(
     if (yielded) return stopReason;
 
     // 0자 완료 — 왜 비었는지(stop_reason: refusal/end_turn/max_tokens 등) 남겨 진단 가능하게.
+    // 재시도로 복구되는 케이스(attempt < MAX)는 자가 복구된 일시적 폴백 → info(트리아지 대상 X).
+    // 모든 시도 소진(terminal)은 유저 턴이 실제로 실패하는 경로 → warn 으로 남긴다.
+    // route/userId/readingId 는 호출부가 logCtx 로 주입(없으면 "(route: 없음)" 로그가 됨).
     lastStopReason = stopReason;
-    void logWarn(
-      attempt < MAX_ATTEMPTS
-        ? "streamChat empty completion — retrying"
-        : "streamChat empty after all retries",
-      {
-        extra: {
-          attempt,
-          stopReason: stopReason ?? "unknown",
-          model: "claude-sonnet-5",
-        },
-      }
-    );
+    const emptyLogCtx: LogContext = {
+      ...logCtx,
+      extra: {
+        ...logCtx?.extra,
+        attempt,
+        maxAttempts: MAX_ATTEMPTS,
+        stopReason: stopReason ?? "unknown",
+        model: "claude-sonnet-5",
+      },
+    };
+    if (attempt < MAX_ATTEMPTS) {
+      void logInfo("streamChat empty completion — retrying", emptyLogCtx);
+    } else {
+      void logWarn("streamChat empty after all retries", emptyLogCtx);
+    }
   }
 
   // 모든 시도가 0자 — 실제 턴 실패 처리는 각 라우트의 empty_assistant_stream 가드가
@@ -407,10 +414,11 @@ export async function* streamChat(
 export async function generateOnce(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
-  maxTokens: number = 2660
+  maxTokens: number = 2660,
+  logCtx?: LogContext
 ): Promise<string> {
   let out = "";
-  const it = streamChat(systemMessage, messages, maxTokens);
+  const it = streamChat(systemMessage, messages, maxTokens, logCtx);
   let res = await it.next();
   while (!res.done) {
     out += res.value;
@@ -420,7 +428,8 @@ export async function generateOnce(
   // 토큰 한도를 올리라는 신호로 경고 로그를 남긴다(조용한 truncation 방지).
   if (res.value === "max_tokens") {
     void logWarn("generateOnce hit max_tokens — response truncated", {
-      extra: { maxTokens, outputLen: out.length },
+      ...logCtx,
+      extra: { ...logCtx?.extra, maxTokens, outputLen: out.length },
     });
   }
   return out.trim();

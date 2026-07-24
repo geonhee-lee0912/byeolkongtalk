@@ -245,7 +245,11 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(systemMessage, apiMessages)) {
+        for await (const chunk of streamChat(systemMessage, apiMessages, undefined, {
+          route: "/api/consultations/tarot/chat",
+          userId,
+          extra: { readingId: reading.id },
+        })) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }

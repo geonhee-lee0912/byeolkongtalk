@@ -152,7 +152,11 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of streamChat(systemMessage, apiMessages, 1400)) {
+          for await (const chunk of streamChat(systemMessage, apiMessages, 1400, {
+            route: "/api/relationship/chat",
+            userId,
+            extra: { relationshipId: rel.id, stage: "skillStart" },
+          })) {
             assistantText += chunk;
             controller.enqueue(encoder.encode(chunk));
           }
@@ -263,7 +267,11 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(systemMessage, split.apiMessages, 1400)) {
+        for await (const chunk of streamChat(systemMessage, split.apiMessages, 1400, {
+          route: "/api/relationship/chat",
+          userId,
+          extra: { relationshipId: rel.id, threadReadingId, inVerdict },
+        })) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }
