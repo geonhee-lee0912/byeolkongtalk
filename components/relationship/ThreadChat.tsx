@@ -124,22 +124,46 @@ export default function ThreadChat({
     requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight }));
   }, [messages.length, liveText]);
 
-  // 복귀 인사 버블 — 스킬 결과 보고 돌아왔을 때 1회. 모델·턴·패스 소모 없음(클라 전용, DB 미저장).
+  // 복귀 인사 버블 — 스킬 결과 보고 돌아왔을 때 1회, 타자기 연출(클라 전용).
+  // 서버(recap-seen)가 같은 텍스트를 스레드에 저장 → 새로고침 후엔 initialMessages로 들어옴.
   const recapShownRef = useRef(false);
+  const [recapAnim, setRecapAnim] = useState<{
+    createdAt: string;
+    full: string;
+    shown: number;
+  } | null>(null);
+
   useEffect(() => {
     if (!skillRecap || recapShownRef.current) return;
     recapShownRef.current = true;
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: buildSkillRecapText(skillRecap.skill, skillRecap.summary),
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    const full = buildSkillRecapText(skillRecap.skill, skillRecap.summary);
+    const createdAt = new Date().toISOString();
+    // 빈 말풍선 먼저 붙여 "쓰기 시작" 느낌 (빈 content면 ChatBubble이 타이핑 점 표시)
+    setMessages((prev) => [...prev, { role: "assistant", content: "", createdAt }]);
+    setRecapAnim({ createdAt, full, shown: 0 });
+    // 서버 저장(새로고침 생존) + flag 소진 — fire-and-forget
     void fetch("/api/relationship/recap-seen", { method: "POST" }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 타자기 틱 — createdAt으로 해당 말풍선만 갱신(중간에 답장이 껴도 안전). setTimeout+state 재스케줄이라 StrictMode 이중호출에도 안전.
+  useEffect(() => {
+    if (!recapAnim || recapAnim.shown >= recapAnim.full.length) return;
+    const step = Math.max(2, Math.ceil(recapAnim.full.length / 40));
+    const t = setTimeout(() => {
+      const shown = Math.min(recapAnim.full.length, recapAnim.shown + step);
+      const slice = recapAnim.full.slice(0, shown);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.role === "assistant" && m.createdAt === recapAnim.createdAt
+            ? { ...m, content: slice }
+            : m
+        )
+      );
+      setRecapAnim((r) => (r ? { ...r, shown } : r));
+    }, 45);
+    return () => clearTimeout(t);
+  }, [recapAnim]);
 
   // capReached prop이 바뀔 때마다 로컬 상태를 재동기화 — PassSheet 등 다른 연장 진입점이
   // 부모 load()를 트리거해 prop이 바뀐 경우에도 반영되도록 (중복 청구 방지).
