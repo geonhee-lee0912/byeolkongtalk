@@ -75,3 +75,12 @@ export function getSkill(key: string): RelationshipSkill | null {
 export function listActiveSkills(): RelationshipSkill[] {
   return RELATIONSHIP_SKILLS.filter((s) => s.active).sort((a, b) => a.order - b.order);
 }
+
+/** 복귀 인사 버블 텍스트 — 스킬 결과를 보고 스레드로 돌아왔을 때 별콩이가 먼저 짚는 한마디. */
+export function buildSkillRecapText(skillKey: string, summary: string): string {
+  const skill = getSkill(skillKey);
+  const label = skill?.label ?? "스킬";
+  const emoji = skill?.emoji ?? "✨";
+  const s = summary.trim();
+  return `${emoji} ${label} 결과 봤어! ${s ? s + " — " : ""}이거 갖고 더 얘기하고 싶은 거 있으면 편하게 꺼내봐.`;
+}
