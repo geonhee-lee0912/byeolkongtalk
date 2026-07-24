@@ -60,3 +60,22 @@ export function buildRelationshipFileBlock(f: RelationshipFile, rollingSummary: 
   }
   return "\n\n" + lines.join("\n");
 }
+
+/** 스킬 완료 결과를 memo에 반영 — skill_log 적립(최근 20개) + pending_skill_recap(복귀 인사) 세팅. 순수 함수. */
+export function applySkillToMemo(
+  memo: RelationshipMemo,
+  skillKey: string,
+  readingId: string,
+  summary: string,
+  nowIso: string
+): RelationshipMemo {
+  const s = summary.replace(/\s+/g, " ").trim().slice(0, 120);
+  return {
+    ...memo,
+    skill_log: [
+      ...(memo.skill_log ?? []),
+      { skill: skillKey, reading_id: readingId, summary: s, created_at: nowIso },
+    ].slice(-20),
+    pending_skill_recap: { skill: skillKey, summary: s, created_at: nowIso },
+  };
+}

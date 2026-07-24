@@ -52,6 +52,7 @@ export interface RelationshipMemo {
   prescriptions?: { text: string; created_at: string; resolved_at?: string }[];
   pending_checkin?: { text: string; created_at: string } | null;
   skill_log?: { skill: string; reading_id: string; summary: string; created_at: string }[];
+  pending_skill_recap?: { skill: string; summary: string; created_at: string } | null;
 }
 
 /** 스킬 런처(useSkillLaunch, tarot_draw) → /tarot/draw 로 넘기는 sessionStorage marker. */

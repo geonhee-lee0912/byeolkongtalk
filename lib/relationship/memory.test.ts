@@ -1,7 +1,8 @@
 // lib/relationship/memory.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock } from "./memory.ts";
+import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock, applySkillToMemo } from "./memory.ts";
+import type { RelationshipMemo } from "./types.ts";
 
 const mk = (n: number) => Array.from({ length: n }, (_, i) => ({
   role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant", content: `m${i}`,
@@ -52,4 +53,21 @@ test("파일 블록 — 호칭/관계/처방 포함", () => {
   );
   assert.match(b, /그이/); assert.match(b, /연애 중/);
   assert.match(b, /먼저 연락해보기/); assert.match(b, /지난 대화 요약/);
+});
+
+test("applySkillToMemo — skill_log 적립 + pending_skill_recap 세팅 + summary 정규화", () => {
+  const out = applySkillToMemo({}, "compat", "r1", "  케미   좋음  ", "2026-07-23T00:00:00Z");
+  assert.equal(out.skill_log?.length, 1);
+  assert.equal(out.skill_log?.[0].skill, "compat");
+  assert.equal(out.skill_log?.[0].reading_id, "r1");
+  assert.equal(out.pending_skill_recap?.skill, "compat");
+  assert.equal(out.pending_skill_recap?.summary, "케미 좋음");
+  assert.equal(out.pending_skill_recap?.created_at, "2026-07-23T00:00:00Z");
+});
+
+test("applySkillToMemo — skill_log 최근 20개만 유지", () => {
+  let memo: RelationshipMemo = {};
+  for (let i = 0; i < 25; i++) memo = applySkillToMemo(memo, "verdict", `r${i}`, `s${i}`, "2026-07-23T00:00:00Z");
+  assert.equal(memo.skill_log?.length, 20);
+  assert.equal(memo.skill_log?.[0].reading_id, "r5"); // 앞 5개 잘림
 });
