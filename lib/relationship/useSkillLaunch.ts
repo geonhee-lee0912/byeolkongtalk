@@ -18,6 +18,8 @@ export interface UseSkillLaunchArgs {
   relationshipId: string;
   selfProfileId: string | null;
   partnerProfileId: string | null;
+  /** dialogue 스킬(판정)을 스레드 안에서 개시 — ThreadChat이 skillStart 전송을 담당. */
+  onInThreadSkill?: (skillKey: string) => void;
 }
 
 export interface UseSkillLaunchResult {
@@ -41,6 +43,7 @@ export function useSkillLaunch({
   relationshipId,
   selfProfileId,
   partnerProfileId,
+  onInThreadSkill,
 }: UseSkillLaunchArgs): UseSkillLaunchResult {
   const router = useRouter();
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -103,36 +106,6 @@ export function useSkillLaunch({
     }
   };
 
-  const launchDialogue = async (skill: RelationshipSkill) => {
-    setBusyKey(skill.key);
-    try {
-      const res = await fetch("/api/relationship/verdict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relationshipId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 402) {
-        if (data?.code === "INSUFFICIENT_STARS") {
-          router.push("/shop");
-        } else {
-          setToastMsg(PASS_REQUIRED_MSG);
-        }
-        return;
-      }
-      if (!res.ok) {
-        setToastMsg(GENERIC_ERROR_MSG);
-        return;
-      }
-      window.dispatchEvent(new Event("byeolkong:balance-updated"));
-      router.push(`/relationship/verdict/${data.id}`);
-    } catch {
-      setToastMsg(NETWORK_ERROR_MSG);
-    } finally {
-      setBusyKey(null);
-    }
-  };
-
   // 궁합·판정 구매 확인 모달 열기 + 현재 별 잔액 조회
   const openConfirm = (skill: RelationshipSkill) => {
     setPendingSkill(skill);
@@ -150,16 +123,15 @@ export function useSkillLaunch({
 
   const runLaunch = (skill: RelationshipSkill) => {
     if (inFlightRef.current || busyKey) return;
-    inFlightRef.current = true;
-    const done = () => {
-      inFlightRef.current = false;
-    };
     if (skill.kind === "compat") {
-      void launchCompat(skill).finally(done);
+      inFlightRef.current = true;
+      void launchCompat(skill).finally(() => {
+        inFlightRef.current = false;
+      });
     } else if (skill.kind === "dialogue") {
-      void launchDialogue(skill).finally(done);
-    } else {
-      done();
+      // 인-스레드 개시 — 별도 페이지/차감 없음. 차감은 chat 라우트(skillStart)가 담당.
+      onInThreadSkill?.(skill.key);
+      cancelConfirm();
     }
   };
 
