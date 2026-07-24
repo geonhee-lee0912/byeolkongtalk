@@ -510,9 +510,9 @@ function FortuneResultInner() {
             {relationshipId && (
               <Link
                 href="/relationship"
-                className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-[15px] text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
               >
-                💬 우리 사이로 돌아가 이어 얘기하기
+                💬 연애 상담으로 돌아가 이어 얘기하기
               </Link>
             )}
             <button
