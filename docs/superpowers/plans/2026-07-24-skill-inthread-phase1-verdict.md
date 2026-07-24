@@ -591,6 +591,8 @@ export async function POST(request: NextRequest) {
   if (typeof body.message !== "string" || body.message.length < 1 || body.message.length > MAX_MESSAGE_LEN) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
+  // 위 가드로 string 확정 — const로 잡아 ReadableStream 클로저 내 narrowing 소실(TS2322) 방지.
+  const userMessage: string = body.message;
   const inVerdict = activeSkill?.key === "verdict";
 
   // 소프트캡 — 판정 세그먼트는 캡 무관(유료·skill_key 제외). 일반 대화만 캡 톤.
@@ -609,7 +611,7 @@ export async function POST(request: NextRequest) {
   const past = (pastRows ?? []) as ThreadMsg[];
   const isFirstEver = !inVerdict && past.length === 0;
   const split = splitThreadMessages(
-    [...past, { role: "user", content: body.message }],
+    [...past, { role: "user", content: userMessage }],
     rel.summarized_msg_count ?? 0
   );
 
@@ -639,14 +641,14 @@ export async function POST(request: NextRequest) {
     isFirstEver,
     checkinPrompt,
     dailyClose,
-    turnSignals: computeTurnSignals(past, body.message),
+    turnSignals: computeTurnSignals(past, userMessage),
     activeSkill: inVerdict
       ? { key: "verdict", assistantTurns: activeSkill!.assistant_turns, forceEnd: verdictForceEnd }
       : null,
   });
 
   // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대는 haiku 2차 판정 후 확정
-  const sensitiveMatch = await resolveSensitive(body.message);
+  const sensitiveMatch = await resolveSensitive(userMessage);
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
@@ -679,7 +681,7 @@ export async function POST(request: NextRequest) {
         const turnTs = Date.now();
         const skillTag = inVerdict ? "verdict" : null;
         await supabase.from("messages").insert([
-          { reading_id: threadReadingId, role: "user", content: body.message, skill_key: skillTag, created_at: new Date(turnTs).toISOString() },
+          { reading_id: threadReadingId, role: "user", content: userMessage, skill_key: skillTag, created_at: new Date(turnTs).toISOString() },
           { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: skillTag, created_at: new Date(turnTs + 1).toISOString() },
         ]);
 
@@ -727,7 +729,7 @@ export async function POST(request: NextRequest) {
 
         // 민감 감지 — regex 1차 + 회색지대 haiku 2차 (판정/자유대화 공통)
         if (sensitiveMatch) {
-          void recordSensitiveAlert({ match: sensitiveMatch, userId, readingId: threadReadingId, messageText: body.message });
+          void recordSensitiveAlert({ match: sensitiveMatch, userId, readingId: threadReadingId, messageText: userMessage });
           await supabase.from("readings").update({ has_sensitive: true }).eq("id", threadReadingId);
         }
 
