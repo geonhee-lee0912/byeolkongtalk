@@ -1,7 +1,7 @@
 // lib/relationship/memory.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock, applySkillToMemo } from "./memory.ts";
+import { splitThreadMessages, RECENT_MSGS, SUMMARY_TRIGGER, buildRelationshipFileBlock, applySkillToMemo, cleanSummary } from "./memory.ts";
 import type { RelationshipMemo } from "./types.ts";
 
 const mk = (n: number) => Array.from({ length: n }, (_, i) => ({
@@ -70,4 +70,17 @@ test("applySkillToMemo — skill_log 최근 20개만 유지", () => {
   for (let i = 0; i < 25; i++) memo = applySkillToMemo(memo, "verdict", `r${i}`, `s${i}`, "2026-07-23T00:00:00Z");
   assert.equal(memo.skill_log?.length, 20);
   assert.equal(memo.skill_log?.[0].reading_id, "r5"); // 앞 5개 잘림
+});
+
+test("cleanSummary — 짧은 요약은 그대로(공백 정규화만)", () => {
+  assert.equal(cleanSummary("  케미   좋음  "), "케미 좋음");
+});
+
+test("cleanSummary — 긴 요약은 문장 경계에서 자름(단어 중간 금지)", () => {
+  const long =
+    "신금 일간인 나는 서늘하고 단단한 결단력을 가진 사람이고, 정화 일간인 상대는 따뜻하게 타오르며 사람을 밝히는 온기를 가진 사람이야. 원래 화가 금을 다루는 관계라 처음엔 서로 낯설 수 있지만, 정화는 신금을 억누르기보다 감싸안는 결이라 시간이 지날수록 편해져.";
+  const out = cleanSummary(long);
+  assert.ok(out.length <= 161, `too long: ${out.length}`);
+  assert.ok(/[.!?…]$/.test(out), `must end on sentence boundary: ${out}`);
+  assert.ok(!out.endsWith("억누르"), "must not cut mid-word");
 });

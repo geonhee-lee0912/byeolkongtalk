@@ -61,6 +61,21 @@ export function buildRelationshipFileBlock(f: RelationshipFile, rollingSummary: 
   return "\n\n" + lines.join("\n");
 }
 
+/** 요약 정규화 + 문장 경계 자르기 — 단어 중간 잘림 방지. 최대 max자. */
+export function cleanSummary(raw: string, max = 160): string {
+  const s = raw.replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const head = s.slice(0, max);
+  let cut = -1;
+  for (const ch of [".", "!", "?", "…"]) {
+    const i = head.lastIndexOf(ch);
+    if (i > cut) cut = i;
+  }
+  if (cut >= max * 0.5) return head.slice(0, cut + 1);
+  const sp = head.lastIndexOf(" ");
+  return (sp >= max * 0.4 ? head.slice(0, sp) : head).trimEnd() + "…";
+}
+
 /** 스킬 완료 결과를 memo에 반영 — skill_log 적립(최근 20개) + pending_skill_recap(복귀 인사) 세팅. 순수 함수. */
 export function applySkillToMemo(
   memo: RelationshipMemo,
@@ -69,7 +84,7 @@ export function applySkillToMemo(
   summary: string,
   nowIso: string
 ): RelationshipMemo {
-  const s = summary.replace(/\s+/g, " ").trim().slice(0, 120);
+  const s = cleanSummary(summary);
   return {
     ...memo,
     skill_log: [

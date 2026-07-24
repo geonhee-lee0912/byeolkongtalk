@@ -33,3 +33,10 @@ test("buildSkillRecapText — 미지 스킬/빈 요약 폴백", () => {
   assert.ok(t.includes("스킬"));
   assert.ok(t.length > 0);
 });
+
+test("buildSkillRecapText — 요약 포함 + 어색한 '— ' 구분자 안 씀", () => {
+  const t = buildSkillRecapText("compat", "케미가 좋아");
+  assert.ok(t.includes("케미가 좋아"));
+  assert.ok(t.includes("이거 갖고 더 얘기하고 싶은 거"));
+  assert.ok(!t.includes(" — "));
+});

@@ -82,5 +82,7 @@ export function buildSkillRecapText(skillKey: string, summary: string): string {
   const label = skill?.label ?? "스킬";
   const emoji = skill?.emoji ?? "✨";
   const s = summary.trim();
-  return `${emoji} ${label} 결과 봤어! ${s ? s + " — " : ""}이거 갖고 더 얘기하고 싶은 거 있으면 편하게 꺼내봐.`;
+  const head = `${emoji} ${label} 결과 봤어!`;
+  const tail = "이거 갖고 더 얘기하고 싶은 거 있으면 편하게 꺼내봐.";
+  return s ? `${head}\n${s}\n\n${tail}` : `${head} ${tail}`;
 }
