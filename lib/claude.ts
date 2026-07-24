@@ -609,12 +609,30 @@ function getRelationshipPersona(): string {
   return _cachedRelPersona;
 }
 
+let _cachedVerdictInthreadGuide: string | null = null;
+function getVerdictInthreadGuide(): string {
+  if (_cachedVerdictInthreadGuide === null) {
+    _cachedVerdictInthreadGuide =
+      "\n\n" +
+      readFileSync(
+        join(process.cwd(), "data", "persona", "byeolkong_verdict_inthread.md"),
+        "utf-8"
+      );
+  }
+  return _cachedVerdictInthreadGuide;
+}
+
+/** 인-스레드 판정 안전 턴캡 — 이 별콩이 응답 턴에 도달하면 서버가 [SKILL_DONE]을 보장. */
+export const VERDICT_INTHREAD_TURN_CAP = 6;
+
 export interface RelationshipTurnContext {
   fileBlock: string;              // buildRelationshipFileBlock 결과
   isFirstEver: boolean;          // 스레드 최초 진입(메시지 0)
   checkinPrompt?: string | null; // pending 체크인 → 먼저 안부
   dailyClose: boolean;           // 오늘 소프트캡 도달 → 하루 마무리 톤
   turnSignals?: TurnSignals;     // 직전 질문 마무리·단답 연속 동적 경고 (심문 피로 방지)
+  /** 진행 중 인-스레드 스킬 — key="verdict"면 판정 가이드/턴 힌트 주입. 없으면 일반 대화. */
+  activeSkill?: { key: string; assistantTurns: number; forceEnd: boolean } | null;
 }
 
 export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
@@ -632,10 +650,22 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
     ? `\n\n## 오늘 마무리 톤 (하루 소프트캡 도달)\n오늘 나눈 대화가 충분히 쌓였어. 이번 응답은 오늘 얘기를 따뜻하게 매듭짓고 "내일 또 이어서 얘기하자"로 부드럽게 닫아. 단, [END] 마커는 절대 쓰지 마 — 스레드는 계속돼(내일 다시 열려). 새 주제를 크게 벌이지 말고 오늘 흐름을 정리.`
     : "";
 
+  // 인-스레드 판정 모드 — 가이드(파일) + 턴 힌트(개시/마무리) 주입.
+  const verdictGuide =
+    ctx.activeSkill?.key === "verdict"
+      ? getVerdictInthreadGuide() +
+        (ctx.activeSkill.assistantTurns === 0
+          ? `\n\n## 이번 턴 — 판정 개시(첫 턴)\n아직 판정하지 마. 무슨 일이 있었는지 유저의 입장부터 따뜻하게 물어봐(판정 §1단계). 심문하듯 다그치지 말고.`
+          : "") +
+        (ctx.activeSkill.forceEnd
+          ? `\n\n## ⚠️ 판정 마무리 의무 (이번 턴에 반드시 종료)\n지금까지 들은 내용만으로 이번 응답에서 비율 판정 + 근거 + 화해 처방을 마무리하고, 맨 마지막 줄에 [SKILL_DONE] 마커를 단독으로 붙여. 더 캐묻지 마.`
+          : "")
+      : "";
+
   const dynamicPart = `---
 ## 이번 세션 정보
 ${ctx.fileBlock}
----${firstGuide}${checkinGuide}${closeGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
+---${firstGuide}${checkinGuide}${closeGuide}${verdictGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
 
   return { staticPart, dynamicPart };
 }
