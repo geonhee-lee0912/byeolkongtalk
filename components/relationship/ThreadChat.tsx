@@ -7,7 +7,7 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
-import { getSkill } from "@/lib/relationship/skills";
+import { getSkill, buildSkillRecapText } from "@/lib/relationship/skills";
 import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
 import SkillSheet from "./SkillSheet";
 import { listActiveSkills } from "@/lib/relationship/skills";
@@ -77,6 +77,8 @@ interface ThreadChatProps {
   /** 전송 중 패스가 필요하다는 응답(402)을 받았을 때 — 부모가 상태를 새로고침해 패스 패널을 보여주도록 알림 */
   onPassRequired?: () => void;
   className?: string;
+  /** 스킬 결과를 보고 복귀했을 때 1회 노출할 인사 버블(무과금·비영속). 활성 스레드(S3)에서만 전달. */
+  skillRecap?: { skill: string; summary: string } | null;
 }
 
 export default function ThreadChat({
@@ -86,6 +88,7 @@ export default function ThreadChat({
   capReached,
   selfProfileId = null,
   partnerProfileId = null,
+  skillRecap = null,
   onDailyCapReached,
   onExtended,
   onPassRequired,
@@ -120,6 +123,23 @@ export default function ThreadChat({
     if (!el) return;
     requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight }));
   }, [messages.length, liveText]);
+
+  // 복귀 인사 버블 — 스킬 결과 보고 돌아왔을 때 1회. 모델·턴·패스 소모 없음(클라 전용, DB 미저장).
+  const recapShownRef = useRef(false);
+  useEffect(() => {
+    if (!skillRecap || recapShownRef.current) return;
+    recapShownRef.current = true;
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: buildSkillRecapText(skillRecap.skill, skillRecap.summary),
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    void fetch("/api/relationship/recap-seen", { method: "POST" }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // capReached prop이 바뀔 때마다 로컬 상태를 재동기화 — PassSheet 등 다른 연장 진입점이
   // 부모 load()를 트리거해 prop이 바뀐 경우에도 반영되도록 (중복 청구 방지).
