@@ -94,3 +94,23 @@ export function applySkillToMemo(
     pending_skill_recap: { skill: skillKey, summary: s, created_at: nowIso },
   };
 }
+
+/** 인-스레드 스킬(판정 등) 종료 결과를 skill_log에만 적립(최근 20개).
+ *  applySkillToMemo와 달리 pending_skill_recap은 세팅하지 않는다 —
+ *  화면 이동이 없어 복귀 인사 버블이 불필요하기 때문. 순수 함수. */
+export function appendSkillLog(
+  memo: RelationshipMemo,
+  skillKey: string,
+  readingId: string,
+  summary: string,
+  nowIso: string
+): RelationshipMemo {
+  const s = cleanSummary(summary);
+  return {
+    ...memo,
+    skill_log: [
+      ...(memo.skill_log ?? []),
+      { skill: skillKey, reading_id: readingId, summary: s, created_at: nowIso },
+    ].slice(-20),
+  };
+}
