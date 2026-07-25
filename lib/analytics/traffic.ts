@@ -1,0 +1,173 @@
+// lib/analytics/traffic.ts — page_views 행을 받아 UV/PV 를 집계하는 순수 함수들 (DB 접근 없음).
+//
+// 왜 필요한가: Meta 픽셀은 광고 상단(노출→클릭→랜딩→가입)까지만 보여준다. 클릭→랜딩 도달률은
+// 96% 로 건강한데, 가입 이후 앱 내부 라우트 이탈은 계측이 없어 완전히 블라인드였다.
+// "상담 대화의 47.4% 가 결과 화면에 도달하지 못한다"는 건 알지만 어느 화면에서 사라지는지는
+// 알 수가 없었다 → 이 모듈의 1순위 목적은 buildRouteRanking (라우트별 이탈 지점 찾기).
+//
+// 공통 규칙:
+// - UV = 구별되는 anon_id 수. anon_id 는 middleware 가 첫 진입에 발급하므로 사실상 항상 있지만,
+//   없는 행(쿠키 발급 전 · 차단)은 UV 에 세지 않고 PV 만 기여한다 (하나로 뭉치면 UV 가 왜곡된다).
+// - is_bot=true 는 모든 지표에서 제외한다. 섞이면 전환율이 전부 이유 없이 낮게 나온다.
+//   대신 봇 비율만 buildBotShare 로 따로 본다 (계측 건강성 확인용).
+
+import { kstDate } from "./aggregate";
+
+export type PageViewRow = {
+  anon_id: string | null;
+  user_id: string | null;
+  path: string;
+  landing_variant: string | null;
+  utm_content: string | null;
+  is_bot: boolean;
+  created_at: string;
+};
+
+/** utm/landing_variant 값이 없는 유입 묶음. */
+export const DIRECT = "(직접/오가닉)";
+
+/** 봇 제외 — 모든 지표의 공통 전처리. */
+const humanRows = (rows: PageViewRow[]): PageViewRow[] => rows.filter((r) => !r.is_bot);
+
+const pct1 = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : 0);
+
+// ── 1. 일별 UV/PV 추세 ───────────────────────────────────────────────────────
+
+export type TrafficPoint = { date: string; uv: number; pv: number };
+
+export function buildTrafficTrend(input: {
+  rows: PageViewRow[];
+  days: number;
+  todayKst: string; // 'YYYY-MM-DD' (KST 오늘)
+}): TrafficPoint[] {
+  // 날짜 축을 먼저 채운다 — 수집이 없던 날도 0 으로 나와야 "끊긴 구간"이 눈에 보인다.
+  const uv = new Map<string, Set<string>>();
+  const pv = new Map<string, number>();
+  const base = new Date(`${input.todayKst}T00:00:00Z`);
+  for (let i = 0; i < input.days; i++) {
+    const d = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
+    uv.set(d, new Set());
+    pv.set(d, 0);
+  }
+  for (const r of humanRows(input.rows)) {
+    const d = kstDate(r.created_at);
+    if (!pv.has(d)) continue; // 축 밖(조회 경계 걸침) 행은 버린다
+    pv.set(d, pv.get(d)! + 1);
+    if (r.anon_id) uv.get(d)!.add(r.anon_id);
+  }
+  return [...pv.keys()]
+    .map((d) => ({ date: d, uv: uv.get(d)!.size, pv: pv.get(d)! }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** 봇 비율 — 계측 건강성 한 줄. 봇 PV 가 갑자기 치솟으면 UV/PV 해석 자체를 의심해야 한다. */
+export type BotShare = { totalPv: number; botPv: number; botPct: number };
+
+export function buildBotShare(rows: PageViewRow[]): BotShare {
+  const botPv = rows.reduce((n, r) => n + (r.is_bot ? 1 : 0), 0);
+  return { totalPv: rows.length, botPv, botPct: pct1(botPv, rows.length) };
+}
+
+// ── 2. 라우트별 PV·UV (이 화면의 핵심) ───────────────────────────────────────
+
+export type RouteRow = {
+  path: string;
+  pv: number;
+  uv: number;
+  /** PV/UV — 재방문 강도. 1 에 가까우면 "한 번 보고 떠남", 높으면 머물거나 되돌아온 화면. */
+  pvPerUv: number;
+};
+
+export function buildRouteRanking(rows: PageViewRow[], limit = 15): RouteRow[] {
+  const g = new Map<string, { pv: number; uv: Set<string> }>();
+  for (const r of humanRows(rows)) {
+    const e = g.get(r.path) ?? { pv: 0, uv: new Set<string>() };
+    e.pv += 1;
+    if (r.anon_id) e.uv.add(r.anon_id);
+    g.set(r.path, e);
+  }
+  return [...g.entries()]
+    .map(([path, e]) => ({
+      path,
+      pv: e.pv,
+      uv: e.uv.size,
+      pvPerUv: e.uv.size ? Math.round((e.pv / e.uv.size) * 10) / 10 : 0,
+    }))
+    .sort((a, b) => b.pv - a.pv || b.uv - a.uv)
+    .slice(0, limit);
+}
+
+// ── 3. 로그인 전/후 ──────────────────────────────────────────────────────────
+
+export type AuthSplitRow = { segment: "guest" | "member"; uv: number; pv: number };
+
+/**
+ * user_id 유무로 UV·PV 분해. 이 비콘의 존재 이유가 "가입 이후 이탈" 이라 이 분해가 중요하다.
+ * 주의: 같은 anon_id 가 로그인 전/후 양쪽에 나타난다(가입 순간 브리지) → 두 UV 합은 전체 UV 보다 클 수 있다.
+ * 빈 데이터에서도 두 행을 항상 반환한다 (화면 표가 사라지지 않게).
+ */
+export function buildAuthSplit(rows: PageViewRow[]): AuthSplitRow[] {
+  const guest = { pv: 0, uv: new Set<string>() };
+  const member = { pv: 0, uv: new Set<string>() };
+  for (const r of humanRows(rows)) {
+    const b = r.user_id ? member : guest;
+    b.pv += 1;
+    if (r.anon_id) b.uv.add(r.anon_id);
+  }
+  return [
+    { segment: "guest", uv: guest.uv.size, pv: guest.pv },
+    { segment: "member", uv: member.uv.size, pv: member.pv },
+  ];
+}
+
+// ── 4. 유입별 (landing_variant · utm_content) ────────────────────────────────
+
+export type EntryRow = { key: string; uv: number; pv: number };
+export type EntrySources = { variants: EntryRow[]; contents: EntryRow[] };
+
+/**
+ * 유입 소재별 UV·PV. 방문자 최초 귀속(first-touch)으로 계산한다.
+ *
+ * 왜 행 단위로 그룹하지 않는가: 비콘(components/analytics/PageViewBeacon.tsx)은 utm 이 URL 에
+ * 실려 있는 그 1건에만 값을 담아 보낸다. 행 단위로 묶으면 랜딩 1건만 소재에 잡히고 그 방문자의
+ * 나머지 PV 는 전부 (직접/오가닉) 으로 흘러가 표가 무의미해진다 → anon_id 의 가장 이른 값으로
+ * 그 방문자의 모든 행을 귀속시킨다.
+ */
+export function buildEntrySources(rows: PageViewRow[]): EntrySources {
+  const human = humanRows(rows);
+  const byTime = [...human].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const firstVariant = new Map<string, string>();
+  const firstContent = new Map<string, string>();
+  for (const r of byTime) {
+    if (!r.anon_id) continue;
+    if (r.landing_variant && !firstVariant.has(r.anon_id)) firstVariant.set(r.anon_id, r.landing_variant);
+    if (r.utm_content && !firstContent.has(r.anon_id)) firstContent.set(r.anon_id, r.utm_content);
+  }
+
+  const group = (
+    attributed: Map<string, string>,
+    ownValue: (r: PageViewRow) => string | null
+  ): EntryRow[] => {
+    const g = new Map<string, { pv: number; uv: Set<string> }>();
+    for (const r of human) {
+      // anon_id 없는 행은 귀속 불가 → 자기 행의 값으로만 PV 기여 (UV 는 세지 않음)
+      const key = (r.anon_id ? attributed.get(r.anon_id) : ownValue(r)) ?? DIRECT;
+      const e = g.get(key) ?? { pv: 0, uv: new Set<string>() };
+      e.pv += 1;
+      if (r.anon_id) e.uv.add(r.anon_id);
+      g.set(key, e);
+    }
+    // (직접/오가닉) 은 대개 압도적이라 맨 위에 두면 소재 행이 안 보인다 → 맨 아래로
+    return [...g.entries()]
+      .map(([key, e]) => ({ key, uv: e.uv.size, pv: e.pv }))
+      .sort((a, b) => {
+        const d = (a.key === DIRECT ? 1 : 0) - (b.key === DIRECT ? 1 : 0);
+        return d !== 0 ? d : b.uv - a.uv || b.pv - a.pv;
+      });
+  };
+
+  return {
+    variants: group(firstVariant, (r) => r.landing_variant),
+    contents: group(firstContent, (r) => r.utm_content),
+  };
+}

@@ -102,8 +102,8 @@ export function buildProductBreakdown(
 
 export type TrendPoint = { date: string; newUsers: number; readings: number; revenueWon: number };
 
-/** UTC ISO → KST 날짜(YYYY-MM-DD). */
-function kstDate(iso: string): string {
+/** UTC ISO → KST 날짜(YYYY-MM-DD). 날짜 버킷을 쓰는 다른 집계 모듈도 이걸 쓴다 (중복 정의 = 드리프트). */
+export function kstDate(iso: string): string {
   const d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
   return d.toISOString().slice(0, 10);
 }
