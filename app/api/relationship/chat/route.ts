@@ -68,6 +68,24 @@ const VERDICT_KICKOFF = "우리 사이에 다툼이 있었어. 잘잘못을 판�
 const DRAW_KICKOFF = "방금 카드를 뽑았어. 펼쳐서 봐줘.";
 // 카드 풀이는 값을 치른 결과물 — 일반 턴(1400)의 2배.
 const DRAW_MAX_TOKENS = 2800;
+// 원샷 스킬 인-플라이트 락의 stale 임계치.
+// 임계치는 maxDuration(300s)보다 길어야 한다 — 짧으면 정상 진행 중인 요청/스트림을 stale 로 오인해
+// 덮어쓰고 이중 차감이 난다.
+const STALE_MS = 6 * 60 * 1000;
+
+/**
+ * 이 active_skill 락이 "override 해도 되는 굳은 원샷 락"인가.
+ * 원샷 스킬(카드뽑기·궁합) 락은 요청 인-플라이트 전용이라 임계치를 넘겨 남아 있으면 하드 크래시
+ * 잔재다 → 키와 무관하게 override 한다(굳은 checkin 락이 다른 스킬을 영구 차단하던 문제).
+ * 레지스트리에 없는 키(은퇴·삭제된 스킬)의 락도 override 대상 — 복구 불가가 되면 안 된다.
+ * 반대로 dialogue 스킬(판정) 락은 이미 결제된 멀티턴 세그먼트라 장수명이 의도된 설계 → 자동 해제 X.
+ */
+function isStaleOneShotLock(lock: RelationshipMemo["active_skill"]): boolean {
+  if (!lock) return false;
+  if (getSkill(lock.key)?.kind === "dialogue") return false;
+  const started = lock.started_at ? new Date(lock.started_at).getTime() : 0;
+  return Date.now() - started > STALE_MS;
+}
 
 interface Body {
   relationshipId: string;
@@ -136,16 +154,13 @@ export async function POST(request: NextRequest) {
     if (body.skillStart === "compat") {
       const skill = getSkill("compat");
       if (!skill) return NextResponse.json({ error: "skill_not_found" }, { status: 500 });
+      // 은퇴한 스킬은 API 직접 호출로도 결제되면 안 된다 — 차감보다 앞에서 거부.
+      if (!skill.active) return NextResponse.json({ error: "skill_inactive" }, { status: 400 });
       const memo = (rel.memo ?? {}) as RelationshipMemo;
 
-      // 인-플라이트 락 — 중복 차감 방지. compat 락이 6분 초과면 stale 로 override(하드 크래시 복구).
-      // 임계치는 maxDuration(300s)보다 길어야 한다 — 짧으면 정상 진행 중인 요청을 stale 로 오인해
-      // 덮어쓰고 이중 차감이 난다.
-      const STALE_MS = 6 * 60 * 1000;
-      if (activeSkill) {
-        const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
-        const stale = activeSkill.key === "compat" && Date.now() - started > STALE_MS;
-        if (!stale) return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
+      // 인-플라이트 락 — 중복 차감 방지. 굳은 원샷 락은 키 무관하게 override(하드 크래시 복구).
+      if (activeSkill && !isStaleOneShotLock(activeSkill)) {
+        return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
       }
 
       // 두 프로필 로드 + 생년월일 검증 (서버 최종 권위)
@@ -174,10 +189,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 인-플라이트 락 세팅
-      memo.active_skill = { key: "compat", started_at: new Date().toISOString(), assistant_turns: 0 };
-      await supabase.from("relationships").update({ memo }).eq("id", rel.id);
-
+      // ── 차감 완료 지점 ──
+      // 여기서부터 `return NextResponse.json({ report })` 까지 모든 실패는 반드시 refundAndUnlock
+      // (환불 + 락 해제)을 지나야 한다. 락 update · 사주 계산 · Claude 호출 · 저장 전부 throw 가능.
       const refundAndUnlock = async (): Promise<boolean> => {
         let refunded = false;
         try {
@@ -198,6 +212,10 @@ export async function POST(request: NextRequest) {
       };
 
       try {
+        // 인-플라이트 락 세팅
+        memo.active_skill = { key: "compat", started_at: new Date().toISOString(), assistant_turns: 0 };
+        await supabase.from("relationships").update({ memo }).eq("id", rel.id);
+
         const saju = calcSaju(profileRowToSajuInput(selfRow));
         const sajuB = calcSaju(profileRowToSajuInput(partnerRow));
         const system = buildFortuneSystem("compat", {
@@ -238,14 +256,12 @@ export async function POST(request: NextRequest) {
     if (drawSkill?.kind === "tarot_draw" && drawSkill.spread) {
       const spread = drawSkill.spread;
 
-      // 인-플라이트 락 — 중복 차감 방지. 같은 스킬 락이 6분 초과면 stale override(하드 크래시 복구).
-      // 임계치는 maxDuration(300s)보다 길어야 한다 — 짧으면 정상 진행 중인 스트림을 stale 로 오인해
-      // 덮어쓰고 이중 차감이 난다.
-      const STALE_MS = 6 * 60 * 1000;
-      if (activeSkill) {
-        const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
-        const stale = activeSkill.key === drawSkill.key && Date.now() - started > STALE_MS;
-        if (!stale) return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
+      // 은퇴한 스킬은 API 직접 호출로도 결제되면 안 된다 — 차감보다 앞에서 거부.
+      if (!drawSkill.active) return NextResponse.json({ error: "skill_inactive" }, { status: 400 });
+
+      // 인-플라이트 락 — 중복 차감 방지. 굳은 원샷 락은 키 무관하게 override(하드 크래시 복구).
+      if (activeSkill && !isStaleOneShotLock(activeSkill)) {
+        return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
       }
       // 패스 필수 — 기존 /api/consultations/tarot 검증의 이관.
       if (!pass) return NextResponse.json({ error: "pass_required" }, { status: 402 });
@@ -398,11 +414,15 @@ export async function POST(request: NextRequest) {
     if (body.skillStart !== "verdict") {
       return NextResponse.json({ error: "unsupported_skill" }, { status: 400 });
     }
-    if (activeSkill) {
+    // 활성 판정 세그먼트 중 새 개시는 차단(기존 동작 그대로 — verdict 락은 stale 대상 아님).
+    // 굳은 원샷 락(카드뽑기·궁합)만 통과 — 하드 크래시 잔재가 판정을 영구 차단하면 안 된다.
+    if (activeSkill && !isStaleOneShotLock(activeSkill)) {
       return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
     }
     const skill = getSkill("verdict");
     if (!skill) return NextResponse.json({ error: "skill_not_found" }, { status: 500 });
+    // 은퇴한 스킬은 API 직접 호출로도 결제되면 안 된다 — 차감보다 앞에서 거부.
+    if (!skill.active) return NextResponse.json({ error: "skill_inactive" }, { status: 400 });
 
     // 30별 차감 (서버 최종 권위). 실패 시 402 → 클라가 /shop.
     const spend = await spendStars(userId, skill.starCost, {
@@ -416,73 +436,97 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 모델 입력 = 최근창(스레드 맥락) + 비영속 판정 트리거(맨 끝 user)
-    const { data: pastRows } = await supabase
-      .from("messages")
-      .select("role, content")
-      .eq("reading_id", threadReadingId)
-      .order("created_at", { ascending: true });
-    const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
-    const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
-    const apiMessages = [...split.apiMessages, { role: "user" as const, content: VERDICT_KICKOFF }];
+    // ── 차감 완료 지점 ──
+    // 여기서부터 `return new Response` 까지 모든 실패는 반드시 refundVerdict(환불)를 지나야 한다.
+    // 최근창 select · 페르소나 파일 로드(buildRelationshipSystemMessage 내부 readFileSync) ·
+    // 스트림 구성 전부 throw 가능 구간이다. active_skill 은 도입 성공 후에야 세팅되므로 락 롤백은 없다.
+    const verdictLogCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "skillStart" } };
+    const refundVerdict = async (err: unknown) => {
+      const refund = await chargeStars(
+        userId,
+        skill.starCost,
+        `refund_${randomUUID()}`,
+        "rel_skill_verdict_refund"
+      ).catch(() => null);
+      if (!refund?.success) {
+        await logError(new Error("verdict_refund_failed"), ctxFromRequest(request, verdictLogCtx));
+      }
+      await logError(err, ctxFromRequest(request, verdictLogCtx));
+    };
 
-    const fileBlock = buildRelationshipFileBlock(
-      {
-        label: rel.label,
-        status: rel.status as RelationshipStatus,
-        hasSelfBirth: !!rel.self_profile_id,
-        hasPartnerBirth: !!rel.partner_profile_id,
-        memo: memoObj,
-      },
-      rel.rolling_summary
-    );
-    const systemMessage = buildRelationshipSystemMessage({
-      fileBlock,
-      isFirstEver: false,
-      checkinPrompt: null,
-      dailyClose: false,
-      activeSkill: { key: "verdict", assistantTurns: 0, forceEnd: false },
-    });
+    try {
+      // 모델 입력 = 최근창(스레드 맥락) + 비영속 판정 트리거(맨 끝 user)
+      const { data: pastRows } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("reading_id", threadReadingId)
+        .order("created_at", { ascending: true });
+      const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
+      const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
+      const apiMessages = [...split.apiMessages, { role: "user" as const, content: VERDICT_KICKOFF }];
 
-    let assistantText = "";
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of streamChat(systemMessage, apiMessages, 1400, {
-            route: "/api/relationship/chat",
-            userId,
-            extra: { relationshipId: rel.id, stage: "skillStart" },
-          })) {
-            assistantText += chunk;
-            controller.enqueue(encoder.encode(chunk));
+      const fileBlock = buildRelationshipFileBlock(
+        {
+          label: rel.label,
+          status: rel.status as RelationshipStatus,
+          hasSelfBirth: !!rel.self_profile_id,
+          hasPartnerBirth: !!rel.partner_profile_id,
+          memo: memoObj,
+        },
+        rel.rolling_summary
+      );
+      const systemMessage = buildRelationshipSystemMessage({
+        fileBlock,
+        isFirstEver: false,
+        checkinPrompt: null,
+        dailyClose: false,
+        activeSkill: { key: "verdict", assistantTurns: 0, forceEnd: false },
+      });
+
+      let assistantText = "";
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of streamChat(systemMessage, apiMessages, 1400, {
+              route: "/api/relationship/chat",
+              userId,
+              extra: { relationshipId: rel.id, stage: "skillStart" },
+            })) {
+              assistantText += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+            if (!assistantText.trim()) throw new Error("empty_assistant_stream");
+
+            // 도입 성공 → assistant 저장(skill_key 태깅) + active_skill 세팅(assistant_turns=1)
+            const now = new Date().toISOString();
+            await supabase.from("messages").insert([
+              { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: "verdict", created_at: now },
+            ]);
+            const memo = (rel.memo ?? {}) as RelationshipMemo;
+            memo.active_skill = { key: "verdict", started_at: now, assistant_turns: 1 };
+            await supabase.from("relationships").update({ memo, last_visited_at: now }).eq("id", rel.id);
+
+            controller.close();
+          } catch (err) {
+            // 차감했는데 도입 실패 → 30별 환불 (active_skill 미설정이라 락 롤백 불필요).
+            // 아래 외곽 catch 와는 배타 — return 이 끝난 뒤에만 실행된다.
+            await refundVerdict(err);
+            controller.error(err);
           }
-          if (!assistantText.trim()) throw new Error("empty_assistant_stream");
-
-          // 도입 성공 → assistant 저장(skill_key 태깅) + active_skill 세팅(assistant_turns=1)
-          const now = new Date().toISOString();
-          await supabase.from("messages").insert([
-            { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: "verdict", created_at: now },
-          ]);
-          const memo = (rel.memo ?? {}) as RelationshipMemo;
-          memo.active_skill = { key: "verdict", started_at: now, assistant_turns: 1 };
-          await supabase.from("relationships").update({ memo, last_visited_at: now }).eq("id", rel.id);
-
-          controller.close();
-        } catch (err) {
-          // 차감했는데 도입 실패 → 30별 환불 (active_skill 미설정이라 롤백 불필요)
-          await chargeStars(userId, skill.starCost, `refund_${randomUUID()}`, "rel_skill_verdict_refund").catch(() => {});
-          await logError(err, ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "skillStart" } }));
-          controller.error(err);
-        }
-      },
-    });
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "X-Accel-Buffering": "no",
-      },
-    });
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    } catch (err) {
+      // 스트림 반환 전 실패 담당(최근창 select · 페르소나 로드 · 스트림 구성). 위 스트림 catch 와 배타.
+      await refundVerdict(err);
+      return NextResponse.json({ error: "verdict_setup_failed" }, { status: 500 });
+    }
   }
 
   // ── 일반 메시지 (자유대화 or 판정 세그먼트 진행) ───────────────────
