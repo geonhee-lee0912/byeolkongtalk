@@ -3,7 +3,7 @@
 // lib/relationship/useSkillLaunch.ts — 스킬 실행 공용 launcher.
 // 스킬 시트(⚡ 입력창)와 ThreadChat([SKILL:key] 마커 칩) 양쪽에서 재사용 —
 // kind별 실행 경로(tarot_draw/compat/dialogue)를 여기 한 곳에서 관리.
-// 궁합·판정(즉시 차감)은 실행 전 구매 확인 모달을 거친다(pendingSkill). 카드뽑기는 /tarot/draw가 확인.
+// 궁합·판정(즉시 차감)은 실행 전 구매 확인 모달을 거친다(pendingSkill). 카드뽑기는 ThreadChat 의 뽑기 모달이 확인.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSkill, type RelationshipSkill } from "./skills";
@@ -16,12 +16,12 @@ export interface UseSkillLaunchArgs {
   relationshipId: string;
   selfProfileId: string | null;
   partnerProfileId: string | null;
-  /** dialogue 스킬(판정)을 스레드 안에서 개시 — ThreadChat이 skillStart 전송을 담당. */
+  /** 스킬을 스레드 안에서 개시 — ThreadChat이 skillStart 전송(tarot_draw 는 뽑기 모달 오픈)을 담당. */
   onInThreadSkill?: (skillKey: string) => void;
 }
 
 export interface UseSkillLaunchResult {
-  /** skillKey 로 실행. tarot_draw 는 즉시 이동, compat/dialogue 는 구매 확인 모달을 먼저 연다. */
+  /** skillKey 로 실행. 전부 인-스레드 — tarot_draw 는 뽑기 모달, compat/dialogue 는 구매 확인 모달을 먼저 연다. */
   launch: (skillKey: string) => void;
   /** 지금 실행 중인 스킬 key (compat/dialogue 는 네트워크 왕복 있음). */
   busyKey: string | null;
@@ -97,7 +97,8 @@ export function useSkillLaunch({
       return;
     }
     if (skill.kind === "tarot_draw") {
-      launchTarotDraw(skill);
+      // 인-스레드 개시 — ThreadChat 이 뽑기 모달을 연다(라우팅·sessionStorage 없음).
+      onInThreadSkill?.(skill.key);
       return;
     }
     // compat 은 상대 생년월일 없으면 확인 모달 열기 전에 안내

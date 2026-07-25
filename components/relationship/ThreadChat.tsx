@@ -14,6 +14,15 @@ import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { listActiveSkills } from "@/lib/relationship/skills";
 import { tryParseStoredCompatReport } from "@/lib/fortune/compat-report";
 import ThreadCompatCard from "./ThreadCompatCard";
+import ThreadCardStrip from "./ThreadCardStrip";
+import ThreadDrawModal from "./ThreadDrawModal";
+import {
+  serializeThreadDraw,
+  tryParseThreadDraw,
+  splitByCardMarker,
+} from "@/lib/relationship/draw-thread";
+import { getCard } from "@/lib/tarot/cards";
+import type { DrawnCard } from "@/lib/tarot/spreads";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -23,11 +32,14 @@ export interface ThreadChatMsg {
 }
 
 // 완성된 마커 — 화면에 절대 노출 금지 (백엔드 전용 기록/제안/종료 마커)
-const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+)\]/g;
+// CARD:n = 인-스레드 카드뽑기 풀이의 자리 구분자. 저장 후엔 splitByCardMarker 가 세그먼트로 쪼개
+// 칩으로 승격시키지만, 스트리밍 중 라이브 버블에는 리터럴이 새면 안 되므로 여기서도 제거한다.
+const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+|CARD:\d+)\]/g;
 // 스트리밍 중 아직 안 닫힌 마커의 꼬리 — 닫히기 전까지 미리보여 깜빡이지 않게 숨김
 // (SKILL 브랜치에 _DONE 부분 매칭 추가 — [SKILL_DONE] 스트리밍 꼬리 커버)
+// (C 브랜치는 CHECKIN/CARD 두 갈래 — "[CA"·"[CARD:"·"[CARD:1" 꼬리 커버)
 const TRAILING_PARTIAL_MARKER =
-  /\[(?:S(?:K(?:I(?:L(?:L(?:_(?:D(?:O(?:N(?:E)?)?)?)?|:[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?)?)?$/;
+  /\[(?:S(?:K(?:I(?:L(?:L(?:_(?:D(?:O(?:N(?:E)?)?)?)?|:[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?|A(?:R(?:D(?::\d*)?)?)?)?)?$/;
 // 완성된 [SKILL:key] 캡처용 — 마커 존재 시 그 자리에 실행 칩을 띄우기 위해 key 를 뽑아낸다.
 const SKILL_MARKER_CAPTURE = /\[SKILL:([a-z_]+)\]/;
 // 인-스레드 스킬 종료 마커 — 감지 시 활성 스킬 해제.
@@ -132,6 +144,10 @@ export default function ThreadChat({
   const [safety, setSafety] = useState<{ category: SensitiveCategory; severity: number } | null>(null);
   const [showSkills, setShowSkills] = useState(false);
   const [compatLoading, setCompatLoading] = useState(false);
+  // 뽑기 모달을 띄운 스킬 key (null = 모달 닫힘). 차감은 카드 확정 후 submitDraw 가 담당.
+  const [drawSkillKey, setDrawSkillKey] = useState<string | null>(null);
+  // 카드 제출 후 첫 청크 도착 전까지 — 이 사이엔 자유 입력을 막는다(락과 레이스 방지).
+  const [drawLoading, setDrawLoading] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -281,6 +297,10 @@ export default function ThreadChat({
       void sendCompatSkill(skillKey);
       return;
     }
+    if (getSkill(skillKey)?.kind === "tarot_draw") {
+      setDrawSkillKey(skillKey); // 모달 오픈 — 차감은 카드 확정 후 submitDraw 가 담당
+      return;
+    }
     setError(null);
     setActiveSkill(skillKey); // 낙관적 — 실패 시 아래에서 롤백
     setSending(true);
@@ -367,6 +387,86 @@ export default function ThreadChat({
       setCompatLoading(false);
       setActiveSkill(null);
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+    }
+  };
+
+  // 인-스레드 카드뽑기 제출 — 카드 확정 후 SSE 풀이를 스레드에 스트리밍한다.
+  // 반환값 false = 실패(모달이 열린 채로 카드를 보존하고 재시도).
+  const submitDraw = async (cards: DrawnCard[]): Promise<boolean> => {
+    const skillKey = drawSkillKey;
+    const spread = skillKey ? getSkill(skillKey)?.spread : undefined;
+    if (!skillKey || !spread || sending) return false;
+    setError(null);
+    setActiveSkill(skillKey); // 낙관적 락
+    setDrawLoading(true);
+    // 모달을 닫은 뒤(스트립 삽입 이후)의 실패는 모달이 에러를 못 보여주므로 스레드에 표기해야 한다.
+    let modalClosed = false;
+    try {
+      const res = await fetch("/api/relationship/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relationshipId, skillStart: skillKey, drawnCards: cards }),
+      });
+      if (res.status === 402) {
+        // 402 는 두 종류 — 별 부족(충전소로) vs 패스 만료(/shop 은 틀린 목적지).
+        const data = await res.json().catch(() => ({}));
+        setDrawLoading(false);
+        setActiveSkill(null);
+        if (data?.code === "INSUFFICIENT_STARS") {
+          router.push("/shop");
+          return true; // 이동하므로 모달 유지 불필요
+        }
+        setDrawSkillKey(null); // 패스 만료 — 모달 닫고 부모가 패스 패널을 띄우게 알린다
+        setError("패스가 만료됐어 — 다시 등록하면 이어서 볼 수 있어.");
+        onPassRequired?.();
+        return true;
+      }
+      if (!res.ok || !res.body) {
+        setDrawLoading(false);
+        setActiveSkill(null);
+        return false;
+      }
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+
+      // 모달 닫고 스트립을 낙관적으로 삽입 — 직렬화는 서버와 같은 함수를 써서 포맷 드리프트를 막는다.
+      setDrawSkillKey(null);
+      modalClosed = true;
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: serializeThreadDraw({ skill: skillKey, spread, cards }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      // 풀이 스트리밍
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      setDrawLoading(false);
+      setSending(true);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setLiveText(acc);
+      }
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: acc, createdAt: new Date().toISOString() },
+      ]);
+      setLiveText("");
+      setSending(false);
+      setActiveSkill(null); // 원샷 — 즉시 종료
+      onSkillDone?.();
+      return true;
+    } catch {
+      setDrawLoading(false);
+      setSending(false);
+      setActiveSkill(null);
+      if (modalClosed) setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+      return false;
     }
   };
 
@@ -464,6 +564,56 @@ export default function ThreadChat({
                 </Fragment>
               );
             }
+            // 드로우 스트립 JSON 메시지 → 카드판 렌더
+            const draw = tryParseThreadDraw(msg.content);
+            if (draw) {
+              return (
+                <Fragment key={i}>
+                  {dateDivider}
+                  <ThreadCardStrip draw={draw} />
+                </Fragment>
+              );
+            }
+            // 카드 풀이 — [CARD:n] 자리마다 칩 + 버블로 쪼갠다.
+            if (msg.content.includes("[CARD:")) {
+              // 직전 스트립(backward scan) — 칩 라벨(자리 · 카드명)의 출처.
+              // 스트립이 없으면(저장 실패 등) 칩 없이 텍스트만 렌더된다.
+              let strip: ReturnType<typeof tryParseThreadDraw> = null;
+              for (let j = i - 1; j >= 0; j--) {
+                const d = tryParseThreadDraw(messages[j].content);
+                if (d) {
+                  strip = d;
+                  break;
+                }
+              }
+              const segs = splitByCardMarker(msg.content);
+              return (
+                <Fragment key={i}>
+                  {dateDivider}
+                  {segs.map((seg, k) => {
+                    const card = seg.cardIndex != null ? strip?.cards[seg.cardIndex - 1] : null;
+                    return (
+                      <div key={k}>
+                        {card && (
+                          <div className="pl-10 mb-1">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft px-2.5 py-0.5 text-[11px] font-bold text-lilac-deep">
+                              {card.label} · {getCard(card.card_id)?.name_kr ?? ""}
+                              {card.direction === "reversed" ? " (역)" : ""}
+                            </span>
+                          </div>
+                        )}
+                        <ChatBubble
+                          role="assistant"
+                          content={displayText(seg.text)}
+                          showAvatar={k === 0}
+                          showName={k === 0}
+                        />
+                      </div>
+                    );
+                  })}
+                </Fragment>
+              );
+            }
             // 완료된 assistant 메시지에 [SKILL:key] 마커가 있으면 그 자리에 실행 칩 노출.
             const skillKey = extractSkillKey(msg.content);
             const skill = skillKey ? getSkill(skillKey) : null;
@@ -514,6 +664,16 @@ export default function ThreadChat({
             <ChatBubble
               role="assistant"
               content="별콩이가 두 사주로 궁합을 보는 중 ✨"
+              showAvatar
+              showName
+              streaming
+            />
+          )}
+
+          {drawLoading && (
+            <ChatBubble
+              role="assistant"
+              content="별콩이가 카드를 펼치는 중 ✨"
               showAvatar
               showName
               streaming
@@ -598,14 +758,14 @@ export default function ThreadChat({
                     ? "별콩이가 답하는 중…"
                     : "별콩이에게 이야기하기 (Shift+Enter 줄바꿈)"
                 }
-                disabled={sending || compatLoading}
+                disabled={sending || compatLoading || drawLoading}
                 maxLength={8000}
                 className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
                 type="submit"
-                disabled={sending || compatLoading || !input.trim()}
+                disabled={sending || compatLoading || drawLoading || !input.trim()}
                 className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 전송
@@ -650,6 +810,14 @@ export default function ThreadChat({
           onConfirm={confirmLaunch}
           onCharge={() => router.push("/shop")}
           onClose={cancelConfirm}
+        />
+      )}
+
+      {drawSkillKey && getSkill(drawSkillKey) && (
+        <ThreadDrawModal
+          skill={getSkill(drawSkillKey)!}
+          onSubmit={submitDraw}
+          onClose={() => setDrawSkillKey(null)}
         />
       )}
     </div>
