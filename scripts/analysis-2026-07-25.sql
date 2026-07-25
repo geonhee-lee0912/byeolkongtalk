@@ -1036,3 +1036,99 @@ order by r.spread_type, pv;
 --    다만 인과는 미확인 — 정독(A7)이나 환불/이탈 코멘트로 교차검증이 필요하다.
 -- ⚠️ 별당 글자수는 "체감 가치"의 대리지표일 뿐이다. 프리미엄은 카드 수가 많아 정보 밀도·구조가
 --    다르므로 글자수만으로 가치를 단정하면 안 된다(길다≠좋다). 그래도 2.2배 역전은 설명이 필요한 크기다.
+
+-- ############################################################################
+-- 블록 4 — 1턴 이탈 정성 정독 (Task A7)
+-- ############################################################################
+
+-- ============ Q17. 1턴 이탈 전수 추출 (A7 정독용) ============
+-- 유저 턴이 정확히 1개인 chat 리딩 = "고민만 적고 첫 풀이 받은 뒤 아무 말 없이 떠난" 건.
+-- ⚠️ Q10 과 동일 모수 정의(운세 센티넬 배제 + relationship_id is null)를 반드시 유지할 것.
+--    m 은 left join + coalesce 가 아니라 inner join 이어도 안전하다 — Q10 에서 0턴 리딩이
+--    0건임을 실증했으므로. 단 첫 풀이 텍스트가 필요하므로 first_a 는 inner join 이 맞다.
+-- 정독 산출물(유저 발화 포함)은 리포에 커밋하지 않는다 — 스크래치패드 전용.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and consultation_type in ('saju','tarot')
+        and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null),
+m as (select reading_id, count(*) filter (where role='user') ut from messages group by 1),
+first_a as (select m.reading_id, m.content, length(m.content) chars from messages m
+  join (select reading_id, min(created_at) t from messages where role='assistant' group by 1) x
+    on x.reading_id=m.reading_id and x.t=m.created_at and m.role='assistant')
+select left(r.id::text,8) id8, r.consultation_type ct, coalesce(r.spread_type,'(none)') spread,
+       r.stars_spent stars, coalesce(r.emotion_tag,'(null)') etag,
+       coalesce(r.prompt_version,'(none)') pv,
+       to_char(r.created_at + interval '9 hour','YYYY-MM-DD HH24:MI') kst,
+       fa.chars first_chars,
+       coalesce(jsonb_array_length(case when jsonb_typeof(r.drawn_cards)='array'
+                                        then r.drawn_cards else null end),0) ncards,
+       (r.result_viewed_at is not null) viewed, coalesce(r.has_sensitive,false) sens,
+       r.question, fa.content first_asst
+from r join m on m.reading_id=r.id join first_a fa on fa.reading_id=r.id
+where m.ut = 1
+order by r.created_at;
+--
+-- 실측 (2026-07-25): 37건 · 700별 · **result_viewed_at 전건 NULL(0건 열람)** · has_sensitive 0건.
+--   구성: tarot 30 / saju 7. 스프레드 three_card 12 · two_card 10 · one_card 7 · saju 7 · relationship_5 1.
+--   버전: pre 7 · persona-tuning 1 · c3 7 · persona-v3 12 · card-noname 1 · premium-depth 9.
+--   ✅ 검산: Q10 의 "1턴 37건 700별 · 결과열람 전 버전 0" 과 정확히 일치.
+--
+-- 📖 정독 결과 (37/37 전건, 샘플링 없음)
+--   answered  : yes 24 (64.9%) / partial 13 (35.1%) / no 0
+--   why_left  : 되묻기로 끝나 부담 19 (51.4%) · 질문에 답을 못 받음 12 (32.4%)
+--               · 답이 충분해서 만족 종료 5 (13.5%) · 너무 길어서 압도 1 (2.7%) · 톤불만 0 · 판단불가 0
+--   플래그    : closed_with_question 31/37 (83.8%) · asked_for_more_info 23/37 (62.2%) · wall 8/37 (21.6%)
+--
+-- ❌❌ 1순위 가설("premium-depth 의 길어진 첫 풀이가 1턴 이탈을 밀어냈다") = **반증됨**.
+--   근거 1 — 이탈 악화 자체가 유의하지 않다. 1턴율 premium-depth 9/106(8.5%) vs persona-v3
+--     12/209(5.7%) → 2-비율 z=0.92, p=0.36. 그 이전 전체 28/384(7.3%) 대비 z=0.41, p=0.68.
+--     즉 5.7%→8.5% 는 표본운과 구별되지 않는다(추가 이탈 건수의 실체 = 리딩 2건).
+--   근거 2 — 길이·밀도의 방향이 반대다. 모수 492건을 턴 버킷으로 가른 실측:
+--       버킷    n    med_chars avg  med_최장문단  최장>=250  회피상용구  물음표종료
+--       1턴     37     912     875     207        24.3%     16.2%      56.8%
+--       2-3턴  119     976     949     225        31.9%      9.2%      64.7%
+--       4턴+   336     974     979     225        28.3%      5.1%      77.1%
+--     → 1턴군의 첫 풀이가 **오히려 더 짧고 문단도 더 짧다**. 압도 지표(최장문단>=250)는
+--       1턴 24.3% vs 4턴+ 28.3% (z=-0.51, p=0.61) 로 차이 없음.
+--   근거 3 — 대조군(유저턴 4+ 무작위 10건) 직접 태깅에서도 구분 안 됨:
+--       지표                    1턴군(37)   4턴+군(10)
+--       첫 풀이 글자수 중앙값        912자      901자
+--       최장 문단 중앙값            207자      213.5자
+--       closed_with_question    83.8%      90.0%
+--       wall_of_text            21.6%      20.0%
+--     대조군의 premium-doubling 2건(1219자·최장313 / 997자·최장273)은 **둘 다 최장·최밀인데
+--     4~5턴 진행 + 결과열람 O**. 가장 압도적인 풀이가 가장 잘 붙잡았다.
+--   ⚠️ premium-depth 가 저가 스프레드의 첫 풀이를 실제로 늘린 것은 사실(Q16 과 정합).
+--     1턴군 one/two card 만 통제 비교: persona-v3 med 532자·최장 187자·wall 0%(n=4)
+--     → premium-depth med 992자·최장 260자·wall 66.7%(n=9). 산출물은 확실히 바뀌었다.
+--     바뀐 산출물이 이탈을 만들지 않았다는 것 — 즉 **개입은 먹혔고 이탈과는 무관**하다.
+--
+-- ✅ 유의한 판별 신호는 딱 두 개, 둘 다 "길이"가 아니다.
+--   (1) 핵심 질문 회피 상용구 — 정규식 '(날짜를 (딱 )?찍어|콕 찍어|콕 집어|못 찍어|찍어주진 않
+--       |찍어주긴 어렵|찍어주는 카드는 아니)' 히트율이 1턴 16.2% vs 나머지 6.2% (z=2.32, p=0.020),
+--       4턴+ 5.1% 대비 z=2.68, p=0.007 로 **버킷을 따라 단조 감소**(16.2→9.2→5.1).
+--       정독의 answered=partial 13건(35.1%)이 이 신호의 확장판이다(상용구 없이 조용히
+--       주제를 치환한 건까지 포함) — 대조군 4턴+ 10건은 **answered=yes 10/10**.
+--       회피된 갈증은 거의 전부 (a) 시점 "언제쯤/몇 월" (b) 확률 "될까 안 될까"
+--       (c) 사주로 타인의 속마음 (d) 의료 영역(임신운).
+--   (2) 물음표 종료 — 1턴 56.8% vs 4턴+ 77.1% (z=-2.71, p=0.007). **방향이 반대다.**
+--       되묻기로 끝나면 오히려 대화가 이어진다. 정독에서 why_left 최다가
+--       "되묻기로 끝나 부담"(51.4%)으로 나온 건 base-rate 착시 — 되묻기는 별콩이의
+--       보편 화법(모수 74%)이라 이탈군에도 당연히 흔하게 나타난다.
+--       🔴 결론: why_left 의 "되묻기" 버킷은 **인과 근거로 쓰면 안 된다**.
+--
+-- 🔧 이 37건에서 고칠 수 있는 것
+--   (1) 시점·확률 회피 상용구 금지 → 조건부 범위 답으로 대체. 같은 페르소나가 이미
+--       "하반기 초반보다 후반 쪽으로 기울어"(91a42def, answered=yes) 처럼 범위를 준 전례가 있다.
+--   (2) 사주 상품에 원리상 못 보는 질문이 들어오는 입력 경로 차단 — 1턴 사주 7건 중 3건(43%)이
+--       타인의 속마음·임신운·자금 유입 시점이었고 전부 다른 주제로 치환됐다. 페르소나가 아니라
+--       고민 입력 단계(질문 유형 예시·라우팅)의 문제.
+--   (3) 결제한 상품을 스스로 부정하는 문구 제거 — "정보를 주면 더 또렷하게 짚어줄 수 있을 것
+--       같아" 6건 + "카드 한 장 더 펼쳐서 볼 수도 있어" 업셀 3건 = 9/37 (24.3%).
+--       최악은 10별 one_card 의 "이 한 장만으론 다 안 보이는 부분도 있어"(c29282e6).
+--   (4) turn-1 출구 부재 — "답이 충분해서 만족 종료" 5건(13.5%)은 갈증이 해소됐는데도 결과열람 0.
+--       코드 확인: 출구 칩('✨ 결과 카드 보기')은 wrapMode!=='free'(수렴=4턴+) 또는 RECO 부착
+--       시에만 노출(app/tarot/reading/page.tsx). → **1턴 시점엔 마무리 안내가 아무도 안 받는다.**
+--       하단 골드 버튼은 항상 있지만 900~1300자 풀이 아래 컴포저에 묶여 있다.
+--   (5) [CARD:n] 마커 오배치 2건(aa377c52 · 33297f3d, 둘 다 premium-depth) — 카드 설명을
+--       마커보다 먼저 출력해 이미지가 설명 뒤에 뜬다. 첫 풀이 확대의 부작용으로 보이는 실버그.
