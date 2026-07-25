@@ -116,3 +116,22 @@ export function appendSkillLog(
     ].slice(-20),
   };
 }
+
+/** 카드뽑기 스킬 완료 시 캡 면제 턴 적립. 잔여가 있으면 누적 가산, key 는 최신 스킬로. 순수 함수. */
+export function grantSkillGrace(
+  memo: RelationshipMemo,
+  skillKey: string,
+  turns: number
+): RelationshipMemo {
+  if (turns <= 0) return memo;
+  const prev = memo.skill_grace?.remaining ?? 0;
+  return { ...memo, skill_grace: { key: skillKey, remaining: prev + turns } };
+}
+
+/** 면제 턴 1회 소진(한 왕복 = 1턴). 0 이 되면 null 로 전이. 순수 함수. */
+export function consumeSkillGrace(memo: RelationshipMemo): RelationshipMemo {
+  const g = memo.skill_grace;
+  if (!g || g.remaining <= 0) return memo;
+  const remaining = g.remaining - 1;
+  return { ...memo, skill_grace: remaining > 0 ? { key: g.key, remaining } : null };
+}

@@ -53,6 +53,8 @@ export interface RelationshipMemo {
   pending_checkin?: { text: string; created_at: string } | null;
   skill_log?: { skill: string; reading_id: string; summary: string; created_at: string }[];
   pending_skill_recap?: { skill: string; summary: string; created_at: string } | null;
+  /** 카드뽑기 스킬 직후의 캡 면제 잔여 턴(구매한 대화 분량). 소진되면 null. 만료 없음. */
+  skill_grace?: { key: string; remaining: number } | null;
   /** 진행 중 인-스레드 스킬(Phase 1: 판정). 없으면 일반 대화.
    *  assistant_turns = 스킬 개시 후 별콩이 응답 턴 수(안전 턴캡용). */
   active_skill?: { key: string; started_at: string; assistant_turns: number } | null;

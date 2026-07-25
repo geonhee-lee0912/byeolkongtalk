@@ -12,6 +12,8 @@ export interface RelationshipSkill {
   starCost: number;
   kind: SkillKind;
   spread?: SpreadType; // kind="tarot_draw"
+  /** 스킬 직후 하루 캡에서 면제되는 후속 대화 턴 수(kind="tarot_draw" — 분량까지 산 것). */
+  graceTurns?: number;
   requiresPartnerBirth?: boolean; // compat
   active: boolean;
   order: number;
@@ -26,6 +28,7 @@ export const RELATIONSHIP_SKILLS: RelationshipSkill[] = [
     starCost: 45,
     kind: "tarot_draw",
     spread: "checkin_6",
+    graceTurns: 10,
     active: true,
     order: 1,
   },
@@ -37,6 +40,7 @@ export const RELATIONSHIP_SKILLS: RelationshipSkill[] = [
     starCost: 40,
     kind: "tarot_draw",
     spread: "deep_feelings_5",
+    graceTurns: 8,
     active: true,
     order: 2,
   },
