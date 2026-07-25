@@ -10,9 +10,7 @@ import { getSkill, type RelationshipSkill } from "./skills";
 import { REL_SKILL_KEY } from "./types";
 
 const PARTNER_BIRTH_MSG = "상대 생년월일을 먼저 등록해줘";
-const PASS_REQUIRED_MSG = "패스가 필요해 — 먼저 패스를 확인해줘";
 const GENERIC_ERROR_MSG = "지금은 실행할 수 없어. 잠시 후 다시 시도해줄래?";
-const NETWORK_ERROR_MSG = "연결이 흔들렸어. 잠시 후 다시 시도해줄래?";
 
 export interface UseSkillLaunchArgs {
   relationshipId: string;
@@ -67,45 +65,6 @@ export function useSkillLaunch({
     router.push("/tarot/draw");
   };
 
-  const launchCompat = async (skill: RelationshipSkill) => {
-    if (skill.requiresPartnerBirth && !partnerProfileId) {
-      setToastMsg(PARTNER_BIRTH_MSG);
-      return;
-    }
-    setBusyKey(skill.key);
-    try {
-      const res = await fetch("/api/fortune/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "compat",
-          profileA: selfProfileId,
-          profileB: partnerProfileId,
-          relationshipId,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 402) {
-        if (data?.code === "INSUFFICIENT_STARS") {
-          router.push("/shop");
-        } else {
-          setToastMsg(PASS_REQUIRED_MSG);
-        }
-        return;
-      }
-      if (!res.ok) {
-        setToastMsg(GENERIC_ERROR_MSG);
-        return;
-      }
-      window.dispatchEvent(new Event("byeolkong:balance-updated"));
-      router.push(`/fortune/result?id=${data.id}`);
-    } catch {
-      setToastMsg(NETWORK_ERROR_MSG);
-    } finally {
-      setBusyKey(null);
-    }
-  };
-
   // 궁합·판정 구매 확인 모달 열기 + 현재 별 잔액 조회
   const openConfirm = (skill: RelationshipSkill) => {
     setPendingSkill(skill);
@@ -123,12 +82,7 @@ export function useSkillLaunch({
 
   const runLaunch = (skill: RelationshipSkill) => {
     if (inFlightRef.current || busyKey) return;
-    if (skill.kind === "compat") {
-      inFlightRef.current = true;
-      void launchCompat(skill).finally(() => {
-        inFlightRef.current = false;
-      });
-    } else if (skill.kind === "dialogue") {
+    if (skill.kind === "compat" || skill.kind === "dialogue") {
       // 인-스레드 개시 — 별도 페이지/차감 없음. 차감은 chat 라우트(skillStart)가 담당.
       onInThreadSkill?.(skill.key);
       cancelConfirm();
@@ -158,8 +112,7 @@ export function useSkillLaunch({
   const confirmLaunch = () => {
     const skill = pendingSkill;
     if (!skill) return;
-    // compat: 모달을 닫지 않고 실행 — 차감 요청 도는 동안 로딩 상태로 피드백, 성공 시 라우팅으로 언마운트.
-    // dialogue(판정): 즉시 모달 닫고 ThreadChat이 스레드 안에서 개시(라우팅 없음).
+    // compat/dialogue 모두 인-스레드 — 즉시 모달 닫고 ThreadChat 이 skillStart 로 스레드에서 개시(라우팅 없음).
     runLaunch(skill);
   };
 
