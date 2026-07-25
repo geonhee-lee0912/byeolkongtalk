@@ -229,7 +229,10 @@ let relId, threadId, partnerProfileId;
   check("D9", "임계 요약 발동 → rolling_summary + summarized_msg_count", d9.status === 200 && !!summarized, summarized ? `${summarized.summarized_msg_count}개 요약됨, ${String(summarized.rolling_summary).length}자` : "45s 내 미발동");
 }
 
-// ───────────────────────── E. 스킬 ─────────────────────────
+// ─────── E. 스킬 (정적 가격 일관성 + 패스 게이트) ───────
+// 스킬 개시·차감·태깅·결과 적립은 전부 인-스레드(/api/relationship/chat skillStart)로 이관됐다.
+// 그 런타임 계약은 scripts/smoke-draw-inthread.ts(카드뽑기) ·
+// scripts/smoke-compat-inthread.ts(궁합)가 담당 — 여기서는 이관과 무관한 것만 남긴다.
 {
   // 가격 일관성 (정적)
   const chk = getSkill("checkin"), deep = getSkill("deep_feelings"), comp = getSkill("compat"), verd = getSkill("verdict");
@@ -246,44 +249,19 @@ let relId, threadId, partnerProfileId;
   // (개시·검증·태깅·적립 전부 /api/relationship/chat 의 skillStart 분기로 이동).
   // 대체 검증: scripts/smoke-draw-inthread.ts (인-스레드 머니 패스 런타임 스모크).
 
-  // verdict — 생성(30별) → 4턴 시드 → 5턴째 강제 [END] + skill_log
-  const balV0 = await balance();
-  const e5 = await api("POST", "/api/relationship/verdict", { body: { relationshipId: relId } });
-  const balV1 = await balance();
-  const { data: vReading } = e5.json?.id ? await db.from("readings").select("consultation_type, skill_key, relationship_id, stars_spent").eq("id", e5.json.id).single() : { data: null };
-  check("E5", "판정 생성 → relationship/verdict 태깅 + 30별", e5.status === 200 && vReading?.consultation_type === "relationship" && vReading?.skill_key === "verdict" && balV0 - balV1 === 30);
-  const vId = e5.json.id;
-  const hist = [];
-  for (let i = 0; i < 4; i++) {
-    hist.push({ role: "user", content: i === 0 ? "어제 데이트 약속 시간 때문에 싸웠어" : `추가 상황 설명 ${i}` });
-    hist.push({ role: "assistant", content: `(별콩이 청취 ${i})` });
-  }
-  await db.from("messages").insert(hist.map((m, i) => ({ reading_id: vId, role: m.role, content: m.content, created_at: new Date(Date.now() - (8 - i) * 1000).toISOString() })));
-  const e6 = await sse("/api/relationship/verdict/chat", { readingId: vId, messages: [...hist, { role: "user", content: "그래서 누가 더 잘못한 거야?" }] });
-  const logAfterV = await pollUntil(async () => {
-    const r = await getRel();
-    return (r?.memo?.skill_log ?? []).some((s) => s.skill === "verdict") ? r : null;
-  }, { timeoutMs: 15000 });
-  check("E6", "판정 5턴째 강제 [END] + skill_log", e6.status === 200 && e6.text.includes("[END]") && !!logAfterV, `${e6.text.length}자`);
-  note(`판정 응답: ${e6.text.slice(0, 120).replace(/\n/g, " ")}…`);
-  await sleep(1500);
+  // (구 E5·E6 제거) 판정 전용 라우트 /api/relationship/verdict{,/chat} 가 c4cbdb9 에서 삭제됨
+  // (Phase 1 인-스레드 판정으로 대체) → 두 체크는 404 를 때리는 죽은 계약이었다.
+  // 대체: 판정은 /api/relationship/chat 의 skillStart:"verdict" + [SKILL_DONE] 로 동작.
+  //
+  // (구 E7·E8 제거) 궁합의 관계 태깅 분기가 /api/fortune/create 에서 9f56db5 에 제거됨
+  // (Phase 2 인-스레드 궁합으로 대체) → relationship_id/skill_key 는 이제 항상 NULL.
+  // 대체 검증: scripts/smoke-compat-inthread.ts.
 
-  // compat 스킬 — 생성 + 태깅 + (리포트 완료 후) skill_log
-  const balC0 = await balance();
-  const e7 = await api("POST", "/api/fortune/create", { body: { type: "compat", profileA: selfProf.id, profileB: partnerProfileId, relationshipId: relId } });
-  const balC1 = await balance();
-  const { data: cReading } = e7.json?.id ? await db.from("readings").select("relationship_id, skill_key").eq("id", e7.json.id).single() : { data: null };
-  check("E7", "궁합 스킬 생성 → compat 태깅 + 40별", e7.status === 200 && cReading?.relationship_id === relId && cReading?.skill_key === "compat" && balC0 - balC1 === 40, JSON.stringify(e7.json).slice(0, 100));
-  const logAfterC = await pollUntil(async () => {
-    const r = await getRel();
-    return (r?.memo?.skill_log ?? []).some((s) => s.skill === "compat") ? r : null;
-  }, { timeoutMs: 120000, intervalMs: 5000 });
-  check("E8", "궁합 리포트 완료 → skill_log 적립 (생성 대기 ≤120s)", !!logAfterC, logAfterC ? JSON.stringify(logAfterC.memo.skill_log.at(-1)).slice(0, 140) : "120s 내 미완료(느린 생성일 수 있음)");
-
-  // 패스 게이트 (스킬) — 패스 만료시켜 검증 후 복원
+  // 패스 게이트 (스킬) — 패스 만료시켜 검증 후 복원.
+  // 개시 경로가 인-스레드로 바뀌었으니 게이트도 chat 라우트에서 확인한다(계약은 그대로 살아있음).
   await db.from("relationship_passes").update({ expires_at: new Date(Date.now() - 1000).toISOString() }).eq("relationship_id", relId);
-  const e9 = await api("POST", "/api/relationship/verdict", { body: { relationshipId: relId } });
-  check("E9", "패스 만료 시 스킬 → 402 pass_required", e9.status === 402 && e9.json?.error === "pass_required");
+  const e9 = await api("POST", "/api/relationship/chat", { body: { relationshipId: relId, skillStart: "checkin" } });
+  check("E9", "패스 만료 시 스킬 개시 → 402 pass_required", e9.status === 402 && e9.json?.error === "pass_required", JSON.stringify(e9.json));
   await db.from("relationship_passes").update({ expires_at: new Date(Date.now() + 864e5).toISOString() }).eq("relationship_id", relId);
 }
 
@@ -293,8 +271,9 @@ let relId, threadId, partnerProfileId;
   const list = f1.json?.readings ?? [];
   const hasThread = list.some((r) => r.id === threadId);
   const hasVerdict = list.some((r) => r.consultationType === "relationship");
-  const hasCheckin = list.some((r) => r.spreadType === "checkin_6");
-  check("F1", "보관함: 스레드/판정 제외 + 체크인(타로) 포함", !hasThread && !hasVerdict && hasCheckin, `목록 ${list.length}건`);
+  // (구 hasCheckin clause 제거) 인-스레드 카드뽑기는 별도 tarot reading 을 만들지 않으므로
+  // 보관함에 checkin_6 이 뜰 일이 없다 — 일반 타로의 보관함 노출은 H5 가 커버.
+  check("F1", "보관함: 스레드/판정(relationship) 제외", !hasThread && !hasVerdict, `목록 ${list.length}건`);
 }
 
 // ───────────────────────── G. 수정/강등 ─────────────────────────
