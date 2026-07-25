@@ -27,6 +27,17 @@ async function loadStats() {
     if (excl) q = q.not(idCol, "in", excl);
     return q;
   };
+  // 탈퇴 — account_withdrawals 는 시각 컬럼이 withdrawn_at 이라 위 cnt(created_at) 를 못 쓴다.
+  // ⚠️ 어드민 제외 불가: 이 테이블은 kakao_id_hash 만 남기고 user_id 를 안 남긴다(탈퇴 = 유저 삭제).
+  //    그래서 운영자·내부 테스트 계정의 탈퇴도 이 숫자에 섞인다.
+  // ⚠️ 탈퇴는 users DELETE CASCADE 라 그 유저의 결제·리딩·유입기록이 함께 사라진다 —
+  //    즉 위 신규 가입/리딩 누적은 탈퇴분만큼 과거를 향해 줄어든다(이 카드가 그 규모를 보여준다).
+  const withdrawn = (s?: string, u?: string) => {
+    let q = supa.from("account_withdrawals").select("id", { count: "exact", head: true });
+    if (s) q = q.gte("withdrawn_at", s);
+    if (u) q = q.lt("withdrawn_at", u);
+    return q;
+  };
   // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
   const pay = (s?: string, u?: string) => {
     let q = supa.from("payments").select("amount_won").eq("status", "completed").limit(100000);
@@ -35,8 +46,9 @@ async function loadStats() {
     if (excl) q = q.not("user_id", "in", excl);
     return q;
   };
-  const [tu, yu, au, tr, yr, ar, tp, yp, ap, errs, sens] = await Promise.all([
+  const [tu, yu, au, tw, yw, aw, tr, yr, ar, tp, yp, ap, errs, sens] = await Promise.all([
     cnt("users", "id", today), cnt("users", "id", yesterday, today), cnt("users", "id"),
+    withdrawn(today), withdrawn(yesterday, today), withdrawn(),
     cnt("readings", "user_id", today), cnt("readings", "user_id", yesterday, today), cnt("readings", "user_id"),
     pay(today),
     pay(yesterday, today),
@@ -119,19 +131,22 @@ async function loadStats() {
   };
 
   return {
-    today: { newUsers: tu.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
-    yesterday: { newUsers: yu.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
-    all: { newUsers: au.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
+    today: { newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
+    yesterday: { newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
+    all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
     star,
     rel,
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
   };
 }
 
-function Delta({ today, yesterday, label = "어제" }: { today: number; yesterday: number; label?: string }) {
+// invert: 증가가 나쁜 지표(탈퇴 등)는 색을 뒤집는다 — 안 뒤집으면 탈퇴 급증이 초록으로 떠서 오독된다.
+function Delta({ today, yesterday, label = "어제", invert = false }: { today: number; yesterday: number; label?: string; invert?: boolean }) {
   if (yesterday === 0) return <span className="text-lg font-normal text-white/40">{label} 0</span>;
   const pct = ((today - yesterday) / yesterday) * 100;
-  const cls = pct > 0 ? "text-emerald-400" : pct < 0 ? "text-red-400" : "text-white/40";
+  const up = invert ? pct < 0 : pct > 0;
+  const down = invert ? pct > 0 : pct < 0;
+  const cls = up ? "text-emerald-400" : down ? "text-red-400" : "text-white/40";
   return (
     <span className="text-lg font-normal whitespace-nowrap">
       <span className={cls}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>{" "}
@@ -167,9 +182,12 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="신규 가입" value={s.today.newUsers}>
             <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
+          </Stat>
+          <Stat label="탈퇴" value={s.today.withdrawals}>
+            <Delta today={s.today.withdrawals} yesterday={s.yesterday.withdrawals} invert />
           </Stat>
           <Stat label="리딩" value={s.today.readings}>
             <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
@@ -181,9 +199,21 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="신규 가입" value={s.all.newUsers}>
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />
+          </Stat>
+          {/* 탈퇴율 = 탈퇴 / (현재 유저 + 탈퇴). 탈퇴는 users 를 지우므로 "총 가입 이력" 을 이렇게 복원한다.
+              ⚠️ 근사: 분모는 어드민 제외분(운영자·테스트 6명)이 빠졌지만 분자는 못 뺀다
+              (account_withdrawals 에 user_id 가 없어 판별 불가) → 실제보다 소폭 높게 나온다. */}
+          <Stat
+            label="탈퇴"
+            value={s.all.withdrawals}
+            paren={s.all.newUsers + s.all.withdrawals > 0
+              ? `가입대비 ${((s.all.withdrawals / (s.all.newUsers + s.all.withdrawals)) * 100).toFixed(1)}%`
+              : undefined}
+          >
+            <Delta today={s.all.withdrawals} yesterday={s.all.withdrawals - s.today.withdrawals} label="어제까지" invert />
           </Stat>
           <Stat label="리딩" value={s.all.readings}>
             <Delta today={s.all.readings} yesterday={s.all.readings - s.today.readings} label="어제까지" />
