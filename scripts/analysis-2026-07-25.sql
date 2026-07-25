@@ -496,3 +496,89 @@ group by 1,2,3,4,5 order by n desc;
 -- 모델 한계(배분 왜곡 방향): systemChars 는 cache_control 마킹된 staticPart 만 센다.
 --   dynamicPart(사주판·뽑은 카드·관계 파일 블록·verdict/draw 가이드)는 매 턴 비캐시로 나가는데 미계상 →
 --   동적 블록이 큰 상품(good_days 30일 일진, compat 두 사람 사주, relationship_5)의 원가가 과소 추정.
+
+-- ============ Q9b. 제외 6명(관리자·내부테스트·지인) 리딩별 메시지 집계 ============
+-- A4b 테스트/실유저 분리용. 이 사람들은 "유저 모수에서 빼고 테스트 모수에 넣는" 쪽 →
+-- 활동이 있는 날은 clean day 에서 탈락시킨다. d(UTC) 와 d_kst 를 같이 뽑아 타임존 가정 2개를 다 계산.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c)
+select r.id, r.consultation_type, r.created_at::date d,
+       (r.created_at at time zone 'Asia/Seoul')::date d_kst,
+       json_agg(json_build_object('role', m.role, 'chars', length(m.content)) order by m.created_at) turns
+from readings r join messages m on m.reading_id = r.id
+where left(r.user_id::text,8) in (select c from ex) and r.created_at >= '2026-07-01'
+group by r.id, r.consultation_type, r.created_at order by r.created_at;
+-- 실측: 19건. 일별(UTC) 07-08:1 · 09:2 · 10:9 · 11:1 · 12:1 · 13:2 · 15:1 · 16:1 · 22:1
+--       → clean day 후보 7/09·7/10·7/12·7/15·7/16 이 이걸로 전부 탈락. 남는 엄격 clean = 7/14·7/21·7/23.
+
+-- ============ Q9c. dev DB 일별 메시지 (⚠️ SUPABASE_PROJECT_REF=vtdmxdcetziileynjaxi) ============
+-- 로컬 개발·하네스가 태운 dev 분. 하네스가 seed 를 퍼지해서 원장이 못 되지만(7월 60건뿐),
+-- "그날 dev 서버를 건드렸는지" 플래그로는 유효하다.
+select date(created_at) d, count(*) msgs, sum(length(content)) chars
+from messages where created_at >= '2026-07-01' group by 1 order by 1;
+-- 실측: 60건. 07-08:1 · 11:18 · 18:4 · 19:2 · 24:17 · 25:18 (플랜 예상치와 정확히 일치)
+
+-- ============ Q9c2. dev DB 리딩별 집계 (Q9c 의 스코어링용 버전, dev ref) ============
+select r.id, r.consultation_type, r.created_at::date d,
+       (r.created_at at time zone 'Asia/Seoul')::date d_kst,
+       json_agg(json_build_object('role', m.role, 'chars', length(m.content)) order by m.created_at) turns
+from readings r join messages m on m.reading_id = r.id
+where r.created_at >= '2026-07-01' group by r.id, r.consultation_type, r.created_at order by r.created_at;
+-- 실측: 8건. ⚠️ 리딩 기준 일자와 메시지 기준 일자가 어긋난 건 1건(7/18 생성 관계 스레드가 7/24 에 11개 추가) —
+--       dev 는 무시 가능. prod 는 아래 Q9e 로 확인했고 스팬 리딩이 1건뿐이라 리딩 일자 귀속이 안전하다.
+
+-- ============ Q9d. prod 리딩 UTC↔KST 날짜 맵 (Q9 의 KST 재버킷용) ============
+select r.id, r.created_at::date d, (r.created_at at time zone 'Asia/Seoul')::date d_kst
+from readings r where r.created_at >= '2026-07-01';
+-- 실측: 615건 중 189건(31%)이 UTC 날짜 ≠ KST 날짜 → 타임존 가정이 일별 표를 실제로 흔든다.
+
+-- ============ Q9e. 검산: 리딩이 여러 날에 걸치는지 (일자 귀속 안전성) ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+s as (select r.id, r.consultation_type, count(distinct m.created_at::date) days, count(*) msgs
+      from readings r join messages m on m.reading_id=r.id
+      where left(r.user_id::text,8) not in (select c from ex) and r.created_at>='2026-07-01'
+      group by 1,2)
+select consultation_type, days>1 multi, count(*) readings, sum(msgs) msgs from s group by 1,2 order by 1,2;
+-- 실측: 멀티데이 리딩 1건(tarot, 12메시지)뿐 / 전체 5,014메시지. → 리딩 created_at 일자로 원가를 귀속해도
+--       왜곡이 0.24% 미만. (연애 스레드가 늘면 이 가정이 깨지므로 다음 분석 때 재확인할 것)
+
+-- ============ 검산: A4b 테스트/실유저 분리 (2026-07-25 실행 결과) ============
+-- 실행: node --import tsx scripts/qa-cost-score.ts 2026-07 <q9> <q9b> <q9c2> <q9d>
+--
+-- 방법(잔여법): clean day(하네스 실행 0 + Q9b 0 + Q9c 0) 에서만 콘솔 실측 ÷ 유저 점수 = 단가를 구하고,
+--   그 단가로 전체 유저분을 환산한 뒤 나머지를 테스트분으로 돌린다. 하네스 판정 콜처럼 전사에 안 남는
+--   오버헤드가 자동으로 테스트 쪽에 잡히므로 점수 비례 배분보다 정확하다.
+--
+-- ✅ 게이트 (7/19 지문): 콘솔 $17.96 중 테스트 귀속 $13.59 = 75.7% (UTC) / $13.33 = 74.2% (KST). 기준 60% 통과.
+--
+-- 결과 (UTC 채택): Sonnet 실유저 $51.22(70.4%) / 테스트 $21.57(29.6%)
+--                  Haiku  실유저 $1.09(39.0%)  / 테스트 $1.71(61.0%)
+--                  합계   실유저 $52.31(69.2%) / 테스트 $23.28(30.8%)
+--   → A4 의 상품별 배분($72.8 전액을 유저 리딩에 배분)은 실유저분으로 축소 배율 51.22/72.79 = 0.704 를 곱한다.
+--      배분 API 원가 ₩101,920 → ₩71,700 ($51.22 × ₩1,400). 실매출 ₩107,900 대비 94.5% → 66.4%.
+--      상품별 금액·건당$·별당원가는 전부 같은 0.704 배로 축소되고, 상품 간 순위·점유율은 불변.
+--
+-- 타임존: qa/out 디렉토리명은 UTC ISO, readings.created_at::date 도 UTC. 콘솔 기준일은 불명이라 둘 다 계산.
+--   UTC 채택 근거 = 비하네스일 잔여의 일평균 절대오차가 UTC $0.26 vs KST $0.47 (UTC 가 2배 타이트).
+--   콘솔이 KST 기준이면 KST 재버킷이 노이즈를 줄여야 하는데 오히려 늘어남 → 콘솔은 UTC 로 판단.
+--   어느 쪽이든 결론은 동일(테스트 29.6% vs 32.0%)이라 손익 결론에 영향 없음.
+--
+-- 강건성 3종 (전부 UTC 기준):
+--   1) 잔여 집중도 — 테스트 잔여 $21.57 의 104% 가 하네스 실행일 7일에 집중.
+--      비하네스일 11일 잔여 합 −$0.83(일평균 절대오차 $0.26) → 유저 점수 모델이 일별로 잘 맞는다.
+--   2) 독립 추정 대조 — 하네스 전사 점수 30.96 × 단가 = $25.12 vs 잔여 $21.57 (116% 설명).
+--      하네스 모델이 16% 과대 → 테스트 실제분은 $21.6~25.1 구간. 하네스 캐시 재사용이 0.6 보다 높을 것.
+--   3) clean 표본 확장 — 제외6 이 2건 이하인 날까지 넣어 7일로 늘려도 단가 0.8113 → 0.7871 (−3.0%),
+--      실유저 70.4% → 68.3%. 표본이 3일뿐인 게 이 분석의 최대 약점이지만 결론은 안 흔들린다.
+--   4) 캐시 히트율 0.3/0.6/0.9 → 실유저 70.5%/70.4%/70.1%. 같은 스코어러가 분자·분모에 다 쓰여 상쇄.
+--
+-- Haiku 모델 근거: prod haiku = next_reco 태깅(lib/reco.ts)이 사실상 전부.
+--   ⚠️ 콘솔 Haiku 가 7/01~7/12 전부 $0.00 인데 그 기간 유저 리딩은 17~31건/일 →
+--      민감 2차 판정(detectSensitiveAsync)은 prod 에서 사실상 안 돌고 있었다는 뜻(regex 매칭 때만 호출).
+--      Haiku 첫 과금일 7/13 = next_reco 마이그레이션(20260713000000) 도입일과 정확히 일치 → 모델 검증됨.
+--   롤링요약(summarizeOlder)은 24메시지 초과 스레드에서만 트리거 → 이 기간 prod/dev/하네스 전체 0건.
+--   하네스 Haiku 는 모델(0.51)이 콘솔(1.13)의 45% 밖에 안 됨 — 7/22 게이트 전 위기 케이스의 per-turn
+--   2차 판정 콜로 추정. 하네스 점수는 분리식에 안 들어가므로 결론에는 영향 없음.
+--
+-- 모델 한계: ① clean day 3일(콘솔 $12.41 = 총액의 17%)로 단가를 뽑았다 ② 유저 점수가 A4 와 같은
+--   근사(1.6자/토큰, dynamicPart 미계상)를 쓴다 — 단, 분자·분모 양쪽에 같이 들어가 상쇄된다
+--   ③ prod 스모크(제외 6명 계정 밖에서 돌린 것)는 유저분에 섞여 들어간다(규모 미상, 작을 것).

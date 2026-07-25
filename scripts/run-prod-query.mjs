@@ -2,7 +2,8 @@
 // 사용: SUPABASE_PAT=... node scripts/run-prod-query.mjs <sql파일> 또는 --sql "SELECT ..."
 import { readFileSync } from "node:fs";
 
-const PROJECT_REF = "etczntmzobherqyjoyvj"; // byeolkongtalk prod
+// 기본 prod. dev 를 보려면 SUPABASE_PROJECT_REF=vtdmxdcetziileynjaxi 로 오버라이드.
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "etczntmzobherqyjoyvj"; // byeolkongtalk prod
 const pat = process.env.SUPABASE_PAT;
 if (!pat) { console.error("SUPABASE_PAT env 필요"); process.exit(1); }
 
