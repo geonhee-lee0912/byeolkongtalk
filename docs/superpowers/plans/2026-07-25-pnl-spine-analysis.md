@@ -65,14 +65,17 @@ C:/Users/c/AppData/Local/Temp/claude/C--Users-c-Desktop-vibe-project-byeolkong-t
 
 - [ ] **Step 1: PAT를 스크래치패드에 저장**
 
+⚠️ **PAT 값을 이 문서나 어떤 커밋 대상 파일에도 적지 마라.** 사용자가 제공한 값을 스크래치패드 파일에만 넣는다(스크래치패드는 리포 밖이라 git 추적 대상이 아니다).
+
 ```bash
 SCRATCH="C:/Users/c/AppData/Local/Temp/claude/C--Users-c-Desktop-vibe-project-byeolkong-talk/d1204945-d11c-487b-a20e-56fb325b1602/scratchpad"
 mkdir -p "$SCRATCH"
-printf '%s' 'sbp_d1819d56e9f384aab4eca566050c1dad56161c4e' > "$SCRATCH/pat.txt"
+# 사용자가 준 PAT 를 아래 <PAT> 자리에 넣어 실행 (이 파일에 값을 남기지 않는다)
+printf '%s' '<PAT>' > "$SCRATCH/pat.txt"
 wc -c "$SCRATCH/pat.txt"
 ```
 
-Expected: `41 .../pat.txt` (41바이트)
+Expected: `44 .../pat.txt` 처럼 바이트 수만 확인. 이후 모든 쿼리는 `SUPABASE_PAT=$(cat "$SCRATCH/pat.txt")` 로 읽는다.
 
 - [ ] **Step 2: 쿼리 원장 파일 생성**
 
