@@ -12,6 +12,8 @@ import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
 import SkillSheet from "./SkillSheet";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { listActiveSkills } from "@/lib/relationship/skills";
+import { tryParseStoredCompatReport } from "@/lib/fortune/compat-report";
+import ThreadCompatCard from "./ThreadCompatCard";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -87,6 +89,8 @@ interface ThreadChatProps {
   initialActiveSkill?: string | null;
   /** 인-스레드 스킬이 [SKILL_DONE]으로 종료됐을 때 — 부모가 상태 새로고침(캡·activeSkill 재동기화). */
   onSkillDone?: () => void;
+  /** 인-스레드 궁합 카드 헤더용 상대 호칭(관계 label). 없으면 "우리 궁합". */
+  partnerLabel?: string | null;
 }
 
 export default function ThreadChat({
@@ -102,6 +106,7 @@ export default function ThreadChat({
   onExtended,
   onPassRequired,
   onSkillDone,
+  partnerLabel = null,
   className = "",
 }: ThreadChatProps) {
   const router = useRouter();
@@ -126,6 +131,7 @@ export default function ThreadChat({
   // 위기 시그널 — chat 라우트가 X-Sensitive-* 헤더로 알림 (타로/사주와 동일 안전망)
   const [safety, setSafety] = useState<{ category: SensitiveCategory; severity: number } | null>(null);
   const [showSkills, setShowSkills] = useState(false);
+  const [compatLoading, setCompatLoading] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -271,6 +277,10 @@ export default function ThreadChat({
   // 인-스레드 스킬 개시 — 유저 발화 없이 skillStart 전송, 별콩이 도입을 스트리밍.
   const sendSkillStart = async (skillKey: string) => {
     if (sending || activeSkill) return;
+    if (getSkill(skillKey)?.kind === "compat") {
+      void sendCompatSkill(skillKey);
+      return;
+    }
     setError(null);
     setActiveSkill(skillKey); // 낙관적 — 실패 시 아래에서 롤백
     setSending(true);
@@ -316,6 +326,45 @@ export default function ThreadChat({
       setSending(false);
     } catch {
       setSending(false);
+      setActiveSkill(null);
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+    }
+  };
+
+  // 인-스레드 궁합 개시 — 원샷 JSON 리포트를 받아 카드 메시지로 삽입(스트림 아님).
+  const sendCompatSkill = async (skillKey: string) => {
+    setError(null);
+    setActiveSkill(skillKey); // 낙관적 락 — 다른 스킬/재진입 차단
+    setCompatLoading(true);
+    try {
+      const res = await fetch("/api/relationship/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relationshipId, skillStart: skillKey }),
+      });
+      if (res.status === 402) {
+        setCompatLoading(false);
+        setActiveSkill(null);
+        router.push("/shop");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.report) {
+        setCompatLoading(false);
+        setActiveSkill(null);
+        setError("별콩이가 잠깐 멈칫했어. 다시 시도해줄래?");
+        return;
+      }
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: JSON.stringify(data.report), createdAt: new Date().toISOString() },
+      ]);
+      setCompatLoading(false);
+      setActiveSkill(null); // 원샷 — 즉시 종료
+      onSkillDone?.();
+    } catch {
+      setCompatLoading(false);
       setActiveSkill(null);
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
     }
@@ -405,6 +454,16 @@ export default function ThreadChat({
                 </Fragment>
               );
             }
+            // compat 리포트 JSON 메시지 → 접기/펴기 궁합 카드로 렌더
+            const compat = tryParseStoredCompatReport(msg.content);
+            if (compat) {
+              return (
+                <Fragment key={i}>
+                  {dateDivider}
+                  <ThreadCompatCard report={compat} partnerLabel={partnerLabel} />
+                </Fragment>
+              );
+            }
             // 완료된 assistant 메시지에 [SKILL:key] 마커가 있으면 그 자리에 실행 칩 노출.
             const skillKey = extractSkillKey(msg.content);
             const skill = skillKey ? getSkill(skillKey) : null;
@@ -448,6 +507,16 @@ export default function ThreadChat({
               showAvatar
               showName
               streaming={sending}
+            />
+          )}
+
+          {compatLoading && (
+            <ChatBubble
+              role="assistant"
+              content="별콩이가 두 사주로 궁합을 보는 중 ✨"
+              showAvatar
+              showName
+              streaming
             />
           )}
 

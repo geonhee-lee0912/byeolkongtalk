@@ -286,6 +286,7 @@ export default function RelationshipPage() {
           capReached={capReached}
           selfProfileId={relationship.selfProfileId}
           partnerProfileId={relationship.partnerProfileId}
+          partnerLabel={relationship.label}
           skillRecap={recap}
           initialActiveSkill={activeSkill}
           onDailyCapReached={() => void load()}
