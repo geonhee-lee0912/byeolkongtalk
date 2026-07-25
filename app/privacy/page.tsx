@@ -234,6 +234,11 @@ export default function PrivacyPage() {
               Secure, SameSite=Lax)</li>
           </ul>
           <p className="mt-2">
+            또한 서비스 개선을 위해 방문한 페이지 경로와 유입 경로를 위 익명
+            식별자 기준으로 기록합니다. 광고 식별자를 이용한 맞춤형 광고
+            목적으로는 사용하지 않습니다.
+          </p>
+          <p className="mt-2">
             회원은 브라우저 설정을 통해 쿠키를 차단할 수 있으나, 일부 기능
             이용에 제한이 있을 수 있습니다.
           </p>
