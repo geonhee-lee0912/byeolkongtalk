@@ -10,6 +10,7 @@ import {
   streamChat,
   summarizeOlder,
   computeTurnSignals,
+  generateOnce,
   VERDICT_INTHREAD_TURN_CAP,
 } from "@/lib/claude";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -30,10 +31,22 @@ import {
   cleanSummary,
   type ThreadMsg,
 } from "@/lib/relationship/memory";
+import { calcSaju } from "@/lib/saju/calc";
+import { profileRowToSajuInput } from "@/lib/saju/profile-input";
+import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
+import { MAX_TOKENS_BY_FORTUNE } from "@/lib/fortune/types";
+import {
+  parseCompatReportJson,
+  buildCompatReport,
+  serializeCompatReport,
+} from "@/lib/fortune/compat-report";
+import { redactCompatForModel } from "@/lib/relationship/compat-thread";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// compat 스킬은 동기 generateOnce(Claude 1회, bounded)를 요청 내에서 처리 → 여유 상향.
+export const maxDuration = 120;
 
 const MAX_MESSAGE_LEN = 8000;
 const CHECKIN_RE = /\[CHECKIN:([^\]]+)\]/;
@@ -99,6 +112,96 @@ export async function POST(request: NextRequest) {
 
   // ── 인-스레드 스킬 개시 (Phase 1: 판정) ───────────────────────────
   if (body.skillStart) {
+    // ── Phase 2: 궁합(compat) — 원샷 구조화 리포트를 스레드 카드로(JSON 반환) ──
+    if (body.skillStart === "compat") {
+      const skill = getSkill("compat");
+      if (!skill) return NextResponse.json({ error: "skill_not_found" }, { status: 500 });
+
+      // 인-플라이트 락 — 중복 차감 방지. compat 락이 3분 초과면 stale 로 override(하드 크래시 복구).
+      const STALE_MS = 3 * 60 * 1000;
+      if (activeSkill) {
+        const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
+        const stale = activeSkill.key === "compat" && Date.now() - started > STALE_MS;
+        if (!stale) return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
+      }
+
+      // 두 프로필 로드 + 생년월일 검증 (서버 최종 권위)
+      if (!rel.partner_profile_id) return NextResponse.json({ error: "partner_birth_required" }, { status: 400 });
+      if (!rel.self_profile_id) return NextResponse.json({ error: "self_birth_required" }, { status: 400 });
+      const { data: profRows } = await supabase
+        .from("user_profiles")
+        .select("id, display_name, birth_date, birth_time, is_lunar_input, is_leap_month, gender")
+        .in("id", [rel.self_profile_id, rel.partner_profile_id])
+        .eq("user_id", userId);
+      const selfRow = profRows?.find((r) => r.id === rel.self_profile_id);
+      const partnerRow = profRows?.find((r) => r.id === rel.partner_profile_id);
+      if (!selfRow?.birth_date || !partnerRow?.birth_date) {
+        return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+      }
+
+      // 40별 차감 (서버 최종 권위). 실패 시 402 → 클라가 /shop.
+      const spend = await spendStars(userId, skill.starCost, {
+        readingId: threadReadingId,
+        source: "rel_skill_compat",
+      });
+      if (!spend.success) {
+        return NextResponse.json(
+          { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: skill.starCost },
+          { status: 402 }
+        );
+      }
+
+      // 인-플라이트 락 세팅
+      {
+        const lockMemo = (rel.memo ?? {}) as RelationshipMemo;
+        lockMemo.active_skill = { key: "compat", started_at: new Date().toISOString(), assistant_turns: 0 };
+        await supabase.from("relationships").update({ memo: lockMemo }).eq("id", rel.id);
+      }
+
+      const refundAndUnlock = async () => {
+        await chargeStars(userId, skill.starCost, `refund_${randomUUID()}`, "rel_skill_compat_refund").catch(() => {});
+        const undo = (rel.memo ?? {}) as RelationshipMemo;
+        undo.active_skill = null;
+        await supabase.from("relationships").update({ memo: undo }).eq("id", rel.id);
+      };
+
+      try {
+        const saju = calcSaju(profileRowToSajuInput(selfRow));
+        const sajuB = calcSaju(profileRowToSajuInput(partnerRow));
+        const system = buildFortuneSystem("compat", {
+          saju,
+          sajuB,
+          names: { a: selfRow.display_name, b: partnerRow.display_name },
+        });
+        const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } };
+        let ai = parseCompatReportJson(
+          await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx)
+        );
+        if (!ai) {
+          ai = parseCompatReportJson(
+            await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx)
+          );
+        }
+        if (!ai) throw new Error("compat_parse_failed");
+
+        const report = buildCompatReport(ai);
+        const now = new Date().toISOString();
+        await supabase.from("messages").insert([
+          { reading_id: threadReadingId, role: "assistant", content: serializeCompatReport(report), skill_key: "compat", created_at: now },
+        ]);
+        const doneMemo = (rel.memo ?? {}) as RelationshipMemo;
+        const withLog = appendSkillLog(doneMemo, "compat", threadReadingId, report.summary, now);
+        withLog.active_skill = null;
+        await supabase.from("relationships").update({ memo: withLog, last_visited_at: now }).eq("id", rel.id);
+
+        return NextResponse.json({ report });
+      } catch (err) {
+        await refundAndUnlock();
+        await logError(err, ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } }));
+        return NextResponse.json({ error: "compat_generation_failed", refunded: true }, { status: 500 });
+      }
+    }
+
     if (body.skillStart !== "verdict") {
       return NextResponse.json({ error: "unsupported_skill" }, { status: 400 });
     }
@@ -126,7 +229,7 @@ export async function POST(request: NextRequest) {
       .select("role, content")
       .eq("reading_id", threadReadingId)
       .order("created_at", { ascending: true });
-    const past = (pastRows ?? []) as ThreadMsg[];
+    const past = redactCompatForModel((pastRows ?? []) as ThreadMsg[]);
     const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
     const apiMessages = [...split.apiMessages, { role: "user" as const, content: VERDICT_KICKOFF }];
 
@@ -210,7 +313,7 @@ export async function POST(request: NextRequest) {
     .select("role, content")
     .eq("reading_id", threadReadingId)
     .order("created_at", { ascending: true });
-  const past = (pastRows ?? []) as ThreadMsg[];
+  const past = redactCompatForModel((pastRows ?? []) as ThreadMsg[]);
   const isFirstEver = !inVerdict && past.length === 0;
   const split = splitThreadMessages(
     [...past, { role: "user", content: userMessage }],
