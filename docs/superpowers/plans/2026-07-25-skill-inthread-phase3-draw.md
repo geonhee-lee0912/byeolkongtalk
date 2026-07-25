@@ -68,7 +68,7 @@ import {
 import type { ThreadMsg } from "./memory.ts";
 
 const labels = ["지금의 나", "지금의 상대", "둘 사이 에너지", "내가 필요한 것", "상대가 필요한 것", "나아갈 방향"];
-const cards = labels.map((label, i) => ({ card_id: i + 1, direction: "upright" as const, label }));
+const cards = labels.map((label, i) => ({ card_id: i + 1, direction: "upright" as const, label, position: i }));
 
 test("serializeThreadDraw ↔ tryParseThreadDraw 왕복", () => {
   const raw = serializeThreadDraw({ skill: "checkin", spread: "checkin_6", cards });
@@ -203,7 +203,7 @@ export function validateDrawnCards(
     if (!getCard(id)) return null;
     if (c?.direction !== "upright" && c?.direction !== "reversed") return null;
     seen.add(id);
-    out.push({ card_id: id, direction: c.direction, label: labels[i] });
+    out.push({ card_id: id, direction: c.direction, label: labels[i], position: i });
   }
   return out;
 }
