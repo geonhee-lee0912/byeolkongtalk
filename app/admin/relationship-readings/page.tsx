@@ -33,18 +33,23 @@ async function load(): Promise<ThreadRow[]> {
   const supa = getServiceSupabase();
   const nowIso = new Date().toISOString();
 
-  const [{ data: relsAll }, { data: passesAll }, { data: extendsAll }, { data: skillsAll }] = await Promise.all([
+  const [{ data: relsAll }, { data: passesAll }, { data: extendsAll }, { data: skillsAll }, { data: skillTxsAll }] = await Promise.all([
     supa.from("relationships")
       .select("id, user_id, label, status, thread_reading_id, last_visited_at, created_at")
       .order("created_at", { ascending: false }),
     supa.from("relationship_passes").select("relationship_id, kind, stars_spent, expires_at"),
     supa.from("star_transactions").select("reading_id, amount").eq("source", "rel_extend"),
     supa.from("readings").select("relationship_id, skill_key, stars_spent").not("skill_key", "is", null),
+    // 인-스레드 스킬 4종(verdict/compat/checkin/deep_feelings)은 readings row 를 안 만들고
+    // star_transactions 에 source='rel_skill_<key>' 로만 남는다(reading_id=스레드 본체 reading).
+    // 환불(rel_skill_*_refund)은 charge_stars 경유라 type='charge' — type='spend' 로 제외.
+    supa.from("star_transactions").select("reading_id, amount, source").like("source", "rel_skill_%").eq("type", "spend"),
   ]);
   const rels = relsAll ?? [];
   const passes = passesAll ?? [];
   const extendTxs = extendsAll ?? [];
   const skills = skillsAll ?? [];
+  const skillTxs = skillTxsAll ?? [];
 
   const threadIds = rels.map((r) => r.thread_reading_id).filter(Boolean) as string[];
   const msgCountByThread = new Map<string, number>();
@@ -76,6 +81,15 @@ async function load(): Promise<ThreadRow[]> {
     addSpend(s.relationship_id, s.stars_spent);
     skillCountByRel.set(s.relationship_id, (skillCountByRel.get(s.relationship_id) ?? 0) + 1);
     skillSpendByRel.set(s.relationship_id, (skillSpendByRel.get(s.relationship_id) ?? 0) + Math.abs(s.stars_spent ?? 0));
+  }
+  // 인-스레드 스킬 — reading_id(스레드 본체) → relationship_id 는 relByThread 로 환산.
+  // 과거 readings 기반(위 루프, 개별 스킬 reading 고유 id)과는 reading_id 공간이 겹치지 않아 중복 계상 없음.
+  for (const t of skillTxs) {
+    const relId = t.reading_id ? relByThread.get(t.reading_id) ?? null : null;
+    if (!relId) continue;
+    addSpend(relId, t.amount);
+    skillCountByRel.set(relId, (skillCountByRel.get(relId) ?? 0) + 1);
+    skillSpendByRel.set(relId, (skillSpendByRel.get(relId) ?? 0) + Math.abs(t.amount ?? 0));
   }
 
   return rels.map((r) => ({
