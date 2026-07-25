@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
           `refund_${randomUUID()}`,
           `rel_skill_${drawSkill.key}_refund`
         ).catch(() => null);
-        if (!refund) {
+        if (!refund?.success) {
           await logError(new Error("draw_refund_failed"), ctxFromRequest(request, drawLogCtx));
         }
         if (stripRow?.id) {
