@@ -90,10 +90,10 @@ export default async function TrafficPage() {
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">
-          라우트별 PV · UV{" "}
+          라우트별 UV · PV{" "}
           <span className="text-white/40 text-xs">
-            (상위 {routes.length}개 · 앞 단계 대비 UV 가 크게 떨어지는 라우트 = 이탈 지점 ·
-            PV/UV 는 재방문 강도)
+            (상위 {routes.length}개 · PV 많은 순 · 앞 단계 대비 UV 가 크게 떨어지는 라우트 =
+            이탈 지점 · PV/UV 는 재방문 강도)
           </span>
         </h2>
         <div className="overflow-x-auto">
@@ -101,8 +101,9 @@ export default async function TrafficPage() {
             <thead className="text-white/50 text-left">
               <tr>
                 <th className="py-1">라우트</th>
-                <th>PV</th>
                 <th>UV</th>
+                <th>PV</th>
+                {/* PV/UV 는 지표 이름이라 UV·PV 순서 통일에서 제외 — 뒤집으면 다른 지표가 된다 */}
                 <th>PV/UV</th>
               </tr>
             </thead>
@@ -113,8 +114,8 @@ export default async function TrafficPage() {
                     <div>{routeLabel(r.path)}</div>
                     <div className="font-mono text-[11px] text-white/35">{r.path}</div>
                   </td>
-                  <td>{r.pv.toLocaleString()}</td>
                   <td>{r.uv.toLocaleString()}</td>
+                  <td>{r.pv.toLocaleString()}</td>
                   <td>{r.pvPerUv}</td>
                 </tr>
               ))}

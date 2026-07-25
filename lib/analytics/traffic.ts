@@ -87,12 +87,12 @@ export function buildBotShare(rows: PageViewRow[]): BotShare {
   return { totalPv: rows.length, botPv, botPct: pct1(botPv, rows.length) };
 }
 
-// ── 2. 라우트별 PV·UV (이 화면의 핵심) ───────────────────────────────────────
+// ── 2. 라우트별 UV·PV (이 화면의 핵심) ───────────────────────────────────────
 
 export type RouteRow = {
   path: string;
-  pv: number;
   uv: number;
+  pv: number;
   /** PV/UV — 재방문 강도. 1 에 가까우면 "한 번 보고 떠남", 높으면 머물거나 되돌아온 화면. */
   pvPerUv: number;
 };
@@ -108,10 +108,11 @@ export function buildRouteRanking(rows: PageViewRow[], limit = 15): RouteRow[] {
   return [...g.entries()]
     .map(([path, e]) => ({
       path,
-      pv: e.pv,
       uv: e.uv.size,
+      pv: e.pv,
       pvPerUv: e.uv.size ? Math.round((e.pv / e.uv.size) * 10) / 10 : 0,
     }))
+    // 순위는 PV 내림차순 유지 — 표시 순서(UV·PV)와 별개. 바꾸면 상위 15개 구성이 달라진다.
     .sort((a, b) => b.pv - a.pv || b.uv - a.uv)
     .slice(0, limit);
 }
