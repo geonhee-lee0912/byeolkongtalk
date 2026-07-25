@@ -1,5 +1,6 @@
 // 페이지뷰 비콘 순수 로직. /api/pv 에서 사용.
-// 봇 트래픽이 UV/PV 를 오염시키면 퍼널 전환율이 전부 낮게 나오므로 입구에서 막는다.
+// 봇 트래픽이 UV/PV 에 섞이면 퍼널 전환율이 전부 낮게 나온다. 다만 여기서 요청을 막지는 않는다 —
+// /api/pv 가 is_bot 플래그로 표시해 그대로 저장하고, 실제 제외는 분석 쿼리에서 한다.
 
 const BOT_UA =
   /bot|crawler|spider|crawling|facebookexternalhit|slurp|bingpreview|curl|wget|python-requests|okhttp|headlesschrome|lighthouse|pingdom|monitor|preview/i;
