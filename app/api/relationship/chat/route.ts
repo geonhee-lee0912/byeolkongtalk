@@ -45,8 +45,9 @@ import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// compat 스킬은 동기 generateOnce(Claude 1회, bounded)를 요청 내에서 처리 → 여유 상향.
-export const maxDuration = 120;
+// compat 스킬은 동기 generateOnce(Claude 호출 — parse 실패 시 1회 재시도 + 내부 empty 재시도로
+// 최악 수 회 순차)를 요청 내에서 처리 → 자매 원샷 리포트 라우트(fortune/create)와 동일 여유.
+export const maxDuration = 300;
 
 const MAX_MESSAGE_LEN = 8000;
 const CHECKIN_RE = /\[CHECKIN:([^\]]+)\]/;
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
     if (body.skillStart === "compat") {
       const skill = getSkill("compat");
       if (!skill) return NextResponse.json({ error: "skill_not_found" }, { status: 500 });
+      const memo = (rel.memo ?? {}) as RelationshipMemo;
 
       // 인-플라이트 락 — 중복 차감 방지. compat 락이 3분 초과면 stale 로 override(하드 크래시 복구).
       const STALE_MS = 3 * 60 * 1000;
@@ -152,17 +154,26 @@ export async function POST(request: NextRequest) {
       }
 
       // 인-플라이트 락 세팅
-      {
-        const lockMemo = (rel.memo ?? {}) as RelationshipMemo;
-        lockMemo.active_skill = { key: "compat", started_at: new Date().toISOString(), assistant_turns: 0 };
-        await supabase.from("relationships").update({ memo: lockMemo }).eq("id", rel.id);
-      }
+      memo.active_skill = { key: "compat", started_at: new Date().toISOString(), assistant_turns: 0 };
+      await supabase.from("relationships").update({ memo }).eq("id", rel.id);
 
-      const refundAndUnlock = async () => {
-        await chargeStars(userId, skill.starCost, `refund_${randomUUID()}`, "rel_skill_compat_refund").catch(() => {});
-        const undo = (rel.memo ?? {}) as RelationshipMemo;
-        undo.active_skill = null;
-        await supabase.from("relationships").update({ memo: undo }).eq("id", rel.id);
+      const refundAndUnlock = async (): Promise<boolean> => {
+        let refunded = false;
+        try {
+          const r = await chargeStars(userId, skill.starCost, `refund_${randomUUID()}`, "rel_skill_compat_refund");
+          refunded = r.success;
+        } catch {
+          refunded = false;
+        }
+        if (!refunded) {
+          await logError(
+            new Error("compat refund failed"),
+            ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat_refund" } })
+          );
+        }
+        memo.active_skill = null;
+        await supabase.from("relationships").update({ memo }).eq("id", rel.id);
+        return refunded;
       };
 
       try {
@@ -189,16 +200,15 @@ export async function POST(request: NextRequest) {
         await supabase.from("messages").insert([
           { reading_id: threadReadingId, role: "assistant", content: serializeCompatReport(report), skill_key: "compat", created_at: now },
         ]);
-        const doneMemo = (rel.memo ?? {}) as RelationshipMemo;
-        const withLog = appendSkillLog(doneMemo, "compat", threadReadingId, report.summary, now);
+        const withLog = appendSkillLog(memo, "compat", threadReadingId, report.summary, now);
         withLog.active_skill = null;
         await supabase.from("relationships").update({ memo: withLog, last_visited_at: now }).eq("id", rel.id);
 
         return NextResponse.json({ report });
       } catch (err) {
-        await refundAndUnlock();
+        const refunded = await refundAndUnlock();
         await logError(err, ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } }));
-        return NextResponse.json({ error: "compat_generation_failed", refunded: true }, { status: 500 });
+        return NextResponse.json({ error: "compat_generation_failed", refunded }, { status: 500 });
       }
     }
 
