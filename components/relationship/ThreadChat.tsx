@@ -122,7 +122,6 @@ export default function ThreadChat({
   const [activeSkill, setActiveSkill] = useState<string | null>(initialActiveSkill);
   const { launch, busyKey, toastMsg, pendingSkill, confirmBalance, confirmLaunch, cancelConfirm } =
     useSkillLaunch({
-      relationshipId,
       selfProfileId,
       partnerProfileId,
       onInThreadSkill: (key) => void sendSkillStart(key),

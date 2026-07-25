@@ -6,7 +6,7 @@ import { getServiceSupabase } from "../lib/supabase.ts";
 import { config } from "../qa/config.ts";
 import { ensureTestUser, topUpStars, cleanTestData } from "../qa/seed.ts";
 import { SPREAD_INFO, getPositionLabels } from "../lib/tarot/spreads.ts";
-import { RELATIONSHIP_SKILLS, getSkill } from "../lib/relationship/skills.ts";
+import { getSkill } from "../lib/relationship/skills.ts";
 import { FORTUNE_CONFIG } from "../lib/fortune/types.ts";
 import { DAILY_TURN_CAP, EXTEND_COST } from "../lib/relationship/types.ts";
 
