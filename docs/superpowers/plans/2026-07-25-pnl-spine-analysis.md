@@ -667,6 +667,174 @@ git commit -m "feat(analysis): 원가 배분 CLI + 리딩별 메시지 집계 �
 
 ---
 
+## Task A4b: 테스트 vs 실유저 원가 분리
+
+**Files:**
+- Create: `scripts/qa-cost-score.ts`
+- Modify: `scripts/run-prod-query.mjs` (프로젝트 ref 를 env 로 오버라이드)
+- Modify: `scripts/analysis-2026-07-25.sql` (Q9b·Q9c 추가)
+
+배경: 콘솔 총액 $75.6 은 **prod 유저 + QA 하네스 + 로컬 개발 + prod 스모크**가 섞인 값이다. 하네스는 `qa/config.ts` 대로 **시뮬레이터 = Haiku 4.5, 판정 = Sonnet 5**, 별콩이 응답 = Sonnet 5 를 쓴다. dev DB 는 하네스가 seed 를 퍼지해서 7월 메시지가 60건뿐이므로 원장이 못 된다 — 대신 `qa/out/<타임스탬프>/*.json` 의 전사를 원장으로 쓴다.
+
+- [ ] **Step 1: run-prod-query 에 ref 오버라이드 추가**
+
+`scripts/run-prod-query.mjs` 5행을 다음으로 바꾼다:
+
+```js
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "etczntmzobherqyjoyvj"; // 기본 prod, dev = vtdmxdcetziileynjaxi
+```
+
+- [ ] **Step 2: 하네스 전사 스코어링 스크립트 작성**
+
+`scripts/qa-cost-score.ts`:
+
+```ts
+// QA 하네스 테스트 비용 점수 — qa/out/<타임스탬프>/*.json 전사를 읽어 일별 점수를 낸다.
+// 사용: node --import tsx scripts/qa-cost-score.ts 2026-07
+//
+// 하네스 1 케이스의 API 호출 구성 (qa/config.ts):
+//   - 별콩이 응답 = Sonnet, 턴당 1콜, 입력은 전체 히스토리 누적
+//   - 시뮬레이터 유저턴 = Haiku, 턴당 1콜 (첫 턴 제외 — 첫 유저 발화는 케이스 스펙 고정)
+//   - 판정 = Sonnet, 케이스당 1콜, 입력 ≈ 전사 전문 + 루브릭
+
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { scoreReading, CHARS_PER_TOKEN, type Turn } from "../lib/analytics/apiCost.ts";
+
+const monthPrefix = process.argv[2] ?? "2026-07";
+const OUT_DIR = "qa/out";
+const RUBRIC_CHARS = 3_000;   // 판정 프롬프트 루브릭 고정분
+const JUDGE_OUT_CHARS = 600;  // 판정 JSON 응답
+const SYSTEM_CHARS = 22_000;  // 페르소나 (Step 3 에서 실측값으로 맞출 것)
+
+type Day = { sonnet: number; haiku: number; cases: number; runs: number; turns: number };
+const byDay = new Map<string, Day>();
+
+for (const dir of readdirSync(OUT_DIR)) {
+  if (!dir.startsWith(monthPrefix)) continue;
+  const day = dir.slice(0, 10);
+  const d = byDay.get(day) ?? { sonnet: 0, haiku: 0, cases: 0, runs: 0, turns: 0 };
+  d.runs += 1;
+
+  for (const f of readdirSync(join(OUT_DIR, dir))) {
+    if (!f.endsWith(".json")) continue;
+    const p = join(OUT_DIR, dir, f);
+    let j: { transcript?: { turns?: { userText?: string; assistantText?: string }[] } };
+    try {
+      j = JSON.parse(readFileSync(p, "utf8"));
+    } catch {
+      continue; // 중단된 런의 깨진 파일은 건너뛴다
+    }
+    const raw = j.transcript?.turns ?? [];
+    if (!raw.length) continue;
+    d.cases += 1;
+    d.turns += raw.length;
+
+    // 별콩이 응답 = Sonnet (full_history 트랙)
+    const turns: Turn[] = [];
+    for (const t of raw) {
+      turns.push({ role: "user", chars: (t.userText ?? "").length });
+      turns.push({ role: "assistant", chars: (t.assistantText ?? "").length });
+    }
+    d.sonnet += scoreReading({
+      turns,
+      systemChars: SYSTEM_CHARS,
+      track: "full_history",
+      cacheHitRate: 0.6,
+    }).score;
+
+    // 판정 = Sonnet 1콜: 입력 = 전사 전문 + 루브릭
+    const transcriptChars = turns.reduce((a, t) => a + t.chars, 0);
+    d.sonnet +=
+      ((transcriptChars + RUBRIC_CHARS) / CHARS_PER_TOKEN / 1e6) * 3 +
+      (JUDGE_OUT_CHARS / CHARS_PER_TOKEN / 1e6) * 15;
+
+    // 시뮬레이터 = Haiku, 유저턴마다 1콜(첫 턴 제외). Haiku 4.5 단가 $1/$5 per MTok
+    const simCalls = Math.max(0, raw.length - 1);
+    const simIn = (transcriptChars + 1_500) / CHARS_PER_TOKEN;   // 누적 맥락 + 페르소나 지시
+    const simOut = raw.reduce((a, t) => a + (t.userText ?? "").length, 0) / CHARS_PER_TOKEN;
+    d.haiku += (simIn / 1e6) * 1 * (simCalls / Math.max(1, raw.length)) + (simOut / 1e6) * 5;
+  }
+  byDay.set(day, d);
+}
+
+const days = [...byDay.entries()].sort();
+console.log("날짜        런  케이스  턴   Sonnet점수  Haiku점수");
+for (const [day, d] of days) {
+  console.log(
+    day + String(d.runs).padStart(5) + String(d.cases).padStart(7) + String(d.turns).padStart(6) +
+    d.sonnet.toFixed(3).padStart(12) + d.haiku.toFixed(3).padStart(11)
+  );
+}
+const tot = days.reduce((a, [, d]) => ({ s: a.s + d.sonnet, h: a.h + d.haiku }), { s: 0, h: 0 });
+console.log(`합계 Sonnet 점수 ${tot.s.toFixed(3)} / Haiku 점수 ${tot.h.toFixed(3)}`);
+if (!existsSync(OUT_DIR)) console.error("qa/out 없음 — 경로 확인");
+```
+
+- [ ] **Step 3: 하네스 점수 실행**
+
+```bash
+SCRATCH="C:/Users/c/AppData/Local/Temp/claude/C--Users-c-Desktop-vibe-project-byeolkong-talk/d1204945-d11c-487b-a20e-56fb325b1602/scratchpad"
+node --import tsx scripts/qa-cost-score.ts 2026-07 | tee "$SCRATCH/qa-cost.txt"
+```
+
+Expected: 7월 실행일이 7/13(13런) · 7/17(18런) · 7/18(1) · 7/19(6) · 7/20(1) · 7/22(7) · 7/24(3) 로 나오고, **7/19 와 7/17 점수가 가장 큼**. 7/19 Haiku 점수가 다른 날보다 뚜렷이 높아야 한다(62케이스 시뮬레이터).
+
+- [ ] **Step 4: Q9b — prod 제외 6명 일별 점수용 집계**
+
+```bash
+SCRATCH="C:/Users/c/AppData/Local/Temp/claude/C--Users-c-Desktop-vibe-project-byeolkong-talk/d1204945-d11c-487b-a20e-56fb325b1602/scratchpad"
+SUPABASE_PAT=$(cat "$SCRATCH/pat.txt") node scripts/run-prod-query.mjs --sql "
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c)
+select r.id, r.consultation_type, r.created_at::date d,
+       json_agg(json_build_object('role', m.role, 'chars', length(m.content)) order by m.created_at) turns
+from readings r join messages m on m.reading_id = r.id
+where left(r.user_id::text,8) in (select c from ex) and r.created_at >= '2026-07-01'
+group by r.id, r.consultation_type, r.created_at order by r.created_at" > "$SCRATCH/q9b.json"
+node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1]+"/q9b.json","utf8"));console.log("제외유저 리딩",d.length)' "$SCRATCH"
+```
+
+- [ ] **Step 5: Q9c — dev DB 일별 메시지**
+
+```bash
+SCRATCH="C:/Users/c/AppData/Local/Temp/claude/C--Users-c-Desktop-vibe-project-byeolkong-talk/d1204945-d11c-487b-a20e-56fb325b1602/scratchpad"
+SUPABASE_PAT=$(cat "$SCRATCH/pat.txt") SUPABASE_PROJECT_REF=vtdmxdcetziileynjaxi node scripts/run-prod-query.mjs --sql "
+select date(created_at) d, count(*) msgs, sum(length(content)) chars
+from messages where created_at >= '2026-07-01' group by 1 order by 1" > "$SCRATCH/q9c.json"
+cat "$SCRATCH/q9c.json"
+```
+
+Expected (실측): 7/08 1건 · 7/11 18건 · 7/18 4건 · 7/19 2건 · 7/24 17건 · 7/25 18건 = 60건. 규모가 작아 무시 가능 수준인지 확인하는 용도.
+
+- [ ] **Step 6: clean-day 캘리브레이션으로 분리**
+
+일별 표를 만든다: 콘솔 Sonnet/Haiku 실측(사용자 제공 25일치) · 유저 점수(Q9 에서 제외 6명 뺀 것을 날짜별로 합산) · 테스트 점수(하네스 + Q9b + Q9c).
+
+**clean day** = `qa/out` 실행 없음 + Q9b·Q9c 활동 없는 날. 7월 후보: 7/09 · 7/10 · 7/12 · 7/14 · 7/15 · 7/16 · 7/21 · 7/23 (Step 3·4·5 결과로 확정).
+
+```
+단가 = Σ콘솔Sonnet(clean days) / Σ유저Sonnet점수(clean days)
+실유저 Sonnet 원가 = 단가 × 전체 유저 Sonnet 점수
+테스트 Sonnet 원가 = 콘솔 Sonnet 총액($72.8) − 실유저 Sonnet 원가
+```
+
+Haiku($2.8)도 같은 방식으로 나눈다 — prod Haiku 는 관계 요약·민감 2차 판정·next_reco, 테스트 Haiku 는 하네스 시뮬레이터.
+
+- [ ] **Step 7: 검산 — 7/19 지문 확인**
+
+Expected: 7/19 의 **테스트 귀속분이 그날 콘솔($17.96)의 대부분**(60% 이상)을 차지해야 한다. 7/19 는 QA 6런·62케이스를 완주한 날이고 유저 활동은 평소 수준이었다.
+
+**이 검산이 깨지면 멈춘다.** 원인 후보: (a) `qa/out` 디렉토리 날짜가 UTC 인데 콘솔이 KST 기준(또는 반대) → 하루 밀림. `qa/out` 이름은 UTC ISO 이므로 KST 로 +9h 보정 필요 여부 확인 (b) 판정·시뮬레이터 콜 수 가정이 실제와 다름 (c) 하네스 실행이 중단돼 전사가 일부만 남음.
+
+- [ ] **Step 8: 커밋**
+
+```bash
+git add scripts/qa-cost-score.ts scripts/run-prod-query.mjs scripts/analysis-2026-07-25.sql
+git commit -m "feat(analysis): 테스트/실유저 API 원가 분리(하네스 전사 스코어링 + clean-day 캘리브레이션)"
+```
+
+---
+
 ## Task A5: 블록 2 — 누수 계량
 
 **Files:**
@@ -974,23 +1142,28 @@ console.log("pass_blocker 샘플:", d.map(r=>r.pass_blocker).filter(Boolean).sli
 `$SCRATCH` 의 q0~q16 + `cost-alloc.txt` + Meta CSV 로 다음 표를 채운다. 7월(7/1~7/25) 기준으로 정규화한다.
 
 ```
-매출 (payments completed, 7월분)              ₩ ____
-− PG 수수료 (매출 × 3.7% + 월 ₩9,167)         ₩ ____
-− 광고비 (Meta 실지출 7/8~7/25)               ₩ 175,142
-− Claude API ($75.6 × 1,400)                  ₩ 105,840
-− 인프라 (Supabase $51.98 + Vercel $20 + 도메인 $0.87) ₩ ____
-= 현금 순손익                                  ₩ ____
-− 선수금 조정 (유상 잔액 × 별당 예상 원가)      ₩ ____
-= 조정 순손익                                  ₩ ____
+매출 (payments completed, 7월분)                        ₩ ____
+− PG 수수료 (매출 × 3.7% + 월 ₩9,167)                   ₩ ____
+− 광고비 (Meta 실지출 7/8~7/25)                         ₩ 175,142
+− Claude API — 실유저분만 (A4b 분리 결과 × 1,400)        ₩ ____
+− 인프라 (Supabase $51.98 + Vercel $20 + 도메인 $0.87)   ₩ ____
+= 현금 순손익 (영업)                                     ₩ ____
+− 선수금 조정 (유상 잔액 × 별당 예상 원가)                ₩ ____
+= 조정 순손익                                            ₩ ____
+
+[별도 표기 — 영업 원가 아님]
+개발·테스트 API 비용 (QA 하네스·로컬·스모크)              ₩ ____
 ```
+
+⚠️ **Claude API 라인에는 A4b 의 실유저분만 넣는다.** 콘솔 총액 $75.6 을 그대로 넣으면 테스트 비용이 유저 COGS 로 잡혀 단위 경제가 왜곡된다. 테스트분은 개발비 성격이라 별도 라인으로 빼고, 기여마진·CAC 계산에서는 제외한다(힉스필드와 같은 취급).
 
 - [ ] **Step 2: findings 문서 작성**
 
 `docs/superpowers/specs/2026-07-25-pnl-spine-findings.md` 를 다음 목차로 쓴다. 각 절은 숫자 → 해석 → 한계 순서.
 
 1. 한 줄 요약
-2. 손익계산서 (현금 / 조정 병기) + 일 번레이트
-3. 단위 경제 — 유저당 기여마진 · CAC vs LTV · 주차 코호트 추세
+2. 손익계산서 (현금 / 조정 병기) + 일 번레이트 + **테스트 API 비용 별도 라인**
+3. 단위 경제 — 유저당 기여마진 · CAC vs LTV · 주차 코호트 추세 (**실유저 API 원가만 사용**)
 4. 별 경제 — 무료 89% 구조 · 선수금 부채 · 잔액 분포 · FIFO vs 비례배분 차이
 5. 상품별 마진 순위표 (3 시나리오 민감도 병기)
 6. 누수 — 무료 소진 이탈 · 리텐션 · 증발 · 이탈 턴 · 결제 마찰
@@ -1452,7 +1625,7 @@ git push origin dev
 
 ## Self-Review 결과
 
-**스펙 커버리지**: 블록 0(A0) · 블록 1 P&L(A1·A2·A3·A4·A8) · 블록 2 누수(A5) · 블록 3 가성비(A6) · 블록 R 15항목(A1 #3·#4·#6, A2 #1·#2·#5, A5 #7~#12·#14~#16) · 블록 4 정독·액션표(A7·A8) · 비콘(B1~B5) — 전 항목에 태스크가 매핑됨.
+**스펙 커버리지**: 블록 0(A0) · 블록 1 P&L(A1·A2·A3·A4·**A4b 테스트/실유저 분리**·A8) · 블록 2 누수(A5) · 블록 3 가성비(A6) · 블록 R 15항목(A1 #3·#4·#6, A2 #1·#2·#5, A5 #7~#12·#14~#16) · 블록 4 정독·액션표(A7·A8) · 비콘(B1~B5) — 전 항목에 태스크가 매핑됨.
 
 **미배정 확인**: 블록 R #13·#17·#18 은 사용자가 C 등급으로 제외 결정 → 태스크 없음이 의도된 상태.
 
