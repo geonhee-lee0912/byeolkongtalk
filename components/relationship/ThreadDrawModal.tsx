@@ -89,9 +89,10 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
 
   if (typeof document === "undefined") return null;
 
+  // z-75 는 의도적으로 낮다 — 공용 StarConfirmModal(z-80)이 이 위에 떠야 결제 확인 버튼을 누를 수 있다(올리면 구매 차단 재발).
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-stretch justify-center bg-night/70 backdrop-blur-sm p-3 animate-fade-in"
+      className="fixed inset-0 z-[75] flex items-stretch justify-center bg-night/70 backdrop-blur-sm p-3 animate-fade-in"
       onClick={closeModal}
       role="dialog"
       aria-modal="true"
