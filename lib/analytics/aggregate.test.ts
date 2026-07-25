@@ -150,6 +150,8 @@ test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품
     ["r1", { consultation_type: "saju", emotion_tag: "재회할 수 있을까", relationship_id: null, skill_key: null }],
     ["r2", { consultation_type: "tarot", emotion_tag: null, relationship_id: "rel1", skill_key: "checkin" }], // 연애상담 타로 스킬
     ["r3", { consultation_type: "saju", emotion_tag: "fortune:compat", relationship_id: null, skill_key: null }], // 운세 리포트
+    // 관계 스레드 본체 — 인-스레드 스킬(궁합)의 차감이 이 reading 을 가리킨다(skill_key 는 항상 null)
+    ["r4", { consultation_type: "relationship", emotion_tag: null, relationship_id: "rel1", skill_key: null }],
   ]);
   const tx: StarTxRow[] = [
     { user_id: "u1", type: "spend", amount: 22, source: "saju_reading", reading_id: "r1", created_at: "" },
@@ -158,6 +160,8 @@ test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품
     { user_id: "u2", type: "spend", amount: 40, source: "fortune_good_days", reading_id: null, created_at: "" }, // reading 없음 → source
     { user_id: "u3", type: "spend", amount: 20, source: "relationship_pass", reading_id: null, created_at: "" }, // → relationship
     { user_id: "u3", type: "spend", amount: 30, source: "rel_skill_verdict", reading_id: null, created_at: "" }, // → relationship
+    // 인-스레드 궁합 — reading_id 가 스레드 본체(r4, skill_key=null)라 조인만으론 "스레드 대화"로 오분류됨 → source 가 권위
+    { user_id: "u3", type: "spend", amount: 40, source: "rel_skill_compat", reading_id: "r4", created_at: "" }, // → relationship 스킬:compat
     { user_id: "u1", type: "spend", amount: 5, source: "clarifier", reading_id: "r1", created_at: "" }, // → upsell
     { user_id: "u9", type: "charge", amount: 100, source: "pg", reading_id: null, created_at: "" }, // 제외(charge)
     { user_id: "u9", type: "spend", amount: 999, source: "admin_adjust", reading_id: null, created_at: "" }, // 제외(비상품)
@@ -165,7 +169,10 @@ test("buildStarSpendBreakdown: 분류 규칙 (조인 + source 폴백 + 비상품
   const out = buildStarSpendBreakdown(tx, reads);
   const byDomain = (d: string) => out.filter((g) => g.domain === d);
   assert.equal(byDomain("saju").length, 1); // r1 사주 대화
-  assert.equal(byDomain("relationship").reduce((s, g) => s + g.count, 0), 3); // checkin 스킬 + 패스 + verdict
+  assert.equal(byDomain("relationship").reduce((s, g) => s + g.count, 0), 4); // checkin 스킬 + 패스 + verdict + compat
+  // 인-스레드 스킬은 source 가 권위 — 스레드 본체 조인으로 "스레드 대화"에 섞이면 종목별 매출이 뭉개진다
+  assert.ok(out.some((g) => g.product === "스킬:compat" && g.stars === 40));
+  assert.ok(!out.some((g) => g.product === "스레드 대화"));
   assert.equal(byDomain("fortune").reduce((s, g) => s + g.count, 0), 2); // compat(조인) + good_days(source)
   assert.equal(byDomain("upsell").length, 1); // clarifier
   assert.ok(!out.some((g) => g.product === "pg" || g.product === "admin_adjust")); // 비상품 제외

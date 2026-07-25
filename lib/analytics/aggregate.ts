@@ -379,6 +379,9 @@ export function buildStarSpendBreakdown(
     if (src === "relationship_pass") { add("relationship", "패스", tx); continue; }
     if (src === "rel_extend") { add("relationship", "스레드 연장", tx); continue; }
     if (src === "rel_skill_verdict") { add("relationship", "스킬:verdict", tx); continue; }
+    // 인-스레드 스킬(판정·궁합)은 reading_id 가 스레드 본체(skill_key=null)라 조인만으론
+    // "스레드 대화" 로 뭉개진다 → source 로 종목을 살린다.
+    if (src === "rel_skill_compat") { add("relationship", "스킬:compat", tx); continue; }
 
     // reading 조인(사주/타로 대화 · 연애상담 타로 스킬 · 운세 리포트)
     const r = tx.reading_id ? readingsById.get(tx.reading_id) : undefined;
