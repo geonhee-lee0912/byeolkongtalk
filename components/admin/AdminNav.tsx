@@ -13,6 +13,7 @@ const HOME: Item = { href: "/admin", label: "대시보드", emoji: "🏠" };
 const GROUPS: Group[] = [
   { key: "analytics", label: "분석·성과", emoji: "📈", items: [
     { href: "/admin/analytics", label: "애널리틱스", emoji: "📊" },
+    { href: "/admin/traffic", label: "트래픽 UV/PV", emoji: "🧭" },
     { href: "/admin/relationship", label: "연애 상담", emoji: "💞" },
     { href: "/admin/paywall", label: "페이월", emoji: "🔒" },
     { href: "/admin/ads", label: "광고 지출", emoji: "📣" },
