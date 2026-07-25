@@ -598,14 +598,14 @@ export default function ThreadChat({
                     ? "별콩이가 답하는 중…"
                     : "별콩이에게 이야기하기 (Shift+Enter 줄바꿈)"
                 }
-                disabled={sending}
+                disabled={sending || compatLoading}
                 maxLength={8000}
                 className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
                 type="submit"
-                disabled={sending || !input.trim()}
+                disabled={sending || compatLoading || !input.trim()}
                 className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 전송
