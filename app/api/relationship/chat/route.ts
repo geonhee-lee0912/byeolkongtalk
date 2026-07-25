@@ -118,10 +118,13 @@ export async function POST(request: NextRequest) {
   const memoObj = (rel.memo ?? {}) as RelationshipMemo;
   const activeSkill = memoObj.active_skill ?? null;
 
-  // 패스 게이트 — 활성 패스 없으면 대화 불가. 단 이미 판정(active_skill) 중이면 이미 결제된
-  // 세그먼트라 통과시킨다(패스 만료 mid-verdict 에도 유료 판정을 마치게).
+  // 패스 게이트 — 활성 패스 없으면 대화 불가. 단 대화형(kind="dialogue") 스킬 세그먼트 진행 중이면
+  // 이미 결제된 멀티턴 세그먼트라 통과시킨다(패스 만료 mid-verdict 에도 유료 판정을 마치게).
+  // 드로우·궁합 락은 수십 초짜리 인-플라이트 락이라 우회 대상이 아니다 — 굳은 락이 남았을 때
+  // 패스 만료 유저에게 무기한 무료 자유대화가 열리는 구멍이 된다.
+  const inDialogueSkill = !!activeSkill && getSkill(activeSkill.key)?.kind === "dialogue";
   const pass = await getActivePass(rel.id);
-  if (!pass && !activeSkill) {
+  if (!pass && !inDialogueSkill) {
     return NextResponse.json({ error: "pass_required" }, { status: 402 });
   }
 
@@ -135,8 +138,10 @@ export async function POST(request: NextRequest) {
       if (!skill) return NextResponse.json({ error: "skill_not_found" }, { status: 500 });
       const memo = (rel.memo ?? {}) as RelationshipMemo;
 
-      // 인-플라이트 락 — 중복 차감 방지. compat 락이 3분 초과면 stale 로 override(하드 크래시 복구).
-      const STALE_MS = 3 * 60 * 1000;
+      // 인-플라이트 락 — 중복 차감 방지. compat 락이 6분 초과면 stale 로 override(하드 크래시 복구).
+      // 임계치는 maxDuration(300s)보다 길어야 한다 — 짧으면 정상 진행 중인 요청을 stale 로 오인해
+      // 덮어쓰고 이중 차감이 난다.
+      const STALE_MS = 6 * 60 * 1000;
       if (activeSkill) {
         const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
         const stale = activeSkill.key === "compat" && Date.now() - started > STALE_MS;
@@ -233,8 +238,10 @@ export async function POST(request: NextRequest) {
     if (drawSkill?.kind === "tarot_draw" && drawSkill.spread) {
       const spread = drawSkill.spread;
 
-      // 인-플라이트 락 — 중복 차감 방지. 같은 스킬 락이 3분 초과면 stale override(하드 크래시 복구).
-      const STALE_MS = 3 * 60 * 1000;
+      // 인-플라이트 락 — 중복 차감 방지. 같은 스킬 락이 6분 초과면 stale override(하드 크래시 복구).
+      // 임계치는 maxDuration(300s)보다 길어야 한다 — 짧으면 정상 진행 중인 스트림을 stale 로 오인해
+      // 덮어쓰고 이중 차감이 난다.
+      const STALE_MS = 6 * 60 * 1000;
       if (activeSkill) {
         const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
         const stale = activeSkill.key === drawSkill.key && Date.now() - started > STALE_MS;
@@ -260,29 +267,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 인-플라이트 락 세팅
-      const lockAt = new Date().toISOString();
-      {
-        const lockMemo = (rel.memo ?? {}) as RelationshipMemo;
-        lockMemo.active_skill = { key: drawSkill.key, started_at: lockAt, assistant_turns: 0 };
-        await supabase.from("relationships").update({ memo: lockMemo }).eq("id", rel.id);
-      }
-
-      // 카드 스트립 메시지 — 스트림 전에 저장(뽑은 결과가 먼저 스레드에 눌러앉음).
-      // id 를 확보해 실패 시 이 row 만 정확히 삭제한다.
-      const { data: stripRow } = await supabase
-        .from("messages")
-        .insert({
-          reading_id: threadReadingId,
-          role: "assistant",
-          content: serializeThreadDraw({ skill: drawSkill.key, spread, cards }),
-          skill_key: drawSkill.key,
-          created_at: lockAt,
-        })
-        .select("id")
-        .single();
-
+      // ── 차감 완료 지점 ──
+      // 여기서부터 `return new Response` 까지 모든 실패는 반드시 rollbackDraw(환불 + 스트립 삭제 +
+      // 락 해제)를 지나야 한다. 락 update · 스트립 insert · 최근창 select · 페르소나 파일 로드
+      // (buildRelationshipSystemMessage 내부 readFileSync) 전부 throw 가능 구간이다.
       const drawLogCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "draw", skill: drawSkill.key } };
+      // 스트립 insert 는 아래 try 안에서 일어나므로, rollbackDraw 는 이 변수를 클로저로 읽는다.
+      let stripMessageId: string | null = null;
       const rollbackDraw = async (err: unknown) => {
         const refund = await chargeStars(
           userId,
@@ -293,8 +284,8 @@ export async function POST(request: NextRequest) {
         if (!refund?.success) {
           await logError(new Error("draw_refund_failed"), ctxFromRequest(request, drawLogCtx));
         }
-        if (stripRow?.id) {
-          await supabase.from("messages").delete().eq("id", stripRow.id);
+        if (stripMessageId) {
+          await supabase.from("messages").delete().eq("id", stripMessageId);
         }
         const undo = (rel.memo ?? {}) as RelationshipMemo;
         undo.active_skill = null;
@@ -302,76 +293,106 @@ export async function POST(request: NextRequest) {
         await logError(err, ctxFromRequest(request, drawLogCtx));
       };
 
-      // 모델 입력 = 최근창(스레드 맥락 · compat/스트립 치환) + 비영속 드로우 트리거
-      const { data: pastRows } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("reading_id", threadReadingId)
-        .order("created_at", { ascending: true });
-      const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
-      const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
-      const apiMessages = [...split.apiMessages, { role: "user" as const, content: DRAW_KICKOFF }];
-
-      const fileBlock = buildRelationshipFileBlock(
+      try {
+        // 인-플라이트 락 세팅
+        const lockAt = new Date().toISOString();
         {
-          label: rel.label,
-          status: rel.status as RelationshipStatus,
-          hasSelfBirth: !!rel.self_profile_id,
-          hasPartnerBirth: !!rel.partner_profile_id,
-          memo: memoObj,
-        },
-        rel.rolling_summary
-      );
-      const systemMessage = buildRelationshipSystemMessage({
-        fileBlock,
-        isFirstEver: false,
-        checkinPrompt: null,
-        dailyClose: false,
-        drawContext: {
-          spreadLabel: `${drawSkill.label} · ${cards.length}장`,
-          cardsBlock: formatDrawnCardsBlock(cards),
-        },
-      });
+          const lockMemo = (rel.memo ?? {}) as RelationshipMemo;
+          lockMemo.active_skill = { key: drawSkill.key, started_at: lockAt, assistant_turns: 0 };
+          await supabase.from("relationships").update({ memo: lockMemo }).eq("id", rel.id);
+        }
 
-      let drawText = "";
-      const drawStream = new ReadableStream({
-        async start(controller) {
-          try {
-            for await (const chunk of streamChat(systemMessage, apiMessages, DRAW_MAX_TOKENS, drawLogCtx)) {
-              drawText += chunk;
-              controller.enqueue(encoder.encode(chunk));
+        // 카드 스트립 메시지 — 스트림 전에 저장(뽑은 결과가 먼저 스레드에 눌러앉음).
+        // id 를 확보해 실패 시 이 row 만 정확히 삭제한다.
+        const { data: stripRow } = await supabase
+          .from("messages")
+          .insert({
+            reading_id: threadReadingId,
+            role: "assistant",
+            content: serializeThreadDraw({ skill: drawSkill.key, spread, cards }),
+            skill_key: drawSkill.key,
+            created_at: lockAt,
+          })
+          .select("id")
+          .single();
+        stripMessageId = stripRow?.id ?? null;
+
+        // 모델 입력 = 최근창(스레드 맥락 · compat/스트립 치환) + 비영속 드로우 트리거
+        const { data: pastRows } = await supabase
+          .from("messages")
+          .select("role, content")
+          .eq("reading_id", threadReadingId)
+          .order("created_at", { ascending: true });
+        const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
+        const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
+        const apiMessages = [...split.apiMessages, { role: "user" as const, content: DRAW_KICKOFF }];
+
+        const fileBlock = buildRelationshipFileBlock(
+          {
+            label: rel.label,
+            status: rel.status as RelationshipStatus,
+            hasSelfBirth: !!rel.self_profile_id,
+            hasPartnerBirth: !!rel.partner_profile_id,
+            memo: memoObj,
+          },
+          rel.rolling_summary
+        );
+        const systemMessage = buildRelationshipSystemMessage({
+          fileBlock,
+          isFirstEver: false,
+          checkinPrompt: null,
+          dailyClose: false,
+          drawContext: {
+            spreadLabel: `${drawSkill.label} · ${cards.length}장`,
+            cardsBlock: formatDrawnCardsBlock(cards),
+          },
+        });
+
+        let drawText = "";
+        const drawStream = new ReadableStream({
+          async start(controller) {
+            try {
+              for await (const chunk of streamChat(systemMessage, apiMessages, DRAW_MAX_TOKENS, drawLogCtx)) {
+                drawText += chunk;
+                controller.enqueue(encoder.encode(chunk));
+              }
+              if (!drawText.trim()) throw new Error("empty_assistant_stream");
+
+              // 풀이 저장 + skill_log 적립 + 그레이스 적립 + 락 해제 (한 update)
+              const now = new Date().toISOString();
+              await supabase.from("messages").insert([
+                { reading_id: threadReadingId, role: "assistant", content: drawText, skill_key: drawSkill.key, created_at: now },
+              ]);
+              const summary = extractClosingLine([{ role: "assistant", content: drawText }]) ?? "";
+              const doneMemo = (rel.memo ?? {}) as RelationshipMemo;
+              const withGrace = grantSkillGrace(
+                appendSkillLog(doneMemo, drawSkill.key, threadReadingId, summary, now),
+                drawSkill.key,
+                drawSkill.graceTurns ?? 0
+              );
+              withGrace.active_skill = null;
+              await supabase.from("relationships").update({ memo: withGrace, last_visited_at: now }).eq("id", rel.id);
+
+              controller.close();
+            } catch (err) {
+              // 스트림 개시 후 실패 담당. 아래 외곽 catch 와는 배타 — return 이 끝난 뒤에만 실행된다.
+              await rollbackDraw(err);
+              controller.error(err);
             }
-            if (!drawText.trim()) throw new Error("empty_assistant_stream");
-
-            // 풀이 저장 + skill_log 적립 + 그레이스 적립 + 락 해제 (한 update)
-            const now = new Date().toISOString();
-            await supabase.from("messages").insert([
-              { reading_id: threadReadingId, role: "assistant", content: drawText, skill_key: drawSkill.key, created_at: now },
-            ]);
-            const summary = extractClosingLine([{ role: "assistant", content: drawText }]) ?? "";
-            const doneMemo = (rel.memo ?? {}) as RelationshipMemo;
-            const withGrace = grantSkillGrace(
-              appendSkillLog(doneMemo, drawSkill.key, threadReadingId, summary, now),
-              drawSkill.key,
-              drawSkill.graceTurns ?? 0
-            );
-            withGrace.active_skill = null;
-            await supabase.from("relationships").update({ memo: withGrace, last_visited_at: now }).eq("id", rel.id);
-
-            controller.close();
-          } catch (err) {
-            await rollbackDraw(err);
-            controller.error(err);
-          }
-        },
-      });
-      return new Response(drawStream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-cache, no-transform",
-          "X-Accel-Buffering": "no",
-        },
-      });
+          },
+        });
+        return new Response(drawStream, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+          },
+        });
+      } catch (err) {
+        // 스트림 반환 전 실패 담당(락/스트립/최근창/페르소나 로드). 위 스트림 catch 와 배타.
+        await rollbackDraw(err);
+        return NextResponse.json({ error: "draw_setup_failed" }, { status: 500 });
+      }
     }
 
     if (body.skillStart !== "verdict") {
@@ -401,7 +422,7 @@ export async function POST(request: NextRequest) {
       .select("role, content")
       .eq("reading_id", threadReadingId)
       .order("created_at", { ascending: true });
-    const past = redactCompatForModel((pastRows ?? []) as ThreadMsg[]);
+    const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
     const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
     const apiMessages = [...split.apiMessages, { role: "user" as const, content: VERDICT_KICKOFF }];
 
