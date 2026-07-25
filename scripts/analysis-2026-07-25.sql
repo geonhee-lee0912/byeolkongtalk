@@ -582,3 +582,383 @@ select consultation_type, days>1 multi, count(*) readings, sum(msgs) msgs from s
 -- 모델 한계: ① clean day 3일(콘솔 $12.41 = 총액의 17%)로 단가를 뽑았다 ② 유저 점수가 A4 와 같은
 --   근사(1.6자/토큰, dynamicPart 미계상)를 쓴다 — 단, 분자·분모 양쪽에 같이 들어가 상쇄된다
 --   ③ prod 스모크(제외 6명 계정 밖에서 돌린 것)는 유저분에 섞여 들어간다(규모 미상, 작을 것).
+
+-- ############################################################################
+-- 블록 2 — 누수 계량 (Task A5).  ⚠️ 운세 one-shot 배제 규약 (이 블록 전체 공통)
+-- ############################################################################
+-- 함정: 플랜 초안은 대화형 상담을 consultation_type in ('saju','tarot') 로 걸렀는데,
+--   운세 리포트(one-shot)도 그 두 값을 쓴다. saju_product 는 NOT NULL DEFAULT 'today_letters'
+--   라 판별에 못 쓴다. 운세의 진짜 마커는 emotion_tag 의 'fortune:' 센티넬
+--   (lib/fortune/types.ts FORTUNE_SENTINEL_PREFIX).
+-- 채택한 대화형(chat) 정의 = 아래 3조건 AND:
+--     consultation_type in ('saju','tarot')
+--     coalesce(emotion_tag,'') not like 'fortune:%'   -- ⚠️ coalesce 필수
+--     relationship_id is null                        -- 인-스레드 스킬 reading 배제
+-- ⚠️ coalesce 를 빼면 emotion_tag IS NULL 인 행에서 `NULL not like ...` = NULL 이라
+--    조용히 탈락한다(사주 상담 다수가 NULL). 반드시 coalesce(...,'') 로 감쌀 것.
+-- ✅ 검산: 이 정의가 A4 의 원가 배분 모수를 정확히 재현한다 → chat 492 / 운세 88.
+
+-- ============ Q-diag. 리딩 모수 분해 (센티넬 정의 검증) ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex))
+select consultation_type, (emotion_tag like 'fortune:%') is_fortune,
+       (relationship_id is not null) has_rel, (skill_key is not null) has_skill,
+       count(*) n, sum(stars_spent) stars, min(created_at)::date d0, max(created_at)::date d1
+from r group by 1,2,3,4 order by 5 desc;
+-- 실측 (2026-07-25): tarot 대화형 441건 9,220별 · saju 운세 63건 500별 · saju 대화형 51건 1,020별
+--   · tarot 운세 24건 280별 · relationship 스레드 15건 0별 · saju+운세+스킬 1건 40별
+--   합 595건. → chat = 441+51 = 492건 10,240별 / 운세 = 63+24+1 = 88건 / 관계스레드 15건.
+--   A4 의 "chat 492건 / report 88건" 과 정확히 일치 → 센티넬 정의 확정.
+-- ⚠️ 모수 드리프트: 세션 시작 593건 → 595건(신규 유입) / users 526 → 533.
+--   탈퇴 CASCADE 와 신규 유입이 동시에 움직여 재실행 시 숫자가 흔들린다(Q0 주의 재확인).
+
+-- ============ Q10. prompt_version × 유저 턴 분포 (premium-depth 회수 검증) ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and consultation_type in ('saju','tarot')
+        and coalesce(emotion_tag,'') not like 'fortune:%'
+        and relationship_id is null),
+m as (select reading_id,
+        count(*) filter (where role='user') user_turns,
+        count(*) filter (where role='assistant') asst_turns
+      from messages group by 1)
+select coalesce(r.prompt_version,'(none)') pv, coalesce(m.user_turns,0) user_turns,
+       count(*) readings,
+       count(*) filter (where r.result_viewed_at is not null) viewed,
+       sum(r.stars_spent) stars
+from r left join m on m.reading_id = r.id
+group by 1,2 order by 1,2;
+-- ⚠️ 플랜 초안은 `join m` (inner) 이라 메시지 0건 리딩이 빠진다 → left join + coalesce 로 교체.
+--    실측 결과 0턴 리딩은 0건이었다(모든 리딩이 최소 1 유저턴 보유) → 결론에 영향 없음.
+-- 실측 (버전별 n / 1턴 / 1~2턴 / 결과열람):
+--   pre-2026-07-12          58 / 7 (12.1%) / 14 (24.1%) / 19 (32.8%)
+--   2026-07-12-persona-tuning 21 / 1 (4.8%) /  2 ( 9.5%) / 11 (52.4%)
+--   2026-07-13-conversion-c3  96 / 7 (7.3%) / 16 (16.7%) / 44 (45.8%)
+--   2026-07-17-persona-v3    209 / 12 (5.7%)/ 42 (20.1%) /117 (56.0%)
+--   2026-07-22-card-noname     2 / 1        /  2         /  0
+--   2026-07-22-premium-depth 106 / 9 (8.5%) / 28 (26.4%) / 68 (64.2%)
+--   합                       492 / 37 (7.5%)/104 (21.1%) /259 (52.6%)
+-- ❌ 판정: premium-depth 가 "턴 0~1 증발"을 줄이지 못했다.
+--    1턴 8.5% (persona-v3 5.7% 대비 오히려 +2.8pt) · 1~2턴 26.4% (20.1% 대비 +6.3pt).
+--    첫 풀이 2배 확대의 회수 근거로는 이 지표가 반증. 단 결과열람은 56.0% → 64.2% (+8.2pt) 로 개선.
+--    → 첫 풀이 확대는 "이탈을 막는" 효과가 아니라 "끝까지 간 사람을 결과로 데려가는" 효과로 나타났다.
+-- ⚠️ 1턴 리딩의 결과열람은 전 버전에서 예외 없이 0 — 1턴 = [END] 도달 불가 = 구조적 전손.
+--    1턴 37건 700별 / 1~2턴 104건 2,020별(chat 별의 19.7%).
+-- ⚠️ 교란: premium-depth 창은 7/22~7/25 (3.5일)뿐이고 같은 날 card-noname 태그가 병존한다.
+--    baseline "1턴 17% · 1~2턴 27%" 은 과거 findings 의 다른 모수(운세 포함 추정) → 위 표는
+--    동일 정의로 버전 간 비교한 값이라 baseline 과 직접 대조하지 말 것.
+
+-- ============ Q11. 종료 유형 × 결과열람 (증발률) ============
+-- ⚠️ 플랜 초안은 end_marker 를 먼저 검사해 "마무리 버튼"을 가린다 —
+--    버튼 종료는 서버가 [END] 를 강제하므로(app/api/consultations/*/chat/route.ts) 전부 end_marker 로 흡수된다.
+--    → 두 축을 교차표로 뽑아 어느 쪽도 안 가려지게 했다.
+-- 버튼 문구는 코드의 정확한 유저 메시지: FINISH_PHRASE='대화 마무리할게'(하단 골드 버튼)
+--    / FINISH_PHRASE_EXIT='오늘은 여기서 마무리할게'(출구 칩, 계측 구분용)
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and consultation_type in ('saju','tarot')
+        and coalesce(emotion_tag,'') not like 'fortune:%'
+        and relationship_id is null),
+last_a as (select m.reading_id, m.content from messages m
+  join (select reading_id, max(created_at) t from messages where role='assistant' group by 1) x
+    on x.reading_id=m.reading_id and x.t=m.created_at and m.role='assistant'),
+u_last as (select m.reading_id, m.content from messages m
+  join (select reading_id, max(created_at) t from messages where role='user' group by 1) x
+    on x.reading_id=m.reading_id and x.t=m.created_at and m.role='user')
+select coalesce(r.prompt_version,'(none)') pv,
+       (la.content like '%[END]%') has_end,
+       case when ul.content = '대화 마무리할게' then 'btn_finish'
+            when ul.content = '오늘은 여기서 마무리할게' then 'exit_chip'
+            when ul.content like '%마무리%' then 'other_wrapup'
+            else 'no_close_signal' end close_sig,
+       count(*) n,
+       count(*) filter (where r.result_viewed_at is not null) viewed,
+       sum(r.stars_spent) stars
+from r left join last_a la on la.reading_id=r.id
+       left join u_last ul on ul.reading_id=r.id
+group by 1,2,3 order by 1,2,3;
+-- ✅ 가장 깨끗한 신호: has_end=false 인 그룹의 viewed 가 전 버전 예외 없이 0.
+--    → [END] 미도달 = 결과화면 100% 미도달. 증발의 정의로 [END] 부재를 써도 안전.
+-- 실측 증발률(has_end=false) 버전별:
+--   pre 20/58 34.5% · persona-tuning 9/21 42.9% · c3 39/96 40.6%
+--   persona-v3 66/209 31.6% · card-noname 2/2 100% · premium-depth 31/106 29.2%
+--   합 167/492 = 33.9%  (baseline 42% 대비 −8.1pt 개선, premium-depth 가 최저 29.2%)
+-- 종료 325건의 트리거 구성: btn_finish 183 (56.3%) · 자연 [END] 102 (31.4%)
+--   · other_wrapup 33 · exit_chip 7 (출구 칩은 사실상 미사용).
+-- ⚠️ 2차 누수 발견: 정상 종료([END])했는데도 결과화면 미도달 66건.
+--    종료 325건 중 20.3% — 버전별로 persona-v3 143→117(26건 손실), premium-depth 75→68(7건).
+--    즉 결과 미도달 총계는 167(증발) + 66(종료후이탈) = 233건 = 전체 chat 의 47.4%.
+
+-- ============ Q11b. 종료/열람 상태별 실볼륨 (증발 원가 정밀 산정) ============
+-- 별 기준 점유율은 증발분을 과대평가한다(증발 리딩이 짧다) → 메시지수·assistant 글자수로 재계량.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and consultation_type in ('saju','tarot')
+        and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null),
+ended as (select distinct reading_id from messages where role='assistant' and content like '%[END]%'),
+agg as (select reading_id, count(*) msgs, sum(length(content)) chars,
+          sum(length(content)) filter (where role='assistant') a_chars from messages group by 1)
+select (e.reading_id is not null) has_end, (r.result_viewed_at is not null) viewed,
+       count(*) n, sum(r.stars_spent) stars,
+       sum(coalesce(g.msgs,0)) msgs, sum(coalesce(g.a_chars,0)) asst_chars,
+       round(avg(coalesce(g.a_chars,0))) avg_asst_chars
+from r left join ended e on e.reading_id=r.id left join agg g on g.reading_id=r.id
+group by 1,2 order by 1,2;
+-- 실측: 증발(미종료·미열람)      167건 3,346별 1,220msg 331,841자 (건당 1,987자)
+--       종료했으나 미열람         66건 1,350별   740msg 168,159자 (건당 2,548자)
+--       정상(종료+열람)          259건 5,544별 2,968msg 789,769자 (건당 3,049자)
+--       합                       492건 10,240별 4,928msg 1,289,769자
+-- 점유율 3종 대조 (증발분): 별 32.7% / 메시지 24.8% / assistant 글자 25.7%
+--   → 별 기준은 과대. 메시지·글자가 25% 로 수렴하므로 원가 배분은 25% 를 채택.
+-- 💰 증발 소각 원가 = chat API 실유저 원가 ₩69,900 × 25% ≈ ₩17,500
+--    결과 미도달 전체(233건) = 메시지 39.8% / 글자 38.8% → ₩69,900 × 39% ≈ ₩27,300
+--    (chat 원가 ₩69,900 = 492건 × 건당 ₩142 = A4 건당 ₩202 × 실유저 배율 0.704)
+-- 부수 관찰: 완주 대화가 증발 대화의 1.53배 분량(3,049 vs 1,987자)을 생산한다.
+
+-- ============ Q12. 전환자 여정 패턴 (의도직행 vs 경험후) ============
+-- 플랜 초안의 pre.n(모든 리딩)을 chat/운세로 쪼갰다 — 무료 운세만 본 뒤 결제한 층을 분리하기 위해.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+p as (select user_id, min(created_at) first_pay, count(*) pays, sum(amount_won) won from payments
+      where status='completed' and left(user_id::text,8) not in (select c from ex) group by 1),
+d as (select p.user_id, p.first_pay, p.pays, p.won, u.created_at signup,
+        extract(epoch from (p.first_pay - u.created_at))/60 min_to_pay,
+        (select count(*) from readings r where r.user_id=p.user_id and r.created_at < p.first_pay) pre_any,
+        (select count(*) from readings r where r.user_id=p.user_id and r.created_at < p.first_pay
+           and r.consultation_type in ('saju','tarot') and coalesce(r.emotion_tag,'') not like 'fortune:%'
+           and r.relationship_id is null) pre_chat,
+        (select count(*) from readings r where r.user_id=p.user_id and r.created_at < p.first_pay
+           and coalesce(r.emotion_tag,'') like 'fortune:%') pre_fortune
+      from p join users u on u.id=p.user_id)
+select case when pre_chat = 0 and pre_fortune = 0 then 'A.의도직행(리딩0)'
+            when pre_chat = 0 then 'B.무료운세만후'
+            else 'C.대화경험후' end pattern,
+       count(*) payers, sum(pays) pays, sum(won) won,
+       round(percentile_cont(0.5) within group (order by min_to_pay)::numeric,1) med_min,
+       round(avg(pre_chat)::numeric,2) avg_pre_chat, round(avg(pre_fortune)::numeric,2) avg_pre_fortune
+from d group by 1 order by 1;
+-- 실측: A.의도직행(리딩0)  32명 34결제 ₩64,900  중앙 4.3분  pre_chat 0.00
+--       B.무료운세만후      0명 — 이 경로는 존재하지 않는다
+--       C.대화경험후       17명 18결제 ₩43,000  중앙 10.8분 pre_chat 1.00 (pre_fortune 0.06)
+-- ✅ 검산: 49명 / 52결제 / ₩107,900 — 모수 일치.
+-- 판정: 의도직행 32/49 = 65.3% — 기존 "결제자 65% 갭결제" 와 독립 재현.
+--   가입→첫결제 중앙 4.3분 = 온보딩 중 페이월에 즉시 부딪혀 결제한다는 뜻.
+-- ⚠️ 가장 날카로운 사실: C 그룹의 avg_pre_chat 이 정확히 1.00 —
+--    "2건 이상 무료 경험 후 결제"한 유저가 단 한 명도 없다. 결제는 리딩 #1~#2 에서만 발생하고
+--    그 창을 넘기면 영구 미전환. 체험 누적이 전환으로 이어지는 경로가 실측 0건.
+
+-- ============ Q13. 소재(utm_content) × landing_variant 퍼널 ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+u as (select id, created_at from users where left(id::text,8) not in (select c from ex)),
+p as (select user_id, count(*) pays, sum(amount_won) won from payments where status='completed' group by 1),
+rc as (select user_id, count(*) chats from readings
+       where consultation_type in ('saju','tarot') and coalesce(emotion_tag,'') not like 'fortune:%'
+         and relationship_id is null group by 1),
+rf as (select user_id, count(*) fort from readings where coalesce(emotion_tag,'') like 'fortune:%' group by 1)
+select coalesce(a.utm_content,'(untracked)') creative,
+       coalesce(a.landing_variant,'-') variant,
+       count(*) signups,
+       count(rc.user_id) chat_users, coalesce(sum(rc.chats),0) chats,
+       count(rf.user_id) fort_users,
+       count(p.user_id) payers, coalesce(sum(p.won),0) revenue,
+       round(100.0*count(p.user_id)/count(*),1) cvr_pct
+from u left join user_acquisition a on a.user_id = u.id
+       left join p on p.user_id = u.id
+       left join rc on rc.user_id = u.id
+       left join rf on rf.user_id = u.id
+group by 1,2 order by signups desc;
+-- 실측 (가입 527 = 유저 533 − 제외 6):
+--   love/love           150  chat 131명 150건  payers 20  ₩45,200  CVR 13.3%
+--   tarot/tarot         142  chat 124명 137건  payers 14  ₩32,300  CVR  9.9%
+--   새 판매 광고 - 사본/동일 98  chat  83명  90건  payers  7  ₩17,500  CVR  7.1%
+--   (untracked)/-        63  chat  48명  55건  payers  4  ₩ 4,000  CVR  6.3%
+--   daily/daily          47  chat  29명  37건  payers  3  ₩ 7,900  CVR  6.4%
+--   새 판매 광고 - 사본/-  17  chat  13명  14건  payers  1  ₩ 1,000  CVR  5.9%
+--   relationship/relationship 6 chat 5명 5건   payers  0  ₩     0  CVR  0.0%
+--   counsel/counsel       2  chat   2명   2건  payers  0  ₩     0  CVR  0.0%
+--   {{ad.name}}/love      1 · link_in_bio/-  1   (매크로 미치환 1건 = 계측 누출)
+-- ⚠️ landing_variant 가 utm_content 를 그대로 미러링한다 → v 파라미터의 독립 검증력이 없다.
+--    v=love 성과 = love 소재 행과 동일(CVR 13.3%, 최고).
+--
+-- 💰 CAC / ROAS 손계산 (Meta 실지출 7/8~7/25, 합 ₩175,142)
+--    API 원가는 chat 건수 × ₩142 (A4 건당 ₩202 × 실유저 배율 0.704) 로 배분.
+--  소재         지출     가입  CAC/가입  결제  CAC/결제자  매출     ROAS   API원가   기여    순손익
+--  tarot        86,752   142    611      14     6,197     32,300  0.372   19,454   12,846  −73,906
+--  love         55,985   150    373      20     2,799     45,200  0.807   21,300   23,900  −32,085
+--  daily        25,805    47    549       3     8,602      7,900  0.306    5,254    2,646  −23,159
+--  relationship  5,481     6    914       0        ∞           0  0.000      710     −710   −6,191
+--  counsel       1,119     2    560       0        ∞           0  0.000      284     −284   −1,403
+--  ─────────── 합 175,142   347   505      37     4,734     85,400  0.488   47,002   38,398 −136,744
+-- ❌ 18일 광고 순손실 약 −₩136,700. 블렌디드 ROAS 0.49 (손익분기의 절반).
+--    tarot 이 지출의 50%(₩86,752)를 먹고 ROAS 0.37 로 최악 — 단일 최대 누수.
+--    love 는 ROAS 0.807 로 tarot 의 2.2배 · CAC/결제자 ₩2,799 (tarot ₩6,197 의 45%) = 유일한 승자 후보.
+--    daily(무료 운세 소재)는 CVR 6.4% ROAS 0.31 — 무료 미끼가 결제로 안 이어진다.
+-- ⚠️ "새 판매 광고 - 사본"(115가입 ₩18,500)은 위 지출 5종에 대응 항목이 없다(매크로 도입 전 레거시
+--    소재로 추정). 지출 미귀속 슬라이스라 위 표에서 제외 — 실제 총 지출은 ₩175,142 보다 클 수 있다.
+-- ⚠️ 탈퇴 CASCADE 로 가입·매출이 동시에 과소집계(Q16-w) → CAC 는 과대, ROAS 는 과소. 방향 상쇄.
+
+-- ============ Q14. 업셀 · next_reco · 이어가기 ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)),
+chat as (select * from r where consultation_type in ('saju','tarot')
+           and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null),
+ended as (select distinct m.reading_id from messages m where m.role='assistant' and m.content like '%[END]%')
+select
+ (select count(*) from chat) chat_readings,
+ (select count(*) from chat c join ended e on e.reading_id=c.id) chat_ended,
+ (select count(*) from chat where next_reco is not null) reco_filled,
+ (select count(*) from chat c join ended e on e.reading_id=c.id where c.next_reco is not null) reco_filled_of_ended,
+ (select count(*) from r where previous_reading_id is not null) continued,
+ (select coalesce(sum(clarifier_count),0) from r) clarifier_sum,
+ (select coalesce(sum(extra_turns),0) from r) extra_turns_sum,
+ (select count(*) from star_transactions st where st.source='clarifier' and left(st.user_id::text,8) not in (select c from ex)) clarifier_tx,
+ (select coalesce(sum(amount),0) from star_transactions st where st.source='clarifier' and left(st.user_id::text,8) not in (select c from ex)) clarifier_stars,
+ (select count(*) from star_transactions st where st.source='extend' and left(st.user_id::text,8) not in (select c from ex)) extend_tx,
+ (select coalesce(sum(amount),0) from star_transactions st where st.source='extend' and left(st.user_id::text,8) not in (select c from ex)) extend_stars,
+ (select count(*) from star_transactions st where st.source='rel_extend' and left(st.user_id::text,8) not in (select c from ex)) rel_extend_tx;
+-- 실측: chat 492 / 종료 325 / reco 채움 234 (전체 47.6%, 종료분 232/325 = 71.4%)
+--       이어가기 12건 (baseline 1건 → 12건으로 살아남)
+--       clarifier 11건 110별 · extend 6건 60별 (extra_turns 합 24 = 6회 × +4턴)
+--       rel_extend 0건 ← 연애 스레드 "5별 +5턴 무제한 연장" 은 단 한 번도 안 팔렸다
+-- 💰 업셀 실매출: clarifier 110별 + extend 60별 = 170별 ≈ 명목 ₩15,545 (별당 ₩91.44).
+--    baseline(clarifier 0 · extend 1)에서 살아났지만 chat 별 10,240 의 1.7% 로 여전히 미미.
+
+-- ============ Q14b. next_reco 소스 · 추천 상품 분포 ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+chat as (select * from readings where left(user_id::text,8) not in (select c from ex)
+           and consultation_type in ('saju','tarot')
+           and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null)
+select next_reco->>'source' src, next_reco->>'product' product, count(*) n,
+       count(*) filter (where result_viewed_at is not null) viewed
+from chat where next_reco is not null group by 1,2 order by 3 desc;
+-- 실측: haiku 221 (94.4%) vs marker 13 (5.6%) → 페르소나의 [RECO] 마커 경로는 사실상 죽어 있고
+--       lib/reco.ts 의 haiku 태깅이 전량을 떠받친다.
+--   haiku:tarot:relationship_5 153(viewed 136) · haiku:saju:good_days 28 · haiku:continue 25
+--   marker:saju:good_days 8(viewed 2) · haiku:saju:choice 8 · haiku:saju:nature 7
+--   marker:tarot:relationship_5 5(viewed 3)
+--   → 추천의 65%가 tarot:relationship_5 한 상품에 쏠려 있다.
+
+-- ============ Q14c. reco 후속 이행률 (C3 인챗 업셀 작동 여부) ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+chat as (select * from readings where left(user_id::text,8) not in (select c from ex)
+           and consultation_type in ('saju','tarot')
+           and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null),
+w as (select c.id, c.user_id, c.created_at, c.next_reco->>'product' prod, c.next_reco->>'source' src,
+        (select count(*) from readings r2 where r2.user_id=c.user_id and r2.created_at > c.created_at) after_any,
+        (select count(*) from readings r2 where r2.user_id=c.user_id and r2.created_at > c.created_at
+           and r2.stars_spent > 0) after_paid,
+        (select count(*) from readings r2 where r2.user_id=c.user_id and r2.created_at > c.created_at
+           and (r2.spread_type = replace(c.next_reco->>'product','tarot:','')
+             or coalesce(r2.emotion_tag,'') = 'fortune:'||replace(c.next_reco->>'product','saju:','')
+             or (c.next_reco->>'product'='continue' and r2.previous_reading_id = c.id))) after_match
+      from chat c where c.next_reco is not null)
+select prod, count(*) recos,
+       count(*) filter (where after_any > 0) had_next_reading,
+       count(*) filter (where after_paid > 0) had_next_paid,
+       count(*) filter (where after_match > 0) took_the_reco
+from w group by 1 order by 2 desc;
+-- ❌ 실측 (reco / 후속리딩 / 후속유료 / 추천대로 이행):
+--   tarot:relationship_5 158 / 42 / 27 / 1
+--   saju:good_days        36 /  8 /  5 / 0
+--   continue              25 /  7 /  5 / 2
+--   saju:choice            8 /  2 /  1 / 0
+--   saju:nature            7 /  2 /  2 / 0
+--   합                   234 / 61 / 40 / 3
+-- 판정: 추천 234건 → 추천대로 이행 3건 = 1.3%. 인챗/결과카드 업셀은 실측상 작동하지 않는다.
+--   relationship_5 는 158회 추천되고 1회 이행(0.6%). 후속 유료 리딩 자체는 40건 있으나
+--   추천과 무관한 상품으로 갔다 → 기존 "전환 75%가 관계스프레드 갭결제" 는 reco 경로가 아니라
+--   진열/페이월 경로로 발생한 것. reco 엔진은 haiku 원가만 태우고 매출 기여 ≈ 0.
+-- ✅ 검산: 상품별 합 158+36+25+8+7 = 234 = Q14 의 reco_filled = Q14b 의 src×product 합. 3중 일치.
+
+-- ============ Q15a. emotion_tag 분포 ============
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex))
+select coalesce(emotion_tag,'(none)') tag,
+       (coalesce(emotion_tag,'') like 'fortune:%') is_fortune,
+       count(*) readings, count(distinct user_id) users, sum(stars_spent) stars,
+       count(*) filter (where created_at >= '2026-07-20') since20,
+       count(*) filter (where result_viewed_at is not null) viewed
+from r group by 1,2 order by readings desc;
+-- 실측 top: 그 사람 마음이 궁금해 233건 219명 5,506별 (since20 = 6 → W1 개편 전 레거시 태그)
+--   걔 속마음이 궁금해 89 (since20 89 = 신규 태그로 교체됨) · 재회할 수 있을까 56
+--   fortune:daily 45 (0별 무료, viewed 0) · 새로운 인연 20 · 요즘 내 흐름 18
+--   (none) 15 = 관계 스레드 · 내 앞날 14 · 언제 연락 올까 14 · fortune:compat 13 · fortune:tarot_love 13 …
+-- 연애 계열 합 ≈ 425/492 = 86.4% — 수요가 연애로 압도적으로 쏠려 있다(W1 연애 전면 배치의 사후 정당화).
+-- ⚠️ 운세 리포트는 result_viewed_at 을 안 쓴다(viewed 전부 0) → 열람 지표는 chat 에만 유효.
+-- ⚠️ 태그 리네임(7/20) 때문에 태그별 시계열은 since20 컬럼으로 끊어 읽어야 한다.
+
+-- ============ Q15b. 제품 교차 이용 × 결제 ============
+-- ⚠️ 플랜 초안은 has_fortune 을 `bool_or(saju_product is not null)` 로 잡았는데
+--    saju_product 는 NOT NULL DEFAULT 라 항상 true → 무의미. 센티넬로 교체했다.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)),
+u as (select user_id,
+        bool_or(consultation_type in ('saju','tarot') and coalesce(emotion_tag,'') not like 'fortune:%'
+                and relationship_id is null) has_chat,
+        bool_or(consultation_type='relationship') has_rel,
+        bool_or(coalesce(emotion_tag,'') like 'fortune:%') has_fortune
+      from r group by 1),
+p as (select user_id, sum(amount_won) won from payments where status='completed' group by 1)
+select has_chat, has_rel, has_fortune, count(*) users,
+       count(p.user_id) payers, coalesce(sum(p.won),0) revenue
+from u left join p on p.user_id=u.user_id group by 1,2,3 order by 4 desc;
+-- 실측 (유저 / 결제자 / 매출 / CVR / ARPU):
+--   chat 단독            379 / 34 / ₩55,600 /  9.0% / ₩147
+--   chat+운세             46 /  9 / ₩33,200 / 19.6% / ₩722   ← 최고 가치 세그먼트
+--   운세 단독             28 /  1 / ₩ 2,800 /  3.6% / ₩100
+--   chat+관계             11 /  3 / ₩ 9,700 / 27.3% / ₩882   ← CVR 최고
+--   관계 단독              2 /  0 / ₩     0
+--   관계+운세              1 /  1 / ₩ 5,600
+--   3종 전부               1 /  1 / ₩ 1,000
+-- ✅ 검산: 리딩 보유 유저 468 · 결제자 49 · 매출 ₩107,900 일치.
+--    가입 527 − 468 = 59명(11.2%)은 리딩 0건 = 가입만 하고 아무것도 안 했다.
+-- 판정: 2제품 이상 접촉 유저의 ARPU 가 단일제품의 4.9~6.0배(₩722·₩882 vs ₩147).
+--   표본이 작지만(46·11명) 방향이 일관 → 교차판매가 유일하게 실측된 ARPU 레버.
+--   반대로 "운세 단독" 28명은 CVR 3.6% — 무료 운세만 소비하는 층은 현금화되지 않는다.
+
+-- ============ Q15c. 관계(우리 사이) 15건 흐름 — 정지 지점 ============
+-- ⚠️ 플랜 초안에 제외 필터가 없었다 → is_excluded 컬럼으로 표시해 분리(관리자 b9e5dd5a 1건 포함 총 16행).
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c)
+select left(rl.user_id::text,8) u,
+       left(rl.user_id::text,8) in (select c from ex) is_excluded,
+       rl.status, rl.created_at::date reg_d, rl.last_visited_at::date last_d,
+       rl.summarized_msg_count sumc, (rl.partner_profile_id is not null) has_partner,
+       (select count(*) from messages m where m.reading_id=rl.thread_reading_id) msgs,
+       (select count(*) from messages m where m.reading_id=rl.thread_reading_id and m.role='user') user_msgs,
+       (select count(*) from relationship_passes rp where rp.relationship_id=rl.id) passes,
+       (select coalesce(sum(rp.stars_spent),0) from relationship_passes rp where rp.relationship_id=rl.id) pass_stars,
+       (select count(*) from readings r2 where r2.relationship_id=rl.id and r2.skill_key is not null) skill_readings,
+       (select coalesce(sum(amount_won),0) from payments py where py.user_id=rl.user_id and py.status='completed') paid_won
+from relationships rl order by rl.created_at;
+-- ❌❌ 실측 16행(관리자 1 제외 → 실유저 15건). 정지 지점이 한 곳에 100% 몰려 있다:
+--   · 15건 전부 has_partner=true  → 상대 생년월일 입력(온보딩 최대 마찰)까지는 완주
+--   · 14건(93.3%)이 msgs=0 & last_visited_at=NULL → 스레드에서 단 한 마디도 안 했다
+--   · 1건(a4bb198c, 7/22)만 패스 구매(30별) → 6메시지(유저 3) + 스킬 1회 + 재방문 1회
+-- 판정: "대화는 했지만 패스 미구매"가 아니라 **"등록 직후 첫 발화 전에 전멸"**.
+--   원인 확정(코드): app/api/relationship/chat/route.ts:144-146 —
+--     const pass = await getActivePass(rel.id); if (!pass && !inDialogueSkill) → 402 'pass_required'
+--   즉 무료 체험 턴이 0이다. 유저는 상대 생일까지 입력하고 나서 첫 마디를 하기도 전에
+--   30별(최소 1일권) 페이월을 만난다 → 상품이 사실상 미출시 상태.
+-- 💰 규모: 실현 패스 매출 30별 1건(명목 ₩2,743). 14건이 최소권만 사도 420별 ≈ 명목 ₩38,400.
+-- ⚠️ 이 14명은 "돈 없는 유저"가 아니다 — 5명이 이미 현금 결제자
+--    (₩5,900 · ₩5,600 · ₩2,800 · ₩1,000 · ₩1,000 = 합 ₩16,300). 지불 의사가 아니라 순서 문제.
+-- status 분포: onesided 8 · breakup 6 · crush 1 (관리자 crush 1 별도) — 짝사랑/이별에 쏠림.
+
+-- ============ Q16-w. 탈퇴 44건의 소재 복구 가능성 ============
+select
+ (select json_agg(column_name order by ordinal_position) from information_schema.columns
+   where table_name='account_withdrawals') aw_cols,
+ (select count(*) from account_withdrawals) aw_n,
+ (select count(*) from user_acquisition a where not exists (select 1 from users u where u.id=a.user_id)) orphan_acq,
+ (select count(*) from users) users_now,
+ (select count(*) from user_acquisition) acq_now;
+-- 실측: account_withdrawals 컬럼 = [id, kakao_id_hash, withdrawn_at] — utm/소재 필드 없음.
+--       aw_n=44 · orphan_acq=0 · users_now=533 · acq_now=464 (미추적 69명)
+-- ❌ 판정: 탈퇴 44건의 소재 귀속은 **영구 복구 불가**. 근거 2가지 —
+--   (1) account_withdrawals 는 kakao_id_hash 만 남긴다(소재·utm 미보존, 유저 PK 와도 연결 불가)
+--   (2) user_acquisition orphan 0 = users DELETE CASCADE 로 유입기록이 잔여 없이 전삭제
+-- 함의: Q13 의 소재별 가입수는 탈퇴분(44/577 = 7.6%)만큼 과소집계 → CAC/가입 은 약 8% 과대.
+--   동시에 탈퇴자 결제도 소멸해 매출도 과소 → ROAS 는 과소. 두 왜곡이 반대 방향으로 상쇄되나
+--   소재별로 탈퇴율이 다르면 소재 간 순위까지 흔들릴 수 있고, 그걸 검증할 방법이 없다.
+--   유일한 총량 복구 경로 = 토스 정산 총액 대조(그 차액 = 소멸 매출). 소재 분해는 불가.
+-- 🔧 향후: account_withdrawals 에 탈퇴 시점 utm_content/landing_variant 스냅샷 1컬럼을 남기면
+--   (개인정보 아님) 이 맹점이 사라진다. 지금은 매일 소재별 가입 스냅샷을 외부에 적재하는 수밖에 없다.
