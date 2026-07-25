@@ -6,6 +6,7 @@ import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
 import AppShell from "@/components/layout/AppShell";
 import MetaPixel from "@/components/analytics/MetaPixel";
+import PageViewBeacon from "@/components/analytics/PageViewBeacon";
 import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
@@ -102,6 +103,9 @@ export default function RootLayout({
         </Suspense>
         <KakaoSdkLoader />
         <MetaPixel />
+        <Suspense fallback={null}>
+          <PageViewBeacon />
+        </Suspense>
         <AppShell>{children}</AppShell>
       </body>
     </html>
