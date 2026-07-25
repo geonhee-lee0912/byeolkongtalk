@@ -1,7 +1,7 @@
 // app/admin/page.tsx — 대시보드.
-import type { ReactNode } from "react";
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
+import { Stat, Delta } from "@/components/admin/Stat";
 import { startOfAdminTodayKstIso } from "@/lib/admin-time";
 import {
   attributeFreeSpend,
@@ -138,36 +138,6 @@ async function loadStats() {
     rel,
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
   };
-}
-
-// invert: 증가가 나쁜 지표(탈퇴 등)는 색을 뒤집는다 — 안 뒤집으면 탈퇴 급증이 초록으로 떠서 오독된다.
-function Delta({ today, yesterday, label = "어제", invert = false }: { today: number; yesterday: number; label?: string; invert?: boolean }) {
-  if (yesterday === 0) return <span className="text-lg font-normal text-white/40">{label} 0</span>;
-  const pct = ((today - yesterday) / yesterday) * 100;
-  const up = invert ? pct < 0 : pct > 0;
-  const down = invert ? pct > 0 : pct < 0;
-  const cls = up ? "text-emerald-400" : down ? "text-red-400" : "text-white/40";
-  return (
-    <span className="text-lg font-normal whitespace-nowrap">
-      <span className={cls}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>{" "}
-      <span className="text-white/40">({label} {yesterday.toLocaleString()})</span>
-    </span>
-  );
-}
-
-function Stat({ label, value, paren, children }: { label: string; value: string | number; paren?: string; children?: ReactNode }) {
-  return (
-    <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-      <div className="text-[12px] text-white/60">{label}</div>
-      <div className="text-2xl font-bold mt-1 flex items-baseline gap-x-2 flex-wrap">
-        <span>
-          {value}
-          {paren && <span className="text-sm font-normal text-white/50 ml-1.5">({paren})</span>}
-        </span>
-        {children}
-      </div>
-    </div>
-  );
 }
 
 export default async function AdminDashboard() {
