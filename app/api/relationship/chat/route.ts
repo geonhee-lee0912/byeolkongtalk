@@ -471,13 +471,15 @@ export async function POST(request: NextRequest) {
   // 위 가드로 string 확정 — const로 잡아 ReadableStream 클로저 내 narrowing 소실(TS2322) 방지.
   const userMessage: string = body.message;
   const inVerdict = activeSkill?.key === "verdict";
+  // 카드뽑기 그레이스 — 잔여가 있으면 이 왕복은 하루 캡에서 면제(구매한 대화 분량).
+  const graceKey = (memoObj.skill_grace?.remaining ?? 0) > 0 ? memoObj.skill_grace!.key : null;
 
   // 소프트캡 — 판정 세그먼트는 캡 무관(유료·skill_key 제외). 일반 대화만 캡 톤.
   const [todayTurns, todayExtend] = await Promise.all([
     getTodayThreadTurns(threadReadingId),
     getTodayExtendCount(userId),
   ]);
-  const dailyClose = !inVerdict && todayTurns >= dailyTurnAllowance(todayExtend);
+  const dailyClose = !inVerdict && !graceKey && todayTurns >= dailyTurnAllowance(todayExtend);
 
   // 누적 메시지(오름차순) → 최근창/요약델타 분할
   const { data: pastRows } = await supabase
@@ -485,7 +487,7 @@ export async function POST(request: NextRequest) {
     .select("role, content")
     .eq("reading_id", threadReadingId)
     .order("created_at", { ascending: true });
-  const past = redactCompatForModel((pastRows ?? []) as ThreadMsg[]);
+  const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
   const isFirstEver = !inVerdict && past.length === 0;
   const split = splitThreadMessages(
     [...past, { role: "user", content: userMessage }],
@@ -560,7 +562,7 @@ export async function POST(request: NextRequest) {
         }
 
         const turnTs = Date.now();
-        const skillTag = inVerdict ? "verdict" : null;
+        const skillTag = inVerdict ? "verdict" : graceKey;
         await supabase.from("messages").insert([
           { reading_id: threadReadingId, role: "user", content: userMessage, skill_key: skillTag, created_at: new Date(turnTs).toISOString() },
           { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: skillTag, created_at: new Date(turnTs + 1).toISOString() },
@@ -592,6 +594,11 @@ export async function POST(request: NextRequest) {
           const checkin = assistantText.match(CHECKIN_RE);
           if (checkin) {
             memo.pending_checkin = { text: checkin[1].trim(), created_at: nowIso };
+          }
+          // 그레이스 소진 — 판정 세그먼트가 아니고 잔여가 있던 왕복만 1턴 차감.
+          if (!inVerdict && graceKey) {
+            const consumed = consumeSkillGrace(memo);
+            memo.skill_grace = consumed.skill_grace ?? null;
           }
           await supabase.from("relationships").update({ last_visited_at: nowIso, memo }).eq("id", rel.id);
 
