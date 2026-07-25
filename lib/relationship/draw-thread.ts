@@ -95,5 +95,8 @@ export function splitByCardMarker(raw: string): CardSegment[] {
   }
   const tail = raw.slice(lastIndex).trim();
   if (tail) segs.push({ cardIndex: current, text: tail });
-  return segs.length > 0 ? segs : [{ cardIndex: null, text: raw.trim() }];
+  // 마커뿐이고 본문이 없으면(maxTokens 로 마커 직후 잘린 응답) 빈 배열 — 렌더할 내용이 실제로 없다.
+  // raw 를 되돌리는 폴백을 두면 [CARD:n] 리터럴이 버블에 노출된다.
+  // 마커가 없는 평범한 텍스트는 위 tail push 로 단일 세그먼트가 되므로 폴백이 필요 없다.
+  return segs;
 }

@@ -76,3 +76,19 @@ test("splitByCardMarker — 마커 없으면 단일 세그먼트", () => {
   assert.equal(segs.length, 1);
   assert.equal(segs[0].cardIndex, null);
 });
+
+test("splitByCardMarker — 마커만 있고 본문이 없으면 빈 배열(마커 누출 방지)", () => {
+  assert.deepEqual(splitByCardMarker("[CARD:1]"), []);
+});
+
+test("splitByCardMarker — 마커 + 공백만 있는 입력도 빈 배열", () => {
+  assert.deepEqual(splitByCardMarker("[CARD:1]\n\n   "), []);
+});
+
+test("splitByCardMarker — 연속 마커는 본문이 있는 뒤쪽 카드에 귀속(의도된 동작)", () => {
+  const segs = splitByCardMarker("[CARD:1][CARD:2]본문");
+  assert.equal(segs.length, 1);
+  assert.equal(segs[0].cardIndex, 2);
+  assert.equal(segs[0].text, "본문");
+  assert.ok(!segs[0].text.includes("[CARD:"));
+});
