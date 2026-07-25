@@ -11,7 +11,6 @@ const PARTNER_BIRTH_MSG = "상대 생년월일을 먼저 등록해줘";
 const GENERIC_ERROR_MSG = "지금은 실행할 수 없어. 잠시 후 다시 시도해줄래?";
 
 export interface UseSkillLaunchArgs {
-  selfProfileId: string | null;
   partnerProfileId: string | null;
   /** 스킬을 스레드 안에서 개시 — ThreadChat이 skillStart 전송(tarot_draw 는 뽑기 모달 오픈)을 담당. */
   onInThreadSkill?: (skillKey: string) => void;
@@ -35,7 +34,6 @@ export interface UseSkillLaunchResult {
 }
 
 export function useSkillLaunch({
-  selfProfileId,
   partnerProfileId,
   onInThreadSkill,
 }: UseSkillLaunchArgs): UseSkillLaunchResult {

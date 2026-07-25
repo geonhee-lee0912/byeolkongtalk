@@ -87,8 +87,9 @@ interface ThreadChatProps {
   canSend: boolean;
   /** 마운트 시점 기준 오늘 소프트캡 도달 여부(S4). 이후 전환은 내부 상태로 관리. */
   capReached: boolean;
-  /** [SKILL:key] 마커 칩 실행(useSkillLaunch)에 필요 — compat 궁합용 자기/상대 프로필 id. */
+  /** 현재 이 컴포넌트에서는 미사용 — 호출부가 계속 넘겨줘서 타입만 유지. */
   selfProfileId?: string | null;
+  /** [SKILL:key] 마커 칩 실행(useSkillLaunch)의 compat 상대 생년월일 유무 판정에 필요. */
   partnerProfileId?: string | null;
   /** 이번 턴 응답으로 오늘 캡에 새로 도달했을 때(S3→S4) — 부모가 잔여 턴 표시 등을 새로고침하도록 알림 */
   onDailyCapReached?: () => void;
@@ -110,7 +111,6 @@ export default function ThreadChat({
   initialMessages,
   canSend,
   capReached,
-  selfProfileId = null,
   partnerProfileId = null,
   initialActiveSkill = null,
   onDailyCapReached,
@@ -124,7 +124,6 @@ export default function ThreadChat({
   const [activeSkill, setActiveSkill] = useState<string | null>(initialActiveSkill);
   const { launch, busyKey, toastMsg, pendingSkill, confirmBalance, confirmLaunch, cancelConfirm } =
     useSkillLaunch({
-      selfProfileId,
       partnerProfileId,
       onInThreadSkill: (key) => void sendSkillStart(key),
     });
