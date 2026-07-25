@@ -80,9 +80,11 @@ export interface CardSegment {
   text: string;
 }
 
-/** 풀이 텍스트를 [CARD:n] 기준으로 분할하고 마커를 제거. 빈 세그먼트는 버린다. */
+/** 풀이 텍스트를 [CARD:n]·[WRAP] 기준으로 분할하고 마커를 제거. 빈 세그먼트는 버린다.
+ *  [WRAP] 은 종합 파트(잇는 흐름·처방·마무리)의 시작 지점 — 그 이후 세그먼트는 cardIndex: null
+ *  (렌더러가 칩을 안 붙임). 마커가 없으면 기존처럼 단일 세그먼트로 폴백. */
 export function splitByCardMarker(raw: string): CardSegment[] {
-  const re = /\[CARD:(\d+)\]/g;
+  const re = /\[(?:CARD:(\d+)|WRAP)\]/g;
   const segs: CardSegment[] = [];
   let lastIndex = 0;
   let current: number | null = null;
@@ -90,7 +92,7 @@ export function splitByCardMarker(raw: string): CardSegment[] {
   while ((m = re.exec(raw)) !== null) {
     const chunk = raw.slice(lastIndex, m.index).trim();
     if (chunk) segs.push({ cardIndex: current, text: chunk });
-    current = Number(m[1]);
+    current = m[1] !== undefined ? Number(m[1]) : null;
     lastIndex = m.index + m[0].length;
   }
   const tail = raw.slice(lastIndex).trim();

@@ -34,12 +34,14 @@ export interface ThreadChatMsg {
 // 완성된 마커 — 화면에 절대 노출 금지 (백엔드 전용 기록/제안/종료 마커)
 // CARD:n = 인-스레드 카드뽑기 풀이의 자리 구분자. 저장 후엔 splitByCardMarker 가 세그먼트로 쪼개
 // 칩으로 승격시키지만, 스트리밍 중 라이브 버블에는 리터럴이 새면 안 되므로 여기서도 제거한다.
-const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+|CARD:\d+)\]/g;
+// WRAP = 종합 파트(잇는 흐름·처방·마무리) 시작 지점 — splitByCardMarker 가 칩 없는 세그먼트로 분리.
+const MARKER_REGEX = /\[(?:SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+|CARD:\d+|WRAP)\]/g;
 // 스트리밍 중 아직 안 닫힌 마커의 꼬리 — 닫히기 전까지 미리보여 깜빡이지 않게 숨김
 // (SKILL 브랜치에 _DONE 부분 매칭 추가 — [SKILL_DONE] 스트리밍 꼬리 커버)
 // (C 브랜치는 CHECKIN/CARD 두 갈래 — "[CA"·"[CARD:"·"[CARD:1" 꼬리 커버)
+// (W 브랜치는 WRAP 전용 — "[W"·"[WR"·"[WRA"·"[WRAP" 꼬리 커버)
 const TRAILING_PARTIAL_MARKER =
-  /\[(?:S(?:K(?:I(?:L(?:L(?:_(?:D(?:O(?:N(?:E)?)?)?)?|:[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?|A(?:R(?:D(?::\d*)?)?)?)?)?$/;
+  /\[(?:S(?:K(?:I(?:L(?:L(?:_(?:D(?:O(?:N(?:E)?)?)?)?|:[a-z_]*)?)?)?)?)?|C(?:H(?:E(?:C(?:K(?:I(?:N(?::[^\]]*)?)?)?)?)?)?|A(?:R(?:D(?::\d*)?)?)?)?|W(?:R(?:A(?:P)?)?)?)?$/;
 // 완성된 [SKILL:key] 캡처용 — 마커 존재 시 그 자리에 실행 칩을 띄우기 위해 key 를 뽑아낸다.
 const SKILL_MARKER_CAPTURE = /\[SKILL:([a-z_]+)\]/;
 // 인-스레드 스킬 종료 마커 — 감지 시 활성 스킬 해제.

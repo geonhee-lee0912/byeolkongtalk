@@ -92,3 +92,32 @@ test("splitByCardMarker — 연속 마커는 본문이 있는 뒤쪽 카드에 �
   assert.equal(segs[0].text, "본문");
   assert.ok(!segs[0].text.includes("[CARD:"));
 });
+
+test("splitByCardMarker — [WRAP] 이후는 cardIndex null 세그먼트로 분리(칩 없는 종합 파트)", () => {
+  const text = "[CARD:1]\n첫 해석\n\n[WRAP]\n종합 흐름과 처방";
+  const segs = splitByCardMarker(text);
+  assert.equal(segs.length, 2);
+  assert.equal(segs[0].cardIndex, 1);
+  assert.ok(segs[0].text.includes("첫 해석"));
+  assert.ok(!segs[0].text.includes("[CARD:"));
+  assert.ok(!segs[0].text.includes("[WRAP]"));
+  assert.equal(segs[1].cardIndex, null);
+  assert.ok(segs[1].text.includes("종합 흐름과 처방"));
+  assert.ok(!segs[1].text.includes("[WRAP]"));
+});
+
+test("splitByCardMarker — [WRAP] 만 있고 [CARD:n] 없는 입력", () => {
+  const segs = splitByCardMarker("도입부 텍스트\n\n[WRAP]\n종합 텍스트");
+  assert.equal(segs.length, 2);
+  assert.equal(segs[0].cardIndex, null);
+  assert.equal(segs[0].text, "도입부 텍스트");
+  assert.equal(segs[1].cardIndex, null);
+  assert.equal(segs[1].text, "종합 텍스트");
+});
+
+test("splitByCardMarker — [WRAP] 이 맨 끝에 오면 빈 세그먼트를 만들지 않음", () => {
+  const segs = splitByCardMarker("[CARD:1]\n첫 해석\n\n[WRAP]");
+  assert.equal(segs.length, 1);
+  assert.equal(segs[0].cardIndex, 1);
+  assert.equal(segs[0].text, "첫 해석");
+});
