@@ -409,3 +409,90 @@ from j;
 --   미래 COGS (매출 무관) = 무료 잔액 4,580별 — 부채 아님, 별도 표기
 --   참고: 유상 별당 매출 ₩107,900 / 1,180별 = ₩91.44/별 → 438별에 대응하는 미실현 매출 ₩40,051
 --         (누적 매출의 37.1%. 단 손익 조정에 쓰는 값은 원가 기준 438별이고 이 ₩ 는 매출인식 관점 참고치)
+
+-- ============ Q9. 리딩별 메시지 집계 (API 원가 배분 입력) ============
+-- 용도: scripts/api-cost-allocate.ts 의 입력. 콘솔 총액(진실)을 이 리딩별 점수 비중으로 배분한다.
+-- 실행: ... --sql "<아래 쿼리>" > "<스크래치패드>/q9.json"
+--       node --import tsx scripts/api-cost-allocate.ts "<스크래치패드>/q9.json" 72.8
+--
+-- ⚠️ 상품 분류 함정 2개 (플랜 초안의 coalesce(spread_type, saju_product) 는 틀린다)
+--   (1) readings.saju_product 는 NOT NULL DEFAULT 'today_letters' (20260609000000_saju_products.sql)
+--       → 절대 NULL 이 안 된다. "saju_product 가 채워졌는가"로 운세 리포트를 못 가른다.
+--         타로 리딩도 전부 saju_product='today_letters' 를 들고 있다.
+--   (2) 운세 one-shot 리포트의 진짜 마커는 emotion_tag 센티넬 'fortune:<type>'
+--       (lib/fortune/types.ts FORTUNE_SENTINEL_PREFIX, app/api/fortune/create/route.ts).
+--       consultation_type 엔 cfg.base('saju'|'tarot') 가 들어가므로 종목만으론 대화/리포트 구분 불가.
+--
+-- 실측 요약 (2026-07-25 실행): 리딩 580건 / 턴(메시지) 5,008개 / 별소모 11,045
+--   kind·persona 분포: chat/tarot 440건 4,408턴 · report/fortune 88건 88턴(전부 assistant 1건 = one-shot)
+--                      chat/saju 51건 506턴 · chat/relationship 1건 6턴
+--   메시지 0건 리딩 14건은 inner join 으로 빠짐 = relationship 스레드 껍데기(stars_spent 전부 0) → 원가·매출 누락 없음
+--   readings/messages 는 전부 7/08 이후 (min(created_at)=2026-07-08, pre-July 0건).
+--     users 는 5/25, payments 는 6/17 부터 → 7/08 이전 리딩·메시지는 이미 삭제됨(탈퇴 CASCADE).
+--     ⚠️ 콘솔 총액창은 7/01~7/25 인데 점수 기반은 7/08~ → 7/01~7/07 사용분이 있었다면
+--        살아남은 리딩에 비례 전가된다. 비례라서 순위·점유율엔 불변, 절대 금액만 상향 편의.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c)
+select r.id,
+       case when r.emotion_tag like 'fortune:%' then 'report' else 'chat' end kind,
+       case when r.emotion_tag like 'fortune:%' then r.emotion_tag
+            when r.consultation_type = 'relationship' then 'relationship:thread'
+            when r.spread_type is not null then 'tarot:' || r.spread_type
+            else 'saju:' || r.saju_product end product,
+       case when r.emotion_tag like 'fortune:%' then 'fortune'
+            else r.consultation_type end persona,
+       r.consultation_type, r.stars_spent, r.created_at::date d,
+       json_agg(json_build_object('role', m.role, 'chars', length(m.content))
+                order by m.created_at) turns
+from readings r join messages m on m.reading_id = r.id
+where left(r.user_id::text,8) not in (select c from ex) and r.created_at >= '2026-07-01'
+group by r.id order by r.created_at;
+
+-- ============ Q9 부속: 상품 분류 검증 (위 함정 (1)(2) 실증) ============
+-- 실측: saju_product 는 74개 조합 전부에서 non-null. tarot 리딩도 today_letters 를 들고 있다.
+--       emotion_tag 가 'fortune:%' 인 행은 예외 없이 메시지 1건(assistant) = one-shot 리포트.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and created_at >= '2026-07-01')
+select r.consultation_type, coalesce(r.emotion_tag,'(null)') tag, r.spread_type, r.saju_product,
+       r.skill_key, count(*) n, sum(cnt.msgs) msgs, sum(r.stars_spent) stars
+from r join lateral (select count(*) msgs from messages m where m.reading_id=r.id) cnt on true
+group by 1,2,3,4,5 order by n desc;
+
+-- ============ 검산: A4 원가 배분 게이트 (2026-07-25 실행 결과) ============
+-- 페르소나 정적 블록 실측 글자수 (SYSTEM_CHARS) — 문자수 기준. wc -m 은 로케일이 UTF-8 이 아니면
+--   바이트를 세므로(한국어 3배 과대) 쓰지 말 것. Postgres length() 도 문자수라 이쪽이 정합.
+--   근거: lib/claude.ts getPersona/getTarotPersona/getRelationshipPersona = core + "\n\n---\n\n"(7자) + 도메인
+--         lib/fortune/prompt.ts getFortunePersona = byeolkong_fortune.md 단독 (코어 없음!)
+--   core 8,379 · saju 2,193 · tarot 8,212 · relationship 4,073 · fortune 678
+--   → saju 10,579 / tarot 16,598 / relationship 12,459 / fortune 678
+--   ⚠️ 운세 리포트만 코어를 안 붙여서 정적 블록이 24배 작다 → 캐시 히트율 가정에 가장 민감한 항목.
+--
+-- 게이트 1 (총합 일치): 히트율 0.3·0.6·0.9 3개 시나리오 전부
+--   "검산: 배분 총합 $72.800000 (목표 $72.8)" → 통과.
+-- 게이트 2 (건당$ 순위 안정성): discordant pair 기준 n>=1 190쌍 중 역전 4건 / n>=5 78쌍 중 1건.
+--   유일한 유의미 역전 = saju:today_letters vs fortune:monthly (0.3에서 +92.9% → 0.9에서 -17.0%).
+--   나머지 3건은 0.9 에서 ±0.2~10% 로 스치는 근접 동률(relationship_5↔potential_7, three_card·two_card↔choice).
+--   건당$ 상위 3위(deep_feelings_5 · readiness_6 · reunion_deep_7)는 3 시나리오 전부 동일 → 결론 유지.
+--   구조적 원인: 히트율↑ → 정적 블록 과금↓ → 정적 678자인 운세 리포트의 상대 원가가 +124~128% 뛰고
+--                정적 16,598자인 타로는 −4~10% 내려간다(고정 총액 배분이라 서로 밀어냄).
+--
+-- 배분 결과 (히트율 0.6): 총 ₩101,920 (= $72.8 × 1,400)
+--   tarot:three_card 214건 $33.59 (건당 $0.1570, 별당 ₩8.8) — 전체 원가의 46%
+--   tarot:two_card 116건 $16.14 · tarot:one_card 79건 $8.56 · tarot:relationship_5 17건 $3.47
+--   saju:nature 26건 $3.20 · tarot:deep_feelings_5 6건 $2.11(건당 최고 $0.3523) · saju:good_days 17건 $1.55
+--   fortune 계열 88건 합 $1.69 (건당 $0.0192) — 건수 15%인데 원가 2.3%
+--
+-- ⚠️ 실현 현금 대조 (A 마진표의 "명목매출"과 구분): 소비 별의 93.4% 가 무료라
+--   명목매출(별소모 × ₩91.44) 합 ₩1,009,955 은 실매출 ₩107,900 의 9.4배.
+--   현금 기준 진짜 그림 = 실매출 ₩107,900 vs 배분 API 원가 ₩101,920 → API 원가가 매출의 94.5%.
+--   (완료 결제 52건 전부 7월분이라 원가창 7/01~7/25 과 매출창이 정합)
+--   무료로 태운 원가 근사 = ₩101,920 × 93.4% = ₩95,193 / 유상 대응 ₩6,727.
+--
+-- C. 운세 one-shot vs 대화형 (방향은 3 시나리오 전부 동일, 배수만 캐시 가정에 민감):
+--   chat 492건 건당 $0.1445(₩202) 건당 20.8별 별당 ₩9.7
+--   report 88건 건당 $0.0192(₩27)  건당  9.3별 별당 ₩2.9
+--   → 별당 원가 chat/report = 4.64배(0.3) / 3.37배(0.6) / 2.04배(0.9). 대화형이 항상 별당 원가가 나쁘다.
+--
+-- 모델 한계(배분 왜곡 방향): systemChars 는 cache_control 마킹된 staticPart 만 센다.
+--   dynamicPart(사주판·뽑은 카드·관계 파일 블록·verdict/draw 가이드)는 매 턴 비캐시로 나가는데 미계상 →
+--   동적 블록이 큰 상품(good_days 30일 일진, compat 두 사람 사주, relationship_5)의 원가가 과소 추정.
