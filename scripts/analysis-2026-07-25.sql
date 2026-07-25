@@ -962,3 +962,77 @@ select
 --   유일한 총량 복구 경로 = 토스 정산 총액 대조(그 차액 = 소멸 매출). 소재 분해는 불가.
 -- 🔧 향후: account_withdrawals 에 탈퇴 시점 utm_content/landing_variant 스냅샷 1컬럼을 남기면
 --   (개인정보 아님) 이 맹점이 사라진다. 지금은 매일 소재별 가입 스냅샷을 외부에 적재하는 수밖에 없다.
+
+-- ############################################################################
+-- 블록 3 — 가성비 (별당 분량) (Task A6)
+-- ############################################################################
+
+-- ============ Q16. 타로 유료 리딩 첫 풀이 길이 · 별당 글자수 ============
+-- 모수: 대화형 타로 유료분만 (운세 센티넬 배제 + relationship_id is null — A5 블록 규약과 동일).
+-- 평균은 소표본에서 튀므로 중앙값·min·max 를 같이 뽑아 "한 건도 목표에 못 닿았는지"를 볼 수 있게 했다.
+with ex as (select unnest(array['9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0']) c),
+r as (select * from readings where left(user_id::text,8) not in (select c from ex)
+        and consultation_type='tarot' and stars_spent > 0
+        and coalesce(emotion_tag,'') not like 'fortune:%' and relationship_id is null),
+first_a as (select m.reading_id, length(m.content) chars from messages m
+  join (select reading_id, min(created_at) t from messages where role='assistant' group by 1) x
+    on x.reading_id=m.reading_id and x.t=m.created_at and m.role='assistant'),
+tot as (select reading_id, sum(length(content)) all_chars from messages where role='assistant' group by 1)
+select r.spread_type, coalesce(r.prompt_version,'(none)') pv, count(*) n, r.stars_spent stars,
+       round(avg(fa.chars)) avg_first,
+       round(percentile_cont(0.5) within group (order by fa.chars)::numeric) med_first,
+       min(fa.chars) min_first, max(fa.chars) max_first,
+       round(avg(t.all_chars)) avg_total,
+       round(avg(fa.chars)/nullif(r.stars_spent,0)) first_per_star,
+       round(avg(t.all_chars)/nullif(r.stars_spent,0)) total_per_star
+from r join first_a fa on fa.reading_id=r.id join tot t on t.reading_id=r.id
+group by r.spread_type, coalesce(r.prompt_version,'(none)'), r.stars_spent
+order by r.spread_type, pv;
+--
+-- ❌ 검산 1 — premium-depth(2026-07-22) 코호트 vs 스펙 목표 (med_first 기준)
+--  스프레드         n  별  med_first  avg  max  목표   허용범위      판정
+--  three_card       3  25    1,355  1,327 1,357 1,500 1,300~1,700  ✅ 범위 내(하단)
+--  deep_feelings_5  1  40    1,474  1,474 1,474 2,525 2,300~2,750  ❌ 목표의 58%
+--  readiness_6      1  45    1,321  1,321 1,321 2,900 2,700~3,200  ❌ 목표의 46%
+--  potential_7      3  55    2,334  2,208 2,456 3,550 3,300~3,800  ❌ 목표의 66%
+--  reunion_deep_7   3  55    1,962  2,119 2,464 3,550 3,300~3,800  ❌ 목표의 55%
+--  one_card        23  10      789    835 1,077  (확대 대상 아님)  persona-v3 577 → +37%
+--  two_card        70  15    1,022  1,045 1,346  (확대 대상 아님)  persona-v3 921 → +11%
+--
+-- 🔴 판정: **premium-depth 부분 미작동**. 확대 대상이던 5·6·7장 프리미엄 4종이 전부 범위 밖이고,
+--    프리미엄 8건(deep_feelings_5 1 + readiness_6 1 + potential_7 3 + reunion_deep_7 3) 중
+--    **허용범위 하단에 닿은 건이 0건**이다. 최댓값 2,464자(reunion_deep_7)조차 자기 하한 3,300 미달.
+--    소표본(n=1~3)이지만 min/max 가 전부 하한 아래라 "표본운"으로 설명되지 않는다.
+--    반대로 확대 대상이 아니던 원/투카드는 +37%/+11% 증가 → 지시가 저가 상품에만 먹었다.
+--    쓰리카드만 유일하게 의도대로 작동(persona-v3 1,020 → 1,355 med, +33%).
+-- ⚠️ relationship_5 는 premium-depth 표본이 0건 — 7/22 이후 한 건도 안 팔렸다.
+--    Q14b 에서 158회 추천된 최다 추천 상품인데(Q14c 이행 1건) 개편 효과를 측정할 데이터조차 없다.
+--
+-- 📊 검산 2 — 유저 체감 가성비(별당 글자) vs 우리 원가(별당 원가) 4분면
+--   별당 글자 = 전 버전 가중평균 total_per_star (assistant 전체 글자 ÷ 별). one_card 는 6별 이상치 1건 제외.
+--   별당 원가 = A4 실측 별당원가(캐시 0.6) × 실유저 배율 0.704.
+--   컷선: 별당글자 130자 / 별당원가 ₩7.0
+--
+--  스프레드         별  별당글자  별당원가   분면
+--  one_card         10    186.5   ₩10.70   A (유저 후함 · 우리 비쌈)
+--  two_card         15    175.3   ₩ 9.15   A
+--  deep_feelings_5  40    159.7   ₩ 8.66   A
+--  readiness_6      45    114.0   ₩ 6.55   C (유저 박함 · 우리 쌈)
+--  three_card       25    108.2   ₩ 6.20   C
+--  reunion_deep_7   55    101.8   ₩ 4.51   C
+--  reunion_5        40    100.4   (미산출)  C
+--  relationship_5   40     87.6   ₩ 5.07   C
+--  potential_7      55     84.1   ₩ 3.31   C
+--
+--  B (유저 후함 · 우리 쌈) = **공집합**   /   D (유저 박함 · 우리 비쌈) = **공집합**
+-- 🔵 해석: 9개 상품이 A–C 대각선에 일렬로 놓인다. 두 지표가 같은 분자(생산 글자수)를 공유하니
+--    구조적으로 상관될 수밖에 없지만, 그 대각선의 기울기가 곧 **가격 정책의 실패**다.
+--    유저는 55별 potential_7 에서 별당 84자를, 10별 one_card 에서 별당 187자를 받는다 —
+--    **비싼 상품을 살수록 별당 체감이 2.2배 나빠진다**(정상적인 볼륨 디스카운트의 역방향).
+--    우리 마진은 정확히 그 반대로 프리미엄에서 최고다(₩3.31 vs ₩10.70 = 3.2배 유리).
+--    즉 프리미엄 티어 = 우리 고마진 · 유저 저체감. premium-depth 가 고치려던 바로 그 격차이고,
+--    위 검산 1 이 그 수정이 프리미엄 구간에서 안 먹었음을 보여준다 → 격차는 그대로 남아 있다.
+-- ⚠️ 이것이 프리미엄 재구매가 안 붙는 유력 원인(재구매율 6.1% · 3회+ 0명)의 후보 설명.
+--    다만 인과는 미확인 — 정독(A7)이나 환불/이탈 코멘트로 교차검증이 필요하다.
+-- ⚠️ 별당 글자수는 "체감 가치"의 대리지표일 뿐이다. 프리미엄은 카드 수가 많아 정보 밀도·구조가
+--    다르므로 글자수만으로 가치를 단정하면 안 된다(길다≠좋다). 그래도 2.2배 역전은 설명이 필요한 크기다.
