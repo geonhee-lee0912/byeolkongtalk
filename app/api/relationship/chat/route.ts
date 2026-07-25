@@ -11,6 +11,7 @@ import {
   summarizeOlder,
   computeTurnSignals,
   generateOnce,
+  formatDrawnCardsBlock,
   VERDICT_INTHREAD_TURN_CAP,
 } from "@/lib/claude";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -28,6 +29,8 @@ import {
   splitThreadMessages,
   buildRelationshipFileBlock,
   appendSkillLog,
+  grantSkillGrace,
+  consumeSkillGrace,
   cleanSummary,
   type ThreadMsg,
 } from "@/lib/relationship/memory";
@@ -41,6 +44,13 @@ import {
   serializeCompatReport,
 } from "@/lib/fortune/compat-report";
 import { redactCompatForModel } from "@/lib/relationship/compat-thread";
+import { SPREAD_INFO, getPositionLabels } from "@/lib/tarot/spreads";
+import { extractClosingLine } from "@/lib/saju/closing";
+import {
+  serializeThreadDraw,
+  validateDrawnCards,
+  redactDrawForModel,
+} from "@/lib/relationship/draw-thread";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -54,11 +64,17 @@ const CHECKIN_RE = /\[CHECKIN:([^\]]+)\]/;
 const SKILL_DONE_RE = /\[SKILL_DONE\]/;
 // 판정 개시 시 별콩이의 도입(1단계)을 여는 비영속 트리거 — DB에 저장하지 않음(스레드 오염 방지).
 const VERDICT_KICKOFF = "우리 사이에 다툼이 있었어. 잘잘못을 판정받고 싶어.";
+// 카드뽑기 개시 트리거 — 비영속(DB 미저장), alternation 맞추기용 마지막 user 메시지.
+const DRAW_KICKOFF = "방금 카드를 뽑았어. 펼쳐서 봐줘.";
+// 카드 풀이는 값을 치른 결과물 — 일반 턴(1400)의 2배.
+const DRAW_MAX_TOKENS = 2800;
 
 interface Body {
   relationshipId: string;
   message?: string;
   skillStart?: string;
+  /** kind="tarot_draw" 스킬 개시 시 클라가 뽑은 카드(서버가 위조 검증 + label 재계산). */
+  drawnCards?: unknown;
 }
 
 export async function POST(request: NextRequest) {
@@ -210,6 +226,152 @@ export async function POST(request: NextRequest) {
         await logError(err, ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } }));
         return NextResponse.json({ error: "compat_generation_failed", refunded }, { status: 500 });
       }
+    }
+
+    // ── Phase 3: 카드뽑기(tarot_draw) — 뽑은 카드로 인-스레드 풀이 1턴 스트리밍 ──
+    const drawSkill = getSkill(body.skillStart);
+    if (drawSkill?.kind === "tarot_draw" && drawSkill.spread) {
+      const spread = drawSkill.spread;
+
+      // 인-플라이트 락 — 중복 차감 방지. 같은 스킬 락이 3분 초과면 stale override(하드 크래시 복구).
+      const STALE_MS = 3 * 60 * 1000;
+      if (activeSkill) {
+        const started = activeSkill.started_at ? new Date(activeSkill.started_at).getTime() : 0;
+        const stale = activeSkill.key === drawSkill.key && Date.now() - started > STALE_MS;
+        if (!stale) return NextResponse.json({ error: "skill_already_active" }, { status: 400 });
+      }
+      // 패스 필수 — 기존 /api/consultations/tarot 검증의 이관.
+      if (!pass) return NextResponse.json({ error: "pass_required" }, { status: 402 });
+
+      // 카드 위조 검증 — label 은 클라 값을 버리고 서버가 재계산(최종 권위).
+      const labels = getPositionLabels(spread, "love", null);
+      const cards = validateDrawnCards(body.drawnCards, SPREAD_INFO[spread].cardCount, labels);
+      if (!cards) return NextResponse.json({ error: "invalid_cards" }, { status: 400 });
+
+      // 차감 (서버 최종 권위). 실패 시 402 → 클라가 /shop.
+      const spend = await spendStars(userId, drawSkill.starCost, {
+        readingId: threadReadingId,
+        source: `rel_skill_${drawSkill.key}`,
+      });
+      if (!spend.success) {
+        return NextResponse.json(
+          { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: drawSkill.starCost },
+          { status: 402 }
+        );
+      }
+
+      // 인-플라이트 락 세팅
+      const lockAt = new Date().toISOString();
+      {
+        const lockMemo = (rel.memo ?? {}) as RelationshipMemo;
+        lockMemo.active_skill = { key: drawSkill.key, started_at: lockAt, assistant_turns: 0 };
+        await supabase.from("relationships").update({ memo: lockMemo }).eq("id", rel.id);
+      }
+
+      // 카드 스트립 메시지 — 스트림 전에 저장(뽑은 결과가 먼저 스레드에 눌러앉음).
+      // id 를 확보해 실패 시 이 row 만 정확히 삭제한다.
+      const { data: stripRow } = await supabase
+        .from("messages")
+        .insert({
+          reading_id: threadReadingId,
+          role: "assistant",
+          content: serializeThreadDraw({ skill: drawSkill.key, spread, cards }),
+          skill_key: drawSkill.key,
+          created_at: lockAt,
+        })
+        .select("id")
+        .single();
+
+      const drawLogCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "draw", skill: drawSkill.key } };
+      const rollbackDraw = async (err: unknown) => {
+        const refund = await chargeStars(
+          userId,
+          drawSkill.starCost,
+          `refund_${randomUUID()}`,
+          `rel_skill_${drawSkill.key}_refund`
+        ).catch(() => null);
+        if (!refund) {
+          await logError(new Error("draw_refund_failed"), ctxFromRequest(request, drawLogCtx));
+        }
+        if (stripRow?.id) {
+          await supabase.from("messages").delete().eq("id", stripRow.id);
+        }
+        const undo = (rel.memo ?? {}) as RelationshipMemo;
+        undo.active_skill = null;
+        await supabase.from("relationships").update({ memo: undo }).eq("id", rel.id);
+        await logError(err, ctxFromRequest(request, drawLogCtx));
+      };
+
+      // 모델 입력 = 최근창(스레드 맥락 · compat/스트립 치환) + 비영속 드로우 트리거
+      const { data: pastRows } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("reading_id", threadReadingId)
+        .order("created_at", { ascending: true });
+      const past = redactDrawForModel(redactCompatForModel((pastRows ?? []) as ThreadMsg[]));
+      const split = splitThreadMessages(past, rel.summarized_msg_count ?? 0);
+      const apiMessages = [...split.apiMessages, { role: "user" as const, content: DRAW_KICKOFF }];
+
+      const fileBlock = buildRelationshipFileBlock(
+        {
+          label: rel.label,
+          status: rel.status as RelationshipStatus,
+          hasSelfBirth: !!rel.self_profile_id,
+          hasPartnerBirth: !!rel.partner_profile_id,
+          memo: memoObj,
+        },
+        rel.rolling_summary
+      );
+      const systemMessage = buildRelationshipSystemMessage({
+        fileBlock,
+        isFirstEver: false,
+        checkinPrompt: null,
+        dailyClose: false,
+        drawContext: {
+          spreadLabel: `${drawSkill.label} · ${cards.length}장`,
+          cardsBlock: formatDrawnCardsBlock(cards),
+        },
+      });
+
+      let drawText = "";
+      const drawStream = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of streamChat(systemMessage, apiMessages, DRAW_MAX_TOKENS, drawLogCtx)) {
+              drawText += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+            if (!drawText.trim()) throw new Error("empty_assistant_stream");
+
+            // 풀이 저장 + skill_log 적립 + 그레이스 적립 + 락 해제 (한 update)
+            const now = new Date().toISOString();
+            await supabase.from("messages").insert([
+              { reading_id: threadReadingId, role: "assistant", content: drawText, skill_key: drawSkill.key, created_at: now },
+            ]);
+            const summary = extractClosingLine([{ role: "assistant", content: drawText }]) ?? "";
+            const doneMemo = (rel.memo ?? {}) as RelationshipMemo;
+            const withGrace = grantSkillGrace(
+              appendSkillLog(doneMemo, drawSkill.key, threadReadingId, summary, now),
+              drawSkill.key,
+              drawSkill.graceTurns ?? 0
+            );
+            withGrace.active_skill = null;
+            await supabase.from("relationships").update({ memo: withGrace, last_visited_at: now }).eq("id", rel.id);
+
+            controller.close();
+          } catch (err) {
+            await rollbackDraw(err);
+            controller.error(err);
+          }
+        },
+      });
+      return new Response(drawStream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+        },
+      });
     }
 
     if (body.skillStart !== "verdict") {
