@@ -525,6 +525,14 @@ export function allocate<T extends { score: number }>(
 Run: `node --import tsx --test lib/analytics/apiCost.test.ts`
 Expected: PASS, `pass 7 / fail 0`
 
+> **실행 중 수정 (2026-07-25, 커밋 `2b3fc8d`)**: 위 Step 3 코드의 `sysMult` 에서 **"첫 콜 = 캐시 write 특례" 를 제거**하고 전 콜 균일 블렌드로 바꿨다.
+> ```ts
+> const sysMult = i.cacheHitRate * CACHE_READ_MULT + (1 - i.cacheHitRate) * CACHE_WRITE_MULT;
+> ```
+> 이유 ① `cacheHitRate` 정의가 "전체 콜 중 정적 블록이 히트하는 비율"이므로 첫 콜의 미스는 이미 `(1 − hitRate)` 에 포함 → 특례는 **이중 계상**이었다. ② 특례를 두면 콜 수와 무관한 고정비가 붙어 짧은 세션에서 비중이 커지고, 결과적으로 초선형 테스트(6턴→18턴 >3배)가 **어떤 조합으로도 통과 불가**했다(2.70~2.79배). ③ 미스 승수를 `1` 대신 `CACHE_WRITE_MULT` 로 둔 이유: `cache_control` 마킹된 블록의 미스는 실제로 cache-write 단가(기본 입력의 1.25×)를 낸다.
+> 실측 배수: full_history 6→18턴 **3.397배**, windowed 30→60턴 **2.214배** (창 상한 도달 후 콜당 입력이 7,200자 + summary 1,000자로 고정).
+> ⚠️ 남은 모델 한계: **one-shot 운세 리포트는 후속 콜이 없어 hitRate 가 낮아야 한다**(단 프롬프트 캐시는 API 키 단위 5분 TTL 이라 다른 요청과 공유돼 0 은 아닐 수 있다). A4 의 3 시나리오가 이 불확실성을 흡수한다.
+
 - [ ] **Step 5: 커밋**
 
 ```bash
