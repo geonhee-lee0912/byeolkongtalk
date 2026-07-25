@@ -479,7 +479,7 @@ export interface TarotReadingContext {
   thresholdOverride?: WrapThresholds;
 }
 
-function formatDrawnCardsBlock(cards: DrawnCard[]): string {
+export function formatDrawnCardsBlock(cards: DrawnCard[]): string {
   const lines = cards.map((c, i) => {
     const card = getCard(c.card_id);
     const name = card?.name_kr ?? `카드 ${c.card_id}`;
@@ -631,6 +631,19 @@ function getVerdictInthreadGuide(): string {
   return _cachedVerdictInthreadGuide;
 }
 
+let _cachedRelDrawGuide: string | null = null;
+function getRelationshipDrawGuide(): string {
+  if (_cachedRelDrawGuide === null) {
+    _cachedRelDrawGuide =
+      "\n\n" +
+      readFileSync(
+        join(process.cwd(), "data", "persona", "byeolkong_relationship_draw.md"),
+        "utf-8"
+      );
+  }
+  return _cachedRelDrawGuide;
+}
+
 /** 인-스레드 판정 안전 턴캡 — 이 별콩이 응답 턴에 도달하면 서버가 [SKILL_DONE]을 보장. */
 export const VERDICT_INTHREAD_TURN_CAP = 6;
 
@@ -642,6 +655,8 @@ export interface RelationshipTurnContext {
   turnSignals?: TurnSignals;     // 직전 질문 마무리·단답 연속 동적 경고 (심문 피로 방지)
   /** 진행 중 인-스레드 스킬 — key="verdict"면 판정 가이드/턴 힌트 주입. 없으면 일반 대화. */
   activeSkill?: { key: string; assistantTurns: number; forceEnd: boolean } | null;
+  /** 인-스레드 카드뽑기 턴 — 드로우 가이드 + [뽑은 카드] 블록 주입. 없으면 일반 대화. */
+  drawContext?: { spreadLabel: string; cardsBlock: string } | null;
 }
 
 export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
@@ -671,10 +686,16 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
           : "")
       : "";
 
+  // 인-스레드 카드뽑기 — 드로우 가이드 + 뽑은 카드 목록 주입.
+  const drawGuide = ctx.drawContext
+    ? getRelationshipDrawGuide() +
+      `\n\n## 이번 턴 — 방금 뽑은 카드\n스프레드: ${ctx.drawContext.spreadLabel}\n\n${ctx.drawContext.cardsBlock}`
+    : "";
+
   const dynamicPart = `---
 ## 이번 세션 정보
 ${ctx.fileBlock}
----${firstGuide}${checkinGuide}${closeGuide}${verdictGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
+---${firstGuide}${checkinGuide}${closeGuide}${verdictGuide}${drawGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
 
   return { staticPart, dynamicPart };
 }
