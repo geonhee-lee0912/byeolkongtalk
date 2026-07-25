@@ -240,26 +240,11 @@ let relId, threadId, partnerProfileId;
     verd.starCost === 30;
   check("E1", "스킬 가격 = 실제 차감원(스프레드/운세 config) 일치", priceOk, `checkin ${chk.starCost}/${SPREAD_INFO[chk.spread].starCost}, deep ${deep.starCost}/${SPREAD_INFO[deep.spread].starCost}, compat ${comp.starCost}/${FORTUNE_CONFIG.compat.cost}`);
 
-  // 위조 차단 — one_card 를 checkin 스킬로 태깅 시도
-  const cards1 = [{ position: 0, label: "질문의 답", card_id: 3, direction: "upright" }];
-  const e2 = await api("POST", "/api/consultations/tarot", { body: { spreadType: "one_card", spreadCategory: "love", emotion: "걔 속마음이 궁금해", concern: "우리 사이 테스트", drawnCards: cards1, relationshipId: relId, skillKey: "checkin" } });
-  check("E2", "스킬-스프레드 불일치 위조 → 400", e2.status === 400, JSON.stringify(e2.json));
-
-  // 관계 체크인(checkin_6) 정상 생성 + forceEnd 로 [END] → skill_log
-  const labels = getPositionLabels("checkin_6", "love");
-  const cards6 = labels.map((label, i) => ({ position: i, label, card_id: 10 + i, direction: i % 2 ? "reversed" : "upright" }));
-  const balBefore = await balance();
-  const e3 = await api("POST", "/api/consultations/tarot", { body: { spreadType: "checkin_6", spreadCategory: "love", emotion: "걔 속마음이 궁금해", concern: "우리 사이 · 관계 체크인", drawnCards: cards6, relationshipId: relId, skillKey: "checkin" } });
-  const balAfter = await balance();
-  const { data: skillReading } = e3.json?.id ? await db.from("readings").select("relationship_id, skill_key, consultation_type, stars_spent").eq("id", e3.json.id).single() : { data: null };
-  check("E3", "체크인 스킬 생성 → 태깅 + 45별", e3.status === 200 && skillReading?.relationship_id === relId && skillReading?.skill_key === "checkin" && skillReading?.consultation_type === "tarot" && balBefore - balAfter === 45);
-  const e4 = await sse("/api/consultations/tarot/chat", { readingId: e3.json.id, messages: [{ role: "user", content: "우리 사이 · 관계 체크인" }], forceEnd: true });
-  const logAfterE4 = await pollUntil(async () => {
-    const r = await getRel();
-    return (r?.memo?.skill_log ?? []).some((s) => s.skill === "checkin") ? r : null;
-  }, { timeoutMs: 15000 });
-  check("E4", "체크인 [END] → memo.skill_log 적립", e4.status === 200 && e4.text.includes("[END]") && !!logAfterE4, JSON.stringify(logAfterE4?.memo?.skill_log?.at(-1) ?? {}).slice(0, 140));
-  await sleep(1500);
+  // (구 E2·E3·E4 제거) 카드뽑기 스킬이 인-스레드로 이관되면서 검사 대상 계약 자체가 소멸.
+  // E2 스킬-스프레드 위조 400 / E3 타로 reading 의 relationship_id·skill_key 태깅 /
+  // E4 타로 [END] → memo.skill_log 는 이제 /api/consultations/tarot 에 존재하지 않는다
+  // (개시·검증·태깅·적립 전부 /api/relationship/chat 의 skillStart 분기로 이동).
+  // 대체 검증: scripts/smoke-draw-inthread.ts (인-스레드 머니 패스 런타임 스모크).
 
   // verdict — 생성(30별) → 4턴 시드 → 5턴째 강제 [END] + skill_log
   const balV0 = await balance();
