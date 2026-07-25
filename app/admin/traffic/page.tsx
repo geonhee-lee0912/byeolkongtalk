@@ -3,6 +3,7 @@
 // 보여주므로 가입 이후 앱 내부 이탈은 이 화면 말고 볼 수단이 없다 → 라우트별 표가 이 화면의 핵심.
 import { headers } from "next/headers";
 import { LineChart } from "@/components/admin/LineChart";
+import { routeLabel } from "@/lib/analytics/route-labels";
 import type {
   TrafficPoint,
   BotShare,
@@ -14,6 +15,7 @@ import type {
 export const dynamic = "force-dynamic";
 
 const SEGMENT_LABEL: Record<string, string> = { guest: "비로그인", member: "로그인" };
+
 
 async function api(path: string) {
   const h = await headers();
@@ -88,7 +90,10 @@ export default async function TrafficPage() {
             <tbody>
               {routes.map((r) => (
                 <tr key={r.path} className="border-t border-white/10">
-                  <td className="py-1.5 font-mono text-[12px]">{r.path}</td>
+                  <td className="py-1.5">
+                    <div>{routeLabel(r.path)}</div>
+                    <div className="font-mono text-[11px] text-white/35">{r.path}</div>
+                  </td>
                   <td>{r.pv.toLocaleString()}</td>
                   <td>{r.uv.toLocaleString()}</td>
                   <td>{r.pvPerUv}</td>
