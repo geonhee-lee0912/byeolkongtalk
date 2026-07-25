@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildTrafficTrend,
+  pickTodayYesterday,
   buildBotShare,
   buildRouteRanking,
   buildAuthSplit,
@@ -9,6 +10,8 @@ import {
   DIRECT,
   type PageViewRow,
 } from "./traffic.ts";
+import { adminKstDate } from "../admin-time.ts";
+import { kstDate } from "./aggregate.ts"; // 자정 기준 — 두 기준이 실제로 갈리는지 대조용
 
 /** 테스트용 행 팩토리 — 기본은 사람(is_bot=false) · 비로그인 · utm 없음. */
 function R(p: Partial<PageViewRow> & { created_at: string }): PageViewRow {
@@ -23,17 +26,17 @@ function R(p: Partial<PageViewRow> & { created_at: string }): PageViewRow {
   };
 }
 
-test("buildTrafficTrend — UV=구별 anon_id · PV=행수 · 봇 제외 · KST 일자 버킷", () => {
+test("buildTrafficTrend — UV=구별 anon_id · PV=행수 · 봇 제외 · 일자 버킷", () => {
   const t = buildTrafficTrend({
     rows: [
-      R({ anon_id: "a1", created_at: "2026-07-01T02:00:00Z" }),
+      R({ anon_id: "a1", created_at: "2026-07-01T02:00:00Z" }), // 07-01 11:00 KST
       R({ anon_id: "a1", created_at: "2026-07-01T03:00:00Z" }), // 같은 방문자 → UV 1
       R({ anon_id: "a2", created_at: "2026-07-01T04:00:00Z" }),
-      R({ anon_id: "a3", created_at: "2026-07-01T16:00:00Z" }), // KST 로는 07-02 (UTC+9)
+      R({ anon_id: "a3", created_at: "2026-07-02T02:00:00Z" }), // 07-02 11:00 KST → 다음 버킷
       R({ anon_id: "bot", created_at: "2026-07-01T05:00:00Z", is_bot: true }), // 제외
     ],
     days: 2,
-    todayKst: "2026-07-02",
+    todayBucket: "2026-07-02",
   });
   const d1 = t.find((p) => p.date === "2026-07-01")!;
   assert.equal(d1.pv, 3);
@@ -51,14 +54,14 @@ test("buildTrafficTrend — anon_id 없는 행은 PV 만 기여 (UV 로 뭉치�
       R({ anon_id: null, created_at: "2026-07-01T03:00:00Z" }),
     ],
     days: 1,
-    todayKst: "2026-07-01",
+    todayBucket: "2026-07-01",
   });
   assert.equal(t[0].pv, 2);
   assert.equal(t[0].uv, 0);
 });
 
 test("buildTrafficTrend — 빈 데이터에서도 날짜 축이 0 으로 채워짐", () => {
-  const t = buildTrafficTrend({ rows: [], days: 3, todayKst: "2026-07-03" });
+  const t = buildTrafficTrend({ rows: [], days: 3, todayBucket: "2026-07-03" });
   assert.equal(t.length, 3);
   assert.deepEqual(t.map((p) => p.date), ["2026-07-01", "2026-07-02", "2026-07-03"]);
   assert.ok(t.every((p) => p.uv === 0 && p.pv === 0));
@@ -68,10 +71,70 @@ test("buildTrafficTrend — 조회 창 밖 행은 버린다(축 오염 방지)",
   const t = buildTrafficTrend({
     rows: [R({ created_at: "2026-06-01T02:00:00Z" })], // 축(07-03 하루) 밖
     days: 1,
-    todayKst: "2026-07-03",
+    todayBucket: "2026-07-03",
   });
   assert.equal(t.length, 1);
   assert.equal(t[0].pv, 0);
+});
+
+// ── 오전 10시 롤오버 경계 ────────────────────────────────────────────────────
+// 이 화면은 "밤사이 한 세션이 어느 라우트에서 끊겼나" 를 본다. 자정 기준이면 그 세션이 두
+// 날짜로 쪼개져 반쪽만 보인다 → 대시보드 KPI 와 같은 오전 10시 롤오버를 쓴다.
+
+test("adminKstDate — 09:59 KST=전날 · 10:00 KST=당일 · 자정 직후(00:30 KST)=전날", () => {
+  assert.equal(adminKstDate("2026-07-02T00:59:00Z"), "2026-07-01"); // 07-02 09:59 KST → 전날
+  assert.equal(adminKstDate("2026-07-02T01:00:00Z"), "2026-07-02"); // 07-02 10:00 KST → 당일 (컷오프 정각)
+  assert.equal(adminKstDate("2026-07-01T15:30:00Z"), "2026-07-01"); // 07-02 00:30 KST → 전날
+  // 자정을 넘긴 같은 밤(23:30 → 00:30)이 한 버킷에 남는 것이 이 기준의 존재 이유
+  assert.equal(adminKstDate("2026-07-01T14:30:00Z"), adminKstDate("2026-07-01T15:30:00Z"));
+  // 반대로 자정 기준(/admin/analytics 가 쓰는 kstDate)이면 갈라진다 — 두 기준은 섞으면 안 된다
+  assert.notEqual(kstDate("2026-07-01T14:30:00Z"), kstDate("2026-07-01T15:30:00Z"));
+});
+
+test("buildTrafficTrend — 밤사이 세션이 한 버킷에 남고 10:00 KST 에서 넘어간다", () => {
+  const t = buildTrafficTrend({
+    rows: [
+      R({ anon_id: "a1", created_at: "2026-07-01T14:30:00Z" }), // 07-01 23:30 KST
+      R({ anon_id: "a1", created_at: "2026-07-01T15:30:00Z" }), // 07-02 00:30 KST — 같은 밤
+      R({ anon_id: "a1", created_at: "2026-07-02T00:59:00Z" }), // 07-02 09:59 KST — 아직 같은 버킷
+      R({ anon_id: "a2", created_at: "2026-07-02T01:00:00Z" }), // 07-02 10:00 KST — 여기서 넘어간다
+    ],
+    days: 2,
+    todayBucket: "2026-07-02",
+  });
+  const d1 = t.find((p) => p.date === "2026-07-01")!;
+  assert.equal(d1.pv, 3);
+  assert.equal(d1.uv, 1); // a1 의 밤 세션이 두 날짜로 쪼개지지 않았다
+  const d2 = t.find((p) => p.date === "2026-07-02")!;
+  assert.equal(d2.pv, 1);
+  assert.equal(d2.uv, 1);
+});
+
+test("pickTodayYesterday — 마지막 점=오늘 · 그 앞=어제", () => {
+  const t = buildTrafficTrend({
+    rows: [
+      R({ anon_id: "a1", created_at: "2026-07-02T02:00:00Z" }), // 오늘 버킷
+      R({ anon_id: "a2", created_at: "2026-07-01T02:00:00Z" }), // 어제 버킷
+      R({ anon_id: "a3", created_at: "2026-07-01T03:00:00Z" }),
+    ],
+    days: 2,
+    todayBucket: "2026-07-02",
+  });
+  const { today, yesterday } = pickTodayYesterday(t);
+  assert.equal(today.date, "2026-07-02");
+  assert.deepEqual([today.uv, today.pv], [1, 1]);
+  assert.equal(yesterday.date, "2026-07-01");
+  assert.deepEqual([yesterday.uv, yesterday.pv], [2, 2]);
+});
+
+test("pickTodayYesterday — 빈 배열·1일치에서도 0 (Delta 가 '어제 0' 으로 뜬다)", () => {
+  assert.deepEqual(pickTodayYesterday([]), {
+    today: { date: "", uv: 0, pv: 0 },
+    yesterday: { date: "", uv: 0, pv: 0 },
+  });
+  const one = buildTrafficTrend({ rows: [], days: 1, todayBucket: "2026-07-02" });
+  assert.equal(pickTodayYesterday(one).today.date, "2026-07-02");
+  assert.equal(pickTodayYesterday(one).yesterday.uv, 0);
 });
 
 test("buildBotShare — 봇 비율 (빈 배열은 0, throw 없음)", () => {

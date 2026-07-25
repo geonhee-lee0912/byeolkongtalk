@@ -10,8 +10,9 @@
 //   없는 행(쿠키 발급 전 · 차단)은 UV 에 세지 않고 PV 만 기여한다 (하나로 뭉치면 UV 가 왜곡된다).
 // - is_bot=true 는 모든 지표에서 제외한다. 섞이면 전환율이 전부 이유 없이 낮게 나온다.
 //   대신 봇 비율만 buildBotShare 로 따로 본다 (계측 건강성 확인용).
+// - 화면 표기는 UV → PV 순 ("몇 명이 왔고 그중 몇 번 봤나"). 타입 필드도 그 순서로 맞춘다.
 
-import { kstDate } from "./aggregate";
+import { adminKstDate } from "../admin-time";
 
 export type PageViewRow = {
   anon_id: string | null;
@@ -35,22 +36,27 @@ const pct1 = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : 0)
 
 export type TrafficPoint = { date: string; uv: number; pv: number };
 
+/**
+ * 일별 UV/PV. 날짜 버킷은 **오전 10시 롤오버**(adminKstDate) — 대시보드 KPI 와 같은 기준이다.
+ * 자정 기준이면 밤사이 한 세션이 두 날짜로 쪼개져, 이 화면이 보려는 "그 세션이 어느 라우트에서
+ * 끊겼나" 가 이틀에 걸쳐 반으로 잘려 보인다. (/admin/analytics 트렌드는 자정 기준 유지 — 섞지 말 것)
+ */
 export function buildTrafficTrend(input: {
   rows: PageViewRow[];
   days: number;
-  todayKst: string; // 'YYYY-MM-DD' (KST 오늘)
+  todayBucket: string; // 'YYYY-MM-DD' (오전 10시 롤오버 기준 오늘)
 }): TrafficPoint[] {
   // 날짜 축을 먼저 채운다 — 수집이 없던 날도 0 으로 나와야 "끊긴 구간"이 눈에 보인다.
   const uv = new Map<string, Set<string>>();
   const pv = new Map<string, number>();
-  const base = new Date(`${input.todayKst}T00:00:00Z`);
+  const base = new Date(`${input.todayBucket}T00:00:00Z`);
   for (let i = 0; i < input.days; i++) {
     const d = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
     uv.set(d, new Set());
     pv.set(d, 0);
   }
   for (const r of humanRows(input.rows)) {
-    const d = kstDate(r.created_at);
+    const d = adminKstDate(r.created_at);
     if (!pv.has(d)) continue; // 축 밖(조회 경계 걸침) 행은 버린다
     pv.set(d, pv.get(d)! + 1);
     if (r.anon_id) uv.get(d)!.add(r.anon_id);
@@ -58,6 +64,19 @@ export function buildTrafficTrend(input: {
   return [...pv.keys()]
     .map((d) => ({ date: d, uv: uv.get(d)!.size, pv: pv.get(d)! }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * 추세의 마지막 두 점 = 오늘·어제 (오전 10시 롤오버 버킷). 상단 "오늘 UV/PV + 어제 대비" 카드용.
+ * buildTrafficTrend 가 날짜 축을 항상 채우고 오름차순 정렬하므로 마지막이 오늘이지만,
+ * days=1 이나 빈 배열에서도 안전해야 한다 → 없는 쪽은 0 으로 준다 (Delta 가 "어제 0" 으로 뜬다).
+ */
+export function pickTodayYesterday(trend: TrafficPoint[]): { today: TrafficPoint; yesterday: TrafficPoint } {
+  const zero = (date: string): TrafficPoint => ({ date, uv: 0, pv: 0 });
+  return {
+    today: trend[trend.length - 1] ?? zero(""),
+    yesterday: trend[trend.length - 2] ?? zero(""),
+  };
 }
 
 /** 봇 비율 — 계측 건강성 한 줄. 봇 PV 가 갑자기 치솟으면 UV/PV 해석 자체를 의심해야 한다. */

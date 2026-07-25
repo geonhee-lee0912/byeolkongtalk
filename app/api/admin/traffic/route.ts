@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionList } from "@/lib/admin";
-import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
+import { adminDaysAgoKstIso, adminKstDate } from "@/lib/admin-time";
 import {
   buildTrafficTrend,
   buildBotShare,
@@ -22,11 +22,11 @@ export async function GET(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
 
   const days = Math.min(365, Math.max(1, Number(req.nextUrl.searchParams.get("days") ?? 30)));
-  const since = daysAgoKstIso(days - 1);
-  // startOfTodayKstIso()는 KST 오늘 0시의 UTC ISO → +9h 후 슬라이스하면 KST 날짜.
-  const todayKst = new Date(new Date(startOfTodayKstIso()).getTime() + 9 * 3600000)
-    .toISOString()
-    .slice(0, 10);
+  // 날짜 경계는 대시보드 KPI 와 같은 오전 10시 롤오버 — 밤사이 세션이 두 날짜로 쪼개지면
+  // "그 세션이 어느 라우트에서 끊겼나" 가 반으로 잘려 보인다. (조회창 시작도 같은 기준이어야
+  // 가장 오래된 버킷이 반쪽만 담기지 않는다)
+  const since = adminDaysAgoKstIso(days - 1);
+  const todayBucket = adminKstDate(new Date().toISOString());
   const supa = getServiceSupabase();
 
   // 어드민(운영자) 활동 제외 — 운영자가 화면 돌아다닌 PV 가 라우트 순위를 왜곡한다.
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     days,
     // 봇은 각 집계 함수가 내부에서 제외한다. bot 은 비율 표시용(같은 배열에서 계산).
     bot: buildBotShare(rows),
-    trend: buildTrafficTrend({ rows, days, todayKst }),
+    trend: buildTrafficTrend({ rows, days, todayBucket }),
     routes: buildRouteRanking(rows),
     auth: buildAuthSplit(rows),
     entry: buildEntrySources(rows),

@@ -3,7 +3,9 @@
 // 보여주므로 가입 이후 앱 내부 이탈은 이 화면 말고 볼 수단이 없다 → 라우트별 표가 이 화면의 핵심.
 import { headers } from "next/headers";
 import { LineChart } from "@/components/admin/LineChart";
+import { Stat, Delta } from "@/components/admin/Stat";
 import { routeLabel } from "@/lib/analytics/route-labels";
+import { pickTodayYesterday } from "@/lib/analytics/traffic";
 import type {
   TrafficPoint,
   BotShare,
@@ -38,6 +40,8 @@ export default async function TrafficPage() {
   const auth: AuthSplitRow[] = data?.auth ?? [];
   const variants: EntryRow[] = data?.entry?.variants ?? [];
   const contents: EntryRow[] = data?.entry?.contents ?? [];
+  // 추세 마지막 두 점이 오늘·어제 버킷 (빈 데이터면 둘 다 0 → Delta 가 "어제 0")
+  const { today, yesterday } = pickTodayYesterday(trend);
 
   return (
     <div className="space-y-10">
@@ -47,7 +51,8 @@ export default async function TrafficPage() {
         </h1>
         {/* 계측 건강성 한 줄 — 봇 PV 가 갑자기 치솟으면 아래 숫자 해석 자체를 의심해야 한다 */}
         <p className="text-[12px] text-white/40 mt-1">
-          UV = 구별되는 방문자(anon_id) · 봇 제외 집계 · 수집된 전체 PV {bot.totalPv.toLocaleString()}건 중 봇{" "}
+          UV = 구별되는 방문자(anon_id) · 봇 제외 집계 · 날짜는 오전 10시 롤오버(대시보드와 동일) ·
+          수집된 전체 PV {bot.totalPv.toLocaleString()}건 중 봇{" "}
           {bot.botPv.toLocaleString()}건 ({bot.botPct}%)
         </p>
       </div>
@@ -57,6 +62,20 @@ export default async function TrafficPage() {
           아직 수집된 데이터가 없습니다. 페이지뷰 비콘이 배포된 뒤 라우트 이동이 발생하면 채워집니다.
         </div>
       )}
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          오늘 <span className="text-white/35">(오전 10시 기준 · 어제 대비)</span>
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:max-w-lg">
+          <Stat label="오늘 UV" value={today.uv.toLocaleString()}>
+            <Delta today={today.uv} yesterday={yesterday.uv} />
+          </Stat>
+          <Stat label="오늘 PV" value={today.pv.toLocaleString()}>
+            <Delta today={today.pv} yesterday={yesterday.pv} />
+          </Stat>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">일별 UV / PV</h2>
