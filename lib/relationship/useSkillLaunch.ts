@@ -5,9 +5,7 @@
 // kind별 실행 경로(tarot_draw/compat/dialogue)를 여기 한 곳에서 관리.
 // 궁합·판정(즉시 차감)은 실행 전 구매 확인 모달을 거친다(pendingSkill). 카드뽑기는 ThreadChat 의 뽑기 모달이 확인.
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getSkill, type RelationshipSkill } from "./skills";
-import { REL_SKILL_KEY } from "./types";
 
 const PARTNER_BIRTH_MSG = "상대 생년월일을 먼저 등록해줘";
 const GENERIC_ERROR_MSG = "지금은 실행할 수 없어. 잠시 후 다시 시도해줄래?";
@@ -43,7 +41,6 @@ export function useSkillLaunch({
   partnerProfileId,
   onInThreadSkill,
 }: UseSkillLaunchArgs): UseSkillLaunchResult {
-  const router = useRouter();
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [pendingSkill, setPendingSkill] = useState<RelationshipSkill | null>(null);
@@ -55,15 +52,6 @@ export function useSkillLaunch({
     const t = setTimeout(() => setToastMsg(null), 2200);
     return () => clearTimeout(t);
   }, [toastMsg]);
-
-  const launchTarotDraw = (skill: RelationshipSkill) => {
-    if (!skill.spread) return;
-    sessionStorage.setItem(
-      REL_SKILL_KEY,
-      JSON.stringify({ relationshipId, skillKey: skill.key, spread: skill.spread })
-    );
-    router.push("/tarot/draw");
-  };
 
   // 궁합·판정 구매 확인 모달 열기 + 현재 별 잔액 조회
   const openConfirm = (skill: RelationshipSkill) => {

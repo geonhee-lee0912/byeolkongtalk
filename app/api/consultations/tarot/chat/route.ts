@@ -7,7 +7,6 @@ import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
 import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
-import { logSkillToThread } from "@/lib/relationship/skill-log";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -284,26 +283,6 @@ export async function POST(request: NextRequest) {
             created_at: new Date(turnTs + 1).toISOString(),
           },
         ]);
-
-        // "우리 사이" 스킬(tarot_draw) reading 종료 — 관계 스레드 memo.skill_log 에 요약 적립(별콩이 기억용).
-        // fire-and-forget + 자체 가드 — 실패해도 스트림에는 영향 없음.
-        if (assistantText.includes("[END]") && reading.relationship_id && reading.skill_key) {
-          const summary =
-            extractClosingLine(
-              [...(pastMessages ?? []), { role: "assistant", content: assistantText }] as {
-                role: "user" | "assistant";
-                content: string;
-              }[]
-            ) ?? "";
-          void logSkillToThread(
-            reading.relationship_id,
-            reading.skill_key,
-            reading.id,
-            summary
-          ).catch((e) => {
-            console.warn("[relationship] skill-log 실패 (무시):", e instanceof Error ? e.message : e);
-          });
-        }
 
         // Meta CAPI 체험완료 — 이 유저의 첫 리딩이면 StartTrial. eventId=trial:{userId} 로 dedup.
         const { count: doneCount } = await supabase

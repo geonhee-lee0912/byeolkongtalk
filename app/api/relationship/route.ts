@@ -48,7 +48,6 @@ export async function GET() {
       ? { used: todayTurns, allowance: dailyTurnAllowance(todayExtend), extendCount: todayExtend }
       : null,
     messages: msgRows ?? [],
-    recap: memoData?.pending_skill_recap ?? null,
     activeSkill: memoData?.active_skill?.key ?? null,
   });
 }

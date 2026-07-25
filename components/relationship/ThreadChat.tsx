@@ -7,7 +7,7 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/relationship/types";
-import { getSkill, buildSkillRecapText } from "@/lib/relationship/skills";
+import { getSkill } from "@/lib/relationship/skills";
 import { useSkillLaunch } from "@/lib/relationship/useSkillLaunch";
 import SkillSheet from "./SkillSheet";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
@@ -95,8 +95,6 @@ interface ThreadChatProps {
   /** 전송 중 패스가 필요하다는 응답(402)을 받았을 때 — 부모가 상태를 새로고침해 패스 패널을 보여주도록 알림 */
   onPassRequired?: () => void;
   className?: string;
-  /** 스킬 결과를 보고 복귀했을 때 1회 노출할 인사 버블(무과금·비영속). 활성 스레드(S3)에서만 전달. */
-  skillRecap?: { skill: string; summary: string } | null;
   /** 마운트 시점의 진행 중 스킬 key (GET /api/relationship activeSkill). 없으면 null. */
   initialActiveSkill?: string | null;
   /** 인-스레드 스킬이 [SKILL_DONE]으로 종료됐을 때 — 부모가 상태 새로고침(캡·activeSkill 재동기화). */
@@ -112,7 +110,6 @@ export default function ThreadChat({
   capReached,
   selfProfileId = null,
   partnerProfileId = null,
-  skillRecap = null,
   initialActiveSkill = null,
   onDailyCapReached,
   onExtended,
@@ -158,47 +155,6 @@ export default function ThreadChat({
     if (!el) return;
     requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight }));
   }, [messages.length, liveText]);
-
-  // 복귀 인사 버블 — 스킬 결과 보고 돌아왔을 때 1회, 타자기 연출(클라 전용).
-  // 서버(recap-seen)가 같은 텍스트를 스레드에 저장 → 새로고침 후엔 initialMessages로 들어옴.
-  const recapShownRef = useRef(false);
-  const [recapAnim, setRecapAnim] = useState<{
-    createdAt: string;
-    full: string;
-    shown: number;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!skillRecap || recapShownRef.current) return;
-    recapShownRef.current = true;
-    const full = buildSkillRecapText(skillRecap.skill, skillRecap.summary);
-    const createdAt = new Date().toISOString();
-    // 빈 말풍선 먼저 붙여 "쓰기 시작" 느낌 (빈 content면 ChatBubble이 타이핑 점 표시)
-    setMessages((prev) => [...prev, { role: "assistant", content: "", createdAt }]);
-    setRecapAnim({ createdAt, full, shown: 0 });
-    // 서버 저장(새로고침 생존) + flag 소진 — fire-and-forget
-    void fetch("/api/relationship/recap-seen", { method: "POST" }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 타자기 틱 — createdAt으로 해당 말풍선만 갱신(중간에 답장이 껴도 안전). setTimeout+state 재스케줄이라 StrictMode 이중호출에도 안전.
-  useEffect(() => {
-    if (!recapAnim || recapAnim.shown >= recapAnim.full.length) return;
-    const step = Math.max(2, Math.ceil(recapAnim.full.length / 40));
-    const t = setTimeout(() => {
-      const shown = Math.min(recapAnim.full.length, recapAnim.shown + step);
-      const slice = recapAnim.full.slice(0, shown);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.role === "assistant" && m.createdAt === recapAnim.createdAt
-            ? { ...m, content: slice }
-            : m
-        )
-      );
-      setRecapAnim((r) => (r ? { ...r, shown } : r));
-    }, 45);
-    return () => clearTimeout(t);
-  }, [recapAnim]);
 
   // capReached prop이 바뀔 때마다 로컬 상태를 재동기화 — PassSheet 등 다른 연장 진입점이
   // 부모 load()를 트리거해 prop이 바뀐 경우에도 반영되도록 (중복 청구 방지).
