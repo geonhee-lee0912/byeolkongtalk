@@ -47,9 +47,9 @@ export default function AuthBootstrap() {
 
     // 보조 신호
     payload.first_seen_at = new Date().toISOString();
-    // 랜딩 종류: 전용 v 우선(어느 광고 랜딩이든), utm_content 는 레거시 /start 폴백.
-    // (utm_content 는 이제 소재명 전용이라 v 없이 이걸 landing_variant 로 쓰면 오염)
-    const lv = sp.get("v") ?? (pathname === "/start" ? sp.get("utm_content") : null);
+    // 랜딩 종류: 전용 v 파라미터만 (2026-07-26 P2-8b: /start utm_content 폴백 제거 —
+    // utm_content 는 소재명 전용이라 폴백이 landing_variant 를 오염시킴. 현행 광고는 전부 v= 사용)
+    const lv = sp.get("v");
     if (lv) payload.landing_variant = lv;
     try {
       if (document.referrer) payload.referrer = document.referrer.slice(0, 200);
@@ -63,7 +63,7 @@ export default function AuthBootstrap() {
     const value = encodeURIComponent(JSON.stringify(payload));
     // 30일, 로그인 왕복(same-site 네비게이션)에 실려 서버로 감. httpOnly 아님(클라 기록).
     document.cookie = `${ACQ_COOKIE}=${value}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-  }, [sp, pathname]);
+  }, [sp]);
 
   useEffect(() => {
     if (handledRef.current) return;
