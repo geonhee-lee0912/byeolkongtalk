@@ -65,37 +65,68 @@ function firstNameIndex(text: string, name: string, siblingNames: string[]): num
   return -1;
 }
 
+/** 마커 선행 검사에서 제외하는 카드 이름 — 운세 상담 산문에서 카드와 무관한 **일상어**로 자주
+ *  쓰이는 낱말들. substring 매칭은 "별 카드"(카드 참조)와 "별 3개 차감"·"별콩이"(일상어)를
+ *  구분할 수 없어서, 이 이름들을 검사하면 정상 응답에서도 거의 매번 위반이 잡힌다 —
+ *  배포일에 늑대소년이 되는 단언은 없느니만 못하다. 특히 **"별"은 이 서비스의 마스코트(별콩이)이자
+ *  재화 단위**라 사실상 모든 응답에 등장하고, "달/태양/힘/세계/죽음"도 운세 산문의 기본 어휘다.
+ *
+ *  ⚠️ **이 목록을 지우지 마.** 검사를 느슨하게 하려는 게 아니라, substring 으로는 원리상 판정할 수
+ *  없는 항목을 솔직히 빼서 나머지 판정의 신뢰도를 지키는 장치다. 대신 스킵한 이름은 단언 detail 에
+ *  그대로 남겨 "깨끗해서 통과"와 "전부 스킵돼서 통과"를 구분할 수 있게 한다.
+ *  (현재 하네스는 card_id 0~6 만 뽑지만, 더 크거나 다르게 시딩된 스프레드가 추가될 때를 대비해
+ *   메이저 아르카나 전체에서 일반어와 겹치는 이름을 미리 담아뒀다.) */
+const COMMON_WORD_CARD_NAMES = new Set([
+  "바보", "힘", "연인", "전차", "정의", "죽음", "절제", "악마", "탑", "별", "달", "태양", "심판", "세계",
+]);
+
+export interface CardNameOrderResult {
+  /** 자기 마커보다 이름이 먼저 나온 카드 (위반) */
+  violations: string[];
+  /** 실제로 검사한 카드 이름 — 비어 있으면 이 단언의 통과는 무의미(vacuous)하다 */
+  checked: string[];
+  /** 일반어라 검사 대상에서 뺀 카드 이름 (COMMON_WORD_CARD_NAMES) */
+  skipped: string[];
+}
+
 /** P1-5: 뽑힌 카드 이름이 자기 [CARD:n] 마커보다 먼저 나오면 안 된다 (도입 훅 스포일러 방지).
  *  QA 하네스는 card_id를 항상 0..cardCount-1 순서로 결정적으로 뽑는다(qa/readings.ts
  *  createTarotReading 참고) — 그래서 실제 API 응답 없이도 SPREAD_INFO의 cardCount만으로
  *  어떤 카드가 뽑혔는지 복원할 수 있다(별도 상태 없음).
- *  마커 자체가 없는 카드는 스킵 — 그건 card_count 단언이 이미 잡는 실패 모드라 중복 판정하지 않는다.
- *  ⚠️ 오탐 위험(단순 substring 검사의 한계, 의도적으로 감수): 카드 한글명이 흔한 낱말과 겹치면
- *  카드와 무관한 문맥에서도 매치될 수 있다. 특히 7장 스프레드의 마지막 카드(card_id=6)는 항상
- *  "연인"(The Lovers)인데, 연애 상담 응답은 상대를 가리키는 일상어로 "연인"을 자주 쓰므로
- *  reunion_deep_7류 케이스에서 실패가 뜨면 진짜 마커 선행 위반인지 우연한 낱말 일치인지 대화
- *  본문을 직접 확인할 것. "바보"(card_id=0, 자기비하 표현과 겹침)도 같은 이유로 낮은 확률의
- *  오탐 후보다.
+ *  마커 자체가 없는 카드는 검사도 스킵도 아닌 '건너뜀' — 그건 card_count 단언이 이미 잡는
+ *  실패 모드라 여기서 중복 판정하지 않는다(그래서 checked 에도 안 들어간다).
  */
-export function findCardNamesBeforeMarker(text: string, spreadType: SpreadType): string[] {
+export function findCardNamesBeforeMarker(
+  text: string,
+  spreadType: SpreadType
+): CardNameOrderResult {
   const cardCount = SPREAD_INFO[spreadType].cardCount;
   const names: (string | undefined)[] = [];
   for (let i = 0; i < cardCount; i++) names.push(getCard(i)?.name_kr);
+  // 그림자 가드용 형제 목록엔 스킵 대상도 전부 포함한다 — 검사하지 않는 이름이라도
+  // 텍스트엔 등장하므로 짧은 이름을 가려주는 역할("여황제" 안의 "황제")은 그대로 해야 한다.
   const siblingNames = names.filter((n): n is string => !!n);
 
   const violations: string[] = [];
+  const checked: string[] = [];
+  const skipped: string[] = [];
   for (let i = 0; i < cardCount; i++) {
     const name = names[i];
     if (!name) continue;
+    if (COMMON_WORD_CARD_NAMES.has(name)) {
+      skipped.push(name);
+      continue;
+    }
     const marker = `[CARD:${i + 1}]`;
     const markerIdx = text.indexOf(marker);
     if (markerIdx === -1) continue; // 마커 누락은 card_count 단언 몫
+    checked.push(name);
     const nameIdx = firstNameIndex(text, name, siblingNames);
     if (nameIdx !== -1 && nameIdx < markerIdx) {
       violations.push(`${marker} "${name}" (이름 idx ${nameIdx} < 마커 idx ${markerIdx})`);
     }
   }
-  return violations;
+  return { violations, checked, skipped };
 }
 
 const CARD_SKELETON_LABELS = ["🃏 카드가 말하는 것:", "💫 너의 상황에서는", "🔗 흐름 연결:"];
@@ -230,11 +261,19 @@ export function runAssertions(
     // 카드 이름 마커 선행 금지 (P1-5) — 첫 턴만. 후속 턴의 "카드 재소환"(마커 없이
     // 이름만 재언급)은 페르소나가 명시적으로 허용하는 정상 동작이라 첫 턴 밖에서 검사하면 오탐만 낸다.
     if (t.product.kind === "tarot" && t.turns[0]) {
-      const nameViolations = findCardNamesBeforeMarker(t.turns[0].assistantText, t.product.spreadType);
+      const nameCheck = findCardNamesBeforeMarker(t.turns[0].assistantText, t.product.spreadType);
+      // detail 에 검사 범위를 항상 노출 — "깨끗해서 통과"와 "전부 스킵돼서 통과"를 구분하기 위해.
+      const scope =
+        `검사 ${nameCheck.checked.length}장[${nameCheck.checked.join("·") || "-"}]` +
+        ` / 일반어 스킵 ${nameCheck.skipped.length}장[${nameCheck.skipped.join("·") || "-"}]`;
       push(
         "card_name_before_marker",
-        nameViolations.length === 0,
-        nameViolations.length ? nameViolations.join("; ") : "ok"
+        nameCheck.violations.length === 0,
+        nameCheck.violations.length
+          ? `${nameCheck.violations.join("; ")} — ${scope}`
+          : nameCheck.checked.length === 0
+            ? `통과했지만 검사 대상 0장 (무의미) — ${scope}`
+            : `ok — ${scope}`
       );
 
       // 프리미엄(5장 이상) 첫 턴 — 카드별 3라벨 골격(🃏/💫/🔗) + 분량 하한 (P1-4)
