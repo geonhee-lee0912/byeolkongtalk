@@ -62,3 +62,5 @@ scripts/smoke-draw-inthread.ts
 scripts/verify-offer.ts
 scripts/tmp-render-overlays.mjs
 scripts/qual-results.json
+scripts/smoke-skill-edges.ts
+scripts/smoke-skill-refund.ts
