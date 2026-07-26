@@ -175,26 +175,27 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
-        {/* 퍼널 순서: 방문(UV·PV) → 가입 → 탈퇴 → 리딩 → 매출. UV/PV 는 봇 제외·어드민 제외 집계로
+        {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)·탈퇴는 뒤. 매일 먼저 보는 값을
+            왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
             /admin/traffic 과 같은 정의 (자세한 분해는 그 화면) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Stat label="UV" value={s.today.uv.toLocaleString()}>
-            <Delta today={s.today.uv} yesterday={s.yesterday.uv} />
-          </Stat>
-          <Stat label="PV" value={s.today.pv.toLocaleString()}>
-            <Delta today={s.today.pv} yesterday={s.yesterday.pv} />
-          </Stat>
           <Stat label="신규 가입" value={s.today.newUsers}>
             <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
-          </Stat>
-          <Stat label="탈퇴" value={s.today.withdrawals}>
-            <Delta today={s.today.withdrawals} yesterday={s.yesterday.withdrawals} invert />
           </Stat>
           <Stat label="리딩" value={s.today.readings}>
             <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
           </Stat>
           <Stat label="매출(원)" value={s.today.revenueWon.toLocaleString()}>
             <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />
+          </Stat>
+          <Stat label="UV" value={s.today.uv.toLocaleString()}>
+            <Delta today={s.today.uv} yesterday={s.yesterday.uv} />
+          </Stat>
+          <Stat label="PV" value={s.today.pv.toLocaleString()}>
+            <Delta today={s.today.pv} yesterday={s.yesterday.pv} />
+          </Stat>
+          <Stat label="탈퇴" value={s.today.withdrawals}>
+            <Delta today={s.today.withdrawals} yesterday={s.yesterday.withdrawals} invert />
           </Stat>
         </div>
       </section>
