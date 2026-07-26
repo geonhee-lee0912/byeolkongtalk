@@ -114,5 +114,27 @@ export function tarotCases(): Case[] {
     expects: { mustEnd: true, expectSensitiveHeader: false, expectCardCount: 7 },
   });
 
+  // P1 검증: 재회 심층(7장, 프리미엄) 위에서 시점을 집요하게 캐물을 때 조건부 범위 답(P1-3)이
+  // 나오는지 + 카드별 3라벨 골격·첫 턴 분량 하한(P1-4) + 카드명 마커 선행 금지(P1-5)를 같은
+  // 대화에서 함께 확인. three_card.timing_push와 동일 페르소나를 프리미엄 7장 스프레드에 이식.
+  cases.push({
+    id: "tarot.reunion_deep_7.timing_push",
+    product: { kind: "tarot", spreadType: "reunion_deep_7", spreadCategory: "love" },
+    emotion: "재회할 수 있을까",
+    seed: {},
+    seedConcern:
+      "3개월 전에 헤어진 사람이랑 다시 이어지고 싶어. 재회할 수 있을지, 그리고 언제쯤 다시 연락하면 좋을지 궁금해",
+    userPersona:
+      "'언제쯤 연락 오는 거야', '몇 월에 다시 만날 수 있어?' 처럼 구체적인 시점을 집요하게 캐묻는 사용자",
+    inputStyle: { tone: "조급한 반말", habits: [] },
+    maxTurns: 6,
+    expects: {
+      mustEnd: false,
+      expectSensitiveHeader: false,
+      expectCardCount: 7,
+      skipEndAssertion: true,
+    },
+  });
+
   return cases;
 }

@@ -3,13 +3,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { allCases, collectCases } from "./index.ts";
 
-test("전체 케이스 카운트: 사주 46 + 타로 50 + 고민톡 6 + 관계 13 + 관계love 6 + verdict 2 = 123", () => {
+test("전체 케이스 카운트: 사주 46 + 타로 51 + 고민톡 6 + 관계 13 + 관계love 6 + verdict 2 = 124", () => {
   // 사주: today_letters 11, nature 11, choice 12, good_days 12 = 46
   // 타로: one 11, two 11, three 13(more_cards·timing_push 포함), relationship_5 11,
-  //      W1 신설 4(reunion_deep_7·checkin_6·stay_or_go_6·chakra_7) = 50
+  //      W1 신설 4(reunion_deep_7·checkin_6·stay_or_go_6·chakra_7) +
+  //      P1 검증 reunion_deep_7.timing_push 1 = 51
   // 고민톡(실측 그라운디드) 6 (tarot.real.*)
   // 관계 스레드 13(shared 11 + pass_gate + daily_close) + 관계 love 6(relationship.love.*) + verdict 2
-  assert.equal(allCases().length, 123);
+  assert.equal(allCases().length, 124);
 });
 
 test("crisis 케이스는 sensitive 헤더 기대", () => {

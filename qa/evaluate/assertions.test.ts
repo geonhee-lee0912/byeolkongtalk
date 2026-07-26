@@ -7,6 +7,9 @@ import {
   endsWithQuestion,
   lastAssistantText,
   runAssertions,
+  findCardNamesBeforeMarker,
+  findMissingCardSkeleton,
+  firstTurnLengthBelowMin,
 } from "./assertions.ts";
 import type { Transcript } from "../types.ts";
 
@@ -182,4 +185,136 @@ test("runAssertions: 위기 맥락이면 심문피로(안전확인 질문) 단�
   });
   const res = runAssertions(t, { mustEnd: false, expectSensitiveHeader: true, skipEndAssertion: true, skipCardAssertion: true });
   assert.ok(!res.some((r) => r.name === "no_consecutive_question_close"));
+});
+
+// ── P1-5: 카드 이름 마커 선행 금지 ──
+
+test("findCardNamesBeforeMarker: 훅에서 카드 이름을 마커보다 먼저 언급하면 위반 (실제 P1-5 버그 재현)", () => {
+  const text = "이 판 전체에서 바보 카드의 기운이 느껴져.\n\n[CARD:1]\n바보 카드는 새로운 시작을 뜻해.";
+  const v = findCardNamesBeforeMarker(text, "one_card");
+  assert.ok(v.length > 0, JSON.stringify(v));
+});
+
+test("findCardNamesBeforeMarker: 마커 뒤에서만 이름을 언급하면 통과", () => {
+  const text = "전체적으로 새로운 시작의 기운이 느껴져.\n\n[CARD:1]\n바보 카드는 새로운 시작을 뜻해.";
+  const v = findCardNamesBeforeMarker(text, "one_card");
+  assert.equal(v.length, 0, JSON.stringify(v));
+});
+
+test("findCardNamesBeforeMarker: 마커 자체가 없는 카드는 스킵(card_count 단언 몫)", () => {
+  const text = "그냥 산문. 이름도 마커도 없음.";
+  const v = findCardNamesBeforeMarker(text, "one_card");
+  assert.equal(v.length, 0, JSON.stringify(v));
+});
+
+test("findCardNamesBeforeMarker: '여황제'⊃'황제' 부분 문자열 오탐 방지 (5장 이상 스프레드는 항상 두 이름을 함께 뽑음)", () => {
+  // relationship_5: card_id 0..4 = 바보,마법사,여교황,여황제,황제.
+  // 가드 없이 순수 indexOf만 쓰면 "황제"([CARD:5])가 앞서 나온 "여황제"([CARD:4]) 안의 부분
+  // 문자열에 걸려 100% 오탐한다 — 이 테스트가 그 가드가 실제로 동작하는지 확인한다.
+  const text = [
+    "훅.",
+    "[CARD:1]\n바보 해석.",
+    "[CARD:2]\n마법사 해석.",
+    "[CARD:3]\n여교황 해석.",
+    "[CARD:4]\n여황제 해석.",
+    "[CARD:5]\n황제 해석.",
+  ].join("\n");
+  const v = findCardNamesBeforeMarker(text, "relationship_5");
+  assert.equal(v.length, 0, JSON.stringify(v));
+});
+
+// ── P1-4: 프리미엄 카드별 3라벨 골격 ──
+
+test("findMissingCardSkeleton: 3라벨이 순서대로 다 있으면 통과", () => {
+  const text =
+    "[CARD:1]\n🃏 카드가 말하는 것: 설명.\n💫 너의 상황에서는 (포지션): 설명.\n🔗 흐름 연결: 설명.\n\n[CARD:2]\n🃏 카드가 말하는 것: 설명.\n💫 너의 상황에서는 (포지션): 설명.\n🔗 흐름 연결: 설명.";
+  assert.equal(findMissingCardSkeleton(text).length, 0);
+});
+
+test("findMissingCardSkeleton: 라벨이 하나라도 빠지면 그 카드만 위반", () => {
+  const text =
+    "[CARD:1]\n그냥 산문으로만 풀이해서 라벨이 없음.\n\n[CARD:2]\n🃏 카드가 말하는 것: 설명.\n💫 너의 상황에서는 (포지션): 설명.\n🔗 흐름 연결: 설명.";
+  const v = findMissingCardSkeleton(text);
+  assert.equal(v.length, 1);
+  assert.ok(v[0].includes("[CARD:1]"));
+});
+
+test("findMissingCardSkeleton: 라벨 순서가 뒤바뀌면 위반", () => {
+  const text = "[CARD:1]\n🔗 흐름 연결: 설명.\n💫 너의 상황에서는 (포지션): 설명.\n🃏 카드가 말하는 것: 설명.";
+  assert.equal(findMissingCardSkeleton(text).length, 1);
+});
+
+// ── P1-4: 첫 턴 분량 하한 ──
+
+test("firstTurnLengthBelowMin: 하한 미달이면 below=true", () => {
+  const r = firstTurnLengthBelowMin("짧은 텍스트", 7);
+  assert.equal(r.below, true);
+});
+
+test("firstTurnLengthBelowMin: 마커 제외한 글자수로 판정 (마커 길이는 하한에 안 보탬)", () => {
+  const body = "가".repeat(3300);
+  const r = firstTurnLengthBelowMin(`[CARD:1]${body}[END]`, 7);
+  assert.equal(r.below, false);
+});
+
+test("firstTurnLengthBelowMin: 정의 안 된 카드 수는 n/a로 통과 처리(below=false)", () => {
+  const r = firstTurnLengthBelowMin("짧음", 4);
+  assert.equal(r.below, false);
+  assert.ok(r.detail.includes("n/a"));
+});
+
+// ── runAssertions 통합 배선 확인 ──
+
+test("runAssertions: 프리미엄(7장) 첫 턴 훅에 카드 이름이 마커보다 먼저 나오면 card_name_before_marker 실패", () => {
+  const t = tx({
+    product: { kind: "tarot", spreadType: "reunion_deep_7", spreadCategory: "love" },
+    turns: [
+      {
+        userText: "고민",
+        assistantText: "바보 카드의 기운이 느껴져.\n\n[CARD:1]\n바보 카드는 새로운 시작이야.",
+        headers: {},
+        status: 200,
+        eventType: "say",
+      },
+    ],
+  });
+  const res = runAssertions(t, {
+    mustEnd: false,
+    expectSensitiveHeader: false,
+    expectCardCount: 7,
+    skipEndAssertion: true,
+  });
+  assert.ok(res.some((r) => r.name === "card_name_before_marker" && !r.pass), JSON.stringify(res, null, 2));
+});
+
+test("runAssertions: 5장 미만 스프레드는 premium_card_skeleton/premium_first_turn_length 단언 자체가 없음", () => {
+  const t = tx({
+    product: { kind: "tarot", spreadType: "one_card", spreadCategory: "worry" },
+    turns: [
+      { userText: "고민", assistantText: "훅.\n\n[CARD:1]\n바보 카드 해석. [END]", headers: {}, status: 200, eventType: "say" },
+    ],
+  });
+  const res = runAssertions(t, { mustEnd: true, expectSensitiveHeader: false, expectCardCount: 1 });
+  assert.ok(!res.some((r) => r.name === "premium_card_skeleton" || r.name === "premium_first_turn_length"));
+});
+
+test("runAssertions: skipCardAssertion이면 P1-5/P1-4 단언도 전부 생략", () => {
+  const t = tx({
+    product: { kind: "tarot", spreadType: "reunion_deep_7", spreadCategory: "love" },
+    turns: [
+      { userText: "죽고싶어", assistantText: "괜찮아", headers: { "x-sensitive-category": "suicide" }, status: 200, eventType: "say" },
+    ],
+  });
+  const res = runAssertions(t, {
+    mustEnd: true,
+    expectSensitiveHeader: true,
+    expectCardCount: 7,
+    skipEndAssertion: true,
+    skipCardAssertion: true,
+  });
+  assert.ok(
+    !res.some((r) =>
+      ["card_name_before_marker", "premium_card_skeleton", "premium_first_turn_length"].includes(r.name)
+    )
+  );
 });
