@@ -102,6 +102,8 @@ interface ThreadChatProps {
   initialActiveSkill?: string | null;
   /** 인-스레드 스킬이 [SKILL_DONE]으로 종료됐을 때 — 부모가 상태 새로고침(캡·activeSkill 재동기화). */
   onSkillDone?: () => void;
+  /** 유저 턴 한 왕복이 서버에 저장되며 끝났을 때 — 부모의 표시용 카운터(무료 인트로 잔여 등) 갱신. */
+  onUserTurnComplete?: () => void;
   /** 인-스레드 궁합 카드 헤더용 상대 호칭(관계 label). 없으면 "우리 궁합". */
   partnerLabel?: string | null;
 }
@@ -117,6 +119,7 @@ export default function ThreadChat({
   onExtended,
   onPassRequired,
   onSkillDone,
+  onUserTurnComplete,
   partnerLabel = null,
   className = "",
 }: ThreadChatProps) {
@@ -192,6 +195,7 @@ export default function ThreadChat({
 
       if (res.status === 402) {
         setSending(false);
+        setInput(text); // 전송 시 낙관적으로 비운 입력을 되돌려준다 — 결제 후 다시 타이핑하지 않게
         setError("패스가 필요해 — 대화를 이어가려면 패스를 구매해줘.");
         onPassRequired?.();
         return;
@@ -231,6 +235,8 @@ export default function ThreadChat({
           setActiveSkill(null);
           onSkillDone?.();
         }
+        // 서버가 유저·별콩이 메시지를 저장하고 스트림을 닫은 시점 — 부모 표시 카운터 갱신
+        onUserTurnComplete?.();
       }
       setLiveText("");
       setSending(false);
@@ -268,9 +274,16 @@ export default function ThreadChat({
         body: JSON.stringify({ relationshipId, skillStart: skillKey }),
       });
       if (res.status === 402) {
+        // 402 는 두 종류 — 별 부족(충전소로) vs 패스 없음(/shop 은 틀린 목적지, 스레드에 남긴다).
+        const data = await res.json().catch(() => ({}));
         setSending(false);
         setActiveSkill(null);
-        router.push("/shop");
+        if (data?.code === "INSUFFICIENT_STARS") {
+          router.push("/shop");
+          return;
+        }
+        setError("패스가 필요해 — 스킬은 패스를 켜야 쓸 수 있어.");
+        onPassRequired?.();
         return;
       }
       if (!res.ok || !res.body) {
@@ -318,13 +331,19 @@ export default function ThreadChat({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ relationshipId, skillStart: skillKey }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.status === 402) {
+        // 402 는 두 종류 — 별 부족(충전소로) vs 패스 없음(/shop 은 틀린 목적지, 스레드에 남긴다).
         setCompatLoading(false);
         setActiveSkill(null);
-        router.push("/shop");
+        if (data?.code === "INSUFFICIENT_STARS") {
+          router.push("/shop");
+          return;
+        }
+        setError("패스가 필요해 — 스킬은 패스를 켜야 쓸 수 있어.");
+        onPassRequired?.();
         return;
       }
-      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.report) {
         setCompatLoading(false);
         setActiveSkill(null);
@@ -364,7 +383,7 @@ export default function ThreadChat({
         body: JSON.stringify({ relationshipId, skillStart: skillKey, drawnCards: cards }),
       });
       if (res.status === 402) {
-        // 402 는 두 종류 — 별 부족(충전소로) vs 패스 만료(/shop 은 틀린 목적지).
+        // 402 는 두 종류 — 별 부족(충전소로) vs 패스 없음(/shop 은 틀린 목적지).
         const data = await res.json().catch(() => ({}));
         setDrawLoading(false);
         setActiveSkill(null);
@@ -372,8 +391,8 @@ export default function ThreadChat({
           router.push("/shop");
           return true; // 이동하므로 모달 유지 불필요
         }
-        setDrawSkillKey(null); // 패스 만료 — 모달 닫고 부모가 패스 패널을 띄우게 알린다
-        setError("패스가 만료됐어 — 다시 등록하면 이어서 볼 수 있어.");
+        setDrawSkillKey(null); // 패스 없음 — 모달 닫고 부모가 패스 패널을 띄우게 알린다
+        setError("패스가 필요해 — 스킬은 패스를 켜야 쓸 수 있어.");
         onPassRequired?.();
         return true;
       }

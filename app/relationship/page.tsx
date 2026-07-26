@@ -59,6 +59,9 @@ export default function RelationshipPage() {
   const [showPassSheet, setShowPassSheet] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [activeSkill, setActiveSkill] = useState<string | null>(null);
+  // 무료 인트로 배너 표시용 — 이번 마운트에서 보낸 유저 턴 수. load() 가 messages 를 다시 받아오면
+  // 그 안에 이미 포함되므로 0 으로 리셋한다(이중 계산 방지).
+  const [sentFreeTurns, setSentFreeTurns] = useState(0);
 
   const load = async () => {
     const [me, rel, bal] = await Promise.all([
@@ -86,6 +89,7 @@ export default function RelationshipPage() {
           | undefined) ?? []
       ).map((m) => ({ role: m.role, content: m.content, createdAt: m.created_at }))
     );
+    setSentFreeTurns(0);
     setBalance(typeof bal?.balance === "number" ? bal.balance : null);
     setActiveSkill((rel?.activeSkill as string | null) ?? null);
     setLoading(false);
@@ -201,8 +205,13 @@ export default function RelationshipPage() {
     );
 
     // S2 — 활성 패스 없음. 단 무료 인트로(유저 발화 FREE_INTRO_TURNS회)가 남았으면 입력 열린 스레드로.
+    // 분기 판정은 서버가 준 messages 만 본다 — sentFreeTurns(표시용)를 섞으면 마지막 턴 직후 곧바로
+    // 소진 화면으로 튀면서, 아직 load() 하지 않은 방금 대화가 화면에서 사라진다. 실제 벽은 서버 402.
     const usedFreeTurns = messages.filter((m) => m.role === "user").length;
     const freeLeft = !hasPass ? Math.max(0, FREE_INTRO_TURNS - usedFreeTurns) : 0;
+    // 배너는 이번 마운트에서 보낸 턴까지 반영해야 실시간으로 맞는다(1/3 → 2/3 → 3/3 → 소진 안내).
+    const freeShownLeft = Math.max(0, freeLeft - sentFreeTurns);
+    const freeShownTurn = Math.min(usedFreeTurns + sentFreeTurns + 1, FREE_INTRO_TURNS);
 
     if (!hasPass && freeLeft > 0) {
       return (
@@ -215,7 +224,13 @@ export default function RelationshipPage() {
             {partnerBanner}
             <div className="mt-3 flex items-center justify-between rounded-xl border border-lilac-mid/30 bg-lilac-soft/40 px-3.5 py-2.5">
               <p className="text-[11.5px] text-eye-purple leading-snug">
-                💜 무료 첫 대화 <b>{usedFreeTurns + 1}/{FREE_INTRO_TURNS}턴</b> — 먼저 편하게 얘기해봐
+                {freeShownLeft > 0 ? (
+                  <>
+                    💜 무료 첫 대화 <b>{freeShownTurn}/{FREE_INTRO_TURNS}턴</b> — 먼저 편하게 얘기해봐
+                  </>
+                ) : (
+                  <>💜 무료 첫 대화를 다 썼어 — 패스를 켜면 이어서 얘기할 수 있어</>
+                )}
               </p>
               <button
                 type="button"
@@ -239,6 +254,7 @@ export default function RelationshipPage() {
             initialActiveSkill={activeSkill}
             onPassRequired={() => void load()}
             onSkillDone={() => void load()}
+            onUserTurnComplete={() => setSentFreeTurns((n) => n + 1)}
           />
 
           {editModal}
@@ -271,38 +287,28 @@ export default function RelationshipPage() {
             <div className="shrink-0">
               {headerCard}
               {partnerBanner}
-              <p
-                className={`text-[13px] text-center mt-4 leading-relaxed ${
-                  messages.length === 0 ? "text-text-light" : "font-bold text-eye-purple"
-                }`}
-              >
-                {messages.length === 0
-                  ? "아직 별콩이랑 나눈 얘기가 없어 — 패스를 시작하면 바로 이야기할 수 있어."
-                  : "무료 대화를 다 썼어 — 패스를 켜면 이 대화 그대로 이어갈 수 있어"}
+              <p className="text-[13px] text-center mt-4 leading-relaxed font-bold text-eye-purple">
+                무료 대화를 다 썼어 — 패스를 켜면 이 대화 그대로 이어갈 수 있어
               </p>
             </div>
 
-            {messages.length > 0 ? (
-              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hover rounded-2xl border border-lilac-mid/20 bg-cream-warm/50 mt-4">
-                <ThreadChat
-                  relationshipId={relationship.id}
-                  initialMessages={messages}
-                  canSend={false}
-                  capReached={false}
-                  selfProfileId={relationship.selfProfileId}
-                  partnerProfileId={relationship.partnerProfileId}
-                />
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hover rounded-2xl border border-lilac-mid/20 bg-cream-warm/50 mt-4">
+              <ThreadChat
+                relationshipId={relationship.id}
+                initialMessages={messages}
+                canSend={false}
+                capReached={false}
+                selfProfileId={relationship.selfProfileId}
+                partnerProfileId={relationship.partnerProfileId}
+              />
+            </div>
 
             <button
               type="button"
               onClick={() => setShowPassSheet(true)}
               className="shrink-0 mt-4 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
             >
-              {messages.length > 0 ? "패스 연장하기" : "패스 시작하기"}
+              패스 시작하기
             </button>
           </div>
           {editModal}
