@@ -11,10 +11,12 @@ export function Delta({ today, yesterday, label = "어제", invert = false }: { 
   const up = invert ? pct < 0 : pct > 0;
   const down = invert ? pct > 0 : pct < 0;
   const cls = up ? "text-emerald-400" : down ? "text-red-400" : "text-white/40";
+  // 바깥은 줄바꿈 허용 — 누적값이 커지면(예: "(어제까지 107,900)") 통짜 nowrap 이 375px 를 넘겨
+  // 대시보드 전체에 가로 스크롤을 만든다. 조각별로만 nowrap 을 걸어 "%"와 "(…)" 사이에서 끊는다.
   return (
-    <span className="text-lg font-normal whitespace-nowrap">
-      <span className={cls}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>{" "}
-      <span className="text-white/40">({label} {yesterday.toLocaleString()})</span>
+    <span className="text-lg font-normal">
+      <span className={`${cls} whitespace-nowrap`}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>{" "}
+      <span className="text-white/40 whitespace-nowrap">({label} {yesterday.toLocaleString()})</span>
     </span>
   );
 }
