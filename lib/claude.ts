@@ -538,6 +538,14 @@ export function computeWrapMode(
   return { mode: "free", isLastConvergeTurn: false, absHardcap: false };
 }
 
+const TAROT_FIRST_TURN_GUIDE = `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로(원카드도 [CARD:1] 필수), 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나. 카드 이름은 반드시 해당 [CARD:n] 마커 뒤에서 처음 언급해 — 훅에서 개별 카드명 금지. 5장 이상 스프레드는 "각 카드 해석"의 3줄 라벨 골격(🃏/💫/🔗)을 카드마다 그대로.`;
+
+// fresh 이어가기(새 카드 전체 재추첨, 정가 결제 — /api/readings/continue 의 tarot_fresh_uses_draw_flow
+// 로 인해 실제로는 /api/consultations/tarot 드로우 플로우를 거쳐 여기로 들어옴)는 짧은 이어가기 가이드가 아니라
+// 정규 첫 턴 가이드(스프레드 흐름+마커 규칙+골격)를 그대로 쓰고, 맥락 연결구만 앞에 붙인다.
+// deep(같은 카드 위에서 더 깊이 파는 이어가기)은 짧은 continuationFirstTurnGuide 그대로 유지.
+const TAROT_FRESH_CONTINUATION_CONNECTOR = `\n\n## 이어가기 첫 턴 — 카드 새로 펼침\n지난 고민을 이어받아 카드를 새로 뽑았어. 첫 응답을 "지난번에 ~ 얘기 나눴었지" 식으로 지난 맥락을 가볍게 짚으며 열되, 처음 만난 듯 별콩이 소개나 인사는 다시 하지 마.`;
+
 export function buildTarotSystemMessage(ctx: TarotReadingContext): {
   staticPart: string;
   dynamicPart: string;
@@ -557,8 +565,10 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const firstTurnGuide = isFirstTurn
     ? ctx.continuation
-      ? continuationFirstTurnGuide("카드")
-      : `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로(원카드도 [CARD:1] 필수), 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나. 카드 이름은 반드시 해당 [CARD:n] 마커 뒤에서 처음 언급해 — 훅에서 개별 카드명 금지. 5장 이상 스프레드는 "각 카드 해석"의 3줄 라벨 골격(🃏/💫/🔗)을 카드마다 그대로.`
+      ? ctx.continuation.mode === "fresh"
+        ? TAROT_FRESH_CONTINUATION_CONNECTOR + TAROT_FIRST_TURN_GUIDE
+        : continuationFirstTurnGuide("카드")
+      : TAROT_FIRST_TURN_GUIDE
     : "";
 
   // B-2 그레이스풀 마무리 — natural hardcap(소프트·적응형) vs abs hardcap/forceEnd(하드·종료) 분리
