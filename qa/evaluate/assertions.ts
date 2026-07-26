@@ -76,9 +76,23 @@ function firstNameIndex(text: string, name: string, siblingNames: string[]): num
  *  그대로 남겨 "깨끗해서 통과"와 "전부 스킵돼서 통과"를 구분할 수 있게 한다.
  *  (현재 하네스는 card_id 0~6 만 뽑지만, 더 크거나 다르게 시딩된 스프레드가 추가될 때를 대비해
  *   메이저 아르카나 전체에서 일반어와 겹치는 이름을 미리 담아뒀다.) */
-const COMMON_WORD_CARD_NAMES = new Set([
+export const COMMON_WORD_CARD_NAMES = new Set([
   "바보", "힘", "연인", "전차", "정의", "죽음", "절제", "악마", "탑", "별", "달", "태양", "심판", "세계",
 ]);
+
+/** QA 하네스가 타로 케이스에서 결정적으로 뽑는 카드 id — 순서 그대로 1번 자리부터 배정된다
+ *  (qa/readings.ts `createTarotReading`). 현재 덱:
+ *  마법사(1)·여교황(2)·여황제(3)·황제(4)·교황(5)·은둔자(9)·매달린 사람(12).
+ *
+ *  ⚠️ **불변식: 이 덱의 어떤 카드 이름도 위 COMMON_WORD_CARD_NAMES 에 있으면 안 된다.**
+ *  하나라도 겹치면 그 자리는 마커 선행 검사에서 조용히 빠지고 커버리지가 소리 없이 줄어든다.
+ *  구 시딩(card_id 0..n-1)이 정확히 그 함정이었다 — 1번 자리가 항상 "바보"(일반어)라,
+ *  **가장 흔한 P1-5 변종인 "도입 훅이 첫 카드 이름을 흘리는" 케이스를 영영 볼 수 없었다.**
+ *  그래서 일부러 일반어와 안 겹치는 카드만 골랐다.
+ *
+ *  스프레드 최대 장수(현재 7)만큼 필요 — 8장 이상 스프레드를 추가하면 이 배열도 늘려야 하고,
+ *  assertions.test.ts 의 "시드 덱 불변식" 테스트가 두 조건(겹침 없음 / 길이 충분)을 다 잡아준다. */
+export const QA_SEEDED_CARD_IDS: readonly number[] = [1, 2, 3, 4, 5, 9, 12];
 
 export interface CardNameOrderResult {
   /** 자기 마커보다 이름이 먼저 나온 카드 (위반) */
@@ -90,7 +104,7 @@ export interface CardNameOrderResult {
 }
 
 /** P1-5: 뽑힌 카드 이름이 자기 [CARD:n] 마커보다 먼저 나오면 안 된다 (도입 훅 스포일러 방지).
- *  QA 하네스는 card_id를 항상 0..cardCount-1 순서로 결정적으로 뽑는다(qa/readings.ts
+ *  QA 하네스는 QA_SEEDED_CARD_IDS 를 순서대로 결정적으로 뽑는다(qa/readings.ts
  *  createTarotReading 참고) — 그래서 실제 API 응답 없이도 SPREAD_INFO의 cardCount만으로
  *  어떤 카드가 뽑혔는지 복원할 수 있다(별도 상태 없음).
  *  마커 자체가 없는 카드는 검사도 스킵도 아닌 '건너뜀' — 그건 card_count 단언이 이미 잡는
@@ -102,7 +116,10 @@ export function findCardNamesBeforeMarker(
 ): CardNameOrderResult {
   const cardCount = SPREAD_INFO[spreadType].cardCount;
   const names: (string | undefined)[] = [];
-  for (let i = 0; i < cardCount; i++) names.push(getCard(i)?.name_kr);
+  for (let i = 0; i < cardCount; i++) {
+    const cardId = QA_SEEDED_CARD_IDS[i];
+    names.push(cardId == null ? undefined : getCard(cardId)?.name_kr);
+  }
   // 그림자 가드용 형제 목록엔 스킵 대상도 전부 포함한다 — 검사하지 않는 이름이라도
   // 텍스트엔 등장하므로 짧은 이름을 가려주는 역할("여황제" 안의 "황제")은 그대로 해야 한다.
   const siblingNames = names.filter((n): n is string => !!n);

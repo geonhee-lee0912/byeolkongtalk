@@ -4,6 +4,7 @@ import { resetRelationship, preseedThreadTurns } from "./seed.ts";
 import type { Case } from "./types.ts";
 import type { ProfileInput } from "../lib/saju/profile-input.ts";
 import { SPREAD_INFO } from "../lib/tarot/spreads.ts";
+import { QA_SEEDED_CARD_IDS } from "./evaluate/assertions.ts";
 import { PASS_PLAN_BY_KIND } from "../lib/relationship/types.ts";
 import { getSkill } from "../lib/relationship/skills.ts";
 
@@ -64,11 +65,20 @@ export async function createTarotReading(c: Case): Promise<CreatedReading> {
   if (c.product.kind !== "tarot") throw new Error("not tarot case");
   const info = SPREAD_INFO[c.product.spreadType];
 
-  // 결정적 카드 선택 (card_id 0..n-1, 전부 정방향) — QA 재현성 위해 고정
+  // 결정적 카드 선택 (QA_SEEDED_CARD_IDS 순서대로, 전부 정방향) — QA 재현성 위해 고정.
+  // 덱이 0..n-1 이 아닌 이유: 1번 자리가 늘 "바보" 같은 일반어면 마커 선행 단언
+  // (card_name_before_marker)이 그 자리를 스킵해 커버리지가 준다. 불변식은 assertions.ts 참고.
+  if (info.cardCount > QA_SEEDED_CARD_IDS.length) {
+    throw new Error(
+      `[readings] 시드 덱 부족: ${c.product.spreadType} 는 ${info.cardCount}장인데 ` +
+        `QA_SEEDED_CARD_IDS 는 ${QA_SEEDED_CARD_IDS.length}장 — qa/evaluate/assertions.ts 의 덱을 늘려줘 ` +
+        `(단, COMMON_WORD_CARD_NAMES 와 겹치지 않는 카드로)`
+    );
+  }
   const drawnCards = Array.from({ length: info.cardCount }, (_, i) => ({
     position: i,
     label: `pos${i}`,
-    card_id: i,
+    card_id: QA_SEEDED_CARD_IDS[i],
     direction: "upright" as const,
   }));
 

@@ -10,7 +10,11 @@ import {
   findCardNamesBeforeMarker,
   findMissingCardSkeleton,
   firstTurnLengthBelowMin,
+  COMMON_WORD_CARD_NAMES,
+  QA_SEEDED_CARD_IDS,
 } from "./assertions.ts";
+import { SPREAD_INFO } from "../../lib/tarot/spreads.ts";
+import { getCard } from "../../lib/tarot/cards.ts";
 import type { Transcript } from "../types.ts";
 
 function tx(over: Partial<Transcript>): Transcript {
@@ -189,21 +193,37 @@ test("runAssertions: 위기 맥락이면 심문피로(안전확인 질문) 단�
 
 // ── P1-5: 카드 이름 마커 선행 금지 ──
 
-test("findCardNamesBeforeMarker: 훅에서 카드 이름을 마커보다 먼저 언급하면 위반 (실제 P1-5 버그 재현)", () => {
-  // three_card = card_id 0,1,2 = 바보(일반어 스킵),마법사,여교황 → 마법사([CARD:2])로 재현.
-  const text =
-    "이 판 전체엔 마법사 카드의 기운이 흐르고 있어.\n\n[CARD:1]\n첫 카드 해석.\n\n[CARD:2]\n마법사 카드는 시작의 힘이야.";
+test("시드 덱 불변식: QA_SEEDED_CARD_IDS ∩ COMMON_WORD_CARD_NAMES = ∅ + 최대 스프레드 장수 커버", () => {
+  // 이 테스트가 깨지면 마커 선행 단언의 커버리지가 조용히 줄어든다는 뜻 —
+  // 덱을 고치거나(일반어 아닌 카드로 교체) 덱을 늘려라. 스킵 목록을 지우는 건 답이 아니다.
+  const names = QA_SEEDED_CARD_IDS.map((id) => getCard(id)?.name_kr);
+  for (const n of names) {
+    assert.ok(n, "시드 카드 id 가 덱에 없음");
+    assert.ok(!COMMON_WORD_CARD_NAMES.has(n!), `시드 카드 "${n}" 가 일반어 스킵 목록과 겹침`);
+  }
+  const maxCards = Math.max(...Object.values(SPREAD_INFO).map((s) => s.cardCount));
+  assert.ok(
+    QA_SEEDED_CARD_IDS.length >= maxCards,
+    `시드 덱 ${QA_SEEDED_CARD_IDS.length}장 < 최대 스프레드 ${maxCards}장`
+  );
+});
+
+test("findCardNamesBeforeMarker: 훅이 1번 카드 이름을 흘리면 위반 (가장 흔한 P1-5 변종 — 구 시딩에선 안 보였음)", () => {
+  // 신 시딩 three_card = 마법사(1)·여교황(2)·여황제(3) → 1번 자리가 검사 대상이 됐다.
+  const text = "이 판 전체엔 마법사 카드의 기운이 흐르고 있어.\n\n[CARD:1]\n마법사 카드는 시작의 힘이야.";
   const r = findCardNamesBeforeMarker(text, "three_card");
   assert.equal(r.violations.length, 1, JSON.stringify(r));
-  assert.ok(r.violations[0].includes("마법사"));
+  assert.ok(r.violations[0].includes("[CARD:1]") && r.violations[0].includes("마법사"));
 });
 
 test("findCardNamesBeforeMarker: 마커 뒤에서만 이름을 언급하면 통과", () => {
   const text =
-    "전체적으로 새로운 시작의 기운이 느껴져.\n\n[CARD:1]\n첫 카드 해석.\n\n[CARD:2]\n마법사 카드는 시작의 힘이야.";
+    "전체적으로 새로운 시작의 기운이 느껴져.\n\n" +
+    "[CARD:1]\n마법사 카드는 시작의 힘이야.\n[CARD:2]\n여교황 해석.\n[CARD:3]\n여황제 해석.";
   const r = findCardNamesBeforeMarker(text, "three_card");
   assert.equal(r.violations.length, 0, JSON.stringify(r));
-  assert.deepEqual(r.checked, ["마법사"]); // 검사가 실제로 일어났음(무의미한 통과가 아님)
+  assert.deepEqual(r.checked, ["마법사", "여교황", "여황제"]); // 3장 전부 실검사
+  assert.deepEqual(r.skipped, []);
 });
 
 test("findCardNamesBeforeMarker: 마커 자체가 없는 카드는 건너뜀(card_count 단언 몫) — checked 에도 안 들어감", () => {
@@ -213,35 +233,35 @@ test("findCardNamesBeforeMarker: 마커 자체가 없는 카드는 건너뜀(car
   assert.equal(r.checked.length, 0);
 });
 
-test("findCardNamesBeforeMarker: 일반어 카드명(바보·연인)은 마커보다 먼저 나와도 위반 아님 + skipped 로 보고", () => {
-  // reunion_deep_7 = card_id 0..6 → 바보(0)·연인(6)이 일반어 스킵 대상.
-  // 아래 훅 문장은 카드 참조가 아니라 순수 일상어인데, 스킵 없으면 둘 다 위반으로 잡힌다.
+test("findCardNamesBeforeMarker: 일상어(별콩이·별·연인·바보·달)가 훅에 쏟아져도 오탐 0 + 7장 전부 검사", () => {
+  // 배포일에 실제로 중요한 성질: 운세 산문의 흔한 낱말이 위반으로 둔갑하지 않는가.
+  // 신 시딩은 이 낱말들을 아예 안 뽑으므로 스킵 목록에 의존하지 않고도 깨끗해야 한다.
   const text =
-    "요즘 스스로 바보 같다고 느낀다고 했지. 연인 사이의 거리도 멀어졌고.\n\n" +
-    "[CARD:1]\n첫 해석.\n[CARD:2]\n마법사 해석.\n[CARD:3]\n여교황 해석.\n" +
-    "[CARD:4]\n여황제 해석.\n[CARD:5]\n황제 해석.\n[CARD:6]\n교황 해석.\n[CARD:7]\n마지막 해석.";
+    "별콩이가 펼쳐볼게. 요즘 스스로 바보 같다고 느낀다고 했지 — 연인 사이의 거리도 멀어졌고, " +
+    "달빛처럼 마음이 기우는 밤이 많았을 거야. 별 3개만 쓰고도 이만큼 보이네.\n\n" +
+    "[CARD:1]\n마법사 해석.\n[CARD:2]\n여교황 해석.\n[CARD:3]\n여황제 해석.\n" +
+    "[CARD:4]\n황제 해석.\n[CARD:5]\n교황 해석.\n[CARD:6]\n은둔자 해석.\n[CARD:7]\n매달린 사람 해석.";
   const r = findCardNamesBeforeMarker(text, "reunion_deep_7");
   assert.equal(r.violations.length, 0, JSON.stringify(r));
-  assert.deepEqual(r.skipped, ["바보", "연인"]);
-  // 나머지 5장은 여전히 실검사 대상 — 스킵 목록이 단언을 통째로 무력화하지 않는다는 확인.
-  assert.deepEqual(r.checked, ["마법사", "여교황", "여황제", "황제", "교황"]);
+  assert.deepEqual(r.skipped, []);
+  assert.equal(r.checked.length, 7, JSON.stringify(r.checked));
 });
 
-test("findCardNamesBeforeMarker: '여황제'⊃'황제' 부분 문자열 오탐 방지 (5장 이상 스프레드는 항상 두 이름을 함께 뽑음)", () => {
-  // relationship_5: card_id 0..4 = 바보,마법사,여교황,여황제,황제.
-  // 가드 없이 순수 indexOf만 쓰면 "황제"([CARD:5])가 앞서 나온 "여황제"([CARD:4]) 안의 부분
-  // 문자열에 걸려 100% 오탐한다 — 이 테스트가 그 가드가 실제로 동작하는지 확인한다.
+test("findCardNamesBeforeMarker: '여황제'⊃'황제' 부분 문자열 오탐 방지 (5장 이상은 두 쌍을 함께 뽑음)", () => {
+  // 신 시딩 relationship_5 = 마법사·여교황·여황제·황제·교황 → 여교황⊃교황, 여황제⊃황제 두 쌍이
+  // 그대로 남아 있다. 가드 없이 순수 indexOf면 "황제"/"교황"이 앞서 나온 긴 이름 안의 부분
+  // 문자열에 걸려 100% 오탐한다 — 가드가 살아있는지 확인.
   const text = [
     "훅.",
-    "[CARD:1]\n바보 해석.",
-    "[CARD:2]\n마법사 해석.",
-    "[CARD:3]\n여교황 해석.",
-    "[CARD:4]\n여황제 해석.",
-    "[CARD:5]\n황제 해석.",
+    "[CARD:1]\n마법사 해석.",
+    "[CARD:2]\n여교황 해석.",
+    "[CARD:3]\n여황제 해석.",
+    "[CARD:4]\n황제 해석.",
+    "[CARD:5]\n교황 해석.",
   ].join("\n");
   const r = findCardNamesBeforeMarker(text, "relationship_5");
   assert.equal(r.violations.length, 0, JSON.stringify(r));
-  assert.ok(r.checked.includes("황제"), "황제가 실제 검사 대상이어야 가드가 의미 있음");
+  assert.ok(r.checked.includes("황제") && r.checked.includes("교황"), JSON.stringify(r.checked));
 });
 
 // ── P1-4: 프리미엄 카드별 3라벨 골격 ──
@@ -332,11 +352,14 @@ test("runAssertions: 통과 메시지도 검사 범위를 노출한다 (깨끗�
   assert.ok(hit!.detail.includes("마법사") && hit!.detail.includes("여교황"), hit!.detail);
 });
 
-test("runAssertions: 검사 대상이 0장이면 통과라도 '무의미'라고 표기 (원카드=바보 한 장, 전부 일반어 스킵)", () => {
+test("runAssertions: 검사 대상이 0장이면 통과라도 '무의미'라고 표기 (마커가 없어 검사할 자리가 없음)", () => {
+  // 현행 시드 덱엔 일반어 카드가 없어서(불변식) '전부 스킵'으로는 vacuous 를 못 만든다.
+  // 남은 vacuous 경로는 '마커가 아예 없어 검사할 자리가 없는' 경우 — 그 실패는 card_count 몫이고,
+  // 여기선 그때 이 단언이 초록으로 위장하지 않는지만 본다.
   const t = tx({
     product: { kind: "tarot", spreadType: "one_card", spreadCategory: "worry" },
     turns: [
-      { userText: "고민", assistantText: "훅.\n\n[CARD:1]\n바보 카드 해석. [END]", headers: {}, status: 200, eventType: "say" },
+      { userText: "고민", assistantText: "마커 없이 그냥 풀이만 했어. [END]", headers: {}, status: 200, eventType: "say" },
     ],
   });
   const res = runAssertions(t, { mustEnd: true, expectSensitiveHeader: false, expectCardCount: 1 });
