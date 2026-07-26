@@ -176,16 +176,16 @@ public/
 - [x] **Phase 1** — 레포 부트스트랩 (Next 16 + Tailwind 4 + 디자인 시스템 + 랜딩 페이지)
 - [x] **Phase 2** — dev/prod 인프라 셋업 (Supabase Branching + Git sync, 카카오 dev/prod 앱, Vercel 프로젝트 + 도메인 매핑, env 22개)
 - [x] **Phase 3** — 외부 서비스 추가 — 토스페이먼츠 결제 채택 (v1 패턴 이식: `lib/toss` + `/api/payment/ready`·`/confirm` + `/api/payments/list` + `payments` 마이그레이션 + `/shop` 충전소). GA4 는 선택(미적용)
-- [ ] **Phase 4** — 검증된 인프라 이식
+- [x] **Phase 4** — 검증된 인프라 이식
   - [x] (a) logger + /api/health + boundary 페이지 — `error_logs` 마이그레이션, `lib/supabase`/`lib/env`/`lib/logger`, `/api/health`, `/api/log/error`, `app/error.tsx` + `app/global-error.tsx` + `app/not-found.tsx`. dev/prod 양쪽 `/api/health` 200 OK
   - [x] (b) auth — 카카오 OAuth + 익명 식별자 + 쿠키 세션 + `/api/auth/*`. `users` 마이그레이션 + error_logs FK ALTER, `lib/session` (Next 16 `await cookies()`) + `lib/auth-token` HMAC + `lib/kakao` + `lib/admin`, `middleware.ts` (anon + admin guard), `AuthBootstrap` + `KakaoSdkLoader`, `app/login`
   - [x] (c) stars — `star_balances` + `star_transactions` + `spend_stars`/`charge_stars` RPC (SELECT FOR UPDATE + 멱등성), `lib/stars`, `/api/stars/balance` + `/api/stars/spend`. `/api/auth/kakao` 신규 유저 잔액 INSERT + `/api/auth/withdraw` stars 삭제 단계도 보강. `chargeStars` 호출처(결제 confirm)는 Phase 3 토스 결제로 연결 완료. `star_transactions.reading_id` FK + spend 의 reading 소유권 검증은 Phase 5 readings 추가 후
-  - [ ] (d) admin — 어드민 콘솔 + HMAC 쿠키 + admin_actions + bulk API
+  - [x] (d) admin — 어드민 콘솔 + HMAC 쿠키 가드(`middleware.ts`). prod 라이브: `/admin`(대시보드) + analytics·traffic·ads·users·payments·errors·sensitive·readings·relationship·inquiries·popups·paywall·fortune-refunds. nav 는 `components/admin/AdminNav.tsx`(접이식). ⚠️ 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지는 미들웨어가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). 실렌더 육안 검증은 일부 화면 잔여
   - [x] (e) sensitive — Phase 5 (e1) 과 통합 완료 (위 Phase 5 e1 항목 참고)
 - [ ] **Phase 5** — 사주 도메인 신규 설계
-  - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + `data/persona/byeolkong.md` 시스템 프롬프트
+  - [x] (a) 코어 — manseryeok@1.0.1 + `lib/saju/calc` wrapper + 마이그레이션 (user_profiles 1:N + readings + messages + star_transactions.reading_id FK ALTER) + 시스템 프롬프트 (당시 `data/persona/byeolkong.md` 단일 → **현행은 코어+도메인 분리**: `byeolkong_core.md` 가 화법·위기 안전망·금지표현의 단일 원천이고 `byeolkong_{saju,tarot,fortune,relationship,relationship_draw,verdict_inthread}.md` 가 도메인별로 얹힌다. ⚠️ 코어 편집은 **전 종목 전역 변경** = 광범위 회귀 QA 필요)
   - [x] (b) 입력 폼 + 사주판 + `/api/consultations/saju/calc` — 분리 셀렉트 + 12지지 시간 + 양/음력 + 윤달 + 시간모름. 4기둥 그리드 + 오행 막대 + 일주 ★. 랜딩에 CTA. **검증**: dev/prod 양쪽 브라우저에서 본인 사주 정확도 spot check + 음력 변환 + 시간모름 분기 모두 통과
-  - [x] (c) Claude 풀이 채팅 — `SAJU_READING_COST=22` 단일 가격. `lib/claude` (페르소나 caching + 사주 컨텍스트 + 수렴 가이드 동적 주입) + `/api/readings` POST (profile+reading+spendStars 원자) + `/api/consultations/saju/chat` SSE 스트림 + `/saju/concern` 고민 입력 + `/saju/reading` 채팅 UI + ChatBubble + SajuBoardCompact. [END] 마커 자동 종료. **검증**: dev + prod 양쪽 카카오 로그인 → 사주 입력 → 22별 차감 → 별콩이 자동 풀이 SSE 통과
+  - [x] (c) Claude 풀이 채팅 — `SAJU_READING_COST` 단일 가격 (당시 22 → **현행 20**, `lib/saju/constants.ts`). `lib/claude` (페르소나 caching + 사주 컨텍스트 + 수렴 가이드 동적 주입) + `/api/readings` POST (profile+reading+spendStars 원자) + `/api/consultations/saju/chat` SSE 스트림 + `/saju/concern` 고민 입력 + `/saju/reading` 채팅 UI + ChatBubble + SajuBoardCompact. [END] 마커 자동 종료. **검증**: dev + prod 양쪽 카카오 로그인 → 사주 입력 → 22별 차감 → 별콩이 자동 풀이 SSE 통과
   - [x] (e1 / Phase 4 e) 위기 시그널 안전망 — `sensitive_alerts` (5 카테고리 + severity 1-3) + `lib/sensitive` (regex 1차 + Claude haiku 2차) + `/api/consultations/saju/chat` 통합 (응답 헤더 + DB INSERT + readings.has_sensitive) + `SafetyBanner` (카테고리별 hotline + 익명·무료 강조 + 별콩이 톤 안내). **검증**: dev "죽고 싶어" 키워드로 SafetyBanner 노출 + sensitive_alerts row 생성 확인
   - [x] (e2) 결과 / 공유 / 마이페이지 — `lib/saju/closing` 마무리 한마디 추출 + `/api/readings/[id]` 단건 + `/api/readings` 리스트 + `/saju/result` (사주판 + 한마디 카드 + 대화 다시보기 + 공유) + `ShareButtons` (Web Share + 클립보드 + has_sensitive 차단) + `/api/og/saju/[readingId]` next/og 1200×630 + `lib/kakao-share` SDK feed + `/mypage` (프로필 + 잔액 + 히스토리 + 로그아웃/탈퇴) + 랜딩 MY 진입점. reading [END] → result 자동 이동
 - [ ] **Phase 6** — v1 종료 + v2 prod 런칭 (DNS 전환, v1 archive)
@@ -228,7 +228,7 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
    - 기존 `/saju`, `/saju/reading`, `/saju/result`, `/mypage` (Header/BottomTab 추가로 인한 패딩/위계 충돌 확인)
 
 3. **운영/legal 정리**
-   - `/terms`, `/privacy`, `/refund` 페이지 — Footer 링크가 가리키는데 v2 에 없음 (현재 404)
+   - ~~`/terms`, `/privacy`, `/refund` 페이지 없음~~ → **셋 다 존재·prod 200** (2026-07-20 확인)
    - Footer 부제 "AI 타로 친구" 톤 정리 (이제 사주+타로 듀얼)
    - 동일 사업자 가정으로 사업자 정보/이메일 그대로 — 변경 필요 시 [components/layout/Footer.tsx](components/layout/Footer.tsx) 수정
 
@@ -256,9 +256,9 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 **완료 (2026-07-18 세션 — W1 사이클 2 "우리 사이" v1, dev 배포·통합 QA 대기)**:
 - ✅ **신설 종목 "우리 사이"** — 지속 대화형 연애 상담 에이전트(세션 종결 없는 영원한 스레드). 탭 `/relationship`: 미등록=콜드스타트+상대등록 온보딩, 등록=스레드(S2 패스없음/S3 활성/S4 캡도달).
 - ✅ **하이브리드 스키마** — `relationships`(관계파일, 유저당1: 호칭·상태·self/partner_profile_id·thread_reading_id·rolling_summary·summarized_msg_count·memo·last_visited_at) + `relationship_passes`(기간권) + readings 확장(`consultation_type='relationship'` 스레드본체 + `relationship_id`/`skill_key` 스킬 태깅). 상대 등록=user_profiles(relation_type='partner') 재사용. 마이그레이션 20260718000000/010000/**020000**. ⚠️ **020000 = consultation_type VARCHAR(10)→(20)**: 'relationship'(12자)이 폭 초과 → 등록 thread_failed(22001) 버그 수정(CHECK엔 값 추가했으나 컬럼 폭 미확장이 원인). **신규 consultation_type 값 추가 시 컬럼 폭 확인 습관.**
-- ✅ **패스(기간권)** — 1일20/3일40/7일60별, `purchase_relationship_pass` RPC(원자 차감 + 활성 중 재구매=만료 이어붙임). 소프트캡 20턴/일(KST `startOfTodayKstIso`) + **5별=+5턴 무제한 연장**(source='rel_extend', cap 없음). 구매는 확인모달(PassConfirmModal) 경유 — S2 목록 + S3 "패스 연장·구매" 시트.
+- ✅ **패스(기간권)** — **1일30/3일60/7일100별** (2026-07-20 조정 반영, 정본 = `lib/relationship/types.ts` `PASS_PLANS`) + **무료 인트로 3턴**(`FREE_INTRO_TURNS`, 2026-07-26 — 등록 직후 패스 없이 3턴 무료), `purchase_relationship_pass` RPC(원자 차감 + 활성 중 재구매=만료 이어붙임). 소프트캡 20턴/일(KST `startOfTodayKstIso`) + **5별=+5턴 무제한 연장**(source='rel_extend', cap 없음). 구매는 확인모달(PassConfirmModal) 경유 — S2 목록 + S3 "패스 연장·구매" 시트.
 - ✅ **기억(파일+임계치 요약)** — 최근 24메시지 원문 + 초과분 haiku 델타 요약(`lib/relationship/memory.ts` rolling_summary/summarized_msg_count 커서). 최근창은 항상 user 발화로 시작(Anthropic 규칙). 관계 페르소나 `data/persona/byeolkong_relationship.md`([END] 안 씀) + `buildRelationshipSystemMessage`. 채팅 `/api/relationship/chat`(패스 게이트·소프트캡·SSE·요약·[CHECKIN:] 파싱).
-- ✅ **스킬 4종 (확장 레지스트리 `lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`)** — 관계체크인 45(checkin_6 draw)·걔속마음 40(deep_feelings_5 draw)·우리궁합 40(compat, 등록 두 프로필)·싸움판정 30(verdict 대화형 5턴 수렴, `/api/relationship/verdict`). 마커 `[SKILL:key]` 칩 + 접힌 칩 메뉴(SkillChipRow) → `lib/relationship/useSkillLaunch` 디스패치. 결과 `logSkillToThread`→memo.skill_log 적립. 스킬은 활성 패스 필요. 스레드본체·verdict는 보관함(neq relationship) 제외 / tarot_draw·compat 스킬 reading은 기존 타입이라 보관함 노출.
+- ✅ **스킬 4종 (확장 레지스트리 `lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`)** — 관계체크인 45(checkin_6 draw)·걔속마음 40(deep_feelings_5 draw)·우리궁합 40(compat, 등록 두 프로필)·싸움판정 30(verdict 대화형 5턴 수렴). ⚠️ **2026-07-25 인-스레드 재설계로 아래 배관이 바뀜**: `/api/relationship/verdict` 라우트 **삭제**(판정·궁합·카드뽑기 전부 스레드 본체 `/api/relationship/chat` 내부에서 실행 — `lib/relationship/{draw,compat}-thread.ts` + `ThreadDrawModal`/`ThreadCompatCard`/`ThreadCardStrip`), 칩 UI 는 `SkillChipRow` **삭제 → `SkillSheet`**(입력창 ⚡ 시트). 마커 `[SKILL:key]` 칩 → `lib/relationship/useSkillLaunch` 디스패치. 결과 `logSkillToThread`→memo.skill_log 적립. 스킬은 활성 패스 필요. 스레드본체·verdict는 보관함(neq relationship) 제외 / tarot_draw·compat 스킬 reading은 기존 타입이라 보관함 노출.
 - ✅ **인앱 체크인** — `[CHECKIN:내용]` 마커 → memo.pending_checkin → 다음 방문(6h+) 시 별콩이 먼저 안부 → 소진(prescriptions resolved).
 - ✅ **관계 수정 PATCH `/api/relationship`**(호칭·상태·상대생일) + 헤더 ✏️·partner 누락 배너 → 수정 모달(RelationshipEditModal). 마이페이지 지인 프로필 삭제 시 "우리 사이 사용중" 경고+체크박스(FK SET NULL 우아한 강등). 탈퇴는 users CASCADE로 relationships/passes/스레드 자동 정리(코드 추가 불필요).
 - ✅ **안전망** — 관계 스레드·verdict에 위기 SafetyBanner(X-Sensitive-*) 타로/사주 패리티. 헤더 흰색·축소 리디자인, 프로필↔대화 디바이더.
@@ -266,14 +266,23 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
 
 **완료 (2026-07-20 세션 — 사이클 1~3 prod 일괄 배포)**:
 - ✅ **사이클 1~3 prod 일괄 배포** (`ba20fb2→75340d2` fast-forward, 112커밋 + 스테일 테스트 픽스 1). `git push origin dev:main` 무중단 배포. 마이그레이션 3개(relationship_core/pass_rpc/widen_consultation_type) prod 원장 적용 확인 · Vercel READY(~70초) · `/api/health` 200(env 완비·DB ok) · 공개 라우트 13개 200 · **`/relationship` 상대등록 22001 실증 통과**(widen 컬럼 작동) · 신규 가격 라이브. 프리플라이트 A1빌드/A2유닛 79/A4 additive+새env 0 그린. **무중단(Vercel 원자적)+additive 마이그레이션 → 배포 중 광고 유지 가능(중지 불필요)**. 저트래픽 오후 KST 진행.
-- ✅ **가격 조정 라이브** (커밋 075ebe8): 연애 패스 **30/60/100**(구 20/40/60 → 위 259줄은 구가격, 현행 정본 = `lib/relationship/types.ts` PASS_PLANS) · 첫충전 보너스 50%→20%.
+- ✅ **가격 조정 라이브** (커밋 075ebe8): 연애 패스 **30/60/100**(구 20/40/60 → 위 사이클 2 항목에도 반영 완료, 정본 = `lib/relationship/types.ts` PASS_PLANS) · 첫충전 보너스 50%→20%.
 - ✅ **persona-v3 효과 판정** (배포 전 순수 persona 창 마지막 스냅샷, prod 쿼리): 대화 품질 명백 개선(질문마무리 74.5→35.8% 반토막 · 결과열람 46→56% · 유저턴 5.40→4.90 수렴↑), 전환 6.6→11.6%(traffic-mix 교란 있음), 리텐션 여전히 ~0(W5 통로 필요). `docs/superpowers/specs/2026-07-20-persona-v3-effect-findings.md` · [[persona-tuning-baseline]].
 - ✅ **스테일 부채 해소**: 등록실패 raw `detail` 제거(08e13de) · legal 페이지(`/terms`·`/privacy`·`/refund`) 존재(빌드 라우트 확인 200) · Phase 4(d) admin 콘솔 dev 완료(별소모 분석 + `/admin/relationship`, 실렌더 검증은 잔여).
 - 📢 **광고 교체(3f)**: 코드 prod 라이브(`/start?v=love`·landing_variant `v` 우선). Meta 작업(counsel OFF · 신규 3본 love/relationship/tarot 대조군 · 지면 IG 피드+릴스+스토리 수동 · utm `utm_content={{ad.name}}&utm_term={{placement}}`)은 사용자 진행. 소재 `ad-assets/final/ad_{love,relationship}_*`(git 미추적).
 
+**현행 prod 상태 (2026-07-26, prod `48f95bb`)** — 위 세션 로그가 2026-07-20 에서 끊기므로, 그 이후 배포분만 요약. 상세는 `docs/superpowers/{specs,plans}/2026-07-2[2-6]-*`:
+- **재화 정본**: 웰컴 20별(`WELCOME_BONUS_STARS`) · 첫충전 보너스 +20%(`FIRST_CHARGE_BONUS_RATE`) · 연애 패스 30/60/100(`PASS_PLANS`) + 무료 인트로 3턴(`FREE_INTRO_TURNS`) · 사주 20(`SAJU_READING_COST`). **가격은 코드 상수가 정본 — 이 문서의 숫자와 어긋나면 코드를 믿을 것**
+- **우리 사이 스킬 4종 = 스레드 내부 실행** (별도 라우트/화면 폐기 — 위 사이클 2 설명 참고)
+- **민감 감지**: 회색지대는 스트림 시작 전 haiku 2차 판정을 await (오탐 차단)
+- **next_reco 중단**: haiku 태깅 off + 결과 화면 추천 카드 제거. **인챗 칩(clarifier·extend·이어가기)과 `components/reco/RecoInlineCard` 는 생존**
+- **타로 프리미엄(5장+)**: 첫 풀이 3라벨 골격(🃏💫🔗) + 카드당 6~7문장 + `[CARD:n]` 마커 선행 강제. 수렴 임계치는 카드 수 기준(`WRAP_THRESHOLDS`)
+- **위기 대화는 서버측 강제 종료 없음** — has_sensitive 면 abs-cap `[END]` 억제(안전 > 비용, rate-limit 20/분은 유지)
+- **계측**: `page_views` + `/api/pv` + `/admin/traffic` · 탈퇴 시 utm 스냅샷 보존 · `PROMPT_VERSION`(`lib/prompt-version.ts`) 코호트. ⚠️ **날짜 기준이 화면마다 다름** — 10시 롤오버(`/admin`·`/admin/traffic`) vs KST 자정(`/admin/analytics`·연애 일일 턴), `lib/admin-time.ts` 주석에 표로 정리됨
+- ⚠️ **측정 창 규율**: 수익성 판정 사이클 진행 중(day 0 = 2026-07-26). 퍼널에 닿는 변경은 지정된 배포 슬롯에서만 — 창 중간에 흘리면 인과 분리가 깨진다
+
 **보류된 큰 부채** (출시 전 처리):
-- Phase 4 (d) admin 콘솔 (운영 도구 — 대시보드/사용자/에러/민감 검토)
-- `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고)
+- `middleware.ts` → `proxy.ts` rename (Next 16 deprecation 경고). 코드모드 `npx @next/codemod@canary middleware-to-proxy .` = 파일명+함수명만 바뀜. ⚠️ **실패가 조용하다** — 파일 인식 안 되면 크래시 없이 anon 쿠키 미발급(익명 식별·계측 오염) + `/admin` 페이지 가드 소실. deprecated 지 제거 아니므로 마감 없음 → **측정 창 중간 금지, 배포 슬롯에서만**. 검증 3종: 새 시크릿 창 anon 쿠키 발급 / 토큰 없이 `/admin` → 리다이렉트 / 두 파일 공존 없음
 - 카카오 prod 앱의 JS 키 + Web 도메인 (`byeolkongtalk.com`) 등록 — prod 카카오 공유 동작용. dev 앱은 `dev.byeolkongtalk.com` 등록 시 4019 해소. **단 dev 는 Vercel Deployment Protection(SSO)** 때문에 외부 스크래퍼가 OG 이미지/`/cards-webp` 에셋을 못 받아 → 카카오 미리보기 이미지·"이미지로 저장"의 카드 그림이 빔. prod(보호 없음)에선 정상. dev 에서 확인하려면 Vercel Settings → Deployment Protection 해제 필요(보안 트레이드오프).
 
 ### Phase 2 결정 사항
@@ -297,12 +306,12 @@ Phase 5 (e2) 까지 끝나서 **카카오 로그인 → 사주 입력 → 사주
   - domestic_violence → 1366, 112
   - sexual_violence → 1366, 해바라기센터
   - substance_abuse → 1342, 129
-- 페르소나 (`data/persona/byeolkong.md`) 의 위기 안내 톤과 일치. 별콩이 응답 자체도 페르소나 가이드로 위기 시 hotline 안내 우선
+- 페르소나 (`data/persona/byeolkong_core.md` §위기 — 코어 단일 원천, 도메인 파일로 복사 금지) 의 위기 안내 톤과 일치. 별콩이 응답 자체도 페르소나 가이드로 위기 시 hotline 안내 우선
 - 운영자 검토: Phase 4 (d) admin 콘솔 (`/admin/sensitive`) 까지는 Supabase SQL Editor 에서 수동 — `SELECT * FROM sensitive_alerts WHERE reviewed_at IS NULL ORDER BY severity DESC, created_at DESC;` 후 reviewed_at + action_taken 마킹
 - `readings.has_sensitive=true` 인 reading 은 Phase 5 (e2) 결과 화면에서 공유 비활성화 분기 (v1 패턴) 들어갈 예정
 
 ### Phase 5 (c) 운영 노트 — 풀이 채팅 + Claude
-- 가격: 단일 22별/풀이. `SAJU_READING_COST` 상수만 바꾸면 일괄 변경. 무료 정책 X
+- 가격: 단일 **20별**/풀이 (`SAJU_READING_COST`, 상수만 바꾸면 일괄 변경). 무료 정책 X. ⚠️ **사주 고민톡은 신규 진입 폐쇄** — 이 노트는 과거 reading 열람·resume·이어가기(deep) 경로에만 적용된다. 새 사주 수요는 `/fortune` 리포트(one-shot)가 받는다
 - 수렴 임계치 (단일): convergeStart 4턴/1800자, hardcap 6턴/2200자, abs 9턴. 짧은 핑퐁 사용자도 abs 에서 안전 종료
 - 페르소나 system prompt 는 매 호출 정적 (12-15K 토큰 추정) → `cache_control: ephemeral` 마킹. 첫 턴 cache write 1.25× / 후속 cache read 0.1× → 5턴 세션 ~33-40% 비용 절감 추정
 - chat 라우트는 readings 소유권 검증 + messages 테이블에서 누적 turn/chars 직접 계산 (서버 권위). 클라가 보낸 messages history 는 Claude 입력용으로만 사용, DB 신뢰 X
