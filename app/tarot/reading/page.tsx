@@ -135,8 +135,7 @@ function TarotReadingInner() {
   const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=2단계 후, 3=종료
   const flushPendingRef = useRef<() => void>(() => {});
   const runIdleNudgeRef = useRef<() => void>(() => {});
-  // W3 출구 nudge — 마지막 응답의 wrap-mode (X-Wrap-Mode 헤더) + 출구 칩 노출 상태
-  const wrapModeRef = useRef<"free" | "converge" | "hardcap">("free");
+  // W3 출구 nudge — 출구 칩 노출 상태
   const [exitOffer, setExitOffer] = useState(false);
 
   // 컨텍스트 로드 + reading 생성 + 첫 풀이 자동 시작
@@ -568,12 +567,6 @@ function TarotReadingInner() {
         });
       }
 
-      // W3: wrap-mode 저장 — 출구 nudge 발동 기준
-      const wm = r.headers.get("X-Wrap-Mode");
-      if (wm === "free" || wm === "converge" || wm === "hardcap") {
-        wrapModeRef.current = wm;
-      }
-
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
       while (true) {
@@ -642,14 +635,11 @@ function TarotReadingInner() {
       idleStageRef.current = 2;
       armIdleTimer(IDLE_EXIT_MS);
     } else if (stage === 2) {
-      // W3 출구 — 수렴 이후(또는 RECO 노출 후)에만. 초반 증발 유도 방지.
+      // 출구 칩 — 첫 턴부터 노출 (2026-07-26 P0-2: 1턴 만족 이탈도 결과 화면을 경유하도록
+      // wrapMode 게이트 제거. 근거: 결과 미도달 47.4% + 1턴 시점 마무리 안내 0)
       idleStageRef.current = 3; // 종료 — 더는 무장하지 않음
-      const exitEligible =
-        wrapModeRef.current !== "free" || Object.keys(recoAttach).length > 0;
-      if (exitEligible) {
-        pushNudge(EXIT_NUDGE);
-        setExitOffer(true);
-      }
+      pushNudge(EXIT_NUDGE);
+      setExitOffer(true);
     }
   }
 
