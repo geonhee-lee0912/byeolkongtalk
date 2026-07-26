@@ -76,9 +76,17 @@ export async function POST(request: NextRequest) {
     const kakaoIdHash = createHash("sha256")
       .update(String(userRow.kakao_id))
       .digest("hex");
+    // 유입 스냅샷 — users CASCADE 로 user_acquisition 이 사라지기 전에 복사 (소재별 탈퇴율 계측)
+    const { data: acq } = await supabase
+      .from("user_acquisition")
+      .select(
+        "utm_source, utm_medium, utm_campaign, utm_content, utm_term, landing_variant, referrer, first_seen_at"
+      )
+      .eq("user_id", userId)
+      .maybeSingle();
     const { error: wErr } = await supabase
       .from("account_withdrawals")
-      .insert({ kakao_id_hash: kakaoIdHash });
+      .insert({ kakao_id_hash: kakaoIdHash, ...(acq ?? {}) });
     if (wErr) {
       await logError(wErr, {
         route: "/api/auth/withdraw",
