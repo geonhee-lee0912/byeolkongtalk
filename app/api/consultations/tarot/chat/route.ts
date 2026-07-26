@@ -13,7 +13,6 @@ import {
   resolveSensitive,
   recordSensitiveAlert,
 } from "@/lib/sensitive";
-import { parseRecoMarker, tagNextRecoAsync, INCHAT_ONLY_PRODUCTS } from "@/lib/reco";
 import type {
   SpreadType,
   SpreadCategory,
@@ -317,72 +316,6 @@ export async function POST(request: NextRequest) {
             .from("readings")
             .update({ has_sensitive: true })
             .eq("id", reading.id);
-        }
-
-        // reco 후처리 — sensitive 턴이면 스킵 (위기 대화엔 추천 없음)
-        if (!sensitiveMatch) {
-          const recoProduct = parseRecoMarker(assistantText);
-          if (recoProduct && !INCHAT_ONLY_PRODUCTS.includes(recoProduct)) {
-            // [RECO:] 마커 → 즉시 저장, 기존 next_reco 덮어쓰기 금지
-            // 인챗 전용 product(tarot:clarifier, extend)는 칩 전용 — DB 저장 생략
-            void supabase
-              .from("readings")
-              .update({
-                next_reco: {
-                  product: recoProduct,
-                  question: null,
-                  hook: null,
-                  source: "marker",
-                  created_at: new Date().toISOString(),
-                },
-              })
-              .eq("id", reading.id)
-              .is("next_reco", null)
-              .then(({ error }) => {
-                if (error) console.warn("[reco] marker UPDATE 실패:", error.message);
-              });
-          } else if (assistantText.includes("[END]")) {
-            // [END] 있고 마커 없으면 haiku 태깅 fire-and-forget
-            void (async () => {
-              try {
-                const { data: latest } = await supabase
-                  .from("readings")
-                  .select("next_reco, has_sensitive")
-                  .eq("id", reading.id)
-                  .maybeSingle();
-                if (latest?.next_reco || latest?.has_sensitive) return;
-
-                // 대화 텍스트 조합 (DB 메시지 + 이번 턴)
-                const turns = [
-                  ...(pastMessages ?? []).map(
-                    (m) => `${m.role === "user" ? "user" : "assistant"}: ${m.content}`
-                  ),
-                  `user: ${lastMessage.content}`,
-                  `assistant: ${assistantText}`,
-                ];
-                const convo = turns.join("\n");
-
-                const tag = await tagNextRecoAsync(convo, "tarot");
-                if (!tag) return;
-                void supabase
-                  .from("readings")
-                  .update({
-                    next_reco: {
-                      ...tag,
-                      source: "haiku",
-                      created_at: new Date().toISOString(),
-                    },
-                  })
-                  .eq("id", reading.id)
-                  .is("next_reco", null)
-                  .then(({ error }) => {
-                    if (error) console.warn("[reco] haiku UPDATE 실패:", error.message);
-                  });
-              } catch (e) {
-                console.warn("[reco] tarot END 후처리 실패 (무시):", e instanceof Error ? e.message : e);
-              }
-            })();
-          }
         }
 
         controller.close();
