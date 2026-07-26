@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 스펙 §4의 제품 픽스 패키지를 한 번에 빌드해 prod 배포(= day 0 기준점)한다 — P0 리텐션 엔진 시동(우리 사이 무료 3턴 + turn-1 출구 칩), P1 페르소나 일괄 수정(회피구·premium-depth·CARD 마커), P2 원가·정리·계측(reco 중단·죽은 SKU·탈퇴 utm 스냅샷·landing_variant 분리).
+**Goal:** 스펙 §4의 제품 픽스 패키지를 한 번에 빌드해 prod 배포(= day 0 기준점)한다 — P0 리텐션 엔진 시동(우리 사이 무료 3턴 + turn-1 출구 칩), P1 페르소나 일괄 수정(회피구·premium-depth·CARD 마커), P2 원가·정리·계측(reco 중단·탈퇴 utm 스냅샷·landing_variant 분리). ⚠️ 스펙 §4 의 P2-7(죽은 SKU 진열 제거)은 2026-07-26 사용자 결정으로 **제외**.
 
 **Architecture:** 서버 권위 원칙 유지 — 무료 3턴 판정은 messages 테이블 카운트로 서버가 결정, 클라는 표시만. 페르소나 수정은 md 파일 + lib/claude.ts 동적 가이드 주입(모듈 캐시라 **dev 서버 재시작 필수**). reco 는 [RECO:] 인챗 칩(clarifier/extend)은 남기고 next_reco 저장·haiku 태깅·결과 카드만 제거.
 
@@ -443,67 +443,9 @@ git commit -m "feat(reco): next_reco 중단 — haiku 태깅 off + 결과 추천
 
 ---
 
-### Task 6: P2-7 — star_150·star_300 진열 제거 (죽은 SKU)
+### ~~Task 6: P2-7 — star_150·star_300 진열 제거~~ — **제외 (2026-07-26 사용자 결정)**
 
-**Files:**
-- Modify: `lib/constants.ts`
-- Modify: `app/shop/page.tsx`, `components/upsell/RechargeSheet.tsx` (목록 렌더)
-- Modify: `app/api/payment/ready/route.ts:23-26` (신규 구매 차단)
-
-- [ ] **Step 1: StarPackage에 active 플래그**
-
-`lib/constants.ts`:
-
-```ts
-export interface StarPackage {
-  id: string;
-  stars: number;
-  price: number;
-  label: string;
-  /** false = 진열·신규 구매 중단 (판매 0 SKU — 2026-07-26 스펙 §4 P2-7). 결제 이력 표시는 유지. */
-  active?: boolean;
-}
-
-export const STAR_PACKAGES: StarPackage[] = [
-  { id: "star_10", stars: 10, price: 1000, label: "10별" },
-  { id: "star_30", stars: 30, price: 2800, label: "30별" },
-  { id: "star_70", stars: 70, price: 5900, label: "70별" },
-  { id: "star_150", stars: 150, price: 11000, label: "150별", active: false },
-  { id: "star_300", stars: 300, price: 19900, label: "300별", active: false },
-];
-```
-
-- [ ] **Step 2: 진열 2곳 필터**
-
-`app/shop/page.tsx`와 `components/upsell/RechargeSheet.tsx`에서 패키지 목록을 렌더하는 `STAR_PACKAGES.map(` 지점을 찾아(각 파일 `grep -n "STAR_PACKAGES.map"`) 아래처럼 필터 상수를 거쳐 렌더:
-
-```ts
-const DISPLAY_PACKAGES = STAR_PACKAGES.filter((p) => p.active !== false);
-```
-
-→ 해당 `map`의 대상만 `DISPLAY_PACKAGES`로 교체. `STAR_PACKAGES[0]` 기반 `BASE_PER_STAR`(shop 43행)와 `find` 조회는 그대로 둔다 (star_10은 active라 영향 없음).
-
-- [ ] **Step 3: ready 라우트에서 신규 구매 차단**
-
-`app/api/payment/ready/route.ts` 24행 검증을:
-
-```ts
-    const pkg = STAR_PACKAGES.find((p) => p.id === packageType);
-    if (!pkg || pkg.active === false || pkg.stars !== stars || pkg.price !== amount) {
-      return NextResponse.json({ error: "Invalid package" }, { status: 400 });
-    }
-```
-
-(confirm 라우트는 ready가 만든 orderId 없이는 진행 불가라 별도 수정 불필요.)
-
-- [ ] **Step 4: 검증 + Commit**
-
-`npx tsc --noEmit` → 에러 0. 로컬 `/shop`에서 150·300 카드 미노출 확인.
-
-```bash
-git add lib/constants.ts app/shop/page.tsx components/upsell/RechargeSheet.tsx app/api/payment/ready/route.ts
-git commit -m "feat(shop): star_150·star_300 진열 제거 + 신규 구매 차단 (P2-7)"
-```
+죽은 SKU지만 진열 유지 비용이 0이고 상단 가격 앵커 역할이 있어 **현행 유지**. 이번 패키지에서 제외한다. (이후 태스크 번호는 그대로 두어 스펙 §4 번호와의 대조를 유지.)
 
 ---
 
@@ -627,8 +569,7 @@ Expected: 테스트 전부 pass, 빌드 성공.
 `npm run dev` (⚠️ 재시작 상태에서 — 페르소나 캐시):
 1. 우리 사이: 등록 → 무료 3턴 → 4턴째 402 → 패스 CTA (Task 2 Step 4 재확인)
 2. 타로: 5장 스프레드 첫 풀이 골격 + turn-1 출구 칩 + 결과 화면에 RecoCard 없음 + "이어가기"는 있음
-3. /shop: 3개 패키지만 진열
-4. 마이페이지 탈퇴는 dev 계정으로 1회 실행 → Supabase dev `account_withdrawals`에 utm 컬럼 채워진 row 확인 (탈퇴 전 utm 쿠키로 가입한 테스트 계정 필요 — `localhost:3000/start?v=test&utm_source=meta`로 가입)
+3. 마이페이지 탈퇴는 dev 계정으로 1회 실행 → Supabase dev `account_withdrawals`에 utm 컬럼 채워진 row 확인 (탈퇴 전 utm 쿠키로 가입한 테스트 계정 필요 — `localhost:3000/start?v=test&utm_source=meta`로 가입)
 
 - [ ] **Step 3: dev push → dev 사이트 확인 → main fast-forward (사용자 확인 후)**
 
@@ -648,6 +589,6 @@ prod 배포 후: `/api/health` 200 → Supabase main Workflow logs에서 마이�
 - [ ] P0-2 turn-1 출구 칩 — Task 3
 - [ ] P1-3 회피 상용구·조건부 범위 답 / P1-4 premium 골격 / P1-5 CARD 마커 — Task 4
 - [ ] P2-6 reco 중단(인챗 칩·이어가기 보존) — Task 5
-- [ ] P2-7 죽은 SKU 진열 제거 — Task 6
+- [x] ~~P2-7 죽은 SKU 진열 제거~~ — **제외** (2026-07-26 사용자 결정: 현행 유지)
 - [ ] P2-8 utm 스냅샷 + landing_variant 분리 — Task 7·8
 - [ ] prod 배포 + day 0 기준점 확정 — Task 9

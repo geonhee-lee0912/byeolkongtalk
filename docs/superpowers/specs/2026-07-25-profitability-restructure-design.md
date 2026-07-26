@@ -78,7 +78,7 @@
 
 ### P2 — 원가·정리·계측
 6. **next_reco 중단** — haiku 태깅 호출 off + 추천 칩 UI 제거. clarifier·extend·이어가기는 유지 (각 11·6·12건 생존). 근거: §8-3 이행률 1.3%, marker 경로 사망, haiku 원가만 소각.
-7. **star_150·star_300 진열 제거** — 판매 0 (죽은 SKU).
+7. ~~**star_150·star_300 진열 제거** — 판매 0 (죽은 SKU).~~ → **제외 (2026-07-26 사용자 결정)**: 진열 유지 비용 0 + 상단 가격 앵커 역할로 현행 유지.
 8. **계측 2건** — `account_withdrawals` 에 utm 스냅샷 컬럼 추가(additive 마이그레이션 1개, 탈퇴 시 user_acquisition 스냅샷 복사) + `landing_variant` 를 `utm_content` 미러가 아닌 `v` 파라미터 독립 캡처로 분리.
 
 ### 사용자 액션 (코드 밖)
