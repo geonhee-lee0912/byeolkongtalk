@@ -142,10 +142,6 @@ function StartPageInner() {
     proceed(pending);
   };
 
-  // 타로 갈래 스텝: branch(2택) → counsel(감정 10종) | fortune(타로 운세 5종)
-  const [tarotStep, setTarotStep] = useState<"branch" | "counsel" | "fortune">(
-    "branch"
-  );
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   // 가입 유도 박스 노출 판정 — 로그인 유저에겐 "지금 가입하면" 이 어긋나니 숨김.
   // localStorage 는 AuthBootstrap 이 비동기로 sync 하므로 마운트 시점 값만 믿으면
@@ -205,11 +201,6 @@ function StartPageInner() {
     if (pending) proceed(pending);
     else router.push("/"); // 선택 없이 가입 → 본체 홈으로
   };
-
-  // variant 가 바뀌면(이례적 — 쿼리만 바뀌는 내비게이션) 갈래 스텝 초기화
-  useEffect(() => {
-    setTarotStep("branch");
-  }, [variant]);
 
   if (!valid) return null;
   const heroCopy = HERO_COPY[variant];
@@ -348,68 +339,12 @@ function StartPageInner() {
           </>
         )}
 
-        {variant === "tarot" && tarotStep === "branch" && (
+        {variant === "tarot" && (
           <>
-            <p className="text-[13px] font-bold text-eye-purple px-1">
-              타로, 어떻게 볼까?
-            </p>
-            <button
-              onClick={() => setTarotStep("counsel")}
-              className="flex flex-col items-center gap-1.5 p-6 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
-            >
-              <span className="text-[28px]">🔮</span>
-              <span className="text-[16px] font-bold text-eye-purple">
-                타로로 고민 상담
-              </span>
-              <span className="text-[12px] text-text-light">
-                별콩이와 대화하며 카드를 풀어가
-              </span>
-            </button>
-            <button
-              onClick={() => setTarotStep("fortune")}
-              className="flex flex-col items-center gap-1.5 p-6 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
-            >
-              <span className="text-[28px]">🃏</span>
-              <span className="text-[16px] font-bold text-eye-purple">
-                타로 운세 보기
-              </span>
-              <span className="text-[12px] text-text-light">
-                한 장의 리포트로 빠르게
-              </span>
-            </button>
-          </>
-        )}
-
-        {variant === "tarot" && tarotStep === "counsel" && (
-          <>
-            <button
-              onClick={() => setTarotStep("branch")}
-              className="self-start text-[12px] text-text-light/80 px-1"
-            >
-              ‹ 다시 고르기
-            </button>
             <p className="text-[13px] font-bold text-eye-purple px-1">
               어떤 고민이야? 골라봐
             </p>
             <EmotionList
-              onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
-            />
-          </>
-        )}
-
-        {variant === "tarot" && tarotStep === "fortune" && (
-          <>
-            <button
-              onClick={() => setTarotStep("branch")}
-              className="self-start text-[12px] text-text-light/80 px-1"
-            >
-              ‹ 다시 고르기
-            </button>
-            <p className="text-[13px] font-bold text-eye-purple px-1">
-              어떤 연애 고민인지 골라봐
-            </p>
-            <EmotionList
-              options={LOVE_OPTIONS}
               onSelect={(tag) => handleSelect({ kind: "emotion", tag })}
             />
           </>
