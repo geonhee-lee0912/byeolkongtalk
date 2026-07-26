@@ -11,6 +11,8 @@ import {
   buildRouteRanking,
   buildAuthSplit,
   buildEntrySources,
+  filterByBucket,
+  mergeToday,
   type PageViewRow,
 } from "@/lib/analytics/traffic";
 
@@ -49,14 +51,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "query_failed" }, { status: 500 });
   }
   const rows = (data ?? []) as PageViewRow[];
+  // 표마다 기간 값 옆에 오늘 값을 나란히 세운다. 조회를 한 번 더 하지 않고 같은 배열을 버킷으로
+  // 걸러 같은 집계 함수를 두 번 돌린다 — 두 열이 같은 정의(봇 제외·어드민 제외·10시 롤오버)를 공유해야
+  // 비교가 성립한다. 오늘 집계는 limit 없이(Infinity) 뽑아야 기간 상위권의 오늘 값이 누락되지 않는다.
+  const todayRows = filterByBucket(rows, todayBucket);
+  const entryAll = buildEntrySources(rows);
+  const entryToday = buildEntrySources(todayRows);
 
   return NextResponse.json({
     days,
     // 봇은 각 집계 함수가 내부에서 제외한다. bot 은 비율 표시용(같은 배열에서 계산).
     bot: buildBotShare(rows),
     trend: buildTrafficTrend({ rows, days, todayBucket }),
-    routes: buildRouteRanking(rows),
-    auth: buildAuthSplit(rows),
-    entry: buildEntrySources(rows),
+    routes: mergeToday(
+      buildRouteRanking(rows),
+      buildRouteRanking(todayRows, Infinity),
+      (r) => r.path
+    ),
+    auth: mergeToday(buildAuthSplit(rows), buildAuthSplit(todayRows), (r) => r.segment),
+    entry: {
+      variants: mergeToday(entryAll.variants, entryToday.variants, (r) => r.key),
+      contents: mergeToday(entryAll.contents, entryToday.contents, (r) => r.key),
+    },
   });
 }

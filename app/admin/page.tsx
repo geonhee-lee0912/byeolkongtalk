@@ -2,7 +2,12 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList } from "@/lib/admin";
 import { Stat, Delta } from "@/components/admin/Stat";
-import { startOfAdminTodayKstIso } from "@/lib/admin-time";
+import { startOfAdminTodayKstIso, adminKstDate } from "@/lib/admin-time";
+import {
+  buildTrafficTrend,
+  pickTodayYesterday,
+  type PageViewRow,
+} from "@/lib/analytics/traffic";
 import {
   attributeFreeSpend,
   buildStarSpendBreakdown,
@@ -109,6 +114,24 @@ async function loadStats() {
     relSkill: starOf(isRelSkill),
   };
 
+  // 오늘 UV/PV — page_views. /admin/traffic 과 같은 순수 함수·같은 오전 10시 롤오버를 재사용해
+  // 두 화면의 "오늘"이 어긋나지 않게 한다 (직접 세면 봇 제외·버킷 규칙이 갈라진다).
+  // ⚠️ 어드민 제외는 .not(...) 단독으로 쓰면 안 된다 — page_views 는 비로그인 행의 user_id 가
+  //    NULL 이고 `NULL NOT IN (...)` 은 NULL(=거짓)이라 비로그인 PV 가 전부 사라진다.
+  let pvQ = supa
+    .from("page_views")
+    .select("anon_id, user_id, path, landing_variant, utm_content, is_bot, created_at")
+    .gte("created_at", yesterday)
+    .limit(100000);
+  if (excl) pvQ = pvQ.or(`user_id.is.null,user_id.not.in.${excl}`);
+  const { data: pvData } = await pvQ;
+  const pvTrend = buildTrafficTrend({
+    rows: (pvData ?? []) as PageViewRow[],
+    days: 2,
+    todayBucket: adminKstDate(new Date().toISOString()),
+  });
+  const pv = pickTodayYesterday(pvTrend);
+
   // 연애 상담 KPI — 활성 패스는 현재 시점, 구매/스킬은 오늘 vs 어제
   const nowIso = new Date().toISOString();
   let apQ = supa.from("relationship_passes").select("id", { count: "exact", head: true }).gt("expires_at", nowIso);
@@ -131,8 +154,8 @@ async function loadStats() {
   };
 
   return {
-    today: { newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
-    yesterday: { newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
+    today: { uv: pv.today.uv, pv: pv.today.pv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
+    yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
     all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
     star,
     rel,
@@ -152,7 +175,15 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* 퍼널 순서: 방문(UV·PV) → 가입 → 탈퇴 → 리딩 → 매출. UV/PV 는 봇 제외·어드민 제외 집계로
+            /admin/traffic 과 같은 정의 (자세한 분해는 그 화면) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Stat label="UV" value={s.today.uv.toLocaleString()}>
+            <Delta today={s.today.uv} yesterday={s.yesterday.uv} />
+          </Stat>
+          <Stat label="PV" value={s.today.pv.toLocaleString()}>
+            <Delta today={s.today.pv} yesterday={s.yesterday.pv} />
+          </Stat>
           <Stat label="신규 가입" value={s.today.newUsers}>
             <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
           </Stat>

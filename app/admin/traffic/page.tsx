@@ -12,6 +12,7 @@ import type {
   RouteRow,
   AuthSplitRow,
   EntryRow,
+  WithToday,
 } from "@/lib/analytics/traffic";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +37,10 @@ export default async function TrafficPage() {
   const data = await api(`/api/admin/traffic?days=${days}`);
   const trend: TrafficPoint[] = data?.trend ?? [];
   const bot: BotShare = data?.bot ?? { totalPv: 0, botPv: 0, botPct: 0 };
-  const routes: RouteRow[] = data?.routes ?? [];
-  const auth: AuthSplitRow[] = data?.auth ?? [];
-  const variants: EntryRow[] = data?.entry?.variants ?? [];
-  const contents: EntryRow[] = data?.entry?.contents ?? [];
+  const routes: WithToday<RouteRow>[] = data?.routes ?? [];
+  const auth: WithToday<AuthSplitRow>[] = data?.auth ?? [];
+  const variants: WithToday<EntryRow>[] = data?.entry?.variants ?? [];
+  const contents: WithToday<EntryRow>[] = data?.entry?.contents ?? [];
   // 추세 마지막 두 점이 오늘·어제 버킷 (빈 데이터면 둘 다 0 → Delta 가 "어제 0")
   const { today, yesterday } = pickTodayYesterday(trend);
 
@@ -92,7 +93,7 @@ export default async function TrafficPage() {
         <h2 className="text-sm text-white/60 mb-3">
           라우트별 UV · PV{" "}
           <span className="text-white/40 text-xs">
-            (상위 {routes.length}개 · PV 많은 순 · 앞 단계 대비 UV 가 크게 떨어지는 라우트 =
+            (상위 {routes.length}개 · {days}일 PV 많은 순 · 앞 단계 대비 UV 가 크게 떨어지는 라우트 =
             이탈 지점 · PV/UV 는 재방문 강도)
           </span>
         </h2>
@@ -100,16 +101,21 @@ export default async function TrafficPage() {
           <table className="w-full text-[13px]">
             <thead className="text-white/50 text-left">
               <tr>
+                <th className="py-1 w-8 text-right pr-2">#</th>
                 <th className="py-1">라우트</th>
                 <th>UV</th>
                 <th>PV</th>
                 {/* PV/UV 는 지표 이름이라 UV·PV 순서 통일에서 제외 — 뒤집으면 다른 지표가 된다 */}
                 <th>PV/UV</th>
+                {/* 오늘 열은 구분선으로 기간 열과 갈라둔다 — 안 가르면 5개 숫자가 한 덩어리로 읽힌다 */}
+                <th className="border-l border-white/15 pl-2 text-white/70">오늘 UV</th>
+                <th className="text-white/70">오늘 PV</th>
               </tr>
             </thead>
             <tbody>
-              {routes.map((r) => (
+              {routes.map((r, i) => (
                 <tr key={r.path} className="border-t border-white/10">
+                  <td className="py-1.5 text-right pr-2 text-white/35 tabular-nums">{i + 1}</td>
                   <td className="py-1.5">
                     <div>{routeLabel(r.path)}</div>
                     <div className="font-mono text-[11px] text-white/35">{r.path}</div>
@@ -117,11 +123,13 @@ export default async function TrafficPage() {
                   <td>{r.uv.toLocaleString()}</td>
                   <td>{r.pv.toLocaleString()}</td>
                   <td>{r.pvPerUv}</td>
+                  <td className="border-l border-white/15 pl-2">{r.todayUv.toLocaleString()}</td>
+                  <td>{r.todayPv.toLocaleString()}</td>
                 </tr>
               ))}
               {routes.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-2 text-white/30">
+                  <td colSpan={7} className="py-2 text-white/30">
                     데이터 없음
                   </td>
                 </tr>
@@ -129,40 +137,50 @@ export default async function TrafficPage() {
             </tbody>
           </table>
         </div>
+        <p className="text-[11px] text-white/30 mt-2">
+          순위·행 구성은 {days}일 PV 기준이라, 오늘만 트래픽이 있고 {days}일 상위 {routes.length}개에
+          못 든 라우트는 이 표에 안 나온다.
+        </p>
       </section>
 
-      <section className="max-w-md">
+      <section className="max-w-xl">
         <h2 className="text-sm text-white/60 mb-3">
           로그인 전 / 후{" "}
           <span className="text-white/40 text-xs">
             (가입 순간 같은 방문자가 양쪽에 잡히므로 UV 합은 전체보다 클 수 있음)
           </span>
         </h2>
-        <table className="w-full text-[13px]">
-          <thead className="text-white/50 text-left">
-            <tr>
-              <th className="py-1">구분</th>
-              <th>UV</th>
-              <th>PV</th>
-            </tr>
-          </thead>
-          <tbody>
-            {auth.map((r) => (
-              <tr key={r.segment} className="border-t border-white/10">
-                <td className="py-1.5">{SEGMENT_LABEL[r.segment] ?? r.segment}</td>
-                <td>{r.uv.toLocaleString()}</td>
-                <td>{r.pv.toLocaleString()}</td>
-              </tr>
-            ))}
-            {auth.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead className="text-white/50 text-left">
               <tr>
-                <td colSpan={3} className="py-2 text-white/30">
-                  데이터 없음
-                </td>
+                <th className="py-1">구분</th>
+                <th>UV</th>
+                <th>PV</th>
+                <th className="border-l border-white/15 pl-2 text-white/70">오늘 UV</th>
+                <th className="text-white/70">오늘 PV</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {auth.map((r) => (
+                <tr key={r.segment} className="border-t border-white/10">
+                  <td className="py-1.5">{SEGMENT_LABEL[r.segment] ?? r.segment}</td>
+                  <td>{r.uv.toLocaleString()}</td>
+                  <td>{r.pv.toLocaleString()}</td>
+                  <td className="border-l border-white/15 pl-2">{r.todayUv.toLocaleString()}</td>
+                  <td>{r.todayPv.toLocaleString()}</td>
+                </tr>
+              ))}
+              {auth.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-2 text-white/30">
+                    데이터 없음
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section>
@@ -176,40 +194,53 @@ export default async function TrafficPage() {
           <EntryTable title="랜딩 variant (?v=)" rows={variants} />
           <EntryTable title="광고 소재 (utm_content)" rows={contents} />
         </div>
+        <p className="text-[11px] text-white/30 mt-3">
+          <span className="text-white/45">(매크로 미치환)</span> = Meta 가{" "}
+          <span className="font-mono">{"{{ad.name}}"}</span> 을 실제 소재명으로 바꾸지 않은 채 도착한
+          유입. 매크로는 클릭 시점에 치환되므로, 광고 미리보기 링크 · 광고 관리자에서 목적지 URL 을
+          복사해 직접 열기 · 광고 게시물의 오가닉 공유 경로에서 생긴다. 실제 소재가 아니라 계측
+          누락이므로 소재 성과에서 빼고 볼 것.
+        </p>
       </section>
     </div>
   );
 }
 
-function EntryTable({ title, rows }: { title: string; rows: EntryRow[] }) {
+function EntryTable({ title, rows }: { title: string; rows: WithToday<EntryRow>[] }) {
   return (
     <div>
       <h3 className="text-sm text-white/70 mb-2">{title}</h3>
-      <table className="w-full text-[12px]">
-        <thead className="text-white/40 text-left">
-          <tr>
-            <th className="py-1">유입</th>
-            <th>UV</th>
-            <th>PV</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key} className="border-t border-white/10">
-              <td className="py-1">{r.key}</td>
-              <td>{r.uv.toLocaleString()}</td>
-              <td>{r.pv.toLocaleString()}</td>
-            </tr>
-          ))}
-          {rows.length === 0 && (
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px]">
+          <thead className="text-white/40 text-left">
             <tr>
-              <td colSpan={3} className="py-2 text-white/30">
-                데이터 없음
-              </td>
+              <th className="py-1">유입</th>
+              <th>UV</th>
+              <th>PV</th>
+              <th className="border-l border-white/15 pl-2 text-white/60">오늘 UV</th>
+              <th className="text-white/60">오늘 PV</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-t border-white/10">
+                <td className="py-1">{r.key}</td>
+                <td>{r.uv.toLocaleString()}</td>
+                <td>{r.pv.toLocaleString()}</td>
+                <td className="border-l border-white/15 pl-2">{r.todayUv.toLocaleString()}</td>
+                <td>{r.todayPv.toLocaleString()}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-2 text-white/30">
+                  데이터 없음
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

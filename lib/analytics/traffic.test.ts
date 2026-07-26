@@ -7,7 +7,10 @@ import {
   buildRouteRanking,
   buildAuthSplit,
   buildEntrySources,
+  filterByBucket,
+  mergeToday,
   DIRECT,
+  UNRESOLVED_MACRO,
   type PageViewRow,
 } from "./traffic.ts";
 import { adminKstDate } from "../admin-time.ts";
@@ -231,4 +234,68 @@ test("buildEntrySources — 늦게 도착한 다른 소재는 최초 값을 덮�
 
 test("buildEntrySources — 빈 데이터는 빈 배열 (throw 없음)", () => {
   assert.deepEqual(buildEntrySources([]), { variants: [], contents: [] });
+});
+
+test("buildEntrySources — 치환 안 된 Meta 매크로는 소재명이 아니라 미치환 버킷", () => {
+  const e = buildEntrySources([
+    R({ anon_id: "a1", utm_content: "{{ad.name}}", created_at: "2026-07-01T00:00:00Z" }),
+    R({ anon_id: "a2", utm_content: " {{ad.name}} ", created_at: "2026-07-01T01:00:00Z" }), // 공백 있어도 같은 버킷
+    R({ anon_id: "a3", utm_content: "ad_love_feed", created_at: "2026-07-01T02:00:00Z" }),
+  ]);
+  const macro = e.contents.find((r) => r.key === UNRESOLVED_MACRO)!;
+  assert.equal(macro.uv, 2, "두 방문자가 같은 미치환 버킷으로 묶인다");
+  assert.ok(e.contents.some((r) => r.key === "ad_love_feed"), "실제 소재는 그대로 남는다");
+  assert.ok(!e.contents.some((r) => r.key.includes("{{")), "리터럴 매크로가 소재명으로 새지 않는다");
+});
+
+test("buildEntrySources — 미치환 매크로 귀속도 first-touch (뒤따르는 PV 전부 흡수)", () => {
+  const e = buildEntrySources([
+    R({ anon_id: "a1", utm_content: "{{ad.name}}", created_at: "2026-07-01T00:00:00Z" }),
+    R({ anon_id: "a1", path: "/tarot", created_at: "2026-07-01T00:01:00Z" }),
+  ]);
+  assert.equal(e.contents.length, 1);
+  assert.equal(e.contents[0].key, UNRESOLVED_MACRO);
+  assert.equal(e.contents[0].pv, 2);
+});
+
+test("filterByBucket — 오늘 버킷만 남기고 10시 롤오버를 따른다", () => {
+  const rows = [
+    R({ created_at: "2026-07-02T02:00:00Z" }), // 07-02 11:00 KST → 07-02 버킷
+    R({ created_at: "2026-07-02T00:30:00Z" }), // 07-02 09:30 KST → 10시 전이므로 07-01 버킷
+    R({ created_at: "2026-07-01T05:00:00Z" }),
+  ];
+  const today = filterByBucket(rows, "2026-07-02");
+  assert.equal(today.length, 1);
+  assert.equal(today[0].created_at, "2026-07-02T02:00:00Z");
+  // 경계 행이 어느 버킷인지 명시적으로 대조 (10시 롤오버가 실제로 작동하는지)
+  assert.equal(adminKstDate("2026-07-02T00:30:00Z"), "2026-07-01");
+});
+
+test("mergeToday — 기간 순서 유지 · 오늘 없는 키는 0 · 오늘만 있는 키는 추가되지 않음", () => {
+  const all = [
+    { path: "/", uv: 10, pv: 30, pvPerUv: 3 },
+    { path: "/tarot", uv: 5, pv: 8, pvPerUv: 1.6 },
+  ];
+  const today = [
+    { path: "/tarot", uv: 2, pv: 2, pvPerUv: 1 },
+    { path: "/mypage", uv: 1, pv: 1, pvPerUv: 1 }, // all 에 없음 → 무시
+  ];
+  const merged = mergeToday(all, today, (r) => r.path);
+  assert.deepEqual(merged.map((r) => r.path), ["/", "/tarot"], "순서·구성은 기간 집계 그대로");
+  assert.equal(merged[0].todayUv, 0);
+  assert.equal(merged[0].todayPv, 0);
+  assert.equal(merged[1].todayUv, 2);
+  assert.equal(merged[1].todayPv, 2);
+  assert.equal(merged[0].uv, 10, "기간 값은 보존");
+});
+
+test("mergeToday — 로그인 전/후 세그먼트에도 같은 헬퍼가 쓰인다", () => {
+  const merged = mergeToday(
+    buildAuthSplit([R({ anon_id: "a1", user_id: "u1", created_at: "2026-07-01T00:00:00Z" })]),
+    buildAuthSplit([]),
+    (r) => r.segment
+  );
+  assert.equal(merged.length, 2);
+  assert.equal(merged.find((r) => r.segment === "member")!.pv, 1);
+  assert.equal(merged.find((r) => r.segment === "member")!.todayPv, 0);
 });

@@ -27,6 +27,18 @@ export type PageViewRow = {
 /** utm/landing_variant 값이 없는 유입 묶음. */
 export const DIRECT = "(직접/오가닉)";
 
+/**
+ * Meta URL 매크로가 치환되지 않고 리터럴로 도착한 유입 묶음 (`utm_content={{ad.name}}` 그대로).
+ * Meta 는 클릭 시점에 매크로를 실제 소재명으로 바꿔주지만, 광고 미리보기 링크 · 광고 관리자에서
+ * 목적지 URL 을 복사해 직접 열기 · 광고 게시물의 오가닉 공유 경로에서는 치환이 일어나지 않는다.
+ * 실제 소재가 아니므로 소재명으로 세우면 표를 오염시킨다 → 별도 버킷으로 분리한다.
+ */
+export const UNRESOLVED_MACRO = "(매크로 미치환)";
+
+/** `{{...}}` 형태면 미치환으로 접는다. URLSearchParams 가 이미 디코드하므로 %7B 형태는 안 온다. */
+const normalizeEntryValue = (v: string): string =>
+  /^\{\{.*\}\}$/.test(v.trim()) ? UNRESOLVED_MACRO : v;
+
 /** 봇 제외 — 모든 지표의 공통 전처리. */
 const humanRows = (rows: PageViewRow[]): PageViewRow[] => rows.filter((r) => !r.is_bot);
 
@@ -97,7 +109,7 @@ export type RouteRow = {
   pvPerUv: number;
 };
 
-export function buildRouteRanking(rows: PageViewRow[], limit = 15): RouteRow[] {
+export function buildRouteRanking(rows: PageViewRow[], limit = 20): RouteRow[] {
   const g = new Map<string, { pv: number; uv: Set<string> }>();
   for (const r of humanRows(rows)) {
     const e = g.get(r.path) ?? { pv: 0, uv: new Set<string>() };
@@ -112,7 +124,7 @@ export function buildRouteRanking(rows: PageViewRow[], limit = 15): RouteRow[] {
       pv: e.pv,
       pvPerUv: e.uv.size ? Math.round((e.pv / e.uv.size) * 10) / 10 : 0,
     }))
-    // 순위는 PV 내림차순 유지 — 표시 순서(UV·PV)와 별개. 바꾸면 상위 15개 구성이 달라진다.
+    // 순위는 PV 내림차순 유지 — 표시 순서(UV·PV)와 별개. 바꾸면 상위 N개 구성이 달라진다.
     .sort((a, b) => b.pv - a.pv || b.uv - a.uv)
     .slice(0, limit);
 }
@@ -160,8 +172,10 @@ export function buildEntrySources(rows: PageViewRow[]): EntrySources {
   const firstContent = new Map<string, string>();
   for (const r of byTime) {
     if (!r.anon_id) continue;
-    if (r.landing_variant && !firstVariant.has(r.anon_id)) firstVariant.set(r.anon_id, r.landing_variant);
-    if (r.utm_content && !firstContent.has(r.anon_id)) firstContent.set(r.anon_id, r.utm_content);
+    if (r.landing_variant && !firstVariant.has(r.anon_id))
+      firstVariant.set(r.anon_id, normalizeEntryValue(r.landing_variant));
+    if (r.utm_content && !firstContent.has(r.anon_id))
+      firstContent.set(r.anon_id, normalizeEntryValue(r.utm_content));
   }
 
   const group = (
@@ -171,7 +185,8 @@ export function buildEntrySources(rows: PageViewRow[]): EntrySources {
     const g = new Map<string, { pv: number; uv: Set<string> }>();
     for (const r of human) {
       // anon_id 없는 행은 귀속 불가 → 자기 행의 값으로만 PV 기여 (UV 는 세지 않음)
-      const key = (r.anon_id ? attributed.get(r.anon_id) : ownValue(r)) ?? DIRECT;
+      const own = r.anon_id ? attributed.get(r.anon_id) : ownValue(r);
+      const key = own ? normalizeEntryValue(own) : DIRECT;
       const e = g.get(key) ?? { pv: 0, uv: new Set<string>() };
       e.pv += 1;
       if (r.anon_id) e.uv.add(r.anon_id);
@@ -190,4 +205,35 @@ export function buildEntrySources(rows: PageViewRow[]): EntrySources {
     variants: group(firstVariant, (r) => r.landing_variant),
     contents: group(firstContent, (r) => r.utm_content),
   };
+}
+
+// ── 5. "오늘" 열 붙이기 ──────────────────────────────────────────────────────
+//
+// 표마다 최근 N일과 오늘을 나란히 본다. 두 값을 같은 원본 배열에서 뽑아야(같은 봇 제외·같은
+// 어드민 제외·같은 10시 롤오버) 두 열이 같은 정의로 비교된다 → 조회를 한 번 더 하지 않고
+// 행을 버킷으로 걸러 같은 집계 함수를 두 번 돌린다.
+
+/** 오늘 버킷(오전 10시 롤오버)에 속한 행만. `todayBucket` 은 adminKstDate 결과와 같은 형식. */
+export function filterByBucket(rows: PageViewRow[], bucket: string): PageViewRow[] {
+  return rows.filter((r) => adminKstDate(r.created_at) === bucket);
+}
+
+export type WithToday<T> = T & { todayUv: number; todayPv: number };
+
+/**
+ * 기간 집계(`all`)에 같은 키의 오늘 값을 붙인다. **행 구성·순서는 `all` 을 그대로 유지** —
+ * 오늘 값으로 재정렬하면 순위가 매 시간 흔들려 "어느 라우트에서 새는가"를 못 읽는다.
+ * 오늘 없던 키는 0/0. 반대로 오늘만 활동하고 기간 상위 N 에 못 든 키는 표에 안 나온다
+ * (라우트 표의 limit 때문 — 유입·로그인 표는 slice 가 없어 해당 없음).
+ */
+export function mergeToday<T extends { uv: number; pv: number }>(
+  all: T[],
+  today: T[],
+  keyOf: (row: T) => string
+): WithToday<T>[] {
+  const byKey = new Map(today.map((r) => [keyOf(r), r]));
+  return all.map((r) => {
+    const t = byKey.get(keyOf(r));
+    return { ...r, todayUv: t?.uv ?? 0, todayPv: t?.pv ?? 0 };
+  });
 }
