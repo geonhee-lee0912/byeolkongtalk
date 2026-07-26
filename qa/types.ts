@@ -44,7 +44,7 @@ export interface AssertionFlags {
   skipEndAssertion?: boolean;
   /** 카드 단언 자체를 건너뜀 (위기 케이스 — 카드보다 안전 안내 우선이라 카드 수 무관) */
   skipCardAssertion?: boolean;
-  /** 관계 스레드: 패스 없이 첫 chat 이 402 pass_required 여야 함 */
+  /** 관계 스레드: 무료 인트로 소진 후 패스 없는 chat 이 402 pass_required 여야 함 */
   expectPassGate?: boolean;
   /** 관계 스레드: 일일 소프트캡 도달(X-Daily-Cap: reached) 기대 */
   expectDailyClose?: boolean;

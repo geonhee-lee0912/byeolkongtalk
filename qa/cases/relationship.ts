@@ -2,7 +2,7 @@
 // 스레드: [END] 없음(소프트캡/시뮬 stop 종료) + 패스 게이트. verdict: [END] 수렴(기존 배관 재사용).
 import type { Case } from "../types.ts";
 import { buildSharedCases } from "./shared.ts";
-import { DAILY_TURN_CAP } from "../../lib/relationship/types.ts";
+import { DAILY_TURN_CAP, FREE_INTRO_TURNS } from "../../lib/relationship/types.ts";
 
 const REL_EMOTION = "걔 속마음이 궁금해";
 
@@ -18,14 +18,16 @@ export function relationshipCases(): Case[] {
     { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true }
   );
 
-  // 패스 게이트: 패스 없이 첫 chat → 402 pass_required
+  // 패스 게이트: 무료 인트로(FREE_INTRO_TURNS) 소진 후 → 402 pass_required.
+  // 무료 인트로만큼 user 턴을 프리시드해 다음 1콜이 정확히 경계를 넘게 한다
+  // (인트로 안쪽은 패스 없이도 200 — 게이트는 소진 이후에만 닫힌다).
   cases.push({
     id: "relationship.thread.pass_gate",
     product: { kind: "relationship", status: "dating", passKind: "day7" },
     emotion: REL_EMOTION,
-    seed: { skipPass: true },
+    seed: { skipPass: true, preseedTurns: FREE_INTRO_TURNS },
     seedConcern: "우리 앞으로 어떻게 될까?",
-    userPersona: "패스 없이 바로 상담을 시작하려는 사용자",
+    userPersona: "무료 인트로를 다 쓰고도 패스 없이 상담을 이어가려는 사용자",
     inputStyle: { tone: "평범한 반말", habits: [] },
     maxTurns: 1,
     expects: {

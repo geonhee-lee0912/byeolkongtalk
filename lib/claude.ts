@@ -24,6 +24,7 @@ import type {
   DrawnCard,
 } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
+import { FREE_INTRO_TURNS } from "@/lib/relationship/types";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 
@@ -678,8 +679,8 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
 
   const freeIntroGuide = ctx.freeIntro
     ? ctx.freeIntro.last
-      ? `\n\n## 무료 첫 대화 마무리 (${ctx.freeIntro.turn}/3턴 — 이번이 마지막 무료 턴)\n지금은 패스 없이 열린 무료 첫 대화의 마지막 턴이야. 이번 응답은 (1) 지금까지 들은 상황과 감정을 따뜻하게 짚어 정리하고 (2) 이 관계를 앞으로도 계속 같이 보고 싶다는 마음을 전하며 (3) "패스를 켜면 지금 이 대화 그대로 이어서 매일 얘기할 수 있어" 결로 부드럽게 닫아. 가격·별 개수 언급 금지, 결제 강요 금지, [END] 금지, 새 질문으로 닫지 말 것.`
-      : `\n\n## 무료 첫 대화 (패스 전, ${ctx.freeIntro.turn}/3턴)\n지금은 패스 없이 열린 무료 첫 대화야. 관계 파일을 채워가듯 상황을 자연스럽게 파악하고 공감과 방향 중심으로 답해 — 패스·결제 언급은 하지 마.`
+      ? `\n\n## 무료 첫 대화 마무리 (${ctx.freeIntro.turn}/${FREE_INTRO_TURNS}턴 — 이번이 마지막 무료 턴)\n지금은 패스 없이 열린 무료 첫 대화의 마지막 턴이야. 이번 응답은 (1) 지금까지 들은 상황과 감정을 따뜻하게 짚어 정리하고 (2) 이 관계를 앞으로도 계속 같이 보고 싶다는 마음을 전하며 (3) "패스를 켜면 지금 이 대화 그대로 이어서 매일 얘기할 수 있어" 결로 부드럽게 닫아. 가격·별 개수 언급 금지, 결제 강요 금지, [END] 금지, 새 질문으로 닫지 말 것.`
+      : `\n\n## 무료 첫 대화 (패스 전, ${ctx.freeIntro.turn}/${FREE_INTRO_TURNS}턴)\n지금은 패스 없이 열린 무료 첫 대화야. 관계 파일을 채워가듯 상황을 자연스럽게 파악하고 공감과 방향 중심으로 답해 — 패스·결제 언급은 하지 마.`
     : "";
 
   // 인-스레드 판정 모드 — 가이드(파일) + 턴 힌트(개시/마무리) 주입.
