@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
 
   // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자)
   const spreadType = reading.spread_type as SpreadType;
+  const drawnCards = (reading.drawn_cards as DrawnCard[]) ?? [];
   const baseT = WRAP_THRESHOLDS[spreadType];
   const extraTurns = (reading.extra_turns ?? 0) as number;
   const clarifierCount = (reading.clarifier_count ?? 0) as number;
@@ -207,7 +208,7 @@ export async function POST(request: NextRequest) {
     spreadType,
     spreadCategory: reading.spread_category as SpreadCategory,
     concernText: reading.question ?? "",
-    drawnCards: (reading.drawn_cards as DrawnCard[]) ?? [],
+    drawnCards,
     emotionTag: reading.emotion_tag as string | null,
     turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
     assistantTurnsSoFar,
@@ -218,6 +219,12 @@ export async function POST(request: NextRequest) {
     extendAvailable,
     thresholdOverride: effT,
   });
+
+  // 7장 스프레드 목표 3,300~3,800자 ≈ 2,530 tokens(1.5자/token, 이 repo 컨벤션) + 마커·라벨 여유로
+  // 기본 max_tokens(2660)를 넘을 수 있음 — 스트리밍 경로는 stopReason 을 버리므로 넘치면 [END]/종합 없이 조용히 잘림.
+  // 가장 비싼 상품(최대 55별)인 5장 이상 첫 풀이만 상향, 후속 턴·소형 스프레드는 기존 기본값 유지.
+  const maxTokens =
+    assistantTurnsSoFar === 0 && drawnCards.length >= 5 ? 3600 : undefined;
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
@@ -244,7 +251,7 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(systemMessage, apiMessages, undefined, {
+        for await (const chunk of streamChat(systemMessage, apiMessages, maxTokens, {
           route: "/api/consultations/tarot/chat",
           userId,
           extra: { readingId: reading.id },
