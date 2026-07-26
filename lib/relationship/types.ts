@@ -35,6 +35,10 @@ export const DAILY_TURN_CAP = 20;
 export const EXTEND_COST = 5;
 export const EXTEND_TURNS = 5;
 
+/** 패스 없이 열리는 무료 첫 대화 — 스레드 누적 유저 발화 기준 (서버 권위: messages 카운트).
+ * 근거: 2026-07-25 P&L — 등록 15 중 14 무발화, 그중 5명이 현금 결제자 = 지불 의사가 아니라 순서 문제. */
+export const FREE_INTRO_TURNS = 3;
+
 /** 스킬 프리뷰 카피 — S1 콜드스타트(/relationship)와 광고 랜딩(/start?v=relationship) 공유 */
 export const RELATIONSHIP_SKILL_PREVIEWS = [
   { emoji: "💬", label: "관계 체크인", tagline: "두 사람의 상태와 서로의 필요를 나란히" },

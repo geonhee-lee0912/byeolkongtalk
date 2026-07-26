@@ -22,6 +22,7 @@ import { getSkill } from "@/lib/relationship/skills";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
 import {
   dailyTurnAllowance,
+  FREE_INTRO_TURNS,
   type RelationshipMemo,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
@@ -142,8 +143,23 @@ export async function POST(request: NextRequest) {
   // 패스 만료 유저에게 무기한 무료 자유대화가 열리는 구멍이 된다.
   const inDialogueSkill = !!activeSkill && getSkill(activeSkill.key)?.kind === "dialogue";
   const pass = await getActivePass(rel.id);
+  // 무료 인트로 — 패스 없어도 스레드 누적 유저 발화 FREE_INTRO_TURNS회까지 자유대화 허용
+  // (등록→첫 발화 퍼널 개방). 스킬 개시(skillStart)는 대상 아님 — 스킬은 항상 패스 필요.
+  let freeIntro: { turn: number; last: boolean } | null = null;
   if (!pass && !inDialogueSkill) {
-    return NextResponse.json({ error: "pass_required" }, { status: 402 });
+    if (body.skillStart) {
+      return NextResponse.json({ error: "pass_required" }, { status: 402 });
+    }
+    const { count } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("reading_id", threadReadingId)
+      .eq("role", "user");
+    const used = count ?? 0;
+    if (used >= FREE_INTRO_TURNS) {
+      return NextResponse.json({ error: "pass_required" }, { status: 402 });
+    }
+    freeIntro = { turn: used + 1, last: used + 1 >= FREE_INTRO_TURNS };
   }
 
   const encoder = new TextEncoder();
@@ -544,7 +560,7 @@ export async function POST(request: NextRequest) {
     getTodayThreadTurns(threadReadingId),
     getTodayExtendCount(userId),
   ]);
-  const dailyClose = !inVerdict && !graceKey && todayTurns >= dailyTurnAllowance(todayExtend);
+  const dailyClose = !inVerdict && !graceKey && !freeIntro && todayTurns >= dailyTurnAllowance(todayExtend);
 
   // 누적 메시지(오름차순) → 최근창/요약델타 분할
   const { data: pastRows } = await supabase
@@ -585,6 +601,7 @@ export async function POST(request: NextRequest) {
     isFirstEver,
     checkinPrompt,
     dailyClose,
+    freeIntro,
     turnSignals: computeTurnSignals(past, userMessage),
     activeSkill: inVerdict
       ? { key: "verdict", assistantTurns: activeSkill!.assistant_turns, forceEnd: verdictForceEnd }

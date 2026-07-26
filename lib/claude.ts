@@ -657,6 +657,8 @@ export interface RelationshipTurnContext {
   activeSkill?: { key: string; assistantTurns: number; forceEnd: boolean } | null;
   /** 인-스레드 카드뽑기 턴 — 드로우 가이드 + [뽑은 카드] 블록 주입. 없으면 일반 대화. */
   drawContext?: { spreadLabel: string; cardsBlock: string } | null;
+  /** 패스 없는 무료 인트로 턴 — turn=이번이 몇 번째(1~3), last=이번이 마지막 무료 턴. 없으면 null. */
+  freeIntro?: { turn: number; last: boolean } | null;
 }
 
 export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
@@ -672,6 +674,12 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
     : "";
   const closeGuide = ctx.dailyClose
     ? `\n\n## 오늘 마무리 톤 (하루 소프트캡 도달)\n오늘 나눈 대화가 충분히 쌓였어. 이번 응답은 오늘 얘기를 따뜻하게 매듭짓고 "내일 또 이어서 얘기하자"로 부드럽게 닫아. 단, [END] 마커는 절대 쓰지 마 — 스레드는 계속돼(내일 다시 열려). 새 주제를 크게 벌이지 말고 오늘 흐름을 정리.`
+    : "";
+
+  const freeIntroGuide = ctx.freeIntro
+    ? ctx.freeIntro.last
+      ? `\n\n## 무료 첫 대화 마무리 (${ctx.freeIntro.turn}/3턴 — 이번이 마지막 무료 턴)\n지금은 패스 없이 열린 무료 첫 대화의 마지막 턴이야. 이번 응답은 (1) 지금까지 들은 상황과 감정을 따뜻하게 짚어 정리하고 (2) 이 관계를 앞으로도 계속 같이 보고 싶다는 마음을 전하며 (3) "패스를 켜면 지금 이 대화 그대로 이어서 매일 얘기할 수 있어" 결로 부드럽게 닫아. 가격·별 개수 언급 금지, 결제 강요 금지, [END] 금지, 새 질문으로 닫지 말 것.`
+      : `\n\n## 무료 첫 대화 (패스 전, ${ctx.freeIntro.turn}/3턴)\n지금은 패스 없이 열린 무료 첫 대화야. 관계 파일을 채워가듯 상황을 자연스럽게 파악하고 공감과 방향 중심으로 답해 — 패스·결제 언급은 하지 마.`
     : "";
 
   // 인-스레드 판정 모드 — 가이드(파일) + 턴 힌트(개시/마무리) 주입.
@@ -695,7 +703,7 @@ export function buildRelationshipSystemMessage(ctx: RelationshipTurnContext): {
   const dynamicPart = `---
 ## 이번 세션 정보
 ${ctx.fileBlock}
----${firstGuide}${checkinGuide}${closeGuide}${verdictGuide}${drawGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
+---${firstGuide}${checkinGuide}${closeGuide}${freeIntroGuide}${verdictGuide}${drawGuide}${buildTurnSignalBlock(ctx.turnSignals)}`;
 
   return { staticPart, dynamicPart };
 }
