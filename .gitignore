@@ -49,3 +49,16 @@ next-env.d.ts
 
 qa/out/
 qa-devserver.log
+qa-fullrun.log
+/qa-screenshots/
+
+# 광고 소재 원본/중간산출물 (대용량 바이너리 — 로컬 보관)
+/ad-assets/
+
+# 로컬 전용 스크립트·산출물 (파일 헤더에 "커밋 X" 명시 / .env.local·dev DB·유료 API 필요)
+scripts/fixture-relationship-e2e.ts
+scripts/smoke-compat-inthread.ts
+scripts/smoke-draw-inthread.ts
+scripts/verify-offer.ts
+scripts/tmp-render-overlays.mjs
+scripts/qual-results.json
