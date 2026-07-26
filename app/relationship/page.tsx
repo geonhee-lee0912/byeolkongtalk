@@ -288,7 +288,7 @@ export default function RelationshipPage() {
               {headerCard}
               {partnerBanner}
               <p className="text-[13px] text-center mt-4 leading-relaxed font-bold text-eye-purple">
-                무료 대화를 다 썼어 — 패스를 켜면 이 대화 그대로 이어갈 수 있어
+                패스를 켜면 이 대화 그대로 이어갈 수 있어
               </p>
             </div>
 

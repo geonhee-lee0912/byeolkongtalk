@@ -195,7 +195,6 @@ export default function ThreadChat({
 
       if (res.status === 402) {
         setSending(false);
-        setInput(text); // 전송 시 낙관적으로 비운 입력을 되돌려준다 — 결제 후 다시 타이핑하지 않게
         setError("패스가 필요해 — 대화를 이어가려면 패스를 구매해줘.");
         onPassRequired?.();
         return;
