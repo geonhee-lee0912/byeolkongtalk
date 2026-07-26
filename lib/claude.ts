@@ -335,7 +335,14 @@ export async function* streamChat(
   maxTokens: number = 2660,
   logCtx?: LogContext
 ) {
-  // 정적 블록만 cache_control 마킹 → 5분 TTL 동안 후속 호출은 입력 토큰 0.1× 과금
+  // 정적 블록만 cache_control 마킹 → TTL 동안 후속 호출은 입력 토큰 0.1× 과금.
+  //
+  // TTL 1h 를 쓰는 이유(2026-07-26 prod 실측): staticPart 는 페르소나 파일뿐이라 유저 무관 =
+  // 같은 도메인의 모든 호출이 캐시 엔트리 하나를 공유하고, 읽기가 TTL 을 갱신한다. 고민톡
+  // 호출 간격 중앙값이 1.2분이라 5m 히트율은 84%인데, 미스는 write 1.25× 라 남는 16%가 비싸다.
+  // 1h 로 늘리면 히트율 96% — write 가 2.0× 로 오르지만 미스 자체가 1/4 로 줄어 정적 블록
+  // 입력비가 약 35% 싸진다. ⚠️ 손익분기는 1h 히트율 ~90% — 트래픽이 지금의 1/3 이하로
+  // 떨어지면(간격이 벌어지면) 역전되니 광고 볼륨을 크게 줄일 땐 재측정할 것.
   const systemBlocks =
     typeof systemMessage === "string"
       ? [{ type: "text" as const, text: systemMessage }]
@@ -343,7 +350,7 @@ export async function* streamChat(
           {
             type: "text" as const,
             text: systemMessage.staticPart,
-            cache_control: { type: "ephemeral" as const },
+            cache_control: { type: "ephemeral" as const, ttl: "1h" as const },
           },
           { type: "text" as const, text: systemMessage.dynamicPart },
         ];
