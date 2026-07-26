@@ -12,6 +12,7 @@ import {
   DAILY_TURN_CAP,
   EXTEND_COST,
   EXTEND_TURNS,
+  FREE_INTRO_TURNS,
   PASS_PLANS,
   PASS_PLAN_BY_KIND,
   RELATIONSHIP_SKILL_PREVIEWS,
@@ -199,7 +200,67 @@ export default function RelationshipPage() {
       />
     );
 
-    // S2 — 활성 패스 없음: 히스토리(있으면 읽기전용) + 패스 패널이 주 CTA
+    // S2 — 활성 패스 없음. 단 무료 인트로(유저 발화 FREE_INTRO_TURNS회)가 남았으면 입력 열린 스레드로.
+    const usedFreeTurns = messages.filter((m) => m.role === "user").length;
+    const freeLeft = !hasPass ? Math.max(0, FREE_INTRO_TURNS - usedFreeTurns) : 0;
+
+    if (!hasPass && freeLeft > 0) {
+      return (
+        <main
+          className="flex flex-col items-stretch w-full min-h-0"
+          style={{ height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))" }}
+        >
+          <div className="shrink-0 w-full max-w-md mx-auto px-5 pt-4 pb-3">
+            {headerCard}
+            {partnerBanner}
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-lilac-mid/30 bg-lilac-soft/40 px-3.5 py-2.5">
+              <p className="text-[11.5px] text-eye-purple leading-snug">
+                💜 무료 첫 대화 <b>{usedFreeTurns + 1}/{FREE_INTRO_TURNS}턴</b> — 먼저 편하게 얘기해봐
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPassSheet(true)}
+                className="shrink-0 text-[11px] font-bold text-lilac-deep active:scale-95 transition"
+              >
+                패스 보기 ›
+              </button>
+            </div>
+          </div>
+
+          <ThreadChat
+            className="flex-1 min-h-0"
+            relationshipId={relationship.id}
+            initialMessages={messages}
+            canSend={true}
+            capReached={false}
+            selfProfileId={relationship.selfProfileId}
+            partnerProfileId={relationship.partnerProfileId}
+            partnerLabel={relationship.label}
+            initialActiveSkill={activeSkill}
+            onPassRequired={() => void load()}
+            onSkillDone={() => void load()}
+          />
+
+          {editModal}
+          {showPassSheet && (
+            <PassSheet
+              relationshipId={relationship.id}
+              pass={null}
+              daily={null}
+              balance={balance ?? undefined}
+              onClose={() => setShowPassSheet(false)}
+              onExtended={() => void load()}
+              onPurchased={() => {
+                setShowPassSheet(false);
+                void load();
+              }}
+            />
+          )}
+        </main>
+      );
+    }
+
+    // S2 — 무료 인트로 소진 + 패스 없음: 히스토리(읽기전용) + 패스 패널이 주 CTA
     if (!hasPass) {
       return (
         <main
@@ -217,7 +278,7 @@ export default function RelationshipPage() {
               >
                 {messages.length === 0
                   ? "아직 별콩이랑 나눈 얘기가 없어 — 패스를 시작하면 바로 이야기할 수 있어."
-                  : "패스가 만료됐어, 다시 이어가자"}
+                  : "무료 대화를 다 썼어 — 패스를 켜면 이 대화 그대로 이어갈 수 있어"}
               </p>
             </div>
 
