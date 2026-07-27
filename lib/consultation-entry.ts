@@ -13,11 +13,16 @@ export function consultationEntryPath(isLoggedIn: boolean): string {
     : `/login?next=${encodeURIComponent("/concern")}`;
 }
 
-/** localStorage 의 byeolkong_user 로 로그인 판정 (클라 전용, 홈과 동일 규칙) */
+/**
+ * localStorage 의 byeolkong_user 로 로그인 판정 (클라 전용, 홈과 동일 규칙).
+ * 홈(app/page.tsx:81)이 `!user` 로 판정하므로 여기도 truthy 체크여야 한다 —
+ * `!== null` 로 두면 falsy 스칼라(0·""·false)가 로그인으로 잡혀 플랜 B Task 12
+ * 에서 홈을 이 헬퍼로 교체할 때 조용한 동작 변경이 된다.
+ */
 export function isLoggedInClient(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return JSON.parse(localStorage.getItem("byeolkong_user") ?? "null") !== null;
+    return Boolean(JSON.parse(localStorage.getItem("byeolkong_user") ?? "null"));
   } catch {
     return false;
   }
