@@ -22,6 +22,39 @@
 
 ---
 
+## 🎨 이미지 제안 프로토콜 (사용자 지시 2026-07-27)
+
+**이미지 목록을 미리 확정하지 않는다.** 슬롯에 도달했을 때 실물 맥락에서 제안하고 승인받는다. 플랜 안의 `【이미지 제안】` 스텝이 그 지점이다.
+
+**제안 형식 — 이 5줄을 반드시 채워서 묻는다**
+
+```
+【이미지 제안】 <슬롯 이름>
+· 어디에      : <파일:라인 또는 화면 위치>, 실제 표시 크기 <px>
+· 포즈·구도   : <별콩이가 무엇을 하고 있는지 / 앵글 / 시선>
+· 곁들일 문구 : <이미지와 함께 나갈 카피. 별콩이 톤>
+· 산출물      : public/<name>.webp · <비율> · 투명 or 배경 포함
+· 크레딧      : 2안 생성 4 + remove_background N (누적 X/72)
+→ 진행할까요?  예 / 다른 포즈로 / 이미지 없이 진행
+```
+
+**상시 규칙 (모든 이미지 공통)**
+
+| | 규칙 | 근거 |
+|---|---|---|
+| 캐릭터 일관성 | `nano_banana_pro` + `public/byeolkong-main.png` 를 캐릭터 레퍼런스 media 로 전달 | `specs/2026-07-05-byeolkong-pose-set-design.md` 의 검증된 파이프라인 |
+| 스타일 | **플랫 파스텔 일러스트. 3D 인형 스타일 금지.** 크림+라일락+골드 팔레트, 이마 별·후광·귀 장식·펜던트 유지 | 같은 스펙 §스타일 고정 |
+| 배경 | 캐릭터 컷은 단색 배경 생성 → `remove_background` → 투명 PNG. 배너용 와이드 컷은 배경 포함 | |
+| **파일 포맷** | **WebP, 장당 ≤150KB 목표.** 기존 `byeolkong-*.png` 는 장당 ~1MB(`public/` 41MB)이지만 **신규는 따라가지 않는다** — 콘텐츠 존은 SEO 자산이고 LCP 가 순위 요소다 | |
+| 선택 게이트 | 포즈당 **2안 생성 → 사용자 선택** | 포즈셋 스펙 파이프라인 |
+| 해상도 | 1k(1024px). `max-w-md`(448px)의 2배라 충분하고 2k 는 낭비 | |
+| **크레딧 상한** | 단가 **2크레딧/장**(확인 2026-07-27, 잔액 112). **E2 웹툰 캐러셀용 40 크레딧은 건드리지 않는다.** 누적 소모가 **72** 를 넘길 시점에 사용자에게 알리고 승인받는다 | E2 는 패널 5~8장×2안 = 20~32 + 재시도 |
+| 안 만드는 것 | **18~24px 아이콘**(오늘 블록·콘텐츠 카드·카테고리 헤딩) — 그 크기에서 캐릭터가 안 보인다. 이모지/Tabler 유지 | |
+
+**첫 이미지 작업 전 1회만**: `public/byeolkong-main.png` 를 `media_upload` → `media_confirm` 해서 `media_id` 를 확보하고 이 플랜에 기록한다. 이후 모든 생성이 같은 레퍼런스를 재사용해 일관성을 유지한다.
+
+---
+
 ## 파일 구조
 
 | 파일 | 책임 |
@@ -583,12 +616,33 @@ export default async function ThemePage({
 }
 ```
 
-- [ ] **Step 3: 빌드 검증**
+- [ ] **Step 3: 【이미지 제안】 태그 랜딩 히어로**
+
+Step 2 의 코드에는 이미지 슬롯이 **없다.** 아래를 제안하고 승인받은 뒤에만 슬롯을 추가한다.
+
+```
+【이미지 제안】 감정 태그 랜딩 히어로 (10종)
+· 어디에      : /guide/themes/[tag] h1 위, 가로 전체(max-w-md=448px) · 표시 ~160px 높이
+· 포즈·구도   : 태그 감정에 맞는 반신 컷. 예 —
+                  reunion(재회)     뒤를 살짝 돌아보는 옆모습, 손에 흐릿한 별 하나
+                  relationship-cooling(권태기)  두 개의 별 사이에 앉아 한쪽을 바라봄
+                  work-people(인간관계)  여러 작은 별에 둘러싸여 한 발 물러선 자세
+· 곁들일 문구 : 없음 — h1 이 이미 검색 쿼리형 제목을 담당. 이미지는 분위기만
+· 산출물      : public/guide-hero-<slug>.webp · 4:3 · 배경 포함(연한 라일락 그라데이션)
+· 크레딧      : 2안 생성 4 + remove_background 0(배경 포함이라 불필요) × 종수
+→ 진행할까요?  예 / 다른 포즈로 / 이미지 없이 진행
+```
+
+**⚠️ 제안과 함께 반드시 전달할 트레이드오프**: 이 페이지들은 SEO 자산이고 히어로 이미지는 **LCP 요소**가 된다. 10종 전부 넣으면 40 크레딧이고, 기존 8종 포즈셋 매핑으로 대체하면 0이다(다만 `byeolkong-listen` 이 4번 중복). **일부만 신규 생성하고 나머지는 매핑**하는 절충도 선택지로 함께 제시한다.
+
+승인 시: `<Image>` 를 h1 위에 넣고 **`priority` 를 붙이지 않는다**(첫 화면 LCP 를 텍스트가 잡게 둔다), `sizes="(max-width:448px) 100vw, 448px"`.
+
+- [ ] **Step 4: 빌드 검증**
 
 Run: `npx tsc --noEmit && npm run build`
 Expected: 빌드 성공. 로그에 `/guide/themes/[tag]` 정적 **1페이지**(reunion) 생성.
 
-- [ ] **Step 4: 렌더 검증**
+- [ ] **Step 5: 렌더 검증**
 
 ```bash
 npm run start &
@@ -601,7 +655,7 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/guide/themes/some
 Expected: title 에 `재회 타로` 포함 / `FAQPage` 1건 / 미발행 슬러그 `some` 은 **404**.
 확인 후 서버 종료(`kill %1`).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add "app/(content)"
@@ -747,7 +801,22 @@ export default function DailyCardPage() {
 }
 ```
 
-- [ ] **Step 3: 빌드 + 비로그인 동작 검증**
+- [ ] **Step 3: 【이미지 제안】 오늘의 카드 화면 별콩이**
+
+```
+【이미지 제안】 무료 오늘의 카드 — 안내 일러스트
+· 어디에      : /free/daily-card h1 아래, 뽑기 버튼 위 · 표시 ~120px (뽑기 전에만 노출)
+· 포즈·구도   : 카드 한 장을 내밀며 살짝 미소, 시선은 정면(유저를 초대하는 앵글).
+                기존 byeolkong-tarot.png 는 카드 부채꼴 5장이라 "한 장"과 안 맞음
+· 곁들일 문구 : "오늘 너에게 온 한 장, 뽑아볼래?"
+· 산출물      : public/free-daily-card.webp · 1:1 · 투명 배경(remove_background)
+· 크레딧      : 2안 생성 4 + remove_background N (누적 X/72)
+→ 진행할까요?  예 / 다른 포즈로 / 기존 byeolkong-tarot.png 재활용 / 이미지 없이 진행
+```
+
+**이 슬롯은 값이 특히 높다** — 이 페이지가 커뮤니티 공유 미끼(스펙 §6-2 2순위)이고, 승인된 이미지는 **OG 이미지로도 재사용**할 수 있다. 다만 OG 는 1200×630 이 필요하니 별건으로 다시 물을 것.
+
+- [ ] **Step 4: 빌드 + 비로그인 동작 검증**
 
 Run: `npx tsc --noEmit && npm run build`
 Expected: 빌드 성공, `/free/daily-card` 정적 생성.
@@ -765,7 +834,7 @@ Expected: title 에 `오늘의 타로 카드` 포함.
 - Header + BottomTab 정상 부착
 - "이 카드 의미 자세히 보기" 링크는 **안 보여야 함**(card-content.json 이 비어 있음)
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add components/seo/DailyCardDraw.tsx "app/(content)/free"
@@ -1337,7 +1406,21 @@ export default function GuideHome() {
 }
 ```
 
-- [ ] **Step 2: 빌드 + 렌더 검증**
+- [ ] **Step 2: 【이미지 제안】 가이드 허브 히어로**
+
+```
+【이미지 제안】 /guide 허브 히어로
+· 어디에      : /guide h1 위 · 표시 ~140px. 콘텐츠 존의 얼굴
+· 포즈·구도   : 책(또는 펼친 두루마리)과 카드를 함께 든 안내자 포즈, 정면 반신.
+                기존 byeolkong-saju.png(두루마리)·byeolkong-tarot.png(카드)를
+                합친 성격 — "가이드"라는 정체를 한 컷으로
+· 곁들일 문구 : "카드가 처음이어도 괜찮아" (기존 소개 문구와 이어짐)
+· 산출물      : public/guide-hub-hero.webp · 4:3 · 배경 포함(연한 크림→라일락)
+· 크레딧      : 2안 생성 4 (누적 X/72)
+→ 진행할까요?  예 / 다른 포즈로 / 기존 byeolkong-tarot.png 재활용 / 이미지 없이 진행
+```
+
+- [ ] **Step 3: 빌드 + 렌더 검증**
 
 ```bash
 npx tsc --noEmit && npm run build && npm run start &
@@ -1347,7 +1430,7 @@ curl -s localhost:3000/guide | grep -c "타로 카드 도감"
 
 Expected: **0** — `card-content.json` 이 비어 있으므로 도감 카드가 렌더되지 않아야 한다. `스프레드 가이드`는 1건 나온다.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add "app/(content)/guide/page.tsx"
