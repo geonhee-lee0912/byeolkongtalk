@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import tagContent from "@/data/seo/tag-content.json";
 import spreadContent from "@/data/seo/spread-content.json";
 import { SLUG_TO_TAG, findTagBySlug } from "@/lib/seo/tags";
+import { TAG_HERO } from "@/lib/seo/tag-hero";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import { SPREAD_INFO, TAG_SPREADS } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
@@ -53,6 +55,7 @@ export default async function ThemePage({
   const spreads = (TAG_SPREADS[emotionTag] ?? []).filter(
     (s) => s in SPREADS_PUBLISHED
   );
+  const hero = TAG_HERO[tag];
 
   return (
     <article>
@@ -77,6 +80,29 @@ export default async function ThemePage({
         <span className="mx-1">›</span>
         <span>{entry.title.split("—")[0].trim()}</span>
       </nav>
+
+      {hero && (
+        <div
+          className={[
+            "relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4",
+            // 투명 캐릭터 컷은 배경이 없어서 떠 보인다 → 신규 4종의 배경 톤을 CSS 로 맞춘다
+            hero.hasBackground
+              ? null
+              : "bg-gradient-to-b from-lilac-soft to-lilac",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
+          <Image
+            src={hero.src}
+            alt={hero.alt}
+            fill
+            sizes="(max-width: 448px) 100vw, 448px"
+            className={hero.hasBackground ? "object-cover" : "object-contain"}
+          />
+        </div>
+      )}
 
       <h1 className="font-display text-[21px] text-eye-purple leading-snug">
         {entry.title}
