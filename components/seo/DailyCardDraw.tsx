@@ -96,7 +96,7 @@ export default function DailyCardDraw() {
         <button
           type="button"
           onClick={draw}
-          className="mt-5 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          className="mt-5 w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-[15px] hover:bg-lilac-soft/30 active:scale-[0.98] transition"
         >
           오늘의 카드 뽑기 (무료 · 가입 없음)
         </button>

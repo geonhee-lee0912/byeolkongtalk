@@ -14,17 +14,17 @@ export default function GuideCta({
 }) {
   const router = useRouter();
   return (
-    <div className="mt-8 rounded-2xl border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm p-4 text-center">
-      <p className="text-[13.5px] font-bold text-eye-purple leading-snug">
+    <div className="mt-8 rounded-2xl border border-gold/30 bg-gradient-to-br from-night to-night-deep p-4 text-center">
+      <p className="text-[13.5px] font-bold text-cream leading-snug">
         이 고민, 지금 마음에 있다면
       </p>
-      <p className="text-[11.5px] text-text-light mt-1">
+      <p className="text-[11.5px] text-cream/70 mt-1">
         별콩이가 카드를 펼쳐서 너의 이야기로 읽어줄게
       </p>
       <button
         type="button"
         onClick={() => router.push(beginConsultation(tag))}
-        className="mt-3 w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="mt-3 w-full py-3 rounded-xl bg-gold text-night font-bold text-[14px] hover:bg-gold-soft active:scale-[0.98] transition"
       >
         {label ?? "별콩이에게 물어보기"}
       </button>

@@ -76,14 +76,19 @@ export default function GuideHome() {
       <h2 className="text-[14px] font-bold text-eye-purple mt-6 mb-2">
         고민별 타로 가이드
       </h2>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2.5">
         {Object.entries(THEMES).map(([slug, t]) => (
           <Link
             key={slug}
             href={`/guide/themes/${slug}`}
-            className="text-[12px] font-bold text-lilac-deep bg-white/80 border border-lilac-soft rounded-full px-3 py-1.5 hover:border-lilac-deep/40 transition"
+            className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
           >
-            {t.title.split("—")[0].trim()}
+            <p className="text-[14px] font-bold text-eye-purple">
+              {t.title.split("—")[0].trim()}
+            </p>
+            <p className="text-[11.5px] text-text-light mt-0.5">
+              {t.title.split("—")[1].trim()}
+            </p>
           </Link>
         ))}
       </div>
