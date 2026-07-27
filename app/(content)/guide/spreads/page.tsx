@@ -4,10 +4,13 @@ import spreadContent from "@/data/seo/spread-content.json";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import { SPREAD_INFO, type SpreadType } from "@/lib/tarot/spreads";
 
+// SPREAD_INFO 에 등록된 실제 스프레드 종수 — 제목의 "n가지"가 이 값에 묶여 있어
+// 스프레드가 추가/제거돼도 문구가 거짓말이 되지 않는다
+const SPREAD_COUNT = Object.keys(SPREAD_INFO).length;
+
 export const metadata: Metadata = {
-  title: "타로 스프레드 가이드 — 배열별로 언제·어떻게 보는지",
-  description:
-    "원카드부터 7장 심층 배열까지, 각 스프레드를 언제 펼치고 어떤 순서로 읽는지 별콩이가 정리했어.",
+  title: `타로 스프레드 종류 ${SPREAD_COUNT}가지 — 원카드부터 7장 심층 배열까지`,
+  description: `원카드·투카드·쓰리카드부터 7장 심층 배열까지, 타로 스프레드(배열법) ${SPREAD_COUNT}가지를 언제 펼치고 어떤 순서로 읽는지 별콩이가 정리했어.`,
   alternates: { canonical: "/guide/spreads" },
 };
 
@@ -21,7 +24,7 @@ export default function SpreadsIndex() {
   return (
     <div>
       <h1 className="font-display text-[22px] text-eye-purple">
-        타로 스프레드 가이드
+        타로 스프레드 종류 {SPREAD_COUNT}가지
       </h1>
       <p className="text-[12.5px] text-text-light mt-1.5 leading-relaxed">
         몇 장을 펼치느냐에 따라 보이는 게 달라져 — 배열별로 언제 쓰는지
