@@ -58,6 +58,11 @@ export function getCardCount(): number {
   return ALL_CARDS.length;
 }
 
+/** 전체 78장 (id 오름차순) — SEO 콘텐츠 허브·무료 도구 등 목록 소비자용. */
+export function getAllTarotCards(): TarotCard[] {
+  return ALL_CARDS;
+}
+
 export function shuffleDeck(): number[] {
   const ids = ALL_CARDS.map((c) => c.id);
   // Fisher-Yates shuffle
