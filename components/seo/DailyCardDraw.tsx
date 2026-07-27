@@ -18,6 +18,12 @@ interface Drawn {
 }
 const CONTENT = cardContent as Record<string, { oneLiner?: string }>;
 
+/** 역방향 확률 — 이 무료 도구에서만 쓰는 임의값이고, 기존 로직에서 가져온 게 아니다.
+ * 유료 흐름(components/tarot/CardDrawRitual.tsx)은 기본이 "upright" 고 유저가 방향을
+ * 수동 토글한다 — 즉 앱에서 확률로 방향을 정하는 곳은 여기가 유일하다. 무료 도구는
+ * 입력 단계를 없애는 게 목적이라 방향을 묻지 않고, 그래서 확률이 필요하다. */
+const REVERSED_RATE = 0.3;
+
 export default function DailyCardDraw() {
   const [drawn, setDrawn] = useState<Drawn | null>(null);
 
@@ -25,7 +31,7 @@ export default function DailyCardDraw() {
     const cards = getAllTarotCards();
     setDrawn({
       card: cards[Math.floor(Math.random() * cards.length)],
-      reversed: Math.random() < 0.3,
+      reversed: Math.random() < REVERSED_RATE,
     });
   };
 
@@ -39,6 +45,19 @@ export default function DailyCardDraw() {
 
   return (
     <div className="text-center">
+      {/* 뽑기 전 분위기용 장식 — 뽑고 나면 카드가 주인공이라 치운다(시선 분산 방지).
+       * priority 없음 — SEO 페이지라 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals). */}
+      {!drawn && (
+        <Image
+          src="/free-daily-card.webp"
+          alt=""
+          width={120}
+          height={120}
+          className="mx-auto mb-4"
+          aria-hidden
+        />
+      )}
+
       <div className="relative w-[150px] h-[255px] mx-auto rounded-xl overflow-hidden shadow-md">
         <Image
           src={drawn ? getCardImagePath(drawn.card.id) : CARD_BACK_IMAGE}
