@@ -5,6 +5,11 @@
 // 자체 <html><body> 를 가져야 함 (Tailwind 토큰 못 씀 — inline style).
 
 import { useEffect } from "react";
+import {
+  documentDeploymentId,
+  isChunkLoadError,
+  tryRecoverFromChunkError,
+} from "@/lib/chunk-error";
 
 export default function GlobalError({
   error,
@@ -13,22 +18,28 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const chunkError = isChunkLoadError(error);
+
   useEffect(() => {
     void fetch("/api/log/error", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        level: "error",
+        level: chunkError ? "warn" : "error",
         message: `[GLOBAL] ${error.message || "Unknown global error"}`,
         stack: error.stack ?? null,
-        fingerprint: error.digest ?? null,
+        fingerprint: chunkError ? "chunk-load-error" : (error.digest ?? null),
         route:
           typeof window !== "undefined" ? window.location.pathname : null,
-        context: { digest: error.digest, scope: "global" },
+        context: chunkError
+          ? { kind: "chunk-load", dpl: documentDeploymentId(), scope: "global" }
+          : { digest: error.digest, scope: "global" },
       }),
       keepalive: true,
     }).catch(() => {});
-  }, [error]);
+
+    tryRecoverFromChunkError(error);
+  }, [error, chunkError]);
 
   return (
     <html lang="ko">
@@ -73,7 +84,7 @@ export default function GlobalError({
             잠시 후 다시 들러줄래?
           </p>
           <button
-            onClick={() => reset()}
+            onClick={() => (chunkError ? window.location.reload() : reset())}
             style={{
               padding: "12px 24px",
               borderRadius: 12,

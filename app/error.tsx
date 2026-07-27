@@ -3,6 +3,11 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  documentDeploymentId,
+  isChunkLoadError,
+  tryRecoverFromChunkError,
+} from "@/lib/chunk-error";
 
 export default function Error({
   error,
@@ -11,23 +16,33 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // 배포 스큐로 죽은 청크를 요청한 경우 — 앱 버그가 아니고 reset() 으로도 안 고쳐진다
+  const chunkError = isChunkLoadError(error);
+
   useEffect(() => {
     // 에러 발생 즉시 자체 로거로 전송 (lib/logger.ts → /api/log/error)
     void fetch("/api/log/error", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        level: "error",
+        level: chunkError ? "warn" : "error",
         message: error.message || "Unknown client error",
         stack: error.stack ?? null,
-        fingerprint: error.digest ?? null,
+        fingerprint: chunkError ? "chunk-load-error" : (error.digest ?? null),
         route:
           typeof window !== "undefined" ? window.location.pathname : null,
-        context: { digest: error.digest },
+        // dpl = 지금 문서의 배포 ID. 에러 메시지 안의 dpl 과 다르면 스큐,
+        // 같으면 현 빌드에 청크가 실제로 없는 것(= 진짜 버그)
+        context: chunkError
+          ? { kind: "chunk-load", dpl: documentDeploymentId() }
+          : { digest: error.digest },
       }),
       keepalive: true,
     }).catch(() => {});
-  }, [error]);
+
+    // 하드 리로드로 1회 자활 (같은 배포에서 이미 시도했으면 no-op → 아래 폴백 UI)
+    tryRecoverFromChunkError(error);
+  }, [error, chunkError]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-5 text-center animate-fade-in">
@@ -50,7 +65,7 @@ export default function Error({
 
       <div className="flex flex-col gap-2 w-full max-w-[260px]">
         <button
-          onClick={() => reset()}
+          onClick={() => (chunkError ? window.location.reload() : reset())}
           className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] hover:bg-lilac-deep/90 transition"
         >
           다시 시도하기
