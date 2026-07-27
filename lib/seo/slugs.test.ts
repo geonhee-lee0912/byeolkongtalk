@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { contentMetadata, OG_IMAGE_ALT } from "./metadata.ts";
 import { buildCardSlug, findCardBySlug, getAllCardSlugs } from "./tarot-slugs.ts";
 import { buildSpreadSlug, findSpreadBySlug, getAllSpreadSlugs } from "./spread-slugs.ts";
 import { SLUG_TO_TAG, findTagBySlug } from "./tags.ts";
@@ -70,4 +72,34 @@ test("태그 슬러그 10종이 EmotionTag 와 정확히 일치", () => {
     assert.ok(known.has(tag), `EmotionTag 불일치: ${tag}`);
   }
   assert.equal(new Set(Object.values(SLUG_TO_TAG)).size, 10);
+});
+
+test("contentMetadata — og/twitter 공용 필드가 빠지지 않는다", () => {
+  // 이 단정들이 없으면 metadata.ts 의 공용 필드 재선언을 "중복"으로 보고 지워도
+  // 빌드·tsc·나머지 테스트가 전부 통과한다 — 조용히 공유 카드 이미지만 사라진다.
+  const m = contentMetadata({ title: "제목", description: "설명", path: "/guide/x" });
+
+  assert.equal(m.openGraph?.title, "제목");
+  assert.equal(m.openGraph?.siteName, "별콩톡");
+  assert.equal(m.openGraph?.locale, "ko_KR");
+  assert.ok(Array.isArray(m.openGraph?.images) && m.openGraph.images.length === 1, "og:image 소실");
+  assert.ok(Array.isArray(m.twitter?.images) && m.twitter.images.length === 1, "twitter:image 소실");
+  // Metadata["twitter"] 는 카드 종류별 유니온이라 card 를 바로 못 읽는다 — in 으로 좁힌다
+  assert.ok(m.twitter && "card" in m.twitter && m.twitter.card === "summary_large_image");
+  assert.equal(m.alternates?.canonical, "/guide/x");
+
+  const og = (m.openGraph?.images as { alt: string }[])[0];
+  assert.equal(og.alt, OG_IMAGE_ALT);
+});
+
+test("og:image alt 이 app/opengraph-image.tsx 와 갈리지 않는다", () => {
+  // 같은 문자열을 두 곳이 들고 있다(그 파일에서 import 하면 next/og 가 딸려온다).
+  // 한쪽만 고치면 루트와 콘텐츠 존의 og:image:alt 가 조용히 달라지므로 소스를 직접 대조.
+  const src = readFileSync(
+    new URL("../../app/opengraph-image.tsx", import.meta.url),
+    "utf8",
+  );
+  const m = src.match(/export const alt = "([^"]*)"/);
+  assert.ok(m, "app/opengraph-image.tsx 에서 `export const alt` 를 못 찾았다");
+  assert.equal(m[1], OG_IMAGE_ALT);
 });
