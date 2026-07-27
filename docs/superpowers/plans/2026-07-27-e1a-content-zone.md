@@ -682,6 +682,12 @@ export default async function ThemePage({
 
 **LCP 규율**: `priority` 를 붙이지 않는다 — 첫 화면 LCP 를 h1 텍스트가 잡게 둔다. `sizes="(max-width:448px) 100vw, 448px"`.
 
+**alt 규율 (리뷰 결과 2026-07-27)**: 콘텐츠 존 히어로는 **`alt=""`**(장식)이다. 페이지의 정보는 `<h1>` 과 intro 가 전부 전달하므로 스크린리더 유저가 이미지에서만 얻는 것이 없다 — WCAG 기준 장식 이미지다. `alt="별콩이"` 도 쓰지 않는다(의미 없는 단어를 읽어주는 것이라 빈 alt 보다 나쁨). 근거: 같은 PNG 6종이 이미 `app/not-found.tsx:9`·`app/error.tsx:36`·`app/readings/page.tsx:268` 에서 `alt=""` 로 쓰인다.
+
+**JSON-LD 이스케이프 (필수)**: `dangerouslySetInnerHTML` 의 `__html` 에 `.replace(/</g, "\\u003c")` 를 적용한다. `<script>` 는 raw text 요소라 `type` 과 무관하게 본문의 리터럴 `</script>` 가 태그를 조기 종료시킨다. `JSON.stringify` 는 `<`·`>`·`/` 를 이스케이프하지 않는다. **Task 9·10 에서 본문 22종을 LLM 이 생성하고 사용자는 톤만 검수**하므로(`</script>` 는 검수 항목이 아니다) 손으로 쓴 콘텐츠라는 전제가 곧 깨진다. `<` 는 JSON 파서가 `<` 로 되돌리므로 JSON-LD 유효성에는 영향이 없다.
+
+**금지**: `TAG_SPREADS[emotionTag] ?? []` 류의 도달 불가 폴백. `TAG_SPREADS` 는 닫힌 리터럴 유니온 키의 mapped `Record` 이고 10 멤버 전부 채워져 있어 `undefined` 가 나올 수 없다.
+
 **크레딧 정산**: 생성 9장 = **18 소모**(잔액 112 → 94). 승인은 16이었고 `reunion` 재생성 2장(4)이 초과분 — 최초 프롬프트가 라일락 케이프·리본·별 태그 펜던트를 묘사하지 않아 4종 중 `reunion` 만 캐릭터 시그니처가 빠졌다. **교훈: 프롬프트에 케이프·리본·펜던트·양쪽 귀 태슬·후광을 항목으로 열거해야 한다**(이후 이미지 작업에 적용).
 
 **WebP 예산 결과**: 900×672 · q=88 에서 21~33KB — 목표 150KB 대비 크게 여유. 기존 `byeolkong-*.png`(~1MB) 대비 30~45배 작다.
