@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
 import DailyCardDraw from "@/components/seo/DailyCardDraw";
 import GuideCta from "@/components/seo/GuideCta";
+import { contentMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = contentMetadata({
   title: "오늘의 타로 카드 한 장 — 무료·가입 없음",
   description:
     "회원가입 없이 바로 뽑는 오늘의 타로 카드. 별콩이가 오늘 너에게 온 카드 한 장의 결을 읽어줄게.",
-  alternates: { canonical: "/free/daily-card" },
-};
+  path: "/free/daily-card",
+});
 
 export default function DailyCardPage() {
   return (

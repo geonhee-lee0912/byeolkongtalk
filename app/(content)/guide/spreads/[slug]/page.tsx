@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import spreadContent from "@/data/seo/spread-content.json";
 import type { EmotionTag } from "@/lib/emotions";
+import { contentMetadata } from "@/lib/seo/metadata";
 import { findSpreadBySlug, getAllSpreadSlugs } from "@/lib/seo/spread-slugs";
 import {
   SPREAD_INFO,
@@ -94,11 +95,11 @@ export async function generateMetadata({
   const type = findSpreadBySlug(slug);
   if (!type || !(type in CONTENT)) return {};
   const info = SPREAD_INFO[type];
-  return {
+  return contentMetadata({
     title: `${spreadTitle(info.label)} — 타로 ${info.cardCount}장 배열`,
     description: CONTENT[type].whenToUse.slice(0, 120),
-    alternates: { canonical: `/guide/spreads/${slug}` },
-  };
+    path: `/guide/spreads/${slug}`,
+  });
 }
 
 export default async function SpreadPage({

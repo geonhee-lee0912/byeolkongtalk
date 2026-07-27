@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import cardContent from "@/data/seo/card-content.json";
+import { contentMetadata } from "@/lib/seo/metadata";
 import {
   findCardBySlug,
   buildCardSlug,
@@ -37,11 +38,11 @@ export async function generateMetadata({
   const card = findCardBySlug(slug);
   const entry = CONTENT[slug];
   if (!card || !entry) return {};
-  return {
+  return contentMetadata({
     title: `${card.name_kr} 카드 의미 — 정방향·역방향 연애 타로`,
     description: `${entry.oneLiner} ${entry.intro.slice(0, 90)}`,
-    alternates: { canonical: `/guide/tarot-cards/${slug}` },
-  };
+    path: `/guide/tarot-cards/${slug}`,
+  });
 }
 
 export default async function CardPage({

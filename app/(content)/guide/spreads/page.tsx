@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import spreadContent from "@/data/seo/spread-content.json";
+import { contentMetadata } from "@/lib/seo/metadata";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import { SPREAD_INFO, type SpreadType } from "@/lib/tarot/spreads";
 
@@ -8,11 +8,11 @@ import { SPREAD_INFO, type SpreadType } from "@/lib/tarot/spreads";
 // 스프레드가 추가/제거돼도 문구가 거짓말이 되지 않는다
 const SPREAD_COUNT = Object.keys(SPREAD_INFO).length;
 
-export const metadata: Metadata = {
+export const metadata = contentMetadata({
   title: `타로 스프레드 종류 ${SPREAD_COUNT}가지 — 원카드부터 7장 심층 배열까지`,
   description: `원카드·투카드·쓰리카드부터 7장 심층 배열까지, 타로 스프레드(배열법) ${SPREAD_COUNT}가지를 언제 펼치고 어떤 순서로 읽는지 별콩이가 정리했어.`,
-  alternates: { canonical: "/guide/spreads" },
-};
+  path: "/guide/spreads",
+});
 
 const CONTENT = spreadContent as Record<string, unknown>;
 

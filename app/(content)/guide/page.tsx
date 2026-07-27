@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import tagContent from "@/data/seo/tag-content.json";
 import spreadContent from "@/data/seo/spread-content.json";
 import cardContent from "@/data/seo/card-content.json";
+import { contentMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = contentMetadata({
   title: "별콩이의 타로 가이드 — 고민별 타로·스프레드·무료 카드",
   description:
     "재회·짝사랑·썸 같은 고민별 타로 가이드와 스프레드 보는 법을 별콩이가 정리했어. 오늘의 카드는 가입 없이 무료.",
-  alternates: { canonical: "/guide" },
-};
+  path: "/guide",
+});
 
 const THEMES = tagContent as Record<string, { title: string }>;
 const SPREADS = spreadContent as Record<string, unknown>;

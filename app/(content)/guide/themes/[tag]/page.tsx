@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import tagContent from "@/data/seo/tag-content.json";
 import spreadContent from "@/data/seo/spread-content.json";
+import { contentMetadata } from "@/lib/seo/metadata";
 import { SLUG_TO_TAG, findTagBySlug } from "@/lib/seo/tags";
 import { TAG_HERO } from "@/lib/seo/tag-hero";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
@@ -34,11 +35,11 @@ export async function generateMetadata({
   const { tag } = await params;
   const entry = CONTENT[tag];
   if (!entry) return {};
-  return {
+  return contentMetadata({
     title: entry.title,
     description: entry.intro.slice(0, 120),
-    alternates: { canonical: `/guide/themes/${tag}` },
-  };
+    path: `/guide/themes/${tag}`,
+  });
 }
 
 export default async function ThemePage({

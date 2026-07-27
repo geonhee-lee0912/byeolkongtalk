@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import cardContent from "@/data/seo/card-content.json";
 import { getAllTarotCards } from "@/lib/tarot/cards";
+import { contentMetadata } from "@/lib/seo/metadata";
 import { buildCardSlug } from "@/lib/seo/tarot-slugs";
 
-export const metadata: Metadata = {
+export const metadata = contentMetadata({
   title: "타로 카드 의미 도감 — 78장 정방향·역방향",
   description:
     "메이저 아르카나 22장과 마이너 아르카나 56장의 의미를 연애 맥락으로 풀어낸 별콩이의 타로 도감.",
-  alternates: { canonical: "/guide/tarot-cards" },
-};
+  path: "/guide/tarot-cards",
+});
 
 const CONTENT = cardContent as Record<string, unknown>;
 
