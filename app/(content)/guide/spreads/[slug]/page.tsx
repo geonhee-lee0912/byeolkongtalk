@@ -134,12 +134,12 @@ export default async function SpreadPage({
       {/* 중간 삽화 — 페이지의 얼굴(히어로)이 아니라 본문 사이 장식이라 태그 랜딩 히어로보다
           작게 둔다. 투명 PNG 라 태그 랜딩(hasBackground:false) 과 동일하게 라일락
           그라데이션 컨테이너 + object-contain 로 감싼다. */}
-      <div className="relative w-24 h-24 mx-auto my-5 rounded-2xl overflow-hidden bg-gradient-to-b from-lilac-soft to-lilac">
+      <div className="relative w-36 h-36 mx-auto my-8 rounded-2xl overflow-hidden bg-gradient-to-b from-lilac-soft to-lilac">
         <Image
           src={poseForSpread(type)}
           alt=""
           fill
-          sizes="96px"
+          sizes="144px"
           className="object-contain"
           aria-hidden
         />
