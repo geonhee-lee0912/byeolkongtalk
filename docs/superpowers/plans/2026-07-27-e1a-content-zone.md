@@ -102,7 +102,9 @@ export function getAllTarotCards(): TarotCard[] {
 
 - [ ] **Step 2: `lib/seo/tarot-slugs.ts` 생성**
 
-메이저는 `name_en` 케밥(`The Fool`→`the-fool`), 마이너는 `name_en` 이 JSON id(`W01`)라 슈트+랭크로 변환(`W01`→`wands-ace`). `cards.ts:37` 이 `name_en: \`${card.id}\`` 로 넣는 값이 근거.
+메이저는 `name_en` 케밥(`The Fool`→`the-fool`), 마이너는 `name_en` 이 JSON id 라 슈트+랭크로 변환. `cards.ts:37` 이 `name_en: \`${card.id}\`` 로 넣는 값이 근거.
+
+> ⚠️ **실데이터 확인 결과 (2026-07-27 구현 중 정정)**: 마이너 id 는 숫자 카드만 `W01`~`W10` 이고 **코트 카드는 문자 코드**(`WP`·`WN`·`WQ`·`WK`)다. 구 플랜(`2026-07-26-seo-content-hub.md`)과 이 플랜 초안이 쓴 정규식 `^([WCSP])(\d{2})$` 는 코트 16장을 못 잡아 `wp`·`pn` 같은 쓰레기 슬러그를 만든다. 아래 코드가 정정본이다. 슈트 `P`(pentacles)와 랭크 `P`(page)가 겹치므로 `PP`→`pentacles-page` 케이스를 테스트로 고정한다.
 
 ```ts
 // lib/seo/tarot-slugs.ts — 카드 id ↔ SEO 슬러그 (순수, 클라이언트 안전)
@@ -114,14 +116,18 @@ const SUIT_EN: Record<string, string> = {
   S: "swords",
   P: "pentacles",
 };
-const RANK_EN = [
-  "", "ace", "two", "three", "four", "five", "six", "seven",
-  "eight", "nine", "ten", "page", "knight", "queen", "king",
-];
+
+// 마이너 랭크 코드 → 영문 랭크명. 숫자 카드는 "01"~"10", 코트 카드는 문자 1개
+// (P=page, N=knight, Q=queen, K=king) — data/tarot_card_data.json 의 실제 id 표기.
+const RANK_EN: Record<string, string> = {
+  "01": "ace", "02": "two", "03": "three", "04": "four", "05": "five",
+  "06": "six", "07": "seven", "08": "eight", "09": "nine", "10": "ten",
+  P: "page", N: "knight", Q: "queen", K: "king",
+};
 
 export function buildCardSlug(card: TarotCard): string {
-  const m = card.name_en.match(/^([WCSP])(\d{2})$/);
-  if (m) return `${SUIT_EN[m[1]]}-${RANK_EN[Number(m[2])]}`;
+  const m = card.name_en.match(/^([WCSP])(\d{2}|[PNQK])$/);
+  if (m) return `${SUIT_EN[m[1]]}-${RANK_EN[m[2]]}`;
   return card.name_en
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -253,6 +259,18 @@ test("마이너 슬러그 — 슈트-랭크", () => {
   assert.equal(buildCardSlug(getCard(22)!), "wands-ace");
 });
 
+// 코트 카드는 문자 랭크 코드다. 슈트 P(pentacles)와 랭크 P(page)가 겹치므로
+// "PP" → "pentacles-page" 가 되는지 고정한다 — 이 테스트가 없으면 16장이
+// 조용히 "pp" 같은 슬러그로 나가고 78장 유일성 테스트는 그래도 통과한다.
+test("마이너 코트 슬러그 — 문자 랭크 코드(P/N/Q/K)", () => {
+  const court = getAllCardSlugs().filter((s) =>
+    /-(page|knight|queen|king)$/.test(s)
+  );
+  assert.equal(court.length, 16);
+  assert.ok(court.includes("pentacles-page"));
+  assert.ok(court.includes("wands-king"));
+});
+
 test("78장 슬러그 전부 유일 + 역조회 일치", () => {
   const slugs = getAllCardSlugs();
   assert.equal(slugs.length, 78);
@@ -291,7 +309,7 @@ Expected: FAIL — `Cannot find module './tarot-slugs.ts'` 또는 `getAllTarotCa
 - [ ] **Step 8: 테스트 실행 — 통과 확인**
 
 Run: `node --import tsx --test lib/seo/slugs.test.ts`
-Expected: `# pass 5` / `# fail 0`
+Expected: `# pass 6` / `# fail 0`
 
 실패 시: `getCard(22)` 의 실제 `name_en` 을 출력해 기대값을 고친다 — **카드 데이터가 권위**다.
 
