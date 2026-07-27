@@ -661,9 +661,32 @@ export default async function ThemePage({
 }
 ```
 
-- [ ] **Step 3: 【이미지 제안】 태그 랜딩 히어로**
+- [x] **Step 3: 【이미지 제안】 태그 랜딩 히어로 — ✅승인 2026-07-27**
 
-Step 2 의 코드에는 이미지 슬롯이 **없다.** 아래를 제안하고 승인받은 뒤에만 슬롯을 추가한다.
+**결정: 신규 4종만 생성, 나머지 6종은 기존 포즈셋 재활용.**
+
+| 슬러그 | 이미지 | 배경 |
+|---|---|---|
+| `reunion` | 🆕 `guide-hero-reunion.webp` (21.6KB) | 포함 → `object-cover` |
+| `relationship-cooling` | 🆕 `guide-hero-relationship-cooling.webp` (32.0KB) | 포함 |
+| `new-love` | 🆕 `guide-hero-new-love.webp` (21.4KB) | 포함 |
+| `work-people` | 🆕 `guide-hero-work-people.webp` (32.6KB) | 포함 |
+| `his-mind` | 기존 `byeolkong-curious.png` | 투명 → `object-contain` + CSS 그라데이션 |
+| `contact-timing` | 기존 `byeolkong-focus.png` | 투명 |
+| `some` | 기존 `byeolkong-joy.png` | 투명 |
+| `choice` | 기존 `byeolkong-tarot.png` | 투명 |
+| `career` | 기존 `byeolkong-saju.png` | 투명 |
+| `free-talk` | 기존 `byeolkong-listen.png` | 투명 |
+
+**두 종류가 섞이므로** 슬롯 비율(4:3)은 고정하고 배경 유무를 `lib/seo/tag-hero.ts` 의 `hasBackground` 플래그로 분기한다. 투명 컷은 컨테이너에 라일락 그라데이션을 깔아 신규 4종과 톤을 맞춘다.
+
+**LCP 규율**: `priority` 를 붙이지 않는다 — 첫 화면 LCP 를 h1 텍스트가 잡게 둔다. `sizes="(max-width:448px) 100vw, 448px"`.
+
+**크레딧 정산**: 생성 9장 = **18 소모**(잔액 112 → 94). 승인은 16이었고 `reunion` 재생성 2장(4)이 초과분 — 최초 프롬프트가 라일락 케이프·리본·별 태그 펜던트를 묘사하지 않아 4종 중 `reunion` 만 캐릭터 시그니처가 빠졌다. **교훈: 프롬프트에 케이프·리본·펜던트·양쪽 귀 태슬·후광을 항목으로 열거해야 한다**(이후 이미지 작업에 적용).
+
+**WebP 예산 결과**: 900×672 · q=88 에서 21~33KB — 목표 150KB 대비 크게 여유. 기존 `byeolkong-*.png`(~1MB) 대비 30~45배 작다.
+
+<details><summary>승인 전 제안 원문</summary>
 
 ```
 【이미지 제안】 감정 태그 랜딩 히어로 (10종)
@@ -680,7 +703,7 @@ Step 2 의 코드에는 이미지 슬롯이 **없다.** 아래를 제안하고 �
 
 **⚠️ 제안과 함께 반드시 전달할 트레이드오프**: 이 페이지들은 SEO 자산이고 히어로 이미지는 **LCP 요소**가 된다. 10종 전부 넣으면 40 크레딧이고, 기존 8종 포즈셋 매핑으로 대체하면 0이다(다만 `byeolkong-listen` 이 4번 중복). **일부만 신규 생성하고 나머지는 매핑**하는 절충도 선택지로 함께 제시한다.
 
-승인 시: `<Image>` 를 h1 위에 넣고 **`priority` 를 붙이지 않는다**(첫 화면 LCP 를 텍스트가 잡게 둔다), `sizes="(max-width:448px) 100vw, 448px"`.
+</details>
 
 - [ ] **Step 4: 빌드 검증**
 
