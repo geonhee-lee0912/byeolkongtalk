@@ -52,7 +52,7 @@ export default async function ThemePage({
   if (!emotionTag || !entry) notFound();
 
   // 본문이 작성된 스프레드만 링크 (배치 발행 중 깨진 링크 방지)
-  const spreads = (TAG_SPREADS[emotionTag] ?? []).filter(
+  const spreads = TAG_SPREADS[emotionTag].filter(
     (s) => s in SPREADS_PUBLISHED
   );
   const hero = TAG_HERO[tag];
@@ -62,6 +62,9 @@ export default async function ThemePage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
+          // 본문 json 은 LLM 초안이 들어오는 경로다. 여는 꺾쇠를 유니코드 이스케이프로
+          // 바꿔서 본문에 섞인 스크립트 종료 태그가 이 블록을 조기 종료시키지 못하게 막는다.
+          // JSON 파서가 이스케이프를 원래 문자로 되돌리므로 JSON-LD 유효성에는 영향이 없다.
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
@@ -70,7 +73,7 @@ export default async function ThemePage({
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
-          }),
+          }).replace(/</g, "\\u003c"),
         }}
       />
       <nav className="text-[11px] text-text-light mb-3">
@@ -85,7 +88,8 @@ export default async function ThemePage({
         <div
           className={[
             "relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4",
-            // 투명 캐릭터 컷은 배경이 없어서 떠 보인다 → 신규 4종의 배경 톤을 CSS 로 맞춘다
+            // 재활용 PNG 6종은 투명 배경이라 그냥 두면 떠 보인다
+            // → 배경이 구워진 신규 WebP 4종과 톤을 맞추려고 CSS 그라데이션을 깐다
             hero.hasBackground
               ? null
               : "bg-gradient-to-b from-lilac-soft to-lilac",
@@ -93,10 +97,11 @@ export default async function ThemePage({
             .filter(Boolean)
             .join(" ")}
         >
+          {/* 장식 이미지 — 주제·정보는 h1 과 intro 가 전달하므로 alt 는 빈 문자열 */}
           {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
           <Image
             src={hero.src}
-            alt={hero.alt}
+            alt=""
             fill
             sizes="(max-width: 448px) 100vw, 448px"
             className={hero.hasBackground ? "object-cover" : "object-contain"}
