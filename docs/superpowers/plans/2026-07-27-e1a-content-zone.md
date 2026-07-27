@@ -77,7 +77,9 @@
 | `components/seo/DailyCardDraw.tsx` · `app/(content)/free/daily-card/page.tsx` (신규) | 무료 도구 |
 | `app/sitemap.ts` (수정) | 데이터 기반 URL 생성 |
 
-**AppShell 은 콘텐츠 존에도 자동 부착된다** — root layout 이 pathname 기반으로 Header+BottomTab 을 붙이므로(`/login` 만 제외) 별도 작업이 없다. cold 트래픽의 제품 진입 경로다.
+**AppShell 은 콘텐츠 존에도 자동 부착된다 (확인 완료)** — `components/layout/AppShell.tsx:10-14` 의 `HIDE_SHELL_PREFIXES` 는 `/login`·`/admin`·`/start` **3개뿐**이라 `/guide`·`/free` 는 Header+BottomTab 을 자동으로 받는다. 별도 작업이 없다 — cold 트래픽의 제품 진입 경로다.
+
+또한 AppShell 이 콘텐츠 래퍼 div 에 `paddingBottom: calc(4rem + safe-area)` 를 이미 준다(`:32`). 아래 콘텐츠 존 레이아웃의 `pb-10` 은 그 위에 얹히는 것이라 이중 패딩 문제가 아니다. 페이지가 자기 `<main>` 을 소유하는 것도 기존 패턴이다(`app/fortune/page.tsx:35`).
 
 ---
 
@@ -126,7 +128,10 @@ const RANK_EN: Record<string, string> = {
 };
 
 export function buildCardSlug(card: TarotCard): string {
-  const m = card.name_en.match(/^([WCSP])(\d{2}|[PNQK])$/);
+  // 숫자 부분을 0[1-9]|10 으로 좁힌다 — \d{2} 는 "00"~"99" 를 받는데 RANK_EN 은
+  // "01"~"10" 만 정의하므로, 범위가 어긋나면 "wands-undefined" 가 조용히 나간다
+  // (tsconfig 에 noUncheckedIndexedAccess 가 없어 타입으로도 안 걸린다).
+  const m = card.name_en.match(/^([WCSP])(0[1-9]|10|[PNQK])$/);
   if (m) return `${SUIT_EN[m[1]]}-${RANK_EN[m[2]]}`;
   return card.name_en
     .toLowerCase()
@@ -180,7 +185,7 @@ export function getAllSpreadSlugs(): string[] {
 // lib/seo/tags.ts — 감정 태그 ↔ SEO 슬러그 (lib/emotions.ts 태그 체계 v3 와 1:1)
 import type { EmotionTag } from "@/lib/emotions";
 
-export const TAG_SLUGS: Record<string, EmotionTag> = {
+export const SLUG_TO_TAG: Record<string, EmotionTag> = {
   "his-mind": "걔 속마음이 궁금해",
   "reunion": "재회할 수 있을까",
   "contact-timing": "언제 연락 올까, 타이밍이 궁금해",
@@ -194,7 +199,7 @@ export const TAG_SLUGS: Record<string, EmotionTag> = {
 };
 
 export function findTagBySlug(slug: string): EmotionTag | undefined {
-  return TAG_SLUGS[slug];
+  return SLUG_TO_TAG[slug];
 }
 ```
 
@@ -247,7 +252,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCardSlug, findCardBySlug, getAllCardSlugs } from "./tarot-slugs.ts";
 import { buildSpreadSlug, findSpreadBySlug, getAllSpreadSlugs } from "./spread-slugs.ts";
-import { TAG_SLUGS, findTagBySlug } from "./tags.ts";
+import { SLUG_TO_TAG, findTagBySlug } from "./tags.ts";
 import { getCard } from "../tarot/cards.ts";
 import { EMOTION_OPTIONS } from "../emotions.ts";
 
@@ -259,16 +264,33 @@ test("마이너 슬러그 — 슈트-랭크", () => {
   assert.equal(buildCardSlug(getCard(22)!), "wands-ace");
 });
 
-// 코트 카드는 문자 랭크 코드다. 슈트 P(pentacles)와 랭크 P(page)가 겹치므로
-// "PP" → "pentacles-page" 가 되는지 고정한다 — 이 테스트가 없으면 16장이
-// 조용히 "pp" 같은 슬러그로 나가고 78장 유일성 테스트는 그래도 통과한다.
-test("마이너 코트 슬러그 — 문자 랭크 코드(P/N/Q/K)", () => {
-  const court = getAllCardSlugs().filter((s) =>
-    /-(page|knight|queen|king)$/.test(s)
-  );
-  assert.equal(court.length, 16);
-  assert.ok(court.includes("pentacles-page"));
-  assert.ok(court.includes("wands-king"));
+test("마이너 코트 슬러그 — 문자 랭크 코드(P/N/Q/K), 슈트 P 와 랭크 P 겹침 없이 구분", () => {
+  // data/tarot_card_data.json 의 코트 카드 id 는 "W11"~"W14" 가 아니라
+  // "WP"/"WN"/"WQ"/"WK" 문자 코드 — 숫자 2자리만 가정하면 78장 중 16장이 깨진다.
+  assert.equal(buildCardSlug(getCard(32)!), "wands-page");
+  assert.equal(buildCardSlug(getCard(33)!), "wands-knight");
+  assert.equal(buildCardSlug(getCard(34)!), "wands-queen");
+  assert.equal(buildCardSlug(getCard(35)!), "wands-king");
+  assert.equal(buildCardSlug(getCard(74)!), "pentacles-page"); // 슈트 코드 P + 랭크 코드 P
+});
+
+test("마이너 56장 — 수트별 id 오름차순이 ace→king 랭크와 값까지 일치", () => {
+  // 기대 랭크 순서는 구현(RANK_EN)을 되읽지 않고 여기 독립적으로 적는다 —
+  // 되읽으면 두 항목이 전치돼도 자기 자신과 일치해 그냥 통과한다.
+  // 유일성·왕복 테스트도 전치를 못 잡는다(전치된 값도 여전히 유일하고 왕복함).
+  const EXPECTED_RANKS = [
+    "ace", "two", "three", "four", "five", "six", "seven",
+    "eight", "nine", "ten", "page", "knight", "queen", "king",
+  ];
+  // 마이너는 id 22 부터 수트당 14장씩 완드→컵→소드→펜타클 순 (cards.ts getAllCards)
+  const SUITS_IN_ID_ORDER = ["wands", "cups", "swords", "pentacles"];
+
+  SUITS_IN_ID_ORDER.forEach((suit, suitIdx) => {
+    EXPECTED_RANKS.forEach((rank, rankIdx) => {
+      const id = 22 + suitIdx * 14 + rankIdx;
+      assert.equal(buildCardSlug(getCard(id)!), `${suit}-${rank}`, `id ${id}`);
+    });
+  });
 });
 
 test("78장 슬러그 전부 유일 + 역조회 일치", () => {
@@ -289,7 +311,7 @@ test("스프레드 슬러그 14종 왕복", () => {
 });
 
 test("태그 슬러그 10종이 EmotionTag 와 정확히 일치", () => {
-  const slugs = Object.keys(TAG_SLUGS);
+  const slugs = Object.keys(SLUG_TO_TAG);
   assert.equal(slugs.length, 10);
   const known = new Set(EMOTION_OPTIONS.map((o) => o.tag));
   for (const s of slugs) {
@@ -297,7 +319,7 @@ test("태그 슬러그 10종이 EmotionTag 와 정확히 일치", () => {
     assert.ok(tag, `역조회 실패: ${s}`);
     assert.ok(known.has(tag), `EmotionTag 불일치: ${tag}`);
   }
-  assert.equal(new Set(Object.values(TAG_SLUGS)).size, 10);
+  assert.equal(new Set(Object.values(SLUG_TO_TAG)).size, 10);
 });
 ```
 
@@ -309,7 +331,7 @@ Expected: FAIL — `Cannot find module './tarot-slugs.ts'` 또는 `getAllTarotCa
 - [ ] **Step 8: 테스트 실행 — 통과 확인**
 
 Run: `node --import tsx --test lib/seo/slugs.test.ts`
-Expected: `# pass 6` / `# fail 0`
+Expected: `# pass 7` / `# fail 0`
 
 실패 시: `getCard(22)` 의 실제 `name_en` 을 출력해 기대값을 고친다 — **카드 데이터가 권위**다.
 
@@ -513,7 +535,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import tagContent from "@/data/seo/tag-content.json";
 import spreadContent from "@/data/seo/spread-content.json";
-import { TAG_SLUGS, findTagBySlug } from "@/lib/seo/tags";
+import { SLUG_TO_TAG, findTagBySlug } from "@/lib/seo/tags";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import { SPREAD_INFO, TAG_SPREADS } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
@@ -528,7 +550,7 @@ const SPREADS_PUBLISHED = spreadContent as Record<string, unknown>;
 
 /** 본문이 작성된 태그만 발행 (thin page 방지 — json 에 항목 추가 = 페이지 발행) */
 export function generateStaticParams() {
-  return Object.keys(TAG_SLUGS)
+  return Object.keys(SLUG_TO_TAG)
     .filter((slug) => slug in CONTENT)
     .map((tag) => ({ tag }));
 }
@@ -1589,7 +1611,7 @@ git commit -m "feat(seo): sitemap 데이터 기반 생성 — 발행분만 자�
 
 - [ ] **Step 1: 배치 초안 작성 (9종 추가)**
 
-`data/seo/tag-content.json` 에 위 표의 9종을 추가한다. 슬러그 키는 `lib/seo/tags.ts` 의 `TAG_SLUGS` 키와 **정확히 일치**해야 한다.
+`data/seo/tag-content.json` 에 위 표의 9종을 추가한다. 슬러그 키는 `lib/seo/tags.ts` 의 `SLUG_TO_TAG` 키와 **정확히 일치**해야 한다.
 
 - [ ] **Step 2: 【게이트】 사용자 톤 검수**
 
