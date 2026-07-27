@@ -1106,7 +1106,19 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/guide/spreads/one-card
 
 Expected: title 에 `관계 스프레드 스프레드 보는 법` 형태로 `관계 스프레드` 포함 / 미발행 `one-card` 는 **404**.
 
-> 타이틀이 "관계 스프레드 스프레드"로 중복되면 `SPREAD_INFO.label` 이 이미 "스프레드"를 포함한 케이스다. 그때는 상세 페이지의 h1·title 을 `${info.label} 보는 법` 으로 고친다.
+> ⚠️ **실측 확인 (2026-07-27)**: `label` **3종이 이미 "스프레드"로 끝난다** — `관계 스프레드`·`재회 스프레드`·`가능성 스프레드`. 그래서 `"관계 스프레드 스프레드 보는 법"` 이 된다. 하지만 `원카드`·`쓰리카드` 처럼 "스프레드"가 없는 label 에서 그 단어를 빼면 SEO 키워드("타로 스프레드")를 잃는다 → **조건부로 중복만 제거**한다:
+> ```ts
+> /** label 이 이미 "스프레드"를 포함하는 3종에서 "스프레드 스프레드" 중복을 막는다 */
+> const spreadTitle = (label: string) =>
+>   label.includes("스프레드") ? `${label} 보는 법` : `${label} 스프레드 보는 법`;
+> ```
+> `generateMetadata` 의 `title` 과 페이지 `<h1>` **둘 다** 적용.
+
+> ✅ **검증된 것**: `getPositionLabels(type,"default",null).length === SPREAD_INFO[type].cardCount` 가 **14종 전부 일치**한다(전수 확인). 포지션 목록이 카드 수와 어긋나는 페이지는 없다.
+
+**CTA 태그는 스프레드별로 매핑한다** — 초안은 전 스프레드를 `"걔 속마음이 궁금해"` 로 고정했는데, `reunion_5`·`healing_6` 같은 페이지에서 어긋난다. 전환 페이지라 이 불일치는 실제 손실이다. `TAG_SPREADS`(`lib/tarot/spreads.ts:148`) 역인덱싱으로 각 스프레드가 어느 태그의 **시그니처 배열**(그 태그 목록 index 3·4 = 전용)인지 확인해 확정했다. 10종은 단일 시그니처라 명확하고, 4종(`relationship_5`·`deep_feelings_5`·`potential_7`·`stay_or_go_6`)은 복수라 의미로 골랐다. `one/two/three_card` 는 10태그 공용이므로 중립 태그.
+
+`Record<SpreadType, EmotionTag>` 로 타이핑해 14종을 강제한다 — `Partial` 이나 인덱스 시그니처로 느슨하게 만들면 안전망이 사라진다. 상수는 소비자가 1곳이므로 `lib/` 로 뽑지 않고 페이지 안에 둔다.
 
 - [ ] **Step 4: Commit**
 
