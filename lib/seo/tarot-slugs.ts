@@ -17,7 +17,7 @@ const RANK_EN: Record<string, string> = {
 };
 
 export function buildCardSlug(card: TarotCard): string {
-  const m = card.name_en.match(/^([WCSP])(\d{2}|[PNQK])$/);
+  const m = card.name_en.match(/^([WCSP])(0[1-9]|10|[PNQK])$/);
   if (m) return `${SUIT_EN[m[1]]}-${RANK_EN[m[2]]}`;
   return card.name_en
     .toLowerCase()

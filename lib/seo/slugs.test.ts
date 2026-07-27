@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCardSlug, findCardBySlug, getAllCardSlugs } from "./tarot-slugs.ts";
 import { buildSpreadSlug, findSpreadBySlug, getAllSpreadSlugs } from "./spread-slugs.ts";
-import { TAG_SLUGS, findTagBySlug } from "./tags.ts";
+import { SLUG_TO_TAG, findTagBySlug } from "./tags.ts";
 import { getCard } from "../tarot/cards.ts";
 import { EMOTION_OPTIONS } from "../emotions.ts";
 
@@ -24,6 +24,25 @@ test("마이너 코트 슬러그 — 문자 랭크 코드(P/N/Q/K), 슈트 P 와
   assert.equal(buildCardSlug(getCard(74)!), "pentacles-page"); // 슈트 코드 P + 랭크 코드 P
 });
 
+test("마이너 56장 — 수트별 id 오름차순이 ace→king 랭크와 값까지 일치", () => {
+  // 기대 랭크 순서는 구현(RANK_EN)을 되읽지 않고 여기 독립적으로 적는다 —
+  // 되읽으면 두 항목이 전치돼도 자기 자신과 일치해 그냥 통과한다.
+  // 유일성·왕복 테스트도 전치를 못 잡는다(전치된 값도 여전히 유일하고 왕복함).
+  const EXPECTED_RANKS = [
+    "ace", "two", "three", "four", "five", "six", "seven",
+    "eight", "nine", "ten", "page", "knight", "queen", "king",
+  ];
+  // 마이너는 id 22 부터 수트당 14장씩 완드→컵→소드→펜타클 순 (cards.ts getAllCards)
+  const SUITS_IN_ID_ORDER = ["wands", "cups", "swords", "pentacles"];
+
+  SUITS_IN_ID_ORDER.forEach((suit, suitIdx) => {
+    EXPECTED_RANKS.forEach((rank, rankIdx) => {
+      const id = 22 + suitIdx * 14 + rankIdx;
+      assert.equal(buildCardSlug(getCard(id)!), `${suit}-${rank}`, `id ${id}`);
+    });
+  });
+});
+
 test("78장 슬러그 전부 유일 + 역조회 일치", () => {
   const slugs = getAllCardSlugs();
   assert.equal(slugs.length, 78);
@@ -42,7 +61,7 @@ test("스프레드 슬러그 14종 왕복", () => {
 });
 
 test("태그 슬러그 10종이 EmotionTag 와 정확히 일치", () => {
-  const slugs = Object.keys(TAG_SLUGS);
+  const slugs = Object.keys(SLUG_TO_TAG);
   assert.equal(slugs.length, 10);
   const known = new Set(EMOTION_OPTIONS.map((o) => o.tag));
   for (const s of slugs) {
@@ -50,5 +69,5 @@ test("태그 슬러그 10종이 EmotionTag 와 정확히 일치", () => {
     assert.ok(tag, `역조회 실패: ${s}`);
     assert.ok(known.has(tag), `EmotionTag 불일치: ${tag}`);
   }
-  assert.equal(new Set(Object.values(TAG_SLUGS)).size, 10);
+  assert.equal(new Set(Object.values(SLUG_TO_TAG)).size, 10);
 });

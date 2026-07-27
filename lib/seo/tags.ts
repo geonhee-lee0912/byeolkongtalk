@@ -1,7 +1,7 @@
 // lib/seo/tags.ts — 감정 태그 ↔ SEO 슬러그 (lib/emotions.ts 태그 체계 v3 와 1:1)
 import type { EmotionTag } from "@/lib/emotions";
 
-export const TAG_SLUGS: Record<string, EmotionTag> = {
+export const SLUG_TO_TAG: Record<string, EmotionTag> = {
   "his-mind": "걔 속마음이 궁금해",
   "reunion": "재회할 수 있을까",
   "contact-timing": "언제 연락 올까, 타이밍이 궁금해",
@@ -15,5 +15,5 @@ export const TAG_SLUGS: Record<string, EmotionTag> = {
 };
 
 export function findTagBySlug(slug: string): EmotionTag | undefined {
-  return TAG_SLUGS[slug];
+  return SLUG_TO_TAG[slug];
 }
