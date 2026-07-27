@@ -106,6 +106,7 @@ docs/superpowers/{specs,plans}/
 - chat 라우트는 **서버가 권위** — 소유권 검증 + `messages` 테이블에서 누적 turn/chars 직접 계산. 클라가 보낸 history 는 Claude 입력용으로만
 - 단정적 예언 톤 금지(페르소나 화법 원칙)
 - **`users(id)` 참조 FK 는 반드시 `ON DELETE CASCADE` 또는 `SET NULL` 명시** — 없으면(NO ACTION) 회원 탈퇴 users DELETE 가 23503 으로 차단됨 (2026-07-17 `ad_spend.created_by` 사례: unlink 만 성공한 반쪽 탈퇴 → 재시도마다 -101 info 루프)
+- **페이지 metadata 의 `openGraph`/`twitter` 는 필드별 병합이 아니라 객체 통째 교체** — 페이지에서 `openGraph:{title}` 만 주면 루트 `app/layout.tsx` 의 `siteName`·`locale`·`type` 과 `app/opengraph-image.tsx` 가 붙이던 `og:image` 4종이 **조용히 사라진다**(`twitter:image` 까지). 콘텐츠 존은 `lib/seo/metadata.ts` 의 `contentMetadata()` 경유 — 공용 필드 재선언은 의도된 것이니 "중복"으로 지우지 말 것(계약 테스트가 막는다)
 - **신규 `consultation_type` 값 추가 시 컬럼 폭 확인** — `'relationship'`(12자)이 `VARCHAR(10)` 을 넘어 등록이 22001 로 죽은 사례. CHECK 에 값만 넣고 폭을 안 늘리면 조용히 실패한다
 
 ## dev/prod 분리
