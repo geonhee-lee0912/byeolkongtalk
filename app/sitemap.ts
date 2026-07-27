@@ -45,9 +45,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      // "daily" 가 아니다 — 뽑기가 클라이언트 랜덤이라 서버가 뱉는 문서 자체는
+      // 우리가 고칠 때만 바뀐다. 유저에게 매일 다른 카드가 보이는 것과
+      // 문서가 매일 바뀌는 것은 다른 얘기다.
       url: `${baseUrl}/free/daily-card`,
       lastModified,
-      changeFrequency: "daily",
+      changeFrequency: "weekly",
       priority: 0.8,
     },
   ];
