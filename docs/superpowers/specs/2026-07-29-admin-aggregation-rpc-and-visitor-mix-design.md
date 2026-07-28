@@ -214,22 +214,38 @@ $$;
 - **`attributeFreeSpend`** (`aggregate.ts:434`) — 유저별 원장을 시간순으로 걸으며 `freePool`/`freeUsed` 러닝 상태 유지. `spend` 는 `min(amount, freePool)` 클램프, `fortune_refund*` 환불은 `min(amount, freeUsed)` 역복원. **클램프가 누적에 되먹임되므로 윈도우 함수로 표현 불가** → recursive CTE 또는 plpgsql 루프 필요.
 - **`buildStarSpendBreakdown`** (`aggregate.ts:347`) — 15단 우선순위 사다리. `clarifier`/`extend` 는 `reading_id` 가 있어도 `source` 가 권위 · `rel_skill_*` 6종은 조인하면 "스레드 대화"로 뭉개져 `source` 로 종목 복원 · `NON_PRODUCT_SOURCES` 4개 + `fortune_refund*` prefix 제외 · 조인 실패 폴백은 `source` prefix 파싱.
 
-**결정: "분류는 앱, 집계는 SQL".**
+**결정: 종류 C 도 SQL 로 완전 이관한다.** (2026-07-29 사용자 결정 — "임시방편 말고 다 고친다")
 
-SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행으로 축약해 넘긴다 — `(source, 조인된 consultation_type/emotion_tag/skill_key)` 별 `count`, `sum(amount)`, `count(distinct user_id)`. 사다리 분기는 앱 한 곳에 그대로 둔다.
+#### 왜 "분류는 앱, 집계만 SQL" 축약안을 기각했나 — 그 안이 조용히 틀린다
 
-근거 3가지:
-1. **드리프트 원천 제거** — 사다리를 SQL 에 복제하면 새 `source` 추가마다 두 곳을 고쳐야 한다. 그걸 놓친 이력이 실제로 있다(`rel_skill_checkin` 추가 시).
-2. **행수는 이미 고정된다** — 축약 후 행수가 조합 카디널리티(수십)로 묶이므로 cap 목표는 달성된다. SQL 로 사다리까지 옮겨서 추가로 얻는 건 없다.
-3. **`attributeFreeSpend` 는 cap 위험 자체가 낮다** — 입력이 "최근 2일 소비자의 원장"이고 실측 125행(선행 스펙 §2 🟢). 전체 원장 크기와 무관하게 완만하게 자란다. **손대지 않는다.**
+축약안은 SQL 이 원자 키(`source`, 조인된 `consultation_type`/`emotion_tag`/`skill_key`)까지만 group-by 하고, 앱이 사다리로 최종 그룹(`domain`, `product`)을 만드는 구조였다. 여기에 **결함이 있다**:
 
-⚠️ `fortuneTypeFromTag` 의존 주의 — `emotion_tag` 가 `'fortune:'` prefix **이고** 접미사가 `FORTUNE_CONFIG` 유효 키일 때만 운세로 판정한다. SQL 에서 `like 'fortune:%'` 만 쓰면 `'fortune:오타'` 를 앱은 상담으로, SQL 은 운세로 분류해 **조용히 어긋난다.** 이것도 분류이므로 종류 C 방침에 따라 **앱에 남긴다**.
+`buildStarSpendBreakdown` 은 그룹별 **`count(distinct user_id)`** 를 낸다. **distinct 는 축약 행을 합산할 수 없다.** 같은 유저가 두 축약 행에 걸쳐 있으면 더하는 순간 중복 계수다. distinct 를 정확히 내려면 **최종 그룹 키를 SQL 이 알아야 한다 = 분류가 SQL 에 있어야 한다.**
+
+우회안 2개도 기각: `user_ids uuid[]` 를 축약 행에 실어 보내기(행수는 고정이지만 payload 가 유저 수 비례 — 원본을 안 끌어온다는 원칙의 편법 위반) · 앱이 최종 그룹을 정한 뒤 2차 RPC 로 그룹별 distinct 를 재조회(왕복 2회 + 두 조회 사이 정의 일치를 사람이 보장해야 함).
+
+#### 이관 방식
+
+- **`buildStarSpendBreakdown` 15단 사다리** → SQL 함수 하나로 **단일화**: `admin_star_product_key(p_source text, p_consultation_type text, p_emotion_tag text, p_skill_key text) returns record(domain text, product text)`. 집계 RPC 는 이 함수로 분류한 뒤 `group by domain, product` → `count`, `sum(amount)`, `count(distinct user_id)`. 분류가 한 함수에 모이므로 SQL 쪽 복제는 1곳이다.
+- **`attributeFreeSpend` 상태머신** → **plpgsql 루프**로. recursive CTE 도 가능하지만(유저별 `row_number` 부여 후 상태 전파) `min()` 클램프 되먹임을 CTE 로 쓰면 읽을 수 없다. plpgsql 루프는 앱 로직을 **1:1로 이식**할 수 있어 이식 오류 위험이 훨씬 낮다. 성능은 원장 크기 비례지만 Postgres 안이라 앱 전송은 0.
+- **`fortuneTypeFromTag`** → 유효 운세 타입 배열을 **RPC 인자 `p_fortune_types text[]`** 로 넘긴다. `like 'fortune:%'` 만 쓰면 `'fortune:오타'` 를 앱은 상담, SQL 은 운세로 분류해 **조용히 어긋난다.** 배열을 앱(`FORTUNE_CONFIG`)에서 주입하면 유효 키 목록의 단일 원천이 유지된다.
+- **`canonicalCreative`** → 별칭 맵을 **RPC 인자 `p_aliases jsonb`** 로 넘긴다. 같은 이유(단일 원천 유지). 현재 맵에 실제 항목이 1개 있어(`"새 판매 광고 - 사본" → "tarot"`) 무시하면 값이 바뀐다.
+
+#### 🔴 드리프트 대책 — 이게 종류 C 이관의 유일한 안전장치
+
+드리프트는 두 곳에 로직이 있는 것 자체가 아니라 **두 곳이 갈렸을 때 아무도 모르는 것**이 문제다. 없애는 대신 **감지 가능하게** 만든다:
+
+1. **대조 검증 스크립트** — `aggregate.test.ts` 의 분류 케이스 표를 SQL 함수에도 그대로 먹여 `(domain, product)` 가 일치하는지 검사한다. 순수 함수와 SQL 함수가 **같은 케이스 표를 공유**하므로, 한쪽만 고치면 그 자리에서 깨진다.
+2. **순수 함수는 삭제하지 않는다** (§1-1) — 대조의 한쪽 축이다.
+3. **AGENTS.md 코딩 규칙에 명시** — "새 `source`/운세 타입 추가 시 `aggregate.ts` 사다리와 `admin_star_product_key` 를 **함께** 고치고 대조 스크립트를 돌린다." 과거 `rel_skill_checkin` 을 놓친 이력이 있다.
 
 ### 종류 D — 이번 판에서 폐기 검토
 
 `/api/admin/stats` 5쿼리가 **전부 `/admin/page.tsx` 와 중복**이다(가입 count · 리딩 count · 매출 sum · 미해결 에러 · 미검토 민감알림). 게다가 `today` 는 오전 10시 롤오버, `week` 는 KST 자정으로 **한 엔드포인트 안에서 기준을 혼용**한다.
 
 전환 대상으로 삼기 전에 **소비처를 먼저 확인**한다. 소비처가 없으면 전환이 아니라 삭제가 답이다. (플랜의 조사 태스크로)
+
+**이번 판에서 결론낸다** — 삭제 or 대시보드 RPC 재사용 + 날짜 기준 통일. 보류하지 않는다. "임시방편 말고 다 고친다"(§4 종류 C)와 같은 결정이다.
 
 ---
 
@@ -276,7 +292,8 @@ SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행�
 | `admin_relationship_stats` | 고정 (status/skill/kind 전부 enum) | ✅ |
 | `admin_rel_passes` | ≤ 3 (day1/day3/day7) | ✅ |
 | `admin_popups` | ≤ 100 (목록 + ack count 를 같은 행에) | ✅ |
-| `admin_star_spend` (종류 C 축약) | `(domain, product)` 조합 수 | ⚠️ `emotion_tag` 카디널리티 비례 |
+| `admin_star_spend` (사다리 SQL 이관) | `(domain, product)` 조합 수 | ⚠️ `emotion_tag` 카디널리티 비례 |
+| `admin_free_spend_attribution` (plpgsql 루프) | 유저 수 또는 1행 요약 | ⚠️ 소비자 수 비례 (실측 125) |
 | `admin_product_breakdown` | counsel 만 카디널리티 비례 | ⚠️ |
 | `admin_funnel` | distinct 소재 + 2 | ⚠️ |
 | `admin_traffic_entry` | 소재 종수 + 2 | ⚠️ |
@@ -307,7 +324,8 @@ SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행�
 2. **현행 화면 대조** — 같은 지표를 현행 어드민에서 읽어 1과 비교. 어긋나는 곳이 나오면 **인벤토리가 놓친 cap 피해 화면**이다(선행 스펙 §2 의 "2화면뿐"은 7/28 기준 행수 추정이고 성장 중이므로 그새 넘은 것이 있을 수 있다).
 3. **RPC 적용 후 대조** — 앱 응답 == 1의 기대값. 불일치는 전부 §3 규칙 4가지 중 하나의 드리프트로 의심.
 4. **순수 함수 테스트 유지** — `node --import tsx --test lib/analytics/*.test.ts` 가 계속 통과해야 한다. 순수 함수를 지우지 않는 이유(§1-1).
-5. **고정점 교차검증** — 상담 퍼널 **628 / 400 / 320** (30일, 어드민 미제외, 2026-07-28 기준). 창이 밀렸으니 절대값은 달라지지만 **완료율 63.7% · 열람률 80%** 근방은 유지돼야 한다.
+5. **종류 C 대조 검증** — `aggregate.test.ts` 의 분류 케이스 표를 SQL 함수(`admin_star_product_key`)에도 먹여 `(domain, product)` 일치 확인 (§4 종류 C 드리프트 대책 1). 이게 종류 C 이관의 유일한 안전장치다.
+6. **고정점 교차검증** — 상담 퍼널 **628 / 400 / 320** (30일, 어드민 미제외, 2026-07-28 기준). 창이 밀렸으니 절대값은 달라지지만 **완료율 63.7% · 열람률 80%** 근방은 유지돼야 한다.
 
 **⚠️ 착수 전 첫 확인 항목**: `SUPABASE_PAT` 이 있어야 이 프로토콜이 성립한다. (2026-07-29 사용자가 전달 — **파일에 쓰지 않고 셸 env 로만 사용**. `.env.local` 은 dev 리소스용이고 커밋 사고 방지)
 
@@ -326,7 +344,7 @@ SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행�
 | # | 버그 | 영향 | 판정 지표 영향 |
 |---|---|---|---|
 | 1 | `/admin/paywall` H2(`payments`)만 어드민 제외 누락. H1(`star_balances`)은 적용 | 결제 전환율 분자/분모 비대칭 | 🔴 완료율 판정 |
-| 2 | `/api/admin/stats` `today`=오전10시 / `week`=KST자정 **혼용** | 한 엔드포인트에서 "오늘"과 "주간"이 다른 기준 | 🟡 (§4 종류 D — 폐기 검토가 선행) |
+| 2 | `/api/admin/stats` `today`=오전10시 / `week`=KST자정 **혼용** | 한 엔드포인트에서 "오늘"과 "주간"이 다른 기준 | 🟡 §4 종류 D 조사 결과에 따라 **삭제로 해소 or 기준 통일** — 어느 쪽이든 이번 판에서 끝낸다 |
 | 3 | `/admin/traffic` 만 `canonicalCreative` 미적용 (funnel·paywall·ads 는 적용) | **같은 소재가 화면마다 다른 키로 뜬다** | 🔴 소재별 비교축 |
 | 4 | `/admin/relationship-readings` 어드민 제외 전무 (`isAdminUserId` 는 배지 표시용) | `/admin/relationship` 총합과 원리적 불일치 | 🟢 |
 | 5 | `/admin/popups` 확인율 분모(`users` count)에 운영자 포함 | 확인율 미세 과소 | 🟢 |
@@ -352,12 +370,13 @@ SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행�
 1. `SUPABASE_PAT` 로 `run-prod-query.mjs` 동작 확인 (안 되면 여기서 중단 — 프로토콜이 성립하지 않는다)
 2. **raw SQL 지표 집합 작성 → d4 판독 산출물 + 전환 기대값 정답지** (§6-1, §7 의 전/후 정의 양쪽)
 3. 현행 화면 대조로 cap 피해 화면 재확인 (§6-2)
-4. 마이그레이션 작성 → dev 적용 → 화면별 전환 (종류 A → B → C 축약 순)
-5. 종류 D 소비처 조사 → 전환 or 삭제
-6. 부수 버그 5건 별도 커밋 (§7)
-7. main 머지 + Workflow logs SUCCESS 확인
-8. **[사용자] `Max rows` 를 낮은 값으로 원복** (RPC 는 cap 무관해지고 anon 스크래핑 노출도 줄어든다)
-9. AGENTS.md 갱신 — 코딩 규칙에 §3 원칙, 운영 함정에 종류 B(`ORDER BY` 없는 목록 쿼리) 주의
+4. 마이그레이션 작성 → dev 적용 → 화면별 전환 (종류 A → B → C 순)
+5. 종류 C 대조 검증 스크립트 작성 → 통과 확인 (§4 드리프트 대책)
+6. 종류 D 소비처 조사 → 기준 통일 or 삭제 (**이번 판에서 결론낸다**)
+7. 부수 버그 5건 별도 커밋 (§7)
+8. main 머지 + Workflow logs SUCCESS 확인
+9. **[사용자] `Max rows` 를 낮은 값으로 원복** (RPC 는 cap 무관해지고 anon 스크래핑 노출도 줄어든다). **이 원복이 전면 전환 완료의 실질 증거다** — 상향(50,000)은 임시방편이었고, 낮은 값으로 되돌려도 어드민이 정상 동작하면 cap 의존이 사라졌음이 실증된다.
+10. AGENTS.md 갱신 — 코딩 규칙에 §3 원칙 + 종류 C 드리프트 경고(새 `source` 추가 시 두 곳 + 대조 스크립트), 운영 함정에 종류 B(`ORDER BY` 없는 목록 쿼리) 주의
 
 ---
 
@@ -367,7 +386,7 @@ SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행�
 - **재방문 세분화 대안 2개** — 2분할만 / 방문일수 분후표. 3분할(신규·연속·복귀) 채택. "매일 붙는 사람"과 "가끔 돌아오는 사람"은 상품 함의가 다르다(캘린더 vs 재상담).
 - **기존 UV·PV 차트에 선 추가** — 4선이면 원래 용도가 죽는다. 별 차트로 분리.
 - **first-touch 를 창 밖까지 보도록 개선** — before/after 대조가 깨진다. 별건.
-- **종류 C 를 SQL 로 완전 이관** — §4 근거 3가지로 기각. 판정 계획에는 무해하지만 유지비가 오른다.
+- **종류 C "분류는 앱, 집계만 SQL" 축약안** — 기각. `count(distinct user_id)` 를 축약 행에서 합산할 수 없어(같은 유저가 여러 축약 행에 걸치면 중복 계수) **조용히 틀린 숫자를 만든다.** 우회 2개(행에 `user_ids[]` 실기 / 2차 RPC 재조회)도 각각 원칙 편법 위반·정의 이중관리라 기각. → SQL 완전 이관 + 대조 검증(§4).
 - 선행 스펙 §8 의 드롭 대안(절단 감지 / `③-lite` / `.range()`)은 그대로 유효 — 전면 전환이 흡수.
 
 ## 관련
