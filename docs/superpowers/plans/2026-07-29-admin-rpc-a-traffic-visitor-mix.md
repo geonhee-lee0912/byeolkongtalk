@@ -1191,4 +1191,6 @@ git commit -m "docs(admin): 플랜 A 전환 후 정답지 대조 결과"
 - [ ] `node --import tsx --test lib/analytics/traffic.test.ts` 30개 통과
 - [ ] `npx tsc --noEmit` 클린
 
+**배포 규율**: 창 중간 마이그레이션 예외를 2026-07-29 사용자가 이 작업에 한해 승인했다(스펙 개요 참조). prod 머지까지 이번 판에 끝낸다 — `/admin/traffic` cap 재발 예상이 **2026-08-11** 이라 d14 슬롯(8/9)까지 미루면 여유가 이틀뿐이다.
+
 **플랜 A 완료 후에도 `Max rows` 는 아직 되돌리지 않는다** — 나머지 화면(플랜 B)이 여전히 cap 에 의존한다. 원복은 플랜 B 마지막 단계다.
