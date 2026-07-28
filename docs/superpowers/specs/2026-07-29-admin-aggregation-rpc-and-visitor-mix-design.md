@@ -1,0 +1,377 @@
+# 어드민 집계 RPC 전면 전환 + 방문자 구성(신규/연속/복귀) — design (2026-07-29)
+
+**성격**: 설계. 선행 스펙 `2026-07-28-admin-aggregation-rpc-migration.md` 를 **대체하지 않고 개정·확장**한다.
+**두 가지를 한 판에 묶는 이유**: 신규/재방문 판정은 "그 방문자가 **조회창 밖에서도** 처음인가"를 물어야 한다. 원본 행을 앱으로 끌어오지 않는 RPC 구조에서만 깨끗하게 계산되므로, 따로 만들면 두 번 쓴다.
+**배포 제약 없음**: 어드민 전용 = 유저 퍼널 미접촉 → 판정 창(day 0 = 2026-07-26) 배포 슬롯 규율 밖.
+
+---
+
+## 1. 선행 스펙 정정 3건
+
+착수 전 인벤토리에서 선행 스펙의 전제 3개가 틀렸음을 확인했다.
+
+### 1-1. 🔴 "테스트가 없다"는 오판 — 5개 있다
+
+선행 스펙 §6 은 *"`lib/analytics/{traffic,aggregate}.ts` 에 테스트가 없다 → 리그레션 감지는 before/after 값 대조뿐"* 을 전제로 검증 프로토콜을 짰다. **틀렸다.**
+
+```
+lib/analytics/traffic.test.ts        14,161 bytes   (21 tests, 전부 통과 확인)
+lib/analytics/aggregate.test.ts      12,852 bytes
+lib/analytics/apiCost.test.ts         2,961 bytes
+lib/analytics/pageview.test.ts        3,413 bytes
+lib/analytics/route-labels.test.ts    2,497 bytes
+```
+
+오판 원인: `package.json` 에 `test` 스크립트가 없다(러너는 `node --import tsx --test`). 스크립트 부재를 테스트 부재로 읽은 것.
+
+**결과**: 순수 함수를 **삭제하지 않는다**. RPC 결과의 대조 기준이면서 회귀 자산이다.
+
+### 1-2. 🔴 §6-1 "어드민 15화면 스냅샷 = 정답지" 폐기
+
+스펙 §6-1 은 착수 전 화면 스냅샷을 정답지로 삼으라 했다. 그런데 **화면 2개(`/admin/traffic`·`/admin/paywall`)는 이미 값이 틀려 있다**(스펙 §2 가 실측). 그 스냅샷을 정답지로 삼으면 **잘린 값을 정답으로 굳힌다** — 스펙 §6-2 가 스스로 경고한 함정에 §6-1 이 걸려 있다.
+
+**대체**: 정답지를 raw SQL 로 만든다 (§6).
+
+### 1-3. §4 인벤토리 보강 — 38곳은 한 종류가 아니다
+
+스펙 §4 는 `.limit(100000)` 31곳 + `.limit()` 없음 ~7곳으로 셌지만, **성질이 다른 3종류가 섞여 있다**(§4). 한 규칙으로 밀면 2곳은 전환해도 문제가 남고, 2곳은 전환하면 유지비가 오른다.
+
+또한 `.limit()` 조차 없는 곳이 스펙 추정보다 많다 — `/admin/relationship` I1~I4 전부 + `/admin/relationship-readings` 6쿼리 중 5개.
+
+---
+
+## 2. 신규 기능 — 방문자 구성(신규 / 연속 / 복귀)
+
+### 2-1. 목적
+
+**"리텐션이 생겼나"를 매일 상시로 판독한다.** W5(3주째 재방문 실유저 0)의 답이 나오고 있는지, 트랙B(캘린더·데일리) 판정의 근거가 되는지를 어드민 화면에서 바로 읽는다.
+
+명시적으로 **목적이 아닌 것**: 봇 판별 · 광고 소재 품질 평가. (둘 다 이 분해로 곁눈질은 되지만 설계 목표에서 제외 — 목표를 늘리면 버킷이 늘고 한 줄로 안 읽힌다)
+
+### 2-2. 정의
+
+**식별자** = `page_views.anon_id`. NULL 인 행은 어느 버킷에도 세지 않고 PV 만 기여 — 현행 UV 규칙(`lib/analytics/traffic.ts` 헤더 주석) 그대로 승계.
+
+**버킷** = **오전 10시 롤오버** (`adminKstDate`). SQL: `((created_at + interval '9 hours' - interval '10 hours')::date)`.
+⚠️ `/admin/analytics` 트렌드와 연애 일일 턴의 KST 자정 기준과 **섞지 말 것**.
+
+**분류** — 방문자 A 의 그 버킷 직전 방문 버킷(`prev`) 하나로 전부 갈린다:
+
+| `prev` | 분류 | 뜻 |
+|---|---|---|
+| 없음 | **신규** | 기록상 이 버킷이 첫 방문 |
+| `bucket - 1일` | **연속** | 어제도 왔고 오늘도 |
+| `bucket - 2일` 이하 | **복귀** | 며칠 만에 돌아옴 |
+
+배타적·완전 → **신규 + 연속 + 복귀 = 그 버킷 UV**. 카드 한 줄의 산술이 맞는다.
+**재방문율 = (연속 + 복귀) / UV**, 소수 1자리 (`pct1` 관행).
+
+### 2-3. 🔴 prev 계산은 조회창에 의존해선 안 된다
+
+30일 창 안에서만 `prev` 를 계산하면 두 가지가 동시에 틀린다:
+
+1. 창 밖에 첫 방문이 있던 방문자가 **신규로 오분류**
+2. 가장 오래된 버킷의 연속/복귀 구분이 **전부 틀림**(그 앞 버킷이 창 밖)
+
+그래서 `lag()` 를 **전체 테이블**에 돌린 뒤 창 필터를 나중에 건다. 원본 행을 앱으로 끌어올 수 없으므로 **이 지표는 RPC 로만 가능하다.**
+
+```sql
+create or replace function admin_traffic_visitor_mix(p_since timestamptz, p_exclude uuid[])
+returns table (bucket date, uv bigint, new_uv bigint, streak_uv bigint, back_uv bigint)
+language sql stable security definer as $$
+  with v as (
+    -- 창 무관. 봇·어드민 제외를 여기서도 동일 적용 (2-4 함정 1)
+    select distinct
+           anon_id,
+           ((created_at + interval '9 hours' - interval '10 hours')::date) as bucket
+    from page_views
+    where anon_id is not null
+      and is_bot = false
+      and (user_id is null or user_id <> all(p_exclude))
+  ), lagged as (
+    select anon_id, bucket,
+           lag(bucket) over (partition by anon_id order by bucket) as prev
+    from v
+  )
+  select bucket,
+         count(*)::bigint                                          as uv,
+         count(*) filter (where prev is null)::bigint              as new_uv,
+         count(*) filter (where prev = bucket - 1)::bigint         as streak_uv,
+         count(*) filter (where prev < bucket - 1)::bigint         as back_uv
+  from lagged
+  where bucket >= ((p_since + interval '9 hours' - interval '10 hours')::date)
+  group by bucket
+  order by bucket;
+$$;
+```
+
+`v` 가 `(anon_id, bucket)` distinct 이므로 `count(*)` = distinct 방문자 수 = 현행 `buildTrafficTrend` 의 `uv` 와 동일 정의.
+비용: 전체 스캔이지만 `page_views` 는 현재 2,140행(만재 예상 22,000). `idx_page_views_anon(anon_id, created_at)` 존재. 무시할 수준.
+
+### 2-4. 정의상 함정 4개 — 전부 의도적 결정
+
+1. **봇·어드민 제외를 `prev` 계산에도 똑같이 걸어야 한다.**
+   안 걸면 봇으로 오분류된 하루나 운영자로 돌아본 날이 그 `anon_id` 의 첫 방문이 되어, **실제 사람의 첫 방문이 영원히 "복귀"로 잡힌다.**
+2. **좌측 절단** — 비콘은 2026-07-20 배포. 그 이전 방문자는 기록이 없어 첫 등장일에 신규로 잡힌다. **7/20~7/22 구간은 신규 과대**. 화면에 주석으로 명시.
+3. **쿠키 삭제·시크릿창·기기 변경 = 재방문 과소.** `anon_id` 가 새로 발급되어 신규로 세어진다. **방향이 보수적**이라("리텐션 생겼다" 오진이 아니라 놓치는 쪽) 목적에 안전.
+4. **어드민 로그아웃 상태 PV 는 여전히 안 걸러진다** — `anon_id ↔ 어드민` 매핑이 없다. 현행 `traffic/route.ts:39-41` 이 이미 자인한 한계를 그대로 승계.
+
+**기각된 식별 대안** (재논의 방지):
+- `anon → user` 상향 접기(한 번이라도 로그인한 `anon_id` 를 그 `user_id` 로 병합): 폰↔PC 재방문을 잡지만 **UV 토탈이 현행 정의보다 작아져 기준 2개가 공존**한다. 카드 한 줄의 산술(`신규+재방문=UV`)이 깨지므로 기각.
+- `user_id` 전용: 리텐션 분모로는 가장 가깝지만 트래픽 화면의 UV 와 다른 것을 재게 되어 같은 이유로 기각.
+
+### 2-5. 표현
+
+`components/admin/Stat.tsx` 의 `children` 은 값과 **같은 줄**(flex items-baseline)에 들어가 `Delta` 자리다. 서브라인은 아래 줄이 필요하므로 **`Stat` 에 `sub?: ReactNode` prop 을 추가**한다. 공유 컴포넌트에 두는 이유는 그 파일 헤더 주석이 명시한 바와 같다 — 화면마다 복제하면 표기가 조용히 갈린다.
+
+**A. `/admin` 메인 대시보드** — UV 카드에 축약 한 줄만:
+
+```
+┌─────────────────────────┐
+│ UV                      │
+│ 54   +28.6% (어제 42)   │
+│ 신규 41 · 재방문 13     │  ← sub
+└─────────────────────────┘
+```
+
+카드 6개가 이미 빽빽하고, 아침에는 방향만 알면 된다. 연속/복귀 세부는 한 클릭 옆.
+
+**B. `/admin/traffic`** — 두 곳:
+
+```
+오늘 (오전 10시 기준 · 어제 대비)
+┌──────────────────────────────────────────┐  ┌──────────────┐
+│ 오늘 UV                                  │  │ 오늘 PV      │
+│ 54   +28.6% (어제 42)                    │  │ 732   ▲      │
+│ 신규 41 · 연속 8 · 복귀 5 · 재방문 24.1% │  │              │
+└──────────────────────────────────────────┘  └──────────────┘
+
+── 일별 UV / PV ──         (기존 2선 차트 — 선을 추가하지 않는다)
+
+── 방문자 구성 ──          (신규 섹션)
+  [3선 차트 30일: 신규 #E8C26A · 연속 #6EE7B7 · 복귀 #B8A8D8]
+
+  날짜     UV   신규  연속  복귀  재방문율     ← 최신순 14행
+  07-29    54    41     8     5     24.1%
+  07-28    48    40     6     2     16.7%
+  …
+```
+
+**주석 3줄** (화면 하단):
+- 차트는 30일 전체, 표는 최근 14일
+- 2026-07-20 비콘 배포 이전 방문 기록이 없어 배포 직후 며칠은 신규가 과대 집계됨
+- 쿠키 삭제·시크릿창·기기 변경은 재방문을 신규로 세므로 재방문은 과소 추정
+
+**결정 근거**:
+- 기존 UV·PV 차트에 선을 **추가하지 않는다** — 4선이면 UV↔PV 대비를 읽던 원래 용도가 죽는다.
+- 표는 **최신순**. 기존 표들은 순위순이지만 이건 날짜 표라 최신이 위가 맞다.
+- 표를 14일로 자르는 이유: 30일 추세는 차트가 담당하고, 30행 표는 스크롤이 길어 아침 판독을 방해한다.
+
+---
+
+## 3. 원칙 (선행 스펙 §5 승계)
+
+> **어드민 집계는 원본 행을 앱으로 끌어오지 않는다.** 집계는 Postgres 에서, 앱은 결과만 받는다.
+
+행수가 데이터량과 무관하게 고정되므로 `Max rows` cap 개념 자체가 소멸한다. 부수 효과: 응답 빨라짐 + cap 을 낮게 되돌려 anon 스크래핑 노출 최소화.
+
+**재현해야 할 규칙 4가지** (선행 스펙 §5 그대로 — 드리프트 주의):
+
+1. **오전 10시 롤오버** `((created_at + interval '9 hours' - interval '10 hours')::date)` vs **KST 자정** `((created_at + interval '9 hours')::date)`. 화면별 기준은 `lib/admin-time.ts` 주석 표가 정본. **섞지 말 것.**
+2. **봇 제외** `is_bot = false`. 단 `buildBotShare` 는 봇 포함 전체가 분모 — 유일한 예외.
+3. **어드민 제외** `page_views` 는 비로그인 행이 `user_id IS NULL` 이라 `NOT IN` 단독은 SQL 3값 논리로 비로그인 행을 전멸시킨다. → `(user_id is null or user_id <> all(p_exclude))`.
+4. **first-touch 귀속** `anon_id` 의 가장 이른 `landing_variant`/`utm_content` 로 그 방문자의 **모든 행**을 귀속. `{{...}}` 리터럴은 `(매크로 미치환)` 버킷으로 접기.
+
+**`lib/admin.ts` 시그니처 변경**: `adminExclusionList()` 는 PostgREST in-리스트 문자열 `"(uuid,uuid,…)"` 을 반환한다. RPC 는 `uuid[]` 배열 인자가 필요하다 → **배열 반환 함수를 병렬로 추가**한다(기존 함수는 미전환 화면이 계속 쓴다). 빈 화이트리스트에서 `<> all('{}')` 는 true 로 자연 동작하므로 RPC 측 null 분기는 불필요.
+
+---
+
+## 4. 🔴 38곳은 3종류다 — 종류별 처리 방침
+
+이번 판의 가장 중요한 발견. 한 규칙으로 밀면 안 된다.
+
+### 종류 A — 순수 집계, SQL 이 명백히 낫다 (~28곳, 전환 본체)
+
+`analytics/trends` 3쿼리→1RPC · `traffic` 6집계 · `analytics/products` · `analytics/funnel` · `analytics/cohorts` · `paywall` KPI·상담 퍼널 · `relationship` 통계 · `ads` · `popups` · 대시보드 sum/count.
+
+특히 이득이 큰 3곳:
+- **`paywall` `[END]` 감지**: `messages.content` 본문 3,090행을 앱으로 끌어와 `includes("[END]")` → `exists (… and content like '%[END]%')` 로 pushdown. **3,090행 → 1행.** 완료율 3배 왜곡의 진원지.
+- **`analytics/funnel`**: `userIds` 수백~수천 개를 `.in()` URL 에 싣던 2단 조회가 조인으로 소멸. cap 뿐 아니라 **URL 길이 한계도 같이 사라진다.**
+- **`traffic` ↔ 대시보드 `page_views`**: 동일 select·동일 필터·동일 순수 함수. `admin_traffic_trend(p_since, …)` **단일 RPC 로 완전 통합**(대시보드는 `days=2`).
+
+### 종류 B — 애초에 집계가 아니라 "행 목록" (2곳)
+
+`/admin/paywall` 미전환 유저 목록 · `/admin/relationship-readings` 스레드 목록.
+
+반환 행수가 **본질적으로 데이터 비례**라 RPC 화해도 cap 문제가 남는다. 필요한 것은 **`ORDER BY` + `LIMIT/OFFSET` 페이지네이션 + `.in()` 2단 조회의 조인 재작성**.
+
+⚠️ 둘 다 현재 **`ORDER BY` 없이 `.limit()`** 이다 → 잘리면 어느 행이 오는지 **미정의**. `relationship-readings` 는 6쿼리 중 5개가 `.limit()` 조차 없다.
+
+**결정: 이번 판에 포함.** 전면 전환을 선언한 이상 "전환했지만 여전히 잘릴 수 있는 화면"을 남기면 원칙이 무의미해진다.
+
+### 종류 C — 상태머신 · 15단 분기 (2곳)
+
+- **`attributeFreeSpend`** (`aggregate.ts:434`) — 유저별 원장을 시간순으로 걸으며 `freePool`/`freeUsed` 러닝 상태 유지. `spend` 는 `min(amount, freePool)` 클램프, `fortune_refund*` 환불은 `min(amount, freeUsed)` 역복원. **클램프가 누적에 되먹임되므로 윈도우 함수로 표현 불가** → recursive CTE 또는 plpgsql 루프 필요.
+- **`buildStarSpendBreakdown`** (`aggregate.ts:347`) — 15단 우선순위 사다리. `clarifier`/`extend` 는 `reading_id` 가 있어도 `source` 가 권위 · `rel_skill_*` 6종은 조인하면 "스레드 대화"로 뭉개져 `source` 로 종목 복원 · `NON_PRODUCT_SOURCES` 4개 + `fortune_refund*` prefix 제외 · 조인 실패 폴백은 `source` prefix 파싱.
+
+**결정: "분류는 앱, 집계는 SQL".**
+
+SQL 은 분류에 필요한 **원자 키까지만** group-by 해서 수십 행으로 축약해 넘긴다 — `(source, 조인된 consultation_type/emotion_tag/skill_key)` 별 `count`, `sum(amount)`, `count(distinct user_id)`. 사다리 분기는 앱 한 곳에 그대로 둔다.
+
+근거 3가지:
+1. **드리프트 원천 제거** — 사다리를 SQL 에 복제하면 새 `source` 추가마다 두 곳을 고쳐야 한다. 그걸 놓친 이력이 실제로 있다(`rel_skill_checkin` 추가 시).
+2. **행수는 이미 고정된다** — 축약 후 행수가 조합 카디널리티(수십)로 묶이므로 cap 목표는 달성된다. SQL 로 사다리까지 옮겨서 추가로 얻는 건 없다.
+3. **`attributeFreeSpend` 는 cap 위험 자체가 낮다** — 입력이 "최근 2일 소비자의 원장"이고 실측 125행(선행 스펙 §2 🟢). 전체 원장 크기와 무관하게 완만하게 자란다. **손대지 않는다.**
+
+⚠️ `fortuneTypeFromTag` 의존 주의 — `emotion_tag` 가 `'fortune:'` prefix **이고** 접미사가 `FORTUNE_CONFIG` 유효 키일 때만 운세로 판정한다. SQL 에서 `like 'fortune:%'` 만 쓰면 `'fortune:오타'` 를 앱은 상담으로, SQL 은 운세로 분류해 **조용히 어긋난다.** 이것도 분류이므로 종류 C 방침에 따라 **앱에 남긴다**.
+
+### 종류 D — 이번 판에서 폐기 검토
+
+`/api/admin/stats` 5쿼리가 **전부 `/admin/page.tsx` 와 중복**이다(가입 count · 리딩 count · 매출 sum · 미해결 에러 · 미검토 민감알림). 게다가 `today` 는 오전 10시 롤오버, `week` 는 KST 자정으로 **한 엔드포인트 안에서 기준을 혼용**한다.
+
+전환 대상으로 삼기 전에 **소비처를 먼저 확인**한다. 소비처가 없으면 전환이 아니라 삭제가 답이다. (플랜의 조사 태스크로)
+
+---
+
+## 5. RPC 표면 — `/admin/traffic` (확정)
+
+현행은 **쿼리 1개**로 원본 행을 전부 받아 순수 함수 6개가 나눠 집계한다. RPC 6개로 분해한다.
+
+| RPC | 대체 대상 | 반환 행수 |
+|---|---|---|
+| `admin_traffic_trend(p_since, p_exclude)` | `buildTrafficTrend` | ≤ days (대시보드는 days=2 로 공용) |
+| `admin_traffic_visitor_mix(p_since, p_exclude)` | **신규** (§2-3) | ≤ days |
+| `admin_traffic_routes(p_since, p_exclude, p_today)` | `buildRouteRanking` + `mergeToday` | ≤ 20 |
+| `admin_traffic_auth(p_since, p_exclude, p_today)` | `buildAuthSplit` + `mergeToday` | 정확히 2 |
+| `admin_traffic_entry(p_since, p_exclude, p_today)` | `buildEntrySources` + `mergeToday` | 소재 종수 + 2 (**명시적 LIMIT 권장**) |
+| `admin_traffic_bot(p_since, p_exclude)` | `buildBotShare` | 1 (봇 **포함** 분모 — `is_bot` 필터 없는 유일한 RPC) |
+
+**앱에 남기는 것**: `pickTodayYesterday` · 날짜 축 0 채우기 · 라벨링(`routeLabel`·`SEGMENT_LABEL`) · 퍼센트 표시.
+
+### 드리프트 위험이 집중된 2곳
+
+**5-1. `admin_traffic_entry` 의 first-touch 귀속** — 규칙 3개가 겹쳐 가장 틀리기 쉽다.
+- `landing_variant` 와 `utm_content` 를 **독립적으로** first-touch (같은 행일 필요 없음)
+- `anon_id IS NULL` 행은 귀속 불가 → **자기 행 값으로 PV 만 기여, UV 미계상**
+- `{{...}}` → `(매크로 미치환)`, 값 없음 → `(직접/오가닉)`, `(직접/오가닉)` 은 **정렬에서 맨 아래로**
+
+⚠️ Postgres 에 `IGNORE NULLS` 가 없다 → `first_value` 대신 `(array_remove(array_agg(x order by created_at), null))[1]` 우회 필요.
+
+⚠️ **"창 안 first-touch" 현행 동작을 그대로 유지한다.** 현행은 조회창 안에서만 첫 값을 본다. 여기서 "창 밖까지 보도록 개선"하면 before/after 대조가 깨져 **검증 자체가 불가능해진다.** 개선은 별건.
+
+**5-2. `mergeToday` 를 SQL 로 접기** — `count(*) filter (where bucket = p_today)` 로 **1패스가 되어 오히려 쉽다.** 단 현행 규칙 2개를 `order by` 에 그대로 옮겨야 한다:
+- 행 구성·순서는 **기간 기준 유지** (오늘 값으로 재정렬 금지 — 순위가 매 시간 흔들리면 이탈 지점을 못 읽는다)
+- "오늘만 활동하고 기간 상위 20 밖인 라우트는 표에 안 나온다"는 현행 동작 유지
+
+### 나머지 화면의 RPC 표면
+
+행수 성질만 확정하고 구체 시그니처는 플랜 단계에서 화면별로 정한다.
+
+| RPC 후보 | 반환 행수 | 데이터량 독립 |
+|---|---|---|
+| `admin_trends` (analytics/trends 3쿼리) | = days | ✅ |
+| `admin_cohorts` | **정확히 12** (WEEKS 상수) | ✅ |
+| `admin_paywall_consult_funnel` | 1 (started/ended/viewed) | ✅ **3,090행 → 1행** |
+| `admin_paywall_kpi` | 1 | ✅ |
+| `admin_relationship_stats` | 고정 (status/skill/kind 전부 enum) | ✅ |
+| `admin_rel_passes` | ≤ 3 (day1/day3/day7) | ✅ |
+| `admin_popups` | ≤ 100 (목록 + ack count 를 같은 행에) | ✅ |
+| `admin_star_spend` (종류 C 축약) | `(domain, product)` 조합 수 | ⚠️ `emotion_tag` 카디널리티 비례 |
+| `admin_product_breakdown` | counsel 만 카디널리티 비례 | ⚠️ |
+| `admin_funnel` | distinct 소재 + 2 | ⚠️ |
+| `admin_traffic_entry` | 소재 종수 + 2 | ⚠️ |
+| paywall 미전환 목록 / relationship-readings | 데이터 비례 | ❌ **종류 B — 페이지네이션** |
+
+⚠️ 표시가 있는 4개는 데이터량과는 무관하지만 **상한이 없다**(소재·감정태그 카디널리티 비례, 실무상 수십 규모). **명시적 `LIMIT` 을 걸어 상한을 고정한다.**
+
+### `buildCohorts` 의 비표준 규칙 2개 (보존 필수)
+
+1. 주차 인덱스가 **코호트 주 시작이 아니라 개인 가입 시각 기준** `floor(days/7)` — 같은 코호트 안에서 유저별 오프셋이 다르다.
+2. 리텐션 `d1/d7/d30` 이 **"가입 후 N일 이후 활동" 누적 정의**(≥ 조건, 고전적 D1 윈도우 아님) → `d1 ⊇ d7 ⊇ d30`.
+
+표준 코호트 SQL 템플릿을 그대로 쓰면 **둘 다 틀린다.**
+
+### `buildRelationshipFlow` 주의
+
+`lag(created_at)` 6시간 갭 세션 분리 + `(thread, KST날짜)` 별 턴수 ≥ 20 카운트. 윈도우 함수로 가능하지만 **버킷이 KST 자정**(다른 화면은 오전 10시)이라는 점을 반드시 유지.
+
+---
+
+## 6. 검증 프로토콜 — raw SQL 정답지
+
+선행 스펙 §6-1(화면 스냅샷)을 폐기하고 대체한다.
+
+`scripts/run-prod-query.mjs` 는 Postgres 직결이라 `Max rows` cap 이 **구조적으로 무관하다**(선행 스펙 §1 이 확인). 이게 프로토콜의 토대다.
+
+1. **기대값 생성** — 각 지표를 `run-prod-query.mjs` 로 SQL 직접 계산해 prod 실제값을 뽑는다. **이것이 정답지.** cap 오염 차단 + 이미 틀린 값을 굳힐 위험 0.
+2. **현행 화면 대조** — 같은 지표를 현행 어드민에서 읽어 1과 비교. 어긋나는 곳이 나오면 **인벤토리가 놓친 cap 피해 화면**이다(선행 스펙 §2 의 "2화면뿐"은 7/28 기준 행수 추정이고 성장 중이므로 그새 넘은 것이 있을 수 있다).
+3. **RPC 적용 후 대조** — 앱 응답 == 1의 기대값. 불일치는 전부 §3 규칙 4가지 중 하나의 드리프트로 의심.
+4. **순수 함수 테스트 유지** — `node --import tsx --test lib/analytics/*.test.ts` 가 계속 통과해야 한다. 순수 함수를 지우지 않는 이유(§1-1).
+5. **고정점 교차검증** — 상담 퍼널 **628 / 400 / 320** (30일, 어드민 미제외, 2026-07-28 기준). 창이 밀렸으니 절대값은 달라지지만 **완료율 63.7% · 열람률 80%** 근방은 유지돼야 한다.
+
+**⚠️ 착수 전 첫 확인 항목**: `SUPABASE_PAT` 이 있어야 이 프로토콜이 성립한다. (2026-07-29 사용자가 전달 — **파일에 쓰지 않고 셸 env 로만 사용**. `.env.local` 은 dev 리소스용이고 커밋 사고 방지)
+
+### 마이그레이션 · 커밋
+
+- `supabase/migrations/<timestamp>_admin_aggregates.sql` **한 파일**에 함수 전량. 함수는 `create or replace` 라 재적용 안전.
+- dev push → Supabase dev 자동 적용 → 검증 → main 머지. **push 후 main Workflow logs SUCCESS 확인.**
+- 커밋은 **화면 단위로 분할**. 어드민 전용이라 배포 슬롯 제약은 없지만, 값이 틀어졌을 때 어느 화면 전환에서 깨졌는지 `git bisect` 가 가능해야 한다.
+
+---
+
+## 7. 부수 발견 버그 5건 — 전부 수정 (별도 커밋)
+
+전환 중 발견. **고치면 값이 의도적으로 달라져 §6 의 before/after 대조가 깨진다** → RPC 전환(값 보존)을 끝낸 뒤 **별도 커밋**으로.
+
+| # | 버그 | 영향 | 판정 지표 영향 |
+|---|---|---|---|
+| 1 | `/admin/paywall` H2(`payments`)만 어드민 제외 누락. H1(`star_balances`)은 적용 | 결제 전환율 분자/분모 비대칭 | 🔴 완료율 판정 |
+| 2 | `/api/admin/stats` `today`=오전10시 / `week`=KST자정 **혼용** | 한 엔드포인트에서 "오늘"과 "주간"이 다른 기준 | 🟡 (§4 종류 D — 폐기 검토가 선행) |
+| 3 | `/admin/traffic` 만 `canonicalCreative` 미적용 (funnel·paywall·ads 는 적용) | **같은 소재가 화면마다 다른 키로 뜬다** | 🔴 소재별 비교축 |
+| 4 | `/admin/relationship-readings` 어드민 제외 전무 (`isAdminUserId` 는 배지 표시용) | `/admin/relationship` 총합과 원리적 불일치 | 🟢 |
+| 5 | `/admin/popups` 확인율 분모(`users` count)에 운영자 포함 | 확인율 미세 과소 | 🟢 |
+
+**#1·#3 은 판정 지표의 정의를 바꾼다.** 그래도 고치는 이유: **지금 값이 이미 틀렸으므로 틀린 값으로 시계열 연속성을 지키는 건 의미가 없다.**
+
+**안전장치**: §6-1 raw SQL 기대값을 만들 때 **수정 전/후 정의 양쪽으로 뽑아 이 문서에 기록**한다. 그러면 d7·d14 판정에서 어느 정의로든 d4 와 비교할 수 있고, "이 날 정의가 바뀌었다"가 문서로 남는다.
+
+**기타 관찰** (버그 아님, 정리 후보): `analytics/products` 의 `saju_product` 는 select 하지만 집계에 미사용(dead column) · `payments.status` 를 SQL 에서 안 걸고 앱에서 거르는 곳 2개(E2·F4) — 불필요한 전송.
+
+---
+
+## 8. 착수 순서 — d4 판정과의 충돌 해소
+
+🔴 **작업 큐 d4 항목에 "`/admin/traffic` 오늘 열로 판독"이 명시돼 있고 d4 = 2026-07-30(내일)이다.** 전환 도중 화면이 흔들리면 판독을 못 한다.
+
+**해법이 §6-1 과 같은 작업이다.** d4 판독을 화면이 아니라 raw SQL 로 뽑는다:
+- 오늘 raw SQL 지표 집합을 만들면 ①내일 d4 판독 확보 ②전환 검증 기대값 생성이 **한 번에 끝난다**
+- 게다가 현행 `/admin/traffic` UV 는 **53% 유실 상태**라 화면으로 판독하면 그 자체가 오염된 판독이다 — 어느 쪽이든 raw SQL 로 가야 한다
+
+**순서**:
+
+1. `SUPABASE_PAT` 로 `run-prod-query.mjs` 동작 확인 (안 되면 여기서 중단 — 프로토콜이 성립하지 않는다)
+2. **raw SQL 지표 집합 작성 → d4 판독 산출물 + 전환 기대값 정답지** (§6-1, §7 의 전/후 정의 양쪽)
+3. 현행 화면 대조로 cap 피해 화면 재확인 (§6-2)
+4. 마이그레이션 작성 → dev 적용 → 화면별 전환 (종류 A → B → C 축약 순)
+5. 종류 D 소비처 조사 → 전환 or 삭제
+6. 부수 버그 5건 별도 커밋 (§7)
+7. main 머지 + Workflow logs SUCCESS 확인
+8. **[사용자] `Max rows` 를 낮은 값으로 원복** (RPC 는 cap 무관해지고 anon 스크래핑 노출도 줄어든다)
+9. AGENTS.md 갱신 — 코딩 규칙에 §3 원칙, 운영 함정에 종류 B(`ORDER BY` 없는 목록 쿼리) 주의
+
+---
+
+## 9. 기각·보류 기록 (재논의 방지)
+
+- **식별자 대안 2개** — anon→user 상향 접기 / user_id 전용. 기각 근거는 §2-4.
+- **재방문 세분화 대안 2개** — 2분할만 / 방문일수 분후표. 3분할(신규·연속·복귀) 채택. "매일 붙는 사람"과 "가끔 돌아오는 사람"은 상품 함의가 다르다(캘린더 vs 재상담).
+- **기존 UV·PV 차트에 선 추가** — 4선이면 원래 용도가 죽는다. 별 차트로 분리.
+- **first-touch 를 창 밖까지 보도록 개선** — before/after 대조가 깨진다. 별건.
+- **종류 C 를 SQL 로 완전 이관** — §4 근거 3가지로 기각. 판정 계획에는 무해하지만 유지비가 오른다.
+- 선행 스펙 §8 의 드롭 대안(절단 감지 / `③-lite` / `.range()`)은 그대로 유효 — 전면 전환이 흡수.
+
+## 관련
+
+- 선행: `docs/superpowers/specs/2026-07-28-admin-aggregation-rpc-migration.md` (사고 요약 §1 · 실측 감사 §2 · 성장 추세 §3 은 이 문서가 대체하지 않는다)
+- `docs/superpowers/specs/2026-07-26-unviewed-results-findings.md` (미열람 근거, raw SQL 소스라 cap 무관)
+- `lib/admin-time.ts` (날짜 기준 표) · `lib/analytics/traffic.ts` (트래픽 집계 정본) · `lib/analytics/aggregate.ts` (그 외 집계 정본)
