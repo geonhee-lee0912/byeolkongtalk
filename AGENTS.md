@@ -108,6 +108,7 @@ docs/superpowers/{specs,plans}/
 - **`users(id)` 참조 FK 는 반드시 `ON DELETE CASCADE` 또는 `SET NULL` 명시** — 없으면(NO ACTION) 회원 탈퇴 users DELETE 가 23503 으로 차단됨 (2026-07-17 `ad_spend.created_by` 사례: unlink 만 성공한 반쪽 탈퇴 → 재시도마다 -101 info 루프)
 - **페이지 metadata 의 `openGraph`/`twitter` 는 필드별 병합이 아니라 객체 통째 교체** — 페이지에서 `openGraph:{title}` 만 주면 루트 `app/layout.tsx` 의 `siteName`·`locale`·`type` 과 `app/opengraph-image.tsx` 가 붙이던 `og:image` 4종이 **조용히 사라진다**(`twitter:image` 까지). 콘텐츠 존은 `lib/seo/metadata.ts` 의 `contentMetadata()` 경유 — 공용 필드 재선언은 의도된 것이니 "중복"으로 지우지 말 것(계약 테스트가 막는다)
 - **신규 `consultation_type` 값 추가 시 컬럼 폭 확인** — `'relationship'`(12자)이 `VARCHAR(10)` 을 넘어 등록이 22001 로 죽은 사례. CHECK 에 값만 넣고 폭을 안 늘리면 조용히 실패한다
+- **어드민 집계는 원본 행을 앱으로 끌어오지 않는다** — `.limit(100000)` 은 아무것도 보장하지 않는다(Supabase `Max rows` 가 서버측 강제 상한). 새 어드민 화면·집계는 SQL 집계 RPC 또는 `count: "exact"` 로. 기존 38곳 전환 스펙 = `docs/superpowers/specs/2026-07-28-admin-aggregation-rpc-migration.md`
 
 ## dev/prod 분리
 
@@ -122,6 +123,7 @@ docs/superpowers/{specs,plans}/
 - **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `middleware.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). middleware 를 건드릴 때 이 사실을 기억할 것
 - **날짜 기준이 화면마다 다르다**: 오전 10시 롤오버(`/admin`·`/admin/traffic`) vs KST 자정(`/admin/analytics`·연애 일일 턴). `lib/admin-time.ts` 주석에 표로 정리 — 섞으면 같은 "오늘"이 다른 걸 뜻한다
 - **`page_views` 어드민 제외 필터**: 비로그인 행은 `user_id` 가 NULL 이라 `.not("user_id","in",…)` 만 쓰면 **비로그인 PV 가 전부 사라진다**(SQL 3값 논리). `.or("user_id.is.null,user_id.not.in.…")` 로 감쌀 것
+- **Supabase `Max rows` 가 `.limit()` 을 덮어쓴다**(기본 1000): PostgREST 는 200 + `Content-Range: 0-999/*` 로 응답하고 supabase-js 는 이를 `error` 로 승격하지 않아 **조용히 잘린다**(`ORDER BY` 도 없으면 어느 1000행인지 미정의). 2026-07-28 사례 — `/admin/traffic` UV 53% 유실 · `/admin/paywall` 상담 완료율을 21% 로 표시(실제 63.7%). **cap 은 PostgREST 레이어만** 걸리므로 SQL Editor·`scripts/run-prod-query.mjs` 는 무관 = 판정 문서는 무사했다. 어드민 숫자가 의심되면 raw SQL 로 대조할 것
 - **카카오 공유**: prod 는 정상(Web 도메인 등록됨). **dev 에서만 미리보기가 빈다** — Vercel Deployment Protection(SSO) 탓에 외부 스크래퍼가 OG 이미지를 못 받는 것이지 코드 결함 아님. 진단 주의 2가지: ①로그인은 `lib/kakao.ts` 가 서버 리다이렉트라 JS SDK 무관 = **로그인 정상 ≠ 공유 정상** ②`lib/kakao-share.ts` 는 실패 시 `console.warn` + 텍스트 폴백이라 **`error_logs` 에 안 남는다**
 - **토스 결제 에러 3분류**: 고객 거절(warn) / 상점 차단(503+error) / race(멱등 성공). 새 코드 추가 시 이 분류를 따를 것. `payments` 는 승인 성공만 INSERT 라 **결제 마찰은 `error_logs` 로만 보인다**
 - **OAuth**: state 32hex nonce 를 `byeolkong_oauth_state` 쿠키에 5분 TTL → 콜백에서 일치 검증 + 1회용 삭제 + open redirect 방지. 쿠키/storage prefix 는 전부 `byeolkong_`. ADMIN_USER_IDS 매칭 시 `byeolkong_admin_token`(HMAC) 동시 발급
