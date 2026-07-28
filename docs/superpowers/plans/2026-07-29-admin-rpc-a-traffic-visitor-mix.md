@@ -496,7 +496,27 @@ git push origin dev
 
 GitHub Actions(Supabase Git sync) 로그가 SUCCESS 인지 확인한다. 실패면 SQL 문법 오류이므로 여기서 고친다.
 
-- [ ] **Step 5: dev DB 에서 함수 존재 확인**
+- [ ] **Step 5: 🔴 anon 키로 RPC 호출 → 거부되는지 실검증**
+
+`security definer` 함수는 **호출자 권한을 무시하고 소유자 권한으로 실행**된다. 함수는 기본적으로 `PUBLIC` 에 `EXECUTE` 가 있으므로, `REVOKE` 가 실제로 먹지 않았다면 **anon 키만으로 어드민 집계 전체를 읽을 수 있다.** 마이그레이션에 `REVOKE` 를 썼다는 것과 그게 적용됐다는 것은 다르다 — 반드시 확인한다.
+
+```bash
+# .env.local 의 dev anon 키로 직접 호출 (dev 프로젝트 URL 사용)
+source .env.local 2>/dev/null
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -X POST "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/rpc/admin_traffic_visitor_mix" \
+  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"p_since":"2026-01-01T00:00:00Z","p_exclude":[]}'
+```
+
+Expected: **`404`**(PostgREST 는 실행 권한 없는 함수를 스키마에 노출하지 않아 404 로 답한다) 또는 `401`/`403`.
+🔴 **`200` 이 나오면 즉시 중단.** `REVOKE` 가 적용되지 않았다는 뜻이고, 어드민 집계가 공개된 상태다. 마이그레이션의 `REVOKE EXECUTE ON FUNCTION <name> FROM PUBLIC` 을 함수 시그니처까지 명시하는 형태로 고쳐 재적용한다(오버로드가 있으면 이름만으로는 대상이 모호해 실패할 수 있다).
+
+7개 함수 중 **최소 3개**(`admin_traffic_visitor_mix`·`admin_traffic_entry`·`admin_traffic_bot`)를 같은 방식으로 확인한다. `admin_traffic_entry` 는 인자가 5개라 오버로드 모호성 위험이 가장 크다.
+
+- [ ] **Step 6: dev DB 에서 함수 존재 확인**
 
 ```bash
 SUPABASE_PAT=<값> SUPABASE_PROJECT_REF=vtdmxdcetziileynjaxi node scripts/run-prod-query.mjs --sql "
@@ -1167,6 +1187,7 @@ git commit -m "docs(admin): 플랜 A 전환 후 정답지 대조 결과"
 - [ ] `/admin/traffic` 과 `/admin` 이 `page_views` 원본 행을 **한 행도** 받지 않는다 (`.from("page_views")` 가 두 파일에서 사라졌다)
 - [ ] 방문자 구성 3분할이 모든 행에서 합 = UV
 - [ ] prod 화면 값이 raw SQL 정답지와 일치 (어드민 제외분 차이만)
+- [ ] **anon 키로 RPC 호출 시 200 이 아니다** (Task 4 Step 5 — REVOKE 가 실제로 먹었는지)
 - [ ] `node --import tsx --test lib/analytics/traffic.test.ts` 30개 통과
 - [ ] `npx tsc --noEmit` 클린
 
