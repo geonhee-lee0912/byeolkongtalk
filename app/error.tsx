@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  documentDeploymentId,
+  chunkErrorDeploymentId,
   isChunkLoadError,
   tryRecoverFromChunkError,
 } from "@/lib/chunk-error";
@@ -31,10 +31,10 @@ export default function Error({
         fingerprint: chunkError ? "chunk-load-error" : (error.digest ?? null),
         route:
           typeof window !== "undefined" ? window.location.pathname : null,
-        // dpl = 지금 문서의 배포 ID. 에러 메시지 안의 dpl 과 다르면 스큐,
-        // 같으면 현 빌드에 청크가 실제로 없는 것(= 진짜 버그)
+        // dpl = 죽은 청크를 요청한 빌드(= 이 탭)의 배포 ID.
+        // 현재 prod 배포 ID 와 다르면 스큐(정상), 같으면 현 빌드에 청크가 없는 것(= 진짜 버그)
         context: chunkError
-          ? { kind: "chunk-load", dpl: documentDeploymentId() }
+          ? { kind: "chunk-load", dpl: chunkErrorDeploymentId(error) }
           : { digest: error.digest },
       }),
       keepalive: true,
