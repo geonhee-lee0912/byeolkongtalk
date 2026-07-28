@@ -183,8 +183,11 @@ $$;
 -- ⚠️ like 'fortune:%' 만으로 판정하면 'fortune:오타' 를 앱은 상담으로, SQL 은 운세로 분류해
 --    조용히 어긋난다(fortuneTypeFromTag 는 접미사가 유효 키일 때만 운세로 본다).
 -- 연애 스레드(consultation_type='relationship')는 counsel 에서 제외 — 별 소모·연애 메뉴에서 다룬다.
+-- 🔴 p_limit — counsel 갈래는 (consultation_type × emotion_tag) 카디널리티에 비례한다.
+--    emotion_tag 가 자유 문자열이라 상한이 없다 → RPC 도 PostgREST 를 지나므로 cap 재발 가능.
+--    fortune 갈래는 p_fortune_types 길이로 이미 유계라 상한이 필요 없다.
 CREATE OR REPLACE FUNCTION admin_product_breakdown(
-  p_since TIMESTAMPTZ, p_exclude UUID[], p_fortune_types TEXT[]
+  p_since TIMESTAMPTZ, p_exclude UUID[], p_fortune_types TEXT[], p_limit INT DEFAULT 200
 )
 RETURNS TABLE (
   kind TEXT,           -- 'counsel' | 'fortune' | 'package'
@@ -209,21 +212,32 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
       AND user_id <> ALL(p_exclude)
       AND consultation_type <> 'relationship'
   )
-  SELECT 'counsel', consultation_type, coalesce(emotion_tag, '(없음)'),
-         count(*), count(*) FILTER (WHERE stars_spent > 0), sum(stars_spent)::BIGINT, NULL::BIGINT
-  FROM r WHERE fortune_kind IS NULL
-  GROUP BY 1, 2, 3
+  -- counsel: 상한을 박고 cnt 내림차순으로 상위만 (앱의 count desc 정렬과 같은 기준이라
+  -- 잘려도 "상위 N" 이 되어 순서가 뒤바뀌지 않는다)
+  SELECT * FROM (
+    SELECT 'counsel'::TEXT, consultation_type, coalesce(emotion_tag, '(없음)'),
+           count(*), count(*) FILTER (WHERE stars_spent > 0), sum(stars_spent)::BIGINT, NULL::BIGINT
+    FROM r WHERE fortune_kind IS NULL
+    GROUP BY 1, 2, 3
+    ORDER BY 4 DESC
+    LIMIT p_limit
+  ) counsel_top
   UNION ALL
+  -- fortune: p_fortune_types 로 이미 유계 (상한 불필요)
   SELECT 'fortune', fortune_kind, NULL,
          count(*), count(*) FILTER (WHERE stars_spent > 0), sum(stars_spent)::BIGINT, NULL::BIGINT
   FROM r WHERE fortune_kind IS NOT NULL
   GROUP BY 1, 2, 3
   UNION ALL
-  SELECT 'package', coalesce(package_type, '(없음)'), NULL,
-         count(*), NULL::BIGINT, NULL::BIGINT, sum(coalesce(amount_won, 0))::BIGINT
-  FROM payments
-  WHERE status = 'completed' AND created_at >= p_since AND user_id <> ALL(p_exclude)
-  GROUP BY 1, 2, 3;
+  SELECT * FROM (
+    SELECT 'package'::TEXT, coalesce(package_type, '(없음)'), NULL::TEXT,
+           count(*), NULL::BIGINT, NULL::BIGINT, sum(coalesce(amount_won, 0))::BIGINT
+    FROM payments
+    WHERE status = 'completed' AND created_at >= p_since AND user_id <> ALL(p_exclude)
+    GROUP BY 1, 2, 3
+    ORDER BY 7 DESC
+    LIMIT p_limit
+  ) package_top;
 $$;
 
 -- ── 3. 연애 패스 집계 (products 화면의 인라인 passAgg 를 대체) ──
@@ -244,8 +258,11 @@ $$;
 --    포함된다. 현행 동작이므로 유지한다(users 로 INNER JOIN 하면 값이 달라진다).
 -- readings·payments 는 날짜 필터가 없다(평생) — 현행 F3·F4 와 동일.
 -- ad_spend 는 어드민 제외를 걸지 않는다(지출은 유저와 무관) — 현행 F5 와 동일.
+-- 🔴 p_limit 필수 — 반환 행수가 소재 카디널리티에 비례한다. RPC 결과도 PostgREST 를 지나므로
+--    `Max rows` cap 이 그대로 적용된다. 상한을 안 박으면 "RPC 로 바꿨는데 또 조용히 잘리는"
+--    사고가 재발한다. 상한 도달은 앱이 경고로 드러낸다(조용한 절단 금지).
 CREATE OR REPLACE FUNCTION admin_funnel(
-  p_since TIMESTAMPTZ, p_exclude UUID[], p_aliases JSONB
+  p_since TIMESTAMPTZ, p_exclude UUID[], p_aliases JSONB, p_limit INT DEFAULT 200
 )
 RETURNS TABLE (
   creative TEXT, signups BIGINT, tried BIGINT, first_paid BIGINT, repaid BIGINT,
@@ -303,7 +320,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   FROM agg a LEFT JOIN spend s ON s.creative_key = a.creative
   -- (organic) → (추적 안 됨) 순으로 맨 아래, 나머지는 가입 내림차순 (현행 rank 함수와 동일)
   ORDER BY (CASE a.creative WHEN '(추적 안 됨)' THEN 2 WHEN '(organic)' THEN 1 ELSE 0 END),
-           a.signups DESC;
+           a.signups DESC
+  LIMIT p_limit;
 $$;
 
 -- ── 5. 코호트 ──

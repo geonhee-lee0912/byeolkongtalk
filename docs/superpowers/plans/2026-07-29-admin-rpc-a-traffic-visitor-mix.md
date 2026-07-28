@@ -385,8 +385,12 @@ $$;
 -- ⚠️ Postgres 에 IGNORE NULLS 가 없어 first_value 대신 array_agg 후 첫 원소를 취한다.
 -- anon_id 없는 행은 귀속 불가 → 자기 행 값으로 PV 만 기여(count(DISTINCT anon_id) 가 NULL 을
 -- 세지 않으므로 UV 미계상이 자동으로 성립).
+-- 🔴 p_limit 이 필수다. 이 RPC 는 반환 행수가 **소재 카디널리티에 비례**하는 4개 중 하나이고,
+--    RPC 결과도 PostgREST 를 지나므로 `Max rows` cap 이 그대로 적용된다 — 상한을 안 박으면
+--    "RPC 로 바꿨는데 또 조용히 잘리는" 같은 사고가 재발한다. 기본 200 은 현실 소재 수(수십)의
+--    훨씬 위이면서 cap(1000+) 의 훨씬 아래다. 상한 도달은 앱이 경고로 드러낸다(조용한 절단 금지).
 CREATE OR REPLACE FUNCTION admin_traffic_entry(
-  p_since TIMESTAMPTZ, p_exclude UUID[], p_today DATE, p_field TEXT
+  p_since TIMESTAMPTZ, p_exclude UUID[], p_today DATE, p_field TEXT, p_limit INT DEFAULT 200
 )
 RETURNS TABLE (key TEXT, uv BIGINT, pv BIGINT, today_uv BIGINT, today_pv BIGINT)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -419,7 +423,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   GROUP BY key
   -- (직접/오가닉) 은 대개 압도적이라 맨 위에 두면 소재 행이 안 보인다 → 맨 아래로.
   -- (매크로 미치환) 은 내리지 않는다(현행과 동일).
-  ORDER BY (key = '(직접/오가닉)'), count(DISTINCT anon_id) DESC, count(*) DESC;
+  ORDER BY (key = '(직접/오가닉)'), count(DISTINCT anon_id) DESC, count(*) DESC
+  LIMIT p_limit;
 $$;
 
 -- ── 6. 봇 비율 (계측 건강성) ──
@@ -736,14 +741,17 @@ export async function GET(req: NextRequest) {
   const todayBucket = adminKstDate(new Date().toISOString());
   const supa = getServiceSupabase();
   const p_exclude = adminExclusionArray();
+  // 유입 RPC 는 반환 행수가 소재 카디널리티 비례라 상한을 명시한다. 상한에 닿으면 아래에서
+  // truncated 플래그로 드러낸다 — 조용히 잘리는 것이 2026-07-28 cap 사고의 본질이었다.
+  const ENTRY_LIMIT = 200;
 
   const [trend, mix, routes, auth, variants, contents, bot] = await Promise.all([
     supa.rpc("admin_traffic_trend", { p_since: since, p_exclude }),
     supa.rpc("admin_traffic_visitor_mix", { p_since: since, p_exclude }),
     supa.rpc("admin_traffic_routes", { p_since: since, p_exclude, p_today: todayBucket }),
     supa.rpc("admin_traffic_auth", { p_since: since, p_exclude, p_today: todayBucket }),
-    supa.rpc("admin_traffic_entry", { p_since: since, p_exclude, p_today: todayBucket, p_field: "landing_variant" }),
-    supa.rpc("admin_traffic_entry", { p_since: since, p_exclude, p_today: todayBucket, p_field: "utm_content" }),
+    supa.rpc("admin_traffic_entry", { p_since: since, p_exclude, p_today: todayBucket, p_field: "landing_variant", p_limit: ENTRY_LIMIT }),
+    supa.rpc("admin_traffic_entry", { p_since: since, p_exclude, p_today: todayBucket, p_field: "utm_content", p_limit: ENTRY_LIMIT }),
     supa.rpc("admin_traffic_bot", { p_since: since, p_exclude }),
   ]);
 
@@ -802,6 +810,10 @@ export async function GET(req: NextRequest) {
     entry: {
       variants: entryRows(variants.data),
       contents: entryRows(contents.data),
+      // 상한 도달 = 표가 전부를 보여주지 못한다는 뜻. 화면이 이걸 한 줄로 알린다.
+      truncated:
+        (variants.data ?? []).length >= ENTRY_LIMIT ||
+        (contents.data ?? []).length >= ENTRY_LIMIT,
     },
   });
 }
@@ -944,7 +956,28 @@ import type { VisitorMixPoint } from "@/lib/analytics/traffic";
       </section>
 ```
 
-- [ ] **Step 4: 타입 체크 + 화면 확인**
+- [ ] **Step 4: 유입 표 상한 도달 경고**
+
+`TrafficPage` 안에 추가한다:
+
+```tsx
+  const entryTruncated: boolean = data?.entry?.truncated ?? false;
+```
+
+그리고 기존 "유입별" 섹션의 `<p className="text-[11px] text-white/30 mt-3">` 바로 위에 넣는다:
+
+```tsx
+        {entryTruncated && (
+          <p className="text-[12px] text-amber-300/80 mt-3">
+            ⚠️ 소재 종수가 조회 상한(200)에 닿아 표가 전부를 보여주지 못한다. 상한을 올리거나
+            소재 키를 정리할 것 — 조용히 잘리지 않게 이 줄을 띄운다.
+          </p>
+        )}
+```
+
+**왜 이게 필요한가**: 2026-07-28 사고의 본질은 "잘렸다"가 아니라 **"잘린 걸 아무도 몰랐다"** 였다. 상한을 박는 것과 상한 도달을 드러내는 것은 한 쌍이다.
+
+- [ ] **Step 5: 타입 체크 + 화면 확인**
 
 Run: `npx tsc --noEmit`
 Expected: 에러 0
@@ -955,7 +988,7 @@ Expected: 에러 0
 - 표의 각 행에서 `신규 + 연속 + 복귀 = UV` (눈으로 산술 확인)
 - 기존 표 3개(라우트·로그인·유입)가 그대로 렌더
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 6: 커밋**
 
 ```bash
 git add app/admin/traffic/page.tsx
