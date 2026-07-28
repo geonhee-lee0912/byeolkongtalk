@@ -20,6 +20,7 @@
 |---|---|---|
 | `products` 의 `buildStarSpendBreakdown`(E3·E4) | 15단 우선순위 사다리 = 종류 C | 플랜 D |
 | `paywall` · `relationship` · `relationship-readings` · `ads` · `popups` | 별 화면 묶음 | 플랜 C |
+| `errors` 2화면 (종류 E) | 상한 조회 **위의** 집계 — `errors/page.tsx` 의 fingerprint count 는 최근 300건 기준이고 `errors/[key]/page.tsx` 는 `.limit()` 이 없다 | 플랜 C |
 | 부수 버그 5건 | 값이 의도적으로 달라져 대조가 깨진다 | 플랜 D |
 | `Max rows` 원복 | 나머지 화면이 아직 cap 의존 | 플랜 D 마지막 |
 
