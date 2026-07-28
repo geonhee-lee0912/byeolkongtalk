@@ -6,7 +6,7 @@
 
 import { useEffect } from "react";
 import {
-  documentDeploymentId,
+  chunkErrorDeploymentId,
   isChunkLoadError,
   tryRecoverFromChunkError,
 } from "@/lib/chunk-error";
@@ -32,7 +32,11 @@ export default function GlobalError({
         route:
           typeof window !== "undefined" ? window.location.pathname : null,
         context: chunkError
-          ? { kind: "chunk-load", dpl: documentDeploymentId(), scope: "global" }
+          ? {
+              kind: "chunk-load",
+              dpl: chunkErrorDeploymentId(error),
+              scope: "global",
+            }
           : { digest: error.digest, scope: "global" },
       }),
       keepalive: true,
