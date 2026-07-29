@@ -21,7 +21,8 @@ export function Delta({ today, yesterday, label = "어제", invert = false }: { 
   );
 }
 
-export function Stat({ label, value, paren, children }: { label: string; value: string | number; paren?: string; children?: ReactNode }) {
+// sub: 값 아래 한 줄. children(=Delta)은 값과 같은 줄이라 서브라인 자리가 없다.
+export function Stat({ label, value, paren, children, sub }: { label: string; value: string | number; paren?: string; children?: ReactNode; sub?: ReactNode }) {
   return (
     <div className="rounded-xl bg-white/5 border border-white/10 p-4">
       <div className="text-[12px] text-white/60">{label}</div>
@@ -32,6 +33,7 @@ export function Stat({ label, value, paren, children }: { label: string; value: 
         </span>
         {children}
       </div>
+      {sub && <div className="text-[12px] text-white/50 mt-1.5">{sub}</div>}
     </div>
   );
 }
