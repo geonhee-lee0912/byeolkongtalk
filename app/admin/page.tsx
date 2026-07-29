@@ -1,12 +1,13 @@
 // app/admin/page.tsx — 대시보드.
 import { getServiceSupabase } from "@/lib/supabase";
-import { adminExclusionList } from "@/lib/admin";
+import { adminExclusionList, adminExclusionArray } from "@/lib/admin";
 import { Stat, Delta } from "@/components/admin/Stat";
 import { startOfAdminTodayKstIso, adminKstDate } from "@/lib/admin-time";
 import {
-  buildTrafficTrend,
+  fillTrafficAxis,
   pickTodayYesterday,
-  type PageViewRow,
+  buildVisitorMix,
+  pickTodayVisitorMix,
 } from "@/lib/analytics/traffic";
 import {
   attributeFreeSpend,
@@ -114,23 +115,49 @@ async function loadStats() {
     relSkill: starOf(isRelSkill),
   };
 
-  // 오늘 UV/PV — page_views. /admin/traffic 과 같은 순수 함수·같은 오전 10시 롤오버를 재사용해
-  // 두 화면의 "오늘"이 어긋나지 않게 한다 (직접 세면 봇 제외·버킷 규칙이 갈라진다).
-  // ⚠️ 어드민 제외는 .not(...) 단독으로 쓰면 안 된다 — page_views 는 비로그인 행의 user_id 가
-  //    NULL 이고 `NULL NOT IN (...)` 은 NULL(=거짓)이라 비로그인 PV 가 전부 사라진다.
-  let pvQ = supa
-    .from("page_views")
-    .select("anon_id, user_id, path, landing_variant, utm_content, is_bot, created_at")
-    .gte("created_at", yesterday)
-    .limit(100000);
-  if (excl) pvQ = pvQ.or(`user_id.is.null,user_id.not.in.${excl}`);
-  const { data: pvData } = await pvQ;
-  const pvTrend = buildTrafficTrend({
-    rows: (pvData ?? []) as PageViewRow[],
-    days: 2,
-    todayBucket: adminKstDate(new Date().toISOString()),
-  });
-  const pv = pickTodayYesterday(pvTrend);
+  // 오늘 UV/PV + 방문자 구성 — /admin/traffic 과 **같은 RPC** 를 창만 좁혀(2일) 재사용한다.
+  // 이전 구현은 page_views 원본을 .limit(100000) 으로 받아 앱에서 집계했는데, Supabase
+  // `Max rows`(서버 강제 상한)가 그 limit 을 조용히 덮어써 값이 잘렸다(2026-07-28 사고).
+  // 봇 제외 · 어드민 제외(3값 논리) · 오전 10시 롤오버는 전부 RPC 안에 있다.
+  // ⚠️ p_since 는 어제 시작이지만 admin_traffic_visitor_mix 의 prev 는 **전체 테이블** 기준이라
+  //    2일 창에서도 "그제 왔던 사람"이 연속으로 정확히 잡힌다. 이게 RPC 로 옮긴 실질 이득이다 —
+  //    이전 구조로는 2일치 행만 받아 계산 자체가 불가능했다.
+  const todayBucket = adminKstDate(new Date().toISOString());
+  const p_exclude = adminExclusionArray();
+  const [trendRes, mixRes] = await Promise.all([
+    supa.rpc("admin_traffic_trend", { p_since: yesterday, p_exclude }),
+    supa.rpc("admin_traffic_visitor_mix", { p_since: yesterday, p_exclude }),
+  ]);
+  const pv = pickTodayYesterday(
+    fillTrafficAxis(
+      ((trendRes.data ?? []) as { bucket: string; uv: number; pv: number }[]).map((r) => ({
+        date: r.bucket,
+        uv: Number(r.uv),
+        pv: Number(r.pv),
+      })),
+      2,
+      todayBucket
+    )
+  );
+  const mixToday = pickTodayVisitorMix(
+    buildVisitorMix(
+      (
+        (mixRes.data ?? []) as {
+          bucket: string;
+          uv: number;
+          new_uv: number;
+          streak_uv: number;
+          back_uv: number;
+        }[]
+      ).map((r) => ({
+        date: r.bucket,
+        uv: Number(r.uv),
+        newUv: Number(r.new_uv),
+        streakUv: Number(r.streak_uv),
+        backUv: Number(r.back_uv),
+      }))
+    )
+  );
 
   // 연애 상담 KPI — 활성 패스는 현재 시점, 구매/스킬은 오늘 vs 어제
   const nowIso = new Date().toISOString();
@@ -154,7 +181,7 @@ async function loadStats() {
   };
 
   return {
-    today: { uv: pv.today.uv, pv: pv.today.pv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
+    today: { uv: pv.today.uv, pv: pv.today.pv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
     yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
     all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
     star,
@@ -188,7 +215,18 @@ export default async function AdminDashboard() {
           <Stat label="매출(원)" value={s.today.revenueWon.toLocaleString()}>
             <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />
           </Stat>
-          <Stat label="UV" value={s.today.uv.toLocaleString()}>
+          <Stat
+            label="UV"
+            value={s.today.uv.toLocaleString()}
+            sub={
+              s.today.uv > 0 ? (
+                <>
+                  신규 {s.today.newUv.toLocaleString()} · 재방문{" "}
+                  {s.today.returningUv.toLocaleString()}
+                </>
+              ) : undefined
+            }
+          >
             <Delta today={s.today.uv} yesterday={s.yesterday.uv} />
           </Stat>
           <Stat label="PV" value={s.today.pv.toLocaleString()}>
