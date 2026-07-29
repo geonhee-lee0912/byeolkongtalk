@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { LineChart } from "@/components/admin/LineChart";
 import { Stat, Delta } from "@/components/admin/Stat";
 import { routeLabel } from "@/lib/analytics/route-labels";
-import { pickTodayYesterday } from "@/lib/analytics/traffic";
+import { pickTodayYesterday, pickTodayVisitorMix } from "@/lib/analytics/traffic";
 import type {
   TrafficPoint,
   BotShare,
@@ -13,6 +13,7 @@ import type {
   AuthSplitRow,
   EntryRow,
   WithToday,
+  VisitorMixPoint,
 } from "@/lib/analytics/traffic";
 
 export const dynamic = "force-dynamic";
@@ -39,10 +40,15 @@ export default async function TrafficPage() {
   const bot: BotShare = data?.bot ?? { totalPv: 0, botPv: 0, botPct: 0 };
   const routes: WithToday<RouteRow>[] = data?.routes ?? [];
   const auth: WithToday<AuthSplitRow>[] = data?.auth ?? [];
-  const variants: WithToday<EntryRow>[] = data?.entry?.variants ?? [];
-  const contents: WithToday<EntryRow>[] = data?.entry?.contents ?? [];
+  const variants: EntryRow[] = data?.entry?.variants ?? [];
+  const contents: EntryRow[] = data?.entry?.contents ?? [];
+  const entryTruncated: boolean = data?.entry?.truncated ?? false;
+  // 라우트에서 이미 buildVisitorMix 를 거쳐 returningPct 가 붙어 온다 — 여기서 다시 부르지 않는다.
+  const visitorMix: VisitorMixPoint[] = data?.visitorMix ?? [];
   // 추세 마지막 두 점이 오늘·어제 버킷 (빈 데이터면 둘 다 0 → Delta 가 "어제 0")
   const { today, yesterday } = pickTodayYesterday(trend);
+  // 오늘 카드 서브라인 — 방문자 구성의 마지막 점이 오늘 버킷.
+  const mixToday = pickTodayVisitorMix(visitorMix);
 
   return (
     <div className="space-y-10">
@@ -69,7 +75,19 @@ export default async function TrafficPage() {
           오늘 <span className="text-white/35">(오전 10시 기준 · 어제 대비)</span>
         </h2>
         <div className="grid grid-cols-2 gap-3 md:max-w-lg">
-          <Stat label="오늘 UV" value={today.uv.toLocaleString()}>
+          <Stat
+            label="오늘 UV"
+            value={today.uv.toLocaleString()}
+            sub={
+              mixToday.uv > 0 ? (
+                <>
+                  신규 {mixToday.newUv.toLocaleString()} · 연속{" "}
+                  {mixToday.streakUv.toLocaleString()} · 복귀{" "}
+                  {mixToday.backUv.toLocaleString()} · 재방문 {mixToday.returningPct}%
+                </>
+              ) : undefined
+            }
+          >
             <Delta today={today.uv} yesterday={yesterday.uv} />
           </Stat>
           <Stat label="오늘 PV" value={today.pv.toLocaleString()}>
@@ -87,6 +105,68 @@ export default async function TrafficPage() {
             { label: "PV", color: "#B8A8D8", values: trend.map((p) => p.pv) },
           ]}
         />
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          방문자 구성{" "}
+          <span className="text-white/40 text-xs">
+            (신규 = 기록상 첫 방문 · 연속 = 어제도 왔고 오늘도 · 복귀 = 며칠 만에 돌아옴 · 셋의 합 =
+            그날 UV)
+          </span>
+        </h2>
+        <LineChart
+          labels={visitorMix.map((p) => p.date)}
+          series={[
+            { label: "신규", color: "#E8C26A", values: visitorMix.map((p) => p.newUv) },
+            { label: "연속", color: "#6EE7B7", values: visitorMix.map((p) => p.streakUv) },
+            { label: "복귀", color: "#B8A8D8", values: visitorMix.map((p) => p.backUv) },
+          ]}
+        />
+        <div className="overflow-x-auto mt-4">
+          <table className="w-full text-[13px] md:max-w-2xl">
+            <thead className="text-white/50 text-left">
+              <tr>
+                <th className="py-1">날짜</th>
+                <th>UV</th>
+                <th>신규</th>
+                <th>연속</th>
+                <th>복귀</th>
+                <th className="border-l border-white/15 pl-2 text-white/70">재방문율</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* 최신순 — 순위표가 아니라 날짜표라 최신이 위가 맞다 */}
+              {[...visitorMix]
+                .reverse()
+                .slice(0, 14)
+                .map((p) => (
+                  <tr key={p.date} className="border-t border-white/10">
+                    <td className="py-1.5 tabular-nums">{p.date.slice(5)}</td>
+                    <td className="tabular-nums">{p.uv.toLocaleString()}</td>
+                    <td className="tabular-nums">{p.newUv.toLocaleString()}</td>
+                    <td className="tabular-nums">{p.streakUv.toLocaleString()}</td>
+                    <td className="tabular-nums">{p.backUv.toLocaleString()}</td>
+                    <td className="border-l border-white/15 pl-2 tabular-nums">
+                      {p.returningPct}%
+                    </td>
+                  </tr>
+                ))}
+              {visitorMix.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-2 text-white/30">
+                    데이터 없음
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-white/30 mt-2">
+          차트는 최근 {days}일 전체, 표는 최근 14일. · 2026-07-25 이전 방문 기록이 없어(비콘 배포일)
+          수집 초기 며칠은 신규가 과대 집계된다. · 쿠키 삭제 · 시크릿창 · 기기 변경은 재방문을 신규로
+          세므로 재방문은 과소 추정이다.
+        </p>
       </section>
 
       <section>
@@ -194,6 +274,12 @@ export default async function TrafficPage() {
           <EntryTable title="랜딩 variant (?v=)" rows={variants} />
           <EntryTable title="광고 소재 (utm_content)" rows={contents} />
         </div>
+        {entryTruncated && (
+          <p className="text-[12px] text-amber-300/80 mt-3">
+            ⚠️ 소재 종수가 조회 상한(200)에 닿아 표가 전부를 보여주지 못한다. 상한을 올리거나 소재
+            키를 정리할 것 — 조용히 잘리지 않게 이 줄을 띄운다.
+          </p>
+        )}
         <p className="text-[11px] text-white/30 mt-3">
           <span className="text-white/45">(매크로 미치환)</span> = Meta 가{" "}
           <span className="font-mono">{"{{ad.name}}"}</span> 을 실제 소재명으로 바꾸지 않은 채 도착한
@@ -206,7 +292,11 @@ export default async function TrafficPage() {
   );
 }
 
-function EntryTable({ title, rows }: { title: string; rows: WithToday<EntryRow>[] }) {
+// "오늘" 열이 없다 — 30일 first-touch 를 그대로 쓸지(오늘 움직인 사람의 출신) 오늘 행만으로
+// 다시 귀속할지(오늘 광고 타고 온 사람)에 따라 값이 갈리는데, 후자는 광고 유입자가 오가닉으로
+// 재방문할수록 (직접/오가닉)을 부풀려 "오가닉이 늘었다"로 오독된다. 애매한 지표를 남기는 대신
+// 열을 뺐다(2026-07-29). 일일 광고 유입은 /admin/ads 와 Meta 광고관리자가 본다.
+function EntryTable({ title, rows }: { title: string; rows: EntryRow[] }) {
   return (
     <div>
       <h3 className="text-sm text-white/70 mb-2">{title}</h3>
@@ -217,8 +307,6 @@ function EntryTable({ title, rows }: { title: string; rows: WithToday<EntryRow>[
               <th className="py-1">유입</th>
               <th>UV</th>
               <th>PV</th>
-              <th className="border-l border-white/15 pl-2 text-white/60">오늘 UV</th>
-              <th className="text-white/60">오늘 PV</th>
             </tr>
           </thead>
           <tbody>
@@ -227,13 +315,11 @@ function EntryTable({ title, rows }: { title: string; rows: WithToday<EntryRow>[
                 <td className="py-1">{r.key}</td>
                 <td>{r.uv.toLocaleString()}</td>
                 <td>{r.pv.toLocaleString()}</td>
-                <td className="border-l border-white/15 pl-2">{r.todayUv.toLocaleString()}</td>
-                <td>{r.todayPv.toLocaleString()}</td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-2 text-white/30">
+                <td colSpan={3} className="py-2 text-white/30">
                   데이터 없음
                 </td>
               </tr>
