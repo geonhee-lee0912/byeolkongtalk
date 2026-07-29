@@ -214,8 +214,21 @@
 했는데, Supabase 의 `ALTER DEFAULT PRIVILEGES` 가 public 스키마 신규 함수에 **anon·authenticated
 직접 grant** 를 붙인다 — 직접 grant 는 PUBLIC revoke 로 안 지워진다.
 
-세 함수 모두 호출자 신원 검사가 없다(`p_user_id` 를 호출자가 넘긴다) → **결제 없이 별 충전이 가능**했다.
-`p_payment_id` 는 `payments` 대조 없는 순수 멱등키라 아무 문자열이 통한다.
+세 함수 모두 호출자 신원 검사가 없다(`p_user_id` 를 호출자가 넘긴다). `p_payment_id` 는 `payments`
+대조 없는 순수 멱등키라 아무 문자열이 통한다. **anon 키를 쥔 사람이면 결제 없이 별을 충전할 수 있는
+구성이었다.**
+
+> ⚠️ **심각도 정정 (2026-07-29, 사후 조사)**: 최초 보고에서 "결제 없이 별 충전 가능"이라고만 썼는데,
+> **실제 외부 악용 가능성은 그보다 낮았다.** 악용에는 prod anon 키가 필요한데:
+> - prod 클라이언트 번들에 **없다**(홈 HTML + 청크 전수 확인). `getSupabase()` 가 죽은 코드라 트리셰이킹됐다
+> - **레포가 PUBLIC 인데도** 커밋 이력에 JWT 가 **한 번도 없다**(`.env*` gitignore)
+> - `getSupabase()` 가 클라이언트 컴포넌트에서 쓰인 이력도 **없다** → 과거 번들에도 실린 적 없음
+> - prod 프로젝트 ref 는 노출된다(팝업 이미지 URL 이 `/api/popups` 로 로그인 유저에게 나감). 다만
+>   ref 만으로는 anon JWT 를 만들 수 없다
+>
+> **그래도 고친 건 옳다.** anon 키는 *설계상 공개되는 값*이고 Supabase 보안 모델은 "키는 알려진다,
+> 권한과 RLS 가 통제한다"를 전제한다. 키가 안 퍼진 건 통제가 아니라 **죽은 코드의 부산물**이었고,
+> `getSupabase()` 를 누가 한 번만 호출하면 그날로 공개된다. 즉 **노출 직전 상태**였지 안전이 아니었다.
 
 **픽스**: `20260729010000_revoke_rpc_execute_from_anon.sql` — 10개 함수 전부
 `REVOKE … FROM PUBLIC, anon, authenticated`. prod 적용 확인(`proacl` = `{postgres=X, service_role=X}`),
