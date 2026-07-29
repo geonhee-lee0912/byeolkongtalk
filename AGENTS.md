@@ -102,6 +102,8 @@ docs/superpowers/{specs,plans}/
 - Tailwind v4 기본(`@theme` 토큰 확장). 복잡 애니메이션만 `globals.css`
 - Next 16 의 `cookies()` 는 async → **`await getSession()` 필수**
 - **별 잔액은 트랜잭션 필수** — 항상 `lib/stars` 래퍼 경유. `spend_stars`/`charge_stars` RPC 직접 호출 금지(service_role 만 EXECUTE). `charge_stars` 는 같은 `payment_id` 재호출 시 멱등, `spend_stars` 는 `SELECT FOR UPDATE` 로 동시 차감 직렬화
+- 🔴 **새 `SECURITY DEFINER` RPC 는 `REVOKE … FROM PUBLIC, anon, authenticated` 를 반드시 셋 다 쓴다.** `FROM PUBLIC` 만으로는 **안 막힌다** — Supabase 의 `ALTER DEFAULT PRIVILEGES` 가 public 스키마 신규 함수에 `anon`·`authenticated` **직접 grant** 를 붙이고, 직접 grant 는 PUBLIC revoke 로 지워지지 않는다. 2026-07-29 사고: 별·결제 RPC 3개가 공개 anon 키로 실행 가능한 상태였다(결제 없이 별 충전 가능). 픽스 = `20260729010000_revoke_rpc_execute_from_anon.sql`
+  - **검증은 함수별 정확한 인자로** — PostgREST 는 인자 모양이 안 맞아도 404 를 주므로 "404 니까 막혔다"가 오판이 된다. 회수가 먹었으면 **401**. 한 줄 감사: `select proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proacl::text like '%anon=X%'` → **0행이어야 한다**
 - 사주 계산은 `lib/saju/calc.ts` 의 `calcSaju(input)` 만. manseryeok 직접 호출 금지(wrapper 가 정규화+JSONB 직렬화 책임). 시간 모름 = `hour: null` → 자정 계산 + `hourKnown:false` 마킹
 - chat 라우트는 **서버가 권위** — 소유권 검증 + `messages` 테이블에서 누적 turn/chars 직접 계산. 클라가 보낸 history 는 Claude 입력용으로만
 - 단정적 예언 톤 금지(페르소나 화법 원칙)

@@ -125,6 +125,77 @@
 
 ---
 
-## 전환 후 대조 결과
+## 전환 후 대조 결과 (2026-07-29, prod 배포 직후)
 
-> 플랜 A Task 9 Step 6 에서 채운다. (정답지를 **그 시점에 재실행**해서 비교 — 창이 밀리면 값이 변한다)
+`/admin` 화면 대신 **배포된 prod 함수 본문 ↔ 정답지 기준 SQL 을 한 쿼리(같은 스냅샷) 안에서 diff** 했다.
+화면 판독으로 대조하지 않은 이유: `scripts/run-prod-query.mjs` 는 `supabase_read_only_user` 로 도는데
+이번 마이그레이션이 RPC EXECUTE 를 `service_role` 로 좁혀 그 롤로는 함수를 **호출할 수 없다**(권한이
+실제로 걸렸다는 증거이기도 하다). 그래서 두 갈래로 나눠 증명했다.
+
+**① 배포된 함수 = 검증한 함수** — `md5(prosrc)` 가 prod·dev 7개 전부 동일:
+
+| 함수 | src md5 |
+|---|---|
+| `admin_normalize_entry` | `84b0fe16…` |
+| `admin_traffic_auth` | `679b5865…` |
+| `admin_traffic_bot` | `b80628d3…` |
+| `admin_traffic_entry` | `94802838…` |
+| `admin_traffic_routes` | `0540b76d…` |
+| `admin_traffic_trend` | `c02931a2…` |
+| `admin_traffic_visitor_mix` | `e2b9dc09…` |
+
+**② 그 함수 로직 = 정답지** — prod 실데이터, 한 스냅샷 diff:
+
+| 대조 항목 | 불일치 |
+|---|---|
+| `trend` (일별 UV/PV) | **0** |
+| `visitor_mix` (신규/연속/복귀) | **0** |
+| `routes` (상위 20, 순서 포함) | **0** |
+| `auth` (guest/member) | **0** |
+| `bot` (봇 포함 분모) | **0** |
+| 3분할 합 = UV | **위반 0** |
+
+대조 시점 스냅샷 (오늘 버킷 `2026-07-29`, 진행 중):
+
+| 버킷 | PV | UV | 신규 | 연속 | 복귀 | 재방문율 |
+|---|---|---|---|---|---|---|
+| 07-25 | 488 | 65 | 65 | 0 | 0 | 0.0% |
+| 07-26 | 611 | 79 | 76 | 3 | 0 | 3.8% |
+| 07-27 | 809 | 57 | 52 | 3 | 2 | 8.8% |
+| 07-28 | 426 | 49 | 43 | 6 | 0 | 12.2% |
+| 07-29 * | 87 | 9 | 5 | 4 | 0 | 44.4% * |
+
+`*` 진행 중 버킷 — 추세 판단에 쓰지 말 것.
+
+**앱 레이어**는 로컬 dev 서버 + dev DB 로 실렌더 검증했다(임시 어드민 쿠키, 검증 후 원복):
+방문자 구성 섹션 렌더 · 전 행 `신규+연속+복귀=UV` · `/admin` UV 와 `/admin/traffic` 오늘 UV 동일 ·
+유입표 3열(오늘 열 제거) · `(직접/오가닉)` 맨 아래 · 콘솔 에러 0 · 가로 오버플로 없음.
+`.from("page_views")` 가 두 파일에서 소멸. 테스트 219/219, `tsc` 클린. 배포 후 3시간 `error_logs` 0건.
+
+🙋 **남은 사람 손 1건**: prod `/admin/traffic` · `/admin` 을 실제로 열어 눈으로 확인
+(에이전트는 카카오 OAuth 를 통과할 수 없다). 위 표의 07-28 행 `49 / 43 / 6 / 0 / 12.2%` 가
+어드민 제외분만큼 조금 작게 보이면 정상이다.
+
+---
+
+## 🔴 이 작업 중 발견한 별건 사고 — RPC 가 공개 anon 키로 실행 가능했다
+
+**`REVOKE 를 썼다 != 먹었다`.** prod 의 `charge_stars`·`spend_stars`·`purchase_relationship_pass` 가
+`SECURITY DEFINER`(RLS 우회) + `anon=X` 상태였다. 기존 마이그레이션은 `REVOKE … FROM PUBLIC` 만
+했는데, Supabase 의 `ALTER DEFAULT PRIVILEGES` 가 public 스키마 신규 함수에 **anon·authenticated
+직접 grant** 를 붙인다 — 직접 grant 는 PUBLIC revoke 로 안 지워진다.
+
+세 함수 모두 호출자 신원 검사가 없다(`p_user_id` 를 호출자가 넘긴다) → **결제 없이 별 충전이 가능**했다.
+`p_payment_id` 는 `payments` 대조 없는 순수 멱등키라 아무 문자열이 통한다.
+
+**픽스**: `20260729010000_revoke_rpc_execute_from_anon.sql` — 10개 함수 전부
+`REVOKE … FROM PUBLIC, anon, authenticated`. prod 적용 확인(`proacl` = `{postgres=X, service_role=X}`),
+anon HTTP 호출 401, service_role 200, 변경 흔적 0.
+
+⚠️ **검증 함정**: PostgREST 는 인자 모양이 안 맞아도 **404** 를 준다(권한 거부와 구분 불가).
+플랜 원문의 "404 면 안전" 판정법으로는 이 사고를 **못 잡는다** — 실제로 인자를 잘못 맞춰
+3개가 404 로 나와 하마터면 안전으로 오판할 뻔했다. **함수별 정확한 인자로 호출할 것.**
+회수 후에는 401 이 돌아오므로 그때는 구분이 명확하다.
+
+**테이블은 무사**했다 — 22개 전부 RLS ON + 정책 0개 = deny-all(anon SELECT 실측 `[]`).
+그래서 `SECURITY DEFINER` RPC 가 유일한 통로였고, 그게 열려 있었다.
