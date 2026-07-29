@@ -34,6 +34,17 @@ export function adminExclusionList(): string | null {
 }
 
 /**
+ * 어드민 제외 목록을 uuid 배열로. RPC 인자용(`p_exclude uuid[]`).
+ *
+ * adminExclusionList() 는 PostgREST in-리스트 문자열을 만들지만 RPC 는 배열이 필요하다.
+ * 빈 배열이면 SQL 쪽 `user_id <> all('{}')` 가 true 로 자연 동작하므로 호출부의 null 분기가
+ * 사라진다 (문자열 버전은 빈 목록에서 null 을 반환해 `if (excl)` 분기가 필요했다).
+ */
+export function adminExclusionArray(): string[] {
+  return [...ADMIN_IDS];
+}
+
+/**
  * 1차 화이트리스트 + 2차 HMAC 토큰 둘 다 검증. 둘 다 통과 못 하면 throw.
  */
 export async function assertAdmin(
