@@ -9,6 +9,10 @@ import {
   buildEntrySources,
   filterByBucket,
   mergeToday,
+  buildVisitorMix,
+  pickTodayVisitorMix,
+  fillTrafficAxis,
+  withPvPerUv,
   DIRECT,
   UNRESOLVED_MACRO,
   type PageViewRow,
@@ -298,4 +302,77 @@ test("mergeToday — 로그인 전/후 세그먼트에도 같은 헬퍼가 쓰�
   assert.equal(merged.length, 2);
   assert.equal(merged.find((r) => r.segment === "member")!.pv, 1);
   assert.equal(merged.find((r) => r.segment === "member")!.todayPv, 0);
+});
+
+// ── 방문자 구성 (RPC 결과의 표시 파생값) ──────────────────────────────────────
+
+test("buildVisitorMix — 재방문율은 (연속+복귀)/UV, 소수 1자리", () => {
+  const out = buildVisitorMix([
+    { date: "2026-07-28", uv: 49, newUv: 43, streakUv: 6, backUv: 0 },
+  ]);
+  assert.equal(out[0].returningUv, 6);
+  assert.equal(out[0].returningPct, 12.2);
+});
+
+test("buildVisitorMix — 3분할 합이 UV 와 같다는 SQL 계약을 문서화한다", () => {
+  // prod 실측값(2026-07-27 버킷). SQL 이 배타적·완전을 보장하므로 앱은 합을 재계산하지 않는다.
+  const r = { date: "2026-07-27", uv: 57, newUv: 52, streakUv: 3, backUv: 2 };
+  assert.equal(r.newUv + r.streakUv + r.backUv, r.uv);
+  assert.equal(buildVisitorMix([r])[0].returningPct, 8.8);
+});
+
+test("buildVisitorMix — UV 0 이면 재방문율 0 (0 나누기 없음)", () => {
+  const out = buildVisitorMix([
+    { date: "2026-07-25", uv: 0, newUv: 0, streakUv: 0, backUv: 0 },
+  ]);
+  assert.equal(out[0].returningPct, 0);
+});
+
+test("buildVisitorMix — 빈 배열은 빈 배열 (throw 없음)", () => {
+  assert.deepEqual(buildVisitorMix([]), []);
+});
+
+test("pickTodayVisitorMix — 마지막(최신) 점을 고른다", () => {
+  const mix = buildVisitorMix([
+    { date: "2026-07-27", uv: 57, newUv: 52, streakUv: 3, backUv: 2 },
+    { date: "2026-07-28", uv: 49, newUv: 43, streakUv: 6, backUv: 0 },
+  ]);
+  assert.equal(pickTodayVisitorMix(mix).date, "2026-07-28");
+});
+
+test("pickTodayVisitorMix — 빈 배열이어도 0 인 점을 준다 (화면이 깨지지 않게)", () => {
+  const t = pickTodayVisitorMix([]);
+  assert.equal(t.uv, 0);
+  assert.equal(t.newUv, 0);
+  assert.equal(t.returningPct, 0);
+});
+
+// ── RPC 행 → 화면용 변환 ──────────────────────────────────────────────────────
+
+test("fillTrafficAxis — 수집이 없던 날도 0 으로 축에 남는다", () => {
+  const out = fillTrafficAxis([{ date: "2026-07-28", uv: 49, pv: 426 }], 3, "2026-07-28");
+  assert.deepEqual(out.map((p) => p.date), ["2026-07-26", "2026-07-27", "2026-07-28"]);
+  assert.deepEqual(out.map((p) => p.pv), [0, 0, 426]);
+});
+
+test("fillTrafficAxis — 축 밖(조회 경계 걸침) 날짜는 버린다", () => {
+  const out = fillTrafficAxis(
+    [
+      { date: "2026-07-20", uv: 9, pv: 9 },
+      { date: "2026-07-28", uv: 49, pv: 426 },
+    ],
+    2,
+    "2026-07-28"
+  );
+  assert.equal(out.length, 2);
+  assert.equal(out.find((p) => p.date === "2026-07-20"), undefined);
+});
+
+test("withPvPerUv — PV/UV 는 소수 1자리, UV 0 이면 0", () => {
+  const out = withPvPerUv([
+    { path: "/", uv: 110, pv: 272, todayUv: 3, todayPv: 7 },
+    { path: "/x", uv: 0, pv: 3, todayUv: 0, todayPv: 3 },
+  ]);
+  assert.equal(out[0].pvPerUv, 2.5);
+  assert.equal(out[1].pvPerUv, 0);
 });

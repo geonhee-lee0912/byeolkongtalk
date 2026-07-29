@@ -237,3 +237,83 @@ export function mergeToday<T extends { uv: number; pv: number }>(
     return { ...r, todayUv: t?.uv ?? 0, todayPv: t?.pv ?? 0 };
   });
 }
+
+// ── 6. 방문자 구성 (신규 / 연속 / 복귀) ──────────────────────────────────────
+//
+// 집계는 SQL(admin_traffic_visitor_mix)이 한다. 방문자의 "직전 방문 버킷"을 알아야 하고 그건
+// 조회창 밖까지 봐야 나오므로, 원본 행을 앱으로 받는 방식으로는 계산 자체가 불가능하다.
+// 여기 있는 건 SQL 결과에 표시용 파생값을 붙이는 순수 함수뿐이다.
+//
+// 정의 (SQL 이 보장): 신규 = 직전 방문 없음 / 연속 = 직전 방문이 어제 버킷 / 복귀 = 그보다 전.
+// 배타적·완전하므로 세 값의 합은 그 버킷 UV 와 같다.
+
+export type VisitorMixRow = {
+  date: string; // 'YYYY-MM-DD' (오전 10시 롤오버 버킷)
+  uv: number;
+  newUv: number;
+  streakUv: number;
+  backUv: number;
+};
+
+export type VisitorMixPoint = VisitorMixRow & {
+  returningUv: number;
+  /** (연속+복귀)/UV, 소수 1자리. 유입 규모에 중립적이라 "리텐션이 생겼나"의 판독 지표다. */
+  returningPct: number;
+};
+
+export function buildVisitorMix(rows: VisitorMixRow[]): VisitorMixPoint[] {
+  return rows.map((r) => {
+    const returningUv = r.streakUv + r.backUv;
+    return { ...r, returningUv, returningPct: pct1(returningUv, r.uv) };
+  });
+}
+
+/**
+ * 추세의 마지막 점 = 오늘 버킷. 상단 카드 서브라인용.
+ * 빈 배열에서도 0 인 점을 반환한다 (수집 초기·조회 실패에 화면이 깨지지 않게).
+ */
+export function pickTodayVisitorMix(mix: VisitorMixPoint[]): VisitorMixPoint {
+  return (
+    mix[mix.length - 1] ?? {
+      date: "",
+      uv: 0,
+      newUv: 0,
+      streakUv: 0,
+      backUv: 0,
+      returningUv: 0,
+      returningPct: 0,
+    }
+  );
+}
+
+// ── 7. RPC 행 → 화면용 변환 ─────────────────────────────────────────────────
+//
+// RPC 는 데이터가 있는 날만 반환한다. 날짜 축을 앱에서 채우는 이유는 buildTrafficTrend 와 같다 —
+// 수집이 끊긴 날이 행 자체로 사라지면 그래프가 거짓말을 한다.
+
+/** RPC 의 일별 행에 날짜 축을 채운다(없는 날 0). 축 밖 날짜는 버린다. */
+export function fillTrafficAxis(
+  rows: TrafficPoint[],
+  days: number,
+  todayBucket: string
+): TrafficPoint[] {
+  const byDate = new Map(rows.map((r) => [r.date, r]));
+  const base = new Date(`${todayBucket}T00:00:00Z`);
+  const out: TrafficPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
+    const hit = byDate.get(d);
+    out.push({ date: d, uv: hit?.uv ?? 0, pv: hit?.pv ?? 0 });
+  }
+  return out;
+}
+
+/** 라우트 행에 PV/UV(재방문 강도)를 붙인다. SQL 로 내리지 않는 이유: 순수 표시 파생값이다. */
+export function withPvPerUv<T extends { uv: number; pv: number }>(
+  rows: T[]
+): (T & { pvPerUv: number })[] {
+  return rows.map((r) => ({
+    ...r,
+    pvPerUv: r.uv ? Math.round((r.pv / r.uv) * 10) / 10 : 0,
+  }));
+}
