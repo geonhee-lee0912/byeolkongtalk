@@ -98,11 +98,96 @@ funnel as (
            where m.reading_id = c.id and m.role = 'assistant' and m.content like '%[END]%'
          )) as viewed
   from consult c
+),
+
+-- ══════════ 플랜 B 지표 (/admin/analytics 4라우트) ══════════
+-- 🆕 2026-07-31 추가. 이 라우트들도 KST 자정이라 위 traffic 지표와 **같은 기준**이다
+--    (2026-07-29 플랜 B 초안은 "traffic 은 10시라 다르다"고 적었지만 통일로 그 주의가 소멸했다).
+-- ⚠️ 이 테이블들은 user_id 가 NOT NULL 이라 page_views 의 3값 논리 문제가 없다.
+--    정답지는 어드민 제외 미적용 유지 → p_exclude = '{}' 로 호출한 RPC 와 대조된다.
+
+-- ── 7. analytics 트렌드 (가입 · 리딩 · 매출) ──
+atrend as (
+  select bucket, sum(nu) as new_users, sum(rd) as readings, sum(rev) as revenue_won
+  from (
+    select ((created_at at time zone 'UTC' + interval '9 hours')::date) as bucket, 1 as nu, 0 as rd, 0 as rev
+      from users where created_at >= (now() - interval '30 days')
+    union all
+    select ((created_at at time zone 'UTC' + interval '9 hours')::date), 0, 1, 0
+      from readings where created_at >= (now() - interval '30 days')
+    union all
+    select ((created_at at time zone 'UTC' + interval '9 hours')::date), 0, 0, coalesce(amount_won, 0)
+      from payments where status = 'completed' and created_at >= (now() - interval '30 days')
+  ) t group by 1
+),
+
+-- ── 8. 상품 분해 — 상담(사주/타로) ──
+-- 🔴 운세 판정은 `like 'fortune:%'` 만으로 하면 안 된다 — 앱의 fortuneTypeFromTag 는 접미사가
+--    **FORTUNE_CONFIG 의 유효 키일 때만** 운세로 본다. 'fortune:오타' 는 앱이 상담으로 분류한다.
+--    단순 prefix 필터를 쓰면 SQL 이 그걸 운세로 빼내 조용히 어긋난다 → 유효 키 검사까지 재현한다.
+-- ⚠️ 유효 키 배열은 인라인이다. CTE 로 빼서 `= any((select keys from …))` 로 쓰면 Postgres 가
+--    ANY(subquery) 형태로 파싱해 `text = text[]` 로 죽는다(배열 형태 ANY 가 아니게 된다).
+areadings as (
+  select r.consultation_type, r.emotion_tag, coalesce(r.stars_spent,0) as stars_spent,
+         case when r.emotion_tag like 'fortune:%'
+               and substring(r.emotion_tag from 9) = any(array[
+                   'daily','monthly','saju_full','tarot_daily','tarot_love','tarot_money',
+                   'tarot_career','tarot_relation','compat','compat_social','good_days'])
+              then substring(r.emotion_tag from 9) end as fortune_kind
+  from readings r
+  where r.created_at >= (now() - interval '30 days')
+    and r.consultation_type <> 'relationship'
+),
+acounsel as (
+  select consultation_type, coalesce(emotion_tag, '(없음)') as emotion_tag,
+         count(*) as cnt, count(*) filter (where stars_spent > 0) as paid_cnt,
+         sum(stars_spent) as stars
+  from areadings where fortune_kind is null
+  group by 1,2
+),
+afortune as (
+  select fortune_kind, count(*) as cnt,
+         count(*) filter (where stars_spent > 0) as paid_cnt, sum(stars_spent) as stars
+  from areadings where fortune_kind is not null group by 1
+),
+-- 진단: 'fortune:' 인데 유효 키가 아닌 태그 (있으면 위 두 갈래 분류의 경계 사례)
+afortune_invalid as (
+  select emotion_tag, count(*) as cnt
+  from areadings
+  where emotion_tag like 'fortune:%' and fortune_kind is null
+  group by 1
+),
+
+-- ── 9. 코호트 크기 (KST 월요일 = date_trunc('week')) ──
+acohort as (
+  select date_trunc('week', created_at at time zone 'UTC' + interval '9 hours')::date as week_start,
+         count(*) as cohort_size
+  from users where created_at >= (now() - interval '84 days')
+  group by 1
+),
+
+-- ── 10. 퍼널 (소재별 가입) — 별칭 병합 미적용 상태의 원본 키 ──
+-- RPC 는 admin_canonical_creative 로 별칭을 병합하므로 '새 판매 광고 - 사본' 행이 'tarot' 로
+-- 합쳐지는 차이만 나야 한다. 그 외 차이는 버그다.
+afunnel as (
+  select coalesce(nullif(a.utm_content, ''), '(organic)') as creative,
+         count(distinct a.user_id) as signups
+  from user_acquisition a
+  where a.created_at >= (now() - interval '30 days')
+  group by 1
 )
+
 select 'meta' as metric, to_jsonb(array_agg(x)) as value from meta x
 union all select 'trend',  to_jsonb(array_agg(t)) from (select * from trend order by bucket) t
 union all select 'visitor_mix', to_jsonb(array_agg(m)) from (select * from mix order by bucket) m
 union all select 'bot',         to_jsonb(array_agg(b)) from bot b
 union all select 'routes',      to_jsonb(array_agg(r)) from routes r
 union all select 'auth',        to_jsonb(array_agg(a)) from (select * from auth order by segment) a
-union all select 'consult_funnel', to_jsonb(array_agg(f)) from funnel f;
+union all select 'consult_funnel', to_jsonb(array_agg(f)) from funnel f
+-- ── 플랜 B 지표 ──
+union all select 'analytics_trend',  to_jsonb(array_agg(t)) from (select * from atrend order by bucket) t
+union all select 'product_counsel',  to_jsonb(array_agg(c)) from (select * from acounsel order by cnt desc) c
+union all select 'product_fortune',  to_jsonb(array_agg(f)) from (select * from afortune order by cnt desc) f
+union all select 'fortune_invalid_tags (빈 배열이 정상)', to_jsonb(array_agg(i)) from afortune_invalid i
+union all select 'cohort_sizes',     to_jsonb(array_agg(h)) from (select * from acohort order by week_start desc) h
+union all select 'funnel_signups',   to_jsonb(array_agg(f)) from (select * from afunnel order by signups desc) f;
