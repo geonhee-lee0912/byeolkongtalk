@@ -58,7 +58,7 @@ export default async function TrafficPage() {
         </h1>
         {/* 계측 건강성 한 줄 — 봇 PV 가 갑자기 치솟으면 아래 숫자 해석 자체를 의심해야 한다 */}
         <p className="text-[12px] text-white/40 mt-1">
-          UV = 구별되는 방문자(anon_id) · 봇 제외 집계 · 날짜는 오전 10시 롤오버(대시보드와 동일) ·
+          UV = 구별되는 방문자(anon_id) · 봇 제외 집계 · 날짜는 <b>KST 자정</b> 기준(어드민 전 화면 동일) ·
           수집된 전체 PV {bot.totalPv.toLocaleString()}건 중 봇{" "}
           {bot.botPv.toLocaleString()}건 ({bot.botPct}%)
         </p>
@@ -72,7 +72,7 @@ export default async function TrafficPage() {
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">
-          오늘 <span className="text-white/35">(오전 10시 기준 · 어제 대비)</span>
+          오늘 <span className="text-white/35">(KST 자정 기준 · 어제 대비)</span>
         </h2>
         <div className="grid grid-cols-2 gap-3 md:max-w-lg">
           <Stat
@@ -80,8 +80,11 @@ export default async function TrafficPage() {
             value={today.uv.toLocaleString()}
             sub={
               mixToday.uv > 0 ? (
+                // 🔴 구성의 분모는 위 UV 와 다르다 — UV 는 페이지뷰 귀속, 구성은 세션 시작 귀속.
+                //    분모를 함께 적어야 "신규+연속+복귀 가 UV 와 안 맞는다"는 오독을 막는다.
                 <>
-                  신규 {mixToday.newUv.toLocaleString()} · 연속{" "}
+                  구성(세션 {mixToday.uv.toLocaleString()}) 신규{" "}
+                  {mixToday.newUv.toLocaleString()} · 연속{" "}
                   {mixToday.streakUv.toLocaleString()} · 복귀{" "}
                   {mixToday.backUv.toLocaleString()} · 재방문 {mixToday.returningPct}%
                 </>
@@ -112,7 +115,12 @@ export default async function TrafficPage() {
           방문자 구성{" "}
           <span className="text-white/40 text-xs">
             (신규 = 기록상 첫 방문 · 연속 = 어제도 왔고 오늘도 · 복귀 = 며칠 만에 돌아옴 · 셋의 합 =
-            그날 UV)
+            그날 방문자 수)
+          </span>
+          <span className="block text-white/35 text-[11px] font-normal mt-1">
+            ⚠️ 이 표의 방문자 수는 <b>세션 시작 귀속</b>(30분 공백이면 새 세션 · 세션 시작 날짜에 귀속)
+            이라 위 「일별 UV / PV」의 UV(<b>페이지뷰 귀속</b>)와 하루 1명 수준으로 다를 수 있습니다 —
+            자정을 걸친 세션을 두 날로 쪼개지 않기 위한 것으로, 둘은 같은 값이 아닙니다.
           </span>
         </h2>
         <LineChart

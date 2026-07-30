@@ -1,5 +1,6 @@
 // lib/analytics/aggregate.ts — 조회한 행을 받아 집계하는 순수 함수들.
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
+import { kstDate } from "@/lib/admin-time";
 
 export type ReadingRow = {
   user_id: string;
@@ -101,12 +102,6 @@ export function buildProductBreakdown(
 }
 
 export type TrendPoint = { date: string; newUsers: number; readings: number; revenueWon: number };
-
-/** UTC ISO → KST 날짜(YYYY-MM-DD). 날짜 버킷을 쓰는 다른 집계 모듈도 이걸 쓴다 (중복 정의 = 드리프트). */
-export function kstDate(iso: string): string {
-  const d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
-  return d.toISOString().slice(0, 10);
-}
 
 export function buildTrends(input: {
   users: { created_at: string }[];

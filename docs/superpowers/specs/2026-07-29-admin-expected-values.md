@@ -1,5 +1,13 @@
 # 어드민 집계 정답지 — RPC 전환 기대값 + 판독 스냅샷 (2026-07-29)
 
+> 🔴 **이 문서의 일별 숫자는 폐기된 기준으로 측정됐다 — 재실행해도 재현되지 않는다.**
+> 여기 표는 **오전 10시 롤오버 + 페이지뷰 귀속**이고, 2026-07-31(`20260731000000`)에 기준이
+> **KST 자정 + 방문자 구성은 세션 시작 귀속**으로 바뀌었다. 차이는 작지 않다 — 07-25 UV 는
+> 10시 기준 63, 자정 기준 27(2.3배). 재방문 실인원도 07-27 이 3명 → 1명으로 바뀐다.
+> **일별 표를 지금 값과 대조하지 말 것.** 날짜 버킷을 쓰지 않는 지표(상담 퍼널 고정점 등)만 유효하다.
+> 🔴 재방문율은 퍼센트가 아니라 **실인원**으로 읽을 것 — 분자가 1~3명이라 % 는 기준보다 표본에 흔들린다.
+> 현행 기준의 값은 `scripts/admin-expected-values.sql`·`cycle-snapshot-a-retention.sql` 재실행으로.
+>
 > **용도 2가지**: ①어드민 집계 RPC 전환(플랜 A/B)의 **검증 기대값** ②판정 사이클 스냅샷의 **판독 원본**.
 > 재생성: `SUPABASE_PAT=<값> node scripts/run-prod-query.mjs scripts/admin-expected-values.sql`
 > 설계 정본: `specs/2026-07-29-admin-aggregation-rpc-and-visitor-mix-design.md` · 실행 플랜: `plans/2026-07-29-admin-rpc-a-traffic-visitor-mix.md`

@@ -129,7 +129,9 @@ docs/superpowers/{specs,plans}/
 ## 운영 함정 (실사고 기록)
 
 - **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `middleware.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). middleware 를 건드릴 때 이 사실을 기억할 것
-- **날짜 기준이 화면마다 다르다**: 오전 10시 롤오버(`/admin`·`/admin/traffic`) vs KST 자정(`/admin/analytics`·연애 일일 턴). `lib/admin-time.ts` 주석에 표로 정리 — 섞으면 같은 "오늘"이 다른 걸 뜻한다
+- **날짜 기준 = 전부 KST 자정** (2026-07-31 통일, `20260731000000`). 이전엔 `/admin`·`/admin/traffic` 만 오전 10시 롤오버라 같은 "오늘"이 화면마다 다른 날을 뜻했다 — 실측 왜곡이 컸다(07-25 UV 10시 63 vs 자정 27 = 2.3배). 버킷의 단일 원천은 `lib/admin-time.ts` 의 `kstDate`(3함수만 존재, 계약은 `lib/admin-time.test.ts` 가 지킴) / SQL 은 `(created_at at time zone 'UTC' + interval '9 hours')::date` — **`at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다**
+  - ⚠️ **한 화면에 UV 정의가 2개다**(의도된 것): `/admin/traffic` 의 일별 추세 UV = **페이지뷰 귀속**(PV 와 짝) / 방문자 구성 UV = **세션 시작 귀속**(30분 갭, `SESSION_GAP`). 실측 차이 하루 최대 1명. 같은 값으로 기대하지 말 것
+  - ⚠️ 과거 판독 문서(`specs/2026-07-29-admin-expected-values.md`·`specs/2026-07-30-d4-snapshot-findings.md`)의 **일별 표는 10시 기준**이라 재실행하면 다른 숫자가 나온다. 🔴 재방문율은 퍼센트가 아니라 **실인원**으로 읽을 것(분자가 1~3명)
 - **`page_views` 어드민 제외 필터**: 비로그인 행은 `user_id` 가 NULL 이라 `.not("user_id","in",…)` 만 쓰면 **비로그인 PV 가 전부 사라진다**(SQL 3값 논리). `.or("user_id.is.null,user_id.not.in.…")` 로 감쌀 것
 - **Supabase `Max rows` 가 `.limit()` 을 덮어쓴다**(기본 1000): PostgREST 는 200 + `Content-Range: 0-999/*` 로 응답하고 supabase-js 는 이를 `error` 로 승격하지 않아 **조용히 잘린다**(`ORDER BY` 도 없으면 어느 1000행인지 미정의). 2026-07-28 사례 — `/admin/traffic` UV 53% 유실 · `/admin/paywall` 상담 완료율을 21% 로 표시(실제 63.7%). **cap 은 PostgREST 레이어만** 걸리므로 SQL Editor·`scripts/run-prod-query.mjs` 는 무관 = 판정 문서는 무사했다. 어드민 숫자가 의심되면 raw SQL 로 대조할 것
 - **카카오 공유**: prod 는 정상(Web 도메인 등록됨). **dev 에서만 미리보기가 빈다** — Vercel Deployment Protection(SSO) 탓에 외부 스크래퍼가 OG 이미지를 못 받는 것이지 코드 결함 아님. 진단 주의 2가지: ①로그인은 `lib/kakao.ts` 가 서버 리다이렉트라 JS SDK 무관 = **로그인 정상 ≠ 공유 정상** ②`lib/kakao-share.ts` 는 실패 시 `console.warn` + 텍스트 폴백이라 **`error_logs` 에 안 남는다**

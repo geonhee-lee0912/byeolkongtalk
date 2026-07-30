@@ -4,12 +4,18 @@
 // 집계는 전부 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은 page_views
 // 원본을 .limit(100000) 으로 받아 앱에서 집계했는데, Supabase `Max rows`(서버 강제 상한)가
 // 그 limit 을 조용히 덮어써 30일 UV/PV 가 53% 유실됐다(2026-07-28 사고).
-// 봇 제외 · 어드민 제외(3값 논리) · 오전 10시 롤오버 · first-touch 귀속 규칙은 모두 RPC 안에 있다.
+// 봇 제외 · 어드민 제외(3값 논리) · KST 자정 버킷 · first-touch 귀속 규칙은 모두 RPC 안에 있다.
+//
+// ⚠️ UV 의 정의가 두 지표에서 다르다 (의도된 것):
+//   - trend(일별 UV/PV 추세) = **페이지뷰 귀속** — PV 가 정의상 페이지뷰 수라 짝을 맞춘다
+//   - visitorMix(신규/연속/복귀) = **세션 시작 귀속** — 30분 갭으로 세션을 끊고 세션 첫 이벤트의
+//     날짜에 방문일을 귀속한다. 자정을 걸친 세션이 두 날로 쪼개지는 것을 막는 유일한 방법이다.
+//   실측 차이는 하루 최대 1명(12일 중 2칸). 두 UV 를 같은 값으로 기대하지 말 것.
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionArray } from "@/lib/admin";
-import { adminDaysAgoKstIso, adminKstDate } from "@/lib/admin-time";
+import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import {
   buildVisitorMix,
   fillTrafficAxis,
@@ -26,8 +32,8 @@ export async function GET(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
 
   const days = Math.min(365, Math.max(1, Number(req.nextUrl.searchParams.get("days") ?? 30)));
-  const since = adminDaysAgoKstIso(days - 1);
-  const todayBucket = adminKstDate(new Date().toISOString());
+  const since = daysAgoKstIso(days - 1);
+  const todayBucket = kstDate(new Date().toISOString());
   const supa = getServiceSupabase();
   const p_exclude = adminExclusionArray();
   // 유입 RPC 는 반환 행수가 소재 카디널리티 비례라 상한을 명시한다. 상한에 닿으면 아래에서

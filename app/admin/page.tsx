@@ -2,7 +2,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList, adminExclusionArray } from "@/lib/admin";
 import { Stat, Delta } from "@/components/admin/Stat";
-import { startOfAdminTodayKstIso, adminKstDate } from "@/lib/admin-time";
+import { startOfTodayKstIso, kstDate } from "@/lib/admin-time";
 import {
   fillTrafficAxis,
   pickTodayYesterday,
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 async function loadStats() {
   const supa = getServiceSupabase();
-  const today = startOfAdminTodayKstIso(); // 오전 10시 롤오버 (밤샘 유입 짤림 방지)
+  const today = startOfTodayKstIso(); // KST 자정 — 어드민 전 화면 공통 기준 (lib/admin-time.ts)
   const yesterday = new Date(Date.parse(today) - 86400000).toISOString();
   // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩 지표 오염 방지
   const excl = adminExclusionList();
@@ -118,11 +118,13 @@ async function loadStats() {
   // 오늘 UV/PV + 방문자 구성 — /admin/traffic 과 **같은 RPC** 를 창만 좁혀(2일) 재사용한다.
   // 이전 구현은 page_views 원본을 .limit(100000) 으로 받아 앱에서 집계했는데, Supabase
   // `Max rows`(서버 강제 상한)가 그 limit 을 조용히 덮어써 값이 잘렸다(2026-07-28 사고).
-  // 봇 제외 · 어드민 제외(3값 논리) · 오전 10시 롤오버는 전부 RPC 안에 있다.
+  // 봇 제외 · 어드민 제외(3값 논리) · KST 자정 버킷은 전부 RPC 안에 있다.
   // ⚠️ p_since 는 어제 시작이지만 admin_traffic_visitor_mix 의 prev 는 **전체 테이블** 기준이라
   //    2일 창에서도 "그제 왔던 사람"이 연속으로 정확히 잡힌다. 이게 RPC 로 옮긴 실질 이득이다 —
   //    이전 구조로는 2일치 행만 받아 계산 자체가 불가능했다.
-  const todayBucket = adminKstDate(new Date().toISOString());
+  // ⚠️ visitor_mix 의 UV 는 **세션 시작 귀속**이라 trend 의 UV(페이지뷰 귀속)와 하루 1명 수준으로
+  //    다를 수 있다. 두 지표를 같은 값으로 기대하지 말 것 — 자세한 근거는 RPC 주석.
+  const todayBucket = kstDate(new Date().toISOString());
   const p_exclude = adminExclusionArray();
   const [trendRes, mixRes] = await Promise.all([
     supa.rpc("admin_traffic_trend", { p_since: yesterday, p_exclude }),
@@ -181,7 +183,9 @@ async function loadStats() {
   };
 
   return {
-    today: { uv: pv.today.uv, pv: pv.today.pv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
+    // ⚠️ uv(페이지뷰 귀속)와 mixUv(세션 시작 귀속)는 분모가 다르다 — 화면에서 mixUv 를 함께
+    //    보여줘야 "신규+재방문 이 UV 와 안 맞는다"는 오독이 안 생긴다.
+    today: { uv: pv.today.uv, pv: pv.today.pv, mixUv: mixToday.uv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
     yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
     all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
     star,
@@ -201,7 +205,7 @@ export default async function AdminDashboard() {
     <div className="space-y-8">
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
-        <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(오전 10시 기준)</span></h2>
+        <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
         {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)·탈퇴는 뒤. 매일 먼저 보는 값을
             왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
             /admin/traffic 과 같은 정의 (자세한 분해는 그 화면) */}
@@ -219,9 +223,10 @@ export default async function AdminDashboard() {
             label="UV"
             value={s.today.uv.toLocaleString()}
             sub={
-              s.today.uv > 0 ? (
+              s.today.mixUv > 0 ? (
                 <>
-                  신규 {s.today.newUv.toLocaleString()} · 재방문{" "}
+                  세션 {s.today.mixUv.toLocaleString()} 중 신규{" "}
+                  {s.today.newUv.toLocaleString()} · 재방문{" "}
                   {s.today.returningUv.toLocaleString()}
                 </>
               ) : undefined
@@ -264,7 +269,7 @@ export default async function AdminDashboard() {
         </div>
       </section>
       <section>
-        <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · 오전 10시 기준)</span></h2>
+        <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · KST 자정 기준)</span></h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           {starCard("타로 대화", s.star.tarot)}
           {starCard("운세 리포트", s.star.fortune)}

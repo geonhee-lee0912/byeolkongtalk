@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionList } from "@/lib/admin";
-import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
+import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { buildTrends } from "@/lib/analytics/aggregate";
 
 export const runtime = "nodejs";
@@ -15,10 +15,7 @@ export async function GET(req: NextRequest) {
 
   const days = Math.min(365, Math.max(1, Number(req.nextUrl.searchParams.get("days") ?? 30)));
   const since = daysAgoKstIso(days - 1);
-  // startOfTodayKstIso()는 KST 오늘 0시의 UTC ISO → +9h 후 슬라이스하면 KST 날짜.
-  const todayKst = new Date(new Date(startOfTodayKstIso()).getTime() + 9 * 3600000)
-    .toISOString()
-    .slice(0, 10);
+  const todayKst = kstDate(new Date().toISOString());
   const supa = getServiceSupabase();
 
   // 어드민(운영자) 활동 제외 — 테스트 결제/리딩 지표 오염 방지

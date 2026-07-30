@@ -12,7 +12,14 @@
 --    두 값이 벌어지면 그 차이가 "운영자 비로그인 혼입"의 상한이다.
 -- ⚠️ page_views 는 비로그인 행의 user_id 가 NULL → NOT IN 단독은 3값 논리로 비로그인을 전멸시킨다.
 --    반드시 (user_id is null or ...). 화면(admin_traffic_* RPC)과 같은 규칙.
--- 버킷 = 오전 10시 롤오버, UTC 못박음: ((created_at at time zone 'UTC' + interval '9h' - interval '10h')::date)
+--
+-- 🆕 2026-07-31 기준 변경 (마이그레이션 20260731000000 과 짝):
+--    · 버킷 = **KST 자정** ((created_at at time zone 'UTC' + interval '9 hours')::date)
+--      이전엔 오전 10시 롤오버였다. 10시는 캘린더 날짜와 어긋난 이틀 걸친 창이라 distinct UV 를
+--      부풀렸다(07-25: 63 vs 자정 27). 자정은 Meta·토스·GA 와 대조된다.
+--    · 방문일 = **세션 시작 시점** 귀속 (SESSION_GAP 30분). 화면 RPC 와 같은 규칙.
+--    🔴 재방문율은 **퍼센트가 아니라 실인원**으로 읽는다. 분자가 1~3명이라 % 는 기준이 아니라
+--       표본 크기 탓에 흔들린다. 아래 revisit_uv 절대수를 먼저 볼 것.
 
 with
 ex as (select unnest(array[
@@ -21,7 +28,6 @@ ex as (select unnest(array[
 
 meta as (
   select now() as run_at,
-         ((now() at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date) as today_bucket,
          ((now() at time zone 'UTC' + interval '9 hours')::date) as today_kst,
          (((now() at time zone 'UTC')::date) - date '2026-07-26') as cycle_day
 ),
@@ -44,14 +50,14 @@ pvs as (
   select * from pv where anon_id is null or anon_id not in (select anon_id from admin_anons)
 ),
 
--- ══ 1. 일별 PV/UV — 기본 제외 vs strict 제외 ══
+-- ══ 1. 일별 PV/UV — 기본 제외 vs strict 제외 (페이지뷰 귀속: PV 와 짝을 맞춘다) ══
 trend_base as (
-  select ((created_at at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date) as bucket,
+  select ((created_at at time zone 'UTC' + interval '9 hours')::date) as bucket,
          count(*) as pv, count(distinct anon_id) as uv
   from pv group by 1
 ),
 trend_strict as (
-  select ((created_at at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date) as bucket,
+  select ((created_at at time zone 'UTC' + interval '9 hours')::date) as bucket,
          count(*) as pv_strict, count(distinct anon_id) as uv_strict
   from pvs group by 1
 ),
@@ -61,11 +67,30 @@ trend as (
   from trend_base b left join trend_strict s on s.bucket = b.bucket
 ),
 
--- ══ 2. 방문자 구성 (신규/연속/복귀) — lag 은 창 무관 전체 테이블 ══
+-- ══ 2. 방문자 구성 (신규/연속/복귀) — 세션 시작 귀속, lag 은 창 무관 전체 테이블 ══
+-- SESSION_GAP 30분 근거: 실측 세션 평균 4.2분 · p90 13.1분 (n=325, 2026-07-31).
+-- 30분은 p90 보다 넉넉히 커서 진짜 세션을 쪼개지 않는다. 바꾸려면 §7 대조표를 다시 뜰 것.
+ev as (
+  select anon_id, created_at,
+         case when lag(created_at) over w is null
+                or created_at - lag(created_at) over w > interval '30 minutes'
+              then 1 else 0 end as newsess
+  from pv where anon_id is not null
+  window w as (partition by anon_id order by created_at)
+),
+sess as (
+  select anon_id, created_at,
+         sum(newsess) over (partition by anon_id order by created_at) as sno
+  from ev
+),
+sess_span as (
+  select anon_id, sno, min(created_at) as started_at, max(created_at) as ended_at
+  from sess group by anon_id, sno
+),
 visits as (
   select distinct anon_id,
-         ((created_at at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date) as bucket
-  from pv where anon_id is not null
+         ((started_at at time zone 'UTC' + interval '9 hours')::date) as bucket
+  from sess_span
 ),
 lagged as (
   select anon_id, bucket, lag(bucket) over (partition by anon_id order by bucket) as prev from visits
@@ -75,14 +100,28 @@ mix as (
          count(*) filter (where prev is null)          as new_uv,
          count(*) filter (where prev = bucket - 1)     as streak_uv,
          count(*) filter (where prev < bucket - 1)     as back_uv,
+         count(*) filter (where prev is not null)      as revisit_uv,  -- 🔴 먼저 볼 값 (실인원)
          round(100.0 * count(*) filter (where prev is not null) / nullif(count(*),0), 1) as revisit_pct
   from lagged group by 1
 ),
 -- strict 판
+ev_s as (
+  select anon_id, created_at,
+         case when lag(created_at) over w is null
+                or created_at - lag(created_at) over w > interval '30 minutes'
+              then 1 else 0 end as newsess
+  from pvs where anon_id is not null
+  window w as (partition by anon_id order by created_at)
+),
+sess_s as (
+  select anon_id, created_at,
+         sum(newsess) over (partition by anon_id order by created_at) as sno
+  from ev_s
+),
 visits_s as (
   select distinct anon_id,
-         ((created_at at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date) as bucket
-  from pvs where anon_id is not null
+         ((min(created_at) at time zone 'UTC' + interval '9 hours')::date) as bucket
+  from sess_s group by anon_id, sno
 ),
 lagged_s as (
   select anon_id, bucket, lag(bucket) over (partition by anon_id order by bucket) as prev from visits_s
@@ -92,6 +131,7 @@ mix_s as (
          count(*) filter (where prev is null)      as new_uv,
          count(*) filter (where prev = bucket - 1) as streak_uv,
          count(*) filter (where prev < bucket - 1) as back_uv,
+         count(*) filter (where prev is not null)  as revisit_uv,
          round(100.0 * count(*) filter (where prev is not null) / nullif(count(*),0), 1) as revisit_pct
   from lagged_s group by 1
 ),
@@ -123,9 +163,9 @@ by_source as (
          count(*) filter (where visit_days >= 2) as revisited,
          round(100.0 * count(*) filter (where visit_days >= 2) / nullif(count(*),0), 1) as revisit_pct,
          -- 돌아올 기회가 있던 사람만(첫 방문이 어제 이전) = 편향 보정
-         count(*) filter (where first_bucket < ((now() at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date)) as had_chance,
+         count(*) filter (where first_bucket < ((now() at time zone 'UTC' + interval '9 hours')::date)) as had_chance,
          count(*) filter (where visit_days >= 2
-                            and first_bucket < ((now() at time zone 'UTC' + interval '9 hours' - interval '10 hours')::date)) as had_chance_revisited,
+                            and first_bucket < ((now() at time zone 'UTC' + interval '9 hours')::date)) as had_chance_revisited,
          count(*) filter (where visit_days >= 3) as visited_3plus,
          max(visit_days) as max_days
   from keyed group by src
@@ -153,6 +193,27 @@ auth as (
   select case when user_id is null then 'guest' else 'member' end as segment,
          count(distinct anon_id) as uv, count(*) as pv
   from pv group by 1
+),
+
+-- ══ 7. 🆕 세션 건강성 — 자정 걸침 비율이 SESSION_GAP·기준 선택의 감시 지표다 ══
+-- 2026-07-31 실측 0.62%(2/325). 이 값이 유의미하게 오르면(세션이 길어지면) 세션 시작 귀속의
+-- 이득이 커진다는 뜻 — 이미 적용돼 있으니 전환 트리거가 아니라 관측용이다.
+-- avg_min 을 체류시간으로 읽지 말 것: 대화 중엔 라우트 이동이 없어 PV 가 안 찍힌다(SPA).
+session_health as (
+  select count(*) as total_sessions,
+         count(*) filter (
+           where ((started_at at time zone 'UTC' + interval '9 hours')::date)
+              <> ((ended_at   at time zone 'UTC' + interval '9 hours')::date)
+         ) as crossing_sessions,
+         round(100.0 * count(*) filter (
+           where ((started_at at time zone 'UTC' + interval '9 hours')::date)
+              <> ((ended_at   at time zone 'UTC' + interval '9 hours')::date)
+         ) / nullif(count(*),0), 2) as crossing_pct,
+         round(avg(extract(epoch from (ended_at - started_at)) / 60.0), 1) as avg_min,
+         round((percentile_cont(0.9) within group (
+           order by extract(epoch from (ended_at - started_at)) / 60.0
+         ))::numeric, 1) as p90_min
+  from sess_span
 )
 
 select 'meta' as metric, to_jsonb(array_agg(x)) as value from meta x
@@ -160,6 +221,7 @@ union all select 'trend',            to_jsonb(array_agg(t)) from (select * from 
 union all select 'visitor_mix',      to_jsonb(array_agg(m)) from (select * from mix order by bucket) m
 union all select 'visitor_mix_strict', to_jsonb(array_agg(m)) from (select * from mix_s order by bucket) m
 union all select 'retention_by_source', to_jsonb(array_agg(b)) from (select * from by_source order by visitors desc) b
+union all select 'session_health',    to_jsonb(array_agg(s)) from session_health s
 union all select 'bot',              to_jsonb(array_agg(b)) from bot b
 union all select 'routes_user_only', to_jsonb(array_agg(r)) from routes r
 union all select 'auth',             to_jsonb(array_agg(a)) from (select * from auth order by segment) a;
