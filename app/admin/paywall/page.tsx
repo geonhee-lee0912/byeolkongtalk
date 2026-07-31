@@ -1,16 +1,29 @@
 // app/admin/paywall/page.tsx — 페이월 퍼널.
 // 웰컴 별을 다 쓰고(잔액 < 최저 상품가) 결제해야 하는 지점에 도달한 유저를 집계.
 // 매출 0 의 원인이 "아무도 페이월에 안 옴"인지 "왔는데 결제 안 함"인지 판별하는 핵심 뷰.
+//
+// 집계는 전부 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은
+// star_balances·payments·readings·messages 를 `.limit(100000)` 으로 5번 끌어와 앱에서 집계했는데,
+// Supabase `Max rows`(서버 강제 상한)가 그 limit 을 조용히 덮어써 잘린다 — PostgREST 는 200 +
+// Content-Range 로 응답하고 supabase-js 는 에러로 승격하지 않는다.
+// **이 화면이 2026-07-28 사고의 당사자다**: 상담 완료율을 21% 로 표시했으나 실제는 63.7% 였다.
+// 도달·전환 판정 · 운세 제외(유효 키 검사) · first-touch utm 귀속은 전부 RPC 안에 있다
+// (supabase/migrations/20260731020000_admin_paywall_aggregates.sql — 근거는 그 주석).
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
-import { adminExclusionList } from "@/lib/admin";
+import { adminExclusionArray } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
-import { fortuneTypeFromTag } from "@/lib/fortune/types";
-import { canonicalCreative } from "@/lib/analytics/creative-alias";
+import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { CREATIVE_ALIASES } from "@/lib/analytics/creative-alias";
 
 export const dynamic = "force-dynamic";
 
 const MIN_READING_COST = 10; // 최저 상품(타로 원카드 10별) — 이 미만이면 무료로 더 못 봄
+
+// RPC 결과도 PostgREST 를 지나므로 `Max rows` cap 이 그대로 적용된다. 미결제 목록만 반환 행수가
+// 유저 수에 비례하므로 상한을 명시하고, 상한에 닿으면 화면에 경고 한 줄로 드러낸다 —
+// 조용히 잘리는 것이 2026-07-28 cap 사고의 본질이었다. RPC 기본값과 같은 5000.
+const UNCONVERTED_LIMIT = 5000;
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -24,96 +37,84 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 
 export default async function PaywallPage() {
   const supa = getServiceSupabase();
-  const excl = adminExclusionList();
-
-  let balQ = supa
-    .from("star_balances")
-    .select("user_id, balance, total_spent")
-    .limit(100000);
-  if (excl) balQ = balQ.not("user_id", "in", excl);
-  const { data: balances } = await balQ;
-  const rows = balances ?? [];
-
-  const totalUsers = rows.length;
-  const spent = rows.filter((b) => (b.total_spent ?? 0) > 0);
-  const reached = spent.filter((b) => (b.balance ?? 0) < MIN_READING_COST);
-
-  const { data: pays } = await supa
-    .from("payments")
-    .select("user_id")
-    .eq("status", "completed")
-    .limit(100000);
-  const payerSet = new Set((pays ?? []).map((p) => p.user_id));
-
-  const converted = reached.filter((b) => payerSet.has(b.user_id));
-  const notConverted = reached.filter((b) => !payerSet.has(b.user_id));
-
-  // 미전환(페이월 도달 후 결제 안 한) 유저 상세 enrich
-  const ids = notConverted.map((b) => b.user_id);
-  const userMap = new Map<string, { nickname: string | null; created_at: string }>();
-  const utmMap = new Map<string, string | null>();
-  const readCount = new Map<string, number>();
-  if (ids.length) {
-    const [{ data: users }, { data: acqs }, { data: reads }] = await Promise.all([
-      supa.from("users").select("id, nickname, created_at").in("id", ids),
-      supa.from("user_acquisition").select("user_id, utm_content").in("user_id", ids),
-      supa.from("readings").select("user_id").in("user_id", ids).limit(100000),
-    ]);
-    for (const u of users ?? []) userMap.set(u.id, { nickname: u.nickname, created_at: u.created_at });
-    for (const a of acqs ?? []) utmMap.set(a.user_id, canonicalCreative(a.utm_content));
-    for (const r of reads ?? []) readCount.set(r.user_id, (readCount.get(r.user_id) ?? 0) + 1);
-  }
-
+  const p_exclude = adminExclusionArray();
   // 상담 완료 퍼널 (최근 30일, 상담 리딩만 = 운세 리포트 제외):
   // 시작 → 대화 완료([END]) → 결과 화면(재충전 블록) 열람. 각 단계 이탈 계량.
   const since = daysAgoKstIso(29);
-  let readQ = supa
-    .from("readings")
-    .select("id, emotion_tag, result_viewed_at")
-    .gte("created_at", since)
-    .limit(100000);
-  if (excl) readQ = readQ.not("user_id", "in", excl);
-  const { data: readRows } = await readQ;
-  const consultReads = (readRows ?? []).filter(
-    (r) => !fortuneTypeFromTag(r.emotion_tag)
-  );
-  const consultIds = consultReads.map((r) => r.id);
-  const endedSet = new Set<string>();
-  if (consultIds.length) {
-    const { data: msgs } = await supa
-      .from("messages")
-      .select("reading_id, content")
-      .in("reading_id", consultIds)
-      .eq("role", "assistant")
-      .limit(100000);
-    for (const m of msgs ?? []) {
-      if (m.content.includes("[END]")) endedSet.add(m.reading_id);
-    }
-  }
-  const cfStarted = consultReads.length;
-  const cfEnded = endedSet.size;
-  const cfViewed = consultReads.filter(
-    (r) => endedSet.has(r.id) && r.result_viewed_at
-  ).length;
+
+  const [summaryRes, listRes, funnelRes] = await Promise.all([
+    supa.rpc("admin_paywall_summary", { p_exclude, p_min_cost: MIN_READING_COST }),
+    supa.rpc("admin_paywall_unconverted", {
+      p_exclude,
+      p_min_cost: MIN_READING_COST,
+      // 별칭 맵의 단일 원천은 앱에 남긴다 — canonicalCreative 와 같은 맵을 JSONB 로 넘겨
+      // SQL 의 admin_canonical_creative 가 동일하게 병합하게 한다(맵을 SQL 에 복사하면 드리프트).
+      p_aliases: CREATIVE_ALIASES,
+      p_limit: UNCONVERTED_LIMIT,
+    }),
+    supa.rpc("admin_consult_funnel", {
+      p_since: since,
+      p_exclude,
+      // 유효 운세 타입의 단일 원천은 앱에 둔다 — SQL 에서 like 'fortune:%' 만 쓰면 'fortune:오타' 를
+      // 앱(fortuneTypeFromTag)은 상담으로, SQL 은 운세로 분류해 조용히 어긋난다. 하드코딩하면
+      // FORTUNE_CONFIG 에 타입이 추가될 때 드리프트하므로 키를 런타임에 뽑는다.
+      p_fortune_types: Object.keys(FORTUNE_CONFIG),
+    }),
+  ]);
+
+  // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
+  const summary = (
+    (summaryRes.data ?? []) as {
+      total_users: number;
+      spent_users: number;
+      reached_users: number;
+      converted_users: number;
+    }[]
+  )[0];
+  const totalUsers = Number(summary?.total_users ?? 0);
+  const spentUsers = Number(summary?.spent_users ?? 0);
+  const reachedUsers = Number(summary?.reached_users ?? 0);
+  const convertedUsers = Number(summary?.converted_users ?? 0);
+
+  // 미전환(페이월 도달 후 결제 안 한) 유저 상세.
+  // ⚠️ RPC 가 created_at DESC(NULLS LAST)로 이미 정렬해 준다 — 앱에서 다시 정렬하지 않는다.
+  // ⚠️ nickname·created_at·utm 은 정당하게 NULL 이다(표가 이미 null 을 처리) → 보존한다.
+  const list = (
+    (listRes.data ?? []) as {
+      user_id: string;
+      nickname: string | null;
+      created_at: string | null;
+      balance: number;
+      total_spent: number;
+      readings: number;
+      utm: string | null;
+    }[]
+  ).map((r) => ({
+    userId: r.user_id,
+    balance: Number(r.balance),
+    totalSpent: Number(r.total_spent),
+    readings: Number(r.readings),
+    utm: r.utm,
+    nickname: r.nickname,
+    createdAt: r.created_at,
+  }));
+  const listTruncated = list.length >= UNCONVERTED_LIMIT;
+  // 헤더 건수는 목록 길이가 아니라 요약에서 뽑는다 — 상한에 걸려도 실제 규모를 말한다.
+  // 미결제 = 도달 − 전환. 두 RPC 가 같은 술어(총사용>0 · 잔액<최저가 · completed 결제 유무)를
+  // 쓰므로 상한에 안 닿는 한 목록 길이와 같은 값이다.
+  const notConvertedCount = reachedUsers - convertedUsers;
+
+  const funnel = ((funnelRes.data ?? []) as { started: number; ended: number; viewed: number }[])[0];
+  const cfStarted = Number(funnel?.started ?? 0);
+  const cfEnded = Number(funnel?.ended ?? 0);
+  const cfViewed = Number(funnel?.viewed ?? 0);
   const pct = (n: number, d: number) =>
     d ? Math.round((n / d) * 1000) / 10 : 0;
 
   const reachedRate =
-    spent.length ? Math.round((reached.length / spent.length) * 1000) / 10 : 0;
+    spentUsers ? Math.round((reachedUsers / spentUsers) * 1000) / 10 : 0;
   const convRate =
-    reached.length ? Math.round((converted.length / reached.length) * 1000) / 10 : 0;
-
-  const list = notConverted
-    .map((b) => ({
-      userId: b.user_id,
-      balance: b.balance ?? 0,
-      totalSpent: b.total_spent ?? 0,
-      readings: readCount.get(b.user_id) ?? 0,
-      utm: utmMap.get(b.user_id) ?? null,
-      nickname: userMap.get(b.user_id)?.nickname ?? null,
-      createdAt: userMap.get(b.user_id)?.created_at ?? null,
-    }))
-    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    reachedUsers ? Math.round((convertedUsers / reachedUsers) * 1000) / 10 : 0;
 
   return (
     <div className="space-y-6">
@@ -128,11 +129,11 @@ export default async function PaywallPage() {
         <Stat label="전체 유저" value={totalUsers} />
         <Stat
           label="별 사용(리딩)"
-          value={spent.length}
-          sub={`전체의 ${totalUsers ? Math.round((spent.length / totalUsers) * 100) : 0}%`}
+          value={spentUsers}
+          sub={`전체의 ${totalUsers ? Math.round((spentUsers / totalUsers) * 100) : 0}%`}
         />
-        <Stat label="페이월 도달" value={reached.length} sub={`별 사용자의 ${reachedRate}%`} />
-        <Stat label="결제 전환" value={converted.length} sub={`도달자의 ${convRate}%`} />
+        <Stat label="페이월 도달" value={reachedUsers} sub={`별 사용자의 ${reachedRate}%`} />
+        <Stat label="결제 전환" value={convertedUsers} sub={`도달자의 ${convRate}%`} />
       </div>
 
       <div>
@@ -157,8 +158,15 @@ export default async function PaywallPage() {
 
       <div>
         <h2 className="text-sm text-white/60 mb-2">
-          페이월 도달 · 미결제 ({notConverted.length})
+          페이월 도달 · 미결제 ({notConvertedCount})
         </h2>
+        {listTruncated && (
+          <p className="text-[12px] text-amber-300/80 mb-2">
+            ⚠️ 미결제 유저가 조회 상한({UNCONVERTED_LIMIT})에 닿아 표가 전부를 보여주지 못한다. 위
+            건수가 실제 규모다 — 페이지네이션을 붙이거나 상한을 올릴 것. 조용히 잘리지 않게 이 줄을
+            띄운다.
+          </p>
+        )}
         {list.length === 0 ? (
           <p className="text-sm text-white/40">
             아직 페이월에 도달한 미결제 유저가 없어요 — 매출 0은 &ldquo;아직 아무도 결제 지점에 안 온 것&rdquo;(정상)일 가능성이 큽니다.

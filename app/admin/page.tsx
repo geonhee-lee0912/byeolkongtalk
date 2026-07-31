@@ -24,7 +24,8 @@ async function loadStats() {
   const today = startOfTodayKstIso(); // KST 자정 — 어드민 전 화면 공통 기준 (lib/admin-time.ts)
   const yesterday = new Date(Date.parse(today) - 86400000).toISOString();
   // 어드민(운영자) 활동은 KPI 에서 제외 — 테스트 결제/리딩 지표 오염 방지
-  const excl = adminExclusionList();
+  const excl = adminExclusionList(); // PostgREST in-리스트 문자열 (빈 목록이면 null)
+  const p_exclude = adminExclusionArray(); // RPC 인자용 uuid[] (빈 배열이면 SQL 이 알아서 통과)
   // [s, u) 반개구간. 둘 다 생략 시 날짜 필터 없이 전체(누적) 집계
   const cnt = (t: string, idCol: string, s?: string, u?: string) => {
     let q = supa.from(t).select("id", { count: "exact", head: true });
@@ -44,27 +45,34 @@ async function loadStats() {
     if (u) q = q.lt("withdrawn_at", u);
     return q;
   };
-  // 기본 1000행 cap 회피 (운영 규모 커지면 SUM RPC 로 전환)
-  const pay = (s?: string, u?: string) => {
-    let q = supa.from("payments").select("amount_won").eq("status", "completed").limit(100000);
-    if (s) q = q.gte("created_at", s);
-    if (u) q = q.lt("created_at", u);
-    if (excl) q = q.not("user_id", "in", excl);
-    return q;
-  };
-  const [tu, yu, au, tw, yw, aw, tr, yr, ar, tp, yp, ap, errs, sens] = await Promise.all([
+  // 매출(오늘/어제/누적) — 세 창을 SUM RPC 한 방으로. 이전 구현은 payments 행을 세 번 끌어와
+  // 앱에서 reduce 했는데, 누적 갈래는 날짜 필터가 없어 결제 건수와 1:1 로 자라 Supabase
+  // `Max rows`(서버 강제 상한, `.limit()` 을 조용히 덮어쓴다)에 닿을 다음 차례였다.
+  // 합계는 반환이 항상 1행이라 cap 개념 자체가 소멸한다. 창 정의는 RPC 안: today = >= p_today,
+  // yesterday = [p_yesterday, p_today), all = 날짜 필터 없음 — 구 pay() 3콜과 동일하다.
+  const [tu, yu, au, tw, yw, aw, tr, yr, ar, revRes, errs, sens] = await Promise.all([
     cnt("users", "id", today), cnt("users", "id", yesterday, today), cnt("users", "id"),
     withdrawn(today), withdrawn(yesterday, today), withdrawn(),
     cnt("readings", "user_id", today), cnt("readings", "user_id", yesterday, today), cnt("readings", "user_id"),
-    pay(today),
-    pay(yesterday, today),
-    pay(),
+    supa.rpc("admin_dashboard_revenue", { p_exclude, p_today: today, p_yesterday: yesterday }),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
-  const sum = (rows: { amount_won: number }[] | null) => (rows ?? []).reduce((a, r) => a + (r.amount_won ?? 0), 0);
+  // BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수
+  const revRow = ((revRes.data ?? []) as { today_won: number; yesterday_won: number; all_won: number }[])[0];
+  const revenue = {
+    today: Number(revRow?.today_won ?? 0),
+    yesterday: Number(revRow?.yesterday_won ?? 0),
+    all: Number(revRow?.all_won ?? 0),
+  };
 
   // 별 소모 (오늘/어제) — 어제 시작부터의 spend 를 한 번에 조회해 두 창으로 나눔
+  // 🟡 이 쿼리와 아래 원장 쿼리 2개는 **의도적으로 앱측 집계로 남긴다.** 분류가 15단계 우선순위
+  //    사다리 + free-first FIFO 귀속이라 SQL 이식은 별건의 고위험 작업이고, 이 결과가 손익 분석의
+  //    입력이라 값이 바뀌면 판정 문서와 어긋난다. 실측 여유 ~851일 = 지금 서두를 이유가 없다.
+  //    이건 2일 창이라 행수가 작다(아래 원장이 이 창의 소모 유저 전원의 전체 원장 = 더 큰 쪽).
+  // ⚠️ 단 `.limit(100000)` 이 실효인 것은 Supabase `Max rows` 가 현재 **50,000** 이기 때문이다.
+  //    1,000 으로 되돌리면 아래 원장(1,439행)이 즉시 조용히 잘린다 — 잊지 말 것.
   let txQ = supa
     .from("star_transactions")
     .select("id, user_id, type, amount, source, reading_id, created_at")
@@ -85,6 +93,11 @@ async function loadStats() {
       rById.set(r.id, { consultation_type: r.consultation_type, emotion_tag: r.emotion_tag, relationship_id: r.relationship_id, skill_key: r.skill_key });
   }
   // 무료 별 귀속 — 소모 유저들의 전체 원장으로 free-first 계산
+  // 🟡 위와 같은 이유로 **의도적으로 앱측 집계**(free-first FIFO 는 원장 전체를 시간순으로 훑어야
+  //    한다). 여기가 이 화면에서 가장 큰 쿼리다 — 2026-07-31 실측 **1,439행**.
+  // ⚠️ Supabase `Max rows` 가 현재 50,000 이라 오늘은 안전하지만, 1,000 으로 되돌리면 이 쿼리가
+  //    **즉시** 잘린다(PostgREST 는 200 + Content-Range 로 응답하고 supabase-js 는 에러로 승격하지
+  //    않는다 = 조용한 오답). cap 을 만질 일이 생기면 이 두 쿼리를 먼저 볼 것.
   const spenders = [...new Set(tx.map((t) => t.user_id))];
   let freeById = new Map<string, number>();
   if (spenders.length) {
@@ -125,7 +138,6 @@ async function loadStats() {
   // ⚠️ visitor_mix 의 UV 는 **세션 시작 귀속**이라 trend 의 UV(페이지뷰 귀속)와 하루 1명 수준으로
   //    다를 수 있다. 두 지표를 같은 값으로 기대하지 말 것 — 자세한 근거는 RPC 주석.
   const todayBucket = kstDate(new Date().toISOString());
-  const p_exclude = adminExclusionArray();
   const [trendRes, mixRes] = await Promise.all([
     supa.rpc("admin_traffic_trend", { p_since: yesterday, p_exclude }),
     supa.rpc("admin_traffic_visitor_mix", { p_since: yesterday, p_exclude }),
@@ -185,9 +197,9 @@ async function loadStats() {
   return {
     // ⚠️ uv(페이지뷰 귀속)와 mixUv(세션 시작 귀속)는 분모가 다르다 — 화면에서 mixUv 를 함께
     //    보여줘야 "신규+재방문 이 UV 와 안 맞는다"는 오독이 안 생긴다.
-    today: { uv: pv.today.uv, pv: pv.today.pv, mixUv: mixToday.uv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: sum(tp.data) },
-    yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: sum(yp.data) },
-    all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: sum(ap.data) },
+    today: { uv: pv.today.uv, pv: pv.today.pv, mixUv: mixToday.uv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, withdrawals: tw.count ?? 0, readings: tr.count ?? 0, revenueWon: revenue.today },
+    yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, withdrawals: yw.count ?? 0, readings: yr.count ?? 0, revenueWon: revenue.yesterday },
+    all: { newUsers: au.count ?? 0, withdrawals: aw.count ?? 0, readings: ar.count ?? 0, revenueWon: revenue.all },
     star,
     rel,
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
