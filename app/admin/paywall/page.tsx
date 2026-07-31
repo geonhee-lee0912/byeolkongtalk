@@ -8,22 +8,31 @@
 // Content-Range 로 응답하고 supabase-js 는 에러로 승격하지 않는다.
 // **이 화면이 2026-07-28 사고의 당사자다**: 상담 완료율을 21% 로 표시했으나 실제는 63.7% 였다.
 // 도달·전환 판정 · 운세 제외(유효 키 검사) · first-touch utm 귀속은 전부 RPC 안에 있다
-// (supabase/migrations/20260731020000_admin_paywall_aggregates.sql — 근거는 그 주석).
+// (supabase/migrations/20260731020000_admin_paywall_aggregates.sql — 근거는 그 주석.
+//  미결제 목록의 LIMIT/OFFSET 은 20260731060000_admin_paywall_pagination.sql).
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionArray } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { CREATIVE_ALIASES } from "@/lib/analytics/creative-alias";
+import { Pager } from "@/components/admin/Pager";
 
 export const dynamic = "force-dynamic";
 
 const MIN_READING_COST = 10; // 최저 상품(타로 원카드 10별) — 이 미만이면 무료로 더 못 봄
 
-// RPC 결과도 PostgREST 를 지나므로 `Max rows` cap 이 그대로 적용된다. 미결제 목록만 반환 행수가
-// 유저 수에 비례하므로 상한을 명시하고, 상한에 닿으면 화면에 경고 한 줄로 드러낸다 —
-// 조용히 잘리는 것이 2026-07-28 cap 사고의 본질이었다. RPC 기본값과 같은 5000.
-const UNCONVERTED_LIMIT = 5000;
+// 미결제 목록 한 페이지 행 수. 2026-07-31 실측 398행(약 24명/일 증가)을 한 표에 쏟아붓던 것을
+// 쪼갠다. 50 = 스크롤 한두 번으로 훑히면서 현 규모가 8페이지 안에 들어오는 크기. 목록·유저
+// 화면의 25 보다 크게 잡은 이유는 여기엔 필터·검색이 없어 "다음"을 그만큼 더 자주 누르기 때문.
+// ⚠️ 이전의 UNCONVERTED_LIMIT(5000) + truncated 경고는 제거했다. 그건 페이지네이션이 없어
+//    조용한 절단만 막던 안전망이었는데, 이제 한 번에 PER_PAGE 행만 받으므로 Supabase
+//    `Max rows` cap(현재 50,000, 최소치여도 1,000)에 원리상 닿지 않는다 = 경고가 도달 불가 UI.
+const PER_PAGE = 50;
+
+// ?page 상한 — page*PER_PAGE 가 p_offset(INT) 을 넘기지 않게 막는 방어선. 실질적으로 도달
+// 불가한 값이지만 ?page=1e12 같은 입력이 그대로 SQL 까지 내려가지 않게 한다.
+const MAX_PAGE = 10000;
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -35,7 +44,42 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
   );
 }
 
-export default async function PaywallPage() {
+// 🔴 RPC 실패를 0/빈 목록으로 위장하지 않는다. `?? []` · `?? 0` 폴백은 "쿼리가 실패했다"와
+//    "값이 진짜 0이다"를 구분 불가능하게 만든다 — 조용한 오답이 2026-07-28 cap 사고의 본질이고
+//    (완료율을 21% 로 표시, 실제 63.7%) 이 화면이 그 당사자였다. 실패한 블록만 이 줄로 바꾸고
+//    나머지 블록은 그대로 그린다(throw 하면 멀쩡한 지표까지 같이 사라진다).
+function LoadFailed({ block }: { block: string }) {
+  return (
+    <p className="text-[12px] text-amber-300/80">
+      ⚠️ {block} 조회에 실패했다 — 숫자를 0으로 위장하지 않고 이 줄을 띄운다. 서버 로그와
+      /admin/errors 를 확인할 것.
+    </p>
+  );
+}
+
+export default async function PaywallPage({
+  searchParams,
+}: {
+  // 다른 파라미터를 붙일 여지를 남기려 통짜 Record 로 받는다 — 아래 makeHref 가 page 만
+  // 갈아끼우고 나머지는 그대로 보존한다.
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const pageParam = typeof sp.page === "string" ? sp.page : undefined;
+  // 클램프: NaN·빈문자·음수·소수는 1페이지로, 과대 입력은 MAX_PAGE 로 접는다.
+  const page = Math.min(MAX_PAGE, Math.max(1, Math.floor(Number(pageParam)) || 1));
+  const offset = (page - 1) * PER_PAGE;
+  const makeHref = (p: number) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      if (k === "page" || v === undefined) continue;
+      for (const one of Array.isArray(v) ? v : [v]) qs.append(k, one);
+    }
+    if (p > 1) qs.set("page", String(p));
+    const s = qs.toString();
+    return s ? `/admin/paywall?${s}` : "/admin/paywall";
+  };
+
   const supa = getServiceSupabase();
   const p_exclude = adminExclusionArray();
   // 상담 완료 퍼널 (최근 30일, 상담 리딩만 = 운세 리포트 제외):
@@ -50,7 +94,8 @@ export default async function PaywallPage() {
       // 별칭 맵의 단일 원천은 앱에 남긴다 — canonicalCreative 와 같은 맵을 JSONB 로 넘겨
       // SQL 의 admin_canonical_creative 가 동일하게 병합하게 한다(맵을 SQL 에 복사하면 드리프트).
       p_aliases: CREATIVE_ALIASES,
-      p_limit: UNCONVERTED_LIMIT,
+      p_limit: PER_PAGE,
+      p_offset: offset,
     }),
     supa.rpc("admin_consult_funnel", {
       p_since: since,
@@ -61,6 +106,11 @@ export default async function PaywallPage() {
       p_fortune_types: Object.keys(FORTUNE_CONFIG),
     }),
   ]);
+
+  // 실패 판정은 /api/admin/traffic 과 같은 방식 — supabase-js 의 `.error` 유무만 본다.
+  const summaryFailed = Boolean(summaryRes.error);
+  const listFailed = Boolean(listRes.error);
+  const funnelFailed = Boolean(funnelRes.error);
 
   // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
   const summary = (
@@ -76,8 +126,10 @@ export default async function PaywallPage() {
   const reachedUsers = Number(summary?.reached_users ?? 0);
   const convertedUsers = Number(summary?.converted_users ?? 0);
 
-  // 미전환(페이월 도달 후 결제 안 한) 유저 상세.
-  // ⚠️ RPC 가 created_at DESC(NULLS LAST)로 이미 정렬해 준다 — 앱에서 다시 정렬하지 않는다.
+  // 미전환(페이월 도달 후 결제 안 한) 유저 상세 — 이번 페이지 분량(PER_PAGE)만 온다.
+  // ⚠️ RPC 가 created_at DESC(NULLS LAST), user_id 로 이미 정렬해 준다 — 앱에서 다시 정렬하지
+  //    않는다. user_id 타이브레이커는 OFFSET 페이지네이션이 성립하려면 정렬이 전순서여야 하기
+  //    때문이다(동률이 있으면 같은 행이 두 페이지에 나오고 다른 행이 빠진다).
   // ⚠️ nickname·created_at·utm 은 정당하게 NULL 이다(표가 이미 null 을 처리) → 보존한다.
   const list = (
     (listRes.data ?? []) as {
@@ -98,11 +150,15 @@ export default async function PaywallPage() {
     nickname: r.nickname,
     createdAt: r.created_at,
   }));
-  const listTruncated = list.length >= UNCONVERTED_LIMIT;
-  // 헤더 건수는 목록 길이가 아니라 요약에서 뽑는다 — 상한에 걸려도 실제 규모를 말한다.
+  // 헤더 건수는 목록 길이(=한 페이지 분량)가 아니라 요약에서 뽑는다 — 항상 **전체** 규모다.
   // 미결제 = 도달 − 전환. 두 RPC 가 같은 술어(총사용>0 · 잔액<최저가 · completed 결제 유무)를
-  // 쓰므로 상한에 안 닿는 한 목록 길이와 같은 값이다.
+  // 쓰므로 이 값이 곧 목록의 총 행수이고, 그래서 페이지 수의 분자로도 그대로 쓴다.
   const notConvertedCount = reachedUsers - convertedUsers;
+  // 요약이 실패하면 총 행수를 모른다 → 0으로 접어 페이저를 없애버리는 대신, 이번 페이지가 꽉
+  // 찼는지로 "다음이 있을 수 있다"만 표현한다(뒤로 갈 길을 막지 않는다).
+  const totalPages = summaryFailed
+    ? page + (list.length >= PER_PAGE ? 1 : 0)
+    : Math.max(1, Math.ceil(notConvertedCount / PER_PAGE));
 
   const funnel = ((funnelRes.data ?? []) as { started: number; ended: number; viewed: number }[])[0];
   const cfStarted = Number(funnel?.started ?? 0);
@@ -125,52 +181,69 @@ export default async function PaywallPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="전체 유저" value={totalUsers} />
-        <Stat
-          label="별 사용(리딩)"
-          value={spentUsers}
-          sub={`전체의 ${totalUsers ? Math.round((spentUsers / totalUsers) * 100) : 0}%`}
-        />
-        <Stat label="페이월 도달" value={reachedUsers} sub={`별 사용자의 ${reachedRate}%`} />
-        <Stat label="결제 전환" value={convertedUsers} sub={`도달자의 ${convRate}%`} />
-      </div>
+      {summaryFailed ? (
+        <LoadFailed block="페이월 요약(admin_paywall_summary)" />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="전체 유저" value={totalUsers} />
+          <Stat
+            label="별 사용(리딩)"
+            value={spentUsers}
+            sub={`전체의 ${totalUsers ? Math.round((spentUsers / totalUsers) * 100) : 0}%`}
+          />
+          <Stat label="페이월 도달" value={reachedUsers} sub={`별 사용자의 ${reachedRate}%`} />
+          <Stat label="결제 전환" value={convertedUsers} sub={`도달자의 ${convRate}%`} />
+        </div>
+      )}
 
       <div>
         <h2 className="text-sm text-white/60 mb-1">상담 완료 퍼널 <span className="text-white/35">(최근 30일 · 상담 리딩)</span></h2>
         <p className="text-[12px] text-white/40 mb-2">
           대화를 끝내고(대화 완료) 결과 화면(재충전 블록)까지 도달하는지 — 각 단계 이탈 지점. 결과 열람은 이 기능 배포 이후 생성분부터 집계돼 초기엔 낮게 보입니다.
         </p>
-        <div className="grid grid-cols-3 gap-3">
-          <Stat label="상담 시작" value={cfStarted} />
-          <Stat
-            label="대화 완료 ([END])"
-            value={cfEnded}
-            sub={`완료율 ${pct(cfEnded, cfStarted)}% · 도중 이탈 ${cfStarted - cfEnded}`}
-          />
-          <Stat
-            label="결과 화면 열람"
-            value={cfViewed}
-            sub={`완료의 ${pct(cfViewed, cfEnded)}% · 미열람 ${cfEnded - cfViewed}`}
-          />
-        </div>
+        {funnelFailed ? (
+          <LoadFailed block="상담 완료 퍼널(admin_consult_funnel)" />
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="상담 시작" value={cfStarted} />
+            <Stat
+              label="대화 완료 ([END])"
+              value={cfEnded}
+              sub={`완료율 ${pct(cfEnded, cfStarted)}% · 도중 이탈 ${cfStarted - cfEnded}`}
+            />
+            <Stat
+              label="결과 화면 열람"
+              value={cfViewed}
+              sub={`완료의 ${pct(cfViewed, cfEnded)}% · 미열람 ${cfEnded - cfViewed}`}
+            />
+          </div>
+        )}
       </div>
 
       <div>
+        {/* 괄호 안은 항상 **전체** 건수다(요약 RPC 출처) — 표에 보이는 행 수가 아니다.
+            그래서 옆에 "N명 중 x–y" 로 이번 페이지 구간을 따로 적는다. */}
         <h2 className="text-sm text-white/60 mb-2">
-          페이월 도달 · 미결제 ({notConvertedCount})
+          페이월 도달 · 미결제 ({summaryFailed ? "?" : notConvertedCount})
+          {!listFailed && list.length > 0 && (
+            <span className="text-white/35 font-normal">
+              {" "}
+              · {summaryFailed ? "?" : notConvertedCount}명 중 {offset + 1}–{offset + list.length}
+            </span>
+          )}
         </h2>
-        {listTruncated && (
-          <p className="text-[12px] text-amber-300/80 mb-2">
-            ⚠️ 미결제 유저가 조회 상한({UNCONVERTED_LIMIT})에 닿아 표가 전부를 보여주지 못한다. 위
-            건수가 실제 규모다 — 페이지네이션을 붙이거나 상한을 올릴 것. 조용히 잘리지 않게 이 줄을
-            띄운다.
-          </p>
-        )}
-        {list.length === 0 ? (
-          <p className="text-sm text-white/40">
-            아직 페이월에 도달한 미결제 유저가 없어요 — 매출 0은 &ldquo;아직 아무도 결제 지점에 안 온 것&rdquo;(정상)일 가능성이 큽니다.
-          </p>
+        {listFailed ? (
+          <LoadFailed block="미결제 유저 목록(admin_paywall_unconverted)" />
+        ) : list.length === 0 ? (
+          page > 1 ? (
+            <p className="text-sm text-white/40">
+              이 페이지에는 표시할 행이 없어요 — 마지막 페이지를 지났습니다.
+            </p>
+          ) : (
+            <p className="text-sm text-white/40">
+              아직 페이월에 도달한 미결제 유저가 없어요 — 매출 0은 &ldquo;아직 아무도 결제 지점에 안 온 것&rdquo;(정상)일 가능성이 큽니다.
+            </p>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -211,6 +284,7 @@ export default async function PaywallPage() {
             </table>
           </div>
         )}
+        {!listFailed && <Pager page={page} totalPages={totalPages} makeHref={makeHref} />}
       </div>
     </div>
   );

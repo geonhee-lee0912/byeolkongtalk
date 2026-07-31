@@ -1,6 +1,6 @@
 // app/api/admin/analytics/products/route.ts — 상품별 집계(고민톡/운세/별구매/연애 패스).
 //
-// 상담·운세·패키지·패스 집계는 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다.
+// 상담·운세·패키지·패스·별 소모 집계는 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다.
 // 이전 구현은 readings·payments·relationship_passes 를 `.limit(100000)` 으로 받아 앱에서 집계했는데,
 // Supabase `Max rows`(서버 강제 상한)가 그 limit 을 조용히 덮어써 잘린다 — PostgREST 는
 // 200 + Content-Range 로 응답하고 supabase-js 는 에러로 승격하지 않는다(2026-07-28 사고:
@@ -9,16 +9,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
-import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
+import { adminExclusionArray } from "@/lib/admin";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import {
-  buildStarSpendBreakdown,
   type CounselGroup,
   type FortuneGroup,
   type PackageGroup,
-  type StarTxRow,
-  type ReadingInfo,
+  type StarSpendGroup,
 } from "@/lib/analytics/aggregate";
 
 export const runtime = "nodejs";
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest) {
   // 아래 truncated 로 드러낸다 — 조용히 잘리는 것이 2026-07-28 cap 사고의 본질이었다.
   const PRODUCT_LIMIT = 200;
 
-  const [pb, pass] = await Promise.all([
+  const [pb, pass, spend] = await Promise.all([
     supa.rpc("admin_product_breakdown", {
       p_since: since,
       p_exclude,
@@ -50,8 +48,17 @@ export async function GET(req: NextRequest) {
       p_limit: PRODUCT_LIMIT,
     }),
     supa.rpc("admin_pass_breakdown", { p_since: since, p_exclude }),
+    // 별 소모 — 분류 사다리(source 특수케이스 → reading 조인 → source 폴백)와 free-first 무료별
+    // 귀속이 전부 RPC 안에 있다. 반환은 (종목 × 상품) 그룹이라 원장 행수와 무관하게 작다.
+    // p_until: null = 상한 없음(since 이후 전부). 운세 타입 인자 이유는 위와 같다.
+    supa.rpc("admin_star_spend_breakdown", {
+      p_since: since,
+      p_until: null,
+      p_exclude,
+      p_fortune_types: Object.keys(FORTUNE_CONFIG),
+    }),
   ]);
-  if (pb.error || pass.error) {
+  if (pb.error || pass.error || spend.error) {
     return NextResponse.json({ error: "query_failed" }, { status: 500 });
   }
 
@@ -108,35 +115,23 @@ export async function GET(req: NextRequest) {
     users: Number(r.buyers),
   }));
 
-  // ⚠️ 아래 별 소모 집계(star_transactions + readings 조인)는 아직 원본 행을 받는다.
-  // buildStarSpendBreakdown 의 15단 우선순위 사다리를 SQL 로 옮기는 작업(종류 C)이 남아 있어서다.
-  // 계획: docs/superpowers/plans/2026-07-30-admin-rpc-d-typec-and-bugs.md
-  // 30일 star_transactions 는 Supabase `Max rows` 에 걸릴 수 있다 — 그때까지 cap 을 낮추지 말 것.
-  const excl = adminExclusionList();
-  let txQ = supa
-    .from("star_transactions")
-    .select("user_id, type, amount, source, reading_id, created_at")
-    .eq("type", "spend")
-    .gte("created_at", since)
-    .limit(100000);
-  if (excl) txQ = txQ.not("user_id", "in", excl);
-  const { data: tx } = await txQ;
-  const rids = [...new Set((tx ?? []).map((t) => t.reading_id).filter(Boolean))] as string[];
-  const readingsById = new Map<string, ReadingInfo>();
-  if (rids.length) {
-    const { data: rinfo } = await supa
-      .from("readings")
-      .select("id, consultation_type, emotion_tag, relationship_id, skill_key")
-      .in("id", rids);
-    for (const r of rinfo ?? [])
-      readingsById.set(r.id, {
-        consultation_type: r.consultation_type,
-        emotion_tag: r.emotion_tag,
-        relationship_id: r.relationship_id,
-        skill_key: r.skill_key,
-      });
-  }
-  const starSpend = buildStarSpendBreakdown((tx ?? []) as StarTxRow[], readingsById);
+  // 별 소모 — 정렬(별 내림차순)도 RPC 가 하므로 앱은 컬럼명만 화면 계약(camelCase)으로 옮긴다.
+  type StarSpendRow = {
+    domain: StarSpendGroup["domain"];
+    product: string;
+    cnt: number;
+    stars: number;
+    free_stars: number;
+    users: number;
+  };
+  const starSpend: StarSpendGroup[] = ((spend.data ?? []) as StarSpendRow[]).map((r) => ({
+    domain: r.domain,
+    product: r.product,
+    count: Number(r.cnt),
+    stars: Number(r.stars),
+    freeStars: Number(r.free_stars),
+    users: Number(r.users),
+  }));
 
   return NextResponse.json({
     days,

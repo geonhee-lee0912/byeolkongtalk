@@ -9,13 +9,8 @@ import {
   buildVisitorMix,
   pickTodayVisitorMix,
 } from "@/lib/analytics/traffic";
-import {
-  attributeFreeSpend,
-  buildStarSpendBreakdown,
-  type StarLedgerRow,
-  type StarTxRow,
-  type ReadingInfo,
-} from "@/lib/analytics/aggregate";
+import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { type StarSpendGroup } from "@/lib/analytics/aggregate";
 
 export const dynamic = "force-dynamic";
 
@@ -50,15 +45,26 @@ async function loadStats() {
   // `Max rows`(서버 강제 상한, `.limit()` 을 조용히 덮어쓴다)에 닿을 다음 차례였다.
   // 합계는 반환이 항상 1행이라 cap 개념 자체가 소멸한다. 창 정의는 RPC 안: today = >= p_today,
   // yesterday = [p_yesterday, p_today), all = 날짜 필터 없음 — 구 pay() 3콜과 동일하다.
-  const [tu, yu, au, tw, yw, aw, tr, yr, ar, revRes, errs, sens] = await Promise.all([
+  //
+  // 별 소모(오늘/어제) — 15단 분류 사다리 + free-first 무료별 귀속이 전부 RPC 안에 있다.
+  // /admin/analytics(products) 와 **같은 RPC** 를 창만 좁혀 재사용한다. 창은 반개구간:
+  // 오늘 = [자정, 상한없음) → p_until: null / 어제 = [어제자정, 자정).
+  // 유효 운세 타입은 앱이 단일 원천 — 하드코딩하면 FORTUNE_CONFIG 추가 시 조용히 드리프트한다.
+  const p_fortune_types = Object.keys(FORTUNE_CONFIG);
+  const [tu, yu, au, tw, yw, aw, tr, yr, ar, revRes, errs, sens, spendTRes, spendYRes] = await Promise.all([
     cnt("users", "id", today), cnt("users", "id", yesterday, today), cnt("users", "id"),
     withdrawn(today), withdrawn(yesterday, today), withdrawn(),
     cnt("readings", "user_id", today), cnt("readings", "user_id", yesterday, today), cnt("readings", "user_id"),
     supa.rpc("admin_dashboard_revenue", { p_exclude, p_today: today, p_yesterday: yesterday }),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
+    supa.rpc("admin_star_spend_breakdown", { p_since: today, p_until: null, p_exclude, p_fortune_types }),
+    supa.rpc("admin_star_spend_breakdown", { p_since: yesterday, p_until: today, p_exclude, p_fortune_types }),
   ]);
   // BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수
+  // 🔴 `?? 0` 은 "쿼리 실패"와 "진짜 0원"을 구분 불가능하게 만든다 — 실패 여부를 따로 들고
+  //    올라가 화면이 0 대신 경고를 그리게 한다. 실패 판정은 /api/admin/traffic 과 같은 방식(.error).
+  const revenueFailed = Boolean(revRes.error);
   const revRow = ((revRes.data ?? []) as { today_won: number; yesterday_won: number; all_won: number }[])[0];
   const revenue = {
     today: Number(revRow?.today_won ?? 0),
@@ -66,54 +72,28 @@ async function loadStats() {
     all: Number(revRow?.all_won ?? 0),
   };
 
-  // 별 소모 (오늘/어제) — 어제 시작부터의 spend 를 한 번에 조회해 두 창으로 나눔
-  // 🟡 이 쿼리와 아래 원장 쿼리 2개는 **의도적으로 앱측 집계로 남긴다.** 분류가 15단계 우선순위
-  //    사다리 + free-first FIFO 귀속이라 SQL 이식은 별건의 고위험 작업이고, 이 결과가 손익 분석의
-  //    입력이라 값이 바뀌면 판정 문서와 어긋난다. 실측 여유 ~851일 = 지금 서두를 이유가 없다.
-  //    이건 2일 창이라 행수가 작다(아래 원장이 이 창의 소모 유저 전원의 전체 원장 = 더 큰 쪽).
-  // ⚠️ 단 `.limit(100000)` 이 실효인 것은 Supabase `Max rows` 가 현재 **50,000** 이기 때문이다.
-  //    1,000 으로 되돌리면 아래 원장(1,439행)이 즉시 조용히 잘린다 — 잊지 말 것.
-  let txQ = supa
-    .from("star_transactions")
-    .select("id, user_id, type, amount, source, reading_id, created_at")
-    .eq("type", "spend")
-    .gte("created_at", yesterday)
-    .limit(100000);
-  if (excl) txQ = txQ.not("user_id", "in", excl);
-  const { data: txAll } = await txQ;
-  const tx = (txAll ?? []) as (StarTxRow & { id: string })[];
-  const rids = [...new Set(tx.map((t) => t.reading_id).filter(Boolean))] as string[];
-  const rById = new Map<string, ReadingInfo>();
-  if (rids.length) {
-    const { data: rinfo } = await supa
-      .from("readings")
-      .select("id, consultation_type, emotion_tag, relationship_id, skill_key")
-      .in("id", rids);
-    for (const r of rinfo ?? [])
-      rById.set(r.id, { consultation_type: r.consultation_type, emotion_tag: r.emotion_tag, relationship_id: r.relationship_id, skill_key: r.skill_key });
-  }
-  // 무료 별 귀속 — 소모 유저들의 전체 원장으로 free-first 계산
-  // 🟡 위와 같은 이유로 **의도적으로 앱측 집계**(free-first FIFO 는 원장 전체를 시간순으로 훑어야
-  //    한다). 여기가 이 화면에서 가장 큰 쿼리다 — 2026-07-31 실측 **1,439행**.
-  // ⚠️ Supabase `Max rows` 가 현재 50,000 이라 오늘은 안전하지만, 1,000 으로 되돌리면 이 쿼리가
-  //    **즉시** 잘린다(PostgREST 는 200 + Content-Range 로 응답하고 supabase-js 는 에러로 승격하지
-  //    않는다 = 조용한 오답). cap 을 만질 일이 생기면 이 두 쿼리를 먼저 볼 것.
-  const spenders = [...new Set(tx.map((t) => t.user_id))];
-  let freeById = new Map<string, number>();
-  if (spenders.length) {
-    const { data: ledger } = await supa
-      .from("star_transactions")
-      .select("id, user_id, type, amount, source, created_at")
-      .in("user_id", spenders)
-      .order("created_at", { ascending: true })
-      .limit(100000);
-    freeById = attributeFreeSpend((ledger ?? []) as StarLedgerRow[]);
-  }
-  const cut = Date.parse(today);
-  const todayTx = tx.filter((t) => Date.parse(t.created_at) >= cut);
-  const yestTx = tx.filter((t) => Date.parse(t.created_at) < cut);
-  const spendT = buildStarSpendBreakdown(todayTx, rById, freeById);
-  const spendY = buildStarSpendBreakdown(yestTx, rById, freeById);
+  // RPC 는 snake_case + BIGINT(문자열)을 주므로 화면 계약(camelCase·number)으로 옮긴다.
+  type SpendRow = {
+    domain: StarSpendGroup["domain"];
+    product: string;
+    cnt: number;
+    stars: number;
+    free_stars: number;
+    users: number;
+  };
+  const toGroups = (rows: unknown): StarSpendGroup[] =>
+    ((rows ?? []) as SpendRow[]).map((r) => ({
+      domain: r.domain,
+      product: r.product,
+      count: Number(r.cnt),
+      stars: Number(r.stars),
+      freeStars: Number(r.free_stars),
+      users: Number(r.users),
+    }));
+  // 🔴 `?? []` 도 마찬가지다 — 빈 배열은 "소모 0"과 똑같이 렌더된다. 실패를 따로 들고 올라간다.
+  const spendFailed = Boolean(spendTRes.error) || Boolean(spendYRes.error);
+  const spendT = toGroups(spendTRes.data);
+  const spendY = toGroups(spendYRes.data);
   type SpendGroup = (typeof spendT)[number];
   const sumBy = (list: typeof spendT, pred: (g: SpendGroup) => boolean) =>
     list.filter(pred).reduce((s, g) => ({ stars: s.stars + g.stars, free: s.free + g.freeStars }), { stars: 0, free: 0 });
@@ -142,6 +122,7 @@ async function loadStats() {
     supa.rpc("admin_traffic_trend", { p_since: yesterday, p_exclude }),
     supa.rpc("admin_traffic_visitor_mix", { p_since: yesterday, p_exclude }),
   ]);
+  const trafficFailed = Boolean(trendRes.error) || Boolean(mixRes.error);
   const pv = pickTodayYesterday(
     fillTrafficAxis(
       ((trendRes.data ?? []) as { bucket: string; uv: number; pv: number }[]).map((r) => ({
@@ -185,12 +166,13 @@ async function loadStats() {
     ? supa.from("readings").select("id", { count: "exact", head: true }).gte("created_at", yesterday).lt("created_at", today).not("skill_key", "is", null).not("user_id", "in", excl)
     : supa.from("readings").select("id", { count: "exact", head: true }).gte("created_at", yesterday).lt("created_at", today).not("skill_key", "is", null);
   const [apRes, skTRes, skYRes] = await Promise.all([apQ, skT, skY]);
+  // 패스 구매 건수는 별 소모 집계에서 뽑는다 — RPC 가 source='relationship_pass' 를 통째로
+  // (relationship, '패스') 한 그룹에 넣으므로 그 그룹의 건수 = 구매 건수다(원장을 세던 것과 동치).
+  const passBuys = (list: StarSpendGroup[]) =>
+    list.find((g) => g.domain === "relationship" && g.product === "패스")?.count ?? 0;
   const rel = {
     activePasses: apRes.count ?? 0,
-    passBuys: {
-      today: todayTx.filter((t) => t.source === "relationship_pass").length,
-      yesterday: yestTx.filter((t) => t.source === "relationship_pass").length,
-    },
+    passBuys: { today: passBuys(spendT), yesterday: passBuys(spendY) },
     skillCalls: { today: skTRes.count ?? 0, yesterday: skYRes.count ?? 0 },
   };
 
@@ -203,7 +185,23 @@ async function loadStats() {
     star,
     rel,
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
+    // 실패한 RPC 블록. 화면이 0 대신 "—" + 경고 한 줄을 그리는 데 쓴다.
+    failed: { revenue: revenueFailed, spend: spendFailed, traffic: trafficFailed },
   };
+}
+
+// 🔴 RPC 실패를 0/빈 배열로 위장하지 않는다. `?? 0` · `?? []` 폴백은 "쿼리가 실패했다"와
+//    "값이 진짜 0이다"를 구분 불가능하게 만든다 — 조용한 오답이 2026-07-28 cap 사고의 본질이었다
+//    (완료율을 21% 로 표시, 실제 63.7%). 실패한 블록만 값을 "—" 로 내리고 이 줄을 띄우며,
+//    나머지 블록은 그대로 그린다(throw 하면 멀쩡한 지표까지 같이 사라진다).
+//    ⚠️ /admin/paywall 에도 같은 컴포넌트가 있다. 공용 컴포넌트로 뽑는 건 별건.
+function LoadFailed({ block }: { block: string }) {
+  return (
+    <p className="text-[12px] text-amber-300/80 mb-3">
+      ⚠️ {block} 조회에 실패했다 — 숫자를 0으로 위장하지 않고 이 줄을 띄운다. 서버 로그와
+      /admin/errors 를 확인할 것.
+    </p>
+  );
 }
 
 export default async function AdminDashboard() {
@@ -218,6 +216,10 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
+        {s.failed.revenue && <LoadFailed block="매출(admin_dashboard_revenue)" />}
+        {s.failed.traffic && (
+          <LoadFailed block="UV/PV·방문자 구성(admin_traffic_trend · admin_traffic_visitor_mix)" />
+        )}
         {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)·탈퇴는 뒤. 매일 먼저 보는 값을
             왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
             /admin/traffic 과 같은 정의 (자세한 분해는 그 화면) */}
@@ -228,12 +230,12 @@ export default async function AdminDashboard() {
           <Stat label="리딩" value={s.today.readings}>
             <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
           </Stat>
-          <Stat label="매출(원)" value={s.today.revenueWon.toLocaleString()}>
-            <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />
+          <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.today.revenueWon.toLocaleString()}>
+            {!s.failed.revenue && <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />}
           </Stat>
           <Stat
             label="UV"
-            value={s.today.uv.toLocaleString()}
+            value={s.failed.traffic ? "—" : s.today.uv.toLocaleString()}
             sub={
               s.today.mixUv > 0 ? (
                 <>
@@ -244,10 +246,10 @@ export default async function AdminDashboard() {
               ) : undefined
             }
           >
-            <Delta today={s.today.uv} yesterday={s.yesterday.uv} />
+            {!s.failed.traffic && <Delta today={s.today.uv} yesterday={s.yesterday.uv} />}
           </Stat>
-          <Stat label="PV" value={s.today.pv.toLocaleString()}>
-            <Delta today={s.today.pv} yesterday={s.yesterday.pv} />
+          <Stat label="PV" value={s.failed.traffic ? "—" : s.today.pv.toLocaleString()}>
+            {!s.failed.traffic && <Delta today={s.today.pv} yesterday={s.yesterday.pv} />}
           </Stat>
           <Stat label="탈퇴" value={s.today.withdrawals}>
             <Delta today={s.today.withdrawals} yesterday={s.yesterday.withdrawals} invert />
@@ -256,6 +258,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
+        {s.failed.revenue && <LoadFailed block="매출(admin_dashboard_revenue)" />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="신규 가입" value={s.all.newUsers}>
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />
@@ -275,27 +278,35 @@ export default async function AdminDashboard() {
           <Stat label="리딩" value={s.all.readings}>
             <Delta today={s.all.readings} yesterday={s.all.readings - s.today.readings} label="어제까지" />
           </Stat>
-          <Stat label="매출(원)" value={s.all.revenueWon.toLocaleString()}>
-            <Delta today={s.all.revenueWon} yesterday={s.all.revenueWon - s.today.revenueWon} label="어제까지" />
+          <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.all.revenueWon.toLocaleString()}>
+            {!s.failed.revenue && (
+              <Delta today={s.all.revenueWon} yesterday={s.all.revenueWon - s.today.revenueWon} label="어제까지" />
+            )}
           </Stat>
         </div>
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · KST 자정 기준)</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {starCard("타로 대화", s.star.tarot)}
-          {starCard("운세 리포트", s.star.fortune)}
-          {starCard("인챗 업셀", s.star.upsell)}
-          {starCard("연애 상담", s.star.relationship)}
-          {starCard("연애 스킬 소환", s.star.relSkill)}
-        </div>
+        {s.failed.spend ? (
+          <LoadFailed block="별 소모(admin_star_spend_breakdown)" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {starCard("타로 대화", s.star.tarot)}
+            {starCard("운세 리포트", s.star.fortune)}
+            {starCard("인챗 업셀", s.star.upsell)}
+            {starCard("연애 상담", s.star.relationship)}
+            {starCard("연애 스킬 소환", s.star.relSkill)}
+          </div>
+        )}
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">연애 상담 <span className="text-white/35">(오늘 · 활성 패스는 현재 시점)</span></h2>
+        {/* 패스 구매만 별 소모 RPC 출처다 — 활성 패스·스킬 호출은 별도 count 쿼리라 영향 없다. */}
+        {s.failed.spend && <LoadFailed block="패스 구매(admin_star_spend_breakdown)" />}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Stat label="활성 패스" value={s.rel.activePasses} />
-          <Stat label="패스 구매" value={s.rel.passBuys.today}>
-            <Delta today={s.rel.passBuys.today} yesterday={s.rel.passBuys.yesterday} />
+          <Stat label="패스 구매" value={s.failed.spend ? "—" : s.rel.passBuys.today}>
+            {!s.failed.spend && <Delta today={s.rel.passBuys.today} yesterday={s.rel.passBuys.yesterday} />}
           </Stat>
           <Stat label="스킬 호출" value={s.rel.skillCalls.today}>
             <Delta today={s.rel.skillCalls.today} yesterday={s.rel.skillCalls.yesterday} />

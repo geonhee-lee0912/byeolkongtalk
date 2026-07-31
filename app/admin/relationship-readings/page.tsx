@@ -42,96 +42,75 @@ interface ThreadRow {
   createdAt: string;
 }
 
-async function load(): Promise<ThreadRow[]> {
+async function load(): Promise<{ threads: ThreadRow[]; total: number; truncated: boolean }> {
   const supa = getServiceSupabase();
-  const nowIso = new Date().toISOString();
+  // 활성 패스 판정 시각 — 앱이 한 번 찍어 넘긴다(현행 nowIso 와 같은 역할).
+  const { data } = await supa.rpc("admin_relationship_threads", {
+    p_now: new Date().toISOString(),
+    p_limit: THREAD_LIMIT,
+  });
 
-  const [{ data: relsAll }, { data: passesAll }, { data: extendsAll }, { data: skillsAll }, { data: skillTxsAll }] = await Promise.all([
-    supa.from("relationships")
-      .select("id, user_id, label, status, thread_reading_id, last_visited_at, created_at")
-      .order("created_at", { ascending: false }),
-    supa.from("relationship_passes").select("relationship_id, kind, stars_spent, expires_at"),
-    supa.from("star_transactions").select("reading_id, amount").eq("source", "rel_extend"),
-    supa.from("readings").select("relationship_id, skill_key, stars_spent").not("skill_key", "is", null),
-    // 인-스레드 스킬 4종(verdict/compat/checkin/deep_feelings)은 readings row 를 안 만들고
-    // star_transactions 에 source='rel_skill_<key>' 로만 남는다(reading_id=스레드 본체 reading).
-    // 환불(rel_skill_*_refund)은 charge_stars 경유라 type='charge' — type='spend' 로 제외.
-    supa.from("star_transactions").select("reading_id, amount, source").like("source", "rel_skill_%").eq("type", "spend"),
-  ]);
-  const rels = relsAll ?? [];
-  const passes = passesAll ?? [];
-  const extendTxs = extendsAll ?? [];
-  const skills = skillsAll ?? [];
-  const skillTxs = skillTxsAll ?? [];
+  // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
+  // ⚠️ RPC 가 created_at DESC 로 이미 정렬해 준다 — 앱에서 다시 정렬하지 않는다.
+  const rows = (data ?? []) as {
+    id: string;
+    user_id: string;
+    label: string;
+    status: string;
+    msg_count: number;
+    skill_count: number;
+    skill_spend: number;
+    active_pass_kind: string | null;
+    active_pass_expires_at: string | null;
+    total_spend: number;
+    last_visited_at: string | null;
+    created_at: string;
+    total_count: number;
+  }[];
 
-  const threadIds = rels.map((r) => r.thread_reading_id).filter(Boolean) as string[];
-  const msgCountByThread = new Map<string, number>();
-  if (threadIds.length) {
-    const { data } = await supa.from("messages").select("reading_id").in("reading_id", threadIds).limit(100000);
-    for (const m of data ?? []) msgCountByThread.set(m.reading_id, (msgCountByThread.get(m.reading_id) ?? 0) + 1);
-  }
-
-  const spendByRel = new Map<string, number>();
-  const addSpend = (relId: string | null, amount: number | null) => {
-    if (!relId || !amount) return;
-    spendByRel.set(relId, (spendByRel.get(relId) ?? 0) + Math.abs(amount));
-  };
-  const activePassByRel = new Map<string, { kind: string; expiresAt: string }>();
-  for (const p of passes) {
-    addSpend(p.relationship_id, p.stars_spent);
-    if (p.expires_at > nowIso) {
-      const cur = activePassByRel.get(p.relationship_id);
-      if (!cur || p.expires_at > cur.expiresAt) activePassByRel.set(p.relationship_id, { kind: p.kind, expiresAt: p.expires_at });
-    }
-  }
-  const relByThread = new Map(rels.filter((r) => r.thread_reading_id).map((r) => [r.thread_reading_id as string, r.id]));
-  for (const t of extendTxs) addSpend(t.reading_id ? relByThread.get(t.reading_id) ?? null : null, t.amount);
-
-  const skillCountByRel = new Map<string, number>();
-  const skillSpendByRel = new Map<string, number>();
-  for (const s of skills) {
-    if (!s.relationship_id) continue;
-    addSpend(s.relationship_id, s.stars_spent);
-    skillCountByRel.set(s.relationship_id, (skillCountByRel.get(s.relationship_id) ?? 0) + 1);
-    skillSpendByRel.set(s.relationship_id, (skillSpendByRel.get(s.relationship_id) ?? 0) + Math.abs(s.stars_spent ?? 0));
-  }
-  // 인-스레드 스킬 — reading_id(스레드 본체) → relationship_id 는 relByThread 로 환산.
-  // 과거 readings 기반(위 루프, 개별 스킬 reading 고유 id)과는 reading_id 공간이 겹치지 않아 중복 계상 없음.
-  for (const t of skillTxs) {
-    const relId = t.reading_id ? relByThread.get(t.reading_id) ?? null : null;
-    if (!relId) continue;
-    addSpend(relId, t.amount);
-    skillCountByRel.set(relId, (skillCountByRel.get(relId) ?? 0) + 1);
-    skillSpendByRel.set(relId, (skillSpendByRel.get(relId) ?? 0) + Math.abs(t.amount ?? 0));
-  }
-
-  return rels.map((r) => ({
+  const threads = rows.map((r) => ({
     id: r.id,
     userId: r.user_id,
     isAdmin: isAdminUserId(r.user_id),
     label: r.label,
     status: r.status,
-    msgCount: r.thread_reading_id ? msgCountByThread.get(r.thread_reading_id) ?? 0 : 0,
-    skillCount: skillCountByRel.get(r.id) ?? 0,
-    skillSpend: skillSpendByRel.get(r.id) ?? 0,
-    activePass: activePassByRel.get(r.id) ?? null,
-    totalSpend: spendByRel.get(r.id) ?? 0,
+    msgCount: Number(r.msg_count),
+    skillCount: Number(r.skill_count),
+    skillSpend: Number(r.skill_spend),
+    activePass:
+      r.active_pass_kind && r.active_pass_expires_at
+        ? { kind: r.active_pass_kind, expiresAt: r.active_pass_expires_at }
+        : null,
+    totalSpend: Number(r.total_spend),
     lastVisitedAt: r.last_visited_at,
     createdAt: r.created_at,
   }));
+
+  // 헤더 건수는 목록 길이가 아니라 LIMIT 전 전체 행수에서 뽑는다 — 상한에 걸려도 실제 규모를 말한다.
+  return {
+    threads,
+    total: Number(rows[0]?.total_count ?? 0),
+    truncated: threads.length >= THREAD_LIMIT,
+  };
 }
 
 export default async function AdminRelationshipReadings() {
-  const threads = await load();
+  const { threads, total, truncated } = await load();
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">
-        연애 상담 리딩 <span className="text-white/40 text-sm font-normal">전체 {threads.length}건 · 스레드(관계) 단위</span>
+        연애 상담 리딩 <span className="text-white/40 text-sm font-normal">전체 {total}건 · 스레드(관계) 단위</span>
       </h1>
       <p className="text-[13px] text-white/50">
         패스·턴 연장·스킬 구매는 스레드에 귀속 — 행을 열면 대화·구매 타임라인. 성과 지표는 분석·성과 &gt; 연애 상담.
       </p>
+      {truncated && (
+        <p className="text-[12px] text-amber-300/80">
+          ⚠️ 관계가 조회 상한({THREAD_LIMIT})에 닿아 표가 전부를 보여주지 못한다. 위 건수가 실제
+          규모다 — 페이지네이션을 붙이거나 상한을 올릴 것. 조용히 잘리지 않게 이 줄을 띄운다.
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-white/50 text-left">
