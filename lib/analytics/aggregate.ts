@@ -103,6 +103,31 @@ export function buildProductBreakdown(
 
 export type TrendPoint = { date: string; newUsers: number; readings: number; revenueWon: number };
 
+/**
+ * RPC(admin_analytics_trend) 의 일별 행에 날짜 축을 채운다(없는 날 0). 축 밖 날짜는 버린다.
+ * RPC 는 데이터가 있는 날만 반환하므로, 수집이 끊긴 날이 행째로 사라지면 그래프가 거짓말을 한다.
+ *
+ * ⚠️ `lib/analytics/traffic.ts` 의 `fillTrafficAxis` 와 **같은 알고리즘의 쌍둥이**다(포인트 타입만
+ *    다르다). 한쪽의 축 의미론을 바꾸면(예: 축 밖 날짜를 버리는 대신 클램프) 두 그래프가 조용히
+ *    갈린다 — 반드시 양쪽을 함께 고칠 것.
+ */
+export function fillTrendAxis(rows: TrendPoint[], days: number, todayKst: string): TrendPoint[] {
+  const byDate = new Map(rows.map((r) => [r.date, r]));
+  const base = new Date(`${todayKst}T00:00:00Z`);
+  const out: TrendPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
+    const hit = byDate.get(d);
+    out.push({
+      date: d,
+      newUsers: hit?.newUsers ?? 0,
+      readings: hit?.readings ?? 0,
+      revenueWon: hit?.revenueWon ?? 0,
+    });
+  }
+  return out;
+}
+
 export function buildTrends(input: {
   users: { created_at: string }[];
   readings: { created_at: string }[];

@@ -239,3 +239,35 @@ test("buildRelationshipFlow: 소프트캡(하루 20턴) 도달", () => {
   assert.equal(f.visits, 1);
   assert.equal(f.softCapDays, 1);
 });
+
+// ── RPC 행 → 화면용 날짜 축 채우기 ────────────────────────────────────────────
+// admin_analytics_trend 는 데이터가 있는 날만 반환한다. 축을 앱에서 채우지 않으면 수집이 끊긴
+// 날이 행째로 사라져 그래프가 "그날은 0" 과 "그날은 없음" 을 구분 못 하게 된다.
+
+import { fillTrendAxis } from "./aggregate.ts";
+
+test("fillTrendAxis — 데이터 없는 날도 0 으로 축에 남는다", () => {
+  const out = fillTrendAxis([{ date: "2026-07-31", newUsers: 4, readings: 5, revenueWon: 5900 }], 3, "2026-07-31");
+  assert.deepEqual(out.map((p) => p.date), ["2026-07-29", "2026-07-30", "2026-07-31"]);
+  assert.deepEqual(out.map((p) => p.newUsers), [0, 0, 4]);
+  assert.deepEqual(out.map((p) => p.revenueWon), [0, 0, 5900]);
+});
+
+test("fillTrendAxis — 축 밖(조회 경계 걸침) 날짜는 버린다", () => {
+  const out = fillTrendAxis(
+    [
+      { date: "2026-07-01", newUsers: 9, readings: 9, revenueWon: 9 }, // 축 밖
+      { date: "2026-07-31", newUsers: 4, readings: 5, revenueWon: 5900 },
+    ],
+    2,
+    "2026-07-31"
+  );
+  assert.equal(out.length, 2);
+  assert.equal(out.find((p) => p.date === "2026-07-01"), undefined);
+});
+
+test("fillTrendAxis — 오름차순(오래된 날 → 오늘). 차트 x축 방향 계약", () => {
+  const out = fillTrendAxis([], 4, "2026-07-31");
+  assert.deepEqual(out.map((p) => p.date), ["2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31"]);
+  assert.ok(out.every((p) => p.newUsers === 0 && p.readings === 0 && p.revenueWon === 0));
+});

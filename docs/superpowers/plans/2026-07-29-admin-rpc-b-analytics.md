@@ -755,15 +755,24 @@ import { FORTUNE_CONFIG } from "@/lib/fortune/types";
       revenueWon: Number(r.revenue_won ?? 0),
     }))
     .sort((a, b) => b.revenueWon - a.revenueWon);
-  const passes = (pass.data ?? []).map(
+  // 🔴 2026-07-31 정정 — 이 스니펫의 원본은 화면을 크래시시켰다.
+  //    변수명이 `passes` 였고 필드가 { starsSpent, buyers } 였는데, 소비처
+  //    app/admin/analytics/page.tsx 는 `relPasses` 를 읽고 `{ stars, users }` 를 쓴다
+  //    (`p.stars.toLocaleString()`). 그대로 따르면 undefined.toLocaleString() =
+  //    연애 상담 표의 하드 렌더 크래시(조용한 공백이 아니다).
+  //    → 살아있는 응답 형태를 보존하는 아래 매핑이 정답이다.
+  const relPasses = (pass.data ?? []).map(
     (r: { pass_kind: string; cnt: number; stars: number; buyers: number }) => ({
       kind: r.pass_kind,
       count: Number(r.cnt),
-      starsSpent: Number(r.stars),
-      buyers: Number(r.buyers),
+      stars: Number(r.stars),
+      users: Number(r.buyers),
     })
   );
 ```
+⚠️ **교훈**: 이 플랜의 매핑 스니펫은 응답 형태를 **추측해서** 쓴 것이다. 어떤 라우트를 전환하든
+소비처(page/component)의 필드명을 **먼저 읽어 확인**하고, 가능하면 이미 export 된 타입으로
+매핑 결과를 annotate 해 컴파일러가 계약을 강제하게 할 것.
 
 `readings`(E1)·`payments`(E2)·`relationship_passes`(E5) 쿼리와 `buildProductBreakdown` 호출, 인라인 `passAgg` 블록을 삭제한다. `star_transactions`(E3)·`readings in()`(E4) 조회와 `buildStarSpendBreakdown` 호출은 **그대로 둔다.**
 
