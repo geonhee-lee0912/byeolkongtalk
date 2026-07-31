@@ -1,0 +1,28 @@
+# push 마다 유닛 테스트 자동 실행 — 코드 파일이 바뀐 push 에서만 (문서-only 커밋은 스킵).
+# 배경: 2026-07-30 prod 크래시(레거시 타로 결과 화면 e.href)는 회귀 테스트가 있었다면
+# 배포 전에 잡혔다. 테스트가 수동 실행뿐이라 깜빡하면 무용지물이어서 자동화.
+name: test
+
+on:
+  push:
+    paths:
+      - "**.ts"
+      - "**.tsx"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/test.yml"
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # qa/ 는 제외 — 실 CLAUDE_API_KEY 를 로드 시점에 요구하는 로컬 QA 하네스(.env.local 전용)
+      - name: unit tests
+        run: node --import tsx --test $(find . -name "*.test.ts" -not -path "./node_modules/*" -not -path "./qa/*")
