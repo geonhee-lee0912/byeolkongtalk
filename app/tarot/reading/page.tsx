@@ -13,6 +13,7 @@ import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { RECO_MARKER_REGEX, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
+import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet from "@/components/upsell/ClarifierSheet";
@@ -137,6 +138,10 @@ function TarotReadingInner() {
   const runIdleNudgeRef = useRef<() => void>(() => {});
   // W3 출구 nudge — 출구 칩 노출 상태
   const [exitOffer, setExitOffer] = useState(false);
+  // 노출 계측 1회 발사 가드. 유저가 다시 말하면 idleStage 가 0 으로 리셋돼 칩이 재노출될 수
+  // 있는데, 그때마다 찍으면 count(*) 가 부풀어 "노출 대비 클릭률"이 다시 오독된다.
+  // 마운트 1개 = 리딩 1개라 ref 하나로 충분하다
+  const exitShownLoggedRef = useRef(false);
 
   // 컨텍스트 로드 + reading 생성 + 첫 풀이 자동 시작
   useEffect(() => {
@@ -640,6 +645,18 @@ function TarotReadingInner() {
       idleStageRef.current = 3; // 종료 — 더는 무장하지 않음
       pushNudge(EXIT_NUDGE);
       setExitOffer(true);
+      // 노출 계측 — "칩이 안 떴다" vs "떴는데 안 눌렀다" 를 가르는 유일한 신호
+      if (!exitShownLoggedRef.current) {
+        exitShownLoggedRef.current = true;
+        trackUiEvent("exit_chip_shown", {
+          readingId,
+          meta: {
+            surface: "tarot",
+            turns: countUserTurns(messagesRef.current),
+            spread: draw?.spreadType ?? null,
+          },
+        });
+      }
     }
   }
 
@@ -959,7 +976,17 @@ function TarotReadingInner() {
               <div className="flex justify-start pl-10 mt-1 mb-2">
                 <button
                   type="button"
-                  onClick={() => handleFinish(FINISH_PHRASE_EXIT)}
+                  onClick={() => {
+                    // 발사 후 망각 — 실패해도 아래 종료 흐름을 막지 않는다
+                    trackUiEvent("exit_chip_clicked", {
+                      readingId,
+                      meta: {
+                        surface: "tarot",
+                        turns: countUserTurns(messages),
+                      },
+                    });
+                    handleFinish(FINISH_PHRASE_EXIT);
+                  }}
                   className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
                 >
                   ✨ 결과 카드 보기

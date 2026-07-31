@@ -80,7 +80,7 @@ docs/superpowers/{specs,plans}/
 - **사주는 상담 진입 폐쇄** — `/select` 는 `/concern` 리다이렉트 스텁(구 링크 하위호환). `/saju*` 는 기존 reading 열람·resume 전용. 새 사주 수요는 `/fortune` **one-shot 리포트**가 받는다
 - `/relationship` "연애 상담" — 지속 대화형 스레드(종결 없음). 미등록=콜드스타트+상대등록 / 등록=스레드
 - 이어가기: 완료 reading 참조 새 reading(`/api/readings/continue`, `previous_reading_id`+`continuation_mode`). deep = 정가×0.6. UI 는 `ContinuationModal`(타로만 fresh 버튼 있음, 사주는 deep 단일)
-- 레이아웃 (`components/layout/`): `AppShell` 이 pathname 기반(`/login` 제외) `Header`+`BottomTab` 자동 부착(`pb-20`). **BottomTab 5탭** = 고민톡`/` · 별콩 운세`/fortune` · 연애 상담`/relationship` · 별콩 상점`/shop` · 내 정보`/mypage`. 보관함`/readings` 는 내 정보에서 진입(`?from=history` 시 내 정보 탭 하이라이트). `Footer` 는 홈에서만
+- 레이아웃 (`components/layout/`): `AppShell` 이 pathname 기반(`/login` 제외) `Header`+`BottomTab` 자동 부착(`pb-20`). **BottomTab 5탭** = 고민톡`/` · 별콩 운세`/fortune` · 연애 상담`/relationship` · 별콩 상점`/shop` · 내 정보`/mypage`. 보관함`/readings` 는 내 정보에서 진입(`?from=history` 시 내 정보 탭 하이라이트). `Footer` 는 **홈과 마이페이지에서만**(마이페이지는 로그인 게이트 뒤라 크롤러가 보는 건 사실상 홈 하나 — SEO 상 중요)
 
 ## 현행 prod 상태 (기준 2026-07-27)
 
@@ -93,8 +93,8 @@ docs/superpowers/{specs,plans}/
 - **타로 프리미엄(5장+)**: 첫 풀이 3라벨 골격(🃏💫🔗) + 카드당 6~7문장 + `[CARD:n]` 마커 선행 강제. 수렴 임계치는 카드 수 기준(`WRAP_THRESHOLDS`)
 - **next_reco 중단** — haiku 태깅 off + 결과 화면 추천 카드 제거. **인챗 칩(clarifier·extend·이어가기)과 `components/reco/RecoInlineCard` 는 생존**
 - **계측**: `page_views` + `/api/pv` + `/admin/traffic` · 탈퇴 시 utm 스냅샷 보존 · `PROMPT_VERSION`(`lib/prompt-version.ts`) 코호트
-- ⚠️ **`[END]` → 결과는 자동 이동이 아니라 수동 [결과 보기 →] 버튼**(`tarot/reading:1019`·`saju/reading:641`). 이 한 탭이 "종료했으나 미열람"의 원인이고 `result_viewed_at` 은 **"버튼을 눌렀나"**를 잰다. 픽스 예정 — `specs/2026-07-26-unviewed-results-findings.md`
-- ⚠️ **측정 창 규율** — 수익성 판정 사이클 진행 중(day 0 = 2026-07-26). **퍼널에 닿는 변경은 지정된 배포 슬롯에서만.** 상세는 메모리 `w1-w7-work-queue`
+- ⚠️ **`[END]` → 결과는 자동 이동이 아니라 수동 [결과 보기 →] 버튼**. `result_viewed_at` 은 사실상 **"버튼을 눌렀나"**를 잰다. 🚫 **자동 이동은 2026-07-31 기각** — 유저 통제를 뺏고, 게다가 이 지표가 "종료 도달"과 같아져 **정의상 소멸**한다. 미열람의 본체는 어차피 **종료 동작 자체를 안 하는 53%** 쪽이다 — `specs/2026-07-26-unviewed-results-findings.md` 를 그 축으로 재검토할 것
+- 🗑️ **측정 창 규율(수익성 판정 사이클) 폐기 (2026-07-31)** — 광고 배급 붕괴로 관측 창이 오염돼 사이클이 깨졌다. day 0·d4~d28 캘린더·배포 슬롯 규율 전부 삭제. 다음 로드맵은 새로 짠다. 실측 판독과 판독 도구(`scripts/cycle-snapshot-*.sql`)는 살아 있다 — 메모리 `w1-w7-work-queue`
 
 ## 코딩 규칙
 
@@ -135,7 +135,7 @@ docs/superpowers/{specs,plans}/
 
 ## 운영 함정 (실사고 기록)
 
-- **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `middleware.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). middleware 를 건드릴 때 이 사실을 기억할 것
+- **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `proxy.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). proxy 를 건드릴 때 이 사실을 기억할 것
 - **날짜 기준 = 전부 KST 자정** (2026-07-31 통일, `20260731000000`). 이전엔 `/admin`·`/admin/traffic` 만 오전 10시 롤오버라 같은 "오늘"이 화면마다 다른 날을 뜻했다 — 실측 왜곡이 컸다(07-25 UV 10시 63 vs 자정 27 = 2.3배). 버킷의 단일 원천은 `lib/admin-time.ts` 의 `kstDate`(3함수만 존재, 계약은 `lib/admin-time.test.ts` 가 지킴) / SQL 은 `(created_at at time zone 'UTC' + interval '9 hours')::date` — **`at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다**
   - ⚠️ **한 화면에 UV 정의가 2개다**(의도된 것): `/admin/traffic` 의 일별 추세 UV = **페이지뷰 귀속**(PV 와 짝) / 방문자 구성 UV = **세션 시작 귀속**(30분 갭, `SESSION_GAP`). 실측 차이 하루 최대 1명. 같은 값으로 기대하지 말 것
   - ⚠️ 과거 판독 문서(`specs/2026-07-29-admin-expected-values.md`·`specs/2026-07-30-d4-snapshot-findings.md`)의 **일별 표는 10시 기준**이라 재실행하면 다른 숫자가 나온다. 🔴 재방문율은 퍼센트가 아니라 **실인원**으로 읽을 것(분자가 1~3명)
@@ -152,7 +152,8 @@ docs/superpowers/{specs,plans}/
 
 ## 보류된 부채
 
-- **`middleware.ts` → `proxy.ts` rename** (Next 16 deprecation). 코드모드 `npx @next/codemod@canary middleware-to-proxy .` = 파일명+함수명만. ⚠️ **실패가 조용하다** — 인식 안 되면 크래시 없이 anon 쿠키 미발급(계측 오염) + `/admin` 페이지 가드 소실. deprecated 지 제거 아니라 마감 없음. 검증 3종: 새 시크릿 창 anon 쿠키 발급 / 토큰 없이 `/admin` → 리다이렉트 / 두 파일 공존 없음
+- ✅ **`middleware.ts` → `proxy.ts` 전환 완료 (2026-07-31)**. Next 16 은 루트 `proxy.ts` + `export function proxy(req)` 를 쓴다(`config` 는 그대로 · 문서 `node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`). 코드모드 대신 수동 rename — 병렬 작업 중 리포 전체 코드모드가 위험했고, 실제 변경이 파일명+함수명뿐이라 얻는 게 없었다.
+  ⚠️ **이 전환은 조용히 실패한다** — 인식이 안 되면 크래시 없이 anon 쿠키 미발급(계측 전체 오염) + `/admin` 페이지 가드 소실. 그래서 검증 3종이 필수다: ①빌드 라우트 표에 `ƒ Proxy` 가 뜨는가 ②새 시크릿 창에서 anon 쿠키 발급 ③토큰 없이 `/admin` → 리다이렉트
 
 ## 관련
 

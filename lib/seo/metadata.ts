@@ -28,6 +28,12 @@ import type { Metadata } from "next";
  *  대신 lib/seo/slugs.test.ts 가 두 파일을 대조해 드리프트를 잡는다. */
 export const OG_IMAGE_ALT = "별콩톡 - 사주와 타로로 고민을 나누는 친구";
 
+/** app/layout.tsx 의 `title.template` 과 반드시 같은 문자열.
+ *  하위 라우트를 가진 세그먼트가 title 을 덮어쓸 때 이 접미사가 끊기지 않게 다시 심는다.
+ *  루트에서 import 해 오지 않는 이유는 OG_IMAGE_ALT 와 같다(그쪽이 원본, 여기는 사본) —
+ *  드리프트는 lib/seo/slugs.test.ts 가 두 파일 소스를 대조해 잡는다. */
+export const TITLE_TEMPLATE = "%s · 별콩톡";
+
 const OG_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
@@ -65,5 +71,36 @@ export function contentMetadata(opts: {
       description,
       images: [OG_IMAGE],
     },
+  };
+}
+
+/** 로그인·결제·상담 진행처럼 검색 결과에 뜨면 안 되는 화면용.
+ *
+ *  ⚠️ 여기서 `openGraph`/`twitter` 를 **일부러 선언하지 않는다.** Next 는 그 두 키를
+ *  선언한 세그먼트에서 객체 통째로 교체하므로(위 주석), 일부만 적으면 루트가 주던
+ *  siteName·locale·type 과 app/opengraph-image.tsx 의 og:image 4종이 조용히 날아간다.
+ *  키를 아예 빼면 루트 값이 그대로 상속된다 — 카톡 공유는 이 화면들에서도 살아 있어야 하니
+ *  그게 맞는 동작이다. "여기도 og 를 채우자"는 손질은 곧 공유 카드 이미지 소실이다.
+ *
+ *  ⚠️ `canonical: null` 은 자기참조 canonical 을 빼먹은 게 아니라 **명시적 해제**다.
+ *  루트 layout 이 `canonical: "/"` 를 선언해 두어서, 하위가 alternates 를 안 주면
+ *  이 화면들이 전부 "나는 사실 홈이다"라고 신고한다(실제 결함이었다).
+ *  noindex 와 타 페이지 canonical 이 겹치면 구글이 noindex 를 canonical 대상(=홈)으로
+ *  옮겨 해석할 수 있어 자기참조보다 해제가 안전하고, 트리 하위로 상속되므로
+ *  새 하위 라우트가 layout 을 안 만들어도 홈 canonical 로 되돌아가지 않는다. */
+export function noindexMetadata(opts: {
+  /** ⚠️ 하위 라우트가 있는 트리 루트(예: /mypage, /tarot)는 평범한 문자열 대신
+   *  `{ default, template: TITLE_TEMPLATE }` 를 준다. `title` 을 문자열로 주면 Next 가
+   *  그 세그먼트에서 루트 layout 의 title.template 을 끊어버려 자식들만 "· 별콩톡"
+   *  접미사를 잃는다(자기 자신은 멀쩡해서 눈에 잘 안 띈다). resolveTitle 은
+   *  부모 template 을 `default` 에도 적용하므로 트리 루트 자신의 제목은 그대로다. */
+  title: NonNullable<Metadata["title"]>;
+  description: string;
+}): Metadata {
+  return {
+    title: opts.title,
+    description: opts.description,
+    alternates: { canonical: null },
+    robots: { index: false, follow: false },
   };
 }

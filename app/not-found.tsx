@@ -1,5 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { noindexMetadata } from "@/lib/seo/metadata";
+
+// not-found 모듈의 metadata 는 실제로 수집된다(Next 가 errorConvention 으로 마지막에
+// 얹는다) — 이게 없으면 존재하지 않는 URL 전부가 루트 layout 의 canonical 을 물려받아
+// "이 깨진 주소는 사실 홈이다"라고 신고한다. 404 는 색인 대상도 아니다.
+export const metadata = noindexMetadata({
+  title: "페이지를 찾을 수 없어",
+  description: "주소를 잘못 입력했거나 흘러간 별일 수도 있어.",
+});
 
 export default function NotFound() {
   return (

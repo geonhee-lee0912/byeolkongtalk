@@ -15,7 +15,7 @@ const ADMIN_IDS = new Set(
     .filter(Boolean)
 );
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // /admin/* 및 /api/admin/* 가드 — 1차: 화이트리스트, 2차: HMAC 토큰. 둘 다 통과해야 진입
@@ -53,7 +53,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // 정적 자산/이미지/폰트는 미들웨어 우회
+  // 정적 자산/이미지/폰트는 proxy 우회
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|fonts/|api/og).*)",
   ],

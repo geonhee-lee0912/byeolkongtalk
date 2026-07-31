@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { contentMetadata, OG_IMAGE_ALT } from "./metadata.ts";
+import {
+  contentMetadata,
+  noindexMetadata,
+  OG_IMAGE_ALT,
+  TITLE_TEMPLATE,
+} from "./metadata.ts";
 import { buildCardSlug, findCardBySlug, getAllCardSlugs } from "./tarot-slugs.ts";
 import { buildSpreadSlug, findSpreadBySlug, getAllSpreadSlugs } from "./spread-slugs.ts";
 import { SLUG_TO_TAG, findTagBySlug } from "./tags.ts";
@@ -90,6 +95,35 @@ test("contentMetadata — og/twitter 공용 필드가 빠지지 않는다", () =
 
   const og = (m.openGraph?.images as { alt: string }[])[0];
   assert.equal(og.alt, OG_IMAGE_ALT);
+});
+
+test("noindexMetadata — canonical 을 명시 해제하고 og/twitter 키는 아예 두지 않는다", () => {
+  const m = noindexMetadata({ title: "내 정보", description: "설명" });
+
+  // undefined(=키 없음)면 루트 layout 의 canonical:"/" 가 상속돼 이 화면들이
+  // "나는 사실 홈이다"라고 신고한다 — 그게 원래 결함이었다. null 이어야 해제된다.
+  assert.ok("alternates" in m, "alternates 키가 없으면 루트 canonical 이 그대로 상속된다");
+  assert.equal(m.alternates?.canonical, null);
+  assert.deepEqual(m.robots, { index: false, follow: false });
+
+  // Next 는 openGraph/twitter 를 선언한 세그먼트에서 객체 통째로 교체한다.
+  // 여기에 일부만 채우는 순간 루트의 siteName·locale·type 과
+  // app/opengraph-image.tsx 의 og:image 4종이 조용히 사라진다(twitter:image 포함).
+  // 키를 아예 두지 않아야 루트 값이 온전히 상속된다.
+  assert.equal("openGraph" in m, false, "openGraph 를 선언하면 og:image 가 날아간다");
+  assert.equal("twitter" in m, false, "twitter 를 선언하면 twitter:image 가 날아간다");
+});
+
+test("TITLE_TEMPLATE 이 app/layout.tsx 의 title.template 과 갈리지 않는다", () => {
+  // 하위 라우트를 가진 세그먼트들이 이 사본으로 접미사를 다시 심는다.
+  // 루트만 바꾸면 그 화면들의 제목 접미사가 조용히 옛 문구로 남는다.
+  const src = readFileSync(
+    new URL("../../app/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  const m = src.match(/template: "([^"]*)"/);
+  assert.ok(m, "app/layout.tsx 에서 `title.template` 을 못 찾았다");
+  assert.equal(m[1], TITLE_TEMPLATE);
 });
 
 test("og:image alt 이 app/opengraph-image.tsx 와 갈리지 않는다", () => {

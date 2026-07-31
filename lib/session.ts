@@ -1,5 +1,5 @@
 // 세션/쿠키 헬퍼 (Next 16, cookies() async)
-// - byeolkong_anon_id: 게스트 식별자 (middleware 자동 발급)
+// - byeolkong_anon_id: 게스트 식별자 (proxy 자동 발급 — 구 middleware.ts)
 // - byeolkong_user_id: 카카오 로그인 후 발급 (users.id UUID)
 // - byeolkong_admin_token: ADMIN_USER_IDS 화이트리스트 유저만 발급 (HMAC-SHA256)
 

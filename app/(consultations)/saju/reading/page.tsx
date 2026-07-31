@@ -12,6 +12,7 @@ import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, RECO_MARKER_REGEX, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
+import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 
@@ -102,9 +103,13 @@ function ReadingInner() {
   } | null>(null);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // W3 출구 nudge — 마지막 응답의 wrap-mode (X-Wrap-Mode 헤더) + 출구 칩 상태
-  const wrapModeRef = useRef<"free" | "converge" | "hardcap">("free");
+  // W3 출구 nudge — 출구 칩 상태. (wrapModeRef 는 게이트 제거로 읽는 곳이 없어져 삭제했다.
+  //  타로도 같은 이유로 없다 — X-Wrap-Mode 헤더 자체는 서버가 계속 보낸다)
   const [exitOffer, setExitOffer] = useState(false);
+  // 노출 계측 1회 발사 가드. 유저가 다시 말하면 타이머가 재무장돼 칩이 재노출될 수 있는데,
+  // 그때마다 찍으면 count(*) 가 부풀어 "노출 대비 클릭률"이 다시 오독된다.
+  // 마운트 1개 = 리딩 1개라 ref 하나로 충분하다
+  const exitShownLoggedRef = useRef(false);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runExitNudgeRef = useRef<() => void>(() => {});
 
@@ -270,15 +275,24 @@ function ReadingInner() {
   function runExitNudge() {
     if (isStreaming || isEnded || !ctx) return;
     if (input.trim()) return;
-    const exitEligible =
-      wrapModeRef.current !== "free" || Object.keys(recoAttach).length > 0;
-    if (!exitEligible) return;
+    // 출구 칩 — 첫 턴부터 노출. 2026-07-26 P0-2 가 타로에만 적용돼 사주는 절반 상태였고
+    // 2026-07-31 에 맞췄다. 기존 게이트(`wrapMode !== "free" || recoAttach 있음`)는
+    // 수렴 이후에만 칩을 띄워서 **1턴 만족 이탈자가 결과 화면을 영영 못 보게** 했다.
+    // 근거: 결과 미도달 47.4% + 1턴 시점 마무리 안내 0. (타로 쪽 동일 주석 참조)
     const text = EXIT_NUDGE[Math.floor(Math.random() * EXIT_NUDGE.length)];
     setMessages((prev) => [
       ...prev,
       { role: "assistant", content: text, ephemeral: true },
     ]);
     setExitOffer(true);
+    // 노출 계측 — "칩이 안 떴다" vs "떴는데 안 눌렀다" 를 가르는 유일한 신호
+    if (!exitShownLoggedRef.current) {
+      exitShownLoggedRef.current = true;
+      trackUiEvent("exit_chip_shown", {
+        readingId: ctx.readingId,
+        meta: { surface: "saju", turns: countUserTurns(messages) },
+      });
+    }
   }
 
   useEffect(() => {
@@ -331,12 +345,6 @@ function ReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
-      }
-
-      // W3: wrap-mode 저장 — 출구 nudge 발동 기준
-      const wm = r.headers.get("X-Wrap-Mode");
-      if (wm === "free" || wm === "converge" || wm === "hardcap") {
-        wrapModeRef.current = wm;
       }
 
       const reader = r.body.getReader();
@@ -606,7 +614,14 @@ function ReadingInner() {
             <div className="flex justify-start pl-10 mt-1 mb-2">
               <button
                 type="button"
-                onClick={() => handleFinish(FINISH_PHRASE_EXIT)}
+                onClick={() => {
+                  // 발사 후 망각 — 실패해도 아래 종료 흐름을 막지 않는다
+                  trackUiEvent("exit_chip_clicked", {
+                    readingId: ctx.readingId,
+                    meta: { surface: "saju", turns: countUserTurns(messages) },
+                  });
+                  handleFinish(FINISH_PHRASE_EXIT);
+                }}
                 className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
               >
                 ✨ 결과 카드 보기

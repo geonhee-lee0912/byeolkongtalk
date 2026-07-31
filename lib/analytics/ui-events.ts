@@ -1,0 +1,66 @@
+// UI 이벤트 계측 — 이벤트 이름 allowlist(서버·클라 공용 원천) + 클라 전송 헬퍼.
+//
+// 왜 별도 파일인가: allowlist 를 라우트(app/api/event)와 호출처가 같은 원천으로 봐야 한다.
+// Next 는 route.ts 의 export 를 검사하므로 상수를 거기 둘 수 없다.
+//
+// ⚠️ /api/pv 재사용 금지 — pv 는 normalizePath 로 라우트 표를 만들기 때문에 가짜 경로를
+//    넣으면 /admin/traffic 이 오염된다 (supabase/migrations/20260731070000_ui_events.sql 참조).
+
+/**
+ * 서버가 받아들이는 이벤트 이름. 오타가 조용히 새 버킷을 만들어 아무도 집계하지 않는 일을 막는다.
+ * 값을 추가할 때 마이그레이션은 필요 없다(테이블의 event 는 자유 문자열) — 여기만 늘리면 된다.
+ */
+export const UI_EVENTS = [
+  /** 출구 칩(✨ 결과 카드 보기) 노출 — 리딩당 1회 */
+  "exit_chip_shown",
+  /** 출구 칩 탭 */
+  "exit_chip_clicked",
+] as const;
+
+export type UiEvent = (typeof UI_EVENTS)[number];
+
+export function isUiEvent(v: unknown): v is UiEvent {
+  return typeof v === "string" && (UI_EVENTS as readonly string[]).includes(v);
+}
+
+/** 유저가 실제로 발화한 턴 수. ephemeral(부재·출구 멘트)은 화면 전용이라 제외한다. */
+export function countUserTurns(
+  messages: readonly { role: string; ephemeral?: boolean }[]
+): number {
+  return messages.filter((m) => m.role === "user" && !m.ephemeral).length;
+}
+
+/**
+ * 클라 → /api/event 발사 후 망각(fire-and-forget).
+ *
+ * 절대 throw 하지 않고 절대 await 하지 않는다 — 계측이 제품 동작(종료 → 결과 화면)을
+ * 1ms 도 붙잡으면 안 된다. 오프라인·4xx·네트워크 끊김 전부 무음이고, unhandled rejection
+ * 조차 남기지 않는다(콘솔 노이즈가 곧 다음 사람의 오진이 된다).
+ *
+ * 탭 직후 화면 전환과 경쟁할 수 있어 sendBeacon 우선 + keepalive fetch 폴백
+ * (components/analytics/PageViewBeacon 과 동일 관행).
+ */
+export function trackUiEvent(
+  event: UiEvent,
+  payload?: { readingId?: string | null; meta?: Record<string, unknown> }
+): void {
+  if (typeof navigator === "undefined") return;
+  try {
+    const body = JSON.stringify({
+      event,
+      readingId: payload?.readingId ?? undefined,
+      meta: payload?.meta,
+    });
+    const blob = new Blob([body], { type: "application/json" });
+    // sendBeacon 은 큐가 차면 false 를 준다(예외 아님) → 그때만 fetch 로 재시도
+    if (navigator.sendBeacon?.("/api/event", blob)) return;
+    void fetch("/api/event", {
+      method: "POST",
+      body,
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+    }).catch(() => {});
+  } catch {
+    // 계측 실패는 무음
+  }
+}
