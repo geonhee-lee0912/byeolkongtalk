@@ -116,7 +116,14 @@ docs/superpowers/{specs,plans}/
 - **`users(id)` 참조 FK 는 반드시 `ON DELETE CASCADE` 또는 `SET NULL` 명시** — 없으면(NO ACTION) 회원 탈퇴 users DELETE 가 23503 으로 차단됨 (2026-07-17 `ad_spend.created_by` 사례: unlink 만 성공한 반쪽 탈퇴 → 재시도마다 -101 info 루프)
 - **페이지 metadata 의 `openGraph`/`twitter` 는 필드별 병합이 아니라 객체 통째 교체** — 페이지에서 `openGraph:{title}` 만 주면 루트 `app/layout.tsx` 의 `siteName`·`locale`·`type` 과 `app/opengraph-image.tsx` 가 붙이던 `og:image` 4종이 **조용히 사라진다**(`twitter:image` 까지). 콘텐츠 존은 `lib/seo/metadata.ts` 의 `contentMetadata()` 경유 — 공용 필드 재선언은 의도된 것이니 "중복"으로 지우지 말 것(계약 테스트가 막는다)
 - **신규 `consultation_type` 값 추가 시 컬럼 폭 확인** — `'relationship'`(12자)이 `VARCHAR(10)` 을 넘어 등록이 22001 로 죽은 사례. CHECK 에 값만 넣고 폭을 안 늘리면 조용히 실패한다
-- **어드민 집계는 원본 행을 앱으로 끌어오지 않는다** — `.limit(100000)` 은 아무것도 보장하지 않는다(Supabase `Max rows` 가 서버측 강제 상한). 새 어드민 화면·집계는 SQL 집계 RPC 또는 `count: "exact"` 로. 기존 38곳 전환 스펙 = `docs/superpowers/specs/2026-07-28-admin-aggregation-rpc-migration.md`
+- **어드민 집계는 원본 행을 앱으로 끌어오지 않는다** — `.limit(100000)` 은 아무것도 보장하지 않는다(Supabase `Max rows` 가 서버측 강제 상한이라 조용히 덮어쓴다). 새 어드민 화면·집계는 **SQL 집계 RPC** 또는 `count:"exact"` 로. ✅ **전환 완료 (2026-07-31)** — 실호출 `.limit(100000)` 0곳, `admin_*` RPC 20여 개. 스펙 `specs/2026-07-28-admin-aggregation-rpc-migration.md`
+  - 🔴 **새 집계 RPC 를 쓸 때 반드시 지킬 것 4가지** (전부 2026-07-31 에 실제로 물린 함정)
+    - **마이그레이션의 모든 함수 본문을 적용 전에 prod 에서 실행해볼 것.** 일부만 검증하면 나머지 하나의 오류로 **파일 전체가 실패**하고, 코드만 배포돼 화면이 깨진다(실사고 1건, 어드민 25분)
+    - **날짜식은 `(created_at at time zone 'UTC' + interval '9 hours')::date`.** `at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다
+    - **NULL 3값 논리** — `NOT (col LIKE … AND …)` 는 col 이 NULL 이면 false 가 아니라 **NULL** 이라 WHERE 가 그 행을 버린다(실측 30행 유실). `col IS NULL OR …` 을 명시할 것
+    - **`_` 는 LIKE 의 와일드카드다.** JS `startsWith("fortune_")` 를 `LIKE 'fortune_%'` 로 옮기면 안 된다 → `left(s,8)='fortune_'`
+  - **검증은 JS↔SQL 행 단위 diff 로.** prod 원본을 read-only 로 받아 로컬에서 기존 JS 를 돌리고 같은 스냅샷의 SQL 과 대조한다(별 소모 이식이 이 방식으로 그룹 41개 차이 0 확인). 함수 자체는 `service_role` 전용이라 `run-prod-query.mjs` 로 **직접 호출은 안 된다**(permission denied 가 정상) — 본문을 인라인해서 돌릴 것
+  - **표시용 목록**(행수가 데이터에 비례)은 `p_limit` + **눈에 보이는** 절단 경고, 또는 페이지네이션. 플래그만 두고 안 보여주면 의미가 없다. OFFSET 페이지네이션은 `ORDER BY` 에 **타이브레이커가 없으면 행이 중복·누락**된다
 
 ## dev/prod 분리
 
