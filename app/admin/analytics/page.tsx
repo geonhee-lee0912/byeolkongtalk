@@ -2,6 +2,7 @@
 import { headers } from "next/headers";
 import { LineChart } from "@/components/admin/LineChart";
 import { CohortHeatmap } from "@/components/admin/CohortHeatmap";
+import LoadFailed from "@/components/admin/LoadFailed";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 const REL_SKILL_LABEL: Record<string, string> = { checkin: "관계 체크인", deep_feelings: "걔 속마음", compat: "우리 궁합", verdict: "싸움 판정" };
@@ -20,16 +21,26 @@ function productLabel(domain: string, product: string): string {
 
 export const dynamic = "force-dynamic";
 
+// 실패는 null 로 돌려준다 — 호출부가 "값이 진짜 0" 과 "조회가 죽었다" 를 구분할 수 있어야 한다.
+// 라우트 4개는 RPC 가 실패하면 500 + { error:"query_failed" } 를 준다(가드 실패는 401/403).
+// 예외(네트워크·JSON 파싱)도 여기서 삼켜 null 로 바꾼다: 한 갈래가 죽어도 나머지 화면은 살린다.
 async function api(path: string) {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const cookie = h.get("cookie") ?? "";
-  const res = await fetch(`${proto}://${host}${path}`, {
-    headers: { cookie },
-    cache: "no-store",
-  });
-  return res.ok ? res.json() : null;
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    const cookie = h.get("cookie") ?? "";
+    const res = await fetch(`${proto}://${host}${path}`, {
+      headers: { cookie },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    // 라우트가 200 으로 { error } 를 실어 보낼 수도 있다 — 그것도 실패로 센다.
+    return json && typeof json === "object" && "error" in json ? null : json;
+  } catch {
+    return null;
+  }
 }
 
 export default async function AnalyticsPage() {
@@ -40,6 +51,11 @@ export default async function AnalyticsPage() {
     api(`/api/admin/analytics/products?days=${days}`),
     api(`/api/admin/analytics/cohorts`),
   ]);
+  // 4갈래는 서로 다른 라우트라 실패도 독립이다 — 죽은 갈래만 경고로 바꾸고 나머지는 그대로 그린다.
+  const trendsFailed = trends === null;
+  const funnelFailed = funnel === null;
+  const productsFailed = products === null;
+  const cohortsFailed = cohorts === null;
   const pts: { date: string; newUsers: number; readings: number; revenueWon: number }[] =
     trends?.points ?? [];
 
@@ -49,41 +65,49 @@ export default async function AnalyticsPage() {
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">추세</h2>
-        <LineChart
-          labels={pts.map((p) => p.date)}
-          series={[
-            { label: "가입", color: "#E8C26A", values: pts.map((p) => p.newUsers) },
-            { label: "리딩", color: "#B8A8D8", values: pts.map((p) => p.readings) },
-            { label: "매출(원)", color: "#9F8AD0", values: pts.map((p) => p.revenueWon) },
-          ]}
-        />
+        {trendsFailed ? (
+          <LoadFailed block="/api/admin/analytics/trends (admin_analytics_trend)" />
+        ) : (
+          <LineChart
+            labels={pts.map((p) => p.date)}
+            series={[
+              { label: "가입", color: "#E8C26A", values: pts.map((p) => p.newUsers) },
+              { label: "리딩", color: "#B8A8D8", values: pts.map((p) => p.readings) },
+              { label: "매출(원)", color: "#9F8AD0", values: pts.map((p) => p.revenueWon) },
+            ]}
+          />
+        )}
       </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">소재별 퍼널 · CAC · ROAS</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead className="text-white/50 text-left">
-              <tr>
-                <th className="py-1">소재</th><th>가입</th><th>체험</th><th>첫결제</th><th>재결제</th>
-                <th>가입→결제%</th><th>지출</th><th>CAC</th><th>매출</th><th>ROAS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(funnel?.rows ?? []).map((r: Record<string, number | string | null>) => (
-                <tr key={String(r.creative)} className="border-t border-white/10">
-                  <td className="py-1.5">{r.creative}</td>
-                  <td>{r.signups}</td><td>{r.tried}</td><td>{r.firstPaid}</td><td>{r.repaid}</td>
-                  <td>{r.signupToPaidPct}%</td>
-                  <td>{r.spendWon == null ? "—" : Number(r.spendWon).toLocaleString()}</td>
-                  <td>{r.cac == null ? "—" : Number(r.cac).toLocaleString()}</td>
-                  <td>{Number(r.revenueWon).toLocaleString()}</td>
-                  <td>{r.roas == null ? "—" : r.roas}</td>
+        {funnelFailed ? (
+          <LoadFailed block="/api/admin/analytics/funnel (admin_funnel)" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead className="text-white/50 text-left">
+                <tr>
+                  <th className="py-1">소재</th><th>가입</th><th>체험</th><th>첫결제</th><th>재결제</th>
+                  <th>가입→결제%</th><th>지출</th><th>CAC</th><th>매출</th><th>ROAS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(funnel?.rows ?? []).map((r: Record<string, number | string | null>) => (
+                  <tr key={String(r.creative)} className="border-t border-white/10">
+                    <td className="py-1.5">{r.creative}</td>
+                    <td>{r.signups}</td><td>{r.tried}</td><td>{r.firstPaid}</td><td>{r.repaid}</td>
+                    <td>{r.signupToPaidPct}%</td>
+                    <td>{r.spendWon == null ? "—" : Number(r.spendWon).toLocaleString()}</td>
+                    <td>{r.cac == null ? "—" : Number(r.cac).toLocaleString()}</td>
+                    <td>{Number(r.revenueWon).toLocaleString()}</td>
+                    <td>{r.roas == null ? "—" : r.roas}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section>
@@ -93,16 +117,32 @@ export default async function AnalyticsPage() {
             (유니크 = 기간 내 그 상품에 별을 쓴 유저 수, 중복 제거 · 건수 = 무료 포함 전체 리딩)
           </span>
         </h2>
-        <StarProductGrid products={products} />
+        {/* 표 4개가 전부 products 한 갈래에서 온다 — 죽으면 "데이터 없음" 4개가 아니라 경고 한 줄 */}
+        {productsFailed ? (
+          <LoadFailed block="/api/admin/analytics/products (admin_product_breakdown · admin_pass_breakdown · admin_star_spend_breakdown)" />
+        ) : (
+          <StarProductGrid products={products} />
+        )}
       </section>
 
       <section className="max-w-md">
-        <ProductTable title="별 구매 — 상품별" rows={(products?.packages ?? []).map((p: { packageType: string; count: number; revenueWon: number }) => ({ k: p.packageType, a: p.count, b: p.revenueWon }))} colB="매출(원)" />
+        {productsFailed ? (
+          <>
+            <h3 className="text-sm text-white/70 mb-2">별 구매 — 상품별</h3>
+            <LoadFailed block="/api/admin/analytics/products (admin_product_breakdown)" />
+          </>
+        ) : (
+          <ProductTable title="별 구매 — 상품별" rows={(products?.packages ?? []).map((p: { packageType: string; count: number; revenueWon: number }) => ({ k: p.packageType, a: p.count, b: p.revenueWon }))} colB="매출(원)" />
+        )}
       </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">코호트 LTV / 리텐션 (누적 결제액/인, 최근 {cohorts?.weeks ?? 12}주)</h2>
-        <CohortHeatmap cohorts={cohorts?.cohorts ?? []} weeks={cohorts?.weeks ?? 12} />
+        {cohortsFailed ? (
+          <LoadFailed block="/api/admin/analytics/cohorts (admin_cohorts)" />
+        ) : (
+          <CohortHeatmap cohorts={cohorts?.cohorts ?? []} weeks={cohorts?.weeks ?? 12} />
+        )}
       </section>
     </div>
   );

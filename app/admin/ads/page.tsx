@@ -10,6 +10,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 import { AdSpendUpload } from "@/components/admin/AdSpendUpload";
+import LoadFailed from "@/components/admin/LoadFailed";
 import { CREATIVE_ALIASES } from "@/lib/analytics/creative-alias";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ const CREATIVE_LIMIT = 200;
 
 export default async function AdsPage() {
   const supa = getServiceSupabase();
-  const [{ data: rows }, sugRes, totalRes] = await Promise.all([
+  const [listRes, sugRes, totalRes] = await Promise.all([
     supa.from("ad_spend").select("*").order("spend_date", { ascending: false }).limit(LIST_LIMIT),
     supa.rpc("admin_ad_creative_suggestions", {
       p_since: daysAgoKstIso(89),
@@ -35,12 +36,19 @@ export default async function AdsPage() {
     supa.rpc("admin_ad_spend_total"),
   ]);
 
+  // 세 소스는 각자 실패할 수 있다 — `?? []`·`?? 0` 이 실패를 "값이 없음"으로 위장하지 않게
+  // error 를 블록별로 들고 다닌다. 한 블록이 죽어도 나머지는 그대로 렌더한다.
+  const listFailed = !!listRes.error;
+  const suggestionsFailed = !!sugRes.error;
+  const totalFailed = !!totalRes.error;
+
   // ⚠️ RPC 가 유입 많은 순으로 이미 정렬·중복 제거·빈값 제거를 끝냈다 — 앱에서 다시 하지 않는다.
   const suggestionRows = (sugRes.data ?? []) as { creative: string }[];
   const suggestions = suggestionRows.map((r) => r.creative);
   const suggestionsTruncated = suggestionRows.length >= CREATIVE_LIMIT;
   // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
   const totalSpend = Number(((totalRes.data ?? []) as { total_won: number }[])[0]?.total_won ?? 0);
+  const rows = listRes.data;
   const listTruncated = (rows ?? []).length >= LIST_LIMIT;
 
   return (
@@ -49,6 +57,8 @@ export default async function AdsPage() {
       <p className="text-[13px] text-white/50">메타 Ads Manager 숫자를 일자·소재별로 입력하면 애널리틱스의 CAC·ROAS가 채워집니다. 입력 안 해도 다른 지표는 모두 동작합니다.</p>
       <AdSpendUpload />
       <AdSpendForm creativeSuggestions={suggestions} />
+      {/* 자동완성이 비면 "등록된 소재가 없다"로 읽힌다 — 조회 실패는 그렇게 위장하지 않는다. */}
+      {suggestionsFailed && <LoadFailed block="admin_ad_creative_suggestions" />}
       {suggestionsTruncated && (
         <p className="text-[12px] text-amber-300/80">
           ⚠️ 소재 종수가 조회 상한({CREATIVE_LIMIT})에 닿아 자동완성이 전부를 보여주지 못한다.
@@ -58,35 +68,45 @@ export default async function AdsPage() {
 
       <div className="rounded-xl bg-white/5 border border-white/10 p-4 inline-block">
         <div className="text-[12px] text-white/50">업로드된 총 지출 (전체 누적)</div>
-        <div className="text-xl font-bold mt-1">₩ {totalSpend.toLocaleString()}</div>
+        {/* 실패한 집계는 ₩0 이 아니라 —. ₩0 은 "광고를 안 돌렸다"는 뜻이 되어버린다. */}
+        <div className="text-xl font-bold mt-1">{totalFailed ? "—" : `₩ ${totalSpend.toLocaleString()}`}</div>
       </div>
+      {totalFailed && <LoadFailed block="admin_ad_spend_total" />}
 
-      {listTruncated && (
-        <p className="text-[12px] text-amber-300/80">
-          ⚠️ 지출 행이 표시 상한({LIST_LIMIT})에 닿아 아래 목록이 전부가 아니다. 위 총 지출은 전체
-          누적이라 영향 없다 — 목록에 페이지네이션을 붙이거나 상한을 올릴 것.
-        </p>
+      {listFailed ? (
+        // 목록 조회가 실패하면 표를 통째로 이 줄로 바꾼다 — "아직 입력된 지출이 없어요"는
+        // 실패를 "입력한 적 없음"으로 위장한다.
+        <LoadFailed block="ad_spend 목록" />
+      ) : (
+        <>
+          {listTruncated && (
+            <p className="text-[12px] text-amber-300/80">
+              ⚠️ 지출 행이 표시 상한({LIST_LIMIT})에 닿아 아래 목록이 전부가 아니다. 위 총 지출은 전체
+              누적이라 영향 없다 — 목록에 페이지네이션을 붙이거나 상한을 올릴 것.
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead className="text-white/50 text-left"><tr>
+                <th className="py-1">날짜</th><th>캠페인</th><th>소재</th><th>노출</th><th>클릭</th><th>지출(원)</th>
+              </tr></thead>
+              <tbody>
+                {(rows ?? []).map((r: Record<string, unknown>) => (
+                  <tr key={String(r.id)} className="border-t border-white/10">
+                    <td className="py-1.5">{String(r.spend_date)}</td>
+                    <td>{String(r.campaign ?? "")}</td>
+                    <td>{String(r.creative_key ?? "")}</td>
+                    <td>{r.impressions == null ? "—" : Number(r.impressions).toLocaleString()}</td>
+                    <td>{r.clicks == null ? "—" : Number(r.clicks).toLocaleString()}</td>
+                    <td>{Number(r.spend_won).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {(rows ?? []).length === 0 && <tr><td colSpan={6} className="py-3 text-white/30">아직 입력된 지출이 없어요.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-[13px]">
-          <thead className="text-white/50 text-left"><tr>
-            <th className="py-1">날짜</th><th>캠페인</th><th>소재</th><th>노출</th><th>클릭</th><th>지출(원)</th>
-          </tr></thead>
-          <tbody>
-            {(rows ?? []).map((r: Record<string, unknown>) => (
-              <tr key={String(r.id)} className="border-t border-white/10">
-                <td className="py-1.5">{String(r.spend_date)}</td>
-                <td>{String(r.campaign ?? "")}</td>
-                <td>{String(r.creative_key ?? "")}</td>
-                <td>{r.impressions == null ? "—" : Number(r.impressions).toLocaleString()}</td>
-                <td>{r.clicks == null ? "—" : Number(r.clicks).toLocaleString()}</td>
-                <td>{Number(r.spend_won).toLocaleString()}</td>
-              </tr>
-            ))}
-            {(rows ?? []).length === 0 && <tr><td colSpan={6} className="py-3 text-white/30">아직 입력된 지출이 없어요.</td></tr>}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

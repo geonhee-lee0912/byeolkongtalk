@@ -2,6 +2,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import Link from "next/link";
 import { ResolveAllErrorsButton } from "@/components/admin/ResolveAllErrorsButton";
+import LoadFailed from "@/components/admin/LoadFailed";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ type ErrorGroup = {
 
 export default async function AdminErrors() {
   const supabase = getServiceSupabase();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("error_logs")
     .select("*")
     .order("created_at", { ascending: false })
@@ -77,6 +78,11 @@ export default async function AdminErrors() {
         <h1 className="text-xl font-bold">에러 로그</h1>
         <ResolveAllErrorsButton />
       </div>
+      {/* 빈 표는 "미해결 에러 없음"으로 읽힌다 — 운영자가 실수로도 내리면 안 되는 결론이라
+          조회가 실패하면 표를 통째로 이 줄로 바꾼다. */}
+      {error ? (
+        <LoadFailed block="error_logs 조회" />
+      ) : (
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
@@ -130,6 +136,7 @@ export default async function AdminErrors() {
         </tbody>
       </table>
       </div>
+      )}
     </div>
   );
 }

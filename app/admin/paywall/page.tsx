@@ -17,6 +17,8 @@ import { daysAgoKstIso } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { CREATIVE_ALIASES } from "@/lib/analytics/creative-alias";
 import { Pager } from "@/components/admin/Pager";
+// 🔴 조회 실패를 0/빈 표로 위장하지 않는다 — 규칙은 컴포넌트 헤더 주석 참조
+import LoadFailed from "@/components/admin/LoadFailed";
 
 export const dynamic = "force-dynamic";
 
@@ -48,15 +50,6 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 //    "값이 진짜 0이다"를 구분 불가능하게 만든다 — 조용한 오답이 2026-07-28 cap 사고의 본질이고
 //    (완료율을 21% 로 표시, 실제 63.7%) 이 화면이 그 당사자였다. 실패한 블록만 이 줄로 바꾸고
 //    나머지 블록은 그대로 그린다(throw 하면 멀쩡한 지표까지 같이 사라진다).
-function LoadFailed({ block }: { block: string }) {
-  return (
-    <p className="text-[12px] text-amber-300/80">
-      ⚠️ {block} 조회에 실패했다 — 숫자를 0으로 위장하지 않고 이 줄을 띄운다. 서버 로그와
-      /admin/errors 를 확인할 것.
-    </p>
-  );
-}
-
 export default async function PaywallPage({
   searchParams,
 }: {

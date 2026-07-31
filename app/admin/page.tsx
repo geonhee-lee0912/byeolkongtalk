@@ -2,6 +2,8 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { adminExclusionList, adminExclusionArray } from "@/lib/admin";
 import { Stat, Delta } from "@/components/admin/Stat";
+// 🔴 조회 실패를 0/빈 배열로 위장하지 않는다 — 규칙은 컴포넌트 헤더 주석 참조
+import LoadFailed from "@/components/admin/LoadFailed";
 import { startOfTodayKstIso, kstDate } from "@/lib/admin-time";
 import {
   fillTrafficAxis,
@@ -190,19 +192,6 @@ async function loadStats() {
   };
 }
 
-// 🔴 RPC 실패를 0/빈 배열로 위장하지 않는다. `?? 0` · `?? []` 폴백은 "쿼리가 실패했다"와
-//    "값이 진짜 0이다"를 구분 불가능하게 만든다 — 조용한 오답이 2026-07-28 cap 사고의 본질이었다
-//    (완료율을 21% 로 표시, 실제 63.7%). 실패한 블록만 값을 "—" 로 내리고 이 줄을 띄우며,
-//    나머지 블록은 그대로 그린다(throw 하면 멀쩡한 지표까지 같이 사라진다).
-//    ⚠️ /admin/paywall 에도 같은 컴포넌트가 있다. 공용 컴포넌트로 뽑는 건 별건.
-function LoadFailed({ block }: { block: string }) {
-  return (
-    <p className="text-[12px] text-amber-300/80 mb-3">
-      ⚠️ {block} 조회에 실패했다 — 숫자를 0으로 위장하지 않고 이 줄을 띄운다. 서버 로그와
-      /admin/errors 를 확인할 것.
-    </p>
-  );
-}
 
 export default async function AdminDashboard() {
   const s = await loadStats();
@@ -216,9 +205,9 @@ export default async function AdminDashboard() {
       <h1 className="text-xl font-bold">대시보드</h1>
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
-        {s.failed.revenue && <LoadFailed block="매출(admin_dashboard_revenue)" />}
+        {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
         {s.failed.traffic && (
-          <LoadFailed block="UV/PV·방문자 구성(admin_traffic_trend · admin_traffic_visitor_mix)" />
+          <LoadFailed className="mb-3" block="UV/PV·방문자 구성(admin_traffic_trend · admin_traffic_visitor_mix)" />
         )}
         {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)·탈퇴는 뒤. 매일 먼저 보는 값을
             왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
@@ -258,7 +247,7 @@ export default async function AdminDashboard() {
       </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
-        {s.failed.revenue && <LoadFailed block="매출(admin_dashboard_revenue)" />}
+        {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="신규 가입" value={s.all.newUsers}>
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />
@@ -288,7 +277,7 @@ export default async function AdminDashboard() {
       <section>
         <h2 className="text-sm text-white/60 mb-3">별 소모 <span className="text-white/35">(오늘 · 별 · KST 자정 기준)</span></h2>
         {s.failed.spend ? (
-          <LoadFailed block="별 소모(admin_star_spend_breakdown)" />
+          <LoadFailed className="mb-3" block="별 소모(admin_star_spend_breakdown)" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {starCard("타로 대화", s.star.tarot)}
@@ -302,7 +291,7 @@ export default async function AdminDashboard() {
       <section>
         <h2 className="text-sm text-white/60 mb-3">연애 상담 <span className="text-white/35">(오늘 · 활성 패스는 현재 시점)</span></h2>
         {/* 패스 구매만 별 소모 RPC 출처다 — 활성 패스·스킬 호출은 별도 count 쿼리라 영향 없다. */}
-        {s.failed.spend && <LoadFailed block="패스 구매(admin_star_spend_breakdown)" />}
+        {s.failed.spend && <LoadFailed className="mb-3" block="패스 구매(admin_star_spend_breakdown)" />}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Stat label="활성 패스" value={s.rel.activePasses} />
           <Stat label="패스 구매" value={s.failed.spend ? "—" : s.rel.passBuys.today}>

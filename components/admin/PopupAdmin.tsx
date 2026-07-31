@@ -13,7 +13,8 @@ export interface PopupRow {
   broadcast: boolean;
   targetUserId: string | null;
   createdAt: string;
-  ackCount: number;
+  // 조회 실패 시 "—" 를 받는다. 0 으로 위장하면 "아무도 안 읽었다"는 거짓 주장이 된다.
+  ackCount: number | string;
 }
 
 export function PopupAdmin({
@@ -21,7 +22,7 @@ export function PopupAdmin({
   totalUsers,
 }: {
   popups: PopupRow[];
-  totalUsers: number;
+  totalUsers: number | string; // 위와 같은 이유로 "—" 허용
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);

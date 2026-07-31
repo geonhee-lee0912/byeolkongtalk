@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 import { getServiceSupabase } from "@/lib/supabase";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import { Pager } from "@/components/admin/Pager";
+import LoadFailed from "@/components/admin/LoadFailed";
 
 const PER_PAGE = 25;
 
@@ -24,8 +25,12 @@ export default async function AdminUsers({
     const escaped = q.replace(/[%_]/g, "\\$&");
     query = query.ilike("nickname", `%${escaped}%`);
   }
-  const { data: users, count } = await query;
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+  // 🔴 목록 조회 실패를 빈 표로 위장하지 않는다 — "검색 결과 없음"과 "쿼리가 죽었다"가
+  //    화면에서 같아 보이면 운영자가 그 빈 표를 믿고 판단한다(2026-07-28 cap 사고와 같은 뿌리).
+  const { data: users, count, error: usersError } = await query;
+  const usersFailed = !!usersError;
+  // 실패 시 페이저는 숨긴다 — count 가 없는데 1/1 을 그리면 그것도 거짓말이다.
+  const totalPages = usersFailed ? 0 : Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
   const makeHref = (p: number) => {
     const sp = new URLSearchParams();
     if (q) sp.set("q", q);
@@ -45,6 +50,12 @@ export default async function AdminUsers({
   let readRows: ReadRow[] = [];
   let passRows: PassRow[] = [];
   const hasRelationship = new Set<string>();
+  // 보강 조회는 실패해도 목록 자체는 살린다. 대신 실패한 칼럼은 0 이 아니라 "—" 로 —
+  // 조회가 죽은 걸 "이 유저는 0원 결제"로 읽으면 그게 곧 오판이다.
+  let payFailed = false;
+  let readFailed = false;
+  let passFailed = false;
+  let relFailed = false;
   if (ids.length > 0) {
     const [payRes, readRes, passRes, relRes] = await Promise.all([
       supabase.from("payments").select("user_id, amount_won, status").in("user_id", ids).eq("status", "completed"),
@@ -52,6 +63,10 @@ export default async function AdminUsers({
       supabase.from("relationship_passes").select("user_id").in("user_id", ids),
       supabase.from("relationships").select("user_id").in("user_id", ids),
     ]);
+    payFailed = !!payRes.error;
+    readFailed = !!readRes.error;
+    passFailed = !!passRes.error;
+    relFailed = !!relRes.error;
     payRows = (payRes.data ?? []) as PayRow[];
     readRows = (readRes.data ?? []) as ReadRow[];
     passRows = (passRes.data ?? []) as PassRow[];
@@ -94,24 +109,37 @@ export default async function AdminUsers({
     }
   }
   const rejoinedHashes = new Set<string>();
+  let withdrawalFailed = false;
   if (withdrawalHashes.length > 0) {
-    const { data: wd } = await supabase
+    const { data: wd, error: wdError } = await supabase
       .from("account_withdrawals")
       .select("kakao_id_hash")
       .in("kakao_id_hash", withdrawalHashes);
+    withdrawalFailed = !!wdError;
     for (const r of wd ?? []) rejoinedHashes.add(r.kakao_id_hash as string);
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">
-        사용자 <span className="text-white/40 text-sm font-normal">전체 {(count ?? 0).toLocaleString()}명</span>
+        사용자 <span className="text-white/40 text-sm font-normal">
+          {usersFailed ? "전체 —" : `전체 ${(count ?? 0).toLocaleString()}명`}
+        </span>
       </h1>
       <form className="flex gap-2">
         <input name="q" defaultValue={q ?? ""} placeholder="닉네임 검색"
           className="bg-white/10 rounded px-3 py-2 text-sm" />
         <button className="bg-lilac-deep px-3 py-2 rounded text-sm">검색</button>
       </form>
+      {/* 보강 조회 실패 — 목록은 그대로 그리되, 어느 칼럼이 못 믿을 값인지 여기서 밝힌다 */}
+      {payFailed && <LoadFailed block="결제 집계(payments)" />}
+      {readFailed && <LoadFailed block="리딩 집계(readings)" />}
+      {passFailed && <LoadFailed block="연애 패스 집계(relationship_passes)" />}
+      {relFailed && <LoadFailed block="관계 등록 여부(relationships)" />}
+      {withdrawalFailed && <LoadFailed block="재가입 이력(account_withdrawals) — 재가입 배지가 안 붙는다" />}
+      {usersFailed ? (
+        <LoadFailed block="사용자 목록(users)" />
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
           <thead className="text-white/50 text-left">
@@ -147,16 +175,18 @@ export default async function AdminUsers({
                       <span className="ml-1.5 inline-block text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">재가입</span>
                     )}
                   </td>
-                  <td className="pr-3">{pay.count.toLocaleString()}</td>
-                  <td className="pr-3">{avg.toLocaleString()}원</td>
-                  <td className="pr-3">{pay.total.toLocaleString()}원</td>
-                  <td className="pr-3">{read.gomintalk.toLocaleString()}</td>
+                  <td className="pr-3">{payFailed ? "—" : pay.count.toLocaleString()}</td>
+                  <td className="pr-3">{payFailed ? "—" : `${avg.toLocaleString()}원`}</td>
+                  <td className="pr-3">{payFailed ? "—" : `${pay.total.toLocaleString()}원`}</td>
+                  <td className="pr-3">{readFailed ? "—" : read.gomintalk.toLocaleString()}</td>
                   <td className="pr-3">
-                    {!hasRelationship.has(u.id)
-                      ? <span className="text-white/30">-</span>
-                      : <>{passCount} <span className="text-white/40">({read.relSkill})</span></>}
+                    {relFailed
+                      ? "—"
+                      : !hasRelationship.has(u.id)
+                        ? <span className="text-white/30">-</span>
+                        : <>{passFailed ? "—" : passCount} <span className="text-white/40">({readFailed ? "—" : read.relSkill})</span></>}
                   </td>
-                  <td className="pr-3">{read.fortuneSaju.toLocaleString()}</td>
+                  <td className="pr-3">{readFailed ? "—" : read.fortuneSaju.toLocaleString()}</td>
                   <td className="pr-3">{new Date(u.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                   <td className="text-right">
                     <Link href={`/admin/users/${u.id}`} className="text-lilac underline">상세</Link>
@@ -167,6 +197,7 @@ export default async function AdminUsers({
           </tbody>
         </table>
       </div>
+      )}
       <Pager page={page} totalPages={totalPages} makeHref={makeHref} />
     </div>
   );

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
 import { INQUIRY_CATEGORIES, type InquiryCategory } from "@/lib/inquiries";
+import LoadFailed from "@/components/admin/LoadFailed";
 
 export const dynamic = "force-dynamic";
 
@@ -33,16 +34,21 @@ export default async function AdminInquiries({
   if (status === "open" || status === "answered") {
     query = query.eq("status", status);
   }
-  const { data } = await query;
+  // 🔴 목록 조회 실패를 "문의가 없습니다"로 위장하지 않는다 — 미답변 문의가 쌓여 있는데
+  //    빈 표를 보고 넘어가는 게 이 화면에서 가장 비싼 오독이다.
+  const { data, error: listError } = await query;
+  const listFailed = !!listError;
   const rows = (data ?? []) as Row[];
 
   const userIds = [...new Set(rows.map((r) => r.user_id))];
   const nameById = new Map<string, string | null>();
+  let namesFailed = false;
   if (userIds.length > 0) {
-    const { data: users } = await supabase
+    const { data: users, error: usersError } = await supabase
       .from("users")
       .select("id, nickname")
       .in("id", userIds);
+    namesFailed = !!usersError;
     for (const u of users ?? []) nameById.set(u.id, u.nickname);
   }
 
@@ -65,6 +71,11 @@ export default async function AdminInquiries({
         {tab("open", "미답변")}
         {tab("answered", "답변완료")}
       </div>
+      {/* 보강 조회 실패 — 작성자 칸의 "—" 가 닉네임 없음인지 조회 실패인지 이 줄로 가른다 */}
+      {namesFailed && <LoadFailed block="작성자 닉네임(users)" />}
+      {listFailed ? (
+        <LoadFailed block="문의 목록(inquiries)" />
+      ) : (
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
@@ -108,6 +119,7 @@ export default async function AdminInquiries({
         </tbody>
       </table>
       </div>
+      )}
     </div>
   );
 }

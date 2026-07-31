@@ -2,12 +2,13 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import Link from "next/link";
 import { ReviewButton } from "@/components/admin/ReviewButton";
+import LoadFailed from "@/components/admin/LoadFailed";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSensitive() {
   const supabase = getServiceSupabase();
-  const { data } = await supabase.from("sensitive_alerts")
+  const { data, error } = await supabase.from("sensitive_alerts")
     .select("*")
     .order("reviewed_at", { ascending: true, nullsFirst: true })
     .order("severity", { ascending: false })
@@ -16,6 +17,11 @@ export default async function AdminSensitive() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">민감 알림</h1>
+      {/* 빈 표는 "검토 대기 알림 없음"으로 읽힌다 — 안전 판단이 걸린 화면이라 조회가 실패하면
+          표를 통째로 이 줄로 바꾼다. */}
+      {error ? (
+        <LoadFailed block="sensitive_alerts 조회" />
+      ) : (
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-white/50 text-left">
@@ -37,6 +43,7 @@ export default async function AdminSensitive() {
         </tbody>
       </table>
       </div>
+      )}
     </div>
   );
 }

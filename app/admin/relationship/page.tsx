@@ -8,6 +8,7 @@
 // 세션 분리(6h)·소프트캡·KST 날짜 규칙은 전부 RPC 안에 있다
 // (supabase/migrations/20260731030000_admin_relationship_aggregates.sql — 근거는 그 주석).
 import { getServiceSupabase } from "@/lib/supabase";
+import LoadFailed from "@/components/admin/LoadFailed";
 import { adminExclusionArray } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,12 @@ async function load() {
     supa.rpc("admin_relationship_flow", { p_exclude }),
   ]);
 
+  // RPC 3개는 서로 독립이다 — 하나가 죽어도 나머지 두 블록은 계속 읽혀야 한다. 여기서 error 를
+  // 잡지 않으면 `?? 0` 폴백이 실패를 "값이 0" 으로 위장한다(2026-07-28 cap 사고와 같은 구조).
+  const summaryFailed = !!summaryRes.error;
+  const distFailed = !!distRes.error;
+  const flowFailed = !!flowRes.error;
+
   // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
   const summary = (
     (summaryRes.data ?? []) as {
@@ -73,6 +80,9 @@ async function load() {
   const totalTurns = Number(flowRow?.total_turns ?? 0);
 
   return {
+    summaryFailed,
+    distFailed,
+    flowFailed,
     totalRels: Number(summary?.total_rels ?? 0),
     statusDist: dist("status"),
     activeThreads: Number(summary?.active_threads ?? 0),
@@ -93,6 +103,8 @@ async function load() {
 
 export default async function AdminRelationshipPage() {
   const s = await load();
+  // summary 가 죽으면 분자·분모가 둘 다 없다 — 아래에서 이 값을 쓰지 않고 `—` 를 띄운다.
+  // (없는 값으로 계산한 "0%" 는 그 자체가 또 하나의 거짓말이다.)
   const renewRate = s.passBuyers ? Math.round((s.renewers / s.passBuyers) * 1000) / 10 : 0;
 
   return (
@@ -105,45 +117,61 @@ export default async function AdminRelationshipPage() {
       <section>
         <h2 className="text-sm text-white/60 mb-3">등록 / 스레드</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="관계 등록" value={s.totalRels} />
-          <Stat label="활성 스레드" value={s.activeThreads} sub="최근 7일 방문" />
-          <Stat label="썸/연애중" value={(s.statusDist.crush ?? 0) + (s.statusDist.dating ?? 0)} />
-          <Stat label="이별/짝사랑" value={(s.statusDist.breakup ?? 0) + (s.statusDist.onesided ?? 0)} />
+          {/* 이 섹션은 두 RPC 가 섞여 있다 — 카드마다 자기 출처의 실패만 본다 */}
+          <Stat label="관계 등록" value={s.summaryFailed ? "—" : s.totalRels} />
+          <Stat label="활성 스레드" value={s.summaryFailed ? "—" : s.activeThreads} sub="최근 7일 방문" />
+          <Stat label="썸/연애중" value={s.distFailed ? "—" : (s.statusDist.crush ?? 0) + (s.statusDist.dating ?? 0)} />
+          <Stat label="이별/짝사랑" value={s.distFailed ? "—" : (s.statusDist.breakup ?? 0) + (s.statusDist.onesided ?? 0)} />
         </div>
-        <div className="mt-2 text-[12px] text-white/40">
-          {Object.entries(s.statusDist).map(([k, v]) => `${STATUS_LABEL[k] ?? k} ${v}`).join(" · ") || "등록 없음"}
-        </div>
+        {s.distFailed ? (
+          // 분포가 죽었는데 "등록 없음" 을 띄우면 등록이 0 건이라는 뜻이 된다
+          <LoadFailed block="admin_relationship_dist" className="mt-2" />
+        ) : (
+          <div className="mt-2 text-[12px] text-white/40">
+            {Object.entries(s.statusDist).map(([k, v]) => `${STATUS_LABEL[k] ?? k} ${v}`).join(" · ") || "등록 없음"}
+          </div>
+        )}
+        {s.summaryFailed && <LoadFailed block="admin_relationship_summary" className="mt-2" />}
       </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">패스</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="활성 패스" value={s.activePasses} />
-          <Stat label="패스 구매자" value={s.passBuyers} />
-          <Stat label="갱신율(재구매)" value={`${renewRate}%`} sub={`${s.renewers}/${s.passBuyers}명`} />
-          <Stat label="패스 매출(별)" value={s.passRevenue.toLocaleString()} />
+          <Stat label="활성 패스" value={s.summaryFailed ? "—" : s.activePasses} />
+          <Stat label="패스 구매자" value={s.summaryFailed ? "—" : s.passBuyers} />
+          <Stat
+            label="갱신율(재구매)"
+            value={s.summaryFailed ? "—" : `${renewRate}%`}
+            sub={s.summaryFailed ? undefined : `${s.renewers}/${s.passBuyers}명`}
+          />
+          <Stat label="패스 매출(별)" value={s.summaryFailed ? "—" : s.passRevenue.toLocaleString()} />
         </div>
+        {/* 이 한 줄도 출처가 섞여 있다 — 종류별은 dist, 연장 횟수는 summary */}
         <div className="mt-2 text-[12px] text-white/40">
-          {(["day1", "day3", "day7"] as const).map((k) => `${KIND_LABEL[k]} ${s.passByKind[k] ?? 0}`).join(" · ")} · 연장 {s.extendCount}회
+          {(["day1", "day3", "day7"] as const).map((k) => `${KIND_LABEL[k]} ${s.distFailed ? "—" : (s.passByKind[k] ?? 0)}`).join(" · ")} · 연장 {s.summaryFailed ? "—" : s.extendCount}회
         </div>
+        {s.summaryFailed && <LoadFailed block="admin_relationship_summary" className="mt-2" />}
+        {s.distFailed && <LoadFailed block="admin_relationship_dist" className="mt-2" />}
       </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">스킬 호출</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {SKILL_KEYS.map((k) => (
-            <Stat key={k} label={SKILL_LABEL[k]} value={s.skillDist[k] ?? 0} />
+            <Stat key={k} label={SKILL_LABEL[k]} value={s.distFailed ? "—" : (s.skillDist[k] ?? 0)} />
           ))}
         </div>
+        {s.distFailed && <LoadFailed block="admin_relationship_dist" className="mt-2" />}
       </section>
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">대화 흐름 <span className="text-white/35">(6시간 갭 = 새 방문)</span></h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <Stat label="총 방문(세션)" value={s.flow.visits} />
-          <Stat label="방문당 평균 턴" value={s.flow.avgTurnsPerVisit} />
-          <Stat label="소프트캡 도달" value={s.flow.softCapDays} sub="하루 20턴 소진 (스레드·일)" />
+          <Stat label="총 방문(세션)" value={s.flowFailed ? "—" : s.flow.visits} />
+          <Stat label="방문당 평균 턴" value={s.flowFailed ? "—" : s.flow.avgTurnsPerVisit} />
+          <Stat label="소프트캡 도달" value={s.flowFailed ? "—" : s.flow.softCapDays} sub="하루 20턴 소진 (스레드·일)" />
         </div>
+        {s.flowFailed && <LoadFailed block="admin_relationship_flow" className="mt-2" />}
       </section>
     </div>
   );
