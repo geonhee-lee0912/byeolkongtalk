@@ -1,60 +1,12 @@
 "use client";
 
 // 결과 화면 하단 공용 업셀 — 첫 충전 +20% 배너(자격자만) + 크로스셀 카드 2장.
-// 크로스셀 규칙(정적, 개인화 없음):
-//   상담 결과(variant="counsel") → 오늘의 운세 + 이번달
-//   운세 결과(variant=FortuneType) → 상담 진입 1개 + 같은 base 의 다음 운세 1개
+// 카드 선정 규칙은 ./cross-cards.ts (순수 로직, 테스트 포함)
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  FORTUNE_CONFIG,
-  FORTUNE_LIST,
-  FORTUNE_GRADIENTS,
-  type FortuneType,
-  type FortuneConfig,
-} from "@/lib/fortune/types";
-
-interface CrossCard {
-  href: string;
-  emoji: string;
-  label: string;
-  tagline: string;
-  badge: string;
-  gradient: string;
-}
-
-function cardFromFortune(f: FortuneConfig): CrossCard {
-  return {
-    href: f.href,
-    emoji: f.emoji,
-    label: f.label,
-    tagline: f.tagline,
-    badge: f.cost === 0 ? "무료" : `⭐ ${f.cost}`,
-    gradient: FORTUNE_GRADIENTS[f.type],
-  };
-}
-
-function crossCards(variant: "counsel" | FortuneType): CrossCard[] {
-  if (variant === "counsel") {
-    return [FORTUNE_CONFIG.daily, FORTUNE_CONFIG.monthly].map(cardFromFortune);
-  }
-  const cfg = FORTUNE_CONFIG[variant];
-  const sameBase = FORTUNE_LIST.filter((f) => f.base === cfg.base);
-  const idx = sameBase.findIndex((f) => f.type === cfg.type);
-  const next = sameBase[(idx + 1) % sameBase.length];
-  return [
-    {
-      href: "/",
-      emoji: "💬",
-      label: "별콩이랑 고민 상담",
-      tagline: "리포트 말고 대화로 깊게 나누고 싶다면",
-      badge: "상담",
-      gradient: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
-    },
-    cardFromFortune(next),
-  ];
-}
+import { type FortuneType } from "@/lib/fortune/types";
+import { crossCards } from "./cross-cards";
 
 export default function ResultUpsell({
   variant,
