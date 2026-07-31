@@ -1,4 +1,9 @@
 // app/admin/popups/page.tsx — 공지 팝업 (전체 발송 + 발송 목록/확인율).
+//
+// 확인 수 집계는 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은 popup_acks
+// 의 popup_id 를 `.limit(100000)` 으로 받아 앱에서 Map 으로 셌는데, Supabase `Max rows`(서버 강제
+// 상한)가 그 limit 을 조용히 덮어써 잘린다 — PostgREST 는 200 + Content-Range 로 응답하고
+// supabase-js 는 에러로 승격하지 않는다(2026-07-28 사고: 확인율이 조용히 낮게 보였을 축).
 import { getServiceSupabase } from "@/lib/supabase";
 import { PopupAdmin } from "@/components/admin/PopupAdmin";
 
@@ -18,16 +23,14 @@ export default async function AdminPopupsPage() {
   const rows = popups ?? [];
   const ackCounts = new Map<string, number>();
   if (rows.length) {
-    const { data: acks } = await supa
-      .from("popup_acks")
-      .select("popup_id")
-      .in(
-        "popup_id",
-        rows.map((p) => p.id)
-      )
-      .limit(100000);
-    for (const a of acks ?? []) {
-      ackCounts.set(a.popup_id, (ackCounts.get(a.popup_id) ?? 0) + 1);
+    // 반환 행수가 팝업 수 이하 = 위 목록 상한(100)에 이미 유계라 별도 p_limit 이 없다.
+    // 확인 0건인 팝업은 행이 안 나온다 — 아래 `?? 0` 이 그대로 받는다(현행과 동일).
+    const { data: acks } = await supa.rpc("admin_popup_ack_counts", {
+      p_popup_ids: rows.map((p) => p.id),
+    });
+    // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
+    for (const a of (acks ?? []) as { popup_id: string; ack_count: number }[]) {
+      ackCounts.set(a.popup_id, Number(a.ack_count));
     }
   }
 

@@ -1,5 +1,13 @@
 // app/admin/relationship-readings/page.tsx — 연애 상담(우리 사이) 리딩 관리.
 // 관계(스레드)당 1행 — 패스·연장·스킬 구매를 스레드 단위로 관리. 지표는 /admin/relationship.
+//
+// 집계·조인은 전부 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은
+// relationships·relationship_passes·star_transactions(2회)·readings 를 **limit 없이** 받고
+// messages 만 `.limit(100000)` 으로 받아 앱에서 Map 조인했는데, Supabase `Max rows`(서버 강제 상한,
+// 기본 1000)가 그 위에 그대로 걸린다 — PostgREST 는 200 + Content-Range 로 응답하고 supabase-js 는
+// 에러로 승격하지 않아 **조용히 잘린다**(2026-07-28 사고). 잘리면 지출·메시지 수가 소리 없이
+// 작아지는 화면이었다. 지출 4갈래 합산 규칙은 RPC 주석에 있다
+// (supabase/migrations/20260731030000_admin_relationship_aggregates.sql).
 import Link from "next/link";
 import { getServiceSupabase } from "@/lib/supabase";
 import { isAdminUserId } from "@/lib/admin";
@@ -8,6 +16,11 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = { crush: "썸", dating: "연애중", breakup: "이별", onesided: "짝사랑" };
 const KIND_LABEL: Record<string, string> = { day1: "1일권", day3: "3일권", day7: "7일권" };
+
+// RPC 결과도 PostgREST 를 지나므로 `Max rows` cap 이 그대로 적용된다. 이 화면만 반환 행수가
+// 관계 수에 비례하므로 상한을 명시하고, 닿으면 경고 한 줄로 드러낸다 — 조용히 잘리는 것이
+// 2026-07-28 cap 사고의 본질이었다. RPC 기본값과 같은 2000.
+const THREAD_LIMIT = 2000;
 
 function fmtDate(iso: string | null) {
   if (!iso) return "-";

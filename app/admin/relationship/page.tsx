@@ -1,13 +1,23 @@
 // app/admin/relationship/page.tsx — 연애 상담(우리 사이) 지표 + 대화 흐름.
+//
+// 집계는 전부 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은 relationships·
+// relationship_passes·readings 를 **limit 없이** 받고 messages 만 `.limit(100000)` 으로 받아 앱에서
+// 집계했는데, Supabase `Max rows`(서버 강제 상한, 기본 1000)가 그 위에 그대로 걸린다 — PostgREST 는
+// 200 + Content-Range 로 응답하고 supabase-js 는 에러로 승격하지 않아 **조용히 잘린다**
+// (2026-07-28 사고: /admin/traffic UV 53% 유실 · /admin/paywall 완료율 21% 표시, 실제 63.7%).
+// 세션 분리(6h)·소프트캡·KST 날짜 규칙은 전부 RPC 안에 있다
+// (supabase/migrations/20260731030000_admin_relationship_aggregates.sql — 근거는 그 주석).
 import { getServiceSupabase } from "@/lib/supabase";
-import { adminExclusionList } from "@/lib/admin";
-import { buildRelationshipFlow, type RelMsgRow } from "@/lib/analytics/aggregate";
+import { adminExclusionArray } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = { crush: "썸", dating: "연애중", breakup: "이별", onesided: "짝사랑" };
 const KIND_LABEL: Record<string, string> = { day1: "1일권", day3: "3일권", day7: "7일권" };
 const SKILL_LABEL: Record<string, string> = { checkin: "관계 체크인", deep_feelings: "걔 속마음", compat: "우리 궁합", verdict: "싸움 판정" };
+// 화면이 그리는 스킬 키의 단일 원천 — RPC 에 그대로 넘겨 집계 대상을 유계로 만든다.
+// (readings.skill_key 는 자유 문자열이지만 여기 없는 키는 어차피 렌더에 닿지 않는다.)
+const SKILL_KEYS = ["checkin", "deep_feelings", "compat", "verdict"] as const;
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -21,62 +31,63 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 
 async function load() {
   const supa = getServiceSupabase();
-  const excl = adminExclusionList();
-  const nowIso = new Date().toISOString();
-  const weekAgo = Date.now() - 7 * 86400000;
+  const p_exclude = adminExclusionArray();
+  // "지금" 은 한 번만 찍어 RPC 로 넘긴다 — 활성 패스·활성 스레드가 같은 시계를 보게 한다.
+  const now = Date.now();
+  const p_now = new Date(now).toISOString();
+  const p_week_ago = new Date(now - 7 * 86400000).toISOString();
 
-  let relQ = supa.from("relationships").select("user_id, status, thread_reading_id, last_visited_at, created_at");
-  if (excl) relQ = relQ.not("user_id", "in", excl);
-  let passQ = supa.from("relationship_passes").select("user_id, kind, stars_spent, expires_at");
-  if (excl) passQ = passQ.not("user_id", "in", excl);
-  let extQ = supa.from("star_transactions").select("id", { count: "exact", head: true }).eq("source", "rel_extend");
-  if (excl) extQ = extQ.not("user_id", "in", excl);
-  // skill_key IS NOT NULL + excl — 삼항 한 표현식(재할당 누적 타입 폭발 회피)
-  const skQ = excl
-    ? supa.from("readings").select("skill_key").not("skill_key", "is", null).not("user_id", "in", excl)
-    : supa.from("readings").select("skill_key").not("skill_key", "is", null);
+  const [summaryRes, distRes, flowRes] = await Promise.all([
+    supa.rpc("admin_relationship_summary", { p_exclude, p_now, p_week_ago }),
+    supa.rpc("admin_relationship_dist", { p_exclude, p_skill_keys: [...SKILL_KEYS] }),
+    supa.rpc("admin_relationship_flow", { p_exclude }),
+  ]);
 
-  const [{ data: rels }, { data: passes }, { count: extendCount }, { data: skills }] = await Promise.all([relQ, passQ, extQ, skQ]);
+  // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
+  const summary = (
+    (summaryRes.data ?? []) as {
+      total_rels: number;
+      active_threads: number;
+      active_passes: number;
+      pass_buyers: number;
+      renewers: number;
+      pass_revenue: number;
+      extend_count: number;
+    }[]
+  )[0];
 
-  const threadIds = (rels ?? []).map((r) => r.thread_reading_id).filter(Boolean) as string[];
-  let msgs: RelMsgRow[] = [];
-  if (threadIds.length) {
-    const { data } = await supa.from("messages").select("reading_id, role, created_at").in("reading_id", threadIds).limit(100000);
-    msgs = (data ?? []) as RelMsgRow[];
-  }
-  const flow = buildRelationshipFlow(msgs);
+  // 분포 3종은 (kind, key, cnt) 한 모양으로 와서 kind 로 갈라진다.
+  const distRows = (distRes.data ?? []) as { kind: string; key: string; cnt: number }[];
+  const dist = (kind: string) => {
+    const out: Record<string, number> = {};
+    for (const r of distRows) if (r.kind === kind) out[r.key] = Number(r.cnt);
+    return out;
+  };
 
-  const statusDist: Record<string, number> = {};
-  for (const r of rels ?? []) statusDist[r.status] = (statusDist[r.status] ?? 0) + 1;
-  const activeThreads = (rels ?? []).filter((r) => r.last_visited_at && new Date(r.last_visited_at).getTime() > weekAgo).length;
-
-  const passByKind: Record<string, number> = {};
-  let passRevenue = 0;
-  const passUserCount = new Map<string, number>();
-  for (const p of passes ?? []) {
-    passByKind[p.kind] = (passByKind[p.kind] ?? 0) + 1;
-    passRevenue += p.stars_spent ?? 0;
-    passUserCount.set(p.user_id, (passUserCount.get(p.user_id) ?? 0) + 1);
-  }
-  const activePasses = (passes ?? []).filter((p) => p.expires_at > nowIso).length;
-  const passBuyers = passUserCount.size;
-  const renewers = [...passUserCount.values()].filter((c) => c >= 2).length;
-
-  const skillDist: Record<string, number> = {};
-  for (const s of skills ?? []) if (s.skill_key) skillDist[s.skill_key] = (skillDist[s.skill_key] ?? 0) + 1;
+  // 방문당 평균 턴만 앱에서 나눈다 — numeric round 와 JS round 가 .x5 정확 동률(예: 41/20)에서
+  // 갈릴 수 있어, 화면 숫자를 그대로 보존하려면 나눗셈을 여기 남기는 쪽이 안전하다.
+  const flowRow = (
+    (flowRes.data ?? []) as { visits: number; total_turns: number; softcap_days: number }[]
+  )[0];
+  const visits = Number(flowRow?.visits ?? 0);
+  const totalTurns = Number(flowRow?.total_turns ?? 0);
 
   return {
-    totalRels: (rels ?? []).length,
-    statusDist,
-    activeThreads,
-    activePasses,
-    passByKind,
-    passRevenue,
-    passBuyers,
-    renewers,
-    extendCount: extendCount ?? 0,
-    skillDist,
-    flow,
+    totalRels: Number(summary?.total_rels ?? 0),
+    statusDist: dist("status"),
+    activeThreads: Number(summary?.active_threads ?? 0),
+    activePasses: Number(summary?.active_passes ?? 0),
+    passByKind: dist("pass_kind"),
+    passRevenue: Number(summary?.pass_revenue ?? 0),
+    passBuyers: Number(summary?.pass_buyers ?? 0),
+    renewers: Number(summary?.renewers ?? 0),
+    extendCount: Number(summary?.extend_count ?? 0),
+    skillDist: dist("skill"),
+    flow: {
+      visits,
+      avgTurnsPerVisit: visits ? Math.round((totalTurns / visits) * 10) / 10 : 0,
+      softCapDays: Number(flowRow?.softcap_days ?? 0),
+    },
   };
 }
 
@@ -120,7 +131,7 @@ export default async function AdminRelationshipPage() {
       <section>
         <h2 className="text-sm text-white/60 mb-3">스킬 호출</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {(["checkin", "deep_feelings", "compat", "verdict"] as const).map((k) => (
+          {SKILL_KEYS.map((k) => (
             <Stat key={k} label={SKILL_LABEL[k]} value={s.skillDist[k] ?? 0} />
           ))}
         </div>

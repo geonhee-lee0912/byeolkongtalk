@@ -44,11 +44,10 @@ $$;
 --    처음에 500 으로 뒀다가 **4일 만에 잘린다**는 걸 실측에서 발견해 올렸다.
 --    근본 해결은 페이지네이션이다(현행도 398행을 한 표에 쏟아붓고 있어 UI 가 이미 버겁다) —
 --    상한에 닿기 전에 그쪽으로 가는 게 맞다. 그때까지는 truncated 플래그가 안전망이다.
--- ⚠️ utm 귀속을 **가장 이른 acquisition 행**으로 바꿨다(first-touch). 현행 JS 는
---    `for (const a of acqs) utmMap.set(...)` 라 **ORDER BY 없는 마지막 행이 이긴다** — 즉
---    유저에게 acquisition 행이 2개 이상이면 결과가 비결정적이었다. 재현이 불가능한 동작이라
---    프로젝트 표준인 first-touch(admin_traffic_entry·admin_funnel 와 같은 규칙)로 통일한다.
---    실무 영향: 유저 대부분이 acquisition 행 1개라 값이 바뀌는 경우는 드물다.
+-- ⚠️ utm 은 단순 LEFT JOIN 이다. `user_acquisition` 의 **PK 가 user_id** 라 유저당 정확히 1행이고,
+--    그래서 first-touch/last-touch 구분 자체가 성립하지 않는다(현행 JS 의 Map.set 루프도 결과가
+--    같다). 처음에 array_agg(… ORDER BY a.created_at, a.id) 로 "first-touch" 를 구현했다가
+--    **없는 컬럼 a.id 를 참조해 마이그레이션이 통째로 실패**했다 — 없는 문제를 풀려다 낸 사고다.
 CREATE OR REPLACE FUNCTION admin_paywall_unconverted(
   p_exclude UUID[], p_min_cost INT, p_aliases JSONB, p_limit INT DEFAULT 5000
 )
@@ -68,12 +67,6 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
       AND NOT EXISTS (
         SELECT 1 FROM payments p WHERE p.user_id = sb.user_id AND p.status = 'completed'
       )
-  ), ft AS (
-    SELECT a.user_id AS user_id,
-           (array_remove(array_agg(a.utm_content ORDER BY a.created_at, a.id), NULL))[1] AS first_utm
-    FROM user_acquisition a
-    WHERE a.user_id IN (SELECT r.user_id FROM reached r)
-    GROUP BY a.user_id
   )
   SELECT r.user_id,
          u.nickname,
@@ -81,10 +74,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
          r.balance,
          r.total_spent,
          (SELECT count(*) FROM readings rd WHERE rd.user_id = r.user_id),
-         admin_canonical_creative(ft.first_utm, p_aliases)
+         admin_canonical_creative(a.utm_content, p_aliases)
   FROM reached r
   LEFT JOIN users u ON u.id = r.user_id
-  LEFT JOIN ft ON ft.user_id = r.user_id
+  LEFT JOIN user_acquisition a ON a.user_id = r.user_id
   ORDER BY u.created_at DESC NULLS LAST
   LIMIT p_limit;
 $$;
