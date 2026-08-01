@@ -124,6 +124,7 @@ docs/superpowers/{specs,plans}/
     - **`_` 는 LIKE 의 와일드카드다.** JS `startsWith("fortune_")` 를 `LIKE 'fortune_%'` 로 옮기면 안 된다 → `left(s,8)='fortune_'`
   - **검증은 JS↔SQL 행 단위 diff 로.** prod 원본을 read-only 로 받아 로컬에서 기존 JS 를 돌리고 같은 스냅샷의 SQL 과 대조한다(별 소모 이식이 이 방식으로 그룹 41개 차이 0 확인). 함수 자체는 `service_role` 전용이라 `run-prod-query.mjs` 로 **직접 호출은 안 된다**(permission denied 가 정상) — 본문을 인라인해서 돌릴 것
   - **표시용 목록**(행수가 데이터에 비례)은 `p_limit` + **눈에 보이는** 절단 경고, 또는 페이지네이션. 플래그만 두고 안 보여주면 의미가 없다. OFFSET 페이지네이션은 `ORDER BY` 에 **타이브레이커가 없으면 행이 중복·누락**된다
+- 🔴 **`[RECO:...]` 마커 추출은 `parseAllRecoMarkers`/`parseRecoMarker`(`lib/reco-utils.ts`)만** — 정규식으로 직접 긁어 `m[1] as RecoProduct` 캐스팅 금지. enum 밖 값(LLM 환각 마커)이 새면 `RECO_DISPLAY[product]===undefined` → `display.label` 크래시로 결과 화면 전체가 죽는다(2026-08-02 prod `undefined is not an object (evaluating 'a.label')`, /tarot·/saju reading 4곳 동시 결함). 캐스트는 tsc·build·유닛을 다 통과하니 자동 게이트로 못 잡는다 — 렌더 지점(`RecoInlineCard`·`RecoConfirmModal`)엔 `if (!display) return null` 방어를 같이 둘 것. 계약은 `lib/reco-utils.test.ts`
 
 ## dev/prod 분리
 

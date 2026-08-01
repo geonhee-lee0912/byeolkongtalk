@@ -37,6 +37,7 @@ export default function RecoConfirmModal({
   if (!open || !product || typeof document === "undefined") return null;
 
   const display = RECO_DISPLAY[product];
+  if (!display) return null;
 
   return createPortal(
     <div

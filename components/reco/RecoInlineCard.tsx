@@ -12,6 +12,8 @@ interface Props {
 
 export default function RecoInlineCard({ product, onTap }: Props) {
   const display = RECO_DISPLAY[product];
+  // 방어: enum 밖 product 가 어떤 경로로든 새어들어와도 화면 전체를 죽이지 않는다.
+  if (!display) return null;
 
   return (
     <div className="mt-2 mb-1 max-w-xs ml-10">

@@ -96,3 +96,22 @@ export function parseRecoMarker(text: string): RecoProduct | null {
   }
   return null;
 }
+
+/**
+ * 본문 내 **모든** 유효 product 를 등장 순서로, 중복 없이 반환 (enum 밖 값은 무시).
+ *
+ * ⚠️ RECO 마커 추출은 반드시 이 함수(또는 parseRecoMarker)만 쓸 것. 정규식으로
+ * 직접 긁어 `as RecoProduct` 캐스팅하면 LLM 환각 마커가 enum 밖 값으로 새어
+ * RECO_DISPLAY[product] === undefined → 결과 화면 전체 크래시
+ * (2026-08-02 prod `undefined is not an object (evaluating 'a.label')`, /tarot/reading).
+ */
+export function parseAllRecoMarkers(text: string): RecoProduct[] {
+  const out: RecoProduct[] = [];
+  for (const m of text.matchAll(RECO_MARKER_REGEX)) {
+    const v = m[1].toLowerCase();
+    if ((RECO_PRODUCTS as string[]).includes(v) && !out.includes(v as RecoProduct)) {
+      out.push(v as RecoProduct);
+    }
+  }
+  return out;
+}

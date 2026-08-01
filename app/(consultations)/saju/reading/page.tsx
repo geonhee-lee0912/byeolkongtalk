@@ -10,7 +10,7 @@ import RecoInlineCard from "@/components/reco/RecoInlineCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { stripRecoMarkers, parseRecoMarker, INCHAT_ONLY_PRODUCTS, RECO_MARKER_REGEX, type RecoProduct } from "@/lib/reco-utils";
+import { stripRecoMarkers, parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
@@ -159,10 +159,9 @@ function ReadingInner() {
               const restored: Partial<Record<RecoProduct, number>> = {};
               for (let i = 0; i < rawMsgs.length; i++) {
                 if (rawMsgs[i].role !== "assistant") continue;
-                for (const m of rawMsgs[i].content.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
-                  const v = m[1].toLowerCase() as RecoProduct;
-                  if (v === "continue") continue;
-                  if (restored[v] === undefined) restored[v] = i;
+                for (const p of parseAllRecoMarkers(rawMsgs[i].content)) {
+                  if (p === "continue") continue;
+                  if (restored[p] === undefined) restored[p] = i;
                 }
               }
               if (Object.keys(restored).length > 0) setRecoAttach(restored);
@@ -371,11 +370,7 @@ function ReadingInner() {
       }
 
       // 스트리밍 완료 — 모든 RECO 마커 감지 (product별 1개 제한)
-      const allRecoMarkers: RecoProduct[] = [];
-      for (const m of accumulated.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
-        const v = m[1].toLowerCase() as RecoProduct;
-        if (!allRecoMarkers.includes(v)) allRecoMarkers.push(v);
-      }
+      const allRecoMarkers = parseAllRecoMarkers(accumulated);
 
       const newMessages: Message[] = [...history, { role: "assistant", content: finalText }];
       setMessages(newMessages);

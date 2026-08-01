@@ -11,7 +11,7 @@ import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { RECO_MARKER_REGEX, parseRecoMarker, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
@@ -201,10 +201,9 @@ function TarotReadingInner() {
               const restored: Partial<Record<RecoProduct, number>> = {};
               for (let i = 0; i < msgs.length; i++) {
                 if (msgs[i].role !== "assistant") continue;
-                for (const m of msgs[i].content.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
-                  const v = m[1].toLowerCase() as RecoProduct;
-                  if (v === "continue") continue;
-                  if (restored[v] === undefined) restored[v] = i;
+                for (const p of parseAllRecoMarkers(msgs[i].content)) {
+                  if (p === "continue") continue;
+                  if (restored[p] === undefined) restored[p] = i;
                 }
               }
               if (Object.keys(restored).length > 0) setRecoAttach(restored);
@@ -472,11 +471,7 @@ function TarotReadingInner() {
     END_MARKER_REGEX.lastIndex = 0;
 
     // 스트리밍 완료 — 이 메시지의 모든 RECO 마커 감지 (product 별 1개 제한)
-    const allRecoMarkers: RecoProduct[] = [];
-    for (const m of finalContent.matchAll(new RegExp(RECO_MARKER_REGEX.source, "gi"))) {
-      const v = m[1].toLowerCase() as RecoProduct;
-      if (!allRecoMarkers.includes(v)) allRecoMarkers.push(v);
-    }
+    const allRecoMarkers = parseAllRecoMarkers(finalContent);
 
     setTimeout(() => {
       setMessages((prev) => {
