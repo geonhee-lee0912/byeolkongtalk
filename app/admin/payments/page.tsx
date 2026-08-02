@@ -38,7 +38,8 @@ export default async function AdminPayments() {
 
   // 환불 판단용: 사용자별 별 사용 현황(누적 사용 + 잔액). 별은 계정 공용이라
   // "이 결제분"만 콕 집어낼 순 없고, 계정 누적 사용량으로 정책 판단을 돕는다.
-  const userIds = [...new Set(payments.map((p) => p.user_id))];
+  // 탈퇴 익명화 결제행은 user_id 가 NULL — star 조회 대상에서 뺀다(NULL 로는 잔액을 못 붙인다)
+  const userIds = [...new Set(payments.map((p) => p.user_id))].filter((id): id is string => !!id);
   const starMap = new Map<string, { balance: number; spent: number }>();
   let starFailed = false;
   if (userIds.length > 0) {
@@ -71,7 +72,7 @@ export default async function AdminPayments() {
               const star = starMap.get(p.user_id);
               return (
                 <tr key={p.id} className="border-t border-white/10 align-top">
-                  <td className="py-2 font-mono text-xs">{p.user_id.slice(0, 8)}</td>
+                  <td className="py-2 font-mono text-xs">{p.user_id ? p.user_id.slice(0, 8) : "(탈퇴)"}</td>
                   <td>{p.package_type}</td>
                   <td>{p.amount_won.toLocaleString()}원</td>
                   <td>{p.stars_given}</td>
