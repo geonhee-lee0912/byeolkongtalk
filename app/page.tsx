@@ -7,12 +7,14 @@ import { useRouter } from "next/navigation";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
+  EMOTION_SHORT_LABELS,
   LOVE_TAGS,
   OTHER_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
 import { FORTUNE_CONFIG, fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
+import HeroCarousel from "@/components/common/HeroCarousel";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
 export default function Home() {
@@ -95,112 +97,8 @@ export default function Home() {
   return (
     <>
       <div className="flex flex-col items-center relative w-full max-w-md mx-auto">
-        {/* ━━━ 히어로 ━━━ */}
-        <section
-          className="w-full relative overflow-hidden rounded-b-3xl"
-          style={{
-            background:
-              "linear-gradient(180deg, #16122E 0%, #241C49 40%, #382C6B 75%, #4A3A82 100%)",
-          }}
-        >
-          {/* 별 파티클 */}
-          <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-[8%] left-[18%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
-            <div
-              className="absolute top-[14%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.4s" }}
-            />
-            <div
-              className="absolute top-[34%] left-[8%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.8s" }}
-            />
-            <div
-              className="absolute top-[24%] right-[9%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
-              style={{ animationDelay: "1.2s" }}
-            />
-            <div
-              className="absolute top-[58%] right-[22%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.6s" }}
-            />
-            <div
-              className="absolute top-[12%] left-[44%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
-              style={{ animationDelay: "1.6s" }}
-            />
-            <div
-              className="absolute top-[20%] left-[30%] w-1.5 h-1.5 bg-white/90 rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.2s" }}
-            />
-            <div
-              className="absolute top-[46%] right-[12%] w-1 h-1 bg-gold rounded-full animate-star-twinkle"
-              style={{ animationDelay: "1.0s" }}
-            />
-            <div
-              className="absolute top-[52%] left-[14%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
-              style={{ animationDelay: "1.4s" }}
-            />
-            <div
-              className="absolute top-[70%] left-[26%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.5s" }}
-            />
-            <div
-              className="absolute top-[40%] left-[50%] w-1 h-1 bg-white/80 rounded-full animate-star-twinkle"
-              style={{ animationDelay: "1.8s" }}
-            />
-            <div
-              className="absolute top-[66%] right-[16%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.9s" }}
-            />
-            <div
-              className="absolute top-[30%] right-[30%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
-              style={{ animationDelay: "0.3s" }}
-            />
-            <div className="absolute -top-12 -right-12 w-56 h-56 bg-lilac/20 rounded-full blur-3xl" />
-            <div className="absolute top-1/3 -left-16 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
-          </div>
-
-          <div className="max-w-md mx-auto px-5 pt-16 pb-12 relative z-10 animate-fade-in flex flex-col items-center">
-            <div className="relative w-[180px] h-[180px] mb-3 animate-float">
-              <Image
-                src="/byeolkong-hero.png"
-                alt="별콩이"
-                fill
-                sizes="180px"
-                priority
-                className="relative object-contain drop-shadow-lg"
-              />
-            </div>
-
-            <h1
-              className="font-display text-[28px] text-white leading-snug tracking-wide text-center"
-              style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
-            >
-              안녕! 나는 별콩이야
-              <br />
-              편하게 이야기 나누자
-            </h1>
-          </div>
-        </section>
-
-        {/* ━━━ 말풍선 ━━━ */}
-        <div className="w-full max-w-md mx-auto px-5 -mt-6 relative z-10">
-          <div className="relative w-full max-w-[320px] mx-auto">
-            <div
-              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 z-0"
-              style={{ boxShadow: "0 -2px 8px rgba(90,62,140,0.06)" }}
-            />
-            <div
-              className="relative z-10 bg-white rounded-2xl px-6 py-3.5 text-center"
-              style={{ boxShadow: "0 4px 20px rgba(90,62,140,0.08)" }}
-            >
-              <p className="text-eye-purple text-[14px] font-medium">
-                궁금한 고민을 나에게 말해봐!
-              </p>
-              <p className="text-lilac-deep text-[14px] mt-0.5 font-extrabold">
-                오늘 너의 마음은 어떤 흐름일까?
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* ━━━ 히어로 캐러셀 (6장 · 좌우 화살표 · 도트) ━━━ */}
+        <HeroCarousel />
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
@@ -229,26 +127,6 @@ export default function Home() {
               <span className="text-eye-purple/60 text-[16px] shrink-0">↓</span>
             </button>
           )}
-          <div
-            className="mb-6 p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
-            style={{
-              background:
-                "linear-gradient(135deg, #F6EFFF 0%, #EFE6FB 50%, #FBEFF4 100%)",
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[14px] leading-none" aria-hidden>
-                💡
-              </span>
-              <span className="text-[12px] font-extrabold text-lilac-deep tracking-wide">
-                이렇게 사용해요
-              </span>
-            </div>
-            <p className="text-[12.5px] text-text-light leading-relaxed">
-              고민을 입력하면 별콩이가 타로를 기반으로 고민 상담을 해줄거예요.
-              말하기 어려운 고민도 괜찮아요. 별빛처럼 마음의 흐름을 읽어줄게요.
-            </p>
-          </div>
           {hasResumable && (
             <Link
               href="/readings"
@@ -271,109 +149,15 @@ export default function Home() {
             <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 연애 고민
           </p>
 
-          {/* 연애 고민 (LOVE_TAGS 6개) */}
-          <div className="flex flex-col gap-3 mb-4">
-            {highlightOptions.map((option) => {
+          {/* 연애 고민 — A: 인기 2개(제목+설명+해시태그) / B: 나머지 4개(2열 세로형) */}
+          <div className="flex flex-col gap-2.5 mb-3">
+            {highlightOptions.slice(0, 2).map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
               return (
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-3.5 p-4 bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-lilac/40 hover:border-lilac-deep/40 transition-all text-left group"
-                >
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                    style={{ background: gradient }}
-                  >
-                    <Image
-                      src={option.icon}
-                      alt=""
-                      width={48}
-                      height={48}
-                      className="object-contain group-hover:scale-110 transition-transform"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-eye-purple text-[16px]">
-                      {option.tag}
-                    </p>
-                    <p className="text-[12.5px] text-text-light mt-0.5 leading-relaxed">
-                      {option.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {option.hashtags.map((h) => (
-                        <span
-                          key={h}
-                          className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
-                        >
-                          #{h}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
-          <div className="flex items-center gap-3 mb-4" aria-hidden>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-            <span className="text-gold text-[11px]">✦</span>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-          </div>
-
-          {/* 궁합 크로스링크 — 연애 카드와 동일 골격 + 사주 강조 */}
-          <Link
-            href="/fortune/compat"
-            className="flex items-center gap-3.5 p-4 mb-6 bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-gold/50 hover:border-gold transition-all text-left group"
-          >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
-              }}
-            >
-              <span className="text-[32px] group-hover:scale-110 transition-transform" aria-hidden>
-                💞
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-[16px] flex items-center gap-1.5">
-                우리 사주 연애 궁합은 어떨까?
-                <span className="text-[11px] font-bold text-text-light">
-                  ⭐ {FORTUNE_CONFIG.compat.cost}별
-                </span>
-              </p>
-              <p className="text-[12.5px] text-text-light mt-0.5 leading-relaxed">
-                두 사람 생년월일로 사주 궁합 보기
-              </p>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {["궁합", "사주", "두사람"].map((h) => (
-                  <span
-                    key={h}
-                    className="text-[11px] font-bold text-eye-purple bg-gold-soft/40 px-2 py-0.5 rounded-full"
-                  >
-                    #{h}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </Link>
-
-          {/* 다른 고민 */}
-          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
-            <span className="text-gold text-[12px]">✦</span> 다른 고민
-          </p>
-
-          <div className="flex flex-col gap-3 mb-3">
-            {normalOptions.map((option) => {
-              const gradient = EMOTION_GRADIENTS[option.tag];
-              return (
-                <button
-                  key={option.tag}
-                  onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-3.5 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="flex items-center gap-3.5 p-3.5 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
                 >
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -388,22 +172,143 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-eye-purple text-[15px] leading-snug">
+                    <p className="font-bold text-eye-purple text-[16px]">
                       {option.tag}
                     </p>
-                    <p className="text-[12px] text-text-light mt-0.5 leading-relaxed">
+                    <p className="text-[12px] text-text-light mt-0.5 leading-snug">
                       {option.description}
                     </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {option.hashtags.map((h) => (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {option.hashtags.slice(0, 3).map((h) => (
                         <span
                           key={h}
-                          className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                          className="text-[10.5px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                         >
                           #{h}
                         </span>
                       ))}
                     </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
+            {highlightOptions.slice(2).map((option) => {
+              const gradient = EMOTION_GRADIENTS[option.tag];
+              const label = EMOTION_SHORT_LABELS[option.tag] ?? option.tag;
+              return (
+                <button
+                  key={option.tag}
+                  onClick={() => handleSelect(option.tag)}
+                  className="flex items-center gap-2.5 p-3 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                >
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                    style={{ background: gradient }}
+                  >
+                    <Image
+                      src={option.icon}
+                      alt=""
+                      width={32}
+                      height={32}
+                      className="object-contain group-hover:scale-110 transition-transform"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                      {label}
+                    </p>
+                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                      #{option.hashtags[0]}
+                      {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
+          <div className="flex items-center gap-3 mb-4" aria-hidden>
+            <span className="flex-1 h-px bg-lilac-mid/40" />
+            <span className="text-gold text-[11px]">✦</span>
+            <span className="flex-1 h-px bg-lilac-mid/40" />
+          </div>
+
+          {/* 궁합 크로스링크 — A 카드 골격 + 사주 골드 강조 */}
+          <Link
+            href="/fortune/compat"
+            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-gold/60 hover:border-gold transition-all text-left group"
+          >
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
+              }}
+            >
+              <span className="text-[28px] group-hover:scale-110 transition-transform" aria-hidden>
+                💞
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
+                우리의 사주 궁합은?
+                <span className="text-[11px] font-bold text-text-light">
+                  ⭐ {FORTUNE_CONFIG.compat.cost}별
+                </span>
+              </p>
+              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+                두 사람 생년월일로 사주 궁합 보기
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {["궁합", "사주", "두사람"].map((h) => (
+                  <span
+                    key={h}
+                    className="text-[10.5px] font-bold text-eye-purple bg-gold-soft/40 px-2 py-0.5 rounded-full"
+                  >
+                    #{h}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Link>
+
+          {/* 다른 고민 */}
+          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
+            <span className="text-gold text-[12px]">✦</span> 다른 고민
+          </p>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            {normalOptions.map((option) => {
+              const gradient = EMOTION_GRADIENTS[option.tag];
+              const label = EMOTION_SHORT_LABELS[option.tag] ?? option.tag;
+              return (
+                <button
+                  key={option.tag}
+                  onClick={() => handleSelect(option.tag)}
+                  className="flex items-center gap-2.5 p-3 bg-white/80 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                >
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                    style={{ background: gradient }}
+                  >
+                    <Image
+                      src={option.icon}
+                      alt=""
+                      width={32}
+                      height={32}
+                      className="object-contain group-hover:scale-110 transition-transform"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                      {label}
+                    </p>
+                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                      #{option.hashtags[0]}
+                      {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
+                    </p>
                   </div>
                 </button>
               );

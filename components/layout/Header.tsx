@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -65,11 +66,19 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-cream/85 backdrop-blur-md border-b border-lilac-soft/60">
       <div className="max-w-md mx-auto h-14 flex items-center justify-between px-4">
-        <Link
-          href="/"
-          className="font-display text-[22px] text-eye-purple tracking-wide font-bold"
-        >
-          별콩톡
+        <Link href="/" className="flex items-center gap-1.5">
+          <span className="relative w-7 h-7 shrink-0 rounded-lg bg-lilac-soft flex items-center justify-center overflow-hidden">
+            <Image
+              src="/byeolkong-head.png"
+              alt="별콩이"
+              width={26}
+              height={26}
+              className="object-contain"
+            />
+          </span>
+          <span className="font-display text-[22px] text-eye-purple tracking-wide font-bold">
+            별콩톡
+          </span>
         </Link>
 
         <div className="flex items-center gap-1.5">

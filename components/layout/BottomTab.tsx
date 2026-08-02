@@ -24,7 +24,7 @@ const ICON_CLASS = "w-[22px] h-[22px]";
 const TABS: TabDef[] = [
   {
     key: "consult",
-    label: "고민톡",
+    label: "타로톡",
     href: "/",
     matchPrefixes: ["/", "/saju", "/concern", "/tarot"],
     // mdi message-text-outline / message-text
@@ -35,7 +35,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "fortune",
-    label: "별콩 운세",
+    label: "사주 운세",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
     // mdi star-four-points-outline / star-four-points
@@ -45,7 +45,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "history",
-    label: "연애 상담",
+    label: "우리 사이",
     href: "/relationship",
     matchPrefixes: ["/relationship"],
     // mdi heart-outline / heart
@@ -67,7 +67,7 @@ const TABS: TabDef[] = [
   },
   {
     key: "me",
-    label: "내 정보",
+    label: "마이",
     href: "/mypage",
     matchPrefixes: ["/mypage", "/readings"],
     // mdi account-outline / account

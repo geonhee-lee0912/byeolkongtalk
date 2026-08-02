@@ -103,14 +103,14 @@ export const EMOTION_OPTIONS: EmotionOption[] = [
     emoji: "🏢",
     description: "직장·학교 사람 관계가 어려울 때",
     icon: "/class09.png",
-    hashtags: ["직장동료", "상사", "친구", "인간관계"],
+    hashtags: ["동료", "친구", "상사", "인간관계"],
   },
   {
     tag: "그냥 별콩이한테 털어놓고 싶어",
     emoji: "💬",
     description: "마음을 편하게 이야기하고 싶을 때",
     icon: "/class10.png",
-    hashtags: ["자유상담", "마음정리", "위로", "털어놓기"],
+    hashtags: ["자유 주제"],
   },
 ];
 
@@ -126,6 +126,18 @@ export const EMOTION_GRADIENTS: Record<EmotionTag, string> = {
   "어떤 선택이 맞을지 모르겠어":    "linear-gradient(135deg, #E4E6FA 0%, #C3C8F0 100%)",
   "직장·학교에서 사람이 어려워":    "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
   "그냥 별콩이한테 털어놓고 싶어":  "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+};
+
+/** 2열 그리드 등 좁은 공간용 짧은 라벨 (없으면 tag 사용). tag 자체는 DB·로직용이라 불변. */
+export const EMOTION_SHORT_LABELS: Partial<Record<EmotionTag, string>> = {
+  "언제 연락 올까, 타이밍이 궁금해": "언제 연락 올까",
+  "썸, 이 관계 어떻게 될까": "썸, 어떻게 될까",
+  "요즘 우리, 예전 같지 않아": "예전 같지 않아",
+  "새로운 인연, 언제쯤 올까": "새로운 인연",
+  "진로·방향이 고민이야": "진로·방향",
+  "어떤 선택이 맞을지 모르겠어": "양자택일",
+  "직장·학교에서 사람이 어려워": "직장·학교 관계",
+  "그냥 별콩이한테 털어놓고 싶어": "그냥 털어놓기",
 };
 
 /** 구 태그(v2) → 새 태그. 과거 reading 렌더 + 구 딥링크 하위호환용. */
