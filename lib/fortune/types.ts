@@ -253,3 +253,39 @@ export function getTarotPositions(type: string): string[] | null {
     ? TAROT_POSITIONS[type as TarotFortuneType]
     : null;
 }
+
+// ── 카테고리(필터 칩) ─────────────────────────────────────────────
+// 2탭 사주 운세의 필터 칩 배치. 단일 원천 (spec 2026-08-03-fortune-tab-design).
+// "나" 칩은 지금 없음 — 기질·정체성 리포트가 쌓이면 부활(2026 사주는 그때 timing→나로 이동).
+
+export type FortuneCategory = "love_relation" | "timing" | "free";
+
+/** 모든 FortuneType → 칩 카테고리. 진열 안 하는 tarot_* 는 null. */
+export const FORTUNE_CATEGORY: Record<FortuneType, FortuneCategory | null> = {
+  compat: "love_relation",
+  compat_social: "love_relation",
+  saju_full: "timing",
+  monthly: "timing",
+  good_days: "timing",
+  daily: "free",
+  tarot_daily: null,
+  tarot_love: null,
+  tarot_money: null,
+  tarot_career: null,
+  tarot_relation: null,
+};
+
+/** 칩 노출 순서·라벨. */
+export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
+  { key: "love_relation", label: "연애·관계" },
+  { key: "timing", label: "타이밍" },
+  { key: "free", label: "무료" },
+];
+
+/** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */
+export const DEFAULT_FORTUNE_CHIP: FortuneCategory = "timing";
+
+/** 칩 카테고리에 속한 진열 상품 (FORTUNE_LIST 순서 보존). */
+export function fortuneProductsByCategory(cat: FortuneCategory): FortuneConfig[] {
+  return FORTUNE_LIST.filter((f) => FORTUNE_CATEGORY[f.type] === cat);
+}
