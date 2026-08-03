@@ -172,6 +172,9 @@ export async function PATCH(request: NextRequest) {
     .from("relationships")
     .select("id, partner_profile_id")
     .eq("user_id", userId)
+    .order("last_visited_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!rel) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
