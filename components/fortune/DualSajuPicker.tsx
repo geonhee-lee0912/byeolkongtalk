@@ -7,7 +7,7 @@ interface PickerProfile {
   id: string;
   displayName: string;
   relationType: "self" | "family" | "friend" | "partner" | "other";
-  birthDate: string;
+  birthDate: string | null; // P2: 생일 없는 프로필 가능
   birthTime: string | null;
   isLunarInput: boolean;
   isPrimary: boolean;
@@ -21,6 +21,7 @@ const RELATION_LABEL: Record<string, string> = {
 };
 
 function birthShort(p: PickerProfile): string {
+  if (!p.birthDate) return "생일 미입력";
   return (
     p.birthDate.replace(/-/g, ". ") +
     (p.isLunarInput ? " · 음력" : " · 양력") +

@@ -11,9 +11,9 @@ interface PickerProfile {
   displayName: string;
   relationType: string;
   isPrimary: boolean;
-  birthDate: string;
+  birthDate: string | null; // P2: 생일 없는 프로필 가능
   birthTime: string | null;
-  saju: SajuResult;
+  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
 }
 
 /** 리딩 헤더 등 표시용 프로필 요약 */
@@ -149,12 +149,35 @@ export default function ProfilePicker({
                 : "border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
             }`}
           >
-            <SajuIdentityRow
-              saju={p.saju}
-              title={p.isPrimary ? "내 사주" : p.displayName}
-              badge={p.isPrimary ? null : (RELATION_LABEL[p.relationType] ?? "지인")}
-              caption={sajuCaption(p.saju, p)}
-            />
+            {p.saju ? (
+              <SajuIdentityRow
+                saju={p.saju}
+                title={p.isPrimary ? "내 사주" : p.displayName}
+                badge={p.isPrimary ? null : (RELATION_LABEL[p.relationType] ?? "지인")}
+                caption={sajuCaption(p.saju, p)}
+              />
+            ) : (
+              <>
+                <div className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center bg-lilac-soft/30">
+                  <span className="text-[15px] text-lilac-mid" aria-hidden>
+                    ?
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[14px] font-bold text-eye-purple truncate">
+                    {p.isPrimary ? "내 사주" : p.displayName}
+                    {!p.isPrimary && (
+                      <span className="ml-1.5 text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                        {RELATION_LABEL[p.relationType] ?? "지인"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+                    생일 미입력
+                  </div>
+                </div>
+              </>
+            )}
           </button>
         ))}
         <button
@@ -165,12 +188,19 @@ export default function ProfilePicker({
         </button>
       </div>
 
-      {selected && <SajuBoard saju={selected.saju} />}
+      {selected &&
+        (selected.saju ? (
+          <SajuBoard saju={selected.saju} />
+        ) : (
+          <p className="text-[12px] text-text-light/70 text-center py-4">
+            생일을 알려주면 사주도 보여줄게
+          </p>
+        ))}
 
       <button
-        disabled={!selected || loading}
-        onClick={() =>
-          selected &&
+        disabled={!selected || !selected.saju || !selected.birthDate || loading}
+        onClick={() => {
+          if (!selected || !selected.saju || !selected.birthDate) return;
           onConfirm({
             kind: "saved",
             profileId: selected.id,
@@ -181,8 +211,8 @@ export default function ProfilePicker({
               birthDate: selected.birthDate,
               birthTime: selected.birthTime,
             },
-          })
-        }
+          });
+        }}
         className="w-full mt-5 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
       >
         {confirmLabel ?? "이 사주로 보기"}

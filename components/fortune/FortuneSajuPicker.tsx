@@ -10,11 +10,11 @@ interface PickerProfile {
   id: string;
   displayName: string;
   relationType: "self" | "family" | "friend" | "partner" | "other";
-  birthDate: string;
+  birthDate: string | null; // P2: 생일 없는 프로필 가능
   birthTime: string | null;
   isLunarInput: boolean;
   isPrimary: boolean;
-  saju: SajuResult;
+  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
 }
 
 const RELATION_LABEL: Record<string, string> = {
@@ -48,6 +48,7 @@ function birthTimeToSijin(t: string | null): string | null {
 }
 
 function birthLine(p: PickerProfile): string {
+  if (!p.birthDate) return "생일 미입력";
   const sijin = birthTimeToSijin(p.birthTime);
   return (
     p.birthDate.replace(/-/g, ". ") +
@@ -176,7 +177,13 @@ export default function FortuneSajuPicker({
               )}
             </div>
             <div className="-mx-4">
-              <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
+              {selected.saju ? (
+                <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
+              ) : (
+                <p className="text-[12px] text-text-light/70 text-center py-4">
+                  생일을 알려주면 사주도 보여줄게
+                </p>
+              )}
             </div>
           </>
         )}

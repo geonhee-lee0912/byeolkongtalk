@@ -17,7 +17,7 @@ const STATUS_OPTIONS: RelationshipStatus[] = [
 
 interface MyProfileSummary {
   id: string;
-  birthDate: string;
+  birthDate: string | null; // P2: 생일 없는 프로필 가능
   isLunarInput: boolean;
 }
 
@@ -55,7 +55,7 @@ export default function RegisterOnboarding({
         .catch(() => null);
       const profiles = (d?.profiles ?? []) as {
         id: string;
-        birthDate: string;
+        birthDate: string | null;
         isLunarInput: boolean;
         isPrimary: boolean;
       }[];
@@ -215,8 +215,12 @@ export default function RegisterOnboarding({
                   <span className="font-bold">내 사주 정보 함께 등록하기</span>
                   <br />
                   <span className="text-[11.5px] text-text-light/80">
-                    {myProfile.birthDate.replace(/-/g, ". ")}
-                    {myProfile.isLunarInput ? " · 음력" : " · 양력"} (이미 등록된 정보)
+                    {myProfile.birthDate
+                      ? `${myProfile.birthDate.replace(/-/g, ". ")}${
+                          myProfile.isLunarInput ? " · 음력" : " · 양력"
+                        }`
+                      : "생일 미입력"}{" "}
+                    (이미 등록된 정보)
                   </span>
                 </span>
               </label>

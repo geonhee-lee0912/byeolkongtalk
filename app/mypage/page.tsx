@@ -19,13 +19,13 @@ interface ProfileItem {
   id: string;
   displayName: string;
   relationType: "self" | "family" | "friend" | "partner" | "other";
-  birthDate: string;
+  birthDate: string | null; // P2: 생일 없는 프로필 가능
   birthTime: string | null;
   isLunarInput: boolean;
   isLeapMonth: boolean;
   gender: "male" | "female" | "other";
   isPrimary: boolean;
-  saju: SajuResult;
+  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
 }
 
 const RELATION_LABEL: Record<string, string> = {
@@ -193,15 +193,19 @@ export default function MyPage() {
     }
   };
 
-  const toInitial = (p: ProfileItem) => ({
-    year: Number(p.birthDate.slice(0, 4)),
-    month: Number(p.birthDate.slice(5, 7)),
-    day: Number(p.birthDate.slice(8, 10)),
-    hour: birthTimeToBranchHour(p.birthTime),
-    isLunar: p.isLunarInput,
-    isLeapMonth: p.isLeapMonth,
-    gender: p.gender,
-  });
+  // birthDate 없는 프로필은 미리 채울 값이 없음 — 폼을 빈 상태로 시작(undefined)
+  const toInitial = (p: ProfileItem) =>
+    p.birthDate
+      ? {
+          year: Number(p.birthDate.slice(0, 4)),
+          month: Number(p.birthDate.slice(5, 7)),
+          day: Number(p.birthDate.slice(8, 10)),
+          hour: birthTimeToBranchHour(p.birthTime),
+          isLunar: p.isLunarInput,
+          isLeapMonth: p.isLeapMonth,
+          gender: p.gender,
+        }
+      : undefined;
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -317,13 +321,15 @@ export default function MyPage() {
               </div>
               <div className="text-[11px] text-text-light/70 mt-0.5">
                 {self
-                  ? `${self.birthDate.replace(/-/g, ". ")}${
-                      self.isLunarInput ? " · 음력" : " · 양력"
-                    }${
-                      birthTimeToSijin(self.birthTime)
-                        ? ` · ${birthTimeToSijin(self.birthTime)}`
-                        : " · 시간 모름"
-                    }`
+                  ? self.birthDate
+                    ? `${self.birthDate.replace(/-/g, ". ")}${
+                        self.isLunarInput ? " · 음력" : " · 양력"
+                      }${
+                        birthTimeToSijin(self.birthTime)
+                          ? ` · ${birthTimeToSijin(self.birthTime)}`
+                          : " · 시간 모름"
+                      }`
+                    : "생일 미입력"
                   : "카카오"}
               </div>
             </div>
@@ -340,10 +346,24 @@ export default function MyPage() {
           {/* 내 명식 */}
           <div className="mt-3 pt-3 border-t border-lilac-mid/20 -mx-4">
             {self && !editingSelf ? (
-              <>
-                <div className="px-4 text-[11px] font-bold text-lilac-deep mb-1">내 명식</div>
-                <SajuBoard saju={self.saju} showDetail={false} />
-              </>
+              self.saju ? (
+                <>
+                  <div className="px-4 text-[11px] font-bold text-lilac-deep mb-1">내 명식</div>
+                  <SajuBoard saju={self.saju} showDetail={false} />
+                </>
+              ) : (
+                <div className="px-4 text-center">
+                  <p className="text-[12px] text-text-light/70 mb-3">
+                    생일을 알려주면 사주도 보여줄게.
+                  </p>
+                  <button
+                    onClick={() => setEditingSelf(true)}
+                    className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+                  >
+                    생일 추가하기
+                  </button>
+                </div>
+              )
             ) : editingSelf ? (
               <div className="px-4">
                 <ProfileForm
@@ -453,13 +473,17 @@ export default function MyPage() {
               >
                 <div
                   className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center"
-                  style={{
-                    backgroundColor: ELEMENT_COLORS[p.saju.dayElement].bg,
-                    color: ELEMENT_COLORS[p.saju.dayElement].text,
-                  }}
+                  style={
+                    p.saju
+                      ? {
+                          backgroundColor: ELEMENT_COLORS[p.saju.dayElement].bg,
+                          color: ELEMENT_COLORS[p.saju.dayElement].text,
+                        }
+                      : undefined
+                  }
                 >
                   <span className="text-[16px] font-bold leading-none">
-                    {p.saju.pillars.day.hanja}
+                    {p.saju ? p.saju.pillars.day.hanja : "?"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -470,11 +494,17 @@ export default function MyPage() {
                     </span>
                   </div>
                   <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
-                    {p.saju.dayStem}
-                    {p.saju.dayElement} 일간 · {p.birthDate.replace(/-/g, ". ")}
-                    {birthTimeToSijin(p.birthTime)
-                      ? ` · ${birthTimeToSijin(p.birthTime)}`
-                      : " · 시간 모름"}
+                    {p.saju && p.birthDate ? (
+                      <>
+                        {p.saju.dayStem}
+                        {p.saju.dayElement} 일간 · {p.birthDate.replace(/-/g, ". ")}
+                        {birthTimeToSijin(p.birthTime)
+                          ? ` · ${birthTimeToSijin(p.birthTime)}`
+                          : " · 시간 모름"}
+                      </>
+                    ) : (
+                      "생일 미입력"
+                    )}
                   </div>
                 </div>
                 <button
