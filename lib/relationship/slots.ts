@@ -1,5 +1,6 @@
 // lib/relationship/slots.ts — 관계 슬롯 조회/구매 (DB 래퍼)
 import { getServiceSupabase } from "@/lib/supabase";
+import { spendStars } from "@/lib/stars";
 import { SLOT_COST, slotAllowance } from "./types";
 
 /** 유저 슬롯 현황: 허용 관계 수 / 현재 관계 수 / 무료로 더 추가 가능한지 / 다음 슬롯 가격. */
@@ -18,14 +19,10 @@ export async function getSlotInfo(userId: string): Promise<{
   return { allowed, used: usedN, canAddFree: usedN < allowed, nextCost: SLOT_COST };
 }
 
-/** 슬롯 구매 — RPC 래퍼(원자 차감). 관계 생성은 호출측(POST)에서. */
+/** 슬롯 구매 — lib/stars 의 spendStars 재사용(별 차감 + source 태깅). 관계 생성은 호출측(POST). */
 export async function purchaseSlot(userId: string): Promise<{
   success: boolean; balance: number; reason?: string;
 }> {
-  const supabase = getServiceSupabase();
-  const { data, error } = await supabase.rpc("purchase_relationship_slot", {
-    p_user_id: userId, p_cost: SLOT_COST,
-  });
-  if (error) return { success: false, balance: 0, reason: "rpc_error" };
-  return { success: !!data.success, balance: data.balance_after ?? 0, reason: data.reason };
+  const res = await spendStars(userId, SLOT_COST, { source: "relationship_slot" });
+  return { success: res.success, balance: res.balance, reason: res.reason };
 }
