@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { logError } from "@/lib/logger";
 import { validateProfile } from "@/lib/saju/profile-input";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
+import { getSlotInfo } from "@/lib/relationship/slots";
 import { dailyTurnAllowance, type RelationshipStatus, type RelationshipMemo } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
@@ -74,10 +75,14 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // v1 단일 관계 — 이미 있으면 그대로 반환(멱등)
-  const { data: existing } = await supabase
-    .from("relationships").select("id").eq("user_id", userId).maybeSingle();
-  if (existing) return NextResponse.json({ id: existing.id, existed: true });
+  // 슬롯 게이트 — 허용 관계 수(1 무료 + 구매 슬롯)를 넘으면 슬롯 구매 필요
+  const slot = await getSlotInfo(userId);
+  if (slot.used >= slot.allowed) {
+    return NextResponse.json(
+      { error: "slot_required", code: "SLOT_REQUIRED", nextCost: slot.nextCost },
+      { status: 402 }
+    );
+  }
 
   // self 프로필: 전달됐으면 소유권 확인, 없으면 null(나중에 등록 가능)
   let selfProfileId: string | null = null;
