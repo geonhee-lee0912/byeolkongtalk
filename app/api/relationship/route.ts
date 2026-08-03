@@ -5,8 +5,7 @@ import { getSession } from "@/lib/session";
 import { logError } from "@/lib/logger";
 import { validateProfile } from "@/lib/saju/profile-input";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
-import { getSlotInfo } from "@/lib/relationship/slots";
-import { dailyTurnAllowance, type RelationshipStatus, type RelationshipMemo } from "@/lib/relationship/types";
+import { dailyTurnAllowance, SLOT_COST, type RelationshipStatus, type RelationshipMemo } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
 const VALID_STATUS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
@@ -78,15 +77,6 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // 슬롯 게이트 — 허용 관계 수(1 무료 + 구매 슬롯)를 넘으면 슬롯 구매 필요
-  const slot = await getSlotInfo(userId);
-  if (slot.used >= slot.allowed) {
-    return NextResponse.json(
-      { error: "slot_required", code: "SLOT_REQUIRED", nextCost: slot.nextCost },
-      { status: 402 }
-    );
-  }
-
   // self 프로필: 전달됐으면 소유권 확인, 없으면 null(나중에 등록 가능)
   let selfProfileId: string | null = null;
   if (typeof body.selfProfileId === "string" && body.selfProfileId) {
@@ -122,16 +112,24 @@ export async function POST(request: NextRequest) {
   }
 
   // 관계 + 스레드 본체 reading 생성 (스레드는 무료 — 패스가 대화를 게이트)
-  const { data: rel, error: rErr } = await supabase.from("relationships").insert({
-    user_id: userId, label: body.label.trim(), status: body.status,
-    self_profile_id: selfProfileId, partner_profile_id: partnerProfileId,
-  }).select("id").single();
-  if (rErr || !rel) {
+  const { data: created, error: rErr } = await supabase.rpc("create_relationship", {
+    p_user_id: userId, p_label: body.label.trim(), p_status: body.status,
+    p_self_profile_id: selfProfileId, p_partner_profile_id: partnerProfileId,
+  });
+  if (rErr || !created?.success) {
     // 이번 요청에서 만든 partner 프로필만 롤백 (orphan 방지)
     if (partnerProfileId) await supabase.from("user_profiles").delete().eq("id", partnerProfileId);
-    await logError(rErr ?? new Error("relationship insert null"), { route: "/api/relationship", userId, extra: { stage: "relationship_insert" } });
+    // 허용량 초과는 402(슬롯 필요), 그 외는 500
+    if (!rErr && created?.reason === "slot_required") {
+      return NextResponse.json(
+        { error: "slot_required", code: "SLOT_REQUIRED", nextCost: SLOT_COST },
+        { status: 402 }
+      );
+    }
+    await logError(rErr ?? new Error("create_relationship failed"), { route: "/api/relationship", userId, extra: { stage: "relationship_create" } });
     return NextResponse.json({ error: "relationship_failed" }, { status: 500 });
   }
+  const rel = { id: created.id as string };
 
   const { data: thread, error: tErr } = await supabase.from("readings").insert({
     user_id: userId, consultation_type: "relationship", relationship_id: rel.id,
