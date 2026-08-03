@@ -4,34 +4,31 @@ DROP INDEX IF EXISTS idx_relationships_user_one;
 CREATE INDEX IF NOT EXISTS idx_relationships_user
   ON relationships(user_id, last_visited_at DESC);
 
--- 2) 슬롯 구매 RPC — 별 원자 차감 + 기록(source='relationship_slot').
---    관계 생성은 하지 않는다(허용량만 늘림, 생성은 POST /api/relationship).
-CREATE OR REPLACE FUNCTION purchase_relationship_slot(
-  p_user_id UUID, p_cost INT
+-- 2) 관계 생성 원자 게이트 RPC — 슬롯 허용량(1 무료 + 구매 슬롯) 안에서만 insert.
+--    count→insert 사이 race 를 per-user advisory lock 으로 직렬화(동시 요청이 게이트를 함께
+--    통과해 허용량을 넘기는 것을 차단). 슬롯 구매 자체는 lib/stars 의 spend_stars 로 처리한다.
+CREATE OR REPLACE FUNCTION create_relationship(
+  p_user_id UUID, p_label TEXT, p_status TEXT,
+  p_self_profile_id UUID, p_partner_profile_id UUID
 ) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_balance INT; v_new_balance INT;
+DECLARE v_purchased INT; v_used INT; v_allowed INT; v_id UUID;
 BEGIN
-  IF p_cost IS NULL OR p_cost <= 0 THEN
-    RETURN json_build_object('success', false, 'reason', 'invalid');
+  -- per-user 직렬화: 같은 유저의 동시 관계 생성만 줄 세운다(다른 유저는 자유).
+  PERFORM pg_advisory_xact_lock(hashtext('rel_create:' || p_user_id::text)::bigint);
+  SELECT count(*) INTO v_purchased FROM star_transactions
+    WHERE user_id = p_user_id AND source = 'relationship_slot';
+  SELECT count(*) INTO v_used FROM relationships WHERE user_id = p_user_id;
+  v_allowed := 1 + v_purchased;
+  IF v_used >= v_allowed THEN
+    RETURN json_build_object('success', false, 'reason', 'slot_required',
+      'allowed', v_allowed, 'used', v_used);
   END IF;
-  SELECT balance INTO v_balance FROM star_balances WHERE user_id = p_user_id FOR UPDATE;
-  IF NOT FOUND THEN
-    INSERT INTO star_balances (user_id, balance, total_earned, total_spent)
-      VALUES (p_user_id, 0, 0, 0);
-    v_balance := 0;
-  END IF;
-  IF v_balance < p_cost THEN
-    RETURN json_build_object('success', false, 'reason', 'insufficient', 'balance_after', v_balance);
-  END IF;
-  v_new_balance := v_balance - p_cost;
-  UPDATE star_balances SET balance = v_new_balance, total_spent = total_spent + p_cost, updated_at = now()
-    WHERE user_id = p_user_id;
-  INSERT INTO star_transactions (user_id, type, amount, balance_after, source)
-    VALUES (p_user_id, 'spend', p_cost, v_new_balance, 'relationship_slot');
-  RETURN json_build_object('success', true, 'balance_after', v_new_balance);
+  INSERT INTO relationships (user_id, label, status, self_profile_id, partner_profile_id)
+    VALUES (p_user_id, p_label, p_status, p_self_profile_id, p_partner_profile_id)
+    RETURNING id INTO v_id;
+  RETURN json_build_object('success', true, 'id', v_id);
 END; $$;
 
--- 🔴 새 SECURITY DEFINER RPC — REVOKE 3종(PUBLIC·anon·authenticated) 필수.
---    함수별 정확한 인자로 지정(PostgREST 인자 불일치는 404, 회수 먹으면 401).
-REVOKE EXECUTE ON FUNCTION purchase_relationship_slot(UUID, INT) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION purchase_relationship_slot(UUID, INT) TO service_role;
+-- 🔴 새 SECURITY DEFINER RPC — REVOKE 3종(PUBLIC·anon·authenticated) + 정확한 인자 시그니처.
+REVOKE EXECUTE ON FUNCTION create_relationship(UUID, TEXT, TEXT, UUID, UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_relationship(UUID, TEXT, TEXT, UUID, UUID) TO service_role;
