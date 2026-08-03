@@ -9,6 +9,14 @@ export const RELATIONSHIP_STATUS_LABELS: Record<RelationshipStatus, string> = {
   onesided: "짝사랑",
 };
 
+/** 관계 상태별 인형 아바타 색(스펙 §P2). CSS 그라데이션용 [밝은, 진한]. */
+export const DOLL_COLORS: Record<RelationshipStatus, [string, string]> = {
+  crush: ["#F7C6D9", "#EFA9C2"], // 썸 분홍
+  dating: ["#F4A6A6", "#E87C7C"], // 연인 빨강
+  onesided: ["#D9C6F7", "#B8A9EF"], // 짝사랑 보라
+  breakup: ["#D4D0DB", "#B3AEC0"], // 이별 회색
+};
+
 export type PassKind = "day1" | "day3" | "day7";
 
 export interface PassPlan {
@@ -46,6 +54,13 @@ export const RELATIONSHIP_SKILL_PREVIEWS = [
   { emoji: "💞", label: "우리 궁합", tagline: "두 사람 사주로 보는 궁합" },
   { emoji: "⚖️", label: "싸움 잘잘못 판정", tagline: "양쪽 입장을 듣고 비율로 판정 + 화해 처방" },
 ] as const;
+
+/** MBTI 16 + 건너뛰기. 드롭다운 옵션(서버는 4글자 문자열 저장). */
+export const MBTI_OPTIONS = [
+  "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
+  "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ",
+] as const;
+export type Mbti = (typeof MBTI_OPTIONS)[number];
 
 /** 오늘 연장 횟수 → 허용 턴 수. 상한 없음 — 연장 횟수는 무제한. */
 export function dailyTurnAllowance(todayExtendCount: number): number {
