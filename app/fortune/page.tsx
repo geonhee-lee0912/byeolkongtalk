@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FORTUNE_LIST, FORTUNE_GRADIENTS, FORTUNE_HASHTAGS } from "@/lib/fortune/types";
+import {
+  FORTUNE_GRADIENTS,
+  FORTUNE_HASHTAGS,
+  DEFAULT_FORTUNE_CHIP,
+  fortuneProductsByCategory,
+  type FortuneCategory,
+} from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
-import HeroBanner from "@/components/common/HeroBanner";
-import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
+import FortuneHeader from "@/components/fortune/FortuneHeader";
+import CategoryChips from "@/components/fortune/CategoryChips";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 interface DailyStatus {
   used: number;
@@ -17,12 +24,7 @@ interface DailyStatus {
 
 export default function FortunePage() {
   const [daily, setDaily] = useState<DailyStatus | null>(null);
-  // 오늘의 운세(daily·무료)를 맨 위로 — 나머지는 기존 순서 유지
-  const items = useMemo(() => {
-    const d = FORTUNE_LIST.filter((f) => f.type === "daily");
-    const rest = FORTUNE_LIST.filter((f) => f.type !== "daily");
-    return [...d, ...rest];
-  }, []);
+  const [chip, setChip] = useState<FortuneCategory>(DEFAULT_FORTUNE_CHIP);
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
@@ -31,45 +33,20 @@ export default function FortunePage() {
       .catch(() => {});
   }, []);
 
+  const selectChip = (c: FortuneCategory) => {
+    setChip(c);
+    trackUiEvent("fortune_chip_clicked", { meta: { category: c } });
+  };
+
+  const items = fortuneProductsByCategory(chip);
+
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
-      <HeroBanner
-        image="/byeolkong-main.png"
-        gradient={FORTUNE_HERO_GRADIENT}
-        title="사주 운세"
-        subtitle={
-          <>
-            길게 얘기할 시간 없을 땐,
-            <br />
-            별콩이가 한 장으로 정리해줄게.
-          </>
-        }
-        className="mb-6"
-      />
+      <FortuneHeader />
 
       <FortuneGeneratingList />
 
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div
-          className="p-4 rounded-2xl border border-lilac/40 shadow-[0_4px_18px_rgba(90,62,140,0.08)]"
-          style={{
-            background: "linear-gradient(135deg, #F6EFFF 0%, #EFE6FB 50%, #FBEFF4 100%)",
-          }}
-        >
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[14px] leading-none" aria-hidden>
-              💡
-            </span>
-            <span className="text-[12px] font-extrabold text-lilac-deep tracking-wide">
-              이렇게 사용해요
-            </span>
-          </div>
-          <p className="text-[12.5px] text-text-light leading-relaxed">
-            사주 운세 리포트는 대화가 아니라, 생일을 입력하면 별콩이가 한 장의 리포트로
-            정리해주는 방식이니 가볍게 골라봐요.
-          </p>
-        </div>
-      </div>
+      <CategoryChips active={chip} onSelect={selectChip} />
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
