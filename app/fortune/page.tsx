@@ -25,6 +25,7 @@ interface DailyStatus {
 export default function FortunePage() {
   const [daily, setDaily] = useState<DailyStatus | null>(null);
   const [chip, setChip] = useState<FortuneCategory>(DEFAULT_FORTUNE_CHIP);
+  const [monthNum, setMonthNum] = useState<number | null>(null);
 
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
@@ -32,6 +33,9 @@ export default function FortunePage() {
       .then((d) => d && setDaily(d))
       .catch(() => {});
   }, []);
+
+  // 이번 달 숫자는 클라에서만 계산 (SSR-클라 타임존 월 경계 mismatch 방지)
+  useEffect(() => setMonthNum(new Date().getMonth() + 1), []);
 
   const selectChip = (c: FortuneCategory) => {
     setChip(c);
@@ -46,11 +50,18 @@ export default function FortunePage() {
 
       <FortuneGeneratingList />
 
+      <p className="w-full max-w-md mx-auto px-5 pt-6 text-[13.5px] font-bold text-eye-purple">
+        🌙 어떤 운세가 궁금해?
+      </p>
       <CategoryChips active={chip} onSelect={selectChip} />
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
           const freeStatus = f.type === "daily" ? daily : null;
+          const tagline =
+            f.type === "monthly" && monthNum
+              ? `${monthNum}월 한 달, 너의 흐름을 미리 짚어줄게`
+              : f.tagline;
           const inner = (
             <div
               className={[
@@ -86,7 +97,7 @@ export default function FortunePage() {
                   )}
                 </div>
                 <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-                  {f.tagline}
+                  {tagline}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {FORTUNE_HASHTAGS[f.type].map((h) => (

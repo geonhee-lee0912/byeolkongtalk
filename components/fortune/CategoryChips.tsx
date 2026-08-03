@@ -21,7 +21,7 @@ export default function CategoryChips({ active, onSelect }: Props) {
             aria-pressed={on}
             className={
               on
-                ? "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full bg-lilac-deep text-white transition"
+                ? "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full bg-eye-purple text-white transition"
                 : "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full bg-white border border-lilac-soft text-text-light transition"
             }
           >
