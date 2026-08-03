@@ -27,14 +27,15 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
   }
 
   return (
-    <section
-      className="relative mx-auto w-full max-w-md overflow-hidden"
-      style={{
-        // 황혼 — 위쪽 흰색, 하단 중앙에서 원형으로 번지는 주황
-        background:
-          "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)",
-      }}
-    >
+    <section className="mx-auto w-full max-w-md px-4 pt-4">
+      <div
+        className="relative overflow-hidden rounded-2xl"
+        style={{
+          // 황혼 — 위쪽 흰색, 하단 중앙에서 원형으로 번지는 주황
+          background:
+            "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)",
+        }}
+      >
       {/* 좌측 흰 영역 별 반짝임 */}
       <span className="absolute top-2 left-[44%] text-[10px] text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
       <span className="absolute top-5 left-[57%] text-[8px] text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
@@ -65,6 +66,7 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
           생일 등록하기
           <span aria-hidden>→</span>
         </Link>
+      </div>
       </div>
     </section>
   );
