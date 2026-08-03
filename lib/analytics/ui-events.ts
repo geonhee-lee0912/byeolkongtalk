@@ -15,6 +15,8 @@ export const UI_EVENTS = [
   "exit_chip_shown",
   /** 출구 칩 탭 */
   "exit_chip_clicked",
+  /** 사주 운세 탭 카테고리 칩 선택 — meta.category 에 love_relation|timing|free */
+  "fortune_chip_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
