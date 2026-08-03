@@ -20,6 +20,9 @@ export async function GET() {
     .from("relationships")
     .select("id, label, status, self_profile_id, partner_profile_id, thread_reading_id, memo, last_visited_at")
     .eq("user_id", userId)
+    .order("last_visited_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (!rel) return NextResponse.json({ relationship: null });
