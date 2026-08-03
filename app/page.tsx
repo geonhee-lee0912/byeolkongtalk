@@ -21,6 +21,7 @@ export default function Home() {
   const router = useRouter();
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
+  const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
   // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
@@ -53,6 +54,8 @@ export default function Home() {
           loggedIn = false;
         }
         setWelcomeNudge(loggedIn && list !== null && readings.length === 0);
+        // 첫 카드 상태별 결정용: 이력 0=신규(intro) / 이력 있음=기존(sim). 판정 불가 시 null(intro 유지)
+        setIsNewUser(list !== null ? readings.length === 0 : null);
       } catch {
         // noop
       }
@@ -98,7 +101,7 @@ export default function Home() {
     <>
       <div className="flex flex-col items-center relative w-full max-w-md mx-auto">
         {/* ━━━ 히어로 캐러셀 (6장 · 좌우 화살표 · 도트) ━━━ */}
-        <HeroCarousel />
+        <HeroCarousel isNewUser={isNewUser} />
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
