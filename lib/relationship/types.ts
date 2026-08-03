@@ -62,3 +62,11 @@ export interface RelationshipMemo {
    *  assistant_turns = 스킬 개시 후 별콩이 응답 턴 수(안전 턴캡용). */
   active_skill?: { key: string; started_at: string; assistant_turns: number } | null;
 }
+
+/** 관계 슬롯 — 1번째 상대는 무료, 2번째부터 슬롯 구매. 허용 관계 수 = 1 + 구매 수.
+ * SLOT_COST 는 서버 권위(클라가 보낸 값 신뢰 X). 값은 튜닝 대상(스펙 §11). */
+export const SLOT_COST = 50;
+
+export function slotAllowance(purchasedSlots: number): number {
+  return 1 + Math.max(0, purchasedSlots);
+}
