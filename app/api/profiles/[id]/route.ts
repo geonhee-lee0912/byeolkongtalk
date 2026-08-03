@@ -17,7 +17,7 @@ interface ProfileRow {
   id: string;
   display_name: string;
   relation_type: string;
-  birth_date: string;
+  birth_date: string | null; // P2: 생일 없는 프로필 가능(nullable)
   birth_time: string | null;
   is_lunar_input: boolean;
   is_leap_month: boolean;
@@ -27,7 +27,10 @@ interface ProfileRow {
 }
 
 function serializeProfile(row: ProfileRow) {
-  const saju = calcSaju(profileRowToSajuInput(row));
+  // birth_date 없으면 사주 계산 스킵(P2: 생일 없는 프로필) — calcSaju 는 null 을 못 받는다.
+  const saju = row.birth_date
+    ? calcSaju(profileRowToSajuInput({ ...row, birth_date: row.birth_date }))
+    : null;
   return {
     id: row.id,
     displayName: row.display_name,

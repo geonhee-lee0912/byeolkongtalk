@@ -259,7 +259,8 @@ export async function POST(request: NextRequest) {
       .eq("id", body.profileId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (!owned) {
+    // birth_date는 P2부터 nullable(생일 없는 프로필 가능) — 사주 리딩은 생일 필수.
+    if (!owned || !owned.birth_date) {
       return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
     }
     resolvedProfileId = owned.id;

@@ -244,7 +244,8 @@ export async function POST(req: NextRequest) {
       .eq("user_id", userId);
     const rowA = rows?.find((r) => r.id === profileA);
     const rowB = rows?.find((r) => r.id === profileB);
-    if (!rowA || !rowB) {
+    // birth_date는 P2부터 nullable(생일 없는 프로필 가능) — 궁합은 사주가 필수라 둘 다 있어야 진행.
+    if (!rowA || !rowB || !rowA.birth_date || !rowB.birth_date) {
       return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
     }
 
@@ -265,7 +266,8 @@ export async function POST(req: NextRequest) {
         .eq("id", body.profileId)
         .eq("user_id", userId)
         .maybeSingle();
-      if (!owned) {
+      // birth_date는 P2부터 nullable(생일 없는 프로필 가능) — 사주 기반 운세는 생일 필수.
+      if (!owned || !owned.birth_date) {
         return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
       }
       sajuInput = profileRowToSajuInput(owned);
