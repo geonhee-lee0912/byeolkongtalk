@@ -162,7 +162,6 @@ export default function ProfileEditModal({
   };
 
   const sajuInitial = toSajuInitial(initial);
-  const initialBirthUnknown = !initial?.birthDate;
   const defaultSelfName = isMe ? initial?.displayName : trimmedLabel;
 
   return createPortal(
@@ -240,7 +239,6 @@ export default function ProfileEditModal({
           initial={sajuInitial}
           initialMbti={initial?.mbti ?? null}
           initialPersonality={initial?.personality ?? null}
-          initialBirthUnknown={initialBirthUnknown}
           defaultSelfName={defaultSelfName}
           submitLabel="저장하기"
           loading={saving}
