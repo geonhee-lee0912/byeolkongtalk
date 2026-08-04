@@ -41,6 +41,11 @@ export interface ProfileFormProps {
   /** P2 파일 허브 전용 — MBTI·성격·"생일 몰라요" UI 노출. 기본 false(기존 폼 그대로,
    *  mbti/personality는 항상 null, birthDate는 항상 값 있음 — 기존 소비처 동작 무변경). */
   extended?: boolean;
+  /** P2 — 기존 프로필 편집 시 MBTI·성격·"생일 몰라요" 프리필. 기본 null/null/false
+   *  (기존 소비처는 미전달이라 동작 무변경). extended=false면 어차피 미사용. */
+  initialMbti?: string | null;
+  initialPersonality?: string | null;
+  initialBirthUnknown?: boolean;
 }
 
 export default function ProfileForm({
@@ -53,12 +58,15 @@ export default function ProfileForm({
   loading,
   onSubmit,
   extended = false,
+  initialMbti = null,
+  initialPersonality = null,
+  initialBirthUnknown = false,
 }: ProfileFormProps) {
   const [name, setName] = useState<string>(initialName ?? "");
   const [relation, setRelation] = useState<RelationType>(initialRelation ?? "friend");
-  const [mbti, setMbti] = useState<string | null>(null);
-  const [personality, setPersonality] = useState<string>("");
-  const [birthUnknown, setBirthUnknown] = useState(false);
+  const [mbti, setMbti] = useState<string | null>(initialMbti);
+  const [personality, setPersonality] = useState<string>(initialPersonality ?? "");
+  const [birthUnknown, setBirthUnknown] = useState(initialBirthUnknown);
 
   const handleSajuSubmit = (input: SajuInput) => {
     const displayName =
