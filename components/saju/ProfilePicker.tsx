@@ -76,6 +76,8 @@ export default function ProfilePicker({
   const selected = profiles.find((p) => p.id === selectedId) ?? null;
 
   const handleInlineSubmit = async (payload: ProfilePayload) => {
+    // ProfilePicker는 extended 모드를 쓰지 않음 — birthDate는 항상 값 있음(타입만 방어)
+    if (payload.birthDate === null) return;
     // 미리보기 + 진행을 위해 서버 calc 호출
     setCalcLoading(true);
     try {

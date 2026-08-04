@@ -111,9 +111,12 @@ export default function RegisterOnboarding({
   };
 
   const handlePartnerSubmit = (payload: ProfilePayload) => {
-    const { displayName, birthDate, birthTime, isLunarInput, isLeapMonth, gender } =
-      payload;
-    void register({ displayName, birthDate, birthTime, isLunarInput, isLeapMonth, gender });
+    const {
+      displayName, birthDate, birthTime, isLunarInput, isLeapMonth, gender, mbti, personality,
+    } = payload;
+    void register({
+      displayName, birthDate, birthTime, isLunarInput, isLeapMonth, gender, mbti, personality,
+    });
   };
 
   return (
