@@ -325,7 +325,14 @@ export async function POST(request: NextRequest) {
           ctxFromRequest(request, {
             route: "/api/consultations/tarot/chat",
             userId,
-            extra: { readingId: reading.id },
+            // 유저가 겪은 것: partialCharsShown=이 턴에 화면에 보인 별콩이 글자수
+            // (0=로딩 점만 보다 "연결이 흔들렸어" 배너 + 답 없음, >0=답이 이만큼 나오다 끊김).
+            // 두 경우 모두 이 턴은 DB 미저장(유저·별콩이 메시지 통째 유실) → 유저가 재전송해야 함.
+            extra: {
+              readingId: reading.id,
+              assistantTurnsSoFar,
+              partialCharsShown: assistantText.length,
+            },
           })
         );
         controller.error(err);

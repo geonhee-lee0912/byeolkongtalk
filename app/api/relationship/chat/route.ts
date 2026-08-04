@@ -707,7 +707,12 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         await logError(
           err,
-          ctxFromRequest(request, { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id } })
+          ctxFromRequest(request, {
+            route: "/api/relationship/chat",
+            userId,
+            // 유저가 겪은 것: partialCharsShown=이 턴에 화면에 보인 별콩이 글자수(0=답 없이 에러).
+            extra: { relationshipId: rel.id, partialCharsShown: assistantText.length },
+          })
         );
         controller.error(err);
       }

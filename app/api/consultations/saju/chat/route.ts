@@ -329,7 +329,13 @@ export async function POST(request: NextRequest) {
           ctxFromRequest(request, {
             route: "/api/consultations/saju/chat",
             userId,
-            extra: { readingId: reading.id },
+            // 유저가 겪은 것: partialCharsShown=이 턴에 화면에 보인 별콩이 글자수
+            // (0=로딩만 보다 에러 배너, >0=답이 이만큼 나오다 끊김). 이 턴은 DB 미저장 → 재전송 필요.
+            extra: {
+              readingId: reading.id,
+              assistantTurnsSoFar,
+              partialCharsShown: assistantText.length,
+            },
           })
         );
         controller.error(err);

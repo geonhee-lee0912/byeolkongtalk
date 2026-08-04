@@ -27,6 +27,7 @@ import type { EmotionTag } from "@/lib/emotions";
 import { FREE_INTRO_TURNS } from "@/lib/relationship/types";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
+import { isRetryableUpstreamError, upstreamErrorType } from "@/lib/upstream-error";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -376,16 +377,39 @@ export async function* streamChat(
 
     let yielded = false;
     let stopReason: string | null = null;
-    for await (const event of stream) {
-      if (
-        event.type === "content_block_delta" &&
-        event.delta.type === "text_delta"
-      ) {
-        yielded = true;
-        yield event.delta.text;
-      } else if (event.type === "message_delta") {
-        stopReason = event.delta.stop_reason ?? stopReason;
+    try {
+      for await (const event of stream) {
+        if (
+          event.type === "content_block_delta" &&
+          event.delta.type === "text_delta"
+        ) {
+          yielded = true;
+          yield event.delta.text;
+        } else if (event.type === "message_delta") {
+          stopReason = event.delta.stop_reason ?? stopReason;
+        }
       }
+    } catch (err) {
+      // 일시적 upstream 에러(overloaded_error 등) 재시도. 이 에러는 API 가 HTTP 200 으로
+      // 스트림을 연 뒤 SSE `error` 이벤트로 던지므로 SDK 요청 재시도(초기 연결만 감쌈)가
+      // 못 잡는다(2026-08-04 prod). 아직 한 조각도 방출 안 했으면(!yielded) 클라엔 바이트가
+      // 안 나갔으니 안전하게 재호출 → 대부분(1초 미만 blip) 복구. 이미 흘렸거나·재시도 소진·
+      // 비일시적 에러면 그대로 던져 각 라우트 catch 가 로깅 + controller.error 로 마무리.
+      if (yielded || attempt >= MAX_ATTEMPTS || !isRetryableUpstreamError(err)) {
+        throw err;
+      }
+      void logInfo("streamChat transient upstream error — retrying", {
+        ...logCtx,
+        extra: {
+          ...logCtx?.extra,
+          attempt,
+          maxAttempts: MAX_ATTEMPTS,
+          errorType: upstreamErrorType(err),
+          model: "claude-sonnet-5",
+        },
+      });
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+      continue;
     }
 
     // 텍스트를 한 조각이라도 냈으면 이 시도로 확정 — 이미 소비자에 전달돼 재시도 불가.
