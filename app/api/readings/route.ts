@@ -272,7 +272,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: profileValidated.error }, { status: 400 });
     }
     const profile = profileValidated;
-    birthDateForLuck = profile.birthDate;
+    // strict 검증(optionalBirth 미전달)이라 birthDate 는 non-null 보장.
+    birthDateForLuck = profile.birthDate!;
 
     if (body.save === true) {
       // 지인 목록에 저장 (self 면 기존 self/primary 없을 때만 primary)

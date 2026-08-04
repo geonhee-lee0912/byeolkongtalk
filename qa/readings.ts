@@ -16,6 +16,8 @@ const DEFAULT_PROFILE: ProfileInput = {
   isLunarInput: false,
   isLeapMonth: false,
   gender: "female",
+  mbti: null,
+  personality: null,
 };
 
 export interface CreatedReading {
@@ -26,6 +28,8 @@ export interface CreatedReading {
 export async function createSajuReading(c: Case): Promise<CreatedReading> {
   if (c.product.kind !== "saju") throw new Error("not saju case");
   const profile = c.seed.profile ?? DEFAULT_PROFILE;
+  // 사주 케이스는 생일 필수 — birthDate 가 string|null 로 넓어져 슬라이스 전에 좁힌다(QA 오구성 방어).
+  if (!profile.birthDate) throw new Error("[readings] saju 케이스는 birthDate 필수");
 
   // 1) calc — sajuData 산출
   const calc = await postJson<{ saju?: unknown; error?: string }>(
