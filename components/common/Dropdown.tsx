@@ -36,7 +36,9 @@ export default function Dropdown({
   const selectedIndex = options.findIndex((o) => o.value === value);
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
 
-  // 바깥 클릭 닫기 (mousedown — 래퍼 내부 클릭은 무시)
+  // 바깥 클릭 닫기 (mousedown — 래퍼 내부 클릭은 무시) + Escape 로 닫기.
+  // Escape 는 열린 동안 document 에서 가로채 stopPropagation — 부모 모달(window keydown)이
+  // 같은 Escape 로 함께 닫히는 것을 막는다(드롭다운만 닫히고 모달은 유지).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -44,8 +46,22 @@ export default function Dropdown({
         setOpen(false);
       }
     };
+    // 캡처 단계로 부모(window bubble)보다 먼저 잡아 stopImmediatePropagation —
+    // 부모 모달이 같은 Escape 로 함께 닫히는 것을 확실히 차단.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        e.stopPropagation();
+        e.preventDefault();
+        setOpen(false);
+      }
+    };
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
   }, [open]);
 
   // 열림/하이라이트 이동 시 해당 옵션을 목록 내에서 보이게 스크롤
