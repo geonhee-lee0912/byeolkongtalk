@@ -4,7 +4,6 @@
 // 💬 연애 상담(활성) · 🎭 시뮬레이션(disabled "곧 열려") · ┈ 미래 상품 자리.
 // 스킬 4종은 상품이 아니라 연애 상담(스레드) 안의 ⚡도구 → 여기 없음. 스펙 §P2 + 목업 p2-hub-v2.
 export interface ProductListProps {
-  relationshipId: string;
   /** 스레드에 대화 기록이 있으면 "이어가기", 없으면 "시작하기" */
   hasHistory: boolean;
   onOpenThread: () => void;

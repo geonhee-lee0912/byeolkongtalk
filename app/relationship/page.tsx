@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
@@ -92,12 +92,18 @@ export default function RelationshipPage() {
   const [showPassSheet, setShowPassSheet] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [activeSkill, setActiveSkill] = useState<string | null>(null);
+  // 관계 전환 중 스코프드 데이터(messages/pass/daily)를 아직 못 받은 상태 — 이전 관계 값 표시 방지.
+  const [selectionLoading, setSelectionLoading] = useState(false);
+  // 조회 순서 토큰 — 빠른 A→B→A 전환에서 늦게 도착한 이전 응답이 최신 선택을 덮어쓰지 않도록.
+  const reqTokenRef = useRef(0);
   // 무료 인트로 배너 표시용 — 이번 마운트에서 보낸 유저 턴 수. load()/refresh() 가 messages 를
   // 다시 받아오면 그 안에 이미 포함되므로 0 으로 리셋한다(이중 계산 방지).
   const [sentFreeTurns, setSentFreeTurns] = useState(0);
 
-  // GET 응답 → 선택 관계의 pass/daily/messages/activeSkill + 목록/self 반영(선택/뷰는 건드리지 않음)
-  const applyGet = (rel: HubGet) => {
+  // GET 응답 → 선택 관계의 pass/daily/messages/activeSkill + 목록/self 반영(선택/뷰는 건드리지 않음).
+  // token 이 최신이 아니면(그 사이 새 선택이 시작됨) 응답을 버려 stale 덮어쓰기를 막는다.
+  const applyGet = (rel: HubGet, token: number) => {
+    if (token !== reqTokenRef.current) return;
     setRelationships(rel.relationships ?? []);
     setSelf(rel.self ?? null);
     setPass(rel.pass ?? null);
@@ -111,6 +117,7 @@ export default function RelationshipPage() {
     );
     setActiveSkill(rel.activeSkill ?? null);
     setSentFreeTurns(0);
+    setSelectionLoading(false);
   };
 
   const fetchHub = (relId?: string): Promise<HubGet | null> =>
@@ -127,6 +134,7 @@ export default function RelationshipPage() {
 
   // 초기 로드 + 하드 리로드(등록 직후) — 선택을 서버 selectedId(최근 관계)로 초기화한다.
   const load = async () => {
+    const token = (reqTokenRef.current += 1);
     const [meRes, rel, bal] = await Promise.all([
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<Me>) : null))
@@ -139,9 +147,9 @@ export default function RelationshipPage() {
       return;
     }
     setMe(meRes);
-    setBalance(typeof bal?.balance === "number" ? bal.balance : null);
-    if (rel) {
-      applyGet(rel);
+    if (typeof bal?.balance === "number") setBalance(bal.balance);
+    if (rel && token === reqTokenRef.current) {
+      applyGet(rel, token);
       setSelected(rel.selectedId ?? "me");
     }
     setLoading(false);
@@ -149,17 +157,34 @@ export default function RelationshipPage() {
 
   // 현재 선택을 유지한 채 데이터만 새로고침(편집 저장·패스 구매·스킬 종료 등)
   const refresh = async (sel: "me" | string = selected) => {
+    const token = (reqTokenRef.current += 1);
     const relId = sel !== "me" ? sel : undefined;
     const [rel, bal] = await Promise.all([fetchHub(relId), fetchBalance()]);
-    if (rel) applyGet(rel);
-    if (typeof bal?.balance === "number") setBalance(bal.balance);
+    if (rel) applyGet(rel, token);
+    // 조회 실패(null)여도 최신 토큰이면 로딩은 해제 — selectionLoading 이 영구히 걸리지 않도록.
+    else if (token === reqTokenRef.current) setSelectionLoading(false);
+    if (typeof bal?.balance === "number" && token === reqTokenRef.current) setBalance(bal.balance);
   };
 
   // 스위처 전환 — 상대 선택 시 그 관계의 pass/daily/messages 를 재조회, 항상 허브 뷰로.
   const onSelect = async (sel: "me" | string) => {
     setSelected(sel);
     setView("hub");
-    if (sel !== "me") await refresh(sel);
+    if (sel === "me") {
+      // 나 앵커는 조회 불필요 — 진행 중이던 관계 응답을 무효화하고 로딩 해제.
+      reqTokenRef.current += 1;
+      setSelectionLoading(false);
+      return;
+    }
+    // 다른 관계로 전환 — 이전 관계의 스코프드 상태를 즉시 비워 잘못된 표시를 막고(이전 messages 로
+    // ThreadChat 이 seed 되는 것 포함), 새 데이터를 받아온다.
+    setSelectionLoading(true);
+    setMessages([]);
+    setPass(null);
+    setDaily(null);
+    setActiveSkill(null);
+    setSentFreeTurns(0);
+    await refresh(sel);
   };
 
   useEffect(() => {
@@ -200,28 +225,10 @@ export default function RelationshipPage() {
     selected !== "me" ? relationships.find((r) => r.id === selected) ?? null : null;
   const userTurns = messages.filter((m) => m.role === "user").length;
 
-  // 나·상대 공통 편집 모달 — 선택 대상에서 target 파생. 저장 후 현재 선택 유지한 채 새로고침.
+  // 나·상대 공통 편집 모달 — 선택 대상에서 target 파생. selectedRel 이 없으면(나 또는 알 수 없는
+  // 선택) 항상 "나" 모달로 폴백해 아래 카드 렌더와 일치시킨다. 저장 후 현재 선택 유지한 채 새로고침.
   const editModal = showEditModal && (
-    selected === "me" ? (
-      <ProfileEditModal
-        target="me"
-        initial={{
-          displayName: me.user.nickname,
-          birthDate: self?.birthDate,
-          birthTime: self?.birthTime,
-          isLunarInput: self?.isLunarInput,
-          isLeapMonth: self?.isLeapMonth,
-          gender: self?.gender,
-          mbti: self?.mbti,
-          personality: self?.personality,
-        }}
-        onClose={() => setShowEditModal(false)}
-        onSaved={() => {
-          setShowEditModal(false);
-          void refresh();
-        }}
-      />
-    ) : selectedRel ? (
+    selectedRel ? (
       <ProfileEditModal
         target={{
           relationshipId: selectedRel.id,
@@ -246,7 +253,26 @@ export default function RelationshipPage() {
           void refresh();
         }}
       />
-    ) : null
+    ) : (
+      <ProfileEditModal
+        target="me"
+        initial={{
+          displayName: me.user.nickname,
+          birthDate: self?.birthDate,
+          birthTime: self?.birthTime,
+          isLunarInput: self?.isLunarInput,
+          isLeapMonth: self?.isLeapMonth,
+          gender: self?.gender,
+          mbti: self?.mbti,
+          personality: self?.personality,
+        }}
+        onClose={() => setShowEditModal(false)}
+        onSaved={() => {
+          setShowEditModal(false);
+          void refresh();
+        }}
+      />
+    )
   );
 
   // 스레드 뷰 — S2(패스없음)/S3(활성)/S4(오늘 캡 도달) 실제 대화/패스 UI
@@ -351,7 +377,7 @@ export default function RelationshipPage() {
     // S2 — 활성 패스 없음. 단 무료 인트로(유저 발화 FREE_INTRO_TURNS회)가 남았으면 입력 열린 스레드로.
     // 분기 판정은 서버가 준 messages 만 본다 — sentFreeTurns(표시용)를 섞으면 마지막 턴 직후 곧바로
     // 소진 화면으로 튀면서, 아직 refresh() 하지 않은 방금 대화가 화면에서 사라진다. 실제 벽은 서버 402.
-    const usedFreeTurns = messages.filter((m) => m.role === "user").length;
+    const usedFreeTurns = userTurns; // 상단에서 이미 계산 — 재계산 방지(같은 messages 소스)
     const freeLeft = !hasPass ? Math.max(0, FREE_INTRO_TURNS - usedFreeTurns) : 0;
     // 배너는 이번 마운트에서 보낸 턴까지 반영해야 실시간으로 맞는다(1/3 → 2/3 → 3/3 → 소진 안내).
     const freeShownLeft = Math.max(0, freeLeft - sentFreeTurns);
@@ -647,7 +673,27 @@ export default function RelationshipPage() {
               상대 등록하고 시작하기
             </button>
           </div>
-        ) : selected === "me" ? (
+        ) : selectedRel ? (
+          <>
+            <ProfileCard
+              target={selectedRel}
+              self={self}
+              me={meCard}
+              userTurns={selectionLoading ? null : userTurns}
+              onEdit={() => setShowEditModal(true)}
+            />
+            <p className="text-[10px] font-extrabold text-lilac-mid tracking-wide mt-5 mb-2 px-0.5">
+              {selectedRel.label}이랑 할 수 있는 것
+            </p>
+            <ProductList
+              hasHistory={selectionLoading ? false : messages.length > 0}
+              onOpenThread={() => {
+                if (!selectionLoading) setView("thread");
+              }}
+            />
+          </>
+        ) : (
+          // 나 앵커 선택 — 그리고 selected 가 목록에 없는(예: 삭제된) id 인 경우의 폴백.
           <>
             <ProfileCard
               target="me"
@@ -659,25 +705,7 @@ export default function RelationshipPage() {
               내 사주·성향은 모든 상대와의 궁합·시뮬에 쓰여. 여기서 바로 편집할 수 있어.
             </p>
           </>
-        ) : selectedRel ? (
-          <>
-            <ProfileCard
-              target={selectedRel}
-              self={self}
-              me={meCard}
-              userTurns={userTurns}
-              onEdit={() => setShowEditModal(true)}
-            />
-            <p className="text-[10px] font-extrabold text-lilac-mid tracking-wide mt-5 mb-2 px-0.5">
-              {selectedRel.label}이랑 할 수 있는 것
-            </p>
-            <ProductList
-              relationshipId={selectedRel.id}
-              hasHistory={messages.length > 0}
-              onOpenThread={() => setView("thread")}
-            />
-          </>
-        ) : null}
+        )}
       </div>
 
       {editModal}
