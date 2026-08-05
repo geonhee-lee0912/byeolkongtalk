@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
 import PassSheet from "@/components/relationship/PassSheet";
-import RelationshipEditModal from "@/components/relationship/RelationshipEditModal";
+import ProfileEditModal from "@/components/relationship/ProfileEditModal";
+import HubSwitcher from "@/components/relationship/HubSwitcher";
+import ProfileCard from "@/components/relationship/ProfileCard";
+import ProductList from "@/components/relationship/ProductList";
 import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
 import { formatPassRemaining } from "@/lib/relationship/passDisplay";
 import {
@@ -21,17 +24,31 @@ import {
 } from "@/lib/relationship/types";
 
 interface Me {
+  user: { id: string; nickname: string; profile_img: string | null } | null;
   isAuthenticated: boolean;
 }
 
-interface RelationshipData {
+// GET /api/relationship 사람 프로필 뷰(self·상대 공통).
+interface PersonProfileView {
+  id: string;
+  displayName: string;
+  birthDate: string | null;
+  birthTime: string | null;
+  isLunarInput: boolean;
+  isLeapMonth: boolean;
+  gender: "male" | "female" | "other";
+  mbti: string | null;
+  personality: string | null;
+}
+
+interface RelHub {
   id: string;
   label: string;
   status: RelationshipStatus;
   selfProfileId: string | null;
   partnerProfileId: string | null;
   threadReadingId: string | null;
-  memo: unknown;
+  partner: PersonProfileView | null;
 }
 
 interface PassData {
@@ -45,12 +62,28 @@ interface DailyData {
   extendCount: number;
 }
 
+interface HubGet {
+  relationships: RelHub[];
+  selectedId: string | null;
+  self: PersonProfileView | null;
+  pass: PassData | null;
+  daily: DailyData | null;
+  messages: { role: "user" | "assistant"; content: string; created_at?: string }[];
+  activeSkill: string | null;
+}
+
 const SKILL_PREVIEWS = RELATIONSHIP_SKILL_PREVIEWS;
 
 export default function RelationshipPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [relationship, setRelationship] = useState<RelationshipData | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const [relationships, setRelationships] = useState<RelHub[]>([]);
+  const [self, setSelf] = useState<PersonProfileView | null>(null);
+  // 선택 대상: "me"(나 앵커) 또는 관계 id
+  const [selected, setSelected] = useState<"me" | string>("me");
+  // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
+  const [view, setView] = useState<"hub" | "thread">("hub");
   const [pass, setPass] = useState<PassData | null>(null);
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [messages, setMessages] = useState<ThreadChatMsg[]>([]);
@@ -59,40 +92,74 @@ export default function RelationshipPage() {
   const [showPassSheet, setShowPassSheet] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [activeSkill, setActiveSkill] = useState<string | null>(null);
-  // 무료 인트로 배너 표시용 — 이번 마운트에서 보낸 유저 턴 수. load() 가 messages 를 다시 받아오면
-  // 그 안에 이미 포함되므로 0 으로 리셋한다(이중 계산 방지).
+  // 무료 인트로 배너 표시용 — 이번 마운트에서 보낸 유저 턴 수. load()/refresh() 가 messages 를
+  // 다시 받아오면 그 안에 이미 포함되므로 0 으로 리셋한다(이중 계산 방지).
   const [sentFreeTurns, setSentFreeTurns] = useState(0);
 
+  // GET 응답 → 선택 관계의 pass/daily/messages/activeSkill + 목록/self 반영(선택/뷰는 건드리지 않음)
+  const applyGet = (rel: HubGet) => {
+    setRelationships(rel.relationships ?? []);
+    setSelf(rel.self ?? null);
+    setPass(rel.pass ?? null);
+    setDaily(rel.daily ?? null);
+    setMessages(
+      (rel.messages ?? []).map((m) => ({
+        role: m.role,
+        content: m.content,
+        createdAt: m.created_at,
+      }))
+    );
+    setActiveSkill(rel.activeSkill ?? null);
+    setSentFreeTurns(0);
+  };
+
+  const fetchHub = (relId?: string): Promise<HubGet | null> =>
+    fetch(`/api/relationship${relId ? `?selectedId=${encodeURIComponent(relId)}` : ""}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<HubGet>) : null))
+      .catch(() => null);
+
+  const fetchBalance = () =>
+    fetch("/api/stars/balance", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+
+  // 초기 로드 + 하드 리로드(등록 직후) — 선택을 서버 selectedId(최근 관계)로 초기화한다.
   const load = async () => {
-    const [me, rel, bal] = await Promise.all([
+    const [meRes, rel, bal] = await Promise.all([
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<Me>) : null))
         .catch(() => null),
-      fetch("/api/relationship", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
-      fetch("/api/stars/balance", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
+      fetchHub(),
+      fetchBalance(),
     ]);
-    if (!me?.isAuthenticated) {
+    if (!meRes?.isAuthenticated) {
       router.replace("/login?next=/relationship");
       return;
     }
-    setRelationship((rel?.relationship as RelationshipData | null) ?? null);
-    setPass((rel?.pass as PassData | null) ?? null);
-    setDaily((rel?.daily as DailyData | null) ?? null);
-    setMessages(
-      (
-        (rel?.messages as
-          | { role: "user" | "assistant"; content: string; created_at?: string }[]
-          | undefined) ?? []
-      ).map((m) => ({ role: m.role, content: m.content, createdAt: m.created_at }))
-    );
-    setSentFreeTurns(0);
+    setMe(meRes);
     setBalance(typeof bal?.balance === "number" ? bal.balance : null);
-    setActiveSkill((rel?.activeSkill as string | null) ?? null);
+    if (rel) {
+      applyGet(rel);
+      setSelected(rel.selectedId ?? "me");
+    }
     setLoading(false);
+  };
+
+  // 현재 선택을 유지한 채 데이터만 새로고침(편집 저장·패스 구매·스킬 종료 등)
+  const refresh = async (sel: "me" | string = selected) => {
+    const relId = sel !== "me" ? sel : undefined;
+    const [rel, bal] = await Promise.all([fetchHub(relId), fetchBalance()]);
+    if (rel) applyGet(rel);
+    if (typeof bal?.balance === "number") setBalance(bal.balance);
+  };
+
+  // 스위처 전환 — 상대 선택 시 그 관계의 pass/daily/messages 를 재조회, 항상 허브 뷰로.
+  const onSelect = async (sel: "me" | string) => {
+    setSelected(sel);
+    setView("hub");
+    if (sel !== "me") await refresh(sel);
   };
 
   useEffect(() => {
@@ -106,7 +173,7 @@ export default function RelationshipPage() {
     void load();
   };
 
-  if (loading) {
+  if (loading || !me?.user) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
         <p className="text-text-light text-sm">잠시만…</p>
@@ -114,8 +181,77 @@ export default function RelationshipPage() {
     );
   }
 
-  // 등록됨 — S2(패스없음)/S3(활성)/S4(오늘 캡 도달) 실제 스레드/패스 UI
-  if (relationship) {
+  // 온보딩(첫 등록 / 새 사람 추가) — 전체 화면 플로우. T9: [＋]를 AddPersonSheet(슬롯)로 교체 예정.
+  if (showOnboarding) {
+    return (
+      <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
+        <div className="w-full max-w-md mx-auto">
+          <RegisterOnboarding
+            onRegistered={handleRegistered}
+            onCancel={() => setShowOnboarding(false)}
+          />
+        </div>
+      </main>
+    );
+  }
+
+  const meCard = { name: me.user.nickname, imageUrl: me.user.profile_img };
+  const selectedRel =
+    selected !== "me" ? relationships.find((r) => r.id === selected) ?? null : null;
+  const userTurns = messages.filter((m) => m.role === "user").length;
+
+  // 나·상대 공통 편집 모달 — 선택 대상에서 target 파생. 저장 후 현재 선택 유지한 채 새로고침.
+  const editModal = showEditModal && (
+    selected === "me" ? (
+      <ProfileEditModal
+        target="me"
+        initial={{
+          displayName: me.user.nickname,
+          birthDate: self?.birthDate,
+          birthTime: self?.birthTime,
+          isLunarInput: self?.isLunarInput,
+          isLeapMonth: self?.isLeapMonth,
+          gender: self?.gender,
+          mbti: self?.mbti,
+          personality: self?.personality,
+        }}
+        onClose={() => setShowEditModal(false)}
+        onSaved={() => {
+          setShowEditModal(false);
+          void refresh();
+        }}
+      />
+    ) : selectedRel ? (
+      <ProfileEditModal
+        target={{
+          relationshipId: selectedRel.id,
+          label: selectedRel.label,
+          status: selectedRel.status,
+        }}
+        initial={{
+          label: selectedRel.label,
+          status: selectedRel.status,
+          displayName: selectedRel.partner?.displayName,
+          birthDate: selectedRel.partner?.birthDate,
+          birthTime: selectedRel.partner?.birthTime,
+          isLunarInput: selectedRel.partner?.isLunarInput,
+          isLeapMonth: selectedRel.partner?.isLeapMonth,
+          gender: selectedRel.partner?.gender,
+          mbti: selectedRel.partner?.mbti,
+          personality: selectedRel.partner?.personality,
+        }}
+        onClose={() => setShowEditModal(false)}
+        onSaved={() => {
+          setShowEditModal(false);
+          void refresh();
+        }}
+      />
+    ) : null
+  );
+
+  // 스레드 뷰 — S2(패스없음)/S3(활성)/S4(오늘 캡 도달) 실제 대화/패스 UI
+  if (view === "thread" && selectedRel) {
+    const relationship = selectedRel;
     const hasPass = !!pass;
     const capReached = !!daily && daily.used >= daily.allowance;
     const showPartnerBanner = relationship.partnerProfileId === null;
@@ -131,6 +267,26 @@ export default function RelationshipPage() {
         className="rounded-2xl px-3.5 h-[64px] border border-lilac-mid/20 shadow-sm flex items-center gap-2.5"
         style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
       >
+        <button
+          type="button"
+          onClick={() => setView("hub")}
+          aria-label="뒤로"
+          className="shrink-0 -ml-1 w-7 h-7 rounded-full flex items-center justify-center text-white/85 hover:bg-white/10 active:scale-95 transition"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
         <div className="min-w-0">
           <div className="flex items-center gap-1 text-[10.5px] text-white leading-none">
             <span>{RELATIONSHIP_STATUS_LABELS[relationship.status]}</span>
@@ -192,21 +348,9 @@ export default function RelationshipPage() {
       </button>
     );
 
-    const editModal = showEditModal && (
-      <RelationshipEditModal
-        currentLabel={relationship.label}
-        currentStatus={relationship.status}
-        onClose={() => setShowEditModal(false)}
-        onSaved={() => {
-          setShowEditModal(false);
-          void load();
-        }}
-      />
-    );
-
     // S2 — 활성 패스 없음. 단 무료 인트로(유저 발화 FREE_INTRO_TURNS회)가 남았으면 입력 열린 스레드로.
     // 분기 판정은 서버가 준 messages 만 본다 — sentFreeTurns(표시용)를 섞으면 마지막 턴 직후 곧바로
-    // 소진 화면으로 튀면서, 아직 load() 하지 않은 방금 대화가 화면에서 사라진다. 실제 벽은 서버 402.
+    // 소진 화면으로 튀면서, 아직 refresh() 하지 않은 방금 대화가 화면에서 사라진다. 실제 벽은 서버 402.
     const usedFreeTurns = messages.filter((m) => m.role === "user").length;
     const freeLeft = !hasPass ? Math.max(0, FREE_INTRO_TURNS - usedFreeTurns) : 0;
     // 배너는 이번 마운트에서 보낸 턴까지 반영해야 실시간으로 맞는다(1/3 → 2/3 → 3/3 → 소진 안내).
@@ -252,8 +396,8 @@ export default function RelationshipPage() {
             partnerProfileId={relationship.partnerProfileId}
             partnerLabel={relationship.label}
             initialActiveSkill={activeSkill}
-            onPassRequired={() => void load()}
-            onSkillDone={() => void load()}
+            onPassRequired={() => void refresh()}
+            onSkillDone={() => void refresh()}
             onUserTurnComplete={() => setSentFreeTurns((n) => n + 1)}
           />
 
@@ -265,10 +409,10 @@ export default function RelationshipPage() {
               daily={null}
               balance={balance ?? undefined}
               onClose={() => setShowPassSheet(false)}
-              onExtended={() => void load()}
+              onExtended={() => void refresh()}
               onPurchased={() => {
                 setShowPassSheet(false);
-                void load();
+                void refresh();
               }}
             />
           )}
@@ -319,10 +463,10 @@ export default function RelationshipPage() {
               daily={null}
               balance={balance ?? undefined}
               onClose={() => setShowPassSheet(false)}
-              onExtended={() => void load()}
+              onExtended={() => void refresh()}
               onPurchased={() => {
                 setShowPassSheet(false);
-                void load();
+                void refresh();
               }}
             />
           )}
@@ -353,10 +497,10 @@ export default function RelationshipPage() {
           partnerProfileId={relationship.partnerProfileId}
           partnerLabel={relationship.label}
           initialActiveSkill={activeSkill}
-          onDailyCapReached={() => void load()}
-          onExtended={() => void load()}
-          onPassRequired={() => void load()}
-          onSkillDone={() => void load()}
+          onDailyCapReached={() => void refresh()}
+          onExtended={() => void refresh()}
+          onPassRequired={() => void refresh()}
+          onSkillDone={() => void refresh()}
         />
 
         {editModal}
@@ -367,10 +511,10 @@ export default function RelationshipPage() {
             daily={daily}
             balance={balance ?? undefined}
             onClose={() => setShowPassSheet(false)}
-            onExtended={() => void load()}
+            onExtended={() => void refresh()}
             onPurchased={() => {
               setShowPassSheet(false);
-              void load();
+              void refresh();
             }}
           />
         )}
@@ -378,17 +522,21 @@ export default function RelationshipPage() {
     );
   }
 
-  // 미등록 — S1 콜드스타트
+  // 허브 뷰 — 스위처 + (프로필 카드 / 상품 목록 / 미등록 마케팅)
   return (
-    <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
-      <div className="w-full max-w-md mx-auto">
-        {showOnboarding ? (
-          <RegisterOnboarding
-            onRegistered={handleRegistered}
-            onCancel={() => setShowOnboarding(false)}
-          />
-        ) : (
-          <div className="px-5">
+    <main className="flex flex-1 flex-col items-center w-full pb-20 pt-5 animate-fade-in">
+      <div className="w-full max-w-md mx-auto px-5">
+        <HubSwitcher
+          me={meCard}
+          relationships={relationships}
+          selectedId={selected}
+          onSelect={(s) => void onSelect(s)}
+          onAddPerson={() => setShowOnboarding(true)}
+        />
+
+        {relationships.length === 0 ? (
+          // 미등록 — 스위처(나 + ＋첫 사람) 아래 콜드스타트 마케팅
+          <div className="mt-6">
             {/* 히어로 */}
             <div className="flex flex-col items-center text-center mb-7">
               <div className="relative w-[110px] h-[110px] mb-3 animate-float">
@@ -499,8 +647,40 @@ export default function RelationshipPage() {
               상대 등록하고 시작하기
             </button>
           </div>
-        )}
+        ) : selected === "me" ? (
+          <>
+            <ProfileCard
+              target="me"
+              self={self}
+              me={meCard}
+              onEdit={() => setShowEditModal(true)}
+            />
+            <p className="text-[11px] text-text-light/80 text-center mt-4 leading-relaxed px-2">
+              내 사주·성향은 모든 상대와의 궁합·시뮬에 쓰여. 여기서 바로 편집할 수 있어.
+            </p>
+          </>
+        ) : selectedRel ? (
+          <>
+            <ProfileCard
+              target={selectedRel}
+              self={self}
+              me={meCard}
+              userTurns={userTurns}
+              onEdit={() => setShowEditModal(true)}
+            />
+            <p className="text-[10px] font-extrabold text-lilac-mid tracking-wide mt-5 mb-2 px-0.5">
+              {selectedRel.label}이랑 할 수 있는 것
+            </p>
+            <ProductList
+              relationshipId={selectedRel.id}
+              hasHistory={messages.length > 0}
+              onOpenThread={() => setView("thread")}
+            />
+          </>
+        ) : null}
       </div>
+
+      {editModal}
     </main>
   );
 }

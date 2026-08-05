@@ -112,12 +112,17 @@ export default function MyPage() {
       setMe(r as Me);
       if (bal) setBalance(bal.balance ?? 0);
       if (profs?.profiles) setProfiles(profs.profiles as ProfileItem[]);
-      if (rel?.relationship) {
-        setRelationshipProfileIds(
-          [rel.relationship.selfProfileId, rel.relationship.partnerProfileId].filter(
-            (v: unknown): v is string => typeof v === "string"
-          )
-        );
+      if (rel) {
+        // 새 GET shape(P2): self + relationships[] 에서 사용 중인 프로필 id 를 모은다.
+        const rels = (Array.isArray(rel.relationships) ? rel.relationships : []) as {
+          selfProfileId: string | null;
+          partnerProfileId: string | null;
+        }[];
+        const ids = [
+          rel.self?.id as string | null | undefined,
+          ...rels.flatMap((x) => [x.selfProfileId, x.partnerProfileId]),
+        ].filter((v: unknown): v is string => typeof v === "string");
+        setRelationshipProfileIds(ids);
       }
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
         .then((x) => (x.ok ? x.json() : null))
