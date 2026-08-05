@@ -218,6 +218,17 @@ interface ProfileEditModalProps {
 
 ---
 
+## 진행 (2026-08-04, subagent-driven, dev 미푸시)
+
+✅ **완료·2단계 리뷰 통과** (커밋 a7e9022..2d3fac4):
+- T1 `a7e9022` · T3 `df5ff02` · T2 `bf0f16a` · **T2b**(계획 외, nullable-saju 표시 소비처 하드닝) `68500d4` · T4 `6a23fc3` · T5 `bef927e` · T7 `f6d4278` · T6 `e6a3ffe`+`2d3fac4`.
+
+🔲 **남음**: T8(HubSwitcher·ProfileCard·ProductList + page.tsx 허브/스레드 재구성 + 🔴mypage 삭제-가드를 새 GET shape에서 유도) · T9(AddPersonSheet 슬롯) · 최종 통합 리뷰 · **dev push + 브라우저 검증**.
+
+📌 재개 상세·계약·결정 = 메모리 `p2-hub-implementation-progress`. dev 배포 시 prod에 이미 있는 버그수정(`cb74c7b` overloaded_error 재시도, working tree에 uncommitted, P2와 파일 겹침 0·결합 tsc 0)을 함께 커밋·푸시(안전 확인됨).
+
+---
+
 ## 잔여 / 후속 (실행 전 인지)
 
 - **카톡 프사 배선** = 후속. 현재 카카오 OAuth가 프사를 안 받아옴(lib grep 0). T4는 **이니셜/기본 폴백**으로 MVP. 실제 프사는 OAuth scope(`profile_image`) 추가 + `users` 프사 컬럼 + 콜백 저장 + **카카오 콘솔 설정(사용자 손)** = 별도 작업. P2는 폴백으로 완결하고 프사는 나중.
