@@ -10,6 +10,8 @@ import HubSwitcher from "@/components/relationship/HubSwitcher";
 import ProfileCard from "@/components/relationship/ProfileCard";
 import ProductList from "@/components/relationship/ProductList";
 import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
+import SajuBoard from "@/components/saju/SajuBoard";
+import type { SajuResult } from "@/lib/saju/calc";
 import { formatPassRemaining } from "@/lib/relationship/passDisplay";
 import {
   DAILY_TURN_CAP,
@@ -80,6 +82,8 @@ export default function RelationshipPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [relationships, setRelationships] = useState<RelHub[]>([]);
   const [self, setSelf] = useState<PersonProfileView | null>(null);
+  // 내 명식판 표시용 — /api/profiles 의 isPrimary 프로필 saju(생일 없으면 null).
+  const [selfSaju, setSelfSaju] = useState<SajuResult | null>(null);
   // 선택 대상: "me"(나 앵커) 또는 관계 id
   const [selected, setSelected] = useState<"me" | string>("me");
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
@@ -134,15 +138,30 @@ export default function RelationshipPage() {
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
 
+  // 내 명식용 — isPrimary 프로필의 saju 를 뽑아 selfSaju 로. GET /api/relationship 의 self 엔
+  // SajuResult 가 없어 별도 조회한다(mypage 와 동일 소스).
+  const fetchProfiles = () =>
+    fetch("/api/profiles", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+
+  const applySelfSaju = (profs: unknown) => {
+    const list = (profs as { profiles?: { isPrimary?: boolean; saju?: SajuResult | null }[] } | null)
+      ?.profiles;
+    const primary = Array.isArray(list) ? list.find((p) => p.isPrimary) : undefined;
+    setSelfSaju(primary?.saju ?? null);
+  };
+
   // 초기 로드 + 하드 리로드(등록 직후) — 선택을 서버 selectedId(최근 관계)로 초기화한다.
   const load = async () => {
     const token = (reqTokenRef.current += 1);
-    const [meRes, rel, bal] = await Promise.all([
+    const [meRes, rel, bal, profs] = await Promise.all([
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<Me>) : null))
         .catch(() => null),
       fetchHub(),
       fetchBalance(),
+      fetchProfiles(),
     ]);
     if (!meRes?.isAuthenticated) {
       router.replace("/login?next=/relationship");
@@ -150,6 +169,7 @@ export default function RelationshipPage() {
     }
     setMe(meRes);
     if (typeof bal?.balance === "number") setBalance(bal.balance);
+    if (token === reqTokenRef.current) applySelfSaju(profs);
     if (rel && token === reqTokenRef.current) {
       applyGet(rel, token);
       setSelected(rel.selectedId ?? "me");
@@ -161,11 +181,13 @@ export default function RelationshipPage() {
   const refresh = async (sel: "me" | string = selected) => {
     const token = (reqTokenRef.current += 1);
     const relId = sel !== "me" ? sel : undefined;
-    const [rel, bal] = await Promise.all([fetchHub(relId), fetchBalance()]);
+    const [rel, bal, profs] = await Promise.all([fetchHub(relId), fetchBalance(), fetchProfiles()]);
     if (rel) applyGet(rel, token);
     // 조회 실패(null)여도 최신 토큰이면 로딩은 해제 — selectionLoading 이 영구히 걸리지 않도록.
     else if (token === reqTokenRef.current) setSelectionLoading(false);
     if (typeof bal?.balance === "number" && token === reqTokenRef.current) setBalance(bal.balance);
+    // 내 명식 — 프로필 편집(생일 추가) 후에도 최신으로 반영.
+    if (token === reqTokenRef.current) applySelfSaju(profs);
   };
 
   // 스위처 전환 — 상대 선택 시 그 관계의 pass/daily/messages 를 재조회, 항상 허브 뷰로.
@@ -715,9 +737,7 @@ export default function RelationshipPage() {
           <>
             <ProfileCard
               target={selectedRel}
-              self={self}
               me={meCard}
-              userTurns={selectionLoading ? null : userTurns}
               onEdit={() => setShowEditModal(true)}
             />
             <p className="text-[10px] font-extrabold text-lilac-mid tracking-wide mt-5 mb-2 px-0.5">
@@ -735,13 +755,19 @@ export default function RelationshipPage() {
           <>
             <ProfileCard
               target="me"
-              self={self}
               me={meCard}
               onEdit={() => setShowEditModal(true)}
             />
-            <p className="text-[11px] text-text-light/80 text-center mt-4 leading-relaxed px-2">
-              내 사주·성향은 모든 상대와의 궁합·시뮬에 쓰여. 여기서 바로 편집할 수 있어.
-            </p>
+            {selfSaju ? (
+              <div className="mt-4 rounded-2xl border border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.08)] py-4">
+                <div className="px-5 text-[11px] font-bold text-lilac-deep mb-2">내 명식</div>
+                <SajuBoard saju={selfSaju} showDetail={false} />
+              </div>
+            ) : (
+              <p className="text-[12px] text-text-light/80 text-center mt-4 leading-relaxed px-2">
+                생일을 알려주면 명식도 보여줄게 — 위 <b className="text-eye-purple">✏️ 수정</b>을 눌러봐.
+              </p>
+            )}
           </>
         )}
       </div>

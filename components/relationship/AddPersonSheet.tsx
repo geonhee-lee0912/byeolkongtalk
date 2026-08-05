@@ -81,19 +81,16 @@ export default function AddPersonSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-night/70 backdrop-blur-sm animate-fade-in px-5"
       onClick={() => !purchasing && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="새 사람 추가"
     >
       <div
-        className="relative w-full max-w-md mx-auto bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),16px)]"
+        className="relative w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hover"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
-        </div>
         <button
           onClick={() => !purchasing && onClose()}
           aria-label="닫기"
@@ -102,7 +99,7 @@ export default function AddPersonSheet({
           ✕
         </button>
 
-        <div className="px-5 pt-3 pb-2">
+        <div className="px-5 pt-6 pb-2">
           <div className="text-center text-[30px] leading-none mb-2" aria-hidden>
             🧸✨
           </div>
@@ -149,7 +146,7 @@ export default function AddPersonSheet({
               type="button"
               onClick={() => void handlePurchase()}
               disabled={purchasing}
-              className="w-full py-3.5 rounded-xl bg-gold text-night font-bold text-[15px] hover:bg-gold/90 active:scale-[0.98] transition disabled:opacity-60"
+              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60"
             >
               {purchasing ? "슬롯 여는 중…" : "슬롯 열고 추가하기"}
             </button>
