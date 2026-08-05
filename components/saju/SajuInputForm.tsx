@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { SajuInput, SajuGender } from "@/lib/saju/calc";
+import Dropdown from "@/components/common/Dropdown";
 
 // 12지지 시간 매핑 — 각 시진 시작값을 manseryeok hour 로 전달.
 // 학설별 조자시/야자시 차이는 MVP 후 검토.
@@ -81,6 +82,29 @@ export default function SajuInputForm({
     return Array.from({ length: lastDay }, (_, i) => i + 1);
   }, [year, month]);
 
+  const yearOptions = useMemo(
+    () => years.map((y) => ({ value: String(y), label: `${y}년` })),
+    [years]
+  );
+  const monthOptions = useMemo(
+    () => months.map((m) => ({ value: String(m), label: `${m}월` })),
+    [months]
+  );
+  const dayOptions = useMemo(
+    () => daysInMonth.map((d) => ({ value: String(d), label: `${d}일` })),
+    [daysInMonth]
+  );
+  const hourOptions = useMemo(
+    () => [
+      { value: HOUR_UNKNOWN, label: "시간 몰라요" },
+      ...HOUR_BRANCHES.map((b) => ({
+        value: String(b.hour),
+        label: `${b.label} ${b.hanja} (${b.range})`,
+      })),
+    ],
+    []
+  );
+
   // day 가 월말보다 크면 자동 보정
   if (day > daysInMonth.length) {
     setDay(daysInMonth.length);
@@ -145,39 +169,24 @@ export default function SajuInputForm({
           생년월일
         </legend>
         <div className="grid grid-cols-3 gap-2">
-          <select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            className="px-2 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            className="px-2 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
-          >
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {m}월
-              </option>
-            ))}
-          </select>
-          <select
-            value={day}
-            onChange={(e) => setDay(parseInt(e.target.value, 10))}
-            className="px-2 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
-          >
-            {daysInMonth.map((d) => (
-              <option key={d} value={d}>
-                {d}일
-              </option>
-            ))}
-          </select>
+          <Dropdown
+            ariaLabel="년"
+            value={String(year)}
+            onChange={(v) => setYear(parseInt(v, 10))}
+            options={yearOptions}
+          />
+          <Dropdown
+            ariaLabel="월"
+            value={String(month)}
+            onChange={(v) => setMonth(parseInt(v, 10))}
+            options={monthOptions}
+          />
+          <Dropdown
+            ariaLabel="일"
+            value={String(day)}
+            onChange={(v) => setDay(parseInt(v, 10))}
+            options={dayOptions}
+          />
         </div>
       </fieldset>
 
@@ -186,18 +195,12 @@ export default function SajuInputForm({
         <legend className="text-[13px] font-bold text-eye-purple mb-1">
           태어난 시간
         </legend>
-        <select
+        <Dropdown
+          ariaLabel="태어난 시간"
           value={hourValue}
-          onChange={(e) => setHourValue(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
-        >
-          <option value={HOUR_UNKNOWN}>시간 몰라요</option>
-          {HOUR_BRANCHES.map((b) => (
-            <option key={b.hour} value={b.hour}>
-              {b.label} {b.hanja} ({b.range})
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setHourValue(v)}
+          options={hourOptions}
+        />
         {hourValue === HOUR_UNKNOWN && (
           <p className="text-[11px] text-text-light/80 leading-relaxed mt-1">
             괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.

@@ -7,6 +7,7 @@ import SajuInputForm, {
 import type { SajuInput } from "@/lib/saju/calc";
 import type { RelationType } from "@/lib/saju/profile-input";
 import { MBTI_OPTIONS } from "@/lib/relationship/types";
+import Dropdown from "@/components/common/Dropdown";
 
 // SajuInput → readings/profiles API가 받는 birth 필드 페이로드
 export interface ProfilePayload {
@@ -161,18 +162,16 @@ export default function ProfileForm({
 
           <fieldset className="flex flex-col gap-2">
             <legend className="text-[13px] font-bold text-eye-purple mb-1">MBTI</legend>
-            <select
+            <Dropdown
+              ariaLabel="MBTI"
               value={mbti ?? ""}
-              onChange={(e) => setMbti(e.target.value || null)}
-              className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
-            >
-              <option value="">모름</option>
-              {MBTI_OPTIONS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setMbti(v || null)}
+              placeholder="모름"
+              options={[
+                { value: "", label: "모름" },
+                ...MBTI_OPTIONS.map((m) => ({ value: m, label: m })),
+              ]}
+            />
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
