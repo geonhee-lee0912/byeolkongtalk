@@ -50,7 +50,11 @@ export default function ProfileDetails({ saju, mbti, personality, mine }: Profil
             {personality}
           </p>
         ) : (
-          <p className="text-[13px] text-text-light/50">미입력</p>
+          // 🔸 임시(데모): 빈 성격 칸 예시 텍스트 — 실데이터 연동/확인 후 제거할 것.
+          <p className="text-[13px] text-eye-purple/85 leading-relaxed">
+            평소엔 무뚝뚝한데 좋아하는 사람한텐 은근히 다정한 편이야. 먼저 연락은 잘 안
+            하지만 챙길 건 다 챙기고, 서운한 걸 속으로 삭이다가 뒤늦게 툭 털어놓곤 해.
+          </p>
         )}
       </div>
     </div>
