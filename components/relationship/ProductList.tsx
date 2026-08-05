@@ -4,12 +4,10 @@
 // 💬 연애 상담(활성) · 🎭 시뮬레이션(disabled "곧 열려"). 카드는 fortune 상품카드 패턴.
 // 스킬 4종은 상품이 아니라 연애 상담(스레드) 안의 ⚡도구 → 여기 없음. 스펙 §P2 + 목업 p2-hub-v2.
 export interface ProductListProps {
-  /** 스레드에 대화 기록이 있으면 "이어가기", 없으면 "시작하기" */
-  hasHistory: boolean;
   onOpenThread: () => void;
 }
 
-export default function ProductList({ hasHistory, onOpenThread }: ProductListProps) {
+export default function ProductList({ onOpenThread }: ProductListProps) {
   return (
     <div className="flex flex-col gap-2.5">
       {/* 💬 연애 상담 — 활성 */}
@@ -26,14 +24,9 @@ export default function ProductList({ hasHistory, onOpenThread }: ProductListPro
           💬
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
-            <span className="bg-lilac-soft text-lilac-deep rounded-full px-2 py-0.5 text-[10px] font-bold">
-              {hasHistory ? "이어가기" : "시작하기"}
-            </span>
-          </div>
+          <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
           <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-            별콩이랑 지속 대화 · ⚡걔속마음·싸움판정 등
+            별콩이가 너의 연애를 다 기억해줄게!
           </p>
         </div>
       </button>
@@ -53,7 +46,6 @@ export default function ProductList({ hasHistory, onOpenThread }: ProductListPro
             난감한 상황을 인형과 연습
           </p>
         </div>
-        <span className="text-[10px] text-text-light/50 shrink-0">곧 열려</span>
       </div>
     </div>
   );

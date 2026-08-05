@@ -64,10 +64,10 @@ export default function HubSwitcher({
   onAddPerson,
 }: HubSwitcherProps) {
   return (
-    <div className="flex gap-[7px] items-start overflow-x-auto scrollbar-hover py-2">
+    <div className="flex gap-[7px] items-start overflow-x-auto scrollbar-hover py-3">
       {/* 나 앵커 */}
       <SwitchItem selected={selectedId === "me"} name="나" onClick={() => onSelect("me")}>
-        <DollAvatar kind="me" imageUrl={me.imageUrl} name={me.name} size={48} />
+        <DollAvatar kind="me" imageUrl={me.imageUrl} name={me.name} size={56} />
       </SwitchItem>
 
       {/* 디바이더 */}
@@ -81,7 +81,7 @@ export default function HubSwitcher({
           name={r.label}
           onClick={() => onSelect(r.id)}
         >
-          <DollAvatar kind="partner" status={r.status} size={48} />
+          <DollAvatar kind="partner" status={r.status} size={56} />
         </SwitchItem>
       ))}
 
@@ -91,7 +91,7 @@ export default function HubSwitcher({
           type="button"
           onClick={onAddPerson}
           aria-label="새 사람 추가"
-          className="w-12 h-12 rounded-full bg-lilac-soft border-[1.5px] border-dashed border-lilac-mid flex items-center justify-center text-[22px] text-lilac-deep active:scale-95 transition"
+          className="w-14 h-14 rounded-full bg-lilac-soft border-[1.5px] border-dashed border-lilac-mid flex items-center justify-center text-[26px] text-lilac-deep active:scale-95 transition"
         >
           ＋
         </button>

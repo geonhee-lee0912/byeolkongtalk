@@ -81,16 +81,19 @@ export default function AddPersonSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-night/70 backdrop-blur-sm animate-fade-in px-5"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
       onClick={() => !purchasing && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="새 사람 추가"
     >
       <div
-        className="relative w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hover"
+        className="relative w-full max-w-md mx-auto bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto scrollbar-hover pb-[max(env(safe-area-inset-bottom),16px)]"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
+        </div>
         <button
           onClick={() => !purchasing && onClose()}
           aria-label="닫기"
@@ -99,7 +102,7 @@ export default function AddPersonSheet({
           ✕
         </button>
 
-        <div className="px-5 pt-6 pb-2">
+        <div className="px-5 pt-3 pb-2">
           <div className="text-center text-[30px] leading-none mb-2" aria-hidden>
             🧸✨
           </div>

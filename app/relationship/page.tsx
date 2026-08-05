@@ -84,6 +84,8 @@ export default function RelationshipPage() {
   const [self, setSelf] = useState<PersonProfileView | null>(null);
   // 내 명식판 표시용 — /api/profiles 의 isPrimary 프로필 saju(생일 없으면 null).
   const [selfSaju, setSelfSaju] = useState<SajuResult | null>(null);
+  // /api/profiles 의 프로필 id → saju 맵(상대 명식 조회용). partnerProfileId 로 lookup.
+  const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>({});
   // 선택 대상: "me"(나 앵커) 또는 관계 id
   const [selected, setSelected] = useState<"me" | string>("me");
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
@@ -145,11 +147,21 @@ export default function RelationshipPage() {
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
 
-  const applySelfSaju = (profs: unknown) => {
-    const list = (profs as { profiles?: { isPrimary?: boolean; saju?: SajuResult | null }[] } | null)
-      ?.profiles;
-    const primary = Array.isArray(list) ? list.find((p) => p.isPrimary) : undefined;
-    setSelfSaju(primary?.saju ?? null);
+  const applyProfiles = (profs: unknown) => {
+    const list = (
+      profs as
+        | { profiles?: { id: string; isPrimary?: boolean; saju?: SajuResult | null }[] }
+        | null
+    )?.profiles;
+    if (!Array.isArray(list)) {
+      setSelfSaju(null);
+      setProfileSaju({});
+      return;
+    }
+    setSelfSaju(list.find((p) => p.isPrimary)?.saju ?? null);
+    const map: Record<string, SajuResult | null> = {};
+    for (const p of list) map[p.id] = p.saju ?? null;
+    setProfileSaju(map);
   };
 
   // 초기 로드 + 하드 리로드(등록 직후) — 선택을 서버 selectedId(최근 관계)로 초기화한다.
@@ -169,7 +181,7 @@ export default function RelationshipPage() {
     }
     setMe(meRes);
     if (typeof bal?.balance === "number") setBalance(bal.balance);
-    if (token === reqTokenRef.current) applySelfSaju(profs);
+    if (token === reqTokenRef.current) applyProfiles(profs);
     if (rel && token === reqTokenRef.current) {
       applyGet(rel, token);
       setSelected(rel.selectedId ?? "me");
@@ -187,7 +199,7 @@ export default function RelationshipPage() {
     else if (token === reqTokenRef.current) setSelectionLoading(false);
     if (typeof bal?.balance === "number" && token === reqTokenRef.current) setBalance(bal.balance);
     // 내 명식 — 프로필 편집(생일 추가) 후에도 최신으로 반영.
-    if (token === reqTokenRef.current) applySelfSaju(profs);
+    if (token === reqTokenRef.current) applyProfiles(profs);
   };
 
   // 스위처 전환 — 상대 선택 시 그 관계의 pass/daily/messages 를 재조회, 항상 허브 뷰로.
@@ -237,9 +249,19 @@ export default function RelationshipPage() {
     );
   }
 
-  const meCard = { name: me.user.nickname, imageUrl: me.user.profile_img };
+  // 카카오 기본 프사(default_profile)는 실루엣이라 원형에 잘려 보인다 — 커스텀 프사가
+  // 있을 때만 이미지, 없으면 DollAvatar 의 이니셜 폴백(gold 원+닉네임 첫 글자)을 쓴다.
+  const meImageUrl =
+    me.user.profile_img && !me.user.profile_img.includes("default_profile")
+      ? me.user.profile_img
+      : null;
+  const meCard = { name: me.user.nickname, imageUrl: meImageUrl };
   const selectedRel =
     selected !== "me" ? relationships.find((r) => r.id === selected) ?? null : null;
+  // 상대 명식 — /api/profiles 맵에서 partnerProfileId 로 조회(없으면 null).
+  const partnerSaju = selectedRel?.partnerProfileId
+    ? profileSaju[selectedRel.partnerProfileId] ?? null
+    : null;
   const userTurns = messages.filter((m) => m.role === "user").length;
 
   // 나·상대 공통 편집 모달 — 선택 대상에서 target 파생. selectedRel 이 없으면(나 또는 알 수 없는
@@ -736,15 +758,15 @@ export default function RelationshipPage() {
         ) : selectedRel ? (
           <>
             <ProfileCard
+              key={selectedRel.id}
               target={selectedRel}
               me={meCard}
+              partnerSaju={partnerSaju}
               onEdit={() => setShowEditModal(true)}
             />
-            <p className="text-[10px] font-extrabold text-lilac-mid tracking-wide mt-5 mb-2 px-0.5">
-              {selectedRel.label}이랑 할 수 있는 것
-            </p>
+            <div className="h-px bg-lilac-mid/20 my-5" />
+            <p className="text-[13px] font-bold text-eye-purple mb-2 px-0.5">우리 사이 체크하기</p>
             <ProductList
-              hasHistory={selectionLoading ? false : messages.length > 0}
               onOpenThread={() => {
                 if (!selectionLoading) setView("thread");
               }}
@@ -758,16 +780,41 @@ export default function RelationshipPage() {
               me={meCard}
               onEdit={() => setShowEditModal(true)}
             />
-            {selfSaju ? (
-              <div className="mt-4 rounded-2xl border border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.08)] py-4">
-                <div className="px-5 text-[11px] font-bold text-lilac-deep mb-2">내 명식</div>
+            <div className="mt-4 rounded-2xl border border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.08)] py-4">
+              {/* 사주 명식 */}
+              <div className="px-5 text-[11px] font-bold text-lilac-deep mb-2">내 사주 명식</div>
+              {selfSaju ? (
                 <SajuBoard saju={selfSaju} showDetail={false} />
+              ) : (
+                <p className="px-5 text-[12.5px] text-text-light/80 leading-relaxed">
+                  아직 생일을 안 알려줬어 — 수정에서 추가하면 명식이 보여.
+                </p>
+              )}
+
+              <div className="h-px bg-lilac-mid/15 mx-5 my-4" />
+
+              {/* MBTI */}
+              <div className="px-5 mb-4">
+                <div className="text-[11px] font-bold text-lilac-deep mb-1">MBTI</div>
+                {self?.mbti ? (
+                  <p className="text-[13px] font-bold text-eye-purple">{self.mbti}</p>
+                ) : (
+                  <p className="text-[13px] text-text-light/50">미입력</p>
+                )}
               </div>
-            ) : (
-              <p className="text-[12px] text-text-light/80 text-center mt-4 leading-relaxed px-2">
-                생일을 알려주면 명식도 보여줄게 — 위 <b className="text-eye-purple">✏️ 수정</b>을 눌러봐.
-              </p>
-            )}
+
+              {/* 내 성격 */}
+              <div className="px-5">
+                <div className="text-[11px] font-bold text-lilac-deep mb-1">내 성격</div>
+                {self?.personality ? (
+                  <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
+                    {self.personality}
+                  </p>
+                ) : (
+                  <p className="text-[13px] text-text-light/50">미입력</p>
+                )}
+              </div>
+            </div>
           </>
         )}
       </div>
