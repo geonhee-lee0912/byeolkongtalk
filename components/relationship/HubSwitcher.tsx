@@ -64,7 +64,7 @@ export default function HubSwitcher({
   onAddPerson,
 }: HubSwitcherProps) {
   return (
-    <div className="flex gap-[7px] items-start overflow-x-auto scrollbar-hover py-3">
+    <div className="flex gap-[7px] items-start overflow-x-auto scrollbar-hover py-3 px-1">
       {/* 나 앵커 */}
       <SwitchItem selected={selectedId === "me"} name="나" onClick={() => onSelect("me")}>
         <DollAvatar kind="me" imageUrl={me.imageUrl} name={me.name} size={56} />

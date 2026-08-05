@@ -32,7 +32,7 @@ export default function ProfileDetails({ saju, mbti, personality, mine }: Profil
       <div className="px-5 mb-4">
         <div className="text-[11px] font-bold text-lilac-deep mb-1.5">MBTI</div>
         {mbti ? (
-          <span className="inline-block rounded-full bg-lilac-soft text-lilac-deep text-[12px] font-bold px-2.5 py-1">
+          <span className="inline-block rounded-lg bg-lilac-soft text-lilac-deep text-[12px] font-bold px-2.5 py-1">
             {mbti}
           </span>
         ) : (
