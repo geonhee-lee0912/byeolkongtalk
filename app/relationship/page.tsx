@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import RegisterOnboarding from "@/components/relationship/RegisterOnboarding";
 import PassSheet from "@/components/relationship/PassSheet";
 import ProfileEditModal from "@/components/relationship/ProfileEditModal";
+import AddPersonSheet from "@/components/relationship/AddPersonSheet";
 import HubSwitcher from "@/components/relationship/HubSwitcher";
 import ProfileCard from "@/components/relationship/ProfileCard";
 import ProductList from "@/components/relationship/ProductList";
@@ -87,7 +87,9 @@ export default function RelationshipPage() {
   const [pass, setPass] = useState<PassData | null>(null);
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [messages, setMessages] = useState<ThreadChatMsg[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // 새 사람 추가 — create 등록 모달 / 슬롯 구매 시트(슬롯 필요 시만). handleAddPerson 이 분기.
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [slotSheet, setSlotSheet] = useState<{ nextCost: number } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPassSheet, setShowPassSheet] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
@@ -192,30 +194,23 @@ export default function RelationshipPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRegistered = () => {
-    setShowOnboarding(false);
-    setLoading(true);
-    void load();
+  // 새 사람 추가([＋]/첫 사람/등록 CTA 공통) — 슬롯 현황으로 분기. 무료면 등록 모달,
+  // 슬롯 필요하면 구매 시트. 조회 실패(null)면 등록 모달로(POST 402가 방어적으로 시트를 연다).
+  const handleAddPerson = async () => {
+    const info = await fetch("/api/relationship/slot", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    if (info && info.canAddFree === false) {
+      setSlotSheet({ nextCost: info.nextCost });
+    } else {
+      setShowCreateModal(true);
+    }
   };
 
   if (loading || !me?.user) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
         <p className="text-text-light text-sm">잠시만…</p>
-      </main>
-    );
-  }
-
-  // 온보딩(첫 등록 / 새 사람 추가) — 전체 화면 플로우. T9: [＋]를 AddPersonSheet(슬롯)로 교체 예정.
-  if (showOnboarding) {
-    return (
-      <main className="flex flex-1 flex-col items-center w-full pb-20 pt-8 animate-fade-in">
-        <div className="w-full max-w-md mx-auto">
-          <RegisterOnboarding
-            onRegistered={handleRegistered}
-            onCancel={() => setShowOnboarding(false)}
-          />
-        </div>
       </main>
     );
   }
@@ -273,6 +268,42 @@ export default function RelationshipPage() {
         }}
       />
     )
+  );
+
+  // 새 사람 추가 UI — 등록 모달(create) + 슬롯 구매 시트. [＋]/첫 사람/등록 CTA 에서만 트리거되므로
+  // 허브 뷰에서만 렌더(둘 다 portal 이라 위치 무관). 등록 성공 → 하드 리로드로 새 관계 선택·표시.
+  const addPersonUI = (
+    <>
+      {showCreateModal && (
+        <ProfileEditModal
+          target={{ create: true }}
+          onClose={() => setShowCreateModal(false)}
+          onSaved={() => {
+            setShowCreateModal(false);
+            setLoading(true);
+            void load();
+          }}
+          onSlotRequired={(nextCost) => {
+            setShowCreateModal(false);
+            setSlotSheet({ nextCost });
+          }}
+        />
+      )}
+      {slotSheet && (
+        <AddPersonSheet
+          nextCost={slotSheet.nextCost}
+          balance={balance ?? 0}
+          onClose={() => setSlotSheet(null)}
+          onGoShop={() => router.push("/shop")}
+          onPurchased={async () => {
+            setSlotSheet(null);
+            const bal = await fetchBalance();
+            if (typeof bal?.balance === "number") setBalance(bal.balance);
+            setShowCreateModal(true);
+          }}
+        />
+      )}
+    </>
   );
 
   // 스레드 뷰 — S2(패스없음)/S3(활성)/S4(오늘 캡 도달) 실제 대화/패스 UI
@@ -557,7 +588,7 @@ export default function RelationshipPage() {
           relationships={relationships}
           selectedId={selected}
           onSelect={(s) => void onSelect(s)}
-          onAddPerson={() => setShowOnboarding(true)}
+          onAddPerson={() => void handleAddPerson()}
         />
 
         {relationships.length === 0 ? (
@@ -667,7 +698,7 @@ export default function RelationshipPage() {
 
             <button
               type="button"
-              onClick={() => setShowOnboarding(true)}
+              onClick={() => void handleAddPerson()}
               className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
             >
               상대 등록하고 시작하기
@@ -709,6 +740,7 @@ export default function RelationshipPage() {
       </div>
 
       {editModal}
+      {addPersonUI}
     </main>
   );
 }

@@ -5,6 +5,16 @@ import { purchaseSlot, getSlotInfo } from "@/lib/relationship/slots";
 
 export const dynamic = "force-dynamic";
 
+// GET — 슬롯 현황 조회([＋] 탭 시 무료/구매 판정). { allowed, used, canAddFree, nextCost }.
+export async function GET() {
+  const { userId } = await getSession();
+  if (!userId)
+    return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
+
+  const slot = await getSlotInfo(userId);
+  return NextResponse.json(slot);
+}
+
 export async function POST() {
   const { userId } = await getSession();
   if (!userId)
