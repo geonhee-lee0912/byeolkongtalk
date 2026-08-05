@@ -29,7 +29,7 @@ export default function ProductList({ onOpenThread }: ProductListProps) {
             별콩이가 너의 연애를 다 기억해줄게!
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
-            {["고민상담", "걔속마음", "싸움판정"].map((h) => (
+            {["고민상담", "걔속마음", "비밀친구"].map((h) => (
               <span
                 key={h}
                 className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
