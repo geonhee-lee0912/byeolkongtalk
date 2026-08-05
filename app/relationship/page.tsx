@@ -10,7 +10,7 @@ import HubSwitcher from "@/components/relationship/HubSwitcher";
 import ProfileCard from "@/components/relationship/ProfileCard";
 import ProductList from "@/components/relationship/ProductList";
 import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/ThreadChat";
-import SajuBoard from "@/components/saju/SajuBoard";
+import ProfileDetails from "@/components/relationship/ProfileDetails";
 import type { SajuResult } from "@/lib/saju/calc";
 import { formatPassRemaining } from "@/lib/relationship/passDisplay";
 import {
@@ -88,6 +88,8 @@ export default function RelationshipPage() {
   const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>({});
   // 선택 대상: "me"(나 앵커) 또는 관계 id
   const [selected, setSelected] = useState<"me" | string>("me");
+  // 상대 카드 아래 상세(성격·MBTI·명식) 펼침 — 상대 전환 시 접힘으로 리셋
+  const [partnerExpanded, setPartnerExpanded] = useState(false);
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
   const [view, setView] = useState<"hub" | "thread">("hub");
   const [pass, setPass] = useState<PassData | null>(null);
@@ -206,6 +208,7 @@ export default function RelationshipPage() {
   const onSelect = async (sel: "me" | string) => {
     setSelected(sel);
     setView("hub");
+    setPartnerExpanded(false);
     if (sel === "me") {
       // 나 앵커는 조회 불필요 — 진행 중이던 관계 응답을 무효화하고 로딩 해제.
       reqTokenRef.current += 1;
@@ -249,13 +252,7 @@ export default function RelationshipPage() {
     );
   }
 
-  // 카카오 기본 프사(default_profile)는 실루엣이라 원형에 잘려 보인다 — 커스텀 프사가
-  // 있을 때만 이미지, 없으면 DollAvatar 의 이니셜 폴백(gold 원+닉네임 첫 글자)을 쓴다.
-  const meImageUrl =
-    me.user.profile_img && !me.user.profile_img.includes("default_profile")
-      ? me.user.profile_img
-      : null;
-  const meCard = { name: me.user.nickname, imageUrl: meImageUrl };
+  const meCard = { name: me.user.nickname, imageUrl: me.user.profile_img };
   const selectedRel =
     selected !== "me" ? relationships.find((r) => r.id === selected) ?? null : null;
   // 상대 명식 — /api/profiles 맵에서 partnerProfileId 로 조회(없으면 null).
@@ -758,12 +755,27 @@ export default function RelationshipPage() {
         ) : selectedRel ? (
           <>
             <ProfileCard
-              key={selectedRel.id}
               target={selectedRel}
               me={meCard}
-              partnerSaju={partnerSaju}
               onEdit={() => setShowEditModal(true)}
             />
+            {/* 상대 정보 펼치기 — 카드 아래, 카드와 같은 전체폭 버튼 */}
+            <button
+              type="button"
+              onClick={() => setPartnerExpanded((v) => !v)}
+              aria-expanded={partnerExpanded}
+              className="w-full mt-2 py-2.5 rounded-xl border border-lilac-mid/30 bg-white/70 text-[12px] font-bold text-lilac-deep active:scale-[0.99] transition flex items-center justify-center gap-1"
+            >
+              {partnerExpanded ? "상대 정보 접기" : "상대 정보 펼치기"}
+              <span aria-hidden>{partnerExpanded ? "▾" : "▸"}</span>
+            </button>
+            {partnerExpanded && (
+              <ProfileDetails
+                saju={partnerSaju}
+                mbti={selectedRel.partner?.mbti ?? null}
+                personality={selectedRel.partner?.personality ?? null}
+              />
+            )}
             <div className="h-px bg-lilac-mid/20 my-5" />
             <p className="text-[13px] font-bold text-eye-purple mb-2 px-0.5">우리 사이 체크하기</p>
             <ProductList
@@ -780,41 +792,12 @@ export default function RelationshipPage() {
               me={meCard}
               onEdit={() => setShowEditModal(true)}
             />
-            <div className="mt-4 rounded-2xl border border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.08)] py-4">
-              {/* 사주 명식 */}
-              <div className="px-5 text-[11px] font-bold text-lilac-deep mb-2">내 사주 명식</div>
-              {selfSaju ? (
-                <SajuBoard saju={selfSaju} showDetail={false} />
-              ) : (
-                <p className="px-5 text-[12.5px] text-text-light/80 leading-relaxed">
-                  아직 생일을 안 알려줬어 — 수정에서 추가하면 명식이 보여.
-                </p>
-              )}
-
-              <div className="h-px bg-lilac-mid/15 mx-5 my-4" />
-
-              {/* MBTI */}
-              <div className="px-5 mb-4">
-                <div className="text-[11px] font-bold text-lilac-deep mb-1">MBTI</div>
-                {self?.mbti ? (
-                  <p className="text-[13px] font-bold text-eye-purple">{self.mbti}</p>
-                ) : (
-                  <p className="text-[13px] text-text-light/50">미입력</p>
-                )}
-              </div>
-
-              {/* 내 성격 */}
-              <div className="px-5">
-                <div className="text-[11px] font-bold text-lilac-deep mb-1">내 성격</div>
-                {self?.personality ? (
-                  <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
-                    {self.personality}
-                  </p>
-                ) : (
-                  <p className="text-[13px] text-text-light/50">미입력</p>
-                )}
-              </div>
-            </div>
+            <ProfileDetails
+              saju={selfSaju}
+              mbti={self?.mbti ?? null}
+              personality={self?.personality ?? null}
+              mine
+            />
           </>
         )}
       </div>
