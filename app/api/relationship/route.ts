@@ -163,12 +163,19 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // self 프로필: 전달됐으면 소유권 확인, 없으면 null(나중에 등록 가능)
+  // self 프로필: 전달됐으면 소유권 확인. 미전달/미소유면 유저 is_primary 프로필로 자동 연결
+  // (구 RegisterOnboarding useMyProfile 기본 동작 복원 — 우리궁합 스킬이 rel.self_profile_id 를
+  // 하드 게이트하므로 서버가 권위적으로 채운다). primary 가 없으면 null(사주 미등록 = 정상 게이트).
   let selfProfileId: string | null = null;
   if (typeof body.selfProfileId === "string" && body.selfProfileId) {
     const { data: owned } = await supabase.from("user_profiles")
       .select("id").eq("id", body.selfProfileId).eq("user_id", userId).maybeSingle();
     if (owned) selfProfileId = owned.id;
+  }
+  if (!selfProfileId) {
+    const { data: primary } = await supabase.from("user_profiles")
+      .select("id").eq("user_id", userId).eq("is_primary", true).maybeSingle();
+    if (primary) selfProfileId = primary.id;
   }
 
   // partner 프로필: inline이면 검증 후 생성(relation_type='partner')

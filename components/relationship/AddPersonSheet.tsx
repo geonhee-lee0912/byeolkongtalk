@@ -95,7 +95,7 @@ export default function AddPersonSheet({
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
         <button
-          onClick={onClose}
+          onClick={() => !purchasing && onClose()}
           aria-label="닫기"
           className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
         >

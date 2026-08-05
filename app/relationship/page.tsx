@@ -271,17 +271,24 @@ export default function RelationshipPage() {
   );
 
   // 새 사람 추가 UI — 등록 모달(create) + 슬롯 구매 시트. [＋]/첫 사람/등록 CTA 에서만 트리거되므로
-  // 허브 뷰에서만 렌더(둘 다 portal 이라 위치 무관). 등록 성공 → 하드 리로드로 새 관계 선택·표시.
+  // 허브 뷰에서만 렌더(둘 다 portal 이라 위치 무관). 등록 성공 → 방금 만든 관계를 곧장 선택·표시
+  // (last_visited_at=null 이라 기본 정렬로는 최근방문 관계가 뽑혀 새 사람이 안 보이는 것 회피).
   const addPersonUI = (
     <>
       {showCreateModal && (
         <ProfileEditModal
           target={{ create: true }}
           onClose={() => setShowCreateModal(false)}
-          onSaved={() => {
+          onSaved={(newId) => {
             setShowCreateModal(false);
-            setLoading(true);
-            void load();
+            if (newId) {
+              setSelected(newId);
+              setView("hub");
+              void refresh(newId);
+            } else {
+              setLoading(true);
+              void load();
+            }
           }}
           onSlotRequired={(nextCost) => {
             setShowCreateModal(false);

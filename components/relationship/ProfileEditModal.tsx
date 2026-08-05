@@ -27,8 +27,9 @@ interface ProfileEditModalProps {
     | { relationshipId: string; label: string; status: RelationshipStatus };
   initial?: Partial<ProfilePayload> & { label?: string; status?: RelationshipStatus };
   onClose: () => void;
-  /** 저장 성공 — 부모가 모달을 닫고 다시 불러오도록 알림 */
-  onSaved: () => void;
+  /** 저장 성공 — 부모가 모달을 닫고 다시 불러오도록 알림. create 분기는 새 관계 id 를 넘겨
+   *  부모가 그 관계를 곧장 선택하도록 한다(me/relationship 편집은 인자 없음). */
+  onSaved: (newRelationshipId?: string) => void;
   /** create 분기 — POST가 402 SLOT_REQUIRED면 부모가 슬롯 시트를 열도록 알림(방어적 이중). */
   onSlotRequired?: (nextCost: number) => void;
 }
@@ -124,11 +125,12 @@ export default function ProfileEditModal({
     }
   };
 
-  // create 분기 — 새 관계 등록(POST). 402 SLOT_REQUIRED면 에러 대신 부모에게 슬롯 시트를 넘긴다.
+  // create 분기 — 새 관계 등록(POST). 성공 시 새 관계 id 를 반환(부모가 곧장 선택하도록).
+  // 402 SLOT_REQUIRED면 에러 대신 부모에게 슬롯 시트를 넘긴다. 실패/슬롯필요면 null.
   const create = async (
     partnerProfile: Record<string, unknown>
-  ): Promise<boolean> => {
-    if (saving) return false;
+  ): Promise<string | null> => {
+    if (saving) return null;
     setSaving(true);
     setError(null);
     try {
@@ -146,17 +148,18 @@ export default function ProfileEditModal({
           onSlotRequired?.(
             typeof data.nextCost === "number" ? data.nextCost : SLOT_COST
           );
-          return false;
+          return null;
         }
       }
       if (!res.ok) {
         setError("등록이 안 됐어. 잠시 후 다시 시도해줄래?");
-        return false;
+        return null;
       }
-      return true;
+      const data = (await res.json().catch(() => ({}))) as { id?: string };
+      return typeof data.id === "string" ? data.id : null;
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
-      return false;
+      return null;
     } finally {
       setSaving(false);
     }
@@ -171,7 +174,7 @@ export default function ProfileEditModal({
         setError("호칭을 입력해줘");
         return;
       }
-      const ok = await create({
+      const newId = await create({
         displayName,
         birthDate,
         birthTime,
@@ -181,7 +184,7 @@ export default function ProfileEditModal({
         mbti,
         personality,
       });
-      if (ok) onSaved();
+      if (newId) onSaved(newId);
       return;
     }
 
