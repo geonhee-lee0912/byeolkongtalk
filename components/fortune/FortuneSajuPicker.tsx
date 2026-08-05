@@ -286,9 +286,9 @@ export default function FortuneSajuPicker({
       )}
 
       <button
-        disabled={!selected || loading}
+        disabled={!selected || !selected.saju || !selected.birthDate || loading}
         onClick={() => {
-          if (!selected) return;
+          if (!selected || !selected.saju || !selected.birthDate) return;
           const reviewId = reviewableByProfile?.[selected.id];
           if (reviewId && onReview) onReview(reviewId);
           else onConfirm(selected.id, displayName(selected));

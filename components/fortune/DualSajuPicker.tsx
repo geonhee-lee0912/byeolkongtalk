@@ -114,7 +114,11 @@ export default function DualSajuPicker({
     return p ? displayName(p) : null;
   };
 
-  const canConfirm = !!slotA && !!slotB && slotA !== slotB && !loading;
+  // 궁합은 두 사람의 생년월일이 필요 — 생일 없는 프로필(P2 nullable)이 슬롯에 들어오면 확정 차단.
+  const profA = slotA ? profiles.find((p) => p.id === slotA) : null;
+  const profB = slotB ? profiles.find((p) => p.id === slotB) : null;
+  const canConfirm =
+    !!slotA && !!slotB && slotA !== slotB && !loading && !!profA?.birthDate && !!profB?.birthDate;
 
   const totalListPages = Math.max(1, Math.ceil(profiles.length / LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
