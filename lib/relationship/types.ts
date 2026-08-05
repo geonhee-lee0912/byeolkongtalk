@@ -78,10 +78,11 @@ export interface RelationshipMemo {
   active_skill?: { key: string; started_at: string; assistant_turns: number } | null;
 }
 
-/** 관계 슬롯 — 1번째 상대는 무료, 2번째부터 슬롯 구매. 허용 관계 수 = 1 + 구매 수.
- * SLOT_COST 는 서버 권위(클라가 보낸 값 신뢰 X). 값은 튜닝 대상(스펙 §11). */
+/** 관계 슬롯 — 첫 사람부터 슬롯 구매(2026-08-05 사용자 결정, 무료 첫 사람 폐지).
+ * 허용 관계 수 = 구매한 슬롯 수. SLOT_COST 는 서버 권위(클라가 보낸 값 신뢰 X). 값은 튜닝 대상(스펙 §11).
+ * ⚠️ WELCOME_BONUS_STARS(20) < SLOT_COST(50) 라 신규 유저는 첫 등록에 충전 필요 — 의도된 페이월. */
 export const SLOT_COST = 50;
 
 export function slotAllowance(purchasedSlots: number): number {
-  return 1 + Math.max(0, purchasedSlots);
+  return Math.max(0, purchasedSlots);
 }

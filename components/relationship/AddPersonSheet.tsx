@@ -112,7 +112,7 @@ export default function AddPersonSheet({
           <p className="text-[11.5px] text-text-light text-center mt-1 mb-4">
             {insufficient
               ? "슬롯을 열려면 별이 조금 부족해"
-              : "두 번째부터는 슬롯이 필요해"}
+              : "새 사람을 추가하려면 슬롯이 필요해"}
           </p>
 
           <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-2">
