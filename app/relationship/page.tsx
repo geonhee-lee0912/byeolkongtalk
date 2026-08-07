@@ -782,6 +782,9 @@ export default function RelationshipPage() {
               onOpenThread={() => {
                 if (!selectionLoading) setView("thread");
               }}
+              onOpenSim={() => {
+                if (!selectionLoading && selected !== "me") router.push(`/relationship/sim?rel=${selected}`);
+              }}
             />
           </>
         ) : (

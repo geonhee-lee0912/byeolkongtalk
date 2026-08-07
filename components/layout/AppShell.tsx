@@ -11,6 +11,7 @@ const HIDE_SHELL_PREFIXES: string[] = [
   "/login",
   "/admin",
   "/start",
+  "/relationship/sim",
 ];
 
 function shouldHideShell(pathname: string): boolean {
