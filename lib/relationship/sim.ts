@@ -54,3 +54,13 @@ export function formatPartnerForDoll(p: { statusLabel: string; mbti: string | nu
   if (p.personality?.trim()) lines.push(`한 줄 성격: ${p.personality.trim()}`);
   return lines.join("\n");
 }
+
+/** 상대 성격 서술에 피드백 노트를 불릿 한 줄로 append. 빈 기존값·공백 안전.
+ *  시뮬 교정(👎 실제론 ~해 / 👍 이런 면이 걔다워)이 personality 로 누적되는 통로 —
+ *  프로필 화면에도 그대로 노출되므로 서술형으로 쌓는다(스펙 2026-08-07). */
+export function appendPersonalityNote(existing: string | null, note: string): string {
+  const clean = note.trim();
+  const base = (existing ?? "").trim();
+  if (!clean) return base;
+  return base ? `${base}\n· ${clean}` : `· ${clean}`;
+}
