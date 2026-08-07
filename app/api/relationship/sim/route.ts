@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
   // 프레임 고지 = 결정적 별콩이 노트(제품 발화, 스펙 §2). skill_key='sim_note' 라 인형 대화 교대·턴캡 카운트에서 제외.
   const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
-  const frame = `별콩이가 ${rel.label} 인형을 데려왔어. 진짜 걔가 아니라 네 마음속 ${rel.label}야. 편하게 말 걸어봐. (지금은 "${situation.label}" 상황이야.)`;
+  const frame = `별콩이가 ${rel.label} 인형을 데려왔어. 진짜 걔가 아니라 네 마음속 ${rel.label}야. 편하게 말 걸어봐. 혹시 인형이 실제 걔랑 다르게 굴면 대사 밑 👍👎로 알려줘 — 내가 더 걔답게 만들어줄게. (지금은 "${situation.label}" 상황이야.)`;
   await supabase.from("messages").insert([
     { reading_id: reading.id, role: "assistant", content: frame, skill_key: "sim_note" },
   ]);
