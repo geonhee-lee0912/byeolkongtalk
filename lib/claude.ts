@@ -780,3 +780,15 @@ function getDollPersona(): string {
   }
   return _cachedDollPersona;
 }
+
+// 별콩이 시뮬 오버레이 = 코어 + byeolkong_sim.md (getRelationshipPersona 와 동일 합성 패턴, §9 계승).
+let _cachedSimByeolkongPersona: string | null = null;
+function getSimByeolkongPersona(): string {
+  if (_cachedSimByeolkongPersona === null) {
+    _cachedSimByeolkongPersona =
+      getCore() +
+      "\n\n---\n\n" +
+      readFileSync(join(process.cwd(), "data", "persona", "byeolkong_sim.md"), "utf-8");
+  }
+  return _cachedSimByeolkongPersona;
+}
