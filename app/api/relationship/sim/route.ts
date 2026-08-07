@@ -24,7 +24,7 @@ interface Body {
 
 export async function POST(request: NextRequest) {
   const { userId } = await getSession();
-  if (!userId) return NextResponse.json({ error: "Login required" }, { status: 401 });
+  if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
 
   maybeSweepExpired();
   const ip = getClientIp(request);
