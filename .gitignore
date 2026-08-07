@@ -48,6 +48,7 @@ next-env.d.ts
 .superpowers/
 
 qa/out/
+qa/sim/out/
 qa-devserver.log
 qa-fullrun.log
 /qa-screenshots/

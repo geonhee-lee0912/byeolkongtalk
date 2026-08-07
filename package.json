@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "qa": "node --import tsx --env-file=.env.local qa/run.ts"
+    "qa": "node --import tsx --env-file=.env.local qa/run.ts",
+    "qa:sim": "node --import tsx --env-file=.env.local qa/sim/run-sim.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
