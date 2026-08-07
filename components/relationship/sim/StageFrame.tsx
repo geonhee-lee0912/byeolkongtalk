@@ -1,17 +1,17 @@
 "use client";
 import type { ReactNode } from "react";
 
-// 시뮬 공통 무대 프레임 — 밤 배경 + 커튼(상단 밸런스 + 양옆 드레이프) + 금색 별.
+// 시뮬 공통 무대 프레임 — 밤 배경 + 달 + 커튼(상단 밸런스 + 양옆 드레이프) + 금색 별 +
+// 무대 조명(상단 스포트라이트 빛기둥 → 하단 스테이지 플로어·착지 웅덩이).
 // 상황 선택·밤 무대·디브리핑이 이 프레임을 공유해 "밤에 커튼 친 작은 무대" 세계관으로 이어진다.
-// 스포트라이트·조명 웅덩이는 무대(NightStage)가 자체로 얹는다 — 여기선 공통 무대 배경만.
 const STARS = [
   { top: "7%", left: "14%", s: 2, d: 0 },
-  { top: "12%", left: "80%", s: 3, d: 0.5 },
+  { top: "12%", left: "78%", s: 3, d: 0.5 },
   { top: "20%", left: "40%", s: 2, d: 1 },
-  { top: "9%", left: "58%", s: 2, d: 1.4 },
+  { top: "9%", left: "56%", s: 2, d: 1.4 },
   { top: "26%", left: "22%", s: 2, d: 0.8 },
-  { top: "31%", left: "72%", s: 3, d: 1.7 },
-  { top: "17%", left: "90%", s: 2, d: 2.1 },
+  { top: "31%", left: "70%", s: 3, d: 1.7 },
+  { top: "15%", left: "33%", s: 2, d: 2.1 },
 ];
 
 export default function StageFrame({
@@ -40,6 +40,40 @@ export default function StageFrame({
           />
         ))}
       </div>
+
+      {/* 달 — 우상단, 밤이라는 느낌을 확실히 */}
+      <div
+        className="pointer-events-none absolute top-9 right-8 w-11 h-11 rounded-full z-0"
+        aria-hidden
+        style={{
+          background: "radial-gradient(circle at 38% 36%, #FFF8F0 0%, #F2D78A 55%, #E8C26A 100%)",
+          boxShadow: "0 0 30px 6px rgba(242,215,138,0.4)",
+        }}
+      />
+
+      {/* 무대 조명 — 상단에서 내려오는 스포트라이트 빛기둥 */}
+      <div
+        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[360px] z-0"
+        aria-hidden
+        style={{
+          background: "linear-gradient(180deg,rgba(255,248,220,0.14),rgba(255,248,220,0.03) 55%,transparent)",
+          clipPath: "polygon(38% 0,62% 0,100% 100%,0 100%)",
+        }}
+      />
+      {/* 무대 바닥 — 하단 스테이지 플로어 */}
+      <div
+        className="pointer-events-none absolute bottom-0 inset-x-0 h-44 z-0"
+        aria-hidden
+        style={{
+          background: "linear-gradient(to top, rgba(159,138,208,0.16), rgba(159,138,208,0.04) 50%, transparent)",
+        }}
+      />
+      {/* 스포트라이트 착지 웅덩이 */}
+      <div
+        className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 w-[240px] h-9 rounded-[50%] z-0"
+        aria-hidden
+        style={{ background: "radial-gradient(ellipse, rgba(242,215,138,0.16), transparent 70%)" }}
+      />
 
       {/* 상단 커튼 밸런스(주름 봉) */}
       <div

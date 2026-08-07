@@ -142,15 +142,6 @@ export default function NightStage(props: NightStageProps) {
   return (
     <StageFrame>
       <div className="relative flex flex-col" style={{ height: "100dvh" }}>
-        {/* 스포트라이트 — 인형에게 내리는 빛기둥(무대 조명) */}
-        <div
-          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[240px] h-[280px] z-0"
-          aria-hidden
-          style={{
-            background: "linear-gradient(180deg,rgba(255,248,220,0.15),rgba(255,248,220,0.03) 55%,transparent)",
-            clipPath: "polygon(42% 0,58% 0,100% 100%,0 100%)",
-          }}
-        />
         <div className="sticky top-0 z-10 bg-gradient-to-b from-night/70 to-transparent px-4 pt-3 pb-2">
         <DollPortrait status={props.status} label={props.label} collapsed={started} />
         {crisis && (

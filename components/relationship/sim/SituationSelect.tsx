@@ -34,11 +34,8 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
     return (
       <StageFrame>
         <div className="px-6 pt-5 pb-10 animate-fade-in">
-          <header className="flex items-center gap-2 mb-6">
-            <button onClick={onClose} className="text-lilac-soft/80 text-sm" aria-label="닫기">‹ 나가기</button>
-            <h1 className="flex-1 text-center text-cream-warm font-display text-lg">어떤 상황을 연습해볼까?</h1>
-            <span className="w-12" />
-          </header>
+          <button onClick={onClose} className="text-lilac-soft/60 text-xs mb-2" aria-label="닫기">‹ 나가기</button>
+          <h1 className="text-center text-cream-warm font-display text-lg mb-5">어떤 상황을 연습해볼까?</h1>
 
           {/* 관계 칩 — 내 관계 맨 앞·기본 선택, 탭하면 그 관계 목록으로 교체 */}
           <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
@@ -98,13 +95,10 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
   return (
     <StageFrame>
       <div className="px-6 pt-5 pb-10 animate-fade-in">
-        <header className="flex items-center gap-2 mb-6">
-          <button onClick={() => setPicked(null)} className="text-lilac-soft/80 text-sm" aria-label="뒤로">‹ 뒤로</button>
-          <h1 className="flex-1 text-center text-cream-warm font-display text-lg">
-            {picked.emoji} {picked.label}
-          </h1>
-          <span className="w-12" />
-        </header>
+        <button onClick={() => setPicked(null)} className="text-lilac-soft/60 text-xs mb-2" aria-label="뒤로">‹ 뒤로</button>
+        <h1 className="text-center text-cream-warm font-display text-lg mb-5">
+          {picked.emoji} {picked.label}
+        </h1>
         <p className="text-cream-warm font-medium mb-2">{picked.contextPrompt}</p>
         <textarea
           value={ctx}
