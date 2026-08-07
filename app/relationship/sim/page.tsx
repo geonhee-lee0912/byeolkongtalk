@@ -6,6 +6,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SituationSelect from "@/components/relationship/sim/SituationSelect";
+import NightStage from "@/components/relationship/sim/NightStage";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { SIM_COST, type RelationshipStatus } from "@/lib/relationship/types";
 
@@ -135,9 +136,14 @@ function SimPageInner() {
           onPick={(situationId, userContext) => setPending({ situationId, userContext })}
         />
       )}
-      {/* T5~T6: phase==="stage" → <NightStage/>(FE5). 세션 생성 확인용 임시 표시. */}
-      {phase === "stage" && (
-        <div className="p-4 text-cream-warm">무대 진입 — {session?.statusLabel} (FE5)</div>
+      {phase === "stage" && session && (
+        <NightStage
+          simReadingId={session.simReadingId}
+          status={rel.status as RelationshipStatus}
+          label={rel.label}
+          frame={session.frame}
+          onDebrief={() => setPhase("debrief")}
+        />
       )}
       {/* T7: phase==="debrief" → <SimDebrief/> */}
 
