@@ -4,36 +4,6 @@
 import DollAvatar from "@/components/relationship/DollAvatar";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 
-const STARS = [
-  { top: "8%", left: "10%", s: 3, d: 0 },
-  { top: "14%", left: "82%", s: 2, d: 0.4 },
-  { top: "22%", left: "40%", s: 2, d: 0.8 },
-  { top: "6%", left: "60%", s: 3, d: 1.2 },
-  { top: "30%", left: "18%", s: 2, d: 0.6 },
-  { top: "26%", left: "70%", s: 3, d: 1.5 },
-];
-
-export function NightStars() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {STARS.map((p, i) => (
-        <span
-          key={i}
-          className="absolute rounded-full bg-gold-soft animate-star-twinkle"
-          style={{
-            top: p.top,
-            left: p.left,
-            width: p.s,
-            height: p.s,
-            boxShadow: `0 0 ${p.s * 2}px rgba(232,194,106,0.6)`,
-            animationDelay: `${p.d}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 interface DollPortraitProps {
   status: RelationshipStatus;
   label: string;
@@ -52,6 +22,13 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
       <div className={collapsed ? "" : "animate-float"}>
         <DollAvatar kind="partner" status={status} name={label} size={collapsed ? 30 : 80} />
       </div>
+      {!collapsed && (
+        <div
+          className="pointer-events-none w-[120px] h-5 -mt-1.5 rounded-[50%]"
+          aria-hidden
+          style={{ background: "radial-gradient(ellipse,rgba(232,194,106,0.3),transparent 70%)" }}
+        />
+      )}
       {!collapsed && (
         <>
           <span className="text-cream-warm font-bold">{label}</span>

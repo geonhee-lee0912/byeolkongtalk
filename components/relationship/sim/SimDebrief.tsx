@@ -3,7 +3,7 @@
 // 마운트 시 action:"debrief" 1회 호출(JSON, 스트림 아님) → 로딩 → 통찰/💌보낼말/마무리 3블록 + 보낼 말 복사 + 스레드 CTA.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { NightStars } from "./DollPortrait";
+import StageFrame from "./StageFrame";
 
 export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
   const router = useRouter();
@@ -33,18 +33,21 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
 
   if (state === "loading")
     return (
-      <div className="relative min-h-dvh flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-night to-night-deep text-cream-warm">
-        <NightStars />
-        <span className="relative z-10 inline-block w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
-        <p className="relative z-10 text-lilac text-sm">별콩이가 오늘 무대를 정리하고 있어…</p>
-      </div>
+      <StageFrame>
+        <div className="min-h-dvh flex flex-col items-center justify-center gap-3 text-cream-warm">
+          <span className="inline-block w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
+          <p className="text-lilac text-sm">별콩이가 오늘 무대를 정리하고 있어…</p>
+        </div>
+      </StageFrame>
     );
   if (state === "error")
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-night to-night-deep text-cream-warm px-6 text-center">
-        <p>정리 중 문제가 생겼어. 잠시 후 다시 시도해줘.</p>
-        <button onClick={() => router.replace("/relationship")} className="text-gold-soft">파일로 돌아가기</button>
-      </div>
+      <StageFrame>
+        <div className="min-h-dvh flex flex-col items-center justify-center gap-3 text-cream-warm px-6 text-center">
+          <p>정리 중 문제가 생겼어. 잠시 후 다시 시도해줘.</p>
+          <button onClick={() => router.replace("/relationship")} className="text-gold-soft">파일로 돌아가기</button>
+        </div>
+      </StageFrame>
     );
 
   async function copySend() {

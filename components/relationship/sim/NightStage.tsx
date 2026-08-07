@@ -3,7 +3,8 @@
 // night 배경 + 금색 별 파티클 + 접히는 인형 + 프레임 고지 노트 + say(인형)/note(별콩이) SSE 소비 +
 // X-Sim-* 헤더(자동노트·강제 디브리핑·민감) + 409 턴캡 + crisis(SafetyBanner) + 하단 입력창(💭 도움/정리하기).
 import { useEffect, useRef, useState } from "react";
-import DollPortrait, { NightStars } from "./DollPortrait";
+import DollPortrait from "./DollPortrait";
+import StageFrame from "./StageFrame";
 import ByeolkongNote from "./ByeolkongNote";
 import SimBubble from "./SimBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
@@ -139,9 +140,18 @@ export default function NightStage(props: NightStageProps) {
   }
 
   return (
-    <div className="relative flex flex-col" style={{ height: "100dvh" }}>
-      <NightStars />
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-night to-transparent px-4 pt-3 pb-2">
+    <StageFrame>
+      <div className="relative flex flex-col" style={{ height: "100dvh" }}>
+        {/* 스포트라이트 — 인형에게 내리는 빛기둥(무대 조명) */}
+        <div
+          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[240px] h-[280px] z-0"
+          aria-hidden
+          style={{
+            background: "linear-gradient(180deg,rgba(255,248,220,0.15),rgba(255,248,220,0.03) 55%,transparent)",
+            clipPath: "polygon(42% 0,58% 0,100% 100%,0 100%)",
+          }}
+        />
+        <div className="sticky top-0 z-10 bg-gradient-to-b from-night/70 to-transparent px-4 pt-3 pb-2">
         <DollPortrait status={props.status} label={props.label} collapsed={started} />
         {crisis && (
           <SafetyBanner
@@ -223,6 +233,7 @@ export default function NightStage(props: NightStageProps) {
           정리하기
         </button>
       </div>
-    </div>
+      </div>
+    </StageFrame>
   );
 }
