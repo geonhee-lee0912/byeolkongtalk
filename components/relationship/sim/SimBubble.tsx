@@ -17,12 +17,14 @@ export default function SimBubble({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<null | "up" | "down">(null);
+  const [error, setError] = useState(false);
 
   async function send(kind: "up" | "down") {
     const t = note.trim();
     if (busy) return;
     if (kind === "down" && !t) return; // 👎는 교정 필수
     setBusy(true);
+    setError(false);
     let ok = true;
     if (t) ok = (await onFeedback?.(kind, t)) ?? false; // 노트 있으면 서버 반영
     setBusy(false);
@@ -30,6 +32,8 @@ export default function SimBubble({
       setDone(kind);
       setMode(null);
       setNote("");
+    } else {
+      setError(true);
     }
   }
 
@@ -49,10 +53,11 @@ export default function SimBubble({
               {done === "down" ? "반영했어 🌙 다음부터 그렇게 반응할게" : "고마워 🌙"}
             </span>
           ) : mode ? (
-            <div className="flex items-end gap-1.5 mt-1">
+            <div className="mt-1">
+              <div className="flex items-end gap-1.5">
               <textarea
                 value={note}
-                onChange={(e) => setNote(e.target.value.slice(0, 300))}
+                onChange={(e) => { setNote(e.target.value.slice(0, 300)); if (error) setError(false); }}
                 rows={2}
                 autoFocus
                 placeholder={
@@ -79,6 +84,10 @@ export default function SimBubble({
                   {mode === "up" ? "건너뛰기" : "취소"}
                 </button>
               </div>
+              </div>
+              {error && (
+                <p className="text-[11px] text-rose-300 mt-1">앗, 지금은 반영이 안 됐어. 잠시 후 다시 시도해줘.</p>
+              )}
             </div>
           ) : (
             <div className="flex gap-2 text-[13px]">

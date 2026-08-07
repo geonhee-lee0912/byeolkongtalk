@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
   const supabase = getServiceSupabase();
   const { data: rel } = await supabase
     .from("relationships")
-    .select("id, user_id, label, status")
+    .select("id, user_id, label, status, partner_profile_id")
     .eq("id", body.relationshipId)
     .maybeSingle();
   if (!rel || rel.user_id !== userId)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // 프로필 없는 상대는 시뮬 진입 불가 — 인형은 상대 프로필(성격·MBTI)로 빚어지므로 프로필이 전제다.
+  // (레거시 관계 방어. 차감 전 게이트라 환불 불필요.)
+  if (!rel.partner_profile_id)
+    return NextResponse.json({ error: "no_profile", code: "NO_PROFILE" }, { status: 409 });
 
   // 판 고정가 차감 (서버 최종 권위). 실패 → 402 → 클라 /shop.
   const spend = await spendStars(userId, SIM_COST, { source: "relationship_sim" });

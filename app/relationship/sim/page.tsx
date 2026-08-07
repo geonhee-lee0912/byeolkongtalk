@@ -46,6 +46,7 @@ function SimPageInner() {
   const [phase, setPhase] = useState<Phase>("select");
   const [loading, setLoading] = useState(true);
   const [rel, setRel] = useState<RelInfo | null>(null);
+  const [noProfile, setNoProfile] = useState(false); // 프로필 없는 상대 = 시뮬 진입 불가
   const [pending, setPending] = useState<PendingPick | null>(null);
   // FE4: 결제 확인 진행 중 로딩 + 세션 생성 결과(스테이지 진입용) + 별 잔액(모달 표시용).
   const [creating, setCreating] = useState(false);
@@ -83,11 +84,34 @@ function SimPageInner() {
         router.replace("/relationship");
         return;
       }
+      // 프로필 없는 상대는 시뮬 진입 불가(인형이 프로필로 빚어짐) — 안내 화면.
+      if (!(found as { partnerProfileId?: string | null }).partnerProfileId) {
+        setNoProfile(true);
+        setLoading(false);
+        return;
+      }
       setRel({ id: found.id, label: found.label, status: found.status });
       setBalance(typeof bal?.balance === "number" ? bal.balance : 0);
       setLoading(false);
     })();
   }, [relationshipId, router]);
+
+  if (noProfile) {
+    return (
+      <main className="min-h-dvh bg-gradient-to-br from-night to-night-deep flex flex-col items-center justify-center gap-4 px-8 text-center text-cream-warm">
+        <p className="text-[15px] leading-relaxed">
+          이 상대는 아직 프로필이 없어 시뮬레이션을 시작할 수 없어.
+          <br />먼저 상대 프로필을 등록해줘.
+        </p>
+        <button
+          onClick={() => router.replace("/relationship")}
+          className="rounded-xl px-5 py-2.5 bg-gold text-night-deep font-bold text-sm"
+        >
+          파일로 돌아가기
+        </button>
+      </main>
+    );
+  }
 
   if (loading || !rel) {
     return (
