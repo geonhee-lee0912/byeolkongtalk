@@ -25,6 +25,7 @@ import type {
 } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
 import { FREE_INTRO_TURNS } from "@/lib/relationship/types";
+import type { SimSituation } from "@/lib/relationship/situations";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 import { isRetryableUpstreamError, upstreamErrorType } from "@/lib/upstream-error";
@@ -791,4 +792,70 @@ function getSimByeolkongPersona(): string {
       readFileSync(join(process.cwd(), "data", "persona", "byeolkong_sim.md"), "utf-8");
   }
   return _cachedSimByeolkongPersona;
+}
+
+export interface DollTurnContext {
+  situation: SimSituation;
+  partnerName: string; // 관계 파일 호칭
+  statusLabel: string; // RELATIONSHIP_STATUS_LABELS[status]
+  profileLine: string; // formatPartnerForDoll(...) — 없으면 ""
+  userContext: string | null; // ①-b 라이트 컨텍스트
+}
+
+/** 인형 대사 호출용 시스템 메시지 — doll_partner.md(코어 없음) + 상황 seed·프로필·유저맥락 주입. */
+export function buildDollSystemMessage(ctx: DollTurnContext): { staticPart: string; dynamicPart: string } {
+  const staticPart = getDollPersona();
+  const contextBlock = ctx.userContext?.trim()
+    ? `### 유저가 알려준 이번 맥락\n${ctx.userContext.trim()}`
+    : `### 맥락 메모\n유저가 아직 구체 맥락을 안 줬어. 대화에서 드러나는 대로 반응하면 돼(없는 사실 지어내기 금지).`;
+  const profileBlock = ctx.profileLine.trim() ? `\n\n### 상대(=너, 인형) 프로필\n${ctx.profileLine.trim()}` : "";
+  const dynamicPart = `---
+## 이번 무대 상황
+[상대(인형): ${ctx.partnerName}] [관계: ${ctx.statusLabel}]
+[상황: ${ctx.situation.label} — ${ctx.situation.desc}]
+
+### 너(인형)의 초기 태도
+${ctx.situation.dollStance}
+
+### 무대 시작 상태
+${ctx.situation.opening}${profileBlock}
+
+${contextBlock}
+---
+이제 위 태도로, 상대방 본인이 되어 유저의 말에 자연스럽게 반응해. 짧게(1~4문장), 마커·해설 없이.`;
+  return { staticPart, dynamicPart };
+}
+
+export type SimByeolkongMode = "note" | "debrief" | "crisis";
+export interface SimByeolkongContext {
+  mode: SimByeolkongMode;
+  situation: SimSituation;
+  partnerName: string;
+  statusLabel: string;
+  userContext: string | null;
+  convoBlock: string; // buildSimContextBlock(...)
+  suggestWrap?: boolean; // 소프트 수렴(오너결정 2026-08-07) — note 모드에서 후반부면 정리 유도 힌트 추가
+}
+
+const SIM_NOTE_GUIDE = `\n\n## 이번 호출 — 관찰 노트 (💭)\n무대를 지켜보다 노트 한 장을 남기는 순간이야. byeolkong_sim.md §관찰 노트대로 금색 노트 톤으로 2~4문장. 말문이 막혔으면 틔워주고, 흐름이 보이면 관찰을 건네. 인형 대사를 대신 쓰지 마 — 넌 지켜보는 별콩이야. [END]·[SEND] 쓰지 마.`;
+const SIM_WRAP_HINT = ` 그리고 판이 꽤 무르익었어 — 이번 노트 끝에 "슬슬 정리해볼까?" 하고 정리(디브리핑)를 부드럽게 권해봐. 강요하지 말고, 더 하고 싶으면 계속해도 된다는 결로.`;
+const SIM_DEBRIEF_GUIDE = `\n\n## 이번 호출 — 디브리핑 (정리하기)\n인형을 내려놓고 유저 곁으로 돌아왔어. byeolkong_sim.md §디브리핑 3블록대로: (1) 통찰 2~3개(무대에서 오간 말 근거, 예측 금지) → (2) 💌 보낼 말 한 문장 → (3) 따뜻한 마무리. 보낼 말은 응답 맨 끝에 [SEND:실제 상대에게 보낼 한 문장] 마커를 한 줄 단독으로 꼭 붙여(화면엔 안 보이고 저장용). [END] 쓰지 마.`;
+const SIM_CRISIS_GUIDE = `\n\n## ⚠️ 이번 호출 — 위기 신호, 인형 내려놓고 곁으로\n방금 유저 발화에 위기 신호가 있어. 인형 역할극·연습·디브리핑을 멈추고 공통 코어 §위기 그대로 — 판단·재촉 없이 수용하고 정확한 hotline 번호를 얹어 곁에 머물러. [SEND]·3블록 쓰지 말고, 먼저 작별하지 마.`;
+
+/** 별콩이 노트/디브리핑/위기 호출용 시스템 메시지 — 코어+byeolkong_sim.md + 상황·대화 블록 + 모드 가이드. */
+export function buildSimByeolkongMessage(ctx: SimByeolkongContext): { staticPart: string; dynamicPart: string } {
+  const staticPart = getSimByeolkongPersona();
+  const guide =
+    ctx.mode === "note" ? SIM_NOTE_GUIDE + (ctx.suggestWrap ? SIM_WRAP_HINT : "")
+    : ctx.mode === "debrief" ? SIM_DEBRIEF_GUIDE
+    : SIM_CRISIS_GUIDE;
+  const ctxLine = ctx.userContext?.trim() ? `\n[유저가 준 맥락: ${ctx.userContext.trim()}]` : "";
+  const dynamicPart = `---
+## 별콩이가 지켜보는 시뮬 무대
+[상대(인형): ${ctx.partnerName}] [관계: ${ctx.statusLabel}] [상황: ${ctx.situation.label}]${ctxLine}
+
+### 지금까지 무대에서 오간 대화
+${ctx.convoBlock || "(아직 대화 없음)"}
+---${guide}`;
+  return { staticPart, dynamicPart };
 }
