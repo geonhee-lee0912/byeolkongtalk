@@ -140,7 +140,7 @@ export default function NightStage(props: NightStageProps) {
   }
 
   return (
-    <StageFrame>
+    <StageFrame stage>
       <div className="relative flex flex-col" style={{ height: "100dvh" }}>
         <div className="sticky top-0 z-10 bg-gradient-to-b from-night/70 to-transparent px-4 pt-3 pb-2">
         <DollPortrait status={props.status} label={props.label} collapsed={started} />

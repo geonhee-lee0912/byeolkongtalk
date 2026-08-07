@@ -33,7 +33,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
   if (!picked) {
     return (
       <StageFrame>
-        <div className="px-6 pt-5 pb-10 animate-fade-in">
+        <div className="px-6 pt-8 pb-10 animate-fade-in">
           <button onClick={onClose} className="text-lilac-soft/60 text-xs mb-2" aria-label="닫기">‹ 나가기</button>
           <h1 className="text-center text-cream-warm font-display text-lg mb-5">어떤 상황을 연습해볼까?</h1>
 
@@ -94,7 +94,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
   const isCustom = picked.id === "custom";
   return (
     <StageFrame>
-      <div className="px-6 pt-5 pb-10 animate-fade-in">
+      <div className="px-6 pt-8 pb-10 animate-fade-in">
         <button onClick={() => setPicked(null)} className="text-lilac-soft/60 text-xs mb-2" aria-label="뒤로">‹ 뒤로</button>
         <h1 className="text-center text-cream-warm font-display text-lg mb-5">
           {picked.emoji} {picked.label}

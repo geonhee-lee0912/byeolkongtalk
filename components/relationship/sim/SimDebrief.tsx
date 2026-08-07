@@ -33,7 +33,7 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
 
   if (state === "loading")
     return (
-      <StageFrame>
+      <StageFrame stage>
         <div className="min-h-dvh flex flex-col items-center justify-center gap-3 text-cream-warm">
           <span className="inline-block w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
           <p className="text-lilac text-sm">별콩이가 오늘 무대를 정리하고 있어…</p>
@@ -42,7 +42,7 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
     );
   if (state === "error")
     return (
-      <StageFrame>
+      <StageFrame stage>
         <div className="min-h-dvh flex flex-col items-center justify-center gap-3 text-cream-warm px-6 text-center">
           <p>정리 중 문제가 생겼어. 잠시 후 다시 시도해줘.</p>
           <button onClick={() => router.replace("/relationship")} className="text-gold-soft">파일로 돌아가기</button>
