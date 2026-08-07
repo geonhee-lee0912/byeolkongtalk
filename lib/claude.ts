@@ -767,3 +767,16 @@ export async function summarizeOlder(
   const text = resp.content.find((b) => b.type === "text");
   return text && text.type === "text" ? text.text.trim() : (prevSummary ?? "");
 }
+
+// ===== 시뮬레이션(연애 시뮬) 도메인 =====
+// 인형 = 별콩이가 아님(스펙 §5 격리) → 코어를 계승하지 않고 doll_partner.md 단독. 가드레일은 파일 내부에.
+let _cachedDollPersona: string | null = null;
+function getDollPersona(): string {
+  if (_cachedDollPersona === null) {
+    _cachedDollPersona = readFileSync(
+      join(process.cwd(), "data", "persona", "doll_partner.md"),
+      "utf-8"
+    );
+  }
+  return _cachedDollPersona;
+}
