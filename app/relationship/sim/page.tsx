@@ -5,6 +5,8 @@
 // useSearchParams 는 정적 빌드 시 Suspense 경계 필수(/login, /start 와 동일 패턴 — 없으면 next build 실패).
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import SituationSelect from "@/components/relationship/sim/SituationSelect";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 type Phase = "select" | "stage" | "debrief";
 
@@ -12,6 +14,11 @@ interface RelInfo {
   id: string;
   label: string;
   status: string;
+}
+
+interface PendingPick {
+  situationId: string;
+  userContext: string;
 }
 
 export default function SimPage() {
@@ -29,6 +36,8 @@ function SimPageInner() {
   const [phase, setPhase] = useState<Phase>("select");
   const [loading, setLoading] = useState(true);
   const [rel, setRel] = useState<RelInfo | null>(null);
+  // FE4(결제·세션 생성)가 소비 — 이 태스크는 select 단계 선택값을 담아 넘기기만 한다.
+  const [pending, setPending] = useState<PendingPick | null>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -71,12 +80,16 @@ function SimPageInner() {
 
   return (
     <main className="min-h-dvh bg-gradient-to-br from-night to-night-deep text-cream-warm">
-      {/* T3: phase==="select" → <SituationSelect/> */}
+      {phase === "select" && (
+        <SituationSelect
+          status={rel.status as RelationshipStatus}
+          partnerLabel={rel.label}
+          onClose={() => router.replace("/relationship")}
+          onPick={(situationId, userContext) => setPending({ situationId, userContext })}
+        />
+      )}
       {/* T4~T6: phase==="stage" → <NightStage/> */}
       {/* T7: phase==="debrief" → <SimDebrief/> */}
-      <div className="p-4 text-center text-sm text-lilac">
-        시뮬 셸 (phase: {phase}) — 상대: {rel.label}
-      </div>
     </main>
   );
 }

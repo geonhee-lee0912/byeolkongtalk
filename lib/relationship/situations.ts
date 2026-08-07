@@ -115,11 +115,32 @@ export const SITUATIONS: SimSituation[] = [
   },
 ];
 
-const BY_ID: Record<string, SimSituation> = Object.fromEntries(SITUATIONS.map((s) => [s.id, s]));
+/** 자유쓰기 — 카드에 없는 상황을 유저가 직접 서술(스펙 §3, 오너결정 2026-08-07).
+ *  dollStance 는 generic 틀이고 실제 상황은 userContext(유저 서술)가 채운다 → 라우트/빌더 무수정으로 일반 상황처럼 흐른다.
+ *  모든 관계에 노출(any) + safety high(맥락 미상이라 보수적). */
+export const CUSTOM_SITUATION: SimSituation = {
+  id: "custom",
+  relationship: "any",
+  emoji: "✍️",
+  label: "직접 쓰기",
+  desc: "카드에 없는 내 상황을 직접 적어볼게",
+  dollStance:
+    "유저가 [유저가 알려준 이번 맥락]으로 자기 상황을 직접 서술했어. 그 상황에 놓인 '그 사람'이 되어, 서술된 맥락에 맞게 1인칭으로 현실적으로 반응해. 맥락이 부족하면 지어내지 말고 대화로 드러나는 대로 받아.",
+  opening: "유저가 직접 서술한 상황에서 대화가 시작된다.",
+  contextPrompt: "어떤 상황이야? 상대는 어떤 사람이고 지금 둘 사이가 어떤지 편하게 적어줘.",
+  safety: "high",
+};
 
-/** 관계별 노출 목록 — 해당 관계 + "any"(공용). 스펙 §4: 카드 세트는 관계별로 다름. */
+const BY_ID: Record<string, SimSituation> = Object.fromEntries(
+  [...SITUATIONS, CUSTOM_SITUATION].map((s) => [s.id, s])
+);
+
+/** 관계별 노출 목록 — 해당 관계 + "any"(공용) + custom(자유쓰기, 항상 마지막). 스펙 §4: 카드 세트는 관계별로 다름. */
 export function getSituations(relationship: RelationshipStatus): SimSituation[] {
-  return SITUATIONS.filter((s) => s.relationship === relationship || s.relationship === "any");
+  return [
+    ...SITUATIONS.filter((s) => s.relationship === relationship || s.relationship === "any"),
+    CUSTOM_SITUATION,
+  ];
 }
 
 export function getSituation(id: string): SimSituation | null {

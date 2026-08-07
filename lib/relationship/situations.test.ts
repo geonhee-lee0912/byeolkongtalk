@@ -40,3 +40,10 @@ test("getSituation(id) 왕복 + 미존재 null", () => {
   assert.equal(getSituation("breakup-reconnect")?.label, "재회 연락");
   assert.equal(getSituation("nope"), null);
 });
+
+test("자유쓰기 custom — getter 노출 + generic(any·high)", () => {
+  assert.equal(getSituation("custom")?.label, "직접 쓰기");
+  const crush = getSituations("crush");
+  assert.ok(crush.some((s) => s.id === "custom"), "모든 관계에 custom 노출");
+  assert.equal(getSituation("custom")?.safety, "high");
+});
