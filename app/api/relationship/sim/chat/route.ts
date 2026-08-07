@@ -121,12 +121,20 @@ export async function POST(request: NextRequest) {
     const sendMessage = extractSendLine(raw);
     const display = stripSimMarkers(raw);
     const nowIso = new Date().toISOString();
-    // 디브리핑 메시지 저장(skill_key='sim_debrief') + 판 메타 갱신(phase·sendMessage).
-    await supabase.from("messages").insert([
-      { reading_id: reading.id, role: "assistant", content: display, skill_key: "sim_debrief", created_at: nowIso },
-    ]);
     const nextMeta: SimMeta = { ...meta, phase: "debriefed", sendMessage: sendMessage ?? undefined };
-    await supabase.from("readings").update({ saju_data: nextMeta }).eq("id", reading.id);
+    // 디브리핑 메시지 저장(skill_key='sim_debrief') + 판 메타 갱신(phase·sendMessage) — best-effort.
+    // 저장이 실패해도 이미 생성된 디브리핑은 유저에게 반환한다(유료 판 디브리핑 유실 > 저장 실패, 플랜 §6).
+    try {
+      const { error: mErr } = await supabase.from("messages").insert([
+        { reading_id: reading.id, role: "assistant", content: display, skill_key: "sim_debrief", created_at: nowIso },
+      ]);
+      const { error: uErr } = await supabase.from("readings").update({ saju_data: nextMeta }).eq("id", reading.id);
+      if (mErr || uErr)
+        await logError(mErr ?? uErr ?? new Error("debrief_save_failed"),
+          ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "debrief_save" } }));
+    } catch (err) {
+      await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "debrief_save" } }));
+    }
 
     return NextResponse.json({ debrief: display, sendMessage, situationId: situation.id, success: true });
   }
