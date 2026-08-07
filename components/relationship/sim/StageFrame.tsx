@@ -76,15 +76,6 @@ export default function StageFrame({
       {/* 무대 모드에서만 — 달 + 무대 조명 */}
       {stage && (
         <>
-          {/* 달 — 우상단, 밤이라는 느낌을 확실히 */}
-          <div
-            className="pointer-events-none absolute top-9 right-8 w-11 h-11 rounded-full z-0"
-            aria-hidden
-            style={{
-              background: "radial-gradient(circle at 38% 36%, #FFF8F0 0%, #F2D78A 55%, #E8C26A 100%)",
-              boxShadow: "0 0 30px 6px rgba(242,215,138,0.4)",
-            }}
-          />
           {/* 상단에서 내려오는 스포트라이트 빛기둥 */}
           <div
             className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[360px] z-0"

@@ -142,7 +142,7 @@ export default function NightStage(props: NightStageProps) {
   return (
     <StageFrame stage>
       <div className="relative flex flex-col" style={{ height: "100dvh" }}>
-        <div className="sticky top-0 z-10 bg-gradient-to-b from-night/70 to-transparent px-4 pt-3 pb-2">
+        <div className="sticky top-0 z-10 bg-gradient-to-b from-night/70 to-transparent px-5 pt-3 pb-2">
         <DollPortrait status={props.status} label={props.label} collapsed={started} />
         {crisis && (
           <SafetyBanner
@@ -154,7 +154,7 @@ export default function NightStage(props: NightStageProps) {
       </div>
       <div
         ref={scrollRef}
-        className="relative z-10 flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3"
+        className="relative z-10 flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3"
       >
         <ByeolkongNote text={props.frame} kind="frame" />
         {messages.map((m) =>
@@ -179,12 +179,12 @@ export default function NightStage(props: NightStageProps) {
           ))}
         {error && <p className="self-center text-[13px] text-rose-300">{error}</p>}
       </div>
-      <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-3 py-2.5 flex items-end gap-2">
+      <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-4 py-2.5 flex items-center gap-2">
         <button
           type="button"
           onClick={() => void fetchNote()}
           disabled={busy}
-          className="shrink-0 text-lilac-soft text-sm px-2 disabled:opacity-40"
+          className="shrink-0 text-lilac-soft text-sm px-1 disabled:opacity-40"
         >
           💭 도움
         </button>
@@ -216,8 +216,17 @@ export default function NightStage(props: NightStageProps) {
         />
         <button
           type="button"
+          onClick={() => void sendSay(input)}
+          disabled={busy || !input.trim()}
+          className="shrink-0 w-9 h-9 rounded-full bg-gold text-night-deep flex items-center justify-center text-lg font-bold disabled:opacity-40"
+          aria-label="보내기"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
           onClick={props.onDebrief}
-          className={`shrink-0 text-sm px-3 py-1.5 ${
+          className={`shrink-0 text-sm px-1 py-1.5 ${
             forceDebrief ? "text-gold font-bold animate-pulse-soft" : "text-gold-soft"
           }`}
         >
