@@ -7,6 +7,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SituationSelect from "@/components/relationship/sim/SituationSelect";
 import NightStage from "@/components/relationship/sim/NightStage";
+import SimDebrief from "@/components/relationship/sim/SimDebrief";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { SIM_COST, type RelationshipStatus } from "@/lib/relationship/types";
 
@@ -145,7 +146,7 @@ function SimPageInner() {
           onDebrief={() => setPhase("debrief")}
         />
       )}
-      {/* T7: phase==="debrief" → <SimDebrief/> */}
+      {phase === "debrief" && session && <SimDebrief simReadingId={session.simReadingId} />}
 
       {pending && (
         <StarConfirmModal
