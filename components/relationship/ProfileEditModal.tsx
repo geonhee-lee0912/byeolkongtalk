@@ -240,7 +240,7 @@ export default function ProfileEditModal({
       aria-modal="true"
     >
       <div
-        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hover"
+        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">

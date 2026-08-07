@@ -129,24 +129,27 @@ function SimPageInner() {
 
   return (
     <main className="min-h-dvh bg-gradient-to-br from-night to-night-deep text-cream-warm">
-      {phase === "select" && (
-        <SituationSelect
-          status={rel.status as RelationshipStatus}
-          partnerLabel={rel.label}
-          onClose={() => router.replace("/relationship")}
-          onPick={(situationId, userContext) => setPending({ situationId, userContext })}
-        />
-      )}
-      {phase === "stage" && session && (
-        <NightStage
-          simReadingId={session.simReadingId}
-          status={rel.status as RelationshipStatus}
-          label={rel.label}
-          frame={session.frame}
-          onDebrief={() => setPhase("debrief")}
-        />
-      )}
-      {phase === "debrief" && session && <SimDebrief simReadingId={session.simReadingId} />}
+      {/* 배경은 다른 화면처럼 full, 콘텐츠는 max-w-md 중앙 컬럼(데스크톱 full-width 방지). */}
+      <div className="max-w-md mx-auto">
+        {phase === "select" && (
+          <SituationSelect
+            status={rel.status as RelationshipStatus}
+            partnerLabel={rel.label}
+            onClose={() => router.replace("/relationship")}
+            onPick={(situationId, userContext) => setPending({ situationId, userContext })}
+          />
+        )}
+        {phase === "stage" && session && (
+          <NightStage
+            simReadingId={session.simReadingId}
+            status={rel.status as RelationshipStatus}
+            label={rel.label}
+            frame={session.frame}
+            onDebrief={() => setPhase("debrief")}
+          />
+        )}
+        {phase === "debrief" && session && <SimDebrief simReadingId={session.simReadingId} />}
+      </div>
 
       {pending && (
         <StarConfirmModal
