@@ -101,6 +101,36 @@ export async function POST(request: NextRequest) {
       NOTE_MAX_TOKENS, reading.id, "sim_note", logCtx, request, userId);
   }
 
+  // ── debrief (정리하기 / 턴캡 강제): 별콩이 복귀 → 3블록 → 보낼 말 추출 → 메타 저장. 멱등. ──
+  if (action === "debrief") {
+    const convo = await loadDollConversation(supabase, reading.id);
+    const system = buildSimByeolkongMessage({
+      mode: "debrief", situation, partnerName: rel.label, statusLabel,
+      userContext: meta.userContext, convoBlock: buildSimContextBlock(convo),
+    });
+    let raw: string;
+    try {
+      raw = await generateOnce(system, [{ role: "user", content: "이제 인형을 내려놓고 정리해줘." }], DEBRIEF_MAX_TOKENS, logCtx);
+    } catch (err) {
+      await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "debrief_generate" } }));
+      return NextResponse.json({ error: "debrief_failed" }, { status: 500 });
+    }
+    if (!raw.trim())
+      return NextResponse.json({ error: "debrief_empty" }, { status: 500 });
+
+    const sendMessage = extractSendLine(raw);
+    const display = stripSimMarkers(raw);
+    const nowIso = new Date().toISOString();
+    // 디브리핑 메시지 저장(skill_key='sim_debrief') + 판 메타 갱신(phase·sendMessage).
+    await supabase.from("messages").insert([
+      { reading_id: reading.id, role: "assistant", content: display, skill_key: "sim_debrief", created_at: nowIso },
+    ]);
+    const nextMeta: SimMeta = { ...meta, phase: "debriefed", sendMessage: sendMessage ?? undefined };
+    await supabase.from("readings").update({ saju_data: nextMeta }).eq("id", reading.id);
+
+    return NextResponse.json({ debrief: display, sendMessage, situationId: situation.id, success: true });
+  }
+
   // ── say (인형 대사) ──
   if (typeof body.message !== "string" || body.message.length < 1 || body.message.length > MAX_MESSAGE_LEN)
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
