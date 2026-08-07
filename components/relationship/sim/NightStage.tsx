@@ -139,6 +139,20 @@ export default function NightStage(props: NightStageProps) {
     }
   }
 
+  // 인형 대사 피드백(👍/👎) → 상대 성격 즉시 반영. 성공 시 true(SimBubble 이 완료 표시).
+  async function sendFeedback(kind: "up" | "down", note: string): Promise<boolean> {
+    try {
+      const res = await fetch("/api/relationship/sim/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ simReadingId: props.simReadingId, kind, note }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   return (
     <StageFrame stage>
       <div className="relative flex flex-col" style={{ height: "100dvh" }}>
@@ -157,6 +171,7 @@ export default function NightStage(props: NightStageProps) {
         className="relative z-10 flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3"
       >
         <ByeolkongNote text={props.frame} kind="frame" />
+        <p className="self-center text-[11px] text-lilac-soft/50 -mt-1">인형 대사에 👍 맞아요 · 👎 달라요로 알려줄 수 있어</p>
         {messages.map((m) =>
           m.who === "note" ? (
             <ByeolkongNote key={m.id} text={m.text} />
@@ -168,7 +183,7 @@ export default function NightStage(props: NightStageProps) {
               {m.text}
             </div>
           ) : (
-            <SimBubble key={m.id} content={m.text} />
+            <SimBubble key={m.id} content={m.text} onFeedback={sendFeedback} />
           )
         )}
         {live &&
