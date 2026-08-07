@@ -47,6 +47,15 @@ export const EXTEND_TURNS = 5;
  * 근거: 2026-07-25 P&L — 등록 15 중 14 무발화, 그중 5명이 현금 결제자 = 지불 의사가 아니라 순서 문제. */
 export const FREE_INTRO_TURNS = 3;
 
+/** 시뮬레이션 한 판 고정가 — 연습 + 💭 코칭 + 자동 노트 + 디브리핑 + 보낼 말 전부 포함(스펙 §7).
+ * 🔴 WELCOME_BONUS_STARS(20)가 첫 판을 흡수하도록 X<20 (스펙 §7·§11). 서버 권위(클라 cost 신뢰 X).
+ * 값은 튜닝 대상(배포 후 구매 비율 관측) — 코드 상수가 정본. */
+export const SIM_COST = 15;
+
+/** 시뮬 한 판의 인형 대화 절대 상한(원가 경계, 스펙 §2 "abs-cap 재사용"). 도달 시 서버가 디브리핑을 강제(추가 인형 턴 거부).
+ * 단 has_sensitive 판은 강제하지 않음(안전>원가, 스펙 §5) — chat 라우트가 simForceDebrief 로 억제. */
+export const SIM_TURN_CAP = 12;
+
 /** 스킬 프리뷰 카피 — S1 콜드스타트(/relationship)와 광고 랜딩(/start?v=relationship) 공유 */
 export const RELATIONSHIP_SKILL_PREVIEWS = [
   { emoji: "💬", label: "관계 체크인", tagline: "두 사람의 상태와 서로의 필요를 나란히" },
