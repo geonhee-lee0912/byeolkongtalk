@@ -1,9 +1,28 @@
 "use client";
 // components/relationship/sim/SimDebrief.tsx — 디브리핑 화면(FE7).
-// 마운트 시 action:"debrief" 1회 호출(JSON, 스트림 아님) → 로딩 → 통찰/💌보낼말/마무리 3블록 + 보낼 말 복사 + 스레드 CTA.
-import { useEffect, useRef, useState } from "react";
+// 마운트 시 action:"debrief" 1회 호출(JSON) → 로딩 → 통찰/💌보낼말/마무리 + 보낼 말 복사 + 스레드 CTA.
+// 다크 톤(무대와 일관) + 경량 마크다운 렌더(**볼드**·*이탤릭*).
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import StageFrame from "./StageFrame";
+
+/** 디브리핑 본문의 인라인 마크다운(**볼드**·*이탤릭*)만 경량 렌더. 줄바꿈은 whitespace-pre-wrap 이 담당. */
+function renderMd(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const t = m[0];
+    if (t.startsWith("**")) parts.push(<strong key={key++} className="text-gold-soft">{t.slice(2, -2)}</strong>);
+    else parts.push(<em key={key++} className="text-cream-warm/70">{t.slice(1, -1)}</em>);
+    last = m.index + t.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
 
 export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
   const router = useRouter();
@@ -56,18 +75,20 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
   }
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-night-deep to-cream text-eye-purple animate-fade-in">
+    <div className="min-h-dvh bg-gradient-to-b from-night to-night-deep text-cream-warm animate-fade-in">
       <div className="px-5 py-8 max-w-lg mx-auto">
-        <h1 className="font-display text-xl text-cream-warm text-center mb-1">오늘 무대, 정리해볼게</h1>
-        <div className="mt-6 rounded-2xl bg-cream-warm border border-lilac-mid/20 p-5 whitespace-pre-wrap leading-relaxed text-[15px]">{debrief}</div>
+        <h1 className="font-display text-xl text-cream-warm text-center mb-6">오늘 무대, 정리해볼게</h1>
+        <div className="rounded-2xl bg-night/50 border border-lilac-mid/25 p-5 whitespace-pre-wrap leading-relaxed text-[15px] text-cream-warm/95">
+          {renderMd(debrief)}
+        </div>
         {sendMessage && (
           <div className="mt-4 rounded-2xl border border-gold/50 bg-gold/10 p-4">
             <div className="text-gold-soft text-[12px] font-bold mb-1.5">💌 이 사람에게 보낼 말</div>
-            <p className="text-eye-purple text-[15px] leading-relaxed">{sendMessage}</p>
+            <p className="text-cream-warm text-[15px] leading-relaxed">{sendMessage}</p>
             <button onClick={copySend} className="mt-3 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-sm">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
           </div>
         )}
-        <button onClick={() => router.push("/relationship")} className="mt-6 w-full rounded-xl py-3 border border-lilac-mid/40 text-eye-purple font-medium">별콩이랑 더 얘기하기 →</button>
+        <button onClick={() => router.push("/relationship")} className="mt-6 w-full rounded-xl py-3 bg-cream-warm text-eye-purple font-bold hover:bg-white transition-colors">별콩이랑 더 얘기하기 →</button>
       </div>
     </div>
   );
