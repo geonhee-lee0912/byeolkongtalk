@@ -11,7 +11,7 @@ import { spendStars, chargeStars } from "@/lib/stars";
 import { RELATIONSHIP_STATUS_LABELS, SIM_SUGGEST_COST, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
 import {
-  shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
+  simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, extractSuggestions, type SimMeta,
 } from "@/lib/relationship/sim";
 import { randomUUID } from "node:crypto";
@@ -26,7 +26,7 @@ const NOTE_MAX_TOKENS = 800;   // 별콩이 노트
 const DEBRIEF_MAX_TOKENS = 1400;
 const SUGGEST_MAX_TOKENS = 500; // 답변 추천 3개(짧은 대사)
 
-type Action = "say" | "note" | "debrief" | "suggest";
+type Action = "say" | "debrief" | "suggest";
 interface Body { simReadingId: string; message?: string; action?: Action }
 
 /** 판 로드 + 소유권 + 상황/관계/프로필 컨텍스트를 한 번에 준비. */
@@ -89,20 +89,6 @@ export async function POST(request: NextRequest) {
   const action: Action = body.action ?? "say";
   const encoder = new TextEncoder();
   const logCtx = { route: "/api/relationship/sim/chat", userId, extra: { simReadingId: reading.id, action } };
-
-  // ── note (온디맨드 💭 / 자동): 별콩이 노트 — 인형 대화 컨텍스트를 텍스트로 주입, 별도 호출 ──
-  // [소프트 수렴 델타] 인형 유저턴 수로 shouldSuggestWrap 판정 → 후반부면 정리 유도 힌트.
-  if (action === "note") {
-    const convo = await loadDollConversation(supabase, reading.id);
-    const dollTurns = convo.filter((m) => m.role === "user").length;
-    const system = buildSimByeolkongMessage({
-      mode: "note", situation, partnerName: rel.label, statusLabel,
-      userContext: meta.userContext, convoBlock: buildSimContextBlock(convo),
-      suggestWrap: shouldSuggestWrap(dollTurns),
-    });
-    return streamAndSave(supabase, encoder, system, [{ role: "user", content: "지금 무대를 보고 노트를 남겨줘." }],
-      NOTE_MAX_TOKENS, reading.id, "sim_note", logCtx, request, userId);
-  }
 
   // ── suggest (답변 추천): 별 소모 → 유저가 할 말 3개 생성 → 파싱 → JSON. 실패 시 환불(sim/route 패턴). ──
   if (action === "suggest") {

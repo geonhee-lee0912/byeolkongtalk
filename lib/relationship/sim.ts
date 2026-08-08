@@ -10,12 +10,6 @@ export interface SimMeta {
   sendMessage?: string; // 💌 보낼 말
 }
 
-/** 소프트 수렴 — 판이 후반부(SIM_TURN_CAP-3 이상)면 별콩이 노트가 정리(디브리핑)를 부드럽게 권하도록 신호.
- *  하드 게이트(simForceDebrief)와 별개: 이건 강요가 아니라 유도. 유저가 원하면 계속(스펙 §2·오너결정 2026-08-07). */
-export function shouldSuggestWrap(dollTurns: number): boolean {
-  return dollTurns >= SIM_TURN_CAP - 3;
-}
-
 /** 인형 대화 abs-cap 도달 시 디브리핑 강제. 위기 판(has_sensitive)은 억제(안전>원가, 스펙 §5). */
 export function simForceDebrief(args: { dollTurns: number; hasSensitive: boolean }): boolean {
   if (args.hasSensitive) return false;

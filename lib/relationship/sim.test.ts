@@ -2,16 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
+  simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote, extractSuggestions,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
-
-test("소프트 수렴 유도 — 후반부(cap-3)부터 정리 권유", () => {
-  assert.equal(shouldSuggestWrap(SIM_TURN_CAP - 4), false);
-  assert.equal(shouldSuggestWrap(SIM_TURN_CAP - 3), true);
-  assert.equal(shouldSuggestWrap(SIM_TURN_CAP), true);
-});
 
 test("턴캡 강제 디브리핑 — cap 도달 시 true, 단 위기 판은 억제(안전>원가 §5)", () => {
   assert.equal(simForceDebrief({ dollTurns: SIM_TURN_CAP - 1, hasSensitive: false }), false);

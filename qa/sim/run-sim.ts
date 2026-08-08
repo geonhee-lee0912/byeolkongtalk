@@ -58,14 +58,7 @@ async function main() {
       const say = await postStream("/api/relationship/sim/chat", { simReadingId: sim.simReadingId, message: userLine, action: "say" });
       lastHeaders = say.headers;
       lines.push(`## 턴 ${i + 1}`, `**유저:** ${userLine}`, ``, `**인형:** ${say.text}`, ``);
-      if (say.headers["x-sim-autonote"] === "1") {
-        const note = await postStream("/api/relationship/sim/chat", { simReadingId: sim.simReadingId, action: "note" });
-        lines.push(`**🌙 별콩이 노트(자동):** ${note.text}`, ``);
-      }
     }
-    // 온디맨드 노트 1회 + 디브리핑
-    const onDemand = await postStream("/api/relationship/sim/chat", { simReadingId: sim.simReadingId, action: "note" });
-    lines.push(`**🌙 별콩이 노트(온디맨드 💭):** ${onDemand.text}`, ``);
     const deb = await postStream("/api/relationship/sim/chat", { simReadingId: sim.simReadingId, action: "debrief" });
     let debParsed: { debrief?: string; sendMessage?: string | null } = {};
     try { debParsed = JSON.parse(deb.text); } catch { debParsed = { debrief: deb.text }; }

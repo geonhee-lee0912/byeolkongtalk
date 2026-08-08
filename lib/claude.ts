@@ -826,7 +826,7 @@ ${contextBlock}
   return { staticPart, dynamicPart };
 }
 
-export type SimByeolkongMode = "note" | "debrief" | "crisis" | "suggest";
+export type SimByeolkongMode = "debrief" | "crisis" | "suggest";
 export interface SimByeolkongContext {
   mode: SimByeolkongMode;
   situation: SimSituation;
@@ -834,12 +834,9 @@ export interface SimByeolkongContext {
   statusLabel: string;
   userContext: string | null;
   convoBlock: string; // buildSimContextBlock(...)
-  suggestWrap?: boolean; // 소프트 수렴(오너결정 2026-08-07) — note 모드에서 후반부면 정리 유도 힌트 추가
 }
 
-const SIM_NOTE_GUIDE = `\n\n## 이번 호출 — 관찰 노트 (💭)\n무대를 지켜보다 노트 한 장을 남기는 순간이야. byeolkong_sim.md §관찰 노트대로 금색 노트 톤으로 2~4문장. 말문이 막혔으면 틔워주고, 흐름이 보이면 관찰을 건네. 인형 대사를 대신 쓰지 마 — 넌 지켜보는 별콩이야. [END]·[SEND] 쓰지 마.`;
-const SIM_WRAP_HINT = ` 그리고 판이 꽤 무르익었어 — 이번 노트 끝에 "슬슬 정리해볼까?" 하고 정리(디브리핑)를 부드럽게 권해봐. 강요하지 말고, 더 하고 싶으면 계속해도 된다는 결로.`;
-const SIM_DEBRIEF_GUIDE = `\n\n## 이번 호출 — 디브리핑 (정리하기)\n인형을 내려놓고 유저 곁으로 돌아왔어. byeolkong_sim.md §디브리핑 3블록대로: (1) 통찰 2~3개(무대에서 오간 말 근거, 예측 금지) → (2) 💌 보낼 말 한 문장 → (3) 따뜻한 마무리. 보낼 말은 응답 맨 끝에 [SEND:실제 상대에게 보낼 한 문장] 마커를 한 줄 단독으로 꼭 붙여(화면엔 안 보이고 저장용). [END] 쓰지 마.`;
+const SIM_DEBRIEF_GUIDE = `\n\n## 이번 호출 — 디브리핑 (정리하기)\n인형을 내려놓고 유저 곁으로 돌아왔어. byeolkong_sim.md §디브리핑대로 — 본문은 (1) 통찰 2~3개(무대에서 오간 말 근거, 예측 금지) → (2) 따뜻한 마무리, 두 부분만. 그리고 실제 상대에게 보낼 한 문장은 응답 맨 끝에 [SEND:...] 마커로 한 줄 단독으로만 붙여(화면엔 별도 카드로 표시). ⚠️본문(통찰·마무리)에는 보낼 말을 쓰지 마 — 카드와 중복된다. [END] 쓰지 마.`;
 const SIM_CRISIS_GUIDE = `\n\n## ⚠️ 이번 호출 — 위기 신호, 인형 내려놓고 곁으로\n방금 유저 발화에 위기 신호가 있어. 인형 역할극·연습·디브리핑을 멈추고 공통 코어 §위기 그대로 — 판단·재촉 없이 수용하고 정확한 hotline 번호를 얹어 곁에 머물러. [SEND]·3블록 쓰지 말고, 먼저 작별하지 마.`;
 const SIM_SUGGEST_GUIDE = `\n\n## 이번 호출 — 답변 추천 (서로 다른 방향 3가지)\n유저가 이 무대에서 인형(그 사람)에게 **직접 건넬 말**을 고민하다 추천을 부른 순간이야. 지금까지 오간 대화·상황·프로필에 맞춰, 유저가 1인칭으로 보낼 만한 말 **3가지**를 제안하는데 — 어조만 다른 게 아니라 **접근 방향 자체가 서로 달라야 해**. 예를 들어 [마음을 직접 여는 쪽 / 가볍게 분위기부터 푸는 쪽 / 상대 마음을 먼저 물어보는 쪽 / 한 발 물러서 여지를 두는 쪽 / 솔직하게 상황을 인정하는 쪽] 중 **성격이 확실히 다른 셋**을 골라. 세 개가 사실상 같은 말의 말투 변주면 안 돼.\n각 제안마다 아래 두 줄을 한 세트로, 정확히 3세트 출력해:\n[SAY:유저가 그대로 보낼 수 있는 한두 문장]\n[WHY:이 방향을 왜 권하는지 — 어떤 상황·상대 성향에 맞는지 한 문장]\n- 마커 밖 머리말·번호·해설을 붙이지 마. 인형 대사나 별콩이 잡담을 쓰지 마 — 오직 3세트만. 단정·예측 표현 금지(코어 화법).`;
 
@@ -847,8 +844,7 @@ const SIM_SUGGEST_GUIDE = `\n\n## 이번 호출 — 답변 추천 (서로 다른
 export function buildSimByeolkongMessage(ctx: SimByeolkongContext): { staticPart: string; dynamicPart: string } {
   const staticPart = getSimByeolkongPersona();
   const guide =
-    ctx.mode === "note" ? SIM_NOTE_GUIDE + (ctx.suggestWrap ? SIM_WRAP_HINT : "")
-    : ctx.mode === "debrief" ? SIM_DEBRIEF_GUIDE
+    ctx.mode === "debrief" ? SIM_DEBRIEF_GUIDE
     : ctx.mode === "suggest" ? SIM_SUGGEST_GUIDE
     : SIM_CRISIS_GUIDE;
   const ctxLine = ctx.userContext?.trim() ? `\n[유저가 준 맥락: ${ctx.userContext.trim()}]` : "";

@@ -39,22 +39,12 @@ test("별콩이 시뮬 빌더 — 모드별 가이드 + 코어 계승 + 대화 �
   const s = getSituation("crush-confess")!;
   const base = { situation: s, partnerName: "지우", statusLabel: "썸 타는 중", userContext: null,
     convoBlock: "유저: 안녕\n인형: 어 왜" };
-  const note = buildSimByeolkongMessage({ ...base, mode: "note" });
   const debrief = buildSimByeolkongMessage({ ...base, mode: "debrief" });
+  const suggest = buildSimByeolkongMessage({ ...base, mode: "suggest" });
   const crisis = buildSimByeolkongMessage({ ...base, mode: "crisis" });
-  assert.ok(/별의 수호자/.test(note.staticPart), "별콩이 staticPart 는 코어 계승");
-  assert.ok(note.dynamicPart.includes("유저: 안녕"), "대화 블록 주입");
-  assert.ok(/노트/.test(note.dynamicPart), "note 모드 가이드");
+  assert.ok(/별의 수호자/.test(debrief.staticPart), "별콩이 staticPart 는 코어 계승");
+  assert.ok(debrief.dynamicPart.includes("유저: 안녕"), "대화 블록 주입");
   assert.ok(/디브리핑|보낼 말/.test(debrief.dynamicPart), "debrief 모드 가이드");
+  assert.ok(/추천|SAY/.test(suggest.dynamicPart), "suggest 모드 가이드");
   assert.ok(/위기/.test(crisis.dynamicPart), "crisis 모드 가이드");
-});
-
-test("소프트 수렴 — suggestWrap 시 note 가이드에 정리 유도 문구 추가", () => {
-  const s = getSituation("crush-confess")!;
-  const base = { situation: s, partnerName: "지우", statusLabel: "썸 타는 중", userContext: null,
-    convoBlock: "유저: 안녕\n인형: 어 왜" } as const;
-  const wrap = buildSimByeolkongMessage({ ...base, mode: "note", suggestWrap: true });
-  const noWrap = buildSimByeolkongMessage({ ...base, mode: "note" });
-  assert.ok(/슬슬 정리해볼까/.test(wrap.dynamicPart), "suggestWrap note 는 정리 유도 포함");
-  assert.ok(!/슬슬 정리해볼까/.test(noWrap.dynamicPart), "suggestWrap 없으면 미포함");
 });
