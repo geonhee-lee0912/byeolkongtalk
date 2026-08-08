@@ -10,7 +10,7 @@ import { splitThreadMessages, type ThreadMsg } from "@/lib/relationship/memory";
 import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
 import {
-  shouldAutoNote, shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
+  shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, type SimMeta,
 } from "@/lib/relationship/sim";
 
@@ -180,7 +180,6 @@ export async function POST(request: NextRequest) {
     "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no",
     "X-Sim-Turn": String(nextDollTurns),
   };
-  if (shouldAutoNote(nextDollTurns)) respHeaders["X-Sim-Autonote"] = "1";
   if (simForceDebrief({ dollTurns: nextDollTurns, hasSensitive: reading.has_sensitive })) respHeaders["X-Sim-Force-Debrief"] = "1";
 
   let dollText = "";

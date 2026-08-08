@@ -103,7 +103,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
         <textarea
           value={ctx}
           onChange={(e) => setCtx(e.target.value.slice(0, 500))}
-          placeholder={isCustom ? "상황을 적어줘 (예: 며칠째 답이 뜸해진 썸)" : "한 줄만 적어도 좋아 (건너뛰기 OK)"}
+          placeholder={isCustom ? "상황을 적어줘 (예: 며칠째 답이 뜸해진 썸)" : "자세하게 적을수록 정확한 시뮬레이션 상황을 만들 수 있어"}
           rows={4}
           className="w-full rounded-xl bg-cream-warm/10 border border-lilac/30 p-3 text-cream-warm placeholder:text-lilac-soft/40 resize-none focus:border-gold/50 outline-none"
         />

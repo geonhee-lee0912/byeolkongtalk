@@ -2,18 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  shouldAutoNote, shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
+  shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
-
-test("자동 노트 스로틀 — 매 턴 X, 3턴마다(2턴 이전엔 X)", () => {
-  assert.equal(shouldAutoNote(1), false);
-  assert.equal(shouldAutoNote(2), false);
-  assert.equal(shouldAutoNote(3), true);
-  assert.equal(shouldAutoNote(4), false);
-  assert.equal(shouldAutoNote(6), true);
-});
 
 test("소프트 수렴 유도 — 후반부(cap-3)부터 정리 권유", () => {
   assert.equal(shouldSuggestWrap(SIM_TURN_CAP - 4), false);

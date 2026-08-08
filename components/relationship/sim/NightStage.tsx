@@ -1,7 +1,7 @@
 "use client";
 // components/relationship/sim/NightStage.tsx — 밤 무대 시각 셸(FE5) + 3화자 대화 로직(FE6).
-// night 배경 + 금색 별 파티클 + 접히는 인형 + 프레임 고지 노트 + say(인형)/note(별콩이) SSE 소비 +
-// X-Sim-* 헤더(자동노트·강제 디브리핑·민감) + 409 턴캡 + crisis(SafetyBanner) + 하단 입력창(💭 도움/정리하기).
+// night 배경 + 금색 별 파티클 + 접히는 인형 + 프레임 고지 노트 + say(인형) SSE 소비 +
+// X-Sim-* 헤더(강제 디브리핑·민감) + 409 턴캡 + crisis(SafetyBanner) + 하단 입력창(전송·마무리).
 import { useEffect, useRef, useState } from "react";
 import DollPortrait from "./DollPortrait";
 import StageFrame from "./StageFrame";
@@ -37,9 +37,8 @@ export default function NightStage(props: NightStageProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const composingRef = useRef(false);
-  // say 스트림과 note 스트림이 같은 live 슬롯에 동시에 쓰면 화면이 뒤섞인다 — 자동노트가 매 3턴마다
-  // sendSay 종료 직후 이어 호출되므로(sending 은 이미 false) sending 만으로는 못 막는다.
-  // live!==null 도 함께 묶어 say/note 두 스트림을 항상 직렬화한다.
+  // 전송(say)·민감 복귀(note) 스트림이 같은 live 슬롯을 공유 — sending 뿐 아니라 live!==null 도
+  // 묶어 스트림 진행 중 입력·재전송을 막는다(두 스트림 직렬화).
   const busy = sending || live !== null;
 
   useEffect(() => {
@@ -86,7 +85,6 @@ export default function NightStage(props: NightStageProps) {
           severity: Number(res.headers.get("X-Sensitive-Severity") ?? "1"),
         });
       }
-      const autonote = res.headers.get("X-Sim-Autonote") === "1";
       const forceDeb = res.headers.get("X-Sim-Force-Debrief") === "1";
       const liveWho: "doll" | "note" = sensitive ? "note" : "doll"; // 민감 시 별콩이(crisis) 복귀
       const reader = res.body.getReader();
@@ -104,38 +102,10 @@ export default function NightStage(props: NightStageProps) {
       setStarted(true);
       setSending(false);
       if (forceDeb) setForceDebrief(true);
-      if (autonote && !sensitive) await fetchNote(); // 자동 노트(민감 턴엔 X)
     } catch {
       setLive(null);
       setSending(false);
       setError("연결이 끊겼어. 다시 시도해줘.");
-    }
-  }
-
-  async function fetchNote() {
-    if (live) return; // say/note 스트림 진행 중엔 중복 호출 방지(같은 live 슬롯 경합 차단)
-    setError(null);
-    try {
-      const res = await fetch("/api/relationship/sim/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ simReadingId: props.simReadingId, action: "note" }),
-      });
-      if (!res.ok || !res.body) return;
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let acc = "";
-      setLive({ who: "note", text: "" });
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        acc += dec.decode(value, { stream: true });
-        setLive({ who: "note", text: hideTrailingSendMarker(acc) });
-      }
-      setMessages((m) => [...m, { id: Date.now() + 2, who: "note", text: acc }]);
-      setLive(null);
-    } catch {
-      setLive(null);
     }
   }
 
@@ -194,59 +164,61 @@ export default function NightStage(props: NightStageProps) {
           ))}
         {error && <p className="self-center text-[13px] text-rose-300">{error}</p>}
       </div>
-      <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-4 py-2.5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => void fetchNote()}
-          disabled={busy}
-          className="shrink-0 text-lilac-soft text-sm px-1 disabled:opacity-40"
-        >
-          💭 도움
-        </button>
-        <textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            autoResize();
-          }}
-          onCompositionStart={() => {
-            composingRef.current = true;
-          }}
-          onCompositionEnd={() => {
-            composingRef.current = false;
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !composingRef.current) {
-              e.preventDefault();
-              void sendSay(input);
-            }
-          }}
-          rows={1}
-          maxLength={8000}
-          placeholder={busy ? "별콩이가 답하는 중…" : "편하게 말 걸어봐"}
-          disabled={busy}
-          className="flex-1 px-3.5 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-[14px] leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-          style={{ minHeight: "44px", maxHeight: "120px" }}
-        />
-        <button
-          type="button"
-          onClick={() => void sendSay(input)}
-          disabled={busy || !input.trim()}
-          className="shrink-0 w-9 h-9 rounded-full bg-gold text-night-deep flex items-center justify-center text-lg font-bold disabled:opacity-40"
-          aria-label="보내기"
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          onClick={props.onDebrief}
-          className={`shrink-0 text-sm px-1 py-1.5 ${
-            forceDebrief ? "text-gold font-bold animate-pulse-soft" : "text-gold-soft"
-          }`}
-        >
-          정리하기
-        </button>
+      <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-4 pt-2.5 pb-3">
+        {/* 입력창 + 내부 전송 버튼 */}
+        <div className="relative">
+          <textarea
+            ref={taRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              autoResize();
+            }}
+            onCompositionStart={() => {
+              composingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              composingRef.current = false;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !composingRef.current) {
+                e.preventDefault();
+                void sendSay(input);
+              }
+            }}
+            rows={1}
+            maxLength={8000}
+            placeholder={busy ? "별콩이가 답하는 중…" : "편하게 말 걸어봐"}
+            disabled={busy}
+            className="w-full pl-3.5 pr-12 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-[14px] leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            style={{ minHeight: "44px", maxHeight: "120px" }}
+          />
+          <button
+            type="button"
+            onClick={() => void sendSay(input)}
+            disabled={busy || !input.trim()}
+            className="absolute right-2 bottom-2 w-8 h-8 rounded-full bg-gold text-night-deep flex items-center justify-center disabled:opacity-40"
+            aria-label="보내기"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
+              <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a1 1 0 00-1.4.92V9.5c0 .5.37.93.87.99L15 12 2.87 13.51a1 1 0 00-.87.99v4.98a1 1 0 001.4.92z" />
+            </svg>
+          </button>
+        </div>
+        {/* 하단 액션 행 — 마무리(답변 생성 유료 기능은 후속) */}
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={props.onDebrief}
+            className={`rounded-lg px-3.5 py-1.5 text-[13px] font-bold border transition-colors ${
+              forceDebrief
+                ? "bg-gold text-night-deep border-gold animate-pulse-soft"
+                : "text-gold-soft border-gold/40 hover:bg-gold/10"
+            }`}
+          >
+            마무리
+          </button>
+        </div>
       </div>
       </div>
     </StageFrame>

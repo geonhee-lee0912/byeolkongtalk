@@ -10,12 +10,6 @@ export interface SimMeta {
   sendMessage?: string; // 💌 보낼 말
 }
 
-/** 자동 노트 스로틀 — 매 턴 X, 인형 3턴마다 1회(원가·소음 관리, 스펙 §5). 2턴 이전엔 안 냄.
- *  온디맨드(💭)는 이 함수를 안 타고 무조건 허용. 트리거 휴리스틱은 QA 튜닝 대상(§5·§11). */
-export function shouldAutoNote(dollTurns: number): boolean {
-  return dollTurns >= 3 && dollTurns % 3 === 0;
-}
-
 /** 소프트 수렴 — 판이 후반부(SIM_TURN_CAP-3 이상)면 별콩이 노트가 정리(디브리핑)를 부드럽게 권하도록 신호.
  *  하드 게이트(simForceDebrief)와 별개: 이건 강요가 아니라 유도. 유저가 원하면 계속(스펙 §2·오너결정 2026-08-07). */
 export function shouldSuggestWrap(dollTurns: number): boolean {

@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from "react";
 
-// 시뮬 공통 무대 프레임 — 밤 배경 + 커튼(상단 밸런스 + 양옆 드레이프) + 금색 별.
+// 시뮬 공통 무대 프레임 — 밤 배경 + 금색 별.
 // stage=true(밤 무대·디브리핑): 별 적게 + 달 + 무대 조명(상단 스포트라이트 → 하단 스테이지 플로어·착지 웅덩이).
 // stage=false(분류별 목록 = 상황 선택): 조명·달 없이 별만 가득한 밤하늘.
 const STARS_STAGE = [
@@ -101,34 +101,6 @@ export default function StageFrame({
           />
         </>
       )}
-
-      {/* 상단 커튼 밸런스(주름 봉) */}
-      <div
-        className="pointer-events-none absolute top-0 inset-x-0 h-5 z-20"
-        aria-hidden
-        style={{
-          background: "repeating-linear-gradient(90deg,#3a2a63 0px,#241a45 7px,#3a2a63 15px)",
-          boxShadow: "inset 0 -6px 10px rgba(0,0,0,0.45)",
-          borderBottom: "1px solid rgba(232,194,106,0.15)",
-        }}
-      />
-      {/* 양옆 커튼 드레이프(은은) */}
-      <div
-        className="pointer-events-none absolute top-5 left-0 bottom-0 w-4 z-20 opacity-80"
-        aria-hidden
-        style={{
-          background: "repeating-linear-gradient(90deg,#2f2153 0px,#1c1436 8px,#2f2153 16px)",
-          boxShadow: "inset -8px 0 12px rgba(0,0,0,0.4)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute top-5 right-0 bottom-0 w-4 z-20 opacity-80"
-        aria-hidden
-        style={{
-          background: "repeating-linear-gradient(90deg,#1c1436 0px,#2f2153 8px,#1c1436 16px)",
-          boxShadow: "inset 8px 0 12px rgba(0,0,0,0.4)",
-        }}
-      />
 
       {/* 콘텐츠 */}
       <div className="relative z-10">{children}</div>
