@@ -19,3 +19,6 @@ test("운세(emotion_tag=fortune_*) → fortune", () => {
 test("사주 상담(fortune 태그 아님) → fortune", () => {
   assert.equal(readingCategory({ ...base, consultationType: "saju" }), "fortune");
 });
+test("타로맛 운세(consultationType=tarot + fortune emotion_tag) → fortune (tarot 아님)", () => {
+  assert.equal(readingCategory({ consultationType: "tarot", emotionTag: "fortune:tarot_love" }), "fortune");
+});
