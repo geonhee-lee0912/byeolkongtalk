@@ -41,7 +41,7 @@ export default function NightStage(props: NightStageProps) {
   const [balance, setBalance] = useState(props.balance);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{ say: string; why: string }[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
@@ -220,30 +220,15 @@ export default function NightStage(props: NightStageProps) {
           {error && <p className="self-center text-[13px] text-rose-300">{error}</p>}
         </div>
 
-        {/* 하단 — 답변 추천 결과 칩 + 한 줄(답변 추천·입력창+전송·마무리) */}
+        {/* 하단 한 줄 — 모두 h-11 로 높이 통일, items-stretch 로 세로 정렬(입력창 여러 줄이면 함께 늘어남) */}
         <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-3 pt-2.5 pb-3">
-          {suggestions.length > 0 && (
-            <div className="mb-2 flex flex-col gap-1.5">
-              <p className="text-[11px] text-gold-soft/80 px-1">골라서 넣고 다듬어봐 ✨</p>
-              {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => useSuggestion(s)}
-                  className="text-left rounded-xl bg-gold/10 border border-gold/30 px-3 py-2 text-[13px] leading-relaxed text-cream-warm hover:bg-gold/20 active:scale-[0.99] transition"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex items-end gap-1.5">
+          <div className="flex items-stretch gap-1.5">
             {/* 답변 추천(유료) */}
             <button
               type="button"
               onClick={() => setSuggestOpen(true)}
               disabled={busy || suggesting}
-              className="shrink-0 flex flex-col items-center justify-center gap-0.5 w-12 h-11 rounded-xl text-gold-soft border border-gold/30 disabled:opacity-40"
+              className="shrink-0 self-end flex flex-col items-center justify-center gap-0.5 w-12 h-11 rounded-xl text-gold-soft border border-gold/30 disabled:opacity-40"
               aria-label="답변 추천"
             >
               <span className="text-base leading-none">{suggesting ? "⏳" : "💡"}</span>
@@ -274,14 +259,14 @@ export default function NightStage(props: NightStageProps) {
                 maxLength={8000}
                 placeholder={busy ? "별콩이가 답하는 중…" : "편하게 말 걸어봐"}
                 disabled={busy}
-                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-[14px] leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="block w-full pl-3.5 pr-11 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-[14px] leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
                 type="button"
                 onClick={() => void sendSay(input)}
                 disabled={busy || !input.trim()}
-                className="absolute right-2.5 bottom-3 text-gold disabled:opacity-30"
+                className="absolute right-1.5 bottom-0 flex items-center justify-center w-9 h-11 text-gold disabled:opacity-30"
                 aria-label="보내기"
               >
                 <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
@@ -293,7 +278,7 @@ export default function NightStage(props: NightStageProps) {
             <button
               type="button"
               onClick={props.onDebrief}
-              className={`shrink-0 h-11 rounded-xl px-3 text-[13px] font-bold border transition-colors ${
+              className={`shrink-0 self-end inline-flex items-center h-11 rounded-xl px-3 text-[13px] font-bold border transition-colors ${
                 forceDebrief
                   ? "bg-gold text-night-deep border-gold animate-pulse-soft"
                   : "text-gold-soft border-gold/40 hover:bg-gold/10"
@@ -304,6 +289,43 @@ export default function NightStage(props: NightStageProps) {
           </div>
         </div>
       </div>
+
+      {suggestions.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-night-deep/60"
+          onClick={() => setSuggestions([])}
+        >
+          <div
+            className="w-full max-w-md bg-night rounded-t-3xl border-t border-lilac-mid/30 p-5 pb-[max(env(safe-area-inset-bottom),20px)] animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-cream-warm font-bold text-[15px]">이렇게 말해보는 건 어때?</h3>
+              <button type="button" onClick={() => setSuggestions([])} className="text-lilac-soft/60 text-[13px]">
+                닫기
+              </button>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => useSuggestion(s.say)}
+                  className="text-left rounded-2xl bg-gold/10 border border-gold/30 p-3.5 hover:bg-gold/15 active:scale-[0.99] transition"
+                >
+                  <p className="text-cream-warm text-[14px] leading-relaxed">{s.say}</p>
+                  {s.why && (
+                    <p className="text-gold-soft/75 text-[12px] mt-1.5 leading-relaxed">💡 {s.why}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-lilac-soft/50 text-[11px] mt-3">
+              탭하면 입력창에 담겨 — 자유롭게 다듬어 보내
+            </p>
+          </div>
+        </div>
+      )}
 
       {suggestOpen && (
         <StarConfirmModal

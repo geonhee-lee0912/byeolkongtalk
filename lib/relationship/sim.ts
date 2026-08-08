@@ -35,14 +35,15 @@ export function stripSimMarkers(text: string): string {
   return text.replace(/\[SEND:[^\]]*\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** 답변 추천 응답에서 [SAY:유저가 할 말] 마커를 최대 3개 추출(공백 정리). 없으면 빈 배열. */
-export function extractSuggestions(raw: string): string[] {
-  const out: string[] = [];
-  for (const m of raw.matchAll(/\[SAY:([^\]]+)\]/g)) {
-    const s = m[1].trim();
-    if (s) out.push(s);
+/** 답변 추천 응답에서 [SAY:제안]/[WHY:이유] 쌍을 순서대로 최대 3개 추출. 이유 마커 없으면 "". 없으면 빈 배열. */
+export function extractSuggestions(raw: string): { say: string; why: string }[] {
+  const says = [...raw.matchAll(/\[SAY:([^\]]+)\]/g)].map((m) => m[1].trim());
+  const whys = [...raw.matchAll(/\[WHY:([^\]]+)\]/g)].map((m) => m[1].trim());
+  const out: { say: string; why: string }[] = [];
+  for (let i = 0; i < says.length && out.length < 3; i++) {
+    if (says[i]) out.push({ say: says[i], why: whys[i] ?? "" });
   }
-  return out.slice(0, 3);
+  return out;
 }
 
 /** 인형↔유저 대화를 별콩이 노트/디브리핑 호출의 컨텍스트 텍스트로. (별콩이는 제3자라 대화를
