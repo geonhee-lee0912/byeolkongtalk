@@ -35,6 +35,16 @@ export function stripSimMarkers(text: string): string {
   return text.replace(/\[SEND:[^\]]*\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+/** 답변 추천 응답에서 [SAY:유저가 할 말] 마커를 최대 3개 추출(공백 정리). 없으면 빈 배열. */
+export function extractSuggestions(raw: string): string[] {
+  const out: string[] = [];
+  for (const m of raw.matchAll(/\[SAY:([^\]]+)\]/g)) {
+    const s = m[1].trim();
+    if (s) out.push(s);
+  }
+  return out.slice(0, 3);
+}
+
 /** 인형↔유저 대화를 별콩이 노트/디브리핑 호출의 컨텍스트 텍스트로. (별콩이는 제3자라 대화를
  *  messages 로 못 넘김 — verdict/compat 처럼 텍스트 블록으로 주입.) */
 export function buildSimContextBlock(convo: { role: "user" | "assistant"; content: string }[]): string {

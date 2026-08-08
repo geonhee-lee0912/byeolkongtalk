@@ -169,6 +169,7 @@ function SimPageInner() {
             status={rel.status as RelationshipStatus}
             label={rel.label}
             frame={session.frame}
+            balance={balance}
             onDebrief={() => setPhase("debrief")}
           />
         )}

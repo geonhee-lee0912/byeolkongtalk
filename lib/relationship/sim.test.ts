@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
-  buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote,
+  buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote, extractSuggestions,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
 
@@ -52,4 +52,15 @@ test("personality append — 기존값 있으면 개행+불릿으로 누적", ()
 
 test("personality append — 노트 앞뒤 공백 정리", () => {
   assert.equal(appendPersonalityNote("A", "  낯가림  "), "A\n· 낯가림");
+});
+
+test("답변 추천 [SAY:] 마커 추출 — 최대 3개, 공백 정리", () => {
+  const raw = "여기 추천이야\n[SAY:요즘 어떻게 지내?]\n[SAY: 문득 생각나서 연락했어 ]\n[SAY:잘 지냈어?]";
+  assert.deepEqual(extractSuggestions(raw), ["요즘 어떻게 지내?", "문득 생각나서 연락했어", "잘 지냈어?"]);
+});
+
+test("답변 추천 추출 — 3개 초과는 앞 3개만, 마커 없으면 빈 배열", () => {
+  assert.deepEqual(extractSuggestions("[SAY:1][SAY:2][SAY:3][SAY:4]"), ["1", "2", "3"]);
+  assert.deepEqual(extractSuggestions("마커 없는 텍스트"), []);
+  assert.deepEqual(extractSuggestions("[SAY:   ]"), []);
 });

@@ -826,7 +826,7 @@ ${contextBlock}
   return { staticPart, dynamicPart };
 }
 
-export type SimByeolkongMode = "note" | "debrief" | "crisis";
+export type SimByeolkongMode = "note" | "debrief" | "crisis" | "suggest";
 export interface SimByeolkongContext {
   mode: SimByeolkongMode;
   situation: SimSituation;
@@ -841,6 +841,7 @@ const SIM_NOTE_GUIDE = `\n\n## 이번 호출 — 관찰 노트 (💭)\n무대를
 const SIM_WRAP_HINT = ` 그리고 판이 꽤 무르익었어 — 이번 노트 끝에 "슬슬 정리해볼까?" 하고 정리(디브리핑)를 부드럽게 권해봐. 강요하지 말고, 더 하고 싶으면 계속해도 된다는 결로.`;
 const SIM_DEBRIEF_GUIDE = `\n\n## 이번 호출 — 디브리핑 (정리하기)\n인형을 내려놓고 유저 곁으로 돌아왔어. byeolkong_sim.md §디브리핑 3블록대로: (1) 통찰 2~3개(무대에서 오간 말 근거, 예측 금지) → (2) 💌 보낼 말 한 문장 → (3) 따뜻한 마무리. 보낼 말은 응답 맨 끝에 [SEND:실제 상대에게 보낼 한 문장] 마커를 한 줄 단독으로 꼭 붙여(화면엔 안 보이고 저장용). [END] 쓰지 마.`;
 const SIM_CRISIS_GUIDE = `\n\n## ⚠️ 이번 호출 — 위기 신호, 인형 내려놓고 곁으로\n방금 유저 발화에 위기 신호가 있어. 인형 역할극·연습·디브리핑을 멈추고 공통 코어 §위기 그대로 — 판단·재촉 없이 수용하고 정확한 hotline 번호를 얹어 곁에 머물러. [SEND]·3블록 쓰지 말고, 먼저 작별하지 마.`;
+const SIM_SUGGEST_GUIDE = `\n\n## 이번 호출 — 답변 추천 (유저가 할 말 3가지)\n유저가 이 무대에서 인형(그 사람)에게 **직접 건넬 말**을 고민하다 추천을 부른 순간이야. 지금까지 오간 대화와 상황·프로필에 맞춰, 유저가 1인칭으로 보낼 만한 말 **3가지**를 서로 다른 톤·접근으로 제안해(예: 솔직하게 / 가볍게 / 한 발 물러서서). 각 제안은 유저가 그대로 보내도 자연스러운 한두 문장.\n- 반드시 각 제안을 [SAY:여기에 유저가 할 말] 형식으로 **한 줄에 하나씩, 정확히 3개** 출력해. 마커 밖 머리말·번호·해설을 붙이지 마.\n- 인형 대사나 별콩이 해설을 쓰지 마 — 오직 '유저가 할 말' 3개만. 단정·예측 표현 금지(코어 화법).`;
 
 /** 별콩이 노트/디브리핑/위기 호출용 시스템 메시지 — 코어+byeolkong_sim.md + 상황·대화 블록 + 모드 가이드. */
 export function buildSimByeolkongMessage(ctx: SimByeolkongContext): { staticPart: string; dynamicPart: string } {
@@ -848,6 +849,7 @@ export function buildSimByeolkongMessage(ctx: SimByeolkongContext): { staticPart
   const guide =
     ctx.mode === "note" ? SIM_NOTE_GUIDE + (ctx.suggestWrap ? SIM_WRAP_HINT : "")
     : ctx.mode === "debrief" ? SIM_DEBRIEF_GUIDE
+    : ctx.mode === "suggest" ? SIM_SUGGEST_GUIDE
     : SIM_CRISIS_GUIDE;
   const ctxLine = ctx.userContext?.trim() ? `\n[유저가 준 맥락: ${ctx.userContext.trim()}]` : "";
   const dynamicPart = `---

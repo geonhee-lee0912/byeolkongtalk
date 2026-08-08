@@ -7,12 +7,14 @@ import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit"
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { resolveSensitive, recordSensitiveAlert } from "@/lib/sensitive";
 import { splitThreadMessages, type ThreadMsg } from "@/lib/relationship/memory";
-import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
+import { spendStars, chargeStars } from "@/lib/stars";
+import { RELATIONSHIP_STATUS_LABELS, SIM_SUGGEST_COST, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
 import {
   shouldSuggestWrap, simForceDebrief, extractSendLine, stripSimMarkers,
-  buildSimContextBlock, formatPartnerForDoll, type SimMeta,
+  buildSimContextBlock, formatPartnerForDoll, extractSuggestions, type SimMeta,
 } from "@/lib/relationship/sim";
+import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +24,9 @@ const MAX_MESSAGE_LEN = 8000;
 const DOLL_MAX_TOKENS = 700;   // 인형 대사는 짧은 채팅 — 초기값(QA 튜닝)
 const NOTE_MAX_TOKENS = 800;   // 별콩이 노트
 const DEBRIEF_MAX_TOKENS = 1400;
+const SUGGEST_MAX_TOKENS = 500; // 답변 추천 3개(짧은 대사)
 
-type Action = "say" | "note" | "debrief";
+type Action = "say" | "note" | "debrief" | "suggest";
 interface Body { simReadingId: string; message?: string; action?: Action }
 
 /** 판 로드 + 소유권 + 상황/관계/프로필 컨텍스트를 한 번에 준비. */
@@ -99,6 +102,39 @@ export async function POST(request: NextRequest) {
     });
     return streamAndSave(supabase, encoder, system, [{ role: "user", content: "지금 무대를 보고 노트를 남겨줘." }],
       NOTE_MAX_TOKENS, reading.id, "sim_note", logCtx, request, userId);
+  }
+
+  // ── suggest (답변 추천): 별 소모 → 유저가 할 말 3개 생성 → 파싱 → JSON. 실패 시 환불(sim/route 패턴). ──
+  if (action === "suggest") {
+    const spend = await spendStars(userId, SIM_SUGGEST_COST, { source: "relationship_sim_suggest" });
+    if (!spend.success)
+      return NextResponse.json(
+        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", balance: spend.balance, required: SIM_SUGGEST_COST },
+        { status: 402 }
+      );
+    const refundSuggest = async () => {
+      await chargeStars(userId, SIM_SUGGEST_COST, `refund_${randomUUID()}`, "relationship_sim_suggest_refund").catch(() => null);
+    };
+    const convo = await loadDollConversation(supabase, reading.id);
+    const system = buildSimByeolkongMessage({
+      mode: "suggest", situation, partnerName: rel.label, statusLabel,
+      userContext: meta.userContext, convoBlock: buildSimContextBlock(convo),
+    });
+    let raw: string;
+    try {
+      raw = await generateOnce(system, [{ role: "user", content: "내가 지금 걔한테 할 만한 말 3가지 추천해줘." }], SUGGEST_MAX_TOKENS, logCtx);
+    } catch (err) {
+      await refundSuggest();
+      await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "suggest_generate" } }));
+      return NextResponse.json({ error: "suggest_failed", refunded: true }, { status: 500 });
+    }
+    const suggestions = extractSuggestions(raw);
+    if (suggestions.length === 0) {
+      await refundSuggest();
+      await logError(new Error("suggest_empty"), ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "suggest_parse" } }));
+      return NextResponse.json({ error: "suggest_empty", refunded: true }, { status: 500 });
+    }
+    return NextResponse.json({ suggestions, balance: spend.balance, success: true });
   }
 
   // ── debrief (정리하기 / 턴캡 강제): 별콩이 복귀 → 3블록 → 보낼 말 추출 → 메타 저장. 멱등. ──
