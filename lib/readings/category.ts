@@ -1,0 +1,15 @@
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
+
+export type ReadingCategory = "tarot" | "fortune" | "sim" | "relationship";
+
+/** 보관함 종목 분류. 타로/시뮬은 consultationType, 운세는 emotion_tag(fortuneTypeFromTag), 나머지 사주는 fortune 로. */
+export function readingCategory(r: {
+  consultationType?: string | null;
+  emotionTag?: string | null;
+}): ReadingCategory {
+  if (r.consultationType === "tarot") return "tarot";
+  if (r.consultationType === "relationship_sim") return "sim";
+  if (r.consultationType === "relationship") return "relationship";
+  if (fortuneTypeFromTag(r.emotionTag ?? null)) return "fortune";
+  return "fortune"; // 사주 상담·리포트
+}
