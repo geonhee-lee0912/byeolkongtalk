@@ -227,6 +227,219 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
   );
 }
 
+// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/후속 상담/프로필 칩/민감 표시(현행 유지).
+function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
+  const isTarot = r.consultationType === "tarot";
+  const canResume = r.ended === false && !r.resultReady;
+  const href = canResume
+    ? isTarot
+      ? `/tarot/reading?id=${r.id}&from=history`
+      : `/saju/reading?id=${r.id}&from=history`
+    : isTarot
+      ? `/tarot/result?id=${r.id}&from=history`
+      : `/saju/result?id=${r.id}&from=history`;
+  const subParts = [relativeDate(r.createdAt)];
+  if (isTarot) {
+    const t = tarotSubtext(r);
+    if (t) subParts.push(t);
+  } else {
+    const s = sajuSubtext(r);
+    if (s) subParts.push(s);
+  }
+  const subtitle = subParts.join(" · ");
+  const chip = profileChip(r);
+  const preview = r.preview?.trim();
+  return (
+    <div key={r.id} className="relative">
+      <Link
+        href={href}
+        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
+      >
+        {isTarot ? (
+          <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
+            <Image
+              src="/icons/tarot.png"
+              alt=""
+              width={40}
+              height={40}
+              className="object-contain"
+            />
+          </div>
+        ) : (
+          sajuAvatar(r)
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+              {r.emotionTag ?? "고민 상담"}
+            </span>
+            {r.hasSensitive && (
+              <span
+                className="shrink-0 text-[11px] text-rose-400"
+                role="img"
+                aria-label="민감 시그널이 감지된 대화"
+              >
+                🤍
+              </span>
+            )}
+            {chip && (
+              <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+                {chip}
+              </span>
+            )}
+            {canResume && (
+              <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
+                이어하기
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+            {subtitle}
+          </p>
+          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+            {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
+          </p>
+        </div>
+      </Link>
+      {!canResume && !r.hasSensitive && (
+        <button
+          onClick={() => onContinue(r.id)}
+          className="absolute top-2.5 right-2.5 text-[10px] font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
+        >
+          후속 상담
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 운세 리포트 카드(생성 중 폴링 포함) — 현행 유지.
+function renderReportCard(r: ReadingItem) {
+  if (r.generating) {
+    const ft = fortuneTypeFromTag(r.emotionTag);
+    const genLabel = ft ? FORTUNE_CONFIG[ft].label : r.question;
+    return (
+      <div
+        key={r.id}
+        className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+      >
+        <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+          {fortuneIcon(r.emotionTag, 24)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+            {genLabel}
+          </div>
+          <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
+            별콩이가 리포트를 만들고 있어…
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Link
+      key={r.id}
+      href={`/fortune/result?id=${r.id}&from=history`}
+      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
+    >
+      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
+        {fortuneIcon(r.emotionTag, 24)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+          {r.question}
+        </div>
+        <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+          <span>{formatDate(r.createdAt)}</span>
+          <span>·</span>
+          <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
+        </div>
+        {r.preview?.trim() && (
+          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+            {r.preview.trim()}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지. 둘 다 우리 사이 파일 허브로 보낸다.
+// ⚠️ /relationship/sim 은 기존 미완료 판을 재개하지 않고 매번 새 판을 만들며 SIM_COST 를 재차감한다
+// (재개 인프라 없음) — 그래서 진행중 판도 "이어하기"를 약속하지 않고 안전하게 허브로만 보낸다
+// (별 오차감·고아 판 생성 방지, 2026-08-09 안전화).
+function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
+  const done = r.sajuData?.phase === "debriefed";
+  const href = r.relationshipId ? `/relationship?rel=${r.relationshipId}` : "/relationship";
+  const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
+  const subParts = [relativeDate(r.createdAt)];
+  if (relLabel) subParts.push(relLabel);
+  subParts.push(r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`);
+  return (
+    <Link
+      key={r.id}
+      href={href}
+      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
+    >
+      {simAvatar(r)}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+            {r.question}
+          </span>
+          <span
+            className={[
+              "shrink-0 text-[10px] font-bold rounded-full px-1.5 py-0.5",
+              done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
+            ].join(" ")}
+          >
+            {done ? "완료" : "진행 중"}
+          </span>
+        </div>
+        <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+          {subParts.join(" · ")}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+// 우리 사이 카드 — 관계별 1항목(최근 방문 순은 /api/relationship 서버 정렬), 탭 → 파일 허브.
+function renderRelationshipCard(rel: RelationshipListItem) {
+  const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
+  const partnerName = rel.partner?.displayName;
+  const subParts = [statusLabel];
+  if (rel.lastVisitedAt) subParts.push(relativeDate(rel.lastVisitedAt));
+  return (
+    <Link
+      key={rel.id}
+      href={`/relationship?rel=${rel.id}`}
+      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
+    >
+      <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+        💬
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+            {rel.label}
+          </span>
+          {partnerName && (
+            <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+              {partnerName}
+            </span>
+          )}
+        </div>
+        <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+          {subParts.join(" · ")}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export default function ReadingsPage() {
   return (
     <Suspense fallback={null}>
@@ -338,219 +551,6 @@ function ReadingsPageInner() {
   };
   const activeCount = counts[tab];
 
-  // 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/후속 상담/프로필 칩/민감 표시(현행 유지).
-  function renderConsultCard(r: ReadingItem) {
-    const isTarot = r.consultationType === "tarot";
-    const canResume = r.ended === false && !r.resultReady;
-    const href = canResume
-      ? isTarot
-        ? `/tarot/reading?id=${r.id}&from=history`
-        : `/saju/reading?id=${r.id}&from=history`
-      : isTarot
-        ? `/tarot/result?id=${r.id}&from=history`
-        : `/saju/result?id=${r.id}&from=history`;
-    const subParts = [relativeDate(r.createdAt)];
-    if (isTarot) {
-      const t = tarotSubtext(r);
-      if (t) subParts.push(t);
-    } else {
-      const s = sajuSubtext(r);
-      if (s) subParts.push(s);
-    }
-    const subtitle = subParts.join(" · ");
-    const chip = profileChip(r);
-    const preview = r.preview?.trim();
-    return (
-      <div key={r.id} className="relative">
-        <Link
-          href={href}
-          className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-        >
-          {isTarot ? (
-            <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
-              <Image
-                src="/icons/tarot.png"
-                alt=""
-                width={40}
-                height={40}
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            sajuAvatar(r)
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
-                {r.emotionTag ?? "고민 상담"}
-              </span>
-              {r.hasSensitive && (
-                <span
-                  className="shrink-0 text-[11px] text-rose-400"
-                  role="img"
-                  aria-label="민감 시그널이 감지된 대화"
-                >
-                  🤍
-                </span>
-              )}
-              {chip && (
-                <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
-                  {chip}
-                </span>
-              )}
-              {canResume && (
-                <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
-                  이어하기
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
-              {subtitle}
-            </p>
-            <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-              {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
-            </p>
-          </div>
-        </Link>
-        {!canResume && !r.hasSensitive && (
-          <button
-            onClick={() => setContinueId(r.id)}
-            className="absolute top-2.5 right-2.5 text-[10px] font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
-          >
-            후속 상담
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // 운세 리포트 카드(생성 중 폴링 포함) — 현행 유지.
-  function renderReportCard(r: ReadingItem) {
-    if (r.generating) {
-      const ft = fortuneTypeFromTag(r.emotionTag);
-      const genLabel = ft ? FORTUNE_CONFIG[ft].label : r.question;
-      return (
-        <div
-          key={r.id}
-          className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
-        >
-          <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
-            {fortuneIcon(r.emotionTag, 24)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
-              {genLabel}
-            </div>
-            <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
-              별콩이가 리포트를 만들고 있어…
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return (
-      <Link
-        key={r.id}
-        href={`/fortune/result?id=${r.id}&from=history`}
-        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
-      >
-        <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
-          {fortuneIcon(r.emotionTag, 24)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
-            {r.question}
-          </div>
-          <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
-            <span>{formatDate(r.createdAt)}</span>
-            <span>·</span>
-            <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
-          </div>
-          {r.preview?.trim() && (
-            <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-              {r.preview.trim()}
-            </p>
-          )}
-        </div>
-      </Link>
-    );
-  }
-
-  // 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지. 둘 다 우리 사이 파일 허브로 보낸다.
-  // ⚠️ /relationship/sim 은 기존 미완료 판을 재개하지 않고 매번 새 판을 만들며 SIM_COST 를 재차감한다
-  // (재개 인프라 없음) — 그래서 진행중 판도 "이어하기"를 약속하지 않고 안전하게 허브로만 보낸다
-  // (별 오차감·고아 판 생성 방지, 2026-08-09 안전화).
-  function renderSimCard(r: ReadingItem) {
-    const done = r.sajuData?.phase === "debriefed";
-    const href = r.relationshipId ? `/relationship?rel=${r.relationshipId}` : "/relationship";
-    const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
-    const subParts = [relativeDate(r.createdAt)];
-    if (relLabel) subParts.push(relLabel);
-    subParts.push(r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`);
-    return (
-      <Link
-        key={r.id}
-        href={href}
-        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-      >
-        {simAvatar(r)}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
-              {r.question}
-            </span>
-            <span
-              className={[
-                "shrink-0 text-[10px] font-bold rounded-full px-1.5 py-0.5",
-                done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
-              ].join(" ")}
-            >
-              {done ? "완료" : "진행 중"}
-            </span>
-          </div>
-          <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
-            {subParts.join(" · ")}
-          </p>
-        </div>
-      </Link>
-    );
-  }
-
-  // 우리 사이 카드 — 관계별 1항목(최근 방문 순은 /api/relationship 서버 정렬), 탭 → 파일 허브.
-  function renderRelationshipCard(rel: RelationshipListItem) {
-    const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
-    const partnerName = rel.partner?.displayName;
-    const subParts = [statusLabel];
-    if (rel.lastVisitedAt) subParts.push(relativeDate(rel.lastVisitedAt));
-    return (
-      <Link
-        key={rel.id}
-        href={`/relationship?rel=${rel.id}`}
-        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-      >
-        <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
-          💬
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
-              {rel.label}
-            </span>
-            {partnerName && (
-              <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
-                {partnerName}
-              </span>
-            )}
-          </div>
-          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-            {subParts.join(" · ")}
-          </p>
-        </div>
-      </Link>
-    );
-  }
-
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-4">
@@ -606,15 +606,21 @@ function ReadingsPageInner() {
         {activeCount === 0 ? (
           <EmptyState tab={tab} />
         ) : tab === "tarot" ? (
-          <div className="flex flex-col gap-2">{tarot.map(renderConsultCard)}</div>
+          <div className="flex flex-col gap-2">
+            {tarot.map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
+          </div>
         ) : tab === "fortune" ? (
           <div className="flex flex-col gap-2">
             {fortune.map((r) =>
-              fortuneTypeFromTag(r.emotionTag) ? renderReportCard(r) : renderConsultCard(r)
+              fortuneTypeFromTag(r.emotionTag)
+                ? renderReportCard(r)
+                : renderConsultCard(r, (id) => setContinueId(id))
             )}
           </div>
         ) : tab === "sim" ? (
-          <div className="flex flex-col gap-2">{sim.map(renderSimCard)}</div>
+          <div className="flex flex-col gap-2">
+            {sim.map((r) => renderSimCard(r, relLabelById))}
+          </div>
         ) : (
           <div className="flex flex-col gap-2">{relationships.map(renderRelationshipCard)}</div>
         )}
