@@ -10,6 +10,7 @@ import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
@@ -244,6 +245,8 @@ function ResultPageInner() {
 
       {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
       <ResultUpsell variant="counsel" showBonus={false} />
+
+      <SurveyResultCard />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}

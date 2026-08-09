@@ -20,7 +20,7 @@ const CARDS: Card[] = [
   { id: "charge", img: "/carousel/charge.webp", title: "첫 충전엔 20% 더", desc: "지금 충전하면 별을 더 얹어줘", cta: "충전하기", href: "/shop" },
   { id: "gonghap", img: "/carousel/gonghap.webp", title: "우리의 사주 궁합은?", desc: "두 사람 생년월일로 보는 인연", cta: "궁합 보기", href: "/fortune/compat" },
   { id: "sim", img: "/carousel/sim.webp", title: "연애 시뮬레이션!", desc: "그 사람과의 여러 상황을 돌려봐", cta: "시작하기", href: "/relationship" },
-  { id: "survey", img: "/carousel/survey.webp", title: "별콩톡 설문조사", desc: "내 이야기를 들려주면 별콩별을 줄게", cta: "참여하기", href: "#" },
+  { id: "survey", img: "/carousel/survey.webp", title: "별콩톡 설문조사", desc: "내 이야기를 들려주면 별콩별을 줄게", cta: "참여하기", href: "/survey" },
   { id: "pass", img: "/carousel/pass.webp", title: "별콩이와 연애 상담", desc: "별콩이가 너를 계속 기억해줄게", cta: "보러가기", href: "/shop" },
 ];
 

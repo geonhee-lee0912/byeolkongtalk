@@ -38,6 +38,7 @@ import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
 import { shareToKakao } from "@/lib/kakao-share";
+import SurveyResultCard from "@/components/survey/SurveyResultCard";
 
 interface Section {
   title: string;
@@ -547,6 +548,8 @@ function FortuneResultInner() {
       </div>
 
       {!isPublic && ftType && <ResultUpsell variant={ftType} />}
+
+      {!isPublic && <SurveyResultCard />}
 
       <p className="mt-5 text-[11px] text-text-light/45 text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어 ✨

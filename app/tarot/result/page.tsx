@@ -10,6 +10,7 @@ import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
@@ -341,6 +342,8 @@ function TarotResultInner() {
 
       {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
       <ResultUpsell variant="counsel" showBonus={false} />
+
+      <SurveyResultCard />
 
       <ContinuationModal
         readingId={continueOpen ? reading.id : null}
