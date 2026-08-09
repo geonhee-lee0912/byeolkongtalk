@@ -34,31 +34,6 @@ interface ReadingListItem {
   emotionTag?: string | null;
 }
 
-// 12시진 (자시 23~01 시작). 인덱스 0 = 자시.
-const SIJIN = [
-  { name: "자시", range: "23~01" },
-  { name: "축시", range: "01~03" },
-  { name: "인시", range: "03~05" },
-  { name: "묘시", range: "05~07" },
-  { name: "진시", range: "07~09" },
-  { name: "사시", range: "09~11" },
-  { name: "오시", range: "11~13" },
-  { name: "미시", range: "13~15" },
-  { name: "신시", range: "15~17" },
-  { name: "유시", range: "17~19" },
-  { name: "술시", range: "19~21" },
-  { name: "해시", range: "21~23" },
-];
-
-// HH:MM → "미시 (13~15시)". null이면 null(시간 모름).
-function birthTimeToSijin(t: string | null): string | null {
-  if (!t) return null;
-  const h = Number(t.slice(0, 2));
-  const idx = h === 23 ? 0 : Math.floor((h + 1) / 2) % 12;
-  const s = SIJIN[idx];
-  return `${s.name} (${s.range}시)`;
-}
-
 export default function MyPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
@@ -189,43 +164,11 @@ export default function MyPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {/* 별 잔액 + 결제·별 내역 */}
+      {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] text-white/75 mb-1">내 별 잔액</div>
-              <div className="text-[22px] font-bold text-gold-soft">
-                ⭐ {balance ?? 0}별
-              </div>
-            </div>
-            <Link
-              href="/shop"
-              className="px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
-            >
-              충전
-            </Link>
-          </div>
-          <Link
-            href="/mypage/payments"
-            className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between text-[12px] text-white/85"
-          >
-            <span>결제 · 별 내역 보기</span>
-            <span className="text-white/60">›</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* 내 보관함 — 종목별 요약 4카드 (별 잔액과 사주판 사이) */}
-      <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <StorageSummary counts={counts} />
-      </div>
-
-      {/* 프로필 카드 (명식 통합) */}
-      <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-lilac-mid/50">
+            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
               {me.user.profile_img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -234,66 +177,56 @@ export default function MyPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Image
-                  src="/byeolkong-main.png"
-                  alt="별콩이"
-                  width={56}
-                  height={56}
-                />
+                <Image src="/byeolkong-main.png" alt="별콩이" width={56} height={56} />
               )}
             </div>
-            <div className="flex-1">
-              <div className="text-[15px] font-bold text-eye-purple">
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-white truncate">
                 {me.user.nickname}
               </div>
-              <div className="text-[11px] text-text-light/70 mt-0.5">
-                {self
-                  ? self.birthDate
-                    ? `${self.birthDate.replace(/-/g, ". ")}${
-                        self.isLunarInput ? " · 음력" : " · 양력"
-                      }${
-                        birthTimeToSijin(self.birthTime)
-                          ? ` · ${birthTimeToSijin(self.birthTime)}`
-                          : " · 시간 모름"
-                      }`
-                    : "생일 미입력"
-                  : "카카오"}
+              <div className="text-[20px] font-bold text-gold-soft mt-0.5">
+                ⭐ {balance ?? 0}별
               </div>
             </div>
-            {self && (
-              <button
-                onClick={() => setShowSajuModal(true)}
-                className="text-[11px] text-text-light/60 underline self-start"
-              >
-                수정
-              </button>
-            )}
-          </div>
-
-          {/* 내 사주 요약 — 상세 편집·지인 관리는 모달에서 */}
-          <div className="mt-3 pt-3 border-t border-lilac-mid/20 flex items-center justify-between gap-3">
-            <div className="text-[12px] text-text-light">
-              {self?.saju ? (
-                <>
-                  <span className="font-bold text-eye-purple">
-                    {self.saju.pillars.day.stem}
-                    {self.saju.pillars.day.branch}
-                  </span>{" "}
-                  일주
-                </>
-              ) : (
-                "생일 미입력"
-              )}
-              <span className="mx-1.5 text-lilac-mid/60">·</span>
-              지인 {acquaintanceCount}명
-            </div>
-            <button
-              onClick={() => setShowSajuModal(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
+            <Link
+              href="/shop"
+              className="shrink-0 px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
             >
-              관리
-            </button>
+              충전
+            </Link>
           </div>
+        </div>
+      </div>
+
+      {/* 내 보관함 — 종목별 요약 4카드 (별 잔액과 사주판 사이) */}
+      <div className="w-full max-w-md mx-auto px-5 mb-7">
+        <StorageSummary counts={counts} />
+      </div>
+
+      {/* 내 사주 요약 — 상세 편집·지인 관리는 모달에서 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-7">
+        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 flex items-center justify-between gap-3">
+          <div className="text-[12px] text-text-light">
+            {self?.saju ? (
+              <>
+                <span className="font-bold text-eye-purple">
+                  {self.saju.pillars.day.stem}
+                  {self.saju.pillars.day.branch}
+                </span>{" "}
+                일주
+              </>
+            ) : (
+              "생일 미입력"
+            )}
+            <span className="mx-1.5 text-lilac-mid/60">·</span>
+            지인 {acquaintanceCount}명
+          </div>
+          <button
+            onClick={() => setShowSajuModal(true)}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
+          >
+            관리
+          </button>
         </div>
       </div>
 
@@ -328,6 +261,17 @@ export default function MyPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
                 </span>
               )}
+            </span>
+            <span className="text-text-light/40">›</span>
+          </Link>
+          <Link href="/mypage/payments" className="flex items-center gap-3 p-3.5">
+            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
+              </svg>
+            </span>
+            <span className="flex-1 text-[14px] text-eye-purple font-medium">
+              결제 · 별 내역
             </span>
             <span className="text-text-light/40">›</span>
           </Link>
