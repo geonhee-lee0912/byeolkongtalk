@@ -55,6 +55,10 @@ export default function SurveyPage() {
     setSubmitting(false);
     if (r?.ok) return setPhase("done");
     if (r?.reason === "already") return setPhase("already");
+    if (r?.reason === "auth") {
+      router.replace(`/login?next=${encodeURIComponent("/survey")}`);
+      return;
+    }
     setError("제출이 안 됐어. 잠시 후 다시 해줄래?");
   };
 
