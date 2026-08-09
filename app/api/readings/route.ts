@@ -88,9 +88,11 @@ export async function GET() {
   //   - hasMsg:     assistant 메시지 1개라도 존재 (운세 생성중 판정용)
   //   - preview:    reading 별 첫 assistant 메시지 도입부
   // 운세 리포트(JSON content)는 이어하기 대상이 아니므로 ended 판정에서 제외.
+  // 시뮬(relationship_sim)도 제외 — [END] 없이 디브리핑으로 끝나므로, 안 그러면 stale
+  // 폴백(아래 resultReady)이 방치된 시뮬 판을 잘못 "이어하기 가능"으로 판정한다.
   const consultIdSet = new Set(
     (data ?? [])
-      .filter((r) => !fortuneTypeFromTag(r.emotion_tag))
+      .filter((r) => !fortuneTypeFromTag(r.emotion_tag) && r.consultation_type !== "relationship_sim")
       .map((r) => r.id)
   );
   const fortuneIds = (data ?? [])
