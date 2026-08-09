@@ -5,7 +5,7 @@
 // 는 mypage 가 이미 fetch 해 두므로 props 로 받고, 변경 후에는 onReload 로 mypage 의
 // profiles state 를 갱신한다(마이페이지 요약 카드도 함께 최신화되도록).
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import SajuBoard from "@/components/saju/SajuBoard";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
@@ -93,6 +93,15 @@ export default function SajuProfileModal({
   const [listPage, setListPage] = useState(0);
   const [sheetId, setSheetId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 배경 스크롤 잠금 — 마운트 동안 유지 (ProfileEditModal.tsx 와 동일 패턴)
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
 
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
@@ -200,7 +209,15 @@ export default function SajuProfileModal({
             </div>
             {self && !editingSelf ? (
               self.saju ? (
-                <SajuBoard saju={self.saju} showDetail={false} />
+                <div>
+                  <SajuBoard saju={self.saju} showDetail={false} />
+                  <button
+                    onClick={() => setEditingSelf(true)}
+                    className="mx-auto mt-3 block text-[12px] text-lilac-deep font-bold underline"
+                  >
+                    수정
+                  </button>
+                </div>
               ) : (
                 <div className="px-5 text-center">
                   <p className="text-[12px] text-text-light/70 mb-3">
