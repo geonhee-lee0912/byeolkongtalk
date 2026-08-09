@@ -477,15 +477,13 @@ function ReadingsPageInner() {
     );
   }
 
-  // 시뮬 카드 — 완료(debriefed)/이어하기(stage) 배지. 완료는 저장된 디브리핑 재열람 경로가 아직
-  // 없어 우리 사이 파일 허브로 보낸다(⚠️ 한계, 리포트 참고).
+  // 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지. 둘 다 우리 사이 파일 허브로 보낸다.
+  // ⚠️ /relationship/sim 은 기존 미완료 판을 재개하지 않고 매번 새 판을 만들며 SIM_COST 를 재차감한다
+  // (재개 인프라 없음) — 그래서 진행중 판도 "이어하기"를 약속하지 않고 안전하게 허브로만 보낸다
+  // (별 오차감·고아 판 생성 방지, 2026-08-09 안전화).
   function renderSimCard(r: ReadingItem) {
     const done = r.sajuData?.phase === "debriefed";
-    const href = r.relationshipId
-      ? done
-        ? `/relationship?rel=${r.relationshipId}`
-        : `/relationship/sim?rel=${r.relationshipId}`
-      : "/relationship";
+    const href = r.relationshipId ? `/relationship?rel=${r.relationshipId}` : "/relationship";
     const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
     const subParts = [relativeDate(r.createdAt)];
     if (relLabel) subParts.push(relLabel);
@@ -505,10 +503,10 @@ function ReadingsPageInner() {
             <span
               className={[
                 "shrink-0 text-[10px] font-bold rounded-full px-1.5 py-0.5",
-                done ? "text-lilac-deep bg-lilac-soft" : "text-white bg-lilac-deep",
+                done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
               ].join(" ")}
             >
-              {done ? "완료" : "이어하기"}
+              {done ? "완료" : "진행 중"}
             </span>
           </div>
           <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
