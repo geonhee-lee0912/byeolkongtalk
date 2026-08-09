@@ -6,9 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import Footer from "@/components/layout/Footer";
+import StorageSummary from "@/components/mypage/StorageSummary";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuResult } from "@/lib/saju/calc";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
+import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -26,6 +28,12 @@ interface ProfileItem {
   gender: "male" | "female" | "other";
   isPrimary: boolean;
   saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
+}
+
+// /api/readings 응답 항목 — 종목 집계(readingCategory)에 필요한 필드만 선언.
+interface ReadingListItem {
+  consultationType?: string | null;
+  emotionTag?: string | null;
 }
 
 const RELATION_LABEL: Record<string, string> = {
@@ -85,13 +93,15 @@ export default function MyPage() {
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
   const [deleteAck, setDeleteAck] = useState(false);
   const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
+  const [relationshipCount, setRelationshipCount] = useState(0);
+  const [readings, setReadings] = useState<ReadingListItem[]>([]);
   const [listPage, setListPage] = useState(0);
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     void (async () => {
-      const [r, bal, profs, rel] = await Promise.all([
+      const [r, bal, profs, rel, readingsRes] = await Promise.all([
         fetch("/api/auth/me", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
@@ -102,6 +112,9 @@ export default function MyPage() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         fetch("/api/relationship", { cache: "no-store" })
+          .then((x) => (x.ok ? x.json() : null))
+          .catch(() => null),
+        fetch("/api/readings", { cache: "no-store" })
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
       ]);
@@ -123,7 +136,9 @@ export default function MyPage() {
           ...rels.flatMap((x) => [x.selfProfileId, x.partnerProfileId]),
         ].filter((v: unknown): v is string => typeof v === "string");
         setRelationshipProfileIds(ids);
+        setRelationshipCount(rels.length);
       }
+      if (readingsRes?.readings) setReadings(readingsRes.readings as ReadingListItem[]);
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
         .then((x) => (x.ok ? x.json() : null))
         .catch(() => null);
@@ -141,6 +156,22 @@ export default function MyPage() {
 
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
+
+  // 마이 보관함 요약 카드용 종목별 개수. relationship 은 /api/readings 에 안 실리므로
+  // (서버 .neq 필터) /api/relationship 의 relationships[] 길이를 그대로 쓴다.
+  const counts: Record<ReadingCategory, number> = {
+    tarot: 0,
+    fortune: 0,
+    sim: 0,
+    relationship: relationshipCount,
+  };
+  for (const item of readings) {
+    const cat = readingCategory({
+      consultationType: item.consultationType,
+      emotionTag: item.emotionTag,
+    });
+    if (cat !== "relationship") counts[cat]++;
+  }
 
   const LIST_PAGE_SIZE = 3;
   const totalListPages = Math.max(1, Math.ceil(acquaintances.length / LIST_PAGE_SIZE));
@@ -280,23 +311,9 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 내 고민톡 보관함 — 별 잔액과 사주판 사이 */}
+      {/* 내 보관함 — 종목별 요약 4카드 (별 잔액과 사주판 사이) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <Link
-          href="/readings"
-          className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
-        >
-          <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
-              <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" />
-            </svg>
-          </span>
-          <span className="flex-1">
-            <span className="block text-[14px] text-eye-purple font-medium">내 고민톡 보관함</span>
-            <span className="block text-[11px] text-text-light/70 mt-0.5">지난 상담 다시 보기</span>
-          </span>
-          <span className="text-text-light/40">›</span>
-        </Link>
+        <StorageSummary counts={counts} />
       </div>
 
       {/* 프로필 카드 (명식 통합) */}
