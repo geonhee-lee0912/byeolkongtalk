@@ -21,3 +21,8 @@ export const STAR_PACKAGES: StarPackage[] = [
 export const WELCOME_BONUS_STARS = 20;
 /** 첫 충전 보너스 비율 — 첫 결제 패키지 별의 +20% (반올림). 2026-07-20 마진·재결제 유도로 50%→20% */
 export const FIRST_CHARGE_BONUS_RATE = 0.2;
+
+/** 정성 이탈조사 설문 완료 보상 별 — 1인 1회(survey_responses partial unique).
+ * 무료별이 변동원가의 93%라 값은 보수적. 응답률 보고 조정 가능하게 상수로 분리.
+ * 설계: docs/superpowers/specs/2026-08-09-survey-이탈조사-design.md */
+export const SURVEY_REWARD_STARS = 10;
