@@ -25,6 +25,7 @@ const GROUPS: Group[] = [
     { href: "/admin/payments", label: "결제/정산", emoji: "💳" },
     { href: "/admin/inquiries", label: "문의/고객센터", emoji: "💬" },
     { href: "/admin/fortune-refunds", label: "운세 환불", emoji: "🎁" },
+    { href: "/admin/survey", label: "이탈 설문", emoji: "📝" },
   ] },
   { key: "monitor", label: "모니터링", emoji: "🚨", items: [
     { href: "/admin/sensitive", label: "민감 알림", emoji: "🚑" },
