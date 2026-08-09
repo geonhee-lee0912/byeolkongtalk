@@ -55,3 +55,23 @@ test("코드펜스로 감싸도 파싱", () => {
 test("완전히 깨진 입력은 null", () => {
   assert.equal(parseMonthlyReportJson("그냥 텍스트, JSON 없음"), null);
 });
+
+// 필수 필드 누락 = 파싱 실패(null) 명세. prod "monthly report parse failed"(절단 아님·필드 위반)의
+// 대표 실패 모드 — 파서가 부분 리포트를 절대 통과시키지 않음을 회귀로 고정한다.
+test("weekly 4개 미만이면 null", () => {
+  const bad = { ...validReport, weekly: validReport.weekly.slice(0, 3) };
+  assert.equal(parseMonthlyReportJson(JSON.stringify(bad)), null);
+});
+
+test("sections 5개 미만이면 null", () => {
+  const bad = { ...validReport, sections: validReport.sections.slice(0, 4) };
+  assert.equal(parseMonthlyReportJson(JSON.stringify(bad)), null);
+});
+
+test("timing/balance/lucky 등 필수 객체 누락이면 null", () => {
+  for (const key of ["timing", "balance", "lucky", "note", "intro"] as const) {
+    const bad: Record<string, unknown> = { ...validReport };
+    delete bad[key];
+    assert.equal(parseMonthlyReportJson(JSON.stringify(bad)), null, `${key} 누락은 null 이어야`);
+  }
+});
