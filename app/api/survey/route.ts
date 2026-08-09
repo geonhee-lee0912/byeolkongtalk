@@ -7,6 +7,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { validateSurveyAnswers } from "@/lib/survey/questions";
 import { chargeStars } from "@/lib/stars";
+import { logError } from "@/lib/logger";
 import { SURVEY_REWARD_STARS } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -24,7 +25,11 @@ export async function GET() {
     .maybeSingle();
   if (error) {
     // 조회 실패 시 자격 없음(카드 숨김) — 계측이 제품 경로를 막지 않는다
-    console.error("[/api/survey GET] lookup failed:", error);
+    await logError(error, {
+      route: "/api/survey",
+      userId,
+      extra: { severity: "SURVEY_LOOKUP_FAILED" },
+    });
     return NextResponse.json({ eligible: false, participated: false });
   }
   const participated = !!data;
@@ -60,7 +65,11 @@ export async function POST(req: NextRequest) {
     if (insertError.code === "23505") {
       return NextResponse.json({ ok: false, reason: "already" }, { status: 409 });
     }
-    console.error("[/api/survey POST] insert failed:", insertError);
+    await logError(insertError, {
+      route: "/api/survey",
+      userId,
+      extra: { severity: "SURVEY_SAVE_FAILED" },
+    });
     return NextResponse.json({ ok: false, reason: "save" }, { status: 500 });
   }
 
@@ -73,7 +82,13 @@ export async function POST(req: NextRequest) {
     "survey_reward"
   );
   if (!charge.success) {
-    console.error("[/api/survey POST] reward charge failed for", userId);
+    // 저장은 성공했으나 보상 지급 실패 — 재제출은 409 로 막혀 재시도로 복구 불가.
+    // 운영자가 error_logs 로 보고 수동 지급해야 하는 사고 → CRITICAL.
+    await logError(new Error("chargeStars failed after survey save"), {
+      route: "/api/survey",
+      userId,
+      extra: { reward: SURVEY_REWARD_STARS, severity: "CRITICAL_SURVEY_REWARD_LOST" },
+    });
   }
   return NextResponse.json({
     ok: true,
