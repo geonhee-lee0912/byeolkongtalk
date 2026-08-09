@@ -356,13 +356,12 @@ function renderReportCard(r: ReadingItem) {
   );
 }
 
-// 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지. 둘 다 우리 사이 파일 허브로 보낸다.
-// ⚠️ /relationship/sim 은 기존 미완료 판을 재개하지 않고 매번 새 판을 만들며 SIM_COST 를 재차감한다
-// (재개 인프라 없음) — 그래서 진행중 판도 "이어하기"를 약속하지 않고 안전하게 허브로만 보낸다
-// (별 오차감·고아 판 생성 방지, 2026-08-09 안전화).
+// 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지.
+// 재진입: /relationship/sim?sim=<id> → 완료=디브리핑 재열람, 진행중=재개(무차감).
+// (재진입 인프라 = specs/2026-08-09-sim-reentry-design.md. GET·read-only·POST 미호출이라 재차감·고아판 없음.)
 function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
   const done = r.sajuData?.phase === "debriefed";
-  const href = r.relationshipId ? `/relationship?rel=${r.relationshipId}` : "/relationship";
+  const href = `/relationship/sim?sim=${r.id}`;
   const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
   const subParts = [formatDate(r.createdAt)];
   if (relLabel) subParts.push(relLabel);

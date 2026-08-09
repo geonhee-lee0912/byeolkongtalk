@@ -24,7 +24,16 @@ function renderMd(text: string): ReactNode[] {
   return parts;
 }
 
-export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
+export default function SimDebrief({
+  simReadingId,
+  initialDebrief,
+  initialSendMessage,
+}: {
+  simReadingId: string;
+  /** 완료 판 재열람 — 저장된 디브리핑 프리로드(있으면 생성 fetch 스킵). */
+  initialDebrief?: string;
+  initialSendMessage?: string | null;
+}) {
   const router = useRouter();
   const [state, setState] = useState<"loading" | "done" | "error">("loading");
   const [debrief, setDebrief] = useState("");
@@ -35,6 +44,13 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
+    // 재열람: 저장 디브리핑 프리로드 → chat 라우트(생성) 안 부름(완료 판은 409).
+    if (initialDebrief != null) {
+      setDebrief(initialDebrief);
+      setSendMessage(initialSendMessage ?? null);
+      setState("done");
+      return;
+    }
     (async () => {
       try {
         const res = await fetch("/api/relationship/sim/chat", {
@@ -48,7 +64,7 @@ export default function SimDebrief({ simReadingId }: { simReadingId: string }) {
         setState("done");
       } catch { setState("error"); }
     })();
-  }, [simReadingId]);
+  }, [simReadingId, initialDebrief, initialSendMessage]);
 
   if (state === "loading")
     return (

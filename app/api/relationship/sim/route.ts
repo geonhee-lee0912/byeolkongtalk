@@ -8,7 +8,7 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { SIM_COST, RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
-import type { SimMeta } from "@/lib/relationship/sim";
+import { buildSimFrame, type SimMeta } from "@/lib/relationship/sim";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
   // 프레임 고지 = 결정적 별콩이 노트(제품 발화, 스펙 §2). skill_key='sim_note' 라 인형 대화 교대·턴캡 카운트에서 제외.
   const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
-  const frame = `여긴 네 마음속 ${rel.label} 인형이 서는 무대야 — 네가 알려준 설명으로 그렸지, 진짜 걔는 아니야. "${situation.label}" 상황을 편하게 연습해봐. 인형이 실제 걔랑 다르면 대사 밑 👍👎로 알려주면 내가 더 걔답게 만들어줄게. 무슨 말을 할지 막히면 아래 '답변 추천'을, 충분히 해봤으면 '마무리'를 눌러 정리하면 돼.`;
+  const frame = buildSimFrame(rel.label, situation.label);
   await supabase.from("messages").insert([
     { reading_id: reading.id, role: "assistant", content: frame, skill_key: "sim_note" },
   ]);
@@ -110,5 +110,77 @@ export async function POST(request: NextRequest) {
     cost: SIM_COST,
     balance: spend.balance,
     success: true,
+  });
+}
+
+// 재진입용 판 상태 조회(읽기 전용) — 재개(stage)·재열람(debriefed) 공용. 차감/변경 없음.
+export async function GET(request: NextRequest) {
+  const { userId } = await getSession();
+  if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
+
+  maybeSweepExpired();
+  const bySession = checkRateLimit({ namespace: "sim_get", key: userId, max: 60, windowMs: 60_000 });
+  if (!bySession.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "60" } });
+
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+
+  const supabase = getServiceSupabase();
+  const { data: reading } = await supabase
+    .from("readings")
+    .select("id, user_id, relationship_id, consultation_type, saju_data")
+    .eq("id", id)
+    .maybeSingle();
+  if (!reading || reading.user_id !== userId || reading.consultation_type !== "relationship_sim")
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const meta = (reading.saju_data ?? {}) as SimMeta;
+  const situation = getSituation(meta.situationId);
+  if (!situation) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const { data: rel } = await supabase
+    .from("relationships")
+    .select("id, label, status")
+    .eq("id", reading.relationship_id)
+    .maybeSingle();
+  if (!rel) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
+  const frame = buildSimFrame(rel.label, situation.label);
+
+  const { data: rows } = await supabase
+    .from("messages")
+    .select("role, content, skill_key")
+    .eq("reading_id", reading.id)
+    .order("created_at", { ascending: true });
+
+  // 전사 매핑: 프레임(별도 반환)·디브리핑(별도) 제외, 나머지를 who 로.
+  // 프레임 고지는 "항상 첫 메시지"(생성 시 단독 insert 되는 sim_note assistant)라 인덱스로 스킵한다.
+  // ⚠️ content 비교(=frame)는 라벨 변경 시 저장 시드와 안 맞아 프레임이 이중 렌더된다 → 구조(인덱스0)로 식별
+  // (라벨 무관 + 기존 판·프레임 insert 실패 판까지 안전. 2026-08-09 리뷰 지적).
+  const rowList = (rows ?? []) as { role: string; content: string; skill_key: string | null }[];
+  const messages: { who: "user" | "doll" | "note"; text: string }[] = [];
+  let debrief: string | null = null;
+  for (let i = 0; i < rowList.length; i++) {
+    const m = rowList[i];
+    if (i === 0 && m.skill_key === "sim_note" && m.role === "assistant") continue; // 프레임 고지
+    if (m.skill_key === "sim_debrief") { debrief = m.content; continue; }
+    if (m.role === "user") messages.push({ who: "user", text: m.content });
+    else if (m.skill_key === "sim_note") messages.push({ who: "note", text: m.content });
+    else messages.push({ who: "doll", text: m.content });
+  }
+
+  return NextResponse.json({
+    simReadingId: reading.id,
+    relationshipId: reading.relationship_id,
+    situationId: situation.id,
+    statusLabel,
+    label: rel.label,
+    status: rel.status,
+    phase: meta.phase,
+    frame,
+    messages,
+    debrief,
+    sendMessage: meta.sendMessage ?? null,
   });
 }

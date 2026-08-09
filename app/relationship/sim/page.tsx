@@ -43,6 +43,7 @@ function SimPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const relationshipId = params.get("rel");
+  const simReadingParam = params.get("sim");
   const [phase, setPhase] = useState<Phase>("select");
   const [loading, setLoading] = useState(true);
   const [rel, setRel] = useState<RelInfo | null>(null);
@@ -52,6 +53,10 @@ function SimPageInner() {
   const [creating, setCreating] = useState(false);
   const [session, setSession] = useState<SimSession | null>(null);
   const [balance, setBalance] = useState(0);
+  // 재진입(?sim=) 로드분 — 이전 대화 시드 · 완료 디브리핑 프리로드 · 읽기전용 여부.
+  const [initialMessages, setInitialMessages] = useState<{ who: "user" | "doll" | "note"; text: string }[] | null>(null);
+  const [loadedDebrief, setLoadedDebrief] = useState<{ debrief: string; sendMessage: string | null } | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -63,6 +68,26 @@ function SimPageInner() {
         .catch(() => null);
       if (!me?.isAuthenticated) {
         router.replace(`/login?next=/relationship/sim?rel=${relationshipId ?? ""}`);
+        return;
+      }
+      // ── 재진입(?sim=): 기존 판 로드 → phase 로 분기(차감 없음) ──
+      if (simReadingParam) {
+        const data = await fetch(`/api/relationship/sim?id=${simReadingParam}`, { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        if (!data?.simReadingId) {
+          router.replace("/relationship");
+          return;
+        }
+        setRel({ id: data.relationshipId, label: data.label, status: data.status });
+        setSession({ simReadingId: data.simReadingId, frame: data.frame, statusLabel: data.statusLabel });
+        setInitialMessages(Array.isArray(data.messages) ? data.messages : []);
+        if (data.phase === "debriefed") {
+          setReadOnly(true);
+          setLoadedDebrief({ debrief: data.debrief ?? "", sendMessage: data.sendMessage ?? null });
+        }
+        setPhase("stage");
+        setLoading(false);
         return;
       }
       if (!relationshipId) {
@@ -94,7 +119,7 @@ function SimPageInner() {
       setBalance(typeof bal?.balance === "number" ? bal.balance : 0);
       setLoading(false);
     })();
-  }, [relationshipId, router]);
+  }, [relationshipId, simReadingParam, router]);
 
   if (noProfile) {
     return (
@@ -170,10 +195,18 @@ function SimPageInner() {
             label={rel.label}
             frame={session.frame}
             balance={balance}
+            initialMessages={initialMessages ?? undefined}
+            readOnly={readOnly}
             onDebrief={() => setPhase("debrief")}
           />
         )}
-        {phase === "debrief" && session && <SimDebrief simReadingId={session.simReadingId} />}
+        {phase === "debrief" && session && (
+          <SimDebrief
+            simReadingId={session.simReadingId}
+            initialDebrief={loadedDebrief?.debrief}
+            initialSendMessage={loadedDebrief?.sendMessage}
+          />
+        )}
       </div>
 
       {pending && (

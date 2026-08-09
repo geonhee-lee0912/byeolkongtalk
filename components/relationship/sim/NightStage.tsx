@@ -21,6 +21,10 @@ export interface NightStageProps {
   frame: string;
   balance: number;
   onDebrief: () => void;
+  /** 재진입 시 이전 대화 시드(프레임 제외). 없으면 새 판(빈 상태). */
+  initialMessages?: { who: "user" | "doll" | "note"; text: string }[];
+  /** 완료 판 재열람 — 하단 입력바 숨기고 '정리 보기'만, 인형 피드백(👍👎) 숨김. */
+  readOnly?: boolean;
 }
 
 // 명시적 who 로 화자 구분 — user(유저 발화) / doll(인형 대사) / note(별콩이 노트=민감 복귀).
@@ -29,8 +33,10 @@ type Msg = { id: number; who: "user" | "doll" | "note"; text: string };
 export default function NightStage(props: NightStageProps) {
   const router = useRouter();
   // 첫 유저 발화 후 인형이 sticky 소형으로 접힘.
-  const [started, setStarted] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [started, setStarted] = useState((props.initialMessages?.length ?? 0) > 0);
+  const [messages, setMessages] = useState<Msg[]>(
+    () => (props.initialMessages ?? []).map((m, i) => ({ id: i + 1, who: m.who, text: m.text }))
+  );
   const [live, setLive] = useState<{ who: "doll" | "note"; text: string } | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -208,7 +214,7 @@ export default function NightStage(props: NightStageProps) {
                 {m.text}
               </div>
             ) : (
-              <SimBubble key={m.id} content={m.text} onFeedback={sendFeedback} />
+              <SimBubble key={m.id} content={m.text} onFeedback={props.readOnly ? undefined : sendFeedback} />
             )
           )}
           {live &&
@@ -220,7 +226,18 @@ export default function NightStage(props: NightStageProps) {
           {error && <p className="self-center text-[13px] text-rose-300">{error}</p>}
         </div>
 
-        {/* 하단 한 줄 — 모두 h-11 로 높이 통일, items-stretch 로 세로 정렬(입력창 여러 줄이면 함께 늘어남) */}
+        {/* 하단 한 줄 — readOnly(완료 재열람)면 '정리 보기'만, 아니면 입력바 */}
+        {props.readOnly ? (
+          <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-3 py-3">
+            <button
+              type="button"
+              onClick={props.onDebrief}
+              className="w-full h-11 rounded-xl text-gold-soft border border-gold/40 font-bold text-[13px] hover:bg-gold/10 transition-colors"
+            >
+              🌙 정리 보기
+            </button>
+          </div>
+        ) : (
         <div className="relative z-10 border-t border-lilac-mid/20 bg-night-deep/80 px-3 pt-2.5 pb-3">
           <div className="flex items-stretch gap-1.5">
             {/* 답변 추천(유료) */}
@@ -288,6 +305,7 @@ export default function NightStage(props: NightStageProps) {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {suggestions.length > 0 && (

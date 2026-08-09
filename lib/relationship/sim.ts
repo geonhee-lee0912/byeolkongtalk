@@ -63,3 +63,8 @@ export function appendPersonalityNote(existing: string | null, note: string): st
   if (!clean) return base;
   return base ? `${base}\n· ${clean}` : `· ${clean}`;
 }
+
+/** 밤 무대 프레임 고지(결정적 별콩이 노트). POST /sim 생성 시 시드 + GET 재진입 시 재구성 — 단일 원천. */
+export function buildSimFrame(relLabel: string, situationLabel: string): string {
+  return `여긴 네 마음속 ${relLabel} 인형이 서는 무대야 — 네가 알려준 설명으로 그렸지, 진짜 걔는 아니야. "${situationLabel}" 상황을 편하게 연습해봐. 인형이 실제 걔랑 다르면 대사 밑 👍👎로 알려주면 내가 더 걔답게 만들어줄게. 무슨 말을 할지 막히면 아래 '답변 추천'을, 충분히 해봤으면 '마무리'를 눌러 정리하면 돼.`;
+}
