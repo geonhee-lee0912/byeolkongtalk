@@ -70,7 +70,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("readings")
     .select(
-      "id, question, saju_data, consultation_type, spread_type, saju_product, drawn_cards, emotion_tag, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
+      "id, question, saju_data, consultation_type, relationship_id, spread_type, saju_product, drawn_cards, emotion_tag, stars_spent, has_sensitive, created_at, profile:user_profiles(display_name, relation_type)"
     )
     .eq("user_id", userId)
     // 스레드 본체·관계 스킬 제외 (우리 사이 탭에서 노출)
@@ -130,6 +130,7 @@ export async function GET() {
       question: r.question,
       sajuData: r.saju_data,
       consultationType: r.consultation_type,
+      relationshipId: r.relationship_id,
       spreadType: r.spread_type,
       sajuProduct: r.saju_product,
       drawnCards: r.drawn_cards,

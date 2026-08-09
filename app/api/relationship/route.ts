@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   // 유저의 모든 관계 (최근 방문 → 생성 순)
   const { data: relRows } = await supabase
     .from("relationships")
-    .select("id, label, status, self_profile_id, partner_profile_id, thread_reading_id, memo")
+    .select("id, label, status, self_profile_id, partner_profile_id, thread_reading_id, memo, last_visited_at")
     .eq("user_id", userId)
     .order("last_visited_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
     partnerProfileId: r.partner_profile_id,
     threadReadingId: r.thread_reading_id,
     partner: r.partner_profile_id ? partnerById.get(r.partner_profile_id) ?? null : null,
+    lastVisitedAt: r.last_visited_at,
   }));
 
   // 선택 관계: ?selectedId 가 소유한 것이면 그것, 아니면 최근(첫) 것. 없으면 null.
