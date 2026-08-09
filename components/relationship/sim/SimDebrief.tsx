@@ -46,6 +46,8 @@ export default function SimDebrief({
     ran.current = true;
     // 재열람: 저장 디브리핑 프리로드 → chat 라우트(생성) 안 부름(완료 판은 409).
     if (initialDebrief != null) {
+      // 비원자 저장 실패로 본문이 비어 있으면(희박) 빈 카드 대신 안내 화면.
+      if (!initialDebrief.trim()) { setState("error"); return; }
       setDebrief(initialDebrief);
       setSendMessage(initialSendMessage ?? null);
       setState("done");

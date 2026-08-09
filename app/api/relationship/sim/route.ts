@@ -128,15 +128,16 @@ export async function GET(request: NextRequest) {
   const supabase = getServiceSupabase();
   const { data: reading } = await supabase
     .from("readings")
-    .select("id, user_id, relationship_id, consultation_type, saju_data")
+    .select("id, user_id, relationship_id, consultation_type, saju_data, question")
     .eq("id", id)
     .maybeSingle();
   if (!reading || reading.user_id !== userId || reading.consultation_type !== "relationship_sim")
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const meta = (reading.saju_data ?? {}) as SimMeta;
-  const situation = getSituation(meta.situationId);
-  if (!situation) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // situationLabel = 생성 시 저장된 question(=상황 라벨). getSituation 재조회 안 함 →
+  // 카탈로그에서 은퇴한 situationId 완료 판도 재열람 가능(404 게이트 제거, 2026-08-09 fast-follow).
+  const situationLabel = reading.question ?? "지난 연습";
 
   const { data: rel } = await supabase
     .from("relationships")
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
   if (!rel) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
-  const frame = buildSimFrame(rel.label, situation.label);
+  const frame = buildSimFrame(rel.label, situationLabel);
 
   const { data: rows } = await supabase
     .from("messages")
@@ -173,7 +174,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     simReadingId: reading.id,
     relationshipId: reading.relationship_id,
-    situationId: situation.id,
+    situationId: meta.situationId,
     statusLabel,
     label: rel.label,
     status: rel.status,
