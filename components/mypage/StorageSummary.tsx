@@ -5,39 +5,54 @@ import type { ReadingCategory } from "@/lib/readings/category";
 
 export interface StorageSummaryProps {
   counts: Record<ReadingCategory, number>;
+  // 우리 사이는 개수 대신 활성 패스 여부(ON/OFF)로 표시 — 탭은 /relationship 으로.
+  relationshipPassActive: boolean;
 }
 
 const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
-  { key: "tarot", icon: "🔮", label: "타로" },
+  { key: "tarot", icon: "🔮", label: "타로톡" },
   { key: "fortune", icon: "📜", label: "사주·운세" },
-  { key: "sim", icon: "🎭", label: "시뮬" },
+  { key: "sim", icon: "🎭", label: "시뮬레이션" },
   { key: "relationship", icon: "💬", label: "우리 사이" },
 ];
 
-export default function StorageSummary({ counts }: StorageSummaryProps) {
+export default function StorageSummary({ counts, relationshipPassActive }: StorageSummaryProps) {
   return (
-    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] px-1 py-3">
-      {ITEMS.map((item, i) => (
-        <Link
-          key={item.key}
-          href={`/readings?tab=${item.key}`}
-          className={`flex-1 flex flex-col items-center text-center px-1 ${
-            i > 0 ? "border-l border-lilac-mid/15" : ""
-          }`}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            <span className="text-[15px]" aria-hidden>
-              {item.icon}
+    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] px-1 py-4">
+      {ITEMS.map((item, i) => {
+        const isRel = item.key === "relationship";
+        return (
+          <Link
+            key={item.key}
+            href={isRel ? "/relationship" : `/readings?tab=${item.key}`}
+            className={`flex-1 flex flex-col items-center text-center px-1 ${
+              i > 0 ? "border-l border-lilac-mid/15" : ""
+            }`}
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <span className="text-[15px]" aria-hidden>
+                {item.icon}
+              </span>
+              {isRel ? (
+                <span
+                  className={`text-[16px] font-bold leading-none ${
+                    relationshipPassActive ? "text-lilac-deep" : "text-text-light/40"
+                  }`}
+                >
+                  {relationshipPassActive ? "ON" : "OFF"}
+                </span>
+              ) : (
+                <span className="text-[20px] font-bold text-eye-purple leading-none">
+                  {counts[item.key]}
+                </span>
+              )}
             </span>
-            <span className="text-[18px] font-bold text-eye-purple leading-none">
-              {counts[item.key]}
+            <span className="mt-2 text-[10.5px] text-text-light font-medium whitespace-nowrap">
+              {item.label}
             </span>
-          </span>
-          <span className="mt-1.5 text-[10.5px] text-text-light font-medium whitespace-nowrap">
-            {item.label}
-          </span>
-        </Link>
-      ))}
+          </Link>
+        );
+      })}
     </div>
   );
 }

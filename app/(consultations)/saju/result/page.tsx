@@ -124,9 +124,15 @@ function ResultPageInner() {
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        <Link href="/" className="text-[12px] text-text-light/70">
-          ‹ 홈으로
-        </Link>
+        {sp.get("from") === "history" ? (
+          <button onClick={() => router.back()} className="text-[12px] text-text-light/70">
+            ‹ 뒤로
+          </button>
+        ) : (
+          <Link href="/" className="text-[12px] text-text-light/70">
+            ‹ 홈으로
+          </Link>
+        )}
         <div className="text-[11px] text-text-light/60">
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>

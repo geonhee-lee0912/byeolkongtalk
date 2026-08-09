@@ -93,7 +93,7 @@ export default function AcquaintanceListModal({
       >
         <div
           ref={scrollRef}
-          className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+          className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover"
           onClick={(e) => e.stopPropagation()}
         >
           {/* 헤더 */}

@@ -10,7 +10,6 @@ import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
 import { getSituation } from "@/lib/relationship/situations";
-import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import RedHorseIcon from "@/components/fortune/RedHorseIcon";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 
@@ -50,13 +49,14 @@ interface RelationshipListItem {
 }
 
 const READINGS_TABS = [
-  { key: "tarot", label: "타로" },
+  { key: "tarot", label: "타로톡" },
   { key: "fortune", label: "사주·운세" },
-  { key: "sim", label: "시뮬" },
-  { key: "relationship", label: "우리 사이" },
+  { key: "sim", label: "시뮬레이션" },
 ] as const;
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
+
+const PAGE_SIZE = 5; // 보관함 목록 페이지네이션 (5개/페이지)
 
 const EMPTY_COPY: Record<ReadingsTab, { text: ReactNode; href: string; cta: string }> = {
   tarot: {
@@ -88,16 +88,6 @@ const EMPTY_COPY: Record<ReadingsTab, { text: ReactNode; href: string; cta: stri
     ),
     href: "/relationship",
     cta: "시뮬레이션 하러가기",
-  },
-  relationship: {
-    text: (
-      <>
-        아직 등록한 상대가 없어.
-        <br />우리 사이를 시작해볼까?
-      </>
-    ),
-    href: "/relationship",
-    cta: "우리 사이 시작하기",
   },
 };
 
@@ -374,7 +364,7 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
   const done = r.sajuData?.phase === "debriefed";
   const href = r.relationshipId ? `/relationship?rel=${r.relationshipId}` : "/relationship";
   const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
-  const subParts = [relativeDate(r.createdAt)];
+  const subParts = [formatDate(r.createdAt)];
   if (relLabel) subParts.push(relLabel);
   subParts.push(r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`);
   return (
@@ -406,40 +396,6 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
   );
 }
 
-// 우리 사이 카드 — 관계별 1항목(최근 방문 순은 /api/relationship 서버 정렬), 탭 → 파일 허브.
-function renderRelationshipCard(rel: RelationshipListItem) {
-  const statusLabel = RELATIONSHIP_STATUS_LABELS[rel.status as RelationshipStatus] ?? rel.status;
-  const partnerName = rel.partner?.displayName;
-  const subParts = [statusLabel];
-  if (rel.lastVisitedAt) subParts.push(relativeDate(rel.lastVisitedAt));
-  return (
-    <Link
-      key={rel.id}
-      href={`/relationship?rel=${rel.id}`}
-      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-    >
-      <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
-        💬
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
-            {rel.label}
-          </span>
-          {partnerName && (
-            <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
-              {partnerName}
-            </span>
-          )}
-        </div>
-        <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-          {subParts.join(" · ")}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
 export default function ReadingsPage() {
   return (
     <Suspense fallback={null}>
@@ -459,6 +415,7 @@ function ReadingsPageInner() {
     return READINGS_TABS.some((x) => x.key === t) ? (t as ReadingsTab) : "tarot";
   });
   const [continueId, setContinueId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
@@ -533,6 +490,7 @@ function ReadingsPageInner() {
 
   const switchTab = (t: ReadingsTab) => {
     setTab(t);
+    setPage(0);
   };
 
   if (loading) {
@@ -547,9 +505,12 @@ function ReadingsPageInner() {
     tarot: tarot.length,
     fortune: fortune.length,
     sim: sim.length,
-    relationship: relationships.length,
   };
   const activeCount = counts[tab];
+  const totalPages = Math.max(1, Math.ceil(activeCount / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * PAGE_SIZE;
+  const pageEnd = pageStart + PAGE_SIZE;
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
@@ -573,14 +534,14 @@ function ReadingsPageInner() {
           </svg>
           <span>뒤로</span>
         </Link>
-        <h1 className="text-[18px] font-bold text-eye-purple">내 고민톡</h1>
+        <h1 className="text-[18px] font-bold text-eye-purple">내 상담 보관함</h1>
         <p className="text-[12px] text-text-light/70 mt-1">
           별콩이와 나눈 상담과 운세를 다시 볼 수 있어
         </p>
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="flex gap-1.5 bg-lilac-soft/40 rounded-full p-1 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto">
           {READINGS_TABS.map((t) => {
             const count = counts[t.key];
             return (
@@ -588,11 +549,12 @@ function ReadingsPageInner() {
                 key={t.key}
                 type="button"
                 onClick={() => switchTab(t.key)}
+                aria-pressed={tab === t.key}
                 className={[
-                  "shrink-0 px-4 py-2 rounded-full text-[14px] font-bold whitespace-nowrap transition",
+                  "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
                   tab === t.key
-                    ? "bg-white text-eye-purple shadow-sm"
-                    : "text-text-light/70",
+                    ? "bg-eye-purple text-white"
+                    : "bg-white border border-lilac-soft text-text-light",
                 ].join(" ")}
               >
                 {t.label} {count > 0 && <span className="text-[12px]">{count}</span>}
@@ -605,24 +567,64 @@ function ReadingsPageInner() {
       <div className="w-full max-w-md mx-auto px-5">
         {activeCount === 0 ? (
           <EmptyState tab={tab} />
-        ) : tab === "tarot" ? (
-          <div className="flex flex-col gap-2">
-            {tarot.map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
-          </div>
-        ) : tab === "fortune" ? (
-          <div className="flex flex-col gap-2">
-            {fortune.map((r) =>
-              fortuneTypeFromTag(r.emotionTag)
-                ? renderReportCard(r)
-                : renderConsultCard(r, (id) => setContinueId(id))
-            )}
-          </div>
-        ) : tab === "sim" ? (
-          <div className="flex flex-col gap-2">
-            {sim.map((r) => renderSimCard(r, relLabelById))}
-          </div>
         ) : (
-          <div className="flex flex-col gap-2">{relationships.map(renderRelationshipCard)}</div>
+          <>
+            {tab === "tarot" ? (
+              <div className="flex flex-col gap-2">
+                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
+              </div>
+            ) : tab === "fortune" ? (
+              <div className="flex flex-col gap-2">
+                {fortune.slice(pageStart, pageEnd).map((r) =>
+                  fortuneTypeFromTag(r.emotionTag)
+                    ? renderReportCard(r)
+                    : renderConsultCard(r, (id) => setContinueId(id))
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {sim.slice(pageStart, pageEnd).map((r) => renderSimCard(r, relLabelById))}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                <button
+                  onClick={() => setPage((n) => Math.max(0, n - 1))}
+                  disabled={safePage === 0}
+                  aria-label="이전"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i)}
+                    aria-label={`${i + 1}페이지`}
+                    className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                      i === safePage
+                        ? "bg-lilac-deep text-white"
+                        : "text-text-light/70 hover:bg-lilac-soft/50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage((n) => Math.min(totalPages - 1, n + 1))}
+                  disabled={safePage === totalPages - 1}
+                  aria-label="다음"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

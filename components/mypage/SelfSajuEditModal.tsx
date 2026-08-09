@@ -59,7 +59,7 @@ export default function SelfSajuEditModal({
       onClick={onClose}
     >
       <div
-        className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+        className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">

@@ -36,6 +36,7 @@ export default function MyPage() {
   const [showAcqModal, setShowAcqModal] = useState(false);
   const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
   const [relationshipCount, setRelationshipCount] = useState(0);
+  const [relationshipPassActive, setRelationshipPassActive] = useState(false);
   const [readings, setReadings] = useState<ReadingListItem[]>([]);
   const [supportUnread, setSupportUnread] = useState(0);
 
@@ -77,6 +78,8 @@ export default function MyPage() {
         ].filter((v: unknown): v is string => typeof v === "string");
         setRelationshipProfileIds(ids);
         setRelationshipCount(rels.length);
+        // 우리 사이 ON/OFF = 최근 관계의 활성 연애 패스 유무 (GET 이 pass 반환)
+        setRelationshipPassActive(rel.pass != null);
       }
       if (readingsRes?.readings) setReadings(readingsRes.readings as ReadingListItem[]);
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
@@ -194,7 +197,7 @@ export default function MyPage() {
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           보관함
         </div>
-        <StorageSummary counts={counts} />
+        <StorageSummary counts={counts} relationshipPassActive={relationshipPassActive} />
       </div>
 
       {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}
