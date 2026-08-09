@@ -13,7 +13,7 @@ const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
   { key: "tarot", icon: "🔮", label: "타로톡" },
   { key: "fortune", icon: "📜", label: "사주·운세" },
   { key: "sim", icon: "🎭", label: "시뮬레이션" },
-  { key: "relationship", icon: "💬", label: "우리 사이" },
+  { key: "relationship", icon: "💬", label: "연애 상담" },
 ];
 
 export default function StorageSummary({ counts, relationshipPassActive }: StorageSummaryProps) {
