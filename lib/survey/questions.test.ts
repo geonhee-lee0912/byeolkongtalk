@@ -34,7 +34,24 @@ test("하나라도 최소 미만 → fail(too_short)", () => {
 
 test("공백 채움은 trim 후 판정 → fail(too_short)", () => {
   const a = six();
-  a[0] = "   " + "가".repeat(10) + "   ";
+  // raw 길이는 60(≥50)이지만 trim 하면 0자 — trim 을 안 하고 a.length 만 보면
+  // 통과해버리므로, 이 케이스가 trim 게이트 자체를 pin 한다.
+  a[0] = " ".repeat(60);
+  assert.deepEqual(validateSurveyAnswers(a), { ok: false, reason: "too_short" });
+});
+
+test("정상 통과 시 normalized.a 는 trim 된 값 (앞뒤 공백 제거 확인)", () => {
+  const padded = "  " + long + "  ";
+  const r = validateSurveyAnswers(SURVEY_QUESTIONS.map(() => padded));
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.equal(r.normalized[0].a, long);
+  }
+});
+
+test("원소가 non-string(예: null) → fail(too_short)", () => {
+  const a: unknown[] = six();
+  a[3] = null;
   assert.deepEqual(validateSurveyAnswers(a), { ok: false, reason: "too_short" });
 });
 

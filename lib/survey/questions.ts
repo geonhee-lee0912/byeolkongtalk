@@ -31,10 +31,14 @@ export function validateSurveyAnswers(answers: unknown): ValidateResult {
   const normalized: SurveyAnswer[] = [];
   for (let i = 0; i < SURVEY_QUESTIONS.length; i++) {
     const a = answers[i];
-    if (typeof a !== "string" || a.trim().length < SURVEY_MIN_CHARS) {
+    if (typeof a !== "string") {
       return { ok: false, reason: "too_short" };
     }
-    normalized.push({ q: SURVEY_QUESTIONS[i].text, a: a.trim() });
+    const trimmed = a.trim();
+    if (trimmed.length < SURVEY_MIN_CHARS) {
+      return { ok: false, reason: "too_short" };
+    }
+    normalized.push({ q: SURVEY_QUESTIONS[i].text, a: trimmed });
   }
   return { ok: true, normalized };
 }
