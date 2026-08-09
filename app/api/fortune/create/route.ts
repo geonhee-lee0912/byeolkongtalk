@@ -434,7 +434,12 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai || !saju?.temporal) {
-        await failGeneration(new Error("daily report parse failed"), "daily_parse");
+        await failGeneration(new Error("daily report parse failed"), "daily_parse", {
+          rawLen: report.length,
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
+          hasTemporal: !!saju?.temporal,
+        });
         return;
       }
       storedContent = serializeDailyReport(buildDailyReport(ai, saju.temporal));
@@ -450,7 +455,13 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai || !saju?.temporal) {
-        await failGeneration(new Error("monthly report parse failed"), "monthly_parse");
+        // 파싱 실패 원인 진단용 — 원문 앞/꼬리(구조·필드 누락·절단 여부가 드러남) + 길이 + temporal 유무.
+        await failGeneration(new Error("monthly report parse failed"), "monthly_parse", {
+          rawLen: report.length,
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
+          hasTemporal: !!saju?.temporal,
+        });
         return;
       }
       storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
@@ -466,7 +477,11 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai) {
-        await failGeneration(new Error("saju_full report parse failed"), "saju_full_parse");
+        await failGeneration(new Error("saju_full report parse failed"), "saju_full_parse", {
+          rawLen: report.length,
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
+        });
         return;
       }
       storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
@@ -482,7 +497,11 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai) {
-        await failGeneration(new Error("compat report parse failed"), "compat_parse");
+        await failGeneration(new Error("compat report parse failed"), "compat_parse", {
+          rawLen: report.length,
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
+        });
         return;
       }
       storedContent = serializeCompatReport(buildCompatReport(ai));
@@ -498,10 +517,11 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ai) {
-        // 파싱 실패 원인 진단용 — 원문 꼬리(마지막 필드/절단 여부가 드러남) + 길이.
+        // 파싱 실패 원인 진단용 — 원문 앞/꼬리(구조·필드 누락·절단 여부가 드러남) + 길이.
         await failGeneration(new Error("tarot report parse failed"), "tarot_parse", {
           rawLen: report.length,
-          rawTail: report.slice(-240),
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
         });
         return;
       }
