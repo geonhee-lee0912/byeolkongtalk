@@ -99,45 +99,46 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
         </p>
       )}
 
-      {/* 오행 한 줄 요약 */}
-      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-        {ELEMENTS.map((el) => {
-          const count = saju.elementCount[el];
-          const isMax = count === maxCount && maxCount > 0;
-          return (
-            <span
-              key={el}
-              className="inline-flex items-center gap-1 text-[12px]"
-            >
+      {/* 오행 요약 — 폭을 위 8자 판(300px)에 맞추고, 일간·음양은 아래 한 줄로 */}
+      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 max-w-[300px] mx-auto">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+          {ELEMENTS.map((el) => {
+            const count = saju.elementCount[el];
+            const isMax = count === maxCount && maxCount > 0;
+            return (
               <span
-                className={`inline-flex w-5 h-5 rounded items-center justify-center text-[11px] font-bold ${
-                  isMax ? "ring-1 ring-eye-purple/40" : ""
-                }`}
-                style={{
-                  backgroundColor: ELEMENT_COLORS[el].bg,
-                  color: ELEMENT_COLORS[el].text,
-                }}
+                key={el}
+                className="inline-flex items-center gap-1 text-[12px]"
               >
-                {el}
+                <span
+                  className={`inline-flex w-5 h-5 rounded items-center justify-center text-[11px] font-bold ${
+                    isMax ? "ring-1 ring-eye-purple/40" : ""
+                  }`}
+                  style={{
+                    backgroundColor: ELEMENT_COLORS[el].bg,
+                    color: ELEMENT_COLORS[el].text,
+                  }}
+                >
+                  {el}
+                </span>
+                <span className={isMax ? "font-bold text-eye-purple" : "text-text-light"}>
+                  {count}
+                </span>
               </span>
-              <span className={isMax ? "font-bold text-eye-purple" : "text-text-light"}>
-                {count}
-              </span>
-            </span>
-          );
-        })}
+            );
+          })}
+        </div>
         {showDetail && (
-          <>
-            <span className="text-lilac-mid/60 mx-0.5">·</span>
-            <span className="text-[12px] text-text-light">
+          <div className="flex items-center justify-center gap-x-2 mt-2 text-[12px] text-text-light">
+            <span>
               일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
               ({saju.dayElement})
             </span>
-            <span className="text-lilac-mid/60 mx-0.5">·</span>
-            <span className="text-[12px] text-text-light">
+            <span className="text-lilac-mid/60">·</span>
+            <span>
               양 {saju.yinYangCount.yang} · 음 {saju.yinYangCount.yin}
             </span>
-          </>
+          </div>
         )}
       </div>
     </div>

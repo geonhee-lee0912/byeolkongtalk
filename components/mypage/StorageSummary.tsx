@@ -1,5 +1,5 @@
-// components/mypage/StorageSummary.tsx — 마이 "내 보관함" 종목별 요약 2×2 그리드.
-// 탭 → /readings?tab=<종목> (해당 칩 선택된 채 보관함 진입).
+// components/mypage/StorageSummary.tsx — 마이 "보관함" 종목별 요약을 한 박스 가로 4분할로.
+// 각 칸 탭 → /readings?tab=<종목>. 시안 3: [아이콘 + 개수] 한 줄, 라벨 아래.
 import Link from "next/link";
 import type { ReadingCategory } from "@/lib/readings/category";
 
@@ -16,26 +16,25 @@ const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
 
 export default function StorageSummary({ counts }: StorageSummaryProps) {
   return (
-    <div className="grid grid-cols-2 gap-2.5">
-      {ITEMS.map((item) => (
+    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] px-1 py-3">
+      {ITEMS.map((item, i) => (
         <Link
           key={item.key}
           href={`/readings?tab=${item.key}`}
-          className="flex items-center gap-2.5 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+          className={`flex-1 flex flex-col items-center text-center px-1 ${
+            i > 0 ? "border-l border-lilac-mid/15" : ""
+          }`}
         >
-          <span
-            className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center text-[15px]"
-            aria-hidden
-          >
-            {item.icon}
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-[12px] text-eye-purple font-medium truncate">
-              {item.label}
+          <span className="flex items-center justify-center gap-1.5">
+            <span className="text-[15px]" aria-hidden>
+              {item.icon}
             </span>
-            <span className="block text-[16px] text-eye-purple font-bold leading-tight">
+            <span className="text-[18px] font-bold text-eye-purple leading-none">
               {counts[item.key]}
             </span>
+          </span>
+          <span className="mt-1.5 text-[10.5px] text-text-light font-medium whitespace-nowrap">
+            {item.label}
           </span>
         </Link>
       ))}

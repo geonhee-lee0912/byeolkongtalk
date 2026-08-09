@@ -6,26 +6,15 @@ import Link from "next/link";
 import Image from "next/image";
 import Footer from "@/components/layout/Footer";
 import StorageSummary from "@/components/mypage/StorageSummary";
-import SajuProfileModal from "@/components/mypage/SajuProfileModal";
-import type { SajuResult } from "@/lib/saju/calc";
+import SajuBoard from "@/components/saju/SajuBoard";
+import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
+import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
+import { type ProfileItem } from "@/components/mypage/sajuShared";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
   isAuthenticated: boolean;
-}
-
-interface ProfileItem {
-  id: string;
-  displayName: string;
-  relationType: "self" | "family" | "friend" | "partner" | "other";
-  birthDate: string | null; // P2: 생일 없는 프로필 가능
-  birthTime: string | null;
-  isLunarInput: boolean;
-  isLeapMonth: boolean;
-  gender: "male" | "female" | "other";
-  isPrimary: boolean;
-  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
 }
 
 // /api/readings 응답 항목 — 종목 집계(readingCategory)에 필요한 필드만 선언.
@@ -43,7 +32,8 @@ export default function MyPage() {
   const [withdrawAck, setWithdrawAck] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
-  const [showSajuModal, setShowSajuModal] = useState(false);
+  const [showSelfEdit, setShowSelfEdit] = useState(false);
+  const [showAcqModal, setShowAcqModal] = useState(false);
   const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
   const [relationshipCount, setRelationshipCount] = useState(0);
   const [readings, setReadings] = useState<ReadingListItem[]>([]);
@@ -166,7 +156,7 @@ export default function MyPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
               {me.user.profile_img ? (
@@ -198,45 +188,86 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 내 보관함 — 종목별 요약 4카드 (별 잔액과 사주판 사이) */}
+      {/* 보관함 — 종목별 요약 (한 박스 가로 4분할) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
+        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
+          <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+          보관함
+        </div>
         <StorageSummary counts={counts} />
       </div>
 
-      {/* 내 사주 요약 — 상세 편집·지인 관리는 모달에서 */}
+      {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 flex items-center justify-between gap-3">
-          <div className="text-[12px] text-text-light">
-            {self?.saju ? (
-              <>
-                <span className="font-bold text-eye-purple">
-                  {self.saju.pillars.day.stem}
-                  {self.saju.pillars.day.branch}
-                </span>{" "}
-                일주
-              </>
-            ) : (
-              "생일 미입력"
-            )}
-            <span className="mx-1.5 text-lilac-mid/60">·</span>
-            지인 {acquaintanceCount}명
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-eye-purple flex items-center">
+            <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+            내 사주
           </div>
-          <button
-            onClick={() => setShowSajuModal(true)}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
-          >
-            관리
-          </button>
+          {self?.saju && (
+            <button
+              onClick={() => setShowSelfEdit(true)}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
+            >
+              수정
+            </button>
+          )}
         </div>
+
+        {self?.saju ? (
+          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 py-4">
+            <SajuBoard saju={self.saju} />
+          </div>
+        ) : (
+          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 px-4 py-6 text-center">
+            <p className="text-[12px] text-text-light/70 mb-3">
+              {self
+                ? "생일을 알려주면 사주도 보여줄게."
+                : "아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘."}
+            </p>
+            <button
+              onClick={() => setShowSelfEdit(true)}
+              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+            >
+              {self ? "생일 추가하기" : "내 사주 입력하기"}
+            </button>
+          </div>
+        )}
+
+        {/* 지인 사주 → 팝업 */}
+        <button
+          onClick={() => setShowAcqModal(true)}
+          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+        >
+          <span
+            className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center text-[15px]"
+            aria-hidden
+          >
+            👥
+          </span>
+          <span className="flex-1 text-left text-[14px] text-eye-purple font-medium">
+            지인 사주 <span className="text-text-light">{acquaintanceCount}명</span>
+          </span>
+          <span className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold">
+            관리
+          </span>
+        </button>
       </div>
 
-      {showSajuModal && (
-        <SajuProfileModal
-          profiles={profiles}
-          relationshipProfileIds={relationshipProfileIds}
+      {showSelfEdit && (
+        <SelfSajuEditModal
+          self={self}
           selfDisplayName={me.user.nickname}
           onReload={reloadProfiles}
-          onClose={() => setShowSajuModal(false)}
+          onClose={() => setShowSelfEdit(false)}
+        />
+      )}
+      {showAcqModal && (
+        <AcquaintanceListModal
+          profiles={profiles}
+          relationshipProfileIds={relationshipProfileIds}
+          onReload={reloadProfiles}
+          onClose={() => setShowAcqModal(false)}
         />
       )}
 

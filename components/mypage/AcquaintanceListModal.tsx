@@ -1,91 +1,32 @@
 "use client";
 
-// 사주 프로필 관리 모달 (T5, 마이/보관함 재설계) — 원래 app/mypage/page.tsx 에 인라인으로
-// 펼쳐져 있던 "내 명식 편집 + 지인 사주 CRUD"를 그대로 옮긴 것. profiles/relationshipProfileIds
-// 는 mypage 가 이미 fetch 해 두므로 props 로 받고, 변경 후에는 onReload 로 mypage 의
-// profiles state 를 갱신한다(마이페이지 요약 카드도 함께 최신화되도록).
-
+// 지인 사주 팝업 — 원래 SajuProfileModal 의 "지인 사주" 파트(목록·추가/수정·케밥·삭제확인·
+// 페이지네이션)를 분리. 명식(self) 편집은 SelfSajuEditModal 이 담당.
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import SajuBoard from "@/components/saju/SajuBoard";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
-import type { SajuResult } from "@/lib/saju/calc";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
+import {
+  type ProfileItem,
+  RELATION_LABEL,
+  birthTimeToSijin,
+  toInitial,
+} from "@/components/mypage/sajuShared";
 
-interface ProfileItem {
-  id: string;
-  displayName: string;
-  relationType: "self" | "family" | "friend" | "partner" | "other";
-  birthDate: string | null; // P2: 생일 없는 프로필 가능
-  birthTime: string | null;
-  isLunarInput: boolean;
-  isLeapMonth: boolean;
-  gender: "male" | "female" | "other";
-  isPrimary: boolean;
-  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
-}
-
-interface SajuProfileModalProps {
+interface AcquaintanceListModalProps {
   profiles: ProfileItem[];
   relationshipProfileIds: string[];
-  /** self 프로필 신규 생성 시 이름 기본값(계정 닉네임) — ProfileForm mode="self" 용 */
-  selfDisplayName: string;
   onReload: () => Promise<void>;
   onClose: () => void;
 }
 
-const RELATION_LABEL: Record<string, string> = {
-  family: "가족",
-  friend: "친구",
-  partner: "연인",
-  other: "기타",
-};
-
-// HH:MM → HOUR_BRANCHES 시작 hour (prefill용). null이면 null(시간 모름).
-// app/mypage/page.tsx 의 동명 로컬 함수와 동일 로직 — export 안 돼 있어 최소 복제.
-function birthTimeToBranchHour(t: string | null): number | null {
-  if (!t) return null;
-  const h = Number(t.slice(0, 2));
-  // 자시 23-01 → 0, 이후 2시간 단위. 23시는 자시(0)로.
-  if (h === 23) return 0;
-  return h - (h % 2);
-}
-
-// 12시진 (자시 23~01 시작). 인덱스 0 = 자시.
-// app/mypage/page.tsx 의 동명 로컬 상수·함수와 동일 로직 — export 안 돼 있어 최소 복제.
-const SIJIN = [
-  { name: "자시", range: "23~01" },
-  { name: "축시", range: "01~03" },
-  { name: "인시", range: "03~05" },
-  { name: "묘시", range: "05~07" },
-  { name: "진시", range: "07~09" },
-  { name: "사시", range: "09~11" },
-  { name: "오시", range: "11~13" },
-  { name: "미시", range: "13~15" },
-  { name: "신시", range: "15~17" },
-  { name: "유시", range: "17~19" },
-  { name: "술시", range: "19~21" },
-  { name: "해시", range: "21~23" },
-];
-
-// HH:MM → "미시 (13~15시)". null이면 null(시간 모름).
-function birthTimeToSijin(t: string | null): string | null {
-  if (!t) return null;
-  const h = Number(t.slice(0, 2));
-  const idx = h === 23 ? 0 : Math.floor((h + 1) / 2) % 12;
-  const s = SIJIN[idx];
-  return `${s.name} (${s.range}시)`;
-}
-
-export default function SajuProfileModal({
+export default function AcquaintanceListModal({
   profiles,
   relationshipProfileIds,
-  selfDisplayName,
   onReload,
   onClose,
-}: SajuProfileModalProps) {
+}: AcquaintanceListModalProps) {
   const [savingProfile, setSavingProfile] = useState(false);
-  const [editingSelf, setEditingSelf] = useState(false);
   const [showAddAcq, setShowAddAcq] = useState(false);
   const [editAcqId, setEditAcqId] = useState<string | null>(null);
   const [deleteAcqId, setDeleteAcqId] = useState<string | null>(null);
@@ -94,7 +35,7 @@ export default function SajuProfileModal({
   const [sheetId, setSheetId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 배경 스크롤 잠금 — 마운트 동안 유지 (ProfileEditModal.tsx 와 동일 패턴)
+  // 배경 스크롤 잠금
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -103,7 +44,6 @@ export default function SajuProfileModal({
     };
   }, []);
 
-  const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintances = profiles.filter((p) => !p.isPrimary);
 
   const LIST_PAGE_SIZE = 3;
@@ -113,25 +53,6 @@ export default function SajuProfileModal({
     safeListPage * LIST_PAGE_SIZE,
     safeListPage * LIST_PAGE_SIZE + LIST_PAGE_SIZE
   );
-
-  const saveSelf = async (payload: ProfilePayload) => {
-    setSavingProfile(true);
-    try {
-      const url = self ? `/api/profiles/${self.id}` : "/api/profiles";
-      const method = self ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        await onReload();
-        setEditingSelf(false);
-      }
-    } finally {
-      setSavingProfile(false);
-    }
-  };
 
   const saveAcquaintance = async (payload: ProfilePayload, editId: string | null) => {
     setSavingProfile(true);
@@ -162,20 +83,6 @@ export default function SajuProfileModal({
     }
   };
 
-  // birthDate 없는 프로필은 미리 채울 값이 없음 — 폼을 빈 상태로 시작(undefined)
-  const toInitial = (p: ProfileItem) =>
-    p.birthDate
-      ? {
-          year: Number(p.birthDate.slice(0, 4)),
-          month: Number(p.birthDate.slice(5, 7)),
-          day: Number(p.birthDate.slice(8, 10)),
-          hour: birthTimeToBranchHour(p.birthTime),
-          isLunar: p.isLunarInput,
-          isLeapMonth: p.isLeapMonth,
-          gender: p.gender,
-        }
-      : undefined;
-
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -191,7 +98,7 @@ export default function SajuProfileModal({
         >
           {/* 헤더 */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
-            <h2 className="text-[15px] font-bold text-eye-purple">사주 프로필 관리</h2>
+            <h2 className="text-[15px] font-bold text-eye-purple">지인 사주</h2>
             <button
               onClick={onClose}
               aria-label="닫기"
@@ -201,82 +108,15 @@ export default function SajuProfileModal({
             </button>
           </div>
 
-          {/* 내 명식 */}
-          <div className="pb-5">
-            <div className="px-5 text-[12px] font-bold text-eye-purple mb-3 flex items-center">
-              <span className="inline-block w-[7px] h-[7px] rounded-full bg-gold mr-1.5" aria-hidden />
-              내 명식
-            </div>
-            {self && !editingSelf ? (
-              self.saju ? (
-                <div>
-                  <SajuBoard saju={self.saju} showDetail={false} />
-                  <button
-                    onClick={() => setEditingSelf(true)}
-                    className="mx-auto mt-3 block text-[12px] text-lilac-deep font-bold underline"
-                  >
-                    수정
-                  </button>
-                </div>
-              ) : (
-                <div className="px-5 text-center">
-                  <p className="text-[12px] text-text-light/70 mb-3">
-                    생일을 알려주면 사주도 보여줄게.
-                  </p>
-                  <button
-                    onClick={() => setEditingSelf(true)}
-                    className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
-                  >
-                    생일 추가하기
-                  </button>
-                </div>
-              )
-            ) : editingSelf ? (
-              <div>
-                <ProfileForm
-                  mode="self"
-                  initial={self ? toInitial(self) : undefined}
-                  defaultSelfName={selfDisplayName}
-                  submitLabel="저장하기"
-                  loading={savingProfile}
-                  onSubmit={saveSelf}
-                />
-                <button
-                  onClick={() => setEditingSelf(false)}
-                  className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
-                >
-                  취소
-                </button>
-              </div>
-            ) : (
-              <div className="px-5 text-center">
-                <p className="text-[12px] text-text-light/70 mb-3">
-                  아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘.
-                </p>
-                <button
-                  onClick={() => setEditingSelf(true)}
-                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
-                >
-                  내 사주 입력하기
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="h-px bg-lilac-mid/20 mx-5" />
-
-          {/* 지인 사주 */}
-          <div className="px-5 py-5">
+          <div className="px-5 pb-5">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-[12px] font-bold text-eye-purple flex items-center">
-                <span className="inline-block w-[7px] h-[7px] rounded-full bg-gold mr-1.5" aria-hidden />
-                지인 사주
-                <span className="ml-1 text-text-light/60 font-normal">{acquaintances.length}</span>
+              <div className="text-[12px] font-bold text-eye-purple">
+                전체 <span className="text-text-light/60 font-normal">{acquaintances.length}</span>
               </div>
               {!showAddAcq && !editAcqId && (
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="text-[11px] text-lilac-deep font-bold underline mr-2"
+                  className="text-[11px] text-lilac-deep font-bold underline"
                 >
                   + 지인 추가
                 </button>
@@ -317,6 +157,10 @@ export default function SajuProfileModal({
                   취소
                 </button>
               </div>
+            )}
+
+            {(showAddAcq || editAcqId) && acquaintances.length > 0 && (
+              <div className="h-px bg-lilac-mid/20 mb-3" />
             )}
 
             {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
@@ -473,7 +317,7 @@ export default function SajuProfileModal({
         </div>
       )}
 
-      {/* 지인 삭제 확인 모달 */}
+      {/* 지인 삭제 확인 모달 (연애 상담 사용 중이면 경고 체크 게이트) */}
       {deleteAcqId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-5">
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
