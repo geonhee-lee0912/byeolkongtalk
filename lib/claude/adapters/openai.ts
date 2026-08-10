@@ -32,7 +32,9 @@ export const openaiAdapter: ProviderAdapter = {
       // openai@7.4 타입 확인: max_tokens 는 "not compatible with o-series models" 로 명시됨.
       max_completion_tokens: maxTokens,
       // 별콩이는 thinking OFF 상당 → reasoning 최소화(anthropic 어댑터의 thinking:disabled 와 대응).
-      reasoning_effort: "minimal",
+      // ⚠️ 값은 모델별로 다르다(계정 실호출 확인): gpt-5-mini/nano 는 "minimal"·"low" 만, gpt-5.6-luna
+      //   는 "none"·"low" 만 지원("minimal"→400). 셋 다 되는 유일한 값이 "low" 라 이걸 쓴다.
+      reasoning_effort: "low",
       stream: true,
       messages: [{ role: "system", content: system }, ...messages],
     });
