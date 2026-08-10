@@ -4,21 +4,22 @@
 
 **Goal:** 운세 유료 리포트의 분량이 정가에 비례하도록(역전 제거) — 싼 궁합(1,778자)·좋은날(~1,000자)을 monthly(2,990자) 수준 이상으로 레벨업.
 
-**Architecture:** 리포트 길이는 `lib/fortune/prompt.ts`의 `SECTION_GUIDE[type]` 안 **필드별 문장 수 지시**가 유일하게 제어한다(페르소나 "600~900자"는 모순·무시됨, max_tokens는 넉넉, 파서엔 길이캡 없음). 따라서 **필드별 문장 수를 상향**하는 프롬프트 편집만으로 분량이 오른다 — 파서/렌더러/타입/스키마·max_tokens 전부 무변경(필드 추가만 그쪽으로 번지므로 필드는 추가하지 않는다. good_days만 마크다운이라 섹션 1개 추가 허용).
+**Architecture:** 리포트 길이는 `lib/fortune/prompt.ts`의 `SECTION_GUIDE[type]` 안 **필드별 문장 수 지시**가 유일하게 제어한다(페르소나 "600~900자"는 모순·무시, `MAX_TOKENS_BY_FORTUNE`·파서 캡 여유). 주 레버 = **필드별 문장 수·분석 깊이 상향(파서/렌더러/타입 무변경)** + 페르소나 캡 정합화. 목표는 **타로톡 총출력 정합 + 원샷 프리미엄**(스펙 §2). QA 실측이 목표 미달 + 문장수로는 물타기뿐이면 **그 리포트에 분석 차원 1개 추가**(파서/타입/렌더러/테스트 동반). good_days는 마크다운이라 섹션 추가가 파서 무관(자유).
 
 **Tech Stack:** Next 16 App Router · 운세 리포트 = 구조화 JSON(daily/monthly/saju_full/compat/compat_social) + good_days 마크다운 · 모델 sonnet 유지(유료, `fortuneModel`) · 프롬프트 파일 `lib/fortune/prompt.ts` + 페르소나 `data/persona/byeolkong_fortune.md` · 검증은 QA 하네스 없음 → 직접 프로브.
 
-**목표 분량 (총 산문 글자수, QA 견인 숫자 — 도달 아닌 baseline 대비 증가율·역전 해소로 판정):**
+**목표 분량 (총 산문 글자수 — 타로톡 총출력 정합 + 원샷 프리미엄, 스펙 §2 확정):**
 
 | 리포트 | 정가 | 현 실측 | 목표 |
 |---|---|---|---|
-| monthly | 20 | ~2,990 | **유지**(바닥, 무변경) |
-| compat_social | 35 | ~1,600 | ~2,800~3,200 |
-| good_days | 35 | ~1,000 | ~2,600~3,200 |
-| compat | 40 | ~1,778 | ~3,000~3,400 |
-| saju_full | 60 | ~4,500~5,500 | ~5,500~6,500 (완만) |
+| 오늘의 운세 (무료) | 0 | ~1,700 | 유지(얇게·바닥, 무변경) |
+| monthly | 20 | ~2,990 | 3,000~3,400 |
+| compat_social | 35 | ~1,600 | 3,600~4,000 |
+| good_days | 35 | ~1,000 | 3,600~4,000 |
+| compat | 40 | ~1,778 | 3,900~4,300 |
+| saju_full | 60 | ~5,000 | 6,000~6,800 |
 
-> ⚠️ LLM은 문장수 지시를 약하게 따른다(타로 스펙 실측: 목표의 ~80%에 앉음). 숫자는 상향 견인용. 판정은 **역전 해소 + baseline 대비 증가**로, 목표 정확 도달로 하지 말 것.
+> ⚠️ LLM은 문장수 지시를 약하게 따른다(타로 실측: 목표의 ~80%에 앉음). 숫자는 견인용 — 판정은 **역전 해소 + baseline 대비 증가**로. 문장수만으로 목표 미달·물타기면 **분석 차원 1개 추가**(그 리포트만). **오늘의 운세(무료)는 사다리 제외**(스펙 §2: 유료 바닥 방어 + 데일리 UX).
 
 ---
 
@@ -28,7 +29,7 @@
 - `lib/fortune/prompt.ts` — `SECTION_GUIDE`의 compat/compat_social/good_days/saju_full 필드별 문장 수 상향. monthly·daily·tarot_* 무변경.
 - `lib/prompt-version.ts` — 새 dated 슬러그(코호트 분리).
 - `scripts/fortune-length-probe.ts` — **신규(임시 재현 자산)**. 유료 리포트별 산문 글자수 실측.
-- **무변경:** 리포트 파서(`*-report.ts`)·렌더러·타입·JSON 스키마 필드 구성·`MAX_TOKENS_BY_FORTUNE`(이미 넉넉).
+- **기본 무변경:** 리포트 파서(`*-report.ts`)·렌더러·타입·`MAX_TOKENS_BY_FORTUNE`(이미 넉넉). **단** 문장수만으로 목표 미달+물타기인 리포트는 분석 필드 1개 추가 시 그 리포트의 파서/타입/렌더러/테스트 동반(QA가 결정).
 
 ---
 
@@ -140,21 +141,27 @@ Expected: 에러 0 (md·상수 변경이라 무관하지만 관례).
 `이건 두 사람 사주를 깊이 들여다보는 프리미엄 궁합 분석이야 — 각 항목을 충분히 깊고 구체적으로 풀어. 짧게 끊지 말 것.`,
 ```
 그리고 스키마 필드 문장수 교체:
-- `"summary": "<... 3~4문장.>"` → `4~5문장`
-- `"chemistry": "<... 5~6문장.>"` → `8~9문장`
-- `"attraction": "<... 4~5문장.>"` → `6~7문장`
-- `"conflict": "<... 4~5문장.>"` → `6~7문장`
-- `"longterm": "<... 4~5문장.>"` → `6~7문장`
-- `"note": "<... 2~3문장.>"` → `3~4문장`
+- `"summary": "<... 3~4문장.>"` → `5~6문장`
+- `"chemistry": "<... 5~6문장.>"` → `9~11문장`
+- `"attraction": "<... 4~5문장.>"` → `7~8문장`
+- `"conflict": "<... 4~5문장.>"` → `7~8문장`
+- `"longterm": "<... 4~5문장.>"` → `7~8문장`
+- `"note": "<... 2~3문장.>"` → `4~5문장`
 (grade·theme·advice[3] 무변경 — 배열 길이·enum 그대로.)
 
 - [ ] **Step 2: compat_social 동일 상향** — `SECTION_GUIDE.compat_social`에 같은 깊이 지시 라인 삽입 + summary 3~4→4~5 · chemistry 5~6→8~9 · attraction 4~5→6~7 · conflict 4~5→6~7 · longterm 4~5→6~7 · note 2~3→3~4. (연애·이성 표현 금지 규칙은 그대로.)
 
 - [ ] **Step 3: tsc** — Run: `npx tsc --noEmit` — Expected: 에러 0.
 
-- [ ] **Step 4: 실측** — dev 서버 재기동(프롬프트 = 모듈 캐시) 후 `npx tsx scripts/fortune-length-probe.ts`. Expected: compat ~2,800~3,400 · compat_social ~2,600~3,200. 미달이면 문장수 +1~2 재상향, 초과·패딩 느낌이면 -1. 육안으로 "물타기 아님" 확인.
+- [ ] **Step 4: 실측** — dev 서버 재기동(프롬프트 = 모듈 캐시) 후 `npx tsx scripts/fortune-length-probe.ts`. Expected: **compat ~3,900~4,300 · compat_social ~3,600~4,000**(스펙 §2, 타로 총출력+프리미엄). 문장수 상향만으로 도달+물타기 아니면 OK. **미달인데 문장을 더 늘리면 물타기가 되면 → Step 4b(분석 필드 추가).**
 
-- [ ] **Step 5: 커밋** — `git add lib/fortune/prompt.ts && git commit -m "feat(fortune): compat·compat_social 필드 문장수 상향 (가성비 역전 해소)"`
+- [ ] **Step 4b (조건부): 분석 필드 추가** — Step 4가 문장수로 목표 미달 + 물타기면 compat·compat_social **둘 다**에 필드 1개 추가(수직 슬라이스):
+  - `SECTION_GUIDE.compat`·`.compat_social` 스키마에 `"growth": "<관계 성장 포인트: 시간이 지나며 서로 배우고 채워주는 것, 이 관계가 각자를 어떻게 키우는지. 6~7문장.>"` 추가 (longterm 뒤).
+  - `CompatReportAI`(`lib/fortune/compat-report.ts`)에 `growth: string;` + `parseCompatReportJson`에 `if (!isNonEmptyString(o.growth)) return null;` + 반환 객체에 `growth: o.growth.trim(),`.
+  - 렌더러(compat 결과 화면)에 growth 섹션 추가 + `compat-report.test.ts` fixture에 growth 필드.
+  - 재실측 → 목표 도달 확인.
+
+- [ ] **Step 5: 커밋** — `git add lib/fortune/prompt.ts lib/fortune/compat-report.ts && git commit -m "feat(fortune): compat·compat_social 분량 상향 (가성비 역전 해소, 타로 정합)"`
 
 ---
 
@@ -165,9 +172,9 @@ Expected: 에러 0 (md·상수 변경이라 무관하지만 관례).
 
 - [ ] **Step 1: good_days 섹션 심화 + 1섹션 추가** — good_days는 마크다운이라 섹션 추가가 파서 무관(그대로 렌더). 편집:
 - 첫 지시 다음 줄에 삽입: `` `이건 35별짜리 리포트야 — 각 섹션을 넉넉하고 구체적으로. 짧게 끊지 말 것.`, ``
-- `## 지금 흐름` 본문 `3~4문장` → `5~6문장`
-- `## 좋은 날` `좋은 날 3~5개 ... 한두 문장으로` → `좋은 날 5~7개 ... 날짜마다 2~3문장으로(그날 기운 + 이 사람에게 왜 좋은지 + 뭘 하면 좋은지)`
-- `## 조심할 날` `1~2개 ... 한두 문장` → `2~3개 ... 날짜마다 2문장`
+- `## 지금 흐름` 본문 `3~4문장` → `6~8문장`
+- `## 좋은 날` `좋은 날 3~5개 ... 한두 문장으로` → `좋은 날 6~8개 ... 날짜마다 3~4문장으로(그날 기운 + 이 사람에게 왜 좋은지 + 뭘 하면 좋은지)`
+- `## 조심할 날` `1~2개 ... 한두 문장` → `3~4개 ... 날짜마다 2~3문장`
 - **새 섹션 추가** (`## 조심할 날` 블록과 `## 별콩이의 한마디` 사이):
 ```
 ``,
@@ -179,7 +186,7 @@ Expected: 에러 0 (md·상수 변경이라 무관하지만 관례).
 
 - [ ] **Step 2: 렌더러 확인** — good_days 마크다운 렌더러가 `##` 섹션을 동적으로 렌더하는지 확인(고정 섹션명 하드코딩이면 새 섹션이 안 보임). Run: `grep -rn "지금 흐름\|좋은 날\|조심할 날" app components --include=*.tsx`. 하드코딩된 섹션 화이트리스트가 있으면 새 섹션명 추가, 없으면(동적 `##` 파싱) 무변경.
 
-- [ ] **Step 3: 실측** — dev 재기동 후 프로브. Expected: good_days ~2,600~3,200. 미달이면 좋은 날 개수/문장수 상향.
+- [ ] **Step 3: 실측** — dev 재기동 후 프로브. Expected: good_days ~3,600~4,000(스펙 §2). ⚠️ good_days는 날짜-픽 리포트라 콘텐츠 상한이 낮을 수 있음 — 물타기 없이 도달 안 되면 ~3,000 수용 or `## 주별 흐름`(향후 4주) 섹션 추가로 보강.
 
 - [ ] **Step 4: 커밋** — `git add lib/fortune/prompt.ts && git commit -m "feat(fortune): good_days 섹션 심화 + 활용법 섹션 (가성비)"`
 
@@ -200,7 +207,7 @@ Expected: 에러 0 (md·상수 변경이라 무관하지만 관례).
 - `note` `2~3문장` → `3~4문장`
 (lucky·timing·actions[3] 무변경.)
 
-- [ ] **Step 2: tsc + 실측** — `npx tsc --noEmit` (에러 0) → dev 재기동 → 프로브. Expected: saju_full ~5,500~6,500. 이미 상한(모델 순응·가독성) 근처라 목표 근접만 확인, 과도하면 -1.
+- [ ] **Step 2: tsc + 실측** — `npx tsc --noEmit` (에러 0) → dev 재기동 → 프로브. Expected: saju_full ~6,000~6,800(스펙 §2). 이미 가장 깊어 목표 근접만 확인, 과도·물타기면 -1.
 
 - [ ] **Step 3: 커밋** — `git add lib/fortune/prompt.ts && git commit -m "feat(fortune): saju_full 완만 심화"`
 
@@ -208,7 +215,7 @@ Expected: 에러 0 (md·상수 변경이라 무관하지만 관례).
 
 ## Task 6: 전체 사다리 확인 + 품질 스팟체크
 
-- [ ] **Step 1: 전체 재실측** — `npx tsx scripts/fortune-length-probe.ts`. Expected: **역전 해소** = good_days·compat_social·compat 이 monthly(2,990) 이상, saju_full 최대. 대략 monthly 2,990 ≤ compat_social ~3,000 ≤ compat ~3,200 ≤ saju_full ~6,000.
+- [ ] **Step 1: 전체 재실측** — `npx tsx scripts/fortune-length-probe.ts`. Expected: **역전 해소 + 정가비례 사다리**. 대략 monthly ~3,200 ≤ 35별(compat_social·good_days) ~3,800 ≤ compat ~4,100 ≤ saju_full ~6,400. 오늘의 운세(무료)는 미변경(~1,700, 바닥).
 
 - [ ] **Step 2: 품질 육안** — 프로브가 찍은 각 리포트 원문을 읽어 **밀도로 길어졌는지**(구체적 사주 근거·항목별 다른 내용) vs 물타기(반복·미사여구)인지 확인. 물타기면 해당 필드 지시에 "구체적 근거로 채우고 반복 금지" 강조 + 문장수 소폭 하향.
 
