@@ -46,7 +46,18 @@ async function main() {
   for (const s of SITUATIONS) {
     // 상황의 관계로 상대 등록(관계당 하나라 매 상황 초기화 후 재등록).
     await resetRelationship();
-    const reg = await postJson<{ id?: string }>("/api/relationship", { label: "QA상대", status: s.relationship as RelationshipStatus });
+    await postJson("/api/relationship/slot", {}); // 슬롯 게이트 대응(관계 생성 전 슬롯 구매)
+    // sim 은 상대 프로필로 인형을 빚음 → partner 프로필 inline 생성(no_profile 게이트 통과).
+    const reg = await postJson<{ id?: string }>("/api/relationship", {
+      label: "QA상대",
+      status: s.relationship as RelationshipStatus,
+      partnerProfile: {
+        displayName: "QA상대", gender: "male",
+        birthDate: "1994-03-20", birthTime: null,
+        isLunarInput: false, isLeapMonth: false,
+        mbti: "ENFP", personality: "따뜻하고 다정하지만 가끔 무심한 편",
+      },
+    });
     const relationshipId = reg.json.id!;
     const create = await postStream("/api/relationship/sim", { relationshipId, situationId: s.id, userContext: "" });
     const sim = JSON.parse(create.text) as { simReadingId?: string; frame?: string };
