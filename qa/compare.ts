@@ -1,13 +1,15 @@
-// qa/compare.ts — 기준선 런 vs 후보 런의 대응 케이스를 턴별 pairwise 로 비교해 후보 승률을 낸다.
+// qa/compare.ts — 기준선 런 vs 후보 런을 "전체 대화" 단위로 pairwise 비교해 후보 승률을 낸다.
 // 사용: node --import tsx --env-file=.env.local qa/compare.ts <baseline_out_dir> <candidate_out_dir>
-//   (예) node --import tsx --env-file=.env.local qa/compare.ts qa/out/2026-08-10T... qa/out/2026-08-10T...
 //
 // 두 디렉토리는 qa/run.ts 가 케이스마다 저장한 <caseId>.json(=CaseResult) 들을 담는다.
 // report.ts 에 로더가 없어(쓰기 전용) 여기서 JSON 을 직접 로드한다.
+// ⚠️ 시뮬레이터가 reactive 라 두 런의 대화는 턴별로 갈라진다 → 턴별 비교(옛 방식)는 후보를 baseline
+//   문맥으로 판정해 일괄 불리해졌다(캘리브레이션에서 실측: 품질 정반대인 후보 2종이 똑같이 ~17%).
+//   그래서 케이스별 '전체 대화'를 통째로 넣어 어느 쪽이 더 별콩이다운지 판정한다.
 import { readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { pairwise } from "./evaluate/pairwise.ts";
-import type { CaseResult } from "./types.ts";
+import { pairwiseConversation } from "./evaluate/pairwise.ts";
+import type { CaseResult, Transcript } from "./types.ts";
 
 /** 한 런 디렉토리의 모든 <caseId>.json 을 caseId → CaseResult 로 로드(summary.md 제외). */
 function loadDir(dir: string): Map<string, CaseResult> {
@@ -21,6 +23,13 @@ function loadDir(dir: string): Map<string, CaseResult> {
 }
 
 const assertFails = (r: CaseResult): number => r.assertions.filter((a) => !a.pass).length;
+
+/** 트랜스크립트를 심판용 텍스트로 렌더. */
+function renderConvo(t: Transcript): string {
+  return t.turns
+    .map((x, i) => `[턴${i + 1} 유저] ${x.userText}\n[턴${i + 1} 별콩이] ${x.assistantText}`)
+    .join("\n\n");
+}
 
 async function main() {
   const [baselineDir, candidateDir] = process.argv.slice(2);
@@ -38,53 +47,59 @@ async function main() {
   }
 
   const lines: string[] = [
-    "# pairwise 비교 (기준선 vs 후보)",
+    "# pairwise 비교 (기준선 vs 후보, 전체 대화 단위)",
     "",
     `- 기준선: \`${baselineDir}\``,
     `- 후보: \`${candidateDir}\``,
-    "- ⚠️ 턴>0 은 시뮬레이터가 각 응답에 반응해 대화가 갈라진다 — 유저 발화는 기준선 것을 문맥으로 쓴다",
-    "  (후보의 실제 문맥과 다를 수 있음). 캘리브레이션·해석 시 감안할 것.",
+    "- 케이스별로 '전체 대화'를 통째로 Opus 에 넣어 어느 쪽이 더 별콩이다운지 판정(턴 정렬 안 함).",
     "",
-    "| 케이스 | 턴 | 후보승 | 기준선승 | tie | 후보승률 | 단언실패(기준선/후보) |",
-    "|---|---|---|---|---|---|---|",
+    "| 케이스 | 턴(기준/후보) | 승자 | 단언실패(기준/후보) | 근거 |",
+    "|---|---|---|---|---|",
   ];
 
-  let totCand = 0, totBase = 0, totTie = 0, totTurns = 0;
+  let cw = 0, bw = 0, tie = 0, skipped = 0;
   for (let ci = 0; ci < caseIds.length; ci++) {
     const id = caseIds[ci];
     const b = base.get(id)!;
     const c = cand.get(id)!;
-    const n = Math.min(b.transcript.turns.length, c.transcript.turns.length);
-    let cw = 0, bw = 0, tie = 0;
-    for (let ti = 0; ti < n; ti++) {
-      const { winner } = await pairwise(
-        b.transcript.turns[ti].userText,
-        b.transcript.turns[ti].assistantText,
-        c.transcript.turns[ti].assistantText,
-        ci * 100 + ti, // seedIndex — 위치 무작위(재현성)
-      );
-      if (winner === "candidate") cw++;
-      else if (winner === "baseline") bw++;
-      else tie++;
+    const bn = b.transcript.turns.length;
+    const cn = c.transcript.turns.length;
+    // 어느 한쪽이 응답을 못 낸(크래시) 케이스는 판정 불가 → 실패로 표기하고 judge 건너뜀.
+    if (bn === 0 || cn === 0) {
+      skipped++;
+      const who = cn === 0 ? "후보 무응답" : "기준선 무응답";
+      lines.push(`| ${id} | ${bn}/${cn} | ⚠️${who} | ${assertFails(b)}/${assertFails(c)} | (대화 없음 — 판정 제외) |`);
+      process.stdout.write(`\n[compare] ${id}: ⚠️${who} (판정 제외)`);
+      continue;
     }
-    totCand += cw; totBase += bw; totTie += tie; totTurns += n;
-    const rate = n ? ((cw / n) * 100).toFixed(0) : "0";
-    lines.push(`| ${id} | ${n} | ${cw} | ${bw} | ${tie} | ${rate}% | ${assertFails(b)}/${assertFails(c)} |`);
-    process.stdout.write(`\n[compare] ${id}: 후보 ${cw} / 기준선 ${bw} / tie ${tie} (n=${n})`);
+    const seed = b.transcript.turns[0]?.userText ?? "(고민 미상)";
+    const { winner, reason } = await pairwiseConversation(
+      seed,
+      renderConvo(b.transcript),
+      renderConvo(c.transcript),
+      ci, // seedIndex — 위치 무작위(재현성)
+    );
+    const w = winner === "candidate" ? "후보" : winner === "baseline" ? "기준선" : "tie";
+    if (winner === "candidate") cw++;
+    else if (winner === "baseline") bw++;
+    else tie++;
+    lines.push(`| ${id} | ${bn}/${cn} | ${w} | ${assertFails(b)}/${assertFails(c)} | ${reason.replace(/\|/g, "/").slice(0, 60)} |`);
+    process.stdout.write(`\n[compare] ${id}: ${w} — ${reason.slice(0, 45)}`);
   }
 
-  const winRate = totTurns ? ((totCand / totTurns) * 100).toFixed(1) : "0";
+  const judged = cw + bw + tie;
+  const winRate = judged ? ((cw / judged) * 100).toFixed(0) : "0";
   lines.push(
     "",
     "---",
     "",
-    `**총평**: 후보 승률 ${winRate}% — 후보 ${totCand}승 / 기준선 ${totBase}승 / tie ${totTie} ` +
-      `(n=${totTurns}턴, 케이스 ${caseIds.length}개)`,
+    `**총평**: 후보 ${cw}승 / 기준선 ${bw}승 / tie ${tie} ` +
+      `(판정 ${judged}케이스${skipped ? `, 무응답 제외 ${skipped}` : ""}). 후보 승률 ${winRate}%.`,
   );
 
   const outPath = join(process.cwd(), "qa", "out", `compare-${new Date().toISOString().replace(/[:.]/g, "-")}.md`);
   writeFileSync(outPath, lines.join("\n"), "utf-8");
-  console.log(`\n\n[compare] 후보 승률 ${winRate}% (n=${totTurns}턴, 케이스 ${caseIds.length}개). 리포트: ${outPath}`);
+  console.log(`\n\n[compare] 후보 ${cw}승/기준선 ${bw}승/tie ${tie} (승률 ${winRate}%, 판정 ${judged}케이스). 리포트: ${outPath}`);
 }
 
 main().catch((e) => {
