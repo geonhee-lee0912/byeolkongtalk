@@ -5,7 +5,7 @@ import type { Case } from "./types.ts";
 import type { ProfileInput } from "../lib/saju/profile-input.ts";
 import { SPREAD_INFO } from "../lib/tarot/spreads.ts";
 import { QA_SEEDED_CARD_IDS } from "./evaluate/assertions.ts";
-import { PASS_PLAN_BY_KIND } from "../lib/relationship/types.ts";
+import { PASS_PLAN_BY_KIND, SLOT_COST } from "../lib/relationship/types.ts";
 import { getSkill } from "../lib/relationship/skills.ts";
 
 const DEFAULT_PROFILE: ProfileInput = {
@@ -106,6 +106,11 @@ export async function createRelationshipReading(c: Case): Promise<CreatedReading
   // 유저당 관계 1개(unique index) → 케이스마다 초기화 후 새로 등록 (상태 격리)
   await resetRelationship();
 
+  // 슬롯 게이트(20260807~ create_relationship): 첫 관계도 구매 슬롯 필요 → QA 는 케이스마다 슬롯 1개 구매.
+  const slot = await postJson<{ success?: boolean; error?: string }>("/api/relationship/slot", {});
+  if (slot.status !== 200)
+    throw new Error(`[readings] 슬롯 구매 실패 ${slot.status}: ${JSON.stringify(slot.json)}`);
+
   const reg = await postJson<{ id?: string; threadReadingId?: string; error?: string }>(
     "/api/relationship",
     { label: "QA상대", status: c.product.status }
@@ -114,7 +119,7 @@ export async function createRelationshipReading(c: Case): Promise<CreatedReading
     throw new Error(`[readings] relationship 등록 실패 ${reg.status}: ${JSON.stringify(reg.json)}`);
   const relationshipId = reg.json.id;
 
-  let cost = 0;
+  let cost = SLOT_COST; // 슬롯 구매 비용 포함(위 slot 구매)
   // pass_gate 케이스는 패스 미구매 → 첫 chat 이 402 pass_required
   if (!c.seed.skipPass) {
     const plan = PASS_PLAN_BY_KIND[c.product.passKind];
@@ -138,6 +143,11 @@ export async function createVerdictReading(c: Case): Promise<CreatedReading> {
   if (c.product.kind !== "verdict") throw new Error("not verdict case");
   await resetRelationship();
 
+  // 슬롯 게이트(20260807~): verdict 도 관계 생성이라 슬롯 필요.
+  const slot = await postJson<{ success?: boolean; error?: string }>("/api/relationship/slot", {});
+  if (slot.status !== 200)
+    throw new Error(`[readings] verdict용 슬롯 구매 실패 ${slot.status}: ${JSON.stringify(slot.json)}`);
+
   const reg = await postJson<{ id?: string; error?: string }>(
     "/api/relationship",
     { label: "QA상대", status: c.product.status }
@@ -156,7 +166,7 @@ export async function createVerdictReading(c: Case): Promise<CreatedReading> {
 
   // 판정 개시(30별 차감)는 driver가 skillStart로 수행. 총 차감 = 패스 + 판정 30.
   const verdictCost = getSkill("verdict")?.starCost ?? 0;
-  return { readingId: relationshipId, cost: plan.cost + verdictCost };
+  return { readingId: relationshipId, cost: plan.cost + verdictCost + SLOT_COST };
 }
 
 export function createReading(c: Case): Promise<CreatedReading> {
