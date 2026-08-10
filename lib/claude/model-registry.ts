@@ -15,6 +15,10 @@ const MODEL_PROVIDER: Record<string, Provider> = {
 
 export const DEFAULT_CHAT_MODEL = "claude-sonnet-5";
 
+// chat 지면(고민톡·연애·시뮬) 표준 모델. 미래 프리미엄 티어는 여기서 분기.
+// DEFAULT_CHAT_MODEL 은 sonnet 안전폴백으로 유지(model 미배선 호출부 보호).
+export const CHAT_MODEL = "gpt-5.6-luna";
+
 export function providerOf(model: string): Provider {
   const p = MODEL_PROVIDER[model];
   if (!p) throw new Error(`[model-registry] 미등록 model: ${model}`);

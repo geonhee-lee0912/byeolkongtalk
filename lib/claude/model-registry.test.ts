@@ -3,7 +3,7 @@
 // (전 테스트 파일 + .github/workflows/test.yml 이 `node --import tsx --test` 로 실행). 케이스는 동일.
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { providerOf, resolveChatModel } from "./model-registry.ts";
+import { providerOf, resolveChatModel, CHAT_MODEL } from "./model-registry.ts";
 
 describe("model-registry", () => {
   afterEach(() => {
@@ -27,5 +27,8 @@ describe("model-registry", () => {
   });
   it("미등록 model 은 throw", () => {
     assert.throws(() => providerOf("unknown-x"));
+  });
+  it("CHAT_MODEL 은 등록된 openai 모델", () => {
+    assert.equal(providerOf(CHAT_MODEL), "openai");
   });
 });
