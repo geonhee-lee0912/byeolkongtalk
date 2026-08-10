@@ -18,15 +18,14 @@
 | 1 | 고민톡 (tarot chat) | streamChat | **luna** | 멀티턴 chat, luna=sonnet급 검증(고민톡) |
 | 2 | 연애 상담 (relationship chat) | streamChat | **luna** | 멀티턴 chat (⚠️QA 필요) |
 | 3 | 연애 시뮬 (sim chat) | streamChat | **luna** | 멀티턴 chat (⚠️QA 필요) |
-| 4 | 사주 chat (consultation resume) | streamChat | **luna** | 멀티턴 chat (⚠️QA 필요) |
-| 5 | fortune 무료 데일리 (`daily`, `tarot_daily`) | generateOnce | **nano**(우선) → 안되면 mini | 단발 무료·미결제자 소모·최저가 지향 |
-| 6 | fortune 유료 리포트 (`monthly`·`saju_full`·`compat`·`compat_social`·`good_days`, 및 tarot 유료) | generateOnce | **sonnet 유지** | 엄격 JSON·유료 단발·파싱실패 이력, 원가 극저라 절감 유인 없음 |
+| 4 | fortune 무료 데일리 (`daily`, `tarot_daily`) | generateOnce | **nano**(우선) → 안되면 mini | 단발 무료·미결제자 소모·최저가 지향 |
+| 5 | fortune 유료 리포트 (`monthly`·`saju_full`·`compat`·`compat_social`·`good_days`, 및 tarot 유료) | generateOnce | **sonnet 유지** | 엄격 JSON·유료 단발·파싱실패 이력, 원가 극저라 절감 유인 없음 |
 | — | haiku 유틸 (rolling 요약·민감 2차 판정·QA judge) | 직접 | **불변(haiku)** | 안전 크리티컬 등 — 손대지 않음 |
 | — | sonnet | — | 유료 리포트(#6) + **미래 프리미엄 업셀** 예약 | 기존 chat 지면엔 미사용 |
 
 **티어링 원리 — task 종류로 나눈다:** 멀티턴 chat = luna(품질/원가 균형) · 엄격-형식 유료 단발 = sonnet(신뢰성) · 무료 단발 = 최저가.
 
-**주의 — 두 개의 "사주":** `사주 chat`(#4, `/api/consultations/saju/chat`, 상담 resume)은 **luna**. `saju_full`(#6, fortune one-shot 리포트, "2026년 사주 분석")은 **sonnet**. 이름만 겹칠 뿐 다른 지면.
+**사주 chat 제외:** `/api/consultations/saju/chat`(구 사주 상담 resume)은 **상담 진입 폐쇄·사실상 무트래픽** → 티어링 제외, model 미배선(default sonnet 로 방치). route 파일은 잔존하나 신규 배선·QA 대상 아님. fortune 의 `saju_full`("2026년 사주 분석" 리포트, #5)과 혼동 말 것 — 그건 유료 리포트라 sonnet.
 
 ---
 
@@ -46,7 +45,7 @@ export function fortuneModel(type: FortuneType): string {
 }
 ```
 
-- 4개 chat 라우트: `streamChat(..., CHAT_MODEL)` 로 명시적으로 넘긴다.
+- 3개 chat 라우트(고민톡·연애·시뮬): `streamChat(..., CHAT_MODEL)` 로 명시적으로 넘긴다. (사주 chat 은 폐쇄라 미배선.)
 - fortune 라우트: `generateOnce(..., fortuneModel(cfg.type))`.
 - **`DEFAULT_CHAT_MODEL` 은 sonnet 유지** — model 을 안 넘긴 호출부는 알려진-양품 sonnet 으로 안전 폴백(luna 로 조용히 떨어지지 않게).
 - **QA 오버라이드 불변:** `resolveChatModel` 의 `QA_CHAT_MODEL` env 는 여전히 최우선 — QA 는 라우트가 뭘 넘기든 임의 모델로 강제 가능.
@@ -65,13 +64,12 @@ export function fortuneModel(type: FortuneType): string {
 
 ## 4. 지면별 QA 게이트 (핵심 리스크 관리)
 
-⚠️ **luna 는 고민톡(타로)에서만 검증됐다.** 연애 상담(기억·스킬·R1~R4)·시뮬(롤플레이·doll_partner 격리)·사주 chat(만세력 해석)은 각각 다른 페르소나·형식이라 luna 거동 미검증. **블라인드 일괄 전환 금지.**
+⚠️ **luna 는 고민톡(타로)에서만 검증됐다.** 연애 상담(기억·스킬·R1~R4)·시뮬(롤플레이·doll_partner 격리)은 각각 다른 페르소나·형식이라 luna 거동 미검증. **블라인드 일괄 전환 금지.**
 
 각 지면을 luna 로 전환하기 전 그 지면 QA 를 돌려 통과해야 flip:
 - **고민톡:** 프롬프트 튜닝(§3) 후 재QA — 🃏💫🔗 형식 복원 + 페르소나 유지 확인.
 - **연애 상담:** QA 하네스 relationship 케이스로 luna 검증(R1~R4 규칙·[SKILL] 마커·스레드 무종결).
 - **시뮬:** sim 케이스로 luna 검증(몰입·doll_partner 코어 미계승·소프트수렴 제거 반영).
-- **사주 chat:** saju 케이스로 luna 검증([CARD] 0개·사주 데이터 충실).
 - **fortune 무료 데일리:** `daily` 프롬프트로 **nano + mini one-shot QA 대조** → 리텐션 되는 최저가 채택(nano 우선). 단발이라 멀티턴 화법 문제 무관.
 - **fortune 유료 리포트:** 모델 불변(sonnet)이라 회귀 확인만(파싱 성공률).
 
@@ -109,6 +107,6 @@ QA 실행 gotcha(메모리 `model-router-qa-progress`): `QA_CHAT_MODEL` 은 **de
 ## 8. 오픈 아이템 / 리스크
 
 - **무료 데일리 nano vs mini:** QA 로 결정(품질 유지 시 nano). nano 품질 불충분하면 mini.
-- **연애/시뮬/사주 chat luna 미검증:** QA 에서 예상외 열세면 그 지면만 sonnet 유지 또는 프롬프트 보강(§4 게이트가 잡음).
+- **연애/시뮬 luna 미검증:** QA 에서 예상외 열세면 그 지면만 sonnet 유지 또는 프롬프트 보강(§4 게이트가 잡음).
 - **fortune 리포트 저가화 여지:** 지금은 sonnet 유지. 후속으로 luna 를 리포트 형식으로 검증해 안정적이면 내릴 수 있음(원가 극저라 우선순위 낮음).
 - **마크다운 렌더:** 결과 화면이 `**` 를 렌더하는지 확인(luna/nano 산출물 영향).
