@@ -40,6 +40,7 @@ import {
 import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { generateOnce } from "@/lib/claude";
+import { fortuneModel } from "@/lib/fortune/model";
 import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
@@ -411,7 +412,7 @@ export async function POST(req: NextRequest) {
     let report: string;
     try {
       const system = buildFortuneSystem(cfg.type, systemInput);
-      report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+      report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
     } catch (err) {
       await failGeneration(err, "generate");
       return;
@@ -429,7 +430,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
           ai = parseDailyReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } });
@@ -450,7 +451,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
           ai = parseMonthlyReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } });
@@ -472,7 +473,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
           ai = parseSajuFullReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } });
@@ -492,7 +493,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
           ai = parseCompatReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } });
@@ -512,7 +513,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx);
+          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type));
           ai = parseTarotReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "tarot_retry" } });
