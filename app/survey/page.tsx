@@ -11,7 +11,6 @@ type Phase = "loading" | "form" | "already" | "done";
 export default function SurveyPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
-  const [nickname, setNickname] = useState("");
   const [answers, setAnswers] = useState<string[]>(() => SURVEY_QUESTIONS.map(() => ""));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,6 @@ export default function SurveyPage() {
         router.replace(`/login?next=${encodeURIComponent("/survey")}`);
         return;
       }
-      setNickname(me.user.nickname ?? "");
       const s = await fetch("/api/survey", { cache: "no-store" })
         .then((r) => r.json())
         .catch(() => null);
@@ -98,8 +96,11 @@ export default function SurveyPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
         <h1 className="text-lg font-bold text-eye-purple mb-2">별콩이의 질문</h1>
-        <p className="text-[13px] text-text-light leading-relaxed mb-6">
-          {nickname ? `${nickname}아, ` : ""}별콩이는 너 같은 친구들 이야기를 들으면서 자라. 한두 문장이면 충분하니까 편하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개 🌟
+        <p className="text-[13px] text-text-light leading-relaxed mb-3">
+          별콩이를 도와줘! 너의 한마디로 더 좋은 별콩이가 될 수 있으니 편하고 솔직하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개를 줄게~!
+        </p>
+        <p className="text-[12px] text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
+          🌟 매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
         </p>
         <div className="space-y-5">
           {SURVEY_QUESTIONS.map((q, i) => {
@@ -117,10 +118,10 @@ export default function SurveyPage() {
                   }
                   rows={3}
                   className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-[13px] text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
-                  placeholder="솔직하게 들려줘"
+                  placeholder="편하게 작성해줘"
                 />
                 <div className={`text-[11px] mt-1 text-right ${ok ? "text-lilac-deep" : "text-text-light/50"}`}>
-                  {len} / {SURVEY_MIN_CHARS}자
+                  {ok ? `✓ ${len}자` : `최소 ${SURVEY_MIN_CHARS}자 · ${len}자`}
                 </div>
               </div>
             );
