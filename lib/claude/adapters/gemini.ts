@@ -1,7 +1,7 @@
 // lib/claude/adapters/gemini.ts
 // Gemini(3 Flash 계열) 어댑터 — "1회 순수 스트림"만 담당. 재시도·빈응답 가드·로깅은
 // streamChat(lib/claude.ts) 래퍼가 소유(anthropic/openai 어댑터와 동일 계약).
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
 
 // ⚠️ lazy 초기화(openai 어댑터와 동일 이유). parse.test.ts 는 lib/ 아래라 CI 가 실행하며 이
@@ -34,7 +34,11 @@ export const geminiAdapter: ProviderAdapter = {
       config: {
         systemInstruction: system,
         maxOutputTokens: maxTokens,
-        thinkingConfig: { thinkingBudget: 0 }, // 0 = DISABLED (thinking off, 별콩이 정책)
+        // thinking 최소화 — 별콩이 정책(thinking 이 출력 예산을 잠식해 [END] 마커가 잘리는 걸 방지).
+        // ⚠️ thinkingBudget:0(=DISABLED)은 Gemini 3.x flash 가 400 INVALID_ARGUMENT 로 거부한다(3세대는
+        //   thinking 을 완전히 못 끔). ThinkingLevel.MINIMAL(최저 레벨)이 3.6-flash·3-flash-preview 양쪽에서
+        //   동작함을 계정 실호출로 확인(openai 어댑터의 reasoning_effort:"minimal" 과 대응).
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       },
     });
     let stop: StopReason = null;

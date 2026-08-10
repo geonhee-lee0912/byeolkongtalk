@@ -8,7 +8,9 @@ const MODEL_PROVIDER: Record<string, Provider> = {
   "gpt-5-mini": "openai",
   "gpt-5-nano": "openai",
   "gpt-5.6-luna": "openai",
-  "gemini-3-flash": "gemini",
+  // ⚠️ "gemini-3-flash" 는 실재하지 않는 이름(v1beta 404) — 계정 ListModels 로 확인한 유효 이름만 등록.
+  "gemini-3.6-flash": "gemini", // 최신 stable flash (기본 후보)
+  "gemini-3-flash-preview": "gemini", // 원 plan 의 "Gemini 3 Flash"(preview 티어)
 };
 
 export const DEFAULT_CHAT_MODEL = "claude-sonnet-5";

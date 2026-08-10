@@ -22,7 +22,8 @@ describe("model-registry", () => {
     assert.equal(providerOf("gpt-5-mini"), "openai");
     assert.equal(providerOf("gpt-5-nano"), "openai");
     assert.equal(providerOf("gpt-5.6-luna"), "openai");
-    assert.equal(providerOf("gemini-3-flash"), "gemini");
+    assert.equal(providerOf("gemini-3.6-flash"), "gemini");
+    assert.equal(providerOf("gemini-3-flash-preview"), "gemini");
   });
   it("미등록 model 은 throw", () => {
     assert.throws(() => providerOf("unknown-x"));
