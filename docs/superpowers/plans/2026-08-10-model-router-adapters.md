@@ -6,7 +6,7 @@
 
 **Architecture:** `streamChat`의 프로바이더 호출부만 `ProviderAdapter`로 분리(`lib/claude/adapters/*`). 재시도·빈응답 가드·로깅 래퍼는 `streamChat`에 유지. `model-registry`가 model id → 어댑터를 매핑하고 QA용 env 오버라이드를 읽는다. anthropic 어댑터는 현 로직을 **그대로 이관**해 회귀 0. 판정은 별도 pairwise judge(Opus)로 sonnet vs 후보를 블라인드 비교.
 
-**Tech Stack:** Next.js 16 / TypeScript strict / `@anthropic-ai/sdk`(기존) · `openai` · `@google/genai`(신규) / vitest(기존 QA·유닛) / 로컬 dev 서버 + `qa/` 하네스.
+**Tech Stack:** Next.js 16 / TypeScript strict / `@anthropic-ai/sdk`(기존) · `openai` · `@google/genai`(신규) / **테스트 = `node:test`** (`node --import tsx --test`, 기존 41개 `*.test.ts` 관례 — ⚠️vitest 미설치, `import { test } from "node:test"` + `node:assert/strict` 사용, `import`는 명시 `.ts` 확장자) / 로컬 dev 서버 + `qa/` 하네스. **아래 Task 5/6/7 코드블록의 `vitest` import·`npx vitest run`은 전부 node:test 로 읽을 것.** CI(`.github/workflows/test.yml`)가 `qa/` 제외한 모든 `*.test.ts`를 자동 발견하니 러너가 안 맞으면 CI 실패.
 
 **정본 spec:** `docs/superpowers/specs/2026-08-10-model-router-qa-design.md`
 
