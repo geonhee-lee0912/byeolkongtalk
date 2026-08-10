@@ -28,11 +28,20 @@ import { FREE_INTRO_TURNS } from "@/lib/relationship/types";
 import type { SimSituation } from "@/lib/relationship/situations";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
-import { isRetryableUpstreamError, upstreamErrorType } from "@/lib/upstream-error";
+import { upstreamErrorType } from "@/lib/upstream-error";
+import { anthropicAdapter } from "@/lib/claude/adapters/anthropic";
+import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
+import type { ProviderAdapter, StopReason } from "@/lib/claude/adapters/types";
 
+// summarizeOlder(haiku 요약)가 여전히 이 모듈 레벨 클라이언트를 쓴다 — streamChat 이관 후에도 유지.
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
+
+const ADAPTERS: Record<string, ProviderAdapter> = {
+  anthropic: anthropicAdapter,
+  // openai/gemini adapters land in later tasks
+};
 
 // 모듈 로드 시 한 번 읽고 메모리 캐시 — cold start 외엔 디스크 IO 없음.
 // W4 v3: 공통 코어(byeolkong_core.md) + 도메인 파일 합성. staticPart 캐싱 구조는 동일.
@@ -335,27 +344,20 @@ export async function* streamChat(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
   maxTokens: number = 2660,
-  logCtx?: LogContext
+  logCtx?: LogContext,
+  model?: string
 ) {
-  // 정적 블록만 cache_control 마킹 → TTL 동안 후속 호출은 입력 토큰 0.1× 과금.
-  //
-  // TTL 1h 를 쓰는 이유(2026-07-26 prod 실측): staticPart 는 페르소나 파일뿐이라 유저 무관 =
-  // 같은 도메인의 모든 호출이 캐시 엔트리 하나를 공유하고, 읽기가 TTL 을 갱신한다. 고민톡
-  // 호출 간격 중앙값이 1.2분이라 5m 히트율은 84%인데, 미스는 write 1.25× 라 남는 16%가 비싸다.
-  // 1h 로 늘리면 히트율 96% — write 가 2.0× 로 오르지만 미스 자체가 1/4 로 줄어 정적 블록
-  // 입력비가 약 35% 싸진다. ⚠️ 손익분기는 1h 히트율 ~90% — 트래픽이 지금의 1/3 이하로
-  // 떨어지면(간격이 벌어지면) 역전되니 광고 볼륨을 크게 줄일 땐 재측정할 것.
-  const systemBlocks =
-    typeof systemMessage === "string"
-      ? [{ type: "text" as const, text: systemMessage }]
-      : [
-          {
-            type: "text" as const,
-            text: systemMessage.staticPart,
-            cache_control: { type: "ephemeral" as const, ttl: "1h" as const },
-          },
-          { type: "text" as const, text: systemMessage.dynamicPart },
-        ];
+  // model 미지정 = 현 sonnet-5(QA_CHAT_MODEL env 오버라이드가 있으면 그것). 프로바이더 호출부는
+  // registry 로 고른 어댑터가 담당하고, 재시도·빈응답 가드·로깅은 이 아래 래퍼가 그대로 소유한다.
+  const resolved = resolveChatModel(model);
+  const adapter = ADAPTERS[providerOf(resolved)];
+
+  // systemMessage(문자열 = 단일 블록·캐시 없음 / {staticPart,dynamicPart} = 정적 캐시 + 동적)를
+  // 어댑터 계약(systemStatic/systemDynamic)으로 변환. cache_control 마킹은 어댑터가 수행.
+  const systemStatic =
+    typeof systemMessage === "string" ? systemMessage : systemMessage.staticPart;
+  const systemDynamic =
+    typeof systemMessage === "string" ? "" : systemMessage.dynamicPart;
 
   // 빈 응답(0자 완료) 재시도 — Anthropic SDK 는 실패 요청(429/5xx)만 재시도하고
   // "성공했지만 빈" 완료(모델이 end_turn 을 빈 본문으로 내거나 특정 입력에서 refusal 로
@@ -363,40 +365,28 @@ export async function* streamChat(
   // 실패시킨다 → 아직 텍스트를 방출하기 전이면(부분 출력 없음) 1회 재호출로 대부분(일시적
   // hiccup)을 성공으로 전환. 정상(비어있지 않은) 경로는 첫 조각에서 확정되어 오버헤드 0.
   const MAX_ATTEMPTS = 2;
-  let lastStopReason: string | null = null;
+  let lastStopReason: StopReason = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-5",
-      max_tokens: maxTokens,
-      // Sonnet 5 는 adaptive thinking 이 기본 ON — max_tokens(=thinking+응답 총합)를
-      // thinking 이 잠식해 [END] 마커·리포트 JSON 이 잘릴 수 있어 4.6 과 동일하게 OFF 유지.
-      thinking: { type: "disabled" },
-      system: systemBlocks,
-      messages,
-    });
+    const it = adapter.stream({ systemStatic, systemDynamic, messages, maxTokens, model: resolved });
 
     let yielded = false;
-    let stopReason: string | null = null;
+    let stopReason: StopReason = null;
     try {
-      for await (const event of stream) {
-        if (
-          event.type === "content_block_delta" &&
-          event.delta.type === "text_delta"
-        ) {
-          yielded = true;
-          yield event.delta.text;
-        } else if (event.type === "message_delta") {
-          stopReason = event.delta.stop_reason ?? stopReason;
-        }
+      let r = await it.next();
+      while (!r.done) {
+        yielded = true;
+        yield r.value;
+        r = await it.next();
       }
+      stopReason = r.value;
     } catch (err) {
       // 일시적 upstream 에러(overloaded_error 등) 재시도. 이 에러는 API 가 HTTP 200 으로
       // 스트림을 연 뒤 SSE `error` 이벤트로 던지므로 SDK 요청 재시도(초기 연결만 감쌈)가
       // 못 잡는다(2026-08-04 prod). 아직 한 조각도 방출 안 했으면(!yielded) 클라엔 바이트가
       // 안 나갔으니 안전하게 재호출 → 대부분(1초 미만 blip) 복구. 이미 흘렸거나·재시도 소진·
       // 비일시적 에러면 그대로 던져 각 라우트 catch 가 로깅 + controller.error 로 마무리.
-      if (yielded || attempt >= MAX_ATTEMPTS || !isRetryableUpstreamError(err)) {
+      if (yielded || attempt >= MAX_ATTEMPTS || !adapter.isRetryableError(err)) {
         throw err;
       }
       void logInfo("streamChat transient upstream error — retrying", {
@@ -406,7 +396,7 @@ export async function* streamChat(
           attempt,
           maxAttempts: MAX_ATTEMPTS,
           errorType: upstreamErrorType(err),
-          model: "claude-sonnet-5",
+          model: resolved,
         },
       });
       await new Promise((r) => setTimeout(r, 500 * attempt));
@@ -428,7 +418,7 @@ export async function* streamChat(
         attempt,
         maxAttempts: MAX_ATTEMPTS,
         stopReason: stopReason ?? "unknown",
-        model: "claude-sonnet-5",
+        model: resolved,
       },
     };
     if (attempt < MAX_ATTEMPTS) {
@@ -448,10 +438,11 @@ export async function generateOnce(
   systemMessage: { staticPart: string; dynamicPart: string } | string,
   messages: { role: "user" | "assistant"; content: string }[],
   maxTokens: number = 2660,
-  logCtx?: LogContext
+  logCtx?: LogContext,
+  model?: string
 ): Promise<string> {
   let out = "";
-  const it = streamChat(systemMessage, messages, maxTokens, logCtx);
+  const it = streamChat(systemMessage, messages, maxTokens, logCtx, model);
   let res = await it.next();
   while (!res.done) {
     out += res.value;
