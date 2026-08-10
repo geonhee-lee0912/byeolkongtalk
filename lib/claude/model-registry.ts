@@ -7,6 +7,7 @@ const MODEL_PROVIDER: Record<string, Provider> = {
   "claude-haiku-4-5": "anthropic",
   "gpt-5-mini": "openai",
   "gpt-5-nano": "openai",
+  "gpt-5.6-luna": "openai",
   "gemini-3-flash": "gemini",
 };
 
