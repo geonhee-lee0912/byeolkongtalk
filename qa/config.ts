@@ -23,6 +23,8 @@ export const config = {
   // 모델 티어
   SIMULATOR_MODEL: "claude-haiku-4-5-20251001",
   JUDGE_MODEL: "claude-sonnet-5",
+  // pairwise 상대 비교 심판 — 절대 채점(sonnet)보다 강한 Opus 로 기준선 vs 후보 블라인드 판정.
+  PAIRWISE_JUDGE_MODEL: "claude-opus-5",
 
   // chat 콜 간 대기 (레이트리밋 20/분 아래 유지)
   PACING_MS: 3500,
