@@ -31,6 +31,7 @@ import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 import { upstreamErrorType } from "@/lib/upstream-error";
 import { anthropicAdapter } from "@/lib/claude/adapters/anthropic";
 import { openaiAdapter } from "@/lib/claude/adapters/openai";
+import { geminiAdapter } from "@/lib/claude/adapters/gemini";
 import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
 import type { ProviderAdapter, StopReason } from "@/lib/claude/adapters/types";
 
@@ -42,7 +43,7 @@ const anthropic = new Anthropic({
 const ADAPTERS: Record<string, ProviderAdapter> = {
   anthropic: anthropicAdapter,
   openai: openaiAdapter,
-  // gemini adapter lands in a later task
+  gemini: geminiAdapter,
 };
 
 // 모듈 로드 시 한 번 읽고 메모리 캐시 — cold start 외엔 디스크 IO 없음.

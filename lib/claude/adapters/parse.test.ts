@@ -5,6 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { mapOpenAIFinish } from "./openai.ts";
+import { mapGeminiFinish } from "./gemini.ts";
 
 describe("openai finish 매핑", () => {
   it("stop→end_turn, length→max_tokens, content_filter→refusal", () => {
@@ -13,5 +14,16 @@ describe("openai finish 매핑", () => {
     assert.equal(mapOpenAIFinish("content_filter"), "refusal");
     assert.equal(mapOpenAIFinish(null), null);
     assert.equal(mapOpenAIFinish("tool_calls"), "other");
+  });
+});
+
+describe("gemini finish 매핑", () => {
+  it("STOP→end_turn, MAX_TOKENS→max_tokens, SAFETY→refusal", () => {
+    assert.equal(mapGeminiFinish("STOP"), "end_turn");
+    assert.equal(mapGeminiFinish("MAX_TOKENS"), "max_tokens");
+    assert.equal(mapGeminiFinish("SAFETY"), "refusal");
+    assert.equal(mapGeminiFinish("PROHIBITED_CONTENT"), "refusal");
+    assert.equal(mapGeminiFinish(undefined), null);
+    assert.equal(mapGeminiFinish("RECITATION"), "other");
   });
 });
