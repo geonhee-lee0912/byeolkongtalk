@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
+import { CHAT_MODEL } from "@/lib/claude/model-registry";
 import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
           route: "/api/consultations/tarot/chat",
           userId,
           extra: { readingId: reading.id },
-        })) {
+        }, CHAT_MODEL)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }

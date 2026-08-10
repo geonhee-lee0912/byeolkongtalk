@@ -14,6 +14,7 @@ import {
   formatDrawnCardsBlock,
   VERDICT_INTHREAD_TURN_CAP,
 } from "@/lib/claude";
+import { CHAT_MODEL } from "@/lib/claude/model-registry";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { resolveSensitive, recordSensitiveAlert } from "@/lib/sensitive";
@@ -384,7 +385,7 @@ export async function POST(request: NextRequest) {
         const drawStream = new ReadableStream({
           async start(controller) {
             try {
-              for await (const chunk of streamChat(systemMessage, apiMessages, DRAW_MAX_TOKENS, drawLogCtx)) {
+              for await (const chunk of streamChat(systemMessage, apiMessages, DRAW_MAX_TOKENS, drawLogCtx, CHAT_MODEL)) {
                 drawText += chunk;
                 controller.enqueue(encoder.encode(chunk));
               }
@@ -507,7 +508,7 @@ export async function POST(request: NextRequest) {
               route: "/api/relationship/chat",
               userId,
               extra: { relationshipId: rel.id, stage: "skillStart" },
-            })) {
+            }, CHAT_MODEL)) {
               assistantText += chunk;
               controller.enqueue(encoder.encode(chunk));
             }
@@ -630,7 +631,7 @@ export async function POST(request: NextRequest) {
           route: "/api/relationship/chat",
           userId,
           extra: { relationshipId: rel.id, threadReadingId, inVerdict },
-        })) {
+        }, CHAT_MODEL)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { streamChat, generateOnce, buildDollSystemMessage, buildSimByeolkongMessage } from "@/lib/claude";
+import { CHAT_MODEL } from "@/lib/claude/model-registry";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { resolveSensitive, recordSensitiveAlert } from "@/lib/sensitive";
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(system, split.apiMessages, DOLL_MAX_TOKENS, logCtx)) {
+        for await (const chunk of streamChat(system, split.apiMessages, DOLL_MAX_TOKENS, logCtx, CHAT_MODEL)) {
           dollText += chunk; controller.enqueue(encoder.encode(chunk));
         }
         if (!dollText.trim()) throw new Error("empty_doll_stream");
@@ -245,7 +246,7 @@ function streamAndSave(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat(system, messages, maxTokens, logCtx)) {
+        for await (const chunk of streamChat(system, messages, maxTokens, logCtx, CHAT_MODEL)) {
           text += chunk; controller.enqueue(encoder.encode(chunk));
         }
         if (!text.trim()) throw new Error("empty_byeolkong_stream");
