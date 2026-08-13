@@ -220,11 +220,15 @@ export async function POST(request: NextRequest) {
     thresholdOverride: effT,
   });
 
-  // 7장 스프레드 목표 3,300~3,800자 ≈ 2,530 tokens(1.5자/token, 이 repo 컨벤션) + 마커·라벨 여유로
-  // 기본 max_tokens(2660)를 넘을 수 있음 — 스트리밍 경로는 stopReason 을 버리므로 넘치면 [END]/종합 없이 조용히 잘림.
-  // 가장 비싼 상품(최대 55별)인 5장 이상 첫 풀이만 상향, 후속 턴·소형 스프레드는 기존 기본값 유지.
+  // 프리미엄 첫 풀이 절단 방지 — 스트리밍 경로는 stopReason 을 버려 max_tokens 초과 시 [END]/종합 없이 조용히 잘림.
+  // 7장(목표 3,900~4,800자, luna 실측 상단 ~5,900자 ≈ 3,600~3,900 tokens)은 3,600 캡에 걸려 절단됨(실측) → 5,000 상향.
+  // 5·6장은 luna 실측상 3,600 tokens(≈5,900자) 내 안전. 후속 턴·소형 스프레드는 기본값. (max_tokens 는 상한 — 실제 생성분만 과금)
   const maxTokens =
-    assistantTurnsSoFar === 0 && drawnCards.length >= 5 ? 3600 : undefined;
+    assistantTurnsSoFar === 0 && drawnCards.length >= 7
+      ? 5000
+      : assistantTurnsSoFar === 0 && drawnCards.length >= 5
+        ? 3600
+        : undefined;
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",
