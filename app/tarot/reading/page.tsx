@@ -86,6 +86,14 @@ function TarotReadingInner() {
   const [isEnded, setIsEnded] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // 스트림이 도중에 끊긴(overloaded_error 등 일시적 upstream 실패) 턴을 그대로 담아둔다.
+  // 이 턴은 서버가 DB 에 저장하지 않아 유실되므로, 유저가 재입력 없이 원탭으로 재전송할 수 있게
+  // 마지막으로 실패한 sendMessage 인자를 보존한다. 성공(재)전송 시작 시 즉시 비운다.
+  const [retryTurn, setRetryTurn] = useState<{
+    history: Message[];
+    rid: string;
+    opts?: { forceEnd?: boolean; skipSetMessages?: boolean };
+  } | null>(null);
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
   const [concernExpanded, setConcernExpanded] = useState(false);
   const [safety, setSafety] = useState<{
@@ -532,6 +540,7 @@ function TarotReadingInner() {
     fetchDoneRef.current = false;
     setActiveCardIndex(null);
     setError(null);
+    setRetryTurn(null);
 
     startTyping();
 
@@ -580,9 +589,19 @@ function TarotReadingInner() {
       stopTyping();
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setIsStreaming(false);
+      // 이 턴은 서버 미저장으로 유실됐다 — 재입력 없이 원탭 재전송할 수 있게 그대로 보존.
+      setRetryTurn({ history, rid, opts });
       // 스트림 실패 시 직행 예약 해제 — 이후 일반 턴의 [END]가 예상 밖 점프를 만들지 않게
       pendingRecoJumpRef.current = null;
     }
+  }
+
+  // 실패한 턴을 동일 인자로 재전송(유저 메시지 버블은 화면에 남아 있어 재입력 불필요).
+  function retrySend() {
+    const t = retryTurn;
+    if (!t) return;
+    setRetryTurn(null);
+    void sendMessage(t.history, t.rid, t.opts);
   }
 
   function flushPending() {
@@ -1022,9 +1041,18 @@ function TarotReadingInner() {
               )}
 
             {error && (
-              <p className="text-[12px] text-red-500 text-center mt-2">
-                {error}
-              </p>
+              <div className="text-center mt-2">
+                <p className="text-[12px] text-red-500">{error}</p>
+                {retryTurn && (
+                  <button
+                    type="button"
+                    onClick={retrySend}
+                    className="mt-1.5 inline-block text-[12px] font-bold text-lilac-deep underline underline-offset-2"
+                  >
+                    다시 시도
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
