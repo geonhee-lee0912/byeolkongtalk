@@ -6,22 +6,32 @@
 //
 // ⚠️ 실제 유료 API 호출 5건 발생(비용/시간) — 반복 실행하지 말 것.
 //
-// Baseline (2026-08-13 실측, 1회 실행):
-//   monthly        정가 20별  산문 2336자
-//   compat         정가 40별  산문 1619자
-//   compat_social  정가 35별  산문 1721자
-//   good_days      정가 35별  산문  845자
-//   saju_full      정가 60별  산문 4166자
+// temporal 부착은 타입별로 프로덕션(app/api/fortune/create/route.ts:283-291)과 동일하게 재현한다 —
+// 뒤 태스크들이 이 프로브를 before/after 재실측 도구로 반복 재사용하므로 조건 정합이 중요하다.
+//
+// Baseline (2026-08-13 실측, temporal 정합 수정 후 1회 실행):
+//   monthly        정가 20별  산문 2412자
+//   compat         정가 40별  산문 1530자
+//   compat_social  정가 35별  산문 1783자
+//   good_days      정가 35별  산문  910자
+//   saju_full      정가 60별  산문 5244자
 // → 역전 확인: monthly(20별)의 산문 분량이 compat(40별)·compat_social(35별)·good_days(35별)
-//   보다 길다 — 정가가 더 높은 세 상품이 오히려 더 짧다. saju_full(60별)은 스키마 자체가
-//   가장 큼(연간 플래그십 리포트 — self/year/monthly 12개월 등)이라 역전 대상에서 제외.
+//   보다 길다. saju_full(60별)은 스키마 자체가 가장 큼(연간 플래그십 — self/year/monthly
+//   12개월 등)이라 역전 대상에서 제외.
+// ⚠️ 직전(temporal 정합 수정 전) baseline 대비: monthly/compat/compat_social/good_days 는
+//   ±3~8% 편차(good_days 는 이번 수정으로 입력이 사실상 안 바뀌었는데도 845→910 로 변해 이
+//   범위가 이 측정법의 순수 표본 노이즈 수준임을 시사) — 정합 수정 자체의 영향은 미미해 보인다.
+//   saju_full 만 4166→5244(+26%)로 그 노이즈 밴드를 크게 벗어난다. saju_full 은 이번 수정으로
+//   temporal(30일 일진 등)이 통째로 빠졌는데, SECTION_GUIDE 는 그 데이터를 참조하지 않으므로
+//   "왜" 커졌는지는 확실치 않다 — n=1 실행이라 인과 확정은 어렵고, 표본이 큰 리포트라 분산 자체가
+//   클 수도 있다. 다음 태스크가 saju_full 분량을 다룰 때 이 변동폭을 감안할 것.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
 import { MAX_TOKENS_BY_FORTUNE, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
-import { calcSaju, calcTemporalLuck, type SajuResult } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, type SajuInput, type SajuResult } from "@/lib/saju/calc";
 
 const rawKeyValue = readFileSync(join(process.cwd(), ".env.local"), "utf8")
   .split(/\r?\n/)
@@ -40,25 +50,28 @@ if (!key) {
 }
 const anthropic = new Anthropic({ apiKey: key });
 
-// 고정 테스트 사주 — 실제 calcSaju/calcTemporalLuck 호출로 생성(하드코딩 아님).
-// temporal.dailyLuck 을 채워둬서 good_days 프롬프트의 "[향후 30일 일진]" 목록까지 커버.
-const FIXTURE: SajuResult = calcSaju({
-  year: 1994,
-  month: 5,
-  day: 12,
-  hour: 9,
-  gender: "female",
-});
-FIXTURE.temporal = calcTemporalLuck(new Date(), 1994, { includeMonth: true });
+// 고정 테스트 생일 — 실제 calcSaju/calcTemporalLuck 호출로 매번 생성(하드코딩 아님).
+const BIRTH_A: SajuInput = { year: 1994, month: 5, day: 12, hour: 9, gender: "female" };
+// compat/compat_social 용 두 번째 사람 — 다른 생일. temporal 은 절대 안 붙는다(아래 참고).
+const BIRTH_B: SajuInput = { year: 1992, month: 11, day: 3, hour: 14, gender: "male" };
 
-// compat/compat_social 용 두 번째 사람 — 다른 생일.
-const FIXTURE_B: SajuResult = calcSaju({
-  year: 1992,
-  month: 11,
-  day: 3,
-  hour: 14,
-  gender: "male",
-});
+/**
+ * type 별로 프로덕션과 동일한 temporal 상태의 saju(첫 번째 사람)를 구성.
+ * route.ts 원본 확인 결과(2026-08-13):
+ *   - monthly : saju.temporal = calcTemporalLuck(base, year)                    — dailyLuck 없음
+ *   - good_days: saju.temporal = calcTemporalLuck(base, year, {includeMonth:true}) — dailyLuck 있음
+ *   - saju_full: if/else-if 어느 분기에도 안 걸려 temporal 부착 자체가 없음
+ *   - compat/compat_social: 별도 if 분기(calcSaju(profileRowToSajuInput(...))만 호출) — temporal 없음
+ */
+function sajuForType(type: FortuneType): SajuResult {
+  const saju = calcSaju(BIRTH_A);
+  if (type === "monthly") {
+    saju.temporal = calcTemporalLuck(new Date(), BIRTH_A.year);
+  } else if (type === "good_days") {
+    saju.temporal = calcTemporalLuck(new Date(), BIRTH_A.year, { includeMonth: true });
+  }
+  return saju;
+}
 
 const TYPES: FortuneType[] = ["monthly", "compat", "compat_social", "good_days", "saju_full"];
 
@@ -82,8 +95,8 @@ async function main() {
   for (const type of TYPES) {
     const input =
       type === "compat" || type === "compat_social"
-        ? { saju: FIXTURE, sajuB: FIXTURE_B, names: { a: "가", b: "나" } }
-        : { saju: FIXTURE };
+        ? { saju: sajuForType(type), sajuB: calcSaju(BIRTH_B), names: { a: "가", b: "나" } }
+        : { saju: sajuForType(type) };
     const { staticPart, dynamicPart } = buildFortuneSystem(type, input);
     try {
       const msg = await anthropic.messages.create({
