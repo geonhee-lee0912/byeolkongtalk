@@ -103,6 +103,7 @@ function buildMonthlyShareText(r: MonthlyReport, label: string, url: string): st
     `[주차별 흐름]\n${weekly}\n\n` +
     `${domains}\n\n` +
     `[주목할 시기]\n흐름이 좋아: ${r.timing.good}\n점검할 때: ${r.timing.caution}\n\n` +
+    (r.action ? `[이번 달 실천 포인트]\n${r.action}\n\n` : "") +
     `✅ ${r.balance.good}\n⚠️ ${r.balance.warn}\n\n` +
     `🌙 별콩이의 한마디\n${r.note}\n\n` +
     `${url}`

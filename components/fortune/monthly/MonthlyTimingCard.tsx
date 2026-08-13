@@ -19,6 +19,17 @@ export default function MonthlyTimingCard({ report }: { report: MonthlyReport })
         </div>
       </div>
 
+      {/* 이번 달 실천 포인트 — action 은 old 리포트(필드 추가 전 생성)엔 없을 수 있어 있을 때만 렌더 */}
+      {report.action && (
+        <div className="pt-[18px] mt-[18px] border-t border-lilac-mid/25">
+          <div className="flex items-center gap-[7px] mb-1.5">
+            <span className="text-[13px] opacity-85">🎯</span>
+            <span className="text-[12.5px] font-extrabold text-[#4A4458]">이번 달 실천 포인트</span>
+          </div>
+          <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{report.action}</p>
+        </div>
+      )}
+
       {/* 이번 달 챙길 점 */}
       <div className="pt-[18px] mt-[18px] border-t border-lilac-mid/25">
         <div className="flex items-center gap-[7px] mb-1.5">

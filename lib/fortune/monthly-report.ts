@@ -29,6 +29,7 @@ export interface MonthlyReportAI {
   weekly: MonthlyWeek[]; // 1~4주 고정 4개
   sections: { key: MonthlySectionKey; body: string }[]; // 5개 도메인
   timing: { good: string; caution: string }; // 주목할 시기 (정성적)
+  action: string; // 이번 달 실천 포인트
   balance: { good: string; warn: string }; // 이번 달 챙길 점
   note: string; // 별콩이 한마디
 }
@@ -77,6 +78,8 @@ export function parseMonthlyReportJson(raw: string): MonthlyReportAI | null {
   const timing = o.timing as Record<string, unknown> | undefined;
   if (!timing || !isNonEmptyString(timing.good) || !isNonEmptyString(timing.caution))
     return null;
+
+  if (!isNonEmptyString(o.action)) return null;
 
   const balance = o.balance as Record<string, unknown> | undefined;
   if (!balance || !isNonEmptyString(balance.good) || !isNonEmptyString(balance.warn))
@@ -129,6 +132,7 @@ export function parseMonthlyReportJson(raw: string): MonthlyReportAI | null {
     weekly,
     sections,
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
+    action: o.action.trim(),
     balance: { good: balance.good.trim(), warn: balance.warn.trim() },
     note: o.note.trim(),
   };

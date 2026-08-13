@@ -22,6 +22,7 @@ const validReport = {
     { key: "study", body: "학업운." },
   ],
   timing: { good: "상순이 좋아.", caution: "하순은 점검." },
+  action: "이번 달 실천 포인트 설명이야.",
   balance: { good: "정리하기.", warn: "무리 금물." },
   note: "별콩이가 응원할게.",
 };
@@ -69,7 +70,7 @@ test("sections 5개 미만이면 null", () => {
 });
 
 test("timing/balance/lucky 등 필수 객체 누락이면 null", () => {
-  for (const key of ["timing", "balance", "lucky", "note", "intro"] as const) {
+  for (const key of ["timing", "balance", "lucky", "note", "intro", "action"] as const) {
     const bad: Record<string, unknown> = { ...validReport };
     delete bad[key];
     assert.equal(parseMonthlyReportJson(JSON.stringify(bad)), null, `${key} 누락은 null 이어야`);
