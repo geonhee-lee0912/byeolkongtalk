@@ -293,7 +293,7 @@ test("firstTurnLengthBelowMin: 하한 미달이면 below=true", () => {
 });
 
 test("firstTurnLengthBelowMin: 마커 제외한 글자수로 판정 (마커 길이는 하한에 안 보탬)", () => {
-  const body = "가".repeat(3300);
+  const body = "가".repeat(3900);
   const r = firstTurnLengthBelowMin(`[CARD:1]${body}[END]`, 7);
   assert.equal(r.below, false);
 });
