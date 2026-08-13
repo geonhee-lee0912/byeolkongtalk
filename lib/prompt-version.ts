@@ -11,4 +11,5 @@
 //   2026-07-22-card-noname    — 원카드 [CARD:1] 마커 필수 + 유저 이름 호출 제거(항상 "너", [호칭:] 주입 삭제)
 //   2026-07-22-premium-depth  — 타로 3장+ 첫 풀이 확대(볼륨 디스카운트 사다리, 카드당 4~6문장·별당 60→65) (spec: 2026-07-22-premium-reading-depth-design)
 //   2026-07-26-profitability-p1 — 시점질문 조건부범위 실효화(감정블록+코어아이템3+예시) + 프리미엄 카드당 6~7문장·포지션라벨 + 7장 max_tokens 3600 + fresh 이어가기 정규가이드 (P1 코히런스 리뷰 보강, ce71019 후속)
-export const PROMPT_VERSION = "2026-07-26-profitability-p1";
+//   2026-08-13-fortune-depth  — 운세 유료 리포트 분량 사다리(정가 비례) — 페르소나 분량 캡 정합화 + 리포트별 문장수 상향
+export const PROMPT_VERSION = "2026-08-13-fortune-depth";
