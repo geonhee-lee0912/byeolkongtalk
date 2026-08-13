@@ -121,6 +121,8 @@ function buildSajuFullShareText(r: SajuFullReport, label: string, url: string): 
     `오행 밸런스: ${r.self.balance.lack}\n적성: ${r.self.aptitude}\n\n` +
     `[2026년 총운]\n큰 흐름: ${r.year.flow}\n마음: ${r.year.mind}\n사랑: ${r.year.love}\n` +
     `관계: ${r.year.relationship}\n일: ${r.year.career}\n재물: ${r.year.wealth}\n건강: ${r.year.health}\n\n` +
+    (r.relations2026 ? `[2026 인연 지도]\n${r.relations2026}\n\n` : "") +
+    (r.mission ? `[올해의 성장 과제]\n${r.mission}\n\n` : "") +
     `[월별 흐름]\n${months}\n\n` +
     `[주목할 시기]\n흐름 좋은 달: ${r.timing.good}\n점검할 달: ${r.timing.caution}\n\n` +
     `[올해 실천]\n${r.actions.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\n` +

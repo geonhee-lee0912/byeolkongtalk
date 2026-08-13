@@ -41,6 +41,8 @@ export interface SajuFullReportAI {
     wealth: string; // 재물·금전
     health: string; // 건강·컨디션
   };
+  relations2026: string; // 2026 인연 지도 — 힘이 되는 관계 결 + 유의할 패턴
+  mission: string; // 올해의 성장 과제 — 타고난 강점을 펼치는 방향
   monthly: SajuFullMonth[]; // 1~12월 고정 12개
   timing: {
     good: string; // 흐름 좋은 달 (예: "4 · 9 · 11월")
@@ -120,6 +122,9 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
   )
     return null;
 
+  if (!isNonEmptyString(o.relations2026)) return null;
+  if (!isNonEmptyString(o.mission)) return null;
+
   const timing = o.timing as Record<string, unknown> | undefined;
   if (!timing || !isNonEmptyString(timing.good) || !isNonEmptyString(timing.caution))
     return null;
@@ -171,6 +176,8 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
       wealth: year.wealth.trim(),
       health: year.health.trim(),
     },
+    relations2026: o.relations2026.trim(),
+    mission: o.mission.trim(),
     monthly,
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
     actions,

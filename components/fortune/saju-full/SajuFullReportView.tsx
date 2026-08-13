@@ -153,6 +153,8 @@ export default function SajuFullReportView({
           <Card title="💼 일·커리어" body={report.year.career} />
           <Card title="💰 재물·금전" body={report.year.wealth} />
           <Card title="🌿 건강·컨디션" body={report.year.health} />
+          {report.relations2026 && <Card title="🗺️ 2026 인연 지도" body={report.relations2026} />}
+          {report.mission && <Card title="🎯 올해의 성장 과제" body={report.mission} />}
         </div>
       )}
 
