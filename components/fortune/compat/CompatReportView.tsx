@@ -118,11 +118,11 @@ export default function CompatReportView({
       {/* 오행 케미 (강조) */}
       <Card title="🔮 오행 케미" body={report.chemistry} />
 
-      {/* 섹션 카드 4개 */}
+      {/* 섹션 카드 — growth 는 old 리포트(필드 추가 전 생성)엔 없을 수 있어 있을 때만 렌더 */}
       <Card title={labels.attraction} body={report.attraction} />
       <Card title={labels.conflict} body={report.conflict} />
       <Card title={labels.longterm} body={report.longterm} />
-      <Card title={labels.growth} body={report.growth} />
+      {report.growth && <Card title={labels.growth} body={report.growth} />}
 
       {/* 관계 조언 */}
       <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
