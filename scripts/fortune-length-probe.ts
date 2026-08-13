@@ -28,6 +28,37 @@
 //   (~900자 분량의 무관 컨텍스트)을 잘못 붙이고 있었고, 이번 fix 가 그걸 제거했다 — "무관 입력
 //   컨텍스트 감소"도 흔한 설명 중 하나일 뿐, 위 노이즈/분산 가설과 배타적이지 않다. 다음 태스크가
 //   saju_full 분량을 다룰 때 이 변동폭을 감안할 것.
+//
+// 🔴 측정 함정 발견 (Task 6, 2026-08-13) — sumStringValues 는 JSON.parse 실패 시 raw.length 로
+// "조용히" 폴백하는데, 그 값이 정상 측정과 같은 "산문 N자" 포맷으로 찍혀 콘솔만 봐선 오염이 안
+// 보인다(⚠️TRUNCATED 경고는 max_tokens 절단만 잡음 — JSON 문법 오류로도 같은 폴백이 뜨는데 이땐
+// 아무 경고도 없다). Task 6 최종 실측에서 5건 중 compat·compat_social·saju_full 3건이 실제로 이
+// 폴백에 걸렸다 — 매우 긴 JSON 생성에서 모델이 트레일링 콤마(saju_full: self 객체 닫는 자리) ·
+// 문자열 뒤 미아 대괄호(compat: summary 필드 뒤 `"],`) · 잘못된 JSON 뒤에 "**JSON 형식 오류
+// 수정본:**"이라며 통째로 재출력(compat_social) 등 서로 다른 방식으로 strict JSON 을 깨뜨렸다.
+// parseCompatReportJson/parseSajuFullReportJson 으로 직접 재현해 NULL 확인 — 프로덕션이었다면
+// 재시도 1회 유발, 재시도도 실패하면 "OO report parse failed" → 리딩 삭제 + 환불(failGeneration,
+// app/api/fortune/create/route.ts:395) 경로. 아래 "Final" 수치는 원문을 최소 수동 교정(트레일링
+// 콤마·미아 대괄호 제거, compat_social 은 첫 JSON 객체만 사용) 후 실제 파서로 재파싱해 얻은
+// "진짜 산문 합"이다 — 콘솔에 찍혔던 raw 값이 아니다(콘솔 raw 값: compat 4513 · compat_social
+// 6636 · saju_full 6710 — 전부 사고 오염값이었다). 프로브 코드 자체는 고치지 않았다(Task 6 는
+// 검증 태스크라 프로덕션·도구 코드 변경은 범위 밖) — 다음에 이 프로브를 쓸 사람은 필드가 많고
+// 긴 리포트일수록 콘솔 숫자를 곧이 믿지 말고 raw JSON 이 실제로 parse 되는지 직접 확인할 것.
+// n=1 이라 이 3건이 "길어져서 생긴 새 위험"인지 "원래도 있던 확률이 우연히 이번에 몰린 것"인지는
+// 판별 불가 — 다만 실패한 3종이 정확히 필드 수·지시 문장 수가 가장 많은 3종(saju_full·compat·
+// compat_social)이라는 점은 관찰해둘 만하다.
+//
+// Final (2026-08-13 실측, Task 1~5 반영 후 통합 코드로 1회 실행 — 위 수동 교정 적용값):
+//   monthly        정가 20별  산문 3267자  (baseline 2412, +35%)
+//   compat_social  정가 35별  산문 3200자  (baseline 1783, +79%)
+//   good_days      정가 35별  산문 3299자  (baseline  910, +263%, JSON 아니라 교정 불필요)
+//   compat         정가 40별  산문 4297자  (baseline 1530, +181%)
+//   saju_full      정가 60별  산문 5933자  (baseline 5244, +13%)
+// → 역전 사실상 해소: monthly 최저 · saju_full 최고 · compat(4297) > 35별 페어(compat_social
+//   3200 / good_days 3299) 모두 성립. monthly(3267) vs compat_social(3200) 는 -2%로 거의 동률
+//   (n=1 노이즈 ~±5% 이내) — 엄밀한 순서 역전이라기보다 사다리 하단부 근접으로 본다. baseline
+//   대비 전 항목 순증가(+13%~+263%), 애초 역전의 핵심이던 "monthly 가 compat/compat_social/
+//   good_days 보다 김"은 명확히 뒤집혔다.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
