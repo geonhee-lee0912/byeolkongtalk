@@ -26,16 +26,21 @@ const GRADE_COLOR: Record<CompatGrade, string> = {
 
 type CompatVariant = "romantic" | "social";
 
-const SECTION_LABELS: Record<CompatVariant, { attraction: string; conflict: string; longterm: string }> = {
+const SECTION_LABELS: Record<
+  CompatVariant,
+  { attraction: string; conflict: string; longterm: string; growth: string }
+> = {
   romantic: {
     attraction: "💘 끌림·성격 케미",
     conflict: "🌗 갈등 포인트",
     longterm: "🌱 장기 전망",
+    growth: "🌿 관계 성장 포인트",
   },
   social: {
     attraction: "🤝 성향 케미",
     conflict: "🌗 부딪히는 지점",
     longterm: "🌱 관계의 미래",
+    growth: "🌿 관계 성장 포인트",
   },
 };
 
@@ -113,10 +118,11 @@ export default function CompatReportView({
       {/* 오행 케미 (강조) */}
       <Card title="🔮 오행 케미" body={report.chemistry} />
 
-      {/* 섹션 카드 3개 */}
+      {/* 섹션 카드 4개 */}
       <Card title={labels.attraction} body={report.attraction} />
       <Card title={labels.conflict} body={report.conflict} />
       <Card title={labels.longterm} body={report.longterm} />
+      <Card title={labels.growth} body={report.growth} />
 
       {/* 관계 조언 */}
       <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">

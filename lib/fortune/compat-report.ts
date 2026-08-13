@@ -41,13 +41,14 @@ export interface CompatSajuPair {
 export interface CompatReportAI {
   grade: CompatGrade;
   theme: string; // 관계 한 줄 테마
-  summary: string; // 큰 그림 요약 3~4문장
-  chemistry: string; // 오행 케미 5~6문장
-  attraction: string; // 끌림·성격 4~5문장
-  conflict: string; // 갈등 포인트 4~5문장
-  longterm: string; // 장기 전망 4~5문장
+  summary: string; // 큰 그림 요약
+  chemistry: string; // 오행 케미
+  attraction: string; // 끌림·성격
+  conflict: string; // 갈등 포인트
+  longterm: string; // 장기 전망
+  growth: string; // 관계 성장 포인트
   advice: string[]; // 관계 조언 정확히 3개
-  note: string; // 별콩이의 한마디 2~3문장
+  note: string; // 별콩이의 한마디
 }
 
 /** 저장/렌더 최종 형태. */
@@ -89,6 +90,7 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
   if (!isNonEmptyString(o.attraction)) return null;
   if (!isNonEmptyString(o.conflict)) return null;
   if (!isNonEmptyString(o.longterm)) return null;
+  if (!isNonEmptyString(o.growth)) return null;
   if (!isNonEmptyString(o.note)) return null;
 
   const advice = cleanStringArray(o.advice, 3, 3);
@@ -102,6 +104,7 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
     attraction: o.attraction.trim(),
     conflict: o.conflict.trim(),
     longterm: o.longterm.trim(),
+    growth: o.growth.trim(),
     advice,
     note: o.note.trim(),
   };

@@ -54,6 +54,7 @@ export default function ThreadCompatCard({
             <Section title="💘 끌림·성격 케미" body={report.attraction} />
             <Section title="🌗 갈등 포인트" body={report.conflict} />
             <Section title="🌱 장기 전망" body={report.longterm} />
+            <Section title="🌿 관계 성장 포인트" body={report.growth} />
             <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
               <h4 className="text-[12.5px] font-bold text-lilac-deep mb-1.5">💡 관계를 위한 조언</h4>
               <ol className="flex flex-col gap-1">
