@@ -13,4 +13,5 @@
 //   2026-07-26-profitability-p1 — 시점질문 조건부범위 실효화(감정블록+코어아이템3+예시) + 프리미엄 카드당 6~7문장·포지션라벨 + 7장 max_tokens 3600 + fresh 이어가기 정규가이드 (P1 코히런스 리뷰 보강, ce71019 후속)
 //   2026-08-13-fortune-depth  — 운세 유료 리포트 분량 사다리(정가 비례) — 페르소나 분량 캡 정합화 + 리포트별 문장수 상향
 //   2026-08-13-tarot-length   — 타로톡 분량·턴 재설계: nudge 시점(turn 별정비례)·chars 게이트(첫풀이+후속누적 공식)·톤(닫기→열기) + 첫풀이 밴드 실측 정합 + 7장 절단 방지 (spec: 2026-08-13-타로톡-분량-턴구조-재설계)
-export const PROMPT_VERSION = "2026-08-13-tarot-length";
+//   2026-08-13-draw-depth     — 인-스레드 드로우(checkin_6·deep_feelings_5) 분량 정합: relationship_draw.md 자리당 밀도(5~6문장)+카드수별 밴드(타로 프리미엄 정합) (spec: 2026-08-13-인스레드-드로우-분량-정합)
+export const PROMPT_VERSION = "2026-08-13-draw-depth";
