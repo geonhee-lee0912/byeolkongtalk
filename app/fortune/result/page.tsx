@@ -136,6 +136,7 @@ function buildCompatShareText(r: CompatReport, label: string, url: string): stri
     `[오행 케미]\n${r.chemistry}\n\n` +
     `[끌림·성격]\n${r.attraction}\n\n` +
     `[갈등 포인트]\n${r.conflict}\n\n` +
+    (r.communication ? `[잘 통하는 대화법]\n${r.communication}\n\n` : "") +
     `[장기 전망]\n${r.longterm}\n\n` +
     (r.growth ? `[관계 성장 포인트]\n${r.growth}\n\n` : "") +
     `[관계 조언]\n${r.advice.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\n` +

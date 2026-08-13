@@ -12,6 +12,7 @@ const sampleReport = serializeCompatReport(
     chemistry: "오행 케미 설명.",
     attraction: "끌림 설명.",
     conflict: "갈등 설명.",
+    communication: "대화법 설명.",
     longterm: "장기 전망 설명.",
     growth: "관계 성장 포인트 설명.",
     advice: ["실천1", "실천2", "실천3"],

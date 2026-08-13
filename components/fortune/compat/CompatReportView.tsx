@@ -28,17 +28,19 @@ type CompatVariant = "romantic" | "social";
 
 const SECTION_LABELS: Record<
   CompatVariant,
-  { attraction: string; conflict: string; longterm: string; growth: string }
+  { attraction: string; conflict: string; communication: string; longterm: string; growth: string }
 > = {
   romantic: {
     attraction: "💘 끌림·성격 케미",
     conflict: "🌗 갈등 포인트",
+    communication: "💬 잘 통하는 대화법",
     longterm: "🌱 장기 전망",
     growth: "🌿 관계 성장 포인트",
   },
   social: {
     attraction: "🤝 성향 케미",
     conflict: "🌗 부딪히는 지점",
+    communication: "💬 소통의 결",
     longterm: "🌱 관계의 미래",
     growth: "🌿 관계 성장 포인트",
   },
@@ -118,9 +120,10 @@ export default function CompatReportView({
       {/* 오행 케미 (강조) */}
       <Card title="🔮 오행 케미" body={report.chemistry} />
 
-      {/* 섹션 카드 — growth 는 old 리포트(필드 추가 전 생성)엔 없을 수 있어 있을 때만 렌더 */}
+      {/* 섹션 카드 — communication/growth 는 old 리포트(필드 추가 전 생성)엔 없을 수 있어 있을 때만 렌더 */}
       <Card title={labels.attraction} body={report.attraction} />
       <Card title={labels.conflict} body={report.conflict} />
+      {report.communication && <Card title={labels.communication} body={report.communication} />}
       <Card title={labels.longterm} body={report.longterm} />
       {report.growth && <Card title={labels.growth} body={report.growth} />}
 

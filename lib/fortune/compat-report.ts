@@ -45,6 +45,7 @@ export interface CompatReportAI {
   chemistry: string; // 오행 케미
   attraction: string; // 끌림·성격
   conflict: string; // 갈등 포인트
+  communication: string; // 잘 통하는 대화법
   longterm: string; // 장기 전망
   growth: string; // 관계 성장 포인트
   advice: string[]; // 관계 조언 정확히 3개
@@ -89,6 +90,7 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
   if (!isNonEmptyString(o.chemistry)) return null;
   if (!isNonEmptyString(o.attraction)) return null;
   if (!isNonEmptyString(o.conflict)) return null;
+  if (!isNonEmptyString(o.communication)) return null;
   if (!isNonEmptyString(o.longterm)) return null;
   if (!isNonEmptyString(o.growth)) return null;
   if (!isNonEmptyString(o.note)) return null;
@@ -103,6 +105,7 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
     chemistry: o.chemistry.trim(),
     attraction: o.attraction.trim(),
     conflict: o.conflict.trim(),
+    communication: o.communication.trim(),
     longterm: o.longterm.trim(),
     growth: o.growth.trim(),
     advice,
