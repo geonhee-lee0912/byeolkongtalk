@@ -24,13 +24,17 @@
 //   saju_full 만 4166→5244(+26%)로 그 노이즈 밴드를 크게 벗어난다. saju_full 은 이번 수정으로
 //   temporal(30일 일진 등)이 통째로 빠졌는데, SECTION_GUIDE 는 그 데이터를 참조하지 않으므로
 //   "왜" 커졌는지는 확실치 않다 — n=1 실행이라 인과 확정은 어렵고, 표본이 큰 리포트라 분산 자체가
-//   클 수도 있다. 다음 태스크가 saju_full 분량을 다룰 때 이 변동폭을 감안할 것.
+//   클 수도 있다. 다른 평범한 후보 설명: 이전(버그) baseline 은 saju_full 에 30일 dailyLuck
+//   (~900자 분량의 무관 컨텍스트)을 잘못 붙이고 있었고, 이번 fix 가 그걸 제거했다 — "무관 입력
+//   컨텍스트 감소"도 흔한 설명 중 하나일 뿐, 위 노이즈/분산 가설과 배타적이지 않다. 다음 태스크가
+//   saju_full 분량을 다룰 때 이 변동폭을 감안할 것.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
 import { MAX_TOKENS_BY_FORTUNE, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
+import { fortuneModel } from "@/lib/fortune/model";
 import { calcSaju, calcTemporalLuck, type SajuInput, type SajuResult } from "@/lib/saju/calc";
 
 const rawKeyValue = readFileSync(join(process.cwd(), ".env.local"), "utf8")
@@ -100,7 +104,7 @@ async function main() {
     const { staticPart, dynamicPart } = buildFortuneSystem(type, input);
     try {
       const msg = await anthropic.messages.create({
-        model: "claude-sonnet-5",
+        model: fortuneModel(type), // 프로덕션 라우팅(lib/fortune/model.ts)과 동일 — 유료 5종은 전부 sonnet
         max_tokens: MAX_TOKENS_BY_FORTUNE[type],
         // prod 배선(lib/claude/adapters/anthropic.ts)과 동일하게 thinking OFF —
         // 안 끄면 sonnet-5 adaptive thinking 이 max_tokens 를 잠식해 결과가 잘려 실측이 왜곡된다.
@@ -108,13 +112,20 @@ async function main() {
         system: `${staticPart}\n\n---\n\n${dynamicPart}`,
         messages: [{ role: "user", content: FORTUNE_KICKOFF }],
       });
+      // max_tokens 절단 가시성 — 잘리면 sumStringValues 가 닫는 "}" 를 못 찾아 raw.length 로
+      // 조용히 폴백하는데, 그 값이 정상 측정과 똑같은 "산문 N자" 포맷으로 찍혀 오염 데이터가 안 보인다.
+      // Task 3~5 에서 문장수를 올리면 정확히 이 상황이 생길 수 있어 표시해둔다.
+      const truncated = msg.stop_reason === "max_tokens";
+      if (truncated) {
+        console.error(`⚠️ ${type} TRUNCATED (max_tokens) — 측정값 불신`);
+      }
       const raw = msg.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
         .join("");
       const prose = type === "good_days" ? raw.length : sumStringValues(raw);
       console.log(
-        `${type.padEnd(14)} 정가 ${String(FORTUNE_CONFIG[type].cost).padStart(2)}별  산문 ${prose}자`
+        `${type.padEnd(14)} 정가 ${String(FORTUNE_CONFIG[type].cost).padStart(2)}별  산문 ${prose}자${truncated ? " ⚠️TRUNCATED" : ""}`
       );
     } catch (err) {
       console.error(`${type.padEnd(14)} ERROR`, err instanceof Error ? err.message : err);
