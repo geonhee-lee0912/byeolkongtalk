@@ -151,12 +151,16 @@ function stripTrailingCommas(json: string): string {
 
 /**
  * AI 원문에서 최상위 JSON 객체를 찾아 파싱한다(코드펜스/잡텍스트 허용). string-aware 로
- * 최상위 '{...}' 후보를 등장 순서대로 찾고(문자열 내부는 구조로 안 셈 + 짝 안 맞는 닫는
- * 괄호는 stray 로 보고 제거 — 패턴 1), 후보마다 "원본 → recoverModelJson → trailing comma
- * 제거 → 둘 다" 순서로 시도해 가장 먼저 성공하는(그리고 빈 객체가 아닌) 결과를 쓴다.
- * "correction 재출력"(패턴 3)처럼 같은 텍스트에 완결된 객체가 여러 번 나오면, 앞 객체가
- * 전부 실패할 때만 다음 객체로 넘어간다. 전부 실패하면 null(→ 상위에서 재시도) — 애매한
- * 복구를 강제하는 것보다 안전하다.
+ * 최상위 '{...}' 후보를 찾은 뒤(문자열 내부는 구조로 안 셈 + 짝 안 맞는 닫는 괄호는 stray 로
+ * 보고 제거 — 패턴 1), **뒤에서부터(last-first)** 후보마다 "원본 → recoverModelJson →
+ * trailing comma 제거 → 둘 다" 순서로 시도해 가장 먼저 성공하는(그리고 빈 객체가 아닌)
+ * 결과를 쓴다.
+ * "correction 재출력"(패턴 3)처럼 같은 텍스트에 완결된 객체가 여러 번 나오면, 모델이
+ * 나중에 다시 뱉은 마지막 객체가 항상 정답이다 — 앞 객체가 구조는 멀쩡한데 내용만 틀린
+ * draft(예: "다시 계산 중")일 수 있어서, "먼저 파싱 성공하는 후보"를 앞에서부터 찾으면
+ * 그 stale draft 를 반환해버린다(회귀 확인됨). 그래서 반드시 뒤에서부터 시도한다 — 정상
+ * 단일 객체는 후보가 하나뿐이라 순서가 결과에 영향을 주지 않는다.
+ * 전부 실패하면 null(→ 상위에서 재시도) — 애매한 복구를 강제하는 것보다 안전하다.
  * 반환은 검증 전 raw 객체 — 필드 검증은 각 파서가 담당한다.
  */
 export function parseReportJson(raw: string): Record<string, unknown> | null {
@@ -165,7 +169,8 @@ export function parseReportJson(raw: string): Record<string, unknown> | null {
   const end = raw.lastIndexOf("}");
   if (start < 0 || end <= start) return null;
 
-  for (const candidate of extractTopLevelObjects(raw)) {
+  const candidates = extractTopLevelObjects(raw).reverse(); // last-first: correction 재출력의 정답은 항상 마지막 객체
+  for (const candidate of candidates) {
     const attempts = [
       candidate,
       recoverModelJson(candidate),

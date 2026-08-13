@@ -133,3 +133,63 @@ test("[패턴3] 잘못된 첫 객체 뒤 '수정본' 텍스트 + 두 번째 완�
   assert.equal(ai!.summary, "우리는 참 잘 맞는 인연이야.");
   assert.equal(ai!.chemistry, "오행이 잘 어울려.");
 });
+
+test("[패턴3 · Critical 회귀] 첫 객체가 형식은 멀쩡하지만 내용이 틀린 draft 여도 마지막(정답) 객체를 반환한다 (구분자 있음)", () => {
+  // adversarial 리뷰 재현: 첫 객체가 syntactically valid 하면(콜론 누락 같은 구조 오류가 아니라
+  // "보통"/"다시 계산 중" 같은 스스로 고칠 값 오류) attempt1 에서 바로 JSON.parse 가 성공해버려
+  // "첫 성공 후보 반환" 전략이 stale draft 를 채택하는 회귀. 정답은 항상 모델이 나중에 다시
+  // 뱉는 마지막 객체 — parseReportJson 은 후보를 뒤에서부터 시도해야 한다.
+  const staleDraft = '{"grade":"보통","summary":"다시 계산 중"}';
+  const correctionNote = "\n**수정본:**\n";
+  const finalAnswer =
+    '{"grade":"천생연분","summary":"우리는 참 잘 맞는 인연이야.","chemistry":"오행이 잘 어울려."}';
+  const raw = staleDraft + correctionNote + finalAnswer;
+
+  const ai = parseReportJson(raw);
+  assert.ok(ai);
+  assert.equal(ai!.grade, "천생연분", "stale draft(보통) 가 아니라 마지막 정답을 반환해야 한다");
+  assert.equal(ai!.summary, "우리는 참 잘 맞는 인연이야.");
+  assert.equal(ai!.chemistry, "오행이 잘 어울려.");
+});
+
+test("[패턴3 · Critical 회귀] 구분 텍스트 없이 두 객체가 바로 붙어있어도 마지막(정답) 객체를 반환한다", () => {
+  // "**수정본:**" 같은 안내 문구 없이 모델이 그냥 객체 두 개를 연달아 뱉는 경우도 같은 버그.
+  const staleDraft = '{"grade":"보통","summary":"다시 계산 중"}';
+  const finalAnswer =
+    '{"grade":"천생연분","summary":"우리는 참 잘 맞는 인연이야.","chemistry":"오행이 잘 어울려."}';
+  const raw = staleDraft + finalAnswer; // 구분자 없이 바로 붙임
+
+  const ai = parseReportJson(raw);
+  assert.ok(ai);
+  assert.equal(ai!.grade, "천생연분", "stale draft(보통) 가 아니라 마지막 정답을 반환해야 한다");
+  assert.equal(ai!.summary, "우리는 참 잘 맞는 인연이야.");
+  assert.equal(ai!.chemistry, "오행이 잘 어울려.");
+});
+
+// ── 보강: 중첩 구조 · 정상 JSON 안전성 ─────────────────────────────────
+
+test("[패턴2 보강] 배열 안 중첩 객체 뒤 trailing comma 도 복구 (재현 케이스)", () => {
+  const raw =
+    '{"monthly":[{"month":1,"body":"1월 흐름."},{"month":2,"body":"2월 흐름."},],"note":"끝."}';
+  const ai = parseReportJson(raw);
+  assert.ok(ai, "중첩 배열 안 trailing comma 도 제거하고 파싱해야 한다");
+  assert.deepEqual(ai!.monthly, [
+    { month: 1, body: "1월 흐름." },
+    { month: 2, body: "2월 흐름." },
+  ]);
+});
+
+test("문자열 값 안에 구조 문자·이모지·'수정본' 문구가 있어도 원본과 byte-identical하게 파싱된다 (구조 오인 방지)", () => {
+  // summary 안에 {},[],  콤마, 이모지, 그리고 "correction 재출력" 트리거 문구("**수정본**")
+  // 까지 전부 텍스트로 들어있는 정상 JSON. 이걸 구조로 오인해 잘라내거나 바꾸면 안 된다.
+  const tricky = {
+    theme: "성장",
+    summary:
+      "배열은 [1,2,3] 이렇게 쓰고 객체는 {a:1} 이렇게 써 🌟 그리고 **수정본** 이라는 말도 그냥 텍스트야, 쉼표도 있어.",
+    note: "끝.",
+  };
+  const raw = JSON.stringify(tricky);
+  const ai = parseReportJson(raw);
+  assert.deepEqual(ai, JSON.parse(raw));
+  assert.deepEqual(ai, tricky);
+});
