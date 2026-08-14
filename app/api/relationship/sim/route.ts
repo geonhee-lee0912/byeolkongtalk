@@ -6,9 +6,10 @@ import { getSession } from "@/lib/session";
 import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
-import { SIM_COST, SIM_FREE_RUNWAY, RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
+import { SIM_COST, RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
-import { buildSimFrame, resolveFunding, type SimMeta } from "@/lib/relationship/sim";
+import { buildSimFrame, type SimMeta } from "@/lib/relationship/sim";
+import { determineSimFunding } from "@/lib/relationship/sim-funding";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -58,28 +59,8 @@ export async function POST(request: NextRequest) {
   if (!rel.partner_profile_id)
     return NextResponse.json({ error: "no_profile", code: "NO_PROFILE" }, { status: 409 });
 
-  // ── 자금원 판별(서버 권위): 런웨이(관계당 3) → 훅(유저당 7일 롤링 1) → 유료. ──
-  const { count: runwayUsed } = await supabase
-    .from("readings")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("relationship_id", rel.id)
-    .eq("consultation_type", "relationship_sim")
-    .eq("saju_data->>funding", "runway");
-  let hookLastAt: string | null = null;
-  if ((runwayUsed ?? 0) >= SIM_FREE_RUNWAY) {
-    const { data: lastHook } = await supabase
-      .from("readings")
-      .select("created_at")
-      .eq("user_id", userId)
-      .eq("consultation_type", "relationship_sim")
-      .eq("saju_data->>funding", "hook")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    hookLastAt = lastHook?.created_at ?? null;
-  }
-  const funding = resolveFunding({ runwayUsed: runwayUsed ?? 0, hookLastAt, now: new Date() });
+  // ── 자금원 판별(서버 권위): 런웨이(관계당 3) → 훅(유저당 7일 롤링 1) → 유료. 쿼트 라우트와 공유(드리프트 방지). ──
+  const { funding } = await determineSimFunding(supabase, userId, rel.id);
 
   // 유료만 차감(서버 최종 권위). 무료 판은 skip + 현재 잔액 조회. 실패 → 402 → 클라 /shop.
   let balance: number;

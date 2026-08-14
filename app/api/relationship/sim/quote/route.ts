@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { checkRateLimit, maybeSweepExpired } from "@/lib/ratelimit";
 import { SIM_COST, SIM_FREE_RUNWAY } from "@/lib/relationship/types";
-import { resolveFunding } from "@/lib/relationship/sim";
+import { determineSimFunding } from "@/lib/relationship/sim-funding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
+
+  maybeSweepExpired();
+  const bySession = checkRateLimit({ namespace: "sim_quote", key: userId, max: 60, windowMs: 60_000 });
+  if (!bySession.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "60" } });
 
   const relationshipId = new URL(request.url).searchParams.get("relationshipId");
   if (!relationshipId) return NextResponse.json({ error: "invalid_input" }, { status: 400 });
@@ -20,22 +25,10 @@ export async function GET(request: NextRequest) {
     .from("relationships").select("id, user_id").eq("id", relationshipId).maybeSingle();
   if (!rel || rel.user_id !== userId) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { count: runwayUsed } = await supabase
-    .from("readings").select("id", { count: "exact", head: true })
-    .eq("user_id", userId).eq("relationship_id", rel.id)
-    .eq("consultation_type", "relationship_sim").eq("saju_data->>funding", "runway");
-  let hookLastAt: string | null = null;
-  if ((runwayUsed ?? 0) >= SIM_FREE_RUNWAY) {
-    const { data: lastHook } = await supabase
-      .from("readings").select("created_at")
-      .eq("user_id", userId).eq("consultation_type", "relationship_sim").eq("saju_data->>funding", "hook")
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
-    hookLastAt = lastHook?.created_at ?? null;
-  }
-  const funding = resolveFunding({ runwayUsed: runwayUsed ?? 0, hookLastAt, now: new Date() });
+  const { funding, runwayUsed } = await determineSimFunding(supabase, userId, rel.id);
   return NextResponse.json({
     funding,
     cost: funding === "paid" ? SIM_COST : 0,
-    runwayRemaining: Math.max(0, SIM_FREE_RUNWAY - (runwayUsed ?? 0)),
+    runwayRemaining: Math.max(0, SIM_FREE_RUNWAY - runwayUsed),
   });
 }
