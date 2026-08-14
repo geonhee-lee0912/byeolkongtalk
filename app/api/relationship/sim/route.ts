@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 
   const { data: rel } = await supabase
     .from("relationships")
-    .select("id, label, status")
+    .select("id, label, status, partner_profile_id")
     .eq("id", reading.relationship_id)
     .maybeSingle();
   if (!rel) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -183,6 +183,14 @@ export async function GET(request: NextRequest) {
     else messages.push({ who: "doll", text: m.content });
   }
 
+  let portrait = "";
+  if (rel.partner_profile_id) {
+    const { data: p } = await supabase
+      .from("user_profiles").select("personality")
+      .eq("id", rel.partner_profile_id).eq("user_id", userId).maybeSingle();
+    portrait = p?.personality ?? "";
+  }
+
   return NextResponse.json({
     simReadingId: reading.id,
     relationshipId: reading.relationship_id,
@@ -195,5 +203,6 @@ export async function GET(request: NextRequest) {
     messages,
     debrief,
     sendMessage: meta.sendMessage ?? null,
+    portrait,
   });
 }
