@@ -113,6 +113,7 @@ body {
 }
 .scrollbar-hover::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 .scrollbar-hover::-webkit-scrollbar-track {
   background: transparent;

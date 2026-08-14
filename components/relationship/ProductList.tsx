@@ -1,18 +1,14 @@
 "use client";
 
-import { simFreeBadges } from "@/lib/relationship/sim";
-
 // components/relationship/ProductList.tsx — 선택한 상대에게 돌릴 상품 목록.
 // 💬 연애 상담 · 🎭 연애 시뮬레이션. 둘 다 활성. 카드는 fortune 상품카드 패턴 + 해시태그.
 // 스킬 4종은 상품이 아니라 연애 상담(스레드) 안의 ⚡도구 → 여기 없음. 스펙 §P2 + 목업 p2-hub-v2.
 export interface ProductListProps {
   onOpenThread: () => void;
   onOpenSim: () => void;
-  /** 선택 상대의 다음 시뮬 판 자금원(허브가 /sim/quote 로 공급). null=로딩/미선택. */
-  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null;
 }
 
-export default function ProductList({ onOpenThread, onOpenSim, simQuote }: ProductListProps) {
+export default function ProductList({ onOpenThread, onOpenSim }: ProductListProps) {
   return (
     <div className="flex flex-col gap-2.5">
       {/* 💬 연애 상담 — 활성 */}
@@ -29,12 +25,9 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
           💬
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center flex-wrap gap-1.5">
-            <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
-            <span className="text-[10.5px] font-bold text-night-deep bg-gold px-2 py-0.5 rounded-full">첫 3턴 이후 패스 구매 필요</span>
-          </div>
-          <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-            별콩이가 너의 연애를 다 기억해줄게!
+          <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
+          <p className="text-[12.5px] text-text-light/80 mt-1 leading-relaxed">
+            별콩이가 너의 연애를 다 기억해줄게! 첫 3턴은 무료고, 이후에는 패스를 구매해 연애 상담을 이어갈 수 있어.
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
             {["고민상담", "걔속마음", "비밀친구"].map((h) => (
@@ -63,14 +56,9 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
           🎭
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center flex-wrap gap-1.5">
-            <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
-            {simFreeBadges(simQuote).map((b) => (
-              <span key={b} className="text-[10.5px] font-bold text-night-deep bg-gold px-2 py-0.5 rounded-full">{b}</span>
-            ))}
-          </div>
-          <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-            난감한 상황을 인형과 연습
+          <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
+          <p className="text-[12.5px] text-text-light/80 mt-1 leading-relaxed">
+            여러 가지 상황을 그 사람을 따라하는 인형과 연습해봐. 처음 3번은 무료로 대화하면서 그 사람을 비슷하게 만들고, 이후엔 주 1회 무료로 대화해. 물론 대화권을 구매하면 언제든 추가로 시뮬레이션할 수 있어.
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
             {["상황연습", "대화리허설", "보낼말찾기"].map((h) => (

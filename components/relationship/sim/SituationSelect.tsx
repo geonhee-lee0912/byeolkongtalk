@@ -38,7 +38,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
           <h1 className="text-center text-cream-warm font-display text-lg mb-5">어떤 상황을 연습해볼까?</h1>
 
           {/* 관계 칩 — 내 관계 맨 앞·기본 선택, 탭하면 그 관계 목록으로 교체 */}
-          <div className="flex flex-wrap gap-2 mb-5">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hover pb-1 mb-5">
             {chipOrder.map((s) => {
               const active = s === chip;
               return (

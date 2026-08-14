@@ -108,17 +108,3 @@ export function dedupPortraitNotes(existing: string | null, candidates: string[]
   }
   return out;
 }
-
-/** 허브 시뮬 카드의 무료 배지들(쿼트 기반). 런웨이(관계별)와 주간 무료(유저별)를 독립으로 표기 —
- *  런웨이 남으면 "처음 무료 N번 남음", 주간 가용하면 "이번 주 1회 무료 남음", 둘 다 소진이면 "판당 N별".
- *  쿼트 없으면(로딩/실패) 빈 배열 → 배지 생략. */
-export function simFreeBadges(
-  q: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null
-): string[] {
-  if (!q) return [];
-  const out: string[] = [];
-  if (q.runwayRemaining > 0) out.push(`처음 무료 ${q.runwayRemaining}번 남음`);
-  if (q.weeklyAvailable) out.push("이번 주 1회 무료 남음");
-  if (out.length === 0) out.push(`판당 ${q.cost}별`);
-  return out;
-}
