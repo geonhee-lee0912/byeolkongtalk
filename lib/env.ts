@@ -2,10 +2,13 @@
 // /api/health 가 사용. 새 의존성(예: 토스/네이버페이) 추가 시 여기 한 줄 추가하면
 // 전 환경에서 자동으로 검증됨.
 //
-// 13개 (Claude 1 + 카카오 5 + Supabase 3 + Base URL 1 + Auth Secret 1 + 토스 2).
+// 14개 (Claude 1 + OpenAI 1 + 카카오 5 + Supabase 3 + Base URL 1 + Auth Secret 1 + 토스 2).
+// OPENAI_API_KEY: chat(gpt-5.6-luna)·무료 데일리 운세(gpt-5-nano)가 의존 — 누락 시 상담·데일리
+// 런타임 장애라 필수로 둔다(2026-08-14 모델 티어링 배포). 유료 리포트만 sonnet(CLAUDE_API_KEY).
 
 export const REQUIRED_ENV = [
   "CLAUDE_API_KEY",
+  "OPENAI_API_KEY",
   "KAKAO_CLIENT_ID",
   "KAKAO_CLIENT_SECRET",
   "KAKAO_REDIRECT_URI",
