@@ -1,11 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  FORTUNE_CONFIG,
   FORTUNE_CATEGORY,
   FORTUNE_CHIPS,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
 } from "./types.ts";
+
+test("오늘의 운세는 완전 무료 — 무료 한도·유료 전환 없음", () => {
+  const daily = FORTUNE_CONFIG.daily;
+  assert.equal(daily.cost, 0);
+  assert.equal(daily.freeLimit, undefined);
+  assert.equal(daily.paidCost, undefined);
+});
 
 test("진열 상품이 정확한 카테고리에 매핑된다", () => {
   assert.equal(FORTUNE_CATEGORY.compat, "love_relation");

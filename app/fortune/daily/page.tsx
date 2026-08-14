@@ -5,25 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
-import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
-
-interface DailyStatus {
-  used: number;
-  limit: number;
-  remaining: number;
-  nextCost: number;
-  todayId: string | null;
-}
 
 export default function FortuneDailyPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<DailyStatus | null>(null);
   const [checking, setChecking] = useState(true);
-
-  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [birthLine, setBirthLine] = useState<string | null>(null);
@@ -34,19 +20,18 @@ export default function FortuneDailyPage() {
   useEffect(() => {
     void fetch("/api/fortune/daily-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: DailyStatus | null) => {
+      .then((d: { todayId: string | null } | null) => {
         // 오늘 이미 본 운세가 있으면 사주 확인 화면 없이 바로 결과로
         if (d?.todayId) {
           router.replace(`/fortune/result?id=${d.todayId}`);
           return;
         }
-        if (d) setStatus(d);
         setChecking(false);
       })
       .catch(() => setChecking(false));
   }, [router]);
 
-  // 무료 잔여면 바로 생성, 소진 후면 별 차감 팝업
+  // 전면 무료 — 로그인 확인 후 바로 생성.
   const handleConfirm = async (profileId: string) => {
     if (inFlightRef.current) return;
     setError(null);
@@ -63,31 +48,12 @@ export default function FortuneDailyPage() {
       return;
     }
 
-    const paid = !!status && status.remaining <= 0;
-    if (!paid) {
-      void runGenerate(profileId);
-      return;
-    }
-
-    // 유료 — 잔액 조회 후 팝업
-    setPendingProfileId(profileId);
-    setBalanceLoading(true);
-    setBalance(null);
-    try {
-      const r = await fetch("/api/stars/balance", { cache: "no-store" });
-      const d = r.ok ? await r.json() : null;
-      setBalance(typeof d?.balance === "number" ? d.balance : 0);
-    } catch {
-      setBalance(0);
-    } finally {
-      setBalanceLoading(false);
-    }
+    void runGenerate(profileId);
   };
 
   const runGenerate = async (profileId: string) => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
-    setPendingProfileId(null);
     setGenerating(true);
     setError(null);
 
@@ -109,8 +75,6 @@ export default function FortuneDailyPage() {
         return;
       }
       const data = await res.json();
-      // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
-      window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
       inFlightRef.current = false;
@@ -151,22 +115,14 @@ export default function FortuneDailyPage() {
             {birthLine}
           </p>
         )}
-        {status &&
-          (status.remaining > 0 ? (
-            <span className="mt-3 text-[11px] font-bold text-sub-warm bg-gold-soft/30 px-2.5 py-1 rounded-full">
-              무료 {status.remaining}/{status.limit}회 남음
-            </span>
-          ) : (
-            <span className="mt-3 text-[11px] font-bold text-text-light/70 bg-lilac-soft/50 px-2.5 py-1 rounded-full">
-              무료 소진 · 이번부터 ⭐ {status.nextCost}
-            </span>
-          ))}
+        <span className="mt-3 text-[11px] font-bold text-sub-warm bg-gold-soft/30 px-2.5 py-1 rounded-full">
+          하루 1회 무료
+        </span>
       </div>
 
       <FortuneSajuPicker
         onConfirm={handleConfirm}
         confirmLabel="오늘의 운세 보기"
-        loading={balanceLoading}
         lockPrimary
         showBoardDetail={false}
         hideBirthLine
@@ -185,21 +141,6 @@ export default function FortuneDailyPage() {
           다른 운세 보기
         </Link>
       </div>
-
-      {pendingProfileId && status && (
-        <StarConfirmModal
-          cost={status.nextCost}
-          balance={balance}
-          loading={balanceLoading}
-          accent="#9F8AD0"
-          title={`별 ${status.nextCost}개로 오늘의 운세 볼까?`}
-          subtitle="무료 횟수를 다 써서 이번엔 별이 필요해"
-          confirmLabel="확인하고 운세 보기"
-          onConfirm={() => runGenerate(pendingProfileId)}
-          onCharge={() => router.push("/shop")}
-          onClose={() => setPendingProfileId(null)}
-        />
-      )}
     </main>
   );
 }

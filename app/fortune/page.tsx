@@ -15,24 +15,9 @@ import FortuneHeader from "@/components/fortune/FortuneHeader";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
-interface DailyStatus {
-  used: number;
-  limit: number;
-  remaining: number;
-  nextCost: number;
-}
-
 export default function FortunePage() {
-  const [daily, setDaily] = useState<DailyStatus | null>(null);
   const [chip, setChip] = useState<FortuneCategory>(DEFAULT_FORTUNE_CHIP);
   const [monthNum, setMonthNum] = useState<number | null>(null);
-
-  useEffect(() => {
-    void fetch("/api/fortune/daily-status", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setDaily(d))
-      .catch(() => {});
-  }, []);
 
   // 이번 달 숫자는 클라에서만 계산 (SSR-클라 타임존 월 경계 mismatch 방지)
   useEffect(() => setMonthNum(new Date().getMonth() + 1), []);
@@ -57,7 +42,6 @@ export default function FortunePage() {
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
-          const freeStatus = f.type === "daily" ? daily : null;
           const tagline =
             f.type === "monthly" && monthNum
               ? `${monthNum}월 한 달, 너의 흐름을 미리 짚어줄게`
@@ -81,15 +65,9 @@ export default function FortunePage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[15px] font-bold text-eye-purple">{f.label}</span>
                   {f.cost === 0 ? (
-                    freeStatus && freeStatus.remaining <= 0 ? (
-                      <span className="text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                        무료 소진 · ⭐ {freeStatus.nextCost}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
-                        무료{freeStatus ? ` ${freeStatus.remaining}/${freeStatus.limit}회` : ""}
-                      </span>
-                    )
+                    <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                      하루 1회 무료
+                    </span>
                   ) : (
                     <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                       ⭐ {f.cost}

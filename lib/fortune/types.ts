@@ -51,9 +51,8 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🌤️",
     tagline: "오늘 하루 흐름을 짚어줄게",
     base: "saju",
+    // 전면 무료 — 하루 1회(같은 날 이미 본 리딩 반환, create 라우트 alreadyToday).
     cost: 0,
-    freeLimit: 5,
-    paidCost: 5,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}daily`,
     href: "/fortune/daily",
     active: true,
