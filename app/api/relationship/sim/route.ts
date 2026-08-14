@@ -3,12 +3,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { spendStars, chargeStars } from "@/lib/stars";
+import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
-import { SIM_COST, RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
+import { SIM_COST, SIM_FREE_RUNWAY, RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import { getSituation } from "@/lib/relationship/situations";
-import { buildSimFrame, type SimMeta } from "@/lib/relationship/sim";
+import { buildSimFrame, resolveFunding, type SimMeta } from "@/lib/relationship/sim";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -58,22 +58,53 @@ export async function POST(request: NextRequest) {
   if (!rel.partner_profile_id)
     return NextResponse.json({ error: "no_profile", code: "NO_PROFILE" }, { status: 409 });
 
-  // 판 고정가 차감 (서버 최종 권위). 실패 → 402 → 클라 /shop.
-  const spend = await spendStars(userId, SIM_COST, { source: "relationship_sim" });
-  if (!spend.success)
-    return NextResponse.json(
-      { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: SIM_COST },
-      { status: 402 }
-    );
+  // ── 자금원 판별(서버 권위): 런웨이(관계당 3) → 훅(유저당 7일 롤링 1) → 유료. ──
+  const { count: runwayUsed } = await supabase
+    .from("readings")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("relationship_id", rel.id)
+    .eq("consultation_type", "relationship_sim")
+    .eq("saju_data->>funding", "runway");
+  let hookLastAt: string | null = null;
+  if ((runwayUsed ?? 0) >= SIM_FREE_RUNWAY) {
+    const { data: lastHook } = await supabase
+      .from("readings")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("consultation_type", "relationship_sim")
+      .eq("saju_data->>funding", "hook")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    hookLastAt = lastHook?.created_at ?? null;
+  }
+  const funding = resolveFunding({ runwayUsed: runwayUsed ?? 0, hookLastAt, now: new Date() });
 
-  // ── 차감 완료 지점 ── 이후 실패는 반드시 환불.
+  // 유료만 차감(서버 최종 권위). 무료 판은 skip + 현재 잔액 조회. 실패 → 402 → 클라 /shop.
+  let balance: number;
+  if (funding === "paid") {
+    const spend = await spendStars(userId, SIM_COST, { source: "relationship_sim" });
+    if (!spend.success)
+      return NextResponse.json(
+        { error: "Insufficient stars", code: "INSUFFICIENT_STARS", reason: spend.reason, balance: spend.balance, required: SIM_COST },
+        { status: 402 }
+      );
+    balance = spend.balance;
+  } else {
+    balance = await getStarBalance(userId);
+  }
+  const cost = funding === "paid" ? SIM_COST : 0;
+
+  // ── 유료 판만 환불 대상 ── 이후 실패 시 차감했으면 되돌린다.
   const refund = async () => {
+    if (funding !== "paid") return;
     const r = await chargeStars(userId, SIM_COST, `refund_${randomUUID()}`, "relationship_sim_refund").catch(() => null);
     if (!r?.success)
       await logError(new Error("sim_refund_failed"), ctxFromRequest(request, { route: "/api/relationship/sim", userId, extra: { relationshipId: rel.id } }));
   };
 
-  const meta: SimMeta = { situationId: situation.id, userContext, phase: "stage" };
+  const meta: SimMeta = { situationId: situation.id, userContext, phase: "stage", funding };
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .insert({
@@ -83,7 +114,7 @@ export async function POST(request: NextRequest) {
       question: situation.label, // 보관함 표시용(운세의 cfg.label 패턴)
       saju_data: meta,           // 판 메타 부속(스펙 §8 — saju_data JSONB 재사용)
       profile_id: null,
-      stars_spent: SIM_COST,
+      stars_spent: cost,
       has_sensitive: false,
     })
     .select("id")
@@ -107,8 +138,8 @@ export async function POST(request: NextRequest) {
     statusLabel,
     frame,
     contextPrompt: situation.contextPrompt, // 클라 ①-b 질문 노출용
-    cost: SIM_COST,
-    balance: spend.balance,
+    cost,
+    balance,
     success: true,
   });
 }
