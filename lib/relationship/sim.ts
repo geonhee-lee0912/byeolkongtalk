@@ -26,9 +26,13 @@ export function extractSendLine(text: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-/** 화면 표시용 — [SEND:...] 마커 제거 + 여백 정리. */
+/** 화면 표시용 — [SEND:...]·[PORTRAIT:...] 마커 제거 + 여백 정리. */
 export function stripSimMarkers(text: string): string {
-  return text.replace(/\[SEND:[^\]]*\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  return text
+    .replace(/\[SEND:[^\]]*\]/g, "")
+    .replace(/\[PORTRAIT:[^\]]*\]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /** 답변 추천 응답에서 [SAY:제안]/[WHY:이유] 쌍을 순서대로 최대 3개 추출. 이유 마커 없으면 "". 없으면 빈 배열. */
@@ -82,4 +86,25 @@ export function resolveFunding(args: {
   if (!args.hookLastAt) return "hook";
   const elapsedDays = (args.now.getTime() - new Date(args.hookLastAt).getTime()) / 86_400_000;
   return elapsedDays >= SIM_HOOK_INTERVAL_DAYS ? "hook" : "paid";
+}
+
+const SIM_PORTRAIT_RE = /\[PORTRAIT:([^\]]+)\]/g;
+
+/** 디브리핑 응답에서 [PORTRAIT:관찰] 마커를 최대 2개 추출(초상화 누적용). 없으면 빈 배열. */
+export function extractPortraitObservations(raw: string): string[] {
+  return [...raw.matchAll(SIM_PORTRAIT_RE)].map((m) => m[1].trim()).filter(Boolean).slice(0, 2);
+}
+
+/** 후보 관찰 중 기존 초상화(personality)와 근접 중복인 것을 버린다. 정규화(공백·불릿·문장부호 제거) 후 포함관계로 판정. */
+export function dedupPortraitNotes(existing: string | null, candidates: string[]): string[] {
+  const norm = (s: string) => s.replace(/[·\s.,!?~]/g, "").toLowerCase();
+  const base = norm(existing ?? "");
+  const out: string[] = [];
+  for (const c of candidates) {
+    const nc = norm(c);
+    if (!nc) continue;
+    if (base.includes(nc) || out.some((o) => norm(o).includes(nc) || nc.includes(norm(o)))) continue;
+    out.push(c);
+  }
+  return out;
 }

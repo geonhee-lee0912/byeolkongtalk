@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote, extractSuggestions,
-  resolveFunding,
+  resolveFunding, extractPortraitObservations, dedupPortraitNotes,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
 
@@ -82,4 +82,30 @@ test("훅은 7일 롤링 — 6일 전이면 paid, 7일 전이면 hook", () => {
   const sevenDays = new Date("2026-08-07T00:00:00Z").toISOString(); // 7일 전
   assert.equal(resolveFunding({ runwayUsed: 3, hookLastAt: sixDays, now }), "paid");
   assert.equal(resolveFunding({ runwayUsed: 5, hookLastAt: sevenDays, now }), "hook");
+});
+
+test("초상화 마커 최대 2개 추출 + 공백 정리", () => {
+  const raw = "통찰...\n[PORTRAIT:표현이 서툴지만 관심 있으면 질문이 많아진다]\n[PORTRAIT:갈등 상황에선 먼저 거리를 둔다]\n[SEND:요즘 어때?]";
+  assert.deepEqual(extractPortraitObservations(raw), [
+    "표현이 서툴지만 관심 있으면 질문이 많아진다",
+    "갈등 상황에선 먼저 거리를 둔다",
+  ]);
+});
+
+test("초상화 마커 3개 이상이면 앞 2개만", () => {
+  const raw = "[PORTRAIT:a][PORTRAIT:b][PORTRAIT:c]";
+  assert.deepEqual(extractPortraitObservations(raw), ["a", "b"]);
+});
+
+test("stripSimMarkers 는 SEND·PORTRAIT 둘 다 제거", () => {
+  const raw = "본문\n[PORTRAIT:x]\n[SEND:y]";
+  assert.equal(stripSimMarkers(raw), "본문");
+});
+
+test("dedup — 기존과 근접 중복인 후보는 버린다", () => {
+  const existing = "· 표현이 서툴지만 관심 있으면 질문이 많아진다";
+  assert.deepEqual(
+    dedupPortraitNotes(existing, ["표현이 서툴지만 관심 있으면 질문이 많아진다", "새 관찰"]),
+    ["새 관찰"]
+  );
 });
