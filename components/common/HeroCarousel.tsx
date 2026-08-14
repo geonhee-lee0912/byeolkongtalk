@@ -16,7 +16,7 @@ type Card = {
 // 캐러셀 카드 인벤토리 (08-02 통합 IA: 소개·첫충전·궁합·시뮬·설문·패스, BANNER_MAX 열어둠).
 // 첫 카드만 상태별 결정(신규=intro / 기존=sim). 뒤 카드는 노출 급감이라 순서는 덜 중요.
 const CARDS: Card[] = [
-  { id: "intro", img: "/carousel/intro.webp", title: "별콩이는 처음이지?", desc: "타로와 사주로 마음의 흐름을 읽어줄게", cta: "시작하기", href: "/concern" },
+  { id: "intro", img: "/carousel/intro.webp", title: "별콩이는 처음이지?", desc: "타로와 사주로 마음의 흐름을 읽어줄게", cta: "사용법 보기", href: "/how-to-use" },
   { id: "charge", img: "/carousel/charge.webp", title: "첫 충전엔 20% 더", desc: "지금 충전하면 별을 더 얹어줘", cta: "충전하기", href: "/shop" },
   { id: "gonghap", img: "/carousel/gonghap.webp", title: "우리의 사주 궁합은?", desc: "두 사람 생년월일로 보는 인연", cta: "궁합 보기", href: "/fortune/compat" },
   { id: "sim", img: "/carousel/sim.webp", title: "연애 시뮬레이션!", desc: "그 사람과의 여러 상황을 돌려봐", cta: "시작하기", href: "/relationship" },
