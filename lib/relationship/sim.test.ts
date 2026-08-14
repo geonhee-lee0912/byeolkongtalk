@@ -4,9 +4,19 @@ import assert from "node:assert/strict";
 import {
   simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote, extractSuggestions,
-  resolveFunding, extractPortraitObservations, dedupPortraitNotes,
+  resolveFunding, extractPortraitObservations, dedupPortraitNotes, simCount,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
+
+test("시뮬 회수 표기 — 런웨이는 라벨+도트(filled/total)+주간노트, 훅/유료는 라벨만", () => {
+  assert.deepEqual(simCount({ funding: "runway", cost: 0, runwayRemaining: 2 }),
+    { label: "무료 2회 남음", filled: 2, total: 3, note: "이후 주 1회 무료" });
+  assert.deepEqual(simCount({ funding: "hook", cost: 0, runwayRemaining: 0 }),
+    { label: "이번 주 무료 1회 남음", filled: 0, total: 0, note: "" });
+  assert.deepEqual(simCount({ funding: "paid", cost: 15, runwayRemaining: 0 }),
+    { label: "판당 15별", filled: 0, total: 0, note: "" });
+  assert.equal(simCount(null), null);
+});
 
 test("턴캡 강제 디브리핑 — cap 도달 시 true, 단 위기 판은 억제(안전>원가 §5)", () => {
   assert.equal(simForceDebrief({ dollTurns: SIM_TURN_CAP - 1, hasSensitive: false }), false);
