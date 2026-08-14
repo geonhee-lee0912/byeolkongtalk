@@ -1,6 +1,7 @@
 // app/admin/survey/page.tsx — 정성 이탈조사 응답 원문 읽기
 import { getServiceSupabase } from "@/lib/supabase";
 import LoadFailed from "@/components/admin/LoadFailed";
+import { CONTACT_OPTIONS, tallyContactAnswers } from "@/lib/survey/questions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function AdminSurvey() {
     .limit(200);
   const listFailed = !!error;
   const rows = (data ?? []) as Row[];
+  const { counts, respondents } = tallyContactAnswers(rows.map((r) => r.answers));
 
   const userIds = [...new Set(rows.map((r) => r.user_id).filter((v): v is string => !!v))];
   const nameById = new Map<string, string | null>();
@@ -38,6 +40,12 @@ export default async function AdminSurvey() {
     <div className="space-y-4">
       <h1 className="text-xl font-bold">이탈 설문</h1>
       <p className="text-white/50 text-xs">최신 200건 · 자유서술 응답 원문</p>
+      {!listFailed && respondents > 0 && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13px] text-white/80">
+          <span className="text-white/50 mr-2">컨택 선호 (응답 {respondents}명 · 복수)</span>
+          {CONTACT_OPTIONS.map((o) => `${o.short ?? o.label} ${counts[o.id] ?? 0}`).join(" · ")}
+        </div>
+      )}
       {namesFailed && <LoadFailed block="작성자 닉네임(users)" />}
       {listFailed ? (
         <LoadFailed block="설문 응답(survey_responses)" />
