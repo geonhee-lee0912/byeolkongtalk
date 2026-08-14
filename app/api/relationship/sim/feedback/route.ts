@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_NOTE_LEN = 300;
 
-interface Body { simReadingId: string; kind: "up" | "down"; note?: string }
+interface Body { simReadingId: string; kind: "up" | "down" | "trait"; note?: string }
 
 export async function POST(request: NextRequest) {
   const { userId } = await getSession();
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   const kind = body.kind;
   const note = typeof body.note === "string" ? body.note.trim().slice(0, MAX_NOTE_LEN) : "";
-  if (!body.simReadingId || (kind !== "up" && kind !== "down") || !note)
+  if (!body.simReadingId || (kind !== "up" && kind !== "down" && kind !== "trait") || !note)
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
 
   const supabase = getServiceSupabase();
