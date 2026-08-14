@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { SURVEY_QUESTIONS, SURVEY_MIN_CHARS } from "@/lib/survey/questions";
+import { SURVEY_QUESTIONS, SURVEY_MIN_CHARS, CONTACT_OPTIONS, MULTI_INPUT_MAX, composeMultiAnswer, isMultiSelectionValid } from "@/lib/survey/questions";
 import { SURVEY_REWARD_STARS } from "@/lib/constants";
 
 type Phase = "loading" | "form" | "already" | "done";
@@ -12,6 +12,12 @@ export default function SurveyPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [answers, setAnswers] = useState<string[]>(() => SURVEY_QUESTIONS.map(() => ""));
+  const [contactChecked, setContactChecked] = useState<string[]>([]);
+  const [contactInputs, setContactInputs] = useState<Record<string, string>>({});
+  const toggleContact = (id: string) =>
+    setContactChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const setContactInput = (id: string, v: string) =>
+    setContactInputs((prev) => ({ ...prev, [id]: v }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,16 +43,23 @@ export default function SurveyPage() {
     };
   }, [router]);
 
-  const allValid = answers.every((a) => a.trim().length >= SURVEY_MIN_CHARS);
+  const textValid = SURVEY_QUESTIONS.every((q, i) =>
+    q.type === "multi" ? true : answers[i].trim().length >= SURVEY_MIN_CHARS
+  );
+  const contactValid = isMultiSelectionValid(CONTACT_OPTIONS, contactChecked, contactInputs);
+  const allValid = textValid && contactValid;
 
   const submit = async () => {
     if (!allValid || submitting) return;
     setSubmitting(true);
     setError(null);
+    const payload = SURVEY_QUESTIONS.map((q, i) =>
+      q.type === "multi" ? composeMultiAnswer(CONTACT_OPTIONS, contactChecked, contactInputs) : answers[i]
+    );
     const r = await fetch("/api/survey", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers: payload }),
     })
       .then((res) => res.json())
       .catch(() => null);
@@ -104,6 +117,48 @@ export default function SurveyPage() {
         </p>
         <div className="space-y-5">
           {SURVEY_QUESTIONS.map((q, i) => {
+            if (q.type === "multi") {
+              return (
+                <div key={q.id}>
+                  <label className="block text-[13.5px] font-bold text-eye-purple mb-2">
+                    {i + 1}. {q.text}
+                  </label>
+                  <div className="space-y-2">
+                    {q.options.map((opt) => {
+                      const on = contactChecked.includes(opt.id);
+                      return (
+                        <div key={opt.id}>
+                          <label className="flex items-center gap-2 text-[13px] text-eye-purple cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={() => toggleContact(opt.id)}
+                              className="h-4 w-4 accent-lilac-deep"
+                            />
+                            {opt.label}
+                          </label>
+                          {on && opt.input && (
+                            <input
+                              type="text"
+                              value={contactInputs[opt.id] ?? ""}
+                              onChange={(e) => setContactInput(opt.id, e.target.value)}
+                              maxLength={MULTI_INPUT_MAX}
+                              placeholder={opt.input.prompt}
+                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/40 bg-cream-warm p-2.5 text-[13px] text-eye-purple focus:outline-none focus:border-lilac-deep"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {!contactValid && (
+                    <div className="text-[11px] mt-1.5 text-text-light/50">
+                      하나 이상 골라줘 (직접 입력 항목은 내용도 적어줘)
+                    </div>
+                  )}
+                </div>
+              );
+            }
             const len = answers[i].trim().length;
             const ok = len >= SURVEY_MIN_CHARS;
             return (
