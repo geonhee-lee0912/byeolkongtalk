@@ -66,7 +66,7 @@ T3(데이터 분석 → 모델·페르소나 재설계 + 무료상품 재설계)
 - **별 지급**: `chargeStars()` (`lib/stars.ts`) + `charge_stars` RPC. 멱등키 = 3번째 인자(`survey:${userId}`), 사유는 `source="survey_reward"`(자유문자열, CHECK/마이그레이션 변경 불필요). ⚠️ `star_transactions`에 `reason` 컬럼 없음 — `source`가 그 역할, `type`은 항상 `'charge'`.
 - **세션**: `getSession()` (`lib/session.ts`, `await` 필수) — userId/anonId는 서버에서만 파생.
 - **어드민 가드**: `proxy.ts` + `app/admin/layout.tsx` + `requireAdmin()`(`lib/admin-actions.ts`). `LoadFailed`(`components/admin/LoadFailed.tsx`).
-- **캐러셀 계측**: `HeroCarousel.tsx`의 `bannerHref`가 `?b=survey` 자동 부착 → 기존 `page_views`로 클릭 잡힘.
+- **캐러셀 계측**: `HeroCarousel.tsx`가 카드 클릭 시 `ui_events`에 `banner_clicked{slot:"survey"}`를 기록 → 클릭 잡힘. ⚠️ (2026-08-14 정정) 과거 서술의 `?b=survey`(page_views)는 **DB에 도달하지 못했다** — `page_views`는 쿼리스트링을 저장하지 않아 `?b=`가 URL에만 존재했다. `ui_events` 방식으로 교체됨.
 
 ## 저장 스키마
 
@@ -118,7 +118,7 @@ grant usage, select on sequence survey_responses_id_seq to service_role;
 ## 관찰 포인트
 
 - **10별 + 6문항 전부 필수(각 50자)는 응답률을 낮출 수 있다**(노동 대비 보상). 얇아도 질 높은 표본이 정성조사엔 유리하다는 판단이나, 실제 참여율을 보고 **보상↑ 또는 필수 완화**로 조정 가능하게 상수(`SURVEY_REWARD_STARS`·`SURVEY_MIN_CHARS`)로 뺀다.
-- 응답 수/시각은 `created_at`으로 자연 관측. 별도 계측 이벤트는 캐러셀 `?b=survey`(page_views)로 이미 잡히므로 추가 안 함.
+- 응답 수/시각은 `created_at`으로 자연 관측. 캐러셀 클릭은 `ui_events`의 `banner_clicked{slot:"survey"}`로 잡히므로 별도 계측 이벤트는 추가 안 함. (2026-08-14 정정: 과거 `?b=survey`(page_views) 서술은 미도달이었다 — 위 캐러셀 계측 항목 참조.)
 
 ## 비채택 (기각 근거)
 

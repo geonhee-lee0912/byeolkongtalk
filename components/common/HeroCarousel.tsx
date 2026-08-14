@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type TouchEvent, useEffect, useRef, useState } from "react";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 type Card = {
   id: string;
@@ -27,8 +28,10 @@ const CARDS: Card[] = [
 // 기존 유저의 첫 카드 시작점(신상품). 첫 카드 이후 노출이 급감하므로 첫 카드가 실질 지렛대.
 const SIM_INDEX = CARDS.findIndex((c) => c.id === "sim");
 
-// 클릭 계측 — 목적지에 ?b=<id> 를 붙여 기존 page_views 로 잡는다 (08-02 통합 §1탭)
-const bannerHref = (c: Card) => `${c.href}${c.href.includes("?") ? "&" : "?"}b=${c.id}`;
+// 클릭 계측 — ui_events 에 banner_clicked{slot} 로 기록한다 (08-02 통합 §1탭).
+// 과거 ?b=<id> 를 URL 에 붙였으나 page_views 는 쿼리를 저장하지 않아 DB 에 도달하지 못했다.
+// 클릭 자체를 재는 편이 PV 프록시보다 정확하고, 광고 축(utm_content)과도 섞이지 않는다.
+const trackBannerClick = (c: Card) => trackUiEvent("banner_clicked", { meta: { slot: c.id } });
 
 const BAR = "rgba(255,248,240,0.6)"; // 하단 솔리드 바 (전 카드 크림 통일)
 const TITLE = "#5A3E8C"; // eye-purple
@@ -92,7 +95,8 @@ export default function HeroCarousel({ isNewUser }: { isNewUser: boolean | null 
         {/* 바: 좌우·하단으로 16px 오버행(-inset-x-4/-bottom-4) → rounded 클리핑 곡선까지 채움.
             높이는 콘텐츠 기반(pb-7 = 보이는 12px + 클리핑되는 16px). */}
         <Link
-          href={bannerHref(card)}
+          href={card.href}
+          onClick={() => trackBannerClick(card)}
           className="absolute -inset-x-4 -bottom-4 top-auto flex items-center justify-between gap-3 px-8 pt-3 pb-7"
           style={{ background: BAR }}
         >
