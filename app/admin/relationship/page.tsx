@@ -10,6 +10,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import LoadFailed from "@/components/admin/LoadFailed";
 import { adminExclusionArray } from "@/lib/admin";
+import { SIM_COST, SIM_SUGGEST_COST, SLOT_COST } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,17 +39,21 @@ async function load() {
   const p_now = new Date(now).toISOString();
   const p_week_ago = new Date(now - 7 * 86400000).toISOString();
 
-  const [summaryRes, distRes, flowRes] = await Promise.all([
+  const [summaryRes, distRes, flowRes, simRes, slotsRes] = await Promise.all([
     supa.rpc("admin_relationship_summary", { p_exclude, p_now, p_week_ago }),
     supa.rpc("admin_relationship_dist", { p_exclude, p_skill_keys: [...SKILL_KEYS] }),
     supa.rpc("admin_relationship_flow", { p_exclude }),
+    supa.rpc("admin_sim_summary", { p_exclude }),
+    supa.rpc("admin_slots_summary", { p_exclude }),
   ]);
 
-  // RPC 3개는 서로 독립이다 — 하나가 죽어도 나머지 두 블록은 계속 읽혀야 한다. 여기서 error 를
+  // RPC 들은 서로 독립이다 — 하나가 죽어도 나머지 블록은 계속 읽혀야 한다. 여기서 error 를
   // 잡지 않으면 `?? 0` 폴백이 실패를 "값이 0" 으로 위장한다(2026-07-28 cap 사고와 같은 구조).
   const summaryFailed = !!summaryRes.error;
   const distFailed = !!distRes.error;
   const flowFailed = !!flowRes.error;
+  const simFailed = !!simRes.error;
+  const slotsFailed = !!slotsRes.error;
 
   // BIGINT 는 PostgREST 를 지나며 문자열이 되므로 Number() 로 감싼다.
   const summary = (
@@ -79,6 +84,21 @@ async function load() {
   const visits = Number(flowRow?.visits ?? 0);
   const totalTurns = Number(flowRow?.total_turns ?? 0);
 
+  const sim = (
+    (simRes.data ?? []) as {
+      total_plays: number; runway_plays: number; hook_plays: number; paid_plays: number;
+      debriefed_plays: number; play_users: number; play_rels: number;
+      runway_exhausted_rels: number; suggest_purchases: number;
+      portrait_rels: number; portrait_avg_len: number;
+    }[]
+  )[0];
+  const slots = (
+    (slotsRes.data ?? []) as {
+      slot_purchases: number; multi_rel_users: number;
+      rels_1: number; rels_2: number; rels_3plus: number;
+    }[]
+  )[0];
+
   return {
     summaryFailed,
     distFailed,
@@ -98,6 +118,28 @@ async function load() {
       avgTurnsPerVisit: visits ? Math.round((totalTurns / visits) * 10) / 10 : 0,
       softCapDays: Number(flowRow?.softcap_days ?? 0),
     },
+    simFailed,
+    slotsFailed,
+    sim: {
+      totalPlays: Number(sim?.total_plays ?? 0),
+      runwayPlays: Number(sim?.runway_plays ?? 0),
+      hookPlays: Number(sim?.hook_plays ?? 0),
+      paidPlays: Number(sim?.paid_plays ?? 0),
+      debriefedPlays: Number(sim?.debriefed_plays ?? 0),
+      playUsers: Number(sim?.play_users ?? 0),
+      playRels: Number(sim?.play_rels ?? 0),
+      runwayExhaustedRels: Number(sim?.runway_exhausted_rels ?? 0),
+      suggestPurchases: Number(sim?.suggest_purchases ?? 0),
+      portraitRels: Number(sim?.portrait_rels ?? 0),
+      portraitAvgLen: Number(sim?.portrait_avg_len ?? 0),
+    },
+    slots: {
+      slotPurchases: Number(slots?.slot_purchases ?? 0),
+      multiRelUsers: Number(slots?.multi_rel_users ?? 0),
+      rels1: Number(slots?.rels_1 ?? 0),
+      rels2: Number(slots?.rels_2 ?? 0),
+      rels3plus: Number(slots?.rels_3plus ?? 0),
+    },
   };
 }
 
@@ -106,6 +148,12 @@ export default async function AdminRelationshipPage() {
   // summary 가 죽으면 분자·분모가 둘 다 없다 — 아래에서 이 값을 쓰지 않고 `—` 를 띄운다.
   // (없는 값으로 계산한 "0%" 는 그 자체가 또 하나의 거짓말이다.)
   const renewRate = s.passBuyers ? Math.round((s.renewers / s.passBuyers) * 1000) / 10 : 0;
+  const s2 = s.sim;
+  const paidRate = s2.totalPlays ? Math.round((s2.paidPlays / s2.totalPlays) * 1000) / 10 : 0;
+  const debriefRate = s2.totalPlays ? Math.round((s2.debriefedPlays / s2.totalPlays) * 1000) / 10 : 0;
+  const portraitRate = s2.playRels ? Math.round((s2.portraitRels / s2.playRels) * 1000) / 10 : 0;
+  const simRevenue = s2.paidPlays * SIM_COST + s2.suggestPurchases * SIM_SUGGEST_COST;
+  const slotRevenue = s.slots.slotPurchases * SLOT_COST;
 
   return (
     <div className="space-y-8">
@@ -172,6 +220,35 @@ export default async function AdminRelationshipPage() {
           <Stat label="소프트캡 도달" value={s.flowFailed ? "—" : s.flow.softCapDays} sub="하루 20턴 소진 (스레드·일)" />
         </div>
         {s.flowFailed && <LoadFailed block="admin_relationship_flow" className="mt-2" />}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">연애 시뮬 <span className="text-white/35">(무료 런웨이 → 유료 전환)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="총 판 수" value={s.simFailed ? "—" : s2.totalPlays} />
+          <Stat label="유료 전환율" value={s.simFailed ? "—" : `${paidRate}%`} sub={s.simFailed ? undefined : `유료 ${s2.paidPlays}판`} />
+          <Stat label="시뮬 매출(별)" value={s.simFailed ? "—" : simRevenue.toLocaleString()} sub={s.simFailed ? undefined : `판 ${s2.paidPlays}·추천 ${s2.suggestPurchases}`} />
+          <Stat label="디브리핑 도달률" value={s.simFailed ? "—" : `${debriefRate}%`} sub={s.simFailed ? undefined : `${s2.debriefedPlays}/${s2.totalPlays}판`} />
+          <Stat label="플레이 유저" value={s.simFailed ? "—" : s2.playUsers} sub={s.simFailed ? undefined : `관계 ${s2.playRels}`} />
+          <Stat label="런웨이 소진 관계" value={s.simFailed ? "—" : s2.runwayExhaustedRels} sub="무료 3판 다 씀" />
+          <Stat label="주간훅 사용 판" value={s.simFailed ? "—" : s2.hookPlays} sub="재방문 케이던스" />
+          <Stat label="초상화 축적" value={s.simFailed ? "—" : `${portraitRate}%`} sub={s.simFailed ? undefined : `${s2.portraitRels}/${s2.playRels}관계 · 평균 ${s2.portraitAvgLen}자`} />
+        </div>
+        <div className="mt-2 text-[12px] text-white/40">
+          {s.simFailed ? "" : `자금원 분포 — 무료런웨이 ${s2.runwayPlays} · 주간훅 ${s2.hookPlays} · 유료 ${s2.paidPlays}`}
+        </div>
+        {s.simFailed && <LoadFailed block="admin_sim_summary" className="mt-2" />}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">관계 슬롯 <span className="text-white/35">(첫 관계 무료 → 2번째+ 유료)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="슬롯 구매" value={s.slotsFailed ? "—" : s.slots.slotPurchases} sub={`개당 ${SLOT_COST}별`} />
+          <Stat label="슬롯 매출(별)" value={s.slotsFailed ? "—" : slotRevenue.toLocaleString()} />
+          <Stat label="다중 관계 유저" value={s.slotsFailed ? "—" : s.slots.multiRelUsers} sub="2명+ 등록 (1:N 실현)" />
+          <Stat label="관계 수 분포" value={s.slotsFailed ? "—" : `${s.slots.rels1}·${s.slots.rels2}·${s.slots.rels3plus}`} sub="1명·2명·3명+" />
+        </div>
+        {s.slotsFailed && <LoadFailed block="admin_slots_summary" className="mt-2" />}
       </section>
     </div>
   );
