@@ -1,14 +1,18 @@
 "use client";
 
+import { simFreeBadge } from "@/lib/relationship/sim";
+
 // components/relationship/ProductList.tsx — 선택한 상대에게 돌릴 상품 목록.
 // 💬 연애 상담 · 🎭 연애 시뮬레이션. 둘 다 활성. 카드는 fortune 상품카드 패턴 + 해시태그.
 // 스킬 4종은 상품이 아니라 연애 상담(스레드) 안의 ⚡도구 → 여기 없음. 스펙 §P2 + 목업 p2-hub-v2.
 export interface ProductListProps {
   onOpenThread: () => void;
   onOpenSim: () => void;
+  /** 선택 상대의 다음 시뮬 판 자금원(허브가 /sim/quote 로 공급). null=로딩/미선택. */
+  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null;
 }
 
-export default function ProductList({ onOpenThread, onOpenSim }: ProductListProps) {
+export default function ProductList({ onOpenThread, onOpenSim, simQuote }: ProductListProps) {
   return (
     <div className="flex flex-col gap-2.5">
       {/* 💬 연애 상담 — 활성 */}
@@ -39,6 +43,7 @@ export default function ProductList({ onOpenThread, onOpenSim }: ProductListProp
               </span>
             ))}
           </div>
+          <p className="text-[11px] font-bold text-lilac-deep mt-1.5">첫 3턴 무료 · 이후 패스</p>
         </div>
       </button>
 
@@ -70,6 +75,9 @@ export default function ProductList({ onOpenThread, onOpenSim }: ProductListProp
               </span>
             ))}
           </div>
+          {simFreeBadge(simQuote) && (
+            <p className="text-[11px] font-bold text-lilac-deep mt-1.5">{simFreeBadge(simQuote)}</p>
+          )}
         </div>
       </button>
     </div>

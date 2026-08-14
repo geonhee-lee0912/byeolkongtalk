@@ -88,6 +88,8 @@ export default function RelationshipPage() {
   const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>({});
   // 선택 대상: "me"(나 앵커) 또는 관계 id
   const [selected, setSelected] = useState<"me" | string>("me");
+  // 선택 상대의 다음 시뮬 판 자금원 — ProductList 시뮬 무료 배지용(/sim/quote).
+  const [simQuote, setSimQuote] = useState<{ funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null>(null);
   // 상대 카드 아래 상세(성격·MBTI·명식) 펼침 — 상대 전환 시 접힘으로 리셋
   const [partnerExpanded, setPartnerExpanded] = useState(false);
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
@@ -230,6 +232,18 @@ export default function RelationshipPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 선택 상대가 바뀌면 시뮬 무료 배지용 쿼트 조회(실제 사람일 때만, me/미선택이면 null).
+  useEffect(() => {
+    if (selected === "me") { setSimQuote(null); return; }
+    let alive = true;
+    setSimQuote(null);
+    fetch(`/api/relationship/sim/quote?relationshipId=${selected}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((q) => { if (alive && q && typeof q.cost === "number") setSimQuote(q); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [selected]);
 
   // 새 사람 추가([＋]/첫 사람/등록 CTA 공통) — 슬롯 현황으로 분기. 무료면 등록 모달,
   // 슬롯 필요하면 구매 시트. 조회 실패(null)면 등록 모달로(POST 402가 방어적으로 시트를 연다).
@@ -785,6 +799,7 @@ export default function RelationshipPage() {
               onOpenSim={() => {
                 if (!selectionLoading && selected !== "me") router.push(`/relationship/sim?rel=${selected}`);
               }}
+              simQuote={simQuote}
             />
           </>
         ) : (
