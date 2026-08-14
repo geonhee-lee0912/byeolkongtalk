@@ -1,6 +1,6 @@
 "use client";
 
-import { simFreeBadge } from "@/lib/relationship/sim";
+import { simFreeBadges } from "@/lib/relationship/sim";
 
 // components/relationship/ProductList.tsx — 선택한 상대에게 돌릴 상품 목록.
 // 💬 연애 상담 · 🎭 연애 시뮬레이션. 둘 다 활성. 카드는 fortune 상품카드 패턴 + 해시태그.
@@ -9,7 +9,7 @@ export interface ProductListProps {
   onOpenThread: () => void;
   onOpenSim: () => void;
   /** 선택 상대의 다음 시뮬 판 자금원(허브가 /sim/quote 로 공급). null=로딩/미선택. */
-  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null;
+  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null;
 }
 
 export default function ProductList({ onOpenThread, onOpenSim, simQuote }: ProductListProps) {
@@ -29,7 +29,10 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
           💬
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
+          <div className="flex items-center flex-wrap gap-1.5">
+            <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
+            <span className="text-[10.5px] font-bold text-night-deep bg-gold px-2 py-0.5 rounded-full">첫 3턴 이후 패스 구매 필요</span>
+          </div>
           <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
             별콩이가 너의 연애를 다 기억해줄게!
           </p>
@@ -43,7 +46,6 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
               </span>
             ))}
           </div>
-          <p className="text-[11px] font-bold text-lilac-deep mt-1.5">첫 3턴 무료 · 이후 패스</p>
         </div>
       </button>
 
@@ -61,7 +63,12 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
           🎭
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
+          <div className="flex items-center flex-wrap gap-1.5">
+            <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
+            {simFreeBadges(simQuote).map((b) => (
+              <span key={b} className="text-[10.5px] font-bold text-night-deep bg-gold px-2 py-0.5 rounded-full">{b}</span>
+            ))}
+          </div>
           <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
             난감한 상황을 인형과 연습
           </p>
@@ -75,9 +82,6 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
               </span>
             ))}
           </div>
-          {simFreeBadge(simQuote) && (
-            <p className="text-[11px] font-bold text-lilac-deep mt-1.5">{simFreeBadge(simQuote)}</p>
-          )}
         </div>
       </button>
     </div>

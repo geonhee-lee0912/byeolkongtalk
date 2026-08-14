@@ -38,7 +38,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
           <h1 className="text-center text-cream-warm font-display text-lg mb-5">어떤 상황을 연습해볼까?</h1>
 
           {/* 관계 칩 — 내 관계 맨 앞·기본 선택, 탭하면 그 관계 목록으로 교체 */}
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
+          <div className="flex flex-wrap gap-2 mb-5">
             {chipOrder.map((s) => {
               const active = s === chip;
               return (
@@ -67,7 +67,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                 별콩이가 상황을 여럿 준비해두지만, <b className="text-cream-warm">원하면 네가 직접 상황을 적어도 돼!</b>
               </p>
               <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed mt-2">
-                인형은 <b className="text-cream-warm">네가 다듬을수록 더 걔처럼</b> 돼 — 이렇게 키워:
+                인형은 <b className="text-cream-warm">네가 다듬을수록 더 그 사람처럼</b> 돼 — 이렇게 키워:
               </p>
               <ul className="text-[13px] text-lilac-soft/85 leading-relaxed mt-1 space-y-1">
                 <li>· 대화 중 인형 대사에 <b className="text-cream-warm">👍 / 👎</b>로 “실제론 이래” 알려주기</li>
