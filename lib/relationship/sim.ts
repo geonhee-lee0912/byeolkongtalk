@@ -1,5 +1,5 @@
 // lib/relationship/sim.ts — 시뮬 엔진 순수 헬퍼 + 판 메타 타입. 라우트에서 조립.
-import { SIM_TURN_CAP } from "./types";
+import { SIM_TURN_CAP, SIM_FREE_RUNWAY, SIM_HOOK_INTERVAL_DAYS } from "./types";
 
 /** reading.saju_data 에 부속되는 시뮬 판 메타(스펙 §8 — 기존 saju_data 패턴 재사용). */
 export interface SimMeta {
@@ -8,6 +8,8 @@ export interface SimMeta {
   phase: "stage" | "debriefed";
   insight?: string; // 디브리핑 통찰(축약 저장, 선택)
   sendMessage?: string; // 💌 보낼 말
+  /** 판 자금원 — 무료 런웨이/훅/유료. 게이팅·측정 소스(스펙 §3·§6). 없으면 레거시=paid 취급. */
+  funding?: "runway" | "hook" | "paid";
 }
 
 /** 인형 대화 abs-cap 도달 시 디브리핑 강제. 위기 판(has_sensitive)은 억제(안전>원가, 스펙 §5). */
@@ -67,4 +69,17 @@ export function appendPersonalityNote(existing: string | null, note: string): st
 /** 밤 무대 프레임 고지(결정적 별콩이 노트). POST /sim 생성 시 시드 + GET 재진입 시 재구성 — 단일 원천. */
 export function buildSimFrame(relLabel: string, situationLabel: string): string {
   return `여긴 네 마음속 ${relLabel} 인형이 서는 무대야 — 네가 알려준 설명으로 그렸지, 진짜 걔는 아니야. "${situationLabel}" 상황을 편하게 연습해봐. 인형이 실제 걔랑 다르면 대사 밑 👍👎로 알려주면 내가 더 걔답게 만들어줄게. 무슨 말을 할지 막히면 아래 '답변 추천'을, 충분히 해봤으면 '마무리'를 눌러 정리하면 돼.`;
+}
+
+/** 판 자금원 결정(서버 게이트). runwayUsed=이 관계의 기존 runway 판 수, hookLastAt=이 유저의 최근 hook 판 시각.
+ *  런웨이 소진 전=runway / 소진 후 7일 롤링 지났으면 hook / 아니면 paid. 순수 함수(라우트가 쿼리 주입). */
+export function resolveFunding(args: {
+  runwayUsed: number;
+  hookLastAt: string | null;
+  now: Date;
+}): "runway" | "hook" | "paid" {
+  if (args.runwayUsed < SIM_FREE_RUNWAY) return "runway";
+  if (!args.hookLastAt) return "hook";
+  const elapsedDays = (args.now.getTime() - new Date(args.hookLastAt).getTime()) / 86_400_000;
+  return elapsedDays >= SIM_HOOK_INTERVAL_DAYS ? "hook" : "paid";
 }

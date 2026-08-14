@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   simForceDebrief, extractSendLine, stripSimMarkers,
   buildSimContextBlock, formatPartnerForDoll, appendPersonalityNote, extractSuggestions,
+  resolveFunding,
 } from "./sim.ts";
 import { SIM_TURN_CAP } from "./types.ts";
 
@@ -62,4 +63,23 @@ test("답변 추천 추출 — 3개 초과는 앞 3개만, WHY 없으면 빈 이
     [{ say: "1", why: "a" }, { say: "2", why: "b" }, { say: "3", why: "c" }]);
   assert.deepEqual(extractSuggestions("[SAY:안녕]"), [{ say: "안녕", why: "" }]);
   assert.deepEqual(extractSuggestions("마커 없는 텍스트"), []);
+});
+
+test("런웨이 소진 전엔 무조건 runway", () => {
+  const now = new Date("2026-08-14T00:00:00Z");
+  assert.equal(resolveFunding({ runwayUsed: 0, hookLastAt: null, now }), "runway");
+  assert.equal(resolveFunding({ runwayUsed: 2, hookLastAt: null, now }), "runway");
+});
+
+test("런웨이 소진 후 훅 이력 없으면 hook", () => {
+  const now = new Date("2026-08-14T00:00:00Z");
+  assert.equal(resolveFunding({ runwayUsed: 3, hookLastAt: null, now }), "hook");
+});
+
+test("훅은 7일 롤링 — 6일 전이면 paid, 7일 전이면 hook", () => {
+  const now = new Date("2026-08-14T00:00:00Z");
+  const sixDays = new Date("2026-08-08T00:00:00Z").toISOString();  // 6일 전
+  const sevenDays = new Date("2026-08-07T00:00:00Z").toISOString(); // 7일 전
+  assert.equal(resolveFunding({ runwayUsed: 3, hookLastAt: sixDays, now }), "paid");
+  assert.equal(resolveFunding({ runwayUsed: 5, hookLastAt: sevenDays, now }), "hook");
 });

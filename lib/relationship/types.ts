@@ -56,6 +56,11 @@ export const SIM_COST = 15;
  * 별콩이가 유저가 지금 인형에게 할 만한 말 3가지를 제안. 서버 권위(클라 cost 신뢰 X). 값은 튜닝 대상. */
 export const SIM_SUGGEST_COST = 5;
 
+/** 무료 런웨이 — 관계당 첫 N판은 무료(SIM_COST 면제). 축적 시작을 유료벽 앞에 둔다(스펙 §3). 서버 권위. */
+export const SIM_FREE_RUNWAY = 3;
+/** 리텐션 훅 — 유저당 이 일수(롤링)마다 무료 판 1회. 재방문 케이던스(스펙 §3). 서버 권위. */
+export const SIM_HOOK_INTERVAL_DAYS = 7;
+
 /** 시뮬 한 판의 인형 대화 절대 상한(원가 경계, 스펙 §2 "abs-cap 재사용"). 도달 시 서버가 디브리핑을 강제(추가 인형 턴 거부).
  * 단 has_sensitive 판은 강제하지 않음(안전>원가, 스펙 §5) — chat 라우트가 simForceDebrief 로 억제. */
 export const SIM_TURN_CAP = 12;
