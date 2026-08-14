@@ -108,3 +108,13 @@ export function dedupPortraitNotes(existing: string | null, candidates: string[]
   }
   return out;
 }
+
+/** 허브 시뮬 카드의 무료 배지 라벨(쿼트 기반). 쿼트 없으면(로딩/실패) null → 배지 생략. */
+export function simFreeBadge(
+  q: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null
+): string | null {
+  if (!q) return null;
+  if (q.funding === "runway") return `무료 ${q.runwayRemaining}판 남음`;
+  if (q.funding === "hook") return "이번 주 무료 판";
+  return `판당 ${q.cost}별`;
+}
