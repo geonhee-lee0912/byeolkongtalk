@@ -13,7 +13,8 @@ import { RELATIONSHIP_STATUS_LABELS, SIM_SUGGEST_COST, type RelationshipStatus }
 import { getSituation } from "@/lib/relationship/situations";
 import {
   simForceDebrief, extractSendLine, stripSimMarkers,
-  buildSimContextBlock, formatPartnerForDoll, extractSuggestions, type SimMeta,
+  buildSimContextBlock, formatPartnerForDoll, extractSuggestions,
+  extractPortraitObservations, dedupPortraitNotes, appendPersonalityNote, type SimMeta,
 } from "@/lib/relationship/sim";
 import { randomUUID } from "node:crypto";
 
@@ -145,8 +146,22 @@ export async function POST(request: NextRequest) {
     const display = stripSimMarkers(raw);
     const nowIso = new Date().toISOString();
     const nextMeta: SimMeta = { ...meta, phase: "debriefed", sendMessage: sendMessage ?? undefined };
-    // 디브리핑 메시지 저장(skill_key='sim_debrief') + 판 메타 갱신(phase·sendMessage) — best-effort.
-    // 저장이 실패해도 이미 생성된 디브리핑은 유저에게 반환한다(유료 판 디브리핑 유실 > 저장 실패, 플랜 §6).
+
+    // 초상화 누적 — 이번 판 관찰을 상대 personality 에 append(패시브, 유저 노력 무의존). 기존값 대비 dedup.
+    let portrait = personality ?? "";
+    const observations = dedupPortraitNotes(personality, extractPortraitObservations(raw));
+    if (observations.length && rel.partner_profile_id) {
+      let next = personality ?? "";
+      for (const obs of observations) next = appendPersonalityNote(next, obs);
+      const { error: pErr } = await supabase
+        .from("user_profiles").update({ personality: next })
+        .eq("id", rel.partner_profile_id).eq("user_id", userId);
+      if (pErr)
+        await logError(pErr, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "portrait_append" } }));
+      else portrait = next;
+    }
+
+    // 디브리핑 메시지 저장(skill_key='sim_debrief') + 판 메타 갱신 — best-effort(유실 > 저장 실패, 스펙 §6).
     try {
       const { error: mErr } = await supabase.from("messages").insert([
         { reading_id: reading.id, role: "assistant", content: display, skill_key: "sim_debrief", created_at: nowIso },
@@ -159,7 +174,7 @@ export async function POST(request: NextRequest) {
       await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "debrief_save" } }));
     }
 
-    return NextResponse.json({ debrief: display, sendMessage, situationId: situation.id, success: true });
+    return NextResponse.json({ debrief: display, sendMessage, portrait, situationId: situation.id, success: true });
   }
 
   // ── say (인형 대사) ──
