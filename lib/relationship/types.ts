@@ -91,11 +91,12 @@ export interface RelationshipMemo {
   active_skill?: { key: string; started_at: string; assistant_turns: number } | null;
 }
 
-/** 관계 슬롯 — 첫 사람부터 슬롯 구매(2026-08-05 사용자 결정, 무료 첫 사람 폐지).
- * 허용 관계 수 = 구매한 슬롯 수. SLOT_COST 는 서버 권위(클라가 보낸 값 신뢰 X). 값은 튜닝 대상(스펙 §11).
- * ⚠️ WELCOME_BONUS_STARS(20) < SLOT_COST(50) 라 신규 유저는 첫 등록에 충전 필요 — 의도된 페이월. */
+/** 관계 슬롯 — 첫 사람 무료, 2번째+ 슬롯 구매(2026-08-14 사용자 결정, 등록벽 제거).
+ * 허용 관계 수 = 무료 슬롯 1 + 구매한 슬롯 수. SLOT_COST 는 서버 권위(클라가 보낸 값 신뢰 X). 값은 튜닝 대상(스펙 §5).
+ * 신규 유저는 웰컴 별 없이도 첫 관계 등록 가능(충전벽 없음) → 무료 인트로 3턴 → 이후 패스/스킬에서 수익화.
+ * 판별은 구매 슬롯 수로(상시 1무료 = 삭제 후 재등록해도 첫 1명 무료). create_relationship RPC 게이트와 정합. */
 export const SLOT_COST = 50;
 
 export function slotAllowance(purchasedSlots: number): number {
-  return Math.max(0, purchasedSlots);
+  return 1 + Math.max(0, purchasedSlots);
 }
