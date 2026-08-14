@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getSituation } from "@/lib/relationship/situations";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ const SKILL_LABEL: Record<string, string> = { checkin: "관계 체크인", deep_
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
+const FUNDING_LABEL: Record<string, string> = { runway: "무료 런웨이", hook: "주간훅 무료", paid: "유료" };
 
 // 스레드 마커를 어드민 가독용 배지 텍스트로 치환 (유저가 그 시점에 뭘 봤는지 확인용)
 function cleanThreadContent(raw: string): string {
@@ -34,7 +37,7 @@ export default async function AdminRelationshipDetail({ params }: { params: Prom
 
   const { data: rel } = await supabase
     .from("relationships")
-    .select("id, user_id, label, status, thread_reading_id, rolling_summary, summarized_msg_count, memo, last_visited_at, created_at")
+    .select("id, user_id, label, status, thread_reading_id, partner_profile_id, rolling_summary, summarized_msg_count, memo, last_visited_at, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!rel) notFound();
@@ -49,6 +52,20 @@ export default async function AdminRelationshipDetail({ params }: { params: Prom
       : Promise.resolve({ data: [] as { amount: number; created_at: string }[] }),
     supabase.from("readings").select("id, skill_key, consultation_type, stars_spent, created_at").eq("relationship_id", id).not("skill_key", "is", null),
   ]);
+
+  const [{ data: partnerProfile }, { data: simPlays }] = await Promise.all([
+    rel.partner_profile_id
+      ? supabase.from("user_profiles").select("personality").eq("id", rel.partner_profile_id).maybeSingle()
+      : Promise.resolve({ data: null as { personality: string | null } | null }),
+    supabase
+      .from("readings")
+      .select("id, saju_data, created_at")
+      .eq("relationship_id", id)
+      .eq("consultation_type", "relationship_sim")
+      .order("created_at", { ascending: true }),
+  ]);
+  const portrait = partnerProfile?.personality?.trim() || null;
+  const plays = (simPlays ?? []) as { id: string; saju_data: Record<string, unknown> | null; created_at: string }[];
 
   const timeline: TimelineItem[] = [
     ...(msgs ?? []).map((m) => ({ ts: m.created_at, kind: "msg" as const, role: m.role as "user" | "assistant", content: m.content })),
@@ -143,6 +160,46 @@ export default async function AdminRelationshipDetail({ params }: { params: Prom
                 <div className="whitespace-pre-wrap">
                   {item.role === "assistant" ? cleanThreadContent(item.content) : item.content}
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+        <div className="mb-2 text-xs font-bold text-white/60">초상화 (상대 성격 서술 · 시뮬 관찰 누적)</div>
+        {portrait ? (
+          <div className="whitespace-pre-wrap text-[13px] text-white/80">{portrait}</div>
+        ) : (
+          <div className="py-2 text-[13px] text-white/40">아직 없음</div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+        <div className="mb-2 text-xs font-bold text-white/60">시뮬 판 ({plays.length}판)</div>
+        {plays.length === 0 && (
+          <div className="py-2 text-[13px] text-white/40">시뮬 기록 없음</div>
+        )}
+        <div className="space-y-2">
+          {plays.map((p) => {
+            const meta = (p.saju_data ?? {}) as {
+              situationId?: string; funding?: string; phase?: string; insight?: string; sendMessage?: string;
+            };
+            const sit = meta.situationId ? getSituation(meta.situationId) : null;
+            const funding = meta.funding ?? "paid";
+            return (
+              <div key={p.id} className="rounded-lg bg-white/5 p-3 text-sm">
+                <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-gold">{FUNDING_LABEL[funding] ?? funding}</span>
+                  {sit && <span className="text-white/70">{sit.emoji} {sit.label}</span>}
+                  <span className={meta.phase === "debriefed" ? "text-lilac" : "text-white/40"}>
+                    {meta.phase === "debriefed" ? "✓ 완주" : "미완주"}
+                  </span>
+                  <span className="text-white/40">{fmt(p.created_at)}</span>
+                  <Link href={`/admin/readings/${p.id}`} className="text-lilac underline">리딩 보기</Link>
+                </div>
+                {meta.insight && <div className="text-[13px] text-white/70">통찰: {meta.insight}</div>}
+                {meta.sendMessage && <div className="mt-0.5 text-[13px] text-white/60">💌 {meta.sendMessage}</div>}
               </div>
             );
           })}
