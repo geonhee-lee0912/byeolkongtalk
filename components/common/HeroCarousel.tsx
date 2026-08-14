@@ -2,31 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type TouchEvent, useEffect, useRef, useState } from "react";
+import { type TouchEvent, useEffect, useMemo, useRef, useState } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { type Audience, type Card, visibleCards, startIndex } from "./hero-cards";
 
-type Card = {
-  id: string;
-  img: string;
-  title: string;
-  desc: string;
-  cta: string;
-  href: string;
-};
-
-// 캐러셀 카드 인벤토리 (08-02 통합 IA: 소개·첫충전·궁합·시뮬·설문·패스, BANNER_MAX 열어둠).
-// 첫 카드만 상태별 결정(신규=intro / 기존=sim). 뒤 카드는 노출 급감이라 순서는 덜 중요.
-const CARDS: Card[] = [
-  { id: "intro", img: "/carousel/intro.webp", title: "별콩이는 처음이지?", desc: "타로와 사주로 마음의 흐름을 읽어줄게", cta: "사용법 보기", href: "/how-to-use" },
-  { id: "charge", img: "/carousel/charge.webp", title: "첫 충전엔 20% 더", desc: "지금 충전하면 별을 더 얹어줘", cta: "충전하기", href: "/shop" },
-  { id: "gonghap", img: "/carousel/gonghap.webp", title: "우리의 사주 궁합은?", desc: "두 사람 생년월일로 보는 인연", cta: "궁합 보기", href: "/fortune/compat" },
-  { id: "sim", img: "/carousel/sim.webp", title: "연애 시뮬레이션!", desc: "그 사람과의 여러 상황을 돌려봐", cta: "시작하기", href: "/relationship" },
-  { id: "survey", img: "/carousel/survey.webp", title: "별콩톡 설문조사", desc: "내 이야기를 들려주면 별콩별을 줄게", cta: "참여하기", href: "/survey" },
-  { id: "pass", img: "/carousel/pass.webp", title: "별콩이와 연애 상담", desc: "별콩이가 너를 계속 기억해줄게", cta: "보러가기", href: "/shop" },
-];
-
-// 기존 유저의 첫 카드 시작점(신상품). 첫 카드 이후 노출이 급감하므로 첫 카드가 실질 지렛대.
-const SIM_INDEX = CARDS.findIndex((c) => c.id === "sim");
+const AUTO_MS = 5000; // 자동 넘김 간격
+const RESUME_MS = 8000; // 사용자 조작 후 자동 롤링 재개까지 대기
 
 // 클릭 계측 — ui_events 에 banner_clicked{slot} 로 기록한다 (08-02 통합 §1탭).
 // 과거 ?b=<id> 를 URL 에 붙였으나 page_views 는 쿼리를 저장하지 않아 DB 에 도달하지 못했다.
@@ -43,23 +24,43 @@ const chevron = (
   </svg>
 );
 
-export default function HeroCarousel({ isNewUser }: { isNewUser: boolean | null }) {
+export default function HeroCarousel({ audience }: { audience: Audience | null }) {
+  const cards = useMemo(() => visibleCards(audience), [audience]);
   const [i, setI] = useState(0);
-  const card = CARDS[i];
-  const touched = useRef(false); // 사용자가 캐러셀을 조작하면 자동 첫카드 조정을 멈춘다
+  const touched = useRef(false); // 사용자가 조작하면 관객별 첫카드 배치를 멈춘다 (영구)
+  const lastWasUser = useRef(false); // 직전 카드 변경이 사용자 조작발인지 (자동 틱마다 리셋)
+  const card = cards[i] ?? cards[0]; // 관객 축소로 i 가 범위를 벗어나면 첫 카드로 폴백
   const go = (d: number) => {
     touched.current = true;
-    setI((prev) => (prev + d + CARDS.length) % CARDS.length);
+    lastWasUser.current = true;
+    setI((prev) => (prev + d + cards.length) % cards.length);
   };
   const select = (idx: number) => {
     touched.current = true;
+    lastWasUser.current = true;
     setI(idx);
   };
 
-  // 기존 유저(이력 있음)는 첫 카드를 신상품(시뮬)으로 — 신규·미조작은 intro 유지 (08-02 통합 §1탭)
+  // 관객 확정 시 시작 카드 배치(미조작 한정) + 카드 축소 시 i 클램프
   useEffect(() => {
-    if (isNewUser === false && !touched.current) setI(SIM_INDEX);
-  }, [isNewUser]);
+    if (audience === null) return;
+    if (!touched.current) setI(startIndex(audience, cards));
+    else setI((prev) => (prev >= cards.length ? cards.length - 1 : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audience]);
+
+  // 자동 넘김: i 변화에 재무장. 조작발이면 RESUME_MS 후, 자동이면 AUTO_MS 후 다음 카드.
+  // prefers-reduced-motion 이거나 카드 1장 이하면 비활성.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (cards.length <= 1) return;
+    const delay = lastWasUser.current ? RESUME_MS : AUTO_MS;
+    const id = setTimeout(() => {
+      lastWasUser.current = false;
+      setI((prev) => (prev + 1) % cards.length);
+    }, delay);
+    return () => clearTimeout(id);
+  }, [i, cards.length]);
 
   // 터치 스와이프: 가로 이동이 세로보다 크고 40px 넘을 때만 전환(세로 스크롤·탭과 비충돌)
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -130,7 +131,7 @@ export default function HeroCarousel({ isNewUser }: { isNewUser: boolean | null 
       </div>
 
       <div className="mt-4 flex justify-center gap-1.5">
-        {CARDS.map((_, idx) => (
+        {cards.map((_, idx) => (
           <button
             key={idx}
             onClick={() => select(idx)}

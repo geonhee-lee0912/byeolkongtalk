@@ -15,13 +15,14 @@ import {
 import { FORTUNE_CONFIG, fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
 import HeroCarousel from "@/components/common/HeroCarousel";
+import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
 export default function Home() {
   const router = useRouter();
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
-  const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
+  const [audience, setAudience] = useState<Audience | null>(null);
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
   // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
@@ -54,8 +55,9 @@ export default function Home() {
           loggedIn = false;
         }
         setWelcomeNudge(loggedIn && list !== null && readings.length === 0);
-        // 첫 카드 상태별 결정용: 이력 0=신규(intro) / 이력 있음=기존(sim). 판정 불가 시 null(intro 유지)
-        setIsNewUser(list !== null ? readings.length === 0 : null);
+        // 캐러셀 관객 판정: 비로그인=anon / 로그인+이력0=new / 로그인+이력=returning / 로그인+판정불가=null(로딩 기본).
+        const hasReadings = list !== null ? readings.length > 0 : null;
+        setAudience(resolveAudience(loggedIn, hasReadings));
       } catch {
         // noop
       }
@@ -100,8 +102,8 @@ export default function Home() {
   return (
     <>
       <div className="flex flex-col items-center relative w-full max-w-md mx-auto">
-        {/* ━━━ 히어로 캐러셀 (6장 · 좌우 화살표 · 도트) ━━━ */}
-        <HeroCarousel isNewUser={isNewUser} />
+        {/* ━━━ 히어로 캐러셀 (관객별 카드 필터 · 5초 자동 넘김 · 좌우 화살표 · 도트) ━━━ */}
+        <HeroCarousel audience={audience} />
 
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
