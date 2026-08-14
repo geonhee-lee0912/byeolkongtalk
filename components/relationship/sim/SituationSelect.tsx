@@ -21,14 +21,14 @@ interface Props {
 }
 
 export default function SituationSelect({ status, onPick, onClose }: Props) {
-  // 칩 순서 = 내 관계 맨 앞 + 나머지 원래 순서. 기본 선택도 내 관계.
-  const chipOrder: RelationshipStatus[] = [status, ...ALL_STATUSES.filter((s) => s !== status)];
-  const [chip, setChip] = useState<RelationshipStatus>(status);
+  // 칩 순서 = 안내('intro') 맨 앞 + 내 관계 + 나머지. 진입 기본은 안내 칩(설명부터 보임).
+  const chipOrder: (RelationshipStatus | "intro")[] = ["intro", status, ...ALL_STATUSES.filter((s) => s !== status)];
+  const [chip, setChip] = useState<RelationshipStatus | "intro">("intro");
   const [picked, setPicked] = useState<SimSituation | null>(null);
   const [ctx, setCtx] = useState("");
 
-  // 선택 관계의 상황 2개 + 직접쓰기(custom은 "any"라 모든 관계 목록에 포함 = 모든 칩에 직접 입력).
-  const situations = getSituations(chip);
+  // 선택 관계의 상황 2개 + 직접쓰기. 안내 칩이면 상황 목록 없음(설명 블록만).
+  const situations = chip === "intro" ? [] : getSituations(chip);
 
   if (!picked) {
     return (
@@ -52,13 +52,37 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                       : "bg-cream-warm/10 text-lilac-soft border border-lilac/25"
                   }`}
                 >
-                  {CHIP[s].emoji} {CHIP[s].label}
+                  {s === "intro" ? "🎭 이게 뭐야?" : `${CHIP[s].emoji} ${CHIP[s].label}`}
                 </button>
               );
             })}
           </div>
 
-          {/* 선택 관계 상황 목록 + 직접쓰기(항상 마지막) */}
+          {/* 안내 칩이면 설명(고도화 가이드), 아니면 상황 목록 + 직접쓰기 */}
+          {chip === "intro" ? (
+            <div className="rounded-2xl bg-cream-warm/[0.07] border border-lilac/20 p-4 text-cream-warm animate-fade-in">
+              <p className="font-bold mb-1">🎭 연애 시뮬이 뭐야?</p>
+              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed">
+                네가 그린 <b className="text-cream-warm">그 사람 인형</b>과 <b className="text-cream-warm">여러 가지 상황</b>을 미리 연습하는 리허설이야.
+                별콩이가 상황을 여럿 준비해두지만, <b className="text-cream-warm">원하면 네가 직접 상황을 적어도 돼!</b>
+              </p>
+              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed mt-2">
+                인형은 <b className="text-cream-warm">네가 다듬을수록 더 걔처럼</b> 돼 — 이렇게 키워:
+              </p>
+              <ul className="text-[13px] text-lilac-soft/85 leading-relaxed mt-1 space-y-1">
+                <li>· 대화 중 인형 대사에 <b className="text-cream-warm">👍 / 👎</b>로 “실제론 이래” 알려주기</li>
+                <li>· <b className="text-cream-warm">디브리핑</b>에서 “걔는 사실 이런 사람” 한 줄 적어주기</li>
+                <li>· 걔 <b className="text-cream-warm">기본 정보</b>(MBTI·성격)를 프로필에 채워두기</li>
+              </ul>
+              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed mt-2">
+                안 채워도 쓸 순 있지만, 그만큼 <b className="text-cream-warm">실제 걔와는 많이 달라질 수밖에 없어.</b>{" "}
+                몇 판 쌓여야 진짜 걔 같아지니까, <b className="text-gold-soft">처음 몇 판은 무료</b>로 부담 없이 만들어봐.
+              </p>
+              <button type="button" onClick={() => setChip(status)} className="mt-3 w-full rounded-xl py-2.5 bg-gold text-night-deep font-bold text-sm">
+                상황 고르러 가기 →
+              </button>
+            </div>
+          ) : (
           <div className="flex flex-col gap-3">
             {situations.map((s) => {
               const isCustom = s.id === "custom";
@@ -85,6 +109,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
               );
             })}
           </div>
+          )}
         </div>
       </StageFrame>
     );
