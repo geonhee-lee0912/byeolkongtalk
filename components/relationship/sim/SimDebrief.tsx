@@ -28,17 +28,24 @@ export default function SimDebrief({
   simReadingId,
   initialDebrief,
   initialSendMessage,
+  initialPortrait,
 }: {
   simReadingId: string;
   /** 완료 판 재열람 — 저장된 디브리핑 프리로드(있으면 생성 fetch 스킵). */
   initialDebrief?: string;
   initialSendMessage?: string | null;
+  initialPortrait?: string;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"loading" | "done" | "error">("loading");
   const [debrief, setDebrief] = useState("");
   const [sendMessage, setSendMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [portrait, setPortrait] = useState(initialPortrait ?? "");
+  const [traitInput, setTraitInput] = useState("");
+  const [traitSaving, setTraitSaving] = useState(false);
+  const [traitDone, setTraitDone] = useState(false);
+  const readOnly = initialDebrief != null; // 재열람 판은 입력 숨김(완료 판 personality 변경 방지, p3a 규칙)
   const ran = useRef(false);
 
   useEffect(() => {
@@ -63,6 +70,7 @@ export default function SimDebrief({
         const d = await res.json();
         setDebrief(d.debrief ?? "");
         setSendMessage(d.sendMessage ?? null);
+        setPortrait(d.portrait ?? "");
         setState("done");
       } catch { setState("error"); }
     })();
@@ -92,6 +100,25 @@ export default function SimDebrief({
     try { await navigator.clipboard.writeText(sendMessage); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* noop */ }
   }
 
+  async function saveTrait() {
+    const note = traitInput.trim();
+    if (!note) return;
+    setTraitSaving(true);
+    try {
+      const res = await fetch("/api/relationship/sim/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ simReadingId, kind: "trait", note }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setPortrait(d.personality ?? portrait);
+        setTraitInput("");
+        setTraitDone(true);
+      }
+    } catch { /* 조용한 실패 방지: 실패 시 버튼 상태만 원복 */ }
+    setTraitSaving(false);
+  }
+
   return (
     <div className="min-h-dvh bg-gradient-to-b from-night to-night-deep text-cream-warm animate-fade-in">
       <div className="px-5 py-8 max-w-lg mx-auto">
@@ -104,6 +131,43 @@ export default function SimDebrief({
             <div className="text-gold-soft text-[12px] font-bold mb-1.5">💌 이 사람에게 보낼 말</div>
             <p className="text-cream-warm text-[15px] leading-relaxed">{sendMessage}</p>
             <button onClick={copySend} className="mt-3 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-sm">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
+          </div>
+        )}
+        {portrait.trim() && (
+          <div className="mt-4 rounded-2xl border border-lilac-mid/30 bg-night/40 p-4">
+            <div className="text-lilac text-[12px] font-bold mb-2">🖼️ 별콩이가 알아가는 초상화</div>
+            <ul className="space-y-1.5">
+              {portrait.split("\n").map((line, i) => {
+                const t = line.replace(/^·\s*/, "").trim();
+                return t ? <li key={i} className="text-cream-warm/90 text-[14px] leading-relaxed">· {t}</li> : null;
+              })}
+            </ul>
+          </div>
+        )}
+        {!readOnly && (
+          <div className="mt-3 rounded-2xl border border-lilac-mid/20 bg-night/30 p-4">
+            <div className="text-lilac text-[12px] mb-2">걔는 사실 이런 사람이야 — 적을수록 인형이 더 걔처럼 돼</div>
+            {traitDone ? (
+              <p className="text-gold-soft text-[13px]">초상화에 더했어, 고마워 ✓</p>
+            ) : (
+              <>
+                <textarea
+                  value={traitInput}
+                  onChange={(e) => setTraitInput(e.target.value)}
+                  maxLength={300}
+                  rows={2}
+                  placeholder="예: 표현은 서툴러도 좋으면 바로 티가 나"
+                  className="w-full rounded-xl bg-night/60 border border-lilac-mid/25 p-2.5 text-[14px] text-cream-warm placeholder:text-lilac/50 resize-none"
+                />
+                <button
+                  disabled={traitSaving || !traitInput.trim()}
+                  onClick={saveTrait}
+                  className="mt-2 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-sm disabled:opacity-40"
+                >
+                  {traitSaving ? "저장 중…" : "초상화에 더하기"}
+                </button>
+              </>
+            )}
           </div>
         )}
         <button onClick={() => router.push("/relationship")} className="mt-6 w-full rounded-xl py-3 bg-cream-warm text-eye-purple font-bold hover:bg-white transition-colors">별콩이랑 더 얘기하기 →</button>

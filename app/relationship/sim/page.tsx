@@ -55,7 +55,7 @@ function SimPageInner() {
   const [balance, setBalance] = useState(0);
   // 재진입(?sim=) 로드분 — 이전 대화 시드 · 완료 디브리핑 프리로드 · 읽기전용 여부.
   const [initialMessages, setInitialMessages] = useState<{ who: "user" | "doll" | "note"; text: string }[] | null>(null);
-  const [loadedDebrief, setLoadedDebrief] = useState<{ debrief: string; sendMessage: string | null } | null>(null);
+  const [loadedDebrief, setLoadedDebrief] = useState<{ debrief: string; sendMessage: string | null; portrait: string } | null>(null);
   const [readOnly, setReadOnly] = useState(false);
   const startedRef = useRef(false);
 
@@ -84,7 +84,7 @@ function SimPageInner() {
         setInitialMessages(Array.isArray(data.messages) ? data.messages : []);
         if (data.phase === "debriefed") {
           setReadOnly(true);
-          setLoadedDebrief({ debrief: data.debrief ?? "", sendMessage: data.sendMessage ?? null });
+          setLoadedDebrief({ debrief: data.debrief ?? "", sendMessage: data.sendMessage ?? null, portrait: data.portrait ?? "" });
         }
         setPhase("stage");
         setLoading(false);
@@ -205,6 +205,7 @@ function SimPageInner() {
             simReadingId={session.simReadingId}
             initialDebrief={loadedDebrief?.debrief}
             initialSendMessage={loadedDebrief?.sendMessage}
+            initialPortrait={loadedDebrief?.portrait}
           />
         )}
       </div>
