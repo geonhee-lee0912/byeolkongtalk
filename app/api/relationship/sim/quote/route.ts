@@ -25,10 +25,11 @@ export async function GET(request: NextRequest) {
     .from("relationships").select("id, user_id").eq("id", relationshipId).maybeSingle();
   if (!rel || rel.user_id !== userId) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { funding, runwayUsed } = await determineSimFunding(supabase, userId, rel.id);
+  const { funding, runwayUsed, weeklyAvailable } = await determineSimFunding(supabase, userId, rel.id);
   return NextResponse.json({
     funding,
     cost: funding === "paid" ? SIM_COST : 0,
     runwayRemaining: Math.max(0, SIM_FREE_RUNWAY - runwayUsed),
+    weeklyAvailable,
   });
 }

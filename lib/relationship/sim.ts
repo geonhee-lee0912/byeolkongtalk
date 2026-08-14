@@ -109,14 +109,16 @@ export function dedupPortraitNotes(existing: string | null, candidates: string[]
   return out;
 }
 
-/** 허브 시뮬 카드의 회수 표기(쿼트 기반). 런웨이면 "무료 N회 남음" + 도트(filled/total)로 남은 양 시각화
- *  + 주간 정책 노트, 훅이면 이번 주 무료, 유료면 판당 별. 쿼트 없으면 null(로딩/미선택). */
+/** 허브 시뮬 카드의 회수 표기(쿼트 기반). runwayLabel = 남은 무료 판(소진 시 null),
+ *  weeklyLabel = "주 1회 무료"(항상), weeklyAvailable = 이번 주 무료 미사용 여부(true=선명/false=흐릿).
+ *  쿼트 없으면 null(로딩/미선택). */
 export function simCount(
-  q: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null
-): { label: string; filled: number; total: number; note: string } | null {
+  q: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null
+): { runwayLabel: string | null; weeklyLabel: string; weeklyAvailable: boolean } | null {
   if (!q) return null;
-  if (q.funding === "runway")
-    return { label: `무료 ${q.runwayRemaining}회 남음`, filled: q.runwayRemaining, total: SIM_FREE_RUNWAY, note: "이후 주 1회 무료" };
-  if (q.funding === "hook") return { label: "이번 주 무료 1회 남음", filled: 0, total: 0, note: "" };
-  return { label: `판당 ${q.cost}별`, filled: 0, total: 0, note: "" };
+  return {
+    runwayLabel: q.runwayRemaining > 0 ? `무료 ${q.runwayRemaining}회 남음` : null,
+    weeklyLabel: "주 1회 무료",
+    weeklyAvailable: q.weeklyAvailable,
+  };
 }

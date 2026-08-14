@@ -89,7 +89,7 @@ export default function RelationshipPage() {
   // 선택 대상: "me"(나 앵커) 또는 관계 id
   const [selected, setSelected] = useState<"me" | string>("me");
   // 선택 상대의 다음 시뮬 판 자금원 — ProductList 시뮬 회수 표기용(/sim/quote).
-  const [simQuote, setSimQuote] = useState<{ funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null>(null);
+  const [simQuote, setSimQuote] = useState<{ funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null>(null);
   // 상대 카드 아래 상세(성격·MBTI·명식) 펼침 — 상대 전환 시 접힘으로 리셋
   const [partnerExpanded, setPartnerExpanded] = useState(false);
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글

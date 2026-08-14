@@ -9,7 +9,7 @@ export interface ProductListProps {
   onOpenThread: () => void;
   onOpenSim: () => void;
   /** 선택 상대의 다음 시뮬 판 자금원(허브가 /sim/quote 로 공급). null=로딩/미선택. */
-  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null;
+  simQuote: { funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null;
 }
 
 const GOLD = "#B07E1C"; // 흰 배경 위 회수 라벨용 진한 금색(연금색 gold 는 대비 부족)
@@ -69,20 +69,20 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
             {count && (
-              <span className="text-[11px] font-bold" style={{ color: GOLD }}>{count.label}</span>
+              <>
+                {count.runwayLabel && (
+                  <span className="text-[11px] font-bold" style={{ color: GOLD }}>{count.runwayLabel}</span>
+                )}
+                {count.runwayLabel && <span className="text-[11px] text-lilac-mid">·</span>}
+                <span
+                  className="text-[11px] font-bold"
+                  style={{ color: GOLD, opacity: count.weeklyAvailable ? 1 : 0.4 }}
+                >
+                  {count.weeklyLabel}
+                </span>
+              </>
             )}
           </div>
-          {count && count.total > 0 && (
-            <div className="flex items-center gap-1.5 mt-1.5">
-              {Array.from({ length: count.total }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`w-[7px] h-[7px] rounded-full ${i < count.filled ? "bg-gold" : "bg-lilac-soft"}`}
-                />
-              ))}
-              {count.note && <span className="text-[11px] text-text-light/70 ml-1">{count.note}</span>}
-            </div>
-          )}
           <p className="text-[12.5px] text-text-light/80 mt-1 leading-relaxed">
             그 사람과의 여러 가지 상황을 연습해 봐. 이야기할수록 그 사람과 비슷하게 시뮬레이션할 수 있어!
           </p>
