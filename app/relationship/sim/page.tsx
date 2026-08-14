@@ -57,6 +57,8 @@ function SimPageInner() {
   const [initialMessages, setInitialMessages] = useState<{ who: "user" | "doll" | "note"; text: string }[] | null>(null);
   const [loadedDebrief, setLoadedDebrief] = useState<{ debrief: string; sendMessage: string | null; portrait: string } | null>(null);
   const [readOnly, setReadOnly] = useState(false);
+  // 진입 시 쿼트(다음 판 자금원·비용) — 정직한 가격 표기용(무료 런웨이/훅 vs 유료).
+  const [quote, setQuote] = useState<{ funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number } | null>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -94,12 +96,15 @@ function SimPageInner() {
         router.replace("/relationship");
         return;
       }
-      // 소유권/상대 로드(허브 목록에서 확인) + 별 잔액(FE4 결제 확인 모달용) 병렬 조회.
-      const [list, bal] = await Promise.all([
+      // 소유권/상대 로드(허브 목록에서 확인) + 별 잔액(FE4 결제 확인 모달용) + 쿼트(다음 판 자금원) 병렬 조회.
+      const [list, bal, q] = await Promise.all([
         fetch("/api/relationship", { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
         fetch("/api/stars/balance", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch(`/api/relationship/sim/quote?relationshipId=${relationshipId}`, { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
@@ -117,6 +122,7 @@ function SimPageInner() {
       }
       setRel({ id: found.id, label: found.label, status: found.status });
       setBalance(typeof bal?.balance === "number" ? bal.balance : 0);
+      setQuote(q && typeof q.cost === "number" ? q : { funding: "paid", cost: SIM_COST, runwayRemaining: 0 });
       setLoading(false);
     })();
   }, [relationshipId, simReadingParam, router]);
@@ -173,6 +179,7 @@ function SimPageInner() {
     setBalance(typeof data.balance === "number" ? data.balance : balance);
     setPending(null);
     setCreating(false);
+    setQuote(null);
     setPhase("stage");
   }
 
@@ -210,19 +217,37 @@ function SimPageInner() {
         )}
       </div>
 
-      {pending && (
-        <StarConfirmModal
-          cost={SIM_COST}
-          balance={balance}
-          loading={creating}
-          accent="#9F8AD0"
-          title="연애 시뮬레이션 한 판"
-          subtitle="연습 + 별콩이 코칭 + 디브리핑까지 포함"
-          confirmLabel="시작하기"
-          onConfirm={createSession}
-          onCharge={() => router.push("/shop?reason=sim")}
-          onClose={() => setPending(null)}
-        />
+      {pending && quote && (
+        quote.funding === "paid" ? (
+          <StarConfirmModal
+            cost={quote.cost}
+            balance={balance}
+            loading={creating}
+            accent="#9F8AD0"
+            title="연애 시뮬레이션 한 판"
+            subtitle="연습 + 별콩이 코칭 + 디브리핑까지 포함"
+            confirmLabel="시작하기"
+            onConfirm={createSession}
+            onCharge={() => router.push("/shop?reason=sim")}
+            onClose={() => setPending(null)}
+          />
+        ) : (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={() => setPending(null)}>
+            <div className="w-full max-w-sm rounded-2xl bg-cream-warm p-5 text-eye-purple" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center">
+                <div className="text-lg font-display mb-1">🎁 이번 판은 무료야</div>
+                <p className="text-[13px] text-text-light mb-4">
+                  {quote.funding === "runway"
+                    ? `무료로 시작하는 첫 판이야 (남은 무료 ${quote.runwayRemaining}판). 편하게 걔 인형을 만나봐.`
+                    : "이번 주 돌아온 김에 주는 무료 판이야. 초상화를 더 채워보자."}
+                </p>
+                <button disabled={creating} onClick={createSession} className="w-full rounded-xl py-3 bg-lilac-deep text-white font-bold disabled:opacity-40">
+                  {creating ? "여는 중…" : "무료로 시작하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       )}
     </main>
   );
