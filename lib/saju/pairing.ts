@@ -1,4 +1,5 @@
 import type { FiveElement } from "./elements";
+import type { SajuResult } from "./calc";
 
 // 천간 10 → 오행
 export const STEM_ELEMENT: Record<string, FiveElement> = {
@@ -106,4 +107,29 @@ export function findTriads(branches: string[]): Triad[] {
   return TRIAD_GROUPS
     .filter((g) => g.branches.every((b) => present.has(b)))
     .map((g) => ({ branches: [...g.branches] as [string, string, string], element: g.element }));
+}
+
+export interface PairRelation {
+  element: ElementRelation; // a 기준 오행 관계
+  tenGodAtoB: TenGod; // a→b 십신
+  tenGodBtoA: TenGod; // b→a 십신 (방향성)
+  labelAtoB: string; // 별콩 라벨 (a→b)
+  labelBtoA: string; // 별콩 라벨 (b→a)
+  heavenlyCombo: boolean; // 천간합(케미 스파크)
+  sixCombo: boolean; // 육합(결속선)
+}
+
+/** 두 사람의 사주로 관계 지표를 종합. a 를 "나" 기준으로 본다. */
+export function pairRelation(a: SajuResult, b: SajuResult): PairRelation {
+  const aToB = tenGod(a.dayStem, b.dayStem);
+  const bToA = tenGod(b.dayStem, a.dayStem);
+  return {
+    element: elementRelation(a.dayElement, b.dayElement),
+    tenGodAtoB: aToB,
+    tenGodBtoA: bToA,
+    labelAtoB: TEN_GOD_LABEL[aToB],
+    labelBtoA: TEN_GOD_LABEL[bToA],
+    heavenlyCombo: heavenlyCombo(a.dayStem, b.dayStem),
+    sixCombo: earthlySixCombo(a.pillars.day.branch, b.pillars.day.branch),
+  };
 }

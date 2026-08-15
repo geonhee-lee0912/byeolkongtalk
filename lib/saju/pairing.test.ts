@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { elementRelation, tenGod, TEN_GOD_LABEL, heavenlyCombo, earthlySixCombo, findTriads } from "./pairing.ts";
+import {
+  elementRelation,
+  tenGod,
+  TEN_GOD_LABEL,
+  heavenlyCombo,
+  earthlySixCombo,
+  findTriads,
+  STEM_ELEMENT,
+  pairRelation,
+} from "./pairing.ts";
+import type { SajuResult } from "./calc.ts";
 
 test("elementRelation — 같은 오행은 비화", () => {
   assert.equal(elementRelation("목", "목"), "비화");
@@ -94,4 +104,47 @@ test("findTriads — 같은 지지가 두 명이어도 삼합 지지 3종이 다
 test("findTriads — 목·금 삼합도 정확히 판정", () => {
   assert.deepEqual(findTriads(["해", "묘", "미"]), [{ branches: ["해", "묘", "미"], element: "목" }]);
   assert.deepEqual(findTriads(["사", "유", "축"]), [{ branches: ["사", "유", "축"], element: "금" }]);
+});
+
+// 테스트용 최소 SajuResult — pairRelation 이 읽는 필드만 채운다.
+function mkSaju(dayStem: string, dayBranch: string): SajuResult {
+  const el = STEM_ELEMENT[dayStem];
+  return {
+    pillars: {
+      year: { stem: "", branch: "", hanja: "" },
+      month: { stem: "", branch: "", hanja: "" },
+      day: { stem: dayStem, branch: dayBranch, hanja: "" },
+      hour: { stem: "", branch: "", hanja: "" },
+    },
+    dayStem,
+    dayElement: el,
+    elementCount: { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 },
+    yinYangCount: { yang: 0, yin: 0 },
+    koreanString: "",
+    hanjaString: "",
+    input: { gender: "other", hourKnown: true, inputCalendar: "solar", isLeapMonth: false },
+  };
+}
+
+test("pairRelation — 오행관계·양방향 십신·라벨·천간합·육합을 종합", () => {
+  const a = mkSaju("갑", "자"); // 갑목, 일지 자
+  const b = mkSaju("기", "축"); // 기토, 일지 축
+  const r = pairRelation(a, b);
+
+  assert.equal(r.element, "아극"); // 갑목이 기토를 극(목극토)
+  assert.equal(r.tenGodAtoB, "정재"); // 갑→기: 아극·양음
+  assert.equal(r.tenGodBtoA, "정관"); // 기→갑: 극아·음양
+  assert.equal(r.labelAtoB, TEN_GOD_LABEL["정재"]);
+  assert.equal(r.labelBtoA, TEN_GOD_LABEL["정관"]);
+  assert.equal(r.heavenlyCombo, true); // 갑기합
+  assert.equal(r.sixCombo, true); // 자축 육합
+});
+
+test("pairRelation — 합이 없는 쌍은 false", () => {
+  const a = mkSaju("갑", "자");
+  const b = mkSaju("갑", "인");
+  const r = pairRelation(a, b);
+  assert.equal(r.element, "비화");
+  assert.equal(r.heavenlyCombo, false);
+  assert.equal(r.sixCombo, false);
 });
