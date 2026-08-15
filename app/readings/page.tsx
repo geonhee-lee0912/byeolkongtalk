@@ -10,7 +10,7 @@ import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
 import { getSituation } from "@/lib/relationship/situations";
-import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 
 interface ReadingItem {
@@ -177,11 +177,9 @@ function sajuAvatar(r: ReadingItem) {
   );
 }
 
-/** 운세 종류별 아이콘 — saju_full 은 붉은 말, 나머지는 이모지 */
+/** 운세 종류별 아이콘 — 전 지면 공통 세트(webp), 아이콘 없는 종은 이모지 폴백 */
 function fortuneIcon(emotionTag: string | null | undefined, size: number) {
-  const ft = fortuneTypeFromTag(emotionTag);
-  if (ft === "saju_full") return <RedHorseIcon size={size} />;
-  return <span>{ft ? FORTUNE_CONFIG[ft].emoji : "✨"}</span>;
+  return <FortuneIconByTag emotionTag={emotionTag} size={size} />;
 }
 
 /** 시뮬 아바타 — 상황 카탈로그의 이모지(situationId 매칭), 없으면 기본 🎭 */

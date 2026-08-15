@@ -114,7 +114,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   };
 
   if (generating) {
-    return <FortuneGeneratingScreen label={cfg.label} emoji={cfg.emoji} />;
+    return <FortuneGeneratingScreen label={cfg.label} type={cfg.type} />;
   }
 
   const newPersonRelation = type === "compat_social" ? "friend" : "partner";

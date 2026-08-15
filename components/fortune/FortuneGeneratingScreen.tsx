@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 const SAJU_STEPS = [
@@ -67,8 +67,8 @@ export default function FortuneGeneratingScreen({
         </div>
 
         <h1 className="font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
-          {type === "saju_full" ? (
-            <RedHorseIcon size={26} className="inline-block" />
+          {type ? (
+            <FortuneIcon type={type} size={26} className="inline-block object-contain" />
           ) : emoji ? (
             <span>{emoji}</span>
           ) : null}

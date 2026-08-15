@@ -16,7 +16,7 @@ function StarIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path
-        d="M12 2.5l2.9 6.05 6.6.62-4.98 4.4 1.46 6.48L12 17.1l-5.98 3.45 1.46-6.48L2.5 9.67l6.6-.62L12 2.5z"
+        d="M12 1.8 15.4 8.6 22.2 12 15.4 15.4 12 22.2 8.6 15.4 1.8 12 8.6 8.6Z"
         fill="#E8C26A"
         stroke="#D6A728"
         strokeWidth="0.8"

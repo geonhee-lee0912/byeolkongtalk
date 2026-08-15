@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { simCount } from "@/lib/relationship/sim";
 
 // components/relationship/ProductList.tsx — 선택한 상대에게 돌릴 상품 목록.
@@ -25,11 +26,10 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
         className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
       >
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
-          style={{ background: "linear-gradient(135deg,#E8DEF5,#D4C7EE)" }}
-          aria-hidden
+          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "linear-gradient(135deg,#FCE7EE,#F8C9D6)" }}
         >
-          💬
+          <Image src="/icons/relationship/consult.webp" alt="" width={40} height={40} className="object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
@@ -59,11 +59,10 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
         className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
       >
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
-          style={{ background: "linear-gradient(135deg,#E8DEF5,#D4C7EE)" }}
-          aria-hidden
+          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "linear-gradient(135deg,#FBEAF2,#F2BFD3)" }}
         >
-          🎭
+          <Image src="/icons/relationship/sim.webp" alt="" width={40} height={40} className="object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">

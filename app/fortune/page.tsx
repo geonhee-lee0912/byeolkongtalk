@@ -10,7 +10,7 @@ import {
   type FortuneCategory,
 } from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
-import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneHeader from "@/components/fortune/FortuneHeader";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -56,10 +56,10 @@ export default function FortunePage() {
               ].join(" ")}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: FORTUNE_GRADIENTS[f.type] }}
               >
-                {f.type === "saju_full" ? <RedHorseIcon size={30} /> : f.emoji}
+                <FortuneIcon type={f.type} size={40} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

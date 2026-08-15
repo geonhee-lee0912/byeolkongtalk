@@ -182,19 +182,19 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.daily,
 ];
 
-/** 운세 종류별 카드 그라데이션 (홈 EMOTION_GRADIENTS 팔레트 재사용) */
+/** 운세 종류별 타일 그라데이션 — 의미 그룹별 (궁합=핑크·로즈 / 타이밍=골드 / 무료=민트). */
 export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
-  daily: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
-  monthly: "linear-gradient(135deg, #E4E6FA 0%, #C3C8F0 100%)",
-  saju_full: "linear-gradient(135deg, #EEE0FB 0%, #D4B6F0 100%)",
+  daily: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
+  monthly: "linear-gradient(135deg, #FFF2D2 0%, #F8D888 100%)",
+  saju_full: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
   compat: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  compat_social: "linear-gradient(135deg, #E3F1FA 0%, #C2DEF5 100%)",
+  compat_social: "linear-gradient(135deg, #FBEAF2 0%, #F2BFD3 100%)",
   tarot_daily: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
   tarot_love: "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
   tarot_money: "linear-gradient(135deg, #FFF8DD 0%, #FBE89E 100%)",
   tarot_career: "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
   tarot_relation: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
-  good_days: "linear-gradient(135deg, #FBEAF0 0%, #F4C0D1 100%)",
+  good_days: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
 };
 
 /** 운세 종류별 해시태그 (홈 카드 #태그 칩 스타일) */

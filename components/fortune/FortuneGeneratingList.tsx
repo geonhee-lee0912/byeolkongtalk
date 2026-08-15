@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
-import RedHorseIcon from "@/components/fortune/RedHorseIcon";
+import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 
 interface FortuneReading {
   id: string;
@@ -44,9 +44,7 @@ function saveSeen(s: Set<string>): void {
 }
 
 function icon(emotionTag: string | null | undefined, size: number) {
-  const ft = fortuneTypeFromTag(emotionTag);
-  if (ft === "saju_full") return <RedHorseIcon size={size} />;
-  return <span>{ft ? FORTUNE_CONFIG[ft].emoji : "✨"}</span>;
+  return <FortuneIconByTag emotionTag={emotionTag} size={size} />;
 }
 
 function label(r: FortuneReading): string {
