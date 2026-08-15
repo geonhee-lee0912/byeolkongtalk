@@ -110,7 +110,7 @@ export default function BottomTab() {
               <Link
                 href={tab.href}
                 className={[
-                  "flex-1 flex flex-col items-center justify-center transition-colors",
+                  "flex-1 flex flex-col items-center justify-center px-1.5 transition-colors",
                   active
                     ? "text-eye-purple"
                     : "text-text-light hover:text-eye-purple",
@@ -120,7 +120,7 @@ export default function BottomTab() {
                 {/* 선택 탭: 아이콘+라벨을 라일락 pill 로 함께 감싼다. 패딩은 항상 유지해 레이아웃 고정. */}
                 <span
                   className={[
-                    "flex flex-col items-center justify-center gap-1 rounded-2xl px-2.5 py-1 transition-colors",
+                    "w-full flex flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-colors",
                     active ? "bg-lilac-soft" : "",
                   ].join(" ")}
                 >
