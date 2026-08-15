@@ -12,11 +12,10 @@ interface TabDef {
   href: string;
   /** 활성 판단용 prefix 목록 — 첫 매치되는 prefix 가 있으면 active */
   matchPrefixes: string[];
-  /** Material Design Icons (Pictogrammers, Apache 2.0) 24x24 single-path */
-  /** 비선택 — line(outline) */
-  iconLine: string;
-  /** 선택 — filled */
-  iconFill: string;
+  /** 솔리드(면으로 채운) 커스텀 글리프 — byeolkong 톤. 상태는 라인/필 2-state 가 아니라 색으로 구분. */
+  icon: string;
+  /** 별 구멍(knockout)이 있는 글리프는 evenodd 로 렌더 → 뒤 배경(pill·크림)이 비친다. */
+  iconEvenOdd?: boolean;
 }
 
 const ICON_CLASS = "w-[22px] h-[22px]";
@@ -27,54 +26,43 @@ const TABS: TabDef[] = [
     label: "타로톡",
     href: "/",
     matchPrefixes: ["/", "/saju", "/concern", "/tarot"],
-    // mdi message-text-outline / message-text
-    iconLine:
-      "M20,2A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H6L2,22V4C2,2.89 2.9,2 4,2H20M4,4V17.17L5.17,16H20V4H4M6,7H18V9H6V7M6,11H15V13H6V11Z",
-    iconFill:
-      "M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18",
+    // 말풍선 + 별(구멍) — 타로 + 톡
+    icon: "M5 4.3h13.2a2.3 2.3 0 0 1 2.3 2.3v8.5a2.3 2.3 0 0 1-2.3 2.3h-6.4L7.4 21v-3.6H5a2.3 2.3 0 0 1-2.3-2.3V6.6A2.3 2.3 0 0 1 5 4.3Zm6.7 3.4-1 2.3-2.3 1 2.3 1 1 2.3 1-2.3 2.3-1-2.3-1Z",
+    iconEvenOdd: true,
   },
   {
     key: "fortune",
     label: "사주 운세",
     href: "/fortune",
     matchPrefixes: ["/fortune"],
-    // mdi star-four-points-outline / star-four-points
-    iconLine:
-      "M12,6.7L13.45,10.55L17.3,12L13.45,13.45L12,17.3L10.55,13.45L6.7,12L10.55,10.55L12,6.7M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z",
-    iconFill: "M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z",
+    // 초승달 + 별
+    icon: "M13.6 3A9 9 0 1 0 21 15.8 7.2 7.2 0 0 1 13.6 3Zm4.3 .4 1 2.2 2.2 1-2.2 1-1 2.2-1-2.2-2.2-1 2.2-1Z",
   },
   {
     key: "history",
     label: "우리 사이",
     href: "/relationship",
     matchPrefixes: ["/relationship"],
-    // mdi heart-outline / heart
-    iconLine:
-      "M12.1,18.55L12,18.65L11.89,18.55C7.14,14.24 4,11.39 4,8.5C4,6.5 5.5,5 7.5,5C9.04,5 10.54,6 11.07,7.36H12.93C13.46,6 14.96,5 16.5,5C18.5,5 20,6.5 20,8.5C20,11.39 16.86,14.24 12.1,18.55M16.5,3C14.76,3 13.09,3.81 12,5.08C10.91,3.81 9.24,3 7.5,3C4.42,3 2,5.41 2,8.5C2,12.27 5.4,15.36 10.55,20.03L12,21.35L13.45,20.03C18.6,15.36 22,12.27 22,8.5C22,5.41 19.58,3 16.5,3Z",
-    iconFill:
-      "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z",
+    // 하트 + 별(구멍)
+    icon: "M12 20.6C5.5 16.1 2 12.9 2 8.4 2 5.5 4.2 3.3 7 3.3c1.9 0 3.7 1 4.7 2.6h.6C13.3 4.3 15.1 3.3 17 3.3c2.8 0 5 2.2 5 5.1 0 4.5-3.5 7.7-10 12.2Zm.5-9.2-.75 1.7-1.7.75 1.7.75.75 1.7.75-1.7 1.7-.75-1.7-.75Z",
+    iconEvenOdd: true,
   },
   {
     key: "shop",
     label: "별콩 상점",
     href: "/shop",
     matchPrefixes: ["/shop"],
-    // mdi star-circle-outline / star-circle
-    iconLine:
-      "M8.58,17.25L9.5,13.36L6.5,10.78L10.45,10.41L12,6.8L13.55,10.45L17.5,10.78L14.5,13.36L15.42,17.25L12,15.19L8.58,17.25M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z",
-    iconFill:
-      "M16.23,18L12,15.45L7.77,18L8.89,13.19L5.16,9.96L10.08,9.54L12,5L13.92,9.53L18.84,9.95L15.11,13.18L16.23,18M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+    // 별 코인 (원 + 별 구멍, 중앙 정렬)
+    icon: "M12 3.4a8.6 8.6 0 1 1 0 17.2 8.6 8.6 0 0 1 0-17.2Zm0 4.6-1.2 2.8-2.8 1.2 2.8 1.2 1.2 2.8 1.2-2.8 2.8-1.2-2.8-1.2Z",
+    iconEvenOdd: true,
   },
   {
     key: "me",
     label: "마이",
     href: "/mypage",
     matchPrefixes: ["/mypage", "/readings"],
-    // mdi account-outline / account
-    iconLine:
-      "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13M12,14.9C9.03,14.9 5.9,16.36 5.9,17V18.1H18.1V17C18.1,16.36 14.97,14.9 12,14.9Z",
-    iconFill:
-      "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z",
+    // 사람 실루엣
+    icon: "M12 4.2a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2Zm0 8.4c4 0 7 1.95 7 4.35V20H5v-3.05c0-2.4 3-4.35 7-4.35Z",
   },
 ];
 
@@ -124,20 +112,31 @@ export default function BottomTab() {
                 className={[
                   "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
                   active
-                    ? "text-lilac-deep"
+                    ? "text-eye-purple"
                     : "text-text-light hover:text-eye-purple",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >
                 <span className="relative">
-                  <svg
-                    className={ICON_CLASS}
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden
+                  {/* 선택 탭: 아이콘 뒤 라일락 pill 하이라이트. 패딩은 항상 유지해 레이아웃 고정. */}
+                  <span
+                    className={[
+                      "flex items-center justify-center rounded-2xl px-4 py-1 transition-colors",
+                      active ? "bg-lilac-soft" : "",
+                    ].join(" ")}
                   >
-                    <path d={active ? tab.iconFill : tab.iconLine} />
-                  </svg>
+                    <svg
+                      className={ICON_CLASS}
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden
+                    >
+                      <path
+                        d={tab.icon}
+                        fillRule={tab.iconEvenOdd ? "evenodd" : undefined}
+                      />
+                    </svg>
+                  </span>
                   {tab.key === "me" && meUnread > 0 && (
                     <span
                       className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
