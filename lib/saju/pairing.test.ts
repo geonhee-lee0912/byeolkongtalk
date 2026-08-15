@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { elementRelation, tenGod, TEN_GOD_LABEL, heavenlyCombo, earthlySixCombo } from "./pairing.ts";
+import { elementRelation, tenGod, TEN_GOD_LABEL, heavenlyCombo, earthlySixCombo, findTriads } from "./pairing.ts";
 
 test("elementRelation — 같은 오행은 비화", () => {
   assert.equal(elementRelation("목", "목"), "비화");
@@ -65,4 +65,28 @@ test("earthlySixCombo — 6쌍만 true, 순서 무관", () => {
   assert.equal(earthlySixCombo("사", "신"), true);
   assert.equal(earthlySixCombo("오", "미"), true);
   assert.equal(earthlySixCombo("자", "인"), false);
+});
+
+test("findTriads — 세 일지가 다 있으면 완성 삼합", () => {
+  assert.deepEqual(findTriads(["신", "자", "진"]), [
+    { branches: ["신", "자", "진"], element: "수" },
+  ]);
+});
+
+test("findTriads — 하나라도 빠지면(반합) 성립 안 함", () => {
+  assert.deepEqual(findTriads(["신", "자"]), []);
+});
+
+test("findTriads — 여러 삼합 동시 성립", () => {
+  const triads = findTriads(["신", "자", "진", "인", "오", "술"]);
+  assert.equal(triads.length, 2);
+  assert.ok(triads.some((t) => t.element === "수"));
+  assert.ok(triads.some((t) => t.element === "화"));
+});
+
+test("findTriads — 같은 지지가 두 명이어도 삼합 지지 3종이 다 있으면 성립", () => {
+  // 일지 순서 무관, 존재 여부만 본다
+  assert.deepEqual(findTriads(["진", "신", "자", "자"]), [
+    { branches: ["신", "자", "진"], element: "수" },
+  ]);
 });

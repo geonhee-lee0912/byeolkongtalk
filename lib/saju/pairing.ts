@@ -86,3 +86,24 @@ const SIX_COMBO_SET = new Set(
 export function earthlySixCombo(branchA: string, branchB: string): boolean {
   return SIX_COMBO_SET.has(branchA + branchB);
 }
+
+// 삼합 4그룹 — 지지 3종이 모두 있으면 해당 오행 국(局) 완성
+const TRIAD_GROUPS: { branches: [string, string, string]; element: FiveElement }[] = [
+  { branches: ["신", "자", "진"], element: "수" },
+  { branches: ["해", "묘", "미"], element: "목" },
+  { branches: ["인", "오", "술"], element: "화" },
+  { branches: ["사", "유", "축"], element: "금" },
+];
+
+export interface Triad {
+  branches: [string, string, string];
+  element: FiveElement;
+}
+
+/** 일지 집합에서 완성된 삼합 그룹을 모두 반환(존재 여부 기준, 순서·중복 무관). */
+export function findTriads(branches: string[]): Triad[] {
+  const present = new Set(branches);
+  return TRIAD_GROUPS
+    .filter((g) => g.branches.every((b) => present.has(b)))
+    .map((g) => ({ branches: g.branches, element: g.element }));
+}
