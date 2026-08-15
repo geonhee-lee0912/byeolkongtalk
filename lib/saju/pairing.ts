@@ -105,5 +105,5 @@ export function findTriads(branches: string[]): Triad[] {
   const present = new Set(branches);
   return TRIAD_GROUPS
     .filter((g) => g.branches.every((b) => present.has(b)))
-    .map((g) => ({ branches: g.branches, element: g.element }));
+    .map((g) => ({ branches: [...g.branches] as [string, string, string], element: g.element }));
 }

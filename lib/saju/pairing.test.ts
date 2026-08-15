@@ -90,3 +90,8 @@ test("findTriads — 같은 지지가 두 명이어도 삼합 지지 3종이 다
     { branches: ["신", "자", "진"], element: "수" },
   ]);
 });
+
+test("findTriads — 목·금 삼합도 정확히 판정", () => {
+  assert.deepEqual(findTriads(["해", "묘", "미"]), [{ branches: ["해", "묘", "미"], element: "목" }]);
+  assert.deepEqual(findTriads(["사", "유", "축"]), [{ branches: ["사", "유", "축"], element: "금" }]);
+});
