@@ -33,3 +33,34 @@ export function elementRelation(self: FiveElement, other: FiveElement): ElementR
   if (CONTROLS[self] === other) return "아극"; // self 가 other 를 극
   throw new Error(`unreachable elementRelation: ${self} vs ${other}`);
 }
+
+export type TenGod =
+  | "비견" | "겁재" | "식신" | "상관" | "편재"
+  | "정재" | "편관" | "정관" | "편인" | "정인";
+
+/** selfStem(일간) 기준으로 본 otherStem 의 십신. 방향성 있음. */
+export function tenGod(selfStem: string, otherStem: string): TenGod {
+  const rel = elementRelation(STEM_ELEMENT[selfStem], STEM_ELEMENT[otherStem]);
+  const same = STEM_YANG[selfStem] === STEM_YANG[otherStem];
+  switch (rel) {
+    case "비화": return same ? "비견" : "겁재";
+    case "아생": return same ? "식신" : "상관";
+    case "아극": return same ? "편재" : "정재";
+    case "극아": return same ? "편관" : "정관";
+    case "생아": return same ? "편인" : "정인";
+  }
+}
+
+// 별콩 톤 라벨 — 십신 한자명의 민간 낙인(편관=칠살 등) 제거. 카피 검토 대상.
+export const TEN_GOD_LABEL: Record<TenGod, string> = {
+  비견: "나란히 걷는 친구",
+  겁재: "티격태격 짝꿍",
+  식신: "내가 챙겨주는 사람",
+  상관: "내 끼를 끌어내는 사람",
+  편재: "내가 이끄는 사람",
+  정재: "내가 아끼는 사람",
+  편관: "날 긴장시키는 사람",
+  정관: "든든한 지원군",
+  편인: "날 북돋는 사람",
+  정인: "날 감싸주는 사람",
+};
