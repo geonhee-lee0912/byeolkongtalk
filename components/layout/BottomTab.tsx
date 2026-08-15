@@ -110,21 +110,21 @@ export default function BottomTab() {
               <Link
                 href={tab.href}
                 className={[
-                  "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
+                  "flex-1 flex flex-col items-center justify-center transition-colors",
                   active
                     ? "text-eye-purple"
                     : "text-text-light hover:text-eye-purple",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >
-                <span className="relative">
-                  {/* 선택 탭: 아이콘 뒤 라일락 pill 하이라이트. 패딩은 항상 유지해 레이아웃 고정. */}
-                  <span
-                    className={[
-                      "flex items-center justify-center rounded-2xl px-4 py-1 transition-colors",
-                      active ? "bg-lilac-soft" : "",
-                    ].join(" ")}
-                  >
+                {/* 선택 탭: 아이콘+라벨을 라일락 pill 로 함께 감싼다. 패딩은 항상 유지해 레이아웃 고정. */}
+                <span
+                  className={[
+                    "flex flex-col items-center justify-center gap-1 rounded-2xl px-2.5 py-1 transition-colors",
+                    active ? "bg-lilac-soft" : "",
+                  ].join(" ")}
+                >
+                  <span className="relative">
                     <svg
                       className={ICON_CLASS}
                       viewBox="0 0 24 24"
@@ -136,24 +136,24 @@ export default function BottomTab() {
                         fillRule={tab.iconEvenOdd ? "evenodd" : undefined}
                       />
                     </svg>
+                    {tab.key === "me" && meUnread > 0 && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
+                        aria-label="새 답변"
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
+                      </span>
+                    )}
                   </span>
-                  {tab.key === "me" && meUnread > 0 && (
-                    <span
-                      className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
-                      aria-label="새 답변"
-                    >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac-deep opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac-deep" />
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={[
-                    "text-[10.5px] leading-none tracking-tight",
-                    active ? "font-bold" : "font-medium",
-                  ].join(" ")}
-                >
-                  {tab.label}
+                  <span
+                    className={[
+                      "text-[10.5px] leading-none tracking-tight",
+                      active ? "font-bold" : "font-medium",
+                    ].join(" ")}
+                  >
+                    {tab.label}
+                  </span>
                 </span>
               </Link>
             </Fragment>
