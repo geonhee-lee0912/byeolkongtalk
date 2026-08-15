@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { elementRelation, tenGod, TEN_GOD_LABEL } from "./pairing.ts";
+import { elementRelation, tenGod, TEN_GOD_LABEL, heavenlyCombo, earthlySixCombo } from "./pairing.ts";
 
 test("elementRelation — 같은 오행은 비화", () => {
   assert.equal(elementRelation("목", "목"), "비화");
@@ -43,4 +43,26 @@ test("TEN_GOD_LABEL — 10종 전부 별콩 라벨이 있고 한자명이 아니
     assert.ok(TEN_GOD_LABEL[g], `${g} 라벨 없음`);
     assert.notEqual(TEN_GOD_LABEL[g], g); // 한자명 그대로 노출 금지
   }
+});
+
+test("heavenlyCombo — 5쌍만 true, 순서 무관", () => {
+  assert.equal(heavenlyCombo("갑", "기"), true);
+  assert.equal(heavenlyCombo("기", "갑"), true); // 순서 무관
+  assert.equal(heavenlyCombo("을", "경"), true);
+  assert.equal(heavenlyCombo("병", "신"), true);
+  assert.equal(heavenlyCombo("정", "임"), true);
+  assert.equal(heavenlyCombo("무", "계"), true);
+  assert.equal(heavenlyCombo("갑", "을"), false);
+  assert.equal(heavenlyCombo("갑", "갑"), false);
+});
+
+test("earthlySixCombo — 6쌍만 true, 순서 무관", () => {
+  assert.equal(earthlySixCombo("자", "축"), true);
+  assert.equal(earthlySixCombo("축", "자"), true);
+  assert.equal(earthlySixCombo("인", "해"), true);
+  assert.equal(earthlySixCombo("묘", "술"), true);
+  assert.equal(earthlySixCombo("진", "유"), true);
+  assert.equal(earthlySixCombo("사", "신"), true);
+  assert.equal(earthlySixCombo("오", "미"), true);
+  assert.equal(earthlySixCombo("자", "인"), false);
 });

@@ -64,3 +64,25 @@ export const TEN_GOD_LABEL: Record<TenGod, string> = {
   편인: "날 북돋는 사람",
   정인: "날 감싸주는 사람",
 };
+
+// 천간합 5쌍 — 양방향 문자열로 저장(한글 정렬 회피)
+const HEAVENLY_COMBO_SET = new Set(
+  [["갑","기"],["을","경"],["병","신"],["정","임"],["무","계"]]
+    .flatMap(([a, b]) => [a + b, b + a])
+);
+
+/** 두 일간이 천간합(끌림)인가. */
+export function heavenlyCombo(stemA: string, stemB: string): boolean {
+  return HEAVENLY_COMBO_SET.has(stemA + stemB);
+}
+
+// 지지 육합 6쌍
+const SIX_COMBO_SET = new Set(
+  [["자","축"],["인","해"],["묘","술"],["진","유"],["사","신"],["오","미"]]
+    .flatMap(([a, b]) => [a + b, b + a])
+);
+
+/** 두 일지가 육합(결속)인가. */
+export function earthlySixCombo(branchA: string, branchB: string): boolean {
+  return SIX_COMBO_SET.has(branchA + branchB);
+}
