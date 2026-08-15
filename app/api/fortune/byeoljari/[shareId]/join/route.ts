@@ -1,0 +1,86 @@
+// 게스트 참여 — 비로그인 OK. shareId 로 map 찾고 member 추가.
+import { NextRequest, NextResponse } from "next/server";
+import { getServiceSupabase } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
+import { logError } from "@/lib/logger";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const RELATION_TYPES = ["friend", "lover", "acquaintance", "senior"];
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ shareId: string }> }
+) {
+  const { shareId } = await params;
+  const { anonymousId } = await getSession();
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, reason: "bad_json" }, { status: 400 });
+  }
+  const b = body as {
+    displayName?: unknown;
+    birthDate?: unknown;
+    birthTime?: unknown;
+    relationType?: unknown;
+    namePublic?: unknown;
+    compatVisible?: unknown;
+  };
+  const displayName = typeof b.displayName === "string" ? b.displayName.trim() : "";
+  const birthDate = typeof b.birthDate === "string" ? b.birthDate : "";
+  const birthTime = typeof b.birthTime === "string" && b.birthTime ? b.birthTime : null;
+  const relationType =
+    typeof b.relationType === "string" && RELATION_TYPES.includes(b.relationType)
+      ? b.relationType
+      : "friend";
+  const namePublic = b.namePublic === true;
+  const compatVisible = b.compatVisible === true;
+  if (!displayName || displayName.length > 50) {
+    return NextResponse.json({ ok: false, reason: "name" }, { status: 400 });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+    return NextResponse.json({ ok: false, reason: "birth" }, { status: 400 });
+  }
+
+  const supa = getServiceSupabase();
+  const { data: map, error: mapError } = await supa
+    .from("star_maps")
+    .select("id")
+    .eq("share_id", shareId)
+    .maybeSingle();
+  if (mapError) {
+    await logError(mapError, {
+      route: "/api/fortune/byeoljari/[shareId]/join",
+      extra: { severity: "BYEOLJARI_JOIN_LOOKUP_FAILED" },
+    });
+    return NextResponse.json({ ok: false, reason: "lookup" }, { status: 500 });
+  }
+  if (!map) {
+    return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
+  }
+
+  const { error: insertError } = await supa.from("star_map_members").insert({
+    map_id: map.id,
+    display_name: displayName,
+    birth_date: birthDate,
+    birth_time: birthTime,
+    relation_type: relationType,
+    member_anon_id: anonymousId ?? null,
+    is_host: false,
+    name_public: namePublic,
+    compat_visible: compatVisible,
+  });
+  if (insertError) {
+    await logError(insertError, {
+      route: "/api/fortune/byeoljari/[shareId]/join",
+      extra: { severity: "BYEOLJARI_JOIN_FAILED" },
+    });
+    return NextResponse.json({ ok: false, reason: "save" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
