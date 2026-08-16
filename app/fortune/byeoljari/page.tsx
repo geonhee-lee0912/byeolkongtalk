@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-// P2 뼈대 — 최소 만들기 폼 + 진입 시 claim 트리거. 시각(별자리 SVG)은 P3.
-export default function ByeoljariPage() {
+// 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
+export default function ByeoljariCreatePage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
-  const [shareId, setShareId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // 로그인 상태면 이 브라우저로 만든 미소유 지도 승계(무해: 미로그인/없으면 0).
   useEffect(() => {
     fetch("/api/fortune/byeoljari/claim", { method: "POST" }).catch(() => {});
   }, []);
@@ -22,34 +22,45 @@ export default function ByeoljariPage() {
         body: JSON.stringify({ displayName: name, birthDate: birth }),
       });
       const data = await res.json();
-      if (data.ok) setShareId(data.shareId);
+      if (data.ok && data.shareId) {
+        if (data.memberId) localStorage.setItem(`byeoljari:me:${data.shareId}`, data.memberId);
+        router.push(`/fortune/byeoljari/${data.shareId}`);
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  if (shareId) {
-    const link = `${location.origin}/fortune/byeoljari/${shareId}`;
-    return (
-      <main style={{ padding: 24 }}>
-        <h1>내 별자리가 생겼어</h1>
-        <p>친구에게 이 링크를 보내 채워달라고 해봐:</p>
-        <code>{link}</code>
-        <p style={{ marginTop: 16, fontSize: 13, color: "#7A6BA0" }}>
-          로그인하면 이 별자리를 영구 보관해요. 안 하면 이 기기에서만 볼 수 있어요.
-        </p>
-      </main>
-    );
-  }
-
   return (
-    <main style={{ padding: 24 }}>
-      <h1>별자리 만들기</h1>
-      <input placeholder="내 이름" value={name} onChange={(e) => setName(e.target.value)} />
-      <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
-      <button disabled={busy || !name || !birth} onClick={create}>
-        만들기
-      </button>
+    <main className="mx-auto max-w-md px-4 py-8">
+      <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">별자리 만들기</h1>
+      <p className="mb-6 text-center text-sm text-text-light">
+        생일만 넣으면 내 별이 뜨고, 친구를 부를수록 별자리가 자라나.
+      </p>
+      <div className="space-y-3">
+        <input
+          className="w-full rounded-lg border border-lilac px-3 py-2"
+          placeholder="내 이름"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="date"
+          className="w-full rounded-lg border border-lilac px-3 py-2"
+          value={birth}
+          onChange={(e) => setBirth(e.target.value)}
+        />
+        <button
+          disabled={busy || !name || !birth}
+          onClick={create}
+          className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+        >
+          {busy ? "만드는 중…" : "만들기"}
+        </button>
+      </div>
+      <p className="mt-6 text-center text-xs text-text-light">
+        로그인하면 이 별자리를 영구 보관해요. 안 하면 이 기기에서만 볼 수 있어요.
+      </p>
     </main>
   );
 }
