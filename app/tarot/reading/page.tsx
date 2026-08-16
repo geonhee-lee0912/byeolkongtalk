@@ -13,6 +13,7 @@ import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
 import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
+import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
@@ -555,13 +556,16 @@ function TarotReadingInner() {
           // Anthropic API 가 "Extra inputs are not permitted" 로 거절함.
           messages: history
             .filter((m) => !m.ephemeral)
-            .map((m) => ({ role: m.role, content: m.content })),
+            .map((m) => ({ role: m.role, content: m.content }))
+            // 최근 40개(약 20왕복)만 전송 — 카드 맥락은 서버 systemMessage 라 손실 없음.
+            // 이래야 긴 대화가 서버 MAX_MESSAGES 상한에 걸려 영구 차단되지 않는다.
+            .slice(-40),
           forceEnd,
         }),
       });
       if (!r.ok || !r.body) {
         const data = await r.json().catch(() => ({}));
-        setError(data?.error || "연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+        setError(chatErrorKr(data?.error));
         stopTyping();
         setIsStreaming(false);
         return;

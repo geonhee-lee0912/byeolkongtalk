@@ -47,7 +47,7 @@ interface ChatBody {
   forceEnd?: boolean;
 }
 
-const MAX_MESSAGES = 30;
+const MAX_MESSAGES = 60; // 임시 상향. 클라가 최근 40개만 전송(slice)하므로 방어 여유. 구 30은 15왕복에서 대화가 영구 차단되던 값.
 const MAX_MESSAGE_LEN = 8000;
 
 export async function POST(request: NextRequest) {
