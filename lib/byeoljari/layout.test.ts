@@ -8,6 +8,8 @@ import {
   resolveGlyph,
   orientEdge,
   invertElementRelation,
+  nodeMatchesFilter,
+  edgeMatchesFilter,
 } from "./layout.ts";
 import type { GraphNode, GraphEdge } from "./types.ts";
 
@@ -85,4 +87,24 @@ test("orientEdge — pivot 기준 방향(남이 보는 나)", () => {
   assert.deepEqual(orientEdge(e, "H"), { iSeeThem: "내가 이끄는 사람", theySeeMe: "든든한 지원군", element: "아극" });
   assert.deepEqual(orientEdge(e, "G"), { iSeeThem: "든든한 지원군", theySeeMe: "내가 이끄는 사람", element: "극아" });
   assert.equal(orientEdge(e, "Z"), null);
+});
+
+test("nodeMatchesFilter — 필터 없으면 전체, 호스트는 항상, 게스트는 관계 일치 시", () => {
+  const host = node("h", true);
+  const friend = { ...node("f"), relationType: "friend" };
+  const lover = { ...node("l"), relationType: "lover" };
+  assert.equal(nodeMatchesFilter(lover, null), true); // 필터 없음 → 전체
+  assert.equal(nodeMatchesFilter(host, "friend"), true); // 호스트 항상
+  assert.equal(nodeMatchesFilter(friend, "friend"), true);
+  assert.equal(nodeMatchesFilter(lover, "friend"), false);
+});
+
+test("edgeMatchesFilter — 비호스트 끝점 관계로 판정(호스트는 매칭 제외)", () => {
+  const host = node("h", true);
+  const friend = { ...node("f"), relationType: "friend" };
+  const lover = { ...node("l"), relationType: "lover" };
+  assert.equal(edgeMatchesFilter(host, friend, null), true); // 필터 없음
+  assert.equal(edgeMatchesFilter(host, friend, "friend"), true); // 호스트↔친구
+  assert.equal(edgeMatchesFilter(host, lover, "friend"), false); // 호스트↔연인 dim
+  assert.equal(edgeMatchesFilter(friend, lover, "friend"), true); // 게스트끼리, 친구 포함
 });

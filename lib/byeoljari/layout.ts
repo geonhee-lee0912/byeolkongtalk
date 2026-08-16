@@ -117,3 +117,20 @@ export function orientEdge(
   }
   return null;
 }
+
+/** 관계 필터(§6) — 노드가 강조 대상인가. 필터 없으면 전체, 호스트는 항상 강조(중심). */
+export function nodeMatchesFilter(node: GraphNode, filter: string | null): boolean {
+  if (!filter) return true;
+  if (node.isHost) return true;
+  return node.relationType === filter;
+}
+
+/** 엣지 강조 여부 — 비호스트 끝점의 관계분류가 필터와 일치할 때(호스트는 모든 관계에 매칭돼 제외). */
+export function edgeMatchesFilter(
+  nodeA: GraphNode | undefined,
+  nodeB: GraphNode | undefined,
+  filter: string | null
+): boolean {
+  if (!filter) return true;
+  return [nodeA, nodeB].some((n) => n != null && !n.isHost && n.relationType === filter);
+}
