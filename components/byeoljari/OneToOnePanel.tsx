@@ -13,7 +13,7 @@ interface Props {
 export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixCombo, onBack }: Props) {
   const them = target.name ?? "이 별";
   return (
-    <div className="absolute inset-x-0 bottom-0 animate-fade-in rounded-t-2xl bg-cream-warm p-5 shadow-2xl">
+    <div className="absolute inset-x-0 bottom-0 max-h-full overflow-y-auto animate-fade-in rounded-t-2xl bg-cream-warm p-5 shadow-2xl">
       <button onClick={onBack} className="mb-3 text-sm text-text-light">
         ← 별자리로
       </button>
