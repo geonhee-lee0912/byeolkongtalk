@@ -21,7 +21,7 @@ export function computeLayout(
 
   let hostIdx = nodes.findIndex((n) => n.isHost);
   if (hostIdx < 0) hostIdx = 0; // 방어: 호스트 플래그 없으면 첫 노드
-  map.set(nodes[hostIdx].id, { x: center, y: center });
+  map.set(nodes[hostIdx].id, { x: round(center), y: round(center) });
 
   const others = nodes.filter((_, i) => i !== hostIdx);
   others.forEach((n, i) => {

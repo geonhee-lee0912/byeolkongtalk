@@ -36,6 +36,10 @@ test("computeLayout — 호스트 단독이면 중심만", () => {
   assert.deepEqual(m.get("h"), { x: 50, y: 50 });
 });
 
+test("computeLayout — 빈 입력은 빈 맵(방어)", () => {
+  assert.equal(computeLayout([]).size, 0);
+});
+
 test("starPoints — 첫 꼭지는 위쪽(cx, cy-rOuter)", () => {
   assert.equal(starPoints(50, 50, 10, 4, 5, -90).split(" ")[0], "50,40");
 });
