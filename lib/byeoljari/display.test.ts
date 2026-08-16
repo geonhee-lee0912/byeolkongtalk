@@ -5,6 +5,7 @@ import {
   starColor,
   elementRelationLabel,
   relationTypeLabel,
+  subjectParticle,
 } from "./display.ts";
 
 test("STAR_ELEMENT_COLORS — 5 오행 발광 팔레트", () => {
@@ -28,4 +29,11 @@ test("relationTypeLabel — 4 관계분류 + 폴백", () => {
   assert.equal(relationTypeLabel("friend"), "친구");
   assert.equal(relationTypeLabel("senior"), "윗사람");
   assert.equal(relationTypeLabel("xyz"), "인연");
+});
+
+test("subjectParticle — 받침 있으면 이, 없으면 가", () => {
+  assert.equal(subjectParticle("이 별"), "이"); // 별=받침 ㄹ
+  assert.equal(subjectParticle("로엔"), "이");  // 엔=받침 ㄴ
+  assert.equal(subjectParticle("지호"), "가");  // 호=받침 없음
+  assert.equal(subjectParticle("Roen"), "가");  // 한글 밖 → 기본 가
 });

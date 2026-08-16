@@ -40,3 +40,11 @@ export const RELATION_TYPE_LABEL: Record<string, string> = {
 export function relationTypeLabel(t: string): string {
   return RELATION_TYPE_LABEL[t] ?? "인연";
 }
+
+// 받침 유무로 주격 조사 이/가 선택. 한글 완성형만; 그 외(영문·기호 등)는 '가' 기본.
+export function subjectParticle(word: string): "이" | "가" {
+  const last = word.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (Number.isNaN(code) || code < 0xac00 || code > 0xd7a3) return "가"; // 한글 완성형 밖
+  return (code - 0xac00) % 28 === 0 ? "가" : "이"; // 받침 없음 → 가
+}

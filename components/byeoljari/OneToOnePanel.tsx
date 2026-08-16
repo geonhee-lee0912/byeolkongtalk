@@ -1,6 +1,6 @@
 "use client";
 import type { GraphNode } from "@/lib/byeoljari/types";
-import { elementRelationLabel, relationTypeLabel } from "@/lib/byeoljari/display";
+import { elementRelationLabel, relationTypeLabel, subjectParticle } from "@/lib/byeoljari/display";
 
 interface Props {
   target: GraphNode;
@@ -29,7 +29,7 @@ export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixComb
           </div>
           {/* 남이 보는 나 = 스펙 §2 차별점 = 골드 강조 */}
           <div className="rounded-xl bg-gold-soft/40 p-3 text-sm ring-1 ring-gold">
-            <div className="text-text-light">{them}가 보는 나</div>
+            <div className="text-text-light">{them}{subjectParticle(them)} 보는 나</div>
             <div className="font-semibold text-eye-purple">{oriented.theySeeMe}</div>
           </div>
           {(heavenlyCombo || sixCombo) && (
