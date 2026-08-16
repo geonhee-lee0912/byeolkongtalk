@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
-import { STAR_ELEMENT_COLORS, relationTypeLabel } from "@/lib/byeoljari/display";
+import { STAR_ELEMENT_COLORS, RELATION_TYPE_LABEL, relationTypeLabel } from "@/lib/byeoljari/display";
 import { scaleForCount } from "@/lib/byeoljari/scale";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
@@ -10,7 +10,8 @@ import OneToOnePanel from "./OneToOnePanel";
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
-const RELATION_ORDER = ["friend", "lover", "acquaintance", "senior"];
+// 관계분류 단일 원천(display.ts) — 순서 고정용. 별도 하드카피 금지(드리프트 방지).
+const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
 
 interface Props {
   graph: StarGraph;
@@ -61,6 +62,8 @@ export default function ConstellationView({ graph, meId }: Props) {
             return (
               <button
                 key={t ?? "all"}
+                type="button"
+                aria-pressed={active}
                 onClick={() => setActiveFilter(t)}
                 className={`rounded-full px-3 py-1 text-xs ${
                   active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
