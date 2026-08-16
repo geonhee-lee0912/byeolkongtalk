@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { isValidBirthDate, isValidBirthTime } from "@/lib/byeoljari/validate";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -42,8 +43,11 @@ export async function POST(
   if (!displayName || displayName.length > 50) {
     return NextResponse.json({ ok: false, reason: "name" }, { status: 400 });
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+  if (!isValidBirthDate(birthDate)) {
     return NextResponse.json({ ok: false, reason: "birth" }, { status: 400 });
+  }
+  if (birthTime !== null && !isValidBirthTime(birthTime)) {
+    return NextResponse.json({ ok: false, reason: "birth_time" }, { status: 400 });
   }
 
   const supa = getServiceSupabase();
