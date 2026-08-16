@@ -37,6 +37,10 @@ function getBranchElement(branch: string): FiveElement {
 }
 
 export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
+  // 어드민에서 비-사주 reading(saju_data 가 SajuResult 형태가 아닌 경우 — 예: sim 의
+  // today_letters 데이터)을 넘기면 elementCount 가 없어 Object.values 가 터진다.
+  // 방어: SajuResult 형태(elementCount)가 아니면 렌더 생략. (모든 호출처 공통 안전망)
+  if (!saju?.elementCount) return null;
   const maxCount = Math.max(...Object.values(saju.elementCount));
 
   return (
