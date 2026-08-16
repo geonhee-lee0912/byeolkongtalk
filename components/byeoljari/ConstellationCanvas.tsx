@@ -1,18 +1,37 @@
 "use client";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
-import { starPoints, orderByAngle, resolveGlyph } from "@/lib/byeoljari/layout";
+import {
+  starPoints,
+  orderByAngle,
+  resolveGlyph,
+  nodeMatchesFilter,
+  edgeMatchesFilter,
+} from "@/lib/byeoljari/layout";
 import { starColor } from "@/lib/byeoljari/display";
+import type { SizeSpec } from "@/lib/byeoljari/scale";
+
+const DIM = 0.18; // 필터 비해당 요소 흐리기(§6)
 
 interface Props {
   graph: StarGraph;
   layout: Map<string, Point>;
   meId: string | null;
   transform: { tx: number; ty: number; s: number };
+  sizes: SizeSpec;
+  activeFilter: string | null;
   onSelect: (nodeId: string) => void;
 }
 
-export default function ConstellationCanvas({ graph, layout, meId, transform, onSelect }: Props) {
+export default function ConstellationCanvas({
+  graph,
+  layout,
+  meId,
+  transform,
+  sizes,
+  activeFilter,
+  onSelect,
+}: Props) {
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
 
@@ -23,7 +42,7 @@ export default function ConstellationCanvas({ graph, layout, meId, transform, on
         style={{ transition: "transform 420ms cubic-bezier(0.22,0.68,0.28,1)" }}
         transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.s})`}
       >
-        {/* 삼합 = 별자리의 심장. memberIds 3+ 대응(각도정렬 폴리곤). */}
+        {/* 삼합 = 별자리의 심장. 필터와 무관하게 항상 표시(사주 구조라 관계분류와 직교). */}
         {graph.triads.map((t, ti) => {
           const pts = t.memberIds.map(pos).filter(Boolean) as Point[];
           if (pts.length < 3) return null;
@@ -41,7 +60,7 @@ export default function ConstellationCanvas({ graph, layout, meId, transform, on
           );
         })}
 
-        {/* 관계선 — 게스트 오행색(비호스트 끝점), 천간합/육합은 골드 처리(케미/결속). */}
+        {/* 관계선 — 게스트 오행색, 천간합/육합은 골드. 필터 비해당은 dim. */}
         {graph.edges.map((e, ei) => {
           const pa = pos(e.a);
           const pb = pos(e.b);
@@ -50,6 +69,7 @@ export default function ConstellationCanvas({ graph, layout, meId, transform, on
           const nb = nodeById.get(e.b);
           const colorNode = na?.isHost ? nb : na;
           const gold = e.heavenlyCombo || e.sixCombo;
+          const dim = activeFilter && !edgeMatchesFilter(na, nb, activeFilter) ? DIM : 1;
           return (
             <line
               key={`e-${ei}`}
@@ -58,30 +78,44 @@ export default function ConstellationCanvas({ graph, layout, meId, transform, on
               x2={pb.x}
               y2={pb.y}
               stroke={gold ? "#F2D78A" : starColor(colorNode?.element ?? "")}
-              strokeOpacity={gold ? 0.85 : 0.4}
-              strokeWidth={gold ? 0.8 : 0.4}
+              strokeOpacity={(gold ? 0.85 : 0.4) * dim}
+              strokeWidth={gold ? sizes.goldLineWidth : sizes.lineWidth}
               strokeDasharray={e.sixCombo ? "1.5 1" : undefined}
               strokeLinecap="round"
             />
           );
         })}
 
-        {/* 노드 = 순수 별 또는 순수 원(halo 합체 금지, 스펙 §3). */}
+        {/* 노드 = 순수 별 또는 순수 원(halo 합체 금지). 필터 비해당은 dim. */}
         {graph.nodes.map((n) => {
           const p = pos(n.id);
           if (!p) return null;
           const glyph = resolveGlyph(n, meId);
           const isHost = glyph === "host-star";
           const color = starColor(n.element);
+          const nodeOpacity = activeFilter && !nodeMatchesFilter(n, activeFilter) ? DIM : 1;
           return (
-            <g key={n.id} onClick={() => onSelect(n.id)} style={{ cursor: "pointer" }}>
+            <g key={n.id} onClick={() => onSelect(n.id)} style={{ cursor: "pointer" }} opacity={nodeOpacity}>
               {/* 넉넉한 투명 히트영역 */}
-              <circle cx={p.x} cy={p.y} r={6} fill="transparent" />
+              <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
               {glyph === "me-circle" ? (
-                <circle cx={p.x} cy={p.y} r={4} fill={color} stroke="#FFFFFF" strokeOpacity={0.7} strokeWidth={0.5} />
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={sizes.meR}
+                  fill={color}
+                  stroke="#FFFFFF"
+                  strokeOpacity={0.7}
+                  strokeWidth={0.5}
+                />
               ) : (
                 <polygon
-                  points={starPoints(p.x, p.y, isHost ? 6 : 4, isHost ? 2.6 : 1.7)}
+                  points={starPoints(
+                    p.x,
+                    p.y,
+                    isHost ? sizes.hostOuter : sizes.starOuter,
+                    isHost ? sizes.hostInner : sizes.starInner
+                  )}
                   fill={color}
                   stroke="#F2D78A"
                   strokeOpacity={isHost ? 0.8 : 0}
@@ -89,12 +123,12 @@ export default function ConstellationCanvas({ graph, layout, meId, transform, on
                   strokeLinejoin="round"
                 />
               )}
-              {n.name && (
+              {sizes.showLabels && n.name && (
                 <text
                   x={p.x}
-                  y={p.y + (isHost ? 9 : 6.5)}
+                  y={p.y + (isHost ? sizes.hostOuter + 3 : sizes.starOuter + 2.5)}
                   textAnchor="middle"
-                  fontSize={isHost ? 3.4 : 2.8}
+                  fontSize={isHost ? sizes.hostLabelFont : sizes.labelFont}
                   fill="#EDE6D6"
                   fillOpacity={0.9}
                 >
