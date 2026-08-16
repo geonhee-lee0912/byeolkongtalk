@@ -2,13 +2,15 @@
 import { useMemo, useState } from "react";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
-import { STAR_ELEMENT_COLORS } from "@/lib/byeoljari/display";
+import { STAR_ELEMENT_COLORS, relationTypeLabel } from "@/lib/byeoljari/display";
+import { scaleForCount } from "@/lib/byeoljari/scale";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
 
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
+const RELATION_ORDER = ["friend", "lover", "acquaintance", "senior"];
 
 interface Props {
   graph: StarGraph;
@@ -17,10 +19,20 @@ interface Props {
 
 export default function ConstellationView({ graph, meId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
+  const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
+
+  const filterTypes = useMemo(() => {
+    const present = new Set(graph.nodes.filter((n) => !n.isHost).map((n) => n.relationType));
+    return RELATION_ORDER.filter((t) => present.has(t));
+  }, [graph.nodes]);
+  const showFilter = filterTypes.length >= 2;
+  // 사라진 분류를 가리키는 stale 필터는 전체로 폴백.
+  const effectiveFilter = activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
 
   const target = selectedId ? graph.nodes.find((n) => n.id === selectedId) ?? null : null;
   const edge =
@@ -42,12 +54,32 @@ export default function ConstellationView({ graph, meId }: Props) {
 
   return (
     <div>
+      {showFilter && (
+        <div className="mb-3 flex flex-wrap justify-center gap-2">
+          {[null, ...filterTypes].map((t) => {
+            const active = effectiveFilter === t;
+            return (
+              <button
+                key={t ?? "all"}
+                onClick={() => setActiveFilter(t)}
+                className={`rounded-full px-3 py-1 text-xs ${
+                  active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
+                }`}
+              >
+                {t === null ? "전체" : relationTypeLabel(t)}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
         <ConstellationCanvas
           graph={graph}
           layout={layout}
           meId={meId}
           transform={transform}
+          sizes={sizes}
+          activeFilter={effectiveFilter}
           onSelect={handleSelect}
         />
         {target && (
