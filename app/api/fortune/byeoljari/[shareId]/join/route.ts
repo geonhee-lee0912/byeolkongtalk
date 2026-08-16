@@ -67,24 +67,28 @@ export async function POST(
     return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
   }
 
-  const { error: insertError } = await supa.from("star_map_members").insert({
-    map_id: map.id,
-    display_name: displayName,
-    birth_date: birthDate,
-    birth_time: birthTime,
-    relation_type: relationType,
-    member_anon_id: anonymousId ?? null,
-    is_host: false,
-    name_public: namePublic,
-    compat_visible: compatVisible,
-  });
-  if (insertError) {
-    await logError(insertError, {
+  const { data: memberRow, error: insertError } = await supa
+    .from("star_map_members")
+    .insert({
+      map_id: map.id,
+      display_name: displayName,
+      birth_date: birthDate,
+      birth_time: birthTime,
+      relation_type: relationType,
+      member_anon_id: anonymousId ?? null,
+      is_host: false,
+      name_public: namePublic,
+      compat_visible: compatVisible,
+    })
+    .select("id")
+    .single();
+  if (insertError || !memberRow) {
+    await logError(insertError ?? new Error("join member row missing"), {
       route: "/api/fortune/byeoljari/[shareId]/join",
       extra: { severity: "BYEOLJARI_JOIN_FAILED" },
     });
     return NextResponse.json({ ok: false, reason: "save" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, memberId: memberRow.id });
 }

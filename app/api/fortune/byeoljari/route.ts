@@ -75,17 +75,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "share_id" }, { status: 500 });
   }
 
-  const { error: memberError } = await supa.from("star_map_members").insert({
-    map_id: mapId,
-    display_name: displayName,
-    birth_date: birthDate,
-    birth_time: birthTime,
-    relation_type: "friend",
-    member_anon_id: anonymousId,
-    is_host: true,
-  });
-  if (memberError) {
-    await logError(memberError, {
+  const { data: memberRow, error: memberError } = await supa
+    .from("star_map_members")
+    .insert({
+      map_id: mapId,
+      display_name: displayName,
+      birth_date: birthDate,
+      birth_time: birthTime,
+      relation_type: "friend",
+      member_anon_id: anonymousId,
+      is_host: true,
+    })
+    .select("id")
+    .single();
+  if (memberError || !memberRow) {
+    await logError(memberError ?? new Error("host member row missing"), {
       route: "/api/fortune/byeoljari",
       userId,
       extra: { severity: "BYEOLJARI_HOST_MEMBER_FAILED" },
@@ -93,5 +97,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "member" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, shareId });
+  return NextResponse.json({ ok: true, shareId, memberId: memberRow.id });
 }
