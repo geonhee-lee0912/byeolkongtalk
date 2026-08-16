@@ -363,7 +363,7 @@ export default function ReadingDetailView({
   return (
     <div className="space-y-3">
       <LightStage>
-        {sajuData && (
+        {sajuData?.elementCount && (
           <div className="mb-2 w-full">
             <SajuBoard saju={sajuData} />
           </div>
