@@ -87,7 +87,7 @@ export default function SajuFullReportView({
 
       {/* 사주판 박스 */}
       <div className="bg-cream-warm rounded-3xl px-3 py-5 border border-lilac-mid/30">
-        {saju ? (
+        {saju?.pillars ? (
           <>
             <SajuBoard saju={saju} showDetail={false} />
             <div
