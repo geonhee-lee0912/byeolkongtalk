@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
@@ -33,6 +33,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
   const [mounted, setMounted] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
@@ -57,6 +58,14 @@ export default function ConstellationView({ graph, meId }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [reveal]);
+
+  // 1:1 패널은 캔버스 박스 안(상단)에 뜨는데 순위 리스트는 폴드 아래라
+  // 선택해도 패널이 화면 밖이라 반응이 없는 것처럼 보인다 — 선택 시 캔버스로 스크롤.
+  useEffect(() => {
+    if (selectedId && canvasRef.current) {
+      canvasRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedId]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -87,9 +96,11 @@ export default function ConstellationView({ graph, meId }: Props) {
       .map((e) => {
         const otherId = e.a === pivotId ? e.b : e.a;
         const other = graph.nodes.find((n) => n.id === otherId);
-        return { id: otherId, name: other?.name ?? null, inyeon: e.inyeon };
+        const special =
+          (e.heavenlyCombo ? 1 : 0) + (e.sixCombo ? 1 : 0) + (e.triadShared ? 1 : 0);
+        return { id: otherId, name: other?.name ?? null, inyeon: e.inyeon, special };
       })
-      .sort((x, y) => y.inyeon - x.inyeon);
+      .sort((x, y) => y.inyeon - x.inyeon || y.special - x.special);
   }, [graph.edges, graph.nodes, pivotId]);
 
   const p = selectedId ? layout.get(selectedId) : undefined;
@@ -138,7 +149,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           })}
         </div>
       )}
-      <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
+      <div ref={canvasRef} className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
         <ConstellationCanvas
           graph={graph}
           layout={layout}
@@ -178,7 +189,11 @@ export default function ConstellationView({ graph, meId }: Props) {
                   key={r.id}
                   type="button"
                   onClick={() => handleSelect(r.id)}
-                  className="flex w-full items-center justify-between rounded-xl bg-cream-warm px-3 py-2 text-left transition hover:bg-lilac-soft/50 active:scale-[0.99]"
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                    i === 0
+                      ? "bg-gold-soft/40 ring-1 ring-gold/50"
+                      : "bg-cream-warm hover:bg-lilac-soft/50"
+                  }`}
                 >
                   <span className="text-sm text-eye-purple">
                     {i + 1}위 · {r.name ?? "이 별"}
