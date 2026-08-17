@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusPair, orientEdge } from "@/lib/byeoljari/layout";
@@ -33,6 +33,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
   const [mounted, setMounted] = useState(false);
+  const detailRef = useRef<HTMLDivElement>(null);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
@@ -57,6 +58,13 @@ export default function ConstellationView({ graph, meId }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [reveal]);
+
+  // 새로 뜬 상세(지도 카드/리스트 아코디언)를 뷰로 — 고정 하단탭(~5rem)에 가리지 않게 scroll-mb-20 과 함께.
+  useEffect(() => {
+    if (selection && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selection]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -126,6 +134,16 @@ export default function ConstellationView({ graph, meId }: Props) {
     setSelection((cur) => (cur && cur.id === id && cur.source === source ? null : { id, source }));
   }
 
+  const detail = target ? (
+    <InyeonDetail
+      target={target}
+      oriented={oriented}
+      heavenlyCombo={edge?.heavenlyCombo ?? false}
+      sixCombo={edge?.sixCombo ?? false}
+      inyeon={inyeonInfo}
+    />
+  ) : null;
+
   return (
     <div>
       {/* 형상 엠블럼 헤더 — "우리 별자리 · {신수이름}". shape null(노드0)이면 텍스트만. */}
@@ -180,7 +198,7 @@ export default function ConstellationView({ graph, meId }: Props) {
       </div>
       {/* 지도 인터랙션 상세 — 지도 바로 아래(하이라이트와 한눈에) */}
       {mapSelected && target && (
-        <div className="mt-3 animate-fade-in rounded-2xl bg-cream-warm p-4 shadow">
+        <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <div className="text-xs text-text-light">{relationTypeLabel(target.relationType)}</div>
@@ -190,13 +208,7 @@ export default function ConstellationView({ graph, meId }: Props) {
               닫기 ✕
             </button>
           </div>
-          <InyeonDetail
-            target={target}
-            oriented={oriented}
-            heavenlyCombo={edge?.heavenlyCombo ?? false}
-            sixCombo={edge?.sixCombo ?? false}
-            inyeon={inyeonInfo}
-          />
+          {detail}
         </div>
       )}
       <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-text-light">
@@ -235,14 +247,8 @@ export default function ConstellationView({ graph, meId }: Props) {
                     </span>
                   </button>
                   {open && target && (
-                    <div className="animate-fade-in px-3 pb-3 pt-1">
-                      <InyeonDetail
-                        target={target}
-                        oriented={oriented}
-                        heavenlyCombo={edge?.heavenlyCombo ?? false}
-                        sixCombo={edge?.sixCombo ?? false}
-                        inyeon={inyeonInfo}
-                      />
+                    <div ref={detailRef} className="animate-fade-in scroll-mb-20 px-3 pb-3 pt-1">
+                      {detail}
                     </div>
                   )}
                 </div>
