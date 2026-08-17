@@ -32,6 +32,11 @@ test("dominantElement — 동률이지만 호스트가 최빈 아니면 고정�
   );
 });
 
+test("dominantElement — 3파전 동률도 호스트 포함이면 호스트 우선", () => {
+  // 목1 화1 토1(host=토): 토도 최빈(동률) → 호스트 우선 → 토 (2파전 제한 회귀 방지)
+  assert.equal(dominantElement([node("목"), node("화"), node("토", true)]), "토");
+});
+
 test("dominantElement — 빈 입력 null", () => {
   assert.equal(dominantElement([]), null);
 });
@@ -97,4 +102,9 @@ test("shouldReveal — 재방문(동일 stage) 리빌 안 함", () => {
 test("shouldReveal — 파싱 실패는 baseline 1", () => {
   assert.equal(shouldReveal("abc", 1), false);
   assert.equal(shouldReveal("abc", 2), true);
+});
+
+test("shouldReveal — 저장값 '0'은 baseline 1로 폴백", () => {
+  assert.equal(shouldReveal("0", 1), false);
+  assert.equal(shouldReveal("0", 2), true);
 });

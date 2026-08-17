@@ -69,6 +69,7 @@ export function resolveShape(nodes: GraphNode[]): ShapeInfo | null {
   let nextName: string | null = null;
   let membersToNext: number | null = null;
   if (stage !== 3) {
+    // stage!==3 (not <3): TS는 관계연산자로 number-literal union을 narrow 못함 → names[stage] 타입에러
     nextName = names[stage]; // 0-index: stage(1)→names[1]=2단계 이름
     membersToNext = THRESH[stage - 1] - nodes.length;
   }
