@@ -102,6 +102,42 @@ export default function FortunePage() {
             <div key={f.type}>{inner}</div>
           );
         })}
+
+        {/* 무료 칩 전용 — 별자리는 리포트 상품(FortuneConfig: readings·emotionTag·cost)이 아니라
+            별도 인터랙티브 콘텐츠(관계망·LLM 0)라 config에 넣지 않고 별도 카드로 붙인다. */}
+        {chip === "free" && (
+          <Link href="/fortune/byeoljari">
+            <div className="w-full rounded-2xl p-4 border bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99] transition flex items-center gap-3.5">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl"
+                style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
+              >
+                ✨
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-bold text-eye-purple">우리 인연 별자리</span>
+                  <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                    무료
+                  </span>
+                </div>
+                <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                  생일만 넣으면 친구들과의 인연이 별자리로 그려져. 친구를 부를수록 별자리가 자라나.
+                </p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {["인연", "궁합", "친구와함께"].map((h) => (
+                    <span
+                      key={h}
+                      className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    >
+                      #{h}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
       </div>
 
       <p className="mt-6 text-[11px] text-text-light/50 text-center px-8 leading-relaxed">
