@@ -1,6 +1,6 @@
 "use client";
 import type { GraphNode } from "@/lib/byeoljari/types";
-import { elementRelationLabel, relationTypeLabel, subjectParticle } from "@/lib/byeoljari/display";
+import { relationTypeLabel, subjectParticle } from "@/lib/byeoljari/display";
 import { relationTenGodCopy } from "@/lib/byeoljari/copy";
 
 interface Props {
@@ -53,7 +53,6 @@ export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixComb
                   <p className="mt-2 text-xs text-text-light">별콩이 — {inyeon.comment}</p>
                 </div>
               )}
-              <p className="text-sm text-eye-purple">{elementRelationLabel(oriented.element)}</p>
               <div className="rounded-xl bg-white/60 p-3 text-sm">
                 <div className="text-text-light">내가 보는 {them}</div>
                 <div className="text-eye-purple">{iSee}</div>
