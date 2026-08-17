@@ -67,6 +67,21 @@ export function focusTransform(
   };
 }
 
+/** 두 점(나·상대)의 중점을 화면 중심에 두고, 거리에 맞춰 배율을 정해 둘 다 뷰에 담는 줌 변환.
+ *  focusTransform 이 한 점만 중심에 두는 것과 달리 쌍(pair)을 프레이밍한다. */
+export function focusPair(
+  a: Point,
+  b: Point,
+  opts?: { margin?: number; maxScale?: number; center?: number }
+): { tx: number; ty: number; s: number } {
+  const margin = opts?.margin ?? 22; // 쌍 양옆 여백(viewBox 단위) — 라벨/노드 반경 확보
+  const maxScale = opts?.maxScale ?? 2;
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  const s = round(Math.max(1, Math.min(maxScale, 100 / (dist + margin))));
+  return focusTransform(mid, s, opts?.center);
+}
+
 /** 무게중심 기준 각도 오름차순 인덱스 — 삼합 폴리곤을 자기교차 없이(멤버 3+ 대응). */
 export function orderByAngle(points: Point[]): number[] {
   const cx = points.reduce((s, p) => s + p.x, 0) / points.length;

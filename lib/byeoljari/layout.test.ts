@@ -4,6 +4,7 @@ import {
   computeLayout,
   starPoints,
   focusTransform,
+  focusPair,
   orderByAngle,
   resolveGlyph,
   orientEdge,
@@ -133,4 +134,46 @@ test("orientEdge — 십신도 pivot 기준 방향 정렬", () => {
   assert.equal(ob?.iSeeThemTenGod, "정관");
   assert.equal(ob?.theySeeMeTenGod, "편재");
   assert.equal(orientEdge(edge, "Z"), null);
+});
+
+const apply = (t: { tx: number; ty: number; s: number }, p: { x: number; y: number }) => ({
+  x: t.tx + t.s * p.x,
+  y: t.ty + t.s * p.y,
+});
+const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps;
+
+test("focusPair: 두 점의 중점이 화면 중심(50,50)으로 온다", () => {
+  const me = { x: 50, y: 50 };
+  const them = { x: 50, y: 16 };
+  const t = focusPair(me, them);
+  const mid = apply(t, { x: 50, y: 33 });
+  assert.ok(near(mid.x, 50), `mid.x=${mid.x}`);
+  assert.ok(near(mid.y, 50), `mid.y=${mid.y}`);
+});
+
+test("focusPair: 두 점 모두 뷰(0..100) 안에 들어온다", () => {
+  const me = { x: 50, y: 50 };
+  const them = { x: 50, y: 16 };
+  const t = focusPair(me, them);
+  for (const p of [me, them]) {
+    const q = apply(t, p);
+    assert.ok(q.x >= 0 && q.x <= 100, `x=${q.x}`);
+    assert.ok(q.y >= 0 && q.y <= 100, `y=${q.y}`);
+  }
+});
+
+test("focusPair: 가까운 쌍은 maxScale(2)로 캡", () => {
+  const t = focusPair({ x: 50, y: 50 }, { x: 50, y: 46 });
+  assert.equal(t.s, 2);
+});
+
+test("focusPair: 멀리 떨어진 쌍도 둘 다 뷰 안(배율 축소)", () => {
+  const a = { x: 16, y: 50 };
+  const b = { x: 84, y: 50 };
+  const t = focusPair(a, b);
+  assert.ok(t.s < 1.3, `s=${t.s}`);
+  for (const p of [a, b]) {
+    const q = apply(t, p);
+    assert.ok(q.x >= 0 && q.x <= 100, `x=${q.x}`);
+  }
 });
