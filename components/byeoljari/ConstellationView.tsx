@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
-import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
+import { computeLayout, focusPair, orientEdge } from "@/lib/byeoljari/layout";
 import {
   STAR_ELEMENT_COLORS,
   RELATION_TYPE_LABEL,
@@ -13,7 +13,7 @@ import { scaleForCount } from "@/lib/byeoljari/scale";
 import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
 import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
-import OneToOnePanel from "./OneToOnePanel";
+import InyeonDetail from "./InyeonDetail";
 
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
@@ -27,13 +27,12 @@ interface Props {
 }
 
 export default function ConstellationView({ graph, meId }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ id: string; source: "map" | "list" } | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
   const [mounted, setMounted] = useState(false);
-  const canvasRef = useRef<HTMLDivElement>(null);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
@@ -59,14 +58,6 @@ export default function ConstellationView({ graph, meId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [reveal]);
 
-  // 1:1 패널은 캔버스 박스 안(상단)에 뜨는데 순위 리스트는 폴드 아래라
-  // 선택해도 패널이 화면 밖이라 반응이 없는 것처럼 보인다 — 선택 시 캔버스로 스크롤.
-  useEffect(() => {
-    if (selectedId && canvasRef.current) {
-      canvasRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [selectedId]);
-
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
 
@@ -78,12 +69,16 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 사라진 분류를 가리키는 stale 필터는 전체로 폴백.
   const effectiveFilter = activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
 
-  const target = selectedId ? graph.nodes.find((n) => n.id === selectedId) ?? null : null;
+  const sel = selection?.id ?? null;
+  const mapSelected = selection?.source === "map";
+  const listExpandedId = selection?.source === "list" ? sel : null;
+
+  const target = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
   const edge =
-    selectedId && pivotId
+    sel && pivotId
       ? graph.edges.find(
           (e) =>
-            (e.a === pivotId && e.b === selectedId) || (e.a === selectedId && e.b === pivotId)
+            (e.a === pivotId && e.b === sel) || (e.a === sel && e.b === pivotId)
         ) ?? null
       : null;
   const oriented = edge && pivotId ? orientEdge(edge, pivotId) : null;
@@ -120,12 +115,15 @@ export default function ConstellationView({ graph, meId }: Props) {
       .sort((x, y) => y.inyeon - x.inyeon || y.special - x.special);
   }, [graph.edges, graph.nodes, pivotId]);
 
-  const p = selectedId ? layout.get(selectedId) : undefined;
-  const transform = p ? focusTransform(p, 2) : { tx: 0, ty: 0, s: 1 };
+  const mePt = pivotId ? layout.get(pivotId) : undefined;
+  const selPt = sel ? layout.get(sel) : undefined;
+  const transform =
+    mapSelected && mePt && selPt ? focusPair(mePt, selPt) : { tx: 0, ty: 0, s: 1 };
+  const pairIds = mapSelected && pivotId && sel ? [pivotId, sel] : null;
 
-  function handleSelect(id: string) {
+  function handleSelect(id: string, source: "map" | "list") {
     if (id === pivotId) return; // 나 자신과는 1:1 없음
-    setSelectedId(id);
+    setSelection((cur) => (cur && cur.id === id && cur.source === source ? null : { id, source }));
   }
 
   return (
@@ -166,7 +164,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           })}
         </div>
       )}
-      <div ref={canvasRef} className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
+      <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
         <ConstellationCanvas
           graph={graph}
           layout={layout}
@@ -175,19 +173,32 @@ export default function ConstellationView({ graph, meId }: Props) {
           sizes={sizes}
           activeFilter={effectiveFilter}
           shape={shape}
-          onSelect={handleSelect}
+          highlightPairIds={pairIds}
+          onSelect={(id) => handleSelect(id, "map")}
+          onBackgroundClick={() => setSelection(null)}
         />
-        {target && (
-          <OneToOnePanel
+      </div>
+      {/* 지도 인터랙션 상세 — 지도 바로 아래(하이라이트와 한눈에) */}
+      {mapSelected && target && (
+        <div className="mt-3 animate-fade-in rounded-2xl bg-cream-warm p-4 shadow">
+          <div className="mb-2 flex items-start justify-between">
+            <div>
+              <div className="text-xs text-text-light">{relationTypeLabel(target.relationType)}</div>
+              <h3 className="font-display text-lg text-eye-purple">{target.name ?? "이 별"}</h3>
+            </div>
+            <button onClick={() => setSelection(null)} className="text-sm text-text-light">
+              닫기 ✕
+            </button>
+          </div>
+          <InyeonDetail
             target={target}
             oriented={oriented}
             heavenlyCombo={edge?.heavenlyCombo ?? false}
             sixCombo={edge?.sixCombo ?? false}
             inyeon={inyeonInfo}
-            onBack={() => setSelectedId(null)}
           />
-        )}
-      </div>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-text-light">
         {LEGEND.map(([label, color]) => (
           <span key={label} className="inline-flex items-center gap-1">
@@ -202,24 +213,39 @@ export default function ConstellationView({ graph, meId }: Props) {
           <div className="space-y-1.5">
             {ranking.map((r, i) => {
               const grade = inyeonGrade(r.inyeon);
+              const open = listExpandedId === r.id;
               return (
-                <button
+                <div
                   key={r.id}
-                  type="button"
-                  onClick={() => handleSelect(r.id)}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition active:scale-[0.99] ${
-                    i === 0
-                      ? "bg-gold-soft/40 ring-1 ring-gold/50"
-                      : "bg-cream-warm hover:bg-lilac-soft/50"
+                  className={`overflow-hidden rounded-xl ${
+                    i === 0 ? "bg-gold-soft/40 ring-1 ring-gold/50" : "bg-cream-warm"
                   }`}
                 >
-                  <span className="text-sm text-eye-purple">
-                    {i + 1}위 · {r.name ?? "이 별"}
-                  </span>
-                  <span className="text-xs text-text-light">
-                    인연도 {r.inyeon} · {grade.label}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => handleSelect(r.id, "list")}
+                    className="flex w-full items-center justify-between px-3 py-2 text-left transition active:scale-[0.99] hover:bg-lilac-soft/40"
+                  >
+                    <span className="text-sm text-eye-purple">
+                      {i + 1}위 · {r.name ?? "이 별"}
+                    </span>
+                    <span className="text-xs text-text-light">
+                      인연도 {r.inyeon} · {grade.label}
+                    </span>
+                  </button>
+                  {open && target && (
+                    <div className="animate-fade-in px-3 pb-3 pt-1">
+                      <InyeonDetail
+                        target={target}
+                        oriented={oriented}
+                        heavenlyCombo={edge?.heavenlyCombo ?? false}
+                        sixCombo={edge?.sixCombo ?? false}
+                        inyeon={inyeonInfo}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
