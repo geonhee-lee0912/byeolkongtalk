@@ -38,10 +38,8 @@ export function dominantElement(nodes: GraphNode[]): FiveElement | null {
       bestC = c;
     }
   }
-  // 최빈 동률 오행 수(고정순서 승자 포함). 정확히 2파전 동률일 때만 호스트 오행 우선
-  // (3파전 이상이면 호스트도 "여럿 중 하나"일 뿐 — 고정순서로 폴백)
-  const tiedCount = ELEMENT_ORDER.reduce((n, e) => n + ((count.get(e) ?? 0) === bestC ? 1 : 0), 0);
-  if (host && tiedCount === 2 && (count.get(host.element) ?? 0) === bestC) return host.element;
+  // 동률 중 호스트 오행이 있으면 그것 우선
+  if (host && (count.get(host.element) ?? 0) === bestC) return host.element;
   return best;
 }
 

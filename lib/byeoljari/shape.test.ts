@@ -24,9 +24,12 @@ test("dominantElement — 동률이면 호스트 오행 우선", () => {
   assert.equal(dominantElement([node("목"), node("목"), node("화", true), node("화")]), "화");
 });
 
-test("dominantElement — 동률이고 호스트가 소수 오행이면 고정순서(목화토금수)", () => {
-  // 목1 화1, 호스트=토(1) → 동률 목/화 중 목(먼저); 호스트 토는 최빈 아님
-  assert.equal(dominantElement([node("목"), node("화"), node("토", true)]), "목");
+test("dominantElement — 동률이지만 호스트가 최빈 아니면 고정순서(목화토금수)", () => {
+  // 목2 화2 토1, 호스트=토(1) → 토는 최빈(2) 아님 → 동률 목/화 중 목(먼저)
+  assert.equal(
+    dominantElement([node("목"), node("목"), node("화"), node("화"), node("토", true)]),
+    "목"
+  );
 });
 
 test("dominantElement — 빈 입력 null", () => {
