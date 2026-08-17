@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import ConstellationView from "@/components/byeoljari/ConstellationView";
+import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
 
 // 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
@@ -86,12 +87,7 @@ export default function ByeoljariGuestPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              <input
-                type="date"
-                className="w-full rounded-lg border border-lilac px-3 py-2"
-                value={birth}
-                onChange={(e) => setBirth(e.target.value)}
-              />
+              <BirthdaySelect value={birth} onChange={setBirth} />
               <div>
                 <p className="mb-1 text-xs text-text-light">별자리 주인과 어떤 사이야?</p>
                 <div className="flex flex-wrap gap-2">

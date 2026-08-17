@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 
 // 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
 export default function ByeoljariCreatePage() {
@@ -44,12 +45,7 @@ export default function ByeoljariCreatePage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
-          type="date"
-          className="w-full rounded-lg border border-lilac px-3 py-2"
-          value={birth}
-          onChange={(e) => setBirth(e.target.value)}
-        />
+        <BirthdaySelect value={birth} onChange={setBirth} />
         <button
           disabled={busy || !name || !birth}
           onClick={create}
