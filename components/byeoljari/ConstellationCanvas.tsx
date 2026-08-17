@@ -3,7 +3,6 @@ import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
 import {
   starPoints,
-  orderByAngle,
   resolveGlyph,
   nodeMatchesFilter,
   edgeMatchesFilter,
@@ -13,6 +12,16 @@ import type { SizeSpec } from "@/lib/byeoljari/scale";
 import type { ShapeInfo } from "@/lib/byeoljari/shape";
 
 const DIM = 0.18; // 필터 비해당 요소 흐리기(§6)
+
+// 배경 별가루 — 밤하늘 분위기(고정 좌표, 결정적: Math.random 미사용). 중앙은 노드 영역이라 가장자리 위주.
+const STARDUST: { x: number; y: number; r: number; o: number }[] = [
+  { x: 8, y: 12, r: 0.5, o: 0.6 }, { x: 22, y: 7, r: 0.35, o: 0.4 }, { x: 40, y: 5, r: 0.45, o: 0.5 },
+  { x: 62, y: 8, r: 0.3, o: 0.4 }, { x: 82, y: 6, r: 0.5, o: 0.55 }, { x: 92, y: 20, r: 0.35, o: 0.45 },
+  { x: 5, y: 34, r: 0.4, o: 0.5 }, { x: 95, y: 44, r: 0.45, o: 0.5 }, { x: 9, y: 58, r: 0.3, o: 0.4 },
+  { x: 91, y: 66, r: 0.4, o: 0.5 }, { x: 6, y: 82, r: 0.5, o: 0.55 }, { x: 26, y: 93, r: 0.35, o: 0.45 },
+  { x: 48, y: 96, r: 0.45, o: 0.5 }, { x: 70, y: 94, r: 0.3, o: 0.4 }, { x: 88, y: 89, r: 0.5, o: 0.55 },
+  { x: 80, y: 30, r: 0.3, o: 0.4 }, { x: 34, y: 20, r: 0.28, o: 0.35 }, { x: 66, y: 24, r: 0.3, o: 0.4 },
+];
 
 interface Props {
   graph: StarGraph;
@@ -43,9 +52,25 @@ export default function ConstellationCanvas({
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
 
+  // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
+  const triadRing = new Map<string, string>();
+  graph.triads.forEach((t) =>
+    t.memberIds.forEach((id) => triadRing.set(id, starColor(t.element)))
+  );
+
   return (
     <svg viewBox="0 0 100 100" className="block h-full w-full" role="img" aria-label="별자리 관계망">
+      <defs>
+        {/* 삼합 glow — 부드러운 번짐 */}
+        <filter id="triadGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="1.4" />
+        </filter>
+      </defs>
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" />
+      {/* 배경 별가루 — 밤하늘 분위기. 줌 transform 밖(고정 ambient). */}
+      {STARDUST.map((s, i) => (
+        <circle key={`dust-${i}`} cx={s.x} cy={s.y} r={s.r} fill="#FFFFFF" opacity={s.o} />
+      ))}
       {/* 은은 배경 형상 — 밤하늘 위·노드/선 아래, 줌 transform 밖(고정 ambient). */}
       {shape && (
         <image
@@ -62,24 +87,6 @@ export default function ConstellationCanvas({
         style={{ transition: "transform 420ms cubic-bezier(0.22,0.68,0.28,1)" }}
         transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.s})`}
       >
-        {/* 삼합 = 별자리의 심장. 필터와 무관하게 항상 표시(사주 구조라 관계분류와 직교). */}
-        {graph.triads.map((t, ti) => {
-          const pts = t.memberIds.map(pos).filter(Boolean) as Point[];
-          if (pts.length < 3) return null;
-          const poly = orderByAngle(pts).map((i) => `${pts[i].x},${pts[i].y}`).join(" ");
-          return (
-            <polygon
-              key={`tri-${ti}`}
-              points={poly}
-              fill="#E8C26A"
-              fillOpacity={0.12}
-              stroke="#E8C26A"
-              strokeOpacity={0.5}
-              strokeWidth={0.5}
-            />
-          );
-        })}
-
         {/* 관계선 — 게스트 오행색, 천간합/육합은 골드. 필터 비해당은 dim. */}
         {graph.edges.map((e, ei) => {
           const pa = pos(e.a);
@@ -106,7 +113,7 @@ export default function ConstellationCanvas({
           );
         })}
 
-        {/* 노드 = 순수 별 또는 순수 원(halo 합체 금지). 필터 비해당은 dim. */}
+        {/* 노드 = 별 또는 원. 삼합 멤버는 오행색 링으로 그룹 표시(삼각형 대체). 필터 비해당은 dim. */}
         {graph.nodes.map((n) => {
           const p = pos(n.id);
           if (!p) return null;
@@ -114,10 +121,26 @@ export default function ConstellationCanvas({
           const isHost = glyph === "host-star";
           const color = starColor(n.element);
           const nodeOpacity = activeFilter && !nodeMatchesFilter(n, activeFilter) ? DIM : 1;
+          const ringColor = triadRing.get(n.id);
+          const baseR = isHost ? sizes.hostOuter : sizes.starOuter;
           return (
             <g key={n.id} onClick={() => onSelect(n.id)} style={{ cursor: "pointer" }} opacity={nodeOpacity}>
               {/* 넉넉한 투명 히트영역 */}
               <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
+              {/* 삼합 표시 — 같은 국(局): 별 뒤 부드러운 광(glow) + 별 위 작은 점 마커 */}
+              {ringColor && (
+                <>
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={baseR + 1}
+                    fill={ringColor}
+                    opacity={0.4}
+                    filter="url(#triadGlow)"
+                  />
+                  <circle cx={p.x} cy={p.y - baseR - 1.3} r={0.7} fill={ringColor} />
+                </>
+              )}
               {glyph === "me-circle" ? (
                 <circle
                   cx={p.x}
