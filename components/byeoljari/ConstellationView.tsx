@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
 import {
@@ -9,7 +9,7 @@ import {
   directionParticle,
 } from "@/lib/byeoljari/display";
 import { scaleForCount } from "@/lib/byeoljari/scale";
-import { resolveShape } from "@/lib/byeoljari/shape";
+import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
 
@@ -27,9 +27,19 @@ interface Props {
 export default function ConstellationView({ graph, meId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [reveal, setReveal] = useState(false);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
+
+  useEffect(() => {
+    if (!shape) return;
+    const key = `byeoljari:seenStage:${graph.shareId}`;
+    const stored = localStorage.getItem(key);
+    if (shouldReveal(stored, shape.stage)) setReveal(true);
+    localStorage.setItem(key, String(shape.stage)); // 리빌 여부와 무관하게 기준선 갱신
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph.shareId, shape?.stage]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -135,6 +145,27 @@ export default function ConstellationView({ graph, meId }: Props) {
       )}
       {shape?.stage === 3 && (
         <p className="mt-3 text-center text-sm text-eye-purple">✨ {shape.name} 완성!</p>
+      )}
+      {reveal && shape && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-night/80 animate-fade-in"
+          onClick={() => setReveal(false)}
+          role="dialog"
+          aria-label="형상 진화"
+        >
+          <img src={shape.assetSrc} alt="" className="h-40 w-40 object-contain" />
+          <p className="mt-4 font-display text-xl text-gold">
+            {shape.name}
+            {directionParticle(shape.name)} 진화했어!
+          </p>
+          <button
+            type="button"
+            className="mt-6 rounded-xl bg-lilac-deep px-6 py-2 text-white"
+            onClick={() => setReveal(false)}
+          >
+            닫기
+          </button>
+        </div>
       )}
     </div>
   );
