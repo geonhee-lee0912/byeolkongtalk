@@ -68,7 +68,7 @@ export function resolveShape(nodes: GraphNode[]): ShapeInfo | null {
   const THRESH = [5, 15]; // stage1→2, stage2→3
   let nextName: string | null = null;
   let membersToNext: number | null = null;
-  if (stage < 3) {
+  if (stage !== 3) {
     nextName = names[stage]; // 0-index: stage(1)→names[1]=2단계 이름
     membersToNext = THRESH[stage - 1] - nodes.length;
   }
