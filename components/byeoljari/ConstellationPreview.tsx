@@ -8,7 +8,8 @@ import ConstellationCanvas from "./ConstellationCanvas";
 
 const SAMPLE_ME_ID = "host";
 
-// 호스트 1 + 게스트 5, 오행 골고루 섞고 이름 공개 — 라벨·색이 다 보이는 예시.
+// 호스트 1(나) + 게스트 14 = 15명, 오행 골고루 섞고 이름 공개 — 다인원 스케일까지 보이는 예시.
+// 호스트 오행 화 기준 오행관계 패턴(목=생아·화=비화·토=아생·금=아극·수=극아)을 게스트 오행별로 재사용.
 const SAMPLE: StarGraph = {
   ok: true,
   shareId: "sample",
@@ -20,8 +21,18 @@ const SAMPLE: StarGraph = {
     { id: "minjun", name: "민준", isHost: false, relationType: "acquaintance", element: "토", compatVisible: true },
     { id: "haneul", name: "하늘", isHost: false, relationType: "senior", element: "금", compatVisible: true },
     { id: "yuna", name: "유나", isHost: false, relationType: "friend", element: "수", compatVisible: true },
+    { id: "doyun", name: "도윤", isHost: false, relationType: "friend", element: "목", compatVisible: true },
+    { id: "siwoo", name: "시우", isHost: false, relationType: "lover", element: "화", compatVisible: true },
+    { id: "haeun", name: "하은", isHost: false, relationType: "acquaintance", element: "토", compatVisible: true },
+    { id: "jian", name: "지안", isHost: false, relationType: "senior", element: "금", compatVisible: true },
+    { id: "yejun", name: "예준", isHost: false, relationType: "friend", element: "수", compatVisible: true },
+    { id: "sua", name: "수아", isHost: false, relationType: "friend", element: "목", compatVisible: true },
+    { id: "ijun", name: "이준", isHost: false, relationType: "acquaintance", element: "화", compatVisible: true },
+    { id: "seojun", name: "서준", isHost: false, relationType: "friend", element: "토", compatVisible: true },
+    { id: "chaewon", name: "채원", isHost: false, relationType: "lover", element: "금", compatVisible: true },
   ],
   edges: [
+    // 호스트→게스트 14개(방사형 연결) — 오행별 관계 패턴 재사용.
     {
       a: "host",
       b: "jiho",
@@ -41,7 +52,7 @@ const SAMPLE: StarGraph = {
       labelBtoA: "나란히 걷는 친구",
       tenGodAtoB: "비견",
       tenGodBtoA: "비견",
-      heavenlyCombo: true, // 골드 엣지(끌림)
+      heavenlyCombo: true, // 골드 엣지(끌림) 1
       sixCombo: false,
     },
     {
@@ -77,8 +88,133 @@ const SAMPLE: StarGraph = {
       heavenlyCombo: false,
       sixCombo: false,
     },
+    {
+      a: "host",
+      b: "doyun",
+      element: "생아",
+      labelAtoB: "날 북돋는 사람",
+      labelBtoA: "내가 챙겨주는 사람",
+      tenGodAtoB: "편인",
+      tenGodBtoA: "식신",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "siwoo",
+      element: "비화",
+      labelAtoB: "나란히 걷는 친구",
+      labelBtoA: "나란히 걷는 친구",
+      tenGodAtoB: "비견",
+      tenGodBtoA: "비견",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "haeun",
+      element: "아생",
+      labelAtoB: "내가 챙겨주는 사람",
+      labelBtoA: "날 북돋는 사람",
+      tenGodAtoB: "식신",
+      tenGodBtoA: "편인",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "jian",
+      element: "아극",
+      labelAtoB: "내가 이끄는 사람",
+      labelBtoA: "날 긴장시키는 사람",
+      tenGodAtoB: "편재",
+      tenGodBtoA: "편관",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "yejun",
+      element: "극아",
+      labelAtoB: "날 긴장시키는 사람",
+      labelBtoA: "내가 이끄는 사람",
+      tenGodAtoB: "편관",
+      tenGodBtoA: "편재",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "sua",
+      element: "생아",
+      labelAtoB: "날 북돋는 사람",
+      labelBtoA: "내가 챙겨주는 사람",
+      tenGodAtoB: "편인",
+      tenGodBtoA: "식신",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "ijun",
+      element: "비화",
+      labelAtoB: "나란히 걷는 친구",
+      labelBtoA: "나란히 걷는 친구",
+      tenGodAtoB: "비견",
+      tenGodBtoA: "비견",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "seojun",
+      element: "아생",
+      labelAtoB: "내가 챙겨주는 사람",
+      labelBtoA: "날 북돋는 사람",
+      tenGodAtoB: "식신",
+      tenGodBtoA: "편인",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    {
+      a: "host",
+      b: "chaewon",
+      element: "아극",
+      labelAtoB: "내가 이끄는 사람",
+      labelBtoA: "날 긴장시키는 사람",
+      tenGodAtoB: "편재",
+      tenGodBtoA: "편관",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
+    // 게스트↔게스트 2개(엣지 수 억제 — 전체 연결 대신 소수만).
+    {
+      a: "jiho",
+      b: "doyun",
+      element: "비화",
+      labelAtoB: "나란히 걷는 친구",
+      labelBtoA: "나란히 걷는 친구",
+      tenGodAtoB: "비견",
+      tenGodBtoA: "비견",
+      heavenlyCombo: true, // 골드 엣지(끌림) 2
+      sixCombo: false,
+    },
+    {
+      a: "minjun",
+      b: "haeun",
+      element: "비화",
+      labelAtoB: "티격태격 짝꿍",
+      labelBtoA: "티격태격 짝꿍",
+      tenGodAtoB: "겁재",
+      tenGodBtoA: "겁재",
+      heavenlyCombo: false,
+      sixCombo: false,
+    },
   ],
-  triads: [{ element: "목", memberIds: ["jiho", "minjun", "yuna"] }],
+  triads: [
+    { element: "목", memberIds: ["jiho", "doyun", "sua"] },
+    { element: "금", memberIds: ["haneul", "jian", "chaewon"] },
+  ],
 };
 
 export default function ConstellationPreview() {

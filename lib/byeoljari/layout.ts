@@ -77,13 +77,13 @@ export function orderByAngle(points: Point[]): number[] {
     .map((o) => o.i);
 }
 
-/** 노드 표현: 호스트=큰 별 / 나=채운 원 / 그 외=별. 호스트==나면 호스트 우선(halo 합체 없음). */
+/** 노드 표현: 나=채운 원(호스트여도 나 우선) / 호스트=큰 별 / 그 외=별. halo 합체 없음. */
 export function resolveGlyph(
   node: GraphNode,
   meId: string | null
 ): "host-star" | "me-circle" | "star" {
+  if (meId && node.id === meId) return "me-circle"; // 내 별은 항상 원형 — 내가 만든 별자리에서도 나=원(호스트 큰 별보다 우선)
   if (node.isHost) return "host-star";
-  if (meId && node.id === meId) return "me-circle";
   return "star";
 }
 
