@@ -84,6 +84,7 @@ test("orientEdge — pivot 기준 방향(남이 보는 나)", () => {
     a: "H", b: "G", element: "아극",
     labelAtoB: "내가 이끄는 사람", labelBtoA: "든든한 지원군",
     tenGodAtoB: "정재", tenGodBtoA: "편관",
+    inyeon: 0, triadShared: false,
     heavenlyCombo: false, sixCombo: false,
   };
   assert.deepEqual(orientEdge(e, "H"), {
@@ -122,6 +123,7 @@ test("orientEdge — 십신도 pivot 기준 방향 정렬", () => {
     a: "A", b: "B", element: "아극",
     labelAtoB: "라벨AB", labelBtoA: "라벨BA",
     tenGodAtoB: "편재", tenGodBtoA: "정관",
+    inyeon: 0, triadShared: false,
     heavenlyCombo: false, sixCombo: false,
   };
   const oa = orientEdge(edge, "A");

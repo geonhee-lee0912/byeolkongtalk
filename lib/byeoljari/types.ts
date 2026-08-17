@@ -18,6 +18,8 @@ export interface GraphEdge {
   labelBtoA: string; // 별콩 라벨 b→a
   tenGodAtoB: string; // a→b 십신 코드 (관계분류 조립용)
   tenGodBtoA: string; // b→a 십신 코드
+  inyeon: number; // 0~100 종합 인연도(대칭)
+  triadShared: boolean; // 두 끝점이 같은 삼합 국(근거 재구성용)
   heavenlyCombo: boolean;
   sixCombo: boolean;
 }

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju } from "@/lib/saju/calc";
 import { pairRelation, findTriads } from "@/lib/saju/pairing";
+import { inyeonScore } from "@/lib/byeoljari/inyeon";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -71,6 +72,15 @@ export async function GET(
     compatVisible: m.compat_visible,
   }));
 
+  // 삼합 먼저 계산(각 edge 의 triadShared 판정에 필요)
+  const triads = findTriads(saju.map((s) => s.pillars.day.branch)).map((t) => ({
+    element: t.element,
+    memberIds: members
+      .filter((_, i) => t.branches.includes(saju[i].pillars.day.branch))
+      .map((m) => m.id),
+  }));
+  const triadSets = triads.map((t) => new Set(t.memberIds));
+
   const edges: Array<{
     a: string;
     b: string;
@@ -79,6 +89,8 @@ export async function GET(
     labelBtoA: string;
     tenGodAtoB: string;
     tenGodBtoA: string;
+    inyeon: number;
+    triadShared: boolean;
     heavenlyCombo: boolean;
     sixCombo: boolean;
   }> = [];
@@ -89,6 +101,9 @@ export async function GET(
       const visible = host || (members[i].compat_visible && members[j].compat_visible);
       if (!visible) continue;
       const r = pairRelation(saju[i], saju[j]);
+      const triadShared = triadSets.some(
+        (s) => s.has(members[i].id) && s.has(members[j].id)
+      );
       edges.push({
         a: members[i].id,
         b: members[j].id,
@@ -97,19 +112,18 @@ export async function GET(
         labelBtoA: r.labelBtoA,
         tenGodAtoB: r.tenGodAtoB,
         tenGodBtoA: r.tenGodBtoA,
+        inyeon: inyeonScore({
+          element: r.element,
+          heavenlyCombo: r.heavenlyCombo,
+          sixCombo: r.sixCombo,
+          triadShared,
+        }),
+        triadShared,
         heavenlyCombo: r.heavenlyCombo,
         sixCombo: r.sixCombo,
       });
     }
   }
-
-  // 삼합(3인 클러스터) — 일지 집합에서. 어떤 멤버가 속했는지 매핑.
-  const triads = findTriads(saju.map((s) => s.pillars.day.branch)).map((t) => ({
-    element: t.element,
-    memberIds: members
-      .filter((_, i) => t.branches.includes(saju[i].pillars.day.branch))
-      .map((m) => m.id),
-  }));
 
   return NextResponse.json({
     ok: true,
