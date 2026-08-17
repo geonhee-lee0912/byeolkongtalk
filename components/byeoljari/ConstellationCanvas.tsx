@@ -10,6 +10,7 @@ import {
 } from "@/lib/byeoljari/layout";
 import { starColor } from "@/lib/byeoljari/display";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
+import type { ShapeInfo } from "@/lib/byeoljari/shape";
 
 const DIM = 0.18; // 필터 비해당 요소 흐리기(§6)
 
@@ -21,6 +22,7 @@ interface Props {
   sizes: SizeSpec;
   activeFilter: string | null;
   onSelect: (nodeId: string) => void;
+  shape?: ShapeInfo | null; // 은은 배경 형상(없으면 배경 생략)
 }
 
 export default function ConstellationCanvas({
@@ -31,13 +33,31 @@ export default function ConstellationCanvas({
   sizes,
   activeFilter,
   onSelect,
+  shape,
 }: Props) {
+  // 은은 배경: 중앙 60×60. water-3(거북이)만 다른 신수보다 커서 ~0.9배(54)로 축소.
+  const bgSmall = shape ? shape.element === "수" && shape.stage === 3 : false;
+  const bgSize = bgSmall ? 54 : 60;
+  const bgOff = (100 - bgSize) / 2;
+
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
 
   return (
     <svg viewBox="0 0 100 100" className="block h-full w-full" role="img" aria-label="별자리 관계망">
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" />
+      {/* 은은 배경 형상 — 밤하늘 위·노드/선 아래, 줌 transform 밖(고정 ambient). */}
+      {shape && (
+        <image
+          href={shape.assetSrc}
+          x={bgOff}
+          y={bgOff}
+          width={bgSize}
+          height={bgSize}
+          opacity={0.1}
+          preserveAspectRatio="xMidYMid meet"
+        />
+      )}
       <g
         style={{ transition: "transform 420ms cubic-bezier(0.22,0.68,0.28,1)" }}
         transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.s})`}
