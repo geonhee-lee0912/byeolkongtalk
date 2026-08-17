@@ -3,6 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import ConstellationView from "@/components/byeoljari/ConstellationView";
+import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
+
+// 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
+const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
 
 type LoadState =
   | { status: "loading" }
@@ -16,6 +20,7 @@ export default function ByeoljariGuestPage() {
   const [showJoin, setShowJoin] = useState(false);
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
+  const [relationType, setRelationType] = useState("friend"); // 호스트(별자리 주인)와 나의 관계
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -39,7 +44,7 @@ export default function ByeoljariGuestPage() {
       const res = await fetch(`/api/fortune/byeoljari/${shareId}/join`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ displayName: name, birthDate: birth, relationType: "friend" }),
+        body: JSON.stringify({ displayName: name, birthDate: birth, relationType }),
       });
       const data = await res.json();
       if (data.ok && data.memberId) {
@@ -87,6 +92,29 @@ export default function ByeoljariGuestPage() {
                 value={birth}
                 onChange={(e) => setBirth(e.target.value)}
               />
+              <div>
+                <p className="mb-1 text-xs text-text-light">별자리 주인과 어떤 사이야?</p>
+                <div className="flex flex-wrap gap-2">
+                  {RELATION_ORDER.map((rt) => {
+                    const on = relationType === rt;
+                    return (
+                      <button
+                        key={rt}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setRelationType(rt)}
+                        className={
+                          on
+                            ? "rounded-full bg-lilac-deep px-3 py-1 text-xs text-white"
+                            : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-xs text-text-light"
+                        }
+                      >
+                        {RELATION_TYPE_LABEL[rt]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}
