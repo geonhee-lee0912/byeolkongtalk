@@ -1,7 +1,8 @@
-// 네이티브 <input type="date"> 대신 쓰는 년/월/일 드롭다운 — 브랜드 톤(테두리·색상·커스텀 화살표) 일치.
+// 네이티브 <input type="date"> 대신 쓰는 년/월/일 드롭다운 — 옵션 패널까지 커스텀 렌더링해 브랜드 톤(라운드·색상·스크롤) 완전 적용.
+// 네이티브 <select>는 열린 옵션 목록을 브라우저/OS가 그려 스타일링이 불가능해 버튼+커스텀 패널로 교체했다.
 // value/onChange 계약: 년/월/일이 전부 채워졌을 때만 "YYYY-MM-DD", 아니면 ""(부모의 `!birth` disabled 가드 유지).
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -9,11 +10,11 @@ function daysInMonth(y: string, m: string): number {
   return y && m ? new Date(Number(y), Number(m), 0).getDate() : 31;
 }
 
-// 브랜드 톤 셀렉트 — 네이티브 화살표 제거(appearance-none) 후 커스텀 ▼ 를 얹는다.
-const SELECT_CLS =
-  "w-full appearance-none rounded-xl border border-lilac bg-white px-3 py-2.5 pr-8 text-sm text-eye-purple transition focus:border-lilac-deep focus:outline-none focus:ring-2 focus:ring-lilac-deep/20";
+// 브랜드 톤 트리거 — 네이티브 select와 동일한 필드 스타일(라운드·테두리·포커스 링)을 버튼에 그대로 얹는다.
+const TRIGGER_CLS =
+  "w-full rounded-xl border border-lilac bg-white px-3 py-2.5 pr-8 text-left text-sm transition focus:border-lilac-deep focus:outline-none focus:ring-2 focus:ring-lilac-deep/20";
 
-function Field({
+function CustomSelect({
   value,
   onChange,
   placeholder,
@@ -24,19 +25,68 @@ function Field({
   placeholder: string;
   options: number[];
 }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // 패널이 열려 있을 때만 리스너를 붙이고, 바깥 클릭 시 닫는다.
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  // 열릴 때 선택된 옵션을 뷰포트 안으로 스크롤(연도 목록처럼 긴 리스트 대비).
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    listRef.current.querySelector('[data-selected="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
   return (
-    <div className="relative flex-1">
-      <select className={SELECT_CLS} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+    <div ref={wrapRef} className="relative flex-1">
+      <button
+        type="button"
+        className={`${TRIGGER_CLS} ${value ? "text-eye-purple" : "text-text-light"}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {value || placeholder}
+      </button>
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-lilac-deep">
         ▼
       </span>
+      {open && (
+        <div
+          ref={listRef}
+          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-lilac bg-white py-1 shadow-lg"
+        >
+          {options.map((o) => {
+            const selected = String(o) === value;
+            return (
+              <button
+                key={o}
+                type="button"
+                data-selected={selected ? "true" : undefined}
+                className={`w-full px-3 py-2 text-left text-sm text-eye-purple hover:bg-lilac-soft ${
+                  selected ? "bg-lilac-soft font-semibold" : ""
+                }`}
+                onClick={() => {
+                  onChange(String(o));
+                  setOpen(false);
+                }}
+              >
+                {o}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -82,9 +132,9 @@ export default function BirthdaySelect({ value, onChange }: Props) {
 
   return (
     <div className="flex gap-2">
-      <Field value={y} onChange={handleYear} placeholder="년" options={years} />
-      <Field value={m} onChange={handleMonth} placeholder="월" options={months} />
-      <Field value={d} onChange={handleDay} placeholder="일" options={days} />
+      <CustomSelect value={y} onChange={handleYear} placeholder="년" options={years} />
+      <CustomSelect value={m} onChange={handleMonth} placeholder="월" options={months} />
+      <CustomSelect value={d} onChange={handleDay} placeholder="일" options={days} />
     </div>
   );
 }
