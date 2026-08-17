@@ -94,7 +94,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           <img
             src={shape.assetSrc}
             alt=""
-            className="h-14 w-14 object-contain"
+            className="h-9 w-9 object-contain"
             style={
               shape.element === "수" && shape.stage === 3
                 ? { transform: "scale(0.9)" }
@@ -148,7 +148,7 @@ export default function ConstellationView({ graph, meId }: Props) {
       <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-text-light">
         {LEGEND.map(([label, color]) => (
           <span key={label} className="inline-flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+            <span className="inline-block h-2.5 w-2.5 rounded-full border border-lilac-mid/40" style={{ backgroundColor: color }} />
             {label}
           </span>
         ))}

@@ -33,7 +33,7 @@ export default function ByeoljariCreatePage() {
 
   return (
     <main className="mx-auto max-w-md px-4 py-8">
-      <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">별자리 만들기</h1>
+      <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">인연 별자리 만들기</h1>
       <p className="mb-6 text-center text-sm text-text-light">
         생일만 넣으면 내 별이 뜨고, 친구를 부를수록 별자리가 자라나.
       </p>

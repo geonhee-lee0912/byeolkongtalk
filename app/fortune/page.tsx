@@ -122,7 +122,7 @@ export default function FortunePage() {
                   </span>
                 </div>
                 <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-                  생일만 넣으면 친구들과의 인연이 별자리로 그려져. 친구를 부를수록 별자리가 자라나.
+                  생일만 넣어서 친구들과의 인연을 별자리로 그려봐! 나랑 궁합이 좋은 친구를 찾는건 덤!
                 </p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {["인연", "궁합", "친구와함께"].map((h) => (
