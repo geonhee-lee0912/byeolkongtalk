@@ -72,7 +72,7 @@ export default function ConstellationCanvas({
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" onClick={() => onBackgroundClick?.()} />
       {/* 배경 별가루 — 밤하늘 분위기. 줌 transform 밖(고정 ambient). */}
       {STARDUST.map((s, i) => (
-        <circle key={`dust-${i}`} cx={s.x} cy={s.y} r={s.r} fill="#FFFFFF" opacity={s.o} />
+        <circle key={`dust-${i}`} cx={s.x} cy={s.y} r={s.r} fill="#FFFFFF" opacity={s.o} pointerEvents="none" />
       ))}
       {/* 은은 배경 형상 — 밤하늘 위·노드/선 아래, 줌 transform 밖(고정 ambient). */}
       {shape && (
@@ -84,6 +84,7 @@ export default function ConstellationCanvas({
           height={bgSize}
           opacity={0.13}
           preserveAspectRatio="xMidYMid meet"
+          pointerEvents="none"
         />
       )}
       <g
