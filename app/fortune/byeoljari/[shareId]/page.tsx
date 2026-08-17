@@ -55,8 +55,6 @@ export default function ByeoljariGuestPage() {
 
   return (
     <main className="mx-auto max-w-md px-4 py-6">
-      <h1 className="mb-4 text-center font-display text-2xl text-eye-purple">우리 별자리</h1>
-
       {state.status === "loading" && (
         <div className="flex h-64 items-center justify-center text-text-light">별자리를 불러오는 중…</div>
       )}

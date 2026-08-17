@@ -2,8 +2,14 @@
 import { useMemo, useState } from "react";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
-import { STAR_ELEMENT_COLORS, RELATION_TYPE_LABEL, relationTypeLabel } from "@/lib/byeoljari/display";
+import {
+  STAR_ELEMENT_COLORS,
+  RELATION_TYPE_LABEL,
+  relationTypeLabel,
+  directionParticle,
+} from "@/lib/byeoljari/display";
 import { scaleForCount } from "@/lib/byeoljari/scale";
+import { resolveShape } from "@/lib/byeoljari/shape";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
 
@@ -23,6 +29,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
+  const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -55,6 +62,22 @@ export default function ConstellationView({ graph, meId }: Props) {
 
   return (
     <div>
+      {/* 형상 엠블럼 헤더 — "우리 별자리 · {신수이름}". shape null(노드0)이면 텍스트만. */}
+      <h1 className="mb-3 flex items-center justify-center gap-2 font-display text-lg text-eye-purple">
+        {shape && (
+          <img
+            src={shape.assetSrc}
+            alt=""
+            className="h-14 w-14 object-contain"
+            style={
+              shape.element === "수" && shape.stage === 3
+                ? { transform: "scale(0.9)" }
+                : undefined
+            }
+          />
+        )}
+        우리 별자리{shape ? ` · ${shape.name}` : ""}
+      </h1>
       {showFilter && (
         <div className="mb-3 flex flex-wrap justify-center gap-2">
           {[null, ...filterTypes].map((t) => {
@@ -83,6 +106,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           transform={transform}
           sizes={sizes}
           activeFilter={effectiveFilter}
+          shape={shape}
           onSelect={handleSelect}
         />
         {target && (
@@ -103,6 +127,15 @@ export default function ConstellationView({ graph, meId }: Props) {
           </span>
         ))}
       </div>
+      {shape?.membersToNext != null && shape.nextName && (
+        <p className="mt-3 text-center text-sm text-eye-purple">
+          ✨ {shape.membersToNext}명 더 오면 {shape.nextName}
+          {directionParticle(shape.nextName)} 진화!
+        </p>
+      )}
+      {shape?.stage === 3 && (
+        <p className="mt-3 text-center text-sm text-eye-purple">✨ {shape.name} 완성!</p>
+      )}
     </div>
   );
 }
