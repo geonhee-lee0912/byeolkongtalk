@@ -59,10 +59,13 @@ export default function ConstellationView({ graph, meId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [reveal]);
 
-  // 새로 뜬 상세(지도 카드/리스트 아코디언)를 뷰로 — 고정 하단탭(~5rem)에 가리지 않게 scroll-mb-20 과 함께.
+  // 새로 뜬 상세(지도 카드/리스트 아코디언)를 뷰로. block:"end" + scroll-mb-20 으로 하단을
+  // 고정 하단탭(~5rem) 위에 정렬 — 핵심(골드 "남이 보는 나")이 카드 하단이라 nearest 로는
+  // 카드가 뷰포트보다 크면 하단이 안 끌려와 탭에 가린다(실측 확인). smooth 는 미표시 환경에서
+  // 무동작이라 즉시 정렬로 둔다(탭 시 바로 노출, 모든 환경 견고).
   useEffect(() => {
     if (selection && detailRef.current) {
-      detailRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      detailRef.current.scrollIntoView({ block: "end" });
     }
   }, [selection]);
 
