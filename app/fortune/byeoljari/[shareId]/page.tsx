@@ -101,7 +101,7 @@ export default function ByeoljariGuestPage() {
           {showJoin && (
             <div className="mt-4 space-y-2 rounded-2xl bg-cream-warm p-4">
               <input
-                className="w-full rounded-lg border border-lilac px-3 py-2"
+                className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
                 placeholder="내 이름"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

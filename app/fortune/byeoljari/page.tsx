@@ -43,15 +43,15 @@ export default function ByeoljariCreatePage() {
     <main className="mx-auto max-w-md px-4 py-8">
       <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">인연 별자리 만들기</h1>
       <div className="mb-5 space-y-1.5 text-center text-sm text-text-light">
-        <p>🌟 생일 넣으면 네 오행 별이 반짝 떠</p>
-        <p>💞 친구를 부르면 서로의 궁합이 보여 — 내가 본 너, 네가 본 나</p>
-        <p>✨ 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
+        <p>🌟 생일을 넣으면 네 별이 가운데 떠</p>
+        <p>💞 친구나 연인을 부르면 너와 지인의 궁합 관계를 볼 수 있어 — 내가 본 너와 지인이 본 나</p>
+        <p>✨ 이 모든 관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
       </div>
       <ConstellationPreview />
       <p className="mb-5 text-center text-xs text-text-light/60">친구를 부를수록 이렇게 자라나</p>
       <div className="space-y-3">
         <input
-          className="w-full rounded-lg border border-lilac px-3 py-2"
+          className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
           placeholder="내 이름"
           value={name}
           onChange={(e) => setName(e.target.value)}
