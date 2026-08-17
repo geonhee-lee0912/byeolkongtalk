@@ -22,6 +22,7 @@ export default function ByeoljariGuestPage() {
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
   const [relationType, setRelationType] = useState("friend"); // 호스트(별자리 주인)와 나의 관계
+  const [namePublic, setNamePublic] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -45,7 +46,7 @@ export default function ByeoljariGuestPage() {
       const res = await fetch(`/api/fortune/byeoljari/${shareId}/join`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ displayName: name, birthDate: birth, relationType }),
+        body: JSON.stringify({ displayName: name, birthDate: birth, relationType, namePublic }),
       });
       const data = await res.json();
       if (data.ok && data.memberId) {
@@ -111,6 +112,15 @@ export default function ByeoljariGuestPage() {
                   })}
                 </div>
               </div>
+              <label className="flex items-center gap-2 text-sm text-text-light">
+                <input
+                  type="checkbox"
+                  checked={namePublic}
+                  onChange={(e) => setNamePublic(e.target.checked)}
+                  className="h-4 w-4 accent-lilac-deep"
+                />
+                별자리에 내 이름 보이기
+              </label>
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}

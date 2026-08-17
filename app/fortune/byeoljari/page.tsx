@@ -8,6 +8,7 @@ export default function ByeoljariCreatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
+  const [namePublic, setNamePublic] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function ByeoljariCreatePage() {
       const res = await fetch("/api/fortune/byeoljari", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ displayName: name, birthDate: birth }),
+        body: JSON.stringify({ displayName: name, birthDate: birth, namePublic }),
       });
       const data = await res.json();
       if (data.ok && data.shareId) {
@@ -46,6 +47,15 @@ export default function ByeoljariCreatePage() {
           onChange={(e) => setName(e.target.value)}
         />
         <BirthdaySelect value={birth} onChange={setBirth} />
+        <label className="flex items-center gap-2 text-sm text-text-light">
+          <input
+            type="checkbox"
+            checked={namePublic}
+            onChange={(e) => setNamePublic(e.target.checked)}
+            className="h-4 w-4 accent-lilac-deep"
+          />
+          별자리에 내 이름 보이기
+        </label>
         <button
           disabled={busy || !name || !birth}
           onClick={create}

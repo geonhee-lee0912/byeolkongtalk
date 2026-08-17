@@ -26,7 +26,7 @@ const MANY: Omit<SizeSpec, "showLabels"> = {
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const round = (n: number) => Math.round(n * 100) / 100;
 
-/** 인원 n 에 맞춘 크기. 6명↓=FEW, 16명↑=MANY, 사이 선형보간. 라벨은 8명↓만. */
+/** 인원 n 에 맞춘 크기. 6명↓=FEW, 16명↑=MANY, 사이 선형보간. 라벨은 20명↓만. */
 export function scaleForCount(n: number): SizeSpec {
   const t = clamp01((n - 6) / 10);
   const lerp = (a: number, b: number) => round(a + (b - a) * t);
@@ -41,6 +41,6 @@ export function scaleForCount(n: number): SizeSpec {
     goldLineWidth: lerp(FEW.goldLineWidth, MANY.goldLineWidth),
     labelFont: lerp(FEW.labelFont, MANY.labelFont),
     hostLabelFont: lerp(FEW.hostLabelFont, MANY.hostLabelFont),
-    showLabels: n <= 8,
+    showLabels: n <= 20,
   };
 }

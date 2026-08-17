@@ -27,10 +27,13 @@ export async function POST(req: NextRequest) {
     displayName?: unknown;
     birthDate?: unknown;
     birthTime?: unknown;
+    namePublic?: unknown;
   };
   const displayName = typeof b.displayName === "string" ? b.displayName.trim() : "";
   const birthDate = typeof b.birthDate === "string" ? b.birthDate : "";
   const birthTime = typeof b.birthTime === "string" && b.birthTime ? b.birthTime : null;
+  // 호스트는 기본 이름 공개(맵 주인이라 옵트아웃 방식) — 명시적 false 만 숨김.
+  const namePublic = b.namePublic === false ? false : true;
   if (!displayName || displayName.length > 50) {
     return NextResponse.json({ ok: false, reason: "name" }, { status: 400 });
   }
@@ -85,6 +88,7 @@ export async function POST(req: NextRequest) {
       relation_type: "friend",
       member_anon_id: anonymousId,
       is_host: true,
+      name_public: namePublic,
     })
     .select("id")
     .single();
