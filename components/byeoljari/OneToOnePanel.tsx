@@ -1,10 +1,17 @@
 "use client";
 import type { GraphNode } from "@/lib/byeoljari/types";
 import { elementRelationLabel, relationTypeLabel, subjectParticle } from "@/lib/byeoljari/display";
+import { relationTenGodCopy } from "@/lib/byeoljari/copy";
 
 interface Props {
   target: GraphNode;
-  oriented: { iSeeThem: string; theySeeMe: string; element: string } | null;
+  oriented: {
+    iSeeThem: string;
+    theySeeMe: string;
+    element: string;
+    iSeeThemTenGod: string;
+    theySeeMeTenGod: string;
+  } | null;
   heavenlyCombo: boolean;
   sixCombo: boolean;
   onBack: () => void;
@@ -21,30 +28,36 @@ export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixComb
       <h3 className="font-display text-lg text-eye-purple">{them}</h3>
 
       {oriented ? (
-        <div className="mt-3 space-y-3">
-          <p className="text-sm text-eye-purple">{elementRelationLabel(oriented.element)}</p>
-          <div className="rounded-xl bg-white/60 p-3 text-sm">
-            <div className="text-text-light">내가 보는 {them}</div>
-            <div className="text-eye-purple">{oriented.iSeeThem}</div>
-          </div>
-          {/* 남이 보는 나 = 스펙 §2 차별점 = 골드 강조 */}
-          <div className="rounded-xl bg-gold-soft/40 p-3 text-sm ring-1 ring-gold">
-            <div className="text-text-light">{them}{subjectParticle(them)} 보는 나</div>
-            <div className="font-semibold text-eye-purple">{oriented.theySeeMe}</div>
-          </div>
-          {(heavenlyCombo || sixCombo) && (
-            <div className="flex gap-2">
-              {heavenlyCombo && (
-                <span className="rounded-full bg-gold/20 px-3 py-1 text-xs text-eye-purple">✨ 케미 스파크</span>
-              )}
-              {sixCombo && (
-                <span className="rounded-full bg-lilac/40 px-3 py-1 text-xs text-eye-purple">🔗 결속</span>
+        (() => {
+          const iSee = relationTenGodCopy(target.relationType, oriented.iSeeThemTenGod) ?? oriented.iSeeThem;
+          const theySee = relationTenGodCopy(target.relationType, oriented.theySeeMeTenGod) ?? oriented.theySeeMe;
+          return (
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-eye-purple">{elementRelationLabel(oriented.element)}</p>
+              <div className="rounded-xl bg-white/60 p-3 text-sm">
+                <div className="text-text-light">내가 보는 {them}</div>
+                <div className="text-eye-purple">{iSee}</div>
+              </div>
+              {/* 남이 보는 나 = 스펙 §2 차별점 = 골드 강조 */}
+              <div className="rounded-xl bg-gold-soft/40 p-3 text-sm ring-1 ring-gold">
+                <div className="text-text-light">{them}{subjectParticle(them)} 보는 나</div>
+                <div className="font-semibold text-eye-purple">{theySee}</div>
+              </div>
+              {(heavenlyCombo || sixCombo) && (
+                <div className="flex gap-2">
+                  {heavenlyCombo && (
+                    <span className="rounded-full bg-gold/20 px-3 py-1 text-xs text-eye-purple">✨ 케미 스파크</span>
+                  )}
+                  {sixCombo && (
+                    <span className="rounded-full bg-lilac/40 px-3 py-1 text-xs text-eye-purple">🔗 결속</span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
+          );
+        })()
       ) : (
-        <p className="mt-3 text-sm text-text-light">이 별과의 궁합은 아직 비공개예요.</p>
+        <p className="mt-3 text-sm text-text-light">이 별과의 궁합은 아직 볼 수 없어.</p>
       )}
     </div>
   );
