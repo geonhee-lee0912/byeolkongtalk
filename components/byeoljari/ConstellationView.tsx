@@ -11,6 +11,7 @@ import {
 } from "@/lib/byeoljari/display";
 import { scaleForCount } from "@/lib/byeoljari/scale";
 import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
+import { inyeonGrade } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
 
@@ -77,6 +78,19 @@ export default function ConstellationView({ graph, meId }: Props) {
         ) ?? null
       : null;
   const oriented = edge && pivotId ? orientEdge(edge, pivotId) : null;
+
+  // pivot(나) 기준 인연도 내림차순 순위. edge 는 이미 compat_visible 로 필터돼 보이는 관계만.
+  const ranking = useMemo(() => {
+    if (!pivotId) return [];
+    return graph.edges
+      .filter((e) => e.a === pivotId || e.b === pivotId)
+      .map((e) => {
+        const otherId = e.a === pivotId ? e.b : e.a;
+        const other = graph.nodes.find((n) => n.id === otherId);
+        return { id: otherId, name: other?.name ?? null, inyeon: e.inyeon };
+      })
+      .sort((x, y) => y.inyeon - x.inyeon);
+  }, [graph.edges, graph.nodes, pivotId]);
 
   const p = selectedId ? layout.get(selectedId) : undefined;
   const transform = p ? focusTransform(p, 2) : { tx: 0, ty: 0, s: 1 };
@@ -153,6 +167,31 @@ export default function ConstellationView({ graph, meId }: Props) {
           </span>
         ))}
       </div>
+      {ranking.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-semibold text-eye-purple">인연이 진한 순</div>
+          <div className="space-y-1.5">
+            {ranking.map((r, i) => {
+              const grade = inyeonGrade(r.inyeon);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => handleSelect(r.id)}
+                  className="flex w-full items-center justify-between rounded-xl bg-cream-warm px-3 py-2 text-left transition hover:bg-lilac-soft/50 active:scale-[0.99]"
+                >
+                  <span className="text-sm text-eye-purple">
+                    {i + 1}위 · {r.name ?? "이 별"}
+                  </span>
+                  <span className="text-xs text-text-light">
+                    인연도 {r.inyeon} · {grade.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {shape?.membersToNext != null && shape.nextName && (
         <p className="mt-3 text-center text-sm text-eye-purple">
           ✨ {shape.membersToNext}명 더 오면 {shape.nextName}
