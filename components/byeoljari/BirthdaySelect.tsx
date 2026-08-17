@@ -1,6 +1,5 @@
-// 네이티브 <input type="date"> 대신 쓰는 년/월/일 드롭다운 — 브랜드 톤(테두리·색상) 일치 목적.
-// value/onChange 계약: 년/월/일이 전부 채워졌을 때만 "YYYY-MM-DD"를 돌려주고, 아니면 ""
-// (부모의 `!birth` disabled 가드가 그대로 작동하도록).
+// 네이티브 <input type="date"> 대신 쓰는 년/월/일 드롭다운 — 브랜드 톤(테두리·색상·커스텀 화살표) 일치.
+// value/onChange 계약: 년/월/일이 전부 채워졌을 때만 "YYYY-MM-DD", 아니면 ""(부모의 `!birth` disabled 가드 유지).
 "use client";
 import { useState } from "react";
 
@@ -8,6 +7,38 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 function daysInMonth(y: string, m: string): number {
   return y && m ? new Date(Number(y), Number(m), 0).getDate() : 31;
+}
+
+// 브랜드 톤 셀렉트 — 네이티브 화살표 제거(appearance-none) 후 커스텀 ▼ 를 얹는다.
+const SELECT_CLS =
+  "w-full appearance-none rounded-xl border border-lilac bg-white px-3 py-2.5 pr-8 text-sm text-eye-purple transition focus:border-lilac-deep focus:outline-none focus:ring-2 focus:ring-lilac-deep/20";
+
+function Field({
+  value,
+  onChange,
+  placeholder,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: number[];
+}) {
+  return (
+    <div className="relative flex-1">
+      <select className={SELECT_CLS} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-lilac-deep">
+        ▼
+      </span>
+    </div>
+  );
 }
 
 interface Props {
@@ -51,42 +82,9 @@ export default function BirthdaySelect({ value, onChange }: Props) {
 
   return (
     <div className="flex gap-2">
-      <select
-        className="flex-1 rounded-lg border border-lilac px-3 py-2 text-eye-purple bg-white"
-        value={y}
-        onChange={(e) => handleYear(e.target.value)}
-      >
-        <option value="">년</option>
-        {years.map((yy) => (
-          <option key={yy} value={yy}>
-            {yy}
-          </option>
-        ))}
-      </select>
-      <select
-        className="flex-1 rounded-lg border border-lilac px-3 py-2 text-eye-purple bg-white"
-        value={m}
-        onChange={(e) => handleMonth(e.target.value)}
-      >
-        <option value="">월</option>
-        {months.map((mm) => (
-          <option key={mm} value={mm}>
-            {mm}
-          </option>
-        ))}
-      </select>
-      <select
-        className="flex-1 rounded-lg border border-lilac px-3 py-2 text-eye-purple bg-white"
-        value={d}
-        onChange={(e) => handleDay(e.target.value)}
-      >
-        <option value="">일</option>
-        {days.map((dd) => (
-          <option key={dd} value={dd}>
-            {dd}
-          </option>
-        ))}
-      </select>
+      <Field value={y} onChange={handleYear} placeholder="년" options={years} />
+      <Field value={m} onChange={handleMonth} placeholder="월" options={months} />
+      <Field value={d} onChange={handleDay} placeholder="일" options={days} />
     </div>
   );
 }
