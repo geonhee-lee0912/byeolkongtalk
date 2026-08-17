@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusTransform, orientEdge } from "@/lib/byeoljari/layout";
 import {
@@ -28,9 +29,14 @@ export default function ConstellationView({ graph, meId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
+  // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
+  // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
+  const [mounted, setMounted] = useState(false);
   const layout = useMemo(() => computeLayout(graph.nodes), [graph.nodes]);
   const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!shape) return;
@@ -40,6 +46,16 @@ export default function ConstellationView({ graph, meId }: Props) {
     localStorage.setItem(key, String(shape.stage)); // 리빌 여부와 무관하게 기준선 갱신
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graph.shareId, shape?.stage]);
+
+  // 오버레이가 열려 있는 동안만 ESC 로 닫기 — ContinuationModal/RecoConfirmModal 패턴 미러.
+  useEffect(() => {
+    if (!reveal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setReveal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reveal]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -146,11 +162,12 @@ export default function ConstellationView({ graph, meId }: Props) {
       {shape?.stage === 3 && (
         <p className="mt-3 text-center text-sm text-eye-purple">✨ {shape.name} 완성!</p>
       )}
-      {reveal && shape && (
+      {reveal && shape && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-night/80 animate-fade-in"
+          className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-night/80 animate-fade-in"
           onClick={() => setReveal(false)}
           role="dialog"
+          aria-modal="true"
           aria-label="형상 진화"
         >
           <img src={shape.assetSrc} alt="" className="h-40 w-40 object-contain" />
@@ -165,7 +182,8 @@ export default function ConstellationView({ graph, meId }: Props) {
           >
             닫기
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
