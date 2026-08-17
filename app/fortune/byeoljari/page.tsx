@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
+import ConstellationPreview from "@/components/byeoljari/ConstellationPreview";
 
 // 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
 export default function ByeoljariCreatePage() {
@@ -10,9 +11,14 @@ export default function ByeoljariCreatePage() {
   const [birth, setBirth] = useState("");
   const [namePublic, setNamePublic] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     fetch("/api/fortune/byeoljari/claim", { method: "POST" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setLoggedIn(!!localStorage.getItem("byeolkong_user"));
   }, []);
 
   async function create() {
@@ -36,9 +42,13 @@ export default function ByeoljariCreatePage() {
   return (
     <main className="mx-auto max-w-md px-4 py-8">
       <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">인연 별자리 만들기</h1>
-      <p className="mb-6 text-center text-sm text-text-light">
-        생일만 넣으면 내 별이 뜨고, 친구를 부를수록 별자리가 자라나.
-      </p>
+      <div className="mb-5 space-y-1.5 text-center text-sm text-text-light">
+        <p>🌟 생일 넣으면 네 오행 별이 반짝 떠</p>
+        <p>💞 친구를 부르면 서로의 궁합이 보여 — 내가 본 너, 네가 본 나</p>
+        <p>✨ 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
+      </div>
+      <ConstellationPreview />
+      <p className="mb-5 text-center text-xs text-text-light/60">친구를 부를수록 이렇게 자라나</p>
       <div className="space-y-3">
         <input
           className="w-full rounded-lg border border-lilac px-3 py-2"
@@ -64,6 +74,14 @@ export default function ByeoljariCreatePage() {
           {busy ? "만드는 중…" : "만들기"}
         </button>
       </div>
+      {!loggedIn && (
+        <a
+          href="/login?next=/fortune/byeoljari"
+          className="mt-3 block w-full rounded-xl border border-lilac-deep py-3 text-center font-medium text-lilac-deep transition active:scale-[0.99]"
+        >
+          로그인하고 시작하기
+        </a>
+      )}
       <p className="mt-6 text-center text-xs text-text-light">
         로그인하면 이 별자리를 영구 보관해요. 안 하면 이 기기에서만 볼 수 있어요.
       </p>
