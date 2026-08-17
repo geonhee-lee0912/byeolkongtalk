@@ -23,6 +23,7 @@ export default function ByeoljariGuestPage() {
   const [birth, setBirth] = useState("");
   const [relationType, setRelationType] = useState("friend"); // 호스트(별자리 주인)와 나의 관계
   const [namePublic, setNamePublic] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -78,6 +79,23 @@ export default function ByeoljariGuestPage() {
               className="mt-4 w-full rounded-xl bg-lilac-deep py-3 text-white"
             >
               이 별자리에 내 별 놓기
+            </button>
+          )}
+          {/* 주인(이미 멤버)에겐 join 대신 친구 초대(링크 복사) — 친구가 그 링크로 내 별 놓기. */}
+          {meId && (
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
+                }
+              }}
+              className="mt-4 w-full rounded-xl border border-lilac-deep py-3 font-medium text-lilac-deep transition active:scale-[0.99]"
+            >
+              {copied ? "링크 복사됨! 친구에게 보내줘 💌" : "🔗 친구 초대하기 (링크 복사)"}
             </button>
           )}
           {showJoin && (
