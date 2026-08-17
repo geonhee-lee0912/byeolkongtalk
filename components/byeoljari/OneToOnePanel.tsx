@@ -14,10 +14,16 @@ interface Props {
   } | null;
   heavenlyCombo: boolean;
   sixCombo: boolean;
+  inyeon: {
+    score: number;
+    grade: { label: string; tone: string };
+    reasons: string[];
+    comment: string;
+  } | null;
   onBack: () => void;
 }
 
-export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixCombo, onBack }: Props) {
+export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixCombo, inyeon, onBack }: Props) {
   const them = target.name ?? "이 별";
   return (
     <div className="absolute inset-x-0 bottom-0 max-h-full overflow-y-auto animate-fade-in rounded-t-2xl bg-cream-warm p-5 shadow-2xl">
@@ -33,6 +39,20 @@ export default function OneToOnePanel({ target, oriented, heavenlyCombo, sixComb
           const theySee = relationTenGodCopy(target.relationType, oriented.theySeeMeTenGod) ?? oriented.theySeeMe;
           return (
             <div className="mt-3 space-y-3">
+              {inyeon && (
+                <div className="rounded-xl bg-lilac-soft/40 p-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-lg text-eye-purple">인연도 {inyeon.score}</span>
+                    <span className="text-xs text-eye-purple/70">{inyeon.grade.label}</span>
+                  </div>
+                  <ul className="mt-2 space-y-1 text-sm text-eye-purple">
+                    {inyeon.reasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-text-light">별콩이 — {inyeon.comment}</p>
+                </div>
+              )}
               <p className="text-sm text-eye-purple">{elementRelationLabel(oriented.element)}</p>
               <div className="rounded-xl bg-white/60 p-3 text-sm">
                 <div className="text-text-light">내가 보는 {them}</div>

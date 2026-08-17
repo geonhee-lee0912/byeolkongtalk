@@ -11,7 +11,7 @@ import {
 } from "@/lib/byeoljari/display";
 import { scaleForCount } from "@/lib/byeoljari/scale";
 import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
-import { inyeonGrade } from "@/lib/byeoljari/inyeon";
+import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
 import OneToOnePanel from "./OneToOnePanel";
 
@@ -87,6 +87,23 @@ export default function ConstellationView({ graph, meId }: Props) {
         ) ?? null
       : null;
   const oriented = edge && pivotId ? orientEdge(edge, pivotId) : null;
+
+  // 선택된 1:1 의 인연도 근거(오행은 pivot 기준 oriented.element, 나머지는 edge).
+  const inyeonInfo = useMemo(() => {
+    if (!edge || !oriented) return null;
+    const grade = inyeonGrade(edge.inyeon);
+    return {
+      score: edge.inyeon,
+      grade,
+      reasons: inyeonReasons({
+        element: oriented.element,
+        heavenlyCombo: edge.heavenlyCombo,
+        sixCombo: edge.sixCombo,
+        triadShared: edge.triadShared,
+      }),
+      comment: inyeonComment(grade.tone),
+    };
+  }, [edge, oriented]);
 
   // pivot(나) 기준 인연도 내림차순 순위. edge 는 이미 compat_visible 로 필터돼 보이는 관계만.
   const ranking = useMemo(() => {
@@ -166,6 +183,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             oriented={oriented}
             heavenlyCombo={edge?.heavenlyCombo ?? false}
             sixCombo={edge?.sixCombo ?? false}
+            inyeon={inyeonInfo}
             onBack={() => setSelectedId(null)}
           />
         )}
