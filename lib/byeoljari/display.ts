@@ -48,3 +48,12 @@ export function subjectParticle(word: string): "이" | "가" {
   if (Number.isNaN(code) || code < 0xac00 || code > 0xd7a3) return "가"; // 한글 완성형 밖
   return (code - 0xac00) % 28 === 0 ? "가" : "이"; // 받침 없음 → 가
 }
+
+// 방향 조사 (으)로. 받침 없거나 ㄹ받침 → "로", 그 외 받침 → "으로". 한글 완성형만; 그 외 "로".
+export function directionParticle(word: string): "으로" | "로" {
+  const last = word.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (Number.isNaN(code) || code < 0xac00 || code > 0xd7a3) return "로"; // 한글 완성형 밖
+  const jong = (code - 0xac00) % 28; // 종성 인덱스: 0=받침없음, 8=ㄹ
+  return jong === 0 || jong === 8 ? "로" : "으로";
+}

@@ -6,6 +6,7 @@ import {
   elementRelationLabel,
   relationTypeLabel,
   subjectParticle,
+  directionParticle,
 } from "./display.ts";
 
 test("STAR_ELEMENT_COLORS — 5 오행 발광 팔레트", () => {
@@ -36,4 +37,24 @@ test("subjectParticle — 받침 있으면 이, 없으면 가", () => {
   assert.equal(subjectParticle("로엔"), "이");  // 엔=받침 ㄴ
   assert.equal(subjectParticle("지호"), "가");  // 호=받침 없음
   assert.equal(subjectParticle("Roen"), "가");  // 한글 밖 → 기본 가
+});
+
+test("directionParticle — 받침 없으면 로", () => {
+  assert.equal(directionParticle("이무기"), "로");
+  assert.equal(directionParticle("백호"), "로");
+  assert.equal(directionParticle("가오리"), "로");
+});
+
+test("directionParticle — 받침 있으면 으로", () => {
+  assert.equal(directionParticle("청룡"), "으로");
+  assert.equal(directionParticle("기린"), "으로");
+  assert.equal(directionParticle("사슴"), "으로");
+});
+
+test("directionParticle — ㄹ받침은 로(예외)", () => {
+  assert.equal(directionParticle("서울"), "로");
+});
+
+test("directionParticle — 한글 완성형 밖은 로", () => {
+  assert.equal(directionParticle("abc"), "로");
 });
