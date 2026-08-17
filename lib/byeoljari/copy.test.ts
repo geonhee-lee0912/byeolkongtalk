@@ -1,14 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RELATION_TEN_GOD_COPY, relationTenGodCopy } from "./copy.ts";
+import type { TenGod } from "../saju/pairing.ts";
 
-const RELATIONS = ["friend", "lover", "acquaintance", "senior"];
-const TEN_GODS = ["비견", "겁재", "식신", "상관", "편재", "정재", "편관", "정관", "편인", "정인"];
+const RELATIONS = Object.keys(RELATION_TEN_GOD_COPY);
+const TEN_GODS: TenGod[] = ["비견", "겁재", "식신", "상관", "편재", "정재", "편관", "정관", "편인", "정인"];
 
-test("40칸 전부 존재 + 빈 문자열 없음", () => {
+test("관계분류 4종 + 40칸 전부 존재 + 빈 문자열 없음", () => {
+  assert.equal(RELATIONS.length, 4);
   for (const r of RELATIONS) {
     for (const t of TEN_GODS) {
-      const v = RELATION_TEN_GOD_COPY[r]?.[t as keyof (typeof RELATION_TEN_GOD_COPY)[string]];
+      const v = RELATION_TEN_GOD_COPY[r][t];
       assert.ok(v && v.length > 0, `${r}/${t} 비어있음`);
     }
   }
