@@ -77,6 +77,8 @@ export async function GET(
     element: string;
     labelAtoB: string;
     labelBtoA: string;
+    tenGodAtoB: string;
+    tenGodBtoA: string;
     heavenlyCombo: boolean;
     sixCombo: boolean;
   }> = [];
@@ -93,6 +95,8 @@ export async function GET(
         element: r.element,
         labelAtoB: r.labelAtoB,
         labelBtoA: r.labelBtoA,
+        tenGodAtoB: r.tenGodAtoB,
+        tenGodBtoA: r.tenGodBtoA,
         heavenlyCombo: r.heavenlyCombo,
         sixCombo: r.sixCombo,
       });

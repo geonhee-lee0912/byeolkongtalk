@@ -16,6 +16,8 @@ export interface GraphEdge {
   element: string; // a 기준 오행 관계: 비화|생아|아생|극아|아극 (오행 아님)
   labelAtoB: string; // 별콩 라벨 a→b
   labelBtoA: string; // 별콩 라벨 b→a
+  tenGodAtoB: string; // a→b 십신 코드 (관계분류 조립용)
+  tenGodBtoA: string; // b→a 십신 코드
   heavenlyCombo: boolean;
   sixCombo: boolean;
 }

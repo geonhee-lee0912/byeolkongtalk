@@ -82,10 +82,17 @@ test("orientEdge — pivot 기준 방향(남이 보는 나)", () => {
   const e: GraphEdge = {
     a: "H", b: "G", element: "아극",
     labelAtoB: "내가 이끄는 사람", labelBtoA: "든든한 지원군",
+    tenGodAtoB: "정재", tenGodBtoA: "편관",
     heavenlyCombo: false, sixCombo: false,
   };
-  assert.deepEqual(orientEdge(e, "H"), { iSeeThem: "내가 이끄는 사람", theySeeMe: "든든한 지원군", element: "아극" });
-  assert.deepEqual(orientEdge(e, "G"), { iSeeThem: "든든한 지원군", theySeeMe: "내가 이끄는 사람", element: "극아" });
+  assert.deepEqual(orientEdge(e, "H"), {
+    iSeeThem: "내가 이끄는 사람", theySeeMe: "든든한 지원군", element: "아극",
+    iSeeThemTenGod: "정재", theySeeMeTenGod: "편관",
+  });
+  assert.deepEqual(orientEdge(e, "G"), {
+    iSeeThem: "든든한 지원군", theySeeMe: "내가 이끄는 사람", element: "극아",
+    iSeeThemTenGod: "편관", theySeeMeTenGod: "정재",
+  });
   assert.equal(orientEdge(e, "Z"), null);
 });
 
@@ -107,4 +114,20 @@ test("edgeMatchesFilter — 비호스트 끝점 관계로 판정(호스트는 �
   assert.equal(edgeMatchesFilter(host, friend, "friend"), true); // 호스트↔친구
   assert.equal(edgeMatchesFilter(host, lover, "friend"), false); // 호스트↔연인 dim
   assert.equal(edgeMatchesFilter(friend, lover, "friend"), true); // 게스트끼리, 친구 포함
+});
+
+test("orientEdge — 십신도 pivot 기준 방향 정렬", () => {
+  const edge = {
+    a: "A", b: "B", element: "아극",
+    labelAtoB: "라벨AB", labelBtoA: "라벨BA",
+    tenGodAtoB: "편재", tenGodBtoA: "정관",
+    heavenlyCombo: false, sixCombo: false,
+  };
+  const oa = orientEdge(edge, "A");
+  assert.equal(oa?.iSeeThemTenGod, "편재");
+  assert.equal(oa?.theySeeMeTenGod, "정관");
+  const ob = orientEdge(edge, "B");
+  assert.equal(ob?.iSeeThemTenGod, "정관");
+  assert.equal(ob?.theySeeMeTenGod, "편재");
+  assert.equal(orientEdge(edge, "Z"), null);
 });

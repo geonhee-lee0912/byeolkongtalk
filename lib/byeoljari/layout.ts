@@ -100,19 +100,34 @@ export function invertElementRelation(rel: string): string {
   return INVERT[rel] ?? rel;
 }
 
-/** pivot 입장에서 본 방향 라벨. iSeeThem=내가 보는 상대, theySeeMe=상대가 보는 나(골드 강조 대상). */
+/** pivot 입장에서 본 방향 라벨. iSeeThem=내가 보는 상대, theySeeMe=상대가 보는 나(골드 강조 대상).
+ *  십신 코드도 같은 방향으로 정렬(카피 조립은 호출부가 관계분류와 함께). */
 export function orientEdge(
   edge: GraphEdge,
   pivotId: string
-): { iSeeThem: string; theySeeMe: string; element: string } | null {
+): {
+  iSeeThem: string;
+  theySeeMe: string;
+  element: string;
+  iSeeThemTenGod: string;
+  theySeeMeTenGod: string;
+} | null {
   if (edge.a === pivotId) {
-    return { iSeeThem: edge.labelAtoB, theySeeMe: edge.labelBtoA, element: edge.element };
+    return {
+      iSeeThem: edge.labelAtoB,
+      theySeeMe: edge.labelBtoA,
+      element: edge.element,
+      iSeeThemTenGod: edge.tenGodAtoB,
+      theySeeMeTenGod: edge.tenGodBtoA,
+    };
   }
   if (edge.b === pivotId) {
     return {
       iSeeThem: edge.labelBtoA,
       theySeeMe: edge.labelAtoB,
       element: invertElementRelation(edge.element),
+      iSeeThemTenGod: edge.tenGodBtoA,
+      theySeeMeTenGod: edge.tenGodAtoB,
     };
   }
   return null;
