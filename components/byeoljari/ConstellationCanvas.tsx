@@ -1,13 +1,9 @@
 "use client";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
-import {
-  starPoints,
-  resolveGlyph,
-  nodeMatchesFilter,
-  edgeMatchesFilter,
-} from "@/lib/byeoljari/layout";
+import { starPoints, resolveGlyph } from "@/lib/byeoljari/layout";
 import { starColor } from "@/lib/byeoljari/display";
+import { edgeActiveForBond, nodeActiveForBond, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
 import type { ShapeInfo } from "@/lib/byeoljari/shape";
 
@@ -29,7 +25,7 @@ interface Props {
   meId: string | null;
   transform: { tx: number; ty: number; s: number };
   sizes: SizeSpec;
-  activeFilter: string | null;
+  activeFilter: BondFilter | null;
   onSelect: (nodeId: string) => void;
   shape?: ShapeInfo | null; // 은은 배경 형상(없으면 배경 생략)
   highlightPairIds?: string[] | null; // 지도 선택 시 강조할 쌍(나+상대). 그 외 노드/선은 dim.
@@ -55,6 +51,7 @@ export default function ConstellationCanvas({
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
+  const triadMemberIds = new Set(graph.triads.flatMap((t) => t.memberIds));
 
   // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
   const triadRing = new Map<string, string>();
@@ -102,7 +99,7 @@ export default function ConstellationCanvas({
           const nb = nodeById.get(e.b);
           const colorNode = na?.isHost ? nb : na;
           const gold = e.heavenlyCombo || e.sixCombo;
-          const dimByFilter = activeFilter && !edgeMatchesFilter(na, nb, activeFilter);
+          const dimByFilter = activeFilter != null && !edgeActiveForBond(e, activeFilter);
           const dimByPair =
             highlightPairIds != null &&
             !(highlightPairIds.includes(e.a) && highlightPairIds.includes(e.b));
@@ -131,7 +128,8 @@ export default function ConstellationCanvas({
           const glyph = resolveGlyph(n, meId);
           const isHost = glyph === "host-star";
           const color = starColor(n.element);
-          const dimByFilter = activeFilter && !nodeMatchesFilter(n, activeFilter);
+          const dimByFilter =
+            activeFilter != null && !nodeActiveForBond(n.id, activeFilter, graph.edges, triadMemberIds);
           const dimByPair = highlightPairIds != null && !highlightPairIds.includes(n.id);
           const nodeOpacity = dimByFilter || dimByPair ? DIM : 1;
           const ringColor = triadRing.get(n.id);

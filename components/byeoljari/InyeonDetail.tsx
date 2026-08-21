@@ -22,7 +22,7 @@ interface Props {
   } | null;
 }
 
-/** 1:1 인연 상세 본문(인연도 근거 + 내가/그가 보는 카피 + 뱃지). 지도 하단 카드·리스트 아코디언 공용. */
+/** 1:1 인연 상세 본문(인연 점수 근거 + 내가/그가 보는 카피 + 뱃지). 지도 하단 카드·리스트 아코디언 공용. */
 export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo, inyeon }: Props) {
   const them = target.name ?? "이 별";
   if (!oriented) {
@@ -35,7 +35,7 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
       {inyeon && (
         <div className="rounded-xl bg-lilac-soft/40 p-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-lg text-eye-purple">인연도 {inyeon.score}</span>
+            <span className="font-display text-lg text-eye-purple">인연 점수 {inyeon.score}</span>
             <span className="text-xs text-eye-purple/70">{inyeon.grade.label}</span>
           </div>
           <ul className="mt-2 space-y-1 text-sm text-eye-purple">

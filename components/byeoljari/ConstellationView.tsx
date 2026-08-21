@@ -5,10 +5,10 @@ import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, focusPair, orientEdge } from "@/lib/byeoljari/layout";
 import {
   STAR_ELEMENT_COLORS,
-  RELATION_TYPE_LABEL,
   relationTypeLabel,
   directionParticle,
 } from "@/lib/byeoljari/display";
+import { presentBondFilters, BOND_FILTER_LABEL, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import { scaleForCount } from "@/lib/byeoljari/scale";
 import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
 import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
@@ -18,8 +18,6 @@ import InyeonDetail from "./InyeonDetail";
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
-// 관계분류 단일 원천(display.ts) — 순서 고정용. 별도 하드카피 금지(드리프트 방지).
-const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
 
 interface Props {
   graph: StarGraph;
@@ -28,7 +26,7 @@ interface Props {
 
 export default function ConstellationView({ graph, meId }: Props) {
   const [selection, setSelection] = useState<{ id: string; source: "map" | "list" } | null>(null);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<BondFilter | null>(null);
   const [reveal, setReveal] = useState(false);
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
@@ -72,11 +70,11 @@ export default function ConstellationView({ graph, meId }: Props) {
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
 
-  const filterTypes = useMemo(() => {
-    const present = new Set(graph.nodes.filter((n) => !n.isHost).map((n) => n.relationType));
-    return RELATION_ORDER.filter((t) => present.has(t));
-  }, [graph.nodes]);
-  const showFilter = filterTypes.length >= 2;
+  const filterTypes = useMemo(
+    () => presentBondFilters(graph.edges, graph.triads),
+    [graph.edges, graph.triads]
+  );
+  const showFilter = filterTypes.length >= 1; // 전체 + ≥1 = 칩 2개 이상
   // 사라진 분류를 가리키는 stale 필터는 전체로 폴백.
   const effectiveFilter = activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
 
@@ -94,7 +92,7 @@ export default function ConstellationView({ graph, meId }: Props) {
       : null;
   const oriented = edge && pivotId ? orientEdge(edge, pivotId) : null;
 
-  // 선택된 1:1 의 인연도 근거(오행은 pivot 기준 oriented.element, 나머지는 edge).
+  // 선택된 1:1 의 인연 점수 근거(오행은 pivot 기준 oriented.element, 나머지는 edge).
   const inyeonInfo = useMemo(() => {
     if (!edge || !oriented) return null;
     const grade = inyeonGrade(edge.inyeon);
@@ -111,7 +109,7 @@ export default function ConstellationView({ graph, meId }: Props) {
     };
   }, [edge, oriented]);
 
-  // pivot(나) 기준 인연도 내림차순 순위. edge 는 이미 compat_visible 로 필터돼 보이는 관계만.
+  // pivot(나) 기준 인연 점수 내림차순 순위. 호스트 낀 엣지는 전부, 게스트끼리는 특별 인연만 온다.
   const ranking = useMemo(() => {
     if (!pivotId) return [];
     return graph.edges
@@ -179,7 +177,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                   active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
                 }`}
               >
-                {t === null ? "전체" : relationTypeLabel(t)}
+                {t === null ? "전체" : BOND_FILTER_LABEL[t]}
               </button>
             );
           })}
@@ -222,9 +220,23 @@ export default function ConstellationView({ graph, meId }: Props) {
           </span>
         ))}
       </div>
+      <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs text-text-light">
+        <span className="inline-flex items-center gap-1">
+          <svg width="16" height="6" aria-hidden><line x1="0" y1="3" x2="16" y2="3" stroke="#F2D78A" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          끌림
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <svg width="16" height="6" aria-hidden><line x1="0" y1="3" x2="16" y2="3" stroke="#F2D78A" strokeWidth="1.5" strokeDasharray="3 2" strokeLinecap="round" /></svg>
+          결속
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="#FBC94D" opacity="0.5" /><circle cx="5" cy="1.5" r="1" fill="#FBC94D" /></svg>
+          무리
+        </span>
+      </div>
       {ranking.length > 0 && (
         <div className="mt-4">
-          <div className="mb-2 text-xs font-semibold text-eye-purple">인연이 진한 순</div>
+          <div className="mb-2 text-xs font-semibold text-eye-purple">인연 점수 높은 순</div>
           <div className="space-y-1.5">
             {ranking.map((r, i) => {
               const grade = inyeonGrade(r.inyeon);
@@ -246,7 +258,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                       {i + 1}위 · {r.name ?? "이 별"}
                     </span>
                     <span className="text-xs text-text-light">
-                      인연도 {r.inyeon} · {grade.label}
+                      인연 점수 {r.inyeon} · {grade.label}
                     </span>
                   </button>
                   {open && target && (
