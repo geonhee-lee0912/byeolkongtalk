@@ -2,6 +2,7 @@
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
 import {
+  starPoints,
   resolveGlyph,
   nodeMatchesFilter,
   edgeMatchesFilter,
@@ -158,6 +159,7 @@ export default function ConstellationCanvas({
                 </>
               )}
               {glyph === "me-circle" ? (
+                // 나 = 원(테두리) — 친구들의 별과 구분
                 <circle
                   cx={p.x}
                   cy={p.y}
@@ -167,18 +169,21 @@ export default function ConstellationCanvas({
                   strokeOpacity={0.7}
                   strokeWidth={0.5}
                 />
-              ) : isHost ? (
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={sizes.hostOuter}
+              ) : (
+                // 호스트·친구 = 통통한 별(inner 비율 0.55). 뾰족함 완화 위해 linejoin round.
+                <polygon
+                  points={starPoints(
+                    p.x,
+                    p.y,
+                    isHost ? sizes.hostOuter : sizes.starOuter,
+                    isHost ? sizes.hostInner : sizes.starInner
+                  )}
                   fill={color}
                   stroke="#F2D78A"
-                  strokeOpacity={0.8}
-                  strokeWidth={0.6}
+                  strokeOpacity={isHost ? 0.8 : 0}
+                  strokeWidth={isHost ? 0.6 : 0}
+                  strokeLinejoin="round"
                 />
-              ) : (
-                <circle cx={p.x} cy={p.y} r={sizes.starOuter} fill={color} />
               )}
               {sizes.showLabels && n.name && (
                 <text

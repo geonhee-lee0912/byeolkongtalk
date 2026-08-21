@@ -14,12 +14,13 @@ export interface SizeSpec {
   showLabels: boolean;
 }
 
+// hostInner/starInner = 별 통통함(inner/outer≈0.55) — 뾰족한 별이 싫다는 피드백 반영해 plump.
 const FEW: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 6, hostInner: 2.6, starOuter: 4, starInner: 1.7, meR: 4, hitR: 6,
+  hostOuter: 6, hostInner: 3.3, starOuter: 4, starInner: 2.2, meR: 4, hitR: 6,
   lineWidth: 0.4, goldLineWidth: 0.8, labelFont: 2.8, hostLabelFont: 3.4,
 };
 const MANY: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 4.5, hostInner: 1.9, starOuter: 2.6, starInner: 1.1, meR: 2.8, hitR: 4.5,
+  hostOuter: 4.5, hostInner: 2.48, starOuter: 2.6, starInner: 1.43, meR: 2.8, hitR: 4.5,
   lineWidth: 0.28, goldLineWidth: 0.55, labelFont: 2, hostLabelFont: 2.6,
 };
 
