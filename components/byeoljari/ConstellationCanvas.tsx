@@ -97,6 +97,7 @@ export default function ConstellationCanvas({
           const pa = pos(e.a);
           const pb = pos(e.b);
           if (!pa || !pb) return null;
+          if (!e.heavenlyCombo && !e.sixCombo) return null; // 오행색 실선(바퀴살) 폐지 — 특별 인연만
           const na = nodeById.get(e.a);
           const nb = nodeById.get(e.b);
           const colorNode = na?.isHost ? nb : na;
