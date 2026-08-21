@@ -11,7 +11,6 @@ function node(element: FiveElement, isHost = false): GraphNode {
     isHost,
     relationType: "friend",
     element,
-    compatVisible: false,
   };
 }
 

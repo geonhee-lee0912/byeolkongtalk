@@ -36,7 +36,7 @@ export async function GET(
   const { data: rows, error: memErr } = await supa
     .from("star_map_members")
     .select(
-      "id, display_name, birth_date, birth_time, relation_type, is_host, name_public, compat_visible, created_at"
+      "id, display_name, birth_date, birth_time, relation_type, is_host, name_public, created_at"
     )
     .eq("map_id", map.id)
     .order("created_at", { ascending: true });
@@ -69,7 +69,6 @@ export async function GET(
     isHost: m.is_host,
     relationType: m.relation_type,
     element: saju[i].dayElement,
-    compatVisible: m.compat_visible,
   }));
 
   // 삼합 먼저 계산(각 edge 의 triadShared 판정에 필요)
@@ -96,11 +95,11 @@ export async function GET(
   }> = [];
   for (let i = 0; i < members.length; i++) {
     for (let j = i + 1; j < members.length; j++) {
-      const host = members[i].is_host || members[j].is_host;
-      // compat_visible: 호스트가 낀 엣지는 항상 보임. 게스트끼리는 양쪽 다 공개해야 노출.
-      const visible = host || (members[i].compat_visible && members[j].compat_visible);
-      if (!visible) continue;
       const r = pairRelation(saju[i], saju[j]);
+      const host = members[i].is_host || members[j].is_host;
+      const special = r.heavenlyCombo || r.sixCombo;
+      // 호스트 낀 엣지는 순위·점수용으로 전부. 게스트끼리는 특별 인연(끌림/결속)만 지도에 노출.
+      if (!host && !special) continue;
       const triadShared = triadSets.some(
         (s) => s.has(members[i].id) && s.has(members[j].id)
       );

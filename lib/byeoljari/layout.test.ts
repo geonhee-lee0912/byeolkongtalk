@@ -15,7 +15,7 @@ import {
 import type { GraphNode, GraphEdge } from "./types.ts";
 
 function node(id: string, isHost = false): GraphNode {
-  return { id, name: null, isHost, relationType: "friend", element: "목", compatVisible: false };
+  return { id, name: null, isHost, relationType: "friend", element: "목" };
 }
 
 test("computeLayout — 호스트는 중심(50,50)", () => {

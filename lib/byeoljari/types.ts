@@ -7,7 +7,6 @@ export interface GraphNode {
   isHost: boolean;
   relationType: string; // friend|lover|acquaintance|senior
   element: FiveElement; // 목|화|토|금|수
-  compatVisible: boolean;
 }
 
 export interface GraphEdge {
