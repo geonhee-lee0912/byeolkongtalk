@@ -25,10 +25,10 @@ export interface InyeonGrade {
 
 /** 점수 → 등급(무낙인 톤). */
 export function inyeonGrade(score: number): InyeonGrade {
-  if (score >= 85) return { label: "인연 진함", tone: "high" };
-  if (score >= 70) return { label: "도타운 사이", tone: "mid" };
-  if (score >= 55) return { label: "이어진 사이", tone: "low" };
-  return { label: "잔잔한 사이", tone: "faint" };
+  if (score >= 85) return { label: "하늘이 맺은 인연", tone: "high" };
+  if (score >= 70) return { label: "깊은 인연", tone: "mid" };
+  if (score >= 55) return { label: "이어진 인연", tone: "low" };
+  return { label: "잔잔한 인연", tone: "faint" };
 }
 
 /** 점수에 기여한 요소를 별콩이 톤 근거 문구로. 오행 한 줄은 항상 마지막. */

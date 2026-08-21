@@ -33,6 +33,13 @@ test("inyeonGrade — 경계", () => {
   assert.equal(inyeonGrade(54).tone, "faint");
 });
 
+test("inyeonGrade — 등급명", () => {
+  assert.equal(inyeonGrade(85).label, "하늘이 맺은 인연");
+  assert.equal(inyeonGrade(70).label, "깊은 인연");
+  assert.equal(inyeonGrade(55).label, "이어진 인연");
+  assert.equal(inyeonGrade(54).label, "잔잔한 인연");
+});
+
 test("inyeonReasons — 특별관계 + 오행 결", () => {
   const r = inyeonReasons(mk({ element: "생아", heavenlyCombo: true }));
   assert.ok(r.some((s) => s.includes("케미 스파크")));
