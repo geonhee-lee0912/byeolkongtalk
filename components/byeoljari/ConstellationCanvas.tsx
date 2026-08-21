@@ -183,7 +183,7 @@ export default function ConstellationCanvas({
               {sizes.showLabels && n.name && (
                 <text
                   x={p.x}
-                  y={p.y + (isHost ? sizes.hostOuter + 3 : sizes.starOuter + 2.5)}
+                  y={p.y + (glyph === "me-circle" ? sizes.meR : baseR) + 4}
                   textAnchor="middle"
                   fontSize={isHost ? sizes.hostLabelFont : sizes.labelFont}
                   fill="#EDE6D6"
