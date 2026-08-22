@@ -94,7 +94,7 @@ export default function ConstellationCanvas({
         transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.s})`}
       >
         {/* 관계선 — 게스트 오행색, 천간합/육합은 골드. 필터 비해당은 dim. */}
-        {graph.edges.map((e, ei) => {
+        {graph.edges.map((e) => {
           const pa = pos(e.a);
           const pb = pos(e.b);
           if (!pa || !pb) return null;
@@ -102,14 +102,14 @@ export default function ConstellationCanvas({
           const na = nodeById.get(e.a);
           const nb = nodeById.get(e.b);
           const colorNode = na?.isHost ? nb : na;
-          const gold = e.heavenlyCombo || e.sixCombo;
+          const special = e.heavenlyCombo || e.sixCombo;
           const dimByFilter = !focusMode && activeFilter != null && !edgeActiveForBond(e, activeFilter);
           const dimByPair =
             highlightPairIds != null &&
             !(highlightPairIds.includes(e.a) && highlightPairIds.includes(e.b));
           const dim = dimByFilter || dimByPair ? DIM : 1;
           return (
-            <g key={`e-${ei}`}>
+            <g key={`${e.a}-${e.b}`}>
               {focusMode && (
                 <line
                   x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
@@ -123,10 +123,10 @@ export default function ConstellationCanvas({
                 y1={pa.y}
                 x2={pb.x}
                 y2={pb.y}
-                stroke={gold ? "#F2D78A" : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
-                strokeOpacity={(gold ? 0.55 : focusMode ? 0.4 : 0.22) * dim}
-                strokeWidth={gold ? sizes.goldLineWidth : sizes.lineWidth}
-                strokeDasharray={e.sixCombo ? "1.5 1" : undefined}
+                stroke={e.heavenlyCombo ? "#F2D78A" : e.sixCombo ? "#A98BEE" : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
+                strokeOpacity={(special ? 0.62 : focusMode ? 0.4 : 0.22) * dim}
+                strokeWidth={special ? sizes.goldLineWidth : sizes.lineWidth}
+                strokeDasharray={e.sixCombo ? "2 1.5" : undefined}
                 strokeLinecap="round"
                 style={{ transition: "stroke-opacity 300ms" }}
               />

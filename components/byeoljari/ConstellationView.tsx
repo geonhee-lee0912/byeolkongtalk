@@ -98,8 +98,9 @@ export default function ConstellationView({ graph, meId }: Props) {
     () => presentBondFilters(graph.edges, graph.triads),
     [graph.edges, graph.triads]
   );
-  const showFilter = !focusId && filterTypes.length >= 1; // 전체 + ≥1 = 칩 2개 이상, 포커스 뷰에선 숨김
+  const showFilter = filterTypes.length >= 1; // 전체 + ≥1 = 칩 2개 이상. 포커스 뷰에서도 유지(분류 참조)
   // 사라진 분류를 가리키는 stale 필터는 전체로 폴백.
+  // 필터는 overview 전용(포커스 서브그래프엔 합성 스포크가 있어 dim 이 지저분). 포커스에서 칩 누르면 전체로 나가며 적용
   const effectiveFilter = !focusId && activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
 
   // pivot↔other 1:1 상세(인연 점수 근거 + 방향 카피). 포커스 카드·선 인스펙트·랭킹 아코디언 공용.
@@ -210,7 +211,10 @@ export default function ConstellationView({ graph, meId }: Props) {
                 key={t ?? "all"}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setActiveFilter(t)}
+                onClick={() => {
+                  setActiveFilter(t);
+                  if (focusId) resetToOverview(); // 포커스 중 필터 누르면 전체 지도로 나가며 적용
+                }}
                 className={`rounded-full px-3 py-1 text-xs ${
                   active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
                 }`}
@@ -313,27 +317,30 @@ export default function ConstellationView({ graph, meId }: Props) {
           </div>
         </div>
       )}
-      <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-text-light">
-        {LEGEND.map(([label, color]) => (
-          <span key={label} className="inline-flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full border border-lilac-mid/40" style={{ backgroundColor: color }} />
-            {label}
+      {/* 범례 — 크림 박스로 대비 확보. 오행(위) / 선 종류(아래) 구분선으로 분리. */}
+      <div className="mt-3 rounded-2xl bg-cream-warm px-4 py-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-eye-purple">
+          {LEGEND.map(([label, color]) => (
+            <span key={label} className="inline-flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full border border-lilac-mid/40" style={{ backgroundColor: color }} />
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-xs text-eye-purple">
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#F2D78A" strokeWidth="2" strokeLinecap="round" /></svg>
+            끌림
           </span>
-        ))}
-      </div>
-      <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs text-text-light">
-        <span className="inline-flex items-center gap-1">
-          <svg width="16" height="6" aria-hidden><line x1="0" y1="3" x2="16" y2="3" stroke="#F2D78A" strokeWidth="1.5" strokeLinecap="round" /></svg>
-          끌림
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <svg width="16" height="6" aria-hidden><line x1="0" y1="3" x2="16" y2="3" stroke="#F2D78A" strokeWidth="1.5" strokeDasharray="3 2" strokeLinecap="round" /></svg>
-          결속
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="#FBC94D" opacity="0.5" /><circle cx="5" cy="1.5" r="1" fill="#FBC94D" /></svg>
-          같은 결
-        </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#A98BEE" strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
+            결속
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="#FBC94D" opacity="0.5" /><circle cx="5" cy="1.5" r="1" fill="#FBC94D" /></svg>
+            같은 결
+          </span>
+        </div>
       </div>
       {ranking.length > 0 && (
         <div className="mt-4">
