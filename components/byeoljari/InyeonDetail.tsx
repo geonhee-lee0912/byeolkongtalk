@@ -25,8 +25,8 @@ interface Props {
   triadShared?: boolean;
 }
 
-/** 1:1 인연 상세 본문(인연 점수 근거 + 내가/그가 보는 카피 + 뱃지). 지도 하단 카드·리스트 아코디언 공용. */
-export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo, inyeon, pivotIsMe = true, triadShared = false }: Props) {
+/** 1:1 인연 상세 본문(인연 점수 근거 + 줄글/키워드 + 내가/그가 보는 카피 + 잘맞는점/조심). 지도 하단 카드·리스트 아코디언 공용. */
+export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = true, triadShared = false }: Props) {
   const them = target.name ?? "이 별";
   if (!oriented) {
     return (
@@ -37,7 +37,7 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
   }
   const iSee = relationTenGodCopy(target.relationType, oriented.iSeeThemTenGod) ?? oriented.iSeeThem;
   const theySee = relationTenGodCopy(target.relationType, oriented.theySeeMeTenGod) ?? oriented.theySeeMe;
-  const rd = relationDetail(oriented.element, { heavenlyCombo, sixCombo, triadShared });
+  const rd = relationDetail(oriented.element);
   return (
     <div className="space-y-3">
       {inyeon && (
@@ -78,16 +78,6 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
         <div className="rounded-xl bg-white/60 p-3 text-sm">
           {rd.good && <div className="text-eye-purple">잘 맞는 점 · {rd.good}</div>}
           {rd.caution && <div className="mt-1 text-text-light">살짝 조심 · {rd.caution}</div>}
-        </div>
-      )}
-      {(heavenlyCombo || sixCombo) && (
-        <div className="flex gap-2">
-          {heavenlyCombo && (
-            <span className="rounded-full bg-gold/20 px-3 py-1 text-xs text-eye-purple">✨ 케미 스파크</span>
-          )}
-          {sixCombo && (
-            <span className="rounded-full bg-lilac/40 px-3 py-1 text-xs text-eye-purple">🔗 결속</span>
-          )}
         </div>
       )}
     </div>
