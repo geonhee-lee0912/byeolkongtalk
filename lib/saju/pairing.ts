@@ -115,14 +115,22 @@ export interface PairRelation {
   tenGodBtoA: TenGod; // b→a 십신 (방향성)
   labelAtoB: string; // 별콩 라벨 (a→b)
   labelBtoA: string; // 별콩 라벨 (b→a)
-  heavenlyCombo: boolean; // 천간합(케미 스파크)
-  sixCombo: boolean; // 육합(결속선)
+  heavenlyCombo: boolean; // 천간합(케미 스파크) — 일간
+  sixCombo: boolean; // 육합(결속선) — 일지
+  // 연·월 기둥의 조화 수(연간·월간 천간합 + 연지·월지 육합, 0~4). 일주 지표의 보조 신호(동점 완화).
+  // 시주는 제외(생시 없으면 불공정) — 날짜만으로 나오는 연·월만.
+  extraPillarHarmony: number;
 }
 
 /** 두 사람의 사주로 관계 지표를 종합. a 를 "나" 기준으로 본다. */
 export function pairRelation(a: SajuResult, b: SajuResult): PairRelation {
   const aToB = tenGod(a.dayStem, b.dayStem);
   const bToA = tenGod(b.dayStem, a.dayStem);
+  const extraPillarHarmony =
+    (heavenlyCombo(a.pillars.year.stem, b.pillars.year.stem) ? 1 : 0) +
+    (heavenlyCombo(a.pillars.month.stem, b.pillars.month.stem) ? 1 : 0) +
+    (earthlySixCombo(a.pillars.year.branch, b.pillars.year.branch) ? 1 : 0) +
+    (earthlySixCombo(a.pillars.month.branch, b.pillars.month.branch) ? 1 : 0);
   return {
     element: elementRelation(a.dayElement, b.dayElement),
     tenGodAtoB: aToB,
@@ -131,5 +139,6 @@ export function pairRelation(a: SajuResult, b: SajuResult): PairRelation {
     labelBtoA: TEN_GOD_LABEL[bToA],
     heavenlyCombo: heavenlyCombo(a.dayStem, b.dayStem),
     sixCombo: earthlySixCombo(a.pillars.day.branch, b.pillars.day.branch),
+    extraPillarHarmony,
   };
 }

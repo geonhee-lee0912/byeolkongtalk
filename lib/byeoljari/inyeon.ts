@@ -9,6 +9,7 @@ export interface InyeonInput {
   triadShared: boolean; // 나와 상대가 같은 삼합 국 멤버
   tenGodAtoB?: string; // 십신(a→b) — 텍스처 미세 가점용(동점 완화). 없으면 0
   tenGodBtoA?: string; // 십신(b→a)
+  extraPillarHarmony?: number; // 연·월 기둥 조화 수(0~4) — 보조 가점(동점 완화). 없으면 0
 }
 
 // 십신 텍스처 — 같은 오행관계 안에서도 점수를 흩어 동점을 줄이는 미세 신호(0~9).
@@ -19,7 +20,7 @@ const TEN_GOD_TEXTURE: Record<string, number> = {
 };
 
 /** 0~100 인연도. base(상생·상극 58 · 비화·미지 46) + 천간합25 + 육합15 + 삼합15
- *  + 십신 텍스처(양방향 TEX 합의 절반, 0~9 — 동점 완화), cap 100. */
+ *  + 십신 텍스처(0~9) + 연·월 기둥 조화(4×개) — 뒤 둘은 동점 완화용 미세 신호. cap 100. */
 export function inyeonScore(x: InyeonInput): number {
   let score = ["생아", "아생", "극아", "아극"].includes(x.element) ? 58 : 46;
   if (x.heavenlyCombo) score += 25;
@@ -28,6 +29,7 @@ export function inyeonScore(x: InyeonInput): number {
   const tex =
     (TEN_GOD_TEXTURE[x.tenGodAtoB ?? ""] ?? 0) + (TEN_GOD_TEXTURE[x.tenGodBtoA ?? ""] ?? 0);
   score += Math.round(tex / 2);
+  score += (x.extraPillarHarmony ?? 0) * 4; // 연·월 기둥 조화(보조 기둥이라 일주 합보다 작게)
   return Math.min(score, 100);
 }
 

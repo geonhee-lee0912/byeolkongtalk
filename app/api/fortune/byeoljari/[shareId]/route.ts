@@ -127,6 +127,7 @@ export async function GET(
           triadShared,
           tenGodAtoB: r.tenGodAtoB,
           tenGodBtoA: r.tenGodBtoA,
+          extraPillarHarmony: r.extraPillarHarmony,
         }),
         triadShared,
         heavenlyCombo: r.heavenlyCombo,

@@ -107,12 +107,16 @@ test("findTriads — 목·금 삼합도 정확히 판정", () => {
 });
 
 // 테스트용 최소 SajuResult — pairRelation 이 읽는 필드만 채운다.
-function mkSaju(dayStem: string, dayBranch: string): SajuResult {
+function mkSaju(
+  dayStem: string,
+  dayBranch: string,
+  opts: { yearStem?: string; yearBranch?: string; monthStem?: string; monthBranch?: string } = {}
+): SajuResult {
   const el = STEM_ELEMENT[dayStem];
   return {
     pillars: {
-      year: { stem: "", branch: "", hanja: "" },
-      month: { stem: "", branch: "", hanja: "" },
+      year: { stem: opts.yearStem ?? "", branch: opts.yearBranch ?? "", hanja: "" },
+      month: { stem: opts.monthStem ?? "", branch: opts.monthBranch ?? "", hanja: "" },
       day: { stem: dayStem, branch: dayBranch, hanja: "" },
       hour: { stem: "", branch: "", hanja: "" },
     },
@@ -147,4 +151,16 @@ test("pairRelation — 합이 없는 쌍은 false", () => {
   assert.equal(r.element, "비화");
   assert.equal(r.heavenlyCombo, false);
   assert.equal(r.sixCombo, false);
+  assert.equal(r.extraPillarHarmony, 0); // 연·월 미설정
+});
+
+test("pairRelation — 연·월 기둥 조화 수(시 무관, 연간 천간합 + 월지 육합 = 2)", () => {
+  const a = mkSaju("갑", "자", { yearStem: "갑", yearBranch: "오", monthStem: "무", monthBranch: "자" });
+  const b = mkSaju("병", "인", { yearStem: "기", yearBranch: "신", monthStem: "임", monthBranch: "축" });
+  const r = pairRelation(a, b);
+  // 연간 갑-기 천간합(1) + 월간 무-임(0) + 연지 오-신(0) + 월지 자-축 육합(1) = 2
+  assert.equal(r.extraPillarHarmony, 2);
+  // 일주는 합 없음(격리 확인)
+  assert.equal(r.heavenlyCombo, false); // 갑-병 아님
+  assert.equal(r.sixCombo, false); // 자-인 아님
 });

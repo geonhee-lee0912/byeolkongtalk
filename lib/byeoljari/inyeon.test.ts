@@ -26,6 +26,11 @@ test("inyeonScore — 십신 텍스처(동점 완화, 양방향 TEX 합의 절�
   assert.equal(inyeonScore(mk({ element: "생아", tenGodAtoB: "??", tenGodBtoA: "??" })), 58); // 미지 십신=0
 });
 
+test("inyeonScore — 연·월 기둥 조화 가점(4×개)", () => {
+  assert.equal(inyeonScore(mk({ element: "생아", extraPillarHarmony: 2 })), 66); // 58 + 2*4
+  assert.equal(inyeonScore(mk({ element: "비화", extraPillarHarmony: 1 })), 50); // 46 + 4
+});
+
 test("inyeonScore — 미지 오행은 비화 취급(방어)", () => {
   assert.equal(inyeonScore(mk({ element: "??" })), 46);
 });
