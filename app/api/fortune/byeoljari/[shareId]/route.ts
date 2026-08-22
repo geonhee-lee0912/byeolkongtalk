@@ -2,6 +2,7 @@
 // P3(렌더)가 이 출력을 별자리 SVG 로 그린다.
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 import { calcSaju } from "@/lib/saju/calc";
 import { pairRelation, findTriads } from "@/lib/saju/pairing";
 import { inyeonScore } from "@/lib/byeoljari/inyeon";
@@ -20,7 +21,7 @@ export async function GET(
 
   const { data: map, error: mapError } = await supa
     .from("star_maps")
-    .select("id, share_id, owner_user_id")
+    .select("id, share_id, owner_user_id, creator_anon_id")
     .eq("share_id", shareId)
     .maybeSingle();
   if (mapError) {
@@ -33,6 +34,12 @@ export async function GET(
   if (!map) {
     return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
   }
+
+  // 뷰어=맵 주인 여부(서버 권위). 지우기 등 주인 전용 UI 게이팅용 — DELETE 라우트와 동일 기준.
+  const { userId, anonymousId } = await getSession();
+  const viewerIsOwner = map.owner_user_id
+    ? map.owner_user_id === userId
+    : map.creator_anon_id === anonymousId;
 
   const { data: rows, error: memErr } = await supa
     .from("star_map_members")
@@ -130,6 +137,7 @@ export async function GET(
     ok: true,
     shareId: map.share_id,
     claimed: !!map.owner_user_id,
+    viewerIsOwner,
     nodes,
     edges,
     triads,

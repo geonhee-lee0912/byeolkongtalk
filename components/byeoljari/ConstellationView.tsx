@@ -89,7 +89,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
   const myEl = pivotId ? graph.nodes.find((n) => n.id === pivotId)?.element ?? "" : "";
-  const isOwner = meId != null && meId === host?.id; // 뷰어=호스트(맵 주인)일 때만 삭제 노출
+  const isOwner = graph.viewerIsOwner; // 서버 세션 기준 주인 판정(localStorage meId 와 달리 DELETE 권한과 일치)
 
   // 포커스 뷰 = buildFocusGraph 부분그래프를 focusId 중심으로 재배치. overview = 전체 그래프 그대로.
   const viewGraph = useMemo(() => (focusId ? buildFocusGraph(focusId, graph) : graph), [focusId, graph]);

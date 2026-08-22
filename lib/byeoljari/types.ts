@@ -33,6 +33,7 @@ export interface StarGraph {
   ok: true;
   shareId: string;
   claimed: boolean;
+  viewerIsOwner: boolean; // 뷰어=맵 주인(서버 세션 기준) — 주인 전용 UI 게이팅
   nodes: GraphNode[];
   edges: GraphEdge[];
   triads: GraphTriad[];

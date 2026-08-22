@@ -14,6 +14,7 @@ const SAMPLE: StarGraph = {
   ok: true,
   shareId: "sample",
   claimed: false,
+  viewerIsOwner: false,
   nodes: [
     { id: "host", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
     { id: "jiho", name: "지호", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },

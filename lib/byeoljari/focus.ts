@@ -39,7 +39,7 @@ export function buildFocusGraph(centerId: string, graph: StarGraph): StarGraph {
     .map((t) => ({ element: t.element, memberIds: t.memberIds.filter((id) => nodeIds.has(id)) }))
     .filter((t) => t.memberIds.length >= 2);
 
-  return { ok: true, shareId: graph.shareId, claimed: graph.claimed, nodes, edges, triads };
+  return { ok: true, shareId: graph.shareId, claimed: graph.claimed, viewerIsOwner: graph.viewerIsOwner, nodes, edges, triads };
 }
 
 /** focus(centerId)에서 X의 이웃(나=pivot 제외) 특별 인연 요약(카드 해석용). 순수. */

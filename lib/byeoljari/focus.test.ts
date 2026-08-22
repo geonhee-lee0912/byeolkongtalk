@@ -8,7 +8,7 @@ const edge = (a: string, b: string, h = false, s = false) => ({
   inyeon: h || s ? 87 : 62, triadShared: false, heavenlyCombo: h, sixCombo: s,
 });
 const G: StarGraph = {
-  ok: true, shareId: "s", claimed: false,
+  ok: true, shareId: "s", claimed: false, viewerIsOwner: false,
   nodes: [
     { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
     { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
@@ -48,6 +48,7 @@ test("focusSummary — 나 제외 이웃 수 + 끌림/결속/무리 카운트", 
     ok: true,
     shareId: "s",
     claimed: false,
+    viewerIsOwner: false,
     nodes: [
       { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
       { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
@@ -111,6 +112,7 @@ test("focusSummary — 이웃 0이면 total 0", () => {
     ok: true,
     shareId: "s",
     claimed: false,
+    viewerIsOwner: false,
     nodes: [
       { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
       { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
