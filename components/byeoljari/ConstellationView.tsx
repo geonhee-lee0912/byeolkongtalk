@@ -20,6 +20,20 @@ const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
 
+// 인연 점수 등급 칩 색상 — 점수 구간별 색. 전부 밝은 채움이라 1위 다크 행에서도 판독됨.
+function gradeChipClass(tone: "high" | "mid" | "low" | "faint"): string {
+  switch (tone) {
+    case "high":
+      return "bg-gold-soft text-eye-purple"; // 골드
+    case "mid":
+      return "bg-lilac text-eye-purple"; // 라일락
+    case "low":
+      return "bg-[#CFE9E2] text-[#2E6F60]"; // 세이지
+    default:
+      return "bg-[#EAE5DC] text-text-light"; // 웜그레이
+  }
+}
+
 interface Props {
   graph: StarGraph;
   meId: string | null;
@@ -129,9 +143,6 @@ export default function ConstellationView({ graph, meId }: Props) {
           name: other?.name ?? null,
           inyeon: e.inyeon,
           special,
-          heavenlyCombo: e.heavenlyCombo,
-          sixCombo: e.sixCombo,
-          triadShared: e.triadShared,
         };
       })
       .sort((x, y) => y.inyeon - x.inyeon || y.special - x.special);
@@ -332,6 +343,7 @@ export default function ConstellationView({ graph, meId }: Props) {
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
               const top = i === 0;
+              const grade = inyeonGrade(r.inyeon);
               return (
                 <div
                   key={r.id}
@@ -348,30 +360,16 @@ export default function ConstellationView({ graph, meId }: Props) {
                       top ? "hover:bg-white/5" : "hover:bg-lilac-soft/40"
                     }`}
                   >
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <span className={`truncate text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
-                        {i + 1}위 · {r.name ?? "이 별"}
-                      </span>
-                      <span className="flex flex-wrap gap-1">
-                        {r.heavenlyCombo && (
-                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-gold-soft/60 text-eye-purple"}`}>
-                            끌림
-                          </span>
-                        )}
-                        {r.sixCombo && (
-                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-lilac-soft text-eye-purple"}`}>
-                            결속
-                          </span>
-                        )}
-                        {r.triadShared && (
-                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-[#DCF3EC] text-[#1f6b57]"}`}>
-                            같은 결
-                          </span>
-                        )}
-                      </span>
+                    <span className={`min-w-0 truncate text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                      {i + 1}위 · {r.name ?? "이 별"}
                     </span>
-                    <span className={`shrink-0 font-display text-lg font-bold ${top ? "text-gold" : "text-eye-purple"}`}>
-                      {r.inyeon}
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${gradeChipClass(grade.tone)}`}>
+                        {grade.label}
+                      </span>
+                      <span className={`font-display text-lg font-bold ${top ? "text-gold" : "text-eye-purple"}`}>
+                        {r.inyeon}
+                      </span>
                     </span>
                   </button>
                   {open && rowDetail?.target && (
