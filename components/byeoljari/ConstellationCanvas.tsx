@@ -30,6 +30,8 @@ interface Props {
   shape?: ShapeInfo | null; // 은은 배경 형상(없으면 배경 생략)
   highlightPairIds?: string[] | null; // 지도 선택 시 강조할 쌍(나+상대). 그 외 노드/선은 dim.
   onBackgroundClick?: () => void;     // 빈 공간 탭 → 선택 해제
+  focusMode?: boolean;                // 포커스 뷰 — 중립선 표시 + 필터 dim off + 선 탭 가능
+  onEdgeSelect?: (a: string, b: string) => void; // 포커스 뷰에서 선 탭 시
 }
 
 export default function ConstellationCanvas({
@@ -43,6 +45,8 @@ export default function ConstellationCanvas({
   shape,
   highlightPairIds,
   onBackgroundClick,
+  focusMode = false,
+  onEdgeSelect,
 }: Props) {
   // 은은 배경: 중앙 60×60. water-3(거북이)만 다른 신수보다 커서 ~0.9배(54)로 축소.
   const bgSmall = shape ? shape.element === "수" && shape.stage === 3 : false;
@@ -94,30 +98,39 @@ export default function ConstellationCanvas({
           const pa = pos(e.a);
           const pb = pos(e.b);
           if (!pa || !pb) return null;
-          if (!e.heavenlyCombo && !e.sixCombo) return null; // 오행색 실선(바퀴살) 폐지 — 특별 인연만
+          if (!focusMode && !e.heavenlyCombo && !e.sixCombo) return null; // 오행색 실선(바퀴살) 폐지 — 특별 인연만(포커스 뷰는 예외)
           const na = nodeById.get(e.a);
           const nb = nodeById.get(e.b);
           const colorNode = na?.isHost ? nb : na;
           const gold = e.heavenlyCombo || e.sixCombo;
-          const dimByFilter = activeFilter != null && !edgeActiveForBond(e, activeFilter);
+          const dimByFilter = !focusMode && activeFilter != null && !edgeActiveForBond(e, activeFilter);
           const dimByPair =
             highlightPairIds != null &&
             !(highlightPairIds.includes(e.a) && highlightPairIds.includes(e.b));
           const dim = dimByFilter || dimByPair ? DIM : 1;
           return (
-            <line
-              key={`e-${ei}`}
-              x1={pa.x}
-              y1={pa.y}
-              x2={pb.x}
-              y2={pb.y}
-              stroke={gold ? "#F2D78A" : starColor(colorNode?.element ?? "")}
-              strokeOpacity={(gold ? 0.55 : 0.22) * dim}
-              strokeWidth={gold ? sizes.goldLineWidth : sizes.lineWidth}
-              strokeDasharray={e.sixCombo ? "1.5 1" : undefined}
-              strokeLinecap="round"
-              style={{ transition: "stroke-opacity 300ms" }}
-            />
+            <g key={`e-${ei}`}>
+              {focusMode && (
+                <line
+                  x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
+                  stroke="transparent" strokeWidth={3} strokeLinecap="round"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onEdgeSelect?.(e.a, e.b)}
+                />
+              )}
+              <line
+                x1={pa.x}
+                y1={pa.y}
+                x2={pb.x}
+                y2={pb.y}
+                stroke={gold ? "#F2D78A" : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
+                strokeOpacity={(gold ? 0.55 : focusMode ? 0.4 : 0.22) * dim}
+                strokeWidth={gold ? sizes.goldLineWidth : sizes.lineWidth}
+                strokeDasharray={e.sixCombo ? "1.5 1" : undefined}
+                strokeLinecap="round"
+                style={{ transition: "stroke-opacity 300ms" }}
+              />
+            </g>
           );
         })}
 
@@ -129,7 +142,7 @@ export default function ConstellationCanvas({
           const isHost = glyph === "host-star";
           const color = starColor(n.element);
           const dimByFilter =
-            activeFilter != null && !nodeActiveForBond(n.id, activeFilter, graph.edges, triadMemberIds);
+            !focusMode && activeFilter != null && !nodeActiveForBond(n.id, activeFilter, graph.edges, triadMemberIds);
           const dimByPair = highlightPairIds != null && !highlightPairIds.includes(n.id);
           const nodeOpacity = dimByFilter || dimByPair ? DIM : 1;
           const ringColor = triadRing.get(n.id);
