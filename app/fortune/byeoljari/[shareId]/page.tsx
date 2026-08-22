@@ -25,6 +25,7 @@ export default function ByeoljariGuestPage() {
   const [namePublic, setNamePublic] = useState(true);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -43,6 +44,7 @@ export default function ByeoljariGuestPage() {
 
   async function join() {
     setBusy(true);
+    setJoinError(null);
     try {
       const res = await fetch(`/api/fortune/byeoljari/${shareId}/join`, {
         method: "POST",
@@ -55,6 +57,8 @@ export default function ByeoljariGuestPage() {
         setMeId(data.memberId);
         setShowJoin(false);
         await load();
+      } else if (data.reason === "full") {
+        setJoinError("별자리 인원이 가득 찼어 (최대 20명)");
       }
     } finally {
       setBusy(false);
@@ -139,6 +143,9 @@ export default function ByeoljariGuestPage() {
                 />
                 별자리에 내 이름 보이기
               </label>
+              {joinError && (
+                <p className="text-[12px] text-red-500 text-center">{joinError}</p>
+              )}
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}

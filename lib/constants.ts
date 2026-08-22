@@ -26,3 +26,6 @@ export const FIRST_CHARGE_BONUS_RATE = 0.2;
  * 무료별이 변동원가의 93%라 값은 보수적. 응답률 보고 조정 가능하게 상수로 분리.
  * 설계: docs/superpowers/specs/2026-08-09-survey-이탈조사-design.md */
 export const SURVEY_REWARD_STARS = 10;
+
+/** 별자리 1개 최대 인원(호스트 포함). 라벨 표시 상한(lib/byeoljari/scale.ts showLabels)과 일치. */
+export const MAX_STAR_MAP_MEMBERS = 20;

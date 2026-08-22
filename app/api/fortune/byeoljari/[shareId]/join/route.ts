@@ -4,6 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isValidBirthDate, isValidBirthTime } from "@/lib/byeoljari/validate";
 import { logError } from "@/lib/logger";
+import { MAX_STAR_MAP_MEMBERS } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,21 @@ export async function POST(
   }
   if (!map) {
     return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
+  }
+
+  const { count, error: countError } = await supa
+    .from("star_map_members")
+    .select("id", { count: "exact", head: true })
+    .eq("map_id", map.id);
+  if (countError) {
+    await logError(countError, {
+      route: "/api/fortune/byeoljari/[shareId]/join",
+      extra: { severity: "BYEOLJARI_JOIN_COUNT_FAILED" },
+    });
+    return NextResponse.json({ ok: false, reason: "lookup" }, { status: 500 });
+  }
+  if ((count ?? 0) >= MAX_STAR_MAP_MEMBERS) {
+    return NextResponse.json({ ok: false, reason: "full" }, { status: 409 });
   }
 
   const { data: memberRow, error: insertError } = await supa
