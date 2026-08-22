@@ -60,15 +60,13 @@ export default function ConstellationView({ graph, meId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [reveal]);
 
-  // 새로 뜬 상세(포커스 카드/선 인스펙트/리스트 아코디언)를 뷰로. block:"end" + scroll-mb-20 으로 하단을
-  // 고정 하단탭(~5rem) 위에 정렬 — 핵심(골드 "남이 보는 나")이 카드 하단이라 nearest 로는
-  // 카드가 뷰포트보다 크면 하단이 안 끌려와 탭에 가린다(실측 확인). smooth 는 미표시 환경에서
-  // 무동작이라 즉시 정렬로 둔다(탭 시 바로 노출, 모든 환경 견고).
+  // 포커스 진입(focusId) 자체는 스크롤하지 않는다 — 지도가 화면에서 밀려나면 안 됨.
+  // 카드 내부 이웃 행 펼침(expandedNeighborId)만 nearest 로 살짝 보정.
   useEffect(() => {
-    if ((focusId || listOpenId) && detailRef.current) {
-      detailRef.current.scrollIntoView({ block: "end" });
+    if (expandedNeighborId && detailRef.current) {
+      detailRef.current.scrollIntoView({ block: "nearest" });
     }
-  }, [focusId, listOpenId, expandedNeighborId]);
+  }, [expandedNeighborId]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -79,7 +77,8 @@ export default function ConstellationView({ graph, meId }: Props) {
     () => computeLayout(viewGraph.nodes, focusId ? { centerId: focusId } : undefined),
     [viewGraph.nodes, focusId]
   );
-  const sizes = useMemo(() => scaleForCount(viewGraph.nodes.length), [viewGraph.nodes.length]);
+  // 전체 그래프 개수 기준 — 포커스 부분그래프 개수로 재계산하면 overview↔focus 전환마다 별 크기가 바뀐다.
+  const sizes = useMemo(() => scaleForCount(graph.nodes.length), [graph.nodes.length]);
 
   const filterTypes = useMemo(
     () => presentBondFilters(graph.edges, graph.triads),
@@ -125,7 +124,15 @@ export default function ConstellationView({ graph, meId }: Props) {
         const other = graph.nodes.find((n) => n.id === otherId);
         const special =
           (e.heavenlyCombo ? 1 : 0) + (e.sixCombo ? 1 : 0) + (e.triadShared ? 1 : 0);
-        return { id: otherId, name: other?.name ?? null, inyeon: e.inyeon, special };
+        return {
+          id: otherId,
+          name: other?.name ?? null,
+          inyeon: e.inyeon,
+          special,
+          heavenlyCombo: e.heavenlyCombo,
+          sixCombo: e.sixCombo,
+          triadShared: e.triadShared,
+        };
       })
       .sort((x, y) => y.inyeon - x.inyeon || y.special - x.special);
   }, [graph.edges, graph.nodes, pivotId]);
@@ -140,7 +147,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         .map((n) => {
           const d = detailFor(focusId, n.id); // edge/oriented/inyeonInfo/target (graph 기준)
           const e = d.edge;
-          const tag = e?.heavenlyCombo ? "끌림" : e?.sixCombo ? "결속" : e?.triadShared ? "무리" : "무리";
+          const tag = e?.heavenlyCombo ? "끌림" : e?.sixCombo ? "결속" : e?.triadShared ? "같은 결" : "같은 결";
           const triadShared = graph.triads.some(
             (t) => t.memberIds.includes(focusId) && t.memberIds.includes(n.id)
           );
@@ -254,7 +261,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             {summary && (
               <p className="mb-2 text-sm text-eye-purple">
                 {summary.total > 0
-                  ? `강하게 엮인 인연 ${summary.total}명 — 끌림 ${summary.chemi} · 결속 ${summary.bond} · 무리 ${summary.triad}. ${summary.comment}`
+                  ? `강하게 엮인 인연 ${summary.total}명 — 끌림 ${summary.chemi} · 결속 ${summary.bond} · 같은 결 ${summary.triad}. ${summary.comment}`
                   : summary.comment}
               </p>
             )}
@@ -314,7 +321,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         </span>
         <span className="inline-flex items-center gap-1">
           <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="#FBC94D" opacity="0.5" /><circle cx="5" cy="1.5" r="1" fill="#FBC94D" /></svg>
-          무리
+          같은 결
         </span>
       </div>
       {ranking.length > 0 && (
@@ -322,7 +329,6 @@ export default function ConstellationView({ graph, meId }: Props) {
           <div className="mb-2 text-xs font-semibold text-eye-purple">인연 점수 높은 순</div>
           <div className="space-y-2">
             {ranking.map((r, i) => {
-              const grade = inyeonGrade(r.inyeon);
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
               const top = i === 0;
@@ -338,16 +344,34 @@ export default function ConstellationView({ graph, meId }: Props) {
                       setListOpenId((cur) => (cur === r.id ? null : r.id));
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
-                    className={`flex w-full items-center justify-between px-4 py-3 text-left transition active:scale-[0.99] ${
+                    className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:scale-[0.99] ${
                       top ? "hover:bg-white/5" : "hover:bg-lilac-soft/40"
                     }`}
                   >
-                    <span className={`text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
-                      {i + 1}위 · {r.name ?? "이 별"}
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className={`truncate text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                        {i + 1}위 · {r.name ?? "이 별"}
+                      </span>
+                      <span className="flex flex-wrap gap-1">
+                        {r.heavenlyCombo && (
+                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-gold-soft/60 text-eye-purple"}`}>
+                            끌림
+                          </span>
+                        )}
+                        {r.sixCombo && (
+                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-lilac-soft text-eye-purple"}`}>
+                            결속
+                          </span>
+                        )}
+                        {r.triadShared && (
+                          <span className={`rounded-full px-2 py-0.5 text-xs ${top ? "bg-white/15 text-cream-warm" : "bg-[#DCF3EC] text-[#1f6b57]"}`}>
+                            같은 결
+                          </span>
+                        )}
+                      </span>
                     </span>
-                    <span className={`flex items-baseline gap-1 ${top ? "text-gold" : "text-text-light"}`}>
-                      <span className="font-display text-lg">{r.inyeon}</span>
-                      <span className="text-xs">· {grade.label}</span>
+                    <span className={`shrink-0 font-display text-lg font-bold ${top ? "text-gold" : "text-eye-purple"}`}>
+                      {r.inyeon}
                     </span>
                   </button>
                   {open && rowDetail?.target && (
