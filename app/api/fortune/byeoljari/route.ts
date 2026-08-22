@@ -10,11 +10,56 @@ import { logError } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// 세션 소유자의 별자리 1개 조회(유저당 1개 모델). 로그인=owner_user_id / 비로그인=미claim anon.
+// 방어적으로 최신 1개. 호스트 memberId 도 함께(뷰어=나 식별용 me-key).
+async function findOwnMap(
+  supa: ReturnType<typeof getServiceSupabase>,
+  userId: string | null,
+  anonymousId: string
+): Promise<{ shareId: string; memberId: string | null } | null> {
+  const base = supa
+    .from("star_maps")
+    .select("id, share_id")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const { data: maps, error } = await (userId
+    ? base.eq("owner_user_id", userId)
+    : base.eq("creator_anon_id", anonymousId).is("owner_user_id", null));
+  if (error || !maps || maps.length === 0) return null;
+  const map = maps[0];
+  const { data: host } = await supa
+    .from("star_map_members")
+    .select("id")
+    .eq("map_id", map.id)
+    .eq("is_host", true)
+    .maybeSingle();
+  return { shareId: map.share_id, memberId: host?.id ?? null };
+}
+
+export async function GET() {
+  const { userId, anonymousId } = await getSession();
+  if (!anonymousId) return NextResponse.json({ ok: true, map: null });
+  const supa = getServiceSupabase();
+  const map = await findOwnMap(supa, userId ?? null, anonymousId);
+  return NextResponse.json({ ok: true, map });
+}
+
 export async function POST(req: NextRequest) {
   const { userId, anonymousId } = await getSession();
   if (!anonymousId) {
     // proxy.ts 가 항상 발급하지만 방어. anon 없으면 귀속 불가.
     return NextResponse.json({ ok: false, reason: "no_session" }, { status: 400 });
+  }
+
+  const supa = getServiceSupabase();
+  const existing = await findOwnMap(supa, userId ?? null, anonymousId);
+  if (existing) {
+    return NextResponse.json({
+      ok: true,
+      shareId: existing.shareId,
+      memberId: existing.memberId,
+      existing: true,
+    });
   }
 
   let body: unknown;
@@ -43,8 +88,6 @@ export async function POST(req: NextRequest) {
   if (birthTime !== null && !isValidBirthTime(birthTime)) {
     return NextResponse.json({ ok: false, reason: "birth_time" }, { status: 400 });
   }
-
-  const supa = getServiceSupabase();
 
   // share_id UNIQUE 충돌 재시도(최대 5회)
   let mapId: string | null = null;
