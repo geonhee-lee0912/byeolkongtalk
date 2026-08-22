@@ -366,7 +366,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             결속
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="#FBC94D" opacity="0.5" /><circle cx="5" cy="1.5" r="1" fill="#FBC94D" /></svg>
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#5DCAA5" strokeWidth="2" strokeLinecap="round" /></svg>
             같은 결
           </span>
         </div>
@@ -383,7 +383,9 @@ export default function ConstellationView({ graph, meId }: Props) {
               return (
                 <div
                   key={r.id}
-                  className={`overflow-hidden rounded-2xl ${top ? "bg-night text-cream-warm" : "bg-cream-warm"}`}
+                  className={`overflow-hidden rounded-2xl ${
+                    i === 0 ? "bg-eye-purple text-cream-warm" : i <= 2 ? "bg-lilac-soft" : "bg-cream-warm"
+                  }`}
                 >
                   <button
                     type="button"
@@ -394,11 +396,11 @@ export default function ConstellationView({ graph, meId }: Props) {
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
                     className={`block w-full px-4 py-3 text-left transition active:scale-[0.99] ${
-                      top ? "hover:bg-white/5" : "hover:bg-lilac-soft/40"
+                      top ? "hover:bg-white/10" : "hover:bg-lilac-mid/15"
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${top ? "bg-gold text-night" : "bg-lilac-soft text-eye-purple"}`}>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${top ? "bg-gold text-night" : "bg-white/70 text-eye-purple"}`}>
                         {i + 1}
                       </span>
                       <span
@@ -426,9 +428,9 @@ export default function ConstellationView({ graph, meId }: Props) {
                         </span>
                       </span>
                     </span>
-                    <span className={`mt-2.5 block border-t pt-2.5 ${top ? "border-white/15" : "border-lilac-soft"}`}>
+                    <span className={`mt-2.5 block border-t pt-2.5 ${top ? "border-white/20" : "border-lilac-mid/30"}`}>
                       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${gradeChipClass(grade.tone)}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
                           {grade.label}
                         </span>
                         <span className={`text-xs ${top ? "text-cream-warm" : "text-eye-purple"}`}>
@@ -448,35 +450,44 @@ export default function ConstellationView({ graph, meId }: Props) {
                         showProse={false}
                       />
                       {isOwner && !rowDetail.target.isHost && (
-                        confirmDeleteId === r.id ? (
-                          <span className="mt-3 flex items-center gap-2 text-sm">
-                            <span className="text-text-light">이 별을 지도에서 지울까?</span>
+                        <div className="mt-3 flex items-center justify-end gap-2 text-xs">
+                          {confirmDeleteId === r.id ? (
+                            <>
+                              <span className="text-text-light">지울까?</span>
+                              <button
+                                type="button"
+                                disabled={deleting}
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="rounded-full border border-lilac-mid/40 px-3 py-1 text-eye-purple disabled:opacity-50"
+                              >
+                                취소
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deleting}
+                                onClick={() => handleDeleteMember(r.id)}
+                                className="inline-flex items-center gap-1 rounded-full bg-[#E24B4A] px-3 py-1 text-white disabled:opacity-50"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                  <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6" />
+                                </svg>
+                                {deleting ? "지우는 중…" : "삭제"}
+                              </button>
+                            </>
+                          ) : (
                             <button
                               type="button"
-                              disabled={deleting}
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="rounded-full border border-lilac-mid/40 px-3 py-1 text-xs text-eye-purple disabled:opacity-50"
+                              onClick={() => setConfirmDeleteId(r.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-[#E24B4A] px-3 py-1 text-white"
+                              aria-label="이 별 지우기"
                             >
-                              취소
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6" />
+                              </svg>
+                              지우기
                             </button>
-                            <button
-                              type="button"
-                              disabled={deleting}
-                              onClick={() => handleDeleteMember(r.id)}
-                              className="rounded-full bg-[#D85A30] px-3 py-1 text-xs text-white disabled:opacity-50"
-                            >
-                              {deleting ? "지우는 중…" : "지우기"}
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(r.id)}
-                            className="mt-3 text-xs text-text-light underline underline-offset-2"
-                          >
-                            지우기
-                          </button>
-                        )
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

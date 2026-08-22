@@ -26,7 +26,7 @@ interface Props {
   showProse?: boolean;
 }
 
-/** 1:1 인연 상세 본문(인연 점수 근거 + 줄글/키워드 + 내가/그가 보는 카피 + 잘맞는점/조심). 지도 하단 카드·리스트 아코디언 공용. */
+/** 1:1 인연 상세 본문(인연 점수 근거 + 줄글 + 내가/그가 보는 카피 한 박스 + 잘맞는점/조심). 지도 하단 카드·리스트 아코디언 공용. */
 export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = true, triadShared = false, showProse = true }: Props) {
   const them = target.name ?? "이 별";
   if (!oriented) {
@@ -55,25 +55,16 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
         </div>
       )}
       {showProse && <p className="text-sm text-eye-purple">{rd.prose}</p>}
-      {rd.keywords.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {rd.keywords.map((k) => (
-            <span key={k} className="rounded-full bg-lilac-soft px-2 py-0.5 text-xs text-eye-purple">#{k}</span>
-          ))}
-        </div>
-      )}
       {pivotIsMe && (
-        <>
-          <div className="rounded-xl bg-white/60 p-3 text-sm">
-            <div className="text-text-light">내가 보는 {them}</div>
-            <div className="text-eye-purple">{iSee}</div>
+        // 내가 보는 X / X가 보는 나 = 한 박스(구분선). "보는 나"는 차별점이라 굵게 강조.
+        <div className="rounded-xl bg-white/60 p-3 text-sm">
+          <div className="text-text-light">내가 보는 {them}</div>
+          <div className="text-eye-purple">{iSee}</div>
+          <div className="mt-2 border-t border-lilac-soft pt-2 text-text-light">
+            {them}{subjectParticle(them)} 보는 나
           </div>
-          {/* 남이 보는 나 = 차별점 = 골드 강조 */}
-          <div className="rounded-xl bg-gold-soft/40 p-3 text-sm ring-1 ring-gold">
-            <div className="text-text-light">{them}{subjectParticle(them)} 보는 나</div>
-            <div className="font-semibold text-eye-purple">{theySee}</div>
-          </div>
-        </>
+          <div className="font-semibold text-eye-purple">{theySee}</div>
+        </div>
       )}
       {(rd.good || rd.caution) && (
         <div className="rounded-xl bg-white/60 p-3 text-sm">

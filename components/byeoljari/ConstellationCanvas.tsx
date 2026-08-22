@@ -1,7 +1,7 @@
 "use client";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
-import { starPoints, resolveGlyph } from "@/lib/byeoljari/layout";
+import { starPoints, resolveGlyph, orderByAngle } from "@/lib/byeoljari/layout";
 import { starColor } from "@/lib/byeoljari/display";
 import { edgeActiveForBond, nodeActiveForBond, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
@@ -134,7 +134,30 @@ export default function ConstellationCanvas({
           );
         })}
 
-        {/* 노드 = 별 또는 원. 삼합 멤버는 오행색 링으로 그룹 표시(삼각형 대체). 필터 비해당은 dim. */}
+        {/* 같은 결(삼합) — 멤버를 같은 오행색 선(폴리곤)으로 연결. 별 위 점 마커 대체. overview 전용
+            (포커스는 buildFocusGraph 합성 스포크가 담당). 별 뒤에 그려 노드가 위로 오게. */}
+        {!focusMode &&
+          graph.triads.map((t, ti) => {
+            const pts = t.memberIds
+              .map((id) => pos(id))
+              .filter((p): p is Point => p != null);
+            if (pts.length < 2) return null;
+            const order = orderByAngle(pts);
+            const points = order.map((i) => `${pts[i].x},${pts[i].y}`).join(" ");
+            return (
+              <polygon
+                key={`triad-${ti}`}
+                points={points}
+                fill="none"
+                stroke={starColor(t.element)}
+                strokeOpacity={0.5}
+                strokeWidth={sizes.lineWidth}
+                strokeLinejoin="round"
+              />
+            );
+          })}
+
+        {/* 노드 = 별 또는 원. 삼합 멤버는 별 뒤 은은한 광(glow). 필터 비해당은 dim. */}
         {graph.nodes.map((n) => {
           const p = pos(n.id);
           if (!p) return null;
@@ -156,19 +179,16 @@ export default function ConstellationCanvas({
             >
               {/* 넉넉한 투명 히트영역 */}
               <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
-              {/* 삼합 표시 — 같은 국(局): 별 뒤 부드러운 광(glow) + 별 위 작은 점 마커 */}
+              {/* 삼합 표시 — 같은 국(局): 별 뒤 부드러운 광(glow). 그룹 연결은 오행색 선(위 폴리곤). */}
               {ringColor && (
-                <>
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={baseR + 1}
-                    fill={ringColor}
-                    opacity={0.4}
-                    filter="url(#triadGlow)"
-                  />
-                  <circle cx={p.x} cy={p.y - baseR - 1.3} r={0.7} fill={ringColor} />
-                </>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={baseR + 1}
+                  fill={ringColor}
+                  opacity={0.4}
+                  filter="url(#triadGlow)"
+                />
               )}
               {glyph === "me-circle" ? (
                 // 나 = 원(테두리) — 친구들의 별과 구분
