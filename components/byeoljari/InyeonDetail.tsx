@@ -1,7 +1,8 @@
 "use client";
 import type { GraphNode } from "@/lib/byeoljari/types";
-import { subjectParticle, elementRelationLabel } from "@/lib/byeoljari/display";
+import { subjectParticle } from "@/lib/byeoljari/display";
 import { relationTenGodCopy } from "@/lib/byeoljari/copy";
+import { relationDetail } from "@/lib/byeoljari/relation-detail";
 
 interface Props {
   target: GraphNode;
@@ -30,12 +31,13 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
   if (!oriented) {
     return (
       <p className="text-sm text-text-light">
-        {triadShared ? "같은 무리 (삼합) — 함께면 시너지가 나" : "이 별과의 궁합은 아직 볼 수 없어."}
+        {triadShared ? "같은 결 (삼합) — 함께면 시너지가 나" : "이 별과의 궁합은 아직 볼 수 없어."}
       </p>
     );
   }
   const iSee = relationTenGodCopy(target.relationType, oriented.iSeeThemTenGod) ?? oriented.iSeeThem;
   const theySee = relationTenGodCopy(target.relationType, oriented.theySeeMeTenGod) ?? oriented.theySeeMe;
+  const rd = relationDetail(oriented.element, { heavenlyCombo, sixCombo, triadShared });
   return (
     <div className="space-y-3">
       {inyeon && (
@@ -51,7 +53,15 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
           </ul>
         </div>
       )}
-      {pivotIsMe ? (
+      <p className="text-sm text-eye-purple">{rd.prose}</p>
+      {rd.keywords.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {rd.keywords.map((k) => (
+            <span key={k} className="rounded-full bg-lilac-soft px-2 py-0.5 text-xs text-eye-purple">#{k}</span>
+          ))}
+        </div>
+      )}
+      {pivotIsMe && (
         <>
           <div className="rounded-xl bg-white/60 p-3 text-sm">
             <div className="text-text-light">내가 보는 {them}</div>
@@ -63,9 +73,11 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
             <div className="font-semibold text-eye-purple">{theySee}</div>
           </div>
         </>
-      ) : (
+      )}
+      {(rd.good || rd.caution) && (
         <div className="rounded-xl bg-white/60 p-3 text-sm">
-          <div className="text-eye-purple">{elementRelationLabel(oriented.element)}</div>
+          {rd.good && <div className="text-eye-purple">잘 맞는 점 · {rd.good}</div>}
+          {rd.caution && <div className="mt-1 text-text-light">살짝 조심 · {rd.caution}</div>}
         </div>
       )}
       {(heavenlyCombo || sixCombo) && (
