@@ -12,14 +12,29 @@ export default function ByeoljariCreatePage() {
   const [namePublic, setNamePublic] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/fortune/byeoljari/claim", { method: "POST" }).catch(() => {});
-  }, []);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     setLoggedIn(!!localStorage.getItem("byeolkong_user"));
-  }, []);
+    let cancelled = false;
+    (async () => {
+      // claim(익명 맵을 로그인 계정으로 이관) 먼저 → 그래야 owner_user_id 로 내 맵이 잡힌다.
+      await fetch("/api/fortune/byeoljari/claim", { method: "POST" }).catch(() => {});
+      const res = await fetch("/api/fortune/byeoljari").then((r) => r.json()).catch(() => null);
+      if (cancelled) return;
+      if (res?.map?.shareId) {
+        if (res.map.memberId) {
+          localStorage.setItem(`byeoljari:me:${res.map.shareId}`, res.map.memberId);
+        }
+        router.replace(`/fortune/byeoljari/${res.map.shareId}`);
+        return; // redirect 중이므로 checking 유지(폼 안 보임)
+      }
+      setChecking(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function create() {
     setBusy(true);
@@ -37,6 +52,15 @@ export default function ByeoljariCreatePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (checking) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center text-text-light">
+        <p className="animate-star-twinkle text-2xl">✨</p>
+        <p className="mt-3 text-sm">별자리를 불러오는 중…</p>
+      </main>
+    );
   }
 
   return (
