@@ -3,14 +3,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { calcSaju } from "@/lib/saju/calc";
+import { calcSaju, type SajuResult } from "@/lib/saju/calc";
 import { pairRelation, findTriads } from "@/lib/saju/pairing";
-import { inyeonScore } from "@/lib/byeoljari/inyeon";
+import { inyeonScore, tieBreakSeed } from "@/lib/byeoljari/inyeon";
 import { dayType } from "@/lib/byeoljari/day-type";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// tieBreakSeed 입력용 기둥 문자열(연·월·일 stem+branch, 날짜만 — 시 무관). 시주 제외로 생시 없어도 공정.
+const pillarChars = (s: SajuResult): string =>
+  s.pillars.year.stem + s.pillars.year.branch +
+  s.pillars.month.stem + s.pillars.month.branch +
+  s.pillars.day.stem + s.pillars.day.branch;
 
 export async function GET(
   _req: NextRequest,
@@ -128,6 +134,7 @@ export async function GET(
           tenGodAtoB: r.tenGodAtoB,
           tenGodBtoA: r.tenGodBtoA,
           extraPillarHarmony: r.extraPillarHarmony,
+          tieSeed: tieBreakSeed(pillarChars(saju[i]), pillarChars(saju[j])),
         }),
         triadShared,
         heavenlyCombo: r.heavenlyCombo,

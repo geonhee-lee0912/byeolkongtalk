@@ -10,6 +10,7 @@ export interface InyeonInput {
   tenGodAtoB?: string; // 십신(a→b) — 텍스처 미세 가점용(동점 완화). 없으면 0
   tenGodBtoA?: string; // 십신(b→a)
   extraPillarHarmony?: number; // 연·월 기둥 조화 수(0~4) — 보조 가점(동점 완화). 없으면 0
+  tieSeed?: number; // 결정적 미세 tiebreak(0~6, tieBreakSeed) — 남은 동점을 흩어 대부분 유일하게. 없으면 0
 }
 
 // 십신 텍스처 — 같은 오행관계 안에서도 점수를 흩어 동점을 줄이는 미세 신호(0~9).
@@ -19,10 +20,19 @@ const TEN_GOD_TEXTURE: Record<string, number> = {
   편인: 5, 편재: 6, 상관: 7, 겁재: 8, 편관: 9,
 };
 
-/** 0~100 인연도. base(상생·상극 58 · 비화·미지 46) + 천간합25 + 육합15 + 삼합15
- *  + 십신 텍스처(0~9) + 연·월 기둥 조화(4×개) — 뒤 둘은 동점 완화용 미세 신호. cap 100. */
+/** 결정적 미세 tiebreak(0~6). 두 사람 기둥 문자열의 코드 합 mod 7 → 대칭(합은 교환법칙)·결정적.
+ *  의미보다 "대부분 유일한 점수"가 목적. base 를 상쇄분(−3)만큼 낮춰 평균 인플레 0. */
+export function tieBreakSeed(charsA: string, charsB: string): number {
+  let sum = 0;
+  for (const ch of charsA + charsB) sum += ch.charCodeAt(0);
+  return sum % 7;
+}
+
+/** 0~100 인연도. base(상생·상극 55 · 비화·미지 43) + 천간합25 + 육합15 + 삼합15
+ *  + 십신 텍스처(0~9) + 연·월 기둥 조화(4×개) + 미세 tiebreak(0~6) — 뒤 셋은 동점 완화. cap 100.
+ *  base 는 미세 신호 평균을 상쇄하게 낮춰 센터 ≈62 유지. */
 export function inyeonScore(x: InyeonInput): number {
-  let score = ["생아", "아생", "극아", "아극"].includes(x.element) ? 58 : 46;
+  let score = ["생아", "아생", "극아", "아극"].includes(x.element) ? 55 : 43;
   if (x.heavenlyCombo) score += 25;
   if (x.sixCombo) score += 15;
   if (x.triadShared) score += 15;
@@ -30,6 +40,7 @@ export function inyeonScore(x: InyeonInput): number {
     (TEN_GOD_TEXTURE[x.tenGodAtoB ?? ""] ?? 0) + (TEN_GOD_TEXTURE[x.tenGodBtoA ?? ""] ?? 0);
   score += Math.round(tex / 2);
   score += (x.extraPillarHarmony ?? 0) * 4; // 연·월 기둥 조화(보조 기둥이라 일주 합보다 작게)
+  score += x.tieSeed ?? 0; // 결정적 미세 tiebreak(0~6)
   return Math.min(score, 100);
 }
 
