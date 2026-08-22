@@ -16,7 +16,7 @@ import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
 import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
 import InyeonDetail from "./InyeonDetail";
-import { relationRole, elementPair, metaphorProse } from "@/lib/byeoljari/relation-role";
+import { relationRole, elementPair } from "@/lib/byeoljari/relation-role";
 
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
@@ -434,9 +434,6 @@ export default function ConstellationView({ graph, meId }: Props) {
                         <span className={`text-xs ${top ? "text-cream-warm" : "text-eye-purple"}`}>
                           {relationRole(r.relation)} · {elementPair(r.relation, myEl, r.element)}
                         </span>
-                      </span>
-                      <span className={`mt-1.5 block text-[12.5px] leading-relaxed ${top ? "text-[#D9CFF0]" : "text-eye-purple"}`}>
-                        {metaphorProse(r.relation, myEl, r.element)}
                       </span>
                     </span>
                   </button>

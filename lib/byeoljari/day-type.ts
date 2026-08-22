@@ -32,5 +32,5 @@ const SEASON: Record<string, string> = {
 export function dayType(dayStem: string, monthBranch: string): string {
   const arche = ARCHETYPE[dayStem] ?? "별 유형";
   const season = SEASON[monthBranch];
-  return season ? `${season} ${arche}` : arche;
+  return season ? `${season}의 ${arche}` : arche;
 }
