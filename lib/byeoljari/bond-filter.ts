@@ -4,7 +4,7 @@ export type BondFilter = "heavenly" | "six" | "triad";
 export const BOND_FILTER_LABEL: Record<BondFilter, string> = {
   heavenly: "끌림",
   six: "결속",
-  triad: "무리",
+  triad: "같은 결",
 };
 
 const ORDER: BondFilter[] = ["heavenly", "six", "triad"];

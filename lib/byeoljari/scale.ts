@@ -16,12 +16,12 @@ export interface SizeSpec {
 
 // hostInner/starInner = 별 통통함(inner/outer≈0.55) — 뾰족한 별이 싫다는 피드백 반영해 plump.
 const FEW: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 6, hostInner: 3.3, starOuter: 4, starInner: 2.2, meR: 4, hitR: 6,
-  lineWidth: 0.4, goldLineWidth: 0.8, labelFont: 2.8, hostLabelFont: 3.4,
+  hostOuter: 6.8, hostInner: 3.7, starOuter: 4.6, starInner: 2.5, meR: 4.6, hitR: 6.8,
+  lineWidth: 0.4, goldLineWidth: 0.8, labelFont: 3, hostLabelFont: 3.6,
 };
 const MANY: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 4.5, hostInner: 2.48, starOuter: 2.6, starInner: 1.43, meR: 2.8, hitR: 4.5,
-  lineWidth: 0.28, goldLineWidth: 0.55, labelFont: 2, hostLabelFont: 2.6,
+  hostOuter: 5.2, hostInner: 2.85, starOuter: 3, starInner: 1.65, meR: 3.2, hitR: 5.2,
+  lineWidth: 0.28, goldLineWidth: 0.55, labelFont: 2.3, hostLabelFont: 2.9,
 };
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));

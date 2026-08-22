@@ -9,10 +9,10 @@ import {
 
 const E = (a: string, b: string, h: boolean, s: boolean) => ({ a, b, heavenlyCombo: h, sixCombo: s });
 
-test("BOND_FILTER_LABEL — 끌림/결속/무리", () => {
+test("BOND_FILTER_LABEL — 끌림/결속/같은 결", () => {
   assert.equal(BOND_FILTER_LABEL.heavenly, "끌림");
   assert.equal(BOND_FILTER_LABEL.six, "결속");
-  assert.equal(BOND_FILTER_LABEL.triad, "무리");
+  assert.equal(BOND_FILTER_LABEL.triad, "같은 결");
 });
 
 test("presentBondFilters — 존재하는 종류만, 순서 heavenly→six→triad", () => {
