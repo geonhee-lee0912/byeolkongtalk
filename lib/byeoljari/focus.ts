@@ -41,3 +41,42 @@ export function buildFocusGraph(centerId: string, graph: StarGraph): StarGraph {
 
   return { ok: true, shareId: graph.shareId, claimed: graph.claimed, nodes, edges, triads };
 }
+
+/** focus(centerId)에서 X의 이웃(나=pivot 제외) 특별 인연 요약(카드 해석용). 순수. */
+export function focusSummary(
+  centerId: string,
+  pivotId: string | null,
+  graph: StarGraph
+): { total: number; chemi: number; bond: number; triad: number; comment: string } {
+  const partners = new Set<string>();
+  graph.edges.forEach((e) => {
+    if (e.a === centerId && e.b !== pivotId) partners.add(e.b);
+    else if (e.b === centerId && e.a !== pivotId) partners.add(e.a);
+  });
+  const triadMates = new Set<string>();
+  graph.triads.forEach((t) => {
+    if (t.memberIds.includes(centerId))
+      t.memberIds.forEach((id) => {
+        if (id !== centerId && id !== pivotId) triadMates.add(id);
+      });
+  });
+  triadMates.forEach((id) => partners.add(id));
+
+  let chemi = 0, bond = 0, triad = 0;
+  partners.forEach((id) => {
+    const e = graph.edges.find(
+      (x) => (x.a === centerId && x.b === id) || (x.a === id && x.b === centerId)
+    );
+    if (e?.heavenlyCombo) chemi++;
+    if (e?.sixCombo) bond++;
+    if (triadMates.has(id)) triad++;
+  });
+  const total = partners.size;
+  const comment =
+    total === 0
+      ? "아직 특별한 인연은 잔잔한 편이야"
+      : total <= 2
+        ? "몇몇과 깊게 이어진 별이야"
+        : "여기저기 잘 통하는 별이네";
+  return { total, chemi, bond, triad, comment };
+}
