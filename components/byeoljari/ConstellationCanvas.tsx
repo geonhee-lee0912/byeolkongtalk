@@ -126,7 +126,7 @@ export default function ConstellationCanvas({
                 stroke={e.heavenlyCombo ? "#F2D78A" : e.sixCombo ? "#A98BEE" : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
                 strokeOpacity={(special ? 0.62 : focusMode ? 0.4 : 0.22) * dim}
                 strokeWidth={special ? sizes.goldLineWidth : sizes.lineWidth}
-                strokeDasharray={e.sixCombo ? "2 1.5" : undefined}
+                strokeDasharray={e.sixCombo && !e.heavenlyCombo ? "2 1.5" : undefined}
                 strokeLinecap="round"
                 style={{ transition: "stroke-opacity 300ms" }}
               />

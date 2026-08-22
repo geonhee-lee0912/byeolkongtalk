@@ -34,6 +34,15 @@ test("edgeActiveForBond — 필터 없으면 전부, triad면 엣지 전부 비�
   assert.equal(edgeActiveForBond(e, "triad"), false);
 });
 
+test("precedence — 천간합+육합 엣지는 끌림으로 분류(결속·중복에서 제외)", () => {
+  const both = E("x", "y", true, true);
+  assert.equal(edgeActiveForBond(both, "heavenly"), true);
+  assert.equal(edgeActiveForBond(both, "six"), false); // 둘 다면 결속 아님(끌림 우선)
+  assert.deepEqual(presentBondFilters([both], []), ["heavenly"]); // both-bond만 있으면 결속 칩 미표시
+  assert.equal(nodeActiveForBond("y", "six", [both], new Set()), false);
+  assert.equal(nodeActiveForBond("y", "heavenly", [both], new Set()), true);
+});
+
 test("nodeActiveForBond — heavenly/six는 강조 엣지 끝점, triad는 삼합 멤버", () => {
   const edges = [E("me", "y", true, false), E("me", "z", false, true)];
   const triadIds = new Set(["me", "z", "w"]);

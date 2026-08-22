@@ -18,7 +18,7 @@ export function presentBondFilters(
 ): BondFilter[] {
   return ORDER.filter((f) => {
     if (f === "heavenly") return edges.some((e) => e.heavenlyCombo);
-    if (f === "six") return edges.some((e) => e.sixCombo);
+    if (f === "six") return edges.some((e) => e.sixCombo && !e.heavenlyCombo); // 둘 다면 끌림으로 분류(우선)
     return triads.length > 0;
   });
 }
@@ -30,7 +30,7 @@ export function edgeActiveForBond(
 ): boolean {
   if (!filter) return true;
   if (filter === "heavenly") return edge.heavenlyCombo;
-  if (filter === "six") return edge.sixCombo;
+  if (filter === "six") return edge.sixCombo && !edge.heavenlyCombo; // 천간합+육합이면 끌림 우선(선·필터 중복 방지)
   return false;
 }
 
