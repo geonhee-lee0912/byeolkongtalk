@@ -6,6 +6,7 @@ import { computeLayout, orientEdge } from "@/lib/byeoljari/layout";
 import { buildFocusGraph, focusSummary } from "@/lib/byeoljari/focus";
 import {
   STAR_ELEMENT_COLORS,
+  starColor,
   relationTypeLabel,
   directionParticle,
 } from "@/lib/byeoljari/display";
@@ -16,7 +17,6 @@ import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeo
 import ConstellationCanvas from "./ConstellationCanvas";
 import InyeonDetail from "./InyeonDetail";
 import { relationRole, elementPair, metaphorProse } from "@/lib/byeoljari/relation-role";
-import { useRouter } from "next/navigation";
 
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
@@ -54,7 +54,6 @@ export default function ConstellationView({ graph, meId }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
 
@@ -203,7 +202,6 @@ export default function ConstellationView({ graph, meId }: Props) {
       });
       const data = await res.json();
       if (data.ok) {
-        router.refresh();
         window.location.reload(); // 그래프는 클라 fetch라 확실히 재조회
       } else {
         setDeleting(false);
@@ -405,7 +403,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                       </span>
                       <span
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium"
-                        style={{ backgroundColor: STAR_ELEMENT_COLORS[r.element as keyof typeof STAR_ELEMENT_COLORS] ?? "#B8A8D8", color: "#1F1735" }}
+                        style={{ backgroundColor: starColor(r.element), color: "#1F1735" }}
                       >
                         {r.element}
                       </span>
@@ -458,8 +456,9 @@ export default function ConstellationView({ graph, meId }: Props) {
                             <span className="text-text-light">이 별을 지도에서 지울까?</span>
                             <button
                               type="button"
+                              disabled={deleting}
                               onClick={() => setConfirmDeleteId(null)}
-                              className="rounded-full border border-lilac-mid/40 px-3 py-1 text-xs text-eye-purple"
+                              className="rounded-full border border-lilac-mid/40 px-3 py-1 text-xs text-eye-purple disabled:opacity-50"
                             >
                               취소
                             </button>
