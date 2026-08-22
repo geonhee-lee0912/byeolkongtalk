@@ -39,6 +39,12 @@ test("computeLayout — 호스트 단독이면 중심만", () => {
   assert.deepEqual(m.get("h"), { x: 50, y: 50 });
 });
 
+test("computeLayout — centerId 지정 시 그 노드가 중심(50,50)", () => {
+  const m = computeLayout([node("h", true), node("g1"), node("g2")], { centerId: "g1" });
+  assert.deepEqual(m.get("g1"), { x: 50, y: 50 });
+  assert.notDeepEqual(m.get("h"), { x: 50, y: 50 }); // 호스트는 이제 링 위
+});
+
 test("computeLayout — 빈 입력은 빈 맵(방어)", () => {
   assert.equal(computeLayout([]).size, 0);
 });

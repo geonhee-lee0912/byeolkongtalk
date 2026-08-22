@@ -12,18 +12,20 @@ const round = (n: number) => Math.round(n * 100) / 100;
 /** 호스트 = 중심(50,50), 게스트 = 반지름 34 원 위 등간격(-90°부터). viewBox 0..100 정사각 기준. */
 export function computeLayout(
   nodes: GraphNode[],
-  opts?: { center?: number; radius?: number }
+  opts?: { center?: number; radius?: number; centerId?: string }
 ): Map<string, Point> {
   const center = opts?.center ?? 50;
   const radius = opts?.radius ?? 34;
   const map = new Map<string, Point>();
   if (nodes.length === 0) return map;
 
-  let hostIdx = nodes.findIndex((n) => n.isHost);
-  if (hostIdx < 0) hostIdx = 0; // 방어: 호스트 플래그 없으면 첫 노드
-  map.set(nodes[hostIdx].id, { x: round(center), y: round(center) });
+  let centerIdx = opts?.centerId
+    ? nodes.findIndex((n) => n.id === opts.centerId)
+    : nodes.findIndex((n) => n.isHost);
+  if (centerIdx < 0) centerIdx = 0; // 방어: 지정 노드나 호스트 플래그 없으면 첫 노드
+  map.set(nodes[centerIdx].id, { x: round(center), y: round(center) });
 
-  const others = nodes.filter((_, i) => i !== hostIdx);
+  const others = nodes.filter((_, i) => i !== centerIdx);
   others.forEach((n, i) => {
     const a = ((-90 + (i * 360) / others.length) * Math.PI) / 180;
     map.set(n.id, {
