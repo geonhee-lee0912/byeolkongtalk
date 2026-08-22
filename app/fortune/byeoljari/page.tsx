@@ -56,7 +56,7 @@ export default function ByeoljariCreatePage() {
 
   if (checking) {
     return (
-      <main className="mx-auto max-w-md px-4 py-16 text-center text-text-light">
+      <main className="mx-auto w-full max-w-md px-4 py-16 text-center text-text-light">
         <p className="animate-star-twinkle text-2xl">✨</p>
         <p className="mt-3 text-sm">별자리를 불러오는 중…</p>
       </main>
@@ -64,7 +64,8 @@ export default function ByeoljariCreatePage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-8">
+    // w-full — body flex-col 안에서 mx-auto 가 stretch 를 무효화해 내용물 폭으로 줄어드는 것 방지([shareId] 지도 폭 출렁임과 동일 결함)
+    <main className="mx-auto w-full max-w-md px-4 py-8">
       <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">인연 별자리 만들기</h1>
       <div className="mb-5 space-y-1.5 text-center text-sm text-text-light">
         <p>🌟 생일을 넣으면 네 별이 가운데 떠</p>

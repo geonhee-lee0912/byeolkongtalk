@@ -66,7 +66,9 @@ export default function ByeoljariGuestPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-6">
+    // w-full 필수 — body flex-col 안에서 mx-auto(auto 마진)가 stretch 를 무효화해
+    // main 이 내용물 폭(shrink-to-fit)이 되고, overview↔포커스 전환마다 지도 폭이 출렁였다
+    <main className="mx-auto w-full max-w-md px-4 py-6">
       {state.status === "loading" && (
         <div className="flex h-64 items-center justify-center text-text-light">별자리를 불러오는 중…</div>
       )}
