@@ -26,10 +26,8 @@ interface Props {
 }
 
 export default function ConstellationView({ graph, meId }: Props) {
-  // focusPath 비어있음 = overview(전체 그래프). 마지막 원소 = 현재 포커스 중심 별(focusId).
-  // 별 탭 = 걷기(push) · 나 탭/배경 탭/브레드크럼 "전체" = 리셋. inspected = 포커스 뷰에서 선(엣지) 탭 시 그 쌍만 별도 조회.
-  const [focusPath, setFocusPath] = useState<string[]>([]);
-  const [inspected, setInspected] = useState<[string, string] | null>(null);
+  // focusId null = overview(전체 그래프). 게스트 별 탭 = 포커스 진입, 나 탭/배경 탭/"전체 지도 보기" = 리셋.
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [listOpenId, setListOpenId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<BondFilter | null>(null);
   const [reveal, setReveal] = useState(false);
@@ -39,7 +37,6 @@ export default function ConstellationView({ graph, meId }: Props) {
   const detailRef = useRef<HTMLDivElement>(null);
 
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
-  const focusId = focusPath.length ? focusPath[focusPath.length - 1] : null;
 
   useEffect(() => setMounted(true), []);
 
@@ -67,10 +64,10 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 카드가 뷰포트보다 크면 하단이 안 끌려와 탭에 가린다(실측 확인). smooth 는 미표시 환경에서
   // 무동작이라 즉시 정렬로 둔다(탭 시 바로 노출, 모든 환경 견고).
   useEffect(() => {
-    if ((focusId || inspected || listOpenId) && detailRef.current) {
+    if ((focusId || listOpenId) && detailRef.current) {
       detailRef.current.scrollIntoView({ block: "end" });
     }
-  }, [focusId, inspected, listOpenId]);
+  }, [focusId, listOpenId]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -132,49 +129,22 @@ export default function ConstellationView({ graph, meId }: Props) {
       .sort((x, y) => y.inyeon - x.inyeon || y.special - x.special);
   }, [graph.edges, graph.nodes, pivotId]);
 
-  // 지도 아래 카드의 주어(pivot/other) — 선 인스펙트 중이면 그 쌍(나 포함이면 나 pivot, 아니면 게스트끼리),
-  // 아니면 포커스 카드(나 ↔ focusId).
-  let cardPivot: string | null = null;
-  let cardOther: string | null = null;
-  let cardPivotIsMe = true;
-  if (inspected) {
-    const [a, b] = inspected;
-    if (a === pivotId || b === pivotId) {
-      cardPivot = pivotId;
-      cardOther = a === pivotId ? b : a;
-      cardPivotIsMe = true;
-    } else {
-      cardPivot = a;
-      cardOther = b;
-      cardPivotIsMe = false;
-    }
-  } else if (focusId && pivotId && focusId !== pivotId) {
-    cardPivot = pivotId;
-    cardOther = focusId;
-    cardPivotIsMe = true;
-  }
-  const card = cardPivot && cardOther ? detailFor(cardPivot, cardOther) : null;
+  // 지도 아래 카드 — 항상 나 ↔ focusId(포커스 진입 중일 때만).
+  const card = focusId && pivotId && focusId !== pivotId ? detailFor(pivotId, focusId) : null;
 
   function handleNode(id: string) {
-    if (id === pivotId) {
-      setFocusPath([]);
-      setInspected(null);
-      return; // 나 탭 → 전체
-    }
-    if (focusId === id) return; // 이미 중심
-    setFocusPath((p) => [...p, id]);
-    setInspected(null);
-    setListOpenId(null);
+    if (id === pivotId) { setFocusId(null); return; }   // 나 탭 → 전체
+    if (focusId) return;                                  // 포커스 중 이웃 탭 = 무시(Task 5에서 확장)
+    setFocusId(id); setListOpenId(null);                  // overview 게스트 탭 → 포커스
   }
 
   function resetToOverview() {
-    setFocusPath([]);
-    setInspected(null);
+    setFocusId(null);
   }
 
   return (
     <div>
-      {/* 형상 엠블럼 헤더 — "우리 별자리 · {신수이름}". shape null(노드0)이면 텍스트만. */}
+      {/* 형상 엠블럼 헤더 — "{신수이름}자리". shape null(노드0)이면 "우리 별자리" 텍스트만. */}
       <h1 className="mb-3 flex items-center justify-center gap-2 font-display text-lg text-eye-purple">
         {shape && (
           <img
@@ -188,7 +158,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             }
           />
         )}
-        우리 별자리{shape ? ` · ${shape.name}` : ""}
+        {shape ? `${shape.name}자리` : "우리 별자리"}
       </h1>
       {showFilter && (
         <div className="mb-3 flex flex-wrap justify-center gap-2">
@@ -210,31 +180,16 @@ export default function ConstellationView({ graph, meId }: Props) {
           })}
         </div>
       )}
-      {focusPath.length > 0 && (
-        <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-eye-purple">
-          <button type="button" onClick={resetToOverview} className="underline">
-            전체
-          </button>
-          {focusPath.map((id, i) => {
-            const n = graph.nodes.find((x) => x.id === id);
-            return (
-              <span key={`${id}-${i}`} className="flex items-center gap-1">
-                <span aria-hidden>›</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFocusPath(focusPath.slice(0, i + 1));
-                    setInspected(null);
-                  }}
-                >
-                  {n?.name ?? "이 별"}
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
       <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
+        {focusId && (
+          <button
+            type="button"
+            onClick={resetToOverview}
+            className="absolute left-2 top-2 z-10 rounded-full bg-cream-warm/90 px-3 py-1 text-xs text-eye-purple shadow"
+          >
+            ← 전체 지도 보기
+          </button>
+        )}
         <ConstellationCanvas
           graph={viewGraph}
           layout={layout}
@@ -245,31 +200,19 @@ export default function ConstellationView({ graph, meId }: Props) {
           shape={shape}
           focusMode={!!focusId}
           onSelect={handleNode}
-          onEdgeSelect={(a, b) => setInspected([a, b])}
           onBackgroundClick={resetToOverview}
         />
       </div>
-      {/* 지도 아래 상세 — 포커스 카드(나↔focusId) 또는 선 인스펙트(임의 쌍 하나) */}
+      {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
       {focusId && card?.target && (
         <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow">
           <div className="mb-2 flex items-start justify-between">
             <div>
-              {cardPivotIsMe ? (
-                <>
-                  <div className="text-xs text-text-light">{relationTypeLabel(card.target.relationType)}</div>
-                  <h3 className="font-display text-lg text-eye-purple">{card.target.name ?? "이 별"}</h3>
-                </>
-              ) : (
-                <h3 className="font-display text-lg text-eye-purple">
-                  {graph.nodes.find((n) => n.id === cardPivot)?.name ?? "이 별"} ↔ {card.target.name ?? "이 별"}
-                </h3>
-              )}
+              <div className="text-xs text-text-light">{relationTypeLabel(card.target.relationType)}</div>
+              <h3 className="font-display text-lg text-eye-purple">{card.target.name ?? "이 별"}</h3>
             </div>
-            <button
-              onClick={() => (inspected ? setInspected(null) : resetToOverview())}
-              className="text-sm text-text-light"
-            >
-              {inspected ? "← 뒤로" : "닫기 ✕"}
+            <button onClick={resetToOverview} className="text-sm text-text-light">
+              닫기 ✕
             </button>
           </div>
           <InyeonDetail
@@ -278,7 +221,6 @@ export default function ConstellationView({ graph, meId }: Props) {
             heavenlyCombo={card.edge?.heavenlyCombo ?? false}
             sixCombo={card.edge?.sixCombo ?? false}
             inyeon={card.inyeonInfo}
-            pivotIsMe={cardPivotIsMe}
           />
         </div>
       )}
@@ -307,17 +249,16 @@ export default function ConstellationView({ graph, meId }: Props) {
       {ranking.length > 0 && (
         <div className="mt-4">
           <div className="mb-2 text-xs font-semibold text-eye-purple">인연 점수 높은 순</div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {ranking.map((r, i) => {
               const grade = inyeonGrade(r.inyeon);
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
+              const top = i === 0;
               return (
                 <div
                   key={r.id}
-                  className={`overflow-hidden rounded-xl ${
-                    i === 0 ? "bg-gold-soft/40 ring-1 ring-gold/50" : "bg-cream-warm"
-                  }`}
+                  className={`overflow-hidden rounded-2xl ${top ? "bg-night text-cream-warm" : "bg-cream-warm"}`}
                 >
                   <button
                     type="button"
@@ -326,17 +267,20 @@ export default function ConstellationView({ graph, meId }: Props) {
                       setListOpenId((cur) => (cur === r.id ? null : r.id));
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
-                    className="flex w-full items-center justify-between px-3 py-2 text-left transition active:scale-[0.99] hover:bg-lilac-soft/40"
+                    className={`flex w-full items-center justify-between px-4 py-3 text-left transition active:scale-[0.99] ${
+                      top ? "hover:bg-white/5" : "hover:bg-lilac-soft/40"
+                    }`}
                   >
-                    <span className="text-sm text-eye-purple">
+                    <span className={`text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
                       {i + 1}위 · {r.name ?? "이 별"}
                     </span>
-                    <span className="text-xs text-text-light">
-                      인연 점수 {r.inyeon} · {grade.label}
+                    <span className={`flex items-baseline gap-1 ${top ? "text-gold" : "text-text-light"}`}>
+                      <span className="font-display text-lg">{r.inyeon}</span>
+                      <span className="text-xs">· {grade.label}</span>
                     </span>
                   </button>
                   {open && rowDetail?.target && (
-                    <div ref={detailRef} className="animate-fade-in scroll-mb-20 px-3 pb-3 pt-1">
+                    <div ref={detailRef} className="animate-fade-in scroll-mb-20 px-4 pb-4 pt-1">
                       <InyeonDetail
                         target={rowDetail.target}
                         oriented={rowDetail.oriented}
