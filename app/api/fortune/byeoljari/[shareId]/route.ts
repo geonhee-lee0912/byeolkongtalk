@@ -125,6 +125,8 @@ export async function GET(
           heavenlyCombo: r.heavenlyCombo,
           sixCombo: r.sixCombo,
           triadShared,
+          tenGodAtoB: r.tenGodAtoB,
+          tenGodBtoA: r.tenGodBtoA,
         }),
         triadShared,
         heavenlyCombo: r.heavenlyCombo,

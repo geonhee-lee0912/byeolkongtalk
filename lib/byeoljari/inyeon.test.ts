@@ -6,22 +6,28 @@ const mk = (o: Partial<Parameters<typeof inyeonScore>[0]> = {}) => ({
   element: "생아", heavenlyCombo: false, sixCombo: false, triadShared: false, ...o,
 });
 
-test("inyeonScore — 오행 base(상생·상극 62, 비화 50)", () => {
-  assert.equal(inyeonScore(mk({ element: "비화" })), 50);
-  assert.equal(inyeonScore(mk({ element: "생아" })), 62);
-  assert.equal(inyeonScore(mk({ element: "아생" })), 62);
-  assert.equal(inyeonScore(mk({ element: "극아" })), 62);
-  assert.equal(inyeonScore(mk({ element: "아극" })), 62);
+test("inyeonScore — 오행 base(상생·상극 58, 비화 46, 십신 없으면 텍스처 0)", () => {
+  assert.equal(inyeonScore(mk({ element: "비화" })), 46);
+  assert.equal(inyeonScore(mk({ element: "생아" })), 58);
+  assert.equal(inyeonScore(mk({ element: "아생" })), 58);
+  assert.equal(inyeonScore(mk({ element: "극아" })), 58);
+  assert.equal(inyeonScore(mk({ element: "아극" })), 58);
 });
 
 test("inyeonScore — 특별관계 가점 + cap 100", () => {
-  assert.equal(inyeonScore(mk({ element: "생아", heavenlyCombo: true })), 87);
-  assert.equal(inyeonScore(mk({ element: "비화", sixCombo: true })), 65);
+  assert.equal(inyeonScore(mk({ element: "생아", heavenlyCombo: true })), 83);
+  assert.equal(inyeonScore(mk({ element: "비화", sixCombo: true })), 61);
   assert.equal(inyeonScore(mk({ element: "생아", heavenlyCombo: true, sixCombo: true, triadShared: true })), 100);
 });
 
+test("inyeonScore — 십신 텍스처(동점 완화, 양방향 TEX 합의 절반)", () => {
+  assert.equal(inyeonScore(mk({ element: "생아", tenGodAtoB: "정인", tenGodBtoA: "식신" })), 60); // (0+3)/2→2
+  assert.equal(inyeonScore(mk({ element: "생아", tenGodAtoB: "편인", tenGodBtoA: "상관" })), 64); // (5+7)/2→6
+  assert.equal(inyeonScore(mk({ element: "생아", tenGodAtoB: "??", tenGodBtoA: "??" })), 58); // 미지 십신=0
+});
+
 test("inyeonScore — 미지 오행은 비화 취급(방어)", () => {
-  assert.equal(inyeonScore(mk({ element: "??" })), 50);
+  assert.equal(inyeonScore(mk({ element: "??" })), 46);
 });
 
 test("inyeonGrade — 경계", () => {

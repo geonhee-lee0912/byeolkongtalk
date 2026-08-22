@@ -7,14 +7,27 @@ export interface InyeonInput {
   heavenlyCombo: boolean;
   sixCombo: boolean;
   triadShared: boolean; // 나와 상대가 같은 삼합 국 멤버
+  tenGodAtoB?: string; // 십신(a→b) — 텍스처 미세 가점용(동점 완화). 없으면 0
+  tenGodBtoA?: string; // 십신(b→a)
 }
 
-/** 0~100 인연도. 생아·아생·극아·아극 62 · 그 외(비화·미지) 50 + 천간합25 + 육합15 + 삼합15, cap 100. */
+// 십신 텍스처 — 같은 오행관계 안에서도 점수를 흩어 동점을 줄이는 미세 신호(0~9).
+// 유불리 아니라 "관계 결의 농도": 정/안정 계열 낮게 · 편/자극 계열 높게. 대칭(양방향 합).
+const TEN_GOD_TEXTURE: Record<string, number> = {
+  정인: 0, 정관: 1, 정재: 2, 식신: 3, 비견: 4,
+  편인: 5, 편재: 6, 상관: 7, 겁재: 8, 편관: 9,
+};
+
+/** 0~100 인연도. base(상생·상극 58 · 비화·미지 46) + 천간합25 + 육합15 + 삼합15
+ *  + 십신 텍스처(양방향 TEX 합의 절반, 0~9 — 동점 완화), cap 100. */
 export function inyeonScore(x: InyeonInput): number {
-  let score = ["생아", "아생", "극아", "아극"].includes(x.element) ? 62 : 50;
+  let score = ["생아", "아생", "극아", "아극"].includes(x.element) ? 58 : 46;
   if (x.heavenlyCombo) score += 25;
   if (x.sixCombo) score += 15;
   if (x.triadShared) score += 15;
+  const tex =
+    (TEN_GOD_TEXTURE[x.tenGodAtoB ?? ""] ?? 0) + (TEN_GOD_TEXTURE[x.tenGodBtoA ?? ""] ?? 0);
+  score += Math.round(tex / 2);
   return Math.min(score, 100);
 }
 
