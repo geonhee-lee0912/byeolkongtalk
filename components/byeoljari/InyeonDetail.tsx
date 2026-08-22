@@ -23,10 +23,11 @@ interface Props {
   } | null;
   pivotIsMe?: boolean;
   triadShared?: boolean;
+  showProse?: boolean;
 }
 
 /** 1:1 인연 상세 본문(인연 점수 근거 + 줄글/키워드 + 내가/그가 보는 카피 + 잘맞는점/조심). 지도 하단 카드·리스트 아코디언 공용. */
-export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = true, triadShared = false }: Props) {
+export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = true, triadShared = false, showProse = true }: Props) {
   const them = target.name ?? "이 별";
   if (!oriented) {
     return (
@@ -53,7 +54,7 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
           </ul>
         </div>
       )}
-      <p className="text-sm text-eye-purple">{rd.prose}</p>
+      {showProse && <p className="text-sm text-eye-purple">{rd.prose}</p>}
       {rd.keywords.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {rd.keywords.map((k) => (
