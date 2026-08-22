@@ -10,10 +10,10 @@ const edge = (a: string, b: string, h = false, s = false) => ({
 const G: StarGraph = {
   ok: true, shareId: "s", claimed: false,
   nodes: [
-    { id: "me", name: "나", isHost: true, relationType: "friend", element: "화" },
-    { id: "a", name: "A", isHost: false, relationType: "friend", element: "목" },
-    { id: "b", name: "B", isHost: false, relationType: "lover", element: "수" },
-    { id: "c", name: "C", isHost: false, relationType: "friend", element: "토" },
+    { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
+    { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
+    { id: "b", name: "B", isHost: false, relationType: "lover", element: "수", dayType: "겨울 큰바다형" },
+    { id: "c", name: "C", isHost: false, relationType: "friend", element: "토", dayType: "봄 큰산형" },
   ],
   edges: [edge("me", "a"), edge("me", "b"), edge("me", "c"), edge("a", "b", true, false)],
   triads: [],
@@ -36,7 +36,7 @@ test("buildFocusGraph(me) — 나 중심이면 호스트 엣지 이웃 전부", 
 });
 test("buildFocusGraph — 삼합-only 이웃은 중립 spoke 합성", () => {
   const G2: StarGraph = { ...G, edges: [edge("me", "a")], triads: [{ element: "화", memberIds: ["a", "d"] }],
-    nodes: [...G.nodes, { id: "d", name: "D", isHost: false, relationType: "friend", element: "화" }] };
+    nodes: [...G.nodes, { id: "d", name: "D", isHost: false, relationType: "friend", element: "화", dayType: "여름 등불형" }] };
   const f = buildFocusGraph("a", G2);
   assert.ok(f.nodes.some((n) => n.id === "d")); // 삼합 mate 포함
   const ad = f.edges.find((e) => (e.a === "a" && e.b === "d") || (e.a === "d" && e.b === "a"));
@@ -49,11 +49,11 @@ test("focusSummary — 나 제외 이웃 수 + 끌림/결속/무리 카운트", 
     shareId: "s",
     claimed: false,
     nodes: [
-      { id: "me", name: "나", isHost: true, relationType: "friend", element: "화" },
-      { id: "a", name: "A", isHost: false, relationType: "friend", element: "목" },
-      { id: "b", name: "B", isHost: false, relationType: "friend", element: "수" },
-      { id: "c", name: "C", isHost: false, relationType: "friend", element: "토" },
-      { id: "d", name: "D", isHost: false, relationType: "friend", element: "금" },
+      { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
+      { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
+      { id: "b", name: "B", isHost: false, relationType: "friend", element: "수", dayType: "겨울 큰바다형" },
+      { id: "c", name: "C", isHost: false, relationType: "friend", element: "토", dayType: "봄 큰산형" },
+      { id: "d", name: "D", isHost: false, relationType: "friend", element: "금", dayType: "가을 원석형" },
     ],
     edges: [
       {
@@ -112,8 +112,8 @@ test("focusSummary — 이웃 0이면 total 0", () => {
     shareId: "s",
     claimed: false,
     nodes: [
-      { id: "me", name: "나", isHost: true, relationType: "friend", element: "화" },
-      { id: "a", name: "A", isHost: false, relationType: "friend", element: "목" },
+      { id: "me", name: "나", isHost: true, relationType: "friend", element: "화", dayType: "여름 등불형" },
+      { id: "a", name: "A", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
     ],
     edges: [
       {

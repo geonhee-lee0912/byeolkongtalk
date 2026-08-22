@@ -5,6 +5,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju } from "@/lib/saju/calc";
 import { pairRelation, findTriads } from "@/lib/saju/pairing";
 import { inyeonScore } from "@/lib/byeoljari/inyeon";
+import { dayType } from "@/lib/byeoljari/day-type";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -69,6 +70,7 @@ export async function GET(
     isHost: m.is_host,
     relationType: m.relation_type,
     element: saju[i].dayElement,
+    dayType: dayType(saju[i].dayStem, saju[i].pillars.month.branch),
   }));
 
   // 삼합 먼저 계산(각 edge 의 triadShared 판정에 필요)

@@ -11,6 +11,7 @@ function node(element: FiveElement, isHost = false): GraphNode {
     isHost,
     relationType: "friend",
     element,
+    dayType: "테스트형",
   };
 }
 
