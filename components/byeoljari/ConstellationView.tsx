@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, orientEdge } from "@/lib/byeoljari/layout";
-import { buildFocusGraph } from "@/lib/byeoljari/focus";
+import { buildFocusGraph, focusSummary } from "@/lib/byeoljari/focus";
 import {
   STAR_ELEMENT_COLORS,
   relationTypeLabel,
@@ -29,6 +29,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   // focusId null = overview(전체 그래프). 게스트 별 탭 = 포커스 진입, 나 탭/배경 탭/"전체 지도 보기" = 리셋.
   const [focusId, setFocusId] = useState<string | null>(null);
   const [listOpenId, setListOpenId] = useState<string | null>(null);
+  const [expandedNeighborId, setExpandedNeighborId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<BondFilter | null>(null);
   const [reveal, setReveal] = useState(false);
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
@@ -67,7 +68,7 @@ export default function ConstellationView({ graph, meId }: Props) {
     if ((focusId || listOpenId) && detailRef.current) {
       detailRef.current.scrollIntoView({ block: "end" });
     }
-  }, [focusId, listOpenId]);
+  }, [focusId, listOpenId, expandedNeighborId]);
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
@@ -132,14 +133,33 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 지도 아래 카드 — 항상 나 ↔ focusId(포커스 진입 중일 때만).
   const card = focusId && pivotId && focusId !== pivotId ? detailFor(pivotId, focusId) : null;
 
+  // 카드 ② — focusId 기준 이웃 전체(나 제외) + 전체 요약. 포커스 중일 때만.
+  const neighbors = focusId
+    ? viewGraph.nodes
+        .filter((n) => n.id !== focusId && n.id !== pivotId)
+        .map((n) => {
+          const d = detailFor(focusId, n.id); // edge/oriented/inyeonInfo/target (graph 기준)
+          const e = d.edge;
+          const tag = e?.heavenlyCombo ? "끌림" : e?.sixCombo ? "결속" : e?.triadShared ? "무리" : "무리";
+          return { id: n.id, name: n.name, tag, ...d };
+        })
+        .sort((a, b) => (b.inyeonInfo?.score ?? 0) - (a.inyeonInfo?.score ?? 0))
+    : [];
+  const summary = focusId ? focusSummary(focusId, pivotId, graph) : null;
+  const focusName = focusId ? (graph.nodes.find((n) => n.id === focusId)?.name ?? "이 별") : "";
+
   function handleNode(id: string) {
-    if (id === pivotId) { setFocusId(null); return; }   // 나 탭 → 전체
-    if (focusId) return;                                  // 포커스 중 이웃 탭 = 무시(Task 5에서 확장)
-    setFocusId(id); setListOpenId(null);                  // overview 게스트 탭 → 포커스
+    if (id === pivotId) { setFocusId(null); setExpandedNeighborId(null); return; }
+    if (focusId) {                                  // 포커스 중: 이웃 별 탭 → 카드 행 펼침(재포커스 아님)
+      if (id !== focusId) setExpandedNeighborId((cur) => (cur === id ? null : id));
+      return;
+    }
+    setFocusId(id); setListOpenId(null); setExpandedNeighborId(null);  // overview 게스트 → 포커스
   }
 
   function resetToOverview() {
     setFocusId(null);
+    setExpandedNeighborId(null);
   }
 
   return (
@@ -201,6 +221,10 @@ export default function ConstellationView({ graph, meId }: Props) {
           focusMode={!!focusId}
           onSelect={handleNode}
           onBackgroundClick={resetToOverview}
+          onEdgeSelect={(a, b) => {
+            const other = a === focusId ? b : a; // spoke 는 focusId 발이라 상대가 이웃
+            if (other && other !== pivotId) setExpandedNeighborId((cur) => (cur === other ? null : other));
+          }}
         />
       </div>
       {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
@@ -222,6 +246,49 @@ export default function ConstellationView({ graph, meId }: Props) {
             sixCombo={card.edge?.sixCombo ?? false}
             inyeon={card.inyeonInfo}
           />
+          <div className="mt-4 border-t border-lilac/30 pt-3">
+            <div className="mb-1 text-xs font-semibold text-eye-purple">{focusName}의 인연</div>
+            {summary && (
+              <p className="mb-2 text-sm text-eye-purple">
+                {summary.total > 0
+                  ? `강하게 엮인 인연 ${summary.total}명 — 끌림 ${summary.chemi} · 결속 ${summary.bond} · 무리 ${summary.triad}. ${summary.comment}`
+                  : summary.comment}
+              </p>
+            )}
+            <div className="space-y-1.5">
+              {neighbors.map((nb) => {
+                const open = expandedNeighborId === nb.id;
+                return (
+                  <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/60 ${open ? "ring-1 ring-lilac" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedNeighborId(open ? null : nb.id)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left"
+                    >
+                      <span className="text-sm text-eye-purple">
+                        {nb.name ?? "이 별"} <span className="text-xs text-text-light">{nb.tag}</span>
+                      </span>
+                      {nb.inyeonInfo && (
+                        <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
+                      )}
+                    </button>
+                    {open && (
+                      <div className="px-3 pb-3 pt-1">
+                        <InyeonDetail
+                          target={nb.target!}
+                          oriented={nb.oriented}
+                          heavenlyCombo={nb.edge?.heavenlyCombo ?? false}
+                          sixCombo={nb.edge?.sixCombo ?? false}
+                          inyeon={nb.inyeonInfo}
+                          pivotIsMe={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
       <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-text-light">
