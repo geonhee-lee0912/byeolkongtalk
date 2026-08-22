@@ -44,7 +44,6 @@ export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo
               <li key={i}>{r}</li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-text-light">별콩이 — {inyeon.comment}</p>
         </div>
       )}
       {pivotIsMe ? (
