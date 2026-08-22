@@ -21,13 +21,18 @@ interface Props {
     comment: string;
   } | null;
   pivotIsMe?: boolean;
+  triadShared?: boolean;
 }
 
 /** 1:1 인연 상세 본문(인연 점수 근거 + 내가/그가 보는 카피 + 뱃지). 지도 하단 카드·리스트 아코디언 공용. */
-export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo, inyeon, pivotIsMe = true }: Props) {
+export default function InyeonDetail({ target, oriented, heavenlyCombo, sixCombo, inyeon, pivotIsMe = true, triadShared = false }: Props) {
   const them = target.name ?? "이 별";
   if (!oriented) {
-    return <p className="text-sm text-text-light">이 별과의 궁합은 아직 볼 수 없어.</p>;
+    return (
+      <p className="text-sm text-text-light">
+        {triadShared ? "같은 무리 (삼합) — 함께면 시너지가 나" : "이 별과의 궁합은 아직 볼 수 없어."}
+      </p>
+    );
   }
   const iSee = relationTenGodCopy(target.relationType, oriented.iSeeThemTenGod) ?? oriented.iSeeThem;
   const theySee = relationTenGodCopy(target.relationType, oriented.theySeeMeTenGod) ?? oriented.theySeeMe;

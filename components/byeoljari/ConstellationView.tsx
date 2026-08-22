@@ -141,7 +141,10 @@ export default function ConstellationView({ graph, meId }: Props) {
           const d = detailFor(focusId, n.id); // edge/oriented/inyeonInfo/target (graph 기준)
           const e = d.edge;
           const tag = e?.heavenlyCombo ? "끌림" : e?.sixCombo ? "결속" : e?.triadShared ? "무리" : "무리";
-          return { id: n.id, name: n.name, tag, ...d };
+          const triadShared = graph.triads.some(
+            (t) => t.memberIds.includes(focusId) && t.memberIds.includes(n.id)
+          );
+          return { id: n.id, name: n.name, tag, triadShared, ...d };
         })
         .sort((a, b) => (b.inyeonInfo?.score ?? 0) - (a.inyeonInfo?.score ?? 0))
     : [];
@@ -281,6 +284,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                           sixCombo={nb.edge?.sixCombo ?? false}
                           inyeon={nb.inyeonInfo}
                           pivotIsMe={false}
+                          triadShared={nb.triadShared}
                         />
                       </div>
                     )}
