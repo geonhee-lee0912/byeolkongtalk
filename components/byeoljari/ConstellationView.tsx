@@ -15,6 +15,8 @@ import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
 import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
 import InyeonDetail from "./InyeonDetail";
+import { relationRole, elementPair, metaphorProse } from "@/lib/byeoljari/relation-role";
+import { useRouter } from "next/navigation";
 
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
@@ -49,7 +51,10 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
   const [mounted, setMounted] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
 
@@ -84,6 +89,8 @@ export default function ConstellationView({ graph, meId }: Props) {
 
   const host = graph.nodes.find((n) => n.isHost) ?? graph.nodes[0];
   const pivotId = meId ?? host?.id ?? null;
+  const myEl = pivotId ? graph.nodes.find((n) => n.id === pivotId)?.element ?? "" : "";
+  const isOwner = meId != null && meId === host?.id; // 뷰어=호스트(맵 주인)일 때만 삭제 노출
 
   // 포커스 뷰 = buildFocusGraph 부분그래프를 focusId 중심으로 재배치. overview = 전체 그래프 그대로.
   const viewGraph = useMemo(() => (focusId ? buildFocusGraph(focusId, graph) : graph), [focusId, graph]);
@@ -137,11 +144,15 @@ export default function ConstellationView({ graph, meId }: Props) {
       .map((e) => {
         const otherId = e.a === pivotId ? e.b : e.a;
         const other = graph.nodes.find((n) => n.id === otherId);
+        const oriented = orientEdge(e, pivotId);
         const special =
           (e.heavenlyCombo ? 1 : 0) + (e.sixCombo ? 1 : 0) + (e.triadShared ? 1 : 0);
         return {
           id: otherId,
           name: other?.name ?? null,
+          element: other?.element ?? "",
+          dayType: other?.dayType ?? "",
+          relation: oriented?.element ?? "",
           inyeon: e.inyeon,
           special,
         };
@@ -182,6 +193,26 @@ export default function ConstellationView({ graph, meId }: Props) {
   function resetToOverview() {
     setFocusId(null);
     setExpandedNeighborId(null);
+  }
+
+  async function handleDeleteMember(memberId: string) {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/fortune/byeoljari/${graph.shareId}/members/${memberId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.ok) {
+        router.refresh();
+        window.location.reload(); // 그래프는 클라 fetch라 확실히 재조회
+      } else {
+        setDeleting(false);
+        setConfirmDeleteId(null);
+      }
+    } catch {
+      setDeleting(false);
+      setConfirmDeleteId(null);
+    }
   }
 
   return (
@@ -361,21 +392,53 @@ export default function ConstellationView({ graph, meId }: Props) {
                     aria-expanded={open}
                     onClick={() => {
                       setListOpenId((cur) => (cur === r.id ? null : r.id));
+                      setConfirmDeleteId(null);
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
-                    className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:scale-[0.99] ${
+                    className={`block w-full px-4 py-3 text-left transition active:scale-[0.99] ${
                       top ? "hover:bg-white/5" : "hover:bg-lilac-soft/40"
                     }`}
                   >
-                    <span className={`min-w-0 truncate text-sm ${top ? "text-cream-warm" : "text-eye-purple"}`}>
-                      {i + 1}위 · {r.name ?? "이 별"}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${gradeChipClass(grade.tone)}`}>
-                        {grade.label}
+                    <span className="flex items-center gap-2.5">
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${top ? "bg-gold text-night" : "bg-lilac-soft text-eye-purple"}`}>
+                        {i + 1}
                       </span>
-                      <span className={`font-display text-lg font-bold ${top ? "text-gold" : "text-eye-purple"}`}>
-                        {r.inyeon}
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+                        style={{ backgroundColor: STAR_ELEMENT_COLORS[r.element as keyof typeof STAR_ELEMENT_COLORS] ?? "#B8A8D8", color: "#1F1735" }}
+                      >
+                        {r.element}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-sm font-semibold ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                          {r.name ?? "이 별"}
+                        </span>
+                        {r.dayType && (
+                          <span className={`block truncate text-xs ${top ? "text-lilac-soft" : "text-text-light"}`}>
+                            {r.dayType}
+                          </span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className={`block font-display text-lg font-bold leading-none ${top ? "text-gold" : "text-eye-purple"}`}>
+                          {r.inyeon}
+                        </span>
+                        <span className={`mt-0.5 block text-[11px] ${top ? "text-lilac-soft" : "text-text-light"}`}>
+                          인연 점수
+                        </span>
+                      </span>
+                    </span>
+                    <span className={`mt-2.5 block border-t pt-2.5 ${top ? "border-white/15" : "border-lilac-soft"}`}>
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${gradeChipClass(grade.tone)}`}>
+                          {grade.label}
+                        </span>
+                        <span className={`text-xs ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                          {relationRole(r.relation)} · {elementPair(r.relation, myEl, r.element)}
+                        </span>
+                      </span>
+                      <span className={`mt-1.5 block text-[12.5px] leading-relaxed ${top ? "text-[#D9CFF0]" : "text-eye-purple"}`}>
+                        {metaphorProse(r.relation, myEl, r.element)}
                       </span>
                     </span>
                   </button>
@@ -387,7 +450,38 @@ export default function ConstellationView({ graph, meId }: Props) {
                         heavenlyCombo={rowDetail.edge?.heavenlyCombo ?? false}
                         sixCombo={rowDetail.edge?.sixCombo ?? false}
                         inyeon={rowDetail.inyeonInfo}
+                        showProse={false}
                       />
+                      {isOwner && !rowDetail.target.isHost && (
+                        confirmDeleteId === r.id ? (
+                          <span className="mt-3 flex items-center gap-2 text-sm">
+                            <span className="text-text-light">이 별을 지도에서 지울까?</span>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="rounded-full border border-lilac-mid/40 px-3 py-1 text-xs text-eye-purple"
+                            >
+                              취소
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deleting}
+                              onClick={() => handleDeleteMember(r.id)}
+                              className="rounded-full bg-[#D85A30] px-3 py-1 text-xs text-white disabled:opacity-50"
+                            >
+                              {deleting ? "지우는 중…" : "지우기"}
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(r.id)}
+                            className="mt-3 text-xs text-text-light underline underline-offset-2"
+                          >
+                            지우기
+                          </button>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
