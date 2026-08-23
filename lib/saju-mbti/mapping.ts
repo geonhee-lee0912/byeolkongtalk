@@ -72,12 +72,19 @@ export function strengthRaw(saju: SajuResult): number {
   const deukRyeong = supportsDay(dayEl, monthBranchEl) ? 40 : 0;
   const deukJi = supportsDay(dayEl, dayBranchEl) ? 20 : 0;
 
-  const rest = activeChars(saju).filter(
-    (c) => !(c.char === p.month.branch && !c.isStem) && !(c.char === p.day.branch && !c.isStem)
-  );
+  // 득세: 나머지 위치(년간·년지·월간·[시간·시지]) — 월지(득령)·일지(득지)·일간(기준) 제외. 위치 기준(글자값 아님).
+  const restCells: CharCell[] = [
+    { char: p.year.stem, isStem: true, weight: POSITION_WEIGHT.yearStem },
+    { char: p.year.branch, isStem: false, weight: POSITION_WEIGHT.yearBranch },
+    { char: p.month.stem, isStem: true, weight: POSITION_WEIGHT.monthStem },
+  ];
+  if (saju.input.hourKnown) {
+    restCells.push({ char: p.hour.stem, isStem: true, weight: POSITION_WEIGHT.hourStem });
+    restCells.push({ char: p.hour.branch, isStem: false, weight: POSITION_WEIGHT.hourBranch });
+  }
   let support = 0;
   let total = 0;
-  for (const c of rest) {
+  for (const c of restCells) {
     total += c.weight;
     if (supportsDay(dayEl, elementOf(c))) support += c.weight;
   }
