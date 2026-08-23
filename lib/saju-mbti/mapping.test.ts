@@ -179,3 +179,37 @@ test("QUANTILE_TABLE — 4축·21점·오름차순", () => {
     for (let i = 1; i < q.length; i++) assert.ok(q[i] >= q[i - 1], `${k} 비단조`);
   }
 });
+
+import { paljaType } from "./mapping.ts";
+
+test("paljaType — 코드 4글자·축 순서(음양·강유·재인·생단)", () => {
+  const s = mkSaju({ year: ["임", "신"], month: ["기", "유"], day: ["신", "묘"], hour: ["을", "미"] });
+  const t = paljaType(s);
+  assert.equal(t.code.length, 4);
+  assert.ok(["양", "음"].includes(t.axes.yinYang.pole));
+  assert.ok(["강", "유"].includes(t.axes.strength.pole));
+  assert.ok(["재", "인"].includes(t.axes.wealth.pole));
+  assert.ok(["생", "단"].includes(t.axes.nurture.pole));
+  assert.equal(
+    t.code,
+    t.axes.yinYang.pole + t.axes.strength.pole + t.axes.wealth.pole + t.axes.nurture.pole
+  );
+});
+
+test("paljaType — pct 0~100·pole 은 pct≥50 기준", () => {
+  const s = mkSaju({ year: ["임", "신"], month: ["기", "유"], day: ["신", "묘"], hour: ["을", "미"] });
+  const t = paljaType(s);
+  for (const key of ["yinYang", "strength", "wealth", "nurture"] as const) {
+    const a = t.axes[key];
+    assert.ok(a.pct >= 0 && a.pct <= 100);
+  }
+  assert.equal(t.axes.yinYang.pole === "양", t.axes.yinYang.pct >= 50);
+});
+
+test("paljaType — element·elementDist·raw 양념 포함", () => {
+  const s = mkSaju({ year: ["임", "신"], month: ["기", "유"], day: ["신", "묘"], hour: ["을", "미"] });
+  const t = paljaType(s);
+  assert.ok(["목", "화", "토", "금", "수"].includes(t.element));
+  assert.equal(Object.values(t.elementDist).reduce((a, b) => a + b, 0) > 0, true);
+  assert.ok(Array.isArray(t.tenGods));
+});

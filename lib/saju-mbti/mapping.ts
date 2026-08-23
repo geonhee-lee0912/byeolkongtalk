@@ -1,6 +1,7 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import { STEM_ELEMENT, elementRelation, tenGod } from "@/lib/saju/pairing";
+import type { AxisKey, Pole } from "./constants.ts";
 import {
   JANGAN_BONGI,
   POSITION_WEIGHT,
@@ -9,6 +10,7 @@ import {
   ELEMENT_YINYANG,
   DAY_STEM_PAIR_WEIGHT,
   DAY_STEM_ELEMENT_WEIGHT,
+  QUANTILE_TABLE,
 } from "./constants.ts";
 
 export interface CharCell {
@@ -183,4 +185,55 @@ export function axisPercentile(raw: number, q: number[]): number {
     }
   }
   return 100;
+}
+
+export interface AxisResult {
+  raw: number;
+  pct: number;
+  pole: Pole;
+}
+
+export interface PaljaType {
+  axes: {
+    yinYang: AxisResult;
+    strength: AxisResult;
+    wealth: AxisResult;
+    nurture: AxisResult;
+  };
+  code: string;
+  element: FiveElement;
+  elementDist: Record<FiveElement, number>;
+  tenGods: string[];
+  jangan: string[];
+}
+
+const POLES: Record<AxisKey, [Pole, Pole]> = {
+  yinYang: ["양", "음"],
+  strength: ["강", "유"],
+  wealth: ["재", "인"],
+  nurture: ["생", "단"],
+};
+
+function axisResult(key: AxisKey, raw: number): AxisResult {
+  const pct = axisPercentile(raw, QUANTILE_TABLE[key]);
+  const [front, back] = POLES[key];
+  return { raw, pct, pole: pct >= 50 ? front : back };
+}
+
+export function paljaType(saju: SajuResult): PaljaType {
+  const axes = {
+    yinYang: axisResult("yinYang", yinYangRaw(saju)),
+    strength: axisResult("strength", strengthRaw(saju)),
+    wealth: axisResult("wealth", wealthRaw(saju)),
+    nurture: axisResult("nurture", nurtureRaw(saju)),
+  };
+  const code = axes.yinYang.pole + axes.strength.pole + axes.wealth.pole + axes.nurture.pole;
+  return {
+    axes,
+    code,
+    element: dominantElement(saju),
+    elementDist: elementDistribution(saju),
+    tenGods: activeChars(saju).map((c) => tenGod(saju.dayStem, stemOf(c))),
+    jangan: activeChars(saju).filter((c) => !c.isStem).map((c) => JANGAN_BONGI[c.char]),
+  };
 }
