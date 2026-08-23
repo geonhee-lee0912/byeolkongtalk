@@ -9,7 +9,6 @@ import {
   BOND_COLOR,
   starColor,
   relationTypeLabel,
-  RELATION_TYPE_LABEL,
   directionParticle,
 } from "@/lib/byeoljari/display";
 import { presentBondFilters, BOND_FILTER_LABEL, type BondFilter } from "@/lib/byeoljari/bond-filter";
@@ -23,9 +22,6 @@ import { relationRole, elementPair } from "@/lib/byeoljari/relation-role";
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
-
-// 관계분류 순서(포커스 카드 그룹 헤더) — display.ts 단일 원천(드리프트 방지).
-const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
 
 // 순위 원(번호) 금·은·동. 4위+는 기본. 배경 베이지 통일로 순위는 이 원 색으로만 구분.
 function rankChipClass(i: number): string {
@@ -351,12 +347,12 @@ export default function ConstellationView({ graph, meId }: Props) {
               </p>
             )}
             <div className="space-y-3">
-              {RELATION_ORDER.map((rt) => {
-                const members = neighbors.filter((nb) => nb.target?.relationType === rt);
+              {Object.values(BOND_FILTER_LABEL).map((tag) => {
+                const members = neighbors.filter((nb) => nb.tag === tag);
                 if (!members.length) return null;
                 return (
-                  <div key={rt}>
-                    <div className="mb-1.5 text-xs font-medium text-text-light">{relationTypeLabel(rt)}</div>
+                  <div key={tag}>
+                    <div className="mb-1.5 text-xs font-medium text-text-light">{tag}</div>
                     <div className="space-y-1.5">
                       {members.map((nb) => {
                         const open = expandedNeighborId === nb.id;

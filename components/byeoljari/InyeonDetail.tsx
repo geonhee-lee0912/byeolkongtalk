@@ -67,9 +67,9 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
         </div>
       )}
       {(rd.good || rd.caution) && (
-        <div className="rounded-xl bg-eye-purple p-3 text-sm">
-          {rd.good && <div className="text-cream-warm">잘 맞는 점 · {rd.good}</div>}
-          {rd.caution && <div className="mt-1 text-lilac-soft">살짝 조심 · {rd.caution}</div>}
+        <div className="rounded-xl bg-lilac-soft/40 p-3 text-sm">
+          {rd.good && <div className="text-eye-purple">잘 맞는 점 · {rd.good}</div>}
+          {rd.caution && <div className="mt-1 text-text-light">살짝 조심 · {rd.caution}</div>}
         </div>
       )}
     </div>
