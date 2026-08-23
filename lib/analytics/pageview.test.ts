@@ -69,3 +69,12 @@ test("normalizePath — 200자로 cap", () => {
   const long = "/" + "a".repeat(500);
   assert.equal(normalizePath(long)!.length, 200);
 });
+
+test("normalizePath — byeoljari 공유 랜딩은 :shareId 로 접힌다", () => {
+  assert.equal(normalizePath("/fortune/byeoljari/aB3xK9zQ1p"), "/fortune/byeoljari/:shareId");
+  assert.equal(normalizePath("/fortune/byeoljari/MAP123?x=1"), "/fortune/byeoljari/:shareId");
+});
+
+test("normalizePath — byeoljari 만들기 경로는 그대로", () => {
+  assert.equal(normalizePath("/fortune/byeoljari"), "/fortune/byeoljari");
+});

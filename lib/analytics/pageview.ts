@@ -16,8 +16,14 @@ const UUIDISH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export function normalizePath(raw: unknown): string | null {
   if (typeof raw !== "string" || !raw.startsWith("/")) return null;
   const clean = raw.split("?")[0].split("#")[0];
-  const folded = clean
-    .split("/")
+  const segs = clean.split("/");
+  // byeoljari 공유 랜딩 /fortune/byeoljari/{shareId} → :shareId.
+  // shareId 는 base62 10자라 아래 UUID/숫자 규칙에 안 걸린다(전용 규칙 필요).
+  // 개별 맵 귀속은 user_acquisition.utm_content 가 담당 — page_views 는 라우트 트래픽용.
+  if (segs[1] === "fortune" && segs[2] === "byeoljari" && segs[3]) {
+    segs[3] = ":shareId";
+  }
+  const folded = segs
     .map((s) => (UUIDISH.test(s) || /^\d{6,}$/.test(s) ? ":id" : s))
     .join("/");
   return (folded || "/").slice(0, 200);
