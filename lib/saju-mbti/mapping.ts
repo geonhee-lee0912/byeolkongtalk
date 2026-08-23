@@ -4,6 +4,7 @@ import { STEM_ELEMENT, elementRelation, tenGod } from "@/lib/saju/pairing";
 import {
   type AxisKey,
   type Pole,
+  POLES,
   JANGAN_BONGI,
   POSITION_WEIGHT,
   STEM_ORDER,
@@ -208,13 +209,6 @@ export interface PaljaType {
   tenGods: string[];
   jangan: string[];
 }
-
-const POLES: Record<AxisKey, [Pole, Pole]> = {
-  yinYang: ["양", "음"],
-  strength: ["강", "유"],
-  wealth: ["재", "인"],
-  nurture: ["생", "단"],
-};
 
 function axisResult(key: AxisKey, raw: number, table: Record<AxisKey, number[]>): AxisResult {
   const pct = axisPercentile(raw, table[key]);

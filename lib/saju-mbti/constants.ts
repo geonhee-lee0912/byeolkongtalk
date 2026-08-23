@@ -3,6 +3,14 @@ import type { FiveElement } from "@/lib/saju/elements";
 export type Pole = "양" | "음" | "강" | "유" | "재" | "인" | "생" | "단";
 export type AxisKey = "yinYang" | "strength" | "wealth" | "nurture";
 
+// 축별 [앞극, 뒷극]. 극 라벨·코드 조립의 단일 원천 (사주 팔자·문항 자아 공용).
+export const POLES: Record<AxisKey, [Pole, Pole]> = {
+  yinYang: ["양", "음"],
+  strength: ["강", "유"],
+  wealth: ["재", "인"],
+  nurture: ["생", "단"],
+};
+
 // 위치 가중치 (일간은 기준점 → 축 합산에서 제외 = 0)
 export const POSITION_WEIGHT = {
   yearStem: 1.0,
