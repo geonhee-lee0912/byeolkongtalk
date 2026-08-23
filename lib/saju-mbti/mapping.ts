@@ -1,8 +1,9 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import { STEM_ELEMENT, elementRelation, tenGod } from "@/lib/saju/pairing";
-import type { AxisKey, Pole } from "./constants.ts";
 import {
+  type AxisKey,
+  type Pole,
   JANGAN_BONGI,
   POSITION_WEIGHT,
   STEM_ORDER,
