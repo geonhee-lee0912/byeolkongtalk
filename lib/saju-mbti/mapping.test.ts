@@ -105,3 +105,20 @@ test("wealthRaw — 비겁은 제외(재도 인도 아님)", () => {
   const s = mkSaju({ year: ["갑", "인"], month: ["을", "묘"], day: ["갑", "인"], hour: ["을", "묘"] });
   assert.equal(wealthRaw(s), 0);
 });
+
+import { nurtureRaw } from "./mapping.ts";
+
+test("nurtureRaw — 상생 분위기면 생(+)", () => {
+  const s = mkSaju({ year: ["갑", "오"], month: ["병", "진"], day: ["무", "신"], hour: ["경", "자"] });
+  assert.ok(nurtureRaw(s) > 0);
+});
+
+test("nurtureRaw — 상극 분위기면 단(-)", () => {
+  const s = mkSaju({ year: ["갑", "진"], month: ["무", "자"], day: ["임", "오"], hour: ["병", "신"] });
+  assert.ok(nurtureRaw(s) < 0);
+});
+
+test("nurtureRaw — 시간 모름이면 시주 쌍 제외(값 달라짐)", () => {
+  const p = { year: ["갑", "오"], month: ["병", "진"], day: ["무", "신"], hour: ["경", "자"] } as const;
+  assert.notEqual(nurtureRaw(mkSaju(p)), nurtureRaw(mkSaju(p, { hourKnown: false })));
+});

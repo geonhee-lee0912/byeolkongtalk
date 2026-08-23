@@ -1,7 +1,14 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import { STEM_ELEMENT, elementRelation, tenGod } from "@/lib/saju/pairing";
-import { JANGAN_BONGI, POSITION_WEIGHT, STEM_ORDER, BRANCH_ORDER, ELEMENT_YINYANG } from "./constants.ts";
+import {
+  JANGAN_BONGI,
+  POSITION_WEIGHT,
+  STEM_ORDER,
+  BRANCH_ORDER,
+  ELEMENT_YINYANG,
+  DAY_STEM_PAIR_WEIGHT,
+} from "./constants.ts";
 
 export interface CharCell {
   char: string;
@@ -91,4 +98,44 @@ export function wealthRaw(saju: SajuResult): number {
     else if (SEAL_CAMP.has(god)) seal += cell.weight;
   }
   return wealth - seal;
+}
+
+/** 생/단 raw = 상생쌍 가중합 − 상극쌍 가중합. + = 생. 이웃쌍 = 간-지(각 기둥) + 인접천간 + 인접지지. */
+export function nurtureRaw(saju: SajuResult): number {
+  const p = saju.pillars;
+  const hk = saju.input.hourKnown;
+
+  type Node = { el: FiveElement; w: number };
+  const stem = (ch: string, w: number): Node => ({ el: STEM_ELEMENT[ch], w });
+  const branch = (ch: string, w: number): Node => ({ el: STEM_ELEMENT[JANGAN_BONGI[ch]], w });
+
+  const yS = stem(p.year.stem, POSITION_WEIGHT.yearStem);
+  const yB = branch(p.year.branch, POSITION_WEIGHT.yearBranch);
+  const mS = stem(p.month.stem, POSITION_WEIGHT.monthStem);
+  const mB = branch(p.month.branch, POSITION_WEIGHT.monthBranch);
+  const dS = stem(p.day.stem, DAY_STEM_PAIR_WEIGHT);
+  const dB = branch(p.day.branch, POSITION_WEIGHT.dayBranch);
+  const hS = stem(p.hour.stem, POSITION_WEIGHT.hourStem);
+  const hB = branch(p.hour.branch, POSITION_WEIGHT.hourBranch);
+
+  const pairs: [Node, Node][] = [
+    [yS, yB], [mS, mB], [dS, dB],
+    [yS, mS], [mS, dS],
+    [yB, mB], [mB, dB],
+  ];
+  if (hk) {
+    pairs.push([hS, hB]);
+    pairs.push([dS, hS]);
+    pairs.push([dB, hB]);
+  }
+
+  let generate = 0;
+  let restrain = 0;
+  for (const [a, b] of pairs) {
+    const rel = elementRelation(a.el, b.el);
+    const w = (a.w + b.w) / 2;
+    if (rel === "생아" || rel === "아생") generate += w;
+    else if (rel === "극아" || rel === "아극") restrain += w;
+  }
+  return generate - restrain;
 }
