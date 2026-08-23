@@ -39,6 +39,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     JOIN member_anons ma ON ma.anon_id = pv.anon_id
     WHERE pv.user_id IS NOT NULL
       AND pv.user_id <> ALL(p_exclude)
+      AND pv.is_bot = false
   ), utm_users AS (
     SELECT DISTINCT ua.user_id AS user_id
     FROM user_acquisition ua
@@ -94,7 +95,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   ), member_users AS (
     SELECT DISTINCT pv.user_id AS user_id
     FROM page_views pv JOIN member_anons ma ON ma.anon_id = pv.anon_id
-    WHERE pv.user_id IS NOT NULL AND pv.user_id <> ALL(p_exclude)
+    WHERE pv.user_id IS NOT NULL AND pv.user_id <> ALL(p_exclude) AND pv.is_bot = false
   ), utm_users AS (
     SELECT DISTINCT ua.user_id AS user_id
     FROM user_acquisition ua
