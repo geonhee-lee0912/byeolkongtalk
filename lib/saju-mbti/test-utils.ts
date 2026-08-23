@@ -4,14 +4,14 @@ import { STEM_ELEMENT } from "@/lib/saju/pairing";
 /** 8글자를 직접 지정해 SajuResult 를 만든다(매핑이 읽는 필드만 채움). */
 export function mkSaju(
   pillars: {
-    year: [string, string];
-    month: [string, string];
-    day: [string, string];
-    hour: [string, string];
+    year: readonly [string, string];
+    month: readonly [string, string];
+    day: readonly [string, string];
+    hour: readonly [string, string];
   },
   opts: { hourKnown?: boolean } = {}
 ): SajuResult {
-  const cell = ([s, b]: [string, string]) => ({ stem: s, branch: b, hanja: "" });
+  const cell = ([s, b]: readonly [string, string]) => ({ stem: s, branch: b, hanja: "" });
   const dayStem = pillars.day[0];
   return {
     pillars: {
