@@ -90,7 +90,7 @@ export default function ConstellationCanvas({
             y={bgOff}
             width={bgSize}
             height={bgSize}
-            opacity={0.4}
+            opacity={0.2}
             preserveAspectRatio="xMidYMid meet"
             pointerEvents="none"
             filter="url(#shapeGlow)"
@@ -103,7 +103,7 @@ export default function ConstellationCanvas({
             y={bgOff}
             width={bgSize}
             height={bgSize}
-            opacity={0.28}
+            opacity={0.13}
             preserveAspectRatio="xMidYMid meet"
             pointerEvents="none"
             style={{ mixBlendMode: "screen" }}
