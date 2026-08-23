@@ -6,6 +6,7 @@ import { computeLayout, orientEdge } from "@/lib/byeoljari/layout";
 import { buildFocusGraph, focusSummary } from "@/lib/byeoljari/focus";
 import {
   STAR_ELEMENT_COLORS,
+  BOND_COLOR,
   starColor,
   relationTypeLabel,
   directionParticle,
@@ -358,15 +359,15 @@ export default function ConstellationView({ graph, meId }: Props) {
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-xs text-eye-purple">
           <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#F2D78A" strokeWidth="2" strokeLinecap="round" /></svg>
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.heavenly} strokeWidth="2" strokeLinecap="round" /></svg>
             끌림
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#A98BEE" strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.six} strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
             결속
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#5DCAA5" strokeWidth="2" strokeLinecap="round" /></svg>
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.triad} strokeWidth="2" strokeLinecap="round" /></svg>
             같은 결
           </span>
         </div>
