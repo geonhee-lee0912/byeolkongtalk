@@ -54,3 +54,9 @@ test("라벨은 빈 문자열이 되지 않는다", () => {
     assert.ok(routeLabel(p).length > 0, `${p} 라벨이 비었다`);
   }
 });
+
+test("byeoljari 라우트에 라벨이 붙는다", () => {
+  assert.match(routeLabel("/fortune/byeoljari"), /별자리/);
+  assert.match(routeLabel("/fortune/byeoljari/:shareId"), /별자리/);
+  assert.notEqual(routeLabel("/fortune/byeoljari"), "/fortune/byeoljari");
+});

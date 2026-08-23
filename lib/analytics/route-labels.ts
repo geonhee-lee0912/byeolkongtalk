@@ -19,6 +19,8 @@ const ROUTE_LABEL: Record<string, string> = {
   "/tarot/result": "타로 — 결과 카드",
   "/fortune": "별콩 운세 — 진열대",
   "/fortune/result": "별콩 운세 — 리포트 결과",
+  "/fortune/byeoljari": "별 인연 별자리 — 만들기",
+  "/fortune/byeoljari/:shareId": "별 인연 별자리 — 초대 조회",
   "/relationship": "연애 상담 (우리 사이)",
   "/saju": "사주 — 생년월일 입력",
   "/saju/concern": "사주 — 고민 입력",
