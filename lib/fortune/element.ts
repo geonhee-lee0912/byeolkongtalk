@@ -1,7 +1,7 @@
 // 오행(FiveElement) 관련 공유 상수·헬퍼 — daily / monthly 리포트 양쪽에서 사용.
 // 원래 daily-report.ts 에 있던 것을 추출. daily-report.ts 는 ELEMENT_COLOR 를 re-export 해 기존 사용처 호환.
 
-import type { FiveElement } from "manseryeok";
+import type { FiveElement } from "@/lib/saju/elements";
 
 /** 오행 → 색 (간지 글자 점 색). 브랜드 톤 고정. */
 export const ELEMENT_COLOR: Record<FiveElement, string> = {

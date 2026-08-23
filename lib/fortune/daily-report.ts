@@ -2,7 +2,7 @@
 // daily 리포트는 messages.content 에 "병합된 JSON 문자열"(v:1)로 저장된다.
 // monthly·saju_full 은 기존 마크다운 그대로라 이 모듈을 쓰지 않는다.
 
-import type { FiveElement } from "manseryeok";
+import type { FiveElement } from "@/lib/saju/elements";
 import type { TemporalLuck } from "@/lib/saju/calc";
 import { ELEMENT_COLOR, STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
 import { parseReportJson } from "./json-recover";
