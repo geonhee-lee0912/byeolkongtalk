@@ -11,7 +11,8 @@ import {
   ELEMENT_YINYANG,
   DAY_STEM_PAIR_WEIGHT,
   DAY_STEM_ELEMENT_WEIGHT,
-  QUANTILE_TABLE,
+  QUANTILE_TABLE_KNOWN,
+  QUANTILE_TABLE_UNKNOWN,
 } from "./constants.ts";
 
 export interface CharCell {
@@ -215,18 +216,19 @@ const POLES: Record<AxisKey, [Pole, Pole]> = {
   nurture: ["생", "단"],
 };
 
-function axisResult(key: AxisKey, raw: number): AxisResult {
-  const pct = axisPercentile(raw, QUANTILE_TABLE[key]);
+function axisResult(key: AxisKey, raw: number, table: Record<AxisKey, number[]>): AxisResult {
+  const pct = axisPercentile(raw, table[key]);
   const [front, back] = POLES[key];
   return { raw, pct, pole: pct >= 50 ? front : back };
 }
 
 export function paljaType(saju: SajuResult): PaljaType {
+  const table = saju.input.hourKnown ? QUANTILE_TABLE_KNOWN : QUANTILE_TABLE_UNKNOWN;
   const axes = {
-    yinYang: axisResult("yinYang", yinYangRaw(saju)),
-    strength: axisResult("strength", strengthRaw(saju)),
-    wealth: axisResult("wealth", wealthRaw(saju)),
-    nurture: axisResult("nurture", nurtureRaw(saju)),
+    yinYang: axisResult("yinYang", yinYangRaw(saju), table),
+    strength: axisResult("strength", strengthRaw(saju), table),
+    wealth: axisResult("wealth", wealthRaw(saju), table),
+    nurture: axisResult("nurture", nurtureRaw(saju), table),
   };
   const code = axes.yinYang.pole + axes.strength.pole + axes.wealth.pole + axes.nurture.pole;
   return {
