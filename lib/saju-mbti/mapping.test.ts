@@ -27,3 +27,28 @@ test("constants — 위치 가중치(월지 3.0·일간 0)", () => {
   assert.equal(POSITION_WEIGHT.dayStem, 0);
   assert.equal(POSITION_WEIGHT.dayBranch, 1.5);
 });
+
+import { activeChars, stemOf, elementOf } from "./mapping.ts";
+import { mkSaju } from "./test-utils.ts";
+
+test("activeChars — 일간 제외 7글자(시간 앎) / 5글자(시간 모름)", () => {
+  const s = mkSaju({ year: ["갑", "자"], month: ["병", "인"], day: ["무", "오"], hour: ["경", "신"] });
+  const known = activeChars(s);
+  assert.equal(known.length, 7);
+  assert.ok(!known.some((c) => c.char === "무" && c.isStem));
+  const unknown = activeChars(mkSaju(
+    { year: ["갑", "자"], month: ["병", "인"], day: ["무", "오"], hour: ["경", "신"] },
+    { hourKnown: false }
+  ));
+  assert.equal(unknown.length, 5);
+});
+
+test("stemOf — 천간 그대로 / 지지는 본기", () => {
+  assert.equal(stemOf({ char: "갑", isStem: true, weight: 1 }), "갑");
+  assert.equal(stemOf({ char: "인", isStem: false, weight: 1 }), "갑");
+});
+
+test("elementOf — 본기 오행", () => {
+  assert.equal(elementOf({ char: "자", isStem: false, weight: 1 }), "수");
+  assert.equal(elementOf({ char: "병", isStem: true, weight: 1 }), "화");
+});
