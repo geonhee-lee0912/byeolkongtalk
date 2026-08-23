@@ -18,6 +18,12 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
   );
 }
 
+function fmtDuration(hours: number): string {
+  if (hours < 1) return `${Math.round(hours * 60)}분`;
+  if (hours < 24) return `${Math.round(hours * 10) / 10}시간`;
+  return `${Math.round((hours / 24) * 10) / 10}일`;
+}
+
 // 일별 표에 그릴 kind 순서·라벨(단일 원천).
 const TREND_COLS: { kind: string; label: string; won?: boolean }[] = [
   { kind: "maps_created", label: "생성" },
@@ -36,15 +42,19 @@ async function load() {
   const p_since = daysAgoKstIso(29); // 최근 30일(오늘 포함)
   const today = kstDate(new Date().toISOString());
 
-  const [sumRes, trendRes, distRes] = await Promise.all([
+  const [sumRes, trendRes, distRes, utmRes, convRes] = await Promise.all([
     supa.rpc("admin_byeoljari_summary", { p_exclude }),
     supa.rpc("admin_byeoljari_trend", { p_since, p_exclude }),
     supa.rpc("admin_byeoljari_member_dist", { p_exclude }),
+    supa.rpc("admin_byeoljari_creator_utm", { p_exclude }),
+    supa.rpc("admin_byeoljari_conversion", { p_exclude }),
   ]);
 
   const sumFailed = !!sumRes.error;
   const trendFailed = !!trendRes.error;
   const distFailed = !!distRes.error;
+  const utmFailed = !!utmRes.error;
+  const convFailed = !!convRes.error;
 
   const su = (
     (sumRes.data ?? []) as {
@@ -70,8 +80,13 @@ async function load() {
     }[]
   )[0];
 
+  const creatorUtm = (utmRes.data ?? []) as { utm_source: string; cnt: number }[];
+  const conv = (
+    (convRes.data ?? []) as { create_to_pay_median_hours: number | null; sample_n: number }[]
+  )[0];
+
   return {
-    sumFailed, trendFailed, distFailed, today,
+    sumFailed, trendFailed, distFailed, utmFailed, convFailed, today,
     su: {
       totalMaps: Number(su?.total_maps ?? 0),
       mapsLogin: Number(su?.maps_login ?? 0),
@@ -104,6 +119,11 @@ async function load() {
         { label: "11명+", v: Number(di?.maps_11plus ?? 0) },
       ],
     },
+    creatorUtm: creatorUtm.map((u) => ({ source: u.utm_source, cnt: Number(u.cnt) })),
+    conv: {
+      medianHours: conv?.create_to_pay_median_hours == null ? null : Number(conv.create_to_pay_median_hours),
+      sampleN: Number(conv?.sample_n ?? 0),
+    },
     buckets,
     byBucket,
   };
@@ -134,8 +154,23 @@ export default async function AdminByeoljariPage() {
           <Stat label="만들기 진입 UV" value={s.sumFailed ? "—" : su.entryUv} />
           <Stat label="진입→생성 전환" value={s.sumFailed ? "—" : `${entryToCreate}%`} />
           <Stat label="별자리 경유 가입(utm)" value={s.sumFailed ? "—" : su.signupsUtm} sub="미래분" />
+          <Stat
+            label="생성→첫결제 중앙"
+            value={s.convFailed || s.conv.medianHours == null ? "—" : fmtDuration(s.conv.medianHours)}
+            sub={s.convFailed || !s.conv.sampleN ? undefined : `표본 ${s.conv.sampleN}명`}
+          />
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">생성자 UTM 분포</h3>
+        {s.utmFailed ? (
+          <LoadFailed block="admin_byeoljari_creator_utm" />
+        ) : s.creatorUtm.length === 0 ? (
+          <div className="text-[12px] text-white/40">데이터 없음</div>
+        ) : (
+          <div className="text-[12px] text-white/40">
+            {s.creatorUtm.map((u) => `${u.source} ${u.cnt}`).join(" · ")}
+          </div>
+        )}
       </section>
 
       <section>
