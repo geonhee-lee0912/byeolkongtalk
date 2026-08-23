@@ -5,6 +5,8 @@ import type { StarGraph } from "@/lib/byeoljari/types";
 import ConstellationView from "@/components/byeoljari/ConstellationView";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
+import { buildInviteUrl } from "@/lib/byeoljari/invite-link";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
 const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
@@ -92,7 +94,9 @@ export default function ByeoljariGuestPage() {
             <button
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(window.location.href);
+                  const url = buildInviteUrl(window.location.origin, shareId);
+                  await navigator.clipboard.writeText(url);
+                  trackUiEvent("byeoljari_invite_clicked", { meta: { shareId } });
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 } catch {

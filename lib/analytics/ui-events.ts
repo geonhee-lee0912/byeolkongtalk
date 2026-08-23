@@ -19,6 +19,8 @@ export const UI_EVENTS = [
   "fortune_chip_clicked",
   /** 홈 히어로 캐러셀 배너 클릭 — meta.slot 에 카드 id(intro|charge|gonghap|sim|survey|pass) */
   "banner_clicked",
+  /** 별자리 초대 링크 복사(초대 발신) — meta.shareId */
+  "byeoljari_invite_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
