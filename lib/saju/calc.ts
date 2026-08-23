@@ -1,14 +1,11 @@
-// manseryeok wrapper — 사용자 입력 (양/음력 + 시간) → 4기둥 + 오행 분포 + 직렬화 형태.
+// tyme4ts wrapper — 사용자 입력 (양/음력 + 시간) → 4기둥 + 오행 분포 + 직렬화 형태.
 // readings.saju_data JSONB 컬럼에 그대로 저장.
 //
-// 결정적 계산이라 Claude 미경유. 라이브러리 자체는 deps 없음 + Edge 호환 추정.
+// 결정적 계산이라 Claude 미경유. tyme4ts: 절기=천문계산(입춘 년주·절기 월주), 야자시=23시 다음날 일주.
+// (구 manseryeok 은 년주 입춘 무시·월주 절기공식 버그로 교체 — 2026-08-23)
 
-import {
-  calculateFourPillars,
-  type BirthInfo,
-  type FourPillarsDetail,
-  type FiveElement,
-} from "manseryeok";
+import { SolarTime, LunarHour, type SixtyCycle } from "tyme4ts";
+import type { FiveElement } from "./elements";
 
 export type SajuGender = "male" | "female" | "other";
 
@@ -69,9 +66,9 @@ export interface SajuResult {
   elementCount: Record<FiveElement, number>;
   /** 음/양 분포 (양 개수, 음 개수 — 총합 8) */
   yinYangCount: { yang: number; yin: number };
-  /** "갑자년 을축월 ..." 한국어 표기 */
+  /** "갑자년주, 을축월주, ..." 한국어 표기 */
   koreanString: string;
-  /** "甲子年 乙丑月 ..." 한자 표기 */
+  /** "甲子年柱, 乙丑月柱, ..." 한자 표기 */
   hanjaString: string;
   /** 사용자 입력 메타 (UI 표시용 — 음력 입력이면 음력 그대로 보존) */
   input: {
@@ -84,128 +81,111 @@ export interface SajuResult {
   temporal?: TemporalLuck;
 }
 
-function countElements(detail: FourPillarsDetail): Record<FiveElement, number> {
-  const acc: Record<FiveElement, number> = {
-    목: 0,
-    화: 0,
-    토: 0,
-    금: 0,
-    수: 0,
-  };
-  for (const e of [
-    detail.yearElement.stem,
-    detail.yearElement.branch,
-    detail.monthElement.stem,
-    detail.monthElement.branch,
-    detail.dayElement.stem,
-    detail.dayElement.branch,
-    detail.hourElement.stem,
-    detail.hourElement.branch,
-  ]) {
-    acc[e]++;
-  }
-  return acc;
+// tyme4ts 는 한자명(甲/子/木)을 반환 → 한국어 인덱스 매핑. 순서는 60갑자 정순이라 index 로 대응.
+const STEM_CN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+const STEM_KR = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
+const BRANCH_CN = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+const BRANCH_KR = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+const ELEMENT_KR: Record<string, FiveElement> = { 木: "목", 火: "화", 土: "토", 金: "금", 水: "수" };
+
+interface PillarParts {
+  stem: string; // 한글
+  branch: string; // 한글
+  hanja: string; // 2자 한자 "甲子"
+  stemIdx: number; // 음양·오행 산출용
+  branchIdx: number;
+  stemElement: FiveElement;
+  branchElement: FiveElement;
 }
 
-function countYinYang(detail: FourPillarsDetail): {
-  yang: number;
-  yin: number;
-} {
-  let yang = 0;
-  let yin = 0;
-  for (const yy of [
-    detail.yearYinYang.stem,
-    detail.yearYinYang.branch,
-    detail.monthYinYang.stem,
-    detail.monthYinYang.branch,
-    detail.dayYinYang.stem,
-    detail.dayYinYang.branch,
-    detail.hourYinYang.stem,
-    detail.hourYinYang.branch,
-  ]) {
-    if (yy === "양") yang++;
-    else yin++;
-  }
-  return { yang, yin };
+function toParts(cycle: SixtyCycle): PillarParts {
+  const stemCn = cycle.getHeavenStem().getName();
+  const branchCn = cycle.getEarthBranch().getName();
+  const si = STEM_CN.indexOf(stemCn);
+  const bi = BRANCH_CN.indexOf(branchCn);
+  return {
+    stem: STEM_KR[si],
+    branch: BRANCH_KR[bi],
+    hanja: stemCn + branchCn,
+    stemIdx: si,
+    branchIdx: bi,
+    stemElement: ELEMENT_KR[cycle.getHeavenStem().getElement().getName()],
+    branchElement: ELEMENT_KR[cycle.getEarthBranch().getElement().getName()],
+  };
 }
 
 export function calcSaju(input: SajuInput): SajuResult {
   const hourKnown = input.hour !== null && input.hour !== undefined;
-  const hour = hourKnown ? input.hour! : 0; // 모름 = 자정 0시로 가정 (관습적 처리)
+  const hour = hourKnown ? input.hour! : 0; // 모름 = 자정 0시로 가정 (관습적 처리 — 조자시라 당일 일주)
   const minute = input.minute ?? 0;
+  const isLunar = input.isLunar === true;
 
-  const birthInfo: BirthInfo = {
-    year: input.year,
-    month: input.month,
-    day: input.day,
-    hour,
-    minute,
-    isLunar: input.isLunar === true,
-    isLeapMonth: input.isLeapMonth === true,
-  };
+  const eightChar = isLunar
+    ? // 윤달 = 음수월 관례 (예: 윤5월 = -5)
+      LunarHour.fromYmdHms(
+        input.year,
+        input.isLeapMonth === true ? -input.month : input.month,
+        input.day,
+        hour,
+        minute,
+        0
+      ).getEightChar()
+    : SolarTime.fromYmdHms(input.year, input.month, input.day, hour, minute, 0)
+        .getLunarHour()
+        .getEightChar();
 
-  const detail = calculateFourPillars(birthInfo);
+  const y = toParts(eightChar.getYear());
+  const mo = toParts(eightChar.getMonth());
+  const d = toParts(eightChar.getDay());
+  const h = toParts(eightChar.getHour());
+  const all = [y, mo, d, h];
+
+  const elementCount: Record<FiveElement, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
+  let yang = 0;
+  let yin = 0;
+  for (const p of all) {
+    elementCount[p.stemElement]++;
+    elementCount[p.branchElement]++;
+    // 음양 = 천간/지지 index 짝수 = 양 (전통 정순 규칙, 구 manseryeok 과 동일)
+    p.stemIdx % 2 === 0 ? yang++ : yin++;
+    p.branchIdx % 2 === 0 ? yang++ : yin++;
+  }
 
   return {
     pillars: {
-      year: {
-        stem: detail.year.heavenlyStem,
-        branch: detail.year.earthlyBranch,
-        hanja: detail.yearHanja,
-      },
-      month: {
-        stem: detail.month.heavenlyStem,
-        branch: detail.month.earthlyBranch,
-        hanja: detail.monthHanja,
-      },
-      day: {
-        stem: detail.day.heavenlyStem,
-        branch: detail.day.earthlyBranch,
-        hanja: detail.dayHanja,
-      },
-      hour: {
-        stem: detail.hour.heavenlyStem,
-        branch: detail.hour.earthlyBranch,
-        hanja: detail.hourHanja,
-      },
+      year: { stem: y.stem, branch: y.branch, hanja: y.hanja },
+      month: { stem: mo.stem, branch: mo.branch, hanja: mo.hanja },
+      day: { stem: d.stem, branch: d.branch, hanja: d.hanja },
+      hour: { stem: h.stem, branch: h.branch, hanja: h.hanja },
     },
-    dayStem: detail.day.heavenlyStem,
-    dayElement: detail.dayElement.stem,
-    elementCount: countElements(detail),
-    yinYangCount: countYinYang(detail),
-    koreanString: detail.toString(),
-    hanjaString: detail.toHanjaString(),
+    dayStem: d.stem,
+    dayElement: d.stemElement,
+    elementCount,
+    yinYangCount: { yang, yin },
+    koreanString: `${y.stem}${y.branch}년주, ${mo.stem}${mo.branch}월주, ${d.stem}${d.branch}일주, ${h.stem}${h.branch}시주`,
+    hanjaString: `${y.hanja}年柱, ${mo.hanja}月柱, ${d.hanja}日柱, ${h.hanja}時柱`,
     input: {
       gender: input.gender,
       hourKnown,
-      inputCalendar: input.isLunar ? "lunar" : "solar",
+      inputCalendar: isLunar ? "lunar" : "solar",
       isLeapMonth: input.isLeapMonth === true,
     },
   };
 }
 
-function toPillarLite(
-  pillar: { heavenlyStem: string; earthlyBranch: string },
-  hanja: string,
-  element: FiveElement
-): PillarLite {
-  return {
-    stem: pillar.heavenlyStem,
-    branch: pillar.earthlyBranch,
-    hanja,
-    element,
-  };
+function toPillarLite(parts: PillarParts): PillarLite {
+  return { stem: parts.stem, branch: parts.branch, hanja: parts.hanja, element: parts.stemElement };
 }
 
-function fmtDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+function fmtDate(dt: Date): string {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
 /**
- * 오늘(baseDate) 기준 세운/월운/일운 계산. manseryeok 에 양력 날짜를 그대로 넣는다.
+ * 오늘(baseDate) 기준 세운/월운/일운 계산. 정오로 계산해 자시 경계 모호성을 피한다(세운/월운/일운은 시각 무관).
  * @param includeMonth true 면 오늘부터 30일 일진(dailyLuck) 도 채운다 (good_days 전용).
  */
 export function calcTemporalLuck(
@@ -213,16 +193,9 @@ export function calcTemporalLuck(
   birthYear: number,
   opts?: { includeMonth?: boolean }
 ): TemporalLuck {
-  const base: BirthInfo = {
-    year: baseDate.getFullYear(),
-    month: baseDate.getMonth() + 1,
-    day: baseDate.getDate(),
-    hour: 0,
-    minute: 0,
-    isLunar: false,
-    isLeapMonth: false,
-  };
-  const d = calculateFourPillars(base);
+  const ec = SolarTime.fromYmdHms(baseDate.getFullYear(), baseDate.getMonth() + 1, baseDate.getDate(), 12, 0, 0)
+    .getLunarHour()
+    .getEightChar();
 
   let dailyLuck: DailyLuck[] | undefined;
   if (opts?.includeMonth) {
@@ -230,30 +203,22 @@ export function calcTemporalLuck(
     for (let i = 0; i < 30; i++) {
       const cur = new Date(baseDate);
       cur.setDate(cur.getDate() + i);
-      const dd = calculateFourPillars({
-        year: cur.getFullYear(),
-        month: cur.getMonth() + 1,
-        day: cur.getDate(),
-        hour: 0,
-        minute: 0,
-        isLunar: false,
-        isLeapMonth: false,
-      });
-      dailyLuck.push({
-        date: fmtDate(cur),
-        stem: dd.day.heavenlyStem,
-        branch: dd.day.earthlyBranch,
-        element: dd.dayElement.stem,
-      });
+      const dayParts = toParts(
+        SolarTime.fromYmdHms(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), 12, 0, 0)
+          .getLunarHour()
+          .getEightChar()
+          .getDay()
+      );
+      dailyLuck.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement });
     }
   }
 
   return {
     date: fmtDate(baseDate),
     age: baseDate.getFullYear() - birthYear,
-    year: toPillarLite(d.year, d.yearHanja, d.yearElement.stem),
-    month: toPillarLite(d.month, d.monthHanja, d.monthElement.stem),
-    day: toPillarLite(d.day, d.dayHanja, d.dayElement.stem),
+    year: toPillarLite(toParts(ec.getYear())),
+    month: toPillarLite(toParts(ec.getMonth())),
+    day: toPillarLite(toParts(ec.getDay())),
     dailyLuck,
   };
 }

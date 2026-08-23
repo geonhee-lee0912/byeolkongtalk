@@ -110,7 +110,7 @@ docs/superpowers/{specs,plans}/
   - **per-schema 기본권한은 전역 설정에 *추가*만 가능하고 제거는 못 한다.** `ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` 은 **Postgres 문서가 직접 "no effect" 예시로 드는 명령**이다. 함수의 PUBLIC EXECUTE 는 전역 기본값이라 `IN SCHEMA` 를 빼야 빠진다(`20260729040000`). 테이블은 내장 PUBLIC 기본값이 없어 per-schema 회수로 충분하다
   - 현재 상태: 전역 `f {postgres, service_role}` · public `TBL/FN {postgres, service_role}`. 즉 **새 테이블은 `ENABLE RLS` 를 깜빡해도 anon 이 못 만진다**
   - ⚠️ **카탈로그만 보고 판정하지 말 것.** 두 번 다 설정은 바뀐 것처럼 보였고 실제로는 안 먹었다. **카나리아**(RLS 안 켠 임시 테이블 + 임시 함수)를 만들어 **anon 키로 실제 HTTP 호출**해 401 을 확인하고 지울 것 — `20260729020000`~`050000` 이 그 절차다
-- 사주 계산은 `lib/saju/calc.ts` 의 `calcSaju(input)` 만. manseryeok 직접 호출 금지(wrapper 가 정규화+JSONB 직렬화 책임). 시간 모름 = `hour: null` → 자정 계산 + `hourKnown:false` 마킹
+- 사주 계산은 `lib/saju/calc.ts` 의 `calcSaju(input)` 만. tyme4ts 직접 호출 금지(wrapper 가 한자→한글 매핑+정규화+JSONB 직렬화 책임). 절기 기준(입춘 년주·절기 월주)·야자시(23시=다음날 일주). 시간 모름 = `hour: null` → 자정 계산 + `hourKnown:false` 마킹 (구 manseryeok 은 년주 입춘무시·월주 절기버그로 2026-08-23 교체)
 - chat 라우트는 **서버가 권위** — 소유권 검증 + `messages` 테이블에서 누적 turn/chars 직접 계산. 클라가 보낸 history 는 Claude 입력용으로만
 - 단정적 예언 톤 금지(페르소나 화법 원칙)
 - **`users(id)` 참조 FK 는 반드시 `ON DELETE CASCADE` 또는 `SET NULL` 명시** — 없으면(NO ACTION) 회원 탈퇴 users DELETE 가 23503 으로 차단됨 (2026-07-17 `ad_spend.created_by` 사례: unlink 만 성공한 반쪽 탈퇴 → 재시도마다 -101 info 루프)

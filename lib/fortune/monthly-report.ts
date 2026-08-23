@@ -1,7 +1,7 @@
 // 이번달 운세(monthly) 전용 — AI JSON 파싱·검증 + 월건(결정론적) 병합 + 저장/복원.
 // daily-report.ts 와 동형. monthly 리포트는 messages.content 에 병합 JSON 문자열(v:1)로 저장된다.
 
-import type { FiveElement } from "manseryeok";
+import type { FiveElement } from "@/lib/saju/elements";
 import type { TemporalLuck } from "@/lib/saju/calc";
 import { DAILY_SECTIONS } from "./daily-report";
 import { STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
