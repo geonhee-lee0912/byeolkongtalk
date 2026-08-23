@@ -26,6 +26,7 @@ interface Props {
   transform: { tx: number; ty: number; s: number };
   sizes: SizeSpec;
   activeFilter: BondFilter | null;
+  activeTriadGroup?: number | null; // "같은 결" 하위 칩 선택 — 그 삼합 그룹만 격리 표시
   onSelect: (nodeId: string) => void;
   shape?: ShapeInfo | null; // 은은 배경 형상(없으면 배경 생략)
   highlightPairIds?: string[] | null; // 지도 선택 시 강조할 쌍(나+상대). 그 외 노드/선은 dim.
@@ -41,6 +42,7 @@ export default function ConstellationCanvas({
   transform,
   sizes,
   activeFilter,
+  activeTriadGroup = null,
   onSelect,
   shape,
   highlightPairIds,
@@ -55,7 +57,11 @@ export default function ConstellationCanvas({
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
-  const triadMemberIds = new Set(graph.triads.flatMap((t) => t.memberIds));
+  const triadMemberIds = new Set(
+    activeTriadGroup != null && graph.triads[activeTriadGroup]
+      ? graph.triads[activeTriadGroup].memberIds
+      : graph.triads.flatMap((t) => t.memberIds)
+  );
 
   // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
   const triadRing = new Map<string, string>();
@@ -138,6 +144,7 @@ export default function ConstellationCanvas({
             (포커스는 buildFocusGraph 합성 스포크가 담당). 별 뒤에 그려 노드가 위로 오게. */}
         {!focusMode &&
           graph.triads.map((t, ti) => {
+            if (activeTriadGroup != null && ti !== activeTriadGroup) return null; // 하위 칩 선택 시 그 그룹만
             const pts = t.memberIds
               .map((id) => pos(id))
               .filter((p): p is Point => p != null);

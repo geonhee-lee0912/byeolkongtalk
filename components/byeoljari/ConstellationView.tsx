@@ -48,6 +48,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   const [listOpenId, setListOpenId] = useState<string | null>(null);
   const [expandedNeighborId, setExpandedNeighborId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<BondFilter | null>(null);
+  const [activeTriadGroup, setActiveTriadGroup] = useState<number | null>(null);
   const [reveal, setReveal] = useState(false);
   // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
   // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
@@ -109,6 +110,8 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 사라진 분류를 가리키는 stale 필터는 전체로 폴백.
   // 필터는 overview 전용(포커스 서브그래프엔 합성 스포크가 있어 dim 이 지저분). 포커스에서 칩 누르면 전체로 나가며 적용
   const effectiveFilter = !focusId && activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
+  // 그룹 격리는 "같은 결" 필터가 실제 활성일 때만 유효.
+  const effectiveTriadGroup = effectiveFilter === "triad" ? activeTriadGroup : null;
 
   // pivot↔other 1:1 상세(인연 점수 근거 + 방향 카피). 포커스 카드·선 인스펙트·랭킹 아코디언 공용.
   function detailFor(pId: string, otherId: string) {
@@ -243,6 +246,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                 aria-pressed={active}
                 onClick={() => {
                   setActiveFilter(t);
+                  setActiveTriadGroup(null);
                   if (focusId) resetToOverview(); // 포커스 중 필터 누르면 전체 지도로 나가며 적용
                 }}
                 className={`rounded-full px-3 py-1 text-xs ${
@@ -250,6 +254,27 @@ export default function ConstellationView({ graph, meId }: Props) {
                 }`}
               >
                 {t === null ? "전체" : BOND_FILTER_LABEL[t]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {effectiveFilter === "triad" && graph.triads.length >= 2 && (
+        <div className="mb-3 flex flex-wrap justify-center gap-2">
+          {graph.triads.map((_, i) => {
+            const on = effectiveTriadGroup === i;
+            return (
+              <button
+                key={i}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setActiveTriadGroup(on ? null : i)}
+                className={`rounded-full px-3 py-1 text-xs ${
+                  on ? "text-white" : "text-eye-purple"
+                }`}
+                style={on ? { backgroundColor: BOND_COLOR.triad } : { backgroundColor: "#CFEDE4" }}
+              >
+                {i + 1}
               </button>
             );
           })}
@@ -272,6 +297,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           transform={{ tx: 0, ty: 0, s: 1 }}
           sizes={sizes}
           activeFilter={effectiveFilter}
+          activeTriadGroup={effectiveTriadGroup}
           shape={shape}
           focusMode={!!focusId}
           onSelect={handleNode}
