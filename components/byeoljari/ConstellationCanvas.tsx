@@ -2,7 +2,7 @@
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
 import { starPoints, resolveGlyph, orderByAngle } from "@/lib/byeoljari/layout";
-import { starColor } from "@/lib/byeoljari/display";
+import { starColor, BOND_COLOR } from "@/lib/byeoljari/display";
 import { edgeActiveForBond, nodeActiveForBond, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
 import type { ShapeInfo } from "@/lib/byeoljari/shape";
@@ -60,7 +60,7 @@ export default function ConstellationCanvas({
   // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
   const triadRing = new Map<string, string>();
   graph.triads.forEach((t) =>
-    t.memberIds.forEach((id) => triadRing.set(id, starColor(t.element)))
+    t.memberIds.forEach((id) => triadRing.set(id, BOND_COLOR.triad))
   );
 
   return (
@@ -123,7 +123,7 @@ export default function ConstellationCanvas({
                 y1={pa.y}
                 x2={pb.x}
                 y2={pb.y}
-                stroke={e.heavenlyCombo ? "#F2D78A" : e.sixCombo ? "#A98BEE" : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
+                stroke={e.heavenlyCombo ? BOND_COLOR.heavenly : e.sixCombo ? BOND_COLOR.six : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
                 strokeOpacity={(special ? 0.62 : focusMode ? 0.4 : 0.22) * dim}
                 strokeWidth={special ? sizes.goldLineWidth : sizes.lineWidth}
                 strokeDasharray={e.sixCombo && !e.heavenlyCombo ? "2 1.5" : undefined}
@@ -149,7 +149,7 @@ export default function ConstellationCanvas({
                 key={`triad-${ti}`}
                 points={points}
                 fill="none"
-                stroke={starColor(t.element)}
+                stroke={BOND_COLOR.triad}
                 strokeOpacity={0.5}
                 strokeWidth={sizes.lineWidth}
                 strokeLinejoin="round"
@@ -157,19 +157,20 @@ export default function ConstellationCanvas({
             );
           })}
 
-        {/* 노드 = 별 또는 원. 삼합 멤버는 별 뒤 은은한 광(glow). 필터 비해당은 dim. */}
+        {/* 노드 = 주인 원(host-circle) / 나 강조 별(me-star) / 별. 삼합 멤버는 별 뒤 은은한 광(glow). */}
         {graph.nodes.map((n) => {
           const p = pos(n.id);
           if (!p) return null;
           const glyph = resolveGlyph(n, meId);
-          const isHost = glyph === "host-star";
+          const isHostCircle = glyph === "host-circle";
+          const isMeStar = glyph === "me-star";
           const color = starColor(n.element);
           const dimByFilter =
             !focusMode && activeFilter != null && !nodeActiveForBond(n.id, activeFilter, graph.edges, triadMemberIds);
           const dimByPair = highlightPairIds != null && !highlightPairIds.includes(n.id);
           const nodeOpacity = dimByFilter || dimByPair ? DIM : 1;
           const ringColor = triadRing.get(n.id);
-          const baseR = isHost ? sizes.hostOuter : sizes.starOuter;
+          const baseR = isHostCircle ? sizes.hostOuter : sizes.starOuter;
           return (
             <g
               key={n.id}
@@ -179,50 +180,45 @@ export default function ConstellationCanvas({
             >
               {/* 넉넉한 투명 히트영역 */}
               <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
-              {/* 삼합 표시 — 같은 국(局): 별 뒤 부드러운 광(glow). 그룹 연결은 오행색 선(위 폴리곤). */}
+              {/* 삼합(같은 국) — 별 뒤 부드러운 청록 광. 그룹 연결선은 위 폴리곤. */}
               {ringColor && (
                 <circle
                   cx={p.x}
                   cy={p.y}
                   r={baseR + 1}
                   fill={ringColor}
-                  opacity={0.4}
+                  opacity={0.45}
                   filter="url(#triadGlow)"
                 />
               )}
-              {glyph === "me-circle" ? (
-                // 나 = 원(테두리) — 친구들의 별과 구분
+              {isHostCircle ? (
+                // 주인 = 원(오행색 + 골드 테두리)
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={sizes.meR}
+                  r={sizes.hostOuter}
                   fill={color}
-                  stroke="#FFFFFF"
-                  strokeOpacity={0.7}
-                  strokeWidth={0.5}
+                  stroke={BOND_COLOR.heavenly}
+                  strokeOpacity={0.85}
+                  strokeWidth={0.7}
                 />
               ) : (
-                // 호스트·친구 = 통통한 별(inner 비율 0.55). 뾰족함 완화 위해 linejoin round.
+                // 나(me-star)=흰 테두리 강조 별 / 그 외=별
                 <polygon
-                  points={starPoints(
-                    p.x,
-                    p.y,
-                    isHost ? sizes.hostOuter : sizes.starOuter,
-                    isHost ? sizes.hostInner : sizes.starInner
-                  )}
+                  points={starPoints(p.x, p.y, sizes.starOuter, sizes.starInner)}
                   fill={color}
-                  stroke="#F2D78A"
-                  strokeOpacity={isHost ? 0.8 : 0}
-                  strokeWidth={isHost ? 0.6 : 0}
+                  stroke={isMeStar ? "#FFFFFF" : "none"}
+                  strokeOpacity={isMeStar ? 0.9 : 0}
+                  strokeWidth={isMeStar ? 0.7 : 0}
                   strokeLinejoin="round"
                 />
               )}
               {sizes.showLabels && n.name && (
                 <text
                   x={p.x}
-                  y={p.y + (glyph === "me-circle" ? sizes.meR : baseR) + 4}
+                  y={p.y + baseR + 4}
                   textAnchor="middle"
-                  fontSize={isHost ? sizes.hostLabelFont : sizes.labelFont}
+                  fontSize={isHostCircle ? sizes.hostLabelFont : sizes.labelFont}
                   fill="#EDE6D6"
                   fillOpacity={0.9}
                 >
