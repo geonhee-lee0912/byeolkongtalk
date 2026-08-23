@@ -70,3 +70,21 @@ test("yinYangRaw — 시간 모름이면 시주 미반영(값이 달라짐)", ()
   const p = { year: ["갑", "자"], month: ["병", "인"], day: ["무", "오"], hour: ["임", "해"] } as const;
   assert.notEqual(yinYangRaw(mkSaju(p)), yinYangRaw(mkSaju(p, { hourKnown: false })));
 });
+
+import { strengthRaw } from "./mapping.ts";
+
+test("strengthRaw — 월지·일지가 일간을 도우면 득령+득지(≥60)", () => {
+  const s = mkSaju({ year: ["경", "신"], month: ["병", "인"], day: ["갑", "자"], hour: ["경", "신"] });
+  assert.ok(strengthRaw(s) >= 60);
+});
+
+test("strengthRaw — 온통 극·설기면 신약(낮음)", () => {
+  const s = mkSaju({ year: ["경", "신"], month: ["경", "신"], day: ["갑", "오"], hour: ["병", "오"] });
+  assert.ok(strengthRaw(s) < 40);
+});
+
+test("strengthRaw — 0~100 범위", () => {
+  const s = mkSaju({ year: ["갑", "인"], month: ["갑", "인"], day: ["갑", "인"], hour: ["갑", "인"] });
+  const r = strengthRaw(s);
+  assert.ok(r >= 0 && r <= 100);
+});

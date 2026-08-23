@@ -1,6 +1,6 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
-import { STEM_ELEMENT } from "@/lib/saju/pairing";
+import { STEM_ELEMENT, elementRelation } from "@/lib/saju/pairing";
 import { JANGAN_BONGI, POSITION_WEIGHT, STEM_ORDER, BRANCH_ORDER, ELEMENT_YINYANG } from "./constants.ts";
 
 export interface CharCell {
@@ -46,4 +46,34 @@ export function yinYangRaw(saju: SajuResult): number {
     sum += (0.7 * surfaceParity + 0.3 * elementYy) * cell.weight;
   }
   return sum;
+}
+
+/** 일간을 돕는가(비겁=비화 / 인성=생아). */
+function supportsDay(dayElement: FiveElement, other: FiveElement): boolean {
+  const r = elementRelation(dayElement, other);
+  return r === "비화" || r === "생아";
+}
+
+/** 강/유 raw = 득령(월지 40) + 득지(일지 20) + 득세(나머지 비겁·인성 세력 최대 40). 0~100, 클수록 강. */
+export function strengthRaw(saju: SajuResult): number {
+  const dayEl = saju.dayElement;
+  const p = saju.pillars;
+  const monthBranchEl = STEM_ELEMENT[JANGAN_BONGI[p.month.branch]];
+  const dayBranchEl = STEM_ELEMENT[JANGAN_BONGI[p.day.branch]];
+
+  const deukRyeong = supportsDay(dayEl, monthBranchEl) ? 40 : 0;
+  const deukJi = supportsDay(dayEl, dayBranchEl) ? 20 : 0;
+
+  const rest = activeChars(saju).filter(
+    (c) => !(c.char === p.month.branch && !c.isStem) && !(c.char === p.day.branch && !c.isStem)
+  );
+  let support = 0;
+  let total = 0;
+  for (const c of rest) {
+    total += c.weight;
+    if (supportsDay(dayEl, elementOf(c))) support += c.weight;
+  }
+  const deukSe = total === 0 ? 0 : (support / total) * 40;
+
+  return deukRyeong + deukJi + deukSe;
 }
