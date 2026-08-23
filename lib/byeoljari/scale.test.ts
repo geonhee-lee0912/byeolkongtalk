@@ -5,8 +5,8 @@ import { scaleForCount } from "./scale.ts";
 test("scaleForCount — 크기·선 두께는 인원 무관 고정", () => {
   const few = scaleForCount(3);
   const many = scaleForCount(20);
-  assert.equal(few.starOuter, 4.0);
-  assert.equal(few.hostOuter, 3.8);
+  assert.equal(few.starOuter, 3.2);
+  assert.equal(few.hostOuter, 3.04);
   assert.equal(few.lineWidth, 0.7);
   // showLabels 외 전부 동일(인원 무관 고정)
   assert.deepEqual({ ...few, showLabels: null }, { ...many, showLabels: null });

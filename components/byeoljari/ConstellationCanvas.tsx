@@ -148,6 +148,7 @@ export default function ConstellationCanvas({
             (포커스는 buildFocusGraph 합성 스포크가 담당). 별 뒤에 그려 노드가 위로 오게. */}
         {!focusMode &&
           graph.triads.map((t, ti) => {
+            if (activeFilter != null && activeFilter !== "triad") return null; // 끌림/결속 필터 시 같은 결 숨김
             if (activeTriadGroup != null && ti !== activeTriadGroup) return null; // 하위 칩 선택 시 그 그룹만
             const pts = t.memberIds
               .map((id) => pos(id))
@@ -191,16 +192,18 @@ export default function ConstellationCanvas({
               {/* 넉넉한 투명 히트영역 */}
               <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
               {isHostCircle ? (
-                // 주인 = 원(오행색 + 골드 테두리)
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={sizes.hostOuter}
-                  fill={color}
-                  stroke={BOND_COLOR.heavenly}
-                  strokeOpacity={0.85}
-                  strokeWidth={0.7}
-                />
+                // 주인 = 원(오행색). 테두리 대신 뒤 골드 글로우로 구분.
+                <>
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={sizes.hostOuter + 1.8}
+                    fill={BOND_COLOR.heavenly}
+                    opacity={0.55}
+                    filter="url(#goldGlow)"
+                  />
+                  <circle cx={p.x} cy={p.y} r={sizes.hostOuter} fill={color} />
+                </>
               ) : (
                 // 나(me-star)=흰 테두리 강조 별 / 그 외=별
                 <polygon

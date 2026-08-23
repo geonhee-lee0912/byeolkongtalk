@@ -13,10 +13,10 @@ export interface SizeSpec {
 
 // 주인 원(hostOuter)은 별(starOuter)보다 살짝 작게 — 원이 꽉 차 시각적으로 별과 균형.
 const SIZE: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 3.8,
-  starOuter: 4.0,
-  starInner: 2.2,
-  hitR: 6.0,
+  hostOuter: 3.04, // 별 대비 ×0.8 축소(2026-08-23 사용자)
+  starOuter: 3.2,
+  starInner: 1.76,
+  hitR: 6.0, // 터치영역은 축소 안 함(탭 편의)
   lineWidth: 0.7,
   labelFont: 3.0,
   hostLabelFont: 3.4,
