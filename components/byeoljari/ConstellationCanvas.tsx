@@ -52,7 +52,7 @@ export default function ConstellationCanvas({
 }: Props) {
   // 은은 배경: 중앙 60×60. water-3(거북이)만 다른 신수보다 커서 ~0.9배(54)로 축소.
   const bgSmall = shape ? shape.element === "수" && shape.stage === 3 : false;
-  const bgSize = bgSmall ? 88 : 95;
+  const bgSize = bgSmall ? 74 : 82;
   const bgOff = (100 - bgSize) / 2;
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -70,6 +70,10 @@ export default function ConstellationCanvas({
         <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur stdDeviation="1.1" />
         </filter>
+        {/* 배경 신수 글로우 — 크기 줄인 신수의 가시성 보완(은은한 번짐) */}
+        <filter id="shapeGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.6" />
+        </filter>
       </defs>
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" onClick={() => onBackgroundClick?.()} />
       {/* 배경 별가루 — 밤하늘 분위기. 줌 transform 밖(고정 ambient). */}
@@ -78,17 +82,33 @@ export default function ConstellationCanvas({
       ))}
       {/* 은은 배경 형상 — 밤하늘 위·노드/선 아래, 줌 transform 밖(고정 ambient). */}
       {shape && (
-        <image
-          href={shape.assetSrc}
-          x={bgOff}
-          y={bgOff}
-          width={bgSize}
-          height={bgSize}
-          opacity={0.25}
-          preserveAspectRatio="xMidYMid meet"
-          pointerEvents="none"
-          style={{ mixBlendMode: "screen" }}
-        />
+        <>
+          {/* 글로우 레이어(번짐) — 신수 뒤에서 은은히 빛나 가시성↑ */}
+          <image
+            href={shape.assetSrc}
+            x={bgOff}
+            y={bgOff}
+            width={bgSize}
+            height={bgSize}
+            opacity={0.4}
+            preserveAspectRatio="xMidYMid meet"
+            pointerEvents="none"
+            filter="url(#shapeGlow)"
+            style={{ mixBlendMode: "screen" }}
+          />
+          {/* 본체 */}
+          <image
+            href={shape.assetSrc}
+            x={bgOff}
+            y={bgOff}
+            width={bgSize}
+            height={bgSize}
+            opacity={0.28}
+            preserveAspectRatio="xMidYMid meet"
+            pointerEvents="none"
+            style={{ mixBlendMode: "screen" }}
+          />
+        </>
       )}
       <g
         style={{ transition: "transform 420ms cubic-bezier(0.22,0.68,0.28,1)" }}
