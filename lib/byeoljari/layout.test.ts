@@ -7,6 +7,7 @@ import {
   focusPair,
   orderByAngle,
   resolveGlyph,
+  radialLabelPos,
   orientEdge,
   invertElementRelation,
   nodeMatchesFilter,
@@ -76,6 +77,21 @@ test("resolveGlyph — 주인=원(host-circle, meId 무관), 나(비host)=강조
   assert.equal(resolveGlyph(node("g"), "g"), "me-star"); // 게스트==나 → 강조 별(best-effort)
   assert.equal(resolveGlyph(node("g"), "other"), "star"); // 게스트, 나 아님
   assert.equal(resolveGlyph(node("g"), null), "star"); // 게스트, meId 없음
+});
+
+test("radialLabelPos — 별 바깥 방향(중앙 반대) + 좌우 anchor, 중앙은 아래", () => {
+  const right = radialLabelPos({ x: 84, y: 50 }, 4);
+  assert.equal(right.anchor, "start");
+  assert.ok(right.x > 84, `right.x=${right.x}`);
+  const left = radialLabelPos({ x: 16, y: 50 }, 4);
+  assert.equal(left.anchor, "end");
+  assert.ok(left.x < 16, `left.x=${left.x}`);
+  const top = radialLabelPos({ x: 50, y: 16 }, 4);
+  assert.equal(top.anchor, "middle");
+  assert.ok(top.y < 16, `top.y=${top.y}`); // 위쪽 별은 라벨도 위로
+  const center = radialLabelPos({ x: 50, y: 50 }, 4);
+  assert.equal(center.anchor, "middle");
+  assert.ok(center.y > 50, `center.y=${center.y}`); // 호스트(중앙)는 아래
 });
 
 test("invertElementRelation — 생아↔아생, 극아↔아극, 비화 고정", () => {

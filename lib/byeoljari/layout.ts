@@ -104,6 +104,27 @@ export function resolveGlyph(
   return "star";
 }
 
+/** 라벨을 지도 중앙 기준 별의 바깥 방향(방사형)에 배치 — 선은 대개 중앙으로 향하므로 겹침 최소.
+ *  중앙 노드(호스트)는 방향이 없어 아래로. anchor는 좌우로 정렬(dominant-baseline=central 전제). */
+export function radialLabelPos(
+  p: Point,
+  baseR: number,
+  center = 50
+): { x: number; y: number; anchor: "start" | "middle" | "end" } {
+  const dx = p.x - center;
+  const dy = p.y - center;
+  const len = Math.hypot(dx, dy);
+  const gap = baseR + 2.2;
+  if (len < 0.5) return { x: round(p.x), y: round(p.y + gap), anchor: "middle" }; // 중앙(호스트) → 아래
+  const ux = dx / len;
+  const uy = dy / len;
+  return {
+    x: round(p.x + ux * gap),
+    y: round(p.y + uy * gap),
+    anchor: ux > 0.35 ? "start" : ux < -0.35 ? "end" : "middle",
+  };
+}
+
 const INVERT: Record<string, string> = {
   생아: "아생",
   아생: "생아",

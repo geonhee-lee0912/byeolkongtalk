@@ -1,7 +1,7 @@
 "use client";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import type { Point } from "@/lib/byeoljari/layout";
-import { starPoints, resolveGlyph, orderByAngle } from "@/lib/byeoljari/layout";
+import { starPoints, resolveGlyph, orderByAngle, radialLabelPos } from "@/lib/byeoljari/layout";
 import { starColor, BOND_COLOR } from "@/lib/byeoljari/display";
 import { edgeActiveForBond, nodeActiveForBond, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
@@ -52,7 +52,7 @@ export default function ConstellationCanvas({
 }: Props) {
   // 은은 배경: 중앙 60×60. water-3(거북이)만 다른 신수보다 커서 ~0.9배(54)로 축소.
   const bgSmall = shape ? shape.element === "수" && shape.stage === 3 : false;
-  const bgSize = bgSmall ? 72 : 80;
+  const bgSize = bgSmall ? 88 : 95;
   const bgOff = (100 - bgSize) / 2;
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -84,9 +84,10 @@ export default function ConstellationCanvas({
           y={bgOff}
           width={bgSize}
           height={bgSize}
-          opacity={0.13}
+          opacity={0.25}
           preserveAspectRatio="xMidYMid meet"
           pointerEvents="none"
+          style={{ mixBlendMode: "screen" }}
         />
       )}
       <g
@@ -182,6 +183,7 @@ export default function ConstellationCanvas({
           const dimByPair = highlightPairIds != null && !highlightPairIds.includes(n.id);
           const nodeOpacity = dimByFilter || dimByPair ? DIM : 1;
           const baseR = isHostCircle ? sizes.hostOuter : sizes.starOuter;
+          const labelPos = radialLabelPos(p, baseR);
           return (
             <g
               key={n.id}
@@ -217,9 +219,10 @@ export default function ConstellationCanvas({
               )}
               {sizes.showLabels && n.name && (
                 <text
-                  x={p.x}
-                  y={p.y + baseR + 4}
-                  textAnchor="middle"
+                  x={labelPos.x}
+                  y={labelPos.y}
+                  textAnchor={labelPos.anchor}
+                  dominantBaseline="central"
                   fontSize={isHostCircle ? sizes.hostLabelFont : sizes.labelFont}
                   fill="#EDE6D6"
                   fillOpacity={0.95}
