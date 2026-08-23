@@ -37,3 +37,22 @@ for (const k of Object.keys(raws)) {
   const front = raws[k].filter((v) => v >= med).length;
   console.log(`${k}: 앞극 ${(100 * front / raws[k].length).toFixed(1)}%`);
 }
+
+import { paljaType } from "../lib/saju-mbti/mapping.ts";
+
+const typeCount = {};
+for (let y = 1970; y <= 2010; y++) {
+  for (let m = 1; m <= 12; m++) {
+    const dim = new Date(y, m, 0).getDate();
+    for (let d = 1; d <= dim; d++) {
+      const s = calcSaju({ year: y, month: m, day: d, hour: 12, minute: 0, gender: "other" });
+      const code = paljaType(s).code;
+      typeCount[code] = (typeCount[code] || 0) + 1;
+    }
+  }
+}
+const total = Object.values(typeCount).reduce((a, b) => a + b, 0);
+const sorted = Object.entries(typeCount).sort((a, b) => b[1] - a[1]);
+console.log("\n16유형 분포:");
+for (const [code, n] of sorted) console.log(`  ${code}: ${(100 * n / total).toFixed(1)}%`);
+console.log("유형 수:", sorted.length, "/ 최대:", (100 * sorted[0][1] / total).toFixed(1) + "%");
