@@ -135,14 +135,15 @@ test("nurtureRaw — 시간 모름이면 시주 쌍 제외(값 달라짐)", () =
 
 import { elementDistribution, dominantElement } from "./mapping.ts";
 
-test("elementDistribution — 일간 포함·본기 기준 가중 합", () => {
-  const s = mkSaju({ year: ["갑", "인"], month: ["갑", "인"], day: ["갑", "인"], hour: ["갑", "인"] });
+test("elementDistribution — 일간 오행이 다른 글자에 없어도 일간 가중(1.5)으로 포함", () => {
+  // 활성 글자(일간 제외)에 목이 하나도 없음 → dist[목] 은 오직 일간 갑목 가중(1.5)에서만 나옴
+  const s = mkSaju({ year: ["경", "신"], month: ["경", "신"], day: ["갑", "오"], hour: ["경", "신"] });
   const dist = elementDistribution(s);
-  assert.ok(dist["목"] > 0);
-  assert.equal(dist["화"], 0);
+  assert.equal(dist["목"], 1.5); // 일간 미포함이면 0 이 됨
+  assert.ok(dist["금"] > 0);
 });
 
-test("dominantElement — 최다 오행, 동점 시 월지 우선", () => {
+test("dominantElement — 최다 오행(단독)", () => {
   const s = mkSaju({ year: ["갑", "인"], month: ["경", "신"], day: ["무", "오"], hour: ["임", "자"] });
   assert.equal(dominantElement(s), "금");
 });
