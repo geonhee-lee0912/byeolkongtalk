@@ -42,12 +42,12 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
   return (
     <div className="space-y-3">
       {inyeon && (
-        <div className="rounded-xl bg-lilac-soft/40 p-3">
+        <div className="rounded-xl bg-eye-purple p-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-lg text-eye-purple">인연 점수 {inyeon.score}</span>
-            <span className="text-xs text-eye-purple/70">{inyeon.grade.label}</span>
+            <span className="font-display text-lg text-cream-warm">인연 점수 {inyeon.score}</span>
+            <span className="text-xs text-lilac-soft">{inyeon.grade.label}</span>
           </div>
-          <ul className="mt-2 space-y-1 text-sm text-eye-purple">
+          <ul className="mt-2 space-y-1 text-sm text-cream-warm/90">
             {inyeon.reasons.map((r, i) => (
               <li key={i}>{r}</li>
             ))}
@@ -67,9 +67,9 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
         </div>
       )}
       {(rd.good || rd.caution) && (
-        <div className="rounded-xl bg-white/60 p-3 text-sm">
-          {rd.good && <div className="text-eye-purple">잘 맞는 점 · {rd.good}</div>}
-          {rd.caution && <div className="mt-1 text-text-light">살짝 조심 · {rd.caution}</div>}
+        <div className="rounded-xl bg-eye-purple p-3 text-sm">
+          {rd.good && <div className="text-cream-warm">잘 맞는 점 · {rd.good}</div>}
+          {rd.caution && <div className="mt-1 text-lilac-soft">살짝 조심 · {rd.caution}</div>}
         </div>
       )}
     </div>

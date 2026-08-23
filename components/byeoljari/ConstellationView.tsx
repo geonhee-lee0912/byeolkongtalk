@@ -9,6 +9,7 @@ import {
   BOND_COLOR,
   starColor,
   relationTypeLabel,
+  RELATION_TYPE_LABEL,
   directionParticle,
 } from "@/lib/byeoljari/display";
 import { presentBondFilters, BOND_FILTER_LABEL, type BondFilter } from "@/lib/byeoljari/bond-filter";
@@ -22,6 +23,17 @@ import { relationRole, elementPair } from "@/lib/byeoljari/relation-role";
 const LEGEND = (["목", "화", "토", "금", "수"] as const).map(
   (e) => [e, STAR_ELEMENT_COLORS[e]] as const
 );
+
+// 관계분류 순서(포커스 카드 그룹 헤더) — display.ts 단일 원천(드리프트 방지).
+const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
+
+// 순위 원(번호) 금·은·동. 4위+는 기본. 배경 베이지 통일로 순위는 이 원 색으로만 구분.
+function rankChipClass(i: number): string {
+  if (i === 0) return "bg-gold text-night";
+  if (i === 1) return "bg-[#C4CAD4] text-[#33373F]"; // 은
+  if (i === 2) return "bg-[#CD9A6B] text-white"; // 동
+  return "bg-white/70 text-eye-purple";
+}
 
 // 인연 점수 등급 칩 색상 — 점수 구간별 색. 전부 밝은 채움이라 1위 다크 행에서도 판독됨.
 function gradeChipClass(tone: "high" | "mid" | "low" | "faint"): string {
@@ -338,36 +350,47 @@ export default function ConstellationView({ graph, meId }: Props) {
                   : summary.comment}
               </p>
             )}
-            <div className="space-y-1.5">
-              {neighbors.map((nb) => {
-                const open = expandedNeighborId === nb.id;
+            <div className="space-y-3">
+              {RELATION_ORDER.map((rt) => {
+                const members = neighbors.filter((nb) => nb.target?.relationType === rt);
+                if (!members.length) return null;
                 return (
-                  <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/60 ${open ? "ring-1 ring-lilac" : ""}`}>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedNeighborId(open ? null : nb.id)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left"
-                    >
-                      <span className="text-sm text-eye-purple">
-                        {nb.name ?? "이 별"} <span className="text-xs text-text-light">{nb.tag}</span>
-                      </span>
-                      {nb.inyeonInfo && (
-                        <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
-                      )}
-                    </button>
-                    {open && (
-                      <div className="px-3 pb-3 pt-1">
-                        <InyeonDetail
-                          target={nb.target!}
-                          oriented={nb.oriented}
-                          heavenlyCombo={nb.edge?.heavenlyCombo ?? false}
-                          sixCombo={nb.edge?.sixCombo ?? false}
-                          inyeon={nb.inyeonInfo}
-                          pivotIsMe={false}
-                          triadShared={nb.triadShared}
-                        />
-                      </div>
-                    )}
+                  <div key={rt}>
+                    <div className="mb-1.5 text-xs font-medium text-text-light">{relationTypeLabel(rt)}</div>
+                    <div className="space-y-1.5">
+                      {members.map((nb) => {
+                        const open = expandedNeighborId === nb.id;
+                        return (
+                          <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/70 ${open ? "ring-1 ring-lilac" : ""}`}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedNeighborId(open ? null : nb.id)}
+                              className="flex w-full items-center justify-between px-3 py-2 text-left"
+                            >
+                              <span className="text-sm text-eye-purple">
+                                {nb.name ?? "이 별"} <span className="text-xs text-text-light">{nb.tag}</span>
+                              </span>
+                              {nb.inyeonInfo && (
+                                <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
+                              )}
+                            </button>
+                            {open && (
+                              <div className="px-3 pb-3 pt-1">
+                                <InyeonDetail
+                                  target={nb.target!}
+                                  oriented={nb.oriented}
+                                  heavenlyCombo={nb.edge?.heavenlyCombo ?? false}
+                                  sixCombo={nb.edge?.sixCombo ?? false}
+                                  inyeon={nb.inyeonInfo}
+                                  pivotIsMe={false}
+                                  triadShared={nb.triadShared}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -407,15 +430,9 @@ export default function ConstellationView({ graph, meId }: Props) {
             {ranking.map((r, i) => {
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
-              const top = i === 0;
               const grade = inyeonGrade(r.inyeon);
               return (
-                <div
-                  key={r.id}
-                  className={`overflow-hidden rounded-2xl ${
-                    i === 0 ? "bg-eye-purple text-cream-warm" : i <= 2 ? "bg-lilac-soft" : "bg-cream-warm"
-                  }`}
-                >
+                <div key={r.id} className="overflow-hidden rounded-2xl bg-cream-warm">
                   <button
                     type="button"
                     aria-expanded={open}
@@ -424,12 +441,10 @@ export default function ConstellationView({ graph, meId }: Props) {
                       setConfirmDeleteId(null);
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
-                    className={`block w-full px-4 py-3 text-left transition active:scale-[0.99] ${
-                      top ? "hover:bg-white/10" : "hover:bg-lilac-mid/15"
-                    }`}
+                    className="block w-full px-4 py-3 text-left transition active:scale-[0.99] hover:bg-lilac-mid/15"
                   >
                     <span className="flex items-center gap-2.5">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${top ? "bg-gold text-night" : "bg-white/70 text-eye-purple"}`}>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${rankChipClass(i)}`}>
                         {i + 1}
                       </span>
                       <span
@@ -439,30 +454,30 @@ export default function ConstellationView({ graph, meId }: Props) {
                         {r.element}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className={`block truncate text-sm font-semibold ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                        <span className="block truncate text-sm font-semibold text-eye-purple">
                           {r.name ?? "이 별"}
                         </span>
                         {r.dayType && (
-                          <span className={`block truncate text-xs ${top ? "text-lilac-soft" : "text-text-light"}`}>
+                          <span className="block truncate text-xs text-text-light">
                             {r.dayType}
                           </span>
                         )}
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className={`block font-display text-lg font-bold leading-none ${top ? "text-gold" : "text-eye-purple"}`}>
+                        <span className="block font-display text-lg font-bold leading-none text-eye-purple">
                           {r.inyeon}
                         </span>
-                        <span className={`mt-0.5 block text-[11px] ${top ? "text-lilac-soft" : "text-text-light"}`}>
+                        <span className="mt-0.5 block text-[11px] text-text-light">
                           인연 점수
                         </span>
                       </span>
                     </span>
-                    <span className={`mt-2.5 block border-t pt-2.5 ${top ? "border-white/20" : "border-lilac-mid/30"}`}>
+                    <span className="mt-2.5 block border-t border-lilac-mid/30 pt-2.5">
                       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                         <span className={`rounded-full px-2 py-0.5 text-xs ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
                           {grade.label}
                         </span>
-                        <span className={`text-xs ${top ? "text-cream-warm" : "text-eye-purple"}`}>
+                        <span className="text-xs text-eye-purple">
                           {relationRole(r.relation)} · {elementPair(r.relation, myEl, r.element)}
                         </span>
                       </span>
