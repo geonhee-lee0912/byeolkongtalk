@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import { computeLayout, orientEdge } from "@/lib/byeoljari/layout";
 import { buildFocusGraph, focusSummary } from "@/lib/byeoljari/focus";
@@ -9,11 +8,10 @@ import {
   BOND_COLOR,
   starColor,
   relationTypeLabel,
-  directionParticle,
 } from "@/lib/byeoljari/display";
 import { presentBondFilters, BOND_FILTER_LABEL, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import { scaleForCount } from "@/lib/byeoljari/scale";
-import { resolveShape, shouldReveal } from "@/lib/byeoljari/shape";
+import { resolveShape } from "@/lib/byeoljari/shape";
 import { inyeonGrade, inyeonReasons, inyeonComment } from "@/lib/byeoljari/inyeon";
 import ConstellationCanvas from "./ConstellationCanvas";
 import InyeonDetail from "./InyeonDetail";
@@ -57,36 +55,11 @@ export default function ConstellationView({ graph, meId }: Props) {
   const [expandedNeighborId, setExpandedNeighborId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<BondFilter | null>(null);
   const [activeTriadGroup, setActiveTriadGroup] = useState<number | null>(null);
-  const [reveal, setReveal] = useState(false);
-  // 성장 리빌 오버레이는 body 로 포털 — 페이지 <main> 의 애니메이션이 만드는
-  // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
-  const [mounted, setMounted] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
 
   const shape = useMemo(() => resolveShape(graph.nodes), [graph.nodes]);
-
-  useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (!shape) return;
-    const key = `byeoljari:seenStage:${graph.shareId}`;
-    const stored = localStorage.getItem(key);
-    if (shouldReveal(stored, shape.stage)) setReveal(true);
-    localStorage.setItem(key, String(shape.stage)); // 리빌 여부와 무관하게 기준선 갱신
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph.shareId, shape?.stage]);
-
-  // 오버레이가 열려 있는 동안만 ESC 로 닫기 — ContinuationModal/RecoConfirmModal 패턴 미러.
-  useEffect(() => {
-    if (!reveal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setReveal(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [reveal]);
 
   // 포커스 진입(focusId) 자체는 스크롤하지 않는다 — 지도가 화면에서 밀려나면 안 됨.
   // 카드 내부 이웃 행 펼침(expandedNeighborId)만 nearest 로 살짝 보정.
@@ -559,29 +532,6 @@ export default function ConstellationView({ graph, meId }: Props) {
             })}
           </div>
         </div>
-      )}
-      {reveal && shape && mounted && createPortal(
-        <div
-          className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-night/80 animate-fade-in"
-          onClick={() => setReveal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="형상 진화"
-        >
-          <img src={shape.assetSrc} alt="" className="h-40 w-40 object-contain" />
-          <p className="mt-4 font-display text-xl text-gold">
-            {shape.name}
-            {directionParticle(shape.name)} 진화했어!
-          </p>
-          <button
-            type="button"
-            className="mt-6 rounded-xl bg-lilac-deep px-6 py-2 text-white"
-            onClick={() => setReveal(false)}
-          >
-            닫기
-          </button>
-        </div>,
-        document.body
       )}
     </div>
   );
