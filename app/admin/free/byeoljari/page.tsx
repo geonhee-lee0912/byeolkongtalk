@@ -1,0 +1,227 @@
+// app/admin/free/byeoljari/page.tsx — 별 인연 별자리(무료 서비스) 퍼널 대시보드.
+// 생성 → 초대 → 가입 → 결제. 어트리뷰션 = 링크 utm(user_acquisition) + 참여자 anon 브리지(page_views).
+// 집계는 전부 RPC(admin_byeoljari_*) — 원본 행을 앱으로 끌어오지 않는다(패턴 B, admin/relationship 관행).
+import { getServiceSupabase } from "@/lib/supabase";
+import LoadFailed from "@/components/admin/LoadFailed";
+import { adminExclusionArray } from "@/lib/admin";
+import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
+
+export const dynamic = "force-dynamic";
+
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="rounded-lg bg-white/5 p-4">
+      <div className="text-[12px] text-white/50">{label}</div>
+      <div className="text-2xl font-bold mt-1">{value}</div>
+      {sub && <div className="text-[11px] text-white/40 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+// 일별 표에 그릴 kind 순서·라벨(단일 원천).
+const TREND_COLS: { kind: string; label: string; won?: boolean }[] = [
+  { kind: "maps_created", label: "생성" },
+  { kind: "entry_uv", label: "만들기UV" },
+  { kind: "landing_uv", label: "조회UV" },
+  { kind: "member_joins", label: "참여" },
+  { kind: "invite_clicks", label: "초대클릭" },
+  { kind: "signups_utm", label: "utm가입" },
+  { kind: "cohort_payments", label: "결제" },
+  { kind: "cohort_revenue", label: "매출(원)", won: true },
+];
+
+async function load() {
+  const supa = getServiceSupabase();
+  const p_exclude = adminExclusionArray();
+  const p_since = daysAgoKstIso(29); // 최근 30일(오늘 포함)
+  const today = kstDate(new Date().toISOString());
+
+  const [sumRes, trendRes, distRes] = await Promise.all([
+    supa.rpc("admin_byeoljari_summary", { p_exclude }),
+    supa.rpc("admin_byeoljari_trend", { p_since, p_exclude }),
+    supa.rpc("admin_byeoljari_member_dist", { p_exclude }),
+  ]);
+
+  const sumFailed = !!sumRes.error;
+  const trendFailed = !!trendRes.error;
+  const distFailed = !!distRes.error;
+
+  const su = (
+    (sumRes.data ?? []) as {
+      total_maps: number; maps_login: number; maps_anon: number;
+      entry_uv: number; landing_uv: number;
+      total_members: number; name_public_members: number; invite_clicks: number;
+      signups_utm: number; member_signups: number; cohort_size: number;
+      cohort_payers: number; cohort_revenue: number;
+      total_users: number; total_payers: number;
+    }[]
+  )[0];
+
+  const trendRows = (trendRes.data ?? []) as { bucket: string; kind: string; cnt: number }[];
+  const byBucket: Record<string, Record<string, number>> = {};
+  for (const r of trendRows) (byBucket[r.bucket] ??= {})[r.kind] = Number(r.cnt);
+  const buckets = Object.keys(byBucket).sort().reverse(); // 최신 날짜 위로
+
+  const di = (
+    (distRes.data ?? []) as {
+      avg_members: number; p50: number; p75: number; p90: number; max_members: number;
+      maps_0: number; maps_1: number; maps_2_3: number; maps_4_6: number;
+      maps_7_10: number; maps_11plus: number;
+    }[]
+  )[0];
+
+  return {
+    sumFailed, trendFailed, distFailed, today,
+    su: {
+      totalMaps: Number(su?.total_maps ?? 0),
+      mapsLogin: Number(su?.maps_login ?? 0),
+      mapsAnon: Number(su?.maps_anon ?? 0),
+      entryUv: Number(su?.entry_uv ?? 0),
+      landingUv: Number(su?.landing_uv ?? 0),
+      totalMembers: Number(su?.total_members ?? 0),
+      namePublicMembers: Number(su?.name_public_members ?? 0),
+      inviteClicks: Number(su?.invite_clicks ?? 0),
+      signupsUtm: Number(su?.signups_utm ?? 0),
+      memberSignups: Number(su?.member_signups ?? 0),
+      cohortSize: Number(su?.cohort_size ?? 0),
+      cohortPayers: Number(su?.cohort_payers ?? 0),
+      cohortRevenue: Number(su?.cohort_revenue ?? 0),
+      totalUsers: Number(su?.total_users ?? 0),
+      totalPayers: Number(su?.total_payers ?? 0),
+    },
+    dist: {
+      avg: Number(di?.avg_members ?? 0),
+      p50: Number(di?.p50 ?? 0),
+      p75: Number(di?.p75 ?? 0),
+      p90: Number(di?.p90 ?? 0),
+      max: Number(di?.max_members ?? 0),
+      hist: [
+        { label: "0명", v: Number(di?.maps_0 ?? 0) },
+        { label: "1명", v: Number(di?.maps_1 ?? 0) },
+        { label: "2–3명", v: Number(di?.maps_2_3 ?? 0) },
+        { label: "4–6명", v: Number(di?.maps_4_6 ?? 0) },
+        { label: "7–10명", v: Number(di?.maps_7_10 ?? 0) },
+        { label: "11명+", v: Number(di?.maps_11plus ?? 0) },
+      ],
+    },
+    buckets,
+    byBucket,
+  };
+}
+
+export default async function AdminByeoljariPage() {
+  const s = await load();
+  const su = s.su;
+  const pct = (num: number, den: number) => (den ? Math.round((num / den) * 1000) / 10 : 0);
+  const entryToCreate = pct(su.totalMaps, su.entryUv);
+  const optInRate = pct(su.namePublicMembers, su.totalMembers);
+  const cohortPayRate = pct(su.cohortPayers, su.cohortSize);
+  const totalPayRate = pct(su.totalPayers, su.totalUsers);
+  const kFactor = su.totalMaps ? Math.round((su.signupsUtm / su.totalMaps) * 100) / 100 : 0;
+  const cohortArpu = su.cohortSize ? Math.round(su.cohortRevenue / su.cohortSize) : 0;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-xl font-bold">별 인연 별자리 <span className="text-white/40 text-sm">(무료 서비스)</span></h1>
+        <p className="text-[13px] text-white/50 mt-1">생성 → 초대 → 가입 → 결제 퍼널. 미래분 지표(utm·K-factor)는 배포 후 유입이 쌓여야 값이 남.</p>
+      </div>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">① 생성</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="총 별자리" value={s.sumFailed ? "—" : su.totalMaps} sub={s.sumFailed ? undefined : `로그인 ${su.mapsLogin} · 익명 ${su.mapsAnon}`} />
+          <Stat label="만들기 진입 UV" value={s.sumFailed ? "—" : su.entryUv} />
+          <Stat label="진입→생성 전환" value={s.sumFailed ? "—" : `${entryToCreate}%`} />
+          <Stat label="별자리 경유 가입(utm)" value={s.sumFailed ? "—" : su.signupsUtm} sub="미래분" />
+        </div>
+        {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">② 초대 / 바이럴</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="랜딩 조회 UV" value={s.sumFailed ? "—" : su.landingUv} />
+          <Stat label="총 참여(멤버)" value={s.sumFailed ? "—" : su.totalMembers} />
+          <Stat label="이름공개 옵트인율" value={s.sumFailed ? "—" : `${optInRate}%`} sub={s.sumFailed ? undefined : `${su.namePublicMembers}/${su.totalMembers}`} />
+          <Stat label="초대클릭(발신)" value={s.sumFailed ? "—" : su.inviteClicks} />
+          <Stat label="K-factor" value={s.sumFailed ? "—" : kFactor} sub="맵당 utm 가입 · 미래분" />
+        </div>
+        {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">지도당 멤버 수 분포</h3>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Stat label="평균" value={s.distFailed ? "—" : s.dist.avg} />
+          <Stat label="중앙(P50)" value={s.distFailed ? "—" : s.dist.p50} />
+          <Stat label="상위25%(P75)" value={s.distFailed ? "—" : s.dist.p75} />
+          <Stat label="상위10%(P90)" value={s.distFailed ? "—" : s.dist.p90} />
+          <Stat label="최대" value={s.distFailed ? "—" : s.dist.max} />
+        </div>
+        {s.distFailed ? (
+          <LoadFailed block="admin_byeoljari_member_dist" className="mt-2" />
+        ) : (
+          <div className="mt-2 text-[12px] text-white/40">
+            {s.dist.hist.map((h) => `${h.label} ${h.v}`).join(" · ")}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">③ 가입 <span className="text-white/35">(참여자 브리지는 같은 기기 로그인만 = 하한)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="참여자→가입" value={s.sumFailed ? "—" : su.memberSignups} sub="member_anon 브리지" />
+          <Stat label="별자리 경유 가입(utm)" value={s.sumFailed ? "—" : su.signupsUtm} sub="미래분" />
+          <Stat label="코호트 규모" value={s.sumFailed ? "—" : su.cohortSize} sub="utm ∪ 참여자" />
+        </div>
+        {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">④ 결제</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="코호트 결제자" value={s.sumFailed ? "—" : su.cohortPayers} sub={s.sumFailed ? undefined : `${su.cohortSize}명 중`} />
+          <Stat label="코호트 결제율" value={s.sumFailed ? "—" : `${cohortPayRate}%`} sub={s.sumFailed ? undefined : `전체 ${totalPayRate}%`} />
+          <Stat label="코호트 매출(원)" value={s.sumFailed ? "—" : su.cohortRevenue.toLocaleString()} />
+          <Stat label="코호트 ARPU(원)" value={s.sumFailed ? "—" : cohortArpu.toLocaleString()} sub="매출/코호트" />
+        </div>
+        {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">일별 추세 <span className="text-white/35">(최근 30일 · KST)</span></h2>
+        {s.trendFailed ? (
+          <LoadFailed block="admin_byeoljari_trend" />
+        ) : s.buckets.length === 0 ? (
+          <div className="text-[12px] text-white/40">데이터 없음</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-white/40 text-left">
+                  <th className="py-1 pr-3">날짜</th>
+                  {TREND_COLS.map((c) => (
+                    <th key={c.kind} className="py-1 px-2 text-right">{c.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {s.buckets.map((b) => (
+                  <tr key={b} className={`border-t border-white/5 ${b === s.today ? "text-gold" : "text-white/70"}`}>
+                    <td className="py-1 pr-3">{b.slice(5)}{b === s.today ? " (오늘)" : ""}</td>
+                    {TREND_COLS.map((c) => {
+                      const v = s.byBucket[b]?.[c.kind] ?? 0;
+                      return (
+                        <td key={c.kind} className="py-1 px-2 text-right">
+                          {c.won ? v.toLocaleString() : v}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
