@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { calcSaju } from "@/lib/saju/calc";
 import { JANGAN_BONGI, STEM_ORDER, BRANCH_ORDER, ELEMENT_YINYANG, POSITION_WEIGHT } from "./constants.ts";
 import { STEM_ELEMENT } from "@/lib/saju/pairing";
 
@@ -170,13 +171,15 @@ test("axisPercentile — 분위 배열 선형보간(0~100·단조)", () => {
   assert.ok(axisPercentile(150, q) > axisPercentile(50, q));
 });
 
-import { QUANTILE_TABLE } from "./constants.ts";
+import { QUANTILE_TABLE_KNOWN, QUANTILE_TABLE_UNKNOWN } from "./constants.ts";
 
-test("QUANTILE_TABLE — 4축·21점·오름차순", () => {
-  for (const k of ["yinYang", "strength", "wealth", "nurture"] as const) {
-    const q = QUANTILE_TABLE[k];
-    assert.equal(q.length, 21, `${k} 분위점 21개 아님`);
-    for (let i = 1; i < q.length; i++) assert.ok(q[i] >= q[i - 1], `${k} 비단조`);
+test("QUANTILE_TABLE_KNOWN/UNKNOWN — 4축·21점·오름차순(두 테이블 모두)", () => {
+  for (const table of [QUANTILE_TABLE_KNOWN, QUANTILE_TABLE_UNKNOWN]) {
+    for (const k of ["yinYang", "strength", "wealth", "nurture"] as const) {
+      const q = table[k];
+      assert.equal(q.length, 21, `${k} 분위점 21개 아님`);
+      for (let i = 1; i < q.length; i++) assert.ok(q[i] >= q[i - 1], `${k} 비단조`);
+    }
   }
 });
 
@@ -212,4 +215,29 @@ test("paljaType — element·elementDist·raw 양념 포함", () => {
   assert.ok(["목", "화", "토", "금", "수"].includes(t.element));
   assert.equal(Object.values(t.elementDist).reduce((a, b) => a + b, 0) > 0, true);
   assert.ok(Array.isArray(t.tenGods));
+});
+
+test("paljaType — 4축 극이 pct≥50=앞극으로 일관(POLES 뒤집힘 방지)", () => {
+  const front = { yinYang: "양", strength: "강", wealth: "재", nurture: "생" } as const;
+  const t = paljaType(mkSaju({ year: ["임", "신"], month: ["기", "유"], day: ["신", "묘"], hour: ["을", "미"] }));
+  for (const key of ["yinYang", "strength", "wealth", "nurture"] as const) {
+    assert.equal(t.axes[key].pole === front[key], t.axes[key].pct >= 50);
+  }
+});
+
+test("paljaType — 골든(실사주 1992-09-12 13:47, 시간 앎)", () => {
+  const t = paljaType(calcSaju({ year: 1992, month: 9, day: 12, hour: 13, minute: 47, gender: "male" }));
+  // 재보정(시간앎/모름 두 인구, 2026-08-23) 후 실행 결과로 고정 — 테이블 회귀·극방향 동시 고정.
+  assert.equal(t.code, "음강인단");
+  assert.equal(t.element, "금");
+  assert.deepEqual(
+    { y: t.axes.yinYang.pct, s: t.axes.strength.pct, w: t.axes.wealth.pct, n: t.axes.nurture.pct },
+    { y: 12.179487179487179, s: 79.99998999999, w: 43.57142857142857, n: 19.117647058823533 }
+  );
+});
+
+test("paljaType — 시간 모름은 UNKNOWN 테이블 경로", () => {
+  const t = paljaType(calcSaju({ year: 1992, month: 9, day: 12, hour: null, gender: "male" }));
+  assert.equal(t.code.length, 4);
+  assert.ok(["목", "화", "토", "금", "수"].includes(t.element));
 });
