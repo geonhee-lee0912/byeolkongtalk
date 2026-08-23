@@ -355,46 +355,61 @@ export default function ConstellationView({ graph, meId }: Props) {
                 if (!members.length) return null;
                 return (
                   <div key={tag}>
-                    <div className="mb-1.5 flex items-center gap-2 text-xs font-bold text-eye-purple">
-                      {tag}
-                      {tag === "같은 결" && focusTriadScore != null && (
-                        <span className="font-normal text-text-light">무리 인연 {focusTriadScore}</span>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      {members.map((nb) => {
-                        const open = expandedNeighborId === nb.id;
-                        return (
-                          <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/70 ${open ? "ring-1 ring-lilac" : ""}`}>
-                            <button
-                              type="button"
-                              onClick={() => setExpandedNeighborId(open ? null : nb.id)}
-                              className="flex w-full items-center justify-between px-3 py-2 text-left"
-                            >
-                              <span className="text-sm text-eye-purple">
-                                {nb.name ?? "이 별"}
-                              </span>
-                              {nb.inyeonInfo && (
-                                <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
-                              )}
-                            </button>
-                            {open && (
-                              <div className="px-3 pb-3 pt-1">
-                                <InyeonDetail
-                                  target={nb.target!}
-                                  oriented={nb.oriented}
-                                  heavenlyCombo={nb.edge?.heavenlyCombo ?? false}
-                                  sixCombo={nb.edge?.sixCombo ?? false}
-                                  inyeon={nb.inyeonInfo}
-                                  pivotIsMe={false}
-                                  triadShared={nb.triadShared}
-                                />
-                              </div>
-                            )}
+                    <div className="mb-1.5 text-xs font-bold text-eye-purple">{tag}</div>
+                    {tag === "같은 결" ? (
+                      // 무리 = 이름 나열(한 줄 3명·콤마) + 오른쪽 무리 점수(높이 가운데 정렬)
+                      <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
+                        <div className="min-w-0 flex-1 text-sm text-eye-purple">
+                          {(() => {
+                            const names = members.map((nb) => nb.name ?? "이 별");
+                            const lines: string[] = [];
+                            for (let i = 0; i < names.length; i += 3)
+                              lines.push(names.slice(i, i + 3).join(", "));
+                            return lines.map((line, i) => <div key={i}>{line}</div>);
+                          })()}
+                        </div>
+                        {focusTriadScore != null && (
+                          <div className="shrink-0 pl-3 text-sm font-semibold text-eye-purple">
+                            무리 인연 {focusTriadScore}
                           </div>
-                        );
-                      })}
-                    </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {members.map((nb) => {
+                          const open = expandedNeighborId === nb.id;
+                          return (
+                            <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/70 ${open ? "ring-1 ring-lilac" : ""}`}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedNeighborId(open ? null : nb.id)}
+                                className="flex w-full items-center justify-between px-3 py-2 text-left"
+                              >
+                                <span className="text-sm text-eye-purple">
+                                  {nb.name ?? "이 별"}
+                                </span>
+                                {nb.inyeonInfo && (
+                                  <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
+                                )}
+                              </button>
+                              {open && (
+                                <div className="px-3 pb-3 pt-1">
+                                  <InyeonDetail
+                                    target={nb.target!}
+                                    oriented={nb.oriented}
+                                    heavenlyCombo={nb.edge?.heavenlyCombo ?? false}
+                                    sixCombo={nb.edge?.sixCombo ?? false}
+                                    inyeon={nb.inyeonInfo}
+                                    pivotIsMe={false}
+                                    triadShared={nb.triadShared}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
