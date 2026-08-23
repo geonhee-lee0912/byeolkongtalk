@@ -52,3 +52,21 @@ test("elementOf — 본기 오행", () => {
   assert.equal(elementOf({ char: "자", isStem: false, weight: 1 }), "수");
   assert.equal(elementOf({ char: "병", isStem: true, weight: 1 }), "화");
 });
+
+import { yinYangRaw } from "./mapping.ts";
+
+test("yinYangRaw — 전부 양(갑·인 계열)이면 양(+)", () => {
+  const s = mkSaju({ year: ["갑", "인"], month: ["갑", "인"], day: ["무", "오"], hour: ["갑", "인"] });
+  assert.ok(yinYangRaw(s) > 0);
+});
+
+test("yinYangRaw — 대칭 상쇄 확인(양간+음간 동일가중이면 표기상 0 근처)", () => {
+  const s = mkSaju({ year: ["갑", "축"], month: ["갑", "축"], day: ["무", "오"], hour: ["갑", "축"] });
+  const raw = yinYangRaw(s);
+  assert.ok(raw > 0);
+});
+
+test("yinYangRaw — 시간 모름이면 시주 미반영(값이 달라짐)", () => {
+  const p = { year: ["갑", "자"], month: ["병", "인"], day: ["무", "오"], hour: ["임", "해"] } as const;
+  assert.notEqual(yinYangRaw(mkSaju(p)), yinYangRaw(mkSaju(p, { hourKnown: false })));
+});

@@ -1,7 +1,7 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import { STEM_ELEMENT } from "@/lib/saju/pairing";
-import { JANGAN_BONGI, POSITION_WEIGHT } from "./constants.ts";
+import { JANGAN_BONGI, POSITION_WEIGHT, STEM_ORDER, BRANCH_ORDER, ELEMENT_YINYANG } from "./constants.ts";
 
 export interface CharCell {
   char: string;
@@ -34,4 +34,16 @@ export function stemOf(cell: CharCell): string {
 /** 글자의 오행(본기 환원 기준). */
 export function elementOf(cell: CharCell): FiveElement {
   return STEM_ELEMENT[stemOf(cell)];
+}
+
+/** 음/양 raw. + = 양. 표기상(표면 index 짝수=양) 0.7 + 오행기질(목화+1·금수-1·토0, 본기) 0.3, 위치가중. */
+export function yinYangRaw(saju: SajuResult): number {
+  let sum = 0;
+  for (const cell of activeChars(saju)) {
+    const order = cell.isStem ? STEM_ORDER : BRANCH_ORDER;
+    const surfaceParity = order.indexOf(cell.char) % 2 === 0 ? 1 : -1;
+    const elementYy = ELEMENT_YINYANG[elementOf(cell)];
+    sum += (0.7 * surfaceParity + 0.3 * elementYy) * cell.weight;
+  }
+  return sum;
 }
