@@ -65,9 +65,10 @@ export default function ConstellationCanvas({
 
   // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
   const triadRing = new Map<string, string>();
-  graph.triads.forEach((t) =>
-    t.memberIds.forEach((id) => triadRing.set(id, BOND_COLOR.triad))
-  );
+  graph.triads.forEach((t, ti) => {
+    if (activeTriadGroup != null && ti !== activeTriadGroup) return; // 하위 칩 격리 시 그 그룹만 glow
+    t.memberIds.forEach((id) => triadRing.set(id, BOND_COLOR.triad));
+  });
 
   return (
     <svg viewBox="0 0 100 100" className="block h-full w-full" role="img" aria-label="별자리 관계망">
