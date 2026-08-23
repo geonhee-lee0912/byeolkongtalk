@@ -352,7 +352,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                 if (!members.length) return null;
                 return (
                   <div key={tag}>
-                    <div className="mb-1.5 text-xs font-medium text-text-light">{tag}</div>
+                    <div className="mb-1.5 text-xs font-bold text-eye-purple">{tag}</div>
                     <div className="space-y-1.5">
                       {members.map((nb) => {
                         const open = expandedNeighborId === nb.id;
@@ -364,7 +364,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                               className="flex w-full items-center justify-between px-3 py-2 text-left"
                             >
                               <span className="text-sm text-eye-purple">
-                                {nb.name ?? "이 별"} <span className="text-xs text-text-light">{nb.tag}</span>
+                                {nb.name ?? "이 별"}
                               </span>
                               {nb.inyeonInfo && (
                                 <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
