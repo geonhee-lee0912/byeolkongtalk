@@ -154,11 +154,6 @@ export default async function AdminByeoljariPage() {
           <Stat label="만들기 진입 UV" value={s.sumFailed ? "—" : su.entryUv} />
           <Stat label="진입→생성 전환" value={s.sumFailed ? "—" : `${entryToCreate}%`} />
           <Stat label="별자리 경유 가입(utm)" value={s.sumFailed ? "—" : su.signupsUtm} sub="미래분" />
-          <Stat
-            label="생성→첫결제 중앙"
-            value={s.convFailed || s.conv.medianHours == null ? "—" : fmtDuration(s.conv.medianHours)}
-            sub={s.convFailed || !s.conv.sampleN ? undefined : `표본 ${s.conv.sampleN}명`}
-          />
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
         <h3 className="text-[13px] text-white/50 mt-4 mb-2">생성자 UTM 분포</h3>
@@ -217,8 +212,14 @@ export default async function AdminByeoljariPage() {
           <Stat label="코호트 결제율" value={s.sumFailed ? "—" : `${cohortPayRate}%`} sub={s.sumFailed ? undefined : `전체 ${totalPayRate}%`} />
           <Stat label="코호트 매출(원)" value={s.sumFailed ? "—" : su.cohortRevenue.toLocaleString()} />
           <Stat label="코호트 ARPU(원)" value={s.sumFailed ? "—" : cohortArpu.toLocaleString()} sub="매출/코호트" />
+          <Stat
+            label="생성→첫결제 중앙"
+            value={s.convFailed || s.conv.medianHours == null ? "—" : fmtDuration(s.conv.medianHours)}
+            sub={s.convFailed || !s.conv.sampleN ? undefined : `표본 ${s.conv.sampleN}명`}
+          />
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
+        {s.convFailed && <LoadFailed block="admin_byeoljari_conversion" className="mt-2" />}
       </section>
 
       <section>
