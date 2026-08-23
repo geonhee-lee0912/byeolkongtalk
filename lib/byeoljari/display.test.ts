@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   STAR_ELEMENT_COLORS,
   starColor,
+  BOND_COLOR,
   elementRelationLabel,
   relationTypeLabel,
   subjectParticle,
@@ -57,4 +58,10 @@ test("directionParticle — ㄹ받침은 로(예외)", () => {
 
 test("directionParticle — 한글 완성형 밖은 로", () => {
   assert.equal(directionParticle("abc"), "로");
+});
+
+test("BOND_COLOR — 끌림 골드·결속 보라·같은 결 청록", () => {
+  assert.equal(BOND_COLOR.heavenly, "#F2D78A");
+  assert.equal(BOND_COLOR.six, "#A98BEE");
+  assert.equal(BOND_COLOR.triad, "#5DCAA5");
 });
