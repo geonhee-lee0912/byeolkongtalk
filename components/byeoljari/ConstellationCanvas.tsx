@@ -63,20 +63,9 @@ export default function ConstellationCanvas({
       : graph.triads.flatMap((t) => t.memberIds)
   );
 
-  // 삼합 = 같은 국(局)의 별들. 삼각형 대신 멤버 별을 같은 오행색 링으로 묶어 표시.
-  const triadRing = new Map<string, string>();
-  graph.triads.forEach((t, ti) => {
-    if (activeTriadGroup != null && ti !== activeTriadGroup) return; // 하위 칩 격리 시 그 그룹만 glow
-    t.memberIds.forEach((id) => triadRing.set(id, BOND_COLOR.triad));
-  });
-
   return (
     <svg viewBox="0 0 100 100" className="block h-full w-full" role="img" aria-label="별자리 관계망">
       <defs>
-        {/* 삼합 glow — 부드러운 번짐 */}
-        <filter id="triadGlow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="1.4" />
-        </filter>
         {/* 끌림(천간합) 골드 글로우 — 반짝 강조 */}
         <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur stdDeviation="1.1" />
@@ -134,7 +123,7 @@ export default function ConstellationCanvas({
                   x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
                   stroke={BOND_COLOR.heavenly}
                   strokeOpacity={0.4 * dim}
-                  strokeWidth={sizes.goldLineWidth * 2.4}
+                  strokeWidth={sizes.lineWidth * 2.4}
                   strokeLinecap="round"
                   filter="url(#goldGlow)"
                 />
@@ -146,7 +135,7 @@ export default function ConstellationCanvas({
                 y2={pb.y}
                 stroke={e.heavenlyCombo ? BOND_COLOR.heavenly : e.sixCombo ? BOND_COLOR.six : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
                 strokeOpacity={(special ? 0.85 : focusMode ? 0.4 : 0.22) * dim}
-                strokeWidth={special ? sizes.goldLineWidth : sizes.lineWidth}
+                strokeWidth={sizes.lineWidth}
                 strokeDasharray={e.sixCombo && !e.heavenlyCombo ? "2 1.5" : undefined}
                 strokeLinecap="round"
                 style={{ transition: "stroke-opacity 300ms" }}
@@ -179,7 +168,7 @@ export default function ConstellationCanvas({
             );
           })}
 
-        {/* 노드 = 주인 원(host-circle) / 나 강조 별(me-star) / 별. 삼합 멤버는 별 뒤 은은한 광(glow). */}
+        {/* 노드 = 주인 원(host-circle) / 나 강조 별(me-star) / 별. */}
         {graph.nodes.map((n) => {
           const p = pos(n.id);
           if (!p) return null;
@@ -191,7 +180,6 @@ export default function ConstellationCanvas({
             !focusMode && activeFilter != null && !nodeActiveForBond(n.id, activeFilter, graph.edges, triadMemberIds);
           const dimByPair = highlightPairIds != null && !highlightPairIds.includes(n.id);
           const nodeOpacity = dimByFilter || dimByPair ? DIM : 1;
-          const ringColor = triadRing.get(n.id);
           const baseR = isHostCircle ? sizes.hostOuter : sizes.starOuter;
           return (
             <g
@@ -202,17 +190,6 @@ export default function ConstellationCanvas({
             >
               {/* 넉넉한 투명 히트영역 */}
               <circle cx={p.x} cy={p.y} r={sizes.hitR} fill="transparent" />
-              {/* 삼합(같은 국) — 별 뒤 부드러운 청록 광. 그룹 연결선은 위 폴리곤. */}
-              {ringColor && (
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={baseR + 1}
-                  fill={ringColor}
-                  opacity={0.45}
-                  filter="url(#triadGlow)"
-                />
-              )}
               {isHostCircle ? (
                 // 주인 = 원(오행색 + 골드 테두리)
                 <circle
@@ -242,7 +219,12 @@ export default function ConstellationCanvas({
                   textAnchor="middle"
                   fontSize={isHostCircle ? sizes.hostLabelFont : sizes.labelFont}
                   fill="#EDE6D6"
-                  fillOpacity={0.9}
+                  fillOpacity={0.95}
+                  stroke="#1F1735"
+                  strokeWidth={0.6}
+                  strokeOpacity={0.85}
+                  paintOrder="stroke"
+                  style={{ strokeLinejoin: "round" }}
                 >
                   {n.name}
                 </text>

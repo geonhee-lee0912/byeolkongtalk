@@ -111,7 +111,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   // 필터는 overview 전용(포커스 서브그래프엔 합성 스포크가 있어 dim 이 지저분). 포커스에서 칩 누르면 전체로 나가며 적용
   const effectiveFilter = !focusId && activeFilter && filterTypes.includes(activeFilter) ? activeFilter : null;
   // 그룹 격리는 "같은 결" 필터가 실제 활성일 때만 유효.
-  const effectiveTriadGroup = effectiveFilter === "triad" ? activeTriadGroup : null;
+  const effectiveTriadGroup = effectiveFilter === "triad" ? (activeTriadGroup ?? 0) : null;
 
   // pivot↔other 1:1 상세(인연 점수 근거 + 방향 카피). 포커스 카드·선 인스펙트·랭킹 아코디언 공용.
   function detailFor(pId: string, otherId: string) {
@@ -236,7 +236,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         {shape ? `${shape.name}자리` : "우리 별자리"}
       </h1>
       {showFilter && (
-        <div className="mb-3 flex flex-wrap justify-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
           {[null, ...filterTypes].map((t) => {
             const active = effectiveFilter === t;
             return (
@@ -246,7 +246,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                 aria-pressed={active}
                 onClick={() => {
                   setActiveFilter(t);
-                  setActiveTriadGroup(null);
+                  setActiveTriadGroup(t === "triad" ? 0 : null); // 같은 결이면 기본 1번 선택
                   if (focusId) resetToOverview(); // 포커스 중 필터 누르면 전체 지도로 나가며 적용
                 }}
                 className={`rounded-full px-3 py-1 text-xs ${
@@ -257,27 +257,29 @@ export default function ConstellationView({ graph, meId }: Props) {
               </button>
             );
           })}
-        </div>
-      )}
-      {effectiveFilter === "triad" && graph.triads.length >= 2 && (
-        <div className="mb-3 flex flex-wrap justify-center gap-2">
-          {graph.triads.map((_, i) => {
-            const on = effectiveTriadGroup === i;
-            return (
-              <button
-                key={i}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setActiveTriadGroup(on ? null : i)}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  on ? "text-white" : "text-eye-purple"
-                }`}
-                style={on ? { backgroundColor: BOND_COLOR.triad } : { backgroundColor: "#CFEDE4" }}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
+          {/* 같은 결 하위 번호 칩 — 상위 칩 옆에 인라인, 여러 그룹일 때만. 기본 1번 선택. */}
+          {effectiveFilter === "triad" &&
+            graph.triads.length >= 2 &&
+            graph.triads.map((_, i) => {
+              const on = effectiveTriadGroup === i;
+              return (
+                <button
+                  key={`tg-${i}`}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={`같은 결 ${i + 1}번 무리`}
+                  onClick={() => setActiveTriadGroup(i)}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
+                  style={
+                    on
+                      ? { backgroundColor: BOND_COLOR.triad, color: "#fff" }
+                      : { backgroundColor: "#CFEDE4", color: "#2E6F60" }
+                  }
+                >
+                  {i + 1}
+                </button>
+              );
+            })}
         </div>
       )}
       <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>

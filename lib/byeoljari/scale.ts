@@ -1,43 +1,28 @@
-// 별자리 다인원 스케일(§7) — 인원수에 따라 별·선·라벨 크기 적응. 순수 함수.
-// n≤6 = P3-1 기본값 유지(소규모 회귀 없음), n≥16 = 축소, 사이는 선형보간.
+// 별자리 크기·선 두께 — 인원수 무관 고정(2026-08-23 사용자: 인원 적응 보간이 복잡·실익 낮아 제거).
+// 선 두께는 끌림·결속·같은 결 통일(단일 lineWidth). 라벨만 20명 초과 시 숨김(겹침 방지 방어).
 export interface SizeSpec {
-  hostOuter: number;
-  starOuter: number;
-  starInner: number;
-  hitR: number;
-  lineWidth: number;
-  goldLineWidth: number;
+  hostOuter: number; // 주인 원 반경
+  starOuter: number; // 별 바깥 꼭지
+  starInner: number; // 별 안쪽 꼭지(통통함 ≈0.55)
+  hitR: number; // 투명 히트영역 반경
+  lineWidth: number; // 모든 관계선(끌림·결속·같은 결) 공통 두께
   labelFont: number;
   hostLabelFont: number;
   showLabels: boolean;
 }
 
-// starInner = 별 통통함(inner/outer≈0.55) — 뾰족한 별이 싫다는 피드백 반영해 plump.
-const FEW: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 6.8, starOuter: 4.6, starInner: 2.5, hitR: 6.8,
-  lineWidth: 0.5, goldLineWidth: 1.05, labelFont: 3, hostLabelFont: 3.6,
-};
-const MANY: Omit<SizeSpec, "showLabels"> = {
-  hostOuter: 5.2, starOuter: 3, starInner: 1.65, hitR: 5.2,
-  lineWidth: 0.36, goldLineWidth: 0.72, labelFont: 2.3, hostLabelFont: 2.9,
+// 주인 원(hostOuter)은 별(starOuter)보다 살짝 작게 — 원이 꽉 차 시각적으로 별과 균형.
+const SIZE: Omit<SizeSpec, "showLabels"> = {
+  hostOuter: 3.8,
+  starOuter: 4.0,
+  starInner: 2.2,
+  hitR: 6.0,
+  lineWidth: 0.7,
+  labelFont: 3.0,
+  hostLabelFont: 3.4,
 };
 
-const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-const round = (n: number) => Math.round(n * 100) / 100;
-
-/** 인원 n 에 맞춘 크기. 6명↓=FEW, 16명↑=MANY, 사이 선형보간. 라벨은 20명↓만. */
+/** 크기·선 두께는 고정, 라벨 표시만 인원 의존(20명↓). 함수명·시그니처는 호출부 호환 위해 유지. */
 export function scaleForCount(n: number): SizeSpec {
-  const t = clamp01((n - 6) / 10);
-  const lerp = (a: number, b: number) => round(a + (b - a) * t);
-  return {
-    hostOuter: lerp(FEW.hostOuter, MANY.hostOuter),
-    starOuter: lerp(FEW.starOuter, MANY.starOuter),
-    starInner: lerp(FEW.starInner, MANY.starInner),
-    hitR: lerp(FEW.hitR, MANY.hitR),
-    lineWidth: lerp(FEW.lineWidth, MANY.lineWidth),
-    goldLineWidth: lerp(FEW.goldLineWidth, MANY.goldLineWidth),
-    labelFont: lerp(FEW.labelFont, MANY.labelFont),
-    hostLabelFont: lerp(FEW.hostLabelFont, MANY.hostLabelFont),
-    showLabels: n <= 20,
-  };
+  return { ...SIZE, showLabels: n <= 20 };
 }
