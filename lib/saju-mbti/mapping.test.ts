@@ -60,7 +60,8 @@ test("yinYangRaw — 전부 양(갑·인 계열)이면 양(+)", () => {
   assert.ok(yinYangRaw(s) > 0);
 });
 
-test("yinYangRaw — 대칭 상쇄 확인(양간+음간 동일가중이면 표기상 0 근처)", () => {
+test("yinYangRaw — 갑(양간+목) 우세는 축(음지·토중립)이 섞여도 뚜렷한 양(+) (근사 0 아님)", () => {
+  // 축은 표기상 음(-0.7 기여)이나 오행(토)은 중립(0)이라 상쇄력이 약함 — 갑의 표기상+오행기질 이중 양(+) 기여를 못 이긴다(실값 1.2)
   const s = mkSaju({ year: ["갑", "축"], month: ["갑", "축"], day: ["무", "오"], hour: ["갑", "축"] });
   const raw = yinYangRaw(s);
   assert.ok(raw > 0);
@@ -144,4 +145,16 @@ test("elementDistribution — 일간 포함·본기 기준 가중 합", () => {
 test("dominantElement — 최다 오행, 동점 시 월지 우선", () => {
   const s = mkSaju({ year: ["갑", "인"], month: ["경", "신"], day: ["무", "오"], hour: ["임", "자"] });
   assert.equal(dominantElement(s), "금");
+});
+
+test("dominantElement — 실제 동점(목=수=3.0)일 때 월지 오행으로 tiebreak", () => {
+  // 월지 자(수) vs 일간+일지 목 진영을 정확히 3.0 으로 맞춘 픽스처. 토 2.0·금 1.2 는 그보다 낮아 3자 동점은 아님.
+  // tiebreak 조항이 없다면 ELEMENT_KEYS 순회상 먼저 오는 "목"이 그대로 최종값이 되므로, 이 케이스는 tiebreak 분기를 실제로 태운다.
+  const s = mkSaju(
+    { year: ["무", "술"], month: ["경", "자"], day: ["갑", "인"], hour: ["병", "인"] },
+    { hourKnown: false }
+  );
+  const dist = elementDistribution(s);
+  assert.equal(dist["목"], dist["수"]); // 실제 동점인지 자체 검증
+  assert.equal(dominantElement(s), "수"); // 월지(자→수) 우선
 });
