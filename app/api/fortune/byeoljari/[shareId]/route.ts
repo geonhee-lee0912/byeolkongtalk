@@ -86,13 +86,34 @@ export async function GET(
     dayType: dayType(saju[i].dayStem, saju[i].pillars.month.branch),
   }));
 
-  // 삼합 먼저 계산(각 edge 의 triadShared 판정에 필요)
-  const triads = findTriads(saju.map((s) => s.pillars.day.branch)).map((t) => ({
-    element: t.element,
-    memberIds: members
-      .filter((_, i) => t.branches.includes(saju[i].pillars.day.branch))
-      .map((m) => m.id),
-  }));
+  // 삼합 먼저 계산(각 edge 의 triadShared 판정에 필요) + 무리 점수(국 멤버 전원 쌍 inyeon 평균)
+  const triads = findTriads(saju.map((s) => s.pillars.day.branch)).map((t) => {
+    const idxs = members
+      .map((_, i) => i)
+      .filter((i) => t.branches.includes(saju[i].pillars.day.branch));
+    const memberIds = idxs.map((i) => members[i].id);
+    let sum = 0;
+    let cnt = 0;
+    for (let a = 0; a < idxs.length; a++) {
+      for (let b = a + 1; b < idxs.length; b++) {
+        const i = idxs[a];
+        const j = idxs[b];
+        const r = pairRelation(saju[i], saju[j]);
+        sum += inyeonScore({
+          element: r.element,
+          heavenlyCombo: r.heavenlyCombo,
+          sixCombo: r.sixCombo,
+          triadShared: true, // 같은 국(局)
+          tenGodAtoB: r.tenGodAtoB,
+          tenGodBtoA: r.tenGodBtoA,
+          extraPillarHarmony: r.extraPillarHarmony,
+          tieSeed: tieBreakSeed(pillarChars(saju[i]), pillarChars(saju[j])),
+        });
+        cnt++;
+      }
+    }
+    return { element: t.element, memberIds, score: cnt ? Math.round(sum / cnt) : 0 };
+  });
   const triadSets = triads.map((t) => new Set(t.memberIds));
 
   const edges: Array<{

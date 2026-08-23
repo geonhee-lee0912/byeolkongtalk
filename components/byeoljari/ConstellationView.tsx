@@ -190,6 +190,9 @@ export default function ConstellationView({ graph, meId }: Props) {
         .sort((a, b) => (b.inyeonInfo?.score ?? 0) - (a.inyeonInfo?.score ?? 0))
     : [];
   const summary = focusId ? focusSummary(focusId, pivotId, graph) : null;
+  // 같은 결(삼합) 무리 점수 — focusId 가 속한 국의 평균 인연 점수(API 계산). 개별 쌍 점수 대신 무리 하나.
+  const focusTriad = focusId ? graph.triads.find((t) => t.memberIds.includes(focusId)) : undefined;
+  const focusTriadScore = focusTriad?.score ?? null;
   const focusName = focusId ? (graph.nodes.find((n) => n.id === focusId)?.name ?? "이 별") : "";
 
   function handleNode(id: string) {
@@ -352,7 +355,12 @@ export default function ConstellationView({ graph, meId }: Props) {
                 if (!members.length) return null;
                 return (
                   <div key={tag}>
-                    <div className="mb-1.5 text-xs font-bold text-eye-purple">{tag}</div>
+                    <div className="mb-1.5 flex items-center gap-2 text-xs font-bold text-eye-purple">
+                      {tag}
+                      {tag === "같은 결" && focusTriadScore != null && (
+                        <span className="font-normal text-text-light">무리 인연 {focusTriadScore}</span>
+                      )}
+                    </div>
                     <div className="space-y-1.5">
                       {members.map((nb) => {
                         const open = expandedNeighborId === nb.id;

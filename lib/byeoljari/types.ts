@@ -27,6 +27,7 @@ export interface GraphEdge {
 export interface GraphTriad {
   element: FiveElement;
   memberIds: string[]; // 3 초과 가능 — 렌더는 length===3 가정 금지
+  score?: number; // 무리(삼합) 평균 인연 점수 — 국 멤버 전원 쌍의 inyeon 평균(API 계산, PII 아님)
 }
 
 export interface StarGraph {
