@@ -1,6 +1,6 @@
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
-import { STEM_ELEMENT, elementRelation } from "@/lib/saju/pairing";
+import { STEM_ELEMENT, elementRelation, tenGod } from "@/lib/saju/pairing";
 import { JANGAN_BONGI, POSITION_WEIGHT, STEM_ORDER, BRANCH_ORDER, ELEMENT_YINYANG } from "./constants.ts";
 
 export interface CharCell {
@@ -76,4 +76,19 @@ export function strengthRaw(saju: SajuResult): number {
   const deukSe = total === 0 ? 0 : (support / total) * 40;
 
   return deukRyeong + deukJi + deukSe;
+}
+
+const WEALTH_CAMP = new Set(["편재", "정재", "편관", "정관"]);
+const SEAL_CAMP = new Set(["편인", "정인", "식신", "상관"]);
+
+/** 재/인 raw = 재진영 가중합 − 인진영 가중합. + = 재. */
+export function wealthRaw(saju: SajuResult): number {
+  let wealth = 0;
+  let seal = 0;
+  for (const cell of activeChars(saju)) {
+    const god = tenGod(saju.dayStem, stemOf(cell));
+    if (WEALTH_CAMP.has(god)) wealth += cell.weight;
+    else if (SEAL_CAMP.has(god)) seal += cell.weight;
+  }
+  return wealth - seal;
 }

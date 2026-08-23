@@ -88,3 +88,20 @@ test("strengthRaw — 0~100 범위", () => {
   const r = strengthRaw(s);
   assert.ok(r >= 0 && r <= 100);
 });
+
+import { wealthRaw } from "./mapping.ts";
+
+test("wealthRaw — 재성·관성 우세면 재(+)", () => {
+  const s = mkSaju({ year: ["무", "술"], month: ["경", "신"], day: ["갑", "진"], hour: ["기", "축"] });
+  assert.ok(wealthRaw(s) > 0);
+});
+
+test("wealthRaw — 인성·식상 우세면 인(-)", () => {
+  const s = mkSaju({ year: ["임", "자"], month: ["병", "오"], day: ["갑", "해"], hour: ["정", "사"] });
+  assert.ok(wealthRaw(s) < 0);
+});
+
+test("wealthRaw — 비겁은 제외(재도 인도 아님)", () => {
+  const s = mkSaju({ year: ["갑", "인"], month: ["을", "묘"], day: ["갑", "인"], hour: ["을", "묘"] });
+  assert.equal(wealthRaw(s), 0);
+});
