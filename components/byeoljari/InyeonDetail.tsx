@@ -58,18 +58,18 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
       {pivotIsMe && (
         // 내가 보는 X / X가 보는 나 = 한 박스(구분선). "보는 나"는 차별점이라 굵게 강조.
         <div className="rounded-xl bg-white/60 p-3 text-sm">
-          <div className="text-text-light">내가 보는 {them}</div>
+          <div className="font-bold text-eye-purple">내가 보는 {them}</div>
           <div className="text-eye-purple">{iSee}</div>
-          <div className="mt-2 border-t border-lilac-soft pt-2 text-text-light">
+          <div className="mt-2 border-t border-lilac-soft pt-2 font-bold text-eye-purple">
             {them}{subjectParticle(them)} 보는 나
           </div>
-          <div className="font-semibold text-eye-purple">{theySee}</div>
+          <div className="text-eye-purple">{theySee}</div>
         </div>
       )}
       {(rd.good || rd.caution) && (
         <div className="rounded-xl bg-lilac-soft/40 p-3 text-sm">
-          {rd.good && <div className="text-eye-purple">잘 맞는 점 · {rd.good}</div>}
-          {rd.caution && <div className="mt-1 text-text-light">살짝 조심 · {rd.caution}</div>}
+          {rd.good && <div className="text-eye-purple"><span className="font-bold">잘 맞는 점</span> · {rd.good}</div>}
+          {rd.caution && <div className="mt-1 text-text-light"><span className="font-bold">살짝 조심</span> · {rd.caution}</div>}
         </div>
       )}
     </div>
