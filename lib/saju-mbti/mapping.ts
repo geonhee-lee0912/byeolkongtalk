@@ -8,6 +8,7 @@ import {
   BRANCH_ORDER,
   ELEMENT_YINYANG,
   DAY_STEM_PAIR_WEIGHT,
+  DAY_STEM_ELEMENT_WEIGHT,
 } from "./constants.ts";
 
 export interface CharCell {
@@ -138,4 +139,26 @@ export function nurtureRaw(saju: SajuResult): number {
     else if (rel === "극아" || rel === "아극") restrain += w;
   }
   return generate - restrain;
+}
+
+/** 오행 분포(본기 기준·위치가중). 주기질은 일간 포함(가중 1.5). */
+export function elementDistribution(saju: SajuResult): Record<FiveElement, number> {
+  const dist: Record<FiveElement, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
+  for (const cell of activeChars(saju)) dist[elementOf(cell)] += cell.weight;
+  dist[saju.dayElement] += DAY_STEM_ELEMENT_WEIGHT;
+  return dist;
+}
+
+const ELEMENT_KEYS: FiveElement[] = ["목", "화", "토", "금", "수"];
+
+/** 최다 오행. 동점이면 월지(본기) 오행 우선, 그래도 동점이면 정순(목화토금수). */
+export function dominantElement(saju: SajuResult): FiveElement {
+  const dist = elementDistribution(saju);
+  const monthEl = STEM_ELEMENT[JANGAN_BONGI[saju.pillars.month.branch]];
+  let best = ELEMENT_KEYS[0];
+  for (const el of ELEMENT_KEYS) {
+    if (dist[el] > dist[best]) best = el;
+    else if (dist[el] === dist[best] && el === monthEl && best !== monthEl) best = el;
+  }
+  return best;
 }

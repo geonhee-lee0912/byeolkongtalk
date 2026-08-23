@@ -122,3 +122,17 @@ test("nurtureRaw — 시간 모름이면 시주 쌍 제외(값 달라짐)", () =
   const p = { year: ["갑", "오"], month: ["병", "진"], day: ["무", "신"], hour: ["경", "자"] } as const;
   assert.notEqual(nurtureRaw(mkSaju(p)), nurtureRaw(mkSaju(p, { hourKnown: false })));
 });
+
+import { elementDistribution, dominantElement } from "./mapping.ts";
+
+test("elementDistribution — 일간 포함·본기 기준 가중 합", () => {
+  const s = mkSaju({ year: ["갑", "인"], month: ["갑", "인"], day: ["갑", "인"], hour: ["갑", "인"] });
+  const dist = elementDistribution(s);
+  assert.ok(dist["목"] > 0);
+  assert.equal(dist["화"], 0);
+});
+
+test("dominantElement — 최다 오행, 동점 시 월지 우선", () => {
+  const s = mkSaju({ year: ["갑", "인"], month: ["경", "신"], day: ["무", "오"], hour: ["임", "자"] });
+  assert.equal(dominantElement(s), "금");
+});
