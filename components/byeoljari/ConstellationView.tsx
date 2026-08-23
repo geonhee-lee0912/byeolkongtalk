@@ -560,15 +560,6 @@ export default function ConstellationView({ graph, meId }: Props) {
           </div>
         </div>
       )}
-      {shape?.membersToNext != null && shape.nextName && (
-        <p className="mt-3 text-center text-sm text-eye-purple">
-          ✨ {shape.membersToNext}명 더 오면 {shape.nextName}
-          {directionParticle(shape.nextName)} 진화!
-        </p>
-      )}
-      {shape?.stage === 3 && (
-        <p className="mt-3 text-center text-sm text-eye-purple">✨ {shape.name} 완성!</p>
-      )}
       {reveal && shape && mounted && createPortal(
         <div
           className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-night/80 animate-fade-in"
