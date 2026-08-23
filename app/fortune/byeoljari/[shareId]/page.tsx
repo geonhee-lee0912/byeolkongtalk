@@ -79,7 +79,7 @@ export default function ByeoljariGuestPage() {
         <>
           <ConstellationView graph={state.graph} meId={meId} />
 
-          {!meId && !showJoin && (
+          {!meId && !state.graph.viewerIsOwner && !showJoin && (
             <button
               onClick={() => setShowJoin(true)}
               className="mt-4 w-full rounded-xl bg-lilac-deep py-3 text-white"
@@ -88,7 +88,7 @@ export default function ByeoljariGuestPage() {
             </button>
           )}
           {/* 주인(이미 멤버)에겐 join 대신 친구 초대(링크 복사) — 친구가 그 링크로 내 별 놓기. */}
-          {meId && (
+          {(meId || state.graph.viewerIsOwner) && (
             <button
               onClick={async () => {
                 try {
