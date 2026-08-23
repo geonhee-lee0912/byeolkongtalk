@@ -6,7 +6,7 @@ test("scaleForCount — 6명 이하는 기본(FEW) 크기 + 라벨 표시", () =
   const s = scaleForCount(3);
   assert.equal(s.hostOuter, 6.8);
   assert.equal(s.starOuter, 4.6);
-  assert.equal(s.lineWidth, 0.4);
+  assert.equal(s.lineWidth, 0.5);
   assert.equal(s.showLabels, true);
 });
 

@@ -76,6 +76,10 @@ export default function ConstellationCanvas({
         <filter id="triadGlow" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="1.4" />
         </filter>
+        {/* 끌림(천간합) 골드 글로우 — 반짝 강조 */}
+        <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
+          <feGaussianBlur stdDeviation="1.1" />
+        </filter>
       </defs>
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" onClick={() => onBackgroundClick?.()} />
       {/* 배경 별가루 — 밤하늘 분위기. 줌 transform 밖(고정 ambient). */}
@@ -124,13 +128,23 @@ export default function ConstellationCanvas({
                   onClick={() => onEdgeSelect?.(e.a, e.b)}
                 />
               )}
+              {e.heavenlyCombo && !focusMode && (
+                <line
+                  x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
+                  stroke={BOND_COLOR.heavenly}
+                  strokeOpacity={0.4 * dim}
+                  strokeWidth={sizes.goldLineWidth * 2.4}
+                  strokeLinecap="round"
+                  filter="url(#goldGlow)"
+                />
+              )}
               <line
                 x1={pa.x}
                 y1={pa.y}
                 x2={pb.x}
                 y2={pb.y}
                 stroke={e.heavenlyCombo ? BOND_COLOR.heavenly : e.sixCombo ? BOND_COLOR.six : focusMode ? "#B8A8D8" : starColor(colorNode?.element ?? "")}
-                strokeOpacity={(special ? 0.62 : focusMode ? 0.4 : 0.22) * dim}
+                strokeOpacity={(special ? 0.85 : focusMode ? 0.4 : 0.22) * dim}
                 strokeWidth={special ? sizes.goldLineWidth : sizes.lineWidth}
                 strokeDasharray={e.sixCombo && !e.heavenlyCombo ? "2 1.5" : undefined}
                 strokeLinecap="round"
@@ -157,7 +171,7 @@ export default function ConstellationCanvas({
                 points={points}
                 fill="none"
                 stroke={BOND_COLOR.triad}
-                strokeOpacity={0.5}
+                strokeOpacity={0.82}
                 strokeWidth={sizes.lineWidth}
                 strokeLinejoin="round"
               />
