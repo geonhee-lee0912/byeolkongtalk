@@ -70,10 +70,10 @@ test("orderByAngle — 각도 오름차순 인덱스", () => {
   assert.deepEqual(orderByAngle(pts), [2, 0, 1]);
 });
 
-test("resolveGlyph — 호스트/나/일반 (나 우선)", () => {
-  assert.equal(resolveGlyph(node("h", true), null), "host-star"); // 호스트, meId 없음
-  assert.equal(resolveGlyph(node("h", true), "h"), "me-circle"); // 호스트==나 → 나 우선(변경된 동작)
-  assert.equal(resolveGlyph(node("g"), "g"), "me-circle"); // 게스트==나
+test("resolveGlyph — 주인=원(host-circle, meId 무관), 나(비host)=강조별, 그 외=별", () => {
+  assert.equal(resolveGlyph(node("h", true), null), "host-circle"); // 호스트, meId 없음 → 원
+  assert.equal(resolveGlyph(node("h", true), "h"), "host-circle"); // 호스트==나 → 원(host 우선)
+  assert.equal(resolveGlyph(node("g"), "g"), "me-star"); // 게스트==나 → 강조 별(best-effort)
   assert.equal(resolveGlyph(node("g"), "other"), "star"); // 게스트, 나 아님
   assert.equal(resolveGlyph(node("g"), null), "star"); // 게스트, meId 없음
 });

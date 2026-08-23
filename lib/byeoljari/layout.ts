@@ -94,13 +94,13 @@ export function orderByAngle(points: Point[]): number[] {
     .map((o) => o.i);
 }
 
-/** 노드 표현: 나=채운 원(호스트여도 나 우선) / 호스트=큰 별 / 그 외=별. halo 합체 없음. */
+/** 노드 표현: 주인(host)=원(맵 주인, meId·로그인·기기 무관) / 남의 맵에 참여한 나=강조 별 / 그 외=별. */
 export function resolveGlyph(
   node: GraphNode,
   meId: string | null
-): "host-star" | "me-circle" | "star" {
-  if (meId && node.id === meId) return "me-circle"; // 내 별은 항상 원형 — 내가 만든 별자리에서도 나=원(호스트 큰 별보다 우선)
-  if (node.isHost) return "host-star";
+): "host-circle" | "me-star" | "star" {
+  if (node.isHost) return "host-circle"; // 주인 = 원 (항상)
+  if (meId && node.id === meId) return "me-star"; // 남의 맵에서 나 = 흰 테두리 강조 별(best-effort)
   return "star";
 }
 
