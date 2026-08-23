@@ -159,3 +159,23 @@ test("dominantElement — 실제 동점(목=수=3.0)일 때 월지 오행으로 
   assert.equal(dist["목"], dist["수"]); // 실제 동점인지 자체 검증
   assert.equal(dominantElement(s), "수"); // 월지(자→수) 우선
 });
+
+import { axisPercentile } from "./mapping.ts";
+
+test("axisPercentile — 분위 배열 선형보간(0~100·단조)", () => {
+  const q = Array.from({ length: 21 }, (_, i) => i * 10); // P0..P100 = 0,10,...,200
+  assert.equal(axisPercentile(-5, q), 0);
+  assert.equal(axisPercentile(205, q), 100);
+  assert.equal(axisPercentile(100, q), 50);
+  assert.ok(axisPercentile(150, q) > axisPercentile(50, q));
+});
+
+import { QUANTILE_TABLE } from "./constants.ts";
+
+test("QUANTILE_TABLE — 4축·21점·오름차순", () => {
+  for (const k of ["yinYang", "strength", "wealth", "nurture"] as const) {
+    const q = QUANTILE_TABLE[k];
+    assert.equal(q.length, 21, `${k} 분위점 21개 아님`);
+    for (let i = 1; i < q.length; i++) assert.ok(q[i] >= q[i - 1], `${k} 비단조`);
+  }
+});

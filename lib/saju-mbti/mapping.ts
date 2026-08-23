@@ -169,3 +169,18 @@ export function dominantElement(saju: SajuResult): FiveElement {
   }
   return best;
 }
+
+/** raw → 백분위(0~100). q: 21개 오름차순 분위점(P0,P5,...,P100). 선형보간. */
+export function axisPercentile(raw: number, q: number[]): number {
+  if (raw <= q[0]) return 0;
+  if (raw >= q[q.length - 1]) return 100;
+  for (let i = 1; i < q.length; i++) {
+    if (raw <= q[i]) {
+      const lo = q[i - 1];
+      const hi = q[i];
+      const frac = hi === lo ? 0 : (raw - lo) / (hi - lo);
+      return (i - 1 + frac) * 5;
+    }
+  }
+  return 100;
+}
