@@ -25,8 +25,8 @@ const AXES: AxisKey[] = ["yinYang", "strength", "wealth", "nurture"];
 const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: string }, { p: string; t: string }] }> = {
   yinYang: { summary: "에너지의 방향", poles: [{ p: "양", t: "기운이 밖으로 뻗느냐" }, { p: "음", t: "안으로 고이느냐" }] },
   strength: { summary: "밀고 나가는 힘", poles: [{ p: "강", t: "내가 판을 쥐느냐" }, { p: "유", t: "흐름에 맡기느냐" }] },
-  wealth: { summary: "무엇에 손이 먼저 가는지", poles: [{ p: "재", t: "실리를 먼저 보느냐" }, { p: "인", t: "의미를 먼저 보느냐" }] },
-  nurture: { summary: "사람을 대하는 결", poles: [{ p: "생", t: "품어서 북돋우느냐" }, { p: "단", t: "끊어서 바로잡느냐" }] },
+  wealth: { summary: "실속이냐 의미냐", poles: [{ p: "재", t: "돈·결과 같은 실속을 좇느냐" }, { p: "인", t: "배움·명분 같은 의미를 좇느냐" }] },
+  nurture: { summary: "감싸느냐 짚어주느냐", poles: [{ p: "생", t: "따뜻하게 품어 북돋우느냐" }, { p: "단", t: "냉정하게 옳고 그름을 짚느냐" }] },
 };
 
 export interface ResultViewProps {
@@ -69,7 +69,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         </p>
         <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-[12.5px] leading-relaxed text-lilac-soft text-balance">{content.memeSubtitle}</p>
+          <p className="text-[12.5px] leading-relaxed text-lilac-soft text-balance break-keep">{content.memeSubtitle}</p>
         </div>
       </div>
 
@@ -190,7 +190,11 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
       </section>
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
-      <div className="text-center my-2 text-[12px] tracking-[0.1em] text-lilac-mid">· · ·</div>
+      <div className="flex items-center gap-3 my-1" aria-hidden>
+        <span className="flex-1 h-px bg-lilac-mid/40" />
+        <span className="text-gold text-[11px]">✦</span>
+        <span className="flex-1 h-px bg-lilac-mid/40" />
+      </div>
 
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
