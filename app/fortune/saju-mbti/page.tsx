@@ -46,7 +46,7 @@ export default async function SajuMbtiPage({
 }) {
   const sp = await searchParams;
   return (
-    <main className="min-h-[calc(100dvh-8rem)] bg-cream">
+    <main className="min-h-[calc(100dvh-8rem)]">
       <SajuMbtiFlow sharedToken={firstParam(sp.r)} />
     </main>
   );
