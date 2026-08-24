@@ -90,7 +90,7 @@ export default function ConstellationCanvas({
             y={bgOff}
             width={bgSize}
             height={bgSize}
-            opacity={0.12}
+            opacity={0.1}
             preserveAspectRatio="xMidYMid meet"
             pointerEvents="none"
             filter="url(#shapeGlow)"
@@ -103,7 +103,7 @@ export default function ConstellationCanvas({
             y={bgOff}
             width={bgSize}
             height={bgSize}
-            opacity={0.08}
+            opacity={0.07}
             preserveAspectRatio="xMidYMid meet"
             pointerEvents="none"
             style={{ mixBlendMode: "screen" }}
@@ -237,19 +237,18 @@ export default function ConstellationCanvas({
                   strokeLinejoin="round"
                 />
               )}
-              {sizes.showLabels && n.name && (
+              {sizes.showLabels && n.name && !isHostCircle && (
                 <text
                   x={labelPos.x}
                   y={labelPos.y}
                   textAnchor={labelPos.anchor}
                   dominantBaseline="central"
                   fontSize={isHostCircle ? sizes.hostLabelFont : sizes.labelFont}
-                  fontWeight={isHostCircle ? 700 : 400}
                   fill="#EDE6D6"
                   fillOpacity={0.95}
-                  stroke={isHostCircle ? "none" : "#1F1735"}
-                  strokeWidth={isHostCircle ? 0 : 0.6}
-                  strokeOpacity={isHostCircle ? 0 : 0.85}
+                  stroke="#1F1735"
+                  strokeWidth={0.6}
+                  strokeOpacity={0.85}
                   paintOrder="stroke"
                   style={{ strokeLinejoin: "round" }}
                 >
