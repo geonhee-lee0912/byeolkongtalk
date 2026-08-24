@@ -5,6 +5,7 @@ import type { PaljaType } from "@/lib/saju-mbti/mapping";
 import type { SelfType } from "@/lib/saju-mbti/self-type";
 import type { MatchRate } from "@/lib/saju-mbti/match";
 import type { AxisKey } from "@/lib/saju-mbti/constants";
+import { POLES } from "@/lib/saju-mbti/constants";
 import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
@@ -17,6 +18,8 @@ const AXIS_LABEL: Record<AxisKey, string> = {
   wealth: "재인",
   nurture: "생단",
 };
+
+const AXES: AxisKey[] = ["yinYang", "strength", "wealth", "nurture"];
 
 export interface ResultViewProps {
   saju: SajuResult;
@@ -45,9 +48,9 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
             <Image src={charImg} alt={content.character} width={144} height={144} className="w-32 h-32 object-contain" priority />
           )}
         </div>
-        <p className="font-display text-[26px] text-cream-warm">{content.character}</p>
-        <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1">
-          {palja.code} · <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
+        <p className="font-display text-[30px] tracking-[0.08em] text-cream-warm">{palja.code}</p>
+        <p className="text-[13px] tracking-wide text-lilac-mid mt-1.5">
+          {content.character} · <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
         </p>
         <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
@@ -60,13 +63,37 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
         <p className="text-[12.5px] leading-relaxed text-eye-purple">{content.memeSubtitle}</p>
       </div>
 
+      {/* 4축 정도 — 사주(팔자) 백분위 단일 척도 */}
+      <section className="bg-night rounded-2xl px-4 py-4">
+        <p className="text-[11px] tracking-wide text-lilac-deep mb-3">타고난 너의 4축 · 사주 기준</p>
+        <div className="flex flex-col gap-2.5">
+          {AXES.map((axis) => {
+            const a = palja.axes[axis];
+            const [front, back] = POLES[axis];
+            const frontPct = Math.round(a.pct);
+            const frontWins = a.pole === front;
+            const domPct = frontWins ? frontPct : 100 - frontPct;
+            return (
+              <div key={axis} className="flex items-center gap-2 text-[11.5px]">
+                <span className={`w-6 text-right ${frontWins ? "text-gold-soft font-medium" : "text-lilac-deep"}`}>{front}</span>
+                <div className="flex-1 h-2 rounded-full bg-night-deep overflow-hidden">
+                  <div className="h-full bg-lilac" style={{ width: `${frontPct}%` }} />
+                </div>
+                <span className={`w-6 ${!frontWins ? "text-gold-soft font-medium" : "text-lilac-deep"}`}>{back}</span>
+                <span className="w-9 text-right text-lilac-mid tabular-nums">{domPct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* ③ 본문 */}
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
         <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-1.5">성격</p>
         <p className="text-[13.5px] leading-relaxed text-eye-purple">{content.personality}</p>
       </section>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 gap-2.5">
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
           <p className="text-[11px] font-medium tracking-wide text-[#C99A3A] mb-1.5">빛</p>
           <p className="text-[13px] leading-relaxed text-eye-purple">{content.light}</p>
@@ -87,25 +114,35 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
         <div className="grid grid-cols-2 gap-2.5">
           {content.compat.fits.map((c) => {
             const t = TYPE_CONTENT[c.code];
+            const img = characterImage(c.code);
             return (
               <div key={c.code} className="bg-gold-soft/25 rounded-xl px-3 py-2.5">
                 <p className="text-[10.5px] font-medium text-[#B08A2A]">잘 맞아</p>
-                <p className="text-[13px] font-medium text-eye-purple mt-0.5">
-                  {t?.character ?? c.code} <span className="text-[10.5px] text-text-light">{c.code}</span>
-                </p>
-                <p className="text-[11.5px] leading-snug text-text-light mt-1">{c.reason}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                    <p className="text-[10.5px] text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                  </div>
+                </div>
+                <p className="text-[11.5px] leading-snug text-text-light mt-1.5">{c.reason}</p>
               </div>
             );
           })}
           {content.compat.clashes.map((c) => {
             const t = TYPE_CONTENT[c.code];
+            const img = characterImage(c.code);
             return (
               <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
                 <p className="text-[10.5px] font-medium text-lilac-deep">부딪혀</p>
-                <p className="text-[13px] font-medium text-eye-purple mt-0.5">
-                  {t?.character ?? c.code} <span className="text-[10.5px] text-text-light">{c.code}</span>
-                </p>
-                <p className="text-[11.5px] leading-snug text-text-light mt-1">{c.reason}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                    <p className="text-[10.5px] text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                  </div>
+                </div>
+                <p className="text-[11.5px] leading-snug text-text-light mt-1.5">{c.reason}</p>
               </div>
             );
           })}
@@ -115,7 +152,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
       {/* 오행 질감 */}
       <section className="bg-gold-soft/20 border border-gold/40 rounded-2xl px-4 py-3.5">
         <p className="text-[11px] font-medium tracking-wide text-[#C0392B] mb-1.5">
-          {palja.element} 기운이 얹힘 <span className="text-text-light font-normal">· 사주 전용</span>
+          내가 {palja.element} 기운이라 이렇게 변주돼
         </p>
         <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
       </section>

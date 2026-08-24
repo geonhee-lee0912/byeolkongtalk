@@ -45,7 +45,7 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
         </div>
       </div>
 
-      <p className="font-display text-lg text-eye-purple mb-6 leading-snug text-balance">{q.prompt}</p>
+      <p className="text-lg text-eye-purple mb-6 leading-snug text-balance">{q.prompt}</p>
 
       <div className="flex flex-col gap-3">
         {q.options.map((o) => {

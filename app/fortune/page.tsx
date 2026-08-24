@@ -155,7 +155,7 @@ export default function FortunePage() {
                   </span>
                 </div>
                 <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
-                  네가 아는 너 vs 타고난 너! 12문항이랑 생년월일로 조선 전래 유형이 나와.
+                  네가 아는 너 vs 타고난 너! 12문항이랑 생년월일로 사주 기반의 전래 MBTI 유형이 나와.
                 </p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {["성격유형", "사주", "조선전래"].map((h) => (

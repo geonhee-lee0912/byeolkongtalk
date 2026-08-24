@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { calcSaju, type SajuResult } from "@/lib/saju/calc";
 import { paljaType, type PaljaType } from "@/lib/saju-mbti/mapping";
 import { selfType, type SelfType } from "@/lib/saju-mbti/self-type";
 import { matchRate, type MatchRate } from "@/lib/saju-mbti/match";
 import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
 import { encodeResult, decodeResult } from "@/lib/saju-mbti/share-tokens";
-import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { QuizStage } from "./QuizStage";
 import { BirthStage, type BirthValue } from "./BirthStage";
 import { ResultView } from "./ResultView";
@@ -98,16 +98,9 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
     });
     const origin = window.location.origin;
     const link = `${origin}/fortune/saju-mbti?r=${token}`;
-    const imageUrl = `${origin}/api/og/saju-mbti?r=${token}`;
     const content = TYPE_CONTENT[result.palja.code];
-    if (isKakaoReady()) {
-      shareToKakao({
-        title: `나 ${content?.character ?? ""}래, 넌?`,
-        description: content?.oneLiner ?? "",
-        imageUrl,
-        link,
-        buttonTitle: "나도 해보기",
-      });
+    if (navigator.share) {
+      navigator.share({ title: `나 ${content?.character ?? ""}래, 넌?`, url: link }).catch(() => {});
       return;
     }
     if (navigator.clipboard) {
@@ -132,11 +125,14 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
       {stage === "intro" && (
         <div className="w-full max-w-md mx-auto px-6 py-16 text-center animate-fade-in" data-stage="intro">
           <p className="text-[12px] tracking-[0.16em] text-lilac-deep mb-4">별콩톡 · 사주 MBTI</p>
+          <div className="flex justify-center mb-3">
+            <Image src="/saju-mbti/intro.png" alt="별콩이가 자아·팔자 두 오브를 든 모습" width={200} height={200} className="w-44 h-44 object-contain" priority />
+          </div>
           <h1 className="font-display text-[28px] text-eye-purple leading-snug text-balance">
-            네가 아는 너 vs<br />타고난 너
+            네가 아는 너<br />vs<br />타고난 너
           </h1>
           <p className="text-[14px] leading-relaxed text-text-light mt-4 max-w-[300px] mx-auto">
-            12문항으로 네 자아를 읽고, 생년월일로 타고난 팔자를 펼쳐서 — 둘이 얼마나 닮았는지 별콩이가 짚어줄게.
+            12문항으로 네 성격을 읽고, 생년월일로 타고난 팔자를 펼쳐서<br />둘이 얼마나 닮았는지 별콩이가 짚어줄게.
           </p>
           <button
             type="button"
