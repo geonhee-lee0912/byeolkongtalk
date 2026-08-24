@@ -31,3 +31,7 @@ test("content — 일치율 밴드 3개 title·body 채움", () => {
     assert.ok(nonEmpty(MATCH_NARRATIVE[b]?.body), `${b} body`);
   }
 });
+
+test("content — 16유형 전부 커버(ALL_CODES 완결)", () => {
+  assert.deepEqual(new Set(Object.keys(TYPE_CONTENT)), CODES);
+});

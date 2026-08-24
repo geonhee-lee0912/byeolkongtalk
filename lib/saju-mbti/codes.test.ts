@@ -6,7 +6,7 @@ import { POLES } from "./constants.ts";
 test("ALL_CODES — 16개·유일·4자·유효 극", () => {
   assert.equal(ALL_CODES.length, 16);
   assert.equal(new Set(ALL_CODES).size, 16);
-  const valid = new Set(Object.values(POLES).flat());
+  const valid = new Set<string>(Object.values(POLES).flat());
   for (const c of ALL_CODES) {
     assert.equal([...c].length, 4, `${c} 4자 아님`);
     for (const ch of c) assert.ok(valid.has(ch), `${c} 무효 극 ${ch}`);
