@@ -67,7 +67,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1.5">
           <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
         </p>
-        <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
+        <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto break-keep">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
           <p className="text-[12.5px] leading-relaxed text-lilac-soft text-balance break-keep">{content.memeSubtitle}</p>
         </div>

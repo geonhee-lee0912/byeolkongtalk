@@ -131,7 +131,7 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
           <h1 className="font-display text-[28px] text-eye-purple leading-snug text-balance">
             네가 아는 너<br />vs<br />타고난 너
           </h1>
-          <p className="text-[14px] leading-relaxed text-text-light mt-4 max-w-[300px] mx-auto">
+          <p className="text-[14px] leading-relaxed text-text-light mt-4 max-w-[300px] mx-auto break-keep">
             12문항으로 네 성격을 읽고, 생년월일로 타고난 팔자를 펼쳐서<br />둘이 얼마나 닮았는지 별콩이가 짚어줄게.
           </p>
           <button
