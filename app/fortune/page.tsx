@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   FORTUNE_GRADIENTS,
   FORTUNE_HASHTAGS,
@@ -113,7 +114,7 @@ export default function FortunePage() {
                 className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl"
                 style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
               >
-                ✨
+                <Image src="/icons/fortune/byeoljari.webp" alt="" width={48} height={48} className="w-full h-full object-contain" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -144,7 +145,7 @@ export default function FortunePage() {
                 className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl"
                 style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
               >
-                🔮
+                <Image src="/icons/fortune/saju_mbti.webp" alt="" width={48} height={48} className="w-full h-full object-contain" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
