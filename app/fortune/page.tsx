@@ -106,6 +106,7 @@ export default function FortunePage() {
         {/* 무료 칩 전용 — 별자리는 리포트 상품(FortuneConfig: readings·emotionTag·cost)이 아니라
             별도 인터랙티브 콘텐츠(관계망·LLM 0)라 config에 넣지 않고 별도 카드로 붙인다. */}
         {chip === "free" && (
+          <>
           <Link href="/fortune/byeoljari">
             <div className="w-full rounded-2xl p-4 border bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99] transition flex items-center gap-3.5">
               <div
@@ -137,6 +138,38 @@ export default function FortunePage() {
               </div>
             </div>
           </Link>
+          <Link href="/fortune/saju-mbti">
+            <div className="w-full rounded-2xl p-4 border bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99] transition flex items-center gap-3.5">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl"
+                style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
+              >
+                🔮
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-bold text-eye-purple">사주 MBTI</span>
+                  <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                    무료
+                  </span>
+                </div>
+                <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                  네가 아는 너 vs 타고난 너! 12문항이랑 생년월일로 조선 전래 유형이 나와.
+                </p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {["성격유형", "사주", "조선전래"].map((h) => (
+                    <span
+                      key={h}
+                      className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    >
+                      #{h}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Link>
+          </>
         )}
       </div>
 
