@@ -1,44 +1,43 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import type { ResultTokens } from "@/lib/saju-mbti/share-tokens";
-import { TYPE_CONTENT, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
-import { characterImage } from "@/lib/saju-mbti/character-image";
+import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
+import { matchRate } from "@/lib/saju-mbti/match";
+import type { AxisResult, PaljaType } from "@/lib/saju-mbti/mapping";
+import type { SelfType } from "@/lib/saju-mbti/self-type";
+import type { AxisKey, Pole } from "@/lib/saju-mbti/constants";
+import { ResultView } from "./ResultView";
 
-// 공유 링크로 들어온 친구용 축약 티저. 상대 명식·오각·자아는 없음(무영속·PII).
+// 4자 코드 → 축별 극 (조립 규칙: 음양·강유·재인·생단 순, codes.ts 와 동일)
+function axesFromCode(code: string): Record<AxisKey, AxisResult> {
+  const c = [...code];
+  const mk = (pole: string): AxisResult => ({ raw: 0, pct: 0, pole: pole as Pole });
+  return { yinYang: mk(c[0]), strength: mk(c[1]), wealth: mk(c[2]), nurture: mk(c[3]) };
+}
+
+// 공유 링크로 들어온 친구용. 토큰(팔자·자아 코드 + 밴드 + 오행)만으로 재구성해
+// ResultView 를 shared 모드로 재사용한다. 명식·오각·4축 게이지는 생년월일이 필요해
+// 토큰에 없다(무영속·PII) → shared 모드가 그 블록을 숨긴다.
 export function SharedTeaser({ tokens, onStart }: { tokens: ResultTokens; onStart: () => void }) {
   const content = TYPE_CONTENT[tokens.paljaCode];
   useEffect(() => {
     if (!content) onStart();
   }, [content, onStart]);
   if (!content) return null;
-  const narrative = MATCH_NARRATIVE[tokens.band];
-  const charImg = characterImage(tokens.paljaCode);
 
-  return (
-    <div className="w-full max-w-md mx-auto px-5 py-10 animate-fade-in" data-stage="shared">
-      <p className="text-center text-[12px] tracking-[0.14em] text-lilac-deep mb-4">누군가의 사주 MBTI 결과</p>
+  const paljaAxes = axesFromCode(tokens.paljaCode);
+  const selfAxes = axesFromCode(tokens.selfCode);
+  const palja: PaljaType = {
+    axes: paljaAxes,
+    code: tokens.paljaCode,
+    element: tokens.element,
+    elementDist: { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 },
+    tenGods: [],
+    jangan: [],
+  };
+  const self: SelfType = { axes: selfAxes, code: tokens.selfCode };
+  const match = matchRate(selfAxes, paljaAxes);
 
-      <div className="bg-night rounded-[18px] px-5 py-7 text-center">
-        {charImg && (
-          <Image src={charImg} alt={content.character} width={144} height={144} className="w-32 h-32 object-contain mx-auto mb-1" priority />
-        )}
-        <p className="font-display text-[26px] text-cream-warm">{content.character}</p>
-        <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1">
-          {tokens.paljaCode} · <span className="text-gold-soft">{narrative.title}</span>
-        </p>
-        <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
-      </div>
-
-      <p className="text-center text-[14px] text-eye-purple mt-6 mb-4">너도 네 유형이 궁금하면?</p>
-      <button
-        type="button"
-        onClick={onStart}
-        className="w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition"
-      >
-        나도 해보기
-      </button>
-    </div>
-  );
+  return <ResultView shared palja={palja} self={self} match={match} onStart={onStart} />;
 }

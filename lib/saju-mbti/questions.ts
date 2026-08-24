@@ -49,7 +49,7 @@ export const QUESTIONS: Question[] = [
     { id: "q6c", text: "옆 사람 속도 맞추며 분위기 살림", weights: { 유: 2, 생: 1 } },
     { id: "q6d", text: "시키는 것 착실히, 끝나면 조용히 귀가", weights: { 유: 2 } },
   ] },
-  { id: "q7", axis: "wealth", prompt: "이웃의 동업 제안, 어딘가 김선달 냄새.", options: [
+  { id: "q7", axis: "wealth", prompt: "이웃의 동업 제안, 어딘가 사기꾼 냄새.", options: [
     { id: "q7a", text: "밑천·수익 셈부터", weights: { 재: 2 } },
     { id: "q7b", text: "작게 발 담가보고 되면 키움", weights: { 재: 2, 유: 1 } },
     { id: "q7c", text: "돈보다 재미가 먼저", weights: { 인: 2 } },
@@ -73,7 +73,7 @@ export const QUESTIONS: Question[] = [
     { id: "q10c", text: "위로 한 술 + \"어디서 잘못됐는지 보자\"", weights: { 단: 2, 인: 1 } },
     { id: "q10d", text: "\"네가 서두른 탓이 맞다, 다음엔 이렇게\"", weights: { 단: 2 } },
   ] },
-  { id: "q11", axis: "nurture", prompt: "이웃의 첫 장(醬), 맛이 영 아니다.", options: [
+  { id: "q11", axis: "nurture", prompt: "이웃의 첫 된장, 맛이 영 아니다.", options: [
     { id: "q11a", text: "\"첫 장이 이 정도면 대단하지!\"", weights: { 생: 2 } },
     { id: "q11b", text: "좋은 점 크게, 아쉬운 점 살짝", weights: { 생: 2, 유: 1 } },
     { id: "q11c", text: "\"간이 세니 소금 줄여보게\" 담백하게", weights: { 단: 2 } },

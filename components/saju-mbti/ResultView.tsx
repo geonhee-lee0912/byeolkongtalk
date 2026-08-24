@@ -21,16 +21,26 @@ const AXIS_LABEL: Record<AxisKey, string> = {
 
 const AXES: AxisKey[] = ["yinYang", "strength", "wealth", "nurture"];
 
+const AXIS_MEANING: Record<AxisKey, string> = {
+  yinYang: "기운이 밖으로 뻗느냐(양) 안으로 고이느냐(음) — 에너지의 방향.",
+  strength: "내가 판을 쥐느냐(강) 흐름에 맡기느냐(유) — 밀고 나가는 힘.",
+  wealth: "실리를 먼저 보느냐(재) 의미를 먼저 보느냐(인) — 무엇에 손이 먼저 가는지.",
+  nurture: "품어서 북돋우느냐(생) 끊어서 바로잡느냐(단) — 사람을 대하는 결.",
+};
+
 export interface ResultViewProps {
-  saju: SajuResult;
+  saju?: SajuResult;
   palja: PaljaType;
   self: SelfType;
   match: MatchRate;
-  onRestart: () => void;
-  onShare: () => void;
+  onRestart?: () => void;
+  onShare?: () => void;
+  /** 공유 링크 뷰 — 토큰만이라 명식·오각·4축 게이지 숨기고 하단을 "나도 해보기"로. */
+  shared?: boolean;
+  onStart?: () => void;
 }
 
-export function ResultView({ saju, palja, self, match, onRestart, onShare }: ResultViewProps) {
+export function ResultView({ saju, palja, self, match, onRestart, onShare, shared = false, onStart }: ResultViewProps) {
   const content = TYPE_CONTENT[palja.code];
   if (!content) return null;
   const selfContent = TYPE_CONTENT[self.code];
@@ -40,6 +50,9 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
 
   return (
     <div className="w-full max-w-md mx-auto px-4 pt-4 pb-10 flex flex-col gap-3 animate-fade-in" data-stage="result">
+      {shared && (
+        <p className="text-center text-[12px] tracking-[0.14em] text-lilac-deep">누군가의 사주 MBTI 결과</p>
+      )}
       {/* ① 팔자 히어로 */}
       <div className="bg-night rounded-[18px] px-5 py-6 text-center">
         <p className="text-[11px] tracking-[0.14em] text-lilac-deep mb-4">타고난 너 · 사주 팔자</p>
@@ -48,22 +61,19 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
             <Image src={charImg} alt={content.character} width={144} height={144} className="w-32 h-32 object-contain" priority />
           )}
         </div>
-        <p className="font-display text-[30px] tracking-[0.08em] text-cream-warm">{palja.code}</p>
-        <p className="text-[13px] tracking-wide text-lilac-mid mt-1.5">
-          {content.character} · <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
+        <p className="text-[17px] font-medium text-lilac-soft">{content.character}</p>
+        <p className="font-display text-[30px] tracking-[0.08em] text-cream-warm mt-0.5">{palja.code}</p>
+        <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1.5">
+          <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
         </p>
         <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-[12px] text-lilac-mid">↓ 네가 아는 너랑 얼마나 같을까? 맨 아래에서 ↓</p>
+          <p className="text-[12.5px] leading-relaxed text-lilac-soft">{content.memeSubtitle}</p>
         </div>
       </div>
 
-      {/* ② 밈 부제 */}
-      <div className="bg-lilac-soft rounded-xl px-4 py-2.5">
-        <p className="text-[12.5px] leading-relaxed text-eye-purple">{content.memeSubtitle}</p>
-      </div>
-
-      {/* 4축 정도 — 사주(팔자) 백분위 단일 척도 */}
+      {/* 4축 정도 — 사주(팔자) 백분위 단일 척도 (공유 뷰는 생일 없어 숨김) */}
+      {!shared && (
       <section className="bg-night rounded-2xl px-4 py-4">
         <p className="text-[11px] tracking-wide text-lilac-deep mb-3">타고난 너의 4축 · 사주 기준</p>
         <div className="flex flex-col gap-2.5">
@@ -85,7 +95,18 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
             );
           })}
         </div>
+        <details className="mt-3 border-t border-white/10 pt-2.5">
+          <summary className="text-[11.5px] text-lilac-mid cursor-pointer list-none">4축이 뭘 뜻할까? ▾</summary>
+          <div className="flex flex-col gap-2 mt-2.5">
+            {AXES.map((axis) => (
+              <p key={axis} className="text-[11.5px] leading-relaxed text-lilac-soft">
+                <span className="text-gold-soft font-medium">{AXIS_LABEL[axis]}</span> · {AXIS_MEANING[axis]}
+              </p>
+            ))}
+          </div>
+        </details>
       </section>
+      )}
 
       {/* ③ 본문 */}
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
@@ -157,14 +178,16 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
         <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
       </section>
 
-      {/* ④ 사주 원판 */}
-      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-2 py-4">
-        <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-3 text-center">타고난 너의 사주 원판</p>
-        <SajuBoard saju={saju} />
-        <div className="flex justify-center mt-2">
-          <ElementPentagon dist={palja.elementDist} />
-        </div>
-      </section>
+      {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
+      {!shared && saju && (
+        <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-2 py-4">
+          <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-3 text-center">타고난 너의 사주 원판</p>
+          <SajuBoard saju={saju} />
+          <div className="flex justify-center mt-2">
+            <ElementPentagon dist={palja.elementDist} />
+          </div>
+        </section>
+      )}
 
       {/* ⑤ 리빌 */}
       <div className="text-center my-2 text-[12px] tracking-[0.1em] text-lilac-mid">· · ·</div>
@@ -208,23 +231,33 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
         <p className="text-[13px] leading-relaxed text-lilac-soft mt-3.5">{narrative.body}</p>
       </div>
 
-      {/* ⑥ 공유/다시하기 */}
-      <div className="flex gap-2.5 mt-3">
+      {/* ⑥ 하단 CTA */}
+      {shared ? (
         <button
           type="button"
-          onClick={onShare}
-          className="flex-1 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] active:scale-[0.98] transition"
+          onClick={onStart}
+          className="w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition mt-3"
         >
-          나 {content.character}래, 넌?
+          나도 해보기
         </button>
-        <button
-          type="button"
-          onClick={onRestart}
-          className="px-4 py-3 rounded-xl bg-cream-warm border border-lilac text-lilac-deep font-medium text-[14px] active:scale-[0.98] transition"
-        >
-          다시
-        </button>
-      </div>
+      ) : (
+        <div className="flex gap-2.5 mt-3">
+          <button
+            type="button"
+            onClick={onShare}
+            className="flex-1 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] active:scale-[0.98] transition"
+          >
+            나 {content.character}래, 넌?
+          </button>
+          <button
+            type="button"
+            onClick={onRestart}
+            className="px-4 py-3 rounded-xl bg-cream-warm border border-lilac text-lilac-deep font-medium text-[14px] active:scale-[0.98] transition"
+          >
+            다시
+          </button>
+        </div>
+      )}
     </div>
   );
 }
