@@ -237,7 +237,7 @@ export default function ConstellationCanvas({
                   strokeLinejoin="round"
                 />
               )}
-              {sizes.showLabels && n.name && !isHostCircle && (
+              {sizes.showLabels && n.name && (!isHostCircle || focusMode) && (
                 <text
                   x={labelPos.x}
                   y={labelPos.y}
