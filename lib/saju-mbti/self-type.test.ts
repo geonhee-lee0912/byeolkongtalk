@@ -71,6 +71,15 @@ test("selfType — 전체점 동점(양4=음4)이면 주축 다수결로 폴백"
   assert.equal(t.axes.yinYang.pole, "양"); // 주축 다수결(양2 음1)
 });
 
+test("selfType — 동점이 주축 다수결로 뒷극(유)에 결판(교차축 흘림 tie)", () => {
+  // 강유: q4d유2 q5c유2 (유 primary 2) / q6a강2 (강 primary 1) → 유 total 4.
+  // 강 = q6a강2 + q8b강1 + q9b강1 (교차축 흘림) = 4 → f==b 동점.
+  // 주축 다수결 유2 강1 → 뒷극 유.
+  const t = selfType(answer({ q4: "q4d", q5: "q5c", q6: "q6a", q8: "q8b", q9: "q9b" }));
+  assert.equal(t.axes.strength.raw, 0);
+  assert.equal(t.axes.strength.pole, "유");
+});
+
 import { matchRate } from "./match.ts";
 import type { AxisResult } from "./mapping.ts";
 
@@ -79,17 +88,25 @@ const ax = (pole: string): AxisResult => ({ raw: 0, pct: 50, pole: pole as never
 test("matchRate — 4축 전부 일치 = 천명", () => {
   const self = { yinYang: ax("양"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
   const palja = { yinYang: ax("양"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
-  const r = matchRate(self, palja as never);
+  const r = matchRate(self, palja);
   assert.equal(r.matchCount, 4);
   assert.equal(r.band, "천명");
 });
 
-test("matchRate — 2~3 일치 = 절충 / 0~1 = 거스름", () => {
+test("matchRate — 3 일치도 절충", () => {
+  const self = { yinYang: ax("양"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
+  const p3 = { yinYang: ax("음"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") }; // 3 일치
+  const r = matchRate(self, p3);
+  assert.equal(r.matchCount, 3);
+  assert.equal(r.band, "절충");
+});
+
+test("matchRate — 2 일치 = 절충 / 0 일치 = 거스름", () => {
   const self = { yinYang: ax("양"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
   const p2 = { yinYang: ax("양"), strength: ax("강"), wealth: ax("인"), nurture: ax("단") }; // 2 일치
-  assert.equal(matchRate(self, p2 as never).band, "절충");
+  assert.equal(matchRate(self, p2).band, "절충");
   const p0 = { yinYang: ax("음"), strength: ax("유"), wealth: ax("인"), nurture: ax("단") }; // 0 일치
-  const r0 = matchRate(self, p0 as never);
+  const r0 = matchRate(self, p0);
   assert.equal(r0.matchCount, 0);
   assert.equal(r0.band, "거스름");
 });
@@ -97,7 +114,7 @@ test("matchRate — 2~3 일치 = 절충 / 0~1 = 거스름", () => {
 test("matchRate — perAxis 축별 일치 플래그", () => {
   const self = { yinYang: ax("양"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
   const palja = { yinYang: ax("음"), strength: ax("강"), wealth: ax("재"), nurture: ax("생") };
-  const r = matchRate(self, palja as never);
+  const r = matchRate(self, palja);
   assert.equal(r.perAxis.find((a) => a.axis === "yinYang")!.agree, false);
   assert.equal(r.perAxis.find((a) => a.axis === "strength")!.agree, true);
 });
