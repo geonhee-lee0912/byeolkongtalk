@@ -243,7 +243,7 @@ export default function ConstellationCanvas({
                   y={labelPos.y}
                   textAnchor={labelPos.anchor}
                   dominantBaseline="central"
-                  fontSize={isHostCircle ? sizes.hostLabelFont : sizes.labelFont}
+                  fontSize={sizes.labelFont}
                   fill="#EDE6D6"
                   fillOpacity={0.95}
                   stroke="#1F1735"
