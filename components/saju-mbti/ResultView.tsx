@@ -9,6 +9,7 @@ import { POLES } from "@/lib/saju-mbti/constants";
 import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
+import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import { ElementPentagon } from "./ElementPentagon";
 import { characterImage } from "@/lib/saju-mbti/character-image";
 
@@ -21,11 +22,11 @@ const AXIS_LABEL: Record<AxisKey, string> = {
 
 const AXES: AxisKey[] = ["yinYang", "strength", "wealth", "nurture"];
 
-const AXIS_MEANING: Record<AxisKey, string> = {
-  yinYang: "기운이 밖으로 뻗느냐(양) 안으로 고이느냐(음) — 에너지의 방향.",
-  strength: "내가 판을 쥐느냐(강) 흐름에 맡기느냐(유) — 밀고 나가는 힘.",
-  wealth: "실리를 먼저 보느냐(재) 의미를 먼저 보느냐(인) — 무엇에 손이 먼저 가는지.",
-  nurture: "품어서 북돋우느냐(생) 끊어서 바로잡느냐(단) — 사람을 대하는 결.",
+const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: string }, { p: string; t: string }] }> = {
+  yinYang: { summary: "에너지의 방향", poles: [{ p: "양", t: "기운이 밖으로 뻗느냐" }, { p: "음", t: "안으로 고이느냐" }] },
+  strength: { summary: "밀고 나가는 힘", poles: [{ p: "강", t: "내가 판을 쥐느냐" }, { p: "유", t: "흐름에 맡기느냐" }] },
+  wealth: { summary: "무엇에 손이 먼저 가는지", poles: [{ p: "재", t: "실리를 먼저 보느냐" }, { p: "인", t: "의미를 먼저 보느냐" }] },
+  nurture: { summary: "사람을 대하는 결", poles: [{ p: "생", t: "품어서 북돋우느냐" }, { p: "단", t: "끊어서 바로잡느냐" }] },
 };
 
 export interface ResultViewProps {
@@ -68,7 +69,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         </p>
         <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-[12.5px] leading-relaxed text-lilac-soft">{content.memeSubtitle}</p>
+          <p className="text-[12.5px] leading-relaxed text-lilac-soft text-balance">{content.memeSubtitle}</p>
         </div>
       </div>
 
@@ -97,12 +98,20 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         </div>
         <details className="mt-3 border-t border-white/10 pt-2.5">
           <summary className="text-[11.5px] text-lilac-mid cursor-pointer list-none">4축이 뭘 뜻할까? ▾</summary>
-          <div className="flex flex-col gap-2 mt-2.5">
-            {AXES.map((axis) => (
-              <p key={axis} className="text-[11.5px] leading-relaxed text-lilac-soft">
-                <span className="text-gold-soft font-medium">{AXIS_LABEL[axis]}</span> · {AXIS_MEANING[axis]}
-              </p>
-            ))}
+          <div className="flex flex-col gap-2.5 mt-2.5">
+            {AXES.map((axis) => {
+              const m = AXIS_MEANING[axis];
+              return (
+                <div key={axis} className="text-[11.5px] leading-relaxed">
+                  <p className="text-gold-soft font-medium">{AXIS_LABEL[axis]} · {m.summary}</p>
+                  <p className="text-lilac-soft mt-0.5">
+                    <span className="font-bold text-cream-warm">{m.poles[0].p}</span> {m.poles[0].t}
+                    <span className="text-lilac-deep"> vs </span>
+                    <span className="font-bold text-cream-warm">{m.poles[1].p}</span> {m.poles[1].t}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </details>
       </section>
@@ -171,12 +180,17 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       </section>
 
       {/* 오행 질감 */}
-      <section className="bg-gold-soft/20 border border-gold/40 rounded-2xl px-4 py-3.5">
-        <p className="text-[11px] font-medium tracking-wide text-[#C0392B] mb-1.5">
+      <section
+        className="bg-white border rounded-2xl px-4 py-3.5"
+        style={{ borderColor: ELEMENT_COLORS[palja.element].bar }}
+      >
+        <p className="text-[11px] font-medium tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
           내가 {palja.element} 기운이라 이렇게 변주돼
         </p>
         <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
       </section>
+      {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
+      <div className="text-center my-2 text-[12px] tracking-[0.1em] text-lilac-mid">· · ·</div>
 
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
@@ -190,7 +204,6 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       )}
 
       {/* ⑤ 리빌 */}
-      <div className="text-center my-2 text-[12px] tracking-[0.1em] text-lilac-mid">· · ·</div>
       <div className="bg-night rounded-[18px] px-4 py-5">
         <p className="text-[13px] text-lilac-soft mb-3">그런데, 네가 문항에서 답한 너는—</p>
         <div className="flex items-center gap-2 mb-4">
