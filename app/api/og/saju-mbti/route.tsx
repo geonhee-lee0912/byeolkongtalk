@@ -4,6 +4,7 @@ import { ImageResponse } from "next/og";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { decodeResult } from "@/lib/saju-mbti/share-tokens";
 import { TYPE_CONTENT, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
+import { characterImage } from "@/lib/saju-mbti/character-image";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,8 @@ export async function GET(req: Request) {
   const content = TYPE_CONTENT[d.paljaCode];
   if (!content) return new Response("invalid", { status: 400 });
   const narrative = MATCH_NARRATIVE[d.band];
+  const origin = new URL(req.url).origin;
+  const charPath = characterImage(d.paljaCode);
 
   const font = await getFont();
 
@@ -67,29 +70,18 @@ export async function GET(req: Request) {
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: 132,
-              height: 132,
-              background: "#0F0A22",
-              border: "2px solid #E8C26A",
-              borderRadius: 16,
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#F2D78A",
-              fontSize: 44,
-              lineHeight: 1.05,
-            }}
-          >
-            <div style={{ display: "flex" }}>{content.hanja.slice(0, 2)}</div>
-            <div style={{ display: "flex" }}>{content.hanja.slice(2)}</div>
-          </div>
+          {charPath ? (
+            <img
+              src={`${origin}${charPath}`}
+              width={190}
+              height={190}
+              style={{ width: 190, height: 190, objectFit: "contain" }}
+            />
+          ) : null}
 
-          <div style={{ display: "flex", fontSize: 68, color: "#F2D78A", marginTop: 22 }}>{content.character}</div>
+          <div style={{ display: "flex", fontSize: 64, color: "#F2D78A", marginTop: 10 }}>{content.character}</div>
           <div style={{ display: "flex", fontSize: 22, opacity: 0.7, marginTop: 6 }}>
-            {d.paljaCode} · {d.element} 기운
+            {d.paljaCode} · {content.hanja} · {d.element} 기운
           </div>
           <div style={{ display: "flex", fontSize: 30, color: "#FFF8F0", marginTop: 22, maxWidth: 860, textAlign: "center", lineHeight: 1.5 }}>
             {content.oneLiner}

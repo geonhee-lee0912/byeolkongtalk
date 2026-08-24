@@ -6,8 +6,10 @@ import type { SelfType } from "@/lib/saju-mbti/self-type";
 import type { MatchRate } from "@/lib/saju-mbti/match";
 import type { AxisKey } from "@/lib/saju-mbti/constants";
 import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
+import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import { ElementPentagon } from "./ElementPentagon";
+import { characterImage } from "@/lib/saju-mbti/character-image";
 
 const AXIS_LABEL: Record<AxisKey, string> = {
   yinYang: "음양",
@@ -15,18 +17,6 @@ const AXIS_LABEL: Record<AxisKey, string> = {
   wealth: "재인",
   nurture: "생단",
 };
-
-function Stamp({ hanja }: { hanja: string }) {
-  return (
-    <div className="w-14 h-14 flex-none bg-night-deep border-[1.5px] border-gold rounded-lg flex items-center justify-center">
-      <span className="font-display text-[13px] leading-tight text-gold-soft text-center">
-        {hanja.slice(0, 2)}
-        <br />
-        {hanja.slice(2)}
-      </span>
-    </div>
-  );
-}
 
 export interface ResultViewProps {
   saju: SajuResult;
@@ -42,18 +32,22 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
   if (!content) return null;
   const selfContent = TYPE_CONTENT[self.code];
   const narrative = MATCH_NARRATIVE[match.band];
+  const charImg = characterImage(palja.code);
+  const selfImg = characterImage(self.code);
 
   return (
     <div className="w-full max-w-md mx-auto px-4 pt-4 pb-10 flex flex-col gap-3 animate-fade-in" data-stage="result">
       {/* ① 팔자 히어로 */}
       <div className="bg-night rounded-[18px] px-5 py-6 text-center">
         <p className="text-[11px] tracking-[0.14em] text-lilac-deep mb-4">타고난 너 · 사주 팔자</p>
-        <div className="flex justify-center mb-3">
-          <Stamp hanja={content.hanja} />
+        <div className="flex justify-center mb-1">
+          {charImg && (
+            <Image src={charImg} alt={content.character} width={144} height={144} className="w-32 h-32 object-contain" priority />
+          )}
         </div>
         <p className="font-display text-[26px] text-cream-warm">{content.character}</p>
         <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1">
-          {palja.code} · <span className="text-gold-soft">{palja.element}</span> 기운
+          {palja.code} · <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
         </p>
         <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
@@ -142,12 +136,14 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare }: Res
         <div className="flex items-center gap-2 mb-4">
           <div className="flex-1 bg-night-deep rounded-xl px-3 py-2 text-center">
             <p className="text-[10.5px] text-lilac-deep">자아 · 문항</p>
+            {selfImg && <Image src={selfImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
             <p className="font-display text-[15px] text-gold-soft mt-0.5">{selfContent?.character ?? self.code}</p>
             <p className="text-[11px] text-lilac-mid">{self.code}</p>
           </div>
           <span className="text-lilac-deep">→</span>
           <div className="flex-1 bg-night-deep rounded-xl px-3 py-2 text-center">
             <p className="text-[10.5px] text-lilac-deep">팔자 · 사주</p>
+            {charImg && <Image src={charImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
             <p className="font-display text-[15px] text-gold-soft mt-0.5">{content.character}</p>
             <p className="text-[11px] text-lilac-mid">{palja.code}</p>
           </div>
