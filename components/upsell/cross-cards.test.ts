@@ -17,10 +17,10 @@ const ALL_VARIANTS: ("counsel" | FortuneType)[] = [
   ...(Object.keys(FORTUNE_CONFIG) as FortuneType[]),
 ];
 
-test("crossCards — 모든 variant 에서 유효한 카드 2장 (진열대 구성과 무관)", () => {
+test("crossCards — 모든 variant 에서 유효한 카드 ≥1장 (진열대 구성과 무관)", () => {
   for (const v of ALL_VARIANTS) {
     const cards = crossCards(v); // 어떤 variant 도 throw 하면 안 된다
-    assert.equal(cards.length, 2, `${v}: 카드 2장이어야 함`);
+    assert.ok(cards.length >= 1, `${v}: 카드 최소 1장`);
     for (const c of cards) {
       assert.equal(typeof c.href, "string", `${v}: href 누락`);
       assert.ok(c.href.startsWith("/"), `${v}: href 는 내부 경로`);
@@ -44,8 +44,8 @@ test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) �
   }
 });
 
-test("crossCards — counsel 은 오늘의 운세 + 이번달 (기존 동작 유지)", () => {
-  const [a, b] = crossCards("counsel");
-  assert.equal(a.href, FORTUNE_CONFIG.daily.href);
-  assert.equal(b.href, FORTUNE_CONFIG.monthly.href);
+test("crossCards — counsel 은 궁합 분석 1장", () => {
+  const cards = crossCards("counsel");
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].href, FORTUNE_CONFIG.compat.href);
 });
