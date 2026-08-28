@@ -8,15 +8,21 @@ import Link from "next/link";
 export default function RechargeBlock({
   allowContinue,
   onContinue,
+  showContinue = true,
   newHref,
   newLabel,
   newCostLabel,
+  newDesc,
 }: {
   allowContinue: boolean;
-  onContinue: () => void;
+  onContinue?: () => void;
+  /** 이어가기 CTA 노출 여부 (기본 노출; 타로 결과화면은 false — 사용률 2.3%). */
+  showContinue?: boolean;
   newHref: string;
   newLabel: string;
   newCostLabel: string;
+  /** 새 CTA 라벨 아래 보조 설명 (선택). */
+  newDesc?: string;
 }) {
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
 
@@ -30,10 +36,12 @@ export default function RechargeBlock({
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-6">
       <div className="rounded-2xl bg-white/90 p-4">
-        <p className="text-[14px] font-bold text-eye-purple mb-3">
-          이 고민, 더 깊이 이어가볼까?
-        </p>
-        {allowContinue && (
+        {showContinue && (
+          <p className="text-[14px] font-bold text-eye-purple mb-3">
+            이 고민, 더 깊이 이어가볼까?
+          </p>
+        )}
+        {showContinue && allowContinue && onContinue && (
           <button
             onClick={onContinue}
             className="w-full py-3 mb-2 rounded-xl bg-lilac-deep text-white font-bold text-[14px] flex items-center justify-between px-4 hover:bg-lilac-deep/90 transition"
@@ -46,10 +54,31 @@ export default function RechargeBlock({
         )}
         <Link
           href={newHref}
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13.5px] flex items-center justify-between px-4 hover:bg-lilac-deep/5 transition"
+          className={`w-full py-3 rounded-xl font-bold text-[13.5px] flex items-center justify-between px-4 transition ${
+            showContinue
+              ? "border border-lilac-deep/40 text-lilac-deep hover:bg-lilac-deep/5"
+              : "bg-lilac-deep text-white hover:bg-lilac-deep/90"
+          }`}
         >
-          <span>{newLabel}</span>
-          <span className="text-[12px] text-text-light/80">{newCostLabel}</span>
+          <span className="flex flex-col min-w-0">
+            <span>{newLabel}</span>
+            {newDesc && (
+              <span
+                className={`text-[11px] font-normal mt-0.5 ${
+                  showContinue ? "text-text-light/80" : "text-white/80"
+                }`}
+              >
+                {newDesc}
+              </span>
+            )}
+          </span>
+          <span
+            className={`text-[12px] shrink-0 ml-2 ${
+              showContinue ? "text-text-light/80" : "text-white/80"
+            }`}
+          >
+            {newCostLabel}
+          </span>
         </Link>
         {firstChargeEligible && (
           <Link

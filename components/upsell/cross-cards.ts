@@ -1,6 +1,6 @@
 // 결과 화면 크로스셀 카드 선정 — 순수 로직 (ResultUpsell 에서 분리, 테스트 대상).
 // 크로스셀 규칙(정적, 개인화 없음):
-//   상담 결과(variant="counsel") → 오늘의 운세 + 이번달
+//   상담 결과(variant="counsel") → 궁합 분석 (사랑하는 사람과의 궁합) 1장
 //   운세 결과(variant=FortuneType) → 상담 진입 1개 + 같은 base 의 다음 운세 1개
 
 import {
@@ -33,7 +33,7 @@ function cardFromFortune(f: FortuneConfig): CrossCard {
 
 export function crossCards(variant: "counsel" | FortuneType): CrossCard[] {
   if (variant === "counsel") {
-    return [FORTUNE_CONFIG.daily, FORTUNE_CONFIG.monthly].map(cardFromFortune);
+    return [FORTUNE_CONFIG.compat].map(cardFromFortune);
   }
   const cfg = FORTUNE_CONFIG[variant];
   const sameBase = FORTUNE_LIST.filter((f) => f.base === cfg.base);

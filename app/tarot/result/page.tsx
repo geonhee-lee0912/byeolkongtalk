@@ -7,7 +7,6 @@ import Image from "next/image";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
@@ -61,7 +60,6 @@ function TarotResultInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [continueOpen, setContinueOpen] = useState(false);
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
@@ -319,16 +317,20 @@ function TarotResultInner() {
         </div>
       )}
 
-      {/* ② 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
+      {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로 */}
       <RechargeBlock
         allowContinue={!reading.hasSensitive}
-        onContinue={() => setContinueOpen(true)}
+        showContinue={false}
         newHref="/tarot"
-        newLabel="새 카드 뽑기"
-        newCostLabel="⭐10부터"
+        newLabel="이 고민 다시 뽑기"
+        newDesc="스프레드 다시 골라 카드 뽑기"
+        newCostLabel="⭐10~"
       />
 
-      {/* ② 공유 — 아래로 */}
+      {/* ③ 크로스셀 (궁합) — 공유 위로 */}
+      <ResultUpsell variant="counsel" showBonus={false} />
+
+      {/* ④ 공유 — 크로스셀 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <TarotShareButtons
           readingId={reading.id}
@@ -340,15 +342,7 @@ function TarotResultInner() {
         />
       </div>
 
-      {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
-      <ResultUpsell variant="counsel" showBonus={false} />
-
       <SurveyResultCard />
-
-      <ContinuationModal
-        readingId={continueOpen ? reading.id : null}
-        onClose={() => setContinueOpen(false)}
-      />
     </main>
   );
 }
