@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
 
+// 인챗 충전 시트는 저·중가 3종만 노출 (150·300 은 /shop 전용). 문맥상 대용량 불필요.
+const INCHAT_PACKAGES = STAR_PACKAGES.filter((p) =>
+  ["star_10", "star_30", "star_70"].includes(p.id)
+);
+
 interface Props {
   open: boolean;
   /** 결제 완료 후 돌아올 reading URL (예: /saju/reading?id=...) */
@@ -180,7 +185,7 @@ export default function RechargeSheet({
 
         {/* 패키지 목록 */}
         <div className="px-5 flex flex-col gap-2 pb-2">
-          {STAR_PACKAGES.map((pkg) => {
+          {INCHAT_PACKAGES.map((pkg) => {
             const isSelected = selectedId === pkg.id;
             const isRecommended = pkg.id === "star_30";
             const bonus = firstChargeEligible
