@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { STAR_PACKAGES } from "@/lib/constants";
+import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
 
 interface Props {
@@ -31,7 +31,8 @@ export default function RechargeSheet({
   onClose,
 }: Props) {
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
-  const [selectedId, setSelectedId] = useState<string>("star_10");
+  const [selectedId, setSelectedId] = useState<string>("star_30");
+  const [firstChargeEligible, setFirstChargeEligible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { paymentReady, paymentError, startPayment } = useTossPayment();
@@ -40,7 +41,13 @@ export default function RechargeSheet({
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setSelectedId("star_10"); // 최소 패키지 기본 선택
+    setSelectedId("star_30"); // 추천 패키지 기본 선택
+
+    // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
+    fetch("/api/stars/first-charge-status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setFirstChargeEligible(d?.eligible === true))
+      .catch(() => {});
 
     // 잔액 prop 이 없으면 직접 조회
     if (balanceProp == null) {
@@ -161,11 +168,24 @@ export default function RechargeSheet({
           </p>
         </div>
 
+        {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
+        {firstChargeEligible && (
+          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50">
+            <span className="text-[15px]">🎁</span>
+            <p className="text-[12px] font-extrabold text-eye-purple">
+              지금 첫 충전이면 별 <span className="tabular-nums">+20%</span> 더 얹어줘
+            </p>
+          </div>
+        )}
+
         {/* 패키지 목록 */}
         <div className="px-5 flex flex-col gap-2 pb-2">
-          {STAR_PACKAGES.map((pkg, idx) => {
+          {STAR_PACKAGES.map((pkg) => {
             const isSelected = selectedId === pkg.id;
-            const isFirst = idx === 0;
+            const isRecommended = pkg.id === "star_30";
+            const bonus = firstChargeEligible
+              ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE)
+              : 0;
             return (
               <button
                 key={pkg.id}
@@ -175,15 +195,20 @@ export default function RechargeSheet({
                   isSelected
                     ? "border-lilac-deep bg-lilac-soft/30 shadow-[0_0_0_2px_rgba(159,138,208,0.15)]"
                     : "border-lilac-mid/30 bg-white hover:border-lilac/70"
-                } ${isFirst ? "ring-1 ring-gold/40" : ""}`}
+                } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
               >
                 <span className="text-[16px] shrink-0">⭐</span>
                 <div className="flex-1 min-w-0">
                   <span className="text-[14px] font-black text-eye-purple tabular-nums">
                     {pkg.stars}별
-                    {isFirst && (
+                    {bonus > 0 && (
+                      <span className="ml-1 text-[12px] font-black text-gold tabular-nums">
+                        +{bonus}
+                      </span>
+                    )}
+                    {isRecommended && (
                       <span className="ml-2 text-[10px] font-black text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
-                        최소
+                        추천
                       </span>
                     )}
                   </span>
