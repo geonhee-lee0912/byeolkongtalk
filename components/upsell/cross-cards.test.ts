@@ -44,8 +44,9 @@ test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) �
   }
 });
 
-test("crossCards — counsel 은 궁합 분석 1장", () => {
+test("crossCards — counsel 은 궁합 분석 + 오늘의 운세(무료)", () => {
   const cards = crossCards("counsel");
-  assert.equal(cards.length, 1);
+  assert.equal(cards.length, 2);
   assert.equal(cards[0].href, FORTUNE_CONFIG.compat.href);
+  assert.equal(cards[1].href, FORTUNE_CONFIG.daily.href);
 });
