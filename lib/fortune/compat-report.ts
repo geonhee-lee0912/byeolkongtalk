@@ -52,6 +52,30 @@ export interface CompatReportAI {
   note: string; // 별콩이의 한마디
 }
 
+/** OpenAI 구조화 출력 스키마 — CompatReportAI 미러(compat/compat_social 공유). advice 3개 규칙은 parseCompatReportJson 담당.
+ *  grade enum 은 합집합 — 종류별 서브셋 강제는 프롬프트가, 파서(isGrade)도 합집합 허용이라 현행과 정합. */
+export const COMPAT_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    grade: { type: "string", enum: [...COMPAT_GRADES] },
+    theme: { type: "string" },
+    summary: { type: "string" },
+    chemistry: { type: "string" },
+    attraction: { type: "string" },
+    conflict: { type: "string" },
+    communication: { type: "string" },
+    longterm: { type: "string" },
+    growth: { type: "string" },
+    advice: { type: "array", items: { type: "string" } },
+    note: { type: "string" },
+  },
+  required: [
+    "grade", "theme", "summary", "chemistry", "attraction", "conflict",
+    "communication", "longterm", "growth", "advice", "note",
+  ],
+} as const;
+
 /** 저장/렌더 최종 형태. */
 export interface CompatReport extends CompatReportAI {
   v: 1;

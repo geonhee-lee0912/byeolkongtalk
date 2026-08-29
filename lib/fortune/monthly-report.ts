@@ -34,6 +34,63 @@ export interface MonthlyReportAI {
   note: string; // 별콩이 한마디
 }
 
+/** OpenAI 구조화 출력 스키마 — MonthlyReportAI 미러. 개수 규칙(weekly 4·sections 5)은 parseMonthlyReportJson 담당. */
+export const MONTHLY_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    stars: { type: "number" },
+    theme: { type: "string" },
+    summary: { type: "string" },
+    lucky: {
+      type: "object",
+      additionalProperties: false,
+      properties: { keyword: { type: "string" }, color: { type: "string" } },
+      required: ["keyword", "color"],
+    },
+    intro: { type: "string" },
+    weekly: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: { week: { type: "number" }, body: { type: "string" } },
+        required: ["week", "body"],
+      },
+    },
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          key: { type: "string", enum: ["money", "work", "love", "health", "study"] },
+          body: { type: "string" },
+        },
+        required: ["key", "body"],
+      },
+    },
+    timing: {
+      type: "object",
+      additionalProperties: false,
+      properties: { good: { type: "string" }, caution: { type: "string" } },
+      required: ["good", "caution"],
+    },
+    action: { type: "string" },
+    balance: {
+      type: "object",
+      additionalProperties: false,
+      properties: { good: { type: "string" }, warn: { type: "string" } },
+      required: ["good", "warn"],
+    },
+    note: { type: "string" },
+  },
+  required: [
+    "stars", "theme", "summary", "lucky", "intro", "weekly",
+    "sections", "timing", "action", "balance", "note",
+  ],
+} as const;
+
 /** 서버가 병합하는 월건(결정론적) — temporal.month 출처. */
 export interface MonthlyWolgeon {
   stem: string; // "갑"

@@ -52,6 +52,85 @@ export interface SajuFullReportAI {
   note: string; // 별콩이의 한마디
 }
 
+/** OpenAI 구조화 출력 스키마 — SajuFullReportAI 미러. strict: 전 필드 required + additionalProperties:false.
+ *  개수 규칙(monthly 12·actions 3·supplements 2~4)은 parseSajuFullReportJson 이 담당(strict 로 강제 불가). */
+export const SAJU_FULL_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    theme: { type: "string" },
+    summary: { type: "string" },
+    lucky: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        color: { type: "string" },
+        direction: { type: "string" },
+        months: { type: "string" },
+        keyword: { type: "string" },
+      },
+      required: ["color", "direction", "months", "keyword"],
+    },
+    self: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        nature: { type: "string" },
+        strength: { type: "string" },
+        caution: { type: "string" },
+        balance: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            lack: { type: "string" },
+            supplements: { type: "array", items: { type: "string" } },
+          },
+          required: ["lack", "supplements"],
+        },
+        aptitude: { type: "string" },
+      },
+      required: ["nature", "strength", "caution", "balance", "aptitude"],
+    },
+    year: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        flow: { type: "string" },
+        mind: { type: "string" },
+        love: { type: "string" },
+        relationship: { type: "string" },
+        career: { type: "string" },
+        wealth: { type: "string" },
+        health: { type: "string" },
+      },
+      required: ["flow", "mind", "love", "relationship", "career", "wealth", "health"],
+    },
+    relations2026: { type: "string" },
+    mission: { type: "string" },
+    monthly: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: { month: { type: "number" }, body: { type: "string" } },
+        required: ["month", "body"],
+      },
+    },
+    timing: {
+      type: "object",
+      additionalProperties: false,
+      properties: { good: { type: "string" }, caution: { type: "string" } },
+      required: ["good", "caution"],
+    },
+    actions: { type: "array", items: { type: "string" } },
+    note: { type: "string" },
+  },
+  required: [
+    "theme", "summary", "lucky", "self", "year", "relations2026",
+    "mission", "monthly", "timing", "actions", "note",
+  ],
+} as const;
+
 /** 저장/렌더 최종 형태. */
 export interface SajuFullReport extends SajuFullReportAI {
   v: 1;
