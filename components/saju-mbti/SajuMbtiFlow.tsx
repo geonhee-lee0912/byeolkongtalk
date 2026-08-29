@@ -6,7 +6,7 @@ import { calcSaju, type SajuResult } from "@/lib/saju/calc";
 import { paljaType, type PaljaType } from "@/lib/saju-mbti/mapping";
 import { selfType, type SelfType } from "@/lib/saju-mbti/self-type";
 import { matchRate, type MatchRate } from "@/lib/saju-mbti/match";
-import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
+import { TYPE_CONTENT, shareHook } from "@/lib/saju-mbti/content";
 import { encodeResult, decodeResult } from "@/lib/saju-mbti/share-tokens";
 import { QuizStage } from "./QuizStage";
 import { BirthStage, type BirthValue } from "./BirthStage";
@@ -100,7 +100,7 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
     const link = `${origin}/fortune/saju-mbti?r=${token}`;
     const content = TYPE_CONTENT[result.palja.code];
     if (navigator.share) {
-      navigator.share({ title: `나 ${content?.character ?? ""}래, 넌?`, url: link }).catch(() => {});
+      navigator.share({ title: content ? shareHook(content.character) : "사주 MBTI", url: link }).catch(() => {});
       return;
     }
     if (navigator.clipboard) {

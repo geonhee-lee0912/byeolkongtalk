@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { decodeResult } from "@/lib/saju-mbti/share-tokens";
-import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
+import { TYPE_CONTENT, shareHook } from "@/lib/saju-mbti/content";
 import { noindexMetadata } from "@/lib/seo/metadata";
 import { SajuMbtiFlow } from "@/components/saju-mbti/SajuMbtiFlow";
 
@@ -21,8 +21,8 @@ export async function generateMetadata({
   const decoded = decodeResult(r);
   if (decoded && r) {
     const content = TYPE_CONTENT[decoded.paljaCode];
-    const title = `나 ${content?.character ?? "사주 MBTI"}래, 넌?`;
-    const description = content?.oneLiner ?? "사주로 보는 나의 성격 유형";
+    const title = content ? shareHook(content.character) : "사주 MBTI";
+    const description = (content?.oneLiner ?? "사주로 보는 나의 성격 유형").replace(/\n/g, " ");
     const image = { url: `/api/og/saju-mbti?r=${r}`, width: 1200, height: 630, type: "image/png" as const };
     return {
       title,

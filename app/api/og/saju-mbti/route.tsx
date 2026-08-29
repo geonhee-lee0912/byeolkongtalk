@@ -3,7 +3,7 @@
 import { ImageResponse } from "next/og";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { decodeResult } from "@/lib/saju-mbti/share-tokens";
-import { TYPE_CONTENT, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
+import { TYPE_CONTENT, MATCH_NARRATIVE, shareHook } from "@/lib/saju-mbti/content";
 import { characterImage } from "@/lib/saju-mbti/character-image";
 
 export const runtime = "nodejs";
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           {charPath ? (
             <img
-              src={`${origin}${charPath}`}
+              src={`${origin}${charPath.replace(/\.webp$/, ".png")}`}
               width={190}
               height={190}
               style={{ width: 190, height: 190, objectFit: "contain" }}
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
             {d.paljaCode} · {content.hanja} · {d.element} 기운
           </div>
           <div style={{ display: "flex", fontSize: 30, color: "#FFF8F0", marginTop: 22, maxWidth: 860, textAlign: "center", lineHeight: 1.5 }}>
-            {content.oneLiner}
+            {content.oneLiner.replace(/\n/g, " ")}
           </div>
           <div
             style={{
@@ -103,7 +103,7 @@ export async function GET(req: Request) {
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 20, opacity: 0.6 }}>
-          <span>나 {content.character}래, 넌?</span>
+          <span>{shareHook(content.character)}</span>
           <span>byeolkongtalk.com</span>
         </div>
       </div>

@@ -23,11 +23,22 @@ const AXIS_LABEL: Record<AxisKey, string> = {
 const AXES: AxisKey[] = ["yinYang", "strength", "wealth", "nurture"];
 
 const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: string }, { p: string; t: string }] }> = {
-  yinYang: { summary: "에너지의 방향", poles: [{ p: "양", t: "기운이 밖으로 뻗느냐" }, { p: "음", t: "안으로 고이느냐" }] },
-  strength: { summary: "밀고 나가는 힘", poles: [{ p: "강", t: "내가 판을 쥐느냐" }, { p: "유", t: "흐름에 맡기느냐" }] },
-  wealth: { summary: "실속이냐 의미냐", poles: [{ p: "재", t: "돈·결과 같은 실속을 좇느냐" }, { p: "인", t: "배움·명분 같은 의미를 좇느냐" }] },
-  nurture: { summary: "감싸느냐 짚어주느냐", poles: [{ p: "생", t: "따뜻하게 품어 북돋우느냐" }, { p: "단", t: "냉정하게 옳고 그름을 짚느냐" }] },
+  yinYang: { summary: "에너지 충전법", poles: [{ p: "양", t: "북적일수록 신남" }, { p: "음", t: "혼자서 충전" }] },
+  strength: { summary: "누가 리드해?", poles: [{ p: "강", t: "내가 이끈다" }, { p: "유", t: "흐름에 맡긴다" }] },
+  wealth: { summary: "나한테 뭐가 더 중요해?", poles: [{ p: "재", t: "실속·결과" }, { p: "인", t: "의미·명분" }] },
+  nurture: { summary: "친구가 힘들다 하면", poles: [{ p: "생", t: "일단 토닥토닥" }, { p: "단", t: "일단 팩트체크" }] },
 };
+
+const AXIS_COLOR: Record<AxisKey, string> = {
+  yinYang: "#7C5FB8",
+  strength: "#C76B57",
+  wealth: "#B8862F",
+  nurture: "#3F8F87",
+};
+
+// 리빌 색 키 — 문항(자아)=라일락, 사주(팔자)=골드. 카드·축별 비교에 일관 적용
+const SELF_COLOR = "#B9A7E6";
+const PALJA_COLOR = "#F2D78A";
 
 export interface ResultViewProps {
   saju?: SajuResult;
@@ -67,80 +78,76 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <p className="text-[12.5px] tracking-wide text-lilac-mid mt-1.5">
           <span className="text-gold-soft">{content.hanja}</span> · {palja.element} 기운
         </p>
-        <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto break-keep">{content.oneLiner}</p>
+        <p className="text-[14px] leading-relaxed text-lilac-soft mt-3 max-w-[290px] mx-auto break-keep whitespace-pre-line">{content.oneLiner}</p>
         <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-[12.5px] leading-relaxed text-lilac-soft text-balance break-keep">{content.memeSubtitle}</p>
+          <p className="text-[12.5px] leading-relaxed text-lilac-soft break-keep whitespace-pre-line">{content.memeSubtitle}</p>
         </div>
       </div>
 
       {/* 4축 정도 — 사주(팔자) 백분위 단일 척도 (공유 뷰는 생일 없어 숨김) */}
       {!shared && (
-      <section className="bg-night rounded-2xl px-4 py-4">
-        <p className="text-[11px] tracking-wide text-lilac-deep mb-3">타고난 너의 4축 · 사주 기준</p>
-        <div className="flex flex-col gap-2.5">
+      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-4">
+        <p className="text-[16px] font-bold text-eye-purple mb-4">타고난 너의 4축</p>
+        <div className="flex flex-col gap-4">
           {AXES.map((axis) => {
             const a = palja.axes[axis];
             const [front, back] = POLES[axis];
             const frontPct = Math.round(a.pct);
             const frontWins = a.pole === front;
             const domPct = frontWins ? frontPct : 100 - frontPct;
+            const m = AXIS_MEANING[axis];
+            const color = AXIS_COLOR[axis];
             return (
-              <div key={axis} className="flex items-center gap-2 text-[11.5px]">
-                <span className={`w-6 text-right ${frontWins ? "text-gold-soft font-medium" : "text-lilac-deep"}`}>{front}</span>
-                <div className="flex-1 h-2 rounded-full bg-night-deep overflow-hidden">
-                  <div className="h-full bg-lilac" style={{ width: `${frontPct}%` }} />
+              <div key={axis}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[12.5px] font-bold" style={{ color }}>{AXIS_LABEL[axis]} · {m.summary}</span>
+                  <span className="text-[12.5px] font-bold tabular-nums" style={{ color }}>{domPct}%</span>
                 </div>
-                <span className={`w-6 ${!frontWins ? "text-gold-soft font-medium" : "text-lilac-deep"}`}>{back}</span>
-                <span className="w-9 text-right text-lilac-mid tabular-nums">{domPct}%</span>
+                <div className="flex items-center gap-2 text-[15px] font-bold">
+                  <span className="w-6 text-right" style={{ color: frontWins ? color : "#C4B7DE" }}>{front}</span>
+                  <div
+                    className="flex-1 h-3 rounded-full overflow-hidden flex"
+                    style={{ background: "#EAE1F5", justifyContent: frontWins ? "flex-start" : "flex-end" }}
+                  >
+                    <div className="h-full rounded-full" style={{ width: `${domPct}%`, background: color }} />
+                  </div>
+                  <span className="w-6" style={{ color: !frontWins ? color : "#C4B7DE" }}>{back}</span>
+                </div>
+                <div className="flex justify-between text-[11.5px] mt-1 px-8">
+                  <span style={{ color: frontWins ? color : "#9A8CB8", fontWeight: frontWins ? 700 : 400 }}>{m.poles[0].t}</span>
+                  <span style={{ color: !frontWins ? color : "#9A8CB8", fontWeight: !frontWins ? 700 : 400 }}>{m.poles[1].t}</span>
+                </div>
               </div>
             );
           })}
         </div>
-        <details className="mt-3 border-t border-white/10 pt-2.5">
-          <summary className="text-[11.5px] text-lilac-mid cursor-pointer list-none">4축이 뭘 뜻할까? ▾</summary>
-          <div className="flex flex-col gap-2.5 mt-2.5">
-            {AXES.map((axis) => {
-              const m = AXIS_MEANING[axis];
-              return (
-                <div key={axis} className="text-[11.5px] leading-relaxed">
-                  <p className="text-gold-soft font-medium">{AXIS_LABEL[axis]} · {m.summary}</p>
-                  <p className="text-lilac-soft mt-0.5">
-                    <span className="font-bold text-cream-warm">{m.poles[0].p}</span> {m.poles[0].t}
-                    <span className="text-lilac-deep"> vs </span>
-                    <span className="font-bold text-cream-warm">{m.poles[1].p}</span> {m.poles[1].t}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </details>
       </section>
       )}
 
       {/* ③ 본문 */}
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-        <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-1.5">성격</p>
+        <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-1.5">성격</p>
         <p className="text-[13.5px] leading-relaxed text-eye-purple">{content.personality}</p>
       </section>
 
       <div className="grid grid-cols-1 gap-2.5">
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-          <p className="text-[11px] font-medium tracking-wide text-[#C99A3A] mb-1.5">빛</p>
+          <p className="text-[14.5px] font-bold tracking-wide text-[#C99A3A] mb-1.5">빛</p>
           <p className="text-[13px] leading-relaxed text-eye-purple">{content.light}</p>
         </section>
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-          <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-1.5">그림자</p>
+          <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-1.5">그림자</p>
           <p className="text-[13px] leading-relaxed text-eye-purple">{content.shadow}</p>
         </section>
       </div>
 
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-        <p className="text-[11px] font-medium tracking-wide text-[#C86A8A] mb-1.5">연애</p>
+        <p className="text-[14.5px] font-bold tracking-wide text-[#C86A8A] mb-1.5">연애</p>
         <p className="text-[13.5px] leading-relaxed text-eye-purple">{content.love}</p>
       </section>
 
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-        <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-2">궁합</p>
+        <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-2">궁합</p>
         <div className="grid grid-cols-2 gap-2.5">
           {content.compat.fits.map((c) => {
             const t = TYPE_CONTENT[c.code];
@@ -184,7 +191,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         className="bg-white border rounded-2xl px-4 py-3.5"
         style={{ borderColor: ELEMENT_COLORS[palja.element].bar }}
       >
-        <p className="text-[11px] font-medium tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
+        <p className="text-[14.5px] font-bold tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
           내가 {palja.element} 기운이라 이렇게 변주돼
         </p>
         <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
@@ -199,7 +206,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-2 py-4">
-          <p className="text-[11px] font-medium tracking-wide text-lilac-deep mb-3 text-center">타고난 너의 사주 원판</p>
+          <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-3 text-center">타고난 너의 사주 원판</p>
           <SajuBoard saju={saju} />
           <div className="flex justify-center mt-2">
             <ElementPentagon dist={palja.elementDist} />
@@ -209,34 +216,47 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* ⑤ 리빌 */}
       <div className="bg-night rounded-[18px] px-4 py-5">
-        <p className="text-[13px] text-lilac-soft mb-3">그런데, 네가 문항에서 답한 너는—</p>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex-1 bg-night-deep rounded-xl px-3 py-2 text-center">
-            <p className="text-[10.5px] text-lilac-deep">자아 · 문항</p>
+        <p className="text-[13px] text-lilac-soft mb-3">문항으로 답한 나 <span style={{ color: SELF_COLOR }}>vs</span> 사주로 타고난 나 —</p>
+        <div className="flex items-stretch gap-2 mb-4">
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(150,130,210,0.20)" }}>
+            <p className="text-[11.5px] font-bold" style={{ color: SELF_COLOR }}>내가 답한 나</p>
+            <p className="text-[9.5px] text-lilac-deep">문항 12개</p>
             {selfImg && <Image src={selfImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-[15px] text-gold-soft mt-0.5">{selfContent?.character ?? self.code}</p>
+            <p className="font-display text-[15px] mt-0.5" style={{ color: SELF_COLOR }}>{selfContent?.character ?? self.code}</p>
             <p className="text-[11px] text-lilac-mid">{self.code}</p>
           </div>
-          <span className="text-lilac-deep">→</span>
-          <div className="flex-1 bg-night-deep rounded-xl px-3 py-2 text-center">
-            <p className="text-[10.5px] text-lilac-deep">팔자 · 사주</p>
+          <div className="flex items-center text-lilac-deep text-[12px] font-medium">vs</div>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(232,194,106,0.16)" }}>
+            <p className="text-[11.5px] font-bold" style={{ color: PALJA_COLOR }}>타고난 나</p>
+            <p className="text-[9.5px] text-lilac-deep">사주 팔자</p>
             {charImg && <Image src={charImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-[15px] text-gold-soft mt-0.5">{content.character}</p>
+            <p className="font-display text-[15px] mt-0.5" style={{ color: PALJA_COLOR }}>{content.character}</p>
             <p className="text-[11px] text-lilac-mid">{palja.code}</p>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5 mb-4">
+          <div className="flex items-center gap-2 text-[10px] px-2.5">
+            <span className="w-8" />
+            <span className="flex-1 flex items-center justify-center gap-3">
+              <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>문항</span>
+              <span className="w-4" />
+              <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>사주</span>
+            </span>
+            <span className="w-8" />
+          </div>
           {match.perAxis.map((a) => (
             <div
               key={a.axis}
               className={`flex items-center gap-2 text-[12px] rounded-lg px-2.5 py-1.5 ${a.agree ? "" : "bg-[#2c1f22]"}`}
             >
               <span className={`w-8 ${a.agree ? "text-lilac-mid" : "text-[#E0A0A0]"}`}>{AXIS_LABEL[a.axis]}</span>
-              <span className="flex-1 text-lilac-soft">
-                {a.selfPole} <span className="text-lilac-deep">↔</span> {a.paljaPole}
+              <span className="flex-1 flex items-center justify-center gap-3">
+                <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>{a.selfPole}</span>
+                <span className="w-4 text-center text-lilac-deep text-[10px]">↔</span>
+                <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>{a.paljaPole}</span>
               </span>
-              <span className={a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}>{a.agree ? "일치" : "갈림"}</span>
+              <span className={`w-8 text-right ${a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}`}>{a.agree ? "일치" : "갈림"}</span>
             </div>
           ))}
         </div>
@@ -264,7 +284,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             onClick={onShare}
             className="flex-1 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] active:scale-[0.98] transition"
           >
-            나 {content.character}래, 넌?
+            친구한테 공유하기
           </button>
           <button
             type="button"
