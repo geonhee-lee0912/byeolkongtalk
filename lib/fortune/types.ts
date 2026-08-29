@@ -216,6 +216,18 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
  * 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트).
  * Sonnet 5 새 토크나이저는 같은 글자가 ~30% 더 많은 토큰이라, 기존 4.6 캡을
  * ×1.3 상향해 동일 분량을 보존(안 그러면 리포트가 짧아지고 [END]/JSON 이 잘림).
+ *
+ * 🔴 리포트의 SECTION_GUIDE(prompt.ts) 문장 수·필드를 늘리면 여기 캡도 함께 올릴 것.
+ * 캡이 자연 생성 길이보다 낮으면 stop_reason=max_tokens 로 JSON 이 잘리고 →
+ * parseReportJson 이 절단 객체를 거부(null) → 재시도(같은 캡이라 또 절단) → 리딩 삭제·
+ * 환불("compat report parse failed"). 실측·꼬리 확인은 scripts/fortune-length-probe.ts
+ * (⚠️TRUNCATED 플래그, 변동폭 크니 여러 번 실행). compat/compat_social 은 Phase A(2026-08-13)
+ * 로 소통법·성장 섹션이 추가돼 ~74문장 깊이가 됐는데 캡은 7800 그대로라 verbose 꼬리가
+ * 7800 을 넘겨 prod truncation 발생(2026-08-28) → 14000 으로 상향(saju_full 15600 미만 유지).
+ *
+ * good_days: luna 이관(2026-08-29)으로 산문이 sonnet 대비 ~63% 길어짐(실측 ~4900~5400자, 무증상
+ * 절단 위험 — good_days 는 마크다운이라 parseReportJson 이 절단을 못 잡는다) → 6500→8500 여유 상향.
+ * 전면 분량·가격 재설계는 별도 브레인스토밍 예정(여긴 luna 안전 마진만).
  */
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 3380,
@@ -226,9 +238,9 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   tarot_money: 5200,
   tarot_career: 5200,
   tarot_relation: 5200,
-  compat: 7800,
-  compat_social: 7800,
-  good_days: 6500,
+  compat: 14000,
+  compat_social: 14000,
+  good_days: 8500,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */
