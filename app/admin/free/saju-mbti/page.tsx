@@ -4,7 +4,7 @@
 // 집계는 전부 RPC(admin_saju_mbti_*, admin_cohort_payments, admin_star_spend_breakdown).
 import { getServiceSupabase } from "@/lib/supabase";
 import LoadFailed from "@/components/admin/LoadFailed";
-import { adminExclusionArray } from "@/lib/admin";
+import { adminExclusionArray, ASSUMED_FREE_STAR_COST_WON } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
@@ -63,17 +63,25 @@ async function load() {
     supa.rpc("admin_saju_mbti_cohort_users", { p_exclude }),
   ]);
 
-  const cohort = ((cohortRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+  const cohortRows = (cohortRes.data ?? []) as { user_id: string; is_new: boolean }[];
+  const newIds = cohortRows.filter((r) => r.is_new).map((r) => r.user_id);
+  const oldIds = cohortRows.filter((r) => !r.is_new).map((r) => r.user_id);
+  const cohort = cohortRows.map((r) => r.user_id); // 전체(리텐션 표시용 코호트 규모 등 기존 용도 유지)
 
-  const [payRes, spendRes] = await Promise.all([
-    cohort.length
-      ? supa.rpc("admin_cohort_payments", { p_users: cohort })
+  const [payNewRes, payOldRes, spendNewRes, retRes, typeRes] = await Promise.all([
+    newIds.length
+      ? supa.rpc("admin_cohort_payments", { p_users: newIds })
       : Promise.resolve({ data: [], error: null }),
-    cohort.length
+    oldIds.length
+      ? supa.rpc("admin_cohort_payments", { p_users: oldIds })
+      : Promise.resolve({ data: [], error: null }),
+    newIds.length
       ? supa.rpc("admin_star_spend_breakdown", {
-          p_since: PURCHASE_FLOOR, p_until: null, p_exclude, p_fortune_types, p_users: cohort,
+          p_since: PURCHASE_FLOOR, p_until: null, p_exclude, p_fortune_types, p_users: newIds,
         })
       : Promise.resolve({ data: [], error: null }),
+    supa.rpc("admin_saju_mbti_retention", { p_exclude }),
+    supa.rpc("admin_saju_mbti_type_payment", { p_exclude }),
   ]);
 
   const su = ((sumRes.data ?? []) as {
@@ -90,12 +98,20 @@ async function load() {
   for (const r of trendRows) (byBucket[r.bucket] ??= {})[r.kind] = Number(r.cnt);
   const buckets = Object.keys(byBucket).sort().reverse();
 
-  const pay = (payRes.data ?? []) as { package_type: string; payers: number; revenue_won: number; stars_given: number }[];
-  const spend = (spendRes.data ?? []) as { domain: string; product: string; cnt: number; stars: number; free_stars: number; users: number }[];
+  const sumPay = (rows: unknown) => {
+    const a = (rows ?? []) as { payers: number; revenue_won: number }[];
+    return { payers: a.reduce((s, p) => s + Number(p.payers), 0), revenue: a.reduce((s, p) => s + Number(p.revenue_won), 0) };
+  };
+  const newPay = sumPay(payNewRes.data), oldPay = sumPay(payOldRes.data);
+  const newFreeStars = ((spendNewRes.data ?? []) as { free_stars: number }[]).reduce((s, r) => s + Number(r.free_stars), 0);
+  const retRows = (retRes.data ?? []) as { horizon: string; eligible: number; returned: number }[];
+  const typeRows = (typeRes.data ?? []) as { dim: string; key: string; completers: number; payers: number }[];
 
   return {
     sumFailed: !!sumRes.error, distFailed: !!distRes.error, trendFailed: !!trendRes.error,
-    cohortFailed: !!cohortRes.error, payFailed: !!payRes.error, spendFailed: !!spendRes.error,
+    cohortFailed: !!cohortRes.error,
+    payFailed: !!payNewRes.error || !!payOldRes.error, spendFailed: !!spendNewRes.error,
+    retFailed: !!retRes.error, typeFailed: !!typeRes.error,
     today, cohortN: cohort.length,
     su: {
       visits: Number(su?.visits ?? 0), started: Number(su?.started ?? 0),
@@ -105,8 +121,12 @@ async function load() {
     },
     palja: byKind("palja"), band: byKind("band"), element: byKind("element"),
     buckets, byBucket,
-    pay: pay.map((p) => ({ ...p, payers: Number(p.payers), revenue_won: Number(p.revenue_won), stars_given: Number(p.stars_given) })),
-    spend: spend.map((s) => ({ ...s, cnt: Number(s.cnt), stars: Number(s.stars), free_stars: Number(s.free_stars), users: Number(s.users) })),
+    newN: newIds.length, oldN: oldIds.length,
+    newPay, oldPay, newFreeStars,
+    ret: Object.fromEntries(retRows.map((r) => [r.horizon, { eligible: Number(r.eligible), returned: Number(r.returned) }])) as Record<string, { eligible: number; returned: number }>,
+    // 결과분포 ②의 `band`(밴드별 완료 건수, {key,cnt})와 이름이 겹쳐 bandPay 로 분리(payload=결제율 계산용 {key,completers,payers}).
+    bandPay: typeRows.filter((r) => r.dim === "band").map((r) => ({ key: r.key, completers: Number(r.completers), payers: Number(r.payers) })),
+    paljaPay: typeRows.filter((r) => r.dim === "palja").map((r) => ({ key: r.key, completers: Number(r.completers), payers: Number(r.payers) })),
   };
 }
 
@@ -117,9 +137,6 @@ export default async function AdminSajuMbtiPage() {
   const completeRate = pct(su.completed, su.started);
   const shareRate = pct(su.shared, su.completed);
   const arriveConv = pct(su.retry, su.sharedView);
-  const payers = s.pay.reduce((a, p) => a + p.payers, 0);
-  const revenue = s.pay.reduce((a, p) => a + p.revenue_won, 0);
-  const arpu = s.cohortN ? Math.round(revenue / s.cohortN) : 0;
   // 결과 분포 차트: 16유형은 count 내림차순(RPC 정렬 유지), 밴드·오행은 의미 순서 고정.
   const paljaMax = Math.max(1, ...s.palja.map((r) => r.cnt));
   const bandMap: Record<string, number> = Object.fromEntries(s.band.map((r) => [r.key, r.cnt]));
@@ -236,42 +253,58 @@ export default async function AdminSajuMbtiPage() {
       </section>
 
       <section>
-        <h2 className="text-sm text-white/60 mb-3">⑥ 구매 여정 <span className="text-white/35">(코호트 전 기간 · 미래분)</span></h2>
+        <h2 className="text-sm text-white/60 mb-3">⑥ 구매 여정 <span className="text-white/35">(신규=공유·초대 획득 / 기존=이미 유저)</span></h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="별 충전 결제자" value={s.payFailed ? "—" : payers} sub={s.payFailed ? undefined : `코호트 ${s.cohortN}명 중`} />
-          <Stat label="별 충전 매출(원)" value={s.payFailed ? "—" : revenue.toLocaleString()} />
-          <Stat label="코호트 ARPU(원)" value={s.payFailed ? "—" : arpu.toLocaleString()} sub="매출/코호트" />
+          <Stat label="신규 결제자" value={s.payFailed ? "—" : s.newPay.payers} sub={s.payFailed ? undefined : `신규 ${s.newN}명 중`} />
+          <Stat label="신규 매출(원)" value={s.payFailed ? "—" : s.newPay.revenue.toLocaleString()} />
+          <Stat label="기존 결제자" value={s.payFailed ? "—" : s.oldPay.payers} sub={s.payFailed ? undefined : `기존 ${s.oldN}명 중`} />
+          <Stat label="기존 매출(원)" value={s.payFailed ? "—" : s.oldPay.revenue.toLocaleString()} />
         </div>
         {s.payFailed && <LoadFailed block="admin_cohort_payments" className="mt-2" />}
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">별 패키지 분포</h3>
-        <div className="text-[12px] text-white/40">
-          {s.pay.length ? s.pay.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+          <Stat label="신규 무료별 소모" value={s.spendFailed ? "—" : s.newFreeStars} sub="개" />
+          <Stat label="신규 순 기여마진(원)" value={s.spendFailed || s.payFailed ? "—" : (s.newPay.revenue - s.newFreeStars * ASSUMED_FREE_STAR_COST_WON).toLocaleString()} sub={`매출−무료별×₩${ASSUMED_FREE_STAR_COST_WON} 가정`} />
         </div>
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 (별 소모)</h3>
-        {s.spendFailed ? (
-          <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
-        ) : s.spend.length === 0 ? (
-          <div className="text-[12px] text-white/40">데이터 없음</div>
+        {s.spendFailed && <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">완료→재방문 리텐션 <span className="text-white/30">(같은 기기 하한 · 성숙분모)</span></h3>
+        {s.retFailed ? (
+          <LoadFailed block="admin_saju_mbti_retention" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12px]">
-              <thead>
-                <tr className="text-white/40 text-left">
-                  <th className="py-1 pr-3">종목</th><th className="py-1 pr-3">상품</th>
-                  <th className="py-1 px-2 text-right">건수</th><th className="py-1 px-2 text-right">별</th>
-                  <th className="py-1 px-2 text-right">무료별</th><th className="py-1 px-2 text-right">이용자</th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.spend.map((r, i) => (
-                  <tr key={i} className="border-t border-white/5 text-white/70">
-                    <td className="py-1 pr-3">{r.domain}</td><td className="py-1 pr-3">{r.product}</td>
-                    <td className="py-1 px-2 text-right">{r.cnt}</td><td className="py-1 px-2 text-right">{r.stars}</td>
-                    <td className="py-1 px-2 text-right">{r.free_stars}</td><td className="py-1 px-2 text-right">{r.users}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-3 gap-3">
+            {["d1", "d7", "d30"].map((h) => {
+              const r = s.ret[h] ?? { eligible: 0, returned: 0 };
+              const pctv = r.eligible ? Math.round((r.returned / r.eligible) * 1000) / 10 : 0;
+              return <Stat key={h} label={h.toUpperCase()} value={`${pctv}%`} sub={`${r.returned}/${r.eligible}`} />;
+            })}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">⑦ 유형 × 결제 <span className="text-white/35">(로그인 완료자만 · 표본편향 · 밴드 우선)</span></h2>
+        {s.typeFailed ? (
+          <LoadFailed block="admin_saju_mbti_type_payment" />
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-[13px] text-white/50 mb-2">밴드별 결제율</h3>
+              {s.bandPay.length ? ["천명", "절충", "거스름"].map((k) => {
+                const row = s.bandPay.find((b) => b.key === k) ?? { completers: 0, payers: 0 };
+                const rate = row.completers ? Math.round((row.payers / row.completers) * 1000) / 10 : 0;
+                return <BarRow key={k} code={k} value={rate} max={100} color="bg-gold-soft" />;
+              }) : <div className="text-[12px] text-white/40">데이터 없음</div>}
+            </div>
+            <div>
+              <h3 className="text-[13px] text-white/50 mb-2">팔자 유형별 결제율 <span className="text-white/30">(참고, 소표본)</span></h3>
+              {s.paljaPay.length ? (
+                <div className="space-y-1.5">
+                  {s.paljaPay.map((r) => {
+                    const rate = r.completers ? Math.round((r.payers / r.completers) * 1000) / 10 : 0;
+                    return <BarRow key={r.key} code={r.key} meta={TYPE_CONTENT[r.key]?.character} value={rate} max={100} color="bg-lilac-mid" />;
+                  })}
+                </div>
+              ) : <div className="text-[12px] text-white/40">데이터 없음</div>}
+            </div>
           </div>
         )}
       </section>

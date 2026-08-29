@@ -79,3 +79,6 @@ export class AdminAccessError extends Error {
     this.name = "AdminAccessError";
   }
 }
+
+/** 순 기여마진 계산용 무료별 변동원가 가정치(₩/별). luna 후 극저라 보수적. 화면에 "가정" 라벨 표시. */
+export const ASSUMED_FREE_STAR_COST_WON = 2;
