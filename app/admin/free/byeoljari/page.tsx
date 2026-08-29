@@ -3,11 +3,14 @@
 // 집계는 전부 RPC(admin_byeoljari_*) — 원본 행을 앱으로 끌어오지 않는다(패턴 B, admin/relationship 관행).
 import { getServiceSupabase } from "@/lib/supabase";
 import LoadFailed from "@/components/admin/LoadFailed";
-import { adminExclusionArray } from "@/lib/admin";
+import { adminExclusionArray, ASSUMED_FREE_STAR_COST_WON } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 export const dynamic = "force-dynamic";
+
+// 구매 여정은 윈도우가 아니라 코호트 전 기간 LTV → 고정 하한.
+const PURCHASE_FLOOR = "2026-01-01T00:00:00Z";
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -87,20 +90,44 @@ async function load() {
   )[0];
 
   const cohortRes = await supa.rpc("admin_byeoljari_cohort_users", { p_exclude });
-  const cohort = ((cohortRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+  const cohortRows = (cohortRes.data ?? []) as { user_id: string; is_new: boolean }[];
+  const newIds = cohortRows.filter((r) => r.is_new).map((r) => r.user_id);
+  const oldIds = cohortRows.filter((r) => !r.is_new).map((r) => r.user_id);
   const p_fortune_types = Object.keys(FORTUNE_CONFIG);
-  const [payRes, spendRes] = await Promise.all([
-    cohort.length ? supa.rpc("admin_cohort_payments", { p_users: cohort }) : Promise.resolve({ data: [], error: null }),
-    cohort.length ? supa.rpc("admin_star_spend_breakdown", { p_since: "2026-01-01T00:00:00Z", p_until: null, p_exclude, p_fortune_types, p_users: cohort }) : Promise.resolve({ data: [], error: null }),
+
+  const [payNewRes, payOldRes, spendNewRes, retRes] = await Promise.all([
+    newIds.length
+      ? supa.rpc("admin_cohort_payments", { p_users: newIds })
+      : Promise.resolve({ data: [], error: null }),
+    oldIds.length
+      ? supa.rpc("admin_cohort_payments", { p_users: oldIds })
+      : Promise.resolve({ data: [], error: null }),
+    newIds.length
+      ? supa.rpc("admin_star_spend_breakdown", {
+          p_since: PURCHASE_FLOOR, p_until: null, p_exclude, p_fortune_types, p_users: newIds,
+        })
+      : Promise.resolve({ data: [], error: null }),
+    supa.rpc("admin_byeoljari_retention", { p_exclude }),
   ]);
+
+  const sumPay = (rows: unknown) => {
+    const a = (rows ?? []) as { payers: number; revenue_won: number }[];
+    return { payers: a.reduce((s, p) => s + Number(p.payers), 0), revenue: a.reduce((s, p) => s + Number(p.revenue_won), 0) };
+  };
+  const newPay = sumPay(payNewRes.data), oldPay = sumPay(payOldRes.data);
+  const newFreeStars = ((spendNewRes.data ?? []) as { free_stars: number }[]).reduce((s, r) => s + Number(r.free_stars), 0);
+  const spendNew = ((spendNewRes.data ?? []) as { domain: string; product: string; cnt: number; stars: number; free_stars: number; users: number }[]).map((r) => ({ ...r, cnt: Number(r.cnt), stars: Number(r.stars), free_stars: Number(r.free_stars), users: Number(r.users) }));
+  const payNew = ((payNewRes.data ?? []) as { package_type: string; payers: number; revenue_won: number; stars_given: number }[]).map((p) => ({ ...p, payers: Number(p.payers), revenue_won: Number(p.revenue_won), stars_given: Number(p.stars_given) }));
+  const retRows = (retRes.data ?? []) as { horizon: string; eligible: number; returned: number }[];
 
   return {
     sumFailed, trendFailed, distFailed, utmFailed, convFailed, today,
-    cohortFailed: !!cohortRes.error, payFailed: !!payRes.error, spendFailed: !!spendRes.error,
-    pay: ((payRes.data ?? []) as { package_type: string; payers: number; revenue_won: number; stars_given: number }[])
-      .map((p) => ({ ...p, payers: Number(p.payers), revenue_won: Number(p.revenue_won), stars_given: Number(p.stars_given) })),
-    spend: ((spendRes.data ?? []) as { domain: string; product: string; cnt: number; stars: number; free_stars: number; users: number }[])
-      .map((r) => ({ ...r, cnt: Number(r.cnt), stars: Number(r.stars), free_stars: Number(r.free_stars), users: Number(r.users) })),
+    cohortFailed: !!cohortRes.error,
+    payFailed: !!payNewRes.error || !!payOldRes.error, spendFailed: !!spendNewRes.error,
+    retFailed: !!retRes.error,
+    newN: newIds.length, oldN: oldIds.length,
+    newPay, oldPay, newFreeStars, spendNew, payNew,
+    ret: Object.fromEntries(retRows.map((r) => [r.horizon, { eligible: Number(r.eligible), returned: Number(r.returned) }])) as Record<string, { eligible: number; returned: number }>,
     su: {
       totalMaps: Number(su?.total_maps ?? 0),
       mapsLogin: Number(su?.maps_login ?? 0),
@@ -234,15 +261,42 @@ export default async function AdminByeoljariPage() {
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
         {s.convFailed && <LoadFailed block="admin_byeoljari_conversion" className="mt-2" />}
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">별 패키지 분포</h3>
-        <div className="text-[12px] text-white/40">
-          {s.pay.length ? s.pay.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
+
+        <h3 className="text-[13px] text-white/50 mt-6 mb-2">신규/기존 분해 <span className="text-white/30">(신규=공유·초대 획득 / 기존=이미 유저)</span></h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="신규 결제자" value={s.payFailed ? "—" : s.newPay.payers} sub={s.payFailed ? undefined : `신규 ${s.newN}명 중`} />
+          <Stat label="신규 매출(원)" value={s.payFailed ? "—" : s.newPay.revenue.toLocaleString()} />
+          <Stat label="기존 결제자" value={s.payFailed ? "—" : s.oldPay.payers} sub={s.payFailed ? undefined : `기존 ${s.oldN}명 중`} />
+          <Stat label="기존 매출(원)" value={s.payFailed ? "—" : s.oldPay.revenue.toLocaleString()} />
         </div>
         {s.payFailed && <LoadFailed block="admin_cohort_payments" className="mt-2" />}
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 (별 소모)</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+          <Stat label="신규 무료별 소모" value={s.spendFailed ? "—" : s.newFreeStars} sub="개" />
+          <Stat label="신규 순 기여마진(원)" value={s.spendFailed || s.payFailed ? "—" : (s.newPay.revenue - s.newFreeStars * ASSUMED_FREE_STAR_COST_WON).toLocaleString()} sub={`매출−무료별×₩${ASSUMED_FREE_STAR_COST_WON} 가정`} />
+        </div>
+        {s.spendFailed && <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />}
+
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">생성→재방문 리텐션 <span className="text-white/30">(같은 기기 하한 · 성숙분모)</span></h3>
+        {s.retFailed ? (
+          <LoadFailed block="admin_byeoljari_retention" />
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {["d1", "d7", "d30"].map((h) => {
+              const r = s.ret[h] ?? { eligible: 0, returned: 0 };
+              const pctv = r.eligible ? Math.round((r.returned / r.eligible) * 1000) / 10 : 0;
+              return <Stat key={h} label={h.toUpperCase()} value={`${pctv}%`} sub={`${r.returned}/${r.eligible}`} />;
+            })}
+          </div>
+        )}
+
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">별 패키지 분포 <span className="text-white/30">(신규 코호트)</span></h3>
+        <div className="text-[12px] text-white/40">
+          {s.payNew.length ? s.payNew.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
+        </div>
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모)</span></h3>
         {s.spendFailed ? (
           <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
-        ) : s.spend.length === 0 ? (
+        ) : s.spendNew.length === 0 ? (
           <div className="text-[12px] text-white/40">데이터 없음</div>
         ) : (
           <div className="overflow-x-auto">
@@ -255,7 +309,7 @@ export default async function AdminByeoljariPage() {
                 </tr>
               </thead>
               <tbody>
-                {s.spend.map((r, i) => (
+                {s.spendNew.map((r, i) => (
                   <tr key={i} className="border-t border-white/5 text-white/70">
                     <td className="py-1 pr-3">{r.domain}</td><td className="py-1 pr-3">{r.product}</td>
                     <td className="py-1 px-2 text-right">{r.cnt}</td><td className="py-1 px-2 text-right">{r.stars}</td>
