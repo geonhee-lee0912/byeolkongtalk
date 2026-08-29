@@ -107,3 +107,11 @@
 
 - 파일: `lib/fortune/model.ts` · `lib/claude.ts`(generateOnce/streamChat) · `lib/claude/adapters/{types,openai}.ts` · `lib/fortune/{types,saju-full-report,monthly-report,compat-report,tarot-report,json-recover}.ts` · `app/api/fortune/create/route.ts` · `app/api/consultations/saju/chat/route.ts` · `scripts/fortune-length-probe.ts` · `lib/prompt-version.ts`
 - 메모리: `fortune-report-parse-failure` · `model-router-qa-progress` · `cost-unit-economics-2026-08-10` · `product-backlog`#6 · `pricing-length-redesign-progress`
+
+## 실행 결과 (2026-08-29, dev 완료)
+
+- **0단계 카나리아 ✅** — `gpt-5.6-luna` 가 스트리밍에서 `json_schema strict` 수용·스키마대로 유효 JSON 반환 확인 → primary(strict) 경로 확정(폴백 불요).
+- 🔴 **스코프 확장 (실행 중 발견 + 사용자 승인)** — 스펙 초안의 "사주 chat = 유일한 sonnet chat 홀드아웃" 은 **틀렸다**. streaming 만 봤고 `generateOnce` 원샷 3표면을 놓쳤다: ① relationship **우리궁합 스킬**(`app/api/relationship/chat/route.ts` — `buildFortuneSystem("compat")`+`parseCompatReportJson`, /fortune/compat 과 동일 리포트) ② 시뮬 **답변추천** ③ 시뮬 **디브리핑**(둘 다 `app/api/relationship/sim/chat/route.ts`). 셋 다 model 미지정 → `DEFAULT_CHAT_MODEL`(sonnet). 사용자 "전부 통일" 결정으로 **셋 다 luna 이관**: 우리궁합 = `fortuneModel("compat")`+`fortuneResponseFormat("compat")`(luna+구조화출력, 같은 `COMPAT_REPORT_SCHEMA`) / 시뮬 2종 = `CHAT_MODEL`(텍스트라 구조화 없음). 결과: **app/ 의 모든 streamChat=CHAT_MODEL, 모든 generateOnce=model 인자 → sonnet 홀드아웃 0**(summarizeOlder haiku 는 설계상 유지).
+- **밴드 재정합 (luna 실측, 프로덕션 경로 프로브 2회)** — 5종 전부 parse=OK. 실측 산문: monthly ~3740 · compat ~4035 · compat_social ~3577 · good_days ~5150 · saju_full ~7350자. **good_days 6500→8500**(luna 가 sonnet 대비 ~63% 길어짐 + 마크다운이라 절단 무증상). compat/compat_social **14000 확정**(2026-08-28 sonnet 핫픽스값 유지 — luna 엔 과하나 무해). monthly 6500·saju_full 15600 마진 충분(불변). ⚠️ 전면 분량·가격 재설계는 별도 브레인스토밍으로 이관(여긴 luna 안전 마진만).
+- **검증** — 유닛 453/453 · tsc 0 · next build 0. subagent-driven(유닛별 스펙+품질 리뷰 전부 통과) + **최종 종합 리뷰 SHIP-READY(dev)**. 구조화 출력 경로 E2E 무결·compat 두 진입점 동일 스키마 확인.
+- **커밋** `dc9dd04`..`d4cac5d` (12개, dev). PROMPT_VERSION=`2026-08-29-fortune-luna`. 마이그레이션 0·새 env 0. **prod(main)=로드맵 ④** — 배포 전 dev 에서 리포트 톤 육안 + `error_logs` `*_parse`/`hit max_tokens` 모니터.
