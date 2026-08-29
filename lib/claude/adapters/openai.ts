@@ -21,8 +21,39 @@ export function mapOpenAIFinish(r: string | null | undefined): StopReason {
   return r == null ? null : "other";
 }
 
+/**
+ * responseFormat → OpenAI create 파라미터 조각. 없으면 {} (response_format 미주입 = 기존 동작).
+ * ⚠️ schema 는 openai SDK 의 ResponseFormatJSONSchema.json_schema.schema 가
+ * `{ [key: string]: unknown }`(인덱스 시그니처)로 선언돼 있어, 파라미터의 `object` 타입을
+ * (프레시 리터럴이 아닌 참조로) 그대로 흘리면 create() 스프레드 지점에서 할당 불가 에러가 난다.
+ * 리턴 타입만 Record<string, unknown> 으로 맞추고 여기서 한 번만 캐스팅.
+ */
+export function openaiResponseFormat(
+  rf: { name: string; schema: object } | undefined
+): {
+  response_format?: {
+    type: "json_schema";
+    json_schema: { name: string; strict: true; schema: Record<string, unknown> };
+  };
+} {
+  if (!rf) return {};
+  return {
+    response_format: {
+      type: "json_schema",
+      json_schema: { name: rf.name, strict: true, schema: rf.schema as Record<string, unknown> },
+    },
+  };
+}
+
 export const openaiAdapter: ProviderAdapter = {
-  async *stream({ systemStatic, systemDynamic, messages, maxTokens, model }: AdapterStreamArgs) {
+  async *stream({
+    systemStatic,
+    systemDynamic,
+    messages,
+    maxTokens,
+    model,
+    responseFormat,
+  }: AdapterStreamArgs) {
     // OpenAI 는 anthropic 식 cache_control 마킹이 없다(자동 프리픽스 캐시) → 정적+동적 블록을
     // 하나의 system 메시지로 합친다. QA 단계엔 캐시 정책 무영향.
     const system = systemDynamic ? `${systemStatic}\n\n---\n\n${systemDynamic}` : systemStatic;
@@ -37,6 +68,7 @@ export const openaiAdapter: ProviderAdapter = {
       reasoning_effort: "low",
       stream: true,
       messages: [{ role: "system", content: system }, ...messages],
+      ...openaiResponseFormat(responseFormat),
     });
     let stop: StopReason = null;
     for await (const chunk of stream) {

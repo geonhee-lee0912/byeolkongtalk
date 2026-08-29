@@ -11,6 +11,8 @@ export interface AdapterStreamArgs {
   maxTokens: number;
   /** registry 가 고른 구체 model id (예: "gpt-5-mini"). */
   model: string;
+  /** 구조화 출력 스키마(운세 리포트용). OpenAI 어댑터만 사용, 나머지는 무시. */
+  responseFormat?: { name: string; schema: object };
 }
 
 export interface ProviderAdapter {
