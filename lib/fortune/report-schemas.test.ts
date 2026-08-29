@@ -24,6 +24,7 @@ function strictViolations(node: JsonSchema, path = "$"): string[] {
     const props = Object.keys(node.properties ?? {});
     const req = new Set(node.required ?? []);
     for (const p of props) if (!req.has(p)) out.push(`${path}.${p}: not in required`);
+    for (const r of node.required ?? []) if (!props.includes(r)) out.push(`${path}.${r}: required key not in properties`);
     for (const p of props) out.push(...strictViolations(node.properties![p], `${path}.${p}`));
   }
   if (node.type === "array" && node.items) out.push(...strictViolations(node.items, `${path}[]`));

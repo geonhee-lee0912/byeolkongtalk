@@ -64,7 +64,7 @@ export const MONTHLY_REPORT_SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
-          key: { type: "string", enum: ["money", "work", "love", "health", "study"] },
+          key: { type: "string", enum: [...SECTION_KEYS] },
           body: { type: "string" },
         },
         required: ["key", "body"],
