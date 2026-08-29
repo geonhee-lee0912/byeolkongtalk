@@ -15,4 +15,6 @@
 //   2026-08-13-tarot-length   — 타로톡 분량·턴 재설계: nudge 시점(turn 별정비례)·chars 게이트(첫풀이+후속누적 공식)·톤(닫기→열기) + 첫풀이 밴드 실측 정합 + 7장 절단 방지 (spec: 2026-08-13-타로톡-분량-턴구조-재설계)
 //   2026-08-13-draw-depth     — 인-스레드 드로우(checkin_6·deep_feelings_5) 분량 정합: relationship_draw.md 자리당 밀도(5~6문장)+카드수별 밴드(타로 프리미엄 정합) (spec: 2026-08-13-인스레드-드로우-분량-정합)
 //   2026-08-14-sim-portrait   — 시뮬 디브리핑 [PORTRAIT:] 성향 관찰 추출→personality 누적(초상화 축적 payoff) + 무료 런웨이/훅 진입 (spec: 2026-08-14-시뮬-무료-런웨이-초상화)
-export const PROMPT_VERSION = "2026-08-14-sim-portrait";
+//   2026-08-29-fortune-luna   — 유료 리포트 5종 + 사주 chat resume sonnet→gpt-5.6-luna 이관 +
+//                               활성 JSON 리포트 4종 구조화 출력(json_schema strict) (spec: 2026-08-29-운세리포트-luna-구조화출력)
+export const PROMPT_VERSION = "2026-08-29-fortune-luna";
