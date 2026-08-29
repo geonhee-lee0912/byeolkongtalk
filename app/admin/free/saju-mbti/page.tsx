@@ -104,6 +104,8 @@ async function load() {
   };
   const newPay = sumPay(payNewRes.data), oldPay = sumPay(payOldRes.data);
   const newFreeStars = ((spendNewRes.data ?? []) as { free_stars: number }[]).reduce((s, r) => s + Number(r.free_stars), 0);
+  const spendNew = ((spendNewRes.data ?? []) as { domain: string; product: string; cnt: number; stars: number; free_stars: number; users: number }[]).map((r) => ({ ...r, cnt: Number(r.cnt), stars: Number(r.stars), free_stars: Number(r.free_stars), users: Number(r.users) }));
+  const payNew = ((payNewRes.data ?? []) as { package_type: string; payers: number; revenue_won: number; stars_given: number }[]).map((p) => ({ ...p, payers: Number(p.payers), revenue_won: Number(p.revenue_won), stars_given: Number(p.stars_given) }));
   const retRows = (retRes.data ?? []) as { horizon: string; eligible: number; returned: number }[];
   const typeRows = (typeRes.data ?? []) as { dim: string; key: string; completers: number; payers: number }[];
 
@@ -122,7 +124,7 @@ async function load() {
     palja: byKind("palja"), band: byKind("band"), element: byKind("element"),
     buckets, byBucket,
     newN: newIds.length, oldN: oldIds.length,
-    newPay, oldPay, newFreeStars,
+    newPay, oldPay, newFreeStars, spendNew, payNew,
     ret: Object.fromEntries(retRows.map((r) => [r.horizon, { eligible: Number(r.eligible), returned: Number(r.returned) }])) as Record<string, { eligible: number; returned: number }>,
     // 결과분포 ②의 `band`(밴드별 완료 건수, {key,cnt})와 이름이 겹쳐 bandPay 로 분리(payload=결제율 계산용 {key,completers,payers}).
     bandPay: typeRows.filter((r) => r.dim === "band").map((r) => ({ key: r.key, completers: Number(r.completers), payers: Number(r.payers) })),
@@ -276,6 +278,37 @@ export default async function AdminSajuMbtiPage() {
               const pctv = r.eligible ? Math.round((r.returned / r.eligible) * 1000) / 10 : 0;
               return <Stat key={h} label={h.toUpperCase()} value={`${pctv}%`} sub={`${r.returned}/${r.eligible}`} />;
             })}
+          </div>
+        )}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">별 패키지 분포 <span className="text-white/30">(신규 코호트)</span></h3>
+        <div className="text-[12px] text-white/40">
+          {s.payNew.length ? s.payNew.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
+        </div>
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모)</span></h3>
+        {s.spendFailed ? (
+          <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
+        ) : s.spendNew.length === 0 ? (
+          <div className="text-[12px] text-white/40">데이터 없음</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-white/40 text-left">
+                  <th className="py-1 pr-3">종목</th><th className="py-1 pr-3">상품</th>
+                  <th className="py-1 px-2 text-right">건수</th><th className="py-1 px-2 text-right">별</th>
+                  <th className="py-1 px-2 text-right">무료별</th><th className="py-1 px-2 text-right">이용자</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.spendNew.map((r, i) => (
+                  <tr key={i} className="border-t border-white/5 text-white/70">
+                    <td className="py-1 pr-3">{r.domain}</td><td className="py-1 pr-3">{r.product}</td>
+                    <td className="py-1 px-2 text-right">{r.cnt}</td><td className="py-1 px-2 text-right">{r.stars}</td>
+                    <td className="py-1 px-2 text-right">{r.free_stars}</td><td className="py-1 px-2 text-right">{r.users}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
