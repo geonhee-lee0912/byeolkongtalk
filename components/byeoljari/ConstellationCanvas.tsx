@@ -5,7 +5,6 @@ import { starPoints, resolveGlyph, orderByAngle, radialLabelPos } from "@/lib/by
 import { starColor, BOND_COLOR } from "@/lib/byeoljari/display";
 import { edgeActiveForBond, nodeActiveForBond, type BondFilter } from "@/lib/byeoljari/bond-filter";
 import type { SizeSpec } from "@/lib/byeoljari/scale";
-import type { ShapeInfo } from "@/lib/byeoljari/shape";
 
 const DIM = 0.18; // 필터 비해당 요소 흐리기(§6)
 
@@ -28,7 +27,6 @@ interface Props {
   activeFilter: BondFilter | null;
   activeTriadGroup?: number | null; // "같은 결" 하위 칩 선택 — 그 삼합 그룹만 격리 표시
   onSelect: (nodeId: string) => void;
-  shape?: ShapeInfo | null; // 은은 배경 형상(없으면 배경 생략)
   highlightPairIds?: string[] | null; // 지도 선택 시 강조할 쌍(나+상대). 그 외 노드/선은 dim.
   onBackgroundClick?: () => void;     // 빈 공간 탭 → 선택 해제
   focusMode?: boolean;                // 포커스 뷰 — 중립선 표시 + 필터 dim off + 선 탭 가능
@@ -44,17 +42,11 @@ export default function ConstellationCanvas({
   activeFilter,
   activeTriadGroup = null,
   onSelect,
-  shape,
   highlightPairIds,
   onBackgroundClick,
   focusMode = false,
   onEdgeSelect,
 }: Props) {
-  // 은은 배경: 중앙 60×60. water-3(거북이)만 다른 신수보다 커서 ~0.9배(54)로 축소.
-  const bgSmall = shape ? shape.element === "수" && shape.stage === 3 : false;
-  const bgSize = bgSmall ? 74 : 82;
-  const bgOff = (100 - bgSize) / 2;
-
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const pos = (id: string) => layout.get(id);
   const triadMemberIds = new Set(
@@ -70,46 +62,12 @@ export default function ConstellationCanvas({
         <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur stdDeviation="1.1" />
         </filter>
-        {/* 배경 신수 글로우 — 크기 줄인 신수의 가시성 보완(은은한 번짐) */}
-        <filter id="shapeGlow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.6" />
-        </filter>
       </defs>
       <rect x="0" y="0" width="100" height="100" fill="#1F1735" onClick={() => onBackgroundClick?.()} />
       {/* 배경 별가루 — 밤하늘 분위기. 줌 transform 밖(고정 ambient). */}
       {STARDUST.map((s, i) => (
         <circle key={`dust-${i}`} cx={s.x} cy={s.y} r={s.r} fill="#FFFFFF" opacity={s.o} pointerEvents="none" />
       ))}
-      {/* 은은 배경 형상 — 밤하늘 위·노드/선 아래, 줌 transform 밖(고정 ambient). */}
-      {shape && (
-        <>
-          {/* 글로우 레이어(번짐) — 신수 뒤에서 은은히 빛나 가시성↑ */}
-          <image
-            href={shape.assetSrc}
-            x={bgOff}
-            y={bgOff}
-            width={bgSize}
-            height={bgSize}
-            opacity={0.1}
-            preserveAspectRatio="xMidYMid meet"
-            pointerEvents="none"
-            filter="url(#shapeGlow)"
-            style={{ mixBlendMode: "screen" }}
-          />
-          {/* 본체 */}
-          <image
-            href={shape.assetSrc}
-            x={bgOff}
-            y={bgOff}
-            width={bgSize}
-            height={bgSize}
-            opacity={0.07}
-            preserveAspectRatio="xMidYMid meet"
-            pointerEvents="none"
-            style={{ mixBlendMode: "screen" }}
-          />
-        </>
-      )}
       <g
         style={{ transition: "transform 420ms cubic-bezier(0.22,0.68,0.28,1)" }}
         transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.s})`}

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import ConstellationView from "@/components/byeoljari/ConstellationView";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
@@ -176,6 +177,14 @@ export default function ByeoljariGuestPage() {
               >
                 내 별 놓기
               </button>
+              <p className="text-[11px] text-text-light/70 text-center leading-relaxed">
+                만 14세 이상만 참여할 수 있어. 생년월일은 별자리 계산에만 쓰이고
+                다른 사람에게 보이지 않아. 내 별을 놓으면{" "}
+                <Link href="/privacy" className="underline">
+                  개인정보처리방침
+                </Link>
+                에 동의한 것으로 간주돼.
+              </p>
             </div>
           )}
 

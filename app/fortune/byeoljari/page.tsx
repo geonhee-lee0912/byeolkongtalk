@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import ConstellationPreview from "@/components/byeoljari/ConstellationPreview";
 
@@ -99,6 +100,14 @@ export default function ByeoljariCreatePage() {
           {busy ? "만드는 중…" : "만들기"}
         </button>
       </div>
+      <p className="mt-3 text-[11px] text-text-light/70 text-center leading-relaxed">
+        만 14세 이상만 이용할 수 있어요. 생년월일은 별자리 계산에만 쓰이고 다른
+        사람에게 보이지 않아요. 만들기를 누르면{" "}
+        <Link href="/privacy" className="underline">
+          개인정보처리방침
+        </Link>
+        에 동의한 것으로 간주돼요.
+      </p>
       {!loggedIn && (
         <a
           href="/login?next=/fortune/byeoljari"

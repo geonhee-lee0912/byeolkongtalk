@@ -9,7 +9,7 @@ import { MAX_STAR_MAP_MEMBERS } from "@/lib/constants";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const RELATION_TYPES = ["friend", "lover", "acquaintance", "senior"];
+const RELATION_TYPES = ["friend", "lover", "acquaintance"];
 
 export async function POST(
   req: NextRequest,

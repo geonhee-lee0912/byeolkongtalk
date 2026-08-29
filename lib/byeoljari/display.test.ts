@@ -27,9 +27,9 @@ test("elementRelationLabel — 5 관계 + 폴백", () => {
   assert.equal(elementRelationLabel("???"), "이어져 있는 사이");
 });
 
-test("relationTypeLabel — 4 관계분류 + 폴백", () => {
+test("relationTypeLabel — 3 관계분류 + 폴백", () => {
   assert.equal(relationTypeLabel("friend"), "친구");
-  assert.equal(relationTypeLabel("senior"), "윗사람");
+  assert.equal(relationTypeLabel("acquaintance"), "지인");
   assert.equal(relationTypeLabel("xyz"), "인연");
 });
 

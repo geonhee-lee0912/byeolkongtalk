@@ -2,7 +2,6 @@
 // 만들기 화면 장식용 예시 별자리(실제 렌더, 인터랙션 없음).
 import { computeLayout } from "@/lib/byeoljari/layout";
 import { scaleForCount } from "@/lib/byeoljari/scale";
-import { resolveShape } from "@/lib/byeoljari/shape";
 import type { StarGraph } from "@/lib/byeoljari/types";
 import ConstellationCanvas from "./ConstellationCanvas";
 
@@ -20,12 +19,12 @@ const SAMPLE: StarGraph = {
     { id: "jiho", name: "지호", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
     { id: "seoyeon", name: "서연", isHost: false, relationType: "lover", element: "화", dayType: "여름 등불형" },
     { id: "minjun", name: "민준", isHost: false, relationType: "acquaintance", element: "토", dayType: "봄 큰산형" },
-    { id: "haneul", name: "하늘", isHost: false, relationType: "senior", element: "금", dayType: "가을 원석형" },
+    { id: "haneul", name: "하늘", isHost: false, relationType: "acquaintance", element: "금", dayType: "가을 원석형" },
     { id: "yuna", name: "유나", isHost: false, relationType: "friend", element: "수", dayType: "겨울 큰바다형" },
     { id: "doyun", name: "도윤", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
     { id: "siwoo", name: "시우", isHost: false, relationType: "lover", element: "화", dayType: "여름 등불형" },
     { id: "haeun", name: "하은", isHost: false, relationType: "acquaintance", element: "토", dayType: "봄 큰산형" },
-    { id: "jian", name: "지안", isHost: false, relationType: "senior", element: "금", dayType: "가을 원석형" },
+    { id: "jian", name: "지안", isHost: false, relationType: "acquaintance", element: "금", dayType: "가을 원석형" },
     { id: "yejun", name: "예준", isHost: false, relationType: "friend", element: "수", dayType: "겨울 큰바다형" },
     { id: "sua", name: "수아", isHost: false, relationType: "friend", element: "목", dayType: "봄 화초형" },
     { id: "ijun", name: "이준", isHost: false, relationType: "acquaintance", element: "화", dayType: "여름 등불형" },
@@ -253,7 +252,6 @@ const SAMPLE: StarGraph = {
 export default function ConstellationPreview() {
   const layout = computeLayout(SAMPLE.nodes);
   const sizes = scaleForCount(SAMPLE.nodes.length);
-  const shape = resolveShape(SAMPLE.nodes);
 
   return (
     <div className="pointer-events-none mx-auto w-full max-w-[240px]" aria-hidden>
@@ -265,7 +263,6 @@ export default function ConstellationPreview() {
           transform={{ tx: 0, ty: 0, s: 1 }}
           sizes={sizes}
           activeFilter={null}
-          shape={shape}
           onSelect={() => {}}
         />
       </div>

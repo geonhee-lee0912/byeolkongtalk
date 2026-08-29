@@ -5,7 +5,7 @@ export interface GraphNode {
   id: string;
   name: string | null; // name_public 옵트인 아니면 null(별만)
   isHost: boolean;
-  relationType: string; // friend|lover|acquaintance|senior
+  relationType: string; // friend|lover|acquaintance
   element: FiveElement; // 목|화|토|금|수
   dayType: string; // "여름 큰산형" — 일간(천간)+월지
 }

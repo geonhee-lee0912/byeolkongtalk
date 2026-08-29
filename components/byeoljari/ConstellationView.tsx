@@ -284,7 +284,6 @@ export default function ConstellationView({ graph, meId }: Props) {
           sizes={sizes}
           activeFilter={effectiveFilter}
           activeTriadGroup={effectiveTriadGroup}
-          shape={shape}
           focusMode={!!focusId}
           onSelect={handleNode}
           onBackgroundClick={resetToOverview}

@@ -2,7 +2,7 @@
 // ⚠️ 방어적: enum 밖 relationType/tenGod 는 null 폴백 → 호출부가 중립 라벨(TEN_GOD_LABEL)로.
 import type { TenGod } from "@/lib/saju/pairing";
 
-// relationType 키: friend|lover|acquaintance|senior (GraphNode.relationType).
+// relationType 키: friend|lover|acquaintance (GraphNode.relationType).
 // Record<TenGod,string> 라 tsc 가 각 관계분류의 10칸 완전성을 강제한다(빠지면 컴파일 에러).
 export const RELATION_TEN_GOD_COPY: Record<string, Record<TenGod, string>> = {
   friend: {
@@ -40,18 +40,6 @@ export const RELATION_TEN_GOD_COPY: Record<string, Record<TenGod, string>> = {
     정관: "은근히 의지되는 사람",
     편인: "묘하게 끌리는 사람",
     정인: "편히 기대게 되는 사람",
-  },
-  senior: {
-    비견: "결이 닮은 선배",
-    겁재: "자꾸 비교하게 되는 선배",
-    식신: "살뜰히 챙기게 되는 분",
-    상관: "내 재능 알아봐 주는 분",
-    편재: "내가 먼저 다가가는 분",
-    정재: "신뢰를 쌓고 싶은 분",
-    편관: "어렵지만 날 키우는 어른",
-    정관: "배울 게 많은 어른",
-    편인: "영감을 주는 멘토",
-    정인: "따뜻하게 이끌어 주는 분",
   },
 };
 

@@ -41,7 +41,6 @@ export const RELATION_TYPE_LABEL: Record<string, string> = {
   friend: "친구",
   lover: "연인",
   acquaintance: "지인",
-  senior: "윗사람",
 };
 
 export function relationTypeLabel(t: string): string {
