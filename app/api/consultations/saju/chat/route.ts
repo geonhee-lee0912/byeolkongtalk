@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
+import { CHAT_MODEL } from "@/lib/claude/model-registry";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import {
@@ -256,7 +257,7 @@ export async function POST(request: NextRequest) {
           route: "/api/consultations/saju/chat",
           userId,
           extra: { readingId: reading.id },
-        })) {
+        }, CHAT_MODEL)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }
