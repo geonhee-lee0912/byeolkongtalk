@@ -226,12 +226,12 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             <p className="text-[11px] text-lilac-mid">{self.code}</p>
           </div>
           <div className="flex items-center text-lilac-deep text-[12px] font-medium">vs</div>
-          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(232,194,106,0.16)" }}>
-            <p className="text-[11.5px] font-bold" style={{ color: PALJA_COLOR }}>타고난 나</p>
-            <p className="text-[9.5px] text-lilac-deep">사주 팔자</p>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(242,215,138,0.40)" }}>
+            <p className="text-[11.5px] font-bold text-cream-warm">타고난 나</p>
+            <p className="text-[9.5px] text-cream-warm/70">사주 팔자</p>
             {charImg && <Image src={charImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-[15px] mt-0.5" style={{ color: PALJA_COLOR }}>{content.character}</p>
-            <p className="text-[11px] text-lilac-mid">{palja.code}</p>
+            <p className="font-display text-[15px] mt-0.5 text-cream-warm">{content.character}</p>
+            <p className="text-[11px] text-cream-warm/70">{palja.code}</p>
           </div>
         </div>
 
