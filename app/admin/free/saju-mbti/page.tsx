@@ -7,6 +7,7 @@ import LoadFailed from "@/components/admin/LoadFailed";
 import { adminExclusionArray } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,23 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
       <div className="text-[12px] text-white/50">{label}</div>
       <div className="text-2xl font-bold mt-1">{value}</div>
       {sub && <div className="text-[11px] text-white/40 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+// 분포 막대 한 줄. code=4자 코드(또는 밴드/오행 라벨), meta=메타포(전래 캐릭터). value 0 이면 막대 없음.
+function BarRow({ code, meta, value, max, color }: { code: string; meta?: string; value: number; max: number; color: string }) {
+  const pct = max > 0 && value > 0 ? Math.max(3, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-36 shrink-0 text-[12px] truncate">
+        <span className="text-white/80">{code}</span>
+        {meta && <span className="text-white/40"> {meta}</span>}
+      </div>
+      <div className="flex-1 h-4 rounded bg-white/5 overflow-hidden">
+        <div className={`h-full rounded ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="w-7 shrink-0 text-right text-[12px] text-white/60 tabular-nums">{value}</div>
     </div>
   );
 }
@@ -102,6 +120,14 @@ export default async function AdminSajuMbtiPage() {
   const payers = s.pay.reduce((a, p) => a + p.payers, 0);
   const revenue = s.pay.reduce((a, p) => a + p.revenue_won, 0);
   const arpu = s.cohortN ? Math.round(revenue / s.cohortN) : 0;
+  // 결과 분포 차트: 16유형은 count 내림차순(RPC 정렬 유지), 밴드·오행은 의미 순서 고정.
+  const paljaMax = Math.max(1, ...s.palja.map((r) => r.cnt));
+  const bandMap: Record<string, number> = Object.fromEntries(s.band.map((r) => [r.key, r.cnt]));
+  const elementMap: Record<string, number> = Object.fromEntries(s.element.map((r) => [r.key, r.cnt]));
+  const bandMax = Math.max(1, ...Object.values(bandMap));
+  const elementMax = Math.max(1, ...Object.values(elementMap));
+  const BAND_ORDER = ["천명", "절충", "거스름"];
+  const ELEMENT_ORDER = ["목", "화", "토", "금", "수"];
 
   return (
     <div className="space-y-8">
@@ -126,23 +152,33 @@ export default async function AdminSajuMbtiPage() {
         {s.distFailed ? (
           <LoadFailed block="admin_saju_mbti_type_dist" />
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-5">
             <div>
-              <h3 className="text-[13px] text-white/50 mb-1">16유형 (팔자)</h3>
-              <div className="text-[12px] text-white/40">
-                {s.palja.length ? s.palja.map((r) => `${r.key} ${r.cnt}`).join(" · ") : "데이터 없음"}
+              <h3 className="text-[13px] text-white/50 mb-2">16유형 <span className="text-white/30">· 4자 코드 + 캐릭터</span></h3>
+              {s.palja.length ? (
+                <div className="space-y-1.5">
+                  {s.palja.map((r) => (
+                    <BarRow key={r.key} code={r.key} meta={TYPE_CONTENT[r.key]?.character} value={r.cnt} max={paljaMax} color="bg-lilac-mid" />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[12px] text-white/40">데이터 없음</div>
+              )}
+            </div>
+            <div>
+              <h3 className="text-[13px] text-white/50 mb-2">일치율 밴드</h3>
+              <div className="space-y-1.5">
+                {BAND_ORDER.map((k) => (
+                  <BarRow key={k} code={k} value={bandMap[k] ?? 0} max={bandMax} color="bg-gold-soft" />
+                ))}
               </div>
             </div>
             <div>
-              <h3 className="text-[13px] text-white/50 mb-1">일치율 밴드</h3>
-              <div className="text-[12px] text-white/40">
-                {s.band.length ? s.band.map((r) => `${r.key} ${r.cnt}`).join(" · ") : "데이터 없음"}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-[13px] text-white/50 mb-1">오행</h3>
-              <div className="text-[12px] text-white/40">
-                {s.element.length ? s.element.map((r) => `${r.key} ${r.cnt}`).join(" · ") : "데이터 없음"}
+              <h3 className="text-[13px] text-white/50 mb-2">오행</h3>
+              <div className="space-y-1.5">
+                {ELEMENT_ORDER.map((k) => (
+                  <BarRow key={k} code={k} value={elementMap[k] ?? 0} max={elementMax} color="bg-lilac-mid" />
+                ))}
               </div>
             </div>
           </div>
