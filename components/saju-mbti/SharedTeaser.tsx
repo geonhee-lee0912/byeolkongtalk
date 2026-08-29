@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { ResultTokens } from "@/lib/saju-mbti/share-tokens";
 import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
 import { matchRate } from "@/lib/saju-mbti/match";
@@ -24,6 +25,10 @@ export function SharedTeaser({ tokens, onStart }: { tokens: ResultTokens; onStar
   useEffect(() => {
     if (!content) onStart();
   }, [content, onStart]);
+  useEffect(() => {
+    if (content) trackUiEvent("saju_mbti_shared_view", { meta: { fromPalja: tokens.paljaCode } });
+    // 유효 토큰 도착 시 1회. content 무효면 위 effect 가 intro 로 보낸다.
+  }, [content, tokens.paljaCode]);
   if (!content) return null;
 
   const paljaAxes = axesFromCode(tokens.paljaCode);
@@ -39,5 +44,16 @@ export function SharedTeaser({ tokens, onStart }: { tokens: ResultTokens; onStar
   const self: SelfType = { axes: selfAxes, code: tokens.selfCode };
   const match = matchRate(selfAxes, paljaAxes);
 
-  return <ResultView shared palja={palja} self={self} match={match} onStart={onStart} />;
+  return (
+    <ResultView
+      shared
+      palja={palja}
+      self={self}
+      match={match}
+      onStart={() => {
+        trackUiEvent("saju_mbti_retry", { meta: { fromPalja: tokens.paljaCode } });
+        onStart();
+      }}
+    />
+  );
 }

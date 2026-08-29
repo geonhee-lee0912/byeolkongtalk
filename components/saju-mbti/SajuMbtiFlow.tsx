@@ -8,6 +8,8 @@ import { selfType, type SelfType } from "@/lib/saju-mbti/self-type";
 import { matchRate, type MatchRate } from "@/lib/saju-mbti/match";
 import { TYPE_CONTENT, shareHook } from "@/lib/saju-mbti/content";
 import { encodeResult, decodeResult } from "@/lib/saju-mbti/share-tokens";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { buildSajuMbtiShareUrl } from "@/lib/saju-mbti/share-url";
 import { QuizStage } from "./QuizStage";
 import { BirthStage, type BirthValue } from "./BirthStage";
 import { ResultView } from "./ResultView";
@@ -60,11 +62,15 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
 
   function onQuizDone(a: Record<string, string>) {
     setAnswers(a);
+    trackUiEvent("saju_mbti_birth");
     setStage("birth");
   }
 
   function onBirthDone(birth: BirthValue) {
     const c = compute(birth, answers ?? {});
+    trackUiEvent("saju_mbti_completed", {
+      meta: { palja: c.palja.code, self: c.self.code, band: c.match.band, element: c.palja.element },
+    });
     setResult(c);
     try {
       sessionStorage.setItem(KEY, JSON.stringify({ birthInput: birth, answers }));
@@ -97,8 +103,11 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
       element: result.palja.element,
     });
     const origin = window.location.origin;
-    const link = `${origin}/fortune/saju-mbti?r=${token}`;
+    const link = buildSajuMbtiShareUrl(origin, token, result.palja.code);
     const content = TYPE_CONTENT[result.palja.code];
+    trackUiEvent("saju_mbti_shared", {
+      meta: { palja: result.palja.code, via: typeof navigator.share === "function" ? "native" : "copy" },
+    });
     if (navigator.share) {
       navigator.share({ title: content ? shareHook(content.character) : "사주 MBTI", url: link }).catch(() => {});
       return;
@@ -136,7 +145,7 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
           </p>
           <button
             type="button"
-            onClick={() => setStage("quiz")}
+            onClick={() => { trackUiEvent("saju_mbti_started"); setStage("quiz"); }}
             className="mt-8 w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition"
           >
             시작하기
