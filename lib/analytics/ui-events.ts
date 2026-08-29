@@ -21,6 +21,18 @@ export const UI_EVENTS = [
   "banner_clicked",
   /** 별자리 초대 링크 복사(초대 발신) — meta.shareId */
   "byeoljari_invite_clicked",
+  /** 사주 MBTI 퍼널 — intro 시작(quiz 진입) */
+  "saju_mbti_started",
+  /** 사주 MBTI — 문항 완료→생일 단계 진입(단계 이탈 분리) */
+  "saju_mbti_birth",
+  /** 사주 MBTI — 결과 산출 완료. meta:{palja,self,band,element} (비-PII) */
+  "saju_mbti_completed",
+  /** 사주 MBTI — 공유 발신. meta:{palja, via:"native"|"copy"} */
+  "saju_mbti_shared",
+  /** 사주 MBTI — 친구가 공유 결과 도착(티저 마운트). meta:{fromPalja} */
+  "saju_mbti_shared_view",
+  /** 사주 MBTI — 친구가 "나도 해보기". meta:{fromPalja} */
+  "saju_mbti_retry",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
