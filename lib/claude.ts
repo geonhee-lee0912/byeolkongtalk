@@ -348,7 +348,8 @@ export async function* streamChat(
   messages: { role: "user" | "assistant"; content: string }[],
   maxTokens: number = 2660,
   logCtx?: LogContext,
-  model?: string
+  model?: string,
+  responseFormat?: { name: string; schema: object }
 ) {
   // model 미지정 = 현 sonnet-5(QA_CHAT_MODEL env 오버라이드가 있으면 그것). 프로바이더 호출부는
   // registry 로 고른 어댑터가 담당하고, 재시도·빈응답 가드·로깅은 이 아래 래퍼가 그대로 소유한다.
@@ -371,7 +372,7 @@ export async function* streamChat(
   let lastStopReason: StopReason = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const it = adapter.stream({ systemStatic, systemDynamic, messages, maxTokens, model: resolved });
+    const it = adapter.stream({ systemStatic, systemDynamic, messages, maxTokens, model: resolved, responseFormat });
 
     let yielded = false;
     let stopReason: StopReason = null;
@@ -442,10 +443,11 @@ export async function generateOnce(
   messages: { role: "user" | "assistant"; content: string }[],
   maxTokens: number = 2660,
   logCtx?: LogContext,
-  model?: string
+  model?: string,
+  responseFormat?: { name: string; schema: object }
 ): Promise<string> {
   let out = "";
-  const it = streamChat(systemMessage, messages, maxTokens, logCtx, model);
+  const it = streamChat(systemMessage, messages, maxTokens, logCtx, model, responseFormat);
   let res = await it.next();
   while (!res.done) {
     out += res.value;
