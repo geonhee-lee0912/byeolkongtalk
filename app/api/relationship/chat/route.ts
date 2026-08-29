@@ -40,6 +40,8 @@ import { calcSaju } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
 import { MAX_TOKENS_BY_FORTUNE } from "@/lib/fortune/types";
+import { fortuneModel } from "@/lib/fortune/model";
+import { fortuneResponseFormat } from "@/lib/fortune/response-format";
 import {
   parseCompatReportJson,
   buildCompatReport,
@@ -242,11 +244,11 @@ export async function POST(request: NextRequest) {
         });
         const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } };
         let ai = parseCompatReportJson(
-          await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx)
+          await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx, fortuneModel("compat"), fortuneResponseFormat("compat"))
         );
         if (!ai) {
           ai = parseCompatReportJson(
-            await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx)
+            await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx, fortuneModel("compat"), fortuneResponseFormat("compat"))
           );
         }
         if (!ai) throw new Error("compat_parse_failed");
