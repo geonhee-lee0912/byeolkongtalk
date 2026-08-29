@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     });
     let raw: string;
     try {
-      raw = await generateOnce(system, [{ role: "user", content: "내가 지금 걔한테 할 만한 말 3가지 추천해줘." }], SUGGEST_MAX_TOKENS, logCtx);
+      raw = await generateOnce(system, [{ role: "user", content: "내가 지금 걔한테 할 만한 말 3가지 추천해줘." }], SUGGEST_MAX_TOKENS, logCtx, CHAT_MODEL);
     } catch (err) {
       await refundSuggest();
       await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "suggest_generate" } }));
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     });
     let raw: string;
     try {
-      raw = await generateOnce(system, [{ role: "user", content: "이제 인형을 내려놓고 정리해줘." }], DEBRIEF_MAX_TOKENS, logCtx);
+      raw = await generateOnce(system, [{ role: "user", content: "이제 인형을 내려놓고 정리해줘." }], DEBRIEF_MAX_TOKENS, logCtx, CHAT_MODEL);
     } catch (err) {
       await logError(err, ctxFromRequest(request, { ...logCtx, extra: { ...logCtx.extra, stage: "debrief_generate" } }));
       return NextResponse.json({ error: "debrief_failed" }, { status: 500 });
