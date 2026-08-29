@@ -5,6 +5,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import LoadFailed from "@/components/admin/LoadFailed";
 import { adminExclusionArray } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
+import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 export const dynamic = "force-dynamic";
 
@@ -85,8 +86,21 @@ async function load() {
     (convRes.data ?? []) as { create_to_pay_median_hours: number | null; sample_n: number }[]
   )[0];
 
+  const cohortRes = await supa.rpc("admin_byeoljari_cohort_users", { p_exclude });
+  const cohort = ((cohortRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+  const p_fortune_types = Object.keys(FORTUNE_CONFIG);
+  const [payRes, spendRes] = await Promise.all([
+    cohort.length ? supa.rpc("admin_cohort_payments", { p_users: cohort }) : Promise.resolve({ data: [], error: null }),
+    cohort.length ? supa.rpc("admin_star_spend_breakdown", { p_since: "2026-01-01T00:00:00Z", p_until: null, p_exclude, p_fortune_types, p_users: cohort }) : Promise.resolve({ data: [], error: null }),
+  ]);
+
   return {
     sumFailed, trendFailed, distFailed, utmFailed, convFailed, today,
+    cohortFailed: !!cohortRes.error, payFailed: !!payRes.error, spendFailed: !!spendRes.error,
+    pay: ((payRes.data ?? []) as { package_type: string; payers: number; revenue_won: number; stars_given: number }[])
+      .map((p) => ({ ...p, payers: Number(p.payers), revenue_won: Number(p.revenue_won), stars_given: Number(p.stars_given) })),
+    spend: ((spendRes.data ?? []) as { domain: string; product: string; cnt: number; stars: number; free_stars: number; users: number }[])
+      .map((r) => ({ ...r, cnt: Number(r.cnt), stars: Number(r.stars), free_stars: Number(r.free_stars), users: Number(r.users) })),
     su: {
       totalMaps: Number(su?.total_maps ?? 0),
       mapsLogin: Number(su?.maps_login ?? 0),
@@ -206,7 +220,7 @@ export default async function AdminByeoljariPage() {
       </section>
 
       <section>
-        <h2 className="text-sm text-white/60 mb-3">④ 결제</h2>
+        <h2 className="text-sm text-white/60 mb-3">④ 결제 → 구매 여정</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="코호트 결제자" value={s.sumFailed ? "—" : su.cohortPayers} sub={s.sumFailed ? undefined : `${su.cohortSize}명 중`} />
           <Stat label="코호트 결제율" value={s.sumFailed ? "—" : `${cohortPayRate}%`} sub={s.sumFailed ? undefined : `전체 ${totalPayRate}%`} />
@@ -220,6 +234,38 @@ export default async function AdminByeoljariPage() {
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
         {s.convFailed && <LoadFailed block="admin_byeoljari_conversion" className="mt-2" />}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">별 패키지 분포</h3>
+        <div className="text-[12px] text-white/40">
+          {s.pay.length ? s.pay.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
+        </div>
+        {s.payFailed && <LoadFailed block="admin_cohort_payments" className="mt-2" />}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 (별 소모)</h3>
+        {s.spendFailed ? (
+          <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
+        ) : s.spend.length === 0 ? (
+          <div className="text-[12px] text-white/40">데이터 없음</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-white/40 text-left">
+                  <th className="py-1 pr-3">종목</th><th className="py-1 pr-3">상품</th>
+                  <th className="py-1 px-2 text-right">건수</th><th className="py-1 px-2 text-right">별</th>
+                  <th className="py-1 px-2 text-right">무료별</th><th className="py-1 px-2 text-right">이용자</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.spend.map((r, i) => (
+                  <tr key={i} className="border-t border-white/5 text-white/70">
+                    <td className="py-1 pr-3">{r.domain}</td><td className="py-1 pr-3">{r.product}</td>
+                    <td className="py-1 px-2 text-right">{r.cnt}</td><td className="py-1 px-2 text-right">{r.stars}</td>
+                    <td className="py-1 px-2 text-right">{r.free_stars}</td><td className="py-1 px-2 text-right">{r.users}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section>
