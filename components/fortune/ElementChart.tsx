@@ -33,24 +33,34 @@ export default function ElementChart({
           const isZero = c === 0;
           return (
             <div key={e} className="flex items-center gap-2.5">
-              <span className="w-11 text-[12.5px] font-bold shrink-0" style={{ color: ELEMENT_COLOR[e] }}>
+              <span
+                className={`w-11 text-[12.5px] shrink-0 ${isMax ? "font-extrabold" : "font-bold"}`}
+                style={{ color: ELEMENT_COLOR[e] }}
+              >
                 {LABEL[e]}
               </span>
               <div className="flex-1 h-5 rounded-full bg-[#F0EEF4] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
-                  style={{ width: `${Math.max(4, (c / max) * 100)}%`, background: ELEMENT_COLOR[e], opacity: isZero ? 0.15 : 1 }}
+                  style={{
+                    width: `${Math.max(4, (c / max) * 100)}%`,
+                    background: ELEMENT_COLOR[e],
+                    opacity: isZero ? 0.15 : isMax ? 1 : 0.72,
+                  }}
                 />
               </div>
-              <span className="w-14 text-right text-[11.5px] tabular-nums text-text-light shrink-0">
-                {c}개 · {pct}%{isMax ? " ★" : ""}
+              <span
+                className={`w-14 text-right text-[11.5px] tabular-nums shrink-0 ${isMax ? "font-extrabold" : "text-text-light"}`}
+                style={isMax ? { color: ELEMENT_COLOR[e] } : undefined}
+              >
+                {c}개 · {pct}%
               </span>
             </div>
           );
         })}
       </div>
       <p className="text-[11px] text-text-light/70 mt-3 leading-snug">
-        여덟 글자(사주) 안 오행의 개수야. 넘치는 기운엔 ★, 0개는 옅게 표시했어.
+        여덟 글자(사주) 안 오행의 개수야. 가장 많은 기운은 진하게, 0개는 옅게 표시했어.
       </p>
     </div>
   );
