@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcSaju, type SajuInput, type SajuResult } from "./calc.ts";
+import { calcSaju, calcDaeun, type SajuInput, type SajuResult } from "./calc.ts";
 
 const solar = (o: Partial<SajuInput>): SajuInput => ({
   year: 1990,
@@ -82,4 +82,29 @@ test("시간모름 — hour:null 이면 hourKnown=false, 기둥은 존재", () =
   const r = calcSaju(solar({ month: 5, day: 15, hour: null }));
   assert.equal(r.input.hourKnown, false);
   assert.equal(r.pillars.day.stem.length, 1);
+});
+
+// ── 대운 ──
+test("대운 — count 개 반환, 나이 오름차순, 10년 간격", () => {
+  const d = calcDaeun(solar({ year: 1994, month: 5, day: 12, hour: 9, gender: "female" }), 8);
+  assert.equal(d.length, 8);
+  for (let i = 1; i < d.length; i++) {
+    assert.ok(d[i].startAge > d[i - 1].startAge, "startAge 오름차순");
+    assert.equal(d[i].endAge - d[i].startAge, 9, "10년 구간(포함형 9)");
+  }
+  assert.equal(d[0].stem.length, 1);
+  assert.equal(d[0].branch.length, 1);
+  assert.equal(d[0].hanja.length, 2);
+});
+
+test("대운 — 성별에 따라 방향(간지)이 달라진다", () => {
+  const base = { year: 1994, month: 5, day: 12, hour: 9 } as const;
+  const male = calcDaeun(solar({ ...base, gender: "male" }), 3);
+  const female = calcDaeun(solar({ ...base, gender: "female" }), 3);
+  assert.notEqual(male[0].hanja, female[0].hanja);
+});
+
+test("대운 — 시간 모름·음력도 계산된다", () => {
+  assert.equal(calcDaeun(solar({ month: 5, day: 15, hour: null, gender: "male" }), 3).length, 3);
+  assert.equal(calcDaeun(solar({ year: 1994, month: 4, day: 3, hour: 9, gender: "male", isLunar: true }), 2).length, 2);
 });

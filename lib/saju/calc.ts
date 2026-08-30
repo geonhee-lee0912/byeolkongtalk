@@ -4,7 +4,7 @@
 // 결정적 계산이라 Claude 미경유. tyme4ts: 절기=천문계산(입춘 년주·절기 월주), 야자시=23시 다음날 일주.
 // (구 manseryeok 은 년주 입춘 무시·월주 절기공식 버그로 교체 — 2026-08-23)
 
-import { SolarTime, LunarHour, type SixtyCycle } from "tyme4ts";
+import { SolarTime, LunarHour, ChildLimit, Gender, type SixtyCycle } from "tyme4ts";
 import type { FiveElement } from "./elements";
 
 export type SajuGender = "male" | "female" | "other";
@@ -221,4 +221,54 @@ export function calcTemporalLuck(
     day: toPillarLite(toParts(ec.getDay())),
     dailyLuck,
   };
+}
+
+/** 대운(10년 단위) 한 기둥. */
+export interface DaeunPillar {
+  startAge: number; // 이 대운 시작 만나이
+  endAge: number; // 종료 만나이
+  stem: string; // 한글 천간
+  branch: string; // 한글 지지
+  hanja: string; // "戊辰"
+  stemElement: FiveElement;
+  branchElement: FiveElement;
+}
+
+/**
+ * 대운(大運) 계산 — tyme4ts ChildLimit → DecadeFortune. count 개 반환.
+ * gender other 는 방향 산출상 MAN 으로 근사(대운 순/역행이 성별 의존). 시간 모름이면 자정 기준.
+ * 결정적 계산이라 Claude 미경유 — 평생사주·인생그래프의 룰 소스.
+ */
+export function calcDaeun(input: SajuInput, count = 9): DaeunPillar[] {
+  const hour = input.hour ?? 0;
+  const minute = input.minute ?? 0;
+  const isLunar = input.isLunar === true;
+  const solar = isLunar
+    ? LunarHour.fromYmdHms(
+        input.year,
+        input.isLeapMonth === true ? -input.month : input.month,
+        input.day,
+        hour,
+        minute,
+        0
+      ).getSolarTime()
+    : SolarTime.fromYmdHms(input.year, input.month, input.day, hour, minute, 0);
+  const gender = input.gender === "female" ? Gender.WOMAN : Gender.MAN;
+  const childLimit = ChildLimit.fromSolarTime(solar, gender);
+  const out: DaeunPillar[] = [];
+  let df = childLimit.getStartDecadeFortune();
+  for (let i = 0; i < count; i++) {
+    const p = toParts(df.getSixtyCycle());
+    out.push({
+      startAge: df.getStartAge(),
+      endAge: df.getEndAge(),
+      stem: p.stem,
+      branch: p.branch,
+      hanja: p.hanja,
+      stemElement: p.stemElement,
+      branchElement: p.branchElement,
+    });
+    df = df.next(1);
+  }
+  return out;
 }
