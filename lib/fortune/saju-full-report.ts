@@ -40,9 +40,17 @@ export interface SajuFullReportAI {
     career: string; // 일·커리어
     wealth: string; // 재물·금전
     health: string; // 건강·컨디션
+    // 신설 2026 세부 영역 (2026-08-30) — 구 저장본 호환 위해 optional
+    study?: string; // 2026 학업·자기계발
+    moving?: string; // 2026 이동·변화(이사·이직·여행)
+    family?: string; // 2026 가족·주변
   };
   relations2026: string; // 2026 인연 지도 — 힘이 되는 관계 결 + 유의할 패턴
   mission: string; // 올해의 성장 과제 — 타고난 강점을 펼치는 방향
+  // 신설 (2026-08-30, 전부 2026 범위 — 대운/인생 전체는 평생사주 상품 몫) — optional
+  halves?: { first: string; second: string }; // 2026 상반기/하반기 심층
+  turning?: string; // 2026 전환점·변화 포인트
+  remedies?: string; // 2026 개운법 (색·방향·습관·관계)
   monthly: SajuFullMonth[]; // 1~12월 고정 12개
   timing: {
     good: string; // 흐름 좋은 달 (예: "4 · 9 · 11월")
@@ -102,11 +110,22 @@ export const SAJU_FULL_REPORT_SCHEMA = {
         career: { type: "string" },
         wealth: { type: "string" },
         health: { type: "string" },
+        study: { type: "string" },
+        moving: { type: "string" },
+        family: { type: "string" },
       },
-      required: ["flow", "mind", "love", "relationship", "career", "wealth", "health"],
+      required: ["flow", "mind", "love", "relationship", "career", "wealth", "health", "study", "moving", "family"],
     },
     relations2026: { type: "string" },
     mission: { type: "string" },
+    halves: {
+      type: "object",
+      additionalProperties: false,
+      properties: { first: { type: "string" }, second: { type: "string" } },
+      required: ["first", "second"],
+    },
+    turning: { type: "string" },
+    remedies: { type: "string" },
     monthly: {
       type: "array",
       items: {
@@ -127,7 +146,7 @@ export const SAJU_FULL_REPORT_SCHEMA = {
   },
   required: [
     "theme", "summary", "lucky", "self", "year", "relations2026",
-    "mission", "monthly", "timing", "actions", "note",
+    "mission", "halves", "turning", "remedies", "monthly", "timing", "actions", "note",
   ],
 } as const;
 
@@ -254,9 +273,22 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
       career: year.career.trim(),
       wealth: year.wealth.trim(),
       health: year.health.trim(),
+      // 신설 2026 세부 영역 — optional(누락해도 파싱 실패 아님)
+      ...(isNonEmptyString(year.study) ? { study: year.study.trim() } : {}),
+      ...(isNonEmptyString(year.moving) ? { moving: year.moving.trim() } : {}),
+      ...(isNonEmptyString(year.family) ? { family: year.family.trim() } : {}),
     },
     relations2026: o.relations2026.trim(),
     mission: o.mission.trim(),
+    // 신설 — optional
+    ...(() => {
+      const h = o.halves as Record<string, unknown> | undefined;
+      return h && isNonEmptyString(h.first) && isNonEmptyString(h.second)
+        ? { halves: { first: h.first.trim(), second: h.second.trim() } }
+        : {};
+    })(),
+    ...(isNonEmptyString(o.turning) ? { turning: o.turning.trim() } : {}),
+    ...(isNonEmptyString(o.remedies) ? { remedies: o.remedies.trim() } : {}),
     monthly,
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
     actions,

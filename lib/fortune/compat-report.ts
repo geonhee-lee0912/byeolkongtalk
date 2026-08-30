@@ -48,6 +48,11 @@ export interface CompatReportAI {
   communication: string; // 잘 통하는 대화법
   longterm: string; // 장기 전망
   growth: string; // 관계 성장 포인트
+  // 신설 카테고리 (2026-08-30, compat 연애궁합 전용 — compat_social 은 미생성) — 구 저장본 호환 위해 optional
+  individual?: string; // 두 사람 각자의 모습·역할
+  stages?: string; // 관계 시기별 흐름
+  repair?: string; // 다툼과 화해의 기술
+  intimacy?: string; // 애정·거리감 표현법
   advice: string[]; // 관계 조언 정확히 3개
   note: string; // 별콩이의 한마디
 }
@@ -73,6 +78,35 @@ export const COMPAT_REPORT_SCHEMA = {
   required: [
     "grade", "theme", "summary", "chemistry", "attraction", "conflict",
     "communication", "longterm", "growth", "advice", "note",
+  ],
+} as const;
+
+/** compat(연애 궁합) 전용 확장 스키마 — 위 공유 스키마 + 신설 4카테고리(2026-08-30).
+ *  compat_social(인간관계)은 비연애라 intimacy 등이 부적합 → 공유 COMPAT_REPORT_SCHEMA 유지. */
+export const COMPAT_LOVE_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    grade: { type: "string", enum: [...COMPAT_GRADES] },
+    theme: { type: "string" },
+    summary: { type: "string" },
+    chemistry: { type: "string" },
+    attraction: { type: "string" },
+    conflict: { type: "string" },
+    communication: { type: "string" },
+    longterm: { type: "string" },
+    growth: { type: "string" },
+    individual: { type: "string" },
+    stages: { type: "string" },
+    repair: { type: "string" },
+    intimacy: { type: "string" },
+    advice: { type: "array", items: { type: "string" } },
+    note: { type: "string" },
+  },
+  required: [
+    "grade", "theme", "summary", "chemistry", "attraction", "conflict",
+    "communication", "longterm", "growth", "individual", "stages", "repair",
+    "intimacy", "advice", "note",
   ],
 } as const;
 
@@ -132,6 +166,11 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
     communication: o.communication.trim(),
     longterm: o.longterm.trim(),
     growth: o.growth.trim(),
+    // 신설 카테고리 — compat 만 스키마 강제, compat_social 은 없음 → optional 추출(누락해도 파싱 실패 아님)
+    ...(isNonEmptyString(o.individual) ? { individual: o.individual.trim() } : {}),
+    ...(isNonEmptyString(o.stages) ? { stages: o.stages.trim() } : {}),
+    ...(isNonEmptyString(o.repair) ? { repair: o.repair.trim() } : {}),
+    ...(isNonEmptyString(o.intimacy) ? { intimacy: o.intimacy.trim() } : {}),
     advice,
     note: o.note.trim(),
   };

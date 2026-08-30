@@ -18,6 +18,21 @@ export default function MonthlyDomainsCard({ report }: { report: MonthlyReport }
           </div>
         );
       })}
+      {/* 신설 카테고리 (2026-08-30) — 구 저장본엔 없어 optional guard */}
+      {[
+        { icon: "🤝", title: "인간관계·귀인", body: report.relationships },
+        { icon: "💗", title: "마음·감정 컨디션", body: report.emotion },
+      ].map((extra) =>
+        extra.body ? (
+          <div key={extra.title} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
+            <div className="flex items-center gap-[7px] mb-1.5">
+              <span className="text-[13px] opacity-85">{extra.icon}</span>
+              <span className="text-[12.5px] font-extrabold text-[#4A4458]">{extra.title}</span>
+            </div>
+            <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{extra.body}</p>
+          </div>
+        ) : null
+      )}
     </div>
   );
 }

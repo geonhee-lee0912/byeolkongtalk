@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
 import { MONTHLY_REPORT_SCHEMA } from "./monthly-report.ts";
-import { COMPAT_REPORT_SCHEMA } from "./compat-report.ts";
+import { COMPAT_REPORT_SCHEMA, COMPAT_LOVE_REPORT_SCHEMA } from "./compat-report.ts";
 
 type JsonSchema = {
   type?: string;
@@ -36,6 +36,7 @@ describe("report schemas — OpenAI strict 불변식", () => {
     ["saju_full", SAJU_FULL_REPORT_SCHEMA],
     ["monthly", MONTHLY_REPORT_SCHEMA],
     ["compat", COMPAT_REPORT_SCHEMA],
+    ["compat_love", COMPAT_LOVE_REPORT_SCHEMA],
   ] as const) {
     it(`${name}: 전 object additionalProperties:false + 전 property required`, () => {
       assert.deepEqual(strictViolations(schema as unknown as JsonSchema), []);
@@ -45,8 +46,8 @@ describe("report schemas — OpenAI strict 불변식", () => {
   it("saju_full 최상위 필드 집합이 인터페이스와 일치", () => {
     const req = (SAJU_FULL_REPORT_SCHEMA as unknown as JsonSchema).required!.slice().sort();
     assert.deepEqual(req, [
-      "actions", "lucky", "mission", "monthly", "note", "relations2026",
-      "self", "summary", "theme", "timing", "year",
+      "actions", "halves", "lucky", "mission", "monthly", "note", "relations2026",
+      "remedies", "self", "summary", "theme", "timing", "turning", "year",
     ]);
   });
 });

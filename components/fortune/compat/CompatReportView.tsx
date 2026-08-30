@@ -127,6 +127,12 @@ export default function CompatReportView({
       <Card title={labels.longterm} body={report.longterm} />
       {report.growth && <Card title={labels.growth} body={report.growth} />}
 
+      {/* 신설 카테고리 (2026-08-30, 연애 궁합 전용) — 구 리포트엔 없어 있을 때만 렌더 */}
+      {report.individual && <Card title="👥 두 사람 각자의 모습" body={report.individual} />}
+      {report.stages && <Card title="📈 관계 시기별 흐름" body={report.stages} />}
+      {report.repair && <Card title="🩹 다툼과 화해의 기술" body={report.repair} />}
+      {report.intimacy && <Card title="💞 애정·거리감 표현법" body={report.intimacy} />}
+
       {/* 관계 조언 */}
       <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
         <h3 className="text-[14px] font-bold text-lilac-deep mb-2">💡 관계를 위한 조언</h3>

@@ -31,6 +31,8 @@ export interface MonthlyReportAI {
   timing: { good: string; caution: string }; // 주목할 시기 (정성적)
   action: string; // 이번 달 실천 포인트
   balance: { good: string; warn: string }; // 이번 달 챙길 점
+  relationships?: string; // 이달의 인간관계·귀인 (2026-08-30 신설 카테고리, 구 저장본엔 없어 optional)
+  emotion?: string; // 이달의 마음·감정 컨디션 (동상)
   note: string; // 별콩이 한마디
 }
 
@@ -83,11 +85,13 @@ export const MONTHLY_REPORT_SCHEMA = {
       properties: { good: { type: "string" }, warn: { type: "string" } },
       required: ["good", "warn"],
     },
+    relationships: { type: "string" },
+    emotion: { type: "string" },
     note: { type: "string" },
   },
   required: [
     "stars", "theme", "summary", "lucky", "intro", "weekly",
-    "sections", "timing", "action", "balance", "note",
+    "sections", "timing", "action", "balance", "relationships", "emotion", "note",
   ],
 } as const;
 
@@ -191,6 +195,9 @@ export function parseMonthlyReportJson(raw: string): MonthlyReportAI | null {
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
     action: o.action.trim(),
     balance: { good: balance.good.trim(), warn: balance.warn.trim() },
+    // 신설 카테고리 — 구조화 스키마가 강제하지만, 누락 시 파싱 실패(→환불)로 번지지 않게 optional 처리.
+    ...(isNonEmptyString(o.relationships) ? { relationships: o.relationships.trim() } : {}),
+    ...(isNonEmptyString(o.emotion) ? { emotion: o.emotion.trim() } : {}),
     note: o.note.trim(),
   };
 }
