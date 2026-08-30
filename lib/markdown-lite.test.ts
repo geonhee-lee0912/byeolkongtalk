@@ -48,3 +48,11 @@ test("parseBlocks: 긴 단일 문단(마크다운 없음)도 자동 분할", () 
   assert.equal(b.length, 2);
   assert.ok(b.every((x) => x.t === "p"));
 });
+
+test("parseBlocks: '> ' 는 콜아웃 블록", () => {
+  const b = parseBlocks("> 이게 핵심 팁이야");
+  assert.equal(b.length, 1);
+  assert.equal(b[0].t, "callout");
+  const c = b[0];
+  assert.equal(c.t === "callout" ? c.parts[0].s : "", "이게 핵심 팁이야");
+});

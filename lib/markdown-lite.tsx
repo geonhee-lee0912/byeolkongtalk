@@ -2,7 +2,10 @@ import React from "react";
 
 // 경량 마크다운 — 신뢰된 LLM 출력 전용(중첩·이스케이프 미지원). dangerouslySetInnerHTML 안 씀.
 export type InlinePart = { t: "text"; s: string } | { t: "b"; s: string };
-export type Block = { t: "p"; parts: InlinePart[] } | { t: "ul"; items: InlinePart[][] };
+export type Block =
+  | { t: "p"; parts: InlinePart[] }
+  | { t: "ul"; items: InlinePart[][] }
+  | { t: "callout"; parts: InlinePart[] };
 
 /** **볼드** 런을 분리. */
 export function parseInline(text: string): InlinePart[] {
@@ -41,6 +44,9 @@ export function parseBlocks(text: string): Block[] {
     if (lines.length === 0) continue;
     if (lines.every((l) => l.startsWith("- "))) {
       blocks.push({ t: "ul", items: lines.map((l) => parseInline(l.slice(2).trim())) });
+    } else if (lines.every((l) => l.startsWith(">"))) {
+      const quote = lines.map((l) => l.replace(/^>\s?/, "")).join(" ").trim();
+      blocks.push({ t: "callout", parts: parseInline(quote) });
     } else {
       for (const chunk of splitLongParagraph(lines.join(" "))) {
         blocks.push({ t: "p", parts: parseInline(chunk) });
@@ -80,6 +86,20 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
               </li>
             ))}
           </ul>
+        ) : b.t === "callout" ? (
+          <div
+            key={i}
+            className="my-3 flex gap-2.5 rounded-2xl px-4 py-3"
+            style={{
+              background: "linear-gradient(135deg, #FBF3DE, #F7EAF3)",
+              border: "1px solid rgba(232, 194, 106, 0.4)",
+            }}
+          >
+            <span className="shrink-0 text-[15px]" aria-hidden>💡</span>
+            <p className="text-[13px] leading-relaxed" style={{ color: "#6A5A3A" }}>
+              {renderInline(b.parts, `co-${i}`)}
+            </p>
+          </div>
         ) : (
           <p key={i} className={i > 0 ? "mt-3" : ""}>
             {renderInline(b.parts, `${i}`)}
