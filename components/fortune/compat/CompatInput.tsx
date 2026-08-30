@@ -8,6 +8,7 @@ import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScree
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
+import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 type CompatKind = "compat" | "compat_social";
@@ -28,9 +29,11 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
   const [refunded, setRefunded] = useState(false);
+  const [alreadyOwned, setAlreadyOwned] = useState<{ id: string } | null>(null);
 
   // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
   const inFlightRef = useRef(false);
+  const lastPairRef = useRef<{ a: string; b: string } | null>(null);
 
   // 별 차감 팝업 오픈 — 로그인 확인 후 잔액 조회
   const openConfirm = async (
@@ -69,10 +72,11 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   };
 
   // 결제 확인 → 리포트 생성
-  const handleGenerate = async () => {
-    if (!pending || inFlightRef.current) return;
+  const handleGenerate = async (force = false) => {
+    const pair = pending ? { a: pending.a, b: pending.b } : lastPairRef.current;
+    if (!pair || inFlightRef.current) return;
+    lastPairRef.current = pair;
     inFlightRef.current = true;
-    const { a, b } = pending;
     setPending(null);
     setGenerating(true);
     setError(null);
@@ -82,7 +86,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, profileA: a, profileB: b }),
+        body: JSON.stringify({ type, profileA: pair.a, profileB: pair.b, force }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -103,7 +107,12 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         return;
       }
       const data = await res.json();
-      // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
+      if (data.alreadyOwned && !force) {
+        inFlightRef.current = false;
+        setGenerating(false);
+        setAlreadyOwned({ id: data.id });
+        return;
+      }
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
     } catch {
@@ -164,7 +173,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 궁합 보기"
           targetName={`${pending.nameA} · ${pending.nameB}`}
-          onConfirm={handleGenerate}
+          onConfirm={() => handleGenerate(false)}
           onCharge={() => router.push("/shop")}
           onClose={() => setPending(null)}
         />
@@ -172,6 +181,21 @@ export default function CompatInput({ type }: { type: CompatKind }) {
 
       {refunded && (
         <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />
+      )}
+
+      {alreadyOwned && (
+        <AlreadyOwnedModal
+          label={cfg.label}
+          cost={cfg.cost}
+          onReview={() => {
+            router.push(`/fortune/result?id=${alreadyOwned.id}&from=history`);
+          }}
+          onRegenerate={() => {
+            setAlreadyOwned(null);
+            void handleGenerate(true);
+          }}
+          onClose={() => setAlreadyOwned(null)}
+        />
       )}
     </main>
   );
