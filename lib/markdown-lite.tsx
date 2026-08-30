@@ -63,10 +63,18 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
       // 골드 볼드 텍스트로(대비 확보, 하이라이트 배경 제거).
       <strong
         key={`${key}-${i}`}
-        className={tone === "dark" ? "font-bold text-gold" : "font-bold text-eye-purple"}
+        className={tone === "dark" ? "font-bold" : "font-bold text-eye-purple"}
         style={
           tone === "dark"
-            ? undefined
+            ? {
+                // 다크 카드: 부분 언더스트라이프는 글자가 안 보여서, 밝은 하이라이트 전체 배경 + 어두운 글자.
+                background: "rgba(255, 250, 242, 0.92)",
+                color: "#2A1F4D",
+                borderRadius: "3px",
+                padding: "1px 3px",
+                boxDecorationBreak: "clone",
+                WebkitBoxDecorationBreak: "clone",
+              }
             : { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
         }
       >
