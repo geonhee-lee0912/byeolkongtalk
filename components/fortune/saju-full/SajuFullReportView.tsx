@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SajuBoard from "@/components/saju/SajuBoard";
+import ElementChart from "@/components/fortune/ElementChart";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { SajuFullReport } from "@/lib/fortune/saju-full-report";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -137,6 +138,7 @@ export default function SajuFullReportView({
             <h3 className="text-[14px] font-bold text-lilac-deep mb-1.5">
               ⚖️ 오행 밸런스 진단
             </h3>
+            <ElementChart saju={saju} className="mb-3" />
             <MarkdownLite
               text={report.self.balance.lack}
               className="text-[13.5px] text-[#322E3D] leading-[1.85]"

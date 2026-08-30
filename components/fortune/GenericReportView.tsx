@@ -2,6 +2,8 @@ import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import SajuSummaryChips from "./SajuSummaryChips";
+import ElementChart from "./ElementChart";
+import DaeunTable from "./DaeunTable";
 
 // 첫 그래핌(ZWJ·VS16 이모지 시퀀스 포함) 추출 — Intl.Segmenter, 미지원 시 코드포인트 폴백.
 function firstGrapheme(s: string): string {
@@ -30,7 +32,7 @@ export default function GenericReportView({
 }: {
   report: GenericReport;
   accentEmoji?: string;
-  /** 있으면 상단 요약 칩 노출(결정론). 오행 차트를 따로 보여주는 래퍼(element_balance)는 중복 방지로 미전달. */
+  /** 있으면 상단 요약 칩 + 오행 분포 차트(+대운 표) 노출(전부 결정론). */
   saju?: SajuResult | null;
 }) {
   return (
@@ -41,6 +43,9 @@ export default function GenericReportView({
         </div>
       )}
 
+      {/* 오행 분포 차트 (결정론) */}
+      {saju && <ElementChart saju={saju} />}
+
       {/* 도입 */}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
         <MarkdownLite
@@ -48,6 +53,9 @@ export default function GenericReportView({
           className="text-[14px] leading-[1.9] text-[#4F4A5E]"
         />
       </div>
+
+      {/* 대운 10년 흐름 표 (결정론, life_full 등 daeun 있는 상품만) */}
+      {saju && saju.daeun && saju.daeun.length > 0 && <DaeunTable daeun={saju.daeun} />}
 
       {/* 섹션들 */}
       {report.sections.map((s, i) => {

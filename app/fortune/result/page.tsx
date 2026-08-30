@@ -35,7 +35,6 @@ import TarotReportView from "@/components/fortune/TarotReportView";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import GenericReportView from "@/components/fortune/GenericReportView";
-import ElementBalanceView from "@/components/fortune/ElementBalanceView";
 import ReportCardView from "@/components/fortune/ReportCardView";
 import LifeGraphView from "@/components/fortune/LifeGraphView";
 import {
@@ -490,8 +489,6 @@ function FortuneResultInner() {
         <ReportCardView report={reportCardReport} />
       ) : lifeGraphReport ? (
         <LifeGraphView report={lifeGraphReport} />
-      ) : genericReport && ftType === "element_balance" ? (
-        <ElementBalanceView report={genericReport} saju={sajuData} />
       ) : genericReport ? (
         <GenericReportView
           report={genericReport}
