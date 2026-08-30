@@ -53,7 +53,11 @@ export function parseBlocks(text: string): Block[] {
 function renderInline(parts: InlinePart[], key: string) {
   return parts.map((p, i) =>
     p.t === "b" ? (
-      <strong key={`${key}-${i}`} className="font-bold text-eye-purple">
+      <strong
+        key={`${key}-${i}`}
+        className="font-bold text-eye-purple"
+        style={{ background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }}
+      >
         {p.s}
       </strong>
     ) : (
