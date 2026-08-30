@@ -1,37 +1,68 @@
 import type { GenericReport } from "@/lib/fortune/generic-report";
+import type { SajuResult } from "@/lib/saju/calc";
+import { MarkdownLite } from "@/lib/markdown-lite";
+import SajuSummaryChips from "./SajuSummaryChips";
 
-// 공용 섹션 리포트 렌더 — intro + 섹션 카드 N개 + 별콩이 한마디.
-// 신규 사주 텍스트 종목(정체성·연애·돈일·팩폭·전생·평생사주 등) 공통.
+// heading 앞 이모지를 아이콘 타일로 분리. 이모지 없으면 기본 별.
+function splitHeadingEmoji(heading: string): { emoji: string; title: string } {
+  const first = [...heading][0] ?? "";
+  const isEmoji = /\p{Extended_Pictographic}/u.test(first);
+  if (isEmoji) return { emoji: first, title: heading.slice(first.length).trim() };
+  return { emoji: "✦", title: heading };
+}
+
+// 공용 섹션 리포트 렌더 — 요약 칩 + intro + 섹션 카드(아이콘 헤더·마크다운) + 별콩이 한마디.
 export default function GenericReportView({
   report,
   accentEmoji,
+  saju,
 }: {
   report: GenericReport;
   accentEmoji?: string;
+  /** 있으면 상단 요약 칩 노출(결정론). 오행 차트를 따로 보여주는 래퍼(element_balance)는 중복 방지로 미전달. */
+  saju?: SajuResult | null;
 }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
+      {saju && (
+        <div className="-mb-1">
+          <SajuSummaryChips saju={saju} />
+        </div>
+      )}
+
       {/* 도입 */}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <p className="text-[14px] leading-[1.9] text-[#4F4A5E] whitespace-pre-line">
-          {report.intro}
-        </p>
+        <MarkdownLite
+          text={report.intro}
+          className="text-[14px] leading-[1.9] text-[#4F4A5E]"
+        />
       </div>
 
       {/* 섹션들 */}
-      {report.sections.map((s, i) => (
-        <div
-          key={i}
-          className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6"
-        >
-          <h3 className="text-[14.5px] font-extrabold text-lilac-deep mb-2.5">
-            {s.heading}
-          </h3>
-          <p className="text-[13.5px] leading-[1.9] text-[#4F4A5E] whitespace-pre-line">
-            {s.body}
-          </p>
-        </div>
-      ))}
+      {report.sections.map((s, i) => {
+        const { emoji, title } = splitHeadingEmoji(s.heading);
+        return (
+          <div
+            key={i}
+            className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6"
+          >
+            <div className="flex items-center gap-2.5 mb-3">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
+                style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
+                aria-hidden
+              >
+                {emoji}
+              </span>
+              <h3 className="text-[14.5px] font-extrabold text-eye-purple">{title}</h3>
+            </div>
+            <MarkdownLite
+              text={s.body}
+              className="text-[13.5px] leading-[1.9] text-[#4F4A5E]"
+            />
+          </div>
+        );
+      })}
 
       {/* 별콩이 한마디 */}
       <div
@@ -41,9 +72,10 @@ export default function GenericReportView({
         <h3 className="text-[14px] font-bold text-gold mb-2">
           {accentEmoji ?? "🌙"} 별콩이의 한마디
         </h3>
-        <p className="text-[13.5px] leading-[1.95] text-white/90 whitespace-pre-line">
-          {report.note}
-        </p>
+        <MarkdownLite
+          text={report.note}
+          className="text-[13.5px] leading-[1.95] text-white/90"
+        />
       </div>
     </div>
   );
