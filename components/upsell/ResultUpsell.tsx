@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type FortuneType } from "@/lib/fortune/types";
 import { crossCards } from "./cross-cards";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function ResultUpsell({
   variant,
@@ -55,6 +56,7 @@ export default function ResultUpsell({
         <Link
           key={c.href}
           href={c.href}
+          onClick={() => trackUiEvent("result_cta_clicked", { meta: { cta: "cross_sell", product: c.href } })}
           className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
         >
           <div

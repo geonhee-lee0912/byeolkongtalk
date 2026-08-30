@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // 인챗 충전 시트는 저·중가 3종만 노출 (150·300 은 /shop 전용). 문맥상 대용량 불필요.
 const INCHAT_PACKAGES = STAR_PACKAGES.filter((p) =>
@@ -47,6 +48,10 @@ export default function RechargeSheet({
     if (!open) return;
     setError(null);
     setSelectedId("star_30"); // 추천 패키지 기본 선택
+    trackUiEvent("recharge_sheet_opened", {
+      readingId: pendingUpsell?.readingId,
+      meta: { source: "inchat" },
+    });
 
     // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
     fetch("/api/stars/first-charge-status", { cache: "no-store" })
@@ -102,6 +107,10 @@ export default function RechargeSheet({
     if (!pkg || !paymentReady || loading) return;
     setLoading(true);
     setError(null);
+    trackUiEvent("recharge_payment_started", {
+      readingId: pendingUpsell?.readingId,
+      meta: { source: "inchat", packageId: pkg.id, amountWon: pkg.price },
+    });
 
     // 결제 시작 전 pending_upsell 저장
     if (pendingUpsell) {
@@ -195,7 +204,13 @@ export default function RechargeSheet({
               <button
                 key={pkg.id}
                 type="button"
-                onClick={() => setSelectedId(pkg.id)}
+                onClick={() => {
+                  setSelectedId(pkg.id);
+                  trackUiEvent("recharge_package_selected", {
+                    readingId: pendingUpsell?.readingId,
+                    meta: { source: "inchat", packageId: pkg.id },
+                  });
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
                   isSelected
                     ? "border-lilac-deep bg-lilac-soft/30 shadow-[0_0_0_2px_rgba(159,138,208,0.15)]"

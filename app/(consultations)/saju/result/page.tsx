@@ -229,6 +229,7 @@ function ResultPageInner() {
         newHref="/saju"
         newLabel="새 사주 보기"
         newCostLabel={`⭐${SAJU_READING_COST}`}
+        readingId={reading.id}
       />
 
       {/* ② 공유 — 아래로 */}

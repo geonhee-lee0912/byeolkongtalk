@@ -4,6 +4,7 @@
 // 이 고민 이어가기(-40%) + 새 고민 + (자격자) 첫충전 +20% 보너스 인라인.
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function RechargeBlock({
   allowContinue,
@@ -13,6 +14,7 @@ export default function RechargeBlock({
   newLabel,
   newCostLabel,
   newDesc,
+  readingId,
 }: {
   allowContinue: boolean;
   onContinue?: () => void;
@@ -23,6 +25,8 @@ export default function RechargeBlock({
   newCostLabel: string;
   /** 새 CTA 라벨 아래 보조 설명 (선택). */
   newDesc?: string;
+  /** 계측 귀속용 reading id (선택). */
+  readingId?: string;
 }) {
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
 
@@ -43,7 +47,10 @@ export default function RechargeBlock({
         )}
         {showContinue && allowContinue && onContinue && (
           <button
-            onClick={onContinue}
+            onClick={() => {
+              trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "continue" } });
+              onContinue();
+            }}
             className="w-full py-3 mb-2 rounded-xl bg-lilac-deep text-white font-bold text-[14px] flex items-center justify-between px-4 hover:bg-lilac-deep/90 transition"
           >
             <span>이 고민 이어가기</span>
@@ -54,6 +61,7 @@ export default function RechargeBlock({
         )}
         <Link
           href={newHref}
+          onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } })}
           className={`w-full py-3 rounded-xl font-bold text-[13.5px] flex items-center justify-between px-4 transition ${
             showContinue
               ? "border border-lilac-deep/40 text-lilac-deep hover:bg-lilac-deep/5"
@@ -83,6 +91,7 @@ export default function RechargeBlock({
         {firstChargeEligible && (
           <Link
             href="/shop"
+            onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "first_charge" } })}
             className="flex items-center gap-2.5 mt-3 rounded-xl px-3 py-2.5 bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50"
           >
             <span className="text-[16px]">🎁</span>

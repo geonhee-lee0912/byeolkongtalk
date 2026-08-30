@@ -325,6 +325,7 @@ function TarotResultInner() {
         newLabel="이 고민 다시 뽑기"
         newDesc="스프레드 다시 골라 카드 뽑기"
         newCostLabel="⭐10~"
+        readingId={reading.id}
       />
 
       {/* ③ 크로스셀 (궁합) — 공유 위로 */}

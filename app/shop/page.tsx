@@ -10,6 +10,7 @@ import {
   type StarPackage,
 } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -80,6 +81,14 @@ function ShopContent() {
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
+
+  // 결제 퍼널 — 샵 진입(결제 복귀 리다이렉트 paymentKey/status 는 제외). 1회만.
+  const shopOpenedRef = useRef(false);
+  useEffect(() => {
+    if (shopOpenedRef.current || paymentKey || status) return;
+    shopOpenedRef.current = true;
+    trackUiEvent("recharge_sheet_opened", { meta: { source: "shop" } });
+  }, [paymentKey, status]);
 
   // 첫 충전 보너스 자격 조회 — 자격 있을 때만 배너/보너스 표기 (서버가 권위)
   useEffect(() => {
@@ -213,6 +222,9 @@ function ShopContent() {
   const handlePay = async () => {
     if (!selectedPkg) return;
     setLoading(true);
+    trackUiEvent("recharge_payment_started", {
+      meta: { source: "shop", packageId: selectedPkg.id, amountWon: selectedPkg.price },
+    });
     try {
       await startPayment(selectedPkg);
       // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
@@ -341,7 +353,12 @@ function ShopContent() {
                   key={pkg.id}
                   pkg={pkg}
                   selected={selectedId === pkg.id}
-                  onSelect={() => setSelectedId(pkg.id)}
+                  onSelect={() => {
+                    setSelectedId(pkg.id);
+                    trackUiEvent("recharge_package_selected", {
+                      meta: { source: "shop", packageId: pkg.id },
+                    });
+                  }}
                   disabled={loading}
                   showBonus={firstChargeEligible}
                 />

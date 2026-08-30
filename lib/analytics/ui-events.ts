@@ -33,6 +33,14 @@ export const UI_EVENTS = [
   "saju_mbti_shared_view",
   /** 사주 MBTI — 친구가 "나도 해보기". meta:{fromPalja} */
   "saju_mbti_retry",
+  /** 결제 퍼널 — 충전 시트/샵 열림. meta:{source:"inchat"|"shop"} */
+  "recharge_sheet_opened",
+  /** 결제 퍼널 — 패키지 선택(유저 탭). meta:{source, packageId} */
+  "recharge_package_selected",
+  /** 결제 퍼널 — 결제 시작(토스 호출 직전). meta:{source, packageId, amountWon} */
+  "recharge_payment_started",
+  /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
+  "result_cta_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
