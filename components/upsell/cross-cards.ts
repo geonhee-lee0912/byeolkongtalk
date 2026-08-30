@@ -36,7 +36,10 @@ export function crossCards(variant: "counsel" | FortuneType): CrossCard[] {
     return [FORTUNE_CONFIG.compat, FORTUNE_CONFIG.daily].map(cardFromFortune);
   }
   const cfg = FORTUNE_CONFIG[variant];
-  const sameBase = FORTUNE_LIST.filter((f) => f.base === cfg.base);
+  // 무료 상품(daily 등)에서의 크로스셀 목적지는 20~40★ 로 — 60★+ 콜드 페이월은 전환 0% 실측.
+  const sameBase = FORTUNE_LIST.filter(
+    (f) => f.base === cfg.base && !(cfg.cost === 0 && f.cost > 40)
+  );
   const idx = sameBase.findIndex((f) => f.type === cfg.type);
   // 진열대 재편으로 같은 base 상품이 FORTUNE_LIST 에 하나도 없을 수 있다
   // (예: W1 재편으로 빠진 레거시 타로 리포트) — 오늘의 운세로 폴백.

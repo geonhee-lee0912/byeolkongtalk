@@ -14,6 +14,7 @@ import { QuizStage } from "./QuizStage";
 import { BirthStage, type BirthValue } from "./BirthStage";
 import { ResultView } from "./ResultView";
 import { SharedTeaser } from "./SharedTeaser";
+import FreeToPaidCta from "@/components/upsell/FreeToPaidCta";
 
 type Stage = "intro" | "quiz" | "birth" | "result" | "shared";
 const KEY = "saju-mbti:session";
@@ -155,7 +156,16 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
       {stage === "quiz" && <QuizStage onDone={onQuizDone} />}
       {stage === "birth" && <BirthStage onDone={onBirthDone} />}
       {stage === "result" && result && (
-        <ResultView saju={result.saju} palja={result.palja} self={result.self} match={result.match} onRestart={onRestart} onShare={onShare} />
+        <>
+          <ResultView saju={result.saju} palja={result.palja} self={result.self} match={result.match} onRestart={onRestart} onShare={onShare} />
+          <FreeToPaidCta
+            title="사주로 더 깊이 볼래?"
+            subtitle="MBTI는 맛보기 — 진짜 네 사주 리포트도 있어"
+            products={["nature_self", "love_self", "fact_bomb"]}
+            source="mbti"
+          />
+          <div className="h-10" />
+        </>
       )}
       {stage === "shared" && decoded && <SharedTeaser tokens={decoded} onStart={onRestart} />}
 

@@ -438,6 +438,30 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
   life_graph: ["인생그래프", "대운", "곡선"],
 };
 
+/** 상품 카드·결과에 노출할 대략 분량 (가성비 가시화). 무료·비활성은 생략. */
+export const FORTUNE_LENGTH_HINT: Partial<Record<FortuneType, string>> = {
+  monthly: "약 5,000자",
+  saju_full: "약 2만 자",
+  compat: "약 8,000자",
+  compat_social: "약 6,500자",
+  good_days: "약 5,000자",
+  nature_self: "약 5,000자",
+  talent_path: "약 5,000자",
+  user_manual: "약 5,000자",
+  element_balance: "약 5,000자",
+  life_full: "약 2만 자",
+  love_self: "약 5,000자",
+  love_year: "약 5,000자",
+  marriage: "약 5,000자",
+  wealth_vessel: "약 5,000자",
+  wealth_year: "약 5,000자",
+  career_timing: "약 5,000자",
+  fact_bomb: "약 3,000자",
+  past_life: "약 3,000자",
+  saju_report_card: "약 3,000자",
+  life_graph: "약 5,000자",
+};
+
 /**
  * 운세 종류별 one-shot 리포트 max_tokens — 분량 차등 (사주분석은 풀 리포트).
  * Sonnet 5 새 토크나이저는 같은 글자가 ~30% 더 많은 토큰이라, 기존 4.6 캡을

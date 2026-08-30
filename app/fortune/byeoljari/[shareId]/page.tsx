@@ -8,6 +8,7 @@ import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
 import { buildInviteUrl } from "@/lib/byeoljari/invite-link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import FreeToPaidCta from "@/components/upsell/FreeToPaidCta";
 
 // 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
 const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
@@ -191,6 +192,13 @@ export default function ByeoljariGuestPage() {
           <p className="mt-6 text-center text-xs text-text-light">
             로그인하면 이 별자리를 계속 볼 수 있어. 안 하면 이 기기에서만 보여.
           </p>
+
+          <FreeToPaidCta
+            title="이 인연, 사주로 더 깊이 볼래?"
+            subtitle="별자리는 시작 — 진짜 궁합과 내 연애 사주도 있어"
+            products={["love_self", "compat", "love_year"]}
+            source="byeoljari"
+          />
         </>
       )}
     </main>

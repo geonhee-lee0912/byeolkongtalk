@@ -6,6 +6,7 @@ import Image from "next/image";
 import {
   FORTUNE_GRADIENTS,
   FORTUNE_HASHTAGS,
+  FORTUNE_LENGTH_HINT,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
   type FortuneCategory,
@@ -72,6 +73,11 @@ export default function FortunePage() {
                   ) : (
                     <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                       ⭐ {f.cost}
+                    </span>
+                  )}
+                  {FORTUNE_LENGTH_HINT[f.type] && (
+                    <span className="text-[10px] font-medium text-text-light/70">
+                      · {FORTUNE_LENGTH_HINT[f.type]}
                     </span>
                   )}
                 </div>
