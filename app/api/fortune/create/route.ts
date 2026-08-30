@@ -302,6 +302,10 @@ export async function POST(req: NextRequest) {
     } else if (cfg.type === "good_days") {
       saju.temporal = calcTemporalLuck(new Date(), sajuInput.year, { includeMonth: true });
     }
+    // 평생사주(life_full)는 대운 10년 흐름을 결과 화면(대운 표)에서 쓰므로 saju_data 에 함께 저장.
+    if (needsDaeun(cfg.type)) {
+      saju.daeun = calcDaeun(sajuInput, 9);
+    }
     sajuDataToStore = saju;
   }
 

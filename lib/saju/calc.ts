@@ -79,6 +79,8 @@ export interface SajuResult {
   };
   /** 오늘 기준 시간 기둥 — reading 생성 시 서버가 주입 (legacy reading 은 없음) */
   temporal?: TemporalLuck;
+  /** 대운 10년 흐름 — 평생사주(life_full) 생성 시 서버가 주입 (그 외/legacy 는 없음) */
+  daeun?: DaeunPillar[];
 }
 
 // tyme4ts 는 한자명(甲/子/木)을 반환 → 한국어 인덱스 매핑. 순서는 60갑자 정순이라 index 로 대응.
