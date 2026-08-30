@@ -56,13 +56,19 @@ export function parseBlocks(text: string): Block[] {
   return blocks.length ? blocks : [{ t: "p", parts: [{ t: "text", s: text }] }];
 }
 
-function renderInline(parts: InlinePart[], key: string) {
+function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" = "light") {
   return parts.map((p, i) =>
     p.t === "b" ? (
+      // 라이트(흰 카드): 진보라 볼드 + 골드 형광펜. 다크(별콩이 한마디 남색 카드): 형광펜은 안 보이므로
+      // 골드 볼드 텍스트로(대비 확보, 하이라이트 배경 제거).
       <strong
         key={`${key}-${i}`}
-        className="font-bold text-eye-purple"
-        style={{ background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }}
+        className={tone === "dark" ? "font-bold text-gold" : "font-bold text-eye-purple"}
+        style={
+          tone === "dark"
+            ? undefined
+            : { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
+        }
       >
         {p.s}
       </strong>
@@ -72,23 +78,33 @@ function renderInline(parts: InlinePart[], key: string) {
   );
 }
 
-export function MarkdownLite({ text, className }: { text: string; className?: string }) {
+export function MarkdownLite({
+  text,
+  className,
+  tone = "light",
+}: {
+  text: string;
+  className?: string;
+  /** "dark" = 남색 카드(별콩이 한마디)용 — 볼드를 골드 텍스트로. */
+  tone?: "light" | "dark";
+}) {
   const blocks = parseBlocks(text);
   return (
     <div className={className}>
       {blocks.map((b, i) =>
         b.t === "ul" ? (
-          <ul key={i} className="flex flex-col gap-2 my-2.5">
+          <ul key={i} className="flex flex-col gap-2 my-3 leading-[1.7]">
             {b.items.map((it, j) => (
               <li key={j} className="flex gap-2.5 items-start">
-                <span
-                  className="shrink-0 mt-[3px] w-[18px] h-[18px] rounded-md flex items-center justify-center"
-                  style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
-                  aria-hidden
-                >
-                  <span className="w-[7px] h-[7px] rounded-full" style={{ background: "#9F8AD0" }} />
+                <span className="shrink-0 flex h-[1.7em] items-center" aria-hidden>
+                  <span
+                    className="w-4 h-4 rounded-md flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#9F8AD0" }} />
+                  </span>
                 </span>
-                <span>{renderInline(it, `${i}-${j}`)}</span>
+                <span>{renderInline(it, `${i}-${j}`, tone)}</span>
               </li>
             ))}
           </ul>
@@ -108,7 +124,7 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
           </div>
         ) : (
           <p key={i} className={i > 0 ? "mt-3" : ""}>
-            {renderInline(b.parts, `${i}`)}
+            {renderInline(b.parts, `${i}`, tone)}
           </p>
         )
       )}

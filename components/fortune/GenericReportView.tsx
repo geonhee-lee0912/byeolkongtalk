@@ -85,6 +85,7 @@ export default function GenericReportView({
         </h3>
         <MarkdownLite
           text={report.note}
+          tone="dark"
           className="text-[13.5px] leading-[1.95] text-white/90"
         />
       </div>
