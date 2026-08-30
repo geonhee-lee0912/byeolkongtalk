@@ -53,6 +53,10 @@ export interface CompatReportAI {
   stages?: string; // 관계 시기별 흐름
   repair?: string; // 다툼과 화해의 기술
   intimacy?: string; // 애정·거리감 표현법
+  loveLanguage?: string; // 서로의 사랑의 언어 (2026-08-30 2차 확장)
+  warningSigns?: string; // 위기 신호와 조기 대응
+  badHabits?: string; // 각자 조심할 습관
+  spark?: string; // 관계에 활기를 더하는 법
   advice: string[]; // 관계 조언 정확히 3개
   note: string; // 별콩이의 한마디
 }
@@ -100,13 +104,17 @@ export const COMPAT_LOVE_REPORT_SCHEMA = {
     stages: { type: "string" },
     repair: { type: "string" },
     intimacy: { type: "string" },
+    loveLanguage: { type: "string" },
+    warningSigns: { type: "string" },
+    badHabits: { type: "string" },
+    spark: { type: "string" },
     advice: { type: "array", items: { type: "string" } },
     note: { type: "string" },
   },
   required: [
     "grade", "theme", "summary", "chemistry", "attraction", "conflict",
     "communication", "longterm", "growth", "individual", "stages", "repair",
-    "intimacy", "advice", "note",
+    "intimacy", "loveLanguage", "warningSigns", "badHabits", "spark", "advice", "note",
   ],
 } as const;
 
@@ -171,6 +179,10 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
     ...(isNonEmptyString(o.stages) ? { stages: o.stages.trim() } : {}),
     ...(isNonEmptyString(o.repair) ? { repair: o.repair.trim() } : {}),
     ...(isNonEmptyString(o.intimacy) ? { intimacy: o.intimacy.trim() } : {}),
+    ...(isNonEmptyString(o.loveLanguage) ? { loveLanguage: o.loveLanguage.trim() } : {}),
+    ...(isNonEmptyString(o.warningSigns) ? { warningSigns: o.warningSigns.trim() } : {}),
+    ...(isNonEmptyString(o.badHabits) ? { badHabits: o.badHabits.trim() } : {}),
+    ...(isNonEmptyString(o.spark) ? { spark: o.spark.trim() } : {}),
     advice,
     note: o.note.trim(),
   };

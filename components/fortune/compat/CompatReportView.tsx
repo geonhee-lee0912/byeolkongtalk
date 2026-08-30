@@ -132,6 +132,10 @@ export default function CompatReportView({
       {report.stages && <Card title="📈 관계 시기별 흐름" body={report.stages} />}
       {report.repair && <Card title="🩹 다툼과 화해의 기술" body={report.repair} />}
       {report.intimacy && <Card title="💞 애정·거리감 표현법" body={report.intimacy} />}
+      {report.loveLanguage && <Card title="💌 서로의 사랑의 언어" body={report.loveLanguage} />}
+      {report.warningSigns && <Card title="🚦 위기 신호와 조기 대응" body={report.warningSigns} />}
+      {report.badHabits && <Card title="🌵 각자 조심할 습관" body={report.badHabits} />}
+      {report.spark && <Card title="✨ 관계에 활기를 더하는 법" body={report.spark} />}
 
       {/* 관계 조언 */}
       <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">

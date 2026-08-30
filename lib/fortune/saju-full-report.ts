@@ -51,6 +51,17 @@ export interface SajuFullReportAI {
   halves?: { first: string; second: string }; // 2026 상반기/하반기 심층
   turning?: string; // 2026 전환점·변화 포인트
   remedies?: string; // 2026 개운법 (색·방향·습관·관계)
+  // 2026-08-30 2차 확장 — 전부 2026 범위. 구 저장본 호환 위해 optional
+  wealthDeep?: string; // 2026 재물 심층 (정재·편재·지출·리스크)
+  careerDeep?: string; // 2026 일·커리어 심층
+  loveDeep?: string; // 2026 연애 심층 (솔로/커플·결혼 흐름)
+  healthDeep?: string; // 2026 건강 심층 (몸·마음·루틴)
+  quarters?: { q1: string; q2: string; q3: string; q4: string }; // 2026 분기별 흐름
+  opportunities?: string[]; // 놓치면 아까운 기회 3
+  pitfalls?: string[]; // 조심할 함정 3
+  elementUsage?: string; // 2026 오행 활용법
+  relationsDeep?: string; // 2026 관계 지도 확장 (귀인·정리·새인연)
+  selfcare?: string; // 2026 셀프케어 루틴
   monthly: SajuFullMonth[]; // 1~12월 고정 12개
   timing: {
     good: string; // 흐름 좋은 달 (예: "4 · 9 · 11월")
@@ -126,6 +137,26 @@ export const SAJU_FULL_REPORT_SCHEMA = {
     },
     turning: { type: "string" },
     remedies: { type: "string" },
+    wealthDeep: { type: "string" },
+    careerDeep: { type: "string" },
+    loveDeep: { type: "string" },
+    healthDeep: { type: "string" },
+    quarters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        q1: { type: "string" },
+        q2: { type: "string" },
+        q3: { type: "string" },
+        q4: { type: "string" },
+      },
+      required: ["q1", "q2", "q3", "q4"],
+    },
+    opportunities: { type: "array", items: { type: "string" } },
+    pitfalls: { type: "array", items: { type: "string" } },
+    elementUsage: { type: "string" },
+    relationsDeep: { type: "string" },
+    selfcare: { type: "string" },
     monthly: {
       type: "array",
       items: {
@@ -146,7 +177,10 @@ export const SAJU_FULL_REPORT_SCHEMA = {
   },
   required: [
     "theme", "summary", "lucky", "self", "year", "relations2026",
-    "mission", "halves", "turning", "remedies", "monthly", "timing", "actions", "note",
+    "mission", "halves", "turning", "remedies",
+    "wealthDeep", "careerDeep", "loveDeep", "healthDeep", "quarters",
+    "opportunities", "pitfalls", "elementUsage", "relationsDeep", "selfcare",
+    "monthly", "timing", "actions", "note",
   ],
 } as const;
 
@@ -289,6 +323,22 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
     })(),
     ...(isNonEmptyString(o.turning) ? { turning: o.turning.trim() } : {}),
     ...(isNonEmptyString(o.remedies) ? { remedies: o.remedies.trim() } : {}),
+    // 2026-08-30 2차 확장 — 전부 optional 추출
+    ...(isNonEmptyString(o.wealthDeep) ? { wealthDeep: o.wealthDeep.trim() } : {}),
+    ...(isNonEmptyString(o.careerDeep) ? { careerDeep: o.careerDeep.trim() } : {}),
+    ...(isNonEmptyString(o.loveDeep) ? { loveDeep: o.loveDeep.trim() } : {}),
+    ...(isNonEmptyString(o.healthDeep) ? { healthDeep: o.healthDeep.trim() } : {}),
+    ...(() => {
+      const q = o.quarters as Record<string, unknown> | undefined;
+      return q && isNonEmptyString(q.q1) && isNonEmptyString(q.q2) && isNonEmptyString(q.q3) && isNonEmptyString(q.q4)
+        ? { quarters: { q1: q.q1.trim(), q2: q.q2.trim(), q3: q.q3.trim(), q4: q.q4.trim() } }
+        : {};
+    })(),
+    ...(() => { const a = cleanStringArray(o.opportunities, 1, 5); return a ? { opportunities: a } : {}; })(),
+    ...(() => { const a = cleanStringArray(o.pitfalls, 1, 5); return a ? { pitfalls: a } : {}; })(),
+    ...(isNonEmptyString(o.elementUsage) ? { elementUsage: o.elementUsage.trim() } : {}),
+    ...(isNonEmptyString(o.relationsDeep) ? { relationsDeep: o.relationsDeep.trim() } : {}),
+    ...(isNonEmptyString(o.selfcare) ? { selfcare: o.selfcare.trim() } : {}),
     monthly,
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
     actions,

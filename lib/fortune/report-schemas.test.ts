@@ -46,8 +46,10 @@ describe("report schemas — OpenAI strict 불변식", () => {
   it("saju_full 최상위 필드 집합이 인터페이스와 일치", () => {
     const req = (SAJU_FULL_REPORT_SCHEMA as unknown as JsonSchema).required!.slice().sort();
     assert.deepEqual(req, [
-      "actions", "halves", "lucky", "mission", "monthly", "note", "relations2026",
-      "remedies", "self", "summary", "theme", "timing", "turning", "year",
+      "actions", "careerDeep", "elementUsage", "halves", "healthDeep", "loveDeep",
+      "lucky", "mission", "monthly", "note", "opportunities", "pitfalls", "quarters",
+      "relations2026", "relationsDeep", "remedies", "self", "selfcare", "summary",
+      "theme", "timing", "turning", "wealthDeep", "year",
     ]);
   });
 });

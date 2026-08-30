@@ -232,7 +232,7 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 3380,
   monthly: 6500,
-  saju_full: 15600,
+  saju_full: 22000,
   tarot_daily: 2660,
   tarot_love: 5200,
   tarot_money: 5200,

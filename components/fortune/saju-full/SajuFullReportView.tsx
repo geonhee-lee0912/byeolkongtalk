@@ -153,7 +153,37 @@ export default function SajuFullReportView({
           <Card title="💼 일·커리어" body={report.year.career} />
           <Card title="💰 재물·금전" body={report.year.wealth} />
           <Card title="🌿 건강·컨디션" body={report.year.health} />
+          {report.year.study && <Card title="📚 학업·자기계발" body={report.year.study} />}
+          {report.year.moving && <Card title="🧳 이동·변화" body={report.year.moving} />}
+          {report.year.family && <Card title="🏡 가족·주변" body={report.year.family} />}
+          {/* 심층 (2026-08-30 확장) */}
+          {report.wealthDeep && <Card title="💰 재물 심층" body={report.wealthDeep} />}
+          {report.careerDeep && <Card title="💼 일·커리어 심층" body={report.careerDeep} />}
+          {report.loveDeep && <Card title="💘 연애 심층" body={report.loveDeep} />}
+          {report.healthDeep && <Card title="🌿 건강 심층" body={report.healthDeep} />}
+          {report.halves && (
+            <>
+              <Card title="🌅 2026 상반기" body={report.halves.first} />
+              <Card title="🌇 2026 하반기" body={report.halves.second} />
+            </>
+          )}
+          {report.quarters && (
+            <>
+              <Card title="🍀 1분기 (1~3월)" body={report.quarters.q1} />
+              <Card title="☀️ 2분기 (4~6월)" body={report.quarters.q2} />
+              <Card title="🍁 3분기 (7~9월)" body={report.quarters.q3} />
+              <Card title="❄️ 4분기 (10~12월)" body={report.quarters.q4} />
+            </>
+          )}
+          {report.turning && <Card title="🔀 전환점·변화 포인트" body={report.turning} />}
+          {report.opportunities && report.opportunities.length > 0 && (
+            <Card title="🎯 놓치면 아까운 기회" body={report.opportunities.map((o, i) => `${i + 1}. ${o}`).join("\n\n")} />
+          )}
+          {report.pitfalls && report.pitfalls.length > 0 && (
+            <Card title="⚠️ 조심할 함정" body={report.pitfalls.map((o, i) => `${i + 1}. ${o}`).join("\n\n")} />
+          )}
           {report.relations2026 && <Card title="🗺️ 2026 인연 지도" body={report.relations2026} />}
+          {report.relationsDeep && <Card title="🧭 관계 지도 확장" body={report.relationsDeep} />}
           {report.mission && <Card title="🎯 올해의 성장 과제" body={report.mission} />}
         </div>
       )}
@@ -213,6 +243,10 @@ export default function SajuFullReportView({
               ]}
             />
           </div>
+          {/* 개운·활용·케어 (2026-08-30 확장) */}
+          {report.remedies && <Card title="🕯️ 2026 개운법" body={report.remedies} />}
+          {report.elementUsage && <Card title="🌈 오행 활용법" body={report.elementUsage} />}
+          {report.selfcare && <Card title="🛁 셀프케어 루틴" body={report.selfcare} />}
           <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
             <h3 className="text-[14px] font-bold text-lilac-deep mb-2">
               📌 올해 이것만은 — 실천 3가지
