@@ -19,7 +19,21 @@ export function parseInline(text: string): InlinePart[] {
   return parts.length ? parts : [{ t: "text", s: text }];
 }
 
-/** 빈 줄(\n\n)로 문단 분리, '- ' 로 시작하는 연속 줄은 불릿 리스트로. */
+// 너무 긴 문단(문장 4개 초과)은 3문장씩 묶어 자동 분할 — LLM 이 문단을 안 나눴거나
+// 구 저장본(마크다운 없음)일 때의 가독성 안전망. 4문장 이하 문단은 그대로 둔다.
+const MAX_SENT = 4;
+const CHUNK = 3;
+export function splitLongParagraph(text: string): string[] {
+  const sentences = text.split(/(?<=[.!?…])\s+/).filter((s) => s.trim());
+  if (sentences.length <= MAX_SENT) return [text];
+  const chunks: string[] = [];
+  for (let i = 0; i < sentences.length; i += CHUNK) {
+    chunks.push(sentences.slice(i, i + CHUNK).join(" "));
+  }
+  return chunks;
+}
+
+/** 빈 줄(\n\n)로 문단 분리, '- ' 로 시작하는 연속 줄은 불릿 리스트로. 긴 문단은 자동 분할. */
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
   for (const para of text.split(/\n\s*\n/)) {
@@ -28,7 +42,9 @@ export function parseBlocks(text: string): Block[] {
     if (lines.every((l) => l.startsWith("- "))) {
       blocks.push({ t: "ul", items: lines.map((l) => parseInline(l.slice(2).trim())) });
     } else {
-      blocks.push({ t: "p", parts: parseInline(lines.join(" ")) });
+      for (const chunk of splitLongParagraph(lines.join(" "))) {
+        blocks.push({ t: "p", parts: parseInline(chunk) });
+      }
     }
   }
   return blocks.length ? blocks : [{ t: "p", parts: [{ t: "text", s: text }] }];
