@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
+import { findExistingFortuneReadingId } from "@/lib/fortune/existing-lookup";
 import { randomUUID } from "crypto";
 import { calcSaju, calcTemporalLuck, calcDaeun, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import {
@@ -168,6 +169,7 @@ export async function POST(req: NextRequest) {
     profileA?: unknown;
     profileB?: unknown;
     drawnCards?: unknown;
+    force?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -235,6 +237,7 @@ export async function POST(req: NextRequest) {
   let names: { a: string; b: string } | undefined;
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
+  let usedProfileB: string | null = null;
   let sajuDataToStore: unknown = null;
 
   if (cfg.type === "compat" || cfg.type === "compat_social") {
@@ -263,8 +266,9 @@ export async function POST(req: NextRequest) {
     saju = calcSaju(profileRowToSajuInput(rowA));
     sajuB = calcSaju(profileRowToSajuInput(rowB));
     names = { a: rowA.display_name, b: rowB.display_name };
-    sajuDataToStore = { a: saju, b: sajuB, names };
+    sajuDataToStore = { a: saju, b: sajuB, names, aId: profileA, bId: profileB };
     usedProfileId = profileA;
+    usedProfileB = profileB;
   } else if (cfg.base === "saju") {
     if (typeof body.profileId === "string" && body.profileId.length > 0) {
       // 저장된 프로필 재사용 — 소유권 + birth 로드
@@ -311,6 +315,25 @@ export async function POST(req: NextRequest) {
       .eq("emotion_tag", cfg.emotionTag)
       .eq("stars_spent", 0);
     if ((count ?? 0) >= cfg.freeLimit) effectiveCost = cfg.paidCost;
+  }
+
+  // 이미 본 동일 상품(같은 사주·프로필) → 재과금·재생성 없이 기존 리딩으로.
+  // force:true(사용자가 '새로 뽑기' 선택) 면 우회. daily/monthly/tarot 는 대상 아님(성격 다름).
+  if (body.force !== true && cfg.base !== "tarot" && cfg.type !== "daily" && cfg.type !== "monthly") {
+    const sig =
+      cfg.type === "compat" || cfg.type === "compat_social"
+        ? usedProfileId && usedProfileB
+          ? { emotionTag: cfg.emotionTag, compatPair: { aId: usedProfileId, bId: usedProfileB } }
+          : null
+        : usedProfileId
+          ? { emotionTag: cfg.emotionTag, profileId: usedProfileId }
+          : null;
+    if (sig) {
+      const existingId = await findExistingFortuneReadingId(userId, sig);
+      if (existingId) {
+        return NextResponse.json({ id: existingId, success: true, cost: 0, alreadyOwned: true });
+      }
+    }
   }
 
   // 중복 생성 방어 — 더블클릭·재시도로 인한 동일 운세 재생성 차단(별 중복 차감 방지).
