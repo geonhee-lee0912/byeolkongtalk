@@ -551,17 +551,18 @@ export const FORTUNE_CATEGORY: Record<FortuneType, FortuneCategory | null> = {
 };
 
 /** 칩 노출 순서·라벨. */
+// 순서 = 서브탭 노출 순서. 맨 앞이 기본 열림. (2026-08-30 확정: 수요·바이럴 우선)
 export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
   { key: "love_relation", label: "연애·관계" },
   { key: "identity", label: "나" },
+  { key: "fun", label: "재미" },
   { key: "money_work", label: "돈·일" },
   { key: "timing", label: "타이밍" },
-  { key: "fun", label: "재미" },
   { key: "free", label: "무료" },
 ];
 
 /** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */
-export const DEFAULT_FORTUNE_CHIP: FortuneCategory = "timing";
+export const DEFAULT_FORTUNE_CHIP: FortuneCategory = "love_relation";
 
 /** 칩 카테고리에 속한 진열 상품 (FORTUNE_LIST 순서 보존). */
 export function fortuneProductsByCategory(cat: FortuneCategory): FortuneConfig[] {

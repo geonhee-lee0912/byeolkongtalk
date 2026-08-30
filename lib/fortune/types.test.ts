@@ -55,10 +55,10 @@ test("무료 칩엔 오늘의 운세만", () => {
   assert.deepEqual(free, ["daily"]);
 });
 
-test("칩 6개 · 순서 · 기본은 타이밍", () => {
+test("칩 6개 · 순서 · 기본은 연애·관계", () => {
   assert.deepEqual(
     FORTUNE_CHIPS.map((c) => c.key),
-    ["love_relation", "identity", "money_work", "timing", "fun", "free"]
+    ["love_relation", "identity", "fun", "money_work", "timing", "free"]
   );
-  assert.equal(DEFAULT_FORTUNE_CHIP, "timing");
+  assert.equal(DEFAULT_FORTUNE_CHIP, "love_relation");
 });
