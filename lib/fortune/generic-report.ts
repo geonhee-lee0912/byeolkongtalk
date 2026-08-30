@@ -6,10 +6,11 @@ import { parseReportJson } from "./json-recover";
 import type { FortuneType } from "./types";
 
 /** 공용 섹션 엔진을 쓰는 신규 종목(2026-08-30). daily/monthly/saju_full/compat/good_days 는 전용 스키마 유지. */
+// element_balance 는 공용 스키마 + 전용 렌더(오행 차트)라 여기 포함. saju_report_card·life_graph 는 전용 스키마.
 export const GENERIC_FORTUNE_TYPES: readonly FortuneType[] = [
   "nature_self", "talent_path", "user_manual", "element_balance", "life_full",
   "love_self", "love_year", "marriage", "wealth_vessel", "wealth_year",
-  "career_timing", "fact_bomb", "past_life", "saju_report_card", "life_graph",
+  "career_timing", "fact_bomb", "past_life",
 ];
 
 export function isGenericFortuneType(t: FortuneType): boolean {

@@ -35,11 +35,16 @@ import TarotReportView from "@/components/fortune/TarotReportView";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
 import GenericReportView from "@/components/fortune/GenericReportView";
+import ElementBalanceView from "@/components/fortune/ElementBalanceView";
+import ReportCardView from "@/components/fortune/ReportCardView";
+import LifeGraphView from "@/components/fortune/LifeGraphView";
 import {
   tryParseStoredGenericReport,
   isGenericFortuneType,
   type GenericReport,
 } from "@/lib/fortune/generic-report";
+import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
+import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -187,6 +192,8 @@ function FortuneResultInner() {
   const [compatReport, setCompatReport] = useState<CompatReport | null>(null);
   const [tarotReport, setTarotReport] = useState<TarotReport | null>(null);
   const [genericReport, setGenericReport] = useState<GenericReport | null>(null);
+  const [reportCardReport, setReportCardReport] = useState<ReportCardReport | null>(null);
+  const [lifeGraphReport, setLifeGraphReport] = useState<LifeGraphReport | null>(null);
   const [tarotDrawn, setTarotDrawn] = useState<DrawnCard[]>([]);
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
@@ -279,6 +286,8 @@ function FortuneResultInner() {
           ? tryParseStoredTarotReport(report)
           : null;
       const generic = ft && isGenericFortuneType(ft) ? tryParseStoredGenericReport(report) : null;
+      const reportCard = ft === "saju_report_card" ? tryParseStoredReportCardReport(report) : null;
+      const lifeGraph = ft === "life_graph" ? tryParseStoredLifeGraphReport(report) : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
@@ -290,6 +299,10 @@ function FortuneResultInner() {
       } else if (tarot) {
         setTarotReport(tarot);
         setTarotDrawn((r.reading.drawnCards as DrawnCard[] | null) ?? []);
+      } else if (reportCard) {
+        setReportCardReport(reportCard);
+      } else if (lifeGraph) {
+        setLifeGraphReport(lifeGraph);
       } else if (generic) {
         setGenericReport(generic);
       } else {
@@ -473,6 +486,12 @@ function FortuneResultInner() {
           drawnCards={tarotDrawn}
           variant={isTarotDaily ? "daily" : "default"}
         />
+      ) : reportCardReport ? (
+        <ReportCardView report={reportCardReport} />
+      ) : lifeGraphReport ? (
+        <LifeGraphView report={lifeGraphReport} />
+      ) : genericReport && ftType === "element_balance" ? (
+        <ElementBalanceView report={genericReport} saju={sajuData} />
       ) : genericReport ? (
         <GenericReportView
           report={genericReport}

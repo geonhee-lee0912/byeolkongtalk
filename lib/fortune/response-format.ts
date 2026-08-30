@@ -7,6 +7,8 @@ import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
 import { MONTHLY_REPORT_SCHEMA } from "./monthly-report.ts";
 import { COMPAT_LOVE_REPORT_SCHEMA, COMPAT_SOCIAL_REPORT_SCHEMA } from "./compat-report.ts";
 import { GENERIC_REPORT_SCHEMA, isGenericFortuneType } from "./generic-report.ts";
+import { REPORT_CARD_SCHEMA } from "./report-card-report.ts";
+import { LIFE_GRAPH_SCHEMA } from "./life-graph-report.ts";
 
 export function fortuneResponseFormat(
   type: FortuneType
@@ -20,6 +22,10 @@ export function fortuneResponseFormat(
       return { name: "compat_report", schema: COMPAT_LOVE_REPORT_SCHEMA };
     case "compat_social":
       return { name: "compat_report", schema: COMPAT_SOCIAL_REPORT_SCHEMA };
+    case "saju_report_card":
+      return { name: "report_card", schema: REPORT_CARD_SCHEMA };
+    case "life_graph":
+      return { name: "life_graph", schema: LIFE_GRAPH_SCHEMA };
     default:
       // 신규 15종 — 공용 섹션 엔진
       if (isGenericFortuneType(type)) {

@@ -15,6 +15,8 @@ import {
   isGenericFortuneType,
   needsDaeun,
 } from "@/lib/fortune/generic-report";
+import { parseReportCardJson, buildReportCardReport, serializeReportCardReport } from "@/lib/fortune/report-card-report";
+import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
@@ -551,6 +553,44 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeGenericReport(buildGenericReport(ai));
+    } else if (cfg.type === "saju_report_card") {
+      let ai = parseReportCardJson(report);
+      let retryRaw: string | undefined;
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, systemInput);
+          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          ai = parseReportCardJson(retryRaw);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "report_card_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("report_card parse failed"), "report_card_parse", {
+          rawLen: report.length, rawHead: report.slice(0, 2000), rawTail: report.slice(-400), retryRawHead: retryRaw?.slice(0, 2000),
+        });
+        return;
+      }
+      storedContent = serializeReportCardReport(buildReportCardReport(ai));
+    } else if (cfg.type === "life_graph") {
+      let ai = parseLifeGraphJson(report);
+      let retryRaw: string | undefined;
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, systemInput);
+          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          ai = parseLifeGraphJson(retryRaw);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "life_graph_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("life_graph parse failed"), "life_graph_parse", {
+          rawLen: report.length, rawHead: report.slice(0, 2000), rawTail: report.slice(-400), retryRawHead: retryRaw?.slice(0, 2000),
+        });
+        return;
+      }
+      storedContent = serializeLifeGraphReport(buildLifeGraphReport(ai));
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {
