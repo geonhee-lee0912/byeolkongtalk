@@ -12,7 +12,23 @@ export type FortuneType =
   | "tarot_relation"
   | "compat"
   | "compat_social"
-  | "good_days";
+  | "good_days"
+  // 2026-08-30 신규 15종
+  | "nature_self" // 타고난 나
+  | "talent_path" // 재능·적성·진로
+  | "user_manual" // 나 사용설명서
+  | "element_balance" // 오행 밸런스 (시각)
+  | "life_full" // 평생 사주·대운 (플래그십)
+  | "love_self" // 내 연애 사주
+  | "love_year" // 올해 나의 연애 흐름
+  | "marriage" // 결혼운·시기
+  | "wealth_vessel" // 재물 그릇
+  | "wealth_year" // 올해 재물 흐름
+  | "career_timing" // 취업·이직 타이밍
+  | "fact_bomb" // 팩폭 사주
+  | "past_life" // 전생 사주
+  | "saju_report_card" // 사주 성적표 (시각)
+  | "life_graph"; // 내 인생 그래프 (대운 시각)
 
 export type TarotFortuneType =
   | "tarot_daily"
@@ -171,6 +187,171 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     href: "/fortune/good_days",
     active: true,
   },
+  nature_self: {
+    type: "nature_self",
+    label: "타고난 나",
+    emoji: "🌱",
+    tagline: "내 사주에 새겨진 성격·기질·강점·그림자",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}nature_self`,
+    href: "/fortune/nature_self",
+    active: true,
+  },
+  talent_path: {
+    type: "talent_path",
+    label: "재능·적성·진로",
+    emoji: "🧭",
+    tagline: "타고난 재능과 어울리는 일의 결",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}talent_path`,
+    href: "/fortune/talent_path",
+    active: true,
+  },
+  user_manual: {
+    type: "user_manual",
+    label: "나 사용설명서",
+    emoji: "📖",
+    tagline: "남이 나를 어떻게 대하면 좋은지, 나 취급법",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}user_manual`,
+    href: "/fortune/user_manual",
+    active: true,
+  },
+  element_balance: {
+    type: "element_balance",
+    label: "오행 밸런스",
+    emoji: "🌈",
+    tagline: "내 기운의 균형과 채우는 법",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}element_balance`,
+    href: "/fortune/element_balance",
+    active: true,
+  },
+  life_full: {
+    type: "life_full",
+    label: "평생 사주·대운",
+    emoji: "🌌",
+    tagline: "타고난 그릇부터 대운 10년 흐름까지, 인생 전체",
+    base: "saju",
+    cost: 75,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}life_full`,
+    href: "/fortune/life_full",
+    active: true,
+  },
+  love_self: {
+    type: "love_self",
+    label: "내 연애 사주",
+    emoji: "💗",
+    tagline: "나의 연애 성향과 끌림의 패턴",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}love_self`,
+    href: "/fortune/love_self",
+    active: true,
+  },
+  love_year: {
+    type: "love_year",
+    label: "올해 나의 연애 흐름",
+    emoji: "💘",
+    tagline: "2026년 인연이 오는 시기와 흐름",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}love_year`,
+    href: "/fortune/love_year",
+    active: true,
+  },
+  marriage: {
+    type: "marriage",
+    label: "결혼운·시기",
+    emoji: "💍",
+    tagline: "결혼 인연의 결과 시기 흐름",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}marriage`,
+    href: "/fortune/marriage",
+    active: true,
+  },
+  wealth_vessel: {
+    type: "wealth_vessel",
+    label: "재물 그릇",
+    emoji: "💰",
+    tagline: "타고난 돈그릇과 재물이 드는 결",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}wealth_vessel`,
+    href: "/fortune/wealth_vessel",
+    active: true,
+  },
+  wealth_year: {
+    type: "wealth_year",
+    label: "올해 재물 흐름",
+    emoji: "📈",
+    tagline: "2026년 재물의 기회와 주의 시기",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}wealth_year`,
+    href: "/fortune/wealth_year",
+    active: true,
+  },
+  career_timing: {
+    type: "career_timing",
+    label: "취업·이직 타이밍",
+    emoji: "💼",
+    tagline: "올해 직업운과 도전·이직 좋은 시기",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}career_timing`,
+    href: "/fortune/career_timing",
+    active: true,
+  },
+  fact_bomb: {
+    type: "fact_bomb",
+    label: "팩폭 사주",
+    emoji: "💥",
+    tagline: "오늘만 솔직하게, 별콩이의 돌직구",
+    base: "saju",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}fact_bomb`,
+    href: "/fortune/fact_bomb",
+    active: true,
+  },
+  past_life: {
+    type: "past_life",
+    label: "전생 사주",
+    emoji: "🔮",
+    tagline: "넌 전생에 어떤 사람이었을까",
+    base: "saju",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}past_life`,
+    href: "/fortune/past_life",
+    active: true,
+  },
+  saju_report_card: {
+    type: "saju_report_card",
+    label: "사주 성적표",
+    emoji: "🏆",
+    tagline: "내 인생 항목별 점수표",
+    base: "saju",
+    cost: 15,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_report_card`,
+    href: "/fortune/saju_report_card",
+    active: true,
+  },
+  life_graph: {
+    type: "life_graph",
+    label: "내 인생 그래프",
+    emoji: "📉",
+    tagline: "대운으로 그리는 인생 곡선, 최고와 최저",
+    base: "saju",
+    cost: 20,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}life_graph`,
+    href: "/fortune/life_graph",
+    active: true,
+  },
 };
 
 export const FORTUNE_LIST: FortuneConfig[] = [
@@ -179,6 +360,21 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.monthly,
   FORTUNE_CONFIG.good_days,
+  FORTUNE_CONFIG.nature_self,
+  FORTUNE_CONFIG.talent_path,
+  FORTUNE_CONFIG.user_manual,
+  FORTUNE_CONFIG.element_balance,
+  FORTUNE_CONFIG.life_full,
+  FORTUNE_CONFIG.love_self,
+  FORTUNE_CONFIG.love_year,
+  FORTUNE_CONFIG.marriage,
+  FORTUNE_CONFIG.wealth_vessel,
+  FORTUNE_CONFIG.wealth_year,
+  FORTUNE_CONFIG.career_timing,
+  FORTUNE_CONFIG.fact_bomb,
+  FORTUNE_CONFIG.past_life,
+  FORTUNE_CONFIG.saju_report_card,
+  FORTUNE_CONFIG.life_graph,
   FORTUNE_CONFIG.daily,
 ];
 
@@ -195,6 +391,21 @@ export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
   tarot_career: "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
   tarot_relation: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
   good_days: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
+  nature_self: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
+  talent_path: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
+  user_manual: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
+  element_balance: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
+  life_full: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
+  love_self: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
+  love_year: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
+  marriage: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
+  wealth_vessel: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
+  wealth_year: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
+  career_timing: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
+  fact_bomb: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
+  past_life: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
+  saju_report_card: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
+  life_graph: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
 };
 
 /** 운세 종류별 해시태그 (홈 카드 #태그 칩 스타일) */
@@ -210,6 +421,21 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
   tarot_career: ["직장", "진로", "이직"],
   tarot_relation: ["인간관계", "거리", "소통"],
   good_days: ["좋은날", "택일", "한달흐름"],
+  nature_self: ["타고난성격", "기질", "강점"],
+  talent_path: ["재능", "적성", "진로"],
+  user_manual: ["취급법", "나사용법", "이해"],
+  element_balance: ["오행", "기운균형", "보완"],
+  life_full: ["평생사주", "대운", "인생전체"],
+  love_self: ["연애성향", "내연애", "끌림"],
+  love_year: ["올해연애", "인연시기", "연애운"],
+  marriage: ["결혼", "인연", "결혼시기"],
+  wealth_vessel: ["재물그릇", "돈복", "재물운"],
+  wealth_year: ["올해재물", "금전", "기회"],
+  career_timing: ["취업", "이직", "타이밍"],
+  fact_bomb: ["팩폭", "돌직구", "솔직"],
+  past_life: ["전생", "전생사주", "반전"],
+  saju_report_card: ["성적표", "점수", "공유각"],
+  life_graph: ["인생그래프", "대운", "곡선"],
 };
 
 /**
@@ -242,6 +468,22 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   compat: 16000, // 실측 ~7,645
   compat_social: 14000, // 실측 ~2,986 (이미 여유)
   good_days: 11000, // 실측 ~5,216
+  // 2026-08-30 신규 15종 (넉넉)
+  nature_self: 9000,
+  talent_path: 9000,
+  user_manual: 9000,
+  element_balance: 8000,
+  life_full: 30000,
+  love_self: 9000,
+  love_year: 9000,
+  marriage: 9000,
+  wealth_vessel: 9000,
+  wealth_year: 9000,
+  career_timing: 9000,
+  fact_bomb: 6000,
+  past_life: 7000,
+  saju_report_card: 6000,
+  life_graph: 8000,
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */
@@ -270,7 +512,13 @@ export function getTarotPositions(type: string): string[] | null {
 // 2탭 사주 운세의 필터 칩 배치. 단일 원천 (spec 2026-08-03-fortune-tab-design).
 // "나" 칩은 지금 없음 — 기질·정체성 리포트가 쌓이면 부활(2026 사주는 그때 timing→나로 이동).
 
-export type FortuneCategory = "love_relation" | "timing" | "free";
+export type FortuneCategory =
+  | "love_relation"
+  | "timing"
+  | "identity" // 나 (정체성)
+  | "money_work" // 돈·일
+  | "fun" // 재미·바이럴
+  | "free";
 
 /** 모든 FortuneType → 칩 카테고리. 진열 안 하는 tarot_* 는 null. */
 export const FORTUNE_CATEGORY: Record<FortuneType, FortuneCategory | null> = {
@@ -285,12 +533,30 @@ export const FORTUNE_CATEGORY: Record<FortuneType, FortuneCategory | null> = {
   tarot_money: null,
   tarot_career: null,
   tarot_relation: null,
+  nature_self: "identity",
+  talent_path: "identity",
+  user_manual: "identity",
+  element_balance: "identity",
+  life_full: "identity",
+  love_self: "love_relation",
+  love_year: "love_relation",
+  marriage: "love_relation",
+  wealth_vessel: "money_work",
+  wealth_year: "money_work",
+  career_timing: "money_work",
+  fact_bomb: "fun",
+  past_life: "fun",
+  saju_report_card: "fun",
+  life_graph: "fun",
 };
 
 /** 칩 노출 순서·라벨. */
 export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
   { key: "love_relation", label: "연애·관계" },
+  { key: "identity", label: "나" },
+  { key: "money_work", label: "돈·일" },
   { key: "timing", label: "타이밍" },
+  { key: "fun", label: "재미" },
   { key: "free", label: "무료" },
 ];
 

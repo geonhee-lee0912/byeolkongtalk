@@ -7,7 +7,14 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { randomUUID } from "crypto";
-import { calcSaju, calcTemporalLuck, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, calcDaeun, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import {
+  parseGenericReportJson,
+  buildGenericReport,
+  serializeGenericReport,
+  isGenericFortuneType,
+  needsDaeun,
+} from "@/lib/fortune/generic-report";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
@@ -353,7 +360,9 @@ export async function POST(req: NextRequest) {
       ? { saju, sajuB, names }
       : cfg.base === "tarot"
         ? { tarotCards: tarotCardsForPrompt! }
-        : { saju };
+        : needsDaeun(cfg.type) && sajuInput
+          ? { saju, daeun: calcDaeun(sajuInput, 9) }
+          : { saju };
 
   const supabase = getServiceSupabase();
 
@@ -518,6 +527,30 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeCompatReport(buildCompatReport(ai));
+    } else if (isGenericFortuneType(cfg.type)) {
+      // 신규 15종 — 공용 섹션 엔진
+      let ai = parseGenericReportJson(report);
+      let retryRaw: string | undefined;
+      if (!ai) {
+        try {
+          const system = buildFortuneSystem(cfg.type, systemInput);
+          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          ai = parseGenericReportJson(retryRaw);
+        } catch (err) {
+          await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "generic_retry" } });
+        }
+      }
+      if (!ai) {
+        await failGeneration(new Error("generic report parse failed"), "generic_parse", {
+          rawLen: report.length,
+          rawHead: report.slice(0, 2000),
+          rawTail: report.slice(-400),
+          retryRawHead: retryRaw?.slice(0, 2000),
+          retryRawTail: retryRaw?.slice(-400),
+        });
+        return;
+      }
+      storedContent = serializeGenericReport(buildGenericReport(ai));
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {

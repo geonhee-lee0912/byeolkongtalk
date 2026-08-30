@@ -34,6 +34,12 @@ import type { DrawnCard } from "@/lib/tarot/spreads";
 import TarotReportView from "@/components/fortune/TarotReportView";
 import SajuFullReportView from "@/components/fortune/saju-full/SajuFullReportView";
 import CompatReportView from "@/components/fortune/compat/CompatReportView";
+import GenericReportView from "@/components/fortune/GenericReportView";
+import {
+  tryParseStoredGenericReport,
+  isGenericFortuneType,
+  type GenericReport,
+} from "@/lib/fortune/generic-report";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -180,6 +186,7 @@ function FortuneResultInner() {
   const [sajuFullReport, setSajuFullReport] = useState<SajuFullReport | null>(null);
   const [compatReport, setCompatReport] = useState<CompatReport | null>(null);
   const [tarotReport, setTarotReport] = useState<TarotReport | null>(null);
+  const [genericReport, setGenericReport] = useState<GenericReport | null>(null);
   const [tarotDrawn, setTarotDrawn] = useState<DrawnCard[]>([]);
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
@@ -271,6 +278,7 @@ function FortuneResultInner() {
         ft && FORTUNE_CONFIG[ft].base === "tarot"
           ? tryParseStoredTarotReport(report)
           : null;
+      const generic = ft && isGenericFortuneType(ft) ? tryParseStoredGenericReport(report) : null;
       if (daily) {
         setDailyReport(daily);
       } else if (monthly) {
@@ -282,6 +290,8 @@ function FortuneResultInner() {
       } else if (tarot) {
         setTarotReport(tarot);
         setTarotDrawn((r.reading.drawnCards as DrawnCard[] | null) ?? []);
+      } else if (generic) {
+        setGenericReport(generic);
       } else {
         setSections(parseSections(report));
       }
@@ -462,6 +472,11 @@ function FortuneResultInner() {
           report={tarotReport}
           drawnCards={tarotDrawn}
           variant={isTarotDaily ? "daily" : "default"}
+        />
+      ) : genericReport ? (
+        <GenericReportView
+          report={genericReport}
+          accentEmoji={ftType ? FORTUNE_CONFIG[ftType].emoji : undefined}
         />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">

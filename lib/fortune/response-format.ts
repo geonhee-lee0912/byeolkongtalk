@@ -6,6 +6,7 @@ import type { FortuneType } from "./types.ts";
 import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
 import { MONTHLY_REPORT_SCHEMA } from "./monthly-report.ts";
 import { COMPAT_LOVE_REPORT_SCHEMA, COMPAT_SOCIAL_REPORT_SCHEMA } from "./compat-report.ts";
+import { GENERIC_REPORT_SCHEMA, isGenericFortuneType } from "./generic-report.ts";
 
 export function fortuneResponseFormat(
   type: FortuneType
@@ -20,6 +21,10 @@ export function fortuneResponseFormat(
     case "compat_social":
       return { name: "compat_report", schema: COMPAT_SOCIAL_REPORT_SCHEMA };
     default:
+      // 신규 15종 — 공용 섹션 엔진
+      if (isGenericFortuneType(type)) {
+        return { name: "generic_report", schema: GENERIC_REPORT_SCHEMA };
+      }
       return undefined;
   }
 }
