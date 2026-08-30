@@ -3,11 +3,22 @@ import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import SajuSummaryChips from "./SajuSummaryChips";
 
+// 첫 그래핌(ZWJ·VS16 이모지 시퀀스 포함) 추출 — Intl.Segmenter, 미지원 시 코드포인트 폴백.
+function firstGrapheme(s: string): string {
+  try {
+    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    for (const g of seg.segment(s)) return g.segment;
+  } catch {
+    /* Intl.Segmenter 미지원 폴백 */
+  }
+  return [...s][0] ?? "";
+}
+
 // heading 앞 이모지를 아이콘 타일로 분리. 이모지 없으면 기본 별.
 function splitHeadingEmoji(heading: string): { emoji: string; title: string } {
-  const first = [...heading][0] ?? "";
-  const isEmoji = /\p{Extended_Pictographic}/u.test(first);
-  if (isEmoji) return { emoji: first, title: heading.slice(first.length).trim() };
+  const g = firstGrapheme(heading);
+  const isEmoji = g !== "" && /\p{Extended_Pictographic}/u.test(g);
+  if (isEmoji) return { emoji: g, title: heading.slice(g.length).trim() };
   return { emoji: "✦", title: heading };
 }
 

@@ -17,7 +17,7 @@ export default function SajuSummaryChips({ saju }: { saju: SajuResult | null }) 
     { k: "음양", v: yy.yang > yy.yin ? "양 우세" : yy.yin > yy.yang ? "음 우세" : "음양 균형" },
   ];
   return (
-    <div className="w-full max-w-md mx-auto px-5 flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       {chips.map((c) => (
         <div
           key={c.k}
