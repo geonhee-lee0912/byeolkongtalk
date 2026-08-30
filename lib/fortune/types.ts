@@ -155,7 +155,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🤝",
     tagline: "친구·가족·동료, 두 사람 사주로 관계 케미를",
     base: "saju",
-    cost: 35,
+    cost: 20, // 2026-08-30 리워크: 35→20 (구매 0건 → 진입 상품화 + 분량 확장)
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat_social`,
     href: "/fortune/compat-social",
     active: true,
@@ -229,18 +229,19 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
  * 절단 위험 — good_days 는 마크다운이라 parseReportJson 이 절단을 못 잡는다) → 6500→8500 여유 상향.
  * 전면 분량·가격 재설계는 별도 브레인스토밍 예정(여긴 luna 안전 마진만).
  */
+// 캡 = 절단 방지 상한(목표가 아님, 비용 무관). 실측 출력 대비 ~1.5x 이상 마진(2026-08-30 넉넉하게 재조정).
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
-  daily: 3380,
-  monthly: 6500,
-  saju_full: 22000,
-  tarot_daily: 2660,
-  tarot_love: 5200,
-  tarot_money: 5200,
-  tarot_career: 5200,
-  tarot_relation: 5200,
-  compat: 14000,
-  compat_social: 14000,
-  good_days: 8500,
+  daily: 4500, // 실측 ~2,100
+  monthly: 9000, // 실측 ~4,829
+  saju_full: 30000, // 실측 ~20,977 — 경계였던 22,000에서 상향
+  tarot_daily: 4000,
+  tarot_love: 7000,
+  tarot_money: 7000,
+  tarot_career: 7000,
+  tarot_relation: 7000,
+  compat: 16000, // 실측 ~7,645
+  compat_social: 14000, // 실측 ~2,986 (이미 여유)
+  good_days: 11000, // 실측 ~5,216
 };
 
 /** emotion_tag 가 운세 센티넬이면 FortuneType 반환, 아니면 null */

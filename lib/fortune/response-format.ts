@@ -5,7 +5,7 @@
 import type { FortuneType } from "./types.ts";
 import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
 import { MONTHLY_REPORT_SCHEMA } from "./monthly-report.ts";
-import { COMPAT_REPORT_SCHEMA, COMPAT_LOVE_REPORT_SCHEMA } from "./compat-report.ts";
+import { COMPAT_LOVE_REPORT_SCHEMA, COMPAT_SOCIAL_REPORT_SCHEMA } from "./compat-report.ts";
 
 export function fortuneResponseFormat(
   type: FortuneType
@@ -18,7 +18,7 @@ export function fortuneResponseFormat(
     case "compat":
       return { name: "compat_report", schema: COMPAT_LOVE_REPORT_SCHEMA };
     case "compat_social":
-      return { name: "compat_report", schema: COMPAT_REPORT_SCHEMA };
+      return { name: "compat_report", schema: COMPAT_SOCIAL_REPORT_SCHEMA };
     default:
       return undefined;
   }

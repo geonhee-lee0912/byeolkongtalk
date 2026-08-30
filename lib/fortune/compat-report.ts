@@ -118,6 +118,37 @@ export const COMPAT_LOVE_REPORT_SCHEMA = {
   ],
 } as const;
 
+/** compat_social(인간관계 궁합) 전용 확장 스키마 — 공유 스키마 + 연애색 없는 6카테고리(2026-08-30 리워크).
+ *  loveLanguage/intimacy(연애색)는 제외. 필드명·파서·렌더러는 compat 과 공유(전부 관계-중립 개념). */
+export const COMPAT_SOCIAL_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    grade: { type: "string", enum: [...COMPAT_GRADES] },
+    theme: { type: "string" },
+    summary: { type: "string" },
+    chemistry: { type: "string" },
+    attraction: { type: "string" },
+    conflict: { type: "string" },
+    communication: { type: "string" },
+    longterm: { type: "string" },
+    growth: { type: "string" },
+    individual: { type: "string" },
+    stages: { type: "string" },
+    repair: { type: "string" },
+    warningSigns: { type: "string" },
+    badHabits: { type: "string" },
+    spark: { type: "string" },
+    advice: { type: "array", items: { type: "string" } },
+    note: { type: "string" },
+  },
+  required: [
+    "grade", "theme", "summary", "chemistry", "attraction", "conflict",
+    "communication", "longterm", "growth", "individual", "stages", "repair",
+    "warningSigns", "badHabits", "spark", "advice", "note",
+  ],
+} as const;
+
 /** 저장/렌더 최종 형태. */
 export interface CompatReport extends CompatReportAI {
   v: 1;

@@ -48,7 +48,7 @@ function proseLen(raw: string): number {
 const TARGET: Record<string, number> = {
   monthly: 5000,
   compat: 8000,
-  compat_social: 3300,
+  compat_social: 5000, // 20★ 리워크
   good_days: 0, // 캘린더로 이동 — 기록용 측정만
   saju_full: 20000,
 };

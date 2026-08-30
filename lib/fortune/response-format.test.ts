@@ -12,14 +12,19 @@ describe("fortuneResponseFormat", () => {
       assert.equal((rf!.schema as { type?: string }).type, "object");
     }
   });
-  it("compat 은 연애 전용 확장 스키마, compat_social 은 공유 스키마 (2026-08-30 분리)", () => {
-    // compat 은 individual/stages/repair/intimacy 확장 필드 포함, compat_social 은 미포함 → 서로 다른 스키마
+  it("compat/compat_social 별도 스키마 — 연애색 필드로 구분 (2026-08-30 분리·리워크)", () => {
     assert.notEqual(fortuneResponseFormat("compat")!.schema, fortuneResponseFormat("compat_social")!.schema);
     const loveReq = (fortuneResponseFormat("compat")!.schema as { required?: string[] }).required ?? [];
     const socialReq = (fortuneResponseFormat("compat_social")!.schema as { required?: string[] }).required ?? [];
-    for (const f of ["individual", "stages", "repair", "intimacy"]) {
+    // 관계-중립 카테고리는 둘 다 포함
+    for (const f of ["individual", "stages", "repair", "warningSigns", "badHabits", "spark"]) {
       assert.ok(loveReq.includes(f), `compat 에 ${f} 있어야`);
-      assert.ok(!socialReq.includes(f), `compat_social 엔 ${f} 없어야`);
+      assert.ok(socialReq.includes(f), `compat_social 에 ${f} 있어야`);
+    }
+    // 연애색 카테고리는 compat 만
+    for (const f of ["loveLanguage", "intimacy"]) {
+      assert.ok(loveReq.includes(f), `compat 에 ${f} 있어야`);
+      assert.ok(!socialReq.includes(f), `compat_social 엔 ${f} 없어야(연애색)`);
     }
   });
   it("good_days(마크다운)·daily(nano)·tarot(비활성)은 undefined", () => {
