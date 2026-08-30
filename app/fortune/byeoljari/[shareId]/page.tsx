@@ -196,7 +196,7 @@ export default function ByeoljariGuestPage() {
           <FreeToPaidCta
             title="이 인연, 더 깊이 볼래?"
             subtitle="별자리는 시작 — 궁합·연애 사주도, 지금 마음은 타로로"
-            chat={{ label: "이 관계, 타로로 물어볼래?", tagline: "지금 그 사람 마음, 카드로 바로" }}
+            chat={{ label: "이 관계, 타로로 물어볼래?", tagline: "지금 그 사람 마음이 궁금하면, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
             products={["love_self", "compat"]}
             source="byeoljari"
           />

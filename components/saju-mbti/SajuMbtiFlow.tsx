@@ -161,7 +161,7 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
           <FreeToPaidCta
             title="더 깊이 볼래?"
             subtitle="MBTI는 맛보기 — 진짜 사주 리포트도, 지금 고민 타로도"
-            chat={{ label: "지금 고민, 타로로 뽑아볼래?", tagline: "카드로 지금 마음을 바로 물어봐" }}
+            chat={{ label: "지금 고민, 타로로 뽑아볼래?", tagline: "타고난 성격 말고 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
             products={["nature_self", "love_self"]}
             source="mbti"
           />

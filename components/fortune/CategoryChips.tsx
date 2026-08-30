@@ -10,7 +10,7 @@ interface Props {
 
 export default function CategoryChips({ active, onSelect }: Props) {
   return (
-    <div className="w-full max-w-md mx-auto flex gap-2 px-5 py-3 overflow-x-auto">
+    <div className="w-full max-w-md mx-auto flex gap-2 px-5 py-3 overflow-x-auto scrollbar-hover">
       {FORTUNE_CHIPS.map((chip) => {
         const on = chip.key === active;
         return (

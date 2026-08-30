@@ -51,6 +51,8 @@ const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
 export interface CrossCard {
   href: string;
   emoji: string;
+  /** 사주 종목이면 그 타입 — ResultUpsell 이 이모지 대신 webp 아이콘을 렌더. 타로 상담 카드는 undefined. */
+  fortuneType?: FortuneType;
   label: string;
   tagline: string;
   badge: string;
@@ -61,6 +63,7 @@ function cardFromFortune(f: FortuneConfig): CrossCard {
   return {
     href: f.href,
     emoji: f.emoji,
+    fortuneType: f.type,
     label: f.label,
     tagline: f.tagline,
     badge: f.cost === 0 ? "무료" : `⭐ ${f.cost}`,
@@ -105,10 +108,10 @@ export function crossCards(
   return [
     {
       href: "/",
-      emoji: "💬",
-      label: "별콩이랑 고민 상담",
-      tagline: "리포트 말고 대화로 깊게 나누고 싶다면",
-      badge: "상담",
+      emoji: "🃏",
+      label: "타로로 고민 상담",
+      tagline: "리포트로 다 못 짚은 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐",
+      badge: "타로",
       gradient: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
     },
     cardFromFortune(next),

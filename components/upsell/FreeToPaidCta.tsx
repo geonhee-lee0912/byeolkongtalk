@@ -3,6 +3,7 @@
 // 무료 상품(MBTI·별자리) 결과 → 유료 사주 유도 CTA. 목적지는 20~40★만(콜드 페이월 60★+ 금지).
 import Link from "next/link";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function FreeToPaidCta({
@@ -25,6 +26,12 @@ export default function FreeToPaidCta({
   if (items.length === 0 && !chat) return null;
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
+      {/* 결과 본문과 CTA 구분선 — 골드 별 + 라일락 헤어라인(별콩 모티프) */}
+      <div className="flex items-center gap-3 mb-1" aria-hidden>
+        <span className="h-px flex-1 bg-lilac-soft/70" />
+        <span className="text-gold text-[11px] leading-none">✦</span>
+        <span className="h-px flex-1 bg-lilac-soft/70" />
+      </div>
       <div className="px-1">
         <p className="text-[14px] font-extrabold text-eye-purple">{title}</p>
         {subtitle && <p className="text-[12px] text-text-light/80 mt-0.5">{subtitle}</p>}
@@ -39,7 +46,7 @@ export default function FreeToPaidCta({
             className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
             style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
           >
-            💬
+            🃏
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -48,7 +55,7 @@ export default function FreeToPaidCta({
                 타로톡
               </span>
             </div>
-            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-1">{chat.tagline}</p>
+            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-2">{chat.tagline}</p>
           </div>
           <span className="text-eye-purple/50 text-[16px] shrink-0">›</span>
         </Link>
@@ -61,10 +68,10 @@ export default function FreeToPaidCta({
           className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
         >
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: FORTUNE_GRADIENTS[f.type] }}
           >
-            {f.emoji}
+            <FortuneIcon type={f.type} size={36} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -73,7 +80,7 @@ export default function FreeToPaidCta({
                 ⭐ {f.cost}
               </span>
             </div>
-            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-1">{f.tagline}</p>
+            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-2">{f.tagline}</p>
           </div>
           <span className="text-eye-purple/50 text-[16px] shrink-0">›</span>
         </Link>

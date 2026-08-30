@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type FortuneType } from "@/lib/fortune/types";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { crossCards } from "./cross-cards";
 import type { SpreadCategory } from "@/lib/tarot/spreads";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -67,7 +68,11 @@ export default function ResultUpsell({
             className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
             style={{ background: c.gradient }}
           >
-            {c.emoji}
+            {c.fortuneType ? (
+              <FortuneIcon type={c.fortuneType} size={36} />
+            ) : (
+              c.emoji
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -78,7 +83,7 @@ export default function ResultUpsell({
                 {c.badge}
               </span>
             </div>
-            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-1">
+            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-2">
               {c.tagline}
             </p>
           </div>
