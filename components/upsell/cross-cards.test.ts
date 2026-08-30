@@ -44,9 +44,10 @@ test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) �
   }
 });
 
-test("crossCards — counsel 은 궁합 분석 + 오늘의 운세(무료)", () => {
+test("crossCards — counsel(타로) 은 내 연애 사주(조사 톤·1인) + 오늘의 운세(무료)", () => {
   const cards = crossCards("counsel");
   assert.equal(cards.length, 2);
-  assert.equal(cards[0].href, FORTUNE_CONFIG.compat.href);
+  // 불안한 타로 유저 → 위로/재미/궁합(2인 마찰) 금지, 내 연애 사주(1인·조사)로
+  assert.equal(cards[0].href, FORTUNE_CONFIG.love_self.href);
   assert.equal(cards[1].href, FORTUNE_CONFIG.daily.href);
 });

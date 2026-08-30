@@ -50,7 +50,7 @@ export default function ResultUpsell({
       )}
 
       <p className="text-[13px] font-bold text-eye-purple px-1 mt-1">
-        이런 것도 있어 ✨
+        {variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어 ✨"}
       </p>
       {cards.map((c) => (
         <Link

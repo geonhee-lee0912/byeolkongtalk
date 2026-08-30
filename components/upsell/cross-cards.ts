@@ -33,7 +33,10 @@ function cardFromFortune(f: FortuneConfig): CrossCard {
 
 export function crossCards(variant: "counsel" | FortuneType): CrossCard[] {
   if (variant === "counsel") {
-    return [FORTUNE_CONFIG.compat, FORTUNE_CONFIG.daily].map(cardFromFortune);
+    // 타로톡 유저는 대개 불안·고민 상태 → 위로/정체성/재미 금지, "같은 고민을 더 파는" 결로.
+    // 내 연애 사주(1인·마찰 없음·조사 톤) + 오늘의 운세(리텐션). 궁합(2인)은 상대 정보 마찰이라 제외.
+    // (또 뽑기·대화 심화는 RechargeBlock 이 이미 프라이머리로 처리)
+    return [FORTUNE_CONFIG.love_self, FORTUNE_CONFIG.daily].map(cardFromFortune);
   }
   const cfg = FORTUNE_CONFIG[variant];
   // 무료 상품(daily 등)에서의 크로스셀 목적지는 20~40★ 로 — 60★+ 콜드 페이월은 전환 0% 실측.
