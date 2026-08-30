@@ -7,15 +7,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type FortuneType } from "@/lib/fortune/types";
 import { crossCards } from "./cross-cards";
+import type { SpreadCategory } from "@/lib/tarot/spreads";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function ResultUpsell({
   variant,
   showBonus = true,
+  topic,
 }: {
   variant: "counsel" | FortuneType;
   /** 첫충전 +20% 배너 노출 여부. 결과 화면이 RechargeBlock 에서 이미 보여주면 false. */
   showBonus?: boolean;
+  /** 타로 주제(counsel 일 때) — 주제 맞춤 사주 크로스셀용. */
+  topic?: SpreadCategory;
 }) {
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
 
@@ -27,7 +31,7 @@ export default function ResultUpsell({
       .catch(() => {});
   }, [showBonus]);
 
-  const cards = crossCards(variant);
+  const cards = crossCards(variant, topic);
 
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">

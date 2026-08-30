@@ -8,6 +8,8 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
+import { EMOTION_TO_CATEGORY } from "@/lib/tarot/spreads";
+import type { EmotionTag } from "@/lib/emotions";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -329,7 +331,11 @@ function TarotResultInner() {
       />
 
       {/* ③ 크로스셀 (궁합) — 공유 위로 */}
-      <ResultUpsell variant="counsel" showBonus={false} />
+      <ResultUpsell
+        variant="counsel"
+        showBonus={false}
+        topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
+      />
 
       {/* ④ 공유 — 크로스셀 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
