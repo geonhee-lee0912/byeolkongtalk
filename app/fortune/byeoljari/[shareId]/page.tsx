@@ -199,6 +199,7 @@ export default function ByeoljariGuestPage() {
             chat={{ label: "이 관계, 타로로 물어볼래?", tagline: "지금 그 사람 마음이 궁금하면, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
             products={["love_self", "compat"]}
             source="byeoljari"
+            bare
           />
         </>
       )}

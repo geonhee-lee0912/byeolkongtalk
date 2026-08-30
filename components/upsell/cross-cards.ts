@@ -53,6 +53,8 @@ export interface CrossCard {
   emoji: string;
   /** 사주 종목이면 그 타입 — ResultUpsell 이 이모지 대신 webp 아이콘을 렌더. 타로 상담 카드는 undefined. */
   fortuneType?: FortuneType;
+  /** 사주 종목이 아닌 카드(타로 상담)의 전용 webp 경로. 있으면 이모지·fortuneType 보다 우선. */
+  iconSrc?: string;
   label: string;
   tagline: string;
   badge: string;
@@ -109,6 +111,7 @@ export function crossCards(
     {
       href: "/",
       emoji: "🃏",
+      iconSrc: "/icons/fortune/tarot_counsel.webp",
       label: "타로로 고민 상담",
       tagline: "리포트로 다 못 짚은 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐",
       badge: "타로",

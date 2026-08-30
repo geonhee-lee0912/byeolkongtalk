@@ -125,3 +125,26 @@ body {
 .scrollbar-hover:hover::-webkit-scrollbar-thumb {
   background: rgba(159, 138, 208, 0.45);
 }
+
+/* 가로 덱 전용 — 스크롤바 세로 공간을 처음부터 확보(레이아웃 시프트 0), 썸은 hover 시만 노출.
+   .scrollbar-hover 는 hover 시 none→thin 토글이라 공간이 그때 생겨 아래 요소와 붙는다. 이건 상시 확보. */
+.scrollbar-hover-x {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-hover-x:hover {
+  scrollbar-color: rgba(159, 138, 208, 0.45) transparent;
+}
+.scrollbar-hover-x::-webkit-scrollbar {
+  height: 5px;
+}
+.scrollbar-hover-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-hover-x::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 99px;
+}
+.scrollbar-hover-x:hover::-webkit-scrollbar-thumb {
+  background: rgba(159, 138, 208, 0.45);
+}

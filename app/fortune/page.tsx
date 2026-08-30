@@ -42,6 +42,11 @@ export default function FortunePage() {
       </p>
       <CategoryChips active={chip} onSelect={selectChip} />
 
+      {/* 서브탭↔목록 구분선 — 가로 스크롤바 공간을 처음부터 확보하고 목록과 시각 분리 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-1 mb-4">
+        <div className="h-px bg-lilac-soft/70" />
+      </div>
+
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-3">
         {items.map((f) => {
           const tagline =

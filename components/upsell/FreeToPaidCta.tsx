@@ -2,6 +2,7 @@
 
 // 무료 상품(MBTI·별자리) 결과 → 유료 사주 유도 CTA. 목적지는 20~40★만(콜드 페이월 60★+ 금지).
 import Link from "next/link";
+import Image from "next/image";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -12,6 +13,7 @@ export default function FreeToPaidCta({
   products,
   source,
   chat,
+  bare = false,
 }: {
   title?: string;
   subtitle?: string;
@@ -19,13 +21,21 @@ export default function FreeToPaidCta({
   source: string; // 계측 귀속 (mbti|byeoljari)
   /** 타로톡(대화) 카드 — 검증된 전환 엔진. 무료 유저의 저마찰 유료 진입. */
   chat?: { label: string; tagline: string };
+  /** true 면 자체 max-w/좌우 패딩을 버리고 부모 폭을 그대로 상속(부모가 이미 max-w-md+px 인 경우). */
+  bare?: boolean;
 }) {
   const items = products
     .map((t) => FORTUNE_CONFIG[t])
     .filter((f) => f && f.active && f.cost > 0 && f.cost <= 40);
   if (items.length === 0 && !chat) return null;
   return (
-    <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
+    <div
+      className={
+        bare
+          ? "w-full mt-8 flex flex-col gap-3"
+          : "w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3"
+      }
+    >
       {/* 결과 본문과 CTA 구분선 — 골드 별 + 라일락 헤어라인(별콩 모티프) */}
       <div className="flex items-center gap-3 mb-1" aria-hidden>
         <span className="h-px flex-1 bg-lilac-soft/70" />
@@ -43,10 +53,10 @@ export default function FreeToPaidCta({
           className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
         >
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
           >
-            🃏
+            <Image src="/icons/fortune/tarot_counsel.webp" alt="" width={36} height={36} className="object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">

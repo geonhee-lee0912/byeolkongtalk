@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { type FortuneType } from "@/lib/fortune/types";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { crossCards } from "./cross-cards";
@@ -68,7 +69,9 @@ export default function ResultUpsell({
             className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
             style={{ background: c.gradient }}
           >
-            {c.fortuneType ? (
+            {c.iconSrc ? (
+              <Image src={c.iconSrc} alt="" width={36} height={36} className="object-contain" />
+            ) : c.fortuneType ? (
               <FortuneIcon type={c.fortuneType} size={36} />
             ) : (
               c.emoji
