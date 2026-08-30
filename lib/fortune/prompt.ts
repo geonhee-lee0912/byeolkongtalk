@@ -204,7 +204,7 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `  "note": "<별콩이의 한마디. 오늘 챙기면 좋을 따뜻한 응원 1~2문장.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인은 오늘 일진 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인은 오늘 일진 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   monthly: [
     `이번 달: ${"{{THIS_MONTH}}"}`,
@@ -239,7 +239,7 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `  "note": "<별콩이의 한마디. 이번 달 챙기면 좋을 따뜻한 응원 3~4문장.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인·주차는 이번 달 월건 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. **위 JSON 의 모든 필드를 반드시 포함해라 — weekly 는 정확히 4개(week 1·2·3·4), sections 는 정확히 5개(money·work·love·health·study), lucky·timing·action·balance·relationships·emotion·intro·note 도 하나도 빠뜨리지 마.** 각 항목은 밀도로 채우고 물타기·반복 금지. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인·주차는 이번 달 월건 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. **위 JSON 의 모든 필드를 반드시 포함해라 — weekly 는 정확히 4개(week 1·2·3·4), sections 는 정확히 5개(money·work·love·health·study), lucky·timing·action·balance·relationships·emotion·intro·note 도 하나도 빠뜨리지 마.** 각 항목은 밀도로 채우고 물타기·반복 금지. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   saju_full: [
     `기준 연도: 2026년 (병오년 / 丙午)`,
@@ -321,7 +321,7 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `  "note": "<별콩이의 한마디. 2026 한 해 챙기면 좋을 따뜻한 응원 6~8문장.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. relations2026·mission·halves(first·second)·turning·remedies·year.study·year.moving·year.family·wealthDeep·careerDeep·loveDeep·healthDeep·quarters(q1~q4)·opportunities(3)·pitfalls(3)·elementUsage·relationsDeep·selfcare 도 빠뜨리지 말고 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). monthly 는 1~12월 전부, actions·opportunities·pitfalls 는 각각 정확히 3개. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. relations2026·mission·halves(first·second)·turning·remedies·year.study·year.moving·year.family·wealthDeep·careerDeep·loveDeep·healthDeep·quarters(q1~q4)·opportunities(3)·pitfalls(3)·elementUsage·relationsDeep·selfcare 도 빠뜨리지 말고 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). monthly 는 1~12월 전부, actions·opportunities·pitfalls 는 각각 정확히 3개. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   good_days: [
     `오늘 날짜: ${"{{TODAY}}"}`,
@@ -382,7 +382,7 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `  "note": "<별콩이의 한마디. 두 사람에게 건네는 따뜻한 응원 5~6문장.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. summary·chemistry·attraction·conflict·communication·longterm·growth·individual·stages·repair·intimacy·loveLanguage·warningSigns·badHabits·spark 전부 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. summary·chemistry·attraction·conflict·communication·longterm·growth·individual·stages·repair·intimacy·loveLanguage·warningSigns·badHabits·spark 전부 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   compat_social: [
     `위 두 사람의 사주판을 바탕으로 **인간 관계 궁합**(친구·가족·동료 등 연애가 아닌 관계) 리포트를 작성해줘. 두 일간·오행이 만나 만드는 관계의 결이 핵심이야. 연애·결혼·이성적 끌림 얘기는 하지 마.`,
@@ -409,7 +409,7 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     `  "note": "<별콩이의 한마디. 두 사람에게 건네는 따뜻한 응원 3~4문장.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. summary·chemistry·attraction·conflict·communication·longterm·growth·individual·stages·repair·warningSigns·badHabits·spark 전부 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). 연애·이성 관계 표현 금지. JSON 문자열 안에서 큰따옴표는 escape(\\")하고 줄바꿈은 넣지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. summary·chemistry·attraction·conflict·communication·longterm·growth·individual·stages·repair·warningSigns·badHabits·spark 전부 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). 연애·이성 관계 표현 금지. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   nature_self: genericGuide({
       title: "타고난 나",
