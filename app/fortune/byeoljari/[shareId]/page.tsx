@@ -194,9 +194,10 @@ export default function ByeoljariGuestPage() {
           </p>
 
           <FreeToPaidCta
-            title="이 인연, 사주로 더 깊이 볼래?"
-            subtitle="별자리는 시작 — 진짜 궁합과 내 연애 사주도 있어"
-            products={["love_self", "compat", "love_year"]}
+            title="이 인연, 더 깊이 볼래?"
+            subtitle="별자리는 시작 — 궁합·연애 사주도, 지금 마음은 타로로"
+            chat={{ label: "이 관계, 타로로 물어볼래?", tagline: "지금 그 사람 마음, 카드로 바로" }}
+            products={["love_self", "compat"]}
             source="byeoljari"
           />
         </>

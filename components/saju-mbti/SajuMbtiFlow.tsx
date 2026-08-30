@@ -159,9 +159,10 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
         <>
           <ResultView saju={result.saju} palja={result.palja} self={result.self} match={result.match} onRestart={onRestart} onShare={onShare} />
           <FreeToPaidCta
-            title="사주로 더 깊이 볼래?"
-            subtitle="MBTI는 맛보기 — 진짜 네 사주 리포트도 있어"
-            products={["nature_self", "love_self", "fact_bomb"]}
+            title="더 깊이 볼래?"
+            subtitle="MBTI는 맛보기 — 진짜 사주 리포트도, 지금 고민 타로도"
+            chat={{ label: "지금 고민, 타로로 뽑아볼래?", tagline: "카드로 지금 마음을 바로 물어봐" }}
+            products={["nature_self", "love_self"]}
             source="mbti"
           />
           <div className="h-10" />
