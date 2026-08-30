@@ -1,4 +1,5 @@
 import type { MonthlyReport } from "@/lib/fortune/monthly-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyTimingCard({ report }: { report: MonthlyReport }) {
   return (
@@ -11,11 +12,11 @@ export default function MonthlyTimingCard({ report }: { report: MonthlyReport })
       <div className="flex flex-col gap-2.5">
         <div className="rounded-2xl bg-[#F3F7F2] px-3.5 py-3">
           <div className="text-[11px] font-extrabold text-[#3F8E5C] mb-1">흐름이 좋아</div>
-          <p className="text-[12.5px] leading-[1.7] text-[#4F4A5E] whitespace-pre-line">{report.timing.good}</p>
+          <MarkdownLite text={report.timing.good} className="text-[12.5px] leading-[1.7] text-[#4F4A5E]" />
         </div>
         <div className="rounded-2xl bg-[#FBF4EE] px-3.5 py-3">
           <div className="text-[11px] font-extrabold text-[#C2723E] mb-1">점검할 때</div>
-          <p className="text-[12.5px] leading-[1.7] text-[#4F4A5E] whitespace-pre-line">{report.timing.caution}</p>
+          <MarkdownLite text={report.timing.caution} className="text-[12.5px] leading-[1.7] text-[#4F4A5E]" />
         </div>
       </div>
 
@@ -26,7 +27,7 @@ export default function MonthlyTimingCard({ report }: { report: MonthlyReport })
             <span className="text-[13px] opacity-85">🎯</span>
             <span className="text-[12.5px] font-extrabold text-[#4A4458]">이번 달 실천 포인트</span>
           </div>
-          <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{report.action}</p>
+          <MarkdownLite text={report.action} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
         </div>
       )}
 

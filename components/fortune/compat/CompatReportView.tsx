@@ -6,6 +6,7 @@ import {
   type CompatGrade,
   type CompatSajuPair,
 } from "@/lib/fortune/compat-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
@@ -50,7 +51,7 @@ function Card({ title, body }: { title: string; body: string }) {
   return (
     <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
       <h3 className="text-[14px] font-bold text-lilac-deep mb-1.5">{title}</h3>
-      <p className="text-[13.5px] text-[#322E3D] leading-[1.85] whitespace-pre-line">{body}</p>
+      <MarkdownLite text={body} className="text-[13.5px] text-[#322E3D] leading-[1.85]" />
     </div>
   );
 }
@@ -83,9 +84,11 @@ export default function CompatReportView({
           {report.theme}
         </p>
         <div className="my-4 h-px bg-white/15" />
-        <p className="text-[13.5px] leading-[1.85] text-white/90 whitespace-pre-line">
-          {report.summary}
-        </p>
+        <MarkdownLite
+          text={report.summary}
+          tone="dark"
+          className="text-[13.5px] leading-[1.85] text-white/90"
+        />
       </div>
 
       {/* 두 사주판 나란히 */}
@@ -153,9 +156,11 @@ export default function CompatReportView({
       {/* 다크 별콩이의 한마디 */}
       <div className="rounded-2xl px-5 py-5 text-white" style={{ background: DARK_GRADIENT }}>
         <h3 className="text-[14px] font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
-        <p className="text-[13.5px] leading-[1.9] text-white/90 whitespace-pre-line">
-          {report.note}
-        </p>
+        <MarkdownLite
+          text={report.note}
+          tone="dark"
+          className="text-[13.5px] leading-[1.9] text-white/90"
+        />
       </div>
     </div>
   );

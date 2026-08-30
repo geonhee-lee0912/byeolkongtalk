@@ -4,6 +4,7 @@ import {
   ELEMENT_COLOR,
   type DailyReport,
 } from "@/lib/fortune/daily-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function DailyReportCard({
   report,
@@ -50,9 +51,10 @@ export default function DailyReportCard({
         </div>
 
         {/* 한 줄 총평 */}
-        <p className="text-center text-[14px] font-bold text-[#322E3D] leading-[1.5] mb-[14px] whitespace-pre-line">
-          {report.summary}
-        </p>
+        <MarkdownLite
+          text={report.summary}
+          className="text-center text-[14px] font-bold text-[#322E3D] leading-[1.5] mb-[14px]"
+        />
 
         {/* 종합운 별점 (해시태그 위) */}
         <div className="flex items-center justify-center gap-2 mb-[9px]">
@@ -79,7 +81,7 @@ export default function DailyReportCard({
         {/* 도입 — 오늘 들어온 두 글자 */}
         <div className="pt-[17px] mt-[18px] border-t border-lilac-mid/25">
           <div className="text-[12.5px] font-extrabold text-[#4A4458] mb-1.5">오늘 들어온 두 글자</div>
-          <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{report.intro}</p>
+          <MarkdownLite text={report.intro} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
         </div>
 
         {/* 6개 도메인 섹션 */}
@@ -92,7 +94,7 @@ export default function DailyReportCard({
                 <span className="text-[13px] opacity-85">{meta.icon}</span>
                 <span className="text-[12.5px] font-extrabold text-[#4A4458]">{meta.title}</span>
               </div>
-              <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{sec.body}</p>
+              <MarkdownLite text={sec.body} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
             </div>
           );
         })}
@@ -127,7 +129,7 @@ export default function DailyReportCard({
             />
             <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
           </div>
-          <p className="text-[13px] leading-[1.78] text-[#ECE3FB] whitespace-pre-line">{report.note}</p>
+          <MarkdownLite text={report.note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
         </div>
       </div>
     </div>

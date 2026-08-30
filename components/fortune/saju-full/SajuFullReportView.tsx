@@ -5,6 +5,7 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { SajuFullReport } from "@/lib/fortune/saju-full-report";
 import type { SajuResult } from "@/lib/saju/calc";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 type TabKey = "self" | "year" | "monthly" | "lucky";
 
@@ -21,7 +22,7 @@ function Card({ title, body }: { title: string; body: string }) {
   return (
     <div className="bg-cream-warm rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
       <h3 className="text-[14px] font-bold text-lilac-deep mb-1.5">{title}</h3>
-      <p className="text-[13.5px] text-[#322E3D] leading-[1.85] whitespace-pre-line">{body}</p>
+      <MarkdownLite text={body} className="text-[13.5px] text-[#322E3D] leading-[1.85]" />
     </div>
   );
 }
@@ -80,9 +81,11 @@ export default function SajuFullReportView({
           </span>
         </div>
         <div className="my-4 h-px bg-white/15" />
-        <p className="text-[13.5px] leading-[1.85] text-white/90 whitespace-pre-line">
-          {report.summary}
-        </p>
+        <MarkdownLite
+          text={report.summary}
+          tone="dark"
+          className="text-[13.5px] leading-[1.85] text-white/90"
+        />
       </div>
 
       {/* 사주판 박스 */}
@@ -134,9 +137,10 @@ export default function SajuFullReportView({
             <h3 className="text-[14px] font-bold text-lilac-deep mb-1.5">
               ⚖️ 오행 밸런스 진단
             </h3>
-            <p className="text-[13.5px] text-[#322E3D] leading-[1.85] whitespace-pre-line">
-              {report.self.balance.lack}
-            </p>
+            <MarkdownLite
+              text={report.self.balance.lack}
+              className="text-[13.5px] text-[#322E3D] leading-[1.85]"
+            />
             <Chips items={report.self.balance.supplements} />
           </div>
           <Card title="🧭 타고난 적성·어울리는 일" body={report.self.aptitude} />
@@ -204,9 +208,10 @@ export default function SajuFullReportView({
                   <div className="text-[11px] font-bold text-lilac-deep w-7 flex-shrink-0 pt-0.5">
                     {m.month}월
                   </div>
-                  <div className="text-[12.5px] text-[#322E3D] leading-[1.7] whitespace-pre-line">
-                    {m.body}
-                  </div>
+                  <MarkdownLite
+                    text={m.body}
+                    className="text-[12.5px] text-[#322E3D] leading-[1.7]"
+                  />
                 </div>
               ))}
             </div>
@@ -265,9 +270,11 @@ export default function SajuFullReportView({
             style={{ background: DARK_GRADIENT }}
           >
             <h3 className="text-[14px] font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
-            <p className="text-[13.5px] leading-[1.9] text-white/90 whitespace-pre-line">
-              {report.note}
-            </p>
+            <MarkdownLite
+              text={report.note}
+              tone="dark"
+              className="text-[13.5px] leading-[1.9] text-white/90"
+            />
           </div>
         </div>
       )}

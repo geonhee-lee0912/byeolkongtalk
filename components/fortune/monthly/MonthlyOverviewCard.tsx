@@ -1,5 +1,6 @@
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { MonthlyReport } from "@/lib/fortune/monthly-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyOverviewCard({
   report,
@@ -48,9 +49,10 @@ export default function MonthlyOverviewCard({
         "{report.theme}"
       </p>
       {/* 한 줄 총평 */}
-      <p className="text-center text-[14px] font-bold text-[#322E3D] leading-[1.5] mb-[14px] whitespace-pre-line">
-        {report.summary}
-      </p>
+      <MarkdownLite
+        text={report.summary}
+        className="text-center text-[14px] font-bold text-[#322E3D] leading-[1.5] mb-[14px]"
+      />
 
       {/* 종합운 별점 */}
       <div className="flex items-center justify-center gap-2 mb-[9px]">

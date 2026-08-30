@@ -1,5 +1,6 @@
 import { DAILY_SECTIONS } from "@/lib/fortune/daily-report";
 import type { MonthlyReport } from "@/lib/fortune/monthly-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyDomainsCard({ report }: { report: MonthlyReport }) {
   return (
@@ -14,7 +15,7 @@ export default function MonthlyDomainsCard({ report }: { report: MonthlyReport }
               <span className="text-[13px] opacity-85">{meta.icon}</span>
               <span className="text-[12.5px] font-extrabold text-[#4A4458]">{meta.title}</span>
             </div>
-            <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{sec.body}</p>
+            <MarkdownLite text={sec.body} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
           </div>
         );
       })}
@@ -29,7 +30,7 @@ export default function MonthlyDomainsCard({ report }: { report: MonthlyReport }
               <span className="text-[13px] opacity-85">{extra.icon}</span>
               <span className="text-[12.5px] font-extrabold text-[#4A4458]">{extra.title}</span>
             </div>
-            <p className="text-[13px] leading-[1.85] text-[#4F4A5E] whitespace-pre-line">{extra.body}</p>
+            <MarkdownLite text={extra.body} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
           </div>
         ) : null
       )}

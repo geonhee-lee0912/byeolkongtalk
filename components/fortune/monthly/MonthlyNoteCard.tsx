@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyNoteCard({ note }: { note: string }) {
   return (
@@ -13,7 +14,7 @@ export default function MonthlyNoteCard({ note }: { note: string }) {
         />
         <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
       </div>
-      <p className="text-[13px] leading-[1.78] text-[#ECE3FB] whitespace-pre-line">{note}</p>
+      <MarkdownLite text={note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
     </div>
   );
 }
