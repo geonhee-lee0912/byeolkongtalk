@@ -78,10 +78,16 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
     <div className={className}>
       {blocks.map((b, i) =>
         b.t === "ul" ? (
-          <ul key={i} className="flex flex-col gap-1.5 my-2.5">
+          <ul key={i} className="flex flex-col gap-2 my-2.5">
             {b.items.map((it, j) => (
-              <li key={j} className="flex gap-2">
-                <span className="shrink-0 text-lilac-deep font-bold">·</span>
+              <li key={j} className="flex gap-2.5 items-start">
+                <span
+                  className="shrink-0 mt-[3px] w-[18px] h-[18px] rounded-md flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
+                  aria-hidden
+                >
+                  <span className="w-[7px] h-[7px] rounded-full" style={{ background: "#9F8AD0" }} />
+                </span>
                 <span>{renderInline(it, `${i}-${j}`)}</span>
               </li>
             ))}
