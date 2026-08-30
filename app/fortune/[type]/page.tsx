@@ -7,6 +7,7 @@ import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
+import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
 import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
@@ -24,10 +25,12 @@ export default function FortuneInputPage() {
   const [error, setError] = useState<string | null>(null);
   const [needCharge, setNeedCharge] = useState(false);
   const [refunded, setRefunded] = useState(false);
+  const [alreadyOwned, setAlreadyOwned] = useState<{ id: string } | null>(null);
   const [reviewable, setReviewable] = useState<Record<string, string>>({});
 
   // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
   const inFlightRef = useRef(false);
+  const lastProfileIdRef = useRef<string | null>(null);
 
   // daily 는 전용 페이지, tarot/비활성은 동적 입력 대상 아님
   const valid = !!cfg && cfg.active && cfg.base === "saju" && cfg.type !== "daily";
@@ -82,8 +85,10 @@ export default function FortuneInputPage() {
   };
 
   // 결제 확인 → 리포트 생성
-  const handleGenerate = async () => {
-    if (!pendingProfileId || inFlightRef.current) return;
+  const handleGenerate = async (force = false) => {
+    const profileId = pendingProfileId ?? lastProfileIdRef.current;
+    if (!profileId || inFlightRef.current) return;
+    lastProfileIdRef.current = profileId;
     inFlightRef.current = true;
     setPendingProfileId(null);
     setGenerating(true);
@@ -94,7 +99,7 @@ export default function FortuneInputPage() {
       const res = await fetch("/api/fortune/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: cfg.type, profileId: pendingProfileId }),
+        body: JSON.stringify({ type: cfg.type, profileId, force }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -115,6 +120,13 @@ export default function FortuneInputPage() {
         return;
       }
       const data = await res.json();
+      // 이미 같은 사주로 본 상품 — 과금 없이 선택지 제시(force 아니었을 때만).
+      if (data.alreadyOwned && !force) {
+        inFlightRef.current = false;
+        setGenerating(false);
+        setAlreadyOwned({ id: data.id });
+        return;
+      }
       // 생성 시작 시점에 이미 별이 차감됨 — 헤더 잔액 즉시 갱신
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       router.push(`/fortune/result?id=${data.id}`);
@@ -180,7 +192,7 @@ export default function FortuneInputPage() {
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 운세 보기"
           targetName={pendingName ?? undefined}
-          onConfirm={handleGenerate}
+          onConfirm={() => handleGenerate(false)}
           onCharge={() => router.push("/shop")}
           onClose={() => setPendingProfileId(null)}
         />
@@ -188,6 +200,21 @@ export default function FortuneInputPage() {
 
       {refunded && (
         <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />
+      )}
+
+      {alreadyOwned && (
+        <AlreadyOwnedModal
+          label={cfg.label}
+          cost={cfg.cost}
+          onReview={() => {
+            router.push(`/fortune/result?id=${alreadyOwned.id}&from=history`);
+          }}
+          onRegenerate={() => {
+            setAlreadyOwned(null);
+            void handleGenerate(true);
+          }}
+          onClose={() => setAlreadyOwned(null)}
+        />
       )}
     </main>
   );
