@@ -101,7 +101,9 @@ export default function CompatReportView({
       {/* 다크 히어로 — 등급 배지 + 테마 + summary */}
       <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex justify-center mb-2">
-          <Image src="/byeolkong-joy.png" alt="별콩이" width={60} height={60} className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+          <div className="relative w-[78px] h-[88px]">
+            <Image src="/fortune-hero-compat.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+          </div>
         </div>
         <div className="flex justify-center">
           <span

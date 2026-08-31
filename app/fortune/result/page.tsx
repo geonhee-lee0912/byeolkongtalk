@@ -44,6 +44,7 @@ import {
 } from "@/lib/fortune/generic-report";
 import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
 import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -458,8 +459,8 @@ function FortuneResultInner() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-          <div className="relative">
-            <Image src="/byeolkong-joy.png" alt="별콩이" width={84} height={84} />
+          <div className="relative w-[108px] h-[120px]">
+            <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
             <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>

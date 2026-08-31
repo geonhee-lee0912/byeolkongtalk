@@ -184,7 +184,9 @@ export default function SajuFullReportView({
       {/* 다크 종합운 히어로 */}
       <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex justify-center mb-2">
-          <Image src="/byeolkong-joy.png" alt="별콩이" width={60} height={60} className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+          <div className="relative w-[78px] h-[88px]">
+            <Image src="/fortune-hero-saju_full.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+          </div>
         </div>
         <p className="text-[12px] font-bold text-gold/90 text-center">
           2026 종합운 · {report.year2026.hanja}년
