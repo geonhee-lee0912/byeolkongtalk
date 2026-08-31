@@ -8,6 +8,7 @@ import {
 } from "@/lib/fortune/compat-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import ReportAccordion, { type AccordionItem } from "@/components/fortune/ReportAccordion";
+import CompatMatchDiagram from "./CompatMatchDiagram";
 
 const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
@@ -135,6 +136,9 @@ export default function CompatReportView({
           </p>
         )}
       </div>
+
+      {/* 궁합 매칭도 (결정론 요약) */}
+      {saju && <CompatMatchDiagram a={saju.a} b={saju.b} names={saju.names} />}
 
       {/* 접이식 섹션 */}
       <ReportAccordion items={items} />
