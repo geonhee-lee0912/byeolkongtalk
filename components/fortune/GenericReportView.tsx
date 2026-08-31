@@ -1,30 +1,41 @@
+"use client";
+
+import { useState } from "react";
 import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
+import { splitHeadingEmoji } from "@/lib/fortune/heading";
 import SajuSummaryChips from "./SajuSummaryChips";
 import ElementChart from "./ElementChart";
 import DaeunTable from "./DaeunTable";
+import CollapsibleSection from "./CollapsibleSection";
 
-// 첫 그래핌(ZWJ·VS16 이모지 시퀀스 포함) 추출 — Intl.Segmenter, 미지원 시 코드포인트 폴백.
-function firstGrapheme(s: string): string {
-  try {
-    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-    for (const g of seg.segment(s)) return g.segment;
-  } catch {
-    /* Intl.Segmenter 미지원 폴백 */
-  }
-  return [...s][0] ?? "";
+// 섹션 본문 총합이 이 글자수 이상이면 아코디언(접기) 적용. 미만이면 오늘처럼 전부 펼침.
+// (짧은 리포트를 접으면 오히려 초라해 보임 — 실측: nature_self 5.8k·life_full 14.6k / fact_bomb·past_life 짧음)
+const ACCORDION_MIN_BODY_CHARS = 4500;
+
+// 펼친 섹션 카드 — 아이콘 헤더 + 마크다운. 짧은 리포트(플랫 모드)용.
+function SectionCard({ heading, body }: { heading: string; body: string }) {
+  const { emoji, title } = splitHeadingEmoji(heading);
+  return (
+    <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
+          style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
+          aria-hidden
+        >
+          {emoji}
+        </span>
+        <h3 className="text-[14.5px] font-extrabold text-eye-purple">{title}</h3>
+      </div>
+      <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+    </div>
+  );
 }
 
-// heading 앞 이모지를 아이콘 타일로 분리. 이모지 없으면 기본 별.
-function splitHeadingEmoji(heading: string): { emoji: string; title: string } {
-  const g = firstGrapheme(heading);
-  const isEmoji = g !== "" && /\p{Extended_Pictographic}/u.test(g);
-  if (isEmoji) return { emoji: g, title: heading.slice(g.length).trim() };
-  return { emoji: "✦", title: heading };
-}
-
-// 공용 섹션 리포트 렌더 — 요약 칩 + intro + 섹션 카드(아이콘 헤더·마크다운) + 별콩이 한마디.
+// 공용 섹션 리포트 렌더 — 요약 칩·오행차트·intro·대운표·한마디는 항상 노출.
+// 섹션 본문이 길면(≥4.5k자) 아코디언으로 접어 스크롤 완화, 짧으면 전부 펼침.
 export default function GenericReportView({
   report,
   accentEmoji,
@@ -35,23 +46,32 @@ export default function GenericReportView({
   /** 있으면 상단 요약 칩 + 오행 분포 차트(+대운 표) 노출(전부 결정론). */
   saju?: SajuResult | null;
 }) {
+  const bodyChars = report.sections.reduce((n, s) => n + s.body.length, 0);
+  const useAccordion = bodyChars >= ACCORDION_MIN_BODY_CHARS && report.sections.length > 1;
+
+  const [openSet, setOpenSet] = useState<Set<number>>(new Set());
+  const allOpen = openSet.size === report.sections.length;
+  const toggle = (i: number) =>
+    setOpenSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  const toggleAll = () =>
+    setOpenSet(allOpen ? new Set() : new Set(report.sections.map((_, i) => i)));
+
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
+      {/* 상단 항상 노출: 요약 칩 + 오행 분포 + 도입 */}
       {saju && (
         <div className="-mb-1">
           <SajuSummaryChips saju={saju} />
         </div>
       )}
-
-      {/* 오행 분포 차트 (결정론) */}
       {saju && <ElementChart saju={saju} />}
-
-      {/* 도입 */}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <MarkdownLite
-          text={report.intro}
-          className="text-[14px] leading-[1.9] text-[#4F4A5E]"
-        />
+        <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
       </div>
 
       {/* 대운 10년 흐름 표 (결정론 십신 테마 + LLM 개인화 한 줄, life_full 등 daeun 있는 상품만) */}
@@ -59,45 +79,39 @@ export default function GenericReportView({
         <DaeunTable daeun={saju.daeun} dayStem={saju.dayStem} lines={report.daeunLines} />
       )}
 
-      {/* 섹션들 */}
-      {report.sections.map((s, i) => {
-        const { emoji, title } = splitHeadingEmoji(s.heading);
-        return (
-          <div
-            key={i}
-            className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6"
-          >
-            <div className="flex items-center gap-2.5 mb-3">
-              <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
-                style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
-                aria-hidden
-              >
-                {emoji}
-              </span>
-              <h3 className="text-[14.5px] font-extrabold text-eye-purple">{title}</h3>
-            </div>
-            <MarkdownLite
-              text={s.body}
-              className="text-[13.5px] leading-[1.9] text-[#4F4A5E]"
-            />
+      {/* 섹션 */}
+      {useAccordion ? (
+        <>
+          <div className="flex justify-end -mb-1">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-[12px] font-bold text-lilac-deep px-3 py-1.5 rounded-full bg-lilac-soft/50 hover:bg-lilac-soft transition"
+            >
+              {allOpen ? "전체 접기" : "전체 펼치기"}
+            </button>
           </div>
-        );
-      })}
+          {report.sections.map((s, i) => (
+            <CollapsibleSection
+              key={i}
+              heading={s.heading}
+              body={s.body}
+              open={openSet.has(i)}
+              onToggle={() => toggle(i)}
+            />
+          ))}
+        </>
+      ) : (
+        report.sections.map((s, i) => <SectionCard key={i} heading={s.heading} body={s.body} />)
+      )}
 
-      {/* 별콩이 한마디 */}
+      {/* 별콩이 한마디 — 항상 노출 */}
       <div
         className="rounded-3xl px-6 py-6 text-white"
         style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
       >
-        <h3 className="text-[14px] font-bold text-gold mb-2">
-          {accentEmoji ?? "🌙"} 별콩이의 한마디
-        </h3>
-        <MarkdownLite
-          text={report.note}
-          tone="dark"
-          className="text-[13.5px] leading-[1.95] text-white/90"
-        />
+        <h3 className="text-[14px] font-bold text-gold mb-2">{accentEmoji ?? "🌙"} 별콩이의 한마디</h3>
+        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
       </div>
     </div>
   );
