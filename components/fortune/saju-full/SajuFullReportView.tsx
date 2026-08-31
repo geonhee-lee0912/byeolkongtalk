@@ -1,5 +1,6 @@
 import SajuBoard from "@/components/saju/SajuBoard";
 import ElementChart from "@/components/fortune/ElementChart";
+import ElementCycleDiagram from "@/components/fortune/ElementCycleDiagram";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { SajuFullReport } from "@/lib/fortune/saju-full-report";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -51,6 +52,7 @@ export default function SajuFullReportView({
       children: (
         <div>
           <ElementChart saju={saju} className="mb-3" />
+          <ElementCycleDiagram saju={saju} className="mb-3" />
           <MarkdownLite text={report.self.balance.lack} className="text-[13.5px] text-[#4F4A5E] leading-[1.85]" />
           <div className="mt-2.5">
             <Chips items={report.self.balance.supplements} />

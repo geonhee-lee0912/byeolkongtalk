@@ -494,6 +494,7 @@ function FortuneResultInner() {
           report={genericReport}
           accentEmoji={ftType ? FORTUNE_CONFIG[ftType].emoji : undefined}
           saju={sajuData}
+          type={ftType}
         />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">

@@ -1,11 +1,16 @@
 import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
+import type { FortuneType } from "@/lib/fortune/types";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import { splitHeadingEmoji } from "@/lib/fortune/heading";
 import SajuSummaryChips from "./SajuSummaryChips";
 import ElementChart from "./ElementChart";
+import ElementCycleDiagram from "./ElementCycleDiagram";
 import DaeunTable from "./DaeunTable";
 import ReportAccordion, { type AccordionItem } from "./ReportAccordion";
+
+// 오행 상생상극도를 노출할 종목 — 오행 구성이 주제인 리포트만(모든 사주 리포트에 넣으면 과함).
+const ELEMENT_FOCUSED: ReadonlySet<string> = new Set(["element_balance", "nature_self", "life_full"]);
 
 // 섹션 본문 총합이 이 글자수 이상이면 아코디언(접기) 적용. 미만이면 오늘처럼 전부 펼침.
 // (짧은 리포트를 접으면 오히려 초라해 보임 — 실측: nature_self 5.8k·life_full 14.6k / fact_bomb·past_life 짧음)
@@ -37,11 +42,14 @@ export default function GenericReportView({
   report,
   accentEmoji,
   saju,
+  type,
 }: {
   report: GenericReport;
   accentEmoji?: string;
   /** 있으면 상단 요약 칩 + 오행 분포 차트(+대운 표) 노출(전부 결정론). */
   saju?: SajuResult | null;
+  /** 운세 종류 — 오행 중심 종목에만 상생상극도 노출. */
+  type?: FortuneType | null;
 }) {
   const bodyChars = report.sections.reduce((n, s) => n + s.body.length, 0);
   const useAccordion = bodyChars >= ACCORDION_MIN_BODY_CHARS && report.sections.length > 1;
@@ -60,6 +68,7 @@ export default function GenericReportView({
         </div>
       )}
       {saju && <ElementChart saju={saju} />}
+      {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
         <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
       </div>
