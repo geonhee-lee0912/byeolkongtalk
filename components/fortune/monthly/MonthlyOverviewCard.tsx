@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { MonthlyReport } from "@/lib/fortune/monthly-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
@@ -16,6 +17,11 @@ export default function MonthlyOverviewCard({
 
   return (
     <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+      <div className="flex justify-center mb-2">
+        <div className="relative w-[88px] h-[100px]">
+          <Image src="/fortune-hero-monthly.webp" alt="별콩이" fill className="object-contain" />
+        </div>
+      </div>
       <div className="flex items-baseline justify-between mb-5">
         <span className="text-[16px] font-bold text-[#1C1A24]">이번 달 운세</span>
         {monthLabel && (

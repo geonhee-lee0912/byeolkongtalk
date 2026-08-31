@@ -19,10 +19,14 @@ export interface AccordionItem {
 export default function ReportAccordion({
   items,
   groupIcons,
+  accentIcon,
 }: {
   items: AccordionItem[];
   groupIcons?: Record<string, string>;
+  /** 그룹 없는 리포트용 — 목록 중간에 작은 별콩이 구분선(중간중간 캐릭터). */
+  accentIcon?: string;
 }) {
+  const accentAt = accentIcon && items.length >= 4 ? Math.floor(items.length / 2) : -1;
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
   const allOpen = items.length > 0 && openSet.size === items.length;
 
@@ -50,6 +54,20 @@ export default function ReportAccordion({
         const showDivider = !!it.group && it.group !== (idx > 0 ? items[idx - 1].group : undefined);
         return (
           <div key={it.key} className="flex flex-col gap-4">
+            {accentIcon && idx === accentAt && !showDivider && (
+              <div className="flex items-center gap-2.5 my-1">
+                <span className="flex-1 h-px bg-lilac-mid/25" />
+                <Image
+                  src={accentIcon}
+                  alt=""
+                  width={30}
+                  height={30}
+                  className="w-[30px] h-[30px] rounded-full object-cover border border-lilac-mid/30 bg-lilac-soft/40 shrink-0"
+                  aria-hidden
+                />
+                <span className="flex-1 h-px bg-lilac-mid/25" />
+              </div>
+            )}
             {showDivider && (
               <div className="flex items-center gap-2 mt-1">
                 {it.group && groupIcons?.[it.group] && (

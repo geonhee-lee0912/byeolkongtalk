@@ -18,6 +18,18 @@ const HERO: Partial<Record<FortuneType, string>> = {
   talent_path: "/fortune-hero-self.webp",
   user_manual: "/fortune-hero-self.webp",
   career_timing: "/fortune-hero-career.webp",
+  element_balance: "/fortune-hero-element_balance.webp",
+  saju_report_card: "/fortune-hero-saju_report_card.webp",
+  life_graph: "/fortune-hero-life_graph.webp",
+  good_days: "/fortune-hero-good_days.webp",
+  daily: "/fortune-hero-daily.webp",
+  monthly: "/fortune-hero-monthly.webp",
+  // 타로 5종 — 기존 별콩이 타로 일러스트 재사용(신규 생성 없음)
+  tarot_daily: "/byeolkong-tarot.png",
+  tarot_love: "/byeolkong-tarot.png",
+  tarot_money: "/byeolkong-tarot.png",
+  tarot_career: "/byeolkong-tarot.png",
+  tarot_relation: "/byeolkong-tarot.png",
 };
 
 /** 종목별 플래그십 히어로 경로(없으면 null → 기본 별콩이 사용). */

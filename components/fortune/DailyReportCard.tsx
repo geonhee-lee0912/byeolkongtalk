@@ -21,6 +21,11 @@ export default function DailyReportCard({
   return (
     <div className="w-full max-w-md mx-auto px-5">
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+        <div className="flex justify-center mb-2">
+          <div className="relative w-[88px] h-[100px]">
+            <Image src="/fortune-hero-daily.webp" alt="별콩이" fill className="object-contain" />
+          </div>
+        </div>
         {/* 상단 바 */}
         <div className="flex items-baseline justify-between mb-5">
           <span className="text-[16px] font-bold text-[#1C1A24]">오늘의 운세</span>

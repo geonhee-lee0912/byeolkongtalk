@@ -54,6 +54,11 @@ export default function TarotReportView({
   const imgH = isDaily ? 204 : 185;
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-5 animate-fade-in">
+      <div className="flex justify-center -mb-2">
+        <div className="relative w-[92px] h-[104px]">
+          <Image src="/byeolkong-tarot.png" alt="별콩이" fill className="object-contain" />
+        </div>
+      </div>
       <h1 className="text-[20px] font-bold text-eye-purple text-center leading-snug">
         {report.headline}
       </h1>

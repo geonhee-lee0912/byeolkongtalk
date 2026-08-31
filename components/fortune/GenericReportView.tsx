@@ -81,7 +81,7 @@ export default function GenericReportView({
 
       {/* 섹션 — 길면 아코디언, 짧으면 전부 펼침 */}
       {useAccordion ? (
-        <ReportAccordion items={items} />
+        <ReportAccordion items={items} accentIcon="/byeolkong-curious.png" />
       ) : (
         report.sections.map((s, i) => <SectionCard key={i} heading={s.heading} body={s.body} />)
       )}

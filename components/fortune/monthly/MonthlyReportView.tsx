@@ -74,7 +74,7 @@ export default function MonthlyReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       <MonthlyOverviewCard report={report} monthLabel={monthLabel} />
-      <ReportAccordion items={items} />
+      <ReportAccordion items={items} accentIcon="/byeolkong-listen.png" />
       <MonthlyNoteCard note={report.note} />
     </div>
   );
