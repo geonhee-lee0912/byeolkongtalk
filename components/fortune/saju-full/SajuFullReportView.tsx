@@ -1,3 +1,4 @@
+import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import ElementChart from "@/components/fortune/ElementChart";
 import ElementCycleDiagram from "@/components/fortune/ElementCycleDiagram";
@@ -182,6 +183,9 @@ export default function SajuFullReportView({
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 다크 종합운 히어로 */}
       <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+        <div className="flex justify-center mb-2">
+          <Image src="/byeolkong-joy.png" alt="별콩이" width={60} height={60} className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+        </div>
         <p className="text-[12px] font-bold text-gold/90 text-center">
           2026 종합운 · {report.year2026.hanja}년
         </p>
@@ -223,7 +227,16 @@ export default function SajuFullReportView({
 
       {/* 별콩이의 한마디 — 항상 노출 */}
       <div className="rounded-3xl px-6 py-6 text-white" style={{ background: DARK_GRADIENT }}>
-        <h3 className="text-[14px] font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <Image
+            src="/byeolkong-main.png"
+            alt="별콩이"
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
+          />
+          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+        </div>
         <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
       </div>
     </div>

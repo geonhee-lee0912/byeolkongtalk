@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FortuneType } from "@/lib/fortune/types";
@@ -40,11 +41,11 @@ function SectionCard({ heading, body }: { heading: string; body: string }) {
 // 섹션 본문이 길면(≥4.5k자) 아코디언으로 접어 스크롤 완화, 짧으면 전부 펼침.
 export default function GenericReportView({
   report,
-  accentEmoji,
   saju,
   type,
 }: {
   report: GenericReport;
+  /** @deprecated note 히어로가 별콩이 아바타로 바뀌며 미사용. caller 호환 위해 타입만 유지. */
   accentEmoji?: string;
   /** 있으면 상단 요약 칩 + 오행 분포 차트(+대운 표) 노출(전부 결정론). */
   saju?: SajuResult | null;
@@ -90,7 +91,16 @@ export default function GenericReportView({
         className="rounded-3xl px-6 py-6 text-white"
         style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
       >
-        <h3 className="text-[14px] font-bold text-gold mb-2">{accentEmoji ?? "🌙"} 별콩이의 한마디</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <Image
+            src="/byeolkong-main.png"
+            alt="별콩이"
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
+          />
+          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+        </div>
         <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
       </div>
     </div>
