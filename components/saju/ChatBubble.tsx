@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { splitEmphasis } from "@/lib/text-emphasis";
+import EmphasisText from "@/components/common/EmphasisText";
 
 export interface ChatBubbleProps {
   role: "user" | "assistant";
@@ -46,9 +46,7 @@ export default function ChatBubble({
           </div>
         )}
         <div className="bg-cream-warm text-eye-purple rounded-2xl rounded-tl-md px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap border border-lilac-mid/20">
-          {splitEmphasis(content).map((s, i) =>
-            s.bold ? <strong key={i}>{s.text}</strong> : s.text
-          )}
+          <EmphasisText text={content} />
           {streaming && content.length === 0 && (
             <span className="inline-flex gap-0.5 items-center text-text-light/60">
               <span className="animate-pulse">·</span>
