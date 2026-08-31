@@ -28,19 +28,36 @@ export interface GenericReportSection {
   body: string; // 본문
 }
 
-/** AI 가 생성하는 부분 — intro + 섹션 N개 + note. */
+/** 대운(10년) 개인화 한 줄 — 평생사주(life_full)만 생성. startAge 로 대운 표 행과 매칭. */
+export interface DaeunLine {
+  startAge: number; // 대운 시작 만나이(대운 표의 앞 숫자) — 매칭 키
+  line: string; // "내 사주 × 이 대운" 이 만나 도드라지는 일 한 줄
+}
+
+/** AI 가 생성하는 부분 — intro + 섹션 N개 + note. daeunLines 는 life_full 만(그 외 null). */
 export interface GenericReportAI {
   intro: string; // 도입부
   sections: GenericReportSection[]; // 종목별 N개 (개수는 prompt/parser 가 담당, 스키마는 배열)
   note: string; // 별콩이 한마디
+  daeunLines?: DaeunLine[]; // 대운 개인화 한 줄(life_full 전용, 있을 때만)
 }
 
-/** OpenAI 구조화 출력 스키마 — strict. 섹션 개수는 프롬프트가 지시(스키마는 배열이라 강제 불가). */
+/** OpenAI 구조화 출력 스키마 — strict. 섹션 개수는 프롬프트가 지시(스키마는 배열이라 강제 불가).
+ * daeunLines 는 nullable(life_full 만 채움, 그 외 null). intro 직후에 둬 긴 sections 절단에도 살아남게 한다. */
 export const GENERIC_REPORT_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
     intro: { type: "string" },
+    daeunLines: {
+      type: ["array", "null"],
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: { startAge: { type: "integer" }, line: { type: "string" } },
+        required: ["startAge", "line"],
+      },
+    },
     sections: {
       type: "array",
       items: {
@@ -52,7 +69,7 @@ export const GENERIC_REPORT_SCHEMA = {
     },
     note: { type: "string" },
   },
-  required: ["intro", "sections", "note"],
+  required: ["intro", "daeunLines", "sections", "note"],
 } as const;
 
 /** 저장/렌더 최종 형태. */
@@ -84,7 +101,30 @@ export function parseGenericReportJson(raw: string): GenericReportAI | null {
   }
   if (sections.length === 0) return null;
 
-  return { intro: o.intro.trim(), sections, note: o.note.trim() };
+  const daeunLines = parseDaeunLines(o.daeunLines);
+
+  return {
+    intro: o.intro.trim(),
+    sections,
+    note: o.note.trim(),
+    ...(daeunLines ? { daeunLines } : {}),
+  };
+}
+
+/** daeunLines(nullable) → 검증된 배열 또는 undefined. startAge 정수 + 비어있지 않은 line 만. */
+function parseDaeunLines(raw: unknown): DaeunLine[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: DaeunLine[] = [];
+  for (const d of raw) {
+    if (d && typeof d === "object") {
+      const sa = (d as Record<string, unknown>).startAge;
+      const line = (d as Record<string, unknown>).line;
+      if (typeof sa === "number" && Number.isFinite(sa) && isNonEmptyString(line)) {
+        out.push({ startAge: Math.trunc(sa), line: line.trim() });
+      }
+    }
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 export function buildGenericReport(ai: GenericReportAI): GenericReport {

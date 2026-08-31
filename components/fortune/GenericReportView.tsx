@@ -54,8 +54,10 @@ export default function GenericReportView({
         />
       </div>
 
-      {/* 대운 10년 흐름 표 (결정론, life_full 등 daeun 있는 상품만) */}
-      {saju && saju.daeun && saju.daeun.length > 0 && <DaeunTable daeun={saju.daeun} />}
+      {/* 대운 10년 흐름 표 (결정론 십신 테마 + LLM 개인화 한 줄, life_full 등 daeun 있는 상품만) */}
+      {saju && saju.daeun && saju.daeun.length > 0 && (
+        <DaeunTable daeun={saju.daeun} dayStem={saju.dayStem} lines={report.daeunLines} />
+      )}
 
       {/* 섹션들 */}
       {report.sections.map((s, i) => {
