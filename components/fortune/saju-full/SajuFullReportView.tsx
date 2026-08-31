@@ -224,8 +224,16 @@ export default function SajuFullReportView({
         )}
       </div>
 
-      {/* 접이식 섹션 (그룹 구분선) */}
-      <ReportAccordion items={items} />
+      {/* 접이식 섹션 (그룹 구분선 + 중간중간 별콩이) */}
+      <ReportAccordion
+        items={items}
+        groupIcons={{
+          [G1]: "/byeolkong-curious.png",
+          [G2]: "/byeolkong-focus.png",
+          [G3]: "/byeolkong-listen.png",
+          [G4]: "/byeolkong-cheer.png",
+        }}
+      />
 
       {/* 별콩이의 한마디 — 항상 노출 */}
       <div className="rounded-3xl px-6 py-6 text-white" style={{ background: DARK_GRADIENT }}>

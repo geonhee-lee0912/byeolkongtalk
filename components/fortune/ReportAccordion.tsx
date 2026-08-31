@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import CollapsibleSection from "./CollapsibleSection";
 
@@ -14,7 +15,14 @@ export interface AccordionItem {
 
 // 리포트 공용 아코디언 — 접이식 섹션 목록 + "전체 펼치기/접기" 토글 + (선택)그룹 구분선.
 // generic·monthly·compat·saju_full 이 동일 UX 로 통일해 쓴다. 상단 히어로·하단 한마디는 각 뷰가 바깥에 둔다.
-export default function ReportAccordion({ items }: { items: AccordionItem[] }) {
+// groupIcons: 그룹 라벨 → 별콩이 일러스트 경로(구분선에 작은 아바타로 노출, 중간중간 캐릭터 배치).
+export default function ReportAccordion({
+  items,
+  groupIcons,
+}: {
+  items: AccordionItem[];
+  groupIcons?: Record<string, string>;
+}) {
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
   const allOpen = items.length > 0 && openSet.size === items.length;
 
@@ -43,7 +51,17 @@ export default function ReportAccordion({ items }: { items: AccordionItem[] }) {
         return (
           <div key={it.key} className="flex flex-col gap-4">
             {showDivider && (
-              <div className="flex items-center gap-2.5 mt-1">
+              <div className="flex items-center gap-2 mt-1">
+                {it.group && groupIcons?.[it.group] && (
+                  <Image
+                    src={groupIcons[it.group]}
+                    alt=""
+                    width={26}
+                    height={26}
+                    className="w-[26px] h-[26px] rounded-full object-cover border border-lilac-mid/30 bg-lilac-soft/40 shrink-0"
+                    aria-hidden
+                  />
+                )}
                 <span className="text-[12.5px] font-extrabold text-lilac-deep shrink-0">{it.group}</span>
                 <span className="flex-1 h-px bg-lilac-mid/25" />
               </div>
