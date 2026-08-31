@@ -24,6 +24,7 @@ export function sectionPreview(body: string): string {
   const plain = body
     .replace(/\*\*/g, "") // 볼드 마커
     .replace(/^\s*[>\-]\s?/gm, "") // 줄머리 불릿/콜아웃 마커
+    .replace(/^\s*\d+\.\s+/gm, "") // 줄머리 번호 목록("1. ") — 없애야 첫 문장이 "1."로 안 잘림
     .replace(/\s*\n+\s*/g, " ") // 줄바꿈 → 공백
     .trim();
   const m = plain.match(/^[^.!?…]*[.!?…]/); // 첫 문장 끝까지

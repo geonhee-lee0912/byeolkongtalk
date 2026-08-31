@@ -21,3 +21,7 @@ test("sectionPreview: 불릿·콜아웃 마커와 줄바꿈 제거", () => {
 test("sectionPreview: 문장부호 없으면 통째로(라인클램프가 절단)", () => {
   assert.equal(sectionPreview("- 첫 불릿\n- 둘째 불릿"), "첫 불릿 둘째 불릿");
 });
+
+test("sectionPreview: 번호목록('1. ')은 첫 문장이 '1.'로 안 잘린다", () => {
+  assert.equal(sectionPreview("1. 첫 기회의 설명이야. 부연.\n\n2. 둘째 기회."), "첫 기회의 설명이야.");
+});
