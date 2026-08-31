@@ -1,23 +1,31 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import { splitHeadingEmoji, sectionPreview } from "@/lib/fortune/heading";
 
-// 접이식 섹션 카드 — 긴 리포트의 스크롤 완화용. 열림 상태는 부모가 제어(전체 펼치기/접기 지원).
-// 접힘: 아이콘 + 제목 + 첫 문장 미리보기 한 줄. 펼침: 제목 + 본문(MarkdownLite).
+// 접이식 섹션 카드 — 긴 리포트의 스크롤 완화용. 열림 상태는 부모(ReportAccordion)가 제어.
+// 본문은 markdown 문자열(body) 또는 커스텀 노드(children) 중 하나. 접힘: 아이콘+제목+미리보기 한 줄.
 export default function CollapsibleSection({
   heading,
   body,
+  children,
+  preview,
   open,
   onToggle,
 }: {
   heading: string;
-  body: string;
+  /** markdown 본문(있으면 MarkdownLite 로 렌더 + 첫 문장 미리보기 자동). */
+  body?: string;
+  /** 커스텀 본문(표·칩 등). body 없을 때 사용. */
+  children?: ReactNode;
+  /** 접힘 미리보기 오버라이드(커스텀 children 섹션용). body 있으면 자동 계산이 우선. */
+  preview?: string;
   open: boolean;
   onToggle: () => void;
 }) {
   const { emoji, title } = splitHeadingEmoji(heading);
-  const preview = open ? "" : sectionPreview(body);
+  const previewText = open ? "" : body ? sectionPreview(body) : (preview ?? "");
 
   return (
     <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] overflow-hidden">
@@ -36,8 +44,8 @@ export default function CollapsibleSection({
         </span>
         <span className="flex-1 min-w-0">
           <span className="block text-[14.5px] font-extrabold text-eye-purple">{title}</span>
-          {!open && preview && (
-            <span className="block text-[12px] text-text-light/70 mt-0.5 truncate">{preview}</span>
+          {!open && previewText && (
+            <span className="block text-[12px] text-text-light/70 mt-0.5 truncate">{previewText}</span>
           )}
         </span>
         <svg
@@ -51,7 +59,11 @@ export default function CollapsibleSection({
       </button>
       {open && (
         <div className="px-[22px] pb-6 -mt-1">
-          <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+          {body ? (
+            <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+          ) : (
+            children
+          )}
         </div>
       )}
     </div>

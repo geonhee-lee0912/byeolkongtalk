@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
@@ -8,7 +5,7 @@ import { splitHeadingEmoji } from "@/lib/fortune/heading";
 import SajuSummaryChips from "./SajuSummaryChips";
 import ElementChart from "./ElementChart";
 import DaeunTable from "./DaeunTable";
-import CollapsibleSection from "./CollapsibleSection";
+import ReportAccordion, { type AccordionItem } from "./ReportAccordion";
 
 // 섹션 본문 총합이 이 글자수 이상이면 아코디언(접기) 적용. 미만이면 오늘처럼 전부 펼침.
 // (짧은 리포트를 접으면 오히려 초라해 보임 — 실측: nature_self 5.8k·life_full 14.6k / fact_bomb·past_life 짧음)
@@ -48,18 +45,11 @@ export default function GenericReportView({
 }) {
   const bodyChars = report.sections.reduce((n, s) => n + s.body.length, 0);
   const useAccordion = bodyChars >= ACCORDION_MIN_BODY_CHARS && report.sections.length > 1;
-
-  const [openSet, setOpenSet] = useState<Set<number>>(new Set());
-  const allOpen = openSet.size === report.sections.length;
-  const toggle = (i: number) =>
-    setOpenSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
-  const toggleAll = () =>
-    setOpenSet(allOpen ? new Set() : new Set(report.sections.map((_, i) => i)));
+  const items: AccordionItem[] = report.sections.map((s, i) => ({
+    key: String(i),
+    heading: s.heading,
+    body: s.body,
+  }));
 
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
@@ -79,28 +69,9 @@ export default function GenericReportView({
         <DaeunTable daeun={saju.daeun} dayStem={saju.dayStem} lines={report.daeunLines} />
       )}
 
-      {/* 섹션 */}
+      {/* 섹션 — 길면 아코디언, 짧으면 전부 펼침 */}
       {useAccordion ? (
-        <>
-          <div className="flex justify-end -mb-1">
-            <button
-              type="button"
-              onClick={toggleAll}
-              className="text-[12px] font-bold text-lilac-deep px-3 py-1.5 rounded-full bg-lilac-soft/50 hover:bg-lilac-soft transition"
-            >
-              {allOpen ? "전체 접기" : "전체 펼치기"}
-            </button>
-          </div>
-          {report.sections.map((s, i) => (
-            <CollapsibleSection
-              key={i}
-              heading={s.heading}
-              body={s.body}
-              open={openSet.has(i)}
-              onToggle={() => toggle(i)}
-            />
-          ))}
-        </>
+        <ReportAccordion items={items} />
       ) : (
         report.sections.map((s, i) => <SectionCard key={i} heading={s.heading} body={s.body} />)
       )}
