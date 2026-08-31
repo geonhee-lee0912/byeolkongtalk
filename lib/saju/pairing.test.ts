@@ -6,6 +6,7 @@ import {
   TEN_GOD_LABEL,
   heavenlyCombo,
   earthlySixCombo,
+  earthlySixClash,
   findTriads,
   STEM_ELEMENT,
   pairRelation,
@@ -163,4 +164,19 @@ test("pairRelation — 연·월 기둥 조화 수(시 무관, 연간 천간합 +
   // 일주는 합 없음(격리 확인)
   assert.equal(r.heavenlyCombo, false); // 갑-병 아님
   assert.equal(r.sixCombo, false); // 자-인 아님
+});
+
+test("earthlySixClash — 지지 육충 6쌍만 참, 양방향", () => {
+  // 자오·축미·인신·묘유·진술·사해
+  assert.equal(earthlySixClash("자", "오"), true);
+  assert.equal(earthlySixClash("오", "자"), true, "양방향이어야 한다");
+  assert.equal(earthlySixClash("축", "미"), true);
+  assert.equal(earthlySixClash("인", "신"), true);
+  assert.equal(earthlySixClash("묘", "유"), true);
+  assert.equal(earthlySixClash("진", "술"), true);
+  assert.equal(earthlySixClash("사", "해"), true);
+  // 충이 아닌 쌍
+  assert.equal(earthlySixClash("자", "축"), false, "자축은 육합이지 충이 아니다");
+  assert.equal(earthlySixClash("자", "자"), false, "같은 지지는 충이 아니다");
+  assert.equal(earthlySixClash("인", "해"), false);
 });

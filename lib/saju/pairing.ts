@@ -88,6 +88,17 @@ export function earthlySixCombo(branchA: string, branchB: string): boolean {
   return SIX_COMBO_SET.has(branchA + branchB);
 }
 
+// 지지 육충 6쌍 — 정면으로 부딪히는 관계(합의 반대). 판정에서 감점 신호로 쓴다.
+const SIX_CLASH_SET = new Set(
+  [["자","오"],["축","미"],["인","신"],["묘","유"],["진","술"],["사","해"]]
+    .flatMap(([a, b]) => [a + b, b + a])
+);
+
+/** 두 지지가 육충(정면 충돌)인가. */
+export function earthlySixClash(branchA: string, branchB: string): boolean {
+  return SIX_CLASH_SET.has(branchA + branchB);
+}
+
 // 삼합 4그룹 — 지지 3종이 모두 있으면 해당 오행 국(局) 완성
 const TRIAD_GROUPS: { branches: [string, string, string]; element: FiveElement }[] = [
   { branches: ["신", "자", "진"], element: "수" },
