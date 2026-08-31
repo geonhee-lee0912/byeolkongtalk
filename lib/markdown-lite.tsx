@@ -36,23 +36,61 @@ export function splitLongParagraph(text: string): string[] {
   return chunks;
 }
 
-/** 빈 줄(\n\n)로 문단 분리, '- ' 로 시작하는 연속 줄은 불릿 리스트로. 긴 문단은 자동 분할. */
+/** 문단/불릿(- )/콜아웃(> ) 분리. 줄 단위로 런을 끊어, 빈 줄 없이 한 블록에 섞인 경우
+ * (도입 문장 + 불릿, 불릿 + 콜아웃)도 각각 렌더한다 — "불릿이 줄글로 이어붙는" 버그 방지.
+ * 연속된 같은 종류 줄은 하나로 묶고(불릿 여러 개 = 한 리스트), 긴 문단은 자동 분할. */
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
-  for (const para of text.split(/\n\s*\n/)) {
-    const lines = para.split("\n").map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
-    if (lines.every((l) => l.startsWith("- "))) {
-      blocks.push({ t: "ul", items: lines.map((l) => parseInline(l.slice(2).trim())) });
-    } else if (lines.every((l) => l.startsWith(">"))) {
-      const quote = lines.map((l) => l.replace(/^>\s?/, "")).join(" ").trim();
-      blocks.push({ t: "callout", parts: parseInline(quote) });
+  let para: string[] = [];
+  let ul: InlinePart[][] = [];
+  let quote: string[] = [];
+
+  const flushPara = () => {
+    if (!para.length) return;
+    for (const chunk of splitLongParagraph(para.join(" "))) {
+      blocks.push({ t: "p", parts: parseInline(chunk) });
+    }
+    para = [];
+  };
+  const flushUl = () => {
+    if (!ul.length) return;
+    blocks.push({ t: "ul", items: ul });
+    ul = [];
+  };
+  const flushQuote = () => {
+    if (!quote.length) return;
+    blocks.push({ t: "callout", parts: parseInline(quote.join(" ").trim()) });
+    quote = [];
+  };
+
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line === "") {
+      flushPara();
+      flushUl();
+      flushQuote();
+    } else if (line.startsWith("- ")) {
+      const item = line.slice(2).trim();
+      if (!item) continue; // 빈 불릿 무시
+      flushPara();
+      flushQuote();
+      ul.push(parseInline(item));
+    } else if (line.startsWith(">")) {
+      const q = line.replace(/^>\s?/, "").trim();
+      if (!q) continue; // 빈 콜아웃 무시
+      flushPara();
+      flushUl();
+      quote.push(q);
     } else {
-      for (const chunk of splitLongParagraph(lines.join(" "))) {
-        blocks.push({ t: "p", parts: parseInline(chunk) });
-      }
+      flushUl();
+      flushQuote();
+      para.push(line);
     }
   }
+  flushPara();
+  flushUl();
+  flushQuote();
+
   return blocks.length ? blocks : [{ t: "p", parts: [{ t: "text", s: text }] }];
 }
 

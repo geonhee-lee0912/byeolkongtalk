@@ -56,3 +56,25 @@ test("parseBlocks: '> ' 는 콜아웃 블록", () => {
   const c = b[0];
   assert.equal(c.t === "callout" ? c.parts[0].s : "", "이게 핵심 팁이야");
 });
+
+// 실제 버그: 불릿 여러 줄 + 콜아웃 한 줄이 빈 줄 없이 한 블록 → 통째 줄글이 되던 것.
+test("parseBlocks: 불릿 + 콜아웃 한 블록도 각각 분리(줄글 버그 방지)", () => {
+  const b = parseBlocks("- 하나\n- 둘\n- 셋\n> 핵심 팁");
+  assert.equal(b.length, 2);
+  assert.equal(b[0].t, "ul");
+  assert.equal(b[0].t === "ul" ? b[0].items.length : 0, 3);
+  assert.equal(b[1].t, "callout");
+});
+
+test("parseBlocks: 도입 문장 + 불릿(빈 줄 없음)도 분리", () => {
+  const b = parseBlocks("강점은 이런 게 있어:\n- 하나\n- 둘");
+  assert.equal(b.length, 2);
+  assert.equal(b[0].t, "p");
+  assert.equal(b[1].t, "ul");
+  assert.equal(b[1].t === "ul" ? b[1].items.length : 0, 2);
+});
+
+test("parseBlocks: 문단+불릿+콜아웃+문단 혼합 순서 보존", () => {
+  const b = parseBlocks("도입 문장.\n- 하나\n- 둘\n> 팁\n\n다음 문단.");
+  assert.deepEqual(b.map((x) => x.t), ["p", "ul", "callout", "p"]);
+});
