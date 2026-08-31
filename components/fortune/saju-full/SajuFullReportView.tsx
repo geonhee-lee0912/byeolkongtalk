@@ -1,6 +1,7 @@
 import SajuBoard from "@/components/saju/SajuBoard";
 import ElementChart from "@/components/fortune/ElementChart";
 import ElementCycleDiagram from "@/components/fortune/ElementCycleDiagram";
+import YearTimeline from "@/components/fortune/YearTimeline";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { SajuFullReport } from "@/lib/fortune/saju-full-report";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -123,14 +124,17 @@ export default function SajuFullReportView({
       heading: "⏰ 주목할 시기",
       preview: "흐름 좋은 달과 점검할 달",
       children: (
-        <div className="flex gap-2.5">
-          <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#65b28f1a] border border-[#65b28f44]">
-            <p className="text-[11px] font-bold text-[#3f8c66] mb-1">흐름 좋은 달</p>
-            <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.good}</p>
-          </div>
-          <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#e0976b1a] border border-[#e0976b44]">
-            <p className="text-[11px] font-bold text-[#b5703f] mb-1">점검할 달</p>
-            <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.caution}</p>
+        <div className="flex flex-col gap-3.5">
+          <YearTimeline good={report.timing.good} caution={report.timing.caution} />
+          <div className="flex gap-2.5">
+            <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#65b28f1a] border border-[#65b28f44]">
+              <p className="text-[11px] font-bold text-[#3f8c66] mb-1">흐름 좋은 달</p>
+              <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.good}</p>
+            </div>
+            <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#e0976b1a] border border-[#e0976b44]">
+              <p className="text-[11px] font-bold text-[#b5703f] mb-1">점검할 달</p>
+              <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.caution}</p>
+            </div>
           </div>
         </div>
       ),
