@@ -12,6 +12,7 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import { ElementPentagon } from "./ElementPentagon";
 import { characterImage } from "@/lib/saju-mbti/character-image";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 const AXIS_LABEL: Record<AxisKey, string> = {
   yinYang: "음양",
@@ -127,23 +128,23 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {/* ③ 본문 */}
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
         <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-1.5">성격</p>
-        <p className="text-[13.5px] leading-relaxed text-eye-purple">{content.personality}</p>
+        <MarkdownLite text={content.personality} className="text-[13.5px] leading-relaxed text-eye-purple" />
       </section>
 
       <div className="grid grid-cols-1 gap-2.5">
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
           <p className="text-[14.5px] font-bold tracking-wide text-[#C99A3A] mb-1.5">빛</p>
-          <p className="text-[13px] leading-relaxed text-eye-purple">{content.light}</p>
+          <MarkdownLite text={content.light} className="text-[13px] leading-relaxed text-eye-purple" />
         </section>
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
           <p className="text-[14.5px] font-bold tracking-wide text-lilac-deep mb-1.5">그림자</p>
-          <p className="text-[13px] leading-relaxed text-eye-purple">{content.shadow}</p>
+          <MarkdownLite text={content.shadow} className="text-[13px] leading-relaxed text-eye-purple" />
         </section>
       </div>
 
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
         <p className="text-[14.5px] font-bold tracking-wide text-[#C86A8A] mb-1.5">연애</p>
-        <p className="text-[13.5px] leading-relaxed text-eye-purple">{content.love}</p>
+        <MarkdownLite text={content.love} className="text-[13.5px] leading-relaxed text-eye-purple" />
       </section>
 
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
@@ -194,7 +195,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <p className="text-[14.5px] font-bold tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
           내가 {palja.element} 기운이라 이렇게 변주돼
         </p>
-        <p className="text-[13px] leading-relaxed text-eye-purple">{ELEMENT_MODULE[palja.element].texture}</p>
+        <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-[13px] leading-relaxed text-eye-purple" />
       </section>
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
       <div className="flex items-center gap-3 my-1" aria-hidden>
@@ -265,7 +266,9 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           <span className="font-display text-[30px] text-gold">{match.matchCount}/4</span>
           <p className="text-[15px] font-medium text-cream-warm mt-0.5">{narrative.title}</p>
         </div>
-        <p className="text-[13px] leading-relaxed text-lilac-soft mt-3.5">{narrative.body}</p>
+        <div className="mt-3.5">
+          <MarkdownLite text={narrative.body} tone="dark" className="text-[13px] leading-relaxed text-lilac-soft" />
+        </div>
       </div>
 
       {/* ⑥ 하단 CTA */}
