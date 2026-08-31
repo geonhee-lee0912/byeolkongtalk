@@ -45,6 +45,7 @@ import {
 import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
 import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
+import { MarkdownLite } from "@/lib/markdown-lite";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -500,13 +501,12 @@ function FortuneResultInner() {
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
           <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
-            {sections.flatMap((s) => s.body.split(/\n{2,}/)).map((p, j) => (
-              <p
+            {sections.map((s, j) => (
+              <MarkdownLite
                 key={j}
-                className="text-[14.5px] text-text leading-[1.9] whitespace-pre-line [&:not(:first-child)]:mt-4"
-              >
-                {p.trim()}
-              </p>
+                text={s.body}
+                className="text-[14.5px] text-text leading-[1.9] [&:not(:first-child)]:mt-4"
+              />
             ))}
           </div>
         </div>
@@ -520,14 +520,7 @@ function FortuneResultInner() {
               {s.title && (
                 <h2 className="text-[14px] font-bold text-lilac-deep mb-2">{s.title}</h2>
               )}
-              {s.body.split(/\n{2,}/).map((p, j) => (
-                <p
-                  key={j}
-                  className="text-[13.5px] text-text leading-relaxed whitespace-pre-line [&:not(:first-child)]:mt-2"
-                >
-                  {p}
-                </p>
-              ))}
+              <MarkdownLite text={s.body} className="text-[13.5px] text-text leading-relaxed" />
             </div>
           ))}
         </div>

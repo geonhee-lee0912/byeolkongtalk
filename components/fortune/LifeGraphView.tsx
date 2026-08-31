@@ -1,4 +1,5 @@
 import type { LifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 // 인생 곡선 SVG — 대운 구간(x) × 흐름 점수 0~100(y). 반응형 viewBox.
 function Curve({ decades }: { decades: LifeGraphReport["decades"] }) {
@@ -45,7 +46,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <p className="text-[14px] leading-[1.9] text-[#4F4A5E] whitespace-pre-line">{report.intro}</p>
+        <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
       </div>
 
       {/* 곡선 차트 */}
@@ -62,11 +63,11 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
       <div className="flex flex-col gap-3">
         <div className="bg-gold-soft/25 rounded-2xl px-4 py-3.5 border border-gold/40">
           <div className="text-[12.5px] font-extrabold text-[#B5843F] mb-1">☀️ 가장 빛나는 시기</div>
-          <p className="text-[13px] text-[#4F4A5E] leading-[1.8] whitespace-pre-line">{report.peak}</p>
+          <MarkdownLite text={report.peak} className="text-[13px] text-[#4F4A5E] leading-[1.8]" />
         </div>
         <div className="bg-lilac-soft/40 rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
           <div className="text-[12.5px] font-extrabold text-lilac-deep mb-1">🌙 웅크리며 준비할 시기</div>
-          <p className="text-[13px] text-[#4F4A5E] leading-[1.8] whitespace-pre-line">{report.valley}</p>
+          <MarkdownLite text={report.valley} className="text-[13px] text-[#4F4A5E] leading-[1.8]" />
         </div>
       </div>
 
@@ -78,13 +79,13 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
             <span className="text-[11px] tabular-nums text-lilac-deep font-bold">{d.score}점</span>
           </div>
           <div className="text-[12.5px] font-bold text-[#4A4458] mb-0.5">{d.headline}</div>
-          <p className="text-[12.5px] text-[#4F4A5E] leading-[1.75] whitespace-pre-line">{d.body}</p>
+          <MarkdownLite text={d.body} className="text-[12.5px] text-[#4F4A5E] leading-[1.75]" />
         </div>
       ))}
 
       <div className="rounded-3xl px-6 py-6 text-white" style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}>
         <h3 className="text-[14px] font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
-        <p className="text-[13.5px] leading-[1.95] text-white/90 whitespace-pre-line">{report.note}</p>
+        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
       </div>
     </div>
   );
