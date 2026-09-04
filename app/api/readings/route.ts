@@ -10,7 +10,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
-import { calcTemporalLuck } from "@/lib/saju/calc";
+import { calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
+import { kstDate } from "@/lib/admin-time";
 import { isSajuProduct, type SajuProduct } from "@/lib/saju/products";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
@@ -325,7 +326,9 @@ export async function POST(request: NextRequest) {
   const birthYear = Number(birthDateForLuck.slice(0, 4));
 
   // 오늘 기준 시간 기둥 — good_days 면 30일 일진 포함
-  const temporal = calcTemporalLuck(new Date(), birthYear, {
+  // 서버 TZ 가 UTC 라 그대로 넘기면 KST 0~9시에 어제로 계산된다 — KST 날짜로 재구성해 넘긴다.
+  const todayKst = kstDate(new Date().toISOString());
+  const temporal = calcTemporalLuck(baseDateForKst(todayKst), birthYear, {
     includeMonth: sajuProduct === "good_days",
   });
 

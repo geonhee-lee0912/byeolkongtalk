@@ -34,15 +34,6 @@ export function toDaySelf(saju: SajuResult): DaySelf {
   };
 }
 
-/** KST 날짜 문자열("2026-09-01")로 로컬 자정+12시 Date 를 만든다.
- *  calcTemporalLuck 이 getFullYear/getMonth/getDate(= 로컬 TZ)를 쓰므로, UTC 서버에서
- *  new Date() 를 그대로 넘기면 KST 0~9시에 30일 창이 어제부터 계산된다. 정오로 잡는 건
- *  DST·경계 반올림에 안 걸리게 하기 위함(한국은 DST 없지만 서버 TZ 는 우리가 못 정한다). */
-export function baseDateForKst(todayKst: string): Date {
-  const [y, m, d] = todayKst.split("-").map(Number);
-  return new Date(y, m - 1, d, 12, 0, 0);
-}
-
 export function buildCalendar(
   saju: SajuResult,
   dailyLuck: DailyLuck[],

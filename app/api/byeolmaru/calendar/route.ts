@@ -3,9 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { calcSaju, calcTemporalLuck } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { buildCalendar, weekBuckets, baseDateForKst } from "@/lib/byeolmaru/calendar";
+import { buildCalendar, weekBuckets } from "@/lib/byeolmaru/calendar";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 
