@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
+import PartnerSlot from "./PartnerSlot";
 
 interface CalendarResponse {
   today: string;
@@ -99,6 +100,8 @@ export default function ByeolmaruView() {
           ))}
         </ul>
       </section>
+
+      <PartnerSlot />
     </main>
   );
 }
