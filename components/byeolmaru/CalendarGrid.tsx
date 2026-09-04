@@ -50,9 +50,17 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
               onClick={() => onSelect(c.date)}
               aria-label={`${c.date} ${c.grade.label}`}
               aria-pressed={selected}
+              // 오늘/선택 링을 겹치지 않게 — ring-2 는 폭만 정하고 색은 스타일시트 순서로
+              // 갈려서, 겹치면 톤에 따라 "오늘" 표시가 사라졌다(예: ring-lilac-deep 이
+              // ring-lilac-mid 보다 먼저 정의되면 caution 톤의 오늘 셀이 오늘 링을 잃음).
+              // 우선순위를 삼항으로 코드에 고정해 매번 정확히 하나의 ring-{색} 만 나가게 한다.
               className={`flex aspect-square flex-col items-center justify-center rounded-xl ${TONE_BG[c.grade.tone]} ${
-                selected ? `ring-2 ${TONE_RING[c.grade.tone]}` : ""
-              } ${c.isToday ? "ring-2 ring-lilac-deep" : ""}`}
+                c.isToday
+                  ? "ring-2 ring-lilac-deep"
+                  : selected
+                    ? `ring-2 ${TONE_RING[c.grade.tone]}`
+                    : ""
+              }`}
             >
               <span className="text-sm font-semibold text-eye-purple">
                 {Number(c.date.slice(8, 10))}

@@ -26,7 +26,15 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
         {AXIS_LABEL.map(({ key, label }) => (
           <li key={key} className="flex items-center gap-3">
             <span className="w-8 text-sm text-text-light">{label}</span>
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-lilac-soft">
+            {/* 축 값은 막대 너비로만 표현돼 스크린리더엔 안 보였다 — progressbar ARIA 로 값을 노출 */}
+            <div
+              role="progressbar"
+              aria-valuenow={cell.axes[key]}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={label}
+              className="h-2 flex-1 overflow-hidden rounded-full bg-lilac-soft"
+            >
               <div
                 className="h-full rounded-full bg-lilac-deep"
                 style={{ width: `${cell.axes[key]}%` }}
