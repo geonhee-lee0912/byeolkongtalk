@@ -36,6 +36,7 @@ test("buildCalendar — 셀마다 간지·점수·등급·축이 채워진다", 
 
   assert.equal(cells[0].date, "2026-09-01");
   assert.equal(cells[0].ganji, "기축", "한글 간지 2자");
+  assert.equal(cells[0].element, "토");
   assert.equal(cells[0].score, 92);
   assert.equal(cells[0].grade.tone, "good");
   assert.equal(cells[0].axes.love, 93);
@@ -78,6 +79,8 @@ test("weekBuckets — 7일씩 묶고 마지막 조각도 버리지 않는다", (
   assert.equal(weeks[0].good, 7, "전부 92점이라 7일 모두 good");
   assert.equal(weeks[0].caution, 0);
   assert.equal(weeks[0].avgScore, 92);
+  assert.equal(weeks[4].good, 2);
+  assert.equal(weeks[4].avgScore, 92, "마지막 2일 조각도 chunk.length 로 나눠야 한다 — 7 로 하드코딩하면 26 이 된다");
 });
 
 test("weekBuckets — 빈 입력은 빈 배열", () => {
