@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCalendar, weekBuckets, toDaySelf } from "./calendar.ts";
+import { buildCalendar, weekBuckets, toDaySelf, baseDateForKst } from "./calendar.ts";
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 
 // 최소 SajuResult — 조립에 쓰는 필드만 채운다(나머지는 이 모듈이 안 본다).
@@ -85,4 +85,17 @@ test("weekBuckets — 7일씩 묶고 마지막 조각도 버리지 않는다", (
 
 test("weekBuckets — 빈 입력은 빈 배열", () => {
   assert.deepEqual(weekBuckets([]), []);
+});
+
+test("baseDateForKst — KST 날짜 문자열이 서버 TZ 와 무관하게 그 날짜로 복원된다", () => {
+  const base = baseDateForKst("2026-09-01");
+  assert.equal(base.getFullYear(), 2026);
+  assert.equal(base.getMonth(), 8, "0-based 월");
+  assert.equal(base.getDate(), 1);
+  assert.equal(base.getHours(), 12, "정오 — 경계 반올림 회피");
+  // 월말·연말 경계도 밀리지 않는다
+  const eoy = baseDateForKst("2026-12-31");
+  assert.equal(eoy.getFullYear(), 2026);
+  assert.equal(eoy.getMonth(), 11);
+  assert.equal(eoy.getDate(), 31);
 });
