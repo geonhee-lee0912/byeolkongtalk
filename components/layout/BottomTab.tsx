@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-type TabKey = "consult" | "fortune" | "history" | "shop" | "me";
+type TabKey = "consult" | "fortune" | "byeolmaru" | "shop" | "me";
 
 interface TabDef {
   key: TabKey;
@@ -39,12 +39,13 @@ const TABS: TabDef[] = [
     icon: "M13.6 3A9 9 0 1 0 21 15.8 7.2 7.2 0 0 1 13.6 3Zm4.3 .4 1 2.2 2.2 1-2.2 1-1 2.2-1-2.2-2.2-1 2.2-1Z",
   },
   {
-    key: "history",
-    label: "우리 사이",
-    href: "/relationship",
-    matchPrefixes: ["/relationship"],
-    // 하트 + 별(구멍)
-    icon: "M12 20.6C5.5 16.1 2 12.9 2 8.4 2 5.5 4.2 3.3 7 3.3c1.9 0 3.7 1 4.7 2.6h.6C13.3 4.3 15.1 3.3 17 3.3c2.8 0 5 2.2 5 5.1 0 4.5-3.5 7.7-10 12.2Zm.5-9.2-.75 1.7-1.7.75 1.7.75.75 1.7.75-1.7 1.7-.75-1.7-.75Z",
+    key: "byeolmaru",
+    label: "별마루",
+    href: "/byeolmaru",
+    // 슬롯으로 들어간 /relationship 에서도 별마루 탭이 활성으로 보이게 — 유저가 위치를 잃지 않는다
+    matchPrefixes: ["/byeolmaru", "/relationship"],
+    // 달력 + 별(구멍) — 상단 고리 2개 + 본체, 가운데 4꼭지 별을 knockout
+    icon: "M7.6 2.4h1.6v2h5.6v-2h1.6v2h1.8A2.3 2.3 0 0 1 20.5 6.7v12A2.3 2.3 0 0 1 18.2 21H5.8A2.3 2.3 0 0 1 3.5 18.7v-12A2.3 2.3 0 0 1 5.8 4.4h1.8v-2Zm4.4 8.6-1.05 2.4-2.4 1.05 2.4 1.05 1.05 2.4 1.05-2.4 2.4-1.05-2.4-1.05Z",
     iconEvenOdd: true,
   },
   {
