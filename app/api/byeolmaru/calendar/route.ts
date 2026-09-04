@@ -8,6 +8,7 @@ import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildCalendar, weekBuckets } from "@/lib/byeolmaru/calendar";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import { getEntitlement } from "@/lib/byeolmaru/entitlement";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,16 @@ export async function GET(req: NextRequest) {
     }
     const cells = buildCalendar(saju, temporal.dailyLuck, todayKst);
 
+    const ent = await getEntitlement(userId);
+
     return NextResponse.json({
       today: todayKst,
       todayGanji: temporal.day.stem + temporal.day.branch,
       cells,
       weeks: weekBuckets(cells),
+      entitled: ent.entitled,
+      trialUsed: ent.trialUsed,
+      subscriptionExpiresAt: ent.subscriptionExpiresAt,
     });
   } catch (err) {
     // calcSaju/calcTemporalLuck 는 tyme4ts 범위 밖 입력이면 throw 한다(lib/saju/pairing.ts 의
