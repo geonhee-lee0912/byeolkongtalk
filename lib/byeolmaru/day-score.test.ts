@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dayFactors, dayScore, dayGrade, axisScores, type DaySelf } from "./day-score.ts";
+import type { FiveElement } from "@/lib/saju/elements";
 
 // 일간 갑(목) · 일지 자 · 토가 0개인 사주 (총합 8)
 const SELF_A: DaySelf = {
@@ -36,6 +37,19 @@ test("dayFactors — 충과 과다 오행이 잡힌다", () => {
   assert.equal(f.sixCombo, false);
   assert.equal(f.clash, true);
   assert.equal(f.scarcity, "excess");
+});
+
+test("dayFactors — elementCount 키가 통째로 빠져도 absent 로 처리된다(saju_data 는 JSONB 라 키 누락 가능)", () => {
+  // calcSaju 는 항상 5키를 채우지만 JSONB 는 스키마를 런타임에 강제하지 않는다 —
+  // ?? 0 가드가 없으면 undefined 가 모든 비교를 통과해 balanced 로 오분류된다.
+  const selfMissingKey: DaySelf = {
+    dayStem: "갑",
+    dayBranch: "자",
+    dayElement: "목",
+    elementCount: { 목: 3, 화: 2, 토: 0, 금: 1 } as unknown as Record<FiveElement, number>,
+  };
+  const f = dayFactors(selfMissingKey, { stem: "임", branch: "신", element: "수" });
+  assert.equal(f.scarcity, "absent");
 });
 
 test("dayScore — 가중치 합이 명시된 값과 일치한다", () => {
