@@ -163,11 +163,11 @@ export default function ByeolmaruView() {
   }
 
   if (state.kind === "loading") {
-    return <main className="p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
+    return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
   }
   if (state.kind === "need_login") {
     return (
-      <main className="p-6 text-center">
+      <main className="mx-auto w-full max-w-md p-6 text-center">
         <p className="mb-4 text-eye-purple">로그인하면 네 달력을 펼쳐줄게.</p>
         <Link href="/login?next=/byeolmaru" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">
           로그인하러 가기
@@ -177,7 +177,7 @@ export default function ByeolmaruView() {
   }
   if (state.kind === "no_profile") {
     return (
-      <main className="p-6 text-center">
+      <main className="mx-auto w-full max-w-md p-6 text-center">
         <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>
         {/* /fortune 은 진열대(카탈로그)일 뿐 생일 입력 폼이 없다 — 상품을 골라 들어가도
             내 사주(primary)가 없으면 그 화면조차 결국 /mypage 로 되돌린다
@@ -191,7 +191,7 @@ export default function ByeolmaruView() {
     );
   }
   if (state.kind === "error") {
-    return <main className="p-6 text-center text-text-light">지금은 별마루를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
+    return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 별마루를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
   }
 
   const { data } = state;
@@ -199,7 +199,7 @@ export default function ByeolmaruView() {
   const crossSell = pickCrossSell(cell);
 
   return (
-    <main className="space-y-4 p-4">
+    <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <header>
         <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
         <p className="text-sm text-text-light">
