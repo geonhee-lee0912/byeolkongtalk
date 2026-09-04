@@ -5,10 +5,12 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PartnerSlot from "./PartnerSlot";
 import PremiumBlock from "./PremiumBlock";
+import AttendanceStrip from "./AttendanceStrip";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 
 interface CalendarResponse {
@@ -19,6 +21,7 @@ interface CalendarResponse {
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
+  attendance: AttendanceState;
 }
 
 type State =
@@ -46,6 +49,8 @@ export default function ByeolmaruView() {
   // disabled 라(다른 8곳 소비자와 동일 계약) /api/stars/balance 로 실 잔액을 조회해 넘긴다.
   const [subBalance, setSubBalance] = useState<number | null>(null);
   const [subBalanceLoading, setSubBalanceLoading] = useState(false);
+  const [attendance, setAttendance] = useState<AttendanceState | null>(null);
+  const [checkinLoading, setCheckinLoading] = useState(false);
 
   // 🔴 단일 refresh(): 마운트 + 체험/구독 성공 후 둘 다 이 함수를 부른다. state.kind 는 trial
   // 시작 뒤에도 "ready" 그대로라 useEffect([state.kind]) 로는 서술 재요청이 안 걸린다 — 캘린더+
@@ -81,6 +86,7 @@ export default function ByeolmaruView() {
         return;
       }
       setState({ kind: "ready", data });
+      setAttendance(data.attendance);
       // 최초 로드만 오늘 날짜로 맞추고, 체험/구독 후 재조회에서는 유저가 보던 날짜를 유지한다.
       setSelected((prev) => prev ?? data.today);
     } catch {
@@ -106,6 +112,17 @@ export default function ByeolmaruView() {
     trackUiEvent("byeolmaru_trial_started");
     await fetch("/api/byeolmaru/trial", { method: "POST" });
     await refresh(); // entitled 이 true 로 바뀌고 narrative 가 채워진다
+  }
+  async function handleCheckin() {
+    trackUiEvent("byeolmaru_checkin", { meta: { streak: attendance?.streak ?? 0 } });
+    setCheckinLoading(true);
+    try {
+      const r = await fetch("/api/byeolmaru/checkin", { method: "POST" });
+      const j = await r.json();
+      if (j.attendance) setAttendance(j.attendance);
+    } finally {
+      setCheckinLoading(false);
+    }
   }
   function handleSubscribeClick() {
     trackUiEvent("byeolmaru_subscribe_clicked");
@@ -186,6 +203,8 @@ export default function ByeolmaruView() {
           오늘 들어온 두 글자 · {data.todayGanji}
         </p>
       </header>
+
+      <AttendanceStrip attendance={attendance} loading={checkinLoading} onCheckin={handleCheckin} />
 
       <section aria-label="30일 캘린더">
         <CalendarGrid cells={data.cells} selectedDate={cell.date} onSelect={setSelected} />
