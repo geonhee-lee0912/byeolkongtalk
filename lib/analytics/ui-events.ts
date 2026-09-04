@@ -57,6 +57,10 @@ export const UI_EVENTS = [
   "byeolmaru_subscribe_clicked",
   /** 별마루 — 구독 결제 완료. meta:{stars} */
   "byeolmaru_subscribe_completed",
+  /** 별마루 — 출석 체크인. meta:{streak} */
+  "byeolmaru_checkin",
+  /** 별마루 — 크로스셀 추천 카드 클릭. meta:{product} */
+  "byeolmaru_crosssell_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
