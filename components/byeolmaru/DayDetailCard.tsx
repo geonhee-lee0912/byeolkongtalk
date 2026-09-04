@@ -10,7 +10,9 @@ const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
 
 export default function DayDetailCard({ cell }: { cell: DayCell }) {
   return (
-    <section className="rounded-2xl bg-cream-warm p-4">
+    // 그리드에서 다른 날짜를 고르면 이 카드 내용만 바뀌고 포커스는 그대로 그리드 버튼에 남는다 —
+    // aria-live 없이는 스크린리더 사용자에게 "선택이 바뀌었다"는 신호가 전혀 안 갔다.
+    <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
       <header className="mb-3 flex items-baseline justify-between">
         <h2 className="font-display text-lg text-eye-purple">
           {cell.isToday ? "오늘" : `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`}

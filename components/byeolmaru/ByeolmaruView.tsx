@@ -21,6 +21,11 @@ type State =
   | { kind: "error" }
   | { kind: "ready"; data: CalendarResponse };
 
+// "2026-09-04" → "9월 4일" (DayDetailCard 헤더와 동일 포맷).
+function fmtMD(date: string): string {
+  return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
+}
+
 export default function ByeolmaruView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
@@ -63,7 +68,12 @@ export default function ByeolmaruView() {
     return (
       <main className="p-6 text-center">
         <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>
-        <Link href="/fortune" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">
+        {/* /fortune 은 진열대(카탈로그)일 뿐 생일 입력 폼이 없다 — 상품을 골라 들어가도
+            내 사주(primary)가 없으면 그 화면조차 결국 /mypage 로 되돌린다
+            (FortuneSajuPicker "아직 내 사주를 등록하지 않았어" 분기). /mypage 는 "내 사주"
+            섹션에서 바로 "내 사주 입력하기" 버튼 → SelfSajuEditModal 로 한 번에 연결되는
+            실제 등록 지점이라 여기서 곧장 이쪽으로 보낸다. */}
+        <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">
           생년월일 입력하러 가기
         </Link>
       </main>
@@ -91,11 +101,16 @@ export default function ByeolmaruView() {
       <DayDetailCard cell={cell} />
 
       <section className="rounded-2xl bg-cream-warm p-4">
-        <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 4주 흐름</h2>
+        <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
         <ul className="space-y-1 text-sm text-text-light">
+          {/* 30일 = 7×4+2 라 버킷은 항상 5개고 마지막은 2일짜리다("4주" 로 부르면 어긋난다 —
+              lib/byeolmaru/calendar.ts weekBuckets 참고). 게다가 이 롤링 7일 버킷은 화면 위
+              CalendarGrid 의 달력 요일 정렬과 경계가 다르다(오늘이 무슨 요일이냐에 따라
+              그리드 1주차 칸 수가 달라짐). "N주차" 라는 이름 자체가 두 그리드를 하나로
+              착각하게 만들어서, 아예 각 버킷을 실제 날짜 범위로만 표시한다. */}
           {data.weeks.map((w) => (
             <li key={w.index}>
-              {w.index}주차 — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일
+              {fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일
             </li>
           ))}
         </ul>

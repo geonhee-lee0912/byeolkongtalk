@@ -22,6 +22,7 @@ const ROUTE_LABEL: Record<string, string> = {
   "/fortune/byeoljari": "별 인연 별자리 — 만들기",
   "/fortune/byeoljari/:shareId": "별 인연 별자리 — 초대 조회",
   "/relationship": "연애 상담 (우리 사이)",
+  "/byeolmaru": "별마루 — 30일 캘린더",
   "/saju": "사주 — 생년월일 입력",
   "/saju/concern": "사주 — 고민 입력",
   "/saju/reading": "사주 — 상담 대화",

@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCalendar, weekBuckets, toDaySelf, baseDateForKst } from "./calendar.ts";
+import { calcTemporalLuck } from "@/lib/saju/calc";
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
+import { kstDate } from "@/lib/admin-time";
 
 // 최소 SajuResult — 조립에 쓰는 필드만 채운다(나머지는 이 모듈이 안 본다).
 const SAJU = {
@@ -98,4 +100,22 @@ test("baseDateForKst — KST 날짜 문자열이 서버 TZ 와 무관하게 그 
   assert.equal(eoy.getFullYear(), 2026);
   assert.equal(eoy.getMonth(), 11);
   assert.equal(eoy.getDate(), 31);
+});
+
+test("KST 체인 실물 — kstDate → baseDateForKst → calcTemporalLuck 이 오늘을 dailyLuck[0]으로 낸다", () => {
+  // /api/byeolmaru/calendar route.ts 가 실제로 쓰는 체인을 그대로 재현한다. 이 스위트의 나머지
+  // 테스트는 전부 손으로 쓴 DailyLuck[] 픽스처를 쓰므로, 이 체인(과 calcTemporalLuck 자체)은
+  // 여기 말고는 유닛 테스트가 하나도 없다. kstDate(admin-time.ts, UTC+9 계산)와 calc.ts 의
+  // fmtDate(로컬 getFullYear/getMonth/getDate)는 baseDateForKst 가 "KST 날짜 문자열 → 그 날짜의
+  // 로컬 정오 Date" 로 복원해주기 때문에만 일치한다 — 둘 중 하나가 바뀌면(예: fmtDate 를
+  // toISOString().slice(0,10) 로 "정리") isToday 가 조용히 항상 false 가 된다. 여러 TZ 에서
+  // 돌려야 이 일치가 서버 TZ 에 우연히 의존한 게 아니라는 걸 확인할 수 있다.
+  const todayKst = kstDate(new Date().toISOString());
+  const temporal = calcTemporalLuck(baseDateForKst(todayKst), 1990, { includeMonth: true });
+  assert.equal(temporal.dailyLuck?.length, 30, "includeMonth:true 는 항상 30일");
+  assert.equal(
+    temporal.dailyLuck?.[0].date,
+    todayKst,
+    "체인의 첫 날짜가 오늘의 KST 날짜와 일치해야 isToday 가 산다"
+  );
 });
