@@ -1,0 +1,45 @@
+// lib/byeolmaru/narrative-prompt.ts — 별마루 개인화 서술 프롬프트 + 비자격자용 정적 티저.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import type { SajuResult } from "@/lib/saju/calc";
+import type { DayCell } from "./calendar.ts";
+
+// 정적 티저(시안 C 첫 줄) — 등급 tone 별 룰 문장. ⑥에서 일진 조각 뱅크로 교체 예정.
+const TEASER_BY_TONE: Record<string, string> = {
+  good: "오늘 너의 흐름으로 보면, 먼저 손 내미는 쪽이 하루를 쥐어.",
+  normal: "오늘은 무리하지 않는 만큼 딱 그만큼 돌아오는 결이야.",
+  caution: "오늘은 서두르기보다 한 박자 늦추면 새는 게 줄어드는 날이야.",
+};
+export function buildTeaserLine(cell: DayCell): string {
+  return TEASER_BY_TONE[cell.grade.tone] ?? TEASER_BY_TONE.normal;
+}
+
+// core 페르소나(단일 원천) — data/persona/byeolkong_core.md. 도메인 얹기는 fortune 패턴 참조.
+function loadCore(): string {
+  return readFileSync(path.join(process.cwd(), "data/persona/byeolkong_core.md"), "utf8");
+}
+
+// 사주판 요약 — lib/fortune/prompt.ts 의 sajuBlock 과 동일 필드 경로(pillars.*/dayStem/dayElement/
+// input.hourKnown). SajuResult 최상위엔 day/year/month/hour 가 없다 — 전부 pillars 밑에 있고,
+// 오행은 pillars 가 아니라 dayElement(일간 오행)에만 있다.
+function formatPillars(saju: SajuResult): string {
+  const p = saju.pillars;
+  const hourPart = saju.input.hourKnown ? `${p.hour.stem}${p.hour.branch}` : "시간모름";
+  return `일간 ${saju.dayStem}(${saju.dayElement}) · 사주 ${p.year.stem}${p.year.branch} ${p.month.stem}${p.month.branch} ${p.day.stem}${p.day.branch} ${hourPart}`;
+}
+
+export function buildNarrativeSystem(saju: SajuResult, cell: DayCell, todayGanji: string): string {
+  return [
+    loadCore(),
+    "",
+    "# 별마루 오늘 개인화",
+    `너는 '${cell.date}' 하루를 이 사람의 사주로 풀어준다. 오늘 일진은 ${todayGanji}.`,
+    `이 사람: ${formatPillars(saju)}. 오늘 등급 ${cell.grade.label}. 축(연애 ${cell.axes.love}·돈 ${cell.axes.money}·일 ${cell.axes.work}).`,
+    "규칙: 3~4문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 사주 일간과 오늘 일진의 관계로 시작.",
+    "마지막은 따뜻한 한 줄. 별표/제목/마커 없이 줄글만.",
+  ].join("\n");
+}
+
+export const NARRATIVE_KICKOFF = "오늘 내 흐름 풀어줘.";
+export const BYEOLMARU_NARRATIVE_MODEL = "gpt-5-nano"; // 원가 최소(daily 와 동일 정책)
+export const NARRATIVE_MAX_TOKENS = 900;
