@@ -3,6 +3,7 @@
 "use client";
 import { useEffect } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 
 interface Props {
   entitled: boolean;
@@ -52,7 +53,7 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
       ) : (
         <button onClick={onSubscribe} disabled={loading}
           className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60">
-          구독하고 매일 보기 · 20별 / 30일
+          구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
         </button>
       )}
     </section>

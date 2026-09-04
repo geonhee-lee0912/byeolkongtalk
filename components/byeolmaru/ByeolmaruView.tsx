@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
@@ -19,13 +20,6 @@ interface CalendarResponse {
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
 }
-
-// lib/byeolmaru/subscription.ts 의 BYEOLMARU_SUBSCRIPTION.cost 와 동일한 값. 그 모듈은
-// getServiceSupabase(@/lib/supabase, 서비스 롤 키)를 물고 있는 채로 export 하고 있어 클라
-// 컴포넌트에서 직접 import 하지 않는다 — PASS_PLANS 가 서버 전용 lib/relationship/passes.ts 와
-// 분리된 lib/relationship/types.ts 에 사는 것과 같은 이유(서버 전용 모듈이 클라 번들에 안
-// 딸려오게). 값이 바뀌면 서버 쪽도 같이 바꿔야 한다.
-const SUB_COST = 20;
 
 type State =
   | { kind: "loading" }
@@ -48,6 +42,10 @@ export default function ByeolmaruView() {
     loading: false,
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // 구독 확인 팝업 잔액 — StarConfirmModal 은 balance===null 이면 확인 버튼이 영구
+  // disabled 라(다른 8곳 소비자와 동일 계약) /api/stars/balance 로 실 잔액을 조회해 넘긴다.
+  const [subBalance, setSubBalance] = useState<number | null>(null);
+  const [subBalanceLoading, setSubBalanceLoading] = useState(false);
 
   // 🔴 단일 refresh(): 마운트 + 체험/구독 성공 후 둘 다 이 함수를 부른다. state.kind 는 trial
   // 시작 뒤에도 "ready" 그대로라 useEffect([state.kind]) 로는 서술 재요청이 안 걸린다 — 캘린더+
@@ -111,7 +109,22 @@ export default function ByeolmaruView() {
   }
   function handleSubscribeClick() {
     trackUiEvent("byeolmaru_subscribe_clicked");
-    setConfirmOpen(true); // 잔액 사전조회 없음 — 부족하면 subscribe 라우트가 402→/shop
+    setConfirmOpen(true);
+    // 잔액 조회 — app/tarot/draw, app/fortune/[type], ThreadDrawModal 과 동일한
+    // /api/stars/balance 패턴(항상 200, 비로그인/에러는 0).
+    setSubBalanceLoading(true);
+    setSubBalance(null);
+    void (async () => {
+      try {
+        const r = await fetch("/api/stars/balance", { cache: "no-store" });
+        const d = r.ok ? await r.json() : null;
+        setSubBalance(typeof d?.balance === "number" ? d.balance : 0);
+      } catch {
+        setSubBalance(0);
+      } finally {
+        setSubBalanceLoading(false);
+      }
+    })();
   }
   async function handleSubscribeConfirm() {
     const res = await fetch("/api/byeolmaru/subscribe", { method: "POST" });
@@ -123,7 +136,11 @@ export default function ByeolmaruView() {
       trackUiEvent("byeolmaru_subscribe_completed");
       setConfirmOpen(false);
       await refresh();
+      return;
     }
+    // 500(purchase_failed) 등 — 모달을 닫아 무한 로딩처럼 보이지 않게 최소 신호를 준다.
+    setConfirmOpen(false);
+    alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
   }
 
   if (state.kind === "loading") {
@@ -186,9 +203,9 @@ export default function ByeolmaruView() {
       />
       {confirmOpen && (
         <StarConfirmModal
-          cost={SUB_COST}
-          balance={null}
-          loading={false}
+          cost={BYEOLMARU_SUBSCRIPTION.cost}
+          balance={subBalance}
+          loading={subBalanceLoading}
           accent="#E8C26A"
           title="별마루 구독"
           subtitle="30일 동안 매일 개인화를 열어둬"

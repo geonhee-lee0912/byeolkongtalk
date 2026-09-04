@@ -1,7 +1,7 @@
-// lib/byeolmaru/subscription.ts — 별마루 구독 상수 + 구매 RPC 래퍼(서버 전용).
+// lib/byeolmaru/subscription.ts — 별마루 구매 RPC 래퍼(서버 전용). 상수는 클라이언트 세이프인
+// ./constants 로 분리돼 있다(이 파일은 getServiceSupabase 를 물고 있어 클라 번들에 못 들어감).
 import { getServiceSupabase } from "@/lib/supabase";
-
-export const BYEOLMARU_SUBSCRIPTION = { cost: 20, days: 30 } as const;
+import { BYEOLMARU_SUBSCRIPTION } from "./constants";
 
 export async function purchaseByeolmaruSubscription(
   userId: string
