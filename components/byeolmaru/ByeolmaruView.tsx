@@ -7,13 +7,25 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PartnerSlot from "./PartnerSlot";
+import PremiumBlock from "./PremiumBlock";
+import StarConfirmModal from "@/components/common/StarConfirmModal";
 
 interface CalendarResponse {
   today: string;
   todayGanji: string;
   cells: DayCell[];
   weeks: WeekBucket[];
+  entitled: boolean;
+  trialUsed: boolean;
+  subscriptionExpiresAt: string | null;
 }
+
+// lib/byeolmaru/subscription.ts 의 BYEOLMARU_SUBSCRIPTION.cost 와 동일한 값. 그 모듈은
+// getServiceSupabase(@/lib/supabase, 서비스 롤 키)를 물고 있는 채로 export 하고 있어 클라
+// 컴포넌트에서 직접 import 하지 않는다 — PASS_PLANS 가 서버 전용 lib/relationship/passes.ts 와
+// 분리된 lib/relationship/types.ts 에 사는 것과 같은 이유(서버 전용 모듈이 클라 번들에 안
+// 딸려오게). 값이 바뀌면 서버 쪽도 같이 바꿔야 한다.
+const SUB_COST = 20;
 
 type State =
   | { kind: "loading" }
@@ -30,33 +42,89 @@ function fmtMD(date: string): string {
 export default function ByeolmaruView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
+  const [premium, setPremium] = useState<{ narrative: string | null; teaser: string | null; loading: boolean }>({
+    narrative: null,
+    teaser: null,
+    loading: false,
+  });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // 🔴 단일 refresh(): 마운트 + 체험/구독 성공 후 둘 다 이 함수를 부른다. state.kind 는 trial
+  // 시작 뒤에도 "ready" 그대로라 useEffect([state.kind]) 로는 서술 재요청이 안 걸린다 — 캘린더+
+  // 서술을 매번 통째로 다시 받는 편이 안정적이다(entitled 재판정도 캘린더 응답에 실려 있어 같이
+  // 새로고침된다).
+  async function refresh() {
+    try {
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+      // 401 은 "지금 못 펼쳤어"(error) 로 뭉뚱그리지 않는다 — 재시도로는 절대 안 풀리는
+      // 로그인 문제라 전용 상태로 분리한다. 별마루가 하단 탭에 들어가면 비로그인 진입이
+      // 흔한 경로가 된다(별도 code:"LOGIN_REQUIRED" 를 라우트가 이미 내려주고 있다).
+      if (res.status === 401) {
+        trackUiEvent("byeolmaru_need_login");
+        setState({ kind: "need_login" });
+        return;
+      }
+      if (res.status === 404) {
+        trackUiEvent("byeolmaru_no_profile");
+        setState({ kind: "no_profile" });
+        return;
+      }
+      if (!res.ok) {
+        setState({ kind: "error" });
+        return;
+      }
+      const data: CalendarResponse = await res.json();
+      // tsconfig 의 noUncheckedIndexedAccess 가 꺼져 있어 data.cells[0] 은 배열이 비어도
+      // 타입상 DayCell 로 보인다 — 런타임 undefined 를 못 잡고 DayDetailCard 가
+      // cell.isToday 에서 크래시한다. 지금은 라우트가 빈 캘린더면 500 을 내서 못 만나지만
+      // 그건 다른 파일의 계약이고 타입 시스템은 그 회귀를 못 잡아주니 여기서 직접 막는다.
+      if (data.cells.length === 0) {
+        setState({ kind: "error" });
+        return;
+      }
+      setState({ kind: "ready", data });
+      // 최초 로드만 오늘 날짜로 맞추고, 체험/구독 후 재조회에서는 유저가 보던 날짜를 유지한다.
+      setSelected((prev) => prev ?? data.today);
+    } catch {
+      setState({ kind: "error" });
+      return;
+    }
+
+    setPremium((p) => ({ ...p, loading: true }));
+    try {
+      const nRes = await fetch("/api/byeolmaru/narrative", { cache: "no-store" });
+      const j = await nRes.json();
+      setPremium({ narrative: j.narrative ?? null, teaser: j.teaser ?? null, loading: false });
+    } catch {
+      setPremium({ narrative: null, teaser: null, loading: false });
+    }
+  }
 
   useEffect(() => {
-    void fetch("/api/byeolmaru/calendar", { cache: "no-store" })
-      .then(async (res) => {
-        // 401 은 "지금 못 펼쳤어"(error) 로 뭉뚱그리지 않는다 — 재시도로는 절대 안 풀리는
-        // 로그인 문제라 전용 상태로 분리한다. 별마루가 하단 탭에 들어가면 비로그인 진입이
-        // 흔한 경로가 된다(별도 code:"LOGIN_REQUIRED" 를 라우트가 이미 내려주고 있다).
-        if (res.status === 401) {
-          trackUiEvent("byeolmaru_need_login");
-          return setState({ kind: "need_login" });
-        }
-        if (res.status === 404) {
-          trackUiEvent("byeolmaru_no_profile");
-          return setState({ kind: "no_profile" });
-        }
-        if (!res.ok) return setState({ kind: "error" });
-        const data: CalendarResponse = await res.json();
-        // tsconfig 의 noUncheckedIndexedAccess 가 꺼져 있어 data.cells[0] 은 배열이 비어도
-        // 타입상 DayCell 로 보인다 — 런타임 undefined 를 못 잡고 DayDetailCard 가
-        // cell.isToday 에서 크래시한다. 지금은 라우트가 빈 캘린더면 500 을 내서 못 만나지만
-        // 그건 다른 파일의 계약이고 타입 시스템은 그 회귀를 못 잡아주니 여기서 직접 막는다.
-        if (data.cells.length === 0) return setState({ kind: "error" });
-        setState({ kind: "ready", data });
-        setSelected(data.today);
-      })
-      .catch(() => setState({ kind: "error" }));
+    void refresh();
   }, []);
+
+  async function handleStartTrial() {
+    trackUiEvent("byeolmaru_trial_started");
+    await fetch("/api/byeolmaru/trial", { method: "POST" });
+    await refresh(); // entitled 이 true 로 바뀌고 narrative 가 채워진다
+  }
+  function handleSubscribeClick() {
+    trackUiEvent("byeolmaru_subscribe_clicked");
+    setConfirmOpen(true); // 잔액 사전조회 없음 — 부족하면 subscribe 라우트가 402→/shop
+  }
+  async function handleSubscribeConfirm() {
+    const res = await fetch("/api/byeolmaru/subscribe", { method: "POST" });
+    if (res.status === 402) {
+      window.location.href = "/shop";
+      return;
+    }
+    if (res.ok) {
+      trackUiEvent("byeolmaru_subscribe_completed");
+      setConfirmOpen(false);
+      await refresh();
+    }
+  }
 
   if (state.kind === "loading") {
     return <main className="p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
@@ -106,6 +174,30 @@ export default function ByeolmaruView() {
         <CalendarGrid cells={data.cells} selectedDate={cell.date} onSelect={setSelected} />
       </section>
       <DayDetailCard cell={cell} />
+
+      <PremiumBlock
+        entitled={data.entitled}
+        trialUsed={data.trialUsed}
+        narrative={premium.narrative}
+        teaser={premium.teaser}
+        loading={premium.loading}
+        onStartTrial={handleStartTrial}
+        onSubscribe={handleSubscribeClick}
+      />
+      {confirmOpen && (
+        <StarConfirmModal
+          cost={SUB_COST}
+          balance={null}
+          loading={false}
+          accent="#E8C26A"
+          title="별마루 구독"
+          subtitle="30일 동안 매일 개인화를 열어둬"
+          confirmLabel="구독하기"
+          onConfirm={handleSubscribeConfirm}
+          onCharge={() => (window.location.href = "/shop")}
+          onClose={() => setConfirmOpen(false)}
+        />
+      )}
 
       <section className="rounded-2xl bg-cream-warm p-4">
         <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
