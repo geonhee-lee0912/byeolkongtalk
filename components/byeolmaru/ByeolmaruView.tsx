@@ -6,11 +6,13 @@ import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
+import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PartnerSlot from "./PartnerSlot";
 import PremiumBlock from "./PremiumBlock";
 import AttendanceStrip from "./AttendanceStrip";
+import CrossSellCard from "./CrossSellCard";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 
 interface CalendarResponse {
@@ -194,6 +196,7 @@ export default function ByeolmaruView() {
 
   const { data } = state;
   const cell = data.cells.find((c) => c.date === selected) ?? data.cells[0];
+  const crossSell = pickCrossSell(cell);
 
   return (
     <main className="space-y-4 p-4">
@@ -250,6 +253,8 @@ export default function ByeolmaruView() {
           ))}
         </ul>
       </section>
+
+      <CrossSellCard item={crossSell} />
 
       <PartnerSlot />
     </main>
