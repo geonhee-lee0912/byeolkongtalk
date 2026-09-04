@@ -76,6 +76,12 @@ export async function GET() {
         BYEOLMARU_NARRATIVE_MODEL,
         undefined
       );
+      // generateOnce 는 빈/거부 완성 시 throw 가 아니라 "" 를 반환한다(streamChat 자체 재시도 후에도).
+      // 자격자(결제자)에게 빈 화면을 주지 않도록 티저로 폴백 — inner catch 와 동일 처리.
+      if (!narrative) {
+        await logError(new Error("empty narrative"), { ...logCtx, extra: { stage: "generate_empty" } });
+        return NextResponse.json({ entitled: true, narrative: null, teaser: buildTeaserLine(todayCell) });
+      }
       return NextResponse.json({ entitled: true, narrative });
     } catch (err) {
       await logError(err, { ...logCtx, extra: { stage: "generate" } });
