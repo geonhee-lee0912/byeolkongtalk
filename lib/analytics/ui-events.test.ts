@@ -28,3 +28,10 @@ test("UI_EVENTS — 별마루 계측 4종이 등록돼 있다", () => {
     assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
   }
 });
+
+test("UI_EVENTS — 별마루 ② 페이월 이벤트가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_gate_shown"), true);
+  assert.equal(isUiEvent("byeolmaru_trial_started"), true);
+  assert.equal(isUiEvent("byeolmaru_subscribe_clicked"), true);
+  assert.equal(isUiEvent("byeolmaru_subscribe_completed"), true);
+});
