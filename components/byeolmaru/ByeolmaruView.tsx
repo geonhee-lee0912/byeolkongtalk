@@ -133,7 +133,7 @@ export default function ByeolmaruView() {
       return;
     }
     if (res.ok) {
-      trackUiEvent("byeolmaru_subscribe_completed");
+      trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: BYEOLMARU_SUBSCRIPTION.cost } });
       setConfirmOpen(false);
       await refresh();
       return;
