@@ -41,6 +41,14 @@ export const UI_EVENTS = [
   "recharge_payment_started",
   /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
   "result_cta_clicked",
+  /** 별마루 — 캘린더 날짜 셀 클릭. meta:{offset:0~29, tone:"good"|"normal"|"caution"} */
+  "byeolmaru_day_selected",
+  /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출) */
+  "byeolmaru_slot_clicked",
+  /** 별마루 — 사주 프로필 없어 캘린더를 못 그린 진입(퍼널 이탈 지점) */
+  "byeolmaru_no_profile",
+  /** 별마루 — 비로그인 진입(하단탭에서 눌렀으나 세션 없음) */
+  "byeolmaru_need_login",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];

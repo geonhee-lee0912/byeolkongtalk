@@ -2,6 +2,7 @@
 
 import type { DayCell } from "@/lib/byeolmaru/calendar";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // 등급 색 — 오행 색(SajuBoard ELEMENT_COLORS)과 섞이지 않게 별콩이 톤 3단계만 쓴다.
 const TONE_BG: Record<DayTone, string> = {
@@ -47,7 +48,12 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
             <button
               key={c.date}
               type="button"
-              onClick={() => onSelect(c.date)}
+              onClick={() => {
+                trackUiEvent("byeolmaru_day_selected", {
+                  meta: { offset: cells.indexOf(c), tone: c.grade.tone },
+                });
+                onSelect(c.date);
+              }}
               aria-label={`${c.date} ${c.grade.label}`}
               aria-pressed={selected}
               // 오늘/선택 링을 겹치지 않게 — ring-2 는 폭만 정하고 색은 스타일시트 순서로

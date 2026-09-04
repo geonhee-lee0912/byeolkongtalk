@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PartnerSlot from "./PartnerSlot";
@@ -36,8 +37,14 @@ export default function ByeolmaruView() {
         // 401 은 "지금 못 펼쳤어"(error) 로 뭉뚱그리지 않는다 — 재시도로는 절대 안 풀리는
         // 로그인 문제라 전용 상태로 분리한다. 별마루가 하단 탭에 들어가면 비로그인 진입이
         // 흔한 경로가 된다(별도 code:"LOGIN_REQUIRED" 를 라우트가 이미 내려주고 있다).
-        if (res.status === 401) return setState({ kind: "need_login" });
-        if (res.status === 404) return setState({ kind: "no_profile" });
+        if (res.status === 401) {
+          trackUiEvent("byeolmaru_need_login");
+          return setState({ kind: "need_login" });
+        }
+        if (res.status === 404) {
+          trackUiEvent("byeolmaru_no_profile");
+          return setState({ kind: "no_profile" });
+        }
         if (!res.ok) return setState({ kind: "error" });
         const data: CalendarResponse = await res.json();
         // tsconfig 의 noUncheckedIndexedAccess 가 꺼져 있어 data.cells[0] 은 배열이 비어도

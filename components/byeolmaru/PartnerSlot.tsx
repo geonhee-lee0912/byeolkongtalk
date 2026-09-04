@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // /relationship 허브가 상대 목록·대화·시뮬 진입을 이미 갖고 있어 여기서 다시 구현하지 않는다.
 // 시뮬(`/relationship/sim?rel=<id>`)은 상대를 먼저 골라야 열리고, 그 선택 UI 는 허브에만 있다.
@@ -14,6 +17,7 @@ export default function PartnerSlot() {
       </p>
       <Link
         href="/relationship"
+        onClick={() => trackUiEvent("byeolmaru_slot_clicked")}
         className="inline-block rounded-xl bg-lilac-deep px-4 py-2 text-sm text-cream"
       >
         상대 등록하러 가기

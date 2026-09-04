@@ -17,3 +17,14 @@ test("isUiEvent — MBTI 이벤트 통과, 오타 거부", () => {
   assert.equal(isUiEvent("saju_mbti_completed"), true);
   assert.equal(isUiEvent("saju_mbti_finish"), false);
 });
+
+test("UI_EVENTS — 별마루 계측 4종이 등록돼 있다", () => {
+  for (const e of [
+    "byeolmaru_day_selected",
+    "byeolmaru_slot_clicked",
+    "byeolmaru_no_profile",
+    "byeolmaru_need_login",
+  ]) {
+    assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
+  }
+});
