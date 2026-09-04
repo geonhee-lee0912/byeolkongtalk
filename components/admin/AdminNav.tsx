@@ -21,6 +21,7 @@ const GROUPS: Group[] = [
   { key: "free", label: "무료 서비스", emoji: "🎁", items: [
     { href: "/admin/free/byeoljari", label: "별 인연 별자리", emoji: "✨" },
     { href: "/admin/free/saju-mbti", label: "사주 MBTI", emoji: "🪞" },
+    { href: "/admin/free/byeolmaru", label: "별마루", emoji: "📅" },
   ] },
   { key: "ops", label: "운영·고객", emoji: "👥", items: [
     { href: "/admin/users", label: "사용자", emoji: "👤" },
