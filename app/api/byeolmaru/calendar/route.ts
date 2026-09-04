@@ -9,6 +9,7 @@ import { buildCalendar, weekBuckets } from "@/lib/byeolmaru/calendar";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
+import { getAttendanceState, grantDueReward } from "@/lib/byeolmaru/attendance";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,11 @@ export async function GET(req: NextRequest) {
 
     const ent = await getEntitlement(userId);
 
+    // 보상 정산(write)은 best-effort — 실패해도 캘린더는 떠야 한다(로그만 남기고 삼킨다).
+    // grantDueReward 는 대개 no-op(만료·미정산 구독 없음).
+    try { await grantDueReward(userId); } catch (e) { await logError(e, { route: "/api/byeolmaru/calendar", userId, extra: { stage: "reward" } }); }
+    const attendance = await getAttendanceState(userId, todayKst);
+
     return NextResponse.json({
       today: todayKst,
       todayGanji: temporal.day.stem + temporal.day.branch,
@@ -63,6 +69,7 @@ export async function GET(req: NextRequest) {
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
       subscriptionExpiresAt: ent.subscriptionExpiresAt,
+      attendance,
     });
   } catch (err) {
     // calcSaju/calcTemporalLuck 는 tyme4ts 범위 밖 입력이면 throw 한다(lib/saju/pairing.ts 의
