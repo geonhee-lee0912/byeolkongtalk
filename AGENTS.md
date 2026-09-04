@@ -81,7 +81,8 @@ docs/superpowers/{specs,plans}/
 - `/relationship` "연애 상담" — 지속 대화형 스레드(종결 없음). 미등록=콜드스타트+상대등록 / 등록=스레드
 - 이어가기: 완료 reading 참조 새 reading(`/api/readings/continue`, `previous_reading_id`+`continuation_mode`). deep = 정가×0.6. UI 는 `ContinuationModal`(타로만 fresh 버튼 있음, 사주는 deep 단일)
 - 레이아웃 (`components/layout/`): `AppShell` 이 pathname 기반(`/login` 제외) `Header`+`BottomTab` 자동 부착(`pb-20`). **BottomTab 5탭** (라벨은 `BottomTab.tsx` 의 `TABS` 가 정본) = 타로톡`/` · 사주 운세`/fortune` · **별마루`/byeolmaru`** · 별콩 상점`/shop` · 마이`/mypage`. 보관함`/readings` 는 마이에서 진입(`?from=history` 시 마이 탭 하이라이트).
-  - 🔴 **`우리 사이` 탭은 2026-09-04 제거됨 → 그 자리가 별마루**(`c34a4cf`). `/relationship` 페이지·코드는 **살아 있고** 진입점만 별마루 안 슬롯으로 옮겼다 — 스레드는 죽었지만(8월 85건 중 무료 3턴 통과 0명·별 소모 0) **상대 등록의 64.6%(월 84건)가 이 경로**라 끊으면 별마루 "우리 오늘"의 연료가 마른다. 그래서 별마루 탭의 `matchPrefixes` 에 `/relationship` 이 함께 들어 있다(그 페이지에서도 별마루 탭이 활성). 근거·판정 = `specs/2026-08-31-별마루-리텐션허브-design.md` §7-b `Footer` 는 **홈과 마이페이지에서만**(마이페이지는 로그인 게이트 뒤라 크롤러가 보는 건 사실상 홈 하나 — SEO 상 중요)
+  - 🔴 **`우리 사이` 탭은 2026-09-04 제거됨 → 그 자리가 별마루**(`c34a4cf`). `/relationship` 페이지·코드는 **살아 있고** 진입점만 별마루 안 슬롯으로 옮겼다 — 스레드는 죽었지만(8월 85건 중 무료 3턴 통과 0명·별 소모 0) **상대 등록의 64.6%(월 84건)가 이 경로**라 끊으면 별마루 "우리 오늘"의 연료가 마른다. 그래서 별마루 탭의 `matchPrefixes` 에 `/relationship` 이 함께 들어 있다(그 페이지에서도 별마루 탭이 활성). 근거·판정 = `specs/2026-08-31-별마루-리텐션허브-design.md` §7-b
+  - `Footer` 는 **홈과 마이페이지에서만**(마이페이지는 로그인 게이트 뒤라 크롤러가 보는 건 사실상 홈 하나 — SEO 상 중요)
 
 ## 현행 prod 상태 (기준 2026-07-27)
 
