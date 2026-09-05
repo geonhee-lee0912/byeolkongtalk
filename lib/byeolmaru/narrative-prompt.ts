@@ -7,11 +7,14 @@ import type { DayCell } from "./calendar.ts";
 import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
 import { PAIR_TONE_LABEL } from "./pair-day.ts";
 
-// 정적 티저(시안 C 첫 줄) — 등급 tone 별 룰 문장. ⑥에서 일진 조각 뱅크로 교체 예정.
+// 정적 티저(시안 C 첫 줄) — 등급 tone 별. ⑥에서 개인화-forward 훅으로 리파인.
+// 🔴 골격 문장(DayDetailCard, tone×relation)과 같은 화면에 인접하므로 "하루 읽기"를 복제하지
+//    않는다. 티저는 그 위에서 "네 사주까지 겹치면 더 또렷해진다"고 개인화로 앞당기는 훅.
+//    (PremiumBlock 이 이 줄 다음에 "이어서 별콩이가 네 월·시 기둥까지…" 블러를 잇는다.)
 const TEASER_BY_TONE: Record<string, string> = {
-  good: "오늘 너의 흐름으로 보면, 먼저 손 내미는 쪽이 하루를 쥐어.",
-  normal: "오늘은 무리하지 않는 만큼 딱 그만큼 돌아오는 결이야.",
-  caution: "오늘은 서두르기보다 한 박자 늦추면 새는 게 줄어드는 날이야.",
+  good: "오늘 이 순한 흐름, 네 사주에 겹쳐 보면 어디에 힘을 실으면 좋을지가 달라져.",
+  normal: "무난한 오늘도 네 사주로 들여다보면 힘 실을 자리가 따로 보여.",
+  caution: "오늘 챙길 결이 네 사주 어디를 건드리는지까지 보면 훨씬 또렷해져.",
 };
 export function buildTeaserLine(cell: DayCell): string {
   return TEASER_BY_TONE[cell.grade.tone] ?? TEASER_BY_TONE.normal;
