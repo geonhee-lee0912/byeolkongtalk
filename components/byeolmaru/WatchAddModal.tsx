@@ -37,6 +37,9 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 새 등록 성공 후 상태 — 폼을 "등록 완료" 카드로 바꿔, StarConfirmModal 취소/실패 후 재제출이
+  // /api/profiles 를 다시 쳐서 같은 사람을 중복 생성하는 걸 막는다(리뷰 Important). 재시도는 watch-add 만.
+  const [registered, setRegistered] = useState<{ id: string; name: string } | null>(null);
 
   // StarConfirmModal — profileId 가 있으면 확인 팝업이 뜬다(무료 슬롯 소진 후).
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null);
@@ -151,6 +154,8 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   // payload.displayName만 보면 빈 입력을 걸러낼 수 없다 — ProfileEditModal의 labelValid와 동일 이유).
   async function handleRegisterSubmit(payload: ProfilePayload) {
     if (busy) return;
+    // 이미 이 세션에서 등록을 마쳤으면 재-POST 금지 — watch-add 만 재시도(중복 프로필 방지).
+    if (registered) { startAddFlow(registered.id); return; }
     if (!newNameValid) {
       setError("이름을 입력해줄래?");
       return;
@@ -190,6 +195,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         return;
       }
       setSubmitting(false);
+      setRegistered({ id: profileId, name: trimmedNewName });
       startAddFlow(profileId);
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
@@ -204,7 +210,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
       // z-[75] — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
       // (ThreadDrawModal과 동일 이유·동일 값. z-100으로 올리면 결제 확인이 이 모달 아래 깔려 클릭 불가해진다)
       className="fixed inset-0 z-[75] flex items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in px-5"
-      onClick={() => !submitting && onClose()}
+      onClick={() => !busy && onClose()}
       role="dialog"
       aria-modal="true"
     >
@@ -284,6 +290,31 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                   {s.name}
                 </button>
               ))}
+          </div>
+        ) : registered ? (
+          <div className="px-5 pb-5 flex flex-col gap-3">
+            <p className="text-[14px] text-eye-purple text-center py-2">
+              <span className="font-bold">{registered.name}</span> 등록 완료
+            </p>
+            <button
+              type="button"
+              onClick={() => startAddFlow(registered.id)}
+              disabled={busy}
+              className="w-full py-2.5 rounded-xl bg-lilac-deep text-white text-[14px] font-bold disabled:opacity-50"
+            >
+              우리 오늘에 담기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRegistered(null);
+                setNewName("");
+              }}
+              disabled={busy}
+              className="w-full py-2 text-[13px] text-text-light disabled:opacity-50"
+            >
+              다른 사람 등록하기
+            </button>
           </div>
         ) : (
           <>
