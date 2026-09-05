@@ -61,6 +61,16 @@ export const UI_EVENTS = [
   "byeolmaru_checkin",
   /** 별마루 — 크로스셀 추천 카드 클릭. meta:{product} */
   "byeolmaru_crosssell_clicked",
+  /** 별마루 우리오늘 — 토글에서 상대 선택. meta:{} */
+  "byeolmaru_partner_selected",
+  /** 별마루 우리오늘 — 상대 담기 성공. meta:{via:"pick"|"register"} */
+  "byeolmaru_watch_add",
+  /** 별마루 우리오늘 — 무료 슬롯 초과로 5별 확인창 도달. meta:{cost} */
+  "byeolmaru_watch_limit",
+  /** 별마루 우리오늘 — 추가 상대 5별 결제 완료. meta:{stars} */
+  "byeolmaru_watch_purchase",
+  /** 별마루 우리오늘 — 락 티저 CTA로 체험/구독 개시. meta:{action:"trial"|"subscribe"} */
+  "byeolmaru_subscribe_from_woori",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
