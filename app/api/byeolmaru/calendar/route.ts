@@ -6,6 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildCalendar, weekBuckets } from "@/lib/byeolmaru/calendar";
+import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
@@ -52,6 +53,40 @@ export async function GET(req: NextRequest) {
     if (!temporal.dailyLuck?.length) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
+
+    // 우리 경로 — ?subject=<profileId> (없거나 "me" 는 아래 self 경로 그대로).
+    // 게이트가 self 조회보다 먼저: 비구독자에게는 상대 소유 검증 결과조차 내주지 않는다(완전 블러, 데이터 누출 0).
+    const subject = new URL(req.url).searchParams.get("subject");
+    if (subject && subject !== "me") {
+      const ent = await getEntitlement(userId);
+      if (!ent.entitled) {
+        return NextResponse.json({ subject, locked: true, entitled: false, today: todayKst });
+      }
+
+      const { data: pRow } = await getServiceSupabase()
+        .from("user_profiles")
+        .select("birth_date, birth_time, is_lunar_input, is_leap_month, gender, is_primary, display_name")
+        .eq("id", subject)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!pRow || pRow.is_primary || !pRow.birth_date) {
+        return NextResponse.json({ error: "invalid_profile" }, { status: 400 });
+      }
+
+      const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
+      const pairCells = buildPairCalendar(saju, partnerSaju, temporal.dailyLuck, todayKst);
+      return NextResponse.json({
+        subject,
+        entitled: true,
+        locked: false,
+        today: todayKst,
+        todayGanji: temporal.day.stem + temporal.day.branch,
+        partnerName: pRow.display_name,
+        cells: pairCells,
+        backdrop: pairBackdrop(saju, partnerSaju),
+      });
+    }
+
     const cells = buildCalendar(saju, temporal.dailyLuck, todayKst);
 
     const ent = await getEntitlement(userId);
