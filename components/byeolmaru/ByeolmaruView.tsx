@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
-import CalendarGrid from "./CalendarGrid";
+import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
-import PartnerSlot from "./PartnerSlot";
+import PairDayDetailCard, { PAIR_TONE_LABEL } from "./PairDayDetailCard";
+import SubjectToggle from "./SubjectToggle";
+import WatchAddModal from "./WatchAddModal";
 import PremiumBlock from "./PremiumBlock";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
@@ -38,6 +41,54 @@ function fmtMD(date: string): string {
   return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
 }
 
+// 우리 오늘 잠금 티저 — ②-a PremiumBlock 의 "시안 C"(첫 줄 맛보기)와 달리 완전 블러다
+// (design §4: 상대 캘린더는 점수 유출 0 원칙이라 실제 톤/점수를 한 조각도 보여주지 않는다).
+// 장식용 빈 격자만 흐리게 깔아 "여기 캘린더가 있다"는 모양만 암시한다.
+function LockedWooriTeaser({
+  trialUsed,
+  loading,
+  onStartTrial,
+  onSubscribe,
+}: {
+  trialUsed: boolean;
+  loading: boolean;
+  onStartTrial: () => void;
+  onSubscribe: () => void;
+}) {
+  return (
+    <section className="rounded-2xl bg-[#F3EEFB] p-4">
+      <div className="mb-2 flex items-center gap-1 text-xs text-lilac-deep">
+        <span aria-hidden>🔒</span> 우리 오늘
+      </div>
+      <div aria-hidden className="mb-3 grid grid-cols-7 gap-1 opacity-50 blur-sm select-none">
+        {Array.from({ length: 14 }, (_, i) => (
+          <div key={i} className="aspect-square rounded-lg bg-lilac-soft" />
+        ))}
+      </div>
+      <p className="text-sm leading-relaxed text-eye-purple">
+        둘 사이 오늘의 결, 끌림과 결속까지 — 구독하면 펼쳐져.
+      </p>
+      {!trialUsed ? (
+        <button
+          onClick={onStartTrial}
+          disabled={loading}
+          className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60"
+        >
+          3일 무료 체험 시작
+        </button>
+      ) : (
+        <button
+          onClick={onSubscribe}
+          disabled={loading}
+          className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60"
+        >
+          구독하고 우리 오늘 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+        </button>
+      )}
+    </section>
+  );
+}
+
 export default function ByeolmaruView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
@@ -53,6 +104,20 @@ export default function ByeolmaruView() {
   const [subBalanceLoading, setSubBalanceLoading] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceState | null>(null);
   const [checkinLoading, setCheckinLoading] = useState(false);
+
+  // 우리 오늘 — subject="me" 는 기존 나의 오늘(위 상태 그대로). subject=상대 profileId 는
+  // 아래 pairXxx 상태로 별도 관리한다(자기 날짜 선택과 뒤섞이지 않게).
+  const [subject, setSubject] = useState<string>("me");
+  const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
+  const [pairData, setPairData] = useState<{ cells: PairDayCell[]; backdrop: PairBackdrop; partnerName: string } | null>(null);
+  const [pairSelected, setPairSelected] = useState<string | null>(null);
+  const [pairLocked, setPairLocked] = useState(false);
+  const [pairLoading, setPairLoading] = useState(false);
+  const [pairError, setPairError] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  // ＋ 를 눌렀는데 비구독이면 WatchAddModal(GET/POST 403) 대신 잠금 티저를 보여준다 — subject 는
+  // "나"에 그대로 두고 이 플래그만 켜서(실제 상대 fetch 없이) 완전 블러 카드를 띄운다.
+  const [showLockedTeaser, setShowLockedTeaser] = useState(false);
 
   // 🔴 단일 refresh(): 마운트 + 체험/구독 성공 후 둘 다 이 함수를 부른다. state.kind 는 trial
   // 시작 뒤에도 "ready" 그대로라 useEffect([state.kind]) 로는 서술 재요청이 안 걸린다 — 캘린더+
@@ -91,6 +156,12 @@ export default function ByeolmaruView() {
       setAttendance(data.attendance);
       // 최초 로드만 오늘 날짜로 맞추고, 체험/구독 후 재조회에서는 유저가 보던 날짜를 유지한다.
       setSelected((prev) => prev ?? data.today);
+      // 지켜보는 상대 목록은 자격자만 — 비자격은 /api/byeolmaru/watch 가 403 이라 아예 안 부른다.
+      if (data.entitled) {
+        void loadPartners();
+      } else {
+        setPartners([]);
+      }
     } catch {
       setState({ kind: "error" });
       return;
@@ -110,10 +181,71 @@ export default function ByeolmaruView() {
     void refresh();
   }, []);
 
+  // 담은 상대 목록(SubjectToggle 칩) — refresh() 최초/재조회 및 WatchAddModal onAdded 후 호출.
+  async function loadPartners() {
+    try {
+      const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
+      if (!res.ok) {
+        setPartners([]); // 403(비자격) 등 — 에러로 취급하지 않고 그냥 빈 목록
+        return;
+      }
+      const j = await res.json();
+      setPartners(Array.isArray(j?.watched) ? j.watched : []);
+    } catch {
+      setPartners([]);
+    }
+  }
+
+  const entitledNow = state.kind === "ready" && state.data.entitled;
+
+  // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 의존성에 넣어
+  // 같은 상대를 보는 도중 체험/구독이 막 풀렸을 때도(entitled false→true) 자동으로 잠금 없는
+  // 응답을 다시 받는다(그렇지 않으면 트라이얼 시작 버튼을 눌러도 화면이 계속 잠긴 채로 남는다).
+  useEffect(() => {
+    if (subject === "me") return;
+    let cancelled = false;
+    setPairLoading(true);
+    setPairData(null);
+    setPairLocked(false);
+    setPairError(false);
+    setPairSelected(null);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, {
+          cache: "no-store",
+        });
+        const j = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (!res.ok || !j) {
+          setPairError(true);
+          return;
+        }
+        if (j.locked) {
+          setPairLocked(true);
+          return;
+        }
+        if (j.entitled && Array.isArray(j.cells) && j.cells.length > 0) {
+          setPairData({ cells: j.cells, backdrop: j.backdrop, partnerName: j.partnerName });
+          setPairSelected(j.today);
+          return;
+        }
+        setPairError(true);
+      } catch {
+        if (!cancelled) setPairError(true);
+      } finally {
+        if (!cancelled) setPairLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [subject, entitledNow]);
+
   async function handleStartTrial() {
     trackUiEvent("byeolmaru_trial_started");
     await fetch("/api/byeolmaru/trial", { method: "POST" });
     await refresh(); // entitled 이 true 로 바뀌고 narrative 가 채워진다
+    setShowLockedTeaser(false); // ＋ 경유 잠금 티저를 보던 중이었다면 해제(체험 시작으로 자격 생김)
   }
   async function handleCheckin() {
     trackUiEvent("byeolmaru_checkin", { meta: { streak: attendance?.streak ?? 0 } });
@@ -154,12 +286,24 @@ export default function ByeolmaruView() {
     if (res.ok) {
       trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: BYEOLMARU_SUBSCRIPTION.cost } });
       setConfirmOpen(false);
+      setShowLockedTeaser(false); // ＋ 경유 잠금 티저를 보던 중이었다면 해제(구독으로 자격 생김)
       await refresh();
       return;
     }
     // 500(purchase_failed) 등 — 모달을 닫아 무한 로딩처럼 보이지 않게 최소 신호를 준다.
     setConfirmOpen(false);
     alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
+  }
+
+  // ＋ 버튼 — 자격자만 실제 담기 모달을 연다. 비자격은 WatchAddModal 을 열어봤자 GET/POST 가
+  // 전부 403 이라, 대신 잠금 티저(구독 유도)를 보여준다(§4 완전 블러 원칙 — 상대 없이도 유도 가능).
+  function handleAdd() {
+    if (state.kind !== "ready") return;
+    if (state.data.entitled) {
+      setAddOpen(true);
+    } else {
+      setShowLockedTeaser(true);
+    }
   }
 
   if (state.kind === "loading") {
@@ -198,6 +342,28 @@ export default function ByeolmaruView() {
   const cell = data.cells.find((c) => c.date === selected) ?? data.cells[0];
   const crossSell = pickCrossSell(cell);
 
+  // CalendarGrid 는 이제 나(DayCell)도 우리(PairDayCell)도 아닌 정규화 셀만 받는다 — 톤 3단
+  // (good/normal/caution)이 두 판정 엔진에서 같은 union 이라 매핑에 손실이 없다.
+  const selfGridCells: GridCell[] = data.cells.map((c) => ({
+    date: c.date,
+    ganji: c.ganji,
+    tone: c.grade.tone,
+    label: c.grade.label,
+    isToday: c.isToday,
+  }));
+  const pairGridCells: GridCell[] = pairData
+    ? pairData.cells.map((c) => ({
+        date: c.date,
+        ganji: c.ganji,
+        tone: c.tone,
+        label: PAIR_TONE_LABEL[c.tone],
+        isToday: c.isToday,
+      }))
+    : [];
+  const pairCell = pairData ? pairData.cells.find((c) => c.date === pairSelected) ?? pairData.cells[0] : null;
+  // ＋ 경유 잠금 티저 또는 실제 상대 fetch 가 locked 로 응답한 경우 — 둘 다 같은 완전 블러 카드.
+  const lockedTeaser = showLockedTeaser || (subject !== "me" && pairLocked);
+
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <header>
@@ -209,20 +375,75 @@ export default function ByeolmaruView() {
 
       <AttendanceStrip attendance={attendance} loading={checkinLoading} onCheckin={handleCheckin} />
 
-      <section aria-label="30일 캘린더">
-        <CalendarGrid cells={data.cells} selectedDate={cell.date} onSelect={setSelected} />
-      </section>
-      <DayDetailCard cell={cell} />
-
-      <PremiumBlock
-        entitled={data.entitled}
-        trialUsed={data.trialUsed}
-        narrative={premium.narrative}
-        teaser={premium.teaser}
-        loading={premium.loading}
-        onStartTrial={handleStartTrial}
-        onSubscribe={handleSubscribeClick}
+      <SubjectToggle
+        partners={partners}
+        selected={showLockedTeaser ? "" : subject}
+        onSelect={(id) => {
+          setShowLockedTeaser(false);
+          setSubject(id);
+        }}
+        onAdd={handleAdd}
       />
+
+      {subject === "me" && !showLockedTeaser ? (
+        <>
+          <section aria-label="30일 캘린더">
+            <CalendarGrid cells={selfGridCells} selectedDate={cell.date} onSelect={setSelected} />
+          </section>
+          <DayDetailCard cell={cell} />
+
+          <PremiumBlock
+            entitled={data.entitled}
+            trialUsed={data.trialUsed}
+            narrative={premium.narrative}
+            teaser={premium.teaser}
+            loading={premium.loading}
+            onStartTrial={handleStartTrial}
+            onSubscribe={handleSubscribeClick}
+          />
+
+          <section className="rounded-2xl bg-cream-warm p-4">
+            <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
+            <ul className="space-y-1 text-sm text-text-light">
+              {/* 30일 = 7×4+2 라 버킷은 항상 5개고 마지막은 2일짜리다("4주" 로 부르면 어긋난다 —
+                  lib/byeolmaru/calendar.ts weekBuckets 참고). 게다가 이 롤링 7일 버킷은 화면 위
+                  CalendarGrid 의 달력 요일 정렬과 경계가 다르다(오늘이 무슨 요일이냐에 따라
+                  그리드 1주차 칸 수가 달라짐). "N주차" 라는 이름 자체가 두 그리드를 하나로
+                  착각하게 만들어서, 아예 각 버킷을 실제 날짜 범위로만 표시한다. */}
+              {data.weeks.map((w) => (
+                <li key={w.index}>
+                  {fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <CrossSellCard item={crossSell} />
+        </>
+      ) : lockedTeaser ? (
+        <LockedWooriTeaser
+          trialUsed={data.trialUsed}
+          loading={premium.loading}
+          onStartTrial={handleStartTrial}
+          onSubscribe={handleSubscribeClick}
+        />
+      ) : pairError ? (
+        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?
+        </p>
+      ) : pairData && pairCell ? (
+        <>
+          <section aria-label="우리 30일 캘린더">
+            <CalendarGrid cells={pairGridCells} selectedDate={pairCell.date} onSelect={setPairSelected} />
+          </section>
+          <PairDayDetailCard cell={pairCell} backdrop={pairData.backdrop} partnerName={pairData.partnerName} />
+        </>
+      ) : pairLoading ? (
+        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          우리 오늘을 펼치는 중…
+        </p>
+      ) : null}
+
       {confirmOpen && (
         <StarConfirmModal
           cost={BYEOLMARU_SUBSCRIPTION.cost}
@@ -238,25 +459,16 @@ export default function ByeolmaruView() {
         />
       )}
 
-      <section className="rounded-2xl bg-cream-warm p-4">
-        <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
-        <ul className="space-y-1 text-sm text-text-light">
-          {/* 30일 = 7×4+2 라 버킷은 항상 5개고 마지막은 2일짜리다("4주" 로 부르면 어긋난다 —
-              lib/byeolmaru/calendar.ts weekBuckets 참고). 게다가 이 롤링 7일 버킷은 화면 위
-              CalendarGrid 의 달력 요일 정렬과 경계가 다르다(오늘이 무슨 요일이냐에 따라
-              그리드 1주차 칸 수가 달라짐). "N주차" 라는 이름 자체가 두 그리드를 하나로
-              착각하게 만들어서, 아예 각 버킷을 실제 날짜 범위로만 표시한다. */}
-          {data.weeks.map((w) => (
-            <li key={w.index}>
-              {fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <CrossSellCard item={crossSell} />
-
-      <PartnerSlot />
+      {addOpen && (
+        <WatchAddModal
+          onClose={() => setAddOpen(false)}
+          onAdded={(id) => {
+            setAddOpen(false);
+            void loadPartners();
+            setSubject(id);
+          }}
+        />
+      )}
     </main>
   );
 }
