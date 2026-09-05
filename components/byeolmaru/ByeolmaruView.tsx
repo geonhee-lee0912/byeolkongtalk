@@ -15,6 +15,7 @@ import PairDayDetailCard from "./PairDayDetailCard";
 import SubjectToggle from "./SubjectToggle";
 import WatchAddModal from "./WatchAddModal";
 import PremiumBlock from "./PremiumBlock";
+import DailyCardBlock from "./DailyCardBlock";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
@@ -441,6 +442,13 @@ export default function ByeolmaruView() {
             narrative={premium.narrative}
             teaser={premium.teaser}
             loading={premium.loading}
+            onStartTrial={handleStartTrial}
+            onSubscribe={handleSubscribeClick}
+          />
+
+          <DailyCardBlock
+            entitled={data.entitled}
+            trialUsed={data.trialUsed}
             onStartTrial={handleStartTrial}
             onSubscribe={handleSubscribeClick}
           />

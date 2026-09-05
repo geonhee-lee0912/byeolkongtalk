@@ -11,8 +11,6 @@ import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
-import StarConfirmModal from "@/components/common/StarConfirmModal";
-import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 
 interface DailyCard {
   cardId: number;
@@ -37,7 +35,17 @@ function buildStaticLine(keywords: string[]): string {
   return "오늘 하루, 이 카드가 네 곁에 있어.";
 }
 
-export default function DailyCardBlock({ entitled }: { entitled: boolean }) {
+export default function DailyCardBlock({
+  entitled,
+  trialUsed,
+  onStartTrial,
+  onSubscribe,
+}: {
+  entitled: boolean;
+  trialUsed: boolean;
+  onStartTrial: () => void;
+  onSubscribe: () => void;
+}) {
   const [state, setState] = useState<CardState>({ kind: "loading" });
 
   const [ritualOpen, setRitualOpen] = useState(false);
@@ -47,14 +55,6 @@ export default function DailyCardBlock({ entitled }: { entitled: boolean }) {
 
   const [narrative, setNarrative] = useState<string | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
-
-  // 구독/체험 CTA — 부모(ByeolmaruView)로부터 콜백을 받지 않는 자체완결 플로우(props 는 entitled
-  // 하나뿐). trialUsed 를 모르니 항상 체험을 먼저 시도하고, 서버가 "이미 사용"이면 구독 확인으로
-  // 폴백한다(startTrial 은 멱등이라 안전 — lib/byeolmaru/entitlement.ts startTrial 참조).
-  const [subscribeOpen, setSubscribeOpen] = useState(false);
-  const [subBalance, setSubBalance] = useState<number | null>(null);
-  const [subBalanceLoading, setSubBalanceLoading] = useState(false);
-  const [subBusy, setSubBusy] = useState(false);
 
   // 오늘 카드 조회
   useEffect(() => {
@@ -179,52 +179,6 @@ export default function DailyCardBlock({ entitled }: { entitled: boolean }) {
     void saveDraw(cardId, reversed);
   }
 
-  function handleSubscribeCta() {
-    if (subBusy) return;
-    setSubBusy(true);
-    void (async () => {
-      try {
-        const r = await fetch("/api/byeolmaru/trial", { method: "POST" });
-        if (r.ok) {
-          const j = await r.json();
-          if (j.started) {
-            window.location.reload(); // entitled 는 이 컴포넌트가 직접 못 바꾸는 부모 prop — 새로고침으로 동기화
-            return;
-          }
-        }
-      } catch {
-        // 무시 — 아래 구독 확인 폴백으로 이어간다
-      }
-      setSubBusy(false);
-      setSubscribeOpen(true);
-      setSubBalanceLoading(true);
-      setSubBalance(null);
-      try {
-        const r = await fetch("/api/stars/balance", { cache: "no-store" });
-        const d = r.ok ? await r.json() : null;
-        setSubBalance(typeof d?.balance === "number" ? d.balance : 0);
-      } catch {
-        setSubBalance(0);
-      } finally {
-        setSubBalanceLoading(false);
-      }
-    })();
-  }
-
-  async function handleSubscribeConfirm() {
-    const res = await fetch("/api/byeolmaru/subscribe", { method: "POST" });
-    if (res.status === 402) {
-      window.location.href = "/shop";
-      return;
-    }
-    if (res.ok) {
-      window.location.reload();
-      return;
-    }
-    setSubscribeOpen(false);
-    alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
-  }
-
   if (state.kind === "loading") return null; // AttendanceStrip 과 동일 관행(!data → null) — 스켈레톤 없이 조용히 대기
 
   return (
@@ -283,13 +237,21 @@ export default function DailyCardBlock({ entitled }: { entitled: boolean }) {
                   <p className="mt-3 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
                     별콩이가 이 카드를 네 사주 위에 겹쳐서 오늘 흐름을 풀어주면…
                   </p>
-                  <button
-                    onClick={handleSubscribeCta}
-                    disabled={subBusy}
-                    className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60"
-                  >
-                    구독하고 이 카드 개인화 해석 보기
-                  </button>
+                  {!trialUsed ? (
+                    <button
+                      onClick={onStartTrial}
+                      className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
+                    >
+                      3일 무료 체험 시작
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onSubscribe}
+                      className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
+                    >
+                      구독하고 이 카드 개인화 해석 보기
+                    </button>
+                  )}
                   {/* 인라인 낙수(design §5) — 구독자는 이미 LLM 해석을 받으므로 비구독 대상에만 노출 */}
                   <Link href="/" className="mt-3 inline-block text-xs text-lilac-deep underline">
                     이 카드, 타로로 더 깊게 →
@@ -345,21 +307,6 @@ export default function DailyCardBlock({ entitled }: { entitled: boolean }) {
           </div>,
           document.body
         )}
-
-      {subscribeOpen && (
-        <StarConfirmModal
-          cost={BYEOLMARU_SUBSCRIPTION.cost}
-          balance={subBalance}
-          loading={subBalanceLoading}
-          accent={RITUAL_ACCENT}
-          title="별마루 구독"
-          subtitle="구독하면 오늘의 카드도 사주 위에서 풀어줘"
-          confirmLabel="구독하기"
-          onConfirm={() => void handleSubscribeConfirm()}
-          onCharge={() => (window.location.href = "/shop")}
-          onClose={() => setSubscribeOpen(false)}
-        />
-      )}
     </>
   );
 }
