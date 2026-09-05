@@ -29,24 +29,32 @@ export async function getWatchState(userId: string): Promise<WatchState> {
   return { allowed, used: usedN, canAddFree, nextCost: canAddFree ? 0 : WATCH_EXTRA_COST };
 }
 
-/** 상대를 담는다. 무료 여유 없으면 WATCH_EXTRA_COST 별 차감 후 담는다.
- * profileId 는 반드시 이 유저 소유의 비-self user_profiles 여야 한다(라우트가 검증·중복 필터). */
+/** 상대를 담는다. insert 를 먼저 해 동시 중복(PK 충돌)이면 별을 안 태우고, 과금은 insert 성공 뒤에만.
+ * 과금 실패 시 방금 넣은 행을 롤백한다. profileId 소유·비-self·생일·순차중복은 라우트가 선검증. */
 export async function addWatch(
   userId: string, profileId: string
-): Promise<{ success: boolean; charged: number; reason?: string; balance?: number }> {
+): Promise<{ success: boolean; charged: number; reason?: string; balance?: number; alreadyWatched?: boolean }> {
   const supabase = getServiceSupabase();
   const state = await getWatchState(userId);
+  const needsCharge = !state.canAddFree;
 
-  let charged = 0;
-  if (!state.canAddFree) {
-    const res = await spendStars(userId, WATCH_EXTRA_COST, { source: "byeolmaru_watch" });
-    if (!res.success) return { success: false, charged: 0, reason: res.reason, balance: res.balance };
-    charged = WATCH_EXTRA_COST;
+  // 1) 먼저 담는다 — 동시 중복이면 여기서 PK 충돌(23505)로 걸려 별을 안 태운다.
+  const { error: insErr } = await supabase.from("byeolmaru_watch").insert({ user_id: userId, profile_id: profileId });
+  if (insErr) {
+    if ((insErr as { code?: string }).code === "23505") return { success: true, charged: 0, alreadyWatched: true };
+    return { success: false, charged: 0, reason: insErr.message };
   }
 
-  const { error } = await supabase.from("byeolmaru_watch").insert({ user_id: userId, profile_id: profileId });
-  if (error) return { success: false, charged, reason: error.message };
-  return { success: true, charged };
+  // 2) 필요하면 과금 — 실패 시 방금 넣은 행을 롤백(무료 미결제 행이 남지 않게).
+  if (needsCharge) {
+    const res = await spendStars(userId, WATCH_EXTRA_COST, { source: "byeolmaru_watch" });
+    if (!res.success) {
+      await supabase.from("byeolmaru_watch").delete().eq("user_id", userId).eq("profile_id", profileId);
+      return { success: false, charged: 0, reason: res.reason, balance: res.balance };
+    }
+    return { success: true, charged: WATCH_EXTRA_COST };
+  }
+  return { success: true, charged: 0 };
 }
 
 export async function removeWatch(userId: string, profileId: string): Promise<{ success: boolean }> {

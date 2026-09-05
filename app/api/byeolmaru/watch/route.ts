@@ -23,15 +23,19 @@ export async function GET(req: NextRequest) {
 
   try {
     const supa = getServiceSupabase();
-    const { data: profiles } = await supa
+    const { data: profiles, error: profilesErr } = await supa
       .from("user_profiles")
       .select("id, display_name, relation_type, birth_date, is_primary")
       .eq("user_id", userId);
-    const { data: watched } = await supa
+    const { data: watched, error: watchedErr } = await supa
       .from("byeolmaru_watch")
       .select("profile_id, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
+    if (profilesErr || watchedErr) {
+      await logError(profilesErr ?? watchedErr, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
+      return NextResponse.json({ error: "internal" }, { status: 500 });
+    }
 
     const watchedIds = new Set((watched ?? []).map((w) => w.profile_id));
     // 우리 오늘 후보 = 비-self(내 프로필 제외) + 생일 있음(사주 계산 필수).
@@ -66,23 +70,31 @@ export async function POST(req: NextRequest) {
   try {
     const supa = getServiceSupabase();
     // 소유 + 비-self + 생일 검증(내 프로필/남의 프로필/생일없는 프로필 담기 방지).
-    const { data: p } = await supa
+    const { data: p, error: pErr } = await supa
       .from("user_profiles")
       .select("id, is_primary, birth_date")
       .eq("id", profileId)
       .eq("user_id", userId)
       .maybeSingle();
+    if (pErr) {
+      await logError(pErr, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
+      return NextResponse.json({ error: "internal" }, { status: 500 });
+    }
     if (!p || p.is_primary || !p.birth_date) {
       return NextResponse.json({ error: "invalid_profile" }, { status: 400 });
     }
 
     // 🔴 중복 pre-filter — 이미 담은 상대면 addWatch(별 차감 가능)를 호출하지 않고 그대로 성공 처리한다.
     // supabase-js 는 { head:true, count:"exact" } 일 때 카운트를 data 가 아니라 응답의 count 필드로 준다.
-    const { count: dupCount } = await supa
+    const { count: dupCount, error: dupErr } = await supa
       .from("byeolmaru_watch")
       .select("profile_id", { head: true, count: "exact" })
       .eq("user_id", userId)
       .eq("profile_id", profileId);
+    if (dupErr) {
+      await logError(dupErr, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
+      return NextResponse.json({ error: "internal" }, { status: 500 });
+    }
     if (dupCount && dupCount > 0) {
       return NextResponse.json({ ok: true, charged: 0 });
     }
@@ -110,6 +122,11 @@ export async function DELETE(req: NextRequest) {
   const profileId = new URL(req.url).searchParams.get("profileId");
   if (!profileId) return NextResponse.json({ error: "profileId_required" }, { status: 400 });
 
-  const res = await removeWatch(userId!, profileId);
-  return NextResponse.json({ ok: res.success });
+  try {
+    const res = await removeWatch(userId!, profileId);
+    return NextResponse.json({ ok: res.success });
+  } catch (err) {
+    await logError(err, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

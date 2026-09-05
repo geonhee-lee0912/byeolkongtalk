@@ -63,12 +63,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ subject, locked: true, entitled: false, today: todayKst });
       }
 
-      const { data: pRow } = await getServiceSupabase()
+      const { data: pRow, error: pErr } = await getServiceSupabase()
         .from("user_profiles")
         .select("birth_date, birth_time, is_lunar_input, is_leap_month, gender, is_primary, display_name")
         .eq("id", subject)
         .eq("user_id", userId)
         .maybeSingle();
+      if (pErr) {
+        await logError(pErr, ctxFromRequest(req, { route: "/api/byeolmaru/calendar", userId }));
+        return NextResponse.json({ error: "internal" }, { status: 500 });
+      }
       if (!pRow || pRow.is_primary || !pRow.birth_date) {
         return NextResponse.json({ error: "invalid_profile" }, { status: 400 });
       }
