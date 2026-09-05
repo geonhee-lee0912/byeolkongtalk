@@ -185,7 +185,9 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 35,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}good_days`,
     href: "/fortune/good_days",
-    active: true,
+    // 폐지(2026-09-05, ⑤-b) — config 는 기존 리딩 재열람/Record<FortuneType> 무결성 위해 유지.
+    // active:false → 직링크 /fortune/good_days 는 [type]/page.tsx valid 가드가 /fortune 로 리다이렉트.
+    active: false,
   },
   nature_self: {
     type: "nature_self",
@@ -359,7 +361,6 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.compat_social,
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.monthly,
-  FORTUNE_CONFIG.good_days,
   FORTUNE_CONFIG.nature_self,
   FORTUNE_CONFIG.talent_path,
   FORTUNE_CONFIG.user_manual,
