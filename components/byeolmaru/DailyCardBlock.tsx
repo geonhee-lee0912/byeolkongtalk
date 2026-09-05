@@ -9,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
+import { getCardLine } from "@/lib/byeolmaru/static-lines";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 
@@ -205,6 +206,8 @@ export default function DailyCardBlock({
           const reversed = drawnCard.reversed;
           const orientLabel = reversed ? "역위" : "정위";
           const kwList = reversed ? tarotCard.reversed : tarotCard.upright;
+          // ⑥ 별콩 톤 정적 해석 뱅크 우선, 뱅크 미스면 키워드 템플릿 폴백.
+          const staticLine = getCardLine(drawnCard.cardId, reversed) ?? buildStaticLine(kwList);
           return (
             <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
               <h2 className="mb-3 font-display text-base text-eye-purple">오늘의 카드</h2>
@@ -223,7 +226,7 @@ export default function DailyCardBlock({
                   {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
                 </p>
                 <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
-                <p className="mt-2 text-sm leading-relaxed text-eye-purple">{buildStaticLine(kwList)}</p>
+                <p className="mt-2 text-sm leading-relaxed text-eye-purple">{staticLine}</p>
               </div>
 
               {entitled ? (
