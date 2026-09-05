@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
+import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
@@ -81,7 +83,21 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
               <span className="text-sm font-semibold text-eye-purple">
                 {Number(c.date.slice(8, 10))}
               </span>
-              <span className="text-[10px] text-text-light">{c.ganji}</span>
+              {/* ⑦ 일지 캐릭터(십이지) — 그날 지지로 조회. 12일 순환. 없으면 간지 텍스트 폴백. */}
+              {(() => {
+                const a = branchAnimal(c.ganji);
+                return a ? (
+                  <Image
+                    src={a.assetSrc}
+                    alt={a.animal}
+                    width={26}
+                    height={26}
+                    className="h-[26px] w-[26px] object-contain"
+                  />
+                ) : (
+                  <span className="text-[10px] text-text-light">{c.ganji}</span>
+                );
+              })()}
             </button>
           );
         })}
