@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { DayCell } from "./calendar.ts";
+import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
+import { PAIR_TONE_LABEL } from "./pair-day.ts";
 
 // 정적 티저(시안 C 첫 줄) — 등급 tone 별 룰 문장. ⑥에서 일진 조각 뱅크로 교체 예정.
 const TEASER_BY_TONE: Record<string, string> = {
@@ -43,3 +45,33 @@ export function buildNarrativeSystem(saju: SajuResult, cell: DayCell, todayGanji
 export const NARRATIVE_KICKOFF = "오늘 내 흐름 풀어줘.";
 export const BYEOLMARU_NARRATIVE_MODEL = "gpt-5-nano"; // 원가 최소(daily 와 동일 정책)
 export const NARRATIVE_MAX_TOKENS = 900;
+
+// 우리 오늘 서술 — ②-a buildNarrativeSystem 미러(나 1인 → 나+상대 2인). loadCore/formatPillars 공용.
+export function buildPairNarrativeSystem(
+  self: SajuResult,
+  partner: SajuResult,
+  backdrop: PairBackdrop,
+  cell: PairDayCell,
+  todayGanji: string,
+  partnerName: string
+): string {
+  const sig: string[] = [];
+  if (cell.tags.spark) sig.push("끌림↑");
+  if (cell.tags.bond) sig.push("결속");
+  if (cell.tags.friction) sig.push("삐걱");
+  if (cell.tags.lead === "me") sig.push("내가 리드");
+  else if (cell.tags.lead === "partner") sig.push(`${partnerName}가 리드`);
+  return [
+    loadCore(),
+    "",
+    "# 별마루 우리 오늘",
+    `너는 '${cell.date}' 하루, 이 사람과 상대('${partnerName}') 사이의 흐름을 사주로 풀어준다. 오늘 일진은 ${todayGanji}.`,
+    `나: ${formatPillars(self)}.`,
+    `${partnerName}: ${formatPillars(partner)}.`,
+    `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spark ? " · 끌림 있음" : ""}${backdrop.bond ? " · 결속 있음" : ""} · 연월조화 ${backdrop.harmony}.`,
+    `오늘 둘 사이 결 ${PAIR_TONE_LABEL[cell.tone]}${sig.length ? ` · 신호 ${sig.join("·")}` : ""}.`,
+    "규칙: 3~4문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 오늘 일진이 둘 사이를 어떻게 건드리는지로 시작. 한쪽을 탓하지 말고 둘의 흐름으로 말할 것. 마지막은 따뜻한 한 줄. 별표/제목/마커 없이 줄글만.",
+  ].join("\n");
+}
+
+export const PAIR_NARRATIVE_KICKOFF = "오늘 우리 사이 흐름 풀어줘.";
