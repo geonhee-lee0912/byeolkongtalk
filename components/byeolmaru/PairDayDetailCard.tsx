@@ -7,10 +7,14 @@ export default function PairDayDetailCard({
   cell,
   backdrop,
   partnerName,
+  narrative,
+  narrativeLoading,
 }: {
   cell: PairDayCell;
   backdrop: PairBackdrop;
   partnerName: string;
+  narrative?: string | null;
+  narrativeLoading?: boolean;
 }) {
   const md = `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`;
   const tags: string[] = [];
@@ -55,6 +59,12 @@ export default function PairDayDetailCard({
           연월조화 {backdrop.harmony}
         </p>
       </div>
+
+      {narrativeLoading ? (
+        <p className="mt-3 text-sm text-text-light">별콩이가 둘 사이 오늘을 읽고 있어…</p>
+      ) : narrative ? (
+        <div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</div>
+      ) : null}
     </section>
   );
 }
