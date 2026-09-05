@@ -1,6 +1,7 @@
 "use client";
 
 import type { DayCell } from "@/lib/byeolmaru/calendar";
+import { getSkeletonLine } from "@/lib/byeolmaru/static-lines";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "love", label: "연애" },
@@ -22,7 +23,13 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
         </span>
       </header>
 
-      <p className="mb-4 font-display text-2xl text-eye-purple">{cell.grade.label}</p>
+      <p className="mb-2 font-display text-2xl text-eye-purple">{cell.grade.label}</p>
+
+      {/* ⑥ 골격 문장 — 등급 tone × relation 의 별콩 톤 한 줄(날짜별 variant 로테이션). 뱅크 미스면 생략. */}
+      {(() => {
+        const line = getSkeletonLine(cell.grade.tone, cell.relation, cell.date);
+        return line ? <p className="mb-4 text-sm leading-relaxed text-eye-purple">{line}</p> : null;
+      })()}
 
       <ul className="space-y-2">
         {AXIS_LABEL.map(({ key, label }) => (
