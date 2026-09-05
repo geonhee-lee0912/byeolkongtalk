@@ -38,6 +38,15 @@ type SummaryRow = {
 };
 type TrendRow = { bucket: string; kind: string; cnt: number };
 type RetentionRow = { cohort_date: string; cohort_users: number; offset_day: number; returned_users: number };
+type WatchSummaryRow = {
+  partner_selected_events: number; partner_selected_actors: number;
+  watch_add_events: number; watch_add_actors: number;
+  watch_limit_events: number; watch_limit_actors: number;
+  watch_purchase_events: number; watch_purchase_actors: number;
+  woori_cta_events: number; woori_cta_actors: number;
+  woori_converted_actors: number;
+};
+type WatchDistRow = { watch_count: number; user_count: number };
 
 // 어드민 페이지가 자신의 /api/admin/* 라우트를 서버사이드에서 셀프 호출한다
 // (app/admin/traffic·analytics 와 동일 관행). 쿠키를 그대로 넘겨 라우트 쪽 requireAdmin 이
@@ -54,6 +63,10 @@ async function load() {
   let trendError = true;
   let retention: RetentionRow[] = [];
   let retentionError = true;
+  let watchSummary: WatchSummaryRow | null = null;
+  let watchSummaryError = true;
+  let watchDist: WatchDistRow[] = [];
+  let watchDistError = true;
 
   try {
     const res = await fetch(`${proto}://${host}/api/admin/byeolmaru`, {
@@ -68,6 +81,10 @@ async function load() {
       trendError = !!json.trendError;
       retention = (json.retention ?? []) as RetentionRow[];
       retentionError = !!json.retentionError;
+      watchSummary = (json.watchSummary ?? null) as WatchSummaryRow | null;
+      watchSummaryError = !!json.watchSummaryError;
+      watchDist = (json.watchDist ?? []) as WatchDistRow[];
+      watchDistError = !!json.watchDistError;
     }
   } catch {
     // 네트워크/파싱 실패 — 위에서 초기화한 실패 기본값(전부 error=true)을 그대로 쓴다.
@@ -85,6 +102,21 @@ async function load() {
     noProfileActors: Number(su?.no_profile_actors ?? 0),
     needLoginEvents: Number(su?.need_login_events ?? 0),
     needLoginActors: Number(su?.need_login_actors ?? 0),
+  };
+
+  const wu = watchSummary;
+  const ws = {
+    partnerSelectedEvents: Number(wu?.partner_selected_events ?? 0),
+    partnerSelectedActors: Number(wu?.partner_selected_actors ?? 0),
+    watchAddEvents: Number(wu?.watch_add_events ?? 0),
+    watchAddActors: Number(wu?.watch_add_actors ?? 0),
+    watchLimitEvents: Number(wu?.watch_limit_events ?? 0),
+    watchLimitActors: Number(wu?.watch_limit_actors ?? 0),
+    watchPurchaseEvents: Number(wu?.watch_purchase_events ?? 0),
+    watchPurchaseActors: Number(wu?.watch_purchase_actors ?? 0),
+    wooriCtaEvents: Number(wu?.woori_cta_events ?? 0),
+    wooriCtaActors: Number(wu?.woori_cta_actors ?? 0),
+    wooriConvertedActors: Number(wu?.woori_converted_actors ?? 0),
   };
 
   // 추세는 long format(행=날짜×kind) → 날짜별로 피벗해야 표를 그릴 수 있다.
@@ -107,8 +139,10 @@ async function load() {
 
   return {
     summaryError, trendError, retentionError,
+    watchSummaryError, watchDistError,
     today: kstDate(new Date().toISOString()),
     sum, byBucket, buckets, cohorts,
+    ws, watchDist,
   };
 }
 
@@ -250,6 +284,39 @@ export default async function AdminByeolmaruPage() {
               </table>
             </div>
           </>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">우리 오늘 <span className="text-white/35">(담기 퍼널 · 구독 전용)</span></h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="상대 선택" value={s.watchSummaryError ? "—" : s.ws.partnerSelectedEvents} sub={s.watchSummaryError ? undefined : `${s.ws.partnerSelectedActors}명`} />
+          <Stat label="담기" value={s.watchSummaryError ? "—" : s.ws.watchAddEvents} sub={s.watchSummaryError ? undefined : `${s.ws.watchAddActors}명`} />
+          <Stat label="5별벽 도달" value={s.watchSummaryError ? "—" : s.ws.watchLimitEvents} sub={s.watchSummaryError ? undefined : `${s.ws.watchLimitActors}명`} />
+          <Stat label="추가상대 결제" value={s.watchSummaryError ? "—" : s.ws.watchPurchaseEvents} sub={s.watchSummaryError ? undefined : `${s.ws.watchPurchaseActors}명`} />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+          <Stat label="우리 락 CTA" value={s.watchSummaryError ? "—" : s.ws.wooriCtaEvents} sub={s.watchSummaryError ? undefined : `${s.ws.wooriCtaActors}명`} />
+          <Stat label="→ 구독 전환" value={s.watchSummaryError ? "—" : s.ws.wooriConvertedActors} sub={s.watchSummaryError ? undefined : `CTA ${s.ws.wooriCtaActors}명 중`} />
+        </div>
+        {s.watchSummaryError && <LoadFailed block="admin_byeolmaru_watch_summary" className="mt-2" />}
+
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">상대 수 분포</h3>
+        {s.watchDistError ? (
+          <LoadFailed block="admin_byeolmaru_watch_distribution" />
+        ) : s.watchDist.length === 0 ? (
+          <div className="text-[12px] text-white/40">아직 담은 유저 없음</div>
+        ) : (
+          <table className="w-full text-[12px] max-w-xs">
+            <thead><tr className="text-white/40 text-left"><th className="py-1 pr-3">상대 수</th><th className="py-1 px-2 text-right">유저 수</th></tr></thead>
+            <tbody>
+              {s.watchDist.map((d) => (
+                <tr key={d.watch_count} className="border-t border-white/5 text-white/70">
+                  <td className="py-1 pr-3">{d.watch_count}명</td><td className="py-1 px-2 text-right">{d.user_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>
