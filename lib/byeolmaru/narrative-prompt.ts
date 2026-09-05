@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { SajuResult } from "@/lib/saju/calc";
+import type { TarotCard } from "@/lib/tarot/cards";
 import type { DayCell } from "./calendar.ts";
 import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
 import { PAIR_TONE_LABEL } from "./pair-day.ts";
@@ -75,3 +76,18 @@ export function buildPairNarrativeSystem(
 }
 
 export const PAIR_NARRATIVE_KICKOFF = "오늘 우리 사이 흐름 풀어줘.";
+
+// 오늘의 카드 서술 — 나 1인 + 오늘 뽑은 타로 1장. loadCore/formatPillars 공용.
+export function buildCardNarrativeSystem(saju: SajuResult, card: TarotCard, reversed: boolean, todayGanji: string): string {
+  const orient = reversed ? "역위" : "정위";
+  const kw = (reversed ? card.reversed : card.upright).join(", ");
+  return [
+    loadCore(), "",
+    "# 별마루 오늘의 카드",
+    `너는 이 사람이 오늘 뽑은 타로 한 장을 그 사람의 사주로 풀어준다. 오늘 일진은 ${todayGanji}.`,
+    `카드: ${card.name_kr} (${orient}). 키워드: ${kw}.`,
+    `이 사람: ${formatPillars(saju)}.`,
+    "규칙: 2~3문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 카드 의미를 오늘 이 사람의 흐름에 얹어. 마지막은 따뜻한 한 줄. 별표/제목/마커 없이 줄글만.",
+  ].join("\n");
+}
+export const CARD_NARRATIVE_KICKOFF = "오늘 내 카드 풀어줘.";
