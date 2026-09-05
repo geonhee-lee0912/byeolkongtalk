@@ -26,10 +26,12 @@ export async function GET() {
   const p_exclude = adminExclusionArray();
   const p_since = daysAgoKstIso(29); // 최근 30일(오늘 포함) — 다른 어드민 추세표와 동일 창
 
-  const [summaryRes, trendRes, retentionRes] = await Promise.all([
+  const [summaryRes, trendRes, retentionRes, watchSummaryRes, watchDistRes] = await Promise.all([
     supa.rpc("admin_byeolmaru_summary", { p_exclude }),
     supa.rpc("admin_byeolmaru_trend", { p_since, p_exclude }),
     supa.rpc("admin_byeolmaru_retention", { p_exclude }),
+    supa.rpc("admin_byeolmaru_watch_summary", { p_exclude }),
+    supa.rpc("admin_byeolmaru_watch_distribution", { p_exclude }),
   ]);
 
   return NextResponse.json({
@@ -41,5 +43,9 @@ export async function GET() {
     // RPC 가 행 자체를 안 준다) — 페이지가 이 배열 길이와 retentionError 를 따로 보고 판단한다.
     retention: retentionRes.data ?? [],
     retentionError: !!retentionRes.error,
+    watchSummary: watchSummaryRes.data?.[0] ?? null,
+    watchSummaryError: !!watchSummaryRes.error,
+    watchDist: watchDistRes.data ?? [],
+    watchDistError: !!watchDistRes.error,
   });
 }
