@@ -220,17 +220,6 @@ export default function TarotSpreadPage() {
 
       {/* 크로스링크 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4 flex flex-col gap-2">
-        {normalizedTag === "언제 연락 올까, 타이밍이 궁금해" && (
-          <Link
-            href="/fortune/good_days"
-            className="flex items-center justify-between p-3.5 rounded-2xl border border-dashed border-lilac-mid/60 bg-cream/50"
-          >
-            <span className="text-[12.5px] text-eye-purple">
-              📅 정확한 날짜가 궁금하면 <b>사주 좋은 날 리포트</b>로
-            </span>
-            <span className="text-text-light text-[12px]">›</span>
-          </Link>
-        )}
         {normalizedTag === "직장·학교에서 사람이 어려워" && (
           <Link
             href="/fortune/compat-social"
