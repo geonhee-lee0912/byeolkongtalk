@@ -1,14 +1,7 @@
 "use client";
 
-import type { PairDayCell, PairBackdrop, PairTone } from "@/lib/byeolmaru/pair-day";
-
-// dayGrade(day-score.ts)의 라벨 규칙과 동일 문구 — 우리 점수도 같은 3단 톤(good/normal/caution)
-// 위에 서 있으니 "좋다/나쁘다" 단정이 아니라 결의 이름으로 맞춘다(페르소나 화법).
-export const PAIR_TONE_LABEL: Record<PairTone, string> = {
-  good: "잘 맞는 날",
-  normal: "무난한 날",
-  caution: "살짝 챙길 날",
-};
+import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL } from "@/lib/byeolmaru/pair-day";
 
 export default function PairDayDetailCard({
   cell,

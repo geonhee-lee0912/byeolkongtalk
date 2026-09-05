@@ -61,6 +61,13 @@ export function pairDayTone(score: number): PairTone {
   return "caution";
 }
 
+/** tone → 표시 라벨. dayGrade() 라벨과 동일 문구(무회귀). */
+export const PAIR_TONE_LABEL: Record<PairTone, string> = {
+  good: "잘 맞는 날",
+  normal: "무난한 날",
+  caution: "살짝 챙길 날",
+};
+
 function pairDayScoreAndTags(a: SajuResult, b: SajuResult, d: DailyLuck, backdrop: PairBackdrop) {
   const dl = { stem: d.stem, branch: d.branch, element: d.element };
   const scoreA = dayScore(dayFactors(toDaySelf(a), dl));
