@@ -115,6 +115,10 @@ export default function ByeolmaruView() {
   const [pairLocked, setPairLocked] = useState(false);
   const [pairLoading, setPairLoading] = useState(false);
   const [pairError, setPairError] = useState(false);
+  // 우리 오늘 서술(nano) — 위 pairData(룰 판정, 즉시)와 트리거는 같지만 별도 state+effect 로 관리한다
+  // (②-a 가 narrative 를 calendar 와 분리한 것과 동일 이유 — 느린 LLM 호출이 즉시 캘린더 렌더를 붙잡지 않게).
+  const [pairNarrative, setPairNarrative] = useState<string | null>(null);
+  const [pairNarrativeLoading, setPairNarrativeLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // ＋ 를 눌렀는데 비구독이면 WatchAddModal(GET/POST 403) 대신 잠금 티저를 보여준다 — subject 는
   // "나"에 그대로 두고 이 플래그만 켜서(실제 상대 fetch 없이) 완전 블러 카드를 띄운다.
@@ -235,6 +239,43 @@ export default function ByeolmaruView() {
         if (!cancelled) setPairError(true);
       } finally {
         if (!cancelled) setPairLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [subject, entitledNow]);
+
+  // 우리 오늘 서술 fetch — 위 캘린더 effect 와 트리거(deps)는 같지만 의도적으로 분리된 별개
+  // effect 다. 캘린더는 룰 판정이라 즉시 오고 서술은 nano 호출이라 느리다 — 하나로 합치면 서술
+  // 완료까지 캘린더 렌더가 묶인다. cancelled 가드도 캘린더 effect 와 동일 패턴(빠른 subject
+  // 전환 시 먼저 시작된 낡은 fetch 가 나중에 도착해 최신 상태를 덮어쓰는 것을 막는다).
+  useEffect(() => {
+    if (subject === "me") {
+      setPairNarrative(null);
+      setPairNarrativeLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setPairNarrative(null);
+    setPairNarrativeLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/byeolmaru/pair-narrative?subject=${encodeURIComponent(subject)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          // 403(비자격)도 여기로 온다 — 파트너 칩 자체가 자격자에게만 노출되니 실제로는 거의
+          // 안 타지만, 타더라도 null 로 흡수하면 그만이다(위 pairLocked 가 잠금 UI 를 이미 맡는다).
+          if (!cancelled) setPairNarrative(null);
+          return;
+        }
+        const j = await res.json();
+        if (!cancelled) setPairNarrative(j.narrative ?? null);
+      } catch {
+        if (!cancelled) setPairNarrative(null);
+      } finally {
+        if (!cancelled) setPairNarrativeLoading(false);
       }
     })();
     return () => {
@@ -381,6 +422,7 @@ export default function ByeolmaruView() {
         selected={showLockedTeaser ? "" : subject}
         onSelect={(id) => {
           setShowLockedTeaser(false);
+          if (id !== "me") trackUiEvent("byeolmaru_partner_selected");
           setSubject(id);
         }}
         onAdd={handleAdd}
@@ -425,8 +467,14 @@ export default function ByeolmaruView() {
         <LockedWooriTeaser
           trialUsed={data.trialUsed}
           loading={premium.loading}
-          onStartTrial={handleStartTrial}
-          onSubscribe={handleSubscribeClick}
+          onStartTrial={() => {
+            trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial" } });
+            handleStartTrial();
+          }}
+          onSubscribe={() => {
+            trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe" } });
+            handleSubscribeClick();
+          }}
         />
       ) : pairError ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
@@ -437,7 +485,13 @@ export default function ByeolmaruView() {
           <section aria-label="우리 30일 캘린더">
             <CalendarGrid cells={pairGridCells} selectedDate={pairCell.date} onSelect={setPairSelected} />
           </section>
-          <PairDayDetailCard cell={pairCell} backdrop={pairData.backdrop} partnerName={pairData.partnerName} />
+          <PairDayDetailCard
+            cell={pairCell}
+            backdrop={pairData.backdrop}
+            partnerName={pairData.partnerName}
+            narrative={pairNarrative}
+            narrativeLoading={pairNarrativeLoading}
+          />
         </>
       ) : pairLoading ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
