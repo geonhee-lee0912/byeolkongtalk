@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 interface WatchCandidate {
   id: string;
@@ -99,6 +100,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
     if (busy) return;
     setError(null);
     if (nextCost > 0) {
+      trackUiEvent("byeolmaru_watch_limit", { meta: { cost: nextCost } });
       setConfirmProfileId(profileId);
       setConfirmBalance(null);
       setConfirmBalanceLoading(true);
@@ -136,6 +138,11 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         setSubmitting(false);
         setConfirmProfileId(null);
         return;
+      }
+      const body = await res.json().catch(() => ({} as { charged?: number }));
+      trackUiEvent("byeolmaru_watch_add", { meta: { via: registered ? "register" : "pick" } });
+      if (typeof body.charged === "number" && body.charged > 0) {
+        trackUiEvent("byeolmaru_watch_purchase", { meta: { stars: body.charged } });
       }
       onAdded(profileId);
       onClose();
