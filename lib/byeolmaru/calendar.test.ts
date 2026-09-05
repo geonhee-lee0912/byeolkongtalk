@@ -51,6 +51,13 @@ test("buildCalendar — 셀마다 간지·점수·등급·축이 채워진다", 
   assert.equal(cells[2].grade.tone, "normal");
 });
 
+test("buildCalendar — 각 셀에 relation 노출(⑥ 골격 뱅크 키)", () => {
+  const cells = buildCalendar(SAJU, LUCK, "2026-09-02");
+  assert.equal(cells[0].relation, "아극", "목 극 토 = 내가 다루는 결");
+  assert.equal(cells[1].relation, "극아", "금 극 목 = 나를 누르는 결");
+  assert.equal(cells[2].relation, "생아", "수 생 목 = 날 살려주는 결");
+});
+
 test("buildCalendar — dailyLuck 이 비면 빈 배열", () => {
   assert.deepEqual(buildCalendar(SAJU, [], "2026-09-01"), []);
 });

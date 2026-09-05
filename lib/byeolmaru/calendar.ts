@@ -2,6 +2,7 @@
 // 오늘 판정은 인자로 받은 KST 날짜로만 한다(서버 TZ 에 좌우되지 않게 — 라우트가 계산해 넘긴다).
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
+import type { ElementRelation } from "@/lib/saju/pairing";
 import {
   dayFactors,
   dayScore,
@@ -21,6 +22,8 @@ export interface DayCell {
   score: number;
   grade: DayGrade;
   axes: AxisScores;
+  /** 그날 천간 오행이 내 일간 오행과 만나는 관계 — ⑥ 골격 문장 뱅크 키(생아/아극/비화/아생/극아). */
+  relation: ElementRelation;
   isToday: boolean;
 }
 
@@ -50,6 +53,7 @@ export function buildCalendar(
       score,
       grade: dayGrade(score),
       axes: axisScores(f),
+      relation: f.relation,
       isToday: d.date === todayKst,
     };
   });
