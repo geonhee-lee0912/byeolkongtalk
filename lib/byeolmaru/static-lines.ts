@@ -7,7 +7,11 @@ import type { ElementRelation } from "@/lib/saju/pairing";
 
 type CardLine = { upright: string; reversed: string };
 const CARD_LINES = cardLines as Record<string, CardLine>;
-const SKELETON_LINES = skeletonLines as Record<string, Record<string, string[]>>;
+// ⑥ 조각 조합(C): relation 조각(결로 끝남) + tone 조언(오늘은 없이 시작)을 날짜 시드로 조합.
+const SKELETON = skeletonLines as {
+  relation: Record<string, string[]>;
+  tone: Record<string, string[]>;
+};
 
 /** 오늘의 카드 정적 해석 — 카드 id(0~77) × 정/역. 뱅크 미스면 null(호출측 키워드 템플릿 폴백). */
 export function getCardLine(cardId: number, reversed: boolean): string | null {
@@ -24,11 +28,18 @@ function hashDate(date: string): number {
 }
 
 /**
- * 나 캘린더 상세 골격 문장 — 등급 tone × relation 조합의 variant 를 날짜로 로테이션.
- * 같은 (tone, relation, date) 는 항상 같은 문장(결정론). 뱅크 미스면 null(호출측이 문장 없이 등급+축만).
+ * 나 캘린더 상세 골격 문장 — relation 조각 × tone 조언을 날짜 시드로 조합(조각 조합, ⑥-C).
+ * `오늘은 {relation 조각}이라, {tone 조언}` 한 문장. 두 조각을 독립 인덱스로 뽑아 다양성↑
+ * (relation 3 × tone 4 = 조합당 12출력). 같은 (tone, relation, date) 는 항상 같은 문장(결정론).
+ * relation/tone 이 뱅크 밖이면 null(호출측이 문장 없이 등급+축만).
  */
 export function getSkeletonLine(tone: DayTone, relation: ElementRelation, date: string): string | null {
-  const arr = SKELETON_LINES[tone]?.[relation];
-  if (!arr || arr.length === 0) return null;
-  return arr[hashDate(date) % arr.length];
+  const relArr = SKELETON.relation[relation];
+  const advArr = SKELETON.tone[tone];
+  if (!relArr?.length || !advArr?.length) return null;
+  const h = hashDate(date);
+  const rel = relArr[h % relArr.length];
+  // 정수 나눗셈으로 두 인덱스를 탈상관 — 같은 날 rel/adv 가 함께 굴러도 서로 다른 축으로 변한다.
+  const adv = advArr[Math.floor(h / relArr.length) % advArr.length];
+  return `오늘은 ${rel}이라, ${adv}`;
 }

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { getCardLine, getSkeletonLine } from "./static-lines.ts";
+import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
 import { getCardCount } from "@/lib/tarot/cards";
 import type { DayTone } from "./day-score.ts";
 import type { ElementRelation } from "@/lib/saju/pairing";
@@ -33,11 +34,12 @@ test("card-lines: 뱅크 밖 id 는 null(호출측 폴백)", () => {
   assert.equal(getCardLine(-1, true), null);
 });
 
-test("skeleton: 3 tone × 5 relation = 15조합 전부 · 문장 존재 · 금지문자 없음", () => {
+test("skeleton: 3 tone × 5 relation = 15조합 전부 · 조합 문장 존재 · 금지문자 없음", () => {
   for (const t of TONES) {
     for (const r of RELATIONS) {
       const line = getSkeletonLine(t, r, "2026-09-05");
       assert.ok(line && line.trim().length > 0, `${t}/${r} 존재`);
+      assert.ok(line.startsWith("오늘은 ") && line.includes("이라, "), `${t}/${r} 조각 조합 템플릿`);
       assertClean(line, `${t}/${r}`);
     }
   }
@@ -53,15 +55,21 @@ test("skeleton: 로테이션 결정론 — 같은 (tone,relation,date) 는 늘 �
   }
 });
 
-test("skeleton: variant 로테이션이 실제로 여러 문장을 커버한다(반복 완화)", () => {
-  // 한 조합에서 30일치 날짜를 돌리면 3개 variant 가 모두 나와야 한다(≥3 variant 전제).
+test("skeleton: 조각 조합이 30일간 다양한 문장을 낸다(반복 완화)", () => {
+  // 조각 조합 = relation 3 × tone 4 = 조합당 12출력. 30일 돌리면 여러 개가 나와야(고정 3보다 다양).
   const seen = new Set<string>();
   for (let d = 1; d <= 30; d++) {
     const date = `2026-09-${String(d).padStart(2, "0")}`;
     const line = getSkeletonLine("good", "생아", date);
     if (line) seen.add(line);
   }
-  assert.ok(seen.size >= 3, `good/생아 30일 로테이션이 3개 variant 를 다 커버(실제 ${seen.size})`);
+  assert.ok(seen.size >= 5, `good/생아 30일이 5개 이상 다른 문장을 커버(실제 ${seen.size})`);
+});
+
+test("skeleton: 조각 뱅크 완전성 — relation 5종·tone 3종 각 ≥3조각", () => {
+  const raw = skeletonLines as { relation: Record<string, string[]>; tone: Record<string, string[]> };
+  for (const r of RELATIONS) assert.ok((raw.relation[r]?.length ?? 0) >= 3, `relation ${r} ≥3조각`);
+  for (const t of TONES) assert.ok((raw.tone[t]?.length ?? 0) >= 3, `tone ${t} ≥3조각`);
 });
 
 test("skeleton: 뱅크 밖 조합은 null(호출측 폴백)", () => {
