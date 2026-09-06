@@ -12,11 +12,12 @@ import {
   OTHER_TAGS,
   type EmotionTag,
 } from "@/lib/emotions";
-import { FORTUNE_CONFIG, fortuneTypeFromTag } from "@/lib/fortune/types";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
 import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function Home() {
   const router = useRouter();
@@ -241,36 +242,37 @@ export default function Home() {
             <span className="flex-1 h-px bg-lilac-mid/40" />
           </div>
 
-          {/* 궁합 크로스링크 — A 카드 골격 + 사주 골드 강조 */}
+          {/* 우리 사이(연애 상담) 진입 — 구 궁합 슬롯 대체, 라벤더 강조 + 클릭 계측 */}
           <Link
-            href="/fortune/compat"
-            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-gold/60 hover:border-gold transition-all text-left group"
+            href="/relationship"
+            onClick={() => trackUiEvent("home_relationship_clicked")}
+            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
+                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
               }}
             >
               <span className="text-[28px] group-hover:scale-110 transition-transform" aria-hidden>
-                💞
+                💜
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
-                우리의 사주 궁합은?
+                별콩이와 연애 상담
                 <span className="text-[11px] font-bold text-text-light">
-                  ⭐ {FORTUNE_CONFIG.compat.cost}별
+                  무료 시작
                 </span>
               </p>
               <p className="text-[12px] text-text-light mt-0.5 leading-snug">
-                두 사람 생년월일로 사주 궁합 보기
+                썸·연애 고민 상담하고 대화도 미리 시뮬레이션
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
-                {["궁합", "사주", "두사람"].map((h) => (
+                {["연애상담", "썸", "시뮬레이션"].map((h) => (
                   <span
                     key={h}
-                    className="text-[10.5px] font-bold text-eye-purple bg-gold-soft/40 px-2 py-0.5 rounded-full"
+                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>

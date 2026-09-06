@@ -71,6 +71,8 @@ export const UI_EVENTS = [
   "byeolmaru_watch_purchase",
   /** 별마루 우리오늘 — 락 티저 CTA로 체험/구독 개시. meta:{action:"trial"|"subscribe"} */
   "byeolmaru_subscribe_from_woori",
+  /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
+  "home_relationship_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
