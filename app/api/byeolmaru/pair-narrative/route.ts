@@ -72,7 +72,10 @@ export async function GET(req: NextRequest) {
     if (!temporal.dailyLuck?.length) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
-    const cell = buildPairCalendar(selfSaju, partnerSaju, temporal.dailyLuck, todayKst)[0];
+    const pairCal = buildPairCalendar(selfSaju, partnerSaju, temporal.dailyLuck, todayKst);
+    const cell = pairCal[0];
+    // 택일 보완①: 앞으로 30일 중 둘 사이 '좋은 날' 상위 3개를 서술에 넘겨 관계-타이밍으로 짚게 한다.
+    const goodDays = pairCal.filter((c) => c.tone === "good").slice(0, 3);
     const todayGanji = temporal.day.stem + temporal.day.branch;
 
     // LLM 생성 실패는 전체 요청 실패가 아니라 narrative:null 로 흡수 — ②-a 와 동일 경계(위 calc 가드와는 별개).
@@ -83,7 +86,8 @@ export async function GET(req: NextRequest) {
         pairBackdrop(selfSaju, partnerSaju),
         cell,
         todayGanji,
-        pRow.display_name ?? "그 사람"
+        pRow.display_name ?? "그 사람",
+        goodDays
       );
       const narrative = await generateOnce(
         system,

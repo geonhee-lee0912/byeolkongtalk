@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { getCard } from "@/lib/tarot/cards";
 import { pairBackdrop, buildPairCalendar } from "./pair-day.ts";
+import type { PairDayCell } from "./pair-day.ts";
 import {
   buildTeaserLine,
   buildPairNarrativeSystem,
@@ -37,6 +38,30 @@ test("buildPairNarrativeSystem: 두 사람·너희 결·오늘 신호 + 마커�
   assert.ok(sys.includes(bd.labelAtoB));
   assert.ok(/반말/.test(sys) && /단정/.test(sys) && /마커 없이|줄글만/.test(sys));
   assert.ok(PAIR_NARRATIVE_KICKOFF.length > 0);
+});
+
+test("buildPairNarrativeSystem: 좋은 날 목록 → 관계-타이밍 지침 + 목록에서만 가드(택일 보완①)", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
+  const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
+  const bd = pairBackdrop(a, b);
+  const good: PairDayCell[] = [
+    { date: "2026-09-12", ganji: "무술", score: 80, tone: "good", tags: { spark: true, bond: false, friction: false, lead: "me" }, isToday: false },
+  ];
+
+  const withGood = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", good);
+  assert.ok(withGood.includes("9월 12일"), "좋은 날 날짜가 목록에 뜬다");
+  assert.ok(withGood.includes("목록에서만"), "목록에서만 가드(환각 날짜 방지)");
+  assert.ok(withGood.includes("관계 타이밍"), "관계 타이밍 지침");
+
+  // 무회귀: 빈 목록이면 타이밍 지침 없음
+  const without = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", []);
+  assert.ok(!without.includes("목록에서만"), "빈 목록엔 타이밍 지침 없음");
+
+  // 오늘 셀은 목록에서 제외(오늘 얘기는 본문이 함)
+  const onlyToday = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", [{ ...good[0], date: cell.date }]);
+  assert.ok(!onlyToday.includes("목록에서만"), "오늘만 있는 목록은 라인 안 생김");
 });
 
 test("buildCardNarrativeSystem: 카드명·정역·규칙", () => {
