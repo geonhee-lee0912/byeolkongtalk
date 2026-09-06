@@ -80,24 +80,24 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
                     : ""
               }`}
             >
-              <span className="text-sm font-semibold text-eye-purple">
+              {/* D(배치 B): 날짜 / 일지 캐릭터 / 간지 세로 스택. 캐릭터는 지지 시각화, 간지 텍스트는
+                  천간까지 담아 둘이 서로 보완(중복 아닌 강화). 캐릭터 없으면 날짜+간지만. */}
+              <span className="text-[13px] font-semibold leading-none text-eye-purple">
                 {Number(c.date.slice(8, 10))}
               </span>
-              {/* ⑦ 일지 캐릭터(십이지) — 그날 지지로 조회. 12일 순환. 없으면 간지 텍스트 폴백. */}
               {(() => {
                 const a = branchAnimal(c.ganji);
                 return a ? (
                   <Image
                     src={a.assetSrc}
                     alt={a.animal}
-                    width={26}
-                    height={26}
-                    className="h-[26px] w-[26px] object-contain"
+                    width={22}
+                    height={22}
+                    className="my-0.5 h-[22px] w-[22px] object-contain"
                   />
-                ) : (
-                  <span className="text-[10px] text-text-light">{c.ganji}</span>
-                );
+                ) : null;
               })()}
+              <span className="text-[9px] leading-none text-text-light">{c.ganji}</span>
             </button>
           );
         })}
