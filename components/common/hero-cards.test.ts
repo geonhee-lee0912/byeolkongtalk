@@ -20,13 +20,13 @@ test("visibleCards(null) — 로딩 중엔 전체", () => {
   assert.equal(visibleCards(null).length, CARDS.length);
 });
 
-test("visibleCards(anon) — charge·survey 숨김, 발견 4장(intro 첫)", () => {
+test("visibleCards(anon) — charge·survey 숨김, 발견 3장(intro 첫)", () => {
   const ids = visibleCards("anon").map((c) => c.id);
-  assert.deepEqual(ids, ["intro", "gonghap", "sim", "pass"]);
+  assert.deepEqual(ids, ["intro", "gonghap", "sim"]);
 });
 
-test("visibleCards(new) — 전체 6장", () => {
-  assert.equal(visibleCards("new").length, 6);
+test("visibleCards(new) — 전체 5장", () => {
+  assert.equal(visibleCards("new").length, 5);
 });
 
 test("visibleCards(returning) — intro 숨김, sim 포함", () => {
@@ -47,9 +47,4 @@ test("startIndex — 그 외(anon·new·로딩)는 첫 카드(intro)", () => {
     assert.equal(startIndex(a, cards), 0);
     assert.equal(cards[0].id, "intro");
   }
-});
-
-test("pass 카드 목적지는 /relationship (샵 아님)", () => {
-  const pass = CARDS.find((c) => c.id === "pass");
-  assert.equal(pass?.href, "/relationship");
 });
