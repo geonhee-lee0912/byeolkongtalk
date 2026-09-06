@@ -42,8 +42,9 @@ const TABS: TabDef[] = [
     key: "byeolmaru",
     label: "별마루",
     href: "/byeolmaru",
-    // 슬롯으로 들어간 /relationship 에서도 별마루 탭이 활성으로 보이게 — 유저가 위치를 잃지 않는다
-    matchPrefixes: ["/byeolmaru", "/relationship"],
+    // /relationship(우리 사이) 진입점이 홈 고정 카드로 이동(2026-09-06) → 더는 별마루 탭으로 하이라이트하지 않는다
+    // (홈에서 진입하는데 3탭이 켜지면 어색. /relationship 은 이제 어떤 탭도 활성 아님)
+    matchPrefixes: ["/byeolmaru"],
     // 달력 + 별(구멍) — 상단 고리 2개 + 본체, 가운데 4꼭지 별을 knockout
     icon: "M7.6 2.4h1.6v2h5.6v-2h1.6v2h1.8A2.3 2.3 0 0 1 20.5 6.7v12A2.3 2.3 0 0 1 18.2 21H5.8A2.3 2.3 0 0 1 3.5 18.7v-12A2.3 2.3 0 0 1 5.8 4.4h1.8v-2Zm4.4 8.6-1.05 2.4-2.4 1.05 2.4 1.05 1.05 2.4 1.05-2.4 2.4-1.05-2.4-1.05Z",
     iconEvenOdd: true,
