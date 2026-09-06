@@ -434,6 +434,15 @@ export default function ByeolmaruView() {
           <section aria-label="30일 캘린더">
             <CalendarGrid cells={selfGridCells} selectedDate={cell.date} onSelect={setSelected} />
           </section>
+          {/* B(택일 보완②): 무료 '좋은 날' 카운트를 캘린더 바로 아래로 끌어올려 시각 강조(변동비 0 재방문 훅). */}
+          {(() => {
+            const good = data.weeks.reduce((s, w) => s + w.good, 0);
+            return good > 0 ? (
+              <p className="text-center text-[13px] text-text-light">
+                앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
+              </p>
+            ) : null;
+          })()}
           <DayDetailCard cell={cell} />
 
           <PremiumBlock
