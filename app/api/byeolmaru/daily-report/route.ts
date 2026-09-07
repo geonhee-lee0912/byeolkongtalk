@@ -19,6 +19,9 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// inline nano 생성 + (파싱 실패 시) 1회 재시도라 최악 2× 호출 — 헤더룸을 명시한다
+// (형제 narrative/card-narrative 는 단일 호출이라 미설정).
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const { userId } = await getSession();
@@ -74,28 +77,27 @@ export async function GET(req: NextRequest) {
     }
 
     // 생성 — app/api/fortune/create/route.ts 의 daily 경로와 동일한 프롬프트·모델·파서(+실패 시 1회 재시도).
+    // system 은 두 번 다 같으니 지역 클로저로 묶는다. 생성 throw 는 형제 라우트(narrative·card-narrative)
+    // 처럼 {report:null} 로 흡수 — 자격자가 상류 blip 에 500 을 보지 않게(calc/DB throw 만 바깥 catch 로 500).
     const logCtx = { route: "/api/byeolmaru/daily-report", userId };
     const system = buildFortuneSystem("daily", { saju });
-    const raw = await generateOnce(
-      system,
-      [{ role: "user", content: FORTUNE_KICKOFF }],
-      MAX_TOKENS_BY_FORTUNE.daily,
-      logCtx,
-      fortuneModel("daily"),
-      fortuneResponseFormat("daily")
-    );
-    let ai = parseDailyReportJson(raw);
-    if (!ai) {
-      const retrySystem = buildFortuneSystem("daily", { saju });
-      const retry = await generateOnce(
-        retrySystem,
+    const gen = () =>
+      generateOnce(
+        system,
         [{ role: "user", content: FORTUNE_KICKOFF }],
         MAX_TOKENS_BY_FORTUNE.daily,
         logCtx,
         fortuneModel("daily"),
         fortuneResponseFormat("daily")
       );
-      ai = parseDailyReportJson(retry);
+
+    let ai: ReturnType<typeof parseDailyReportJson> = null;
+    try {
+      ai = parseDailyReportJson(await gen());
+      if (!ai) ai = parseDailyReportJson(await gen());
+    } catch (err) {
+      await logError(err, ctxFromRequest(req, { ...logCtx, extra: { stage: "generate" } }));
+      return NextResponse.json({ report: null });
     }
     if (!ai) {
       await logError(
