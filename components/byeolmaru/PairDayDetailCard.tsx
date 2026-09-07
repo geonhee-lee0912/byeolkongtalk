@@ -9,14 +9,24 @@ export default function PairDayDetailCard({
   cell,
   backdrop,
   partnerName,
+  entitled,
+  staticLine,
   narrative,
   narrativeLoading,
+  trialUsed,
+  onStartTrial,
+  onSubscribe,
 }: {
   cell: PairDayCell;
   backdrop: PairBackdrop;
   partnerName: string;
+  entitled?: boolean;
+  staticLine?: string | null;
   narrative?: string | null;
   narrativeLoading?: boolean;
+  trialUsed?: boolean;
+  onStartTrial?: () => void;
+  onSubscribe?: () => void;
 }) {
   const md = `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`;
   const tags: string[] = [];
@@ -71,7 +81,31 @@ export default function PairDayDetailCard({
         </p>
       </div>
 
-      {narrativeLoading ? (
+      {entitled === false ? (
+        <>
+          {staticLine ? (
+            <p className="mt-3 text-sm leading-relaxed text-eye-purple">{staticLine}</p>
+          ) : null}
+          <p className="mt-3 mb-2 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
+            별콩이가 둘 사이 오늘을 풀어주고, 앞으로 30일 흐름까지 펼쳐주면…
+          </p>
+          {!trialUsed ? (
+            <button
+              onClick={onStartTrial}
+              className="w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
+            >
+              3일 무료 체험 시작
+            </button>
+          ) : (
+            <button
+              onClick={onSubscribe}
+              className="w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
+            >
+              구독하고 우리 오늘 30일 보기
+            </button>
+          )}
+        </>
+      ) : narrativeLoading ? (
         <p className="mt-3 text-sm text-text-light">별콩이가 둘 사이 오늘을 읽고 있어…</p>
       ) : narrative ? (
         <div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</div>
