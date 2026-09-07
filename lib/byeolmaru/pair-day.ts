@@ -98,3 +98,16 @@ export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: Daily
     return { date: d.date, ganji: d.stem + d.branch, score, tone: pairDayTone(score), tags, isToday: d.date === todayKst };
   });
 }
+
+/** 무료 우리 오늘 정적 한 줄 — 오늘 톤/태그로 룰 조합(LLM 0). 구독 LLM 서술의 자리를 무료로 메운다.
+ * ⚠️ 관계 상태(썸/짝사랑 등)는 Phase 4 에서 status 캡처 후 얹는다 — 지금은 톤/태그만. */
+export function getPairStaticLine(cell: PairDayCell): string {
+  const t = cell.tags;
+  if (t.friction) return "오늘은 둘 사이 결이 살짝 엇갈릴 수 있어. 말 한마디를 천천히 골라보면 좋아.";
+  if (t.spark && t.bond) return "오늘은 끌림도 결속도 같이 도는 날이야. 마음이 자연스럽게 가까워져.";
+  if (t.spark) return "오늘은 둘 사이에 끌림이 도는 날이야. 작은 신호에 마음이 움직여.";
+  if (t.bond) return "오늘은 서로 편안하게 이어지는 결이야. 함께 있는 시간이 순해.";
+  if (cell.tone === "good") return "오늘은 둘 사이 흐름이 순한 날이야.";
+  if (cell.tone === "caution") return "오늘은 서로 조금 챙겨주면 좋은 결이야.";
+  return "오늘은 둘 사이 무난하게 흐르는 날이야.";
+}

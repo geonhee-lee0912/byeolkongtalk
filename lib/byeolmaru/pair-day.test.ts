@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
-import { buildPairCalendar, pairBackdrop, pairDayTone } from "./pair-day.ts";
+import { buildPairCalendar, pairBackdrop, pairDayTone, getPairStaticLine, type PairDayCell } from "./pair-day.ts";
 
 const A = calcSaju({ year: 1994, month: 5, day: 12, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
 const B = calcSaju({ year: 1992, month: 11, day: 3, hour: null, gender: "male", isLunar: false, isLeapMonth: false });
@@ -35,4 +35,19 @@ test("pairBackdrop: 라벨·연월조화 노출", () => {
   assert.equal(typeof bd.labelAtoB, "string");
   assert.equal(typeof bd.labelBtoA, "string");
   assert.ok(bd.harmony >= 0 && bd.harmony <= 4);
+});
+
+test("getPairStaticLine: friction 우선 → 톤/태그 폴백, 항상 비지 않은 반말 한 줄", () => {
+  const base = { date: "2026-09-07", ganji: "임오", score: 50, isToday: true } as const;
+  const mk = (tone: PairDayCell["tone"], tags: Partial<PairDayCell["tags"]>): PairDayCell => ({
+    ...base,
+    tone,
+    tags: { spark: false, bond: false, friction: false, lead: null, ...tags },
+  });
+  assert.match(getPairStaticLine(mk("caution", { friction: true, spark: true })), /엇갈릴/);
+  assert.match(getPairStaticLine(mk("good", { spark: true, bond: true })), /끌림도 결속도/);
+  assert.match(getPairStaticLine(mk("good", {})), /순한/);
+  for (const tone of ["good", "normal", "caution"] as const) {
+    assert.ok(getPairStaticLine(mk(tone, {})).length > 0);
+  }
 });
