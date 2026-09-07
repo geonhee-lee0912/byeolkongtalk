@@ -79,7 +79,7 @@ export default function ByeolmaruHub() {
 
   const { data } = state;
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[0];
-  const week = data.cells.slice(0, 7);
+  const next7 = data.cells.slice(0, 7); // 오늘부터 롤링 7일(캘린더 '주' 아님 — calendar.ts:62 경고)
   const crossSell = pickCrossSell(todayCell);
 
   return (
@@ -97,11 +97,11 @@ export default function ByeolmaruHub() {
           <span className="font-display text-lg text-eye-purple">{todayCell.grade.label}</span>
         </div>
         <div className="mb-2 flex gap-1.5">
-          {week.map((c) => (
+          {next7.map((c) => (
             <div key={c.date} className={`h-2.5 flex-1 rounded-full ${DOT[c.grade.tone] ?? "bg-lilac-soft"} ${c.isToday ? "ring-2 ring-lilac-deep" : ""}`} />
           ))}
         </div>
-        <p className="text-xs text-lilac-deep">이번 주 흐름 · 30일 전체 보기 →</p>
+        <p className="text-xs text-lilac-deep">앞으로 7일 흐름 · 30일 전체 보기 →</p>
       </Link>
 
       <DailyCardBlock entitled={data.entitled} trialUsed={data.trialUsed} onStartTrial={startTrial} onSubscribe={openSubscribe} />
