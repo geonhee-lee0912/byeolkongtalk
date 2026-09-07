@@ -64,6 +64,7 @@ export default function SajuTodayView() {
         setReportLoading(false);
       } else {
         setReport(null);
+        setReportLoading(false);
       }
     } catch { setState({ kind: "error" }); return; }
   }
@@ -104,25 +105,15 @@ export default function SajuTodayView() {
         <p className="text-center text-[13px] text-text-light">앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨</p>
       ) : null}
       <DayDetailCard cell={cell} />
-      {data.entitled ? (
-        reportLoading ? (
-          <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">오늘 리포트를 펼치는 중…</section>
-        ) : report ? (
-          <DailyReportCard report={report} dateLabel="오늘" />
-        ) : (
-          <PremiumBlock
-            entitled={true}
-            trialUsed={data.trialUsed}
-            narrative={null}
-            teaser={null}
-            loading={false}
-            onStartTrial={startTrial}
-            onSubscribe={openSubscribe}
-          />
-        )
+      {data.entitled && reportLoading ? (
+        <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">오늘 리포트를 펼치는 중…</section>
+      ) : data.entitled && report ? (
+        // DailyReportCard 는 자체 px-5 를 가진 full-bleed 블록 — main 의 p-4 와 겹쳐 이중 들여쓰기가
+        // 나지 않게 -mx-4 로 가로 패딩을 상쇄한다(형제 카드들과 눈높이 맞춤).
+        <div className="-mx-4"><DailyReportCard report={report} dateLabel="오늘" /></div>
       ) : (
         <PremiumBlock
-          entitled={false}
+          entitled={data.entitled}
           trialUsed={data.trialUsed}
           narrative={null}
           teaser={null}
