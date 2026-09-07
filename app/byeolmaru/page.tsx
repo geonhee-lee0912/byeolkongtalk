@@ -1,5 +1,5 @@
 import { noindexMetadata } from "@/lib/seo/metadata";
-import ByeolmaruView from "@/components/byeolmaru/ByeolmaruView";
+import ByeolmaruHub from "@/components/byeolmaru/ByeolmaruHub";
 
 // 로그인 게이트 + 전개인화 화면 — noindex 로 뺀다. 루트 layout 의 canonical:"/" 를 상속하면
 // 이 화면이 "나는 홈이다"라고 신고하게 된다(실제 결함 사례, lib/seo/metadata.ts 참고).
@@ -9,5 +9,5 @@ export const metadata = noindexMetadata({
 });
 
 export default function ByeolmaruPage() {
-  return <ByeolmaruView />;
+  return <ByeolmaruHub />;
 }
