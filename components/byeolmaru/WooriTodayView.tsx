@@ -9,6 +9,7 @@ import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import PairDayDetailCard from "./PairDayDetailCard";
 import SubjectToggle from "./SubjectToggle";
 import WatchAddModal from "./WatchAddModal";
+import BackHeader from "./BackHeader";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 type State =
@@ -58,6 +59,8 @@ export default function WooriTodayView() {
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
 
+  // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 deps 에 넣어 같은 상대를
+  // 보는 도중 체험/구독이 풀렸을 때도(false→true) 잠금 없는 응답을 자동으로 다시 받는다.
   useEffect(() => {
     if (subject === "me") return;
     let cancelled = false;
@@ -80,6 +83,9 @@ export default function WooriTodayView() {
     return () => { cancelled = true; };
   }, [subject, entitledNow]);
 
+  // 우리 오늘 서술 — 위 캘린더 effect 와 deps 는 같지만 의도적으로 분리한다. 캘린더는 룰이라 즉시,
+  // 서술은 nano 라 느려서 합치면 서술 완료까지 캘린더 렌더가 묶인다. cancelled 가드는 빠른 subject
+  // 전환 시 낡은 fetch 가 최신 상태를 덮어쓰는 것을 막는다. 비자격(!entitledNow)은 아예 호출 안 함(원가 0).
   useEffect(() => {
     if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairNarrativeLoading(false); return; }
     let cancelled = false;
@@ -118,10 +124,7 @@ export default function WooriTodayView() {
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <header className="flex items-center gap-2">
-        <Link href="/byeolmaru" aria-label="별마루로" className="-m-2 p-2 text-xl text-lilac-deep">←</Link>
-        <h1 className="font-display text-2xl text-eye-purple">우리 오늘</h1>
-      </header>
+      <BackHeader title="우리 오늘" />
 
       <SubjectToggle
         partners={partners}

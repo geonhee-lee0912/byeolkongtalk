@@ -7,6 +7,7 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PremiumBlock from "./PremiumBlock";
+import BackHeader from "./BackHeader";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -30,14 +31,6 @@ function fmtMD(date: string): string {
   return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
 }
 
-function BackHeader({ title }: { title: string }) {
-  return (
-    <header className="flex items-center gap-2">
-      <Link href="/byeolmaru" aria-label="별마루로" className="-m-2 p-2 text-xl text-lilac-deep">←</Link>
-      <h1 className="font-display text-2xl text-eye-purple">{title}</h1>
-    </header>
-  );
-}
 
 export default function SajuTodayView() {
   const [state, setState] = useState<State>({ kind: "loading" });
