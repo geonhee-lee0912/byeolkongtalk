@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getCardLine, getSkeletonLine } from "./static-lines.ts";
+import { getCardLine, getSkeletonLine, getSajuTaste } from "./static-lines.ts";
 import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
+import sajuTaste from "@/data/byeolmaru/saju-taste.json";
 import { getCardCount } from "@/lib/tarot/cards";
 import type { DayTone } from "./day-score.ts";
 import type { ElementRelation } from "@/lib/saju/pairing";
@@ -74,4 +75,51 @@ test("skeleton: 조각 뱅크 완전성 — relation 5종·tone 3종 각 ≥3조
 
 test("skeleton: 뱅크 밖 조합은 null(호출측 폴백)", () => {
   assert.equal(getSkeletonLine("good", "없는관계" as ElementRelation, "2026-09-05"), null);
+});
+
+test("saju-taste: 유효 셀 → 5섹션(전반/연애/일/돈/조언) 전부 non-empty", () => {
+  const t = getSajuTaste("good", { love: 70, money: 50, work: 55 }, "생아", "2026-09-05");
+  assert.ok(t.overall.trim().length > 0, "overall 존재");
+  assert.ok(t.love.trim().length > 0, "love 존재");
+  assert.ok(t.work.trim().length > 0, "work 존재");
+  assert.ok(t.money.trim().length > 0, "money 존재");
+  assert.ok(t.advice.trim().length > 0, "advice 존재");
+});
+
+test("saju-taste: tasteBand 임계값 — love 70→high, 50→mid, 40→low 뱅크에서 뽑힘", () => {
+  const raw = sajuTaste as { love: Record<string, string[]> };
+  const high = getSajuTaste("good", { love: 70, money: 50, work: 50 }, "비화", "2026-09-05");
+  assert.ok(raw.love.high.includes(high.love), "70점은 high 뱅크 소속");
+  const mid = getSajuTaste("good", { love: 50, money: 50, work: 50 }, "비화", "2026-09-05");
+  assert.ok(raw.love.mid.includes(mid.love), "50점은 mid 뱅크 소속");
+  const low = getSajuTaste("good", { love: 40, money: 50, work: 50 }, "비화", "2026-09-05");
+  assert.ok(raw.love.low.includes(low.love), "40점은 low 뱅크 소속");
+});
+
+test("saju-taste: 결정론 — 같은 입력은 늘 같은 결과", () => {
+  const a = getSajuTaste("caution", { love: 40, money: 60, work: 45 }, "극아", "2026-09-10");
+  const b = getSajuTaste("caution", { love: 40, money: 60, work: 45 }, "극아", "2026-09-10");
+  assert.deepEqual(a, b);
+});
+
+test("saju-taste: 뱅크 완전성 — tone 3종(overall)·밴드 3종(love/work/money)·relation 5종(advice) 전부 non-empty", () => {
+  for (const tone of TONES) {
+    const t = getSajuTaste(tone, { love: 50, money: 50, work: 50 }, "비화", "2026-09-05");
+    assert.ok(t.overall.trim().length > 0, `overall/${tone} 존재`);
+  }
+  const bandScores: { band: string; score: number }[] = [
+    { band: "high", score: 70 },
+    { band: "mid", score: 50 },
+    { band: "low", score: 30 },
+  ];
+  for (const { band, score } of bandScores) {
+    const t = getSajuTaste("normal", { love: score, money: score, work: score }, "비화", "2026-09-05");
+    assert.ok(t.love.trim().length > 0, `love/${band} 존재`);
+    assert.ok(t.work.trim().length > 0, `work/${band} 존재`);
+    assert.ok(t.money.trim().length > 0, `money/${band} 존재`);
+  }
+  for (const relation of RELATIONS) {
+    const t = getSajuTaste("normal", { love: 50, money: 50, work: 50 }, relation, "2026-09-05");
+    assert.ok(t.advice.trim().length > 0, `advice/${relation} 존재`);
+  }
 });

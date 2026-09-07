@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { DayCell } from "@/lib/byeolmaru/calendar";
-import { getSkeletonLine } from "@/lib/byeolmaru/static-lines";
+import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
@@ -36,10 +36,17 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
 
       <p className="mb-2 font-display text-2xl text-eye-purple">{cell.grade.label}</p>
 
-      {/* ⑥ 골격 문장 — 등급 tone × relation 의 별콩 톤 한 줄(날짜별 variant 로테이션). 뱅크 미스면 생략. */}
+      {/* ⑤ 무료 오늘 사주 taste — 전반+연애+일·돈+조언 구조 정적(날짜별 variant 로테이션). 슬롯별 뱅크 미스면 그 조각만 생략. */}
       {(() => {
-        const line = getSkeletonLine(cell.grade.tone, cell.relation, cell.date);
-        return line ? <p className="mb-4 text-sm leading-relaxed text-eye-purple">{line}</p> : null;
+        const t = getSajuTaste(cell.grade.tone, cell.axes, cell.relation, cell.date);
+        return (
+          <div className="mb-4 space-y-2 text-sm leading-relaxed text-eye-purple">
+            {t.overall ? <p>{t.overall}</p> : null}
+            {t.love ? <p><span className="font-bold">연애</span> — {t.love}</p> : null}
+            {(t.work || t.money) ? <p><span className="font-bold">일·돈</span> — {[t.work, t.money].filter(Boolean).join(" ")}</p> : null}
+            {t.advice ? <p className="text-text-light">{t.advice}</p> : null}
+          </div>
+        );
       })()}
 
       <ul className="space-y-2">
