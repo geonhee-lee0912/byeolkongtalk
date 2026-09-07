@@ -136,7 +136,7 @@ export default function ByeolmaruView() {
     try {
       const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
       if (!res.ok) {
-        setPartners([]); // 403(비자격) 등 — 에러로 취급하지 않고 그냥 빈 목록
+        setPartners([]); // 401(비로그인)·500 등 — 에러로 취급하지 않고 그냥 빈 목록(watch 라우트는 로그인-only)
         return;
       }
       const j = await res.json();
