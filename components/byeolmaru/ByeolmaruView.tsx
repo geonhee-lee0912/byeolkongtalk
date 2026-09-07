@@ -43,54 +43,6 @@ function fmtMD(date: string): string {
   return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
 }
 
-// 우리 오늘 잠금 티저 — ②-a PremiumBlock 의 "시안 C"(첫 줄 맛보기)와 달리 완전 블러다
-// (design §4: 상대 캘린더는 점수 유출 0 원칙이라 실제 톤/점수를 한 조각도 보여주지 않는다).
-// 장식용 빈 격자만 흐리게 깔아 "여기 캘린더가 있다"는 모양만 암시한다.
-function LockedWooriTeaser({
-  trialUsed,
-  loading,
-  onStartTrial,
-  onSubscribe,
-}: {
-  trialUsed: boolean;
-  loading: boolean;
-  onStartTrial: () => void;
-  onSubscribe: () => void;
-}) {
-  return (
-    <section className="rounded-2xl bg-[#F3EEFB] p-4">
-      <div className="mb-2 flex items-center gap-1 text-xs text-lilac-deep">
-        <span aria-hidden>🔒</span> 우리 오늘
-      </div>
-      <div aria-hidden className="mb-3 grid grid-cols-7 gap-1 opacity-50 blur-sm select-none">
-        {Array.from({ length: 14 }, (_, i) => (
-          <div key={i} className="aspect-square rounded-lg bg-lilac-soft" />
-        ))}
-      </div>
-      <p className="text-sm leading-relaxed text-eye-purple">
-        둘 사이 오늘의 결, 끌림과 결속까지 — 구독하면 펼쳐져.
-      </p>
-      {!trialUsed ? (
-        <button
-          onClick={onStartTrial}
-          disabled={loading}
-          className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60"
-        >
-          3일 무료 체험 시작
-        </button>
-      ) : (
-        <button
-          onClick={onSubscribe}
-          disabled={loading}
-          className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple disabled:opacity-60"
-        >
-          구독하고 우리 오늘 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-        </button>
-      )}
-    </section>
-  );
-}
-
 export default function ByeolmaruView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
@@ -111,9 +63,8 @@ export default function ByeolmaruView() {
   // 아래 pairXxx 상태로 별도 관리한다(자기 날짜 선택과 뒤섞이지 않게).
   const [subject, setSubject] = useState<string>("me");
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
-  const [pairData, setPairData] = useState<{ cells: PairDayCell[]; backdrop: PairBackdrop; partnerName: string } | null>(null);
+  const [pairData, setPairData] = useState<{ cells: PairDayCell[]; backdrop: PairBackdrop; partnerName: string; entitled: boolean; staticLine: string | null } | null>(null);
   const [pairSelected, setPairSelected] = useState<string | null>(null);
-  const [pairLocked, setPairLocked] = useState(false);
   const [pairLoading, setPairLoading] = useState(false);
   const [pairError, setPairError] = useState(false);
   // 우리 오늘 서술(nano) — 위 pairData(룰 판정, 즉시)와 트리거는 같지만 별도 state+effect 로 관리한다
@@ -121,9 +72,6 @@ export default function ByeolmaruView() {
   const [pairNarrative, setPairNarrative] = useState<string | null>(null);
   const [pairNarrativeLoading, setPairNarrativeLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  // ＋ 를 눌렀는데 비구독이면 WatchAddModal(GET/POST 403) 대신 잠금 티저를 보여준다 — subject 는
-  // "나"에 그대로 두고 이 플래그만 켜서(실제 상대 fetch 없이) 완전 블러 카드를 띄운다.
-  const [showLockedTeaser, setShowLockedTeaser] = useState(false);
 
   // 🔴 단일 refresh(): 마운트 + 체험/구독 성공 후 둘 다 이 함수를 부른다. state.kind 는 trial
   // 시작 뒤에도 "ready" 그대로라 useEffect([state.kind]) 로는 서술 재요청이 안 걸린다 — 캘린더+
@@ -162,12 +110,8 @@ export default function ByeolmaruView() {
       setAttendance(data.attendance);
       // 최초 로드만 오늘 날짜로 맞추고, 체험/구독 후 재조회에서는 유저가 보던 날짜를 유지한다.
       setSelected((prev) => prev ?? data.today);
-      // 지켜보는 상대 목록은 자격자만 — 비자격은 /api/byeolmaru/watch 가 403 이라 아예 안 부른다.
-      if (data.entitled) {
-        void loadPartners();
-      } else {
-        setPartners([]);
-      }
+      // 우리 오늘 무료 개방(1A): 상대 목록은 자격 무관 로그인 유저 전원. watch 라우트가 로그인만 요구한다.
+      void loadPartners();
     } catch {
       setState({ kind: "error" });
       return;
@@ -212,7 +156,6 @@ export default function ByeolmaruView() {
     let cancelled = false;
     setPairLoading(true);
     setPairData(null);
-    setPairLocked(false);
     setPairError(false);
     setPairSelected(null);
     void (async () => {
@@ -226,12 +169,14 @@ export default function ByeolmaruView() {
           setPairError(true);
           return;
         }
-        if (j.locked) {
-          setPairLocked(true);
-          return;
-        }
-        if (j.entitled && Array.isArray(j.cells) && j.cells.length > 0) {
-          setPairData({ cells: j.cells, backdrop: j.backdrop, partnerName: j.partnerName });
+        if (Array.isArray(j.cells) && j.cells.length > 0) {
+          setPairData({
+            cells: j.cells,
+            backdrop: j.backdrop,
+            partnerName: j.partnerName,
+            entitled: !!j.entitled,
+            staticLine: j.staticLine ?? null,
+          });
           setPairSelected(j.today);
           return;
         }
@@ -252,7 +197,7 @@ export default function ByeolmaruView() {
   // 완료까지 캘린더 렌더가 묶인다. cancelled 가드도 캘린더 effect 와 동일 패턴(빠른 subject
   // 전환 시 먼저 시작된 낡은 fetch 가 나중에 도착해 최신 상태를 덮어쓰는 것을 막는다).
   useEffect(() => {
-    if (subject === "me") {
+    if (subject === "me" || !entitledNow) {
       setPairNarrative(null);
       setPairNarrativeLoading(false);
       return;
@@ -266,8 +211,8 @@ export default function ByeolmaruView() {
           cache: "no-store",
         });
         if (!res.ok) {
-          // 403(비자격)도 여기로 온다 — 파트너 칩 자체가 자격자에게만 노출되니 실제로는 거의
-          // 안 타지만, 타더라도 null 로 흡수하면 그만이다(위 pairLocked 가 잠금 UI 를 이미 맡는다).
+          // 403(비자격)도 여기로 온다 — 위 entitledNow 가드로 대부분 걸러지지만, 타더라도 null 로
+          // 흡수하면 그만이다(PairDayDetailCard 가 entitled=false 렌더를 이미 맡는다).
           if (!cancelled) setPairNarrative(null);
           return;
         }
@@ -288,7 +233,6 @@ export default function ByeolmaruView() {
     trackUiEvent("byeolmaru_trial_started");
     await fetch("/api/byeolmaru/trial", { method: "POST" });
     await refresh(); // entitled 이 true 로 바뀌고 narrative 가 채워진다
-    setShowLockedTeaser(false); // ＋ 경유 잠금 티저를 보던 중이었다면 해제(체험 시작으로 자격 생김)
   }
   async function handleCheckin() {
     trackUiEvent("byeolmaru_checkin", { meta: { streak: attendance?.streak ?? 0 } });
@@ -329,7 +273,6 @@ export default function ByeolmaruView() {
     if (res.ok) {
       trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: BYEOLMARU_SUBSCRIPTION.cost } });
       setConfirmOpen(false);
-      setShowLockedTeaser(false); // ＋ 경유 잠금 티저를 보던 중이었다면 해제(구독으로 자격 생김)
       await refresh();
       return;
     }
@@ -338,15 +281,11 @@ export default function ByeolmaruView() {
     alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
   }
 
-  // ＋ 버튼 — 자격자만 실제 담기 모달을 연다. 비자격은 WatchAddModal 을 열어봤자 GET/POST 가
-  // 전부 403 이라, 대신 잠금 티저(구독 유도)를 보여준다(§4 완전 블러 원칙 — 상대 없이도 유도 가능).
+  // ＋ 버튼 — 우리 오늘 무료 개방(1A) 이후 자격 무관 로그인 유저 전원에게 담기 모달을 연다
+  // (WatchAddModal 의 GET/POST 는 이제 로그인만 요구, 잠금 티저 분기 없음).
   function handleAdd() {
     if (state.kind !== "ready") return;
-    if (state.data.entitled) {
-      setAddOpen(true);
-    } else {
-      setShowLockedTeaser(true);
-    }
+    setAddOpen(true);
   }
 
   if (state.kind === "loading") {
@@ -404,8 +343,6 @@ export default function ByeolmaruView() {
       }))
     : [];
   const pairCell = pairData ? pairData.cells.find((c) => c.date === pairSelected) ?? pairData.cells[0] : null;
-  // ＋ 경유 잠금 티저 또는 실제 상대 fetch 가 locked 로 응답한 경우 — 둘 다 같은 완전 블러 카드.
-  const lockedTeaser = showLockedTeaser || (subject !== "me" && pairLocked);
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
@@ -420,16 +357,15 @@ export default function ByeolmaruView() {
 
       <SubjectToggle
         partners={partners}
-        selected={showLockedTeaser ? "" : subject}
+        selected={subject}
         onSelect={(id) => {
-          setShowLockedTeaser(false);
           if (id !== "me") trackUiEvent("byeolmaru_partner_selected");
           setSubject(id);
         }}
         onAdd={handleAdd}
       />
 
-      {subject === "me" && !showLockedTeaser ? (
+      {subject === "me" ? (
         <>
           <section aria-label="30일 캘린더">
             <CalendarGrid cells={selfGridCells} selectedDate={cell.date} onSelect={setSelected} />
@@ -480,34 +416,34 @@ export default function ByeolmaruView() {
 
           <CrossSellCard item={crossSell} />
         </>
-      ) : lockedTeaser ? (
-        <LockedWooriTeaser
-          trialUsed={data.trialUsed}
-          loading={premium.loading}
-          onStartTrial={() => {
-            trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial" } });
-            handleStartTrial();
-          }}
-          onSubscribe={() => {
-            trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe" } });
-            handleSubscribeClick();
-          }}
-        />
       ) : pairError ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
           지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?
         </p>
       ) : pairData && pairCell ? (
         <>
-          <section aria-label="우리 30일 캘린더">
-            <CalendarGrid cells={pairGridCells} selectedDate={pairCell.date} onSelect={setPairSelected} />
-          </section>
+          {pairData.entitled && (
+            <section aria-label="우리 30일 캘린더">
+              <CalendarGrid cells={pairGridCells} selectedDate={pairCell.date} onSelect={setPairSelected} />
+            </section>
+          )}
           <PairDayDetailCard
             cell={pairCell}
             backdrop={pairData.backdrop}
             partnerName={pairData.partnerName}
+            entitled={pairData.entitled}
+            staticLine={pairData.staticLine}
             narrative={pairNarrative}
             narrativeLoading={pairNarrativeLoading}
+            trialUsed={data.trialUsed}
+            onStartTrial={() => {
+              trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial" } });
+              handleStartTrial();
+            }}
+            onSubscribe={() => {
+              trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe" } });
+              handleSubscribeClick();
+            }}
           />
         </>
       ) : pairLoading ? (
