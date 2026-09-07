@@ -1,4 +1,4 @@
-// app/api/byeolmaru/watch/route.ts — 우리 오늘 지켜보는 상대 관리. 구독 전용(비구독=차단).
+// app/api/byeolmaru/watch/route.ts — 우리 오늘 지켜보는 상대 관리. 로그인-only(2무료 + 3번째부터 별, watch.ts).
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
