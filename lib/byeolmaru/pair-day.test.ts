@@ -47,6 +47,10 @@ test("getPairStaticLine: friction 우선 → 톤/태그 폴백, 항상 비지 �
   assert.match(getPairStaticLine(mk("caution", { friction: true, spark: true })), /엇갈릴/);
   assert.match(getPairStaticLine(mk("good", { spark: true, bond: true })), /끌림도 결속도/);
   assert.match(getPairStaticLine(mk("good", {})), /순한/);
+  assert.match(getPairStaticLine(mk("normal", { spark: true })), /끌림이 도는/);
+  assert.match(getPairStaticLine(mk("normal", { bond: true })), /편안하게 이어지는/);
+  assert.match(getPairStaticLine(mk("caution", {})), /챙겨주면/);
+  assert.match(getPairStaticLine(mk("normal", {})), /무난하게/);
   for (const tone of ["good", "normal", "caution"] as const) {
     assert.ok(getPairStaticLine(mk(tone, {})).length > 0);
   }
