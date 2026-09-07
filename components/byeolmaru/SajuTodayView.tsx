@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import DailyReportCard from "@/components/fortune/DailyReportCard";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PremiumBlock from "./PremiumBlock";
@@ -35,11 +37,8 @@ function fmtMD(date: string): string {
 export default function SajuTodayView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
-  const [premium, setPremium] = useState<{ narrative: string | null; teaser: string | null; loading: boolean }>({
-    narrative: null,
-    teaser: null,
-    loading: false,
-  });
+  const [report, setReport] = useState<DailyReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   async function refresh() {
     try {
@@ -51,16 +50,22 @@ export default function SajuTodayView() {
       if (data.cells.length === 0) { setState({ kind: "error" }); return; }
       setState({ kind: "ready", data });
       setSelected((prev) => prev ?? data.today);
-    } catch { setState({ kind: "error" }); return; }
 
-    setPremium((p) => ({ ...p, loading: true }));
-    try {
-      const nRes = await fetch("/api/byeolmaru/narrative", { cache: "no-store" });
-      const j = await nRes.json();
-      setPremium({ narrative: j.narrative ?? null, teaser: j.teaser ?? null, loading: false });
-    } catch {
-      setPremium({ narrative: null, teaser: null, loading: false });
-    }
+      // 리포트는 자격자에게만 — 비자격자는 daily-report 를 아예 호출하지 않는다(403 방지=원가0).
+      if (data.entitled) {
+        setReportLoading(true);
+        try {
+          const rRes = await fetch("/api/byeolmaru/daily-report", { cache: "no-store" });
+          const j = await rRes.json();
+          setReport(j.report ?? null);
+        } catch {
+          setReport(null);
+        }
+        setReportLoading(false);
+      } else {
+        setReport(null);
+      }
+    } catch { setState({ kind: "error" }); return; }
   }
 
   useEffect(() => { void refresh(); }, []);
@@ -99,15 +104,33 @@ export default function SajuTodayView() {
         <p className="text-center text-[13px] text-text-light">앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨</p>
       ) : null}
       <DayDetailCard cell={cell} />
-      <PremiumBlock
-        entitled={data.entitled}
-        trialUsed={data.trialUsed}
-        narrative={premium.narrative}
-        teaser={premium.teaser}
-        loading={premium.loading}
-        onStartTrial={startTrial}
-        onSubscribe={openSubscribe}
-      />
+      {data.entitled ? (
+        reportLoading ? (
+          <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">오늘 리포트를 펼치는 중…</section>
+        ) : report ? (
+          <DailyReportCard report={report} dateLabel="오늘" />
+        ) : (
+          <PremiumBlock
+            entitled={true}
+            trialUsed={data.trialUsed}
+            narrative={null}
+            teaser={null}
+            loading={false}
+            onStartTrial={startTrial}
+            onSubscribe={openSubscribe}
+          />
+        )
+      ) : (
+        <PremiumBlock
+          entitled={false}
+          trialUsed={data.trialUsed}
+          narrative={null}
+          teaser={null}
+          loading={false}
+          onStartTrial={startTrial}
+          onSubscribe={openSubscribe}
+        />
+      )}
       <section className="rounded-2xl bg-cream-warm p-4">
         <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
         <ul className="space-y-1 text-sm text-text-light">
