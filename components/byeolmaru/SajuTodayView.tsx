@@ -33,7 +33,7 @@ function fmtMD(date: string): string {
 function BackHeader({ title }: { title: string }) {
   return (
     <header className="flex items-center gap-2">
-      <Link href="/byeolmaru" aria-label="별마루로" className="text-lilac-deep">←</Link>
+      <Link href="/byeolmaru" aria-label="별마루로" className="-m-2 p-2 text-xl text-lilac-deep">←</Link>
       <h1 className="font-display text-2xl text-eye-purple">{title}</h1>
     </header>
   );
@@ -51,8 +51,8 @@ export default function SajuTodayView() {
   async function refresh() {
     try {
       const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-      if (res.status === 401) { setState({ kind: "need_login" }); return; }
-      if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+      if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
+      if (res.status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
       if (!res.ok) { setState({ kind: "error" }); return; }
       const data: CalendarResponse = await res.json();
       if (data.cells.length === 0) { setState({ kind: "error" }); return; }
