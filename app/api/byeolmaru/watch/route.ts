@@ -2,23 +2,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { getEntitlement } from "@/lib/byeolmaru/entitlement";
 import { getWatchState, addWatch, removeWatch } from "@/lib/byeolmaru/watch";
 import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-async function requireEntitled(userId: string | null) {
+// 우리 오늘 무료 개방(1A): 상대 등록·조회는 로그인만 필요하다(구독 아님). 3명째부터의 별 코스트는
+// watch.ts(WATCH_FREE_SLOTS + 구매 슬롯)가 담당하므로 여기선 로그인만 확인한다.
+async function requireLogin(userId: string | null) {
   if (!userId) return { code: 401 as const, body: { error: "Login required", code: "LOGIN_REQUIRED" } };
-  const ent = await getEntitlement(userId);
-  if (!ent.entitled) return { code: 403 as const, body: { error: "subscription_required", code: "LOCKED" } };
   return null;
 }
 
 // GET — 담은 상대 목록 + 추천(아직 안 담은 비-self 프로필) + 현황(allowed/used/nextCost).
 export async function GET(req: NextRequest) {
   const { userId } = await getSession();
-  const gate = await requireEntitled(userId);
+  const gate = await requireLogin(userId);
   if (gate) return NextResponse.json(gate.body, { status: gate.code });
 
   try {
@@ -55,7 +54,7 @@ export async function GET(req: NextRequest) {
 // POST { profileId } — 상대를 담는다(소유·비-self·생일 검증 → 중복 pre-filter → addWatch).
 export async function POST(req: NextRequest) {
   const { userId } = await getSession();
-  const gate = await requireEntitled(userId);
+  const gate = await requireLogin(userId);
   if (gate) return NextResponse.json(gate.body, { status: gate.code });
 
   let profileId: string;
@@ -116,7 +115,7 @@ export async function POST(req: NextRequest) {
 // DELETE ?profileId=... — 상대를 뺀다.
 export async function DELETE(req: NextRequest) {
   const { userId } = await getSession();
-  const gate = await requireEntitled(userId);
+  const gate = await requireLogin(userId);
   if (gate) return NextResponse.json(gate.body, { status: gate.code });
 
   const profileId = new URL(req.url).searchParams.get("profileId");
