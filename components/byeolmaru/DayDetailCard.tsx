@@ -36,7 +36,7 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
 
       <p className="mb-2 font-display text-2xl text-eye-purple">{cell.grade.label}</p>
 
-      {/* ⑤ 무료 오늘 사주 taste — 전반+연애+일·돈+조언 구조 정적(날짜별 variant 로테이션). 슬롯별 뱅크 미스면 그 조각만 생략. */}
+      {/* ⑥/1C 무료 오늘 사주 taste — 전반+연애+일·돈+조언 구조 정적(날짜별 variant 로테이션). 슬롯별 뱅크 미스면 그 조각만 생략. */}
       {(() => {
         const t = getSajuTaste(cell.grade.tone, cell.axes, cell.relation, cell.date);
         return (

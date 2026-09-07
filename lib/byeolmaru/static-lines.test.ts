@@ -123,3 +123,42 @@ test("saju-taste: 뱅크 완전성 — tone 3종(overall)·밴드 3종(love/work
     assert.ok(t.advice.trim().length > 0, `advice/${relation} 존재`);
   }
 });
+
+test("saju-taste: 경계값 — love 65→high, 64→mid, 45→mid, 44→low", () => {
+  const raw = sajuTaste as { love: Record<string, string[]> };
+  const at = (score: number) => getSajuTaste("good", { love: score, money: 50, work: 50 }, "비화", "2026-09-05").love;
+  assert.ok(raw.love.high.includes(at(65)), "65 = high");
+  assert.ok(raw.love.mid.includes(at(64)), "64 = mid");
+  assert.ok(raw.love.mid.includes(at(45)), "45 = mid");
+  assert.ok(raw.love.low.includes(at(44)), "44 = low");
+});
+
+test("saju-taste: 날짜-간 반복 완화 — 밴드 고정 60일에서 각 슬롯이 충분히 바뀐다(avalanche 회귀 가드)", () => {
+  // 🔴 salt 나눗셈 버그 회귀 가드: hashDate 가 하루 +1 이라 floor(h/salt) 식은 한 슬롯을 salt 일
+  // 고정시켜 같은 문장이 반복됐다(리뷰 실측 money 91%·advice 89%). avalanche 로 흩뿌리면 날짜-간
+  // 변경률이 독립 기준(len2≈50%·len3≈67%)에 붙는다. 밴드/톤/관계 고정으로 픽커만 격리 — 25% 미만이면 실패.
+  const start = Date.parse("2026-01-01T00:00:00Z");
+  const N = 60;
+  const KEYS = ["overall", "love", "work", "money", "advice"] as const;
+  const changes: Record<(typeof KEYS)[number], number> = { overall: 0, love: 0, work: 0, money: 0, advice: 0 };
+  let prev: ReturnType<typeof getSajuTaste> | null = null;
+  for (let i = 0; i < N; i++) {
+    const date = new Date(start + i * 86400000).toISOString().slice(0, 10);
+    const t = getSajuTaste("good", { love: 75, money: 70, work: 72 }, "생아", date);
+    if (prev) {
+      for (const k of KEYS) {
+        if (t[k] !== prev[k]) changes[k]++;
+      }
+    }
+    prev = t;
+  }
+  for (const k of KEYS) {
+    const rate = changes[k] / (N - 1);
+    assert.ok(rate >= 0.25, `${k} 날짜-간 변경률 ${(rate * 100).toFixed(0)}% ≥25%(반복 고정 아님)`);
+  }
+});
+
+test("saju-taste: 반환 5섹션 금지문자 없음", () => {
+  const t = getSajuTaste("good", { love: 70, money: 55, work: 60 }, "생아", "2026-09-05");
+  for (const [k, v] of Object.entries(t)) assertClean(v, `saju-taste ${k}`);
+});
