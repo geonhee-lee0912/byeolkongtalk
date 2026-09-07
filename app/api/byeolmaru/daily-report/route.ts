@@ -62,6 +62,10 @@ export async function GET(req: NextRequest) {
     if (!temporal.day) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
+    // 🔴 create/route.ts 처럼 프롬프트 빌드 전에 오늘 일진을 saju 에 붙인다 — sajuBlock 은
+    // saju.temporal 이 있을 때만 '오늘 들어온 두 글자' 일진 블록을 넣고, 없으면 {{TODAY_PILLAR}}
+    // 가 placeholder("오늘의 일진")로 떨어져 일진 그라운딩이 통째로 빠진다(daily 리포트의 핵심).
+    saju.temporal = temporal;
 
     // 캐시 히트 — 오늘(유저,날짜) 이미 생성된 리포트가 있으면 재생성 없이 그대로 반환.
     const cached = await getCachedDailyReport(userId, todayKst);
