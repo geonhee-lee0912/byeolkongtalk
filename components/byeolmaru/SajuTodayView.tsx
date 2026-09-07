@@ -1,0 +1,129 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import CalendarGrid, { type GridCell } from "./CalendarGrid";
+import DayDetailCard from "./DayDetailCard";
+import PremiumBlock from "./PremiumBlock";
+import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
+
+interface CalendarResponse {
+  today: string;
+  todayGanji: string;
+  cells: DayCell[];
+  weeks: WeekBucket[];
+  entitled: boolean;
+  trialUsed: boolean;
+  subscriptionExpiresAt: string | null;
+}
+
+type State =
+  | { kind: "loading" }
+  | { kind: "need_login" }
+  | { kind: "no_profile" }
+  | { kind: "error" }
+  | { kind: "ready"; data: CalendarResponse };
+
+function fmtMD(date: string): string {
+  return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
+}
+
+function BackHeader({ title }: { title: string }) {
+  return (
+    <header className="flex items-center gap-2">
+      <Link href="/byeolmaru" aria-label="별마루로" className="text-lilac-deep">←</Link>
+      <h1 className="font-display text-2xl text-eye-purple">{title}</h1>
+    </header>
+  );
+}
+
+export default function SajuTodayView() {
+  const [state, setState] = useState<State>({ kind: "loading" });
+  const [selected, setSelected] = useState<string | null>(null);
+  const [premium, setPremium] = useState<{ narrative: string | null; teaser: string | null; loading: boolean }>({
+    narrative: null,
+    teaser: null,
+    loading: false,
+  });
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+      if (res.status === 401) { setState({ kind: "need_login" }); return; }
+      if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+      if (!res.ok) { setState({ kind: "error" }); return; }
+      const data: CalendarResponse = await res.json();
+      if (data.cells.length === 0) { setState({ kind: "error" }); return; }
+      setState({ kind: "ready", data });
+      setSelected((prev) => prev ?? data.today);
+    } catch { setState({ kind: "error" }); return; }
+
+    setPremium((p) => ({ ...p, loading: true }));
+    try {
+      const nRes = await fetch("/api/byeolmaru/narrative", { cache: "no-store" });
+      const j = await nRes.json();
+      setPremium({ narrative: j.narrative ?? null, teaser: j.teaser ?? null, loading: false });
+    } catch {
+      setPremium({ narrative: null, teaser: null, loading: false });
+    }
+  }
+
+  useEffect(() => { void refresh(); }, []);
+
+  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+
+  if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">펼치는 중…</main>;
+  if (state.kind === "need_login") return (
+    <main className="mx-auto w-full max-w-md p-6 text-center">
+      <p className="mb-4 text-eye-purple">로그인하면 네 달력을 펼쳐줄게.</p>
+      <Link href="/login?next=/byeolmaru/saju" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
+    </main>
+  );
+  if (state.kind === "no_profile") return (
+    <main className="mx-auto w-full max-w-md p-6 text-center">
+      <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>
+      <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">생년월일 입력하러 가기</Link>
+    </main>
+  );
+  if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
+
+  const { data } = state;
+  const cell = data.cells.find((c) => c.date === selected) ?? data.cells[0];
+  const selfGridCells: GridCell[] = data.cells.map((c) => ({
+    date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday,
+  }));
+  const good = data.weeks.reduce((s, w) => s + w.good, 0);
+
+  return (
+    <main className="mx-auto w-full max-w-md space-y-4 p-4">
+      <BackHeader title="오늘 사주" />
+      <section aria-label="30일 캘린더">
+        <CalendarGrid cells={selfGridCells} selectedDate={cell.date} onSelect={setSelected} />
+      </section>
+      {good > 0 ? (
+        <p className="text-center text-[13px] text-text-light">앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨</p>
+      ) : null}
+      <DayDetailCard cell={cell} />
+      <PremiumBlock
+        entitled={data.entitled}
+        trialUsed={data.trialUsed}
+        narrative={premium.narrative}
+        teaser={premium.teaser}
+        loading={premium.loading}
+        onStartTrial={startTrial}
+        onSubscribe={openSubscribe}
+      />
+      <section className="rounded-2xl bg-cream-warm p-4">
+        <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
+        <ul className="space-y-1 text-sm text-text-light">
+          {data.weeks.map((w) => (
+            <li key={w.index}>{fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
+          ))}
+        </ul>
+      </section>
+      {subscribeModal}
+    </main>
+  );
+}
