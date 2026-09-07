@@ -2,7 +2,7 @@
 
 // components/byeolmaru/WatchAddModal.tsx — "우리 오늘"에 지켜볼 상대를 담는 모달(③-a Task8).
 // 두 경로: ①이미 등록된 비-self 프로필 고르기 ②새로 등록(ProfileForm 재사용). 무료 2명(WATCH_FREE_SLOTS)
-// 초과분은 5별(WATCH_EXTRA_COST) 확인이 필요 — StarConfirmModal 재사용(ByeolmaruView 잔액조회 패턴 동일).
+// 초과분은 5별(WATCH_EXTRA_COST) 확인이 필요 — StarConfirmModal 재사용(useByeolmaruSubscribe 잔액조회 패턴 동일).
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
@@ -94,7 +94,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   if (typeof document === "undefined") return null;
 
   // 공유 담기 플로우 — 무료면 곧장 POST, 유료면 잔액을 조회해 StarConfirmModal을 띄운다.
-  // 🔴 balance=null 로 넘기면 확인 버튼이 영구 disabled — ByeolmaruView handleSubscribeClick과
+  // 🔴 balance=null 로 넘기면 확인 버튼이 영구 disabled — useByeolmaruSubscribe openSubscribe와
   // 동일하게 /api/stars/balance 로 실 잔액을 조회한다(항상 200, 비로그인/에러는 0).
   function startAddFlow(profileId: string) {
     if (busy) return;
