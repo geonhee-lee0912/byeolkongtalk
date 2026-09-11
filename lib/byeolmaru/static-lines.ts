@@ -1,6 +1,7 @@
 // lib/byeolmaru/static-lines.ts — ⑥ 정적 콘텐츠 뱅크 조회(순수).
 // 뱅크는 세션 내 저작 후 굳힌 JSON(변동비 0). 미스 시 null → 호출측이 폴백.
 import cardLines from "@/data/byeolmaru/card-lines.json";
+import cardTaste from "@/data/byeolmaru/card-taste.json";
 import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
 import sajuTaste from "@/data/byeolmaru/saju-taste.json";
 import type { DayTone, AxisScores } from "./day-score.ts";
@@ -8,6 +9,9 @@ import type { ElementRelation } from "@/lib/saju/pairing";
 
 type CardLine = { upright: string; reversed: string };
 const CARD_LINES = cardLines as Record<string, CardLine>;
+// ⑥/1C 무료 오늘 타로 taste — 카드 id×정역 각 ~350자 본문(별콩 톤, 비개인화). 구조는 card-taste.json.
+// 인사말은 본문에서 분리해 getCardTaste 에서 날짜 시드로 붙인다(아래 CARD_TASTE_GREETINGS 주석 참조).
+const CARD_TASTE = cardTaste as Record<string, CardLine>;
 // ⑥ 조각 조합(C): relation 조각(결로 끝남) + tone 조언(오늘은 없이 시작)을 날짜 시드로 조합.
 const SKELETON = skeletonLines as {
   relation: Record<string, string[]>;
@@ -103,4 +107,29 @@ export function getSajuTaste(
     money: pick(TASTE.money[tasteBand(axes.money)], 3),
     advice: pick(TASTE.advice[relation], 4),
   };
+}
+
+// 오늘의 카드 taste 인사말 뱅크 — 본문(카드별 고정 프리즈)과 분리한 룰 로테이션.
+// 데일리라 인사말을 본문에 굳히면 매일 같은 "안녕…"이 보였다(사용자 피드백 2026-09-12) →
+// 날짜 시드로 매일 다른 인사를 앞에 붙여 신선함만 준다. 본문은 그대로 재사용(변동비 0).
+const CARD_TASTE_GREETINGS = [
+  "안녕, 나 별콩이야.",
+  "반가워, 별콩이 왔어.",
+  "어서 와, 오늘도 별콩이야.",
+  "안녕, 별콩이 여기 있지.",
+  "살며시, 별콩이가 곁에 왔어.",
+  "반가워, 나 별콩이야.",
+  "별콩이가 조용히 다가왔어.",
+  "안녕, 잘 지냈어? 별콩이야.",
+];
+
+/** 무료 오늘의 카드 taste — 카드 id(0~77)×정역 각 ~350자 본문 + 날짜별 인사말(맨 앞).
+ * 본문은 프리즈 뱅크(룰·₩0), 인사말만 날짜 시드로 로테이션. 뱅크 미스면 null(호출측 키워드 폴백). */
+export function getCardTaste(cardId: number, reversed: boolean, date: string): string | null {
+  const e = CARD_TASTE[String(cardId)];
+  if (!e) return null;
+  const body = reversed ? e.reversed : e.upright;
+  if (!body) return null;
+  const greeting = CARD_TASTE_GREETINGS[mix32(hashDate(date)) % CARD_TASTE_GREETINGS.length];
+  return `${greeting} ${body}`;
 }

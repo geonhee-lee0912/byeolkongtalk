@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getCardLine, getSkeletonLine, getSajuTaste } from "./static-lines.ts";
+import { getCardLine, getCardTaste, getSkeletonLine, getSajuTaste } from "./static-lines.ts";
 import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
 import sajuTaste from "@/data/byeolmaru/saju-taste.json";
+import cardTaste from "@/data/byeolmaru/card-taste.json";
 import { getCardCount } from "@/lib/tarot/cards";
 import type { DayTone } from "./day-score.ts";
 import type { ElementRelation } from "@/lib/saju/pairing";
@@ -161,4 +162,65 @@ test("saju-taste: 날짜-간 반복 완화 — 밴드 고정 60일에서 각 슬
 test("saju-taste: 반환 5섹션 금지문자 없음", () => {
   const t = getSajuTaste("good", { love: 70, money: 55, work: 60 }, "생아", "2026-09-05");
   for (const [k, v] of Object.entries(t)) assertClean(v, `saju-taste ${k}`);
+});
+
+// ── 1C 무료 오늘의 카드 taste (~350자 본문 + 날짜별 인사말) ────────────────────────
+const DATE = "2026-09-12";
+
+test("card-taste: 78카드 전부 · 정/역 비어있지 않음 · 금지문자·영어 없음 · 정≠역", () => {
+  for (let id = 0; id < 78; id++) {
+    const up = getCardTaste(id, false, DATE);
+    const rv = getCardTaste(id, true, DATE);
+    assert.ok(up && up.trim().length > 0, `card ${id} upright taste 존재`);
+    assert.ok(rv && rv.trim().length > 0, `card ${id} reversed taste 존재`);
+    assertClean(up!, `card ${id} up taste`);
+    assertClean(rv!, `card ${id} rv taste`);
+    // 무료 데일리는 별콩 화법(영어 금지). 본문·인사말 모두 한글이어야.
+    assert.ok(!/[A-Za-z]/.test(up!), `card ${id} up 영어 없음`);
+    assert.ok(!/[A-Za-z]/.test(rv!), `card ${id} rv 영어 없음`);
+    assert.notEqual(up, rv, `card ${id} 정/역 다른 문장(같은 날 같은 인사말이라 본문 차이로만 갈림)`);
+  }
+});
+
+test("card-taste: 뱅크 완전성 — 0~77 각 upright/reversed non-empty", () => {
+  const raw = cardTaste as Record<string, { upright: string; reversed: string }>;
+  for (let id = 0; id < 78; id++) {
+    const e = raw[String(id)];
+    assert.ok(e, `card-taste[${id}] 존재`);
+    assert.ok(e.upright?.trim().length > 0, `card-taste[${id}].upright`);
+    assert.ok(e.reversed?.trim().length > 0, `card-taste[${id}].reversed`);
+  }
+});
+
+test("card-taste: 분량 — 완성본(인사말+본문) 300자 이상(한 줄 회귀 가드) · 700자 이하", () => {
+  for (let id = 0; id < 78; id++) {
+    for (const reversed of [false, true]) {
+      const s = getCardTaste(id, reversed, DATE)!;
+      const n = [...s].length;
+      assert.ok(n >= 300, `card ${id} ${reversed ? "역" : "정"} 완성 ${n}자 ≥300(옛 한 줄 아님)`);
+      assert.ok(n <= 700, `card ${id} ${reversed ? "역" : "정"} 완성 ${n}자 ≤700(런어웨이 아님)`);
+    }
+  }
+});
+
+test("card-taste: 뱅크 밖 id 는 null(호출측 폴백)", () => {
+  assert.equal(getCardTaste(78, false, DATE), null);
+  assert.equal(getCardTaste(-1, true, DATE), null);
+});
+
+test("card-taste: 인사말 로테이션 결정론 — 같은 (id,정역,date) 는 늘 같은 문장", () => {
+  assert.equal(getCardTaste(0, false, DATE), getCardTaste(0, false, DATE));
+  assert.equal(getCardTaste(13, true, "2026-01-01"), getCardTaste(13, true, "2026-01-01"));
+});
+
+test("card-taste: 인사말이 날짜별로 다양 — 같은 카드 30일에 3종 이상 다른 완성본", () => {
+  // 본문은 카드 고정이라, 완성본이 날짜별로 달라지려면 인사말이 로테이션돼야 한다.
+  const start = Date.parse("2026-01-01T00:00:00Z");
+  const seen = new Set<string>();
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(start + i * 86400000).toISOString().slice(0, 10);
+    const s = getCardTaste(0, false, date);
+    if (s) seen.add(s);
+  }
+  assert.ok(seen.size >= 3, `30일 인사말 다양성 ${seen.size}종 ≥3`);
 });

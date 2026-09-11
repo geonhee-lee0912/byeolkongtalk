@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
-import { getCardLine } from "@/lib/byeolmaru/static-lines";
+import { getCardTaste } from "@/lib/byeolmaru/static-lines";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 
@@ -206,8 +206,10 @@ export default function DailyCardBlock({
           const reversed = drawnCard.reversed;
           const orientLabel = reversed ? "역위" : "정위";
           const kwList = reversed ? tarotCard.reversed : tarotCard.upright;
-          // ⑥ 별콩 톤 정적 해석 뱅크 우선, 뱅크 미스면 키워드 템플릿 폴백.
-          const staticLine = getCardLine(drawnCard.cardId, reversed) ?? buildStaticLine(kwList);
+          // 오늘(KST) — taste 인사말 날짜 로테이션 시드용(오늘의 카드는 KST 하루 1장 고정).
+          const kstToday = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+          // ⑥/1C 무료 오늘 타로 taste(~350자 별콩 톤 정적) 우선, 뱅크 미스면 키워드 템플릿 폴백.
+          const taste = getCardTaste(drawnCard.cardId, reversed, kstToday) ?? buildStaticLine(kwList);
           return (
             <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
               <h2 className="mb-3 font-display text-base text-eye-purple">오늘의 카드</h2>
@@ -226,7 +228,6 @@ export default function DailyCardBlock({
                   {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
                 </p>
                 <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
-                <p className="mt-2 text-sm leading-relaxed text-eye-purple">{staticLine}</p>
               </div>
 
               {entitled ? (
@@ -234,9 +235,15 @@ export default function DailyCardBlock({
                   <p className="mt-3 text-sm text-text-light">별콩이가 카드를 읽는 중…</p>
                 ) : narrative ? (
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-eye-purple">{narrative}</p>
-                ) : null
+                ) : (
+                  // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
+                  <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+                )
               ) : (
                 <>
+                  {/* 무료 taste — 카드 메시지+오늘 적용+조언 ~350자 정적(design §5). */}
+                  <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+                  {/* 유료 개인화 티저(사주 위에 겹친 해석) — 블러 + CTA + 인라인 낙수. */}
                   <p className="mt-3 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
                     별콩이가 이 카드를 네 사주 위에 겹쳐서 오늘 흐름을 풀어주면…
                   </p>
