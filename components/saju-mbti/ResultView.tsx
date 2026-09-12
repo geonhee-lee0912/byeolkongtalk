@@ -4,6 +4,7 @@ import type { SajuResult } from "@/lib/saju/calc";
 import type { PaljaType } from "@/lib/saju-mbti/mapping";
 import type { SelfType } from "@/lib/saju-mbti/self-type";
 import type { MatchRate } from "@/lib/saju-mbti/match";
+import Link from "next/link";
 import type { AxisKey } from "@/lib/saju-mbti/constants";
 import { POLES } from "@/lib/saju-mbti/constants";
 import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/content";
@@ -273,13 +274,18 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* ⑥ 하단 CTA */}
       {shared ? (
-        <button
-          type="button"
-          onClick={onStart}
-          className="w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition mt-3"
-        >
-          나도 해보기
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onStart}
+            className="w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition mt-3"
+          >
+            나도 해보기
+          </button>
+          <Link href="/byeolmaru" className="block text-center text-[12px] text-lilac-deep/70 mt-2">
+            별마루에서 무료로 다 보기 →
+          </Link>
+        </>
       ) : (
         <div className="flex gap-2.5 mt-3">
           <button
