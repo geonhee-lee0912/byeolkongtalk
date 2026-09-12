@@ -599,14 +599,16 @@ export async function POST(request: NextRequest) {
 
   const verdictForceEnd = inVerdict && activeSkill!.assistant_turns + 1 >= VERDICT_INTHREAD_TURN_CAP;
 
+  // 관계 스레드는 wrap 임계가 없다 → 수렴 승격 없이 기존 동작 유지
+  const turnSignals = computeTurnSignals(past, userMessage);
+
   const systemMessage = buildRelationshipSystemMessage({
     fileBlock,
     isFirstEver,
     checkinPrompt,
     dailyClose,
     freeIntro,
-    // 관계 스레드는 wrap 임계가 없다 → 수렴 승격 없이 기존 동작 유지
-    turnSignals: computeTurnSignals(past, userMessage),
+    turnSignals,
     activeSkill: inVerdict
       ? { key: "verdict", assistantTurns: activeSkill!.assistant_turns, forceEnd: verdictForceEnd }
       : null,
@@ -651,7 +653,7 @@ export async function POST(request: NextRequest) {
         const skillTag = inVerdict ? "verdict" : graceKey;
         await supabase.from("messages").insert([
           { reading_id: threadReadingId, role: "user", content: userMessage, skill_key: skillTag, created_at: new Date(turnTs).toISOString() },
-          { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: skillTag, created_at: new Date(turnTs + 1).toISOString() },
+          { reading_id: threadReadingId, role: "assistant", content: assistantText, skill_key: skillTag, turn_close: turnSignals.turnClose ?? null, created_at: new Date(turnTs + 1).toISOString() },
         ]);
 
         const memo = (rel.memo ?? {}) as RelationshipMemo;

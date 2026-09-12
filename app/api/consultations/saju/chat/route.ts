@@ -219,6 +219,12 @@ export async function POST(request: NextRequest) {
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
   const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 
+  const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
+    wrapMode,
+    isFirstTurn: assistantTurnsSoFar === 0,
+    questionLen: (reading.question ?? "").trim().length,
+  });
+
   const systemMessage = buildSystemMessage({
     saju: reading.saju_data as SajuResult,
     sajuProduct: isSajuProduct(reading.saju_product)
@@ -226,11 +232,7 @@ export async function POST(request: NextRequest) {
       : "today_letters",
     concernText: reading.question ?? "",
     emotionTag: reading.emotion_tag as string | null,
-    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content, {
-      wrapMode,
-      isFirstTurn: assistantTurnsSoFar === 0,
-      questionLen: (reading.question ?? "").trim().length,
-    }),
+    turnSignals,
     assistantTurnsSoFar,
     cumulativeAssistantChars,
     forceEnd: body.forceEnd === true,
@@ -294,6 +296,7 @@ export async function POST(request: NextRequest) {
             reading_id: reading.id,
             role: "assistant",
             content: assistantText,
+            turn_close: turnSignals.turnClose ?? null,
             created_at: new Date(turnTs + 1).toISOString(),
           },
         ]);
