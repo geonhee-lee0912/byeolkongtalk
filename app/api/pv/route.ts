@@ -12,7 +12,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { isBotUserAgent, normalizePath } from "@/lib/analytics/pageview";
+import {
+  detectBrowserEnv,
+  isBotUserAgent,
+  normalizePath,
+} from "@/lib/analytics/pageview";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest) {
     if (!path) return NO_CONTENT();
 
     const session = await getSession();
+    const ua = req.headers.get("user-agent");
 
     const row = {
       anon_id: session.anonymousId ?? null,
@@ -77,7 +82,9 @@ export async function POST(req: NextRequest) {
       utm_term: str(body.utm_term),
       landing_variant: str(body.landing_variant, 40),
       referrer: str(body.referrer, 200),
-      is_bot: isBotUserAgent(req.headers.get("user-agent")),
+      is_bot: isBotUserAgent(ua),
+      // 인앱 브라우저 판별 — /login 게이트 이탈(30.8%)의 원인 분리용
+      browser_env: detectBrowserEnv(ua),
     };
 
     const supa = getServiceSupabase();
