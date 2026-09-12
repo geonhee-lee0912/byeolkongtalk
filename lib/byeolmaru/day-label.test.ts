@@ -17,7 +17,9 @@ test("DAY_LINE — 십신 10종 전부에 한 줄이 있고 반말로 끝난다"
   for (const t of ALL) {
     const line = DAY_LINE[t];
     assert.ok(line.length >= 20, `${t} 한 줄이 너무 짧다`);
-    assert.ok(/[야아어해봐좋돼져]\.?$/.test(line.trim()), `${t} 한 줄이 반말 종결이 아니다: ${line}`);
+    // 별콩이는 해체 반말만 쓴다. 허용 어미를 열거하면(옛 방식) 카피가 바뀔 때마다 정규식을
+    // 손봐야 하므로, 금지 어미(존댓말 ~요 / 문어체 ~다)만 막는다.
+    assert.ok(!/[다요]\.?$/.test(line.trim()), `${t} 한 줄이 반말 종결이 아니다: ${line}`);
   }
 });
 
@@ -40,12 +42,17 @@ test("dayMarks — 천간합·육합이 같이 있으면 둘 다, 순서는 천�
 });
 
 test("dayMarks — 충은 △", () => {
-  assert.deepEqual(dayMarks({ ...base, clash: true }).map((x) => x.glyph), ["△"]);
+  assert.deepEqual(dayMarks({ ...base, clash: true }), [{ glyph: "△", label: "충" }]);
 });
 
 test("dayMarks — 그 오행이 아예 없으면 ＋(빈 곳 채움), 부족/보통/과다는 마크 없음", () => {
-  assert.deepEqual(dayMarks({ ...base, scarcity: "absent" }).map((x) => x.glyph), ["＋"]);
+  assert.deepEqual(dayMarks({ ...base, scarcity: "absent" }), [{ glyph: "＋", label: "빈 곳 채움" }]);
   for (const s of ["scarce", "balanced", "excess"] as const) {
     assert.deepEqual(dayMarks({ ...base, scarcity: s }), []);
   }
+});
+
+test("dayMarks — 네 신호가 다 있으면 고정 순서로 넷 다", () => {
+  const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
+  assert.deepEqual(m.map((x) => x.glyph), ["✧", "◇", "△", "＋"]);
 });

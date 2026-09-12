@@ -34,8 +34,10 @@ export const DAY_LINE: Record<TenGod, string> = {
   편관: "밀어붙이는 힘이 바깥에서 들어오는 날이야. 다 받아내지 않아도 돼, 하나만 골라봐.",
 };
 
+export type DayGlyph = "✧" | "◇" | "△" | "＋";
+
 export interface DayMark {
-  glyph: string;
+  glyph: DayGlyph;
   label: string;
 }
 
