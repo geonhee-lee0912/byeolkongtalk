@@ -17,4 +17,5 @@
 //   2026-08-14-sim-portrait   — 시뮬 디브리핑 [PORTRAIT:] 성향 관찰 추출→personality 누적(초상화 축적 payoff) + 무료 런웨이/훅 진입 (spec: 2026-08-14-시뮬-무료-런웨이-초상화)
 //   2026-08-29-fortune-luna   — 유료 리포트 5종 + 사주 chat resume sonnet→gpt-5.6-luna 이관 +
 //                               활성 JSON 리포트 4종 구조화 출력(json_schema strict) (spec: 2026-08-29-운세리포트-luna-구조화출력)
-export const PROMPT_VERSION = "2026-08-29-fortune-luna";
+//   2026-09-12-turn-close     — 턴 마무리 상태화: 코어 §5/§6 질문 억제 무조건→조건부 + 서버 turnClose(ask/invite/settle) 상한 주입 + messages.turn_close 계측 (spec: 2026-09-12-타로톡-턴마무리-상태화)
+export const PROMPT_VERSION = "2026-09-12-turn-close";
