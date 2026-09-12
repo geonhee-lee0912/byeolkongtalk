@@ -43,7 +43,7 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
              한 줄은 허브 히어로가 쓴다(taste 블록이 없는 자리). 뱅크마다 집은 하나씩. */}
       <p className="font-display text-2xl leading-snug text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
       <div className="mb-3 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-sm text-text-light">· {cell.grade.label}</span>
+        <span className="text-sm text-text-light">{cell.grade.label}</span>
         {cell.marks.map((m) => (
           <span
             key={m.glyph}

@@ -15,10 +15,11 @@ export interface GridCell {
   tone: DayTone;
   label: string;
   isToday: boolean;
-  /** 원인 마크(P5-1). 우리 오늘(pair)은 자체 태그 어법을 쓰므로 전달하지 않는다 — 그래서 옵셔널.
-   *  셀은 첫 마크만 그린다(겹침 실측). 개수 상한은 dayFactors() 가 정한다 — 육합과 충은
-   *  같은 지지 짝에서 나와 동시에 참이 될 수 없다. */
-  marks?: DayMark[];
+  /** 원인 마크(P5-1). 셀은 첫 마크만 그린다(겹침 실측). 개수 상한은 dayFactors() 가 정한다 —
+   *  육합과 충은 같은 지지 짝에서 나와 동시에 참이 될 수 없다.
+   *  🔴 옵셔널이 아니다 — 옵셔널이면 호출부에서 marks 전달을 빼도 타입체크·테스트가 다 통과한 채
+   *     글리프만 조용히 사라진다. 마크가 없는 호출부(우리 오늘)는 빈 배열을 명시한다. */
+  marks: DayMark[];
 }
 
 // 등급 색 — 오행 색(SajuBoard ELEMENT_COLORS)과 섞이지 않게 별콩이 톤 3단계만 쓴다.
@@ -90,7 +91,7 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
               {c.marks?.length ? (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute right-[3px] top-[2px] text-[7px] font-bold leading-none text-eye-purple/70"
+                  className="pointer-events-none absolute right-[3px] top-[2px] text-[8px] font-bold leading-none text-eye-purple"
                 >
                   {/* 🔴 셀에는 최우선 마크 1개만. 실측(375px 폰 ≈ 42px 셀): 2개부터 두 자리 날짜와
                       겹친다(48px 셀에서 2개 여유 0.8px, 3개 겹침 6.3px). 전체 목록은 aria-label 과
