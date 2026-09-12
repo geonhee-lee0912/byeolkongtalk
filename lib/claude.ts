@@ -135,6 +135,59 @@ export function computeTurnSignals(
   return { lastTurnEndedWithQuestion, userShortStreak };
 }
 
+/**
+ * 턴 마무리 상한. 서버가 "여기까지 허용"을 정하고 모델은 그 안에서 내려갈 수만 있다.
+ * 근거 = specs/2026-09-12-타로톡-턴마무리-상태화-design.md
+ * 07-12 원 진단("단답이 연속되는 유저는 이미 지쳤다")을 조건으로 복원한 것 —
+ * 그 조건이 코어 §5 에서 "유저 답 길이와 무관하게" 로 무조건화되며 후속 질문률이
+ * 7~10% 까지 떨어졌고(규칙 상한 33% 보다 낮음) 무언 이탈 27% 와 맞물렸다.
+ */
+export type TurnClose = "ask" | "invite" | "settle";
+
+export interface TurnCloseInput {
+  /** 직전 유저 발화. 첫 턴이면 null */
+  prevUserText: string | null;
+  /** 이번 유저 발화 */
+  currentUserText: string;
+  /** 직전 별콩이 턴이 질문으로 끝났나 (computeTurnSignals 산출) */
+  lastTurnEndedWithQuestion: boolean;
+  /** 단답 2연속 (computeTurnSignals 산출) */
+  userShortStreak: boolean;
+  /** computeWrapMode(...).mode — "free" 가 아니면 수렴·마무리 구간 */
+  wrapMode?: WrapMode;
+  /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
+  isFirstTurn?: boolean;
+  /** readings.question 길이 — 짧은 고민은 일반론을 부르고 1턴 이탈 17% 로 이어진다 */
+  questionLen?: number;
+}
+
+/** 첫 고민이 이보다 짧으면 첫 풀이에서 디테일 하나를 청해도 된다 (실측: 40자 미만 1턴 이탈 17% vs 70자+ 5%) */
+const SHORT_CONCERN_LEN = 40;
+/** 직전 발화 대비 이만큼 길어지면 유저가 다시 붙은 것으로 본다 */
+const RE_ENGAGE_GROWTH = 20;
+
+export function computeTurnClose(i: TurnCloseInput): TurnClose {
+  // 우선순위: settle > ask > invite
+  if (i.userShortStreak) return "settle";
+  if (i.wrapMode !== undefined && i.wrapMode !== "free") return "settle";
+
+  const cur = i.currentUserText.trim();
+  const grew =
+    i.prevUserText !== null &&
+    cur.length - i.prevUserText.trim().length >= RE_ENGAGE_GROWTH;
+  const shortConcernFirstTurn =
+    i.isFirstTurn === true &&
+    i.questionLen !== undefined &&
+    i.questionLen > 0 &&
+    i.questionLen < SHORT_CONCERN_LEN;
+
+  const askable = /[?？]/.test(cur) || grew || shortConcernFirstTurn;
+  if (!askable) return "invite";
+
+  // 질문 2연속 금지는 유지 — 상한을 invite 로 강등 (원 진단에도 있던 규칙)
+  return i.lastTurnEndedWithQuestion ? "invite" : "ask";
+}
+
 function buildTurnSignalBlock(s: TurnSignals | undefined): string {
   if (!s) return "";
   const lines: string[] = [];

@@ -1,0 +1,94 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { computeTurnClose } from "./claude.ts";
+
+const base = {
+  prevUserText: "앞선 발화가 여기에 충분히 길게 들어갑니다 정말로요",
+  currentUserText: "그 사람은 지금 무슨 생각일까",
+  lastTurnEndedWithQuestion: false,
+  userShortStreak: false,
+};
+
+test("computeTurnClose — 단답 2연속이면 settle (07-12 원 진단 조건)", () => {
+  assert.equal(
+    computeTurnClose({ ...base, userShortStreak: true, currentUserText: "응" }),
+    "settle",
+  );
+});
+
+test("computeTurnClose — 수렴·마무리 구간이면 settle", () => {
+  assert.equal(computeTurnClose({ ...base, wrapMode: "converge" }), "settle");
+  assert.equal(computeTurnClose({ ...base, wrapMode: "hardcap" }), "settle");
+  assert.notEqual(computeTurnClose({ ...base, wrapMode: "free" }), "settle");
+});
+
+test("computeTurnClose — 유저가 물음표를 쓰면 ask", () => {
+  assert.equal(
+    computeTurnClose({ ...base, currentUserText: "그럼 언제쯤 연락이 올까?" }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 발화가 직전보다 20자 이상 길어지면 ask", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      prevUserText: "응 맞아",
+      currentUserText:
+        "사실 어제 그 사람이 스토리를 올렸는데 내 얘기 같아서 계속 신경 쓰여",
+    }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 첫 풀이인데 고민이 40자 미만이면 ask (C1 대응)", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      prevUserText: null,
+      currentUserText: "재결합 가능할까요",
+      isFirstTurn: true,
+      questionLen: 11,
+    }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 첫 풀이라도 고민이 충분히 길면 ask 아님", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      prevUserText: null,
+      currentUserText: "긴 고민",
+      isFirstTurn: true,
+      questionLen: 150,
+    }),
+    "invite",
+  );
+});
+
+test("computeTurnClose — ask 조건이어도 직전 턴이 질문이면 invite 로 강등", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      currentUserText: "그럼 언제쯤 연락이 올까?",
+      lastTurnEndedWithQuestion: true,
+    }),
+    "invite",
+  );
+});
+
+test("computeTurnClose — 아무 조건도 안 맞으면 invite (기본값)", () => {
+  assert.equal(computeTurnClose(base), "invite");
+});
+
+test("computeTurnClose — settle 은 ask 보다 우선", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      currentUserText: "언제 올까?",
+      userShortStreak: true,
+    }),
+    "settle",
+  );
+});
