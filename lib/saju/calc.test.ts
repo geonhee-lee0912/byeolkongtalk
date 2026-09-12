@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcSaju, calcDaeun, calcTemporalLuck, baseDateForKst, type SajuInput, type SajuResult } from "./calc.ts";
+import {
+  calcSaju,
+  calcDaeun,
+  calcTemporalLuck,
+  baseDateForKst,
+  calcDailyLuckRange,
+  type SajuInput,
+  type SajuResult,
+} from "./calc.ts";
 import { kstDate } from "@/lib/admin-time";
 
 const solar = (o: Partial<SajuInput>): SajuInput => ({
@@ -139,4 +147,37 @@ test("KST 체인 실물 — kstDate → baseDateForKst → calcTemporalLuck 이 
     todayKst,
     "체인의 첫 날짜가 오늘의 KST 날짜와 일치해야 한다"
   );
+});
+
+// ── calcDailyLuckRange ──
+test("calcDailyLuckRange — 양끝 포함, 월 경계를 넘어간다", () => {
+  const r = calcDailyLuckRange("2026-09-28", "2026-10-02");
+  assert.equal(r.length, 5, "9/28~10/2 = 5일(양끝 포함)");
+  assert.equal(r[0].date, "2026-09-28");
+  assert.equal(r[4].date, "2026-10-02");
+});
+
+test("calcDailyLuckRange — 하루짜리 범위", () => {
+  const r = calcDailyLuckRange("2026-09-13", "2026-09-13");
+  assert.equal(r.length, 1);
+  assert.equal(r[0].date, "2026-09-13");
+});
+
+test("calcDailyLuckRange — end < start 면 빈 배열(호출부 실수를 조용히 늘리지 않는다)", () => {
+  assert.deepEqual(calcDailyLuckRange("2026-09-13", "2026-09-12"), []);
+});
+
+test("calcDailyLuckRange — 같은 날짜는 calcTemporalLuck 의 30일 일진과 간지가 일치한다", () => {
+  // 두 경로가 같은 tyme4ts 계산을 쓴다는 계약. 어긋나면 달력과 서술이 다른 간지를 말한다.
+  const t = calcTemporalLuck(baseDateForKst("2026-09-13"), 1994, { includeMonth: true });
+  const r = calcDailyLuckRange("2026-09-13", "2026-10-12");
+  assert.equal(r.length, 30);
+  for (let i = 0; i < 30; i++) {
+    assert.equal(r[i].date, t.dailyLuck?.[i].date, `${i}번째 날짜 불일치`);
+    assert.equal(
+      r[i].stem + r[i].branch,
+      (t.dailyLuck?.[i].stem ?? "") + (t.dailyLuck?.[i].branch ?? ""),
+      `${r[i].date} 간지 불일치`
+    );
+  }
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCalendar, weekBuckets, toDaySelf } from "./calendar.ts";
+import { buildCalendar, weekBuckets, toDaySelf, monthRange, splitByFreeLine } from "./calendar.ts";
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 
 // 최소 SajuResult — 조립에 쓰는 필드만 채운다(나머지는 이 모듈이 안 본다).
@@ -92,4 +92,37 @@ test("weekBuckets — 7일씩 묶고 마지막 조각도 버리지 않는다", (
 
 test("weekBuckets — 빈 입력은 빈 배열", () => {
   assert.deepEqual(weekBuckets([]), []);
+});
+
+// ── monthRange ──
+test("monthRange — 그 달 1일~말일", () => {
+  assert.deepEqual(monthRange("2026-09-13"), { start: "2026-09-01", end: "2026-09-30" });
+  assert.deepEqual(monthRange("2026-01-01"), { start: "2026-01-01", end: "2026-01-31" });
+  assert.deepEqual(monthRange("2026-12-31"), { start: "2026-12-01", end: "2026-12-31" });
+});
+
+test("monthRange — 2월 평년 28일 · 윤년 29일", () => {
+  assert.equal(monthRange("2026-02-10").end, "2026-02-28", "2026 은 평년");
+  assert.equal(monthRange("2028-02-10").end, "2028-02-29", "2028 은 윤년");
+});
+
+// ── splitByFreeLine ──
+test("splitByFreeLine — 비자격은 오늘까지만 열리고 나머지는 날짜만 남는다", () => {
+  const cells = [{ date: "2026-09-11" }, { date: "2026-09-12" }, { date: "2026-09-13" }];
+  const r = splitByFreeLine(cells, "2026-09-12", false);
+  assert.deepEqual(r.open.map((c) => c.date), ["2026-09-11", "2026-09-12"], "지나간 날 + 오늘");
+  assert.deepEqual(r.lockedDates, ["2026-09-13"], "안 온 날은 날짜만");
+});
+
+test("splitByFreeLine — 자격자는 전부 열리고 잠긴 날이 없다", () => {
+  const cells = [{ date: "2026-09-11" }, { date: "2026-09-13" }];
+  const r = splitByFreeLine(cells, "2026-09-12", true);
+  assert.equal(r.open.length, 2);
+  assert.deepEqual(r.lockedDates, []);
+});
+
+test("splitByFreeLine — 오늘은 언제나 열린 쪽(경계 off-by-one 고정)", () => {
+  const r = splitByFreeLine([{ date: "2026-09-12" }], "2026-09-12", false);
+  assert.deepEqual(r.open.map((c) => c.date), ["2026-09-12"]);
+  assert.deepEqual(r.lockedDates, []);
 });

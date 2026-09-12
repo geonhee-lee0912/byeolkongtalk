@@ -70,6 +70,39 @@ export function buildCalendar(
   });
 }
 
+/**
+ * KST 오늘 → 그 달의 1일·말일. P5-2 달력 범위("이번 달")의 단일 원천.
+ * Date.UTC(y, m, 0) 은 m 이 1-based 일 때 그 달의 말일을 준다(0일 = 전달 마지막 날).
+ * UTC 로 계산하는 건 윤년 판정만 쓰고 TZ 영향을 안 받기 위함 — 반환은 순수 문자열 조립이다.
+ */
+export function monthRange(todayKst: string): { start: string; end: string } {
+  const [y, m] = todayKst.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const ym = todayKst.slice(0, 7);
+  return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
+}
+
+/**
+ * 무료선(P5-2 스펙 §6): **무료 = 지나간 날 + 오늘 · 구독 = 앞당겨 보기.**
+ * 🔴 안 온 날은 "가려서 보여주는" 게 아니라 **판정 결과를 아예 안 실어 보낸다** — 날짜만 남는다.
+ *    클라에서 가리면 devtools 로 다 보이고, 그건 무료선이 아니라 눈속임이다.
+ * 나(DayCell)·우리(PairDayCell) 양쪽에 쓰므로 date 만 요구하는 제네릭이다.
+ */
+export function splitByFreeLine<T extends { date: string }>(
+  cells: T[],
+  todayKst: string,
+  entitled: boolean
+): { open: T[]; lockedDates: string[] } {
+  if (entitled) return { open: cells, lockedDates: [] };
+  const open: T[] = [];
+  const lockedDates: string[] = [];
+  for (const c of cells) {
+    if (c.date <= todayKst) open.push(c);
+    else lockedDates.push(c.date);
+  }
+  return { open, lockedDates };
+}
+
 // ⚠️ 여기서 "주차"는 오늘부터 7일씩 끊은 롤링 윈도우다 — 화면 그리드(Task 5, 일~토 요일 정렬 +
 // 앞쪽 빈칸)가 그리는 "1주차" 행과 경계가 다르다. 둘을 같은 "주"로 읽지 말 것.
 export interface WeekBucket {

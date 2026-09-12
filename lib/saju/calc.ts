@@ -208,6 +208,29 @@ export function baseDateForKst(todayKst: string): Date {
 }
 
 /**
+ * [startKst, endKst] 양끝 포함 일진 목록. calcTemporalLuck 의 30일 루프와 **같은 규약**이다 —
+ * 정오 고정(자정 경계 반올림 회피) · 로컬 getter = 달력 날짜(baseDateForKst 주석 참조).
+ * 별마루 P5-2 에서 달력 범위가 "오늘부터 30일" → "이번 달"로 바뀌며 필요해졌다.
+ * 🔴 end < start 면 빈 배열 — 호출부 실수로 무한 루프가 나지 않게 while 조건이 곧 가드다.
+ */
+export function calcDailyLuckRange(startKst: string, endKst: string): DailyLuck[] {
+  const out: DailyLuck[] = [];
+  const cur = baseDateForKst(startKst);
+  const end = baseDateForKst(endKst);
+  while (cur.getTime() <= end.getTime()) {
+    const dayParts = toParts(
+      SolarTime.fromYmdHms(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), 12, 0, 0)
+        .getLunarHour()
+        .getEightChar()
+        .getDay()
+    );
+    out.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+/**
  * 오늘(baseDate) 기준 세운/월운/일운 계산. 정오로 계산해 자시 경계 모호성을 피한다(세운/월운/일운은 시각 무관).
  * @param includeMonth true 면 오늘부터 30일 일진(dailyLuck) 도 채운다 (good_days 전용).
  */
@@ -222,18 +245,10 @@ export function calcTemporalLuck(
 
   let dailyLuck: DailyLuck[] | undefined;
   if (opts?.includeMonth) {
-    dailyLuck = [];
-    for (let i = 0; i < 30; i++) {
-      const cur = new Date(baseDate);
-      cur.setDate(cur.getDate() + i);
-      const dayParts = toParts(
-        SolarTime.fromYmdHms(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), 12, 0, 0)
-          .getLunarHour()
-          .getEightChar()
-          .getDay()
-      );
-      dailyLuck.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement });
-    }
+    // 오늘부터 30일(양끝 포함이므로 +29). 범위 계산은 calcDailyLuckRange 단일 원천.
+    const endD = new Date(baseDate);
+    endD.setDate(endD.getDate() + 29);
+    dailyLuck = calcDailyLuckRange(fmtDate(baseDate), fmtDate(endD));
   }
 
   return {
