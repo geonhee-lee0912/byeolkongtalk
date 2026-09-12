@@ -41,15 +41,15 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
           🔴 DAY_LINE 은 여기 두지 않는다 — 아래 getSajuTaste 의 overall 문장과 결·문형이 겹친다
              (정재 "있는 걸 단단히 하는 날이야" vs overall.caution "지금 있는 걸 단단히 여미는 게 어울려").
              한 줄은 허브 히어로가 쓴다(taste 블록이 없는 자리). 뱅크마다 집은 하나씩. */}
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <p className="font-display text-2xl text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
-        <span className="text-sm text-text-light">{cell.grade.label}</span>
+      <p className="font-display text-2xl leading-snug text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
+      <div className="mb-3 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-sm text-text-light">· {cell.grade.label}</span>
         {cell.marks.map((m) => (
           <span
             key={m.glyph}
             className="rounded-full bg-lilac-soft/70 px-2 py-0.5 text-[11px] font-bold text-lilac-deep"
           >
-            {m.glyph} {m.label}
+            <span aria-hidden>{m.glyph}</span> {m.label}
           </span>
         ))}
       </div>
