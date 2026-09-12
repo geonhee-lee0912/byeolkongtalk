@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DAY_NAME, DAY_LINE, dayMarks } from "./day-label.ts";
 import type { DayFactors } from "./day-score.ts";
-import type { TenGod } from "@/lib/saju/pairing";
+import { tenGod, type TenGod } from "@/lib/saju/pairing";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { buildCalendar } from "./calendar.ts";
 
@@ -68,26 +68,37 @@ function cal30() {
   // (assert.ok 는 TS 를 좁혀주지 않는다).
   const daily = temporal.dailyLuck;
   if (!daily || daily.length < 30) throw new Error("dailyLuck 30일이 필요하다");
-  return buildCalendar(saju, daily, "2026-09-12");
+  return { saju, cells: buildCalendar(saju, daily, "2026-09-12") };
 }
 
-test("buildCalendar — 모든 셀에 tenGod·name·marks 가 채워진다", () => {
-  for (const c of cal30()) {
+test("buildCalendar — 모든 셀에 tenGod·marks 가 채워진다", () => {
+  const { cells } = cal30();
+  for (const c of cells) {
     assert.ok(c.tenGod, `${c.date} tenGod 없음`);
-    assert.equal(c.name, DAY_NAME[c.tenGod], `${c.date} 이름 불일치`);
     assert.ok(Array.isArray(c.marks), `${c.date} marks 가 배열이 아님`);
   }
 });
 
 test("buildCalendar — 30일이면 십신 10종이 정확히 3일씩 (일진 천간 10일 주기)", () => {
+  const { cells } = cal30();
   const count: Record<string, number> = {};
-  for (const c of cal30().slice(0, 30)) count[c.tenGod] = (count[c.tenGod] ?? 0) + 1;
+  for (const c of cells.slice(0, 30)) count[c.tenGod] = (count[c.tenGod] ?? 0) + 1;
   assert.equal(Object.keys(count).length, 10, "십신이 10종 다 나오지 않았다");
   for (const [tg, n] of Object.entries(count)) assert.equal(n, 3, `${tg} 가 ${n}일`);
 });
 
+test("buildCalendar — tenGod 인자 순서 고정(내 일간 기준으로 그날 천간을 본다)", () => {
+  // 🔴 분포 테스트로는 못 잡는다 — 인자를 뒤집으면 십신 10종이 '치환'될 뿐 분포는 그대로다
+  //    (생아↔아생, 극아↔아극 맞교환). 호출부 방향을 여기서 직접 고정한다.
+  const { saju, cells } = cal30();
+  for (const c of cells) {
+    assert.equal(c.tenGod, tenGod(saju.dayStem, c.ganji[0]), `${c.date} 십신 방향이 뒤집혔다`);
+  }
+});
+
 test("buildCalendar — 등급·점수는 무회귀(십신 추가가 판정을 바꾸지 않는다)", () => {
-  const cells = cal30();
+  // ⚠️ 이 테스트가 깨지면 day-score.ts 의 dayGrade() 임계값(70/45)이 바뀐 것은 아닌지 먼저 볼 것.
+  const { cells } = cal30();
   // day-score.ts 를 안 건드렸으므로 임계 그대로: 70↑ good, 45↑ normal, 나머지 caution
   for (const c of cells) {
     const expected = c.score >= 70 ? "good" : c.score >= 45 ? "normal" : "caution";

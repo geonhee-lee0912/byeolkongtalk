@@ -4,7 +4,7 @@ import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import type { ElementRelation } from "@/lib/saju/pairing";
 import { tenGod, type TenGod } from "@/lib/saju/pairing";
-import { DAY_NAME, dayMarks, type DayMark } from "./day-label";
+import { dayMarks, type DayMark } from "./day-label";
 import {
   dayFactors,
   dayScore,
@@ -26,10 +26,10 @@ export interface DayCell {
   axes: AxisScores;
   /** 그날 천간 오행이 내 일간 오행과 만나는 관계 — ⑥ 골격 문장 뱅크 키(생아/아극/비화/아생/극아). */
   relation: ElementRelation;
-  /** 그날 천간을 내 일간 기준으로 본 십신 — 하루 이름의 키(P5-1). relation 을 음양으로 쪼갠 것. */
+  /** 그날 천간을 내 일간 기준으로 본 십신 — 하루 이름의 키(P5-1). relation 을 음양으로 쪼갠 것.
+   *  이름 문자열은 싣지 않는다 — 소비처가 DAY_NAME[tenGod] 로 직접 푼다(PairDayCell 이
+   *  PAIR_TONE_LABEL 을 클라에서 직접 쓰는 것과 같은 패턴). 와이어에 중복을 두지 않는다. */
   tenGod: TenGod;
-  /** DAY_NAME[tenGod] 을 미리 풀어둔 값 — 클라가 뱅크를 import 하지 않아도 되게. */
-  name: string;
   /** 그날을 그렇게 만든 원인 마크(✧천간합 ◇육합 △충 ＋빈 곳). 없으면 빈 배열. */
   marks: DayMark[];
   isToday: boolean;
@@ -64,7 +64,6 @@ export function buildCalendar(
       axes: axisScores(f),
       relation: f.relation,
       tenGod: tg,
-      name: DAY_NAME[tg],
       marks: dayMarks(f),
       isToday: d.date === todayKst,
     };
