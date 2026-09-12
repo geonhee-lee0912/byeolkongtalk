@@ -17,6 +17,7 @@ import {
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,6 +68,19 @@ export async function GET(req: NextRequest) {
     const selfSaju = calcSaju(selfInput);
     const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
 
+    // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 실패해도 서술은 떠야 하니 null 폴백
+    // (프롬프트에 관계 라인만 안 붙을 뿐 무회귀 — calendar/route.ts 의 watch_status 조회와 동일 패턴).
+    const { data: watchRow, error: watchErr } = await supa
+      .from("byeolmaru_watch")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("profile_id", subject)
+      .maybeSingle();
+    if (watchErr) {
+      await logError(watchErr, { ...logCtx, extra: { stage: "watch_status" } });
+    }
+    const status = (watchRow?.status as RelationshipStatus | null) ?? null;
+
     const todayKst = kstDate(new Date().toISOString());
     const temporal = calcTemporalLuck(baseDateForKst(todayKst), selfInput.year, { includeMonth: true });
     if (!temporal.dailyLuck?.length) {
@@ -87,7 +101,8 @@ export async function GET(req: NextRequest) {
         cell,
         todayGanji,
         pRow.display_name ?? "그 사람",
-        goodDays
+        goodDays,
+        status
       );
       const narrative = await generateOnce(
         system,

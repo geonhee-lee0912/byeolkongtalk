@@ -64,6 +64,21 @@ test("buildPairNarrativeSystem: 좋은 날 목록 → 관계-타이밍 지침 + 
   assert.ok(!onlyToday.includes("목록에서만"), "오늘만 있는 목록은 라인 안 생김");
 });
 
+test("buildPairNarrativeSystem: status 있으면 관계 상태 라인 주입, 없으면 라인 없음(무회귀)", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
+  const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
+  const bd = pairBackdrop(a, b);
+
+  const withStatus = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", [], "onesided");
+  assert.ok(withStatus.includes("짝사랑"), "관계 상태 라벨이 주입된다");
+  assert.ok(withStatus.includes("이 관계 결을 반영해서 말해"), "관계 결 반영 지침이 함께 붙는다");
+
+  const withoutStatus = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우");
+  assert.ok(!withoutStatus.includes("이 관계 결을 반영해서 말해"), "status 없으면 관계 상태 라인 없음(무회귀)");
+});
+
 test("buildCardNarrativeSystem: 카드명·정역·규칙·오늘 축·분량·4비트 지침", () => {
   const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
   const card = getCard(0)!;

@@ -7,6 +7,7 @@ import type { DayCell } from "./calendar.ts";
 import type { DayGrade, AxisScores } from "./day-score.ts";
 import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
 import { PAIR_TONE_LABEL } from "./pair-day.ts";
+import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 
 // 정적 티저(시안 C 첫 줄) — 등급 tone 별. ⑥에서 개인화-forward 훅으로 리파인.
 // 🔴 골격 문장(DayDetailCard, tone×relation)과 같은 화면에 인접하므로 "하루 읽기"를 복제하지
@@ -70,7 +71,8 @@ export function buildPairNarrativeSystem(
   cell: PairDayCell,
   todayGanji: string,
   partnerName: string,
-  goodDays: PairDayCell[] = []
+  goodDays: PairDayCell[] = [],
+  status?: RelationshipStatus | null
 ): string {
   const sig: string[] = [];
   if (cell.tags.spark) sig.push("끌림↑");
@@ -89,6 +91,7 @@ export function buildPairNarrativeSystem(
     `나: ${formatPillars(self)}.`,
     `${partnerName}: ${formatPillars(partner)}.`,
     `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spark ? " · 끌림 있음" : ""}${backdrop.bond ? " · 결속 있음" : ""} · 연월조화 ${backdrop.harmony}.`,
+    ...(status ? [`지금 둘은 ${RELATIONSHIP_STATUS_LABELS[status]} 사이 — 이 관계 결을 반영해서 말해.`] : []),
     `오늘 둘 사이 결 ${PAIR_TONE_LABEL[cell.tone]}${sig.length ? ` · 신호 ${sig.join("·")}` : ""}.`,
     ...(goodList ? [`앞으로 30일 중 둘 사이 결이 특히 좋은 날: ${goodList}.`] : []),
     "규칙: 3~4문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 오늘 일진이 둘 사이를 어떻게 건드리는지로 시작. 한쪽을 탓하지 말고 둘의 흐름으로 말할 것." +

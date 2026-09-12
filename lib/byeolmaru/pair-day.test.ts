@@ -55,3 +55,24 @@ test("getPairStaticLine: friction 우선 → 톤/태그 폴백, 항상 비지 �
     assert.ok(getPairStaticLine(mk(tone, {})).length > 0);
   }
 });
+
+test("getPairStaticLine: status 있으면 관계 프레이밍이 앞에 얹히고(같은 tone이라도 onesided≠dating), 없으면 기존 톤 문구 그대로(무회귀)", () => {
+  const base = { date: "2026-09-07", ganji: "임오", score: 50, isToday: true } as const;
+  const mk = (tone: PairDayCell["tone"], tags: Partial<PairDayCell["tags"]>): PairDayCell => ({
+    ...base,
+    tone,
+    tags: { spark: false, bond: false, friction: false, lead: null, ...tags },
+  });
+  const cell = mk("good", {});
+  const plain = getPairStaticLine(cell);
+  const onesided = getPairStaticLine(cell, "onesided");
+  const dating = getPairStaticLine(cell, "dating");
+
+  assert.equal(getPairStaticLine(cell, null), plain, "status=null(미지정)은 기존 톤 문구 그대로 폴백");
+  assert.notEqual(onesided, dating, "같은 tone 이어도 status 가 다르면 문구가 다르다");
+  assert.match(onesided, /짝사랑/);
+  assert.match(dating, /연애 중/);
+  // 프레이밍은 "얹히는" 것 — 기존 톤 문구가 뒤에 그대로 남는다.
+  assert.ok(onesided.endsWith(plain));
+  assert.ok(dating.endsWith(plain));
+});

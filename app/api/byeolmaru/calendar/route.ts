@@ -11,6 +11,7 @@ import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
 import { getAttendanceState, grantDueReward } from "@/lib/byeolmaru/attendance";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,20 @@ export async function GET(req: NextRequest) {
       const ent = await getEntitlement(userId);
 
       if (!ent.entitled) {
+        // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 정적 한 줄에만 쓰이므로 무료 분기에서만
+        // 읽는다(구독자는 아래에서 staticLine 자체를 안 내려 불필요). 실패해도 캘린더는 떠야 하니
+        // null 폴백(문구만 영향 — score/tags 판정은 무관, grantDueReward 와 같은 best-effort 결).
+        const { data: watchRow, error: watchErr } = await getServiceSupabase()
+          .from("byeolmaru_watch")
+          .select("status")
+          .eq("user_id", userId)
+          .eq("profile_id", subject)
+          .maybeSingle();
+        if (watchErr) {
+          await logError(watchErr, ctxFromRequest(req, { route: "/api/byeolmaru/calendar", userId, extra: { stage: "watch_status" } }));
+        }
+        const status = (watchRow?.status as RelationshipStatus | null) ?? null;
+
         // 무료 = 오늘 1칸 룰 판정 + 정적 한 줄(30일·LLM 아님). dailyLuck 이 오늘부터라 [0]이 오늘이지만
         // isToday 로 안전하게 찾는다(빈 배열이면 위 calc_failed 가드에서 이미 걸러졌다).
         const todayCell = pairCells.find((c) => c.isToday) ?? pairCells[0];
@@ -91,7 +106,7 @@ export async function GET(req: NextRequest) {
           partnerName: pRow.display_name,
           cells: [todayCell],
           backdrop,
-          staticLine: getPairStaticLine(todayCell),
+          staticLine: getPairStaticLine(todayCell, status),
         });
       }
 
