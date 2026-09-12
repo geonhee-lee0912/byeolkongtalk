@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import type { DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
@@ -14,6 +15,8 @@ export interface GridCell {
   tone: DayTone;
   label: string;
   isToday: boolean;
+  /** 원인 마크(P5-1). 우리 오늘(pair)은 자체 태그 어법을 쓰므로 전달하지 않는다 — 그래서 옵셔널. */
+  marks?: DayMark[];
 }
 
 // 등급 색 — 오행 색(SajuBoard ELEMENT_COLORS)과 섞이지 않게 별콩이 톤 3단계만 쓴다.
@@ -66,13 +69,13 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
                 });
                 onSelect(c.date);
               }}
-              aria-label={`${c.date} ${c.label}`}
+              aria-label={`${c.date} ${c.label}${c.marks?.length ? ` · ${c.marks.map((m) => m.label).join(" · ")}` : ""}`}
               aria-pressed={selected}
               // 오늘/선택 링을 겹치지 않게 — ring-2 는 폭만 정하고 색은 스타일시트 순서로
               // 갈려서, 겹치면 톤에 따라 "오늘" 표시가 사라졌다(예: ring-lilac-deep 이
               // ring-lilac-mid 보다 먼저 정의되면 caution 톤의 오늘 셀이 오늘 링을 잃음).
               // 우선순위를 삼항으로 코드에 고정해 매번 정확히 하나의 ring-{색} 만 나가게 한다.
-              className={`flex aspect-square flex-col items-center justify-center rounded-xl ${TONE_BG[c.tone]} ${
+              className={`relative flex aspect-square flex-col items-center justify-center rounded-xl ${TONE_BG[c.tone]} ${
                 c.isToday
                   ? "ring-2 ring-lilac-deep"
                   : selected
@@ -82,6 +85,14 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
             >
               {/* D(배치 B): 날짜 / 일지 캐릭터 / 간지 세로 스택. 캐릭터는 지지 시각화, 간지 텍스트는
                   천간까지 담아 둘이 서로 보완(중복 아닌 강화). 캐릭터 없으면 날짜+간지만. */}
+              {c.marks && c.marks.length > 0 && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-[3px] top-[2px] text-[7px] font-bold leading-none text-eye-purple/70"
+                >
+                  {c.marks.map((m) => m.glyph).join("")}
+                </span>
+              )}
               <span className="text-[13px] font-semibold leading-none text-eye-purple">
                 {Number(c.date.slice(8, 10))}
               </span>

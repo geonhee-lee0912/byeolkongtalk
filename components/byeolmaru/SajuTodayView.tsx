@@ -93,6 +93,7 @@ export default function SajuTodayView() {
   const cell = data.cells.find((c) => c.date === selected) ?? data.cells[0];
   const selfGridCells: GridCell[] = data.cells.map((c) => ({
     date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday,
+    marks: c.marks,
   }));
   const good = data.weeks.reduce((s, w) => s + w.good, 0);
 
