@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { DayCell } from "@/lib/byeolmaru/calendar";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "love", label: "연애" },
@@ -34,7 +35,22 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
         </div>
       </header>
 
-      <p className="mb-2 font-display text-2xl text-eye-purple">{cell.grade.label}</p>
+      {/* P5-1 — 제목은 십신 하루 이름, 등급(잘 맞는 날/무난한 날/…)은 옆에 작게 남긴다.
+          등급은 색·요약 집계의 기준이라 없애지 않고 위계만 내린다.
+          마크는 달력 셀이 첫 개만 보여주므로(겹침 실측) 전체 목록은 여기가 유일한 시각 노출 지점이다. */}
+      <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <p className="font-display text-2xl text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
+        <span className="text-sm text-text-light">{cell.grade.label}</span>
+        {cell.marks.map((m) => (
+          <span
+            key={m.glyph}
+            className="rounded-full bg-lilac-soft/70 px-2 py-0.5 text-[11px] font-bold text-lilac-deep"
+          >
+            {m.glyph} {m.label}
+          </span>
+        ))}
+      </div>
+      <p className="mb-3 text-sm leading-relaxed text-text-light">{DAY_LINE[cell.tenGod]}</p>
 
       {/* ⑥/1C 무료 오늘 사주 taste — 전반+연애+일·돈+조언 구조 정적(날짜별 variant 로테이션). 슬롯별 뱅크 미스면 그 조각만 생략. */}
       {(() => {
