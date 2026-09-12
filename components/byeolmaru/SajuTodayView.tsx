@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
@@ -105,6 +106,25 @@ export default function SajuTodayView() {
         <p className="text-center text-[13px] text-text-light">앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨</p>
       ) : null}
       <DayDetailCard cell={cell} />
+      {/* 오늘 공유 — 선택 셀이 오늘일 때만(미래 날 보다 공유하면 "오늘 사주" 라벨로 다른 날이 나가는 오노출 방지). */}
+      {cell.isToday ? (
+        <button
+          onClick={() => {
+            const ok = shareToKakao({
+              title: `오늘 사주 · ${cell.grade.label}`,
+              description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
+              imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}`,
+              link: `${window.location.origin}/byeolmaru`,
+              buttonTitle: "나도 보러가기",
+            });
+            trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "saju", ok } });
+          }}
+          disabled={!isKakaoReady()}
+          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
+        >
+          오늘 사주 공유하기
+        </button>
+      ) : null}
       {data.entitled && reportLoading ? (
         <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">오늘 리포트를 펼치는 중…</section>
       ) : data.entitled && report ? (

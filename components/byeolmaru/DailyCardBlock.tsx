@@ -12,6 +12,8 @@ import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 interface DailyCard {
   cardId: number;
@@ -210,6 +212,21 @@ export default function DailyCardBlock({
           const kstToday = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
           // ⑥/1C 무료 오늘 타로 taste(~350자 별콩 톤 정적) 우선, 뱅크 미스면 키워드 템플릿 폴백.
           const taste = getCardTaste(drawnCard.cardId, reversed, kstToday) ?? buildStaticLine(kwList);
+          // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
+          const cardNameKr = tarotCard.name_kr;
+
+          function handleShare() {
+            const ok = shareToKakao({
+              title: `오늘의 카드 · ${cardNameKr}`,
+              description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
+              imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
+              link: `${window.location.origin}/byeolmaru`,
+              buttonTitle: "나도 뽑아보기",
+            });
+            // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.
+            trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "tarot", ok } });
+          }
+
           return (
             <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
               <h2 className="mb-3 font-display text-base text-eye-purple">오늘의 카드</h2>
@@ -268,6 +285,14 @@ export default function DailyCardBlock({
                   </Link>
                 </>
               )}
+
+              <button
+                onClick={handleShare}
+                disabled={!isKakaoReady()}
+                className="mt-3 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
+              >
+                공유하기
+              </button>
             </section>
           );
         })()}
