@@ -3,6 +3,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { spendStars } from "@/lib/stars";
 import { WATCH_FREE_SLOTS, WATCH_EXTRA_COST } from "./constants.ts";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 export function watchAllowance(purchasedSlots: number): number {
   return WATCH_FREE_SLOTS + Math.max(0, purchasedSlots);
@@ -32,14 +33,14 @@ export async function getWatchState(userId: string): Promise<WatchState> {
 /** 상대를 담는다. insert 를 먼저 해 동시 중복(PK 충돌)이면 별을 안 태우고, 과금은 insert 성공 뒤에만.
  * 과금 실패 시 방금 넣은 행을 롤백한다. profileId 소유·비-self·생일·순차중복은 라우트가 선검증. */
 export async function addWatch(
-  userId: string, profileId: string
+  userId: string, profileId: string, status: RelationshipStatus | null
 ): Promise<{ success: boolean; charged: number; reason?: string; balance?: number; alreadyWatched?: boolean }> {
   const supabase = getServiceSupabase();
   const state = await getWatchState(userId);
   const needsCharge = !state.canAddFree;
 
   // 1) 먼저 담는다 — 동시 중복이면 여기서 PK 충돌(23505)로 걸려 별을 안 태운다.
-  const { error: insErr } = await supabase.from("byeolmaru_watch").insert({ user_id: userId, profile_id: profileId });
+  const { error: insErr } = await supabase.from("byeolmaru_watch").insert({ user_id: userId, profile_id: profileId, status });
   if (insErr) {
     if ((insErr as { code?: string }).code === "23505") return { success: true, charged: 0, alreadyWatched: true };
     return { success: false, charged: 0, reason: insErr.message };

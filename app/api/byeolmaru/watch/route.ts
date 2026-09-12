@@ -4,6 +4,9 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getWatchState, addWatch, removeWatch } from "@/lib/byeolmaru/watch";
 import { logError, ctxFromRequest } from "@/lib/logger";
+import type { RelationshipStatus } from "@/lib/relationship/types";
+
+const VALID_STATUS = ["crush", "dating", "breakup", "onesided"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
       .eq("user_id", userId);
     const { data: watched, error: watchedErr } = await supa
       .from("byeolmaru_watch")
-      .select("profile_id, created_at")
+      .select("profile_id, created_at, status")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
     if (profilesErr || watchedErr) {
@@ -36,12 +39,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "internal" }, { status: 500 });
     }
 
+    const watchedStatusById = new Map(
+      (watched ?? []).map((w) => [w.profile_id, w.status as RelationshipStatus | null])
+    );
     const watchedIds = new Set((watched ?? []).map((w) => w.profile_id));
     // 우리 오늘 후보 = 비-self(내 프로필 제외) + 생일 있음(사주 계산 필수).
     const candidates = (profiles ?? []).filter((p) => !p.is_primary && p.birth_date);
 
     return NextResponse.json({
-      watched: candidates.filter((p) => watchedIds.has(p.id)).map((p) => ({ id: p.id, name: p.display_name })),
+      watched: candidates.filter((p) => watchedIds.has(p.id)).map((p) => ({
+        id: p.id, name: p.display_name, status: watchedStatusById.get(p.id) ?? null,
+      })),
       suggestions: candidates.filter((p) => !watchedIds.has(p.id)).map((p) => ({ id: p.id, name: p.display_name })),
       state: await getWatchState(userId!),
     });
@@ -58,9 +66,17 @@ export async function POST(req: NextRequest) {
   if (gate) return NextResponse.json(gate.body, { status: gate.code });
 
   let profileId: string;
+  let status: RelationshipStatus | null;
   try {
     const body = await req.json();
     profileId = String(body?.profileId ?? "");
+    if (body?.status === undefined || body?.status === null) {
+      status = null;
+    } else if ((VALID_STATUS as readonly string[]).includes(body.status)) {
+      status = body.status as RelationshipStatus;
+    } else {
+      return NextResponse.json({ error: "invalid_status" }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -98,7 +114,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, charged: 0 });
     }
 
-    const res = await addWatch(userId!, profileId);
+    const res = await addWatch(userId!, profileId, status);
     if (!res.success && res.reason === "insufficient") {
       return NextResponse.json({ error: "insufficient_balance", code: "NEED_STARS" }, { status: 402 });
     }
