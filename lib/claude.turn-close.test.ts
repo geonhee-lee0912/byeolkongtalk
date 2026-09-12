@@ -149,7 +149,7 @@ test("buildTurnSignalBlock — ask 상태는 질문 허용을 명시한다", () 
   const out = buildTurnSignalBlock({ turnClose: "ask" });
   assert.match(out, /턴 마무리 상태/);
   assert.match(out, /ask/);
-  assert.match(out, /내려도 돼/);
+  assert.match(out, /내려 —/);
 });
 
 test("buildTurnSignalBlock — settle 은 질문·되묻기 둘 다 닫는다", () => {
@@ -169,12 +169,44 @@ test("buildTurnSignalBlock — 상태가 없으면 빈 문자열 (기존 동작 
   assert.equal(buildTurnSignalBlock({}), "");
 });
 
-test("buildTurnSignalBlock — 기존 두 경고는 그대로 남는다 (이중 방어)", () => {
+test("buildTurnSignalBlock — settle 은 ①·② 를 명시적으로 닫는다 (누수 차단)", () => {
+  const out = buildTurnSignalBlock({ turnClose: "settle" });
+  assert.match(out, /여기가 제일 아래야/);
+  assert.match(out, /②\(다음 볼거리 예고\)도 쓰지 마/);
+});
+
+test("buildTurnSignalBlock — 하강 목록에 ④ 가 포함된다 (연애상담 정본 마무리)", () => {
+  assert.match(buildTurnSignalBlock({ turnClose: "ask" }), /②③④/);
+  assert.match(buildTurnSignalBlock({ turnClose: "invite" }), /③④/);
+});
+
+test("buildTurnSignalBlock — invite 에 실제 고리 예시가 들어 있다", () => {
+  const out = buildTurnSignalBlock({ turnClose: "invite" });
+  assert.match(out, /들려줘/);
+  assert.match(out, /한 장 더 펼쳐서/);
+});
+
+test("buildTurnSignalBlock — 헤더가 위기 최우선을 명시한다 (안전)", () => {
+  assert.match(buildTurnSignalBlock({ turnClose: "settle" }), /§위기가 최우선/);
+});
+
+test("buildTurnSignalBlock — turnClose 가 있으면 경고는 처방 없이 근거만", () => {
   const out = buildTurnSignalBlock({
-    turnClose: "invite",
+    turnClose: "settle",
     lastTurnEndedWithQuestion: true,
     userShortStreak: true,
   });
-  assert.match(out, /직전 별콩이 턴이 질문으로 끝났어/);
-  assert.match(out, /연속으로 짧아지고 있어/);
+  // settle 이 금지한 ②(예고)를 경고줄이 다시 허가하면 안 된다
+  assert.doesNotMatch(out, /정리·예고·여백/);
+  assert.match(out, /위 상태가 이미 그걸 반영/);
+});
+
+test("buildTurnSignalBlock — turnClose 가 없으면 기존 경고 문구 그대로 (하위호환)", () => {
+  const out = buildTurnSignalBlock({
+    lastTurnEndedWithQuestion: true,
+    userShortStreak: true,
+  });
+  assert.match(out, /이번 턴은 질문으로 마무리하지 마/);
+  assert.match(out, /정리·예고·여백으로 부드럽게/);
+  assert.doesNotMatch(out, /턴 마무리 상태/);
 });
