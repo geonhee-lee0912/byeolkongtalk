@@ -19,7 +19,6 @@ import {
   type EmotionOption,
 } from "@/lib/emotions";
 import {
-  FORTUNE_CONFIG,
   FORTUNE_LIST,
   FORTUNE_GRADIENTS,
   type FortuneConfig,
@@ -53,11 +52,9 @@ const LOVE_VARIANT_TAG: Partial<Record<Variant, EmotionTag>> = {
   love: "걔 속마음이 궁금해", // 범용연애 캐치올 (의도적 모호 태그)
 };
 
-// daily variant: 광고가 약속한 "오늘의 운세"를 맨 위로 (별콩 운세 10종 전체)
-const DAILY_ORDERED: FortuneConfig[] = [
-  FORTUNE_CONFIG.daily,
-  ...FORTUNE_LIST.filter((f) => f.type !== "daily"),
-];
+// daily variant 광고 랜딩: 오늘의 운세는 은퇴(별마루 이사) → 진열대(유료)만 노출.
+// (이 variant 로 오는 광고가 있으면 목적지 재검토 필요 — 무료 오늘 사주는 이제 /byeolmaru.)
+const DAILY_ORDERED: FortuneConfig[] = FORTUNE_LIST;
 
 // 연애 존 태그만 (EMOTION_OPTIONS 순서 유지)
 const LOVE_OPTIONS: EmotionOption[] = EMOTION_OPTIONS.filter((o) =>

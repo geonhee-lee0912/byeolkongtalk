@@ -29,7 +29,7 @@ test("crossCards — 모든 variant 에서 유효한 카드 ≥1장 (진열대 �
   }
 });
 
-test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) 오늘의 운세로 폴백", () => {
+test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) 내 연애 사주로 폴백", () => {
   const tarotLegacy: FortuneType[] = [
     "tarot_daily",
     "tarot_love",
@@ -40,7 +40,7 @@ test("crossCards — 진열대에 같은 base 가 없으면(레거시 타로) �
   for (const v of tarotLegacy) {
     const [counsel, second] = crossCards(v);
     assert.equal(counsel.href, "/", `${v}: 첫 카드는 상담`);
-    assert.equal(second.href, FORTUNE_CONFIG.daily.href, `${v}: 폴백은 daily`);
+    assert.equal(second.href, FORTUNE_CONFIG.love_self.href, `${v}: 폴백은 love_self`);
   }
 });
 
@@ -49,8 +49,8 @@ test("crossCards — counsel 주제 맞춤: career→취업이직, love→내연
   assert.equal(crossCards("counsel", "love")[0].href, FORTUNE_CONFIG.love_self.href);
   assert.equal(crossCards("counsel", "mental")[0].href, FORTUNE_CONFIG.nature_self.href);
   assert.equal(crossCards("counsel", "interpersonal")[0].href, FORTUNE_CONFIG.compat_social.href);
-  // 리텐션 훅(오늘의 운세)은 항상 뒤에
-  assert.equal(crossCards("counsel", "career")[1].href, FORTUNE_CONFIG.daily.href);
+  // 리텐션 훅(별마루 오늘 사주, 옛 daily 대체)은 항상 뒤에
+  assert.equal(crossCards("counsel", "career")[1].href, "/byeolmaru");
 });
 
 test("crossCards — 사주 결과는 주제 연관 사주로(랜덤-next 아님)", () => {
@@ -62,9 +62,11 @@ test("crossCards — 사주 결과는 주제 연관 사주로(랜덤-next 아님
   assert.equal(crossCards("love_self")[0].href, "/");
 });
 
-test("crossCards — counsel(topic 없음) 은 내 연애 사주 + 오늘의 운세", () => {
-  const cards = crossCards("counsel");
+test("counsel 크로스셀 — 주제 사주 + 별마루 오늘 사주(무료 훅, daily 폐지 대체)", () => {
+  const cards = crossCards("counsel", "love");
   assert.equal(cards.length, 2);
-  assert.equal(cards[0].href, FORTUNE_CONFIG.love_self.href);
-  assert.equal(cards[1].href, FORTUNE_CONFIG.daily.href);
+  assert.equal(cards[0].fortuneType, "love_self"); // 주제(연애) 맞춤 사주
+  assert.equal(cards[1].href, "/byeolmaru");        // 옛 daily 무료 훅 → 별마루로
+  assert.equal(cards[1].badge, "무료");
+  assert.ok(cards[1].fortuneType === undefined, "별마루 카드는 FortuneType 아님(수동 카드)");
 });
