@@ -3,13 +3,13 @@
 // 다크 그라데이션 + 뽑은 카드 이미지(sharp 리사이즈) + 별콩이 한마디(요약) + 워터마크.
 
 import { ImageResponse } from "next/og";
-import sharp from "sharp";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { getCard } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
+import { getCardImageDataUrl } from "@/lib/og/card-image";
 
 export const runtime = "nodejs";
 
@@ -30,31 +30,6 @@ async function getFonts() {
   ]);
   fontCache = { regular, bold };
   return fontCache;
-}
-
-// 카드 webp → sharp 리사이즈 → base64 jpeg (Satori 가 webp dataURL 불안정한 경우 대비)
-const cardImgCache = new Map<number, string>();
-async function getCardImageDataUrl(
-  cardId: number,
-  baseUrl: string,
-  width = 320
-): Promise<string | null> {
-  if (cardImgCache.has(cardId)) return cardImgCache.get(cardId)!;
-  try {
-    const url = `${baseUrl}/cards-webp/${String(cardId).padStart(2, "0")}.webp`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`card fetch ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    const resized = await sharp(buf)
-      .resize(width, null, { fit: "inside" })
-      .jpeg({ quality: 82 })
-      .toBuffer();
-    const dataUrl = `data:image/jpeg;base64,${resized.toString("base64")}`;
-    cardImgCache.set(cardId, dataUrl);
-    return dataUrl;
-  } catch {
-    return null;
-  }
 }
 
 const MARKER_RE = /\[CARD:\d+\]/g;
