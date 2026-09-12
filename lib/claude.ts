@@ -94,6 +94,8 @@ export interface TurnSignals {
   lastTurnEndedWithQuestion?: boolean;
   /** 유저 단답 2연속 → 질문 대신 정리/예고 */
   userShortStreak?: boolean;
+  /** 턴 마무리 상한 (ask/invite/settle). 모델은 이 안에서 내려갈 수만 있다 */
+  turnClose?: TurnClose;
 }
 
 /** DB 메시지 + 이번 유저 발화로 TurnSignals 계산 (chat 라우트 공용) */
@@ -195,12 +197,21 @@ export function computeTurnClose(i: TurnCloseInput): TurnClose {
   return i.lastTurnEndedWithQuestion ? "invite" : "ask";
 }
 
-function buildTurnSignalBlock(s: TurnSignals | undefined): string {
+const TURN_CLOSE_GUIDE: Record<TurnClose, string> = {
+  ask: "- **턴 마무리 상태: `ask`** — 이번 턴은 §턴 마무리의 ①(구체 질문)으로 닫아도 돼. 유저가 방금 준 정보를 먼저 받아 안고, 그 정보에 이어지는 구체 질문 **하나**를 얹어. 판과 무관한 막연한 질문은 금지. (내용상 더 물을 게 없으면 ②나 ③으로 **내려도 돼** — 위로는 못 올려.)",
+  invite:
+    "- **턴 마무리 상태: `invite`** — 이번 턴은 물음표 없이 ②(다음 볼거리 예고)로 닫아. 유저가 답하고 싶어지게 열되 물음표는 쓰지 마. (③으로 **내려도 돼** — ①로는 못 올려.)",
+  settle:
+    "- **턴 마무리 상태: `settle`** — 이번 턴은 ③(소신 정리+여백)이나 ④(공감으로 열어두기)로 닫아. 질문도 되묻기도 하지 마.",
+};
+
+export function buildTurnSignalBlock(s: TurnSignals | undefined): string {
   if (!s) return "";
   const lines: string[] = [];
+  if (s.turnClose) lines.push(TURN_CLOSE_GUIDE[s.turnClose]);
   if (s.lastTurnEndedWithQuestion) {
     lines.push(
-      "- ⚠️ 직전 별콩이 턴이 질문으로 끝났어. **이번 턴은 절대 질문으로 마무리하지 마** — 마무리 3택의 ②(다음 볼거리 예고)나 ③(소신 정리+여백)으로."
+      "- ⚠️ 직전 별콩이 턴이 질문으로 끝났어. **이번 턴은 질문으로 마무리하지 마** — ②(다음 볼거리 예고)나 ③(소신 정리+여백)으로."
     );
   }
   if (s.userShortStreak) {
@@ -209,7 +220,7 @@ function buildTurnSignalBlock(s: TurnSignals | undefined): string {
     );
   }
   if (lines.length === 0) return "";
-  return `\n\n### 이번 턴 신호 (서버 감지 — 반드시 따를 것)\n${lines.join("\n")}`;
+  return `\n\n### 이번 턴 신호 (서버 감지 — 반드시 따를 것. 충돌 시 \`턴 마무리 상태\`가 우선)\n${lines.join("\n")}`;
 }
 
 export interface ContinuationContext {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeTurnClose } from "./claude.ts";
+import { computeTurnClose, buildTurnSignalBlock } from "./claude.ts";
 
 const base = {
   prevUserText: "앞선 발화가 여기에 충분히 길게 들어갑니다 정말로요",
@@ -143,4 +143,38 @@ test("computeTurnClose — 전각 물음표(？)도 인식한다", () => {
 test("computeTurnClose — 빈 발화·공백만이어도 크래시 없이 invite", () => {
   assert.equal(computeTurnClose({ ...base, currentUserText: "" }), "invite");
   assert.equal(computeTurnClose({ ...base, currentUserText: "   " }), "invite");
+});
+
+test("buildTurnSignalBlock — ask 상태는 질문 허용을 명시한다", () => {
+  const out = buildTurnSignalBlock({ turnClose: "ask" });
+  assert.match(out, /턴 마무리 상태/);
+  assert.match(out, /ask/);
+  assert.match(out, /내려도 돼/);
+});
+
+test("buildTurnSignalBlock — settle 은 질문·되묻기 둘 다 닫는다", () => {
+  const out = buildTurnSignalBlock({ turnClose: "settle" });
+  assert.match(out, /settle/);
+  assert.match(out, /③/);
+});
+
+test("buildTurnSignalBlock — invite 는 물음표 없이 고리만", () => {
+  const out = buildTurnSignalBlock({ turnClose: "invite" });
+  assert.match(out, /invite/);
+  assert.match(out, /②/);
+});
+
+test("buildTurnSignalBlock — 상태가 없으면 빈 문자열 (기존 동작 보존)", () => {
+  assert.equal(buildTurnSignalBlock(undefined), "");
+  assert.equal(buildTurnSignalBlock({}), "");
+});
+
+test("buildTurnSignalBlock — 기존 두 경고는 그대로 남는다 (이중 방어)", () => {
+  const out = buildTurnSignalBlock({
+    turnClose: "invite",
+    lastTurnEndedWithQuestion: true,
+    userShortStreak: true,
+  });
+  assert.match(out, /직전 별콩이 턴이 질문으로 끝났어/);
+  assert.match(out, /연속으로 짧아지고 있어/);
 });
