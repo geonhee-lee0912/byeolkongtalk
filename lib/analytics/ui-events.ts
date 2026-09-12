@@ -69,6 +69,8 @@ export const UI_EVENTS = [
   "byeolmaru_watch_limit",
   /** 별마루 우리오늘 — 추가 상대 5별 결제 완료. meta:{stars} */
   "byeolmaru_watch_purchase",
+  /** 별마루 우리오늘 — 담기 모달에서 관계칩 선택(pick·register 공통). meta:{status} */
+  "byeolmaru_watch_status_set",
   /** 별마루 우리오늘 — 락 티저 CTA로 체험/구독 개시. meta:{action:"trial"|"subscribe"} */
   "byeolmaru_subscribe_from_woori",
   /** 별마루 — 비로그인 게스트 구경 그리드 카드 클릭. meta:{card(안정 key), gated} */

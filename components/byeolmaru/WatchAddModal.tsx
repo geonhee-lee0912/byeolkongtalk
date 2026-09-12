@@ -8,6 +8,10 @@ import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import {
+  RELATIONSHIP_STATUS_LABELS,
+  type RelationshipStatus,
+} from "@/lib/relationship/types";
 
 interface WatchCandidate {
   id: string;
@@ -21,6 +25,16 @@ interface WatchGetResponse {
 
 type Tab = "pick" | "register";
 type LoadState = "loading" | "ready" | "error";
+
+// 관계칩(pick·register 공통) — ProfileEditModal:281-301 순서 그대로. 이모지는
+// SituationSelect CHIP(로컬 상수·export 안 됨)과 동일 값을 소규모 복제.
+const STATUS_OPTIONS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
+const STATUS_EMOJI: Record<RelationshipStatus, string> = {
+  crush: "💗",
+  dating: "💞",
+  onesided: "🌱",
+  breakup: "🥀",
+};
 
 export interface WatchAddModalProps {
   onClose: () => void;
@@ -41,6 +55,8 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   // 새 등록 성공 후 상태 — 폼을 "등록 완료" 카드로 바꿔, StarConfirmModal 취소/실패 후 재제출이
   // /api/profiles 를 다시 쳐서 같은 사람을 중복 생성하는 걸 막는다(리뷰 Important). 재시도는 watch-add 만.
   const [registered, setRegistered] = useState<{ id: string; name: string } | null>(null);
+  // 관계칩 — pick·register 두 경로가 공유하는 단일 상태(둘 다 결국 submitWatch 통과). 기본 "연애 중".
+  const [status, setStatus] = useState<RelationshipStatus>("dating");
 
   // StarConfirmModal — profileId 가 있으면 확인 팝업이 뜬다(무료 슬롯 소진 후).
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null);
@@ -127,7 +143,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
       const res = await fetch("/api/byeolmaru/watch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId }),
+        body: JSON.stringify({ profileId, status }),
       });
       if (res.status === 402) {
         window.location.href = "/shop";
@@ -266,6 +282,32 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               새로 등록
             </button>
           </div>
+
+          {/* 관계칩 — pick·register 두 탭 공통(이 블록 자체가 tab 분기 밖). 담기 확정(pick 항목
+              탭 / register 폼 제출) 전에 항상 노출돼, 어느 경로든 submitWatch 호출 시점엔 이미 반영돼 있다. */}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-[13px] font-bold text-eye-purple mb-1">관계 상태</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {STATUS_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setStatus(s);
+                    trackUiEvent("byeolmaru_watch_status_set", { meta: { status: s } });
+                  }}
+                  disabled={busy}
+                  className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+                    status === s
+                      ? "bg-lilac-deep text-white"
+                      : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  }`}
+                >
+                  {STATUS_EMOJI[s]} {RELATIONSHIP_STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
 
           {error && <p className="text-[12px] text-red-500 text-center">{error}</p>}
         </div>
