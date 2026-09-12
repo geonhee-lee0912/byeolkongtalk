@@ -98,10 +98,21 @@ export interface TurnSignals {
   turnClose?: TurnClose;
 }
 
+/** 턴 마무리 상한 계산에 필요한 라우트 쪽 맥락. 없으면 상태 계산이 보수적으로 떨어진다 */
+export interface TurnCloseCtx {
+  /** computeWrapMode(...).mode — "free" 가 아니면 수렴·마무리 구간 */
+  wrapMode?: WrapMode;
+  /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
+  isFirstTurn?: boolean;
+  /** readings.question 길이 */
+  questionLen?: number;
+}
+
 /** DB 메시지 + 이번 유저 발화로 TurnSignals 계산 (chat 라우트 공용) */
 export function computeTurnSignals(
   pastMessages: { role: string; content: string }[],
-  currentUserText: string
+  currentUserText: string,
+  ctx?: TurnCloseCtx
 ): TurnSignals {
   // 직전 별콩이 턴이 물음표로 끝났는가 (마커 제거 후)
   let lastAssistant: string | null = null;
@@ -134,7 +145,17 @@ export function computeTurnSignals(
     prevUser.trim().length <= SHORT_LEN &&
     currentUserText.trim().length <= SHORT_LEN;
 
-  return { lastTurnEndedWithQuestion, userShortStreak };
+  const turnClose = computeTurnClose({
+    prevUserText: prevUser,
+    currentUserText,
+    lastTurnEndedWithQuestion,
+    userShortStreak,
+    wrapMode: ctx?.wrapMode,
+    isFirstTurn: ctx?.isFirstTurn,
+    questionLen: ctx?.questionLen,
+  });
+
+  return { lastTurnEndedWithQuestion, userShortStreak, turnClose };
 }
 
 /**

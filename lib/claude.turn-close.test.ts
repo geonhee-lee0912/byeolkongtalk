@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeTurnClose, buildTurnSignalBlock } from "./claude.ts";
+import { computeTurnClose, buildTurnSignalBlock, computeTurnSignals } from "./claude.ts";
 
 const base = {
   prevUserText: "앞선 발화가 여기에 충분히 길게 들어갑니다 정말로요",
@@ -209,4 +209,40 @@ test("buildTurnSignalBlock — turnClose 가 없으면 기존 경고 문구 그�
   assert.match(out, /이번 턴은 질문으로 마무리하지 마/);
   assert.match(out, /정리·예고·여백으로 부드럽게/);
   assert.doesNotMatch(out, /턴 마무리 상태/);
+});
+
+test("computeTurnSignals — ctx 없이 호출해도 기존 필드는 그대로 (하위호환)", () => {
+  const s = computeTurnSignals(
+    [{ role: "assistant", content: "그렇구나." }],
+    "응",
+  );
+  assert.equal(s.lastTurnEndedWithQuestion, false);
+  assert.equal(typeof s.turnClose, "string");
+});
+
+test("computeTurnSignals — ctx 를 주면 turnClose 에 반영된다", () => {
+  const past = [
+    { role: "user", content: "앞선 발화가 여기에 충분히 길게 들어갑니다" },
+    { role: "assistant", content: "이 흐름은 열려 있어." },
+  ];
+  assert.equal(
+    computeTurnSignals(past, "그럼 언제쯤 연락이 올까?", { wrapMode: "free" })
+      .turnClose,
+    "ask",
+  );
+  assert.equal(
+    computeTurnSignals(past, "그럼 언제쯤 연락이 올까?", {
+      wrapMode: "converge",
+    }).turnClose,
+    "settle",
+  );
+});
+
+test("computeTurnSignals — 첫 턴 짧은 고민은 ask", () => {
+  const s = computeTurnSignals([], "재결합 가능할까요", {
+    wrapMode: "free",
+    isFirstTurn: true,
+    questionLen: 11,
+  });
+  assert.equal(s.turnClose, "ask");
 });
