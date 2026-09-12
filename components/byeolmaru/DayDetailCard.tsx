@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { DayCell } from "@/lib/byeolmaru/calendar";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
-import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
+import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "love", label: "연애" },
@@ -37,8 +37,11 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
 
       {/* P5-1 — 제목은 십신 하루 이름, 등급(잘 맞는 날/무난한 날/…)은 옆에 작게 남긴다.
           등급은 색·요약 집계의 기준이라 없애지 않고 위계만 내린다.
-          마크는 달력 셀이 첫 개만 보여주므로(겹침 실측) 전체 목록은 여기가 유일한 시각 노출 지점이다. */}
-      <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          마크는 달력 셀이 첫 개만 보여주므로(겹침 실측) 전체 목록은 여기가 유일한 시각 노출 지점이다.
+          🔴 DAY_LINE 은 여기 두지 않는다 — 아래 getSajuTaste 의 overall 문장과 결·문형이 겹친다
+             (정재 "있는 걸 단단히 하는 날이야" vs overall.caution "지금 있는 걸 단단히 여미는 게 어울려").
+             한 줄은 허브 히어로가 쓴다(taste 블록이 없는 자리). 뱅크마다 집은 하나씩. */}
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <p className="font-display text-2xl text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
         <span className="text-sm text-text-light">{cell.grade.label}</span>
         {cell.marks.map((m) => (
@@ -50,7 +53,6 @@ export default function DayDetailCard({ cell }: { cell: DayCell }) {
           </span>
         ))}
       </div>
-      <p className="mb-3 text-sm leading-relaxed text-text-light">{DAY_LINE[cell.tenGod]}</p>
 
       {/* ⑥/1C 무료 오늘 사주 taste — 전반+연애+일·돈+조언 구조 정적(날짜별 variant 로테이션). 슬롯별 뱅크 미스면 그 조각만 생략. */}
       {(() => {
