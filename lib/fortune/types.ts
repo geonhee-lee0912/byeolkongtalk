@@ -71,7 +71,10 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 0,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}daily`,
     href: "/fortune/daily",
-    active: true,
+    // 은퇴(2026-09-12, 별마루 개편 Phase 2): 유저별 LLM 오늘의 운세 폐지 → 무료는 별마루 룰 버전이
+    // 대체(DAU 원가 소멸). 레코드는 유지(Record 무결성·분석 역매핑·어드민·별마루 유료가 프롬프트 공유).
+    // /fortune/daily 는 /byeolmaru 로 리다이렉트(별도 Task), create API 는 이 active:false 로 자동 차단.
+    active: false,
   },
   monthly: {
     type: "monthly",
@@ -376,7 +379,6 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.past_life,
   FORTUNE_CONFIG.saju_report_card,
   FORTUNE_CONFIG.life_graph,
-  FORTUNE_CONFIG.daily,
 ];
 
 /** 운세 종류별 타일 그라데이션 — 의미 그룹별 (궁합=핑크·로즈 / 타이밍=골드 / 무료=민트). */
@@ -583,7 +585,6 @@ export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
   { key: "fun", label: "재미" },
   { key: "money_work", label: "돈·일" },
   { key: "timing", label: "타이밍" },
-  { key: "free", label: "무료" },
 ];
 
 /** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */
