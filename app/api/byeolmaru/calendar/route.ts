@@ -3,9 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, calcDailyLuckRange, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { buildCalendar, weekBuckets } from "@/lib/byeolmaru/calendar";
+import { buildCalendar, weekBuckets, monthRange, splitByFreeLine } from "@/lib/byeolmaru/calendar";
 import { buildPairCalendar, pairBackdrop, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -48,10 +48,14 @@ export async function GET(req: NextRequest) {
     const saju = calcSaju(input);
 
     const todayKst = kstDate(new Date().toISOString());
-    const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year, { includeMonth: true });
-    // includeMonth:true 면 30개가 보장되지만 타입이 그걸 못 담는다 — 조용히 빈 캘린더를
+    // P5-2 — 달력 범위는 "오늘부터 30일"이 아니라 **이번 달 1일~말일**이다(스펙 §6).
+    // temporal 은 오늘 간지(todayGanji)만 쓰므로 includeMonth 를 켜지 않는다 — 30일 루프가 낭비다.
+    const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year);
+    const { start: monthStart, end: monthEnd } = monthRange(todayKst);
+    const monthLuck = calcDailyLuckRange(monthStart, monthEnd);
+    // 28~31개가 보장되지만 tyme4ts 범위 밖 입력이면 빈 배열이 올 수 있다 — 조용히 빈 캘린더를
     // 200 으로 내보내느니 500 으로 터뜨린다.
-    if (!temporal.dailyLuck?.length) {
+    if (!monthLuck.length) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
 
@@ -75,7 +79,9 @@ export async function GET(req: NextRequest) {
       }
 
       const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
-      const pairCells = buildPairCalendar(saju, partnerSaju, temporal.dailyLuck, todayKst);
+      // P5-2 — self 경로가 이제 위에서 temporal.dailyLuck 대신 monthLuck(이번 달)을 쓴다.
+      // pair 경로 자체의 무료선·응답 모양은 Task 5 몫 — 타입을 맞추기 위한 최소 치환만 한다.
+      const pairCells = buildPairCalendar(saju, partnerSaju, monthLuck, todayKst);
       const backdrop = pairBackdrop(saju, partnerSaju);
       const todayGanji = temporal.day.stem + temporal.day.branch;
       const ent = await getEntitlement(userId);
@@ -121,9 +127,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const cells = buildCalendar(saju, temporal.dailyLuck, todayKst);
-
     const ent = await getEntitlement(userId);
+
+    // P5-2 무료선 — 비자격자에겐 안 온 날의 판정을 **직렬화하지 않는다**(날짜만 lockedDates 로).
+    const allCells = buildCalendar(saju, monthLuck, todayKst);
+    const { open: cells, lockedDates } = splitByFreeLine(allCells, todayKst, ent.entitled);
 
     // 보상 정산(write)은 best-effort — 실패해도 캘린더는 떠야 한다(로그만 남기고 삼킨다).
     // grantDueReward 는 대개 no-op(만료·미정산 구독 없음).
@@ -133,7 +141,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       today: todayKst,
       todayGanji: temporal.day.stem + temporal.day.branch,
+      monthStart,
+      monthEnd,
       cells,
+      lockedDates,
       weeks: weekBuckets(cells),
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
