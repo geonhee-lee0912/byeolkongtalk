@@ -226,7 +226,11 @@ export async function POST(request: NextRequest) {
       : "today_letters",
     concernText: reading.question ?? "",
     emotionTag: reading.emotion_tag as string | null,
-    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
+    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content, {
+      wrapMode,
+      isFirstTurn: assistantTurnsSoFar === 0,
+      questionLen: (reading.question ?? "").trim().length,
+    }),
     assistantTurnsSoFar,
     cumulativeAssistantChars,
     forceEnd: body.forceEnd === true,

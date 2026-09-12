@@ -605,6 +605,7 @@ export async function POST(request: NextRequest) {
     checkinPrompt,
     dailyClose,
     freeIntro,
+    // 관계 스레드는 wrap 임계가 없다 → 수렴 승격 없이 기존 동작 유지
     turnSignals: computeTurnSignals(past, userMessage),
     activeSkill: inVerdict
       ? { key: "verdict", assistantTurns: activeSkill!.assistant_turns, forceEnd: verdictForceEnd }

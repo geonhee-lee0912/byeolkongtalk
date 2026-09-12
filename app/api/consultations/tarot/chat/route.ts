@@ -210,7 +210,11 @@ export async function POST(request: NextRequest) {
     concernText: reading.question ?? "",
     drawnCards,
     emotionTag: reading.emotion_tag as string | null,
-    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content),
+    turnSignals: computeTurnSignals(pastMessages ?? [], lastMessage.content, {
+      wrapMode,
+      isFirstTurn: assistantTurnsSoFar === 0,
+      questionLen: (reading.question ?? "").trim().length,
+    }),
     assistantTurnsSoFar,
     cumulativeAssistantChars,
     continuation,
