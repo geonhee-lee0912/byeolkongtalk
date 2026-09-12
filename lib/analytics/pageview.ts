@@ -28,3 +28,22 @@ export function normalizePath(raw: unknown): string | null {
     .join("/");
   return (folded || "/").slice(0, 200);
 }
+
+// 브라우저 환경 판별. 광고 유입의 99.6% 가 인앱 브라우저(Meta '앱 내')인데 로그인 게이트에서 30.8% 가
+// 이탈한다 — 인앱의 카카오 OAuth 마찰이 원인인지 판별하려면 앱별로 남겨야 한다.
+// ⚠️ inapp 을 하나로 뭉치면 안 된다: 카카오톡 인앱은 카카오 로그인이 네이티브로 붙는 최선 케이스,
+//    인스타 인앱이 최악. 합치면 비교군이 사라져 판별 자체가 불가능해진다.
+// 판별 순서 고정: 앱 전용 토큰 → Android WebView(; wv). 인스타/페북 Android UA 에도 wv 가 있어
+// 순서를 바꾸면 전부 other_inapp 으로 접힌다.
+export type BrowserEnv = "ig" | "fb" | "kakao" | "other_inapp" | "browser";
+
+export function detectBrowserEnv(
+  ua: string | null | undefined,
+): BrowserEnv | null {
+  if (!ua) return null; // 추측하지 않는다 — 모르면 null
+  if (/instagram|barcelona/i.test(ua)) return "ig"; // Barcelona = Threads
+  if (/fban|fbav|fb_iab/i.test(ua)) return "fb";
+  if (/kakaotalk/i.test(ua)) return "kakao";
+  if (/naver\(inapp|daumapps|; wv\)/i.test(ua)) return "other_inapp";
+  return "browser";
+}

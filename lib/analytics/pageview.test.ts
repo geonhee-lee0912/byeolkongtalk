@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isBotUserAgent, normalizePath } from "./pageview.ts";
+import { detectBrowserEnv, isBotUserAgent, normalizePath } from "./pageview.ts";
 
 test("isBotUserAgent — UA 없으면 봇 취급", () => {
   assert.equal(isBotUserAgent(null), true);
@@ -77,4 +77,66 @@ test("normalizePath — byeoljari 공유 랜딩은 :shareId 로 접힌다", () =
 
 test("normalizePath — byeoljari 만들기 경로는 그대로", () => {
   assert.equal(normalizePath("/fortune/byeoljari"), "/fortune/byeoljari");
+});
+
+// 광고 유입의 99.6% 가 인앱 브라우저(Meta 콘솔 '앱 내')인데, 로그인 게이트에서 30.8% 가 이탈한다.
+// 원인이 인앱 브라우저의 카카오 OAuth 마찰인지 판별하려면 환경을 남겨야 한다.
+// ⚠️ inapp 을 하나로 뭉치면 신호가 죽는다 — 카카오톡 인앱은 카카오 로그인이 가장 잘 붙는 최선 케이스고
+//    인스타 인앱이 최악이라, 둘을 합치면 비교군이 사라진다.
+test("detectBrowserEnv — 인앱 앱별로 구분한다", () => {
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 302.0.0.23.113 (iPhone14,3; iOS 17_0; ko_KR; ko)",
+    ),
+    "ig",
+  );
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/440.0.0.35.111;FBDV/iPhone14,3]",
+    ),
+    "fb",
+  );
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (Linux; Android 13; SM-S911N Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.0.0 Mobile Safari/537.36 KAKAOTALK 10.4.3",
+    ),
+    "kakao",
+  );
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 NAVER(inapp; search; 2000; 12.5.1)",
+    ),
+    "other_inapp",
+  );
+});
+
+test("detectBrowserEnv — 일반 브라우저는 browser", () => {
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    ),
+    "browser",
+  );
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    ),
+    "browser",
+  );
+});
+
+test("detectBrowserEnv — UA 없으면 null (추측하지 않는다)", () => {
+  assert.equal(detectBrowserEnv(null), null);
+  assert.equal(detectBrowserEnv(""), null);
+  assert.equal(detectBrowserEnv(undefined), null);
+});
+
+// Threads 는 Instagram 계열이지만 UA 에 Barcelona 로 찍힌다(지출 4% 차지).
+test("detectBrowserEnv — Threads(Barcelona) 는 ig 로 접는다", () => {
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Barcelona 325.0.0.25.108",
+    ),
+    "ig",
+  );
 });
