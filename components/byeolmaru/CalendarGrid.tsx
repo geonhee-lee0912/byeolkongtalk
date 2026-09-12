@@ -15,7 +15,9 @@ export interface GridCell {
   tone: DayTone;
   label: string;
   isToday: boolean;
-  /** 원인 마크(P5-1). 우리 오늘(pair)은 자체 태그 어법을 쓰므로 전달하지 않는다 — 그래서 옵셔널. */
+  /** 원인 마크(P5-1). 우리 오늘(pair)은 자체 태그 어법을 쓰므로 전달하지 않는다 — 그래서 옵셔널.
+   *  셀은 첫 마크만 그린다(겹침 실측). 개수 상한은 dayFactors() 가 정한다 — 육합과 충은
+   *  같은 지지 짝에서 나와 동시에 참이 될 수 없다. */
   marks?: DayMark[];
 }
 
@@ -69,7 +71,7 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
                 });
                 onSelect(c.date);
               }}
-              aria-label={`${c.date} ${c.label}${c.marks?.length ? ` · ${c.marks.map((m) => m.label).join(" · ")}` : ""}`}
+              aria-label={`${c.date} ${c.label}${c.marks?.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
               // 오늘/선택 링을 겹치지 않게 — ring-2 는 폭만 정하고 색은 스타일시트 순서로
               // 갈려서, 겹치면 톤에 따라 "오늘" 표시가 사라졌다(예: ring-lilac-deep 이
@@ -85,14 +87,17 @@ export default function CalendarGrid({ cells, selectedDate, onSelect }: Props) {
             >
               {/* D(배치 B): 날짜 / 일지 캐릭터 / 간지 세로 스택. 캐릭터는 지지 시각화, 간지 텍스트는
                   천간까지 담아 둘이 서로 보완(중복 아닌 강화). 캐릭터 없으면 날짜+간지만. */}
-              {c.marks && c.marks.length > 0 && (
+              {c.marks?.length ? (
                 <span
                   aria-hidden
                   className="pointer-events-none absolute right-[3px] top-[2px] text-[7px] font-bold leading-none text-eye-purple/70"
                 >
-                  {c.marks.map((m) => m.glyph).join("")}
+                  {/* 🔴 셀에는 최우선 마크 1개만. 실측(375px 폰 ≈ 42px 셀): 2개부터 두 자리 날짜와
+                      겹친다(48px 셀에서 2개 여유 0.8px, 3개 겹침 6.3px). 전체 목록은 aria-label 과
+                      DayDetailCard 의 마크 칩이 받는다. dayMarks() 순서가 곧 우선순위다. */}
+                  {c.marks[0].glyph}
                 </span>
-              )}
+              ) : null}
               <span className="text-[13px] font-semibold leading-none text-eye-purple">
                 {Number(c.date.slice(8, 10))}
               </span>
