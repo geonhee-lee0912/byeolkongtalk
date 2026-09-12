@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
+import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import DailyCardBlock from "./DailyCardBlock";
 import AttendanceStrip from "./AttendanceStrip";
@@ -129,13 +130,20 @@ export default function ByeolmaruHub() {
       <Link href="/byeolmaru/saju" className="block rounded-2xl bg-cream-warm p-4">
         <div className="mb-2 flex items-baseline justify-between">
           <span className="font-display text-base text-eye-purple">🗓 오늘 사주</span>
-          <span className="font-display text-lg text-eye-purple">{todayCell.grade.label}</span>
+          {/* P5-1 — 이름(십신)을 앞세우고 등급은 DayDetailCard 와 같은 위계(작게)로 옆에 남긴다.
+              dot 행이 색으로도 등급을 전달하지만, 텍스트 라벨 없이는 색 구분에 기대야만 해서 유지. */}
+          <span className="font-display text-lg text-eye-purple">
+            {DAY_NAME[todayCell.tenGod]} <span className="text-xs text-text-light">· {todayCell.grade.label}</span>
+          </span>
         </div>
         <div className="mb-2 flex gap-1.5">
           {next7.map((c) => (
             <div key={c.date} className={`h-2.5 flex-1 rounded-full ${DOT[c.grade.tone] ?? "bg-lilac-soft"} ${c.isToday ? "ring-2 ring-lilac-deep" : ""}`} />
           ))}
         </div>
+        {/* P5-1 — DAY_LINE 의 유일한 노출 지점. 상세 카드에선 getSajuTaste 의 overall 문장과
+            결·문형이 겹쳐서 뺐다(뱅크마다 집은 하나씩). 여긴 taste 블록이 없어 겹치지 않는다. */}
+        <p className="mb-1 text-xs leading-relaxed text-text-light">{DAY_LINE[todayCell.tenGod]}</p>
         <p className="text-xs text-lilac-deep">앞으로 7일 흐름 · 30일 전체 보기 →</p>
       </Link>
 
