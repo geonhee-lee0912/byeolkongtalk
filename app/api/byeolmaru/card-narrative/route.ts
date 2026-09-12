@@ -10,12 +10,15 @@ import { getTodayCard } from "@/lib/byeolmaru/daily-card";
 import { getCard } from "@/lib/tarot/cards";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
+import { STEM_ELEMENT } from "@/lib/saju/pairing";
+import { toDaySelf } from "@/lib/byeolmaru/calendar";
+import { dayFactors, dayScore, dayGrade, axisScores } from "@/lib/byeolmaru/day-score";
 import { kstDate } from "@/lib/admin-time";
 import {
   buildCardNarrativeSystem,
   CARD_NARRATIVE_KICKOFF,
   BYEOLMARU_NARRATIVE_MODEL,
-  NARRATIVE_MAX_TOKENS,
+  CARD_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -60,14 +63,23 @@ export async function GET(req: NextRequest) {
     // (narrative/pair-narrative 는 todayCell/buildPairCalendar 용으로 dailyLuck 이 필요해 켠 것과 다름).
     const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year);
     const todayGanji = temporal.day.stem + temporal.day.branch;
+    // 오늘 사주 흐름(등급·축) — 캘린더 today 셀과 동일 계산(toDaySelf+dayFactors, 순수·₩0). 유료 카드
+    // 서술이 카드를 "오늘 애정/일" 축에 얹으려면 필요. temporal.day 엔 element 가 없어 천간→오행 매핑으로 보충.
+    const f = dayFactors(toDaySelf(saju), {
+      stem: temporal.day.stem,
+      branch: temporal.day.branch,
+      element: STEM_ELEMENT[temporal.day.stem],
+    });
+    const grade = dayGrade(dayScore(f));
+    const axes = axisScores(f);
 
     // LLM 생성 실패는 전체 요청 실패가 아니라 narrative:null 로 흡수 — ②-a 와 동일 경계(위 calc 가드와는 별개).
     try {
-      const system = buildCardNarrativeSystem(saju, tarotCard, drawn.reversed, todayGanji);
+      const system = buildCardNarrativeSystem(saju, tarotCard, drawn.reversed, todayGanji, grade, axes);
       const narrative = await generateOnce(
         system,
         [{ role: "user", content: CARD_NARRATIVE_KICKOFF }],
-        NARRATIVE_MAX_TOKENS,
+        CARD_NARRATIVE_MAX_TOKENS,
         logCtx,
         BYEOLMARU_NARRATIVE_MODEL,
         undefined

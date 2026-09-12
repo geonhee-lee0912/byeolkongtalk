@@ -64,12 +64,18 @@ test("buildPairNarrativeSystem: 좋은 날 목록 → 관계-타이밍 지침 + 
   assert.ok(!onlyToday.includes("목록에서만"), "오늘만 있는 목록은 라인 안 생김");
 });
 
-test("buildCardNarrativeSystem: 카드명·정역·규칙", () => {
+test("buildCardNarrativeSystem: 카드명·정역·규칙·오늘 축·분량·4비트 지침", () => {
   const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
   const card = getCard(0)!;
-  const sys = buildCardNarrativeSystem(a, card, false, "임오");
+  const grade = { label: "잘 맞는 날", tone: "good" } as const;
+  const axes = { love: 63, work: 55, money: 40 };
+  const sys = buildCardNarrativeSystem(a, card, false, "임오", grade, axes);
   assert.ok(sys.includes(card.name_kr));
   assert.ok(/정위|역위/.test(sys));
   assert.ok(/반말/.test(sys) && /단정/.test(sys));
+  assert.ok(sys.includes("잘 맞는 날"), "오늘 등급 라벨 그라운딩");
+  assert.ok(sys.includes("연애 63") && sys.includes("일 55"), "오늘 애정·일 축 그라운딩");
+  assert.ok(/700~900자|흐르는 줄글/.test(sys), "~800자 분량 지침");
+  assert.ok(/애정|관계/.test(sys) && /조언/.test(sys), "4비트(애정+조언) 구성 지침");
   assert.ok(CARD_NARRATIVE_KICKOFF.length > 0);
 });
