@@ -31,6 +31,46 @@ type State =
 
 const DOT: Record<string, string> = { good: "bg-gold", normal: "bg-lilac", caution: "bg-lilac-mid" };
 
+// 비로그인 구경 모드 — 카드 그리드(뭐가 있는지 + 한 줄)만 보이고, 개인화 카드는 탭하면 로그인 게이트.
+// 개인화 0(스펙 §7 Loop 1). 무료 툴(MBTI·별자리)은 로그인 없이 바로 진입.
+// key = 계측 안정 축(라벨이 바뀌어도 집계 유지). wide = 그리드 히어로 행(2칸 차지) → 5카드 홀수 방지.
+// 게이트 next 는 카드별 목적지로(로그인 후 한 번에 도착 — 우리오늘은 서브페이지라 탭 절약).
+const GUEST_CARDS: { key: string; emoji: string; title: string; desc: string; href: string; gated: boolean; wide?: boolean }[] = [
+  { key: "saju", emoji: "🗓", title: "오늘 사주", desc: "오늘 잘 맞는 날인지, 살짝 챙길 날인지", href: "/login?next=/byeolmaru/saju", gated: true, wide: true },
+  { key: "tarot", emoji: "🃏", title: "오늘 타로", desc: "카드 한 장으로 오늘을 가볍게 짚어봐", href: "/login?next=/byeolmaru", gated: true },
+  { key: "woori", emoji: "💞", title: "우리 오늘", desc: "그 사람과 나, 오늘 둘 사이 흐름", href: "/login?next=/byeolmaru/woori", gated: true },
+  { key: "mbti", emoji: "🧭", title: "사주 MBTI", desc: "사주로 보는 내 유형", href: "/fortune/saju-mbti", gated: false },
+  { key: "byeoljari", emoji: "✨", title: "별 인연 지도", desc: "내 인연들을 별자리로", href: "/fortune/byeoljari", gated: false },
+];
+
+function GuestPeek() {
+  return (
+    <main className="mx-auto w-full max-w-md space-y-4 p-4">
+      <header>
+        <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
+        <p className="text-sm text-text-light">무료로 다 보는 곳 · 오늘 네 하루를 별콩이가 짚어줄게</p>
+      </header>
+      <div className="grid grid-cols-2 gap-3">
+        {GUEST_CARDS.map((c) => (
+          <Link
+            key={c.key}
+            href={c.href}
+            onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: c.key, gated: c.gated } })}
+            className={`rounded-2xl bg-cream-warm p-4 ${c.wide ? "col-span-2" : ""}`}
+          >
+            <div className="font-display text-base text-eye-purple">{c.emoji} {c.title}</div>
+            <div className="mt-1 text-xs text-text-light">{c.desc}</div>
+            {c.gated && <div className="mt-2 text-[11px] text-lilac-deep">로그인하면 열려 →</div>}
+          </Link>
+        ))}
+      </div>
+      <Link href="/login?next=/byeolmaru" className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream">
+        로그인하고 내 오늘 보기
+      </Link>
+    </main>
+  );
+}
+
 export default function ByeolmaruHub() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [attendance, setAttendance] = useState<AttendanceState | null>(null);
@@ -63,12 +103,7 @@ export default function ByeolmaruHub() {
   }
 
   if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
-  if (state.kind === "need_login") return (
-    <main className="mx-auto w-full max-w-md p-6 text-center">
-      <p className="mb-4 text-eye-purple">로그인하면 오늘을 펼쳐줄게.</p>
-      <Link href="/login?next=/byeolmaru" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
-    </main>
-  );
+  if (state.kind === "need_login") return <GuestPeek />;
   if (state.kind === "no_profile") return (
     <main className="mx-auto w-full max-w-md p-6 text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 오늘을 그려줄게.</p>
