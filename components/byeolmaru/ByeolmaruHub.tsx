@@ -128,13 +128,17 @@ export default function ByeolmaruHub() {
       <AttendanceStrip attendance={attendance} loading={checkinLoading} onCheckin={handleCheckin} />
 
       <Link href="/byeolmaru/saju" className="block rounded-2xl bg-cream-warm p-4">
-        <div className="mb-2 flex items-baseline justify-between">
+        <div className="mb-2">
           <span className="font-display text-base text-eye-purple">🗓 오늘 사주</span>
-          {/* P5-1 — 이름(십신)을 앞세우고 등급은 DayDetailCard 와 같은 위계(작게)로 옆에 남긴다.
-              dot 행이 색으로도 등급을 전달하지만, 텍스트 라벨 없이는 색 구분에 기대야만 해서 유지. */}
-          <span className="font-display text-lg text-eye-purple">
-            {DAY_NAME[todayCell.tenGod]} <span className="text-xs text-text-light">· {todayCell.grade.label}</span>
-          </span>
+          {/* P5-1 — 이름(십신)이 제목이고 등급은 DayDetailCard 와 같은 구조로 형제 span 에 작게 둔다.
+              🔴 등급을 이름 span 안에 중첩하면 font-display 가 상속돼 본문 폰트가 아니라 타이틀
+                 폰트로 렌더된다(text-xs 는 크기만 덮고 font-family 는 못 덮는다).
+              🔴 좌우 배치(justify-between)도 쓰지 않는다 — 375px 에서 이름×등급 조합 30개 중
+                 12개가 줄바꿈되고, items-baseline 탓에 둘째 줄이 마주보는 것 없이 뜬다. */}
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="font-display text-lg text-eye-purple">{DAY_NAME[todayCell.tenGod]}</span>
+            <span className="text-xs text-text-light">· {todayCell.grade.label}</span>
+          </div>
         </div>
         <div className="mb-2 flex gap-1.5">
           {next7.map((c) => (
