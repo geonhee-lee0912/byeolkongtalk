@@ -19,7 +19,7 @@ test("computeTurnClose — 단답 2연속이면 settle (07-12 원 진단 조건)
 test("computeTurnClose — 수렴·마무리 구간이면 settle", () => {
   assert.equal(computeTurnClose({ ...base, wrapMode: "converge" }), "settle");
   assert.equal(computeTurnClose({ ...base, wrapMode: "hardcap" }), "settle");
-  assert.notEqual(computeTurnClose({ ...base, wrapMode: "free" }), "settle");
+  assert.equal(computeTurnClose({ ...base, wrapMode: "free" }), "invite");
 });
 
 test("computeTurnClose — 유저가 물음표를 쓰면 ask", () => {
@@ -91,4 +91,56 @@ test("computeTurnClose — settle 은 ask 보다 우선", () => {
     }),
     "settle",
   );
+});
+
+test("computeTurnClose — prevUserText 가 빈 문자열이면 성장으로 보지 않는다", () => {
+  // 직전 발화가 실제로 비어 있는 경우. null 과 같게 취급해야 한다.
+  const long = "사실 어제 그 사람이 스토리를 올렸는데 내 얘기 같아서 계속 신경 쓰여";
+  assert.equal(
+    computeTurnClose({ ...base, prevUserText: "", currentUserText: long }),
+    "invite",
+  );
+  assert.equal(
+    computeTurnClose({ ...base, prevUserText: "   ", currentUserText: long }),
+    "invite",
+  );
+  assert.equal(
+    computeTurnClose({ ...base, prevUserText: null, currentUserText: long }),
+    "invite",
+  );
+});
+
+test("computeTurnClose — 첫 풀이 고민이 0자여도 ask (가장 극단적인 짧은 고민)", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      prevUserText: null,
+      currentUserText: "그냥 그래",
+      isFirstTurn: true,
+      questionLen: 0,
+    }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 물음표가 문장 중간에 있어도 ask", () => {
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      currentUserText: "그게 진짜야? 아무튼 오늘 하루 힘들었어",
+    }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 전각 물음표(？)도 인식한다", () => {
+  assert.equal(
+    computeTurnClose({ ...base, currentUserText: "정말 그럴까？" }),
+    "ask",
+  );
+});
+
+test("computeTurnClose — 빈 발화·공백만이어도 크래시 없이 invite", () => {
+  assert.equal(computeTurnClose({ ...base, currentUserText: "" }), "invite");
+  assert.equal(computeTurnClose({ ...base, currentUserText: "   " }), "invite");
 });

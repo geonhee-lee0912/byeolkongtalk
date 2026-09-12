@@ -163,7 +163,11 @@ export interface TurnCloseInput {
 
 /** 첫 고민이 이보다 짧으면 첫 풀이에서 디테일 하나를 청해도 된다 (실측: 40자 미만 1턴 이탈 17% vs 70자+ 5%) */
 const SHORT_CONCERN_LEN = 40;
-/** 직전 발화 대비 이만큼 길어지면 유저가 다시 붙은 것으로 본다 */
+/**
+ * 직전 발화 대비 이만큼 길어지면 유저가 다시 붙은 것으로 본다.
+ * ⚠️ 실측 근거 없는 임의값 — SHORT_CONCERN_LEN 과 달리 데이터로 잡은 수가 아니다.
+ * 배포 후 messages.turn_close × 다음 턴 생존 교차로 재조정할 것.
+ */
 const RE_ENGAGE_GROWTH = 20;
 
 export function computeTurnClose(i: TurnCloseInput): TurnClose {
@@ -172,13 +176,16 @@ export function computeTurnClose(i: TurnCloseInput): TurnClose {
   if (i.wrapMode !== undefined && i.wrapMode !== "free") return "settle";
 
   const cur = i.currentUserText.trim();
+  // 직전 발화가 없거나(null) 실제로 비어 있으면("") 성장 비교의 기준이 못 된다 —
+  // 0자와 비교하면 이번 발화가 조금만 길어도 "다시 붙었다"로 오판한다.
+  const prev = i.prevUserText === null ? null : i.prevUserText.trim();
   const grew =
-    i.prevUserText !== null &&
-    cur.length - i.prevUserText.trim().length >= RE_ENGAGE_GROWTH;
+    prev !== null && prev.length > 0 && cur.length - prev.length >= RE_ENGAGE_GROWTH;
+  // questionLen === 0(공백만 적고 넘어온 고민)도 포함한다 — 판을 볼 재료가 가장 없는
+  // 극단이라 오히려 디테일을 청해야 한다. undefined(컨텍스트 미전달)만 걸러낸다.
   const shortConcernFirstTurn =
     i.isFirstTurn === true &&
     i.questionLen !== undefined &&
-    i.questionLen > 0 &&
     i.questionLen < SHORT_CONCERN_LEN;
 
   const askable = /[?？]/.test(cur) || grew || shortConcernFirstTurn;
