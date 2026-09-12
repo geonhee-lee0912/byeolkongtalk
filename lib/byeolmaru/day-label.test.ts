@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { DAY_NAME, DAY_LINE, dayMarks } from "./day-label.ts";
 import type { DayFactors } from "./day-score.ts";
 import type { TenGod } from "@/lib/saju/pairing";
+import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
+import { buildCalendar } from "./calendar.ts";
 
 const ALL: TenGod[] = ["비견", "겁재", "식신", "상관", "편재", "정재", "편관", "정관", "편인", "정인"];
 
@@ -55,4 +57,40 @@ test("dayMarks — 그 오행이 아예 없으면 ＋(빈 곳 채움), 부족/�
 test("dayMarks — 네 신호가 다 있으면 고정 순서로 넷 다", () => {
   const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
   assert.deepEqual(m.map((x) => x.glyph), ["✧", "◇", "△", "＋"]);
+});
+
+function cal30() {
+  // gender 는 SajuInput 필수 필드(계산엔 무관, input.gender 로만 echo) — 계획 원문엔 없었으나
+  // 누락 시 tsc --noEmit 가 실패해 이 저장소 전 호출부 관례(gender: "other")를 따라 채운다.
+  const saju = calcSaju({ year: 1994, month: 5, day: 17, hour: 14, gender: "other", isLunar: false });
+  const temporal = calcTemporalLuck(baseDateForKst("2026-09-12"), 1994, { includeMonth: true });
+  // calcTemporalLuck 의 dailyLuck 는 옵셔널이라 지역 변수로 좁혀야 tsc --noEmit 가 통과한다
+  // (assert.ok 는 TS 를 좁혀주지 않는다).
+  const daily = temporal.dailyLuck;
+  if (!daily || daily.length < 30) throw new Error("dailyLuck 30일이 필요하다");
+  return buildCalendar(saju, daily, "2026-09-12");
+}
+
+test("buildCalendar — 모든 셀에 tenGod·name·marks 가 채워진다", () => {
+  for (const c of cal30()) {
+    assert.ok(c.tenGod, `${c.date} tenGod 없음`);
+    assert.equal(c.name, DAY_NAME[c.tenGod], `${c.date} 이름 불일치`);
+    assert.ok(Array.isArray(c.marks), `${c.date} marks 가 배열이 아님`);
+  }
+});
+
+test("buildCalendar — 30일이면 십신 10종이 정확히 3일씩 (일진 천간 10일 주기)", () => {
+  const count: Record<string, number> = {};
+  for (const c of cal30().slice(0, 30)) count[c.tenGod] = (count[c.tenGod] ?? 0) + 1;
+  assert.equal(Object.keys(count).length, 10, "십신이 10종 다 나오지 않았다");
+  for (const [tg, n] of Object.entries(count)) assert.equal(n, 3, `${tg} 가 ${n}일`);
+});
+
+test("buildCalendar — 등급·점수는 무회귀(십신 추가가 판정을 바꾸지 않는다)", () => {
+  const cells = cal30();
+  // day-score.ts 를 안 건드렸으므로 임계 그대로: 70↑ good, 45↑ normal, 나머지 caution
+  for (const c of cells) {
+    const expected = c.score >= 70 ? "good" : c.score >= 45 ? "normal" : "caution";
+    assert.equal(c.grade.tone, expected, `${c.date} 등급이 점수와 어긋남`);
+  }
 });
