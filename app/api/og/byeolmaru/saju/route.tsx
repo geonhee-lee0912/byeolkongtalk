@@ -5,7 +5,8 @@ import { ImageResponse } from "next/og";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
-import type { TenGod } from "@/lib/saju/pairing";
+import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { STEM_ELEMENT, type TenGod } from "@/lib/saju/pairing";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,18 @@ const GRADE_LABEL: Record<DayTone, string> = {
   caution: "살짝 챙길 날",
 };
 
-const GANJI_MAX_LEN = 20;
+// 간지는 천간 10종(STEM_ELEMENT 키) × 지지 12종(branchAnimal 이 아는 지지)의
+// 한글 2자 조합만 허용한다 — 그 밖의 문자열이 그대로 렌더되면 임의 문구를 공식 브랜드
+// 카드에 찍어주는 스푸핑이 된다(실측: ?ganji=별콩톡은 사기다 가 그대로 렌더됨).
+// tg 와 같은 결로 400 이 아니라 조용히 무시(옛 링크·오타 대비). `in` 은 안 쓴다(위 tg 주석
+// 참고) — Object.hasOwn·branchAnimal 의 직접 인덱싱만으로 판정한다.
+// ⚠️ 60갑자(실존하는 음양 짝)만 허용할 필요는 없다 — 천간×지지 형태 검사(120 조합 허용)로
+// 60개는 전부 통과하고, 나머지 60개(갑축 같은 불가능 조합)를 막는 건 보안과 무관해 생략한다.
+function isValidGanji(candidate: string): boolean {
+  if (candidate.length !== 2) return false;
+  if (!Object.hasOwn(STEM_ELEMENT, candidate[0])) return false;
+  return branchAnimal(candidate) !== null;
+}
 
 export async function GET(req: Request) {
   maybeSweepExpired();
@@ -42,7 +54,7 @@ export async function GET(req: Request) {
     return new Response("invalid", { status: 400 });
   }
   const ganjiRaw = sp.get("ganji");
-  const ganji = ganjiRaw ? ganjiRaw.slice(0, GANJI_MAX_LEN) : null;
+  const ganji = ganjiRaw && isValidGanji(ganjiRaw) ? ganjiRaw : null;
 
   // 🔴 하루 이름을 URL 로 그대로 받지 않는다 — 임의 문자열이 별콩톡 브랜드 카드에 렌더되면 그건
   //    남의 문구를 우리 OG 로 찍어주는 것이다. 십신 키만 받아 **서버가 DAY_NAME 으로 푼다**.
