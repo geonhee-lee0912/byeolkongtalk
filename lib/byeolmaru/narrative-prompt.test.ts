@@ -6,12 +6,15 @@ import { pairBackdrop, buildPairCalendar } from "./pair-day.ts";
 import type { PairDayCell } from "./pair-day.ts";
 import {
   buildTeaserLine,
+  buildNarrativeSystem,
   buildPairNarrativeSystem,
   PAIR_NARRATIVE_KICKOFF,
   buildCardNarrativeSystem,
   CARD_NARRATIVE_KICKOFF,
 } from "./narrative-prompt.ts";
+import { buildCalendar } from "./calendar.ts";
 import type { DayCell } from "./calendar.ts";
+import { DAY_NAME } from "./day-label.ts";
 
 const CELL = {
   date: "2026-09-04", ganji: "辛巳", element: "금",
@@ -93,4 +96,16 @@ test("buildCardNarrativeSystem: 카드명·정역·규칙·오늘 축·분량·4
   assert.ok(/700~900자|흐르는 줄글/.test(sys), "~800자 분량 지침");
   assert.ok(/애정|관계/.test(sys) && /조언/.test(sys), "4비트(애정+조언) 구성 지침");
   assert.ok(CARD_NARRATIVE_KICKOFF.length > 0);
+});
+
+test("buildNarrativeSystem — 화면에 뜬 하루 이름을 프롬프트가 알고, 재설명을 막는다", () => {
+  const saju = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
+  const daily = t.dailyLuck;
+  if (!daily) throw new Error("dailyLuck 필요");
+  const cell = buildCalendar(saju, daily, "2026-09-05")[0];
+  const sys = buildNarrativeSystem(saju, cell, "갑자");
+  assert.ok(sys.includes(DAY_NAME[cell.tenGod]), "하루 이름이 프롬프트에 없다");
+  assert.ok(sys.includes(cell.tenGod), "십신 키가 프롬프트에 없다");
+  assert.ok(/다시 설명하지 말고/.test(sys), "재설명 금지 지시가 없다");
 });

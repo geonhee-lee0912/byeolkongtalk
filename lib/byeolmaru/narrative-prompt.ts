@@ -8,6 +8,7 @@ import type { DayGrade, AxisScores } from "./day-score.ts";
 import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
 import { PAIR_TONE_LABEL } from "./pair-day.ts";
 import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
+import { DAY_NAME } from "./day-label.ts";
 
 // 정적 티저(시안 C 첫 줄) — 등급 tone 별. ⑥에서 개인화-forward 훅으로 리파인.
 // 🔴 골격 문장(DayDetailCard, tone×relation)과 같은 화면에 인접하므로 "하루 읽기"를 복제하지
@@ -43,6 +44,9 @@ export function buildNarrativeSystem(saju: SajuResult, cell: DayCell, todayGanji
     "# 별마루 오늘 개인화",
     `너는 '${cell.date}' 하루를 이 사람의 사주로 풀어준다. 오늘 일진은 ${todayGanji}.`,
     `이 사람: ${formatPillars(saju)}. 오늘 등급 ${cell.grade.label}. 축(연애 ${cell.axes.love}·돈 ${cell.axes.money}·일 ${cell.axes.work}).`,
+    // P5-1 이월 — 화면 위쪽엔 이미 하루 이름과 한 줄 요약이 떠 있다. 프롬프트가 그걸 모르면 유료
+    // 서술이 같은 관계를 처음부터 다시 설명해(무료 요약과 중복) 돈 낸 사람이 같은 말을 두 번 읽는다.
+    `화면엔 이미 오늘 이름 '${DAY_NAME[cell.tenGod]}'(${cell.tenGod})과 한 줄 요약이 떠 있다. 그 이름의 뜻을 다시 설명하지 말고, 그게 이 사람의 사주에 구체적으로 어떻게 떨어지는지부터 말해.`,
     "규칙: 3~4문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 사주 일간과 오늘 일진의 관계로 시작.",
     "마지막은 따뜻한 한 줄. 별표/제목/마커 없이 줄글만.",
   ].join("\n");

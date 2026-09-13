@@ -2,6 +2,7 @@
 import type { Transcript, AssertionResult, AssertionFlags } from "../types.ts";
 import { SPREAD_INFO, type SpreadType } from "../../lib/tarot/spreads.ts";
 import { getCard } from "../../lib/tarot/cards.ts";
+import { maskNonAskQuestionMarks } from "../../lib/claude.ts";
 
 const CARD_MARKER = /\[CARD:\d+\]/g;
 
@@ -29,7 +30,9 @@ export function stripMarkers(text: string): string {
 /** 별콩이 턴이 기능적으로 질문으로 마무리됐는가 — 마지막 "?" 뒤 꼬리가 110자 이내.
  *  computeTurnSignals(lib/claude)와 같은 휴리스틱. 심문피로 객관 측정용. */
 export function endsWithQuestion(text: string): boolean {
-  const s = stripMarkers(text);
+  // 인용 예시·계약 밖 마커의 물음표를 가리는 규칙은 prod(lib/claude.ts)와 **같은 구현을 재사용**한다.
+  // 예전엔 두 곳에 복제돼 있어 마커 집합이 갈라졌다(prod 가 SKILL/CHECKIN 을 안 벗김) — 2026-09-13 통합.
+  const s = maskNonAskQuestionMarks(stripMarkers(text));
   const q = Math.max(s.lastIndexOf("?"), s.lastIndexOf("？"));
   return q >= 0 && s.length - q - 1 <= 110;
 }
