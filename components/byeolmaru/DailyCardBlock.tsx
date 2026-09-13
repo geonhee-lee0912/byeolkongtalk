@@ -2,7 +2,7 @@
 
 // components/byeolmaru/DailyCardBlock.tsx — 별마루 블록4: 오늘의 카드.
 // 뽑기(CardDrawRitual 재사용, 결제 모달 없이 무료) → 하루 1장 고정(byeolmaru_daily_card) →
-// 무료 정적(키워드 템플릿) + 구독자 LLM 서술(card-narrative, ②-a 패턴) + 비구독 블러+CTA + 인라인 낙수.
+// 무료 정적(키워드 템플릿) + 구독자 LLM 서술(card-narrative, ②-a 패턴) + 비구독 PremiumBlock 미끼(P5-4 §9) + 인라인 낙수.
 // design §2: docs/superpowers/specs/2026-09-05-별마루-5-원카드-폐지-낙수-design.md
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -12,6 +12,7 @@ import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import PremiumBlock from "./PremiumBlock";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
@@ -286,25 +287,22 @@ export default function DailyCardBlock({
                 <>
                   {/* 무료 taste — 카드 메시지+오늘 적용+조언 ~350자 정적(design §5). */}
                   <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
-                  {/* 유료 개인화 티저(사주 위에 겹친 해석) — 블러 + CTA + 인라인 낙수. */}
-                  <p className="mt-3 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
-                    별콩이가 이 카드를 네 사주 위에 겹쳐서 오늘 흐름을 풀어주면…
-                  </p>
-                  {!trialUsed ? (
-                    <button
-                      onClick={onStartTrial}
-                      className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
-                    >
-                      3일 무료 체험 시작
-                    </button>
-                  ) : (
-                    <button
-                      onClick={onSubscribe}
-                      className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
-                    >
-                      구독하고 이 카드 개인화 해석 보기
-                    </button>
-                  )}
+                  {/* 유료 미끼(P5-4 §9 — 자리별 공용 컴포넌트) — baitCtx 는 안 넘긴다: 이 자리의
+                      첫 줄(baitLead)은 등급·상대 같은 맥락 없이도 "지금"만으로 말이 된다.
+                      PremiumBlock 은 자체 mt-3 이 없어(공용 컴포넌트라 margin prop 을 안 둔다) 위
+                      taste 문단과의 간격을 이 래퍼로 준다. */}
+                  <div className="mt-3">
+                    <PremiumBlock
+                      entitled={false}
+                      trialUsed={trialUsed}
+                      narrative={null}
+                      teaser={null}
+                      loading={false}
+                      onStartTrial={onStartTrial}
+                      onSubscribe={onSubscribe}
+                      slot="tarot_rich"
+                    />
+                  </div>
                   {/* 인라인 낙수(design §5) — 구독자는 이미 LLM 해석을 받으므로 비구독 대상에만 노출 */}
                   <Link href="/" className="mt-3 inline-block text-xs text-lilac-deep underline">
                     이 카드, 타로로 더 깊게 →
