@@ -20,7 +20,10 @@ export const BAIT: Record<BaitSlot, BaitCopy> = {
   saju_report: {
     title: "별콩이가 더 깊이 읽어줄게",
     chips: ["약 2,100자", "재물 · 직장 · 애정 · 건강 · 학업"],
-    tail: "네 월·시 기둥까지 겹쳐서 오늘 어디에 힘을 실으면 좋을지—",
+    // 🔴 "오늘" 금지 — 이 자리는 SajuTodayView 날짜 선택 화면에 붙고, 선택된 셀은
+    //    과거 날짜일 수 있다(cell = cells.find(date===selected) ?? todayCell). "오늘"을
+    //    박으면 지난 날을 보는 사용자에게 거짓말이 된다(saju-taste.json 40문장 정정 전례).
+    tail: "네 월·시 기둥까지 겹쳐서 어디에 힘을 실으면 좋을지—",
   },
   woori_30d: {
     title: "둘 사이를 매일 짚어줄게",
@@ -49,14 +52,19 @@ export interface BaitContext {
  */
 export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
   if (slot === "saju_report") {
+    // 🔴 날짜 중립 — SajuTodayView 는 과거 날짜 셀도 보여준다(위 tail 주석 참조).
+    //    gradeLabel 이 있으면 그 날의 등급을 그대로 이어받으니 참이지만, 폴백은
+    //    "오늘"을 쓰면 지난 날을 보는 사용자에게 거짓이 된다 — "이 날"로 중립화.
     return ctx.gradeLabel
       ? `위에서 본 '${ctx.gradeLabel}'이 왜 그런지부터 풀어줄게.`
-      : "오늘이 왜 이런 결인지부터 풀어줄게.";
+      : "이 날이 왜 이런 결인지부터 풀어줄게.";
   }
   if (slot === "woori_30d") {
+    // woori_30d 는 허브 인연 탭 전용 — 날짜 선택 화면이 없어 "오늘" 기준이 항상 참이다.
     return ctx.partnerName
       ? `${ctx.partnerName}와 너, 오늘 왜 이런 결인지부터 짚어줄게.`
       : "둘이 오늘 왜 이런 결인지부터 짚어줄게.";
   }
+  // tarot_rich 도 오늘의 카드 자리라 "지금"이 항상 참이다.
   return "이 카드가 지금 네 흐름에 어떻게 걸리는지부터 말해줄게.";
 }

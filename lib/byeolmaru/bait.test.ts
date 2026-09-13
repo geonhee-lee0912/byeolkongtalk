@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BAIT, BAIT_SLOTS, baitLead, type BaitSlot } from "./bait.ts";
+import { BAIT, BAIT_SLOTS, baitLead } from "./bait.ts";
 
 test("BAIT — 자리 3종이 전부 있고 필드가 채워져 있다", () => {
   assert.equal(BAIT_SLOTS.length, 3);
@@ -50,4 +50,5 @@ test("baitLead — woori_30d 는 상대 이름을 쓰되 없으면 대명사로 
   assert.ok(baitLead("woori_30d", { partnerName: "지민" }).includes("지민"));
   const noName = baitLead("woori_30d", {});
   assert.ok(!noName.includes("undefined") && noName.length > 0);
+  assert.ok(noName.includes("둘이"), `대명사 폴백이 아니다: ${noName}`);
 });
