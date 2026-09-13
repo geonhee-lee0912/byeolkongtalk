@@ -69,7 +69,10 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
         <p className="text-sm text-text-light">무료로 다 보는 곳</p>
       </header>
       <section className="space-y-3">
-        <CalendarGrid cells={[]} lockedDates={dates} todayDate={today} selectedDate={today} onSelect={() => {}} />
+        {/* lockedHint=false — 이 빈 달력은 "안 온 날"이 아니라 "생일이 없어 못 보는 날"이라
+            CalendarGrid 기본 안내("그날이 오면 열려")를 끈다. 바로 아래 "네 생일만 있으면…" 문구가
+            정확한 설명이다(P5-3 리뷰 — 두 문구가 모순되던 것을 정리). */}
+        <CalendarGrid cells={[]} lockedDates={dates} todayDate={today} selectedDate={today} onSelect={() => {}} lockedHint={false} />
         <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
         {cta}
       </section>
@@ -173,7 +176,11 @@ export default function ByeolmaruHub() {
   if (state.kind === "no_profile") return (
     <EmptyMonthShell
       cta={
-        <Link href="/mypage" className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream">
+        <Link
+          href="/mypage"
+          onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "profile_cta", gated: true } })}
+          className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream"
+        >
           생년월일 입력하러 가기
         </Link>
       }

@@ -46,9 +46,15 @@ interface Props {
   todayDate: string;
   selectedDate: string;
   onSelect: (date: string) => void;
+  /** 잠긴 칸 하단 안내("그날이 오면 열려") 노출 여부. 기본 true — 로그인 유저의 실제 달력에선
+   *  잠긴 날 = 아직 안 온 미래 날짜라 이 문구가 맞다. 반면 비로그인·생일 미입력(EmptyMonthShell)의
+   *  "안 칠해진 이번 달"은 지난 날짜까지 이번 달 전부가 잠기므로 — "안 온 날"이 아니라 "로그인/생일이
+   *  없어서 못 보는 날"이다. 그 호출부는 false 로 꺼서 바로 아래 "네 생일만 있으면…" 문구와의
+   *  모순을 없앤다(P5-3 리뷰). */
+  lockedHint?: boolean;
 }
 
-export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDate, onSelect }: Props) {
+export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDate, onSelect, lockedHint = true }: Props) {
   // 열린 칸 + 안 온 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 아직 안 온 날.
   const slots: { date: string; cell?: GridCell }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
@@ -163,7 +169,7 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
           );
         })}
       </div>
-      {(legend.length > 0 || lockedDates.length > 0) && (
+      {(legend.length > 0 || (lockedHint && lockedDates.length > 0)) && (
         <div className="mt-2 space-y-0.5 text-[10px] leading-relaxed text-text-light">
           {legend.length > 0 && (
             <p>
@@ -174,7 +180,9 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
               ))}
             </p>
           )}
-          {lockedDates.length > 0 && <p>점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>}
+          {/* 비로그인·생일 미입력 빈 달력(EmptyMonthShell)에선 lockedHint=false 로 끈다 — 거긴
+              "아직 안 온 날"이 아니라 "생일이 없어 못 보는 날"이라 이 문구가 틀린 설명이 된다. */}
+          {lockedHint && lockedDates.length > 0 && <p>점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>}
         </div>
       )}
     </div>
