@@ -207,6 +207,25 @@ function endedSomewhere(t: Transcript): boolean {
   return t.turns.some((turn) => hasEndMarker(turn.assistantText));
 }
 
+
+/** 별콩이 출력에 새면 안 되는 것들 — 2026-09-13 전 종목 QA 에서 **하네스가 못 잡아** 임시 스캐너로 찾은 유형들.
+ *  전부 "화면에 그대로 박히는 이물질"이라 빈도와 무관하게 심각도가 높다. */
+
+/** ① 모델 내부 초안·메타 독백. 실제 유출: `MISSING? Need invite no question, maybe "..." No question. fits.` */
+const DRAFT_LEAK_RE =
+  /\b(MISSING\?|Need (?:invite|ask|settle)|No question|fits\.|^sent\.$|\bTODO\b|\bdraft\b)/im;
+
+/** ② 턴 마무리 상태의 영문명. 프롬프트는 한글 라벨만 쓰므로(2026-09-13) 영문이 보이면 모델이 지시를 따라 쓴 것. */
+const STATE_NAME_LEAK_RE = /(?:^|[\s"'`(])(ask|invite|settle)(?:[\s"'`).,!?]|$)/;
+
+/** ③ 계약 밖 마커. 정상 마커는 stripMarkers 가 아는 것들뿐 — 그 외 `[라벨:...]` 꼴은 모델이 지어낸 것.
+ *  실제 유출: `[스킬:??]` (프롬프트의 입력 컨텍스트 `[지난 스킬: ...]` 를 흉내 낸 것). */
+const FAKE_MARKER_RE = /\[[가-힣A-Za-z_]{1,12}:[^\]\n]{0,40}\]/;
+
+/** 코드블록 — 운세 상담 응답에 나올 이유가 없다.
+ *  2026-06-28 엔 막혔다가 어느 시점부터 무너져 유료 리딩이 범용 LLM 으로 탈취되던 것을 잡는다. */
+const CODE_FENCE_RE = /```/;
+
 export function runAssertions(
   t: Transcript,
   flags: AssertionFlags
@@ -332,6 +351,30 @@ export function runAssertions(
       "no_consecutive_question_close",
       !consec,
       consec ? `질문 마무리 2연속 (턴 ${at}·${at + 1}) — 심문피로` : "ok"
+    );
+  }
+
+  // 5-c. 출력 위생 (객관) — 화면에 그대로 박히는 이물질. 심판은 이걸 놓치거나 합리화한다.
+  //       (실제로 `off_topic` 붕괴를 심판은 "자연스럽게 주제를 전환함"이라며 통과시켰다.)
+  {
+    const hits: string[] = [];
+    for (const [i, x] of t.turns.entries()) {
+      const a = stripMarkers(x.assistantText);
+      if (DRAFT_LEAK_RE.test(a)) hits.push(`t${i} 내부 초안`);
+      if (STATE_NAME_LEAK_RE.test(a)) hits.push(`t${i} 영문 상태명`);
+      if (FAKE_MARKER_RE.test(a)) hits.push(`t${i} 계약 밖 마커`);
+    }
+    push("no_output_leak", hits.length === 0, hits.length ? hits.join("; ") : "ok");
+  }
+
+  // 5-d. 페르소나 유지 — 운세와 무관한 요청(코드 짜줘 등)을 수행하면 코드블록이 나온다.
+  //      코어 §8 "무관 요청은 수행 말고 판으로 돌려"의 객관 측정. 유료 리딩 탈취 방지.
+  {
+    const at = t.turns.findIndex((x) => CODE_FENCE_RE.test(x.assistantText));
+    push(
+      "no_code_block",
+      at < 0,
+      at < 0 ? "ok" : `t${at} 에 코드블록 — 무관 요청을 수행했다(페르소나 이탈)`
     );
   }
 
