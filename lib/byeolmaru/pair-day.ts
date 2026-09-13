@@ -6,6 +6,7 @@ import { pairRelation, heavenlyCombo, earthlySixCombo, earthlySixClash } from "@
 import { dayFactors, dayScore } from "./day-score.ts";
 import { toDaySelf } from "./calendar.ts";
 import type { RelationshipStatus } from "@/lib/relationship/types";
+import type { DayMark } from "./day-label.ts";
 
 export type PairTone = "good" | "normal" | "caution";
 
@@ -122,4 +123,18 @@ export function getPairStaticLine(cell: PairDayCell, status?: RelationshipStatus
     return "둘 사이 무난하게 흐르는 날이야.";
   })();
   return status ? STATUS_FRAME[status] + line : line;
+}
+
+/** 우리 셀 마크 — 나 탭(`dayMarks`)과 **같은 글리프 문법**을 쓴다. 판정 primitive 가 실제로 같기
+ *  때문이다(끌림=천간합 ✧ · 결속=육합 ◇ · 삐걱=충 △ — 위 pairDayScoreAndTags 를 보라).
+ *  🔴 이모지(✨🔗)를 쓰지 않는다: 셀 글리프는 8px 라 이모지 형태가 뭉개지고, 고유색이 좋은 날의
+ *     골드 배경과 부딪힌다. 스펙 §8 의 `✨끌림 🔗결속` 은 **어휘** 지정이지 글리프 지정이 아니다.
+ *  🔴 lead 는 마크가 아니다 — 두 사람 점수 차이라 "그날의 원인"이 아니고, 셀은 마크를 1개만
+ *     그리므로(겹침 실측) 리드가 끌림을 밀어낸다. 리드는 상세 카드 칩으로만 남는다. */
+export function pairMarks(tags: PairDayTags): DayMark[] {
+  const out: DayMark[] = [];
+  if (tags.spark) out.push({ glyph: "✧", label: "끌림" });
+  if (tags.bond) out.push({ glyph: "◇", label: "결속" });
+  if (tags.friction) out.push({ glyph: "△", label: "삐걱" });
+  return out;
 }

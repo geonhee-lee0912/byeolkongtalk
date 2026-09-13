@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL, pairMarks, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
@@ -147,7 +147,7 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
   const pairGridCells: GridCell[] = pairData
-    ? pairData.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: [] }))
+    ? pairData.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: pairMarks(c.tags) }))
     : [];
   // 폴백은 오늘 — cells[0] 은 이번 달 1일이라 첫 진입에서 엉뚱한 날이 열린다.
   const pairCell = pairData

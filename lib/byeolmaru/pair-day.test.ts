@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
-import { buildPairCalendar, pairBackdrop, pairDayTone, getPairStaticLine, type PairDayCell } from "./pair-day.ts";
+import { buildPairCalendar, pairBackdrop, pairDayTone, getPairStaticLine, pairMarks, type PairDayCell, type PairDayTags } from "./pair-day.ts";
 
 const A = calcSaju({ year: 1994, month: 5, day: 12, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
 const B = calcSaju({ year: 1992, month: 11, day: 3, hour: null, gender: "male", isLunar: false, isLeapMonth: false });
@@ -75,4 +75,17 @@ test("getPairStaticLine: status 있으면 관계 프레이밍이 앞에 얹히�
   // 프레이밍은 "얹히는" 것 — 기존 톤 문구가 뒤에 그대로 남는다.
   assert.ok(onesided.endsWith(plain));
   assert.ok(dating.endsWith(plain));
+});
+
+test("pairMarks: 끌림 ✧ · 결속 ◇ · 삐걱 △ — 순서 고정, lead 는 마크가 아니다", () => {
+  const tg = (p: Partial<PairDayTags>): PairDayTags => ({ spark: false, bond: false, friction: false, lead: null, ...p });
+  assert.deepEqual(pairMarks(tg({})), []);
+  assert.deepEqual(pairMarks(tg({ spark: true })), [{ glyph: "✧", label: "끌림" }]);
+  assert.deepEqual(pairMarks(tg({ bond: true })), [{ glyph: "◇", label: "결속" }]);
+  assert.deepEqual(pairMarks(tg({ friction: true })), [{ glyph: "△", label: "삐걱" }]);
+  // 셀은 첫 마크만 그린다(겹침 실측) — 배열 순서가 곧 우선순위다. 나 탭 dayMarks 와 같은 순서.
+  assert.deepEqual(pairMarks(tg({ spark: true, bond: true, friction: true })).map((m) => m.glyph), ["✧", "◇", "△"]);
+  // lead 는 두 사람 점수 비교지 "그날의 원인"이 아니다 — 마크로 만들면 끌림을 셀에서 밀어낸다.
+  assert.deepEqual(pairMarks(tg({ lead: "me" })), []);
+  assert.deepEqual(pairMarks(tg({ lead: "partner" })), []);
 });

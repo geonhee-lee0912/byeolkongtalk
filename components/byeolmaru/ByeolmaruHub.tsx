@@ -8,7 +8,7 @@ import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { PairDayCell } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
 import PartnerChips, { type PartnerChip } from "./PartnerChips";
@@ -214,10 +214,10 @@ export default function ByeolmaruHub() {
   const isPair = viewingPair && pairCells !== null;
 
   // 격자에 넘길 정규화 셀. 나·우리 두 판정 엔진이 같은 GridCell 계약으로 수렴한다.
-  // 🔴 우리 셀엔 마크가 없다(우리 판정은 ✨끌림·🔗결속 태그를 쓴다) — 빈 배열을 **명시**한다.
-  //    GridCell.marks 가 필수인 이유가 그것이다(옵셔널이면 조용히 사라진다).
+  // 🔴 우리 셀 마크는 나 탭과 같은 글리프 문법이다(P5-5 pairMarks) — 판정 primitive 가 같아서
+  //    ✧천간합→끌림 · ◇육합→결속 · △충→삐걱 으로 라벨만 관계 어휘로 바뀐다.
   const gridCells: GridCell[] = isPair
-    ? pairCells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: [] }))
+    ? pairCells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: pairMarks(c.tags) }))
     : data.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks }));
   const gridLocked = isPair ? pairLocked : data.lockedDates;
   const filled = isPair ? pairCells.length : data.cells.length;
