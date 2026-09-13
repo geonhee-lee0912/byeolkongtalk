@@ -22,16 +22,18 @@ export interface GridCell {
   marks: DayMark[];
 }
 
-// 등급 색 — 오행 색(SajuBoard ELEMENT_COLORS)과 섞이지 않게 별콩이 톤 3단계만 쓴다.
-const TONE_BG: Record<DayTone, string> = {
-  good: "bg-gold-soft",
-  normal: "bg-lilac-soft",
-  caution: "bg-cream-warm",
-};
-const TONE_RING: Record<DayTone, string> = {
-  good: "ring-gold",
-  normal: "ring-lilac",
-  caution: "ring-lilac-mid",
+// 🔴 라이트 B 팔레트(스펙 §4) — @theme 토큰에 없는 값은 여기 상수로 둔다. 새 토큰을 만들지
+//    않는 이유: 이 색들은 "달력 판 안에서만" 쓰는 국소 팔레트라 전역 토큰으로 올리면 다른 지면이
+//    실수로 집어 쓴다(ELEMENT_COLORS 가 SajuBoard 안에 사는 것과 같은 이유).
+// 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(골드 솔리드)이 떠 보인다.
+const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
+const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
+const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
+
+const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
+  good: { background: "#E8C26A", boxShadow: "0 2px 6px rgba(232,194,106,0.45)" },
+  normal: { background: "#ffffff" },
+  caution: { background: "rgba(255,255,255,.45)", border: "1px solid rgba(184,168,216,.30)" },
 };
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -62,7 +64,10 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
   const legend = Array.from(new Map(cells.flatMap((c) => c.marks).map((m) => [m.glyph, m])).values());
 
   return (
-    <div className="rounded-2xl bg-cream-warm p-3">
+    <div
+      className="rounded-2xl p-3"
+      style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}
+    >
       <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-text-light">
         {WEEKDAYS.map((w) => (
           <div key={w}>{w}</div>
@@ -82,7 +87,8 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
                 // 하나를 나타내는 정적 표시이므로 role="img" 로 accessible name 계산을 허용한다.
                 role="img"
                 aria-label={`${date} 아직 안 온 날`}
-                className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed border-lilac-mid/40 bg-white/30"
+                className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
+                style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >
                 <span className="text-[13px] font-semibold leading-none text-text-light/60">
                   {Number(date.slice(8, 10))}
@@ -108,17 +114,18 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
               }}
               aria-label={`${c.date} ${c.label}${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
-              // 오늘/선택 링을 겹치지 않게 — ring-2 는 폭만 정하고 색은 스타일시트 순서로
-              // 갈려서, 겹치면 톤에 따라 "오늘" 표시가 사라졌다(예: ring-lilac-deep 이
-              // ring-lilac-mid 보다 먼저 정의되면 caution 톤의 오늘 셀이 오늘 링을 잃음).
-              // 우선순위를 삼항으로 코드에 고정해 매번 정확히 하나의 ring-{색} 만 나가게 한다.
-              className={`relative flex aspect-square flex-col items-center justify-center rounded-xl ${TONE_BG[c.tone]} ${
-                c.isToday
-                  ? "ring-2 ring-lilac-deep"
+              className="relative flex aspect-square flex-col items-center justify-center rounded-xl transition-transform"
+              style={{
+                ...TONE_STYLE[c.tone],
+                // 🔴 오늘/선택 링을 **하나의 boxShadow 문자열**로 합친다. 클래스 ring 을 겹쳐 쓰면
+                //    승자가 스타일시트 순서로 갈려 caution 톤의 오늘 칸이 링을 잃던 버그가 있었다
+                //    (P5-1 주석). 인라인 스타일이면 우선순위가 코드 순서로 결정돼 그 문제가 없다.
+                ...(c.isToday
+                  ? { boxShadow: `0 0 0 2px #5A3E8C${TONE_STYLE[c.tone].boxShadow ? `, ${TONE_STYLE[c.tone].boxShadow}` : ""}`, transform: "scale(1.07)", zIndex: 1 }
                   : selected
-                    ? `ring-2 ${TONE_RING[c.tone]}`
-                    : ""
-              }`}
+                    ? { boxShadow: `0 0 0 2px rgba(159,138,208,.75)` }
+                    : {}),
+              }}
             >
               {/* D(배치 B): 날짜 / 일지 캐릭터 / 간지 세로 스택. 캐릭터는 지지 시각화, 간지 텍스트는
                   천간까지 담아 둘이 서로 보완(중복 아닌 강화). 캐릭터 없으면 날짜+간지만. */}
