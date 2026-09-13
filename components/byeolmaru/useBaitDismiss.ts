@@ -27,16 +27,22 @@ function read(): Record<string, string> {
 }
 
 export function useBaitDismiss(slot: BaitSlot): { dismissed: boolean; dismiss: () => void } {
-  // 🔴 초기값을 false 로 두고 effect 에서 읽는다 — localStorage 는 서버에 없어서, 초기 렌더에
+  // 🔴 초기값을 null 로 두고 effect 에서 읽는다 — localStorage 는 서버에 없어서, 초기 렌더에
   //    읽으면 하이드레이션 불일치가 난다.
-  const [dismissed, setDismissed] = useState(false);
+  // 🔴 "어느 slot 의 값인지"를 같이 들고 있는다 — PremiumBlock 은 slot 이 바뀌어도 언마운트되지
+  //    않아(허브 인연 칩 토글), slot 만 보고 있으면 바뀐 첫 프레임에 이전 slot 의 접힘이 새어
+  //    엉뚱한 미끼가 깜빡 사라진다(T4 리뷰 발견). 아직 모르는 동안은 접지 않는 쪽으로 떨어뜨린다.
+  const [readFor, setReadFor] = useState<{ slot: BaitSlot; dismissed: boolean } | null>(null);
 
   useEffect(() => {
-    setDismissed(read()[slot] === todayKst());
+    setReadFor({ slot, dismissed: read()[slot] === todayKst() });
   }, [slot]);
 
+  // readFor 가 지금 slot 것이 아니면(막 바뀐 직후 등) "아직 모름" → 접지 않는다(보수적 기본값).
+  const dismissed = readFor?.slot === slot ? readFor.dismissed : false;
+
   function dismiss() {
-    setDismissed(true);
+    setReadFor({ slot, dismissed: true });
     try {
       localStorage.setItem(KEY, JSON.stringify({ ...read(), [slot]: todayKst() }));
     } catch {
