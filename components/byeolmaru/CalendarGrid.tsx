@@ -78,6 +78,9 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
             return (
               <div
                 key={date}
+                // role 없는 div 는 암묵 role 이 generic 이라 aria-label 이 무시될 수 있다 — 날짜
+                // 하나를 나타내는 정적 표시이므로 role="img" 로 accessible name 계산을 허용한다.
+                role="img"
                 aria-label={`${date} 아직 안 온 날`}
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed border-lilac-mid/40 bg-white/30"
               >
