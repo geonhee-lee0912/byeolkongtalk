@@ -47,7 +47,9 @@ test("baitLead — 세 자리 모두 문장을 준다", () => {
 });
 
 test("baitLead — woori_30d 는 상대 이름을 쓰되 없으면 대명사로 흘린다", () => {
-  assert.ok(baitLead("woori_30d", { partnerName: "지민" }).includes("지민"));
+  // FIX C: 받침 유무로 와/과 가 갈린다 — 예전엔 받침 상관없이 "와" 만 붙여 "지민와" 처럼 틀렸다.
+  assert.ok(baitLead("woori_30d", { partnerName: "지민" }).includes("지민과"), "받침 있는 이름엔 '과' 가 붙어야 한다");
+  assert.ok(baitLead("woori_30d", { partnerName: "민수" }).includes("민수와"), "받침 없는 이름엔 '와' 가 붙어야 한다");
   const noName = baitLead("woori_30d", {});
   assert.ok(!noName.includes("undefined") && noName.length > 0);
   assert.ok(noName.includes("둘이"), `대명사 폴백이 아니다: ${noName}`);

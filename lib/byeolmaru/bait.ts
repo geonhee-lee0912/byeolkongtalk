@@ -63,9 +63,18 @@ export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
   if (slot === "woori_30d") {
     // woori_30d 는 허브 인연 탭 전용 — 날짜 선택 화면이 없어 "오늘" 기준이 항상 참이다.
     return ctx.partnerName
-      ? `${ctx.partnerName}와 너, 오늘 왜 이런 결인지부터 짚어줄게.`
+      ? `${ctx.partnerName}${particleWaGwa(ctx.partnerName)} 너, 오늘 왜 이런 결인지부터 짚어줄게.`
       : "둘이 오늘 왜 이런 결인지부터 짚어줄게.";
   }
   // tarot_rich 도 오늘의 카드 자리라 "지금"이 항상 참이다.
   return "이 카드가 지금 네 흐름에 어떻게 걸리는지부터 말해줄게.";
+}
+
+// 받침 유무로 와/과 선택(한글 완성형 종성 인덱스, 0=받침없음) — lib/byeoljari/display.ts 의
+// subjectParticle 과 같은 규칙이지만 로컬로 다시 둔다: 이 파일은 LLM·네트워크는 물론 다른 lib
+// 모듈에도 기대지 않는 의존성 0 순수 모듈이어야 해서(파일 상단 주석) import 하지 않는다.
+function particleWaGwa(word: string): "와" | "과" {
+  const code = word.trim().slice(-1).charCodeAt(0);
+  if (Number.isNaN(code) || code < 0xac00 || code > 0xd7a3) return "와"; // 한글 완성형 밖
+  return (code - 0xac00) % 28 === 0 ? "와" : "과"; // 받침 없음 → 와
 }
