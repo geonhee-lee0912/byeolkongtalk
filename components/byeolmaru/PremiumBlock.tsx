@@ -13,8 +13,8 @@ interface Props {
   narrative: string | null;   // 자격 && 생성 성공
   teaser: string | null;      // 자격 + 빈 서술 폴백의 첫 줄(자격자 경로 전용)
   loading: boolean;           // 서술 fetch 진행 중
-  onStartTrial: () => void;
-  onSubscribe: () => void;
+  onStartTrial: (slot?: string) => void;
+  onSubscribe: (slot?: string) => void;
   /** 🔴 P5-4 — 미끼는 자리마다 다른 물건이다(스펙 §9 "한 곳에 모으지 않는다"). */
   slot: BaitSlot;
   /** 첫 줄이 이어받을 맥락 — 화면에 이미 떠 있는 것만. */
@@ -90,7 +90,7 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
       {!trialUsed ? (
         <>
           {/* CTA 는 잠금이 아니라 **열쇠**다(스펙 §9). */}
-          <button onClick={onStartTrial} disabled={loading}
+          <button onClick={() => onStartTrial(slot)} disabled={loading}
             className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night disabled:opacity-60">
             3일 무료로 열어보기
           </button>
@@ -100,7 +100,7 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
           </p>
         </>
       ) : (
-        <button onClick={onSubscribe} disabled={loading}
+        <button onClick={() => onSubscribe(slot)} disabled={loading}
           className="mt-3 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night disabled:opacity-60">
           구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
         </button>

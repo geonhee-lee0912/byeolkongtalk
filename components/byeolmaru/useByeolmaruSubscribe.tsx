@@ -13,14 +13,16 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
   const [subBalance, setSubBalance] = useState<number | null>(null);
   const [subBalanceLoading, setSubBalanceLoading] = useState(false);
 
-  async function startTrial() {
-    trackUiEvent("byeolmaru_trial_started");
+  // slot 은 호출부가 아는 "어느 미끼에서 눌렀는가"다(P5-4 §13) — 옵셔널이라 슬롯을 모르는
+  // 기존 호출부(PairDayDetailCard 등, 인자 없이 호출)는 그대로 slot 없이 찍힌다.
+  async function startTrial(slot?: string) {
+    trackUiEvent("byeolmaru_trial_started", slot ? { meta: { slot } } : undefined);
     await fetch("/api/byeolmaru/trial", { method: "POST" });
     onChanged();
   }
 
-  function openSubscribe() {
-    trackUiEvent("byeolmaru_subscribe_clicked");
+  function openSubscribe(slot?: string) {
+    trackUiEvent("byeolmaru_subscribe_clicked", slot ? { meta: { slot } } : undefined);
     setConfirmOpen(true);
     setSubBalanceLoading(true);
     setSubBalance(null);

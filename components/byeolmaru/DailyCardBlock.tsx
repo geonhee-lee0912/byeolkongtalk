@@ -47,8 +47,8 @@ export default function DailyCardBlock({
 }: {
   entitled: boolean;
   trialUsed: boolean;
-  onStartTrial: () => void;
-  onSubscribe: () => void;
+  onStartTrial: (slot?: string) => void;
+  onSubscribe: (slot?: string) => void;
 }) {
   const [state, setState] = useState<CardState>({ kind: "loading" });
 
