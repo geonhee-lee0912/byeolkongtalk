@@ -163,6 +163,12 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           loading={false}
           onStartTrial={startTrial}
           onSubscribe={openSubscribe}
+          slot="saju_report"
+          // 🔴 cell(선택된 날)이 아니라 todayCell 이다 — 이 자리에서 파는 건 daily-report 인데
+          //    그 라우트엔 날짜 파라미터가 없어 항상 오늘만 만든다(자격자 분기도 dateLabel="오늘").
+          //    과거 날을 고른 상태에서 그 날 등급을 이어받으면 지키지 못할 약속이 된다.
+          //    오늘이 선택된 기본 경로에선 cell === todayCell 이라 문구가 그대로다.
+          baitCtx={{ gradeLabel: todayCell.grade.label }}
         />
       )}
       <section className="rounded-2xl bg-cream-warm p-4">
