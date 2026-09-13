@@ -8,6 +8,7 @@ import { getEntitlement } from "@/lib/byeolmaru/entitlement";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
+import { monthRange } from "@/lib/byeolmaru/calendar";
 import { kstDate } from "@/lib/admin-time";
 import {
   buildPairNarrativeSystem,
@@ -88,8 +89,13 @@ export async function GET(req: NextRequest) {
     }
     const pairCal = buildPairCalendar(selfSaju, partnerSaju, temporal.dailyLuck, todayKst);
     const cell = pairCal[0];
-    // 택일 보완①: 앞으로 30일 중 둘 사이 '좋은 날' 상위 3개를 서술에 넘겨 관계-타이밍으로 짚게 한다.
-    const goodDays = pairCal.filter((c) => c.tone === "good").slice(0, 3);
+    // 택일 보완①: 이번 달 중 둘 사이 '좋은 날' 상위 3개를 서술에 넘겨 관계-타이밍으로 짚게 한다.
+    // 🔴 I-4 정정 — 일진 계산 자체(위 includeMonth:true)는 그대로 앞으로 30일 창이지만(오늘 셀만
+    //    여기서 쓴다), 달력 UI 는 이번 달 말일에서 끊기고 다음 달로 넘기는 화면이 없다. 그래서
+    //    goodDays 후보만 이번 달 말일까지로 클램프한다 — 안 그러면 구독자가 달력에서 찾을 수 없는
+    //    다음 달 날짜를 추천받는다(달력 범위 자체의 클램프는 그룹 B/calendar.ts 몫, 여긴 필터만).
+    const { end: monthEnd } = monthRange(todayKst);
+    const goodDays = pairCal.filter((c) => c.tone === "good" && c.date <= monthEnd).slice(0, 3);
     const todayGanji = temporal.day.stem + temporal.day.branch;
 
     // LLM 생성 실패는 전체 요청 실패가 아니라 narrative:null 로 흡수 — ②-a 와 동일 경계(위 calc 가드와는 별개).

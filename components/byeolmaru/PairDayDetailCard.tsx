@@ -108,7 +108,16 @@ export default function PairDayDetailCard({
       ) : narrativeLoading ? (
         <p className="mt-3 text-sm text-text-light">별콩이가 둘 사이 오늘을 읽고 있어…</p>
       ) : narrative ? (
-        <div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</div>
+        <div className="mt-3 space-y-2">
+          {/* I-3 정정 — pair-narrative 라우트는 date 파라미터가 없어 이 서술은 항상 '오늘' 기준으로만
+              생성된다(구조 자체를 날짜별로 나누는 건 P5-3 몫). 선택 셀이 오늘이면 위 태그·톤과 같은
+              날이라 표시가 중복이지만, 다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는
+              걸 조용히 밝혀야 한다. */}
+          {!cell.isToday && (
+            <p className="text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
+          )}
+          <p className="whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</p>
+        </div>
       ) : null}
     </section>
   );

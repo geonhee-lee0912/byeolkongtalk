@@ -12,7 +12,7 @@ import {
   buildCardNarrativeSystem,
   CARD_NARRATIVE_KICKOFF,
 } from "./narrative-prompt.ts";
-import { buildCalendar } from "./calendar.ts";
+import { buildCalendar, monthRange } from "./calendar.ts";
 import type { DayCell } from "./calendar.ts";
 import { DAY_NAME } from "./day-label.ts";
 
@@ -65,6 +65,36 @@ test("buildPairNarrativeSystem: 좋은 날 목록 → 관계-타이밍 지침 + 
   // 오늘 셀은 목록에서 제외(오늘 얘기는 본문이 함)
   const onlyToday = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", [{ ...good[0], date: cell.date }]);
   assert.ok(!onlyToday.includes("목록에서만"), "오늘만 있는 목록은 라인 안 생김");
+});
+
+// I-4 정정 — goodDays 의 "이번 달 말일까지 클램프"는 buildPairNarrativeSystem 안이 아니라
+// 호출부(app/api/byeolmaru/pair-narrative/route.ts)에 있다. 이 저장소엔 API 라우트를 직접
+// 부르는 테스트 인프라가 없어(app/api/**/*.test.ts 0개, QA 하네스/브라우저 E2E 로 대체하는 관례)
+// 라우트를 그대로 호출하는 대신 route.ts 와 똑같은 클램프 식(c.date <= monthEnd)을 여기서
+// 재현해 monthRange 경계값이 실제로 다음 달 날짜를 걸러내는지 + 걸러진 목록이 프롬프트에
+// 정확히 반영되는지를 검증한다.
+test("buildPairNarrativeSystem: 이번 달 말일 클램프(I-4) — 다음 달 좋은 날은 목록에 안 남는다", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-28"), 1996, { includeMonth: true });
+  const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-28")[0];
+  const bd = pairBackdrop(a, b);
+
+  const { end: monthEnd } = monthRange("2026-09-28");
+  assert.equal(monthEnd, "2026-09-30", "9월 말일 기준값이 어긋났다");
+
+  const rawGoodDays: PairDayCell[] = [
+    { date: "2026-09-30", ganji: "무술", score: 80, tone: "good", tags: { spark: true, bond: false, friction: false, lead: null }, isToday: false },
+    { date: "2026-10-03", ganji: "경자", score: 82, tone: "good", tags: { spark: false, bond: true, friction: false, lead: null }, isToday: false },
+  ];
+  // route.ts 의 실제 클램프 식을 그대로 재현.
+  const clamped = rawGoodDays.filter((c) => c.date <= monthEnd);
+
+  const sys = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", clamped);
+  assert.ok(sys.includes("9월 30일"), "이번 달 안 좋은 날은 남아야 한다");
+  assert.ok(!sys.includes("10월 3일"), "다음 달 좋은 날은 클램프로 빠져야 한다(달력에 없는 날 추천 방지)");
+  assert.ok(sys.includes("이번 달 중"), "문구가 '이번 달' 기준으로 바뀌어야 한다");
+  assert.ok(!sys.includes("앞으로 30일"), "'앞으로 30일' 문구가 남아있으면 안 된다");
 });
 
 test("buildPairNarrativeSystem: status 있으면 관계 상태 라인 주입, 없으면 라인 없음(무회귀)", () => {

@@ -25,6 +25,18 @@ test("DAY_LINE — 십신 10종 전부에 한 줄이 있고 반말로 끝난다"
   }
 });
 
+// M-4 — day-label.ts JSDoc 이 "46~53자·2문장"을 규율로 못 박아뒀는데 그걸 지키는 테스트가
+// 없었다. 실측(현재 10종 전부 46~53자·정확히 2문장)에 맞춰 상한·문장 수를 단언한다 — 문구가
+// 아니라 규율이 깨지는 걸 잡는 게 목적이라 상한값은 실측 그대로 쓴다(문구는 안 건드림).
+test("DAY_LINE — 길이 46~53자·정확히 2문장(히어로 카드 3줄 밀림 방지, day-label.ts JSDoc 규율)", () => {
+  for (const t of ALL) {
+    const line = DAY_LINE[t];
+    assert.ok(line.length >= 46 && line.length <= 53, `${t} 길이가 46~53자를 벗어났다: ${line.length}자 "${line}"`);
+    const sentences = (line.match(/\./g) ?? []).length;
+    assert.equal(sentences, 2, `${t} 문장 수가 2가 아니다(${sentences}): "${line}"`);
+  }
+});
+
 const base: DayFactors = {
   relation: "비화",
   heavenlyCombo: false,

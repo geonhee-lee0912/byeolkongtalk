@@ -21,7 +21,6 @@ interface CalendarResponse {
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
   attendance: AttendanceState;
-  lockedDates: string[];
 }
 
 type State =
@@ -145,7 +144,12 @@ export default function ByeolmaruHub() {
         {/* P5-1 — DAY_LINE 의 유일한 노출 지점. 상세 카드에선 getSajuTaste 의 overall 문장과
             결·문형이 겹쳐서 뺐다(뱅크마다 집은 하나씩). 여긴 taste 블록이 없어 겹치지 않는다. */}
         <p className="mb-1 text-xs leading-relaxed text-text-light">{DAY_LINE[todayCell.tenGod]}</p>
-        <p className="text-xs text-lilac-deep">{data.entitled ? "앞으로 7일 흐름" : "지난 7일 흐름"} · 이번 달 전체 보기 →</p>
+        {/* 🔴 I-1 정정 — 달이 이번 달로 잘리면서 strip7 은 월 경계(자격자는 말일 근처, 비자격자는
+            1일 근처)에서 매달 약 6일(20%)은 7개가 안 된다. 점 개수와 라벨 숫자가 어긋나면 거짓말이
+            되므로 고정 "7일" 대신 실제 strip7.length 를 쓴다. */}
+        <p className="text-xs text-lilac-deep">
+          {data.entitled ? `앞으로 ${strip7.length}일 흐름` : `지난 ${strip7.length}일 흐름`} · 이번 달 전체 보기 →
+        </p>
       </Link>
 
       <DailyCardBlock entitled={data.entitled} trialUsed={data.trialUsed} onStartTrial={startTrial} onSubscribe={openSubscribe} />

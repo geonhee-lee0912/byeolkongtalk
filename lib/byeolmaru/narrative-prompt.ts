@@ -97,7 +97,9 @@ export function buildPairNarrativeSystem(
     `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spark ? " · 끌림 있음" : ""}${backdrop.bond ? " · 결속 있음" : ""} · 연월조화 ${backdrop.harmony}.`,
     ...(status ? [`지금 둘은 ${RELATIONSHIP_STATUS_LABELS[status]} 사이 — 이 관계 결을 반영해서 말해.`] : []),
     `오늘 둘 사이 결 ${PAIR_TONE_LABEL[cell.tone]}${sig.length ? ` · 신호 ${sig.join("·")}` : ""}.`,
-    ...(goodList ? [`앞으로 30일 중 둘 사이 결이 특히 좋은 날: ${goodList}.`] : []),
+    // I-4 정정 — goodDays 는 호출부(route.ts)에서 이미 이번 달 말일까지로 클램프돼 들어온다.
+    // "앞으로 30일"이라 하면 달력에 없는 다음 달 날짜까지 있는 것처럼 들려 문구를 이번 달 기준으로 바꾼다.
+    ...(goodList ? [`이번 달 중 둘 사이 결이 특히 좋은 날: ${goodList}.`] : []),
     "규칙: 3~4문단, 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 오늘 일진이 둘 사이를 어떻게 건드리는지로 시작. 한쪽을 탓하지 말고 둘의 흐름으로 말할 것." +
       (goodList
         ? " 마무리 즈음에 위 '좋은 날' 목록에서만 골라 1~2개를 관계 타이밍으로 자연스럽게 짚어줘(연락·만남 하기 좋은 결). '이 날 뭘 해라' 식 지시 대신 '이 무렵 결이 잘 맞아' 식 흐름으로. 목록 밖 날짜를 지어내지 마."
