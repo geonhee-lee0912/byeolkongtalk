@@ -124,9 +124,9 @@ export async function GET(req: NextRequest) {
         cells: open,
         lockedDates,
         backdrop,
-        // 🔴 staticLine(단일 문장)을 더 이상 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
-        //    한 줄은 **선택한 셀 기준**이어야 한다. getPairStaticLine 은 순수라 클라가 직접 푼다
-        //    (PAIR_TONE_LABEL·DAY_NAME 을 클라가 직접 푸는 것과 같은 패턴 — 와이어에 중복을 안 둔다).
+        // 🔴 무료 문구를 서버가 만들어 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
+        //    문구는 **선택한 셀 기준**이어야 한다. 클라가 status 와 셀을 받아 getPairTaste(순수)를
+        //    직접 돌린다(PAIR_TONE_LABEL·DAY_NAME 과 같은 패턴 — 와이어에 중복을 안 둔다).
         status,
       });
     }
