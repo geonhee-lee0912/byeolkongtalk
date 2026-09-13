@@ -76,7 +76,6 @@ function GuestPeek() {
 export default function ByeolmaruHub() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [attendance, setAttendance] = useState<AttendanceState | null>(null);
-  const [checkinLoading, setCheckinLoading] = useState(false);
 
   async function refresh() {
     try {
@@ -93,16 +92,6 @@ export default function ByeolmaruHub() {
   useEffect(() => { void refresh(); }, []);
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
-
-  async function handleCheckin() {
-    trackUiEvent("byeolmaru_checkin", { meta: { streak: attendance?.streak ?? 0 } });
-    setCheckinLoading(true);
-    try {
-      const r = await fetch("/api/byeolmaru/checkin", { method: "POST" });
-      const j = await r.json();
-      if (j.attendance) setAttendance(j.attendance);
-    } finally { setCheckinLoading(false); }
-  }
 
   if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
   if (state.kind === "need_login") return <GuestPeek />;
@@ -133,7 +122,7 @@ export default function ByeolmaruHub() {
         <p className="text-sm text-text-light">오늘 들어온 두 글자 · {data.todayGanji}</p>
       </header>
 
-      <AttendanceStrip attendance={attendance} loading={checkinLoading} onCheckin={handleCheckin} />
+      <AttendanceStrip attendance={attendance} filledDays={data.cells.length} />
 
       <Link href="/byeolmaru/saju" className="block rounded-2xl bg-cream-warm p-4">
         <div className="mb-2">

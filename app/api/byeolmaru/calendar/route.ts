@@ -10,7 +10,7 @@ import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
-import { getAttendanceState, grantDueReward } from "@/lib/byeolmaru/attendance";
+import { getAttendanceState, recordCheckin } from "@/lib/byeolmaru/attendance";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 
 export const dynamic = "force-dynamic";
@@ -129,10 +129,16 @@ export async function GET(req: NextRequest) {
     const allCells = buildCalendar(saju, monthLuck, todayKst);
     const { open: cells, lockedDates } = splitByFreeLine(allCells, todayKst, ent.entitled);
 
-    // 보상 정산(write)은 best-effort — 실패해도 캘린더는 떠야 한다(로그만 남기고 삼킨다).
-    // grantDueReward 는 대개 no-op(만료·미정산 구독 없음).
-    try { await grantDueReward(userId); } catch (e) { await logError(e, { route: "/api/byeolmaru/calendar", userId, extra: { stage: "reward" } }); }
-    const attendance = await getAttendanceState(userId, todayKst);
+    // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
+    // 최신 상태를 그대로 돌려준다. 쓰기 실패는 best-effort — 캘린더는 떠야 하므로 상태 조회로
+    // 폴백한다(스트릭 반영만 늦을 뿐 화면은 정상).
+    let attendance;
+    try {
+      attendance = await recordCheckin(userId, todayKst);
+    } catch (e) {
+      await logError(e, { route: "/api/byeolmaru/calendar", userId, extra: { stage: "checkin" } });
+      attendance = await getAttendanceState(userId, todayKst);
+    }
 
     return NextResponse.json({
       today: todayKst,

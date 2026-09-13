@@ -37,6 +37,6 @@ test("UI_EVENTS — 별마루 ② 페이월 이벤트가 등록돼 있다", () =
 });
 
 test("UI_EVENTS — 별마루 ②-b 이벤트가 등록돼 있다", () => {
-  assert.equal(isUiEvent("byeolmaru_checkin"), true);
+  assert.equal(isUiEvent("byeolmaru_day_selected"), true);
   assert.equal(isUiEvent("byeolmaru_crosssell_clicked"), true);
 });

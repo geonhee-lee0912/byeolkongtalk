@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeStreak, ATTENDANCE_THRESHOLD, ATTENDANCE_REWARD_STARS } from "./attendance.ts";
+import { computeStreak, type AttendanceState } from "./attendance.ts";
 
 test("오늘 포함 연속 3일이면 streak=3", () => {
   assert.equal(computeStreak(["2026-09-02", "2026-09-03", "2026-09-04"], "2026-09-04"), 3);
@@ -17,7 +17,9 @@ test("중간에 끊기면 최근 run 만", () => {
 test("빈 기록이면 0", () => {
   assert.equal(computeStreak([], "2026-09-04"), 0);
 });
-test("보상 상수 — 구독료(20)보다 작다(매출 붕괴 방지)", () => {
-  assert.equal(ATTENDANCE_THRESHOLD, 20);
-  assert.ok(ATTENDANCE_REWARD_STARS < 20, "보상은 구독료 미만");
+test("AttendanceState 는 보상 필드를 갖지 않는다(환급 폐지 — 보상은 그날의 운세다)", () => {
+  // 타입 레벨 계약이라 런타임 단언이 아니라 tsc 가 지킨다. 아래 객체에 daysThisSub 나 threshold 를
+  // 되살리면 초과 속성으로 컴파일이 막힌다 — 폐지가 조용히 되돌아오는 걸 막는 문지기.
+  const s: AttendanceState = { checkedInToday: true, streak: 3 };
+  assert.equal(s.streak, 3);
 });

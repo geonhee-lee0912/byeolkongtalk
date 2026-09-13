@@ -1,37 +1,23 @@
-// components/byeolmaru/AttendanceStrip.tsx — 출석 체크인 + 스트릭(전 유저 습관). 보상 진행은 구독자만.
+// components/byeolmaru/AttendanceStrip.tsx — 이번 달 채움 진행 + 연속 방문. P5-2 부터 별 환급이 없다
+// (스펙 §10 — 보상은 그날의 운세다. 매일 오면 칸이 하나씩 열린다).
 "use client";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 
 interface Props {
   attendance: AttendanceState | null;
-  loading: boolean;
-  onCheckin: () => void;
+  /** 이번 달에 열린 칸 수 = 서버가 내려준 cells 길이(무료는 오늘까지, 구독은 말일까지). */
+  filledDays: number;
 }
 
-export default function AttendanceStrip({ attendance, loading, onCheckin }: Props) {
+export default function AttendanceStrip({ attendance, filledDays }: Props) {
   if (!attendance) return null;
-  const { checkedInToday, streak, daysThisSub, threshold } = attendance;
   return (
-    <section className="flex items-center justify-between rounded-2xl bg-cream-warm px-4 py-3">
-      <div>
-        <p className="text-sm font-medium text-eye-purple">
-          {checkedInToday ? `오늘 출석 완료 · ${streak}일째` : "오늘 아직 출석 안 했어"}
-        </p>
-        {daysThisSub !== null && (
-          <p className="mt-0.5 text-xs text-text-light">
-            이번 구독 {daysThisSub}/{threshold}일 · {threshold}일 채우면 10별
-          </p>
-        )}
-      </div>
-      {!checkedInToday && (
-        <button
-          onClick={onCheckin}
-          disabled={loading}
-          className="rounded-xl bg-gold px-4 py-2 text-sm font-medium text-eye-purple disabled:opacity-60"
-        >
-          출석하기
-        </button>
-      )}
+    <section className="rounded-2xl bg-cream-warm px-4 py-3">
+      <p className="text-sm font-medium text-eye-purple">
+        이번 달 {filledDays}칸 채움
+        {attendance.streak > 1 ? ` · ${attendance.streak}일 연속` : ""}
+      </p>
+      <p className="mt-0.5 text-xs text-text-light">매일 오면 그날 칸이 하나씩 열려.</p>
     </section>
   );
 }
