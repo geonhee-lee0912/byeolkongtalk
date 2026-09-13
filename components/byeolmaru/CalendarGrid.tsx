@@ -155,7 +155,10 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
                   />
                 ) : null;
               })()}
-              <span className="text-[9px] leading-none text-text-light">{c.ganji}</span>
+              {/* a11y: 골드 배경(좋은 날 #E8C26A)에서 text-text-light 대비가 2.78:1로 WCAG AA(4.5:1)
+                  미달이었다 — 배경(스펙 §4 고정값)이 아니라 텍스트 색을 올려 해결한다. 날짜 숫자와
+                  색이 같아지지만 크기(13px↔9px)·두께(semibold↔regular)로 위계는 유지된다. */}
+              <span className="text-[9px] leading-none text-eye-purple">{c.ganji}</span>
             </button>
           );
         })}
