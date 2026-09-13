@@ -73,7 +73,7 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
           <ul className="space-y-1 mb-3">
             {BAIT_SLOTS.map((slot) => (
               <li key={slot} className="flex items-start gap-1.5 text-[13px] leading-snug">
-                <span className="text-eye-purple shrink-0">✦</span>
+                <span aria-hidden className="text-eye-purple shrink-0">✦</span>
                 <span>
                   <span className="font-medium text-eye-purple">{BAIT[slot].title}</span>
                   <span className="text-eye-purple/85 text-[12px]"> · {BAIT[slot].chips[0]}</span>
