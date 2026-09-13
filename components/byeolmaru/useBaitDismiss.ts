@@ -1,0 +1,48 @@
+"use client";
+
+// components/byeolmaru/useBaitDismiss.ts — 미끼 당일 접힘(스펙 §9 "거절하면 그날은 접힌다").
+// 🔴 slot 별로 접는다 — 자리마다 다른 물건이라 하나를 닫았다고 나머지까지 닫으면 과하다.
+// 저장소는 localStorage: 이건 "이 사람 이 기기에서 오늘 한 번 거절했다"는 per-viewer 편의라
+// 서버에 둘 값이 아니다. 쿠키·storage prefix 는 이 저장소 관례대로 byeolkong_.
+// ⚠️ 사파리 프라이빗 등에서 접근 자체가 throw 할 수 있어 읽기·쓰기를 전부 try/catch 로 감싼다.
+import { useEffect, useState } from "react";
+import type { BaitSlot } from "@/lib/byeolmaru/bait";
+
+const KEY = "byeolkong_bait_dismissed";
+
+/** KST 오늘 "YYYY-MM-DD" — 서버를 안 부른다(접힘은 개인화가 아니라 편의라 기기 시각으로 충분). */
+function todayKst(): string {
+  const kst = new Date(Date.now() + 9 * 3600_000);
+  return kst.toISOString().slice(0, 10);
+}
+
+function read(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function useBaitDismiss(slot: BaitSlot): { dismissed: boolean; dismiss: () => void } {
+  // 🔴 초기값을 false 로 두고 effect 에서 읽는다 — localStorage 는 서버에 없어서, 초기 렌더에
+  //    읽으면 하이드레이션 불일치가 난다.
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    setDismissed(read()[slot] === todayKst());
+  }, [slot]);
+
+  function dismiss() {
+    setDismissed(true);
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ ...read(), [slot]: todayKst() }));
+    } catch {
+      /* 저장에 실패해도 이번 세션 동안은 접힌 상태가 유지된다 — 그걸로 충분하다 */
+    }
+  }
+
+  return { dismissed, dismiss };
+}

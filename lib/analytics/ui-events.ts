@@ -49,8 +49,10 @@ export const UI_EVENTS = [
   "byeolmaru_no_profile",
   /** 별마루 — 비로그인 진입(하단탭에서 눌렀으나 세션 없음) */
   "byeolmaru_need_login",
-  /** 별마루 — 페이월 미끼 노출(마운트 1회). meta:{slot:"saju_report"|"woori_30d"|"tarot_rich"} */
+  /** 별마루 — 페이월 미끼 노출(슬롯 노출마다 1회 — slot 이 바뀌면 같은 마운트에서도 다시 찍힌다). meta:{slot:"saju_report"|"woori_30d"|"tarot_rich"} */
   "byeolmaru_gate_shown",
+  /** 별마루 — 페이월 미끼 닫기(당일 접힘). meta:{slot:"saju_report"|"woori_30d"|"tarot_rich"} */
+  "byeolmaru_gate_dismissed",
   /** 별마루 — 3일 무료 체험 시작 클릭. meta:{slot?} */
   "byeolmaru_trial_started",
   /** 별마루 — 구독 CTA 클릭. meta:{slot?} */
