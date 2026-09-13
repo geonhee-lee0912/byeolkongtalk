@@ -52,12 +52,13 @@ export interface BaitContext {
  */
 export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
   if (slot === "saju_report") {
-    // 🔴 날짜 중립 — SajuTodayView 는 과거 날짜 셀도 보여준다(위 tail 주석 참조).
-    //    gradeLabel 이 있으면 그 날의 등급을 그대로 이어받으니 참이지만, 폴백은
-    //    "오늘"을 쓰면 지난 날을 보는 사용자에게 거짓이 된다 — "이 날"로 중립화.
+    // 라벨이 있으면 화면(DayDetailCard/히어로)에 뜬 그 등급을 그대로 인용한다 — 오늘일 때만 실린다.
+    // 🔴 폴백이 "오늘"을 말하는 건 의도다. 이 폴백에 도달하는 실사용 경로는 "과거 날을 보는 중"
+    //    뿐이고(SajuTodayView 가 그때 라벨을 빼서 넘긴다), 그때 파는 물건은 여전히 오늘 리포트다
+    //    (daily-report 라우트에 날짜 파라미터가 없다). 선택한 날을 가리키면 못 지킬 약속이 된다.
     return ctx.gradeLabel
       ? `위에서 본 '${ctx.gradeLabel}'이 왜 그런지부터 풀어줄게.`
-      : "이 날이 왜 이런 결인지부터 풀어줄게.";
+      : "오늘은 왜 이런 결인지부터 풀어줄게.";
   }
   if (slot === "woori_30d") {
     // woori_30d 는 허브 인연 탭 전용 — 날짜 선택 화면이 없어 "오늘" 기준이 항상 참이다.

@@ -164,11 +164,12 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           onStartTrial={startTrial}
           onSubscribe={openSubscribe}
           slot="saju_report"
-          // 🔴 cell(선택된 날)이 아니라 todayCell 이다 — 이 자리에서 파는 건 daily-report 인데
-          //    그 라우트엔 날짜 파라미터가 없어 항상 오늘만 만든다(자격자 분기도 dateLabel="오늘").
-          //    과거 날을 고른 상태에서 그 날 등급을 이어받으면 지키지 못할 약속이 된다.
-          //    오늘이 선택된 기본 경로에선 cell === todayCell 이라 문구가 그대로다.
-          baitCtx={{ gradeLabel: todayCell.grade.label }}
+          // 🔴 라벨은 "오늘이 선택됐을 때만" 싣는다. 이 자리에서 파는 건 daily-report 인데 그
+          //    라우트엔 날짜 파라미터가 없어 항상 오늘만 만든다(자격자 분기도 dateLabel="오늘").
+          //    ① cell.grade.label 을 싣으면 과거 날을 고른 사람에게 "그 날을 풀어주겠다"는 못 지킬
+          //       약속이 되고, ② todayCell 을 늘 싣으면 위 DayDetailCard 에 없는 라벨을 인용한다.
+          //    → 오늘일 때만 인용하고, 아니면 라벨 없이 오늘 얘기로 떨어뜨린다(baitLead 폴백).
+          baitCtx={{ gradeLabel: cell.isToday ? cell.grade.label : undefined }}
         />
       )}
       <section className="rounded-2xl bg-cream-warm p-4">
