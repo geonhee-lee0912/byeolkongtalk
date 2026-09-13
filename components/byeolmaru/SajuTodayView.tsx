@@ -118,6 +118,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           todayDate={data.today}
           selectedDate={cell.date}
           onSelect={setSelected}
+          subjectKind="me"
         />
       </section>
       {/* 무료는 오늘까지만 집계돼 있으므로 "이번 달"이라고 하면 틀린 말이 된다 — 범위를 밝힌다.

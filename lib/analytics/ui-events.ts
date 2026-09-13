@@ -41,7 +41,7 @@ export const UI_EVENTS = [
   "recharge_payment_started",
   /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
   "result_cta_clicked",
-  /** 별마루 — 캘린더 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution"} */
+  /** 별마루 — 캘린더 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution", subjectKind:"me"|"pair"(나/우리 축 — §13 offset≠0 비율 관문의 사후 필터링에 필요)} */
   "byeolmaru_day_selected",
   /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출) */
   "byeolmaru_slot_clicked",

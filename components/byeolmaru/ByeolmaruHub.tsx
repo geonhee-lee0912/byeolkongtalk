@@ -119,6 +119,10 @@ export default function ByeolmaruHub() {
   }
   useEffect(() => { void loadPartners(); }, []);
 
+  // state 가 유니온이라 "ready" 로 좁혀지기 전에도 파생값으로 미리 꺼내둔다(WooriTodayView 의
+  // entitledNow 와 동일 패턴, P5-3 리뷰 I-1) — 아래 pair effect 의 deps 에 쓰기 위해서다.
+  const entitledNow = state.kind === "ready" && state.data.entitled;
+
   // 상대 칩을 고르면 달력이 통째로 우리 버전이 된다(스펙 §8). 룰 100% 라 원가 0.
   // 🔴 cancelled 가드 — 칩을 빠르게 번갈아 누르면 낡은 응답이 최신 상태를 덮어쓴다
   //    (WooriTodayView 가 같은 이유로 같은 가드를 쓴다).
@@ -126,9 +130,17 @@ export default function ByeolmaruHub() {
   //    달력 상태(pairCells)는 이전 그대로 남아 "칩≠데이터" 불일치가 생긴다(이전 상대 데이터가
   //    있었다면 그게 그대로 남아 새 칩 밑에 잘못 붙어 보인다). catch 블록과 동일하게 "나"로
   //    되돌리고 pairCells/pairLocked 도 함께 비워, 최소한 불일치 상태를 만들지 않는다.
+  // 🔴 (P5-3 리뷰 I-1) effect **시작**에서도 pairCells/pairLocked 를 리셋한다 — 예전엔 여기가
+  //    없어서 A→B 전환 중 A 의 낡은 달력이 B 칩 아래 그대로 남았다(서버가 파트너 calcSaju+30일
+  //    캘린더+자격+watch 조회를 하므로 이 창이 짧지 않다). 렌더 쪽 viewingPair/isPair 가 이
+  //    리셋 직후의 "아직 도착 전" 상태를 로딩 문구로 보여준다.
+  // 🔴 deps 에 entitledNow 를 추가한다 — 우리 모드를 보는 도중 체험/구독을 시작하면 self 응답
+  //    (refresh())만 갱신되고 pairCells 는 그대로였다(20별을 쓰고도 우리 달력은 점선 그대로).
+  //    entitledNow 가 false→true 로 바뀌면 이 effect 가 다시 돌아 같은 상대를 잠금 없이 재요청한다.
   useEffect(() => {
     if (subject === "me") { setPairCells(null); setPairLocked([]); return; }
     let cancelled = false;
+    setPairCells(null); setPairLocked([]);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
@@ -142,7 +154,7 @@ export default function ByeolmaruHub() {
       }
     })();
     return () => { cancelled = true; };
-  }, [subject]);
+  }, [subject, entitledNow]);
 
   const router = useRouter();
 
@@ -193,7 +205,13 @@ export default function ByeolmaruHub() {
   // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
   const crossSell = pickCrossSell(todayCell);
-  const isPair = subject !== "me" && pairCells !== null;
+  // viewingPair — 상대 칩을 골랐다는 "의도"(데이터 도착 여부와 무관). isPair — 실제로 그 상대의
+  // 달력을 그릴 수 있는 상태(데이터 도착 완료). 나 전용 UI(히어로)는 의도만으로 즉시 숨기고,
+  // 격자는 데이터가 아직이면(viewingPair && !isPair) 로딩 문구를 대신 보여준다 — pairCells 를
+  // effect 시작에서 항상 리셋하기 때문에 이 조합이 곧 "전환 중" 신호가 된다(P5-3 리뷰 I-1,
+  // 별도 pairLoading 상태 없이 기존 두 값의 조합으로 충분해 상태를 늘리지 않았다).
+  const viewingPair = subject !== "me";
+  const isPair = viewingPair && pairCells !== null;
 
   // 격자에 넘길 정규화 셀. 나·우리 두 판정 엔진이 같은 GridCell 계약으로 수렴한다.
   // 🔴 우리 셀엔 마크가 없다(우리 판정은 ✨끌림·🔗결속 태그를 쓴다) — 빈 배열을 **명시**한다.
@@ -216,8 +234,10 @@ export default function ByeolmaruHub() {
         <AttendanceStrip attendance={attendance} filledDays={filled} entitled={data.entitled} />
 
         {/* 오늘 히어로는 **나 탭에서만**. 우리 탭의 오늘은 톤·태그 성격이 달라 같은 타일에 안 들어간다
-            — 우리 쪽 상세는 /byeolmaru/woori 가 받는다(스펙 §8). */}
-        {!isPair && <TodayHeroTile cell={todayCell} href="/byeolmaru/saju" />}
+            — 우리 쪽 상세는 /byeolmaru/woori 가 받는다(스펙 §8). viewingPair(의도) 기준으로 끈다 —
+            isPair(데이터 도착) 기준이면 전환 중(데이터 도착 전) 한 프레임 내 히어로가 남았다 사라지며
+            레이아웃이 점프했다(P5-3 리뷰 I-1 증상 b). */}
+        {!viewingPair && <TodayHeroTile cell={todayCell} href="/byeolmaru/saju" />}
 
         <PartnerChips
           partners={partners}
@@ -226,18 +246,29 @@ export default function ByeolmaruHub() {
           onAdd={() => setAddOpen(true)}
         />
 
-        <CalendarGrid
-          cells={gridCells}
-          lockedDates={gridLocked}
-          todayDate={data.today}
-          selectedDate={data.today}
-          onSelect={(date) => {
-            // 🔴 허브 격자는 "고르는" 곳이 아니라 "여는" 곳이다(스펙 §7 요약은 안, 전문은 밖).
-            //    나 탭은 그 날의 상세로, 우리 탭은 우리 상세로 보낸다.
-            if (isPair) { router.push("/byeolmaru/woori"); return; }
-            router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
-          }}
-        />
+        {viewingPair && !isPair ? (
+          // 전환 중(리셋 직후~응답 도착 전) — 격자 자리에 로딩 문구를 둔다. 격자를 흐리는 대안은
+          // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
+          // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
+          // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
+          <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
+        ) : (
+          <CalendarGrid
+            cells={gridCells}
+            lockedDates={gridLocked}
+            todayDate={data.today}
+            selectedDate={data.today}
+            subjectKind={isPair ? "pair" : "me"}
+            onSelect={(date) => {
+              // 🔴 허브 격자는 "고르는" 곳이 아니라 "여는" 곳이다(스펙 §7 요약은 안, 전문은 밖).
+              //    나 탭은 그 날의 상세로, 우리 탭은 우리 상세로 보낸다. ?subject= 를 실어 보내
+              //    도착지에서 방금 고른 상대를 다시 고르지 않아도 되게 한다(T3 ?date= 와 동일 패턴,
+              //    P5-3 리뷰 I-2 — 없으면 "위에서 상대를 골라…" 안내로 되돌아가 통합 취지가 끊긴다).
+              if (isPair) { router.push(`/byeolmaru/woori?subject=${encodeURIComponent(subject)}`); return; }
+              router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
+            }}
+          />
+        )}
 
         {/* 🔴 미끼 자리 — 내용·톤·CTA·계측은 P5-4 몫이다(스펙 §9). 지금은 자리만 잡는다.
             비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
@@ -261,7 +292,11 @@ export default function ByeolmaruHub() {
       {addOpen && (
         <WatchAddModal
           onClose={() => setAddOpen(false)}
-          onAdded={(id) => { setAddOpen(false); void loadPartners(); setSubject(id); }}
+          // 🔴 loadPartners 를 await 한 뒤 setSubject 한다(P5-3 리뷰 I-4) — void 로 흘려보내면
+          //    partners=[] · subject=새 id 가 동시에 참인 렌더가 생긴다. PartnerChips 는 0명일 때
+          //    "＋ 인연 걸어두기" 버튼 하나만 그려 "나"로 돌아갈 길이 없다(보통 수백 ms 지만,
+          //    /api/byeolmaru/watch GET 이 실패하면 setPartners([]) 로 확정돼 새로고침 전까지 못 나온다).
+          onAdded={async (id) => { setAddOpen(false); await loadPartners(); setSubject(id); }}
         />
       )}
     </main>

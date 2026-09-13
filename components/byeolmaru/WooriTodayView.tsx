@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
@@ -20,7 +20,7 @@ type State =
   | { kind: "error" }
   | { kind: "ready"; entitled: boolean; trialUsed: boolean };
 
-export default function WooriTodayView() {
+export default function WooriTodayView({ initialSubject }: { initialSubject?: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [subject, setSubject] = useState<string>("me");
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
@@ -39,6 +39,10 @@ export default function WooriTodayView() {
   const [pairNarrative, setPairNarrative] = useState<string | null>(null);
   const [pairNarrativeLoading, setPairNarrativeLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  // 허브 격자에서 ?subject= 로 넘어온 초기 상대(T3 ?date= 와 동일 패턴, I-2). 최초 loadPartners
+  // 응답 1회에만 적용한다 — 이후 체험/구독 완료로 refresh() 가 다시 불릴 때(useByeolmaruSubscribe
+  // 의 onChanged) 이미 딴 상대를 보고 있던 사용자를 URL 값으로 되돌리면 안 되기 때문.
+  const appliedInitialSubjectRef = useRef(false);
 
   async function refresh() {
     try {
@@ -49,18 +53,26 @@ export default function WooriTodayView() {
       const data = await res.json();
       if (!Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
       setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed });
-      void loadPartners();
+      const list = await loadPartners();
+      // 🔴 initialSubject 검증 — 실제 내 상대 목록(list)에 있을 때만 적용한다. 임의 UUID(직접 URL
+      //    조작)는 어떤 상대의 id 와도 안 맞아 자연히 무시되고 "me" 가 유지된다(서버까지 안 간다).
+      if (!appliedInitialSubjectRef.current) {
+        appliedInitialSubjectRef.current = true;
+        if (initialSubject && list.some((p) => p.id === initialSubject)) setSubject(initialSubject);
+      }
     } catch { setState({ kind: "error" }); }
   }
   useEffect(() => { void refresh(); }, []);
 
-  async function loadPartners() {
+  async function loadPartners(): Promise<{ id: string; name: string }[]> {
     try {
       const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
-      if (!res.ok) { setPartners([]); return; }
+      if (!res.ok) { setPartners([]); return []; }
       const j = await res.json();
-      setPartners(Array.isArray(j?.watched) ? j.watched : []);
-    } catch { setPartners([]); }
+      const list = Array.isArray(j?.watched) ? j.watched : [];
+      setPartners(list);
+      return list;
+    } catch { setPartners([]); return []; }
   }
 
   const entitledNow = state.kind === "ready" && state.entitled;
@@ -172,6 +184,7 @@ export default function WooriTodayView() {
               todayDate={pairData.today}
               selectedDate={pairCell.date}
               onSelect={setPairSelected}
+              subjectKind="pair"
             />
           </section>
           <PairDayDetailCard

@@ -52,9 +52,20 @@ interface Props {
    *  없어서 못 보는 날"이다. 그 호출부는 false 로 꺼서 바로 아래 "네 생일만 있으면…" 문구와의
    *  모순을 없앤다(P5-3 리뷰). */
   lockedHint?: boolean;
+  /** 계측 축(스펙 §13) — 이 격자가 나/우리 어느 판인지. offset≠0 비율 관문(§7 재검토 트리거)이
+   *  나·우리를 구분 못 하면 사후 필터링이 불가능해진다(P5-3 리뷰). 기본 "me". */
+  subjectKind?: "me" | "pair";
 }
 
-export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDate, onSelect, lockedHint = true }: Props) {
+export default function CalendarGrid({
+  cells,
+  lockedDates,
+  todayDate,
+  selectedDate,
+  onSelect,
+  lockedHint = true,
+  subjectKind = "me",
+}: Props) {
   // 열린 칸 + 안 온 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 아직 안 온 날.
   const slots: { date: string; cell?: GridCell }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
@@ -115,7 +126,7 @@ export default function CalendarGrid({ cells, lockedDates, todayDate, selectedDa
                 const offset = Math.round(
                   (Date.parse(`${c.date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000
                 );
-                trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone } });
+                trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind } });
                 onSelect(c.date);
               }}
               aria-label={`${c.date} ${c.label}${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
