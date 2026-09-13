@@ -87,7 +87,7 @@ export default function PairDayDetailCard({
             <p className="mt-3 text-sm leading-relaxed text-eye-purple">{staticLine}</p>
           ) : null}
           <p className="mt-3 mb-2 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
-            별콩이가 둘 사이 오늘을 풀어주고, 앞으로 30일 흐름까지 펼쳐주면…
+            별콩이가 둘 사이 오늘을 풀어주고, 이번 달 전체 흐름까지 펼쳐주면…
           </p>
           {!trialUsed ? (
             <button
@@ -101,7 +101,7 @@ export default function PairDayDetailCard({
               onClick={onSubscribe}
               className="w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
             >
-              구독하고 우리 오늘 30일 보기
+              구독하고 우리 오늘 이번 달 전체 보기
             </button>
           )}
         </>

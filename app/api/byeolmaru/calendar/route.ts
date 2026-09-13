@@ -1,4 +1,4 @@
-// 별마루 캘린더 — 오늘부터 30일 판정. 룰 100%(LLM 0) → API 원가 0.
+// 별마루 캘린더 — 이번 달(1일~말일) 판정 + 무료선(지나간 날+오늘, self·pair 공통). 룰 100%(LLM 0) → API 원가 0.
 // 서버 권위: 클라가 보낸 사주·날짜는 받지 않는다. 프로필에서 계산한다.
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
@@ -6,7 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju, calcTemporalLuck, calcDailyLuckRange, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildCalendar, weekBuckets, monthRange, splitByFreeLine } from "@/lib/byeolmaru/calendar";
-import { buildPairCalendar, pairBackdrop, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
+import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     // 우리 경로 — ?subject=<profileId> (없거나 "me" 는 아래 self 경로 그대로).
     // 소유 검증은 비구독에게도 한다 — .eq("user_id", userId) 라 내가 등록한 상대만 조회되므로
-    // 완전 블러 없이도 데이터 누출이 없다. 자격은 분량으로 가른다(비구독=오늘 1칸, 구독=30일).
+    // 완전 블러 없이도 데이터 누출이 없다. 자격은 분량으로 가른다(비구독=이번 달 지나간 날+오늘, 구독=이번 달 전체).
     const subject = new URL(req.url).searchParams.get("subject");
     if (subject && subject !== "me") {
       const { data: pRow, error: pErr } = await getServiceSupabase()
@@ -79,17 +79,16 @@ export async function GET(req: NextRequest) {
       }
 
       const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
-      // P5-2 — self 경로가 이제 위에서 temporal.dailyLuck 대신 monthLuck(이번 달)을 쓴다.
-      // pair 경로 자체의 무료선·응답 모양은 Task 5 몫 — 타입을 맞추기 위한 최소 치환만 한다.
       const pairCells = buildPairCalendar(saju, partnerSaju, monthLuck, todayKst);
       const backdrop = pairBackdrop(saju, partnerSaju);
       const todayGanji = temporal.day.stem + temporal.day.branch;
       const ent = await getEntitlement(userId);
 
+      // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 무료 정적 한 줄의 프레이밍에만 쓰이므로
+      // 비자격 분기에서만 읽는다(구독자는 LLM 서술이 pair-narrative 에서 따로 조회한다). 실패해도
+      // 캘린더는 떠야 하니 null 폴백(문구만 영향 — score/tags 판정은 무관).
+      let status: RelationshipStatus | null = null;
       if (!ent.entitled) {
-        // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 정적 한 줄에만 쓰이므로 무료 분기에서만
-        // 읽는다(구독자는 아래에서 staticLine 자체를 안 내려 불필요). 실패해도 캘린더는 떠야 하니
-        // null 폴백(문구만 영향 — score/tags 판정은 무관, grantDueReward 와 같은 best-effort 결).
         const { data: watchRow, error: watchErr } = await getServiceSupabase()
           .from("byeolmaru_watch")
           .select("status")
@@ -99,31 +98,28 @@ export async function GET(req: NextRequest) {
         if (watchErr) {
           await logError(watchErr, ctxFromRequest(req, { route: "/api/byeolmaru/calendar", userId, extra: { stage: "watch_status" } }));
         }
-        const status = (watchRow?.status as RelationshipStatus | null) ?? null;
-
-        // 무료 = 오늘 1칸 룰 판정 + 정적 한 줄(30일·LLM 아님). dailyLuck 이 오늘부터라 [0]이 오늘이지만
-        // isToday 로 안전하게 찾는다(빈 배열이면 위 calc_failed 가드에서 이미 걸러졌다).
-        const todayCell = pairCells.find((c) => c.isToday) ?? pairCells[0];
-        return NextResponse.json({
-          subject,
-          entitled: false,
-          today: todayKst,
-          todayGanji,
-          partnerName: pRow.display_name,
-          cells: [todayCell],
-          backdrop,
-          staticLine: getPairStaticLine(todayCell, status),
-        });
+        status = (watchRow?.status as RelationshipStatus | null) ?? null;
       }
+
+      // P5-2 §8 — 무료선을 나 탭과 **같은 규칙**으로: 지나간 날 + 오늘은 열리고 안 온 날은 날짜만.
+      // buildPairCalendar 는 룰 100% 라 칸이 1 → 13 으로 늘어도 원가는 0이다.
+      const { open, lockedDates } = splitByFreeLine(pairCells, todayKst, ent.entitled);
 
       return NextResponse.json({
         subject,
-        entitled: true,
+        entitled: ent.entitled,
         today: todayKst,
         todayGanji,
+        monthStart,
+        monthEnd,
         partnerName: pRow.display_name,
-        cells: pairCells,
+        cells: open,
+        lockedDates,
         backdrop,
+        // 🔴 staticLine(단일 문장)을 더 이상 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
+        //    한 줄은 **선택한 셀 기준**이어야 한다. getPairStaticLine 은 순수라 클라가 직접 푼다
+        //    (PAIR_TONE_LABEL·DAY_NAME 을 클라가 직접 푸는 것과 같은 패턴 — 와이어에 중복을 안 둔다).
+        status,
       });
     }
 

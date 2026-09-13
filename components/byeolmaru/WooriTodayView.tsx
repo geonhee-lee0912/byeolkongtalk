@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import PairDayDetailCard from "./PairDayDetailCard";
@@ -23,7 +24,15 @@ export default function WooriTodayView() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [subject, setSubject] = useState<string>("me");
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
-  const [pairData, setPairData] = useState<{ cells: PairDayCell[]; backdrop: PairBackdrop; partnerName: string; entitled: boolean; staticLine: string | null } | null>(null);
+  const [pairData, setPairData] = useState<{
+    cells: PairDayCell[];
+    lockedDates: string[];
+    today: string;
+    backdrop: PairBackdrop;
+    partnerName: string;
+    entitled: boolean;
+    status: RelationshipStatus | null;
+  } | null>(null);
   const [pairSelected, setPairSelected] = useState<string | null>(null);
   const [pairLoading, setPairLoading] = useState(false);
   const [pairError, setPairError] = useState(false);
@@ -72,7 +81,15 @@ export default function WooriTodayView() {
         if (cancelled) return;
         if (!res.ok || !j) { setPairError(true); return; }
         if (Array.isArray(j.cells) && j.cells.length > 0) {
-          setPairData({ cells: j.cells, backdrop: j.backdrop, partnerName: j.partnerName, entitled: !!j.entitled, staticLine: j.staticLine ?? null });
+          setPairData({
+            cells: j.cells,
+            lockedDates: Array.isArray(j.lockedDates) ? j.lockedDates : [],
+            today: j.today,
+            backdrop: j.backdrop,
+            partnerName: j.partnerName,
+            entitled: !!j.entitled,
+            status: j.status ?? null,
+          });
           setPairSelected(j.today);
           return;
         }
@@ -120,7 +137,12 @@ export default function WooriTodayView() {
   const pairGridCells: GridCell[] = pairData
     ? pairData.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: [] }))
     : [];
-  const pairCell = pairData ? pairData.cells.find((c) => c.date === pairSelected) ?? pairData.cells[0] : null;
+  // 폴백은 오늘 — cells[0] 은 이번 달 1일이라 첫 진입에서 엉뚱한 날이 열린다.
+  const pairCell = pairData
+    ? pairData.cells.find((c) => c.date === pairSelected) ??
+      pairData.cells.find((c) => c.isToday) ??
+      pairData.cells[pairData.cells.length - 1]
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
@@ -143,17 +165,21 @@ export default function WooriTodayView() {
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
       ) : pairData && pairCell ? (
         <>
-          {pairData.entitled && (
-            <section aria-label="우리 30일 캘린더">
-              <CalendarGrid cells={pairGridCells} selectedDate={pairCell.date} onSelect={setPairSelected} />
-            </section>
-          )}
+          <section aria-label="이번 달 우리 캘린더">
+            <CalendarGrid
+              cells={pairGridCells}
+              lockedDates={pairData.lockedDates}
+              todayDate={pairData.today}
+              selectedDate={pairCell.date}
+              onSelect={setPairSelected}
+            />
+          </section>
           <PairDayDetailCard
             cell={pairCell}
             backdrop={pairData.backdrop}
             partnerName={pairData.partnerName}
             entitled={pairData.entitled}
-            staticLine={pairData.staticLine}
+            staticLine={pairData.entitled ? null : getPairStaticLine(pairCell, pairData.status)}
             narrative={pairNarrative}
             narrativeLoading={pairNarrativeLoading}
             trialUsed={trialUsed}

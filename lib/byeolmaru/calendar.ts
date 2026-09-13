@@ -103,7 +103,7 @@ export function splitByFreeLine<T extends { date: string }>(
   return { open, lockedDates };
 }
 
-// ⚠️ 여기서 "주차"는 오늘부터 7일씩 끊은 롤링 윈도우다 — 화면 그리드(Task 5, 일~토 요일 정렬 +
+// ⚠️ 여기서 "주차"는 이번 달 1일부터 7일씩 끊은 윈도우다 — 화면 그리드(Task 5, 일~토 요일 정렬 +
 // 앞쪽 빈칸)가 그리는 "1주차" 행과 경계가 다르다. 둘을 같은 "주"로 읽지 말 것.
 export interface WeekBucket {
   /** 1부터 */
