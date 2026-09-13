@@ -282,9 +282,11 @@ export default function ByeolmaruHub() {
             loading={false}
             onStartTrial={startTrial}
             onSubscribe={openSubscribe}
-            slot={isPair ? "woori_30d" : "saju_report"}
+            // 🔴 isPair(데이터 도착)가 아니라 viewingPair(의도) 기준이다 — 위 히어로와 같은 이유로,
+            //    전환 중(상대 달력 도착 전) 격자는 이미 "우리"인데 미끼만 "나" 얘기를 하면 어긋난다.
+            slot={viewingPair ? "woori_30d" : "saju_report"}
             baitCtx={
-              isPair
+              viewingPair
                 ? { partnerName: partners.find((p) => p.id === subject)?.name }
                 : { gradeLabel: todayCell.grade.label }
             }
