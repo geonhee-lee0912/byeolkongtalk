@@ -51,7 +51,8 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
           유료라는 사실은 사라지지 않고 작은 '구독' 배지가 명확히 남긴다. */}
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className="font-display text-base text-eye-purple">{copy.title}</span>
-        <span className="rounded-full bg-lilac-soft/70 px-1.5 py-0.5 text-[10px] font-bold text-lilac-deep">구독</span>
+        {/* 배지가 자물쇠를 대신해 "유료"를 고지하므로 대비를 양보하지 않는다(eye-purple 7.01:1). */}
+        <span className="rounded-full bg-lilac-soft/70 px-1.5 py-0.5 text-[10px] font-bold text-eye-purple">구독</span>
       </div>
       {/* 증거 — "길다·정확하다"를 말이 아니라 분량·구성으로 보여준다(2탭 분량 힌트 관행). */}
       <div className="mb-2 flex flex-wrap gap-1">
