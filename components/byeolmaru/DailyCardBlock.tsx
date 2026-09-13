@@ -220,7 +220,9 @@ export default function DailyCardBlock({
               title: `오늘의 카드 · ${cardNameKr}`,
               description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
               imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
-              link: `${window.location.origin}/byeolmaru`,
+              // 이 블록이 허브에서 전용 라우트(/byeolmaru/tarot)로 이전됨 — 허브에는 카드 섹션이 없어
+              // 예전처럼 /byeolmaru 로 보내면 수신자가 카드를 못 본다.
+              link: `${window.location.origin}/byeolmaru/tarot`,
               buttonTitle: "나도 뽑아보기",
             });
             // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.

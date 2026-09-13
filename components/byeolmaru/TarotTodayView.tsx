@@ -23,9 +23,14 @@ export default function TarotTodayView() {
     try {
       const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
       if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
-      // 🔴 404(생일 미입력)도 ready 로 넘긴다 — 오늘 타로는 사주와 달리 **생일이 필요 없다**.
-      //    프로필이 없으면 자격만 없는 것으로 보고(무료 뽑기는 열린다) 화면을 띄운다.
-      if (res.status === 404) { setState({ kind: "ready", entitled: false, trialUsed: false }); return; }
+      // 404(생일 미입력)여도 화면은 뜬다 — 오늘 타로는 생일이 필요 없다(daily-card 라우트는
+      // 세션만 확인한다). 🔴 다만 자격은 **바디에서 읽는다**. 라우트가 404 에도 entitled/
+      // trialUsed 를 실어 보내므로, 프로필 없는 구독자에게 체험 CTA 를 보여주는 일이 없다.
+      if (res.status === 404) {
+        const j = await res.json().catch(() => null);
+        setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed });
+        return;
+      }
       if (!res.ok) { setState({ kind: "ready", entitled: false, trialUsed: false }); return; }
       const j = await res.json();
       setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed });
@@ -42,6 +47,8 @@ export default function TarotTodayView() {
     <main className="mx-auto w-full max-w-md p-6 text-center">
       <p className="mb-4 text-eye-purple">로그인하면 오늘 카드를 뽑을 수 있어.</p>
       <Link href="/login?next=/byeolmaru/tarot" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
+      {/* 공유 링크 수신자는 대부분 비로그인 — 주 CTA(로그인)와 동급이 아니게 보조 링크로만 */}
+      <Link href="/byeolmaru" className="mt-3 block text-xs text-text-light underline">별마루 먼저 둘러보기</Link>
     </main>
   );
 

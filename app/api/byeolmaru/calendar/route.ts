@@ -41,7 +41,15 @@ export async function GET(req: NextRequest) {
 
     // birth_date 는 P2 부터 nullable(생일 없는 프로필 가능) — 사주 판정은 생일이 필수.
     if (!row || !row.birth_date) {
-      return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+      // 🔴 404 에도 자격을 싣는다 — getEntitlement 는 프로필을 안 보므로 여기서도 계산이 된다.
+      //    오늘 타로(/byeolmaru/tarot)는 생일이 필요 없어 프로필 없이도 화면이 떠야 하는데,
+      //    자격이 없으면 이미 구독/체험 중인 사람에게 "3일 무료 체험 시작"을 계속 보여주게 된다
+      //    (실제로 재현됨). 상태 코드는 404 그대로라 기존 소비처(no_profile 분기)는 무회귀다.
+      const ent = await getEntitlement(userId);
+      return NextResponse.json(
+        { error: "profile_not_found", entitled: ent.entitled, trialUsed: ent.trialUsed },
+        { status: 404 }
+      );
     }
 
     const input = profileRowToSajuInput(row);
