@@ -1,23 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
-import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { PairDayCell } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL } from "@/lib/byeolmaru/pair-day";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
 import PartnerChips, { type PartnerChip } from "./PartnerChips";
 import WatchAddModal from "./WatchAddModal";
+import TodayHeroTile from "./TodayHeroTile";
+import FreeList, { buildFreeItems } from "./FreeList";
+import CalendarGrid, { type GridCell } from "./CalendarGrid";
+import PremiumBlock from "./PremiumBlock";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
   today: string;
   todayGanji: string;
   cells: DayCell[];
+  lockedDates: string[];
   weeks: WeekBucket[];
   entitled: boolean;
   trialUsed: boolean;
@@ -31,8 +37,6 @@ type State =
   | { kind: "no_profile" }
   | { kind: "error" }
   | { kind: "ready"; data: CalendarResponse };
-
-const DOT: Record<string, string> = { good: "bg-gold", normal: "bg-lilac", caution: "bg-lilac-mid" };
 
 // 비로그인 구경 모드 — 카드 그리드(뭐가 있는지 + 한 줄)만 보이고, 개인화 카드는 탭하면 로그인 게이트.
 // 개인화 0(스펙 §7 Loop 1). 무료 툴(MBTI·별자리)은 로그인 없이 바로 진입.
@@ -137,6 +141,21 @@ export default function ByeolmaruHub() {
     return () => { cancelled = true; };
   }, [subject]);
 
+  const router = useRouter();
+
+  // 오늘 뽑은 카드 — 목록 행 타일에만 쓴다(뽑기 자체는 /byeolmaru/tarot 가 한다).
+  const [dailyCard, setDailyCard] = useState<{ cardId: number } | null>(null);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/byeolmaru/daily-card", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (j?.card?.cardId != null) setDailyCard({ cardId: j.card.cardId });
+      } catch { /* 목록 타일이 뒷면으로 남을 뿐이라 조용히 넘긴다 */ }
+    })();
+  }, []);
+
   if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
   if (state.kind === "need_login") return <GuestPeek />;
   if (state.kind === "no_profile") return (
@@ -151,69 +170,78 @@ export default function ByeolmaruHub() {
   // 폴백은 cells[0](이번 달 1일)이 아니라 마지막 칸이다 — 무료(비자격)는 오늘이 항상 마지막 칸이므로
   // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
-  // 🔴 P5-2 로 cells 가 "이번 달 1일~"이 되면서 slice(0,7) 은 "1일부터 7일"을 뜻하게 됐다.
-  //    자격자는 오늘부터 앞으로 7일(구독이 파는 게 '앞당겨 보기'라 앞을 보여준다),
-  //    비자격자는 오늘이 마지막 칸이라 앞이 없으므로 **오늘로 끝나는 최근 7일**을 보여준다.
-  const strip7 = data.entitled
-    ? data.cells.filter((c) => c.date >= data.today).slice(0, 7)
-    : data.cells.slice(-7);
   const crossSell = pickCrossSell(todayCell);
+  const isPair = subject !== "me" && pairCells !== null;
+
+  // 격자에 넘길 정규화 셀. 나·우리 두 판정 엔진이 같은 GridCell 계약으로 수렴한다.
+  // 🔴 우리 셀엔 마크가 없다(우리 판정은 ✨끌림·🔗결속 태그를 쓴다) — 빈 배열을 **명시**한다.
+  //    GridCell.marks 가 필수인 이유가 그것이다(옵셔널이면 조용히 사라진다).
+  const gridCells: GridCell[] = isPair
+    ? pairCells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: [] }))
+    : data.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks }));
+  const gridLocked = isPair ? pairLocked : data.lockedDates;
+  const filled = isPair ? pairCells.length : data.cells.length;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <header>
         <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
-        <p className="text-sm text-text-light">오늘 들어온 두 글자 · {data.todayGanji}</p>
+        <p className="text-sm text-text-light">무료로 다 보는 곳 · 오늘 {data.todayGanji}</p>
       </header>
 
-      <AttendanceStrip attendance={attendance} filledDays={data.cells.length} entitled={data.entitled} />
+      {/* ── 달력 판: 이 화면의 단 하나의 강조점(스펙 §3) ── */}
+      <section className="space-y-3">
+        <AttendanceStrip attendance={attendance} filledDays={filled} entitled={data.entitled} />
 
-      <Link href="/byeolmaru/saju" className="block rounded-2xl bg-cream-warm p-4">
-        <div className="mb-2">
-          <span className="font-display text-base text-eye-purple">🗓 오늘 사주</span>
-          {/* P5-1 — 이름(십신)이 제목이고 등급은 DayDetailCard 와 같은 구조로 형제 span 에 작게 둔다.
-              🔴 등급을 이름 span 안에 중첩하면 font-display 가 상속돼 본문 폰트가 아니라 타이틀
-                 폰트로 렌더된다(text-xs 는 크기만 덮고 font-family 는 못 덮는다).
-              🔴 좌우 배치(justify-between)도 쓰지 않는다 — 375px 에서 이름×등급 조합 30개 중
-                 12개가 줄바꿈되고, items-baseline 탓에 둘째 줄이 마주보는 것 없이 뜬다. */}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="font-display text-lg text-eye-purple">{DAY_NAME[todayCell.tenGod]}</span>
-            <span className="text-xs text-text-light">· {todayCell.grade.label}</span>
-          </div>
-        </div>
-        <div className="mb-2 flex gap-1.5">
-          {strip7.map((c) => (
-            <div key={c.date} className={`h-2.5 flex-1 rounded-full ${DOT[c.grade.tone] ?? "bg-lilac-soft"} ${c.isToday ? "ring-2 ring-lilac-deep" : ""}`} />
-          ))}
-        </div>
-        {/* P5-1 — DAY_LINE 의 유일한 노출 지점. 상세 카드에선 getSajuTaste 의 overall 문장과
-            결·문형이 겹쳐서 뺐다(뱅크마다 집은 하나씩). 여긴 taste 블록이 없어 겹치지 않는다. */}
-        <p className="mb-1 text-xs leading-relaxed text-text-light">{DAY_LINE[todayCell.tenGod]}</p>
-        {/* 🔴 I-1 정정 — 달이 이번 달로 잘리면서 strip7 은 월 경계(자격자는 말일 근처, 비자격자는
-            1일 근처)에서 매달 약 6일(20%)은 7개가 안 된다. 점 개수와 라벨 숫자가 어긋나면 거짓말이
-            되므로 고정 "7일" 대신 실제 strip7.length 를 쓴다. */}
-        <p className="text-xs text-lilac-deep">
-          {data.entitled ? `앞으로 ${strip7.length}일 흐름` : `지난 ${strip7.length}일 흐름`} · 이번 달 전체 보기 →
-        </p>
-      </Link>
+        {/* 오늘 히어로는 **나 탭에서만**. 우리 탭의 오늘은 톤·태그 성격이 달라 같은 타일에 안 들어간다
+            — 우리 쪽 상세는 /byeolmaru/woori 가 받는다(스펙 §8). */}
+        {!isPair && <TodayHeroTile cell={todayCell} href="/byeolmaru/saju" />}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/byeolmaru/woori" className="rounded-2xl bg-cream-warm p-4 text-center">
-          <div className="font-display text-base text-eye-purple">💞 우리 오늘</div>
-          <div className="mt-1 text-xs text-text-light">그 사람과 나</div>
-        </Link>
-        <Link href="/fortune/saju-mbti" className="rounded-2xl bg-cream-warm p-4 text-center">
-          <div className="font-display text-base text-eye-purple">🧭 사주 MBTI</div>
-          <div className="mt-1 text-xs text-text-light">내 유형</div>
-        </Link>
-        <Link href="/fortune/byeoljari" className="rounded-2xl bg-cream-warm p-4 text-center">
-          <div className="font-display text-base text-eye-purple">✨ 별 인연 지도</div>
-          <div className="mt-1 text-xs text-text-light">인연 별자리</div>
-        </Link>
-      </div>
+        <PartnerChips
+          partners={partners}
+          selected={subject}
+          onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
+          onAdd={() => setAddOpen(true)}
+        />
+
+        <CalendarGrid
+          cells={gridCells}
+          lockedDates={gridLocked}
+          todayDate={data.today}
+          selectedDate={data.today}
+          onSelect={(date) => {
+            // 🔴 허브 격자는 "고르는" 곳이 아니라 "여는" 곳이다(스펙 §7 요약은 안, 전문은 밖).
+            //    나 탭은 그 날의 상세로, 우리 탭은 우리 상세로 보낸다.
+            if (isPair) { router.push("/byeolmaru/woori"); return; }
+            router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
+          }}
+        />
+
+        {/* 🔴 미끼 자리 — 내용·톤·CTA·계측은 P5-4 몫이다(스펙 §9). 지금은 자리만 잡는다.
+            비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
+        {!data.entitled && (
+          <PremiumBlock
+            entitled={false}
+            trialUsed={data.trialUsed}
+            narrative={null}
+            teaser={null}
+            loading={false}
+            onStartTrial={startTrial}
+            onSubscribe={openSubscribe}
+          />
+        )}
+      </section>
+
+      <FreeList items={buildFreeItems(dailyCard)} />
 
       <CrossSellCard item={crossSell} />
       {subscribeModal}
+      {addOpen && (
+        <WatchAddModal
+          onClose={() => setAddOpen(false)}
+          onAdded={(id) => { setAddOpen(false); void loadPartners(); setSubject(id); }}
+        />
+      )}
     </main>
   );
 }
