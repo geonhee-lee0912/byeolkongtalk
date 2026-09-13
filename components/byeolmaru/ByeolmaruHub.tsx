@@ -21,6 +21,7 @@ interface CalendarResponse {
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
   attendance: AttendanceState;
+  lockedDates: string[];
 }
 
 type State =
@@ -115,7 +116,12 @@ export default function ByeolmaruHub() {
 
   const { data } = state;
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[0];
-  const next7 = data.cells.slice(0, 7); // 오늘부터 롤링 7일(캘린더 '주' 아님 — calendar.ts:62 경고)
+  // 🔴 P5-2 로 cells 가 "이번 달 1일~"이 되면서 slice(0,7) 은 "1일부터 7일"을 뜻하게 됐다.
+  //    자격자는 오늘부터 앞으로 7일(구독이 파는 게 '앞당겨 보기'라 앞을 보여준다),
+  //    비자격자는 오늘이 마지막 칸이라 앞이 없으므로 **오늘로 끝나는 최근 7일**을 보여준다.
+  const strip7 = data.entitled
+    ? data.cells.filter((c) => c.date >= data.today).slice(0, 7)
+    : data.cells.slice(-7);
   const crossSell = pickCrossSell(todayCell);
 
   return (
@@ -141,14 +147,14 @@ export default function ByeolmaruHub() {
           </div>
         </div>
         <div className="mb-2 flex gap-1.5">
-          {next7.map((c) => (
+          {strip7.map((c) => (
             <div key={c.date} className={`h-2.5 flex-1 rounded-full ${DOT[c.grade.tone] ?? "bg-lilac-soft"} ${c.isToday ? "ring-2 ring-lilac-deep" : ""}`} />
           ))}
         </div>
         {/* P5-1 — DAY_LINE 의 유일한 노출 지점. 상세 카드에선 getSajuTaste 의 overall 문장과
             결·문형이 겹쳐서 뺐다(뱅크마다 집은 하나씩). 여긴 taste 블록이 없어 겹치지 않는다. */}
         <p className="mb-1 text-xs leading-relaxed text-text-light">{DAY_LINE[todayCell.tenGod]}</p>
-        <p className="text-xs text-lilac-deep">앞으로 7일 흐름 · 30일 전체 보기 →</p>
+        <p className="text-xs text-lilac-deep">{data.entitled ? "앞으로 7일 흐름" : "지난 7일 흐름"} · 이번 달 전체 보기 →</p>
       </Link>
 
       <DailyCardBlock entitled={data.entitled} trialUsed={data.trialUsed} onStartTrial={startTrial} onSubscribe={openSubscribe} />

@@ -21,6 +21,9 @@ interface CalendarResponse {
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
+  monthStart: string;
+  monthEnd: string;
+  lockedDates: string[];
 }
 
 type State =
@@ -90,7 +93,10 @@ export default function SajuTodayView() {
   if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
   const { data } = state;
-  const cell = data.cells.find((c) => c.date === selected) ?? data.cells[0];
+  // 폴백은 cells[0](= 이번 달 1일)이 아니라 **오늘**이다 — 달력이 이번 달로 바뀌며 1일이 되면
+  // 첫 진입에서 엉뚱한 날짜의 상세가 열린다.
+  const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
+  const cell = data.cells.find((c) => c.date === selected) ?? todayCell;
   const selfGridCells: GridCell[] = data.cells.map((c) => ({
     date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday,
     marks: c.marks,
@@ -100,11 +106,21 @@ export default function SajuTodayView() {
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <BackHeader title="오늘 사주" />
-      <section aria-label="30일 캘린더">
-        <CalendarGrid cells={selfGridCells} selectedDate={cell.date} onSelect={setSelected} />
+      <section aria-label="이번 달 캘린더">
+        <CalendarGrid
+          cells={selfGridCells}
+          lockedDates={data.lockedDates}
+          todayDate={data.today}
+          selectedDate={cell.date}
+          onSelect={setSelected}
+        />
       </section>
+      {/* 무료는 오늘까지만 집계돼 있으므로 "이번 달"이라고 하면 틀린 말이 된다 — 범위를 밝힌다.
+          🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
       {good > 0 ? (
-        <p className="text-center text-[13px] text-text-light">앞으로 30일, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨</p>
+        <p className="text-center text-[13px] text-text-light">
+          {data.entitled ? "이번 달" : "오늘까지"}, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
+        </p>
       ) : null}
       <DayDetailCard cell={cell} />
       {/* 오늘 공유 — 선택 셀이 오늘일 때만(미래 날 보다 공유하면 "오늘 사주" 라벨로 다른 날이 나가는 오노출 방지). */}
@@ -144,7 +160,7 @@ export default function SajuTodayView() {
         />
       )}
       <section className="rounded-2xl bg-cream-warm p-4">
-        <h2 className="mb-2 font-display text-base text-eye-purple">앞으로 30일 흐름</h2>
+        <h2 className="mb-2 font-display text-base text-eye-purple">{data.entitled ? "이번 달 흐름" : "오늘까지의 흐름"}</h2>
         <ul className="space-y-1 text-sm text-text-light">
           {data.weeks.map((w) => (
             <li key={w.index}>{fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
