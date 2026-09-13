@@ -7,8 +7,11 @@ import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
 import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import type { PairDayCell } from "@/lib/byeolmaru/pair-day";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
+import PartnerChips, { type PartnerChip } from "./PartnerChips";
+import WatchAddModal from "./WatchAddModal";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -90,6 +93,49 @@ export default function ByeolmaruHub() {
   useEffect(() => { void refresh(); }, []);
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+
+  // T6 — 달력 판 상단 인연 칩(스펙 §8). partners/subject 는 렌더는 T7 몫이지만 훅 규칙상
+  // 조건부 early-return(아래 state.kind 분기) 이전에 선언해야 한다.
+  const [partners, setPartners] = useState<PartnerChip[]>([]);
+  const [subject, setSubject] = useState<string>("me");
+  const [pairCells, setPairCells] = useState<PairDayCell[] | null>(null);
+  const [pairLocked, setPairLocked] = useState<string[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+
+  async function loadPartners() {
+    try {
+      const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
+      if (!res.ok) { setPartners([]); return; }
+      const j = await res.json();
+      setPartners(Array.isArray(j?.watched) ? j.watched : []);
+    } catch { setPartners([]); }
+  }
+  useEffect(() => { void loadPartners(); }, []);
+
+  // 상대 칩을 고르면 달력이 통째로 우리 버전이 된다(스펙 §8). 룰 100% 라 원가 0.
+  // 🔴 cancelled 가드 — 칩을 빠르게 번갈아 누르면 낡은 응답이 최신 상태를 덮어쓴다
+  //    (WooriTodayView 가 같은 이유로 같은 가드를 쓴다).
+  // 🔴 !res.ok(예: 소유권 실패·서버 오류)일 때 아무 것도 안 하고 끝나면 칩은 파트너를 가리키는데
+  //    달력 상태(pairCells)는 이전 그대로 남아 "칩≠데이터" 불일치가 생긴다(이전 상대 데이터가
+  //    있었다면 그게 그대로 남아 새 칩 밑에 잘못 붙어 보인다). catch 블록과 동일하게 "나"로
+  //    되돌리고 pairCells/pairLocked 도 함께 비워, 최소한 불일치 상태를 만들지 않는다.
+  useEffect(() => {
+    if (subject === "me") { setPairCells(null); setPairLocked([]); return; }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
+        const j = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (!res.ok || !j) { setPairCells(null); setPairLocked([]); setSubject("me"); return; }
+        setPairCells(Array.isArray(j.cells) ? j.cells : null);
+        setPairLocked(Array.isArray(j.lockedDates) ? j.lockedDates : []);
+      } catch {
+        if (!cancelled) { setPairCells(null); setPairLocked([]); setSubject("me"); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [subject]);
 
   if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
   if (state.kind === "need_login") return <GuestPeek />;
