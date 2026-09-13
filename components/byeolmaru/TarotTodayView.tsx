@@ -14,6 +14,7 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 type State =
   | { kind: "loading" }
   | { kind: "need_login" }
+  | { kind: "error" }
   | { kind: "ready"; entitled: boolean; trialUsed: boolean };
 
 export default function TarotTodayView() {
@@ -31,11 +32,14 @@ export default function TarotTodayView() {
         setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed });
         return;
       }
-      if (!res.ok) { setState({ kind: "ready", entitled: false, trialUsed: false }); return; }
+      // 🔴 404 외 오류(500·네트워크 등)는 "모르는 상태"다 — entitled:false 로 접으면 이미
+      //    체험을 쓴 구독자에게 "3일 무료 체험 시작"이 다시 뜬다(위 404 분기와 같은 버그가
+      //    트리거만 바뀐 것). error 로 보내 별도 화면을 띄운다.
+      if (!res.ok) { setState({ kind: "error" }); return; }
       const j = await res.json();
       setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed });
     } catch {
-      setState({ kind: "ready", entitled: false, trialUsed: false });
+      setState({ kind: "error" });
     }
   }
   useEffect(() => { void refresh(); }, []);
@@ -51,6 +55,9 @@ export default function TarotTodayView() {
       <Link href="/byeolmaru" className="mt-3 block text-xs text-text-light underline">별마루 먼저 둘러보기</Link>
     </main>
   );
+  // 🔴 오류(500·네트워크 실패)를 "자격 없음"으로 접지 않는다 — 접으면 이미 체험을 쓴 구독자에게
+  //    무료 체험 CTA(DailyCardBlock)가 다시 뜬다. 모르는 상태는 모르는 화면으로 보여준다.
+  if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 오늘 타로를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
