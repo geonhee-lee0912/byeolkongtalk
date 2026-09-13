@@ -1,5 +1,7 @@
-// 별마루 30일 캘린더 조립 — 순수. dailyLuck(tyme4ts 결정론) × 내 사주 → 날짜별 셀 + 주차 버킷.
+// 별마루 이번 달(1일~말일) 캘린더 조립 — 순수. dailyLuck(tyme4ts 결정론) × 내 사주 → 날짜별 셀 + 주차 버킷.
 // 오늘 판정은 인자로 받은 KST 날짜로만 한다(서버 TZ 에 좌우되지 않게 — 라우트가 계산해 넘긴다).
+// P5-2 무료선(지나간 날+오늘 = 무료 · 앞당겨 보기 = 구독)의 단일 원천이 이 파일이다 —
+// monthRange·splitByFreeLine·buildCalendarPayload 가 그 경계를 소유한다.
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import type { ElementRelation } from "@/lib/saju/pairing";
@@ -130,4 +132,26 @@ export function weekBuckets(cells: DayCell[]): WeekBucket[] {
     });
   }
   return out;
+}
+
+/**
+ * 나(self) 캘린더 라우트가 응답에 그대로 실어 보내는 조각 — build → 무료선 적용 → 주차 집계를
+ * 하나로 묶는다. 🔴 라우트가 이 함수 없이 `buildCalendar` 결과(안 온 날 포함)를 따로 들고 있지
+ * 않게 하는 게 핵심이다 — 무료선 우회(비자격자에게 미래 셀을 그대로 응답)를 함수 경계로 막고,
+ * free-line.test.ts 가 라우트와 동일한 이 함수를 직접 호출해 계약을 고정한다.
+ *
+ * pair(우리) 경로는 셀 타입이 다르고(`PairDayCell`) weeks 도 안 쓴다 — `splitByFreeLine` 은
+ * 이미 date 만 요구하는 제네릭이라 self·pair 가 같은 무료선 규칙을 공유한다는 사실은 그 함수
+ * 하나로 드러난다. pair 쪽은 라우트에서 `buildPairCalendar` 직후 `splitByFreeLine` 을 바로
+ * 호출하는 단일 호출부라, 이 함수처럼 따로 묶으면 단일 사용처 추상화가 된다 — 만들지 않는다.
+ */
+export function buildCalendarPayload(
+  saju: SajuResult,
+  dailyLuck: DailyLuck[],
+  todayKst: string,
+  entitled: boolean
+): { cells: DayCell[]; lockedDates: string[]; weeks: WeekBucket[] } {
+  const all = buildCalendar(saju, dailyLuck, todayKst);
+  const { open, lockedDates } = splitByFreeLine(all, todayKst, entitled);
+  return { cells: open, lockedDates, weeks: weekBuckets(open) };
 }

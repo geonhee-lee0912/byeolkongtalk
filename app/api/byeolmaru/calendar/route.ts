@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju, calcTemporalLuck, calcDailyLuckRange, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { buildCalendar, weekBuckets, monthRange, splitByFreeLine } from "@/lib/byeolmaru/calendar";
+import { buildCalendarPayload, monthRange, splitByFreeLine } from "@/lib/byeolmaru/calendar";
 import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -126,8 +126,9 @@ export async function GET(req: NextRequest) {
     const ent = await getEntitlement(userId);
 
     // P5-2 무료선 — 비자격자에겐 안 온 날의 판정을 **직렬화하지 않는다**(날짜만 lockedDates 로).
-    const allCells = buildCalendar(saju, monthLuck, todayKst);
-    const { open: cells, lockedDates } = splitByFreeLine(allCells, todayKst, ent.entitled);
+    // buildCalendarPayload 가 build+무료선+주차집계를 묶어, 여기엔 필터를 우회할 원시 셀이
+    // 남지 않는다(회귀 시 free-line.test.ts 가 이 함수를 직접 호출해 잡는다).
+    const { cells, lockedDates, weeks } = buildCalendarPayload(saju, monthLuck, todayKst, ent.entitled);
 
     // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
     // 최신 상태를 그대로 돌려준다. DB 에러(개별 행 { error })는 recordCheckin/getAttendanceState
@@ -149,7 +150,7 @@ export async function GET(req: NextRequest) {
       monthEnd,
       cells,
       lockedDates,
-      weeks: weekBuckets(cells),
+      weeks,
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
       subscriptionExpiresAt: ent.subscriptionExpiresAt,
