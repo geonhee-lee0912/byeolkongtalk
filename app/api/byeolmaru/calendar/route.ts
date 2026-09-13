@@ -130,8 +130,10 @@ export async function GET(req: NextRequest) {
     const { open: cells, lockedDates } = splitByFreeLine(allCells, todayKst, ent.entitled);
 
     // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
-    // 최신 상태를 그대로 돌려준다. 쓰기 실패는 best-effort — 캘린더는 떠야 하므로 상태 조회로
-    // 폴백한다(스트릭 반영만 늦을 뿐 화면은 정상).
+    // 최신 상태를 그대로 돌려준다. DB 에러(개별 행 { error })는 recordCheckin/getAttendanceState
+    // 내부에서 자체적으로 logError 로 남기고 폴백값으로 삼킨다(supabase-js 는 DB 에러를 throw 하지
+    // 않아 여기 catch 로는 안 걸린다) — 이 try/catch 는 getServiceSupabase 초기화 실패 등 그 바깥의
+    // 실제 throw 에 대한 방어망이다. 어느 경로든 캘린더는 뜬다(스트릭 반영만 늦을 뿐).
     let attendance;
     try {
       attendance = await recordCheckin(userId, todayKst);

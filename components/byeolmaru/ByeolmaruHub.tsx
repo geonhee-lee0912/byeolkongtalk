@@ -122,7 +122,7 @@ export default function ByeolmaruHub() {
         <p className="text-sm text-text-light">오늘 들어온 두 글자 · {data.todayGanji}</p>
       </header>
 
-      <AttendanceStrip attendance={attendance} filledDays={data.cells.length} />
+      <AttendanceStrip attendance={attendance} filledDays={data.cells.length} entitled={data.entitled} />
 
       <Link href="/byeolmaru/saju" className="block rounded-2xl bg-cream-warm p-4">
         <div className="mb-2">
