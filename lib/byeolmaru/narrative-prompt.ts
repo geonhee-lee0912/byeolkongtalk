@@ -13,7 +13,7 @@ import { DAY_NAME } from "./day-label.ts";
 // 정적 티저(시안 C 첫 줄) — 등급 tone 별. ⑥에서 개인화-forward 훅으로 리파인.
 // 🔴 골격 문장(DayDetailCard, tone×relation)과 같은 화면에 인접하므로 "하루 읽기"를 복제하지
 //    않는다. 티저는 그 위에서 "네 사주까지 겹치면 더 또렷해진다"고 개인화로 앞당기는 훅.
-//    (PremiumBlock 이 이 줄 다음에 "이어서 별콩이가 네 월·시 기둥까지…" 블러를 잇는다.)
+//    (PremiumBlock 이 이 줄 다음에 자리(slot)별 미끼 — BAIT[slot] 의 제목·칩·꼬리 — 를 붙인다.)
 const TEASER_BY_TONE: Record<string, string> = {
   good: "오늘 이 순한 흐름, 네 사주에 겹쳐 보면 어디에 힘을 실으면 좋을지가 달라져.",
   normal: "무난한 오늘도 네 사주로 들여다보면 힘 실을 자리가 따로 보여.",

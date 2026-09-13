@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BAIT, BAIT_SLOTS, baitLead } from "./bait.ts";
+import { DAILY_SECTIONS } from "@/lib/fortune/daily-report";
 
 test("BAIT — 자리 3종이 전부 있고 필드가 채워져 있다", () => {
   assert.equal(BAIT_SLOTS.length, 3);
@@ -53,4 +54,14 @@ test("baitLead — woori_30d 는 상대 이름을 쓰되 없으면 대명사로 
   const noName = baitLead("woori_30d", {});
   assert.ok(!noName.includes("undefined") && noName.length > 0);
   assert.ok(noName.includes("둘이"), `대명사 폴백이 아니다: ${noName}`);
+});
+
+test("BAIT — saju_report 구성 칩이 실제 리포트 섹션과 어긋나지 않는다", () => {
+  // 칩은 손으로 쓴 축약형이라 파생이 안 된다 → 섹션이 바뀌면 페이월이 조용히 거짓말을 한다.
+  // 개수와 "각 토큰이 해당 섹션 제목의 머리글자인가"를 계약으로 박는다.
+  const tokens = BAIT.saju_report.chips[1].split(" · ");
+  assert.equal(tokens.length, DAILY_SECTIONS.length, "섹션 수와 칩 토큰 수가 다르다");
+  tokens.forEach((t, i) => {
+    assert.ok(DAILY_SECTIONS[i].title.startsWith(t), `${i}번째 토큰 '${t}' 가 섹션 '${DAILY_SECTIONS[i].title}' 와 안 맞는다`);
+  });
 });
