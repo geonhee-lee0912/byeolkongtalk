@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
+import type { PairTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 
 export default function PairDayDetailCard({
@@ -10,31 +11,26 @@ export default function PairDayDetailCard({
   backdrop,
   partnerName,
   entitled,
-  staticLine,
+  taste,
   narrative,
   narrativeLoading,
-  trialUsed,
-  onStartTrial,
-  onSubscribe,
 }: {
   cell: PairDayCell;
   backdrop: PairBackdrop;
   partnerName: string;
   entitled?: boolean;
-  staticLine?: string | null;
+  /** 비자격자용 무료 taste(~350자, 룰 100%). 자격자는 null — 아래 narrative 가 그 자리를 받는다. */
+  taste?: PairTaste | null;
   narrative?: string | null;
   narrativeLoading?: boolean;
-  trialUsed?: boolean;
-  onStartTrial?: () => void;
-  onSubscribe?: () => void;
 }) {
   const md = `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`;
-  const tags: string[] = [];
-  if (cell.tags.spark) tags.push("끌림↑");
-  if (cell.tags.bond) tags.push("결속");
-  if (cell.tags.friction) tags.push("삐걱 주의");
-  if (cell.tags.lead === "me") tags.push("네가 리드");
-  else if (cell.tags.lead === "partner") tags.push(`${partnerName}가 리드`);
+  // 칩은 셀 마크와 같은 어휘·같은 글리프를 쓴다(P5-5) — 달력에서 본 ✧ 가 여기서 "끌림"으로 풀린다.
+  const marks = pairMarks(cell.tags);
+  // 리드는 마크가 아니라 별도 칩(두 사람 점수 비교라 "그날의 원인"이 아니다).
+  // 🔴 `${partnerName}가` 는 받침 있는 이름에서 틀린다("지민가") — 무조사 표기로 고정한다
+  //    (narrative-prompt.ts 의 formatPairGoodDay 와 같은 표기).
+  const leadChip = cell.tags.lead === "me" ? "네가 리드" : cell.tags.lead === "partner" ? `${partnerName} 리드` : null;
 
   return (
     // DayDetailCard 와 동일하게 aria-live — 그리드에서 다른 날짜/상대를 고르면 이 카드만
@@ -50,7 +46,8 @@ export default function PairDayDetailCard({
         })()}
         <div className="flex flex-1 items-baseline justify-between">
           <h2 className="font-display text-lg text-eye-purple">
-            {partnerName}와 나 · {cell.isToday ? "오늘" : md}
+            {/* 🔴 `{partnerName}와 나` 는 받침에서 틀린다("지민와") — 어순을 뒤집어 조사를 '나'에 붙인다. */}
+            나와 {partnerName} · {cell.isToday ? "오늘" : md}
           </h2>
           <span className="text-sm text-text-light">{cell.ganji}</span>
         </div>
@@ -58,13 +55,16 @@ export default function PairDayDetailCard({
 
       <p className="mb-3 font-display text-2xl text-eye-purple">{PAIR_TONE_LABEL[cell.tone]}</p>
 
-      {tags.length > 0 && (
+      {(marks.length > 0 || leadChip) && (
         <ul className="mb-4 flex flex-wrap gap-2">
-          {tags.map((t) => (
-            <li key={t} className="rounded-full border border-lilac-mid px-3 py-1 text-xs text-eye-purple">
-              {t}
+          {marks.map((m) => (
+            <li key={m.glyph} className="rounded-full border border-lilac-mid px-3 py-1 text-xs text-eye-purple">
+              <span aria-hidden>{m.glyph}</span> {m.label}
             </li>
           ))}
+          {leadChip && (
+            <li className="rounded-full border border-lilac-mid px-3 py-1 text-xs text-eye-purple">{leadChip}</li>
+          )}
         </ul>
       )}
 
@@ -82,40 +82,23 @@ export default function PairDayDetailCard({
       </div>
 
       {entitled === false ? (
-        <>
-          {staticLine ? (
-            <p className="mt-3 text-sm leading-relaxed text-eye-purple">{staticLine}</p>
-          ) : null}
-          <p className="mt-3 mb-2 text-sm leading-relaxed text-eye-purple [mask-image:linear-gradient(#000,transparent)] opacity-60">
-            별콩이가 둘 사이 오늘을 풀어주고, 이번 달 전체 흐름까지 펼쳐주면…
-          </p>
-          {!trialUsed ? (
-            <button
-              onClick={onStartTrial}
-              className="w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
-            >
-              3일 무료 체험 시작
-            </button>
-          ) : (
-            <button
-              onClick={onSubscribe}
-              className="w-full rounded-xl bg-gold py-2.5 text-sm font-medium text-eye-purple"
-            >
-              구독하고 우리 오늘 이번 달 전체 보기
-            </button>
-          )}
-        </>
+        // 무료 ~350자(스펙 §8) — 나 탭 DayDetailCard 의 taste 블록과 같은 골격이라 두 탭이 같은
+        // 리듬으로 읽힌다. CTA·미끼는 이 카드 밖 PremiumBlock(slot="woori_30d")이 받는다.
+        taste ? (
+          <div className="mt-3 space-y-2 text-sm leading-relaxed text-eye-purple">
+            <p>{taste.signal}</p>
+            <p>{taste.relation}</p>
+            <p>{taste.lead}</p>
+            <p className="text-text-light">{taste.advice}</p>
+          </div>
+        ) : null
       ) : narrativeLoading ? (
         <p className="mt-3 text-sm text-text-light">별콩이가 둘 사이 오늘을 읽고 있어…</p>
       ) : narrative ? (
         <div className="mt-3 space-y-2">
-          {/* I-3 정정 — pair-narrative 라우트는 date 파라미터가 없어 이 서술은 항상 '오늘' 기준으로만
-              생성된다(구조 자체를 날짜별로 나누는 건 P5-3 몫). 선택 셀이 오늘이면 위 태그·톤과 같은
-              날이라 표시가 중복이지만, 다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는
-              걸 조용히 밝혀야 한다. */}
-          {!cell.isToday && (
-            <p className="text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
-          )}
+          {/* pair-narrative 라우트는 date 파라미터가 없어 이 서술은 항상 '오늘' 기준이다 — 다른 날을
+              보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 조용히 밝힌다. */}
+          {!cell.isToday && <p className="text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>}
           <p className="whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</p>
         </div>
       ) : null}

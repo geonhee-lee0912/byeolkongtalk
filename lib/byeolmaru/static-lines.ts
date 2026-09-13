@@ -4,8 +4,11 @@ import cardLines from "@/data/byeolmaru/card-lines.json";
 import cardTaste from "@/data/byeolmaru/card-taste.json";
 import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
 import sajuTaste from "@/data/byeolmaru/saju-taste.json";
+import pairTaste from "@/data/byeolmaru/pair-taste.json";
 import type { DayTone, AxisScores } from "./day-score.ts";
 import type { ElementRelation } from "@/lib/saju/pairing";
+import type { PairDayTags, PairTone } from "./pair-day.ts";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 type CardLine = { upright: string; reversed: string };
 const CARD_LINES = cardLines as Record<string, CardLine>;
@@ -27,6 +30,17 @@ const TASTE = sajuTaste as {
   work: Record<TasteBand, string[]>;
   money: Record<TasteBand, string[]>;
   advice: Record<ElementRelation, string[]>;
+};
+
+// P5-5 우리 오늘 무료 taste — signal(오늘 결) + relation(관계 유형) + lead(누가 앞서나) + advice.
+// saju-taste 와 같은 규율로 유니온 Record 를 강제한다 — 새 status/tone 이 생기면 JSON 키를 채우기
+// 전까지 tsc 가 깨진다(Record<string> 이면 키 오타가 조용히 "" 로 샌다).
+type PairSignalKey = "friction" | "spark_bond" | "spark" | "bond" | PairTone;
+const PAIR_TASTE = pairTaste as {
+  signal: Record<PairSignalKey, string[]>;
+  relation: Record<RelationshipStatus | "unknown", string[]>;
+  lead: Record<"me" | "partner" | "even", string[]>;
+  advice: Record<PairTone, string[]>;
 };
 
 /** 오늘의 카드 정적 해석 — 카드 id(0~77) × 정/역. 뱅크 미스면 null(호출측 키워드 템플릿 폴백). */
@@ -132,4 +146,43 @@ export function getCardTaste(cardId: number, reversed: boolean, date: string): s
   if (!body) return null;
   const greeting = CARD_TASTE_GREETINGS[mix32(hashDate(date)) % CARD_TASTE_GREETINGS.length];
   return `${greeting} ${body}`;
+}
+
+export interface PairTaste {
+  signal: string;
+  relation: string;
+  lead: string;
+  advice: string;
+}
+
+/** signal 뱅크 키 — 옛 getPairStaticLine 의 분기 우선순위를 그대로 계승한다(삐걱이 최우선).
+ *  삐걱은 "오늘 조심할 것"이라 같이 뜬 끌림보다 먼저 말해야 한다. */
+function pairSignalKey(tone: PairTone, tags: PairDayTags): PairSignalKey {
+  if (tags.friction) return "friction";
+  if (tags.spark && tags.bond) return "spark_bond";
+  if (tags.spark) return "spark";
+  if (tags.bond) return "bond";
+  return tone;
+}
+
+/** 무료 우리 오늘 taste(~350자) — 룰 100%·₩0. 유료 서술(~1,200자)의 29% taste(스펙 §8).
+ *  🔴 상대 이름을 받지 않는다: 이름을 문장에 끼우면 받침에 따라 조사가 틀린다(실사고 전례).
+ *     이름이 필요한 자리는 카드 헤더·미끼가 따로 맡는다.
+ *  🔴 slot 시드를 10~13 으로 띄운 이유: getSajuTaste 가 0~4 를 쓴다. 같은 날 나 탭과 우리 탭이
+ *     같은 인덱스로 굴러 "둘 다 1번 문장"이 되는 상관을 피한다. */
+export function getPairTaste(
+  tone: PairTone,
+  tags: PairDayTags,
+  status: RelationshipStatus | null,
+  date: string
+): PairTaste {
+  const base = hashDate(date);
+  const pick = (arr: string[] | undefined, slot: number): string =>
+    arr && arr.length ? arr[mix32(base * 31 + slot) % arr.length] : "";
+  return {
+    signal: pick(PAIR_TASTE.signal[pairSignalKey(tone, tags)], 10),
+    relation: pick(PAIR_TASTE.relation[status ?? "unknown"], 11),
+    lead: pick(PAIR_TASTE.lead[tags.lead ?? "even"], 12),
+    advice: pick(PAIR_TASTE.advice[tone], 13),
+  };
 }

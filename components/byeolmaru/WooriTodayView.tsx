@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL, pairMarks, getPairStaticLine } from "@/lib/byeolmaru/pair-day";
+import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
+import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
@@ -192,12 +193,10 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
             backdrop={pairData.backdrop}
             partnerName={pairData.partnerName}
             entitled={pairData.entitled}
-            staticLine={pairData.entitled ? null : getPairStaticLine(pairCell, pairData.status)}
+            // 🔴 선택한 셀 기준이다(오늘 고정이 아니다) — 무료도 이번 달 지나간 날을 고를 수 있다(P5-2).
+            taste={pairData.entitled ? null : getPairTaste(pairCell.tone, pairCell.tags, pairData.status, pairCell.date)}
             narrative={pairNarrative}
             narrativeLoading={pairNarrativeLoading}
-            trialUsed={trialUsed}
-            onStartTrial={() => { trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial" } }); void startTrial(); }}
-            onSubscribe={() => { trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe" } }); openSubscribe(); }}
           />
         </>
       ) : pairLoading ? (

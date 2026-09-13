@@ -1,12 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getCardLine, getCardTaste, getSkeletonLine, getSajuTaste } from "./static-lines.ts";
+import { getCardLine, getCardTaste, getSkeletonLine, getSajuTaste, getPairTaste } from "./static-lines.ts";
 import skeletonLines from "@/data/byeolmaru/skeleton-lines.json";
 import sajuTaste from "@/data/byeolmaru/saju-taste.json";
 import cardTaste from "@/data/byeolmaru/card-taste.json";
+import pairTasteBank from "@/data/byeolmaru/pair-taste.json";
 import { getCardCount } from "@/lib/tarot/cards";
 import type { DayTone } from "./day-score.ts";
 import type { ElementRelation } from "@/lib/saju/pairing";
+import type { PairDayTags, PairTone } from "./pair-day.ts";
+import type { RelationshipStatus } from "@/lib/relationship/types";
 
 const TONES: DayTone[] = ["good", "normal", "caution"];
 const RELATIONS: ElementRelation[] = ["생아", "아극", "비화", "아생", "극아"];
@@ -223,4 +226,92 @@ test("card-taste: 인사말이 날짜별로 다양 — 같은 카드 30일에 3�
     if (s) seen.add(s);
   }
   assert.ok(seen.size >= 3, `30일 인사말 다양성 ${seen.size}종 ≥3`);
+});
+
+// ── P5-5 우리 오늘 무료 taste ──────────────────────────────────────────────
+const PAIR_TONES: PairTone[] = ["good", "normal", "caution"];
+const STATUSES: (RelationshipStatus | null)[] = ["crush", "dating", "breakup", "onesided", null];
+const tg = (p: Partial<PairDayTags>): PairDayTags => ({ spark: false, bond: false, friction: false, lead: null, ...p });
+const TAG_CASES: PairDayTags[] = [
+  tg({}),
+  tg({ spark: true, lead: "me" }),
+  tg({ bond: true, lead: "partner" }),
+  tg({ spark: true, bond: true }),
+  tg({ friction: true, lead: "me" }),
+  tg({ spark: true, friction: true, lead: "partner" }),
+];
+
+test("pair-taste: 모든 (tone × tags × status) 조합이 4슬롯을 채우고 금지문자가 없다", () => {
+  for (const tone of PAIR_TONES) {
+    for (const tags of TAG_CASES) {
+      for (const status of STATUSES) {
+        const t = getPairTaste(tone, tags, status, "2026-09-14");
+        for (const [slot, v] of Object.entries(t)) {
+          assert.ok(v.trim().length > 0, `${tone}/${status}/${slot} 비어있음`);
+          assertClean(v, `${tone}/${status}/${slot}`);
+        }
+      }
+    }
+  }
+});
+
+test("pair-taste: 슬롯 자수 밴드와 합계 — 무료는 ~350자다(유료 1,200자의 29%)", () => {
+  // 실측 밴드(저작 원고): signal 101~134 · relation 76~93 · lead 72~92 · advice 43~49.
+  // 🔴 밴드를 넓히지 말고 문장을 고쳐라 — 이 규율이 무료/유료 depth 비율(스펙 §8)을 지킨다.
+  for (const tone of PAIR_TONES) {
+    for (const tags of TAG_CASES) {
+      for (const status of STATUSES) {
+        const t = getPairTaste(tone, tags, status, "2026-09-14");
+        assert.ok(t.signal.length >= 95 && t.signal.length <= 140, `signal 자수 ${t.signal.length}`);
+        assert.ok(t.relation.length >= 70 && t.relation.length <= 100, `relation 자수 ${t.relation.length}`);
+        assert.ok(t.lead.length >= 68 && t.lead.length <= 95, `lead 자수 ${t.lead.length}`);
+        assert.ok(t.advice.length >= 40 && t.advice.length <= 55, `advice 자수 ${t.advice.length}`);
+        const total = t.signal.length + t.relation.length + t.lead.length + t.advice.length;
+        assert.ok(total >= 290 && total <= 370, `합계 ${total}자`);
+      }
+    }
+  }
+});
+
+test("pair-taste: signal 키 우선순위 friction > 끌림+결속 > 끌림 > 결속 > tone", () => {
+  const bank = pairTasteBank as unknown as { signal: Record<string, string[]> };
+  const pick = (tone: PairTone, tags: PairDayTags) => getPairTaste(tone, tags, null, "2026-09-14").signal;
+  // 삐걱이 있으면 다른 신호가 같이 떠도 friction 뱅크에서 나온다(옛 getPairStaticLine 규칙 계승).
+  assert.ok(bank.signal.friction.includes(pick("good", tg({ friction: true, spark: true, bond: true }))));
+  assert.ok(bank.signal.spark_bond.includes(pick("caution", tg({ spark: true, bond: true }))));
+  assert.ok(bank.signal.spark.includes(pick("caution", tg({ spark: true }))));
+  assert.ok(bank.signal.bond.includes(pick("caution", tg({ bond: true }))));
+  // 신호가 하나도 없을 때만 톤 뱅크로 떨어진다.
+  for (const tone of PAIR_TONES) assert.ok(bank.signal[tone].includes(pick(tone, tg({}))));
+});
+
+test("pair-taste: 결정론 — 같은 (tone,tags,status,date) 는 늘 같은 조합", () => {
+  const a = getPairTaste("good", tg({ spark: true, lead: "me" }), "dating", "2026-09-14");
+  const b = getPairTaste("good", tg({ spark: true, lead: "me" }), "dating", "2026-09-14");
+  assert.deepEqual(a, b);
+});
+
+test("pair-taste: 30일 로테이션이 슬롯마다 variant 를 다 쓴다(같은 문장 반복 완화)", () => {
+  const seen = { signal: new Set<string>(), relation: new Set<string>(), lead: new Set<string>(), advice: new Set<string>() };
+  for (let d = 1; d <= 30; d++) {
+    const t = getPairTaste("normal", tg({ spark: true, lead: "me" }), "crush", `2026-09-${String(d).padStart(2, "0")}`);
+    seen.signal.add(t.signal); seen.relation.add(t.relation); seen.lead.add(t.lead); seen.advice.add(t.advice);
+  }
+  for (const [slot, s] of Object.entries(seen)) assert.ok(s.size >= 2, `${slot} 30일간 ${s.size}종`);
+});
+
+test("pair-taste: 상대 이름을 문장에 끼우지 않는다(받침 조사 사고 방지)", () => {
+  // 🔴 JSON 전체를 stringify 해서 "{" 를 찾으면 **객체 중괄호 때문에 늘 참**이다(그 테스트는
+  //    버그를 실행하면서 통과한다). 문장만 꺼내서 본다.
+  const bank = pairTasteBank as unknown as Record<string, unknown>;
+  const lines: string[] = [];
+  for (const [slot, group] of Object.entries(bank)) {
+    if (slot === "_note" || typeof group !== "object" || group === null) continue;
+    for (const arr of Object.values(group as Record<string, string[]>)) lines.push(...arr);
+  }
+  assert.equal(lines.length, 36, "슬롯 4개(14+10+6+6)가 다 읽혔는지 — 키가 빠지면 아래 루프가 무의미해진다");
+  for (const s of lines) {
+    assert.ok(!s.includes("{"), `자리표시자 금지: ${s.slice(0, 20)}…`);
+    assert.ok(!s.includes("$"), `템플릿 리터럴 금지: ${s.slice(0, 20)}…`);
+  }
 });
