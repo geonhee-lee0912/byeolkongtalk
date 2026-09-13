@@ -42,3 +42,8 @@ test("UI_EVENTS — 별마루 날짜 선택·크로스셀 클릭 이벤트가 �
   assert.equal(isUiEvent("byeolmaru_day_selected"), true);
   assert.equal(isUiEvent("byeolmaru_crosssell_clicked"), true);
 });
+
+// P5-3 T5 — 허브 "무료로 더 볼 것" 목록 3종(오늘 타로·사주 MBTI·별 인연 지도) 행 클릭.
+test("UI_EVENTS — 별마루 무료 목록 3종 클릭 이벤트가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_free_item_clicked"), true);
+});
