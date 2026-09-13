@@ -58,6 +58,9 @@ export default function DailyCardBlock({
 
   const [narrative, setNarrative] = useState<string | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
+  // 자격은 있는데 프로필(생일)이 없어 서술을 못 만든 경우만 구분해 남긴다 — 다른 실패(500·네트워크)는
+  // 기존처럼 narrative:null 로 조용히 흡수(그건 "별콩이가 잠깐 숨 고르는 중" 성격이라 안내가 아니다).
+  const [narrativeBlocked, setNarrativeBlocked] = useState<"no_profile" | null>(null);
 
   // 오늘 카드 조회
   useEffect(() => {
@@ -88,14 +91,22 @@ export default function DailyCardBlock({
     if (!entitled || state.kind !== "drawn") {
       setNarrative(null);
       setNarrativeLoading(false);
+      setNarrativeBlocked(null);
       return;
     }
     let cancelled = false;
     setNarrative(null);
+    setNarrativeBlocked(null);
     setNarrativeLoading(true);
     void (async () => {
       try {
         const res = await fetch("/api/byeolmaru/card-narrative", { cache: "no-store" });
+        if (res.status === 404) {
+          // card-narrative 는 생일이 없으면 profile_not_found 404 를 준다(정당한 응답 — 카드×사주
+          // 서술엔 생일이 필수). 예전엔 이걸 narrative:null 로 접어 무료와 똑같은 화면을 보여줬다.
+          if (!cancelled) setNarrativeBlocked("no_profile");
+          return;
+        }
         if (!res.ok) {
           if (!cancelled) setNarrative(null);
           return;
@@ -250,14 +261,27 @@ export default function DailyCardBlock({
               </div>
 
               {entitled ? (
-                narrativeLoading ? (
-                  <p className="mt-3 text-sm text-text-light">별콩이가 카드를 읽는 중…</p>
-                ) : narrative ? (
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-eye-purple">{narrative}</p>
-                ) : (
-                  // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
-                  <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
-                )
+                <>
+                  {narrativeLoading ? (
+                    <p className="mt-3 text-sm text-text-light">별콩이가 카드를 읽는 중…</p>
+                  ) : narrative ? (
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-eye-purple">{narrative}</p>
+                  ) : (
+                    // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
+                    <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+                  )}
+                  {/* 자격자인데 프로필(생일)이 없어 서술을 못 만든 경우만 안내 — 에러가 아니라 안내라
+                      taste 를 대체하지 않고 그 아래 작은 보조 줄로만 덧붙인다. 비자격자는 이 분기에
+                      아예 들어오지 않으므로(entitled 가지 자체) 별도 조건 없이도 안전하다. */}
+                  {narrativeBlocked === "no_profile" && (
+                    <p className="mt-2 text-xs leading-relaxed text-text-light">
+                      생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
+                      <Link href="/mypage" className="text-lilac-deep underline">
+                        생년월일 입력하러 가기 →
+                      </Link>
+                    </p>
+                  )}
+                </>
               ) : (
                 <>
                   {/* 무료 taste — 카드 메시지+오늘 적용+조언 ~350자 정적(design §5). */}
