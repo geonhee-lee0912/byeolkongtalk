@@ -29,9 +29,12 @@ test("PASS_PLANS 라벨은 시간권(일 병기) 표기", () => {
   assert.equal(byKind.day7, "168시간(7일)");
 });
 
-test("SIM_COST 는 웰컴 별보다 작아 첫 판을 웰컴 별이 흡수 (스펙 §7 X<20)", () => {
+test("SIM_COST 는 웰컴 별 이하라 첫 판을 웰컴 별이 흡수 (스펙 §7)", () => {
   assert.ok(SIM_COST > 0, "SIM_COST 는 양수");
-  assert.ok(SIM_COST < WELCOME_BONUS_STARS, `SIM_COST(${SIM_COST}) < WELCOME_BONUS_STARS(${WELCOME_BONUS_STARS})`);
+  // 🔴 경계가 < 가 아니라 <= 인 이유: 2026-09-13 웰컴 20→15 로 SIM_COST(15)와 같아졌다.
+  //    "흡수"의 의도는 **웰컴으로 첫 판을 살 수 있다**이지 "거스름돈이 남는다"가 아니다.
+  //    이 단언이 깨지면 웰컴 별만으로는 시뮬 첫 판을 못 여는 것이니 가격 결정을 다시 볼 것.
+  assert.ok(SIM_COST <= WELCOME_BONUS_STARS, `SIM_COST(${SIM_COST}) <= WELCOME_BONUS_STARS(${WELCOME_BONUS_STARS})`);
 });
 
 test("SIM_TURN_CAP 은 원가 경계로 유한", () => {

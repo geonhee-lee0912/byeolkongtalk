@@ -48,7 +48,8 @@ export const EXTEND_TURNS = 5;
 export const FREE_INTRO_TURNS = 3;
 
 /** 시뮬레이션 한 판 고정가 — 연습 + 💭 코칭 + 자동 노트 + 디브리핑 + 보낼 말 전부 포함(스펙 §7).
- * 🔴 WELCOME_BONUS_STARS(20)가 첫 판을 흡수하도록 X<20 (스펙 §7·§11). 서버 권위(클라 cost 신뢰 X).
+ * 🔴 WELCOME_BONUS_STARS(15)가 첫 판을 흡수하도록 X≤15 (스펙 §7·§11). 2026-09-13 웰컴 20→15 로
+ *    둘이 딱 같아졌다 — 웰컴을 다 쓰면 첫 판이 열린다(거스름돈 0). 서버 권위(클라 cost 신뢰 X).
  * 값은 튜닝 대상(배포 후 구매 비율 관측) — 코드 상수가 정본. */
 export const SIM_COST = 15;
 
