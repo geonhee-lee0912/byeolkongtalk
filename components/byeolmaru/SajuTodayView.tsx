@@ -39,7 +39,7 @@ function fmtMD(date: string): string {
 }
 
 
-export default function SajuTodayView() {
+export default function SajuTodayView({ initialDate }: { initialDate?: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
   const [report, setReport] = useState<DailyReport | null>(null);
@@ -54,7 +54,11 @@ export default function SajuTodayView() {
       const data: CalendarResponse = await res.json();
       if (data.cells.length === 0) { setState({ kind: "error" }); return; }
       setState({ kind: "ready", data });
-      setSelected((prev) => prev ?? data.today);
+      // 허브 격자에서 넘어온 ?date= 가 있으면 그 날로 연다(스펙 §7 "요약은 허브, 전문은 밖").
+      // 🔴 응답에 없는 날짜(무료 유저가 손으로 미래 날짜를 친 경우)면 무시하고 오늘로 — 서버가
+      //    안 내려준 날을 선택 상태로 두면 cell 폴백이 타서 엉뚱한 날 상세가 열린다.
+      const wanted = initialDate && data.cells.some((c) => c.date === initialDate) ? initialDate : data.today;
+      setSelected((prev) => prev ?? wanted);
 
       // 리포트는 자격자에게만 — 비자격자는 daily-report 를 아예 호출하지 않는다(403 방지=원가0).
       if (data.entitled) {
