@@ -270,7 +270,8 @@ export default function ByeolmaruHub() {
           />
         )}
 
-        {/* 🔴 미끼 자리 — 내용·톤·CTA·계측은 P5-4 몫이다(스펙 §9). 지금은 자리만 잡는다.
+        {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를,
+            인연 탭은 우리 오늘을 판다 — 같은 블록을 두 자리에 쓰면 광고로 읽힌다.
             비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
         {!data.entitled && (
           <PremiumBlock
@@ -281,6 +282,12 @@ export default function ByeolmaruHub() {
             loading={false}
             onStartTrial={startTrial}
             onSubscribe={openSubscribe}
+            slot={isPair ? "woori_30d" : "saju_report"}
+            baitCtx={
+              isPair
+                ? { partnerName: partners.find((p) => p.id === subject)?.name }
+                : { gradeLabel: todayCell.grade.label }
+            }
           />
         )}
       </section>
