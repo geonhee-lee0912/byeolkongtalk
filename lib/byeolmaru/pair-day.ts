@@ -104,7 +104,7 @@ export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: Daily
 const STATUS_FRAME: Record<RelationshipStatus, string> = {
   onesided: "짝사랑이라 마음이 더 쓰이지만, ",
   crush: "썸이라 설레는 만큼, ",
-  dating: "연애 중인 오늘은, ",
+  dating: "연애 중이라, ",
   breakup: "지난 사이라도, ",
 };
 
@@ -113,13 +113,13 @@ const STATUS_FRAME: Record<RelationshipStatus, string> = {
 export function getPairStaticLine(cell: PairDayCell, status?: RelationshipStatus | null): string {
   const t = cell.tags;
   const line = (() => {
-    if (t.friction) return "오늘은 둘 사이 결이 살짝 엇갈릴 수 있어. 말 한마디를 천천히 골라보면 좋아.";
-    if (t.spark && t.bond) return "오늘은 끌림도 결속도 같이 도는 날이야. 마음이 자연스럽게 가까워져.";
-    if (t.spark) return "오늘은 둘 사이에 끌림이 도는 날이야. 작은 신호에 마음이 움직여.";
-    if (t.bond) return "오늘은 서로 편안하게 이어지는 결이야. 함께 있는 시간이 순해.";
-    if (cell.tone === "good") return "오늘은 둘 사이 흐름이 순한 날이야.";
-    if (cell.tone === "caution") return "오늘은 서로 조금 챙겨주면 좋은 결이야.";
-    return "오늘은 둘 사이 무난하게 흐르는 날이야.";
+    if (t.friction) return "둘 사이 결이 살짝 엇갈릴 수 있어. 말 한마디를 천천히 골라보면 좋아.";
+    if (t.spark && t.bond) return "끌림도 결속도 같이 도는 날이야. 마음이 자연스럽게 가까워져.";
+    if (t.spark) return "둘 사이에 끌림이 도는 날이야. 작은 신호에 마음이 움직여.";
+    if (t.bond) return "서로 편안하게 이어지는 결이야. 함께 있는 시간이 순해.";
+    if (cell.tone === "good") return "둘 사이 흐름이 순한 날이야.";
+    if (cell.tone === "caution") return "서로 조금 챙겨주면 좋은 결이야.";
+    return "둘 사이 무난하게 흐르는 날이야.";
   })();
   return status ? STATUS_FRAME[status] + line : line;
 }
