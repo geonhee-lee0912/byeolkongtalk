@@ -15,8 +15,9 @@ export interface GridCell {
   tone: DayTone;
   label: string;
   isToday: boolean;
-  /** 원인 마크(P5-1). 셀은 첫 마크만 그린다(겹침 실측). 개수 상한은 dayFactors() 가 정한다 —
-   *  육합과 충은 같은 지지 짝에서 나와 동시에 참이 될 수 없다.
+  /** 원인 마크(P5-1). 셀은 첫 마크만 그린다(겹침 실측). 나 탭은 dayFactors() 특성상 육합과 충이
+   *  같은 지지 짝이라 동시에 참이 될 수 없지만, 우리 탭은 두 사람을 각각 보므로(한쪽은 육합·다른
+   *  쪽은 충) 셋이 동시에 참일 수 있다 — 그래서 개수에 기대는 코드를 두지 않는다.
    *  🔴 옵셔널이 아니다 — 옵셔널이면 호출부에서 marks 전달을 빼도 타입체크·테스트가 다 통과한 채
    *     글리프만 조용히 사라진다. 나·우리 두 판정이 각자 마크를 만들어 넘긴다(나=dayMarks, 우리=pairMarks). */
   marks: DayMark[];
@@ -153,7 +154,8 @@ export default function CalendarGrid({
                 >
                   {/* 🔴 셀에는 최우선 마크 1개만. 실측(375px 폰 ≈ 42px 셀): 2개부터 두 자리 날짜와
                       겹친다(48px 셀에서 2개 여유 0.8px, 3개 겹침 6.3px). 전체 목록은 aria-label 과
-                      DayDetailCard 의 마크 칩이 받는다. dayMarks() 순서가 곧 우선순위다. */}
+                      상세 카드의 마크 칩(나=DayDetailCard, 우리=PairDayDetailCard)이 받는다.
+                      생산자 함수의 배열 순서가 곧 우선순위다(dayMarks·pairMarks 가 같은 순서를 쓴다). */}
                   {c.marks[0].glyph}
                 </span>
               ) : null}
