@@ -22,12 +22,19 @@ interface Props {
 }
 
 export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, loading, onStartTrial, onSubscribe, slot, baitCtx }: Props) {
-  useEffect(() => {
-    if (!entitled) trackUiEvent("byeolmaru_gate_shown", { meta: { slot } }); // 슬롯 노출마다 1회 — slot 이 바뀌면 같은 마운트에서도 다시 찍힌다(허브 인연 칩 토글 등). 자격자에겐 안 찍는다.
-  }, [entitled, slot]);
   // 🔴 훅은 조건부로 호출할 수 없다 — 아래 entitled 분기(return)보다 위, 다른 훅 옆에서 불러야
   //    자격 상태가 바뀌어도 훅 호출 순서가 그대로 유지된다. dismissed 값 자체는 비자격 분기에서만 쓴다.
-  const { dismissed, dismiss } = useBaitDismiss(slot);
+  //    아래 gate_shown 계측 effect 가 이 훅의 resolved/dismissed 를 읽으므로 그 effect 보다 위에 둔다.
+  const { dismissed, resolved, dismiss } = useBaitDismiss(slot);
+
+  useEffect(() => {
+    // 🔴 접힌 자리에선 노출을 찍지 않는다(FIX B) — 화면에 아무것도 안 뜨는데 gate_shown 이 쌓이면
+    //    "어느 미끼가 파는가"(스펙 §13)의 분모가 오염되고, 접힘 비율도 raw 로는 못 읽는다.
+    //    resolved 전(= localStorage 를 아직 못 읽은 한 프레임)에는 보류한다 — 그래야 자리당
+    //    정확히 한 번만 찍힌다. slot 이 바뀌면(허브 인연 칩 토글) resolved 가 잠깐 false 로
+    //    떨어졌다가 새 slot 값으로 다시 resolve 되므로 새 자리에 대해서도 정확히 1회 찍힌다.
+    if (!entitled && resolved && !dismissed) trackUiEvent("byeolmaru_gate_shown", { meta: { slot } });
+  }, [entitled, resolved, dismissed, slot]);
 
   if (entitled) {
     return (
@@ -57,11 +64,17 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
       {/* 🔴 자물쇠를 쓰지 않는다(스펙 §9) — 잠긴 게 아니라 "더 깊이 읽어주겠다"는 초대다.
           유료라는 사실은 사라지지 않고 작은 '구독' 배지가 명확히 남긴다. */}
       {/* 제목 행 3요소(제목·배지·닫기) — 제목+배지를 한 그룹으로 묶어 justify-between 으로
-          닫기 버튼만 오른쪽 끝에 붙인다. 제목 span 에 min-w-0+truncate, 배지·닫기엔 shrink-0 —
-          375px 처럼 좁은 화면에서 제목이 길어도 줄어드는 건 제목뿐, 배지·닫기는 밀리지 않는다. */}
+          닫기 버튼만 오른쪽 끝에 붙인다. 제목 span 은 min-w-0 로 줄어들되 줄바꿈되게 두고
+          (truncate 금지), 배지·닫기엔 shrink-0 — 375px 처럼 좁은 화면에서도 줄어드는 건
+          제목뿐, 배지·닫기는 밀리지 않는다.
+          🔴 truncate 였다가 FIX A 로 제거 — tarot_rich 자리는 DailyCardBlock 이 PremiumBlock 을
+          자기 section p-4 안에 한 겹 더 넣어 375px 기준 제목 가용폭이 허브보다 32px 좁고,
+          saju_report 제목도 여유가 12px 뿐이라 한 글자만 늘어도 잘렸다("…얹어줄게"에서
+          동사 "얹어줄게"가 통째로 잘려나가는 식). 페이월 헤드라인의 약속 동사가 사라지는 셈이라
+          자르는 대신 줄바꿈으로 — 이건 폭·카피 어느 조합에서도 안전하다. */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate font-display text-base text-eye-purple">{copy.title}</span>
+          <span className="min-w-0 font-display text-base text-eye-purple">{copy.title}</span>
           {/* 배지가 자물쇠를 대신해 "유료"를 고지하므로 대비를 양보하지 않는다(eye-purple 7.01:1). */}
           <span className="shrink-0 rounded-full bg-lilac-soft/70 px-1.5 py-0.5 text-[10px] font-bold text-eye-purple">구독</span>
         </div>
