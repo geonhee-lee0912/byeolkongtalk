@@ -7,7 +7,6 @@ import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
 import { DAY_NAME, DAY_LINE } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import DailyCardBlock from "./DailyCardBlock";
 import AttendanceStrip from "./AttendanceStrip";
 import CrossSellCard from "./CrossSellCard";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
@@ -151,8 +150,6 @@ export default function ByeolmaruHub() {
           {data.entitled ? `앞으로 ${strip7.length}일 흐름` : `지난 ${strip7.length}일 흐름`} · 이번 달 전체 보기 →
         </p>
       </Link>
-
-      <DailyCardBlock entitled={data.entitled} trialUsed={data.trialUsed} onStartTrial={startTrial} onSubscribe={openSubscribe} />
 
       <div className="grid grid-cols-2 gap-3">
         <Link href="/byeolmaru/woori" className="rounded-2xl bg-cream-warm p-4 text-center">
