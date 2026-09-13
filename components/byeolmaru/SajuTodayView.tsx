@@ -6,6 +6,7 @@ import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
+import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
@@ -128,9 +129,9 @@ export default function SajuTodayView() {
         <button
           onClick={() => {
             const ok = shareToKakao({
-              title: `오늘 사주 · ${cell.grade.label}`,
+              title: `오늘 사주 · ${DAY_NAME[cell.tenGod]}`,
               description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
-              imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}`,
+              imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}&tg=${encodeURIComponent(cell.tenGod)}`,
               link: `${window.location.origin}/byeolmaru`,
               buttonTitle: "나도 보러가기",
             });
