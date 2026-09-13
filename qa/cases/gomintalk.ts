@@ -85,8 +85,12 @@ export function gomintalkCases(): Case[] {
     },
 
     // ── 자기감정정리 + 막연한 개방 (실측: "열린 '뭐든 물어봐'가 오히려 부담") ──
-    // one_card = [CARD] 마커 0개(페르소나 설계). 딱히 질문 없이 털어놓는 유저에게
-    // 막연한 개방형("뭐 더 궁금한 거 있어?")로 공 떠넘기지 않고 방향을 잡아주는지.
+    // 딱히 질문 없이 털어놓는 유저에게 막연한 개방형("뭐 더 궁금한 거 있어?")로
+    // 공 떠넘기지 않고 방향을 잡아주는지.
+    // 🔴 2026-09-13 정정: 원래 expectCardCount 가 0 이었고 주석이 "one_card = [CARD] 마커 0개
+    //    (페르소나 설계)"라고 적혀 있었는데, 이 케이스(07-19 `e18cb0f`)가 작성된 3일 뒤
+    //    `원카드 [CARD:1] 필수`(07-22 `ca7e13d`)로 계약이 뒤집혔다. 케이스가 현행 계약의
+    //    반대를 단언해 영구 오실패를 냈다 → 1 로 정정.
     {
       id: "tarot.real.venting_open",
       product: { kind: "tarot", spreadType: "one_card", spreadCategory: "worry" },
@@ -101,7 +105,7 @@ export function gomintalkCases(): Case[] {
       expects: {
         mustEnd: false,
         expectSensitiveHeader: false,
-        expectCardCount: 0,
+        expectCardCount: 1,
         skipEndAssertion: true,
       },
     },
