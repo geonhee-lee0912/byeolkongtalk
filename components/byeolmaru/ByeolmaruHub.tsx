@@ -115,7 +115,9 @@ export default function ByeolmaruHub() {
   if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 별마루를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
   const { data } = state;
-  const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[0];
+  // 폴백은 cells[0](이번 달 1일)이 아니라 마지막 칸이다 — 무료(비자격)는 오늘이 항상 마지막 칸이므로
+  // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
+  const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
   // 🔴 P5-2 로 cells 가 "이번 달 1일~"이 되면서 slice(0,7) 은 "1일부터 7일"을 뜻하게 됐다.
   //    자격자는 오늘부터 앞으로 7일(구독이 파는 게 '앞당겨 보기'라 앞을 보여준다),
   //    비자격자는 오늘이 마지막 칸이라 앞이 없으므로 **오늘로 끝나는 최근 7일**을 보여준다.

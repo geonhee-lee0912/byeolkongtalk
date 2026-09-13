@@ -163,7 +163,9 @@ export default function SajuTodayView() {
         <h2 className="mb-2 font-display text-base text-eye-purple">{data.entitled ? "이번 달 흐름" : "오늘까지의 흐름"}</h2>
         <ul className="space-y-1 text-sm text-text-light">
           {data.weeks.map((w) => (
-            <li key={w.index}>{fmtMD(w.startDate)}~{fmtMD(w.endDate)} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
+            // 무료선(비자격)은 cells 가 "이번 달 1일~오늘"이라 길이가 7k+1 인 날(매달 1·8·15·22·29일)엔
+            // 마지막 버킷이 하루짜리가 된다 — 그때만 시작일=종료일이라 날짜를 한 번만 찍는다.
+            <li key={w.index}>{w.startDate === w.endDate ? fmtMD(w.startDate) : `${fmtMD(w.startDate)}~${fmtMD(w.endDate)}`} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
           ))}
         </ul>
       </section>
