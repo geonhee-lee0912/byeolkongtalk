@@ -12,6 +12,7 @@ import PairDayDetailCard from "./PairDayDetailCard";
 import SubjectToggle from "./SubjectToggle";
 import WatchAddModal from "./WatchAddModal";
 import BackHeader from "./BackHeader";
+import PremiumBlock from "./PremiumBlock";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 type State =
@@ -198,6 +199,30 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
             narrative={pairNarrative}
             narrativeLoading={pairNarrativeLoading}
           />
+          {/* 🔴 자격자에겐 아예 렌더하지 않는다 — 우리 탭의 서술은 PairDayDetailCard 안에 있고,
+              PremiumBlock 의 자격자 분기("별콩이의 오늘")까지 띄우면 빈 블록이 하나 더 생긴다.
+              slot 은 허브 인연 탭과 같은 woori_30d — 같은 물건을 파는 자리라 카피도 같아야 한다(스펙 §9).
+              ⚠️ 판독 주의: 이제 woori_30d 의 노출 면이 허브·이 화면 둘이다. gate_shown 비율을 자리끼리
+              비교할 땐 (user_id, slot, KST일자) distinct 로 정규화할 것(P5-4 판독 규칙과 동일). */}
+          {!pairData.entitled && (
+            <PremiumBlock
+              entitled={false}
+              trialUsed={trialUsed}
+              narrative={null}
+              teaser={null}
+              loading={false}
+              slot="woori_30d"
+              baitCtx={{ partnerName: pairData.partnerName }}
+              onStartTrial={(slot) => {
+                trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial", slot } });
+                void startTrial(slot);
+              }}
+              onSubscribe={(slot) => {
+                trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe", slot } });
+                openSubscribe(slot);
+              }}
+            />
+          )}
         </>
       ) : pairLoading ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 오늘을 펼치는 중…</p>
