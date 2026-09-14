@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       const todayGanji = temporal.day.stem + temporal.day.branch;
       const ent = await getEntitlement(userId);
 
-      // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 무료 정적 한 줄의 프레이밍에만 쓰이므로
+      // 관계 유형(썸/연애/짝사랑/헤어진) — watch 행의 성질. 무료 taste 의 relation 슬롯에만 쓰이므로
       // 비자격 분기에서만 읽는다(구독자는 LLM 서술이 pair-narrative 에서 따로 조회한다). 실패해도
       // 캘린더는 떠야 하니 null 폴백(문구만 영향 — score/tags 판정은 무관).
       let status: RelationshipStatus | null = null;

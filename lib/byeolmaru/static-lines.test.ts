@@ -315,3 +315,13 @@ test("pair-taste: 상대 이름을 문장에 끼우지 않는다(받침 조사 �
     assert.ok(!s.includes("$"), `템플릿 리터럴 금지: ${s.slice(0, 20)}…`);
   }
 });
+
+test("pair-taste: 관계 유형이 다르면 relation 문구도 다르다(옛 getPairStaticLine 계약 계승)", () => {
+  // 🔴 삭제한 테스트가 지키던 계약이다("같은 tone 이라도 onesided ≠ dating"). 뱅크를 복붙으로
+  //    채우면 짝사랑과 연애가 같은 말을 하게 되는데, 다른 테스트들(비어있지 않음·자수·로테이션)은
+  //    그걸 전부 통과시킨다.
+  for (const date of ["2026-09-14", "2026-09-15"]) {
+    const byStatus = STATUSES.map((s) => getPairTaste("good", tg({}), s, date).relation);
+    assert.equal(new Set(byStatus).size, STATUSES.length, `${date}: status 5종이 서로 다른 문구여야 한다`);
+  }
+});
