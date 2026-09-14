@@ -17,6 +17,7 @@ import {
   NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
+import { getCachedPairNarrative, savePairNarrative } from "@/lib/byeolmaru/pair-narrative";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 
@@ -37,6 +38,13 @@ export async function GET(req: NextRequest) {
     // 자격 판정 먼저 — 비자격자는 프로필 조회조차 하지 않는다(원가 0, calendar 의 subject 분기와 동일 순서).
     const ent = await getEntitlement(userId);
     if (!ent.entitled) return NextResponse.json({ entitled: false }, { status: 403 });
+
+    // 🔴 캐시는 자격 게이트 **뒤**, 프로필/사주 계산 **앞**이다. 비자격자는 DB 도 안 건드리고(원가 0),
+    //    자격자는 히트 시 calcSaju·일진·watch 조회를 통째로 건너뛴다(생성 실측 5.1초 → DB 1회).
+    //    남의 상대 id 를 넣어도 키가 (내 user_id, 그 id) 라 행이 없어 자연히 미스 → 아래 소유 검증으로 간다.
+    const todayKst = kstDate(new Date().toISOString());
+    const cached = await getCachedPairNarrative(userId, subject, todayKst);
+    if (cached) return NextResponse.json({ entitled: true, narrative: cached });
 
     const supa = getServiceSupabase();
     const { data: selfRow, error: selfErr } = await supa
@@ -82,7 +90,6 @@ export async function GET(req: NextRequest) {
     }
     const status = (watchRow?.status as RelationshipStatus | null) ?? null;
 
-    const todayKst = kstDate(new Date().toISOString());
     const temporal = calcTemporalLuck(baseDateForKst(todayKst), selfInput.year, { includeMonth: true });
     if (!temporal.dailyLuck?.length) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
@@ -122,6 +129,12 @@ export async function GET(req: NextRequest) {
       if (!narrative) {
         await logError(new Error("empty pair narrative"), { ...logCtx, extra: { stage: "generate_empty" } });
         return NextResponse.json({ entitled: true, narrative: null });
+      }
+      // 캐시 저장은 best-effort — 실패해도 이미 만든 서술은 그대로 응답한다(daily-report 와 동일 경계).
+      try {
+        await savePairNarrative(userId, subject, todayKst, narrative);
+      } catch (e) {
+        await logError(e, { ...logCtx, extra: { stage: "cache_save" } });
       }
       return NextResponse.json({ entitled: true, narrative });
     } catch (err) {
