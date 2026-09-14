@@ -61,7 +61,10 @@ export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
       : "오늘은 왜 이런 결인지부터 풀어줄게.";
   }
   if (slot === "woori_30d") {
-    // woori_30d 는 허브 인연 탭 전용 — 날짜 선택 화면이 없어 "오늘" 기준이 항상 참이다.
+    // 🔴 "오늘"을 박아도 되는 근거는 화면이 아니라 **파는 물건**이다(P5-5 로 이 자리가
+    //    /byeolmaru/woori 날짜 선택 화면에도 붙었다 — 허브 전용이 아니다). pair-narrative
+    //    라우트엔 날짜 파라미터가 없어 구독으로 열리는 건 언제나 오늘 기준 서술이다
+    //    (saju_report 와 같은 논리 — 위 주석 참조).
     return ctx.partnerName
       ? `${ctx.partnerName}${particleWaGwa(ctx.partnerName)} 너, 오늘 왜 이런 결인지부터 짚어줄게.`
       : "둘이 오늘 왜 이런 결인지부터 짚어줄게.";
