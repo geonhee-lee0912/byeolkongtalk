@@ -14,7 +14,7 @@ import {
   buildPairNarrativeSystem,
   PAIR_NARRATIVE_KICKOFF,
   BYEOLMARU_NARRATIVE_MODEL,
-  NARRATIVE_MAX_TOKENS,
+  PAIR_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
 import { getCachedPairNarrative, savePairNarrative } from "@/lib/byeolmaru/pair-narrative";
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
       const narrative = await generateOnce(
         system,
         [{ role: "user", content: PAIR_NARRATIVE_KICKOFF }],
-        NARRATIVE_MAX_TOKENS,
+        PAIR_NARRATIVE_MAX_TOKENS,
         logCtx,
         BYEOLMARU_NARRATIVE_MODEL,
         undefined

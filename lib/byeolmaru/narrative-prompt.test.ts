@@ -9,6 +9,7 @@ import {
   buildNarrativeSystem,
   buildPairNarrativeSystem,
   PAIR_NARRATIVE_KICKOFF,
+  PAIR_NARRATIVE_MAX_TOKENS,
   buildCardNarrativeSystem,
   CARD_NARRATIVE_KICKOFF,
 } from "./narrative-prompt.ts";
@@ -138,4 +139,16 @@ test("buildNarrativeSystem — 화면에 뜬 하루 이름을 프롬프트가 �
   assert.ok(sys.includes(DAY_NAME[cell.tenGod]), "하루 이름이 프롬프트에 없다");
   assert.ok(sys.includes(cell.tenGod), "십신 키가 프롬프트에 없다");
   assert.ok(/다시 설명하지 말고/.test(sys), "재설명 금지 지시가 없다");
+});
+
+test("pair 프롬프트: 분량 지시가 1,100~1,300자이고 토큰 상한이 그 분량을 감당한다", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
+  const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
+  const sys = buildPairNarrativeSystem(a, b, pairBackdrop(a, b), cell, "임오", "지우");
+  assert.ok(sys.includes("1,100~1,300자"), "분량 지시가 프롬프트에 있어야 한다");
+  assert.ok(!sys.includes("3~4문단"), "옛 분량 지시(3~4문단 ≈ 600자)가 남아 있으면 안 된다");
+  // nano 는 추론 토큰이 max 안에 함께 카운트된다 — 본문 1,200자(≈670토큰)에 추론 헤드룸을 더한 값.
+  assert.ok(PAIR_NARRATIVE_MAX_TOKENS >= 3600, `상한 ${PAIR_NARRATIVE_MAX_TOKENS} 은 1,200자에 부족하다`);
 });
