@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
     const ent = await getEntitlement(userId);
     if (!ent.entitled) return NextResponse.json({ entitled: false }, { status: 403 });
 
-    // 🔴 캐시는 자격 게이트 **뒤**, 프로필/사주 계산 **앞**이다. 비자격자는 DB 도 안 건드리고(원가 0),
+    // 🔴 캐시는 자격 게이트 **뒤**, 프로필/사주 계산 **앞**이다. 비자격자는 캐시도 프로필도 안 읽고
+    //    바로 위 403 에서 끊긴다(LLM 원가 0 — getEntitlement 자체의 조회는 어차피 모든 요청이 한다),
     //    자격자는 히트 시 calcSaju·일진·watch 조회를 통째로 건너뛴다(생성 실측 5.1초 → DB 1회).
     //    남의 상대 id 를 넣어도 키가 (내 user_id, 그 id) 라 행이 없어 자연히 미스 → 아래 소유 검증으로 간다.
     const todayKst = kstDate(new Date().toISOString());
