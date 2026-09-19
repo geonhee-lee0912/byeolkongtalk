@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getEntitlement } from "@/lib/byeolmaru/entitlement";
-import { getTodayCard } from "@/lib/byeolmaru/daily-card";
+import { getCardOn } from "@/lib/byeolmaru/daily-card";
 import { getCard } from "@/lib/tarot/cards";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const cached = await getCachedCardNarrative(userId, todayKst);
     if (cached) return NextResponse.json({ entitled: true, narrative: cached });
 
-    const drawn = await getTodayCard(userId, todayKst);
+    const drawn = await getCardOn(userId, todayKst);
     if (!drawn) return NextResponse.json({ entitled: true, narrative: null }); // 아직 오늘 카드를 안 뽑음
     const tarotCard = getCard(drawn.cardId);
     if (!tarotCard) return NextResponse.json({ entitled: true, narrative: null });
