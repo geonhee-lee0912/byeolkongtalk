@@ -19,7 +19,9 @@ function diffDays(a: string, b: string): number {
 
 export type ReportDatePolicy = "generate" | "cache_only" | "out_of_range";
 
-/** 이 날짜를 어떻게 다룰지. todayKst 는 KST 기준 오늘(kstDate() 산출물). */
+/** 이 날짜를 어떻게 다룰지. todayKst 는 KST 기준 오늘(kstDate() 산출물).
+ *  🔴 date 만 `unknown` 인 건 의도적이다 — date 는 쿼리스트링에서 온 신뢰 불가 입력이고,
+ *     todayKst 는 서버가 kstDate() 로 만든 값이라 이미 형식이 보장된다. */
 export function reportDatePolicy(date: unknown, todayKst: string): ReportDatePolicy {
   if (!isIsoDate(date) || !isIsoDate(todayKst)) return "out_of_range";
   const d = diffDays(date, todayKst);

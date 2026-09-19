@@ -11,6 +11,10 @@ test("isIsoDate: YYYY-MM-DD 만 허용", () => {
   assert.equal(isIsoDate(""), false);
   assert.equal(isIsoDate("2026-13-01"), false); // 달력상 없는 날짜
   assert.equal(isIsoDate("2026-02-30"), false);
+  // 🔴 unknown 을 받는 이유 — 쿼리스트링에서 온 신뢰 불가 입력이 그대로 들어온다. throw 하지 않고 false 여야 한다.
+  assert.equal(isIsoDate(null), false);
+  assert.equal(isIsoDate(undefined), false);
+  assert.equal(isIsoDate(20260919), false);
 });
 
 test("reportDatePolicy: 과거는 캐시만, 오늘·앞으로 3일은 생성, 그 너머는 거부", () => {
