@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import { BAIT, baitLead, type BaitSlot, type BaitContext } from "@/lib/byeolmaru/bait";
+import { MarkdownLite } from "@/lib/markdown-lite";
 import { useBaitDismiss } from "./useBaitDismiss";
 
 interface Props {
@@ -41,7 +42,7 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
       <section className="rounded-2xl bg-cream-warm p-4">
         <h2 className="mb-2 font-display text-base text-eye-purple">별콩이의 오늘</h2>
         {narrative ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-eye-purple">{narrative}</p>
+          <MarkdownLite text={narrative} className="text-sm leading-relaxed text-eye-purple" />
         ) : loading ? (
           <p className="text-sm text-text-light">오늘 흐름을 풀어보는 중…</p>
         ) : (

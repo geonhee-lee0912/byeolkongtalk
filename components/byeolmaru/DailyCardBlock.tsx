@@ -10,6 +10,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
+import { MarkdownLite } from "@/lib/markdown-lite";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import PremiumBlock from "./PremiumBlock";
@@ -266,7 +267,7 @@ export default function DailyCardBlock({
                   {narrativeLoading ? (
                     <p className="mt-3 text-sm text-text-light">별콩이가 카드를 읽는 중…</p>
                   ) : narrative ? (
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-eye-purple">{narrative}</p>
+                    <MarkdownLite text={narrative} className="mt-3 text-sm leading-relaxed text-eye-purple" />
                   ) : (
                     // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
                     <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
