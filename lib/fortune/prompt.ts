@@ -217,6 +217,8 @@ export const SECTION_GUIDE: Record<FortuneType, string> = {
     `    { "key": "study",  "body": "<학업·공부·문서·이동·변동운. 4~5문장.>" }`,
     `  ],`,
     `  "balance": { "good": "<오늘 하면 좋은 일 한 줄>", "warn": "<오늘 주의할 점 한 줄. 겁주지 말고 따뜻한 대비로.>" },`,
+    // TODO(P6-2): note 필드 설명의 "별콩이의 한마디" 리터럴이 모델에게 제목을 따라 쓰게 만든다.
+    //   지금은 lib/fortune/note-heading.ts 가 후처리로 벗긴다 — 프롬프트 쪽도 같이 손볼 것.
     `  "note": "<별콩이의 한마디. 오늘 챙기면 좋을 따뜻한 응원 1~2문장.>"`,
     `}`,
     ``,

@@ -1,12 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { stripNoteHeading } from "./daily-report.ts";
+import { stripNoteHeading } from "./note-heading.ts";
 
 test("stripNoteHeading: '별콩이의 한마디:' 접두를 떼어낸다", () => {
   assert.equal(stripNoteHeading("별콩이의 한마디: 오늘은 가볍게."), "오늘은 가볍게.");
   assert.equal(stripNoteHeading("별콩이의 한마디 — 오늘은 가볍게."), "오늘은 가볍게.");
   assert.equal(stripNoteHeading("**별콩이의 한마디**: 오늘은 가볍게."), "오늘은 가볍게.");
   assert.equal(stripNoteHeading("  별콩이의 한마디:오늘은 가볍게."), "오늘은 가볍게.");
+  assert.equal(stripNoteHeading("별콩이의 한마디：오늘은 가볍게."), "오늘은 가볍게."); // 전각 콜론
+  assert.equal(stripNoteHeading("별콩이의 한마디 - 오늘은 가볍게."), "오늘은 가볍게."); // 하이픈
+  assert.equal(stripNoteHeading("별콩이의 한마디\n오늘은 가볍게."), "오늘은 가볍게."); // 줄바꿈
 });
 
 test("stripNoteHeading: 접두가 없으면 그대로 둔다", () => {
@@ -17,4 +20,6 @@ test("stripNoteHeading: 접두가 없으면 그대로 둔다", () => {
   assert.equal(stripNoteHeading("별콩이의 한마디는 이거야."), "별콩이의 한마디는 이거야.");
   assert.equal(stripNoteHeading("오늘의 운세야. 별콩이의 한마디: 이건 중간에 있어."), "오늘의 운세야. 별콩이의 한마디: 이건 중간에 있어.");
   assert.equal(stripNoteHeading("   "), "");
+  // 본문이 제목뿐이면 벗기지 않는다 — 빈 카드가 되는 것보다 낫다.
+  assert.equal(stripNoteHeading("별콩이의 한마디:"), "별콩이의 한마디:");
 });

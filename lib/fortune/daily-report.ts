@@ -6,6 +6,7 @@ import type { FiveElement } from "@/lib/saju/elements";
 import type { TemporalLuck } from "@/lib/saju/calc";
 import { ELEMENT_COLOR, STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
 import { parseReportJson } from "./json-recover";
+import { stripNoteHeading } from "./note-heading";
 
 // DailyReportCard 등 기존 사용처(@/lib/fortune/daily-report 에서 import)가 깨지지 않게 re-export.
 export { ELEMENT_COLOR };
@@ -57,15 +58,6 @@ export interface DailyReport extends DailyReportAI {
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
-}
-
-/** 모델이 본문 앞에 섹션 제목을 한 번 더 붙이는 습관 방어 — "별콩이의 한마디: …" → "…".
- *  볼드(**…**)로 감싼 형태와 콜론·대시·전각 콜론을 받는다.
- *  🔴 구분자는 **필수**다(`?` 를 붙이지 말 것) — 선택으로 두면 "별콩이의 한마디를 준비했어."
- *     같은 멀쩡한 문장이 "를 준비했어."로 잘려나간다. 구분자 없는 변형을 못 벗기는 손해보다
- *     본문을 훼손하는 손해가 훨씬 크다. */
-export function stripNoteHeading(s: string): string {
-  return s.replace(/^\s*\*{0,2}별콩이의\s*한마디\*{0,2}\s*[:：—-]\s*/, "").trim();
 }
 
 /**

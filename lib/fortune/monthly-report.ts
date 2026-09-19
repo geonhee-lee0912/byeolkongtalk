@@ -6,6 +6,7 @@ import type { TemporalLuck } from "@/lib/saju/calc";
 import { DAILY_SECTIONS } from "./daily-report";
 import { STEM_ELEMENT, BRANCH_ELEMENT } from "./element";
 import { parseReportJson } from "./json-recover";
+import { stripNoteHeading } from "./note-heading";
 
 // 도메인 5개는 daily 와 동일 집합을 재사용 (아이콘/제목/순서는 DAILY_SECTIONS 가 정본).
 export type MonthlySectionKey = "money" | "work" | "love" | "health" | "study";
@@ -198,7 +199,7 @@ export function parseMonthlyReportJson(raw: string): MonthlyReportAI | null {
     // 신설 카테고리 — 구조화 스키마가 강제하지만, 누락 시 파싱 실패(→환불)로 번지지 않게 optional 처리.
     ...(isNonEmptyString(o.relationships) ? { relationships: o.relationships.trim() } : {}),
     ...(isNonEmptyString(o.emotion) ? { emotion: o.emotion.trim() } : {}),
-    note: o.note.trim(),
+    note: stripNoteHeading(o.note),
   };
 }
 
