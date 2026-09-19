@@ -15,6 +15,7 @@ import { fortuneResponseFormat } from "@/lib/fortune/response-format";
 import { fortuneModel } from "@/lib/fortune/model";
 import { generateOnce } from "@/lib/claude";
 import { getCachedDailyReport, saveDailyReport } from "@/lib/byeolmaru/daily-report";
+import { reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -59,9 +60,18 @@ export async function GET(req: NextRequest) {
     const saju = calcSaju(input);
 
     const todayKst = kstDate(new Date().toISOString());
+    // ?date= 없으면 오늘. 정책은 lib/byeolmaru/report-date.ts 가 단일 원천(스펙 §4).
+    const reqDate = req.nextUrl.searchParams.get("date");
+    const reportDate = reqDate ?? todayKst;
+    const policy = reportDatePolicy(reportDate, todayKst);
+    if (policy === "out_of_range") {
+      return NextResponse.json({ error: "date_out_of_range" }, { status: 400 });
+    }
+
     // ⚠️ includeMonth 옵션 없이 호출 — app/api/fortune/create/route.ts 의 daily 경로와 동일
     // (includeMonth:true 는 good_days 전용 30일 일진; daily/monthly 는 옵션 없이 호출한다).
-    const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year);
+    // 🔴 일진은 대상 날짜 기준으로 계산한다 — todayKst 로 계산하면 화면은 9/12 인데 본문은 오늘 일진이 된다.
+    const temporal = calcTemporalLuck(baseDateForKst(reportDate), input.year);
     if (!temporal.day) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
@@ -71,16 +81,20 @@ export async function GET(req: NextRequest) {
     saju.temporal = temporal;
 
     // 캐시 히트 — 오늘(유저,날짜) 이미 생성된 리포트가 있으면 재생성 없이 그대로 반환.
-    const cached = await getCachedDailyReport(userId, todayKst);
+    const cached = await getCachedDailyReport(userId, reportDate);
     if (cached) {
       return NextResponse.json({ report: cached });
+    }
+    // 과거는 "있던 것만" — 소급 생성하지 않는다(스펙 §4). 그때 받은 글이 아니면 기록이 아니다.
+    if (policy === "cache_only") {
+      return NextResponse.json({ report: null, reason: "not_generated" });
     }
 
     // 생성 — app/api/fortune/create/route.ts 의 daily 경로와 동일한 프롬프트·모델·파서(+실패 시 1회 재시도).
     // system 은 두 번 다 같으니 지역 클로저로 묶는다. 생성 throw 는 형제 라우트(narrative·card-narrative)
     // 처럼 {report:null} 로 흡수 — 자격자가 상류 blip 에 500 을 보지 않게(calc/DB throw 만 바깥 catch 로 500).
     const logCtx = { route: "/api/byeolmaru/daily-report", userId };
-    const system = buildFortuneSystem("daily", { saju });
+    const system = buildFortuneSystem("daily", { saju, reportDate, todayKst });
     const gen = () =>
       generateOnce(
         system,
@@ -111,7 +125,7 @@ export async function GET(req: NextRequest) {
 
     // 캐시 저장은 best-effort — 실패해도 이미 만든 리포트는 그대로 응답한다(다음 요청에서 재생성될 뿐).
     try {
-      await saveDailyReport(userId, todayKst, report);
+      await saveDailyReport(userId, reportDate, report);
     } catch (err) {
       await logError(err, ctxFromRequest(req, { ...logCtx, extra: { stage: "cache_save" } }));
     }
