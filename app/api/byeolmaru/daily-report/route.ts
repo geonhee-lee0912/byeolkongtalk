@@ -86,6 +86,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ report: cached });
     }
     // 과거는 "있던 것만" — 소급 생성하지 않는다(스펙 §4). 그때 받은 글이 아니면 기록이 아니다.
+    // 🔴 report:null 이면 reason 이 **항상** 붙는다 — "not_generated"(영구·정상)와
+    //    "generation_failed"(일시·재시도 가능)는 화면에서 다르게 보여야 한다.
     if (policy === "cache_only") {
       return NextResponse.json({ report: null, reason: "not_generated" });
     }
@@ -111,14 +113,14 @@ export async function GET(req: NextRequest) {
       if (!ai) ai = parseDailyReportJson(await gen());
     } catch (err) {
       await logError(err, ctxFromRequest(req, { ...logCtx, extra: { stage: "generate" } }));
-      return NextResponse.json({ report: null });
+      return NextResponse.json({ report: null, reason: "generation_failed" });
     }
     if (!ai) {
       await logError(
         new Error("daily report parse failed"),
         ctxFromRequest(req, { ...logCtx, extra: { stage: "daily_parse" } })
       );
-      return NextResponse.json({ report: null });
+      return NextResponse.json({ report: null, reason: "generation_failed" });
     }
 
     const report = buildDailyReport(ai, temporal);
