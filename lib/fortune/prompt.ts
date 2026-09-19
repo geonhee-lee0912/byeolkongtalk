@@ -734,15 +734,22 @@ export function buildFortuneSystem(
   const thisMonthPillar = input.saju?.temporal
     ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
     : "이번 달 월건";
-  if (type === "daily" && input.reportDate && input.todayKst) {
-    const ctx = dailyDateContextLine(input.reportDate, input.todayKst);
+  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. 한쪽만으로 켜면
+  //    지시 줄 없이 {{TODAY}} 만 갈아끼워져, 모델이 그 날짜를 진짜 오늘로 믿는다(두 조건이
+  //    따로 살면 언제든 다시 벌어진다 — 그래서 한 번만 계산해 둘이 같이 쓴다).
+  const dateOverride =
+    type === "daily" && input.reportDate && input.todayKst
+      ? { reportDate: input.reportDate, todayKst: input.todayKst }
+      : null;
+  if (dateOverride) {
+    const ctx = dailyDateContextLine(dateOverride.reportDate, dateOverride.todayKst);
     if (ctx) parts.push(ctx, "");
   }
   parts.push(
     fillGuideTokens(SECTION_GUIDE[type], {
       // 🔴 daily 에 대상 날짜가 오면 {{TODAY}} 도 그 날짜로 채운다. TODAY_KR()(서버 실제 오늘)을
       //    그대로 두면 바로 위 시제 지시 줄과 정면으로 모순돼 모델이 어느 쪽을 따를지 확률이 된다.
-      today: type === "daily" && input.reportDate ? dateKr(input.reportDate) : TODAY_KR(),
+      today: dateOverride ? dateKr(dateOverride.reportDate) : TODAY_KR(),
       thisMonth: THIS_MONTH_KR(),
       todayPillar,
       thisMonthPillar,
