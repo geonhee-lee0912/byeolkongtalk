@@ -7,6 +7,7 @@ import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
+import { dayWordFor } from "@/lib/byeolmaru/report-date";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
@@ -44,6 +45,8 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const [selected, setSelected] = useState<string | null>(null);
   const [report, setReport] = useState<DailyReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다.
+  const [notGenerated, setNotGenerated] = useState(false);
 
   async function refresh() {
     try {
@@ -60,25 +63,37 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       const wanted = initialDate && data.cells.some((c) => c.date === initialDate) ? initialDate : data.today;
       setSelected((prev) => prev ?? wanted);
 
-      // 리포트는 자격자에게만 — 비자격자는 daily-report 를 아예 호출하지 않는다(403 방지=원가0).
-      if (data.entitled) {
-        setReportLoading(true);
-        try {
-          const rRes = await fetch("/api/byeolmaru/daily-report", { cache: "no-store" });
-          const j = await rRes.json();
-          setReport(j.report ?? null);
-        } catch {
-          setReport(null);
-        }
-        setReportLoading(false);
-      } else {
-        setReport(null);
-        setReportLoading(false);
-      }
+      setReport(null); setReportLoading(false);
     } catch { setState({ kind: "error" }); return; }
   }
 
   useEffect(() => { void refresh(); }, []);
+
+  // 리포트는 선택 날짜 기준으로 따로 받아온다 — refresh() 안에 두면 날짜를 바꿔도 오늘 것만 계속 붙는다.
+  // 🔴 비자격자는 아예 호출하지 않는다(403 방지 = 원가 0).
+  const entitled = state.kind === "ready" && state.data.entitled;
+  useEffect(() => {
+    if (!entitled || !selected) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
+    let cancelled = false;
+    setReport(null);
+    setNotGenerated(false);
+    setReportLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/byeolmaru/daily-report?date=${selected}`, { cache: "no-store" });
+        const j = await res.json();
+        if (!cancelled) {
+          setReport(j.report ?? null);
+          setNotGenerated(j.reason === "not_generated");
+        }
+      } catch {
+        if (!cancelled) { setReport(null); setNotGenerated(false); }
+      } finally {
+        if (!cancelled) setReportLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [entitled, selected]);
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
 
@@ -149,11 +164,21 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
         </button>
       ) : null}
       {data.entitled && reportLoading ? (
-        <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">오늘 리포트를 펼치는 중…</section>
+        <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">{dayWordFor(cell.date, data.today)} 리포트를 펼치는 중…</section>
       ) : data.entitled && report ? (
         // DailyReportCard 는 자체 px-5 를 가진 full-bleed 블록 — main 의 p-4 와 겹쳐 이중 들여쓰기가
         // 나지 않게 -mx-4 로 가로 패딩을 상쇄한다(형제 카드들과 눈높이 맞춤).
-        <div className="-mx-4"><DailyReportCard report={report} dateLabel="오늘" /></div>
+        <div className="-mx-4">
+          <DailyReportCard
+            report={report}
+            dateLabel={cell.isToday ? "오늘" : fmtMD(cell.date)}
+            dayWord={dayWordFor(cell.date, data.today)}
+          />
+        </div>
+      ) : data.entitled && notGenerated ? (
+        <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+        </section>
       ) : (
         <PremiumBlock
           entitled={data.entitled}

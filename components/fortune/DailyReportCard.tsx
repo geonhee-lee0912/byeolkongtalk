@@ -9,9 +9,12 @@ import { MarkdownLite } from "@/lib/markdown-lite";
 export default function DailyReportCard({
   report,
   dateLabel,
+  dayWord = "오늘",
 }: {
   report: DailyReport;
   dateLabel: string | null;
+  /** 그 날을 부르는 말. 오늘이 아닌 날짜의 리포트면 "그날"(lib/byeolmaru/report-date.ts dayWordFor). */
+  dayWord?: "오늘" | "그날";
 }) {
   const { iljin } = report;
   const c1 = iljin.hanja[0] ?? iljin.stem;
@@ -28,7 +31,7 @@ export default function DailyReportCard({
         </div>
         {/* 상단 바 */}
         <div className="flex items-baseline justify-between mb-5">
-          <span className="text-[16px] font-bold text-[#1C1A24]">오늘의 운세</span>
+          <span className="text-[16px] font-bold text-[#1C1A24]">{dayWord}의 운세</span>
           {dateLabel && (
             <span className="text-[11.5px] font-semibold text-text-light/70">{dateLabel}</span>
           )}
@@ -41,7 +44,7 @@ export default function DailyReportCard({
           </div>
           <div className="mt-[7px] text-[12px] font-semibold text-[#8B84A0]">
             {iljin.stem}
-            {iljin.branch} · 오늘 들어온 기운
+            {iljin.branch} · {dayWord} 들어온 기운
           </div>
           <div className="mt-[9px] flex gap-[6px] justify-center">
             <span className="text-[10.5px] font-bold text-[#6E6880] inline-flex items-center gap-[3px]">
@@ -63,7 +66,7 @@ export default function DailyReportCard({
 
         {/* 종합운 별점 (해시태그 위) */}
         <div className="flex items-center justify-center gap-2 mb-[9px]">
-          <span className="text-[11px] font-bold text-text-light/70">오늘 종합운</span>
+          <span className="text-[11px] font-bold text-text-light/70">{dayWord} 종합운</span>
           <span className="text-[13px] tracking-[2px] text-[#C9C4D6]">
             <b className="text-eye-purple">{"★".repeat(filled)}</b>
             {"☆".repeat(5 - filled)}
@@ -85,7 +88,7 @@ export default function DailyReportCard({
 
         {/* 도입 — 오늘 들어온 두 글자 */}
         <div className="pt-[17px] mt-[18px] border-t border-lilac-mid/25">
-          <div className="text-[12.5px] font-extrabold text-[#4A4458] mb-1.5">오늘 들어온 두 글자</div>
+          <div className="text-[12.5px] font-extrabold text-[#4A4458] mb-1.5">{dayWord} 들어온 두 글자</div>
           <MarkdownLite text={report.intro} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
         </div>
 
@@ -108,7 +111,7 @@ export default function DailyReportCard({
         <div className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
           <div className="flex items-center gap-[7px] mb-1.5">
             <span className="text-[13px] opacity-85">⚖️</span>
-            <span className="text-[12.5px] font-extrabold text-[#4A4458]">오늘의 균형</span>
+            <span className="text-[12.5px] font-extrabold text-[#4A4458]">{dayWord}의 균형</span>
           </div>
           <div className="flex flex-col gap-[9px]">
             <div className="flex gap-[9px] items-start text-[13px] leading-[1.7] text-[#4F4A5E]">
