@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillGuideTokens } from "./prompt.ts";
+import { fillGuideTokens, SECTION_GUIDE } from "./prompt.ts";
 
 test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다", () => {
   const guide = [
@@ -20,4 +20,19 @@ test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다
   assert.equal(/\{\{[A-Z_]+\}\}/.test(out), false, `치환 안 된 토큰 잔여: ${out}`);
   assert.equal(out.match(/병신/g)?.length, 2);
   assert.equal(out.match(/정유/g)?.length, 2);
+  assert.ok(out.includes("2026년 9월 19일 토요일"));
+  assert.ok(out.includes("2026년 9월"));
+});
+
+test("fillGuideTokens: 실제 SECTION_GUIDE 전 타입에 잔여 토큰이 없다", () => {
+  for (const [type, guide] of Object.entries(SECTION_GUIDE)) {
+    const out = fillGuideTokens(guide, {
+      today: "2026년 9월 19일 토요일",
+      thisMonth: "2026년 9월",
+      todayPillar: "병신",
+      thisMonthPillar: "정유",
+    });
+    const left = out.match(/\{\{[A-Z_]+\}\}/g);
+    assert.equal(left, null, `${type} 에 치환 안 된 토큰: ${left?.join(", ")}`);
+  }
 });

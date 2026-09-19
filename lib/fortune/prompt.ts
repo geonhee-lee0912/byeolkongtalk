@@ -181,7 +181,7 @@ function genericGuide(opts: {
   return lines.join("\n");
 }
 
-const SECTION_GUIDE: Record<FortuneType, string> = {
+export const SECTION_GUIDE: Record<FortuneType, string> = {
   daily: [
     `오늘 날짜: ${"{{TODAY}}"}`,
     ``,
@@ -657,7 +657,9 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
 
 /** SECTION_GUIDE 의 `{{TOKEN}}` 치환. 🔴 전부 `replaceAll` — 같은 토큰이 한 템플릿에 여러 번 나온다
  *  (daily 의 {{TODAY_PILLAR}} 는 stars·intro 두 곳). `replace` 는 첫 개만 바꿔서, 남은 토큰을
- *  모델이 제 나름대로 메우며 `({"병신"})` 같은 JSON 찌꺼기가 본문에 새어 나왔다. */
+ *  모델이 제 나름대로 메우며 `({"병신"})` 같은 JSON 찌꺼기가 본문에 새어 나왔다.
+ *  ⚠️ 치환 '값'에 `$` 가 들어가면 replaceAll 이 $&·$1 같은 대체 패턴으로 해석한다. 지금 넘어오는 값
+ *     (간지 한글·ko-KR 날짜 문자열)엔 `$` 가 없어 안전하지만, 새 값을 얹을 땐 이 전제를 확인할 것. */
 export function fillGuideTokens(
   guide: string,
   v: { today: string; thisMonth: string; todayPillar: string; thisMonthPillar: string }
