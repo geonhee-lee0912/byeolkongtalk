@@ -106,6 +106,10 @@ interface FortuneInput {
   names?: { a: string; b: string };
   tarotCards?: TarotDrawnForPrompt[];
   daeun?: DaeunPillar[]; // 평생사주·인생그래프 — 대운 10년 흐름(결정론) 주입
+  /** daily 전용 — 리포트 대상 날짜(YYYY-MM-DD). 오늘이 아니면 시제 지시 줄이 붙는다. */
+  reportDate?: string;
+  /** daily 전용 — KST 오늘(YYYY-MM-DD). reportDate 와 짝으로만 쓴다. */
+  todayKst?: string;
 }
 
 /** 대운 표를 프롬프트에 주입 — 목록 밖 간지·나이는 지어내지 말 것. */
@@ -671,6 +675,22 @@ export function fillGuideTokens(
     .replaceAll("{{THIS_MONTH_PILLAR}}", v.thisMonthPillar);
 }
 
+/** daily 리포트의 대상 날짜가 오늘이 아닐 때 앞에 세우는 지시 줄. 오늘이면 null(기존 동작 그대로).
+ *  🔴 템플릿의 "오늘"을 전부 토큰으로 바꾸지 않는 이유 — daily 외 운세 타입이 같은 SECTION_GUIDE
+ *     구조를 쓰고 있어 파급이 크고, 한 줄로 시제를 덮는 편이 회귀 위험이 작다. */
+export function dailyDateContextLine(reportDate: string, todayKst: string): string | null {
+  if (reportDate === todayKst) return null;
+  const past = reportDate < todayKst;
+  const rel = past ? "지난 날" : "앞으로의 날";
+  const tense = past
+    ? "이미 지나간 날이니 '~였어/~했던 결이야'처럼 과거로 말해."
+    : "아직 오지 않은 날이니 '~할 흐름이야/~해보면 좋아'처럼 앞을 보고 말해.";
+  return [
+    `🔴 이 리포트의 대상 날짜는 ${reportDate} 이고, 오늘(${todayKst}) 기준 ${rel}이다.`,
+    `아래 형식에서 '오늘'이라고 적힌 말은 전부 그날을 가리킨다 — 본문에서는 '오늘' 대신 '그날'로 부르고, ${tense}`,
+  ].join(" ");
+}
+
 export function buildFortuneSystem(
   type: FortuneType,
   input: FortuneInput
@@ -700,6 +720,10 @@ export function buildFortuneSystem(
   const thisMonthPillar = input.saju?.temporal
     ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
     : "이번 달 월건";
+  if (type === "daily" && input.reportDate && input.todayKst) {
+    const ctx = dailyDateContextLine(input.reportDate, input.todayKst);
+    if (ctx) parts.push(ctx, "");
+  }
   parts.push(
     fillGuideTokens(SECTION_GUIDE[type], {
       today: TODAY_KR(),

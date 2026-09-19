@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillGuideTokens, SECTION_GUIDE } from "./prompt.ts";
+import { fillGuideTokens, SECTION_GUIDE, dailyDateContextLine } from "./prompt.ts";
 
 test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다", () => {
   const guide = [
@@ -35,4 +35,24 @@ test("fillGuideTokens: 실제 SECTION_GUIDE 전 타입에 잔여 토큰이 없�
     const left = out.match(/\{\{[A-Z_]+\}\}/g);
     assert.equal(left, null, `${type} 에 치환 안 된 토큰: ${left?.join(", ")}`);
   }
+});
+
+test("dailyDateContextLine: 오늘이면 줄을 넣지 않는다", () => {
+  assert.equal(dailyDateContextLine("2026-09-19", "2026-09-19"), null);
+});
+
+test("dailyDateContextLine: 지난 날이면 과거 시제를 지시한다", () => {
+  const line = dailyDateContextLine("2026-09-12", "2026-09-19")!;
+  assert.match(line, /2026-09-12/);
+  assert.match(line, /지난 날/);
+  assert.match(line, /그날/);
+  assert.equal(line.includes("앞으로"), false);
+});
+
+test("dailyDateContextLine: 앞으로의 날이면 미래 시제를 지시한다", () => {
+  const line = dailyDateContextLine("2026-09-21", "2026-09-19")!;
+  assert.match(line, /2026-09-21/);
+  assert.match(line, /앞으로/);
+  assert.match(line, /그날/);
+  assert.equal(line.includes("지난 날"), false);
 });
