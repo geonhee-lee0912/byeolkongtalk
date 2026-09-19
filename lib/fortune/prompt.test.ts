@@ -67,6 +67,9 @@ test("buildFortuneSystem(daily): reportDate 를 주면 지시 줄과 '오늘 날
   // 🔴 그리고 템플릿의 '오늘 날짜'도 같은 날이어야 한다 — 서버의 실제 오늘이 박히면 지시와 모순된다.
   assert.match(dynamicPart, /오늘 날짜: 2026년 9월 12일/);
   assert.equal(/오늘 날짜: 2026년 9월 19일/.test(dynamicPart), false);
+  // 🔴 샌드위치 — 앞(지시)과 뒤(리마인더) 양쪽에 있어야 한다. 앞에만 두면 템플릿의 "오늘" 반복에 밀린다.
+  assert.equal((dynamicPart.match(/그날/g) ?? []).length >= 2, true);
+  assert.match(dynamicPart.slice(-300), /2026-09-12/);
 });
 
 test("buildFortuneSystem: reportDate 가 없으면 예전 그대로 실제 오늘이 박힌다", () => {

@@ -757,6 +757,15 @@ export function buildFortuneSystem(
       thisMonthPillar,
     })
   );
+  if (dateOverride) {
+    // 🔴 같은 지시를 형식 블록 **뒤**에도 한 번 더 건다(샌드위치). 앞에만 두면 모델이 생성 직전
+    //    마지막으로 읽는 SECTION_GUIDE 꼬리의 "오늘" 반복에 밀린다 — 실측으로 확인됐다
+    //    (2026-09-20 리포트가 자기를 "오늘"이라 부름).
+    parts.push(
+      "",
+      `🔴 다시 확인: 이 리포트는 ${dateOverride.reportDate} 의 것이다. 위 형식에 '오늘'이라 적힌 말은 전부 그날을 가리키니, 본문에서는 '오늘' 대신 '그날'로 쓰고 시제를 맞춰라.`
+    );
+  }
 
   return {
     staticPart: getFortunePersona(),
