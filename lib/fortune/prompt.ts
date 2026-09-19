@@ -693,7 +693,11 @@ export function fillGuideTokens(
  *  🔴 템플릿의 "오늘"을 전부 토큰으로 바꾸지 않는 이유 — daily 외 운세 타입이 같은 SECTION_GUIDE
  *     구조를 쓰고 있어 파급이 크고, 한 줄로 시제를 덮는 편이 회귀 위험이 작다.
  *  전제: reportDate·todayKst 는 report-date.ts 의 isIsoDate 를 통과한 YYYY-MM-DD 다(검증은 호출부 책임).
- *  🔴 내부에서 isIsoDate 를 부르지 않는 이유 — lib/fortune → lib/byeolmaru 역방향 의존이 생긴다. */
+ *  🔴 내부에서 isIsoDate 를 부르지 않는 이유 — lib/fortune → lib/byeolmaru 역방향 의존이 생긴다.
+ *  🔴 형식 블록 뒤에 같은 지시를 한 번 더 거는 "샌드위치"를 시도했다가 되돌렸다(2026-09-19 실측 3샘플):
+ *     "그날"이 늘긴 했으나 "오늘"이 여전히 우세했고, 모델이 두 지시를 섞어 "오늘의 그날은…" 같은
+ *     비문을 만들었다. 지시 반복으로는 템플릿 안의 리터럴 "오늘"을 못 이긴다 — 진짜 해법은
+ *     SECTION_GUIDE.daily 의 "오늘"을 토큰화하거나 더 센 모델을 쓰는 것이다(P6-2). */
 export function dailyDateContextLine(reportDate: string, todayKst: string): string | null {
   if (reportDate === todayKst) return null;
   const past = reportDate < todayKst;
@@ -757,15 +761,6 @@ export function buildFortuneSystem(
       thisMonthPillar,
     })
   );
-  if (dateOverride) {
-    // 🔴 같은 지시를 형식 블록 **뒤**에도 한 번 더 건다(샌드위치). 앞에만 두면 모델이 생성 직전
-    //    마지막으로 읽는 SECTION_GUIDE 꼬리의 "오늘" 반복에 밀린다 — 실측으로 확인됐다
-    //    (2026-09-20 리포트가 자기를 "오늘"이라 부름).
-    parts.push(
-      "",
-      `🔴 다시 확인: 이 리포트는 ${dateOverride.reportDate} 의 것이다. 위 형식에 '오늘'이라 적힌 말은 전부 그날을 가리키니, 본문에서는 '오늘' 대신 '그날'로 쓰고 시제를 맞춰라.`
-    );
-  }
 
   return {
     staticPart: getFortunePersona(),
