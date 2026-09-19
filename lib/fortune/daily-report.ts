@@ -59,6 +59,12 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
 
+/** 모델이 본문 앞에 섹션 제목을 한 번 더 붙이는 습관 방어 — "별콩이의 한마디: …" → "…".
+ *  볼드(**…**)로 감싼 형태와 콜론·대시·전각 콜론을 모두 받는다. */
+export function stripNoteHeading(s: string): string {
+  return s.replace(/^\s*\*{0,2}별콩이의\s*한마디\*{0,2}\s*[:：—-]?\s*/, "").trim();
+}
+
 /**
  * AI 원문에서 JSON 추출·검증. 코드펜스/잡텍스트가 섞여도 첫 '{' ~ 마지막 '}' 만 파싱.
  * 실패하거나 필수 필드 누락 시 null. 성공 시 sections 는 표준 순서로 정렬해서 반환.
@@ -118,7 +124,7 @@ export function parseDailyReportJson(raw: string): DailyReportAI | null {
     intro: o.intro.trim(),
     sections,
     balance: { good: balance.good.trim(), warn: balance.warn.trim() },
-    note: o.note.trim(),
+    note: stripNoteHeading(o.note),
   };
 }
 
