@@ -21,6 +21,7 @@ import {
   CARD_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
+import { getCachedCardNarrative, saveCardNarrative } from "@/lib/byeolmaru/card-narrative";
 import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -39,6 +40,11 @@ export async function GET(req: NextRequest) {
     if (!ent.entitled) return NextResponse.json({ entitled: false }, { status: 403 });
 
     const todayKst = kstDate(new Date().toISOString());
+
+    // 캐시 히트 — (유저,오늘) 해석이 이미 있으면 재생성 없이 반환. 자격 게이트 뒤라 비자격자는 여기 못 온다.
+    const cached = await getCachedCardNarrative(userId, todayKst);
+    if (cached) return NextResponse.json({ entitled: true, narrative: cached });
+
     const drawn = await getTodayCard(userId, todayKst);
     if (!drawn) return NextResponse.json({ entitled: true, narrative: null }); // 아직 오늘 카드를 안 뽑음
     const tarotCard = getCard(drawn.cardId);
@@ -88,6 +94,12 @@ export async function GET(req: NextRequest) {
       if (!narrative) {
         await logError(new Error("empty card narrative"), { ...logCtx, extra: { stage: "generate_empty" } });
         return NextResponse.json({ entitled: true, narrative: null });
+      }
+      // 캐시 저장은 best-effort — 실패해도 이미 만든 해석은 그대로 응답한다(daily-report 와 동일 규율).
+      try {
+        await saveCardNarrative(userId, todayKst, narrative);
+      } catch (e) {
+        await logError(e, { ...logCtx, extra: { stage: "cache_save" } });
       }
       return NextResponse.json({ entitled: true, narrative });
     } catch (err) {
