@@ -7,7 +7,7 @@ import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
-import { dayWordFor } from "@/lib/byeolmaru/report-date";
+import { dayWordFor, reportDatePolicy, FUTURE_REPORT_DAYS } from "@/lib/byeolmaru/report-date";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
@@ -47,6 +47,8 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const [reportLoading, setReportLoading] = useState(false);
   // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다.
   const [notGenerated, setNotGenerated] = useState(false);
+  // 오늘+3일을 넘는 미래 — 생성 실패가 아니라 "아직 멀다". 재시도 문구가 뜨면 안 된다.
+  const [outOfRange, setOutOfRange] = useState(false);
 
   async function refresh() {
     try {
@@ -72,11 +74,21 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   // 리포트는 선택 날짜 기준으로 따로 받아온다 — refresh() 안에 두면 날짜를 바꿔도 오늘 것만 계속 붙는다.
   // 🔴 비자격자는 아예 호출하지 않는다(403 방지 = 원가 0).
   const entitled = state.kind === "ready" && state.data.entitled;
+  const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!entitled || !selected) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
+    if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setOutOfRange(false); return; }
+    // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 구독자는 lockedDates 가 없어 이번 달 모든 날짜를
+    //    클릭할 수 있는데, 오늘+3일을 넘으면 라우트가 400 date_out_of_range 를 준다(report·reason
+    //    둘 다 없음). 그걸 report:null 로 흡수하면 PremiumBlock 의 "숨 고르는 중"(재시도 문구)으로
+    //    떨어져 — 그 날짜가 가까워지기 전엔 영원히 안 될 일을 재시도하라고 말하게 된다.
+    if (reportDatePolicy(selected, todayKst) === "out_of_range") {
+      setReport(null); setNotGenerated(false); setOutOfRange(true); setReportLoading(false);
+      return;
+    }
     let cancelled = false;
     setReport(null);
     setNotGenerated(false);
+    setOutOfRange(false);
     setReportLoading(true);
     void (async () => {
       try {
@@ -87,13 +99,13 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           setNotGenerated(j.reason === "not_generated");
         }
       } catch {
-        if (!cancelled) { setReport(null); setNotGenerated(false); }
+        if (!cancelled) { setReport(null); setNotGenerated(false); setOutOfRange(false); }
       } finally {
         if (!cancelled) setReportLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [entitled, selected]);
+  }, [entitled, selected, todayKst]);
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
 
@@ -178,6 +190,10 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       ) : data.entitled && notGenerated ? (
         <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
           그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+        </section>
+      ) : data.entitled && outOfRange ? (
+        <section className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          그날은 아직 멀어. 앞으로 {FUTURE_REPORT_DAYS}일까지만 미리 볼 수 있어.
         </section>
       ) : (
         <PremiumBlock
