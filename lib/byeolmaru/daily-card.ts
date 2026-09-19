@@ -1,4 +1,4 @@
-// lib/byeolmaru/daily-card.ts — 오늘의 카드 조회/기록 (DB 래퍼).
+// lib/byeolmaru/daily-card.ts — 그날의 카드 조회(날짜 지정 가능) / 오늘의 카드 기록(오늘 전용) (DB 래퍼).
 import { getServiceSupabase } from "@/lib/supabase";
 import { getCardCount } from "@/lib/tarot/cards";
 
@@ -17,7 +17,9 @@ export async function getCardOn(userId: string, dateKst: string): Promise<DailyC
   return data ? { cardId: data.card_id, reversed: data.reversed } : null;
 }
 
-/** 하루 1장 멱등 기록 — 이미 오늘 카드가 있으면 그걸 반환(덮어쓰기 금지 = 재뽑기 방지). */
+/** 하루 1장 멱등 기록 — 이미 오늘 카드가 있으면 그걸 반환(덮어쓰기 금지 = 재뽑기 방지).
+ *  ⚠️ todayKst 는 반드시 **오늘**이어야 한다 — 과거·미래 백필 금지. 타입으로 못 막으니 호출부가 보장한다
+ *     (조회 getCardOn 은 날짜 자유, 기록은 오늘 고정 — 이 비대칭이 의도된 것이다). */
 export async function recordDraw(userId: string, todayKst: string, cardId: number, reversed: boolean): Promise<DailyCard> {
   const existing = await getCardOn(userId, todayKst);
   if (existing) return existing;
