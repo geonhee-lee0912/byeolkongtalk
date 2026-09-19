@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillGuideTokens, SECTION_GUIDE, dailyDateContextLine } from "./prompt.ts";
+import { fillGuideTokens, SECTION_GUIDE, dailyDateContextLine, buildFortuneSystem } from "./prompt.ts";
 
 test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다", () => {
   const guide = [
@@ -55,4 +55,22 @@ test("dailyDateContextLine: 앞으로의 날이면 미래 시제를 지시한다
   assert.match(line, /앞으로/);
   assert.match(line, /그날/);
   assert.equal(line.includes("지난 날"), false);
+});
+
+test("buildFortuneSystem(daily): reportDate 를 주면 지시 줄과 '오늘 날짜'가 같은 날을 가리킨다", () => {
+  const { dynamicPart } = buildFortuneSystem("daily", {
+    reportDate: "2026-09-12",
+    todayKst: "2026-09-19",
+  });
+  // 지시 줄이 형식 블록 앞에 들어갔다
+  assert.match(dynamicPart, /대상 날짜는 2026-09-12/);
+  // 🔴 그리고 템플릿의 '오늘 날짜'도 같은 날이어야 한다 — 서버의 실제 오늘이 박히면 지시와 모순된다.
+  assert.match(dynamicPart, /오늘 날짜: 2026년 9월 12일/);
+  assert.equal(/오늘 날짜: 2026년 9월 19일/.test(dynamicPart), false);
+});
+
+test("buildFortuneSystem: reportDate 가 없으면 예전 그대로 실제 오늘이 박힌다", () => {
+  const { dynamicPart } = buildFortuneSystem("daily", {});
+  assert.equal(/대상 날짜는/.test(dynamicPart), false);
+  assert.match(dynamicPart, /오늘 날짜: \d{4}년 \d{1,2}월 \d{1,2}일/);
 });

@@ -85,6 +85,18 @@ const TODAY_KR = () =>
     timeZone: "Asia/Seoul",
   });
 
+/** ISO YYYY-MM-DD → "2026년 9월 12일 토요일". TODAY_KR() 과 같은 형식이되 임의 날짜용.
+ *  🔴 T00:00:00Z + Asia/Seoul = 그날 09:00 KST 라 날짜가 밀리지 않는다. */
+function dateKr(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: "Asia/Seoul",
+  });
+}
+
 const THIS_MONTH_KR = () =>
   new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -677,7 +689,9 @@ export function fillGuideTokens(
 
 /** daily 리포트의 대상 날짜가 오늘이 아닐 때 앞에 세우는 지시 줄. 오늘이면 null(기존 동작 그대로).
  *  🔴 템플릿의 "오늘"을 전부 토큰으로 바꾸지 않는 이유 — daily 외 운세 타입이 같은 SECTION_GUIDE
- *     구조를 쓰고 있어 파급이 크고, 한 줄로 시제를 덮는 편이 회귀 위험이 작다. */
+ *     구조를 쓰고 있어 파급이 크고, 한 줄로 시제를 덮는 편이 회귀 위험이 작다.
+ *  전제: reportDate·todayKst 는 report-date.ts 의 isIsoDate 를 통과한 YYYY-MM-DD 다(검증은 호출부 책임).
+ *  🔴 내부에서 isIsoDate 를 부르지 않는 이유 — lib/fortune → lib/byeolmaru 역방향 의존이 생긴다. */
 export function dailyDateContextLine(reportDate: string, todayKst: string): string | null {
   if (reportDate === todayKst) return null;
   const past = reportDate < todayKst;
@@ -726,7 +740,9 @@ export function buildFortuneSystem(
   }
   parts.push(
     fillGuideTokens(SECTION_GUIDE[type], {
-      today: TODAY_KR(),
+      // 🔴 daily 에 대상 날짜가 오면 {{TODAY}} 도 그 날짜로 채운다. TODAY_KR()(서버 실제 오늘)을
+      //    그대로 두면 바로 위 시제 지시 줄과 정면으로 모순돼 모델이 어느 쪽을 따를지 확률이 된다.
+      today: type === "daily" && input.reportDate ? dateKr(input.reportDate) : TODAY_KR(),
       thisMonth: THIS_MONTH_KR(),
       todayPillar,
       thisMonthPillar,
