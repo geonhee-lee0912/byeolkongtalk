@@ -137,49 +137,68 @@ export default function DayDetailCard({
 
         {/* 그날 뽑은 카드(§4) — 한 장 안에서 사주와 타로가 만나는 자리. 요약만 싣는다(이미지·이름·
             정역·키워드): 카드 **해석**은 /byeolmaru/tarot 몫이라 여기서 되풀이하면 두 화면이 같은 걸 판다. */}
-        {(card || cardHint) && (
-          <div className="mt-4 border-t border-lilac-mid/20 pt-3">
-            <div className="mb-2 text-[12.5px] font-bold text-[#4A4458]">{dayWord} 뽑은 카드</div>
-            {card ? (
-              (() => {
-                const t = getCard(card.cardId);
-                if (!t) return null; // 카드 마스터 불일치 — 조용히 스킵(DailyCardBlock 과 같은 방어)
-                const body = (
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-14 w-[34px] shrink-0 overflow-hidden rounded shadow-sm">
-                      <Image
-                        src={getCardImagePath(card.cardId)}
-                        alt={t.name_kr}
-                        fill
-                        sizes="34px"
-                        className={`object-cover ${card.reversed ? "rotate-180" : ""}`}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-eye-purple">
-                        {t.name_kr} <span className="text-xs text-text-light">· {card.reversed ? "역위" : "정위"}</span>
-                      </p>
-                      <p className="mt-0.5 text-xs text-text-light">{(card.reversed ? t.reversed : t.upright).join(", ")}</p>
-                    </div>
-                  </div>
-                );
-                return cardHref ? <Link href={cardHref}>{body}</Link> : body;
-              })()
-            ) : (
-              <p className="text-sm text-text-light">
-                {cardHint}
-                {cardHref ? (
-                  <>
-                    {" "}
-                    <Link href={cardHref} className="text-lilac-deep underline">
-                      뽑으러 가기 →
-                    </Link>
-                  </>
-                ) : null}
-              </p>
-            )}
-          </div>
-        )}
+        {(() => {
+          // 🔴 카드 마스터 불일치 방어를 **블록 조건으로 끌어올린다.** 안쪽에서 null 을 반환하면
+          //    border-t + "그날 뽑은 카드" 헤딩만 남은 빈 껍데기가 된다 — 빈 껍데기를 남기는 건 방어가
+          //    아니다. (예전 주석의 "DailyCardBlock 과 같은 방어"는 사실이 아니었다: 저쪽은 블록 전체
+          //    IIFE 최상단에서 return null 이라 헤딩까지 함께 사라진다. 이제 여기가 그 동작과 같다.)
+          //    실도달은 isValidCardId 가 cardId 범위를 막아 거의 불가능하다.
+          const t = card ? getCard(card.cardId) : null;
+          // 그릴 카드도 없고 대신 할 말(cardHint)도 없으면 블록 자체를 숨긴다.
+          if (!t && !cardHint) return null;
+          const body = card && t ? (
+            <div className="flex items-center gap-3">
+              <div className="relative h-14 w-[34px] shrink-0 overflow-hidden rounded shadow-sm">
+                <Image
+                  src={getCardImagePath(card.cardId)}
+                  alt={t.name_kr}
+                  fill
+                  sizes="34px"
+                  className={`object-cover ${card.reversed ? "rotate-180" : ""}`}
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-eye-purple">
+                  {t.name_kr} <span className="text-xs text-text-light">· {card.reversed ? "역위" : "정위"}</span>
+                </p>
+                <p className="mt-0.5 text-xs text-text-light">{(card.reversed ? t.reversed : t.upright).join(", ")}</p>
+              </div>
+            </div>
+          ) : null;
+          return (
+            <div className="mt-4 border-t border-lilac-mid/20 pt-3">
+              {/* 🔴 굵기는 font-extrabold — 바로 아래 children 으로 들어오는 DailyReportCard(embedded)의
+                  섹션 헤딩이 같은 12.5px·같은 #4A4458 에 extrabold 다. bold 로 두면 한 장 안에서 같은
+                  위계의 헤딩이 굵기만 다르게 보인다(mb 도 1.5 로 맞췄다). */}
+              <div className="mb-1.5 text-[12.5px] font-extrabold text-[#4A4458]">{dayWord} 뽑은 카드</div>
+              {body ? (
+                // 링크면 눌리는 티를 낸다 — className 이 없으면 hover·키보드 포커스 표시가 전혀 없다.
+                cardHref ? (
+                  <Link
+                    href={cardHref}
+                    className="block rounded-lg transition hover:bg-lilac-soft/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-lilac-deep"
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  body
+                )
+              ) : (
+                <p className="text-sm text-text-light">
+                  {cardHint}
+                  {cardHref ? (
+                    <>
+                      {" "}
+                      <Link href={cardHref} className="text-lilac-deep underline">
+                        뽑으러 가기 →
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {children}
