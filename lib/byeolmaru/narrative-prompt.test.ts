@@ -207,7 +207,7 @@ test("buildCardReportSystem: 2인칭·반말·단정 금지·볼드 1개·note �
   const noteLine = sys.split("\n").find((l) => l.includes('"note"'))!;
   assert.equal(/별콩이의 한마디/.test(noteLine), false, noteLine);
   assert.ok(CARD_REPORT_KICKOFF.length > 0);
-  assert.ok(CARD_REPORT_MAX_TOKENS >= 5000, "~1,950자 JSON + 헤드룸(P6-2 Task10 실측 조정)");
+  assert.ok(CARD_REPORT_MAX_TOKENS >= 5000, "1,800자 JSON(스펙 §6-2 고정 목표) + 헤드룸");
   assert.equal(CARD_REPORT_MODEL, "gpt-5.6-luna");
 });
 

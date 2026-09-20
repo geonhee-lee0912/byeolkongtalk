@@ -222,6 +222,7 @@ export function buildCardReportSystem(i: CardReportPromptInput): string {
 export const CARD_REPORT_KICKOFF = "오늘 내 카드 풀어줘.";
 /** 오늘 타로는 사주 daily 와 같은 유료 리포트 모델(luna). pair/self 서술의 BYEOLMARU_NARRATIVE_MODEL(nano)과 별개. */
 export const CARD_REPORT_MODEL = FORTUNE_REPORT_MODEL;
-/** 목표 ~1,950자(39문장 예산, P6-2 Task10 실측 조정) JSON + 헤드룸. 미생성 토큰은 과금 없음 —
- *  MAX_TOKENS_BY_FORTUNE.daily(6000)와 같은 산정(실측 900~1,050토큰대라 6000 은 여전히 넉넉하다). */
+/** 목표 1,800자(스펙 §6-2 글자수 고정값 — 문장 수(39)에서 파생시키지 말 것, p6-2-length-probe.ts
+ *  상단 함정 설명 참조) JSON + 헤드룸. 실측(2026-09-20, P6-2 Task10 조정 후) 평균 ~1,836자·
+ *  ~1,010토큰이라 6000 은 여전히 넉넉하다. 미생성 토큰은 과금 없음 — MAX_TOKENS_BY_FORTUNE.daily(6000)와 같은 산정. */
 export const CARD_REPORT_MAX_TOKENS = 6000;

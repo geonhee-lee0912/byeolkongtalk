@@ -84,10 +84,14 @@ test("buildFortuneSystem(daily): todayKst 없이 reportDate 만 오면 날짜를
 });
 
 // ── P6-2 daily 템플릿 계약 ─────────────────────────────────────────────
-test("SECTION_GUIDE.daily: 문장 예산이 스펙 §6-2 표와 같다(1,800자 = 31~32문장)", () => {
+// 🔴 title 의 문장 합(33~34)은 스펙 §6-2 표의 "문장" 열(31~32, intro 6~7+money5+work5+love6+
+// health4+study4+note3)과 이제 다르다 — Task10 실측 조정으로 love 6→5, note 3→4문장을 바꿨기
+// 때문(card-report.ts/prompt.ts 해당 필드 주석 참조). 스펙 §6-2 의 **글자수 목표(love 300·note 140
+// 등)는 그대로 정본**이고, 문장 수는 그 목표에 도달하려고 실측으로 조정한 수단이라 스펙 표와
+// 갈라진 것 자체가 의도한 결과다 — 문장 합을 표에 맞춰 되돌리지 말 것.
+test("SECTION_GUIDE.daily: 문장 예산이 P6-2 Task10 실측 조정을 반영한다(33~34문장, 글자 목표는 스펙 §6-2 그대로)", () => {
   const g = SECTION_GUIDE.daily;
   assert.match(g, /"intro": "<[^>]*6~7문장/);
-  // P6-2 Task10(2026-09-20) 실측 조정으로 love 6→5문장(초과 경향), note 3→4문장(부족 경향).
   assert.match(g, /"key": "love",\s*"body": "<[^>]*5문장/);
   assert.match(g, /"key": "money",\s*"body": "<[^>]*5문장/);
   assert.match(g, /"key": "work",\s*"body": "<[^>]*5문장/);
