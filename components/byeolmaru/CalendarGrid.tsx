@@ -136,7 +136,7 @@ export default function CalendarGrid({
                 const offset = Math.round(
                   (Date.parse(`${c.date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000
                 );
-                trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind } });
+                trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind, surface: "grid" } });
                 onSelect(c.date);
               }}
               aria-label={`${c.date} ${c.label}${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}

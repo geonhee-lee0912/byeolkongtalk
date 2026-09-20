@@ -91,7 +91,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
             key={date}
             type="button"
             onClick={() => {
-              trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: cell.tone, subjectKind } });
+              trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: cell.tone, subjectKind, surface: "strip" } });
               onSelect(date);
             }}
             aria-label={`${date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}

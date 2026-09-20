@@ -41,7 +41,14 @@ export const UI_EVENTS = [
   "recharge_payment_started",
   /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
   "result_cta_clicked",
-  /** 별마루 — 캘린더 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution", subjectKind:"me"|"pair"(나/우리 축 — §13 offset≠0 비율 관문의 사후 필터링에 필요)} */
+  /** 별마루 — 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution",
+   *  subjectKind:"me"|"pair"(나/우리 축 — offset≠0 비율 관문의 사후 필터링에 필요),
+   *  surface:"strip"|"grid"}
+   *  🔴 surface 없이는 P6-3 이후 이 이벤트가 **두 지면에서 같은 모양으로** 나와 영영 못 가른다.
+   *     스펙 §10 의 첫 관문("한 달 조망이 필요한가")은 격자를 펼친 수가 아니라 **격자에서 실제로
+   *     날짜를 고른 수**로 답해야 하는데, 그 분해가 이 필드 하나에 달려 있다.
+   *  ⚠️ P6-3 배포일에 이 이벤트의 **구성**이 꺾인다(격자 기본 접힘 + 스트립 신설) — 이름이 같아도
+   *     추세선 단절이 있으니 행동 변화로 오독하지 말 것. */
   "byeolmaru_day_selected",
   /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출) */
   "byeolmaru_slot_clicked",
