@@ -44,8 +44,10 @@ export const DAY_LINE: Record<TenGod, string> = {
 
 export type DayGlyph = "✧" | "◇" | "△" | "＋";
 
-/** 마크 강도 — 우리 탭에서 **두 사람 다** 걸리면 full, 한 명만이면 half(스펙 §3-1-a).
- *  점수도 같은 규칙으로 가중되므로 시각과 점수가 어긋나지 않는다. 나 탭은 사람이 하나라 항상 full. */
+/** 마크 강도 — 우리 탭의 **가중되는 신호**(끌림·결속)에서 두 사람 다면 full, 한 명만이면 half(§3-1-a).
+ *  🔴 규칙은 "둘이냐 한 명이냐"가 아니라 **"점수가 깎였느냐"**다. 삐걱은 한 명만 충이어도 점수가
+ *     -14 그대로라 발화하면 항상 full 이다 — 시각이 점수를 따라가지, 머릿수를 따라가지 않는다.
+ *  나 탭은 사람이 하나라 항상 full. */
 export type MarkStrength = "full" | "half";
 
 export interface DayMark {

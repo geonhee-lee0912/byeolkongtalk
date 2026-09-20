@@ -10,14 +10,19 @@ import type { DayMark } from "./day-label.ts";
 export type PairTone = "good" | "normal" | "caution";
 
 export interface PairDayTags {
-  /** 둘 중 **한 명이라도** 걸렸나 — 표시·서술이 쓰는 값(narrative-prompt·static-lines 무회귀). */
+  /** 둘 중 **한 명이라도** 걸렸나.
+   *  🔴 서술(`narrative-prompt`)과 무료 카피(`static-lines`)는 **의도적으로 이 값만 읽는다** —
+   *     "끌림이 있다"는 사실 자체는 한 명이든 둘이든 참이고, **정도**는 점수·톤과 마크 농도가 진다.
+   *     한 명짜리 전용 문장 뱅크를 새로 파는 건 문장이 자연히 담지 못하는 구분에 콘텐츠를 두 배로
+   *     들이는 일이라 하지 않는다(P6-3 에서 명시적으로 내린 결정 — "컴파일이 되니까"가 아니다). */
   spark: boolean;
-  /** 둘 **다** 걸렸나 — 점수 가중과 마크 강도가 쓰는 값(스펙 §3-1-a). */
+  /** 둘 **다** 걸렸나 — 점수 가중(full vs 절반)과 마크 농도가 쓰는 값(스펙 §3-1-a). */
   sparkBoth: boolean;
   bond: boolean;
   bondBoth: boolean;
+  /** 🔴 삐걱엔 Both 짝이 없다 — 점수가 가중되지 않기 때문이다(한 명만 충이어도 -14 그대로).
+   *     가중되지 않는 신호에 Both 플래그를 두면 마크만 절반으로 깎는 오배선을 다시 부른다. */
   friction: boolean;
-  frictionBoth: boolean;
   lead: "me" | "partner" | null;
 }
 
@@ -97,7 +102,7 @@ function pairDayScoreAndTags(a: SajuResult, b: SajuResult, d: DailyLuck) {
     tags: {
       spark: sparkN > 0, sparkBoth: sparkN === 2,
       bond: bondN > 0, bondBoth: bondN === 2,
-      friction: frictionN > 0, frictionBoth: frictionN === 2,
+      friction: frictionN > 0,
       lead,
     } satisfies PairDayTags,
   };
@@ -122,6 +127,8 @@ export function pairMarks(tags: PairDayTags): DayMark[] {
   // 둘 다일 때만 마크를 띄우면 30일에 0.3번이라 사실상 마크 폐지가 된다 — 그래서 끄지 않고 연하게 쓴다.
   if (tags.spark) out.push({ glyph: "✧", label: "끌림", strength: tags.sparkBoth ? "full" : "half" });
   if (tags.bond) out.push({ glyph: "◇", label: "결속", strength: tags.bondBoth ? "full" : "half" });
-  if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: tags.frictionBoth ? "full" : "half" });
+  // 🔴 삐걱만 발화하면 **항상 full** 이다 — 점수가 평평하기 때문이다(한 명만 충이어도 -14 그대로).
+  //    여기서 half 로 깎으면 "충분히 조심하라"는 점수와 "약한 신호"라는 시각이 정면으로 어긋난다.
+  if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: "full" });
   return out;
 }
