@@ -65,3 +65,11 @@ test("isMetricKey — 모르는 키를 걸러낸다(런타임 문자열 방어)"
   assert.equal(isMetricKey("없는지표"), false);
   assert.equal(isMetricKey("revenue_won"), true);
 });
+
+test("isMetricKey — 프로토타입 체인의 이름을 지표로 오인하지 않는다", () => {
+  // `in` 연산자는 프로토타입까지 검사해 이것들을 전부 통과시킨다. 런타임 문자열을
+  // 거르라고 만든 함수라 여기서 새면 플랜 B 화면에 undefined 가 뜬다.
+  for (const fake of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+    assert.equal(isMetricKey(fake), false, `${fake} 가 지표 키로 통과했다`);
+  }
+});

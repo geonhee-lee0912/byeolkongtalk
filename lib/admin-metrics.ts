@@ -298,7 +298,7 @@ export interface GateResult {
  * 플랜 B 에서 쿼리 파라미터 같은 런타임 문자열로 키가 들어올 때 이걸로 좁힌 뒤 METRICS 를 조회한다.
  */
 export function isMetricKey(key: string): key is MetricKey {
-  return key in METRICS;
+  return Object.hasOwn(METRICS, key); // `in` 은 프로토타입 체인을 타 "__proto__"·"constructor" 를 통과시킨다
 }
 
 /**
