@@ -12,6 +12,10 @@ import {
   PAIR_NARRATIVE_MAX_TOKENS,
   buildCardNarrativeSystem,
   CARD_NARRATIVE_KICKOFF,
+  buildCardReportSystem,
+  CARD_REPORT_KICKOFF,
+  CARD_REPORT_MAX_TOKENS,
+  CARD_REPORT_MODEL,
 } from "./narrative-prompt.ts";
 import { buildCalendar, monthRange } from "./calendar.ts";
 import type { DayCell } from "./calendar.ts";
@@ -127,6 +131,79 @@ test("buildCardNarrativeSystem: 카드명·정역·규칙·오늘 축·분량·4
   assert.ok(/700~900자|흐르는 줄글/.test(sys), "~800자 분량 지침");
   assert.ok(/애정|관계/.test(sys) && /조언/.test(sys), "4비트(애정+조언) 구성 지침");
   assert.ok(CARD_NARRATIVE_KICKOFF.length > 0);
+});
+
+test("buildCardReportSystem: 카드·정역·사주·일진·등급 그라운딩 + 7블록 JSON 형식 + 문장 예산", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const card = getCard(36)!; // 컵 에이스
+  const grade = { label: "잘 맞는 날", tone: "good" } as const;
+  const axes = { love: 63, work: 55, money: 40 };
+  const gauge = { love: { base: 63, delta: 12 }, money: { base: 40, delta: 0 }, work: { base: 55, delta: 0 } };
+  const sys = buildCardReportSystem({
+    saju: a, card, reversed: false, todayGanji: "임오", todayKst: "2026-09-20",
+    grade, axes, gauge, freeTaste: "안녕, 나 별콩이야. 컵 에이스는 마음이 새로 차오르는 카드야.",
+  });
+  assert.ok(sys.includes(card.name_kr));
+  assert.match(sys, /정위/);
+  assert.ok(sys.includes("임오") && sys.includes("잘 맞는 날"));
+  for (const k of ["place", "love", "work", "mind", "caution", "move", "note"]) assert.ok(sys.includes(`"${k}"`), k);
+  assert.match(sys, /"place": "<[^>]*8문장/);
+  assert.match(sys, /"love": "<[^>]*6문장/);
+  assert.match(sys, /"mind": "<[^>]*5문장/);
+  assert.match(sys, /"caution": "<[^>]*4문장/);
+  assert.match(sys, /"note": "<[^>]*3문장/);
+  assert.equal(/700~900자|흐르는 줄글/.test(sys), false, "구 자유 줄글 지시가 남아 있다");
+});
+
+test("buildCardReportSystem: 역할분리 — 화면에 뜬 무료 taste 를 알고, 상징 재설명·반복을 막는다(§6-4)", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const card = getCard(0)!;
+  const gauge = { love: { base: 50, delta: 6 }, money: { base: 50, delta: 6 }, work: { base: 50, delta: 6 } };
+  const taste = "완벽한 타이밍을 기다리기보다, 지금 낼 수 있는 추진력으로 밀고 나가는 게 오늘은 더 잘 맞아.";
+  const sys = buildCardReportSystem({
+    saju: a, card, reversed: false, todayGanji: "임오", todayKst: "2026-09-20",
+    grade: { label: "무난한 날", tone: "normal" }, axes: { love: 50, money: 50, work: 50 }, gauge, freeTaste: taste,
+  });
+  assert.ok(sys.includes(taste), "무료 taste 원문이 프롬프트에 있어야 '이건 이미 말했다'가 된다");
+  assert.match(sys, /상징[^\n]*(다시|재)설명[^\n]*(마|금지)/);
+  assert.match(sys, /어디에 떨어지|어떻게 부딪|어디서 받쳐/);
+  const noTaste = buildCardReportSystem({
+    saju: a, card, reversed: true, todayGanji: "임오", todayKst: "2026-09-20",
+    grade: { label: "무난한 날", tone: "normal" }, axes: { love: 50, money: 50, work: 50 }, gauge, freeTaste: null,
+  });
+  assert.match(noTaste, /역위/);
+});
+
+test("buildCardReportSystem: 게이지 보정이 말로 들어가고 숫자 누출은 금지된다", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const cups = getCard(36)!;
+  const base = {
+    saju: a, card: cups, todayGanji: "임오", todayKst: "2026-09-20",
+    grade: { label: "무난한 날", tone: "normal" } as const, axes: { love: 50, money: 50, work: 50 }, freeTaste: null,
+  };
+  const up = buildCardReportSystem({ ...base, reversed: false, gauge: { love: { base: 50, delta: 12 }, money: { base: 50, delta: 0 }, work: { base: 50, delta: 0 } } });
+  assert.match(up, /연애[^\n]*살짝 밀어올/);
+  const rev = buildCardReportSystem({ ...base, reversed: true, gauge: { love: { base: 50, delta: -12 }, money: { base: 50, delta: 0 }, work: { base: 50, delta: 0 } } });
+  assert.match(rev, /연애[^\n]*살짝 눌러/);
+  assert.match(up, /숫자[^\n]*(말하지|쓰지) ?마/);
+});
+
+test("buildCardReportSystem: 2인칭·반말·단정 금지·볼드 1개·note 머리말 금지 규칙", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const sys = buildCardReportSystem({
+    saju: a, card: getCard(7)!, reversed: false, todayGanji: "임오", todayKst: "2026-09-20",
+    grade: { label: "무난한 날", tone: "normal" }, axes: { love: 50, money: 50, work: 50 },
+    gauge: { love: { base: 50, delta: 0 }, money: { base: 50, delta: 0 }, work: { base: 50, delta: 12 } }, freeTaste: null,
+  });
+  assert.match(sys, /2인칭|'너'/);
+  assert.match(sys, /반말/);
+  assert.match(sys, /단정/);
+  assert.match(sys, /굵게[^\n]*정확히 1개|첫 구절[^\n]*굵게/);
+  const noteLine = sys.split("\n").find((l) => l.includes('"note"'))!;
+  assert.equal(/별콩이의 한마디/.test(noteLine), false, noteLine);
+  assert.ok(CARD_REPORT_KICKOFF.length > 0);
+  assert.ok(CARD_REPORT_MAX_TOKENS >= 5000, "1,800자 JSON + 헤드룸");
+  assert.equal(CARD_REPORT_MODEL, "gpt-5.6-luna");
 });
 
 test("buildNarrativeSystem — 화면에 뜬 하루 이름을 프롬프트가 알고, 재설명을 막는다", () => {

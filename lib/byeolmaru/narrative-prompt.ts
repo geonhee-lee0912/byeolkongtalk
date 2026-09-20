@@ -9,6 +9,10 @@ import type { PairDayCell, PairBackdrop } from "./pair-day.ts";
 import { PAIR_TONE_LABEL } from "./pair-day.ts";
 import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
 import { DAY_NAME } from "./day-label.ts";
+import type { CardGauge } from "./card-gauge.ts";
+import { CARD_REPORT_BLOCKS } from "./card-report.ts";
+import type { CardReportBlockKey } from "./card-report.ts";
+import { FORTUNE_REPORT_MODEL } from "@/lib/fortune/model";
 
 // 정적 티저(시안 C 첫 줄) — 등급 tone 별. ⑥에서 개인화-forward 훅으로 리파인.
 // 🔴 골격 문장(DayDetailCard, tone×relation)과 같은 화면에 인접하므로 "하루 읽기"를 복제하지
@@ -53,7 +57,7 @@ export function buildNarrativeSystem(saju: SajuResult, cell: DayCell, todayGanji
 }
 
 export const NARRATIVE_KICKOFF = "오늘 내 흐름 풀어줘.";
-export const BYEOLMARU_NARRATIVE_MODEL = "gpt-5-nano"; // 원가 최소(daily 와 동일 정책)
+export const BYEOLMARU_NARRATIVE_MODEL = "gpt-5-nano"; // 원가 최소 — 나/우리 오늘 서술 전용. daily 리포트·카드 리포트(luna)와는 별개 정책(P6-2)
 export const NARRATIVE_MAX_TOKENS = 900;
 
 // 우리 오늘 서술 — ②-a buildNarrativeSystem 미러(나 1인 → 나+상대 2인). loadCore/formatPillars 공용.
@@ -128,6 +132,7 @@ export const PAIR_NARRATIVE_MAX_TOKENS = 4000;
 // 오늘의 카드 서술(유료 리치) — 나 1인 + 오늘 뽑은 타로 1장 + 오늘 사주 흐름(등급·축).
 // 무료 정적 taste(getCardTaste, ~350자 비개인화)와의 차별점 = 카드를 이 사람의 사주·오늘 축
 // (애정/일)에 얹은 ~800자 개인화 서술. loadCore/formatPillars 공용, buildNarrativeSystem 미러.
+/** @deprecated buildCardReportSystem 으로 대체(P6-2 §6-2). Task 8 에서 이 함수를 마지막으로 부르는 라우트와 함께 제거 예정 — 새 호출처에 쓰지 말 것. */
 export function buildCardNarrativeSystem(
   saju: SajuResult,
   card: TarotCard,
@@ -156,3 +161,87 @@ export const CARD_NARRATIVE_KICKOFF = "오늘 내 카드 풀어줘.";
 // ~500자로 눌려 어절 중간 잘림이 실측됐다. daily(4500→~2,100자) 비율 + 추론 편차 헤드룸으로 3000.
 // (미생성 토큰은 과금 안 됨 — 상한만 넉넉히, 실분량은 프롬프트의 700~900자 지침이 잡는다.)
 export const CARD_NARRATIVE_MAX_TOKENS = 3000;
+
+// ── 오늘 타로 7블록 리포트(유료) — P6-2 ────────────────────────────────────────────────────
+// 스펙 2026-09-19 §6-2(7블록·1,800자) §6-3(게이지 정합) §6-4(역할분리) §6-5(볼드 1개).
+// 무료(정적 taste ~389자)는 "그 카드가 어떤 카드인지"를 이미 말했다. 유료는 "네 사주·오늘 일진의 어디에
+// 떨어지는지"만 말한다 — 같은 카드 한 장을 둘 다 읽으니 의미 중복을 완전히 피하긴 어렵고(실측 §6-4),
+// 그래서 무료 원문을 프롬프트에 넣어 "이건 이미 말했다"를 모델이 보게 한다(buildNarrativeSystem 의 DAY_NAME 장치와 같은 원리).
+
+export interface CardReportPromptInput {
+  saju: SajuResult;
+  card: TarotCard;
+  reversed: boolean;
+  /** 오늘 일진 한글(예: "병신"). */
+  todayGanji: string;
+  /** KST 오늘(YYYY-MM-DD). 카드는 오늘만 뽑히므로 대상 날짜 = 오늘. */
+  todayKst: string;
+  grade: DayGrade;
+  axes: AxisScores;
+  /** 사주 축 위 카드 보정(card-gauge.ts). 본문이 게이지와 어긋나지 않게 말로 풀어 넣는다. */
+  gauge: CardGauge;
+  /** 화면에 이미 떠 있는 무료 정적 taste 원문(getCardTaste). 뱅크 미스면 null. */
+  freeTaste: string | null;
+}
+
+const AXIS_KR: Record<"love" | "money" | "work", string> = { love: "연애", money: "돈", work: "일" };
+
+/** 게이지 보정 → 말. "연애 축을 살짝 밀어올려" / "일 축을 살짝 눌러". 0 인 축은 언급하지 않는다. */
+function gaugeLine(g: CardGauge): string {
+  const parts: string[] = [];
+  for (const k of ["love", "money", "work"] as const) {
+    const d = g[k].delta;
+    if (d > 0) parts.push(`${AXIS_KR[k]} 축을 살짝 밀어올려`);
+    else if (d < 0) parts.push(`${AXIS_KR[k]} 축을 살짝 눌러`);
+  }
+  return parts.length ? `이 카드는 오늘 사주 위에서 ${parts.join(", ")}. 폭은 작다 — 카드가 하루를 뒤집진 않는다.` : "이 카드는 오늘 축을 크게 건드리지 않는다.";
+}
+
+// CARD_REPORT_BLOCKS(card-report.ts) → key 별 문장 예산 lookup. 플랜 원안 Object.fromEntries(...) as
+// Record<string,{sentences:number}> 는 tsc 는 통과하지만(Object.fromEntries 인자가 튜플이 아닌 일반
+// 배열이라 오버로드가 any 로 빠지고 as 는 그 any 를 대상 타입으로 바꾸는 것뿐), Record 의 키를 string 으로
+// 두면 b.pace 같은 오타도 그대로 타입을 통과해 런타임 undefined 로만 걸린다. 대신 인자를
+// CardReportBlockKey 로 좁힌 Record 를 시도했더니(더 안전해 보였지만) "인덱스 시그니처 → 특정 리터럴
+// 키" 방향은 단일 as 캐스트가 안 먹혀 tsc 가 실제로 에러를 냈다(요구: as unknown as ... 이중 캐스트) —
+// 캐스트를 늘리는 대신, 캐스트가 아예 없는 .find() 헬퍼로 바꿔 오타를 컴파일 타임에 잡는다.
+function blockSentences(key: CardReportBlockKey): number {
+  return CARD_REPORT_BLOCKS.find((x) => x.key === key)!.sentences;
+}
+
+export function buildCardReportSystem(i: CardReportPromptInput): string {
+  const orient = i.reversed ? "역위" : "정위";
+  const kw = (i.reversed ? i.card.reversed : i.card.upright).join(", ");
+  return [
+    loadCore(), "",
+    "# 별마루 오늘 타로 리포트",
+    `오늘 날짜: ${i.todayKst}. 오늘 일진은 ${i.todayGanji}.`,
+    `너는 이 사람이 오늘 뽑은 타로 한 장을, 그 사람의 사주와 오늘 흐름에 얹어 7블록 리포트로 풀어준다.`,
+    `카드: ${i.card.name_kr} (${orient}). 키워드: ${kw}.`,
+    `이 사람: ${formatPillars(i.saju)}.`,
+    `오늘 등급 ${i.grade.label}. 오늘 사주 축(연애 ${i.axes.love}·돈 ${i.axes.money}·일 ${i.axes.work}) — 참고용이고 본문에 숫자로 쓰지 마.`,
+    gaugeLine(i.gauge),
+    "",
+    "[역할] 화면엔 이미 카드 그림·이름·정역·키워드와 아래 무료 소개가 떠 있다:",
+    i.freeTaste ? `«${i.freeTaste}»` : "«(무료 소개 없음 — 그래도 카드가 어떤 카드인지는 화면 키워드가 말한다)»",
+    "그러니 이 카드의 상징이나 전통 의미를 재설명하지 마. 위 소개와 같은 메시지를 되풀이하지 마. 이 리포트가 할 일은 **이 카드가 네 사주 일간·오늘 일진의 어디에 떨어지는지** — 어디서 받쳐주고 어디서 부딪히는지 — 와, 그래서 오늘 벌어질 장면과 그때의 선택이다.",
+    "",
+    "출력은 **아래 JSON 하나만**. 앞뒤 설명·코드펜스 금지.",
+    "{",
+    `  "place": "<🃏 이 카드가 온 자리. 카드의 결(정/역)이 오늘 일진 ${i.todayGanji} 과 네 일간 ${i.saju.dayStem}(${i.saju.dayElement}) 사이 어디에 떨어지는지 — 받쳐주는 지점·부딪히는 지점을 근거로. ${blockSentences("place")}문장.>",`,
+    `  "love": "<💗 오늘 애정·관계. 카드 결을 오늘 연애 흐름에 얹어 벌어질 장면 1~2개와 그때 건넬 말·태도. ${blockSentences("love")}문장.>",`,
+    `  "work": "<💼 오늘 일·돈. 일터와 돈이 오가는 장면 1~2개, 그때의 선택. ${blockSentences("work")}문장.>",`,
+    `  "mind": "<🌙 카드가 비추는 마음. 오늘 네 내면·멘탈 결 — 어떤 마음이 올라오고 어떻게 다루면 좋은지(타로 고유 재료, 위 세 블록과 다른 재료로). ${blockSentences("mind")}문장.>",`,
+    `  "caution": "<⚠️ 오늘 조심할 하나. 딱 하나만, 장면으로${i.reversed ? " — 역위라 이 블록이 특히 중요하다" : ""}. 겁주지 말고 따뜻한 대비로. ${blockSentences("caution")}문장.>",`,
+    `  "move": "<✨ 오늘의 한 수. 실행 단위 1~2개(언제·무엇을 손에 잡히게). ${blockSentences("move")}문장.>",`,
+    `  "note": "<따뜻한 마무리 ${blockSentences("note")}문장. 제목·머리말('○○의 한마디:' 같은 라벨) 없이 본문 문장으로 바로 시작.>"`,
+    "}",
+    "",
+    "[규칙] 반드시 별콩이가 상대에게 직접 말하는 2인칭 '너'로(그 사람을 '이 사람'이라 3인칭으로 부르지 마). 반말, 단정적 예언 금지(흐름·가능성·선택). 블록마다 **다른 재료**를 써 — 같은 말을 바꿔 쓰며 늘리지 말고 장면과 예시로 채워(카드 한 장이라 재료가 겹치기 쉬우니 위 각 블록의 재료 지시를 지켜). 축 점수나 게이지 숫자를 본문에 쓰지 마. 문장 수는 위에 적은 대로 지켜.",
+    "[서식] 각 블록은 **첫 구절(핵심 어구 하나)만 굵게** — 블록당 정확히 1개, 그 외 굵게 금지. 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n). 불릿·콜아웃·제목·번호 금지. JSON 문자열 안 큰따옴표는 escape(\\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프(생 줄바꿈 금지).",
+  ].join("\n");
+}
+export const CARD_REPORT_KICKOFF = "오늘 내 카드 풀어줘.";
+/** 오늘 타로는 사주 daily 와 같은 유료 리포트 모델(luna). pair/self 서술의 BYEOLMARU_NARRATIVE_MODEL(nano)과 별개. */
+export const CARD_REPORT_MODEL = FORTUNE_REPORT_MODEL;
+/** 목표 1,800자 JSON(≈1,000~1,800토큰) + 헤드룸. 미생성 토큰은 과금 없음 — MAX_TOKENS_BY_FORTUNE.daily(6000)와 같은 산정. */
+export const CARD_REPORT_MAX_TOKENS = 6000;
