@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fillGuideTokens, SECTION_GUIDE, dailyDateContextLine, buildFortuneSystem } from "./prompt.ts";
+import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 
 test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다", () => {
   const guide = [
@@ -45,7 +46,7 @@ test("dailyDateContextLine: 지난 날이면 과거 시제를 지시한다", () 
   const line = dailyDateContextLine("2026-09-12", "2026-09-19")!;
   assert.match(line, /2026-09-12/);
   assert.match(line, /지난 날/);
-  assert.match(line, /그날/);
+  assert.match(line, /과거로 말해/);
   assert.equal(line.includes("앞으로"), false);
 });
 
@@ -53,7 +54,7 @@ test("dailyDateContextLine: 앞으로의 날이면 미래 시제를 지시한다
   const line = dailyDateContextLine("2026-09-21", "2026-09-19")!;
   assert.match(line, /2026-09-21/);
   assert.match(line, /앞으로/);
-  assert.match(line, /그날/);
+  assert.match(line, /앞을 보고 말해/);
   assert.equal(line.includes("지난 날"), false);
 });
 
@@ -120,10 +121,18 @@ test("fillGuideTokens: dayWord 기본값은 '오늘', 넘기면 '그날'", () =>
   assert.equal(fillGuideTokens(g, { ...v, dayWord: "그날" }), "그날 들어온 두 글자 / 그날 종합운");
 });
 
-test("buildFortuneSystem(daily): 대상 날짜가 오늘이 아니면 형식 블록도 '그날'로 말한다", () => {
-  const { dynamicPart } = buildFortuneSystem("daily", { reportDate: "2026-09-12", todayKst: "2026-09-19" });
+test("buildFortuneSystem(daily): 대상 날짜가 오늘이 아니면 사주판 일진 블록·형식 블록·지시 줄 전부 '그날'로 말한다", () => {
+  // 🔴 라우트는 항상 saju 를 넘긴다 — saju 없이 부르면 sajuBlock 분기가 통째로 빠져
+  // "제목은 오늘, 지시는 그날"이던 실제 결함(§11-1-1)을 이 테스트가 놓친다.
+  const saju = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  saju.temporal = calcTemporalLuck(baseDateForKst("2026-09-12"), 1996);
+  const { dynamicPart } = buildFortuneSystem("daily", { saju, reportDate: "2026-09-12", todayKst: "2026-09-19" });
+  assert.equal((dynamicPart.match(/오늘/g) ?? []).length, 0, dynamicPart); // 데이터 블록·형식 블록·지시 줄 전부
   assert.match(dynamicPart, /그날 들어온 두 글자/);
-  assert.equal(/오늘 들어온 두 글자/.test(dynamicPart), false);
-  const today = buildFortuneSystem("daily", { reportDate: "2026-09-19", todayKst: "2026-09-19" }).dynamicPart;
-  assert.match(today, /오늘 들어온 두 글자/);
+
+  // 무회귀 — 오늘 모드(reportDate === todayKst)에서는 사주판 일진 블록도 그대로 "오늘"이다.
+  const sajuToday = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  sajuToday.temporal = calcTemporalLuck(baseDateForKst("2026-09-19"), 1996);
+  const today = buildFortuneSystem("daily", { saju: sajuToday, reportDate: "2026-09-19", todayKst: "2026-09-19" }).dynamicPart;
+  assert.match(today, /\[오늘 들어온 두 글자/);
 });

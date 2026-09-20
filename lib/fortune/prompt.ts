@@ -16,7 +16,7 @@ function getFortunePersona(): string {
   return _persona;
 }
 
-function sajuBlock(saju: SajuResult, heading = "사주판"): string {
+function sajuBlock(saju: SajuResult, heading = "사주판", dayWord: "오늘" | "그날" = "오늘"): string {
   const p = saju.pillars;
   const elementsLine = Object.entries(saju.elementCount)
     .map(([el, n]) => `${el} ${n}`)
@@ -31,14 +31,18 @@ function sajuBlock(saju: SajuResult, heading = "사주판"): string {
     `  - 음양: 양 ${saju.yinYangCount.yang} / 음 ${saju.yinYangCount.yin}`,
     `  - 입력: ${saju.input.inputCalendar === "lunar" ? "음력" : "양력"}${saju.input.isLeapMonth ? " 윤달" : ""} / 성별 ${saju.input.gender}`,
   ];
-  // 오늘의 일진 — daily 리포트에서 "오늘 들어온 두 글자" 설명에 필수로 사용
+  // 오늘/그날의 일진 — daily 리포트에서 "~ 들어온 두 글자" 설명에 필수로 사용.
+  // dayWord 기본값 "오늘" — monthly·good_days 는 항상 오늘 기준이라 no-op, compat·compat_social 은
+  // temporal 을 안 주입해 이 블록 자체가 안 뜬다. "그날"은 buildFortuneSystem 이 daily 이고 대상
+  // 날짜가 실제 오늘이 아닐 때만 넘긴다(P6-2 §11-1-1 — 안 그러면 이 블록만 "오늘"로 남아 형식
+  // 블록의 "그날" 지칭과 어긋난다).
   if (saju.temporal) {
     const d = saju.temporal.day;
     lines.push(
       ``,
-      `[오늘 들어온 두 글자 — 오늘의 일진]`,
-      `  - 오늘의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
-      `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 오늘 하루 기운의 핵심.`
+      `[${dayWord} 들어온 두 글자 — ${dayWord}의 일진]`,
+      `  - ${dayWord}의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
+      `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 ${dayWord} 하루 기운의 핵심.`
     );
     // good_days 리포트 전용 — 세운/월운 + 향후 30일 일진. 이 목록 밖 날짜·간지는 절대 지어내지 말 것.
     if (saju.temporal.dailyLuck?.length) {
@@ -708,8 +712,8 @@ export function dailyDateContextLine(reportDate: string, todayKst: string): stri
     ? "이미 지나간 날이니 '~였어/~했던 결이야'처럼 과거로 말해."
     : "아직 오지 않은 날이니 '~할 흐름이야/~해보면 좋아'처럼 앞을 보고 말해.";
   return [
-    `🔴 이 리포트의 대상 날짜는 ${reportDate} 이고, 오늘(${todayKst}) 기준 ${rel}이다.`,
-    `아래 형식에서 '오늘'이라고 적힌 말은 전부 그날을 가리킨다 — 본문에서는 '오늘' 대신 '그날'로 부르고, ${tense}`,
+    `🔴 이 리포트의 대상 날짜는 ${reportDate} 이고, 지금(${todayKst}) 기준 ${rel}이다.`,
+    tense,
   ].join(" ");
 }
 
@@ -718,16 +722,28 @@ export function buildFortuneSystem(
   input: FortuneInput
 ): { staticPart: string; dynamicPart: string } {
   const parts: string[] = [];
+  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. 한쪽만으로 켜면
+  //    지시 줄 없이 {{TODAY}} 만 갈아끼워져, 모델이 그 날짜를 진짜 오늘로 믿는다(두 조건이
+  //    따로 살면 언제든 다시 벌어진다 — 그래서 한 번만 계산해 둘이 같이 쓴다).
+  // 🔴 sajuBlock 호출보다 먼저 계산한다 — sajuBlock 의 일진 블록도 같은 dayWord 를 받는다.
+  //    아래에서(포맷 블록 직전에) 따로 계산하면 sajuBlock 은 항상 기본값 "오늘"로 조용히 남아,
+  //    형식 블록은 "그날"인데 데이터 블록 제목은 "오늘"인 모순이 재발한다(P6-2 §11-1-1).
+  const dateOverride =
+    type === "daily" && input.reportDate && input.todayKst
+      ? { reportDate: input.reportDate, todayKst: input.todayKst }
+      : null;
+  const dayWord: "오늘" | "그날" =
+    dateOverride && dateOverride.reportDate !== dateOverride.todayKst ? "그날" : "오늘";
   if ((type === "compat" || type === "compat_social") && input.saju && input.sajuB) {
     const nameA = input.names?.a ?? "첫 번째 사람";
     const nameB = input.names?.b ?? "두 번째 사람";
-    parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`));
+    parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`, dayWord));
     parts.push("");
-    parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`));
+    parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`, dayWord));
     parts.push("");
     parts.push("위 두 사람의 일간이 만났을 때 만들어지는 관계가 이 리포트의 핵심이야.");
   } else if (input.saju) {
-    parts.push(sajuBlock(input.saju));
+    parts.push(sajuBlock(input.saju, undefined, dayWord));
     if (input.daeun && input.daeun.length > 0) {
       parts.push("");
       parts.push(daeunBlock(input.daeun, input.saju.temporal?.age ?? null));
@@ -742,13 +758,6 @@ export function buildFortuneSystem(
   const thisMonthPillar = input.saju?.temporal
     ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
     : "이번 달 월건";
-  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. 한쪽만으로 켜면
-  //    지시 줄 없이 {{TODAY}} 만 갈아끼워져, 모델이 그 날짜를 진짜 오늘로 믿는다(두 조건이
-  //    따로 살면 언제든 다시 벌어진다 — 그래서 한 번만 계산해 둘이 같이 쓴다).
-  const dateOverride =
-    type === "daily" && input.reportDate && input.todayKst
-      ? { reportDate: input.reportDate, todayKst: input.todayKst }
-      : null;
   if (dateOverride) {
     const ctx = dailyDateContextLine(dateOverride.reportDate, dateOverride.todayKst);
     if (ctx) parts.push(ctx, "");
@@ -761,7 +770,7 @@ export function buildFortuneSystem(
       thisMonth: THIS_MONTH_KR(),
       todayPillar,
       thisMonthPillar,
-      dayWord: dateOverride && dateOverride.reportDate !== dateOverride.todayKst ? "그날" : "오늘",
+      dayWord,
     })
   );
 
