@@ -32,7 +32,7 @@ export const BAIT: Record<BaitSlot, BaitCopy> = {
   },
   tarot_rich: {
     title: "이 카드를 네 사주에 얹어줄게",
-    chips: ["약 800자", "카드 × 네 사주"],
+    chips: ["약 1,800자", "카드 × 네 사주"],
     tail: "같은 카드도 사람마다 다르게 내려앉는데, 너한테는—",
   },
 };
@@ -53,9 +53,9 @@ export interface BaitContext {
 export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
   if (slot === "saju_report") {
     // 라벨이 있으면 화면(DayDetailCard/히어로)에 뜬 그 등급을 그대로 인용한다 — 오늘일 때만 실린다.
-    // 🔴 폴백이 "오늘"을 말하는 건 의도다. 이 폴백에 도달하는 실사용 경로는 "과거 날을 보는 중"
-    //    뿐이고(SajuTodayView 가 그때 라벨을 빼서 넘긴다), 그때 파는 물건은 여전히 오늘 리포트다
-    //    (daily-report 라우트에 날짜 파라미터가 없다). 선택한 날을 가리키면 못 지킬 약속이 된다.
+    // 🔴 폴백이 "오늘"을 말하는 건 의도다. P6-1 이후 daily-report 는 날짜를 받지만, 이 폴백에
+    //    도달하는 실사용 경로는 **허브의 나 탭 미끼**(자리 자체가 오늘 얘기)뿐이다 — 상세 화면의
+    //    비자격 영역은 P6-4 에서 PaywallCut 이 받아 이 카피를 쓰지 않는다.
     return ctx.gradeLabel
       ? `위에서 본 '${ctx.gradeLabel}'이 왜 그런지부터 풀어줄게.`
       : "오늘은 왜 이런 결인지부터 풀어줄게.";
