@@ -20,7 +20,7 @@ export interface MetricDef {
   unit: MetricUnit;
   /** 이 값을 내는 정본 출처 — RPC 이름이나 테이블. */
   source: string;
-  /** 가드레일 경보선. 이 값 미만이면 화면이 빨강. */
+  /** 가드레일 경보선. 이 값 미만이면 화면이 빨강. `alertAbove` 와 동시 지정 시 OR 로 결합(양방향 밴드). */
   alertBelow?: number;
   /** 가드레일 경보선. 이 값 초과면 화면이 빨강. */
   alertAbove?: number;
@@ -52,7 +52,7 @@ export const MIN_SAMPLE = {
   VIRAL: 30,
 } as const;
 
-export const METRICS: Record<string, MetricDef> = {
+export const METRICS = {
   // ── 1층 손익 ──────────────────────────────────────────────────────────────
   contribution_won: {
     key: "contribution_won",
@@ -271,17 +271,20 @@ export const METRICS: Record<string, MetricDef> = {
     minSample: MIN_SAMPLE.VIRAL,
     caveat: "2026-09-20 기준 초대 클릭 2건 — 표본이 차기 전엔 게이트 뒤에 있어야 한다.",
   },
-};
+} as const satisfies Record<string, MetricDef>;
+
+/** METRICS 의 키 유니온 — 오타를 컴파일 타임에 잡는다. */
+export type MetricKey = keyof typeof METRICS;
 
 /** 1층 가드레일 줄에 뜨는 지표. 평소엔 조용하고 경보선을 벗어나면 빨강. */
-export const GUARDRAILS = [
+export const GUARDRAILS: readonly MetricKey[] = [
   "first_reading_rate",
   "result_viewed",
   "login_success_rate",
   "checkout_completion",
   "new_error_classes",
   "unreviewed_sensitive",
-] as const;
+];
 
 export interface GateResult {
   /** 숫자를 그려도 되는가. */
@@ -291,12 +294,18 @@ export interface GateResult {
 }
 
 /**
+ * 동적 문자열이 유효한 지표 키인지 판별하는 타입가드.
+ * 플랜 B 에서 쿼리 파라미터 같은 런타임 문자열로 키가 들어올 때 이걸로 좁힌 뒤 METRICS 를 조회한다.
+ */
+export function isMetricKey(key: string): key is MetricKey {
+  return key in METRICS;
+}
+
+/**
  * 소표본 게이트 — 임계 미만이면 숫자를 **흐리게가 아니라 대체**한다.
  * 표본 12명으로 낸 K-factor 는 틀린 게 아니라 판단 근거가 될 수 없다.
  */
-export function sampleGate(key: string, n: number): GateResult {
+export function sampleGate(key: MetricKey, n: number): GateResult {
   const m = METRICS[key];
-  if (!m) throw new Error(`알 수 없는 지표: ${key}`);
-  if (n >= m.minSample) return { show: true };
-  return { show: false, note: `n=${n} · 판단 보류` };
+  return n >= m.minSample ? { show: true } : { show: false, note: `n=${n} · 판단 보류` };
 }
