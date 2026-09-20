@@ -237,12 +237,21 @@ export default function ByeolmaruHub() {
     ? (pairStrip?.cells ?? []).map((c) => ({
         date: c.date, ganji: c.ganji, tone: c.tone, title: PAIR_TONE_LABEL[c.tone], marks: pairMarks(c.tags), isToday: c.isToday,
       }))
-    : data.strip.cells.map((c) => ({
+    : (data.strip?.cells ?? []).map((c) => ({
         date: c.date, ganji: c.ganji, tone: c.grade.tone, title: DAY_NAME[c.tenGod], marks: c.marks, isToday: c.isToday,
       }));
-  const stripLocked = (isPair ? pairStrip?.lockedCells : data.strip.lockedCells) ?? [];
+  // 🔴 `?.` 는 불가능한 시나리오 방어가 아니다 — 배포 롤아웃 창에서 **새 번들이 구 API 를 만날 수**
+  //    있고(스큐), 그때 data.strip 이 없으면 프로퍼티 접근이 먼저 터져 허브 전체가 에러 바운더리로
+  //    간다. 비면 DayStrip 이 스스로 null 을 돌려주므로 화면은 스트립만 빠진 채 멀쩡히 선다.
+  const stripLocked = (isPair ? pairStrip?.lockedCells : data.strip?.lockedCells) ?? [];
 
-  // 날짜 탭의 목적지 — 격자와 스트립이 같은 규칙을 쓴다(둘이 갈리면 같은 날이 두 곳으로 간다).
+  // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 스트립 잠긴 칸과 CTA 가 같이 쓴다.
+  const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
+
+  // 날짜 탭의 목적지 — 격자와 스트립이 **같은 함수**를 쓴다(둘이 갈리면 같은 날이 두 곳으로 간다).
+  // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
+  // 🔴 우리 탭의 `?subject=` 는 장식이 아니다. 없으면 도착지가 "위에서 상대를 골라…" 안내로
+  //    되돌아가 통합 취지가 끊긴다(P5-3 리뷰 I-2 에서 실제로 겪은 회귀).
   function openDay(date: string) {
     if (isPair) { router.push(`/byeolmaru/woori?subject=${encodeURIComponent(subject)}`); return; }
     router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
@@ -275,15 +284,18 @@ export default function ByeolmaruHub() {
             todayDate={data.today}
             subjectKind={isPair ? "pair" : "me"}
             onSelect={openDay}
-            onLockedSelect={() => (data.trialUsed ? openSubscribe() : startTrial())}
+            onLockedSelect={nextStep}
           />
           {!data.entitled && (
             <p className="px-1 text-center text-[12px] text-text-light">
               앞으로 3일도 미리 볼래?{" "}
+              {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
+                  aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
               <button
                 type="button"
-                onClick={() => (data.trialUsed ? openSubscribe() : startTrial())}
-                className="font-bold text-lilac-deep underline"
+                onClick={nextStep}
+                aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
+                className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
               >
                 {data.trialUsed ? "구독하기" : "3일 무료"}
               </button>
@@ -304,7 +316,9 @@ export default function ByeolmaruHub() {
       )}
 
       {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를, 인연 탭은 우리 오늘을
-          판다. 스펙 §2 의 제거 목록에 없으므로 유지하고 자리만 격자 뒤로 옮겼다. */}
+          판다 — **같은 블록을 두 자리에 쓰면 광고로 읽힌다**. 비로그인·생일 미입력에게는 애초에 이
+          분기까지 안 온다(위 상태 분기에서 갈린다). 스펙 §2 의 제거 목록에 없으므로 유지하고
+          자리만 격자 뒤로 옮겼다. */}
       {!data.entitled && (
         <PremiumBlock
           entitled={false}

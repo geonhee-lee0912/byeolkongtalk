@@ -82,7 +82,8 @@ export const UI_EVENTS = [
   "byeolmaru_guest_peek_clicked",
   /** 별마루 — 오늘 타로·오늘 사주 카톡 공유 버튼 클릭. meta:{kind:"tarot"|"saju"} */
   "byeolmaru_share_clicked",
-  /** 별마루 — 무료 목록 3종 행 클릭. meta:{item:"tarot"|"mbti"|"byeoljari"} */
+  /** 별마루 — 무료 목록 4종 행 클릭. meta:{item:"saju_today"|"tarot"|"mbti"|"byeoljari"}
+   *  (saju_today 는 P6-3 에서 합류 — 오늘 사주가 달력 안 히어로 타일에서 목록으로 내려왔다) */
   "byeolmaru_free_item_clicked",
   /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
   "home_relationship_clicked",
