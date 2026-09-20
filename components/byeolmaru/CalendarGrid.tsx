@@ -3,7 +3,7 @@
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { MARK_COLOR, type DayMark } from "@/lib/byeolmaru/day-label";
+import { MARK_COLOR, type DayMark, type MarkStrength } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
@@ -25,10 +25,17 @@ export interface GridCell {
 // 🔴 라이트 B 팔레트(스펙 §4) — @theme 토큰에 없는 값은 여기 상수로 둔다. 새 토큰을 만들지
 //    않는 이유: 이 색들은 "달력 판 안에서만" 쓰는 국소 팔레트라 전역 토큰으로 올리면 다른 지면이
 //    실수로 집어 쓴다(ELEMENT_COLORS 가 SajuBoard 안에 사는 것과 같은 이유).
-// 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(골드 솔리드)이 떠 보인다.
+// 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(금색)이 떠 보인다.
 const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
 const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
 const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
+
+// 마크 라벨의 배경 틴트(8자리 hex 의 알파). 🔴 **색은 배경으로만 쓰고 글자는 어두운 색 고정**이다 —
+// MARK_COLOR 4종은 상대휘도 .22~.36 의 중간 밝기라, 그 색을 이 판의 옅은 배경 위 9px 글자로 쓰면
+// 대비가 1.4~3.1:1 로 20개 조합 전부 WCAG AA(4.5:1)를 못 넘긴다(실측). 알파를 아무리 조절해도
+// 수학적으로 도달이 불가능해서, 이 파일이 이미 한 번 썼던 처방(배경이 아니라 글자 색을 올린다)을
+// 그대로 쓴다. 색은 "어느 마크인가"만 지고, 읽히는 건 2글자 단어와 어두운 글자다.
+const MARK_TINT: Record<MarkStrength, string> = { full: "59", half: "26" };
 
 const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
   // 챙길 날이 rgba(255,255,255,.45) 라 무난한 날(순백)과 거의 같은 색이었다 — 실물에서 구분 불가.
@@ -157,13 +164,8 @@ export default function CalendarGrid({
                 <span
                   // 🔴 셀에는 최우선 마크 1개만. 2개부터 42px 칸에서 날짜와 겹친다(실측).
                   //    전체 목록은 aria-label 과 상세 카드의 마크 칩이 받는다.
-                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px]"
-                  style={{
-                    color: MARK_COLOR[c.marks[0].glyph],
-                    // half = 한 명만 걸린 날(우리 탭). 점수도 절반이라 시각과 점수가 어긋나지 않는다.
-                    background: `${MARK_COLOR[c.marks[0].glyph]}${c.marks[0].strength === "full" ? "2E" : "14"}`,
-                    opacity: c.marks[0].strength === "full" ? 1 : 0.75,
-                  }}
+                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
+                  style={{ background: `${MARK_COLOR[c.marks[0].glyph]}${MARK_TINT[c.marks[0].strength]}` }}
                 >
                   {c.marks[0].label}
                 </span>
@@ -176,9 +178,15 @@ export default function CalendarGrid({
         <div className="mt-2 space-y-0.5 text-[10px] leading-relaxed text-text-light">
           {legend.length > 0 && (
             <p>
+              {/* 범례도 셀과 **같은 옷**을 입는다 — 색을 글자에 쓰면 이 판 위에서 2.2~3.1:1 로 떨어진다
+                  (셀 마크와 같은 이유). 같은 모양이라 "저 띠가 이거구나"가 바로 붙는 이점도 있다. */}
               {legend.map((m) => (
-                <span key={m.glyph} className="mr-2" style={{ color: MARK_COLOR[m.glyph] }}>
-                  <span className="font-bold">{m.label}</span>
+                <span
+                  key={m.glyph}
+                  className="mr-1.5 rounded-full px-1 font-bold text-night-deep"
+                  style={{ background: `${MARK_COLOR[m.glyph]}${MARK_TINT.full}` }}
+                >
+                  {m.label}
                 </span>
               ))}
               {/* 연한 라벨의 뜻을 한 번만 설명한다 — 우리 탭에서만 나온다. */}
