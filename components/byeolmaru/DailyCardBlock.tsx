@@ -2,7 +2,7 @@
 
 // components/byeolmaru/DailyCardBlock.tsx — 별마루 블록4: 오늘의 카드.
 // 뽑기(CardDrawRitual 재사용, 결제 모달 없이 무료) → 하루 1장 고정(byeolmaru_daily_card) →
-// 무료 정적(키워드 템플릿) + 구독자 LLM 서술(card-narrative, ②-a 패턴) + 비구독 PremiumBlock 미끼(P5-4 §9) + 인라인 낙수.
+// 무료 정적(키워드 템플릿) + 구독자 7블록 리포트 + 게이지(card-narrative, P6-2) + 비구독 PremiumBlock 미끼(P5-4 §9) + 인라인 낙수.
 // design §2: docs/superpowers/specs/2026-09-05-별마루-5-원카드-폐지-낙수-design.md
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -10,9 +10,10 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
-import { MarkdownLite } from "@/lib/markdown-lite";
+import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import CardReportView from "./CardReportView";
 import PremiumBlock from "./PremiumBlock";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -58,7 +59,7 @@ export default function DailyCardBlock({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
-  const [narrative, setNarrative] = useState<string | null>(null);
+  const [report, setReport] = useState<CardReport | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   // 자격은 있는데 프로필(생일)이 없어 서술을 못 만든 경우만 구분해 남긴다 — 다른 실패(500·네트워크)는
   // 기존처럼 narrative:null 로 조용히 흡수(그건 "별콩이가 잠깐 숨 고르는 중" 성격이라 안내가 아니다).
@@ -91,13 +92,13 @@ export default function DailyCardBlock({
   // (card-narrative 는 403 을 주지만, 호출 자체를 skip 하는 편이 원가·의도 모두 더 깔끔하다).
   useEffect(() => {
     if (!entitled || state.kind !== "drawn") {
-      setNarrative(null);
+      setReport(null);
       setNarrativeLoading(false);
       setNarrativeBlocked(null);
       return;
     }
     let cancelled = false;
-    setNarrative(null);
+    setReport(null);
     setNarrativeBlocked(null);
     setNarrativeLoading(true);
     void (async () => {
@@ -110,13 +111,13 @@ export default function DailyCardBlock({
           return;
         }
         if (!res.ok) {
-          if (!cancelled) setNarrative(null);
+          if (!cancelled) setReport(null);
           return;
         }
         const j = await res.json();
-        if (!cancelled) setNarrative(j.narrative ?? null);
+        if (!cancelled) setReport(j.report ?? null);
       } catch {
-        if (!cancelled) setNarrative(null);
+        if (!cancelled) setReport(null);
       } finally {
         if (!cancelled) setNarrativeLoading(false);
       }
@@ -265,9 +266,9 @@ export default function DailyCardBlock({
               {entitled ? (
                 <>
                   {narrativeLoading ? (
-                    <p className="mt-3 text-sm text-text-light">별콩이가 카드를 읽는 중…</p>
-                  ) : narrative ? (
-                    <MarkdownLite text={narrative} className="mt-3 text-sm leading-relaxed text-eye-purple" />
+                    <p className="mt-3 text-sm text-text-light">별콩이가 카드를 네 사주 위에 얹는 중…</p>
+                  ) : report ? (
+                    <CardReportView report={report} />
                   ) : (
                     // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
                     <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
