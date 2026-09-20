@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
 
   // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대(medium/low)는 haiku 2차 판정을
   // 기다려 확정(오탐이면 null). 응답 헤더 + 위기 게이트용. 빌더 전에 계산.
-  const sensitiveMatch = await resolveSensitive(lastMessage.content);
+  const sensitiveMatch = await resolveSensitive(lastMessage.content, { userId });
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
   const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 

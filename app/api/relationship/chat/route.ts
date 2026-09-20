@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
   });
 
   // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대는 haiku 2차 판정 후 확정
-  const sensitiveMatch = await resolveSensitive(userMessage);
+  const sensitiveMatch = await resolveSensitive(userMessage, { userId });
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",

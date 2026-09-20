@@ -209,7 +209,10 @@ export async function resolveSensitive(
   text: string,
   opts?: {
     timeoutMs?: number;
-    secondPass?: (text: string) => Promise<SensitiveMatch | null>;
+    /** 2차 판정 주입점(테스트용). userId 는 원가를 유·무료로 분해하려고 흘려보낸다. */
+    secondPass?: (text: string, userId?: string | null) => Promise<SensitiveMatch | null>;
+    /** llm_usage.user_id 에 실린다. 판정 로직에는 전혀 쓰이지 않는다. */
+    userId?: string | null;
   }
 ): Promise<SensitiveMatch | null> {
   const sync = detectSensitiveSync(text);
@@ -220,7 +223,7 @@ export async function resolveSensitive(
   const timeoutMs = opts?.timeoutMs ?? 3000;
   try {
     return await Promise.race([
-      secondPass(text),
+      secondPass(text, opts?.userId),
       new Promise<SensitiveMatch>((resolve) =>
         setTimeout(() => resolve(sync), timeoutMs)
       ),
