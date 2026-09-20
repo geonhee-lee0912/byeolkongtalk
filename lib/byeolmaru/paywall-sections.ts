@@ -10,7 +10,7 @@ export const TAROT_PAID_CHARS = 1800;
 
 /** 오늘 사주 유료가 더 주는 것. DailyReportCard 가 그리는 순서 그대로 —
  *  고정 블록(총평·종합운·럭키·도입)은 DAILY_SECTIONS 에 없어 여기서 적고, 도메인 5개는 파생한다. */
-export const SAJU_PAID_SECTIONS: string[] = [
+export const SAJU_PAID_SECTIONS: readonly string[] = [
   "한 줄 총평",
   "종합운",
   "럭키 3종",
@@ -21,4 +21,4 @@ export const SAJU_PAID_SECTIONS: string[] = [
 ];
 
 /** 오늘 타로 유료 7블록. 제목은 CARD_REPORT_BLOCKS 가 정본. */
-export const TAROT_PAID_SECTIONS: string[] = CARD_REPORT_BLOCKS.map((b) => b.title);
+export const TAROT_PAID_SECTIONS: readonly string[] = CARD_REPORT_BLOCKS.map((b) => b.title);
