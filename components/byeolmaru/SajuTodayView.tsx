@@ -140,7 +140,11 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           {data.entitled ? "이번 달" : "오늘까지"}, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
         </p>
       ) : null}
-      <DayDetailCard cell={cell} />
+      {/* 🔴 dayWord·card·cardHref·cardHint 는 **임시값**이다(P6-4 Task 6). 새 필수 prop 을 넓히면서
+          tsc 를 초록으로 두려고 넣은 것이라, 지금은 카드 슬롯이 통째로 안 그려지고(card·cardHint 둘 다
+          null) 과거 날짜에도 히어로 캡션이 "오늘 들어온 기운"으로 나온다. Task 7 이 그날 카드 fetch 와
+          dayWordFor()로 바꾸면서 children(유료 리포트/PaywallCut)까지 이 카드 안으로 들여보낸다. */}
+      <DayDetailCard cell={cell} dayWord="오늘" card={null} cardHref={null} cardHint={null} />
       {/* 오늘 공유 — 선택 셀이 오늘일 때만(미래 날 보다 공유하면 "오늘 사주" 라벨로 다른 날이 나가는 오노출 방지). */}
       {cell.isToday ? (
         <button
