@@ -4,6 +4,12 @@
 // 🔴 PremiumBlock(별도 미끼 카드)을 상세·타로에서 대체한다. 허브·우리 탭의 PremiumBlock 은 그대로다.
 // 🔴 "오늘은 그만" 접기는 여기 없다(사용자 확정 2026-09-20) — 이 블록은 광고가 아니라 **리포트 본문의
 //    가려진 부분**이라, 접으면 리포트 자리가 통째로 비어 화면이 끊긴다. 대신 gate_shown 계측은 이식한다.
+// 🔴 계측 단절 주의 — 이 컴포넌트가 배선되는 날, 상세·타로 자리의 `byeolmaru_gate_dismissed` 는
+//    0 으로 꺾인다(접기를 없앴다). 이벤트 자체는 허브·우리 탭 PremiumBlock 이 계속 찍으므로 죽지
+//    않지만, **자리별로 보면 추세선 단절**이다 — 행동 변화로 오독하지 말 것.
+// 🔴 호출부 계약 — 이 컴포넌트는 `entitled` 를 받지 않고, 마운트되면 무조건 gate_shown 을 찍는다.
+//    **비자격 경로에서만 렌더할 것.** 자격자에게 렌더하면 gate_shown 분모가 구독자로 오염된다
+//    (PremiumBlock 은 `!entitled` 를 자기 안에서 봤지만 여기는 호출부가 책임진다).
 import { useEffect } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
@@ -61,7 +67,9 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
         <div className="absolute inset-0 flex items-center justify-center p-2">
           <div className="max-w-[260px] rounded-xl bg-white/90 p-3 text-center shadow-[0_4px_16px_rgba(90,62,140,0.14)]">
             <b className="mb-1.5 block text-[12px] font-bold text-eye-purple">
-              여기부터 {paidChars.toLocaleString()}자가 더 있어
+              {/* 🔴 로케일 고정 — 인자 없는 toLocaleString 은 서버(Node 기본 로케일)와 브라우저가
+                  다른 구분자를 낼 수 있어(de-DE 면 "1.800") 하이드레이션 불일치가 난다. */}
+              여기부터 {paidChars.toLocaleString("ko-KR")}자가 더 있어
             </b>
             <div className="flex flex-wrap justify-center gap-1">
               {sections.map((s) => (
@@ -80,7 +88,11 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           <button onClick={() => onStartTrial(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
             3일 무료로 열어보기
           </button>
-          <p className="mt-1.5 text-center text-[11px] text-text-light">
+          {/* 🔴 PremiumBlock 은 여기서 text-light 를 쓰지만 그 컴포넌트는 bg-white 카드 위에 산다(4.73:1).
+              PaywallCut 은 사주·타로 **둘 다 bg-cream-warm** 안에 얹히고, 그 위 text-light 는 4.49:1 로
+              AA(4.5:1) 미달이라 eye-purple(7.97:1) 로 올렸다. 위계는 11px 크기가 이미 지고 있다.
+              🔴 opacity·알파로 흐리지 말 것 — 배경과 섞여 실효 대비가 다시 떨어진다(이 리포의 전례). */}
+          <p className="mt-1.5 text-center text-[11px] text-eye-purple">
             체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
           </p>
         </>
