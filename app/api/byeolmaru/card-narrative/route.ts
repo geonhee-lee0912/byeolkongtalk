@@ -2,6 +2,14 @@
 // P6-2(스펙 2026-09-19 §6): 자유 줄글 narrative → 7블록 CardReport(JSON 구조화 + 사주 축 위 카드 게이지).
 // 카드 자체(cardId/reversed)는 이 라우트가 뽑지 않는다 — byeolmaru_daily_card 에 이미 기록된 오늘 카드를 읽어 사주 위에 얹을 뿐이다.
 // 🔴 파싱·검증·게이지 병합은 저장 전 한 번(§11-1-4) — 캐시 히트는 저장본을 그대로 돌려준다(응답 대칭).
+//
+// 🔴 P6-4 응답 계약 — 다섯 갈래. `gauge` 는 **자격과 무관하게** 카드가 있으면 항상 실린다(§5-3②, 룰 100%·원가 0).
+//   ① 카드 없음        : { entitled, gauge: null, report: null, reason: "not_drawn" }
+//   ② 비자격 + 카드     : { entitled: false, gauge }                      ← LLM 미호출 = 원가 0
+//   ③ 자격 + 캐시       : { entitled: true, gauge, report }
+//   ④ 자격 + 과거 미생성 : { entitled: true, gauge, report: null, reason: "not_generated" }
+//   ⑤ 자격 + 생성/실패  : { entitled: true, gauge, report }  /  { …, report: null, reason: "generation_failed" }
+//  범위 밖 미래는 400 date_out_of_range (daily-report 와 동일).
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
@@ -16,6 +24,7 @@ import { dayFactors, dayScore, dayGrade, axisScores } from "@/lib/byeolmaru/day-
 import { cardGauge } from "@/lib/byeolmaru/card-gauge";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
 import { kstDate } from "@/lib/admin-time";
+import { reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import {
   buildCardReportSystem,
   CARD_REPORT_KICKOFF,
@@ -42,20 +51,28 @@ export async function GET(req: NextRequest) {
 
   const logCtx = { route: "/api/byeolmaru/card-narrative", userId };
   try {
-    // 자격 판정 먼저 — 비자격자는 오늘의 카드 조회조차 하지 않는다(원가 0).
-    const ent = await getEntitlement(userId);
-    if (!ent.entitled) return NextResponse.json({ entitled: false }, { status: 403 });
-
     const todayKst = kstDate(new Date().toISOString());
+    // ?date= 없으면 오늘. 정책은 lib/byeolmaru/report-date.ts 가 단일 원천(스펙 §4) — daily-report 와 같은 규율.
+    const reportDate = req.nextUrl.searchParams.get("date") ?? todayKst;
+    const policy = reportDatePolicy(reportDate, todayKst);
+    if (policy === "out_of_range") {
+      return NextResponse.json({ error: "date_out_of_range" }, { status: 400 });
+    }
 
-    // 캐시 히트 — 저장본 그대로(파싱·게이지는 저장 전에 끝났다).
-    const cached = await getCachedCardReport(userId, todayKst);
-    if (cached) return NextResponse.json({ entitled: true, report: cached });
+    const ent = await getEntitlement(userId);
+
+    // 🔴 캐시 히트는 자격자에게만 의미가 있다(비자격은 애초에 행을 못 만든다) — 그래서 자격일
+    //    때만 먼저 본다. 이 순서 덕분에 히트 경로는 카드·프로필·사주 계산을 건너뛴다(실측 127ms).
+    if (ent.entitled) {
+      const cached = await getCachedCardReport(userId, reportDate);
+      if (cached) return NextResponse.json({ entitled: true, gauge: cached.gauge, report: cached });
+    }
 
     // report:null 은 항상 reason 을 동반한다 — not_drawn(영구·정상)과 generation_failed(일시·재시도
     // 가능)를 DailyCardBlock 이 다르게 보여줘야 한다(daily-report.ts 형제 규율과 동일).
-    const drawn = await getCardOn(userId, todayKst);
-    if (!drawn) return NextResponse.json({ entitled: true, report: null, reason: "not_drawn" }); // 아직 오늘 카드를 안 뽑음
+    const drawn = await getCardOn(userId, reportDate);
+    // 미래 날짜엔 행이 아예 없다 — "카드는 그날 뽑는 거야"(스펙 §4)가 이 분기로 떨어진다.
+    if (!drawn) return NextResponse.json({ entitled: ent.entitled, gauge: null, report: null, reason: "not_drawn" });
     const tarotCard = getCard(drawn.cardId);
     if (!tarotCard) {
       // 카드 마스터 불일치 — 유저에겐 "안 뽑음"과 같은 뜻이지만 데이터 파손이니 조용히 지나가면 안 된다.
@@ -63,7 +80,7 @@ export async function GET(req: NextRequest) {
         ...logCtx,
         extra: { stage: "card_master_mismatch", cardId: drawn.cardId },
       });
-      return NextResponse.json({ entitled: true, report: null, reason: "not_drawn" });
+      return NextResponse.json({ entitled: ent.entitled, gauge: null, report: null, reason: "not_drawn" });
     }
 
     const supa = getServiceSupabase();
@@ -81,10 +98,11 @@ export async function GET(req: NextRequest) {
 
     const input = profileRowToSajuInput(selfRow);
     const saju = calcSaju(input);
-    // 오늘 일진만 필요(dailyLuck 30일 불필요 → includeMonth 안 켠다).
-    const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year);
+    // 그날 일진만 필요(dailyLuck 30일 불필요 → includeMonth 안 켠다).
+    // 🔴 대상 날짜 기준 — 과거 날 게이지는 그날 축 위에 그려져야 맞다(오늘이면 todayKst 와 같다).
+    const temporal = calcTemporalLuck(baseDateForKst(reportDate), input.year);
     const todayGanji = temporal.day.stem + temporal.day.branch;
-    // 오늘 사주 축 — 캘린더 today 셀과 동일 계산(순수·₩0). 게이지의 회색 바탕이자 프롬프트 그라운딩.
+    // 그날 사주 축 — 캘린더 셀과 동일 계산(순수·₩0). 게이지의 회색 바탕이자 프롬프트 그라운딩.
     const f = dayFactors(toDaySelf(saju), {
       stem: temporal.day.stem,
       branch: temporal.day.branch,
@@ -93,13 +111,24 @@ export async function GET(req: NextRequest) {
     const grade = dayGrade(dayScore(f));
     const axes = axisScores(f);
     const gauge = cardGauge(axes, tarotCard, drawn.reversed);
-    // 화면에 이미 뜬 무료 taste(DailyCardBlock 과 같은 시드 = 오늘) — 역할분리(§6-4)용으로 프롬프트에 넣는다.
-    const freeTaste = getCardTaste(drawn.cardId, drawn.reversed, todayKst);
+    // 화면에 이미 뜬 무료 taste(DailyCardBlock 과 같은 시드 = 그 날짜) — 역할분리(§6-4)용으로 프롬프트에 넣는다.
+    const freeTaste = getCardTaste(drawn.cardId, drawn.reversed, reportDate);
+
+    // 🔴 §5-3② — 여기가 경계다. 게이지까지는 룰 100%(원가 0)라 비자격자도 받는다.
+    //    아래로는 LLM 이 도는 구간이라 자격이 필요하다.
+    if (!ent.entitled) return NextResponse.json({ entitled: false, gauge });
+
+    // 과거는 "있던 것만" — 소급 생성하지 않는다(스펙 §4). 캐시는 위에서 이미 봤다.
+    if (policy === "cache_only") {
+      return NextResponse.json({ entitled: true, gauge, report: null, reason: "not_generated" });
+    }
 
     // LLM 생성 실패는 전체 요청 실패가 아니라 report:null 로 흡수(형제 라우트와 동일 경계).
     try {
+      // 🔴 todayKst 자리에 reportDate 를 넘겨도 프롬프트가 거짓말을 하지 않는다 — 이 경로는 **오늘만**
+      //    도달한다(미래는 위에서 not_drawn, 과거는 cache_only 로 이미 빠졌다).
       const system = buildCardReportSystem({
-        saju, card: tarotCard, reversed: drawn.reversed, todayGanji, todayKst, grade, axes, gauge, freeTaste,
+        saju, card: tarotCard, reversed: drawn.reversed, todayGanji, todayKst: reportDate, grade, axes, gauge, freeTaste,
       });
       const gen = () =>
         generateOnce(
@@ -124,20 +153,20 @@ export async function GET(req: NextRequest) {
           ...logCtx,
           extra: { stage: raw ? "card_parse" : "generate_empty" },
         });
-        return NextResponse.json({ entitled: true, report: null, reason: "generation_failed" });
+        return NextResponse.json({ entitled: true, gauge, report: null, reason: "generation_failed" });
       }
       const report = buildCardReport(ai, { cardId: drawn.cardId, reversed: drawn.reversed, gauge });
       // 저장은 best-effort — 동시 생성이면 승자를 응답(§11-1-5), 저장 실패면 내 것(다음 요청에서 재생성될 뿐).
       let served = report;
       try {
-        served = await saveCardReport(userId, todayKst, report);
+        served = await saveCardReport(userId, reportDate, report);
       } catch (e) {
         await logError(e, { ...logCtx, extra: { stage: "cache_save" } });
       }
-      return NextResponse.json({ entitled: true, report: served });
+      return NextResponse.json({ entitled: true, gauge, report: served });
     } catch (err) {
       await logError(err, { ...logCtx, extra: { stage: "generate" } });
-      return NextResponse.json({ entitled: true, report: null, reason: "generation_failed" });
+      return NextResponse.json({ entitled: true, gauge, report: null, reason: "generation_failed" });
     }
   } catch (err) {
     // calcSaju/calcTemporalLuck 는 tyme4ts 범위 밖 입력이면 throw — calendar/route.ts 와 동일하게 잡아 남긴다.
