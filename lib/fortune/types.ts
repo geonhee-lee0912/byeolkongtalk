@@ -484,7 +484,7 @@ export const FORTUNE_LENGTH_HINT: Partial<Record<FortuneType, string>> = {
  */
 // 캡 = 절단 방지 상한(목표가 아님, 비용 무관). 실측 출력 대비 ~1.5x 이상 마진(2026-08-30 넉넉하게 재조정).
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
-  daily: 4500, // 실측 ~2,100
+  daily: 6000, // P6-2: 목표 1,800자(JSON 포함 실측 후 조정). 구 4500(실측 ~2,100 JSON) → 예산 1.25배+헤드룸. 미생성 토큰은 과금 없음.
   monthly: 9000, // 실측 ~4,829
   saju_full: 30000, // 실측 ~20,977 — 경계였던 22,000에서 상향
   tarot_daily: 4000,
