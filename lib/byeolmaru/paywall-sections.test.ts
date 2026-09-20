@@ -21,3 +21,7 @@ test("분량 숫자는 스펙 §6-2 목표(1,800자)와 같다", () => {
   assert.equal(SAJU_PAID_CHARS, 1800);
   assert.equal(TAROT_PAID_CHARS, 1800);
 });
+
+test("두 배열의 마무리 칩은 같은 문구다 — 같은 화면 장치라 문구가 갈리면 안 된다", () => {
+  assert.equal(SAJU_PAID_SECTIONS.at(-1), TAROT_PAID_SECTIONS.at(-1));
+});

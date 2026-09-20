@@ -17,7 +17,7 @@ export const SAJU_PAID_SECTIONS: string[] = [
   "들어온 두 글자",
   ...DAILY_SECTIONS.map((s) => s.title),
   "균형",
-  "별콩이 한마디",
+  "별콩이의 한마디",
 ];
 
 /** 오늘 타로 유료 7블록. 제목은 CARD_REPORT_BLOCKS 가 정본. */
