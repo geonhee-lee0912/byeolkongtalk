@@ -81,8 +81,10 @@ test("마크 라벨은 전부 2글자 — 셀 하단 띠가 한 줄에 들어가
 });
 
 test("나 탭 마크는 전부 full — 강도 2단은 우리 탭에서만 쓴다", () => {
-  const ms = dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: false, clash: false, scarcity: "balanced" });
-  assert.equal(ms[0].strength, "full");
+  // 🔴 한 신호만 켜면 배열이 1개라 "전부"를 못 잰다 — 네 신호를 다 켜서 글리프 4종을 전부 훑는다.
+  const ms = dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
+  assert.equal(ms.length, 4, "네 종류가 다 나와야 이 단정이 '전부'를 보장한다");
+  for (const m of ms) assert.equal(m.strength, "full", `${m.glyph} 가 full 이 아니다`);
 });
 
 test("MARK_COLOR 가 글리프 4종을 빠짐없이 덮는다", () => {

@@ -57,9 +57,11 @@ export interface DayMark {
   strength: MarkStrength;
 }
 
-/** 2글자 라벨의 색(스펙 §3). 8px 회색 글리프가 사실상 안 보여서 색으로 구분을 옮겼다.
+/** 2글자 라벨의 색(스펙 §3). 8px 회색 글리프가 사실상 안 보여서 색으로 구분을 옮긴다.
+ *  🔴 **아직 아무 컴포넌트도 이 색을 읽지 않는다** — 셀 배선은 CalendarGrid 개편 커밋이 한다.
+ *     이 줄이 없으면 "가독성 문제가 이미 고쳐졌다"로 잘못 읽힌다.
  *  🔴 @theme 토큰으로 올리지 않는다 — 달력 판 안에서만 쓰는 국소 팔레트다(CalendarGrid 의
- *     TONE_STYLE 과 같은 이유). ＋(채움)만 §3 표에 없어 lilac-deep 을 쓴다. */
+ *     TONE_STYLE 과 같은 이유). ＋(채움)만 §3 표에 없어 lilac-deep(#9F8AD0) 값을 그대로 쓴다. */
 export const MARK_COLOR: Record<DayGlyph, string> = {
   "✧": "#C99A28",
   "◇": "#3E8E8A",

@@ -32,7 +32,7 @@ export interface DayCell {
    *  이름 문자열은 싣지 않는다 — 소비처가 DAY_NAME[tenGod] 로 직접 푼다(PairDayCell 이
    *  PAIR_TONE_LABEL 을 클라에서 직접 쓰는 것과 같은 패턴). 와이어에 중복을 두지 않는다. */
   tenGod: TenGod;
-  /** 그날을 그렇게 만든 원인 마크(✧천간합 ◇육합 △충 ＋빈 곳). 없으면 빈 배열. */
+  /** 그날을 그렇게 만든 원인 마크(✧끌림 ◇결속 △삐걱 ＋채움). 없으면 빈 배열. */
   marks: DayMark[];
   isToday: boolean;
 }
