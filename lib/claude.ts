@@ -34,6 +34,7 @@ import { openaiAdapter } from "@/lib/claude/adapters/openai";
 import { geminiAdapter } from "@/lib/claude/adapters/gemini";
 import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
 import type { ProviderAdapter, StopReason } from "@/lib/claude/adapters/types";
+import { recordUsage } from "@/lib/claude/usage-log";
 
 // summarizeOlder(haiku 요약)가 여전히 이 모듈 레벨 클라이언트를 쓴다 — streamChat 이관 후에도 유지.
 const anthropic = new Anthropic({
@@ -537,9 +538,11 @@ export async function* streamChat(
         yield r.value;
         r = await it.next();
       }
-      // 어댑터는 { stop, usage } 를 준다. usage 적재는 Task 7 이 여기에 붙인다 —
-      // 바깥(generateOnce·라우트)에는 StopReason 만 나가므로 streamChat 시그니처는 불변이다.
+      // 어댑터는 { stop, usage } 를 준다. 바깥(generateOnce·라우트)에는 StopReason 만 나가므로
+      // streamChat 시그니처는 불변이고 호출부 수정이 0 곳이다.
       stopReason = r.value.stop;
+      // 시도가 끝까지 갔으면 토큰은 실제로 소비됐다 → 재시도로 버려질 시도도 기록한다.
+      void recordUsage(resolved, r.value.usage, logCtx);
     } catch (err) {
       // 일시적 upstream 에러(overloaded_error 등) 재시도. 이 에러는 API 가 HTTP 200 으로
       // 스트림을 연 뒤 SSE `error` 이벤트로 던지므로 SDK 요청 재시도(초기 연결만 감쌈)가
