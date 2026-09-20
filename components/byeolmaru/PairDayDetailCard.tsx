@@ -5,6 +5,7 @@ import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import type { PairTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function PairDayDetailCard({
   cell,
@@ -99,7 +100,7 @@ export default function PairDayDetailCard({
           {/* pair-narrative 라우트는 date 파라미터가 없어 이 서술은 항상 '오늘' 기준이다 — 다른 날을
               보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 조용히 밝힌다. */}
           {!cell.isToday && <p className="text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>}
-          <p className="whitespace-pre-line text-sm leading-relaxed text-eye-purple">{narrative}</p>
+          <MarkdownLite text={narrative} className="text-sm leading-relaxed text-eye-purple" />
         </div>
       ) : null}
     </section>
