@@ -111,20 +111,26 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
     return () => { cancelled = true; };
   }, [entitled, selected, todayKst]);
 
-  const [dayCard, setDayCard] = useState<DailyCard | null>(null);
   // 그날 뽑은 카드(§4) — 자격과 무관한 무료 정보다(리포트 effect 와 달리 entitled 를 안 본다).
-  // 미래 날짜엔 행이 없어 자연히 null 이 온다 — 라우트가 미래를 막지 않는 이유도 그것.
+  // 🔴 **3상태**다: undefined = 아직 모름 / null = 없음(확정) / DailyCard = 있음.
+  //    null 하나로 합치면 왕복(100ms~1s) 동안 실제로 뽑은 사람에게 "안 뽑았어"가 깜빡이고,
+  //    그 사이 "뽑으러 가기" CTA 까지 눌린다. 모르는 동안은 카드 블록 자체를 안 그린다(아래 게이트).
+  const [dayCard, setDayCard] = useState<DailyCard | null | undefined>(undefined);
   useEffect(() => {
-    if (!selected) { setDayCard(null); return; }
+    if (!selected) { setDayCard(undefined); return; }
     let cancelled = false;
-    setDayCard(null);
+    setDayCard(undefined);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/daily-card?date=${selected}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const j = await res.json();
-        if (!cancelled) setDayCard(j.card ?? null);
-      } catch { /* 카드 자리만 비는 blip — 화면 전체를 실패로 만들지 않는다 */ }
+        // 미래 날짜엔 행이 없어 자연히 null 이 온다 — 라우트가 미래를 막지 않는 이유도 그것.
+        const j = res.ok ? await res.json() : null;
+        if (!cancelled) setDayCard(j?.card ?? null);
+      } catch {
+        // 🔴 실패해도 undefined(모름)로 남겨두지 않는다 — 그러면 카드 블록이 영영 안 뜬다.
+        //    "없음"으로 확정하는 게 맞다(카드 자리만 비는 blip, 화면 전체를 실패로 만들지 않는다).
+        if (!cancelled) setDayCard(null);
+      }
     })();
     return () => { cancelled = true; };
   }, [selected]);
@@ -158,15 +164,21 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const taste = getSajuTaste(cell.grade.tone, cell.axes, cell.relation, cell.date);
   const tasteText = [taste.overall, taste.love, taste.work, taste.money, taste.advice].filter(Boolean).join(" ");
   // 카드가 없을 때 그 자리에 쓸 말 — 과거는 "그날은 안 뽑았어", 오늘은 뽑기 유도, 미래는 "그날 뽑는 거야".
-  const cardHint = dayCard
+  // 🔴 맨 앞이 "아직 모름(undefined)" 게이트다 — hint·href 를 둘 다 null 로 떨어뜨리면 DayDetailCard 가
+  //    카드 블록 자체를 숨긴다. 블록이 없다가 생기는 레이아웃 점프는 받아들인다(이 화면은 리포트도
+  //    비동기라 위에서 아래로 채워지는 게 기본 리듬이다). 스켈레톤은 안 쓴다 — 한 줄짜리 요약이라
+  //    골격을 그릴 덩치가 아니다(스펙 §4 의 스켈레톤은 리포트 자리 몫).
+  const cardHint = dayCard === undefined
     ? null
-    : cell.isToday
-      ? "아직 안 뽑았어."
-      : policy === "cache_only"
-        ? "그날은 카드를 안 뽑았어."
-        : "카드는 그날 뽑는 거야.";
+    : dayCard
+      ? null
+      : cell.isToday
+        ? "아직 안 뽑았어."
+        : policy === "cache_only"
+          ? "그날은 카드를 안 뽑았어."
+          : "카드는 그날 뽑는 거야.";
   // 링크는 카드를 뽑을 수 있는 날에만 — 지난 날 상세에서 오늘 뽑기 화면으로 보내면 날짜가 어긋난다.
-  const cardHref = dayCard || cell.isToday ? `/byeolmaru/tarot?date=${cell.date}` : null;
+  const cardHref = dayCard === undefined ? null : dayCard || cell.isToday ? `/byeolmaru/tarot?date=${cell.date}` : null;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
@@ -182,7 +194,9 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           그 아래 children 으로 유료 리포트 **또는** 절단선이 붙는다.
           🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 **비자격 분기에서만** 넘긴다
              (자격자에게 넘기면 그 계측의 분모가 구독자로 오염된다). */}
-      <DayDetailCard cell={cell} dayWord={dayWord} card={dayCard} cardHref={cardHref} cardHint={cardHint}>
+      {/* card 는 `?? null` — DayDetailCard 의 계약은 `DailyCard | null` 이라 "아직 모름"은
+          여기서 "없음"으로 눌러 넘긴다(그 상태는 위 cardHint·cardHref 게이트가 이미 책임진다). */}
+      <DayDetailCard cell={cell} dayWord={dayWord} card={dayCard ?? null} cardHref={cardHref} cardHint={cardHint}>
         {data.entitled ? (
           reportLoading ? (
             <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
