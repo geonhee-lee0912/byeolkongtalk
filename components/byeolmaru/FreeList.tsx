@@ -1,11 +1,11 @@
 "use client";
 
-// components/byeolmaru/FreeList.tsx — 허브 "무료로 더 볼 것" 목록 3종(스펙 §3).
+// components/byeolmaru/FreeList.tsx — 허브 "무료로 다 보는 것" 목록 4종(스펙 §2-3).
 // 🔴 2탭(/fortune) 리스트와 **동형**이지만 컴포넌트를 공유하지 않는다:
-//    ①이 3종은 FORTUNE_LIST 밖이라 FortuneType 키가 없고 ②FortuneIcon 의 HAS_ICON 에
+//    ①이 4종은 FORTUNE_LIST 밖이라 FortuneType 키가 없고 ②FortuneIcon 의 HAS_ICON 에
 //    saju_mbti·byeoljari 가 누락돼 이모지 폴백이 뜨며 ③P5 스코프가 2탭을 건드리지 말라고 한다.
-//    시각만 복제하고, 좌측 4px 컬러 바를 더한다 — 위 달력 판의 순백 칸과 이 흰 카드가 섞여
-//    보이지 않게 하는 구분자다(스펙 §4 경고).
+//    시각만 복제한다 — 좌측 4px 컬러 바는 §2-3 에서 뺐다(위 달력 판이 색면을 갖게 되면서
+//    구분자가 필요 없어졌다).
 import Image from "next/image";
 import Link from "next/link";
 import { getCardImagePath, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
@@ -18,8 +18,8 @@ export interface FreeListItem {
   label: string;
   tagline: string;
   hashtags: string[];
-  /** 좌측 4px 바 + 타일 배경. 오늘 타로만 골드(스펙 §4). */
-  barColor: string;
+  /** 타일 배경(아이콘 뒤 48px 사각). 좌측 4px 바는 §2-3 에서 제거됐다 — 2탭과 동형으로 맞추는 게
+   *  목적이고, 위 격자와 섞여 보이는 문제는 격자가 색면을 갖게 되면서(§3) 사라졌다. */
   tileBg: string;
   /** 상태 칩 — 오늘 타로는 "뽑음/아직"이 데일리 라이브 성격을 한 줄에서 살린다. */
   chip: string;
@@ -34,7 +34,7 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
       {/* 섹션 타이틀 — 골드 3px 바 + 밑줄(스펙 §4) */}
       <div className="mb-2 flex items-center gap-2">
         <span aria-hidden className="h-[3px] w-4 rounded-full bg-gold" />
-        <h2 className="font-display text-base text-eye-purple">무료로 더 볼 것</h2>
+        <h2 className="font-display text-base text-eye-purple">무료로 다 보는 것</h2>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it) => (
@@ -42,10 +42,8 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
             key={it.key}
             href={it.href}
             onClick={() => trackUiEvent("byeolmaru_free_item_clicked", { meta: { item: it.key } })}
-            className="relative w-full overflow-hidden rounded-2xl border border-lilac-mid/20 bg-white p-4 pl-5 shadow-[0_2px_10px_rgba(159,138,208,0.08)] transition hover:border-lilac-deep/60 active:scale-[0.99]"
+            className="relative w-full overflow-hidden rounded-2xl border border-lilac-mid/20 bg-white p-4 shadow-[0_2px_10px_rgba(159,138,208,0.08)] transition hover:border-lilac-deep/60 active:scale-[0.99]"
           >
-            {/* 좌측 4px 컬러 바 — 부모가 relative+overflow-hidden+rounded-2xl 라 모서리를 따라 깔끔히 잘린다 */}
-            <span aria-hidden className="absolute left-0 top-0 h-full w-1" style={{ background: it.barColor }} />
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ background: it.tileBg }}>
                 {/*
@@ -88,18 +86,30 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
   );
 }
 
-/** 목록 3종의 고정 데이터 — 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12). */
+/** 목록 4종의 고정 데이터 — 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12). */
 export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[] {
   return [
+    {
+      key: "saju_today",
+      href: "/byeolmaru/saju",
+      label: "오늘 사주",
+      tagline: "오늘 일진으로 보는 하루 흐름 — 이름·등급·축 3종까지",
+      hashtags: ["무료", "하루흐름"],
+      tileBg: "linear-gradient(135deg, #FFF3D6 0%, #EFEAF6 100%)",
+      // 🔴 오늘 사주가 목록으로 내려온다(P5 §3 의 "목록에 없다"를 뒤집는다) — 지금은 오늘 타로만
+      //    목록이고 오늘 사주는 달력 안 타일이라 진입점 문법이 달랐다. 히어로 타일은 §2 에서 없앴다.
+      chip: "무료 · 456자",
+      chipTone: "lilac",
+      image: "/icons/fortune/daily.webp",
+    },
     {
       key: "tarot",
       href: "/byeolmaru/tarot",
       label: "오늘 타로",
       tagline: "카드 한 장으로 오늘을 가볍게 짚어봐",
       hashtags: ["하루한장", "오늘의카드"],
-      barColor: "#E8C26A",
       tileBg: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
-      chip: drawn ? "오늘 뽑음" : "하루 1회 무료",
+      chip: drawn ? "오늘 뽑음" : "하루 1회 무료 · 389자",
       chipTone: "gold",
       // 🔴 신규 아이콘을 만들지 않는다 — 타일 자리에 카드 이미지를 직접 넣는다(스펙 §3-1·§12).
       //    안 뽑음 = 뒷면, 뽑음 = 그 카드 앞면. "오늘 뽑았나"가 한 줄에서 보인다.
@@ -111,7 +121,6 @@ export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[]
       label: "사주 MBTI",
       tagline: "사주로 보는 내 유형 — 문항에 답하면 바로 나와",
       hashtags: ["무료", "16유형"],
-      barColor: "#9F8AD0",
       tileBg: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
       chip: "무료",
       chipTone: "lilac",
@@ -123,7 +132,6 @@ export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[]
       label: "별 인연 지도",
       tagline: "내 인연들을 별자리로 펼쳐볼게",
       hashtags: ["무료", "인연지도"],
-      barColor: "#B8A8D8",
       tileBg: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
       chip: "무료",
       chipTone: "lilac",
