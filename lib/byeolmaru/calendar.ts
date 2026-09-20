@@ -150,7 +150,7 @@ export function weekBuckets(cells: DayCell[]): WeekBucket[] {
  * free-line.test.ts 가 라우트와 동일한 이 함수를 직접 호출해 계약을 고정한다.
  *
  * pair(우리) 경로는 셀 타입이 다르고(`PairDayCell`) weeks 도 안 쓴다 — `splitByFreeLine` 은
- * 이미 date 만 요구하는 제네릭이라 self·pair 가 같은 무료선 규칙을 공유한다는 사실은 그 함수
+ * 이미 date·ganji 만 요구하는 제네릭이라 self·pair 가 같은 무료선 규칙을 공유한다는 사실은 그 함수
  * 하나로 드러난다. pair 쪽은 라우트에서 `buildPairCalendar` 직후 `splitByFreeLine` 을 바로
  * 호출하는 단일 호출부라, 이 함수처럼 따로 묶으면 단일 사용처 추상화가 된다 — 만들지 않는다.
  */

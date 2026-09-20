@@ -84,6 +84,9 @@ test("나 탭과 우리 탭의 무료선은 정확히 같은 날짜 집합을 �
     self.lockedCells.map((c) => c.date),
     "두 탭의 잠긴 날짜 집합이 다르다"
   );
+  // 🔴 우리 탭 쪽에도 누출 단정을 건다 — 구조적 타이핑이라 `push(c)` 로 되돌아가도 tsc 는 통과한다
+  //    (여분 속성 검사는 객체 리터럴에만 걸린다). self 쪽만 걸어두면 pair 호출부가 갈렸을 때 못 잡는다.
+  for (const lc of pair.lockedCells) assert.deepEqual(Object.keys(lc).sort(), ["date", "ganji"]);
 });
 
 test("잠긴 칸은 간지를 싣고 판정은 안 싣는다", () => {
