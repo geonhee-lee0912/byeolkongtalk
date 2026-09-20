@@ -30,6 +30,8 @@ export interface Usage {
 }
 
 // OpenAI 계열 파생 요율 — tiering-cost-reanchor.mjs 와 같은 배수.
+// ⚠️ cacheWrite 는 현재 도달하지 않는다 — OpenAI·Gemini 어댑터가 cacheWriteTokens 를 항상 0 으로
+//    보고한다(자동 캐싱이라 쓰기 청구가 없다). 요율만 정의해두고 곱해지진 않는다.
 const OA_WRITE_MULT = 1.25;
 const OA_READ_MULT = 0.1;
 const oa = (inp: number, out: number): ModelRate => ({
@@ -61,16 +63,32 @@ export const RATES: Record<string, ModelRate | null> = {
 };
 
 /**
- * 원가(원). 소수점은 반올림한다.
- * @returns 단가를 모르면 **null** (0 이 아니다).
+ * 원가 계산 결과. "모르는 모델"과 "단가 미확정"을 구분한다 —
+ * 둘을 null 하나로 합치면 호출부가 RATES 를 다시 들춰봐야 하고,
+ * "미확정"은 경고 없이 조용히 새기 때문이다.
  */
-export function costWon(model: string, u: Usage): number | null {
+export type CostResult =
+  | { status: "ok"; won: number }
+  /** RATES 에 키 자체가 없다 — 새 모델을 붙이고 여기 등록을 잊었다는 뜻. */
+  | { status: "unregistered" }
+  /** RATES 에 있지만 단가가 null 이다 — 확인해서 채워야 한다. */
+  | { status: "unpriced" };
+
+/**
+ * 원가(원). **소수점 4자리까지** 낸다 — 정수로 반올림하면 캐시 히트 상태의 짧은 대화 턴
+ * (₩0.46 수준)이 통째로 0 이 되고, 그게 이 서비스에서 가장 빈도 높은 호출이다.
+ * `llm_usage.cost_won` 이 NUMERIC(12,4) 인 것과 짝이다.
+ */
+export function costWon(model: string, u: Usage): CostResult {
+  // Object.hasOwn — `in` 은 프로토타입 체인을 타 "constructor" 같은 문자열을 통과시킨다.
+  if (!Object.hasOwn(RATES, model)) return { status: "unregistered" };
   const r = RATES[model];
-  if (!r) return null; // 미등록 모델과 단가 미확정 모델을 같이 처리한다
+  if (r === null) return { status: "unpriced" };
   const usd =
     (u.inputTokens / 1e6) * r.in +
     (u.outputTokens / 1e6) * r.out +
     (u.cacheReadTokens / 1e6) * r.cacheRead +
     (u.cacheWriteTokens / 1e6) * r.cacheWrite;
-  return Math.round(usd * USD_KRW);
+  // 부동소수 잡음을 컬럼 정밀도(4자리)에서 끊는다.
+  return { status: "ok", won: Math.round(usd * USD_KRW * 1e4) / 1e4 };
 }
