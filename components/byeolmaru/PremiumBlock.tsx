@@ -34,7 +34,11 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
     //    resolved 전(= localStorage 를 아직 못 읽은 한 프레임)에는 보류한다 — 그래야 자리당
     //    정확히 한 번만 찍힌다. slot 이 바뀌면(허브 인연 칩 토글) resolved 가 잠깐 false 로
     //    떨어졌다가 새 slot 값으로 다시 resolve 되므로 새 자리에 대해서도 정확히 1회 찍힌다.
-    if (!entitled && resolved && !dismissed) trackUiEvent("byeolmaru_gate_shown", { meta: { slot } });
+    // 🔴 surface 는 자리가 아니라 **형태**다(P6-4). saju_report 는 허브 나 탭(여기)과 사주 상세
+    //    (PaywallCut)가 같은 slot 값을 쓰므로, 이 필드가 없으면 "절단선이 미끼 카드보다 파는가"를
+    //    영영 못 읽는다. 하드코딩이라 호출부 prop 은 필요 없다 — PaywallCut 이 "cut" 을 찍는다.
+    //    🔴 두 컴포넌트에 **동시에** 있어야 의미가 있다. 한쪽만 찍으면 그날부터 또 다른 단절이 된다.
+    if (!entitled && resolved && !dismissed) trackUiEvent("byeolmaru_gate_shown", { meta: { slot, surface: "bait_card" } });
   }, [entitled, resolved, dismissed, slot]);
 
   if (entitled) {
@@ -79,9 +83,10 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
           {/* 배지가 자물쇠를 대신해 "유료"를 고지하므로 대비를 양보하지 않는다(eye-purple 7.01:1). */}
           <span className="shrink-0 rounded-full bg-lilac-soft/70 px-1.5 py-0.5 text-[10px] font-bold text-eye-purple">구독</span>
         </div>
-        {/* 거절하면 그날은 접힌다(스펙 §9) — slot 별 당일 접힘은 useBaitDismiss 가 localStorage 로 기억. */}
+        {/* 거절하면 그날은 접힌다(스펙 §9) — slot 별 당일 접힘은 useBaitDismiss 가 localStorage 로 기억.
+            meta.surface 는 위 gate_shown 과 짝 — 여기선 늘 "bait_card" 다(접기는 PremiumBlock 에만 있다). */}
         <button
-          onClick={() => { trackUiEvent("byeolmaru_gate_dismissed", { meta: { slot } }); dismiss(); }}
+          onClick={() => { trackUiEvent("byeolmaru_gate_dismissed", { meta: { slot, surface: "bait_card" } }); dismiss(); }}
           aria-label="오늘은 그만 보기"
           className="shrink-0 rounded-full px-2 py-1 text-[11px] text-text-light/70"
         >

@@ -11,12 +11,15 @@
 //       `!dismissed` 조건이 있어 그날 접은 유저의 재방문을 분모에서 뺐는데, 접기가 없어진
 //       여기는 그 재방문까지 전부 센다. 이건 스펙 §13 "어느 미끼가 파는가"의 **분모**라
 //       전환율이 떨어진 것처럼 보인다 — 배포일 전후 전환율 하락으로 오독하지 말 것.
+//       🔴 `meta.surface` 로 갈라 봐도 마찬가지다. 형태가 갈릴 뿐 **접힘 억제가 돌아오지는 않는다.**
 //    🔴 slot 별로 영향이 다르다. `tarot_rich` 는 이 컴포넌트가 유일한 소스가 되지만,
 //       `saju_report` 는 **허브 나 탭(ByeolmaruHub — PremiumBlock 유지)과 사주 상세(여기)가
-//       같은 slot 값을 쓴다**. meta 에 자리를 가를 필드가 없어 한 버킷에 섞이므로, saju_report
-//       의 dismissed 는 0 이 아니라 허브분만 남아 내려앉는다(허브/상세 비중은 사후 분리 불가).
-//       byeolmaru_day_selected 가 `surface` 필드로 푼 것과 같은 종류의 문제다 — 갈라 볼 필요가
-//       생기면 그 선례를 따를 것(이 태스크 범위 밖: meta 를 바꾸면 PremiumBlock 과 모양이 갈린다).
+//       같은 slot 값을 쓴다**. 그래서 saju_report 의 dismissed 는 0 이 아니라 허브분만 남아
+//       내려앉고, shown 은 상세분만큼 뛴다.
+//       → 그 둘을 가르려고 `meta.surface` 를 넣었다(byeolmaru_day_selected 의 surface 선례):
+//         여기가 `"cut"`, PremiumBlock 이 `"bait_card"`. **자리가 아니라 형태**를 가르는 이유는
+//         P6-4 의 질문이 "절단선이 미끼 카드보다 파는가"라서다(자리는 slot 이 이미 안다).
+//         🔴 두 컴포넌트에 **동시에** 있어야 의미가 있다 — 한쪽만 찍으면 또 다른 단절이 된다.
 // 🔴 호출부 계약 — 이 컴포넌트는 `entitled` 를 받지 않고, 마운트되면 무조건 gate_shown 을 찍는다.
 //    **비자격 경로에서만 렌더할 것.** 자격자에게 렌더하면 gate_shown 분모가 구독자로 오염된다
 //    (PremiumBlock 은 `!entitled` 를 자기 안에서 봤지만 여기는 호출부가 책임진다).
@@ -50,7 +53,10 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
     // **계열**을 잇는다. 🔴 잇는 건 계열이지 값이 아니다: 접기가 없어 `!dismissed` 게이트도
     // resolved 대기도 없으므로(자리당 정확히 1회) PremiumBlock 이 빼던 재방문이 여기선 분모에
     // 들어온다. 배선일을 사이에 둔 **수준 비교는 하지 말 것** — 파일 머리 "계측 단절 주의" 참조.
-    trackUiEvent("byeolmaru_gate_shown", { meta: { slot } });
+    // 🔴 surface="cut" — 자리가 아니라 **형태**를 가른다(PremiumBlock 은 "bait_card"). saju_report 는
+    //    허브 나 탭과 사주 상세가 같은 slot 이라, 이 필드가 없으면 P6-4 의 질문("절단선이 미끼 카드보다
+    //    파는가")을 사후에 못 읽는다. 하드코딩이라 호출부 prop 은 없다.
+    trackUiEvent("byeolmaru_gate_shown", { meta: { slot, surface: "cut" } });
   }, [slot]);
 
   return (

@@ -56,19 +56,28 @@ export const UI_EVENTS = [
   "byeolmaru_no_profile",
   /** 별마루 — 비로그인 진입(하단탭에서 눌렀으나 세션 없음) */
   "byeolmaru_need_login",
-  /** 별마루 — 페이월 미끼 노출(슬롯 노출마다 1회 — slot 이 바뀌면 같은 마운트에서도 다시 찍힌다). meta:{slot:"saju_report"|"woori_30d"|"tarot_rich"}
-   *  ⚠️ P6-4 배선일에 이 값이 **위로 뛴다**(사주 상세·타로). PaywallCut 이 그 두 자리에서
+  /** 별마루 — 페이월 미끼 노출(슬롯 노출마다 1회 — slot 이 바뀌면 같은 마운트에서도 다시 찍힌다).
+   *  meta:{slot:"saju_report"|"woori_30d"|"tarot_rich", surface:"bait_card"|"cut"}
+   *  🔴 surface 없이는 P6-4 의 핵심 가설("절단선이 별도 미끼 카드보다 파는가")을 영영 못 읽는다.
+   *     `saju_report` 는 허브 나 탭(미끼 카드)과 사주 상세(절단선)가 **같은 slot 값**을 쓰기 때문이다 —
+   *     그 분해가 이 필드 하나에 달려 있다. 자리가 아니라 **형태**를 가른다(자리는 slot 이 이미 안다):
+   *     bait_card=PremiumBlock · cut=PaywallCut 에 하드코딩이라 호출부 prop 은 없다.
+   *  ⚠️ P6-4 배선일에 이 값의 **수준이 뛴다**(사주 상세·타로). PaywallCut 이 그 두 자리에서
    *     PremiumBlock 을 대체하며 접기를 없앴는데, PremiumBlock 은 `!dismissed` 조건으로 그날 접은
    *     유저의 재방문을 분모에서 뺐다. 이건 스펙 §13 "어느 미끼가 파는가"의 **분모**라 전환율이
-   *     떨어진 것처럼 보인다 — 행동 변화로 오독하지 말 것. 허브·우리 탭은 PremiumBlock 그대로다. */
+   *     떨어진 것처럼 보인다. surface 로 갈라 봐도 배선일을 사이에 둔 **수준 비교는 금물**이다
+   *     (형태가 갈릴 뿐 접힘 억제가 돌아오지는 않는다) — 행동 변화로 오독하지 말 것.
+   *     허브·우리 탭은 PremiumBlock 그대로다. */
   "byeolmaru_gate_shown",
-  /** 별마루 — 페이월 미끼 닫기(당일 접힘). meta:{slot:"saju_report"|"woori_30d"|"tarot_rich"}
+  /** 별마루 — 페이월 미끼 닫기(당일 접힘).
+   *  meta:{slot:"saju_report"|"woori_30d"|"tarot_rich", surface:"bait_card"}
+   *  🔴 surface 는 언제나 "bait_card" 다 — 접기는 PremiumBlock 에만 있다(PaywallCut 은 리포트 본문의
+   *     가려진 부분이라 접으면 그 자리가 통째로 빈다). 위 gate_shown 과 짝을 맞추려고 같이 찍는다.
    *  ⚠️ P6-4 배선일에 꺾인다(PaywallCut 에는 접기가 없다). slot 별로 다르다:
    *     `tarot_rich` 는 **영구히 0**(그 자리의 유일한 소스가 PaywallCut 이 된다) /
-   *     `saju_report` 는 0 이 아니라 **허브 나 탭분만 남아 내려앉는다** — 허브(PremiumBlock 유지)와
-   *     사주 상세(PaywallCut)가 같은 slot 값을 쓰는데 meta 에 자리를 가를 필드가 없어서다 /
-   *     `woori_30d` 는 무영향. 추세선 단절이니 행동 변화로 오독하지 말 것.
-   *     🔴 허브/상세 비중이 필요해지면 byeolmaru_day_selected 의 `surface` 선례를 따를 것. */
+   *     `saju_report` 는 0 이 아니라 **허브 나 탭분만 남아 내려앉는다**(사주 상세가 PaywallCut 으로
+   *     바뀐다 — 허브/상세 분해는 위 gate_shown 의 surface 가 한다) /
+   *     `woori_30d` 는 무영향. 추세선 단절이니 행동 변화로 오독하지 말 것. */
   "byeolmaru_gate_dismissed",
   /** 별마루 — 3일 무료 체험 시작 클릭. meta:{slot?} */
   "byeolmaru_trial_started",
