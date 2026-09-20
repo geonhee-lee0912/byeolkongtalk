@@ -108,8 +108,10 @@ export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: Daily
  *     그리므로(겹침 실측) 리드가 끌림을 밀어낸다. 리드는 상세 카드 칩으로만 남는다. */
 export function pairMarks(tags: PairDayTags): DayMark[] {
   const out: DayMark[] = [];
-  if (tags.spark) out.push({ glyph: "✧", label: "끌림" });
-  if (tags.bond) out.push({ glyph: "◇", label: "결속" });
-  if (tags.friction) out.push({ glyph: "△", label: "삐걱" });
+  // 🔴 전부 full 은 임시다 — 다음 태스크(V4 점수 공식)가 두 사람 머릿수를 세어
+  //    진짜 강도(한 명만 걸리면 half)를 채운다.
+  if (tags.spark) out.push({ glyph: "✧", label: "끌림", strength: "full" });
+  if (tags.bond) out.push({ glyph: "◇", label: "결속", strength: "full" });
+  if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: "full" });
   return out;
 }

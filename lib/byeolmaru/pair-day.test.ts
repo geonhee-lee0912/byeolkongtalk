@@ -40,9 +40,10 @@ test("pairBackdrop: 라벨·연월조화 노출", () => {
 test("pairMarks: 끌림 ✧ · 결속 ◇ · 삐걱 △ — 순서 고정, lead 는 마크가 아니다", () => {
   const tg = (p: Partial<PairDayTags>): PairDayTags => ({ spark: false, bond: false, friction: false, lead: null, ...p });
   assert.deepEqual(pairMarks(tg({})), []);
-  assert.deepEqual(pairMarks(tg({ spark: true })), [{ glyph: "✧", label: "끌림" }]);
-  assert.deepEqual(pairMarks(tg({ bond: true })), [{ glyph: "◇", label: "결속" }]);
-  assert.deepEqual(pairMarks(tg({ friction: true })), [{ glyph: "△", label: "삐걱" }]);
+  // 🔴 strength 는 이 태스크(P6-3 §4)에서 전부 full — 두 사람 머릿수 기반 half 계산은 다음 태스크.
+  assert.deepEqual(pairMarks(tg({ spark: true })), [{ glyph: "✧", label: "끌림", strength: "full" }]);
+  assert.deepEqual(pairMarks(tg({ bond: true })), [{ glyph: "◇", label: "결속", strength: "full" }]);
+  assert.deepEqual(pairMarks(tg({ friction: true })), [{ glyph: "△", label: "삐걱", strength: "full" }]);
   // 셀은 첫 마크만 그린다(겹침 실측) — 배열 순서가 곧 우선순위다. 나 탭 dayMarks 와 같은 순서.
   assert.deepEqual(pairMarks(tg({ spark: true, bond: true, friction: true })).map((m) => m.glyph), ["✧", "◇", "△"]);
   // lead 는 두 사람 점수 비교지 "그날의 원인"이 아니다 — 마크로 만들면 끌림을 셀에서 밀어낸다.

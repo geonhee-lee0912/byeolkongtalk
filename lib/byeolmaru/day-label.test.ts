@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DAY_NAME, DAY_LINE, dayMarks } from "./day-label.ts";
+import { DAY_NAME, DAY_LINE, dayMarks, MARK_COLOR, type DayGlyph } from "./day-label.ts";
 import type { DayFactors } from "./day-score.ts";
 import { tenGod, type TenGod } from "@/lib/saju/pairing";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
@@ -52,15 +52,15 @@ test("dayMarks — 아무 신호도 없으면 빈 배열", () => {
 test("dayMarks — 천간합·육합이 같이 있으면 둘 다, 순서는 천간합 먼저", () => {
   const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true });
   assert.deepEqual(m.map((x) => x.glyph), ["✧", "◇"]);
-  assert.deepEqual(m.map((x) => x.label), ["천간합", "육합"]);
+  assert.deepEqual(m.map((x) => x.label), ["끌림", "결속"]);
 });
 
 test("dayMarks — 충은 △", () => {
-  assert.deepEqual(dayMarks({ ...base, clash: true }), [{ glyph: "△", label: "충" }]);
+  assert.deepEqual(dayMarks({ ...base, clash: true }), [{ glyph: "△", label: "삐걱", strength: "full" }]);
 });
 
 test("dayMarks — 그 오행이 아예 없으면 ＋(빈 곳 채움), 부족/보통/과다는 마크 없음", () => {
-  assert.deepEqual(dayMarks({ ...base, scarcity: "absent" }), [{ glyph: "＋", label: "빈 곳 채움" }]);
+  assert.deepEqual(dayMarks({ ...base, scarcity: "absent" }), [{ glyph: "＋", label: "채움", strength: "full" }]);
   for (const s of ["scarce", "balanced", "excess"] as const) {
     assert.deepEqual(dayMarks({ ...base, scarcity: s }), []);
   }
@@ -69,6 +69,27 @@ test("dayMarks — 그 오행이 아예 없으면 ＋(빈 곳 채움), 부족/�
 test("dayMarks — 네 신호가 다 있으면 고정 순서로 넷 다", () => {
   const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
   assert.deepEqual(m.map((x) => x.glyph), ["✧", "◇", "△", "＋"]);
+});
+
+test("마크 라벨은 전부 2글자 — 셀 하단 띠가 한 줄에 들어가야 한다", () => {
+  const all = [
+    dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: true, clash: false, scarcity: "absent" }),
+    dayMarks({ relation: "비화", heavenlyCombo: false, sixCombo: false, clash: true, scarcity: "balanced" }),
+  ].flat();
+  assert.ok(all.length >= 4, "네 종류가 다 나와야 한다");
+  for (const m of all) assert.equal(m.label.length, 2, `${m.glyph} 라벨이 2글자가 아니다: ${m.label}`);
+});
+
+test("나 탭 마크는 전부 full — 강도 2단은 우리 탭에서만 쓴다", () => {
+  const ms = dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: false, clash: false, scarcity: "balanced" });
+  assert.equal(ms[0].strength, "full");
+});
+
+test("MARK_COLOR 가 글리프 4종을 빠짐없이 덮는다", () => {
+  // 🔴 Record 타입만 믿지 않는다 — 실제 키 집합을 대조한다(폴백 없는 조회라 빠지면 런타임 undefined).
+  const glyphs: DayGlyph[] = ["✧", "◇", "△", "＋"];
+  assert.deepEqual(Object.keys(MARK_COLOR).sort(), [...glyphs].sort());
+  for (const g of glyphs) assert.match(MARK_COLOR[g], /^#[0-9A-F]{6}$/i);
 });
 
 function cal30() {

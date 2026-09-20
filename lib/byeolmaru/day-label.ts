@@ -44,22 +44,42 @@ export const DAY_LINE: Record<TenGod, string> = {
 
 export type DayGlyph = "✧" | "◇" | "△" | "＋";
 
+/** 마크 강도 — 우리 탭에서 **두 사람 다** 걸리면 full, 한 명만이면 half(스펙 §3-1-a).
+ *  점수도 같은 규칙으로 가중되므로 시각과 점수가 어긋나지 않는다. 나 탭은 사람이 하나라 항상 full. */
+export type MarkStrength = "full" | "half";
+
 export interface DayMark {
   glyph: DayGlyph;
+  /** 🔴 2글자 고정 — 셀 하단 띠(42px 칸)에 한 줄로 들어가야 한다(스펙 §3). 늘리려면 셀 폭부터 재라. */
   label: string;
+  /** 🔴 옵셔널이 아니다 — 옵셔널이면 생산자가 빠뜨려도 타입이 통과하고 화면에선 조용히 연한 쪽으로
+   *     떨어진다(우리 탭 전 칸이 half 로 보이는 사고). 생산자 둘 다 명시한다. */
+  strength: MarkStrength;
 }
 
+/** 2글자 라벨의 색(스펙 §3). 8px 회색 글리프가 사실상 안 보여서 색으로 구분을 옮겼다.
+ *  🔴 @theme 토큰으로 올리지 않는다 — 달력 판 안에서만 쓰는 국소 팔레트다(CalendarGrid 의
+ *     TONE_STYLE 과 같은 이유). ＋(채움)만 §3 표에 없어 lilac-deep 을 쓴다. */
+export const MARK_COLOR: Record<DayGlyph, string> = {
+  "✧": "#C99A28",
+  "◇": "#3E8E8A",
+  "△": "#C4738E",
+  "＋": "#9F8AD0",
+};
+
 /**
- * 그날을 그렇게 만든 원인 마크. 달력 셀 우상단 + 상세 칩에 쓴다.
- * 우리 오늘 셀의 ✨끌림·🔗결속과 같은 어법 — 두 탭이 한 문법을 쓰게 한다.
+ * 그날을 그렇게 만든 원인 마크. 달력 셀 하단 띠 + 상세 칩에 쓴다.
+ * 🔴 어휘는 우리 탭(pairMarks)과 **같다** — 판정 primitive 가 실제로 같기 때문이다(천간합·육합·충).
+ *    예전 라벨(천간합·육합·충·빈 곳 채움)은 용어였고 길이도 1~5자로 들쭉날쭉해 2글자 띠에 안 들어갔다.
+ *    두 탭이 한 문법을 쓰게 한다는 건 이 파일이 처음부터 적어둔 의도다.
  * 순서는 고정(천간합 → 육합 → 충 → 빈 곳)이라 같은 날이 늘 같은 순서로 보인다.
  */
 export function dayMarks(f: DayFactors): DayMark[] {
   const out: DayMark[] = [];
-  if (f.heavenlyCombo) out.push({ glyph: "✧", label: "천간합" });
-  if (f.sixCombo) out.push({ glyph: "◇", label: "육합" });
-  if (f.clash) out.push({ glyph: "△", label: "충" });
+  if (f.heavenlyCombo) out.push({ glyph: "✧", label: "끌림", strength: "full" });
+  if (f.sixCombo) out.push({ glyph: "◇", label: "결속", strength: "full" });
+  if (f.clash) out.push({ glyph: "△", label: "삐걱", strength: "full" });
   // scarce(1개)는 마크를 붙이지 않는다 — "아예 없던 게 채워지는" 날만 눈에 띄게 한다.
-  if (f.scarcity === "absent") out.push({ glyph: "＋", label: "빈 곳 채움" });
+  if (f.scarcity === "absent") out.push({ glyph: "＋", label: "채움", strength: "full" });
   return out;
 }
