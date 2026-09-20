@@ -70,17 +70,20 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
 /** 게이지만 — P6-4 §5-3② 로 **절단선 위(무료)**로 올라갔다. 룰 100%·원가 0이라 §5 의 원가 경계에
  *  걸리지 않는다. 자격과 무관하게 카드가 있으면 그린다(라우트도 비자격에게 gauge 를 실어 준다).
  *  🔴 CardReportView 는 이제 게이지를 그리지 않는다(두 번 나오지 않게). 유료 리포트 쪽에서 이 막대를
- *     다시 그리고 싶어지면, 그건 무료 구간에 이미 있다는 뜻이다. */
-export function CardGaugeView({ gauge, reversed }: { gauge: CardGauge; reversed: boolean }) {
+ *     다시 그리고 싶어지면, 그건 무료 구간에 이미 있다는 뜻이다.
+ *  🔴 dayWord 를 **반드시** 받는다 — 예전엔 "오늘"이 박혀 있었다. 날짜 축이 열린 뒤(Task 8) 이 막대는
+ *     지난 날에도 뜨고, 무료 구간으로 올라오면서 지난 날을 보는 **모든** 사람이 그 거짓말을 보게 됐다.
+ *     호출부는 report-date.ts 의 dayWordFor 를 쓴다(삼항을 새로 적지 말 것 — 그 말의 단일 원천이다). */
+export function CardGaugeView({ gauge, reversed, dayWord }: { gauge: CardGauge; reversed: boolean; dayWord: "오늘" | "그날" }) {
   return (
-    <section aria-label="오늘 흐름 게이지" className="mt-3 rounded-2xl bg-white/70 p-3">
+    <section aria-label={`${dayWord} 흐름 게이지`} className="mt-3 rounded-2xl bg-white/70 p-3">
       <ul className="space-y-2">
         {AXES.map(({ key, label }) => (
           <GaugeBar key={key} label={label} axis={gauge[key]} />
         ))}
       </ul>
       <p className="mt-2 text-[11px] text-text-light">
-        연보라 = 오늘 사주 흐름 · <span style={{ color: GOLD }}>금색</span> = 이 카드가 {reversed ? "살짝 덜어낸" : "살짝 더한"} 것
+        연보라 = {dayWord} 사주 흐름 · <span style={{ color: GOLD }}>금색</span> = 이 카드가 {reversed ? "살짝 덜어낸" : "살짝 더한"} 것
       </p>
     </section>
   );

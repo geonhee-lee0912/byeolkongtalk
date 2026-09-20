@@ -13,6 +13,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
+import { dayWordFor } from "@/lib/byeolmaru/report-date";
 import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
 import { TAROT_PAID_CHARS, TAROT_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
@@ -297,6 +298,9 @@ export default function DailyCardBlock({
           // 🔴 인사말 로테이션 시드는 **보고 있는 날짜**다 — 오늘 KST 로 고정하면 지난 날을 다시 열
           //    때마다 인사말이 바뀌어, "그때 받은 글"이어야 할 것이 매번 달라진다.
           const taste = getCardTaste(drawnCard.cardId, reversed, date) ?? buildStaticLine(kwList);
+          // 그 날을 부르는 말 — 게이지 문구가 지난 날에 "오늘"이라고 말하던 걸 막는다.
+          // 🔴 삼항을 새로 적지 않는다: 이 말의 단일 원천은 report-date.ts 다(사주 쪽도 같은 함수를 쓴다).
+          const dayWord = dayWordFor(date, todayKst);
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
@@ -317,48 +321,56 @@ export default function DailyCardBlock({
           }
 
           return (
-            <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
+            <section className="rounded-2xl bg-cream-warm p-4">
               {/* 🔴 위 "카드 없음" 분기와 같은 말을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다(상단 BackHeader 는 이미 "9월 20일 타로"라고 말한다). */}
               <h2 className="mb-3 font-display text-base text-eye-purple">{date === todayKst ? "오늘의 카드" : "그날의 카드"}</h2>
 
-              <div className="flex flex-col items-center text-center">
-                <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
-                  <Image
-                    src={getCardImagePath(drawnCard.cardId)}
-                    alt={tarotCard.name_kr}
-                    fill
-                    sizes="110px"
-                    className={`object-cover ${reversed ? "rotate-180" : ""}`}
-                  />
+              {/* 🔴 live region 은 **무료 구간만** 감싼다(section 전체가 아니다) — DayDetailCard 가
+                  Task 6 에서 내린 것과 같은 판단이다. 아래 자격 삼항에는 유료 리포트(~1,800자)가
+                  **몇 초 뒤 비동기로** 꽂히는데, 그게 live region 안이면 그 삽입이 addition 으로 잡혀
+                  1,800자가 통째로 불쑥 낭독된다. 자손에 live 를 off 로 덮어 상속을 끊는 방법은
+                  스크린리더 구현 편차가 있어 사주 쪽에서 이미 기각했다 — 아예 밖에 두면 구조로 보장된다.
+                  원래 목적(날짜가 바뀌었다는 신호)은 그대로다: 날짜가 바뀌면 이 div 안이 전부 바뀐다. */}
+              <div aria-live="polite">
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
+                    <Image
+                      src={getCardImagePath(drawnCard.cardId)}
+                      alt={tarotCard.name_kr}
+                      fill
+                      sizes="110px"
+                      className={`object-cover ${reversed ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                  <p className="mt-2 font-display text-[15px] text-eye-purple">
+                    {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
                 </div>
-                <p className="mt-2 font-display text-[15px] text-eye-purple">
-                  {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
-                </p>
-                <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
+
+                {/* 무료 taste — 🔴 자격 여부와 무관하게 **항상** 그린다(§5-3①). 유료 프롬프트가 카드
+                    상징 재설명을 금지하므로, 이게 없으면 돈 낸 사람만 "이 카드가 어떤 카드인지"를
+                    키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다. */}
+                <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+
+                {/* 게이지 — 절단선 **위**(무료). 룰 100%·원가 0이라 §5 경계 원칙에 걸리지 않는다(§5-3②). */}
+                {gauge && <CardGaugeView gauge={gauge} reversed={reversed} dayWord={dayWord} />}
+
+                {/* 생일 안내 — 🔴 자격 분기 **밖**이다. 404(profile_not_found)는 자격 판정 앞에서 나와
+                    비자격자도 받는데(라우트 계약 ⑥), 자격 분기 안에 두면 그 사람은 게이지도 리포트도
+                    없는 채 절단선만 보고 **왜 비었는지**를 영영 못 듣는다. 여기 두면 자격자에게는
+                    기존과 같은 자리에 뜨고(그 경우 위 taste·게이지 바로 아래가 곧 이 줄이다),
+                    비자격자에게는 절단선 **앞**에 뜬다 — 유료가 파는 것의 전제 조건이라 그 순서가 맞다. */}
+                {narrativeBlocked === "no_profile" && (
+                  <p className="mt-2 text-xs leading-relaxed text-text-light">
+                    생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
+                    <Link href="/mypage" className="text-lilac-deep underline">
+                      생년월일 입력하러 가기 →
+                    </Link>
+                  </p>
+                )}
               </div>
-
-              {/* 무료 taste — 🔴 자격 여부와 무관하게 **항상** 그린다(§5-3①). 유료 프롬프트가 카드
-                  상징 재설명을 금지하므로, 이게 없으면 돈 낸 사람만 "이 카드가 어떤 카드인지"를
-                  키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다. */}
-              <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
-
-              {/* 게이지 — 절단선 **위**(무료). 룰 100%·원가 0이라 §5 경계 원칙에 걸리지 않는다(§5-3②). */}
-              {gauge && <CardGaugeView gauge={gauge} reversed={reversed} />}
-
-              {/* 생일 안내 — 🔴 자격 분기 **밖**이다. 404(profile_not_found)는 자격 판정 앞에서 나와
-                  비자격자도 받는데(라우트 계약 ⑥), 자격 분기 안에 두면 그 사람은 게이지도 리포트도
-                  없는 채 절단선만 보고 **왜 비었는지**를 영영 못 듣는다. 여기 두면 자격자에게는
-                  기존과 같은 자리에 뜨고(그 경우 위 taste·게이지 바로 아래가 곧 이 줄이다),
-                  비자격자에게는 절단선 **앞**에 뜬다 — 유료가 파는 것의 전제 조건이라 그 순서가 맞다. */}
-              {narrativeBlocked === "no_profile" && (
-                <p className="mt-2 text-xs leading-relaxed text-text-light">
-                  생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
-                  <Link href="/mypage" className="text-lilac-deep underline">
-                    생년월일 입력하러 가기 →
-                  </Link>
-                </p>
-              )}
 
               {entitled ? (
                 <>

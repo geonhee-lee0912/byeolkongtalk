@@ -72,11 +72,11 @@ export default function PremiumBlock({ entitled, trialUsed, narrative, teaser, l
           닫기 버튼만 오른쪽 끝에 붙인다. 제목 span 은 min-w-0 로 줄어들되 줄바꿈되게 두고
           (truncate 금지), 배지·닫기엔 shrink-0 — 375px 처럼 좁은 화면에서도 줄어드는 건
           제목뿐, 배지·닫기는 밀리지 않는다.
-          🔴 truncate 였다가 FIX A 로 제거 — tarot_rich 자리는 DailyCardBlock 이 PremiumBlock 을
-          자기 section p-4 안에 한 겹 더 넣어 375px 기준 제목 가용폭이 허브보다 32px 좁고,
-          saju_report 제목도 여유가 12px 뿐이라 한 글자만 늘어도 잘렸다("…얹어줄게"에서
-          동사 "얹어줄게"가 통째로 잘려나가는 식). 페이월 헤드라인의 약속 동사가 사라지는 셈이라
-          자르는 대신 줄바꿈으로 — 이건 폭·카피 어느 조합에서도 안전하다. */}
+          🔴 truncate 였다가 FIX A 로 제거 — saju_report 제목은 375px 기준 여유가 12px 뿐이라 한 글자만
+          늘어도 잘렸다("…얹어줄게"에서 동사 "얹어줄게"가 통째로 잘려나가는 식). 페이월 헤드라인의
+          약속 동사가 사라지는 셈이라 자르는 대신 줄바꿈으로 — 이건 폭·카피 어느 조합에서도 안전하다.
+          (FIX A 당시 근거 하나였던 "tarot_rich 자리의 한 겹 더 좁은 중첩"은 P6-4 Task 9 이후 사라졌다
+          — 그 자리는 이제 PaywallCut 이고 이 컴포넌트를 쓰지 않는다. 결론은 saju_report 만으로 선다.) */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 font-display text-base text-eye-purple">{copy.title}</span>
