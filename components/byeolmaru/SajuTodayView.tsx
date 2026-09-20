@@ -149,7 +149,10 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
               title: `오늘 사주 · ${DAY_NAME[cell.tenGod]}`,
               description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
               imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}&tg=${encodeURIComponent(cell.tenGod)}`,
-              link: `${window.location.origin}/byeolmaru/saju?utm_source=byeolmaru_saju&utm_medium=share`,
+              // 🔴 착지는 **허브**다(`/byeolmaru`). 공유 링크를 받는 사람은 대부분 비사용자인데,
+              //    `/byeolmaru/saju` 는 비로그인에게 로그인 벽 한 줄뿐이라 utm 으로 재려는 바로 그
+              //    전환을 깎는다. 허브는 게스트 미리보기(EmptyMonthShell)가 있어 받아낼 화면이 있다.
+              link: `${window.location.origin}/byeolmaru?utm_source=byeolmaru_saju&utm_medium=share`,
               buttonTitle: "나도 보러가기",
             });
             trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "saju", ok } });
