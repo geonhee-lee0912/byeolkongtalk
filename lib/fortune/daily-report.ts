@@ -30,6 +30,45 @@ export const DAILY_SECTIONS: DailySectionMeta[] = [
 
 const SECTION_KEYS: DailySectionKey[] = DAILY_SECTIONS.map((s) => s.key);
 
+/** OpenAI 구조화 출력 스키마 — strict(모든 object additionalProperties:false + 전 property required).
+ *  🔴 스키마는 "형태"만 강제한다. 문장 수·내용·note 머리말은 여전히 프롬프트 + parseDailyReportJson 몫.
+ *  sections.key 는 enum 으로 묶어 오타 키(예: "romance")를 원천 차단한다 — 파서의 5개 필수 검사와 짝. */
+export const DAILY_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    stars: { type: "integer" },
+    summary: { type: "string" },
+    lucky: {
+      type: "object",
+      additionalProperties: false,
+      properties: { keyword: { type: "string" }, color: { type: "string" }, time: { type: "string" } },
+      required: ["keyword", "color", "time"],
+    },
+    intro: { type: "string" },
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          key: { type: "string", enum: ["money", "work", "love", "health", "study"] },
+          body: { type: "string" },
+        },
+        required: ["key", "body"],
+      },
+    },
+    balance: {
+      type: "object",
+      additionalProperties: false,
+      properties: { good: { type: "string" }, warn: { type: "string" } },
+      required: ["good", "warn"],
+    },
+    note: { type: "string" },
+  },
+  required: ["stars", "summary", "lucky", "intro", "sections", "balance", "note"],
+} as const;
+
 /** AI 가 생성하는 부분. */
 export interface DailyReportAI {
   stars: number; // 1~5

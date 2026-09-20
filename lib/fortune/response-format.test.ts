@@ -27,8 +27,14 @@ describe("fortuneResponseFormat", () => {
       assert.ok(!socialReq.includes(f), `compat_social 엔 ${f} 없어야(연애색)`);
     }
   });
-  it("good_days(마크다운)·daily(nano)·tarot(비활성)은 undefined", () => {
-    for (const t of ["good_days", "daily", "tarot_daily", "tarot_love", "tarot_money", "tarot_career", "tarot_relation"] as const) {
+  it("daily(별마루 유료 오늘 사주)는 P6-2 부터 구조화 출력 — daily_report 스키마", () => {
+    const rf = fortuneResponseFormat("daily");
+    assert.ok(rf);
+    assert.equal(rf!.name, "daily_report");
+    assert.equal((rf!.schema as { type: string }).type, "object");
+  });
+  it("good_days(마크다운)·tarot(비활성)은 undefined", () => {
+    for (const t of ["good_days", "tarot_daily", "tarot_love", "tarot_money", "tarot_career", "tarot_relation"] as const) {
       assert.equal(fortuneResponseFormat(t), undefined);
     }
   });
