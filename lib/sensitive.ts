@@ -11,6 +11,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getServiceSupabase } from "@/lib/supabase";
+import { recordUsage } from "@/lib/claude/usage-log";
+import { mapAnthropicUsage } from "@/lib/claude/adapters/anthropic";
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
@@ -157,6 +159,11 @@ export async function detectSensitiveAsync(
       max_tokens: 200,
       system: CLAIM_SCHEMA,
       messages: [{ role: "user", content: text.slice(0, 1500) }],
+    });
+
+    // 🔴 회색지대 대화 턴마다 돌 수 있는 경로다 — 누락하면 원가가 조용히 샌다(스펙 §4 착점 3).
+    void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
+      route: "lib/sensitive.detectSensitiveAsync",
     });
 
     const content = resp.content[0];

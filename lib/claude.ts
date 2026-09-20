@@ -29,7 +29,7 @@ import type { SimSituation } from "@/lib/relationship/situations";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 import { upstreamErrorType } from "@/lib/upstream-error";
-import { anthropicAdapter } from "@/lib/claude/adapters/anthropic";
+import { anthropicAdapter, mapAnthropicUsage } from "@/lib/claude/adapters/anthropic";
 import { openaiAdapter } from "@/lib/claude/adapters/openai";
 import { geminiAdapter } from "@/lib/claude/adapters/gemini";
 import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
@@ -919,6 +919,12 @@ export async function summarizeOlder(
     max_tokens: 700,
     system: sys,
     messages: [{ role: "user", content: user }],
+  });
+  // streamChat 을 안 타는 우회 경로 — 여기서 직접 기록한다(스펙 §4 착점 2).
+  // 매핑은 어댑터에서 재사용한다 — anthropic 회계 규칙(input_tokens 는 캐시 제외 잔여라
+  // 빼지 않는다)이 두 곳에 복제되면 한쪽만 고쳐질 때 조용히 갈라진다.
+  void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
+    route: "lib/claude.summarizeOlder",
   });
   const text = resp.content.find((b) => b.type === "text");
   return text && text.type === "text" ? text.text.trim() : (prevSummary ?? "");
