@@ -3,6 +3,7 @@
 // streamChat(lib/claude.ts) 래퍼가 소유한다(anthropic 어댑터와 동일 계약).
 import OpenAI from "openai";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
+import type { Usage } from "@/lib/claude/pricing";
 
 // ⚠️ lazy 초기화. parse.test.ts 는 lib/ 아래라 CI(node --import tsx --test)가 실행하고 이 모듈을
 // import 한다. CI 엔 OPENAI_API_KEY 가 없어 모듈 로드 시 new OpenAI() 를 만들면 SDK 가 즉시 throw
@@ -67,17 +68,34 @@ export const openaiAdapter: ProviderAdapter = {
       //   는 "none"·"low" 만 지원("minimal"→400). 셋 다 되는 유일한 값이 "low" 라 이걸 쓴다.
       reasoning_effort: "low",
       stream: true,
+      // usage 는 이 옵션을 켜야 **마지막 청크**에 실려 온다(기본은 안 준다).
+      stream_options: { include_usage: true },
       messages: [{ role: "system", content: system }, ...messages],
       ...openaiResponseFormat(responseFormat),
     });
     let stop: StopReason = null;
+    let usage: Usage | null = null;
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) yield delta;
       const fr = chunk.choices[0]?.finish_reason;
       if (fr) stop = mapOpenAIFinish(fr);
+      // usage 청크는 choices 가 빈 배열이다 — 위 옵셔널 체이닝이 이미 안전하게 넘긴다.
+      if (chunk.usage) {
+        const cached = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
+        usage = {
+          // 🔴 prompt_tokens 는 캐시에서 읽은 분을 **포함**한다 → 빼야 중복 계산이 안 된다.
+          //    (anthropic 은 반대다 — input_tokens 에 캐시분이 안 들어가서 빼면 안 된다.
+          //     프로바이더마다 회계가 달라 같은 코드를 복사하면 틀린다.)
+          inputTokens: Math.max(0, (chunk.usage.prompt_tokens ?? 0) - cached),
+          outputTokens: chunk.usage.completion_tokens ?? 0,
+          cacheReadTokens: cached,
+          // OpenAI 는 캐시 쓰기를 따로 청구하지 않는다(자동 캐싱) → 0.
+          cacheWriteTokens: 0,
+        };
+      }
     }
-    return stop;
+    return { stop, usage };
   },
   isRetryableError(err: unknown) {
     const status = (err as { status?: number })?.status;
