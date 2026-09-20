@@ -696,14 +696,16 @@ export function fillGuideTokens(
 }
 
 /** daily 리포트의 대상 날짜가 오늘이 아닐 때 앞에 세우는 지시 줄. 오늘이면 null(기존 동작 그대로).
- *  🔴 템플릿의 "오늘"을 전부 토큰으로 바꾸지 않는 이유 — daily 외 운세 타입이 같은 SECTION_GUIDE
- *     구조를 쓰고 있어 파급이 크고, 한 줄로 시제를 덮는 편이 회귀 위험이 작다.
  *  전제: reportDate·todayKst 는 report-date.ts 의 isIsoDate 를 통과한 YYYY-MM-DD 다(검증은 호출부 책임).
  *  🔴 내부에서 isIsoDate 를 부르지 않는 이유 — lib/fortune → lib/byeolmaru 역방향 의존이 생긴다.
  *  🔴 형식 블록 뒤에 같은 지시를 한 번 더 거는 "샌드위치"를 시도했다가 되돌렸다(2026-09-19 실측 3샘플):
  *     "그날"이 늘긴 했으나 "오늘"이 여전히 우세했고, 모델이 두 지시를 섞어 "오늘의 그날은…" 같은
  *     비문을 만들었다. 지시 반복으로는 템플릿 안의 리터럴 "오늘"을 못 이긴다 — P6-2 에서 둘 다 했다 —
- *     SECTION_GUIDE.daily 의 "오늘"은 전부 {{DAY_WORD}} 토큰이고 모델은 luna 다. 이 줄은 시제("~였어/~할 흐름이야") 지시로만 남는다. */
+ *     SECTION_GUIDE.daily 의 "오늘"은 전부 {{DAY_WORD}} 토큰이고 모델은 luna 다. 이 줄은 시제("~였어/~할 흐름이야") 지시로만 남는다.
+ *  🔴 과거 분기는 현재 생성 경로에서 도달 불가다 — reportDatePolicy 가 지난 날을 cache_only 로 막아
+ *     라우트가 생성 전에 빠져나간다(소급 생성 금지). 실제로 "그날"로 생성되는 건 앞으로 1~3일뿐이라
+ *     SECTION_GUIDE.daily 의 미래형 동사(벌어질·할 선택·건넬 말)가 맞다. 소급 생성을 열면 그 동사들을
+ *     같이 손볼 것. */
 export function dailyDateContextLine(reportDate: string, todayKst: string): string | null {
   if (reportDate === todayKst) return null;
   const past = reportDate < todayKst;
@@ -712,6 +714,9 @@ export function dailyDateContextLine(reportDate: string, todayKst: string): stri
     ? "이미 지나간 날이니 '~였어/~했던 결이야'처럼 과거로 말해."
     : "아직 오지 않은 날이니 '~할 흐름이야/~해보면 좋아'처럼 앞을 보고 말해.";
   return [
+    // 🔴 "오늘"이라는 낱말을 쓰지 않는다 — 그날 리포트 프롬프트엔 이 낱말이 0개여야 아래 '그날'
+    //    지칭과 경합하지 않는다(P6-1 혼합 비문 "오늘의 그날은…"). 실제 오늘은 괄호 안 ISO 날짜로
+    //    그라운딩된다.
     `🔴 이 리포트의 대상 날짜는 ${reportDate} 이고, 지금(${todayKst}) 기준 ${rel}이다.`,
     tense,
   ].join(" ");
@@ -734,6 +739,8 @@ export function buildFortuneSystem(
       : null;
   const dayWord: "오늘" | "그날" =
     dateOverride && dateOverride.reportDate !== dateOverride.todayKst ? "그날" : "오늘";
+  // 화면 쪽 짝은 lib/byeolmaru/report-date.ts 의 dayWordFor — lib/fortune → lib/byeolmaru 역방향
+  // 의존 금지라 의도적 중복. 한쪽을 바꾸면 다른 쪽도 볼 것.
   if ((type === "compat" || type === "compat_social") && input.saju && input.sajuB) {
     const nameA = input.names?.a ?? "첫 번째 사람";
     const nameB = input.names?.b ?? "두 번째 사람";
@@ -754,7 +761,7 @@ export function buildFortuneSystem(
   parts.push("");
   const todayPillar = input.saju?.temporal
     ? `${input.saju.temporal.day.stem}${input.saju.temporal.day.branch}`
-    : "오늘의 일진";
+    : "그 날의 일진";
   const thisMonthPillar = input.saju?.temporal
     ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
     : "이번 달 월건";
