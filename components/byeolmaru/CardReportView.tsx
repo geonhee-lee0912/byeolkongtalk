@@ -25,11 +25,17 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
         aria-valuenow={final}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${label} — 사주 ${base}, 카드 보정 ${axis.delta >= 0 ? "+" : ""}${axis.delta}`}
+        aria-label={
+          sign !== 0
+            ? `${label} — 사주 ${base}, 카드 보정 ${axis.delta >= 0 ? "+" : ""}${axis.delta}`
+            : `${label} — 사주 ${base}`
+        }
         className="relative h-2 flex-1 overflow-hidden rounded-full bg-lilac-soft"
       >
         {/* 사주 축(바탕) — DayDetailCard 와 동일하게 항상 base 그대로(카드가 줄여도 안 줄인다).
-            "두 화면이 항상 일치"가 계약이라, 폭을 sign 에 따라 바꾸면 그 계약이 깨진다. */}
+            "두 화면이 항상 일치"가 계약이라, 폭을 sign 에 따라 바꾸면 그 계약이 깨진다.
+            역위에선 그래서 눈(시각 폭)은 base 를 보는데 aria-valuenow 는 final 이라 서로 다르다 —
+            의도된 차이다(스크린리더가 받는 final 이 더 정확한 값이니 "고치지" 말 것). */}
         <div className="absolute inset-y-0 left-0 rounded-full bg-lilac-deep" style={{ width: `${base}%` }} />
         {sign !== 0 && (
           // 정위: base→final 구간에 금색을 덧칠(바가 늘어난다) / 역위: final→base 구간(= base 채움의 꼬리)
@@ -45,8 +51,12 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
         )}
       </div>
       {sign !== 0 ? (
-        <span className="w-8 text-right text-[11px] font-bold" style={{ color: GOLD }}>
-          {plus ? "+" : "−"}{Math.abs(axis.delta)}
+        // a11y: 금색 글자는 대비 1.65:1로 WCAG AA(4.5:1) 미달(CalendarGrid.tsx 골드배경 사례와 동급 문제) —
+        // 막대는 금색 유지, 숫자만 본문색(eye-purple)으로 올린다. magnitude 는 hi-lo(클램프 후 실제
+        // 막대 폭) — raw axis.delta 를 쓰면 클램프 시 막대와 라벨이 어긋난다(gaugeSpan 이 정본).
+        // 부호는 sign 에서(hi-lo 는 항상 ≥0).
+        <span className="w-8 text-right text-[11px] font-bold text-eye-purple">
+          {plus ? "+" : "−"}{hi - lo}
         </span>
       ) : (
         <span className="w-8" aria-hidden />

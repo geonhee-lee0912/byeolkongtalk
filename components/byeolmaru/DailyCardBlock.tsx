@@ -296,7 +296,7 @@ export default function DailyCardBlock({
                   )}
                   {narrativeFailed && (
                     <p className="mt-2 text-xs leading-relaxed text-text-light">
-                      별콩이가 잠깐 숨을 고르는 중이야 — 조금 이따 다시 와 줄래?
+                      별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
                     </p>
                   )}
                 </>
