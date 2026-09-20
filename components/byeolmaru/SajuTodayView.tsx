@@ -9,7 +9,6 @@ import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { dayWordFor, reportDatePolicy, FUTURE_REPORT_DAYS } from "@/lib/byeolmaru/report-date";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
-import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import DayDetailCard from "./DayDetailCard";
 import PremiumBlock from "./PremiumBlock";
 import BackHeader from "./BackHeader";
@@ -129,25 +128,11 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   // 첫 진입에서 엉뚱한 날짜의 상세가 열린다.
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
   const cell = data.cells.find((c) => c.date === selected) ?? todayCell;
-  const selfGridCells: GridCell[] = data.cells.map((c) => ({
-    date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday,
-    marks: c.marks,
-  }));
   const good = data.weeks.reduce((s, w) => s + w.good, 0);
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <BackHeader title="오늘 사주" />
-      <section aria-label="이번 달 캘린더">
-        <CalendarGrid
-          cells={selfGridCells}
-          lockedCells={data.lockedCells}
-          todayDate={data.today}
-          selectedDate={cell.date}
-          onSelect={setSelected}
-          subjectKind="me"
-        />
-      </section>
       {/* 무료는 오늘까지만 집계돼 있으므로 "이번 달"이라고 하면 틀린 말이 된다 — 범위를 밝힌다.
           🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
       {good > 0 ? (
