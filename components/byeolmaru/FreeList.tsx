@@ -42,7 +42,7 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
             key={it.key}
             href={it.href}
             onClick={() => trackUiEvent("byeolmaru_free_item_clicked", { meta: { item: it.key } })}
-            className="relative w-full overflow-hidden rounded-2xl border border-lilac-mid/20 bg-white p-4 shadow-[0_2px_10px_rgba(159,138,208,0.08)] transition hover:border-lilac-deep/60 active:scale-[0.99]"
+            className="w-full rounded-2xl border border-lilac-mid/20 bg-white p-4 shadow-[0_2px_10px_rgba(159,138,208,0.08)] transition hover:border-lilac-deep/60 active:scale-[0.99]"
           >
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ background: it.tileBg }}>
