@@ -94,7 +94,7 @@ export function buildPairNarrativeSystem(
   if (cell.tags.bond) sig.push("척척");
   if (cell.tags.friction) sig.push("삐걱");
   if (cell.tags.lead === "me") sig.push("내가 리드");
-  else if (cell.tags.lead === "partner") sig.push(`${partnerName}가 리드`);
+  else if (cell.tags.lead === "partner") sig.push(`${partnerName} 리드`);
   // 택일 보완①: 오늘 셀은 제외하고 앞으로의 좋은 날만(오늘 얘기는 본문이 하니까).
   const upcoming = goodDays.filter((c) => c.date !== cell.date);
   const goodList = upcoming.map((c) => formatPairGoodDay(c, partnerName)).join(", ");
