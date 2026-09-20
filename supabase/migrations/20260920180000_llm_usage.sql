@@ -49,9 +49,12 @@ CREATE TABLE IF NOT EXISTS llm_usage (
 -- 리포 관례(messages.role · byeolmaru_watch.status 등)와 같이 CHECK 로 못박는다 — 오탈자 하나가
 -- 나중에 "provider 별 분해"를 조용히 쪼개는 걸 막는다.
 -- ⚠️ model 에는 CHECK 를 걸지 않는다 — 모델은 빈번히 늘어나 ui_events.event 쪽 근거가 적용된다.
-ALTER TABLE llm_usage
-  ADD CONSTRAINT llm_usage_provider_check
-  CHECK (provider IN ('anthropic','openai','gemini','unknown'));
+DO $$ BEGIN
+  ALTER TABLE llm_usage
+    ADD CONSTRAINT llm_usage_provider_check
+    CHECK (provider IN ('anthropic','openai','gemini','unknown'));
+EXCEPTION WHEN duplicate_object THEN NULL;  -- 재실행 안전 (파일의 IF NOT EXISTS 들과 같은 결)
+END $$;
 
 -- 1층은 "최근 7일 합", 2층은 "상품(route)별 분해"를 읽는다.
 CREATE INDEX IF NOT EXISTS idx_llm_usage_created ON llm_usage(created_at DESC);

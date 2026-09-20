@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
           sajuB,
           names: { a: selfRow.display_name, b: partnerRow.display_name },
         });
-        const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "compat" } };
+        const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, threadReadingId, stage: "compat" } };
         let ai = parseCompatReportJson(
           await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE.compat, logCtx, fortuneModel("compat"), fortuneResponseFormat("compat"))
         );
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
       // 여기서부터 `return new Response` 까지 모든 실패는 반드시 rollbackDraw(환불 + 스트립 삭제 +
       // 락 해제)를 지나야 한다. 락 update · 스트립 insert · 최근창 select · 페르소나 파일 로드
       // (buildRelationshipSystemMessage 내부 readFileSync) 전부 throw 가능 구간이다.
-      const drawLogCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, stage: "draw", skill: drawSkill.key } };
+      const drawLogCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, threadReadingId, stage: "draw", skill: drawSkill.key } };
       // 스트립 insert 는 아래 try 안에서 일어나므로, rollbackDraw 는 이 변수를 클로저로 읽는다.
       let stripMessageId: string | null = null;
       const rollbackDraw = async (err: unknown) => {
@@ -509,7 +509,7 @@ export async function POST(request: NextRequest) {
             for await (const chunk of streamChat(systemMessage, apiMessages, 1400, {
               route: "/api/relationship/chat",
               userId,
-              extra: { relationshipId: rel.id, stage: "skillStart" },
+              extra: { relationshipId: rel.id, threadReadingId, stage: "skillStart" },
             }, CHAT_MODEL)) {
               assistantText += chunk;
               controller.enqueue(encoder.encode(chunk));
@@ -692,7 +692,7 @@ export async function POST(request: NextRequest) {
 
           // 임계 요약 (fire-and-forget) — 자유대화에만
           if (split.toSummarize.length > 0) {
-            void summarizeOlder(rel.rolling_summary, split.toSummarize)
+            void summarizeOlder(rel.rolling_summary, split.toSummarize, userId)
               .then((sum) =>
                 supabase
                   .from("relationships")

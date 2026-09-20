@@ -236,6 +236,41 @@ export const METRICS = {
     minSample: MIN_SAMPLE.RATE,
     caveat: "2026-09-20 실측 30.8%(결제자 200명 중 재결제자 27명). 소수가 매출의 1/3을 만든다.",
   },
+  // ⚠️ UV 는 **정의가 둘이고 그게 의도된 것**이다. 하나로 합치지 말 것 — 키를 둘로 나눠
+  //    어느 쪽을 보고 있는지 화면이 항상 말하게 한다(실측 차이는 하루 최대 1명 수준).
+  uv_pageview: {
+    key: "uv_pageview",
+    label: "UV (페이지뷰 귀속)",
+    definition:
+      "page_views 의 distinct anon_id 를 **페이지뷰가 찍힌 날**에 귀속. PV 와 짝이라 일별 추세에 쓴다.",
+    unit: "count",
+    source: "admin_traffic_trend",
+    minSample: MIN_SAMPLE.NONE,
+    caveat:
+      "`uv_session` 과 값이 다르다(분모가 다르다). 같은 값으로 기대하지 말 것 — 화면에 어느 쪽인지 라벨을 반드시 붙인다.",
+  },
+  uv_session: {
+    key: "uv_session",
+    label: "UV (세션 시작 귀속)",
+    definition:
+      "방문을 30분 갭(SESSION_GAP)으로 세션화하고 **세션이 시작된 날**에 귀속. 신규/연속/복귀 분해와 짝이다.",
+    unit: "count",
+    source: "admin_traffic_visitor_mix",
+    minSample: MIN_SAMPLE.NONE,
+    caveat:
+      "자정을 걸친 세션을 시작일로 몰아주므로 `uv_pageview` 와 하루 최대 1명 수준 차이가 난다. 의도된 공존이다.",
+  },
+  withdrawal_rate: {
+    key: "withdrawal_rate",
+    label: "탈퇴율",
+    definition:
+      "탈퇴 수 ÷ (현재 유저 + 탈퇴 수). 탈퇴는 users 행을 지우므로 분모를 '총 가입 이력'으로 이렇게 복원한다.",
+    unit: "percent",
+    source: "users + account_withdrawals",
+    minSample: MIN_SAMPLE.RATE,
+    caveat:
+      "🔴 분자에서 어드민·테스트 계정을 **뺄 수 없다** — account_withdrawals 는 kakao_id_hash 만 남기고 user_id 를 안 남긴다(탈퇴 = 유저 삭제). 분모는 제외되는데 분자는 안 되므로 **실제보다 소폭 높게** 나온다. 이 한계를 화면에 적을 것.",
+  },
 
   // ── 무료 상품 · 구독 ──────────────────────────────────────────────────────
   subscription_won: {

@@ -11,8 +11,20 @@ import type { LogContext } from "@/lib/logger";
 import { costWon, type Usage } from "@/lib/claude/pricing";
 import { providerOf } from "@/lib/claude/model-registry";
 
-/** 단가 미확정 경고를 모델당 1회로 제한한다(프로세스 수명 기준). error_logs 300행 창 보호. */
-const warnedUnpriced = new Set<string>();
+/**
+ * 같은 경고를 호출마다 찍지 않는다(프로세스 수명 기준, 키 = `상태:모델`).
+ * logWarn 은 error_logs 에 쌓이고 /admin/errors 는 최근 300행만 읽는다 — chat 만 하루 ~135콜이라
+ * dedup 이 없으면 이틀이면 창이 덮여 진짜 에러가 밀려난다.
+ */
+const warnedOnce = new Set<string>();
+
+/** 같은 (상태, 모델) 조합의 첫 번째 호출에만 true. */
+function firstTime(kind: string, model: string): boolean {
+  const key = `${kind}:${model}`;
+  if (warnedOnce.has(key)) return false;
+  warnedOnce.add(key);
+  return true;
+}
 
 /**
  * logCtx.extra 에서 리딩 id 를 꺼낸다. 라우트마다 키 이름이 다르다:
@@ -43,25 +55,24 @@ export async function recordUsage(
 ): Promise<void> {
   try {
     if (!usage) {
-      await logWarn("llm usage 없음 — 프로바이더가 토큰을 안 줬다", {
-        ...ctx,
-        extra: { ...ctx?.extra, model },
-      });
+      if (firstTime("no-usage", model)) {
+        await logWarn("llm usage 없음 — 프로바이더가 토큰을 안 줬다", {
+          ...ctx,
+          extra: { ...ctx?.extra, model },
+        });
+      }
       return;
     }
     const cost = costWon(model, usage);
     // 두 실패를 구분해 로그한다 — 처방이 다르다.
-    if (cost.status === "unregistered") {
+    if (cost.status === "unregistered" && firstTime("unregistered", model)) {
       // pricing.ts 에 줄을 안 넣었다는 뜻. 새 모델을 붙일 때마다 나는 신호다.
       await logWarn("llm 단가 미등록 모델 — pricing.ts 에 줄을 추가해야 한다", {
         ...ctx,
         extra: { ...ctx?.extra, model },
       });
-    } else if (cost.status === "unpriced" && !warnedUnpriced.has(model)) {
+    } else if (cost.status === "unpriced" && firstTime("unpriced", model)) {
       // RATES 에 null 로 둔 모델(gemini 2종 등). 토큰은 쌓이니 단가만 채우면 소급 계산된다.
-      // ⚠️ **모델당 1회만** 경고한다 — 이 경로는 대화 턴마다 돌 수 있고, logWarn 은 error_logs 에
-      //    쌓이는데 /admin/errors 는 최근 300행만 읽는다. 턴마다 찍으면 진짜 에러를 밀어낸다.
-      warnedUnpriced.add(model);
       await logWarn("llm 단가 미확정 모델 — cost_won 이 NULL 로 적재된다", {
         ...ctx,
         extra: { ...ctx?.extra, model },

@@ -549,6 +549,10 @@ export async function* streamChat(
       // 못 잡는다(2026-08-04 prod). 아직 한 조각도 방출 안 했으면(!yielded) 클라엔 바이트가
       // 안 나갔으니 안전하게 재호출 → 대부분(1초 미만 blip) 복구. 이미 흘렸거나·재시도 소진·
       // 비일시적 에러면 그대로 던져 각 라우트 catch 가 로깅 + controller.error 로 마무리.
+      // ⚠️ 여기서 버려지는 시도의 토큰은 llm_usage 에 안 잡힌다 — 제너레이터가 throw 하면
+      //    return 값(usage)이 생기지 않기 때문이다. 실측 누락률 0.01%(전 기간 재시도 1건 /
+      //    assistant 메시지 9,953건, 2026-09-20)라 알려진 한계로 둔다. 이걸 메우려면 어댑터가
+      //    usage 를 mutable sink 로 밖에 흘려야 해서 계약이 오염된다.
       if (yielded || attempt >= MAX_ATTEMPTS || !adapter.isRetryableError(err)) {
         throw err;
       }
@@ -909,7 +913,8 @@ ${ctx.fileBlock}
 /** older 메시지 델타 요약 (haiku, 저비용). 이전 요약과 합쳐 갱신된 요약 반환. */
 export async function summarizeOlder(
   prevSummary: string | null,
-  older: { role: "user" | "assistant"; content: string }[]
+  older: { role: "user" | "assistant"; content: string }[],
+  userId?: string | null      // ← 추가. 원가를 유·무료로 분해하려면 필요하다(스펙 §4 1층).
 ): Promise<string> {
   const convo = older.map((m) => `${m.role === "user" ? "유저" : "별콩이"}: ${m.content}`).join("\n");
   const sys = `너는 연애 상담 대화의 기록 요약가야. 아래 [이전 요약]과 [새 대화]를 합쳐, 이 관계에서 오간 핵심(상황 변화·감정·별콩이 조언/처방·유저 반응)을 한국어 불릿 6~10개로 압축해. 사소한 잡담은 버리고, 나중에 대화를 이어갈 때 필요한 사실만. 200~500자.`;
@@ -925,6 +930,7 @@ export async function summarizeOlder(
   // 빼지 않는다)이 두 곳에 복제되면 한쪽만 고쳐질 때 조용히 갈라진다.
   void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
     route: "lib/claude.summarizeOlder",
+    userId,
   });
   const text = resp.content.find((b) => b.type === "text");
   return text && text.type === "text" ? text.text.trim() : (prevSummary ?? "");

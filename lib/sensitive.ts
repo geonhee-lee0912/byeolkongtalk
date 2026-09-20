@@ -141,7 +141,8 @@ const CLAIM_SCHEMA = `다음 메시지가 자살/자해, 학교폭력, 가정폭
 실제 위기 시그널만 1 이상으로 분류.`;
 
 export async function detectSensitiveAsync(
-  text: string
+  text: string,
+  userId?: string | null      // ← 추가. 위와 같은 이유.
 ): Promise<SensitiveMatch | null> {
   if (!text || text.length < 5) return null;
 
@@ -164,6 +165,7 @@ export async function detectSensitiveAsync(
     // 🔴 회색지대 대화 턴마다 돌 수 있는 경로다 — 누락하면 원가가 조용히 샌다(스펙 §4 착점 3).
     void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
       route: "lib/sensitive.detectSensitiveAsync",
+      userId,
     });
 
     const content = resp.content[0];
