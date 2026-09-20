@@ -6,7 +6,7 @@
 // 🔴 흐린 칸 수를 세지 않는다 — lockedCells 가 곧 그 집합이다(서버 무료선의 산물).
 import Image from "next/image";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
-import { MARK_COLOR, type DayMark } from "@/lib/byeolmaru/day-label";
+import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -52,11 +52,16 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
   ].sort((a, b) => a.date.localeCompare(b.date));
   if (slots.length === 0) return null;
 
+  // 🔴 트랙 수는 오늘 칸의 유무에 달려 있다. 오늘이 span 2 를 먹으므로 있으면 8칸, 없으면 7칸이다.
+  //    8칸으로 고정하면 오늘이 없는 집합(달력 계약상 가능 — calendar.test.ts 가 그 상태를 덮는다)에서
+  //    7개가 8트랙에 들어가 **빈 칸 하나가 조용히 생긴다**. 이 컴포넌트는 레이아웃 자체가 "정확히 하나가
+  //    2칸을 먹는다"에 기대므로, 그 전제를 상수로 박지 않고 데이터에서 읽는다.
+  const hasToday = slots.some((s) => s.cell?.isToday);
+
   return (
     <div
-      // 오늘 칸이 2배 폭이라 트랙은 7이 아니라 8칸이다. 오늘이 span 2 를 먹는다.
       className="grid gap-1"
-      style={{ gridTemplateColumns: "repeat(8, minmax(0,1fr))" }}
+      style={{ gridTemplateColumns: `repeat(${hasToday ? 8 : 7}, minmax(0,1fr))` }}
     >
       {slots.map(({ date, ganji, cell }) => {
         const today = cell?.isToday ?? false;
@@ -73,7 +78,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
                 trackUiEvent("byeolmaru_strip_future_tapped", { meta: { offset, subjectKind } });
                 onLockedSelect();
               }}
-              aria-label={`${date} 아직 안 온 날`}
+              aria-label={`${date} 아직 안 온 날 — 눌러서 미리 보기`}
               className={`${common} border border-dashed`}
               style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
             >
@@ -94,7 +99,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: cell.tone, subjectKind, surface: "strip" } });
               onSelect(date);
             }}
-            aria-label={`${date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
+            aria-label={`${today ? "오늘 " : ""}${date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
             className={common}
             style={{
               background: TONE_BG[cell.tone],
@@ -121,7 +126,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
             {cell.marks.length ? (
               <span
                 className="mt-0.5 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
-                style={{ background: `${MARK_COLOR[cell.marks[0].glyph]}${cell.marks[0].strength === "full" ? "59" : "26"}` }}
+                style={{ background: `${MARK_COLOR[cell.marks[0].glyph]}${MARK_TINT[cell.marks[0].strength]}` }}
               >
                 {cell.marks[0].label}
               </span>

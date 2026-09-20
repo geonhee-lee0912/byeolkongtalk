@@ -3,7 +3,9 @@
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { MARK_COLOR, type DayMark, type MarkStrength } from "@/lib/byeolmaru/day-label";
+// 🔴 MARK_COLOR·MARK_TINT 는 한 쌍이다 — 색은 배경 틴트로만 쓰고 글자는 어두운 색 고정.
+//    MARK_COLOR 를 글자 색으로 쓰면 이 판의 옅은 배경 위에서 WCAG AA 에 전 조합 미달한다(실측).
+import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
@@ -30,12 +32,6 @@ const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
 const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
 const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 
-// 마크 라벨의 배경 틴트(8자리 hex 의 알파). 🔴 **색은 배경으로만 쓰고 글자는 어두운 색 고정**이다 —
-// MARK_COLOR 4종은 상대휘도 .22~.36 의 중간 밝기라, 그 색을 이 판의 옅은 배경 위 9px 글자로 쓰면
-// 대비가 1.4~3.1:1 로 20개 조합 전부 WCAG AA(4.5:1)를 못 넘긴다(실측). 알파를 아무리 조절해도
-// 수학적으로 도달이 불가능해서, 이 파일이 이미 한 번 썼던 처방(배경이 아니라 글자 색을 올린다)을
-// 그대로 쓴다. 색은 "어느 마크인가"만 지고, 읽히는 건 2글자 단어와 어두운 글자다.
-const MARK_TINT: Record<MarkStrength, string> = { full: "59", half: "26" };
 
 const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
   // 챙길 날이 rgba(255,255,255,.45) 라 무난한 날(순백)과 거의 같은 색이었다 — 실물에서 구분 불가.
