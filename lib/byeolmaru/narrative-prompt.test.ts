@@ -10,8 +10,6 @@ import {
   buildPairNarrativeSystem,
   PAIR_NARRATIVE_KICKOFF,
   PAIR_NARRATIVE_MAX_TOKENS,
-  buildCardNarrativeSystem,
-  CARD_NARRATIVE_KICKOFF,
   buildCardReportSystem,
   CARD_REPORT_KICKOFF,
   CARD_REPORT_MAX_TOKENS,
@@ -115,22 +113,6 @@ test("buildPairNarrativeSystem: status 있으면 관계 상태 라인 주입, �
 
   const withoutStatus = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우");
   assert.ok(!withoutStatus.includes("이 관계 결을 반영해서 말해"), "status 없으면 관계 상태 라인 없음(무회귀)");
-});
-
-test("buildCardNarrativeSystem: 카드명·정역·규칙·오늘 축·분량·4비트 지침", () => {
-  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
-  const card = getCard(0)!;
-  const grade = { label: "잘 맞는 날", tone: "good" } as const;
-  const axes = { love: 63, work: 55, money: 40 };
-  const sys = buildCardNarrativeSystem(a, card, false, "임오", grade, axes);
-  assert.ok(sys.includes(card.name_kr));
-  assert.ok(/정위|역위/.test(sys));
-  assert.ok(/반말/.test(sys) && /단정/.test(sys));
-  assert.ok(sys.includes("잘 맞는 날"), "오늘 등급 라벨 그라운딩");
-  assert.ok(sys.includes("연애 63") && sys.includes("일 55"), "오늘 애정·일 축 그라운딩");
-  assert.ok(/700~900자|흐르는 줄글/.test(sys), "~800자 분량 지침");
-  assert.ok(/애정|관계/.test(sys) && /조언/.test(sys), "4비트(애정+조언) 구성 지침");
-  assert.ok(CARD_NARRATIVE_KICKOFF.length > 0);
 });
 
 test("buildCardReportSystem: 카드·정역·사주·일진·등급 그라운딩 + 7블록 JSON 형식 + 문장 예산", () => {

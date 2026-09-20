@@ -129,39 +129,6 @@ export const PAIR_NARRATIVE_KICKOFF = "오늘 우리 사이 흐름 풀어줘.";
 // 실분량은 위 "1,100~1,300자" 지침이 잡는다.
 export const PAIR_NARRATIVE_MAX_TOKENS = 4000;
 
-// 오늘의 카드 서술(유료 리치) — 나 1인 + 오늘 뽑은 타로 1장 + 오늘 사주 흐름(등급·축).
-// 무료 정적 taste(getCardTaste, ~350자 비개인화)와의 차별점 = 카드를 이 사람의 사주·오늘 축
-// (애정/일)에 얹은 ~800자 개인화 서술. loadCore/formatPillars 공용, buildNarrativeSystem 미러.
-/** @deprecated buildCardReportSystem 으로 대체(P6-2 §6-2). Task 8 에서 이 함수를 마지막으로 부르는 라우트와 함께 제거 예정 — 새 호출처에 쓰지 말 것. */
-export function buildCardNarrativeSystem(
-  saju: SajuResult,
-  card: TarotCard,
-  reversed: boolean,
-  todayGanji: string,
-  grade: DayGrade,
-  axes: AxisScores
-): string {
-  const orient = reversed ? "역위" : "정위";
-  const kw = (reversed ? card.reversed : card.upright).join(", ");
-  return [
-    loadCore(), "",
-    "# 별마루 오늘의 카드",
-    `너는 이 사람이 오늘 뽑은 타로 한 장을, 그 사람의 사주와 오늘 흐름에 얹어 풀어준다. 오늘 일진은 ${todayGanji}.`,
-    `카드: ${card.name_kr} (${orient}). 키워드: ${kw}.`,
-    `이 사람: ${formatPillars(saju)}.`,
-    `오늘 등급 ${grade.label}. 축(연애 ${axes.love}·일 ${axes.work}·돈 ${axes.money}).`,
-    "분량: 700~900자, 하나로 흐르는 줄글.",
-    "이 흐름으로 자연스럽게 이어서 써(각 부분을 라벨로 표시하지 마): 먼저 이 카드가 오늘 건네는 메시지를 네 사주 일간과 오늘 일진의 결로 열고, 이어서 오늘 애정·관계 흐름을 카드 결에 얹고, 그다음 오늘 일·전반 흐름을 오늘 등급과 함께 카드 결에 얹고, 마지막은 따뜻한 한마디로 맺어.",
-    "규칙: 반드시 별콩이가 상대에게 직접 말하는 2인칭 '너'로(그 사람을 '이 사람'이라 3인칭으로 부르지 마). 반말, 단정적 예언 금지(흐름·가능성·선택). 첫 문장은 카드와 네 사주 일간·오늘 일진의 관계로 시작. 축 숫자나 '조언'·'메시지' 같은 낱말을 라벨처럼 앞세우지 말고 전부 흐름으로만 녹여. 별표/제목/번호/마커 없이 줄글만.",
-  ].join("\n");
-}
-export const CARD_NARRATIVE_KICKOFF = "오늘 내 카드 풀어줘.";
-// 카드 서술은 ~800자 리치라 나/우리 오늘(=900, ~600자)보다 훨씬 넉넉히 잡는다. nano 는 추론모델이라
-// max 안에 추론+본문이 함께 카운트되고 추론량이 런마다 출렁인다 — 1800 에선 추론이 큰 런에서 본문이
-// ~500자로 눌려 어절 중간 잘림이 실측됐다. daily(4500→~2,100자) 비율 + 추론 편차 헤드룸으로 3000.
-// (미생성 토큰은 과금 안 됨 — 상한만 넉넉히, 실분량은 프롬프트의 700~900자 지침이 잡는다.)
-export const CARD_NARRATIVE_MAX_TOKENS = 3000;
-
 // ── 오늘 타로 7블록 리포트(유료) — P6-2 ────────────────────────────────────────────────────
 // 스펙 2026-09-19 §6-2(7블록·1,800자) §6-3(게이지 정합) §6-4(역할분리) §6-5(볼드 1개).
 // 무료(정적 taste ~389자)는 "그 카드가 어떤 카드인지"를 이미 말했다. 유료는 "네 사주·오늘 일진의 어디에
