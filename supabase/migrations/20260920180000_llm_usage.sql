@@ -19,7 +19,15 @@ CREATE TABLE IF NOT EXISTS llm_usage (
   -- streamChat 이 이미 들고 있는 logCtx 에서 온다. 셋 다 없을 수 있다(배치·백그라운드 호출).
   route TEXT,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,  -- 탈퇴해도 원가는 남긴다(매출 익명보존과 같은 관행)
-  reading_id UUID,                                       -- FK 를 안 거는 이유: 리딩 삭제가 원가 원장을 지우면 안 된다
+  -- reading_id — FK 를 **의도적으로 걸지 않는다.**
+  --   ⓐ "삭제 보존"만으로는 근거가 부족하다(SET NULL 도 같은 목표를 달성한다).
+  --      진짜 이유는 이 insert 가 fire-and-forget 이라는 것이다 — 어드민이 스트리밍 도중
+  --      리딩을 지우면 FK 위반으로 **원가 행 자체가 유실**된다. 감사 원장은 참조 무결성보다
+  --      기록 보존이 우선이다.
+  --   ⓑ 참조 시점 안전성은 확인됐다(2026-09-20): chat 라우트들은 전부 이전 요청에서 이미
+  --      커밋된 reading 을 SELECT 해서 쓴다. 즉 FK 를 걸어도 정상 경로에선 깨지지 않는다 —
+  --      안 거는 건 경합 시 손실을 막으려는 선택이지 순서 문제 때문이 아니다.
+  reading_id UUID,
 
   provider TEXT NOT NULL,                                -- anthropic | openai | gemini | unknown(registry 미등록 폴백)
   model TEXT NOT NULL,

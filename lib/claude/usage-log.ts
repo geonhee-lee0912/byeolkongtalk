@@ -14,10 +14,20 @@ import { providerOf } from "@/lib/claude/model-registry";
 /** 단가 미확정 경고를 모델당 1회로 제한한다(프로세스 수명 기준). error_logs 300행 창 보호. */
 const warnedUnpriced = new Set<string>();
 
-/** logCtx.extra.readingId 를 안전하게 꺼낸다(없거나 형이 다를 수 있다). */
+/**
+ * logCtx.extra 에서 리딩 id 를 꺼낸다. 라우트마다 키 이름이 다르다:
+ *   tarot·saju      → readingId
+ *   relationship    → threadReadingId  (relationshipId 는 **리딩이 아니라 관계** id 라 안 쓴다)
+ *   relationship/sim → simReadingId
+ * 셋 다 `readings.id` 를 가리킨다. 키를 하나만 보면 연애·시뮬 경로가 통째로 NULL 로 적재된다.
+ */
 function readingIdOf(ctx: LogContext | undefined): string | null {
-  const v = ctx?.extra?.readingId;
-  return typeof v === "string" ? v : null;
+  const e = ctx?.extra;
+  for (const k of ["readingId", "threadReadingId", "simReadingId"] as const) {
+    const v = e?.[k];
+    if (typeof v === "string") return v;
+  }
+  return null;
 }
 
 /**
