@@ -76,8 +76,8 @@ export default function PairDayDetailCard({
           {backdrop.labelAtoB} ↔ {backdrop.labelBtoA}
         </p>
         <p className="mt-1">
-          {backdrop.spark && "끌림 있음 · "}
-          {backdrop.bond && "결속 있음 · "}
+          {backdrop.spark && "타고난 끌림 · "}
+          {backdrop.bond && "타고난 결속 · "}
           연월조화 {backdrop.harmony}
         </p>
       </div>

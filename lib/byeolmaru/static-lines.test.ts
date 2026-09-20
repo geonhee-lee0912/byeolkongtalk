@@ -231,7 +231,9 @@ test("card-taste: 인사말이 날짜별로 다양 — 같은 카드 30일에 3�
 // ── P5-5 우리 오늘 무료 taste ──────────────────────────────────────────────
 const PAIR_TONES: PairTone[] = ["good", "normal", "caution"];
 const STATUSES: (RelationshipStatus | null)[] = ["crush", "dating", "breakup", "onesided", null];
-const tg = (p: Partial<PairDayTags>): PairDayTags => ({ spark: false, bond: false, friction: false, lead: null, ...p });
+const tg = (p: Partial<PairDayTags>): PairDayTags => ({
+  spark: false, sparkBoth: false, bond: false, bondBoth: false, friction: false, frictionBoth: false, lead: null, ...p,
+});
 const TAG_CASES: PairDayTags[] = [
   tg({}),
   tg({ spark: true, lead: "me" }),

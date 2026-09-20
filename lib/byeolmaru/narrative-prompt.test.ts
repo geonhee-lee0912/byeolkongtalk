@@ -53,7 +53,7 @@ test("buildPairNarrativeSystem: 좋은 날 목록 → 관계-타이밍 지침 + 
   const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
   const bd = pairBackdrop(a, b);
   const good: PairDayCell[] = [
-    { date: "2026-09-12", ganji: "무술", score: 80, tone: "good", tags: { spark: true, bond: false, friction: false, lead: "me" }, isToday: false },
+    { date: "2026-09-12", ganji: "무술", score: 80, tone: "good", tags: { spark: true, sparkBoth: false, bond: false, bondBoth: false, friction: false, frictionBoth: false, lead: "me" }, isToday: false },
   ];
 
   const withGood = buildPairNarrativeSystem(a, b, bd, cell, "임오", "지우", good);
@@ -87,8 +87,8 @@ test("buildPairNarrativeSystem: 이번 달 말일 클램프(I-4) — 다음 달 
   assert.equal(monthEnd, "2026-09-30", "9월 말일 기준값이 어긋났다");
 
   const rawGoodDays: PairDayCell[] = [
-    { date: "2026-09-30", ganji: "무술", score: 80, tone: "good", tags: { spark: true, bond: false, friction: false, lead: null }, isToday: false },
-    { date: "2026-10-03", ganji: "경자", score: 82, tone: "good", tags: { spark: false, bond: true, friction: false, lead: null }, isToday: false },
+    { date: "2026-09-30", ganji: "무술", score: 80, tone: "good", tags: { spark: true, sparkBoth: false, bond: false, bondBoth: false, friction: false, frictionBoth: false, lead: null }, isToday: false },
+    { date: "2026-10-03", ganji: "경자", score: 82, tone: "good", tags: { spark: false, sparkBoth: false, bond: true, bondBoth: false, friction: false, frictionBoth: false, lead: null }, isToday: false },
   ];
   // route.ts 의 실제 클램프 식을 그대로 재현.
   const clamped = rawGoodDays.filter((c) => c.date <= monthEnd);

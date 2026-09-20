@@ -8,6 +8,9 @@
 //    단정하고 불일치면 즉시 throw 한다. 이 단정이 없으면 아래 표 전체가 무의미해진다.
 //
 // 실행: node --import tsx scripts/byeolmaru-pair-tone-freq.ts
+//
+// ⚠️ 2026-09-20 이후 pair-day.ts 는 V4(가중 + baseline 제거)다. 이 스크립트의 V0 은 **옛 공식**이라
+//    대조 단정이 깨진다 — V0 을 현행 공식(=V4)으로 바꾸고 돌리거나, 과거 비교용이면 단정을 끌 것.
 import { calcSaju, calcTemporalLuck, baseDateForKst, type SajuResult, type DailyLuck } from "@/lib/saju/calc";
 import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { dayFactors, dayScore } from "@/lib/byeolmaru/day-score";

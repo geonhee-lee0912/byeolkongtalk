@@ -10,9 +10,14 @@ import type { DayMark } from "./day-label.ts";
 export type PairTone = "good" | "normal" | "caution";
 
 export interface PairDayTags {
+  /** 둘 중 **한 명이라도** 걸렸나 — 표시·서술이 쓰는 값(narrative-prompt·static-lines 무회귀). */
   spark: boolean;
+  /** 둘 **다** 걸렸나 — 점수 가중과 마크 강도가 쓰는 값(스펙 §3-1-a). */
+  sparkBoth: boolean;
   bond: boolean;
+  bondBoth: boolean;
   friction: boolean;
+  frictionBoth: boolean;
   lead: "me" | "partner" | null;
 }
 
@@ -37,9 +42,9 @@ const LEAD_THRESHOLD = 8;
 const SPARK_W = 12;
 const BOND_W = 9;
 const FRICTION_W = -14;
-const BASELINE_SPARK_W = 4;
-const BASELINE_BOND_W = 4;
-const BASELINE_HARMONY_W = 2;
+// 🔴 baseline(쌍 고정 가산)은 2026-09-20 실측으로 **점수에서 제거**됐다(스펙 §3-1-a).
+//    쌍의 76%가 +0 이라 레벨 요인이 아니었고, 남기면 궁합 좋은 쌍만 달 전체가 들려 금색 꼬리를 만든다.
+//    궁합은 pairBackdrop 으로 계속 나가고 **배경 설명**이 그걸 말한다 — 점수엔 안 들어간다.
 
 function clamp(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
@@ -69,33 +74,38 @@ export const PAIR_TONE_LABEL: Record<PairTone, string> = {
   caution: "살짝 챙길 날",
 };
 
-function pairDayScoreAndTags(a: SajuResult, b: SajuResult, d: DailyLuck, backdrop: PairBackdrop) {
+function pairDayScoreAndTags(a: SajuResult, b: SajuResult, d: DailyLuck) {
   const dl = { stem: d.stem, branch: d.branch, element: d.element };
   const scoreA = dayScore(dayFactors(toDaySelf(a), dl));
   const scoreB = dayScore(dayFactors(toDaySelf(b), dl));
-
   const base = (scoreA + scoreB) / 2;
 
-  const spark = heavenlyCombo(d.stem, a.dayStem) || heavenlyCombo(d.stem, b.dayStem);
-  const bond = earthlySixCombo(d.branch, a.pillars.day.branch) || earthlySixCombo(d.branch, b.pillars.day.branch);
-  const friction = earthlySixClash(d.branch, a.pillars.day.branch) || earthlySixClash(d.branch, b.pillars.day.branch);
+  // 🔴 OR 이 아니라 **머릿수**를 센다. OR 이면 한 명만 걸린 날(발화 칸의 95%)이 둘 다인 날과 똑같이
+  //    만점을 받아, 1인용 임계(70)에 2배 확률의 가산점을 얹는 꼴이었다(실측 1.91×·1.92×).
+  const sparkN = (heavenlyCombo(d.stem, a.dayStem) ? 1 : 0) + (heavenlyCombo(d.stem, b.dayStem) ? 1 : 0);
+  const bondN = (earthlySixCombo(d.branch, a.pillars.day.branch) ? 1 : 0) + (earthlySixCombo(d.branch, b.pillars.day.branch) ? 1 : 0);
+  // 삐걱은 OR 그대로 — 한 명만 충이어도 그날 조심할 이유는 실재하고, 가중하면 "챙길 날"만
+  // 18.9%→15.4% 로 희석된다(금색 과다와 무관한 부작용).
+  const frictionN = (earthlySixClash(d.branch, a.pillars.day.branch) ? 1 : 0) + (earthlySixClash(d.branch, b.pillars.day.branch) ? 1 : 0);
 
-  const baseline =
-    (backdrop.spark ? BASELINE_SPARK_W : 0) +
-    (backdrop.bond ? BASELINE_BOND_W : 0) +
-    backdrop.harmony * BASELINE_HARMONY_W;
-
-  const score = clamp(base + (spark ? SPARK_W : 0) + (bond ? BOND_W : 0) + (friction ? FRICTION_W : 0) + baseline);
+  const score = clamp(base + SPARK_W * (sparkN / 2) + BOND_W * (bondN / 2) + (frictionN > 0 ? FRICTION_W : 0));
   const lead: PairDayTags["lead"] =
     Math.abs(scoreA - scoreB) >= LEAD_THRESHOLD ? (scoreA > scoreB ? "me" : "partner") : null;
 
-  return { score, tags: { spark, bond, friction, lead } as PairDayTags };
+  return {
+    score,
+    tags: {
+      spark: sparkN > 0, sparkBoth: sparkN === 2,
+      bond: bondN > 0, bondBoth: bondN === 2,
+      friction: frictionN > 0, frictionBoth: frictionN === 2,
+      lead,
+    } satisfies PairDayTags,
+  };
 }
 
 export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: DailyLuck[], todayKst: string): PairDayCell[] {
-  const backdrop = pairBackdrop(a, b);
   return dailyLuck.map((d) => {
-    const { score, tags } = pairDayScoreAndTags(a, b, d, backdrop);
+    const { score, tags } = pairDayScoreAndTags(a, b, d);
     return { date: d.date, ganji: d.stem + d.branch, score, tone: pairDayTone(score), tags, isToday: d.date === todayKst };
   });
 }
@@ -108,10 +118,10 @@ export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: Daily
  *     그리므로(겹침 실측) 리드가 끌림을 밀어낸다. 리드는 상세 카드 칩으로만 남는다. */
 export function pairMarks(tags: PairDayTags): DayMark[] {
   const out: DayMark[] = [];
-  // 🔴 전부 full 은 임시다 — 다음 태스크(V4 점수 공식)가 두 사람 머릿수를 세어
-  //    진짜 강도(한 명만 걸리면 half)를 채운다.
-  if (tags.spark) out.push({ glyph: "✧", label: "끌림", strength: "full" });
-  if (tags.bond) out.push({ glyph: "◇", label: "결속", strength: "full" });
-  if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: "full" });
+  // 강도 = 점수 가중과 같은 규칙(둘 다 full · 한 명 half). 실측상 "둘 다"는 발화 칸의 5% 뿐이라,
+  // 둘 다일 때만 마크를 띄우면 30일에 0.3번이라 사실상 마크 폐지가 된다 — 그래서 끄지 않고 연하게 쓴다.
+  if (tags.spark) out.push({ glyph: "✧", label: "끌림", strength: tags.sparkBoth ? "full" : "half" });
+  if (tags.bond) out.push({ glyph: "◇", label: "결속", strength: tags.bondBoth ? "full" : "half" });
+  if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: tags.frictionBoth ? "full" : "half" });
   return out;
 }
