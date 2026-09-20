@@ -1,11 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
-import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import type { DayMark } from "@/lib/byeolmaru/day-label";
+import { MARK_COLOR, type DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
@@ -33,9 +31,10 @@ const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
 const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 
 const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
-  good: { background: "#E8C26A", boxShadow: "0 2px 6px rgba(232,194,106,0.45)" },
+  // 챙길 날이 rgba(255,255,255,.45) 라 무난한 날(순백)과 거의 같은 색이었다 — 실물에서 구분 불가.
+  good: { background: "linear-gradient(160deg,#F7DFA4,#E8C26A)", boxShadow: "0 2px 6px rgba(232,194,106,0.45)" },
   normal: { background: "#ffffff" },
-  caution: { background: "rgba(255,255,255,.45)", border: "1px solid rgba(184,168,216,.30)" },
+  caution: { background: "linear-gradient(160deg,#EFE7F8,#DCCFF0)", border: "1px solid rgba(184,168,216,.30)" },
 };
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -112,7 +111,9 @@ export default function CalendarGrid({
                 <span className="text-[13px] font-semibold leading-none text-text-light/60">
                   {Number(date.slice(8, 10))}
                 </span>
-                <span aria-hidden className="mt-1.5 h-1 w-1 rounded-full bg-lilac-mid/60" />
+                {/* 마크 띠 자리를 **빈 채로** 남긴다 — 가짜 내용을 흐려 보여주지 않는다(없는 걸 있는 척
+                    하지 않는다). 자리만 비어 있어 "여기 뭔가 들어온다"가 레이아웃으로 읽힌다. */}
+                <span aria-hidden className="mt-1 h-[13px] w-6 rounded-full bg-lilac-mid/25" />
               </div>
             );
           }
@@ -146,39 +147,27 @@ export default function CalendarGrid({
                     : {}),
               }}
             >
-              {/* D(배치 B): 날짜 / 일지 캐릭터 / 간지 세로 스택. 캐릭터는 지지 시각화, 간지 텍스트는
-                  천간까지 담아 둘이 서로 보완(중복 아닌 강화). 캐릭터 없으면 날짜+간지만. */}
-              {c.marks.length ? (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute right-[3px] top-[2px] text-[8px] font-bold leading-none text-eye-purple"
-                >
-                  {/* 🔴 셀에는 최우선 마크 1개만. 실측(375px 폰 ≈ 42px 셀): 2개부터 두 자리 날짜와
-                      겹친다(48px 셀에서 2개 여유 0.8px, 3개 겹침 6.3px). 전체 목록은 aria-label 과
-                      상세 카드의 마크 칩(나=DayDetailCard, 우리=PairDayDetailCard)이 받는다.
-                      생산자 함수의 배열 순서가 곧 우선순위다(dayMarks·pairMarks 가 같은 순서를 쓴다). */}
-                  {c.marks[0].glyph}
-                </span>
-              ) : null}
+              {/* 날짜 + 마크 띠. 간지 텍스트와 일지 캐릭터는 셀에서 뺐다(스펙 §2-2) — 42px 칸에 4겹이
+                  들어가 제일 큰 요소(동물)가 의미를 안 담고 진짜 내용(톤)이 제일 약했다.
+                  동물은 스트립이, 간지는 상세 카드가 담당한다. */}
               <span className="text-[13px] font-semibold leading-none text-eye-purple">
                 {Number(c.date.slice(8, 10))}
               </span>
-              {(() => {
-                const a = branchAnimal(c.ganji);
-                return a ? (
-                  <Image
-                    src={a.assetSrc}
-                    alt={a.animal}
-                    width={22}
-                    height={22}
-                    className="my-0.5 h-[22px] w-[22px] object-contain"
-                  />
-                ) : null;
-              })()}
-              {/* a11y: 골드 배경(좋은 날 #E8C26A)에서 text-text-light 대비가 2.78:1로 WCAG AA(4.5:1)
-                  미달이었다 — 배경(스펙 §4 고정값)이 아니라 텍스트 색을 올려 해결한다. 날짜 숫자와
-                  색이 같아지지만 크기(13px↔9px)·두께(semibold↔regular)로 위계는 유지된다. */}
-              <span className="text-[9px] leading-none text-eye-purple">{c.ganji}</span>
+              {c.marks.length ? (
+                <span
+                  // 🔴 셀에는 최우선 마크 1개만. 2개부터 42px 칸에서 날짜와 겹친다(실측).
+                  //    전체 목록은 aria-label 과 상세 카드의 마크 칩이 받는다.
+                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px]"
+                  style={{
+                    color: MARK_COLOR[c.marks[0].glyph],
+                    // half = 한 명만 걸린 날(우리 탭). 점수도 절반이라 시각과 점수가 어긋나지 않는다.
+                    background: `${MARK_COLOR[c.marks[0].glyph]}${c.marks[0].strength === "full" ? "2E" : "14"}`,
+                    opacity: c.marks[0].strength === "full" ? 1 : 0.75,
+                  }}
+                >
+                  {c.marks[0].label}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -188,10 +177,12 @@ export default function CalendarGrid({
           {legend.length > 0 && (
             <p>
               {legend.map((m) => (
-                <span key={m.glyph} className="mr-2">
-                  <span aria-hidden className="font-bold text-eye-purple">{m.glyph}</span> {m.label}
+                <span key={m.glyph} className="mr-2" style={{ color: MARK_COLOR[m.glyph] }}>
+                  <span className="font-bold">{m.label}</span>
                 </span>
               ))}
+              {/* 연한 라벨의 뜻을 한 번만 설명한다 — 우리 탭에서만 나온다. */}
+              {subjectKind === "pair" && <span className="text-text-light">연한 건 한 명만 걸린 날이야</span>}
             </p>
           )}
           {/* 비로그인·생일 미입력 빈 달력(EmptyMonthShell)에선 lockedHint=false 로 끈다 — 거긴
