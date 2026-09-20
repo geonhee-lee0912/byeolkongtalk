@@ -26,8 +26,8 @@ function build(entitled: boolean) {
 function buildPair(entitled: boolean) {
   const { start, end } = monthRange(TODAY);
   const all = buildPairCalendar(saju, partnerSaju, calcDailyLuckRange(start, end), TODAY);
-  const { open, lockedDates } = splitByFreeLine(all, TODAY, entitled);
-  return { all, open, lockedDates };
+  const { open, lockedCells } = splitByFreeLine(all, TODAY, entitled);
+  return { all, open, lockedCells };
 }
 
 test("이번 달 달력은 1일부터 말일까지 전부 계산된다", () => {
@@ -39,11 +39,11 @@ test("이번 달 달력은 1일부터 말일까지 전부 계산된다", () => {
 });
 
 test("비자격자 응답엔 오늘 이후 셀이 하나도 없다(판정 누출 0)", () => {
-  const { cells, lockedDates } = build(false);
+  const { cells, lockedCells } = build(false);
   assert.ok(cells.every((c) => c.date <= TODAY), "열린 셀에 미래가 섞였다");
   assert.equal(cells.length, 13, "9/1~9/13");
-  assert.equal(lockedDates.length, 17, "9/14~9/30");
-  assert.ok(lockedDates.every((d) => d > TODAY));
+  assert.equal(lockedCells.length, 17, "9/14~9/30");
+  assert.ok(lockedCells.map((c) => c.date).every((d) => d > TODAY));
 });
 
 test("비자격자의 주차 요약도 오늘까지만 집계된다(good/caution 개수로 미래가 새지 않는다)", () => {
@@ -52,23 +52,23 @@ test("비자격자의 주차 요약도 오늘까지만 집계된다(good/caution
 });
 
 test("자격자는 이번 달 전부가 열리고 잠긴 날이 없다", () => {
-  const { cells, lockedDates } = build(true);
+  const { cells, lockedCells } = build(true);
   assert.equal(cells.length, 30);
-  assert.deepEqual(lockedDates, []);
+  assert.deepEqual(lockedCells, []);
 });
 
 test("[우리] 자격자는 이번 달 전부가 열리고 잠긴 날이 없다", () => {
-  const { open, lockedDates } = buildPair(true);
+  const { open, lockedCells } = buildPair(true);
   assert.equal(open.length, 30);
-  assert.deepEqual(lockedDates, []);
+  assert.deepEqual(lockedCells, []);
 });
 
 test("[우리] 비자격자 응답엔 오늘 이후 셀이 하나도 없다(판정 누출 0)", () => {
-  const { open, lockedDates } = buildPair(false);
+  const { open, lockedCells } = buildPair(false);
   assert.ok(open.every((c) => c.date <= TODAY), "열린 셀에 미래가 섞였다");
   assert.equal(open.length, 13, "9/1~9/13");
-  assert.equal(lockedDates.length, 17, "9/14~9/30");
-  assert.ok(lockedDates.every((d) => d > TODAY));
+  assert.equal(lockedCells.length, 17, "9/14~9/30");
+  assert.ok(lockedCells.map((c) => c.date).every((d) => d > TODAY));
 });
 
 test("나 탭과 우리 탭의 무료선은 정확히 같은 날짜 집합을 연다", () => {
@@ -79,5 +79,30 @@ test("나 탭과 우리 탭의 무료선은 정확히 같은 날짜 집합을 �
     self.cells.map((c) => c.date),
     "두 탭의 열린 날짜 집합이 다르다"
   );
-  assert.deepEqual(pair.lockedDates, self.lockedDates, "두 탭의 잠긴 날짜 집합이 다르다");
+  assert.deepEqual(
+    pair.lockedCells.map((c) => c.date),
+    self.lockedCells.map((c) => c.date),
+    "두 탭의 잠긴 날짜 집합이 다르다"
+  );
+});
+
+test("잠긴 칸은 간지를 싣고 판정은 안 싣는다", () => {
+  const saju = calcSaju({ year: 1994, month: 5, day: 12, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const luck = calcDailyLuckRange("2026-09-01", "2026-09-30");
+  const { cells, lockedCells } = buildCalendarPayload(saju, luck, "2026-09-10", false);
+
+  assert.ok(lockedCells.length > 0, "비자격이면 안 온 날이 있어야 한다");
+  for (const lc of lockedCells) {
+    assert.match(lc.ganji, /^[가-힣]{2}$/, "간지 2자가 실려야 일지 캐릭터를 그린다");
+    // 🔴 판정이 새지 않는지 — 키 존재를 직접 확인한다(타입만 믿으면 런타임에 뭐가 실렸는지 모른다).
+    assert.deepEqual(Object.keys(lc).sort(), ["date", "ganji"]);
+  }
+  assert.ok(cells.every((c) => c.date <= "2026-09-10"));
+});
+
+test("자격자는 잠긴 칸이 0", () => {
+  const saju = calcSaju({ year: 1994, month: 5, day: 12, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const luck = calcDailyLuckRange("2026-09-01", "2026-09-30");
+  const { lockedCells } = buildCalendarPayload(saju, luck, "2026-09-10", true);
+  assert.equal(lockedCells.length, 0);
 });

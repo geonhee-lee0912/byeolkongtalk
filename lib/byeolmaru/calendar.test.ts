@@ -107,22 +107,26 @@ test("monthRange — 2월 평년 28일 · 윤년 29일", () => {
 });
 
 // ── splitByFreeLine ──
-test("splitByFreeLine — 비자격은 오늘까지만 열리고 나머지는 날짜만 남는다", () => {
-  const cells = [{ date: "2026-09-11" }, { date: "2026-09-12" }, { date: "2026-09-13" }];
+test("splitByFreeLine — 비자격은 오늘까지만 열리고 나머지는 날짜·간지만 남는다", () => {
+  const cells = [
+    { date: "2026-09-11", ganji: "갑자" },
+    { date: "2026-09-12", ganji: "을축" },
+    { date: "2026-09-13", ganji: "병인" },
+  ];
   const r = splitByFreeLine(cells, "2026-09-12", false);
   assert.deepEqual(r.open.map((c) => c.date), ["2026-09-11", "2026-09-12"], "지나간 날 + 오늘");
-  assert.deepEqual(r.lockedDates, ["2026-09-13"], "안 온 날은 날짜만");
+  assert.deepEqual(r.lockedCells, [{ date: "2026-09-13", ganji: "병인" }], "안 온 날은 날짜·간지만");
 });
 
 test("splitByFreeLine — 자격자는 전부 열리고 잠긴 날이 없다", () => {
-  const cells = [{ date: "2026-09-11" }, { date: "2026-09-13" }];
+  const cells = [{ date: "2026-09-11", ganji: "갑자" }, { date: "2026-09-13", ganji: "병인" }];
   const r = splitByFreeLine(cells, "2026-09-12", true);
   assert.equal(r.open.length, 2);
-  assert.deepEqual(r.lockedDates, []);
+  assert.deepEqual(r.lockedCells, []);
 });
 
 test("splitByFreeLine — 오늘은 언제나 열린 쪽(경계 off-by-one 고정)", () => {
-  const r = splitByFreeLine([{ date: "2026-09-12" }], "2026-09-12", false);
+  const r = splitByFreeLine([{ date: "2026-09-12", ganji: "갑자" }], "2026-09-12", false);
   assert.deepEqual(r.open.map((c) => c.date), ["2026-09-12"]);
-  assert.deepEqual(r.lockedDates, []);
+  assert.deepEqual(r.lockedCells, []);
 });

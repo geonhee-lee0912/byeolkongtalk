@@ -84,25 +84,34 @@ export function monthRange(todayKst: string): { start: string; end: string } {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
+/** 아직 안 온 날에 실어 보내는 것 — 날짜와 **간지뿐**이다.
+ *  🔴 간지를 싣는 건 무료선 완화가 아니다: 간지는 만세력이라 누구나 계산할 수 있고(비밀이 아니다),
+ *     화면은 그걸로 일지 캐릭터만 그린다(스펙 §3). 돈 받는 건 **판정**(점수·등급·하루 이름·마크·축)
+ *     이고 그건 여전히 한 글자도 안 나간다. */
+export interface LockedCell {
+  date: string;
+  ganji: string;
+}
+
 /**
  * 무료선(P5-2 스펙 §6): **무료 = 지나간 날 + 오늘 · 구독 = 앞당겨 보기.**
- * 🔴 안 온 날은 "가려서 보여주는" 게 아니라 **판정 결과를 아예 안 실어 보낸다** — 날짜만 남는다.
+ * 🔴 안 온 날은 "가려서 보여주는" 게 아니라 **판정 결과를 아예 안 실어 보낸다**.
  *    클라에서 가리면 devtools 로 다 보이고, 그건 무료선이 아니라 눈속임이다.
- * 나(DayCell)·우리(PairDayCell) 양쪽에 쓰므로 date 만 요구하는 제네릭이다.
+ * 나(DayCell)·우리(PairDayCell) 양쪽에 쓰므로 date·ganji 만 요구하는 제네릭이다.
  */
-export function splitByFreeLine<T extends { date: string }>(
+export function splitByFreeLine<T extends { date: string; ganji: string }>(
   cells: T[],
   todayKst: string,
   entitled: boolean
-): { open: T[]; lockedDates: string[] } {
-  if (entitled) return { open: cells, lockedDates: [] };
+): { open: T[]; lockedCells: LockedCell[] } {
+  if (entitled) return { open: cells, lockedCells: [] };
   const open: T[] = [];
-  const lockedDates: string[] = [];
+  const lockedCells: LockedCell[] = [];
   for (const c of cells) {
     if (c.date <= todayKst) open.push(c);
-    else lockedDates.push(c.date);
+    else lockedCells.push({ date: c.date, ganji: c.ganji });
   }
-  return { open, lockedDates };
+  return { open, lockedCells };
 }
 
 // ⚠️ 여기서 "주차"는 이번 달 1일부터 7일씩 끊은 윈도우다 — 화면 그리드(CalendarGrid, 일~토 요일 정렬 +
@@ -150,8 +159,8 @@ export function buildCalendarPayload(
   dailyLuck: DailyLuck[],
   todayKst: string,
   entitled: boolean
-): { cells: DayCell[]; lockedDates: string[]; weeks: WeekBucket[] } {
+): { cells: DayCell[]; lockedCells: LockedCell[]; weeks: WeekBucket[] } {
   const all = buildCalendar(saju, dailyLuck, todayKst);
-  const { open, lockedDates } = splitByFreeLine(all, todayKst, entitled);
-  return { cells: open, lockedDates, weeks: weekBuckets(open) };
+  const { open, lockedCells } = splitByFreeLine(all, todayKst, entitled);
+  return { cells: open, lockedCells, weeks: weekBuckets(open) };
 }

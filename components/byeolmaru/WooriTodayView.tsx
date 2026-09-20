@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
+import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
@@ -28,7 +29,7 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
   const [pairData, setPairData] = useState<{
     cells: PairDayCell[];
-    lockedDates: string[];
+    lockedCells: LockedCell[];
     today: string;
     backdrop: PairBackdrop;
     partnerName: string;
@@ -97,7 +98,7 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
         if (Array.isArray(j.cells) && j.cells.length > 0) {
           setPairData({
             cells: j.cells,
-            lockedDates: Array.isArray(j.lockedDates) ? j.lockedDates : [],
+            lockedCells: Array.isArray(j.lockedCells) ? j.lockedCells : [],
             today: j.today,
             backdrop: j.backdrop,
             partnerName: j.partnerName,
@@ -182,7 +183,7 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
           <section aria-label="이번 달 우리 캘린더">
             <CalendarGrid
               cells={pairGridCells}
-              lockedDates={pairData.lockedDates}
+              lockedCells={pairData.lockedCells}
               todayDate={pairData.today}
               selectedDate={pairCell.date}
               onSelect={setPairSelected}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
@@ -25,7 +25,7 @@ interface CalendarResponse {
   subscriptionExpiresAt: string | null;
   monthStart: string;
   monthEnd: string;
-  lockedDates: string[];
+  lockedCells: LockedCell[];
 }
 
 type State =
@@ -77,7 +77,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
     if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setOutOfRange(false); return; }
-    // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 구독자는 lockedDates 가 없어 이번 달 모든 날짜를
+    // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 구독자는 lockedCells 가 없어 이번 달 모든 날짜를
     //    클릭할 수 있는데, 오늘+3일을 넘으면 라우트가 400 date_out_of_range 를 준다(report·reason
     //    둘 다 없음). 그걸 report:null 로 흡수하면 PremiumBlock 의 "숨 고르는 중"(재시도 문구)으로
     //    떨어져 — 그 날짜가 가까워지기 전엔 영원히 안 될 일을 재시도하라고 말하게 된다.
@@ -141,7 +141,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       <section aria-label="이번 달 캘린더">
         <CalendarGrid
           cells={selfGridCells}
-          lockedDates={data.lockedDates}
+          lockedCells={data.lockedCells}
           todayDate={data.today}
           selectedDate={cell.date}
           onSelect={setSelected}

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
+import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { DayMark } from "@/lib/byeolmaru/day-label";
@@ -41,8 +42,8 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 interface Props {
   cells: GridCell[];
-  /** 아직 안 온 날(P5-2 무료선). 판정이 없는 날짜 문자열만 온다 — 서버가 내용을 안 실어 보낸다. */
-  lockedDates: string[];
+  /** 아직 안 온 날(P5-2 무료선). 판정 없이 날짜·간지만 온다 — 서버가 내용을 안 실어 보낸다. */
+  lockedCells: LockedCell[];
   /** KST 오늘. 계측 offset 의 기준이자 "안 온 날" 문구의 기준. */
   todayDate: string;
   selectedDate: string;
@@ -60,7 +61,7 @@ interface Props {
 
 export default function CalendarGrid({
   cells,
-  lockedDates,
+  lockedCells,
   todayDate,
   selectedDate,
   onSelect,
@@ -70,7 +71,7 @@ export default function CalendarGrid({
   // 열린 칸 + 안 온 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 아직 안 온 날.
   const slots: { date: string; cell?: GridCell }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
-    ...lockedDates.map((d) => ({ date: d })),
+    ...lockedCells.map((l) => ({ date: l.date })),
   ].sort((a, b) => a.date.localeCompare(b.date));
   if (slots.length === 0) return null;
 
@@ -182,7 +183,7 @@ export default function CalendarGrid({
           );
         })}
       </div>
-      {(legend.length > 0 || (lockedHint && lockedDates.length > 0)) && (
+      {(legend.length > 0 || (lockedHint && lockedCells.length > 0)) && (
         <div className="mt-2 space-y-0.5 text-[10px] leading-relaxed text-text-light">
           {legend.length > 0 && (
             <p>
@@ -195,7 +196,7 @@ export default function CalendarGrid({
           )}
           {/* 비로그인·생일 미입력 빈 달력(EmptyMonthShell)에선 lockedHint=false 로 끈다 — 거긴
               "아직 안 온 날"이 아니라 "생일이 없어 못 보는 날"이라 이 문구가 틀린 설명이 된다. */}
-          {lockedHint && lockedDates.length > 0 && <p>점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>}
+          {lockedHint && lockedCells.length > 0 && <p>점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>}
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -23,7 +23,7 @@ interface CalendarResponse {
   today: string;
   todayGanji: string;
   cells: DayCell[];
-  lockedDates: string[];
+  lockedCells: LockedCell[];
   weeks: WeekBucket[];
   entitled: boolean;
   trialUsed: boolean;
@@ -39,7 +39,7 @@ type State =
   | { kind: "ready"; data: CalendarResponse };
 
 // 비로그인·생일 미입력이 보는 "안 칠해진 이번 달"(스펙 §12). 판정이 없으므로 전부 잠긴 칸으로
-// 그린다 — CalendarGrid 가 cells 없이 lockedDates 만 받으면 정확히 그 모양이 된다.
+// 그린다 — CalendarGrid 가 cells 없이 lockedCells 만 받으면 정확히 그 모양이 된다.
 // 🔴 개인화 0 — 서버를 안 부르고 클라 날짜로만 만든다(비로그인은 세션이 없어 부를 것도 없다).
 function emptyMonthDates(): { dates: string[]; today: string } {
   const now = new Date();
@@ -72,7 +72,7 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
         {/* lockedHint=false — 이 빈 달력은 "안 온 날"이 아니라 "생일이 없어 못 보는 날"이라
             CalendarGrid 기본 안내("그날이 오면 열려")를 끈다. 바로 아래 "네 생일만 있으면…" 문구가
             정확한 설명이다(P5-3 리뷰 — 두 문구가 모순되던 것을 정리). */}
-        <CalendarGrid cells={[]} lockedDates={dates} todayDate={today} selectedDate={today} onSelect={() => {}} lockedHint={false} />
+        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d, ganji: "" }))} todayDate={today} selectedDate={today} onSelect={() => {}} lockedHint={false} />
         <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
         {cta}
       </section>
@@ -106,7 +106,7 @@ export default function ByeolmaruHub() {
   const [partners, setPartners] = useState<PartnerChip[]>([]);
   const [subject, setSubject] = useState<string>("me");
   const [pairCells, setPairCells] = useState<PairDayCell[] | null>(null);
-  const [pairLocked, setPairLocked] = useState<string[]>([]);
+  const [pairLocked, setPairLocked] = useState<LockedCell[]>([]);
   const [addOpen, setAddOpen] = useState(false);
 
   async function loadPartners() {
@@ -148,7 +148,7 @@ export default function ByeolmaruHub() {
         if (cancelled) return;
         if (!res.ok || !j) { setPairCells(null); setPairLocked([]); setSubject("me"); return; }
         setPairCells(Array.isArray(j.cells) ? j.cells : null);
-        setPairLocked(Array.isArray(j.lockedDates) ? j.lockedDates : []);
+        setPairLocked(Array.isArray(j.lockedCells) ? j.lockedCells : []);
       } catch {
         if (!cancelled) { setPairCells(null); setPairLocked([]); setSubject("me"); }
       }
@@ -219,7 +219,7 @@ export default function ByeolmaruHub() {
   const gridCells: GridCell[] = isPair
     ? pairCells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: pairMarks(c.tags) }))
     : data.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks }));
-  const gridLocked = isPair ? pairLocked : data.lockedDates;
+  const gridLocked = isPair ? pairLocked : data.lockedCells;
   const filled = isPair ? pairCells.length : data.cells.length;
 
   return (
@@ -255,7 +255,7 @@ export default function ByeolmaruHub() {
         ) : (
           <CalendarGrid
             cells={gridCells}
-            lockedDates={gridLocked}
+            lockedCells={gridLocked}
             todayDate={data.today}
             selectedDate={data.today}
             subjectKind={isPair ? "pair" : "me"}

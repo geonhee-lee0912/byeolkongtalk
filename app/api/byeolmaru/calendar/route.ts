@@ -109,9 +109,9 @@ export async function GET(req: NextRequest) {
         status = (watchRow?.status as RelationshipStatus | null) ?? null;
       }
 
-      // P5-2 §8 — 무료선을 나 탭과 **같은 규칙**으로: 지나간 날 + 오늘은 열리고 안 온 날은 날짜만.
+      // P5-2 §8 — 무료선을 나 탭과 **같은 규칙**으로: 지나간 날 + 오늘은 열리고 안 온 날은 날짜·간지만.
       // buildPairCalendar 는 룰 100% 라 칸이 1 → 13 으로 늘어도 원가는 0이다.
-      const { open, lockedDates } = splitByFreeLine(pairCells, todayKst, ent.entitled);
+      const { open, lockedCells } = splitByFreeLine(pairCells, todayKst, ent.entitled);
 
       return NextResponse.json({
         subject,
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
         monthEnd,
         partnerName: pRow.display_name,
         cells: open,
-        lockedDates,
+        lockedCells,
         backdrop,
         // 🔴 무료 문구를 서버가 만들어 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
         //    문구는 **선택한 셀 기준**이어야 한다. 클라가 status 와 셀을 받아 getPairTaste(순수)를
@@ -133,10 +133,10 @@ export async function GET(req: NextRequest) {
 
     const ent = await getEntitlement(userId);
 
-    // P5-2 무료선 — 비자격자에겐 안 온 날의 판정을 **직렬화하지 않는다**(날짜만 lockedDates 로).
+    // P5-2 무료선 — 비자격자에겐 안 온 날의 판정을 **직렬화하지 않는다**(날짜·간지만 lockedCells 로).
     // buildCalendarPayload 가 build+무료선+주차집계를 묶어, 여기엔 필터를 우회할 원시 셀이
     // 남지 않는다(회귀 시 free-line.test.ts 가 이 함수를 직접 호출해 잡는다).
-    const { cells, lockedDates, weeks } = buildCalendarPayload(saju, monthLuck, todayKst, ent.entitled);
+    const { cells, lockedCells, weeks } = buildCalendarPayload(saju, monthLuck, todayKst, ent.entitled);
 
     // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
     // 최신 상태를 그대로 돌려준다. DB 에러(개별 행 { error })는 recordCheckin/getAttendanceState
@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
       monthStart,
       monthEnd,
       cells,
-      lockedDates,
+      lockedCells,
       weeks,
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
