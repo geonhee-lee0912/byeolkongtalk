@@ -132,12 +132,14 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ entitled: true, narrative: null });
       }
       // 캐시 저장은 best-effort — 실패해도 이미 만든 서술은 그대로 응답한다(daily-report 와 동일 경계).
+      // 동시 생성이면 승자 서술을 응답한다(§11-1-5) — 저장 실패는 내 것 그대로(다음 요청에서 재생성될 뿐).
+      let served = narrative;
       try {
-        await savePairNarrative(userId, subject, todayKst, narrative);
+        served = await savePairNarrative(userId, subject, todayKst, narrative);
       } catch (e) {
         await logError(e, { ...logCtx, extra: { stage: "cache_save" } });
       }
-      return NextResponse.json({ entitled: true, narrative });
+      return NextResponse.json({ entitled: true, narrative: served });
     } catch (err) {
       await logError(err, { ...logCtx, extra: { stage: "generate" } });
       return NextResponse.json({ entitled: true, narrative: null });
