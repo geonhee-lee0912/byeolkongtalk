@@ -170,6 +170,28 @@ test("buildCardReportSystem: 게이지 보정이 말로 들어가고 숫자 누�
   assert.match(up, /숫자[^\n]*(말하지|쓰지) ?마/);
 });
 
+test("buildCardReportSystem: all-도메인 메이저는 게이지 3축 반복 대신 한 문장으로 축약된다", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const fool = getCard(0)!; // 바보 — MAJOR_DOMAIN[0] === "all"
+  const base = {
+    saju: a, card: fool, todayGanji: "임오", todayKst: "2026-09-20",
+    grade: { label: "무난한 날", tone: "normal" } as const, axes: { love: 50, money: 50, work: 50 }, freeTaste: null,
+  };
+  const up = buildCardReportSystem({
+    ...base, reversed: false,
+    gauge: { love: { base: 50, delta: 6 }, money: { base: 50, delta: 6 }, work: { base: 50, delta: 6 } },
+  });
+  assert.match(up, /세 축 모두 살짝 밀어올려/);
+  assert.equal((up.match(/(연애|돈|일) 축을 살짝/g) ?? []).length, 0, "축약 후엔 개별 축 3연 반복 문구가 하나도 남으면 안 된다");
+
+  const rev = buildCardReportSystem({
+    ...base, reversed: true,
+    gauge: { love: { base: 50, delta: -6 }, money: { base: 50, delta: -6 }, work: { base: 50, delta: -6 } },
+  });
+  assert.match(rev, /세 축 모두 살짝 눌러/);
+  assert.equal((rev.match(/(연애|돈|일) 축을 살짝/g) ?? []).length, 0);
+});
+
 test("buildCardReportSystem: 2인칭·반말·단정 금지·볼드 1개·note 머리말 금지 규칙", () => {
   const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
   const sys = buildCardReportSystem({

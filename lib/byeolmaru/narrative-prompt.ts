@@ -153,10 +153,20 @@ export interface CardReportPromptInput {
 
 const AXIS_KR: Record<"love" | "money" | "work", string> = { love: "연애", money: "돈", work: "일" };
 
-/** 게이지 보정 → 말. "연애 축을 살짝 밀어올려" / "일 축을 살짝 눌러". 0 인 축은 언급하지 않는다. */
+const GAUGE_AXES = ["love", "money", "work"] as const;
+
+/** 게이지 보정 → 말. "연애 축을 살짝 밀어올려" / "일 축을 살짝 눌러". 0 인 축은 언급하지 않는다.
+ *  세 축이 전부 같은 방향(all-도메인 메이저 — card-gauge.ts ALL_DELTA)이면 "연애 축을 살짝
+ *  밀어올려, 돈 축을 살짝 밀어올려, 일 축을 살짝 밀어올려"처럼 같은 구절이 3연 반복되므로
+ *  그 경우만 한 문장으로 묶는다. 단일 축·0(무변화) 케이스는 그대로 둔다. */
 function gaugeLine(g: CardGauge): string {
+  const deltas = GAUGE_AXES.map((k) => g[k].delta);
+  if (deltas.every((d) => d > 0) || deltas.every((d) => d < 0)) {
+    const dir = deltas[0] > 0 ? "살짝 밀어올려" : "살짝 눌러";
+    return `이 카드는 오늘 사주 위에서 세 축 모두 ${dir}. 폭은 작다 — 카드가 하루를 뒤집진 않는다.`;
+  }
   const parts: string[] = [];
-  for (const k of ["love", "money", "work"] as const) {
+  for (const k of GAUGE_AXES) {
     const d = g[k].delta;
     if (d > 0) parts.push(`${AXIS_KR[k]} 축을 살짝 밀어올려`);
     else if (d < 0) parts.push(`${AXIS_KR[k]} 축을 살짝 눌러`);
@@ -165,9 +175,11 @@ function gaugeLine(g: CardGauge): string {
 }
 
 // CARD_REPORT_BLOCKS(card-report.ts) → key 별 문장 예산 lookup. 플랜 원안 Object.fromEntries(...) as
-// Record<string,{sentences:number}> 는 tsc 는 통과하지만(Object.fromEntries 인자가 튜플이 아닌 일반
-// 배열이라 오버로드가 any 로 빠지고 as 는 그 any 를 대상 타입으로 바꾸는 것뿐), Record 의 키를 string 으로
-// 두면 b.pace 같은 오타도 그대로 타입을 통과해 런타임 undefined 로만 걸린다. 대신 인자를
+// Record<string,{sentences:number}> 는 tsc 는 통과하지만(Object.fromEntries 가 오버로드
+// `{ [k: string]: CardReportBlockMeta }` 로 해석되고 — any 가 아니다, TS 컴파일러로 실측 —, as 는
+// 그 인덱스 시그니처를 값 폭이 겹치는 Record<string,{sentences:number}> 로 좁히는 것뿐이라 캐스트가
+// 통과한다), Record 의 키를 string 으로 두면 b.pace 같은 오타도 그대로 타입을 통과해 런타임 undefined
+// 로만 걸린다. 대신 인자를
 // CardReportBlockKey 로 좁힌 Record 를 시도했더니(더 안전해 보였지만) "인덱스 시그니처 → 특정 리터럴
 // 키" 방향은 단일 as 캐스트가 안 먹혀 tsc 가 실제로 에러를 냈다(요구: as unknown as ... 이중 캐스트) —
 // 캐스트를 늘리는 대신, 캐스트가 아예 없는 .find() 헬퍼로 바꿔 오타를 컴파일 타임에 잡는다.
@@ -194,7 +206,7 @@ export function buildCardReportSystem(i: CardReportPromptInput): string {
     "",
     "출력은 **아래 JSON 하나만**. 앞뒤 설명·코드펜스 금지.",
     "{",
-    `  "place": "<🃏 이 카드가 온 자리. 카드의 결(정/역)이 오늘 일진 ${i.todayGanji} 과 네 일간 ${i.saju.dayStem}(${i.saju.dayElement}) 사이 어디에 떨어지는지 — 받쳐주는 지점·부딪히는 지점을 근거로. ${blockSentences("place")}문장.>",`,
+    `  "place": "<🃏 이 카드가 온 자리. 카드의 결(정/역)이 오늘 일진 ${i.todayGanji}·네 일간 ${i.saju.dayStem}(${i.saju.dayElement}) 이 둘 사이 어디에 떨어지는지 — 받쳐주는 지점·부딪히는 지점을 근거로. ${blockSentences("place")}문장.>",`,
     `  "love": "<💗 오늘 애정·관계. 카드 결을 오늘 연애 흐름에 얹어 벌어질 장면 1~2개와 그때 건넬 말·태도. ${blockSentences("love")}문장.>",`,
     `  "work": "<💼 오늘 일·돈. 일터와 돈이 오가는 장면 1~2개, 그때의 선택. ${blockSentences("work")}문장.>",`,
     `  "mind": "<🌙 카드가 비추는 마음. 오늘 네 내면·멘탈 결 — 어떤 마음이 올라오고 어떻게 다루면 좋은지(타로 고유 재료, 위 세 블록과 다른 재료로). ${blockSentences("mind")}문장.>",`,
