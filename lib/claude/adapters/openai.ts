@@ -23,6 +23,31 @@ export function mapOpenAIFinish(r: string | null | undefined): StopReason {
 }
 
 /**
+ * chat.completions 청크의 usage → 어댑터 계약.
+ * 🔴 prompt_tokens = ordinary + cached + cache_write (공식 문서 예제가 셋을 다 뺀다).
+ *    둘 다 빼야 ordinary 만 남는다 — cached 만 빼면 캐시쓰기분이 입력 요율(1.0×)로
+ *    계상돼 참 비용의 20% 가 조용히 증발한다.
+ *    ⚠️ anthropic 은 반대다 — input_tokens 가 이미 캐시 제외 잔여라 빼면 안 된다.
+ *       프로바이더마다 회계가 달라 복사하면 틀린다.
+ */
+export function mapOpenAIUsage(u: {
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  prompt_tokens_details?: { cached_tokens?: number | null; cache_write_tokens?: number | null } | null;
+}): Usage {
+  const d = u.prompt_tokens_details;
+  const cached = d?.cached_tokens ?? 0;
+  // gpt-5.6 계열은 캐시 **쓰기**도 청구한다(1.25×). nano 는 청구가 없어 필드가 비고 → 0.
+  const written = d?.cache_write_tokens ?? 0;
+  return {
+    inputTokens: Math.max(0, (u.prompt_tokens ?? 0) - cached - written),
+    outputTokens: u.completion_tokens ?? 0,
+    cacheReadTokens: cached,
+    cacheWriteTokens: written,
+  };
+}
+
+/**
  * responseFormat → OpenAI create 파라미터 조각. 없으면 {} (response_format 미주입 = 기존 동작).
  * ⚠️ schema 는 openai SDK 의 ResponseFormatJSONSchema.json_schema.schema 가
  * `{ [key: string]: unknown }`(인덱스 시그니처)로 선언돼 있어, 파라미터의 `object` 타입을
@@ -82,17 +107,7 @@ export const openaiAdapter: ProviderAdapter = {
       if (fr) stop = mapOpenAIFinish(fr);
       // usage 청크는 choices 가 빈 배열이다 — 위 옵셔널 체이닝이 이미 안전하게 넘긴다.
       if (chunk.usage) {
-        const cached = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
-        usage = {
-          // 🔴 prompt_tokens 는 캐시에서 읽은 분을 **포함**한다 → 빼야 중복 계산이 안 된다.
-          //    (anthropic 은 반대다 — input_tokens 에 캐시분이 안 들어가서 빼면 안 된다.
-          //     프로바이더마다 회계가 달라 같은 코드를 복사하면 틀린다.)
-          inputTokens: Math.max(0, (chunk.usage.prompt_tokens ?? 0) - cached),
-          outputTokens: chunk.usage.completion_tokens ?? 0,
-          cacheReadTokens: cached,
-          // OpenAI 는 캐시 쓰기를 따로 청구하지 않는다(자동 캐싱) → 0.
-          cacheWriteTokens: 0,
-        };
+        usage = mapOpenAIUsage(chunk.usage);
       }
     }
     return { stop, usage };

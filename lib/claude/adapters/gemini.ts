@@ -20,6 +20,30 @@ export function mapGeminiFinish(r: string | null | undefined): StopReason {
   return r == null ? null : "other";
 }
 
+/**
+ * 청크의 usageMetadata → 어댑터 계약.
+ * 🔴 promptTokenCount 는 캐시분을 **포함**한다 → 빼야 중복 계산이 안 된다.
+ *    (anthropic 은 반대다 — 프로바이더마다 회계가 달라 복사하면 틀린다.)
+ * 🔴 thoughts 는 candidatesTokenCount 에 안 들어간다(genai.d.ts 의 totalTokenCount 주석).
+ *    이 어댑터는 thinking 을 켜므로(3.x 는 못 끔) thoughts > 0 이 보장되고, 구글은 이걸
+ *    출력 요율로 청구한다. 빠뜨리면 나중에 단가를 채워 소급 계산할 때 같이 틀린다.
+ */
+export function mapGeminiUsage(um: {
+  promptTokenCount?: number | null;
+  candidatesTokenCount?: number | null;
+  cachedContentTokenCount?: number | null;
+  thoughtsTokenCount?: number | null;
+}): Usage {
+  const cached = um.cachedContentTokenCount ?? 0;
+  return {
+    inputTokens: Math.max(0, (um.promptTokenCount ?? 0) - cached),
+    outputTokens: (um.candidatesTokenCount ?? 0) + (um.thoughtsTokenCount ?? 0),
+    cacheReadTokens: cached,
+    // 명시적 캐시(CachedContent API)를 안 쓰므로 쓰기 청구가 없다.
+    cacheWriteTokens: 0,
+  };
+}
+
 export const geminiAdapter: ProviderAdapter = {
   async *stream({ systemStatic, systemDynamic, messages, maxTokens, model }: AdapterStreamArgs) {
     // Gemini 는 system 을 systemInstruction 으로 분리 → 정적+동적을 합쳐 넣는다.
@@ -52,16 +76,7 @@ export const geminiAdapter: ProviderAdapter = {
       if (fr) stop = mapGeminiFinish(fr);
       const um = chunk.usageMetadata;
       if (um) {
-        const cached = um.cachedContentTokenCount ?? 0;
-        usage = {
-          // 🔴 promptTokenCount 는 캐시분을 **포함**한다 → 빼야 중복 계산이 안 된다.
-          //    (anthropic 은 반대다 — 프로바이더마다 회계가 달라 복사하면 틀린다.)
-          inputTokens: Math.max(0, (um.promptTokenCount ?? 0) - cached),
-          outputTokens: um.candidatesTokenCount ?? 0,
-          cacheReadTokens: cached,
-          // 명시적 캐시(CachedContent API)를 안 쓰므로 쓰기 청구가 없다.
-          cacheWriteTokens: 0,
-        };
+        usage = mapGeminiUsage(um);
       }
     }
     return { stop, usage };

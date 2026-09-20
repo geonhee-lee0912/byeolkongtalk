@@ -14,6 +14,25 @@ function mapStop(r: string | null | undefined): StopReason {
   return r == null ? null : "other";
 }
 
+/**
+ * message_start 의 usage → 어댑터 계약. anthropic 은 input_tokens 가 **캐시 제외 잔여**라
+ * 빼지 않는다(SDK JSDoc: "Total input tokens ... is the summation of input_tokens,
+ * cache_creation_input_tokens, and cache_read_input_tokens").
+ */
+export function mapAnthropicUsage(u: {
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}): Usage {
+  return {
+    inputTokens: u.input_tokens ?? 0,
+    outputTokens: u.output_tokens ?? 0,
+    cacheReadTokens: u.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
+  };
+}
+
 export const anthropicAdapter: ProviderAdapter = {
   async *stream({ systemStatic, systemDynamic, messages, maxTokens, model }: AdapterStreamArgs) {
     // 정적 블록만 cache_control 마킹 → TTL 동안 후속 호출은 입력 토큰 0.1× 과금.
@@ -51,13 +70,7 @@ export const anthropicAdapter: ProviderAdapter = {
     let usage: Usage | null = null;
     for await (const event of stream) {
       if (event.type === "message_start") {
-        const u = event.message.usage;
-        usage = {
-          inputTokens: u.input_tokens ?? 0,
-          outputTokens: u.output_tokens ?? 0,
-          cacheReadTokens: u.cache_read_input_tokens ?? 0,
-          cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
-        };
+        usage = mapAnthropicUsage(event.message.usage);
       } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         yield event.delta.text;
       } else if (event.type === "message_delta") {
