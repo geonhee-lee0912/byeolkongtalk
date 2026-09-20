@@ -2,7 +2,10 @@
 
 // components/byeolmaru/DailyCardBlock.tsx — 별마루 블록4: 오늘의 카드.
 // 뽑기(CardDrawRitual 재사용, 결제 모달 없이 무료) → 하루 1장 고정(byeolmaru_daily_card) →
-// 무료 정적(키워드 템플릿) + 구독자 7블록 리포트 + 게이지(card-narrative, P6-2) + 비구독 PremiumBlock 미끼(P5-4 §9) + 인라인 낙수.
+// **한 장**(P6-4 §5-1 C안): 무료 taste + 게이지 → 절단선 → 구독자 7블록 리포트 / 비구독 PaywallCut.
+// 🔴 taste 와 게이지는 자격과 무관하게 **항상** 절단선 위에 있다(§5-3①②) — 유료 프롬프트가 카드 상징
+//    재설명을 금지하므로 taste 가 빠지면 돈 낸 사람이 "이 카드가 어떤 카드인지"를 못 읽고, 게이지는
+//    룰 100%·원가 0이라 유료로 가둘 이유가 없다.
 // design §2: docs/superpowers/specs/2026-09-05-별마루-5-원카드-폐지-낙수-design.md
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -11,10 +14,12 @@ import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
 import type { CardReport } from "@/lib/byeolmaru/card-report";
+import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
+import { TAROT_PAID_CHARS, TAROT_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
-import CardReportView from "./CardReportView";
-import PremiumBlock from "./PremiumBlock";
+import CardReportView, { CardGaugeView } from "./CardReportView";
+import PaywallCut from "./PaywallCut";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
@@ -26,7 +31,12 @@ interface DailyCard {
 type CardState =
   | { kind: "loading" }
   | { kind: "none" }
-  | { kind: "drawn"; card: DailyCard };
+  // 🔴 카드는 **그 카드가 속한 날짜**를 달고 다닌다 — 이 화면은 같은 라우트 안에서 쿼리만 바뀌며
+  //    재마운트 없이 다시 그려져서(뒤로가기·"오늘 카드 뽑으러 가기 →"), date prop 이 먼저 바뀌고
+  //    카드 재조회는 한 프레임 뒤에 시작된다. 그 틈에 서술 effect 가 (옛 카드 + 새 날짜)로 한 번,
+  //    새 카드가 도착한 뒤 또 한 번 나간다 — 캐시 미스면 **LLM 이 두 번 돈다**. date 를 같이 들고
+  //    있으면 그 틈을 구조로 막는다(effect 가 정합이 맞을 때만 부른다).
+  | { kind: "drawn"; date: string; card: DailyCard };
 
 // 별마루 브랜드 액센트(StarConfirmModal 구독 확인 등과 동일 gold) — 타로 스프레드별 accent 와
 // 구분해 "이건 별마루 무료 상품"이라는 톤을 준다.
@@ -66,9 +76,15 @@ export default function DailyCardBlock({
   const [saveError, setSaveError] = useState(false);
 
   const [report, setReport] = useState<CardReport | null>(null);
+  // 게이지는 리포트와 **따로** 든다 — 비자격자는 report 없이 gauge 만 받는다(라우트 계약 ②).
+  const [gauge, setGauge] = useState<CardGauge | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
-  // 자격은 있는데 프로필(생일)이 없어 서술을 못 만든 경우("no_profile")만 구분해 남긴다.
+  // 프로필(생일)이 없어 서술을 못 만든 경우("no_profile")만 구분해 남긴다.
+  // 🔴 자격과 무관하다 — 라우트는 사주 축을 못 만들면 자격 판정 **전에** 404 를 준다(계약 ⑥).
   const [narrativeBlocked, setNarrativeBlocked] = useState<"no_profile" | null>(null);
+  // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다
+  // (SajuTodayView 의 notGenerated 와 같은 역할·같은 문구).
+  const [notGenerated, setNotGenerated] = useState(false);
   // route 가 report:null 과 함께 reason:"generation_failed" 를 명시적으로 준 경우만 별도 안내 —
   // 진짜 500·네트워크 실패는 여전히 narrative:null 로 조용히 흡수한다(그건 안내할 만큼 확실치 않은 blip).
   // 재시도 버튼은 없다(out of scope) — taste 폴백은 이미 떠 있으니 빈 화면은 아니다.
@@ -91,7 +107,7 @@ export default function DailyCardBlock({
         }
         const j = await res.json();
         if (cancelled) return;
-        setState(j.card ? { kind: "drawn", card: j.card } : { kind: "none" });
+        setState(j.card ? { kind: "drawn", date, card: j.card } : { kind: "none" });
       } catch {
         if (!cancelled) setState({ kind: "none" });
       }
@@ -101,48 +117,50 @@ export default function DailyCardBlock({
     };
   }, [date]);
 
-  // 서술(자격자 + 카드 있을 때만) — ②-a PremiumBlock/pairNarrative 와 동일하게 카드 렌더와 분리된
-  // 별도 effect(느린 LLM 호출이 카드 이미지 렌더를 붙잡지 않게).
-  // 🔴 지금은 비자격이면 아예 fetch 하지 않는다 — **이 skip 은 곧 걷어내야 한다.** 예전 근거였던
-  //    "비자격은 어차피 403" 은 P6-4 Task 3 이후 거짓이다: 라우트는 비자격에게 200
-  //    `{ entitled:false, gauge }` 를 준다(게이지는 룰 100%·원가 0이라 무료로 내보낸다, 스펙 §5-3②).
-  //    즉 지금 이 skip 은 원가를 아끼는 게 아니라 **무료로 줄 수 있는 게이지를 안 받아오는 것**이다.
-  //    Task 9 가 조건을 자격이 아니라 카드 유무(state.kind === "drawn")로 바꾼다.
+  // 서술 + 게이지 — 카드 렌더와 분리된 별도 effect(느린 LLM 호출이 카드 이미지 렌더를 붙잡지 않게).
+  // 🔴 P6-4 §5-3② — **비자격자도 부른다.** 라우트가 자격 판정 **앞에서** 게이지를 만들어 200 으로
+  //    주고 LLM 은 돌지 않는다(원가 0). 예전의 "비자격은 skip" 규율은 403 을 피하려던 것이라 이제
+  //    무효다 — 그대로 두면 무료로 줄 수 있는 게이지를 안 받아오는 셈이 된다.
+  // 🔴 진입 가드는 카드 유무 **그리고 날짜 정합**이다. state.date !== date 인 프레임(= 날짜가 먼저
+  //    바뀌고 카드 재조회가 아직 안 끝난 틈)에서 부르면, 새 카드가 도착한 뒤 한 번 더 나가 같은
+  //    날짜에 대해 요청이 2회가 된다 — 오늘 캐시 미스면 LLM 이 두 번 돈다.
+  const cardDate = state.kind === "drawn" ? state.date : null;
   useEffect(() => {
-    if (!entitled || state.kind !== "drawn") {
-      setReport(null);
-      setNarrativeLoading(false);
-      setNarrativeBlocked(null);
-      setNarrativeFailed(false);
+    if (cardDate !== date) {
+      setReport(null); setGauge(null); setNarrativeLoading(false);
+      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false);
       return;
     }
     let cancelled = false;
-    setReport(null);
-    setNarrativeBlocked(null);
-    setNarrativeFailed(false);
-    setNarrativeLoading(true);
+    setReport(null); setGauge(null);
+    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false);
+    setNarrativeLoading(entitled); // 로딩 문구는 자격자에게만 — 비자격은 기다릴 글이 없다
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/card-narrative?date=${date}`, { cache: "no-store" });
         if (res.status === 404) {
           // card-narrative 는 생일이 없으면 profile_not_found 404 를 준다(정당한 응답 — 카드×사주
-          // 서술엔 생일이 필수). 예전엔 이걸 narrative:null 로 접어 무료와 똑같은 화면을 보여줬다.
+          // 서술은 물론 게이지도 사주 축이 없으면 못 만든다). 예전엔 이걸 narrative:null 로 접어
+          // 무료와 똑같은 화면을 보여줬다.
           if (!cancelled) setNarrativeBlocked("no_profile");
           return;
         }
         if (!res.ok) {
-          if (!cancelled) setReport(null);
+          if (!cancelled) { setReport(null); setGauge(null); }
           return;
         }
         const j = await res.json();
         if (!cancelled) {
+          setGauge(j.gauge ?? null);
           setReport(j.report ?? null);
-          // reason:"generation_failed" 는 route 가 명시적으로 구분해 준 신호만 안내한다
-          // (reason:"not_drawn" 은 이 분기(카드 이미 뽑음)에서 정상적으로 나올 수 없어 무시해도 안전).
+          // reason 은 route 가 명시적으로 구분해 준 신호만 읽는다(비자격 응답엔 report·reason 이
+          // 아예 없어 둘 다 false 로 떨어진다 — 비자격자에게 안내 문구가 새지 않는다).
+          // 과거 날짜의 "그날은 안 받았어"(not_generated)는 실패가 아니다 — 재시도 문구를 띄우지 않는다.
           setNarrativeFailed(!j.report && j.reason === "generation_failed");
+          setNotGenerated(!j.report && j.reason === "not_generated");
         }
       } catch {
-        if (!cancelled) setReport(null);
+        if (!cancelled) { setReport(null); setGauge(null); }
       } finally {
         if (!cancelled) setNarrativeLoading(false);
       }
@@ -150,7 +168,7 @@ export default function DailyCardBlock({
     return () => {
       cancelled = true;
     };
-  }, [entitled, state.kind, date]);
+  }, [entitled, cardDate, date]);
 
   // 🔴 의식이 실제로 떠 있는가 — 포털과 스크롤 잠금이 **같은 하나**를 봐야 한다.
   //    `ritualOpen` 만으로는 부족하다: 이 화면은 같은 라우트 안에서 쿼리만 바뀌면 재마운트가
@@ -178,6 +196,9 @@ export default function DailyCardBlock({
   }, [ritualVisible, saving]);
 
   function openRitual() {
+    // 🔴 소급 뽑기 금지 — POST 는 언제나 **오늘**로 저장한다(스펙 §4 "그때 받은 것만").
+    //    ritualVisible 에 이미 같은 조건이 있어 이건 이중 방어다(여는 쪽도 막아둔다).
+    if (date !== todayKst) return;
     setSaveError(false);
     setPendingDraw(null);
     setRitualOpen(true);
@@ -208,7 +229,11 @@ export default function DailyCardBlock({
         setSaveError(true);
         return;
       }
-      setState({ kind: "drawn", card: j.card });
+      // 🔴 date 가 아니라 todayKst 를 단다 — POST 는 **언제나 오늘**로 저장하므로 그게 이 카드의
+      //    진짜 날짜다. 둘이 갈라지는 경로는 3중으로 막혀 있지만(CTA·openRitual·ritualVisible),
+      //    만에 하나 갈라지면 화면이 아무것도 안 그리는 쪽으로 실패한다(엉뚱한 날짜에 카드를
+      //    붙여 보여주는 것보다 낫다).
+      setState({ kind: "drawn", date: todayKst, card: j.card });
       setPendingDraw(null);
       setRitualOpen(false);
     } catch {
@@ -280,9 +305,11 @@ export default function DailyCardBlock({
               title: `오늘의 카드 · ${cardNameKr}`,
               description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
               imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
-              // 이 블록이 허브에서 전용 라우트(/byeolmaru/tarot)로 이전됨 — 허브에는 카드 섹션이 없어
-              // 예전처럼 /byeolmaru 로 보내면 수신자가 카드를 못 본다.
-              link: `${window.location.origin}/byeolmaru/tarot`,
+              // 🔴 착지 경로는 건드리지 않는다 — 파라미터만 붙인다(§10-1①). 이 블록이 허브에서 전용
+              //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
+              //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
+              //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
+              link: `${window.location.origin}/byeolmaru/tarot?utm_source=byeolmaru_tarot&utm_medium=share`,
               buttonTitle: "나도 뽑아보기",
             });
             // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.
@@ -311,27 +338,42 @@ export default function DailyCardBlock({
                 <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
               </div>
 
+              {/* 무료 taste — 🔴 자격 여부와 무관하게 **항상** 그린다(§5-3①). 유료 프롬프트가 카드
+                  상징 재설명을 금지하므로, 이게 없으면 돈 낸 사람만 "이 카드가 어떤 카드인지"를
+                  키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다. */}
+              <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+
+              {/* 게이지 — 절단선 **위**(무료). 룰 100%·원가 0이라 §5 경계 원칙에 걸리지 않는다(§5-3②). */}
+              {gauge && <CardGaugeView gauge={gauge} reversed={reversed} />}
+
+              {/* 생일 안내 — 🔴 자격 분기 **밖**이다. 404(profile_not_found)는 자격 판정 앞에서 나와
+                  비자격자도 받는데(라우트 계약 ⑥), 자격 분기 안에 두면 그 사람은 게이지도 리포트도
+                  없는 채 절단선만 보고 **왜 비었는지**를 영영 못 듣는다. 여기 두면 자격자에게는
+                  기존과 같은 자리에 뜨고(그 경우 위 taste·게이지 바로 아래가 곧 이 줄이다),
+                  비자격자에게는 절단선 **앞**에 뜬다 — 유료가 파는 것의 전제 조건이라 그 순서가 맞다. */}
+              {narrativeBlocked === "no_profile" && (
+                <p className="mt-2 text-xs leading-relaxed text-text-light">
+                  생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
+                  <Link href="/mypage" className="text-lilac-deep underline">
+                    생년월일 입력하러 가기 →
+                  </Link>
+                </p>
+              )}
+
               {entitled ? (
                 <>
                   {narrativeLoading ? (
-                    <p className="mt-3 text-sm text-text-light">별콩이가 카드를 네 사주 위에 얹는 중…</p>
-                  ) : report ? (
-                    <CardReportView report={report} />
-                  ) : (
-                    // 서술 실패 시에도 정적 taste 로 degrade(구독자에게 빈 화면을 주지 않는다).
-                    <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
-                  )}
-                  {/* 자격자인데 프로필(생일)이 없어 서술을 못 만든 경우만 안내 — 에러가 아니라 안내라
-                      taste 를 대체하지 않고 그 아래 작은 보조 줄로만 덧붙인다. 비자격자는 이 분기에
-                      아예 들어오지 않으므로(entitled 가지 자체) 별도 조건 없이도 안전하다. */}
-                  {narrativeBlocked === "no_profile" && (
-                    <p className="mt-2 text-xs leading-relaxed text-text-light">
-                      생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
-                      <Link href="/mypage" className="text-lilac-deep underline">
-                        생년월일 입력하러 가기 →
-                      </Link>
+                    <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                      별콩이가 카드를 네 사주 위에 얹는 중…
                     </p>
-                  )}
+                  ) : report ? (
+                    // 🔴 border-t 래퍼를 씌우지 말 것 — CardReportView 의 첫 블록이 이미 자기 선을 긋는다.
+                    <CardReportView report={report} />
+                  ) : notGenerated ? (
+                    <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                      그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+                    </p>
+                  ) : null}
                   {narrativeFailed && (
                     <p className="mt-2 text-xs leading-relaxed text-text-light">
                       별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
@@ -340,24 +382,20 @@ export default function DailyCardBlock({
                 </>
               ) : (
                 <>
-                  {/* 무료 taste — 카드 메시지+오늘 적용+조언 ~350자 정적(design §5). */}
-                  <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
-                  {/* 유료 미끼(P5-4 §9 — 자리별 공용 컴포넌트) — baitCtx 는 안 넘긴다: 이 자리의
-                      첫 줄(baitLead)은 등급·상대 같은 맥락 없이도 "지금"만으로 말이 된다.
-                      PremiumBlock 은 자체 mt-3 이 없어(공용 컴포넌트라 margin prop 을 안 둔다) 위
-                      taste 문단과의 간격을 이 래퍼로 준다. */}
-                  <div className="mt-3">
-                    <PremiumBlock
-                      entitled={false}
-                      trialUsed={trialUsed}
-                      narrative={null}
-                      teaser={null}
-                      loading={false}
-                      onStartTrial={onStartTrial}
-                      onSubscribe={onSubscribe}
-                      slot="tarot_rich"
-                    />
-                  </div>
+                  {/* 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — **비자격 분기 전용**이다
+                      (자격자에게 그리면 그 계측의 분모가 구독자로 오염된다).
+                      🔴 래퍼로 감싸지 말 것: 자체 mt-4 와 금색 절단선을 갖고 있고, min-h 실측이
+                         "page p-4 + card p-4" 중첩을 가정한다(래퍼가 끼면 그 실측이 깨진다). */}
+                  <PaywallCut
+                    freeChars={taste.length}
+                    paidChars={TAROT_PAID_CHARS}
+                    sections={TAROT_PAID_SECTIONS}
+                    blurText={taste}
+                    trialUsed={trialUsed}
+                    onStartTrial={onStartTrial}
+                    onSubscribe={onSubscribe}
+                    slot="tarot_rich"
+                  />
                   {/* 인라인 낙수(design §5) — 구독자는 이미 LLM 해석을 받으므로 비구독 대상에만 노출 */}
                   <Link href="/" className="mt-3 inline-block text-xs text-lilac-deep underline">
                     이 카드, 타로로 더 깊게 →
@@ -365,13 +403,17 @@ export default function DailyCardBlock({
                 </>
               )}
 
-              <button
-                onClick={handleShare}
-                disabled={!isKakaoReady()}
-                className="mt-3 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
-              >
-                공유하기
-              </button>
+              {/* 🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다
+                  (OG 라우트도 카드 id 만 받아 날짜를 모른다). SajuTodayView 의 cell.isToday 와 같은 규율. */}
+              {date === todayKst && (
+                <button
+                  onClick={handleShare}
+                  disabled={!isKakaoReady()}
+                  className="mt-3 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
+                >
+                  공유하기
+                </button>
+              )}
             </section>
           );
         })()}

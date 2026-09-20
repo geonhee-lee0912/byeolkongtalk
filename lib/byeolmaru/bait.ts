@@ -30,6 +30,11 @@ export const BAIT: Record<BaitSlot, BaitCopy> = {
     chips: ["이번 달 전체", "끌림 · 결속 · 삐걱"],
     tail: "언제 마음이 가까워지고 언제 한 박자 쉬면 좋은지, 날짜로—",
   },
+  // 🔴 이 카피는 더 이상 **렌더되지 않는다**(P6-4 Task 9). 유일한 소비자였던 DailyCardBlock 의
+  //    PremiumBlock 이 PaywallCut 으로 바뀌었고, PaywallCut 은 BAIT 를 읽지 않는다(분량·섹션 칩은
+  //    paywall-sections.ts 가 준다). 슬롯 이름 "tarot_rich" 자체는 PaywallCut 의 slot prop 과
+  //    gate_shown meta 로 **계속 살아 있으므로** 항목을 지우지 말 것 — 다만 아래 문구를 다듬는 건
+  //    지금은 아무 화면도 바꾸지 않는다(고치려거든 PaywallCut 쪽을 볼 것).
   tarot_rich: {
     title: "이 카드를 네 사주에 얹어줄게",
     chips: ["약 1,800자", "카드 × 네 사주"],
