@@ -5,7 +5,9 @@
 import type { MetricUnit } from "@/lib/admin-metrics";
 
 // 🔴 로케일 고정 — 서버(Vercel, UTC/en-US)와 클라이언트가 다른 구분자를 쓰면 하이드레이션 불일치가 난다.
-const LOCALE = "ko-KR";
+// export 하는 이유: ko-KR 과 en-US 는 천단위 구분자가 동일해(둘 다 "1,000") 출력 문자열만으로는
+// "로케일이 고정됐다"를 증명 못 한다. 계약 테스트가 이 상수 값 자체를 잠근다.
+export const LOCALE = "ko-KR";
 
 export function formatMetric(value: number, unit: MetricUnit): string {
   switch (unit) {
@@ -19,7 +21,10 @@ export function formatMetric(value: number, unit: MetricUnit): string {
     case "count":
       return Math.round(value).toLocaleString(LOCALE);
     case "ratio":
-      return value.toFixed(2);
+      // 🔴 percent 와 같은 결함, 같은 클래스 — `value.toFixed(2)` 를 직접 쓰면 0.615 가
+      // 부동소수 표현 오차(0.6149999999999999...)로 "0.61" 이 된다. ×100 → 반올림 → ÷100 을
+      // 먼저 거쳐 이 경계값들이 정확한 표현으로 떨어지게 한다.
+      return (Math.round(value * 100) / 100).toFixed(2);
   }
 }
 
