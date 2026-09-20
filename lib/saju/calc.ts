@@ -33,6 +33,8 @@ export interface DailyLuck {
   stem: string;
   branch: string;
   element: FiveElement;
+  /** 2자 한자 "己丑" — 화면이 일진을 크게 띄울 때 쓴다(한글 간지는 60갑자 중 일부가 욕설로 읽힌다). */
+  hanja: string;
 }
 
 export interface TemporalLuck {
@@ -224,7 +226,7 @@ export function calcDailyLuckRange(startKst: string, endKst: string): DailyLuck[
         .getEightChar()
         .getDay()
     );
-    out.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement });
+    out.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement, hanja: dayParts.hanja });
     cur.setDate(cur.getDate() + 1);
   }
   return out;

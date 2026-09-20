@@ -17,9 +17,9 @@ const SAJU = {
 } as unknown as SajuResult;
 
 const LUCK: DailyLuck[] = [
-  { date: "2026-09-01", stem: "기", branch: "축", element: "토" }, // 천간합+육합+absent
-  { date: "2026-09-02", stem: "경", branch: "오", element: "금" }, // 극아+충
-  { date: "2026-09-03", stem: "임", branch: "신", element: "수" }, // 생아
+  { date: "2026-09-01", stem: "기", branch: "축", element: "토", hanja: "己丑" }, // 천간합+육합+absent
+  { date: "2026-09-02", stem: "경", branch: "오", element: "금", hanja: "庚午" }, // 극아+충
+  { date: "2026-09-03", stem: "임", branch: "신", element: "수", hanja: "壬申" }, // 생아
 ];
 
 test("toDaySelf — SajuResult 에서 판정 입력만 뽑는다", () => {
@@ -73,6 +73,7 @@ test("weekBuckets — 7일씩 묶고 마지막 조각도 버리지 않는다", (
     stem: "기",
     branch: "축",
     element: "토" as const,
+    hanja: "己丑",
   }));
   const cells = buildCalendar(SAJU, luck, "2026-09-01");
   const weeks = weekBuckets(cells);
@@ -129,4 +130,10 @@ test("splitByFreeLine — 오늘은 언제나 열린 쪽(경계 off-by-one 고�
   const r = splitByFreeLine([{ date: "2026-09-12", ganji: "갑자" }], "2026-09-12", false);
   assert.deepEqual(r.open.map((c) => c.date), ["2026-09-12"]);
   assert.deepEqual(r.lockedCells, []);
+});
+
+test("DayCell 은 일진 한자를 싣는다 — 상세 히어로가 한글 간지를 크게 띄우지 않게", () => {
+  const cells = buildCalendar(SAJU, LUCK, LUCK[0].date);
+  assert.equal(cells[0].hanja, LUCK[0].hanja);
+  assert.equal(cells[0].hanja.length, 2);
 });
