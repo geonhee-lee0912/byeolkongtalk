@@ -28,11 +28,18 @@ test("CARD_REPORT_BLOCKS: 7블록 순서·키가 스펙 §6-2 표와 같다", ()
   );
   assert.equal(CARD_REPORT_BLOCKS[0].title, "이 카드가 온 자리");
   assert.equal(CARD_REPORT_BLOCKS[3].title, "카드가 비추는 마음");
+  assert.equal(CARD_REPORT_BLOCKS.reduce((a, b) => a + b.sentences, 0), 36, "§6-2 예산 36문장 × 50자 = 1,800자");
 });
 
 test("CARD_REPORT_SCHEMA: 7키 전부 required 인 strict object", () => {
   assert.equal(CARD_REPORT_SCHEMA.additionalProperties, false);
-  assert.deepEqual([...CARD_REPORT_SCHEMA.required].sort(), ["caution", "love", "mind", "move", "note", "place", "work"]);
+  const keys = CARD_REPORT_BLOCKS.map((b) => b.key);
+  assert.deepEqual(
+    Object.keys(CARD_REPORT_SCHEMA.properties),
+    keys,
+    "스키마 properties 가 7블록과 어긋나면 strict 가 새 키를 금지해 전건 파싱 실패한다"
+  );
+  assert.deepEqual([...CARD_REPORT_SCHEMA.required], keys, "required 가 7블록과 어긋남");
 });
 
 test("parseCardReportJson: 정상 JSON → 7필드 trim + note 머리말 제거", () => {
@@ -67,4 +74,5 @@ test("buildCardReport / isCardReport: v:1 + 카드·게이지 병합, 캐시에�
   assert.equal(isCardReport("옛 자유 줄글"), false);
   assert.equal(isCardReport(null), false);
   assert.equal(isCardReport({ ...r, blocks: { ...r.blocks, note: "" } }), false);
+  assert.equal(isCardReport({ ...r, gauge: { ...r.gauge, money: { base: 40 } } }), false, "게이지 축 형태 불일치도 미스");
 });

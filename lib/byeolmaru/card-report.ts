@@ -5,18 +5,18 @@ import { parseReportJson } from "@/lib/fortune/json-recover";
 import { stripNoteHeading } from "@/lib/fortune/note-heading";
 import type { CardGauge } from "./card-gauge.ts";
 
-export type CardReportBlockKey = "place" | "love" | "work" | "mind" | "caution" | "move" | "note";
-
 export interface CardReportBlockMeta {
-  key: CardReportBlockKey;
+  key: string;
   title: string;
   icon: string;
   /** 프롬프트 문장 예산(문장 수). 목표 글자수 = 문장 × 50. */
   sentences: number;
 }
 
-/** 7블록 — 제목·아이콘·순서는 코드 고정(AI 는 key 별 body 만 채운다). note 는 다크 카드로 그려져 아이콘 없음. */
-export const CARD_REPORT_BLOCKS: readonly CardReportBlockMeta[] = [
+/** 7블록 — 제목·아이콘·순서는 코드 고정(AI 는 key 별 body 만 채운다). note 는 다크 카드로 그려져 아이콘 없음.
+ *  `as const satisfies` — `as const` 로 리터럴·deep-readonly 를 지키면서 `satisfies` 로 구조를
+ *  검사한다(타입 주석이었다면 deep-readonly 가 풀려 `sentences = 99` 같은 대입이 컴파일된다). */
+export const CARD_REPORT_BLOCKS = [
   { key: "place", title: "이 카드가 온 자리", icon: "🃏", sentences: 8 },
   { key: "love", title: "오늘 애정 · 관계", icon: "💗", sentences: 6 },
   { key: "work", title: "오늘 일 · 돈", icon: "💼", sentences: 6 },
@@ -24,7 +24,11 @@ export const CARD_REPORT_BLOCKS: readonly CardReportBlockMeta[] = [
   { key: "caution", title: "오늘 조심할 하나", icon: "⚠️", sentences: 4 },
   { key: "move", title: "오늘의 한 수", icon: "✨", sentences: 4 },
   { key: "note", title: "별콩이의 한마디", icon: "", sentences: 3 },
-] as const;
+] as const satisfies readonly CardReportBlockMeta[];
+
+/** key 유니온은 배열에서 역산 — 유니온에 키를 추가하고 배열에 잊으면(또는 반대로) 여기서 어긋나
+ *  타입 에러가 난다(예전엔 별도 유니온 리터럴이라 두 쪽이 따로 놀 수 있었다). */
+export type CardReportBlockKey = (typeof CARD_REPORT_BLOCKS)[number]["key"];
 
 const BLOCK_KEYS: readonly CardReportBlockKey[] = CARD_REPORT_BLOCKS.map((b) => b.key);
 
@@ -47,9 +51,15 @@ export const CARD_REPORT_SCHEMA = {
   required: ["place", "love", "work", "mind", "caution", "move", "note"],
 } as const;
 
+/** 포맷 버전 — 게이지 폭(card-gauge.ts DOMAIN_DELTA/ALL_DELTA)이나 블록 구성을 바꾸면 올릴 것.
+ *  interface·buildCardReport·isCardReport 3곳이 전부 이 상수 하나만 참조하므로, 올리는 순간
+ *  세 곳이 자동으로 같이 움직인다(예전엔 리터럴 `1`이 3곳에 흩어져 있어 한 곳만 고치면
+ *  나머지는 tsc 도 못 잡고 조용히 stale 로 남았다). */
+const CARD_REPORT_V = 1;
+
 /** 저장/렌더 최종 형태(byeolmaru_card_narrative.report JSONB). v 는 포맷 버전 — 바꾸면 구행은 미스로 취급된다. */
 export interface CardReport {
-  v: 1;
+  v: typeof CARD_REPORT_V;
   cardId: number;
   reversed: boolean;
   gauge: CardGauge;
@@ -77,7 +87,7 @@ export function buildCardReport(
   ai: CardReportAI,
   ctx: { cardId: number; reversed: boolean; gauge: CardGauge }
 ): CardReport {
-  return { v: 1, cardId: ctx.cardId, reversed: ctx.reversed, gauge: ctx.gauge, blocks: ai };
+  return { v: CARD_REPORT_V, cardId: ctx.cardId, reversed: ctx.reversed, gauge: ctx.gauge, blocks: ai };
 }
 
 function isGaugeAxis(v: unknown): boolean {
@@ -88,7 +98,7 @@ function isGaugeAxis(v: unknown): boolean {
 export function isCardReport(v: unknown): v is CardReport {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
-  if (o.v !== 1) return false;
+  if (o.v !== CARD_REPORT_V) return false;
   if (typeof o.cardId !== "number" || typeof o.reversed !== "boolean") return false;
   const g = o.gauge as Record<string, unknown> | undefined;
   if (!g || !isGaugeAxis(g.love) || !isGaugeAxis(g.money) || !isGaugeAxis(g.work)) return false;
