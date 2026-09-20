@@ -20,7 +20,7 @@ import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// inline nano 생성 + (파싱 실패 시) 1회 재시도라 최악 2× 호출 — 헤더룸을 명시한다
+// inline luna 생성 + (파싱 실패 시) 1회 재시도라 최악 2× 호출 — 헤더룸을 명시한다
 // (형제 narrative/card-narrative 는 단일 호출이라 미설정).
 export const maxDuration = 60;
 
