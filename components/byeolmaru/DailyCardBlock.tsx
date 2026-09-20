@@ -152,9 +152,18 @@ export default function DailyCardBlock({
     };
   }, [entitled, state.kind, date]);
 
+  // 🔴 의식이 실제로 떠 있는가 — 포털과 스크롤 잠금이 **같은 하나**를 봐야 한다.
+  //    `ritualOpen` 만으로는 부족하다: 이 화면은 같은 라우트 안에서 쿼리만 바뀌면 재마운트가
+  //    없어, 오늘 열어둔 의식이 `?date=지난날` 로 돌아가도 그대로 살아남는다(뒤로가기가 그 경로다).
+  //    그러면 POST 는 서버 오늘로 저장하는데 화면은 "그날의 카드"라고 말해 — 소급으로 뽑은 것처럼
+  //    보인다(스펙 §4 "그때 받은 것만" 위반). 선언적으로 잠근다.
+  //    🔴 잠금 effect 와 포털 중 **하나만** 잠그면 안 된다: 포털만 닫으면 ritualOpen 이 true 라
+  //       이 effect 의 cleanup 이 안 돌아 body overflow:hidden 이 남는다(다이얼로그 없이 스크롤 먹통).
+  const ritualVisible = ritualOpen && date === todayKst;
+
   // 배경 스크롤 잠금 + ESC 닫기 — WatchAddModal 과 동일 패턴(저장 중엔 닫기 불가).
   useEffect(() => {
-    if (!ritualOpen) return;
+    if (!ritualVisible) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -166,7 +175,7 @@ export default function DailyCardBlock({
       window.removeEventListener("keydown", onKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ritualOpen, saving]);
+  }, [ritualVisible, saving]);
 
   function openRitual() {
     setSaveError(false);
@@ -241,7 +250,8 @@ export default function DailyCardBlock({
             </>
           ) : (
             // 🔴 지난 날 소급 뽑기는 하지 않는다(스펙 §4 "그때 받은 것만"). 미래는 아직 안 온 날이다.
-            //    이 분기가 뽑기 CTA 를 안 그리는 것이 유일한 게이트다 — openRitual 은 여기서만 불린다.
+            //    이 CTA 게이트만으로는 부족하다 — 쿼리 변경엔 재마운트가 없어, 오늘 연 의식이
+            //    이 링크를 거쳐 뒤로가기로 돌아와도 살아남는다. 포털도 `ritualVisible` 로 같이 잠근다.
             <p className="text-sm text-text-light">
               {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
               <Link href="/byeolmaru/tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
@@ -366,7 +376,7 @@ export default function DailyCardBlock({
           );
         })()}
 
-      {ritualOpen &&
+      {ritualVisible &&
         createPortal(
           <div
             className="fixed inset-0 z-[75] flex flex-col overflow-y-auto bg-cream animate-fade-in"
