@@ -1,15 +1,16 @@
 // 별마루 오늘 타로 7블록 리포트(유료) — 자격자만 luna 생성(비자격 미호출=원가0).
 // P6-2(스펙 2026-09-19 §6): 자유 줄글 narrative → 7블록 CardReport(JSON 구조화 + 사주 축 위 카드 게이지).
-// 카드 자체(cardId/reversed)는 이 라우트가 뽑지 않는다 — byeolmaru_daily_card 에 이미 기록된 오늘 카드를 읽어 사주 위에 얹을 뿐이다.
+// 카드 자체(cardId/reversed)는 이 라우트가 뽑지 않는다 — byeolmaru_daily_card 에 이미 기록된 그날 카드를 읽어 사주 위에 얹을 뿐이다.
 // 🔴 파싱·검증·게이지 병합은 저장 전 한 번(§11-1-4) — 캐시 히트는 저장본을 그대로 돌려준다(응답 대칭).
 //
-// 🔴 P6-4 응답 계약 — 다섯 갈래. `gauge` 는 **자격과 무관하게** 카드가 있으면 항상 실린다(§5-3②, 룰 100%·원가 0).
+// 🔴 P6-4 응답 계약 — 여섯 갈래. `gauge` 는 **자격과 무관하게** 카드가 있으면 항상 실린다(§5-3②, 룰 100%·원가 0).
 //   ① 카드 없음        : { entitled, gauge: null, report: null, reason: "not_drawn" }
 //   ② 비자격 + 카드     : { entitled: false, gauge }                      ← LLM 미호출 = 원가 0
 //   ③ 자격 + 캐시       : { entitled: true, gauge, report }
 //   ④ 자격 + 과거 미생성 : { entitled: true, gauge, report: null, reason: "not_generated" }
 //   ⑤ 자격 + 생성/실패  : { entitled: true, gauge, report }  /  { …, report: null, reason: "generation_failed" }
-//  범위 밖 미래는 400 date_out_of_range (daily-report 와 동일).
+//   ⑥ 생일 없음        : 404 { error: "profile_not_found" }  ← 자격 무관(사주 축이 없으면 게이지도 없다)
+//  범위 밖 미래·형식 오류는 400 date_out_of_range (daily-report 와 동일).
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
