@@ -132,8 +132,9 @@ test("buildCardReportSystem: 카드·정역·사주·일진·등급 그라운딩
   assert.match(sys, /"place": "<[^>]*8문장/);
   assert.match(sys, /"love": "<[^>]*6문장/);
   assert.match(sys, /"mind": "<[^>]*5문장/);
-  assert.match(sys, /"caution": "<[^>]*4문장/);
-  assert.match(sys, /"note": "<[^>]*3문장/);
+  // P6-2 Task10(2026-09-20) 실측 조정으로 caution 4→5문장, note 3→4문장(card-report.ts 주석 참조).
+  assert.match(sys, /"caution": "<[^>]*5문장/);
+  assert.match(sys, /"note": "<[^>]*4문장/);
   assert.equal(/700~900자|흐르는 줄글/.test(sys), false, "구 자유 줄글 지시가 남아 있다");
 });
 
@@ -206,7 +207,7 @@ test("buildCardReportSystem: 2인칭·반말·단정 금지·볼드 1개·note �
   const noteLine = sys.split("\n").find((l) => l.includes('"note"'))!;
   assert.equal(/별콩이의 한마디/.test(noteLine), false, noteLine);
   assert.ok(CARD_REPORT_KICKOFF.length > 0);
-  assert.ok(CARD_REPORT_MAX_TOKENS >= 5000, "1,800자 JSON + 헤드룸");
+  assert.ok(CARD_REPORT_MAX_TOKENS >= 5000, "~1,950자 JSON + 헤드룸(P6-2 Task10 실측 조정)");
   assert.equal(CARD_REPORT_MODEL, "gpt-5.6-luna");
 });
 

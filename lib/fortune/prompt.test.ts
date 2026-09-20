@@ -87,12 +87,13 @@ test("buildFortuneSystem(daily): todayKst 없이 reportDate 만 오면 날짜를
 test("SECTION_GUIDE.daily: 문장 예산이 스펙 §6-2 표와 같다(1,800자 = 31~32문장)", () => {
   const g = SECTION_GUIDE.daily;
   assert.match(g, /"intro": "<[^>]*6~7문장/);
-  assert.match(g, /"key": "love",\s*"body": "<[^>]*6문장/);
+  // P6-2 Task10(2026-09-20) 실측 조정으로 love 6→5문장(초과 경향), note 3→4문장(부족 경향).
+  assert.match(g, /"key": "love",\s*"body": "<[^>]*5문장/);
   assert.match(g, /"key": "money",\s*"body": "<[^>]*5문장/);
   assert.match(g, /"key": "work",\s*"body": "<[^>]*5문장/);
   assert.match(g, /"key": "health",\s*"body": "<[^>]*4문장/);
   assert.match(g, /"key": "study",\s*"body": "<[^>]*4문장/);
-  assert.match(g, /"note": "<[^>]*3문장/);
+  assert.match(g, /"note": "<[^>]*4문장/);
   assert.equal(/4~5문장/.test(g), false, "옛 4~5문장 지시가 남아 있다");
 });
 

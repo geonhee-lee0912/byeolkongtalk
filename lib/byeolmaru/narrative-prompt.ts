@@ -212,7 +212,7 @@ export function buildCardReportSystem(i: CardReportPromptInput): string {
     `  "mind": "<🌙 카드가 비추는 마음. 오늘 네 내면·멘탈 결 — 어떤 마음이 올라오고 어떻게 다루면 좋은지(타로 고유 재료, 위 세 블록과 다른 재료로). ${blockSentences("mind")}문장.>",`,
     `  "caution": "<⚠️ 오늘 조심할 하나. 딱 하나만, 장면으로${i.reversed ? " — 역위라 이 블록이 특히 중요하다" : ""}. 겁주지 말고 따뜻한 대비로. ${blockSentences("caution")}문장.>",`,
     `  "move": "<✨ 오늘의 한 수. 실행 단위 1~2개(언제·무엇을 손에 잡히게). ${blockSentences("move")}문장.>",`,
-    `  "note": "<따뜻한 마무리 ${blockSentences("note")}문장. 제목·머리말('○○의 한마디:' 같은 라벨) 없이 본문 문장으로 바로 시작.>"`,
+    `  "note": "<따뜻한 마무리 ${blockSentences("note")}문장. 제목·머리말('○○의 한마디:' 같은 라벨) 없이 본문 문장으로 바로 시작하되, 첫 구절은 다른 블록처럼 굵게.>"`,
     "}",
     "",
     "[규칙] 반드시 별콩이가 상대에게 직접 말하는 2인칭 '너'로(그 사람을 '이 사람'이라 3인칭으로 부르지 마). 반말, 단정적 예언 금지(흐름·가능성·선택). 블록마다 **다른 재료**를 써 — 같은 말을 바꿔 쓰며 늘리지 말고 장면과 예시로 채워(카드 한 장이라 재료가 겹치기 쉬우니 위 각 블록의 재료 지시를 지켜). 축 점수나 게이지 숫자를 본문에 쓰지 마. 문장 수는 위에 적은 대로 지켜.",
@@ -222,5 +222,6 @@ export function buildCardReportSystem(i: CardReportPromptInput): string {
 export const CARD_REPORT_KICKOFF = "오늘 내 카드 풀어줘.";
 /** 오늘 타로는 사주 daily 와 같은 유료 리포트 모델(luna). pair/self 서술의 BYEOLMARU_NARRATIVE_MODEL(nano)과 별개. */
 export const CARD_REPORT_MODEL = FORTUNE_REPORT_MODEL;
-/** 목표 1,800자 JSON(≈1,000~1,800토큰) + 헤드룸. 미생성 토큰은 과금 없음 — MAX_TOKENS_BY_FORTUNE.daily(6000)와 같은 산정. */
+/** 목표 ~1,950자(39문장 예산, P6-2 Task10 실측 조정) JSON + 헤드룸. 미생성 토큰은 과금 없음 —
+ *  MAX_TOKENS_BY_FORTUNE.daily(6000)와 같은 산정(실측 900~1,050토큰대라 6000 은 여전히 넉넉하다). */
 export const CARD_REPORT_MAX_TOKENS = 6000;

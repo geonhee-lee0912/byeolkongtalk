@@ -28,7 +28,8 @@ test("CARD_REPORT_BLOCKS: 7블록 순서·키가 스펙 §6-2 표와 같다", ()
   );
   assert.equal(CARD_REPORT_BLOCKS[0].title, "이 카드가 온 자리");
   assert.equal(CARD_REPORT_BLOCKS[3].title, "카드가 비추는 마음");
-  assert.equal(CARD_REPORT_BLOCKS.reduce((a, b) => a + b.sentences, 0), 36, "§6-2 예산 36문장 × 50자 = 1,800자");
+  // P6-2 Task10(2026-09-20) 실측 조정으로 36→39(caution·move·note 각 +1, card-report.ts 주석 참조).
+  assert.equal(CARD_REPORT_BLOCKS.reduce((a, b) => a + b.sentences, 0), 39, "§6-2 예산 36문장에서 실측 조정 +3 = 39문장 × 50자 ≈ 1,950자");
 });
 
 test("CARD_REPORT_SCHEMA: 7키 전부 required 인 strict object", () => {

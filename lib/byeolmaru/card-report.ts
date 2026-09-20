@@ -16,14 +16,18 @@ export interface CardReportBlockMeta {
 /** 7블록 — 제목·아이콘·순서는 코드 고정(AI 는 key 별 body 만 채운다). note 는 다크 카드로 그려져 아이콘 없음.
  *  `as const satisfies` — `as const` 로 리터럴·deep-readonly 를 지키면서 `satisfies` 로 구조를
  *  검사한다(타입 주석이었다면 deep-readonly 가 풀려 `sentences = 99` 같은 대입이 컴파일된다). */
+// 🔴 P6-2 Task10(2026-09-20) 실측 조정 — scripts/p6-2-length-probe.ts 로 4장(메이저 2·마이너 2) 실측:
+// caution·move 는 "하나만/장면으로"처럼 재료가 좁아 4문장 지시에도 실제로는 목표 대비 -20~-38%로
+// 짧게 나왔다(3~4/4 샘플에서 재현) → 5문장으로 +1. note 는 "머리말 없이 바로 시작" 지시 때문인지
+// 짧게(2/4 -22~-30%) 나와 4문장으로 +1. 조정은 이번 1회만 — 반복 측정으로 더 조이지 않는다.
 export const CARD_REPORT_BLOCKS = [
   { key: "place", title: "이 카드가 온 자리", icon: "🃏", sentences: 8 },
   { key: "love", title: "오늘 애정 · 관계", icon: "💗", sentences: 6 },
   { key: "work", title: "오늘 일 · 돈", icon: "💼", sentences: 6 },
   { key: "mind", title: "카드가 비추는 마음", icon: "🌙", sentences: 5 },
-  { key: "caution", title: "오늘 조심할 하나", icon: "⚠️", sentences: 4 },
-  { key: "move", title: "오늘의 한 수", icon: "✨", sentences: 4 },
-  { key: "note", title: "별콩이의 한마디", icon: "", sentences: 3 },
+  { key: "caution", title: "오늘 조심할 하나", icon: "⚠️", sentences: 5 },
+  { key: "move", title: "오늘의 한 수", icon: "✨", sentences: 5 },
+  { key: "note", title: "별콩이의 한마디", icon: "", sentences: 4 },
 ] as const satisfies readonly CardReportBlockMeta[];
 
 /** key 유니온은 배열에서 역산 — 유니온에 키를 추가하고 배열에 잊으면(또는 반대로) 여기서 어긋나
