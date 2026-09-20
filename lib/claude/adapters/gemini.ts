@@ -3,6 +3,7 @@
 // streamChat(lib/claude.ts) 래퍼가 소유(anthropic/openai 어댑터와 동일 계약).
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
+import type { Usage } from "@/lib/claude/pricing";
 
 // ⚠️ lazy 초기화(openai 어댑터와 동일 이유). parse.test.ts 는 lib/ 아래라 CI 가 실행하며 이
 // 모듈을 import 한다. CI 엔 GEMINI_API_KEY 가 없으므로 모듈 로드 시 클라이언트를 만들지 않는다.
@@ -42,13 +43,28 @@ export const geminiAdapter: ProviderAdapter = {
       },
     });
     let stop: StopReason = null;
+    // usageMetadata 는 청크마다 올 수 있고 **누적값**이다 → 마지막 값이 최종.
+    let usage: Usage | null = null;
     for await (const chunk of stream) {
       const text = chunk.text;
       if (text) yield text;
       const fr = chunk.candidates?.[0]?.finishReason;
       if (fr) stop = mapGeminiFinish(fr);
+      const um = chunk.usageMetadata;
+      if (um) {
+        const cached = um.cachedContentTokenCount ?? 0;
+        usage = {
+          // 🔴 promptTokenCount 는 캐시분을 **포함**한다 → 빼야 중복 계산이 안 된다.
+          //    (anthropic 은 반대다 — 프로바이더마다 회계가 달라 복사하면 틀린다.)
+          inputTokens: Math.max(0, (um.promptTokenCount ?? 0) - cached),
+          outputTokens: um.candidatesTokenCount ?? 0,
+          cacheReadTokens: cached,
+          // 명시적 캐시(CachedContent API)를 안 쓰므로 쓰기 청구가 없다.
+          cacheWriteTokens: 0,
+        };
+      }
     }
-    return stop;
+    return { stop, usage };
   },
   isRetryableError(err: unknown) {
     const status = (err as { status?: number })?.status;
