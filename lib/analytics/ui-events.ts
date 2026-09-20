@@ -66,8 +66,6 @@ export const UI_EVENTS = [
   "byeolmaru_subscribe_clicked",
   /** 별마루 — 구독 결제 완료. meta:{stars} */
   "byeolmaru_subscribe_completed",
-  /** 별마루 — 크로스셀 추천 카드 클릭. meta:{product} */
-  "byeolmaru_crosssell_clicked",
   /** 별마루 우리오늘 — 토글에서 상대 선택. meta:{} */
   "byeolmaru_partner_selected",
   /** 별마루 우리오늘 — 상대 담기 성공. meta:{via:"pick"|"register"} */

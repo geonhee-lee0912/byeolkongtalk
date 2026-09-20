@@ -41,13 +41,6 @@ test("UI_EVENTS — 별마루 미끼 닫기(당일 접힘) 이벤트가 등록�
   assert.equal(isUiEvent("byeolmaru_gate_dismissed"), true);
 });
 
-// M-5 — 이름이 "②-b"(폐지된 출석 보상 태스크 번호)였는데 실제 내용은 날짜 선택·크로스셀
-// 클릭 이벤트다. 이름을 실제 내용에 맞게 정정한다(②-b 자체는 이 테스트가 다룬 적 없다).
-test("UI_EVENTS — 별마루 날짜 선택·크로스셀 클릭 이벤트가 등록돼 있다", () => {
-  assert.equal(isUiEvent("byeolmaru_day_selected"), true);
-  assert.equal(isUiEvent("byeolmaru_crosssell_clicked"), true);
-});
-
 // P5-3 T5 — 허브 "무료로 더 볼 것" 목록 3종(오늘 타로·사주 MBTI·별 인연 지도) 행 클릭.
 test("UI_EVENTS — 별마루 무료 목록 3종 클릭 이벤트가 등록돼 있다", () => {
   assert.equal(isUiEvent("byeolmaru_free_item_clicked"), true);

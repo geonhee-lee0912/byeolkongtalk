@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
-import { pickCrossSell } from "@/lib/byeolmaru/crosssell";
+import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { PairDayCell } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
+import HubBanner from "./HubBanner";
 import AttendanceStrip from "./AttendanceStrip";
-import CrossSellCard from "./CrossSellCard";
+import DayStrip, { type StripCell } from "./DayStrip";
+import MonthGridSection from "./MonthGridSection";
 import PartnerChips, { type PartnerChip } from "./PartnerChips";
 import WatchAddModal from "./WatchAddModal";
-import TodayHeroTile from "./TodayHeroTile";
 import FreeList, { buildFreeItems } from "./FreeList";
 import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import PremiumBlock from "./PremiumBlock";
@@ -25,6 +26,7 @@ interface CalendarResponse {
   cells: DayCell[];
   lockedCells: LockedCell[];
   weeks: WeekBucket[];
+  strip: { cells: DayCell[]; lockedCells: LockedCell[] };
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
@@ -60,8 +62,14 @@ function emptyMonthDates(): { dates: string[]; today: string } {
 function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
   const { dates, today } = emptyMonthDates();
   const items = buildFreeItems(null);
-  // 로그인 없이 되는 둘을 앞으로, 로그인이 필요한 오늘 타로를 뒤로.
-  const reordered = [...items.filter((i) => i.key !== "tarot"), ...items.filter((i) => i.key === "tarot")];
+  // 🔴 로그인·생일이 있어야 되는 것을 뒤로 보낸다. **부정 필터(`!== "tarot"`)로 쓰지 않는다** —
+  //    목록에 항목이 하나 늘 때마다 조용히 "로그인 없이 됨" 쪽으로 쓸려 들어간다(실제로 오늘 사주가
+  //    그렇게 됐다: 눌러도 같은 로그인 벽으로 되돌아오는 막다른 길이 됐었다).
+  const NO_LOGIN_KEYS = ["mbti", "byeoljari"];
+  const reordered = [
+    ...items.filter((i) => NO_LOGIN_KEYS.includes(i.key)),
+    ...items.filter((i) => !NO_LOGIN_KEYS.includes(i.key)),
+  ];
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <header>
@@ -107,6 +115,7 @@ export default function ByeolmaruHub() {
   const [subject, setSubject] = useState<string>("me");
   const [pairCells, setPairCells] = useState<PairDayCell[] | null>(null);
   const [pairLocked, setPairLocked] = useState<LockedCell[]>([]);
+  const [pairStrip, setPairStrip] = useState<{ cells: PairDayCell[]; lockedCells: LockedCell[] } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   async function loadPartners() {
@@ -138,19 +147,20 @@ export default function ByeolmaruHub() {
   //    (refresh())만 갱신되고 pairCells 는 그대로였다(20별을 쓰고도 우리 달력은 점선 그대로).
   //    entitledNow 가 false→true 로 바뀌면 이 effect 가 다시 돌아 같은 상대를 잠금 없이 재요청한다.
   useEffect(() => {
-    if (subject === "me") { setPairCells(null); setPairLocked([]); return; }
+    if (subject === "me") { setPairCells(null); setPairLocked([]); setPairStrip(null); return; }
     let cancelled = false;
-    setPairCells(null); setPairLocked([]);
+    setPairCells(null); setPairLocked([]); setPairStrip(null);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
         const j = await res.json().catch(() => null);
         if (cancelled) return;
-        if (!res.ok || !j) { setPairCells(null); setPairLocked([]); setSubject("me"); return; }
+        if (!res.ok || !j) { setPairCells(null); setPairLocked([]); setPairStrip(null); setSubject("me"); return; }
         setPairCells(Array.isArray(j.cells) ? j.cells : null);
         setPairLocked(Array.isArray(j.lockedCells) ? j.lockedCells : []);
+        setPairStrip(j.strip ?? null);
       } catch {
-        if (!cancelled) { setPairCells(null); setPairLocked([]); setSubject("me"); }
+        if (!cancelled) { setPairCells(null); setPairLocked([]); setPairStrip(null); setSubject("me"); }
       }
     })();
     return () => { cancelled = true; };
@@ -204,12 +214,11 @@ export default function ByeolmaruHub() {
   // 폴백은 cells[0](이번 달 1일)이 아니라 마지막 칸이다 — 무료(비자격)는 오늘이 항상 마지막 칸이므로
   // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
-  const crossSell = pickCrossSell(todayCell);
   // viewingPair — 상대 칩을 골랐다는 "의도"(데이터 도착 여부와 무관). isPair — 실제로 그 상대의
-  // 달력을 그릴 수 있는 상태(데이터 도착 완료). 나 전용 UI(히어로)는 의도만으로 즉시 숨기고,
-  // 격자는 데이터가 아직이면(viewingPair && !isPair) 로딩 문구를 대신 보여준다 — pairCells 를
-  // effect 시작에서 항상 리셋하기 때문에 이 조합이 곧 "전환 중" 신호가 된다(P5-3 리뷰 I-1,
-  // 별도 pairLoading 상태 없이 기존 두 값의 조합으로 충분해 상태를 늘리지 않았다).
+  // 달력을 그릴 수 있는 상태(데이터 도착 완료). 격자·스트립은 데이터가 아직이면
+  // (viewingPair && !isPair) 로딩 문구를 대신 보여준다 — pairCells 를 effect 시작에서 항상
+  // 리셋하기 때문에 이 조합이 곧 "전환 중" 신호가 된다(P5-3 리뷰 I-1, 별도 pairLoading 상태 없이
+  // 기존 두 값의 조합으로 충분해 상태를 늘리지 않았다).
   const viewingPair = subject !== "me";
   const isPair = viewingPair && pairCells !== null;
 
@@ -222,81 +231,102 @@ export default function ByeolmaruHub() {
   const gridLocked = isPair ? pairLocked : data.lockedCells;
   const filled = isPair ? pairCells.length : data.cells.length;
 
+  // 스트립 셀 — 나/우리 두 판정이 StripCell 로 수렴한다(격자의 GridCell 과 같은 패턴).
+  // 제목은 나 탭이 "하루 이름"(DAY_NAME), 우리 탭이 톤 라벨이다 — 우리 탭엔 십신 개념이 없다.
+  const stripCells: StripCell[] = isPair
+    ? (pairStrip?.cells ?? []).map((c) => ({
+        date: c.date, ganji: c.ganji, tone: c.tone, title: PAIR_TONE_LABEL[c.tone], marks: pairMarks(c.tags), isToday: c.isToday,
+      }))
+    : data.strip.cells.map((c) => ({
+        date: c.date, ganji: c.ganji, tone: c.grade.tone, title: DAY_NAME[c.tenGod], marks: c.marks, isToday: c.isToday,
+      }));
+  const stripLocked = (isPair ? pairStrip?.lockedCells : data.strip.lockedCells) ?? [];
+
+  // 날짜 탭의 목적지 — 격자와 스트립이 같은 규칙을 쓴다(둘이 갈리면 같은 날이 두 곳으로 간다).
+  function openDay(date: string) {
+    if (isPair) { router.push(`/byeolmaru/woori?subject=${encodeURIComponent(subject)}`); return; }
+    router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
+  }
+
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <header>
-        <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
-        <p className="text-sm text-text-light">무료로 다 보는 곳 · 오늘 {data.todayGanji}</p>
-      </header>
+      <HubBanner />
 
-      {/* ── 달력 판: 이 화면의 단 하나의 강조점(스펙 §3) ── */}
-      <section className="space-y-3">
-        <AttendanceStrip attendance={attendance} filledDays={filled} entitled={data.entitled} />
+      <PartnerChips
+        partners={partners}
+        selected={subject}
+        onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
+        onAdd={() => setAddOpen(true)}
+      />
 
-        {/* 오늘 히어로는 **나 탭에서만**. 우리 탭의 오늘은 톤·태그 성격이 달라 같은 타일에 안 들어간다
-            — 우리 쪽 상세는 /byeolmaru/woori 가 받는다(스펙 §8). viewingPair(의도) 기준으로 끈다 —
-            isPair(데이터 도착) 기준이면 전환 중(데이터 도착 전) 한 프레임 내 히어로가 남았다 사라지며
-            레이아웃이 점프했다(P5-3 리뷰 I-1 증상 b). */}
-        {!viewingPair && <TodayHeroTile cell={todayCell} href="/byeolmaru/saju" />}
+      <AttendanceStrip attendance={attendance} />
 
-        <PartnerChips
-          partners={partners}
-          selected={subject}
-          onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
-          onAdd={() => setAddOpen(true)}
-        />
-
-        {viewingPair && !isPair ? (
-          // 전환 중(리셋 직후~응답 도착 전) — 격자 자리에 로딩 문구를 둔다. 격자를 흐리는 대안은
-          // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
-          // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
-          // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
-          <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
-        ) : (
-          <CalendarGrid
-            cells={gridCells}
-            lockedCells={gridLocked}
+      {viewingPair && !isPair ? (
+        // 전환 중(리셋 직후~응답 도착 전) — 격자·스트립 자리에 로딩 문구를 둔다. 흐리는 대안은
+        // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
+        // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
+        // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
+        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
+      ) : (
+        <>
+          <DayStrip
+            cells={stripCells}
+            lockedCells={stripLocked}
             todayDate={data.today}
-            selectedDate={data.today}
             subjectKind={isPair ? "pair" : "me"}
-            onSelect={(date) => {
-              // 🔴 허브 격자는 "고르는" 곳이 아니라 "여는" 곳이다(스펙 §7 요약은 안, 전문은 밖).
-              //    나 탭은 그 날의 상세로, 우리 탭은 우리 상세로 보낸다. ?subject= 를 실어 보내
-              //    도착지에서 방금 고른 상대를 다시 고르지 않아도 되게 한다(T3 ?date= 와 동일 패턴,
-              //    P5-3 리뷰 I-2 — 없으면 "위에서 상대를 골라…" 안내로 되돌아가 통합 취지가 끊긴다).
-              if (isPair) { router.push(`/byeolmaru/woori?subject=${encodeURIComponent(subject)}`); return; }
-              router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
-            }}
+            onSelect={openDay}
+            onLockedSelect={() => (data.trialUsed ? openSubscribe() : startTrial())}
           />
-        )}
+          {!data.entitled && (
+            <p className="px-1 text-center text-[12px] text-text-light">
+              앞으로 3일도 미리 볼래?{" "}
+              <button
+                type="button"
+                onClick={() => (data.trialUsed ? openSubscribe() : startTrial())}
+                className="font-bold text-lilac-deep underline"
+              >
+                {data.trialUsed ? "구독하기" : "3일 무료"}
+              </button>
+            </p>
+          )}
 
-        {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를,
-            인연 탭은 우리 오늘을 판다 — 같은 블록을 두 자리에 쓰면 광고로 읽힌다.
-            비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
-        {!data.entitled && (
-          <PremiumBlock
-            entitled={false}
-            trialUsed={data.trialUsed}
-            narrative={null}
-            teaser={null}
-            loading={false}
-            onStartTrial={startTrial}
-            onSubscribe={openSubscribe}
-            // 🔴 isPair(데이터 도착)가 아니라 viewingPair(의도) 기준이다 — 위 히어로와 같은 이유로,
-            //    전환 중(상대 달력 도착 전) 격자는 이미 "우리"인데 미끼만 "나" 얘기를 하면 어긋난다.
-            slot={viewingPair ? "woori_30d" : "saju_report"}
-            baitCtx={
-              viewingPair
-                ? { partnerName: partners.find((p) => p.id === subject)?.name }
-                : { gradeLabel: todayCell.grade.label }
-            }
-          />
-        )}
-      </section>
+          <MonthGridSection filledDays={filled}>
+            <CalendarGrid
+              cells={gridCells}
+              lockedCells={gridLocked}
+              todayDate={data.today}
+              selectedDate={data.today}
+              subjectKind={isPair ? "pair" : "me"}
+              onSelect={openDay}
+            />
+          </MonthGridSection>
+        </>
+      )}
+
+      {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를, 인연 탭은 우리 오늘을
+          판다. 스펙 §2 의 제거 목록에 없으므로 유지하고 자리만 격자 뒤로 옮겼다. */}
+      {!data.entitled && (
+        <PremiumBlock
+          entitled={false}
+          trialUsed={data.trialUsed}
+          narrative={null}
+          teaser={null}
+          loading={false}
+          onStartTrial={startTrial}
+          onSubscribe={openSubscribe}
+          // 🔴 isPair(데이터 도착)가 아니라 viewingPair(의도) 기준이다 — 전환 중(상대 달력 도착 전)
+          //    격자·스트립은 이미 "우리"인데 미끼만 "나" 얘기를 하면 어긋난다.
+          slot={viewingPair ? "woori_30d" : "saju_report"}
+          baitCtx={
+            viewingPair
+              ? { partnerName: partners.find((p) => p.id === subject)?.name }
+              : { gradeLabel: todayCell.grade.label }
+          }
+        />
+      )}
 
       <FreeList items={buildFreeItems(dailyCard)} />
 
-      <CrossSellCard item={crossSell} />
       {subscribeModal}
       {addOpen && (
         <WatchAddModal
