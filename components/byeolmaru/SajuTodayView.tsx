@@ -178,7 +178,13 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           ? "그날은 카드를 안 뽑았어."
           : "카드는 그날 뽑는 거야.";
   // 링크는 카드를 뽑을 수 있는 날에만 — 지난 날 상세에서 오늘 뽑기 화면으로 보내면 날짜가 어긋난다.
-  const cardHref = dayCard === undefined ? null : dayCard || cell.isToday ? `/byeolmaru/tarot?date=${cell.date}` : null;
+  // 위 cardHint 와 **같은 게이트·같은 사다리 모양**으로 쓴다 — 둘은 한 쌍이라(모름이면 둘 다 null =
+  // 블록 숨김) 한쪽만 한 줄로 접으면 그 짝이 눈에 안 보인다.
+  const cardHref = dayCard === undefined
+    ? null
+    : dayCard || cell.isToday
+      ? `/byeolmaru/tarot?date=${cell.date}`
+      : null;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
