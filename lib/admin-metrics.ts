@@ -344,3 +344,15 @@ export function sampleGate(key: MetricKey, n: number): GateResult {
   const m = METRICS[key];
   return n >= m.minSample ? { show: true } : { show: false, note: `n=${n} · 판단 보류` };
 }
+
+/**
+ * 가드레일 경보 판정. 경보선이 없는 지표는 항상 false.
+ * alertBelow 와 alertAbove 가 둘 다 있으면 OR — 양방향 밴드를 벗어났는가.
+ */
+export function isAlerting(key: MetricKey, value: number | null): boolean {
+  if (value === null) return false; // 값이 없는 것은 경보가 아니다 — 조회 실패는 따로 표시한다
+  const m: MetricDef = METRICS[key];
+  const below = m.alertBelow !== undefined && value < m.alertBelow;
+  const above = m.alertAbove !== undefined && value > m.alertAbove;
+  return below || above;
+}

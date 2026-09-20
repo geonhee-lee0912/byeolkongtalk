@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { METRICS, GUARDRAILS, sampleGate, isMetricKey, type MetricDef } from "./admin-metrics.ts";
+import { METRICS, GUARDRAILS, sampleGate, isMetricKey, isAlerting, type MetricDef } from "./admin-metrics.ts";
 
 test("모든 지표가 정본 정의와 출처를 갖는다", () => {
   for (const [key, m] of Object.entries(METRICS) as [string, MetricDef][]) {
@@ -72,4 +72,13 @@ test("isMetricKey — 프로토타입 체인의 이름을 지표로 오인하지
   for (const fake of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
     assert.equal(isMetricKey(fake), false, `${fake} 가 지표 키로 통과했다`);
   }
+});
+
+test("isAlerting — 경보선 양쪽과 경계값", () => {
+  assert.equal(isAlerting("first_reading_rate", 79.9), true);   // alertBelow 80
+  assert.equal(isAlerting("first_reading_rate", 80), false);    // 경계는 경보 아님
+  assert.equal(isAlerting("new_error_classes", 1), true);       // alertAbove 0
+  assert.equal(isAlerting("new_error_classes", 0), false);
+  assert.equal(isAlerting("revenue_won", -999), false);         // 경보선 없는 지표
+  assert.equal(isAlerting("first_reading_rate", null), false);  // 값 없음 ≠ 경보
 });
