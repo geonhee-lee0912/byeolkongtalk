@@ -42,11 +42,17 @@ function buildStaticLine(keywords: string[]): string {
 }
 
 export default function DailyCardBlock({
+  date,
+  todayKst,
   entitled,
   trialUsed,
   onStartTrial,
   onSubscribe,
 }: {
+  /** 보고 있는 날짜(YYYY-MM-DD). 오늘이 아니면 뽑기 의식은 열리지 않는다. */
+  date: string;
+  /** KST 오늘 — 같은지 비교해 "오늘/그날"을 가른다. */
+  todayKst: string;
   entitled: boolean;
   trialUsed: boolean;
   onStartTrial: (slot?: string) => void;
@@ -68,12 +74,17 @@ export default function DailyCardBlock({
   // 재시도 버튼은 없다(out of scope) — taste 폴백은 이미 떠 있으니 빈 화면은 아니다.
   const [narrativeFailed, setNarrativeFailed] = useState(false);
 
-  // 오늘 카드 조회
+  // 그날 카드 조회 — ?date= 없으면 라우트가 오늘로 떨어뜨리지만, 여기선 항상 명시해 보낸다
+  // (화면이 보고 있는 날과 조회한 날이 갈라지지 않게).
   useEffect(() => {
     let cancelled = false;
+    // 🔴 날짜가 바뀌면 먼저 "모름"으로 되돌린다 — 이 화면은 같은 라우트 안에서 쿼리만 바뀌며
+    //    재마운트 없이 다시 그려진다(지난 날 안내의 "오늘 카드 뽑으러 가기 →"가 그 경로다).
+    //    안 지우면 새 날짜 헤더 밑에 **직전 날짜의 카드·안내**가 응답이 올 때까지 그대로 남는다.
+    setState({ kind: "loading" });
     void (async () => {
       try {
-        const res = await fetch("/api/byeolmaru/daily-card", { cache: "no-store" });
+        const res = await fetch(`/api/byeolmaru/daily-card?date=${date}`, { cache: "no-store" });
         if (!res.ok) {
           if (!cancelled) setState({ kind: "none" });
           return;
@@ -88,11 +99,15 @@ export default function DailyCardBlock({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [date]);
 
   // 서술(자격자 + 카드 있을 때만) — ②-a PremiumBlock/pairNarrative 와 동일하게 카드 렌더와 분리된
-  // 별도 effect(느린 LLM 호출이 카드 이미지 렌더를 붙잡지 않게). 비자격은 아예 fetch 하지 않는다
-  // (card-narrative 는 403 을 주지만, 호출 자체를 skip 하는 편이 원가·의도 모두 더 깔끔하다).
+  // 별도 effect(느린 LLM 호출이 카드 이미지 렌더를 붙잡지 않게).
+  // 🔴 지금은 비자격이면 아예 fetch 하지 않는다 — **이 skip 은 곧 걷어내야 한다.** 예전 근거였던
+  //    "비자격은 어차피 403" 은 P6-4 Task 3 이후 거짓이다: 라우트는 비자격에게 200
+  //    `{ entitled:false, gauge }` 를 준다(게이지는 룰 100%·원가 0이라 무료로 내보낸다, 스펙 §5-3②).
+  //    즉 지금 이 skip 은 원가를 아끼는 게 아니라 **무료로 줄 수 있는 게이지를 안 받아오는 것**이다.
+  //    Task 9 가 조건을 자격이 아니라 카드 유무(state.kind === "drawn")로 바꾼다.
   useEffect(() => {
     if (!entitled || state.kind !== "drawn") {
       setReport(null);
@@ -108,7 +123,7 @@ export default function DailyCardBlock({
     setNarrativeLoading(true);
     void (async () => {
       try {
-        const res = await fetch("/api/byeolmaru/card-narrative", { cache: "no-store" });
+        const res = await fetch(`/api/byeolmaru/card-narrative?date=${date}`, { cache: "no-store" });
         if (res.status === 404) {
           // card-narrative 는 생일이 없으면 profile_not_found 404 를 준다(정당한 응답 — 카드×사주
           // 서술엔 생일이 필수). 예전엔 이걸 narrative:null 로 접어 무료와 똑같은 화면을 보여줬다.
@@ -135,7 +150,7 @@ export default function DailyCardBlock({
     return () => {
       cancelled = true;
     };
-  }, [entitled, state.kind]);
+  }, [entitled, state.kind, date]);
 
   // 배경 스크롤 잠금 + ESC 닫기 — WatchAddModal 과 동일 패턴(저장 중엔 닫기 불가).
   useEffect(() => {
@@ -212,15 +227,26 @@ export default function DailyCardBlock({
     <>
       {state.kind === "none" && (
         <section className="rounded-2xl bg-cream-warm p-4">
-          <h2 className="mb-2 font-display text-base text-eye-purple">오늘의 카드</h2>
-          <p className="mb-3 text-sm text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
-          <button
-            onClick={openRitual}
-            className="w-full rounded-xl py-2.5 text-sm font-bold text-white"
-            style={{ background: RITUAL_ACCENT }}
-          >
-            오늘의 카드 뽑기
-          </button>
+          <h2 className="mb-2 font-display text-base text-eye-purple">{date === todayKst ? "오늘의 카드" : "그날의 카드"}</h2>
+          {date === todayKst ? (
+            <>
+              <p className="mb-3 text-sm text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
+              <button
+                onClick={openRitual}
+                className="w-full rounded-xl py-2.5 text-sm font-bold text-white"
+                style={{ background: RITUAL_ACCENT }}
+              >
+                오늘의 카드 뽑기
+              </button>
+            </>
+          ) : (
+            // 🔴 지난 날 소급 뽑기는 하지 않는다(스펙 §4 "그때 받은 것만"). 미래는 아직 안 온 날이다.
+            //    이 분기가 뽑기 CTA 를 안 그리는 것이 유일한 게이트다 — openRitual 은 여기서만 불린다.
+            <p className="text-sm text-text-light">
+              {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
+              <Link href="/byeolmaru/tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
+            </p>
+          )}
         </section>
       )}
 
@@ -232,10 +258,10 @@ export default function DailyCardBlock({
           const reversed = drawnCard.reversed;
           const orientLabel = reversed ? "역위" : "정위";
           const kwList = reversed ? tarotCard.reversed : tarotCard.upright;
-          // 오늘(KST) — taste 인사말 날짜 로테이션 시드용(오늘의 카드는 KST 하루 1장 고정).
-          const kstToday = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
-          // ⑥/1C 무료 오늘 타로 taste(~350자 별콩 톤 정적) 우선, 뱅크 미스면 키워드 템플릿 폴백.
-          const taste = getCardTaste(drawnCard.cardId, reversed, kstToday) ?? buildStaticLine(kwList);
+          // ⑥/1C 무료 타로 taste(~350자 별콩 톤 정적) 우선, 뱅크 미스면 키워드 템플릿 폴백.
+          // 🔴 인사말 로테이션 시드는 **보고 있는 날짜**다 — 오늘 KST 로 고정하면 지난 날을 다시 열
+          //    때마다 인사말이 바뀌어, "그때 받은 글"이어야 할 것이 매번 달라진다.
+          const taste = getCardTaste(drawnCard.cardId, reversed, date) ?? buildStaticLine(kwList);
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
@@ -255,7 +281,9 @@ export default function DailyCardBlock({
 
           return (
             <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
-              <h2 className="mb-3 font-display text-base text-eye-purple">오늘의 카드</h2>
+              {/* 🔴 위 "카드 없음" 분기와 같은 말을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
+                  지난 날에서 거짓말이 된다(상단 BackHeader 는 이미 "9월 20일 타로"라고 말한다). */}
+              <h2 className="mb-3 font-display text-base text-eye-purple">{date === todayKst ? "오늘의 카드" : "그날의 카드"}</h2>
 
               <div className="flex flex-col items-center text-center">
                 <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
