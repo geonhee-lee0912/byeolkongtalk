@@ -4,9 +4,19 @@
 // 🔴 PremiumBlock(별도 미끼 카드)을 상세·타로에서 대체한다. 허브·우리 탭의 PremiumBlock 은 그대로다.
 // 🔴 "오늘은 그만" 접기는 여기 없다(사용자 확정 2026-09-20) — 이 블록은 광고가 아니라 **리포트 본문의
 //    가려진 부분**이라, 접으면 리포트 자리가 통째로 비어 화면이 끊긴다. 대신 gate_shown 계측은 이식한다.
-// 🔴 계측 단절 주의 — 이 컴포넌트가 배선되는 날, 상세·타로 자리의 `byeolmaru_gate_dismissed` 는
-//    0 으로 꺾인다(접기를 없앴다). 이벤트 자체는 허브·우리 탭 PremiumBlock 이 계속 찍으므로 죽지
-//    않지만, **자리별로 보면 추세선 단절**이다 — 행동 변화로 오독하지 말 것.
+// 🔴 계측 단절 주의 — 이 컴포넌트가 배선되는 날, 그 자리의 계측이 **두 방향으로** 꺾인다.
+//    ① `byeolmaru_gate_dismissed` 가 빠진다(접기를 없앴다). 이벤트 자체는 허브·우리 탭
+//       PremiumBlock 이 계속 찍으므로 죽지 않지만, 자리별로 보면 추세선 단절이다.
+//    ② 같은 이유로 `byeolmaru_gate_shown` 은 그 자리에서 **위로 뛴다**. PremiumBlock 은
+//       `!dismissed` 조건이 있어 그날 접은 유저의 재방문을 분모에서 뺐는데, 접기가 없어진
+//       여기는 그 재방문까지 전부 센다. 이건 스펙 §13 "어느 미끼가 파는가"의 **분모**라
+//       전환율이 떨어진 것처럼 보인다 — 배포일 전후 전환율 하락으로 오독하지 말 것.
+//    🔴 slot 별로 영향이 다르다. `tarot_rich` 는 이 컴포넌트가 유일한 소스가 되지만,
+//       `saju_report` 는 **허브 나 탭(ByeolmaruHub — PremiumBlock 유지)과 사주 상세(여기)가
+//       같은 slot 값을 쓴다**. meta 에 자리를 가를 필드가 없어 한 버킷에 섞이므로, saju_report
+//       의 dismissed 는 0 이 아니라 허브분만 남아 내려앉는다(허브/상세 비중은 사후 분리 불가).
+//       byeolmaru_day_selected 가 `surface` 필드로 푼 것과 같은 종류의 문제다 — 갈라 볼 필요가
+//       생기면 그 선례를 따를 것(이 태스크 범위 밖: meta 를 바꾸면 PremiumBlock 과 모양이 갈린다).
 // 🔴 호출부 계약 — 이 컴포넌트는 `entitled` 를 받지 않고, 마운트되면 무조건 gate_shown 을 찍는다.
 //    **비자격 경로에서만 렌더할 것.** 자격자에게 렌더하면 gate_shown 분모가 구독자로 오염된다
 //    (PremiumBlock 은 `!entitled` 를 자기 안에서 봤지만 여기는 호출부가 책임진다).
@@ -19,7 +29,8 @@ import type { BaitSlot } from "@/lib/byeolmaru/bait";
 const GOLD = "#E8C26A";
 
 interface Props {
-  /** 절단선 위에 실제로 그린 글자 수 — 호출부가 센다(하드코딩 금지). */
+  /** 절단선 위에 실제로 그린 글자 수 — 호출부가 센다(하드코딩 금지).
+   *  (현재 두 호출부 모두 blurText 와 같은 문자열을 센다 — 갈라뜨릴 땐 칩 문구가 거짓이 되지 않는지 볼 것) */
   freeChars: number;
   /** 절단선 아래 유료 분량(paywall-sections.ts). */
   paidChars: number;
@@ -35,8 +46,10 @@ interface Props {
 
 export default function PaywallCut({ freeChars, paidChars, sections, blurText, trialUsed, onStartTrial, onSubscribe, slot }: Props) {
   useEffect(() => {
-    // PremiumBlock 에서 이식 — 자리별 노출 분모(스펙 §13)가 끊기지 않게 같은 이벤트·같은 meta 를 쓴다.
-    // 접기가 없어져 resolved/dismissed 대기도 없다(자리당 정확히 1회).
+    // PremiumBlock 에서 이식 — 이벤트 이름·meta 모양을 그대로 써서 자리별 분모(스펙 §13)의
+    // **계열**을 잇는다. 🔴 잇는 건 계열이지 값이 아니다: 접기가 없어 `!dismissed` 게이트도
+    // resolved 대기도 없으므로(자리당 정확히 1회) PremiumBlock 이 빼던 재방문이 여기선 분모에
+    // 들어온다. 배선일을 사이에 둔 **수준 비교는 하지 말 것** — 파일 머리 "계측 단절 주의" 참조.
     trackUiEvent("byeolmaru_gate_shown", { meta: { slot } });
   }, [slot]);
 
@@ -46,7 +59,9 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
       <div className="flex items-center gap-2">
         <span className="h-px flex-1" style={{ background: GOLD }} />
         <span className="shrink-0 whitespace-nowrap rounded-full border border-gold/50 bg-[#FFF7E8] px-2.5 py-0.5 text-[11px] font-bold text-[#8A6A1A]">
-          여기까지 무료 · {freeChars}자
+          {/* 아래 "여기부터 N자"와 같은 포맷이어야 한다 — 한 카드 안에서 무료가 1,000자를 넘는 날
+              `1023자` 와 `1,800자` 가 나란히 서면 같은 단위로 안 읽힌다. 로케일 고정 이유는 아래 참조. */}
+          여기까지 무료 · {freeChars.toLocaleString("ko-KR")}자
         </span>
         <span className="h-px flex-1" style={{ background: GOLD }} />
       </div>
