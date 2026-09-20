@@ -20,12 +20,17 @@ export async function getCachedDailyReport(userId: string, dateStr: string): Pro
   return data.report as DailyReport;
 }
 
-/** 리포트 저장. 이미 있으면(동시 생성) 덮지 않는다(23505 무시). */
-export async function saveDailyReport(userId: string, dateStr: string, report: DailyReport): Promise<void> {
+/** 리포트 저장. 반환값이 **응답에 써야 할 것** — 내가 이겼으면 내 것, 동시 생성으로 졌으면 승자 것(§11-1-5,
+ *  두 탭이 같은 날 서로 다른 리포트를 보지 않게). 승자 재조회까지 실패하면 내 것을 돌려준다(응답은 어차피
+ *  완결 리포트 — 저장 실패는 다음 요청에서 재생성될 뿐). */
+export async function saveDailyReport(userId: string, dateStr: string, report: DailyReport): Promise<DailyReport> {
   const { error } = await getServiceSupabase()
     .from("byeolmaru_daily_report")
     .insert({ user_id: userId, report_date: dateStr, report });
-  if (error && (error as { code?: string }).code !== "23505") {
-    throw error;
+  if (!error) return report;
+  if ((error as { code?: string }).code === "23505") {
+    const winner = await getCachedDailyReport(userId, dateStr);
+    return winner ?? report;
   }
+  throw error;
 }

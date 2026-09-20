@@ -4,6 +4,6 @@
 -- 마이그레이션은 배포 시점에 돌아 그날 캐시된 구버전 행을 지운다. 포맷 버전은 JSON 안 v:1(lib/byeolmaru/card-report.ts isCardReport).
 -- 컬럼명은 형제 byeolmaru_daily_report(report JSONB)와 맞춘다.
 TRUNCATE TABLE byeolmaru_card_narrative;
-ALTER TABLE byeolmaru_card_narrative DROP COLUMN narrative;
-ALTER TABLE byeolmaru_card_narrative ADD COLUMN report JSONB NOT NULL;
+ALTER TABLE byeolmaru_card_narrative DROP COLUMN IF EXISTS narrative;
+ALTER TABLE byeolmaru_card_narrative ADD COLUMN IF NOT EXISTS report JSONB NOT NULL;
 -- RLS·REVOKE·GRANT 는 테이블 단위라 20260919000000 의 설정이 그대로 유효하다(컬럼 교체는 권한을 바꾸지 않는다).

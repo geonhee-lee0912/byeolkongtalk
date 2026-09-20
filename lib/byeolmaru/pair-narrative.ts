@@ -1,5 +1,6 @@
 // lib/byeolmaru/pair-narrative.ts — 유료 "우리 오늘" 서술 캐시((유저,상대,날짜)별 1회 생성).
-// daily-report.ts 와 같은 모양·같은 규율(23505 무시 = 동시 생성 시 먼저 쓴 쪽을 남긴다).
+// 행 자체는 daily-report.ts 와 같은 규율(먼저 쓴 쪽을 남긴다 = 덮지 않는다)이되, 23505 를 무시하지 않고
+// 승자 행을 다시 읽어 **그걸 반환**한다(§11-1-5) — 두 탭이 같은 날 서로 다른 서술을 보지 않게.
 import { getServiceSupabase } from "@/lib/supabase";
 import { logWarn } from "@/lib/logger";
 

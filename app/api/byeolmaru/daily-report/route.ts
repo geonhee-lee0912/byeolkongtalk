@@ -16,7 +16,7 @@ import { fortuneModel } from "@/lib/fortune/model";
 import { generateOnce } from "@/lib/claude";
 import { getCachedDailyReport, saveDailyReport } from "@/lib/byeolmaru/daily-report";
 import { reportDatePolicy } from "@/lib/byeolmaru/report-date";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError, logInfo, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,7 +110,13 @@ export async function GET(req: NextRequest) {
     let ai: ReturnType<typeof parseDailyReportJson> = null;
     try {
       ai = parseDailyReportJson(await gen());
-      if (!ai) ai = parseDailyReportJson(await gen());
+      if (!ai) {
+        // 1차 파싱 실패 → 재시도 발화 계측(card-narrative 의 card_parse_retry 와 같은 취지 — §9-5 원가
+        // 측정에 "1차 실패→2차 성공"이 완전히 조용해서 이 라우트가 평소 1회 호출인지 2회 호출인지
+        // 로그로 구분이 안 됐다).
+        await logInfo("daily report parse failed on first attempt — retrying", ctxFromRequest(req, { ...logCtx, extra: { stage: "daily_parse_retry" } }));
+        ai = parseDailyReportJson(await gen());
+      }
     } catch (err) {
       await logError(err, ctxFromRequest(req, { ...logCtx, extra: { stage: "generate" } }));
       return NextResponse.json({ report: null, reason: "generation_failed" });
@@ -125,14 +131,15 @@ export async function GET(req: NextRequest) {
 
     const report = buildDailyReport(ai, temporal);
 
-    // 캐시 저장은 best-effort — 실패해도 이미 만든 리포트는 그대로 응답한다(다음 요청에서 재생성될 뿐).
+    // 캐시 저장은 best-effort — 동시 생성이면 승자를 응답(§11-1-5), 저장 실패면 내 것(다음 요청에서 재생성될 뿐).
+    let served = report;
     try {
-      await saveDailyReport(userId, reportDate, report);
+      served = await saveDailyReport(userId, reportDate, report);
     } catch (err) {
       await logError(err, ctxFromRequest(req, { ...logCtx, extra: { stage: "cache_save" } }));
     }
 
-    return NextResponse.json({ report });
+    return NextResponse.json({ report: served });
   } catch (err) {
     await logError(err, ctxFromRequest(req, { route: "/api/byeolmaru/daily-report", userId }));
     return NextResponse.json({ error: "internal" }, { status: 500 });

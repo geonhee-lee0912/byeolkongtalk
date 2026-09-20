@@ -26,7 +26,15 @@ export async function getCachedCardReport(userId: string, dateStr: string): Prom
   if (!isCardReport(data.report)) {
     // 포맷이 바뀐 뒤 남은 구버전 행 — 지우고 미스로 취급(다음 insert 가 23505 로 막히지 않게).
     void logWarn("card report cache stale format — deleting", { route: "lib/byeolmaru/card-narrative", userId, extra: { dateStr } });
-    await supa.from(TABLE).delete().eq("user_id", userId).eq("narrative_date", dateStr);
+    const { error: delErr } = await supa.from(TABLE).delete().eq("user_id", userId).eq("narrative_date", dateStr);
+    if (delErr) {
+      // 실패하면 위 주석이 경고한 그 상태(재생성 + 23505 영구 루프)로 정확히 떨어진다 — 계측만 남긴다.
+      void logWarn("card report stale-row delete failed", {
+        route: "lib/byeolmaru/card-narrative",
+        userId,
+        extra: { dateStr, code: (delErr as { code?: string }).code, message: delErr.message },
+      });
+    }
     return null;
   }
   return data.report;
