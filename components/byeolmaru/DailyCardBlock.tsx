@@ -61,9 +61,12 @@ export default function DailyCardBlock({
 
   const [report, setReport] = useState<CardReport | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
-  // 자격은 있는데 프로필(생일)이 없어 서술을 못 만든 경우만 구분해 남긴다 — 다른 실패(500·네트워크)는
-  // 기존처럼 narrative:null 로 조용히 흡수(그건 "별콩이가 잠깐 숨 고르는 중" 성격이라 안내가 아니다).
+  // 자격은 있는데 프로필(생일)이 없어 서술을 못 만든 경우("no_profile")만 구분해 남긴다.
   const [narrativeBlocked, setNarrativeBlocked] = useState<"no_profile" | null>(null);
+  // route 가 report:null 과 함께 reason:"generation_failed" 를 명시적으로 준 경우만 별도 안내 —
+  // 진짜 500·네트워크 실패는 여전히 narrative:null 로 조용히 흡수한다(그건 안내할 만큼 확실치 않은 blip).
+  // 재시도 버튼은 없다(out of scope) — taste 폴백은 이미 떠 있으니 빈 화면은 아니다.
+  const [narrativeFailed, setNarrativeFailed] = useState(false);
 
   // 오늘 카드 조회
   useEffect(() => {
@@ -95,11 +98,13 @@ export default function DailyCardBlock({
       setReport(null);
       setNarrativeLoading(false);
       setNarrativeBlocked(null);
+      setNarrativeFailed(false);
       return;
     }
     let cancelled = false;
     setReport(null);
     setNarrativeBlocked(null);
+    setNarrativeFailed(false);
     setNarrativeLoading(true);
     void (async () => {
       try {
@@ -115,7 +120,12 @@ export default function DailyCardBlock({
           return;
         }
         const j = await res.json();
-        if (!cancelled) setReport(j.report ?? null);
+        if (!cancelled) {
+          setReport(j.report ?? null);
+          // reason:"generation_failed" 는 route 가 명시적으로 구분해 준 신호만 안내한다
+          // (reason:"not_drawn" 은 이 분기(카드 이미 뽑음)에서 정상적으로 나올 수 없어 무시해도 안전).
+          setNarrativeFailed(!j.report && j.reason === "generation_failed");
+        }
       } catch {
         if (!cancelled) setReport(null);
       } finally {
@@ -282,6 +292,11 @@ export default function DailyCardBlock({
                       <Link href="/mypage" className="text-lilac-deep underline">
                         생년월일 입력하러 가기 →
                       </Link>
+                    </p>
+                  )}
+                  {narrativeFailed && (
+                    <p className="mt-2 text-xs leading-relaxed text-text-light">
+                      별콩이가 잠깐 숨을 고르는 중이야 — 조금 이따 다시 와 줄래?
                     </p>
                   )}
                 </>
