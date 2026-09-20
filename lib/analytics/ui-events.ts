@@ -90,6 +90,8 @@ export const UI_EVENTS = [
   "home_relationship_clicked",
   /** 별마루 — 스트립의 안 온 날(흐린 칸) 탭. meta:{offset, subjectKind} — "앞으로 3일"이 체험 전환을 만드는지(§10) */
   "byeolmaru_strip_future_tapped",
+  /** 별마루 — 월간 격자 펼침/접힘. meta:{open} — §2-2 "한 달 조망이 필요한가" 가설의 관문(§10) */
+  "byeolmaru_month_grid_toggled",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
