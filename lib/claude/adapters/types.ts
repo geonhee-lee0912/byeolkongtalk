@@ -1,5 +1,7 @@
 // lib/claude/adapters/types.ts
 // 프로바이더 무관 스트리밍 계약. streamChat 의 재시도·로깅 래퍼가 이 위에 씌워진다.
+import type { Usage } from "@/lib/claude/pricing";
+
 export type StopReason = "end_turn" | "max_tokens" | "refusal" | "other" | null;
 
 export interface AdapterStreamArgs {
@@ -15,9 +17,19 @@ export interface AdapterStreamArgs {
   responseFormat?: { name: string; schema: object };
 }
 
+/**
+ * 한 번의 호출이 쓴 토큰. 프로바이더가 usage 를 안 주면 null.
+ * 어댑터는 **수집만** 하고 적재는 streamChat 이 한다 — 안 그러면 적재 로직이 프로바이더 3곳에
+ * 복제된다.
+ */
+export interface StreamResult {
+  stop: StopReason;
+  usage: Usage | null;
+}
+
 export interface ProviderAdapter {
-  /** 텍스트 조각을 yield, 최종 stop_reason 을 return. 재시도 없음(순수 1회). */
-  stream(args: AdapterStreamArgs): AsyncGenerator<string, StopReason>;
+  /** 텍스트 조각을 yield, 최종 stop_reason 과 usage 를 return. 재시도 없음(순수 1회). */
+  stream(args: AdapterStreamArgs): AsyncGenerator<string, StreamResult>;
   /** 스트림 도중 던져진 에러가 일시적(재호출로 복구 가능)인가. */
   isRetryableError(err: unknown): boolean;
 }

@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isRetryableUpstreamError } from "@/lib/upstream-error";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
+import type { Usage } from "@/lib/claude/pricing";
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
@@ -46,14 +47,26 @@ export const anthropicAdapter: ProviderAdapter = {
     });
 
     let stop: StopReason = null;
+    // usage 는 두 이벤트에 나눠 온다 — message_start 가 입력(캐시 포함), message_delta 가 출력.
+    let usage: Usage | null = null;
     for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      if (event.type === "message_start") {
+        const u = event.message.usage;
+        usage = {
+          inputTokens: u.input_tokens ?? 0,
+          outputTokens: u.output_tokens ?? 0,
+          cacheReadTokens: u.cache_read_input_tokens ?? 0,
+          cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
+        };
+      } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         yield event.delta.text;
       } else if (event.type === "message_delta") {
         stop = mapStop(event.delta.stop_reason) ?? stop;
+        // 출력 토큰의 최종값은 여기 온다 — message_start 의 output_tokens 는 자리표시자다.
+        if (usage) usage.outputTokens = event.usage.output_tokens ?? usage.outputTokens;
       }
     }
-    return stop;
+    return { stop, usage };
   },
   isRetryableError: isRetryableUpstreamError,
 };
