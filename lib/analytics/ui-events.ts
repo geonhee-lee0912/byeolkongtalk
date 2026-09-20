@@ -81,6 +81,8 @@ export const UI_EVENTS = [
   "byeolmaru_free_item_clicked",
   /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
   "home_relationship_clicked",
+  /** 별마루 — 스트립의 안 온 날(흐린 칸) 탭. meta:{offset, subjectKind} — "앞으로 3일"이 체험 전환을 만드는지(§10) */
+  "byeolmaru_strip_future_tapped",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
