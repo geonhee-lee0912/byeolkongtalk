@@ -149,7 +149,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
               title: `오늘 사주 · ${DAY_NAME[cell.tenGod]}`,
               description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
               imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}&tg=${encodeURIComponent(cell.tenGod)}`,
-              link: `${window.location.origin}/byeolmaru`,
+              link: `${window.location.origin}/byeolmaru/saju?utm_source=byeolmaru_saju&utm_medium=share`,
               buttonTitle: "나도 보러가기",
             });
             trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "saju", ok } });
