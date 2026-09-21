@@ -28,9 +28,13 @@ export interface GridCell {
 //    않는 이유: 이 색들은 "달력 판 안에서만" 쓰는 국소 팔레트라 전역 토큰으로 올리면 다른 지면이
 //    실수로 집어 쓴다(ELEMENT_COLORS 가 SajuBoard 안에 사는 것과 같은 이유).
 // 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(금색)이 떠 보인다.
-const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
-const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
-const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
+// 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 위→아래로 크림에서 연보라로
+//    가는 건 장식이 아니다 — 칸의 "무난한 날"이 순백(TONE_STYLE.normal)이라 판이 순크림이면
+//    경계가 사라진다(실측: cream-warm 판 위에서 흰 칸이 안 보였다). 연보라 쪽이 흰 칸을 띄운다.
+//    바꿀 땐 두 지면을 같이 볼 것.
+export const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
+export const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
+export const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 
 
 const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
@@ -56,6 +60,11 @@ interface Props {
    *  없어서 못 보는 날"이다. 그 호출부는 false 로 꺼서 바로 아래 "네 생일만 있으면…" 문구와의
    *  모순을 없앤다(P5-3 리뷰). */
   lockedHint?: boolean;
+  /** 자체 판(배경·보더·그림자·패딩)을 그릴지. 기본 true.
+   *  🔴 false 는 **호출부가 이미 판을 갖고 있을 때**만 쓴다 — 허브는 칩·스트립·격자를 크림 카드
+   *     하나로 묶었는데(스펙 §2), 그 안에 이 판을 또 그리면 같은 역할의 상자가 3중으로 겹쳐
+   *     "한 덩어리"라는 인상이 깨진다. 우리 탭·게스트 구경 그리드는 감싸는 판이 없어 true 그대로다. */
+  panel?: boolean;
   /** 계측 축(스펙 §13) — 이 격자가 나/우리 어느 판인지. offset≠0 비율 관문(§7 재검토 트리거)이
    *  나·우리를 구분 못 하면 사후 필터링이 불가능해진다(P5-3 리뷰). 기본 "me". */
   subjectKind?: "me" | "pair";
@@ -68,6 +77,7 @@ export default function CalendarGrid({
   selectedDate,
   onSelect,
   lockedHint = true,
+  panel = true,
   subjectKind = "me",
 }: Props) {
   // 열린 칸 + 안 온 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 아직 안 온 날.
@@ -86,8 +96,8 @@ export default function CalendarGrid({
 
   return (
     <div
-      className="rounded-2xl p-3"
-      style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}
+      className={panel ? "rounded-2xl p-3" : undefined}
+      style={panel ? { background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW } : undefined}
     >
       <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-text-light">
         {WEEKDAYS.map((w) => (

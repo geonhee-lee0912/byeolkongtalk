@@ -46,11 +46,14 @@ export default function MonthGridSection({ filledDays, children }: Props) {
 
   return (
     <section className="space-y-2">
+      {/* 🔴 자체 배경이 없다 — 허브가 이 섹션을 크림 판 안에 넣기 때문이다(스펙 §2). 같은 크림
+          박스를 또 그리면 판 위에 같은 색 상자가 겹쳐 경계가 지저분해진다. 행 전체가 탭 타깃이라
+          배경 없이도 누를 곳은 분명하다(w-full + py-2). */}
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open ?? false}
-        className="flex w-full items-center justify-between rounded-2xl bg-cream-warm px-4 py-3 text-left"
+        className="flex w-full items-center justify-between py-2 text-left"
       >
         <span className="text-sm font-medium text-eye-purple">
           이번 달 전체 보기 · {filledDays}칸 열림

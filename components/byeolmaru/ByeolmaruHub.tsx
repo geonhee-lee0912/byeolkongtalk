@@ -16,7 +16,7 @@ import MonthGridSection from "./MonthGridSection";
 import PartnerChips, { type PartnerChip } from "./PartnerChips";
 import WatchAddModal from "./WatchAddModal";
 import FreeList, { buildFreeItems } from "./FreeList";
-import CalendarGrid, { type GridCell } from "./CalendarGrid";
+import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
 import PremiumBlock from "./PremiumBlock";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
@@ -261,59 +261,74 @@ export default function ByeolmaruHub() {
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <HubBanner />
 
-      <PartnerChips
-        partners={partners}
-        selected={subject}
-        onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
-        onAdd={() => setAddOpen(true)}
-      />
+      {/* 🔴 달력 판 — 칩·출석·스트립·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
+          예전엔 넷이 각자 다른 표면(배경 없음 / 흰 칸 / 크림 버튼 / 연보라 박스)으로 `space-y-4`
+          위에 흩어져 있어 무엇이 무엇에 속하는지가 안 보였다 — 사용자 지적. 크림 카드 하나로 묶고
+          층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·PremiumBlock·무료 목록)은 달력에 속하지 않는다.
+          🔴 표면을 순크림(cream-warm)으로 먼저 만들어봤다가 되돌렸다 — 칸의 "무난한 날"이 순백이라
+             **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
+             판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
+      <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
+        <PartnerChips
+          partners={partners}
+          selected={subject}
+          onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
+          onAdd={() => setAddOpen(true)}
+        />
 
-      <AttendanceStrip attendance={attendance} />
+        {viewingPair && !isPair ? (
+          // 전환 중(리셋 직후~응답 도착 전) — 격자·스트립 자리에 로딩 문구를 둔다. 흐리는 대안은
+          // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
+          // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
+          // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
+          <p className="mt-3 border-t border-lilac-mid/20 py-8 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
+        ) : (
+          <>
+            <div className="mt-3 space-y-2 border-t border-lilac-mid/20 pt-3">
+              <AttendanceStrip attendance={attendance} />
+              <DayStrip
+                cells={stripCells}
+                lockedCells={stripLocked}
+                todayDate={data.today}
+                subjectKind={isPair ? "pair" : "me"}
+                onSelect={openDay}
+                onLockedSelect={nextStep}
+              />
+              {!data.entitled && (
+                <p className="px-1 text-center text-[12px] text-text-light">
+                  앞으로 3일도 미리 볼래?{" "}
+                  {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
+                      aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
+                    className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
+                  >
+                    {data.trialUsed ? "구독하기" : "3일 무료"}
+                  </button>
+                </p>
+              )}
+            </div>
 
-      {viewingPair && !isPair ? (
-        // 전환 중(리셋 직후~응답 도착 전) — 격자·스트립 자리에 로딩 문구를 둔다. 흐리는 대안은
-        // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
-        // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
-        // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
-        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
-      ) : (
-        <>
-          <DayStrip
-            cells={stripCells}
-            lockedCells={stripLocked}
-            todayDate={data.today}
-            subjectKind={isPair ? "pair" : "me"}
-            onSelect={openDay}
-            onLockedSelect={nextStep}
-          />
-          {!data.entitled && (
-            <p className="px-1 text-center text-[12px] text-text-light">
-              앞으로 3일도 미리 볼래?{" "}
-              {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
-                  aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
-              <button
-                type="button"
-                onClick={nextStep}
-                aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
-                className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
-              >
-                {data.trialUsed ? "구독하기" : "3일 무료"}
-              </button>
-            </p>
-          )}
-
-          <MonthGridSection filledDays={filled}>
-            <CalendarGrid
-              cells={gridCells}
-              lockedCells={gridLocked}
-              todayDate={data.today}
-              selectedDate={data.today}
-              subjectKind={isPair ? "pair" : "me"}
-              onSelect={openDay}
-            />
-          </MonthGridSection>
-        </>
-      )}
+            <div className="mt-2 border-t border-lilac-mid/20">
+              {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
+                  연보라 박스가 또 생겨 3중 중첩이 된다(우리 탭·게스트 그리드는 감싸는 판이 없어 true). */}
+              <MonthGridSection filledDays={filled}>
+                <CalendarGrid
+                  cells={gridCells}
+                  lockedCells={gridLocked}
+                  todayDate={data.today}
+                  selectedDate={data.today}
+                  subjectKind={isPair ? "pair" : "me"}
+                  onSelect={openDay}
+                  panel={false}
+                />
+              </MonthGridSection>
+            </div>
+          </>
+        )}
+      </section>
 
       {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를, 인연 탭은 우리 오늘을
           판다 — **같은 블록을 두 자리에 쓰면 광고로 읽힌다**. 비로그인·생일 미입력에게는 애초에 이
