@@ -28,11 +28,12 @@ export interface GridCell {
 //    않는 이유: 이 색들은 "달력 판 안에서만" 쓰는 국소 팔레트라 전역 토큰으로 올리면 다른 지면이
 //    실수로 집어 쓴다(ELEMENT_COLORS 가 SajuBoard 안에 사는 것과 같은 이유).
 // 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(금색)이 떠 보인다.
-// 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 위→아래로 크림에서 연보라로
-//    가는 건 장식이 아니다 — 칸의 "무난한 날"이 순백(TONE_STYLE.normal)이라 판이 순크림이면
-//    경계가 사라진다(실측: cream-warm 판 위에서 흰 칸이 안 보였다). 연보라 쪽이 흰 칸을 띄운다.
-//    바꿀 땐 두 지면을 같이 볼 것.
-export const PANEL_BG = "linear-gradient(160deg, #FFFBF2 0%, #EFE6FA 100%)";
+// 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 바꿀 땐 세 지면을 같이 볼 것
+//    (허브 판 · 우리 탭 격자 · 게스트 구경 그리드).
+// 🔴 **판과 칸은 한 쌍이다.** 판이 흰색이므로 "무난한 날"(TONE_STYLE.normal)은 순백일 수 없다 —
+//    같은 색이면 칸이 통째로 사라진다. 판을 다시 칠할 거면 normal 칸도 같이 옮겨야 한다.
+//    (크림 그라데이션 판 + 순백 칸 조합을 거쳐 왔다 — 판을 흰색으로 올리면서 칸을 내렸다.)
+export const PANEL_BG = "#ffffff";
 export const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
 export const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 
@@ -40,7 +41,9 @@ export const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
   // 챙길 날이 rgba(255,255,255,.45) 라 무난한 날(순백)과 거의 같은 색이었다 — 실물에서 구분 불가.
   good: { background: "linear-gradient(160deg,#F7DFA4,#E8C26A)", boxShadow: "0 2px 6px rgba(232,194,106,0.45)" },
-  normal: { background: "#ffffff" },
+  // 🔴 순백이 아니다 — 판(PANEL_BG)이 흰색이라 같은 색이면 칸이 사라진다. 회색기 있는 연보라로
+  //    내려 판 위에 떠오르게 하되, 채도는 caution(연보라)보다 낮게 둬 둘이 안 헷갈리게 한다.
+  normal: { background: "#F4F2F7" },
   caution: { background: "linear-gradient(160deg,#EFE7F8,#DCCFF0)", border: "1px solid rgba(184,168,216,.30)" },
 };
 

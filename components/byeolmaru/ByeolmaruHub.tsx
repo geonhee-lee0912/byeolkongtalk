@@ -269,6 +269,14 @@ export default function ByeolmaruHub() {
              **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
              판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
       <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
+        {/* 섹션 타이틀 — FreeList 와 같은 문법(골드 3px 바 + 제목)이다. 두 판이 같은 옷을 입어야
+            "허브는 판 몇 개로 이루어져 있다"가 보인다. 문구는 대상 중립으로 둔다 — 누구의 달력인지는
+            바로 아래 칩이 이미 말하므로 제목까지 "내/우리"를 쓰면 칩과 겹친다. */}
+        <div className="mb-3 flex items-center gap-2">
+          <span aria-hidden className="h-[3px] w-4 rounded-full bg-gold" />
+          <h2 className="font-display text-base text-eye-purple">날마다 흐름</h2>
+        </div>
+
         <PartnerChips
           partners={partners}
           selected={subject}

@@ -24,7 +24,9 @@ export interface StripCell {
 
 const TONE_BG: Record<DayTone, string> = {
   good: "linear-gradient(160deg,#F7DFA4,#E8C26A)",
-  normal: "#ffffff",
+  // 🔴 CalendarGrid.TONE_STYLE.normal 과 **같은 값**을 쓴다 — 스트립과 격자가 한 판 위에 나란히
+  //    있어 "무난한 날"이 두 색이면 같은 판정이 다른 날처럼 보인다. 순백이 아닌 이유는 그쪽 주석 참조.
+  normal: "#F4F2F7",
   caution: "linear-gradient(160deg,#EFE7F8,#DCCFF0)",
 };
 
