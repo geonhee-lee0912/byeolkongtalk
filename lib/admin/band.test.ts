@@ -31,6 +31,19 @@ test("computeBand — 표본이 8개 미만이면 null (밴드를 그리지 않�
   assert.equal(computeBand([1, 2, 3]), null);
 });
 
+test("computeBand — 표본 8개는 통과, 7개는 null (경계)", () => {
+  assert.ok(computeBand([1, 2, 3, 4, 5, 6, 7, 8]) !== null);
+  assert.equal(computeBand([1, 2, 3, 4, 5, 6, 7]), null);
+});
+
+test("computeBand — 값이 전부 같으면 flat (분포에 폭이 없다)", () => {
+  const b = computeBand(Array.from({ length: 56 }, () => 0));
+  assert.ok(b);
+  assert.equal(b.flat, true);
+  assert.equal(b.outside, false);
+  assert.equal(b.pctRank, 100); // 이 조합이 화면에서 오해를 부르므로 flat 으로 구분한다
+});
+
 test("costCoverage — cost_rows 가 0 인 날은 '0원'이 아니라 '미축적'", () => {
   const days = [day("2026-09-19", 1000, 2000, 0, 0), day("2026-09-20", 1000, 2000, 50, 12)];
   const c = costCoverage(days);

@@ -47,6 +47,13 @@ export interface Band {
   pctRank: number;
   /** P10~P90 밖인가 — 마커가 빨강이 된다. */
   outside: boolean;
+  /**
+   * 🔴 분포에 폭이 없다(p10 === p90). 8주 내내 값이 똑같았다는 뜻이다.
+   * 이때 pctRank 는 구조적으로 100 이 되고 outside 는 false 라, 호출부가 이 신호를 무시하면
+   * "평소 범위 안 · 분포 중 100% 위치"라는 **오해를 부르는 캡션**이 나온다.
+   * 화면은 이 경우 위치 대신 "변동 없음"을 말해야 한다.
+   */
+  flat: boolean;
 }
 
 /**
@@ -61,7 +68,7 @@ export function computeBand(rolling: number[]): Band | null {
   const p90 = quantile(sorted, 0.9);
   // 백분위 = 현재값 이하인 표본의 비율. 동률은 아래로 센다(보수적).
   const pctRank = (sorted.filter((v) => v <= current).length / sorted.length) * 100;
-  return { p10, p90, current, pctRank, outside: current < p10 || current > p90 };
+  return { p10, p90, current, pctRank, outside: current < p10 || current > p90, flat: p10 === p90 };
 }
 
 export interface CostCoverage {
