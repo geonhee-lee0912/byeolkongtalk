@@ -309,6 +309,8 @@ export default function DailyCardBlock({
           // 🔴 인사말 로테이션 시드는 **보고 있는 날짜**다 — 오늘 KST 로 고정하면 지난 날을 다시 열
           //    때마다 인사말이 바뀌어, "그때 받은 글"이어야 할 것이 매번 달라진다.
           const taste = getCardTaste(drawnCard.cardId, reversed, date) ?? buildStaticLine(kwList);
+          // 지난 날이라 taste 위에 시점 프레이밍 줄을 얹는가 — 그 줄과 taste 의 간격이 한 쌍으로 걸린다.
+          const framed = date !== todayKst;
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
@@ -363,10 +365,24 @@ export default function DailyCardBlock({
                   <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
                 </div>
 
+                {/* 🔴 과거 날짜 프레이밍 — card-taste.json 본문 156/156 이 "오늘" 기준 현재형이라
+                    (본문당 평균 3.9회), 지난 날 화면에서 라벨·게이지·리포트만 "그날"로 돌면 taste 만
+                    시제가 어긋난다. 312문장을 다시 쓰는 대신(§5-2 "무료는 안 건드린다") 이 한 줄로
+                    **읽는 시점**을 그날로 옮긴다(사용자 확정 2026-09-21).
+                    🔴 기계 치환("오늘"→"그날")은 기각됐다 — 본문이 현재형이라 "그날은 … 좋은
+                       흐름이야"가 비문이 된다. 인사말 교체도 안 된다(인사말엔 "오늘"이 거의 없다).
+                    🔴 과거/미래를 또 가르지 말 것 — **미래는 이 자리에 오지 않는다.** 미래 날짜엔
+                       카드 행이 없어 state.kind 가 "none" 으로 떨어진다(POST 는 언제나 오늘로 저장).
+                       그래서 2분기(`date !== todayKst`)로 충분하다. */}
+                {framed && (
+                  <p className="mt-3 text-xs text-text-light">그날 이 카드를 뽑았을 때 별콩이가 건넨 말이야.</p>
+                )}
                 {/* 무료 taste — 🔴 자격 여부와 무관하게 **항상** 그린다(§5-3①). 유료 프롬프트가 카드
                     상징 재설명을 금지하므로, 이게 없으면 돈 낸 사람만 "이 카드가 어떤 카드인지"를
-                    키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다. */}
-                <p className="mt-3 text-sm leading-relaxed text-eye-purple">{taste}</p>
+                    키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다.
+                    🔴 상단 간격이 framed 에 걸린다 — 프레이밍 줄과 둘 다 mt-3 이면 한 덩어리로
+                       읽혀야 할 둘 사이가 벌어진다(그 줄은 이 문단의 머리말이다). */}
+                <p className={`${framed ? "mt-1.5" : "mt-3"} text-sm leading-relaxed text-eye-purple`}>{taste}</p>
 
                 {/* 게이지 — 절단선 **위**(무료). 룰 100%·원가 0이라 §5 경계 원칙에 걸리지 않는다(§5-3②). */}
                 {gauge && <CardGaugeView gauge={gauge} reversed={reversed} dayWord={dayWord} />}
