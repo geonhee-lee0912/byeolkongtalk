@@ -1,6 +1,6 @@
 "use client";
 
-// components/byeolmaru/FreeList.tsx — 허브 "무료로 다 보는 것" 목록 4종(스펙 §2-3).
+// components/byeolmaru/FreeList.tsx — 허브 "무료로 다 보는 것" 목록 5종(스펙 §2-3).
 // 🔴 2탭(/fortune) 리스트와 **동형**이지만 컴포넌트를 공유하지 않는다:
 //    ①이 4종은 FORTUNE_LIST 밖이라 FortuneType 키가 없고 ②FortuneIcon 의 HAS_ICON 에
 //    saju_mbti·byeoljari 가 누락돼 이모지 폴백이 뜨며 ③P5 스코프가 2탭을 건드리지 말라고 한다.
@@ -86,7 +86,7 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
   );
 }
 
-/** 목록 4종의 고정 데이터 — 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12). */
+/** 목록 5종의 고정 데이터 — 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12). */
 export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[] {
   return [
     {
@@ -114,6 +114,28 @@ export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[]
       // 🔴 신규 아이콘을 만들지 않는다 — 타일 자리에 카드 이미지를 직접 넣는다(스펙 §3-1·§12).
       //    안 뽑음 = 뒷면, 뽑음 = 그 카드 앞면. "오늘 뽑았나"가 한 줄에서 보인다.
       image: drawn ? getCardImagePath(drawn.cardId) : CARD_BACK_IMAGE,
+    },
+    {
+      // 🔴 우리 오늘이 목록으로 내려온다 — 예전엔 달력 판 상단 인연 칩으로만 들어갔다.
+      //    한 판이 나·우리 두 주체를 번갈아 가리키면 그 판을 감싼 문구가 한쪽에만 참이 된다
+      //    (출석 연속은 내 방문 기록인데 상대 달력 위에 그대로 남았고, "N칸 열림"도 같은 말로
+      //    다른 걸 셌다). 오늘 사주·오늘 타로와 **같은 문법**(목록 행 → 자기 페이지 → 무료
+      //    요약/구독 전문)으로 맞춰 허브 달력은 1인칭 전용이 됐다.
+      // 🔴 `?subject=` 를 안 붙인다 — 상대 선택은 도착지가 스스로 한다(1명이면 자동 선택,
+      //    0명이면 걸어두기 유도). 허브가 고를 상대를 알 필요가 없어졌다.
+      key: "woori",
+      href: "/byeolmaru/woori",
+      label: "우리 오늘",
+      tagline: "걸어둔 그 사람과 나, 오늘 둘 사이 흐름을 짚어줄게",
+      hashtags: ["무료", "둘사이"],
+      tileBg: "linear-gradient(135deg, #F7E3EC 0%, #EFEAF6 100%)",
+      // 328자 = pair-taste.json 네 조각(signal 114 · relation 87 · lead 81 · advice 46)의
+      // 카테고리별 평균 합. 오늘 사주 456자를 같은 방법으로 재면 449 라 두 칩이 같은 잣대다.
+      chip: "무료 · 328자",
+      chipTone: "lilac",
+      // 두 별이 하트를 이루는 아이콘 — 2탭 궁합 상품과 파일을 공유한다(daily.webp 를 오늘 사주가
+      // 재사용하는 것과 같은 선례). 이 목록은 아이콘을 새로 만들지 않는다.
+      image: "/icons/fortune/compat.webp",
     },
     {
       key: "mbti",

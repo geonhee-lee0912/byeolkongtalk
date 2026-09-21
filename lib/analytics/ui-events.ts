@@ -67,7 +67,12 @@ export const UI_EVENTS = [
    *     유저의 재방문을 분모에서 뺐다. 이건 스펙 §13 "어느 미끼가 파는가"의 **분모**라 전환율이
    *     떨어진 것처럼 보인다. surface 로 갈라 봐도 배선일을 사이에 둔 **수준 비교는 금물**이다
    *     (형태가 갈릴 뿐 접힘 억제가 돌아오지는 않는다) — 행동 변화로 오독하지 말 것.
-   *     허브·우리 탭은 PremiumBlock 그대로다. */
+   *     허브·우리 오늘은 PremiumBlock 그대로다.
+   *  ⚠️ 2026-09-21(허브 1인칭 정리) 경계에서 **`woori_30d` 가 아래로 내려앉는다** — 허브 인연 칩이
+   *     사라져 노출 면이 "허브 + 우리 오늘 화면" 둘에서 **우리 오늘 하나**로 줄었다. 반대로 진입이
+   *     칩 1탭에서 무료 목록 행으로 바뀌었으니 도달 자체도 달라진다. 이 경계를 사이에 둔
+   *     `woori_30d` 수준 비교는 금물이고, 앞뒤를 볼 땐 `byeolmaru_free_item_clicked`
+   *     (meta.item="woori")를 분모로 같이 읽을 것. */
   "byeolmaru_gate_shown",
   /** 별마루 — 페이월 미끼 닫기(당일 접힘).
    *  meta:{slot:"saju_report"|"woori_30d"|"tarot_rich", surface:"bait_card"}
@@ -85,7 +90,11 @@ export const UI_EVENTS = [
   "byeolmaru_subscribe_clicked",
   /** 별마루 — 구독 결제 완료. meta:{stars} */
   "byeolmaru_subscribe_completed",
-  /** 별마루 우리오늘 — 토글에서 상대 선택. meta:{} */
+  /** 별마루 우리오늘 — 칩에서 상대 선택. meta:{}
+   *  🔴 2026-09-21 경계에서 **뜻이 좁아진다.** 이전엔 허브 달력 판의 인연 칩 + 우리 오늘 화면의
+   *     토글 둘이 찍어 사실상 "우리 오늘 도달"이었다. 허브 칩이 사라진 뒤로는 우리 오늘 화면에서
+   *     **상대를 손으로 바꾼 것**만 남는다 — 상대가 1명인 사람은 자동 선택으로 열리므로 이 이벤트가
+   *     아예 안 찍힌다. 도달은 `byeolmaru_free_item_clicked`(meta.item="woori")로 옮겨 읽을 것. */
   "byeolmaru_partner_selected",
   /** 별마루 우리오늘 — 상대 담기 성공. meta:{via:"pick"|"register"} */
   "byeolmaru_watch_add",
@@ -101,8 +110,13 @@ export const UI_EVENTS = [
   "byeolmaru_guest_peek_clicked",
   /** 별마루 — 오늘 타로·오늘 사주 카톡 공유 버튼 클릭. meta:{kind:"tarot"|"saju"} */
   "byeolmaru_share_clicked",
-  /** 별마루 — 무료 목록 4종 행 클릭. meta:{item:"saju_today"|"tarot"|"mbti"|"byeoljari"}
-   *  (saju_today 는 P6-3 에서 합류 — 오늘 사주가 달력 안 히어로 타일에서 목록으로 내려왔다) */
+  /** 별마루 — 무료 목록 5종 행 클릭.
+   *  meta:{item:"saju_today"|"tarot"|"woori"|"mbti"|"byeoljari"}
+   *  (saju_today 는 P6-3 에서 합류 — 오늘 사주가 달력 안 히어로 타일에서 목록으로 내려왔다)
+   *  🔴 `woori` 는 2026-09-21 합류 — 허브 달력을 1인칭 전용으로 정리하면서 우리 오늘의 진입이
+   *     달력 판 상단 인연 칩에서 이 목록 행으로 내려왔다. 그래서 이 값은 신규 항목이 아니라
+   *     **옮겨온 진입점**이다: 이전엔 `byeolmaru_partner_selected` 가 그 도달을 재고 있었으니
+   *     우리 오늘 도달 추세를 이을 때 경계 앞은 그 이벤트, 뒤는 이 값으로 읽어야 한다. */
   "byeolmaru_free_item_clicked",
   /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
   "home_relationship_clicked",

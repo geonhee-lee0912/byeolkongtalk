@@ -7,14 +7,10 @@ import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import type { PairDayCell } from "@/lib/byeolmaru/pair-day";
-import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import HubBanner from "./HubBanner";
 import AttendanceStrip from "./AttendanceStrip";
 import DayStrip, { type StripCell } from "./DayStrip";
 import MonthGridSection from "./MonthGridSection";
-import PartnerChips, { type PartnerChip } from "./PartnerChips";
-import WatchAddModal from "./WatchAddModal";
 import FreeList, { buildFreeItems } from "./FreeList";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
 import PremiumBlock from "./PremiumBlock";
@@ -109,63 +105,6 @@ export default function ByeolmaruHub() {
 
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
 
-  // T6 — 달력 판 상단 인연 칩(스펙 §8). partners/subject 는 렌더는 T7 몫이지만 훅 규칙상
-  // 조건부 early-return(아래 state.kind 분기) 이전에 선언해야 한다.
-  const [partners, setPartners] = useState<PartnerChip[]>([]);
-  const [subject, setSubject] = useState<string>("me");
-  const [pairCells, setPairCells] = useState<PairDayCell[] | null>(null);
-  const [pairLocked, setPairLocked] = useState<LockedCell[]>([]);
-  const [pairStrip, setPairStrip] = useState<{ cells: PairDayCell[]; lockedCells: LockedCell[] } | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-
-  async function loadPartners() {
-    try {
-      const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
-      if (!res.ok) { setPartners([]); return; }
-      const j = await res.json();
-      setPartners(Array.isArray(j?.watched) ? j.watched : []);
-    } catch { setPartners([]); }
-  }
-  useEffect(() => { void loadPartners(); }, []);
-
-  // state 가 유니온이라 "ready" 로 좁혀지기 전에도 파생값으로 미리 꺼내둔다(WooriTodayView 의
-  // entitledNow 와 동일 패턴, P5-3 리뷰 I-1) — 아래 pair effect 의 deps 에 쓰기 위해서다.
-  const entitledNow = state.kind === "ready" && state.data.entitled;
-
-  // 상대 칩을 고르면 달력이 통째로 우리 버전이 된다(스펙 §8). 룰 100% 라 원가 0.
-  // 🔴 cancelled 가드 — 칩을 빠르게 번갈아 누르면 낡은 응답이 최신 상태를 덮어쓴다
-  //    (WooriTodayView 가 같은 이유로 같은 가드를 쓴다).
-  // 🔴 !res.ok(예: 소유권 실패·서버 오류)일 때 아무 것도 안 하고 끝나면 칩은 파트너를 가리키는데
-  //    달력 상태(pairCells)는 이전 그대로 남아 "칩≠데이터" 불일치가 생긴다(이전 상대 데이터가
-  //    있었다면 그게 그대로 남아 새 칩 밑에 잘못 붙어 보인다). catch 블록과 동일하게 "나"로
-  //    되돌리고 pairCells/pairLocked 도 함께 비워, 최소한 불일치 상태를 만들지 않는다.
-  // 🔴 (P5-3 리뷰 I-1) effect **시작**에서도 pairCells/pairLocked 를 리셋한다 — 예전엔 여기가
-  //    없어서 A→B 전환 중 A 의 낡은 달력이 B 칩 아래 그대로 남았다(서버가 파트너 calcSaju+30일
-  //    캘린더+자격+watch 조회를 하므로 이 창이 짧지 않다). 렌더 쪽 viewingPair/isPair 가 이
-  //    리셋 직후의 "아직 도착 전" 상태를 로딩 문구로 보여준다.
-  // 🔴 deps 에 entitledNow 를 추가한다 — 우리 모드를 보는 도중 체험/구독을 시작하면 self 응답
-  //    (refresh())만 갱신되고 pairCells 는 그대로였다(20별을 쓰고도 우리 달력은 점선 그대로).
-  //    entitledNow 가 false→true 로 바뀌면 이 effect 가 다시 돌아 같은 상대를 잠금 없이 재요청한다.
-  useEffect(() => {
-    if (subject === "me") { setPairCells(null); setPairLocked([]); setPairStrip(null); return; }
-    let cancelled = false;
-    setPairCells(null); setPairLocked([]); setPairStrip(null);
-    void (async () => {
-      try {
-        const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
-        const j = await res.json().catch(() => null);
-        if (cancelled) return;
-        if (!res.ok || !j) { setPairCells(null); setPairLocked([]); setPairStrip(null); setSubject("me"); return; }
-        setPairCells(Array.isArray(j.cells) ? j.cells : null);
-        setPairLocked(Array.isArray(j.lockedCells) ? j.lockedCells : []);
-        setPairStrip(j.strip ?? null);
-      } catch {
-        if (!cancelled) { setPairCells(null); setPairLocked([]); setPairStrip(null); setSubject("me"); }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [subject, entitledNow]);
-
   const router = useRouter();
 
   // 오늘 뽑은 카드 — 목록 행 타일에만 쓴다(뽑기 자체는 /byeolmaru/tarot 가 한다).
@@ -214,46 +153,29 @@ export default function ByeolmaruHub() {
   // 폴백은 cells[0](이번 달 1일)이 아니라 마지막 칸이다 — 무료(비자격)는 오늘이 항상 마지막 칸이므로
   // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
-  // viewingPair — 상대 칩을 골랐다는 "의도"(데이터 도착 여부와 무관). isPair — 실제로 그 상대의
-  // 달력을 그릴 수 있는 상태(데이터 도착 완료). 격자·스트립은 데이터가 아직이면
-  // (viewingPair && !isPair) 로딩 문구를 대신 보여준다 — pairCells 를 effect 시작에서 항상
-  // 리셋하기 때문에 이 조합이 곧 "전환 중" 신호가 된다(P5-3 리뷰 I-1, 별도 pairLoading 상태 없이
-  // 기존 두 값의 조합으로 충분해 상태를 늘리지 않았다).
-  const viewingPair = subject !== "me";
-  const isPair = viewingPair && pairCells !== null;
 
-  // 격자에 넘길 정규화 셀. 나·우리 두 판정 엔진이 같은 GridCell 계약으로 수렴한다.
-  // 🔴 우리 셀 마크는 나 탭과 같은 글리프 문법이다(P5-5 pairMarks) — 판정 primitive 가 같아서
-  //    ✧천간합→끌림 · ◇육합→결속 · △충→삐걱 으로 라벨만 관계 어휘로 바뀐다.
-  const gridCells: GridCell[] = isPair
-    ? pairCells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: pairMarks(c.tags) }))
-    : data.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks }));
-  const gridLocked = isPair ? pairLocked : data.lockedCells;
-  const filled = isPair ? pairCells.length : data.cells.length;
-
-  // 스트립 셀 — 나/우리 두 판정이 StripCell 로 수렴한다(격자의 GridCell 과 같은 패턴).
-  // 제목은 나 탭이 "하루 이름"(DAY_NAME), 우리 탭이 톤 라벨이다 — 우리 탭엔 십신 개념이 없다.
-  const stripCells: StripCell[] = isPair
-    ? (pairStrip?.cells ?? []).map((c) => ({
-        date: c.date, ganji: c.ganji, tone: c.tone, title: PAIR_TONE_LABEL[c.tone], marks: pairMarks(c.tags), isToday: c.isToday,
-      }))
-    : (data.strip?.cells ?? []).map((c) => ({
-        date: c.date, ganji: c.ganji, tone: c.grade.tone, title: DAY_NAME[c.tenGod], marks: c.marks, isToday: c.isToday,
-      }));
+  // 🔴 허브 달력은 **1인칭 전용**이다(2026-09-21 결정). 예전엔 판 상단 인연 칩으로 같은 판이
+  //    나/우리를 번갈아 가리켰는데, 그러면 판을 감싼 모든 문구가 한쪽 주체에만 참이 됐다 —
+  //    출석 연속("3일 연속 들르는 중")은 내 방문 기록인데 상대 달력 위에 그대로 남았고,
+  //    "N칸 열림"과 섹션 제목도 같은 말로 다른 걸 가리켰다. 우리 오늘은 무료 목록 행
+  //    (FreeList `woori`) → `/byeolmaru/woori` 로 내려가, 오늘 사주·오늘 타로와 같은 문법이 됐다.
+  const gridCells: GridCell[] = data.cells.map((c) => ({
+    date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
+  }));
+  const stripCells: StripCell[] = (data.strip?.cells ?? []).map((c) => ({
+    date: c.date, ganji: c.ganji, tone: c.grade.tone, title: DAY_NAME[c.tenGod], marks: c.marks, isToday: c.isToday,
+  }));
   // 🔴 `?.` 는 불가능한 시나리오 방어가 아니다 — 배포 롤아웃 창에서 **새 번들이 구 API 를 만날 수**
   //    있고(스큐), 그때 data.strip 이 없으면 프로퍼티 접근이 먼저 터져 허브 전체가 에러 바운더리로
   //    간다. 비면 DayStrip 이 스스로 null 을 돌려주므로 화면은 스트립만 빠진 채 멀쩡히 선다.
-  const stripLocked = (isPair ? pairStrip?.lockedCells : data.strip?.lockedCells) ?? [];
+  const stripLocked = data.strip?.lockedCells ?? [];
 
   // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 스트립 잠긴 칸과 CTA 가 같이 쓴다.
   const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
 
   // 날짜 탭의 목적지 — 격자와 스트립이 **같은 함수**를 쓴다(둘이 갈리면 같은 날이 두 곳으로 간다).
   // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
-  // 🔴 우리 탭의 `?subject=` 는 장식이 아니다. 없으면 도착지가 "위에서 상대를 골라…" 안내로
-  //    되돌아가 통합 취지가 끊긴다(P5-3 리뷰 I-2 에서 실제로 겪은 회귀).
   function openDay(date: string) {
-    if (isPair) { router.push(`/byeolmaru/woori?subject=${encodeURIComponent(subject)}`); return; }
     router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
   }
 
@@ -268,80 +190,69 @@ export default function ByeolmaruHub() {
           🔴 표면을 순크림(cream-warm)으로 먼저 만들어봤다가 되돌렸다 — 칸의 "무난한 날"이 순백이라
              **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
              판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
-      <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
-        {/* 섹션 타이틀 — FreeList 와 같은 문법(골드 3px 바 + 제목)이다. 두 판이 같은 옷을 입어야
-            "허브는 판 몇 개로 이루어져 있다"가 보인다. 문구는 대상 중립으로 둔다 — 누구의 달력인지는
-            바로 아래 칩이 이미 말하므로 제목까지 "내/우리"를 쓰면 칩과 겹친다. */}
-        <div className="mb-3 flex items-center gap-2">
+      {/* 🔴 타이틀 + 판을 한 wrapper 로 묶는다 — main 의 space-y-4 는 형제 사이에 16px 을 넣는데,
+          타이틀과 그 판은 **한 섹션**이라 그만큼 떨어지면 안 붙는다. wrapper 안에서만 8px 로 좁힌다. */}
+      <div className="space-y-2">
+        {/* 섹션 타이틀 — 판 **밖**에 둔다. FreeList 와 같은 문법(골드 3px 바 + 제목)이고, 그쪽도
+            타이틀이 카드 밖에 있어 두 섹션이 같은 리듬으로 읽힌다. 인연 칩이 빠진 뒤로 이 판은
+            1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은 주체를 가리킨다. */}
+        <div className="flex items-center gap-2">
           <span aria-hidden className="h-[3px] w-4 rounded-full bg-gold" />
-          <h2 className="font-display text-base text-eye-purple">날마다 흐름</h2>
+          <h2 className="font-display text-base text-eye-purple">오늘의 흐름</h2>
         </div>
 
-        <PartnerChips
-          partners={partners}
-          selected={subject}
-          onSelect={(id) => { if (id !== "me") trackUiEvent("byeolmaru_partner_selected"); setSubject(id); }}
-          onAdd={() => setAddOpen(true)}
-        />
+        <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
+          {/* 🔴 위쪽 border-t 가 없다 — 인연 칩이 있던 시절엔 칩과 이 층을 가르는 선이었다.
+              칩이 빠진 지금 그대로 두면 판 안쪽 맨 위에 선 하나가 떠 있게 된다. 판 안 구분선은
+              아래 "이번 달" 층 하나만 남긴다. */}
+          <div className="space-y-2">
+            <AttendanceStrip attendance={attendance} />
+            <DayStrip
+              cells={stripCells}
+              lockedCells={stripLocked}
+              todayDate={data.today}
+              subjectKind="me"
+              onSelect={openDay}
+              onLockedSelect={nextStep}
+            />
+            {!data.entitled && (
+              <p className="px-1 text-center text-[12px] text-text-light">
+                앞으로 3일도 미리 볼래?{" "}
+                {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
+                    aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
+                  className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
+                >
+                  {data.trialUsed ? "구독하기" : "3일 무료"}
+                </button>
+              </p>
+            )}
+          </div>
 
-        {viewingPair && !isPair ? (
-          // 전환 중(리셋 직후~응답 도착 전) — 격자·스트립 자리에 로딩 문구를 둔다. 흐리는 대안은
-          // 기각: 직전 상대의 실제 데이터를 블러 처리로 남기면 그 내용 자체가 여전히 비쳐 보여
-          // "A의 달력이 B 칩 아래 남는다"는 원 증상을 형태만 바꿔 재현한다. 빈 그리드를 만들어
-          // 흐리는 방법도 있지만 이 화면에 없던 스켈레톤 컴포넌트를 새로 만들어야 해 과한 수단이다.
-          <p className="mt-3 border-t border-lilac-mid/20 py-8 text-center text-sm text-text-light">우리 달력을 펼치는 중…</p>
-        ) : (
-          <>
-            <div className="mt-3 space-y-2 border-t border-lilac-mid/20 pt-3">
-              <AttendanceStrip attendance={attendance} />
-              <DayStrip
-                cells={stripCells}
-                lockedCells={stripLocked}
+          <div className="mt-2 border-t border-lilac-mid/20">
+            {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
+                연보라 박스가 또 생겨 3중 중첩이 된다(우리 페이지·게스트 그리드는 감싸는 판이 없어 true). */}
+            <MonthGridSection filledDays={data.cells.length}>
+              <CalendarGrid
+                cells={gridCells}
+                lockedCells={data.lockedCells}
                 todayDate={data.today}
-                subjectKind={isPair ? "pair" : "me"}
+                selectedDate={data.today}
                 onSelect={openDay}
-                onLockedSelect={nextStep}
+                panel={false}
               />
-              {!data.entitled && (
-                <p className="px-1 text-center text-[12px] text-text-light">
-                  앞으로 3일도 미리 볼래?{" "}
-                  {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
-                      aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
-                    className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
-                  >
-                    {data.trialUsed ? "구독하기" : "3일 무료"}
-                  </button>
-                </p>
-              )}
-            </div>
+            </MonthGridSection>
+          </div>
+        </section>
+      </div>
 
-            <div className="mt-2 border-t border-lilac-mid/20">
-              {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
-                  연보라 박스가 또 생겨 3중 중첩이 된다(우리 탭·게스트 그리드는 감싸는 판이 없어 true). */}
-              <MonthGridSection filledDays={filled}>
-                <CalendarGrid
-                  cells={gridCells}
-                  lockedCells={gridLocked}
-                  todayDate={data.today}
-                  selectedDate={data.today}
-                  subjectKind={isPair ? "pair" : "me"}
-                  onSelect={openDay}
-                  panel={false}
-                />
-              </MonthGridSection>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9). 나 탭은 오늘 사주 리포트를, 인연 탭은 우리 오늘을
-          판다 — **같은 블록을 두 자리에 쓰면 광고로 읽힌다**. 비로그인·생일 미입력에게는 애초에 이
-          분기까지 안 온다(위 상태 분기에서 갈린다). 스펙 §2 의 제거 목록에 없으므로 유지하고
-          자리만 격자 뒤로 옮겼다. */}
+      {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9) — 허브는 오늘 사주 리포트를 팔고, 우리 오늘은
+          `/byeolmaru/woori` 가 자기 자리에서 판다(slot="woori_30d"). **같은 블록을 두 자리에 쓰면
+          광고로 읽힌다.** 인연 칩이 빠진 뒤로 이 자리의 slot 은 분기 없이 saju_report 하나다.
+          비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
       {!data.entitled && (
         <PremiumBlock
           entitled={false}
@@ -351,30 +262,18 @@ export default function ByeolmaruHub() {
           loading={false}
           onStartTrial={startTrial}
           onSubscribe={openSubscribe}
-          // 🔴 isPair(데이터 도착)가 아니라 viewingPair(의도) 기준이다 — 전환 중(상대 달력 도착 전)
-          //    격자·스트립은 이미 "우리"인데 미끼만 "나" 얘기를 하면 어긋난다.
-          slot={viewingPair ? "woori_30d" : "saju_report"}
-          baitCtx={
-            viewingPair
-              ? { partnerName: partners.find((p) => p.id === subject)?.name }
-              : { gradeLabel: todayCell.grade.label }
-          }
+          slot="saju_report"
+          baitCtx={{ gradeLabel: todayCell.grade.label }}
         />
       )}
 
-      <FreeList items={buildFreeItems(dailyCard)} />
+      {/* 🔴 위 섹션과 간격을 더 준다(16 → 32px) — main 의 space-y-4 만으로는 달력 판과 이 목록이
+          같은 층으로 읽혔다. 둘은 성격이 다른 섹션이라(날짜별 흐름 ↔ 무료 상품 목록) 숨을 한 번 쉰다. */}
+      <div className="pt-4">
+        <FreeList items={buildFreeItems(dailyCard)} />
+      </div>
 
       {subscribeModal}
-      {addOpen && (
-        <WatchAddModal
-          onClose={() => setAddOpen(false)}
-          // 🔴 loadPartners 를 await 한 뒤 setSubject 한다(P5-3 리뷰 I-4) — void 로 흘려보내면
-          //    partners=[] · subject=새 id 가 동시에 참인 렌더가 생긴다. PartnerChips 는 0명일 때
-          //    "＋ 인연 걸어두기" 버튼 하나만 그려 "나"로 돌아갈 길이 없다(보통 수백 ms 지만,
-          //    /api/byeolmaru/watch GET 이 실패하면 setPartners([]) 로 확정돼 새로고침 전까지 못 나온다).
-          onAdded={async (id) => { setAddOpen(false); await loadPartners(); setSubject(id); }}
-        />
-      )}
     </main>
   );
 }
