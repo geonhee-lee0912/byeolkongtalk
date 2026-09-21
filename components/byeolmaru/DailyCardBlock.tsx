@@ -233,7 +233,8 @@ export default function DailyCardBlock({
       // 🔴 date 가 아니라 todayKst 를 단다 — POST 는 **언제나 오늘**로 저장하므로 그게 이 카드의
       //    진짜 날짜다. 둘이 갈라지는 경로는 3중으로 막혀 있지만(CTA·openRitual·ritualVisible),
       //    만에 하나 갈라지면 화면이 아무것도 안 그리는 쪽으로 실패한다(엉뚱한 날짜에 카드를
-      //    붙여 보여주는 것보다 낫다).
+      //    붙여 보여주는 것보다 낫다). 🔴 이 말이 참인 건 렌더 게이트가 `state.date === date` 를
+      //    같이 보기 때문이다 — 둘은 한 쌍이니 한쪽만 풀지 말 것.
       setState({ kind: "drawn", date: todayKst, card: j.card });
       setPendingDraw(null);
       setRitualOpen(false);
@@ -258,11 +259,16 @@ export default function DailyCardBlock({
 
   if (state.kind === "loading") return null; // AttendanceStrip 과 동일 관행(!data → null) — 스켈레톤 없이 조용히 대기
 
+  // 그 날을 부르는 말 — 헤딩 두 곳과 게이지 문구가 같은 값을 쓴다(게이지는 지난 날에 "오늘"이라고
+  // 말하던 걸 이걸로 막는다). 🔴 삼항을 손으로 적지 않는다: 이 말의 단일 원천은 report-date.ts 이고,
+  // 사주 쪽(SajuTodayView)도 같은 함수를 쓴다.
+  const dayWord = dayWordFor(date, todayKst);
+
   return (
     <>
       {state.kind === "none" && (
         <section className="rounded-2xl bg-cream-warm p-4">
-          <h2 className="mb-2 font-display text-base text-eye-purple">{date === todayKst ? "오늘의 카드" : "그날의 카드"}</h2>
+          <h2 className="mb-2 font-display text-base text-eye-purple">{dayWord}의 카드</h2>
           {date === todayKst ? (
             <>
               <p className="mb-3 text-sm text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
@@ -286,7 +292,12 @@ export default function DailyCardBlock({
         </section>
       )}
 
-      {state.kind === "drawn" &&
+      {/* 🔴 날짜 정합까지 본다 — 이 화면은 쿼리만 바뀌면 재마운트가 없어, date prop 이 먼저 바뀌고
+          카드 재조회는 한 프레임 뒤에 끝난다. kind 만 보면 그 틈에 **옛 카드가 새 날짜 헤더 밑에서
+          깜빡인다**(taste·인사말은 이미 새 날짜 시드라 글과 카드가 섞인 상태로). 정합이 안 맞으면
+          아무것도 그리지 않는다 — 로딩과 같은 화면(빈 자리)이고, 그게 위 saveDraw 주석이 말하는
+          "아무것도 안 그리는 쪽으로 실패"를 실제로 참이게 만드는 게이트다. */}
+      {state.kind === "drawn" && state.date === date &&
         (() => {
           const drawnCard = state.card;
           const tarotCard = getCard(drawnCard.cardId);
@@ -298,9 +309,6 @@ export default function DailyCardBlock({
           // 🔴 인사말 로테이션 시드는 **보고 있는 날짜**다 — 오늘 KST 로 고정하면 지난 날을 다시 열
           //    때마다 인사말이 바뀌어, "그때 받은 글"이어야 할 것이 매번 달라진다.
           const taste = getCardTaste(drawnCard.cardId, reversed, date) ?? buildStaticLine(kwList);
-          // 그 날을 부르는 말 — 게이지 문구가 지난 날에 "오늘"이라고 말하던 걸 막는다.
-          // 🔴 삼항을 새로 적지 않는다: 이 말의 단일 원천은 report-date.ts 다(사주 쪽도 같은 함수를 쓴다).
-          const dayWord = dayWordFor(date, todayKst);
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
@@ -322,16 +330,22 @@ export default function DailyCardBlock({
 
           return (
             <section className="rounded-2xl bg-cream-warm p-4">
-              {/* 🔴 위 "카드 없음" 분기와 같은 말을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
+              {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다(상단 BackHeader 는 이미 "9월 20일 타로"라고 말한다). */}
-              <h2 className="mb-3 font-display text-base text-eye-purple">{date === todayKst ? "오늘의 카드" : "그날의 카드"}</h2>
+              <h2 className="mb-3 font-display text-base text-eye-purple">{dayWord}의 카드</h2>
 
               {/* 🔴 live region 은 **무료 구간만** 감싼다(section 전체가 아니다) — DayDetailCard 가
                   Task 6 에서 내린 것과 같은 판단이다. 아래 자격 삼항에는 유료 리포트(~1,800자)가
                   **몇 초 뒤 비동기로** 꽂히는데, 그게 live region 안이면 그 삽입이 addition 으로 잡혀
                   1,800자가 통째로 불쑥 낭독된다. 자손에 live 를 off 로 덮어 상속을 끊는 방법은
                   스크린리더 구현 편차가 있어 사주 쪽에서 이미 기각했다 — 아예 밖에 두면 구조로 보장된다.
-                  원래 목적(날짜가 바뀌었다는 신호)은 그대로다: 날짜가 바뀌면 이 div 안이 전부 바뀐다. */}
+                  🔴 다만 **사주와 달리 낭독이 보장된다고 보기 어렵다**(미검증·추정): 이 화면은 날짜가
+                     바뀌면 state 가 loading 으로 떨어져 위에서 `return null` 이라 region 자체가 DOM 에서
+                     사라졌다 다시 꽂힌다. 삽입과 **동시에** 생긴 region 은 스크린리더가 대체로 안 읽는다고
+                     알려져 있다(region 이 먼저 DOM 에 있어야 한다는 ARIA 실무 지침). DayDetailCard 는
+                     언마운트가 없어 그 전제가 선다. 구조를 맞추려면 로딩 중에도 region 을 남겨야 하는데,
+                     그건 이 태스크 범위 밖이다(`return null` 은 Task 9 이전부터의 패턴). 실제 스크린리더로
+                     확인한 적은 없으니 "그래서 안 읽힌다"로 단정하지도 말 것. */}
               <div aria-live="polite">
                 <div className="flex flex-col items-center text-center">
                   <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
