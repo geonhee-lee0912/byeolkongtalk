@@ -44,6 +44,15 @@ test("computeBand — 값이 전부 같으면 flat (분포에 폭이 없다)", (
   assert.equal(b.pctRank, 100); // 이 조합이 화면에서 오해를 부르므로 flat 으로 구분한다
 });
 
+test("computeBand — 중간 80% 가 같아도 꼬리가 다르면 flat 이 아니다 (진짜 이상치를 가리지 않는다)", () => {
+  // 과거 저점 1 + 오늘 고점 1, 나머지 54개 동일 — p10 === p90 이지만 전부 같지는 않다.
+  const b = computeBand([50, ...Array(54).fill(100), 200]);
+  assert.ok(b);
+  assert.equal(b.p10, b.p90); // 중간 80% 는 동일
+  assert.equal(b.flat, false); // 🔴 그래도 flat 이 아니다
+  assert.equal(b.outside, true); // 오늘은 진짜 범위 밖 — 이 경고가 살아 있어야 한다
+});
+
 test("costCoverage — cost_rows 가 0 인 날은 '0원'이 아니라 '미축적'", () => {
   const days = [day("2026-09-19", 1000, 2000, 0, 0), day("2026-09-20", 1000, 2000, 50, 12)];
   const c = costCoverage(days);

@@ -48,10 +48,13 @@ export interface Band {
   /** P10~P90 밖인가 — 마커가 빨강이 된다. */
   outside: boolean;
   /**
-   * 🔴 분포에 폭이 없다(p10 === p90). 8주 내내 값이 똑같았다는 뜻이다.
-   * 이때 pctRank 는 구조적으로 100 이 되고 outside 는 false 라, 호출부가 이 신호를 무시하면
-   * "평소 범위 안 · 분포 중 100% 위치"라는 **오해를 부르는 캡션**이 나온다.
+   * 🔴 분포에 폭이 없다 — 8주 롤링 값이 **전부** 같다(최솟값 === 최댓값).
+   * 이때 pctRank 는 100, outside 는 false 가 되므로, 이 신호 없이 그리면
+   * "평소 범위 안 · 분포 중 100% 위치" = 8주 완전 무변동이 **역대 최고처럼** 읽힌다.
    * 화면은 이 경우 위치 대신 "변동 없음"을 말해야 한다.
+   *
+   * ⚠️ `p10 === p90` 이 아니다. 그건 중간 80% 만 같아도 참이라, 꼬리(오늘일 수 있다)가
+   *    진짜 이상치인데 flat 이 참인 조합을 만든다 — 그러면 화면이 진짜 경고를 가린다.
    */
   flat: boolean;
 }
@@ -68,7 +71,17 @@ export function computeBand(rolling: number[]): Band | null {
   const p90 = quantile(sorted, 0.9);
   // 백분위 = 현재값 이하인 표본의 비율. 동률은 아래로 센다(보수적).
   const pctRank = (sorted.filter((v) => v <= current).length / sorted.length) * 100;
-  return { p10, p90, current, pctRank, outside: current < p10 || current > p90, flat: p10 === p90 };
+  return {
+    p10,
+    p90,
+    current,
+    pctRank,
+    outside: current < p10 || current > p90,
+    // 🔴 p10 === p90 이 아니라 **전체** min === max 다. p10/p90 만 보면 중간 80% 만 같아도
+    //    참이 되는데, 그때 꼬리(= 오늘일 수 있다)는 진짜 이상치일 수 있다. 그 정의로는
+    //    flat 과 outside 가 동시에 참이 되어, 화면이 flat 을 먼저 보면 진짜 경고가 숨는다.
+    flat: sorted[0] === sorted[sorted.length - 1],
+  };
 }
 
 export interface CostCoverage {
