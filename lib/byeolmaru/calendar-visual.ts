@@ -21,9 +21,14 @@ export function barHeightPx(score: number): number {
   return Math.round(BAR_MIN_PX + (clamp100(score) / 100) * (BAR_MAX_PX - BAR_MIN_PX));
 }
 
+// 🔴 보라가 두 값이다 — 헷갈려서 하나로 "정리"하면 색이 조용히 바뀐다.
+//    LILAC_DEEP 은 **면**(격자 셀 틴트)에 알파를 태워 쓰고, LILAC_MID 는 **선**(스트립 막대)에
+//    불투명하게 쓴다. 옅은 알파로 깔리는 쪽이 더 진한 원색이어야 같은 세기로 보인다.
 const GOLD = "#E8C26A";
-const LILAC = "#9F8AD0";
+const LILAC_DEEP = "#9F8AD0";
+const LILAC_MID = "#B8A8D8";
 
+/** 🔴 hex 는 6자리 형식만 받는다(#RRGGBB) — 이 파일의 상수 셋이 유일한 호출자다. */
 function rgba(hex: string, alpha: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
   const a = Math.round(Math.max(0, Math.min(1, alpha)) * 100) / 100;
@@ -32,7 +37,7 @@ function rgba(hex: string, alpha: number): string {
 
 /** 스트립 막대 색 — 단색이되 good 만 금색. caution 은 막대가 짧은 것으로 이미 말해진다. */
 export function barColor(score: number): string {
-  return isGoodScore(score) ? GOLD : "#B8A8D8";
+  return isGoodScore(score) ? GOLD : LILAC_MID;
 }
 
 /** 격자 셀 배경 — 양방향(diverging) 채도.
@@ -44,7 +49,7 @@ export function barColor(score: number): string {
 export function cellTint(score: number): string {
   const s = clamp100(score);
   if (isGoodScore(s)) return rgba(GOLD, 0.45 + ((s - 70) / 30) * 0.5);
-  return rgba(LILAC, 0.55 - (s / 70) * 0.43);
+  return rgba(LILAC_DEEP, 0.55 - (s / 70) * 0.43);
 }
 
 const SUMMARY_MAX_DATES = 3;
