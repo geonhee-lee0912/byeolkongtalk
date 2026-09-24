@@ -156,7 +156,7 @@ export default function ByeolmaruHub() {
   //    "N칸 열림"과 섹션 제목도 같은 말로 다른 걸 가리켰다. 우리 오늘은 무료 목록 행
   //    (FreeList `woori`) → `/byeolmaru/woori` 로 내려가, 오늘 사주·오늘 타로와 같은 문법이 됐다.
   const gridCells: GridCell[] = data.cells.map((c) => ({
-    date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
+    date: c.date, score: c.score, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
   }));
   const stripCells: StripCell[] = (data.strip?.cells ?? []).map((c) => ({
     date: c.date, score: c.score, tone: c.grade.tone, title: DAY_NAME[c.tenGod], label: c.grade.label, marks: c.marks, isToday: c.isToday,

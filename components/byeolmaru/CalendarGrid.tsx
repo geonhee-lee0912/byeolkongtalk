@@ -3,6 +3,7 @@
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { cellTint, isGoodScore } from "@/lib/byeolmaru/calendar-visual";
 // 🔴 MARK_COLOR·MARK_TINT 는 한 쌍이다 — 색은 배경 틴트로만 쓰고 글자는 어두운 색 고정.
 //    MARK_COLOR 를 글자 색으로 쓰면 이 판의 옅은 배경 위에서 WCAG AA 에 전 조합 미달한다(실측).
 import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
@@ -12,7 +13,9 @@ import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
 // 어느 쪽 캘린더든 그대로 그린다.
 export interface GridCell {
   date: string;
-  ganji: string;
+  /** 셀 배경 채도의 원천. 스트립 막대와 **같은 값**을 쓴다. */
+  score: number;
+  /** aria-label 과 계측에만 쓴다 — 배경엔 안 쓴다(아래 TONE_STYLE 주석). */
   tone: DayTone;
   label: string;
   isToday: boolean;
@@ -30,22 +33,18 @@ export interface GridCell {
 // 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(금색)이 떠 보인다.
 // 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 바꿀 땐 세 지면을 같이 볼 것
 //    (허브 판 · 우리 탭 격자 · 게스트 구경 그리드).
-// 🔴 **판과 칸은 한 쌍이다.** 판이 흰색이므로 "무난한 날"(TONE_STYLE.normal)은 순백일 수 없다 —
-//    같은 색이면 칸이 통째로 사라진다. 판을 다시 칠할 거면 normal 칸도 같이 옮겨야 한다.
+// 🔴 **판과 칸은 한 쌍이다.** 판이 흰색이므로 셀 배경에는 알파 바닥이 필요하다 — 같은 색이면
+//    칸이 통째로 사라진다. 그 바닥(0.12)은 calendar-visual.ts 의 cellTint 가 지키고 계약
+//    테스트가 고정한다. 판을 다시 칠할 거면 그 바닥도 같이 옮겨야 한다.
 //    (크림 그라데이션 판 + 순백 칸 조합을 거쳐 왔다 — 판을 흰색으로 올리면서 칸을 내렸다.)
 export const PANEL_BG = "#ffffff";
 export const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
 export const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
 
-
-const TONE_STYLE: Record<DayTone, { background: string; border?: string; boxShadow?: string }> = {
-  // 챙길 날이 rgba(255,255,255,.45) 라 무난한 날(순백)과 거의 같은 색이었다 — 실물에서 구분 불가.
-  good: { background: "linear-gradient(160deg,#F7DFA4,#E8C26A)", boxShadow: "0 2px 6px rgba(232,194,106,0.45)" },
-  // 🔴 순백이 아니다 — 판(PANEL_BG)이 흰색이라 같은 색이면 칸이 사라진다. 회색기 있는 연보라로
-  //    내려 판 위에 떠오르게 하되, 채도는 caution(연보라)보다 낮게 둬 둘이 안 헷갈리게 한다.
-  normal: { background: "#F4F2F7" },
-  caution: { background: "linear-gradient(160deg,#EFE7F8,#DCCFF0)", border: "1px solid rgba(184,168,216,.30)" },
-};
+// 🔴 TONE_STYLE(등급 3단 색면)은 2026-09-24 에 제거됐다 — 실측 5,400칸에서 normal 이 64% 라
+//    한 달 서른 칸 중 스무 칸이 같은 색이었다. 배경은 이제 calendar-visual.ts 의 cellTint 가
+//    점수로 직접 만든다(양방향 채도). 등급 3단은 aria-label·상세 카드가 계속 쓴다.
+//    되살리지 말 것 — 되살리면 "칸 2/3 이 같은 색"이 그대로 돌아온다.
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -94,20 +93,21 @@ export default function CalendarGrid({
   const firstWeekday = new Date(`${slots[0].date}T00:00:00`).getDay();
   const blanks = Array.from({ length: firstWeekday }, (_, i) => i);
 
-  // 범례는 **이 달에 실제로 뜬 마크만** 보여준다 — 안 나온 글리프까지 나열하면 잡음이 된다.
-  const legend = Array.from(new Map(cells.flatMap((c) => c.marks).map((m) => [m.glyph, m])).values());
-
   return (
     <div
       className={panel ? "rounded-2xl p-3" : undefined}
       style={panel ? { background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW } : undefined}
     >
-      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-text-light">
-        {WEEKDAYS.map((w) => (
-          <div key={w}>{w}</div>
+      <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs">
+        {WEEKDAYS.map((w, i) => (
+          // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.
+          // 팔레트에 빨강이 없으므로 lilac-deep 으로 구분한다.
+          <div key={w} className={i === 0 || i === 6 ? "font-medium text-lilac-deep" : "text-text-light"}>
+            {w}
+          </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {blanks.map((i) => (
           <div key={`blank-${i}`} aria-hidden />
         ))}
@@ -134,14 +134,15 @@ export default function CalendarGrid({
             );
           }
           const selected = c.date === selectedDate;
+          const good = isGoodScore(c.score);
           return (
             <button
               key={c.date}
               type="button"
               onClick={() => {
                 // 🔴 offset 은 **오늘로부터의 일수 차이**다. 배열 인덱스를 쓰면 달력이 이번 달로
-                //    바뀐 순간 "1일로부터의 거리"가 되어 스펙 §13 의 관문(offset≠0 비율 = 오늘
-                //    말고 다른 날을 보는가)이 조용히 다른 지표가 된다. 과거는 음수다.
+                //    바뀐 순간 "1일로부터의 거리"가 되어 관문(offset≠0 비율 = 오늘 말고 다른 날을
+                //    보는가)이 조용히 다른 지표가 된다. 과거는 음수다.
                 const offset = Math.round(
                   (Date.parse(`${c.date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000
                 );
@@ -150,29 +151,29 @@ export default function CalendarGrid({
               }}
               aria-label={`${c.date} ${c.label}${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
-              className="relative flex aspect-square flex-col items-center justify-center rounded-xl transition-transform"
+              className="relative flex aspect-square flex-col items-center justify-center rounded-xl"
               style={{
-                ...TONE_STYLE[c.tone],
-                // 🔴 오늘/선택 링을 **하나의 boxShadow 문자열**로 합친다. 클래스 ring 을 겹쳐 쓰면
-                //    승자가 스타일시트 순서로 갈려 caution 톤의 오늘 칸이 링을 잃던 버그가 있었다
-                //    (P5-1 주석). 인라인 스타일이면 우선순위가 코드 순서로 결정돼 그 문제가 없다.
-                ...(c.isToday
-                  ? { boxShadow: `0 0 0 2px #5A3E8C${TONE_STYLE[c.tone].boxShadow ? `, ${TONE_STYLE[c.tone].boxShadow}` : ""}`, transform: "scale(1.07)", zIndex: 1 }
-                  : selected
-                    ? { boxShadow: `0 0 0 2px rgba(159,138,208,.75)` }
-                    : {}),
+                // 🔴 오늘은 톤 문법 밖이다 — 판 안에서 유일한 어두운 면이라 점수와 무관하게
+                //    명도로 1위가 된다. 예전 ring+scale 조합은 caution 톤에서 링을 잃거나
+                //    grid 틈으로 삐져나왔다.
+                background: c.isToday ? "#5A3E8C" : cellTint(c.score),
+                ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >
-              {/* 날짜 + 마크 띠. 간지 텍스트와 일지 캐릭터는 셀에서 뺐다(스펙 §2-2) — 42px 칸에 4겹이
-                  들어가 제일 큰 요소(동물)가 의미를 안 담고 진짜 내용(톤)이 제일 약했다.
-                  동물은 스트립이, 간지는 상세 카드가 담당한다. */}
-              <span className="text-[13px] font-semibold leading-none text-eye-purple">
+              {good && !c.isToday && (
+                // 좋은 날에만 뜨는 4꼭지 별 — 한 달에 서너 칸뿐이라 희소하다(실측 good 17%).
+                <span aria-hidden className="absolute right-1 top-1 text-[8px] leading-none text-[#C99A28]">
+                  ✦
+                </span>
+              )}
+              <span className={`text-[13px] font-semibold leading-none ${c.isToday ? "text-white" : "text-eye-purple"}`}>
                 {Number(c.date.slice(8, 10))}
               </span>
               {c.marks.length ? (
                 <span
                   // 🔴 셀에는 최우선 마크 1개만. 2개부터 42px 칸에서 날짜와 겹친다(실측).
                   //    전체 목록은 aria-label 과 상세 카드의 마크 칩이 받는다.
+                  //    🔴 MARK_COLOR 는 배경 틴트로만 — 글자로 쓰면 이 옅은 판 위에서 AA 미달이다.
                   className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
                   style={{ background: `${MARK_COLOR[c.marks[0].glyph]}${MARK_TINT[c.marks[0].strength]}` }}
                 >
@@ -183,29 +184,11 @@ export default function CalendarGrid({
           );
         })}
       </div>
-      {(legend.length > 0 || (lockedHint && lockedCells.length > 0)) && (
-        <div className="mt-2 space-y-0.5 text-[10px] leading-relaxed text-text-light">
-          {legend.length > 0 && (
-            <p>
-              {/* 범례도 셀과 **같은 옷**을 입는다 — 색을 글자에 쓰면 이 판 위에서 2.2~3.1:1 로 떨어진다
-                  (셀 마크와 같은 이유). 같은 모양이라 "저 띠가 이거구나"가 바로 붙는 이점도 있다. */}
-              {legend.map((m) => (
-                <span
-                  key={m.glyph}
-                  className="mr-1.5 rounded-full px-1 font-bold text-night-deep"
-                  style={{ background: `${MARK_COLOR[m.glyph]}${MARK_TINT.full}` }}
-                >
-                  {m.label}
-                </span>
-              ))}
-              {/* 연한 라벨의 뜻을 한 번만 설명한다 — 우리 탭에서만 나온다. */}
-              {subjectKind === "pair" && <span className="text-text-light">연한 건 한 명만 걸린 날이야</span>}
-            </p>
-          )}
-          {/* 비로그인·생일 미입력 빈 달력(EmptyMonthShell)에선 lockedHint=false 로 끈다 — 거긴
-              "아직 안 온 날"이 아니라 "생일이 없어 못 보는 날"이라 이 문구가 틀린 설명이 된다. */}
-          {lockedHint && lockedCells.length > 0 && <p>점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>}
-        </div>
+      {/* 🔴 마크 범례는 2026-09-24 에 제거됐다 — 어휘를 "상대 없이 성립하는 말"로 갈면서
+          (설렘·척척·삐걱·채움) 뜻 설명이 필요 없어졌다. 옛 범례는 셀 칩과 같은 모양·같은
+          글자라 반복일 뿐이었고, 격자가 접힘 기본이라 스트립만 보는 사람에겐 닿지도 않았다. */}
+      {lockedHint && lockedCells.length > 0 && (
+        <p className="mt-2 text-[10px] leading-relaxed text-text-light">점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>
       )}
     </div>
   );
