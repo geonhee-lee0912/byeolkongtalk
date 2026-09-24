@@ -1,34 +1,31 @@
 "use client";
 
-// components/byeolmaru/DayStrip.tsx — 허브 롤링 7일 스트립(스펙 §2-1).
-// 지난 3일 + 오늘(2배 폭) + 앞으로 3일. 가려지는 게 **미래**라 "안 준다"가 아니라 "아직 안 온 날"로
-// 읽힌다 — 자물쇠를 쓰지 않는다는 P5 §2 원칙과 맞는 유일한 블러 형태다.
-// 🔴 흐린 칸 수를 세지 않는다 — lockedCells 가 곧 그 집합이다(서버 무료선의 산물).
-import Image from "next/image";
-import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+// components/byeolmaru/DayStrip.tsx — 허브 롤링 7일 스트립.
+// 역할: **이번 주 언제가 좋지?**(메인) / 오늘 뭐지?(서브). 비교가 주인공이라 7칸이 같은 문법이고,
+// 오늘의 *내용*은 칸 밖(TodayLead)으로 나간다 — 칸 안에서 오늘은 *위치 표시*만 한다.
+// 🔴 범위(지난 3 + 오늘 + 앞 3)는 자의적이지 않다 — strip.ts 의 STRIP_LENGTH 가 리포트 생성
+//    가능 일수(FUTURE_REPORT_DAYS)에 묶여 있다. 여기서 칸 수를 바꾸지 말 것.
+// 🔴 톤 색면을 배경에 쓰지 않는다(2026-09-24) — 실측 normal 64% 라 7칸 중 4~5칸이 같은 색이었고,
+//    게다가 톤 색면이 위계를 이겨 '잘 맞는 어제'가 '무난한 오늘'보다 강해 보였다. 비교는 막대가,
+//    위계는 오늘 pill 이 맡는다.
 import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
+import { barColor, barHeightPx } from "@/lib/byeolmaru/calendar-visual";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
-/** 스트립 한 칸이 그리는 것만 받는다 — 나·우리 두 판정이 이 모양으로 수렴한다(GridCell 과 같은 패턴). */
+/** 스트립 한 칸이 그리는 것만 받는다 — 나·우리 두 판정이 이 모양으로 수렴한다. */
 export interface StripCell {
   date: string;
-  ganji: string;
+  /** 막대 높이·색의 원천. 격자의 셀 틴트와 **같은 값**을 쓴다. */
+  score: number;
+  /** 계측 축으로만 남는다(배경엔 안 쓴다) — offset×tone 교차를 계속 보기 위해. */
   tone: DayTone;
-  /** 하루 이름(나 탭) 또는 톤 라벨(우리 탭). 오늘 칸에만 보인다. */
+  /** 하루 이름. 지금은 TodayLead 가 오늘 것만 쓴다 — 칸에는 안 그린다. */
   title: string;
   marks: DayMark[];
   isToday: boolean;
 }
-
-const TONE_BG: Record<DayTone, string> = {
-  good: "linear-gradient(160deg,#F7DFA4,#E8C26A)",
-  // 🔴 CalendarGrid.TONE_STYLE.normal 과 **같은 값**을 쓴다 — 스트립과 격자가 한 판 위에 나란히
-  //    있어 "무난한 날"이 두 색이면 같은 판정이 다른 날처럼 보인다. 순백이 아닌 이유는 그쪽 주석 참조.
-  normal: "#F4F2F7",
-  caution: "linear-gradient(160deg,#EFE7F8,#DCCFF0)",
-};
 
 const WEEKDAY = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -36,41 +33,33 @@ function weekdayOf(date: string): string {
   return WEEKDAY[new Date(`${date}T00:00:00Z`).getUTCDay()];
 }
 
+/** 오늘 pill — 판 안에서 **유일한 어두운 면**이라 톤과 무관하게 명도로 1위가 된다. */
+const TODAY_BG = "#5A3E8C";
 
 interface Props {
   cells: StripCell[];
   lockedCells: LockedCell[];
   todayDate: string;
-  /** 열린 칸 탭 — 그날 상세로 보낸다. */
   onSelect: (date: string) => void;
-  /** 흐린(미래) 칸 탭 — 비자격자에게 구독 안내. */
   onLockedSelect: () => void;
   subjectKind: "me" | "pair";
 }
 
 export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLockedSelect, subjectKind }: Props) {
   const slots = [
-    ...cells.map((c) => ({ date: c.date, ganji: c.ganji, cell: c as StripCell | undefined })),
-    ...lockedCells.map((l) => ({ date: l.date, ganji: l.ganji, cell: undefined })),
+    ...cells.map((c) => ({ date: c.date, cell: c as StripCell | undefined })),
+    ...lockedCells.map((l) => ({ date: l.date, cell: undefined })),
   ].sort((a, b) => a.date.localeCompare(b.date));
   if (slots.length === 0) return null;
 
-  // 🔴 트랙 수는 오늘 칸의 유무에 달려 있다. 오늘이 span 2 를 먹으므로 있으면 8칸, 없으면 7칸이다.
-  //    8칸으로 고정하면 오늘이 없는 집합(달력 계약상 가능 — calendar.test.ts 가 그 상태를 덮는다)에서
-  //    7개가 8트랙에 들어가 **빈 칸 하나가 조용히 생긴다**. 이 컴포넌트는 레이아웃 자체가 "정확히 하나가
-  //    2칸을 먹는다"에 기대므로, 그 전제를 상수로 박지 않고 데이터에서 읽는다.
-  const hasToday = slots.some((s) => s.cell?.isToday);
-
   return (
-    <div
-      className="grid gap-1"
-      style={{ gridTemplateColumns: `repeat(${hasToday ? 8 : 7}, minmax(0,1fr))` }}
-    >
-      {slots.map(({ date, ganji, cell }) => {
+    // 🔴 7칸 균등이다. 예전엔 오늘이 span 2 라 8트랙이었고 일반 칸이 35px 로 눌렸다 — 오늘의
+    //    하루 이름을 칸 안에 넣느라 그랬는데, 그 텍스트가 TodayLead 로 나가면서 이유가 사라졌다.
+    <div className="grid grid-cols-7 gap-0.5">
+      {slots.map(({ date, cell }) => {
         const today = cell?.isToday ?? false;
-        const animal = branchAnimal(ganji);
-        const common = "flex flex-col items-center justify-center rounded-xl py-1.5";
         const offset = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000);
+        const dayNum = Number(date.slice(8, 10));
 
         if (!cell) {
           return (
@@ -82,88 +71,59 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
                 onLockedSelect();
               }}
               aria-label={`${date} 아직 안 온 날 — 눌러서 미리 보기`}
-              className={`${common} border border-dashed`}
+              className="flex flex-col items-center justify-end rounded-xl border border-dashed py-1.5"
               style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
             >
-              <span className="text-[10px] leading-none text-text-light/70">{weekdayOf(date)}</span>
-              <span className="mt-0.5 text-[15px] font-semibold leading-none text-text-light/70">{Number(date.slice(8, 10))}</span>
-              {/* 날짜·동물은 선명하다 — 만세력이라 비밀이 아니다(스펙 §3). 가리는 건 판정뿐. */}
-              {animal ? <Image src={animal.assetSrc} alt="" width={20} height={20} className="mt-1 h-5 w-5 object-contain opacity-70" /> : null}
-              {/* 열린 칸의 마크 띠와 **같은 자리·같은 크기**다 — 잠긴 칸에서만 띠가 사라지면 칸 높이가
-                  들쭉날쭉해진다(grid 는 가장 높은 칸에 맞추므로 결국 여백으로 남는다). 색만 흐리다. */}
-              <span aria-hidden className="mt-1.5 h-[3px] w-[60%] rounded-full bg-lilac-mid/30" />
+              {/* 막대 자리는 비운다 — 없는 걸 있는 척하지 않는다. 자리만 남겨 칸 높이를 맞춘다. */}
+              <span aria-hidden className="h-7 w-[6px]" />
+              <span className="mt-1 text-[10px] leading-none text-text-light/70">{weekdayOf(date)}</span>
+              <span className="mt-0.5 text-[15px] font-semibold leading-none text-text-light/70">{dayNum}</span>
+              <span aria-hidden className="mt-1 h-[13px]" />
             </button>
           );
         }
 
         return (
           <button
-            key={date}
+            key={cell.date}
             type="button"
             onClick={() => {
               trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: cell.tone, subjectKind, surface: "strip" } });
-              onSelect(date);
+              onSelect(cell.date);
             }}
-            aria-label={`${today ? "오늘 " : ""}${date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
-            className={common}
-            style={{
-              background: TONE_BG[cell.tone],
-              gridColumn: today ? "span 2" : undefined,
-              ...(today ? { boxShadow: "0 0 0 2px #5A3E8C" } : {}),
-            }}
+            aria-label={`${today ? "오늘 " : ""}${cell.date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
+            className="flex flex-col items-center justify-end rounded-xl py-1.5"
           >
-            {/* 🔴 오늘 칸에도 "오늘" 글자를 쓰지 않는다 — **2배 폭 + 2px 보라 테두리 + 톤 색면**이
-                이미 어느 칸이 오늘인지 말한다. 글자까지 얹으면 그 칸만 요소가 하나 더 많아지고,
-                스트립 높이는 가장 높은 칸이 정하므로 **나머지 6칸에 빈 여백이 생긴다**(실측 29px).
-                스크린리더에는 aria-label 이 "오늘"을 그대로 싣는다 — 시각만 색·형태로 옮긴 것이다. */}
-            <span className="text-[10px] leading-none text-text-light">{weekdayOf(date)}</span>
-            <span className="mt-0.5 text-[15px] font-semibold leading-none text-eye-purple">{Number(date.slice(8, 10))}</span>
-            {animal ? (
-              <Image
-                src={animal.assetSrc}
-                alt=""
-                width={today ? 22 : 20}
-                height={today ? 22 : 20}
-                className="mt-1 object-contain"
-                style={{ width: today ? 22 : 20, height: today ? 22 : 20 }}
+            {/* ① 막대 — 비교 신호. 높이가 점수, 색은 good 만 금색. */}
+            <span aria-hidden className="flex h-7 items-end">
+              <span
+                className="block w-[6px] rounded-full"
+                style={{ height: barHeightPx(cell.score), background: barColor(cell.score) }}
               />
-            ) : null}
-            {/* 정보는 오늘 칸에 몰린다 — 나머지 6칸이 조용해야 "번잡 vs 허전" 딜레마가 풀린다. */}
-            {today && (
-              <span className="mt-0.5 line-clamp-2 px-1 text-center text-[10px] leading-tight text-eye-purple">{cell.title}</span>
-            )}
-            {/* 🔴 마크 표기가 오늘과 나머지에서 갈린다 — **의도된 비대칭**이다.
-                · 오늘(74px): 2글자 라벨. 폭이 넉넉하고, 정보가 여기 몰려야 나머지가 조용해진다(§2-1).
-                · 일반 칸(35px): 라벨이 칸 폭의 71%를 먹어 빽빽했다 → **하단 색 띠**로 내린다.
-                  스펙 §3 이 격자에 쓴 "셀 하단 띠"와 같은 문법이고, 띠의 뜻은 월간 격자 하단 범례가
-                  잇는다(그쪽은 폭이 41px 라 라벨이 들어간다 — 그래서 격자는 안 건드렸다).
-                🔴 색은 MARK_COLOR 를 **면으로만** 쓴다(글자 아님) — day-label.ts 규율. */}
+            </span>
+            {/* ②③ 요일 + 날짜. 오늘이면 둘을 pill 하나가 함께 감싼다. */}
+            <span
+              className="mt-1 flex flex-col items-center rounded-lg px-1.5 py-0.5"
+              style={today ? { background: TODAY_BG } : undefined}
+            >
+              <span className={`text-[10px] leading-none ${today ? "text-white/80" : "text-text-light"}`}>
+                {weekdayOf(cell.date)}
+              </span>
+              <span className={`mt-0.5 text-[15px] font-semibold leading-none ${today ? "text-white" : "text-eye-purple"}`}>
+                {dayNum}
+              </span>
+            </span>
+            {/* ④ 마크 칩 — 없어도 자리를 비워 칸 높이를 맞춘다(grid 는 최고 높이에 맞춘다). */}
             {cell.marks.length ? (
-              today ? (
-                <span
-                  className="mt-0.5 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
-                  style={{ background: `${MARK_COLOR[cell.marks[0].glyph]}${MARK_TINT[cell.marks[0].strength]}` }}
-                >
-                  {cell.marks[0].label}
-                </span>
-              ) : (
-                <span
-                  aria-hidden
-                  className="mt-1.5 h-[3px] w-[60%] rounded-full"
-                  style={{
-                    background: MARK_COLOR[cell.marks[0].glyph],
-                    // 🔴 흰 외곽선이 필수다 — 띠를 순색으로만 두면 **"잘 맞는 날"(금색 칸) + "설렘"
-                    //    (금색 마크)** 조합에서 대비가 1.52:1 로 떨어져 띠가 사라진다(비-텍스트 기준
-                    //    3:1 미달). 지금 데이터에 그 조합이 없어도 판정상 언제든 나온다. 1px 테두리면
-                    //    어떤 톤 배경에서도 띠의 경계가 남는다.
-                    boxShadow: "0 0 0 1px rgba(255,255,255,.85)",
-                  }}
-                />
-              )
+              <span
+                // 🔴 MARK_COLOR 는 배경 틴트로만 — 글자로 쓰면 이 옅은 판 위에서 전 조합 AA 미달이다.
+                className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
+                style={{ background: `${MARK_COLOR[cell.marks[0].glyph]}${MARK_TINT[cell.marks[0].strength]}` }}
+              >
+                {cell.marks[0].label}
+              </span>
             ) : (
-              // 마크가 없는 날도 띠 자리를 비워둔다 — 없으면 칸마다 높이가 달라지고, grid 가 최고
-              // 높이에 맞추므로 결국 위아래 여백으로 흩어진다(그게 "비어 보인다"의 원인이었다).
-              <span aria-hidden className="mt-1.5 h-[3px] w-[60%]" />
+              <span aria-hidden className="mt-1 h-[13px]" />
             )}
           </button>
         );
