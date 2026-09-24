@@ -159,7 +159,7 @@ export default function ByeolmaruHub() {
     date: c.date, ganji: c.ganji, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
   }));
   const stripCells: StripCell[] = (data.strip?.cells ?? []).map((c) => ({
-    date: c.date, score: c.score, tone: c.grade.tone, title: DAY_NAME[c.tenGod], marks: c.marks, isToday: c.isToday,
+    date: c.date, score: c.score, tone: c.grade.tone, title: DAY_NAME[c.tenGod], label: c.grade.label, marks: c.marks, isToday: c.isToday,
   }));
   // 🔴 `?.` 는 불가능한 시나리오 방어가 아니다 — 배포 롤아웃 창에서 **새 번들이 구 API 를 만날 수**
   //    있고(스큐), 그때 data.strip 이 없으면 프로퍼티 접근이 먼저 터져 허브 전체가 에러 바운더리로

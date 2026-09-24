@@ -23,6 +23,10 @@ export interface StripCell {
   tone: DayTone;
   /** 하루 이름. 지금은 TodayLead 가 오늘 것만 쓴다 — 칸에는 안 그린다. */
   title: string;
+  /** 등급 라벨("잘 맞는 날"). 🔴 화면에는 안 쓰고 **aria-label 전용**이다 — 이 표면의 주 역할이
+   *  "이번 주 언제가 좋지"(비교)인데 그 신호를 막대 높이가 혼자 지고 있고 막대는 aria-hidden 이라,
+   *  이게 없으면 스크린리더 사용자는 비교를 통째로 잃는다(격자는 이미 같은 값을 싣고 있다). */
+  label: string;
   marks: DayMark[];
   isToday: boolean;
 }
@@ -91,7 +95,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: cell.tone, subjectKind, surface: "strip" } });
               onSelect(cell.date);
             }}
-            aria-label={`${today ? "오늘 " : ""}${cell.date} ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
+            aria-label={`${today ? "오늘 " : ""}${cell.date} ${cell.label} · ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
             className="flex flex-col items-center justify-end rounded-xl py-1.5"
           >
             {/* ① 막대 — 비교 신호. 높이가 점수, 색은 good 만 금색. */}
