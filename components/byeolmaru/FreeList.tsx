@@ -13,7 +13,6 @@
 //    구분자가 필요 없어졌다).
 import Image from "next/image";
 import Link from "next/link";
-import { getCardImagePath, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { SAJU_PAID_CHARS, TAROT_PAID_CHARS, PAIR_PAID_CHARS } from "@/lib/byeolmaru/paywall-sections";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark, { type SectionMarkKind } from "@/components/common/SectionMark";
@@ -31,7 +30,8 @@ export interface FreeListItem {
   /** 타이틀 옆 칩 = **접근 조건**(지금 어떻게 볼 수 있나). 오늘 타로만 뽑기 상태로 바뀐다. */
   chip: string;
   chipTone: "gold" | "lilac";
-  /** 해시태그 줄 맨 앞 칩 = **구독 가치**(더 보면 뭐가 있나). 유료 확장이 없는 항목은 undefined.
+  /** 해시태그 줄 맨 앞 칩 = **한 줄 더 주는 정보**. "오늘 볼 것"은 구독 가치(더 보면 뭐가 있나),
+   *  "나를 알아보는 것"은 결과물(여긴 뭐가 있나) — 자리와 결이 같아 다섯 행이 한 규칙으로 읽힌다.
    *  🔴 칩 둘을 타이틀 옆에 나란히 두면 375px 에서 줄이 넘어가 제목과 칩의 관계가 끊긴다(실측).
    *     위=접근 조건 / 아래=구독 가치로 나누면 "무료는 여기까지, 더는 구독"이 위아래로 읽힌다.
    *  🔴 이 칩의 유무가 두 섹션을 가르는 신호이기도 하다 — "나를 알아보는 것" 2종은 유료 확장
@@ -151,9 +151,12 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       chip: drawn ? "오늘 뽑음" : "하루 1회 무료",
       chipTone: "gold",
       paidChip: `구독하면 ${TAROT_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
-      // 🔴 신규 아이콘을 만들지 않는다 — 타일 자리에 카드 이미지를 직접 넣는다(스펙 §3-1·§12).
-      //    안 뽑음 = 뒷면, 뽑음 = 그 카드 앞면. "오늘 뽑았나"가 한 줄에서 보인다.
-      image: drawn ? getCardImagePath(drawn.cardId) : CARD_BACK_IMAGE,
+      // 🔴 카드 실물 이미지(뒷면/뽑은 카드 앞면)를 쓰던 걸 전용 아이콘으로 바꿨다(2026-09-24).
+      //    다섯 행 중 이 행만 사진 결이라 목록에서 혼자 튀었다 — 나머지는 전부 투명 배경의
+      //    파스텔 구슬 일러스트다. "오늘 뽑았나"는 칩("오늘 뽑음")이 계속 말한다.
+      //    🔴 이 목록의 아이콘은 **투명 배경(RGBA)** 이어야 한다 — 타일 그라데이션이 비쳐야 해서,
+      //       흰 배경이면 컬러 타일 위에 흰 사각형이 뜬다.
+      image: "/icons/fortune/tarot_daily.webp",
     },
     {
       // 🔴 우리 오늘이 목록으로 내려온다 — 예전엔 달력 판 상단 인연 칩으로만 들어갔다.
@@ -198,6 +201,10 @@ export function buildSelfItems(): FreeListItem[] {
       label: "사주 MBTI",
       tagline: "사주로 보는 내 유형 — 문항에 답하면 바로 나와",
       hashtags: ["16유형"],
+      // 🔴 두 번째 칩은 위 3종의 구독 칩과 **같은 자리·같은 결**이다 — 거긴 "더 보면 뭐가 있나",
+      //    여긴 "여긴 뭐가 있나". 다섯 행이 한 규칙으로 읽히게 하는 게 목적이고, 이 2종엔
+      //    유료 확장이 없으니 구독 대신 결과물을 말한다.
+      paidChip: "4축 해설까지",
       tileBg: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
       chip: "무료",
       chipTone: "lilac",
@@ -209,6 +216,7 @@ export function buildSelfItems(): FreeListItem[] {
       label: "별 인연 지도",
       tagline: "내 사람들과의 인연을 별자리로 이어볼게",
       hashtags: ["인연지도"],
+      paidChip: "인연 점수 순위",
       tileBg: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
       chip: "무료",
       chipTone: "lilac",
