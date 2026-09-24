@@ -50,17 +50,19 @@ export default function MonthGridSection({ goodDates, children }: Props) {
     <section className="space-y-2">
       {/* 🔴 자체 배경이 없다 — 허브가 이 섹션을 크림 판 안에 넣기 때문이다(스펙 §2). 같은 크림
           박스를 또 그리면 판 위에 같은 색 상자가 겹쳐 경계가 지저분해진다. 행 전체가 탭 타깃이라
-          배경 없이도 누를 곳은 분명하다(w-full + py-2). */}
+          배경 없이도 누를 곳은 분명하다(w-full + 세로 패딩). */}
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open ?? false}
-        className="flex w-full items-center justify-between py-2 text-left"
+        // 🔴 pt 가 pb 보다 크다(의도) — 위는 구분선이 바로 붙지만 아래는 판 패딩(p-3)이
+        //    더해져, 같은 값이면 아래가 더 넓어 보인다(실물 지적).
+        className="flex w-full items-center justify-between pb-2 pt-3.5 text-left"
       >
         <span className="text-sm font-medium text-eye-purple">
           {monthSummaryLabel(goodDates)}
         </span>
-        <span aria-hidden className="text-xs text-text-light">{open ? "▴" : "▾"}</span>
+        <span aria-hidden className="text-base leading-none text-lilac-mid">{open ? "▴" : "▾"}</span>
       </button>
       {open ? children : null}
     </section>
