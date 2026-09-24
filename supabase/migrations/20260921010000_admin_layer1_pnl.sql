@@ -12,6 +12,9 @@
 -- ⚠️ payments.user_id 는 탈퇴 시 NULL 로 익명 보존된다 → `(IS NULL OR <> ALL)` 필수.
 --    `<> ALL` 만 쓰면 3값 논리로 NULL 행이 통째로 빠져 탈퇴자 매출이 증발한다(2026-08-02 사례).
 -- ⚠️ route IS NULL 인 llm_usage 행은 QA·probe 스크립트가 만든 것이다 — 손익에서 뺀다.
+-- ⚠️ p_since 는 **KST 자정**이어야 한다(`lib/admin-time.ts` 의 daysAgoKstIso 가 보장).
+--    ad 는 날짜 비교, rev·cost 는 타임스탬프 비교라 자정이 아니면 같은 첫날 버킷에서
+--    광고비만 온전하고 매출·원가는 반쪽이 된다.
 CREATE OR REPLACE FUNCTION admin_layer1_pnl(
   p_since TIMESTAMPTZ,
   p_exclude UUID[]
@@ -20,6 +23,7 @@ RETURNS TABLE (
   bucket DATE,
   revenue_won BIGINT,
   ad_spend_won BIGINT,
+  ad_rows BIGINT,
   api_cost_won NUMERIC,
   cost_rows BIGINT
 )
@@ -42,7 +46,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     GROUP BY 1
   ), ad AS (
     -- spend_date 는 이미 KST 날짜다(사용자가 손으로 입력) — 변환하지 않는다.
-    SELECT a.spend_date AS d, SUM(a.spend_won)::BIGINT AS won
+    -- 🔴 ad_rows — cost_rows 와 같은 이유다. ad_spend 는 **사람이 손으로 입력**해서 최근 며칠이
+    --    늘 비어 있다(2026-09-24 실측: 마지막 입력 09-19, 5일 공백). 그 날들의 SUM 은 0 이지만
+    --    "광고를 안 썼다"가 아니라 "아직 안 넣었다"이고, 구분하지 못하면 7일 창에서 광고비가
+    --    통째로 빠져 **기여가 과대**로 보인다(실측: 밴드 P90 의 5배 = "역대급 흑자" 오신호).
+    --    행이 0 개면 미입력이다. 광고비를 0원으로 **입력한** 날은 행이 있으므로 구분된다.
+    SELECT a.spend_date AS d,
+           SUM(a.spend_won)::BIGINT AS won,
+           COUNT(*)::BIGINT AS rows_n
     FROM ad_spend a
     WHERE a.spend_date >= (p_since AT TIME ZONE 'UTC' + INTERVAL '9 hours')::date
     GROUP BY 1
@@ -60,6 +71,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT x.d,
          COALESCE(rev.won, 0)::BIGINT,
          COALESCE(ad.won, 0)::BIGINT,
+         COALESCE(ad.rows_n, 0)::BIGINT,
          COALESCE(cost.won, 0)::NUMERIC,
          COALESCE(cost.rows_n, 0)::BIGINT
   FROM axis x
