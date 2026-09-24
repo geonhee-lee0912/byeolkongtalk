@@ -1,6 +1,11 @@
 "use client";
 
-// components/byeolmaru/FreeList.tsx — 허브 "무료로 다 보는 것" 목록 5종(스펙 §2-3).
+// components/byeolmaru/FreeList.tsx — 허브 무료 목록. **한 섹션이 아니라 둘이다**(2026-09-24).
+//    ①"오늘 볼 것"(buildDailyItems) = 매일 리셋되는 별마루 고유 3종
+//    ②"나를 알아보는 것"(buildSelfItems) = 한 번 보면 끝인 2종. **href 가 /fortune 으로 탭을 떠난다**
+//      — 이게 둘을 가른 기준이고, 섹션 마커가 다른 글리프(별열쇠)인 이유다.
+//    🔴 항목의 `key` 는 계측 축(`byeolmaru_free_item_clicked` 의 meta.item)이라 절대 바꾸지 말 것.
+//       섹션이 나뉘어도 키는 그대로라 기존 집계가 이어진다.
 // 🔴 2탭(/fortune) 리스트와 **동형**이지만 컴포넌트를 공유하지 않는다:
 //    ①이 4종은 FORTUNE_LIST 밖이라 FortuneType 키가 없고 ②FortuneIcon 의 HAS_ICON 에
 //    saju_mbti·byeoljari 가 누락돼 이모지 폴백이 뜨며 ③P5 스코프가 2탭을 건드리지 말라고 한다.
@@ -10,6 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getCardImagePath, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import SectionMark, { type SectionMarkKind } from "@/components/common/SectionMark";
 
 export interface FreeListItem {
   /** 계측 안정 축 — 라벨이 바뀌어도 집계가 유지된다. */
@@ -28,13 +34,25 @@ export interface FreeListItem {
   image: string;
 }
 
-export default function FreeList({ items }: { items: FreeListItem[] }) {
+export default function FreeList({
+  items,
+  title,
+  mark,
+}: {
+  items: FreeListItem[];
+  title: string;
+  mark: SectionMarkKind;
+}) {
   return (
     <section>
-      {/* 섹션 타이틀 — 골드 3px 바 + 밑줄(스펙 §4) */}
+      {/* 섹션 타이틀 — 골드 3px 바 → SectionMark 글리프(2026-09-24).
+          타이포는 홈·/fortune 과 같은 **본문체 15px bold** 로, font-display(Cafe24Ssurround)를
+          일부러 안 쓴다. 하단탭 3개가 나란히 비교되는 면이라 서체까지 맞춰야 한 시스템으로 읽힌다.
+          🔴 실측: 본문체 15px bold 가 기존 디스플레이체 16px 보다 **더 넓다**(85.5 vs 80.8px, 5자).
+             줄어드는 변경이 아니라 잘림·재배치 회귀가 없다. */}
       <div className="mb-2 flex items-center gap-2">
-        <span aria-hidden className="h-[3px] w-4 rounded-full bg-gold" />
-        <h2 className="font-display text-base text-eye-purple">무료로 다 보는 것</h2>
+        <SectionMark kind={mark} />
+        <h2 className="text-[15px] font-bold text-eye-purple">{title}</h2>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it) => (
@@ -86,8 +104,11 @@ export default function FreeList({ items }: { items: FreeListItem[] }) {
   );
 }
 
-/** 목록 5종의 고정 데이터 — 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12). */
-export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[] {
+/**
+ * "오늘 볼 것" 3종 — 매일 리셋되는 별마루 고유 콘텐츠.
+ * 오늘 타로만 뽑기 상태에 따라 타일 이미지와 칩이 바뀐다(스펙 §12).
+ */
+export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[] {
   return [
     {
       key: "saju_today",
@@ -137,6 +158,20 @@ export function buildFreeItems(drawn: { cardId: number } | null): FreeListItem[]
       // 재사용하는 것과 같은 선례). 이 목록은 아이콘을 새로 만들지 않는다.
       image: "/icons/fortune/compat.webp",
     },
+  ];
+}
+
+/**
+ * "나를 알아보는 것" 2종 — 한 번 보면 끝이고, **href 가 /fortune 으로 탭을 떠난다**.
+ * 그게 위 3종과 갈린 기준이다(매일 리셋되는 별마루 고유 ↔ 상시·탭 바깥).
+ * 🔴 로그인·생일 없이도 되는 유일한 2종이라 게스트 화면에서 이 섹션이 위로 간다
+ *    (ByeolmaruHub 의 EmptyMonthShell). 예전엔 배열 안에서 키로 골라 올렸는데,
+ *    목록에 항목이 하나 늘 때마다 조용히 "로그인 없이 됨" 쪽으로 쓸려 들어갔다 —
+ *    실제로 오늘 사주가 그렇게 돼 눌러도 같은 로그인 벽으로 되돌아오는 막다른 길이 됐었다.
+ *    이제 분류가 배열 순서가 아니라 **함수 소속**이라 그 사고가 구조적으로 안 난다.
+ */
+export function buildSelfItems(): FreeListItem[] {
+  return [
     {
       key: "mbti",
       href: "/fortune/saju-mbti",

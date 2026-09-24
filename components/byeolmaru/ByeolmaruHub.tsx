@@ -11,7 +11,8 @@ import HubBanner from "./HubBanner";
 import AttendanceStrip from "./AttendanceStrip";
 import DayStrip, { type StripCell } from "./DayStrip";
 import MonthGridSection from "./MonthGridSection";
-import FreeList, { buildFreeItems } from "./FreeList";
+import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
+import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
 import PremiumBlock from "./PremiumBlock";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
@@ -53,24 +54,18 @@ function emptyMonthDates(): { dates: string[]; today: string } {
 }
 
 // 비로그인·생일 미입력 공통 껍데기(스펙 §12). 달력은 "안 칠해진 이번 달"이고, 목록은
-// MBTI·별자리를 **위로** 올린다(로그인 없이 되므로 먼저 맛보게). 페이월은 숨긴다 —
-// 아직 자기 달력을 받아본 적이 없는 사람에게 미끼는 광고로 읽힌다(스펙 §9).
+// "나를 알아보는 것"(MBTI·별자리)을 **위로** 올린다 — 로그인 없이 되는 유일한 2종이라 먼저
+// 맛보게 한다. 페이월은 숨긴다 — 아직 자기 달력을 받아본 적이 없는 사람에게 미끼는 광고로
+// 읽힌다(스펙 §9).
+// 🔴 예전의 키 기반 reorder(`NO_LOGIN_KEYS`)를 지웠다. 이제 두 섹션이 각자 함수라
+//    **순서만 바꾸면 되고**, 새 항목이 조용히 잘못된 쪽으로 쓸려 들어갈 길이 없다.
 function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
   const { dates, today } = emptyMonthDates();
-  const items = buildFreeItems(null);
-  // 🔴 로그인·생일이 있어야 되는 것을 뒤로 보낸다. **부정 필터(`!== "tarot"`)로 쓰지 않는다** —
-  //    목록에 항목이 하나 늘 때마다 조용히 "로그인 없이 됨" 쪽으로 쓸려 들어간다(실제로 오늘 사주가
-  //    그렇게 됐다: 눌러도 같은 로그인 벽으로 되돌아오는 막다른 길이 됐었다).
-  const NO_LOGIN_KEYS = ["mbti", "byeoljari"];
-  const reordered = [
-    ...items.filter((i) => NO_LOGIN_KEYS.includes(i.key)),
-    ...items.filter((i) => !NO_LOGIN_KEYS.includes(i.key)),
-  ];
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <header>
         <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
-        <p className="text-sm text-text-light">무료로 다 보는 곳</p>
+        <p className="text-sm text-text-light">오늘 너의 하늘, 한 자리에</p>
       </header>
       <section className="space-y-3">
         {/* lockedHint=false — 이 빈 달력은 "안 온 날"이 아니라 "생일이 없어 못 보는 날"이라
@@ -80,7 +75,8 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
         <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
         {cta}
       </section>
-      <FreeList items={reordered} />
+      <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
+      <FreeList items={buildDailyItems(null)} title="오늘 볼 것" mark="today" />
     </main>
   );
 }
@@ -193,12 +189,13 @@ export default function ByeolmaruHub() {
       {/* 🔴 타이틀 + 판을 한 wrapper 로 묶는다 — main 의 space-y-4 는 형제 사이에 16px 을 넣는데,
           타이틀과 그 판은 **한 섹션**이라 그만큼 떨어지면 안 붙는다. wrapper 안에서만 8px 로 좁힌다. */}
       <div className="space-y-2">
-        {/* 섹션 타이틀 — 판 **밖**에 둔다. FreeList 와 같은 문법(골드 3px 바 + 제목)이고, 그쪽도
-            타이틀이 카드 밖에 있어 두 섹션이 같은 리듬으로 읽힌다. 인연 칩이 빠진 뒤로 이 판은
-            1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은 주체를 가리킨다. */}
+        {/* 섹션 타이틀 — 판 **밖**에 둔다. 아래 FreeList 두 섹션과 같은 문법(SectionMark 글리프 +
+            본문체 15px bold 제목)이고, 그쪽도 타이틀이 카드 밖에 있어 세 섹션이 같은 리듬으로
+            읽힌다. 인연 칩이 빠진 뒤로 이 판은 1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은
+            주체를 가리킨다. */}
         <div className="flex items-center gap-2">
-          <span aria-hidden className="h-[3px] w-4 rounded-full bg-gold" />
-          <h2 className="font-display text-base text-eye-purple">오늘의 흐름</h2>
+          <SectionMark kind="calendar" />
+          <h2 className="text-[15px] font-bold text-eye-purple">내 하루 달력</h2>
         </div>
 
         <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
@@ -267,10 +264,13 @@ export default function ByeolmaruHub() {
         />
       )}
 
-      {/* 🔴 위 섹션과 간격을 더 준다(16 → 32px) — main 의 space-y-4 만으로는 달력 판과 이 목록이
-          같은 층으로 읽혔다. 둘은 성격이 다른 섹션이라(날짜별 흐름 ↔ 무료 상품 목록) 숨을 한 번 쉰다. */}
-      <div className="pt-4">
-        <FreeList items={buildFreeItems(dailyCard)} />
+      {/* 🔴 위 달력 판과 간격을 더 준다(16 → 32px) — main 의 space-y-4 만으로는 달력 판과 이 목록이
+          같은 층으로 읽혔다. 성격이 다른 섹션이라(날짜별 흐름 ↔ 무료 상품 목록) 숨을 한 번 쉰다.
+          안쪽 space-y-6(24px)은 두 목록 섹션 **사이** 간격이다 — 16px(기본)이면 "오늘 볼 것" 마지막
+          카드와 "나를 알아보는 것" 제목이 붙어 한 섹션으로 읽힌다. */}
+      <div className="space-y-6 pt-4">
+        <FreeList items={buildDailyItems(dailyCard)} title="오늘 볼 것" mark="today" />
+        <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
       </div>
 
       {subscribeModal}

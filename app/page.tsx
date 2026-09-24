@@ -18,6 +18,7 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import SectionMark from "@/components/common/SectionMark";
 
 export default function Home() {
   const router = useRouter();
@@ -152,7 +153,7 @@ export default function Home() {
           )}
 
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
-            <span className="text-[12px]" style={{ color: "#E48BA0" }}>♥</span> 연애 고민
+            <SectionMark kind="love" /> 연애 고민
           </p>
 
           {/* 연애 고민 — A: 인기 2개(제목+설명+해시태그) / B: 나머지 4개(2열 세로형) */}
@@ -283,7 +284,7 @@ export default function Home() {
 
           {/* 다른 고민 */}
           <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
-            <span className="text-gold text-[12px]">✦</span> 다른 고민
+            <SectionMark kind="other" /> 다른 고민
           </p>
 
           <div className="grid grid-cols-2 gap-2.5 mb-3">

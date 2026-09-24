@@ -15,6 +15,7 @@ import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneHeader from "@/components/fortune/FortuneHeader";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import SectionMark from "@/components/common/SectionMark";
 
 export default function FortunePage() {
   const [chip, setChip] = useState<FortuneCategory>(DEFAULT_FORTUNE_CHIP);
@@ -36,8 +37,8 @@ export default function FortunePage() {
 
       <FortuneGeneratingList />
 
-      <p className="w-full max-w-md mx-auto px-5 pt-6 text-[13.5px] font-bold text-eye-purple">
-        🌙 어떤 운세가 궁금해?
+      <p className="w-full max-w-md mx-auto px-5 pt-6 text-[15px] font-bold text-eye-purple flex items-center gap-1.5">
+        <SectionMark kind="fortune" /> 어떤 운세가 궁금해?
       </p>
       <CategoryChips active={chip} onSelect={selectChip} />
 
