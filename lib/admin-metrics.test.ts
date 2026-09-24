@@ -82,3 +82,15 @@ test("isAlerting — 경보선 양쪽과 경계값", () => {
   assert.equal(isAlerting("revenue_won", -999), false);         // 경보선 없는 지표
   assert.equal(isAlerting("first_reading_rate", null), false);  // 값 없음 ≠ 경보
 });
+
+// 🔴 computeGuardrails 는 percent 만 나누고 나머지는 분자를 그대로 값으로 쓴다.
+//    GUARDRAILS 에 won·ratio 지표가 들어오면 그 가정이 깨지므로 여기서 먼저 시끄럽게 죽인다.
+test("가드레일 6종은 percent 또는 count 단위여야 한다", () => {
+  for (const key of GUARDRAILS) {
+    const m: MetricDef = METRICS[key];
+    assert.ok(
+      m.unit === "percent" || m.unit === "count",
+      `가드레일 ${key} 의 unit 이 ${m.unit} 이다 — lib/admin/layer1.ts 의 값 선택을 같이 고칠 것`
+    );
+  }
+});

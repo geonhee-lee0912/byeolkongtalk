@@ -87,11 +87,16 @@ export function computeGuardrails(rows: GuardRow[]): GuardView[] {
   return GUARDRAILS.map((key) => {
     const row = byKey.get(key);
     const m = METRICS[key];
-    // count 단위는 분자가 곧 값이다. 비율은 num/den×100.
-    const value = row === undefined ? null : m.unit === "count" ? row.num : pct1(row.num, row.den);
+    // 🔴 `percent` 만 나눈다. 구 코드는 "count 가 아니면 전부 비율"이라 won·ratio 지표가
+    //    GUARDRAILS 에 들어오는 순간 100배 어긋났다(아직 그런 지표가 없어 미도달이었다).
+    const value =
+      row === undefined ? null : m.unit === "percent" ? pct1(row.num, row.den) : row.num;
     const n = row?.den ?? 0;
-    // 카운트 지표는 표본 개념이 없다(minSample 0) — n 을 0 으로 넘겨도 게이트가 통과된다.
-    const gate = sampleGate(key, m.unit === "count" ? 0 : n);
+    // 🔴 unit 으로 우회하지 않는다. 카운트 지표는 minSample 이 0 이라 den 이 0 이어도 통과하고,
+    //    훗날 표본 게이트가 필요한 카운트 지표가 생기면 den 이 **존중된다.**
+    //    (구 코드는 `unit === "count" ? 0 : n` 이었는데, 그 분기는 오늘 동작에 기여하는 게 없으면서
+    //     den 을 버려서 그런 지표를 영원히 "판단 보류"로 가두는 경로였다 — 코드 리뷰 실측.)
+    const gate = sampleGate(key, n);
     return {
       key,
       label: m.label,

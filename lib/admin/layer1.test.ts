@@ -76,3 +76,20 @@ test("computeGuardrails — 비율은 n<30 이면 가려지고 카운트는 안 
   assert.equal(out.find((g) => g.key === "login_success_rate")!.show, false);
   assert.equal(out.find((g) => g.key === "unreviewed_sensitive")!.show, true);
 });
+
+test("computeGuardrails — 카운트 지표는 den 이 0 이어도 표시된다 (minSample 0)", () => {
+  const out = computeGuardrails([{ metric: "unreviewed_sensitive", num: 3, den: 0 }]);
+  const g = out.find((x) => x.key === "unreviewed_sensitive")!;
+  assert.equal(g.show, true);
+  assert.equal(g.value, 3);
+});
+
+// 같은 metric 이 두 번 오면 Map.set 특성상 마지막이 이긴다. admin_layer1_guard 는 metric 당
+// 한 행만 주는 고정 UNION 이라 실제로는 안 생기지만, 조용히 덮는 동작이라 계약으로 박아둔다.
+test("computeGuardrails — 같은 metric 이 중복되면 마지막 행이 이긴다", () => {
+  const out = computeGuardrails([
+    { metric: "first_reading_rate", num: 100, den: 100 },
+    { metric: "first_reading_rate", num: 1, den: 100 },
+  ]);
+  assert.equal(out.find((g) => g.key === "first_reading_rate")!.value, 1);
+});
