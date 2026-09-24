@@ -14,6 +14,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getCardImagePath, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
+import { SAJU_PAID_CHARS, TAROT_PAID_CHARS, PAIR_PAID_CHARS } from "@/lib/byeolmaru/paywall-sections";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark, { type SectionMarkKind } from "@/components/common/SectionMark";
 
@@ -27,9 +28,15 @@ export interface FreeListItem {
   /** 타일 배경(아이콘 뒤 48px 사각). 좌측 4px 바는 §2-3 에서 제거됐다 — 2탭과 동형으로 맞추는 게
    *  목적이고, 위 격자와 섞여 보이는 문제는 격자가 색면을 갖게 되면서(§3) 사라졌다. */
   tileBg: string;
-  /** 상태 칩 — 오늘 타로는 "뽑음/아직"이 데일리 라이브 성격을 한 줄에서 살린다. */
+  /** 타이틀 옆 칩 = **접근 조건**(지금 어떻게 볼 수 있나). 오늘 타로만 뽑기 상태로 바뀐다. */
   chip: string;
   chipTone: "gold" | "lilac";
+  /** 해시태그 줄 맨 앞 칩 = **구독 가치**(더 보면 뭐가 있나). 유료 확장이 없는 항목은 undefined.
+   *  🔴 칩 둘을 타이틀 옆에 나란히 두면 375px 에서 줄이 넘어가 제목과 칩의 관계가 끊긴다(실측).
+   *     위=접근 조건 / 아래=구독 가치로 나누면 "무료는 여기까지, 더는 구독"이 위아래로 읽힌다.
+   *  🔴 이 칩의 유무가 두 섹션을 가르는 신호이기도 하다 — "나를 알아보는 것" 2종은 유료 확장
+   *     자체가 없어서 안 붙는다. */
+  paidChip?: string;
   /** 타일에 들어갈 것. 아이콘 파일 경로이거나, 타로면 카드 이미지. */
   image: string;
 }
@@ -88,7 +95,12 @@ export default function FreeList({
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-text-light/80">{it.tagline}</p>
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  {it.paidChip ? (
+                    <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-[10px] font-bold text-eye-purple">
+                      {it.paidChip}
+                    </span>
+                  ) : null}
                   {it.hashtags.map((h) => (
                     <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-[11px] font-bold text-lilac-deep">
                       #{h}
@@ -114,13 +126,17 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       key: "saju_today",
       href: "/byeolmaru/saju",
       label: "오늘 사주",
-      tagline: "오늘 일진으로 보는 하루 흐름 — 이름·등급·축 3종까지",
-      hashtags: ["무료", "하루흐름"],
+      tagline: "오늘 네 하루가 어떤 결로 흐르는지 봐줄게",
+      // 🔴 "축 3종"(연애·돈·일)은 내부 용어였다 — 읽는 사람이 뭘 받는지 몰랐다.
+      //    #무료 해시태그는 접근 조건 칩과 중복이라 뺐다(5행 공통).
+      hashtags: ["하루흐름"],
       tileBg: "linear-gradient(135deg, #FFF3D6 0%, #EFEAF6 100%)",
       // 🔴 오늘 사주가 목록으로 내려온다(P5 §3 의 "목록에 없다"를 뒤집는다) — 지금은 오늘 타로만
       //    목록이고 오늘 사주는 달력 안 타일이라 진입점 문법이 달랐다. 히어로 타일은 §2 에서 없앴다.
-      chip: "무료 · 456자",
-      chipTone: "lilac",
+      // 🔴 열람 횟수 제한이 없다 — 매일 갱신될 뿐이라 "하루 1회"가 아니라 "매일"이다(타로·우리와 다름).
+      chip: "매일 무료",
+      chipTone: "gold",
+      paidChip: `구독하면 ${SAJU_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
       image: "/icons/fortune/daily.webp",
     },
     {
@@ -128,10 +144,13 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       href: "/byeolmaru/tarot",
       label: "오늘 타로",
       tagline: "카드 한 장으로 오늘을 가볍게 짚어봐",
-      hashtags: ["하루한장", "오늘의카드"],
+      // 🔴 해시태그는 행마다 하나로 맞춘다 — 구독 칩이 그 줄 앞자리를 먹어서, 두 개면 이 행만
+      //    둘째 줄로 밀려 세 행의 높이가 어긋난다(실측). "#오늘의카드"는 "#하루한장"과 같은 뜻이었다.
+      hashtags: ["하루한장"],
       tileBg: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
-      chip: drawn ? "오늘 뽑음" : "하루 1회 무료 · 389자",
+      chip: drawn ? "오늘 뽑음" : "하루 1회 무료",
       chipTone: "gold",
+      paidChip: `구독하면 ${TAROT_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
       // 🔴 신규 아이콘을 만들지 않는다 — 타일 자리에 카드 이미지를 직접 넣는다(스펙 §3-1·§12).
       //    안 뽑음 = 뒷면, 뽑음 = 그 카드 앞면. "오늘 뽑았나"가 한 줄에서 보인다.
       image: drawn ? getCardImagePath(drawn.cardId) : CARD_BACK_IMAGE,
@@ -147,13 +166,14 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       key: "woori",
       href: "/byeolmaru/woori",
       label: "우리 오늘",
-      tagline: "걸어둔 그 사람과 나, 오늘 둘 사이 흐름을 짚어줄게",
-      hashtags: ["무료", "둘사이"],
+      // 🔴 "걸어둔"은 앱 안에서만 통하는 말이라 뺐다.
+      tagline: "그 사람과 나, 오늘 둘 사이가 어떤지 봐줄게",
+      hashtags: ["둘사이"],
       tileBg: "linear-gradient(135deg, #F7E3EC 0%, #EFEAF6 100%)",
-      // 328자 = pair-taste.json 네 조각(signal 114 · relation 87 · lead 81 · advice 46)의
-      // 카테고리별 평균 합. 오늘 사주 456자를 같은 방법으로 재면 449 라 두 칩이 같은 잣대다.
-      chip: "무료 · 328자",
-      chipTone: "lilac",
+      // 🔴 하루 1명 생성 상한(PAIR_REPORT_DAILY_LIMIT = 1)이라 "하루 1회"가 참이다.
+      chip: "하루 1회 무료",
+      chipTone: "gold",
+      paidChip: `구독하면 ${PAIR_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
       // 두 별이 하트를 이루는 아이콘 — 2탭 궁합 상품과 파일을 공유한다(daily.webp 를 오늘 사주가
       // 재사용하는 것과 같은 선례). 이 목록은 아이콘을 새로 만들지 않는다.
       image: "/icons/fortune/compat.webp",
@@ -177,7 +197,7 @@ export function buildSelfItems(): FreeListItem[] {
       href: "/fortune/saju-mbti",
       label: "사주 MBTI",
       tagline: "사주로 보는 내 유형 — 문항에 답하면 바로 나와",
-      hashtags: ["무료", "16유형"],
+      hashtags: ["16유형"],
       tileBg: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
       chip: "무료",
       chipTone: "lilac",
@@ -187,8 +207,8 @@ export function buildSelfItems(): FreeListItem[] {
       key: "byeoljari",
       href: "/fortune/byeoljari",
       label: "별 인연 지도",
-      tagline: "내 인연들을 별자리로 펼쳐볼게",
-      hashtags: ["무료", "인연지도"],
+      tagline: "내 사람들과의 인연을 별자리로 이어볼게",
+      hashtags: ["인연지도"],
       tileBg: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
       chip: "무료",
       chipTone: "lilac",
