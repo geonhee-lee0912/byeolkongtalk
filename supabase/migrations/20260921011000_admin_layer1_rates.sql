@@ -74,10 +74,13 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
       AND u.id <> ALL(p_exclude)
   ), first_reading AS (
     -- 유저당 첫 리딩 1행. DISTINCT ON 은 ORDER BY 의 선두가 파티션 키여야 한다.
+    -- 타이브레이커 r.id — (user_id, created_at) 동률이면 실행마다 다른 행이 뽑힌다.
+    --   현재 prod 에 동률 0건이지만, 한 트랜잭션에서 리딩 2건을 만드는 경로가 생기면
+    --   now() 가 고정값이라 바로 재현된다.
     SELECT DISTINCT ON (r.user_id) r.user_id, r.stars_spent, r.result_viewed_at
     FROM readings r
     JOIN coh ON coh.id = r.user_id
-    ORDER BY r.user_id, r.created_at
+    ORDER BY r.user_id, r.created_at, r.id
   ), login_reach AS (
     -- /login 을 본 비봇 anon. 어드민 제외를 걸지 않는다 — 분모가 anon 단위라 판별이 불가능하고,
     -- 분자에만 걸면 비율이 구조적으로 낮아진다(같은 규칙을 양쪽에 거는 쪽을 택했다).
@@ -122,7 +125,9 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     GROUP BY 1
   )
   SELECT 'first_reading_rate'::TEXT,
-         (SELECT COUNT(*) FROM coh c WHERE EXISTS (SELECT 1 FROM readings r WHERE r.user_id = c.id))::BIGINT,
+         -- first_reading 은 코호트의 첫 리딩을 유저당 1행 담으므로 COUNT(*) 이 곧 "리딩 1건
+         -- 이상인 코호트 수" 다. EXISTS 재조회와 값이 같음을 prod 대조로 확인했다(둘 다 779).
+         (SELECT COUNT(*) FROM first_reading)::BIGINT,
          (SELECT COUNT(*) FROM coh)::BIGINT
   UNION ALL
   SELECT 'result_viewed'::TEXT,
