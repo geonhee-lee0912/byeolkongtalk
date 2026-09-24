@@ -89,9 +89,9 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               <span className="text-[12px] leading-[15px] text-text-light/70">{dayNum}</span>
               {/* 날짜·동물은 선명하다 — 만세력이라 비밀이 아니다. 가리는 건 판정(점수·마크)뿐. */}
               {animal ? (
-                <Image src={animal.assetSrc} alt="" width={14} height={14} className="object-contain opacity-70" style={{ width: 14, height: 14 }} />
+                <Image src={animal.assetSrc} alt="" width={18} height={18} className="object-contain opacity-70" style={{ width: 18, height: 18 }} />
               ) : (
-                <span aria-hidden style={{ width: 14, height: 14 }} />
+                <span aria-hidden style={{ width: 18, height: 18 }} />
               )}
               {/* 점수·칩 자리는 비운다 — 없는 걸 있는 척하지 않는다. 자리만 남겨 높이를 맞춘다. */}
               <span aria-hidden className="h-5" />
@@ -126,9 +126,9 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               {dayNum}
             </span>
             {animal ? (
-              <Image src={animal.assetSrc} alt="" width={14} height={14} className="object-contain" style={{ width: 14, height: 14 }} />
+              <Image src={animal.assetSrc} alt="" width={18} height={18} className="object-contain" style={{ width: 18, height: 18 }} />
             ) : (
-              <span aria-hidden style={{ width: 14, height: 14 }} />
+              <span aria-hidden style={{ width: 18, height: 18 }} />
             )}
             <span className="text-[17px] font-semibold leading-5" style={{ color: numberColor }}>
               {display}
