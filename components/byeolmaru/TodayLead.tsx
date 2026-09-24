@@ -9,17 +9,20 @@ import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 interface Props {
   /** 오늘의 하루 이름(DAY_NAME). 오늘 칸이 없는 집합이면 null — 그땐 왼쪽을 비운다. */
   todayName: string | null;
+  /** 오늘의 표시 점수(백분위 0~100). 없으면 점수를 빼고 이름만 쓴다. */
+  todayScore: number | null;
   attendance: AttendanceState | null;
 }
 
-export default function TodayLead({ todayName, attendance }: Props) {
+export default function TodayLead({ todayName, todayScore, attendance }: Props) {
   // 연속이 1일이면 "연속"이라 부를 게 없다 — 아예 안 그린다.
   const streak = attendance && attendance.streak > 1 ? attendance.streak : null;
   if (!todayName && streak === null) return null;
   return (
     <div className="flex items-baseline justify-between gap-2 px-1">
+      {/* 🔴 점수를 여기서도 한 번 말한다 — 칸의 "66점"이 무엇인지 문장으로 받아준다. */}
       <p className="truncate text-[13px] font-medium text-eye-purple">
-        {todayName ? `오늘 · ${todayName}` : ""}
+        {todayName ? `오늘 ${todayScore !== null ? `${todayScore}점 · ` : "· "}${todayName}` : ""}
       </p>
       {streak !== null && (
         <p className="shrink-0 text-[12px] text-text-light">

@@ -1,7 +1,9 @@
 "use client";
 
 // components/byeolmaru/DayStrip.tsx — 허브 롤링 7일 스트립.
-// 역할: 오늘 뭐지? / 앞뒤 며칠은? **주 신호는 점수 숫자**이고 면 색·마크 칩은 보조다.
+// 역할: 오늘 뭐지? / 앞뒤 며칠은? **주 신호는 점수 숫자**이고 면 색만 보조한다.
+// 🔴 마크 칩은 뺐다(사용자 결정) — 마크는 이제 상세 카드와 지도에만 산다. marks 는 aria-label 에
+//    계속 싣는다(스크린리더는 "왜"를 잃지 않는다).
 // 🔴 1차 설계의 막대 높이는 기각됐다(2026-09-24) — "높다=좋다"를 학습해야 읽히고, 실데이터가
 //    몰린 구간에서 7칸이 5px 안에 겹쳤다. 숫자는 학습이 필요 없다.
 // 🔴 범위(지난 3 + 오늘 + 앞 3)는 자의적이지 않다 — strip.ts 의 STRIP_LENGTH 가 리포트 생성
@@ -10,7 +12,7 @@
 //    가로로 안 맞아 판이 어긋나 보인다(사용자 지적). 오늘은 최상단이 요일 대신 "오늘"이다.
 // 🔴 동물(지지 캐릭터)은 뺐다 — 숫자가 주 신호가 된 뒤로 칸에서 제일 큰 요소가 의미를 안 담는
 //    쪽으로 되돌아갔다(P5 가 격자에서 같은 이유로 뺐던 것). 상세 히어로에는 크게 남아 있다.
-import { MARK_CHIP, type DayMark } from "@/lib/byeolmaru/day-label";
+import type { DayMark } from "@/lib/byeolmaru/day-label";
 import { cellTint, scoreDisplay, isGoodScore } from "@/lib/byeolmaru/calendar-visual";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
@@ -82,15 +84,14 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               {/* 날짜는 선명하다 — 만세력이라 비밀이 아니다. 가리는 건 판정(점수·마크)뿐. */}
               <span className="text-[12px] leading-[15px] text-text-light/70">{dayNum}</span>
               {/* 점수·칩 자리는 비운다 — 없는 걸 있는 척하지 않는다. 자리만 남겨 높이를 맞춘다. */}
-              <span aria-hidden className="h-5" />
-              <span aria-hidden className="h-[15px]" />
+              {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. 자리만 남겨 높이를 맞춘다. */}
+              <span aria-hidden className="h-[22px]" />
             </button>
           );
         }
 
         const display = scoreDisplay(cell.score);
         const numberColor = today ? "#ffffff" : isGoodScore(cell.score) ? "#412402" : "#5A3E8C";
-        const chip = cell.marks.length ? MARK_CHIP[cell.marks[0].glyph] : null;
 
         return (
           <button
@@ -117,21 +118,16 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
             <span className="text-[12px] leading-[15px]" style={{ color: today ? "rgba(255,255,255,.85)" : "#7A6BA0" }}>
               {dayNum}
             </span>
-            <span className="text-[17px] font-semibold leading-5" style={{ color: numberColor }}>
-              {display}
-            </span>
-            {/* 🔴 마크가 없는 날도 자리를 비워둔다 — 없으면 칸마다 높이가 달라지고, grid 가 최고
-                높이에 맞추므로 결국 위아래 여백으로 흩어진다. */}
-            {chip ? (
-              <span
-                className="rounded-lg text-[9px] font-semibold leading-3"
-                style={{ background: chip.bg, color: chip.fg, padding: "2px 5px 1px" }}
-              >
-                {cell.marks[0].label}
+            {/* 🔴 "점"을 붙인다 — 맨숫자는 점수로 안 읽힌다(사용자 지적). 9px 로 낮춰 숫자의
+                위계는 지킨다. 격자도 같은 규칙을 쓴다. */}
+            <span className="flex items-baseline gap-px">
+              <span className="text-[19px] font-semibold leading-[22px]" style={{ color: numberColor }}>
+                {display}
               </span>
-            ) : (
-              <span aria-hidden className="h-[15px]" />
-            )}
+              <span className="text-[9px] font-semibold" style={{ color: today ? "rgba(255,255,255,.8)" : "#8C81A8" }}>
+                점
+              </span>
+            </span>
           </button>
         );
       })}

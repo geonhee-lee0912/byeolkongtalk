@@ -14,6 +14,7 @@ import MonthGridSection from "./MonthGridSection";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
 import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
+import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -165,6 +166,7 @@ export default function ByeolmaruHub() {
   //    있고(스큐), 그때 data.strip 이 없으면 프로퍼티 접근이 먼저 터져 허브 전체가 에러 바운더리로
   //    간다. 비면 DayStrip 이 스스로 null 을 돌려주므로 화면은 스트립만 빠진 채 멀쩡히 선다.
   const stripLocked = data.strip?.lockedCells ?? [];
+  const todayCell = stripCells.find((c) => c.isToday) ?? null;
 
   // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 스트립 잠긴 칸과 CTA 가 같이 쓴다.
   const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
@@ -220,7 +222,8 @@ export default function ByeolmaruHub() {
               아래 "이번 달" 층 하나만 남긴다. */}
           <div className="space-y-2">
             <TodayLead
-              todayName={stripCells.find((c) => c.isToday)?.title ?? null}
+              todayName={todayCell?.title ?? null}
+              todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
               attendance={attendance}
             />
             <DayStrip

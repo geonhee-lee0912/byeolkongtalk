@@ -161,11 +161,17 @@ export default function CalendarGrid({
               <span className="text-[10px] leading-[11px]" style={{ color: c.isToday ? "rgba(255,255,255,.55)" : "rgba(122,107,160,.6)" }}>
                 {Number(c.date.slice(8, 10))}
               </span>
-              <span
-                className="text-[16px] font-semibold leading-[19px]"
-                style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
-              >
-                {scoreDisplay(c.score)}
+              {/* 🔴 "점"을 붙인다 — 맨숫자는 점수로 안 읽힌다. 8px 로 낮춰 숫자 위계를 지킨다. */}
+              <span className="flex items-baseline gap-px">
+                <span
+                  className="text-[16px] font-semibold leading-[19px]"
+                  style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
+                >
+                  {scoreDisplay(c.score)}
+                </span>
+                <span className="text-[8px] font-semibold" style={{ color: c.isToday ? "rgba(255,255,255,.7)" : "#8C81A8" }}>
+                  점
+                </span>
               </span>
             </button>
           );
