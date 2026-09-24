@@ -20,9 +20,17 @@ export default function TodayLead({ todayName, todayScore, attendance }: Props) 
   if (!todayName && streak === null) return null;
   return (
     <div className="flex items-baseline justify-between gap-2 px-1">
-      {/* 🔴 점수를 여기서도 한 번 말한다 — 칸의 "66점"이 무엇인지 문장으로 받아준다. */}
-      <p className="truncate text-[13px] font-medium text-eye-purple">
-        {todayName ? `오늘 ${todayScore !== null ? `${todayScore}점 · ` : "· "}${todayName}` : ""}
+      {/* 🔴 점수를 여기서도 한 번 말한다 — 칸의 "66점"이 무엇인지 문장으로 받아준다.
+          앞부분(오늘 N점)과 하루 이름의 위계를 벌린다 — 한 크기로 쓰면 어디가 머리인지 안 보인다. */}
+      <p className="min-w-0 truncate">
+        {todayName ? (
+          <>
+            <span className="text-[16px] font-bold text-eye-purple">
+              오늘{todayScore !== null ? ` ${todayScore}점` : ""}
+            </span>
+            <span className="text-[13px] text-text-light"> · {todayName}</span>
+          </>
+        ) : null}
       </p>
       {streak !== null && (
         <p className="shrink-0 text-[12px] text-text-light">

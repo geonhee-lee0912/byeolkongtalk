@@ -12,7 +12,8 @@ export default function BackHeader() {
     <header>
       <Link
         href="/byeolmaru"
-        className="-ml-1 inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/70 py-1.5 pl-2.5 pr-3 text-[13px] font-medium text-eye-purple transition active:scale-[0.97]"
+        // 🔴 음수 마진을 쓰지 않는다 — 판 왼쪽 끝에 붙어 보인다는 지적(2026-09-24).
+        className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/70 py-1.5 pl-2.5 pr-3 text-[13px] font-medium text-eye-purple transition active:scale-[0.97]"
       >
         <span aria-hidden className="text-[15px] leading-none">←</span>
         별마루

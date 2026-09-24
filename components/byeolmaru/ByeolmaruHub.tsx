@@ -243,7 +243,7 @@ export default function ByeolmaruHub() {
           <div className="mt-2 border-t border-lilac-mid/20">
             {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
                 연보라 박스가 또 생겨 3중 중첩이 된다(우리 페이지·게스트 그리드는 감싸는 판이 없어 true). */}
-            <MonthGridSection goodDates={data.cells.filter((c) => c.grade.tone === "good").map((c) => c.date)}>
+            <MonthGridSection>
               <CalendarGrid
                 cells={gridCells}
                 lockedCells={data.lockedCells}

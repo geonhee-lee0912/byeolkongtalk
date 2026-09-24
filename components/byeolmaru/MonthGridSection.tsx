@@ -9,17 +9,14 @@
 //    (AttendanceStrip 은 그 Task 에서 삭제됐고 TodayLead 가 흡수했다.)
 import { useEffect, useState } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { monthSummaryLabel } from "@/lib/byeolmaru/calendar-visual";
 
 const KEY = "byeolkong_month_grid_seen";
 
 interface Props {
-  /** 이번 달 good 등급 날짜(ISO). 버튼 문구가 이걸 센다. */
-  goodDates: string[];
   children: React.ReactNode;
 }
 
-export default function MonthGridSection({ goodDates, children }: Props) {
+export default function MonthGridSection({ children }: Props) {
   // 🔴 null 로 시작해 effect 에서 정한다 — localStorage 는 서버에 없어 초기 렌더에 읽으면
   //    하이드레이션 불일치가 난다(useBaitDismiss 와 같은 이유). 허브는 어차피 캘린더를 fetch 한
   //    뒤에 이 자리를 그리므로 실제로는 깜빡임이 보이지 않는다.
@@ -60,7 +57,7 @@ export default function MonthGridSection({ goodDates, children }: Props) {
         className="flex w-full items-center justify-between pb-2 pt-3.5 text-left"
       >
         <span className="text-sm font-medium text-eye-purple">
-          {monthSummaryLabel(goodDates)}
+          이번 달 달력 보기
         </span>
         <span aria-hidden className="text-base leading-none text-lilac-mid">{open ? "▴" : "▾"}</span>
       </button>

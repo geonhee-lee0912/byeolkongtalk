@@ -59,7 +59,9 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
   if (slots.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-7 gap-0.5">
+    // 🔴 gap 4px 은 칸 폭을 44 -> 42.1px 로 깎는다(판 p-3 기준). 요일 사이가 붙어 보인다는
+    //    지적이라 의도적으로 맞바꾼 것 — 좁히려면 폭이 다시 줄어든다는 걸 알고 할 것.
+    <div className="grid grid-cols-7 gap-1">
       {slots.map(({ date, cell }) => {
         const today = cell?.isToday ?? false;
         const offset = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000);

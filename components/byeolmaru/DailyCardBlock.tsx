@@ -13,6 +13,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getCardTaste } from "@/lib/byeolmaru/static-lines";
+import { useRouter } from "next/navigation";
 import { dayWordFor } from "@/lib/byeolmaru/report-date";
 import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
@@ -71,6 +72,7 @@ export default function DailyCardBlock({
 }) {
   const [state, setState] = useState<CardState>({ kind: "loading" });
 
+  const router = useRouter();
   const [ritualOpen, setRitualOpen] = useState(false);
   const [pendingDraw, setPendingDraw] = useState<DailyCard | null>(null);
   const [saving, setSaving] = useState(false);
@@ -220,11 +222,18 @@ export default function DailyCardBlock({
     openRitual();
   }, [state.kind, date, todayKst]);
 
+  // 🔴 닫기(✕·ESC)는 **허브로 나간다**(2026-09-24). 모달만 닫으면 그 아래에 "오늘 하루, 카드 한
+  //    장으로 가볍게 짚어볼까? / [오늘의 카드 뽑기]" 중간 화면이 드러나는데, 그건 자동 열기를
+  //    넣으면서 없애기로 한 바로 그 단계다(실물 재현 확인). 이 화면에 온 목적이 뽑기 하나뿐이라
+  //    "안 뽑겠다"는 곧 "여기서 나가겠다"다.
+  //    🔴 뽑기 성공 후 닫힘은 이 함수를 타지 않는다(아래 setRitualOpen(false) 직접 호출) —
+  //       결과를 보여줘야 하므로 이동하면 안 된다. 합치지 말 것.
   function closeRitual() {
     if (saving) return;
     setRitualOpen(false);
     setSaveError(false);
     setPendingDraw(null);
+    router.push("/byeolmaru");
   }
 
   async function saveDraw(cardId: number, reversed: boolean) {

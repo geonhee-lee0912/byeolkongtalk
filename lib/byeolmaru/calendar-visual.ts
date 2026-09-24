@@ -85,14 +85,6 @@ export function cellTint(score: number): string {
   return rgba(LILAC_DEEP, 0.3 - t * 0.19);
 }
 
-const SUMMARY_MAX_DATES = 3;
-
-/** 월간 격자 접힘 버튼 문구. 접힌 상태에서도 정보가 남게 "좋은 날"을 앞세운다.
- *  🔴 챙길 날 수를 앞세우지 않는다(스펙 §15-1 완화 — 좋은 날 중심 서술). */
-export function monthSummaryLabel(goodDates: string[]): string {
-  if (goodDates.length === 0) return "이번 달 전체 보기";
-  const days = goodDates.map((d) => `${Number(d.slice(8, 10))}일`);
-  const head = days.slice(0, SUMMARY_MAX_DATES).join(" · ");
-  const rest = days.length - SUMMARY_MAX_DATES;
-  return `이번 달 · 잘 맞는 날 ${head}${rest > 0 ? ` 외 ${rest}일` : ""}`;
-}
+// 🔴 monthSummaryLabel(좋은 날 날짜를 세던 버튼 문구)은 2026-09-24 에 제거됐다 — 버튼은
+//    "이번 달 달력 보기" 고정 라벨로 간다(사용자 결정). 되살리려면 goodDates 를 허브에서 다시
+//    계산해 내려야 한다.

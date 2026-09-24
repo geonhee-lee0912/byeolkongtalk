@@ -2,8 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   isGoodScore,
-  cellTint,
-  monthSummaryLabel,
+  cellTint,
   scorePercentile,
   scoreDisplay,
 } from "./calendar-visual.ts";
@@ -81,17 +80,5 @@ test("scoreDisplay — 단조 비감소이고 0~100 을 벗어나지 않는다",
   }
 });
 
-test("monthSummaryLabel — 좋은 날이 있으면 날짜를 최대 3개까지 센다", () => {
-  assert.equal(monthSummaryLabel(["2026-09-11", "2026-09-23"]), "이번 달 · 잘 맞는 날 11일 · 23일");
-});
 
-test("monthSummaryLabel — 3개를 넘으면 외 N일", () => {
-  assert.equal(
-    monthSummaryLabel(["2026-09-02", "2026-09-11", "2026-09-19", "2026-09-23", "2026-09-30"]),
-    "이번 달 · 잘 맞는 날 2일 · 11일 · 19일 외 2일"
-  );
-});
 
-test("monthSummaryLabel — 좋은 날이 없으면 폴백", () => {
-  assert.equal(monthSummaryLabel([]), "이번 달 전체 보기");
-});
