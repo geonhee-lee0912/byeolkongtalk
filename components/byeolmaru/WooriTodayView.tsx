@@ -45,6 +45,9 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   //    `await res.json()` 은 any 라 **tsc 가 이 불일치를 못 잡는다**. 타입을 여기서 못 박아 둔다.
   const [pairNarrative, setPairNarrative] = useState<PairReport | null>(null);
   const [pairNarrativeLoading, setPairNarrativeLoading] = useState(false);
+  // 🔴 하루 상한에 걸렸나 — "생성 실패"와 **구분해야** 한다. 둘 다 narrative:null 이지만
+  //    전자는 내일이면 풀리고 후자는 지금 다시 오면 된다 — 같은 문구를 쓰면 둘 다 거짓말이 된다.
+  const [pairDailyLimit, setPairDailyLimit] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // ?subject= 로 넘어온 초기 상대(T3 ?date= 와 동일 패턴, I-2). 최초 loadPartners
   // 응답 1회에만 적용한다 — 이후 체험/구독 완료로 refresh() 가 다시 불릴 때(useByeolmaruSubscribe
@@ -129,9 +132,9 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   // 서술은 nano 라 느려서 합치면 서술 완료까지 캘린더 렌더가 묶인다. cancelled 가드는 빠른 subject
   // 전환 시 낡은 fetch 가 최신 상태를 덮어쓰는 것을 막는다. 비자격(!entitledNow)은 아예 호출 안 함(원가 0).
   useEffect(() => {
-    if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairNarrativeLoading(false); return; }
+    if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairDailyLimit(false); setPairNarrativeLoading(false); return; }
     let cancelled = false;
-    setPairNarrative(null); setPairNarrativeLoading(true);
+    setPairNarrative(null); setPairDailyLimit(false); setPairNarrativeLoading(true);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/pair-narrative?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
@@ -141,7 +144,10 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
         //    **문자열**로 돌려주므로 그대로 넣으면 PairReportView 가 report.blocks 에서 터져
         //    화면 전체가 에러 바운더리로 간다. 형태를 확인해 아니면 null — 그러면 "숨 고르는 중"
         //    문구로 떨어져 화면은 멀쩡히 선다(ByeolmaruHub 의 data.strip?. 와 같은 계열의 방어).
-        if (!cancelled) setPairNarrative(isPairReport(j.narrative) ? j.narrative : null);
+        if (!cancelled) {
+          setPairNarrative(isPairReport(j.narrative) ? j.narrative : null);
+          setPairDailyLimit(j.reason === "daily_limit");
+        }
       } catch { if (!cancelled) setPairNarrative(null); }
       finally { if (!cancelled) setPairNarrativeLoading(false); }
     })();
@@ -238,6 +244,16 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
                     <p className="mb-2 text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
                   )}
                   <PairReportView report={pairNarrative} />
+                </div>
+              ) : pairDailyLimit ? (
+                /* 🔴 페이월이 아니다 — "결제하면 더"가 아니라 "오늘은 여기까지"다. 상대를 바꾸는
+                      순간은 대개 관계가 끝난 순간이라 거기에 결제를 붙이지 않기로 했다(교체 과금 기각).
+                      되돌아가는 건 캐시 히트라 이 안내에 안 걸린다 — 오늘 이미 본 사람은 그대로 보인다. */
+                <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center">
+                  <p className="text-sm text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
+                  <p className="mt-1 text-[13px] text-text-light">
+                    이 사람 이야기는 내일 들려줄게. 오늘 본 사람은 다시 볼 수 있어.
+                  </p>
                 </div>
               ) : (
                 <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">

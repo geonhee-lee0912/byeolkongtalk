@@ -17,7 +17,8 @@ import {
   PAIR_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
-import { getCachedPairNarrative, savePairNarrative } from "@/lib/byeolmaru/pair-narrative";
+import { getCachedPairNarrative, savePairNarrative, countPairReportsOn } from "@/lib/byeolmaru/pair-narrative";
+import { PAIR_REPORT_DAILY_LIMIT } from "@/lib/byeolmaru/constants";
 import { PAIR_REPORT_SCHEMA, parsePairReportJson, buildPairReport } from "@/lib/byeolmaru/pair-report";
 import { logError, logInfo, ctxFromRequest } from "@/lib/logger";
 import type { RelationshipStatus } from "@/lib/relationship/types";
@@ -47,6 +48,17 @@ export async function GET(req: NextRequest) {
     const todayKst = kstDate(new Date().toISOString());
     const cached = await getCachedPairNarrative(userId, subject, todayKst);
     if (cached) return NextResponse.json({ entitled: true, narrative: cached });
+
+    // 🔴 하루 상한 — 캐시 **미스 뒤, 사주 계산·LLM 앞**이다. 이 순서가 전부다:
+    //    ①이미 본 상대로 되돌아가는 건 위 캐시 히트에서 이미 빠져나가 상한을 안 탄다(원가 0)
+    //    ②막을 땐 calcSaju·일진·watch 조회까지 통째로 건너뛴다.
+    //    근거·수치는 PAIR_REPORT_DAILY_LIMIT 주석.
+    // 🔴 **fail-closed** — 카운트 조회가 실패하면(null) 생성하지 않는다. 0으로 접으면 DB 장애 때
+    //    원가 가드가 조용히 사라진다. 유저에겐 상한과 같은 안내가 나가고 다음 요청에서 복구된다.
+    const usedToday = await countPairReportsOn(userId, todayKst);
+    if (usedToday === null || usedToday >= PAIR_REPORT_DAILY_LIMIT) {
+      return NextResponse.json({ entitled: true, narrative: null, reason: "daily_limit" });
+    }
 
     const supa = getServiceSupabase();
     const { data: selfRow, error: selfErr } = await supa

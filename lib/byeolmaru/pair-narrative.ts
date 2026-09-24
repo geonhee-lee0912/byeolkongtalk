@@ -58,6 +58,31 @@ export async function getCachedPairNarrative(
   return data.report;
 }
 
+/**
+ * 오늘 **몇 명의 상대에 대해** 리포트를 생성했나(= 그날 캐시된 행 수).
+ * 하루 상한(PAIR_REPORT_DAILY_LIMIT) 판정용 — 상세 근거는 그 상수 주석.
+ *
+ * 🔴 조회 실패는 **0이 아니라 null** 로 돌린다. 0으로 접으면 DB 장애 때 상한이 통째로 풀려
+ *    원가 가드가 조용히 사라진다(호출부가 fail-closed 로 처리한다).
+ * 🔴 `head:true, count:"exact"` — 행 본문을 안 가져온다(카운트만 필요하다).
+ */
+export async function countPairReportsOn(userId: string, dateStr: string): Promise<number | null> {
+  const { count, error } = await getServiceSupabase()
+    .from(TABLE)
+    .select("partner_profile_id", { head: true, count: "exact" })
+    .eq("user_id", userId)
+    .eq("narrative_date", dateStr);
+  if (error) {
+    void logWarn("pair report daily count failed", {
+      route: "lib/byeolmaru/pair-narrative",
+      userId,
+      extra: { dateStr, code: (error as { code?: string }).code, message: error.message },
+    });
+    return null;
+  }
+  return count ?? 0;
+}
+
 /** 리포트 저장. 반환값이 **응답에 써야 할 것** — 내가 이겼으면 내 것, 동시 생성으로 졌으면 승자 것.
  *  승자 재조회까지 실패하면 내 것을 돌려준다(응답은 어차피 완결 리포트 — 저장 실패는 다음 요청에서 재생성될 뿐). */
 export async function savePairNarrative(
