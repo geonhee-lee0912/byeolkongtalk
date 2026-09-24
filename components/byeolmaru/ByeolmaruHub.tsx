@@ -8,7 +8,7 @@ import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
-import AttendanceStrip from "./AttendanceStrip";
+import TodayLead from "./TodayLead";
 import DayStrip, { type StripCell } from "./DayStrip";
 import MonthGridSection from "./MonthGridSection";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
@@ -216,7 +216,10 @@ export default function ByeolmaruHub() {
               칩이 빠진 지금 그대로 두면 판 안쪽 맨 위에 선 하나가 떠 있게 된다. 판 안 구분선은
               아래 "이번 달" 층 하나만 남긴다. */}
           <div className="space-y-2">
-            <AttendanceStrip attendance={attendance} />
+            <TodayLead
+              todayName={stripCells.find((c) => c.isToday)?.title ?? null}
+              attendance={attendance}
+            />
             <DayStrip
               cells={stripCells}
               lockedCells={stripLocked}
