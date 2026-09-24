@@ -3,17 +3,17 @@
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { cellTint, isGoodScore } from "@/lib/byeolmaru/calendar-visual";
-import { MARK_CHIP, type DayMark } from "@/lib/byeolmaru/day-label";
+import { cellTint, isGoodScore, scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
+import type { DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
 // 어느 쪽 캘린더든 그대로 그린다.
 export interface GridCell {
   date: string;
-  /** 셀 배경 채도의 원천. 스트립 막대와 **같은 값**을 쓴다. */
+  /** 셀 배경 채도의 원천. 스트립과 **같은 값**을 쓴다. */
   score: number;
-  /** aria-label 과 계측에만 쓴다 — 배경엔 안 쓴다(아래 TONE_STYLE 주석). */
+  /** aria-label 과 계측에만 쓴다 — 배경엔 안 쓴다(아래 TONE_STYLE 제거 주석). */
   tone: DayTone;
   label: string;
   isToday: boolean;
@@ -32,7 +32,7 @@ export interface GridCell {
 // 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 바꿀 땐 세 지면을 같이 볼 것
 //    (허브 판 · 우리 탭 격자 · 게스트 구경 그리드).
 // 🔴 **판과 칸은 한 쌍이다.** 판이 흰색이므로 셀 배경에는 알파 바닥이 필요하다 — 같은 색이면
-//    칸이 통째로 사라진다. 그 바닥(0.12)은 calendar-visual.ts 의 cellTint 가 지키고 계약
+//    칸이 통째로 사라진다. 그 바닥(0.11)은 calendar-visual.ts 의 cellTint 가 지키고 계약
 //    테스트가 고정한다. 판을 다시 칠할 거면 그 바닥도 같이 옮겨야 한다.
 //    (크림 그라데이션 판 + 순백 칸 조합을 거쳐 왔다 — 판을 흰색으로 올리면서 칸을 내렸다.)
 export const PANEL_BG = "#ffffff";
@@ -122,17 +122,13 @@ export default function CalendarGrid({
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
                 style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >
-                <span className="text-[13px] font-semibold leading-none text-text-light/60">
-                  {Number(date.slice(8, 10))}
-                </span>
-                {/* 마크 띠 자리를 **빈 채로** 남긴다 — 가짜 내용을 흐려 보여주지 않는다(없는 걸 있는 척
-                    하지 않는다). 자리만 비어 있어 "여기 뭔가 들어온다"가 레이아웃으로 읽힌다. */}
-                <span aria-hidden className="mt-1 h-[13px] w-6 rounded-full bg-lilac-mid/25" />
+                <span className="text-[10px] leading-[11px] text-text-light/60">{Number(date.slice(8, 10))}</span>
+                {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. */}
+                <span aria-hidden className="h-[19px]" />
               </div>
             );
           }
           const selected = c.date === selectedDate;
-          const good = isGoodScore(c.score);
           return (
             <button
               key={c.date}
@@ -147,7 +143,7 @@ export default function CalendarGrid({
                 trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind, surface: "grid" } });
                 onSelect(c.date);
               }}
-              aria-label={`${c.date} ${c.label}${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
+              aria-label={`${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
               className="relative flex aspect-square flex-col items-center justify-center rounded-xl"
               style={{
@@ -158,34 +154,19 @@ export default function CalendarGrid({
                 ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >
-              {good && (
-                // 좋은 날에만 뜨는 4꼭지 별 — 한 달에 서너 칸뿐이라 희소하다(실측 good 17%).
-                // 🔴 오늘이어도 **끄지 않는다** — 오늘 칸은 어두운 pill 이라 톤 색을 안 쓰므로,
-                //    별을 빼면 "오늘이 좋은 날"이라는 걸 화면에서 말하는 게 하나도 안 남는다
-                //    (aria-label 에만 남아 시각 사용자만 정보를 잃는다). 색만 뒤집는다 —
-                //    gold-soft 는 cream 위에선 1.31:1 이라 금지지만 이 어두운 면 위에선 충분하다.
-                <span
-                  aria-hidden
-                  className="absolute right-1 top-1 text-[8px] leading-none"
-                  style={{ color: c.isToday ? "#F2D78A" : "#C99A28" }}
-                >
-                  ✦
-                </span>
-              )}
-              <span className={`text-[13px] font-semibold leading-none ${c.isToday ? "text-white" : "text-eye-purple"}`}>
+              {/* 🔴 ✦ 별 글리프는 2차 설계(2026-09-24)에서 제거됐다 — 숫자가 88 이면 이미
+                  "좋은 날"이라고 말하고 있어서 중복이다. 마크 칩도 같은 이유로 격자엔 없다
+                  (44px 에 3층이면 숫자가 죽고, 숫자 색으로 마크를 인코딩하면 진한 면에서
+                  대비가 깨진다 — 스펙 §3·§6). 마크는 칸이 두 배 넓은 스트립이 진다. */}
+              <span className="text-[10px] leading-[11px]" style={{ color: c.isToday ? "rgba(255,255,255,.55)" : "rgba(122,107,160,.6)" }}>
                 {Number(c.date.slice(8, 10))}
               </span>
-              {c.marks.length ? (
-                <span
-                  // 🔴 셀에는 최우선 마크 1개만. 2개부터 42px 칸에서 날짜와 겹친다(실측).
-                  //    전체 목록은 aria-label 과 상세 카드의 마크 칩이 받는다.
-                  //    🔴 솔리드 칩(MARK_CHIP) — 칩 자체가 색면이라 셀 배경과 무관하게 대비가 고정된다.
-                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px]"
-                  style={{ background: MARK_CHIP[c.marks[0].glyph].bg, color: MARK_CHIP[c.marks[0].glyph].fg }}
-                >
-                  {c.marks[0].label}
-                </span>
-              ) : null}
+              <span
+                className="text-[16px] font-semibold leading-[19px]"
+                style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
+              >
+                {scoreDisplay(c.score)}
+              </span>
             </button>
           );
         })}
