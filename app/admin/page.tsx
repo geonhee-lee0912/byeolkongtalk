@@ -4,7 +4,7 @@ import { adminExclusionList, adminExclusionArray } from "@/lib/admin";
 import { Stat, Delta } from "@/components/admin/Stat";
 // 🔴 조회 실패를 0/빈 배열로 위장하지 않는다 — 규칙은 컴포넌트 헤더 주석 참조
 import LoadFailed from "@/components/admin/LoadFailed";
-import { startOfTodayKstIso, kstDate } from "@/lib/admin-time";
+import { startOfTodayKstIso, kstDate, daysAgoKstIso } from "@/lib/admin-time";
 import {
   fillTrafficAxis,
   pickTodayYesterday,
@@ -13,6 +13,20 @@ import {
 } from "@/lib/analytics/traffic";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { type StarSpendGroup } from "@/lib/analytics/aggregate";
+import { Metric } from "@/components/admin/Metric";
+import { ContributionHero } from "@/components/admin/ContributionHero";
+import { BandGauge } from "@/components/admin/BandGauge";
+import { GuardrailRow } from "@/components/admin/GuardrailRow";
+import {
+  rolling7,
+  computeBand,
+  costCoverage,
+  pickBandAxis,
+  dailyValues,
+  adSpendStaleDays,
+  type DailyPnl,
+} from "@/lib/admin/band";
+import { computeUnit, computeGuardrails, type GuardRow } from "@/lib/admin/layer1";
 
 export const dynamic = "force-dynamic";
 
@@ -192,9 +206,74 @@ async function loadStats() {
   };
 }
 
+// 밴드는 8주(56개) 롤링 값이 필요하고, 롤링 한 개가 7일을 먹는다 → 62일치 일별 행.
+const BAND_DAYS = 62;
+
+async function loadLayer1() {
+  const supa = getServiceSupabase();
+  const p_exclude = adminExclusionArray();
+  const since = daysAgoKstIso(BAND_DAYS - 1);
+  const win7 = daysAgoKstIso(6); // 오늘 포함 7일
+
+  const [pnlRes, unitRes, guardRes] = await Promise.all([
+    supa.rpc("admin_layer1_pnl", { p_since: since, p_exclude }),
+    supa.rpc("admin_layer1_unit", { p_since: win7, p_until: null, p_exclude }),
+    supa.rpc("admin_layer1_guard", { p_since: win7, p_until: null, p_exclude }),
+  ]);
+
+  // 🔴 NUMERIC 은 PostgREST 를 지나며 **문자열**로 온다 — BIGINT 와 같은 함정이다.
+  //    Number() 를 빼면 cost 가 문자열 연결("0" + "12")로 더해져 조용히 틀린다.
+  const days: DailyPnl[] = ((pnlRes.data ?? []) as Record<string, string>[]).map((r) => ({
+    bucket: r.bucket,
+    revenueWon: Number(r.revenue_won),
+    adSpendWon: Number(r.ad_spend_won),
+    adRows: Number(r.ad_rows),
+    apiCostWon: Number(r.api_cost_won),
+    costRows: Number(r.cost_rows),
+  }));
+
+  const last7 = days.slice(-7);
+  const coverage = costCoverage(last7);
+  const axis = pickBandAxis(days);
+  const rolling = rolling7(dailyValues(days, axis));
+  const band = computeBand(rolling);
+
+  const unitRow = ((unitRes.data ?? []) as Record<string, string>[])[0];
+  const unit = computeUnit({
+    signups: Number(unitRow?.signups ?? 0),
+    payers: Number(unitRow?.payers ?? 0),
+    revenueWon: Number(unitRow?.revenue_won ?? 0),
+    adSpendWon: Number(unitRow?.ad_spend_won ?? 0),
+  });
+
+  const guards = computeGuardrails(
+    ((guardRes.data ?? []) as Record<string, string>[]).map(
+      (r): GuardRow => ({ metric: r.metric, num: Number(r.num), den: Number(r.den) })
+    )
+  );
+
+  return {
+    sum7: {
+      revenueWon: last7.reduce((s, d) => s + d.revenueWon, 0),
+      adSpendWon: last7.reduce((s, d) => s + d.adSpendWon, 0),
+      apiCostWon: last7.reduce((s, d) => s + d.apiCostWon, 0),
+    },
+    coverage,
+    axis,
+    rolling,
+    band,
+    // 🔴 플랜 Task 6 절의 Step 4 코드 블록이 이 필드를 반환/전달에서 빠뜨렸다(Step 0-b 서술과
+    //    불일치). ContributionHero.adStaleDays 는 필수 prop 이라 안 채우면 tsc 가 죽는다.
+    adStaleDays: adSpendStaleDays(last7),
+    unit,
+    signups: Number(unitRow?.signups ?? 0),
+    guards,
+    failed: { pnl: Boolean(pnlRes.error), unit: Boolean(unitRes.error), guard: Boolean(guardRes.error) },
+  };
+}
 
 export default async function AdminDashboard() {
-  const s = await loadStats();
+  const [s, L1] = await Promise.all([loadStats(), loadLayer1()]);
   const starCard = (label: string, d: { today: { stars: number; free: number }; yesterday: number }) => (
     <Stat label={label} value={d.today.stars.toLocaleString()} paren={`무료 ${d.today.free.toLocaleString()}`}>
       <Delta today={d.today.stars} yesterday={d.yesterday} />
@@ -203,6 +282,57 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-bold">대시보드</h1>
+
+      {/* 🔴 1층(플랜B 단계3, Task 6) — 기존 섹션은 지우지 않는다. 위에 얹기만 한다.
+          2층으로 옮기는 것은 Task 8. */}
+      <section>
+        {L1.failed.pnl && <LoadFailed className="mb-3" block="손익(admin_layer1_pnl)" />}
+        {!L1.failed.pnl && (
+          <>
+            <ContributionHero
+              revenueWon={L1.sum7.revenueWon}
+              adSpendWon={L1.sum7.adSpendWon}
+              apiCostWon={L1.sum7.apiCostWon}
+              coverage={L1.coverage}
+              adStaleDays={L1.adStaleDays}
+            />
+            {L1.band ? (
+              <BandGauge band={L1.band} rolling={L1.rolling} axis={L1.axis} />
+            ) : (
+              <div className="text-[12px] text-white/40 mt-3">
+                밴드는 8주치 롤링 값이 모여야 그린다 (현재 {L1.rolling.length}개).
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          단가 <span className="text-white/35">(최근 7일 가입 코호트 귀속)</span>
+        </h2>
+        {L1.failed.unit ? (
+          <LoadFailed block="단가(admin_layer1_unit)" />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Metric metricKey="cac_won" value={L1.unit.cacWon} n={L1.signups} />
+            <Metric
+              metricKey="rev_per_signup"
+              value={L1.unit.revPerSignup}
+              n={L1.signups}
+              sub="= 결제율 × ARPPU"
+            />
+            <Metric metricKey="pay_rate" value={L1.unit.payRate} n={L1.signups} />
+            <Metric metricKey="arppu_won" value={L1.unit.arppuWon} n={L1.signups} />
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">가드레일</h2>
+        {L1.failed.guard ? <LoadFailed block="가드레일(admin_layer1_guard)" /> : <GuardrailRow guards={L1.guards} />}
+      </section>
+
       <section>
         <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
         {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}

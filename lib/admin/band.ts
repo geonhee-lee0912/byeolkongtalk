@@ -10,6 +10,8 @@ export interface DailyPnl {
   bucket: string;
   revenueWon: number;
   adSpendWon: number;
+  /** 🔴 그 날 ad_spend 행 수. 0 = **미입력**(광고비 0원과 구별된다 — 0원으로 입력하면 행이 있다). */
+  adRows: number;
   apiCostWon: number;
   /** 🔴 그 날 llm_usage 행 수. 0 = 미축적(원가 0원과 구별된다). */
   costRows: number;
@@ -99,6 +101,18 @@ export interface CostCoverage {
 export function costCoverage(days: DailyPnl[]): CostCoverage {
   const covered = days.filter((d) => d.costRows > 0).length;
   return { covered, total: days.length, full: days.length > 0 && covered === days.length };
+}
+
+/**
+ * 창 **끝에서부터** 광고비가 **미입력**인 연속 일수.
+ *
+ * 🔴 `adSpendWon === 0` 이 아니라 `adRows === 0` 으로 판정한다 — 광고비를 0원으로 **입력한**
+ *    날은 행이 있으므로 미입력과 구분된다. (`cost_rows` 와 같은 설계.)
+ */
+export function adSpendStaleDays(days: DailyPnl[]): number {
+  let n = 0;
+  for (let i = days.length - 1; i >= 0 && days[i].adRows === 0; i--) n++;
+  return n;
 }
 
 /** 밴드를 어느 축으로 그릴지. 성분 구성이 다른 값을 한 분포에 섞으면 밴드가 거짓말을 한다. */

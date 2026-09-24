@@ -5,6 +5,7 @@
 //    오판을 막는다(스펙 §7).
 import { METRICS, sampleGate, isAlerting, type MetricKey, type MetricDef } from "@/lib/admin-metrics";
 import { formatMetric } from "@/lib/admin/format";
+import { STATUS } from "@/lib/admin/colors";
 
 export function Metric({
   metricKey,
@@ -29,14 +30,19 @@ export function Metric({
 
   return (
     <div
-      className={`rounded-xl border p-4 ${
-        alerting ? "border-[#d03b3b] bg-[#d03b3b]/10" : "border-white/10 bg-white/5"
-      }`}
+      // 🔴 STATUS 는 Tailwind arbitrary-value 클래스 문자열에 보간할 수 없다(Tailwind 는 소스에
+      //    literal 하게 적힌 클래스만 정적 스캔한다 — 코드베이스 선례: ELEMENT_COLORS/CohortHeatmap
+      //    이 전부 style={{}} 로 동적 색을 준다). 그래서 색만 style 로 분리한다.
+      className={`rounded-xl border p-4 ${alerting ? "" : "border-white/10 bg-white/5"}`}
+      style={alerting ? { borderColor: STATUS.critical, backgroundColor: `${STATUS.critical}1a` } : undefined}
     >
       <div className="text-[12px] text-white/60" title={m.definition}>
         {m.label}
       </div>
-      <div className={`text-2xl font-bold mt-1 ${alerting ? "text-[#ec835a]" : ""}`}>
+      <div
+        className="text-2xl font-bold mt-1"
+        style={alerting ? { color: STATUS.serious } : undefined}
+      >
         {!gate.show ? (
           <span className="text-base font-normal text-white/40">{gate.note}</span>
         ) : value === null ? (
