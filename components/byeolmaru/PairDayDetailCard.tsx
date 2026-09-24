@@ -29,7 +29,7 @@ export default function PairDayDetailCard({
   children?: React.ReactNode;
 }) {
   const md = `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`;
-  // 칩은 셀 마크와 같은 어휘·같은 글리프를 쓴다(P5-5) — 달력에서 본 ✧ 가 여기서 "끌림"으로 풀린다.
+  // 칩은 셀 마크와 같은 어휘·같은 글리프를 쓴다(P5-5) — 달력에서 본 ✧ 가 여기서 "설렘"으로 풀린다.
   const marks = pairMarks(cell.tags);
   // 리드는 마크가 아니라 별도 칩(두 사람 점수 비교라 "그날의 원인"이 아니다).
   // 🔴 `${partnerName}가` 는 받침 있는 이름에서 틀린다("지민가") — 무조사 표기로 고정한다
@@ -73,9 +73,9 @@ export default function PairDayDetailCard({
       )}
 
       {/* 🔴 "너희 결" 요약 블록 — 2026-09-24 에 줄글에서 UI 로 바꿨다(사용자 요청).
-          예전엔 `든든한 지원군 ↔ 내가 아끼는 사람` / `둘 사이 끌림 · 연월조화 0` 처럼 **본문도 아닌
+          예전엔 `든든한 지원군 ↔ 내가 아끼는 사람` / `둘 사이 설렘 · 연월조화 0` 처럼 **본문도 아닌
           정보가 텍스트로 깔려** 진짜 읽을 글(taste·리포트)과 구분이 안 됐다.
-          🔴 **전부 룰 데이터다(LLM 0·원가 0)** — 십신 라벨·끌림·결속은 backdrop, 연월조화는 0~4
+          🔴 **전부 룰 데이터다(LLM 0·원가 0)** — 십신 라벨·설렘·척척은 backdrop, 연월조화는 0~4
              카운트(천간합 2 + 육합 2). 새 LLM 필드를 만들지 않았다. */}
       <div className="rounded-xl border border-lilac-soft bg-white/60 p-3">
         <p className="mb-2 text-[11px] font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
@@ -99,12 +99,12 @@ export default function PairDayDetailCard({
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {backdrop.spark && (
               <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
-                <span aria-hidden>✦</span> 둘 사이 끌림
+                <span aria-hidden>✦</span> 둘 사이 설렘
               </li>
             )}
             {backdrop.bond && (
               <li className="rounded-full bg-lilac/50 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
-                <span aria-hidden>◈</span> 둘 사이 결속
+                <span aria-hidden>◈</span> 둘 사이 척척
               </li>
             )}
           </ul>

@@ -52,7 +52,7 @@ test("dayMarks — 아무 신호도 없으면 빈 배열", () => {
 test("dayMarks — 천간합·육합이 같이 있으면 둘 다, 순서는 천간합 먼저", () => {
   const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true });
   assert.deepEqual(m.map((x) => x.glyph), ["✧", "◇"]);
-  assert.deepEqual(m.map((x) => x.label), ["끌림", "결속"]);
+  assert.deepEqual(m.map((x) => x.label), ["설렘", "척척"]);
 });
 
 test("dayMarks — 충은 △", () => {
@@ -139,4 +139,13 @@ test("buildCalendar — 등급·점수는 무회귀(십신 추가가 판정을 �
     const expected = c.score >= 70 ? "good" : c.score >= 45 ? "normal" : "caution";
     assert.equal(c.grade.tone, expected, `${c.date} 등급이 점수와 어긋남`);
   }
+});
+
+// 🔴 이 테스트는 어휘를 잠그는 게 목적이 아니라 **선정 기준**을 잠근다 — 상대를 요구하는 말
+//    (끌림·결속 같은)이 다시 들어오면 1인칭 달력에서 목적어가 빈다.
+test("dayMarks — 라벨은 전부 2글자이고 상대를 요구하는 옛 어휘가 아니다", () => {
+  const m = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
+  for (const x of m) assert.equal(x.label.length, 2, x.label);
+  const banned = ["끌림", "결속"];
+  for (const x of m) assert.ok(!banned.includes(x.label), `상대를 요구하는 어휘: ${x.label}`);
 });

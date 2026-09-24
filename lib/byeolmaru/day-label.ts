@@ -44,7 +44,7 @@ export const DAY_LINE: Record<TenGod, string> = {
 
 export type DayGlyph = "✧" | "◇" | "△" | "＋";
 
-/** 마크 강도 — 우리 탭의 **가중되는 신호**(끌림·결속)에서 두 사람 다면 full, 한 명만이면 half(§3-1-a).
+/** 마크 강도 — 우리 탭의 **가중되는 신호**(설렘·척척)에서 두 사람 다면 full, 한 명만이면 half(§3-1-a).
  *  🔴 규칙은 "둘이냐 한 명이냐"가 아니라 **"점수가 깎였느냐"**다. 삐걱은 한 명만 충이어도 점수가
  *     -14 그대로라 발화하면 항상 full 이다 — 시각이 점수를 따라가지, 머릿수를 따라가지 않는다.
  *  나 탭은 사람이 하나라 항상 full. */
@@ -81,15 +81,19 @@ export const MARK_TINT: Record<MarkStrength, string> = { full: "59", half: "26" 
 
 /**
  * 그날을 그렇게 만든 원인 마크. 달력 셀 하단 띠 + 상세 칩에 쓴다.
- * 🔴 어휘는 우리 탭(pairMarks)과 **같다** — 판정 primitive 가 실제로 같기 때문이다(천간합·육합·충).
- *    예전 라벨(천간합·육합·충·빈 곳 채움)은 용어였고 길이도 1~5자로 들쭉날쭉해 2글자 띠에 안 들어갔다.
- *    두 탭이 한 문법을 쓰게 한다는 건 이 파일이 처음부터 적어둔 의도다.
+ * 🔴 어휘는 우리 탭(pairMarks)·지도(BOND_FILTER_LABEL)와 **같다** — 판정 primitive 가 실제로
+ *    같기 때문이다(천간합·육합·충). 바뀐 건 그 어휘의 **선정 기준**이다(2026-09-24):
+ *    옛 라벨(끌림·결속)은 **상대를 요구하는 말**이라 1인칭 허브 달력에서 목적어가 빈다
+ *    ("오늘 끌림 → 누구한테?"). 우리 탭·지도는 대상이 분명해 문제가 안 보였을 뿐이다.
+ *    → 기준은 "한 결로 묶이는가"가 아니라 **"상대 없이 성립하는가"**.
+ *    척척↔삐걱은 같은 축(현실=지지)의 +/− 의태어 쌍이라 범례 없이 대비가 읽힌다.
+ * 🔴 2글자 고정 — 격자 셀(41px)의 칩에 한 줄로 들어가야 한다.
  * 순서는 고정(천간합 → 육합 → 충 → 빈 곳)이라 같은 날이 늘 같은 순서로 보인다.
  */
 export function dayMarks(f: DayFactors): DayMark[] {
   const out: DayMark[] = [];
-  if (f.heavenlyCombo) out.push({ glyph: "✧", label: "끌림", strength: "full" });
-  if (f.sixCombo) out.push({ glyph: "◇", label: "결속", strength: "full" });
+  if (f.heavenlyCombo) out.push({ glyph: "✧", label: "설렘", strength: "full" });
+  if (f.sixCombo) out.push({ glyph: "◇", label: "척척", strength: "full" });
   if (f.clash) out.push({ glyph: "△", label: "삐걱", strength: "full" });
   // scarce(1개)는 마크를 붙이지 않는다 — "아예 없던 게 채워지는" 날만 눈에 띄게 한다.
   if (f.scarcity === "absent") out.push({ glyph: "＋", label: "채움", strength: "full" });

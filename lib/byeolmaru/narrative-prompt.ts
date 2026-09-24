@@ -62,12 +62,12 @@ export const BYEOLMARU_NARRATIVE_MODEL = "gpt-5-nano"; // 원가 최소 — 나/
 export const NARRATIVE_MAX_TOKENS = 900;
 
 // 우리 오늘 서술 — ②-a buildNarrativeSystem 미러(나 1인 → 나+상대 2인). loadCore/formatPillars 공용.
-/** PairDayCell → "9월 12일(끌림·네가 리드)" 형식. 관계-타이밍(택일 보완①) 목록용. */
+/** PairDayCell → "9월 12일(설렘·네가 리드)" 형식. 관계-타이밍(택일 보완①) 목록용. */
 function formatPairGoodDay(c: PairDayCell, partnerName: string): string {
   const md = `${Number(c.date.slice(5, 7))}월 ${Number(c.date.slice(8, 10))}일`;
   const sig: string[] = [];
-  if (c.tags.spark) sig.push("끌림");
-  if (c.tags.bond) sig.push("결속");
+  if (c.tags.spark) sig.push("설렘");
+  if (c.tags.bond) sig.push("척척");
   if (c.tags.lead === "me") sig.push("네가 리드");
   else if (c.tags.lead === "partner") sig.push(`${partnerName} 리드`);
   return sig.length ? `${md}(${sig.join("·")})` : md;
@@ -90,8 +90,8 @@ export function buildPairNarrativeSystem(
   status?: RelationshipStatus | null
 ): string {
   const sig: string[] = [];
-  if (cell.tags.spark) sig.push("끌림↑");
-  if (cell.tags.bond) sig.push("결속");
+  if (cell.tags.spark) sig.push("설렘↑");
+  if (cell.tags.bond) sig.push("척척");
   if (cell.tags.friction) sig.push("삐걱");
   if (cell.tags.lead === "me") sig.push("내가 리드");
   else if (cell.tags.lead === "partner") sig.push(`${partnerName}가 리드`);
@@ -105,7 +105,7 @@ export function buildPairNarrativeSystem(
     `너는 '${cell.date}' 하루, 이 사람과 상대('${partnerName}') 사이의 흐름을 사주로 풀어준다. 오늘 일진은 ${todayGanji}.`,
     `나: ${formatPillars(self)}.`,
     `${partnerName}: ${formatPillars(partner)}.`,
-    `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spark ? " · 끌림 있음" : ""}${backdrop.bond ? " · 결속 있음" : ""} · 연월조화 ${backdrop.harmony}.`,
+    `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spark ? " · 설렘 있음" : ""}${backdrop.bond ? " · 척척 있음" : ""} · 연월조화 ${backdrop.harmony}.`,
     ...(status ? [`지금 둘은 ${RELATIONSHIP_STATUS_LABELS[status]} 사이 — 이 관계 결을 반영해서 말해.`] : []),
     // 사실 제약(목록 밖 날짜 금지와 같은 계열) — sig 는 spark/bond/friction/lead 4개를 전부
     // 담는 배열이라 length===0 인 날(30일 중 11일 실측)이 흔하다. 그날은 "여기 적힌 게 전부야"
@@ -113,7 +113,7 @@ export function buildPairNarrativeSystem(
     `오늘 둘 사이 결 ${PAIR_TONE_LABEL[cell.tone]}${
       sig.length
         ? ` · 신호 ${sig.join("·")}. 여기 적힌 게 오늘 켜진 신호 전부야 — 없는 신호를 만들지 말고, 리드 방향도 적힌 그대로 써.`
-        : ". 오늘은 끌림·결속·삐걱·리드 중 켜진 신호가 하나도 없어 — 지어내지 마."
+        : ". 오늘은 설렘·척척·삐걱·리드 중 켜진 신호가 하나도 없어 — 지어내지 마."
     }`,
     // I-4 정정 — goodDays 는 호출부(route.ts)에서 이미 이번 달 말일까지로 클램프돼 들어온다.
     // "앞으로 30일"이라 하면 달력에 없는 다음 달 날짜까지 있는 것처럼 들려 문구를 이번 달 기준으로 바꾼다.

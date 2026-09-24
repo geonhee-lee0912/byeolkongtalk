@@ -154,7 +154,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         .map((n) => {
           const d = detailFor(focusId, n.id); // edge/oriented/inyeonInfo/target (graph 기준)
           const e = d.edge;
-          const tag = e?.heavenlyCombo ? "끌림" : e?.sixCombo ? "결속" : e?.triadShared ? "같은 결" : "같은 결";
+          const tag = e?.heavenlyCombo ? "설렘" : e?.sixCombo ? "척척" : e?.triadShared ? "같은 결" : "같은 결";
           const triadShared = graph.triads.some(
             (t) => t.memberIds.includes(focusId) && t.memberIds.includes(n.id)
           );
@@ -317,7 +317,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             {summary && (
               <p className="mb-2 text-sm text-eye-purple">
                 {summary.total > 0
-                  ? `강하게 엮인 인연 ${summary.total}명 — 끌림 ${summary.chemi} · 결속 ${summary.bond} · 같은 결 ${summary.triad}. ${summary.comment}`
+                  ? `강하게 엮인 인연 ${summary.total}명 — 설렘 ${summary.chemi} · 척척 ${summary.bond} · 같은 결 ${summary.triad}. ${summary.comment}`
                   : summary.comment}
               </p>
             )}
@@ -402,11 +402,11 @@ export default function ConstellationView({ graph, meId }: Props) {
         <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-xs text-eye-purple">
           <span className="inline-flex items-center gap-1.5">
             <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.heavenly} strokeWidth="2" strokeLinecap="round" /></svg>
-            끌림
+            설렘
           </span>
           <span className="inline-flex items-center gap-1.5">
             <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.six} strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
-            결속
+            척척
           </span>
           <span className="inline-flex items-center gap-1.5">
             <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.triad} strokeWidth="2" strokeLinecap="round" /></svg>

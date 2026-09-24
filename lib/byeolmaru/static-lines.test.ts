@@ -275,7 +275,7 @@ test("pair-taste: 슬롯 자수 밴드와 합계 — 무료는 ~350자다(유료
   }
 });
 
-test("pair-taste: signal 키 우선순위 friction > 끌림+결속 > 끌림 > 결속 > tone", () => {
+test("pair-taste: signal 키 우선순위 friction > 설렘+척척 > 설렘 > 척척 > tone", () => {
   const bank = pairTasteBank as unknown as { signal: Record<string, string[]> };
   const pick = (tone: PairTone, tags: PairDayTags) => getPairTaste(tone, tags, null, "2026-09-14").signal;
   // 삐걱이 있으면 다른 신호가 같이 떠도 friction 뱅크에서 나온다(옛 getPairStaticLine 규칙 계승).

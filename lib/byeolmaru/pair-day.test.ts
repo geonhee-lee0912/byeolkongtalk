@@ -39,19 +39,19 @@ test("pairBackdrop: 라벨·연월조화 노출", () => {
   assert.ok(bd.harmony >= 0 && bd.harmony <= 4);
 });
 
-test("pairMarks: 끌림 ✧ · 결속 ◇ · 삐걱 △ — 순서 고정, lead 는 마크가 아니다", () => {
+test("pairMarks: 설렘 ✧ · 척척 ◇ · 삐걱 △ — 순서 고정, lead 는 마크가 아니다", () => {
   const tg = (p: Partial<PairDayTags>): PairDayTags => ({
     spark: false, sparkBoth: false, bond: false, bondBoth: false, friction: false, lead: null, ...p,
   });
   assert.deepEqual(pairMarks(tg({})), []);
   // V4: 한 명만 걸리면 half(*Both 기본값 false) — "둘 다 걸리면 full"은 아래 별도 테스트가 덮는다.
-  assert.deepEqual(pairMarks(tg({ spark: true })), [{ glyph: "✧", label: "끌림", strength: "half" }]);
-  assert.deepEqual(pairMarks(tg({ bond: true })), [{ glyph: "◇", label: "결속", strength: "half" }]);
+  assert.deepEqual(pairMarks(tg({ spark: true })), [{ glyph: "✧", label: "설렘", strength: "half" }]);
+  assert.deepEqual(pairMarks(tg({ bond: true })), [{ glyph: "◇", label: "척척", strength: "half" }]);
   // 🔴 삐걱은 한 명만 충이어도 full — 점수(-14)가 가중되지 않으니 시각도 깎지 않는다.
   assert.deepEqual(pairMarks(tg({ friction: true })), [{ glyph: "△", label: "삐걱", strength: "full" }]);
   // 셀은 첫 마크만 그린다(겹침 실측) — 배열 순서가 곧 우선순위다. 나 탭 dayMarks 와 같은 순서.
   assert.deepEqual(pairMarks(tg({ spark: true, bond: true, friction: true })).map((m) => m.glyph), ["✧", "◇", "△"]);
-  // lead 는 두 사람 점수 비교지 "그날의 원인"이 아니다 — 마크로 만들면 끌림을 셀에서 밀어낸다.
+  // lead 는 두 사람 점수 비교지 "그날의 원인"이 아니다 — 마크로 만들면 설렘을 셀에서 밀어낸다.
   assert.deepEqual(pairMarks(tg({ lead: "me" })), []);
   assert.deepEqual(pairMarks(tg({ lead: "partner" })), []);
 });

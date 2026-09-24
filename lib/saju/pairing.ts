@@ -72,7 +72,7 @@ const HEAVENLY_COMBO_SET = new Set(
     .flatMap(([a, b]) => [a + b, b + a])
 );
 
-/** 두 일간이 천간합(끌림)인가. */
+/** 두 일간이 천간합(설렘)인가. */
 export function heavenlyCombo(stemA: string, stemB: string): boolean {
   return HEAVENLY_COMBO_SET.has(stemA + stemB);
 }
@@ -83,7 +83,7 @@ const SIX_COMBO_SET = new Set(
     .flatMap(([a, b]) => [a + b, b + a])
 );
 
-/** 두 일지가 육합(결속)인가. */
+/** 두 일지가 육합(척척)인가. */
 export function earthlySixCombo(branchA: string, branchB: string): boolean {
   return SIX_COMBO_SET.has(branchA + branchB);
 }
@@ -127,7 +127,7 @@ export interface PairRelation {
   labelAtoB: string; // 별콩 라벨 (a→b)
   labelBtoA: string; // 별콩 라벨 (b→a)
   heavenlyCombo: boolean; // 천간합(케미 스파크) — 일간
-  sixCombo: boolean; // 육합(결속선) — 일지
+  sixCombo: boolean; // 육합(척척선) — 일지
   // 연·월 기둥의 조화 수(연간·월간 천간합 + 연지·월지 육합, 0~4). 일주 지표의 보조 신호(동점 완화).
   // 시주는 제외(생시 없으면 불공정) — 날짜만으로 나오는 연·월만.
   extraPillarHarmony: number;

@@ -1,9 +1,10 @@
-// 지도 관계타입 필터(순수). 끌림=천간합 · 결속=육합 · 무리=삼합.
+// 지도 관계타입 필터(순수). 설렘=천간합 · 척척=육합 · 무리=삼합.
+// 🔴 어휘는 별마루 달력(day-label.ts dayMarks)과 한 세트다 — 선정 기준은 그쪽 JSDoc 참조.
 export type BondFilter = "heavenly" | "six" | "triad";
 
 export const BOND_FILTER_LABEL: Record<BondFilter, string> = {
-  heavenly: "끌림",
-  six: "결속",
+  heavenly: "설렘",
+  six: "척척",
   triad: "같은 결",
 };
 
@@ -18,7 +19,7 @@ export function presentBondFilters(
 ): BondFilter[] {
   return ORDER.filter((f) => {
     if (f === "heavenly") return edges.some((e) => e.heavenlyCombo);
-    if (f === "six") return edges.some((e) => e.sixCombo && !e.heavenlyCombo); // 둘 다면 끌림으로 분류(우선)
+    if (f === "six") return edges.some((e) => e.sixCombo && !e.heavenlyCombo); // 둘 다면 설렘으로 분류(우선)
     return triads.length > 0;
   });
 }
@@ -30,7 +31,7 @@ export function edgeActiveForBond(
 ): boolean {
   if (!filter) return true;
   if (filter === "heavenly") return edge.heavenlyCombo;
-  if (filter === "six") return edge.sixCombo && !edge.heavenlyCombo; // 천간합+육합이면 끌림 우선(선·필터 중복 방지)
+  if (filter === "six") return edge.sixCombo && !edge.heavenlyCombo; // 천간합+육합이면 설렘 우선(선·필터 중복 방지)
   return false;
 }
 

@@ -12,7 +12,7 @@ export type PairTone = "good" | "normal" | "caution";
 export interface PairDayTags {
   /** 둘 중 **한 명이라도** 걸렸나.
    *  🔴 서술(`narrative-prompt`)과 무료 카피(`static-lines`)는 **의도적으로 이 값만 읽는다** —
-   *     "끌림이 있다"는 사실 자체는 한 명이든 둘이든 참이고, **정도**는 점수·톤과 마크 농도가 진다.
+   *     "설렘이 있다"는 사실 자체는 한 명이든 둘이든 참이고, **정도**는 점수·톤과 마크 농도가 진다.
    *     한 명짜리 전용 문장 뱅크를 새로 파는 건 문장이 자연히 담지 못하는 구분에 콘텐츠를 두 배로
    *     들이는 일이라 하지 않는다(P6-3 에서 명시적으로 내린 결정 — "컴파일이 되니까"가 아니다). */
   spark: boolean;
@@ -116,17 +116,19 @@ export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: Daily
 }
 
 /** 우리 셀 마크 — 나 탭(`dayMarks`)과 **같은 글리프 문법**을 쓴다. 판정 primitive 가 실제로 같기
- *  때문이다(끌림=천간합 ✧ · 결속=육합 ◇ · 삐걱=충 △ — 위 pairDayScoreAndTags 를 보라).
+ *  때문이다(설렘=천간합 ✧ · 척척=육합 ◇ · 삐걱=충 △ — 위 pairDayScoreAndTags 를 보라).
  *  🔴 이모지(✨🔗)를 쓰지 않는다: 셀 글리프는 8px 라 이모지 형태가 뭉개지고, 고유색이 좋은 날의
- *     골드 배경과 부딪힌다. 스펙 §8 의 `✨끌림 🔗결속` 은 **어휘** 지정이지 글리프 지정이 아니다.
+ *     골드 배경과 부딪힌다. 스펙 §8 의 이모지+옛 어휘 조합(✨/🔗 + 당시 라벨)은 **어휘** 지정이지
+ *     글리프 지정이 아니다(어휘는 이후 2026-09-24 에 설렘·척척으로 다시 바뀌었다 — day-label.ts
+ *     dayMarks JSDoc 참조).
  *  🔴 lead 는 마크가 아니다 — 두 사람 점수 차이라 "그날의 원인"이 아니고, 셀은 마크를 1개만
- *     그리므로(겹침 실측) 리드가 끌림을 밀어낸다. 리드는 상세 카드 칩으로만 남는다. */
+ *     그리므로(겹침 실측) 리드가 설렘을 밀어낸다. 리드는 상세 카드 칩으로만 남는다. */
 export function pairMarks(tags: PairDayTags): DayMark[] {
   const out: DayMark[] = [];
   // 강도 = 점수 가중과 같은 규칙(둘 다 full · 한 명 half). 실측상 "둘 다"는 발화 칸의 5% 뿐이라,
   // 둘 다일 때만 마크를 띄우면 30일에 0.3번이라 사실상 마크 폐지가 된다 — 그래서 끄지 않고 연하게 쓴다.
-  if (tags.spark) out.push({ glyph: "✧", label: "끌림", strength: tags.sparkBoth ? "full" : "half" });
-  if (tags.bond) out.push({ glyph: "◇", label: "결속", strength: tags.bondBoth ? "full" : "half" });
+  if (tags.spark) out.push({ glyph: "✧", label: "설렘", strength: tags.sparkBoth ? "full" : "half" });
+  if (tags.bond) out.push({ glyph: "◇", label: "척척", strength: tags.bondBoth ? "full" : "half" });
   // 🔴 삐걱만 발화하면 **항상 full** 이다 — 점수가 평평하기 때문이다(한 명만 충이어도 -14 그대로).
   //    여기서 half 로 깎으면 "충분히 조심하라"는 점수와 "약한 신호"라는 시각이 정면으로 어긋난다.
   if (tags.friction) out.push({ glyph: "△", label: "삐걱", strength: "full" });

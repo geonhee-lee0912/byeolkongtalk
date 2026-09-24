@@ -56,7 +56,7 @@ const SAMPLE: StarGraph = {
       tenGodBtoA: "비견",
       inyeon: 75,
       triadShared: false,
-      heavenlyCombo: true, // 골드 엣지(끌림) 1
+      heavenlyCombo: true, // 골드 엣지(설렘) 1
       sixCombo: false,
     },
     {
@@ -226,7 +226,7 @@ const SAMPLE: StarGraph = {
       tenGodBtoA: "비견",
       inyeon: 90,
       triadShared: true, // 목 삼합(jiho·doyun·sua) 공유
-      heavenlyCombo: true, // 골드 엣지(끌림) 2
+      heavenlyCombo: true, // 골드 엣지(설렘) 2
       sixCombo: false,
     },
     {

@@ -134,7 +134,7 @@ export async function GET(
       const r = pairRelation(saju[i], saju[j]);
       const host = members[i].is_host || members[j].is_host;
       const special = r.heavenlyCombo || r.sixCombo;
-      // 호스트 낀 엣지는 순위·점수용으로 전부. 게스트끼리는 특별 인연(끌림/결속)만 지도에 노출.
+      // 호스트 낀 엣지는 순위·점수용으로 전부. 게스트끼리는 특별 인연(설렘/척척)만 지도에 노출.
       if (!host && !special) continue;
       const triadShared = triadSets.some(
         (s) => s.has(members[i].id) && s.has(members[j].id)

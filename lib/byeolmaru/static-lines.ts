@@ -156,7 +156,7 @@ export interface PairTaste {
 }
 
 /** signal 뱅크 키 — 옛 getPairStaticLine 의 분기 우선순위를 그대로 계승한다(삐걱이 최우선).
- *  삐걱은 "오늘 조심할 것"이라 같이 뜬 끌림보다 먼저 말해야 한다. */
+ *  삐걱은 "오늘 조심할 것"이라 같이 뜬 설렘보다 먼저 말해야 한다. */
 function pairSignalKey(tone: PairTone, tags: PairDayTags): PairSignalKey {
   if (tags.friction) return "friction";
   if (tags.spark && tags.bond) return "spark_bond";

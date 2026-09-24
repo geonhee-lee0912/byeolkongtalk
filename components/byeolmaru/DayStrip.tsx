@@ -152,7 +152,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
                   className="mt-1.5 h-[3px] w-[60%] rounded-full"
                   style={{
                     background: MARK_COLOR[cell.marks[0].glyph],
-                    // 🔴 흰 외곽선이 필수다 — 띠를 순색으로만 두면 **"잘 맞는 날"(금색 칸) + "끌림"
+                    // 🔴 흰 외곽선이 필수다 — 띠를 순색으로만 두면 **"잘 맞는 날"(금색 칸) + "설렘"
                     //    (금색 마크)** 조합에서 대비가 1.52:1 로 떨어져 띠가 사라진다(비-텍스트 기준
                     //    3:1 미달). 지금 데이터에 그 조합이 없어도 판정상 언제든 나온다. 1px 테두리면
                     //    어떤 톤 배경에서도 띠의 경계가 남는다.

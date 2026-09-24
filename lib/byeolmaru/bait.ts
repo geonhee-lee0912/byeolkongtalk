@@ -27,7 +27,7 @@ export const BAIT: Record<BaitSlot, BaitCopy> = {
   },
   woori_30d: {
     title: "둘 사이를 매일 짚어줄게",
-    chips: ["이번 달 전체", "끌림 · 결속 · 삐걱"],
+    chips: ["이번 달 전체", "설렘 · 척척 · 삐걱"],
     tail: "언제 마음이 가까워지고 언제 한 박자 쉬면 좋은지, 날짜로—",
   },
   // 🔴 이 카피는 더 이상 **렌더되지 않는다**(P6-4 Task 9). 유일한 소비자였던 DailyCardBlock 의
