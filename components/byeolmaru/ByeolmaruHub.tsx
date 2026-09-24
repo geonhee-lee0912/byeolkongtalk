@@ -62,7 +62,7 @@ function emptyMonthDates(): { dates: string[]; today: string } {
 function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
   const { dates, today } = emptyMonthDates();
   return (
-    <main className="mx-auto w-full max-w-md space-y-4 p-4">
+    <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
       <header>
         <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
         <p className="text-sm text-text-light">오늘 너의 하늘, 한 자리에</p>
@@ -176,7 +176,7 @@ export default function ByeolmaruHub() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md space-y-4 p-4">
+    <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
       <HubBanner />
 
       {/* 🔴 달력 판 — 칩·출석·스트립·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
@@ -187,8 +187,11 @@ export default function ByeolmaruHub() {
              **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
              판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
       {/* 🔴 타이틀 + 판을 한 wrapper 로 묶는다 — main 의 space-y-4 는 형제 사이에 16px 을 넣는데,
-          타이틀과 그 판은 **한 섹션**이라 그만큼 떨어지면 안 붙는다. wrapper 안에서만 8px 로 좁힌다. */}
-      <div className="space-y-2">
+          타이틀과 그 판은 **한 섹션**이라 그만큼 떨어지면 안 붙는다. wrapper 안에서만 8px 로 좁힌다.
+          🔴 `pt-2` 는 배너와의 간격을 2탭(/fortune)에 맞추는 값이다 — 거기 타이틀이 `pt-6`(24px)이고
+             여기는 space-y-4(16px)라 8px 모자랐다(실측). **margin 이 아니라 padding 을 쓴다** —
+             `space-y-4` 가 만드는 `> * + *` 규칙이 `mt-*` 유틸리티보다 특정도가 높아 margin 은 진다. */}
+      <div className="space-y-2 pt-2">
         {/* 섹션 타이틀 — 판 **밖**에 둔다. 아래 FreeList 두 섹션과 같은 문법(SectionMark 글리프 +
             본문체 15px bold 제목)이고, 그쪽도 타이틀이 카드 밖에 있어 세 섹션이 같은 리듬으로
             읽힌다. 인연 칩이 빠진 뒤로 이 판은 1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은
