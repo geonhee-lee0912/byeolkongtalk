@@ -188,7 +188,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <BackHeader title="오늘 사주" />
+      <BackHeader />
       {/* 무료는 오늘까지만 집계돼 있으므로 "이번 달"이라고 하면 틀린 말이 된다 — 범위를 밝힌다.
           🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
       {good > 0 ? (

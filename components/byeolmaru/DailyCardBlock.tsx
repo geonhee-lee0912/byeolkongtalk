@@ -278,12 +278,16 @@ export default function DailyCardBlock({
   // 말하던 걸 이걸로 막는다). 🔴 삼항을 손으로 적지 않는다: 이 말의 단일 원천은 report-date.ts 이고,
   // 사주 쪽(SajuTodayView)도 같은 함수를 쓴다.
   const dayWord = dayWordFor(date, todayKst);
+  // 🔴 카드 제목이 **날짜를 진다**(2026-09-24). 예전엔 상단 BackHeader 가 "9월 20일 타로"라고
+  //    말해줘서 여긴 "그날의 카드"로 충분했는데, 그 타이틀이 사라졌다. 사주·우리 오늘은 카드
+  //    헤더가 이미 같은 일을 하고 있어(DayDetailCard·PairDayDetailCard) 세 화면이 맞춰진다.
+  const dayLabel = date === todayKst ? "오늘" : `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
 
   return (
     <>
       {state.kind === "none" && (
         <section className="rounded-2xl bg-cream-warm p-4">
-          <h2 className="mb-2 font-display text-base text-eye-purple">{dayWord}의 카드</h2>
+          <h2 className="mb-2 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
             <>
               <p className="mb-3 text-sm text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
@@ -348,8 +352,9 @@ export default function DailyCardBlock({
           return (
             <section className="rounded-2xl bg-cream-warm p-4">
               {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
-                  지난 날에서 거짓말이 된다(상단 BackHeader 는 이미 "9월 20일 타로"라고 말한다). */}
-              <h2 className="mb-3 font-display text-base text-eye-purple">{dayWord}의 카드</h2>
+                  지난 날에서 거짓말이 된다. 상단 BackHeader 가 날짜를 지던 시절엔 dayWord("그날")로
+                  충분했지만, 타이틀이 사라져 이제 여기가 유일한 날짜 표기다. */}
+              <h2 className="mb-3 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
 
               {/* 🔴 live region 은 **무료 구간만** 감싼다(section 전체가 아니다) — DayDetailCard 가
                   Task 6 에서 내린 것과 같은 판단이다. 아래 자격 삼항에는 유료 리포트(~1,800자)가

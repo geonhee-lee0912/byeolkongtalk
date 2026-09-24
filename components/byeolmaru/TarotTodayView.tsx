@@ -69,7 +69,7 @@ export default function TarotTodayView({ initialDate }: { initialDate?: string }
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <BackHeader title={isToday ? "오늘 타로" : `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일 타로`} />
+      <BackHeader />
       <DailyCardBlock
         date={date}
         todayKst={state.today}

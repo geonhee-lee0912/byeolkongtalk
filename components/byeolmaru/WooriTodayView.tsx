@@ -180,7 +180,7 @@ export default function WooriTodayView() {
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <BackHeader title="우리 오늘" />
+      <BackHeader />
 
       {/* 🔴 칩(여러 명 선택)이 아니라 한 명 카드다(2026-09-24). 고를 대상이 없으니 남은 건
           "누가 걸려 있나"와 "바꾸기" 둘뿐 — 상세는 CurrentPartner 머리 주석. */}
