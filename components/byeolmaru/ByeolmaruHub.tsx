@@ -211,7 +211,10 @@ export default function ByeolmaruHub() {
           <h2 className="text-[15px] font-bold text-eye-purple">내 하루 달력</h2>
         </div>
 
-        <section className="rounded-2xl p-4" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
+        {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /
+            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 스트립 칸이 35px,
+            격자 칸이 41px 로 돌아간다. */}
+        <section className="rounded-2xl p-3" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
           {/* 🔴 위쪽 border-t 가 없다 — 인연 칩이 있던 시절엔 칩과 이 층을 가르는 선이었다.
               칩이 빠진 지금 그대로 두면 판 안쪽 맨 위에 선 하나가 떠 있게 된다. 판 안 구분선은
               아래 "이번 달" 층 하나만 남긴다. */}
@@ -237,7 +240,7 @@ export default function ByeolmaruHub() {
           <div className="mt-2 border-t border-lilac-mid/20">
             {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
                 연보라 박스가 또 생겨 3중 중첩이 된다(우리 페이지·게스트 그리드는 감싸는 판이 없어 true). */}
-            <MonthGridSection filledDays={data.cells.length}>
+            <MonthGridSection goodDates={data.cells.filter((c) => c.grade.tone === "good").map((c) => c.date)}>
               <CalendarGrid
                 cells={gridCells}
                 lockedCells={data.lockedCells}

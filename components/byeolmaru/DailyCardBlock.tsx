@@ -272,7 +272,7 @@ export default function DailyCardBlock({
     void saveDraw(cardId, reversed);
   }
 
-  if (state.kind === "loading") return null; // AttendanceStrip 과 동일 관행(!data → null) — 스켈레톤 없이 조용히 대기
+  if (state.kind === "loading") return null; // TodayLead 와 동일 관행(!data → null) — 스켈레톤 없이 조용히 대기
 
   // 그 날을 부르는 말 — 헤딩 두 곳과 게이지 문구가 같은 값을 쓴다(게이지는 지난 날에 "오늘"이라고
   // 말하던 걸 이걸로 막는다). 🔴 삼항을 손으로 적지 않는다: 이 말의 단일 원천은 report-date.ts 이고,
