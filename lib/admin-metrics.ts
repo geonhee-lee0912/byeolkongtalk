@@ -144,15 +144,13 @@ export const METRICS = {
     key: "result_viewed",
     label: "결과 열람",
     definition:
-      "가입 코호트 기준 — 그 코호트가 만든 리딩 중 result_viewed_at 이 채워진 비율.",
+      "가입 코호트 기준 — 그 코호트의 **첫 리딩이 유료인 사람** 중 그 첫 리딩의 result_viewed_at 이 채워진 비율.",
     unit: "percent",
-    source: "roadmap-kpi-snapshot.sql / viewed_pct",
+    source: "admin_layer1_guard / result_viewed",
     alertBelow: 55,
     minSample: MIN_SAMPLE.RATE,
     caveat:
-      "result_viewed_at 은 '[결과 보기 →] 버튼을 눌렀나'를 잰다. 자동 이동이 아니라 수동 버튼이다.",
-    drift:
-      "🔴 현 구현 불일치 — 어드민은 지금 **리딩 기준**으로 재서 50.7% 가 나오고, 로드맵 베이스라인은 **코호트 기준** 65% 다. 정본은 코호트. 플랜 B 에서 교체한다(먼저 바꾸면 흡수될 화면을 두 번 만진다).",
+      "result_viewed_at 은 '[결과 보기 →] 버튼을 눌렀나'를 잰다. 자동 이동이 아니라 수동 버튼이다. 무료 첫 리딩은 분모에서 빠진다(3층 roadmap KPI 와 같은 정의).",
   },
   login_success_rate: {
     key: "login_success_rate",

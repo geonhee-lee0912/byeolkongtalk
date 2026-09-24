@@ -38,11 +38,20 @@ test("percent 지표의 경보선은 0~100 안에 있다", () => {
 
 test("정의가 충돌했던 지표는 drift 를 명시한다", () => {
   // 2026-09-20 실측에서 정의가 둘로 갈린 것들 — 정본을 골랐고, 현 구현이 다르면 그 사실을 적어둔다.
-  for (const key of ["organic_share", "result_viewed"] as const) {
+  // result_viewed 는 플랜 B(admin_layer1_guard)에서 코호트 기준으로 교체돼 drift 가 해소됐다 — 아래 별도 테스트.
+  for (const key of ["organic_share"] as const) {
     const m = METRICS[key];
     assert.ok(m, `${key} 가 레지스트리에 없다`);
     assert.ok(m.drift && m.drift.length > 0, `${key}: 정의 충돌인데 drift 가 비었다`);
   }
+});
+
+test("plan B 에서 해소된 drift 는 남아 있지 않다", () => {
+  // result_viewed 리터럴엔 drift 키 자체가 없다(비드리프트 지표의 기존 관행과 동일) — MetricDef 로
+  // 승격해야 `.drift` 접근이 타입체크를 통과한다("모든 지표가..." 테스트와 같은 패턴).
+  const m: MetricDef = METRICS.result_viewed;
+  assert.equal(m.drift, undefined);
+  assert.equal(m.source, "admin_layer1_guard / result_viewed");
 });
 
 test("sampleGate — 임계 미만이면 숫자를 안 준다", () => {
