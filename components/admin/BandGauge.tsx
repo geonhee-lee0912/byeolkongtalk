@@ -6,7 +6,23 @@ import type { Band, BandAxis } from "@/lib/admin/band";
 import { STATUS, GOLD } from "@/lib/admin/colors";
 import { formatSignedWon } from "@/lib/admin/format";
 
-export function BandGauge({ band, rolling, axis }: { band: Band; rolling: number[]; axis: BandAxis }) {
+export function BandGauge({
+  band,
+  rolling,
+  axis,
+  heroIncludesCost,
+}: {
+  band: Band;
+  rolling: number[];
+  axis: BandAxis;
+  /**
+   * 🔴 위 히어로가 API 원가까지 뺀 값을 보여주는가(= 7일 창이 원가로 덮였는가).
+   * 히어로는 **7일 창**, 밴드는 **62일 창**으로 각자 원가 가용성을 판단한다 — 둘 다 옳지만
+   * 그래서 한동안(원가 축적 7일째 ~ 62일째) **두 숫자의 산식이 다르다.**
+   * 그 사실을 캡션이 말하지 않으면 사람이 "왜 기여는 −인데 밴드는 상위지?" 를 못 푼다.
+   */
+  heroIncludesCost: boolean;
+}) {
   const min = Math.min(...rolling);
   const max = Math.max(...rolling);
   const span = max - min || 1; // 전부 같은 값이면 0 나눗셈 — 1로 막는다
@@ -18,20 +34,26 @@ export function BandGauge({ band, rolling, axis }: { band: Band; rolling: number
 
   return (
     <div className="mt-4">
-      <div className="relative h-8" aria-hidden>
-        {/* 전체 범위 */}
-        <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded bg-white/10" />
-        {/* P10~P90 */}
-        <div
-          className="absolute top-1/2 h-2 -translate-y-1/2 rounded bg-white/25"
-          style={{ left: `${left}%`, width: `${width}%` }}
-        />
-        {/* 현재값 */}
-        <div
-          className="absolute top-1/2 h-5 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded"
-          style={{ left: `${pos(band.current)}%`, background: markerColor }}
-        />
-      </div>
+      {/* 🔴 flat(8주 값이 전부 같다)이면 막대 자체를 그리지 않는다 — span 폴백(||1) 때문에
+          flat 일 때 P10~P90 박스가 폭 0 으로 붕괴하고 마커가 좌측 끝에 박히는데, 캡션은
+          "위치를 말할 수 없다"고 한다. 그래픽이 "좌측 끝"이라는 위치를 암시하면 캡션과
+          모순된다 — 위치를 말할 수 없으면 위치를 그리지 않는다(코드 리뷰 Minor 2). */}
+      {!band.flat && (
+        <div className="relative h-8" aria-hidden>
+          {/* 전체 범위 */}
+          <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded bg-white/10" />
+          {/* P10~P90 */}
+          <div
+            className="absolute top-1/2 h-2 -translate-y-1/2 rounded bg-white/25"
+            style={{ left: `${left}%`, width: `${width}%` }}
+          />
+          {/* 현재값 */}
+          <div
+            className="absolute top-1/2 h-5 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded"
+            style={{ left: `${pos(band.current)}%`, background: markerColor }}
+          />
+        </div>
+      )}
       <div className="text-[12px] text-white/50 leading-snug">
         {/* 🔴 분포에 폭이 없으면(band.flat = 8주 값이 **전부** 같다) 위치를 말하지 않는다 —
             그때 pctRank 는 100·outside 는 false 라 "분포 중 100% 위치 · 평소 범위 안"이 되어
@@ -53,7 +75,14 @@ export function BandGauge({ band, rolling, axis }: { band: Band; rolling: number
         <span className="text-white/35">
           {" "}
           · P10 {formatSignedWon(band.p10)} ~ P90 {formatSignedWon(band.p90)}
-          {axis === "marketing" && " · 축 = 매출 − 광고비(원가 미축적)"}
+          {/* 🔴 히어로(7일 창)와 밴드(62일 창)는 원가 가용성을 각자 다른 창으로 판정한다 — 둘 다
+              옳지만, 원가가 7일은 덮고 62일은 못 덮는 구간(실측: 2026-09-26~11-20)에는 히어로가
+              원가까지 뺀 값인데 밴드는 여전히 매출−광고비 축이라 산식이 갈린다. 그 사실을 말하지
+              않으면 "기여는 −인데 밴드는 상위"가 모순처럼 보인다(코드 리뷰 Important). */}
+          {axis === "marketing" &&
+            (heroIncludesCost
+              ? " · 🔴 이 분포는 매출 − 광고비 기준이다 — 위 기여 숫자는 원가까지 뺐으므로 기준이 다르다(원가가 8주를 덮으면 합쳐진다)"
+              : " · 축 = 매출 − 광고비(원가 미축적)")}
         </span>
       </div>
     </div>

@@ -9,8 +9,11 @@ export const STATUS = {
   critical: "#d03b3b",
 } as const;
 
-/** 현재값 마커·강조 전용. 시리즈에 쓰지 않는다. */
-export const GOLD = "#E8C26A";
+/** 현재값 마커·강조 전용. 시리즈에 쓰지 않는다.
+ *  🔴 `app/globals.css` 의 `@theme` 토큰을 참조한다 — 헥스를 복제하면 리브랜딩 때 갈린다.
+ *  (`--color-gold` 는 그 파일이 이미 `var(--color-cream)` 등으로 직접 쓰는 실제 런타임
+ *  CSS 변수라 여기서도 안전하게 참조 가능 — 코드 리뷰 Minor 1, 확인 후 반영.) */
+export const GOLD = "var(--color-gold)";
 
 /** 카테고리컬 8슬롯. 색은 **엔티티를 따르고 순위를 따르지 않는다** — 필터로 시리즈 수가
  *  바뀌어도 생존 항목의 색을 다시 칠하지 않는다(스펙 §8). */

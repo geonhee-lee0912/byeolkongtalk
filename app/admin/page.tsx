@@ -297,7 +297,12 @@ export default async function AdminDashboard() {
               adStaleDays={L1.adStaleDays}
             />
             {L1.band ? (
-              <BandGauge band={L1.band} rolling={L1.rolling} axis={L1.axis} />
+              <BandGauge
+                band={L1.band}
+                rolling={L1.rolling}
+                axis={L1.axis}
+                heroIncludesCost={L1.coverage.full}
+              />
             ) : (
               <div className="text-[12px] text-white/40 mt-3">
                 밴드는 8주치 롤링 값이 모여야 그린다 (현재 {L1.rolling.length}개).
