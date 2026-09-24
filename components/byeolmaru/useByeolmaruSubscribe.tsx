@@ -67,7 +67,7 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
       // 구독 시트 전용 — 전체 가치 3종 + 가격을 여기서 한 번 크게(스펙 §9). 카피는 BAIT(허브·
       // 상세뷰 미끼 문구)에서 그대로 끌어와 중복 저작을 피한다.
       // 안심 문구는 스펙 원안("체험 중엔 별이 안 나가")을 안 쓴다 — 여기 오는 사람은 전원 이미
-      // 체험을 쓴 뒤라(PremiumBlock·PairDayDetailCard 모두 onSubscribe 는 trialUsed=true 에서만
+      // 체험을 쓴 뒤라(PaywallCut·HubBanner 모두 onSubscribe 는 trialUsed=true 에서만
       // 연결) 체험 안내가 대상에 안 맞는다. 대신 실제로 궁금할 사실 — 자동갱신 없음 — 을 답한다
       // (purchase_byeolmaru_subscription 은 1회성 20별 차감, 정기결제 아님).
       extra={

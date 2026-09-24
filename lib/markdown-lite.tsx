@@ -1,21 +1,24 @@
 import React from "react";
 
 // 경량 마크다운 — 신뢰된 LLM 출력 전용(중첩·이스케이프 미지원). dangerouslySetInnerHTML 안 씀.
-export type InlinePart = { t: "text"; s: string } | { t: "b"; s: string };
+export type InlinePart = { t: "text"; s: string } | { t: "b"; s: string } | { t: "hl"; s: string };
 export type Block =
   | { t: "p"; parts: InlinePart[] }
   | { t: "ul"; items: InlinePart[][] }
   | { t: "callout"; parts: InlinePart[] };
 
-/** **볼드** 런을 분리. */
+/** **볼드** 와 ==하이라이트== 런을 분리.
+ *  🔴 하나의 정규식으로 **한 번에** 훑는다 — 볼드를 먼저 다 쪼갠 뒤 각 조각에서 하이라이트를 찾으면
+ *     두 문법이 걸친 경우 순서에 따라 결과가 달라진다. 중첩은 여전히 미지원(신뢰된 LLM 출력 전용). */
 export function parseInline(text: string): InlinePart[] {
   const parts: InlinePart[] = [];
-  const re = /\*\*(.+?)\*\*/g;
+  const re = /\*\*(.+?)\*\*|==(.+?)==/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push({ t: "text", s: text.slice(last, m.index) });
-    parts.push({ t: "b", s: m[1] });
+    // m[1] = 볼드 본문 / m[2] = 하이라이트 본문. 어느 한쪽만 채워진다(교대 그룹).
+    parts.push(m[1] !== undefined ? { t: "b", s: m[1] } : { t: "hl", s: m[2] });
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push({ t: "text", s: text.slice(last) });
@@ -118,6 +121,21 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
       >
         {p.s}
       </strong>
+    ) : p.t === "hl" ? (
+      // 🔴 볼드와 **다른 결**이어야 한다 — 볼드는 이미 굵기 + 골드 형광펜을 함께 쓴다(위).
+      //    하이라이트는 굵기 없이 연보라 칩 배경만 얹어 "본문 안의 짚고 가는 말" 정도로 눌러 둔다.
+      //    둘을 같은 모양으로 만들면 문법이 두 개인 이유가 사라진다.
+      <mark
+        key={`${key}-${i}`}
+        className="rounded-[3px] px-1 py-px"
+        style={
+          tone === "dark"
+            ? { background: "rgba(232, 222, 245, 0.18)", color: "#ECE3FB" }
+            : { background: "rgba(212, 199, 238, 0.45)", color: "inherit" }
+        }
+      >
+        {p.s}
+      </mark>
     ) : (
       <React.Fragment key={`${key}-${i}`}>{p.s}</React.Fragment>
     )

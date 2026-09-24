@@ -18,6 +18,8 @@ import {
 import { buildCalendar, monthRange } from "./calendar.ts";
 import type { DayCell } from "./calendar.ts";
 import { DAY_NAME } from "./day-label.ts";
+import { PAIR_REPORT_BLOCKS } from "./pair-report.ts";
+import { PAIR_PAID_CHARS } from "./paywall-sections.ts";
 
 const CELL = {
   date: "2026-09-04", ganji: "辛巳", element: "금",
@@ -42,7 +44,10 @@ test("buildPairNarrativeSystem: 두 사람·너희 결·오늘 신호 + 마커�
   assert.ok(sys.includes("우리 오늘"));
   assert.ok(sys.includes("지우"));
   assert.ok(sys.includes(bd.labelAtoB));
-  assert.ok(/반말/.test(sys) && /단정/.test(sys) && /마커 없이|줄글만/.test(sys));
+  // 🔴 2026-09-24 자유 줄글 → 5블록 JSON. 예전엔 "마커 없이 줄글만"을 단정했는데, 이제 마커(JSON)가
+  //    형식 자체라 그 단정은 뜻이 뒤집혔다. 서식 계약은 불릿·제목 금지 쪽으로 옮겨갔다.
+  assert.ok(/반말/.test(sys) && /단정/.test(sys) && /불릿·콜아웃·제목·번호 금지/.test(sys));
+  assert.ok(!/줄글만/.test(sys), "옛 자유 줄글 지시가 남아 있으면 안 된다");
   assert.ok(PAIR_NARRATIVE_KICKOFF.length > 0);
 });
 
@@ -223,17 +228,31 @@ test("buildNarrativeSystem — 화면에 뜬 하루 이름을 프롬프트가 �
   assert.ok(/다시 설명하지 말고/.test(sys), "재설명 금지 지시가 없다");
 });
 
-test("pair 프롬프트: 분량 지시가 1,100~1,300자이고 토큰 상한이 그 분량을 감당한다", () => {
+test("pair 프롬프트: 5블록 JSON 형식 + 문장 예산이 목표 분량과 맞고 토큰 상한이 감당한다", () => {
   const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
   const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
   const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
   const cell = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
   const sys = buildPairNarrativeSystem(a, b, pairBackdrop(a, b), cell, "임오", "지우");
-  assert.ok(sys.includes("1,100~1,300자"), "분량 지시가 프롬프트에 있어야 한다");
+
+  // 🔴 5블록 키가 **전부** 프롬프트에 뜬다. 스키마(PAIR_REPORT_SCHEMA)와 프롬프트가 갈라지면
+  //    모델이 스키마엔 있는데 지시가 없는 키를 빈 값으로 채우고, 파서가 통째로 null 을 돌린다.
+  for (const b2 of PAIR_REPORT_BLOCKS) {
+    assert.ok(sys.includes(`"${b2.key}"`), `블록 키 ${b2.key} 가 프롬프트에 없다`);
+    assert.ok(sys.includes(`${b2.sentences}문장`), `블록 ${b2.key} 의 문장 예산이 프롬프트에 없다`);
+  }
+  assert.ok(sys.includes("아래 JSON 하나만"), "JSON 단독 출력 지시가 없다");
   assert.ok(!sys.includes("3~4문단"), "옛 분량 지시(3~4문단 ≈ 600자)가 남아 있으면 안 된다");
-  // nano 는 추론 토큰이 max 안에 함께 카운트된다 — 본문 1,200자(≈670토큰)에 추론 헤드룸을 더한 값.
-  assert.ok(PAIR_NARRATIVE_MAX_TOKENS >= 3600, `상한 ${PAIR_NARRATIVE_MAX_TOKENS} 은 1,200자에 부족하다`);
+  assert.ok(!sys.includes("1,100~1,300자"), "자유 줄글 시절 분량 지시가 남아 있으면 안 된다");
+
+  // 목표 글자수가 정본이고 문장 수는 수단이다(card-report.ts P6-2 Task10 교훈) — 둘이 어긋나면
+  // 여기서 잡는다. 문장×50 이 관례 환산.
+  const budget = PAIR_REPORT_BLOCKS.reduce((n, x) => n + x.sentences, 0) * 50;
+  assert.equal(budget, PAIR_PAID_CHARS, `문장 예산 합 ${budget}자 와 목표 ${PAIR_PAID_CHARS}자 가 어긋났다`);
+
+  // nano 는 추론 토큰이 max 안에 함께 카운트된다 — 본문 1,300자(≈720토큰) + JSON 키·escape 오버헤드에 추론 헤드룸.
+  assert.ok(PAIR_NARRATIVE_MAX_TOKENS >= 3600, `상한 ${PAIR_NARRATIVE_MAX_TOKENS} 은 ${PAIR_PAID_CHARS}자에 부족하다`);
   // 실측(런타임)에서 "마무리로 한 줄의 따뜻한 결론을 남겨보면" 류로 프롬프트 지시를 본문이 그대로
-  // 읊는 결함이 나왔다 — 구조 설명형 도입부 금지 한 줄을 추가했다.
-  assert.ok(sys.includes("글의 구조를 설명하는 말로 문단을 열지"), "구조 설명형 도입부 금지 지침이 있어야 한다");
+  // 읊는 결함이 나왔다 — 구조 설명형 도입부 금지 한 줄을 유지한다(블록 단위로 문구만 옮겼다).
+  assert.ok(sys.includes("글의 구조를 설명하는 말로 블록을 열지"), "구조 설명형 도입부 금지 지침이 있어야 한다");
 });

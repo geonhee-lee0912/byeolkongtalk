@@ -181,6 +181,10 @@ export async function GET(req: NextRequest) {
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
       subscriptionExpiresAt: ent.subscriptionExpiresAt,
+      // 🔴 체험으로 자격을 얻은 사람은 subscriptionExpiresAt 이 **항상 null** 이다
+      //    (computeEntitlement 가 reason="trial" 분기에서 그렇게 돌려준다). 배너가 남은 기간을
+      //    말하려면 이 필드가 있어야 하고, 없으면 체험자에게만 조용히 빈 칩이 뜬다.
+      trialEndsAt: ent.trialEndsAt,
       attendance,
     });
   } catch (err) {

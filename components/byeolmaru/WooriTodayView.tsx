@@ -3,17 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
-import type { LockedCell } from "@/lib/byeolmaru/calendar";
-import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import CalendarGrid, { type GridCell } from "./CalendarGrid";
 import PairDayDetailCard from "./PairDayDetailCard";
 import PartnerChips, { type PartnerChip } from "./PartnerChips";
 import WatchAddModal from "./WatchAddModal";
 import BackHeader from "./BackHeader";
-import PremiumBlock from "./PremiumBlock";
+import PaywallCut from "./PaywallCut";
+import PairReportView from "./PairReportView";
+import { isPairReport, type PairReport } from "@/lib/byeolmaru/pair-report";
+import { PAIR_PAID_CHARS, PAIR_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 type State =
@@ -33,17 +33,17 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   const [partnersLoaded, setPartnersLoaded] = useState(false);
   const [pairData, setPairData] = useState<{
     cells: PairDayCell[];
-    lockedCells: LockedCell[];
     today: string;
     backdrop: PairBackdrop;
     partnerName: string;
     entitled: boolean;
     status: RelationshipStatus | null;
   } | null>(null);
-  const [pairSelected, setPairSelected] = useState<string | null>(null);
   const [pairLoading, setPairLoading] = useState(false);
   const [pairError, setPairError] = useState(false);
-  const [pairNarrative, setPairNarrative] = useState<string | null>(null);
+  // 🔴 5블록 리포트다(2026-09-24). 예전엔 string 이었는데 라우트가 객체를 돌려주도록 바뀌었다 —
+  //    `await res.json()` 은 any 라 **tsc 가 이 불일치를 못 잡는다**. 타입을 여기서 못 박아 둔다.
+  const [pairNarrative, setPairNarrative] = useState<PairReport | null>(null);
   const [pairNarrativeLoading, setPairNarrativeLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // ?subject= 로 넘어온 초기 상대(T3 ?date= 와 동일 패턴, I-2). 최초 loadPartners
@@ -100,7 +100,7 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   useEffect(() => {
     if (subject === "me") return;
     let cancelled = false;
-    setPairLoading(true); setPairData(null); setPairError(false); setPairSelected(null);
+    setPairLoading(true); setPairData(null); setPairError(false);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/calendar?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
@@ -110,14 +110,12 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
         if (Array.isArray(j.cells) && j.cells.length > 0) {
           setPairData({
             cells: j.cells,
-            lockedCells: Array.isArray(j.lockedCells) ? j.lockedCells : [],
             today: j.today,
             backdrop: j.backdrop,
             partnerName: j.partnerName,
             entitled: !!j.entitled,
             status: j.status ?? null,
           });
-          setPairSelected(j.today);
           return;
         }
         setPairError(true);
@@ -139,7 +137,11 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
         const res = await fetch(`/api/byeolmaru/pair-narrative?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
         if (!res.ok) { if (!cancelled) setPairNarrative(null); return; }
         const j = await res.json();
-        if (!cancelled) setPairNarrative(j.narrative ?? null);
+        // 🔴 배포 롤아웃 창에선 **새 번들이 구 API 를 만날 수** 있다(스큐). 구 API 는 narrative 를
+        //    **문자열**로 돌려주므로 그대로 넣으면 PairReportView 가 report.blocks 에서 터져
+        //    화면 전체가 에러 바운더리로 간다. 형태를 확인해 아니면 null — 그러면 "숨 고르는 중"
+        //    문구로 떨어져 화면은 멀쩡히 선다(ByeolmaruHub 의 data.strip?. 와 같은 계열의 방어).
+        if (!cancelled) setPairNarrative(isPairReport(j.narrative) ? j.narrative : null);
       } catch { if (!cancelled) setPairNarrative(null); }
       finally { if (!cancelled) setPairNarrativeLoading(false); }
     })();
@@ -161,15 +163,22 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
   );
   if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
-  const pairGridCells: GridCell[] = pairData
-    ? pairData.cells.map((c) => ({ date: c.date, ganji: c.ganji, tone: c.tone, label: PAIR_TONE_LABEL[c.tone], isToday: c.isToday, marks: pairMarks(c.tags) }))
-    : [];
   // 폴백은 오늘 — cells[0] 은 이번 달 1일이라 첫 진입에서 엉뚱한 날이 열린다.
+  // 🔴 달력이 빠져 날짜 선택이 없다(2026-09-24) — 항상 오늘 셀이다. 폴백이 cells[0](이번 달 1일)이
+  //    아니라 **마지막 칸**인 이유: 무료(비자격) 응답은 오늘까지만 잘려 오므로 오늘이 항상 마지막이다.
   const pairCell = pairData
-    ? pairData.cells.find((c) => c.date === pairSelected) ??
-      pairData.cells.find((c) => c.isToday) ??
-      pairData.cells[pairData.cells.length - 1]
+    ? pairData.cells.find((c) => c.isToday) ?? pairData.cells[pairData.cells.length - 1]
     : null;
+
+  // 무료 taste — 한 번만 만들어 카드(4줄 렌더)와 절단선(글자 수·블러 원문)이 **같은 값**을 쓴다.
+  // 🔴 PaywallCut 계약: freeChars 는 "절단선 위에 실제로 그린 글자 수"를 호출부가 센다(하드코딩 금지).
+  //    두 곳이 갈리면 "무료 N자" 칩이 화면과 어긋나 그 자리에서 거짓말이 된다.
+  //    SajuTodayView 가 tasteText 로 같은 일을 한다.
+  const pairTaste =
+    pairData && pairCell ? getPairTaste(pairCell.tone, pairCell.tags, pairData.status, pairCell.date) : null;
+  const pairTasteText = pairTaste
+    ? [pairTaste.signal, pairTaste.relation, pairTaste.lead, pairTaste.advice].filter(Boolean).join(" ")
+    : "";
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
@@ -198,51 +207,68 @@ export default function WooriTodayView({ initialSubject }: { initialSubject?: st
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
       ) : pairData && pairCell ? (
         <>
-          <section aria-label="이번 달 우리 캘린더">
-            <CalendarGrid
-              cells={pairGridCells}
-              lockedCells={pairData.lockedCells}
-              todayDate={pairData.today}
-              selectedDate={pairCell.date}
-              onSelect={setPairSelected}
-              subjectKind="pair"
-            />
-          </section>
+          {/* 🔴 이번 달 우리 캘린더는 제거했다(2026-09-24, 사용자 결정) — 이 화면은 "오늘 둘 사이"
+              하나만 말한다. 달력은 별마루 허브가 이미 가지고 있고, 여기 또 두면 같은 물건이 두 탭에
+              나와 화면의 주제가 흐려졌다.
+              🔴 **딸려 없어진 것**: 날짜 선택(`pairSelected`). 무료 사용자가 이번 달 지나간 날을
+                 골라보던 동작(P5-2)이 같이 사라졌고, 이제 이 화면은 항상 오늘 셀만 본다.
+                 되살리려면 달력이 아니라 **날짜 이동 컨트롤**을 따로 만들 것(달력을 되돌리지 말 것). */}
+          {/* 🔴 한 장(2026-09-24) — 무료 taste 위, 절단선 아래로 가른다. 오늘 사주(SajuTodayView)·
+              오늘 타로(DailyCardBlock)와 같은 구조다. 예전엔 유료 서술이 taste 를 **대체**하고
+              CTA 는 카드 밖 PremiumBlock 이었다. */}
           <PairDayDetailCard
             cell={pairCell}
             backdrop={pairData.backdrop}
             partnerName={pairData.partnerName}
-            entitled={pairData.entitled}
             // 🔴 선택한 셀 기준이다(오늘 고정이 아니다) — 무료도 이번 달 지나간 날을 고를 수 있다(P5-2).
-            taste={pairData.entitled ? null : getPairTaste(pairCell.tone, pairCell.tags, pairData.status, pairCell.date)}
-            narrative={pairNarrative}
-            narrativeLoading={pairNarrativeLoading}
-          />
-          {/* 🔴 자격자에겐 아예 렌더하지 않는다 — 우리 오늘의 서술은 PairDayDetailCard 안에 있고,
-              PremiumBlock 의 자격자 분기("별콩이의 오늘")까지 띄우면 빈 블록이 하나 더 생긴다.
-              🔴 판독 주의(2026-09-21 갱신): woori_30d 의 노출 면이 **이 화면 하나로 줄었다** —
-              허브 인연 칩이 사라져 허브는 saju_report 만 띄운다. 즉 배포 경계에서 woori_30d 의
-              gate_shown 이 **아래로** 뛴다(노출 면이 둘→하나). 자리끼리 비교하던 P5-4 규칙
-              ((user_id, slot, KST일자) distinct 정규화)은 이제 불필요하다. */}
-          {!pairData.entitled && (
-            <PremiumBlock
-              entitled={false}
-              trialUsed={trialUsed}
-              narrative={null}
-              teaser={null}
-              loading={false}
-              slot="woori_30d"
-              baitCtx={{ partnerName: pairData.partnerName }}
-              onStartTrial={(slot) => {
-                trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial", slot } });
-                void startTrial(slot);
-              }}
-              onSubscribe={(slot) => {
-                trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe", slot } });
-                openSubscribe(slot);
-              }}
-            />
-          )}
+            //    자격과 무관하게 **항상** 넘긴다: 구독자도 "둘이 어떤 결인지"를 읽어야 한다(§5-3① 과 같은 판단).
+            taste={pairTaste}
+          >
+            {pairData.entitled ? (
+              pairNarrativeLoading ? (
+                <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                  별콩이가 둘 사이 오늘을 읽고 있어…
+                </div>
+              ) : pairNarrative ? (
+                <div className="mt-4 border-t border-lilac-mid/20 pt-4">
+                  {/* 🔴 pair-narrative 라우트엔 date 파라미터가 없어 이 리포트는 **항상 오늘 기준**이다.
+                      다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 밝힌다.
+                      (카드 구조를 바꾸면서 이 안내가 한 번 사라졌다 — 지우지 말 것.) */}
+                  {!pairCell.isToday && (
+                    <p className="mb-2 text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
+                  )}
+                  <PairReportView report={pairNarrative} />
+                </div>
+              ) : (
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                  별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
+                </p>
+              )
+            ) : (
+              /* 🔴 여기만 border-t 래퍼가 없다(의도) — PaywallCut 이 자체 금색 절단선을 갖고 있어
+                    감싸면 선이 두 개가 된다(SajuTodayView 와 같은 규율).
+                 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 비자격 분기에서만.
+                 🔴 계측 단절: woori_30d 의 surface 가 "bait_card" → "cut" 으로 바뀌고, PremiumBlock 의
+                    `!dismissed` 억제가 없어져 shown 분모에 재방문이 들어온다. 배포일 전후 전환율
+                    하락으로 오독하지 말 것(PaywallCut.tsx 머리 주석이 같은 경고를 담고 있다). */
+              <PaywallCut
+                freeChars={pairTasteText.length}
+                paidChars={PAIR_PAID_CHARS}
+                sections={PAIR_PAID_SECTIONS}
+                blurText={pairTasteText}
+                trialUsed={trialUsed}
+                slot="woori_30d"
+                onStartTrial={(slot) => {
+                  trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial", slot } });
+                  void startTrial(slot);
+                }}
+                onSubscribe={(slot) => {
+                  trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe", slot } });
+                  openSubscribe(slot);
+                }}
+              />
+            )}
+          </PairDayDetailCard>
         </>
       ) : pairLoading ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 오늘을 펼치는 중…</p>

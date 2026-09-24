@@ -13,12 +13,13 @@ import { kstDate } from "@/lib/admin-time";
 import {
   buildPairNarrativeSystem,
   PAIR_NARRATIVE_KICKOFF,
-  BYEOLMARU_NARRATIVE_MODEL,
+  PAIR_REPORT_MODEL,
   PAIR_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
 import { getCachedPairNarrative, savePairNarrative } from "@/lib/byeolmaru/pair-narrative";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { PAIR_REPORT_SCHEMA, parsePairReportJson, buildPairReport } from "@/lib/byeolmaru/pair-report";
+import { logError, logInfo, ctxFromRequest } from "@/lib/logger";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 
 export const runtime = "nodejs";
@@ -118,24 +119,39 @@ export async function GET(req: NextRequest) {
         goodDays,
         status
       );
-      const narrative = await generateOnce(
-        system,
-        [{ role: "user", content: PAIR_NARRATIVE_KICKOFF }],
-        PAIR_NARRATIVE_MAX_TOKENS,
-        logCtx,
-        BYEOLMARU_NARRATIVE_MODEL,
-        undefined
-      );
-      // generateOnce 는 빈/거부 완성 시 throw 가 아니라 "" 를 반환한다(streamChat 자체 재시도 후에도).
-      if (!narrative) {
-        await logError(new Error("empty pair narrative"), { ...logCtx, extra: { stage: "generate_empty" } });
+      // 🔴 구조화 출력(strict json_schema) — 형식 위반이 디코딩 단계에서 구조적으로 불가능해진다.
+      //    card-narrative 가 이 방식으로 파싱 실패 0/12 를 얻었다(P6-2 실측).
+      const gen = () =>
+        generateOnce(
+          system,
+          [{ role: "user", content: PAIR_NARRATIVE_KICKOFF }],
+          PAIR_NARRATIVE_MAX_TOKENS,
+          logCtx,
+          PAIR_REPORT_MODEL,
+          { name: "pair_report", schema: PAIR_REPORT_SCHEMA }
+        );
+      const raw = await gen();
+      let ai = parsePairReportJson(raw);
+      if (!ai && raw) {
+        // 1차 파싱 실패(빈 응답이 아님 = 잘림/형식 이탈) → 재시도 발화 계측. card-narrative 와 같은 이유:
+        // "1차 실패→2차 성공"이 조용하면 이 라우트가 평소 1회 호출인지 2회 호출인지 로그로 구분이 안 된다(원가 측정 전제).
+        await logInfo("pair report parse failed on first attempt — retrying", { ...logCtx, extra: { stage: "pair_parse_retry" } });
+        ai = parsePairReportJson(await gen());
+      }
+      // 빈 응답은 재시도해도 같다 — streamChat 이 이미 내부적으로 재시도한 뒤의 결과다(raw === "").
+      if (!ai) {
+        await logError(new Error(raw ? "pair report parse failed" : "empty pair report"), {
+          ...logCtx,
+          extra: { stage: raw ? "pair_parse" : "generate_empty" },
+        });
         return NextResponse.json({ entitled: true, narrative: null });
       }
-      // 캐시 저장은 best-effort — 실패해도 이미 만든 서술은 그대로 응답한다(daily-report 와 동일 경계).
-      // 동시 생성이면 승자 서술을 응답한다(§11-1-5) — 저장 실패는 내 것 그대로(다음 요청에서 재생성될 뿐).
-      let served = narrative;
+      const report = buildPairReport(ai);
+      // 캐시 저장은 best-effort — 실패해도 이미 만든 리포트는 그대로 응답한다(daily-report 와 동일 경계).
+      // 동시 생성이면 승자를 응답한다(§11-1-5) — 저장 실패는 내 것 그대로(다음 요청에서 재생성될 뿐).
+      let served = report;
       try {
-        served = await savePairNarrative(userId, subject, todayKst, narrative);
+        served = await savePairNarrative(userId, subject, todayKst, report);
       } catch (e) {
         await logError(e, { ...logCtx, extra: { stage: "cache_save" } });
       }

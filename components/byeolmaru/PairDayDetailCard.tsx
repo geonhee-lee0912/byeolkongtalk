@@ -5,25 +5,28 @@ import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import type { PairTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
-import { MarkdownLite } from "@/lib/markdown-lite";
 
+// 🔴 2026-09-24 한 장 구조로 바뀌었다(사용자 결정) — 오늘 사주(SajuTodayView+DayDetailCard)·
+//    오늘 타로(DailyCardBlock)와 **같은 무료/유료 경계**를 갖기 위해서다.
+//    · 무료 taste 는 이제 **자격과 무관하게 항상** 그린다(구독자가 "둘이 어떤 결인지"를 못 읽던 문제 —
+//      사주·타로가 P6-4 §5-3① 에서 먼저 고친 것과 같은 결함이 여기 남아 있었다).
+//    · 그 아래는 `children` 이 받는다: 자격자면 PairReportView, 비자격자면 PaywallCut(절단선).
+//      예전엔 CTA·미끼가 **이 카드 밖** PremiumBlock 이었다 — 별개 카드라 "읽던 글이 끊긴다"는
+//      연결이 없어 광고로 읽혔다. **미끼 카드를 이 카드 밖에 되살리지 말 것.**
 export default function PairDayDetailCard({
   cell,
   backdrop,
   partnerName,
-  entitled,
   taste,
-  narrative,
-  narrativeLoading,
+  children,
 }: {
   cell: PairDayCell;
   backdrop: PairBackdrop;
   partnerName: string;
-  entitled?: boolean;
-  /** 비자격자용 무료 taste(~350자, 룰 100%). 자격자는 null — 아래 narrative 가 그 자리를 받는다. */
+  /** 무료 taste(~330자, 룰 100%). 자격과 무관하게 항상 그린다 — 절단선 위 구간이다. */
   taste?: PairTaste | null;
-  narrative?: string | null;
-  narrativeLoading?: boolean;
+  /** 절단선 아래에 들어올 것 — 유료 리포트(PairReportView) 또는 PaywallCut. */
+  children?: React.ReactNode;
 }) {
   const md = `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`;
   // 칩은 셀 마크와 같은 어휘·같은 글리프를 쓴다(P5-5) — 달력에서 본 ✧ 가 여기서 "끌림"으로 풀린다.
@@ -69,40 +72,74 @@ export default function PairDayDetailCard({
         </ul>
       )}
 
-      {/* "너희 결" — 고정 궁합 배경(날짜 무관). ③-b 에서 이 <div> 아래에 별콩 LLM 서술이 붙는다. */}
-      <div className="border-t border-lilac-soft pt-3 text-xs text-text-light">
-        <p className="mb-1">너희 결</p>
-        <p className="text-eye-purple">
-          {backdrop.labelAtoB} ↔ {backdrop.labelBtoA}
-        </p>
-        <p className="mt-1">
-          {backdrop.spark && "둘 사이 끌림 · "}
-          {backdrop.bond && "둘 사이 결속 · "}
-          연월조화 {backdrop.harmony}
-        </p>
+      {/* 🔴 "너희 결" 요약 블록 — 2026-09-24 에 줄글에서 UI 로 바꿨다(사용자 요청).
+          예전엔 `든든한 지원군 ↔ 내가 아끼는 사람` / `둘 사이 끌림 · 연월조화 0` 처럼 **본문도 아닌
+          정보가 텍스트로 깔려** 진짜 읽을 글(taste·리포트)과 구분이 안 됐다.
+          🔴 **전부 룰 데이터다(LLM 0·원가 0)** — 십신 라벨·끌림·결속은 backdrop, 연월조화는 0~4
+             카운트(천간합 2 + 육합 2). 새 LLM 필드를 만들지 않았다. */}
+      <div className="rounded-xl border border-lilac-soft bg-white/60 p-3">
+        <p className="mb-2 text-[11px] font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
+
+        {/* 십신 — 서로를 어떻게 보는지. 방향이 다르므로 마주보게 둔다(한 줄 `A ↔ B` 는 누가 누구를
+            그렇게 보는지가 안 보였다). */}
+        <div className="flex items-stretch gap-2">
+          {[
+            { who: "내가 보는 그 사람", label: backdrop.labelAtoB },
+            { who: `${partnerName}가 보는 나`, label: backdrop.labelBtoA },
+          ].map((x) => (
+            <div key={x.who} className="flex-1 rounded-lg bg-lilac-soft/50 px-2.5 py-2 text-center">
+              <p className="text-[10px] leading-tight text-text-light">{x.who}</p>
+              <p className="mt-0.5 text-[12.5px] font-bold leading-tight text-eye-purple">{x.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* 고정 신호 — 있을 때만 배지. 없으면 자리 자체를 안 만든다(빈 배지는 "없음"을 강조한다). */}
+        {(backdrop.spark || backdrop.bond) && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {backdrop.spark && (
+              <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
+                <span aria-hidden>✦</span> 둘 사이 끌림
+              </li>
+            )}
+            {backdrop.bond && (
+              <li className="rounded-full bg-lilac/50 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
+                <span aria-hidden>◈</span> 둘 사이 결속
+              </li>
+            )}
+          </ul>
+        )}
+
+        {/* 연월조화 0~4 — 숫자만 던지면 "0이 나쁜 건가"를 알 수 없다. 4칸 중 몇 칸인지로 보여준다. */}
+        <div className="mt-2.5 flex items-center gap-2">
+          <span className="text-[11px] text-text-light">연월조화</span>
+          <ul className="flex gap-1" aria-hidden>
+            {[0, 1, 2, 3].map((i) => (
+              <li
+                key={i}
+                className={`h-1.5 w-5 rounded-full ${i < backdrop.harmony ? "bg-lilac-deep" : "bg-lilac-soft"}`}
+              />
+            ))}
+          </ul>
+          <span className="text-[11px] font-bold text-eye-purple">
+            {backdrop.harmony}
+            <span className="font-normal text-text-light">/4</span>
+          </span>
+        </div>
       </div>
 
-      {entitled === false ? (
-        // 무료 ~350자(스펙 §8) — 나 탭 DayDetailCard 의 taste 블록과 같은 골격이라 두 탭이 같은
-        // 리듬으로 읽힌다. CTA·미끼는 이 카드 밖 PremiumBlock(slot="woori_30d")이 받는다.
-        taste ? (
-          <div className="mt-3 space-y-2 text-sm leading-relaxed text-eye-purple">
-            <p>{taste.signal}</p>
-            <p>{taste.relation}</p>
-            <p>{taste.lead}</p>
-            <p className="text-text-light">{taste.advice}</p>
-          </div>
-        ) : null
-      ) : narrativeLoading ? (
-        <p className="mt-3 text-sm text-text-light">별콩이가 둘 사이 오늘을 읽고 있어…</p>
-      ) : narrative ? (
-        <div className="mt-3 space-y-2">
-          {/* pair-narrative 라우트는 date 파라미터가 없어 이 서술은 항상 '오늘' 기준이다 — 다른 날을
-              보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 조용히 밝힌다. */}
-          {!cell.isToday && <p className="text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>}
-          <MarkdownLite text={narrative} className="text-sm leading-relaxed text-eye-purple" />
+      {/* 무료 구간 — 나 탭 DayDetailCard 의 taste 블록과 같은 골격이라 두 탭이 같은 리듬으로 읽힌다. */}
+      {taste ? (
+        <div className="mt-3 space-y-2 text-sm leading-relaxed text-eye-purple">
+          <p>{taste.signal}</p>
+          <p>{taste.relation}</p>
+          <p>{taste.lead}</p>
+          <p className="text-text-light">{taste.advice}</p>
         </div>
       ) : null}
+
+      {/* 절단선 아래 — 유료 리포트 또는 PaywallCut. 호출부가 자격으로 가른다. */}
+      {children}
     </section>
   );
 }

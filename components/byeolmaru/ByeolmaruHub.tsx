@@ -14,7 +14,6 @@ import MonthGridSection from "./MonthGridSection";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
 import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
-import PremiumBlock from "./PremiumBlock";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -27,6 +26,8 @@ interface CalendarResponse {
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
+  /** 체험 자격자는 subscriptionExpiresAt 이 null 이라 배너 D-N 이 이 필드를 본다. */
+  trialEndsAt: string | null;
   attendance: AttendanceState;
 }
 
@@ -146,9 +147,6 @@ export default function ByeolmaruHub() {
   if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 별마루를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
 
   const { data } = state;
-  // 폴백은 cells[0](이번 달 1일)이 아니라 마지막 칸이다 — 무료(비자격)는 오늘이 항상 마지막 칸이므로
-  // "오늘 사주" 히어로가 폴백을 타도 1일이 아니라 오늘로 정렬된다(SajuTodayView 와 동일 근거).
-  const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
 
   // 🔴 허브 달력은 **1인칭 전용**이다(2026-09-21 결정). 예전엔 판 상단 인연 칩으로 같은 판이
   //    나/우리를 번갈아 가리켰는데, 그러면 판을 감싼 모든 문구가 한쪽 주체에만 참이 됐다 —
@@ -177,12 +175,22 @@ export default function ByeolmaruHub() {
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
-      <HubBanner />
+      {/* 🔴 배너가 허브의 **유일한** 구독 면이다(2026-09-24). 예전엔 ①DayStrip 아래 인라인 문구
+          ②달력 밑 PremiumBlock 둘이 더 있었는데, 375×812 실측에서 셋 다 첫 화면에 들어왔다.
+          판매는 "더 보고 싶다"가 생기는 자리 — 오늘 사주·오늘 타로의 PaywallCut(절단선) — 가
+          맡고, 허브는 습관 쪽만 진다(사용자 결정). **여기에 미끼 카드를 되살리지 말 것.** */}
+      <HubBanner
+        entitled={data.entitled}
+        trialUsed={data.trialUsed}
+        subscriptionExpiresAt={data.subscriptionExpiresAt}
+        trialEndsAt={data.trialEndsAt}
+        onSubscribe={nextStep}
+      />
 
       {/* 🔴 달력 판 — 칩·출석·스트립·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
           예전엔 넷이 각자 다른 표면(배경 없음 / 흰 칸 / 크림 버튼 / 연보라 박스)으로 `space-y-4`
           위에 흩어져 있어 무엇이 무엇에 속하는지가 안 보였다 — 사용자 지적. 크림 카드 하나로 묶고
-          층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·PremiumBlock·무료 목록)은 달력에 속하지 않는다.
+          층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·무료 목록)은 달력에 속하지 않는다.
           🔴 표면을 순크림(cream-warm)으로 먼저 만들어봤다가 되돌렸다 — 칸의 "무난한 날"이 순백이라
              **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
              판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
@@ -215,21 +223,10 @@ export default function ByeolmaruHub() {
               onSelect={openDay}
               onLockedSelect={nextStep}
             />
-            {!data.entitled && (
-              <p className="px-1 text-center text-[12px] text-text-light">
-                앞으로 3일도 미리 볼래?{" "}
-                {/* 🔴 패딩 없는 4글자 밑줄은 탭 타깃이 24px(WCAG 2.5.8)에 한참 못 미친다.
-                    aria-label 로 제안 전체를 실어, 컨트롤 단위로 훑는 사용자에게도 맥락이 붙게 한다. */}
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  aria-label={`앞으로 3일도 미리 보기 — ${data.trialUsed ? "구독하기" : "3일 무료 체험"}`}
-                  className="-my-1 inline-block px-2 py-1.5 font-bold text-lilac-deep underline"
-                >
-                  {data.trialUsed ? "구독하기" : "3일 무료"}
-                </button>
-              </p>
-            )}
+            {/* 🔴 여기 있던 인라인 CTA("앞으로 3일도 미리 볼래? 구독하기")는 배너로 승격했다
+                (2026-09-24). 잠긴 칸을 눌렀을 때의 유도는 **사라지지 않았다** — 위
+                `onLockedSelect={nextStep}` 이 그대로 같은 곳으로 보낸다. 즉 맥락 유도는
+                칸 자체가 지고, 말로 하는 권유만 배너 한 곳으로 모았다. */}
           </div>
 
           <div className="mt-2 border-t border-lilac-mid/20">
@@ -249,23 +246,14 @@ export default function ByeolmaruHub() {
         </section>
       </div>
 
-      {/* 🔴 미끼는 자리마다 다른 물건이다(스펙 §9) — 허브는 오늘 사주 리포트를 팔고, 우리 오늘은
-          `/byeolmaru/woori` 가 자기 자리에서 판다(slot="woori_30d"). **같은 블록을 두 자리에 쓰면
-          광고로 읽힌다.** 인연 칩이 빠진 뒤로 이 자리의 slot 은 분기 없이 saju_report 하나다.
-          비로그인·생일 미입력에게는 애초에 이 분기까지 안 온다(위 상태 분기에서 갈린다). */}
-      {!data.entitled && (
-        <PremiumBlock
-          entitled={false}
-          trialUsed={data.trialUsed}
-          narrative={null}
-          teaser={null}
-          loading={false}
-          onStartTrial={startTrial}
-          onSubscribe={openSubscribe}
-          slot="saju_report"
-          baitCtx={{ gradeLabel: todayCell.grade.label }}
-        />
-      )}
+      {/* 🔴 여기 있던 PremiumBlock(미끼 카드, slot="saju_report")은 제거했다(2026-09-24, 사용자 결정).
+          근거: 구독 버튼이 힘을 받는 자리는 **무료로 읽다가 "더 보고 싶다"가 생기는 지점**이고,
+          그건 오늘 사주·오늘 타로 화면 안의 PaywallCut(절단선)이다. 달력 밑은 그 감정이 생기기
+          전이라 미리 파는 광고로 읽혔다.
+          🔴 계측: `saju_report` slot 의 `surface="bait_card"` 가 이 자리에서 사라진다. PaywallCut 이
+             설계한 비교("절단선이 미끼 카드보다 파는가")는 **별마루가 prod 에 한 번도 안 나가
+             표본이 0이라** 끊을 추세선 자체가 없었다 — prod 배포 전인 지금이 제거 비용이 가장 싼
+             시점이었다. 되살릴 땐 그 비교를 다시 세운다는 뜻임을 알고 할 것. */}
 
       {/* 🔴 위 달력 판과 간격을 더 준다(16 → 32px) — main 의 space-y-4 만으로는 달력 판과 이 목록이
           같은 층으로 읽혔다. 성격이 다른 섹션이라(날짜별 흐름 ↔ 무료 상품 목록) 숨을 한 번 쉰다.
