@@ -1,8 +1,10 @@
-// app/api/byeolmaru/watch/route.ts — 우리 오늘 지켜보는 상대 관리. 로그인-only(2무료 + 3번째부터 별, watch.ts).
+// app/api/byeolmaru/watch/route.ts — 우리 오늘 걸어둔 상대 관리. 로그인-only.
+// 🔴 상대는 **한 명**이다(2026-09-24) — 슬롯·과금(2무료+5별)은 제거됐다. POST 는 추가가 아니라
+//    **교체**이고 무료다. 근거·되돌리기 보장은 lib/byeolmaru/watch.ts 머리 주석 참조.
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
-import { getWatchState, addWatch, removeWatch } from "@/lib/byeolmaru/watch";
+import { setWatch, removeWatch } from "@/lib/byeolmaru/watch";
 import { logError, ctxFromRequest } from "@/lib/logger";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 
@@ -10,14 +12,13 @@ const VALID_STATUS = ["crush", "dating", "breakup", "onesided"] as const;
 
 export const dynamic = "force-dynamic";
 
-// 우리 오늘 무료 개방(1A): 상대 등록·조회는 로그인만 필요하다(구독 아님). 3명째부터의 별 코스트는
-// watch.ts(WATCH_FREE_SLOTS + 구매 슬롯)가 담당하므로 여기선 로그인만 확인한다.
+// 우리 오늘 무료 개방(1A): 상대 등록·조회는 로그인만 필요하다(구독 아님). 별 코스트는 이제 없다.
 async function requireLogin(userId: string | null) {
   if (!userId) return { code: 401 as const, body: { error: "Login required", code: "LOGIN_REQUIRED" } };
   return null;
 }
 
-// GET — 담은 상대 목록 + 추천(아직 안 담은 비-self 프로필) + 현황(allowed/used/nextCost).
+// GET — 걸어둔 상대(0 또는 1명) + 후보(아직 안 건 비-self 프로필).
 export async function GET(req: NextRequest) {
   const { userId } = await getSession();
   const gate = await requireLogin(userId);
@@ -51,7 +52,6 @@ export async function GET(req: NextRequest) {
         id: p.id, name: p.display_name, status: watchedStatusById.get(p.id) ?? null,
       })),
       suggestions: candidates.filter((p) => !watchedIds.has(p.id)).map((p) => ({ id: p.id, name: p.display_name })),
-      state: await getWatchState(userId!),
     });
   } catch (err) {
     await logError(err, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
@@ -59,7 +59,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { profileId } — 상대를 담는다(소유·비-self·생일 검증 → 중복 pre-filter → addWatch).
+// POST { profileId, status } — 걸어둘 상대를 **설정**한다(추가가 아니라 교체·무료).
+//    소유·비-self·생일 검증 → setWatch(기존 행 교체).
 export async function POST(req: NextRequest) {
   const { userId } = await getSession();
   const gate = await requireLogin(userId);
@@ -99,29 +100,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "invalid_profile" }, { status: 400 });
     }
 
-    // 🔴 중복 pre-filter — 이미 담은 상대면 addWatch(별 차감 가능)를 호출하지 않고 그대로 성공 처리한다.
-    // supabase-js 는 { head:true, count:"exact" } 일 때 카운트를 data 가 아니라 응답의 count 필드로 준다.
-    const { count: dupCount, error: dupErr } = await supa
-      .from("byeolmaru_watch")
-      .select("profile_id", { head: true, count: "exact" })
-      .eq("user_id", userId)
-      .eq("profile_id", profileId);
-    if (dupErr) {
-      await logError(dupErr, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
-      return NextResponse.json({ error: "internal" }, { status: 500 });
-    }
-    if (dupCount && dupCount > 0) {
-      return NextResponse.json({ ok: true, charged: 0 });
-    }
-
-    const res = await addWatch(userId!, profileId, status);
-    if (!res.success && res.reason === "insufficient") {
-      return NextResponse.json({ error: "insufficient_balance", code: "NEED_STARS" }, { status: 402 });
-    }
+    // 🔴 중복 pre-filter 가 사라졌다(2026-09-24) — 상대가 한 명이라 "이미 담았나"를 먼저 볼 이유가
+    //    없다. setWatch 가 기존 행을 지우고 넣으므로 같은 상대를 다시 눌러도 결과가 같고,
+    //    별을 태우지 않으므로 중복 과금 위험 자체가 없어졌다(그 pre-filter 의 목적이 그거였다).
+    const res = await setWatch(userId!, profileId, status);
     if (!res.success) {
-      return NextResponse.json({ error: res.reason ?? "add_failed" }, { status: 500 });
+      await logError(new Error(res.reason ?? "set_watch_failed"), ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
+      return NextResponse.json({ error: "set_failed" }, { status: 500 });
     }
-    return NextResponse.json({ ok: true, charged: res.charged });
+    // charged 는 호환을 위해 남기지 않는다 — 호출부(WatchAddModal)를 같이 고친다.
+    return NextResponse.json({ ok: true });
   } catch (err) {
     await logError(err, ctxFromRequest(req, { route: "/api/byeolmaru/watch", userId: userId! }));
     return NextResponse.json({ error: "internal" }, { status: 500 });

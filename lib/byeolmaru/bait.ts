@@ -42,47 +42,7 @@ export const BAIT: Record<BaitSlot, BaitCopy> = {
   },
 };
 
-/** 첫 줄이 받을 맥락 — 화면에 **이미 떠 있는 것**만 넣는다(새로 계산하지 않는다). */
-export interface BaitContext {
-  /** 오늘 등급 라벨("잘 맞는 날"…). 허브 히어로·오늘 사주 상세에 이미 보인다. */
-  gradeLabel?: string;
-  /** 인연 탭에서 고른 상대 이름. */
-  partnerName?: string;
-}
-
-/**
- * 무료 요약을 이어받는 첫 줄(스펙 §9). 무료→유료가 **한 흐름**으로 읽히게 한다 —
- * 광고 문구가 아니라 방금 읽은 것의 다음 문장처럼.
- * 맥락이 없으면 그것 없이도 말이 되는 문장으로 떨어진다(undefined 가 새면 안 된다).
- */
-export function baitLead(slot: BaitSlot, ctx: BaitContext): string {
-  if (slot === "saju_report") {
-    // 라벨이 있으면 화면(DayDetailCard/히어로)에 뜬 그 등급을 그대로 인용한다 — 오늘일 때만 실린다.
-    // 🔴 폴백이 "오늘"을 말하는 건 의도다. P6-1 이후 daily-report 는 날짜를 받지만, 이 폴백에
-    //    도달하는 실사용 경로는 **허브의 나 탭 미끼**(자리 자체가 오늘 얘기)뿐이다 — 상세 화면의
-    //    비자격 영역은 P6-4 에서 PaywallCut 이 받아 이 카피를 쓰지 않는다.
-    return ctx.gradeLabel
-      ? `위에서 본 '${ctx.gradeLabel}'이 왜 그런지부터 풀어줄게.`
-      : "오늘은 왜 이런 결인지부터 풀어줄게.";
-  }
-  if (slot === "woori_30d") {
-    // 🔴 "오늘"을 박아도 되는 근거는 화면이 아니라 **파는 물건**이다(P5-5 로 이 자리가
-    //    /byeolmaru/woori 날짜 선택 화면에도 붙었다 — 허브 전용이 아니다). pair-narrative
-    //    라우트엔 날짜 파라미터가 없어 구독으로 열리는 건 언제나 오늘 기준 서술이다
-    //    (saju_report 와 같은 논리 — 위 주석 참조).
-    return ctx.partnerName
-      ? `${ctx.partnerName}${particleWaGwa(ctx.partnerName)} 너, 오늘 왜 이런 결인지부터 짚어줄게.`
-      : "둘이 오늘 왜 이런 결인지부터 짚어줄게.";
-  }
-  // tarot_rich 도 오늘의 카드 자리라 "지금"이 항상 참이다.
-  return "이 카드가 지금 네 흐름에 어떻게 걸리는지부터 말해줄게.";
-}
-
-// 받침 유무로 와/과 선택(한글 완성형 종성 인덱스, 0=받침없음) — lib/byeoljari/display.ts 의
-// subjectParticle 과 같은 규칙이지만 로컬로 다시 둔다: 이 파일은 LLM·네트워크는 물론 다른 lib
-// 모듈에도 기대지 않는 의존성 0 순수 모듈이어야 해서(파일 상단 주석) import 하지 않는다.
-function particleWaGwa(word: string): "와" | "과" {
-  const code = word.trim().slice(-1).charCodeAt(0);
-  if (Number.isNaN(code) || code < 0xac00 || code > 0xd7a3) return "와"; // 한글 완성형 밖
-  return (code - 0xac00) % 28 === 0 ? "와" : "과"; // 받침 없음 → 와
-}
+// 🔴 baitLead / BaitContext / particleWaGwa 는 2026-09-24 삭제됐다 — 유일한 소비처가
+//    PremiumBlock(미끼 카드)였고 그 컴포넌트가 없어졌다(페이월은 PaywallCut 하나로 통일).
+//    PaywallCut 은 분량·섹션 칩을 paywall-sections.ts 에서 받아 BAIT 카피를 안 읽는다.
+//    아래 BAIT 는 살아 있다 — 구독 시트(useByeolmaruSubscribe)가 자리별 제목·칩을 그대로 쓴다.

@@ -1,12 +1,14 @@
 "use client";
 
-// components/byeolmaru/WatchAddModal.tsx — "우리 오늘"에 지켜볼 상대를 담는 모달(③-a Task8).
-// 두 경로: ①이미 등록된 비-self 프로필 고르기 ②새로 등록(ProfileForm 재사용). 무료 2명(WATCH_FREE_SLOTS)
-// 초과분은 5별(WATCH_EXTRA_COST) 확인이 필요 — StarConfirmModal 재사용(useByeolmaruSubscribe 잔액조회 패턴 동일).
+// components/byeolmaru/WatchAddModal.tsx — "우리 오늘"에 걸어둘 상대를 정하는 모달.
+// 두 경로: ①이미 등록된 비-self 프로필 고르기 ②새로 등록(ProfileForm 재사용).
+// 🔴 상대는 **한 명**이라 이건 "담기"가 아니라 **교체**다(2026-09-24). 슬롯·별 확인(StarConfirmModal)
+//    경로는 통째로 사라졌다 — 교체는 무료다. 이미 건 사람이 있으면 그 자리를 이 사람이 대신한다.
+//    🔴 되돌리기가 값싸다: 과거 리포트는 (user, partner, 날짜) 키라 남아 있고, 프로필도 안 지우므로
+//       예전 상대를 다시 고르면 그날 기록이 그대로 살아난다.
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
-import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import {
   RELATIONSHIP_STATUS_LABELS,
@@ -20,7 +22,6 @@ interface WatchCandidate {
 
 interface WatchGetResponse {
   suggestions: WatchCandidate[];
-  state: { nextCost: number };
 }
 
 type Tab = "pick" | "register";
@@ -48,7 +49,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   const [suggestions, setSuggestions] = useState<WatchCandidate[]>([]);
   // 다음 1명 담을 때 비용(0=무료) — GET 마운트 스냅샷. add flow 성공 시 onAdded 직후 onClose로
   // 모달이 곧장 닫혀 세션당 add는 최대 1건이라, 스냅샷을 재사용해도 staleness 문제가 없다.
-  const [nextCost, setNextCost] = useState(0);
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,12 +58,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   // 관계칩 — pick·register 두 경로가 공유하는 단일 상태(둘 다 결국 submitWatch 통과). 기본 "연애 중".
   const [status, setStatus] = useState<RelationshipStatus>("dating");
 
-  // StarConfirmModal — profileId 가 있으면 확인 팝업이 뜬다(무료 슬롯 소진 후).
-  const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null);
-  const [confirmBalance, setConfirmBalance] = useState<number | null>(null);
-  const [confirmBalanceLoading, setConfirmBalanceLoading] = useState(false);
-
-  const busy = submitting || confirmProfileId !== null;
+  const busy = submitting;
 
   // 마운트 시 후보 목록 + 다음 비용 로드
   useEffect(() => {
@@ -78,7 +73,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         const data: WatchGetResponse = await res.json();
         if (cancelled) return;
         setSuggestions(data.suggestions ?? []);
-        setNextCost(data.state?.nextCost ?? 0);
         setLoadState("ready");
       } catch {
         if (!cancelled) setLoadState("error");
@@ -109,30 +103,11 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
 
   if (typeof document === "undefined") return null;
 
-  // 공유 담기 플로우 — 무료면 곧장 POST, 유료면 잔액을 조회해 StarConfirmModal을 띄운다.
-  // 🔴 balance=null 로 넘기면 확인 버튼이 영구 disabled — useByeolmaruSubscribe openSubscribe와
-  // 동일하게 /api/stars/balance 로 실 잔액을 조회한다(항상 200, 비로그인/에러는 0).
+  // 🔴 별 확인 단계가 없다(2026-09-24) — 교체는 무료라 곧장 POST 한다. 예전엔 무료 슬롯이
+  //    소진되면 잔액을 조회해 StarConfirmModal 을 띄웠다.
   function startAddFlow(profileId: string) {
     if (busy) return;
     setError(null);
-    if (nextCost > 0) {
-      trackUiEvent("byeolmaru_watch_limit", { meta: { cost: nextCost } });
-      setConfirmProfileId(profileId);
-      setConfirmBalance(null);
-      setConfirmBalanceLoading(true);
-      void (async () => {
-        try {
-          const r = await fetch("/api/stars/balance", { cache: "no-store" });
-          const d = r.ok ? await r.json() : null;
-          setConfirmBalance(typeof d?.balance === "number" ? d.balance : 0);
-        } catch {
-          setConfirmBalance(0);
-        } finally {
-          setConfirmBalanceLoading(false);
-        }
-      })();
-      return;
-    }
     void submitWatch(profileId);
   }
 
@@ -145,27 +120,17 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profileId, status }),
       });
-      if (res.status === 402) {
-        window.location.href = "/shop";
-        return;
-      }
       if (!res.ok) {
         setError("담지 못했어. 잠시 후 다시 시도해줄래?");
         setSubmitting(false);
-        setConfirmProfileId(null);
         return;
       }
-      const body = await res.json().catch(() => ({} as { charged?: number }));
       trackUiEvent("byeolmaru_watch_add", { meta: { via: registered ? "register" : "pick" } });
-      if (typeof body.charged === "number" && body.charged > 0) {
-        trackUiEvent("byeolmaru_watch_purchase", { meta: { stars: body.charged } });
-      }
       onAdded(profileId);
       onClose();
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setSubmitting(false);
-      setConfirmProfileId(null);
     }
   }
 
@@ -226,7 +191,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
     }
   }
 
-  const pid = confirmProfileId; // narrowed local — StarConfirmModal 콜백 클로저용
 
   return createPortal(
     <div
@@ -393,20 +357,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         <div className="h-5" />
       </div>
 
-      {pid && (
-        <StarConfirmModal
-          cost={nextCost}
-          balance={confirmBalance}
-          loading={confirmBalanceLoading}
-          accent="#E8C26A"
-          title={`별 ${nextCost}개로 담을까?`}
-          subtitle="우리 오늘에서 함께 지켜볼 수 있어"
-          confirmLabel="담기"
-          onConfirm={() => void submitWatch(pid)}
-          onCharge={() => (window.location.href = "/shop")}
-          onClose={() => setConfirmProfileId(null)}
-        />
-      )}
     </div>,
     document.body
   );

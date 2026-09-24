@@ -4,11 +4,10 @@
 // PASS_PLANS 가 서버 전용 lib/relationship/passes.ts 와 분리돼 있는 것과 같은 이유로 분리한다.
 export const BYEOLMARU_SUBSCRIPTION = { cost: 20, days: 30 } as const;
 
-/** 우리 오늘 "지켜보는 상대" 슬롯. 2명 무료 + 3번째부터 WATCH_EXTRA_COST 별.
- * 구독(20별)의 작은 애드온 — 답변추천(SIM_SUGGEST_COST=5) 티어. 서버 권위(클라 cost 신뢰 X).
- * 옛 relationship SLOT_COST(50)와 별개(그건 /relationship 잔존용). */
-export const WATCH_FREE_SLOTS = 2;
-export const WATCH_EXTRA_COST = 5;
+// 🔴 WATCH_FREE_SLOTS(2) · WATCH_EXTRA_COST(5) 는 2026-09-24 삭제됐다 — 우리 오늘의 상대는
+//    **한 명**이고 교체는 무료다. 근거: prod 상대 등록 142명 중 유료 슬롯 전환 0, dev 포함
+//    구매 이력 0건. 되살리려면 lib/byeolmaru/watch.ts 의 setWatch(교체 의미)부터 되돌려야 한다.
+//    (교체 대신 **생성**을 막는 쪽으로 원가를 잡는다 — 아래 PAIR_REPORT_DAILY_LIMIT.)
 
 /** 우리 오늘 — **하루에 새로 생성할 수 있는 상대 리포트 수**(2026-09-24).
  *
