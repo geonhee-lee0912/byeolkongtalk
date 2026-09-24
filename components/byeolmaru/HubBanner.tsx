@@ -26,6 +26,10 @@ import Image from "next/image";
 import { TRIAL_DAYS } from "@/lib/byeolmaru/entitlement";
 
 interface Props {
+  /** 🔴 false 면 버튼·칩을 아예 안 그린다 — 게스트(EmptyMonthShell)용. 그 화면엔 이미 더 큰
+   *  CTA("카카오로 시작하고 내 달력 받기")가 있고, 비로그인에게 체험 버튼을 띄우면 누르는 순간
+   *  startTrial 이 401 로 떨어진다. 기본값 true(로그인 허브). */
+  cta?: boolean;
   entitled: boolean;
   trialUsed: boolean;
   /** 구독 만료. 체험으로 자격을 얻은 사람은 null 이다(그쪽은 trialEndsAt 을 본다). */
@@ -43,6 +47,7 @@ function daysLeft(iso: string, now: number): number {
 }
 
 export default function HubBanner({
+  cta = true,
   entitled,
   trialUsed,
   subscriptionExpiresAt = null,
@@ -78,7 +83,7 @@ export default function HubBanner({
         <p className="mt-1 text-[11.5px] leading-relaxed text-text-light">
           오늘 너의 하늘, 한 자리에 모아뒀어
         </p>
-        {entitled ? (
+        {!cta ? null : entitled ? (
           // 정보 칩 — 누를 게 아니라서 button 이 아니다.
           <span className={chipClass}>
             {subscriptionExpiresAt ? "구독 중" : "체험 중"}

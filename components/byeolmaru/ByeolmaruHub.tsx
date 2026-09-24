@@ -64,10 +64,12 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
   const { dates, today } = emptyMonthDates();
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
-      <header>
-        <h1 className="font-display text-2xl text-eye-purple">별마루</h1>
-        <p className="text-sm text-text-light">오늘 너의 하늘, 한 자리에</p>
-      </header>
+      {/* 🔴 게스트도 배너를 본다(2026-09-24). 예전엔 여기만 옛 `<header>`(h1 + 부제)였는데, 그건
+          결정이 아니라 **누락**이었다 — EmptyMonthShell 은 P5-3(35985ab), HubBanner 는 그 뒤
+          P6-3(a11f6fa) 이라 배너가 로그인 허브에만 붙고 이쪽은 안 따라왔다.
+          🔴 `cta={false}` — 비로그인에게 체험 버튼을 띄우면 누르는 순간 startTrial 이 401 이고,
+             이 화면엔 이미 더 큰 CTA(아래 {cta})가 있다. */}
+      <HubBanner cta={false} entitled={false} trialUsed={false} />
       <section className="space-y-3">
         {/* lockedHint=false — 이 빈 달력은 "안 온 날"이 아니라 "생일이 없어 못 보는 날"이라
             CalendarGrid 기본 안내("그날이 오면 열려")를 끈다. 바로 아래 "네 생일만 있으면…" 문구가

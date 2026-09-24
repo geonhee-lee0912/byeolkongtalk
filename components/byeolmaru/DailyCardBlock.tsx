@@ -7,7 +7,7 @@
 //    재설명을 금지하므로 taste 가 빠지면 돈 낸 사람이 "이 카드가 어떤 카드인지"를 못 읽고, 게이지는
 //    룰 100%·원가 0이라 유료로 가둘 이유가 없다.
 // design §2: docs/superpowers/specs/2026-09-05-별마루-5-원카드-폐지-낙수-design.md
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -204,6 +204,21 @@ export default function DailyCardBlock({
     setPendingDraw(null);
     setRitualOpen(true);
   }
+
+  // 🔴 아직 안 뽑았으면 **의식을 바로 연다**(2026-09-24, 사용자 요청) — "카드 한 장으로 가볍게
+  //    짚어볼까?" + 버튼 한 번을 거치던 중간 단계를 없앤다. 목록에서 '오늘 타로'를 누른 사람은
+  //    이미 뽑겠다고 결정한 사람이라 한 번 더 묻는 게 군더더기였다.
+  // 🔴 **한 번만 연다.** 유저가 닫으면 그 뒤론 안 뜨고 아래 "오늘의 카드 뽑기" 버튼이 받는다
+  //    (자동으로 다시 열면 닫을 수가 없어 갇힌다). 그래서 state 가 아니라 ref 로 기억한다 —
+  //    ritualOpen 을 deps 로 보면 닫는 순간 effect 가 다시 돌아 무한히 열린다.
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    // 로딩 중(state.kind==="loading")엔 아직 "안 뽑았다"가 확정이 아니다 — 확정된 뒤에만 연다.
+    if (state.kind !== "none" || date !== todayKst) return;
+    autoOpenedRef.current = true;
+    openRitual();
+  }, [state.kind, date, todayKst]);
 
   function closeRitual() {
     if (saving) return;
