@@ -50,7 +50,11 @@ export const UI_EVENTS = [
    *  ⚠️ P6-3 배포일에 이 이벤트의 **구성**이 꺾인다(격자 기본 접힘 + 스트립 신설) — 이름이 같아도
    *     추세선 단절이 있으니 행동 변화로 오독하지 말 것. */
   "byeolmaru_day_selected",
-  /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출) */
+  /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출)
+   *  🔴 **2026-09-24 부터 영구 0** — 발화처였던 PartnerSlot.tsx 를 삭제했다. 그 카드는 이미
+   *     2026-09-05(별마루 3a)에 화면에서 빠져 파일만 남아 있었고, 우리 오늘이 별마루 안에서
+   *     자립한 지금은 /relationship 으로 내보낼 이유가 없다.
+   *     상수는 과거 판독용으로 남긴다(gate_dismissed·watch_limit 과 같은 관행). */
   "byeolmaru_slot_clicked",
   /** 별마루 — 사주 프로필 없어 캘린더를 못 그린 진입(퍼널 이탈 지점) */
   "byeolmaru_no_profile",
