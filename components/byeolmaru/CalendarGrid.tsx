@@ -4,9 +4,7 @@ import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { cellTint, isGoodScore } from "@/lib/byeolmaru/calendar-visual";
-// 🔴 MARK_COLOR·MARK_TINT 는 한 쌍이다 — 색은 배경 틴트로만 쓰고 글자는 어두운 색 고정.
-//    MARK_COLOR 를 글자 색으로 쓰면 이 판의 옅은 배경 위에서 WCAG AA 에 전 조합 미달한다(실측).
-import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
+import { MARK_CHIP, type DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
 // caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
@@ -181,9 +179,9 @@ export default function CalendarGrid({
                 <span
                   // 🔴 셀에는 최우선 마크 1개만. 2개부터 42px 칸에서 날짜와 겹친다(실측).
                   //    전체 목록은 aria-label 과 상세 카드의 마크 칩이 받는다.
-                  //    🔴 MARK_COLOR 는 배경 틴트로만 — 글자로 쓰면 이 옅은 판 위에서 AA 미달이다.
-                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
-                  style={{ background: `${MARK_COLOR[c.marks[0].glyph]}${MARK_TINT[c.marks[0].strength]}` }}
+                  //    🔴 솔리드 칩(MARK_CHIP) — 칩 자체가 색면이라 셀 배경과 무관하게 대비가 고정된다.
+                  className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px]"
+                  style={{ background: MARK_CHIP[c.marks[0].glyph].bg, color: MARK_CHIP[c.marks[0].glyph].fg }}
                 >
                   {c.marks[0].label}
                 </span>

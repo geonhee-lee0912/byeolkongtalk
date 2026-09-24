@@ -10,7 +10,7 @@ import type { DailyCard } from "@/lib/byeolmaru/daily-card";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
-import { DAY_NAME, MARK_COLOR, MARK_TINT } from "@/lib/byeolmaru/day-label";
+import { DAY_NAME, MARK_CHIP } from "@/lib/byeolmaru/day-label";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "love", label: "연애" },
@@ -87,13 +87,11 @@ export default function DayDetailCard({
         <div className="mb-3 mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <span className="text-sm text-text-light">{cell.grade.label}</span>
           {cell.marks.map((m) => (
-            // 🔴 MARK_COLOR 는 배경 틴트로만(§11-2-1) — 4종 다 상대휘도 .22~.36 이라 이 옅은 판 위
-            //    작은 글자로 쓰면 WCAG AA 에 수학적으로 도달이 안 된다. 글자는 night-deep 고정.
-            //    실측: night-deep 이면 8조합 전부 9.5~12.6:1 / MARK_COLOR 를 글자로 쓰면 1.8~3.1:1.
+            // 🔴 칩 자체가 색면인 솔리드 팔레트(MARK_CHIP) — 셀 배경과 무관하게 대비가 고정된다.
             <span
               key={m.glyph}
-              className="rounded-full px-2 py-0.5 text-[11px] font-bold text-night-deep"
-              style={{ background: `${MARK_COLOR[m.glyph]}${MARK_TINT[m.strength]}` }}
+              className="rounded-full px-2 py-0.5 text-[11px] font-bold"
+              style={{ background: MARK_CHIP[m.glyph].bg, color: MARK_CHIP[m.glyph].fg }}
             >
               <span aria-hidden>{m.glyph}</span> {m.label}
             </span>

@@ -1,7 +1,9 @@
 // lib/byeolmaru/calendar-visual.ts — 달력 판의 점수 → 시각 매핑(순수 · 네트워크 0).
-// 🔴 두 표면(7일 스트립 · 월간 격자)이 **같은 원천**(DayCell.score)을 쓴다 — 스트립은 막대 높이,
-//    격자는 색 농도. 매핑을 한 파일에 두는 이유는 둘이 어긋나면 같은 날이 두 곳에서 다른 세기로
-//    보이기 때문이다(21~27 은 실제로 두 표면에 동시에 뜬다).
+// 🔴 두 표면(7일 스트립 · 월간 격자)이 **같은 원천**(DayCell.score)을 쓴다 — 매핑을 한 파일에
+//    두는 이유는 둘이 어긋나면 같은 날이 두 곳에서 다른 세기로 보이기 때문이다(21~27 은 실제로
+//    두 표면에 동시에 뜬다). 2차 설계(2026-09-24)부터 **주 신호는 점수 숫자**(scoreDisplay)이고,
+//    면 색(cellTint)은 찾기 보조로만 쓴다 — 색이 정확한 값을 말하려던 1차(막대 높이·양방향 채도)는
+//    실물에서 기각됐다.
 // 🔴 등급 3단(dayGrade)을 배경에 쓰지 않는다 — 실측 5,400칸에서 normal 이 64% 라 7칸 중 4~5칸이
 //    같은 색이 됐다. 점수는 그 원재료고 서로 다른 값이 38종이라 칸이 겹치지 않는다.
 import { dayGrade } from "./day-score.ts";
@@ -45,20 +47,15 @@ export function isGoodScore(score: number): boolean {
   return dayGrade(clamp100(score)).tone === "good";
 }
 
-const BAR_MIN_PX = 4;
-const BAR_MAX_PX = 28;
-
-/** 스트립 막대 높이(px). 바닥 4px 은 모집단 최저점도 막대가 보이게 하는 값. */
-export function barHeightPx(score: number): number {
-  return Math.round(BAR_MIN_PX + scorePercentile(score) * (BAR_MAX_PX - BAR_MIN_PX));
+/** 화면에 찍는 점수(0~100). 🔴 **원점수를 쓰지 않는다** — 모집단 중앙이 56 이라 대부분의 날이
+ *  "56"으로 떠서 학교 점수 프레임의 낙제로 읽힌다(실제로는 딱 평균인 날인데). 백분위를 태워야
+ *  숫자가 "이 날이 얼마나 드문가"를 뜻한다. 고정 스케일이라 같은 점수는 언제나 같은 표시값이다. */
+export function scoreDisplay(score: number): number {
+  return Math.round(scorePercentile(score) * 100);
 }
 
-// 🔴 보라가 두 값이다 — 헷갈려서 하나로 "정리"하면 색이 조용히 바뀐다.
-//    LILAC_DEEP 은 **면**(격자 셀 틴트)에 알파를 태워 쓰고, LILAC_MID 는 **선**(스트립 막대)에
-//    불투명하게 쓴다. 옅은 알파로 깔리는 쪽이 더 진한 원색이어야 같은 세기로 보인다.
 const GOLD = "#E8C26A";
 const LILAC_DEEP = "#9F8AD0";
-const LILAC_MID = "#B8A8D8";
 
 /** 🔴 hex 는 6자리 형식만 받는다(#RRGGBB) — 이 파일의 상수 셋이 유일한 호출자다. */
 function rgba(hex: string, alpha: number): string {
@@ -67,28 +64,25 @@ function rgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
-/** 스트립 막대 색 — 단색이되 good 만 금색. caution 은 막대가 짧은 것으로 이미 말해진다. */
-export function barColor(score: number): string {
-  return isGoodScore(score) ? GOLD : LILAC_MID;
-}
-
 /** 격자 셀 배경 — 양방향(diverging) 채도.
  *  🔴 단방향("점수 높을수록 진함")은 틀렸다 — 살짝 챙길 날이 제일 연해져 사라진다. 격자가 답할
  *     질문은 "어느 날이 **눈여겨볼** 날인가"이고 그건 좋은 날과 챙길 날 양쪽이다.
- *  🔴 알파 바닥 0.12 는 판(PANEL_BG #ffffff) 위에서 칸이 사라지지 않는 하한이다. 현행 normal 칸
- *     (#F4F2F7 ≈ #9F8AD0 12%)과 같은 값이라 "이 정도면 보인다"가 이미 실측된 지점이다.
- *     순백+순백 / 크림+순백 조합으로 두 번 되돌린 이력이 CalendarGrid.tsx 주석에 있다.
+ *  🔴 알파 바닥 0.11 은 판(PANEL_BG #ffffff) 위에서 칸이 사라지지 않는 하한이다. 순백+순백 /
+ *     크림+순백 조합으로 두 번 되돌린 이력이 CalendarGrid.tsx 주석에 있다.
+ *  🔴 상한을 1차(보라 0.55 / 금 0.95)보다 낮췄다 — 숫자가 주 신호가 됐으니 면은 "찾기"만 하면
+ *     되고, 진한 면 위에서 숫자 대비가 깎이는 걸 막는다. 실측: #5A3E8C on 보라 0.30 = 6.29,
+ *     #412402 on 금 0.65 = 10.09.
  *  백분위로 다시 정규화한다 — 원점수 선형은 실데이터가 안 쓰는 범위라 대비가 안 났다. */
 export function cellTint(score: number): string {
   const p = scorePercentile(score);
   if (isGoodScore(score)) {
-    // good 구간을 백분위로 다시 정규화 — 임계 바로 위가 0.45, 모집단 최고가 0.95.
+    // good 구간을 백분위로 다시 정규화 — 임계 바로 위가 0.45, 모집단 최고가 0.65.
     const t = GOOD_PERCENTILE >= 1 ? 1 : (p - GOOD_PERCENTILE) / (1 - GOOD_PERCENTILE);
-    return rgba(GOLD, 0.45 + Math.max(0, Math.min(1, t)) * 0.5);
+    return rgba(GOLD, 0.45 + Math.max(0, Math.min(1, t)) * 0.2);
   }
-  // 🔴 바닥 0.12 는 good 임계 직전(p = GOOD_PERCENTILE)에서 정확히 나온다 — 0.55 − 0.43.
+  // 🔴 바닥 0.11 은 good 임계 직전(p = GOOD_PERCENTILE)에서 정확히 나온다 — 0.30 − 0.19.
   const t = Math.max(0, Math.min(1, p / GOOD_PERCENTILE));
-  return rgba(LILAC_DEEP, 0.55 - t * 0.43);
+  return rgba(LILAC_DEEP, 0.3 - t * 0.19);
 }
 
 const SUMMARY_MAX_DATES = 3;

@@ -5,6 +5,7 @@ import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import type { PairTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { MARK_CHIP } from "@/lib/byeolmaru/day-label";
 
 // 🔴 2026-09-24 한 장 구조로 바뀌었다(사용자 결정) — 오늘 사주(SajuTodayView+DayDetailCard)·
 //    오늘 타로(DailyCardBlock)와 **같은 무료/유료 경계**를 갖기 위해서다.
@@ -62,7 +63,13 @@ export default function PairDayDetailCard({
       {(marks.length > 0 || leadChip) && (
         <ul className="mb-4 flex flex-wrap gap-2">
           {marks.map((m) => (
-            <li key={m.glyph} className="rounded-full border border-lilac-mid px-3 py-1 text-xs text-eye-purple">
+            // 🔴 나 탭 DayDetailCard 와 같은 솔리드 칩(MARK_CHIP) — 둘 다 상세 화면의 마크 칩이라
+            //    같은 문법을 쓴다(2026-09-24). 옛 테두리 필은 색이 아예 없어 마크끼리 구분이 안 됐다.
+            <li
+              key={m.glyph}
+              className="rounded-full px-3 py-1 text-xs font-bold"
+              style={{ background: MARK_CHIP[m.glyph].bg, color: MARK_CHIP[m.glyph].fg }}
+            >
               <span aria-hidden>{m.glyph}</span> {m.label}
             </li>
           ))}

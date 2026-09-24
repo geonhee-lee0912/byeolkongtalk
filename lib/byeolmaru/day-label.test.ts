@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DAY_NAME, DAY_LINE, dayMarks, MARK_COLOR, type DayGlyph } from "./day-label.ts";
+import { DAY_NAME, DAY_LINE, dayMarks, MARK_CHIP } from "./day-label.ts";
 import type { DayFactors } from "./day-score.ts";
 import { tenGod, type TenGod } from "@/lib/saju/pairing";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
@@ -87,11 +87,13 @@ test("나 탭 마크는 전부 full — 강도 2단은 우리 탭에서만 쓴�
   for (const m of ms) assert.equal(m.strength, "full", `${m.glyph} 가 full 이 아니다`);
 });
 
-test("MARK_COLOR 가 글리프 4종을 빠짐없이 덮는다", () => {
-  // 🔴 Record 타입만 믿지 않는다 — 실제 키 집합을 대조한다(폴백 없는 조회라 빠지면 런타임 undefined).
-  const glyphs: DayGlyph[] = ["✧", "◇", "△", "＋"];
-  assert.deepEqual(Object.keys(MARK_COLOR).sort(), [...glyphs].sort());
-  for (const g of glyphs) assert.match(MARK_COLOR[g], /^#[0-9A-F]{6}$/i);
+test("MARK_CHIP — 네 글리프가 전부 있고 설렘만 어두운 글자다", () => {
+  for (const g of ["✧", "◇", "△", "＋"] as const) {
+    assert.ok(MARK_CHIP[g].bg.startsWith("#"), g);
+    assert.ok(MARK_CHIP[g].fg.startsWith("#"), g);
+  }
+  assert.equal(MARK_CHIP["✧"].fg, "#412402");
+  for (const g of ["◇", "△", "＋"] as const) assert.equal(MARK_CHIP[g].fg, "#ffffff");
 });
 
 function cal30() {

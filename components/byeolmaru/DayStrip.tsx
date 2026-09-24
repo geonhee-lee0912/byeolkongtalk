@@ -8,8 +8,7 @@
 // 🔴 톤 색면을 배경에 쓰지 않는다(2026-09-24) — 실측 normal 64% 라 7칸 중 4~5칸이 같은 색이었고,
 //    게다가 톤 색면이 위계를 이겨 '잘 맞는 어제'가 '무난한 오늘'보다 강해 보였다. 비교는 막대가,
 //    위계는 오늘 pill 이 맡는다.
-import { MARK_COLOR, MARK_TINT, type DayMark } from "@/lib/byeolmaru/day-label";
-import { barColor, barHeightPx } from "@/lib/byeolmaru/calendar-visual";
+import { MARK_CHIP, type DayMark } from "@/lib/byeolmaru/day-label";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -78,7 +77,7 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
               className="flex flex-col items-center justify-end rounded-xl border border-dashed py-1.5"
               style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
             >
-              {/* 막대 자리는 비운다 — 없는 걸 있는 척하지 않는다. 자리만 남겨 칸 높이를 맞춘다. */}
+              {/* 막대는 2차 설계(2026-09-24)에서 제거됐다 — 자리만 남겨 칸 높이를 맞춘다. */}
               <span aria-hidden className="h-7 w-[6px]" />
               <span className="mt-1 text-[10px] leading-none text-text-light/70">{weekdayOf(date)}</span>
               <span className="mt-0.5 text-[15px] font-semibold leading-none text-text-light/70">{dayNum}</span>
@@ -98,13 +97,9 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
             aria-label={`${today ? "오늘 " : ""}${cell.date} ${cell.label} · ${cell.title}${cell.marks.length ? ` · ${cell.marks.map((m) => m.label).join(", ")}` : ""}`}
             className="flex flex-col items-center justify-end rounded-xl py-1.5"
           >
-            {/* ① 막대 — 비교 신호. 높이가 점수, 색은 good 만 금색. */}
-            <span aria-hidden className="flex h-7 items-end">
-              <span
-                className="block w-[6px] rounded-full"
-                style={{ height: barHeightPx(cell.score), background: barColor(cell.score) }}
-              />
-            </span>
+            {/* 막대는 2차 설계(2026-09-24)에서 제거됐다(다음 Task 가 점수 숫자로 대체) —
+                자리만 남겨 칸 높이를 맞춘다. */}
+            <span aria-hidden className="flex h-7 items-end" />
             {/* ②③ 요일 + 날짜. 오늘이면 둘을 pill 하나가 함께 감싼다. */}
             <span
               className="mt-1 flex flex-col items-center rounded-lg px-1.5 py-0.5"
@@ -120,9 +115,9 @@ export default function DayStrip({ cells, lockedCells, todayDate, onSelect, onLo
             {/* ④ 마크 칩 — 없어도 자리를 비워 칸 높이를 맞춘다(grid 는 최고 높이에 맞춘다). */}
             {cell.marks.length ? (
               <span
-                // 🔴 MARK_COLOR 는 배경 틴트로만 — 글자로 쓰면 이 옅은 판 위에서 전 조합 AA 미달이다.
-                className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px] text-night-deep"
-                style={{ background: `${MARK_COLOR[cell.marks[0].glyph]}${MARK_TINT[cell.marks[0].strength]}` }}
+                // 🔴 솔리드 칩(MARK_CHIP) — 칩 자체가 색면이라 셀 배경과 무관하게 대비가 고정된다.
+                className="mt-1 rounded-full px-1 text-[9px] font-bold leading-[13px]"
+                style={{ background: MARK_CHIP[cell.marks[0].glyph].bg, color: MARK_CHIP[cell.marks[0].glyph].fg }}
               >
                 {cell.marks[0].label}
               </span>
