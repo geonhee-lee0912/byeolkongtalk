@@ -160,9 +160,17 @@ export default function CalendarGrid({
                 ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >
-              {good && !c.isToday && (
+              {good && (
                 // 좋은 날에만 뜨는 4꼭지 별 — 한 달에 서너 칸뿐이라 희소하다(실측 good 17%).
-                <span aria-hidden className="absolute right-1 top-1 text-[8px] leading-none text-[#C99A28]">
+                // 🔴 오늘이어도 **끄지 않는다** — 오늘 칸은 어두운 pill 이라 톤 색을 안 쓰므로,
+                //    별을 빼면 "오늘이 좋은 날"이라는 걸 화면에서 말하는 게 하나도 안 남는다
+                //    (aria-label 에만 남아 시각 사용자만 정보를 잃는다). 색만 뒤집는다 —
+                //    gold-soft 는 cream 위에선 1.31:1 이라 금지지만 이 어두운 면 위에선 충분하다.
+                <span
+                  aria-hidden
+                  className="absolute right-1 top-1 text-[8px] leading-none"
+                  style={{ color: c.isToday ? "#F2D78A" : "#C99A28" }}
+                >
                   ✦
                 </span>
               )}
