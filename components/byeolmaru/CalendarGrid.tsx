@@ -186,9 +186,11 @@ export default function CalendarGrid({
               {/* 🔴 "점" 단위를 뺐다(2026-09-26) — 30칸에 30번 반복되면 잡음이고, 두 자리
                   숫자+점이 43.6px 칸을 꽉 채웠다. 단위가 들어갔던 근거("맨숫자는 점수로 안
                   읽힌다")는 스트립 7칸 기준이었고 그 스트립은 삭제됐다. 맥락은 같은 판 위의
-                  TodayLead("오늘 40점")가 진다 — 오늘 칸 숫자와 그 줄이 같은 값이라 연결된다. */}
+                  TodayLead("오늘 40점")가 진다 — 오늘 칸 숫자와 그 줄이 같은 값이라 연결된다.
+                  🔴 크기는 16px 다 — 2026-09-26 에 "점" 제거와 묶여 17px 로 올라갔는데 스펙 §6-3 은
+                  제거만 말했다. 명시 안 된 1px 라 2026-09-27 실물 검수에서 되돌렸다. */}
               <span
-                className="text-[17px] font-semibold leading-[20px]"
+                className="text-[16px] font-semibold leading-[20px]"
                 style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
               >
                 {scoreDisplay(c.score)}
