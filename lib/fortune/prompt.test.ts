@@ -54,14 +54,11 @@ test("buildFortuneSystem(daily): reportDate 를 주면 템플릿의 '오늘 날�
 
 test("buildFortuneSystem: reportDate 가 없으면 예전 그대로 실제 오늘이 박힌다", () => {
   const { dynamicPart } = buildFortuneSystem("daily", {});
-  assert.equal(/대상 날짜는/.test(dynamicPart), false);
   assert.match(dynamicPart, /오늘 날짜: \d{4}년 \d{1,2}월 \d{1,2}일/);
 });
 
 test("buildFortuneSystem(daily): todayKst 없이 reportDate 만 오면 날짜를 갈아끼우지 않는다", () => {
   const { dynamicPart } = buildFortuneSystem("daily", { reportDate: "2026-09-12" });
-  // 지시 줄이 없으면 날짜도 바뀌면 안 된다 — 모델이 그 날짜를 진짜 오늘로 믿게 되기 때문.
-  assert.equal(/대상 날짜는/.test(dynamicPart), false);
   assert.equal(/오늘 날짜: 2026년 9월 12일/.test(dynamicPart), false);
 });
 

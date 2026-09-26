@@ -22,7 +22,7 @@ export interface DayCell {
   date: string;
   /** 한글 간지 2자 "기축" */
   ganji: string;
-  /** 2자 한자 "己丑" — 상세 화면의 일진 히어로용(셀·스트립은 쓰지 않는다). */
+  /** 2자 한자 "己丑" — 상세 화면의 일진 히어로용(셀은 쓰지 않는다). */
   hanja: string;
   element: FiveElement;
   score: number;

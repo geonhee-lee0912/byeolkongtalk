@@ -11,7 +11,8 @@ import type { DayMark } from "@/lib/byeolmaru/day-label";
 // 어느 쪽 캘린더든 그대로 그린다.
 export interface GridCell {
   date: string;
-  /** 셀 배경 채도의 원천. 스트립과 **같은 값**을 쓴다. */
+  /** 셀 배경 채도의 원천. TodayLead 의 "오늘 N점"과 **같은 DayCell.score** 값이다
+   *  (둘이 갈리면 같은 날이 다른 점수로 보인다). */
   score: number;
   /** aria-label 과 계측에만 쓴다 — 배경엔 안 쓴다(아래 TONE_STYLE 제거 주석). */
   tone: DayTone;
@@ -58,7 +59,7 @@ interface Props {
   selectedDate: string;
   onSelect: (date: string) => void;
   /** 자체 판(배경·보더·그림자·패딩)을 그릴지. 기본 true.
-   *  🔴 false 는 **호출부가 이미 판을 갖고 있을 때**만 쓴다 — 허브는 칩·스트립·격자를 크림 카드
+   *  🔴 false 는 **호출부가 이미 판을 갖고 있을 때**만 쓴다 — 허브는 칩·격자를 크림 카드
    *     하나로 묶었는데(스펙 §2), 그 안에 이 판을 또 그리면 같은 역할의 상자가 3중으로 겹쳐
    *     "한 덩어리"라는 인상이 깨진다. 우리 탭·게스트 구경 그리드는 감싸는 판이 없어 true 그대로다. */
   panel?: boolean;
@@ -151,9 +152,11 @@ export default function CalendarGrid({
               }}
             >
               {/* 🔴 ✦ 별 글리프는 2차 설계(2026-09-24)에서 제거됐다 — 숫자가 88 이면 이미
-                  "좋은 날"이라고 말하고 있어서 중복이다. 마크 칩도 같은 이유로 격자엔 없다
-                  (44px 에 3층이면 숫자가 죽고, 숫자 색으로 마크를 인코딩하면 진한 면에서
-                  대비가 깨진다 — 스펙 §3·§6). 마크는 칸이 두 배 넓은 스트립이 진다. */}
+                  "좋은 날"이라고 말하고 있어서 중복이다. 🔴 마크 칩도 격자엔 없다(44px 에
+                  3층이면 숫자가 죽고, 숫자 색으로 마크를 인코딩하면 진한 면에서 대비가
+                  깨진다 — 스펙 §3·§6). 스트립이 사라진 2026-09-26 부터 **격자에서 marks 의
+                  시각 표면은 0개**이고 aria-label 에만 남는다 — 스크린리더가 "왜"를 잃지
+                  않게 하는 용도다. 마크를 눈으로 보는 곳은 상세 카드와 지도다. */}
               <span className="text-[10px] leading-[11px]" style={{ color: c.isToday ? "rgba(255,255,255,.55)" : "rgba(122,107,160,.6)" }}>
                 {Number(c.date.slice(8, 10))}
               </span>
