@@ -73,16 +73,25 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   useEffect(() => { void refresh(); }, []);
 
   // 리포트는 선택 날짜 기준으로 따로 받아온다 — refresh() 안에 두면 날짜를 바꿔도 오늘 것만 계속 붙는다.
-  // 🔴 비자격자는 아예 호출하지 않는다(403 방지 = 원가 0).
+  // 🔴 오늘(생성) + 비자격은 안 부른다(403 확정 = 요청 낭비 방지). 과거는 자격과 무관하게 부른다 —
+  //    캐시된 글이 있으면 받았던 글을 계속 본다(스펙 §4-4, 2026-09-26). LLM 은 여전히 자격자만
+  //    부르므로(daily-report 라우트) 원가 0 은 유지된다.
   const entitled = state.kind === "ready" && state.data.entitled;
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
+    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
+    const p = reportDatePolicy(selected, todayKst);
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
     //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다. 화면 안내 문구는
     //    이제 아래 렌더의 policy 분기가 자격과 무관하게 책임지므로(2026-09-26), 여기 남은 이유는
     //    오직 어차피 400 이 될 요청을 막는 것뿐이다.
-    if (reportDatePolicy(selected, todayKst) === "out_of_range") {
+    if (p === "out_of_range") {
+      setReport(null); setNotGenerated(false); setReportLoading(false);
+      return;
+    }
+    // 🔴 오늘 + 비자격 = 페이월 자리다. 부르면 403 이 확정이라 요청만 낭비한다.
+    //    과거는 자격과 무관하게 부른다 — 받았던 글이 있을 수 있다(§4-4).
+    if (p === "generate" && !entitled) {
       setReport(null); setNotGenerated(false); setReportLoading(false);
       return;
     }
@@ -209,7 +218,15 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             그날 이야기는 그날 아침에 들려줄게.
           </p>
-        ) : data.entitled ? (
+        ) : policy === "cache_only" || data.entitled ? (
+          /* 🔴 과거(cache_only)는 **자격과 무관하게** 이 분기다(2026-09-26, 스펙 §4-4) — 받았던
+             글은 구독이 끊겨도 계속 본다. PaywallCut 은 여전히 "오늘 + 비자격"에서만 마운트된다
+             (아래 else, gate_shown 계측 계약은 그대로).
+             report===null 인데 이유가 notGenerated(서버가 명시)가 아니면 네트워크 blip 등 —
+             그 경우엔 과거든 오늘이든 같은 재시도 유도 문구를 보여준다(진짜 실패와 "그날은 안
+             받았어"를 구분해야 안내가 맞는다). policy==="generate" 에서는 notGenerated 가 항상
+             false 다(daily-report 가 이 policy 에선 not_generated 를 절대 안 준다) — 그래서
+             이 한 표현이 두 policy 를 안전하게 겸한다. */
           reportLoading ? (
             <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
               {dayWord} 리포트를 펼치는 중…
