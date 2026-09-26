@@ -182,7 +182,7 @@ export default function ByeolmaruHub() {
         onSubscribe={nextStep}
       />
 
-      {/* 🔴 달력 판 — 칩·출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
+      {/* 🔴 달력 판 — 출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
           예전엔 넷이 각자 다른 표면(배경 없음 / 흰 칸 / 크림 버튼 / 연보라 박스)으로 `space-y-4`
           위에 흩어져 있어 무엇이 무엇에 속하는지가 안 보였다 — 사용자 지적. 크림 카드 하나로 묶고
           층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·무료 목록)은 달력에 속하지 않는다.
@@ -205,7 +205,7 @@ export default function ByeolmaruHub() {
         </div>
 
         {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /
-            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 격자 칸이 41px 로 돌아간다. */}
+            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 격자 칸이 42.7px 로 돌아간다. */}
         <section className="rounded-2xl p-3" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
           {/* 🔴 판 안 구분선이 없다 — 그 선은 스트립과 격자를 가르던 것이고 둘 중 하나가
               사라졌다. 판 안에 남은 층은 리드 줄 + 격자 둘뿐이다. */}

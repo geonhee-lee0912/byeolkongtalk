@@ -711,10 +711,10 @@ export function buildFortuneSystem(
   input: FortuneInput
 ): { staticPart: string; dynamicPart: string } {
   const parts: string[] = [];
-  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. 한쪽만으로 켜면
-  //    dayWord(오늘/그날 판단)는 그대로인데 {{TODAY}} 만 갈아끼워져, 템플릿 안에서 "오늘"과
-  //    "그날"이 서로 다른 날짜를 가리키는 모순이 생긴다(두 조건이 따로 살면 언제든 다시
-  //    벌어진다 — 그래서 한 번만 계산해 둘이 같이 쓴다).
+  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. todayKst 가 없으면
+  //    "이 reportDate 가 오늘인지 아닌지" 판정할 근거 자체가 없어, {{TODAY}} 만 reportDate 로
+  //    갈아끼우는 건 근거 없는 치환이 된다(두 조건이 따로 살면 언제든 다시 벌어진다 — 그래서
+  //    한 번만 계산해 둘이 같이 쓴다).
   // 🔴 sajuBlock 호출보다 먼저 계산한다 — sajuBlock 의 일진 블록도 같은 dayWord 를 받는다.
   //    아래에서(포맷 블록 직전에) 따로 계산하면 sajuBlock 은 항상 기본값 "오늘"로 조용히 남아,
   //    형식 블록은 "그날"인데 데이터 블록 제목은 "오늘"인 모순이 재발한다(P6-2 §11-1-1).
@@ -755,6 +755,13 @@ export function buildFortuneSystem(
   //    되면서 미래 분기도 사라져 함수 전체가 죽었다. 되살릴 일이 생긴다면(소급 생성 또는 미래
   //    생성 재개) SECTION_GUIDE.daily 의 미래형 동사(벌어질·할 선택·건넬 말)도 같이 볼 것 —
   //    그 동사 선택의 근거가 "생성되는 건 앞으로 1~3일뿐"이었다.
+  //    🔴 바로 위 dateOverride·dayWord·{{TODAY}} 치환 자체도 지금은 같은 논거로 no-op 이다 —
+  //    유일한 프로덕션 호출부(daily-report/route.ts)는 reportDatePolicy 가 "generate" 를 줄
+  //    때만 도달하고, FUTURE_REPORT_DAYS=0 이라 그건 항상 reportDate===todayKst 다(dayWord 는
+  //    항상 "오늘", dateKr(reportDate)와 TODAY_KR() 도 둘 다 Asia/Seoul 기준이라 문자열까지
+  //    같다 — 증명 가능한 no-op). 그런데도 남기는 건 되살릴 때(소급 생성·미래 생성 재개) 한
+  //    줄이면 되고, prompt.test.ts 가 그 계약(reportDate 를 직접 넘겼을 때의 동작)을 독립적으로
+  //    고정하고 있어서다.
   parts.push(
     fillGuideTokens(SECTION_GUIDE[type], {
       // 🔴 daily 에 대상 날짜가 오면 {{TODAY}} 도 그 날짜로 채운다. TODAY_KR()(서버 실제 오늘)을
