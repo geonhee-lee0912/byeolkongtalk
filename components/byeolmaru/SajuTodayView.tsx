@@ -236,8 +236,12 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
              자리여야 하고, 미래 날짜는 읽을 게 없어 그 감정이 생길 수 없는 자리다.
              🔴 덤으로 gate_shown 계측 분모에서 "팔 수 없는 날"이 빠져 정확해진다 —
                 PaywallCut 은 마운트만으로 그 이벤트를 찍는다. */
+          /* 🔴 "그날 이야기는 그날 아침에 들려줄게."에서 줄였다(실물 검수) — 바로 위 카드
+             블록이 "카드는 그날 뽑는 거야."를 말해서, 둘이 연달아 붙으면 **같은 말을 두 번**
+             하는 것처럼 읽혔다(둘 다 "그날"로 시작하고 어조가 같다). 가리키는 대상은
+             다르므로(카드 / 리포트) 카드 줄을 지우지 않고 이쪽을 짧게 만들어 결을 벌린다. */
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-            그날 이야기는 그날 아침에 들려줄게.
+            그날 아침에 열려.
           </p>
         ) : reportLoading ? (
           /* 🔴 로딩 문구가 report/notGenerated/locked 세 분기보다 **먼저** 온다(2026-09-26) —
