@@ -87,25 +87,10 @@ export function monthRange(todayKst: string): { start: string; end: string } {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
-/** KST 날짜 문자열을 days 만큼 민다. UTC 자정 기준 산술이라 서버 TZ·DST 에 안 흔들린다. */
-function shiftDate(dateKst: string, days: number): string {
-  return new Date(Date.parse(`${dateKst}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
-}
-
-/**
- * 격자가 실제로 그리는 범위 — 이번 달 + 앞뒤 채움. 일반 달력 관행대로 첫 줄 앞과 마지막 줄
- * 뒤를 옆 달 날짜로 메운다. **고정 6주가 아니다** — 달마다 앞뒤로 0~6칸씩 달라진다.
- *
- * 🔴 이게 삭제된 스트립이 지던 "월 경계"를 대신한다 — 9/29 에 10/1~10/2 를 볼 수 있다.
- *    라우트가 stripLuck 을 따로 계산하던 이유가 그것이었다.
- * 🔴 채움 칸도 룰 계산이라 추가 원가는 0이다(tyme4ts 결정론).
- */
-export function gridRange(todayKst: string): { start: string; end: string } {
-  const { start, end } = monthRange(todayKst);
-  const lead = new Date(`${start}T00:00:00Z`).getUTCDay(); // 0(일)~6(토)
-  const trail = 6 - new Date(`${end}T00:00:00Z`).getUTCDay();
-  return { start: shiftDate(start, -lead), end: shiftDate(end, trail) };
-}
+/* 🔴 앞뒤 달 채움(gridRange·shiftDate)은 2026-09-27 에 폐지됐다 — 30칸이 다 찬 뒤 실물에서
+ *    "다 채우니 너무 복잡하다"는 판정이 났다(실물 검수 항목 5). 격자는 다시 이번 달만 그리고
+ *    첫 줄 앞은 빈칸이다. 되살리기 전에 알 것: 채움은 삭제된 7일 스트립이 지던 "월 경계"
+ *    (9/29 에 10/1~10/2 보기)를 대신하고 있었고, 지금은 다음 달을 보는 수단이 없다. */
 
 /** 판정 없이 날짜만 있는 칸. 🔴 남은 용도는 **게스트 셸 하나**다 —
  *  비로그인·생일 미입력이 보는 "안 칠해진 이번 달"(ByeolmaruHub 의 EmptyMonthShell).
@@ -147,23 +132,22 @@ export function weekBuckets(cells: DayCell[]): WeekBucket[] {
 }
 
 /**
- * 나(self) 캘린더 라우트가 응답에 그대로 실어 보내는 조각 — build → 이번 달/채움 분리 →
+ * 나(self) 캘린더 라우트가 응답에 그대로 실어 보내는 조각 — build → 이번 달만 남기기 →
  * 주차 집계를 하나로 묶는다.
  *
- * 🔴 `cells`(이번 달)와 `fillCells`(앞뒤 채움)를 **필드로 가른다.** 섞어 보내면 weekBuckets 가
- *    조용히 다른 달 날짜를 세서 "이번 달 잘 맞는 날 N일"이 거짓이 된다. 소비처가 매번 월
- *    접두사를 비교해 거르는 규약은 한 곳만 빠뜨려도 틀리므로 경계를 필드로 굳힌다.
+ * 🔴 월 범위 filter 는 **호출자가 이번 달만 넘겨도 남긴다.** 월 밖 날짜가 하나라도 새면
+ *    weekBuckets 가 조용히 그걸 세서 "이번 달 잘 맞는 날 N일"이 거짓이 된다 — 틀려도 화면이
+ *    안 깨져 아무도 못 본다. 계약은 calendar-open.test.ts 가 지킨다.
  *
- * @param gridLuck 격자가 그리는 범위의 일진 — 이번 달 + (나중에) 앞뒤 채움을 모두 덮는다.
+ * @param monthLuck 이번 달 1일~말일의 일진.
  */
 export function buildCalendarPayload(
   saju: SajuResult,
-  gridLuck: DailyLuck[],
+  monthLuck: DailyLuck[],
   todayKst: string
-): { cells: DayCell[]; fillCells: DayCell[]; weeks: WeekBucket[] } {
+): { cells: DayCell[]; weeks: WeekBucket[] } {
   const { start, end } = monthRange(todayKst);
-  const all = buildCalendar(saju, gridLuck, todayKst);
+  const all = buildCalendar(saju, monthLuck, todayKst);
   const cells = all.filter((c) => c.date >= start && c.date <= end);
-  const fillCells = all.filter((c) => c.date < start || c.date > end);
-  return { cells, fillCells, weeks: weekBuckets(cells) };
+  return { cells, weeks: weekBuckets(cells) };
 }

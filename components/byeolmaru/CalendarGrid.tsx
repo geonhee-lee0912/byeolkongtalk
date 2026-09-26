@@ -56,11 +56,6 @@ interface Props {
    *  **화면이 통째로 조용히 사라진다**(return null). 그 화면은 비로그인 게스트 지면이라
    *  아무도 에러를 못 본다. 로그인 유저의 달력은 잠긴 칸이 없으므로 `[]` 를 명시해 넘긴다. */
   lockedCells: LockedCell[];
-  /** 앞뒤 달 채움 칸(일반 달력 관행). 이번 달 칸(`cells`)과 **타입은 같고 소속이 다르다** —
-   *  섞으면 "이번 달 잘 맞는 날 N일" 집계가 다른 달을 센다. 흐리게 그린다.
-   *  🔴 옵셔널이다 — 게스트 셸(EmptyMonthShell)은 서버를 안 불러 채움이 없다. 그쪽은
-   *     안 넘기는 게 맞고, 그때 앞쪽 빈칸 계산이 지금처럼 그대로 동작한다. */
-  fillCells?: GridCell[];
   /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에 쓴다.
    *  월 표시(`todayDate.slice(5,7)`)에도 쓴다 — "에만"이 아니다. */
   todayDate: string;
@@ -80,7 +75,6 @@ interface Props {
 
 export default function CalendarGrid({
   cells,
-  fillCells = [],
   lockedCells,
   todayDate,
   selectedDate,
@@ -88,19 +82,16 @@ export default function CalendarGrid({
   panel = true,
   subjectKind = "me",
 }: Props) {
-  // 열린 칸(이번 달) + 채움 칸(앞뒤 달) + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 =
-  // 판정 없이 안 칠해진 날. fill 플래그로 "이번 달이 아님"을 표시해 채움 칸만 흐리게 그린다.
-  const slots: { date: string; cell?: GridCell; fill?: boolean }[] = [
+  // 열린 칸(이번 달) + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 판정 없이
+  // 안 칠해진 날(게스트 셸 전용).
+  const slots: { date: string; cell?: GridCell }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
-    ...fillCells.map((c) => ({ date: c.date, cell: c, fill: true })),
     ...lockedCells.map((l) => ({ date: l.date })),
   ].sort((a, b) => a.date.localeCompare(b.date));
   if (slots.length === 0) return null;
 
-  // 첫 슬롯의 요일만큼 앞을 비워 요일 열을 맞춘다. 🔴 채움 칸(fillCells)이 있으면 첫 슬롯은 이미
-  // 지난달 일요일이라 firstWeekday 가 저절로 0 → blanks 도 0개(앞채움이 그 역할을 대신한다).
-  // 채움이 없는 게스트 셸(EmptyMonthShell)에서만 첫 슬롯이 "이번 달 1일"이라 지금처럼 앞을 비운다
-  // — 특별 분기 없이 같은 계산이 두 경우 모두를 맞게 처리한다.
+  // 첫 슬롯(= 이번 달 1일)의 요일만큼 앞을 비워 요일 열을 맞춘다. 🔴 앞뒤 달 채움이 폐지된
+  //    2026-09-27 부터 첫 슬롯은 언제나 1일이다 — 로그인 격자와 게스트 셸이 같은 계산을 탄다.
   const firstWeekday = new Date(`${slots[0].date}T00:00:00`).getDay();
   const blanks = Array.from({ length: firstWeekday }, (_, i) => i);
 
@@ -130,7 +121,7 @@ export default function CalendarGrid({
         {blanks.map((i) => (
           <div key={`blank-${i}`} aria-hidden />
         ))}
-        {slots.map(({ date, cell: c, fill }) => {
+        {slots.map(({ date, cell: c }) => {
           if (!c) {
             // 안 칠해진 날 — 자물쇠를 쓰지 않는다(스펙 §2). 버튼이 아니라 div 라 탭도 안 먹는다.
             return (
@@ -164,7 +155,7 @@ export default function CalendarGrid({
                 trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind, surface: "grid" } });
                 onSelect(c.date);
               }}
-              aria-label={`${fill ? "다른 달 " : ""}${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
+              aria-label={`${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
               className="relative flex aspect-square flex-col items-center justify-center rounded-xl"
               style={{
@@ -172,11 +163,6 @@ export default function CalendarGrid({
                 //    명도로 1위가 된다. 예전 ring+scale 조합은 caution 톤에서 링을 잃거나
                 //    grid 틈으로 삐져나왔다.
                 background: c.isToday ? "#5A3E8C" : cellTint(c.score),
-                // 🔴 채움 칸에 CSS opacity 를 쓰지 않는다 — opacity 는 면과 글자를 함께 곱해서, tint 최솟값이
-                //    0.12 인 이 판에서는 **어떤 값을 줘도** 알파 바닥 0.11 이 깨진다(0.45 → 유효 0.054, 판과
-                //    대비 1.05 = 칸이 사라진다. 이 저장소가 두 번 되돌린 실패다). 게다가 주 신호인 점수 숫자
-                //    대비가 1.84:1 로 떨어진다. "다른 달"은 **날짜 숫자 색으로만** 말한다 — 일반 달력 관행이고,
-                //    상단 월 표시와 날짜 순서(30→31→1)가 이미 경계를 말해준다.
                 ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >
@@ -192,9 +178,7 @@ export default function CalendarGrid({
               <span
                 className="text-[11px] leading-[13px]"
                 style={{
-                  // 🔴 "다른 달"은 이 날짜 숫자 색으로만 말한다(위 배경 opacity 주석) — 면 배경은
-                  //    다른 칸과 똑같이 cellTint(c.score) 그대로다.
-                  color: c.isToday ? "rgba(255,255,255,.72)" : fill ? "rgba(122,107,160,.5)" : "rgba(122,107,160,.78)",
+                  color: c.isToday ? "rgba(255,255,255,.72)" : "rgba(122,107,160,.78)",
                 }}
               >
                 {Number(c.date.slice(8, 10))}

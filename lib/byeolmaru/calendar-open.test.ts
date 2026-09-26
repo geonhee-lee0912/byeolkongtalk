@@ -38,21 +38,20 @@ test("주차 요약도 이번 달 전체를 집계한다", () => {
   assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
 });
 
-// 🔴 이 분기(cells/fillCells 분리)는 **load-bearing 이다**(2026-09-26 `gridRange` 도입 이후) —
-//    격자가 앞뒤 달을 채우므로 gridLuck 이 실제로 월 경계를 넘어 들어온다. 채움 칸이
-//    weekBuckets 에 새면 "이번 달 잘 맞는 날 N일"이 거짓이 된다.
-//    (이 테스트는 gridRange 보다 **먼저** 쓰였다 — 그땐 no-op 을 지키는 선행 가드였고,
-//     실제로 그 뒤 도입된 gridRange 가 이걸 통과해야 했다.)
-test("월 경계를 넘는 일진이 들어와도 채움 칸이 cells·주차 집계에 안 샌다", () => {
-  const luck = calcDailyLuckRange("2026-08-30", "2026-10-03"); // 9월 격자가 그리는 범위
-  const { cells, fillCells, weeks } = buildCalendarPayload(saju, luck, TODAY);
+// 🔴 월 범위 filter 는 **방어로 남긴다.** 앞뒤 달 채움(gridRange·fillCells)은 2026-09-27 에
+//    폐지됐고 라우트는 이제 monthRange 로만 일진을 부르므로 이 테스트는 다시 no-op 가드다 —
+//    그래도 지운다면, 라우트가 언젠가 다시 넓은 범위를 넘길 때 월 밖 날짜가 weekBuckets 로
+//    새서 "이번 달 잘 맞는 날 N일"이 조용히 거짓이 된다. 값이 싸고 되돌리기 어려운 종류다.
+test("월 밖 일진이 들어와도 cells·주차 집계에 안 샌다", () => {
+  const luck = calcDailyLuckRange("2026-08-30", "2026-10-03");
+  const payload = buildCalendarPayload(saju, luck, TODAY);
+  const { cells, weeks } = payload;
   assert.equal(cells.length, 30, "cells 는 9월만");
   assert.equal(cells[0].date, "2026-09-01");
   assert.equal(cells[29].date, "2026-09-30");
-  assert.deepEqual(
-    fillCells.map((c) => c.date),
-    ["2026-08-30", "2026-08-31", "2026-10-01", "2026-10-02", "2026-10-03"]
-  );
+  // 🔴 채움 폐지(2026-09-27) — 월 밖 날짜는 **어디로도 안 나간다**. 되살리려면 스펙을 먼저
+  //    고칠 것: 사용자 판정은 "다 채우니 너무 복잡하다"였다(실물 검수 항목 5).
+  assert.ok(!("fillCells" in payload), "fillCells 는 더 이상 내보내지 않는다");
   assert.equal(weeks[0].startDate, "2026-09-01");
   assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
 });
