@@ -75,7 +75,7 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
         {/* 이 빈 달력은 cells=[] + lockedCells=이번 달 전체로 "안 칠해진 달"을 그린다. CalendarGrid 의
             잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
             "네 생일만 있으면…" 문구만 남아 정확한 설명이 된다. */}
-        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d, ganji: "" }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
+        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
         <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
         {cta}
       </section>
@@ -246,6 +246,7 @@ export default function ByeolmaruHub() {
             <MonthGridSection>
               <CalendarGrid
                 cells={gridCells}
+                lockedCells={[]}
                 todayDate={data.today}
                 selectedDate={data.today}
                 onSelect={openDay}

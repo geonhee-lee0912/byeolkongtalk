@@ -95,7 +95,6 @@ export function monthRange(todayKst: string): { start: string; end: string } {
  *     구독을 말하지도 않았다. 되살리기 전에 스펙 2026-09-26 §2 의 기각안을 읽을 것. */
 export interface LockedCell {
   date: string;
-  ganji: string;
 }
 
 // ⚠️ 여기서 "주차"는 이번 달 1일부터 7일씩 끊은 윈도우다 — 화면 그리드(CalendarGrid, 일~토 요일 정렬 +

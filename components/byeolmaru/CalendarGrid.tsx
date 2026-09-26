@@ -48,10 +48,12 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 interface Props {
   cells: GridCell[];
-  /** 판정 없이 날짜만 있는 칸. 🔴 남은 호출부는 **게스트 셸 하나**다(ByeolmaruHub 의
-   *  EmptyMonthShell). 로그인 유저의 달력엔 잠긴 칸이 없다 — 달력이 전면 무료다. */
-  lockedCells?: LockedCell[];
-  /** KST 오늘. 계측 offset 의 기준이자 "안 온 날" 문구의 기준. */
+  /** 판정 없이 날짜만 있는 칸. 🔴 **옵셔널로 만들지 마라** — 같은 이유로 marks 도 필수다(위).
+   *  이걸 안 넘기면 EmptyMonthShell 은 cells=[] + lockedCells=[] 가 되어 slots 가 비고
+   *  **화면이 통째로 조용히 사라진다**(return null). 그 화면은 비로그인 게스트 지면이라
+   *  아무도 에러를 못 본다. 로그인 유저의 달력은 잠긴 칸이 없으므로 `[]` 를 명시해 넘긴다. */
+  lockedCells: LockedCell[];
+  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에만 쓴다. */
   todayDate: string;
   selectedDate: string;
   onSelect: (date: string) => void;
@@ -67,14 +69,14 @@ interface Props {
 
 export default function CalendarGrid({
   cells,
-  lockedCells = [],
+  lockedCells,
   todayDate,
   selectedDate,
   onSelect,
   panel = true,
   subjectKind = "me",
 }: Props) {
-  // 열린 칸 + 안 온 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 아직 안 온 날.
+  // 열린 칸 + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 판정 없이 안 칠해진 날.
   const slots: { date: string; cell?: GridCell }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
     ...lockedCells.map((l) => ({ date: l.date })),
@@ -105,14 +107,14 @@ export default function CalendarGrid({
         ))}
         {slots.map(({ date, cell: c }) => {
           if (!c) {
-            // 아직 안 온 날 — 자물쇠를 쓰지 않는다(스펙 §2). 버튼이 아니라 div 라 탭도 안 먹는다.
+            // 안 칠해진 날 — 자물쇠를 쓰지 않는다(스펙 §2). 버튼이 아니라 div 라 탭도 안 먹는다.
             return (
               <div
                 key={date}
                 // role 없는 div 는 암묵 role 이 generic 이라 aria-label 이 무시될 수 있다 — 날짜
                 // 하나를 나타내는 정적 표시이므로 role="img" 로 accessible name 계산을 허용한다.
                 role="img"
-                aria-label={`${date} 아직 안 온 날`}
+                aria-label={`${date} 안 칠해진 날`}
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
                 style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >

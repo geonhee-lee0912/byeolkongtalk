@@ -38,6 +38,27 @@ test("주차 요약도 이번 달 전체를 집계한다", () => {
   assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
 });
 
+// 🔴 이 분기(cells/fillCells 분리)는 지금은 no-op 이지만 곧 load-bearing 이 된다 —
+//    격자가 앞뒤 달을 채우기 시작하면 gridLuck 이 월 경계를 넘어 들어온다. 그때
+//    채움 칸이 weekBuckets 에 새면 "이번 달 잘 맞는 날 N일"이 거짓이 된다.
+test("월 경계를 넘는 일진이 들어와도 채움 칸이 cells·주차 집계에 안 샌다", () => {
+  const luck = calcDailyLuckRange("2026-08-30", "2026-10-03"); // 9월 격자가 그리는 범위
+  const { cells, fillCells, weeks } = buildCalendarPayload(saju, luck, TODAY);
+  assert.equal(cells.length, 30, "cells 는 9월만");
+  assert.equal(cells[0].date, "2026-09-01");
+  assert.equal(cells[29].date, "2026-09-30");
+  assert.deepEqual(
+    fillCells.map((c) => c.date),
+    ["2026-08-30", "2026-08-31", "2026-10-01", "2026-10-02", "2026-10-03"]
+  );
+  assert.equal(weeks[0].startDate, "2026-09-01");
+  assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
+});
+
+// 🔴 이건 이번 변경의 가드가 **아니다** — pair 엔진(buildPairCalendar)엔 원래 무료선이 없었고
+//    라우트가 사후에 splitByFreeLine 을 걸었다. 즉 옛 코드에서도 이 테스트는 통과한다.
+//    pair 의 실제 변경(라우트 조립)은 DB·세션을 물어 유닛에서 못 탄다 — 이 초록을
+//    "pair 무료화가 테스트로 지켜진다"로 읽지 마라. 여기선 엔진 특성만 고정한다.
 test("[우리] pair 달력도 이번 달 전부가 판정과 함께 나온다", () => {
   const { start, end } = monthRange(TODAY);
   const all = buildPairCalendar(saju, partnerSaju, calcDailyLuckRange(start, end), TODAY);
