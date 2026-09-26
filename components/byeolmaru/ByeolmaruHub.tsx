@@ -156,6 +156,12 @@ export default function ByeolmaruHub() {
   const gridCells: GridCell[] = data.cells.map((c) => ({
     date: c.date, score: c.score, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
   }));
+  // 🔴 앞뒤 달 채움(gridRange) — 삭제된 스트립이 지던 월 경계 역할을 대신한다. 이번 달 칸과 같은
+  //    모양으로 매핑만 하고, CalendarGrid 에 별도 prop(fillCells)으로 넘겨 "이번 달 N일" 집계와
+  //    섞이지 않게 한다.
+  const fillGridCells: GridCell[] = data.fillCells.map((c) => ({
+    date: c.date, score: c.score, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
+  }));
   // 🔴 오늘 칸은 격자에서 찾는다(예전엔 스트립 셀 집합에서 찾았다). 두 집합이 갈릴 일이
   //    없어졌으므로 원천은 하나다.
   const todayCell = data.cells.find((c) => c.isToday) ?? null;
@@ -221,6 +227,7 @@ export default function ByeolmaruHub() {
                 애초에 계속 펼쳐져 있었다. 즉 항상 펼침은 다수에게 현상 유지다. */}
             <CalendarGrid
               cells={gridCells}
+              fillCells={fillGridCells}
               lockedCells={[]}
               todayDate={data.today}
               selectedDate={data.today}

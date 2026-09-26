@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju, calcTemporalLuck, calcDailyLuckRange, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { buildCalendarPayload, monthRange } from "@/lib/byeolmaru/calendar";
+import { buildCalendarPayload, monthRange, gridRange } from "@/lib/byeolmaru/calendar";
 import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { kstDate } from "@/lib/admin-time";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -60,15 +60,19 @@ export async function GET(req: NextRequest) {
     // temporal 은 오늘 간지(todayGanji)만 쓰므로 includeMonth 를 켜지 않는다 — 30일 루프가 낭비다.
     const temporal = calcTemporalLuck(baseDateForKst(todayKst), input.year);
     const { start: monthStart, end: monthEnd } = monthRange(todayKst);
-    const monthLuck = calcDailyLuckRange(monthStart, monthEnd);
     // 🔴 스트립(오늘 중심 7일)은 2026-09-26 에 삭제됐다 — 09-24 에 마크 칩·동물을 빼면서
     //    격자와 같은 그림이 됐고(실측: 같은 날이 같은 배경색으로 두 번), 남은 역할이었던
     //    "페이월 경계 고정"도 달력이 전면 무료가 되면서 사라졌다. 월 경계는 격자의 앞뒤 달
-    //    채움(다음 유닛의 gridRange)이 대신한다.
+    //    채움(gridRange, 바로 아래)이 대신한다.
+    // 🔴 일진은 격자가 그리는 범위(앞뒤 달 채움 포함)로 계산한다 — monthRange 로만 계산하면
+    //    마지막 줄이 휑하고 월 경계에서 앞으로 며칠이 잘린다(삭제된 스트립이 지던 역할).
+    //    룰 계산이라 추가 원가는 0이다.
+    const { start: gridStart, end: gridEnd } = gridRange(todayKst);
+    const gridLuck = calcDailyLuckRange(gridStart, gridEnd);
 
-    // 28~31개가 보장되지만 tyme4ts 범위 밖 입력이면 빈 배열이 올 수 있다 — 조용히 빈 캘린더를
-    // 200 으로 내보내느니 500 으로 터뜨린다.
-    if (!monthLuck.length) {
+    // 이번 달 + 앞뒤 채움만큼(달마다 다르다) 보장되지만 tyme4ts 범위 밖 입력이면 빈 배열이 올 수
+    // 있다 — 조용히 빈 캘린더를 200 으로 내보내느니 500 으로 터뜨린다.
+    if (!gridLuck.length) {
       return NextResponse.json({ error: "calc_failed" }, { status: 500 });
     }
 
@@ -93,7 +97,9 @@ export async function GET(req: NextRequest) {
       }
 
       const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
-      const pairCells = buildPairCalendar(saju, partnerSaju, monthLuck, todayKst);
+      const pairAll = buildPairCalendar(saju, partnerSaju, gridLuck, todayKst);
+      const pairCells = pairAll.filter((c) => c.date >= monthStart && c.date <= monthEnd);
+      const pairFillCells = pairAll.filter((c) => c.date < monthStart || c.date > monthEnd);
       const backdrop = pairBackdrop(saju, partnerSaju);
       const todayGanji = temporal.day.stem + temporal.day.branch;
       const ent = await getEntitlement(userId);
@@ -124,6 +130,7 @@ export async function GET(req: NextRequest) {
         monthEnd,
         partnerName: pRow.display_name,
         cells: pairCells,
+        fillCells: pairFillCells,
         backdrop,
         // 🔴 무료 문구를 서버가 만들어 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
         //    문구는 **선택한 셀 기준**이어야 한다. 클라가 status 와 셀을 받아 getPairTaste(순수)를
@@ -136,7 +143,7 @@ export async function GET(req: NextRequest) {
 
     // 🔴 무료선은 2026-09-26 에 폐지됐다 — 달력 칸은 룰 계산(변동비 0)이라 자격과 무관하게 전부
     //    실어 보낸다. 자격이 가르는 건 리포트 글(daily-report 라우트)뿐이다.
-    const { cells, fillCells, weeks } = buildCalendarPayload(saju, monthLuck, todayKst);
+    const { cells, fillCells, weeks } = buildCalendarPayload(saju, gridLuck, todayKst);
 
     // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
     // 최신 상태를 그대로 돌려준다. DB 에러(개별 행 { error })는 recordCheckin/getAttendanceState

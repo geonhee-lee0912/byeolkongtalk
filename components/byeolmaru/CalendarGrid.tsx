@@ -56,6 +56,11 @@ interface Props {
    *  **화면이 통째로 조용히 사라진다**(return null). 그 화면은 비로그인 게스트 지면이라
    *  아무도 에러를 못 본다. 로그인 유저의 달력은 잠긴 칸이 없으므로 `[]` 를 명시해 넘긴다. */
   lockedCells: LockedCell[];
+  /** 앞뒤 달 채움 칸(일반 달력 관행). 이번 달 칸(`cells`)과 **타입은 같고 소속이 다르다** —
+   *  섞으면 "이번 달 잘 맞는 날 N일" 집계가 다른 달을 센다. 흐리게 그린다.
+   *  🔴 옵셔널이다 — 게스트 셸(EmptyMonthShell)은 서버를 안 불러 채움이 없다. 그쪽은
+   *     안 넘기는 게 맞고, 그때 앞쪽 빈칸 계산이 지금처럼 그대로 동작한다. */
+  fillCells?: GridCell[];
   /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에만 쓴다. */
   todayDate: string;
   selectedDate: string;
@@ -74,6 +79,7 @@ interface Props {
 
 export default function CalendarGrid({
   cells,
+  fillCells = [],
   lockedCells,
   todayDate,
   selectedDate,
@@ -81,14 +87,19 @@ export default function CalendarGrid({
   panel = true,
   subjectKind = "me",
 }: Props) {
-  // 열린 칸 + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 판정 없이 안 칠해진 날.
-  const slots: { date: string; cell?: GridCell }[] = [
+  // 열린 칸(이번 달) + 채움 칸(앞뒤 달) + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 =
+  // 판정 없이 안 칠해진 날. fill 플래그로 "이번 달이 아님"을 표시해 채움 칸만 흐리게 그린다.
+  const slots: { date: string; cell?: GridCell; fill?: boolean }[] = [
     ...cells.map((c) => ({ date: c.date, cell: c })),
+    ...fillCells.map((c) => ({ date: c.date, cell: c, fill: true })),
     ...lockedCells.map((l) => ({ date: l.date })),
   ].sort((a, b) => a.date.localeCompare(b.date));
   if (slots.length === 0) return null;
 
-  // 첫 슬롯(=이번 달 1일)의 요일만큼 앞을 비워 요일 열을 맞춘다.
+  // 첫 슬롯의 요일만큼 앞을 비워 요일 열을 맞춘다. 🔴 채움 칸(fillCells)이 있으면 첫 슬롯은 이미
+  // 지난달 일요일이라 firstWeekday 가 저절로 0 → blanks 도 0개(앞채움이 그 역할을 대신한다).
+  // 채움이 없는 게스트 셸(EmptyMonthShell)에서만 첫 슬롯이 "이번 달 1일"이라 지금처럼 앞을 비운다
+  // — 특별 분기 없이 같은 계산이 두 경우 모두를 맞게 처리한다.
   const firstWeekday = new Date(`${slots[0].date}T00:00:00`).getDay();
   const blanks = Array.from({ length: firstWeekday }, (_, i) => i);
 
@@ -118,7 +129,7 @@ export default function CalendarGrid({
         {blanks.map((i) => (
           <div key={`blank-${i}`} aria-hidden />
         ))}
-        {slots.map(({ date, cell: c }) => {
+        {slots.map(({ date, cell: c, fill }) => {
           if (!c) {
             // 안 칠해진 날 — 자물쇠를 쓰지 않는다(스펙 §2). 버튼이 아니라 div 라 탭도 안 먹는다.
             return (
@@ -152,7 +163,7 @@ export default function CalendarGrid({
                 trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind, surface: "grid" } });
                 onSelect(c.date);
               }}
-              aria-label={`${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
+              aria-label={`${fill ? "다른 달 " : ""}${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
               aria-pressed={selected}
               className="relative flex aspect-square flex-col items-center justify-center rounded-xl"
               style={{
@@ -160,6 +171,9 @@ export default function CalendarGrid({
                 //    명도로 1위가 된다. 예전 ring+scale 조합은 caution 톤에서 링을 잃거나
                 //    grid 틈으로 삐져나왔다.
                 background: c.isToday ? "#5A3E8C" : cellTint(c.score),
+                // 🔴 채움 칸은 흐리게 — "이번 달"이라는 판의 말을 흐리지 않기 위해서다.
+                //    누르면 그 날짜 상세로 간다(룰 계산이라 내용이 있다).
+                ...(fill ? { opacity: 0.45 } : {}),
                 ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >

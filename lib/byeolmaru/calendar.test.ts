@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCalendar, weekBuckets, toDaySelf, monthRange } from "./calendar.ts";
+import { buildCalendar, weekBuckets, toDaySelf, monthRange, gridRange, buildCalendarPayload } from "./calendar.ts";
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 
 // 최소 SajuResult — 조립에 쓰는 필드만 채운다(나머지는 이 모듈이 안 본다).
@@ -111,4 +111,23 @@ test("DayCell 은 일진 한자를 싣는다 — 상세 히어로가 한글 간�
   const cells = buildCalendar(SAJU, LUCK, LUCK[0].date);
   assert.equal(cells[0].hanja, LUCK[0].hanja);
   assert.equal(cells[0].hanja.length, 2);
+});
+
+// ── gridRange ──
+test("gridRange — 1일의 요일만큼 앞으로, 말일에서 토요일까지 뒤로", () => {
+  // 2026-09-01 은 화요일(요일 index 2) → 앞 2칸(8/30 일, 8/31 월)
+  // 2026-09-30 은 수요일(index 3) → 뒤 3칸(10/1 목, 10/2 금, 10/3 토)
+  assert.deepEqual(gridRange("2026-09-26"), { start: "2026-08-30", end: "2026-10-03" });
+});
+
+test("gridRange — 1일이 일요일이면 앞 채움이 없다", () => {
+  assert.equal(gridRange("2026-11-15").start, "2026-11-01");
+});
+
+test("gridRange — 말일이 토요일이면 뒤 채움이 없다", () => {
+  assert.equal(gridRange("2026-10-15").end, "2026-10-31");
+});
+
+test("gridRange — 연 경계를 넘는다", () => {
+  assert.deepEqual(gridRange("2026-12-10"), { start: "2026-11-29", end: "2027-01-02" });
 });

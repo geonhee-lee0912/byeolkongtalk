@@ -87,6 +87,26 @@ export function monthRange(todayKst: string): { start: string; end: string } {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
+/** KST 날짜 문자열을 days 만큼 민다. UTC 자정 기준 산술이라 서버 TZ·DST 에 안 흔들린다. */
+function shiftDate(dateKst: string, days: number): string {
+  return new Date(Date.parse(`${dateKst}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
+}
+
+/**
+ * 격자가 실제로 그리는 범위 — 이번 달 + 앞뒤 채움. 일반 달력 관행대로 첫 줄 앞과 마지막 줄
+ * 뒤를 옆 달 날짜로 메운다. **고정 6주가 아니다** — 달마다 앞뒤로 0~6칸씩 달라진다.
+ *
+ * 🔴 이게 삭제된 스트립이 지던 "월 경계"를 대신한다 — 9/29 에 10/1~10/2 를 볼 수 있다.
+ *    라우트가 stripLuck 을 따로 계산하던 이유가 그것이었다.
+ * 🔴 채움 칸도 룰 계산이라 추가 원가는 0이다(tyme4ts 결정론).
+ */
+export function gridRange(todayKst: string): { start: string; end: string } {
+  const { start, end } = monthRange(todayKst);
+  const lead = new Date(`${start}T00:00:00Z`).getUTCDay(); // 0(일)~6(토)
+  const trail = 6 - new Date(`${end}T00:00:00Z`).getUTCDay();
+  return { start: shiftDate(start, -lead), end: shiftDate(end, trail) };
+}
+
 /** 판정 없이 날짜만 있는 칸. 🔴 남은 용도는 **게스트 셸 하나**다 —
  *  비로그인·생일 미입력이 보는 "안 칠해진 이번 달"(ByeolmaruHub 의 EmptyMonthShell).
  *  거기서의 "잠김"은 "안 온 날"이 아니라 "생일이 없어서 못 보는 날"이다.
