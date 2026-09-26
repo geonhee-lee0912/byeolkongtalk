@@ -18,6 +18,7 @@ import { dayWordFor } from "@/lib/byeolmaru/report-date";
 import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
 import { TAROT_PAID_CHARS, TAROT_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
+import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import CardReportView, { CardGaugeView } from "./CardReportView";
@@ -88,10 +89,17 @@ export default function DailyCardBlock({
   // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다
   // (SajuTodayView 의 notGenerated 와 같은 역할·같은 문구).
   const [notGenerated, setNotGenerated] = useState(false);
-  // route 가 report:null 과 함께 reason:"generation_failed" 를 명시적으로 준 경우만 별도 안내 —
-  // 진짜 500·네트워크 실패는 여전히 narrative:null 로 조용히 흡수한다(그건 안내할 만큼 확실치 않은 blip).
-  // 재시도 버튼은 없다(out of scope) — taste 폴백은 이미 떠 있으니 빈 화면은 아니다.
+  // route 가 report:null 과 함께 reason:"generation_failed" 를 명시적으로 준 경우 **그리고**
+  // 네트워크 실패·비정상 응답도 같은 문구로 흡수한다(2026-09-26 수정) — 예전엔 후자를 조용히
+  // 넘겼지만, 과거 + 비자격도 이 콘텐츠 분기를 타게 되면서(§4-4) 노출 면적이 늘어 "빈 화면"이
+  // 더 자주 보일 자리가 됐다. 재시도 버튼은 없다(out of scope) — taste 폴백은 이미 떠 있으니
+  // 완전한 빈 화면은 아니다.
   const [narrativeFailed, setNarrativeFailed] = useState(false);
+  // 🔴 "오늘 + 캐시 미스 + 비자격"(라우트 계약 ④)이 **확정**됐다는 신호 — report===null 이
+  //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. card-narrative 는 이 상태를
+  //    403 이 아니라 200 으로 표현하므로(entitled:false, report·reason 둘 다 없음) 응답 바디를
+  //    직접 읽어야 한다. PaywallCut 은 이 값이 true 일 때만 마운트한다(gate_shown 계측 계약 유지).
+  const [locked, setLocked] = useState(false);
 
   // 그날 카드 조회 — ?date= 없으면 라우트가 오늘로 떨어뜨리지만, 여기선 항상 명시해 보낸다
   // (화면이 보고 있는 날과 조회한 날이 갈라지지 않게).
@@ -131,12 +139,12 @@ export default function DailyCardBlock({
   useEffect(() => {
     if (cardDate !== date) {
       setReport(null); setGauge(null); setNarrativeLoading(false);
-      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false);
+      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
       return;
     }
     let cancelled = false;
     setReport(null); setGauge(null);
-    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false);
+    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
     // 🔴 로딩 문구는 콘텐츠가 뜰 화면에서만 — 오늘 + 비자격(유일한 페이월 자리)은 기다릴 글이
     //    없다. 과거는 자격과 무관하게 콘텐츠 화면이다(받았던 글은 계속 본다, 스펙 §4-4) — 그래서
     //    todayKst 비교가 entitled 와 or 로 묶인다(아래 렌더 게이트와 같은 식이어야 한다).
@@ -152,7 +160,9 @@ export default function DailyCardBlock({
           return;
         }
         if (!res.ok) {
-          if (!cancelled) { setReport(null); setGauge(null); }
+          // 🔴 실패도 flag 를 세운다(2026-09-26 수정) — 과거 + 비자격이 이 콘텐츠 분기로 들어오며
+          //    노출 면적이 늘어, 조용히 넘기면 빈 화면이 더 자주 보인다.
+          if (!cancelled) { setReport(null); setGauge(null); setNarrativeFailed(true); }
           return;
         }
         const j = await res.json();
@@ -165,9 +175,13 @@ export default function DailyCardBlock({
           // 과거 날짜의 "그날은 안 받았어"(not_generated)는 실패가 아니다 — 재시도 문구를 띄우지 않는다.
           setNarrativeFailed(!j.report && j.reason === "generation_failed");
           setNotGenerated(!j.report && j.reason === "not_generated");
+          // 🔴 "오늘 + 비자격 + 캐시 없음"(라우트 계약 ④)은 report·reason 이 둘 다 없다 — 그
+          //    확정 신호로만 잠금을 세운다(이 라우트는 403 이 아니라 200 으로 이 상태를 표현해
+          //    상태코드로는 구분이 안 된다). PaywallCut 은 이 확정 뒤에만 마운트한다(추측 금지).
+          setLocked(!j.report && j.reason == null && j.entitled === false);
         }
       } catch {
-        if (!cancelled) { setReport(null); setGauge(null); }
+        if (!cancelled) { setReport(null); setGauge(null); setNarrativeFailed(true); }
       } finally {
         if (!cancelled) setNarrativeLoading(false);
       }
@@ -435,33 +449,52 @@ export default function DailyCardBlock({
                 )}
               </div>
 
-              {/* 🔴 과거는 자격과 무관하게 콘텐츠 분기다(스펙 §4-4, 2026-09-26) — 캐시된 서술이
-                  있으면 구독이 끊겨도 계속 본다(자격은 "오늘" 생성 여부만 가른다). PaywallCut 은
-                  여전히 "오늘 + 비자격"에서만 마운트된다(아래 else, gate_shown 계측 계약은 그대로). */}
-              {(date !== todayKst || entitled) ? (
+              {/* 🔴 report 유무만 본다 — date·entitled 로 먼저 가르지 않는다(2026-09-26, 스펙
+                  §4-4). 과거든 오늘이든 서술이 있으면 받았던 글이니 그대로 보여주고, 없을 때만
+                  narrativeLoading/notGenerated/locked 세 이유를 가려 보여준다. */}
+              {narrativeLoading ? (
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                  별콩이가 카드를 네 사주 위에 얹는 중…
+                </p>
+              ) : report ? (
                 <>
-                  {narrativeLoading ? (
-                    <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                      별콩이가 카드를 네 사주 위에 얹는 중…
-                    </p>
-                  ) : report ? (
-                    // 🔴 border-t 래퍼를 씌우지 말 것 — CardReportView 의 첫 블록이 이미 자기 선을 긋는다.
-                    <CardReportView report={report} />
-                  ) : notGenerated ? (
-                    <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                      그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
-                    </p>
-                  ) : null}
-                  {narrativeFailed && (
-                    <p className="mt-2 text-xs leading-relaxed text-text-light">
-                      별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
-                    </p>
+                  {/* 🔴 border-t 래퍼를 씌우지 말 것 — CardReportView 의 첫 블록이 이미 자기 선을 긋는다. */}
+                  <CardReportView report={report} />
+                  {!entitled && (
+                    /* 🔴 받았던 글은 계속 보여주되(§4-4), 지금 비자격이면 조용히 재구독을 권한다.
+                       PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
+                       거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 을 찍어 분모도 오염시킨다).
+                       계측 없음(확신이 안 서 스킵 — 보고 참고). */
+                    <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
+                      <p className="text-xs text-text-light">
+                        구독이 끝났어. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
+                      </p>
+                      {trialUsed ? (
+                        <button
+                          onClick={() => onSubscribe("tarot_rich")}
+                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                        >
+                          구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onStartTrial("tarot_rich")}
+                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                        >
+                          3일 무료로 열어보기
+                        </button>
+                      )}
+                    </div>
                   )}
                 </>
-              ) : (
+              ) : notGenerated ? (
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                  그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+                </p>
+              ) : locked ? (
                 <>
-                  {/* 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — **비자격 분기 전용**이다
-                      (자격자에게 그리면 그 계측의 분모가 구독자로 오염된다).
+                  {/* 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — locked(라우트 계약 ④ 확정)
+                      일 때만 그린다(자격자·아직 미확정에게 그리면 그 계측의 분모가 오염된다).
                       🔴 래퍼로 감싸지 말 것: 자체 mt-4 와 금색 절단선을 갖고 있고, min-h 실측이
                          "page p-4 + card p-4" 중첩을 가정한다(래퍼가 끼면 그 실측이 깨진다). */}
                   <PaywallCut
@@ -479,6 +512,11 @@ export default function DailyCardBlock({
                     이 카드, 타로로 더 깊게 →
                   </Link>
                 </>
+              ) : null}
+              {narrativeFailed && (
+                <p className="mt-2 text-xs leading-relaxed text-text-light">
+                  별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
+                </p>
               )}
 
               {/* 🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다

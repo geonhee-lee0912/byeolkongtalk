@@ -13,6 +13,7 @@ import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { dayWordFor, reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { SAJU_PAID_CHARS, SAJU_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
+import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import DayDetailCard from "./DayDetailCard";
 import PaywallCut from "./PaywallCut";
@@ -50,6 +51,10 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const [reportLoading, setReportLoading] = useState(false);
   // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다.
   const [notGenerated, setNotGenerated] = useState(false);
+  // 🔴 "오늘 + 캐시 미스 + 비자격"이 **확정**됐다는 신호(daily-report 의 403) — report===null 이
+  //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. PaywallCut 은 이 값이
+  //    true 일 때만 마운트한다(스펙 §4-4, 2026-09-26 — gate_shown 계측 계약 유지).
+  const [locked, setLocked] = useState(false);
 
   async function refresh() {
     try {
@@ -73,35 +78,37 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   useEffect(() => { void refresh(); }, []);
 
   // 리포트는 선택 날짜 기준으로 따로 받아온다 — refresh() 안에 두면 날짜를 바꿔도 오늘 것만 계속 붙는다.
-  // 🔴 오늘(생성) + 비자격은 안 부른다(403 확정 = 요청 낭비 방지). 과거는 자격과 무관하게 부른다 —
-  //    캐시된 글이 있으면 받았던 글을 계속 본다(스펙 §4-4, 2026-09-26). LLM 은 여전히 자격자만
-  //    부르므로(daily-report 라우트) 원가 0 은 유지된다.
   const entitled = state.kind === "ready" && state.data.entitled;
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
+    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setLocked(false); return; }
     const p = reportDatePolicy(selected, todayKst);
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
     //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다. 화면 안내 문구는
     //    이제 아래 렌더의 policy 분기가 자격과 무관하게 책임지므로(2026-09-26), 여기 남은 이유는
     //    오직 어차피 400 이 될 요청을 막는 것뿐이다.
     if (p === "out_of_range") {
-      setReport(null); setNotGenerated(false); setReportLoading(false);
+      setReport(null); setNotGenerated(false); setReportLoading(false); setLocked(false);
       return;
     }
-    // 🔴 오늘 + 비자격 = 페이월 자리다. 부르면 403 이 확정이라 요청만 낭비한다.
-    //    과거는 자격과 무관하게 부른다 — 받았던 글이 있을 수 있다(§4-4).
-    if (p === "generate" && !entitled) {
-      setReport(null); setNotGenerated(false); setReportLoading(false);
-      return;
-    }
+    // 🔴 "오늘 + 비자격이면 부르지 않는다"는 가드를 뺐다(2026-09-26) — 라우트가 캐시 조회를
+    //    자격 게이트보다 먼저 하도록 바뀌어서, 이 조합이 403 확정이 아니라 **캐시 히트일 수
+    //    있다**(당일 낮 만료 유저가 그날 아침에 받아둔 글). 미래만 여전히 안 부른다.
     let cancelled = false;
     setReport(null);
     setNotGenerated(false);
+    setLocked(false);
     setReportLoading(true);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/daily-report?date=${selected}`, { cache: "no-store" });
+        // 🔴 403 은 "오늘 + 캐시 미스 + 비자격"에서만 온다(daily-report 라우트 계약) — 캐시가
+        //    없음이 **확정**된 유일한 신호다. reportLoading=false·report=null 만으로 잠금을
+        //    단정하지 않는다 — 그러면 네트워크 blip 도 PaywallCut 으로 보인다(요구사항 2).
+        if (res.status === 403) {
+          if (!cancelled) { setReport(null); setNotGenerated(false); setLocked(true); }
+          return;
+        }
         const j = await res.json();
         if (!cancelled) {
           setReport(j.report ?? null);
@@ -114,6 +121,9 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       }
     })();
     return () => { cancelled = true; };
+    // 🔴 entitled 를 deps 에 남긴다 — 본문은 더 이상 안 읽지만, 구독/체험이 막 성공해 값이
+    //    바뀌면 직전에 잠겼던(locked) 요청을 다시 불러야 한다(락은 그 순간의 자격을 반영할
+    //    뿐이라 자격이 바뀌면 다시 확인해야 참이 된다).
   }, [entitled, selected, todayKst]);
 
   // 그날 뽑은 카드(§4) — 자격과 무관한 무료 정보다(리포트 effect 와 달리 entitled 를 안 본다).
@@ -218,37 +228,57 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             그날 이야기는 그날 아침에 들려줄게.
           </p>
-        ) : policy === "cache_only" || data.entitled ? (
-          /* 🔴 과거(cache_only)는 **자격과 무관하게** 이 분기다(2026-09-26, 스펙 §4-4) — 받았던
-             글은 구독이 끊겨도 계속 본다. PaywallCut 은 여전히 "오늘 + 비자격"에서만 마운트된다
-             (아래 else, gate_shown 계측 계약은 그대로).
-             report===null 인데 이유가 notGenerated(서버가 명시)가 아니면 네트워크 blip 등 —
-             그 경우엔 과거든 오늘이든 같은 재시도 유도 문구를 보여준다(진짜 실패와 "그날은 안
-             받았어"를 구분해야 안내가 맞는다). policy==="generate" 에서는 notGenerated 가 항상
-             false 다(daily-report 가 이 policy 에선 not_generated 를 절대 안 준다) — 그래서
-             이 한 표현이 두 policy 를 안전하게 겸한다. */
-          reportLoading ? (
-            <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-              {dayWord} 리포트를 펼치는 중…
-            </div>
-          ) : report ? (
-            <div className="mt-4 border-t border-lilac-mid/20 pt-4">
-              {/* dateLabel={null} — 날짜는 한 장의 헤더가 이미 말했다. embedded 는 상단 바 자체를
-                  안 그려 넘겨도 안 보이지만, 계약을 분명히 하려고 null 을 준다. */}
-              <DailyReportCard report={report} dateLabel={null} dayWord={dayWord} variant="embedded" />
-            </div>
-          ) : notGenerated ? (
-            <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-              그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
-            </p>
-          ) : (
-            <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-              별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
-            </p>
-          )
-        ) : (
+        ) : reportLoading ? (
+          /* 🔴 로딩 문구가 report/notGenerated/locked 세 분기보다 **먼저** 온다(2026-09-26) —
+             오늘 + 비자격도 이제 fetch 가 실제로 돈다. locked 는 fetch 가 끝나야만 true 가 될 수
+             있어 이 순서가 없어도 PaywallCut 이 로딩 중에 뜰 길은 없지만, "PaywallCut 이 잠깐
+             떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다. */
+          <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+            {dayWord} 리포트를 펼치는 중…
+          </div>
+        ) : report ? (
+          /* 🔴 report 유무만 본다 — policy·자격은 안 본다(2026-09-26, 스펙 §4-4). 과거든 오늘이든
+             캐시가 있으면 받았던 글이니 그대로 보여준다. 다만 **지금** 비자격이면 그 사실을
+             조용히 알리고 재구독을 권한다(사용자 결정 — 이 글을 뺏지 않는다). */
+          <div className="mt-4 border-t border-lilac-mid/20 pt-4">
+            {/* dateLabel={null} — 날짜는 한 장의 헤더가 이미 말했다. embedded 는 상단 바 자체를
+                안 그려 넘겨도 안 보이지만, 계약을 분명히 하려고 null 을 준다. */}
+            <DailyReportCard report={report} dateLabel={null} dayWord={dayWord} variant="embedded" />
+            {!data.entitled && (
+              /* 🔴 PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
+                 거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 도 찍어 분모를 오염시킨다).
+                 계측 없음(확신이 안 서 스킵 — 보고 참고). */
+              <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
+                <p className="text-xs text-text-light">
+                  구독이 끝났어. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
+                </p>
+                {data.trialUsed ? (
+                  <button
+                    onClick={() => openSubscribe("saju_report")}
+                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                  >
+                    구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startTrial("saju_report")}
+                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                  >
+                    3일 무료로 열어보기
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : notGenerated ? (
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+            그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+          </p>
+        ) : locked ? (
           /* 🔴 여기만 border-t 래퍼가 없다(의도) — PaywallCut 이 자체 금색 절단선을 갖고 있어
-                감싸면 선이 두 개가 된다. 위 분기들과 "통일"하지 말 것. */
+                감싸면 선이 두 개가 된다. 위 분기들과 "통일"하지 말 것.
+             🔴 locked(403 확정)일 때만 그린다 — "캐시된 글이 없음이 확정된 뒤"에만 마운트한다는
+                요구사항 2가 이 한 조건으로 지켜진다(추측이 아니라 실제 서버 응답 신호). */
           <PaywallCut
             freeChars={tasteText.length}
             paidChars={SAJU_PAID_CHARS}
@@ -259,6 +289,10 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
             onSubscribe={openSubscribe}
             slot="saju_report"
           />
+        ) : (
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+            별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
+          </p>
         )}
       </DayDetailCard>
       {/* 오늘 공유 — 선택 셀이 오늘일 때만(미래 날 보다 공유하면 "오늘 사주" 라벨로 다른 날이 나가는 오노출 방지). */}
