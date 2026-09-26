@@ -97,6 +97,14 @@ export default function CalendarGrid({
       className={panel ? "rounded-2xl p-3" : undefined}
       style={panel ? { background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW } : undefined}
     >
+      {/* 🔴 월 표시는 필수다 — 예전엔 접이식 버튼 텍스트("이번 달 달력 보기")가 유일한 월
+          맥락이었는데 그 래퍼가 2026-09-26 에 삭제됐다. 없으면 이게 몇 월인지 화면 어디에도
+          없다. 연도는 안 쓴다 — 달력은 항상 이번 달이고 연도는 잡음이다.
+          🔴 월 이동(◀▶)은 이번 스코프가 아니다 — 넣으면 "지난 달 리포트 소급 생성"·"몇 달
+             전까지 보나" 같은 정책이 줄줄이 붙는다. */}
+      <p className="mb-1.5 px-0.5 text-[13px] font-semibold text-eye-purple">
+        {Number(todayDate.slice(5, 7))}월
+      </p>
       <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs">
         {WEEKDAYS.map((w, i) => (
           // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.
@@ -123,9 +131,9 @@ export default function CalendarGrid({
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
                 style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >
-                <span className="text-[10px] leading-[11px] text-text-light/60">{Number(date.slice(8, 10))}</span>
+                <span className="text-[11px] leading-[13px] text-text-light/60">{Number(date.slice(8, 10))}</span>
                 {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. */}
-                <span aria-hidden className="h-[19px]" />
+                <span aria-hidden className="h-[20px]" />
               </div>
             );
           }
@@ -161,20 +169,21 @@ export default function CalendarGrid({
                   깨진다 — 스펙 §3·§6). 스트립이 사라진 2026-09-26 부터 **격자에서 marks 의
                   시각 표면은 0개**이고 aria-label 에만 남는다 — 스크린리더가 "왜"를 잃지
                   않게 하는 용도다. 마크를 눈으로 보는 곳은 상세 카드와 지도다. */}
-              <span className="text-[10px] leading-[11px]" style={{ color: c.isToday ? "rgba(255,255,255,.55)" : "rgba(122,107,160,.6)" }}>
+              {/* 🔴 10px/.6 에서 올렸다(2026-09-26) — 점수가 압도해서 달력인데 "몇 일"을
+                  찾기 어려웠다(30칸이 다 찬 뒤 드러난 결함). 점수가 주 신호라는 위계는
+                  유지한다: bold 로 만들거나 점수와 같은 크기로 올리지 않는다. */}
+              <span className="text-[11px] leading-[13px]" style={{ color: c.isToday ? "rgba(255,255,255,.72)" : "rgba(122,107,160,.78)" }}>
                 {Number(c.date.slice(8, 10))}
               </span>
-              {/* 🔴 "점"을 붙인다 — 맨숫자는 점수로 안 읽힌다. 8px 로 낮춰 숫자 위계를 지킨다. */}
-              <span className="flex items-baseline gap-px">
-                <span
-                  className="text-[16px] font-semibold leading-[19px]"
-                  style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
-                >
-                  {scoreDisplay(c.score)}
-                </span>
-                <span className="text-[8px] font-semibold" style={{ color: c.isToday ? "rgba(255,255,255,.7)" : "#8C81A8" }}>
-                  점
-                </span>
+              {/* 🔴 "점" 단위를 뺐다(2026-09-26) — 30칸에 30번 반복되면 잡음이고, 두 자리
+                  숫자+점이 43.6px 칸을 꽉 채웠다. 단위가 들어갔던 근거("맨숫자는 점수로 안
+                  읽힌다")는 스트립 7칸 기준이었고 그 스트립은 삭제됐다. 맥락은 같은 판 위의
+                  TodayLead("오늘 40점")가 진다 — 오늘 칸 숫자와 그 줄이 같은 값이라 연결된다. */}
+              <span
+                className="text-[17px] font-semibold leading-[20px]"
+                style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
+              >
+                {scoreDisplay(c.score)}
               </span>
             </button>
           );
