@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
+import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 // 🔴 타입만 가져온다(`import type`) — 이 모듈 본체는 getServiceSupabase 를 끌고 들어오는 서버 래퍼다.
 //    값으로 import 하면 클라이언트 번들에 service_role 경로가 딸려 들어간다(DayDetailCard 와 같은 이유).
@@ -29,7 +29,6 @@ interface CalendarResponse {
   subscriptionExpiresAt: string | null;
   monthStart: string;
   monthEnd: string;
-  lockedCells: LockedCell[];
 }
 
 type State =
@@ -81,7 +80,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
     if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setOutOfRange(false); return; }
-    // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 구독자는 lockedCells 가 없어 이번 달 모든 날짜를
+    // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
     //    클릭할 수 있는데, 오늘+3일을 넘으면 라우트가 400 date_out_of_range 를 준다(report·reason
     //    둘 다 없음). 그걸 report:null 로 흡수하면 자격자 분기의 마지막 폴백("숨 고르는 중" = 재시도
     //    문구)으로 떨어져 — 그 날짜가 가까워지기 전엔 영원히 안 될 일을 재시도하라고 말하게 된다.
