@@ -38,7 +38,7 @@ test("주차 요약도 이번 달 전체를 집계한다", () => {
   assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
 });
 
-// 🔴 이 분기(cells/fillCells 분리)는 지금은 no-op 이지만 곧 load-bearing 이 된다 —
+// 🔴 이 분기(cells/fillCells 분리)는 지금은 no-op 이지만 2026-09-26 부터 load-bearing 이 된다 —
 //    격자가 앞뒤 달을 채우기 시작하면 gridLuck 이 월 경계를 넘어 들어온다. 그때
 //    채움 칸이 weekBuckets 에 새면 "이번 달 잘 맞는 날 N일"이 거짓이 된다.
 test("월 경계를 넘는 일진이 들어와도 채움 칸이 cells·주차 집계에 안 샌다", () => {

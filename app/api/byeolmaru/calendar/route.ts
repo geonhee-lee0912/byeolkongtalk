@@ -97,9 +97,11 @@ export async function GET(req: NextRequest) {
       }
 
       const partnerSaju = calcSaju(profileRowToSajuInput(pRow));
-      const pairAll = buildPairCalendar(saju, partnerSaju, gridLuck, todayKst);
-      const pairCells = pairAll.filter((c) => c.date >= monthStart && c.date <= monthEnd);
-      const pairFillCells = pairAll.filter((c) => c.date < monthStart || c.date > monthEnd);
+      // 🔴 gridLuck 은 월 경계를 넘는다(gridRange) — 안 거르면 pair cells 에 옆 달이 섞이고
+      //    WooriTodayView 의 cells[length-1] 폴백이 다음 달을 집는다. 채움은 pair 격자를 그리는
+      //    화면이 없으므로 만들지도 내려보내지도 않는다.
+      const pairCells = buildPairCalendar(saju, partnerSaju, gridLuck, todayKst)
+        .filter((c) => c.date >= monthStart && c.date <= monthEnd);
       const backdrop = pairBackdrop(saju, partnerSaju);
       const todayGanji = temporal.day.stem + temporal.day.branch;
       const ent = await getEntitlement(userId);
@@ -130,7 +132,6 @@ export async function GET(req: NextRequest) {
         monthEnd,
         partnerName: pRow.display_name,
         cells: pairCells,
-        fillCells: pairFillCells,
         backdrop,
         // 🔴 무료 문구를 서버가 만들어 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
         //    문구는 **선택한 셀 기준**이어야 한다. 클라가 status 와 셀을 받아 getPairTaste(순수)를

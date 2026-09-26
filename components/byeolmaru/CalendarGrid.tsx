@@ -61,7 +61,8 @@ interface Props {
    *  🔴 옵셔널이다 — 게스트 셸(EmptyMonthShell)은 서버를 안 불러 채움이 없다. 그쪽은
    *     안 넘기는 게 맞고, 그때 앞쪽 빈칸 계산이 지금처럼 그대로 동작한다. */
   fillCells?: GridCell[];
-  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에만 쓴다. */
+  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에 쓴다.
+   *  월 표시(`todayDate.slice(5,7)`)에도 쓴다 — "에만"이 아니다. */
   todayDate: string;
   selectedDate: string;
   onSelect: (date: string) => void;

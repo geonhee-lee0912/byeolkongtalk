@@ -261,7 +261,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
                  계측 없음(확신이 안 서 스킵 — 보고 참고). */
               <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
                 <p className="text-xs text-text-light">
-                  구독이 끝났어. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
+                  지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                 </p>
                 {data.trialUsed ? (
                   <button
