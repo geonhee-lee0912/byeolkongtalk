@@ -2,13 +2,17 @@
 // P6-2(스펙 2026-09-19 §6): 자유 줄글 narrative → 7블록 CardReport(JSON 구조화 + 사주 축 위 카드 게이지).
 // 카드 자체(cardId/reversed)는 이 라우트가 뽑지 않는다 — byeolmaru_daily_card 에 이미 기록된 그날 카드를 읽어 사주 위에 얹을 뿐이다.
 // 🔴 파싱·검증·게이지 병합은 저장 전 한 번(§11-1-4) — 캐시 히트는 저장본을 그대로 돌려준다(응답 대칭).
+// 🔴 캐시 조회는 자격과 무관하다(2026-09-26, 스펙 §4-4) — 받았던 서술은 구독이 끊겨도 계속 본다.
+//    LLM 은 여전히 자격자만 부른다(원가 0 은 유지) — 늘어나는 건 비자격자의 인덱스 조회 1회뿐이다.
 //
-// 🔴 P6-4 응답 계약 — 여섯 갈래. `gauge` 는 **자격과 무관하게** 카드가 있으면 항상 실린다(§5-3②, 룰 100%·원가 0).
+// 🔴 P6-4 응답 계약 — 여섯 갈래(2026-09-26 §4-4 로 ②③ 갱신). `gauge` 는 **자격과 무관하게** 카드가
+//    있으면 항상 실린다(§5-3②, 룰 100%·원가 0).
 //   ① 카드 없음        : { entitled, gauge: null, report: null, reason: "not_drawn" }
-//   ② 비자격 + 카드     : { entitled: false, gauge }                      ← LLM 미호출 = 원가 0
-//   ③ 자격 + 캐시       : { entitled: true, gauge, report }
-//   ④ 자격 + 과거 미생성 : { entitled: true, gauge, report: null, reason: "not_generated" }
-//   ⑤ 자격 + 생성/실패  : { entitled: true, gauge, report }  /  { …, report: null, reason: "generation_failed" }
+//   ② 캐시 있음        : { entitled, gauge, report }                      ← 자격 무관, LLM 미호출(원가 0).
+//                         받았던 글은 계속 본다(§4-4) — entitled 는 "지금" 자격일 뿐 이 응답을 가르지 않는다.
+//   ③ 과거 + 캐시 없음  : { entitled, gauge, report: null, reason: "not_generated" }  ← 자격 무관, 페이월 없음
+//   ④ 오늘 + 비자격     : { entitled: false, gauge }                      ← LLM 미호출 = 원가 0(유일한 페이월 자리)
+//   ⑤ 오늘 + 자격 생성  : { entitled: true, gauge, report }  /  { …, report: null, reason: "generation_failed" }
 //   ⑥ 생일 없음        : 404 { error: "profile_not_found" }  ← 자격 무관(사주 축이 없으면 게이지도 없다)
 //  범위 밖 미래·형식 오류는 400 date_out_of_range (daily-report 와 동일).
 import { NextRequest, NextResponse } from "next/server";
@@ -62,12 +66,12 @@ export async function GET(req: NextRequest) {
 
     const ent = await getEntitlement(userId);
 
-    // 🔴 캐시 히트는 자격자에게만 의미가 있다(비자격은 애초에 행을 못 만든다) — 그래서 자격일
-    //    때만 먼저 본다. 이 순서 덕분에 히트 경로는 카드·프로필·사주 계산을 건너뛴다(실측 127ms).
-    if (ent.entitled) {
-      const cached = await getCachedCardReport(userId, reportDate);
-      if (cached) return NextResponse.json({ entitled: true, gauge: cached.gauge, report: cached });
-    }
+    // 🔴 캐시 조회는 자격과 무관하다(2026-09-26, 스펙 §4-4) — 받았던 글은 구독이 만료돼도 계속
+    //    본다. 소급 생성이 금지돼 있어(cache_only) "그때 받은 것"이 유일한 원본이고, 그걸 다시
+    //    잠그면 이미 준 것을 뺏는 게 된다. cached.gauge 를 그대로 쓰므로 카드·프로필·사주
+    //    재계산은 여전히 건너뛴다(실측 127ms) — 원가 0 은 안 깨진다(LLM 은 어느 쪽도 안 돈다).
+    const cached = await getCachedCardReport(userId, reportDate);
+    if (cached) return NextResponse.json({ entitled: ent.entitled, gauge: cached.gauge, report: cached });
 
     // report:null 은 항상 reason 을 동반한다 — not_drawn(영구·정상)과 generation_failed(일시·재시도
     // 가능)를 DailyCardBlock 이 다르게 보여줘야 한다(daily-report.ts 형제 규율과 동일).
@@ -115,14 +119,15 @@ export async function GET(req: NextRequest) {
     // 화면에 이미 뜬 무료 taste(DailyCardBlock 과 같은 시드 = 그 날짜) — 역할분리(§6-4)용으로 프롬프트에 넣는다.
     const freeTaste = getCardTaste(drawn.cardId, drawn.reversed, reportDate);
 
-    // 🔴 §5-3② — 여기가 경계다. 게이지까지는 룰 100%(원가 0)라 비자격자도 받는다.
-    //    아래로는 LLM 이 도는 구간이라 자격이 필요하다.
-    if (!ent.entitled) return NextResponse.json({ entitled: false, gauge });
-
-    // 과거는 "있던 것만" — 소급 생성하지 않는다(스펙 §4). 캐시는 위에서 이미 봤다.
+    // 과거 + 캐시 미스 = 그때 못 받은 것 — 자격 무관하게 "안 받았어"(스펙 §4-4, 페이월 없음).
+    //    캐시는 위에서 이미 봤다(그래서 여기 온 건 미스가 확정이다).
     if (policy === "cache_only") {
-      return NextResponse.json({ entitled: true, gauge, report: null, reason: "not_generated" });
+      return NextResponse.json({ entitled: ent.entitled, gauge, report: null, reason: "not_generated" });
     }
+
+    // 🔴 §5-3② — 여기부터가 유일한 페이월 자리(오늘 + 캐시 미스). 게이지까지는 룰 100%(원가 0)라
+    //    비자격자도 받지만, 아래로는 LLM 이 도는 구간이라 자격이 필요하다.
+    if (!ent.entitled) return NextResponse.json({ entitled: false, gauge });
 
     // LLM 생성 실패는 전체 요청 실패가 아니라 report:null 로 흡수(형제 라우트와 동일 경계).
     try {

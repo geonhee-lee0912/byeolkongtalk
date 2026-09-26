@@ -137,7 +137,10 @@ export default function DailyCardBlock({
     let cancelled = false;
     setReport(null); setGauge(null);
     setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false);
-    setNarrativeLoading(entitled); // 로딩 문구는 자격자에게만 — 비자격은 기다릴 글이 없다
+    // 🔴 로딩 문구는 콘텐츠가 뜰 화면에서만 — 오늘 + 비자격(유일한 페이월 자리)은 기다릴 글이
+    //    없다. 과거는 자격과 무관하게 콘텐츠 화면이다(받았던 글은 계속 본다, 스펙 §4-4) — 그래서
+    //    todayKst 비교가 entitled 와 or 로 묶인다(아래 렌더 게이트와 같은 식이어야 한다).
+    setNarrativeLoading(date !== todayKst || entitled);
     void (async () => {
       try {
         const res = await fetch(`/api/byeolmaru/card-narrative?date=${date}`, { cache: "no-store" });
@@ -156,8 +159,9 @@ export default function DailyCardBlock({
         if (!cancelled) {
           setGauge(j.gauge ?? null);
           setReport(j.report ?? null);
-          // reason 은 route 가 명시적으로 구분해 준 신호만 읽는다(비자격 응답엔 report·reason 이
-          // 아예 없어 둘 다 false 로 떨어진다 — 비자격자에게 안내 문구가 새지 않는다).
+          // reason 은 route 가 명시적으로 구분해 준 신호만 읽는다. 오늘 + 비자격 응답엔 report·
+          // reason 이 아예 없어 둘 다 false 로 떨어진다(비자격자에게 안내 문구가 새지 않는다) —
+          // 과거는 자격과 무관하게 report·reason 이 실리므로(§4-4) 이 파싱 자체는 자격을 안 본다.
           // 과거 날짜의 "그날은 안 받았어"(not_generated)는 실패가 아니다 — 재시도 문구를 띄우지 않는다.
           setNarrativeFailed(!j.report && j.reason === "generation_failed");
           setNotGenerated(!j.report && j.reason === "not_generated");
@@ -171,7 +175,7 @@ export default function DailyCardBlock({
     return () => {
       cancelled = true;
     };
-  }, [entitled, cardDate, date]);
+  }, [entitled, cardDate, date, todayKst]);
 
   // 🔴 의식이 실제로 떠 있는가 — 포털과 스크롤 잠금이 **같은 하나**를 봐야 한다.
   //    `ritualOpen` 만으로는 부족하다: 이 화면은 같은 라우트 안에서 쿼리만 바뀌면 재마운트가
@@ -431,7 +435,10 @@ export default function DailyCardBlock({
                 )}
               </div>
 
-              {entitled ? (
+              {/* 🔴 과거는 자격과 무관하게 콘텐츠 분기다(스펙 §4-4, 2026-09-26) — 캐시된 서술이
+                  있으면 구독이 끊겨도 계속 본다(자격은 "오늘" 생성 여부만 가른다). PaywallCut 은
+                  여전히 "오늘 + 비자격"에서만 마운트된다(아래 else, gate_shown 계측 계약은 그대로). */}
+              {(date !== todayKst || entitled) ? (
                 <>
                   {narrativeLoading ? (
                     <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
