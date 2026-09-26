@@ -50,8 +50,6 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const [reportLoading, setReportLoading] = useState(false);
   // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다.
   const [notGenerated, setNotGenerated] = useState(false);
-  // 오늘보다 앞선 미래(내일부터) — 생성 실패가 아니라 "아직 멀다". 재시도 문구가 뜨면 안 된다.
-  const [outOfRange, setOutOfRange] = useState(false);
 
   async function refresh() {
     try {
@@ -79,19 +77,18 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const entitled = state.kind === "ready" && state.data.entitled;
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setOutOfRange(false); return; }
+    if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); return; }
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
-    //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다(report·reason
-    //    둘 다 없음). 그걸 report:null 로 흡수하면 자격자 분기의 마지막 폴백("숨 고르는 중" = 재시도
-    //    문구)으로 떨어져 — 그 날짜가 가까워지기 전엔 영원히 안 될 일을 재시도하라고 말하게 된다.
+    //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다. 화면 안내 문구는
+    //    이제 아래 렌더의 policy 분기가 자격과 무관하게 책임지므로(2026-09-26), 여기 남은 이유는
+    //    오직 어차피 400 이 될 요청을 막는 것뿐이다.
     if (reportDatePolicy(selected, todayKst) === "out_of_range") {
-      setReport(null); setNotGenerated(false); setOutOfRange(true); setReportLoading(false);
+      setReport(null); setNotGenerated(false); setReportLoading(false);
       return;
     }
     let cancelled = false;
     setReport(null);
     setNotGenerated(false);
-    setOutOfRange(false);
     setReportLoading(true);
     void (async () => {
       try {
@@ -102,7 +99,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           setNotGenerated(j.reason === "not_generated");
         }
       } catch {
-        if (!cancelled) { setReport(null); setNotGenerated(false); setOutOfRange(false); }
+        if (!cancelled) { setReport(null); setNotGenerated(false); }
       } finally {
         if (!cancelled) setReportLoading(false);
       }
@@ -196,13 +193,23 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
         </p>
       ) : null}
       {/* 한 장(§5-1) — 무료 구간(일진 히어로·taste·축·그날 카드)은 DayDetailCard 가 그리고,
-          그 아래 children 으로 유료 리포트 **또는** 절단선이 붙는다.
+          그 아래 children 으로 유료 리포트·절단선·미래 날짜 안내 문구 중 하나가 붙는다.
           🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 **비자격 분기에서만** 넘긴다
              (자격자에게 넘기면 그 계측의 분모가 구독자로 오염된다). */}
       {/* card 는 `?? null` — DayDetailCard 의 계약은 `DailyCard | null` 이라 "아직 모름"은
           여기서 "없음"으로 눌러 넘긴다(그 상태는 위 cardHint·cardHref 게이트가 이미 책임진다). */}
       <DayDetailCard cell={cell} dayWord={dayWord} card={dayCard ?? null} cardHref={cardHref} cardHint={cardHint}>
-        {data.entitled ? (
+        {policy === "out_of_range" ? (
+          /* 🔴 날짜 판정이 자격 판정보다 **바깥**이다(2026-09-26). 안쪽에 두면 비자격자가
+             미래 날짜에서 PaywallCut 을 보는데, 그 글은 결제해도 존재하지 않는다
+             (daily-report 가 400 date_out_of_range). 파는 자리는 "더 보고 싶다"가 생기는
+             자리여야 하고, 미래 날짜는 읽을 게 없어 그 감정이 생길 수 없는 자리다.
+             🔴 덤으로 gate_shown 계측 분모에서 "팔 수 없는 날"이 빠져 정확해진다 —
+                PaywallCut 은 마운트만으로 그 이벤트를 찍는다. */
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+            그날 이야기는 그날 아침에 들려줄게.
+          </p>
+        ) : data.entitled ? (
           reportLoading ? (
             <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
               {dayWord} 리포트를 펼치는 중…
@@ -216,10 +223,6 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
           ) : notGenerated ? (
             <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
               그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
-            </p>
-          ) : outOfRange ? (
-            <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-              그날 이야기는 그날 아침에 들려줄게.
             </p>
           ) : (
             <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
