@@ -38,9 +38,11 @@ test("주차 요약도 이번 달 전체를 집계한다", () => {
   assert.equal(weeks[weeks.length - 1].endDate, "2026-09-30");
 });
 
-// 🔴 이 분기(cells/fillCells 분리)는 지금은 no-op 이지만 2026-09-26 부터 load-bearing 이 된다 —
-//    격자가 앞뒤 달을 채우기 시작하면 gridLuck 이 월 경계를 넘어 들어온다. 그때
-//    채움 칸이 weekBuckets 에 새면 "이번 달 잘 맞는 날 N일"이 거짓이 된다.
+// 🔴 이 분기(cells/fillCells 분리)는 **load-bearing 이다**(2026-09-26 `gridRange` 도입 이후) —
+//    격자가 앞뒤 달을 채우므로 gridLuck 이 실제로 월 경계를 넘어 들어온다. 채움 칸이
+//    weekBuckets 에 새면 "이번 달 잘 맞는 날 N일"이 거짓이 된다.
+//    (이 테스트는 gridRange 보다 **먼저** 쓰였다 — 그땐 no-op 을 지키는 선행 가드였고,
+//     실제로 그 뒤 도입된 gridRange 가 이걸 통과해야 했다.)
 test("월 경계를 넘는 일진이 들어와도 채움 칸이 cells·주차 집계에 안 샌다", () => {
   const luck = calcDailyLuckRange("2026-08-30", "2026-10-03"); // 9월 격자가 그리는 범위
   const { cells, fillCells, weeks } = buildCalendarPayload(saju, luck, TODAY);
