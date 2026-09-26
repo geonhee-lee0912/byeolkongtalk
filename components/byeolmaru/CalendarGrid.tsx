@@ -3,7 +3,7 @@
 import type { DayTone } from "@/lib/byeolmaru/day-score";
 import type { LockedCell } from "@/lib/byeolmaru/calendar";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { cellTint, isGoodScore, scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
+import { cellTint, cellTextColor, scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 import type { DayMark } from "@/lib/byeolmaru/day-label";
 
 // 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
@@ -191,7 +191,7 @@ export default function CalendarGrid({
                   제거만 말했다. 명시 안 된 1px 라 2026-09-27 실물 검수에서 되돌렸다. */}
               <span
                 className="text-[16px] font-semibold leading-[20px]"
-                style={{ color: c.isToday ? "#ffffff" : isGoodScore(c.score) ? "#412402" : "#5A3E8C" }}
+                style={{ color: c.isToday ? "#ffffff" : cellTextColor(c.score) }}
               >
                 {scoreDisplay(c.score)}
               </span>

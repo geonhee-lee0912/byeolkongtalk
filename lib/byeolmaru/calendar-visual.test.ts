@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   isGoodScore,
   cellTint,
+  cellTextColor,
   scorePercentile,
   scoreDisplay,
 } from "./calendar-visual.ts";
@@ -13,14 +14,34 @@ test("isGoodScore — dayGrade 의 good 임계(70)와 같은 자리에서 갈린
   assert.equal(isGoodScore(100), true);
 });
 
-test("cellTint — 70 미만은 보라, 70 이상은 금색", () => {
-  assert.match(cellTint(30), /^rgba\(159, 138, 208, /);
-  assert.match(cellTint(80), /^rgba\(232, 194, 106, /);
+// 🔴 3색이다(2026-09-27) — 방향을 **색상**이 말하고 농도는 정도만 말한다. 2색이던 시절엔
+//    보라 상한(0.45)과 금색 하한(0.45)이 같은 알파라 "제일 나쁜 날"과 "약한 좋은 날"이 같은
+//    세기로 튀었다(실물 검수 항목 19, 사용자 판정). 경계는 dayGrade 3단 그대로다 —
+//    칸 색이 칸을 눌렀을 때 뜨는 라벨("살짝 챙길 날")과 같은 말을 하게 하려는 것.
+test("cellTint — caution(<45)은 테라코타 · normal 은 보라 · good(>=70)은 금색", () => {
+  assert.match(cellTint(30), /^rgba\(201, 112, 92, /, "caution");
+  assert.match(cellTint(44), /^rgba\(201, 112, 92, /, "caution 경계 바로 아래");
+  assert.match(cellTint(45), /^rgba\(159, 138, 208, /, "normal 경계");
+  assert.match(cellTint(69), /^rgba\(159, 138, 208, /, "normal 위끝");
+  assert.match(cellTint(80), /^rgba\(232, 194, 106, /, "good");
+});
+
+// 🔴 농도 공식은 안 바꿨다 — 색상만 갈랐다. calendar-visual.ts 머리말의 "등급 3단을 배경에
+//    쓰지 않는다"(normal 이 64%라 7칸 중 4~5칸이 같은 색이 됐다)는 **3단만으로** 칠했을 때의
+//    실패다. normal 안의 백분위 농도가 그대로 살아 있으므로 그 실패로 돌아가지 않는다.
+test("cellTint — caution/normal 경계에서 알파가 안 튄다(농도는 연속이다)", () => {
+  assert.ok(Math.abs(alphaOf(cellTint(44)) - alphaOf(cellTint(45))) <= 0.02);
+});
+
+test("cellTextColor — 3단이 각자 다른 글자색을 쓴다", () => {
+  assert.equal(cellTextColor(30), "#6B2D22", "caution = 테라코타 계열 적갈");
+  assert.equal(cellTextColor(60), "#5A3E8C", "normal = eye-purple");
+  assert.equal(cellTextColor(80), "#412402", "good = 금색 칸의 짙은 갈색");
 });
 
 const alphaOf = (css: string): number => Number(css.slice(css.lastIndexOf(",") + 1, -1));
 
-test("cellTint — 보라 구간은 점수가 낮을수록 진하다", () => {
+test("cellTint — good 미만 구간은 점수가 낮을수록 진하다(색이 갈려도 농도는 이어진다)", () => {
   assert.ok(alphaOf(cellTint(12)) > alphaOf(cellTint(45)));
   assert.ok(alphaOf(cellTint(45)) > alphaOf(cellTint(69)));
 });
@@ -40,7 +61,8 @@ test("cellTint — good 임계 바로 위는 뚜렷하다(경계가 보인다)",
 });
 
 // 🔴 3차(2026-09-26) 보라 상한 확장(0.30→0.45)으로 스프레드 임계도 올린다 — 이유는 바로
-//    아래 상한 테스트 주석 참고.
+//    아래 상한 테스트 주석 참고. 25 는 2026-09-27 부터 테라코타지만 알파 공식은 그대로라
+//    이 스프레드 계약은 색 분리와 무관하게 유효하다.
 test("cellTint — 같은 한 주의 알파가 뚜렷하게 벌어진다", () => {
   const week = [25, 51, 56, 60, 61, 69].map((s) => alphaOf(cellTint(s)));
   assert.ok(Math.max(...week) - Math.min(...week) >= 0.28, week.join(","));
@@ -51,7 +73,7 @@ test("cellTint — 같은 한 주의 알파가 뚜렷하게 벌어진다", () =>
 //    (금색만 튐)이었고 "살짝 챙길 날"이 화면에서 사라졌다.
 //    대비: #5A3E8C on 보라 0.45 = 5.38 (AA 4.5 통과). 09-24 에 상한을 낮춘 이유였던
 //    "진한 면 위에서 숫자 대비가 깎인다"는 이 계산으로 해소된다 — 되돌리려면 다시 계산할 것.
-test("cellTint — 보라 상한 0.45 · 금색 상한 0.65", () => {
+test("cellTint — 테라코타·보라 상한 0.45 · 금색 상한 0.65", () => {
   for (let s = 0; s <= 100; s++) {
     const css = cellTint(s);
     const a = alphaOf(css);
@@ -60,8 +82,9 @@ test("cellTint — 보라 상한 0.45 · 금색 상한 0.65", () => {
   }
 });
 
-test("cellTint — 제일 나쁜 날은 보라 상한에 닿는다(계조를 다 쓴다)", () => {
+test("cellTint — 제일 나쁜 날은 테라코타 상한에 닿는다(계조를 다 쓴다)", () => {
   assert.equal(alphaOf(cellTint(0)), 0.45);
+  assert.match(cellTint(0), /^rgba\(201, 112, 92, /);
 });
 
 test("scorePercentile — 모집단 앵커를 그대로 되짚는다", () => {

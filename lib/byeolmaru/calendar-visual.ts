@@ -56,6 +56,14 @@ export function scoreDisplay(score: number): number {
 
 const GOLD = "#E8C26A";
 const LILAC_DEEP = "#9F8AD0";
+/** 🔴 팔레트 밖 색이다 — @theme 에 빨강 계열이 없다(CalendarGrid 가 주말 열을
+ *  lilac-deep 으로 구분하는 것도 같은 이유). 2026-09-27 에 "살짝 챙길 날"을 색상으로
+ *  가르려고 들였다. 후보 중 이 값을 고른 이유는 **금색 칸과 제일 잘 갈려서**다 —
+ *  옆 칸과의 상호 대비 실측: 테라코타 1.33 > 보라 1.24 > 살구·로즈 1.19. 살구/로즈는
+ *  금색과 색상이 인접해 "잘 맞는 날"이 주변에 묻혔다(실물 4안 비교).
+ *  채도가 낮은 것도 의도다 — 순빨강은 ①한국 달력에서 공휴일로 읽히고 ②별콩이 화법
+ *  ③(불안 자극 금지)과 부딪힌다. 라벨은 "살짝 챙길 날"이지 "나쁜 날"이 아니다. */
+const TERRACOTTA = "#C9705C";
 
 /** 🔴 hex 는 6자리 형식만 받는다(#RRGGBB) — 이 파일의 상수 셋이 유일한 호출자다. */
 function rgba(hex: string, alpha: number): string {
@@ -83,7 +91,22 @@ export function cellTint(score: number): string {
   // 🔴 바닥 0.11 은 good 임계 직전(p = GOOD_PERCENTILE)에서 정확히 나온다 — 0.45 − 0.34.
   //    바닥은 판(PANEL_BG #ffffff) 위에서 칸이 사라지지 않는 하한이라 **옮기지 않는다**.
   const t = Math.max(0, Math.min(1, p / GOOD_PERCENTILE));
-  return rgba(LILAC_DEEP, 0.45 - t * 0.34);
+  // 🔴 농도 공식은 caution·normal 이 **공유한다** — 색상만 갈린다. 그래서 45 경계에서 알파가
+  //    안 튀고(계약 테스트가 지킨다) normal 안의 백분위 계조도 그대로 살아 있다. 머리말의
+  //    "등급 3단을 배경에 쓰지 않는다"는 3단**만으로** 칠해 normal 64%가 한 색이 된 실패고,
+  //    여기선 그 계조를 안 버리므로 해당하지 않는다.
+  return rgba(dayGrade(clamp100(score)).tone === "caution" ? TERRACOTTA : LILAC_DEEP, 0.45 - t * 0.34);
+}
+
+/** 칸 위 점수 숫자 색 — 면 색과 **같은 자리에서** 갈린다(dayGrade 3단).
+ *  🔴 이 매핑을 컴포넌트에 두지 않는다 — 면과 글자가 다른 임계를 쓰면 경계 한 칸에서
+ *     금색 면에 보라 글자 같은 조합이 조용히 난다. 대비 실측(칸 알파 0.37~0.45 구간):
+ *     caution #6B2D22 = 6.19~6.80 · normal #5A3E8C = 5.37 · good #412402 = 8.47~10.09. */
+export function cellTextColor(score: number): string {
+  const { tone } = dayGrade(clamp100(score));
+  if (tone === "good") return "#412402";
+  if (tone === "caution") return "#6B2D22";
+  return "#5A3E8C";
 }
 
 // 🔴 monthSummaryLabel(좋은 날 날짜를 세던 버튼 문구)은 2026-09-24 에 제거됐다 — 버튼은
