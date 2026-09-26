@@ -171,9 +171,11 @@ export default function CalendarGrid({
                 //    명도로 1위가 된다. 예전 ring+scale 조합은 caution 톤에서 링을 잃거나
                 //    grid 틈으로 삐져나왔다.
                 background: c.isToday ? "#5A3E8C" : cellTint(c.score),
-                // 🔴 채움 칸은 흐리게 — "이번 달"이라는 판의 말을 흐리지 않기 위해서다.
-                //    누르면 그 날짜 상세로 간다(룰 계산이라 내용이 있다).
-                ...(fill ? { opacity: 0.45 } : {}),
+                // 🔴 채움 칸에 CSS opacity 를 쓰지 않는다 — opacity 는 면과 글자를 함께 곱해서, tint 최솟값이
+                //    0.12 인 이 판에서는 **어떤 값을 줘도** 알파 바닥 0.11 이 깨진다(0.45 → 유효 0.054, 판과
+                //    대비 1.05 = 칸이 사라진다. 이 저장소가 두 번 되돌린 실패다). 게다가 주 신호인 점수 숫자
+                //    대비가 1.84:1 로 떨어진다. "다른 달"은 **날짜 숫자 색으로만** 말한다 — 일반 달력 관행이고,
+                //    상단 월 표시와 날짜 순서(30→31→1)가 이미 경계를 말해준다.
                 ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
               }}
             >
@@ -186,7 +188,14 @@ export default function CalendarGrid({
               {/* 🔴 10px/.6 에서 올렸다(2026-09-26) — 점수가 압도해서 달력인데 "몇 일"을
                   찾기 어려웠다(30칸이 다 찬 뒤 드러난 결함). 점수가 주 신호라는 위계는
                   유지한다: bold 로 만들거나 점수와 같은 크기로 올리지 않는다. */}
-              <span className="text-[11px] leading-[13px]" style={{ color: c.isToday ? "rgba(255,255,255,.72)" : "rgba(122,107,160,.78)" }}>
+              <span
+                className="text-[11px] leading-[13px]"
+                style={{
+                  // 🔴 "다른 달"은 이 날짜 숫자 색으로만 말한다(위 배경 opacity 주석) — 면 배경은
+                  //    다른 칸과 똑같이 cellTint(c.score) 그대로다.
+                  color: c.isToday ? "rgba(255,255,255,.72)" : fill ? "rgba(122,107,160,.5)" : "rgba(122,107,160,.78)",
+                }}
+              >
                 {Number(c.date.slice(8, 10))}
               </span>
               {/* 🔴 "점" 단위를 뺐다(2026-09-26) — 30칸에 30번 반복되면 잡음이고, 두 자리

@@ -24,6 +24,7 @@ interface CalendarResponse {
   today: string;
   todayGanji: string;
   cells: DayCell[];
+  fillCells: DayCell[];
   weeks: WeekBucket[];
   entitled: boolean;
   trialUsed: boolean;
@@ -68,7 +69,12 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       // 허브 격자에서 넘어온 ?date= 가 있으면 그 날로 연다(스펙 §7 "요약은 허브, 전문은 밖").
       // 🔴 응답에 없는 날짜(무료 유저가 손으로 미래 날짜를 친 경우)면 무시하고 오늘로 — 서버가
       //    안 내려준 날을 선택 상태로 두면 cell 폴백이 타서 엉뚱한 날 상세가 열린다.
-      const wanted = initialDate && data.cells.some((c) => c.date === initialDate) ? initialDate : data.today;
+      // 🔴 채움 칸(fillCells)도 조회 대상이다 — 허브 격자의 채움 칸(예: 9월 격자의 8/30·10/1)은
+      //    이 cells 에는 없어, 안 더하면 "응답에 없는 날짜"로 오판해 조용히 오늘로 폴백한다(달마다
+      //    0~12칸이 눌러도 반응 없는 버튼처럼 보이던 원인). `?? []` 는 배포 스큐 방어 — 구 API 는
+      //    fillCells 필드가 없다.
+      const allCellsForWanted = [...data.cells, ...(data.fillCells ?? [])];
+      const wanted = initialDate && allCellsForWanted.some((c) => c.date === initialDate) ? initialDate : data.today;
       setSelected((prev) => prev ?? wanted);
 
       setReport(null); setReportLoading(false);
@@ -171,7 +177,12 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   // 폴백은 cells[0](= 이번 달 1일)이 아니라 **오늘**이다 — 달력이 이번 달로 바뀌며 1일이 되면
   // 첫 진입에서 엉뚱한 날짜의 상세가 열린다.
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
-  const cell = data.cells.find((c) => c.date === selected) ?? todayCell;
+  // 🔴 합집합은 **선택 셀 찾기 전용**이다 — 집계(weeks·good·"이번 달 흐름")엔 절대 쓰지 마라.
+  //    cells 와 fillCells 를 필드로 가른 이유가 바로 그거다(섞으면 "이번 달 잘 맞는 날 N일"이
+  //    다른 달을 센다). 채움 칸도 누르면 그 날짜가 열려야 하므로 조회 대상에는 들어간다.
+  //    `?? []` 는 배포 스큐 방어(구 API 는 fillCells 필드가 없다).
+  const allCells = [...data.cells, ...(data.fillCells ?? [])];
+  const cell = allCells.find((c) => c.date === selected) ?? todayCell;
   const good = data.weeks.reduce((s, w) => s + w.good, 0);
   const dayWord = dayWordFor(cell.date, data.today);
   const policy = reportDatePolicy(cell.date, data.today);
