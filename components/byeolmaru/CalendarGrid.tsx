@@ -48,18 +48,13 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 interface Props {
   cells: GridCell[];
-  /** 아직 안 온 날(P5-2 무료선). 판정 없이 날짜·간지만 온다 — 서버가 내용을 안 실어 보낸다. */
-  lockedCells: LockedCell[];
+  /** 판정 없이 날짜만 있는 칸. 🔴 남은 호출부는 **게스트 셸 하나**다(ByeolmaruHub 의
+   *  EmptyMonthShell). 로그인 유저의 달력엔 잠긴 칸이 없다 — 달력이 전면 무료다. */
+  lockedCells?: LockedCell[];
   /** KST 오늘. 계측 offset 의 기준이자 "안 온 날" 문구의 기준. */
   todayDate: string;
   selectedDate: string;
   onSelect: (date: string) => void;
-  /** 잠긴 칸 하단 안내("그날이 오면 열려") 노출 여부. 기본 true — 로그인 유저의 실제 달력에선
-   *  잠긴 날 = 아직 안 온 미래 날짜라 이 문구가 맞다. 반면 비로그인·생일 미입력(EmptyMonthShell)의
-   *  "안 칠해진 이번 달"은 지난 날짜까지 이번 달 전부가 잠기므로 — "안 온 날"이 아니라 "로그인/생일이
-   *  없어서 못 보는 날"이다. 그 호출부는 false 로 꺼서 바로 아래 "네 생일만 있으면…" 문구와의
-   *  모순을 없앤다(P5-3 리뷰). */
-  lockedHint?: boolean;
   /** 자체 판(배경·보더·그림자·패딩)을 그릴지. 기본 true.
    *  🔴 false 는 **호출부가 이미 판을 갖고 있을 때**만 쓴다 — 허브는 칩·스트립·격자를 크림 카드
    *     하나로 묶었는데(스펙 §2), 그 안에 이 판을 또 그리면 같은 역할의 상자가 3중으로 겹쳐
@@ -72,11 +67,10 @@ interface Props {
 
 export default function CalendarGrid({
   cells,
-  lockedCells,
+  lockedCells = [],
   todayDate,
   selectedDate,
   onSelect,
-  lockedHint = true,
   panel = true,
   subjectKind = "me",
 }: Props) {
@@ -180,9 +174,10 @@ export default function CalendarGrid({
       {/* 🔴 마크 범례는 2026-09-24 에 제거됐다 — 어휘를 "상대 없이 성립하는 말"로 갈면서
           (설렘·척척·삐걱·채움) 뜻 설명이 필요 없어졌다. 옛 범례는 셀 칩과 같은 모양·같은
           글자라 반복일 뿐이었고, 격자가 접힘 기본이라 스트립만 보는 사람에겐 닿지도 않았다. */}
-      {lockedHint && lockedCells.length > 0 && (
-        <p className="mt-2 text-[10px] leading-relaxed text-text-light">점선 칸은 아직 안 온 날이야 — 그날이 오면 열려.</p>
-      )}
+      {/* 🔴 "점선 칸은 아직 안 온 날이야 — 그날이 오면 열려" 안내는 2026-09-26 에 제거됐다.
+          달력이 전면 무료가 되면서 로그인 유저에겐 잠긴 칸이 아예 없고, 남은 유일한 호출부
+          (EmptyMonthShell)의 잠김은 "안 온 날"이 아니라 "생일이 없어서 못 보는 날"이라
+          그 문구가 틀린 말이었다(바로 아래 "네 생일만 있으면…" 이 정확한 설명이다). */}
     </div>
   );
 }

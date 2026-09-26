@@ -1,7 +1,7 @@
 // 별마루 이번 달(1일~말일) 캘린더 조립 — 순수. dailyLuck(tyme4ts 결정론) × 내 사주 → 날짜별 셀 + 주차 버킷.
 // 오늘 판정은 인자로 받은 KST 날짜로만 한다(서버 TZ 에 좌우되지 않게 — 라우트가 계산해 넘긴다).
-// P5-2 무료선(지나간 날+오늘 = 무료 · 앞당겨 보기 = 구독)의 단일 원천이 이 파일이다 —
-// monthRange·splitByFreeLine·buildCalendarPayload 가 그 경계를 소유한다.
+// 🔴 달력은 **전면 무료**다(2026-09-26). 자격에 따라 갈리는 건 리포트 글뿐이고, 칸의 판정
+//    (점수·등급·마크·축)은 룰 계산이라 누구에게나 나간다.
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import type { ElementRelation } from "@/lib/saju/pairing";
@@ -87,34 +87,15 @@ export function monthRange(todayKst: string): { start: string; end: string } {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
-/** 아직 안 온 날에 실어 보내는 것 — 날짜와 **간지뿐**이다.
- *  🔴 간지를 싣는 건 무료선 완화가 아니다: 간지는 만세력이라 누구나 계산할 수 있고(비밀이 아니다),
- *     화면은 그걸로 일지 캐릭터만 그린다(스펙 §3). 돈 받는 건 **판정**(점수·등급·하루 이름·마크·축)
- *     이고 그건 여전히 한 글자도 안 나간다. */
+/** 판정 없이 날짜만 있는 칸. 🔴 남은 용도는 **게스트 셸 하나**다 —
+ *  비로그인·생일 미입력이 보는 "안 칠해진 이번 달"(ByeolmaruHub 의 EmptyMonthShell).
+ *  거기서의 "잠김"은 "안 온 날"이 아니라 "생일이 없어서 못 보는 날"이다.
+ *  🔴 무료선(비자격자에게 미래를 안 싣던 splitByFreeLine)은 2026-09-26 에 폐지됐다 —
+ *     달력 칸은 룰 계산이라 변동비가 0인데 잠겨 있었고, 그 잠금은 누를 수도 없었고
+ *     구독을 말하지도 않았다. 되살리기 전에 스펙 2026-09-26 §2 의 기각안을 읽을 것. */
 export interface LockedCell {
   date: string;
   ganji: string;
-}
-
-/**
- * 무료선(P5-2 스펙 §6): **무료 = 지나간 날 + 오늘 · 구독 = 앞당겨 보기.**
- * 🔴 안 온 날은 "가려서 보여주는" 게 아니라 **판정 결과를 아예 안 실어 보낸다**.
- *    클라에서 가리면 devtools 로 다 보이고, 그건 무료선이 아니라 눈속임이다.
- * 나(DayCell)·우리(PairDayCell) 양쪽에 쓰므로 date·ganji 만 요구하는 제네릭이다.
- */
-export function splitByFreeLine<T extends { date: string; ganji: string }>(
-  cells: T[],
-  todayKst: string,
-  entitled: boolean
-): { open: T[]; lockedCells: LockedCell[] } {
-  if (entitled) return { open: cells, lockedCells: [] };
-  const open: T[] = [];
-  const lockedCells: LockedCell[] = [];
-  for (const c of cells) {
-    if (c.date <= todayKst) open.push(c);
-    else lockedCells.push({ date: c.date, ganji: c.ganji });
-  }
-  return { open, lockedCells };
 }
 
 // ⚠️ 여기서 "주차"는 이번 달 1일부터 7일씩 끊은 윈도우다 — 화면 그리드(CalendarGrid, 일~토 요일 정렬 +
@@ -147,23 +128,23 @@ export function weekBuckets(cells: DayCell[]): WeekBucket[] {
 }
 
 /**
- * 나(self) 캘린더 라우트가 응답에 그대로 실어 보내는 조각 — build → 무료선 적용 → 주차 집계를
- * 하나로 묶는다. 🔴 라우트가 이 함수 없이 `buildCalendar` 결과(안 온 날 포함)를 따로 들고 있지
- * 않게 하는 게 핵심이다 — 무료선 우회(비자격자에게 미래 셀을 그대로 응답)를 함수 경계로 막고,
- * free-line.test.ts 가 라우트와 동일한 이 함수를 직접 호출해 계약을 고정한다.
+ * 나(self) 캘린더 라우트가 응답에 그대로 실어 보내는 조각 — build → 이번 달/채움 분리 →
+ * 주차 집계를 하나로 묶는다.
  *
- * pair(우리) 경로는 셀 타입이 다르고(`PairDayCell`) weeks 도 안 쓴다 — `splitByFreeLine` 은
- * 이미 date·ganji 만 요구하는 제네릭이라 self·pair 가 같은 무료선 규칙을 공유한다는 사실은 그 함수
- * 하나로 드러난다. pair 쪽은 라우트에서 `buildPairCalendar` 직후 `splitByFreeLine` 을 바로
- * 호출하는 단일 호출부라, 이 함수처럼 따로 묶으면 단일 사용처 추상화가 된다 — 만들지 않는다.
+ * 🔴 `cells`(이번 달)와 `fillCells`(앞뒤 채움)를 **필드로 가른다.** 섞어 보내면 weekBuckets 가
+ *    조용히 다른 달 날짜를 세서 "이번 달 잘 맞는 날 N일"이 거짓이 된다. 소비처가 매번 월
+ *    접두사를 비교해 거르는 규약은 한 곳만 빠뜨려도 틀리므로 경계를 필드로 굳힌다.
+ *
+ * @param gridLuck 격자가 그리는 범위의 일진 — 이번 달 + (나중에) 앞뒤 채움을 모두 덮는다.
  */
 export function buildCalendarPayload(
   saju: SajuResult,
-  dailyLuck: DailyLuck[],
-  todayKst: string,
-  entitled: boolean
-): { cells: DayCell[]; lockedCells: LockedCell[]; weeks: WeekBucket[] } {
-  const all = buildCalendar(saju, dailyLuck, todayKst);
-  const { open, lockedCells } = splitByFreeLine(all, todayKst, entitled);
-  return { cells: open, lockedCells, weeks: weekBuckets(open) };
+  gridLuck: DailyLuck[],
+  todayKst: string
+): { cells: DayCell[]; fillCells: DayCell[]; weeks: WeekBucket[] } {
+  const { start, end } = monthRange(todayKst);
+  const all = buildCalendar(saju, gridLuck, todayKst);
+  const cells = all.filter((c) => c.date >= start && c.date <= end);
+  const fillCells = all.filter((c) => c.date < start || c.date > end);
+  return { cells, fillCells, weeks: weekBuckets(cells) };
 }

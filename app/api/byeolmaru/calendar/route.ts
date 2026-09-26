@@ -1,11 +1,11 @@
-// 별마루 캘린더 — 이번 달(1일~말일) 판정 + 무료선(지나간 날+오늘, self·pair 공통). 룰 100%(LLM 0) → API 원가 0.
+// 별마루 캘린더 — 이번 달(1일~말일) 판정. 전면 무료(2026-09-26, self·pair 공통) — 룰 100%(LLM 0) → API 원가 0.
 // 서버 권위: 클라가 보낸 사주·날짜는 받지 않는다. 프로필에서 계산한다.
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
 import { calcSaju, calcTemporalLuck, calcDailyLuckRange, baseDateForKst } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
-import { buildCalendar, buildCalendarPayload, monthRange, splitByFreeLine } from "@/lib/byeolmaru/calendar";
+import { buildCalendar, buildCalendarPayload, monthRange } from "@/lib/byeolmaru/calendar";
 import { buildPairCalendar, pairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { stripRange } from "@/lib/byeolmaru/strip";
 import { kstDate } from "@/lib/admin-time";
@@ -75,7 +75,8 @@ export async function GET(req: NextRequest) {
 
     // 우리 경로 — ?subject=<profileId> (없거나 "me" 는 아래 self 경로 그대로).
     // 소유 검증은 비구독에게도 한다 — .eq("user_id", userId) 라 내가 등록한 상대만 조회되므로
-    // 완전 블러 없이도 데이터 누출이 없다. 자격은 분량으로 가른다(비구독=이번 달 지나간 날+오늘, 구독=이번 달 전체).
+    // 완전 블러 없이도 데이터 누출이 없다. 달력 칸은 전면 무료 — 자격은 리포트 글(daily-report·
+    // pair-narrative)과 PaywallCut 만 가른다.
     const subject = new URL(req.url).searchParams.get("subject");
     if (subject && subject !== "me") {
       const { data: pRow, error: pErr } = await getServiceSupabase()
@@ -115,16 +116,9 @@ export async function GET(req: NextRequest) {
         status = (watchRow?.status as RelationshipStatus | null) ?? null;
       }
 
-      // P5-2 §8 — 무료선을 나 탭과 **같은 규칙**으로: 지나간 날 + 오늘은 열리고 안 온 날은 날짜·간지만.
-      // buildPairCalendar 는 룰 100% 라 칸이 1 → 13 으로 늘어도 원가는 0이다.
-      const { open, lockedCells } = splitByFreeLine(pairCells, todayKst, ent.entitled);
-      // 스트립도 **같은 무료선**을 탄다(splitByFreeLine 단일 원천) — 비자격은 미래 3칸이 간지만,
-      // 구독자는 7칸 전부 열린다.
-      const pairStrip = splitByFreeLine(
-        buildPairCalendar(saju, partnerSaju, stripLuck, todayKst),
-        todayKst,
-        ent.entitled
-      );
+      // 🔴 무료선 폐지(2026-09-26) — 나 탭과 같은 이유로 우리 탭도 전면 무료다. buildPairCalendar 는
+      // 룰 100% 라 칸이 1 → 13 으로 늘어도 원가는 0이다.
+      const pairStripCells = buildPairCalendar(saju, partnerSaju, stripLuck, todayKst);
 
       return NextResponse.json({
         subject,
@@ -134,9 +128,8 @@ export async function GET(req: NextRequest) {
         monthStart,
         monthEnd,
         partnerName: pRow.display_name,
-        cells: open,
-        lockedCells,
-        strip: { cells: pairStrip.open, lockedCells: pairStrip.lockedCells },
+        cells: pairCells,
+        strip: { cells: pairStripCells, lockedCells: [] },
         backdrop,
         // 🔴 무료 문구를 서버가 만들어 내리지 않는다 — 무료도 여러 날을 고를 수 있게 됐으므로
         //    문구는 **선택한 셀 기준**이어야 한다. 클라가 status 와 셀을 받아 getPairTaste(순수)를
@@ -147,14 +140,12 @@ export async function GET(req: NextRequest) {
 
     const ent = await getEntitlement(userId);
 
-    // P5-2 무료선 — 비자격자에겐 안 온 날의 판정을 **직렬화하지 않는다**(날짜·간지만 lockedCells 로).
-    // buildCalendarPayload 가 build+무료선+주차집계를 묶어, 여기엔 필터를 우회할 원시 셀이
-    // 남지 않는다(회귀 시 free-line.test.ts 가 이 함수를 직접 호출해 잡는다).
-    const { cells, lockedCells, weeks } = buildCalendarPayload(saju, monthLuck, todayKst, ent.entitled);
+    // 🔴 무료선은 2026-09-26 에 폐지됐다 — 달력 칸은 룰 계산(변동비 0)이라 자격과 무관하게 전부
+    //    실어 보낸다. 자격이 가르는 건 리포트 글(daily-report 라우트)뿐이다.
+    const { cells, fillCells, weeks } = buildCalendarPayload(saju, monthLuck, todayKst);
 
-    // 스트립도 **같은 무료선**을 탄다(splitByFreeLine 단일 원천) — 비자격은 미래 3칸이 간지만,
-    // 구독자는 7칸 전부 열린다.
-    const stripSplit = splitByFreeLine(buildCalendar(saju, stripLuck, todayKst), todayKst, ent.entitled);
+    // 스트립도 전면 무료다 — 안 온 날 개념이 없어져 lockedCells 는 항상 빈 배열이다.
+    const stripCells = buildCalendar(saju, stripLuck, todayKst);
 
     // P5-2 — 방문이 곧 출석이다(버튼 폐지). recordCheckin 은 복합 PK upsert 라 멱등이고, 기록 후
     // 최신 상태를 그대로 돌려준다. DB 에러(개별 행 { error })는 recordCheckin/getAttendanceState
@@ -175,9 +166,9 @@ export async function GET(req: NextRequest) {
       monthStart,
       monthEnd,
       cells,
-      lockedCells,
+      fillCells,
       weeks,
-      strip: { cells: stripSplit.open, lockedCells: stripSplit.lockedCells },
+      strip: { cells: stripCells, lockedCells: [] },
       entitled: ent.entitled,
       trialUsed: ent.trialUsed,
       subscriptionExpiresAt: ent.subscriptionExpiresAt,

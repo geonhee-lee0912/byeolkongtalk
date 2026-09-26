@@ -21,7 +21,7 @@ interface CalendarResponse {
   today: string;
   todayGanji: string;
   cells: DayCell[];
-  lockedCells: LockedCell[];
+  fillCells: DayCell[];
   weeks: WeekBucket[];
   strip: { cells: DayCell[]; lockedCells: LockedCell[] };
   entitled: boolean;
@@ -72,10 +72,10 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
              이 화면엔 이미 더 큰 CTA(아래 {cta})가 있다. */}
       <HubBanner cta={false} entitled={false} trialUsed={false} />
       <section className="space-y-3">
-        {/* lockedHint=false — 이 빈 달력은 "안 온 날"이 아니라 "생일이 없어 못 보는 날"이라
-            CalendarGrid 기본 안내("그날이 오면 열려")를 끈다. 바로 아래 "네 생일만 있으면…" 문구가
-            정확한 설명이다(P5-3 리뷰 — 두 문구가 모순되던 것을 정리). */}
-        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d, ganji: "" }))} todayDate={today} selectedDate={today} onSelect={() => {}} lockedHint={false} />
+        {/* 이 빈 달력은 cells=[] + lockedCells=이번 달 전체로 "안 칠해진 달"을 그린다. CalendarGrid 의
+            잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
+            "네 생일만 있으면…" 문구만 남아 정확한 설명이 된다. */}
+        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d, ganji: "" }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
         <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
         {cta}
       </section>
@@ -246,7 +246,6 @@ export default function ByeolmaruHub() {
             <MonthGridSection>
               <CalendarGrid
                 cells={gridCells}
-                lockedCells={data.lockedCells}
                 todayDate={data.today}
                 selectedDate={data.today}
                 onSelect={openDay}

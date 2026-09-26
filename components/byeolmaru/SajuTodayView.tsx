@@ -189,11 +189,11 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4">
       <BackHeader />
-      {/* 무료는 오늘까지만 집계돼 있으므로 "이번 달"이라고 하면 틀린 말이 된다 — 범위를 밝힌다.
+      {/* 🔴 달력이 전면 무료라(2026-09-26) good 은 항상 이번 달 전체 집계다 — "오늘까지" 분기가 없다.
           🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
       {good > 0 ? (
         <p className="text-center text-[13px] text-text-light">
-          {data.entitled ? "이번 달" : "오늘까지"}, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
+          이번 달, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
         </p>
       ) : null}
       {/* 한 장(§5-1) — 무료 구간(일진 히어로·taste·축·그날 카드)은 DayDetailCard 가 그리고,
@@ -265,11 +265,11 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
         </button>
       ) : null}
       <section className="rounded-2xl bg-cream-warm p-4">
-        <h2 className="mb-2 font-display text-base text-eye-purple">{data.entitled ? "이번 달 흐름" : "오늘까지의 흐름"}</h2>
+        <h2 className="mb-2 font-display text-base text-eye-purple">이번 달 흐름</h2>
         <ul className="space-y-1 text-sm text-text-light">
           {data.weeks.map((w) => (
-            // 무료선(비자격)은 cells 가 "이번 달 1일~오늘"이라 길이가 7k+1 인 날(매달 1·8·15·22·29일)엔
-            // 마지막 버킷이 하루짜리가 된다 — 그때만 시작일=종료일이라 날짜를 한 번만 찍는다.
+            // cells 가 이번 달 전체(28~31일)라 마지막 버킷은 1~7일짜리다 — 29일인 달이면
+            // 마지막이 하루뿐이라 시작일=종료일이 된다. 그때만 날짜를 한 번 찍는다.
             <li key={w.index}>{w.startDate === w.endDate ? fmtMD(w.startDate) : `${fmtMD(w.startDate)}~${fmtMD(w.endDate)}`} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
           ))}
         </ul>
