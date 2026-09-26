@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillGuideTokens, SECTION_GUIDE, dailyDateContextLine, buildFortuneSystem } from "./prompt.ts";
+import { fillGuideTokens, SECTION_GUIDE, buildFortuneSystem } from "./prompt.ts";
 import { calcSaju, calcTemporalLuck, baseDateForKst } from "@/lib/saju/calc";
 
 test("fillGuideTokens: 같은 토큰이 여러 번 나와도 전부 치환된다", () => {
@@ -38,34 +38,16 @@ test("fillGuideTokens: 실제 SECTION_GUIDE 전 타입에 잔여 토큰이 없�
   }
 });
 
-test("dailyDateContextLine: 오늘이면 줄을 넣지 않는다", () => {
-  assert.equal(dailyDateContextLine("2026-09-19", "2026-09-19"), null);
-});
+// 🔴 dailyDateContextLine(시제 지시 줄) 단위 테스트 3건은 2026-09-26 에 삭제됐다 — 함수 자체가
+//    죽었다(사유는 lib/fortune/prompt.ts 의 헤더 주석 참조: FUTURE_REPORT_DAYS=0 으로 미래 분기도
+//    도달 불가가 됐다).
 
-test("dailyDateContextLine: 지난 날이면 과거 시제를 지시한다", () => {
-  const line = dailyDateContextLine("2026-09-12", "2026-09-19")!;
-  assert.match(line, /2026-09-12/);
-  assert.match(line, /지난 날/);
-  assert.match(line, /과거로 말해/);
-  assert.equal(line.includes("앞으로"), false);
-});
-
-test("dailyDateContextLine: 앞으로의 날이면 미래 시제를 지시한다", () => {
-  const line = dailyDateContextLine("2026-09-21", "2026-09-19")!;
-  assert.match(line, /2026-09-21/);
-  assert.match(line, /앞으로/);
-  assert.match(line, /앞을 보고 말해/);
-  assert.equal(line.includes("지난 날"), false);
-});
-
-test("buildFortuneSystem(daily): reportDate 를 주면 지시 줄과 '오늘 날짜'가 같은 날을 가리킨다", () => {
+test("buildFortuneSystem(daily): reportDate 를 주면 템플릿의 '오늘 날짜'가 그 날을 가리킨다", () => {
   const { dynamicPart } = buildFortuneSystem("daily", {
     reportDate: "2026-09-12",
     todayKst: "2026-09-19",
   });
-  // 지시 줄이 형식 블록 앞에 들어갔다
-  assert.match(dynamicPart, /대상 날짜는 2026-09-12/);
-  // 🔴 그리고 템플릿의 '오늘 날짜'도 같은 날이어야 한다 — 서버의 실제 오늘이 박히면 지시와 모순된다.
+  // 🔴 템플릿의 '오늘 날짜'는 서버의 실제 오늘이 아니라 reportDate 를 가리켜야 한다.
   assert.match(dynamicPart, /그날 날짜: 2026년 9월 12일/);
   assert.equal(/날짜: 2026년 9월 19일/.test(dynamicPart), false);
 });
@@ -126,13 +108,13 @@ test("fillGuideTokens: dayWord 기본값은 '오늘', 넘기면 '그날'", () =>
   assert.equal(fillGuideTokens(g, { ...v, dayWord: "그날" }), "그날 들어온 두 글자 / 그날 종합운");
 });
 
-test("buildFortuneSystem(daily): 대상 날짜가 오늘이 아니면 사주판 일진 블록·형식 블록·지시 줄 전부 '그날'로 말한다", () => {
+test("buildFortuneSystem(daily): 대상 날짜가 오늘이 아니면 사주판 일진 블록·형식 블록 전부 '그날'로 말한다", () => {
   // 🔴 라우트는 항상 saju 를 넘긴다 — saju 없이 부르면 sajuBlock 분기가 통째로 빠져
   // "제목은 오늘, 지시는 그날"이던 실제 결함(§11-1-1)을 이 테스트가 놓친다.
   const saju = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
   saju.temporal = calcTemporalLuck(baseDateForKst("2026-09-12"), 1996);
   const { dynamicPart } = buildFortuneSystem("daily", { saju, reportDate: "2026-09-12", todayKst: "2026-09-19" });
-  assert.equal((dynamicPart.match(/오늘/g) ?? []).length, 0, dynamicPart); // 데이터 블록·형식 블록·지시 줄 전부
+  assert.equal((dynamicPart.match(/오늘/g) ?? []).length, 0, dynamicPart); // 데이터 블록·형식 블록 전부
   assert.match(dynamicPart, /그날 들어온 두 글자/);
 
   // 무회귀 — 오늘 모드(reportDate === todayKst)에서는 사주판 일진 블록도 그대로 "오늘"이다.

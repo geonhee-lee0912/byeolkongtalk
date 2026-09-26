@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { DayCell, WeekBucket, LockedCell } from "@/lib/byeolmaru/calendar";
+import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
 import TodayLead from "./TodayLead";
-import DayStrip, { type StripCell } from "./DayStrip";
-import MonthGridSection from "./MonthGridSection";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
 import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
@@ -23,7 +21,6 @@ interface CalendarResponse {
   cells: DayCell[];
   fillCells: DayCell[];
   weeks: WeekBucket[];
-  strip: { cells: DayCell[]; lockedCells: LockedCell[] };
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
@@ -159,19 +156,13 @@ export default function ByeolmaruHub() {
   const gridCells: GridCell[] = data.cells.map((c) => ({
     date: c.date, score: c.score, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
   }));
-  const stripCells: StripCell[] = (data.strip?.cells ?? []).map((c) => ({
-    date: c.date, score: c.score, tone: c.grade.tone, title: DAY_NAME[c.tenGod], label: c.grade.label, marks: c.marks, isToday: c.isToday,
-  }));
-  // 🔴 `?.` 는 불가능한 시나리오 방어가 아니다 — 배포 롤아웃 창에서 **새 번들이 구 API 를 만날 수**
-  //    있고(스큐), 그때 data.strip 이 없으면 프로퍼티 접근이 먼저 터져 허브 전체가 에러 바운더리로
-  //    간다. 비면 DayStrip 이 스스로 null 을 돌려주므로 화면은 스트립만 빠진 채 멀쩡히 선다.
-  const stripLocked = data.strip?.lockedCells ?? [];
-  const todayCell = stripCells.find((c) => c.isToday) ?? null;
+  // 🔴 오늘 칸은 격자에서 찾는다(예전엔 스트립 셀 집합에서 찾았다). 두 집합이 갈릴 일이
+  //    없어졌으므로 원천은 하나다.
+  const todayCell = data.cells.find((c) => c.isToday) ?? null;
 
-  // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 스트립 잠긴 칸과 CTA 가 같이 쓴다.
+  // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 배너 CTA 가 쓴다.
   const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
 
-  // 날짜 탭의 목적지 — 격자와 스트립이 **같은 함수**를 쓴다(둘이 갈리면 같은 날이 두 곳으로 간다).
   // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
   function openDay(date: string) {
     router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
@@ -191,7 +182,7 @@ export default function ByeolmaruHub() {
         onSubscribe={nextStep}
       />
 
-      {/* 🔴 달력 판 — 칩·출석·스트립·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
+      {/* 🔴 달력 판 — 칩·출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
           예전엔 넷이 각자 다른 표면(배경 없음 / 흰 칸 / 크림 버튼 / 연보라 박스)으로 `space-y-4`
           위에 흩어져 있어 무엇이 무엇에 속하는지가 안 보였다 — 사용자 지적. 크림 카드 하나로 묶고
           층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·무료 목록)은 달력에 속하지 않는다.
@@ -214,45 +205,28 @@ export default function ByeolmaruHub() {
         </div>
 
         {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /
-            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 스트립 칸이 35px,
-            격자 칸이 41px 로 돌아간다. */}
+            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 격자 칸이 41px 로 돌아간다. */}
         <section className="rounded-2xl p-3" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
-          {/* 🔴 위쪽 border-t 가 없다 — 인연 칩이 있던 시절엔 칩과 이 층을 가르는 선이었다.
-              칩이 빠진 지금 그대로 두면 판 안쪽 맨 위에 선 하나가 떠 있게 된다. 판 안 구분선은
-              아래 "이번 달" 층 하나만 남긴다. */}
+          {/* 🔴 판 안 구분선이 없다 — 그 선은 스트립과 격자를 가르던 것이고 둘 중 하나가
+              사라졌다. 판 안에 남은 층은 리드 줄 + 격자 둘뿐이다. */}
           <div className="space-y-2">
             <TodayLead
-              todayName={todayCell?.title ?? null}
+              todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
               todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
               attendance={attendance}
             />
-            <DayStrip
-              cells={stripCells}
-              lockedCells={stripLocked}
+            {/* 🔴 접이식(MonthGridSection)이 사라졌다 — 그 래퍼의 존재 이유는 "접힘 클릭률로
+                폐지 여부를 답 얻는다"였는데 별마루가 prod 에 안 나가 그 실험은 시작된 적이
+                없고, seen 플래그가 **토글했을 때만** 심어져서 한 번도 안 건드린 사람에겐
+                애초에 계속 펼쳐져 있었다. 즉 항상 펼침은 다수에게 현상 유지다. */}
+            <CalendarGrid
+              cells={gridCells}
+              lockedCells={[]}
               todayDate={data.today}
-              subjectKind="me"
+              selectedDate={data.today}
               onSelect={openDay}
-              onLockedSelect={nextStep}
+              panel={false}
             />
-            {/* 🔴 여기 있던 인라인 CTA("앞으로 3일도 미리 볼래? 구독하기")는 배너로 승격했다
-                (2026-09-24). 잠긴 칸을 눌렀을 때의 유도는 **사라지지 않았다** — 위
-                `onLockedSelect={nextStep}` 이 그대로 같은 곳으로 보낸다. 즉 맥락 유도는
-                칸 자체가 지고, 말로 하는 권유만 배너 한 곳으로 모았다. */}
-          </div>
-
-          <div className="mt-2 border-t border-lilac-mid/20">
-            {/* 🔴 panel={false} — 이 판이 이미 격자의 배경 역할을 한다. 켜두면 크림 카드 안에
-                연보라 박스가 또 생겨 3중 중첩이 된다(우리 페이지·게스트 그리드는 감싸는 판이 없어 true). */}
-            <MonthGridSection>
-              <CalendarGrid
-                cells={gridCells}
-                lockedCells={[]}
-                todayDate={data.today}
-                selectedDate={data.today}
-                onSelect={openDay}
-                panel={false}
-              />
-            </MonthGridSection>
           </div>
         </section>
       </div>

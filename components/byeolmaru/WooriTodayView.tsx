@@ -135,7 +135,7 @@ export default function WooriTodayView() {
         // 🔴 배포 롤아웃 창에선 **새 번들이 구 API 를 만날 수** 있다(스큐). 구 API 는 narrative 를
         //    **문자열**로 돌려주므로 그대로 넣으면 PairReportView 가 report.blocks 에서 터져
         //    화면 전체가 에러 바운더리로 간다. 형태를 확인해 아니면 null — 그러면 "숨 고르는 중"
-        //    문구로 떨어져 화면은 멀쩡히 선다(ByeolmaruHub 의 data.strip?. 와 같은 계열의 방어).
+        //    문구로 떨어져 화면은 멀쩡히 선다.
         if (!cancelled) {
           setPairNarrative(isPairReport(j.narrative) ? j.narrative : null);
           setPairDailyLimit(j.reason === "daily_limit");

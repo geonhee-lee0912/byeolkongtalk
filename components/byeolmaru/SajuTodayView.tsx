@@ -10,7 +10,7 @@ import type { DailyCard } from "@/lib/byeolmaru/daily-card";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
-import { dayWordFor, reportDatePolicy, FUTURE_REPORT_DAYS } from "@/lib/byeolmaru/report-date";
+import { dayWordFor, reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { SAJU_PAID_CHARS, SAJU_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
@@ -50,7 +50,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   const [reportLoading, setReportLoading] = useState(false);
   // 지난 날인데 그때 받은 리포트가 없는 경우 — 생성 실패와 구분해야 안내 문구가 맞는다.
   const [notGenerated, setNotGenerated] = useState(false);
-  // 오늘+3일을 넘는 미래 — 생성 실패가 아니라 "아직 멀다". 재시도 문구가 뜨면 안 된다.
+  // 오늘보다 앞선 미래(내일부터) — 생성 실패가 아니라 "아직 멀다". 재시도 문구가 뜨면 안 된다.
   const [outOfRange, setOutOfRange] = useState(false);
 
   async function refresh() {
@@ -81,7 +81,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
   useEffect(() => {
     if (!entitled || !selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setOutOfRange(false); return; }
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
-    //    클릭할 수 있는데, 오늘+3일을 넘으면 라우트가 400 date_out_of_range 를 준다(report·reason
+    //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다(report·reason
     //    둘 다 없음). 그걸 report:null 로 흡수하면 자격자 분기의 마지막 폴백("숨 고르는 중" = 재시도
     //    문구)으로 떨어져 — 그 날짜가 가까워지기 전엔 영원히 안 될 일을 재시도하라고 말하게 된다.
     if (reportDatePolicy(selected, todayKst) === "out_of_range") {
@@ -219,7 +219,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
             </p>
           ) : outOfRange ? (
             <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-              그날은 아직 멀어. 앞으로 {FUTURE_REPORT_DAYS}일까지만 미리 볼 수 있어.
+              그날 이야기는 그날 아침에 들려줄게.
             </p>
           ) : (
             <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">

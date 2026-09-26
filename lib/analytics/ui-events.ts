@@ -43,7 +43,8 @@ export const UI_EVENTS = [
   "result_cta_clicked",
   /** 별마루 — 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution",
    *  subjectKind:"me"|"pair"(나/우리 축 — offset≠0 비율 관문의 사후 필터링에 필요),
-   *  surface:"strip"|"grid"}
+   *  surface:"grid"}
+   *  🔴 surface 값은 2026-09-26 부터 "grid" 하나뿐이다 — 스트립 삭제로 다른 값을 낼 지면이 없다.
    *  🔴 surface 없이는 P6-3 이후 이 이벤트가 **두 지면에서 같은 모양으로** 나와 영영 못 가른다.
    *     스펙 §10 의 첫 관문("한 달 조망이 필요한가")은 격자를 펼친 수가 아니라 **격자에서 실제로
    *     날짜를 고른 수**로 답해야 하는데, 그 분해가 이 필드 하나에 달려 있다.
@@ -138,9 +139,15 @@ export const UI_EVENTS = [
   "byeolmaru_free_item_clicked",
   /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
   "home_relationship_clicked",
-  /** 별마루 — 스트립의 안 온 날(흐린 칸) 탭. meta:{offset, subjectKind} — "앞으로 3일"이 체험 전환을 만드는지(§10) */
+  /** 별마루 — 스트립의 안 온 날(흐린 칸) 탭. meta:{offset, subjectKind}
+   *  🪦 영구 0 (2026-09-26) — 스트립 삭제. 이 이벤트가 재려던 질문("앞으로 3일이 체험 전환을
+   *  만드는가")은 별마루가 prod 에 안 나가 표본 0 인 채로 끝났다. `byeolmaru_month_grid_toggled`
+   *  도 같은 날 같은 이유로 죽었다(접이식 래퍼 삭제). */
   "byeolmaru_strip_future_tapped",
-  /** 별마루 — 월간 격자 펼침/접힘. meta:{open} — §2-2 "한 달 조망이 필요한가" 가설의 관문(§10) */
+  /** 별마루 — 월간 격자 펼침/접힘. meta:{open}
+   *  🪦 영구 0 (2026-09-26) — 접이식 래퍼(MonthGridSection) 삭제(격자는 이제 항상 펼침).
+   *  이 이벤트가 재려던 질문("한 달 조망이 필요한가")도 `byeolmaru_strip_future_tapped` 와
+   *  같은 이유로 표본 0 인 채로 끝났다. */
   "byeolmaru_month_grid_toggled",
 ] as const;
 
