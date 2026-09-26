@@ -215,10 +215,17 @@ async function loadLayer1() {
   const since = daysAgoKstIso(BAND_DAYS - 1);
   const win7 = daysAgoKstIso(6); // 오늘 포함 7일
 
-  const [pnlRes, unitRes, guardRes] = await Promise.all([
+  // 🔴 리텐션 2칸(D7·2일+방문)만 30일 코호트 — 7일 코호트로는 "가입 후 7일 성숙" 조건을
+  //    만족하는 사람이 구조적으로 없어 분모가 0 이 된다(2026-09-27 실측: 7일 창 분모 0 /
+  //    30일 창 640명). 가입·리딩·UV(활동량 3칸)는 그대로 win7(7일).
+  const winRetention = daysAgoKstIso(29);
+
+  const [pnlRes, unitRes, guardRes, qualityRes, flowRes] = await Promise.all([
     supa.rpc("admin_layer1_pnl", { p_since: since, p_exclude }),
     supa.rpc("admin_layer1_unit", { p_since: win7, p_until: null, p_exclude }),
     supa.rpc("admin_layer1_guard", { p_since: win7, p_until: null, p_exclude }),
+    supa.rpc("admin_layer1_quality", { p_since: win7, p_until: null, p_exclude }),
+    supa.rpc("admin_layer1_flow", { p_since: win7, p_until: null, p_exclude, p_retention_since: winRetention }),
   ]);
 
   // 🔴 NUMERIC 은 PostgREST 를 지나며 **문자열**로 온다 — BIGINT 와 같은 함정이다.
@@ -252,6 +259,26 @@ async function loadLayer1() {
     )
   );
 
+  // BIGINT 는 PostgREST 를 지나며 문자열로 온다 — 위 pnl/unit 과 같은 이유로 Number() 필수.
+  const qRow = ((qualityRes.data ?? []) as Record<string, string>[])[0];
+  const fRow = ((flowRes.data ?? []) as Record<string, string>[])[0];
+  const quality = {
+    newPaymentWon: Number(qRow?.new_payment_won ?? 0),
+    repeatPaymentWon: Number(qRow?.repeat_payment_won ?? 0),
+    subscriptionWon: Number(qRow?.subscription_won ?? 0),
+    subscriptionStars: Number(qRow?.subscription_stars ?? 0),
+    subsNet: Number(qRow?.subs_started ?? 0) - Number(qRow?.subs_expired ?? 0),
+  };
+  const flow = {
+    signups: Number(fRow?.signups ?? 0),
+    readings: Number(fRow?.readings ?? 0),
+    uv: Number(fRow?.uv ?? 0),
+    d7Return: Number(fRow?.d7_return ?? 0),
+    d7Eligible: Number(fRow?.d7_eligible ?? 0),
+    visit2: Number(fRow?.visit2 ?? 0),
+    cohort: Number(fRow?.cohort ?? 0),
+  };
+
   return {
     sum7: {
       revenueWon: last7.reduce((s, d) => s + d.revenueWon, 0),
@@ -268,7 +295,15 @@ async function loadLayer1() {
     unit,
     signups: Number(unitRow?.signups ?? 0),
     guards,
-    failed: { pnl: Boolean(pnlRes.error), unit: Boolean(unitRes.error), guard: Boolean(guardRes.error) },
+    quality,
+    flow,
+    failed: {
+      pnl: Boolean(pnlRes.error),
+      unit: Boolean(unitRes.error),
+      guard: Boolean(guardRes.error),
+      quality: Boolean(qualityRes.error),
+      flow: Boolean(flowRes.error),
+    },
   };
 }
 
@@ -309,6 +344,57 @@ export default async function AdminDashboard() {
               </div>
             )}
           </>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          매출의 질 <span className="text-white/35">(최근 7일)</span>
+        </h2>
+        {L1.failed.quality ? (
+          <LoadFailed block="매출의 질(admin_layer1_quality)" />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Metric metricKey="new_payment_won" value={L1.quality.newPaymentWon} n={0} />
+            <Metric metricKey="repeat_payment_won" value={L1.quality.repeatPaymentWon} n={0} />
+            <Metric
+              metricKey="subscription_won"
+              value={L1.quality.subscriptionWon}
+              n={0}
+              sub={`전체 ${L1.quality.subscriptionStars.toLocaleString("ko-KR")}별 중 유료별만 환산`}
+            />
+            <Metric metricKey="subscriber_net" value={L1.quality.subsNet} n={0} />
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          흐름{" "}
+          <span className="text-white/35">
+            (가입·리딩·UV 는 최근 7일 · 리텐션 2종은 30일 코호트 · UV 는 페이지뷰 귀속)
+          </span>
+        </h2>
+        {L1.failed.flow ? (
+          <LoadFailed block="흐름(admin_layer1_flow)" />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <Metric metricKey="signups_count" value={L1.flow.signups} n={0} />
+            <Metric metricKey="readings_count" value={L1.flow.readings} n={0} />
+            <Metric metricKey="uv_pageview" value={L1.flow.uv} n={0} />
+            <Metric
+              metricKey="d7_return"
+              value={L1.flow.d7Eligible > 0 ? (L1.flow.d7Return / L1.flow.d7Eligible) * 100 : null}
+              n={L1.flow.d7Eligible}
+              sub={`30일 코호트 중 7일 성숙 ${L1.flow.d7Eligible.toLocaleString("ko-KR")}명`}
+            />
+            <Metric
+              metricKey="visit_2d_plus"
+              value={L1.flow.cohort > 0 ? (L1.flow.visit2 / L1.flow.cohort) * 100 : null}
+              n={L1.flow.cohort}
+              sub="30일 코호트"
+            />
+          </div>
         )}
       </section>
 

@@ -214,7 +214,8 @@ export const METRICS = {
     unit: "percent",
     source: "page_views",
     minSample: MIN_SAMPLE.RATE,
-    caveat: "2026-09-20 실측 12.1%(5일+ 는 0.7%). 30일 구독의 선행 조건이다.",
+    caveat:
+      "2026-09-20 실측 12.1%(5일+ 는 0.7%). 30일 구독의 선행 조건이다. 1층 흐름 줄에서는 30일 코호트로 재는 반면 같은 줄의 가입·리딩·UV 는 7일 창이다 — 나란히 있어도 분모 창이 다르다.",
   },
   d7_return: {
     key: "d7_return",
@@ -223,7 +224,8 @@ export const METRICS = {
     unit: "percent",
     source: "roadmap-kpi-snapshot.sql / d7_return_pct",
     minSample: MIN_SAMPLE.CURVE,
-    caveat: "성숙 전 코호트를 넣으면 분모가 부풀어 값이 낮게 나온다 — 성숙 창 표기가 필수다.",
+    caveat:
+      "성숙 전 코호트를 넣으면 분모가 부풀어 값이 낮게 나온다 — 성숙 창 표기가 필수다. 1층 흐름 줄(admin_layer1_flow)은 이 정의를 30일 코호트로 계산한다 — 7일 코호트로는 성숙 조건(7일 경과)을 만족하는 사람이 구조적으로 없어 분모가 0 이 된다(2026-09-27 실측). 같은 줄의 가입·리딩·UV 는 7일 창이라 나란히 있어도 분모 창이 다르다.",
   },
   repeat_revenue_share: {
     key: "repeat_revenue_share",
@@ -281,6 +283,50 @@ export const METRICS = {
     minSample: MIN_SAMPLE.NONE,
     caveat:
       "무료별(웰컴 보너스 등)로 산 구독의 매출 기여는 0 이다. 전체 별 기준과 유료별 기준을 같이 적을 것.",
+  },
+  new_payment_won: {
+    key: "new_payment_won",
+    label: "신규 결제",
+    definition: "창 안 완료 결제 중 **그 사람의 첫 결제**인 건의 금액 합.",
+    unit: "won",
+    source: "admin_layer1_quality",
+    minSample: MIN_SAMPLE.NONE,
+    caveat:
+      "탈퇴로 익명 보존된 결제(user_id NULL)는 첫 결제 여부를 식별할 수 없어 재결제 쪽으로 보수적으로 분류한다.",
+  },
+  repeat_payment_won: {
+    key: "repeat_payment_won",
+    label: "재결제",
+    definition: "창 안 완료 결제 중 그 사람의 첫 결제가 아닌 건의 금액 합.",
+    unit: "won",
+    source: "admin_layer1_quality",
+    minSample: MIN_SAMPLE.NONE,
+    caveat: "2026-09-20 전 기간 실측 비중 30.8% — 결제자 200명 중 재결제자 27명이 매출의 1/3을 만든다.",
+  },
+  subscriber_net: {
+    key: "subscriber_net",
+    label: "구독자 순증",
+    definition: "창 안 신규 구독 수 − 창 안 만료 수.",
+    unit: "count",
+    source: "admin_layer1_quality",
+    minSample: MIN_SAMPLE.NONE,
+    caveat: "5일+ 방문이 0.7%인 위에서 30일 구독이 성립하는지를 리텐션과 같은 줄에서 읽을 것.",
+  },
+  readings_count: {
+    key: "readings_count",
+    label: "리딩",
+    definition: "창 안에 생성된 readings 행 수(어드민 제외).",
+    unit: "count",
+    source: "admin_layer1_flow",
+    minSample: MIN_SAMPLE.NONE,
+  },
+  signups_count: {
+    key: "signups_count",
+    label: "신규 가입",
+    definition: "창 안에 생성된 users 행 수(어드민 제외).",
+    unit: "count",
+    source: "admin_layer1_flow",
+    minSample: MIN_SAMPLE.NONE,
   },
   free_share_funnel: {
     key: "free_share_funnel",
