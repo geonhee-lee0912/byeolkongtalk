@@ -69,9 +69,9 @@ function rgba(hex: string, alpha: number): string {
  *     질문은 "어느 날이 **눈여겨볼** 날인가"이고 그건 좋은 날과 챙길 날 양쪽이다.
  *  🔴 알파 바닥 0.11 은 판(PANEL_BG #ffffff) 위에서 칸이 사라지지 않는 하한이다. 순백+순백 /
  *     크림+순백 조합으로 두 번 되돌린 이력이 CalendarGrid.tsx 주석에 있다.
- *  🔴 상한을 1차(보라 0.55 / 금 0.95)보다 낮췄다 — 숫자가 주 신호가 됐으니 면은 "찾기"만 하면
- *     되고, 진한 면 위에서 숫자 대비가 깎이는 걸 막는다. 실측: #5A3E8C on 보라 0.30 = 6.29,
- *     #412402 on 금 0.65 = 10.09.
+ *  🔴 보라 상한 0.45(2026-09-26, 0.30 에서 올림) / 금색 0.45~0.65(불변). 0.30 에서는 실측
+ *     보라 칸 전체가 0.14~0.29 에 몰려 3점과 64점이 구분되지 않았다(30칸이 다 찬 뒤 드러남).
+ *     대비 실측: #5A3E8C on 보라 0.45 = 5.38, #412402 on 금 0.65 = 10.09.
  *  백분위로 다시 정규화한다 — 원점수 선형은 실데이터가 안 쓰는 범위라 대비가 안 났다. */
 export function cellTint(score: number): string {
   const p = scorePercentile(score);
@@ -80,9 +80,10 @@ export function cellTint(score: number): string {
     const t = GOOD_PERCENTILE >= 1 ? 1 : (p - GOOD_PERCENTILE) / (1 - GOOD_PERCENTILE);
     return rgba(GOLD, 0.45 + Math.max(0, Math.min(1, t)) * 0.2);
   }
-  // 🔴 바닥 0.11 은 good 임계 직전(p = GOOD_PERCENTILE)에서 정확히 나온다 — 0.30 − 0.19.
+  // 🔴 바닥 0.11 은 good 임계 직전(p = GOOD_PERCENTILE)에서 정확히 나온다 — 0.45 − 0.34.
+  //    바닥은 판(PANEL_BG #ffffff) 위에서 칸이 사라지지 않는 하한이라 **옮기지 않는다**.
   const t = Math.max(0, Math.min(1, p / GOOD_PERCENTILE));
-  return rgba(LILAC_DEEP, 0.3 - t * 0.19);
+  return rgba(LILAC_DEEP, 0.45 - t * 0.34);
 }
 
 // 🔴 monthSummaryLabel(좋은 날 날짜를 세던 버튼 문구)은 2026-09-24 에 제거됐다 — 버튼은

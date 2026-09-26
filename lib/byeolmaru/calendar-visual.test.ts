@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   isGoodScore,
-  cellTint,
+  cellTint,
   scorePercentile,
   scoreDisplay,
 } from "./calendar-visual.ts";
@@ -39,19 +39,29 @@ test("cellTint — good 임계 바로 위는 뚜렷하다(경계가 보인다)",
   assert.ok(alphaOf(cellTint(70)) >= 0.45);
 });
 
-// 🔴 2차 설계(2026-09-24)로 알파 범위가 0.55~0.12 → 0.30~0.11 로 좁아져 예전 임계(>=0.3)는
-//    더 이상 도달 불가능하다 — 실측 스프레드는 0.18(아래 표본). 숫자가 주 신호가 됐으니 면의
-//    변별력이 줄어드는 건 의도다: 완전히 사라지지만 않으면 된다.
-test("cellTint — 같은 한 주의 알파도 벌어진다(폭이 좁아졌지만 완전히 뭉개지진 않는다)", () => {
+// 🔴 3차(2026-09-26) 보라 상한 확장(0.30→0.45)으로 스프레드 임계도 올린다 — 이유는 바로
+//    아래 상한 테스트 주석 참고.
+test("cellTint — 같은 한 주의 알파가 뚜렷하게 벌어진다", () => {
   const week = [25, 51, 56, 60, 61, 69].map((s) => alphaOf(cellTint(s)));
-  assert.ok(Math.max(...week) - Math.min(...week) >= 0.15, week.join(","));
+  assert.ok(Math.max(...week) - Math.min(...week) >= 0.28, week.join(","));
 });
 
-test("cellTint — 알파 상한이 낮아졌다(숫자 대비 보호)", () => {
+// 🔴 보라 상한을 0.30 → 0.45 로 올렸다(2026-09-26). 실측에서 보라 칸 전체가 0.14~0.29 안에
+//    들어 3점과 64점이 구분되지 않았다 — 스펙은 "양방향 채도"라고 적었으나 실현은 단방향
+//    (금색만 튐)이었고 "살짝 챙길 날"이 화면에서 사라졌다.
+//    대비: #5A3E8C on 보라 0.45 = 5.38 (AA 4.5 통과). 09-24 에 상한을 낮춘 이유였던
+//    "진한 면 위에서 숫자 대비가 깎인다"는 이 계산으로 해소된다 — 되돌리려면 다시 계산할 것.
+test("cellTint — 보라 상한 0.45 · 금색 상한 0.65", () => {
   for (let s = 0; s <= 100; s++) {
-    const a = alphaOf(cellTint(s));
-    assert.ok(a <= 0.65, `score ${s} alpha ${a}`);
+    const css = cellTint(s);
+    const a = alphaOf(css);
+    const cap = css.startsWith("rgba(232") ? 0.65 : 0.45;
+    assert.ok(a <= cap, `score ${s} alpha ${a} cap ${cap}`);
   }
+});
+
+test("cellTint — 제일 나쁜 날은 보라 상한에 닿는다(계조를 다 쓴다)", () => {
+  assert.equal(alphaOf(cellTint(0)), 0.45);
 });
 
 test("scorePercentile — 모집단 앵커를 그대로 되짚는다", () => {
