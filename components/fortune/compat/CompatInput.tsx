@@ -7,7 +7,6 @@ import DualSajuPicker from "@/components/fortune/DualSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
-import FortuneReportHeader from "@/components/fortune/FortuneReportHeader";
 import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
@@ -130,12 +129,6 @@ export default function CompatInput({ type }: { type: CompatKind }) {
 
   return (
     <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
-      <FortuneReportHeader
-        title={cfg.label}
-        subtitle={cfg.tagline}
-        cost={cfg.cost}
-      />
-
       <DualSajuPicker
         onConfirm={openConfirm}
         confirmLabel="궁합 보기"
