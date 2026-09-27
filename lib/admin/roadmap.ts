@@ -259,8 +259,23 @@ export const HOLIDAYS_2026 = [
   "2026-10-09",
 ] as const;
 
-/** `?since=`/`?until=` 이 받는 유일한 형식. 다른 건 전부 기본 창으로 떨어뜨린다. */
+/** `?since=`/`?until=` 이 받는 유일한 형식. */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * 형식 + **달력 유효성**. 둘 다 봐야 아래 parseRoadmapWindow 의 주석이 참이 된다.
+ *
+ * 🔴 정규식만으로는 `2026-13-45` 도 `2026-02-31` 도 통과한다. 그렇다고 `Date.parse` 를 얹는
+ *    것만으로도 부족하다 — 실측(node v24): `2026-13-45` 는 NaN 이지만 **`2026-02-31` 은 통과해
+ *    3월 3일로 조용히 굴러간다**(오버플로우 롤오버). 그러면 운영자가 입력한 창과 화면이 읽은
+ *    창이 달라지는데, 그건 RPC 파싱 에러보다 나쁘다(에러는 보이고 롤오버는 안 보인다).
+ *    그래서 왕복 비교로 롤오버까지 잡는다.
+ */
+function isCalendarDate(s: string): boolean {
+  if (!DATE_RE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
 
 export interface RoadmapWindow {
   /** 반개구간 시작 (RPC `p_since`). */
@@ -276,9 +291,13 @@ export interface RoadmapWindow {
  *    `p_until IS NULL` 분기가 없고 `created_at < p_until` 을 무조건 쓴다. NULL 이 넘어가면
  *    `< NULL` → NULL 이라 **에러 없이 코호트가 통째로 빈다.** 화면은 "가입 0명"을 그리고
  *    운영자는 그걸 "이 창에 가입이 없었다"로 읽는다 — 판정 화면에서 가장 위험한 실패 모드라
- *    호출부에서 막는다. 그래서 이 함수의 반환 타입에 null 이 없고, 형식이 틀린 파라미터는
- *    거부하는 대신 기본 창으로 떨어진다(잘못된 문자열을 그대로 넘기면 RPC 가 파싱 에러를
- *    내는데, 그건 LoadFailed 로 보이긴 해도 운영자가 고칠 수 없는 실패다).
+ *    호출부에서 막는다. 그래서 이 함수의 반환 타입에 null 이 없고, 형식이나 달력상 불가능한
+ *    파라미터는 거부하는 대신 기본 창으로 떨어진다(잘못된 문자열을 그대로 넘기면 RPC 가 파싱
+ *    에러를 내는데, 그건 LoadFailed 로 보이긴 해도 운영자가 고칠 수 없는 실패다).
+ *
+ * ⚠️ **창 역전(since > until)은 막지 않는다** — 의도된 선택이다. 역전은 운영자가 직접 친 창이고,
+ *    조용히 기본 창으로 강등하면 화면은 멀쩡한 숫자를 보여주면서 그게 **입력한 창이 아니다.**
+ *    그대로 넘기면 코호트가 0명이 되고 화면의 앰버 경고가 창 방향을 짚어 준다 — 오타가 보인다.
  *
  * 🔴 KST 자정 경계는 `lib/admin-time.ts` 가 단일 원천이다 — 여기서 다시 계산하면 그게 드리프트다.
  */
@@ -286,8 +305,8 @@ export function parseRoadmapWindow(
   sp: Record<string, string | string[] | undefined>
 ): RoadmapWindow {
   const one = (v: string | string[] | undefined): string | undefined => {
-    const s = Array.isArray(v) ? v.find((x) => DATE_RE.test(x)) : v;
-    return s !== undefined && DATE_RE.test(s) ? s : undefined;
+    const s = Array.isArray(v) ? v.find(isCalendarDate) : v;
+    return s !== undefined && isCalendarDate(s) ? s : undefined;
   };
   const since = one(sp.since);
   const until = one(sp.until);

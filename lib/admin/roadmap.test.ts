@@ -124,14 +124,39 @@ test("창은 어떤 입력에서도 닫혀 있다 — p_until 이 빈 적이 없
     { since: "abc", until: "2026-13-99abc" },
     { until: ["", "2026-10-01"] },
     { since: "2026-09-01", until: "2026-09-21" },
+    // 🔴 역전 입력도 until 은 닫혀 있어야 한다(역전 자체를 막는지는 아래 테스트가 따로 단언).
+    { since: "2026-10-01", until: "2026-09-01" },
   ];
   for (const sp of cases) {
     const w = parseRoadmapWindow(sp);
     assert.ok(w.until.length > 0, `until 이 비었다: ${JSON.stringify(sp)}`);
     assert.ok(!Number.isNaN(Date.parse(w.until)), `until 이 파싱 불가: ${w.until}`);
     assert.ok(!Number.isNaN(Date.parse(w.since)), `since 가 파싱 불가: ${w.since}`);
-    assert.ok(Date.parse(w.since) < Date.parse(w.until), "창이 뒤집혔다");
   }
+});
+
+// 🔴 이전 판은 `since < until` 을 5개 케이스에 걸었는데 **역전을 만들 수 있는 입력이 하나도
+//    없어** 아무것도 안 잡았다. 지키는 척하는 단언을 실제 동작 단언으로 바꾼다.
+//    현재 동작 = **역전을 막지 않고 그대로 넘긴다.** 조용히 기본 창으로 강등하면 화면이
+//    "입력한 창이 아닌 숫자"를 멀쩡히 보여주기 때문이다. 역전은 코호트 0명 → 앰버 경고로 보인다.
+test("창 역전은 강등하지 않고 그대로 넘긴다 — 0명 경고가 드러내는 쪽이 낫다", () => {
+  const w = parseRoadmapWindow({ since: "2026-10-01", until: "2026-09-01" });
+  assert.equal(w.since, "2026-10-01T00:00:00+09:00");
+  assert.equal(w.until, "2026-09-01T00:00:00+09:00");
+  assert.ok(Date.parse(w.since) > Date.parse(w.until), "역전이 보존되지 않았다");
+});
+
+// 🔴 정규식은 형식만 본다 — 달력상 불가능한 날짜가 새면 창이 조용히 달라진다.
+//    특히 2026-02-31 은 `Date.parse` 를 **통과해** 3월 3일로 굴러가므로 왕복 비교가 필요했다.
+test("달력상 불가능한 날짜는 통과하지 못한다 — 롤오버까지 막는다", () => {
+  for (const bad of ["2026-13-45", "2026-02-31", "2026-04-31", "2026-00-10", "2026-09-00"]) {
+    const w = parseRoadmapWindow({ since: bad, until: bad });
+    assert.notEqual(w.since, `${bad}T00:00:00+09:00`, `${bad} 가 창으로 새어 들어갔다`);
+    assert.ok(w.until.endsWith("Z"), `${bad} 가 until 로 새어 들어갔다`);
+  }
+  // 롤오버가 실제로 막혔는지 직접 — 2026-02-31 이 3월 3일 창으로 둔갑하면 안 된다.
+  const rolled = parseRoadmapWindow({ since: "2026-02-31" });
+  assert.notEqual(rolled.since, "2026-03-03T00:00:00+09:00");
 });
 
 test("창은 YYYY-MM-DD 파라미터만 받아들인다 — 형식이 틀리면 기본 창으로 떨어진다", () => {

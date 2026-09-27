@@ -83,8 +83,11 @@ export default async function RoadmapPage({
         로드맵 §3 &ldquo;읽는 법&rdquo;: 결제는 즉시 성숙(결제 p90 49분),{" "}
         <b className="text-white/70">D7 은 7일 대기</b> — 현재 성숙 분모 {n(d7Eligible)}.
         <br />
-        판정 규칙 정본 = `plans/2026-09-19-흑자전환-로드맵-v2-별마루배포포함.md` §1·§3. 배포 후
-        지표를 바꾸지 않는다.
+        {/* 🔴 JSX 텍스트에 백틱·별표를 쓰지 않는다 — 마크다운이 아니라 날것으로 찍힌다.
+            강조는 태그로. (같은 결함이 이 리포에서 `4a17c2d` 로 이미 한 번 고쳐졌다.) */}
+        판정 규칙 정본 ={" "}
+        <b className="text-white/70">plans/2026-09-19-흑자전환-로드맵-v2-별마루배포포함.md</b> §1·§3.
+        배포 후 지표를 바꾸지 않는다.
       </div>
 
       {failed && <LoadFailed block="판정 KPI(admin_roadmap_kpi)" />}
@@ -100,7 +103,7 @@ export default async function RoadmapPage({
 
       {exclude.length === 0 && (
         <p className="text-[12px] text-amber-300/80">
-          ⚠️ 제외 목록이 비어 있다(`ADMIN_USER_IDS` 미설정) — 지인 6명이 분모·분자에 섞여 있어
+          ⚠️ 제외 목록이 비어 있다(<b>ADMIN_USER_IDS</b> 미설정) — 지인 6명이 분모·분자에 섞여 있어
           베이스라인과 직접 비교되지 않는다. 로컬에서 흔한 상태다.
         </p>
       )}
