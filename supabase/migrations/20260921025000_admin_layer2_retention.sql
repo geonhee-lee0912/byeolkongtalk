@@ -98,8 +98,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     LEFT JOIN pv p ON p.user_id = c.id
     GROUP BY c.wk, c.id
   ), agg AS (
-    -- 🔴 h. 로 전부 수식한다 — RETURNS TABLE 의 출력 파라미터(users·w1~w4)와 이름이 겹칠 때
-    --    수식 없는 참조는 해석이 갈릴 수 있다. 수식하면 컬럼으로만 해석된다.
+    -- h. 수식은 **지금은 막는 게 없다** — hit 의 컬럼은 wk·id·v1~v4 라 출력 파라미터
+    -- (cohort_week·users·w1~w4)와 겹치지 않는다. 컬럼 이름이 바뀌어 겹치는 날을 대비한
+    -- 습관으로만 남긴다(무해하다). 실제 겹침은 이미 적용된 admin_layer1_flow 가 갖고 있고
+    -- (FROM readings + 출력 readings) 문제없이 돈다 — 관계 참조는 파라미터로 해석되지 않는다.
     SELECT h.wk,
            COUNT(*)::BIGINT AS users,
            COUNT(*) FILTER (WHERE h.v1)::BIGINT AS v1,
