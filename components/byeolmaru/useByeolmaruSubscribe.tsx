@@ -62,7 +62,7 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
       loading={subBalanceLoading}
       accent="#E8C26A"
       title="별마루 구독"
-      subtitle="30일 동안 매일 개인화를 열어둬"
+      subtitle="30일 동안 매일 더 자세하게 오늘의 운세를 볼 수 있어"
       confirmLabel="구독하기"
       // 구독 시트 전용 — 전체 가치 3종 + 가격을 여기서 한 번 크게(스펙 §9). 카피는 BAIT(허브·
       // 상세뷰 미끼 문구)에서 그대로 끌어와 중복 저작을 피한다.
@@ -72,7 +72,9 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
       // (purchase_byeolmaru_subscription 은 1회성 20별 차감, 정기결제 아님).
       extra={
         <div className="border-t border-lilac-mid/20 pt-4 mb-5">
-          <ul className="space-y-1 mb-3">
+          {/* 🔴 `mb-6` — 가치 3줄과 가격 사이를 벌린다(2026-09-27, 사용자 요청). 예전 `mb-3`(12px)
+              에선 "20별 / 30일"이 세 번째 항목의 넷째 줄처럼 붙어 읽혔다. */}
+          <ul className="space-y-1 mb-6">
             {BAIT_SLOTS.map((slot) => (
               <li key={slot} className="flex items-start gap-1.5 text-[13px] leading-snug">
                 <span aria-hidden className="text-eye-purple shrink-0">✦</span>

@@ -113,7 +113,11 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
       </nav>
       {DAY_TABS.map((t) =>
         opened.current.has(t.key) ? (
-          <div key={t.key} hidden={t.key !== tab}>
+          // 🔴 `mt-4` 가 **탭 칩과 본문 사이 유일한 간격**이다(2026-09-27). 세 View 의 루트가
+          //    전부 `space-y-4` 라 자기 위쪽 여백이 없어, 여기가 없으면 첫 카드가 칩에 딱 붙는다
+          //    (사주에서 맨 위 "이번 달 잘 맞는 날" 줄을 걷어내며 실제로 그렇게 됐다).
+          //    한 곳이라 사주·타로·우리가 같은 값을 갖는다 — View 별로 흩어놓지 말 것.
+          <div key={t.key} hidden={t.key !== tab} className="mt-4">
             {t.key === "saju" && <SajuTodayView initialDate={initialDate} injected={injected} />}
             {t.key === "tarot" && <TarotTodayView initialDate={initialDate} injected={injected} />}
             {t.key === "woori" && <WooriTodayView initialDate={initialDate} injected={injected} />}

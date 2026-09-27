@@ -2,6 +2,7 @@
 // 나(A) × 상대(B) × 그날 일진 → 우리 셀(tone/score/tags) + "너희 결" 고정 배경.
 // 🔴 가중치는 이 파일 상수가 정본·전부 튜닝 대상(day-score.ts 와 같은 규율).
 import type { DailyLuck, SajuResult } from "@/lib/saju/calc";
+import type { FiveElement } from "@/lib/saju/elements";
 import { pairRelation, heavenlyCombo, earthlySixCombo, earthlySixClash } from "@/lib/saju/pairing";
 import { dayFactors, dayScore } from "./day-score.ts";
 import { toDaySelf } from "./calendar.ts";
@@ -29,6 +30,11 @@ export interface PairDayTags {
 export interface PairDayCell {
   date: string;
   ganji: string;
+  /** 2자 한자 "甲辰" — 상세 화면의 일진 히어로용(2026-09-27, 나 탭 DayCell 과 양식 통일).
+   *  한글 간지를 크게 띄우지 않는 이유는 DayCell.hanja 와 같다: 60갑자 중 일부가 욕설로 읽힌다. */
+  hanja: string;
+  /** 그날 천간 오행 — 히어로 캡션 글자색(ELEMENT_COLORS)에 쓴다. DayCell.element 와 같은 원천. */
+  element: FiveElement;
   score: number;
   tone: PairTone;
   tags: PairDayTags;
@@ -111,7 +117,7 @@ function pairDayScoreAndTags(a: SajuResult, b: SajuResult, d: DailyLuck) {
 export function buildPairCalendar(a: SajuResult, b: SajuResult, dailyLuck: DailyLuck[], todayKst: string): PairDayCell[] {
   return dailyLuck.map((d) => {
     const { score, tags } = pairDayScoreAndTags(a, b, d);
-    return { date: d.date, ganji: d.stem + d.branch, score, tone: pairDayTone(score), tags, isToday: d.date === todayKst };
+    return { date: d.date, ganji: d.stem + d.branch, hanja: d.hanja, element: d.element, score, tone: pairDayTone(score), tags, isToday: d.date === todayKst };
   });
 }
 

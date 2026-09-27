@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
-// 🔴 타입만 가져온다(`import type`) — 이 모듈 본체는 getServiceSupabase 를 끌고 들어오는 서버 래퍼다.
-//    값으로 import 하면 클라이언트 번들에 service_role 경로가 딸려 들어간다(DayDetailCard 와 같은 이유).
-import type { DailyCard } from "@/lib/byeolmaru/daily-card";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
@@ -38,10 +35,6 @@ type State =
   | { kind: "no_profile" }
   | { kind: "error" }
   | { kind: "ready"; data: CalendarResponse };
-
-function fmtMD(date: string): string {
-  return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
-}
 
 
 export default function SajuTodayView({
@@ -142,30 +135,6 @@ export default function SajuTodayView({
     //    뿐이라 자격이 바뀌면 다시 확인해야 참이 된다).
   }, [entitled, selected, todayKst]);
 
-  // 그날 뽑은 카드(§4) — 자격과 무관한 무료 정보다(리포트 effect 와 달리 entitled 를 안 본다).
-  // 🔴 **3상태**다: undefined = 아직 모름 / null = 없음(확정) / DailyCard = 있음.
-  //    null 하나로 합치면 왕복(100ms~1s) 동안 실제로 뽑은 사람에게 "안 뽑았어"가 깜빡이고,
-  //    그 사이 "뽑으러 가기" CTA 까지 눌린다. 모르는 동안은 카드 블록 자체를 안 그린다(아래 게이트).
-  const [dayCard, setDayCard] = useState<DailyCard | null | undefined>(undefined);
-  useEffect(() => {
-    if (!selected) { setDayCard(undefined); return; }
-    let cancelled = false;
-    setDayCard(undefined);
-    void (async () => {
-      try {
-        const res = await fetch(`/api/byeolmaru/daily-card?date=${selected}`, { cache: "no-store" });
-        // 미래 날짜엔 행이 없어 자연히 null 이 온다 — 라우트가 미래를 막지 않는 이유도 그것.
-        const j = res.ok ? await res.json() : null;
-        if (!cancelled) setDayCard(j?.card ?? null);
-      } catch {
-        // 🔴 실패해도 undefined(모름)로 남겨두지 않는다 — 그러면 카드 블록이 영영 안 뜬다.
-        //    "없음"으로 확정하는 게 맞다(카드 자리만 비는 blip, 화면 전체를 실패로 만들지 않는다).
-        if (!cancelled) setDayCard(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [selected]);
-
   // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
   //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
   const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
@@ -195,51 +164,18 @@ export default function SajuTodayView({
   // 첫 진입에서 엉뚱한 날짜의 상세가 열린다.
   const todayCell = data.cells.find((c) => c.isToday) ?? data.cells[data.cells.length - 1];
   const cell = data.cells.find((c) => c.date === selected) ?? todayCell;
-  const good = data.weeks.reduce((s, w) => s + w.good, 0);
   const dayWord = dayWordFor(cell.date, data.today);
   const policy = reportDatePolicy(cell.date, data.today);
   // 절단선 칩의 숫자는 실제로 그린 글자 수다 — DayDetailCard 가 쓰는 것과 같은 뱅크(같은 인자 → 같은 문장).
   const taste = getSajuTaste(cell.grade.tone, cell.axes, cell.relation, cell.date);
   const tasteText = [taste.overall, taste.love, taste.work, taste.money, taste.advice].filter(Boolean).join(" ");
-  // 카드가 없을 때 그 자리에 쓸 말 — 과거는 "그날은 안 뽑았어", 오늘은 뽑기 유도, 미래는 "그날 뽑는 거야".
-  // 🔴 맨 앞이 "아직 모름(undefined)" 게이트다 — hint·href 를 둘 다 null 로 떨어뜨리면 DayDetailCard 가
-  //    카드 블록 자체를 숨긴다. 블록이 없다가 생기는 레이아웃 점프는 받아들인다(이 화면은 리포트도
-  //    비동기라 위에서 아래로 채워지는 게 기본 리듬이다). 스켈레톤은 안 쓴다 — 한 줄짜리 요약이라
-  //    골격을 그릴 덩치가 아니다(스펙 §4 의 스켈레톤은 리포트 자리 몫).
-  const cardHint = dayCard === undefined
-    ? null
-    : dayCard
-      ? null
-      : cell.isToday
-        ? "아직 안 뽑았어."
-        : policy === "cache_only"
-          ? "그날은 카드를 안 뽑았어."
-          : "카드는 그날 뽑는 거야.";
-  // 링크는 카드를 뽑을 수 있는 날에만 — 지난 날 상세에서 오늘 뽑기 화면으로 보내면 날짜가 어긋난다.
-  // 위 cardHint 와 **같은 게이트·같은 사다리 모양**으로 쓴다 — 둘은 한 쌍이라(모름이면 둘 다 null =
-  // 블록 숨김) 한쪽만 한 줄로 접으면 그 짝이 눈에 안 보인다.
-  const cardHref = dayCard === undefined
-    ? null
-    : dayCard || cell.isToday
-      ? `/byeolmaru/day?date=${cell.date}&tab=tarot`
-      : null;
-
   return (
     <div className="space-y-4">
-      {/* 🔴 달력이 전면 무료라(2026-09-26) good 은 항상 이번 달 전체 집계다 — "오늘까지" 분기가 없다.
-          🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
-      {good > 0 ? (
-        <p className="text-center text-[13px] text-text-light">
-          이번 달, <span className="font-bold text-eye-purple">잘 맞는 날 {good}일</span> ✨
-        </p>
-      ) : null}
       {/* 한 장(§5-1) — 무료 구간(일진 히어로·taste·축·그날 카드)은 DayDetailCard 가 그리고,
           그 아래 children 으로 유료 리포트·절단선·미래 날짜 안내 문구 중 하나가 붙는다.
           🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 **비자격 분기에서만** 넘긴다
              (자격자에게 넘기면 그 계측의 분모가 구독자로 오염된다). */}
-      {/* card 는 `?? null` — DayDetailCard 의 계약은 `DailyCard | null` 이라 "아직 모름"은
-          여기서 "없음"으로 눌러 넘긴다(그 상태는 위 cardHint·cardHref 게이트가 이미 책임진다). */}
-      <DayDetailCard cell={cell} dayWord={dayWord} card={dayCard ?? null} cardHref={cardHref} cardHint={cardHint}>
+      <DayDetailCard cell={cell} dayWord={dayWord}>
         {policy === "out_of_range" ? (
           /* 🔴 날짜 판정이 자격 판정보다 **바깥**이다(2026-09-26). 안쪽에 두면 비자격자가
              미래 날짜에서 PaywallCut 을 보는데, 그 글은 결제해도 존재하지 않는다
@@ -338,21 +274,14 @@ export default function SajuTodayView({
             trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "saju", ok } });
           }}
           disabled={!isKakaoReady()}
-          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
+          // 🔴 `py-2.5 text-sm` 은 바로 위 구독 CTA(PaywallCut 의 금색 버튼)와 **같은 상자**다
+          //    (2026-09-27, 사용자 요청). 예전 `py-2 text-xs` 는 34px 로 41px 짜리 CTA 아래에
+          //    혼자 납작해 보였다. 둘 중 하나를 바꿀 땐 같이 볼 것.
+          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-sm font-medium text-lilac-deep disabled:opacity-40"
         >
           오늘 사주 공유하기
         </button>
       ) : null}
-      <section className="rounded-2xl bg-cream-warm p-4">
-        <h2 className="mb-2 font-display text-base text-eye-purple">이번 달 흐름</h2>
-        <ul className="space-y-1 text-sm text-text-light">
-          {data.weeks.map((w) => (
-            // cells 가 이번 달 전체(28~31일)라 마지막 버킷은 1~7일짜리다 — 29일인 달이면
-            // 마지막이 하루뿐이라 시작일=종료일이 된다. 그때만 날짜를 한 번 찍는다.
-            <li key={w.index}>{w.startDate === w.endDate ? fmtMD(w.startDate) : `${fmtMD(w.startDate)}~${fmtMD(w.endDate)}`} — 잘 맞는 날 {w.good}일 · 챙길 날 {w.caution}일</li>
-          ))}
-        </ul>
-      </section>
       {subscribeModal}
     </div>
   );

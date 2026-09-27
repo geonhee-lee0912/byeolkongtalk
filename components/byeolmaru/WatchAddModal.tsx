@@ -29,6 +29,10 @@ type LoadState = "loading" | "ready" | "error";
 
 // 관계칩(pick·register 공통) — ProfileEditModal:281-301 순서 그대로. 이모지는
 // SituationSelect CHIP(로컬 상수·export 안 됨)과 동일 값을 소규모 복제.
+// 🔴 값·컨트롤 모양 모두 FortuneSajuPicker 의 선례를 그대로 쓴다(거기도 5명/페이지).
+//    저장소에 목록 페이지네이션 문법이 이미 있으므로 새로 만들지 않는다.
+const LIST_PAGE_SIZE = 5;
+
 const STATUS_OPTIONS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
 const STATUS_EMOJI: Record<RelationshipStatus, string> = {
   crush: "💗",
@@ -55,6 +59,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   // 새 등록 성공 후 상태 — 폼을 "등록 완료" 카드로 바꿔, StarConfirmModal 취소/실패 후 재제출이
   // /api/profiles 를 다시 쳐서 같은 사람을 중복 생성하는 걸 막는다(리뷰 Important). 재시도는 watch-add 만.
   const [registered, setRegistered] = useState<{ id: string; name: string } | null>(null);
+  const [listPage, setListPage] = useState(0);
   // 관계칩 — pick·register 두 경로가 공유하는 단일 상태(둘 다 결국 submitWatch 통과). 기본 "연애 중".
   const [status, setStatus] = useState<RelationshipStatus>("dating");
 
@@ -291,18 +296,77 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                 아직 등록해둔 사람이 없어 — 새로 등록해볼까?
               </p>
             )}
-            {loadState === "ready" &&
-              suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => startAddFlow(s.id)}
-                  disabled={busy}
-                  className="w-full px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] font-bold text-left hover:bg-lilac-soft/40 active:scale-[0.98] transition disabled:opacity-50"
-                >
-                  {s.name}
-                </button>
-              ))}
+            {loadState === "ready" && suggestions.length > 0 && (() => {
+              const totalPages = Math.max(1, Math.ceil(suggestions.length / LIST_PAGE_SIZE));
+              // 🔴 렌더 중에 보정만 한다(setState 금지) — 목록이 줄어 현재 페이지가 범위를 벗어나도
+              //    빈 화면이 안 나오게. FortuneSajuPicker 의 safeListPage 와 같은 방식이다.
+              const page = Math.min(listPage, totalPages - 1);
+              const paged = suggestions.slice(page * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE + LIST_PAGE_SIZE);
+              return (
+                <>
+                  {/* 🔴 목록 타이틀(2026-09-27, 사용자 요청) — 위 "관계 상태" legend 와 **같은 양식**
+                      (13px bold eye-purple)이라 모달 안에서 두 묶음이 같은 리듬으로 읽힌다.
+                      인원수를 같이 쓴다 — 페이지네이션이 붙는 목록이라 전체가 몇인지가 보여야 한다. */}
+                  <p className="text-[13px] font-bold text-eye-purple mb-1">
+                    이미 아는 사람 <span className="font-normal text-text-light">{suggestions.length}명</span>
+                  </p>
+                  {paged.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => startAddFlow(s.id)}
+                      disabled={busy}
+                      className="w-full px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] font-bold text-left hover:bg-lilac-soft/40 active:scale-[0.98] transition disabled:opacity-50"
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                  {/* 🔴 한 페이지로 끝나면 컨트롤을 안 그린다 — 정확히 5명일 때 누를 데 없는 "1" 만
+                      남는 걸 막는다(요청은 "5명 이상이면"이지만 5명은 1페이지라 그릴 게 없다). */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setListPage((n) => Math.max(0, n - 1))}
+                        disabled={page === 0 || busy}
+                        aria-label="이전"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                      </button>
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setListPage(i)}
+                          aria-label={`${i + 1}페이지`}
+                          aria-current={i === page ? "page" : undefined}
+                          disabled={busy}
+                          className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                            i === page ? "bg-lilac-deep text-white" : "text-text-light/70 hover:bg-lilac-soft/50"
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setListPage((n) => Math.min(totalPages - 1, n + 1))}
+                        disabled={page === totalPages - 1 || busy}
+                        aria-label="다음"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         ) : registered ? (
           <div className="px-5 pb-5 flex flex-col gap-3">

@@ -269,7 +269,7 @@ export default function WooriTodayView({
         //    (else 가지). pairData/pairCell 이 없어 PairDayDetailCard 는 못 쓴다(그건 상대
         //    사주가 있어야 그리는 카드다) — 서술만 단독으로 보여준다.
         isPastDate && (pairNarrativeLoading || pairNarrative || pastNoRecord) ? (
-          <div className="rounded-2xl bg-cream-warm p-4">
+          <div className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
             {pairNarrativeLoading ? (
               <p className="text-center text-sm text-text-light">별콩이가 그날 이야기를 읽고 있어…</p>
             ) : pairNarrative ? (
@@ -281,7 +281,7 @@ export default function WooriTodayView({
             )}
           </div>
         ) : (
-          <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">
             {/* 🔴 상대가 0명인 것과 아직 못 물어본 것을 가른다 — 콜드 진입이라 목록을 받기 전에
                 "먼저 걸어두면…"을 띄우면 이미 상대가 있는 사람에게 거짓말이 한 프레임 스친다.
                 목록이 도착하고 0명이면 위 칩 자리의 금색 점선 버튼과 이 문구가 한 쌍이 된다. */}
@@ -289,11 +289,11 @@ export default function WooriTodayView({
           </p>
         )
       ) : pairError ? (
-        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
+        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
       ) : pairCellMissing ? (
         // 🔴 다른 날의 진짜 카드를 대신 그리지 않는다 — 예: 오늘 카드를 그리고 "오늘"이라 라벨하면
         //    요청한 날짜가 조용히 다른 날로 바뀐 게 화면에서 안 보인다(방금 고친 버그와 같은 모양).
-        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">
           그 날짜의 우리 오늘은 못 찾았어. 이번 달 안에서 다시 골라줄래?
         </p>
       ) : pairData && pairCell ? (
@@ -397,7 +397,7 @@ export default function WooriTodayView({
           </PairDayDetailCard>
         </>
       ) : pairLoading ? (
-        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">우리 오늘을 펼치는 중…</p>
+        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">우리 오늘을 펼치는 중…</p>
       ) : null}
 
       {subscribeModal}

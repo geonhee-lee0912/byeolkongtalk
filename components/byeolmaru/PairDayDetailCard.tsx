@@ -5,6 +5,7 @@ import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { PAIR_TONE_LABEL, pairMarks } from "@/lib/byeolmaru/pair-day";
 import type { PairTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import { MARK_CHIP } from "@/lib/byeolmaru/day-label";
 
 // 🔴 2026-09-24 한 장 구조로 바뀌었다(사용자 결정) — 오늘 사주(SajuTodayView+DayDetailCard)·
@@ -44,25 +45,37 @@ export default function PairDayDetailCard({
   return (
     // DayDetailCard 와 동일하게 aria-live — 그리드에서 다른 날짜/상대를 고르면 이 카드만
     // 갱신되고 포커스는 그리드 버튼에 남는다.
-    <section className="rounded-2xl bg-cream-warm p-4" aria-live="polite">
+    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4" aria-live="polite">
+      {/* 🔴 헤더·히어로·등급 세 층을 **사주 탭(DayDetailCard)과 같은 양식**으로 맞췄다
+          (2026-09-27, 사용자 요청). 예전엔 같은 정보가 탭마다 다른 모양이었다 —
+          간지가 사주는 44px 한자 히어로인데 여긴 헤더 오른쪽 끝 13px 한글이었고,
+          등급이 사주는 제목 밑 작은 보조 텍스트인데 여긴 24px 큰 제목이었다.
+          🔴 캐릭터는 44px 다(사주와 동일). 56px 이면 아래 한자 히어로와 크기를 다툰다. */}
       <header className="mb-3 flex items-center gap-3">
         {/* ⑦ 일지 캐릭터 — 그날 지지 동물(우리 상세도 동일). */}
         {(() => {
           const a = branchAnimal(cell.ganji);
           return a ? (
-            <Image src={a.assetSrc} alt={a.animal} width={56} height={56} className="h-14 w-14 shrink-0 object-contain" />
+            <Image src={a.assetSrc} alt={a.animal} width={44} height={44} className="h-11 w-11 shrink-0 object-contain" />
           ) : null;
         })()}
-        <div className="flex flex-1 items-baseline justify-between">
-          <h2 className="font-display text-lg text-eye-purple">
-            {/* 🔴 `{partnerName}와 나` 는 받침에서 틀린다("지민와") — 어순을 뒤집어 조사를 '나'에 붙인다. */}
-            나와 {partnerName} · {cell.isToday ? "오늘" : md}
-          </h2>
-          <span className="text-sm text-text-light">{cell.ganji}</span>
-        </div>
+        <h2 className="font-display text-base text-eye-purple">
+          {/* 🔴 `{partnerName}와 나` 는 받침에서 틀린다("지민와") — 어순을 뒤집어 조사를 '나'에 붙인다. */}
+          나와 {partnerName} · {cell.isToday ? "오늘" : md}
+        </h2>
       </header>
 
-      <p className="mb-3 font-display text-2xl text-eye-purple">{PAIR_TONE_LABEL[cell.tone]}</p>
+      {/* 일진 히어로 — 사주 탭과 같은 규격(44px 한자 + 11px 캡션). 🔴 font-display 를 일부러 안
+          쓴다: Cafe24Ssurround 에 천간·지지 22자가 하나도 없어(cmap 실측 0/22) 굵기만 얇아진다.
+          🔴 캡션 색은 **그날 천간의 오행 색**(ELEMENT_COLORS) — 사주 탭과 같은 원천이다. */}
+      <div className="mb-3 text-center">
+        <div className="text-[44px] font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
+        <div className="mt-3 text-[11px] font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
+          {cell.ganji} · {cell.isToday ? "오늘" : "그날"} 들어온 기운 · {cell.element}
+        </div>
+      </div>
+
+      <p className="text-center font-display text-2xl leading-snug text-eye-purple">{PAIR_TONE_LABEL[cell.tone]}</p>
 
       {(marks.length > 0 || leadChip) && (
         <ul className="mb-4 flex flex-wrap gap-2">
@@ -121,9 +134,12 @@ export default function PairDayDetailCard({
           </ul>
         )}
 
-        {/* 연월조화 0~4 — 숫자만 던지면 "0이 나쁜 건가"를 알 수 없다. 4칸 중 몇 칸인지로 보여준다. */}
+        {/* 연월조화 0~4 — 숫자만 던지면 "0이 나쁜 건가"를 알 수 없다. 4칸 중 몇 칸인지로 보여준다.
+            🔴 라벨이 "연월조화"에서 풀어쓴 말로 바뀌었다(2026-09-27, 사용자 요청) — 명리 용어라
+               읽는 사람이 무슨 값인지 몰랐다. 원재료는 그대로다(천간합 2 + 육합 2 = 0~4).
+               아래 한 줄 설명도 같이 둔다 — 라벨만으로는 "4면 좋은 건가"가 여전히 안 보인다. */}
         <div className="mt-2.5 flex items-center gap-2">
-          <span className="text-[11px] text-text-light">연월조화</span>
+          <span className="text-[11px] text-text-light">타고난 궁합</span>
           <ul className="flex gap-1" aria-hidden>
             {[0, 1, 2, 3].map((i) => (
               <li
@@ -137,6 +153,9 @@ export default function PairDayDetailCard({
             <span className="font-normal text-text-light">/4</span>
           </span>
         </div>
+        <p className="mt-1.5 text-[10.5px] leading-snug text-text-light">
+          두 사람 사주가 원래 얼마나 잘 맞물리는지야. 날짜와 상관없이 늘 같아.
+        </p>
       </div>
 
       {/* 🔴 taste 시점 프레이밍 — pair-taste.json 49문장이 "오늘은 …" 현재형이라, 날짜가

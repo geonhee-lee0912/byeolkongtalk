@@ -313,7 +313,7 @@ export default function DailyCardBlock({
   return (
     <>
       {state.kind === "none" && (
-        <section className="rounded-2xl bg-cream-warm p-4">
+        <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
           <h2 className="mb-2 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
             <>
@@ -377,11 +377,17 @@ export default function DailyCardBlock({
           }
 
           return (
-            <section className="rounded-2xl bg-cream-warm p-4">
+            <>
+            <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
               {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다. 상단 BackHeader 가 날짜를 지던 시절엔 dayWord("그날")로
                   충분했지만, 타이틀이 사라져 이제 여기가 유일한 날짜 표기다. */}
-              <h2 className="mb-3 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
+              {/* 🔴 "{dayLabel}의 카드" → "네가 뽑은 {dayLabel}의 카드"(2026-09-27, 사용자 요청).
+                  이 분기는 **이미 뽑은 뒤**라 "네가 뽑은"이 참이다 — 위 `state.kind === "none"`
+                  분기(아직 안 뽑음)는 그대로 둔다. 거기에 같은 문구를 쓰면 거짓이 된다.
+                  🔴 `네가` 다 — 저장소 표준이다(saju-taste 본문 "네가 정하기 나름인 날이지" 등).
+                     구어 "너가"로 바꾸지 말 것. */}
+              <h2 className="mb-3 font-display text-base text-eye-purple">네가 뽑은 {dayLabel}의 카드</h2>
 
               {/* 🔴 live region 은 **무료 구간만** 감싼다(section 전체가 아니다) — DayDetailCard 가
                   Task 6 에서 내린 것과 같은 판단이다. 아래 자격 삼항에는 유료 리포트(~1,800자)가
@@ -409,7 +415,17 @@ export default function DailyCardBlock({
                   <p className="mt-2 font-display text-[15px] text-eye-purple">
                     {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
                   </p>
-                  <p className="mt-1 text-xs text-text-light">{kwList.join(", ")}</p>
+                  {/* 🔴 쉼표 나열 한 줄 → 칩(2026-09-27, 사용자 요청). 키워드는 문장이 아니라
+                      **낱개 항목**이라 나열문으로 두면 아래 taste 본문과 결이 섞였다.
+                      칩 모양은 같은 화면 FreeList 해시태그 칩(`bg-lilac-soft/60` + `text-lilac-deep`)
+                      을 그대로 쓴다 — 별마루 안에서 새 칩 문법을 만들지 않는다. */}
+                  <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
+                    {kwList.map((k) => (
+                      <li key={k} className="rounded-full bg-lilac-soft/60 px-2.5 py-1 text-[11px] font-bold text-lilac-deep">
+                        {k}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 {/* 🔴 과거 날짜 프레이밍 — card-taste.json 본문 156/156 이 "오늘" 기준 현재형이라
@@ -492,11 +508,12 @@ export default function DailyCardBlock({
                   그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
                 </p>
               ) : locked ? (
-                <>
-                  {/* 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — locked(라우트 계약 ④ 확정)
+                /* 🔴 "이 카드, 타로로 더 깊게 →"(타로톡 인라인 낙수)는 2026-09-27 에 제거됐다
+                   (사용자 결정). 되살리려면 PaywallCut 과 형제가 되므로 <> </> 로 다시 감쌀 것.
+                   🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — locked(라우트 계약 ④ 확정)
                       일 때만 그린다(자격자·아직 미확정에게 그리면 그 계측의 분모가 오염된다).
-                      🔴 래퍼로 감싸지 말 것: 자체 mt-4 와 금색 절단선을 갖고 있고, min-h 실측이
-                         "page p-4 + card p-4" 중첩을 가정한다(래퍼가 끼면 그 실측이 깨진다). */}
+                   🔴 래퍼로 감싸지 말 것: 자체 mt-4 와 금색 절단선을 갖고 있고, min-h 실측이
+                      "page p-4 + card p-4" 중첩을 가정한다(래퍼가 끼면 그 실측이 깨진다). */
                   <PaywallCut
                     freeChars={taste.length}
                     paidChars={TAROT_PAID_CHARS}
@@ -507,11 +524,6 @@ export default function DailyCardBlock({
                     onSubscribe={onSubscribe}
                     slot="tarot_rich"
                   />
-                  {/* 인라인 낙수(design §5) — 구독자는 이미 LLM 해석을 받으므로 비구독 대상에만 노출 */}
-                  <Link href="/" className="mt-3 inline-block text-xs text-lilac-deep underline">
-                    이 카드, 타로로 더 깊게 →
-                  </Link>
-                </>
               ) : null}
               {narrativeFailed && (
                 <p className="mt-2 text-xs leading-relaxed text-text-light">
@@ -519,18 +531,25 @@ export default function DailyCardBlock({
                 </p>
               )}
 
-              {/* 🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다
-                  (OG 라우트도 카드 id 만 받아 날짜를 모른다). SajuTodayView 의 cell.isToday 와 같은 규율. */}
-              {date === todayKst && (
-                <button
-                  onClick={handleShare}
-                  disabled={!isKakaoReady()}
-                  className="mt-3 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-medium text-lilac-deep disabled:opacity-40"
-                >
-                  공유하기
-                </button>
-              )}
             </section>
+            {/* 🔴 공유 버튼은 카드 **밖**이다(2026-09-27) — 사주(SajuTodayView)와 자리·양식을
+                맞췄다. 예전엔 카드 안 `py-2 text-xs` 라 같은 기능이 두 탭에서 다른 크기·다른
+                층으로 보였다. 카드가 흰색이 되면서 안에 두면 흰 버튼이 흰 판에 묻히기도 한다.
+                🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다
+                   (OG 라우트도 카드 id 만 받아 날짜를 모른다). 사주의 cell.isToday 와 같은 규율. */}
+            {date === todayKst && (
+              <button
+                onClick={handleShare}
+                disabled={!isKakaoReady()}
+                // 🔴 `mt-*` 를 주지 않는다 — 이 버튼은 fragment 를 거쳐 TarotTodayView 의
+                //    `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 이미 온다.
+                //    `mt-4` 를 얹었더니 32px 이 돼 사주(16px)보다 멀어졌다(실측).
+                className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-sm font-medium text-lilac-deep disabled:opacity-40"
+              >
+                오늘 카드 공유하기
+              </button>
+            )}
+            </>
           );
         })()}
 

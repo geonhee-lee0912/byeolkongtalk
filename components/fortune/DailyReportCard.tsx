@@ -8,7 +8,7 @@ import {
 import { MarkdownLite } from "@/lib/markdown-lite";
 
 // 바깥 껍데기 — standalone 은 제 몸으로 서는 카드(/fortune/result·어드민)라 가운데 정렬 + 흰 카드를
-// 두르지만, embedded 는 이미 DayDetailCard 의 한 장(bg-cream-warm p-4) **안**이다. 거기서 흰 카드를
+// 두르지만, embedded 는 이미 DayDetailCard 의 한 장(2026-09-27 부터 bg-white p-4) **안**이다. 거기서 흰 카드를
 // 한 겹 더 두르면 카드 위에 카드가 앉고 px-5 가 이중으로 먹는다(§5-1 한 장).
 function Shell({ embedded, children }: { embedded: boolean; children: ReactNode }) {
   if (embedded) return <>{children}</>;

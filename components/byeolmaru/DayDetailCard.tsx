@@ -2,15 +2,12 @@
 
 import type { ReactNode } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import type { DayCell } from "@/lib/byeolmaru/calendar";
-// 🔴 타입만 가져온다(`import type`) — 이 모듈 본체는 getServiceSupabase 를 끌고 들어오는 서버 래퍼다.
-//    값으로 import 하면 클라이언트 번들에 service_role 경로가 딸려 들어간다.
-import type { DailyCard } from "@/lib/byeolmaru/daily-card";
-import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
 import { branchAnimal } from "@/lib/byeolmaru/branch-animal";
+import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import { DAY_NAME, MARK_CHIP } from "@/lib/byeolmaru/day-label";
+import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 
 const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "love", label: "연애" },
@@ -18,28 +15,59 @@ const AXIS_LABEL: { key: "love" | "money" | "work"; label: string }[] = [
   { key: "work", label: "일" },
 ];
 
+// 🔴 "그날 뽑은 카드" 블록은 2026-09-27 에 제거됐다(사용자 결정). 사주↔타로를 잇는 다리였지만
+//    바로 위에 타로 탭이 있어 같은 걸 두 번 보여주는 것으로 읽혔다. 그 블록이 끌고 있던
+//    card/cardHref/cardHint prop 과 호출부의 daily-card fetch 도 같이 걷어냈다 —
+//    되살리려면 그 fetch(3상태: undefined=모름 / null=없음 / DailyCard=있음)부터 복원해야 한다.
+// 종합운 별점(2026-09-27, 사용자 요청) — 백분위 0~100 을 별 5개로. 20점=한 개, 10점=반개.
+// 🔴 원천은 **scoreDisplay(cell.score)** 다 — 달력 칸에 찍히는 바로 그 숫자(오늘 66)와 같은 값을
+//    써야 "칸은 66인데 별은 2개"가 안 난다. 원시 score 를 그대로 20으로 나누면 그 사고가 난다.
+// 🔴 반개를 쓰는 이유: 실데이터 분포의 절반이 44~71 구간이라(day-score.ts 임계 주석) 정수 5단계로는
+//    한 달의 절반이 전부 별 3개로 뭉개진다. 10단계면 그 구간이 2.5~3.5 로 갈린다.
+// 🔴 SVG 하나에 clipPath 로 반쪽을 덮는다 — "★"/"☆" 유니코드 두 글자를 섞으면 OS 폰트마다
+//    두 글리프의 폭·두께가 달라 줄이 흔들린다(SectionMark.tsx 가 이모지를 버린 것과 같은 이유).
+const STAR_PATH = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z";
+const STAR_GOLD = "#E8C26A";
+
+function ScoreStars({ display }: { display: number }) {
+  // 10단계(반개 단위)로 반올림 → 0~5. 0.5 미만도 별 하나는 채운다 — 빈 별 다섯은 "판정 실패"로 읽힌다.
+  const filled = Math.max(0.5, Math.round(display / 10) / 2);
+  return (
+    <span className="inline-flex items-center gap-0.5 align-middle" aria-label={`종합운 5점 만점에 ${filled}점`}>
+      {[0, 1, 2, 3, 4].map((i) => {
+        // 이 별이 채워지는 비율 — 1(꽉) / 0.5(반) / 0(빈).
+        const ratio = Math.min(1, Math.max(0, filled - i));
+        return (
+          <svg key={i} width="13" height="13" viewBox="0 0 24 24" aria-hidden className="shrink-0">
+            <path d={STAR_PATH} fill={STAR_GOLD} opacity={0.22} />
+            {ratio > 0 ? (
+              <>
+                <clipPath id={`star-clip-${i}-${ratio}`}>
+                  <rect x="0" y="0" width={24 * ratio} height="24" />
+                </clipPath>
+                <path d={STAR_PATH} fill={STAR_GOLD} clipPath={`url(#star-clip-${i}-${ratio})`} />
+              </>
+            ) : null}
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function DayDetailCard({
   cell,
   dayWord,
-  card,
-  cardHref,
-  cardHint,
   children,
 }: {
   cell: DayCell;
   /** 그 날을 부르는 말(report-date.ts dayWordFor). 히어로 캡션이 쓴다. */
   dayWord: "오늘" | "그날";
-  /** 그날 뽑힌 카드. 없으면 아래 cardHint 가 그 자리를 설명한다. */
-  card: DailyCard | null;
-  /** 카드 블록을 누르면 갈 곳(오늘 타로 상세). null 이면 링크 없이 그린다. */
-  cardHref: string | null;
-  /** 카드가 없을 때 그 자리에 쓸 말 — "아직 안 뽑았어" / "카드는 그날 뽑는 거야". null 이면 블록 자체를 숨긴다. */
-  cardHint: string | null;
   /** 절단선 아래에 들어올 것 — 유료 리포트 또는 PaywallCut. */
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-cream-warm p-4">
+    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
       {/* 그리드에서 다른 날짜를 고르면 이 카드 내용만 바뀌고 포커스는 그대로 그리드 버튼에 남는다 —
           aria-live 없이는 스크린리더 사용자에게 "선택이 바뀌었다"는 신호가 전혀 안 갔다.
           🔴 live region 은 **무료 블록만** 감싼다(section 전체가 아니다). 아래 {children} 에는 유료
@@ -72,7 +100,14 @@ export default function DayDetailCard({
                되돌리지 말 것 — 되돌리면 히어로가 조용히 얇아진다. */}
         <div className="mb-3 text-center">
           <div className="text-[44px] font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
-          <div className="mt-1.5 text-[11px] font-bold text-text-light">
+          {/* 🔴 글자색이 **그날 천간의 오행 색**이다(2026-09-27, 사용자 요청) — 줄 끝의 "· 목"을
+              색으로도 한 번 더 말한다. 원천은 `lib/saju/elements.ts` 의 ELEMENT_COLORS 로,
+              SajuBoard·마이페이지가 쓰는 바로 그 맵이다(여기서 새 색을 만들지 말 것).
+              `.text` 를 쓴다 — 셋 중 유일하게 본문용으로 어둡게 잡힌 값이라 cream-warm 위
+              대비가 선다(`.bar`/`.bg` 는 면용이라 글자로 쓰면 흐려진다).
+              🔴 `mt-1.5`(6px) → `mt-3`(12px) — 44px 한자 바로 밑에 6px 로 붙어 한자의
+                 아랫단처럼 읽혔다(사용자 지적). */}
+          <div className="mt-3 text-[11px] font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
             {cell.ganji} · {dayWord} 들어온 기운 · {cell.element}
           </div>
         </div>
@@ -86,6 +121,7 @@ export default function DayDetailCard({
         <p className="text-center font-display text-2xl leading-snug text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
         <div className="mb-3 mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <span className="text-sm text-text-light">{cell.grade.label}</span>
+          <ScoreStars display={scoreDisplay(cell.score)} />
           {cell.marks.map((m) => (
             // 🔴 칩 자체가 색면인 솔리드 팔레트(MARK_CHIP) — 셀 배경과 무관하게 대비가 고정된다.
             <span
@@ -129,74 +165,18 @@ export default function DayDetailCard({
                   style={{ width: `${cell.axes[key]}%` }}
                 />
               </div>
+              {/* 🔴 숫자를 옆에 같이 쓴다(2026-09-27, 사용자 요청) — 막대 길이만으론 "연애가 일보다
+                  얼마나 높은지"가 안 읽혔다. 값은 막대 너비와 **같은 `cell.axes[key]`** 다.
+                  🔴 `tabular-nums` + 고정폭(w-8) — 안 주면 자릿수(7/45/100)에 따라 막대 끝이
+                     들쭉날쭉해져 세 줄이 안 맞는다. `aria-valuenow` 가 이미 값을 말하므로
+                     스크린리더 중복을 막으려 aria-hidden 으로 가린다. */}
+              <span aria-hidden className="w-8 shrink-0 text-right text-[12px] font-semibold tabular-nums text-eye-purple">
+                {cell.axes[key]}
+              </span>
             </li>
           ))}
         </ul>
 
-        {/* 그날 뽑은 카드(§4) — 한 장 안에서 사주와 타로가 만나는 자리. 요약만 싣는다(이미지·이름·
-            정역·키워드): 카드 **해석**은 /byeolmaru/tarot 몫이라 여기서 되풀이하면 두 화면이 같은 걸 판다. */}
-        {(() => {
-          // 🔴 카드 마스터 불일치 방어를 **블록 조건으로 끌어올린다.** 안쪽에서 null 을 반환하면
-          //    border-t + "그날 뽑은 카드" 헤딩만 남은 빈 껍데기가 된다 — 빈 껍데기를 남기는 건 방어가
-          //    아니다. (예전 주석의 "DailyCardBlock 과 같은 방어"는 사실이 아니었다: 저쪽은 블록 전체
-          //    IIFE 최상단에서 return null 이라 헤딩까지 함께 사라진다. 이제 여기가 그 동작과 같다.)
-          //    실도달은 isValidCardId 가 cardId 범위를 막아 거의 불가능하다.
-          const t = card ? getCard(card.cardId) : null;
-          // 그릴 카드도 없고 대신 할 말(cardHint)도 없으면 블록 자체를 숨긴다.
-          if (!t && !cardHint) return null;
-          const body = card && t ? (
-            <div className="flex items-center gap-3">
-              <div className="relative h-14 w-[34px] shrink-0 overflow-hidden rounded shadow-sm">
-                <Image
-                  src={getCardImagePath(card.cardId)}
-                  alt={t.name_kr}
-                  fill
-                  sizes="34px"
-                  className={`object-cover ${card.reversed ? "rotate-180" : ""}`}
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm text-eye-purple">
-                  {t.name_kr} <span className="text-xs text-text-light">· {card.reversed ? "역위" : "정위"}</span>
-                </p>
-                <p className="mt-0.5 text-xs text-text-light">{(card.reversed ? t.reversed : t.upright).join(", ")}</p>
-              </div>
-            </div>
-          ) : null;
-          return (
-            <div className="mt-4 border-t border-lilac-mid/20 pt-3">
-              {/* 🔴 굵기는 font-extrabold — 바로 아래 children 으로 들어오는 DailyReportCard(embedded)의
-                  섹션 헤딩이 같은 12.5px·같은 #4A4458 에 extrabold 다. bold 로 두면 한 장 안에서 같은
-                  위계의 헤딩이 굵기만 다르게 보인다(mb 도 1.5 로 맞췄다). */}
-              <div className="mb-1.5 text-[12.5px] font-extrabold text-[#4A4458]">{dayWord} 뽑은 카드</div>
-              {body ? (
-                // 링크면 눌리는 티를 낸다 — className 이 없으면 hover·키보드 포커스 표시가 전혀 없다.
-                cardHref ? (
-                  <Link
-                    href={cardHref}
-                    className="block rounded-lg transition hover:bg-lilac-soft/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-lilac-deep"
-                  >
-                    {body}
-                  </Link>
-                ) : (
-                  body
-                )
-              ) : (
-                <p className="text-sm text-text-light">
-                  {cardHint}
-                  {cardHref ? (
-                    <>
-                      {" "}
-                      <Link href={cardHref} className="text-lilac-deep underline">
-                        뽑으러 가기 →
-                      </Link>
-                    </>
-                  ) : null}
-                </p>
-              )}
-            </div>
-          );
-        })()}
       </div>
 
       {children}

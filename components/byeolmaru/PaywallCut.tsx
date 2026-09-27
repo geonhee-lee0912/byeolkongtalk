@@ -73,9 +73,12 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
         <span className="h-px flex-1" style={{ background: GOLD }} />
       </div>
 
-      {/* 🔴 min-h 는 절대 위치 상자가 블러 문단보다 높아 위아래로 삐져나오는 걸 막는 방어다.
-          플랜의 132px 은 실측으로 부족해 160px 로 올렸다(구현 시 브라우저 실측):
-          상자 = p-3 24 + 제목 18 + mb-1.5 6 + 칩 4줄 96 = 144px, 여기에 wrap 의 p-2 16 을 더해 160px.
+      {/* 🔴 min-h 는 절대 위치 상자가 아래 블러 골격보다 높아 위아래로 삐져나오는 걸 막는 바닥이다.
+          플랜의 132px 은 실측으로 부족해 160px 로 올렸고, 2026-09-27 에 제목-칩 간격을 넓히며
+          168px 이 됐다(구현 시 브라우저 실측):
+          상자 = p-3 24 + 제목 18 + mb-3 12 + 칩 4줄 96 = 150px, 여기에 wrap 의 p-2 16 을 더해 166px → 168.
+          🔴 **이 값은 아래 상자의 `mb-*` 와 한 쌍이다** — 간격을 건드리면 여기도 같이 올려야 한다.
+             안 올리면 절대 위치 상자가 블러 문단보다 높아져 위아래로 삐져나온다.
           칩은 사주 11개·타로 7개 **둘 다 4줄**로 떨어지고(한글 폰트 폴백 4종에서 동일), 호스트 폭
           263~343px 구간 전체에서 144px 로 일정하다. 5줄(169px→184px)은 호스트 폭이 ~247px 아래로
           내려가야 나오는데 375px 뷰포트의 실제 중첩(page p-4 + card p-4 = 311px)은 거기 닿지 않는다.
@@ -83,12 +86,32 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           (saju-taste 중앙값 72자)에서만 실제로 작동한다 — 즉 이 값이 틀리면 조용히만 깨진다. */}
       <div className="relative mt-3">
         {/* 🔴 aria-hidden 필수 — 같은 taste 가 위에 선명하게 떠 있다. 없으면 스크린리더가 두 번 읽는다. */}
-        <p aria-hidden="true" className="min-h-[160px] select-none text-[13px] leading-[1.85] text-[#4F4A5E] blur-[3px] opacity-50">
-          {blurText}
-        </p>
+        {/* 🔴 블러 뒤가 **줄글 한 덩어리가 아니라 구조**다(2026-09-27, 사용자 요청). 예전엔 taste 를
+            통째로 흐려 깔아서, 가려진 게 "1,800자짜리 구성된 리포트"가 아니라 그냥 뭉개진 문단으로
+            보였다 — 무엇을 사는지가 안 보이니 매력이 떨어졌다. 이제 실제 섹션 제목(sections)에
+            본문 덩어리를 붙여 **리포트 골격 그대로** 흐린다. 상자에 안 가리는 위/아래 가장자리로
+            제목 줄이 걸쳐 보이는 게 이 배치의 핵심이다.
+            🔴 아래 min-h 주석의 "블러 문단"은 이제 이 골격을 가리킨다 — 높이를 골격이 정하므로
+               (3블록 ≈ 300px) 평소엔 그 바닥에 안 닿고, 바닥은 sections 가 짧을 때만 작동한다.
+            🔴 aria-hidden 필수 — 같은 taste 가 위에 선명하게 떠 있다. 없으면 두 번 읽힌다. */}
+        <div aria-hidden="true" className="min-h-[168px] select-none space-y-3 blur-[3px] opacity-50">
+          {sections.slice(0, 3).map((title, i) => (
+            <div key={title}>
+              {/* 제목의 크기·굵기·색은 DailyReportCard(embedded)의 섹션 헤딩과 같은 값이다 —
+                  흐린 상태에서도 "저게 그 리포트구나"로 읽히려면 같은 모양이어야 한다. */}
+              <div className="text-[12.5px] font-extrabold text-[#4A4458]">{title}</div>
+              <p className="mt-1 text-[13px] leading-[1.85] text-[#4F4A5E]">
+                {/* 본문은 무료 taste 를 잘라 쓴다 — 없는 글을 지어내지 않는다(LLM 0·원가 0).
+                    60자면 3줄 남짓이라 세 블록이 상자 위아래로 고르게 걸친다. taste 가 짧아
+                    빈 조각이 나오면 앞머리를 재사용해 빈 줄이 생기지 않게 한다. */}
+                {blurText.slice(i * 60, i * 60 + 60) || blurText.slice(0, 60)}
+              </p>
+            </div>
+          ))}
+        </div>
         <div className="absolute inset-0 flex items-center justify-center p-2">
           <div className="max-w-[260px] rounded-xl bg-white/90 p-3 text-center shadow-[0_4px_16px_rgba(90,62,140,0.14)]">
-            <b className="mb-1.5 block text-[12px] font-bold text-eye-purple">
+            <b className="mb-3 block text-[12px] font-bold text-eye-purple">
               {/* 🔴 로케일 고정 — 인자 없는 toLocaleString 은 서버(Node 기본 로케일)와 브라우저가
                   다른 구분자를 낼 수 있어(de-DE 면 "1.800") 하이드레이션 불일치가 난다. */}
               여기부터 {paidChars.toLocaleString("ko-KR")}자가 더 있어
@@ -110,9 +133,10 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           <button onClick={() => onStartTrial(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
             3일 무료로 열어보기
           </button>
-          {/* 🔴 PremiumBlock 은 여기서 text-light 를 쓰지만 그 컴포넌트는 bg-white 카드 위에 산다(4.73:1).
-              PaywallCut 은 사주·타로 **둘 다 bg-cream-warm** 안에 얹히고, 그 위 text-light 는 4.49:1 로
-              AA(4.5:1) 미달이라 eye-purple(7.97:1) 로 올렸다. 위계는 11px 크기가 이미 지고 있다.
+          {/* 🔴 text-light 가 아니라 eye-purple 이다. 예전 호스트가 bg-cream-warm 이라 text-light 가
+              4.49:1 로 AA(4.5:1)에 **0.01 미달**이었다. 2026-09-27 에 호스트가 bg-white 로 바뀌어
+              지금은 text-light 도 4.73:1 로 통과하지만 되돌리지 않는다 — 이 컴포넌트는 호스트를
+              고르지 않으므로(사주·타로 둘 다 얹힌다) 더 어두운 쪽이 안전하다. 위계는 11px 크기가 진다.
               🔴 opacity·알파로 흐리지 말 것 — 배경과 섞여 실효 대비가 다시 떨어진다(이 리포의 전례). */}
           <p className="mt-1.5 text-center text-[11px] text-eye-purple">
             체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
