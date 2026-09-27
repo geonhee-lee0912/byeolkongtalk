@@ -17,7 +17,8 @@ import {
   PAIR_NARRATIVE_MAX_TOKENS,
 } from "@/lib/byeolmaru/narrative-prompt";
 import { generateOnce } from "@/lib/claude";
-import { getCachedPairNarrative, savePairNarrative, countPairReportsOn } from "@/lib/byeolmaru/pair-narrative";
+import { getCachedPairNarrative, getPairNarrativeByDate, savePairNarrative, countPairReportsOn } from "@/lib/byeolmaru/pair-narrative";
+import { reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import { PAIR_REPORT_DAILY_LIMIT } from "@/lib/byeolmaru/constants";
 import { PAIR_REPORT_SCHEMA, parsePairReportJson, buildPairReport } from "@/lib/byeolmaru/pair-report";
 import { logError, logInfo, ctxFromRequest } from "@/lib/logger";
@@ -33,10 +34,39 @@ export async function GET(req: NextRequest) {
   }
 
   const subject = new URL(req.url).searchParams.get("subject");
-  if (!subject) return NextResponse.json({ error: "subject_required" }, { status: 400 });
 
   const logCtx = { route: "/api/byeolmaru/pair-narrative", userId };
   try {
+    const todayKst = kstDate(new Date().toISOString());
+    // ?date= 없으면 오늘. 정책은 lib/byeolmaru/report-date.ts 가 단일 원천(daily-report 와 같은 패턴).
+    // subject 와 같은 방식으로 파싱한다 — 이 파일은 req.nextUrl 이 아니라 new URL(req.url) 을 쓴다.
+    const reqDate = new URL(req.url).searchParams.get("date");
+    const reportDate = reqDate ?? todayKst;
+    const policy = reportDatePolicy(reportDate, todayKst);
+    if (policy === "out_of_range") {
+      return NextResponse.json({ error: "date_out_of_range" }, { status: 400 });
+    }
+
+    // 🔴 과거는 **자격 검사보다 앞**에서 끝낸다(스펙 §4-1). 받았던 글은 구독이 만료돼도 계속
+    //    본다 — 소급 생성이 금지돼 있어 "그때 받은 것"이 유일한 원본이고, 그걸 다시 잠그면
+    //    이미 준 것을 뺏는 게 된다. 사주 daily-report 가 2026-09-26 에 같은 이유로 이 순서가 됐다.
+    // 🔴 그리고 지금 걸어둔 상대(subject)로 묻지 않는다 — 그날 본 상대를 기록에서 찾는다.
+    //    그래서 이 분기는 subject 없이 끝난다 — 아래 subject_required 가드는 이 분기 뒤로 옮겼다
+    //    (과거 조회는 상대를 몰라도 되는 게 설계 의도 — lib/byeolmaru/pair-narrative.ts 의
+    //    getPairNarrativeByDate 머리 주석 참조. WooriTodayView 는 항상 subject 를 보내는 오늘
+    //    전용 화면이라 이 이동으로 회귀하지 않는다).
+    if (policy === "cache_only") {
+      const past = await getPairNarrativeByDate(userId, reportDate);
+      return NextResponse.json(
+        past
+          ? { entitled: true, narrative: past.report, partnerProfileId: past.partnerProfileId }
+          : { entitled: true, narrative: null, reason: "no_record" }
+      );
+    }
+
+    // 여기부터 오늘(generate) 경로다 — subject 는 여기서부터만 쓰인다.
+    if (!subject) return NextResponse.json({ error: "subject_required" }, { status: 400 });
+
     // 자격 판정 먼저 — 비자격자는 프로필 조회조차 하지 않는다(원가 0, calendar 의 subject 분기와 동일 순서).
     const ent = await getEntitlement(userId);
     if (!ent.entitled) return NextResponse.json({ entitled: false }, { status: 403 });
@@ -45,7 +75,6 @@ export async function GET(req: NextRequest) {
     //    바로 위 403 에서 끊긴다(LLM 원가 0 — getEntitlement 자체의 조회는 어차피 모든 요청이 한다),
     //    자격자는 히트 시 calcSaju·일진·watch 조회를 통째로 건너뛴다(생성 실측 5.1초 → DB 1회).
     //    남의 상대 id 를 넣어도 키가 (내 user_id, 그 id) 라 행이 없어 자연히 미스 → 아래 소유 검증으로 간다.
-    const todayKst = kstDate(new Date().toISOString());
     const cached = await getCachedPairNarrative(userId, subject, todayKst);
     if (cached) return NextResponse.json({ entitled: true, narrative: cached });
 
