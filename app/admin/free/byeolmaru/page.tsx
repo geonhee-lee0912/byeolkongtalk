@@ -19,6 +19,7 @@ import { Stat } from "@/components/admin/Stat";
 import { kstDate } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
 import { pct1 } from "@/lib/admin/layer1";
+import { pivotLong, type Cell } from "@/lib/admin/byeolmaru-pivot";
 
 export const dynamic = "force-dynamic";
 
@@ -73,35 +74,6 @@ type RetentionRow = { cohort_date: string; cohort_users: number; offset_day: num
 type FunnelRow = { stage: string; slot: string; events: number; actors: number };
 type EngagementRow = { kind: string; key: string; events: number; actors: number };
 type OutputRow = { category: string; key: string; cnt: number; users: number; cost_won: string | null };
-
-/** (분자, 분모) 를 담은 칸. 분모가 0 이면 비율은 null → 화면에 "—". */
-type Cell = { events: number; actors: number };
-const ZERO: Cell = { events: 0, actors: 0 };
-
-/**
- * long 포맷(그룹, 키, 값) → 2단 Map. RPC 가 **행을 안 준 조합은 0 이다**(그 이벤트가 창 안에
- * 한 번도 안 찍혔다는 뜻) — 화면에서 빼면 "0 회"와 "지표가 없다"가 구분되지 않으므로, 읽을 때
- * ZERO 로 메운다.
- */
-function pivot(rows: { group: string; key: string; events: number; actors: number }[]) {
-  const m = new Map<string, Map<string, Cell>>();
-  for (const r of rows) {
-    const inner = m.get(r.group) ?? new Map<string, Cell>();
-    inner.set(r.key, { events: Number(r.events), actors: Number(r.actors) });
-    m.set(r.group, inner);
-  }
-  return {
-    /** 그룹 전체 — DB 가 GROUPING SETS 로 **다시 센** 행('*')이다. 앱에서 키들을 더하면 안 된다
-     *  (한 사람이 여러 키에 걸치면 actors 가 중복된다). */
-    total: (group: string): Cell => m.get(group)?.get("*") ?? ZERO,
-    /** 그룹 안의 키별 행('*' 제외). 값이 큰 순. */
-    breakdown: (group: string): { key: string; cell: Cell }[] =>
-      [...(m.get(group) ?? new Map<string, Cell>())]
-        .filter(([k]) => k !== "*")
-        .map(([key, cell]) => ({ key, cell }))
-        .sort((a, b) => b.cell.events - a.cell.events),
-  };
-}
 
 // 어드민 페이지가 자신의 /api/admin/* 라우트를 서버사이드에서 셀프 호출한다
 // (app/admin/traffic·analytics 와 동일 관행). 쿠키를 그대로 넘겨 라우트 쪽 requireAdmin 이
@@ -163,8 +135,8 @@ async function load() {
     needLoginActors: Number(su?.need_login_actors ?? 0),
   };
 
-  const fn = pivot(funnel.map((r) => ({ group: r.stage, key: r.slot, events: r.events, actors: r.actors })));
-  const eng = pivot(engagement.map((r) => ({ group: r.kind, key: r.key, events: r.events, actors: r.actors })));
+  const fn = pivotLong(funnel.map((r) => ({ group: r.stage, key: r.slot, events: r.events, actors: r.actors })));
+  const eng = pivotLong(engagement.map((r) => ({ group: r.kind, key: r.key, events: r.events, actors: r.actors })));
 
   const outputs = output.filter((r) => r.category === "산출물").map((r) => ({
     key: r.key, cnt: Number(r.cnt), users: Number(r.users),
@@ -224,7 +196,7 @@ function KeyTable({
   labels,
 }: {
   head: string;
-  rows: { key: string; cell: { events: number; actors: number } }[];
+  rows: { key: string; cell: Cell }[];
   labels?: Record<string, string>;
 }) {
   if (rows.length === 0) return <div className="text-[12px] text-white/40">창 안 기록 없음</div>;
@@ -319,10 +291,13 @@ export default async function AdminByeolmaruPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* 🔴 라벨에 창을 박아 둔다 — 이 칸만 admin_byeolmaru_summary(창 없음) 에서 오고
+                  나머지 셋은 30일이다. 섹션 제목만 믿고 읽으면 한 칸이 다른 기간이라는 걸 놓친다.
+                  (30일 치는 아래 일별 추세의 `날짜클릭` 열이 날짜별로 보여준다.) */}
               <Stat
-                label="날짜 셀 클릭"
+                label="날짜 셀 클릭 (전 기간)"
                 value={s.summaryError ? "—" : formatMetric(s.sum.daySelectedEvents, "count")}
-                sub={s.summaryError ? undefined : `${formatMetric(s.sum.daySelectedActors, "count")}명 · 전 기간`}
+                sub={s.summaryError ? undefined : `${formatMetric(s.sum.daySelectedActors, "count")}명`}
               />
               <Stat
                 label="무료 목록 행"
