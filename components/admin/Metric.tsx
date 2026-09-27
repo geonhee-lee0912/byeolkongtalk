@@ -1,22 +1,16 @@
-"use client";
-
 // components/admin/Metric.tsx — 소표본 게이트가 걸린 지표 카드.
 //
 // 🔴 왜 "흐리게"가 아니라 "대체"인가 — 표본 12명으로 낸 전환율은 틀린 게 아니라 **판단 근거가 될
 //    수 없다.** 흐리게 그리면 사람은 결국 읽고 판단한다. 숫자를 아예 치우고 n 을 보여주는 것만이
 //    오판을 막는다(스펙 §7).
 //
-// 🔴 왜 client 인가 — `?` 는 라벨 옆에 있고 펼쳐지는 패널은 카드 **맨 아래**에 있다. 두 위치가
-//    같은 open 상태를 공유해야 해서 카드 자체가 상태를 든다. props 는 전부 문자열·숫자라 서버
-//    컴포넌트(app/admin/page.tsx)에서 그대로 넘어온다.
-//
-// 🔴 `?` 버튼과 패널의 마크업은 `MetricInfo.tsx` 가 정본이다 — 가드레일 6칸(GuardrailRow)이
-//    같은 것을 쓴다. 여기에 사본을 만들지 말 것. 네이티브 title 을 버린 이유도 그 파일에 있다.
-import { useState } from "react";
+// 🔴 `?` 와 그 툴팁은 `MetricInfo.tsx` 가 정본이다 — 가드레일 6칸(GuardrailRow)이 같은 것을 쓴다.
+//    여기에 사본을 만들지 말 것. open 상태·위치 계산·닫기가 전부 그쪽에 있어서 이 카드는 다시
+//    서버 컴포넌트다(툴팁이 카드를 늘리지 않으므로 카드가 상태를 들 이유가 없어졌다).
 import { METRICS, sampleGate, isAlerting, type MetricKey, type MetricDef } from "@/lib/admin-metrics";
 import { formatMetric } from "@/lib/admin/format";
 import { STATUS } from "@/lib/admin/colors";
-import { InfoPanel, InfoToggle } from "@/components/admin/MetricInfo";
+import { MetricInfo } from "@/components/admin/MetricInfo";
 
 export function Metric({
   metricKey,
@@ -38,9 +32,6 @@ export function Metric({
   const m: MetricDef = METRICS[metricKey];
   const gate = sampleGate(metricKey, n);
   const alerting = gate.show && isAlerting(metricKey, value);
-  // 카드마다 제 상태를 든다 — 바깥 클릭 닫기·단일 열림 같은 건 안 넣는다. `?` 를 다시 누르면
-  // 닫히고, 두 카드를 나란히 펼쳐 비교하는 게 오히려 이 화면의 쓰임이다.
-  const [open, setOpen] = useState(false);
 
   return (
     <div
@@ -52,7 +43,7 @@ export function Metric({
     >
       <div className="flex items-center gap-1">
         <div className="text-[12px] text-white/60 min-w-0">{m.label}</div>
-        <InfoToggle label={m.label} open={open} onToggle={() => setOpen((v) => !v)} />
+        <MetricInfo def={m} label={m.label} />
       </div>
       <div
         className="text-2xl font-bold mt-1"
@@ -67,7 +58,6 @@ export function Metric({
         )}
       </div>
       {sub && <div className="text-[12px] text-white/50 mt-1.5">{sub}</div>}
-      {open && <InfoPanel def={m} />}
     </div>
   );
 }
