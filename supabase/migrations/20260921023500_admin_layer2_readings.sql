@@ -20,6 +20,15 @@
 --    메시지 0건이었다(원안이 +38% 과대). tarot 은 2,385건 중 1건뿐이라 4.13 → 4.13 로 무변.
 --    즉 이 칸의 정의는 "발화한 사람의 평균"이 아니라 **리딩당 평균**이다.
 --
+-- ⚠️ ended_cnt 를 "대화 완료율"로 읽지 말 것 — saju·tarot 행에는 **/fortune one-shot 리포트가
+--    섞여 있다.** 리포트도 readings 에 consultation_type 'saju'|'tarot' 로 저장되고
+--    (app/api/fortune/create/route.ts — saju_product 는 손대지 않아 기본값 'today_letters' 다),
+--    assistant 메시지 1건만 남기므로 [END] 가 **구조적으로** 안 찍힌다. 분리 키는
+--    `emotion_tag LIKE 'fortune:%'` 이고 실측상 그 행의 ended 는 예외 없이 0 이다.
+--    2026-09-27 prod 전 기간 스냅샷 — saju 325건 중 272건이 리포트라 표의 완료율은 9.2% 지만
+--    대화형 53건만 보면 **56.6%** 다(약 6배). tarot 은 2,385건 중 23건뿐이라 69.9% vs 70.6%.
+--    🔴 종목을 fortune 혼입 기준으로 쪼갤지는 **코디네이터 판단 사항**이라 여기선 안 쪼갰다.
+--
 -- 🔴 불변식: 같은 (p_since, p_until, p_exclude) 에서 SUM(cnt) == admin_layer1_flow.readings.
 --    두 함수의 readings 필터가 글자 단위로 같아서 성립한다 — 어긋나면 1층과 2층이 서로 다른
 --    모수를 말하는 것이고, 이 화면의 존재 이유가 무너진다.
