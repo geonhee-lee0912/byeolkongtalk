@@ -68,11 +68,26 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
              이 화면엔 이미 더 큰 CTA(아래 {cta})가 있다. */}
       <HubBanner cta={false} entitled={false} trialUsed={false} />
       <section className="space-y-3">
+        {/* 🔴 제목이 로그인 허브와 같은 문법이다(2026-09-27) — 월 표시가 CalendarGrid 판 안에서
+            섹션 제목으로 올라가면서, 제목이 없던 이 게스트 셸은 **월 맥락을 통째로 잃을
+            뻔했다**. 두 호출부가 같이 움직여야 하는 한 쌍이다. */}
+        <div className="flex items-center gap-2">
+          <SectionMark kind="calendar" />
+          <h2 className="text-[15px] font-bold text-eye-purple">{Number(today.slice(5, 7))}월 · 내 하루 달력</h2>
+        </div>
         {/* 이 빈 달력은 cells=[] + lockedCells=이번 달 전체로 "안 칠해진 달"을 그린다. CalendarGrid 의
             잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
-            "네 생일만 있으면…" 문구만 남아 정확한 설명이 된다. */}
+            안내 문구만 남아 정확한 설명이 된다. */}
         <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
-        <p className="text-center text-[13px] text-text-light">네 생일만 있으면 이 칸이 다 칠해져.</p>
+        {/* 🔴 한 줄("네 생일만 있으면 이 칸이 다 칠해져")에서 두 줄로 늘렸다(2026-09-27, 사용자 결정) —
+            빈 칸만 보고는 **여기 뭐가 들어오는지**를 알 수 없어서, 첫 줄이 내용물을 말하고
+            둘째 줄이 조건을 말한다. `no_profile` 상태도 같은 문장을 쓴다("생년월일만 알려주면"이
+            로그인·생일입력 양쪽에 다 참이다). */}
+        <p className="text-center text-[13px] leading-relaxed text-text-light">
+          이 칸 하나하나가 네 사주로 본 그날의 흐름이야.
+          <br />
+          생년월일만 알려주면 이번 달이 전부 채워져.
+        </p>
         {cta}
       </section>
       <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
@@ -120,11 +135,18 @@ export default function ByeolmaruHub() {
   if (state.kind === "need_login") return (
     <EmptyMonthShell
       cta={
+        // 🔴 카카오 버튼은 저장소 공통 컨벤션을 그대로 쓴다(2026-09-27) — `#FEE500` 배경 +
+        //    `#3C1E1E` 글자 + 말풍선 아이콘 + `py-3.5`. /login·/start·공유 버튼 4곳이 이미 같은
+        //    모양이라 여기만 연보라면 "카카오로 시작"이라 써 놓고 카카오로 안 보였다.
+        //    바로 아래 `no_profile` CTA 는 카카오가 아니므로(생년월일 입력) 연보라 그대로다.
         <Link
           href="/login?next=/byeolmaru"
           onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "login_cta", gated: true } })}
-          className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
         >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+          </svg>
           카카오로 시작하고 내 달력 받기
         </Link>
       }
@@ -200,9 +222,12 @@ export default function ByeolmaruHub() {
             본문체 15px bold 제목)이고, 그쪽도 타이틀이 카드 밖에 있어 세 섹션이 같은 리듬으로
             읽힌다. 인연 칩이 빠진 뒤로 이 판은 1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은
             주체를 가리킨다. */}
+        {/* 🔴 제목이 월을 진다(2026-09-27) — 판 안에 있던 "9월" 줄을 CalendarGrid 에서 뺐다.
+            제목에서 월을 도로 빼려면 그 줄을 같이 되살려야 한다. 연도는 안 쓴다 — 달력은
+            항상 이번 달이라 잡음이다. */}
         <div className="flex items-center gap-2">
           <SectionMark kind="calendar" />
-          <h2 className="text-[15px] font-bold text-eye-purple">내 하루 달력</h2>
+          <h2 className="text-[15px] font-bold text-eye-purple">{Number(data.today.slice(5, 7))}월 · 내 하루 달력</h2>
         </div>
 
         {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /

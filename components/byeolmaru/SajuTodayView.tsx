@@ -16,6 +16,7 @@ import { SAJU_PAID_CHARS, SAJU_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sec
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import DayDetailCard from "./DayDetailCard";
+import GuestLoginWall from "./GuestLoginWall";
 import PaywallCut from "./PaywallCut";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
@@ -179,12 +180,8 @@ export default function SajuTodayView({
   }
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
-  if (state.kind === "need_login") return (
-    <div className="text-center">
-      <p className="mb-4 text-eye-purple">로그인하면 네 달력을 펼쳐줄게.</p>
-      <Link href="/login?next=/byeolmaru/day" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
-    </div>
-  );
+  // 🔴 벽은 세 탭이 공유한다(GuestLoginWall) — 문구·레이아웃을 여기서 다시 쓰지 말 것.
+  if (state.kind === "need_login") return <GuestLoginWall next="/byeolmaru/day" />;
   if (state.kind === "no_profile") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>

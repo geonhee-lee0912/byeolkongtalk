@@ -92,7 +92,10 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-8 pt-3">
       <BackHeader />
-      <nav aria-label="날짜 상세 탭" className="mt-3 flex gap-1 rounded-2xl bg-lilac-soft/50 p-1">
+      {/* 🔴 `mt-1` 은 눈으로 보이는 간격과 다르다 — 위 BackHeader 의 링크가 탭 타깃으로
+          `py-2`(8px)를 가지므로 글자 기준 간격은 4+8=12px 다. 4px 로 보이진 않으니
+          여기를 더 줄일 때는 그 py-2 까지 같이 볼 것(뺀다면 탭 타깃이 18px 로 주저앉는다). */}
+      <nav aria-label="날짜 상세 탭" className="mt-1 flex gap-1 rounded-2xl bg-lilac-soft/50 p-1">
         {DAY_TABS.map((t) => (
           <button
             key={t.key}

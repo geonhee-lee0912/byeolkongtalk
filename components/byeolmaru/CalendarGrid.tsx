@@ -56,8 +56,8 @@ interface Props {
    *  **화면이 통째로 조용히 사라진다**(return null). 그 화면은 비로그인 게스트 지면이라
    *  아무도 에러를 못 본다. 로그인 유저의 달력은 잠긴 칸이 없으므로 `[]` 를 명시해 넘긴다. */
   lockedCells: LockedCell[];
-  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에 쓴다.
-   *  월 표시(`todayDate.slice(5,7)`)에도 쓴다 — "에만"이 아니다. */
+  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에만 쓴다 — 월 표시는 2026-09-27 부터
+   *  호출부의 섹션 제목("9월 · 내 하루 달력")이 진다. */
   todayDate: string;
   selectedDate: string;
   onSelect: (date: string) => void;
@@ -100,14 +100,14 @@ export default function CalendarGrid({
       className={panel ? "rounded-2xl p-3" : undefined}
       style={panel ? { background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW } : undefined}
     >
-      {/* 🔴 월 표시는 필수다 — 예전엔 접이식 버튼 텍스트("이번 달 달력 보기")가 유일한 월
-          맥락이었는데 그 래퍼가 2026-09-26 에 삭제됐다. 없으면 이게 몇 월인지 화면 어디에도
-          없다. 연도는 안 쓴다 — 달력은 항상 이번 달이고 연도는 잡음이다.
+      {/* 🔴 월 표시는 필수인데 **판 안이 아니라 섹션 제목이 진다**(2026-09-27, 사용자 결정).
+          "9월" 만 따로 뜨던 판 안 줄을 없애고 호출부 제목을 "9월 · 내 하루 달력"으로 합쳤다 —
+          둘 다 두면 같은 말이 8px 사이를 두고 두 번 나온다. **여기에 되살리지 말 것**:
+          되살릴 거면 제목 쪽에서 월을 빼는 게 짝이다.
+          🔴 그러니 새 호출부는 제목에 월을 넣어야 한다 — 안 넣으면 이게 몇 월인지 화면
+             어디에도 없어진다(접이식 버튼이 2026-09-26 에 삭제되며 한 번 겪은 일이다).
           🔴 월 이동(◀▶)은 이번 스코프가 아니다 — 넣으면 "지난 달 리포트 소급 생성"·"몇 달
              전까지 보나" 같은 정책이 줄줄이 붙는다. */}
-      <p className="mb-1.5 px-0.5 text-[13px] font-semibold text-eye-purple">
-        {Number(todayDate.slice(5, 7))}월
-      </p>
       <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs">
         {WEEKDAYS.map((w, i) => (
           // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.

@@ -7,6 +7,7 @@ import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import PairDayDetailCard from "./PairDayDetailCard";
+import GuestLoginWall from "./GuestLoginWall";
 import CurrentPartner, { type WatchedPartner } from "./CurrentPartner";
 import WatchAddModal from "./WatchAddModal";
 import PaywallCut from "./PaywallCut";
@@ -217,12 +218,8 @@ export default function WooriTodayView({
   }, [subject, entitledNow, isPastDate, initialDate]);
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
-  if (state.kind === "need_login") return (
-    <div className="text-center">
-      <p className="mb-4 text-eye-purple">로그인하면 둘 사이 오늘을 볼 수 있어.</p>
-      <Link href={`/login?next=${encodeURIComponent("/byeolmaru/day?tab=woori")}`} className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
-    </div>
-  );
+  // 🔴 벽은 세 탭이 공유한다(GuestLoginWall) — 문구·레이아웃을 여기서 다시 쓰지 말 것.
+  if (state.kind === "need_login") return <GuestLoginWall next="/byeolmaru/day?tab=woori" />;
   if (state.kind === "no_profile") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 시작할 수 있어.</p>
