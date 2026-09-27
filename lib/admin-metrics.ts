@@ -343,10 +343,15 @@ export const METRICS = {
     unit: "count",
     source: "page_views + users + payments",
     minSample: MIN_SAMPLE.RATE,
+    // ⚠️ 운영자에게 **렌더되는** 전문은 app/api/admin/layer2/route.ts 의 signups 절 note 다
+    //    (이 지표는 Metric 카드로 안 그려진다). 여기 caveat 은 정의 기록용이라 짧게 유지한다 —
+    //    두 곳에 같은 문단을 두면 언젠가 갈린다(2026-09-27 에 실제로 갈렸다 — 아래 주석 참조).
     caveat:
-      "무료 상품을 '전환율'로 재지 않는다 — 2026-08-24 실측에서 무료→결제는 역인과로 판명됐다. 이 퍼널은 **획득**을 재는 것이고, 리텐션 리프트는 별도 지표다.",
-    drift:
-      "별마루 오늘의 타로/사주 공유 링크에는 아직 utm 이 없다(별마루 P6-3 Task 12-b · P6-4 가 붙인다). 그때까지 별마루 행은 구조적으로 0 이다.",
+      "'전환율'이 아니라 **획득**을 재는 퍼널이다 — 무료→결제는 2026-08-24 실측에서 역인과로 판명됐다. 리텐션 리프트는 별도 지표. 별마루 2종은 공유 링크에 utm 이 붙어 있어 **그 코드가 배포된 환경에서만** 값이 쌓인다.",
+    // 🔴 drift 를 지웠다(2026-09-27) — "별마루 공유 링크엔 아직 utm 이 없다(Task 12-b 가 붙인다)"
+    //    는 반증됐다. DailyCardBlock.tsx · SajuTodayView.tsx 가 이미 utm_source 를 붙인다.
+    //    남겨두면 다음 사람이 **이미 있는 배선을 또 붙인다.** 재발은 admin-metrics.test.ts 의
+    //    "plan B 에서 해소된 drift 는 남아 있지 않다" 가 잠근다.
   },
   byeoljari_k_factor: {
     key: "byeoljari_k_factor",

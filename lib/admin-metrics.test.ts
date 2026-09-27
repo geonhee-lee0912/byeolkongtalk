@@ -52,6 +52,14 @@ test("plan B 에서 해소된 drift 는 남아 있지 않다", () => {
   const m: MetricDef = METRICS.result_viewed;
   assert.equal(m.drift, undefined);
   assert.equal(m.source, "admin_layer1_guard / result_viewed");
+
+  // free_share_funnel 의 drift("별마루 공유 링크엔 아직 utm 이 없다 — Task 12-b 가 붙인다")는
+  // 2026-09-27 에 반증됐다: DailyCardBlock.tsx · SajuTodayView.tsx 가 이미 utm_source 를 붙인다.
+  // 🔴 이 단정의 값은 되살아남을 막는 것이다 — 문장이 돌아오면 다음 사람이 **이미 있는 배선을
+  //    또 붙인다.** (실제로 라우트 note 만 고치고 이 사본을 놓쳐 한 번 갈렸다.)
+  const f: MetricDef = METRICS.free_share_funnel;
+  assert.equal(f.drift, undefined);
+  assert.equal(f.source, "page_views + users + payments");
 });
 
 test("sampleGate — 임계 미만이면 숫자를 안 준다", () => {
