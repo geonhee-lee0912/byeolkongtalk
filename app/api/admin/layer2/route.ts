@@ -12,6 +12,7 @@ import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
 import { pct1 } from "@/lib/admin/layer1";
+import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, type ProductLabel } from "@/lib/admin/product-map";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { isLayer2Section, type Layer2Block, type Layer2Response } from "@/lib/admin/layer2-types";
 
@@ -42,6 +43,102 @@ export async function GET(req: NextRequest) {
   const p_exclude = adminExclusionArray();
   const blocks: Layer2Block[] = [];
   const failed: string[] = [];
+
+  if (sectionRaw === "contribution") {
+    // 2층의 핵심 — 어느 상품이 돈을 벌고 어느 상품이 태우나.
+    // 매출은 **유료별 소모 × 실효 단가**로, 원가는 `llm_usage.route` 로 귀속한다.
+    //
+    // 🔴 매출 귀속은 `admin_star_spend_breakdown` 의 domain 이 **아니다.** 그 사다리는 매칭
+    //    안 된 source 를 전부 `ELSE 'upsell'` 로 떨어뜨리고, 플랜 원안은 그걸 타로로 접었다.
+    //    2026-09-27 dev 실측 — 그 폴백에 있던 건 업셀이 아니라 relationship_slot(1,800별) ·
+    //    relationship_sim(75) · relationship_sim_suggest(10) · byeolmaru_subscription(20) 이다.
+    //    → 전용 RPC 로 source 를 받아 `labelOfSpendSource` 가 라벨링한다(유닛으로 잠김).
+    const [spend, cost, rate] = await Promise.all([
+      supa.rpc("admin_layer2_spend_by_source", { p_since: since, p_until: null, p_exclude }),
+      supa.rpc("admin_layer2_cost_by_route", { p_since: since, p_until: null, p_exclude }),
+      supa.rpc("admin_star_won_rate", { p_exclude }),
+    ]);
+    if (spend.error) failed.push("admin_layer2_spend_by_source");
+    if (cost.error) failed.push("admin_layer2_cost_by_route");
+    if (rate.error) failed.push("admin_star_won_rate");
+
+    // 🔴 기여 막대는 **셋 다** 성공해야 그린다. 하나라도 죽으면 그 축이 0 으로 들어가
+    //    "매출 없는 상품" 또는 "원가 없는 상품" 이라는 **거짓말**이 된다(빈 화면보다 나쁘다).
+    //    failed 배너만으로는 그 거짓을 못 막는다 — 숫자가 이미 그럴듯하게 그려져 있다.
+    if (!spend.error && !cost.error && !rate.error) {
+      // 🔴 NUMERIC 은 PostgREST 를 지나며 문자열로 온다 — Number() 없이 더하면 문자열 연결이 된다.
+      const wonPerStar = Number(rate.data ?? 0);
+      const margin = new Map<ProductLabel, { rev: number; cost: number }>();
+      const bump = (k: ProductLabel, rev: number, c: number) => {
+        const cur = margin.get(k) ?? { rev: 0, cost: 0 };
+        margin.set(k, { rev: cur.rev + rev, cost: cur.cost + c });
+      };
+
+      type SpendRow = { source: string; stars: string; free_stars: string };
+      for (const r of (spend.data ?? []) as SpendRow[]) {
+        // 유료별만 매출이다 — 무료별(웰컴 보너스 등)로 산 소비는 현금이 들어온 적이 없다.
+        const paidStars = Number(r.stars) - Number(r.free_stars);
+        bump(labelOfSpendSource(r.source), paidStars * wonPerStar, 0);
+      }
+      type CostRow = { route: string; cost_won: string };
+      for (const r of (cost.data ?? []) as CostRow[]) {
+        bump(labelOfRoute(r.route), 0, Number(r.cost_won));
+      }
+
+      const items = PRODUCT_LABELS.flatMap((label) => {
+        const m = margin.get(label) ?? { rev: 0, cost: 0 };
+        // 🔴 `value !== 0` 으로 거르면 안 된다 — 매출과 원가가 **정확히 같은** 상품(기여 0)이
+        //    목록에서 사라진다. "기여가 0 이다" 와 "그 상품이 없다" 는 다른 말이다.
+        if (m.rev === 0 && m.cost === 0) return [];
+        return [{ label, value: m.rev - m.cost }];
+      });
+
+      // 매출도 원가도 0 이면 빈 차트를 그리지 않는다 — 블록이 하나도 안 쌓이면 Drilldown 이
+      // "표시할 데이터가 없다"를 그린다(제목만 있는 빈 막대보다 정확한 말이다).
+      if (items.length) {
+        blocks.push({
+          kind: "bars",
+          title: "상품별 기여마진 (매출 귀속 − API 원가 귀속)",
+          unit: "won",
+          items,
+          // 🔴 단가는 `won` 이 아니라 `ratio` 로 찍는다 — won 은 정수 반올림이라 90.64 가 "91원"
+          //    이 되고, 단가가 1.6% 틀린 채로 "이 숫자가 정본" 이라 말하게 된다.
+          note: `매출 귀속 = 유료별 소모 × 실효 단가(현재 **${formatMetric(wonPerStar, "ratio")}원/별**, 전 기간 결제의 SUM(원)/SUM(별)). 무료별 소비는 매출 0이다. 인챗 업셀(clarifier·extend)은 타로/사주 대화 **안에서** 일어나 원가가 그 chat route 에 이미 잡히므로 타로에 합산된다 — **사주 업셀도 여기 섞인다.** '공통'은 롤링 요약·민감 판정처럼 종목을 가리지 않는 원가라 매출이 없다 — **항상 음수인 게 정상이다.** ⚠️ API 원가는 2026-09-20 부터만 쌓인다 — 창이 그 이전을 포함하면 원가가 0 으로 잡혀 기여가 **과대**로 보인다(아래 표의 호출 수로 확인할 것).`,
+        });
+      }
+    }
+
+    if (!cost.error) {
+      const all = (cost.data ?? []) as {
+        route: string;
+        cost_won: string;
+        calls: string;
+        free_user_cost_won: string;
+      }[];
+      const LIMIT = 12;
+      const rows = all
+        .slice(0, LIMIT)
+        // 🔴 셀은 전부 포맷터를 거친다 — raw number 를 넣으면 천단위 구분자 없는 `173420` 이
+        //    되고 같은 화면의 다른 표는 `173,420` 이 된다(TableBlock.rows 가 string 인 이유).
+        .map((r) => [
+          r.route,
+          formatMetric(Number(r.cost_won), "won"),
+          formatMetric(Number(r.calls), "count"),
+          formatMetric(Number(r.free_user_cost_won), "won"),
+        ]);
+      // 🔴 절단은 **눈에 보여야** 한다(AGENTS.md) — 플래그만 두고 안 보여주면 의미가 없다.
+      const omitted = all.length - rows.length;
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: "route 별 API 원가",
+          columns: ["route", "원가", "호출", "미결제자 몫"],
+          rows,
+          note: `원가 큰 순 ${rows.length}개${omitted > 0 ? ` — **${omitted}개 생략**(총 ${all.length}개 route)` : ""}. 미결제자 몫 = 그 호출 시점에 완료 결제 이력이 없던 사람에게 태운 원가. 2026-08-10 실측에서 무료별 87%가 미결제자에게 갔다. ⚠️ user_id 가 없는 행(탈퇴·배치 호출)도 미결제자로 세므로 실제보다 소폭 높다.`,
+        });
+      }
+    }
+  }
 
   if (sectionRaw === "revenue") {
     // 별 소모 5종 — 1층에서 내려온 것(스펙 §3). /admin/analytics 와 **같은 RPC** 를 창만 맞춰 쓴다.
