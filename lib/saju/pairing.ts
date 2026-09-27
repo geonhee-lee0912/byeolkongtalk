@@ -7,6 +7,14 @@ export const STEM_ELEMENT: Record<string, FiveElement> = {
   기: "토", 경: "금", 신: "금", 임: "수", 계: "수",
 };
 
+// 지지 12 → 오행 (본기 기준 — 지장간의 나머지는 보지 않는다)
+// 🔴 2026-09-27 신설. 그 전까진 지지가 육합·충에만 쓰여서 **대부분의 날 점수에 아무 영향이
+//    없었다** — 한 달 30칸의 고유 점수가 평균 10종뿐이던 원인 중 하나다(day-score.ts 참고).
+export const BRANCH_ELEMENT: Record<string, FiveElement> = {
+  자: "수", 축: "토", 인: "목", 묘: "목", 진: "토", 사: "화",
+  오: "화", 미: "토", 신: "금", 유: "금", 술: "토", 해: "수",
+};
+
 // 천간 10 → 양(true)/음(false)
 export const STEM_YANG: Record<string, boolean> = {
   갑: true, 을: false, 병: true, 정: false, 무: true,

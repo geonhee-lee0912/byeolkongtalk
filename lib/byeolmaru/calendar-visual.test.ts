@@ -8,9 +8,9 @@ import {
   scoreDisplay,
 } from "./calendar-visual.ts";
 
-test("isGoodScore — dayGrade 의 good 임계(68)와 같은 자리에서 갈린다", () => {
-  assert.equal(isGoodScore(67), false);
-  assert.equal(isGoodScore(68), true);
+test("isGoodScore — dayGrade 의 good 임계(71)와 같은 자리에서 갈린다", () => {
+  assert.equal(isGoodScore(70), false);
+  assert.equal(isGoodScore(71), true);
   assert.equal(isGoodScore(100), true);
 });
 
@@ -35,11 +35,11 @@ test("축 정렬 — 화면 숫자 80/20 이 곧 색 경계다 (0~100 전수)", 
 //    보라 상한(0.45)과 금색 하한(0.45)이 같은 알파라 "제일 나쁜 날"과 "약한 좋은 날"이 같은
 //    세기로 튀었다(실물 검수 항목 19, 사용자 판정). 경계는 dayGrade 3단 그대로다 —
 //    칸 색이 칸을 눌렀을 때 뜨는 라벨("살짝 챙길 날")과 같은 말을 하게 하려는 것.
-test("cellTint — caution(<46)은 테라코타 · normal 은 보라 · good(>=68)은 금색", () => {
+test("cellTint — caution(<44)은 테라코타 · normal 은 보라 · good(>=71)은 금색", () => {
   assert.match(cellTint(30), /^rgba\(201, 112, 92, /, "caution");
-  assert.match(cellTint(45), /^rgba\(201, 112, 92, /, "caution 경계 바로 아래");
-  assert.match(cellTint(46), /^rgba\(159, 138, 208, /, "normal 경계");
-  assert.match(cellTint(67), /^rgba\(159, 138, 208, /, "normal 위끝");
+  assert.match(cellTint(43), /^rgba\(201, 112, 92, /, "caution 경계 바로 아래");
+  assert.match(cellTint(44), /^rgba\(159, 138, 208, /, "normal 경계");
+  assert.match(cellTint(70), /^rgba\(159, 138, 208, /, "normal 위끝");
   assert.match(cellTint(80), /^rgba\(232, 194, 106, /, "good");
 });
 
@@ -47,7 +47,7 @@ test("cellTint — caution(<46)은 테라코타 · normal 은 보라 · good(>=6
 //    쓰지 않는다"(normal 이 64%라 7칸 중 4~5칸이 같은 색이 됐다)는 **3단만으로** 칠했을 때의
 //    실패다. normal 안의 백분위 농도가 그대로 살아 있으므로 그 실패로 돌아가지 않는다.
 test("cellTint — caution/normal 경계에서 알파가 안 튄다(농도는 연속이다)", () => {
-  assert.ok(Math.abs(alphaOf(cellTint(45)) - alphaOf(cellTint(46))) <= 0.02);
+  assert.ok(Math.abs(alphaOf(cellTint(43)) - alphaOf(cellTint(44))) <= 0.02);
 });
 
 test("cellTextColor — 3단이 각자 다른 글자색을 쓴다", () => {
@@ -59,12 +59,12 @@ test("cellTextColor — 3단이 각자 다른 글자색을 쓴다", () => {
 const alphaOf = (css: string): number => Number(css.slice(css.lastIndexOf(",") + 1, -1));
 
 test("cellTint — good 미만 구간은 점수가 낮을수록 진하다(색이 갈려도 농도는 이어진다)", () => {
-  assert.ok(alphaOf(cellTint(12)) > alphaOf(cellTint(45)));
-  assert.ok(alphaOf(cellTint(45)) > alphaOf(cellTint(67)));
+  assert.ok(alphaOf(cellTint(3)) > alphaOf(cellTint(44)));
+  assert.ok(alphaOf(cellTint(44)) > alphaOf(cellTint(70)));
 });
 
 test("cellTint — 금색 구간은 점수가 높을수록 진하다", () => {
-  assert.ok(alphaOf(cellTint(92)) > alphaOf(cellTint(68)));
+  assert.ok(alphaOf(cellTint(100)) > alphaOf(cellTint(71)));
 });
 
 // 🔴 판(#ffffff) 위에서 칸이 사라지지 않는 하한. 순백+순백 조합으로 두 번 되돌린 이력이 있다
@@ -74,7 +74,7 @@ test("cellTint — 알파 바닥 0.11 아래로 안 내려간다", () => {
 });
 
 test("cellTint — good 임계 바로 위는 뚜렷하다(경계가 보인다)", () => {
-  assert.ok(alphaOf(cellTint(68)) >= 0.45);
+  assert.ok(alphaOf(cellTint(71)) >= 0.45);
 });
 
 // 🔴 3차(2026-09-26) 보라 상한 확장(0.30→0.45)으로 스프레드 임계도 올린다 — 이유는 바로
@@ -106,10 +106,10 @@ test("cellTint — 제일 나쁜 날은 테라코타 상한에 닿는다(계조�
 });
 
 test("scorePercentile — 모집단 앵커를 그대로 되짚는다", () => {
-  assert.equal(scorePercentile(12), 0);
-  assert.equal(Math.round(scorePercentile(56) * 100), 50);
-  assert.equal(Math.round(scorePercentile(73) * 100), 90);
-  assert.equal(scorePercentile(92), 1);
+  assert.equal(scorePercentile(3), 0);
+  assert.equal(Math.round(scorePercentile(57) * 100), 50);
+  assert.equal(Math.round(scorePercentile(78) * 100), 90);
+  assert.equal(scorePercentile(100), 1);
 });
 
 test("scorePercentile — 단조 비감소", () => {
@@ -117,11 +117,11 @@ test("scorePercentile — 단조 비감소", () => {
 });
 
 test("scoreDisplay — 원점수가 아니라 백분위를 찍는다", () => {
-  // 🔴 모집단 중앙(56)이 50 으로 나와야 한다. 56 이 그대로 나오면 원점수를 쓰고 있는 것이다.
-  assert.equal(scoreDisplay(56), 50);
-  assert.equal(scoreDisplay(12), 0);
-  assert.equal(scoreDisplay(92), 100);
-  assert.equal(scoreDisplay(73), 90);
+  // 🔴 모집단 중앙(57)이 50 으로 나와야 한다. 57 이 그대로 나오면 원점수를 쓰고 있는 것이다.
+  assert.equal(scoreDisplay(57), 50);
+  assert.equal(scoreDisplay(3), 0);
+  assert.equal(scoreDisplay(100), 100);
+  assert.equal(scoreDisplay(78), 90);
 });
 
 test("scoreDisplay — 단조 비감소이고 0~100 을 벗어나지 않는다", () => {

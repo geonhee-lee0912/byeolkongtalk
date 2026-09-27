@@ -39,6 +39,10 @@ test("DAY_LINE — 길이 46~53자·정확히 2문장(히어로 카드 3줄 밀�
 
 const base: DayFactors = {
   relation: "비화",
+  // 🔴 점수에 안 쓰이는 중립값이다 — dayMarks 는 아래 boolean 4개와 scarcity 만 본다.
+  //    2026-09-27 에 DayFactors 가 tenGod·branchRelation 을 갖게 되며 추가됐다.
+  tenGod: "비견",
+  branchRelation: "비화",
   heavenlyCombo: false,
   sixCombo: false,
   clash: false,
@@ -73,8 +77,8 @@ test("dayMarks — 네 신호가 다 있으면 고정 순서로 넷 다", () => 
 
 test("마크 라벨은 전부 2글자 — 셀 하단 띠가 한 줄에 들어가야 한다", () => {
   const all = [
-    dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: true, clash: false, scarcity: "absent" }),
-    dayMarks({ relation: "비화", heavenlyCombo: false, sixCombo: false, clash: true, scarcity: "balanced" }),
+    dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: false, scarcity: "absent" }),
+    dayMarks({ ...base, clash: true }),
   ].flat();
   assert.ok(all.length >= 4, "네 종류가 다 나와야 한다");
   for (const m of all) assert.equal(m.label.length, 2, `${m.glyph} 라벨이 2글자가 아니다: ${m.label}`);
@@ -82,7 +86,7 @@ test("마크 라벨은 전부 2글자 — 셀 하단 띠가 한 줄에 들어가
 
 test("나 탭 마크는 전부 full — 강도 2단은 우리 탭에서만 쓴다", () => {
   // 🔴 한 신호만 켜면 배열이 1개라 "전부"를 못 잰다 — 네 신호를 다 켜서 글리프 4종을 전부 훑는다.
-  const ms = dayMarks({ relation: "비화", heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
+  const ms = dayMarks({ ...base, heavenlyCombo: true, sixCombo: true, clash: true, scarcity: "absent" });
   assert.equal(ms.length, 4, "네 종류가 다 나와야 이 단정이 '전부'를 보장한다");
   for (const m of ms) assert.equal(m.strength, "full", `${m.glyph} 가 full 이 아니다`);
 });

@@ -37,7 +37,9 @@ test("buildCalendar — 셀마다 간지·점수·등급·축이 채워진다", 
   assert.equal(cells[0].date, "2026-09-01");
   assert.equal(cells[0].ganji, "기축", "한글 간지 2자");
   assert.equal(cells[0].element, "토");
-  assert.equal(cells[0].score, 92);
+  // 🔴 2026-09-27 점수 모델 확장 — 50 + 정재11 + 일지극아(-6) + 천간합14 + 육합10 + absent10 = 89
+  //    (옛 모델은 50 + 아극8 + 14 + 10 + 10 = 92). 축 점수(axes)는 안 바뀌었다.
+  assert.equal(cells[0].score, 89);
   assert.equal(cells[0].grade.tone, "good");
   assert.equal(cells[0].axes.love, 93);
   assert.equal(cells[0].isToday, false);
@@ -45,12 +47,11 @@ test("buildCalendar — 셀마다 간지·점수·등급·축이 채워진다", 
   assert.equal(cells[1].grade.tone, "caution");
   assert.equal(cells[1].isToday, true, "오늘 플래그는 인자로 받은 KST 날짜와 일치할 때만");
 
-  // 임(수)신: elementRelation(목,수)=생아(+18) · 갑-임 천간합 아님 · 자-신 육합/충 아님
-  //           · elementCount.수 = 2 → balanced(0)  →  50 + 18 = 68
-  // 🔴 68 은 2026-09-27 부터 good 의 **경계값**이다(이전 임계 70 에선 normal 이었다).
-  //    임계를 68/46 으로 옮긴 이유 = 화면 숫자(백분위)의 80/20 과 같은 자리로 맞추기 위함 —
-  //    day-score.ts 의 dayGrade 주석과 calendar-visual.test.ts 의 "축 정렬" 계약 참고.
-  assert.equal(cells[2].score, 68);
+  // 임(수)신: 갑(양목) 기준 임(양수) = 생아+음양같음 = 편인(+15) · 자(수)-신(금) = 생아(+7)
+  //           · 천간합/육합/충 없음 · elementCount.수 = 2 → balanced(0)  →  50 + 15 + 7 = 72
+  // 🔴 임계 71 바로 위라 good 이다. 임계를 71/44 로 잡은 이유 = 화면 숫자(백분위)의 80/20 과
+  //    같은 자리로 맞추기 위함 — day-score.ts 의 dayGrade 주석과 "축 정렬" 계약 참고.
+  assert.equal(cells[2].score, 72);
   assert.equal(cells[2].grade.tone, "good");
 });
 
@@ -87,11 +88,11 @@ test("weekBuckets — 7일씩 묶고 마지막 조각도 버리지 않는다", (
   assert.equal(weeks[0].endDate, "2026-09-07");
   assert.equal(weeks[4].startDate, "2026-09-29");
   assert.equal(weeks[4].endDate, "2026-09-30", "마지막 2일 조각이 살아있어야 한다");
-  assert.equal(weeks[0].good, 7, "전부 92점이라 7일 모두 good");
+  assert.equal(weeks[0].good, 7, "전부 89점이라 7일 모두 good");
   assert.equal(weeks[0].caution, 0);
-  assert.equal(weeks[0].avgScore, 92);
+  assert.equal(weeks[0].avgScore, 89);
   assert.equal(weeks[4].good, 2);
-  assert.equal(weeks[4].avgScore, 92, "마지막 2일 조각도 chunk.length 로 나눠야 한다 — 7 로 하드코딩하면 26 이 된다");
+  assert.equal(weeks[4].avgScore, 89, "마지막 2일 조각도 chunk.length 로 나눠야 한다 — 7 로 하드코딩하면 25 가 된다");
 });
 
 test("weekBuckets — 빈 입력은 빈 배열", () => {

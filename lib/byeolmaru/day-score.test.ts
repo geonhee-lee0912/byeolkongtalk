@@ -53,12 +53,16 @@ test("dayFactors — elementCount 키가 통째로 빠져도 absent 로 처리�
 });
 
 test("dayScore — 가중치 합이 명시된 값과 일치한다", () => {
-  // 50 + 아극8 + 천간합14 + 육합10 + absent10 = 92
+  // 🔴 2026-09-27 점수 모델 확장 — relation(5종) → tenGod(10종) + 일지 오행관계 축이 붙었다.
+  // 50 + 정재11 + 일지극아(-6) + 천간합14 + 육합10 + absent10 = 89
   const good = dayFactors(SELF_A, { stem: "기", branch: "축", element: "토" });
-  assert.equal(dayScore(good), 92);
+  assert.equal(good.tenGod, "정재", "갑(양목) 기준 기(음토) = 아극 + 음양다름");
+  assert.equal(good.branchRelation, "극아", "자(수) 기준 축(토) = 토극수");
+  assert.equal(dayScore(good), 89);
 
-  // 50 + 극아(-14) + 충(-16) + excess(-8) = 12
+  // 50 + 편관(-17) + 일지아극3 + 충(-16) + excess(-8) = 12
   const bad = dayFactors(SELF_B, { stem: "경", branch: "오", element: "금" });
+  assert.equal(bad.tenGod, "편관", "갑(양목) 기준 경(양금) = 극아 + 음양같음");
   assert.equal(dayScore(bad), 12);
 });
 
@@ -80,21 +84,22 @@ test("dayScore — 0~100 을 벗어나지 않는다", () => {
   }
 });
 
-// 🔴 임계 68/46 은 **화면에 찍히는 숫자(scoreDisplay = 백분위)의 80/20 과 같은 자리**다
+// 🔴 임계 71/44 는 **화면에 찍히는 숫자(scoreDisplay = 백분위)의 80/20 과 같은 자리**다
 //    (2026-09-27). 45/70 이던 시절엔 원점수축과 백분위축이 달라, 화면에 70 이 찍힌 날이 금색이
-//    아니고 25 가 찍힌 날이 보라인 칸이 30칸 중 11칸 나왔다(실물 지적). 임계를 옮길 땐
+//    아니고 25 가 찍힌 날이 보라인 칸이 30칸 중 11칸 나왔다(실물 지적). 같은 날 점수 모델이
+//    확장되며(십신·일지) 분포가 바뀌어 68/46 → 71/44 로 다시 잡았다. 임계를 옮길 땐
 //    calendar-visual.test.ts 의 "축 정렬" 계약을 같이 볼 것 — 거기가 두 축을 묶는 자물쇠다.
 test("dayGrade — 경계값이 정확하다", () => {
-  assert.equal(dayGrade(68).tone, "good");
-  assert.equal(dayGrade(67).tone, "normal");
-  assert.equal(dayGrade(46).tone, "normal");
-  assert.equal(dayGrade(45).tone, "caution");
+  assert.equal(dayGrade(71).tone, "good");
+  assert.equal(dayGrade(70).tone, "normal");
+  assert.equal(dayGrade(44).tone, "normal");
+  assert.equal(dayGrade(43).tone, "caution");
   assert.equal(dayGrade(100).tone, "good");
   assert.equal(dayGrade(0).tone, "caution");
 });
 
 test("dayGrade — 라벨에 단정 표현이 없다(페르소나 화법)", () => {
-  for (const s of [0, 45, 46, 67, 68, 100]) {
+  for (const s of [0, 43, 44, 70, 71, 100]) {
     const label = dayGrade(s).label;
     assert.ok(label.length > 0);
     for (const banned of ["반드시", "절대", "확실", "될 거야", "한다"]) {
