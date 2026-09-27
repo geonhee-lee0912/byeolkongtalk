@@ -400,7 +400,10 @@ export default async function AdminDashboard() {
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
         {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
         {/* ⚠️ 탈퇴·누적 탈퇴율은 2층 `탈퇴 ▾` 로 내려갔다(Task 8). 산식(탈퇴 / (현재 유저 + 탈퇴))과
-            어드민 제외 비대칭 caveat 도 함께 옮겼다 — app/api/admin/layer2/route.ts 의 withdrawal 절. */}
+            어드민 제외 비대칭 caveat 도 함께 옮겼다 — app/api/admin/layer2/route.ts 의 withdrawal 절.
+            ⚠️ 아래 누적 가입·리딩·매출은 탈퇴분만큼 **과거를 향해 줄어든다** — 탈퇴는 users DELETE
+            CASCADE 라 그 유저의 결제·리딩·유입기록이 함께 사라진다. 어제보다 누적이 작아져도
+            버그가 아니다. 그 규모는 2층 `탈퇴 ▾` 가 보여준다. */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <Stat label="신규 가입" value={s.all.newUsers}>
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />

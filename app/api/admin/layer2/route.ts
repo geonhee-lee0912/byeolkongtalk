@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
           [`최근 ${days}일`, formatMetric(wWindow.count ?? 0, "count")],
           ["누적", formatMetric(wAll.count ?? 0, "count")],
         ],
-        note: "창은 전부 KST 자정 기준. 🔴 어드민·테스트 계정을 분자에서 뺄 수 없다 — account_withdrawals 는 kakao_id_hash 만 남기고 user_id 를 안 남긴다(탈퇴 = 유저 삭제). 실제보다 소폭 높게 나온다.",
+        note: "창은 전부 KST 자정 기준. 🔴 어드민·테스트 계정을 분자에서 뺄 수 없다 — account_withdrawals 는 kakao_id_hash 만 남기고 user_id 를 안 남긴다(탈퇴 = 유저 삭제). 실제보다 소폭 높게 나온다. ⚠️ 탈퇴는 users DELETE CASCADE 라 그 유저의 결제·리딩·유입기록이 함께 사라진다 — 1층 '전체' 의 누적 가입·리딩·매출이 어제보다 작아지는 건 버그가 아니라 이 숫자만큼의 소실이다.",
       });
     }
 
