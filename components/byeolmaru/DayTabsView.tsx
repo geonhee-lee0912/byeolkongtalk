@@ -45,6 +45,14 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
     })();
   }, []);
 
+  // 🔴 initialTab 은 useState 초기값이라 URL 이 바뀌어도 탭이 안 따라온다 — 같은 화면 안의
+  //    크로스링크(예: 사주 상세의 "그날 카드 보러가기")가 ?tab= 만 바꿔 오기 때문에 필요하다.
+  //    opened 에도 넣어야 그 탭이 실제로 마운트된다.
+  useEffect(() => {
+    opened.current.add(initialTab);
+    setTab(initialTab);
+  }, [initialTab]);
+
   const today =
     injected && injected.body && typeof injected.body === "object"
       ? ((injected.body as { today?: string }).today ?? null)

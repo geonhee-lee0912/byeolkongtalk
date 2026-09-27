@@ -82,7 +82,7 @@ export default function TarotTodayView({
     <div className="text-center">
       <p className="mb-4 text-eye-purple">로그인하면 오늘 카드를 뽑을 수 있어.</p>
       {/* 🔴 보고 있던 날짜를 next 에 실어 보낸다 — 공유 링크 수신자가 로그인 후 같은 날로 돌아오게. */}
-      <Link href={`/login?next=${encodeURIComponent(`/byeolmaru/tarot${initialDate ? `?date=${initialDate}` : ""}`)}`} className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
+      <Link href={`/login?next=${encodeURIComponent(`/byeolmaru/day?tab=tarot${initialDate ? `&date=${initialDate}` : ""}`)}`} className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
       {/* 공유 링크 수신자는 대부분 비로그인 — 주 CTA(로그인)와 동급이 아니게 보조 링크로만 */}
       <Link href="/byeolmaru" className="mt-3 block text-xs text-text-light underline">별마루 먼저 둘러보기</Link>
     </div>
@@ -91,7 +91,7 @@ export default function TarotTodayView({
   //    무료 체험 CTA(DailyCardBlock)가 다시 뜬다. 모르는 상태는 모르는 화면으로 보여준다.
   if (state.kind === "error") return <p className="text-center text-text-light">지금은 오늘 타로를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;
 
-  // 🔴 ?date= 가 없으면 오늘이다. 검증은 다리(TarotDateBridge)가 이미 했으니 여기선 폴백만 한다.
+  // 🔴 ?date= 가 없으면 오늘이다. 검증은 다리(DayTabsBridge)가 이미 했으니 여기선 폴백만 한다.
   const date = initialDate ?? state.today;
   const isToday = date === state.today;
 

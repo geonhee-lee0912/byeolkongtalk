@@ -182,7 +182,7 @@ export default function SajuTodayView({
   if (state.kind === "need_login") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">로그인하면 네 달력을 펼쳐줄게.</p>
-      <Link href="/login?next=/byeolmaru/saju" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
+      <Link href="/login?next=/byeolmaru/day" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
     </div>
   );
   if (state.kind === "no_profile") return (
@@ -224,7 +224,7 @@ export default function SajuTodayView({
   const cardHref = dayCard === undefined
     ? null
     : dayCard || cell.isToday
-      ? `/byeolmaru/tarot?date=${cell.date}`
+      ? `/byeolmaru/day?date=${cell.date}&tab=tarot`
       : null;
 
   return (
