@@ -22,7 +22,7 @@ export const DAY_NAME: Record<TenGod, string> = {
 
 /** 이름 바로 아래 한 줄. ⑥ 본문 뱅크(tone × relation)와 자리가 달라 겹치지 않는다.
  *  🔴 한 줄은 **톤-블라인드**다(등급을 모른 채 십신으로만 정해진다). 그래서 caution 비율이 높은
- *     십신(1회성 실측 3,600칸: 편관 83% · 정관 37% · 식신 32%, day-score.ts dayGrade 임계 70/45
+ *     십신(1회성 실측 3,600칸: 편관 83% · 정관 37% · 식신 32%, day-score.ts dayGrade 임계 68/46
  *     기준)의 줄을 낙관 일변도로 쓰면 안 된다 — 같은 화면의 등급 라벨("살짝 챙길 날")과 정면으로
  *     어긋난다. 양면을 담거나 출구를 남길 것.
  *     재측정: `node --import tsx scripts/byeolmaru-label-freq.ts` 의 "십신 × 등급 교차" 섹션이

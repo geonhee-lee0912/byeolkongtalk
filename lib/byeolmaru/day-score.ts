@@ -105,9 +105,19 @@ export interface DayGrade {
 }
 
 /** 점수 → 등급. 라벨은 단정 금지(페르소나 화법) — "좋다/나쁘다"가 아니라 결의 이름. */
+/**
+ * 🔴 임계 68/46 은 임의의 숫자가 아니다 — **화면에 찍히는 숫자(백분위)의 80/20 과 같은
+ *    자리**다(2026-09-27). 45/70 이던 시절엔 칸의 숫자(백분위)와 칸의 색·라벨(원점수)이 다른
+ *    축이라, 화면에 70 이 찍힌 날이 금색이 아니고 25 가 찍힌 날이 보라인 칸이 30칸 중 11칸
+ *    나왔다(실물 지적). 백분위가 단조 증가하고 SCORE_PERCENTILE_ANCHORS 에 46·68 이 그대로
+ *    있어 이 두 값에서 **정확히** 맞아떨어진다(45→19점 · 67→78점으로 경계 밖).
+ *    모집단 비율 변화는 작다 — good 상위 16%→20% · caution 하위 19%→20%.
+ * 🔴 이 숫자를 옮기면 calendar-visual.test.ts 의 "축 정렬" 계약이 깨진다. 깨지면 테스트를
+ *    고치지 말고 **앵커와 임계를 다시 같은 자리로 맞출 것** — 어긋난 채 두면 화면에서만 보인다.
+ */
 export function dayGrade(score: number): DayGrade {
-  if (score >= 70) return { tone: "good", label: "잘 맞는 날" };
-  if (score >= 45) return { tone: "normal", label: "무난한 날" };
+  if (score >= 68) return { tone: "good", label: "잘 맞는 날" };
+  if (score >= 46) return { tone: "normal", label: "무난한 날" };
   return { tone: "caution", label: "살짝 챙길 날" };
 }
 

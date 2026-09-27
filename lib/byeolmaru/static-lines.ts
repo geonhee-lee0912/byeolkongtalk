@@ -76,7 +76,7 @@ export function getSkeletonLine(tone: DayTone, relation: ElementRelation, date: 
   return `오늘은 ${rel}이라, ${adv}`;
 }
 
-// 밴드 임계 65/45 는 dayGrade 의 70/45 와 의도적으로 다르다(등급=전반 판정, taste 밴드=축별 강조).
+// 밴드 임계 65/45 는 dayGrade 의 68/46 과 의도적으로 다르다(등급=전반 판정, taste 밴드=축별 강조).
 function tasteBand(score: number): TasteBand {
   return score >= 65 ? "high" : score >= 45 ? "mid" : "low";
 }

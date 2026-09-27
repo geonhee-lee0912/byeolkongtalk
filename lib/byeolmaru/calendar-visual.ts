@@ -39,7 +39,7 @@ export function scorePercentile(score: number): number {
   return last[1];
 }
 
-/** good 임계(70)의 백분위 — cellTint 의 두 구간을 가르는 지점. */
+/** good 임계(68)의 백분위 — cellTint 의 구간을 가르는 지점이자 화면 숫자 80점. */
 const GOOD_PERCENTILE = scorePercentile(70);
 
 /** good 구간인가. 🔴 임계 숫자를 여기 다시 적지 않는다 — dayGrade 가 정본이다. */

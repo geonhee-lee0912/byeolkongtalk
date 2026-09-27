@@ -46,9 +46,12 @@ test("buildCalendar — 셀마다 간지·점수·등급·축이 채워진다", 
   assert.equal(cells[1].isToday, true, "오늘 플래그는 인자로 받은 KST 날짜와 일치할 때만");
 
   // 임(수)신: elementRelation(목,수)=생아(+18) · 갑-임 천간합 아님 · 자-신 육합/충 아님
-  //           · elementCount.수 = 2 → balanced(0)  →  50 + 18 = 68 → normal
+  //           · elementCount.수 = 2 → balanced(0)  →  50 + 18 = 68
+  // 🔴 68 은 2026-09-27 부터 good 의 **경계값**이다(이전 임계 70 에선 normal 이었다).
+  //    임계를 68/46 으로 옮긴 이유 = 화면 숫자(백분위)의 80/20 과 같은 자리로 맞추기 위함 —
+  //    day-score.ts 의 dayGrade 주석과 calendar-visual.test.ts 의 "축 정렬" 계약 참고.
   assert.equal(cells[2].score, 68);
-  assert.equal(cells[2].grade.tone, "normal");
+  assert.equal(cells[2].grade.tone, "good");
 });
 
 test("buildCalendar — 각 셀에 relation 노출(⑥ 골격 뱅크 키)", () => {

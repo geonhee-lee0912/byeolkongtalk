@@ -134,7 +134,7 @@ test("buildCalendar — tenGod 인자 순서 고정(내 일간 기준으로 그�
 });
 
 test("buildCalendar — 등급·점수는 무회귀(십신 추가가 판정을 바꾸지 않는다)", () => {
-  // ⚠️ 이 테스트가 깨지면 day-score.ts 의 dayGrade() 임계값(70/45)이 바뀐 것은 아닌지 먼저 볼 것.
+  // ⚠️ 이 테스트가 깨지면 day-score.ts 의 dayGrade() 임계값(68/46)이 바뀐 것은 아닌지 먼저 볼 것.
   const { cells } = cal30();
   // day-score.ts 를 안 건드렸으므로 임계 그대로: 70↑ good, 45↑ normal, 나머지 caution
   for (const c of cells) {

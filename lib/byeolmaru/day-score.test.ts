@@ -80,17 +80,21 @@ test("dayScore — 0~100 을 벗어나지 않는다", () => {
   }
 });
 
+// 🔴 임계 68/46 은 **화면에 찍히는 숫자(scoreDisplay = 백분위)의 80/20 과 같은 자리**다
+//    (2026-09-27). 45/70 이던 시절엔 원점수축과 백분위축이 달라, 화면에 70 이 찍힌 날이 금색이
+//    아니고 25 가 찍힌 날이 보라인 칸이 30칸 중 11칸 나왔다(실물 지적). 임계를 옮길 땐
+//    calendar-visual.test.ts 의 "축 정렬" 계약을 같이 볼 것 — 거기가 두 축을 묶는 자물쇠다.
 test("dayGrade — 경계값이 정확하다", () => {
-  assert.equal(dayGrade(70).tone, "good");
-  assert.equal(dayGrade(69).tone, "normal");
-  assert.equal(dayGrade(45).tone, "normal");
-  assert.equal(dayGrade(44).tone, "caution");
+  assert.equal(dayGrade(68).tone, "good");
+  assert.equal(dayGrade(67).tone, "normal");
+  assert.equal(dayGrade(46).tone, "normal");
+  assert.equal(dayGrade(45).tone, "caution");
   assert.equal(dayGrade(100).tone, "good");
   assert.equal(dayGrade(0).tone, "caution");
 });
 
 test("dayGrade — 라벨에 단정 표현이 없다(페르소나 화법)", () => {
-  for (const s of [0, 44, 45, 69, 70, 100]) {
+  for (const s of [0, 45, 46, 67, 68, 100]) {
     const label = dayGrade(s).label;
     assert.ok(label.length > 0);
     for (const banned of ["반드시", "절대", "확실", "될 거야", "한다"]) {
