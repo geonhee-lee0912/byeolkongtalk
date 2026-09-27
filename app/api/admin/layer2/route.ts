@@ -215,12 +215,54 @@ export async function GET(req: NextRequest) {
         label: "애널리틱스",
       });
     }
+
+    // 패키지별 × 신규/재결제 — 1층 '매출의 질' 줄이 합계만 보여주고 여기서 쪼갠다.
+    // 🔴 불변식: 이 표의 금액 합 == 같은 창의 admin_layer1_pnl 매출. 두 RPC 의 payments 필터가
+    //    글자 단위로 같아서 성립한다(2026-09-27 prod 인라인 대조: 7d 48,600 / 30d 257,800 /
+    //    전기간 656,200, 세 창 모두 diff 0). 어긋나면 한 화면 안에서 숫자가 갈린 것이다.
+    // 행 수는 STAR_PACKAGES(5종) × 2 로 **닫혀 있다** — route 표와 달리 절단이 필요 없다.
+    const mix = await supa.rpc("admin_layer2_revenue_mix", {
+      p_since: since,
+      p_until: null,
+      p_exclude,
+    });
+    if (mix.error) failed.push("admin_layer2_revenue_mix");
+    else {
+      // 🔴 BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수.
+      type MixRow = { package_type: string; is_first: boolean; cnt: string; won: string };
+      const rows = (mix.data ?? []) as MixRow[];
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: "패키지별 × 신규/재결제",
+          columns: ["패키지", "구분", "건수", "금액"],
+          // 🔴 셀은 전부 포맷터를 거친다 — TableBlock.rows 가 (string|null)[][] 인 이유다.
+          //    raw number 를 넣으면 천단위 구분자 없는 `196000` 이 되고 같은 화면의 다른 표는
+          //    `196,000원` 이 된다.
+          rows: rows.map((r) => [
+            r.package_type,
+            r.is_first ? "신규" : "재결제",
+            formatMetric(Number(r.cnt), "count"),
+            formatMetric(Number(r.won), "won"),
+          ]),
+          note: "금액 합은 같은 창의 1층 '매출'과 **정확히 같다**(같은 payments 필터). ⚠️ 탈퇴자의 결제는 user_id 가 NULL 로 익명 보존돼 '첫 결제인가'를 판정할 근거가 없다 — **재결제로 보수 분류**한다(신규로 세면 신규 매출이 실제보다 커진다). prod 실측 해당 건수: 전기간 6건 · 최근 30일 5건.",
+        });
+      }
+    }
+    blocks.push({
+      kind: "link",
+      title: "결제 원장·정산은",
+      href: "/admin/payments",
+      label: "결제/정산",
+    });
     // 🔴 임시 다리 — 1층 '연애 상담' 섹션(활성 패스·패스 구매·스킬 호출)을 Task 8 이 지웠는데
     //    이 드릴다운의 라벨은 아직 '연애 상담'을 약속한다. 빈 약속으로 두지 않는다.
     //    🔴 숫자를 복사하지 않는 이유: /admin/relationship 의 '패스 구매자'는 **사람 수**고
     //    1층이 보여주던 '패스 구매'는 **건수**다 — 정의가 다르다. 여기로 옮기면 이 플랜이
-    //    없애려는 바로 그 정의 드리프트가 생긴다. 정의를 정하고 실물 블록으로 이 자리를
-    //    채우는 건 Task 10(매출 ▾ 보강)이다.
+    //    없애려는 바로 그 정의 드리프트가 생긴다.
+    //    ⚠️ Task 10 이 이 자리를 실물 블록으로 채울 거라 적어뒀는데, Task 10 의 범위는 패키지
+    //       믹스와 구독이었다(위/아래). 연애 패스의 '건수 vs 사람 수' 정의는 **여전히 미정**이고
+    //       이 다리도 그대로다 — 다음 담당자가 빈 약속으로 오해하지 않도록 남긴다.
     // 🔴 위 애널리틱스 링크와 달리 **else 밖**이다(설명되는 비대칭): 이건 spend 데이터가 아니라
     //    삭제된 화면 요소를 잇는 **이동 다리**라 admin_star_spend_breakdown 의 성패와 무관하다.
     //    별 소모 조회가 죽었다고 연애 상담으로 가는 길까지 막을 이유가 없다 — 오히려 그때가
@@ -231,6 +273,88 @@ export async function GET(req: NextRequest) {
       href: "/admin/relationship",
       label: "연애 상담 화면",
     });
+  }
+
+  if (sectionRaw === "subscription") {
+    // 🔴 이 블록이 답해야 하는 질문 하나 — **5일+ 방문이 0.7% 인 서비스에서 30일 구독이
+    //    성립하나**(스펙 §2-5). 그래서 구독 수와 **구독 기간 안의 방문일**을 한 표에서 읽는다.
+    //    RPC 가 방문일을 구독 창으로 잘라서 준다(전 기간을 세면 구독 전·만료 후 방문이 섞여
+    //    질문에 답하지 못한다 — dev 실측 16.0일 vs 구독 기간 기준 7.0일).
+    const sub = await supa.rpc("admin_layer2_subscription", {
+      p_since: since,
+      p_until: null,
+      p_exclude,
+    });
+    if (sub.error) failed.push("admin_layer2_subscription");
+    else {
+      // BIGINT·NUMERIC 은 PostgREST 를 지나며 문자열로 온다. avg_visit_days 는 구독자가 0 명이면 null.
+      type SubRow = {
+        started: string;
+        subscribers: string;
+        expired: string;
+        active_now: string;
+        stars_spent: string;
+        free_stars: string;
+        avg_visit_days: string | null;
+        visit_days: string;
+        sub_days: string;
+      };
+      const r = ((sub.data ?? []) as SubRow[])[0];
+      const started = Number(r?.started ?? 0);
+      const subscribers = Number(r?.subscribers ?? 0);
+      const expired = Number(r?.expired ?? 0);
+      const visitDays = Number(r?.visit_days ?? 0);
+      const subDays = Number(r?.sub_days ?? 0);
+      // 🔴 비율은 pct1 경유 — `visitDays / subDays * 100` 을 먼저 하면 그 double 이 이미 참값이
+      //    아니라 포맷터로는 못 고친다(lib/admin/layer1.ts). 구독일이 0 이면 null → 화면에 "—".
+      const visitRate = pct1(visitDays, subDays);
+      // 평균 방문일은 소수라 `count` 로 찍으면 2.5 일이 "3" 이 되어 의미가 뭉개진다 → ratio.
+      const avg = r?.avg_visit_days == null ? null : Number(r.avg_visit_days);
+      blocks.push({
+        kind: "table",
+        title: `구독 (최근 ${days}일)`,
+        columns: [
+          "구매(건)",
+          "구독자(명)",
+          "만료(명)",
+          "순증(명)",
+          "현재 활성(명)",
+          "소모 별",
+          "무료별 몫",
+          "구독 중 방문일(평균)",
+          "구독일 대비 방문",
+        ],
+        rows: [
+          [
+            formatMetric(started, "count"),
+            formatMetric(subscribers, "count"),
+            formatMetric(expired, "count"),
+            // 🔴 순증은 **사람 수끼리** 뺀다. 구매(건)에서 만료(명)를 빼면 연장 재구매가
+            //    순증을 부풀린다 — 단위가 다른 뺄셈이다.
+            formatMetric(subscribers - expired, "count"),
+            formatMetric(Number(r?.active_now ?? 0), "count"),
+            formatMetric(Number(r?.stars_spent ?? 0), "count"),
+            formatMetric(Number(r?.free_stars ?? 0), "count"),
+            avg === null ? null : formatMetric(avg, "ratio"),
+            visitRate === null ? null : formatMetric(visitRate, "percent"),
+          ],
+        ],
+        note:
+          "🔴 구독 매출은 별 소모다 — **무료별 몫은 현금이 들어온 적이 없어 매출 0**이다(원화 환산은 1층 '구독 매출'이 유료별만 환산한다). " +
+          `**구독일 대비 방문 = ${formatMetric(visitDays, "count")}일 방문 / ${formatMetric(subDays, "count")}일 구독**(구독이 살아 있던 KST 달력일 합). ` +
+          "평균 방문일만 보면 **오늘 산 구독자가 30일차 구독자와 같은 무게**로 들어가 왜곡된다 — 그래서 경과일을 분모로 깐 이 비율을 같이 읽는다. " +
+          "구독자가 0 명인 창에서는 평균이 '—'다(0 이 아니라 **표본이 없다**). " +
+          "⚠️ '만료'는 그 사람의 **마지막 구독이 창 안에서 이미 끝난** 경우만 센다(재구독하면 빠진다). " +
+          "1층 '매출의 질'의 만료는 **미래 만료까지 세는 결함**이 남아 있어 더 큰 값이 나온다 — 정의가 다르니 두 숫자를 같게 기대하지 말 것. " +
+          "⚠️ '구매(건)'과 '구독자(명)'의 차이는 **연장 재구매**다(연장은 새 행을 만든다).",
+      });
+      blocks.push({
+        kind: "link",
+        title: "별마루 상세는",
+        href: "/admin/free/byeolmaru",
+        label: "별마루",
+      });
+    }
   }
 
   if (sectionRaw === "withdrawal") {
