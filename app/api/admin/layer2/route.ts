@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
+import { pct1 } from "@/lib/admin/layer1";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { isLayer2Section, type Layer2Block, type Layer2Response } from "@/lib/admin/layer2-types";
 
@@ -25,7 +26,14 @@ export async function GET(req: NextRequest) {
   if (!isLayer2Section(sectionRaw)) {
     return NextResponse.json({ error: "bad_section" }, { status: 400 });
   }
-  const days = Math.min(365, Math.max(1, Number(req.nextUrl.searchParams.get("days") ?? 7)));
+  // 🔴 NaN 가드 — Math.min/max 는 NaN 을 그대로 통과시키고, daysAgoKstIso(NaN) 은 Invalid Date 를
+  //    만들어 .toISOString() 에서 RangeError 로 터진다(`?days=abc` → 500). 파싱 실패는 400 으로
+  //    돌려준다 — 조용히 7 로 떨어뜨리면 호출부 버그가 안 드러난다(bad_section 과 같은 처리).
+  const daysRaw = Number(req.nextUrl.searchParams.get("days") ?? 7);
+  if (!Number.isFinite(daysRaw)) {
+    return NextResponse.json({ error: "bad_days" }, { status: 400 });
+  }
+  const days = Math.min(365, Math.max(1, daysRaw));
   const since = daysAgoKstIso(days - 1);
 
   const supa = getServiceSupabase();
@@ -69,6 +77,18 @@ export async function GET(req: NextRequest) {
         title: "상품별·코호트별 상세는",
         href: "/admin/analytics",
         label: "애널리틱스",
+      });
+      // 🔴 임시 다리 — 1층 '연애 상담' 섹션(활성 패스·패스 구매·스킬 호출)을 Task 8 이 지웠는데
+      //    이 드릴다운의 라벨은 아직 '연애 상담'을 약속한다. 빈 약속으로 두지 않는다.
+      //    🔴 숫자를 복사하지 않는 이유: /admin/relationship 의 '패스 구매자'는 **사람 수**고
+      //    1층이 보여주던 '패스 구매'는 **건수**다 — 정의가 다르다. 여기로 옮기면 이 플랜이
+      //    없애려는 바로 그 정의 드리프트가 생긴다. 정의를 정하고 실물 블록으로 이 자리를
+      //    채우는 건 Task 10(매출 ▾ 보강)이다.
+      blocks.push({
+        kind: "link",
+        title: "활성 패스 · 패스 구매 · 스킬 호출은",
+        href: "/admin/relationship",
+        label: "연애 상담 화면",
       });
     }
   }
@@ -117,9 +137,12 @@ export async function GET(req: NextRequest) {
 
     if (!wFailed && !uAll.error) {
       // 탈퇴율 = 탈퇴 / (현재 유저 + 탈퇴). 탈퇴는 users 를 지우므로 "총 가입 이력" 을 이렇게 복원한다.
+      // 🔴 비율 계산은 pct1 경유다 — `num / den * 100` 을 먼저 하면 그 double 이 이미 참값이
+      //    아니라(23/80*100 = 28.749999999999996) 뒤에서 어떤 반올림을 해도 28.8 이 안 나온다.
+      //    포맷터로 고칠 수 있는 문제가 아니고 나눗셈 자리에서 고쳐야 한다(lib/admin/layer1.ts).
       const wAllN = wAll.count ?? 0;
       const usersN = uAll.count ?? 0;
-      const den = usersN + wAllN;
+      const rate = pct1(wAllN, usersN + wAllN); // den=0 이면 null
       blocks.push({
         kind: "table",
         title: "누적 탈퇴율",
@@ -128,7 +151,7 @@ export async function GET(req: NextRequest) {
           [
             formatMetric(wAllN, "count"),
             formatMetric(usersN, "count"),
-            den > 0 ? formatMetric((wAllN / den) * 100, "percent") : null,
+            rate === null ? null : formatMetric(rate, "percent"),
           ],
         ],
         note: "탈퇴율 = 탈퇴 / (현재 유저 + 탈퇴). 탈퇴는 users 를 지우므로 '총 가입 이력' 을 이렇게 복원한다. ⚠️ 근사: 분모(현재 유저)에는 어드민 제외가 걸리는데 분자(탈퇴)에는 못 건다 — account_withdrawals 에 user_id 가 없어 판별 자체가 불가능하다. 이 비대칭 때문에 실제보다 소폭 높게 나온다.",
