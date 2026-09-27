@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-actions";
 import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
-import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
+import { daysAgoKstIso, kstDate, startOfTodayKstIso } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
 import { pct1 } from "@/lib/admin/layer1";
 import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, readingRowView, type ProductLabel } from "@/lib/admin/product-map";
@@ -541,6 +541,119 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (sectionRaw === "uv") {
+    // 라우트별 + 경로 판독기(스펙 §6). 새 로깅이 없다 — page_views 가 이미 모든 라우트를
+    // anon 단위·시간순으로 들고 있었고, 부족했던 건 **읽는 화면**이었다.
+    const PATH_LIMIT = 15;
+    const [routes, seqs, exits] = await Promise.all([
+      // 🔴 `p_today` 는 DEFAULT 가 없어 **필수 인자**다 — 빼면 PostgREST 가 시그니처를 못 찾아
+      //    404 로 죽는다(호출 자체가 실패하지 표가 비는 게 아니다). 날짜 버킷의 단일 원천은
+      //    lib/admin-time 의 kstDate 다 — 라우트에서 새로 계산하지 않는다(AGENTS.md).
+      //    여기선 today_* 열을 안 그리지만 인자는 그대로 줘야 한다.
+      supa.rpc("admin_traffic_routes", {
+        p_since: since,
+        p_exclude,
+        p_today: kstDate(new Date().toISOString()),
+        p_limit: PATH_LIMIT,
+      }),
+      supa.rpc("admin_path_sequences", {
+        p_since: since,
+        p_until: null,
+        p_steps: 4,
+        p_limit: PATH_LIMIT,
+        p_exclude,
+      }),
+      supa.rpc("admin_path_exits", { p_since: since, p_until: null, p_limit: PATH_LIMIT, p_exclude }),
+    ]);
+    if (routes.error) failed.push("admin_traffic_routes");
+    if (seqs.error) failed.push("admin_path_sequences");
+    if (exits.error) failed.push("admin_path_exits");
+
+    if (!routes.error) {
+      // 🔴 BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 전수.
+      type RouteRow = { path: string; uv: string; pv: string };
+      const rows = (routes.data ?? []) as RouteRow[];
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: "라우트별 UV/PV",
+          columns: ["라우트", "UV", "PV"],
+          // 🔴 셀은 전부 포맷터를 거친다(TableBlock.rows 가 string 인 이유) — raw number 를
+          //    넣으면 천단위 구분자 없는 `1731` 이 되고 같은 화면의 다른 표는 `1,731` 이 된다.
+          rows: rows.map((r) => [
+            r.path,
+            formatMetric(Number(r.uv), "count"),
+            formatMetric(Number(r.pv), "count"),
+          ]),
+          // 🔴 절단은 **눈에 보여야** 한다(AGENTS.md). RPC 가 자기 안에서 자르므로 전체 개수를
+          //    알 수 없다 — "잘렸다" 가 아니라 "잘렸을 수 있다" 가 아는 것의 전부다.
+          note:
+            (rows.length >= PATH_LIMIT
+              ? `⚠️ PV 큰 순 **${PATH_LIMIT}개만** 가져왔다 — 잘린 라우트가 있을 수 있다(전체는 아래 트래픽 화면). `
+              : "") +
+            "UV 는 anon 쿠키 단위 · 봇 제외 · 어드민 제외(로그인한 행 기준). ⚠️ 이 UV 는 라우트마다 따로 센 distinct 라 **열을 더해도 화면 전체 UV 가 되지 않는다**(한 사람이 여러 라우트를 본다).",
+        });
+      }
+    }
+
+    if (!seqs.error) {
+      type SeqRow = { seq: string; people: string; logged_in: string; paid: string };
+      const rows = (seqs.data ?? []) as SeqRow[];
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: "첫 4스텝 경로",
+          // 🔴 헤더에 `(%)` 를 붙이지 않는다 — formatMetric(_, "percent") 이 이미 `%` 를 붙여
+          //    `로그인(%) 97.2%` 가 된다.
+          columns: ["경로", "인원", "로그인", "결제"],
+          rows: rows.map((r) => {
+            const n = Number(r.people);
+            // 🔴 퍼센트는 pct1 경유다. `(a/n)*1000/10` 처럼 **나누고 곱하면** 그 double 이
+            //    이미 참값이 아니라(201/400 → 50.2, 참값 50.25) 뒤에서 뭘 해도 못 고친다.
+            //    pct1 은 ×1000 을 먼저 곱해 나눗셈을 한 번만 한다. den<=0 이면 null 이라
+            //    호출부의 삼항도 필요 없다(lib/admin/layer1.ts).
+            const login = pct1(Number(r.logged_in), n);
+            const paid = pct1(Number(r.paid), n);
+            return [
+              r.seq,
+              formatMetric(n, "count"),
+              login === null ? null : formatMetric(login, "percent"),
+              paid === null ? null : formatMetric(paid, "percent"),
+            ];
+          }),
+          note:
+            (rows.length >= PATH_LIMIT
+              ? `⚠️ 인원 많은 순 **${PATH_LIMIT}개만** 가져왔다 — 잘린 경로가 있을 수 있다. `
+              : "") +
+            "**anon 쿠키 단위** 첫 4스텝이다(세션 단위가 아니다) · 봇·`/admin*`·어드민 제외. " +
+            "로그인·결제는 첫 4스텝 **밖의** 도달도 센다 — 경로가 로그인으로 끝나지 않아도 그 사람이 창 안에서 로그인했으면 센다. " +
+            "2026-09-20 기준 30일 실측: `/login` 도달 **1,531명** 중 로그인 성공 **67.5~67.6%** — 약 500명이 로그인 없이 이탈했다. " +
+            "⚠️ '결제' 는 **그 경로를 탄 사람 중 결제 이력이 있는 비율**이지 그 경로가 결제로 이어졌다는 뜻이 아니다(결제 시점은 이 창 밖일 수 있다). " +
+            "⚠️ 어드민 제외는 `user_id` 로만 걸린다 — 운영자가 **로그아웃 상태로** QA 하면 안 걸러진다.",
+        });
+      }
+    }
+
+    if (!exits.error) {
+      type ExitRow = { path: string; people: string };
+      const items = ((exits.data ?? []) as ExitRow[]).map((r) => ({
+        label: r.path,
+        value: Number(r.people),
+      }));
+      if (items.length) {
+        blocks.push({
+          kind: "bars",
+          title: "이탈 지점 (창 안에서 마지막으로 본 화면)",
+          unit: "count",
+          items,
+          note: "⚠️ '이 창에서 마지막으로 본 화면' 이지 **서비스를 떠났다는 뜻이 아니다** — 창 끝에 걸린 사람은 다음 날 다시 온다. 창을 길게 잡을수록 진짜 이탈에 가까워진다.",
+        });
+      }
+    }
+
+    blocks.push({ kind: "link", title: "유입별·방문자 구성은", href: "/admin/traffic", label: "트래픽 UV/PV" });
+  }
+
   if (sectionRaw === "withdrawal") {
     // 1층의 탈퇴 표시 둘(오늘 섹션의 오늘/어제 · 전체 섹션의 누적+가입대비)이 여기로 내려왔다.
     // 🔴 창 경계는 lib/admin-time.ts 가 단일 원천이다 — 라우트에서 날짜 산술을 새로 쓰지 않는다.
@@ -609,7 +722,7 @@ export async function GET(req: NextRequest) {
     blocks.push({ kind: "link", title: "이탈 사유는", href: "/admin/survey", label: "이탈 설문" });
   }
 
-  // 나머지 섹션은 Task 9~14 에서 채운다. 빈 배열이면 Drilldown 이 "표시할 데이터가 없다"를 그린다.
+  // 나머지 섹션(d7)은 Task 14 에서 채운다. 빈 배열이면 Drilldown 이 "표시할 데이터가 없다"를 그린다.
   // 🔴 `d7` 섹션은 `days` 를 그대로 코호트 창으로 쓰면 안 된다 — 7일 코호트에 7일 성숙을 요구하면
   //    분모가 빈다(Task 7 실측: 7일 창 0명 / 30일 창 640명). 리텐션은 자체 코호트 창을 가져야 한다.
   const body: Layer2Response = { section: sectionRaw, blocks, ...(failed.length ? { failed } : {}) };
