@@ -164,7 +164,9 @@ export default function ByeolmaruHub() {
 
   // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
   function openDay(date: string) {
-    router.push(date === data.today ? "/byeolmaru/saju" : `/byeolmaru/saju?date=${date}`);
+    // 🔴 기본 탭(사주)이라 tab 을 안 붙인다 — 칸에 찍힌 숫자·색이 사주 일진 점수라
+    //    다른 탭이 열리면 "내가 누른 숫자"와 화면이 어긋난다(스펙 §2 결정 2).
+    router.push(date === data.today ? "/byeolmaru/day" : `/byeolmaru/day?date=${date}`);
   }
 
   return (

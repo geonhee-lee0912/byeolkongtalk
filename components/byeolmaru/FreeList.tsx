@@ -124,7 +124,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
   return [
     {
       key: "saju_today",
-      href: "/byeolmaru/saju",
+      href: "/byeolmaru/day",
       label: "오늘 사주",
       tagline: "오늘 네 하루가 어떤 결로 흐르는지 봐줄게",
       // 🔴 "축 3종"(연애·돈·일)은 내부 용어였다 — 읽는 사람이 뭘 받는지 몰랐다.
@@ -141,7 +141,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
     },
     {
       key: "tarot",
-      href: "/byeolmaru/tarot",
+      href: "/byeolmaru/day?tab=tarot",
       label: "오늘 타로",
       tagline: "카드 한 장으로 오늘을 가볍게 짚어봐",
       // 🔴 해시태그는 행마다 하나로 맞춘다 — 구독 칩이 그 줄 앞자리를 먹어서, 두 개면 이 행만
@@ -167,7 +167,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 `?subject=` 를 안 붙인다 — 상대 선택은 도착지가 스스로 한다(1명이면 자동 선택,
       //    0명이면 걸어두기 유도). 허브가 고를 상대를 알 필요가 없어졌다.
       key: "woori",
-      href: "/byeolmaru/woori",
+      href: "/byeolmaru/day?tab=woori",
       label: "우리 오늘",
       // 🔴 "걸어둔"은 앱 안에서만 통하는 말이라 뺐다.
       tagline: "그 사람과 나, 오늘 둘 사이가 어떤지 봐줄게",

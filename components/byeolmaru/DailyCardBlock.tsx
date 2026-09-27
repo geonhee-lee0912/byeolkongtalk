@@ -332,7 +332,7 @@ export default function DailyCardBlock({
             //    이 링크를 거쳐 뒤로가기로 돌아와도 살아남는다. 포털도 `ritualVisible` 로 같이 잠근다.
             <p className="text-sm text-text-light">
               {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
-              <Link href="/byeolmaru/tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
+              <Link href="/byeolmaru/day?tab=tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
             </p>
           )}
         </section>
@@ -369,7 +369,7 @@ export default function DailyCardBlock({
               //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
               //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
               //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
-              link: `${window.location.origin}/byeolmaru/tarot?utm_source=byeolmaru_tarot&utm_medium=share`,
+              link: `${window.location.origin}/byeolmaru/day?tab=tarot&utm_source=byeolmaru_tarot&utm_medium=share`,
               buttonTitle: "나도 뽑아보기",
             });
             // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.
