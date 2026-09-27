@@ -101,7 +101,12 @@ export default function PairDayDetailCard({
           정보가 텍스트로 깔려** 진짜 읽을 글(taste·리포트)과 구분이 안 됐다.
           🔴 **전부 룰 데이터다(LLM 0·원가 0)** — 십신 라벨·설렘·척척은 backdrop, 연월조화는 0~4
              카운트(천간합 2 + 육합 2). 새 LLM 필드를 만들지 않았다. */}
-      <div className="rounded-xl border border-lilac-soft bg-white/60 p-3">
+      {/* 🔴 `mt-4` 는 위 등급 라벨("무난한 날")과의 간격이다(2026-09-27, 사용자 요청) — 라벨에
+          bottom 마진이 없어 박스가 바로 붙어 있었다.
+          🔴 라벨이 아니라 **박스에** 준 이유: 마크 칩 줄(`ul.mb-4`)이 있는 날엔 라벨과 박스
+             사이에 그 줄이 끼는데, 라벨에 마진을 주면 칩이 있는 날만 간격이 두 번 들어간다.
+             박스에 주면 인접 형제 마진이 상쇄돼(16 vs 16) 칩 유무와 상관없이 16px 로 같다. */}
+      <div className="mt-4 rounded-xl border border-lilac-soft bg-white/60 p-3">
         <p className="mb-2 text-[11px] font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
 
         {/* 십신 — 서로를 어떻게 보는지. 방향이 다르므로 마주보게 둔다(한 줄 `A ↔ B` 는 누가 누구를

@@ -234,7 +234,9 @@ export default function SajuTodayView({
           </div>
         ) : notGenerated ? (
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-            그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+            그날은 리포트를 안 받았어.
+            <br />
+            지난 날은 그때 받은 것만 보여줄 수 있어.
           </p>
         ) : locked ? (
           /* 🔴 여기만 border-t 래퍼가 없다(의도) — PaywallCut 이 자체 금색 절단선을 갖고 있어
