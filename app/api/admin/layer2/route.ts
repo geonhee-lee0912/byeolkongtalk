@@ -357,6 +357,106 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (sectionRaw === "signups") {
+    // 1층 '가입' 을 펼친 자리 — **어디서 온 가입인가** 와 **무료 상품이 사람을 데려오나**.
+    //
+    // 🔴 무료 상품의 코호트를 utm 쿠키로 잡지 않는다. `byeolkong_acq` 는 first-touch 라 30일간
+    //    덮어쓰지 않아, 광고로 먼저 왔던 사람이 공유 링크로 재방문해 가입하면 utm_source='meta'
+    //    로 기록되고 공유 기여가 통째로 은폐된다(스펙 §5-3). RPC 가 **착지 anon → 로그인**
+    //    브리지로 잡는 이유다(MBTI 가 이미 쓰는 기법).
+    //
+    // 🔴 BRIDGE_DAYS 의 단일 원천은 여기다 — RPC 인자와 아래 note 문자열이 **같은 상수**를 본다.
+    //    SQL 에 상수로 박고 note 에 숫자를 손으로 적으면 두 곳이 되어 조용히 갈린다.
+    //    30일인 근거는 마이그레이션 주석 참조(acq 쿠키 수명과 같은 지평).
+    const BRIDGE_DAYS = 30;
+    const FREE_PRODUCTS = [
+      { utm: "byeoljari", label: "별 인연 별자리" },
+      { utm: "saju_mbti", label: "사주 MBTI" },
+      { utm: "byeolmaru_tarot", label: "별마루 오늘의 타로" },
+      { utm: "byeolmaru_saju", label: "별마루 오늘의 사주" },
+    ];
+    // 🔴 반환 모양이 다른 두 RPC 를 **한 배열에 spread 로 섞지 않는다** — 튜플이 유니온으로
+    //    무너져 이후 분기에서 .data 의 모양을 잃는다. 퍼널만 안쪽 Promise.all 로 묶는다.
+    const [mix, funnels] = await Promise.all([
+      supa.rpc("admin_layer2_signup_mix", { p_since: since, p_until: null, p_exclude }),
+      Promise.all(
+        FREE_PRODUCTS.map((p) =>
+          supa.rpc("admin_free_share_funnel", {
+            p_product: p.utm,
+            p_since: since,
+            p_until: null,
+            p_exclude,
+            p_bridge_days: BRIDGE_DAYS,
+          })
+        )
+      ),
+    ]);
+
+    if (mix.error) failed.push("admin_layer2_signup_mix");
+    else {
+      // 🔴 BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수.
+      type MixRow = { source: string; signups: string; payers: string; revenue_won: string };
+      const rows = (mix.data ?? []) as MixRow[];
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: `유입 경로별 가입 · 결제 (최근 ${days}일)`,
+          // 헤더에 '(원)' 을 안 붙인다 — formatMetric(…, "won") 이 값에 '원' 을 붙이므로
+          // 같이 쓰면 `매출(원): 12,000원` 이 된다.
+          columns: ["경로", "가입", "결제자", "매출", "가입당"],
+          // 🔴 셀은 전부 포맷터를 거친다 — TableBlock.rows 가 (string|null)[][] 인 이유다.
+          //    raw number 를 넣으면 천단위 구분자 없는 `187800` 이 되고 같은 화면의 다른 표는
+          //    `187,800원` 이 된다.
+          rows: rows.map((r) => {
+            const n = Number(r.signups);
+            const won = Number(r.revenue_won);
+            return [
+              r.source,
+              formatMetric(n, "count"),
+              formatMetric(Number(r.payers), "count"),
+              formatMetric(won, "won"),
+              // 가입당은 퍼센트가 아니라 나눗셈이라 pct1 대상이 아니다. 분모 0 이면 "—".
+              n > 0 ? formatMetric(won / n, "won") : null,
+            ];
+          }),
+          note: "오가닉은 user_acquisition 행이 **없는** 가입이다 — 쿠키 차단·acq 쿠키 30일 만료도 섞이므로 오가닉의 **상한**으로 읽을 것. 🔴 이 표의 가입 합은 같은 창의 1층 '가입'과 **정확히 같다**(같은 users 필터 — 2026-09-27 prod 30일 창 인라인 대조 836 == 836). 어긋나면 1층과 2층이 다른 모수를 말하는 것이다. ⚠️ 결제·매출은 **창 안의 결제가 아니라 그 코호트의 누적**이다 — 코호트가 가입일로 정의되므로 결제는 전부 가입 이후이고, 최근 가입일수록 아직 덜 익었다.",
+        });
+      }
+    }
+
+    // 🔴 퍼널 표는 mix 의 성패와 무관하게 항상 그린다(설명되는 비대칭) — 서로 다른 RPC 이고,
+    //    유입 경로가 안 보인다고 무료 상품의 획득 기여까지 가릴 이유가 없다.
+    const funnelRows = FREE_PRODUCTS.map((p, i) => {
+      const res = funnels[i];
+      if (res.error) {
+        failed.push(`admin_free_share_funnel(${p.utm})`);
+        // null 은 화면에서 "—" — 0 으로 채우면 "착지가 없었다" 는 **거짓말**이 된다.
+        return [p.label, null, null, null, null];
+      }
+      const r = ((res.data ?? []) as Record<string, string>[])[0];
+      return [
+        p.label,
+        formatMetric(Number(r?.landings ?? 0), "count"),
+        formatMetric(Number(r?.signups ?? 0), "count"),
+        formatMetric(Number(r?.payers ?? 0), "count"),
+        formatMetric(Number(r?.revenue_won ?? 0), "won"),
+      ];
+    });
+    blocks.push({
+      kind: "table",
+      title: `무료 상품 공유 퍼널 — 착지 → 가입 → 결제 (최근 ${days}일)`,
+      columns: ["상품", "착지", "가입", "결제자", "매출"],
+      rows: funnelRows,
+      note:
+        "🔴 무료 상품을 '전환율'로 재지 않는다 — 2026-08-24 실측에서 무료→결제는 깔때기가 아니라 역인과였다. 이 표는 **획득(바이럴)** 을 잰다. " +
+        `코호트는 utm 쿠키가 아니라 **착지 anon → 로그인** 브리지로 잡고(first-touch 은폐 회피), **착지 후 ${BRIDGE_DAYS}일 안의 로그인만** 귀속한다(상한이 없으면 1년 전 착지가 오늘 가입으로 잡혀 인과가 희석된다 — anon 쿠키 수명이 1년이다). ` +
+        "'가입'은 **착지 이후에 새로 생긴 계정**만 센다 — 이미 있던 계정이 공유 링크로 들어와 로그인한 건 획득이 아니다(2026-09-27 prod 반사실: 이 가드가 −4.2%). 결제도 착지 이후 것만 센다. " +
+        "⚠️ **비대칭 주의** — 분모(착지)는 anon 기준이라 어드민·테스트 계정을 뺄 수 없고(비로그인 착지 행엔 user_id 가 없다), 분자(가입·결제)에는 제외가 걸린다. 그만큼 전환이 실제보다 **낮게** 보인다. " +
+        "⚠️ 별마루 2종은 공유 링크에 utm 이 이미 붙어 있다(DailyCardBlock · SajuTodayView) — prod 에서 0인 건 **별마루가 아직 prod 에 없기 때문**이고, 배포되면 저절로 채워진다.",
+    });
+    blocks.push({ kind: "link", title: "소재별 지출은", href: "/admin/ads", label: "광고 지출" });
+  }
+
   if (sectionRaw === "withdrawal") {
     // 1층의 탈퇴 표시 둘(오늘 섹션의 오늘/어제 · 전체 섹션의 누적+가입대비)이 여기로 내려왔다.
     // 🔴 창 경계는 lib/admin-time.ts 가 단일 원천이다 — 라우트에서 날짜 산술을 새로 쓰지 않는다.
