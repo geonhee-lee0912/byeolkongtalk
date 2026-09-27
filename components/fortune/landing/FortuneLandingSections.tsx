@@ -1,6 +1,7 @@
 // 랜딩 본문 4섹션 — 궁금 / 목차 / 샘플 / 관련상품. 상품 종류를 모르는 순수 표시 컴포넌트.
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { MarkdownLite } from "@/lib/markdown-lite";
 import { OUTLINE_VISIBLE } from "@/lib/fortune/outline";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
@@ -63,7 +64,8 @@ export default function FortuneLandingSections({
       <Block title="이런 대목이 나와">
         {sample ? (
           <div className="bg-cream-warm rounded-2xl px-4 py-3.5">
-            <p className="text-[13px] text-eye-purple leading-[1.85] whitespace-pre-line">{sample}</p>
+            {/* 발췌는 실제 리포트와 같은 마크다운 렌더를 탄다 — 그냥 넣으면 **볼드**가 별표로 뜬다. */}
+            <MarkdownLite text={sample} className="text-[13px] text-eye-purple leading-[1.85]" />
             <p className="text-[11px] text-lilac-mid mt-2">예시 · 실제 리포트는 네 사주로 다시 쓰여</p>
           </div>
         ) : (
