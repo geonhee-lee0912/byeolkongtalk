@@ -20,7 +20,7 @@ type State =
   | { kind: "need_login" }
   | { kind: "no_profile" }
   | { kind: "error" }
-  | { kind: "ready"; entitled: boolean; trialUsed: boolean };
+  | { kind: "ready"; entitled: boolean; trialUsed: boolean; today: string };
 
 // 🔴 initialSubject(?subject=) 가 사라졌다(2026-09-24) — 상대가 한 명이라 고를 것이 없고,
 //    그 파라미터를 붙여 보내는 링크도 앱 안엔 없었다. 딥링크가 다시 필요해지면 상대 id 가
@@ -80,9 +80,11 @@ export default function WooriTodayView({
       if (status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
       if (status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
       if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
-      const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean } | null;
-      if (!data || !Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
-      setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed });
+      const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean; today?: string } | null;
+      // 🔴 today 가 없으면 error 로 접는다 — 이 값이 아래 isPastDate(과거 판정) 의 유일한
+      //    근거라, 빈 값을 "오늘 아님"으로 접으면 과거 조회가 조용히 막힌다.
+      if (!data || !Array.isArray(data.cells) || data.cells.length === 0 || !data.today) { setState({ kind: "error" }); return; }
+      setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today });
       await loadPartners();
     } catch { setState({ kind: "error" }); }
   }
@@ -118,9 +120,9 @@ export default function WooriTodayView({
     if (res.status === 401) { setState({ kind: "need_login" }); return; }
     if (res.status === 404) { setState({ kind: "no_profile" }); return; }
     if (!res.ok || !body) { setState({ kind: "error" }); return; }
-    const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean };
-    if (!Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
-    setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed });
+    const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean; today?: string };
+    if (!Array.isArray(data.cells) || data.cells.length === 0 || !data.today) { setState({ kind: "error" }); return; }
+    setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today });
   }
 
   // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 deps 에 넣어 같은 상대를
@@ -153,16 +155,36 @@ export default function WooriTodayView({
     return () => { cancelled = true; };
   }, [subject, entitledNow]);
 
-  // 우리 오늘 서술 — 위 캘린더 effect 와 deps 는 같지만 의도적으로 분리한다. 캘린더는 룰이라 즉시,
+  // 🔴 "오늘"의 출처 — pairData.today(=상대 기준 캘린더 응답)가 아니라 **자기 캘린더 응답**(위
+  //    state, subject 와 무관하게 항상 도는 effect)에서 가져온다. pairData 는 subject==="me"
+  //    면 아예 안 채워지므로(바로 위 effect 의 첫 줄), 그걸 근거로 삼으면 상대가 없는 사람은
+  //    영원히 "과거"를 판정할 수 없다 — 과거 조회는 정의상 상대가 없어도 가능해야 한다(아래).
+  const todayKst = state.kind === "ready" ? state.today : null;
+  // 🔴 지난 날엔 생성 유도(하루 상한 안내 등)를 숨기고, 자격과 무관하게 과거 서술을 부른다 —
+  //    소급 생성은 금지돼 있어 "생성"이 아니라 "그때 이미 받은 것"을 다시 보여줄 뿐이고, 라우트도
+  //    이 경로(cache_only)를 자격 게이트보다 앞에 둔다(스테이지 3). 아래 narrative effect 의
+  //    가드가 이 값을 그대로 쓴다.
+  const isPastDate = !!initialDate && !!todayKst && initialDate < todayKst;
+
+  // 우리 오늘 서술 — 위 캘린더 effect 와 deps 는 비슷하지만 의도적으로 분리한다. 캘린더는 룰이라 즉시,
   // 서술은 nano 라 느려서 합치면 서술 완료까지 캘린더 렌더가 묶인다. cancelled 가드는 빠른 subject
-  // 전환 시 낡은 fetch 가 최신 상태를 덮어쓰는 것을 막는다. 비자격(!entitledNow)은 아예 호출 안 함(원가 0).
+  // 전환 시 낡은 fetch 가 최신 상태를 덮어쓰는 것을 막는다.
+  // 🔴 오늘(비과거)은 여전히 비자격이면 아예 호출 안 함(원가 0) — entitledNow 가드는 살아 있다.
+  //    다만 **과거는 이 가드를 건너뛴다** — 라우트의 cache_only 분기가 자격 검사 앞에 있어(스테이지 3),
+  //    이미 받은 글을 자격 만료 뒤에도 보여주는 게 설계 의도다. 여기서 막으면 "서버는 내주는데
+  //    화면은 못 보여주는" 불일치가 남는다(11642fd 가 사주·타로에서 고친 것과 같은 버그 계열).
   useEffect(() => {
-    if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairDailyLimit(false); setPastPartnerId(null); setPastNoRecord(false); setPairNarrativeLoading(false); return; }
+    const shouldFetch = isPastDate || (subject !== "me" && entitledNow);
+    if (!shouldFetch) { setPairNarrative(null); setPairDailyLimit(false); setPastPartnerId(null); setPastNoRecord(false); setPairNarrativeLoading(false); return; }
     let cancelled = false;
     setPairNarrative(null); setPairDailyLimit(false); setPastPartnerId(null); setPastNoRecord(false); setPairNarrativeLoading(true);
     void (async () => {
       try {
-        const qs = new URLSearchParams({ subject });
+        // 🔴 subject 는 "오늘(generate)" 경로에서만 필수다 — 과거(cache_only)는 유저+날짜로만
+        //    찾는다(getPairNarrativeByDate, 상대 무관). subject==="me"(상대 없음)로 과거를 보는
+        //    중이면 보낼 subject 자체가 없다 — "me" 를 그대로 보내면 잘못된 값을 보내는 셈이라 아예 뺀다.
+        const qs = new URLSearchParams();
+        if (subject !== "me") qs.set("subject", subject);
         if (initialDate) qs.set("date", initialDate);
         const res = await fetch(`/api/byeolmaru/pair-narrative?${qs}`, { cache: "no-store" });
         if (!res.ok) { if (!cancelled) setPairNarrative(null); return; }
@@ -181,7 +203,10 @@ export default function WooriTodayView({
       finally { if (!cancelled) setPairNarrativeLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [subject, entitledNow]);
+    // 🔴 initialDate 를 deps 에 넣는다 — isPastDate 가 "참"에서 안 바뀌어도(과거 날짜 A→다른
+    //    과거 날짜 B) 실제로 조회할 날짜는 달라지므로 다시 불러야 한다. 지금은 이 화면 안에
+    //    날짜만 바꾸는 링크가 없어 재현되진 않지만, 생기면 조용히 stale 서술을 보여줄 수 있었다.
+  }, [subject, entitledNow, isPastDate, initialDate]);
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   if (state.kind === "need_login") return (
@@ -221,10 +246,6 @@ export default function WooriTodayView({
     ? (partner && partner.id === pastPartnerId ? partner : { id: pastPartnerId, name: "그날의 상대", status: null })
     : partner;
 
-  // 🔴 지난 날엔 생성 유도(하루 상한 안내 등)를 숨긴다 — 소급 생성이 금지돼 있어 그 안내가
-  //    거짓말이 된다. pairData.today 는 subject 기준 캘린더 응답의 오늘(KST)이다.
-  const isPast = !!initialDate && !!pairData && initialDate < pairData.today;
-
   return (
     <div className="space-y-4">
       {/* 🔴 칩(여러 명 선택)이 아니라 한 명 카드다(2026-09-24). 고를 대상이 없으니 남은 건
@@ -232,12 +253,31 @@ export default function WooriTodayView({
       <CurrentPartner partner={shownPartner} onChange={() => setAddOpen(true)} />
 
       {subject === "me" ? (
-        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
-          {/* 🔴 상대가 0명인 것과 아직 못 물어본 것을 가른다 — 콜드 진입이라 목록을 받기 전에
-              "먼저 걸어두면…"을 띄우면 이미 상대가 있는 사람에게 거짓말이 한 프레임 스친다.
-              목록이 도착하고 0명이면 위 칩 자리의 금색 점선 버튼과 이 문구가 한 쌍이 된다. */}
-          {partnersLoaded ? "먼저 상대를 걸어두면 둘 사이 오늘을 볼 수 있어." : "펼치는 중…"}
-        </p>
+        // 🔴 상대가 지금 없어도(교체·해제로 subject==="me") 과거에 받은 기록은 남아있을 수
+        //    있다 — getPairNarrativeByDate 는 상대가 아니라 유저+날짜로 찾는다. 그 기록이
+        //    있을 때만 이 분기를 쓰고, 없으면 기존 "상대 걸어두기" 안내로 그대로 떨어진다
+        //    (else 가지). pairData/pairCell 이 없어 PairDayDetailCard 는 못 쓴다(그건 상대
+        //    사주가 있어야 그리는 카드다) — 서술만 단독으로 보여준다.
+        isPastDate && (pairNarrativeLoading || pairNarrative || pastNoRecord) ? (
+          <div className="rounded-2xl bg-cream-warm p-4">
+            {pairNarrativeLoading ? (
+              <p className="text-center text-sm text-text-light">별콩이가 그날 이야기를 읽고 있어…</p>
+            ) : pairNarrative ? (
+              <PairReportView report={pairNarrative} />
+            ) : (
+              <p className="text-center text-sm text-text-light">
+                그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+            {/* 🔴 상대가 0명인 것과 아직 못 물어본 것을 가른다 — 콜드 진입이라 목록을 받기 전에
+                "먼저 걸어두면…"을 띄우면 이미 상대가 있는 사람에게 거짓말이 한 프레임 스친다.
+                목록이 도착하고 0명이면 위 칩 자리의 금색 점선 버튼과 이 문구가 한 쌍이 된다. */}
+            {partnersLoaded ? "먼저 상대를 걸어두면 둘 사이 오늘을 볼 수 있어." : "펼치는 중…"}
+          </p>
+        )
       ) : pairError ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
       ) : pairData && pairCell ? (
@@ -259,48 +299,37 @@ export default function WooriTodayView({
             //    자격과 무관하게 **항상** 넘긴다: 구독자도 "둘이 어떤 결인지"를 읽어야 한다(§5-3① 과 같은 판단).
             taste={pairTaste}
           >
-            {pairData.entitled ? (
-              pairNarrativeLoading ? (
-                <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                  별콩이가 둘 사이 오늘을 읽고 있어…
-                </div>
-              ) : pairNarrative ? (
-                <div className="mt-4 border-t border-lilac-mid/20 pt-4">
-                  {/* 🔴 pair-narrative 라우트엔 date 파라미터가 없어 이 리포트는 **항상 오늘 기준**이다.
-                      다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 밝힌다.
-                      (카드 구조를 바꾸면서 이 안내가 한 번 사라졌다 — 지우지 말 것.) */}
-                  {!pairCell.isToday && (
-                    <p className="mb-2 text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
-                  )}
-                  <PairReportView report={pairNarrative} />
-                </div>
-              ) : pastNoRecord ? (
-                /* 🔴 과거 + 기록 없음 — 소급 생성은 금지라 "그때 받은 것만" 보여줄 수 있다는 걸
-                      분명히 한다(대기·재시도를 권하지 않는다 — 기다려도 안 생긴다). */
-                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                  그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
-                </p>
-              ) : pairDailyLimit && !isPast ? (
-                /* 🔴 페이월이 아니다 — "결제하면 더"가 아니라 "오늘은 여기까지"다. 상대를 바꾸는
-                      순간은 대개 관계가 끝난 순간이라 거기에 결제를 붙이지 않기로 했다(교체 과금 기각).
-                      되돌아가는 건 캐시 히트라 이 안내에 안 걸린다 — 오늘 이미 본 사람은 그대로 보인다.
-                   🔴 !isPast 게이트 — 하루 상한은 "오늘" 개념이라 과거 조회엔 적용될 수 없다(서버도
-                      cache_only 경로에선 이 reason 을 안 준다). 방어적으로 명시한다. */
-                <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center">
-                  <p className="text-sm text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
-                  <p className="mt-1 text-[13px] text-text-light">
-                    이 사람 이야기는 내일 들려줄게. 오늘 본 사람은 다시 볼 수 있어.
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                  별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
-                </p>
-              )
-            ) : (
+            {/* 🔴 게이트 순서 — "지금 자격 있나"가 아니라 "보여줄 내용이 있나"를 먼저 본다
+                (SajuTodayView 의 `report ? (...)` 와 같은 원칙, 2026-09-26). 안 그러면 방금 고친
+                effect 가 과거 서술을 잘 받아와도 이 바깥 게이트가 pairData.entitled(=지금 자격)
+                만 보고 PaywallCut 으로 버린다 — 11642fd 가 타로에서 고친 "불러놓고 렌더가 버리는"
+                바로 그 패턴이 된다. 자격 만료 뒤에도 그때 받은 글은 그대로 보여야 한다. */}
+            {pairNarrativeLoading ? (
+              <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                별콩이가 둘 사이 오늘을 읽고 있어…
+              </div>
+            ) : pairNarrative ? (
+              <div className="mt-4 border-t border-lilac-mid/20 pt-4">
+                {/* 🔴 pair-narrative 라우트엔 date 파라미터가 없어 이 리포트는 **항상 오늘 기준**이다.
+                    다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 밝힌다.
+                    (카드 구조를 바꾸면서 이 안내가 한 번 사라졌다 — 지우지 말 것.) */}
+                {!pairCell.isToday && (
+                  <p className="mb-2 text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
+                )}
+                <PairReportView report={pairNarrative} />
+              </div>
+            ) : pastNoRecord ? (
+              /* 🔴 과거 + 기록 없음 — 소급 생성은 금지라 "그때 받은 것만" 보여줄 수 있다는 걸
+                    분명히 한다(대기·재시도를 권하지 않는다 — 기다려도 안 생긴다). */
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+              </p>
+            ) : !pairData.entitled && !isPastDate ? (
               /* 🔴 여기만 border-t 래퍼가 없다(의도) — PaywallCut 이 자체 금색 절단선을 갖고 있어
                     감싸면 선이 두 개가 된다(SajuTodayView 와 같은 규율).
-                 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 비자격 분기에서만.
+                 🔴 PaywallCut 은 마운트만으로 gate_shown 을 찍는다 — 반드시 "지금 비자격 + 오늘"
+                    분기에서만(과거는 위 세 분기가 이미 가로챈다 — 팔 수 없는 날을 분모에서 뺀다,
+                    daily-report 의 out_of_range 게이트와 같은 이유).
                  🔴 계측 단절: woori_30d 의 surface 가 "bait_card" → "cut" 으로 바뀌고, PremiumBlock 의
                     `!dismissed` 억제가 없어져 shown 분모에 재방문이 들어온다. 배포일 전후 전환율
                     하락으로 오독하지 말 것(PaywallCut.tsx 머리 주석이 같은 경고를 담고 있다). */
@@ -320,6 +349,22 @@ export default function WooriTodayView({
                   openSubscribe(slot);
                 }}
               />
+            ) : pairDailyLimit && !isPastDate ? (
+              /* 🔴 페이월이 아니다 — "결제하면 더"가 아니라 "오늘은 여기까지"다. 상대를 바꾸는
+                    순간은 대개 관계가 끝난 순간이라 거기에 결제를 붙이지 않기로 했다(교체 과금 기각).
+                    되돌아가는 건 캐시 히트라 이 안내에 안 걸린다 — 오늘 이미 본 사람은 그대로 보인다.
+                 🔴 !isPastDate 게이트 — 하루 상한은 "오늘" 개념이라 과거 조회엔 적용될 수 없다(서버도
+                    cache_only 경로에선 이 reason 을 안 준다). 방어적으로 명시한다. */
+              <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center">
+                <p className="text-sm text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
+                <p className="mt-1 text-[13px] text-text-light">
+                  이 사람 이야기는 내일 들려줄게. 오늘 본 사람은 다시 볼 수 있어.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
+              </p>
             )}
           </PairDayDetailCard>
         </>
