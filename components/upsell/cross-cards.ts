@@ -24,7 +24,8 @@ const SAJU_BY_CATEGORY: Record<SpreadCategory, FortuneType> = {
 };
 
 // 사주/운세 결과 → 주제 연관 다음 사주(랜덤-next 대신). 위로/재미 미스매치 방지.
-const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
+// 상품 설명 페이지의 "같이 보면 좋은 것" 도 이 표를 쓴다 — 인접성을 두 벌로 관리하면 갈라진다.
+export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
   love_self: ["love_year", "marriage"],
   love_year: ["love_self", "marriage"],
   marriage: ["love_self", "love_year"],
