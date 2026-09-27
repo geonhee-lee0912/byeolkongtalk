@@ -233,14 +233,22 @@ export default function ByeolmaruHub() {
         {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /
             gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 격자 칸이 42.7px 로 돌아간다. */}
         <section className="rounded-2xl p-3" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
-          {/* 🔴 판 안 구분선이 없다 — 그 선은 스트립과 격자를 가르던 것이고 둘 중 하나가
-              사라졌다. 판 안에 남은 층은 리드 줄 + 격자 둘뿐이다. */}
-          <div className="space-y-2">
+          {/* 🔴 판 안에 구분선이 **다시 생겼다**(2026-09-27, 목업 A3 채택). 예전에 뺐던 선은
+              스트립↔격자를 가르던 것이고 스트립이 사라져 역할이 없어진 거였다. 이번 선은
+              **리드줄↔격자**를 가른다 — 역할이 다르다. 리드가 요일 행과 8px 로 붙어 있어
+              "격자의 머리글"처럼 읽히던 걸 끊는 게 목적이다(사용자 지적).
+              🔴 `space-y-2` 를 걷어냈다 — 간격을 선의 `my-3` 이 지게 해야 위아래가 12px 로
+                 대칭이 된다. space-y 를 되살리면 선 위아래에 8px 이 덧붙어 어긋난다. */}
+          <div>
             <TodayLead
               todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
               todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
               attendance={attendance}
             />
+            {/* 🔴 `-mx-3` 은 위 `section` 의 `p-3` 과 한 쌍이다 — 판 패딩을 되돌려 선이 카드
+                좌우 끝까지 닿게 한다(패딩 안쪽까지만 긋는 안보다 층이 분명했다, 실물 비교).
+                판 패딩을 바꾸면 이 값도 같이 바꿔야 한다. */}
+            <div className="-mx-3 my-3 border-t border-dashed border-lilac-mid/50" />
             {/* 🔴 접이식(MonthGridSection)이 사라졌다 — 그 래퍼의 존재 이유는 "접힘 클릭률로
                 폐지 여부를 답 얻는다"였는데 별마루가 prod 에 안 나가 그 실험은 시작된 적이
                 없고, seen 플래그가 **토글했을 때만** 심어져서 한 번도 안 건드린 사람에겐

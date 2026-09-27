@@ -21,11 +21,15 @@ export default function TodayLead({ todayName, todayScore, attendance }: Props) 
   return (
     <div className="flex items-baseline justify-between gap-2 px-1">
       {/* 🔴 점수를 여기서도 한 번 말한다 — 칸의 "66점"이 무엇인지 문장으로 받아준다.
-          앞부분(오늘 N점)과 하루 이름의 위계를 벌린다 — 한 크기로 쓰면 어디가 머리인지 안 보인다. */}
+          앞부분(오늘 N점)과 하루 이름의 위계를 벌린다 — 한 크기로 쓰면 어디가 머리인지 안 보인다.
+          🔴 **16px/700 → 14px/600 이다**(2026-09-27, 목업 A안 채택). 예전 값은 섹션 제목
+             "9월 · 내 하루 달력"(15px/700, 같은 eye-purple)보다 **1px 더 컸다** — 종속된 줄이
+             머리보다 커서 둘이 위계를 다퉜다(사용자 지적). 이 줄은 판의 머리가 아니라 격자의
+             리드라 제목보다 작아야 한다. 키울 거면 제목 쪽을 같이 봐야 한다. */}
       <p className="min-w-0 truncate">
         {todayName ? (
           <>
-            <span className="text-[16px] font-bold text-eye-purple">
+            <span className="text-[14px] font-semibold text-eye-purple">
               오늘{todayScore !== null ? ` ${todayScore}점` : ""}
             </span>
             <span className="text-[13px] text-text-light"> · {todayName}</span>
