@@ -19,11 +19,15 @@ export default function PairDayDetailCard({
   backdrop,
   partnerName,
   taste,
+  todayKst,
   children,
 }: {
   cell: PairDayCell;
   backdrop: PairBackdrop;
   partnerName: string;
+  /** KST 오늘 — taste 시점 프레이밍을 가르는 데만 쓴다. cell.isToday 만으론 과거·미래를
+   *  구분할 수 없어서 필요하다(둘 다 isToday=false). */
+  todayKst: string;
   /** 무료 taste(~330자, 룰 100%). 자격과 무관하게 항상 그린다 — 절단선 위 구간이다. */
   taste?: PairTaste | null;
   /** 절단선 아래에 들어올 것 — 유료 리포트(PairReportView) 또는 PaywallCut. */
@@ -135,9 +139,29 @@ export default function PairDayDetailCard({
         </div>
       </div>
 
-      {/* 무료 구간 — 나 탭 DayDetailCard 의 taste 블록과 같은 골격이라 두 탭이 같은 리듬으로 읽힌다. */}
+      {/* 🔴 taste 시점 프레이밍 — pair-taste.json 49문장이 "오늘은 …" 현재형이라, 날짜가
+          오늘이 아니면 **taste 만** 시제가 어긋난다(헤더·간지·톤은 이미 그날을 가리킨다).
+          49문장을 다시 쓰는 대신 이 한 줄로 **읽는 시점**을 옮긴다 — 타로가 2026-09-21 에
+          같은 문제를 같은 방식으로 풀었다(DailyCardBlock 의 framed, 커밋 5e26c46).
+          🔴 기계 치환("오늘"→"그날")은 그때 기각됐다 — 본문이 현재형이라 "그날은 … 도는
+             날이야"가 비문이 된다.
+          🔴 타로와 달리 **3분기다.** 타로는 미래 날짜에 카드 행이 없어 2분기로 충분했지만
+             (그 파일 주석이 "미래는 이 자리에 오지 않는다"고 적어뒀다), pair cell 은 룰
+             계산이라 미래에도 존재해 taste 가 그려진다.
+          🔴 미래 문구는 단정하지 않는다 — 별콩이 화법 ①(단정적 예언 금지). "이렇게 흐른다"가
+             아니라 "이런 결이 보여". */}
+      {!cell.isToday && (
+        <p className="mt-3 text-xs text-text-light">
+          {cell.date < todayKst
+            ? "그날 둘 사이를 보고 별콩이가 건넨 말이야."
+            : "그날 둘 사이엔 이런 결이 보여."}
+        </p>
+      )}
+      {/* 무료 구간 — 나 탭 DayDetailCard 의 taste 블록과 같은 골격이라 두 탭이 같은 리듬으로 읽힌다.
+          🔴 상단 간격이 프레이밍 줄에 걸린다 — 둘 다 mt-3 이면 한 덩어리로 읽혀야 할 둘 사이가
+             벌어진다(그 줄은 이 문단의 머리말이다). 타로의 같은 처리와 값까지 맞췄다. */}
       {taste ? (
-        <div className="mt-3 space-y-2 text-sm leading-relaxed text-eye-purple">
+        <div className={`${cell.isToday ? "mt-3" : "mt-1.5"} space-y-2 text-sm leading-relaxed text-eye-purple`}>
           <p>{taste.signal}</p>
           <p>{taste.relation}</p>
           <p>{taste.lead}</p>

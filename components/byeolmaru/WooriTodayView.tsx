@@ -169,6 +169,10 @@ export default function WooriTodayView({
   //    이 경로(cache_only)를 자격 게이트보다 앞에 둔다(스테이지 3). 아래 narrative effect 의
   //    가드가 이 값을 그대로 쓴다.
   const isPastDate = !!initialDate && !!todayKst && initialDate < todayKst;
+  // 🔴 미래는 과거와 다르게 다룬다 — 서버가 400(date_out_of_range)을 주므로 narrative 가 늘 null 이고,
+  //    그걸 기본 폴백("숨 고르는 중")으로 흘리면 **일시적 장애처럼** 읽힌다. 사주 탭은 같은 날
+  //    "그날 아침에 열려."라고 말하는데 우리 탭만 다른 말을 하면 한 화면에서 두 탭이 어긋난다.
+  const isFutureDate = !!initialDate && !!todayKst && initialDate > todayKst;
 
   // 우리 오늘 서술 — 위 캘린더 effect 와 deps 는 비슷하지만 의도적으로 분리한다. 캘린더는 룰이라 즉시,
   // 서술은 nano 라 느려서 합치면 서술 완료까지 캘린더 렌더가 묶인다. cancelled 가드는 빠른 subject
@@ -312,6 +316,8 @@ export default function WooriTodayView({
             cell={pairCell}
             backdrop={pairData.backdrop}
             partnerName={pairData.partnerName}
+            // taste 시점 프레이밍(과거/미래)을 가르는 데만 쓴다 — 그 카드 주석 참고.
+            todayKst={todayKst ?? pairData.today}
             // 🔴 선택한 셀 기준이다(오늘 고정이 아니다) — 무료도 이번 달 지나간 날을 고를 수 있다(P5-2).
             //    자격과 무관하게 **항상** 넘긴다: 구독자도 "둘이 어떤 결인지"를 읽어야 한다(§5-3① 과 같은 판단).
             taste={pairTaste}
@@ -379,6 +385,13 @@ export default function WooriTodayView({
                   이 사람 이야기는 내일 들려줄게. 오늘 본 사람은 다시 볼 수 있어.
                 </p>
               </div>
+            ) : isFutureDate ? (
+              /* 🔴 미래 — 사주 탭의 같은 자리와 **같은 문구**를 쓴다. 서버가 400 을 주는 건
+                 장애가 아니라 정책이다(소급·선행 생성 금지). 아래 기본 폴백으로 흘리면
+                 "숨 고르는 중"이 되어 곧 될 것처럼 들린다. */
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                그날 아침에 열려.
+              </p>
             ) : (
               <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                 별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
