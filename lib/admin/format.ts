@@ -29,6 +29,16 @@ export function formatMetric(value: number, unit: MetricUnit): string {
 }
 
 /**
+ * `pct1` 결과를 표시 문자열로. 🔴 **null 은 0% 가 아니라 "잴 수 없다"** 다 — 분모가 0 이면
+ * pct1 이 null 을 준다. 화면마다 `den ? … : 0` 으로 직접 0 을 만들면 "재방문 0%(이탈)" 과
+ * "아직 관측창이 안 찼다" 가 같은 문자가 된다. 실제로 `/admin/free/saju-mbti` 의 D30 이
+ * 성숙 분모 0 인데 "0%" 로 떠 있었다(2026-09-27 실측) — 그래서 이 변환을 한 곳에 잠근다.
+ */
+export function formatPercentOrDash(p: number | null): string {
+  return p === null ? "—" : formatMetric(p, "percent");
+}
+
+/**
  * 부호를 항상 드러내는 금액 — 기여(매출−광고비−원가)는 음수가 기본값이다.
  * 하이픈(-)이 아니라 U+2212 MINUS SIGN 을 쓴다: 숫자 폭과 맞아 표가 어긋나지 않는다.
  */

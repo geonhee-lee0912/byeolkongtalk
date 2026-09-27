@@ -208,28 +208,49 @@ const LAYER2_HANDLERS: Record<Layer2Section, Layer2Handler> = {
       const isRelSkill = (r: SpendRow) => r.domain === "relationship" && r.product.startsWith("스킬:");
       // 🔴 무료별은 **종목별**로 쪼개야 한다 — 1층 카드가 종목마다 `(무료 N)` 을 보여줬고,
       //    무료 비중은 종목마다 다르다(웰컴 20별이 타로에 몰린다). 총량만으로는 안 보인다.
-      const parts = (
-        [
-          ["타로 대화", (r: SpendRow) => r.domain === "tarot"],
-          ["운세 리포트", (r: SpendRow) => r.domain === "fortune"],
-          ["인챗 업셀", (r: SpendRow) => r.domain === "upsell"],
-          ["연애 상담", (r: SpendRow) => r.domain === "relationship" && !isRelSkill(r)],
-          ["연애 스킬", isRelSkill],
-        ] as [string, (r: SpendRow) => boolean][]
-      ).map(([label, pred]) => {
-        const hit = rows.filter(pred);
-        return {
-          label,
-          stars: hit.reduce((s, r) => s + Number(r.stars), 0),
-          free: hit.reduce((s, r) => s + Number(r.free_stars), 0),
-        };
-      });
+      // 🔴 버킷은 **전수여야 한다.** 이 목록이 사다리의 domain 집합과 서로를 모른 채 굳어서
+      //    두 가지가 조용히 틀려 있었다(2026-09-27 dev 전기간 실측):
+      //      ① `saju` 를 받는 버킷이 아예 없어 **1,904별(전체의 16.5%)이 막대에서도 아래
+      //         무료별 표에서도 사라졌다.** 사다리는 그 domain 을 정상적으로 만들어 주고 있었다.
+      //      ② `upsell` 1,905별이 전액 오분류였다(relationship_slot 1,800 · relationship_sim 75 ·
+      //         byeolmaru_subscription 20 · relationship_sim_suggest 10). 진짜 인챗 업셀
+      //         (clarifier·extend)은 **0별** — '인챗 업셀' 막대가 100% 남의 것이었다.
+      //         사다리 쪽은 20260927010000 이 고쳤고, 여기는 그 새 domain 을 받는 자리다.
+      //    ②를 고치면 `byeolmaru` 라는 새 domain 이 생기는데, 받는 버킷이 없으면 그 별이
+      //    이번엔 **아예 사라진다** — 그래서 사다리 수정과 이 목록은 한 세트다.
+      const PARTS: [string, (r: SpendRow) => boolean][] = [
+        ["타로 대화", (r) => r.domain === "tarot"],
+        ["사주 리딩", (r) => r.domain === "saju"],
+        ["운세 리포트", (r) => r.domain === "fortune"],
+        ["연애 상담", (r) => r.domain === "relationship" && !isRelSkill(r)],
+        ["연애 스킬", isRelSkill],
+        ["별마루 구독", (r) => r.domain === "byeolmaru"],
+        ["인챗 업셀", (r) => r.domain === "upsell"],
+      ];
+      const sumStars = (hit: SpendRow[]) => hit.reduce((s, r) => s + Number(r.stars), 0);
+      const sumFree = (hit: SpendRow[]) => hit.reduce((s, r) => s + Number(r.free_stars), 0);
+      // 🔴 잔여 버킷 — 이게 이 사고의 **재발 방지**다. 어느 버킷에도 안 잡힌 행을 모아 놓으면
+      //    다음에 새 domain 이 생겨도 조용히 사라지는 대신 '기타'로 **보인다.**
+      //    값이 0 이어도 **항상 그린다**: 숨기면 "새는 게 없다"와 "이 줄을 안 만들었다"가
+      //    화면에서 같아진다(오늘 이 화면이 정확히 그 이유로 16.5% 를 잃고 있었다).
+      const leftover = rows.filter((r) => !PARTS.some(([, pred]) => pred(r)));
+      const parts = [
+        ...PARTS.map(([label, pred]) => {
+          const hit = rows.filter(pred);
+          return { label, stars: sumStars(hit), free: sumFree(hit) };
+        }),
+        { label: "기타(미분류)", stars: sumStars(leftover), free: sumFree(leftover) },
+      ];
       blocks.push({
         kind: "bars",
-        title: "별 소모 5종",
+        // 제목에 개수를 박지 않는다 — 버킷이 늘 때마다 제목이 조용히 거짓이 된다(전에 "5종"이었다).
+        title: "별 소모 (종목별)",
         unit: "count",
         items: parts.map((p) => ({ label: p.label, value: p.stars })),
-        note: "별 소모는 매출이 아니다 — 무료별(웰컴·보너스)이 섞여 있다. 얼마나 섞였는지는 바로 아래 표, 원화 기여는 '기여 ▾'에서 본다.",
+        note:
+          "별 소모는 매출이 아니다 — 무료별(웰컴·보너스)이 섞여 있다. 얼마나 섞였는지는 바로 아래 표, 원화 기여는 '기여 ▾'에서 본다. " +
+          "🔴 **기타(미분류)가 0 이 아니면 분류 사다리에 없는 source 가 생긴 것**이다 — 그 별은 어느 종목에도 안 잡히고 있으니 " +
+          "`admin_star_spend_breakdown`(20260927010000)의 폴백을 늘려야 한다. 이 칸이 없던 동안 사주 1,904별이 조용히 빠져 있었다.",
       });
       blocks.push({
         kind: "table",

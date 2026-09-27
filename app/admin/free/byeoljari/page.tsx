@@ -6,6 +6,8 @@ import LoadFailed from "@/components/admin/LoadFailed";
 import { adminExclusionArray, ASSUMED_FREE_STAR_COST_WON } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
+import { pct1 } from "@/lib/admin/layer1";
+import { formatMetric, formatPercentOrDash } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
 
@@ -173,12 +175,15 @@ async function load() {
 export default async function AdminByeoljariPage() {
   const s = await load();
   const su = s.su;
-  const pct = (num: number, den: number) => (den ? Math.round((num / den) * 1000) / 10 : 0);
-  const entryToCreate = pct(su.totalMaps, su.entryUv);
-  const optInRate = pct(su.namePublicMembers, su.totalMembers);
-  const cohortPayRate = pct(su.cohortPayers, su.cohortSize);
-  const totalPayRate = pct(su.totalPayers, su.totalUsers);
-  const kFactor = su.totalMaps ? Math.round((su.signupsUtm / su.totalMaps) * 100) / 100 : 0;
+  // 🔴 비율은 전부 pct1 경유(lib/admin/layer1.ts). 인라인 나눗셈은 두 가지를 틀린다 —
+  //    ①곱셈을 나눗셈 뒤에 해서 일부 분모에서 0.1%p 가 어긋나고 ②분모 0 에 0 을 돌려줘
+  //    "비율 0%" 와 "표본이 없다" 가 화면에서 같은 문자가 된다. pct1 은 후자를 null 로 준다.
+  const entryToCreate = pct1(su.totalMaps, su.entryUv);
+  const optInRate = pct1(su.namePublicMembers, su.totalMembers);
+  const cohortPayRate = pct1(su.cohortPayers, su.cohortSize);
+  const totalPayRate = pct1(su.totalPayers, su.totalUsers);
+  // K-factor 는 퍼센트가 아니라 비(比)라 pct1 을 못 쓴다 — 같은 원칙(곱셈 먼저)만 옮긴다.
+  const kFactor = su.totalMaps > 0 ? Math.round((su.signupsUtm * 100) / su.totalMaps) / 100 : null;
   const cohortArpu = su.cohortSize ? Math.round(su.cohortRevenue / su.cohortSize) : 0;
 
   return (
@@ -193,7 +198,7 @@ export default async function AdminByeoljariPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="총 별자리" value={s.sumFailed ? "—" : su.totalMaps} sub={s.sumFailed ? undefined : `로그인 ${su.mapsLogin} · 익명 ${su.mapsAnon}`} />
           <Stat label="만들기 진입 UV" value={s.sumFailed ? "—" : su.entryUv} />
-          <Stat label="진입→생성 전환" value={s.sumFailed ? "—" : `${entryToCreate}%`} />
+          <Stat label="진입→생성 전환" value={s.sumFailed ? "—" : formatPercentOrDash(entryToCreate)} />
           <Stat label="별자리 경유 가입(utm)" value={s.sumFailed ? "—" : su.signupsUtm} sub="미래분" />
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
@@ -214,9 +219,9 @@ export default async function AdminByeoljariPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="랜딩 조회 UV" value={s.sumFailed ? "—" : su.landingUv} />
           <Stat label="총 참여(멤버)" value={s.sumFailed ? "—" : su.totalMembers} />
-          <Stat label="이름공개 옵트인율" value={s.sumFailed ? "—" : `${optInRate}%`} sub={s.sumFailed ? undefined : `${su.namePublicMembers}/${su.totalMembers}`} />
+          <Stat label="이름공개 옵트인율" value={s.sumFailed ? "—" : formatPercentOrDash(optInRate)} sub={s.sumFailed ? undefined : `${su.namePublicMembers}/${su.totalMembers}`} />
           <Stat label="초대클릭(발신)" value={s.sumFailed ? "—" : su.inviteClicks} />
-          <Stat label="K-factor" value={s.sumFailed ? "—" : kFactor} sub="맵당 utm 가입 · 미래분" />
+          <Stat label="K-factor" value={s.sumFailed || kFactor === null ? "—" : formatMetric(kFactor, "ratio")} sub="맵당 utm 가입 · 미래분" />
         </div>
         {s.sumFailed && <LoadFailed block="admin_byeoljari_summary" className="mt-2" />}
         <h3 className="text-[13px] text-white/50 mt-4 mb-2">지도당 멤버 수 분포</h3>
@@ -250,7 +255,7 @@ export default async function AdminByeoljariPage() {
         <h2 className="text-sm text-white/60 mb-3">④ 결제 → 구매 여정</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="코호트 결제자" value={s.sumFailed ? "—" : su.cohortPayers} sub={s.sumFailed ? undefined : `${su.cohortSize}명 중`} />
-          <Stat label="코호트 결제율" value={s.sumFailed ? "—" : `${cohortPayRate}%`} sub={s.sumFailed ? undefined : `전체 ${totalPayRate}%`} />
+          <Stat label="코호트 결제율" value={s.sumFailed ? "—" : formatPercentOrDash(cohortPayRate)} sub={s.sumFailed ? undefined : `전체 ${formatPercentOrDash(totalPayRate)}`} />
           <Stat label="코호트 매출(원)" value={s.sumFailed ? "—" : su.cohortRevenue.toLocaleString()} />
           <Stat label="코호트 ARPU(원)" value={s.sumFailed ? "—" : cohortArpu.toLocaleString()} sub="매출/코호트" />
           <Stat
@@ -283,8 +288,17 @@ export default async function AdminByeoljariPage() {
           <div className="grid grid-cols-3 gap-3">
             {["d1", "d7", "d30"].map((h) => {
               const r = s.ret[h] ?? { eligible: 0, returned: 0 };
-              const pctv = r.eligible ? Math.round((r.returned / r.eligible) * 1000) / 10 : 0;
-              return <Stat key={h} label={h.toUpperCase()} value={`${pctv}%`} sub={`${r.returned}/${r.eligible}`} />;
+              // 🔴 성숙 분모가 0 이면 "0%" 가 아니라 "—" 다. 전에는 den?…:0 이라 아직 그 날이
+              //    안 지난 구간이 **이탈 100%** 처럼 읽혔다(saju-mbti D30 이 실제로 그랬다).
+              const p = pct1(r.returned, r.eligible);
+              return (
+                <Stat
+                  key={h}
+                  label={h.toUpperCase()}
+                  value={formatPercentOrDash(p)}
+                  sub={p === null ? "관측 전 — 창이 아직 안 찼다" : `${r.returned}/${r.eligible}`}
+                />
+              );
             })}
           </div>
         )}
@@ -293,7 +307,9 @@ export default async function AdminByeoljariPage() {
         <div className="text-[12px] text-white/40">
           {s.payNew.length ? s.payNew.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
         </div>
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모)</span></h3>
+        {/* 🔴 제목이 "운세/타로"였는데 표는 **모든 종목**을 그린다 — 연애·별마루도 들어온다.
+            분류 사다리의 폴백을 늘린 뒤(20260927010000) 그 사실이 더 또렷해졌다. */}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모 · 종목 전체)</span></h3>
         {s.spendFailed ? (
           <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
         ) : s.spendNew.length === 0 ? (
