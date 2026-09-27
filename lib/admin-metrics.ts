@@ -311,11 +311,13 @@ export const METRICS = {
   subscriber_net: {
     key: "subscriber_net",
     label: "구독자 순증",
-    definition: "창 안 신규 구독 수 − 창 안 만료 수.",
+    definition:
+      "창 안에 구독을 시작한 **사람 수** − 창 안에 구독이 **실제로 끝난** 사람 수. 둘 다 건수가 아니라 사람 수다.",
     unit: "count",
     source: "admin_layer1_quality",
     minSample: MIN_SAMPLE.NONE,
-    caveat: "5일+ 방문이 0.7%인 위에서 30일 구독이 성립하는지를 리텐션과 같은 줄에서 읽을 것.",
+    caveat:
+      "연장 재구매는 새 구독 행을 만들지만 **같은 사람 하나**로 센다(유저별 마지막 만료 기준) — 구독이 끊긴 적 없는 사람이 만료로 잡히지 않고, 재구독하면 만료에서 빠진다. 아직 안 지난 만료는 만료가 아니다. 5일+ 방문이 0.7%인 위에서 30일 구독이 성립하는지를 리텐션과 같은 줄에서 읽을 것.",
   },
   readings_count: {
     key: "readings_count",
