@@ -13,6 +13,24 @@
 -- ⚠️ LIKE '%[END]%' 의 대괄호는 Postgres LIKE 에서 특별한 뜻이 없다(SIMILAR TO·정규식과 다르다).
 --    `_` 와 `%` 만 와일드카드이고 여기엔 없다.
 --
+-- 🔴 종목을 **대화 / one-shot 리포트**로 쪼갠다(is_report). 안 쪼개면 사주 완료율이 6배 과소로
+--    나온다 — `/fortune` 리포트도 readings 에 consultation_type 'saju'|'tarot' 로 저장되는데
+--    (app/api/fortune/create/route.ts, base 가 그 두 값뿐이다 — lib/fortune/types.ts), 대화가
+--    없어 [END] 가 **구조적으로** 안 찍히기 때문이다. note 로 "섞여 있다"고 적는 걸로는 부족하다:
+--    경고문은 운영자가 읽는 **틀린 숫자 자체**를 고치지 못한다.
+--    2026-09-27 prod 전 기간 — saju 325건 = 리포트 272 + 대화 53. 쪼개기 전 완료율 9.2% →
+--    쪼갠 뒤 대화 행 **56.6%**. tarot 2,385 = 리포트 25 + 대화 2,360 (69.9% → 70.6%, 미미하다).
+--    리포트 297건은 전부 ended=0 · viewed=0 · **user_turns 최댓값이 0** 이다(구조가 데이터로 확인된다).
+--
+-- 🔴 분리 키는 `left(emotion_tag, 8) = 'fortune:'`.
+--    ⚠️ AGENTS.md 가 경고하는 `LIKE 'fortune_%'` 함정과는 **다른 케이스**다 — 거기서 문제는
+--       `_` 가 LIKE 와일드카드라는 것인데, 여기 구분자는 `:` 라 LIKE 로 써도 안전하다.
+--       그래도 `left(...)` 로 쓴다: 와일드카드를 아예 안 쓰는 쪽이 다음 사람에게 덜 헷갈린다.
+--    ⚠️ **NULL 3값 논리** — emotion_tag 는 nullable 이고(2026-09-27 prod 2,885건 중 175건이
+--       NULL), `left(NULL,8) = 'fortune:'` 은 false 가 아니라 **NULL** 이다. COALESCE 를 빼면
+--       GROUP BY 가 NULL 그룹을 따로 만들어 행이 쪼개지고 SUM(cnt) 불변식이 깨지지는 않지만
+--       정체불명의 행이 하나 더 생긴다. 반드시 COALESCE(..., false).
+--
 -- 🔴 avg_user_turns 는 COALESCE(m.user_turns, 0) 이다 — **메시지가 한 건도 없는 리딩도 0턴으로
 --    분모에 넣는다.** 플랜 원안 `ROUND(AVG(m.user_turns), 2)` 는 LEFT JOIN 이 만든 NULL 을
 --    AVG 가 **행째로 무시**해서, "한 마디도 못 하고 죽은 리딩"이 평균에서 빠져 평균이 과대해진다.
@@ -20,25 +38,26 @@
 --    메시지 0건이었다(원안이 +38% 과대). tarot 은 2,385건 중 1건뿐이라 4.13 → 4.13 로 무변.
 --    즉 이 칸의 정의는 "발화한 사람의 평균"이 아니라 **리딩당 평균**이다.
 --
--- ⚠️ ended_cnt 를 "대화 완료율"로 읽지 말 것 — saju·tarot 행에는 **/fortune one-shot 리포트가
---    섞여 있다.** 리포트도 readings 에 consultation_type 'saju'|'tarot' 로 저장되고
---    (app/api/fortune/create/route.ts — saju_product 는 손대지 않아 기본값 'today_letters' 다),
---    assistant 메시지 1건만 남기므로 [END] 가 **구조적으로** 안 찍힌다. 분리 키는
---    `emotion_tag LIKE 'fortune:%'` 이고 실측상 그 행의 ended 는 예외 없이 0 이다.
---    2026-09-27 prod 전 기간 스냅샷 — saju 325건 중 272건이 리포트라 표의 완료율은 9.2% 지만
---    대화형 53건만 보면 **56.6%** 다(약 6배). tarot 은 2,385건 중 23건뿐이라 69.9% vs 70.6%.
---    🔴 종목을 fortune 혼입 기준으로 쪼갤지는 **코디네이터 판단 사항**이라 여기선 안 쪼갰다.
+-- ⚠️ 완료율·결과 열람이 **구조적으로 불가능한 행**(연애 스레드 · 리포트)은 0% 가 아니라 "—"로
+--    찍는다. 그 판정은 SQL 이 아니라 `lib/admin/product-map.ts` 의 `readingRowView` 가 한다 —
+--    근거가 데이터가 아니라 **페르소나 파일과 라우트 존재 여부**에 있고, 1비트 데이터 신호
+--    (`bool_or([END])`)로 판정하면 페르소나가 한 번 삐끗할 때 뜻이 통째로 뒤집히기 때문이다.
+--    이 함수는 센 값을 그대로 돌려주고, 숨길지 말지는 그쪽이 정한다(유닛으로 잠겨 있다).
 --
 -- 🔴 불변식: 같은 (p_since, p_until, p_exclude) 에서 SUM(cnt) == admin_layer1_flow.readings.
 --    두 함수의 readings 필터가 글자 단위로 같아서 성립한다 — 어긋나면 1층과 2층이 서로 다른
---    모수를 말하는 것이고, 이 화면의 존재 이유가 무너진다.
---    2026-09-27 prod 인라인 대조: 7일 창 246 == 246 · 30일 창(상위 3명 제외) 956 == 956.
+--    모수를 말하는 것이고, 이 화면의 존재 이유가 무너진다. 쪼개기는 **행을 나눌 뿐 모수를
+--    바꾸지 않으므로** 합은 그대로다.
+--    2026-09-27 prod 인라인 대조: 7일 창 246 == 246 · 30일 창(상위 3명 제외) 956 == 956 ·
+--    쪼갠 뒤 재확인 7일 246 == 246 · 전 기간 2,885 == 2,885.
 --
 -- 성능(2026-09-27 prod EXPLAIN ANALYZE): 7일 창 **10.9ms**(messages 를 idx_messages_reading
 --    으로 인덱스 스캔) · 전 기간 **95ms**(messages seq scan 21,338행, 2,016 buffer 전부 shared
 --    hit). `LIKE '%[END]%'` 는 선행 와일드카드라 인덱스를 못 타지만, 이미 reading_id 로 좁혀
 --    가져온 행에만 걸리는 **필터**라 스캔 비용이 아니다. 라우트의 창 상한이 365일이고 데이터가
 --    2026-07 시작이라 전 기간이 곧 최악의 경우다.
+--    대화/리포트 쪼개기 **후** 재측정: 7일 11.0ms · 전 기간 100.0ms — 실행 계획 모양이 같고
+--    (GROUP BY 에 열 하나 추가) 전 기간에서 +5% 다. 유의미한 비용이 아니다.
 CREATE OR REPLACE FUNCTION admin_layer2_readings(
   p_since TIMESTAMPTZ,
   p_until TIMESTAMPTZ,
@@ -46,6 +65,7 @@ CREATE OR REPLACE FUNCTION admin_layer2_readings(
 )
 RETURNS TABLE (
   consultation_type TEXT,
+  is_report BOOLEAN,
   cnt BIGINT,
   paid_cnt BIGINT,
   ended_cnt BIGINT,
@@ -54,7 +74,11 @@ RETURNS TABLE (
 )
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WITH win AS (
-    SELECT r.id, r.consultation_type, r.stars_spent, r.result_viewed_at
+    SELECT r.id,
+           r.consultation_type,
+           COALESCE(left(r.emotion_tag, 8) = 'fortune:', false) AS is_report,  -- NULL → false
+           r.stars_spent,
+           r.result_viewed_at
     FROM readings r
     WHERE r.created_at >= p_since
       AND (p_until IS NULL OR r.created_at < p_until)
@@ -70,6 +94,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   -- COALESCE 는 오늘 기준 **도달 불가**다(readings.consultation_type 은 NOT NULL). '(없음)' 행을
   -- 찾아 헤매지 말 것 — 컬럼이 nullable 로 바뀌는 날을 대비한 방어로만 남긴다.
   SELECT COALESCE(w.consultation_type, '(없음)')::TEXT,
+         w.is_report,
          COUNT(*)::BIGINT,
          COUNT(*) FILTER (WHERE w.stars_spent > 0)::BIGINT,
          COUNT(*) FILTER (WHERE COALESCE(m.ended, false))::BIGINT,
@@ -77,8 +102,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
          ROUND(AVG(COALESCE(m.user_turns, 0)), 2)
   FROM win w
   LEFT JOIN msg m ON m.reading_id = w.id
-  GROUP BY 1
-  ORDER BY 2 DESC;
+  GROUP BY 1, 2
+  -- 출력 서수(ORDER BY 3)가 아니라 식으로 쓴다 — 열이 하나 늘 때마다 서수가 밀려 조용히 다른
+  -- 열로 정렬되는 걸 막는다(is_report 를 끼워 넣으며 실제로 밀렸다).
+  ORDER BY COUNT(*) DESC;
 $$;
 
 REVOKE ALL ON FUNCTION admin_layer2_readings(TIMESTAMPTZ, TIMESTAMPTZ, UUID[]) FROM PUBLIC, anon, authenticated;

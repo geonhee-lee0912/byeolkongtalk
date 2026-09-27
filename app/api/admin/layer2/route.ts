@@ -12,7 +12,7 @@ import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso, startOfTodayKstIso } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
 import { pct1 } from "@/lib/admin/layer1";
-import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, type ProductLabel } from "@/lib/admin/product-map";
+import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, readingRowView, type ProductLabel } from "@/lib/admin/product-map";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { isLayer2Section, type Layer2Block, type Layer2Response } from "@/lib/admin/layer2-types";
 
@@ -485,6 +485,7 @@ export async function GET(req: NextRequest) {
       //    산술도 조용히 틀린다.
       type RdRow = {
         consultation_type: string;
+        is_report: boolean;
         cnt: string;
         paid_cnt: string;
         ended_cnt: string;
@@ -499,16 +500,21 @@ export async function GET(req: NextRequest) {
         columns: ["종목", "리딩", "유료", "완료율", "결과 열람", "평균 유저 턴"],
         rows: ((rd.data ?? []) as RdRow[]).map((r) => {
           const n = Number(r.cnt);
+          // 🔴 이 행이 **무엇을 잴 수 있나** — 완료율·결과 열람이 구조적으로 불가능한 행은
+          //    `0.0%` 가 아니라 "—" 여야 한다("쟀더니 아무도 안 했다" 와 "애초에 못 잰다"는
+          //    다르다). 판정 근거는 데이터가 아니라 페르소나 파일·라우트 존재 여부라
+          //    lib/admin/product-map.ts 가 유닛으로 잠근 채 갖고 있다.
+          const view = readingRowView(r.consultation_type, r.is_report);
           // 🔴 퍼센트는 반드시 pct1 경유 — `(a/b)*1000` 으로 먼저 나누면 배정도 오차가 참값을
           //    이미 놓쳐서(201/400 → 502.4999…) 뒤에서 어떤 반올림을 해도 50.3 이 안 나온다.
           //    분모 400의 배수 계열에서 체계적으로 갈리고, 리딩 건수는 쉽게 수백~수천이다.
-          const ended = pct1(Number(r.ended_cnt), n);
-          const viewed = pct1(Number(r.viewed_cnt), n);
+          const ended = view.ended ? pct1(Number(r.ended_cnt), n) : null;
+          const viewed = view.viewed ? pct1(Number(r.viewed_cnt), n) : null;
           return [
-            r.consultation_type,
+            view.label,
             formatMetric(n, "count"),
             formatMetric(Number(r.paid_cnt), "count"),
-            // null 은 "—" 로 둔다 — 0 으로 뭉개면 "완료가 0%" 와 "표본이 없다" 가 같은 칸이 된다.
+            // null 은 "—" 로 둔다 — 0 으로 뭉개면 "완료가 0%" 와 "못 잰다" 가 같은 칸이 된다.
             ended === null ? null : formatMetric(ended, "percent"),
             viewed === null ? null : formatMetric(viewed, "percent"),
             // 🔴 `count` 가 아니라 `ratio` — count 로 찍으면 2.21턴이 "2" 가 되어 소수가 증발한다.
@@ -522,8 +528,8 @@ export async function GET(req: NextRequest) {
           "완료 = 별콩이 발화에 **[END] 마커**가 있다(messages.content 기준 — turn_close 컬럼이 아니다. 3층 roadmap KPI 와 같은 정의다). " +
           "평균 유저 턴은 **리딩당** 평균이다 — 메시지가 한 건도 없는 리딩도 **0턴으로 분모에 넣는다.** 빼면 '한 마디도 못 하고 죽은 리딩'이 평균에서 통째로 사라져 평균이 **과대**해진다(메시지 0건 리딩이 많은 relationship 에서 특히 크다). " +
           "결과 열람은 여기선 **리딩 기준**이다 — 1층 가드레일의 결과 열람은 **코호트 기준**이라 값이 다르다(둘 다 정본이고 분모가 다르다). " +
-          "🔴 relationship·relationship_sim 의 완료율·결과 열람이 **0 인 건 설계다** — 그 스레드는 종결이 없어 페르소나가 [END] 를 쓰지 못하게 막혀 있고(data/persona/byeolkong_relationship.md), 결과 화면 자체가 없어 열람 시각도 안 찍힌다. 이 두 칸으로 연애 상담을 평가하지 말 것. " +
-          "🔴 saju·tarot 행에는 **/fortune one-shot 리포트가 섞여 있다** — 리포트도 readings 에 consultation_type 'saju'|'tarot' 로 저장되는데(app/api/fortune/create), 대화가 없어 [END] 가 **구조적으로** 안 찍힌다. 그만큼 이 표의 완료율은 **대화 완료율보다 낮다.** saju 는 리포트가 대부분이라 격차가 크고(실제 대화 완료율의 1/6 수준), tarot 은 리포트 비중이 미미해 거의 영향이 없다 — 종목별 완료율을 '대화 품질'로 읽으려면 이 혼입을 먼저 걷어내야 한다. " +
+          "🔴 **(대화) 와 (리포트) 는 따로 센다.** `/fortune` one-shot 리포트도 readings 에 사주·타로로 저장되는데(app/api/fortune/create), 대화가 없어 [END] 가 안 찍힌다 — 합쳐 두면 **사주 완료율이 몇 배 과소로** 나왔다. 리포트 행은 종목 안에서 리포트가 차지하는 **몫**을 읽는 칸이다. " +
+          "🔴 **\"—\" 는 데이터 없음이 아니라 '잴 수 없음'이다.** 리포트 행은 대화가 없어 완료·열람 개념이 아예 없고, 연애 상담·연애 시뮬은 **스레드에 종결이 없어** 페르소나가 [END] 를 쓰지 못하게 막혀 있으며(data/persona/byeolkong_relationship.md) 결과 화면 라우트 자체가 없어 열람 시각도 안 찍힌다. 그 칸들을 0% 로 찍으면 '아무도 안 끝냈다'는 **거짓**이 되므로 비워 둔다 — 이 칸으로 연애 상담을 평가하지 말 것. " +
           "2026-09-12 실측: 종료 원인은 마무리 버튼 59% · 자발 13% · 무언 이탈 27%.",
       });
       blocks.push({ kind: "link", title: "개별 리딩은", href: "/admin/readings", label: "리딩/상담" });
