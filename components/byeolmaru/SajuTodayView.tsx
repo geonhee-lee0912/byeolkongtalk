@@ -17,7 +17,6 @@ import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import DayDetailCard from "./DayDetailCard";
 import PaywallCut from "./PaywallCut";
-import BackHeader from "./BackHeader";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -44,7 +43,13 @@ function fmtMD(date: string): string {
 }
 
 
-export default function SajuTodayView({ initialDate }: { initialDate?: string }) {
+export default function SajuTodayView({
+  initialDate,
+  injected,
+}: {
+  initialDate?: string;
+  injected?: { status: number; body: unknown };
+}) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
   const [report, setReport] = useState<DailyReport | null>(null);
@@ -58,12 +63,19 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
 
   async function refresh() {
     try {
-      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-      if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
-      if (res.status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
-      if (!res.ok) { setState({ kind: "error" }); return; }
-      const data: CalendarResponse = await res.json();
-      if (data.cells.length === 0) { setState({ kind: "error" }); return; }
+      // 🔴 껍데기(DayTabsView)가 이미 캘린더를 불렀으면 그걸 쓴다 — 탭을 오갈 때마다 다시
+      //    부르면 "오가기"라는 목적이 깨진다. 옵셔널이라 주입이 없으면 지금처럼 스스로 부른다.
+      const { status, body } =
+        injected ??
+        (await (async () => {
+          const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+          return { status: res.status, body: await res.json().catch(() => null) };
+        })());
+      if (status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
+      if (status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
+      if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
+      const data = body as CalendarResponse;
+      if (!data || data.cells.length === 0) { setState({ kind: "error" }); return; }
       setState({ kind: "ready", data });
       // 허브 격자에서 넘어온 ?date= 가 있으면 그 날로 연다(스펙 §7 "요약은 허브, 전문은 밖").
       // 🔴 응답에 없는 날짜(무료 유저가 손으로 미래 날짜를 친 경우)면 무시하고 오늘로 — 서버가
@@ -153,22 +165,33 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
     return () => { cancelled = true; };
   }, [selected]);
 
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
+  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
+  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
 
-  if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">펼치는 중…</main>;
+  async function refreshFromServer() {
+    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+    const body = await res.json().catch(() => null);
+    if (res.status === 401) { setState({ kind: "need_login" }); return; }
+    if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+    if (!res.ok || !body) { setState({ kind: "error" }); return; }
+    setState({ kind: "ready", data: body as CalendarResponse });
+  }
+
+  if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   if (state.kind === "need_login") return (
-    <main className="mx-auto w-full max-w-md p-6 text-center">
+    <div className="text-center">
       <p className="mb-4 text-eye-purple">로그인하면 네 달력을 펼쳐줄게.</p>
       <Link href="/login?next=/byeolmaru/saju" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
-    </main>
+    </div>
   );
   if (state.kind === "no_profile") return (
-    <main className="mx-auto w-full max-w-md p-6 text-center">
+    <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>
       <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">생년월일 입력하러 가기</Link>
-    </main>
+    </div>
   );
-  if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
+  if (state.kind === "error") return <p className="text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;
 
   const { data } = state;
   // 폴백은 cells[0](= 이번 달 1일)이 아니라 **오늘**이다 — 달력이 이번 달로 바뀌며 1일이 되면
@@ -205,8 +228,7 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
       : null;
 
   return (
-    <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <BackHeader />
+    <div className="space-y-4">
       {/* 🔴 달력이 전면 무료라(2026-09-26) good 은 항상 이번 달 전체 집계다 — "오늘까지" 분기가 없다.
           🔴 스펙 §15-1 완화: 챙길 날 수를 앞세우지 않는다(좋은 날 중심 서술). */}
       {good > 0 ? (
@@ -335,6 +357,6 @@ export default function SajuTodayView({ initialDate }: { initialDate?: string })
         </ul>
       </section>
       {subscribeModal}
-    </main>
+    </div>
   );
 }

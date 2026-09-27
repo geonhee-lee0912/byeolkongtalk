@@ -9,7 +9,6 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 import PairDayDetailCard from "./PairDayDetailCard";
 import CurrentPartner, { type WatchedPartner } from "./CurrentPartner";
 import WatchAddModal from "./WatchAddModal";
-import BackHeader from "./BackHeader";
 import PaywallCut from "./PaywallCut";
 import PairReportView from "./PairReportView";
 import { isPairReport, type PairReport } from "@/lib/byeolmaru/pair-report";
@@ -26,7 +25,15 @@ type State =
 // 🔴 initialSubject(?subject=) 가 사라졌다(2026-09-24) — 상대가 한 명이라 고를 것이 없고,
 //    그 파라미터를 붙여 보내는 링크도 앱 안엔 없었다. 딥링크가 다시 필요해지면 상대 id 가
 //    아니라 "이 상대로 교체" 같은 명시적 동작이어야 한다(조용히 선택을 바꾸면 안 된다).
-export default function WooriTodayView() {
+// 🔴 initialDate 는 아직 안 쓴다(Task 8 이 pair-narrative 호출에 배선한다) — 지금은 받기만
+//    한다. injected 는 나머지 두 View 와 같은 A′ 데이터 주입형 계약이다.
+export default function WooriTodayView({
+  initialDate,
+  injected,
+}: {
+  initialDate?: string;
+  injected?: { status: number; body: unknown };
+}) {
   const [state, setState] = useState<State>({ kind: "loading" });
   // 🔴 상대는 0 또는 1명이다 — 목록이 아니라 단일 값. subject 는 여기서 파생시킨다(이중 상태 금지:
   //    예전엔 partners[] 와 subject 가 따로 있어 자동 선택·딥링크가 둘을 맞추는 일을 했다).
@@ -56,12 +63,17 @@ export default function WooriTodayView() {
 
   async function refresh() {
     try {
-      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-      if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
-      if (res.status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
-      if (!res.ok) { setState({ kind: "error" }); return; }
-      const data = await res.json();
-      if (!Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
+      const { status, body } =
+        injected ??
+        (await (async () => {
+          const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+          return { status: res.status, body: await res.json().catch(() => null) };
+        })());
+      if (status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
+      if (status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
+      if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
+      const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean } | null;
+      if (!data || !Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
       setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed });
       await loadPartners();
     } catch { setState({ kind: "error" }); }
@@ -88,7 +100,20 @@ export default function WooriTodayView() {
   const entitledNow = state.kind === "ready" && state.entitled;
   const trialUsed = state.kind === "ready" ? state.trialUsed : false;
 
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
+  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
+  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+
+  async function refreshFromServer() {
+    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+    const body = await res.json().catch(() => null);
+    if (res.status === 401) { setState({ kind: "need_login" }); return; }
+    if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+    if (!res.ok || !body) { setState({ kind: "error" }); return; }
+    const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean };
+    if (!Array.isArray(data.cells) || data.cells.length === 0) { setState({ kind: "error" }); return; }
+    setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed });
+  }
 
   // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 deps 에 넣어 같은 상대를
   // 보는 도중 체험/구독이 풀렸을 때도(false→true) 잠금 없는 응답을 자동으로 다시 받는다.
@@ -146,20 +171,20 @@ export default function WooriTodayView() {
     return () => { cancelled = true; };
   }, [subject, entitledNow]);
 
-  if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">펼치는 중…</main>;
+  if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   if (state.kind === "need_login") return (
-    <main className="mx-auto w-full max-w-md p-6 text-center">
+    <div className="text-center">
       <p className="mb-4 text-eye-purple">로그인하면 둘 사이 오늘을 볼 수 있어.</p>
       <Link href="/login?next=/byeolmaru/woori" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
-    </main>
+    </div>
   );
   if (state.kind === "no_profile") return (
-    <main className="mx-auto w-full max-w-md p-6 text-center">
+    <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 시작할 수 있어.</p>
       <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">생년월일 입력하러 가기</Link>
-    </main>
+    </div>
   );
-  if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
+  if (state.kind === "error") return <p className="text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;
 
   // 폴백은 오늘 — cells[0] 은 이번 달 1일이라 첫 진입에서 엉뚱한 날이 열린다.
   // 🔴 달력이 빠져 날짜 선택이 없다(2026-09-24) — 항상 오늘 셀이다. 폴백이 cells[0](이번 달 1일)이
@@ -179,9 +204,7 @@ export default function WooriTodayView() {
     : "";
 
   return (
-    <main className="mx-auto w-full max-w-md space-y-4 p-4">
-      <BackHeader />
-
+    <div className="space-y-4">
       {/* 🔴 칩(여러 명 선택)이 아니라 한 명 카드다(2026-09-24). 고를 대상이 없으니 남은 건
           "누가 걸려 있나"와 "바꾸기" 둘뿐 — 상세는 CurrentPartner 머리 주석. */}
       <CurrentPartner partner={partner} onChange={() => setAddOpen(true)} />
@@ -283,6 +306,6 @@ export default function WooriTodayView() {
           onAdded={() => { setAddOpen(false); void loadPartners(); }}
         />
       )}
-    </main>
+    </div>
   );
 }
