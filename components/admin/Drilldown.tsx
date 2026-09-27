@@ -12,6 +12,7 @@
 //    GOLD 는 애초에 헥스가 아니라 `var(--color-gold)` 라 클래스에 넣는 것 자체가 불가능하다.
 import { useState } from "react";
 import { DivergingBar } from "./DivergingBar";
+import { BlockNote } from "./BlockNote";
 import { STATUS, GOLD } from "@/lib/admin/colors";
 import type { Layer2Block, Layer2Response, Layer2Section } from "@/lib/admin/layer2-types";
 
@@ -73,7 +74,10 @@ export function Drilldown({
           {data?.blocks.map((b, i) => (
             <BlockView key={i} block={b} />
           ))}
-          {data && data.blocks.length === 0 && !error && (
+          {/* 🔴 `!data.failed?.length` 가 필요하다 — `!error` 는 **fetch 레벨** 실패만 본다.
+              섹션의 push 가 전부 `else` 안에 있으면 RPC 가 죽었을 때 blocks=[] + failed=[…] 가
+              되고, "일부 조회 실패 … 불완전하다"와 "표시할 데이터가 없다"가 **나란히** 뜬다. */}
+          {data && data.blocks.length === 0 && !error && !data.failed?.length && (
             <div className="text-[12px] text-white/40">표시할 데이터가 없다.</div>
           )}
         </div>
@@ -120,7 +124,7 @@ function BlockView({ block }: { block: Layer2Block }) {
           </tbody>
         </table>
       </div>
-      {block.note && <div className="text-[11px] text-white/35 mt-2 leading-snug">{block.note}</div>}
+      <BlockNote note={block.note} />
     </div>
   );
 }

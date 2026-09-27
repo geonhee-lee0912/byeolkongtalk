@@ -18,8 +18,16 @@ export interface TableBlock {
   kind: "table";
   title: string;
   columns: string[];
-  /** null 은 화면에서 "—". 빈 문자열과 구분된다. */
-  rows: (string | number | null)[][];
+  /**
+   * null 은 화면에서 "—". 빈 문자열과 구분된다.
+   *
+   * 🔴 **number 를 일부러 뺐다.** 렌더러는 셀을 그대로 찍으므로 raw number 를 넣으면 천단위
+   *    구분자가 없는 `173420` 이 되고, 같은 화면의 다른 표는 `formatMetric` 을 거쳐 `173,420`
+   *    이 된다 — `lib/admin/format.ts` 헤더가 "치명적"이라고 못박은 그 클래스다(화면마다 표기가
+   *    갈리면 두 숫자를 나란히 못 읽는다). 타입을 string 으로 좁히면 **라우트가 반드시 포맷터를
+   *    거치도록 tsc 가 강제한다.** 숫자를 넣고 싶으면 `formatMetric(v, unit)` 을 통과시켜라.
+   */
+  rows: (string | null)[][];
   note?: string;
 }
 

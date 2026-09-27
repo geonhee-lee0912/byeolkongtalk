@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
             share === null ? null : formatMetric(share, "percent"),
           ];
         }),
-        note: "무료 비중이 높은 종목일수록 그 별 소모는 매출에서 멀다. 🔴 이 표가 어드민에서 무료별을 보는 **유일한 자리**다 — /admin/analytics 는 free_stars 를 렌더하지 않는다. 지우면 다시 안 보인다.",
+        note: "무료 비중이 높은 종목일수록 그 별 소모는 매출에서 멀다. 🔴 이 표가 **서비스 전체 기준으로** 무료별을 보는 유일한 자리다 — /admin/analytics 는 free_stars 를 아예 렌더하지 않고, /admin/free/* 는 그 무료상품 신규 코호트만 본다. 지우면 서비스 전체의 무료별이 다시 안 보인다.",
       });
       // 이 링크는 **spend 데이터에 대한 것**이라 else 안이다 — RPC 가 죽으면 "상품별 상세"가
       // 가리킬 대상 자체가 없다.
