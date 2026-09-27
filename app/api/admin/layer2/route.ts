@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
   if (!Number.isFinite(daysRaw)) {
     return NextResponse.json({ error: "bad_days" }, { status: 400 });
   }
-  const days = Math.min(365, Math.max(1, daysRaw));
+  //    Math.floor 는 표기용 — `?days=7.5` 를 막지 않으면 표 제목이 `최근 7.5일` 로 찍힌다.
+  //    창 경계를 말하는 라벨이 이상하면 이 화면의 존재 이유(믿을 수 있는 숫자)가 깎인다.
+  const days = Math.min(365, Math.max(1, Math.floor(daysRaw)));
   const since = daysAgoKstIso(days - 1);
 
   const supa = getServiceSupabase();
@@ -72,25 +74,31 @@ export async function GET(req: NextRequest) {
         ],
         note: "별 소모는 매출이 아니다 — 무료별이 섞여 있다. 원화 기여는 '기여 ▾'에서 본다.",
       });
+      // 이 링크는 **spend 데이터에 대한 것**이라 else 안이다 — RPC 가 죽으면 "상품별 상세"가
+      // 가리킬 대상 자체가 없다.
       blocks.push({
         kind: "link",
         title: "상품별·코호트별 상세는",
         href: "/admin/analytics",
         label: "애널리틱스",
       });
-      // 🔴 임시 다리 — 1층 '연애 상담' 섹션(활성 패스·패스 구매·스킬 호출)을 Task 8 이 지웠는데
-      //    이 드릴다운의 라벨은 아직 '연애 상담'을 약속한다. 빈 약속으로 두지 않는다.
-      //    🔴 숫자를 복사하지 않는 이유: /admin/relationship 의 '패스 구매자'는 **사람 수**고
-      //    1층이 보여주던 '패스 구매'는 **건수**다 — 정의가 다르다. 여기로 옮기면 이 플랜이
-      //    없애려는 바로 그 정의 드리프트가 생긴다. 정의를 정하고 실물 블록으로 이 자리를
-      //    채우는 건 Task 10(매출 ▾ 보강)이다.
-      blocks.push({
-        kind: "link",
-        title: "활성 패스 · 패스 구매 · 스킬 호출은",
-        href: "/admin/relationship",
-        label: "연애 상담 화면",
-      });
     }
+    // 🔴 임시 다리 — 1층 '연애 상담' 섹션(활성 패스·패스 구매·스킬 호출)을 Task 8 이 지웠는데
+    //    이 드릴다운의 라벨은 아직 '연애 상담'을 약속한다. 빈 약속으로 두지 않는다.
+    //    🔴 숫자를 복사하지 않는 이유: /admin/relationship 의 '패스 구매자'는 **사람 수**고
+    //    1층이 보여주던 '패스 구매'는 **건수**다 — 정의가 다르다. 여기로 옮기면 이 플랜이
+    //    없애려는 바로 그 정의 드리프트가 생긴다. 정의를 정하고 실물 블록으로 이 자리를
+    //    채우는 건 Task 10(매출 ▾ 보강)이다.
+    // 🔴 위 애널리틱스 링크와 달리 **else 밖**이다(설명되는 비대칭): 이건 spend 데이터가 아니라
+    //    삭제된 화면 요소를 잇는 **이동 다리**라 admin_star_spend_breakdown 의 성패와 무관하다.
+    //    별 소모 조회가 죽었다고 연애 상담으로 가는 길까지 막을 이유가 없다 — 오히려 그때가
+    //    다른 화면으로 건너가야 할 때다.
+    blocks.push({
+      kind: "link",
+      title: "활성 패스 · 패스 구매 · 스킬 호출은",
+      href: "/admin/relationship",
+      label: "연애 상담 화면",
+    });
   }
 
   if (sectionRaw === "withdrawal") {
