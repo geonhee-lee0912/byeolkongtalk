@@ -25,8 +25,9 @@ type State =
 // 🔴 initialSubject(?subject=) 가 사라졌다(2026-09-24) — 상대가 한 명이라 고를 것이 없고,
 //    그 파라미터를 붙여 보내는 링크도 앱 안엔 없었다. 딥링크가 다시 필요해지면 상대 id 가
 //    아니라 "이 상대로 교체" 같은 명시적 동작이어야 한다(조용히 선택을 바꾸면 안 된다).
-// 🔴 initialDate 는 아직 안 쓴다(Task 8 이 pair-narrative 호출에 배선한다) — 지금은 받기만
-//    한다. injected 는 나머지 두 View 와 같은 A′ 데이터 주입형 계약이다.
+// 🔴 initialDate 는 pair-narrative 호출에 배선된다(Task 8) — 과거 날짜면 그날 캐시된 서술을
+//    받는다(생성은 없다). pairCell(오늘 고정)은 안 바뀐다 — 날짜가 있는 건 서술뿐이다.
+//    injected 는 나머지 두 View 와 같은 A′ 데이터 주입형 계약이다.
 export default function WooriTodayView({
   initialDate,
   injected,
@@ -59,6 +60,13 @@ export default function WooriTodayView({
   // 🔴 하루 상한에 걸렸나 — "생성 실패"와 **구분해야** 한다. 둘 다 narrative:null 이지만
   //    전자는 내일이면 풀리고 후자는 지금 다시 오면 된다 — 같은 문구를 쓰면 둘 다 거짓말이 된다.
   const [pairDailyLimit, setPairDailyLimit] = useState(false);
+  // 🔴 과거 날짜엔 걸어둔 상대가 아니라 **그날 본 상대**를 표시한다 — 안 그러면 B 의 이름
+  //    아래 A 의 글이 뜬다. 오늘 응답엔 이 필드가 없어 null 이고, 그땐 기존대로 걸어둔
+  //    상대(partner)를 쓴다.
+  const [pastPartnerId, setPastPartnerId] = useState<string | null>(null);
+  // 🔴 "그날은 기록이 없다"와 "생성에 실패했다"를 가른다 — 둘 다 narrative:null 이지만
+  //    전자는 영영 안 생기고(소급 생성 금지) 후자는 지금 다시 오면 된다.
+  const [pastNoRecord, setPastNoRecord] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
   async function refresh() {
@@ -149,12 +157,14 @@ export default function WooriTodayView({
   // 서술은 nano 라 느려서 합치면 서술 완료까지 캘린더 렌더가 묶인다. cancelled 가드는 빠른 subject
   // 전환 시 낡은 fetch 가 최신 상태를 덮어쓰는 것을 막는다. 비자격(!entitledNow)은 아예 호출 안 함(원가 0).
   useEffect(() => {
-    if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairDailyLimit(false); setPairNarrativeLoading(false); return; }
+    if (subject === "me" || !entitledNow) { setPairNarrative(null); setPairDailyLimit(false); setPastPartnerId(null); setPastNoRecord(false); setPairNarrativeLoading(false); return; }
     let cancelled = false;
-    setPairNarrative(null); setPairDailyLimit(false); setPairNarrativeLoading(true);
+    setPairNarrative(null); setPairDailyLimit(false); setPastPartnerId(null); setPastNoRecord(false); setPairNarrativeLoading(true);
     void (async () => {
       try {
-        const res = await fetch(`/api/byeolmaru/pair-narrative?subject=${encodeURIComponent(subject)}`, { cache: "no-store" });
+        const qs = new URLSearchParams({ subject });
+        if (initialDate) qs.set("date", initialDate);
+        const res = await fetch(`/api/byeolmaru/pair-narrative?${qs}`, { cache: "no-store" });
         if (!res.ok) { if (!cancelled) setPairNarrative(null); return; }
         const j = await res.json();
         // 🔴 배포 롤아웃 창에선 **새 번들이 구 API 를 만날 수** 있다(스큐). 구 API 는 narrative 를
@@ -164,6 +174,8 @@ export default function WooriTodayView({
         if (!cancelled) {
           setPairNarrative(isPairReport(j.narrative) ? j.narrative : null);
           setPairDailyLimit(j.reason === "daily_limit");
+          setPastPartnerId(typeof j?.partnerProfileId === "string" ? j.partnerProfileId : null);
+          setPastNoRecord(j?.reason === "no_record");
         }
       } catch { if (!cancelled) setPairNarrative(null); }
       finally { if (!cancelled) setPairNarrativeLoading(false); }
@@ -175,7 +187,7 @@ export default function WooriTodayView({
   if (state.kind === "need_login") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">로그인하면 둘 사이 오늘을 볼 수 있어.</p>
-      <Link href="/login?next=/byeolmaru/woori" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
+      <Link href={`/login?next=${encodeURIComponent("/byeolmaru/day?tab=woori")}`} className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">로그인하러 가기</Link>
     </div>
   );
   if (state.kind === "no_profile") return (
@@ -203,11 +215,21 @@ export default function WooriTodayView({
     ? [pairTaste.signal, pairTaste.relation, pairTaste.lead, pairTaste.advice].filter(Boolean).join(" ")
     : "";
 
+  // 🔴 파생값이다(상태가 아니다). watch 목록에 없는 id 면 교체로 사라진 상대다 — 그때도
+  //    이름 자리를 비우지 않는다(빈 칩은 "상대가 없다"로 읽힌다).
+  const shownPartner: WatchedPartner | null = pastPartnerId
+    ? (partner && partner.id === pastPartnerId ? partner : { id: pastPartnerId, name: "그날의 상대", status: null })
+    : partner;
+
+  // 🔴 지난 날엔 생성 유도(하루 상한 안내 등)를 숨긴다 — 소급 생성이 금지돼 있어 그 안내가
+  //    거짓말이 된다. pairData.today 는 subject 기준 캘린더 응답의 오늘(KST)이다.
+  const isPast = !!initialDate && !!pairData && initialDate < pairData.today;
+
   return (
     <div className="space-y-4">
       {/* 🔴 칩(여러 명 선택)이 아니라 한 명 카드다(2026-09-24). 고를 대상이 없으니 남은 건
           "누가 걸려 있나"와 "바꾸기" 둘뿐 — 상세는 CurrentPartner 머리 주석. */}
-      <CurrentPartner partner={partner} onChange={() => setAddOpen(true)} />
+      <CurrentPartner partner={shownPartner} onChange={() => setAddOpen(true)} />
 
       {subject === "me" ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
@@ -252,10 +274,18 @@ export default function WooriTodayView({
                   )}
                   <PairReportView report={pairNarrative} />
                 </div>
-              ) : pairDailyLimit ? (
+              ) : pastNoRecord ? (
+                /* 🔴 과거 + 기록 없음 — 소급 생성은 금지라 "그때 받은 것만" 보여줄 수 있다는 걸
+                      분명히 한다(대기·재시도를 권하지 않는다 — 기다려도 안 생긴다). */
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                  그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+                </p>
+              ) : pairDailyLimit && !isPast ? (
                 /* 🔴 페이월이 아니다 — "결제하면 더"가 아니라 "오늘은 여기까지"다. 상대를 바꾸는
                       순간은 대개 관계가 끝난 순간이라 거기에 결제를 붙이지 않기로 했다(교체 과금 기각).
-                      되돌아가는 건 캐시 히트라 이 안내에 안 걸린다 — 오늘 이미 본 사람은 그대로 보인다. */
+                      되돌아가는 건 캐시 히트라 이 안내에 안 걸린다 — 오늘 이미 본 사람은 그대로 보인다.
+                   🔴 !isPast 게이트 — 하루 상한은 "오늘" 개념이라 과거 조회엔 적용될 수 없다(서버도
+                      cache_only 경로에선 이 reason 을 안 준다). 방어적으로 명시한다. */
                 <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center">
                   <p className="text-sm text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
                   <p className="mt-1 text-[13px] text-text-light">
