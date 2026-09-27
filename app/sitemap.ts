@@ -4,6 +4,7 @@ import spreadContent from "@/data/seo/spread-content.json";
 import cardContent from "@/data/seo/card-content.json";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import type { SpreadType } from "@/lib/tarot/spreads";
+import { FORTUNE_LIST } from "@/lib/fortune/types";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -93,5 +94,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
-  return [...staticEntries, ...hubEntries, ...contentEntries];
+  // 사주 상품 설명 페이지 — 진열(active) 중인 것만. FORTUNE_LIST 파생이라 진열에서 내리면 함께 빠진다.
+  const productEntries: MetadataRoute.Sitemap = [
+    ...FORTUNE_LIST.filter((f) => f.active).map((f) => ({
+      url: `${baseUrl}${f.href}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    {
+      url: `${baseUrl}/fortune/saju-mbti`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    },
+  ];
+
+  return [...staticEntries, ...hubEntries, ...contentEntries, ...productEntries];
 }

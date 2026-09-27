@@ -3,7 +3,9 @@
 // 문구는 FORTUNE_CONFIG 에서 꺼낸다. 알 수 없는 type 은 페이지가 /fortune 으로
 // 되돌리므로 여기서는 상위(/fortune) 문구를 그대로 쓰는 폴백만 둔다.
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
-import { noindexMetadata } from "@/lib/seo/metadata";
+import { productMetadata, noindexMetadata } from "@/lib/seo/metadata";
+import { FORTUNE_LANDING } from "@/data/fortune/landing";
+import type { LandingKey } from "@/lib/fortune/outline";
 
 export async function generateMetadata({
   params,
@@ -12,10 +14,20 @@ export async function generateMetadata({
 }) {
   const { type } = await params;
   const cfg = type in FORTUNE_CONFIG ? FORTUNE_CONFIG[type as FortuneType] : null;
+
+  // 진열 중인 사주 상품만 색인 — 비활성·타로는 기존대로 noindex.
+  if (cfg && cfg.active && cfg.base === "saju" && cfg.type !== "daily") {
+    const copy = FORTUNE_LANDING[cfg.type as LandingKey];
+    return productMetadata({
+      title: cfg.label,
+      description: copy.hook.replace(/\n/g, " "),
+      path: cfg.href,
+    });
+  }
+
   return noindexMetadata({
     title: cfg?.label ?? "별콩 운세",
-    description:
-      cfg?.tagline ?? "별콩이가 사주로 흐름을 짚어 리포트 한 장으로 정리해줄게.",
+    description: cfg?.tagline ?? "별콩이가 사주로 흐름을 짚어 리포트 한 장으로 정리해줄게.",
   });
 }
 
