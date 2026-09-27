@@ -15,10 +15,35 @@ import { pct1 } from "@/lib/admin/layer1";
 import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, type ProductLabel } from "@/lib/admin/product-map";
 import { readingRowView } from "@/lib/admin/reading-rows";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
-import { isLayer2Section, type Layer2Block, type Layer2Response } from "@/lib/admin/layer2-types";
+import { MIN_SAMPLE } from "@/lib/admin-metrics";
+import {
+  isLayer2Section,
+  type Layer2Block,
+  type Layer2Response,
+  type Layer2Section,
+} from "@/lib/admin/layer2-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * 섹션 핸들러가 공유하는 전부 — 이 6개 말고는 섹션끼리 런타임 결합이 없다(리뷰 실측).
+ * 그래서 컨텍스트 하나를 넘기면 되고, 섹션을 파일로 쪼갤 필요도 아직 없다.
+ */
+interface Layer2Ctx {
+  supa: ReturnType<typeof getServiceSupabase>;
+  /** 창 시작(KST 자정 경계). */
+  since: string;
+  /** 창 길이 — 표 제목·note 의 "최근 N일" 이 쓴다. */
+  days: number;
+  p_exclude: string[];
+  /** 핸들러가 밀어 넣는다. 비어 있으면 Drilldown 이 "표시할 데이터가 없다"를 그린다. */
+  blocks: Layer2Block[];
+  /** 실패한 조회 이름 — 빈 결과를 "데이터 없음"으로 위장하지 않기 위한 배너용. */
+  failed: string[];
+}
+
+type Layer2Handler = (ctx: Layer2Ctx) => Promise<void>;
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdmin();
@@ -45,7 +70,24 @@ export async function GET(req: NextRequest) {
   const blocks: Layer2Block[] = [];
   const failed: string[] = [];
 
-  if (sectionRaw === "contribution") {
+  await LAYER2_HANDLERS[sectionRaw]({ supa, since, days, p_exclude, blocks, failed });
+
+  const body: Layer2Response = { section: sectionRaw, blocks, ...(failed.length ? { failed } : {}) };
+  return NextResponse.json(body);
+}
+
+/**
+ * 🔴 섹션 → 핸들러 **전수 매핑**. 이전의 `if (sectionRaw === …)` 체인은 LAYER2_SECTIONS 와
+ *    컴파일 타임 연결이 없어서, 9번째 키를 추가하고 여기를 잊으면 **tsc 가 침묵하고** 화면은
+ *    "표시할 데이터가 없다"를 그렸다 — 이 리포가 반복해서 물린 "조용히 실패" 클래스다.
+ *    Record<Layer2Section, …> 는 키가 하나라도 빠지면 컴파일을 깬다. 섹션을 추가할 때
+ *    lib/admin/layer2-types.ts 의 LAYER2_SECTIONS 만 고치면 tsc 가 여기로 데려온다.
+ *
+ * GET 아래에 두는 이유: 진입점이 파일 위에 있어야 읽힌다. const 는 모듈 로드 시점에 초기화되고
+ * GET 은 요청 시점에야 돌므로 TDZ 문제가 없다.
+ */
+const LAYER2_HANDLERS: Record<Layer2Section, Layer2Handler> = {
+  contribution: async ({ supa, since, p_exclude, blocks, failed }) => {
     // 2층의 핵심 — 어느 상품이 돈을 벌고 어느 상품이 태우나.
     // 매출은 **유료별 소모 × 실효 단가**로, 원가는 `llm_usage.route` 로 귀속한다.
     //
@@ -143,9 +185,8 @@ export async function GET(req: NextRequest) {
         });
       }
     }
-  }
-
-  if (sectionRaw === "revenue") {
+  },
+  revenue: async ({ supa, since, p_exclude, blocks, failed }) => {
     // 별 소모 5종 — 1층에서 내려온 것(스펙 §3). /admin/analytics 와 **같은 RPC** 를 창만 맞춰 쓴다.
     // 유효 운세 타입은 앱이 단일 원천 — 하드코딩하면 FORTUNE_CONFIG 추가 시 조용히 드리프트한다.
     //
@@ -274,9 +315,8 @@ export async function GET(req: NextRequest) {
       href: "/admin/relationship",
       label: "연애 상담 화면",
     });
-  }
-
-  if (sectionRaw === "subscription") {
+  },
+  subscription: async ({ supa, since, days, p_exclude, blocks, failed }) => {
     // 🔴 이 블록이 답해야 하는 질문 하나 — **5일+ 방문이 0.7% 인 서비스에서 30일 구독이
     //    성립하나**(스펙 §2-5). 그래서 구독 수와 **구독 기간 안의 방문일**을 한 표에서 읽는다.
     //    RPC 가 방문일을 구독 창으로 잘라서 준다(전 기간을 세면 구독 전·만료 후 방문이 섞여
@@ -370,9 +410,8 @@ export async function GET(req: NextRequest) {
         label: "별마루",
       });
     }
-  }
-
-  if (sectionRaw === "signups") {
+  },
+  signups: async ({ supa, since, days, p_exclude, blocks, failed }) => {
     // 1층 '가입' 을 펼친 자리 — **어디서 온 가입인가** 와 **무료 상품이 사람을 데려오나**.
     //
     // 🔴 무료 상품의 코호트를 utm 쿠키로 잡지 않는다. `byeolkong_acq` 는 first-touch 라 30일간
@@ -478,9 +517,8 @@ export async function GET(req: NextRequest) {
         "⚠️ 별마루 2종은 공유 링크에 utm 이 붙어 있다(DailyCardBlock · SajuTodayView) — **그 코드가 배포된 환경에서만** 값이 쌓인다. 별마루가 없는 환경에서 0인 건 배선 문제가 아니라 구조적으로 당연한 값이다.",
     });
     blocks.push({ kind: "link", title: "소재별 지출은", href: "/admin/ads", label: "광고 지출" });
-  }
-
-  if (sectionRaw === "readings") {
+  },
+  readings: async ({ supa, since, days, p_exclude, blocks, failed }) => {
     // 🔴 불변식: SUM(cnt) == 1층 흐름의 `리딩`(admin_layer1_flow.readings). 두 RPC 의 readings
     //    필터가 글자 단위로 같아서 성립한다 — 1층 기본 창도 daysAgoKstIso(6) 이라 days=7 이면
     //    같은 창이다. 2026-09-27 prod 대조: 246 == 246(7일) · 2,885 == 2,885(전 기간).
@@ -565,9 +603,8 @@ export async function GET(req: NextRequest) {
       });
       blocks.push({ kind: "link", title: "개별 리딩은", href: "/admin/readings", label: "리딩/상담" });
     }
-  }
-
-  if (sectionRaw === "uv") {
+  },
+  uv: async ({ supa, since, p_exclude, blocks, failed }) => {
     // 라우트별 + 경로 판독기(스펙 §6). 새 로깅이 없다 — page_views 가 이미 모든 라우트를
     // anon 단위·시간순으로 들고 있었고, 부족했던 건 **읽는 화면**이었다.
     const PATH_LIMIT = 15;
@@ -700,9 +737,126 @@ export async function GET(req: NextRequest) {
     }
 
     blocks.push({ kind: "link", title: "유입별·방문자 구성은", href: "/admin/traffic", label: "트래픽 UV/PV" });
-  }
+  },
+  // 1층 'D7 재방문' 을 펼친 자리 — **코호트가 어디서 무너지나** 와 **무료 상품이 잔존을 올리나**.
+  //
+  // 🔴 `days` 를 코호트 창으로 쓰지 않는다(그래서 이 핸들러만 ctx 에서 days 를 안 받는다) —
+  //    7일 코호트에 7일 성숙을 요구하면 분모가 빈다(Task 7 실측: 7일 창 0명 / 30일 창 640명).
+  //    1층이 같은 이유로 p_retention_since 를 별도 인자로 받았다. 여기는 주 버킷 8개 고정이다.
+  d7: async ({ supa, p_exclude, blocks, failed }) => {
+    const WEEKS = 8;
+    const FREE_LIFT = [
+      { key: "byeoljari", label: "별 인연 별자리" },
+      { key: "saju_mbti", label: "사주 MBTI" },
+      { key: "byeolmaru", label: "별마루 구독" },
+    ];
+    // 안쪽 Promise.all 로 한 번 더 묶는다 — 성격이 다른 두 결과 묶음에 각각 이름이 붙어
+    // 아래 분기가 읽힌다(signups 섹션과 같은 형태). 플랫하게 spread 하면 인덱스 산술이 된다.
+    const [ret, lifts] = await Promise.all([
+      supa.rpc("admin_layer2_retention", { p_weeks: WEEKS, p_exclude }),
+      Promise.all(
+        FREE_LIFT.map((p) =>
+          supa.rpc("admin_free_product_lift", { p_product: p.key, p_exclude })
+        )
+      ),
+    ]);
 
-  if (sectionRaw === "withdrawal") {
+    if (ret.error) failed.push("admin_layer2_retention");
+    else {
+      // 🔴 BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 전수. Dn 은 **성숙 전이면
+      //    RPC 가 NULL 을 준다** — 0 이 아니다(0 이면 "쟀더니 아무도 안 왔다"로 읽힌다).
+      type RetRow = {
+        cohort_week: string;
+        users: string;
+        d1: string | null;
+        d3: string | null;
+        d7: string | null;
+        d14: string | null;
+        d28: string | null;
+      };
+      const rows = (ret.data ?? []) as RetRow[];
+      if (rows.length) {
+        blocks.push({
+          kind: "table",
+          title: `주 코호트 리텐션 (최근 ${WEEKS}주)`,
+          // 🔴 헤더에 `(%)` 를 붙이지 않는다 — formatMetric(_, "percent") 이 이미 `%` 를 붙여
+          //    `D7(%) 8.9%` 가 된다(Task 10~13 이 `(원)`·`(%)` 를 같은 이유로 뺐다).
+          columns: ["가입 주", "인원", "D1", "D3", "D7", "D14", "D28"],
+          rows: rows.map((r) => {
+            const n = Number(r.users);
+            // 🔴 못 그리는 칸이 둘이다: ①RPC 가 NULL 을 준 미성숙 칸 ②곡선 소표본.
+            //    임계의 단일 원천은 lib/admin-metrics.ts 의 MIN_SAMPLE — 여기 숫자를 박으면
+            //    임계를 바꿀 때 두 곳이 되어 조용히 갈린다.
+            // 🔴 퍼센트는 pct1 경유다. `(a/n)*1000/10` 처럼 **나누고 곱하면** 그 double 이
+            //    이미 참값이 아니라(201/400 → 50.2, 참값 50.25) 뒤에서 뭘 해도 못 고친다.
+            const cell = (v: string | null) => {
+              if (v === null || n < MIN_SAMPLE.CURVE) return null;
+              const p = pct1(Number(v), n);
+              return p === null ? null : formatMetric(p, "percent");
+            };
+            return [
+              r.cohort_week,
+              formatMetric(n, "count"),
+              cell(r.d1),
+              cell(r.d3),
+              cell(r.d7),
+              cell(r.d14),
+              cell(r.d28),
+            ];
+          }),
+          note:
+            "Dn = 가입 후 n일이 지난 **뒤에도** 방문 기록이 있나(마지막 방문 기준) — 1층 'D7 재방문'과 **같은 정의**다. 다른 건 코호트 창뿐이라(1층은 30일 롤링 · 여기는 주 버킷) 두 값이 정확히 같지는 않다. " +
+            "🔴 **빈 칸은 0% 가 아니라 '아직 못 잰다'** 는 뜻이다 — 그 주 가입자 **전원**이 n일을 채운 뒤에만 칸을 연다. " +
+            "성숙 기준을 **주의 마지막 날**로 잡은 이유: 분모가 그 주 가입자 전원이라, 주 시작일로 열면 아직 n일을 못 채운 사람이 분모에 남아 값이 구조적으로 깎인 채 그려진다. " +
+            `인원이 **${MIN_SAMPLE.CURVE}명**(리텐션 곡선 소표본 임계) 미만인 주도 비율을 그리지 않는다. ` +
+            "⚠️ 맨 위 주는 **아직 진행 중**이라 인원이 계속 는다(그래서 칸도 전부 비어 있다). " +
+            "🔴 **세로로 비교하지 말 것** — Dn 은 '가입 후 n일이 지난 뒤에 **언젠가** 왔나' 라 코호트가 오래될수록 관측 기간이 길어 계속 오른다. 아래(오래된) 행이 높은 건 리텐션이 좋았다는 뜻이 아닐 수 있다. 1층과 정의를 맞추느라 그대로 뒀다. " +
+            "⚠️ 방문은 봇 제외 page_views 이고 **창을 걸지 않는다** — 코호트 창 밖에 돌아온 방문도 센다(1층과 같은 규약).",
+        });
+      }
+    }
+
+    // 🔴 리프트 표는 리텐션의 성패와 무관하게 항상 그린다(설명되는 비대칭) — 서로 다른 RPC 이고,
+    //    코호트 곡선이 안 보인다고 무료 상품의 잔존 기여까지 가릴 이유가 없다(signups 와 같은 규약).
+    const liftRows = FREE_LIFT.map((p, i) => {
+      const res = lifts[i];
+      if (res.error) {
+        failed.push(`admin_free_product_lift(${p.key})`);
+        // null 은 화면에서 "—" — 0 으로 채우면 "접촉자가 없었다" 는 **거짓말**이 된다.
+        return [p.label, null, null, null, null];
+      }
+      const r = ((res.data ?? []) as Record<string, string | null>[])[0];
+      const touched = Number(r?.touched ?? 0);
+      const untouched = Number(r?.untouched ?? 0);
+      // 소표본 게이트 — 평균은 표본이 MIN_SAMPLE.RATE 미만이면 숫자를 그리지 않는다(스펙 §7).
+      // 🔴 **양쪽에 같은 규칙**을 건다. 플랜은 접촉자만 걸었는데, 비접촉자가 수천 명이라 실질
+      //    차이가 없다는 게 같은 표 안에서 규칙이 한쪽에만 걸릴 이유는 못 된다.
+      // 평균 방문일은 소수라 `count` 로 찍으면 4.94일이 "5" 가 되어 의미가 뭉개진다 → ratio.
+      const avg = (n: number, v: string | null | undefined) =>
+        n < MIN_SAMPLE.RATE || v == null ? null : formatMetric(Number(v), "ratio");
+      return [
+        p.label,
+        formatMetric(touched, "count"),
+        avg(touched, r?.touched_avg_days),
+        formatMetric(untouched, "count"),
+        avg(untouched, r?.untouched_avg_days),
+      ];
+    });
+    blocks.push({
+      kind: "table",
+      title: "무료 상품 접촉 × 방문일수",
+      columns: ["상품", "접촉자", "접촉자 평균 방문일", "비접촉자", "비접촉자 평균 방문일"],
+      rows: liftRows,
+      note:
+        "🔴 무료 상품을 '전환율'로 재지 않는다 — 2026-08-24 실측에서 무료→결제는 깔때기가 아니라 **역인과**였다(무료가 결제자를 만든 게 아니라 결제자가 무료를 구경했다). 그래서 이 표는 **잔존**을 본다. " +
+        "🔴 **인과가 아니다** — 무료 상품을 쓰는 사람이 원래 더 오래 남는 사람일 수 있다(선택 편향). 차이가 커도 '무료 상품이 리텐션을 올렸다'로 읽으면 안 된다. " +
+        "⚠️ 같은 2026-08-24 판독의 단서: 리텐션 쪽 유일한 긍정 신호는 **데일리형** 무료 콘텐츠에서 나왔고 별자리·MBTI 는 **공유 바이럴형이라 다른 종**이다 — 그 신호를 이 표로 옮겨 읽지 말 것. " +
+        `⚠️ 방문일은 **전 기간 누적**이라(창이 없다) 일찍 가입한 사람일수록 크다. 접촉자·비접촉자 **양쪽 다** ${MIN_SAMPLE.RATE}명 미만이면 평균을 그리지 않는다. ` +
+        "⚠️ 별자리 접촉자는 **맵을 만든 사람**이다(star_maps 의 주인) — 맵에 이름이 적힌 멤버는 호스트가 손으로 넣은 타인이라 계정이 없어 못 센다. " +
+        "⚠️ 별마루 구독은 별마루가 **배포된 환경에서만** 값이 쌓인다 — 없는 환경의 0 은 배선 문제가 아니라 구조적으로 당연한 값이다.",
+    });
+  },
+  withdrawal: async ({ supa, since, days, blocks, failed }) => {
     // 1층의 탈퇴 표시 둘(오늘 섹션의 오늘/어제 · 전체 섹션의 누적+가입대비)이 여기로 내려왔다.
     // 🔴 창 경계는 lib/admin-time.ts 가 단일 원천이다 — 라우트에서 날짜 산술을 새로 쓰지 않는다.
     const todayIso = startOfTodayKstIso();
@@ -768,11 +922,5 @@ export async function GET(req: NextRequest) {
     }
 
     blocks.push({ kind: "link", title: "이탈 사유는", href: "/admin/survey", label: "이탈 설문" });
-  }
-
-  // 나머지 섹션(d7)은 Task 14 에서 채운다. 빈 배열이면 Drilldown 이 "표시할 데이터가 없다"를 그린다.
-  // 🔴 `d7` 섹션은 `days` 를 그대로 코호트 창으로 쓰면 안 된다 — 7일 코호트에 7일 성숙을 요구하면
-  //    분모가 빈다(Task 7 실측: 7일 창 0명 / 30일 창 640명). 리텐션은 자체 코호트 창을 가져야 한다.
-  const body: Layer2Response = { section: sectionRaw, blocks, ...(failed.length ? { failed } : {}) };
-  return NextResponse.json(body);
-}
+  },
+};
