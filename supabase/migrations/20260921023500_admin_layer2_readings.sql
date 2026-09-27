@@ -22,14 +22,29 @@
 --    쪼갠 뒤 대화 행 **56.6%**. tarot 2,385 = 리포트 25 + 대화 2,360 (69.9% → 70.6%, 미미하다).
 --    리포트 297건은 전부 ended=0 · viewed=0 · **user_turns 최댓값이 0** 이다(구조가 데이터로 확인된다).
 --
--- 🔴 분리 키는 `left(emotion_tag, 8) = 'fortune:'`.
+-- 🔴 분리 키는 `emotion_tag LIKE 'fortune:%'`.
 --    ⚠️ AGENTS.md 가 경고하는 `LIKE 'fortune_%'` 함정과는 **다른 케이스**다 — 거기서 문제는
---       `_` 가 LIKE 와일드카드라는 것인데, 여기 구분자는 `:` 라 LIKE 로 써도 안전하다.
---       그래도 `left(...)` 로 쓴다: 와일드카드를 아예 안 쓰는 쪽이 다음 사람에게 덜 헷갈린다.
+--       `_` 가 LIKE 와일드카드라는 것인데 `fortune:` 에는 `_` 가 없다.
+--    ⚠️ `left(emotion_tag, 8) = 'fortune:'` 로 쓰지 않는다 — 리터럴과 길이를 **따로 동기화**해야
+--       해서, prefix 가 길어지는 날 `left(x,8) = 'fortune_v2:'` 가 **영원히 false** 가 되고
+--       사주 완료율이 9.2% 버그로 조용히 회귀한다. LIKE 엔 없는 실패 모드다.
 --    ⚠️ **NULL 3값 논리** — emotion_tag 는 nullable 이고(2026-09-27 prod 2,885건 중 175건이
---       NULL), `left(NULL,8) = 'fortune:'` 은 false 가 아니라 **NULL** 이다. COALESCE 를 빼면
---       GROUP BY 가 NULL 그룹을 따로 만들어 행이 쪼개지고 SUM(cnt) 불변식이 깨지지는 않지만
---       정체불명의 행이 하나 더 생긴다. 반드시 COALESCE(..., false).
+--       NULL), `NULL LIKE 'fortune:%'` 는 false 가 아니라 **NULL** 이다. COALESCE 를 빼면
+--       GROUP BY 가 NULL 그룹을 따로 만들어 정체불명의 행이 하나 더 생긴다(SUM(cnt) 불변식은
+--       그래도 성립하므로 **불변식이 이 결함을 못 잡는다**). 반드시 COALESCE(..., false).
+--
+-- 🔴 왜 여기는 prefix 인데 `/admin/paywall` 은 화이트리스트인가 — 두 화면이 다른 문제를 푼다.
+--    paywall(`app/admin/paywall/page.tsx:96`)은 **분류기가 둘**이다: 앱의 `fortuneTypeFromTag`
+--    와 SQL 이 같은 태그를 각자 분류하므로, SQL 이 맨 prefix 를 쓰면 `fortune:오타` 를 앱은
+--    상담으로 SQL 은 운세로 분류해 **같은 화면의 두 숫자가 조용히 어긋난다.** 그래서
+--    `p_fortune_types: Object.keys(FORTUNE_CONFIG)` 로 단일 원천을 강제한다.
+--    여기는 분류기가 **이 RPC 하나**뿐이다 — `readingRowView` 는 내려받은 boolean 을 쓸 뿐
+--    `emotion_tag` 를 다시 해석하지 않으므로 어긋날 상대가 없다. 반대로 화이트리스트는 **비용이
+--    있다**: 이 표는 창 안의 모든 리딩을 세는 **역사 census** 라, 상품이 sunset 돼 키가
+--    FORTUNE_CONFIG 에서 빠지면 그 순간 **과거 행들이 소급해서** 사주(대화)로 재분류되고
+--    완료율 0 이 섞여 들어온다 — 오래된 데이터일수록 더 틀린다. 키 리네임에 둔감한 prefix 가
+--    역사 데이터에는 맞다. (2026-09-27 기준으로는 prod 의 fortune 키 16종이 전부
+--     FORTUNE_CONFIG 26종 안에 있어 두 방식의 결과가 같다 — 잠재 위험이지 현재 버그가 아니다.)
 --
 -- 🔴 avg_user_turns 는 COALESCE(m.user_turns, 0) 이다 — **메시지가 한 건도 없는 리딩도 0턴으로
 --    분모에 넣는다.** 플랜 원안 `ROUND(AVG(m.user_turns), 2)` 는 LEFT JOIN 이 만든 NULL 을
@@ -76,7 +91,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WITH win AS (
     SELECT r.id,
            r.consultation_type,
-           COALESCE(left(r.emotion_tag, 8) = 'fortune:', false) AS is_report,  -- NULL → false
+           COALESCE(r.emotion_tag LIKE 'fortune:%', false) AS is_report,  -- NULL → false
            r.stars_spent,
            r.result_viewed_at
     FROM readings r
@@ -105,7 +120,9 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   GROUP BY 1, 2
   -- 출력 서수(ORDER BY 3)가 아니라 식으로 쓴다 — 열이 하나 늘 때마다 서수가 밀려 조용히 다른
   -- 열로 정렬되는 걸 막는다(is_report 를 끼워 넣으며 실제로 밀렸다).
-  ORDER BY COUNT(*) DESC;
+  -- 🔴 타이브레이커 필수 — LIMIT 가 없어 행 유실은 없지만, 동수 그룹(하위 행이 25 vs 20 으로
+  --    가깝다)의 표시 순서가 새로고침마다 뒤집혀 "표가 흔들린다". 공짜로 닫는다.
+  ORDER BY COUNT(*) DESC, 1, 2;
 $$;
 
 REVOKE ALL ON FUNCTION admin_layer2_readings(TIMESTAMPTZ, TIMESTAMPTZ, UUID[]) FROM PUBLIC, anon, authenticated;

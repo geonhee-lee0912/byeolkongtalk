@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, readingRowView } from "./product-map.ts";
+import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS } from "./product-map.ts";
 
 // 🔴 여기 쓰인 route 문자열은 **리포에 실제로 존재하는 값**만 쓴다(`grep -o 'route: "[^"]*"'` 로
 //    확인, dev llm_usage 실적재 3종 포함). 플랜 원안은 `/api/relationship/sim/turn` ·
@@ -99,49 +99,4 @@ test("원가 라벨과 매출 라벨이 짝을 이룬다 — 한쪽만 배선된
 //    먼저 깨져서 사람 눈을 부르는 게 전부이고, 이름이 그 이상을 약속하면 안 된다.
 test("PRODUCT_LABELS 목록이 바뀌면 이 테스트가 먼저 깨진다 (변경 감지기)", () => {
   assert.deepEqual([...PRODUCT_LABELS], ["타로", "사주", "운세", "연애", "별마루", "공통(매출없음)", "기타"]);
-});
-
-// ── readingRowView ────────────────────────────────────────────────────────
-// 🔴 여기 쓰인 consultation_type 은 **prod 에 실제로 존재하는 4종**이다(2026-09-27 전수:
-//    tarot 2,385 · saju 325 · relationship 155 · relationship_sim 20). 새 종목이 생기면
-//    이 테스트가 먼저 깨지는 게 아니라 **조용히 폴백**하므로, 폴백 동작 자체를 아래에서 잠근다.
-test("readingRowView — 대화형 종목은 완료율·결과열람을 잰다", () => {
-  assert.deepEqual(readingRowView("tarot", false), { label: "타로(대화)", ended: true, viewed: true });
-  assert.deepEqual(readingRowView("saju", false), { label: "사주(대화)", ended: true, viewed: true });
-});
-
-// 페르소나가 [END] 를 금지하고 result 라우트도 없다 → 0% 가 아니라 "해당 없음" 이다.
-test("readingRowView — 연애 스레드는 완료·열람 개념이 없다", () => {
-  assert.deepEqual(readingRowView("relationship", false), {
-    label: "연애 상담",
-    ended: false,
-    viewed: false,
-  });
-  assert.deepEqual(readingRowView("relationship_sim", false), {
-    label: "연애 시뮬",
-    ended: false,
-    viewed: false,
-  });
-});
-
-// one-shot 리포트는 대화가 없다 — 어느 종목에 얹히든 두 지표가 다 사라진다.
-test("readingRowView — fortune 리포트는 종목과 무관하게 완료·열람이 없다", () => {
-  assert.deepEqual(readingRowView("tarot", true), { label: "타로(리포트)", ended: false, viewed: false });
-  assert.deepEqual(readingRowView("saju", true), { label: "사주(리포트)", ended: false, viewed: false });
-});
-
-// 🔴 모르는 종목은 **숨기지 않고 보여준다** — 틀린 "—" 는 조용하지만 틀린 0% 는 누가 묻는다.
-test("readingRowView — 모르는 종목은 숫자를 보여주는 쪽으로 폴백한다 (크래시하지 않는다)", () => {
-  assert.deepEqual(readingRowView("brand_new_type", false), {
-    label: "brand_new_type",
-    ended: true,
-    viewed: true,
-  });
-  assert.deepEqual(readingRowView("", false), { label: "", ended: true, viewed: true });
-  // 모르는 종목에 리포트가 얹혀도 라벨만 붙고 크래시하지 않는다.
-  assert.deepEqual(readingRowView("brand_new_type", true), {
-    label: "brand_new_type(리포트)",
-    ended: false,
-    viewed: false,
-  });
 });

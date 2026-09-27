@@ -12,7 +12,8 @@ import { adminExclusionArray, adminExclusionList } from "@/lib/admin";
 import { daysAgoKstIso, kstDate, startOfTodayKstIso } from "@/lib/admin-time";
 import { formatMetric } from "@/lib/admin/format";
 import { pct1 } from "@/lib/admin/layer1";
-import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, readingRowView, type ProductLabel } from "@/lib/admin/product-map";
+import { labelOfRoute, labelOfSpendSource, PRODUCT_LABELS, type ProductLabel } from "@/lib/admin/product-map";
+import { readingRowView } from "@/lib/admin/reading-rows";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { isLayer2Section, type Layer2Block, type Layer2Response } from "@/lib/admin/layer2-types";
 
@@ -482,7 +483,9 @@ export async function GET(req: NextRequest) {
   if (sectionRaw === "readings") {
     // 🔴 불변식: SUM(cnt) == 1층 흐름의 `리딩`(admin_layer1_flow.readings). 두 RPC 의 readings
     //    필터가 글자 단위로 같아서 성립한다 — 1층 기본 창도 daysAgoKstIso(6) 이라 days=7 이면
-    //    같은 창이다. 2026-09-27 prod 대조: 246 == 246(7일) · 956 == 956(30일, 3명 제외).
+    //    같은 창이다. 2026-09-27 prod 대조: 246 == 246(7일) · 2,885 == 2,885(전 기간).
+    //    쪼개기 때문에 1층의 숫자 하나가 여기서 6행으로 흩어지므로 **note 에도 노출한다** —
+    //    운영자가 화면만 보고 자가검증할 수 있어야 한다(signups 표와 같은 규약).
     const rd = await supa.rpc("admin_layer2_readings", { p_since: since, p_until: null, p_exclude });
     if (rd.error) failed.push("admin_layer2_readings");
     else {
@@ -497,18 +500,35 @@ export async function GET(req: NextRequest) {
         viewed_cnt: string;
         avg_user_turns: string | null;
       };
+      // 🔴 카나리아 — 이 표의 "못 잰다"는 **앱 상수**의 주장이다. 페르소나나 라우트가 바뀌었는데
+      //    reading-rows.ts 를 안 고치면 실데이터가 영원히 "—" 로 숨고, 유닛은 상수끼리만 비교하니
+      //    **절대 안 깨진다**(relationship-slot-gate-drift 와 같은 클래스). 런타임 반증만이 잡는다.
+      const rows = (rd.data ?? []) as RdRow[];
+      const drifted = rows.filter((r) => {
+        const v = readingRowView(r.consultation_type, r.is_report);
+        return (
+          (!v.ended && Number(r.ended_cnt) > 0) ||
+          (!v.viewed && Number(r.viewed_cnt) > 0) ||
+          (!v.paid && Number(r.paid_cnt) > 0)
+        );
+      });
+      const drift = drifted.length
+        ? ` 🔴 **표시 규칙이 현실과 어긋났다** — ${drifted
+            .map((d) => d.consultation_type)
+            .join(", ")} 에 "못 잰다"고 해둔 값이 실제로 잡혔다. lib/admin/reading-rows.ts 를 고칠 것.`
+        : "";
       blocks.push({
         kind: "table",
         title: `종목별 리딩 (최근 ${days}일)`,
         // 헤더에 `(%)` 를 붙이지 않는다 — formatMetric(_, "percent") 이 이미 `%` 를 붙여
         // `완료율(%): 59.0%` 가 된다(같은 이유로 매출 표의 `(원)` 도 뺐다).
         columns: ["종목", "리딩", "유료", "완료율", "결과 열람", "평균 유저 턴"],
-        rows: ((rd.data ?? []) as RdRow[]).map((r) => {
+        rows: rows.map((r) => {
           const n = Number(r.cnt);
-          // 🔴 이 행이 **무엇을 잴 수 있나** — 완료율·결과 열람이 구조적으로 불가능한 행은
-          //    `0.0%` 가 아니라 "—" 여야 한다("쟀더니 아무도 안 했다" 와 "애초에 못 잰다"는
-          //    다르다). 판정 근거는 데이터가 아니라 페르소나 파일·라우트 존재 여부라
-          //    lib/admin/product-map.ts 가 유닛으로 잠근 채 갖고 있다.
+          // 🔴 이 행이 **무엇을 잴 수 있나** — 구조적으로 불가능한 칸은 `0`·`0.0%` 가 아니라
+          //    "—" 여야 한다("쟀더니 아무도 안 했다" 와 "애초에 못 잰다"는 다르다). 판정 근거가
+          //    데이터가 아니라 페르소나 파일·라우트 존재 여부·INSERT 문이라
+          //    lib/admin/reading-rows.ts 가 유닛으로 잠근 채 갖고 있다.
           const view = readingRowView(r.consultation_type, r.is_report);
           // 🔴 퍼센트는 반드시 pct1 경유 — `(a/b)*1000` 으로 먼저 나누면 배정도 오차가 참값을
           //    이미 놓쳐서(201/400 → 502.4999…) 뒤에서 어떤 반올림을 해도 50.3 이 안 나온다.
@@ -518,7 +538,9 @@ export async function GET(req: NextRequest) {
           return [
             view.label,
             formatMetric(n, "count"),
-            formatMetric(Number(r.paid_cnt), "count"),
+            // 연애 상담은 스레드 INSERT 가 stars_spent 를 0 으로 박는다 — 돈은 패스·스킬에 있다.
+            // 0 으로 찍으면 "155건인데 매출 0" 으로 읽히는데 그건 측정 결과가 아니라 저장 구조다.
+            view.paid ? formatMetric(Number(r.paid_cnt), "count") : null,
             // null 은 "—" 로 둔다 — 0 으로 뭉개면 "완료가 0%" 와 "못 잰다" 가 같은 칸이 된다.
             ended === null ? null : formatMetric(ended, "percent"),
             viewed === null ? null : formatMetric(viewed, "percent"),
@@ -529,13 +551,17 @@ export async function GET(req: NextRequest) {
         // 🔴 note 에 **그날 잰 값**을 박지 않는다(같은 파일 signups 주석과 같은 규율) — 화면에
         //    렌더되는 문자열이라 낡고, 낡은 주장은 옆의 진짜 경고까지 같이 깎는다. 숫자 대신
         //    **관계**를 말한다. 검증 수치는 커밋 메시지와 마이그레이션 주석에 있다.
+        // 🔴 "—" 의 이유는 **라벨이 진다**(`연애 상담(종결없음)` · `(리포트)`). 긴 문단의 n번째
+        //    caveat 은 11px/35% 투명도라 안 읽힌다 — product-map.ts 가 `공통(매출없음)` 으로
+        //    이미 검증한 해법이다. note 는 규칙만 한 문장으로 말한다.
         note:
-          "완료 = 별콩이 발화에 **[END] 마커**가 있다(messages.content 기준 — turn_close 컬럼이 아니다. 3층 roadmap KPI 와 같은 정의다). " +
-          "평균 유저 턴은 **리딩당** 평균이다 — 메시지가 한 건도 없는 리딩도 **0턴으로 분모에 넣는다.** 빼면 '한 마디도 못 하고 죽은 리딩'이 평균에서 통째로 사라져 평균이 **과대**해진다(메시지 0건 리딩이 많은 relationship 에서 특히 크다). " +
-          "결과 열람은 여기선 **리딩 기준**이다 — 1층 가드레일의 결과 열람은 **코호트 기준**이라 값이 다르다(둘 다 정본이고 분모가 다르다). " +
-          "🔴 **(대화) 와 (리포트) 는 따로 센다.** `/fortune` one-shot 리포트도 readings 에 사주·타로로 저장되는데(app/api/fortune/create), 대화가 없어 [END] 가 안 찍힌다 — 합쳐 두면 **사주 완료율이 몇 배 과소로** 나왔다. 리포트 행은 종목 안에서 리포트가 차지하는 **몫**을 읽는 칸이다. " +
-          "🔴 **\"—\" 는 데이터 없음이 아니라 '잴 수 없음'이다.** 리포트 행은 대화가 없어 완료·열람 개념이 아예 없고, 연애 상담·연애 시뮬은 **스레드에 종결이 없어** 페르소나가 [END] 를 쓰지 못하게 막혀 있으며(data/persona/byeolkong_relationship.md) 결과 화면 라우트 자체가 없어 열람 시각도 안 찍힌다. 그 칸들을 0% 로 찍으면 '아무도 안 끝냈다'는 **거짓**이 되므로 비워 둔다 — 이 칸으로 연애 상담을 평가하지 말 것. " +
-          "2026-09-12 실측: 종료 원인은 마무리 버튼 59% · 자발 13% · 무언 이탈 27%.",
+          "완료 = 별콩이 발화에 **[END] 마커**가 있다(turn_close 컬럼이 아니다 — 3층 roadmap KPI 와 같은 정의). " +
+          "평균 유저 턴은 **리딩당** 평균 — 메시지 0건 리딩도 0턴으로 분모에 넣는다(빼면 '한 마디도 못 하고 죽은 리딩'이 사라져 과대해진다). " +
+          "🔴 **\"—\" 는 0% 가 아니라 '그 행엔 그 개념이 없다'** 는 뜻이다: 리포트는 대화가 없고, 연애 스레드는 종결·결과 화면이 없으며 그 돈은 패스·스킬이라 리딩의 유료 칸에 안 잡힌다. " +
+          "🔴 **리딩 합은 같은 창 1층 '리딩'과 항상 같아야 한다** — 쪼개기는 행을 나눌 뿐 모수를 바꾸지 않는다. 어긋나면 1층과 2층이 다른 모수를 말하는 것이다. " +
+          "결과 열람은 여기선 **리딩 기준** — 1층 가드레일의 결과 열람은 **코호트 기준**이라 값이 다르다(둘 다 정본, 분모가 다르다). " +
+          "2026-09-12 실측: 종료 원인은 마무리 버튼 59% · 자발 13% · 무언 이탈 27%." +
+          drift,
       });
       blocks.push({ kind: "link", title: "개별 리딩은", href: "/admin/readings", label: "리딩/상담" });
     }
