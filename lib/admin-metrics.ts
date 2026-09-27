@@ -280,9 +280,12 @@ export const METRICS = {
   // ── 무료 상품 · 구독 ──────────────────────────────────────────────────────
   subscription_won: {
     key: "subscription_won",
-    label: "구독 매출",
+    // 🔴 2026-09-27 — 라벨·정의 둘 다 **어느 구독인지 말하지 않아** 운영자가 "유료별 구매"로
+    //    읽었다. 라벨에 '별마루'를 박고, 정의는 테이블 이름이 아니라 **무엇을 세는 값인지**로
+    //    시작하게 다시 썼다(출처는 `source` 가 따로 말한다). 숫자·산식은 그대로다.
+    label: "별마루 구독 매출",
     definition:
-      "byeolmaru_subscriptions.stars_spent 중 **유료별만** 원화 환산. free-first 귀속(admin_star_spend_breakdown 과 같은 규칙)을 재사용한다.",
+      "**별마루 구독**을 사는 데 쓴 별 중 **유료별만** 원화로 환산한 값. 유료/무료 구분은 별 소모 분해와 같은 free-first 귀속 규칙을 쓴다.",
     unit: "won",
     source: "byeolmaru_subscriptions + star_transactions",
     minSample: MIN_SAMPLE.NONE,
@@ -315,9 +318,11 @@ export const METRICS = {
   },
   subscriber_net: {
     key: "subscriber_net",
-    label: "구독자 순증",
+    // 🔴 2026-09-27 — 정의에 '별마루'가 아예 없어 어느 구독인지 알 수 없었다(위 subscription_won
+    //    과 같은 병). 라벨과 정의 첫머리에 대상을 박는다. 숫자·산식은 그대로다.
+    label: "별마루 구독자 순증",
     definition:
-      "창 안에 구독을 시작한 사람 중 **그 시점에 활성 구독이 없던 사람 수** − 창 안에 구독이 **실제로 끝난** 사람 수. 둘 다 건수가 아니라 사람 수다.",
+      "**별마루 구독**을 창 안에 시작한 사람 중 **그 시점에 활성 구독이 없던 사람 수** − 창 안에 구독이 **실제로 끝난** 사람 수. 둘 다 건수가 아니라 사람 수다.",
     unit: "count",
     source: "admin_layer1_quality",
     minSample: MIN_SAMPLE.NONE,
