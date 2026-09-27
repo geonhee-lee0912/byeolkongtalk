@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
   if (sectionRaw === "revenue") {
     // 별 소모 5종 — 1층에서 내려온 것(스펙 §3). /admin/analytics 와 **같은 RPC** 를 창만 맞춰 쓴다.
     // 유효 운세 타입은 앱이 단일 원천 — 하드코딩하면 FORTUNE_CONFIG 추가 시 조용히 드리프트한다.
+    //
+    // 🔴 별 소모의 **오늘/어제 Δ 는 1층에서 내려오며 의도적으로 버렸다**(2026-09-27 사용자 결정) —
+    //    2층은 7일 합계 창이다. 누락이 아니라 선택이다. /admin/analytics 도 30일 고정이라
+    //    별 소모의 **일일 맥박을 보는 화면은 현재 없다.** 필요해지면 그때 창을 새로 판다.
     const spend = await supa.rpc("admin_star_spend_breakdown", {
       p_since: since,
       p_until: null,
@@ -54,25 +58,52 @@ export async function GET(req: NextRequest) {
     });
     if (spend.error) failed.push("admin_star_spend_breakdown");
     else {
-      // RPC 는 (domain, product, cnt, stars, free_stars, users) 를 준다 — 여기서 쓰는 3개만 선언한다.
+      // RPC 는 (domain, product, cnt, stars, free_stars, users) 를 준다 — 여기서 쓰는 4개만 선언한다.
       // 🔴 BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수(빼면 문자열 연결로 조용히 틀린다).
-      type SpendRow = { domain: string; product: string; stars: string };
+      type SpendRow = { domain: string; product: string; stars: string; free_stars: string };
       const rows = (spend.data ?? []) as SpendRow[];
       const isRelSkill = (r: SpendRow) => r.domain === "relationship" && r.product.startsWith("스킬:");
-      const sum = (pred: (r: SpendRow) => boolean) =>
-        rows.filter(pred).reduce((s, r) => s + Number(r.stars), 0);
+      // 🔴 무료별은 **종목별**로 쪼개야 한다 — 1층 카드가 종목마다 `(무료 N)` 을 보여줬고,
+      //    무료 비중은 종목마다 다르다(웰컴 20별이 타로에 몰린다). 총량만으로는 안 보인다.
+      const parts = (
+        [
+          ["타로 대화", (r: SpendRow) => r.domain === "tarot"],
+          ["운세 리포트", (r: SpendRow) => r.domain === "fortune"],
+          ["인챗 업셀", (r: SpendRow) => r.domain === "upsell"],
+          ["연애 상담", (r: SpendRow) => r.domain === "relationship" && !isRelSkill(r)],
+          ["연애 스킬", isRelSkill],
+        ] as [string, (r: SpendRow) => boolean][]
+      ).map(([label, pred]) => {
+        const hit = rows.filter(pred);
+        return {
+          label,
+          stars: hit.reduce((s, r) => s + Number(r.stars), 0),
+          free: hit.reduce((s, r) => s + Number(r.free_stars), 0),
+        };
+      });
       blocks.push({
         kind: "bars",
         title: "별 소모 5종",
         unit: "count",
-        items: [
-          { label: "타로 대화", value: sum((r) => r.domain === "tarot") },
-          { label: "운세 리포트", value: sum((r) => r.domain === "fortune") },
-          { label: "인챗 업셀", value: sum((r) => r.domain === "upsell") },
-          { label: "연애 상담", value: sum((r) => r.domain === "relationship" && !isRelSkill(r)) },
-          { label: "연애 스킬", value: sum(isRelSkill) },
-        ],
-        note: "별 소모는 매출이 아니다 — 무료별이 섞여 있다. 원화 기여는 '기여 ▾'에서 본다.",
+        items: parts.map((p) => ({ label: p.label, value: p.stars })),
+        note: "별 소모는 매출이 아니다 — 무료별(웰컴·보너스)이 섞여 있다. 얼마나 섞였는지는 바로 아래 표, 원화 기여는 '기여 ▾'에서 본다.",
+      });
+      blocks.push({
+        kind: "table",
+        title: "무료별 비중",
+        columns: ["종목", "총 별", "무료별", "무료 비중"],
+        // 🔴 비중은 pct1 경유 — `free / stars * 100` 을 먼저 하면 그 double 이 이미 참값이 아니라
+        //    포맷터로는 못 고친다(lib/admin/layer1.ts). 종목 소모가 0 이면 null → 화면에 "—".
+        rows: parts.map((p) => {
+          const share = pct1(p.free, p.stars);
+          return [
+            p.label,
+            formatMetric(p.stars, "count"),
+            formatMetric(p.free, "count"),
+            share === null ? null : formatMetric(share, "percent"),
+          ];
+        }),
+        note: "무료 비중이 높은 종목일수록 그 별 소모는 매출에서 멀다. 🔴 이 표가 어드민에서 무료별을 보는 **유일한 자리**다 — /admin/analytics 는 free_stars 를 렌더하지 않는다. 지우면 다시 안 보인다.",
       });
       // 이 링크는 **spend 데이터에 대한 것**이라 else 안이다 — RPC 가 죽으면 "상품별 상세"가
       // 가리킬 대상 자체가 없다.
