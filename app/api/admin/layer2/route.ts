@@ -433,7 +433,10 @@ export async function GET(req: NextRequest) {
               n > 0 ? formatMetric(won / n, "won") : null,
             ];
           }),
-          note: "오가닉은 user_acquisition 행이 **없는** 가입이다 — 쿠키 차단·acq 쿠키 30일 만료도 섞이므로 오가닉의 **상한**으로 읽을 것. 🔴 이 표의 가입 합은 같은 창의 1층 '가입'과 **정확히 같다**(같은 users 필터 — 2026-09-27 prod 30일 창 인라인 대조 836 == 836). 어긋나면 1층과 2층이 다른 모수를 말하는 것이다. ⚠️ 결제·매출은 **창 안의 결제가 아니라 그 코호트의 누적**이다 — 코호트가 가입일로 정의되므로 결제는 전부 가입 이후이고, 최근 가입일수록 아직 덜 익었다.",
+          // 🔴 note 에 **그날 잰 값**을 박지 않는다 — 화면에 렌더되는 문자열이라 시간이 지나면
+          //    낡고, 낡은 주장은 옆의 진짜 경고까지 같이 깎는다(이 워크스트림에서 반복된 사고).
+          //    숫자 대신 **관계**를 말한다. 검증 수치는 커밋 메시지와 마이그레이션 주석에 있다.
+          note: "오가닉은 user_acquisition 행이 **없는** 가입이다 — 쿠키 차단·acq 쿠키 30일 만료도 섞이므로 오가닉의 **상한**으로 읽을 것. 🔴 이 표의 가입 합은 같은 창의 1층 '가입'(admin_layer1_flow)과 **항상 같아야 한다** — 같은 users 를 같은 창·같은 필터로 세기 때문이다. 어긋나면 1층과 2층이 다른 모수를 말하는 것이다. ⚠️ 결제·매출은 **창 안의 결제가 아니라 그 코호트의 누적**이다 — 코호트가 가입일로 정의되므로 결제는 전부 가입 이후이고, 최근 가입일수록 아직 덜 익었다.",
         });
       }
     }
@@ -469,6 +472,58 @@ export async function GET(req: NextRequest) {
         "⚠️ 별마루 2종은 공유 링크에 utm 이 이미 붙어 있다(DailyCardBlock · SajuTodayView) — prod 에서 0인 건 **별마루가 아직 prod 에 없기 때문**이고, 배포되면 저절로 채워진다.",
     });
     blocks.push({ kind: "link", title: "소재별 지출은", href: "/admin/ads", label: "광고 지출" });
+  }
+
+  if (sectionRaw === "readings") {
+    // 🔴 불변식: SUM(cnt) == 1층 흐름의 `리딩`(admin_layer1_flow.readings). 두 RPC 의 readings
+    //    필터가 글자 단위로 같아서 성립한다 — 1층 기본 창도 daysAgoKstIso(6) 이라 days=7 이면
+    //    같은 창이다. 2026-09-27 prod 대조: 246 == 246(7일) · 956 == 956(30일, 3명 제외).
+    const rd = await supa.rpc("admin_layer2_readings", { p_since: since, p_until: null, p_exclude });
+    if (rd.error) failed.push("admin_layer2_readings");
+    else {
+      // 🔴 BIGINT·NUMERIC 은 PostgREST 를 지나며 **문자열**로 온다 — Number() 없이 쓰면 비교도
+      //    산술도 조용히 틀린다.
+      type RdRow = {
+        consultation_type: string;
+        cnt: string;
+        paid_cnt: string;
+        ended_cnt: string;
+        viewed_cnt: string;
+        avg_user_turns: string | null;
+      };
+      blocks.push({
+        kind: "table",
+        title: `종목별 리딩 (최근 ${days}일)`,
+        // 헤더에 `(%)` 를 붙이지 않는다 — formatMetric(_, "percent") 이 이미 `%` 를 붙여
+        // `완료율(%): 59.0%` 가 된다(같은 이유로 매출 표의 `(원)` 도 뺐다).
+        columns: ["종목", "리딩", "유료", "완료율", "결과 열람", "평균 유저 턴"],
+        rows: ((rd.data ?? []) as RdRow[]).map((r) => {
+          const n = Number(r.cnt);
+          // 🔴 퍼센트는 반드시 pct1 경유 — `(a/b)*1000` 으로 먼저 나누면 배정도 오차가 참값을
+          //    이미 놓쳐서(201/400 → 502.4999…) 뒤에서 어떤 반올림을 해도 50.3 이 안 나온다.
+          //    분모 400의 배수 계열에서 체계적으로 갈리고, 리딩 건수는 쉽게 수백~수천이다.
+          const ended = pct1(Number(r.ended_cnt), n);
+          const viewed = pct1(Number(r.viewed_cnt), n);
+          return [
+            r.consultation_type,
+            formatMetric(n, "count"),
+            formatMetric(Number(r.paid_cnt), "count"),
+            // null 은 "—" 로 둔다 — 0 으로 뭉개면 "완료가 0%" 와 "표본이 없다" 가 같은 칸이 된다.
+            ended === null ? null : formatMetric(ended, "percent"),
+            viewed === null ? null : formatMetric(viewed, "percent"),
+            // 🔴 `count` 가 아니라 `ratio` — count 로 찍으면 2.21턴이 "2" 가 되어 소수가 증발한다.
+            r.avg_user_turns === null ? null : formatMetric(Number(r.avg_user_turns), "ratio"),
+          ];
+        }),
+        note:
+          "완료 = 별콩이 발화에 **[END] 마커**가 있다(messages.content 기준 — turn_close 컬럼이 아니다. 3층 roadmap KPI 와 같은 정의다). " +
+          "평균 유저 턴은 **리딩당** 평균이다 — 메시지가 한 건도 없는 리딩도 **0턴으로 분모에 넣는다.** 빼면 '한 마디도 못 하고 죽은 리딩'이 평균에서 사라져 과대해진다(2026-09-27 전 기간 실측: relationship 3.05 → **2.21**, 155건 중 43건이 메시지 0건). " +
+          "결과 열람은 여기선 **리딩 기준**이다 — 1층 가드레일의 결과 열람은 **코호트 기준**이라 값이 다르다(둘 다 정본이고 분모가 다르다). " +
+          "🔴 saju·tarot 행에는 **/fortune one-shot 리포트가 섞여 있다** — 리포트도 readings 에 consultation_type 'saju'|'tarot' 로 저장되는데(app/api/fortune/create), 대화가 없어 [END] 가 **구조적으로** 안 찍힌다. 2026-09-27 전 기간 실측: saju 325건 중 **272건이 리포트**라 완료율이 9.2% 로 보이고, 대화형 53건만 보면 **56.6%** 다(tarot 은 2,385건 중 23건뿐이라 영향이 거의 없다). 종목별 완료율을 '대화 품질'로 읽으려면 이 혼입을 먼저 걷어내야 한다. " +
+          "2026-09-12 실측: 종료 원인은 마무리 버튼 59% · 자발 13% · 무언 이탈 27%.",
+      });
+      blocks.push({ kind: "link", title: "개별 리딩은", href: "/admin/readings", label: "리딩/상담" });
+    }
   }
 
   if (sectionRaw === "withdrawal") {
