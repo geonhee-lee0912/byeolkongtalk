@@ -17,7 +17,7 @@
 // ⚠️ BlockNote(2층 각주)는 여기 합치지 않는다 — 그쪽은 className 없이 고정 스타일로 **의도적으로
 //    잠가둔** 각주 전용이다. 같은 원천(`splitEmphasis`)만 공유한다.
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MetricDef } from "@/lib/admin-metrics";
 import { STATUS } from "@/lib/admin/colors";
@@ -76,6 +76,7 @@ export function MetricInfo({ def, label }: { def: MetricDef; label: string }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
+  const popId = useId();
 
   const place = useCallback(() => {
     const btn = btnRef.current;
@@ -140,6 +141,11 @@ export function MetricInfo({ def, label }: { def: MetricDef; label: string }) {
         // 🔴 `aria-controls` 는 안 단다 — 툴팁은 닫히면 **언마운트**돼서 id 가 사라지고,
         //    없는 요소를 가리키게 된다. 같은 기능의 리포 선례 둘(Drilldown.tsx ·
         //    fortune/CollapsibleSection.tsx)도 aria-expanded 만 쓴다.
+        // ⚠️ `aria-describedby` 는 반대로 **달아도 안전하다** — 삼항이라 닫히면 속성 자체가
+        //    사라져서 가리킬 id 가 없는 순간이 없다. 이게 필요한 이유: 네이티브 `title` 을
+        //    버리면서(위 주석) 스크린리더가 정의에 닿을 경로도 같이 없어졌다. 버튼 이름은
+        //    "… 정의"라고만 말하고 정작 정의는 안 읽힌다.
+        aria-describedby={open ? popId : undefined}
         aria-label={`${label} 정의`}
         // -m-1/p-1 = 시각은 15px 원, 탭 영역은 23px (모바일에서 누를 수 있게).
         className="-m-1 shrink-0 p-1 text-white/45 hover:text-white/80"
@@ -155,6 +161,8 @@ export function MetricInfo({ def, label }: { def: MetricDef; label: string }) {
         createPortal(
           <div
             ref={popRef}
+            id={popId}
+            role="tooltip"
             // 🔴 body 로 포털 — fixed 는 transform/filter 를 가진 조상이 있으면 그 조상에
             //    갇힌다. 어드민 레이아웃엔 지금 그런 조상이 없지만(AdminMobileNav 가 같은
             //    사실에 기대 포털 없이 fixed 를 쓴다), 그건 **읽어서 내린 판정**이고 CSS 한 줄로
