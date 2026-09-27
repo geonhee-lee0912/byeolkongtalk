@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero";
 import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
+import PurchaseReachedBeacon from "@/components/fortune/landing/PurchaseReachedBeacon";
 import FortuneSamplePreview from "@/components/fortune/landing/FortuneSamplePreview";
 import FortunePurchasePanel from "@/components/fortune/FortunePurchasePanel";
 import { FORTUNE_CONFIG, FORTUNE_LENGTH_HINT, type FortuneType } from "@/lib/fortune/types";
@@ -34,6 +35,7 @@ export default async function FortuneProductPage({
         heroSrc={fortuneHeroSrc(type) ?? "/byeolkong-main.png"}
         chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
         ctaLabel="이 사주로 보기"
+        trackType={type}
       />
 
       <FortuneLandingSections
@@ -47,6 +49,7 @@ export default async function FortuneProductPage({
 
       <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
         <div className="h-px bg-lilac-mid/30" />
+        <PurchaseReachedBeacon type={type} />
         <h2 className="text-[14.5px] font-bold text-eye-purple mt-5">누구 사주로 볼까</h2>
       </div>
       <FortunePurchasePanel type={type} />

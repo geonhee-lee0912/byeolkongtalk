@@ -81,6 +81,7 @@ export default async function SajuMbtiPage({
         chips={["무료", "12문항", copy.minutes]}
         ctaLabel="테스트 시작하기"
         ctaHref="/fortune/saju-mbti?start=1"
+        trackType="saju_mbti"
       />
       <FortuneLandingSections
         questions={copy.questions}

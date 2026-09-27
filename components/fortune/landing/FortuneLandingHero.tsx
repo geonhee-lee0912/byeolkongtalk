@@ -2,6 +2,7 @@
 // 스크롤 이동을 a[href="#buy"] 로 처리한다 — 클라 번들을 늘리지 않는다).
 import Image from "next/image";
 import Link from "next/link";
+import LandingCta from "./LandingCta";
 
 export default function FortuneLandingHero({
   title,
@@ -10,6 +11,7 @@ export default function FortuneLandingHero({
   chips,
   ctaLabel,
   ctaHref = "#buy",
+  trackType,
 }: {
   title: string;
   hook: string;
@@ -17,6 +19,8 @@ export default function FortuneLandingHero({
   chips: string[];
   ctaLabel: string;
   ctaHref?: string;
+  /** 계측용 상품 키 — fortune_landing_cta_clicked 의 meta.type */
+  trackType: string;
 }) {
   return (
     <header className="w-full bg-lilac-soft/40">
@@ -49,12 +53,7 @@ export default function FortuneLandingHero({
           ))}
         </div>
 
-        <a
-          href={ctaHref}
-          className="mt-4 block w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14.5px] text-center active:scale-[0.98] transition"
-        >
-          {ctaLabel}
-        </a>
+        <LandingCta label={ctaLabel} href={ctaHref} trackType={trackType} />
       </div>
     </header>
   );

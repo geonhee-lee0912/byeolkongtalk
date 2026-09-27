@@ -162,6 +162,11 @@ export const UI_EVENTS = [
    *     이 이벤트가 재려던 질문("한 달 조망이 필요한가")도 같은 날 같은 이유로 표본 0 인 채로
    *     끝났다. 상수는 남긴다 — 접이식을 되살리면 같은 축을 그대로 잇는다. */
   "byeolmaru_month_grid_toggled",
+  /** 상품 설명 페이지 — 히어로 CTA 탭(설명을 건너뛰고 구매로 점프). meta:{type} */
+  "fortune_landing_cta_clicked",
+  /** 상품 설명 페이지 — 구매 모듈이 화면에 들어옴(설명을 읽고 내려옴). meta:{type}
+   *  🔴 위 둘을 합쳐 재면 "설명이 일을 했나"를 영영 못 본다. 반드시 따로 읽을 것. */
+  "fortune_landing_purchase_reached",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
