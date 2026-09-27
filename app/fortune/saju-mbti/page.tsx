@@ -65,7 +65,7 @@ export default async function SajuMbtiPage({
   if (shared || started) {
     return (
       <main className="min-h-[calc(100dvh-8rem)]">
-        <SajuMbtiFlow sharedToken={shared} />
+        <SajuMbtiFlow sharedToken={shared} skipIntro={!shared && !!started} />
       </main>
     );
   }

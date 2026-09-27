@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { calcSaju, type SajuResult } from "@/lib/saju/calc";
 import { paljaType, type PaljaType } from "@/lib/saju-mbti/mapping";
@@ -34,13 +34,22 @@ function compute(birth: BirthValue, answers: Record<string, string>): Computed {
   return { saju, palja, self, match };
 }
 
-export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
+export function SajuMbtiFlow({
+  sharedToken,
+  skipIntro = false,
+}: {
+  sharedToken?: string;
+  /** 설명 페이지를 거쳐 들어온 경우 — 인트로가 두 번 나오지 않게 바로 문항부터.
+   *  (다시 하기로 돌아오면 인트로는 그대로 보인다) */
+  skipIntro?: boolean;
+}) {
   const decoded = useMemo(() => decodeResult(sharedToken), [sharedToken]);
   const [stage, setStage] = useState<Stage>("intro");
   const [ready, setReady] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string> | null>(null);
   const [result, setResult] = useState<Computed | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const skippedRef = useRef(false);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(KEY);
@@ -57,9 +66,16 @@ export function SajuMbtiFlow({ sharedToken }: { sharedToken?: string }) {
         /* ignore corrupt session */
       }
     }
-    if (decoded) setStage("shared");
+    if (decoded) {
+      setStage("shared");
+    } else if (skipIntro && !skippedRef.current) {
+      // ref 가드 — dev StrictMode 가 effect 를 두 번 돌려도 퍼널 이벤트는 한 번만.
+      skippedRef.current = true;
+      trackUiEvent("saju_mbti_started");
+      setStage("quiz");
+    }
     setReady(true);
-  }, [decoded]);
+  }, [decoded, skipIntro]);
 
   function onQuizDone(a: Record<string, string>) {
     setAnswers(a);
