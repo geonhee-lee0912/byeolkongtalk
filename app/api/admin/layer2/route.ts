@@ -280,6 +280,13 @@ export async function GET(req: NextRequest) {
     //    성립하나**(스펙 §2-5). 그래서 구독 수와 **구독 기간 안의 방문일**을 한 표에서 읽는다.
     //    RPC 가 방문일을 구독 창으로 잘라서 준다(전 기간을 세면 구독 전·만료 후 방문이 섞여
     //    질문에 답하지 못한다 — dev 실측 16.0일 vs 구독 기간 기준 7.0일).
+    //
+    // 🔴 **3일 체험 전환은 여기 없다.** 1층 드릴다운 라벨이 '체험 전환'을 약속했었는데 지표가
+    //    없어 라벨에서 거뒀다(app/admin/page.tsx). 넣지 않은 이유가 분명하다 —
+    //    `users.byeolmaru_trial_started_at` 이 **prod 엔 컬럼 자체가 없다**(별마루 미배포).
+    //    지금 넣으면 prod 에서 RPC 가 깨진다. → **별마루 prod 배포 후 별도 태스크**다.
+    //    (Task 8 의 연애 상담 라벨과 같은 클래스: 화면이 없는 걸 약속하지 않는다. 그때는 링크로
+    //     다리를 놨고 여기는 약속을 거뒀다 — 체험은 갈 화면 자체가 아직 없어서다.)
     const sub = await supa.rpc("admin_layer2_subscription", {
       p_since: since,
       p_until: null,
@@ -291,6 +298,7 @@ export async function GET(req: NextRequest) {
       type SubRow = {
         started: string;
         subscribers: string;
+        purchasers: string;
         expired: string;
         active_now: string;
         stars_spent: string;
@@ -301,7 +309,12 @@ export async function GET(req: NextRequest) {
       };
       const r = ((sub.data ?? []) as SubRow[])[0];
       const started = Number(r?.started ?? 0);
+      // subscribers = **진짜 신규**(그 시점에 활성 구독이 없던 사람). 연장 재구매는 빠진다.
+      // purchasers = 창 안에 구독을 **산 사람 전원**(연장 포함) = 방문 지표의 모수.
+      // 🔴 둘을 분리한 이유: 연장한 사람이야말로 붙어 있는 구독자라 방문 평균에서 빼면 안 된다.
+      //    반대로 '순증'에는 들어가면 안 된다 — 구독자가 늘어난 게 아니라 같은 사람이 이어 산 거다.
       const subscribers = Number(r?.subscribers ?? 0);
+      const purchasers = Number(r?.purchasers ?? 0);
       const expired = Number(r?.expired ?? 0);
       const visitDays = Number(r?.visit_days ?? 0);
       const subDays = Number(r?.sub_days ?? 0);
@@ -315,7 +328,7 @@ export async function GET(req: NextRequest) {
         title: `구독 (최근 ${days}일)`,
         columns: [
           "구매(건)",
-          "구독자(명)",
+          "신규(명)",
           "만료(명)",
           "순증(명)",
           "현재 활성(명)",
@@ -343,10 +356,11 @@ export async function GET(req: NextRequest) {
           "🔴 구독 매출은 별 소모다 — **무료별 몫은 현금이 들어온 적이 없어 매출 0**이다(원화 환산은 1층 '구독 매출'이 유료별만 환산한다). " +
           `**구독일 대비 방문 = ${formatMetric(visitDays, "count")}일 방문 / ${formatMetric(subDays, "count")}일 구독**(구독이 살아 있던 KST 달력일 합). ` +
           "평균 방문일만 보면 **오늘 산 구독자가 30일차 구독자와 같은 무게**로 들어가 왜곡된다 — 그래서 경과일을 분모로 깐 이 비율을 같이 읽는다. " +
-          "구독자가 0 명인 창에서는 평균이 '—'다(0 이 아니라 **표본이 없다**). " +
-          "⚠️ '만료'는 그 사람의 **마지막 구독이 창 안에서 이미 끝난** 경우만 센다(재구독하면 빠진다 · 아직 안 지난 만료는 만료가 아니다). " +
-          "1층 '구독자 순증'도 **같은 정의**다 — 같은 창이면 두 화면의 만료·순증은 같은 값이어야 한다. " +
-          "⚠️ '구매(건)'과 '구독자(명)'의 차이는 **연장 재구매**다(연장은 새 행을 만든다).",
+          `방문 지표의 모수는 창 안에 구독을 **산 사람 전원 ${formatMetric(purchasers, "count")}명**(연장 포함)이다 — 연장한 사람이야말로 붙어 있는 구독자라 빼면 안 된다. 0 명인 창에서는 평균이 '—'다(0 이 아니라 **표본이 없다**). ` +
+          "⚠️ '신규'는 구독을 시작한 사람 중 **그 시점에 활성 구독이 없던 사람**만 센다 — 연장 재구매는 빠지고(구독자가 는 게 아니다), **끊겼다 돌아온 사람은 잡힌다**. " +
+          "'만료'는 그 사람의 **마지막 구독이 창 안에서 이미 끝난** 경우만 센다(재구독하면 빠진다 · 아직 안 지난 만료는 만료가 아니다). " +
+          "1층 '구독자 순증'도 **같은 정의**다 — 같은 창이면 두 화면의 신규·만료·순증은 같은 값이어야 한다. " +
+          "⚠️ '구매(건)'이 '신규(명)'보다 크면 그 차이가 **연장 재구매**다(연장은 새 행을 만든다).",
       });
       blocks.push({
         kind: "link",

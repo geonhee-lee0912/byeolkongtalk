@@ -347,7 +347,9 @@ export default async function AdminDashboard() {
         <div className="space-y-2">
           <Drilldown section="contribution" label="기여 — 상품별 기여마진" days={7} />
           <Drilldown section="revenue" label="매출 — 별 소모 · 패키지 · 연애 상담" days={7} />
-          <Drilldown section="subscription" label="구독 — 신규·해지·체험 전환" days={7} />
+          {/* 🔴 '체험 전환'을 뺐다 — 담당자 없는 약속이었다(플랜 전문에서 '체험'은 이 라벨
+              한 곳에만 나오고 뒤 태스크가 받지 않는다). 근거는 route.ts 의 subscription 절. */}
+          <Drilldown section="subscription" label="구독 — 신규·해지·구독 중 방문" days={7} />
           <Drilldown section="signups" label="신규 가입 — 유입 경로 · 무료 상품 공유" days={7} />
           <Drilldown section="readings" label="리딩 — 종목별 · 완료율 · 결과 열람" days={7} />
           <Drilldown section="uv" label="UV — 라우트별 · 경로 판독기" days={7} />
