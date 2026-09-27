@@ -66,8 +66,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
       AND (p.user_id IS NULL OR p.user_id <> ALL(p_exclude))
   ), rate AS (
     -- 별 1개의 실효 원화 단가(전 기간 평균 — 소급 변조 방지). 분모 0 방어.
+    -- 🔴 win_pay·sub 와 같은 이유로 p_exclude 를 건다 — 어드민·테스트 결제가 섞이면 모든
+    --    구독자의 환산 단가가 그만큼 왜곡된다. user_id IS NULL(탈퇴 익명보존)은 반드시
+    --    통과시켜야 한다 — `<> ALL` 만 쓰면 NULL 3값 논리로 그 결제가 단가 계산에서
+    --    통째로 빠진다(이 파일의 is_first 와 같은 함정 클래스, AGENTS.md).
     SELECT COALESCE(SUM(amount_won)::NUMERIC / NULLIF(SUM(stars_given), 0), 0) AS won_per_star
-    FROM payments WHERE status = 'completed'
+    FROM payments
+    WHERE status = 'completed'
+      AND (user_id IS NULL OR user_id <> ALL(p_exclude))
   ), sub_spend AS (
     -- 구독 소모 tx. purchase_byeolmaru_subscription(20260904100000)이 이 source 로 남긴다.
     SELECT t.id, t.user_id, t.amount

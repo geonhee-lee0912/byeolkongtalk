@@ -26,7 +26,7 @@ import {
   adSpendStaleDays,
   type DailyPnl,
 } from "@/lib/admin/band";
-import { computeUnit, computeGuardrails, type GuardRow } from "@/lib/admin/layer1";
+import { computeUnit, computeGuardrails, pct1, type GuardRow } from "@/lib/admin/layer1";
 
 export const dynamic = "force-dynamic";
 
@@ -384,13 +384,13 @@ export default async function AdminDashboard() {
             <Metric metricKey="uv_pageview" value={L1.flow.uv} n={0} />
             <Metric
               metricKey="d7_return"
-              value={L1.flow.d7Eligible > 0 ? (L1.flow.d7Return / L1.flow.d7Eligible) * 100 : null}
+              value={pct1(L1.flow.d7Return, L1.flow.d7Eligible)}
               n={L1.flow.d7Eligible}
               sub={`30일 코호트 중 7일 성숙 ${L1.flow.d7Eligible.toLocaleString("ko-KR")}명`}
             />
             <Metric
               metricKey="visit_2d_plus"
-              value={L1.flow.cohort > 0 ? (L1.flow.visit2 / L1.flow.cohort) * 100 : null}
+              value={pct1(L1.flow.visit2, L1.flow.cohort)}
               n={L1.flow.cohort}
               sub="30일 코호트"
             />

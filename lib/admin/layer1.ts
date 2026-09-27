@@ -44,7 +44,7 @@ const div = (a: number, b: number): number | null => (b > 0 ? a / b : null);
  * 부수 효과(의도한 것): `isAlerting` 이 보는 값과 화면에 찍히는 값이 **같아진다.** raw 를
  * 넘기면 "80.0% 인데 왜 빨강이지?"(참값 79.96)가 생긴다.
  */
-const pct1 = (num: number, den: number): number | null =>
+export const pct1 = (num: number, den: number): number | null =>
   den > 0 ? Math.round((num * 1000) / den) / 10 : null;
 
 export function computeUnit(r: UnitRow): UnitMetrics {
