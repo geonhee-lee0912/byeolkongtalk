@@ -252,7 +252,7 @@ export const METRICS = {
     source: "admin_traffic_trend",
     minSample: MIN_SAMPLE.NONE,
     caveat:
-      "`uv_session` 과 값이 다르다(분모가 다르다). 같은 값으로 기대하지 말 것 — 화면에 어느 쪽인지 라벨을 반드시 붙인다.",
+      "**세션 시작 귀속 UV** 와 값이 다르다(분모가 다르다). 같은 값으로 기대하지 말 것 — 화면에 어느 쪽인지 라벨을 반드시 붙인다.",
   },
   uv_session: {
     key: "uv_session",
