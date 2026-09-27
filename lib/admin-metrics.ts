@@ -301,7 +301,8 @@ export const METRICS = {
     unit: "won",
     source: "admin_layer1_quality",
     minSample: MIN_SAMPLE.NONE,
-    caveat: "2026-09-20 전 기간 실측 비중 30.8% — 결제자 200명 중 재결제자 27명이 매출의 1/3을 만든다.",
+    caveat:
+      "2026-09-20 전 기간 실측 비중 30.8% — 결제자 200명 중 재결제자 27명이 매출의 1/3을 만든다. 다만 탈퇴로 익명 보존된 결제(user_id NULL)가 여기에 섞인다 — 첫 결제 여부를 식별할 수 없어 이쪽으로 보수 분류하므로, 이 값은 진짜 재결제의 상한이다.",
   },
   subscriber_net: {
     key: "subscriber_net",
