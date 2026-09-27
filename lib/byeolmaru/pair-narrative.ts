@@ -9,6 +9,22 @@ import { isPairReport, type PairReport } from "./pair-report.ts";
 
 const TABLE = "byeolmaru_pair_narrative";
 
+/** 그날 행 여러 개 중 하나를 고른다 — `created_at` 최근 것. 순수(테스트 대상).
+ *  🔴 PK 가 (user_id, partner_profile_id, narrative_date) 라 **같은 날 두 상대의 행이 있을 수
+ *     있다** — 상대 교체가 무료이고 하루 상한은 "새 상대 1명"이라 교체 후 생성이 가능하다.
+ *  🔴 created_at 파싱 실패를 -Infinity 로 접는다 — 정렬 중 NaN 이 섞이면 비교가 비결정적이 되어
+ *     같은 입력이 실행마다 다른 행을 돌려준다. */
+export function pickLatestPairRow<T extends { created_at?: string | null }>(
+  rows: readonly T[] | null | undefined
+): T | null {
+  if (!rows || rows.length === 0) return null;
+  const at = (r: T): number => {
+    const t = r.created_at ? Date.parse(r.created_at) : Number.NaN;
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  };
+  return rows.reduce((best, cur) => (at(cur) > at(best) ? cur : best), rows[0]);
+}
+
 /** 캐시된 리포트. 없음·에러·구버전 전부 null(에러·구버전은 로그를 남긴다). */
 export async function getCachedPairNarrative(
   userId: string,
@@ -56,6 +72,45 @@ export async function getCachedPairNarrative(
     return null;
   }
   return data.report;
+}
+
+/** 그날 받은 리포트를 **상대를 모르는 채** 찾는다 — 과거 날짜 전용.
+ *  🔴 지금 걸어둔 상대로 과거를 조회하면 안 된다. 상대는 교체 가능하고 기록은 보존되므로,
+ *     9월 초에 A 를 보다가 B 로 바꿨다면 9/5 에는 **A 의 글**이 있다. 지금 상대(B)로 물으면
+ *     "분명히 봤는데 없다"가 된다(스펙 §2 결정 3).
+ *  🔴 인덱스 idx_byeolmaru_pair_narrative_user (user_id, narrative_date DESC) 가 이걸 받는다 —
+ *     마이그레이션 불필요.
+ *  반환에 partnerProfileId 를 실어 보낸다 — 화면이 "그날 상대"를 표시해야 하기 때문이다
+ *  (걸어둔 상대를 그리면 B 이름 아래 A 의 글이 뜬다). */
+export async function getPairNarrativeByDate(
+  userId: string,
+  dateStr: string
+): Promise<{ report: PairReport; partnerProfileId: string } | null> {
+  const supa = getServiceSupabase();
+  const { data, error } = await supa
+    .from(TABLE)
+    .select("partner_profile_id, report, created_at")
+    .eq("user_id", userId)
+    .eq("narrative_date", dateStr);
+  if (error) {
+    void logWarn("pair report by-date read failed", {
+      route: "lib/byeolmaru/pair-narrative",
+      userId,
+      extra: { dateStr, code: (error as { code?: string }).code, message: error.message },
+    });
+    return null;
+  }
+  const row = pickLatestPairRow(data);
+  if (!row) return null;
+  if (!isPairReport(row.report)) {
+    void logWarn("pair report by-date shape mismatch", {
+      route: "lib/byeolmaru/pair-narrative",
+      userId,
+      extra: { dateStr, partnerProfileId: row.partner_profile_id },
+    });
+    return null;
+  }
+  return { report: row.report, partnerProfileId: row.partner_profile_id };
 }
 
 /**
