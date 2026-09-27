@@ -164,7 +164,15 @@ export default function DailyReportCard({
           />
           <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
+        {/* 🔴 빈 줄을 지워 **한 덩어리로 뭉친다**(2026-09-27, 사용자 지적). 모델이 note 를
+            문장마다 빈 줄로 끊어 보내서(실측: 4문장 = 4문단) 두세 줄짜리 마무리 한마디가
+            문단 넷으로 흩어져 보였다 — MarkdownLite 는 빈 줄을 문단 경계로 쓰니 충실히 그린 것이고,
+            문제는 데이터 쪽이다. 타로·우리의 한마디는 한 덩어리로 와서 이 자리만 튀었다.
+            🔴 렌더에서 고치는 이유: 프롬프트를 고쳐도 **이미 캐시된 리포트**(byeolmaru_daily_report,
+               유저·날짜별 1행)는 옛 모양 그대로다. 여기서 뭉개면 지난 글까지 같이 고쳐진다.
+            🔴 문장이 5개 이상이면 MarkdownLite 의 splitLongParagraph 가 3문장씩 다시 끊는다 —
+               한 덩어리가 벽이 되는 건 막아준다. 그 동작은 그대로 둔다. */}
+        <MarkdownLite text={report.note.replace(/\n\s*\n/g, " ")} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
       </div>
     </Shell>
   );

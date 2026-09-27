@@ -124,7 +124,14 @@ export default function PairDayDetailCard({
         </div>
 
         {/* 고정 신호 — 있을 때만 배지. 없으면 자리 자체를 안 만든다(빈 배지는 "없음"을 강조한다). */}
-        {(backdrop.spark || backdrop.bond) && (
+        {/* 🔴 "있을 때만 배지" 규칙에 **타고난 궁합도 합류했다**(2026-09-27, 사용자 결정) —
+            아래 4칸 게이지를 대체한다. 근거는 실측 분포다: 생일 300개로 만든 44,850쌍에서
+            0/4 가 **70.5%**(1/4 23.6% · 2/4 5.3% · 3/4 0.6% · 4/4 0.04%, 평균 0.36).
+            열 쌍 중 일곱이 빈 게이지를 보는데, 그건 "궁합이 바닥"이 아니라 "대부분이 그래"다 —
+            게이지는 그 뜻을 전달하지 못하고 오히려 나쁜 신호로 읽혔다. 형제 칩(설렘 10.1%,
+            척척 8.3%)과 희소도가 비슷하니 같은 문법(있을 때만 노출)이 맞다.
+            🔴 게이지를 되살리려면 그 70.5%를 무엇으로 읽히게 할지부터 정할 것. */}
+        {(backdrop.spark || backdrop.bond || backdrop.harmony > 0) && (
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {backdrop.spark && (
               <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
@@ -136,31 +143,17 @@ export default function PairDayDetailCard({
                 <span aria-hidden>◈</span> 둘 사이 척척
               </li>
             )}
+            {/* 🔴 색은 MARK_CHIP 의 `＋`(채움) 보라를 그대로 쓴다 — 새 색을 만들지 않는다.
+                앞 두 칩(금색·연보라)과 명도가 갈려 셋이 나란히 서도 구분된다.
+                점수(1~4)는 안 쓴다 — 있고 없고만 말하는 게 형제 칩과 같은 문법이고,
+                1과 2의 차이를 설명할 자리가 없다. */}
+            {backdrop.harmony > 0 && (
+              <li className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ background: "#6B4BA8", color: "#ffffff" }}>
+                <span aria-hidden>✧</span> 타고난 궁합
+              </li>
+            )}
           </ul>
         )}
-
-        {/* 연월조화 0~4 — 숫자만 던지면 "0이 나쁜 건가"를 알 수 없다. 4칸 중 몇 칸인지로 보여준다.
-            🔴 라벨이 "연월조화"에서 풀어쓴 말로 바뀌었다(2026-09-27, 사용자 요청) — 명리 용어라
-               읽는 사람이 무슨 값인지 몰랐다. 원재료는 그대로다(천간합 2 + 육합 2 = 0~4).
-               아래 한 줄 설명도 같이 둔다 — 라벨만으로는 "4면 좋은 건가"가 여전히 안 보인다. */}
-        <div className="mt-2.5 flex items-center gap-2">
-          <span className="text-[11px] text-text-light">타고난 궁합</span>
-          <ul className="flex gap-1" aria-hidden>
-            {[0, 1, 2, 3].map((i) => (
-              <li
-                key={i}
-                className={`h-1.5 w-5 rounded-full ${i < backdrop.harmony ? "bg-lilac-deep" : "bg-lilac-soft"}`}
-              />
-            ))}
-          </ul>
-          <span className="text-[11px] font-bold text-eye-purple">
-            {backdrop.harmony}
-            <span className="font-normal text-text-light">/4</span>
-          </span>
-        </div>
-        <p className="mt-1.5 text-[10.5px] leading-snug text-text-light">
-          두 사람 사주가 원래 얼마나 잘 맞물리는지야. 날짜와 상관없이 늘 같아.
-        </p>
       </div>
 
       {/* 🔴 taste 시점 프레이밍 — pair-taste.json 49문장이 "오늘은 …" 현재형이라, 날짜가
