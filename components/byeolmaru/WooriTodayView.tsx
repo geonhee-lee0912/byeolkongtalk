@@ -25,8 +25,12 @@ type State =
 // 🔴 initialSubject(?subject=) 가 사라졌다(2026-09-24) — 상대가 한 명이라 고를 것이 없고,
 //    그 파라미터를 붙여 보내는 링크도 앱 안엔 없었다. 딥링크가 다시 필요해지면 상대 id 가
 //    아니라 "이 상대로 교체" 같은 명시적 동작이어야 한다(조용히 선택을 바꾸면 안 된다).
-// 🔴 initialDate 는 pair-narrative 호출에 배선된다(Task 8) — 과거 날짜면 그날 캐시된 서술을
-//    받는다(생성은 없다). pairCell(오늘 고정)은 안 바뀐다 — 날짜가 있는 건 서술뿐이다.
+// 🔴 initialDate 는 pairCell 선택과 pair-narrative 호출 둘 다에 배선된다 — 과거 날짜면 그날의
+//    셀(사주·타로와 같은 날)과 그날 캐시된 서술을 함께 보여준다(생성은 없다, cache_only).
+//    한때 pairCell 은 "오늘 고정"이었다(2026-09-24, 이 화면에 날짜 개념이 없던 시절의 흔적) —
+//    initialDate 를 무시하고 항상 `.find(isToday)` 였고, 그래서 9/20 을 열어도 우리 탭만 9/27
+//    (오늘)을 그리는 사고가 났다(2026-09-27, 사주·타로와 다른 날을 보여줌). 지금은 아래
+//    `.find(c => c.date === targetDate)` 로 고른다.
 //    injected 는 나머지 두 View 와 같은 A′ 데이터 주입형 계약이다.
 export default function WooriTodayView({
   initialDate,
@@ -223,12 +227,17 @@ export default function WooriTodayView({
   );
   if (state.kind === "error") return <p className="text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;
 
-  // 폴백은 오늘 — cells[0] 은 이번 달 1일이라 첫 진입에서 엉뚱한 날이 열린다.
-  // 🔴 달력이 빠져 날짜 선택이 없다(2026-09-24) — 항상 오늘 셀이다. 폴백이 cells[0](이번 달 1일)이
-  //    아니라 **마지막 칸**인 이유: 무료(비자격) 응답은 오늘까지만 잘려 오므로 오늘이 항상 마지막이다.
-  const pairCell = pairData
-    ? pairData.cells.find((c) => c.isToday) ?? pairData.cells[pairData.cells.length - 1]
-    : null;
+  // 🔴 그 날짜의 셀을 고른다 — initialDate 없으면 오늘, 있으면 **반드시 그 날짜로** 찾는다.
+  //    예전엔 항상 `.find(isToday)` 여서(2026-09-24 "달력 없음" 시절의 흔적) initialDate 를
+  //    통째로 무시했다 — 9/20 을 열어도 우리 탭만 9/27(오늘) 카드를 그렸다(사주·타로와 어긋남,
+  //    2026-09-27 실사고). pairData.cells 는 이번 달 전체라 today 도 그 안에 있다.
+  const targetDate = initialDate ?? pairData?.today ?? null;
+  const pairCell = pairData && targetDate ? pairData.cells.find((c) => c.date === targetDate) ?? null : null;
+  // 🔴 이번 달 격자만 이 날짜로 링크하므로 실전에선 안 나야 하는 방어선이다. 그래도 못 찾으면
+  //    **오늘로 조용히 바꿔치기하지 않는다** — 그게 방금 고친 버그다(요청한 날과 다른 날을
+  //    "오늘"이라는 정상 라벨로 보여주면 못 찾았다는 사실 자체가 안 보인다). 대신 그 사실을
+  //    있는 그대로 말한다 — 아래 렌더의 `pairCellMissing` 분기.
+  const pairCellMissing = !!pairData && !!targetDate && !pairCell;
 
   // 무료 taste — 한 번만 만들어 카드(4줄 렌더)와 절단선(글자 수·블러 원문)이 **같은 값**을 쓴다.
   // 🔴 PaywallCut 계약: freeChars 는 "절단선 위에 실제로 그린 글자 수"를 호출부가 센다(하드코딩 금지).
@@ -280,14 +289,22 @@ export default function WooriTodayView({
         )
       ) : pairError ? (
         <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
+      ) : pairCellMissing ? (
+        // 🔴 다른 날의 진짜 카드를 대신 그리지 않는다 — 예: 오늘 카드를 그리고 "오늘"이라 라벨하면
+        //    요청한 날짜가 조용히 다른 날로 바뀐 게 화면에서 안 보인다(방금 고친 버그와 같은 모양).
+        <p className="rounded-2xl bg-cream-warm p-4 text-center text-sm text-text-light">
+          그 날짜의 우리 오늘은 못 찾았어. 이번 달 안에서 다시 골라줄래?
+        </p>
       ) : pairData && pairCell ? (
         <>
-          {/* 🔴 이번 달 우리 캘린더는 제거했다(2026-09-24, 사용자 결정) — 이 화면은 "오늘 둘 사이"
-              하나만 말한다. 달력은 별마루 허브가 이미 가지고 있고, 여기 또 두면 같은 물건이 두 탭에
-              나와 화면의 주제가 흐려졌다.
-              🔴 **딸려 없어진 것**: 날짜 선택(`pairSelected`). 무료 사용자가 이번 달 지나간 날을
-                 골라보던 동작(P5-2)이 같이 사라졌고, 이제 이 화면은 항상 오늘 셀만 본다.
-                 되살리려면 달력이 아니라 **날짜 이동 컨트롤**을 따로 만들 것(달력을 되돌리지 말 것). */}
+          {/* 🔴 이번 달 우리 캘린더는 제거했다(2026-09-24, 사용자 결정) — 이 화면 **안에** 달력
+              그리드를 다시 두지 않는다. 달력은 별마루 허브가 이미 가지고 있고, 여기 또 두면 같은
+              물건이 두 탭에 나와 화면의 주제가 흐려졌다.
+              🔴 **날짜 이동은 돌아왔다** — 단 이 화면 안의 위젯이 아니라, 날짜 상세 페이지
+                 (`/byeolmaru/day?date=…`)가 사주·타로·우리 세 탭에 공통으로 물려주는 initialDate
+                 로 온다. "이 화면은 항상 오늘 셀만 본다"는 한때 사실이었지만(위 컴포넌트 머리
+                 주석 참조) 그건 날짜 개념 자체가 없던 시절 얘기고, 지금은 pairCell 이
+                 initialDate 를 따라간다 — 달력을 되돌리라는 뜻이 아니다. */}
           {/* 🔴 한 장(2026-09-24) — 무료 taste 위, 절단선 아래로 가른다. 오늘 사주(SajuTodayView)·
               오늘 타로(DailyCardBlock)와 같은 구조다. 예전엔 유료 서술이 taste 를 **대체**하고
               CTA 는 카드 밖 PremiumBlock 이었다. */}
@@ -310,12 +327,13 @@ export default function WooriTodayView({
               </div>
             ) : pairNarrative ? (
               <div className="mt-4 border-t border-lilac-mid/20 pt-4">
-                {/* 🔴 pair-narrative 라우트엔 date 파라미터가 없어 이 리포트는 **항상 오늘 기준**이다.
-                    다른 날을 보고 있을 땐 이 글이 그 날이 아니라 오늘 얘기라는 걸 밝힌다.
-                    (카드 구조를 바꾸면서 이 안내가 한 번 사라졌다 — 지우지 말 것.) */}
-                {!pairCell.isToday && (
-                  <p className="mb-2 text-xs text-text-light">오늘 기준으로 들려주는 이야기야</p>
-                )}
+                {/* 🔴 "오늘 기준으로 들려주는 이야기야" 디스클레이머를 뺐다(2026-09-27) — 예전엔
+                    이 라우트가 date 를 못 받아 pairNarrative 가 **항상 오늘 얘기**였는데 위
+                    pairCell 은 다른 날(과거)일 수 있어서, 그 어긋남을 이 문구로 밝혔었다("카드는
+                    그 날인데 글은 오늘 얘기야"). 지금은 pair-narrative 도 ?date= 를 받고 pairCell
+                    도 같은 날짜를 고르므로 **카드와 글이 항상 같은 날**을 말한다 — 이 문구를 그대로
+                    두면 과거 글을 "오늘 얘기"라고 거꾸로 우기게 된다. 예전 "지우지 말 것" 지시는
+                    그 어긋남이 있던 시절 전제라, 어긋남이 없어진 지금은 반대로 적용된다. */}
                 <PairReportView report={pairNarrative} />
               </div>
             ) : pastNoRecord ? (
