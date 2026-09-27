@@ -15,35 +15,60 @@
 --         멤버 있는 맵 18 → 조인해도 같은 18명이다. 조인을 빼면 **멤버를 아직 안 넣은 맵**의
 --         주인도 접촉자로 잡히는데, 그게 맞다(맵을 만든 것 자체가 무료 상품 사용이다).
 
--- ── 주 단위 가입 코호트 × D1/D3/D7/D14/D28 ────────────────────────────────────
--- 🔴 Dn 의 정의는 1층(admin_layer1_flow.d7_return)과 **글자 단위로 같다**:
---    마지막 방문(page_views MAX) 이 가입 + n일 이후인가. 다른 건 코호트 창뿐이다
---    (1층 = 30일 롤링 / 여기 = 주 버킷 8개). 정의가 갈리면 드릴다운이 헤드라인을 반박한다.
---    ⚠️ 이 정의는 "n일 뒤에 **언젠가** 왔나" 라 코호트가 오래될수록 관측 기간이 길어 계속 오른다
---       — 행끼리 세로 비교가 성립하지 않는다(호출부 note 가 이 경고를 낸다). 고정 지평으로
---       바꾸면 1층과 정의가 갈리므로, 바꾸려면 1층·3층을 같이 바꿔야 한다.
+-- ── 주 단위 가입 코호트 × 1~4주차 재방문 ──────────────────────────────────────
+-- 🔴 **고정 지평이다**(2026-09-27 사용자 결정). 이전 안은 1층과 같은 "가입 후 n일이 지난
+--    뒤에도 마지막 방문이 있나"(누적 생존)였는데, 그러면 **오래된 코호트일수록 관측 기간이
+--    길어 값이 계속 오른다** — 코호트 표의 존재 이유인 세로 비교가 성립하지 않는다.
+--    실측이 그대로 보여줬다: 누적 생존 D7 열이 4.4 → 8.5% 로 **오래된 행일수록 높았는데**,
+--    같은 데이터를 고정 창으로 다시 재니 6.9 → 3.8% 로 **방향이 뒤집힌다**. 앞의 상승은
+--    리텐션이 아니라 관측 기간이었다.
+--    → 각 칸은 **가입 시각 기준 고정 길이 창에 방문이 있었나**를 묻는다. 모든 코호트가 같은
+--      길이의 창으로 측정되므로 행끼리 비교할 수 있다.
 --
--- 🔴 **성숙 안 된 칸은 0 이 아니라 NULL 이다.** 플랜 원안은 분모를 전체로 두고 "미성숙 주는
---    낮게 보이는 게 맞다"고 했는데 아니다 — 3일 된 코호트의 D28 은 **낮은** 게 아니라 **아직
---    없는** 값이고, 화면의 0.0% 는 "쟀더니 아무도 안 왔다"로 읽힌다. Task 12 가 리딩 표에서
---    고친 것과 같은 클래스다(못 재는 칸은 "—").
+-- 🔴 **1층·3층과 다른 지표가 된다 — 의도된 분리다.** 1층 admin_layer1_flow.d7_return 과
+--    3층 roadmap-kpi-snapshot 의 d7_return_pct 는 "7일이 지난 뒤에도 방문 기록이 있나"
+--    그대로 두고(배포 전 고정한 정의라 바꾸면 베이스라인 비교가 불가능하다) **여기만** 고정
+--    창으로 간다. 이 리포엔 선례가 있다 — 결과 열람의 리딩 기준 vs 코호트 기준, 둘 다 정본이고
+--    분모가 다르다. 🔴 그래서 호출부 note 가 "같은 값이 아니다"를 반드시 말한다.
+--
+-- 🔴 창 길이 = **7일 · 구간은 서로 겹치지 않는다**(1~7 / 8~14 / 15~21 / 22~28일차).
+--    선택 근거는 실측이다(2026-09-27 prod, 주 코호트 178~289명):
+--      · 1일 창("정확히 n일째")이면 분자가 **0~6명** — 한 사람이 0.5%p 를 움직인다. 표가
+--        1~3% 의 잡음 바다가 되어 읽을 게 없다.
+--      · 3일 창도 0~9명으로 크게 낫지 않다.
+--      · 7일 창이면 1주차 분자가 8~15명이고 열 안에서 실제 추세가 보인다.
+--    겹치지 않게 자른 이유: 겹치면 D1[1,8) 이 D7[7,14) 을 품어 두 열이 거의 같은 수가 되고,
+--    "왜 1 차이나지" 를 묻게 만든다. 붙어 있는 4구간이 "언제 돌아왔나"를 그대로 읽힌다.
+--    🔴 라벨도 같이 바꿨다 — 7일 창을 "D1" 이라 부르면 그 이름이 거짓말이다.
+--
+-- 🔴 **성숙 안 된 칸은 0 이 아니라 NULL 이다.** 3일 된 코호트의 4주차는 **낮은** 게 아니라
+--    **아직 없는** 값이고, 화면의 0.0% 는 "쟀더니 아무도 안 왔다"로 읽힌다(Task 12 가 리딩
+--    표에서 고친 것과 같은 클래스). 실측으로 확인된 최악은 0.0% 가 아니라 **0.3%** 였다 —
+--    반쯤 성숙한 주가 그럴듯한 숫자를 내며 옆의 성숙한 주(2.4%)와 나란히 선다.
 --    성숙 기준은 **코호트 주의 마지막 날**이다(주 시작일이 아니다): 분모가 그 주 가입자 전원이라
---    한 명이라도 n일을 못 채웠으면 그 사람은 구조적으로 분자에 못 들어간다 — 주 시작일 기준으로
---    열면 딱 그만큼 값이 깎인 채 그려진다(1층이 7일 창에서 분모가 비었던 것과 같은 편향).
---    코호트 주는 [wk, wk+7) 이므로 전원이 성숙하는 시점은 wk + 7 + n. 그래서 임계가
---    D1=wk+8 · D3=wk+10 · D7=wk+14 · D14=wk+21 · D28=wk+35 이다.
---    2026-09-27 prod 실측: 최근 주 전칸 NULL · 직전 주 D1/D3 만 · D28 은 08-17 이전 3주만.
+--    한 명이라도 창이 안 닫혔으면 그 사람은 구조적으로 분자에 못 들어간다.
+--    코호트 주는 [wk, wk+7) 이고 k주차 창은 [가입+7k-6, 가입+7k+1) 이므로, 전원의 창이 닫히는
+--    시점은 wk + 7 + (7k+1) = **wk + 7k + 8**. 그래서 임계가
+--    1주차=wk+15 · 2주차=wk+22 · 3주차=wk+29 · 4주차=wk+36 이다.
+--    (2026-09-27 prod 전수 대조: 8주 × 4칸 32칸 전부 "마지막 멤버의 창이 닫힌 뒤에만 열림" 을
+--     만족하고 조기 개방 0건. 임계가 주 끝 기준이라 최대 며칠 보수적으로 늦게 열린다.)
 --
 -- ⚠️ 코호트 창은 **주 경계에 맞춘다**(now() - N weeks 가 아니다) — 롤링으로 자르면 가장 오래된
 --    행이 주의 꼬리만 담은 반쪽 코호트가 된다(실측 22명, 옆 주들은 180~290명). 같은 표 안에서
 --    분모의 성격이 다른 행은 나란히 읽을 수 없다.
--- ⚠️ vis 는 page_views 에 창 필터를 걸지 않는다 — 리텐션은 "코호트 창 밖에라도 돌아왔나"를
---    묻는 것이라 방문 시각은 창에 갇히면 안 된다(1층 rvisits 와 같은 규약).
+-- ⚠️ pv 는 page_views 에 **달력 창을 걸지 않는다** — 창은 사람마다 자기 가입 시각 기준이다.
+--    is_bot 만 거른다.
+-- ⚠️ 반환 컬럼 이름이 d1/d3/d7/d14/d28 → w1~w4 로 바뀌므로 CREATE OR REPLACE 만으로는
+--    기존 함수를 못 덮는다("cannot change return type"). 이 파일은 아직 어느 DB 에도 적용된
+--    적이 없지만, 한 번이라도 먼저 적용된 환경이 있으면 **파일 전체가 실패**한다 — DROP 이 그
+--    실패 경로를 없앤다(AGENTS.md: 함수 하나가 죽으면 마이그레이션 파일이 통째로 죽는다).
+DROP FUNCTION IF EXISTS admin_layer2_retention(INT, UUID[]);
+
 CREATE OR REPLACE FUNCTION admin_layer2_retention(
   p_weeks INT,
   p_exclude UUID[]
 )
-RETURNS TABLE (cohort_week DATE, users BIGINT, d1 BIGINT, d3 BIGINT, d7 BIGINT, d14 BIGINT, d28 BIGINT)
+RETURNS TABLE (cohort_week DATE, users BIGINT, w1 BIGINT, w2 BIGINT, w3 BIGINT, w4 BIGINT)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WITH k AS (
     -- KST 벽시계. `at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다(AGENTS.md).
@@ -56,30 +81,39 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     FROM users u, b
     WHERE (u.created_at AT TIME ZONE 'UTC' + INTERVAL '9 hours') >= b.first_wk::timestamp
       AND u.id <> ALL(p_exclude)
-  ), vis AS (
-    SELECT pv.user_id, MAX(pv.created_at) AS last_at
-    FROM page_views pv
-    JOIN coh ON coh.id = pv.user_id
-    WHERE NOT COALESCE(pv.is_bot, false)
-    GROUP BY 1
-  ), agg AS (
-    SELECT c.wk,
-           COUNT(*)::BIGINT AS users,
-           COUNT(*) FILTER (WHERE v.last_at >= c.created_at + INTERVAL '1 day')::BIGINT AS d1,
-           COUNT(*) FILTER (WHERE v.last_at >= c.created_at + INTERVAL '3 days')::BIGINT AS d3,
-           COUNT(*) FILTER (WHERE v.last_at >= c.created_at + INTERVAL '7 days')::BIGINT AS d7,
-           COUNT(*) FILTER (WHERE v.last_at >= c.created_at + INTERVAL '14 days')::BIGINT AS d14,
-           COUNT(*) FILTER (WHERE v.last_at >= c.created_at + INTERVAL '28 days')::BIGINT AS d28
+  ), pv AS (
+    SELECT p.user_id, p.created_at
+    FROM page_views p
+    JOIN coh ON coh.id = p.user_id
+    WHERE NOT COALESCE(p.is_bot, false)
+  ), hit AS (
+    -- 사람 단위로 "그 구간에 한 번이라도 왔나". 방문이 아예 없는 사람은 bool_or 가 NULL 을
+    -- 주고 아래 FILTER 가 참이 아닌 것으로 세므로 분자에서 자연히 빠진다.
+    SELECT c.wk, c.id,
+           bool_or(p.created_at >= c.created_at + INTERVAL  '1 day' AND p.created_at < c.created_at + INTERVAL  '8 day') AS v1,
+           bool_or(p.created_at >= c.created_at + INTERVAL  '8 day' AND p.created_at < c.created_at + INTERVAL '15 day') AS v2,
+           bool_or(p.created_at >= c.created_at + INTERVAL '15 day' AND p.created_at < c.created_at + INTERVAL '22 day') AS v3,
+           bool_or(p.created_at >= c.created_at + INTERVAL '22 day' AND p.created_at < c.created_at + INTERVAL '29 day') AS v4
     FROM coh c
-    LEFT JOIN vis v ON v.user_id = c.id
-    GROUP BY c.wk
+    LEFT JOIN pv p ON p.user_id = c.id
+    GROUP BY c.wk, c.id
+  ), agg AS (
+    -- 🔴 h. 로 전부 수식한다 — RETURNS TABLE 의 출력 파라미터(users·w1~w4)와 이름이 겹칠 때
+    --    수식 없는 참조는 해석이 갈릴 수 있다. 수식하면 컬럼으로만 해석된다.
+    SELECT h.wk,
+           COUNT(*)::BIGINT AS users,
+           COUNT(*) FILTER (WHERE h.v1)::BIGINT AS v1,
+           COUNT(*) FILTER (WHERE h.v2)::BIGINT AS v2,
+           COUNT(*) FILTER (WHERE h.v3)::BIGINT AS v3,
+           COUNT(*) FILTER (WHERE h.v4)::BIGINT AS v4
+    FROM hit h
+    GROUP BY h.wk
   )
   SELECT a.wk, a.users,
-         CASE WHEN k.now_kst >= (a.wk + 8)::timestamp  THEN a.d1  END,
-         CASE WHEN k.now_kst >= (a.wk + 10)::timestamp THEN a.d3  END,
-         CASE WHEN k.now_kst >= (a.wk + 14)::timestamp THEN a.d7  END,
-         CASE WHEN k.now_kst >= (a.wk + 21)::timestamp THEN a.d14 END,
-         CASE WHEN k.now_kst >= (a.wk + 35)::timestamp THEN a.d28 END
+         CASE WHEN k.now_kst >= (a.wk + 15)::timestamp THEN a.v1 END,
+         CASE WHEN k.now_kst >= (a.wk + 22)::timestamp THEN a.v2 END,
+         CASE WHEN k.now_kst >= (a.wk + 29)::timestamp THEN a.v3 END,
+         CASE WHEN k.now_kst >= (a.wk + 36)::timestamp THEN a.v4 END
   FROM agg a CROSS JOIN k
   ORDER BY a.wk DESC;
 $$;
