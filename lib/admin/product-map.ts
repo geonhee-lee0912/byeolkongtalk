@@ -3,7 +3,12 @@
 // 🔴 왜 코드에 두나 — 이 매핑이 틀리면 "어느 상품이 적자인가"가 통째로 뒤집힌다. SQL 안의
 //    CASE 문은 테스트할 수 없지만 여기는 유닛으로 잠긴다. route·source 가 늘면 테스트가 먼저 깨진다.
 
-export const PRODUCT_LABELS = ["타로", "사주", "운세", "연애", "별마루", "공통", "기타"] as const;
+// 🔴 `공통(매출없음)` 의 괄호는 장식이 아니라 **막대를 읽는 데 필요한 정보**다. 공통(롤링
+//    요약·민감 판정)은 매출이 없어 항상 음수인데, 기여 막대에서 실적자 상품과 **같은 주황
+//    막대**로 보인다. note 가 말하긴 하지만 그건 371자 문단의 네 번째 caveat 에 11px/35%
+//    투명도다 — 막대의 존재 이유가 "한눈에" 인데 그 caveat 은 한눈에 안 들어온다.
+//    (라벨 폭은 DivergingBar 의 `w-28`=112px 안에 들어가는 것을 확인했다.)
+export const PRODUCT_LABELS = ["타로", "사주", "운세", "연애", "별마루", "공통(매출없음)", "기타"] as const;
 export type ProductLabel = (typeof PRODUCT_LABELS)[number];
 
 /**
@@ -17,7 +22,7 @@ export function labelOfRoute(route: string): ProductLabel {
   if (route.startsWith("/api/fortune")) return "운세";
   if (route.startsWith("/api/byeolmaru")) return "별마루";
   // 공통 경로 — 종목을 가리지 않고 모든 대화에 얹힌다(롤링 요약 · 민감 2차 판정).
-  if (route.startsWith("lib/claude.") || route.startsWith("lib/sensitive.")) return "공통";
+  if (route.startsWith("lib/claude.") || route.startsWith("lib/sensitive.")) return "공통(매출없음)";
   return "기타";
 }
 

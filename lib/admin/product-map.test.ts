@@ -16,8 +16,8 @@ test("labelOfRoute — 실제 route 값이 전부 매핑된다", () => {
   assert.equal(labelOfRoute("/api/byeolmaru/pair-narrative"), "별마루");
   assert.equal(labelOfRoute("/api/byeolmaru/daily-report"), "별마루");
   assert.equal(labelOfRoute("/api/byeolmaru/card-narrative"), "별마루");
-  assert.equal(labelOfRoute("lib/claude.summarizeOlder"), "공통");
-  assert.equal(labelOfRoute("lib/sensitive.detectSensitiveAsync"), "공통");
+  assert.equal(labelOfRoute("lib/claude.summarizeOlder"), "공통(매출없음)");
+  assert.equal(labelOfRoute("lib/sensitive.detectSensitiveAsync"), "공통(매출없음)");
 });
 
 test("labelOfRoute — 모르는 route 는 기타로 (크래시하지 않는다)", () => {
@@ -57,6 +57,46 @@ test("labelOfSpendSource — 진짜 인챗 업셀(clarifier·extend)만 타로�
   assert.equal(labelOfSpendSource("extend"), "타로");
 });
 
-test("PRODUCT_LABELS 가 표시 순서를 고정한다", () => {
-  assert.deepEqual([...PRODUCT_LABELS], ["타로", "사주", "운세", "연애", "별마루", "공통", "기타"]);
+// 🔴 **이 파일에서 가장 중요한 테스트다.** 위 테스트들은 두 함수를 *따로* 본다 — 그래서
+//    `PRODUCT_LABELS` 에 라벨을 넣고 `labelOfRoute` 만 배선하면 tsc·유닛·build 가 **전부
+//    통과하고**, 그 상품은 화면에서 **매출 0 + 원가 전액 = 영구 적자**로 그려진다.
+//    반대(source 만 배선)면 원가 없는 **순이익**으로 보인다.
+//
+//    이건 가설이 아니다 — 플랜 원안의 domain 귀속이 **별마루에 대해 정확히 그 그림을 만들었고**
+//    (구독 매출이 통째로 타로로 가서 별마루엔 원가만 남았다) 2026-09-27 dev 실측으로 잡았다.
+//    새 상품이 붙을 때 같은 자리에서 재발한다 → 그때 이 테스트가 **먼저** 깨지게 한다.
+//    실패 메시지는 "무엇이 안 맞나"가 아니라 **"그래서 화면이 어떻게 거짓말하나"**를 말한다.
+const KNOWN_ROUTES = [
+  "/api/consultations/tarot/chat",
+  "/api/consultations/saju/chat",
+  "/api/relationship/chat",
+  "/api/fortune/create",
+  "/api/byeolmaru/pair-narrative",
+  "lib/claude.summarizeOlder",
+];
+const KNOWN_SOURCES = [
+  "tarot_reading",
+  "saju_reading",
+  "fortune_compat",
+  "relationship_pass",
+  "byeolmaru_subscription",
+];
+
+test("원가 라벨과 매출 라벨이 짝을 이룬다 — 한쪽만 배선된 상품이 없다", () => {
+  const cost = new Set(KNOWN_ROUTES.map(labelOfRoute));
+  const rev = new Set(KNOWN_SOURCES.map(labelOfSpendSource));
+  for (const l of PRODUCT_LABELS) {
+    // 이 둘은 구조적으로 짝이 없는 게 정상이다 — 공통은 매출이 없고(종목 무관 원가),
+    // 기타는 양쪽의 폴백이라 "아직 분류 안 된 것"을 담는 자리다.
+    if (l === "공통(매출없음)" || l === "기타") continue;
+    assert.ok(cost.has(l), `${l}: route 매핑 없음 — 매출만 잡히고 원가 0 = 순이익으로 보인다`);
+    assert.ok(rev.has(l), `${l}: source 매핑 없음 — 원가만 잡히고 매출 0 = 영구 적자로 보인다`);
+  }
+});
+
+// ⚠️ 이 테스트는 **계약이 아니라 변경 감지기**다 — 배열 리터럴을 다시 쓴 동어반복이라
+//    "route.ts 가 이 순서로 items 를 만든다"는 실제 약속은 검증하지 못한다. 목록이 바뀌면
+//    먼저 깨져서 사람 눈을 부르는 게 전부이고, 이름이 그 이상을 약속하면 안 된다.
+test("PRODUCT_LABELS 목록이 바뀌면 이 테스트가 먼저 깨진다 (변경 감지기)", () => {
+  assert.deepEqual([...PRODUCT_LABELS], ["타로", "사주", "운세", "연애", "별마루", "공통(매출없음)", "기타"]);
 });
