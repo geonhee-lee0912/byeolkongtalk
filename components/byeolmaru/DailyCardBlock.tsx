@@ -33,7 +33,13 @@ interface DailyCard {
 
 type CardState =
   | { kind: "loading" }
-  | { kind: "none" }
+  // 🔴 "없음"도 **그 없음이 속한 날짜**를 단다(2026-09-27). drawn 만 date 를 달고 none 은
+  //    날짜가 없었는데, 이 화면은 쿼리만 바뀌면 재마운트가 없어 date prop 이 먼저 today 로
+  //    바뀌고 state 는 한 프레임 동안 **지난 날짜의 none** 으로 남는다. 그 틈에 자동 열기
+  //    effect 가 "오늘인데 안 뽑았다"로 오판해 **이미 뽑은 카드 위에 뽑기 의식을 열었다**
+  //    (실사고 — "그날은 카드를 안 뽑았어 → 오늘 카드 뽑으러 가기 →" 경로에서 100% 재현).
+  //    날짜를 달아야 그 프레임을 "아직 모름"으로 취급할 수 있다. 빼지 말 것.
+  | { kind: "none"; date: string }
   // 🔴 카드는 **그 카드가 속한 날짜**를 달고 다닌다 — 이 화면은 같은 라우트 안에서 쿼리만 바뀌며
   //    재마운트 없이 다시 그려져서(뒤로가기·"오늘 카드 뽑으러 가기 →"), date prop 이 먼저 바뀌고
   //    카드 재조회는 한 프레임 뒤에 시작된다. 그 틈에 서술 effect 가 (옛 카드 + 새 날짜)로 한 번,
@@ -113,14 +119,14 @@ export default function DailyCardBlock({
       try {
         const res = await fetch(`/api/byeolmaru/daily-card?date=${date}`, { cache: "no-store" });
         if (!res.ok) {
-          if (!cancelled) setState({ kind: "none" });
+          if (!cancelled) setState({ kind: "none", date });
           return;
         }
         const j = await res.json();
         if (cancelled) return;
-        setState(j.card ? { kind: "drawn", date, card: j.card } : { kind: "none" });
+        setState(j.card ? { kind: "drawn", date, card: j.card } : { kind: "none", date });
       } catch {
-        if (!cancelled) setState({ kind: "none" });
+        if (!cancelled) setState({ kind: "none", date });
       }
     })();
     return () => {
@@ -234,11 +240,14 @@ export default function DailyCardBlock({
   const autoOpenedRef = useRef(false);
   useEffect(() => {
     if (autoOpenedRef.current) return;
-    // 로딩 중(state.kind==="loading")엔 아직 "안 뽑았다"가 확정이 아니다 — 확정된 뒤에만 연다.
-    if (state.kind !== "none" || date !== todayKst) return;
+    // 🔴 "안 뽑았다"가 **이 날짜에 대해** 확정된 뒤에만 연다. 조건이 셋이다:
+    //    ① none 이어야 하고(loading 은 아직 모름) ② 그 none 이 **지금 보는 날짜의 것**이어야 하며
+    //    ③ 그 날짜가 오늘이어야 한다. ②가 없어서 지난 날의 none 을 들고 오늘로 넘어온 프레임에
+    //    의식이 열렸다(이미 뽑은 카드 위에). state.date 비교를 지우지 말 것.
+    if (state.kind !== "none" || state.date !== date || date !== todayKst) return;
     autoOpenedRef.current = true;
     openRitual();
-  }, [state.kind, date, todayKst]);
+  }, [state, date, todayKst]);
 
   // 🔴 닫기(✕·ESC)는 **허브로 나간다**(2026-09-24). 모달만 닫으면 그 아래에 "오늘 하루, 카드 한
   //    장으로 가볍게 짚어볼까? / [오늘의 카드 뽑기]" 중간 화면이 드러나는데, 그건 자동 열기를
@@ -312,7 +321,9 @@ export default function DailyCardBlock({
 
   return (
     <>
-      {state.kind === "none" && (
+      {/* 🔴 날짜 정합까지 본다 — 아래 drawn 분기와 같은 가드다. 없으면 날짜가 바뀐 한 프레임 동안
+          **지난 날짜의 "안 뽑았어" 안내가 새 날짜 헤더 밑에** 그대로 남는다. */}
+      {state.kind === "none" && state.date === date && (
         <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
           <h2 className="mb-2 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
@@ -505,7 +516,9 @@ export default function DailyCardBlock({
                 </>
               ) : notGenerated ? (
                 <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
-                  그날은 리포트를 안 받았어. 지난 날은 그때 받은 것만 보여줄 수 있어.
+                  그날은 리포트를 안 받았어.
+                  <br />
+                  지난 날은 그때 받은 것만 보여줄 수 있어.
                 </p>
               ) : locked ? (
                 /* 🔴 "이 카드, 타로로 더 깊게 →"(타로톡 인라인 낙수)는 2026-09-27 에 제거됐다
