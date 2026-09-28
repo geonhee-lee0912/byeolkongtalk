@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import { splitLengthHint } from "@/lib/fortune/outline";
+import OutlineChips from "./OutlineChips";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
 
@@ -19,7 +20,7 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
  *  라벨과 숫자를 한 줄에 두고 baseline 을 맞춘다(두 줄로 쌓으면 높이만 먹는다). */
 function Stat({ value, unit, label }: { value: string; unit: string; label: string }) {
   return (
-    <div className="flex-1 bg-white rounded-2xl border border-lilac-mid/20 px-3.5 py-2 flex items-baseline justify-between gap-2">
+    <div className="flex-1 flex items-baseline justify-center gap-2">
       <span className="text-[11px] text-text-light/70 shrink-0">{label}</span>
       <span className="font-display text-[19px] text-eye-purple leading-none whitespace-nowrap">
         {value}
@@ -60,23 +61,17 @@ export default function FortuneLandingSections({
       </Block>
 
       <Block title="리포트에 담기는 것">
-        <div className="flex gap-2">
-          <Stat value={String(outline.length)} unit="개" label="섹션" />
-          {/* 분량 힌트가 없는 종목(무료 MBTI)은 섹션 칸만 — 빈 칸을 만들지 않는다. */}
-          {len && <Stat value={len.value} unit={len.unit} label="분량" />}
+        {/* 숫자와 칩을 한 상자에 — 흰 카드 여러 개가 흩어지면 지면이 부산해진다. */}
+        <div className="bg-white rounded-2xl border border-lilac-mid/20 overflow-hidden">
+          <div className="flex items-stretch divide-x divide-lilac-soft/70 py-2.5">
+            <Stat value={String(outline.length)} unit="개" label="섹션" />
+            {/* 분량 힌트가 없는 종목(무료 MBTI)은 섹션 칸만 — 빈 칸을 만들지 않는다. */}
+            {len && <Stat value={len.value} unit={len.unit} label="분량" />}
+          </div>
+          <div className="border-t border-lilac-soft/70 px-3.5 py-3">
+            <OutlineChips items={outline} />
+          </div>
         </div>
-
-        {/* 줄 리스트 대신 칩 — 같은 높이에 훨씬 많이 들어가서 전 섹션을 접지 않고 보여준다. */}
-        <ul className="flex flex-wrap gap-1.5 mt-3">
-          {outline.map((h) => (
-            <li
-              key={h}
-              className="text-[11.5px] text-eye-purple bg-lilac-soft/60 px-2.5 py-1.5 rounded-full"
-            >
-              {h}
-            </li>
-          ))}
-        </ul>
       </Block>
 
       <Block title="이런 대목이 나와">
