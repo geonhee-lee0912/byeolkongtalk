@@ -9,7 +9,7 @@ import { FORTUNE_CONFIG, FORTUNE_LENGTH_HINT, type FortuneType } from "@/lib/for
 import { fortuneOutline, type LandingKey } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
 import { RELATED_SAJU } from "@/components/upsell/cross-cards";
-import { fortuneHeroSrc } from "@/lib/fortune/hero";
+import { fortuneCardSrc } from "@/lib/fortune/hero";
 
 export default async function FortuneProductPage({
   params,
@@ -32,7 +32,7 @@ export default async function FortuneProductPage({
       <FortuneLandingHero
         title={cfg.label}
         hook={copy.hook}
-        heroSrc={fortuneHeroSrc(type) ?? "/byeolkong-main.png"}
+        cardSrc={fortuneCardSrc(key)}
         chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
         ctaLabel="이 사주로 보기"
         trackType={type}

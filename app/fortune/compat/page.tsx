@@ -6,7 +6,7 @@ import { FORTUNE_CONFIG, FORTUNE_LENGTH_HINT } from "@/lib/fortune/types";
 import { fortuneOutline } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
 import { RELATED_SAJU } from "@/components/upsell/cross-cards";
-import { fortuneHeroSrc } from "@/lib/fortune/hero";
+import { fortuneCardSrc } from "@/lib/fortune/hero";
 import { productMetadata } from "@/lib/seo/metadata";
 
 const cfg = FORTUNE_CONFIG.compat;
@@ -25,7 +25,7 @@ export default function CompatPage() {
       <FortuneLandingHero
         title={cfg.label}
         hook={copy.hook}
-        heroSrc={fortuneHeroSrc("compat") ?? "/byeolkong-main.png"}
+        cardSrc={fortuneCardSrc("compat")}
         chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT.compat ?? "", copy.minutes].filter(Boolean)}
         ctaLabel="두 사람 사주로 보기"
         trackType="compat"

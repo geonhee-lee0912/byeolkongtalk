@@ -8,6 +8,7 @@ import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero"
 import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
 import { fortuneOutline } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
+import { fortuneCardSrc } from "@/lib/fortune/hero";
 
 function firstParam(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : undefined;
@@ -77,7 +78,7 @@ export default async function SajuMbtiPage({
       <FortuneLandingHero
         title="사주 MBTI"
         hook={copy.hook}
-        heroSrc="/byeolkong-main.png"
+        cardSrc={fortuneCardSrc("saju_mbti")}
         chips={["무료", "12문항", copy.minutes]}
         ctaLabel="테스트 시작하기"
         ctaHref="/fortune/saju-mbti?start=1"

@@ -1,5 +1,8 @@
-// 상품 설명 페이지 히어로 — 일러스트·제목·칩·CTA. 서버 컴포넌트(상호작용은 CTA 하나뿐이라
-// 스크롤 이동을 a[href="#buy"] 로 처리한다 — 클라 번들을 늘리지 않는다).
+// 상품 설명 페이지 히어로 — 그림 카드 + 제목·훅·칩·CTA. 서버 컴포넌트(CTA 만 클라 섬).
+//
+// 카드 형태는 홈 캐러셀(HeroCarousel)과 같은 언어다: full-bleed 일러스트를 rounded 카드에
+// object-cover 로 채운다. 다만 캐러셀처럼 그림 위에 제목을 얹지 않고 **카드 밖 아래**에 둔다
+// (배치 B) — 상품명·후킹이 큰 글씨로 읽혀야 하는 지면이라서.
 import Image from "next/image";
 import Link from "next/link";
 import LandingCta from "./LandingCta";
@@ -7,7 +10,7 @@ import LandingCta from "./LandingCta";
 export default function FortuneLandingHero({
   title,
   hook,
-  heroSrc,
+  cardSrc,
   chips,
   ctaLabel,
   ctaHref = "#buy",
@@ -15,7 +18,8 @@ export default function FortuneLandingHero({
 }: {
   title: string;
   hook: string;
-  heroSrc: string;
+  /** 카드 배너(4:3 원본을 16:10 으로 crop). 없으면 카드 없이 제목부터. */
+  cardSrc: string | null;
   chips: string[];
   ctaLabel: string;
   ctaHref?: string;
@@ -23,7 +27,7 @@ export default function FortuneLandingHero({
   trackType: string;
 }) {
   return (
-    <header className="w-full bg-lilac-soft/40">
+    <header className="w-full">
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href="/fortune"
@@ -36,9 +40,23 @@ export default function FortuneLandingHero({
         </Link>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-5 pb-6 flex flex-col items-center">
-        <Image src={heroSrc} alt="" width={132} height={132} priority className="drop-shadow-lg" />
-        <h1 className="font-display text-[22px] text-eye-purple text-center mt-3 tracking-wide leading-snug">
+      {cardSrc && (
+        <div className="w-full max-w-md mx-auto px-5 mt-2.5">
+          <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden">
+            <Image
+              src={cardSrc}
+              alt=""
+              fill
+              sizes="(max-width: 448px) 100vw, 448px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-md mx-auto px-5 mt-4 flex flex-col items-center">
+        <h1 className="font-display text-[22px] text-eye-purple text-center tracking-wide leading-snug">
           {title}
         </h1>
         <p className="text-[13px] text-text-light text-center mt-2 leading-relaxed whitespace-pre-line">
