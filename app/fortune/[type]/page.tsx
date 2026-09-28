@@ -50,7 +50,7 @@ export default async function FortuneProductPage({
       <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
         <div className="h-px bg-lilac-mid/30" />
         <PurchaseReachedBeacon type={type} />
-        <h2 className="text-[14.5px] font-bold text-eye-purple mt-5">누구 사주로 볼까</h2>
+        <h2 className="text-[14.5px] font-bold text-eye-purple mt-5 mb-4">누구 사주로 볼까</h2>
       </div>
       <FortunePurchasePanel type={type} />
     </main>

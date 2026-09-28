@@ -41,7 +41,7 @@ export default function CompatPage() {
       <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
         <div className="h-px bg-lilac-mid/30" />
         <PurchaseReachedBeacon type="compat" />
-        <h2 className="text-[14.5px] font-bold text-eye-purple mt-5">두 사람을 골라줘</h2>
+        <h2 className="text-[14.5px] font-bold text-eye-purple mt-5 mb-4">두 사람을 골라줘</h2>
       </div>
       <CompatInput type="compat" />
     </main>
