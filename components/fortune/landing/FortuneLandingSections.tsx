@@ -15,15 +15,16 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** 숫자를 크게 세우는 칸 — 섹션 수·분량. "이만큼 받는다"가 한눈에 읽혀야 하는 자리다. */
+/** 숫자를 크게 세우는 칸 — 섹션 수·분량. "이만큼 받는다"가 한눈에 읽혀야 하는 자리다.
+ *  라벨과 숫자를 한 줄에 두고 baseline 을 맞춘다(두 줄로 쌓으면 높이만 먹는다). */
 function Stat({ value, unit, label }: { value: string; unit: string; label: string }) {
   return (
-    <div className="flex-1 bg-white rounded-2xl border border-lilac-mid/20 px-3.5 py-2.5">
-      <p className="font-display text-[22px] text-eye-purple leading-none">
+    <div className="flex-1 bg-white rounded-2xl border border-lilac-mid/20 px-3.5 py-2 flex items-baseline justify-between gap-2">
+      <span className="text-[11px] text-text-light/70 shrink-0">{label}</span>
+      <span className="font-display text-[19px] text-eye-purple leading-none whitespace-nowrap">
         {value}
-        <span className="text-[12px] ml-0.5">{unit}</span>
-      </p>
-      <p className="text-[10.5px] text-text-light/70 mt-1.5">{label}</p>
+        <span className="text-[11.5px] ml-0.5">{unit}</span>
+      </span>
     </div>
   );
 }
