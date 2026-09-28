@@ -2,6 +2,7 @@
 // OpenAI(GPT-5 계열) 어댑터 — "1회 순수 스트림"만 담당. 재시도·빈응답 가드·로깅은
 // streamChat(lib/claude.ts) 래퍼가 소유한다(anthropic 어댑터와 동일 계약).
 import OpenAI from "openai";
+import { isTransientConnectionError } from "@/lib/upstream-error";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
 import type { Usage } from "@/lib/claude/pricing";
 
@@ -114,6 +115,10 @@ export const openaiAdapter: ProviderAdapter = {
   },
   isRetryableError(err: unknown) {
     const status = (err as { status?: number })?.status;
-    return status === 429 || status === 500 || status === 503 || status === 529;
+    if (status === 429 || status === 500 || status === 503 || status === 529) return true;
+    // 연결 단절은 status 가 없다. OpenAI SDK 의 Stream 은 anthropic 과 달리 body 스트림 에러를
+    // 감싸지 않고 그대로 던져서 undici 의 `TypeError: terminated` 가 올라온다
+    // (2026-09-28 prod /api/relationship/chat). 첫 조각 방출 전이면 streamChat 이 재호출한다.
+    return isTransientConnectionError(err);
   },
 };

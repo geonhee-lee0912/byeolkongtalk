@@ -135,6 +135,10 @@ export default function ThreadChat({
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // 스트림이 끊겨 턴이 통째로 날아갔을 때 다시 보낼 원문. 서버는 스트림이 끝나야 user·별콩이
+  // 메시지를 저장하므로 실패한 턴은 DB에 아예 없다 → 유저가 질문을 다시 타이핑해야 했고,
+  // 그게 실제 이탈 지점이었다(2026-09-28 prod). 원문은 이미 여기 있으니 한 번에 재전송한다.
+  const [retryText, setRetryText] = useState<string | null>(null);
   // capReachedLocal: 전송 캡도달/인라인 연장은 즉시 로컬로 반영(낙관적) + 아래 effect가
   // capReached prop 변경 시 재동기화 — 부모(prop)가 최종 단일 진실 원천.
   const [capReachedLocal, setCapReachedLocal] = useState(capReached);
@@ -172,17 +176,24 @@ export default function ThreadChat({
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
-  const send = async (text: string) => {
+  /**
+   * @param resend 실패한 턴의 재전송. 유저 말풍선은 이미 떠 있으므로 다시 붙이지 않고,
+   *               입력창도 건드리지 않는다(에러를 본 뒤 새로 타이핑 중인 초안 보호).
+   */
+  const send = async (text: string, resend = false) => {
     // 판정(activeSkill) 중엔 소프트캡·canSend 게이트를 우회(유료 세그먼트).
     if (!text.trim() || sending) return;
     if (!activeSkill && (capReachedLocal || !canSend)) return;
     setError(null);
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: text, createdAt: new Date().toISOString() },
-    ]);
-    setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
+    setRetryText(null);
+    if (!resend) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: text, createdAt: new Date().toISOString() },
+      ]);
+      setInput("");
+      if (inputRef.current) inputRef.current.style.height = "auto";
+    }
     setSending(true);
     setLiveText("");
 
@@ -201,6 +212,7 @@ export default function ThreadChat({
       }
       if (!res.ok || !res.body) {
         setSending(false);
+        setRetryText(text);
         setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
         return;
       }
@@ -247,6 +259,7 @@ export default function ThreadChat({
     } catch {
       setSending(false);
       // liveText는 지우지 않음 — 이미 스트리밍된 내용은 화면에 남기고 에러만 아래에 표기
+      setRetryText(text);
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
     }
   };
@@ -263,6 +276,7 @@ export default function ThreadChat({
       return;
     }
     setError(null);
+    setRetryText(null); // 스킬 에러 밑에 남아 옛 대화를 재전송하는 걸 막는다
     setActiveSkill(skillKey); // 낙관적 — 실패 시 아래에서 롤백
     setSending(true);
     setLiveText("");
@@ -322,6 +336,7 @@ export default function ThreadChat({
   // 인-스레드 궁합 개시 — 원샷 JSON 리포트를 받아 카드 메시지로 삽입(스트림 아님).
   const sendCompatSkill = async (skillKey: string) => {
     setError(null);
+    setRetryText(null); // 스킬 에러 밑에 남아 옛 대화를 재전송하는 걸 막는다
     setActiveSkill(skillKey); // 낙관적 락 — 다른 스킬/재진입 차단
     setCompatLoading(true);
     try {
@@ -371,6 +386,7 @@ export default function ThreadChat({
     const spread = skillKey ? getSkill(skillKey)?.spread : undefined;
     if (!skillKey || !spread || sending) return false;
     setError(null);
+    setRetryText(null); // 스킬 에러 밑에 남아 옛 대화를 재전송하는 걸 막는다
     setActiveSkill(skillKey); // 낙관적 락
     setDrawLoading(true);
     // 모달을 닫은 뒤(스트립 삽입 이후)의 실패는 모달이 에러를 못 보여주므로 스레드에 표기해야 한다.
@@ -663,9 +679,20 @@ export default function ThreadChat({
           )}
 
           {error && (
-            <p className="text-[12px] text-red-500 text-center mt-2">
-              {error}
-            </p>
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <p className="text-[12px] text-red-500 text-center">{error}</p>
+              {/* 재전송 가능한 실패(연결 끊김)에만 뜬다 — 패스 부족 402 는 다시 눌러도 같다. */}
+              {retryText && (
+                <button
+                  type="button"
+                  onClick={() => void send(retryText, true)}
+                  disabled={sending}
+                  className="inline-flex items-center gap-1 rounded-full bg-lilac-deep text-white font-bold text-[12px] px-3.5 py-1.5 active:scale-[0.97] transition disabled:opacity-60"
+                >
+                  다시 보내기
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
