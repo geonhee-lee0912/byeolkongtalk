@@ -260,10 +260,15 @@ export default function DailyCardBlock({
     openRitual();
   }, [autoOpenRitual, state, date, todayKst]);
 
-  // 🔴 닫기(✕·ESC)는 **허브로 나간다**(2026-09-24). 모달만 닫으면 그 아래에 "오늘 하루, 카드 한
-  //    장으로 가볍게 짚어볼까? / [오늘의 카드 뽑기]" 중간 화면이 드러나는데, 그건 자동 열기를
-  //    넣으면서 없애기로 한 바로 그 단계다(실물 재현 확인). 이 화면에 온 목적이 뽑기 하나뿐이라
-  //    "안 뽑겠다"는 곧 "여기서 나가겠다"다.
+  // 🔴 닫기(✕·ESC)는 **진입 경로에 따라 갈린다** — 자동 열기와 같은 신호(`autoOpenRitual`)를 쓴다.
+  //    · 주소로 타로에 온 진입(목록·공유): **허브로 나간다**(2026-09-24). 모달만 닫으면 그 아래에
+  //      "오늘 하루… / [오늘의 카드 뽑기]" 중간 화면이 드러나는데, 그건 그 경로에서 없애기로 한
+  //      바로 그 단계다. 이 화면에 온 목적이 뽑기 하나뿐이라 "안 뽑겠다"는 곧 "나가겠다"다.
+  //    · 탭을 눌러 온 진입(달력 경로): **모달만 닫는다**(2026-09-28). 그 사람은 그 날을 둘러보던
+  //      중이고 CTA 를 눌러 스스로 연 것이라, 닫았다고 페이지 밖으로 내보내면 뺏기는 느낌이 된다.
+  //      드러나는 중간 화면은 이 경로에선 **의도된 착륙 지점**이다.
+  //    🔴 닫아도 자동 열기가 다시 돌지 않는다 — 그 effect 의 첫 조건이 `!autoOpenRitual` 이라
+  //       이 경로에선 애초에 안 탄다(갇히지 않는다). 조건을 바꿀 땐 둘을 같이 볼 것.
   //    🔴 뽑기 성공 후 닫힘은 이 함수를 타지 않는다(아래 setRitualOpen(false) 직접 호출) —
   //       결과를 보여줘야 하므로 이동하면 안 된다. 합치지 말 것.
   function closeRitual() {
@@ -271,7 +276,7 @@ export default function DailyCardBlock({
     setRitualOpen(false);
     setSaveError(false);
     setPendingDraw(null);
-    router.push("/byeolmaru");
+    if (autoOpenRitual) router.push("/byeolmaru");
   }
 
   async function saveDraw(cardId: number, reversed: boolean) {
