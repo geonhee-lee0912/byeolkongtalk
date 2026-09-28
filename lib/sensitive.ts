@@ -11,6 +11,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getServiceSupabase } from "@/lib/supabase";
+import { recordUsage } from "@/lib/claude/usage-log";
+import { mapAnthropicUsage } from "@/lib/claude/adapters/anthropic";
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
@@ -139,7 +141,8 @@ const CLAIM_SCHEMA = `다음 메시지가 자살/자해, 학교폭력, 가정폭
 실제 위기 시그널만 1 이상으로 분류.`;
 
 export async function detectSensitiveAsync(
-  text: string
+  text: string,
+  userId?: string | null      // ← 추가. 위와 같은 이유.
 ): Promise<SensitiveMatch | null> {
   if (!text || text.length < 5) return null;
 
@@ -157,6 +160,12 @@ export async function detectSensitiveAsync(
       max_tokens: 200,
       system: CLAIM_SCHEMA,
       messages: [{ role: "user", content: text.slice(0, 1500) }],
+    });
+
+    // 🔴 회색지대 대화 턴마다 돌 수 있는 경로다 — 누락하면 원가가 조용히 샌다(스펙 §4 착점 3).
+    void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
+      route: "lib/sensitive.detectSensitiveAsync",
+      userId,
     });
 
     const content = resp.content[0];
@@ -200,7 +209,10 @@ export async function resolveSensitive(
   text: string,
   opts?: {
     timeoutMs?: number;
-    secondPass?: (text: string) => Promise<SensitiveMatch | null>;
+    /** 2차 판정 주입점(테스트용). userId 는 원가를 유·무료로 분해하려고 흘려보낸다. */
+    secondPass?: (text: string, userId?: string | null) => Promise<SensitiveMatch | null>;
+    /** llm_usage.user_id 에 실린다. 판정 로직에는 전혀 쓰이지 않는다. */
+    userId?: string | null;
   }
 ): Promise<SensitiveMatch | null> {
   const sync = detectSensitiveSync(text);
@@ -211,7 +223,7 @@ export async function resolveSensitive(
   const timeoutMs = opts?.timeoutMs ?? 3000;
   try {
     return await Promise.race([
-      secondPass(text),
+      secondPass(text, opts?.userId),
       new Promise<SensitiveMatch>((resolve) =>
         setTimeout(() => resolve(sync), timeoutMs)
       ),

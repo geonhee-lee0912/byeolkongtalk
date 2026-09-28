@@ -7,6 +7,14 @@ export const STEM_ELEMENT: Record<string, FiveElement> = {
   기: "토", 경: "금", 신: "금", 임: "수", 계: "수",
 };
 
+// 지지 12 → 오행 (본기 기준 — 지장간의 나머지는 보지 않는다)
+// 🔴 2026-09-27 신설. 그 전까진 지지가 육합·충에만 쓰여서 **대부분의 날 점수에 아무 영향이
+//    없었다** — 한 달 30칸의 고유 점수가 평균 10종뿐이던 원인 중 하나다(day-score.ts 참고).
+export const BRANCH_ELEMENT: Record<string, FiveElement> = {
+  자: "수", 축: "토", 인: "목", 묘: "목", 진: "토", 사: "화",
+  오: "화", 미: "토", 신: "금", 유: "금", 술: "토", 해: "수",
+};
+
 // 천간 10 → 양(true)/음(false)
 export const STEM_YANG: Record<string, boolean> = {
   갑: true, 을: false, 병: true, 정: false, 무: true,
@@ -72,7 +80,7 @@ const HEAVENLY_COMBO_SET = new Set(
     .flatMap(([a, b]) => [a + b, b + a])
 );
 
-/** 두 일간이 천간합(끌림)인가. */
+/** 두 일간이 천간합(설렘)인가. */
 export function heavenlyCombo(stemA: string, stemB: string): boolean {
   return HEAVENLY_COMBO_SET.has(stemA + stemB);
 }
@@ -83,9 +91,20 @@ const SIX_COMBO_SET = new Set(
     .flatMap(([a, b]) => [a + b, b + a])
 );
 
-/** 두 일지가 육합(결속)인가. */
+/** 두 일지가 육합(척척)인가. */
 export function earthlySixCombo(branchA: string, branchB: string): boolean {
   return SIX_COMBO_SET.has(branchA + branchB);
+}
+
+// 지지 육충 6쌍 — 정면으로 부딪히는 관계(합의 반대). 판정에서 감점 신호로 쓴다.
+const SIX_CLASH_SET = new Set(
+  [["자","오"],["축","미"],["인","신"],["묘","유"],["진","술"],["사","해"]]
+    .flatMap(([a, b]) => [a + b, b + a])
+);
+
+/** 두 지지가 육충(정면 충돌)인가. */
+export function earthlySixClash(branchA: string, branchB: string): boolean {
+  return SIX_CLASH_SET.has(branchA + branchB);
 }
 
 // 삼합 4그룹 — 지지 3종이 모두 있으면 해당 오행 국(局) 완성
@@ -116,7 +135,7 @@ export interface PairRelation {
   labelAtoB: string; // 별콩 라벨 (a→b)
   labelBtoA: string; // 별콩 라벨 (b→a)
   heavenlyCombo: boolean; // 천간합(케미 스파크) — 일간
-  sixCombo: boolean; // 육합(결속선) — 일지
+  sixCombo: boolean; // 육합(척척선) — 일지
   // 연·월 기둥의 조화 수(연간·월간 천간합 + 연지·월지 육합, 0~4). 일주 지표의 보조 신호(동점 완화).
   // 시주는 제외(생시 없으면 불공정) — 날짜만으로 나오는 연·월만.
   extraPillarHarmony: number;

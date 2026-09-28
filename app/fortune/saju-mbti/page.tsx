@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { decodeResult } from "@/lib/saju-mbti/share-tokens";
 import { TYPE_CONTENT, shareHook } from "@/lib/saju-mbti/content";
-import { noindexMetadata } from "@/lib/seo/metadata";
+import { noindexMetadata, productMetadata } from "@/lib/seo/metadata";
 import { SajuMbtiFlow } from "@/components/saju-mbti/SajuMbtiFlow";
+import SajuMbtiResume from "@/components/saju-mbti/SajuMbtiResume";
+import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero";
+import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
+import { fortuneOutline } from "@/lib/fortune/outline";
+import { FORTUNE_LANDING } from "@/data/fortune/landing";
+import { fortuneCardSrc } from "@/lib/fortune/hero";
 
 function firstParam(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : undefined;
@@ -33,9 +39,17 @@ export async function generateMetadata({
       twitter: { card: "summary_large_image", title, description, images: [image] },
     };
   }
-  return noindexMetadata({
+  const started = firstParam(sp.start);
+  if (started) {
+    return noindexMetadata({
+      title: "사주 MBTI",
+      description: "네가 아는 너 vs 타고난 너 — 사주로 보는 조선 전래 성격 유형 테스트",
+    });
+  }
+  return productMetadata({
     title: "사주 MBTI",
-    description: "네가 아는 너 vs 타고난 너 — 사주로 보는 조선 전래 성격 유형 테스트",
+    description: FORTUNE_LANDING.saju_mbti.hook.replace(/\n/g, " "),
+    path: "/fortune/saju-mbti",
   });
 }
 
@@ -45,9 +59,38 @@ export default async function SajuMbtiPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
+  const shared = firstParam(sp.r);
+  const started = firstParam(sp.start);
+
+  // 공유 결과·진행 중 플로우는 기존 경로 그대로.
+  if (shared || started) {
+    return (
+      <main className="min-h-[calc(100dvh-8rem)]">
+        <SajuMbtiFlow sharedToken={shared} skipIntro={!shared && !!started} />
+      </main>
+    );
+  }
+
+  const copy = FORTUNE_LANDING.saju_mbti;
   return (
-    <main className="min-h-[calc(100dvh-8rem)]">
-      <SajuMbtiFlow sharedToken={firstParam(sp.r)} />
+    <main className="flex flex-1 flex-col pb-10 w-full animate-fade-in">
+      <SajuMbtiResume />
+      <FortuneLandingHero
+        title="사주 MBTI"
+        hook={copy.hook}
+        cardSrc={fortuneCardSrc("saju_mbti")}
+        chips={["무료", "12문항", copy.minutes]}
+        ctaLabel="테스트 시작하기"
+        ctaHref="/fortune/saju-mbti?start=1"
+        trackType="saju_mbti"
+      />
+      <FortuneLandingSections
+        questions={copy.questions}
+        outline={fortuneOutline("saju_mbti")}
+        sample={copy.sample}
+        samplePreview={null}
+        related={copy.related ?? []}
+      />
     </main>
   );
 }

@@ -71,7 +71,10 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 0,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}daily`,
     href: "/fortune/daily",
-    active: true,
+    // 은퇴(2026-09-12, 별마루 개편 Phase 2): 유저별 LLM 오늘의 운세 폐지 → 무료는 별마루 룰 버전이
+    // 대체(DAU 원가 소멸). 레코드는 유지(Record 무결성·분석 역매핑·어드민·별마루 유료가 프롬프트 공유).
+    // /fortune/daily 는 /byeolmaru 로 리다이렉트(별도 Task), create API 는 이 active:false 로 자동 차단.
+    active: false,
   },
   monthly: {
     type: "monthly",
@@ -185,7 +188,9 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 35,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}good_days`,
     href: "/fortune/good_days",
-    active: true,
+    // 폐지(2026-09-05, ⑤-b) — config 는 기존 리딩 재열람/Record<FortuneType> 무결성 위해 유지.
+    // active:false → 직링크 /fortune/good_days 는 [type]/page.tsx valid 가드가 /fortune 로 리다이렉트.
+    active: false,
   },
   nature_self: {
     type: "nature_self",
@@ -359,7 +364,6 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.compat_social,
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.monthly,
-  FORTUNE_CONFIG.good_days,
   FORTUNE_CONFIG.nature_self,
   FORTUNE_CONFIG.talent_path,
   FORTUNE_CONFIG.user_manual,
@@ -375,7 +379,6 @@ export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.past_life,
   FORTUNE_CONFIG.saju_report_card,
   FORTUNE_CONFIG.life_graph,
-  FORTUNE_CONFIG.daily,
 ];
 
 /** 운세 종류별 타일 그라데이션 — 의미 그룹별 (궁합=핑크·로즈 / 타이밍=골드 / 무료=민트). */
@@ -481,7 +484,7 @@ export const FORTUNE_LENGTH_HINT: Partial<Record<FortuneType, string>> = {
  */
 // 캡 = 절단 방지 상한(목표가 아님, 비용 무관). 실측 출력 대비 ~1.5x 이상 마진(2026-08-30 넉넉하게 재조정).
 export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
-  daily: 4500, // 실측 ~2,100
+  daily: 6000, // P6-2: 목표 1,800자(JSON 포함 실측 후 조정). 구 4500(실측 ~2,100 JSON) → 예산 1.25배+헤드룸. 미생성 토큰은 과금 없음.
   monthly: 9000, // 실측 ~4,829
   saju_full: 30000, // 실측 ~20,977 — 경계였던 22,000에서 상향
   tarot_daily: 4000,
@@ -582,7 +585,6 @@ export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
   { key: "fun", label: "재미" },
   { key: "money_work", label: "돈·일" },
   { key: "timing", label: "타이밍" },
-  { key: "free", label: "무료" },
 ];
 
 /** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */

@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
   const userMessage: string = body.message;
 
   // 민감 게이트 — high 는 regex 즉시, 회색지대는 haiku 2차(await). 감지되면 인형 내려놓고 별콩이 복귀+hotline.
-  const sensitive = await resolveSensitive(userMessage);
+  const sensitive = await resolveSensitive(userMessage, { userId });
   if (sensitive) {
     void recordSensitiveAlert({ match: sensitive, userId, readingId: reading.id, messageText: userMessage });
     await supabase.from("readings").update({ has_sensitive: true }).eq("id", reading.id);

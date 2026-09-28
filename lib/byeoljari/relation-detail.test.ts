@@ -12,8 +12,8 @@ test("relationDetail — 생아 기본", () => {
 test("relationDetail — 키워드는 오행 관계만(특별 인연 미포함, 중복 방지)", () => {
   const d = relationDetail("극아");
   assert.deepEqual(d.keywords, ["자극", "긴장"]);
-  assert.ok(!d.keywords.includes("끌림"));
-  assert.ok(!d.keywords.includes("결속"));
+  assert.ok(!d.keywords.includes("설렘"));
+  assert.ok(!d.keywords.includes("척척"));
   assert.ok(!d.keywords.includes("같은 결"));
 });
 

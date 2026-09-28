@@ -1,6 +1,6 @@
 // lib/fortune/response-format.ts
 // 운세 리포트 종류 → OpenAI 구조화 출력 스키마 매핑. 활성 JSON 리포트 4종만 반환하고,
-// good_days(마크다운)·무료 daily(nano)·비활성 tarot 은 undefined(구조화 출력 미적용).
+// good_days(마크다운)·비활성 tarot 은 undefined(구조화 출력 미적용). daily 는 P6-2 부터 luna + 구조화(별마루 유료).
 // 🔴 tarot 리포트 재활성(FORTUNE_CONFIG active:true) 시 여기에 tarot 스키마 추가 필수.
 import type { FortuneType } from "./types.ts";
 import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
@@ -9,11 +9,14 @@ import { COMPAT_LOVE_REPORT_SCHEMA, COMPAT_SOCIAL_REPORT_SCHEMA } from "./compat
 import { GENERIC_REPORT_SCHEMA, isGenericFortuneType } from "./generic-report.ts";
 import { REPORT_CARD_SCHEMA } from "./report-card-report.ts";
 import { LIFE_GRAPH_SCHEMA } from "./life-graph-report.ts";
+import { DAILY_REPORT_SCHEMA } from "./daily-report.ts";
 
 export function fortuneResponseFormat(
   type: FortuneType
 ): { name: string; schema: object } | undefined {
   switch (type) {
+    case "daily":
+      return { name: "daily_report", schema: DAILY_REPORT_SCHEMA };
     case "saju_full":
       return { name: "saju_full_report", schema: SAJU_FULL_REPORT_SCHEMA };
     case "monthly":

@@ -8,6 +8,8 @@ import { adminExclusionArray, ASSUMED_FREE_STAR_COST_WON } from "@/lib/admin";
 import { daysAgoKstIso, kstDate } from "@/lib/admin-time";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { TYPE_CONTENT } from "@/lib/saju-mbti/content";
+import { pct1 } from "@/lib/admin/layer1";
+import { formatPercentOrDash } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +27,9 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 }
 
 // 분포 막대 한 줄. code=4자 코드(또는 밴드/오행 라벨), meta=메타포(전래 캐릭터). value 0 이면 막대 없음.
-function BarRow({ code, meta, value, max, color }: { code: string; meta?: string; value: number; max: number; color: string }) {
-  const pct = max > 0 && value > 0 ? Math.max(3, Math.round((value / max) * 100)) : 0;
+// value=null 은 **표본이 없다**(분모 0) — 0 과 구분해서 막대 없이 "—" 로 찍는다.
+function BarRow({ code, meta, value, max, color }: { code: string; meta?: string; value: number | null; max: number; color: string }) {
+  const pct = value !== null && max > 0 && value > 0 ? Math.max(3, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-2">
       <div className="w-36 shrink-0 text-[12px] truncate">
@@ -36,7 +39,7 @@ function BarRow({ code, meta, value, max, color }: { code: string; meta?: string
       <div className="flex-1 h-4 rounded bg-white/5 overflow-hidden">
         <div className={`h-full rounded ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="w-7 shrink-0 text-right text-[12px] text-white/60 tabular-nums">{value}</div>
+      <div className="w-7 shrink-0 text-right text-[12px] text-white/60 tabular-nums">{value ?? "—"}</div>
     </div>
   );
 }
@@ -135,10 +138,12 @@ async function load() {
 export default async function AdminSajuMbtiPage() {
   const s = await load();
   const su = s.su;
-  const pct = (num: number, den: number) => (den ? Math.round((num / den) * 1000) / 10 : 0);
-  const completeRate = pct(su.completed, su.started);
-  const shareRate = pct(su.shared, su.completed);
-  const arriveConv = pct(su.retry, su.sharedView);
+  // 🔴 비율은 전부 pct1 경유(lib/admin/layer1.ts). 인라인 나눗셈은 두 가지를 틀린다 —
+  //    ①곱셈을 나눗셈 뒤에 해서 일부 분모에서 0.1%p 가 어긋나고 ②분모 0 에 0 을 돌려줘
+  //    "비율 0%" 와 "표본이 없다" 가 화면에서 같은 문자가 된다. pct1 은 후자를 null 로 준다.
+  const completeRate = pct1(su.completed, su.started);
+  const shareRate = pct1(su.shared, su.completed);
+  const arriveConv = pct1(su.retry, su.sharedView);
   // 결과 분포 차트: 16유형은 count 내림차순(RPC 정렬 유지), 밴드·오행은 의미 순서 고정.
   const paljaMax = Math.max(1, ...s.palja.map((r) => r.cnt));
   const bandMap: Record<string, number> = Object.fromEntries(s.band.map((r) => [r.key, r.cnt]));
@@ -161,7 +166,7 @@ export default async function AdminSajuMbtiPage() {
           <Stat label="방문 UV" value={s.sumFailed ? "—" : su.visits} />
           <Stat label="시작" value={s.sumFailed ? "—" : su.started} />
           <Stat label="완료" value={s.sumFailed ? "—" : su.completed} sub={s.sumFailed ? undefined : `생일단계 ${su.birth}`} />
-          <Stat label="완료율" value={s.sumFailed ? "—" : `${completeRate}%`} sub="완료/시작" />
+          <Stat label="완료율" value={s.sumFailed ? "—" : formatPercentOrDash(completeRate)} sub="완료/시작" />
         </div>
         {s.sumFailed && <LoadFailed block="admin_saju_mbti_summary" className="mt-2" />}
       </section>
@@ -208,9 +213,9 @@ export default async function AdminSajuMbtiPage() {
         <h2 className="text-sm text-white/60 mb-3">③ 바이럴</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="공유 발신" value={s.sumFailed ? "—" : su.shared} />
-          <Stat label="공유율" value={s.sumFailed ? "—" : `${shareRate}%`} sub="공유/완료" />
+          <Stat label="공유율" value={s.sumFailed ? "—" : formatPercentOrDash(shareRate)} sub="공유/완료" />
           <Stat label="공유 도착" value={s.sumFailed ? "—" : su.sharedView} sub="친구 티저" />
-          <Stat label="나도해보기" value={s.sumFailed ? "—" : su.retry} sub={s.sumFailed ? undefined : `도착전환 ${arriveConv}%`} />
+          <Stat label="나도해보기" value={s.sumFailed ? "—" : su.retry} sub={s.sumFailed ? undefined : `도착전환 ${formatPercentOrDash(arriveConv)}`} />
         </div>
         {s.sumFailed && <LoadFailed block="admin_saju_mbti_summary" className="mt-2" />}
       </section>
@@ -275,8 +280,17 @@ export default async function AdminSajuMbtiPage() {
           <div className="grid grid-cols-3 gap-3">
             {["d1", "d7", "d30"].map((h) => {
               const r = s.ret[h] ?? { eligible: 0, returned: 0 };
-              const pctv = r.eligible ? Math.round((r.returned / r.eligible) * 1000) / 10 : 0;
-              return <Stat key={h} label={h.toUpperCase()} value={`${pctv}%`} sub={`${r.returned}/${r.eligible}`} />;
+              // 🔴 성숙 분모가 0 이면 "0%" 가 아니라 "—" 다. 2026-09-27 실측으로 D30 이
+              //    eligible 0 인데 "0%" 로 떠 있었다 — 아직 30일이 안 지난 것을 이탈로 읽게 만든다.
+              const p = pct1(r.returned, r.eligible);
+              return (
+                <Stat
+                  key={h}
+                  label={h.toUpperCase()}
+                  value={formatPercentOrDash(p)}
+                  sub={p === null ? "관측 전 — 창이 아직 안 찼다" : `${r.returned}/${r.eligible}`}
+                />
+              );
             })}
           </div>
         )}
@@ -284,7 +298,9 @@ export default async function AdminSajuMbtiPage() {
         <div className="text-[12px] text-white/40">
           {s.payNew.length ? s.payNew.map((p) => `${p.package_type} ${p.payers}명·${p.revenue_won.toLocaleString()}원`).join(" · ") : "데이터 없음"}
         </div>
-        <h3 className="text-[13px] text-white/50 mt-4 mb-2">운세/타로 상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모)</span></h3>
+        {/* 🔴 제목이 "운세/타로"였는데 표는 **모든 종목**을 그린다 — 연애·별마루도 들어온다.
+            분류 사다리의 폴백을 늘린 뒤(20260927010000) 그 사실이 더 또렷해졌다. */}
+        <h3 className="text-[13px] text-white/50 mt-4 mb-2">상품 소비 <span className="text-white/30">(신규 코호트 · 별 소모 · 종목 전체)</span></h3>
         {s.spendFailed ? (
           <LoadFailed block="admin_star_spend_breakdown" className="mt-2" />
         ) : s.spendNew.length === 0 ? (
@@ -323,7 +339,7 @@ export default async function AdminSajuMbtiPage() {
               <h3 className="text-[13px] text-white/50 mb-2">밴드별 결제율</h3>
               {s.bandPay.length ? ["천명", "절충", "거스름"].map((k) => {
                 const row = s.bandPay.find((b) => b.key === k) ?? { completers: 0, payers: 0 };
-                const rate = row.completers ? Math.round((row.payers / row.completers) * 1000) / 10 : 0;
+                const rate = pct1(row.payers, row.completers);  // 완료자 0 인 밴드는 0% 가 아니라 "—"
                 return <BarRow key={k} code={k} value={rate} max={100} color="bg-gold-soft" />;
               }) : <div className="text-[12px] text-white/40">데이터 없음</div>}
             </div>
@@ -332,7 +348,7 @@ export default async function AdminSajuMbtiPage() {
               {s.paljaPay.length ? (
                 <div className="space-y-1.5">
                   {s.paljaPay.map((r) => {
-                    const rate = r.completers ? Math.round((r.payers / r.completers) * 1000) / 10 : 0;
+                    const rate = pct1(r.payers, r.completers);  // 위와 같은 이유
                     return <BarRow key={r.key} code={r.key} meta={TYPE_CONTENT[r.key]?.character} value={rate} max={100} color="bg-lilac-mid" />;
                   })}
                 </div>

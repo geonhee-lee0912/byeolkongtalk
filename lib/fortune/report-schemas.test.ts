@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { SAJU_FULL_REPORT_SCHEMA } from "./saju-full-report.ts";
 import { MONTHLY_REPORT_SCHEMA } from "./monthly-report.ts";
 import { COMPAT_REPORT_SCHEMA, COMPAT_LOVE_REPORT_SCHEMA, COMPAT_SOCIAL_REPORT_SCHEMA } from "./compat-report.ts";
+import { DAILY_REPORT_SCHEMA } from "./daily-report.ts";
+import { CARD_REPORT_SCHEMA } from "@/lib/byeolmaru/card-report.ts";
 
 type JsonSchema = {
   type?: string;
@@ -33,11 +35,13 @@ function strictViolations(node: JsonSchema, path = "$"): string[] {
 
 describe("report schemas — OpenAI strict 불변식", () => {
   for (const [name, schema] of [
+    ["daily", DAILY_REPORT_SCHEMA],
     ["saju_full", SAJU_FULL_REPORT_SCHEMA],
     ["monthly", MONTHLY_REPORT_SCHEMA],
     ["compat", COMPAT_REPORT_SCHEMA],
     ["compat_love", COMPAT_LOVE_REPORT_SCHEMA],
     ["compat_social", COMPAT_SOCIAL_REPORT_SCHEMA],
+    ["card_report", CARD_REPORT_SCHEMA],
   ] as const) {
     it(`${name}: 전 object additionalProperties:false + 전 property required`, () => {
       assert.deepEqual(strictViolations(schema as unknown as JsonSchema), []);

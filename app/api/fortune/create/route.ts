@@ -8,7 +8,8 @@ import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { findExistingFortuneReadingId } from "@/lib/fortune/existing-lookup";
 import { randomUUID } from "crypto";
-import { calcSaju, calcTemporalLuck, calcDaeun, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, calcDaeun, baseDateForKst, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import { kstDate } from "@/lib/admin-time";
 import {
   parseGenericReportJson,
   buildGenericReport,
@@ -297,10 +298,12 @@ export async function POST(req: NextRequest) {
     saju = calcSaju(sajuInput);
     // 오늘/이번 달 들어온 두 글자(일진·월건) — daily/monthly 리포트에서 기운 설명에 사용
     // good_days 는 향후 30일 일진(dailyLuck) 도 채워서 프롬프트에 날짜 목록을 주입한다.
+    // 서버 TZ 가 UTC 라 그대로 넘기면 KST 0~9시에 어제로 계산된다 — KST 날짜로 재구성해 넘긴다.
+    const todayKst = kstDate(new Date().toISOString());
     if (cfg.type === "daily" || cfg.type === "monthly") {
-      saju.temporal = calcTemporalLuck(new Date(), sajuInput.year);
+      saju.temporal = calcTemporalLuck(baseDateForKst(todayKst), sajuInput.year);
     } else if (cfg.type === "good_days") {
-      saju.temporal = calcTemporalLuck(new Date(), sajuInput.year, { includeMonth: true });
+      saju.temporal = calcTemporalLuck(baseDateForKst(todayKst), sajuInput.year, { includeMonth: true });
     }
     // 평생사주(life_full)는 대운 10년 흐름을 결과 화면(대운 표)에서 쓰므로 saju_data 에 함께 저장.
     if (needsDaeun(cfg.type)) {

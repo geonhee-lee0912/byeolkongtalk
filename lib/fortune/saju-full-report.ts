@@ -3,6 +3,7 @@
 // 2026 은 고정 연도라 temporal(일진/월건) 의존이 없다.
 
 import { parseReportJson } from "./json-recover";
+import { stripNoteHeading } from "./note-heading";
 
 /** 2026 병오년 — 코드 고정 결정론적 값. */
 export const YEAR_2026 = { stem: "병", branch: "오", hanja: "丙午" } as const;
@@ -342,7 +343,7 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
     monthly,
     timing: { good: timing.good.trim(), caution: timing.caution.trim() },
     actions,
-    note: o.note.trim(),
+    note: stripNoteHeading(o.note),
   };
 }
 

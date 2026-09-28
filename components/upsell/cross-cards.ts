@@ -1,6 +1,6 @@
 // 결과 화면 크로스셀 카드 선정 — 순수 로직 (ResultUpsell 에서 분리, 테스트 대상).
 // 크로스셀 규칙(정적, 개인화 없음):
-//   상담 결과(variant="counsel") → 궁합 분석 + 오늘의 운세(무료 리텐션 훅)
+//   상담 결과(variant="counsel") → 궁합 분석 + 별마루 오늘 사주(무료 리텐션 훅, 옛 daily 대체)
 //   운세 결과(variant=FortuneType) → 상담 진입 1개 + 같은 base 의 다음 운세 1개
 
 import {
@@ -24,7 +24,8 @@ const SAJU_BY_CATEGORY: Record<SpreadCategory, FortuneType> = {
 };
 
 // 사주/운세 결과 → 주제 연관 다음 사주(랜덤-next 대신). 위로/재미 미스매치 방지.
-const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
+// 상품 설명 페이지의 "같이 보면 좋은 것" 도 이 표를 쓴다 — 인접성을 두 벌로 관리하면 갈라진다.
+export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
   love_self: ["love_year", "marriage"],
   love_year: ["love_self", "marriage"],
   marriage: ["love_self", "love_year"],
@@ -46,6 +47,17 @@ const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
   saju_report_card: ["fact_bomb", "life_full"],
   life_graph: ["life_full", "saju_full"],
   daily: ["love_self", "monthly"],
+};
+
+// 옛 daily(무료 오늘의 운세) 리텐션 훅의 대체 — 무료 오늘 사주는 이제 별마루가 집이다.
+// FortuneConfig 가 아니라 수동 CrossCard(별마루는 FortuneType 이 아님). 민트=무료 톤.
+const BYEOLMARU_SAJU_CARD: CrossCard = {
+  href: "/byeolmaru",
+  emoji: "🗓",
+  label: "오늘 사주",
+  tagline: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐",
+  badge: "무료",
+  gradient: FORTUNE_GRADIENTS.daily,
 };
 
 export interface CrossCard {
@@ -88,11 +100,11 @@ export function crossCards(
 ): CrossCard[] {
   if (variant === "counsel") {
     // 타로톡 유저는 대개 불안·고민 상태 → 위로/정체성/재미 금지, "같은 고민을 더 파는" 결로.
-    // 주제(SpreadCategory) 맞춤 사주(조사 톤·1인) + 오늘의 운세(리텐션).
+    // 주제(SpreadCategory) 맞춤 사주(조사 톤·1인) + 별마루 오늘 사주(무료 리텐션, 옛 daily 대체).
     // (또 뽑기·대화 심화는 RechargeBlock 이 이미 프라이머리로 처리)
     const sajuType = SAJU_BY_CATEGORY[topic ?? "default"] ?? "love_self";
     const saju = pickValid([sajuType, "love_self"]) ?? FORTUNE_CONFIG.love_self;
-    return [saju, FORTUNE_CONFIG.daily].map(cardFromFortune);
+    return [cardFromFortune(saju), BYEOLMARU_SAJU_CARD];
   }
   const cfg = FORTUNE_CONFIG[variant];
   // 주제 연관 다음 사주 우선(RELATED_SAJU). 무료 출발이면 60★+ 콜드 페이월 제외.
@@ -106,7 +118,7 @@ export function crossCards(
   const idx = sameBase.findIndex((f) => f.type === cfg.type);
   const next =
     related ??
-    (sameBase.length > 0 ? sameBase[(idx + 1) % sameBase.length] : FORTUNE_CONFIG.daily);
+    (sameBase.length > 0 ? sameBase[(idx + 1) % sameBase.length] : FORTUNE_CONFIG.love_self);
   return [
     {
       href: "/",

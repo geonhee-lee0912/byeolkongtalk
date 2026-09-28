@@ -104,3 +104,19 @@ export function noindexMetadata(opts: {
     robots: { index: false, follow: false },
   };
 }
+
+/** 상품 설명 페이지용 — `/fortune` 트리 안에서 **색인을 다시 여는** 유일한 통로.
+ *
+ *  🔴 `contentMetadata()` 만 쓰면 안 된다. 그 함수는 `robots` 를 선언하지 않는데,
+ *  `app/fortune/layout.tsx` 가 트리 전체에 `robots: {index:false, follow:false}` 를
+ *  걸어두고 있어서 하위가 robots 를 명시하지 않으면 **그대로 상속된다.** 즉 canonical·og 는
+ *  콘텐츠 페이지처럼 붙는데 실제로는 noindex 인, 조용히 틀리는 상태가 된다.
+ *  (빌드는 통과하고 화면도 멀쩡해서 눈으로는 안 잡힌다 — 확인은 응답 HTML 의
+ *  `<meta name="robots">` 부재로 한다.) */
+export function productMetadata(opts: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  return { ...contentMetadata(opts), robots: { index: true, follow: true } };
+}

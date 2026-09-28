@@ -340,7 +340,8 @@ function FortuneResultInner() {
   }, [id, router]);
 
   const handleShare = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
+    // 공유 카드 착지는 死페이지(/fortune/result) 대신 별마루로 — 열람 자체(현재 페이지)는 그대로.
+    const url = typeof window !== "undefined" ? `${window.location.origin}/byeolmaru` : "";
     const isMobile =
       typeof navigator !== "undefined" &&
       (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
@@ -401,7 +402,7 @@ function FortuneResultInner() {
       title: `별콩 운세 · ${label}`,
       description: shareDescription(),
       imageUrl: `${origin}/api/og/fortune/${id}`,
-      link: `${origin}/fortune/result?id=${id}`,
+      link: `${origin}/byeolmaru`,
       buttonTitle: "나도 운세 보기",
     });
     if (!ok) void handleShare();

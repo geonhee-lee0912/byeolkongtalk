@@ -43,7 +43,7 @@ test("buildFocusGraph — 삼합-only 이웃은 중립 spoke 합성", () => {
   assert.ok(ad && !ad.heavenlyCombo && !ad.sixCombo); // 중립 spoke
 });
 
-test("focusSummary — 나 제외 이웃 수 + 끌림/결속/무리 카운트", () => {
+test("focusSummary — 나 제외 이웃 수 + 설렘/척척/무리 카운트", () => {
   const G2: StarGraph = {
     ok: true,
     shareId: "s",

@@ -1,0 +1,289 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
+import type { AttendanceState } from "@/lib/byeolmaru/attendance";
+import { DAY_NAME } from "@/lib/byeolmaru/day-label";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import HubBanner from "./HubBanner";
+import TodayLead from "./TodayLead";
+import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
+import SectionMark from "@/components/common/SectionMark";
+import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
+import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
+import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
+
+interface CalendarResponse {
+  today: string;
+  todayGanji: string;
+  cells: DayCell[];
+  weeks: WeekBucket[];
+  entitled: boolean;
+  trialUsed: boolean;
+  subscriptionExpiresAt: string | null;
+  /** 체험 자격자는 subscriptionExpiresAt 이 null 이라 배너 D-N 이 이 필드를 본다. */
+  trialEndsAt: string | null;
+  attendance: AttendanceState;
+}
+
+type State =
+  | { kind: "loading" }
+  | { kind: "need_login" }
+  | { kind: "no_profile" }
+  | { kind: "error" }
+  | { kind: "ready"; data: CalendarResponse };
+
+// 비로그인·생일 미입력이 보는 "안 칠해진 이번 달"(스펙 §12). 판정이 없으므로 전부 잠긴 칸으로
+// 그린다 — CalendarGrid 가 cells 없이 lockedCells 만 받으면 정확히 그 모양이 된다.
+// 🔴 개인화 0 — 서버를 안 부르고 클라 날짜로만 만든다(비로그인은 세션이 없어 부를 것도 없다).
+function emptyMonthDates(): { dates: string[]; today: string } {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 3600_000);
+  const y = kst.getUTCFullYear();
+  const m = kst.getUTCMonth() + 1;
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const ym = `${y}-${String(m).padStart(2, "0")}`;
+  return {
+    dates: Array.from({ length: last }, (_, i) => `${ym}-${String(i + 1).padStart(2, "0")}`),
+    today: `${ym}-${String(kst.getUTCDate()).padStart(2, "0")}`,
+  };
+}
+
+// 비로그인·생일 미입력 공통 껍데기(스펙 §12). 달력은 "안 칠해진 이번 달"이고, 목록은
+// "나를 알아보는 것"(MBTI·별자리)을 **위로** 올린다 — 로그인 없이 되는 유일한 2종이라 먼저
+// 맛보게 한다. 페이월은 숨긴다 — 아직 자기 달력을 받아본 적이 없는 사람에게 미끼는 광고로
+// 읽힌다(스펙 §9).
+// 🔴 예전의 키 기반 reorder(`NO_LOGIN_KEYS`)를 지웠다. 이제 두 섹션이 각자 함수라
+//    **순서만 바꾸면 되고**, 새 항목이 조용히 잘못된 쪽으로 쓸려 들어갈 길이 없다.
+function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
+  const { dates, today } = emptyMonthDates();
+  return (
+    <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
+      {/* 🔴 게스트도 배너를 본다(2026-09-24). 예전엔 여기만 옛 `<header>`(h1 + 부제)였는데, 그건
+          결정이 아니라 **누락**이었다 — EmptyMonthShell 은 P5-3(35985ab), HubBanner 는 그 뒤
+          P6-3(a11f6fa) 이라 배너가 로그인 허브에만 붙고 이쪽은 안 따라왔다.
+          🔴 `cta={false}` — 비로그인에게 체험 버튼을 띄우면 누르는 순간 startTrial 이 401 이고,
+             이 화면엔 이미 더 큰 CTA(아래 {cta})가 있다. */}
+      <HubBanner cta={false} entitled={false} trialUsed={false} />
+      <section className="space-y-3">
+        {/* 🔴 제목이 로그인 허브와 같은 문법이다(2026-09-27) — 월 표시가 CalendarGrid 판 안에서
+            섹션 제목으로 올라가면서, 제목이 없던 이 게스트 셸은 **월 맥락을 통째로 잃을
+            뻔했다**. 두 호출부가 같이 움직여야 하는 한 쌍이다. */}
+        <div className="flex items-center gap-2">
+          <SectionMark kind="calendar" />
+          <h2 className="text-[15px] font-bold text-eye-purple">{Number(today.slice(5, 7))}월 · 내 하루 달력</h2>
+        </div>
+        {/* 이 빈 달력은 cells=[] + lockedCells=이번 달 전체로 "안 칠해진 달"을 그린다. CalendarGrid 의
+            잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
+            안내 문구만 남아 정확한 설명이 된다. */}
+        <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
+        {/* 🔴 한 줄("네 생일만 있으면 이 칸이 다 칠해져")에서 두 줄로 늘렸다(2026-09-27, 사용자 결정) —
+            빈 칸만 보고는 **여기 뭐가 들어오는지**를 알 수 없어서, 첫 줄이 내용물을 말하고
+            둘째 줄이 조건을 말한다. `no_profile` 상태도 같은 문장을 쓴다("생년월일만 알려주면"이
+            로그인·생일입력 양쪽에 다 참이다). */}
+        <p className="text-center text-[13px] leading-relaxed text-text-light">
+          이 칸 하나하나가 네 사주로 본 그날의 흐름이야.
+          <br />
+          생년월일만 알려주면 이번 달이 전부 채워져.
+        </p>
+        {cta}
+      </section>
+      <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
+      <FreeList items={buildDailyItems(null)} title="오늘 볼 것" mark="today" />
+    </main>
+  );
+}
+
+export default function ByeolmaruHub() {
+  const [state, setState] = useState<State>({ kind: "loading" });
+  const [attendance, setAttendance] = useState<AttendanceState | null>(null);
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+      if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
+      if (res.status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
+      if (!res.ok) { setState({ kind: "error" }); return; }
+      const data: CalendarResponse = await res.json();
+      if (data.cells.length === 0) { setState({ kind: "error" }); return; }
+      setState({ kind: "ready", data });
+      setAttendance(data.attendance);
+    } catch { setState({ kind: "error" }); }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+
+  const router = useRouter();
+
+  // 오늘 뽑은 카드 — 목록 행 타일에만 쓴다(뽑기 자체는 /byeolmaru/tarot 가 한다).
+  const [dailyCard, setDailyCard] = useState<{ cardId: number } | null>(null);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/byeolmaru/daily-card", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (j?.card?.cardId != null) setDailyCard({ cardId: j.card.cardId });
+      } catch { /* 목록 타일이 뒷면으로 남을 뿐이라 조용히 넘긴다 */ }
+    })();
+  }, []);
+
+  if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
+  if (state.kind === "need_login") return (
+    <EmptyMonthShell
+      cta={
+        // 🔴 카카오 버튼은 저장소 공통 컨벤션을 그대로 쓴다(2026-09-27) — `#FEE500` 배경 +
+        //    `#3C1E1E` 글자 + 말풍선 아이콘 + `py-3.5`. /login·/start·공유 버튼 4곳이 이미 같은
+        //    모양이라 여기만 연보라면 "카카오로 시작"이라 써 놓고 카카오로 안 보였다.
+        //    바로 아래 `no_profile` CTA 는 카카오가 아니므로(생년월일 입력) 연보라 그대로다.
+        <Link
+          href="/login?next=/byeolmaru"
+          onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "login_cta", gated: true } })}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+          </svg>
+          카카오로 시작하고 내 달력 받기
+        </Link>
+      }
+    />
+  );
+  if (state.kind === "no_profile") return (
+    <EmptyMonthShell
+      cta={
+        <Link
+          href="/mypage"
+          onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "profile_cta", gated: true } })}
+          className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream"
+        >
+          생년월일 입력하러 가기
+        </Link>
+      }
+    />
+  );
+  if (state.kind === "error") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">지금은 별마루를 못 펼쳤어. 잠시 뒤에 다시 와줄래?</main>;
+
+  const { data } = state;
+
+  // 🔴 허브 달력은 **1인칭 전용**이다(2026-09-21 결정). 예전엔 판 상단 인연 칩으로 같은 판이
+  //    나/우리를 번갈아 가리켰는데, 그러면 판을 감싼 모든 문구가 한쪽 주체에만 참이 됐다 —
+  //    출석 연속("3일 연속 들르는 중")은 내 방문 기록인데 상대 달력 위에 그대로 남았고,
+  //    "N칸 열림"과 섹션 제목도 같은 말로 다른 걸 가리켰다. 우리 오늘은 무료 목록 행
+  //    (FreeList `woori`) → `/byeolmaru/woori` 로 내려가, 오늘 사주·오늘 타로와 같은 문법이 됐다.
+  const gridCells: GridCell[] = data.cells.map((c) => ({
+    date: c.date, score: c.score, tone: c.grade.tone, label: c.grade.label, isToday: c.isToday, marks: c.marks,
+  }));
+  // 🔴 오늘 칸은 격자에서 찾는다(예전엔 스트립 셀 집합에서 찾았다). 두 집합이 갈릴 일이
+  //    없어졌으므로 원천은 하나다.
+  const todayCell = data.cells.find((c) => c.isToday) ?? null;
+
+  // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 배너 CTA 가 쓴다.
+  const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
+
+  // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
+  function openDay(date: string) {
+    // 🔴 기본 탭(사주)이라 tab 을 안 붙인다 — 칸에 찍힌 숫자·색이 사주 일진 점수라
+    //    다른 탭이 열리면 "내가 누른 숫자"와 화면이 어긋난다(스펙 §2 결정 2).
+    router.push(date === data.today ? "/byeolmaru/day" : `/byeolmaru/day?date=${date}`);
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
+      {/* 🔴 배너가 허브의 **유일한** 구독 면이다(2026-09-24). 예전엔 ①DayStrip 아래 인라인 문구
+          ②달력 밑 PremiumBlock 둘이 더 있었는데, 375×812 실측에서 셋 다 첫 화면에 들어왔다.
+          판매는 "더 보고 싶다"가 생기는 자리 — 오늘 사주·오늘 타로의 PaywallCut(절단선) — 가
+          맡고, 허브는 습관 쪽만 진다(사용자 결정). **여기에 미끼 카드를 되살리지 말 것.** */}
+      <HubBanner
+        entitled={data.entitled}
+        trialUsed={data.trialUsed}
+        subscriptionExpiresAt={data.subscriptionExpiresAt}
+        trialEndsAt={data.trialEndsAt}
+        onSubscribe={nextStep}
+      />
+
+      {/* 🔴 달력 판 — 출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).
+          예전엔 넷이 각자 다른 표면(배경 없음 / 흰 칸 / 크림 버튼 / 연보라 박스)으로 `space-y-4`
+          위에 흩어져 있어 무엇이 무엇에 속하는지가 안 보였다 — 사용자 지적. 크림 카드 하나로 묶고
+          층은 얇은 선으로만 나눈다. 판 밖에 남는 것(배너·무료 목록)은 달력에 속하지 않는다.
+          🔴 표면을 순크림(cream-warm)으로 먼저 만들어봤다가 되돌렸다 — 칸의 "무난한 날"이 순백이라
+             **크림 판 위에서 칸 경계가 사라졌다**(실측). 격자가 원래 쓰던 크림→연보라 그라데이션을
+             판 전체로 올리면 흰 칸이 다시 떠오른다. 그래서 PANEL_* 를 CalendarGrid 에서 가져다 쓴다. */}
+      {/* 🔴 타이틀 + 판을 한 wrapper 로 묶는다 — main 의 space-y-4 는 형제 사이에 16px 을 넣는데,
+          타이틀과 그 판은 **한 섹션**이라 그만큼 떨어지면 안 붙는다. wrapper 안에서만 8px 로 좁힌다.
+          🔴 `pt-2` 는 배너와의 간격을 2탭(/fortune)에 맞추는 값이다 — 거기 타이틀이 `pt-6`(24px)이고
+             여기는 space-y-4(16px)라 8px 모자랐다(실측). **margin 이 아니라 padding 을 쓴다** —
+             `space-y-4` 가 만드는 `> * + *` 규칙이 `mt-*` 유틸리티보다 특정도가 높아 margin 은 진다. */}
+      <div className="space-y-2 pt-2">
+        {/* 섹션 타이틀 — 판 **밖**에 둔다. 아래 FreeList 두 섹션과 같은 문법(SectionMark 글리프 +
+            본문체 15px bold 제목)이고, 그쪽도 타이틀이 카드 밖에 있어 세 섹션이 같은 리듬으로
+            읽힌다. 인연 칩이 빠진 뒤로 이 판은 1인칭 전용이라 제목·출석·"N칸 열림"이 전부 같은
+            주체를 가리킨다. */}
+        {/* 🔴 제목이 월을 진다(2026-09-27) — 판 안에 있던 "9월" 줄을 CalendarGrid 에서 뺐다.
+            제목에서 월을 도로 빼려면 그 줄을 같이 되살려야 한다. 연도는 안 쓴다 — 달력은
+            항상 이번 달이라 잡음이다. */}
+        <div className="flex items-center gap-2">
+          <SectionMark kind="calendar" />
+          <h2 className="text-[15px] font-bold text-eye-purple">{Number(data.today.slice(5, 7))}월 · 내 하루 달력</h2>
+        </div>
+
+        {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /
+            gap 2px × 6 = 12 → (319 − 12) / 7 = 43.9px. p-4 로 되돌리면 격자 칸이 42.7px 로 돌아간다. */}
+        <section className="rounded-2xl p-3" style={{ background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW }}>
+          {/* 🔴 판 안에 구분선이 **다시 생겼다**(2026-09-27, 목업 A3 채택). 예전에 뺐던 선은
+              스트립↔격자를 가르던 것이고 스트립이 사라져 역할이 없어진 거였다. 이번 선은
+              **리드줄↔격자**를 가른다 — 역할이 다르다. 리드가 요일 행과 8px 로 붙어 있어
+              "격자의 머리글"처럼 읽히던 걸 끊는 게 목적이다(사용자 지적).
+              🔴 `space-y-2` 를 걷어냈다 — 간격을 선의 `my-3` 이 지게 해야 위아래가 12px 로
+                 대칭이 된다. space-y 를 되살리면 선 위아래에 8px 이 덧붙어 어긋난다. */}
+          <div>
+            <TodayLead
+              todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
+              todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
+              attendance={attendance}
+            />
+            {/* 🔴 `-mx-3` 은 위 `section` 의 `p-3` 과 한 쌍이다 — 판 패딩을 되돌려 선이 카드
+                좌우 끝까지 닿게 한다(패딩 안쪽까지만 긋는 안보다 층이 분명했다, 실물 비교).
+                판 패딩을 바꾸면 이 값도 같이 바꿔야 한다. */}
+            <div className="-mx-3 my-3 border-t border-dashed border-lilac-mid/50" />
+            {/* 🔴 접이식(MonthGridSection)이 사라졌다 — 그 래퍼의 존재 이유는 "접힘 클릭률로
+                폐지 여부를 답 얻는다"였는데 별마루가 prod 에 안 나가 그 실험은 시작된 적이
+                없고, seen 플래그가 **토글했을 때만** 심어져서 한 번도 안 건드린 사람에겐
+                애초에 계속 펼쳐져 있었다. 즉 항상 펼침은 다수에게 현상 유지다. */}
+            <CalendarGrid
+              cells={gridCells}
+              lockedCells={[]}
+              todayDate={data.today}
+              selectedDate={data.today}
+              onSelect={openDay}
+              panel={false}
+            />
+          </div>
+        </section>
+      </div>
+
+      {/* 🔴 여기 있던 PremiumBlock(미끼 카드, slot="saju_report")은 제거했다(2026-09-24, 사용자 결정).
+          근거: 구독 버튼이 힘을 받는 자리는 **무료로 읽다가 "더 보고 싶다"가 생기는 지점**이고,
+          그건 오늘 사주·오늘 타로 화면 안의 PaywallCut(절단선)이다. 달력 밑은 그 감정이 생기기
+          전이라 미리 파는 광고로 읽혔다.
+          🔴 계측: `saju_report` slot 의 `surface="bait_card"` 가 이 자리에서 사라진다. PaywallCut 이
+             설계한 비교("절단선이 미끼 카드보다 파는가")는 **별마루가 prod 에 한 번도 안 나가
+             표본이 0이라** 끊을 추세선 자체가 없었다 — prod 배포 전인 지금이 제거 비용이 가장 싼
+             시점이었다. 되살릴 땐 그 비교를 다시 세운다는 뜻임을 알고 할 것. */}
+
+      {/* 🔴 위 달력 판과 간격을 더 준다(16 → 32px) — main 의 space-y-4 만으로는 달력 판과 이 목록이
+          같은 층으로 읽혔다. 성격이 다른 섹션이라(날짜별 흐름 ↔ 무료 상품 목록) 숨을 한 번 쉰다.
+          안쪽 space-y-6(24px)은 두 목록 섹션 **사이** 간격이다 — 16px(기본)이면 "오늘 볼 것" 마지막
+          카드와 "나를 알아보는 것" 제목이 붙어 한 섹션으로 읽힌다. */}
+      <div className="space-y-6 pt-4">
+        <FreeList items={buildDailyItems(dailyCard)} title="오늘 볼 것" mark="today" />
+        <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
+      </div>
+
+      {subscribeModal}
+    </main>
+  );
+}

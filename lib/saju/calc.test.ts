@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcSaju, calcDaeun, type SajuInput, type SajuResult } from "./calc.ts";
+import {
+  calcSaju,
+  calcDaeun,
+  calcTemporalLuck,
+  baseDateForKst,
+  calcDailyLuckRange,
+  type SajuInput,
+  type SajuResult,
+} from "./calc.ts";
+import { kstDate } from "@/lib/admin-time";
 
 const solar = (o: Partial<SajuInput>): SajuInput => ({
   year: 1990,
@@ -107,4 +116,68 @@ test("대운 — 성별에 따라 방향(간지)이 달라진다", () => {
 test("대운 — 시간 모름·음력도 계산된다", () => {
   assert.equal(calcDaeun(solar({ month: 5, day: 15, hour: null, gender: "male" }), 3).length, 3);
   assert.equal(calcDaeun(solar({ year: 1994, month: 4, day: 3, hour: 9, gender: "male", isLunar: true }), 2).length, 2);
+});
+
+// ── baseDateForKst ──
+test("baseDateForKst — KST 날짜 문자열이 서버 TZ 와 무관하게 그 날짜로 복원된다", () => {
+  const base = baseDateForKst("2026-09-01");
+  assert.equal(base.getFullYear(), 2026);
+  assert.equal(base.getMonth(), 8, "0-based 월");
+  assert.equal(base.getDate(), 1);
+  assert.equal(base.getHours(), 12, "정오 — 경계 반올림 회피");
+  // 월말·연말 경계도 밀리지 않는다
+  const eoy = baseDateForKst("2026-12-31");
+  assert.equal(eoy.getFullYear(), 2026);
+  assert.equal(eoy.getMonth(), 11);
+  assert.equal(eoy.getDate(), 31);
+});
+
+test("KST 체인 실물 — kstDate → baseDateForKst → calcTemporalLuck 이 오늘을 dailyLuck[0]으로 낸다", () => {
+  // fortune/create, readings, byeolmaru/calendar 등 실제 호출부가 쓰는 체인을 그대로 재현한다.
+  // kstDate(admin-time.ts, UTC+9 계산)와 이 파일의 fmtDate(로컬 getFullYear/getMonth/getDate)는
+  // baseDateForKst 가 "KST 날짜 문자열 → 그 날짜의 로컬 정오 Date" 로 복원해주기 때문에만
+  // 일치한다 — 둘 중 하나가 바뀌면(예: fmtDate 를 toISOString().slice(0,10) 로 "정리") 오늘
+  // 판정이 조용히 어긋난다. 여러 TZ 에서 돌려야 이 일치가 서버 TZ 에 우연히 의존한 게 아니라는
+  // 걸 확인할 수 있다.
+  const todayKst = kstDate(new Date().toISOString());
+  const temporal = calcTemporalLuck(baseDateForKst(todayKst), 1990, { includeMonth: true });
+  assert.equal(temporal.dailyLuck?.length, 30, "includeMonth:true 는 항상 30일");
+  assert.equal(
+    temporal.dailyLuck?.[0].date,
+    todayKst,
+    "체인의 첫 날짜가 오늘의 KST 날짜와 일치해야 한다"
+  );
+});
+
+// ── calcDailyLuckRange ──
+test("calcDailyLuckRange — 양끝 포함, 월 경계를 넘어간다", () => {
+  const r = calcDailyLuckRange("2026-09-28", "2026-10-02");
+  assert.equal(r.length, 5, "9/28~10/2 = 5일(양끝 포함)");
+  assert.equal(r[0].date, "2026-09-28");
+  assert.equal(r[4].date, "2026-10-02");
+});
+
+test("calcDailyLuckRange — 하루짜리 범위", () => {
+  const r = calcDailyLuckRange("2026-09-13", "2026-09-13");
+  assert.equal(r.length, 1);
+  assert.equal(r[0].date, "2026-09-13");
+});
+
+test("calcDailyLuckRange — end < start 면 빈 배열(호출부 실수를 조용히 늘리지 않는다)", () => {
+  assert.deepEqual(calcDailyLuckRange("2026-09-13", "2026-09-12"), []);
+});
+
+test("calcDailyLuckRange — 같은 날짜는 calcTemporalLuck 의 30일 일진과 간지가 일치한다", () => {
+  // 두 경로가 같은 tyme4ts 계산을 쓴다는 계약. 어긋나면 달력과 서술이 다른 간지를 말한다.
+  const t = calcTemporalLuck(baseDateForKst("2026-09-13"), 1994, { includeMonth: true });
+  const r = calcDailyLuckRange("2026-09-13", "2026-10-12");
+  assert.equal(r.length, 30);
+  for (let i = 0; i < 30; i++) {
+    assert.equal(r[i].date, t.dailyLuck?.[i].date, `${i}번째 날짜 불일치`);
+    assert.equal(
+      r[i].stem + r[i].branch,
+      (t.dailyLuck?.[i].stem ?? "") + (t.dailyLuck?.[i].branch ?? ""),
+      `${r[i].date} 간지 불일치`
+    );
+  }
 });

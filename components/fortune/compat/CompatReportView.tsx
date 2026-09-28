@@ -10,6 +10,7 @@ import {
 import { MarkdownLite } from "@/lib/markdown-lite";
 import ReportAccordion, { type AccordionItem } from "@/components/fortune/ReportAccordion";
 import CompatMatchDiagram from "./CompatMatchDiagram";
+import { fortuneHeroSrc } from "@/lib/fortune/hero";
 
 const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
@@ -102,7 +103,12 @@ export default function CompatReportView({
       <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
-            <Image src="/fortune-hero-compat.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+            <Image
+              src={fortuneHeroSrc(variant === "social" ? "compat_social" : "compat") ?? "/fortune-hero-compat.webp"}
+              alt="별콩이"
+              fill
+              className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+            />
           </div>
         </div>
         <div className="flex justify-center">

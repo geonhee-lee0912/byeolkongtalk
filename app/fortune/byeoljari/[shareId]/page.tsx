@@ -192,6 +192,12 @@ export default function ByeoljariGuestPage() {
           <p className="mt-6 text-center text-xs text-text-light">
             로그인하면 이 별자리를 계속 볼 수 있어. 안 하면 이 기기에서만 보여.
           </p>
+          {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
+          {!state.graph.viewerIsOwner && (
+            <Link href="/byeolmaru" className="mt-2 block text-center text-xs text-lilac-deep">
+              별마루에서 무료로 다 보기 →
+            </Link>
+          )}
 
           <FreeToPaidCta
             title="이 인연, 더 깊이 볼래?"

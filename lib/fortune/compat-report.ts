@@ -4,6 +4,7 @@
 
 import type { SajuResult } from "@/lib/saju/calc";
 import { parseReportJson } from "./json-recover";
+import { stripNoteHeading } from "./note-heading";
 
 /** 연애·결혼 궁합(compat) 등급 5단계. AI 는 이 중 하나만 고른다. */
 export const COMPAT_ROMANTIC_GRADES = [
@@ -215,7 +216,7 @@ export function parseCompatReportJson(raw: string): CompatReportAI | null {
     ...(isNonEmptyString(o.badHabits) ? { badHabits: o.badHabits.trim() } : {}),
     ...(isNonEmptyString(o.spark) ? { spark: o.spark.trim() } : {}),
     advice,
-    note: o.note.trim(),
+    note: stripNoteHeading(o.note),
   };
 }
 

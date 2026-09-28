@@ -60,7 +60,7 @@ test("directionParticle — 한글 완성형 밖은 로", () => {
   assert.equal(directionParticle("abc"), "로");
 });
 
-test("BOND_COLOR — 끌림 골드·결속 보라·같은 결 청록", () => {
+test("BOND_COLOR — 설렘 골드·척척 보라·같은 결 청록", () => {
   assert.equal(BOND_COLOR.heavenly, "#F2D78A");
   assert.equal(BOND_COLOR.six, "#A98BEE");
   assert.equal(BOND_COLOR.triad, "#5DCAA5");

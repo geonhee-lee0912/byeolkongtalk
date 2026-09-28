@@ -16,7 +16,7 @@ function getFortunePersona(): string {
   return _persona;
 }
 
-function sajuBlock(saju: SajuResult, heading = "사주판"): string {
+function sajuBlock(saju: SajuResult, heading = "사주판", dayWord: "오늘" | "그날" = "오늘"): string {
   const p = saju.pillars;
   const elementsLine = Object.entries(saju.elementCount)
     .map(([el, n]) => `${el} ${n}`)
@@ -31,14 +31,18 @@ function sajuBlock(saju: SajuResult, heading = "사주판"): string {
     `  - 음양: 양 ${saju.yinYangCount.yang} / 음 ${saju.yinYangCount.yin}`,
     `  - 입력: ${saju.input.inputCalendar === "lunar" ? "음력" : "양력"}${saju.input.isLeapMonth ? " 윤달" : ""} / 성별 ${saju.input.gender}`,
   ];
-  // 오늘의 일진 — daily 리포트에서 "오늘 들어온 두 글자" 설명에 필수로 사용
+  // 오늘/그날의 일진 — daily 리포트에서 "~ 들어온 두 글자" 설명에 필수로 사용.
+  // dayWord 기본값 "오늘" — monthly·good_days 는 항상 오늘 기준이라 no-op, compat·compat_social 은
+  // temporal 을 안 주입해 이 블록 자체가 안 뜬다. "그날"은 buildFortuneSystem 이 daily 이고 대상
+  // 날짜가 실제 오늘이 아닐 때만 넘긴다(P6-2 §11-1-1 — 안 그러면 이 블록만 "오늘"로 남아 형식
+  // 블록의 "그날" 지칭과 어긋난다).
   if (saju.temporal) {
     const d = saju.temporal.day;
     lines.push(
       ``,
-      `[오늘 들어온 두 글자 — 오늘의 일진]`,
-      `  - 오늘의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
-      `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 오늘 하루 기운의 핵심.`
+      `[${dayWord} 들어온 두 글자 — ${dayWord}의 일진]`,
+      `  - ${dayWord}의 일주: ${d.stem}${d.branch} (${d.hanja}) / 오행 ${d.element}`,
+      `  - 이 두 글자가 위 사주의 일간(${saju.dayStem}, ${saju.dayElement})과 어떻게 어울리는지가 ${dayWord} 하루 기운의 핵심.`
     );
     // good_days 리포트 전용 — 세운/월운 + 향후 30일 일진. 이 목록 밖 날짜·간지는 절대 지어내지 말 것.
     if (saju.temporal.dailyLuck?.length) {
@@ -85,6 +89,18 @@ const TODAY_KR = () =>
     timeZone: "Asia/Seoul",
   });
 
+/** ISO YYYY-MM-DD → "2026년 9월 12일 토요일". TODAY_KR() 과 같은 형식이되 임의 날짜용.
+ *  🔴 T00:00:00Z + Asia/Seoul = 그날 09:00 KST 라 날짜가 밀리지 않는다. */
+function dateKr(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: "Asia/Seoul",
+  });
+}
+
 const THIS_MONTH_KR = () =>
   new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -106,6 +122,10 @@ interface FortuneInput {
   names?: { a: string; b: string };
   tarotCards?: TarotDrawnForPrompt[];
   daeun?: DaeunPillar[]; // 평생사주·인생그래프 — 대운 10년 흐름(결정론) 주입
+  /** daily 전용 — 리포트 대상 날짜(YYYY-MM-DD). 오늘이 아니면 시제 지시 줄이 붙는다. */
+  reportDate?: string;
+  /** daily 전용 — KST 오늘(YYYY-MM-DD). reportDate 와 짝으로만 쓴다. */
+  todayKst?: string;
 }
 
 /** 대운 표를 프롬프트에 주입 — 목록 밖 간지·나이는 지어내지 말 것. */
@@ -148,15 +168,19 @@ function tarotGuide(opts: { domainLabel: string; oneCard?: boolean }): string {
   ].join("\n");
 }
 
-// 공용 섹션 리포트 프롬프트 빌더 — 신규 텍스트 종목 다수가 공유(generic-report.ts 스키마와 짝).
-// 각 종목은 title/intro/sections/note 만 정의하면 된다. 분량은 sections 개수 × 문장수가 만든다(가성비).
-function genericGuide(opts: {
+/** 공용 섹션 리포트의 구성 원안 — 프롬프트(genericGuide)와 랜딩 목차(lib/fortune/outline.ts)가
+ *  같은 원천을 본다. 여기 heading 을 고치면 리포트와 랜딩이 함께 움직인다(드리프트 불가). */
+export interface GenericGuideSpec {
   title: string;
   intro: string;
   sections: { heading: string; spec: string }[];
   note: string;
-  tone?: string; // 특수 톤 지시(예: 팩폭)
-}): string {
+  tone?: string;
+}
+
+// 공용 섹션 리포트 프롬프트 빌더 — 신규 텍스트 종목 다수가 공유(generic-report.ts 스키마와 짝).
+// 각 종목은 title/intro/sections/note 만 정의하면 된다. 분량은 sections 개수 × 문장수가 만든다(가성비).
+function genericGuide(opts: GenericGuideSpec): string {
   const lines: string[] = [];
   lines.push(`위 사주판을 가진 사람의 **${opts.title}** 리포트를 작성해줘.`);
   if (opts.tone) lines.push(opts.tone);
@@ -181,30 +205,212 @@ function genericGuide(opts: {
   return lines.join("\n");
 }
 
-const SECTION_GUIDE: Record<FortuneType, string> = {
+export const GENERIC_GUIDE_SPEC = {
+  nature_self: {
+    title: "타고난 나",
+    intro: "이 사람의 일간과 오행 구성을 근거로 '타고난 너'를 한 문단으로 소개. 6~7문장.",
+    sections: [
+      { heading: "타고난 성격·기질", spec: "일간·오행 기반 타고난 성격과 기질, 겉모습과 속마음의 결. 10~12문장." },
+      { heading: "강점·빛나는 면", spec: "타고난 강점과 매력, 잘 살리면 빛나는 지점. 10~12문장." },
+      { heading: "그림자·약한 고리", spec: "조심할 성향·보완점을 따뜻한 자기이해 톤으로. 10~12문장." },
+      { heading: "관계 속의 나", spec: "사람들 사이에서 드러나는 모습, 가까워질수록 보이는 결. 10~12문장." },
+      { heading: "남들이 자주 오해하는 나", spec: "의도와 다르게 오해받기 쉬운 지점과 그 이유. 10~12문장." },
+      { heading: "결정과 선택의 패턴", spec: "무언가 고르고 결정할 때 반복되는 패턴. 10~12문장." },
+      { heading: "나를 살리는 법", spec: "타고난 기질을 잘 쓰는 구체적 습관·태도. 10~12문장." },
+    ],
+    note: "타고난 너에게 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  talent_path: {
+    title: "재능·적성·진로",
+    intro: "일간·오행 기반 이 사람의 타고난 그릇을 한 문단으로. 6~7문장.",
+    sections: [
+      { heading: "타고난 재능", spec: "사주에 드러나는 타고난 재능과 강한 감각. 10~12문장." },
+      { heading: "어울리는 일의 결", spec: "어떤 결의 일·환경에서 빛나는지. 10~12문장." },
+      { heading: "일할 때 강점과 함정", spec: "일할 때 강점과 무의식적 함정·번아웃 포인트. 10~12문장." },
+      { heading: "협업·조직에서의 나", spec: "팀·조직에서 드러나는 나의 결과 역할. 10~12문장." },
+      { heading: "돈이 되는 재능의 방향", spec: "타고난 재능을 수익·성취로 잇는 방향. 10~12문장." },
+      { heading: "성장·진로 방향", spec: "앞으로 키우면 좋은 역량과 진로의 힌트. 10~12문장." },
+      { heading: "지금 해보면 좋은 것", spec: "진로에서 지금 시도하면 좋은 구체적 행동. 10~12문장." },
+    ],
+    note: "네 길에 건네는 따뜻한 응원. 5~6문장.",
+  },
+  user_manual: {
+    title: "나 사용설명서",
+    intro: "'이 사람을 이렇게 다뤄주세요' 취급설명서 컨셉 도입, 사주 근거로. 6~7문장.",
+    sections: [
+      { heading: "나를 대하는 법", spec: "남이 나를 어떻게 대하면 편하고 힘이 나는지. 10~12문장." },
+      { heading: "내가 힘들 때 필요한 것", spec: "지치거나 예민할 때 필요한 것과 신호. 10~12문장." },
+      { heading: "잘 맞는 결 / 피곤한 결", spec: "나와 잘 맞는 사람의 결과 유독 피곤한 결. 10~12문장." },
+      { heading: "내 기분의 신호등", spec: "기분이 오르내릴 때 겉으로 나오는 신호. 10~12문장." },
+      { heading: "취급 주의 라벨", spec: "연애·일·우정에서 '이건 조심' 주의사항을 재치있게. 10~12문장." },
+      { heading: "나와 오래 가려면", spec: "이 사람과 오래 잘 지내는 법. 10~12문장." },
+      { heading: "나를 아끼는 사용법", spec: "스스로를 잘 쓰고 돌보는 셀프 사용법. 10~12문장." },
+    ],
+    note: "나를 아껴주라는 따뜻한 한마디. 5~6문장.",
+  },
+  element_balance: {
+    title: "오행 밸런스",
+    intro: "이 사람의 오행 구성(목화토금수)이 만드는 기운의 균형을 한 문단으로. 위 오행 분포 근거. 6~7문장.",
+    sections: [
+      { heading: "강한 기운", spec: "넘치는 오행이 만드는 성향과 명암. 10~12문장." },
+      { heading: "부족한 기운", spec: "부족한 오행이 만드는 아쉬움과 채우면 좋아지는 점. 10~12문장." },
+      { heading: "오행이 만드는 성격", spec: "오행 조합이 성격·행동으로 어떻게 나타나는지. 10~12문장." },
+      { heading: "균형을 맞추는 법", spec: "부족한 기운을 채우는 색·방향·음식·습관을 구체적으로. 10~12문장." },
+      { heading: "관계에서의 내 오행", spec: "내 오행이 사람 사이에서 작용하는 방식. 10~12문장." },
+      { heading: "기운을 채우는 일상 루틴", spec: "일상에서 기운을 채우는 루틴 제안. 10~12문장." },
+      { heading: "기운을 살리는 하루", spec: "오행 균형이 좋은 하루의 리듬. 10~12문장." },
+    ],
+    note: "네 기운에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  love_self: {
+    title: "내 연애 사주",
+    intro: "이 사람의 타고난 연애 성향을 한 문단으로. 일간·오행 근거. 6~7문장.",
+    sections: [
+      { heading: "내 연애 스타일", spec: "사랑할 때 드러나는 스타일·온도. 10~12문장." },
+      { heading: "끌리는 상대 / 끌어당기는 나", spec: "내가 끌리는 결과 나에게 끌리는 상대의 결. 10~12문장." },
+      { heading: "연애할 때 강점·패턴", spec: "연애에서 빛나는 강점과 반복 패턴. 10~12문장." },
+      { heading: "조심할 습관", spec: "관계를 힘들게 하는 습관과 다듬는 법. 10~12문장." },
+      { heading: "갈등·이별에서의 나", spec: "다투거나 헤어질 때 드러나는 모습. 10~12문장." },
+      { heading: "관계가 깊어질 때", spec: "가까워질수록 보이는 나의 결. 10~12문장." },
+      { heading: "좋은 인연의 결", spec: "오래 갈 좋은 인연의 결과 알아보는 법. 10~12문장." },
+    ],
+    note: "네 사랑에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  love_year: {
+    title: "올해 나의 연애 흐름",
+    intro: "2026 병오년 세운이 이 사람과 만나 만드는 올해 연애 흐름을 한 문단으로. 6~7문장.",
+    sections: [
+      { heading: "올해 연애 분위기", spec: "2026 연애의 전반적 분위기·온도. 10~12문장." },
+      { heading: "상반기 흐름", spec: "2026 상반기 연애·인연 흐름. 10~12문장." },
+      { heading: "하반기 흐름", spec: "2026 하반기 연애·인연 흐름. 10~12문장." },
+      { heading: "인연이 오는 시기·계기", spec: "인연이 오기 쉬운 시기와 계기. 10~12문장." },
+      { heading: "올해 만나기 쉬운 결", spec: "올해 이어지기 쉬운 상대의 결. 10~12문장." },
+      { heading: "주의할 시기·태도", spec: "조심하면 좋은 시기와 태도. 10~12문장." },
+      { heading: "올해 연애 개운법", spec: "좋은 인연을 부르는 구체적 실천. 10~12문장." },
+    ],
+    note: "올해 네 연애에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  marriage: {
+    title: "결혼운·시기",
+    intro: "이 사람의 결혼 인연의 결과 큰 흐름을 한 문단으로. 6~7문장.",
+    sections: [
+      { heading: "결혼 인연의 결", spec: "어떤 결의 사람과 결혼 인연이 깊은지. 10~12문장." },
+      { heading: "배우자의 결", spec: "잘 맞는 배우자상의 성향·기질. 10~12문장." },
+      { heading: "결혼 시기 흐름", spec: "결혼운이 무르익는 시기의 흐름. 10~12문장." },
+      { heading: "결혼 생활에서의 나", spec: "결혼 후 드러날 나의 모습·강점·과제. 10~12문장." },
+      { heading: "함께 자라는 법", spec: "결혼 후 서로 채우며 자라는 법. 10~12문장." },
+      { heading: "양가·주변과의 조화", spec: "가족·주변 관계에서 챙길 점. 10~12문장." },
+      { heading: "준비하면 좋을 것", spec: "좋은 결혼 인연을 위해 준비하면 좋은 것. 10~12문장." },
+    ],
+    note: "네 인연에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  wealth_vessel: {
+    title: "재물 그릇",
+    intro: "이 사람의 타고난 돈그릇을 한 문단으로. 일간·오행 근거. 6~7문장.",
+    sections: [
+      { heading: "내 재물 그릇", spec: "타고난 재물 그릇의 크기와 결. 10~12문장." },
+      { heading: "돈이 들어오는 결", spec: "돈이 들어오는 방식·통로의 결. 10~12문장." },
+      { heading: "돈이 새는 지점", spec: "무의식적으로 돈이 새는 지점과 습관. 10~12문장." },
+      { heading: "돈과 나의 심리", spec: "돈을 대하는 심리·태도. 10~12문장." },
+      { heading: "투자·리스크 성향", spec: "투자·모험 앞에서의 성향과 주의. 10~12문장." },
+      { heading: "재물을 부르는 습관", spec: "재물운을 살리는 태도·습관. 10~12문장." },
+      { heading: "재물을 키우는 법", spec: "재물 그릇을 키우는 구체적 방향. 10~12문장." },
+    ],
+    note: "네 재물에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  wealth_year: {
+    title: "올해 재물 흐름",
+    intro: "2026 병오년 세운이 만드는 올해 재물 흐름을 한 문단으로. 6~7문장.",
+    sections: [
+      { heading: "올해 재물 분위기", spec: "2026 재물의 전반적 분위기. 10~12문장." },
+      { heading: "상반기 재물", spec: "2026 상반기 재물 흐름. 10~12문장." },
+      { heading: "하반기 재물", spec: "2026 하반기 재물 흐름. 10~12문장." },
+      { heading: "기회의 시기", spec: "재물 기회가 열리는 시기와 결. 10~12문장." },
+      { heading: "주의할 지출 시기", spec: "지출·투자에서 조심할 시기. 10~12문장." },
+      { heading: "분기별 재물 팁", spec: "분기별로 챙기면 좋은 재물 팁. 10~12문장." },
+      { heading: "올해 재물 개운법", spec: "재물운을 살리는 구체적 실천. 10~12문장." },
+    ],
+    note: "올해 네 재물에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  career_timing: {
+    title: "취업·이직 타이밍",
+    intro: "2026 이 사람의 직업운 큰 흐름을 한 문단으로. 세운·사주 근거. 6~7문장.",
+    sections: [
+      { heading: "올해 직업운", spec: "2026 직업·커리어 전반 흐름. 10~12문장." },
+      { heading: "잘 맞는 일의 결", spec: "올해 이 사람에게 잘 맞는 일·환경의 결. 10~12문장." },
+      { heading: "도전·이직 좋은 시기", spec: "취업·이직·도전에 유리한 시기. 10~12문장." },
+      { heading: "주의할 시기", spec: "성급하면 손해인 시기와 이유. 10~12문장." },
+      { heading: "동료·상사 관계", spec: "올해 직장 인간관계의 결. 10~12문장." },
+      { heading: "면접·결정 팁", spec: "중요한 면접·선택에서 맞는 팁. 10~12문장." },
+      { heading: "커리어 장기 그림", spec: "올해를 발판 삼는 장기 커리어 방향. 10~12문장." },
+    ],
+    note: "네 커리어에 건네는 따뜻한 한마디. 5~6문장.",
+  },
+  fact_bomb: {
+    title: "팩폭 사주",
+    tone: "별콩이가 오늘만 '솔직 모드'다 — 돌직구로 뼈를 때리되 무례·저주·비하는 절대 금지, 끝은 반드시 따뜻하게. 위기·안전 신호가 보이면 즉시 팩폭을 멈추고 따뜻하게 전환해라.",
+    intro: "'오늘만 솔직하게 말할게' 하고 여는 도입. 재치있고 뼈 때리되 애정 있게. 5~6문장.",
+    sections: [
+      { heading: "성격 팩폭", spec: "이 사람 성격에서 보이는 뼈아픈 진실. 재치있게 돌직구, 그래도 애정. 6~7문장." },
+      { heading: "연애 팩폭", spec: "연애에서의 뼈아픈 진실. 6~7문장." },
+      { heading: "돈 팩폭", spec: "돈·씀씀이에서의 뼈아픈 진실. 6~7문장." },
+      { heading: "일·인간관계 팩폭", spec: "일·사람 관계에서의 뼈아픈 진실. 6~7문장." },
+      { heading: "너도 알지만 모른 척하는 것", spec: "스스로도 아는데 외면하는 지점 하나를 콕. 6~7문장." },
+      { heading: "그래서 어쩌라고", spec: "팩폭을 뒤집어 '그래서 이렇게 하면 된다'는 현실 조언. 7~8문장." },
+    ],
+    note: "돌직구 끝에 건네는, 그래도 따뜻한 마무리. 5~6문장.",
+  },
+  past_life: {
+    title: "전생 사주",
+    intro: "'네 전생을 들여다볼게' 컨셉으로 신비롭게 도입. 사주 기운을 전생 서사로 은유. 6~7문장.",
+    sections: [
+      { heading: "전생의 너", spec: "전생에 어떤 신분·성격의 사람이었는지 사주 기운으로 그려줘. 10~12문장." },
+      { heading: "전생의 이야기", spec: "그 전생의 삶을 한 편의 짧은 이야기로. 10~12문장." },
+      { heading: "전생의 인연", spec: "전생에서 이어진 인연·관계의 결(이번 생에도 만날 법한). 9~11문장." },
+      { heading: "현생에 남은 흔적", spec: "전생이 이번 생 성향·끌림에 남긴 흔적. 10~12문장." },
+      { heading: "이번 생의 과제", spec: "전생을 딛고 이번 생에 풀어갈 과제. 9~11문장." },
+    ],
+    note: "전생부터 이어진 너에게 건네는 한마디. 5~6문장.",
+  },
+} as const satisfies Partial<Record<FortuneType, GenericGuideSpec>>;
+
+export const SECTION_GUIDE: Record<FortuneType, string> = {
   daily: [
-    `오늘 날짜: ${"{{TODAY}}"}`,
+    `${"{{DAY_WORD}}"} 날짜: ${"{{TODAY}}"}`,
     ``,
-    `위 사주판을 가진 사람의 **오늘 하루** 운세 리포트를 작성해줘.`,
+    `위 사주판을 가진 사람의 **${"{{DAY_WORD}}"} 하루** 운세 리포트를 작성해줘.`,
     `이 리포트는 예외적으로 마크다운이 아니라 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
     ``,
     `{`,
-    `  "stars": <오늘 종합운 1~5 정수. 오늘 일진(${"{{TODAY_PILLAR}}"})과 이 사람 일간의 조화를 정직하게 반영. 매일 4~5만 주지 말 것. 단, 1처럼 겁주는 점수는 지양(보통 2~5).>,`,
-    `  "summary": "<오늘 하루를 한 줄로 요약한 따뜻한 총평. 25자 내외.>",`,
-    `  "lucky": { "keyword": "<오늘 기운에서 끌어낸 키워드 한 단어>", "color": "<행운 색 이름, 예: 라벤더>", "time": "<좋은 시간대, 예: 오전>" },`,
-    `  "intro": "<'오늘 들어온 두 글자'(${"{{TODAY_PILLAR}}"}) 풀이. 그 두 글자가 어떤 기운인지, 그리고 이 사람의 일간·사주와 만나 오늘 하루에 어떤 영향을 주는지 쉽게 풀어줘. 전문 용어는 친구가 알아듣게. 4~5문장.>",`,
+    `  "stars": <${"{{DAY_WORD}}"} 종합운 1~5 정수. ${"{{DAY_WORD}}"} 일진(${"{{TODAY_PILLAR}}"})과 이 사람 일간의 조화를 정직하게 반영. 매일 4~5만 주지 말 것. 단, 1처럼 겁주는 점수는 지양(보통 2~5).>,`,
+    `  "summary": "<${"{{DAY_WORD}}"} 하루를 한 줄로 요약한 따뜻한 총평. 1문장, 30자 내외.>",`,
+    `  "lucky": { "keyword": "<${"{{DAY_WORD}}"} 기운에서 끌어낸 키워드 한 단어>", "color": "<행운 색 이름, 예: 라벤더>", "time": "<좋은 시간대, 예: 오전>" },`,
+    `  "intro": "<'${"{{DAY_WORD}}"} 들어온 두 글자'(${"{{TODAY_PILLAR}}"}) 풀이. 그 두 글자가 어떤 기운인지, 그리고 이 사람의 일간·사주와 만나 ${"{{DAY_WORD}}"} 하루에 어떤 영향을 주는지 쉽게 풀어줘 — 천간과 지지가 이 사람 일간을 어디서 받쳐주고 어디서 부딪히는지 근거로. 전문 용어는 친구가 알아듣게. 6~7문장.>",`,
     `  "sections": [`,
-    `    { "key": "money",  "body": "<재물운. 4~5문장.>" },`,
-    `    { "key": "work",   "body": "<직장·업무운. 4~5문장.>" },`,
-    `    { "key": "love",   "body": "<애정·인간관계운. 4~5문장.>" },`,
-    `    { "key": "health", "body": "<건강·멘탈운. 4~5문장.>" },`,
-    `    { "key": "study",  "body": "<학업·공부·문서·이동·변동운. 4~5문장.>" }`,
+    `    { "key": "money",  "body": "<재물운. ${"{{DAY_WORD}}"} 일진 기운을 근거로, 돈이 오가는 구체적 장면 1~2개. 5문장.>" },`,
+    `    { "key": "work",   "body": "<직장·업무운. 일터에서 벌어질 장면과 그때 할 선택. 5문장.>" },`,
+    // 🔴 P6-2 Task10(2026-09-20) 실측 조정 — 6문장 지시에도 "가장 비중 큰 항목"이라 모델이 오히려
+    // 목표(스펙 §6-2 글자수 고정값 300) 대비 +26~+50%(2/2 샘플)로 크게 초과했다. 5문장으로 -1
+    // (scripts/p6-2-length-probe.ts 실측). 재실측(2회차) 결과 300 기준 +7~+8%로 해소 확인 —
+    // 여전히 사주 블록 중 가장 큰 목표(300)라 비중 1위는 그대로다. 추가 조정 불필요.
+    // 🔴 스펙 §6-2 표의 "문장" 열(6)은 이제 실제(5)와 다르다 — 글자수 300이 정본이고 문장 수는
+    // 그 목표에 맞춰 실측으로 조정한 수단이다. 6으로 되돌리면 다시 +26~50% 초과로 돌아간다.
+    `    { "key": "love",   "body": "<애정·인간관계운. 이 리포트에서 가장 비중이 큰 항목 — ${"{{DAY_WORD}}"} 벌어질 장면 1~2개와 그때 건넬 말·태도를 구체적으로. 5문장.>" },`,
+    `    { "key": "health", "body": "<건강·멘탈운. 4문장.>" },`,
+    `    { "key": "study",  "body": "<학업·공부·문서·이동·변동운. 4문장.>" }`,
     `  ],`,
-    `  "balance": { "good": "<오늘 하면 좋은 일 한 줄>", "warn": "<오늘 주의할 점 한 줄. 겁주지 말고 따뜻한 대비로.>" },`,
-    `  "note": "<별콩이의 한마디. 오늘 챙기면 좋을 따뜻한 응원 1~2문장.>"`,
+    `  "balance": { "good": "<${"{{DAY_WORD}}"} 하면 좋은 일 한 줄(1문장)>", "warn": "<${"{{DAY_WORD}}"} 주의할 점 한 줄(1문장). 겁주지 말고 따뜻한 대비로.>" },`,
+    // 🔴 P6-2 Task10(2026-09-20) 실측 조정 — 3문장 지시에도 목표(스펙 §6-2 글자수 고정값 140) 대비
+    // -16~-20%(2/2 샘플)로 짧게 나왔다. 4문장으로 +1(scripts/p6-2-length-probe.ts 실측). 볼드도
+    // 6/6 샘플 전부 0개였다 — "머리말 없이 바로 시작" 지시를 볼드까지 금지하는 뜻으로 읽는 듯해
+    // 문구를 보강했다. 재실측(2회차) 결과 140 기준 +3~+7%·볼드 6/6 로 둘 다 해소 확인, 추가 조정
+    // 불필요. 🔴 스펙 §6-2 표의 "문장" 열(3)은 이제 실제(4)와 다르다 — 글자수 140 이 정본이다.
+    `  "note": "<${"{{DAY_WORD}}"} 챙기면 좋을 따뜻한 응원 4문장. 제목·머리말('○○의 한마디:' 같은 라벨) 없이 본문 문장으로 바로 시작하되, 첫 구절은 다른 필드처럼 굵게.>"`,
     `}`,
     ``,
-    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인은 오늘 일진 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
+    `[역할] 화면 위쪽엔 이미 무료 요약이 떠 있다 — 하루 이름, 등급(잘 맞는 날/무난한 날/살짝 챙길 날), 연애·돈·일 막대, 그리고 "무리해서 확인하려 들지 마" 같은 태도 한 줄. 그건 다시 말하지 마. 이 리포트가 할 일은 ①${"{{TODAY_PILLAR}}"}이 이 사람 일간과 **어떻게 부딪히고 받쳐주는지(근거)** ②그래서 ${"{{DAY_WORD}}"} **어떤 장면이 벌어지고 그때 무슨 말·선택을 하면 좋은지**다. 등급 이름을 반복하거나 축 점수를 숫자로 말하지 마.`,
+    `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 각 도메인은 ${"{{DAY_WORD}}"} 일진 기운과 연결해서 구체적으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. 같은 말을 바꿔 쓰며 늘리지 말고 장면과 예시로 채워. 문장 수는 위에 적은 대로 지켜.`,
+    `[서식] intro 와 각 섹션 body, note 는 **첫 구절(핵심 어구 하나)만 굵게** — 필드당 정확히 1개, 그 외 굵게 금지(볼드가 들쭉날쭉하면 매일 다른 화면이 된다). 그와 별개로, 본문 중간의 짚고 갈 어구 하나(3~12자)를 \`==이렇게==\` 로 감싸 하이라이트해 — 필드당 최대 1개, 굵게 한 첫 구절과는 다른 자리에. 딱히 짚을 게 없으면 생략해. 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 불릿·콜아웃은 쓰지 마. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
   monthly: [
     `이번 달: ${"{{THIS_MONTH}}"}`,
@@ -412,62 +618,10 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     ``,
     `[규칙] 모든 문장은 반말 친구 말투. 단정("~할 거야") 금지, 흐름·가능성("~한 흐름이 보여","~해보면 좋아")으로. 좋기만 한 예언 금지 — 챙길 점도 자연스럽게. advice 는 정확히 3개. grade 는 위 5개 enum 중 하나로만. summary·chemistry·attraction·conflict·communication·longterm·growth·individual·stages·repair·warningSigns·badHabits·spark 전부 반드시 포함하고 각 항목은 밀도로 채워(물타기·반복 금지). 연애·이성 관계 표현 금지. \n[서식] 각 서술형 텍스트 필드를 다채롭고 읽기 쉽게 마크다운으로 써라: 핵심 단어·구절을 문단마다 1~2곳 **굵게**(한 문단 통째 굵게 금지, 핵심만), 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n)로 나눠라(한 문장마다 띄우지 말 것). 나열형 내용(강점·조심할 점·조언 등)은 각 줄 "- " 로 시작하는 불릿으로(어울리면 3~5개), 가장 중요한 팁 1개는 "> " 로 시작하는 콜아웃 줄로(항목당 최대 1개, 남발 금지). 형식을 섞어 지루하지 않게 — 억지로 다 넣진 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
-  nature_self: genericGuide({
-      title: "타고난 나",
-      intro: "이 사람의 일간과 오행 구성을 근거로 '타고난 너'를 한 문단으로 소개. 6~7문장.",
-      sections: [
-        { heading: "타고난 성격·기질", spec: "일간·오행 기반 타고난 성격과 기질, 겉모습과 속마음의 결. 10~12문장." },
-        { heading: "강점·빛나는 면", spec: "타고난 강점과 매력, 잘 살리면 빛나는 지점. 10~12문장." },
-        { heading: "그림자·약한 고리", spec: "조심할 성향·보완점을 따뜻한 자기이해 톤으로. 10~12문장." },
-        { heading: "관계 속의 나", spec: "사람들 사이에서 드러나는 모습, 가까워질수록 보이는 결. 10~12문장." },
-        { heading: "남들이 자주 오해하는 나", spec: "의도와 다르게 오해받기 쉬운 지점과 그 이유. 10~12문장." },
-        { heading: "결정과 선택의 패턴", spec: "무언가 고르고 결정할 때 반복되는 패턴. 10~12문장." },
-        { heading: "나를 살리는 법", spec: "타고난 기질을 잘 쓰는 구체적 습관·태도. 10~12문장." },
-      ],
-      note: "타고난 너에게 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  talent_path: genericGuide({
-      title: "재능·적성·진로",
-      intro: "일간·오행 기반 이 사람의 타고난 그릇을 한 문단으로. 6~7문장.",
-      sections: [
-        { heading: "타고난 재능", spec: "사주에 드러나는 타고난 재능과 강한 감각. 10~12문장." },
-        { heading: "어울리는 일의 결", spec: "어떤 결의 일·환경에서 빛나는지. 10~12문장." },
-        { heading: "일할 때 강점과 함정", spec: "일할 때 강점과 무의식적 함정·번아웃 포인트. 10~12문장." },
-        { heading: "협업·조직에서의 나", spec: "팀·조직에서 드러나는 나의 결과 역할. 10~12문장." },
-        { heading: "돈이 되는 재능의 방향", spec: "타고난 재능을 수익·성취로 잇는 방향. 10~12문장." },
-        { heading: "성장·진로 방향", spec: "앞으로 키우면 좋은 역량과 진로의 힌트. 10~12문장." },
-        { heading: "지금 해보면 좋은 것", spec: "진로에서 지금 시도하면 좋은 구체적 행동. 10~12문장." },
-      ],
-      note: "네 길에 건네는 따뜻한 응원. 5~6문장.",
-    }),
-  user_manual: genericGuide({
-      title: "나 사용설명서",
-      intro: "'이 사람을 이렇게 다뤄주세요' 취급설명서 컨셉 도입, 사주 근거로. 6~7문장.",
-      sections: [
-        { heading: "나를 대하는 법", spec: "남이 나를 어떻게 대하면 편하고 힘이 나는지. 10~12문장." },
-        { heading: "내가 힘들 때 필요한 것", spec: "지치거나 예민할 때 필요한 것과 신호. 10~12문장." },
-        { heading: "잘 맞는 결 / 피곤한 결", spec: "나와 잘 맞는 사람의 결과 유독 피곤한 결. 10~12문장." },
-        { heading: "내 기분의 신호등", spec: "기분이 오르내릴 때 겉으로 나오는 신호. 10~12문장." },
-        { heading: "취급 주의 라벨", spec: "연애·일·우정에서 '이건 조심' 주의사항을 재치있게. 10~12문장." },
-        { heading: "나와 오래 가려면", spec: "이 사람과 오래 잘 지내는 법. 10~12문장." },
-        { heading: "나를 아끼는 사용법", spec: "스스로를 잘 쓰고 돌보는 셀프 사용법. 10~12문장." },
-      ],
-      note: "나를 아껴주라는 따뜻한 한마디. 5~6문장.",
-    }),
-  element_balance: genericGuide({
-      title: "오행 밸런스",
-      intro: "이 사람의 오행 구성(목화토금수)이 만드는 기운의 균형을 한 문단으로. 위 오행 분포 근거. 6~7문장.",
-      sections: [
-        { heading: "강한 기운", spec: "넘치는 오행이 만드는 성향과 명암. 10~12문장." },
-        { heading: "부족한 기운", spec: "부족한 오행이 만드는 아쉬움과 채우면 좋아지는 점. 10~12문장." },
-        { heading: "오행이 만드는 성격", spec: "오행 조합이 성격·행동으로 어떻게 나타나는지. 10~12문장." },
-        { heading: "균형을 맞추는 법", spec: "부족한 기운을 채우는 색·방향·음식·습관을 구체적으로. 10~12문장." },
-        { heading: "관계에서의 내 오행", spec: "내 오행이 사람 사이에서 작용하는 방식. 10~12문장." },
-        { heading: "기운을 채우는 일상 루틴", spec: "일상에서 기운을 채우는 루틴 제안. 10~12문장." },
-        { heading: "기운을 살리는 하루", spec: "오행 균형이 좋은 하루의 리듬. 10~12문장." },
-      ],
-      note: "네 기운에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
+  nature_self: genericGuide(GENERIC_GUIDE_SPEC.nature_self),
+  talent_path: genericGuide(GENERIC_GUIDE_SPEC.talent_path),
+  user_manual: genericGuide(GENERIC_GUIDE_SPEC.user_manual),
+  element_balance: genericGuide(GENERIC_GUIDE_SPEC.element_balance),
   life_full: [
     `위 사주판과 [대운] 표를 근거로 **평생 사주·대운** 리포트를 작성해줘. 1년에 한 번 볼까 말까 한 초프리미엄 리포트라, 인생 전체를 아주 깊고 길게 담아 — 짧게 끊지 말고 각 항목을 충분히.`,
     `이 리포트는 **아래 JSON 형식 하나만** 출력해. JSON 앞뒤에 설명·인사·코드펜스(\`\`\`) 붙이지 마. 오직 JSON 객체 하나만.`,
@@ -507,116 +661,14 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
     ``,
     `[규칙] 모든 문장은 반말 친구 말투(호칭 '너'). 단정적 예언 금지 — 흐름·가능성 화법. 사주·대운 근거를 구체적으로 녹이고 물타기·반복 금지(밀도로 길게). daeunLines 는 [대운] 표의 모든 구간을 startAge 순서대로 빠짐없이(대개 8~9개), 각 line 은 한 문장. sections 순서 = 타고난그릇 · 인생 큰줄기 · [대운] 각 구간(전부) · 타고난 복 · 3대 고비 · 인생 전환점 · 평생 화두 · 관계/재물/건강 각각 · 말년. 대운 구간은 반드시 [대운] 표 안에서만. 따뜻한 마무리.\n[서식] intro 와 각 섹션 body 를 잡지 기사처럼 다채롭고 리듬감 있게 마크다운으로 써라(딱딱한 산문 벽 금지). ①굵게: 핵심 단어·구절을 문단마다 1~2곳 **굵게** 강조(한 문단 통째 굵게는 금지, 핵심만). ②문단: 관련된 2~4문장을 한 문단으로 묶고 문단 사이에만 빈 줄(\\n\\n) — 한 문장마다 띄우지 말 것. ③불릿: 강점·조심할 점·특징·조언처럼 나열되는 내용은 산문 대신 각 줄 "- " 로 시작하는 불릿으로 정리(어울리는 섹션에 3~5개). ④콜아웃: 그 섹션에서 가장 중요한 팁·한마디 1개를 "> " 로 시작하는 인용 줄로 뽑아라(섹션마다 최대 1개, 남발 금지). heading 은 맨 앞 이모지 1개 + 제목 유지. 형식(굵게·불릿·콜아웃)을 내용에 맞게 섞어 지루하지 않게 — 단 억지로 다 넣지는 말 것. JSON 문자열 안 큰따옴표는 escape(\\")하고, 줄바꿈은 반드시 \\n 으로 이스케이프해라(생 줄바꿈 금지).`,
   ].join("\n"),
-  love_self: genericGuide({
-      title: "내 연애 사주",
-      intro: "이 사람의 타고난 연애 성향을 한 문단으로. 일간·오행 근거. 6~7문장.",
-      sections: [
-        { heading: "내 연애 스타일", spec: "사랑할 때 드러나는 스타일·온도. 10~12문장." },
-        { heading: "끌리는 상대 / 끌어당기는 나", spec: "내가 끌리는 결과 나에게 끌리는 상대의 결. 10~12문장." },
-        { heading: "연애할 때 강점·패턴", spec: "연애에서 빛나는 강점과 반복 패턴. 10~12문장." },
-        { heading: "조심할 습관", spec: "관계를 힘들게 하는 습관과 다듬는 법. 10~12문장." },
-        { heading: "갈등·이별에서의 나", spec: "다투거나 헤어질 때 드러나는 모습. 10~12문장." },
-        { heading: "관계가 깊어질 때", spec: "가까워질수록 보이는 나의 결. 10~12문장." },
-        { heading: "좋은 인연의 결", spec: "오래 갈 좋은 인연의 결과 알아보는 법. 10~12문장." },
-      ],
-      note: "네 사랑에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  love_year: genericGuide({
-      title: "올해 나의 연애 흐름",
-      intro: "2026 병오년 세운이 이 사람과 만나 만드는 올해 연애 흐름을 한 문단으로. 6~7문장.",
-      sections: [
-        { heading: "올해 연애 분위기", spec: "2026 연애의 전반적 분위기·온도. 10~12문장." },
-        { heading: "상반기 흐름", spec: "2026 상반기 연애·인연 흐름. 10~12문장." },
-        { heading: "하반기 흐름", spec: "2026 하반기 연애·인연 흐름. 10~12문장." },
-        { heading: "인연이 오는 시기·계기", spec: "인연이 오기 쉬운 시기와 계기. 10~12문장." },
-        { heading: "올해 만나기 쉬운 결", spec: "올해 이어지기 쉬운 상대의 결. 10~12문장." },
-        { heading: "주의할 시기·태도", spec: "조심하면 좋은 시기와 태도. 10~12문장." },
-        { heading: "올해 연애 개운법", spec: "좋은 인연을 부르는 구체적 실천. 10~12문장." },
-      ],
-      note: "올해 네 연애에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  marriage: genericGuide({
-      title: "결혼운·시기",
-      intro: "이 사람의 결혼 인연의 결과 큰 흐름을 한 문단으로. 6~7문장.",
-      sections: [
-        { heading: "결혼 인연의 결", spec: "어떤 결의 사람과 결혼 인연이 깊은지. 10~12문장." },
-        { heading: "배우자의 결", spec: "잘 맞는 배우자상의 성향·기질. 10~12문장." },
-        { heading: "결혼 시기 흐름", spec: "결혼운이 무르익는 시기의 흐름. 10~12문장." },
-        { heading: "결혼 생활에서의 나", spec: "결혼 후 드러날 나의 모습·강점·과제. 10~12문장." },
-        { heading: "함께 자라는 법", spec: "결혼 후 서로 채우며 자라는 법. 10~12문장." },
-        { heading: "양가·주변과의 조화", spec: "가족·주변 관계에서 챙길 점. 10~12문장." },
-        { heading: "준비하면 좋을 것", spec: "좋은 결혼 인연을 위해 준비하면 좋은 것. 10~12문장." },
-      ],
-      note: "네 인연에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  wealth_vessel: genericGuide({
-      title: "재물 그릇",
-      intro: "이 사람의 타고난 돈그릇을 한 문단으로. 일간·오행 근거. 6~7문장.",
-      sections: [
-        { heading: "내 재물 그릇", spec: "타고난 재물 그릇의 크기와 결. 10~12문장." },
-        { heading: "돈이 들어오는 결", spec: "돈이 들어오는 방식·통로의 결. 10~12문장." },
-        { heading: "돈이 새는 지점", spec: "무의식적으로 돈이 새는 지점과 습관. 10~12문장." },
-        { heading: "돈과 나의 심리", spec: "돈을 대하는 심리·태도. 10~12문장." },
-        { heading: "투자·리스크 성향", spec: "투자·모험 앞에서의 성향과 주의. 10~12문장." },
-        { heading: "재물을 부르는 습관", spec: "재물운을 살리는 태도·습관. 10~12문장." },
-        { heading: "재물을 키우는 법", spec: "재물 그릇을 키우는 구체적 방향. 10~12문장." },
-      ],
-      note: "네 재물에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  wealth_year: genericGuide({
-      title: "올해 재물 흐름",
-      intro: "2026 병오년 세운이 만드는 올해 재물 흐름을 한 문단으로. 6~7문장.",
-      sections: [
-        { heading: "올해 재물 분위기", spec: "2026 재물의 전반적 분위기. 10~12문장." },
-        { heading: "상반기 재물", spec: "2026 상반기 재물 흐름. 10~12문장." },
-        { heading: "하반기 재물", spec: "2026 하반기 재물 흐름. 10~12문장." },
-        { heading: "기회의 시기", spec: "재물 기회가 열리는 시기와 결. 10~12문장." },
-        { heading: "주의할 지출 시기", spec: "지출·투자에서 조심할 시기. 10~12문장." },
-        { heading: "분기별 재물 팁", spec: "분기별로 챙기면 좋은 재물 팁. 10~12문장." },
-        { heading: "올해 재물 개운법", spec: "재물운을 살리는 구체적 실천. 10~12문장." },
-      ],
-      note: "올해 네 재물에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  career_timing: genericGuide({
-      title: "취업·이직 타이밍",
-      intro: "2026 이 사람의 직업운 큰 흐름을 한 문단으로. 세운·사주 근거. 6~7문장.",
-      sections: [
-        { heading: "올해 직업운", spec: "2026 직업·커리어 전반 흐름. 10~12문장." },
-        { heading: "잘 맞는 일의 결", spec: "올해 이 사람에게 잘 맞는 일·환경의 결. 10~12문장." },
-        { heading: "도전·이직 좋은 시기", spec: "취업·이직·도전에 유리한 시기. 10~12문장." },
-        { heading: "주의할 시기", spec: "성급하면 손해인 시기와 이유. 10~12문장." },
-        { heading: "동료·상사 관계", spec: "올해 직장 인간관계의 결. 10~12문장." },
-        { heading: "면접·결정 팁", spec: "중요한 면접·선택에서 맞는 팁. 10~12문장." },
-        { heading: "커리어 장기 그림", spec: "올해를 발판 삼는 장기 커리어 방향. 10~12문장." },
-      ],
-      note: "네 커리어에 건네는 따뜻한 한마디. 5~6문장.",
-    }),
-  fact_bomb: genericGuide({
-      title: "팩폭 사주",
-      tone: "별콩이가 오늘만 '솔직 모드'다 — 돌직구로 뼈를 때리되 무례·저주·비하는 절대 금지, 끝은 반드시 따뜻하게. 위기·안전 신호가 보이면 즉시 팩폭을 멈추고 따뜻하게 전환해라.",
-      intro: "'오늘만 솔직하게 말할게' 하고 여는 도입. 재치있고 뼈 때리되 애정 있게. 5~6문장.",
-      sections: [
-        { heading: "성격 팩폭", spec: "이 사람 성격에서 보이는 뼈아픈 진실. 재치있게 돌직구, 그래도 애정. 6~7문장." },
-        { heading: "연애 팩폭", spec: "연애에서의 뼈아픈 진실. 6~7문장." },
-        { heading: "돈 팩폭", spec: "돈·씀씀이에서의 뼈아픈 진실. 6~7문장." },
-        { heading: "일·인간관계 팩폭", spec: "일·사람 관계에서의 뼈아픈 진실. 6~7문장." },
-        { heading: "너도 알지만 모른 척하는 것", spec: "스스로도 아는데 외면하는 지점 하나를 콕. 6~7문장." },
-        { heading: "그래서 어쩌라고", spec: "팩폭을 뒤집어 '그래서 이렇게 하면 된다'는 현실 조언. 7~8문장." },
-      ],
-      note: "돌직구 끝에 건네는, 그래도 따뜻한 마무리. 5~6문장.",
-    }),
-  past_life: genericGuide({
-      title: "전생 사주",
-      intro: "'네 전생을 들여다볼게' 컨셉으로 신비롭게 도입. 사주 기운을 전생 서사로 은유. 6~7문장.",
-      sections: [
-        { heading: "전생의 너", spec: "전생에 어떤 신분·성격의 사람이었는지 사주 기운으로 그려줘. 10~12문장." },
-        { heading: "전생의 이야기", spec: "그 전생의 삶을 한 편의 짧은 이야기로. 10~12문장." },
-        { heading: "전생의 인연", spec: "전생에서 이어진 인연·관계의 결(이번 생에도 만날 법한). 9~11문장." },
-        { heading: "현생에 남은 흔적", spec: "전생이 이번 생 성향·끌림에 남긴 흔적. 10~12문장." },
-        { heading: "이번 생의 과제", spec: "전생을 딛고 이번 생에 풀어갈 과제. 9~11문장." },
-      ],
-      note: "전생부터 이어진 너에게 건네는 한마디. 5~6문장.",
-    }),
+  love_self: genericGuide(GENERIC_GUIDE_SPEC.love_self),
+  love_year: genericGuide(GENERIC_GUIDE_SPEC.love_year),
+  marriage: genericGuide(GENERIC_GUIDE_SPEC.marriage),
+  wealth_vessel: genericGuide(GENERIC_GUIDE_SPEC.wealth_vessel),
+  wealth_year: genericGuide(GENERIC_GUIDE_SPEC.wealth_year),
+  career_timing: genericGuide(GENERIC_GUIDE_SPEC.career_timing),
+  fact_bomb: genericGuide(GENERIC_GUIDE_SPEC.fact_bomb),
+  past_life: genericGuide(GENERIC_GUIDE_SPEC.past_life),
   saju_report_card: [
     `위 사주판을 바탕으로 이 사람 인생을 항목별로 매기는 **사주 성적표**를 작성해줘. 담임 선생님이 성적표 쓰듯 재치있게, 그래도 애정 있게.`,
     `이 리포트는 **아래 JSON 형식 하나만** 출력해. 앞뒤 설명·코드펜스 금지.`,
@@ -655,21 +707,54 @@ const SECTION_GUIDE: Record<FortuneType, string> = {
   ].join("\n"),
 };
 
+/** SECTION_GUIDE 의 `{{TOKEN}}` 치환. 🔴 전부 `replaceAll` — 같은 토큰이 한 템플릿에 여러 번 나온다
+ *  (daily 의 {{TODAY_PILLAR}} 는 stars·intro 두 곳). `replace` 는 첫 개만 바꿔서, 남은 토큰을
+ *  모델이 제 나름대로 메우며 `({"병신"})` 같은 JSON 찌꺼기가 본문에 새어 나왔다.
+ *  ⚠️ 치환 '값'에 `$` 가 들어가면 replaceAll 이 $&·$1 같은 대체 패턴으로 해석한다. 지금 넘어오는 값
+ *     (간지 한글·ko-KR 날짜 문자열)엔 `$` 가 없어 안전하지만, 새 값을 얹을 땐 이 전제를 확인할 것.
+ *  {{DAY_WORD}} — daily 전용. 대상 날짜가 오늘이면 "오늘", 아니면 "그날"(P6-2, §11-1-1). 다른 타입 템플릿엔 없다. */
+export function fillGuideTokens(
+  guide: string,
+  v: { today: string; thisMonth: string; todayPillar: string; thisMonthPillar: string; dayWord?: "오늘" | "그날" }
+): string {
+  return guide
+    .replaceAll("{{DAY_WORD}}", v.dayWord ?? "오늘")
+    .replaceAll("{{TODAY}}", v.today)
+    .replaceAll("{{THIS_MONTH}}", v.thisMonth)
+    .replaceAll("{{TODAY_PILLAR}}", v.todayPillar)
+    .replaceAll("{{THIS_MONTH_PILLAR}}", v.thisMonthPillar);
+}
+
 export function buildFortuneSystem(
   type: FortuneType,
   input: FortuneInput
 ): { staticPart: string; dynamicPart: string } {
   const parts: string[] = [];
+  // 🔴 "대상 날짜 모드"는 reportDate·todayKst 가 **둘 다** 있을 때만 켜진다. todayKst 가 없으면
+  //    "이 reportDate 가 오늘인지 아닌지" 판정할 근거 자체가 없어, {{TODAY}} 만 reportDate 로
+  //    갈아끼우는 건 근거 없는 치환이 된다(두 조건이 따로 살면 언제든 다시 벌어진다 — 그래서
+  //    한 번만 계산해 둘이 같이 쓴다).
+  // 🔴 sajuBlock 호출보다 먼저 계산한다 — sajuBlock 의 일진 블록도 같은 dayWord 를 받는다.
+  //    아래에서(포맷 블록 직전에) 따로 계산하면 sajuBlock 은 항상 기본값 "오늘"로 조용히 남아,
+  //    형식 블록은 "그날"인데 데이터 블록 제목은 "오늘"인 모순이 재발한다(P6-2 §11-1-1).
+  const dateOverride =
+    type === "daily" && input.reportDate && input.todayKst
+      ? { reportDate: input.reportDate, todayKst: input.todayKst }
+      : null;
+  const dayWord: "오늘" | "그날" =
+    dateOverride && dateOverride.reportDate !== dateOverride.todayKst ? "그날" : "오늘";
+  // 화면 쪽 짝은 lib/byeolmaru/report-date.ts 의 dayWordFor — lib/fortune → lib/byeolmaru 역방향
+  // 의존 금지라 의도적 중복. 한쪽을 바꾸면 다른 쪽도 볼 것.
   if ((type === "compat" || type === "compat_social") && input.saju && input.sajuB) {
     const nameA = input.names?.a ?? "첫 번째 사람";
     const nameB = input.names?.b ?? "두 번째 사람";
-    parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`));
+    parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`, dayWord));
     parts.push("");
-    parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`));
+    parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`, dayWord));
     parts.push("");
     parts.push("위 두 사람의 일간이 만났을 때 만들어지는 관계가 이 리포트의 핵심이야.");
   } else if (input.saju) {
-    parts.push(sajuBlock(input.saju));
+    parts.push(sajuBlock(input.saju, undefined, dayWord));
     if (input.daeun && input.daeun.length > 0) {
       parts.push("");
       parts.push(daeunBlock(input.daeun, input.saju.temporal?.age ?? null));
@@ -680,16 +765,32 @@ export function buildFortuneSystem(
   parts.push("");
   const todayPillar = input.saju?.temporal
     ? `${input.saju.temporal.day.stem}${input.saju.temporal.day.branch}`
-    : "오늘의 일진";
+    : "그 날의 일진";
   const thisMonthPillar = input.saju?.temporal
     ? `${input.saju.temporal.month.stem}${input.saju.temporal.month.branch}`
     : "이번 달 월건";
+  // 🔴 dailyDateContextLine(대상 날짜 시제 지시)은 2026-09-26 에 삭제됐다 — 과거 분기는
+  //    reportDatePolicy 의 cache_only 때문에 이미 도달 불가였고, FUTURE_REPORT_DAYS 가 0 이
+  //    되면서 미래 분기도 사라져 함수 전체가 죽었다. 되살릴 일이 생긴다면(소급 생성 또는 미래
+  //    생성 재개) SECTION_GUIDE.daily 의 미래형 동사(벌어질·할 선택·건넬 말)도 같이 볼 것 —
+  //    그 동사 선택의 근거가 "생성되는 건 앞으로 1~3일뿐"이었다.
+  //    🔴 바로 위 dateOverride·dayWord·{{TODAY}} 치환 자체도 지금은 같은 논거로 no-op 이다 —
+  //    유일한 프로덕션 호출부(daily-report/route.ts)는 reportDatePolicy 가 "generate" 를 줄
+  //    때만 도달하고, FUTURE_REPORT_DAYS=0 이라 그건 항상 reportDate===todayKst 다(dayWord 는
+  //    항상 "오늘", dateKr(reportDate)와 TODAY_KR() 도 둘 다 Asia/Seoul 기준이라 문자열까지
+  //    같다 — 증명 가능한 no-op). 그런데도 남기는 건 되살릴 때(소급 생성·미래 생성 재개) 한
+  //    줄이면 되고, prompt.test.ts 가 그 계약(reportDate 를 직접 넘겼을 때의 동작)을 독립적으로
+  //    고정하고 있어서다.
   parts.push(
-    SECTION_GUIDE[type]
-      .replace("{{TODAY}}", TODAY_KR())
-      .replace("{{THIS_MONTH}}", THIS_MONTH_KR())
-      .replace("{{TODAY_PILLAR}}", todayPillar)
-      .replaceAll("{{THIS_MONTH_PILLAR}}", thisMonthPillar)
+    fillGuideTokens(SECTION_GUIDE[type], {
+      // 🔴 daily 에 대상 날짜가 오면 {{TODAY}} 도 그 날짜로 채운다. TODAY_KR()(서버 실제 오늘)을
+      //    그대로 두면 위 dayWord("그날") 지칭과 정면으로 모순돼 모델이 어느 쪽을 따를지 확률이 된다.
+      today: dateOverride ? dateKr(dateOverride.reportDate) : TODAY_KR(),
+      thisMonth: THIS_MONTH_KR(),
+      todayPillar,
+      thisMonthPillar,
+      dayWord,
+    })
   );
 
   return {

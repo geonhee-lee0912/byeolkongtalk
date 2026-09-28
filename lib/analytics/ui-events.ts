@@ -41,6 +41,132 @@ export const UI_EVENTS = [
   "recharge_payment_started",
   /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
   "result_cta_clicked",
+  /** 별마루 — 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution",
+   *  subjectKind:"me"|"pair"(나/우리 축 — offset≠0 비율 관문의 사후 필터링에 필요),
+   *  surface:"grid"}
+   *  🔴 subjectKind 도 surface 와 같은 정도로 상수다 — 이 이벤트의 유일한 발화처(CalendarGrid.tsx)를
+   *     부르는 두 호출부(ByeolmaruHub.tsx) 모두 subjectKind 를 안 넘겨 항상 기본값 "me" 다
+   *     ("pair" 는 2026-09-24 우리 탭 격자 제거로 사멸).
+   *  🔴 surface 값은 2026-09-26 부터 "grid" 하나뿐이다 — 스트립 삭제로 다른 값을 낼 지면이 없다.
+   *  이 필드는 원래 P6-3 배포 때 두 지면(스트립·격자)을 가르려고 추가됐다 — 스펙 §10 의 첫
+   *     관문("한 달 조망이 필요한가")을 격자를 펼친 수가 아니라 **격자에서 실제로 날짜를 고른
+   *     수**로 답하려면 그 분해가 이 필드 하나에 달려 있었다.
+   *  ⚠️ 이 이벤트의 **구성**은 두 번 꺾였다 — P6-3 배포일(격자 기본 접힘 + 스트립 신설)과
+   *     스트립 삭제일(2026-09-26, 격자 상시 펼침) 사이 추세선은 이름이 같아도 단절이니
+   *     행동 변화로 오독하지 말 것. */
+  "byeolmaru_day_selected",
+  /** 별마루 — 날짜 상세(/byeolmaru/day)에서 탭을 바꿨다. meta:{from,to,offset}
+   *  🔴 **2단계 통합의 성패를 재는 유일한 지표다.** 없으면 "날짜 상세까지 온 사람이 다른 탭으로
+   *     얼마나 넘어가나"를 영영 못 읽고, 그러면 통합이 실패해도 알 수가 없다.
+   *  `offset` = 오늘로부터의 일수(과거 음수) — 과거 날짜에서의 이동과 오늘에서의 이동을 가른다.
+   *  ⚠️ 판독: `byeolmaru_free_item_clicked(item=…)` 는 **안 줄어든다**(목록 3행이 그대로 찍는다).
+   *     바뀌는 건 도달 경로가 둘이 된다는 것 — 예전엔 타로·우리로 가려면 화면을 나가야 했는데
+   *     이제 탭 전환이라는 길이 생겼다. 타로·우리 **도달 총량**은 free_item_clicked 와 이
+   *     이벤트(to=…)를 **합쳐** 읽어야 하고, free_item_clicked 단독 추세를 도달로 오독하지 말 것. */
+  "byeolmaru_day_tab_changed",
+  /** 별마루 — 우리 사이·시뮬 슬롯 클릭(→/relationship 유출)
+   *  🔴 **2026-09-24 부터 영구 0** — 발화처였던 PartnerSlot.tsx 를 삭제했다. 그 카드는 이미
+   *     2026-09-05(별마루 3a)에 화면에서 빠져 파일만 남아 있었고, 우리 오늘이 별마루 안에서
+   *     자립한 지금은 /relationship 으로 내보낼 이유가 없다.
+   *     상수는 과거 판독용으로 남긴다(gate_dismissed·watch_limit 과 같은 관행). */
+  "byeolmaru_slot_clicked",
+  /** 별마루 — 사주 프로필 없어 캘린더를 못 그린 진입(퍼널 이탈 지점) */
+  "byeolmaru_no_profile",
+  /** 별마루 — 비로그인 진입(하단탭에서 눌렀으나 세션 없음) */
+  "byeolmaru_need_login",
+  /** 별마루 — 페이월 미끼 노출(슬롯 노출마다 1회 — slot 이 바뀌면 같은 마운트에서도 다시 찍힌다).
+   *  meta:{slot:"saju_report"|"woori_30d"|"tarot_rich", surface:"bait_card"|"cut"}
+   *  🔴 surface 없이는 P6-4 의 핵심 가설("절단선이 별도 미끼 카드보다 파는가")을 영영 못 읽는다.
+   *     `saju_report` 는 허브 나 탭(미끼 카드)과 사주 상세(절단선)가 **같은 slot 값**을 쓰기 때문이다 —
+   *     그 분해가 이 필드 하나에 달려 있다. 자리가 아니라 **형태**를 가른다(자리는 slot 이 이미 안다):
+   *     bait_card=PremiumBlock · cut=PaywallCut 에 하드코딩이라 호출부 prop 은 없다.
+   *  ⚠️ P6-4 배선일에 이 값의 **수준이 뛴다**(사주 상세·타로). PaywallCut 이 그 두 자리에서
+   *     PremiumBlock 을 대체하며 접기를 없앴는데, PremiumBlock 은 `!dismissed` 조건으로 그날 접은
+   *     유저의 재방문을 분모에서 뺐다. 이건 스펙 §13 "어느 미끼가 파는가"의 **분모**라 전환율이
+   *     떨어진 것처럼 보인다. surface 로 갈라 봐도 배선일을 사이에 둔 **수준 비교는 금물**이다
+   *     (형태가 갈릴 뿐 접힘 억제가 돌아오지는 않는다) — 행동 변화로 오독하지 말 것.
+   *  🔴 2026-09-24 이후 **미끼 카드(PremiumBlock)는 서비스에 없다** — 허브는 그 블록을
+   *     통째로 지웠고(판매는 상세 절단선이 맡는다) 우리 오늘은 PaywallCut 으로 바뀜다.
+   *     그래서 `surface` 는 그날 이후 사실상 항상 "cut" 이고, "bait_card" 는 과거 데이터에만
+   *     남는다. **절단선 vs 미끼 카드 비교는 끝난 실험이다** — 별마루가 prod 에 나간 적이
+   *     없어 표본이 0 인 채로 닫혔다(재개하려면 미끼 카드를 되살려야 한다).
+   *  🔴 같은 날 `saju_report` 의 허브분 노출이 사라져 그 slot 은 **상세 하나로** 줄어든다.
+   *  ⚠️ 2026-09-21(허브 1인칭 정리) 경계에서 **`woori_30d` 가 아래로 내려앉는다** — 허브 인연 칩이
+   *     사라져 노출 면이 "허브 + 우리 오늘 화면" 둘에서 **우리 오늘 하나**로 줄었다. 반대로 진입이
+   *     칩 1탭에서 무료 목록 행으로 바뀌었으니 도달 자체도 달라진다. 이 경계를 사이에 둔
+   *     `woori_30d` 수준 비교는 금물이고, 앞뒤를 볼 땐 `byeolmaru_free_item_clicked`
+   *     (meta.item="woori")를 분모로 같이 읽을 것. */
+  "byeolmaru_gate_shown",
+  /** 별마루 — 페이월 미끼 닫기(당일 접힘).
+   *  meta:{slot:"saju_report"|"woori_30d"|"tarot_rich", surface:"bait_card"}
+   *  🔴 **2026-09-24 부터 이 이벤트는 어느 slot 에서도 안 찍힐다 — 영구히 0.**
+   *     접기는 PremiumBlock 에만 있었고 그 컴포넌트가 삭제됐다(PaywallCut 은 리포트 본문의
+   *     가려진 부분이라 접으면 그 자리가 통째로 빈다). 상수는 과거 데이터 판독을 위해 남긴다.
+   *  ⚠️ P6-4 배선일에 꺾인다(PaywallCut 에는 접기가 없다). slot 별로 다르다:
+   *     `tarot_rich` 는 **영구히 0**(그 자리의 유일한 소스가 PaywallCut 이 된다) /
+   *     `saju_report` 는 0 이 아니라 **허브 나 탭분만 남아 내려앉는다**(사주 상세가 PaywallCut 으로
+   *     바뀐다 — 허브/상세 분해는 위 gate_shown 의 surface 가 한다) /
+   *     `woori_30d` 도 2026-09-24 부터 0(그 자리도 PaywallCut 이 됐다). 추세선 단절이니 행동 변화로 오독하지 말 것. */
+  "byeolmaru_gate_dismissed",
+  /** 별마루 — 3일 무료 체험 시작 클릭. meta:{slot?} */
+  "byeolmaru_trial_started",
+  /** 별마루 — 구독 CTA 클릭. meta:{slot?} */
+  "byeolmaru_subscribe_clicked",
+  /** 별마루 — 구독 결제 완료. meta:{stars} */
+  "byeolmaru_subscribe_completed",
+  /** 별마루 우리오늘 — 칩에서 상대 선택. meta:{}
+   *  🔴 2026-09-21 경계에서 **뜻이 좁아진다.** 이전엔 허브 달력 판의 인연 칩 + 우리 오늘 화면의
+   *     토글 둘이 찍어 사실상 "우리 오늘 도달"이었다. 허브 칩이 사라진 뒤로는 우리 오늘 화면에서
+   *     **상대를 손으로 바꾼 것**만 남는다 — 상대가 1명인 사람은 자동 선택으로 열리므로 이 이벤트가
+   *     아예 안 찍힌다. 도달은 `byeolmaru_free_item_clicked`(meta.item="woori")로 옮겨 읽을 것.
+   *  🔴 **2026-09-24 부터 영구 0** — 상대가 한 명이 되어 고를 대상이 없어졌다(칩 삭제).
+   *     상수는 과거 데이터 판독을 위해 남긴다. */
+  "byeolmaru_partner_selected",
+  /** 별마루 우리오늘 — 상대 설정 성공. meta:{via:"pick"|"register"}
+   *  🔴 2026-09-24 부터 뜻이 "담기"에서 **"교체"** 로 바뀐다(상대가 한 명). 경계 앞뒤로 같은
+   *     이벤트지만 앞은 "N번째 추가", 뒤는 "지금 상대를 이 사람으로"다 — 누적으로 세지 말 것. */
+  "byeolmaru_watch_add",
+  /** 별마루 우리오늘 — 무료 슬롯 초과로 5별 확인창 도달. meta:{cost}
+   *  🔴 **2026-09-24 부터 영구 0** — 슬롯·과금(2무료+5별)을 없앴다. 교체는 무료고, 원가는
+   *     교체가 아니라 생성에서 막는다(PAIR_REPORT_DAILY_LIMIT). 상수는 과거 판독용으로 남긴다.
+   *     🔴 dev·prod 통틀어 실제 발화 **0건**이었다 — 지우는 비용이 애초에 0이었다는 기록. */
+  "byeolmaru_watch_limit",
+  /** 별마루 우리오늘 — 추가 상대 5별 결제 완료. meta:{stars}
+   *  🔴 **2026-09-24 부터 영구 0**(위와 같은 이유). 발화 이력 0건. */
+  "byeolmaru_watch_purchase",
+  /** 별마루 우리오늘 — 담기 모달에서 관계칩 선택(pick·register 공통). meta:{status} */
+  "byeolmaru_watch_status_set",
+  /** 별마루 우리오늘 — 락 티저 CTA로 체험/구독 개시. meta:{action:"trial"|"subscribe"} */
+  "byeolmaru_subscribe_from_woori",
+  /** 별마루 — 비로그인 게스트 구경 그리드 카드 클릭. meta:{card(안정 key), gated} */
+  "byeolmaru_guest_peek_clicked",
+  /** 별마루 — 오늘 타로·오늘 사주 카톡 공유 버튼 클릭. meta:{kind:"tarot"|"saju"} */
+  "byeolmaru_share_clicked",
+  /** 별마루 — 무료 목록 5종 행 클릭.
+   *  meta:{item:"saju_today"|"tarot"|"woori"|"mbti"|"byeoljari"}
+   *  (saju_today 는 P6-3 에서 합류 — 오늘 사주가 달력 안 히어로 타일에서 목록으로 내려왔다)
+   *  🔴 `woori` 는 2026-09-21 합류 — 허브 달력을 1인칭 전용으로 정리하면서 우리 오늘의 진입이
+   *     달력 판 상단 인연 칩에서 이 목록 행으로 내려왔다. 그래서 이 값은 신규 항목이 아니라
+   *     **옮겨온 진입점**이다: 이전엔 `byeolmaru_partner_selected` 가 그 도달을 재고 있었으니
+   *     우리 오늘 도달 추세를 이을 때 경계 앞은 그 이벤트, 뒤는 이 값으로 읽어야 한다. */
+  "byeolmaru_free_item_clicked",
+  /** 홈 우리 사이(연애 상담) 진입 카드 클릭 — 구 궁합 슬롯 대체(계측 부재 반복 방지) */
+  "home_relationship_clicked",
+  /** 별마루 — 스트립의 안 온 날(흐린 칸) 탭. meta:{offset, subjectKind}
+   *  🔴 **2026-09-26 부터 영구 0** — 스트립 삭제. 이 이벤트가 재려던 질문("앞으로 3일이 체험
+   *     전환을 만드는가")은 별마루가 prod 에 안 나가 표본 0 인 채로 끝났다. 상수는 남긴다 —
+   *     이 이름이 다른 뜻으로 재사용되면 과거 로그와 뒤섞인다. */
+  "byeolmaru_strip_future_tapped",
+  /** 별마루 — 월간 격자 펼침/접힘. meta:{open}
+   *  🔴 **2026-09-26 부터 영구 0** — 접이식 래퍼(MonthGridSection) 삭제(격자는 이제 항상 펼침).
+   *     이 이벤트가 재려던 질문("한 달 조망이 필요한가")도 같은 날 같은 이유로 표본 0 인 채로
+   *     끝났다. 상수는 남긴다 — 접이식을 되살리면 같은 축을 그대로 잇는다. */
+  "byeolmaru_month_grid_toggled",
+  /** 상품 설명 페이지 — 히어로 CTA 탭(설명을 건너뛰고 구매로 점프). meta:{type} */
+  "fortune_landing_cta_clicked",
+  /** 상품 설명 페이지 — 구매 모듈이 화면에 들어옴(설명을 읽고 내려옴). meta:{type}
+   *  🔴 위 둘을 합쳐 재면 "설명이 일을 했나"를 영영 못 본다. 반드시 따로 읽을 것. */
+  "fortune_landing_purchase_reached",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];

@@ -29,11 +29,12 @@ import type { SimSituation } from "@/lib/relationship/situations";
 import { buildEmotionPersonaBlock } from "@/lib/emotion-persona";
 import { logInfo, logWarn, type LogContext } from "@/lib/logger";
 import { upstreamErrorType } from "@/lib/upstream-error";
-import { anthropicAdapter } from "@/lib/claude/adapters/anthropic";
+import { anthropicAdapter, mapAnthropicUsage } from "@/lib/claude/adapters/anthropic";
 import { openaiAdapter } from "@/lib/claude/adapters/openai";
 import { geminiAdapter } from "@/lib/claude/adapters/gemini";
 import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
 import type { ProviderAdapter, StopReason } from "@/lib/claude/adapters/types";
+import { recordUsage } from "@/lib/claude/usage-log";
 
 // summarizeOlder(haiku 요약)가 여전히 이 모듈 레벨 클라이언트를 쓴다 — streamChat 이관 후에도 유지.
 const anthropic = new Anthropic({
@@ -94,12 +95,49 @@ export interface TurnSignals {
   lastTurnEndedWithQuestion?: boolean;
   /** 유저 단답 2연속 → 질문 대신 정리/예고 */
   userShortStreak?: boolean;
+  /** 턴 마무리 상한 (ask/invite/settle). 모델은 이 안에서 내려갈 수만 있다 */
+  turnClose?: TurnClose;
+}
+
+/** 턴 마무리 상한 계산에 필요한 라우트 쪽 맥락. 없으면 상태 계산이 보수적으로 떨어진다 */
+export interface TurnCloseCtx {
+  /** computeWrapMode(...).mode — "free" 가 아니면 수렴·마무리 구간 */
+  wrapMode?: WrapMode;
+  /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
+  isFirstTurn?: boolean;
+  /** readings.question 길이 */
+  questionLen?: number;
 }
 
 /** DB 메시지 + 이번 유저 발화로 TurnSignals 계산 (chat 라우트 공용) */
+/**
+ * "유저에게 던진 질문"이 아닌 물음표를 가린다 — 질문 마무리 판정 직전에만 쓴다.
+ *
+ * 2026-09-13 전 종목 QA 에서 `no_consecutive_question_close` 실패 3건이 **전부 오탐**이었고,
+ * 원인이 아래 두 가지였다(실질 위반 0건):
+ *   ① 인용 예시 — 별콩이가 **유저가 남에게 건넬 대사**나 **스스로 물을 말**을 인용한다.
+ *      〈"네 말은 이런 뜻이지?"라고 먼저 받아주면〉 〈"뭘 해야 하지?"가 떠오르면〉
+ *      〈"잘 지내? 문득 생각나서" 정도로 보내봐〉 — 전부 질문 마무리가 아니다.
+ *      prod 실측: 질문 마감 판정 629턴 중 **49건(7.8%)** 이 이 유형.
+ *   ② 마커 안 물음표 — 모델이 계약 밖 마커를 뱉으면(`[스킬:??]`) 그 물음표가 문장 끝에 남는다.
+ *
+ * 오검출은 다음 턴 상태를 `ask`→`invite` 로 **부당하게 강등**시킨다(안전한 방향이지만 틀린 동작).
+ * ⚠️ 인용 안에 진짜 질문이 있어도 무시된다 — 별콩이가 유저에게 묻는 말은 인용부호로 감싸지 않으므로 의도된 절충.
+ */
+export function maskNonAskQuestionMarks(text: string): string {
+  return (
+    text
+      // ① 인용부호로 닫힌 구간 (한 줄, 200자 이내 — 따옴표 미종결 시 폭주 방지)
+      .replace(/[“"'‘][^”"'’\n]{0,200}[”"'’]/g, (m) => m.replace(/[?？]/g, "·"))
+      // ② 대괄호 마커 잔재 (알려진 마커는 이미 제거됨 → 남은 건 계약 밖)
+      .replace(/\[[^\]\n]{0,60}\]/g, (m) => m.replace(/[?？]/g, "·"))
+  );
+}
+
 export function computeTurnSignals(
   pastMessages: { role: string; content: string }[],
-  currentUserText: string
+  currentUserText: string,
+  ctx?: TurnCloseCtx
 ): TurnSignals {
   // 직전 별콩이 턴이 물음표로 끝났는가 (마커 제거 후)
   let lastAssistant: string | null = null;
@@ -109,9 +147,15 @@ export function computeTurnSignals(
       break;
     }
   }
-  const stripped = (lastAssistant ?? "")
-    .replace(/\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi, "")
-    .trim();
+  const stripped = maskNonAskQuestionMarks(
+    (lastAssistant ?? "")
+      // 마커 집합은 qa/evaluate/assertions.ts 의 stripMarkers 와 동일하게 유지할 것.
+      .replace(
+        /\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+|SKILL:[a-z_]+|SKILL_DONE|CHECKIN:[^\]]+)\]/gi,
+        ""
+      )
+      .trim()
+  );
   // "?"로 끝나거나, 마지막 "?" 뒤 꼬리가 짧으면(부연 한두 문장) 기능적으로 질문 마무리.
   // 110자: 별콩이가 질문 뒤 설명 꼬리를 붙여 60자 가드를 빠져나가던 심문피로 누수 봉합(3d QA).
   const lastQ = Math.max(stripped.lastIndexOf("?"), stripped.lastIndexOf("？"));
@@ -132,24 +176,135 @@ export function computeTurnSignals(
     prevUser.trim().length <= SHORT_LEN &&
     currentUserText.trim().length <= SHORT_LEN;
 
-  return { lastTurnEndedWithQuestion, userShortStreak };
+  const turnClose = computeTurnClose({
+    prevUserText: prevUser,
+    currentUserText,
+    lastTurnEndedWithQuestion,
+    userShortStreak,
+    wrapMode: ctx?.wrapMode,
+    isFirstTurn: ctx?.isFirstTurn,
+    questionLen: ctx?.questionLen,
+  });
+
+  return { lastTurnEndedWithQuestion, userShortStreak, turnClose };
 }
 
-function buildTurnSignalBlock(s: TurnSignals | undefined): string {
+/**
+ * 턴 마무리 상한. 서버가 "여기까지 허용"을 정하고 모델은 그 안에서 내려갈 수만 있다.
+ * 근거 = specs/2026-09-12-타로톡-턴마무리-상태화-design.md
+ * 07-12 원 진단("단답이 연속되는 유저는 이미 지쳤다")을 조건으로 복원한 것 —
+ * 그 조건이 코어 §5 에서 "유저 답 길이와 무관하게" 로 무조건화되며 후속 질문률이
+ * 7~10% 까지 떨어졌고(규칙 상한 33% 보다 낮음) 무언 이탈 27% 와 맞물렸다.
+ */
+export type TurnClose = "ask" | "invite" | "settle";
+
+export interface TurnCloseInput {
+  /** 직전 유저 발화. 첫 턴이면 null */
+  prevUserText: string | null;
+  /** 이번 유저 발화 */
+  currentUserText: string;
+  /** 직전 별콩이 턴이 질문으로 끝났나 (computeTurnSignals 산출) */
+  lastTurnEndedWithQuestion: boolean;
+  /** 단답 2연속 (computeTurnSignals 산출) */
+  userShortStreak: boolean;
+  /** computeWrapMode(...).mode — "free" 가 아니면 수렴·마무리 구간 */
+  wrapMode?: WrapMode;
+  /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
+  isFirstTurn?: boolean;
+  /** readings.question 길이 — 짧은 고민은 일반론을 부르고 1턴 이탈 17% 로 이어진다 */
+  questionLen?: number;
+}
+
+/** 첫 고민이 이보다 짧으면 첫 풀이에서 디테일 하나를 청해도 된다 (실측: 40자 미만 1턴 이탈 17% vs 70자+ 5%) */
+const SHORT_CONCERN_LEN = 40;
+/**
+ * 직전 발화 대비 이만큼 길어지면 유저가 다시 붙은 것으로 본다.
+ * ⚠️ 실측 근거 없는 임의값 — SHORT_CONCERN_LEN 과 달리 데이터로 잡은 수가 아니다.
+ * 배포 후 messages.turn_close × 다음 턴 생존 교차로 재조정할 것.
+ */
+const RE_ENGAGE_GROWTH = 20;
+
+export function computeTurnClose(i: TurnCloseInput): TurnClose {
+  // 우선순위: settle > ask > invite
+  if (i.userShortStreak) return "settle";
+  if (i.wrapMode !== undefined && i.wrapMode !== "free") return "settle";
+
+  const cur = i.currentUserText.trim();
+  // 직전 발화가 없거나(null) 실제로 비어 있으면("") 성장 비교의 기준이 못 된다 —
+  // 0자와 비교하면 이번 발화가 조금만 길어도 "다시 붙었다"로 오판한다.
+  const prev = i.prevUserText === null ? null : i.prevUserText.trim();
+  const grew =
+    prev !== null && prev.length > 0 && cur.length - prev.length >= RE_ENGAGE_GROWTH;
+  // questionLen === 0(공백만 적고 넘어온 고민)도 포함한다 — 판을 볼 재료가 가장 없는
+  // 극단이라 오히려 디테일을 청해야 한다. undefined(컨텍스트 미전달)만 걸러낸다.
+  const shortConcernFirstTurn =
+    i.isFirstTurn === true &&
+    i.questionLen !== undefined &&
+    i.questionLen < SHORT_CONCERN_LEN;
+
+  // 🔴 첫 풀이 턴에서는 물음표·성장 게이트를 쓰지 않는다.
+  // 프로덕션에서 첫 턴의 currentUserText 는 유저가 쓴 고민 본문 그 자체다
+  // (클라가 concern 을 그대로 첫 메시지로 보낸다). 고민 끝의 물음표는
+  // "지금 되물어달라"는 신호가 아니라 그냥 고민의 어법이다.
+  // 여기서 ask 를 주면 재료가 충분한 긴 고민(40자 이상 = 69%)에도 첫 풀이를
+  // 되묻기로 닫게 되고, 그건 코어 §6 이 막으려던 '첫 답변 직후 심문 2연속'이다.
+  const askable =
+    i.isFirstTurn === true ? shortConcernFirstTurn : /[?？]/.test(cur) || grew;
+  if (!askable) return "invite";
+
+  // 질문 2연속 금지는 유지 — 상한을 invite 로 강등 (원 진단에도 있던 규칙)
+  return i.lastTurnEndedWithQuestion ? "invite" : "ask";
+}
+
+/**
+ * 프롬프트에 노출되는 한글 라벨. TS 타입·DB(`messages.turn_close`) 값은 영문 그대로 둔다
+ * (계측·CHECK 제약 유지). 프롬프트에서만 한글을 쓰는 이유:
+ * 2026-09-13 전 종목 QA 에서 모델이 자기 독백을 출력에 흘리며
+ * `MISSING? Need invite no question` 이 유료 리딩 본문에 노출됐다(879턴 중 1건).
+ * 유출 성향 자체는 기존 것이지만(07-19 런의 `[SKILL:compat]` 전례), 영문 상태명은
+ * 새더라도 별콩이 말투와 이물감이 커서 즉시 눈에 띈다. 한글이면 새도 문장에 묻힌다.
+ * 라벨은 §턴 마무리의 ①②③④ 에 대응: 질문=① / 여지=② / 정리=③④.
+ * (TurnClose 유니온 값은 영문 유지 — 코어 페르소나 §5 의 표기와 짝을 맞춘 건 아래 가이드 문자열이다.)
+ */
+const TURN_CLOSE_GUIDE: Record<TurnClose, string> = {
+  ask: "- **턴 마무리 상태: `질문`** — 이번 턴은 §턴 마무리의 ①(구체 질문)으로 닫아. 유저가 방금 준 정보를 먼저 받아 안고(받아 안은 뒤의 질문은 심문이 아니야), 그 정보에 이어지는 구체 질문 **하나**를 얹어. 판과 무관한 막연한 질문은 금지. 정말 더 물을 게 없을 때만 ②③④ 로 내려 — 그건 예외지 기본값이 아니야. ① 보다 위는 없어.",
+  invite:
+    "- **턴 마무리 상태: `여지`** — 이번 턴은 물음표 없이 ②(다음 볼거리 예고)로 닫아. **답을 요구하지 않는 게 아니라, 답하고 싶어지게 여는 고리야**: \"약속 날짜 정해지면 어떻게 됐는지 들려줘. 그거 들으면 흐름이 더 또렷해져.\" / \"뭐가 제일 지치게 만들었는지, 그 얘기까지 들으면 이 결이 어디서 꼬였는지도 짚어줄 수 있어.\" 물음표만 안 쓰면 돼. 카드를 한 장 더 펼치자거나 사주를 새로 보자는 **제안 자체는 도메인 규칙을 따라** — 여기서 먼저 꺼내지 마. (③④ 로 내려도 돼 — ①(질문)로는 못 올려.)",
+  settle:
+    "- **턴 마무리 상태: `정리`** — 이번 턴은 ③(소신 정리+여백)이나 ④(공감으로 열어두기)로 닫아. **여기가 제일 아래야 — ①(질문)도 ②(다음 볼거리 예고)도 쓰지 마.** 되묻기는 물론이고 \"궁금하면 그 얘기도 꺼내줄게\" 같은 예고성 고리도 이번 턴엔 열지 마. 유저는 지금 받아주는 마무리가 필요해.",
+};
+
+export function buildTurnSignalBlock(s: TurnSignals | undefined): string {
   if (!s) return "";
   const lines: string[] = [];
+  if (s.turnClose) lines.push(TURN_CLOSE_GUIDE[s.turnClose]);
+
+  // turnClose 가 있으면 아래 두 신호는 이미 상태에 흡수돼 있다
+  // (질문 2연속 → ask 강등, 단답 2연속 → settle 강제 — computeTurnClose 참고).
+  // 그 위에 처방까지 또 내리면 settle 인데 경고줄이 "예고"(=②)를 허가하는 식으로
+  // 상태를 거스른다 → 처방은 빼고 근거만 남겨 모델이 맥락만 알게 한다.
   if (s.lastTurnEndedWithQuestion) {
     lines.push(
-      "- ⚠️ 직전 별콩이 턴이 질문으로 끝났어. **이번 턴은 절대 질문으로 마무리하지 마** — 마무리 3택의 ②(다음 볼거리 예고)나 ③(소신 정리+여백)으로."
+      s.turnClose
+        ? "- (참고) 직전 별콩이 턴이 질문으로 끝났어 — 위 상태가 이미 그걸 반영했어."
+        : "- ⚠️ 직전 별콩이 턴이 질문으로 끝났어. **이번 턴은 질문으로 마무리하지 마** — ②(다음 볼거리 예고)나 ③(소신 정리+여백)으로."
     );
   }
   if (s.userShortStreak) {
     lines.push(
-      "- ⚠️ 유저 답이 연속으로 짧아지고 있어 (지친 신호). 질문으로 밀어붙이지 말고 정리·예고·여백으로 부드럽게 받아줘."
+      s.turnClose
+        ? "- (참고) 유저 답이 연속으로 짧아지고 있어 (지친 신호) — 위 상태가 이미 그걸 반영했어. 부드럽게 받아줘."
+        : "- ⚠️ 유저 답이 연속으로 짧아지고 있어 (지친 신호). 질문으로 밀어붙이지 말고 정리·예고·여백으로 부드럽게 받아줘."
     );
   }
   if (lines.length === 0) return "";
-  return `\n\n### 이번 턴 신호 (서버 감지 — 반드시 따를 것)\n${lines.join("\n")}`;
+
+  // 🔴 §위기 최우선을 명시한다 — 이 블록은 crisisActive 와 무관하게, 그리고
+  // CRISIS_STAY_GUIDE 뒤에 주입되므로 우선순위를 못박지 않으면 위기 안내를 덮는다.
+  const header = s.turnClose
+    ? "### 이번 턴 신호 (서버 감지 — 반드시 따를 것. 공통 코어 §턴 마무리·§심문 피로 방지와 어긋나면 아래 `턴 마무리 상태`가 우선. **단 §위기 안내가 필요한 턴은 §위기가 최우선** — 위기 앞에선 이 블록을 무시해.)"
+    : "### 이번 턴 신호 (서버 감지 — 반드시 따를 것)";
+  return `\n\n${header}\n${lines.join("\n")}`;
 }
 
 export interface ContinuationContext {
@@ -383,13 +538,21 @@ export async function* streamChat(
         yield r.value;
         r = await it.next();
       }
-      stopReason = r.value;
+      // 어댑터는 { stop, usage } 를 준다. 바깥(generateOnce·라우트)에는 StopReason 만 나가므로
+      // streamChat 시그니처는 불변이고 호출부 수정이 0 곳이다.
+      stopReason = r.value.stop;
+      // 시도가 끝까지 갔으면 토큰은 실제로 소비됐다 → 재시도로 버려질 시도도 기록한다.
+      void recordUsage(resolved, r.value.usage, logCtx);
     } catch (err) {
       // 일시적 upstream 에러(overloaded_error 등) 재시도. 이 에러는 API 가 HTTP 200 으로
       // 스트림을 연 뒤 SSE `error` 이벤트로 던지므로 SDK 요청 재시도(초기 연결만 감쌈)가
       // 못 잡는다(2026-08-04 prod). 아직 한 조각도 방출 안 했으면(!yielded) 클라엔 바이트가
       // 안 나갔으니 안전하게 재호출 → 대부분(1초 미만 blip) 복구. 이미 흘렸거나·재시도 소진·
       // 비일시적 에러면 그대로 던져 각 라우트 catch 가 로깅 + controller.error 로 마무리.
+      // ⚠️ 여기서 버려지는 시도의 토큰은 llm_usage 에 안 잡힌다 — 제너레이터가 throw 하면
+      //    return 값(usage)이 생기지 않기 때문이다. 실측 누락률 0.01%(전 기간 재시도 1건 /
+      //    assistant 메시지 9,953건, 2026-09-20)라 알려진 한계로 둔다. 이걸 메우려면 어댑터가
+      //    usage 를 mutable sink 로 밖에 흘려야 해서 계약이 오염된다.
       if (yielded || attempt >= MAX_ATTEMPTS || !adapter.isRetryableError(err)) {
         throw err;
       }
@@ -750,7 +913,8 @@ ${ctx.fileBlock}
 /** older 메시지 델타 요약 (haiku, 저비용). 이전 요약과 합쳐 갱신된 요약 반환. */
 export async function summarizeOlder(
   prevSummary: string | null,
-  older: { role: "user" | "assistant"; content: string }[]
+  older: { role: "user" | "assistant"; content: string }[],
+  userId?: string | null      // ← 추가. 원가를 유·무료로 분해하려면 필요하다(스펙 §4 1층).
 ): Promise<string> {
   const convo = older.map((m) => `${m.role === "user" ? "유저" : "별콩이"}: ${m.content}`).join("\n");
   const sys = `너는 연애 상담 대화의 기록 요약가야. 아래 [이전 요약]과 [새 대화]를 합쳐, 이 관계에서 오간 핵심(상황 변화·감정·별콩이 조언/처방·유저 반응)을 한국어 불릿 6~10개로 압축해. 사소한 잡담은 버리고, 나중에 대화를 이어갈 때 필요한 사실만. 200~500자.`;
@@ -760,6 +924,13 @@ export async function summarizeOlder(
     max_tokens: 700,
     system: sys,
     messages: [{ role: "user", content: user }],
+  });
+  // streamChat 을 안 타는 우회 경로 — 여기서 직접 기록한다(스펙 §4 착점 2).
+  // 매핑은 어댑터에서 재사용한다 — anthropic 회계 규칙(input_tokens 는 캐시 제외 잔여라
+  // 빼지 않는다)이 두 곳에 복제되면 한쪽만 고쳐질 때 조용히 갈라진다.
+  void recordUsage("claude-haiku-4-5-20251001", mapAnthropicUsage(resp.usage), {
+    route: "lib/claude.summarizeOlder",
+    userId,
   });
   const text = resp.content.find((b) => b.type === "text");
   return text && text.type === "text" ? text.text.trim() : (prevSummary ?? "");

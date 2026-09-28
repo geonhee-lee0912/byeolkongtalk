@@ -5,6 +5,9 @@ export type Provider = "anthropic" | "openai" | "gemini";
 const MODEL_PROVIDER: Record<string, Provider> = {
   "claude-sonnet-5": "anthropic",
   "claude-haiku-4-5": "anthropic",
+  // 실제 호출부(lib/claude.ts 롤링요약 · lib/sensitive.ts 민감판정)가 쓰는 정확한 문자열.
+  // 빠뜨리면 providerOf 가 throw 해서 원가 적재가 통째로 죽는다.
+  "claude-haiku-4-5-20251001": "anthropic",
   "gpt-5-mini": "openai",
   "gpt-5-nano": "openai",
   "gpt-5.6-luna": "openai",

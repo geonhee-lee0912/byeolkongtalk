@@ -3,6 +3,7 @@
 // streamChat(lib/claude.ts) 래퍼가 소유한다(anthropic 어댑터와 동일 계약).
 import OpenAI from "openai";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
+import type { Usage } from "@/lib/claude/pricing";
 
 // ⚠️ lazy 초기화. parse.test.ts 는 lib/ 아래라 CI(node --import tsx --test)가 실행하고 이 모듈을
 // import 한다. CI 엔 OPENAI_API_KEY 가 없어 모듈 로드 시 new OpenAI() 를 만들면 SDK 가 즉시 throw
@@ -19,6 +20,31 @@ export function mapOpenAIFinish(r: string | null | undefined): StopReason {
   if (r === "length") return "max_tokens";
   if (r === "content_filter") return "refusal";
   return r == null ? null : "other";
+}
+
+/**
+ * chat.completions 청크의 usage → 어댑터 계약.
+ * 🔴 prompt_tokens = ordinary + cached + cache_write (공식 문서 예제가 셋을 다 뺀다).
+ *    둘 다 빼야 ordinary 만 남는다 — cached 만 빼면 캐시쓰기분이 입력 요율(1.0×)로
+ *    계상돼 참 비용의 20% 가 조용히 증발한다.
+ *    ⚠️ anthropic 은 반대다 — input_tokens 가 이미 캐시 제외 잔여라 빼면 안 된다.
+ *       프로바이더마다 회계가 달라 복사하면 틀린다.
+ */
+export function mapOpenAIUsage(u: {
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  prompt_tokens_details?: { cached_tokens?: number | null; cache_write_tokens?: number | null } | null;
+}): Usage {
+  const d = u.prompt_tokens_details;
+  const cached = d?.cached_tokens ?? 0;
+  // gpt-5.6 계열은 캐시 **쓰기**도 청구한다(1.25×). nano 는 청구가 없어 필드가 비고 → 0.
+  const written = d?.cache_write_tokens ?? 0;
+  return {
+    inputTokens: Math.max(0, (u.prompt_tokens ?? 0) - cached - written),
+    outputTokens: u.completion_tokens ?? 0,
+    cacheReadTokens: cached,
+    cacheWriteTokens: written,
+  };
 }
 
 /**
@@ -67,17 +93,24 @@ export const openaiAdapter: ProviderAdapter = {
       //   는 "none"·"low" 만 지원("minimal"→400). 셋 다 되는 유일한 값이 "low" 라 이걸 쓴다.
       reasoning_effort: "low",
       stream: true,
+      // usage 는 이 옵션을 켜야 **마지막 청크**에 실려 온다(기본은 안 준다).
+      stream_options: { include_usage: true },
       messages: [{ role: "system", content: system }, ...messages],
       ...openaiResponseFormat(responseFormat),
     });
     let stop: StopReason = null;
+    let usage: Usage | null = null;
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) yield delta;
       const fr = chunk.choices[0]?.finish_reason;
       if (fr) stop = mapOpenAIFinish(fr);
+      // usage 청크는 choices 가 빈 배열이다 — 위 옵셔널 체이닝이 이미 안전하게 넘긴다.
+      if (chunk.usage) {
+        usage = mapOpenAIUsage(chunk.usage);
+      }
     }
-    return stop;
+    return { stop, usage };
   },
   isRetryableError(err: unknown) {
     const status = (err as { status?: number })?.status;

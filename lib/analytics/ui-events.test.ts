@@ -17,3 +17,31 @@ test("isUiEvent — MBTI 이벤트 통과, 오타 거부", () => {
   assert.equal(isUiEvent("saju_mbti_completed"), true);
   assert.equal(isUiEvent("saju_mbti_finish"), false);
 });
+
+test("UI_EVENTS — 별마루 계측 4종이 등록돼 있다", () => {
+  for (const e of [
+    "byeolmaru_day_selected",
+    "byeolmaru_slot_clicked",
+    "byeolmaru_no_profile",
+    "byeolmaru_need_login",
+  ]) {
+    assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
+  }
+});
+
+test("UI_EVENTS — 별마루 ② 페이월 이벤트가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_gate_shown"), true);
+  assert.equal(isUiEvent("byeolmaru_trial_started"), true);
+  assert.equal(isUiEvent("byeolmaru_subscribe_clicked"), true);
+  assert.equal(isUiEvent("byeolmaru_subscribe_completed"), true);
+});
+
+// P5-4 T3 — 미끼 당일 접힘(slot별) 닫기 클릭 계측.
+test("UI_EVENTS — 별마루 미끼 닫기(당일 접힘) 이벤트가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_gate_dismissed"), true);
+});
+
+// P5-3 T5 — 허브 "무료로 더 볼 것" 목록 3종(오늘 타로·사주 MBTI·별 인연 지도) 행 클릭.
+test("UI_EVENTS — 별마루 무료 목록 3종 클릭 이벤트가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_free_item_clicked"), true);
+});

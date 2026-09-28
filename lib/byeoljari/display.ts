@@ -18,8 +18,8 @@ export function starColor(element: string): string {
 
 // 관계선 색(단일 원천) — 범례·지도 선·칩이 전부 참조(드리프트 방지). STAR_ELEMENT_COLORS(별색)와 별개.
 export const BOND_COLOR = {
-  heavenly: "#F2D78A", // 끌림(천간합) — 골드
-  six: "#A98BEE",      // 결속(육합) — 보라
+  heavenly: "#F2D78A", // 설렘(천간합) — 골드
+  six: "#A98BEE",      // 척척(육합) — 보라
   triad: "#5DCAA5",    // 같은 결(삼합) — 청록
 } as const;
 

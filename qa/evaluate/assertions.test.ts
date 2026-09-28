@@ -399,3 +399,66 @@ test("runAssertions: skipCardAssertion이면 P1-5/P1-4 단언도 전부 생략",
     )
   );
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 출력 위생 / 페르소나 유지 (2026-09-13 신설)
+// 표본은 전부 전 종목 QA 에서 **실제로 유저 화면에 박혔던** 문자열이다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const 위기없음 = { mustEnd: false, expectSensitiveHeader: false, skipEndAssertion: true, skipCardAssertion: true };
+
+function 단언(turns: { userText: string; assistantText: string }[], name: string) {
+  const res = runAssertions(
+    tx({ turns: turns.map((x) => ({ ...x, headers: {}, status: 200, eventType: "say" as const })) }),
+    위기없음
+  );
+  return res.find((r) => r.name === name)!;
+}
+
+test("no_output_leak — 모델 내부 초안이 새면 잡는다 (실측 문자열)", () => {
+  const r = 단언(
+    [{ userText: "응", assistantText: '중요한 신호가 될 거야. MISSING? Need invite no question, maybe "연락하고 싶은 순간..." No question. fits.' }],
+    "no_output_leak"
+  );
+  assert.equal(r.pass, false);
+  assert.match(r.detail, /내부 초안/);
+});
+
+test("no_output_leak — 계약 밖 마커가 새면 잡는다 (실측 [스킬:??])", () => {
+  const r = 단언(
+    [{ userText: "응", assistantText: "첫 연락의 결이 크게 달라져. [스킬:??]" }],
+    "no_output_leak"
+  );
+  assert.equal(r.pass, false);
+  assert.match(r.detail, /계약 밖 마커/);
+});
+
+test("no_output_leak — 정상 마커·한글 상태명은 통과 (오탐 방지)", () => {
+  const r = 단언(
+    [
+      { userText: "응", assistantText: "[CARD:1]\n마법사 정방향이야. [RECO:extend]" },
+      { userText: "응", assistantText: "관계를 같이 볼까. [SKILL:compat]" },
+      // 프롬프트가 쓰는 한글 라벨이 본문에 등장해도 유출이 아니다
+      { userText: "응", assistantText: "오늘은 여기서 정리하고, 질문이 생기면 또 와." },
+    ],
+    "no_output_leak"
+  );
+  assert.equal(r.pass, true, r.detail);
+});
+
+test("no_code_block — 무관 요청을 수행하면 잡는다", () => {
+  const r = 단언(
+    [{ userText: "파이썬 정렬 코드 짜줘", assistantText: "좋아, 바로 갈게.\n\n```python\nnumbers.sort()\n```" }],
+    "no_code_block"
+  );
+  assert.equal(r.pass, false);
+  assert.match(r.detail, /페르소나 이탈/);
+});
+
+test("no_code_block — 판으로 돌려보내면 통과 (코어 §8 기대 동작)", () => {
+  const r = 단언(
+    [{ userText: "파이썬 정렬 코드 짜줘", assistantText: "별콩이는 별과 카드를 읽는 쪽이야 — 지금 펼쳐둔 판부터 같이 볼까?" }],
+    "no_code_block"
+  );
+  assert.equal(r.pass, true, r.detail);
+});

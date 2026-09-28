@@ -4,6 +4,7 @@ import {
   FORTUNE_CONFIG,
   FORTUNE_CATEGORY,
   FORTUNE_CHIPS,
+  FORTUNE_LIST,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
 } from "./types.ts";
@@ -50,15 +51,17 @@ test("타이밍엔 daily 없음, 2026 사주 포함", () => {
   assert.ok(timing.includes("saju_full"));
 });
 
-test("무료 칩엔 오늘의 운세만", () => {
-  const free = fortuneProductsByCategory("free").map((f) => f.type);
-  assert.deepEqual(free, ["daily"]);
+test("2탭 유료 전용화 — 무료 칩 제거 · daily 진열 은퇴", () => {
+  assert.ok(!FORTUNE_LIST.some((f) => f.type === "daily"), "FORTUNE_LIST 에 daily 없음");
+  assert.ok(!FORTUNE_CHIPS.some((c) => c.key === "free"), "FORTUNE_CHIPS 에 free 칩 없음");
+  assert.equal(FORTUNE_CONFIG.daily.active, false, "daily active:false 은퇴");
+  assert.equal(FORTUNE_CATEGORY.daily, "free", "daily category 레코드는 보존");
 });
 
-test("칩 6개 · 순서 · 기본은 연애·관계", () => {
+test("칩 5개 · 순서 · 기본은 연애·관계", () => {
   assert.deepEqual(
     FORTUNE_CHIPS.map((c) => c.key),
-    ["love_relation", "identity", "fun", "money_work", "timing", "free"]
+    ["love_relation", "identity", "fun", "money_work", "timing"]
   );
   assert.equal(DEFAULT_FORTUNE_CHIP, "love_relation");
 });

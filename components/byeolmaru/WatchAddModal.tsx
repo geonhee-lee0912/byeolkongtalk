@@ -1,0 +1,427 @@
+"use client";
+
+// components/byeolmaru/WatchAddModal.tsx — "우리 오늘"에 걸어둘 상대를 정하는 모달.
+// 두 경로: ①이미 등록된 비-self 프로필 고르기 ②새로 등록(ProfileForm 재사용).
+// 🔴 상대는 **한 명**이라 이건 "담기"가 아니라 **교체**다(2026-09-24). 슬롯·별 확인(StarConfirmModal)
+//    경로는 통째로 사라졌다 — 교체는 무료다. 이미 건 사람이 있으면 그 자리를 이 사람이 대신한다.
+//    🔴 되돌리기가 값싸다: 과거 리포트는 (user, partner, 날짜) 키라 남아 있고, 프로필도 안 지우므로
+//       예전 상대를 다시 고르면 그날 기록이 그대로 살아난다.
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import {
+  RELATIONSHIP_STATUS_LABELS,
+  type RelationshipStatus,
+} from "@/lib/relationship/types";
+
+interface WatchCandidate {
+  id: string;
+  name: string;
+}
+
+interface WatchGetResponse {
+  suggestions: WatchCandidate[];
+}
+
+type Tab = "pick" | "register";
+type LoadState = "loading" | "ready" | "error";
+
+// 관계칩(pick·register 공통) — ProfileEditModal:281-301 순서 그대로. 이모지는
+// SituationSelect CHIP(로컬 상수·export 안 됨)과 동일 값을 소규모 복제.
+// 🔴 값·컨트롤 모양 모두 FortuneSajuPicker 의 선례를 그대로 쓴다(거기도 5명/페이지).
+//    저장소에 목록 페이지네이션 문법이 이미 있으므로 새로 만들지 않는다.
+const LIST_PAGE_SIZE = 5;
+
+const STATUS_OPTIONS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
+const STATUS_EMOJI: Record<RelationshipStatus, string> = {
+  crush: "💗",
+  dating: "💞",
+  onesided: "🌱",
+  breakup: "🥀",
+};
+
+export interface WatchAddModalProps {
+  onClose: () => void;
+  /** 담기 성공 — 부모가 모달을 닫고 목록을 새로고침하도록 알림. */
+  onAdded: (profileId: string) => void;
+}
+
+export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) {
+  const [tab, setTab] = useState<Tab>("pick");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [suggestions, setSuggestions] = useState<WatchCandidate[]>([]);
+  // 다음 1명 담을 때 비용(0=무료) — GET 마운트 스냅샷. add flow 성공 시 onAdded 직후 onClose로
+  // 모달이 곧장 닫혀 세션당 add는 최대 1건이라, 스냅샷을 재사용해도 staleness 문제가 없다.
+  const [newName, setNewName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // 새 등록 성공 후 상태 — 폼을 "등록 완료" 카드로 바꿔, StarConfirmModal 취소/실패 후 재제출이
+  // /api/profiles 를 다시 쳐서 같은 사람을 중복 생성하는 걸 막는다(리뷰 Important). 재시도는 watch-add 만.
+  const [registered, setRegistered] = useState<{ id: string; name: string } | null>(null);
+  const [listPage, setListPage] = useState(0);
+  // 관계칩 — pick·register 두 경로가 공유하는 단일 상태(둘 다 결국 submitWatch 통과). 기본 "연애 중".
+  const [status, setStatus] = useState<RelationshipStatus>("dating");
+
+  const busy = submitting;
+
+  // 마운트 시 후보 목록 + 다음 비용 로드
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/byeolmaru/watch", { cache: "no-store" });
+        if (!res.ok) {
+          if (!cancelled) setLoadState("error");
+          return;
+        }
+        const data: WatchGetResponse = await res.json();
+        if (cancelled) return;
+        setSuggestions(data.suggestions ?? []);
+        setLoadState("ready");
+      } catch {
+        if (!cancelled) setLoadState("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 배경 스크롤 잠금 — ProfileEditModal과 동일 패턴
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  // ESC 닫기(제출 중엔 닫기 불가) — ProfileEditModal과 동일 패턴
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !submitting) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [submitting, onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  // 🔴 별 확인 단계가 없다(2026-09-24) — 교체는 무료라 곧장 POST 한다. 예전엔 무료 슬롯이
+  //    소진되면 잔액을 조회해 StarConfirmModal 을 띄웠다.
+  function startAddFlow(profileId: string) {
+    if (busy) return;
+    setError(null);
+    void submitWatch(profileId);
+  }
+
+  async function submitWatch(profileId: string) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/byeolmaru/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId, status }),
+      });
+      if (!res.ok) {
+        setError("담지 못했어. 잠시 후 다시 시도해줄래?");
+        setSubmitting(false);
+        return;
+      }
+      trackUiEvent("byeolmaru_watch_add", { meta: { via: registered ? "register" : "pick" } });
+      onAdded(profileId);
+      onClose();
+    } catch {
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+      setSubmitting(false);
+    }
+  }
+
+  const trimmedNewName = newName.trim();
+  const newNameValid = trimmedNewName.length >= 1 && trimmedNewName.length <= 50;
+
+  // 새로 등록 — displayName 유효성은 payload가 아니라 이 컴포넌트의 newName으로 직접 검사한다
+  // (ProfileForm mode="self"는 defaultSelfName이 비어 있으면 "나"로 조용히 대체하므로
+  // payload.displayName만 보면 빈 입력을 걸러낼 수 없다 — ProfileEditModal의 labelValid와 동일 이유).
+  async function handleRegisterSubmit(payload: ProfilePayload) {
+    if (busy) return;
+    // 이미 이 세션에서 등록을 마쳤으면 재-POST 금지 — watch-add 만 재시도(중복 프로필 방지).
+    if (registered) { startAddFlow(registered.id); return; }
+    if (!newNameValid) {
+      setError("이름을 입력해줄래?");
+      return;
+    }
+    // /api/profiles는 optionalBirth 없이 strict 검증(생일 필수) — "생일 몰라요"로 제출하면
+    // 항상 400(invalid_birth_date)이라 재시도로 해결되지 않는다. 미리 걸러 정확한 안내를 준다.
+    if (!payload.birthDate) {
+      setError("생일을 알아야 담을 수 있어 — 아래에서 입력해줄래?");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          relationType: "partner",
+          displayName: payload.displayName,
+          birthDate: payload.birthDate,
+          birthTime: payload.birthTime,
+          isLunarInput: payload.isLunarInput,
+          isLeapMonth: payload.isLeapMonth,
+          gender: payload.gender,
+        }),
+      });
+      if (!res.ok) {
+        setError("등록이 안 됐어. 잠시 후 다시 시도해줄래?");
+        setSubmitting(false);
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as { profile?: { id?: string } };
+      const profileId = data.profile?.id;
+      if (typeof profileId !== "string") {
+        setError("등록이 안 됐어. 잠시 후 다시 시도해줄래?");
+        setSubmitting(false);
+        return;
+      }
+      setSubmitting(false);
+      setRegistered({ id: profileId, name: trimmedNewName });
+      startAddFlow(profileId);
+    } catch {
+      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
+      setSubmitting(false);
+    }
+  }
+
+
+  return createPortal(
+    <div
+      // z-[75] — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
+      // (ThreadDrawModal과 동일 이유·동일 값. z-100으로 올리면 결제 확인이 이 모달 아래 깔려 클릭 불가해진다)
+      className="fixed inset-0 z-[75] flex items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in px-5"
+      onClick={() => !busy && onClose()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-[17px] font-bold text-eye-purple">
+              누구를 담아볼까?
+            </h2>
+            <button
+              onClick={() => !busy && onClose()}
+              aria-label="닫기"
+              disabled={busy}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setTab("pick")}
+              disabled={busy}
+              className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+                tab === "pick"
+                  ? "bg-lilac-deep text-white"
+                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+              }`}
+            >
+              이미 아는 사람
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("register")}
+              disabled={busy}
+              className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+                tab === "register"
+                  ? "bg-lilac-deep text-white"
+                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+              }`}
+            >
+              새로 등록
+            </button>
+          </div>
+
+          {/* 관계칩 — pick·register 두 탭 공통(이 블록 자체가 tab 분기 밖). 담기 확정(pick 항목
+              탭 / register 폼 제출) 전에 항상 노출돼, 어느 경로든 submitWatch 호출 시점엔 이미 반영돼 있다. */}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-[13px] font-bold text-eye-purple mb-1">관계 상태</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {STATUS_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setStatus(s);
+                    trackUiEvent("byeolmaru_watch_status_set", { meta: { status: s } });
+                  }}
+                  disabled={busy}
+                  className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+                    status === s
+                      ? "bg-lilac-deep text-white"
+                      : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  }`}
+                >
+                  {STATUS_EMOJI[s]} {RELATIONSHIP_STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          {error && <p className="text-[12px] text-red-500 text-center">{error}</p>}
+        </div>
+
+        {tab === "pick" ? (
+          <div className="px-5 pb-5 flex flex-col gap-2">
+            {loadState === "loading" && (
+              <p className="text-[13px] text-text-light text-center py-4">불러오는 중…</p>
+            )}
+            {loadState === "error" && (
+              <p className="text-[13px] text-text-light text-center py-4">
+                지금은 목록을 못 가져왔어. 잠시 후 다시 열어줄래?
+              </p>
+            )}
+            {loadState === "ready" && suggestions.length === 0 && (
+              <p className="text-[13px] text-text-light text-center py-4">
+                아직 등록해둔 사람이 없어 — 새로 등록해볼까?
+              </p>
+            )}
+            {loadState === "ready" && suggestions.length > 0 && (() => {
+              const totalPages = Math.max(1, Math.ceil(suggestions.length / LIST_PAGE_SIZE));
+              // 🔴 렌더 중에 보정만 한다(setState 금지) — 목록이 줄어 현재 페이지가 범위를 벗어나도
+              //    빈 화면이 안 나오게. FortuneSajuPicker 의 safeListPage 와 같은 방식이다.
+              const page = Math.min(listPage, totalPages - 1);
+              const paged = suggestions.slice(page * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE + LIST_PAGE_SIZE);
+              return (
+                <>
+                  {/* 🔴 목록 타이틀(2026-09-27, 사용자 요청) — 위 "관계 상태" legend 와 **같은 양식**
+                      (13px bold eye-purple)이라 모달 안에서 두 묶음이 같은 리듬으로 읽힌다.
+                      인원수를 같이 쓴다 — 페이지네이션이 붙는 목록이라 전체가 몇인지가 보여야 한다. */}
+                  <p className="text-[13px] font-bold text-eye-purple mb-1">
+                    이미 아는 사람 <span className="font-normal text-text-light">{suggestions.length}명</span>
+                  </p>
+                  {paged.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => startAddFlow(s.id)}
+                      disabled={busy}
+                      className="w-full px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] font-bold text-left hover:bg-lilac-soft/40 active:scale-[0.98] transition disabled:opacity-50"
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                  {/* 🔴 한 페이지로 끝나면 컨트롤을 안 그린다 — 정확히 5명일 때 누를 데 없는 "1" 만
+                      남는 걸 막는다(요청은 "5명 이상이면"이지만 5명은 1페이지라 그릴 게 없다). */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setListPage((n) => Math.max(0, n - 1))}
+                        disabled={page === 0 || busy}
+                        aria-label="이전"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                      </button>
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setListPage(i)}
+                          aria-label={`${i + 1}페이지`}
+                          aria-current={i === page ? "page" : undefined}
+                          disabled={busy}
+                          className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                            i === page ? "bg-lilac-deep text-white" : "text-text-light/70 hover:bg-lilac-soft/50"
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setListPage((n) => Math.min(totalPages - 1, n + 1))}
+                        disabled={page === totalPages - 1 || busy}
+                        aria-label="다음"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-eye-purple disabled:opacity-30"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        ) : registered ? (
+          <div className="px-5 pb-5 flex flex-col gap-3">
+            <p className="text-[14px] text-eye-purple text-center py-2">
+              <span className="font-bold">{registered.name}</span> 등록 완료
+            </p>
+            <button
+              type="button"
+              onClick={() => startAddFlow(registered.id)}
+              disabled={busy}
+              className="w-full py-2.5 rounded-xl bg-lilac-deep text-white text-[14px] font-bold disabled:opacity-50"
+            >
+              우리 오늘에 담기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRegistered(null);
+                setNewName("");
+              }}
+              disabled={busy}
+              className="w-full py-2 text-[13px] text-text-light disabled:opacity-50"
+            >
+              다른 사람 등록하기
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="px-5 flex flex-col gap-2 mb-4">
+              <fieldset className="flex flex-col gap-2">
+                <legend className="text-[13px] font-bold text-eye-purple mb-1">이름</legend>
+                <input
+                  type="text"
+                  value={newName}
+                  maxLength={50}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="이름을 알려줄래?"
+                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
+                />
+              </fieldset>
+            </div>
+            <ProfileForm
+              mode="self"
+              extended
+              defaultSelfName={trimmedNewName}
+              submitLabel="이 사람 담기"
+              loading={submitting || loadState === "loading"}
+              onSubmit={(payload) => void handleRegisterSubmit(payload)}
+            />
+          </>
+        )}
+        <div className="h-5" />
+      </div>
+
+    </div>,
+    document.body
+  );
+}

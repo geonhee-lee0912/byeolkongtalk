@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isRetryableUpstreamError } from "@/lib/upstream-error";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
+import type { Usage } from "@/lib/claude/pricing";
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
@@ -11,6 +12,25 @@ const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 function mapStop(r: string | null | undefined): StopReason {
   if (r === "end_turn" || r === "max_tokens" || r === "refusal") return r;
   return r == null ? null : "other";
+}
+
+/**
+ * message_start 의 usage → 어댑터 계약. anthropic 은 input_tokens 가 **캐시 제외 잔여**라
+ * 빼지 않는다(SDK JSDoc: "Total input tokens ... is the summation of input_tokens,
+ * cache_creation_input_tokens, and cache_read_input_tokens").
+ */
+export function mapAnthropicUsage(u: {
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}): Usage {
+  return {
+    inputTokens: u.input_tokens ?? 0,
+    outputTokens: u.output_tokens ?? 0,
+    cacheReadTokens: u.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
+  };
 }
 
 export const anthropicAdapter: ProviderAdapter = {
@@ -46,14 +66,20 @@ export const anthropicAdapter: ProviderAdapter = {
     });
 
     let stop: StopReason = null;
+    // usage 는 두 이벤트에 나눠 온다 — message_start 가 입력(캐시 포함), message_delta 가 출력.
+    let usage: Usage | null = null;
     for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      if (event.type === "message_start") {
+        usage = mapAnthropicUsage(event.message.usage);
+      } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         yield event.delta.text;
       } else if (event.type === "message_delta") {
         stop = mapStop(event.delta.stop_reason) ?? stop;
+        // 출력 토큰의 최종값은 여기 온다 — message_start 의 output_tokens 는 자리표시자다.
+        if (usage) usage.outputTokens = event.usage.output_tokens ?? usage.outputTokens;
       }
     }
-    return stop;
+    return { stop, usage };
   },
   isRetryableError: isRetryableUpstreamError,
 };

@@ -56,9 +56,12 @@ export default function CompatMatchDiagram({
     return null; // 비정상 사주(legacy) 방어
   }
 
+  // 🔴 어휘는 별마루 달력·지도와 한 세트다(설렘=천간합 · 척척=육합) — 같은 판정이 지면마다
+  //    다른 이름을 갖지 않게 맞춘다. 선정 기준은 lib/byeolmaru/day-label.ts dayMarks JSDoc 참조.
+  //    (이 화면은 두 사람을 보므로 "목적어가 빈다"는 그쪽 근거는 해당 없지만, 이름은 통일한다.)
   const badges: { emoji: string; label: string }[] = [];
-  if (rel.heavenlyCombo) badges.push({ emoji: "⚡", label: "끌림" });
-  if (rel.sixCombo) badges.push({ emoji: "🔗", label: "결속" });
+  if (rel.heavenlyCombo) badges.push({ emoji: "⚡", label: "설렘" });
+  if (rel.sixCombo) badges.push({ emoji: "🔗", label: "척척" });
 
   return (
     <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">

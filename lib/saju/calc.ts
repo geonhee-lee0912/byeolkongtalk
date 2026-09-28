@@ -33,6 +33,8 @@ export interface DailyLuck {
   stem: string;
   branch: string;
   element: FiveElement;
+  /** 2자 한자 "己丑" — 화면이 일진을 크게 띄울 때 쓴다(한글 간지는 60갑자 중 일부가 욕설로 읽힌다). */
+  hanja: string;
 }
 
 export interface TemporalLuck {
@@ -187,6 +189,50 @@ function fmtDate(dt: Date): string {
 }
 
 /**
+ * KST 날짜 문자열("2026-09-01") → 그 날짜의 로컬 정오 Date.
+ *
+ * calcTemporalLuck 은 baseDate.getFullYear()/getMonth()/getDate()(= 로컬 TZ getter)로 날짜를
+ * 읽는다. Vercel 서버는 UTC 로 돌기 때문에 new Date() 를 그대로 넘기면 KST 00~09시 사이엔
+ * 어제 날짜로 계산된다 — 호출부는 반드시 kstDate(lib/admin-time.ts, UTC+9 계산)로 구한 KST
+ * 날짜 문자열을 이 함수로 다시 local Date 로 복원해서 넘겨야 한다. 정오로 고정하는 건
+ * DST·자정 경계 반올림에 걸리지 않기 위함(아래 calcTemporalLuck 의 dailyLuck 루프는
+ * setDate() 로 하루씩 증가시킨다 — 자정 기준이면 서버 TZ 에 따라 하루 밀릴 수 있다).
+ *
+ * 바로 위 fmtDate 와 이 함수는 같은 "로컬 getter = 달력 날짜" 규약을 공유한다 — 두 함수를 이
+ * 파일에 함께 둬야, 나중에 fmtDate 를 toISOString().slice(0,10) 같은 UTC 기반으로 "정리"하려는
+ * 사람이 바로 옆에서 baseDateForKst 를 보고 규약이 깨진다는 걸 알아챌 수 있다. 별도 feature
+ * 폴더에 숨어 있던 게 애초에 fortune/create·readings 세 호출부가 안전하지 않게 new Date() 를
+ * 그대로 넘겼던 이유였다.
+ */
+export function baseDateForKst(todayKst: string): Date {
+  const [y, m, d] = todayKst.split("-").map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0);
+}
+
+/**
+ * [startKst, endKst] 양끝 포함 일진 목록. calcTemporalLuck 의 30일 루프와 **같은 규약**이다 —
+ * 정오 고정(자정 경계 반올림 회피) · 로컬 getter = 달력 날짜(baseDateForKst 주석 참조).
+ * 별마루 P5-2 에서 달력 범위가 "오늘부터 30일" → "이번 달"로 바뀌며 필요해졌다.
+ * 🔴 end < start 면 빈 배열 — 호출부 실수로 무한 루프가 나지 않게 while 조건이 곧 가드다.
+ */
+export function calcDailyLuckRange(startKst: string, endKst: string): DailyLuck[] {
+  const out: DailyLuck[] = [];
+  const cur = baseDateForKst(startKst);
+  const end = baseDateForKst(endKst);
+  while (cur.getTime() <= end.getTime()) {
+    const dayParts = toParts(
+      SolarTime.fromYmdHms(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), 12, 0, 0)
+        .getLunarHour()
+        .getEightChar()
+        .getDay()
+    );
+    out.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement, hanja: dayParts.hanja });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+/**
  * 오늘(baseDate) 기준 세운/월운/일운 계산. 정오로 계산해 자시 경계 모호성을 피한다(세운/월운/일운은 시각 무관).
  * @param includeMonth true 면 오늘부터 30일 일진(dailyLuck) 도 채운다 (good_days 전용).
  */
@@ -201,18 +247,10 @@ export function calcTemporalLuck(
 
   let dailyLuck: DailyLuck[] | undefined;
   if (opts?.includeMonth) {
-    dailyLuck = [];
-    for (let i = 0; i < 30; i++) {
-      const cur = new Date(baseDate);
-      cur.setDate(cur.getDate() + i);
-      const dayParts = toParts(
-        SolarTime.fromYmdHms(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), 12, 0, 0)
-          .getLunarHour()
-          .getEightChar()
-          .getDay()
-      );
-      dailyLuck.push({ date: fmtDate(cur), stem: dayParts.stem, branch: dayParts.branch, element: dayParts.stemElement });
-    }
+    // 오늘부터 30일(양끝 포함이므로 +29). 범위 계산은 calcDailyLuckRange 단일 원천.
+    const endD = new Date(baseDate);
+    endD.setDate(endD.getDate() + 29);
+    dailyLuck = calcDailyLuckRange(fmtDate(baseDate), fmtDate(endD));
   }
 
   return {

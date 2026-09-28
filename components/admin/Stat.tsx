@@ -4,13 +4,10 @@
 // 나란히 놓고 못 읽게 된다.
 import type { ReactNode } from "react";
 
-// invert: 증가가 나쁜 지표(탈퇴 등)는 색을 뒤집는다 — 안 뒤집으면 탈퇴 급증이 초록으로 떠서 오독된다.
-export function Delta({ today, yesterday, label = "어제", invert = false }: { today: number; yesterday: number; label?: string; invert?: boolean }) {
+export function Delta({ today, yesterday, label = "어제" }: { today: number; yesterday: number; label?: string }) {
   if (yesterday === 0) return <span className="text-lg font-normal text-white/40">{label} 0</span>;
   const pct = ((today - yesterday) / yesterday) * 100;
-  const up = invert ? pct < 0 : pct > 0;
-  const down = invert ? pct > 0 : pct < 0;
-  const cls = up ? "text-emerald-400" : down ? "text-red-400" : "text-white/40";
+  const cls = pct > 0 ? "text-emerald-400" : pct < 0 ? "text-red-400" : "text-white/40";
   // 바깥은 줄바꿈 허용 — 누적값이 커지면(예: "(어제까지 107,900)") 통짜 nowrap 이 375px 를 넘겨
   // 대시보드 전체에 가로 스크롤을 만든다. 조각별로만 nowrap 을 걸어 "%"와 "(…)" 사이에서 끊는다.
   return (
@@ -22,15 +19,12 @@ export function Delta({ today, yesterday, label = "어제", invert = false }: { 
 }
 
 // sub: 값 아래 한 줄. children(=Delta)은 값과 같은 줄이라 서브라인 자리가 없다.
-export function Stat({ label, value, paren, children, sub }: { label: string; value: string | number; paren?: string; children?: ReactNode; sub?: ReactNode }) {
+export function Stat({ label, value, children, sub }: { label: string; value: string | number; children?: ReactNode; sub?: ReactNode }) {
   return (
     <div className="rounded-xl bg-white/5 border border-white/10 p-4">
       <div className="text-[12px] text-white/60">{label}</div>
       <div className="text-2xl font-bold mt-1 flex items-baseline gap-x-2 flex-wrap">
-        <span>
-          {value}
-          {paren && <span className="text-sm font-normal text-white/50 ml-1.5">({paren})</span>}
-        </span>
+        <span>{value}</span>
         {children}
       </div>
       {sub && <div className="text-[12px] text-white/50 mt-1.5">{sub}</div>}

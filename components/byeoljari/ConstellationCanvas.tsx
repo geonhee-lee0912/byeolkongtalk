@@ -58,7 +58,7 @@ export default function ConstellationCanvas({
   return (
     <svg viewBox="0 0 100 100" className="block h-full w-full" role="img" aria-label="별자리 관계망">
       <defs>
-        {/* 끌림(천간합) 골드 글로우 — 반짝 강조 */}
+        {/* 설렘(천간합) 골드 글로우 — 반짝 강조 */}
         <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur stdDeviation="1.1" />
         </filter>
@@ -127,7 +127,7 @@ export default function ConstellationCanvas({
             (포커스는 buildFocusGraph 합성 스포크가 담당). 별 뒤에 그려 노드가 위로 오게. */}
         {!focusMode &&
           graph.triads.map((t, ti) => {
-            if (activeFilter != null && activeFilter !== "triad") return null; // 끌림/결속 필터 시 같은 결 숨김
+            if (activeFilter != null && activeFilter !== "triad") return null; // 설렘/척척 필터 시 같은 결 숨김
             if (activeTriadGroup != null && ti !== activeTriadGroup) return null; // 하위 칩 선택 시 그 그룹만
             const pts = t.memberIds
               .map((id) => pos(id))

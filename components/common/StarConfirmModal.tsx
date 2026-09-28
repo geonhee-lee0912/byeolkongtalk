@@ -3,7 +3,7 @@
 // 별 결제 확인 팝업 — 타로 카드 뽑기 + 별콩 운세 공용.
 // 타로는 spreadLabel 기반 기본 카피, 운세는 title/subtitle 직접 전달.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export interface StarConfirmModalProps {
@@ -19,6 +19,8 @@ export interface StarConfirmModalProps {
   targetName?: string;
   /** 기본 카피용 (타로) */
   spreadLabel?: string;
+  /** heading 블록과 비용/잔액 요약 박스 사이에 얹는 추가 콘텐츠(예: 별마루 구독 가치·가격). 미지정 시 아무것도 렌더하지 않는다 */
+  extra?: ReactNode;
   onConfirm: () => void;
   onCharge: () => void;
   onClose: () => void;
@@ -34,6 +36,7 @@ export default function StarConfirmModal({
   confirmLabel,
   targetName,
   spreadLabel,
+  extra,
   onConfirm,
   onCharge,
   onClose,
@@ -55,8 +58,10 @@ export default function StarConfirmModal({
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
+      {/* max-h+overflow — 구독 시트처럼 내용이 긴 호출부에서 뷰포트를 넘으면 스크롤 없이 잘려
+          확인 버튼에 손이 안 닿는다(WatchAddModal 과 같은 처방). 짧은 호출부엔 영향 없다. */}
       <div
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
+        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6 max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 별콩이 + 안내 */}
@@ -77,6 +82,8 @@ export default function StarConfirmModal({
             <p className="text-[12px] text-text-light/85 mt-1">{sub}</p>
           )}
         </div>
+
+        {extra}
 
         {/* 비용/잔액 요약 */}
         <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-[13px]">

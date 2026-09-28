@@ -1,0 +1,211 @@
+"use client";
+
+import type { DayTone } from "@/lib/byeolmaru/day-score";
+import type { LockedCell } from "@/lib/byeolmaru/calendar";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { cellTint, cellTextColor, scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
+import type { DayMark } from "@/lib/byeolmaru/day-label";
+
+// 나(DayCell)·우리(PairDayCell) 어느 쪽도 아닌 정규화 셀 — 두 판정 엔진의 톤 3단(good/normal/
+// caution)이 같은 union(DayTone===PairTone)이라 호출부가 이 모양으로만 매핑해 넘기면 그리드는
+// 어느 쪽 캘린더든 그대로 그린다.
+export interface GridCell {
+  date: string;
+  /** 셀 배경 채도의 원천. TodayLead 의 "오늘 N점"과 **같은 DayCell.score** 값이다
+   *  (둘이 갈리면 같은 날이 다른 점수로 보인다). */
+  score: number;
+  /** aria-label 과 계측에만 쓴다 — 배경엔 안 쓴다(아래 TONE_STYLE 제거 주석). */
+  tone: DayTone;
+  label: string;
+  isToday: boolean;
+  /** 원인 마크(P5-1). 🔴 격자 셀은 marks 를 **그리지 않는다** — 시각 표면은 0개고, aria-label
+   *  (`:143` 근처)에 전부(첫 마크만이 아니라 이어붙여) 실린다. 마크를 눈으로 보는 곳은 상세
+   *  카드와 지도다. 나 탭은 dayFactors() 특성상 육합과 충이 같은 지지 짝이라 동시에 참이 될 수
+   *  없지만, 우리 탭은 두 사람을 각각 보므로(한쪽은 육합·다른 쪽은 충) 셋이 동시에 참일 수 있다.
+   *  🔴 옵셔널이 아니다 — 옵셔널이면 호출부에서 marks 전달을 빼도 타입체크·테스트가 다 통과한 채
+   *     aria-label 만 조용히 "왜"를 잃는다(화면엔 아무 변화가 없어 스크린리더 없이는 눈치채기
+   *     더 어렵다). 나·우리 두 판정이 각자 마크를 만들어 넘긴다(나=dayMarks, 우리=pairMarks). */
+  marks: DayMark[];
+}
+
+// 🔴 라이트 B 팔레트(스펙 §4) — @theme 토큰에 없는 값은 여기 상수로 둔다. 새 토큰을 만들지
+//    않는 이유: 이 색들은 "달력 판 안에서만" 쓰는 국소 팔레트라 전역 토큰으로 올리면 다른 지면이
+//    실수로 집어 쓴다(ELEMENT_COLORS 가 SajuBoard 안에 사는 것과 같은 이유).
+// 판 안에 명암을 만드는 게 핵심이다 — 무난한 날이 순백이라 좋은 날(금색)이 떠 보인다.
+// 🔴 이 세 값은 **허브의 달력 판도 쓴다**(ByeolmaruHub 가 import). 바꿀 땐 세 지면을 같이 볼 것
+//    (허브 판 · 우리 탭 격자 · 게스트 구경 그리드).
+// 🔴 **판과 칸은 한 쌍이다.** 판이 흰색이므로 셀 배경에는 알파 바닥이 필요하다 — 같은 색이면
+//    칸이 통째로 사라진다. 그 바닥(0.11)은 calendar-visual.ts 의 cellTint 가 지키고 계약
+//    테스트가 고정한다. 판을 다시 칠할 거면 그 바닥도 같이 옮겨야 한다.
+//    (크림 그라데이션 판 + 순백 칸 조합을 거쳐 왔다 — 판을 흰색으로 올리면서 칸을 내렸다.)
+export const PANEL_BG = "#ffffff";
+export const PANEL_BORDER = "1px solid rgba(184,168,216,.35)";
+export const PANEL_SHADOW = "0 4px 18px rgba(159,138,208,0.10)";
+
+// 🔴 TONE_STYLE(등급 3단 색면)은 2026-09-24 에 제거됐다 — 실측 5,400칸에서 normal 이 64% 라
+//    한 달 서른 칸 중 스무 칸이 같은 색이었다. 배경은 이제 calendar-visual.ts 의 cellTint 가
+//    점수로 직접 만든다(양방향 채도). 등급 3단은 aria-label·상세 카드가 계속 쓴다.
+//    되살리지 말 것 — 되살리면 "칸 2/3 이 같은 색"이 그대로 돌아온다.
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+interface Props {
+  cells: GridCell[];
+  /** 판정 없이 날짜만 있는 칸. 🔴 **옵셔널로 만들지 마라** — 같은 이유로 marks 도 필수다(위).
+   *  이걸 안 넘기면 EmptyMonthShell 은 cells=[] + lockedCells=[] 가 되어 slots 가 비고
+   *  **화면이 통째로 조용히 사라진다**(return null). 그 화면은 비로그인 게스트 지면이라
+   *  아무도 에러를 못 본다. 로그인 유저의 달력은 잠긴 칸이 없으므로 `[]` 를 명시해 넘긴다. */
+  lockedCells: LockedCell[];
+  /** KST 오늘. 계측 offset(오늘로부터의 일수 차이) 계산에만 쓴다 — 월 표시는 2026-09-27 부터
+   *  호출부의 섹션 제목("9월 · 내 하루 달력")이 진다. */
+  todayDate: string;
+  selectedDate: string;
+  onSelect: (date: string) => void;
+  /** 자체 판(배경·보더·그림자·패딩)을 그릴지. 기본 true.
+   *  🔴 false 는 **호출부가 이미 판을 갖고 있을 때**만 쓴다 — 허브는 출석·격자를 크림 카드
+   *     하나로 묶었는데(스펙 §2), 그 안에 이 판을 또 그리면 같은 역할의 상자가 3중으로 겹쳐
+   *     "한 덩어리"라는 인상이 깨진다. 게스트 구경 그리드는 감싸는 판이 없어 true 그대로다 —
+   *     지금 panel={true}(기본값) 호출부는 여기 하나뿐이다(우리 탭은 2026-09-24 부터 이
+   *     컴포넌트를 쓰지 않는다). */
+  panel?: boolean;
+  /** 계측 축(스펙 §13) — 이 격자가 나/우리 어느 판인지. offset≠0 비율 관문(§7 재검토 트리거)이
+   *  나·우리를 구분 못 하면 사후 필터링이 불가능해진다(P5-3 리뷰). 기본 "me". */
+  subjectKind?: "me" | "pair";
+}
+
+export default function CalendarGrid({
+  cells,
+  lockedCells,
+  todayDate,
+  selectedDate,
+  onSelect,
+  panel = true,
+  subjectKind = "me",
+}: Props) {
+  // 열린 칸(이번 달) + 안 칠해진 칸을 날짜순으로 합친다. cell 이 없는 슬롯 = 판정 없이
+  // 안 칠해진 날(게스트 셸 전용).
+  const slots: { date: string; cell?: GridCell }[] = [
+    ...cells.map((c) => ({ date: c.date, cell: c })),
+    ...lockedCells.map((l) => ({ date: l.date })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  if (slots.length === 0) return null;
+
+  // 첫 슬롯(= 이번 달 1일)의 요일만큼 앞을 비워 요일 열을 맞춘다. 🔴 앞뒤 달 채움이 폐지된
+  //    2026-09-27 부터 첫 슬롯은 언제나 1일이다 — 로그인 격자와 게스트 셸이 같은 계산을 탄다.
+  const firstWeekday = new Date(`${slots[0].date}T00:00:00`).getDay();
+  const blanks = Array.from({ length: firstWeekday }, (_, i) => i);
+
+  return (
+    <div
+      className={panel ? "rounded-2xl p-3" : undefined}
+      style={panel ? { background: PANEL_BG, border: PANEL_BORDER, boxShadow: PANEL_SHADOW } : undefined}
+    >
+      {/* 🔴 월 표시는 필수인데 **판 안이 아니라 섹션 제목이 진다**(2026-09-27, 사용자 결정).
+          "9월" 만 따로 뜨던 판 안 줄을 없애고 호출부 제목을 "9월 · 내 하루 달력"으로 합쳤다 —
+          둘 다 두면 같은 말이 8px 사이를 두고 두 번 나온다. **여기에 되살리지 말 것**:
+          되살릴 거면 제목 쪽에서 월을 빼는 게 짝이다.
+          🔴 그러니 새 호출부는 제목에 월을 넣어야 한다 — 안 넣으면 이게 몇 월인지 화면
+             어디에도 없어진다(접이식 버튼이 2026-09-26 에 삭제되며 한 번 겪은 일이다).
+          🔴 월 이동(◀▶)은 이번 스코프가 아니다 — 넣으면 "지난 달 리포트 소급 생성"·"몇 달
+             전까지 보나" 같은 정책이 줄줄이 붙는다. */}
+      <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs">
+        {WEEKDAYS.map((w, i) => (
+          // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.
+          // 팔레트에 빨강이 없으므로 lilac-deep 으로 구분한다.
+          <div key={w} className={i === 0 || i === 6 ? "font-medium text-lilac-deep" : "text-text-light"}>
+            {w}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {blanks.map((i) => (
+          <div key={`blank-${i}`} aria-hidden />
+        ))}
+        {slots.map(({ date, cell: c }) => {
+          if (!c) {
+            // 안 칠해진 날 — 자물쇠를 쓰지 않는다(스펙 §2). 버튼이 아니라 div 라 탭도 안 먹는다.
+            return (
+              <div
+                key={date}
+                // role 없는 div 는 암묵 role 이 generic 이라 aria-label 이 무시될 수 있다 — 날짜
+                // 하나를 나타내는 정적 표시이므로 role="img" 로 accessible name 계산을 허용한다.
+                role="img"
+                aria-label={`${date} 안 칠해진 날`}
+                className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
+                style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
+              >
+                <span className="text-[11px] leading-[13px] text-text-light/60">{Number(date.slice(8, 10))}</span>
+                {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. */}
+                <span aria-hidden className="h-[20px]" />
+              </div>
+            );
+          }
+          const selected = c.date === selectedDate;
+          return (
+            <button
+              key={c.date}
+              type="button"
+              onClick={() => {
+                // 🔴 offset 은 **오늘로부터의 일수 차이**다. 배열 인덱스를 쓰면 달력이 이번 달로
+                //    바뀐 순간 "1일로부터의 거리"가 되어 관문(offset≠0 비율 = 오늘 말고 다른 날을
+                //    보는가)이 조용히 다른 지표가 된다. 과거는 음수다.
+                const offset = Math.round(
+                  (Date.parse(`${c.date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86400000
+                );
+                trackUiEvent("byeolmaru_day_selected", { meta: { offset, tone: c.tone, subjectKind, surface: "grid" } });
+                onSelect(c.date);
+              }}
+              aria-label={`${c.date} ${c.label} ${scoreDisplay(c.score)}점${c.marks.length ? ` · ${c.marks.map((m) => m.label).join(", ")}` : ""}`}
+              aria-pressed={selected}
+              className="relative flex aspect-square flex-col items-center justify-center rounded-xl"
+              style={{
+                // 🔴 오늘은 톤 문법 밖이다 — 판 안에서 유일한 어두운 면이라 점수와 무관하게
+                //    명도로 1위가 된다. 예전 ring+scale 조합은 caution 톤에서 링을 잃거나
+                //    grid 틈으로 삐져나왔다.
+                background: c.isToday ? "#5A3E8C" : cellTint(c.score),
+                ...(selected && !c.isToday ? { boxShadow: "0 0 0 2px rgba(159,138,208,.75)" } : {}),
+              }}
+            >
+              {/* 🔴 ✦ 별 글리프는 2차 설계(2026-09-24)에서 제거됐다 — 숫자가 88 이면 이미
+                  "좋은 날"이라고 말하고 있어서 중복이다. 🔴 마크 칩도 격자엔 없다(44px 에
+                  3층이면 숫자가 죽고, 숫자 색으로 마크를 인코딩하면 진한 면에서 대비가
+                  깨진다 — 스펙 §3·§6). 스트립이 사라진 2026-09-26 부터 **격자에서 marks 의
+                  시각 표면은 0개**이고 aria-label 에만 남는다 — 스크린리더가 "왜"를 잃지
+                  않게 하는 용도다. 마크를 눈으로 보는 곳은 상세 카드와 지도다. */}
+              {/* 🔴 10px/.6 에서 올렸다(2026-09-26) — 점수가 압도해서 달력인데 "몇 일"을
+                  찾기 어려웠다(30칸이 다 찬 뒤 드러난 결함). 점수가 주 신호라는 위계는
+                  유지한다: bold 로 만들거나 점수와 같은 크기로 올리지 않는다. */}
+              <span
+                className="text-[11px] leading-[13px]"
+                style={{
+                  color: c.isToday ? "rgba(255,255,255,.72)" : "rgba(122,107,160,.78)",
+                }}
+              >
+                {Number(c.date.slice(8, 10))}
+              </span>
+              {/* 🔴 "점" 단위를 뺐다(2026-09-26) — 30칸에 30번 반복되면 잡음이고, 두 자리
+                  숫자+점이 43.6px 칸을 꽉 채웠다. 단위가 들어갔던 근거("맨숫자는 점수로 안
+                  읽힌다")는 스트립 7칸 기준이었고 그 스트립은 삭제됐다. 맥락은 같은 판 위의
+                  TodayLead("오늘 40점")가 진다 — 오늘 칸 숫자와 그 줄이 같은 값이라 연결된다.
+                  🔴 크기는 16px 다 — 2026-09-26 에 "점" 제거와 묶여 17px 로 올라갔는데 스펙 §6-3 은
+                  제거만 말했다. 명시 안 된 1px 라 2026-09-27 실물 검수에서 되돌렸다. */}
+              <span
+                className="text-[16px] font-semibold leading-[20px]"
+                style={{ color: c.isToday ? "#ffffff" : cellTextColor(c.score) }}
+              >
+                {scoreDisplay(c.score)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {/* 🔴 마크 범례는 2026-09-24 에 제거됐다 — 어휘를 "상대 없이 성립하는 말"로 갈면서
+          (설렘·척척·삐걱·채움) 뜻 설명이 필요 없어졌다. 옛 범례는 셀 칩과 같은 모양·같은
+          글자라 반복일 뿐이었고, 격자가 접힘 기본이라 스트립만 보는 사람에겐 닿지도 않았다. */}
+      {/* 🔴 "점선 칸은 아직 안 온 날이야 — 그날이 오면 열려" 안내는 2026-09-26 에 제거됐다.
+          달력이 전면 무료가 되면서 로그인 유저에겐 잠긴 칸이 아예 없고, 남은 유일한 호출부
+          (EmptyMonthShell)의 잠김은 "안 온 날"이 아니라 "생일이 없어서 못 보는 날"이라
+          그 문구가 틀린 말이었다(바로 아래 "네 생일만 있으면…" 이 정확한 설명이다). */}
+    </div>
+  );
+}

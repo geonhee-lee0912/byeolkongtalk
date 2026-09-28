@@ -46,7 +46,7 @@ const FALLBACK: RelationDetail = {
   keywords: [],
 };
 
-// 특별 인연(끌림/결속/같은 결)은 인연 점수 근거 리스트가 담당 → 키워드는 오행 관계만(중복 방지).
+// 특별 인연(설렘/척척/같은 결)은 인연 점수 근거 리스트가 담당 → 키워드는 오행 관계만(중복 방지).
 export function relationDetail(element: string): RelationDetail {
   return BASE[element] ?? FALLBACK;
 }
