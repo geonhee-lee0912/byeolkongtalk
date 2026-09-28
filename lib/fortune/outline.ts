@@ -102,5 +102,12 @@ export function fortuneOutline(key: LandingKey): string[] {
   return MANUAL_OUTLINE[key] ?? [];
 }
 
-/** 목록에 펼칠 최대 개수. 넘치면 "그 외 N개" 로 접는다. */
-export const OUTLINE_VISIBLE = 5;
+/** "약 5,000자" → `{ value: "5,000", unit: "자" }`. 랜딩이 숫자만 크게 키우려면 갈라야 한다.
+ *
+ *  🔴 FORTUNE_LENGTH_HINT 의 표기가 바뀌면 여기가 null 을 뱉고 분량 칸이 조용히 사라진다.
+ *  outline.test.ts 가 힌트를 가진 전 종목을 훑어 파싱을 강제한다. */
+export function splitLengthHint(hint: string | undefined | null): { value: string; unit: string } | null {
+  if (!hint) return null;
+  const m = hint.match(/^약\s*(.+?)\s*(자)$/);
+  return m ? { value: m[1], unit: m[2] } : null;
+}

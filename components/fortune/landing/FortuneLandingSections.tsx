@@ -2,17 +2,29 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { OUTLINE_VISIBLE } from "@/lib/fortune/outline";
+import { splitLengthHint } from "@/lib/fortune/outline";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
 
-function Block({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
+function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="w-full max-w-md mx-auto px-5 mt-6">
       <h2 className="text-[14.5px] font-bold text-eye-purple">{title}</h2>
-      {sub && <p className="text-[11px] text-lilac-mid mt-0.5">{sub}</p>}
       <div className="mt-2.5">{children}</div>
     </section>
+  );
+}
+
+/** 숫자를 크게 세우는 칸 — 섹션 수·분량. "이만큼 받는다"가 한눈에 읽혀야 하는 자리다. */
+function Stat({ value, unit, label }: { value: string; unit: string; label: string }) {
+  return (
+    <div className="flex-1 bg-white rounded-2xl border border-lilac-mid/20 px-3.5 py-2.5">
+      <p className="font-display text-[22px] text-eye-purple leading-none">
+        {value}
+        <span className="text-[12px] ml-0.5">{unit}</span>
+      </p>
+      <p className="text-[10.5px] text-text-light/70 mt-1.5">{label}</p>
+    </div>
   );
 }
 
@@ -31,8 +43,7 @@ export default function FortuneLandingSections({
   samplePreview: ReactNode;
   related: FortuneType[];
 }) {
-  const shown = outline.slice(0, OUTLINE_VISIBLE);
-  const restCount = outline.length - shown.length;
+  const len = splitLengthHint(lengthHint);
 
   return (
     <>
@@ -47,18 +58,24 @@ export default function FortuneLandingSections({
         </ul>
       </Block>
 
-      <Block
-        title="리포트에 담기는 것"
-        sub={[`${outline.length}개 섹션`, lengthHint].filter(Boolean).join(" · ")}
-      >
-        <ol className="bg-white rounded-2xl border border-lilac-mid/20 px-4 divide-y divide-lilac-soft/70">
-          {shown.map((h) => (
-            <li key={h} className="text-[13px] text-eye-purple py-2.5">{h}</li>
+      <Block title="리포트에 담기는 것">
+        <div className="flex gap-2">
+          <Stat value={String(outline.length)} unit="개" label="섹션" />
+          {/* 분량 힌트가 없는 종목(무료 MBTI)은 섹션 칸만 — 빈 칸을 만들지 않는다. */}
+          {len && <Stat value={len.value} unit={len.unit} label="분량" />}
+        </div>
+
+        {/* 줄 리스트 대신 칩 — 같은 높이에 훨씬 많이 들어가서 전 섹션을 접지 않고 보여준다. */}
+        <ul className="flex flex-wrap gap-1.5 mt-3">
+          {outline.map((h) => (
+            <li
+              key={h}
+              className="text-[11.5px] text-eye-purple bg-lilac-soft/60 px-2.5 py-1.5 rounded-full"
+            >
+              {h}
+            </li>
           ))}
-          {restCount > 0 && (
-            <li className="text-[13px] text-text-light/60 py-2.5">그 외 {restCount}개</li>
-          )}
-        </ol>
+        </ul>
       </Block>
 
       <Block title="이런 대목이 나와">

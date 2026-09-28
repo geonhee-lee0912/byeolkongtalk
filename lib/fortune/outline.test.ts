@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fortuneOutline, LANDING_KEYS, type LandingKey } from "./outline.ts";
+import { fortuneOutline, LANDING_KEYS, splitLengthHint, type LandingKey } from "./outline.ts";
+import { FORTUNE_LENGTH_HINT } from "./types.ts";
 import { GENERIC_GUIDE_SPEC, SECTION_GUIDE } from "./prompt.ts";
 import { DAILY_SECTIONS } from "./daily-report.ts";
 
@@ -85,4 +86,24 @@ test("compat 과 compat_social 은 다른 목차다 — social 엔 연애 전용
   assert.ok(!social.includes("애정·거리감 표현법"));
   assert.ok(!social.includes("서로의 사랑의 언어"));
   assert.ok(fortuneOutline("compat").includes("서로의 사랑의 언어"));
+});
+
+test("분량 힌트가 있는 종목은 전부 숫자/단위로 갈린다", () => {
+  let checked = 0;
+  for (const k of LANDING_KEYS) {
+    const hint = (FORTUNE_LENGTH_HINT as Record<string, string | undefined>)[k];
+    if (!hint) continue; // saju_mbti 는 FortuneType 이 아니라 힌트가 없다
+    const split = splitLengthHint(hint);
+    assert.ok(split, `${k}: "${hint}" 를 못 가른다 — 랜딩 분량 칸이 사라진다`);
+    assert.ok(split!.value.trim().length > 0, `${k}: 숫자가 비었다`);
+    checked += 1;
+  }
+  assert.ok(checked >= 19, `분량 힌트를 가진 종목이 ${checked}개뿐 — 표기가 통째로 빠졌나?`);
+});
+
+test("splitLengthHint — 형식이 아니면 null (조용히 틀리지 않게)", () => {
+  assert.equal(splitLengthHint(undefined), null);
+  assert.equal(splitLengthHint("5000"), null);
+  assert.deepEqual(splitLengthHint("약 2만 자"), { value: "2만", unit: "자" });
+  assert.deepEqual(splitLengthHint("약 5,000자"), { value: "5,000", unit: "자" });
 });
