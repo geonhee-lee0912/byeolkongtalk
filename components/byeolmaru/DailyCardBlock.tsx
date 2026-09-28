@@ -67,6 +67,7 @@ export default function DailyCardBlock({
   trialUsed,
   onStartTrial,
   onSubscribe,
+  autoOpenRitual = false,
 }: {
   /** 보고 있는 날짜(YYYY-MM-DD). 오늘이 아니면 뽑기 의식은 열리지 않는다. */
   date: string;
@@ -76,6 +77,9 @@ export default function DailyCardBlock({
   trialUsed: boolean;
   onStartTrial: (slot?: string) => void;
   onSubscribe: (slot?: string) => void;
+  /** 주소가 타로를 가리켜 들어온 진입인가 — 아래 자동 열기의 전제. 기본값 false 라
+   *  이 prop 을 안 주는 호출부는 **안 여는 쪽**으로 안전하게 떨어진다. */
+  autoOpenRitual?: boolean;
 }) {
   const [state, setState] = useState<CardState>({ kind: "loading" });
 
@@ -234,20 +238,27 @@ export default function DailyCardBlock({
   // 🔴 아직 안 뽑았으면 **의식을 바로 연다**(2026-09-24, 사용자 요청) — "카드 한 장으로 가볍게
   //    짚어볼까?" + 버튼 한 번을 거치던 중간 단계를 없앤다. 목록에서 '오늘 타로'를 누른 사람은
   //    이미 뽑겠다고 결정한 사람이라 한 번 더 묻는 게 군더더기였다.
+  // 🔴 **단, 주소로 타로에 온 진입에만**(2026-09-28, 사용자 요청). 달력 칸 → 날짜 상세(기본
+  //    사주) → 타로 **탭 클릭**으로 온 사람은 그 날을 둘러보는 중이지 뽑기로 결정한 게 아니다.
+  //    그 경로에선 의식이 튀어나오는 대신 아래 "오늘의 카드 뽑기" 안내를 거친다.
+  //    판정은 DayTabsView 가 **진입 시점**에 해서 `autoOpenRitual` 로 내려준다 — 여기서 URL 을
+  //    읽으면 탭 전환이 심은 `?tab=tarot` 과 구분이 안 된다.
   // 🔴 **한 번만 연다.** 유저가 닫으면 그 뒤론 안 뜨고 아래 "오늘의 카드 뽑기" 버튼이 받는다
   //    (자동으로 다시 열면 닫을 수가 없어 갇힌다). 그래서 state 가 아니라 ref 로 기억한다 —
   //    ritualOpen 을 deps 로 보면 닫는 순간 effect 가 다시 돌아 무한히 열린다.
   const autoOpenedRef = useRef(false);
   useEffect(() => {
     if (autoOpenedRef.current) return;
-    // 🔴 "안 뽑았다"가 **이 날짜에 대해** 확정된 뒤에만 연다. 조건이 셋이다:
-    //    ① none 이어야 하고(loading 은 아직 모름) ② 그 none 이 **지금 보는 날짜의 것**이어야 하며
-    //    ③ 그 날짜가 오늘이어야 한다. ②가 없어서 지난 날의 none 을 들고 오늘로 넘어온 프레임에
-    //    의식이 열렸다(이미 뽑은 카드 위에). state.date 비교를 지우지 말 것.
+    // 🔴 "안 뽑았다"가 **이 날짜에 대해** 확정된 뒤에만 연다. 조건이 넷이다:
+    //    ① 주소로 타로에 온 진입이어야 하고 ② none 이어야 하고(loading 은 아직 모름)
+    //    ③ 그 none 이 **지금 보는 날짜의 것**이어야 하며 ④ 그 날짜가 오늘이어야 한다.
+    //    ③이 없어서 지난 날의 none 을 들고 오늘로 넘어온 프레임에 의식이 열렸다(이미 뽑은
+    //    카드 위에). state.date 비교를 지우지 말 것.
+    if (!autoOpenRitual) return;
     if (state.kind !== "none" || state.date !== date || date !== todayKst) return;
     autoOpenedRef.current = true;
     openRitual();
-  }, [state, date, todayKst]);
+  }, [autoOpenRitual, state, date, todayKst]);
 
   // 🔴 닫기(✕·ESC)는 **허브로 나간다**(2026-09-24). 모달만 닫으면 그 아래에 "오늘 하루, 카드 한
   //    장으로 가볍게 짚어볼까? / [오늘의 카드 뽑기]" 중간 화면이 드러나는데, 그건 자동 열기를
