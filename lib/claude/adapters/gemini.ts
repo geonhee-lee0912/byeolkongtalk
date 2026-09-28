@@ -2,6 +2,7 @@
 // Gemini(3 Flash 계열) 어댑터 — "1회 순수 스트림"만 담당. 재시도·빈응답 가드·로깅은
 // streamChat(lib/claude.ts) 래퍼가 소유(anthropic/openai 어댑터와 동일 계약).
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { isTransientConnectionError } from "@/lib/upstream-error";
 import type { ProviderAdapter, AdapterStreamArgs, StopReason } from "./types";
 import type { Usage } from "@/lib/claude/pricing";
 
@@ -83,6 +84,8 @@ export const geminiAdapter: ProviderAdapter = {
   },
   isRetryableError(err: unknown) {
     const status = (err as { status?: number })?.status;
-    return status === 429 || status === 500 || status === 503;
+    if (status === 429 || status === 500 || status === 503) return true;
+    // 연결 단절은 status 가 없다 — openai 어댑터와 같은 구멍이라 같은 판별을 쓴다.
+    return isTransientConnectionError(err);
   },
 };
