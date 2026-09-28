@@ -262,6 +262,50 @@ export default async function AdminDashboard() {
       </section>
 
       <section>
+        {/* 🔴 히어로 바로 아래 — 매일 먼저 확인하는 값이라 1층의 7일 지표들보다 위에 둔다
+            (2026-09-28 사용자 요청). ⚠️ 창이 다르다: 위 기여와 아래 매출의 질은 **7일**,
+            이 줄만 **오늘 하루**다. 나란히 놓고 빼거나 비교하지 말 것. */}
+        <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
+        {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
+        {s.failed.traffic && (
+          <LoadFailed className="mb-3" block="UV/PV·방문자 구성(admin_traffic_trend · admin_traffic_visitor_mix)" />
+        )}
+        {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)은 뒤. 매일 먼저 보는 값을
+            왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
+            /admin/traffic 과 같은 정의 (자세한 분해는 그 화면)
+            ⚠️ 탈퇴는 2층 `탈퇴 ▾` 로 내려갔다(Task 8) — 오늘/어제·누적·가입대비가 거기 다 있다. */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <Stat label="신규 가입" value={s.today.newUsers}>
+            <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
+          </Stat>
+          <Stat label="리딩" value={s.today.readings}>
+            <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
+          </Stat>
+          <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.today.revenueWon.toLocaleString()}>
+            {!s.failed.revenue && <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />}
+          </Stat>
+          <Stat
+            label="UV"
+            value={s.failed.traffic ? "—" : s.today.uv.toLocaleString()}
+            sub={
+              s.today.mixUv > 0 ? (
+                <>
+                  세션 {s.today.mixUv.toLocaleString()} 중 신규{" "}
+                  {s.today.newUv.toLocaleString()} · 재방문{" "}
+                  {s.today.returningUv.toLocaleString()}
+                </>
+              ) : undefined
+            }
+          >
+            {!s.failed.traffic && <Delta today={s.today.uv} yesterday={s.yesterday.uv} />}
+          </Stat>
+          <Stat label="PV" value={s.failed.traffic ? "—" : s.today.pv.toLocaleString()}>
+            {!s.failed.traffic && <Delta today={s.today.pv} yesterday={s.yesterday.pv} />}
+          </Stat>
+        </div>
+      </section>
+
+      <section>
         <h2 className="text-sm text-white/60 mb-3">
           매출의 질 <span className="text-white/35">(최근 7일)</span>
         </h2>
@@ -358,46 +402,6 @@ export default async function AdminDashboard() {
         </div>
       </section>
 
-      <section>
-        <h2 className="text-sm text-white/60 mb-3">오늘 <span className="text-white/35">(KST 자정 기준)</span></h2>
-        {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
-        {s.failed.traffic && (
-          <LoadFailed className="mb-3" block="UV/PV·방문자 구성(admin_traffic_trend · admin_traffic_visitor_mix)" />
-        )}
-        {/* 순서: 성과(가입 → 리딩 → 매출) 먼저, 트래픽(UV·PV)은 뒤. 매일 먼저 보는 값을
-            왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
-            /admin/traffic 과 같은 정의 (자세한 분해는 그 화면)
-            ⚠️ 탈퇴는 2층 `탈퇴 ▾` 로 내려갔다(Task 8) — 오늘/어제·누적·가입대비가 거기 다 있다. */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Stat label="신규 가입" value={s.today.newUsers}>
-            <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
-          </Stat>
-          <Stat label="리딩" value={s.today.readings}>
-            <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
-          </Stat>
-          <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.today.revenueWon.toLocaleString()}>
-            {!s.failed.revenue && <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />}
-          </Stat>
-          <Stat
-            label="UV"
-            value={s.failed.traffic ? "—" : s.today.uv.toLocaleString()}
-            sub={
-              s.today.mixUv > 0 ? (
-                <>
-                  세션 {s.today.mixUv.toLocaleString()} 중 신규{" "}
-                  {s.today.newUv.toLocaleString()} · 재방문{" "}
-                  {s.today.returningUv.toLocaleString()}
-                </>
-              ) : undefined
-            }
-          >
-            {!s.failed.traffic && <Delta today={s.today.uv} yesterday={s.yesterday.uv} />}
-          </Stat>
-          <Stat label="PV" value={s.failed.traffic ? "—" : s.today.pv.toLocaleString()}>
-            {!s.failed.traffic && <Delta today={s.today.pv} yesterday={s.yesterday.pv} />}
-          </Stat>
-        </div>
-      </section>
       <section>
         <h2 className="text-sm text-white/60 mb-3">전체 <span className="text-white/35">(누적 · 어제까지 대비)</span></h2>
         {s.failed.revenue && <LoadFailed className="mb-3" block="매출(admin_dashboard_revenue)" />}
