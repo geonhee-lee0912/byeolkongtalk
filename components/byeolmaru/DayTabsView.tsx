@@ -32,6 +32,14 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
   //    초기 비용은 통합 전과 같고, 열었던 탭은 언마운트하지 않아 리포트 재요청·상태 초기화가
   //    없다. Set 을 state 로 들면 렌더마다 새 참조가 생기니 ref 에 둔다(setTab 이 렌더를 부른다).
   const opened = useRef<Set<DayTab>>(new Set([initialTab]));
+  // 🔴 **진입 시점의 탭**을 한 번만 붙든다 — 뽑기 의식 자동 열기의 유일한 근거다(2026-09-28).
+  //    주소가 타로를 가리켜 들어온 사람(무료 목록 `?tab=tarot`·공유 링크)은 뽑겠다고 정하고 온
+  //    것이라 바로 열어주고, 달력 칸 → 날짜 상세(기본 사주) → **탭을 눌러** 넘어온 사람은
+  //    둘러보는 중이라 "오늘의 카드 뽑기" 안내를 거친다.
+  //    ⚠️ `initialTab` prop 을 그때그때 읽으면 안 된다 — changeTab 의 `router.replace` 가
+  //       `?tab=tarot` 을 심고 `useSearchParams` 가 반응형이라 prop 이 곧바로 "tarot" 으로
+  //       따라온다. 그러면 눌러서 온 것과 주소로 온 것이 구분되지 않는다.
+  const entryTab = useRef<DayTab>(initialTab);
 
   useEffect(() => {
     void (async () => {
@@ -119,7 +127,13 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
           //    한 곳이라 사주·타로·우리가 같은 값을 갖는다 — View 별로 흩어놓지 말 것.
           <div key={t.key} hidden={t.key !== tab} className="mt-4">
             {t.key === "saju" && <SajuTodayView initialDate={initialDate} injected={injected} />}
-            {t.key === "tarot" && <TarotTodayView initialDate={initialDate} injected={injected} />}
+            {t.key === "tarot" && (
+              <TarotTodayView
+                initialDate={initialDate}
+                injected={injected}
+                autoOpenRitual={entryTab.current === "tarot"}
+              />
+            )}
             {t.key === "woori" && <WooriTodayView initialDate={initialDate} injected={injected} />}
           </div>
         ) : null

@@ -19,9 +19,13 @@ type State =
 export default function TarotTodayView({
   initialDate,
   injected,
+  autoOpenRitual = false,
 }: {
   initialDate?: string;
   injected?: { status: number; body: unknown };
+  /** 주소가 타로를 가리켜 들어왔나(= 뽑으러 온 것). 껍데기가 **진입 시점**에 판정해 넘긴다 —
+   *  여기서 URL 을 다시 읽으면 탭 전환의 `router.replace` 와 구분이 안 된다. */
+  autoOpenRitual?: boolean;
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
 
@@ -104,6 +108,7 @@ export default function TarotTodayView({
         trialUsed={state.trialUsed}
         onStartTrial={startTrial}
         onSubscribe={openSubscribe}
+        autoOpenRitual={autoOpenRitual}
       />
       {subscribeModal}
     </div>
