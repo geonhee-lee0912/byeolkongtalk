@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { RECHARGE_SOURCE, type RechargeSource } from "@/lib/analytics/recharge-source";
 
 // 인챗 충전 시트는 저·중가 3종만 노출 (150·300 은 /shop 전용). 문맥상 대용량 불필요.
 const INCHAT_PACKAGES = STAR_PACKAGES.filter((p) =>
@@ -22,6 +23,11 @@ interface Props {
     readingId: string;
     type: "clarifier" | "extend";
   };
+  /**
+   * 계측 귀속 지면. 기본 inchat 은 기존 호출부(대화 중) 무변경용 —
+   * 로드맵 KPI 가 이 값으로 필터하므로 새 지면은 반드시 다른 값을 넘길 것.
+   */
+  source?: RechargeSource;
   onClose: () => void;
 }
 
@@ -34,6 +40,7 @@ export default function RechargeSheet({
   returnTo,
   balance: balanceProp,
   pendingUpsell,
+  source = RECHARGE_SOURCE.inchat,
   onClose,
 }: Props) {
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
@@ -50,7 +57,7 @@ export default function RechargeSheet({
     setSelectedId("star_30"); // 추천 패키지 기본 선택
     trackUiEvent("recharge_sheet_opened", {
       readingId: pendingUpsell?.readingId,
-      meta: { source: "inchat" },
+      meta: { source },
     });
 
     // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
@@ -109,7 +116,7 @@ export default function RechargeSheet({
     setError(null);
     trackUiEvent("recharge_payment_started", {
       readingId: pendingUpsell?.readingId,
-      meta: { source: "inchat", packageId: pkg.id, amountWon: pkg.price },
+      meta: { source, packageId: pkg.id, amountWon: pkg.price },
     });
 
     // 결제 시작 전 pending_upsell 저장
@@ -208,7 +215,7 @@ export default function RechargeSheet({
                   setSelectedId(pkg.id);
                   trackUiEvent("recharge_package_selected", {
                     readingId: pendingUpsell?.readingId,
-                    meta: { source: "inchat", packageId: pkg.id },
+                    meta: { source, packageId: pkg.id },
                   });
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
