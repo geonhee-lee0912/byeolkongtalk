@@ -54,8 +54,14 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
 const BYEOLMARU_SAJU_CARD: CrossCard = {
   href: "/byeolmaru",
   emoji: "🗓",
-  label: "오늘 사주",
-  tagline: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐",
+  // 라벨은 목적지와 맞춘다 — href 가 허브(/byeolmaru)인데 "오늘 사주"라고 부르면 한 칸 어긋난다
+  // (오늘 사주 본문은 /byeolmaru/day 라 한 번 더 눌러야 나온다). 대신 잃는 구체성은 태그라인이
+  // 메운다: 안에 뭐가 있는지 두 개를 직접 말한다. 결과 화면에서 제일 많이 눌리는 카드라
+  // (9월 55클릭 · 다시뽑기 32 · love_self 31) "무료"라는 구체성을 흐리면 안 된다.
+  // 문구는 별마루가 스스로 붙인 칩과 일치한다 — 오늘 사주 "매일 무료" · 오늘 타로 "하루 1회 무료".
+  // ⚠️ tagline 은 line-clamp-2 + 좌측 아이콘이라 2줄(≈24자) 안에 들어와야 한다.
+  label: "별마루",
+  tagline: "오늘 사주랑 오늘 타로, 매일 무료로 확인해봐",
   badge: "무료",
   gradient: FORTUNE_GRADIENTS.daily,
 };
