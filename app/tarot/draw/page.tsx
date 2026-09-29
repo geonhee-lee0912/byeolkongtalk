@@ -16,6 +16,8 @@ import {
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 
 export default function TarotDrawPage() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function TarotDrawPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
 
   // 선택 정보 로드 — /tarot 피커 플로우
   useEffect(() => {
@@ -128,10 +131,17 @@ export default function TarotDrawPage() {
           loading={balanceLoading}
           accent={accent}
           onConfirm={goToReading}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}
         />
       )}
+
+      <RechargeSheet
+        open={rechargeSheetOpen}
+        returnTo="/tarot/draw"
+        source={RECHARGE_SOURCE.tarotDraw}
+        onClose={() => setRechargeSheetOpen(false)}
+      />
     </main>
   );
 }
