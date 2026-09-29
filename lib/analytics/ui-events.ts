@@ -39,7 +39,8 @@ export const UI_EVENTS = [
   "recharge_package_selected",
   /** 결제 퍼널 — 결제 시작(토스 호출 직전). meta:{source, packageId, amountWon} */
   "recharge_payment_started",
-  /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"first_charge"|"cross_sell", product?} */
+  /** 결과 화면 CTA 클릭. meta:{cta:"continue"|"new"|"cross_sell", product?}
+   *  ("first_charge" 는 2026-09-29 첫충전 배너 제거로 더는 방출되지 않는다 — 과거 데이터엔 남아 있다) */
   "result_cta_clicked",
   /** 별마루 — 날짜 셀 클릭. meta:{offset:오늘 기준 일수 차이(과거 음수), tone:"good"|"normal"|"caution",
    *  subjectKind:"me"|"pair"(나/우리 축 — offset≠0 비율 관문의 사후 필터링에 필요),
