@@ -6,6 +6,8 @@ import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import HeroBanner from "@/components/common/HeroBanner";
 import HeroDivider from "@/components/common/HeroDivider";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { FORTUNE_HERO_GRADIENT } from "@/lib/heroGradients";
 import {
   FORTUNE_CONFIG,
@@ -28,6 +30,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
   const [pendingDrawn, setPendingDrawn] = useState<DrawnCard[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
 
   const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
   const [effectiveCost, setEffectiveCost] = useState(cfg.cost);
@@ -161,10 +164,17 @@ export default function TarotInput({ type }: { type: FortuneType }) {
           onConfirm={() => {
             if (pendingDrawn) void submit(pendingDrawn);
           }}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}
         />
       )}
+
+      <RechargeSheet
+        open={rechargeSheetOpen}
+        returnTo={cfg.href}
+        source={RECHARGE_SOURCE.tarotReport}
+        onClose={() => setRechargeSheetOpen(false)}
+      />
     </main>
   );
 }
