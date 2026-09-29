@@ -1,7 +1,9 @@
 "use client";
 
 // 결과 화면 최상단 재충전 블록 — 리딩 직후 따끈한 순간에 매출 CTA를 앞세운다.
-// 이 고민 이어가기(-40%) + 새 고민 + (자격자) 첫충전 +20% 보너스 인라인.
+// 이 고민 이어가기(-40%) + 새 고민.
+// 🔴 첫충전 +20% 배너는 2026-09-29 제거됐다 — 9월 클릭 1건으로 죽어 있었고,
+//    같은 안내를 RechargeSheet 가 결정 시점에 보여준다. 되살리지 말 것.
 import Link from "next/link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 

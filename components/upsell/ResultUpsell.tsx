@@ -1,7 +1,9 @@
 "use client";
 
-// 결과 화면 하단 공용 업셀 — 첫 충전 +20% 배너(자격자만) + 크로스셀 카드 2장.
+// 결과 화면 하단 공용 업셀 — 크로스셀 카드 2장.
 // 카드 선정 규칙은 ./cross-cards.ts (순수 로직, 테스트 포함)
+// 🔴 첫충전 +20% 배너는 2026-09-29 제거됐다 — 9월 클릭 1건으로 죽어 있었고,
+//    같은 안내를 RechargeSheet 가 결정 시점에 보여준다. 되살리지 말 것.
 
 import Link from "next/link";
 import Image from "next/image";
