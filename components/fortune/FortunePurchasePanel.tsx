@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import FortuneSajuPicker from "@/components/fortune/FortuneSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 
 export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
@@ -24,6 +25,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
   const [refunded, setRefunded] = useState(false);
   const [alreadyOwned, setAlreadyOwned] = useState<{ id: string } | null>(null);
   const [reviewable, setReviewable] = useState<Record<string, string>>({});
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
 
   // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
   const inFlightRef = useRef(false);
@@ -148,9 +150,13 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
         <div className="mt-4 text-center px-5 max-w-md">
           <p className="text-[12px] text-red-500">{error}</p>
           {needCharge && (
-            <Link href="/shop" className="mt-1 inline-block text-[12px] text-lilac-deep underline">
-              별콩 상점 가기
-            </Link>
+            <button
+              type="button"
+              onClick={() => setRechargeSheetOpen(true)}
+              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+            >
+              별 충전하기
+            </button>
           )}
         </div>
       )}
@@ -166,10 +172,17 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
           confirmLabel="확인하고 운세 보기"
           targetName={pendingName ?? undefined}
           onConfirm={() => handleGenerate(false)}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setPendingProfileId(null)}
         />
       )}
+
+      <RechargeSheet
+        open={rechargeSheetOpen}
+        returnTo={cfg.href}
+        source={RECHARGE_SOURCE.fortunePurchase}
+        onClose={() => setRechargeSheetOpen(false)}
+      />
 
       {refunded && (
         <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />
