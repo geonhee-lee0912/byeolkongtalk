@@ -245,7 +245,7 @@ function ResultPageInner() {
       </div>
 
       {/* ③ 무료 크로스셀 — 맨 아래 (보너스는 재충전 블록에서 이미 노출) */}
-      <ResultUpsell variant="counsel" showBonus={false} />
+      <ResultUpsell variant="counsel" />
 
       <SurveyResultCard />
 
