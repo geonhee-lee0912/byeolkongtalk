@@ -135,13 +135,17 @@ export default function TarotDrawPage() {
           onClose={() => setShowConfirm(false)}
         />
       )}
-
-      <RechargeSheet
-        open={rechargeSheetOpen}
-        returnTo="/tarot/draw"
-        source={RECHARGE_SOURCE.tarotDraw}
-        onClose={() => setRechargeSheetOpen(false)}
-      />
+      {/* 🔴 닫혀 있으면 마운트하지 않는다 — 시트는 useTossPayment 를 호출해서
+          마운트만으로 /api/auth/me + 토스 SDK 초기화가 돈다. 상시 마운트하면
+          공개 지면(사주 운세 설명 20개 등) 방문자 전원에게 그 비용이 걸린다. */}
+      {rechargeSheetOpen && (
+        <RechargeSheet
+          open
+          returnTo="/tarot/draw"
+          source={RECHARGE_SOURCE.tarotDraw}
+          onClose={() => setRechargeSheetOpen(false)}
+        />
+      )}
     </main>
   );
 }

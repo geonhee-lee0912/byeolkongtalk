@@ -178,13 +178,17 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           onClose={() => setPending(null)}
         />
       )}
-
-      <RechargeSheet
-        open={rechargeSheetOpen}
-        returnTo={cfg.href}
-        source={RECHARGE_SOURCE.compat}
-        onClose={() => setRechargeSheetOpen(false)}
-      />
+      {/* 🔴 닫혀 있으면 마운트하지 않는다 — 시트는 useTossPayment 를 호출해서
+          마운트만으로 /api/auth/me + 토스 SDK 초기화가 돈다. 상시 마운트하면
+          공개 지면(사주 운세 설명 20개 등) 방문자 전원에게 그 비용이 걸린다. */}
+      {rechargeSheetOpen && (
+        <RechargeSheet
+          open
+          returnTo={cfg.href}
+          source={RECHARGE_SOURCE.compat}
+          onClose={() => setRechargeSheetOpen(false)}
+        />
+      )}
 
       {refunded && (
         <FortuneRefundModal cost={cfg.cost} label={cfg.label} onClose={() => setRefunded(false)} />

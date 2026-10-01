@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { RECHARGE_SOURCE, type RechargeSource } from "@/lib/analytics/recharge-source";
+import type { RechargeSource } from "@/lib/analytics/recharge-source";
 
 // 인챗 충전 시트는 저·중가 3종만 노출 (150·300 은 /shop 전용). 문맥상 대용량 불필요.
 const INCHAT_PACKAGES = STAR_PACKAGES.filter((p) =>
@@ -24,23 +24,29 @@ interface Props {
     type: "clarifier" | "extend";
   };
   /**
-   * 계측 귀속 지면. 기본 inchat 은 기존 호출부(대화 중) 무변경용 —
-   * 로드맵 KPI 가 이 값으로 필터하므로 새 지면은 반드시 다른 값을 넘길 것.
+   * 계측 귀속 지면.
+   * 🔴 **required 다 — 기본값을 두지 않는다.** 로드맵 KPI(`roadmap-kpi-snapshot.sql`·
+   *    `admin_roadmap_kpi`)가 `meta->>'source' = 'inchat'` 으로 명시 필터하는데, optional 이면
+   *    새 호출부가 깜빡해도 컴파일러가 못 잡고 조용히 인챗 지표에 섞인다. 명시를 강제해서
+   *    그 실수를 컴파일 단계에서 끊는다(2026-10-02, 코드 리뷰 지적).
    */
-  source?: RechargeSource;
+  source: RechargeSource;
   onClose: () => void;
 }
 
 /**
- * 인챗 잔액 부족 시 충전 바텀시트.
- * 결제 시작 시 returnTo 로 복귀 + pending_upsell 로 원클릭 재개.
+ * 잔액 부족 시 그 자리에 뜨는 충전 바텀시트.
+ * 결제 시작 시 returnTo 로 복귀 + pending_upsell 로 원클릭 재개(인챗 전용).
+ *
+ * 대화 중(연장·되묻기)과 구매 지점(스프레드 뽑기·사주 리포트·궁합·타로 리포트) 양쪽에서 쓴다 —
+ * 문구는 두 맥락에 다 맞아야 한다("이 대화로" 같은 인챗 전용 표현 금지).
  */
 export default function RechargeSheet({
   open,
   returnTo,
   balance: balanceProp,
   pendingUpsell,
-  source = RECHARGE_SOURCE.inchat,
+  source,
   onClose,
 }: Props) {
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
@@ -185,7 +191,7 @@ export default function RechargeSheet({
             ) : null}
           </p>
           <p className="text-[11px] text-text-light mt-1 leading-snug">
-            충전하면 이 대화로 바로 돌아와요
+            충전하면 보던 자리로 바로 돌아와요
           </p>
         </div>
 
