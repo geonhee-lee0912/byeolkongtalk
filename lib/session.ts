@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import { isAdminUserId } from "@/lib/admin";
 import { signAdminToken } from "@/lib/auth-token";
+import { isValidSessionId } from "@/lib/session-id";
 
 const ANON_COOKIE = "byeolkong_anon_id";
 const USER_COOKIE = "byeolkong_user_id";
@@ -32,7 +33,10 @@ export type Session = {
  */
 export async function getSession(): Promise<Session> {
   const store = await cookies();
-  const userId = store.get(USER_COOKIE)?.value || null;
+  // 서명 없는 쿠키라 형식 검증으로 위조/주입을 거른다. users.id 는 UUID 이므로
+  // 형식 밖 값(필터 메타문자 포함 등)은 비로그인 취급(lib/session-id.ts).
+  const rawUserId = store.get(USER_COOKIE)?.value;
+  const userId = isValidSessionId(rawUserId) ? rawUserId : null;
   const anonymousId = store.get(ANON_COOKIE)?.value || null;
   return {
     userId,
