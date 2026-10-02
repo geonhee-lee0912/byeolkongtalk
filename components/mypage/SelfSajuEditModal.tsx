@@ -2,7 +2,7 @@
 
 // 내 명식 편집 모달 — 원래 SajuProfileModal 의 "내 명식 편집" 파트를 분리.
 // 명식 표시는 마이페이지 인라인(SajuBoard)이 담당하고, 이 모달은 편집만 담당한다.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { type ProfileItem, toInitial } from "@/components/mypage/sajuShared";
@@ -23,6 +23,12 @@ export default function SelfSajuEditModal({
 }: SelfSajuEditModalProps) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const errRef = useRef<HTMLParagraphElement>(null);
+  // 오류 줄이 저장 버튼 아래라, 짧은 화면(높이 ~600px 미만 — 4.7" 폰·인앱 브라우저·가로 모드)에선
+  // 맨 아래로 스크롤해도 18px 중 8px 만 보인다(Task 3 품질 리뷰 실측). 뜰 때 보이는 곳으로 당긴다.
+  useEffect(() => {
+    if (err) errRef.current?.scrollIntoView({ block: "nearest" });
+  }, [err]);
 
   // 배경 스크롤 잠금 — 마운트 동안 유지
   useEffect(() => {
@@ -50,8 +56,16 @@ export default function SelfSajuEditModal({
     }
     if (!res.ok) {
       // 🔴 예전엔 실패해도 아무 말이 없었다 — 마이페이지에선 버텼지만 생일 벽(광고 착지)에선
-      //    "눌렀는데 안 된다"가 곧 이탈이다. 문구는 NewPersonModal 과 같다.
-      setErr("저장을 못 했어. 잠시 후 다시 시도해줄래?");
+      //    "눌렀는데 안 된다"가 곧 이탈이다. 기본 문구는 NewPersonModal 과 같다.
+      // 🔴 401·409 는 "잠시 후 다시"로 안 풀린다 — 다시 눌러도 같은 요청이 반복된다(409 의 흔한 경로:
+      //    POST 는 커밋됐는데 응답이 모바일망에서 유실). 새로고침하면 열 때 내 사주를 다시 읽어 PATCH 로 열린다.
+      setErr(
+        res.status === 401
+          ? "로그인이 풀렸어. 다시 로그인해줄래?"
+          : res.status === 409
+            ? "이미 저장된 사주가 있어. 새로고침하고 다시 열어줄래?"
+            : "저장을 못 했어. 잠시 후 다시 시도해줄래?"
+      );
       setSaving(false);
       return;
     }
@@ -97,7 +111,11 @@ export default function SelfSajuEditModal({
             loading={saving}
             onSubmit={saveSelf}
           />
-          {err && <p className="mt-3 px-5 text-center text-[12px] text-red-500">{err}</p>}
+          {err && (
+            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-[12px] text-red-500">
+              {err}
+            </p>
+          )}
         </div>
       </div>
     </div>,
