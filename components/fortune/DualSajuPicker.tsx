@@ -7,7 +7,7 @@ import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import type { BirthPromptSurface } from "@/lib/analytics/birth-prompt-surface";
 import type { SajuResult } from "@/lib/saju/calc";
 import { pickerGate } from "./picker-gate";
-import { autoSlotSelf } from "./dual-picker";
+import { autoSlotSelf, noOneToPick } from "./dual-picker";
 
 interface PickerProfile {
   id: string;
@@ -205,6 +205,8 @@ export default function DualSajuPicker({
   //    (BirthPromptButton 은 내 사주를 PATCH). 지인에게 생일이 없을 땐 달지 않는다 — 버튼이 지인이 아니라
   //    내 사주를 고친다(스펙 §5).
   const selfMissingBirth = [profA, profB].some((p) => p?.isPrimary && !p.birthDate);
+  // 활성 칸에 고를 사람이 없으면(내 생년월일을 막 저장한 신규 유저) 목록 자리에 큰 "+ 새 사람 입력"을 둔다.
+  const nothingToPick = noOneToPick({ profiles, active, slotA, slotB });
 
   const totalListPages = Math.max(1, Math.ceil(profiles.length / LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
@@ -261,49 +263,65 @@ export default function DualSajuPicker({
         <p className="text-[12px] font-bold text-eye-purple">
           {active === "A" ? "첫 번째 사람" : "두 번째 사람"} 고르기
         </p>
-        <button
-          type="button"
-          onClick={() => setShowNewPerson(true)}
-          className="text-[11px] font-bold text-lilac-deep"
-        >
-          + 새 사람 입력
-        </button>
+        {/* 고를 사람이 없을 땐 아래 큰 버튼이 같은 일을 한다 — 같은 버튼을 두 번 보이지 않는다. */}
+        {!nothingToPick && (
+          <button
+            type="button"
+            onClick={() => setShowNewPerson(true)}
+            className="text-[11px] font-bold text-lilac-deep"
+          >
+            + 새 사람 입력
+          </button>
+        )}
       </div>
 
-      {/* 프로필 목록 */}
-      <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20 mb-3">
-        {pagedProfiles.map((p) => {
-          const usedInOther =
-            (active === "A" && slotB === p.id) || (active === "B" && slotA === p.id);
-          const isPicked =
-            (active === "A" && slotA === p.id) || (active === "B" && slotB === p.id);
-          return (
-            <button
-              key={p.id}
-              onClick={() => assign(p.id)}
-              disabled={usedInOther}
-              className={`w-full flex items-center justify-between p-3 text-left transition ${
-                isPicked ? "bg-lilac-soft/40" : ""
-              } ${usedInOther ? "opacity-40" : ""}`}
-            >
-              <div className="min-w-0">
-                <div className="text-[14px] font-bold text-eye-purple">
-                  {displayName(p)}
-                  <span className="ml-2 text-[11px] text-text-light/70 font-normal">
-                    {relationBadge(p)}
-                  </span>
+      {/* 프로필 목록 — 활성 칸에 고를 사람이 없으면 그 자리에 큰 "+ 새 사람 입력"(자동으로 열지는 않는다) */}
+      {nothingToPick ? (
+        <div className="bg-white rounded-2xl border border-dashed border-lilac-mid/50 px-4 py-5 text-center mb-3">
+          <p className="text-[12px] text-text-light/80 mb-3">궁합 볼 사람을 새로 넣어줘.</p>
+          <button
+            type="button"
+            onClick={() => setShowNewPerson(true)}
+            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+          >
+            + 새 사람 입력
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden divide-y divide-lilac-mid/20 mb-3">
+          {pagedProfiles.map((p) => {
+            const usedInOther =
+              (active === "A" && slotB === p.id) || (active === "B" && slotA === p.id);
+            const isPicked =
+              (active === "A" && slotA === p.id) || (active === "B" && slotB === p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => assign(p.id)}
+                disabled={usedInOther}
+                className={`w-full flex items-center justify-between p-3 text-left transition ${
+                  isPicked ? "bg-lilac-soft/40" : ""
+                } ${usedInOther ? "opacity-40" : ""}`}
+              >
+                <div className="min-w-0">
+                  <div className="text-[14px] font-bold text-eye-purple">
+                    {displayName(p)}
+                    <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                      {relationBadge(p)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-text-light/70 mt-0.5">{birthShort(p)}</div>
                 </div>
-                <div className="text-[11px] text-text-light/70 mt-0.5">{birthShort(p)}</div>
-              </div>
-              {usedInOther && (
-                <span className="shrink-0 ml-2 text-[10px] text-text-light/60">
-                  반대편 선택됨
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                {usedInOther && (
+                  <span className="shrink-0 ml-2 text-[10px] text-text-light/60">
+                    반대편 선택됨
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {totalListPages > 1 && (
         <div className="flex items-center justify-center gap-2 mb-3">
