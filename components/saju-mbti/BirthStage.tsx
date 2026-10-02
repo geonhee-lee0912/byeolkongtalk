@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Dropdown from "@/components/common/Dropdown";
+import { lunarLeapMonth, maxBirthDay } from "@/lib/saju/lunar-table";
 
 // 12지지 시간 매핑 (SajuInputForm 과 동일).
 const HOUR_BRANCHES: { label: string; hanja: string; range: string; hour: number }[] = [
@@ -47,7 +48,13 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
     return arr;
   }, []);
   const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}월` })), []);
-  const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
+  // 🔴 음력은 그해 그달 실제 일수 — SajuInputForm 과 같은 규칙(lib/saju/lunar-table.ts). 없는 날짜는
+  //    calcSaju 가 클릭 핸들러에서 throw 해 "결과 보기"가 무반응이었다. (여기는 저장이 없지만 DATE 상한까지
+  //    같은 규칙을 쓴다 — 음력 2/29·2/30 은 예전처럼 못 고른다, spec §8)
+  const daysInMonth = useMemo(
+    () => maxBirthDay(year, month, calendar === "lunar", isLeapMonth),
+    [year, month, calendar, isLeapMonth],
+  );
   const dayOptions = useMemo(
     () => Array.from({ length: daysInMonth }, (_, i) => ({ value: String(i + 1), label: `${i + 1}일` })),
     [daysInMonth],
@@ -61,6 +68,9 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
   );
 
   if (day > daysInMonth) setDay(daysInMonth);
+  // 윤달은 그해 윤달이 이 달일 때만 — 아니면 자동 해제.
+  const leapAvailable = calendar === "lunar" && lunarLeapMonth(year) === month;
+  if (isLeapMonth && !leapAvailable) setIsLeapMonth(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,12 +107,6 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
             </button>
           ))}
         </div>
-        {calendar === "lunar" && (
-          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
-            <input type="checkbox" checked={isLeapMonth} onChange={(e) => setIsLeapMonth(e.target.checked)} className="w-4 h-4 accent-lilac-deep" />
-            윤달이야
-          </label>
-        )}
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
@@ -112,6 +116,12 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
           <Dropdown ariaLabel="월" value={String(month)} onChange={(v) => setMonth(parseInt(v, 10))} options={monthOptions} />
           <Dropdown ariaLabel="일" value={String(day)} onChange={(v) => setDay(parseInt(v, 10))} options={dayOptions} />
         </div>
+        {leapAvailable && (
+          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
+            <input type="checkbox" checked={isLeapMonth} onChange={(e) => setIsLeapMonth(e.target.checked)} className="w-4 h-4 accent-lilac-deep" />
+            윤달이야
+          </label>
+        )}
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
