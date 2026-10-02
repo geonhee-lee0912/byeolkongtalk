@@ -15,7 +15,6 @@ import {
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
 import HomeReachBeacon from "@/components/home/HomeReachBeacon";
-import { FORTUNE_GRADIENTS } from "@/lib/fortune/types";
 import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
@@ -257,11 +256,19 @@ export default function Home() {
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-              style={{ background: FORTUNE_GRADIENTS.daily }}
+              style={{
+                // 🔴 금색(FORTUNE_GRADIENTS.daily)을 쓰면 안 된다 — 이 아이콘은 크림색 마루라
+                //    금색 타일 위에서 대비가 사라져 형태가 뭉개진다(56px 실측 확인). 라일락이어야 읽힌다.
+                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+              }}
             >
-              <span className="text-[28px] group-hover:scale-110 transition-transform" aria-hidden>
-                🗓
-              </span>
+              <Image
+                src="/icons/byeolmaru/hub.webp"
+                alt=""
+                width={44}
+                height={44}
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
@@ -296,9 +303,13 @@ export default function Home() {
                 background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
               }}
             >
-              <span className="text-[28px] group-hover:scale-110 transition-transform" aria-hidden>
-                💜
-              </span>
+              <Image
+                src="/icons/relationship/consult.webp"
+                alt=""
+                width={44}
+                height={44}
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
