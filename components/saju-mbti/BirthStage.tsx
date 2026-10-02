@@ -49,8 +49,8 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
   }, []);
   const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}월` })), []);
   // 🔴 음력은 그해 그달 실제 일수 — SajuInputForm 과 같은 규칙(lib/saju/lunar-table.ts). 없는 날짜는
-  //    calcSaju 가 클릭 핸들러에서 throw 해 "결과 보기"가 무반응이었다. (여기는 저장이 없지만 DATE 상한까지
-  //    같은 규칙을 쓴다 — 음력 2/29·2/30 은 예전처럼 못 고른다, spec §8)
+  //    calcSaju 가 클릭 핸들러에서 throw 해 "결과 보기"가 무반응이었다. 여기는 저장이 없지만 폼 규칙을 하나로 둔다 —
+  //    그래서 음력 2/30·양력 평년의 음력 2/29 는 예전처럼 못 고른다(저장하는 폼의 DATE 상한, specs/2026-10-02-음력-무효날짜-design.md §8-1).
   const daysInMonth = useMemo(
     () => maxBirthDay(year, month, calendar === "lunar", isLeapMonth),
     [year, month, calendar, isLeapMonth],
