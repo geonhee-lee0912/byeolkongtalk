@@ -7,7 +7,7 @@ test("surface 값은 서로 겹치지 않는다 — 겹치면 자리별로 갈�
   assert.equal(new Set(values).size, values.length);
 });
 
-test("surface 는 스펙 §4-4 의 6곳이고, 키와 값이 짝째로 고정이다", () => {
+test("surface 는 생일 벽 스펙 §4-4 의 6곳 + 궁합 스펙 §3-5 의 2곳이고, 키와 값이 짝째로 고정이다", () => {
   // 🔴 값만 정렬해 비교하면 두 자리의 값이 서로 바뀌어도 통과한다 — 그게 바로 추세를 끊는 변경이다.
   assert.deepEqual(BIRTH_PROMPT_SURFACE, {
     fortunePicker: "fortune_picker",
@@ -16,5 +16,7 @@ test("surface 는 스펙 §4-4 의 6곳이고, 키와 값이 짝째로 고정이
     byeolmaruDaySaju: "byeolmaru_day_saju",
     byeolmaruDayWoori: "byeolmaru_day_woori",
     byeolmaruDayTarot: "byeolmaru_day_tarot",
+    compatPicker: "compat_picker",
+    compatSocialPicker: "compat_social_picker",
   });
 });

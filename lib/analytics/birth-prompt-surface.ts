@@ -9,6 +9,10 @@ export const BIRTH_PROMPT_SURFACE = {
   byeolmaruDaySaju: "byeolmaru_day_saju",
   byeolmaruDayWoori: "byeolmaru_day_woori",
   byeolmaruDayTarot: "byeolmaru_day_tarot",
+  // 궁합 구매 칸(DualSajuPicker). ui_events 는 경로를 남기지 않아 두 상품을 값으로 가른다
+  // (specs/2026-10-02-궁합-비로그인-막다른길-design.md §3-5).
+  compatPicker: "compat_picker",
+  compatSocialPicker: "compat_social_picker",
 } as const;
 
 export type BirthPromptSurface =
