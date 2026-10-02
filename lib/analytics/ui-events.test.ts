@@ -51,3 +51,9 @@ test("UI_EVENTS — 생일 입력 팝업 이벤트 2종이 등록돼 있다", ()
   assert.equal(isUiEvent("birth_prompt_clicked"), true);
   assert.equal(isUiEvent("birth_prompt_saved"), true);
 });
+
+// 2026-10-03 구매 칸 벽 계측 — 벽 노출 → 카카오 클릭 / 생일 저장 깔때기(surface 로 birth_prompt_* 와 잇는다).
+test("UI_EVENTS — 구매 칸 벽 노출·카카오 클릭 이벤트 2종이 등록돼 있다", () => {
+  assert.equal(isUiEvent("picker_gate_shown"), true);
+  assert.equal(isUiEvent("picker_login_clicked"), true);
+});

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SajuBoard from "@/components/saju/SajuBoard";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import type { SajuResult } from "@/lib/saju/calc";
-import { pickerGate } from "./picker-gate";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { pickerGate, type PickerGate } from "./picker-gate";
 
 interface PickerProfile {
   id: string;
@@ -79,6 +80,8 @@ export interface FortuneSajuPickerProps {
   onReview?: (readingId: string) => void;
   /** 비로그인 카카오 CTA 가 로그인 후 돌아올 곳. 상품 href 를 넘긴다(없으면 지금 경로). */
   loginNext?: string;
+  /** 벽 계측(picker_gate_shown·picker_login_clicked)의 meta.product — FORTUNE_CONFIG type. ui_events 는 경로를 안 남긴다. */
+  product?: string;
 }
 
 const LIST_PAGE_SIZE = 5;
@@ -95,6 +98,7 @@ export default function FortuneSajuPicker({
   reviewableByProfile,
   onReview,
   loginNext,
+  product,
 }: FortuneSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -102,6 +106,8 @@ export default function FortuneSajuPicker({
   const [listPage, setListPage] = useState(0);
   const [showNewPerson, setShowNewPerson] = useState(false);
   const [authed, setAuthed] = useState(true);
+  // 벽 노출 계측은 gate 값이 바뀔 때만 — 재조회(생일 저장 뒤)·StrictMode 이중 마운트로 중복되지 않게.
+  const shownGateRef = useRef<PickerGate | null>(null);
 
   // 마운트와 생일 저장 뒤(onSaved) 둘 다 이걸 부른다 — 저장 뒤엔 isPrimary 자동 선택이 그대로 돈다.
   async function loadProfiles() {
@@ -125,6 +131,13 @@ export default function FortuneSajuPicker({
       //    (=== true 로 두면 일시 장애 때 로그인한 유저에게 카카오 버튼이 뜬다 — Task 2 품질 리뷰).
       isAuthed = me?.isAuthenticated !== false;
     }
+    const gate = pickerGate({ profiles: list, lockPrimary: !!lockPrimary, authenticated: isAuthed });
+    if (gate !== "list" && gate !== shownGateRef.current) {
+      trackUiEvent("picker_gate_shown", {
+        meta: { surface: BIRTH_PROMPT_SURFACE.fortunePicker, gate, product },
+      });
+    }
+    shownGateRef.current = gate;
     setProfiles(list);
     setAuthed(isAuthed);
     const self = list.find((p) => p.isPrimary);
@@ -165,6 +178,11 @@ export default function FortuneSajuPicker({
           {/* 카카오 버튼은 저장소 공통 컨벤션(ByeolmaruHub 와 같은 마크업). */}
           <Link
             href={`/login?next=${encodeURIComponent(next)}`}
+            onClick={() =>
+              trackUiEvent("picker_login_clicked", {
+                meta: { surface: BIRTH_PROMPT_SURFACE.fortunePicker, product },
+              })
+            }
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
