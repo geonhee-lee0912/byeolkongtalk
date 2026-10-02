@@ -14,6 +14,7 @@ import {
 } from "@/lib/emotions";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import Footer from "@/components/layout/Footer";
+import HomeReachBeacon from "@/components/home/HomeReachBeacon";
 import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
@@ -243,6 +244,53 @@ export default function Home() {
             <span className="flex-1 h-px bg-lilac-mid/40" />
           </div>
 
+          {/* 별마루 진입 — 연애 상담 카드 **위**(사용자 확정 2026-10-02). 전체 폭 가로 행이라
+              2단 그리드가 아니고, 글자 크기는 아래 연애 상담 카드와 동일하다.
+              🔴 도달 beacon 을 같이 단다 — 홈은 스크롤 깊이를 안 재서, 이 카드가 안 눌리면
+                 "안 보여서"인지 "봤는데 관심 없어서"인지 구분할 방법이 지금 없다. */}
+          <HomeReachBeacon block="byeolmaru_card" />
+          <Link
+            href="/byeolmaru"
+            onClick={() => trackUiEvent("home_byeolmaru_clicked")}
+            className="flex items-center gap-3.5 p-3.5 mb-2.5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+          >
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+              style={{
+                // 🔴 금색(FORTUNE_GRADIENTS.daily)을 쓰면 안 된다 — 이 아이콘은 크림색 마루라
+                //    금색 타일 위에서 대비가 사라져 형태가 뭉개진다(56px 실측 확인). 라일락이어야 읽힌다.
+                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+              }}
+            >
+              <Image
+                src="/icons/byeolmaru/hub.webp"
+                alt=""
+                width={44}
+                height={44}
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
+                별마루
+                <span className="text-[11px] font-bold text-text-light">무료</span>
+              </p>
+              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+                오늘 사주랑 오늘 타로, 매일 무료로 확인해봐
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {["오늘사주", "오늘타로", "매일무료"].map((h) => (
+                  <span
+                    key={h}
+                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                  >
+                    #{h}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Link>
+
           {/* 우리 사이(연애 상담) 진입 — 구 궁합 슬롯 대체, 라벤더 강조 + 클릭 계측 */}
           <Link
             href="/relationship"
@@ -255,9 +303,13 @@ export default function Home() {
                 background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
               }}
             >
-              <span className="text-[28px] group-hover:scale-110 transition-transform" aria-hidden>
-                💜
-              </span>
+              <Image
+                src="/icons/relationship/consult.webp"
+                alt=""
+                width={44}
+                height={44}
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">

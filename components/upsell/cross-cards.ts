@@ -53,7 +53,8 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
 // FortuneConfig 가 아니라 수동 CrossCard(별마루는 FortuneType 이 아님). 민트=무료 톤.
 const BYEOLMARU_SAJU_CARD: CrossCard = {
   href: "/byeolmaru",
-  emoji: "🗓",
+  emoji: "🗓", // iconSrc 가 있으면 안 쓰인다 — 아이콘 파일이 사라졌을 때의 폴백으로만 둔다
+  iconSrc: "/icons/byeolmaru/hub.webp",
   // 라벨은 목적지와 맞춘다 — href 가 허브(/byeolmaru)인데 "오늘 사주"라고 부르면 한 칸 어긋난다
   // (오늘 사주 본문은 /byeolmaru/day 라 한 번 더 눌러야 나온다). 대신 잃는 구체성은 태그라인이
   // 메운다: 안에 뭐가 있는지 두 개를 직접 말한다.
@@ -69,7 +70,9 @@ const BYEOLMARU_SAJU_CARD: CrossCard = {
   label: "별마루",
   tagline: "오늘 사주랑 오늘 타로, 매일 무료로 확인해봐",
   badge: "무료",
-  gradient: FORTUNE_GRADIENTS.daily,
+  // 🔴 FORTUNE_GRADIENTS.daily(금색)를 쓰면 안 된다 — 이 아이콘은 크림색 마루라 금색 타일
+  //    위에서 대비가 사라져 형태가 뭉개진다(56px 실측). 홈 카드와 같은 라일락으로 맞춘다.
+  gradient: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
 };
 
 export interface CrossCard {

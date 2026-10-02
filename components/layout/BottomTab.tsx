@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -81,6 +81,29 @@ export default function BottomTab() {
   // 항상 "내 정보" 탭이 filled 되도록 강제한다 (보관함이 내 정보로 이동).
   const fromHistory = useSearchParams().get("from") === "history";
   const [meUnread, setMeUnread] = useState(0);
+  // 별마루 "오늘 거리" 점 — 오늘 아직 안 본 게 있으면 켠다.
+  // 🔴 조회는 읽기 전용 `/api/byeolmaru/today-seen` 으로만. `/api/byeolmaru/calendar` 는
+  //    **호출만으로 출석이 찍히므로**(방문=출석) 전 지면에 깔리는 여기서 부르면 점이
+  //    영원히 안 뜨고 스트릭까지 오염된다.
+  const [byeolmaruUnseen, setByeolmaruUnseen] = useState(false);
+  // 전 지면에 깔리는 컴포넌트라 네비게이션마다 때리지 않는다 — 마운트당 1회.
+  const seenChecked = useRef(false);
+  useEffect(() => {
+    // 별마루에 들어왔으면 그 방문이 곧 출석이다 → 서버 왕복을 기다리지 않고 바로 끈다.
+    if (pathname.startsWith("/byeolmaru")) {
+      setByeolmaruUnseen(false);
+      seenChecked.current = true;
+      return;
+    }
+    if (seenChecked.current) return;
+    seenChecked.current = true;
+    void fetch("/api/byeolmaru/today-seen", { cache: "no-store" })
+      .then((x) => (x.ok ? x.json() : null))
+      .then((d) => {
+        if (d) setByeolmaruUnseen(d.seenToday === false);
+      })
+      .catch(() => {});
+  }, [pathname]);
   useEffect(() => {
     void fetch("/api/inquiries/unread-count", { cache: "no-store" })
       .then((x) => (x.ok ? x.json() : null))
@@ -138,6 +161,14 @@ export default function BottomTab() {
                         fillRule={tab.iconEvenOdd ? "evenodd" : undefined}
                       />
                     </svg>
+                    {/* 별마루 점은 ping 을 쓰지 않는다 — "새 답변"(아래)과 급함이 다르고,
+                        매일 뜨는 신호라 깜빡이면 금방 피로해진다. */}
+                    {tab.key === "byeolmaru" && byeolmaruUnseen && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 inline-flex h-2 w-2 rounded-full bg-gold"
+                        aria-label="오늘 아직 안 본 게 있어"
+                      />
+                    )}
                     {tab.key === "me" && meUnread > 0 && (
                       <span
                         className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
