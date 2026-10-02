@@ -177,6 +177,20 @@ export function calcSaju(input: SajuInput): SajuResult {
   };
 }
 
+/**
+ * calcSaju 가 이 입력을 계산할 수 있는가 — 저장 전 검증용(validateProfile 등).
+ * tyme4ts 는 없는 날짜에 throw 한다: 그달에 없는 음력 30·31일, 그해에 없는 윤달, 없는 양력 날짜(2/30).
+ * (구 manseryeok 은 throw 없이 틀린 사주를 냈다 — 그래서 폼·검증이 이 전제를 못 따라왔다. 2026-10-02)
+ */
+export function canCalcSaju(input: SajuInput): boolean {
+  try {
+    calcSaju(input);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function toPillarLite(parts: PillarParts): PillarLite {
   return { stem: parts.stem, branch: parts.branch, hanja: parts.hanja, element: parts.stemElement };
 }

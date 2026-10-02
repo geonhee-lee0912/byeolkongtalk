@@ -6,6 +6,7 @@ import {
   calcTemporalLuck,
   baseDateForKst,
   calcDailyLuckRange,
+  canCalcSaju,
   type SajuInput,
   type SajuResult,
 } from "./calc.ts";
@@ -180,4 +181,19 @@ test("calcDailyLuckRange — 같은 날짜는 calcTemporalLuck 의 30일 일진�
       `${r[i].date} 간지 불일치`
     );
   }
+});
+
+// ── canCalcSaju: 없는 날짜는 false (tyme4ts 가 throw) ──
+test("canCalcSaju — 그달에 없는 음력 30·31일, 그해에 없는 윤달은 false", () => {
+  const lunar = (o: Partial<SajuInput>) => solar({ year: 1996, month: 1, hour: null, isLunar: true, ...o });
+  assert.equal(canCalcSaju(lunar({ day: 29 })), true, "1996 정월 = 29일");
+  assert.equal(canCalcSaju(lunar({ day: 30 })), false);
+  assert.equal(canCalcSaju(lunar({ day: 31 })), false);
+  assert.equal(canCalcSaju(lunar({ month: 3, day: 1, isLeapMonth: true })), false, "1996 은 윤달 없음");
+  assert.equal(canCalcSaju(lunar({ year: 1990, month: 5, day: 1, isLeapMonth: true })), true, "1990 윤5월");
+});
+
+test("canCalcSaju — 없는 양력 날짜는 false", () => {
+  assert.equal(canCalcSaju(solar({ year: 2023, month: 2, day: 29 })), false);
+  assert.equal(canCalcSaju(solar({ year: 2024, month: 2, day: 29 })), true);
 });
