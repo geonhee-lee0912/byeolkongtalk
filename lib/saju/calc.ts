@@ -180,6 +180,8 @@ export function calcSaju(input: SajuInput): SajuResult {
 /**
  * calcSaju 가 이 입력을 계산할 수 있는가 — 저장 전 검증용(validateProfile 등).
  * tyme4ts 는 없는 날짜에 throw 한다: 그달에 없는 음력 30·31일, 그해에 없는 윤달, 없는 양력 날짜(2/30).
+ * 🔴 어떤 throw 든 false 다(시·분·연도 범위 밖 포함) — 날짜 말고 다른 원인은 호출부가 먼저 거를 것.
+ *    true 라고 DATE 컬럼에 저장 가능한 건 아니다(음력 1997-02-29 는 실존하지만 1997-02-29 는 그레고리력에 없음).
  * (구 manseryeok 은 throw 없이 틀린 사주를 냈다 — 그래서 폼·검증이 이 전제를 못 따라왔다. 2026-10-02)
  */
 export function canCalcSaju(input: SajuInput): boolean {

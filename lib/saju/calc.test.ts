@@ -191,6 +191,10 @@ test("canCalcSaju — 그달에 없는 음력 30·31일, 그해에 없는 윤달
   assert.equal(canCalcSaju(lunar({ day: 31 })), false);
   assert.equal(canCalcSaju(lunar({ month: 3, day: 1, isLeapMonth: true })), false, "1996 은 윤달 없음");
   assert.equal(canCalcSaju(lunar({ year: 1990, month: 5, day: 1, isLeapMonth: true })), true, "1990 윤5월");
+  assert.equal(canCalcSaju(lunar({ year: 2020, month: 4, day: 30 })), true, "2020 4월 = 30일");
+  assert.equal(canCalcSaju(lunar({ year: 2020, month: 4, day: 30, isLeapMonth: true })), false, "2020 윤4월 = 29일");
+  assert.equal(canCalcSaju(lunar({ month: 3, day: 1 })), true, "1996-03-01 평달은 통과 — 원인은 윤달 플래그뿐");
+  assert.equal(canCalcSaju(lunar({ year: 1990, month: 6, day: 1, isLeapMonth: true })), false, "1990 윤달은 5월뿐");
 });
 
 test("canCalcSaju — 없는 양력 날짜는 false", () => {
