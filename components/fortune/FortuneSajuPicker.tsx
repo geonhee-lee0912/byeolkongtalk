@@ -372,6 +372,7 @@ export default function FortuneSajuPicker({
       {showNewPerson && (
         <NewPersonModal
           relation="friend"
+          loginNext={loginNext}
           onSaved={(profile) => {
             const created = profile as PickerProfile; // saju 포함 (serializeProfile)
             setProfiles((prev) => [...prev, created]);
