@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import PairDayDetailCard from "./PairDayDetailCard";
 import GuestLoginWall from "./GuestLoginWall";
+import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import CurrentPartner, { type WatchedPartner } from "./CurrentPartner";
 import WatchAddModal from "./WatchAddModal";
 import PaywallCut from "./PaywallCut";
@@ -223,7 +224,14 @@ export default function WooriTodayView({
   if (state.kind === "no_profile") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 시작할 수 있어.</p>
-      <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">생년월일 입력하러 가기</Link>
+      {/* 🔴 저장 뒤 새로 불러온다 — 사주 탭과 같은 이유(스펙 §3). */}
+      <BirthPromptButton
+        surface={BIRTH_PROMPT_SURFACE.byeolmaruDayWoori}
+        onSaved={reloadAfterSave}
+        className="rounded-xl bg-lilac-deep px-4 py-2 text-cream disabled:opacity-60"
+      >
+        생년월일 입력하기
+      </BirthPromptButton>
     </div>
   );
   if (state.kind === "error") return <p className="text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;

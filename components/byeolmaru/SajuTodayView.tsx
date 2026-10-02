@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -14,6 +13,8 @@ import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import DayDetailCard from "./DayDetailCard";
 import GuestLoginWall from "./GuestLoginWall";
+import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import PaywallCut from "./PaywallCut";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
@@ -154,7 +155,15 @@ export default function SajuTodayView({
   if (state.kind === "no_profile") return (
     <div className="text-center">
       <p className="mb-4 text-eye-purple">생년월일을 알려주면 네 달력을 그려줄게.</p>
-      <Link href="/mypage" className="rounded-xl bg-lilac-deep px-4 py-2 text-cream">생년월일 입력하러 가기</Link>
+      {/* 🔴 저장 뒤 새로 불러온다 — 세 탭이 껍데기의 캘린더 응답을 나눠 쓰므로 이 탭만 갱신하면
+          옆 탭이 낡은 404 로 남는다(스펙 §3). */}
+      <BirthPromptButton
+        surface={BIRTH_PROMPT_SURFACE.byeolmaruDaySaju}
+        onSaved={reloadAfterSave}
+        className="rounded-xl bg-lilac-deep px-4 py-2 text-cream disabled:opacity-60"
+      >
+        생년월일 입력하기
+      </BirthPromptButton>
     </div>
   );
   if (state.kind === "error") return <p className="text-center text-text-light">지금은 못 펼쳤어. 잠시 뒤에 다시 와줄래?</p>;
