@@ -3,7 +3,7 @@
 // (c) 채팅 진입 시점에 로그인 + readings INSERT.
 
 import { NextRequest, NextResponse } from "next/server";
-import { calcSaju, type SajuInput, type SajuGender } from "@/lib/saju/calc";
+import { calcSaju, canCalcSaju, type SajuInput, type SajuGender } from "@/lib/saju/calc";
 import { logError, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -45,7 +45,7 @@ function validateInput(body: unknown): SajuInput | { error: string } {
   if (gender !== "male" && gender !== "female" && gender !== "other")
     return { error: "invalid_gender" };
 
-  return {
+  const input: SajuInput = {
     year,
     month,
     day,
@@ -55,6 +55,11 @@ function validateInput(body: unknown): SajuInput | { error: string } {
     isLeapMonth: b.isLeapMonth === true,
     gender: gender as SajuGender,
   };
+  // 그달에 없는 음력 30·31일·없는 윤달·없는 양력 날짜는 calcSaju 가 throw 한다 — 500("internal") 대신 400.
+  if (!canCalcSaju(input)) {
+    return { error: input.isLunar ? "invalid_lunar_date" : "invalid_day" };
+  }
+  return input;
 }
 
 export async function POST(req: NextRequest) {

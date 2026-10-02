@@ -8,7 +8,7 @@ import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import { findExistingFortuneReadingId } from "@/lib/fortune/existing-lookup";
 import { randomUUID } from "crypto";
-import { calcSaju, calcTemporalLuck, calcDaeun, baseDateForKst, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import { calcSaju, calcTemporalLuck, calcDaeun, canCalcSaju, baseDateForKst, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { kstDate } from "@/lib/admin-time";
 import {
   parseGenericReportJson,
@@ -130,7 +130,7 @@ function validateSajuInput(body: unknown): SajuInput | { error: string } {
   if (gender !== "male" && gender !== "female" && gender !== "other")
     return { error: "invalid_gender" };
 
-  return {
+  const input: SajuInput = {
     year,
     month,
     day,
@@ -140,6 +140,11 @@ function validateSajuInput(body: unknown): SajuInput | { error: string } {
     isLeapMonth: b.isLeapMonth === true,
     gender: gender as SajuGender,
   };
+  // 그달에 없는 음력 30·31일·없는 윤달·없는 양력 날짜는 calcSaju 가 throw 한다 — 로그 없는 500 대신 400.
+  if (!canCalcSaju(input)) {
+    return { error: input.isLunar ? "invalid_lunar_date" : "invalid_day" };
+  }
+  return input;
 }
 
 export async function POST(req: NextRequest) {
