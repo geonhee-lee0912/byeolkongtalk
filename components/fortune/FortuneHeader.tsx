@@ -65,6 +65,7 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
             저장 뒤 이 화면엔 바꿀 게 없어 닫기만 한다. */}
         <BirthPromptButton
           surface={BIRTH_PROMPT_SURFACE.fortuneHeader}
+          loginNext="/fortune"
           onSaved={() => {}}
           className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep transition active:scale-95 disabled:opacity-60"
         >

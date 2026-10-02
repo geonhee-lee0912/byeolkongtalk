@@ -117,9 +117,11 @@ export default function BirthPromptButton({ surface, className, children, onSave
           }}
           onClose={() => {
             setOpened(null);
-            // 닫히면 포커스를 버튼으로 돌린다(키보드·스크린리더 사용자가 위치를 잃지 않게). 저장 뒤 그 자리가
-            // 다른 화면으로 바뀌어 버튼이 이미 없으면 아무 일도 없다.
-            buttonRef.current?.focus();
+            // 닫히면 포커스를 버튼으로 돌린다(키보드·스크린리더 사용자가 위치를 잃지 않게).
+            // 저장 성공 경로에선 이 시점에 소비처의 갱신(재조회 setState)이 아직 커밋 전이라 버튼이 남아 있고,
+            // 다음 커밋에서 버튼이 사라지면 포커스는 body 로 떨어진다(무해). preventScroll — 배경이 스크롤된
+            // iOS 에서 트리거 위치로 화면이 튀지 않게.
+            buttonRef.current?.focus({ preventScroll: true });
           }}
         />
       )}

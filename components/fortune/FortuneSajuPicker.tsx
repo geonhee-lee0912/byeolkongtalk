@@ -108,8 +108,10 @@ export default function FortuneSajuPicker({
     const d = await fetch("/api/profiles", { cache: "no-store" })
       .then((x) => (x.ok ? x.json() : null))
       .catch(() => null);
-    // 조회가 실패하면 지금 목록을 그대로 둔다 — 생일 저장 직후 재조회가 실패해도 목록이 비어 벽으로
-    // 돌아가지 않게(마이페이지 reloadProfiles 와 같은 방식, Task 4 품질 리뷰). 첫 마운트 땐 지금 목록이 [] 다.
+    // 조회가 실패하면 지금 목록을 그대로 둔다(마이페이지 reloadProfiles 와 같은 방식) — 목록 안 버튼(생일 없는
+    // 내 사주)으로 저장한 직후 재조회가 실패해도 목록이 비어 벽으로 떨어지지 않는다. 벽 상태(목록 [])에서
+    // 저장했는데 재조회가 실패하면 알 길이 없어 벽이 그대로 남는다 — 다시 누르면 재조회해 "내 사주 수정"으로 열린다.
+    // 첫 마운트 땐 지금 목록이 [] 다.
     const list = Array.isArray(d?.profiles) ? (d.profiles as PickerProfile[]) : profiles;
     // 🔴 GET /api/profiles 는 비로그인에게도 200 {profiles:[]} 를 준다 — 목록이 "내 사주 필요"일
     //    때만 로그인 여부를 따로 묻는다(프로필 있는 유저는 요청이 늘지 않는다).
@@ -184,6 +186,7 @@ export default function FortuneSajuPicker({
           {/* 🔴 저장 뒤 결제 확인을 자동으로 띄우지 않는다 — 내 사주를 골라 두기까지만(스펙 §3). */}
           <BirthPromptButton
             surface={BIRTH_PROMPT_SURFACE.fortunePicker}
+            loginNext={loginNext}
             onSaved={loadProfiles}
             className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-60"
           >
@@ -238,6 +241,7 @@ export default function FortuneSajuPicker({
                   <p className="text-[12px] text-text-light/70 mb-3">생일을 알려주면 사주도 보여줄게</p>
                   <BirthPromptButton
                     surface={BIRTH_PROMPT_SURFACE.fortunePicker}
+                    loginNext={loginNext}
                     onSaved={loadProfiles}
                     className="inline-block px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-60"
                   >
