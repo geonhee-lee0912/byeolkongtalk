@@ -7,7 +7,7 @@
 // 🔴 팝업은 마이페이지의 SelfSajuEditModal 을 **그대로** 쓴다. self 가 있으면 PATCH, 없으면 POST 를
 //    그 모달이 고른다 — 그래서 열기 전에 self 를 반드시 조회한다. 별마루 404 는 원인이 둘이다
 //    (primary 없음 / primary 는 있는데 생일 없음). self 를 모른 채 POST 하면 뒤쪽이 409 로 막힌다.
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import type { ProfileItem } from "@/components/mypage/sajuShared";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -39,6 +39,17 @@ export function reloadAfterSave(): Promise<void> {
 export default function BirthPromptButton({ surface, className, children, onSaved, onClick, loginNext }: Props) {
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<Opened | null>(null);
+
+  // 🔴 비로그인 → 로그인으로 보낸 뒤 '뒤로'로 돌아오면, 브라우저가 페이지를 bfcache 에서 busy=true 인 채로
+  //    되살려 버튼이 새로고침 전까지 꺼진다(Task 4 셀프리뷰가 찾은 경로 — 로그인 리다이렉트는 busy 를 안 푼다).
+  //    되살아난 경우(persisted)에만 푼다.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setBusy(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   async function open() {
     if (busy) return;
