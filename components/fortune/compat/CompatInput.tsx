@@ -10,6 +10,7 @@ import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 type CompatKind = "compat" | "compat_social";
@@ -129,6 +130,8 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   }
 
   const newPersonRelation = type === "compat_social" ? "friend" : "partner";
+  const birthSurface =
+    type === "compat_social" ? BIRTH_PROMPT_SURFACE.compatSocialPicker : BIRTH_PROMPT_SURFACE.compatPicker;
 
   return (
     <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
@@ -137,6 +140,8 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         confirmLabel="궁합 보기"
         loading={balanceLoading && pending !== null}
         newPersonRelation={newPersonRelation}
+        loginNext={cfg.href}
+        birthSurface={birthSurface}
       />
 
       {error && (
