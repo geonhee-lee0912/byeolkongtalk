@@ -162,10 +162,12 @@ export default function BottomTab() {
                       />
                     </svg>
                     {/* 별마루 점은 ping 을 쓰지 않는다 — "새 답변"(아래)과 급함이 다르고,
-                        매일 뜨는 신호라 깜빡이면 금방 피로해진다. */}
+                        매일 뜨는 신호라 깜빡이면 금방 피로해진다.
+                        색은 금색이 아니라 로즈 + 크림 테두리 — 금색은 크림 배경 대비 1.6:1 이라
+                        안 보였고, 테두리 없이 아이콘 모서리에 붙으면 아이콘 장식처럼 읽혔다. */}
                     {tab.key === "byeolmaru" && byeolmaruUnseen && (
                       <span
-                        className="absolute -top-0.5 -right-0.5 inline-flex h-2 w-2 rounded-full bg-gold"
+                        className="absolute -top-px -right-px inline-flex h-2 w-2 rounded-full bg-rose-500 ring-2 ring-cream"
                         aria-label="오늘 아직 안 본 게 있어"
                       />
                     )}
