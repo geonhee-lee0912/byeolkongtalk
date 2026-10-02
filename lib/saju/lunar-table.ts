@@ -218,10 +218,10 @@ export function lunarLeapMonth(year: number): number {
   return TABLE[year - LUNAR_TABLE_START]?.[0] ?? 0;
 }
 
-/** 음력 그달 일수(29|30). 없는 달(그해 윤달이 아닌데 isLeap, 표 범위 밖)은 0. */
+/** 음력 그달 일수(29|30). 없는 달(그해 윤달이 아닌데 isLeap, 월이 1~12 정수가 아님, 표 범위 밖)은 0. */
 export function lunarMonthDays(year: number, month: number, isLeap: boolean): number {
   const row = TABLE[year - LUNAR_TABLE_START];
-  if (!row || month < 1 || month > 12) return 0;
+  if (!row || !Number.isInteger(month) || month < 1 || month > 12) return 0;
   const [leap, bits] = row;
   if (isLeap && leap !== month) return 0;
   // 윤달이 있는 해는 윤달과 그 뒤 달들이 문자열에서 한 칸씩 밀린다.
@@ -230,14 +230,16 @@ export function lunarMonthDays(year: number, month: number, isLeap: boolean): nu
 }
 
 /**
- * 생년월일 폼이 보여줄 마지막 날.
+ * 생년월일 폼이 보여줄 마지막 날. 월은 1~12 정수 전제.
  * - 양력: 그 월 일수.
  * - 음력: min(음력 그달 일수, 같은 숫자 월의 양력 일수). 🔴 뒤쪽은 user_profiles.birth_date 가 DATE 컬럼이라서다 —
  *   음력도 그레고리력에 있는 Y-M-D 만 저장된다(음력 2/30 → 22008). isLeap 은 그해 윤달이 이 달일 때만 적용.
+ *   표 범위(1900~2100) 밖 음력은 0 — 호출부(폼)는 그 해를 보여주지 않는다.
  */
 export function maxBirthDay(year: number, month: number, isLunar: boolean, isLeap: boolean): number {
-  const solarDays = new Date(year, month, 0).getDate(); // month 는 1-based → 다음 달 0일 = 이 달 말일
+  // UTC 로 센다 — 로컬 Date 는 날짜변경선을 옮긴 존(Pacific/Kiritimati 1994-12)에서 말일을 잘못 낸다.
+  const solarDays = new Date(Date.UTC(year, month, 0)).getUTCDate(); // month 는 1-based → 다음 달 0일 = 이 달 말일
   if (!isLunar) return solarDays;
-  const leap = isLeap && lunarLeapMonth(year) === month;
-  return Math.min(lunarMonthDays(year, month, leap), solarDays);
+  const useLeap = isLeap && lunarLeapMonth(year) === month;
+  return Math.min(lunarMonthDays(year, month, useLeap), solarDays);
 }
