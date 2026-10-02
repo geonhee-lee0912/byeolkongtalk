@@ -1,4 +1,5 @@
 // 사주 프로필 입력 검증 + DB 행 → SajuInput 변환 (DRY: /api/profiles, /api/readings 공용).
+// 🔴 서버 전용 런타임 의존(tyme4ts — calc·canCalcSaju) — 클라이언트는 `import type` 만 쓸 것(값 import 시 번들 ~70KB gzip).
 
 import { calcSaju, canCalcSaju, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
 import { isValidBirthDate, isValidBirthTime } from "@/lib/byeoljari/validate";
@@ -23,6 +24,7 @@ export interface ProfileInput {
 
 // 상담/운세 입력 프로필 검증.
 // opts.optionalBirth=true 면 생일(및 부속 필드)이 없어도 통과(P2 우리 사이 프로필). 기본(falsy)은 기존 strict 동작 그대로.
+// 생일이 있으면 두 모드 모두 저장 전에 DATE 저장 가능·시각 범위·calcSaju 계산 가능까지 본다(2026-10-02).
 export function validateProfile(
   p: unknown,
   opts?: { optionalBirth?: boolean }
@@ -184,11 +186,11 @@ export function profileRowToSaju(row: {
   is_lunar_input: boolean;
   is_leap_month: boolean;
   gender: string;
-}): { saju: SajuResult | null; error: unknown } {
+}): { saju: SajuResult | null; error: Error | null } {
   if (!row.birth_date) return { saju: null, error: null };
   try {
     return { saju: calcSaju(profileRowToSajuInput({ ...row, birth_date: row.birth_date })), error: null };
-  } catch (error) {
-    return { saju: null, error };
+  } catch (e) {
+    return { saju: null, error: e instanceof Error ? e : new Error(String(e)) };
   }
 }
