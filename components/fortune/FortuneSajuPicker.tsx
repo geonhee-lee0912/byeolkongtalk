@@ -17,7 +17,7 @@ interface PickerProfile {
   birthTime: string | null;
   isLunarInput: boolean;
   isPrimary: boolean;
-  saju: SajuResult | null; // birthDate 없으면 서버가 계산 스킵 (null)
+  saju: SajuResult | null; // 생일 없음, 또는 계산 불가(없는 음력 날짜 등 — GET /api/profiles 가 행 단위로 null)면 null
 }
 
 const RELATION_LABEL: Record<string, string> = {

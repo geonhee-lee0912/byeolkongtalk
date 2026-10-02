@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
+import type { SajuResult } from "@/lib/saju/calc";
 
 interface PickerProfile {
   id: string;
@@ -11,6 +12,7 @@ interface PickerProfile {
   birthTime: string | null;
   isLunarInput: boolean;
   isPrimary: boolean;
+  saju: SajuResult | null; // 생일 없음, 또는 계산 불가(없는 음력 날짜 등 — GET /api/profiles 가 행 단위로 null)면 null
 }
 
 const RELATION_LABEL: Record<string, string> = {
@@ -114,11 +116,12 @@ export default function DualSajuPicker({
     return p ? displayName(p) : null;
   };
 
-  // 궁합은 두 사람의 생년월일이 필요 — 생일 없는 프로필(P2 nullable)이 슬롯에 들어오면 확정 차단.
+  // 궁합은 두 사람의 사주가 필요 — 생일 없는 프로필(P2 nullable)이나 계산 못 하는 행(GET 이 saju:null 로 내려준다)이
+  // 슬롯에 들어오면 확정 차단. 🔴 birthDate 만 보면 깨진 행이 통과해 /api/fortune/create 가 500 이 된다(saju 가 있으면 생일도 있다).
   const profA = slotA ? profiles.find((p) => p.id === slotA) : null;
   const profB = slotB ? profiles.find((p) => p.id === slotB) : null;
   const canConfirm =
-    !!slotA && !!slotB && slotA !== slotB && !loading && !!profA?.birthDate && !!profB?.birthDate;
+    !!slotA && !!slotB && slotA !== slotB && !loading && !!profA?.saju && !!profB?.saju;
 
   const totalListPages = Math.max(1, Math.ceil(profiles.length / LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
