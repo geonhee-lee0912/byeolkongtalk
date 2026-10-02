@@ -7,7 +7,11 @@
 // 🔴 팝업은 마이페이지의 SelfSajuEditModal 을 **그대로** 쓴다. self 가 있으면 PATCH, 없으면 POST 를
 //    그 모달이 고른다 — 그래서 열기 전에 self 를 반드시 조회한다. 별마루 404 는 원인이 둘이다
 //    (primary 없음 / primary 는 있는데 생일 없음). self 를 모른 채 POST 하면 뒤쪽이 409 로 막힌다.
-import { useEffect, useState, type ReactNode } from "react";
+// 🔴 놓는 자리 제약 — 팝업은 body 로 포털되지만 React 트리상으론 이 버튼의 형제라, 팝업 안의 키·submit·
+//    배경 클릭 같은 이벤트가 **이 버튼의 React 조상**으로 버블된다. `<form onSubmit>`·onClick 카드·Next <Link>·
+//    onKeyDown/onBlur 조상 안, 그리고 z-index 50 을 넘는 오버레이(StarConfirmModal z-[80] 등) 안에는 놓지 말 것.
+//    (2026-10-02 의 6곳은 조상 체인을 확인했다 — Task 4 품질 리뷰)
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import type { ProfileItem } from "@/components/mypage/sajuShared";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -39,6 +43,17 @@ export function reloadAfterSave(): Promise<void> {
 export default function BirthPromptButton({ surface, className, children, onSaved, onClick, loginNext }: Props) {
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<Opened | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // 응답이 오기 전에 화면을 떠났으면(언마운트) 로그인 리다이렉트를 하지 않는다 — 예: 비로그인이 헤더 버튼을
+  // 누르고 바로 하단탭으로 이동하면, 늦게 온 응답이 엉뚱한 화면에서 /login 으로 끌고 간다.
+  // 🔴 effect 본문에서 true 로 다시 세팅한다 — dev StrictMode 의 재마운트 뒤 false 로 굳지 않게.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   // 🔴 비로그인 → 로그인으로 보낸 뒤 '뒤로'로 돌아오면, 브라우저가 페이지를 bfcache 에서 busy=true 인 채로
   //    되살려 버튼이 새로고침 전까지 꺼진다(Task 4 셀프리뷰가 찾은 경로 — 로그인 리다이렉트는 busy 를 안 푼다).
@@ -52,7 +67,7 @@ export default function BirthPromptButton({ surface, className, children, onSave
   }, []);
 
   async function open() {
-    if (busy) return;
+    if (busy || opened) return; // 팝업이 열린 채 키보드로 다시 눌러도 무시
     onClick?.();
     trackUiEvent("birth_prompt_clicked", { meta: { surface } });
     setBusy(true);
@@ -64,6 +79,7 @@ export default function BirthPromptButton({ surface, className, children, onSave
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
     ]);
+    if (!alive.current) return;
     // 🔴 조회 자체가 실패(me === null)하면 로그인 여부를 모른다 — 로그인으로 튕기지 않고 빈 팝업을
     //    연다. 진짜 비로그인이면 저장이 401 로 실패하고 팝업의 오류 줄이 그걸 알린다.
     if (me && me.isAuthenticated === false) {
@@ -72,16 +88,19 @@ export default function BirthPromptButton({ surface, className, children, onSave
       return; // 페이지를 떠나므로 busy 는 풀지 않는다
     }
     const profiles = (list?.profiles ?? []) as ProfileItem[];
+    const self = profiles.find((p) => p.isPrimary) ?? null;
     setOpened({
-      self: profiles.find((p) => p.isPrimary) ?? null,
-      nickname: typeof me?.user?.nickname === "string" ? me.user.nickname : "",
+      self,
+      // 🔴 me 조회만 실패하면 닉네임이 비어 ProfileForm 이 "나"로 채운다 — PATCH 때 기존 이름을 덮지 않게
+      //    내 사주의 지금 이름으로 대신한다.
+      nickname: typeof me?.user?.nickname === "string" ? me.user.nickname : (self?.displayName ?? ""),
     });
     setBusy(false);
   }
 
   return (
     <>
-      <button type="button" onClick={() => void open()} disabled={busy} className={className}>
+      <button ref={buttonRef} type="button" onClick={() => void open()} disabled={busy} aria-busy={busy} className={className}>
         {children}
       </button>
       {opened && (
@@ -96,7 +115,12 @@ export default function BirthPromptButton({ surface, className, children, onSave
             });
             await onSaved();
           }}
-          onClose={() => setOpened(null)}
+          onClose={() => {
+            setOpened(null);
+            // 닫히면 포커스를 버튼으로 돌린다(키보드·스크린리더 사용자가 위치를 잃지 않게). 저장 뒤 그 자리가
+            // 다른 화면으로 바뀌어 버튼이 이미 없으면 아무 일도 없다.
+            buttonRef.current?.focus();
+          }}
         />
       )}
     </>
