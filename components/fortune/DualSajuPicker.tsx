@@ -201,10 +201,11 @@ export default function DualSajuPicker({
   const profB = slotB ? profiles.find((p) => p.id === slotB) : null;
   const canConfirm =
     !!slotA && !!slotB && slotA !== slotB && !loading && !!profA?.saju && !!profB?.saju;
-  // 🔴 칸에 생일 없는 내 사주가 있으면 위 차단에 걸려 "궁합 보기"가 꺼진다 — 그 자리에서 생일을 받는다
-  //    (BirthPromptButton 은 내 사주를 PATCH). 지인에게 생일이 없을 땐 달지 않는다 — 버튼이 지인이 아니라
-  //    내 사주를 고친다(스펙 §5).
-  const selfMissingBirth = [profA, profB].some((p) => p?.isPrimary && !p.birthDate);
+  // 🔴 칸에 사주가 없는 내 사주(생일 없음, 또는 계산 못 하는 생일)가 있으면 위 차단에 걸려 "궁합 보기"가 꺼진다 —
+  //    그 자리에서 생일을 (다시) 받는다(BirthPromptButton 은 내 사주를 PATCH). 위 확정 게이트와 같은 saju 기준이어야
+  //    "버튼은 꺼졌는데 안내는 없는" 칸이 안 생긴다(FortuneSajuPicker 의 내 사주 자리도 saju 로 가른다).
+  //    지인에게 사주가 없을 땐 달지 않는다 — 버튼이 지인이 아니라 내 사주를 고친다(스펙 §5).
+  const selfNeedsBirth = [profA, profB].some((p) => p?.isPrimary && !p.saju);
   // 활성 칸에 고를 사람이 없으면(내 생년월일을 막 저장한 신규 유저) 목록 자리에 큰 "+ 새 사람 입력"을 둔다.
   const nothingToPick = noOneToPick({ profiles, active, slotA, slotB });
 
@@ -244,7 +245,7 @@ export default function DualSajuPicker({
         })}
       </div>
 
-      {selfMissingBirth && (
+      {selfNeedsBirth && (
         // 칸 버튼(<button onClick>) 밖에 둔다 — BirthPromptButton 팝업의 이벤트가 React 조상으로 버블된다.
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-4 text-center mb-5">
           <p className="text-[12px] text-text-light/80 mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
