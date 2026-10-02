@@ -185,7 +185,8 @@ export const UI_EVENTS = [
    *  🔴 신규 생일 입력 = hadBirth=false 로 셀 것. created(새 primary 행 POST 여부)로 세면
    *     "primary 는 있는데 생일 없음"(/relationship 의 '생일 몰라요' 저장)의 첫 입력이 PATCH 라서
    *     빠진다. created(POST 여부)는 신규 입력을 "내 사주 없음"과 "생일 없는 내 사주"로 가른다 —
-   *     fortune_picker 에선 벽 버튼(true)과 목록 안 버튼(false)을 가르는 유일한 값이니 지우지 말 것.
+   *     fortune_picker 에선 벽 버튼(true)과 목록 안 버튼(false)을, compat_picker·compat_social_picker 에선
+   *     "내 생년월일부터" 카드(true)와 칸 아래 안내(false)를 가르는 유일한 값이니 지우지 말 것.
    *     saved 는 저장 성공 때만 찍혀 409 는 여기 안 보인다. */
   "birth_prompt_saved",
 ] as const;
