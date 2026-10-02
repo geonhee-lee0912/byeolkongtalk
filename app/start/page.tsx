@@ -31,6 +31,7 @@ import {
   PASS_PLANS,
   RELATIONSHIP_SKILL_PREVIEWS,
 } from "@/lib/relationship/types";
+import { safeInternalPath } from "@/lib/safe-internal-path";
 
 const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love", "relationship"] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -114,13 +115,10 @@ function StartPageInner() {
         sessionStorage.setItem("byeolkong:emotion", pending.tag);
       } catch {}
       router.push("/concern");
-    } else if (
+    } else {
       // sessionStorage 위조/파손 방어 — 내부 path 만 push
-      typeof pending.href === "string" &&
-      pending.href.startsWith("/") &&
-      !pending.href.startsWith("//")
-    ) {
-      router.push(pending.href);
+      const safeHref = safeInternalPath(pending.href);
+      if (safeHref) router.push(safeHref);
     }
   };
 

@@ -2,10 +2,11 @@
 
 // 내 명식 편집 모달 — 원래 SajuProfileModal 의 "내 명식 편집" 파트를 분리.
 // 명식 표시는 마이페이지 인라인(SajuBoard)이 담당하고, 이 모달은 편집만 담당한다.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { type ProfileItem, toInitial } from "@/components/mypage/sajuShared";
+import { profileSaveErrorMessage } from "@/components/saju/profile-save-error";
 
 interface SelfSajuEditModalProps {
   self: ProfileItem | null;
@@ -22,6 +23,13 @@ export default function SelfSajuEditModal({
   onClose,
 }: SelfSajuEditModalProps) {
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const errRef = useRef<HTMLParagraphElement>(null);
+  // 오류 줄이 저장 버튼 아래라, 짧은 화면(높이 ~600px 미만 — 4.7" 폰·인앱 브라우저·가로 모드)에선
+  // 맨 아래로 스크롤해도 18px 중 8px 만 보인다(Task 3 품질 리뷰 실측). 뜰 때 보이는 곳으로 당긴다.
+  useEffect(() => {
+    if (err) errRef.current?.scrollIntoView({ block: "nearest" });
+  }, [err]);
 
   // 배경 스크롤 잠금 — 마운트 동안 유지
   useEffect(() => {
@@ -34,21 +42,34 @@ export default function SelfSajuEditModal({
 
   const saveSelf = async (payload: ProfilePayload) => {
     setSaving(true);
-    try {
-      const url = self ? `/api/profiles/${self.id}` : "/api/profiles";
-      const method = self ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        await onReload();
-        onClose();
-      }
-    } finally {
+    setErr(null);
+    const url = self ? `/api/profiles/${self.id}` : "/api/profiles";
+    const method = self ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => null);
+    if (!res) {
+      setErr("연결이 잠시 흔들렸어. 다시 시도해줄래?");
       setSaving(false);
+      return;
     }
+    if (!res.ok) {
+      // 🔴 예전엔 실패해도 아무 말이 없었다 — 마이페이지에선 버텼지만 생일 벽(광고 착지)에선
+      //    "눌렀는데 안 된다"가 곧 이탈이다. 문구(401·409 분기 포함)는 NewPersonModal 과 같은 원천이다.
+      setErr(profileSaveErrorMessage(res.status));
+      setSaving(false);
+      return;
+    }
+    // 저장은 이미 성공했다 — 호출처 갱신(onReload)이 실패해도 저장 실패 문구로 덮지 않고 닫는다.
+    try {
+      await onReload();
+    } catch {
+      /* 갱신 실패는 호출처 몫 */
+    }
+    setSaving(false);
+    onClose();
   };
 
   if (typeof document === "undefined") return null;
@@ -83,6 +104,11 @@ export default function SelfSajuEditModal({
             loading={saving}
             onSubmit={saveSelf}
           />
+          {err && (
+            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-[12px] text-red-500">
+              {err}
+            </p>
+          )}
         </div>
       </div>
     </div>,

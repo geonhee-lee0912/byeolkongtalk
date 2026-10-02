@@ -6,6 +6,7 @@ import {
   calcTemporalLuck,
   baseDateForKst,
   calcDailyLuckRange,
+  canCalcSaju,
   type SajuInput,
   type SajuResult,
 } from "./calc.ts";
@@ -86,6 +87,21 @@ test("음력 — 윤달 처리 (윤5월 ≠ 평5월)", () => {
   assert.notEqual(gz(normal.pillars.day), gz(leap.pillars.day));
 });
 
+// 음력은 한국천문연구원(KASI) 날짜로 계산한다 — tyme4ts 음력은 중국 농력이라 64개월이 다르다(lib/saju/lunar-table.ts).
+test("음력 — 한국천문연구원 날짜로 계산한다 (중국 농력과 갈리는 달)", () => {
+  // [음력 입력, 같은 날의 한국 양력]
+  const cases: [Partial<SajuInput>, Partial<SajuInput>][] = [
+    [{ year: 2017, month: 6, day: 15 }, { year: 2017, month: 8, day: 6 }], // 중국 농력은 윤달이 6월 뒤라 6월이 한 달 이르다(07-08)
+    [{ year: 1997, month: 1, day: 5 }, { year: 1997, month: 2, day: 12 }], // 합삭 KST 00:06 — 중국 농력은 하루 이르다(02-11)
+    [{ year: 1966, month: 1, day: 15 }, { year: 1966, month: 2, day: 5 }], // 하루 차이가 입춘을 넘어 연주까지 갈린다
+    [{ year: 2017, month: 5, day: 15, isLeapMonth: true }, { year: 2017, month: 7, day: 8 }], // 한국에만 있는 윤5월
+  ];
+  for (const [lunarIn, solarIn] of cases) {
+    const tag = `음력 ${lunarIn.year}-${lunarIn.month}${lunarIn.isLeapMonth ? "(윤)" : ""}-${lunarIn.day}`;
+    assert.equal(calcSaju(solar({ ...lunarIn, isLunar: true })).koreanString, calcSaju(solar(solarIn)).koreanString, tag);
+  }
+});
+
 // ── 시간 모름 ──
 test("시간모름 — hour:null 이면 hourKnown=false, 기둥은 존재", () => {
   const r = calcSaju(solar({ month: 5, day: 15, hour: null }));
@@ -116,6 +132,14 @@ test("대운 — 성별에 따라 방향(간지)이 달라진다", () => {
 test("대운 — 시간 모름·음력도 계산된다", () => {
   assert.equal(calcDaeun(solar({ month: 5, day: 15, hour: null, gender: "male" }), 3).length, 3);
   assert.equal(calcDaeun(solar({ year: 1994, month: 4, day: 3, hour: 9, gender: "male", isLunar: true }), 2).length, 2);
+});
+
+test("대운 — 음력 입력도 한국천문연구원 날짜로 (음력 2017-06-15 = 양력 2017-08-06)", () => {
+  for (const gender of ["male", "female"] as const) {
+    const fromLunar = calcDaeun(solar({ year: 2017, month: 6, day: 15, isLunar: true, gender }), 3);
+    const fromSolar = calcDaeun(solar({ year: 2017, month: 8, day: 6, gender }), 3);
+    assert.deepEqual(fromLunar, fromSolar, gender);
+  }
 });
 
 // ── baseDateForKst ──
@@ -180,4 +204,35 @@ test("calcDailyLuckRange — 같은 날짜는 calcTemporalLuck 의 30일 일진�
       `${r[i].date} 간지 불일치`
     );
   }
+});
+
+// ── canCalcSaju: 없는 날짜는 false (tyme4ts 가 throw) ──
+test("canCalcSaju — 그달에 없는 음력 30·31일, 그해에 없는 윤달은 false", () => {
+  const lunar = (o: Partial<SajuInput>) => solar({ year: 1996, month: 1, hour: null, isLunar: true, ...o });
+  assert.equal(canCalcSaju(lunar({ day: 29 })), true, "1996 정월 = 29일");
+  assert.equal(canCalcSaju(lunar({ day: 30 })), false);
+  assert.equal(canCalcSaju(lunar({ day: 31 })), false);
+  assert.equal(canCalcSaju(lunar({ month: 3, day: 1, isLeapMonth: true })), false, "1996 은 윤달 없음");
+  assert.equal(canCalcSaju(lunar({ year: 1990, month: 5, day: 1, isLeapMonth: true })), true, "1990 윤5월");
+  assert.equal(canCalcSaju(lunar({ year: 2020, month: 4, day: 30 })), true, "2020 4월 = 30일");
+  assert.equal(canCalcSaju(lunar({ year: 2020, month: 4, day: 30, isLeapMonth: true })), false, "2020 윤4월 = 29일");
+  assert.equal(canCalcSaju(lunar({ month: 3, day: 1 })), true, "1996-03-01 평달은 통과 — 원인은 윤달 플래그뿐");
+  assert.equal(canCalcSaju(lunar({ year: 1990, month: 6, day: 1, isLeapMonth: true })), false, "1990 윤달은 5월뿐");
+});
+
+test("canCalcSaju — 한국에만 있는 날은 true, 중국 농력에만 있는 날·표 범위 밖 음력은 false", () => {
+  const lunar = (o: Partial<SajuInput>) => solar({ hour: null, isLunar: true, ...o });
+  assert.equal(canCalcSaju(lunar({ year: 2017, month: 5, day: 1, isLeapMonth: true })), true, "2017 윤5월");
+  assert.equal(canCalcSaju(lunar({ year: 2017, month: 6, day: 1, isLeapMonth: true })), false, "2017 윤6월은 중국 농력에만");
+  assert.equal(canCalcSaju(lunar({ year: 2012, month: 3, day: 1, isLeapMonth: true })), true, "2012 윤3월");
+  assert.equal(canCalcSaju(lunar({ year: 2017, month: 6, day: 30 })), true, "2017 6월 = 30일 (중국 농력은 29일)");
+  assert.equal(canCalcSaju(lunar({ year: 1997, month: 1, day: 30 })), false, "1997 정월 = 29일 (중국 농력은 30일)");
+  assert.equal(canCalcSaju(lunar({ year: 1899, month: 12, day: 1 })), false, "표 범위(1900~2049) 밖 음력");
+  assert.equal(canCalcSaju(lunar({ year: 2050, month: 1, day: 1 })), false, "표 범위(1900~2049) 밖 음력");
+  assert.equal(canCalcSaju(solar({ year: 2050, month: 1, day: 1 })), true, "양력은 표와 무관");
+});
+
+test("canCalcSaju — 없는 양력 날짜는 false", () => {
+  assert.equal(canCalcSaju(solar({ year: 2023, month: 2, day: 29 })), false);
+  assert.equal(canCalcSaju(solar({ year: 2024, month: 2, day: 29 })), true);
 });

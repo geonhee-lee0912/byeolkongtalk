@@ -256,3 +256,24 @@ test("pair 프롬프트: 5블록 JSON 형식 + 문장 예산이 목표 분량과
   // 읊는 결함이 나왔다 — 구조 설명형 도입부 금지 한 줄을 유지한다(블록 단위로 문구만 옮겼다).
   assert.ok(sys.includes("글의 구조를 설명하는 말로 블록을 열지"), "구조 설명형 도입부 금지 지침이 있어야 한다");
 });
+
+// 조사 회귀 — 하우스 규칙 "조사는 계산하지 말고 어순으로 없애라"(112109c 선례: "일진 ${ganji} 과").
+// lead:"partner" 신호는 상대 닉네임(자유 문자열)을 그대로 붙이므로 받침 유무를 알 수 없다.
+// 같은 파일 formatPairGoodDay 가 이미 쓰는 `${partnerName} 리드` 패턴(조사 없음)과 일치시킨다.
+test("buildPairNarrativeSystem: lead:'partner' 신호는 받침 유무와 무관하게 조사 없이 렌더된다", () => {
+  const a = calcSaju({ year: 1996, month: 4, day: 11, hour: 9, gender: "female", isLunar: false, isLeapMonth: false });
+  const b = calcSaju({ year: 1994, month: 11, day: 3, hour: 21, gender: "male", isLunar: false, isLeapMonth: false });
+  const t = calcTemporalLuck(baseDateForKst("2026-09-05"), 1996, { includeMonth: true });
+  const base = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
+  const bd = pairBackdrop(a, b);
+  // 달력 실제 lead 값에 의존하지 않게 partner 로 고정.
+  const cell: PairDayCell = { ...base, tags: { spark: false, sparkBoth: false, bond: false, bondBoth: false, friction: false, lead: "partner" } };
+
+  for (const name of ["민석", "지우"]) {
+    // 민석 = 받침 있음("민석가"는 틀림), 지우 = 받침 없음("지우가"는 맞음) — 둘 다 같은 형태로 나와야 한다.
+    const sys = buildPairNarrativeSystem(a, b, bd, cell, "임오", name);
+    assert.ok(sys.includes(`신호 ${name} 리드`), `${name}: 조사 없이 '${name} 리드' 로 렌더돼야 한다`);
+    assert.ok(!sys.includes(`${name}가 리드`), `${name}: '가' 고정 조사가 남으면 안 된다`);
+    assert.ok(!sys.includes(`${name}이 리드`), `${name}: 조사를 계산해 붙이는 것도 금지(어순으로 없앤다)`);
+  }
+});

@@ -1,6 +1,8 @@
 // 사주 프로필 입력 검증 + DB 행 → SajuInput 변환 (DRY: /api/profiles, /api/readings 공용).
+// 🔴 서버 전용 런타임 의존(tyme4ts — calc·canCalcSaju) — 클라이언트는 `import type` 만 쓸 것(값 import 시 번들 ~70KB gzip).
 
-import type { SajuInput, SajuGender } from "@/lib/saju/calc";
+import { calcSaju, canCalcSaju, type SajuInput, type SajuGender, type SajuResult } from "@/lib/saju/calc";
+import { isValidBirthDate, isValidBirthTime } from "@/lib/byeoljari/validate";
 import { MBTI_OPTIONS } from "@/lib/relationship/types";
 
 export const VALID_RELATIONS = ["self", "family", "friend", "partner", "other"] as const;
@@ -22,6 +24,7 @@ export interface ProfileInput {
 
 // 상담/운세 입력 프로필 검증.
 // opts.optionalBirth=true 면 생일(및 부속 필드)이 없어도 통과(P2 우리 사이 프로필). 기본(falsy)은 기존 strict 동작 그대로.
+// 생일이 있으면 두 모드 모두 저장 전에 DATE 저장 가능·시각 범위·calcSaju 계산 가능까지 본다(2026-10-02).
 export function validateProfile(
   p: unknown,
   opts?: { optionalBirth?: boolean }
@@ -121,6 +124,26 @@ export function validateProfile(
     gender = x.gender as (typeof VALID_GENDERS)[number];
   }
 
+  // 🔴 저장 전에 "읽을 때 계산되는가"까지 본다. 저장된 행은 GET /api/profiles·별마루·운세가
+  //    profileRowToSajuInput → calcSaju 로 다시 계산하는데, tyme4ts 는 없는 날짜에 throw 한다.
+  //    예전엔 형식만 보고 저장해 깨진 행이 남았다(relationship 3경로는 조용한 200). 2026-10-02
+  if (birthDate !== null) {
+    // DATE 컬럼에 들어가는 Y-M-D 인가 — 음력도 그레고리력에 있는 날짜만 저장된다(음력 2/30 → 22008).
+    if (!isValidBirthDate(birthDate)) return { error: "invalid_birth_date" };
+    // "24:00" 은 정규식을 통과하고 calcSaju 에서 터진다 — 아래 판정이 시각 오류를 날짜 오류로 부르지 않게 먼저.
+    if (birthTime !== null && !isValidBirthTime(birthTime)) return { error: "invalid_birth_time" };
+    const input = profileRowToSajuInput({
+      birth_date: birthDate,
+      birth_time: birthTime,
+      is_lunar_input: isLunarInput,
+      is_leap_month: isLeapMonth,
+      gender,
+    });
+    if (!canCalcSaju(input)) {
+      return { error: isLunarInput ? "invalid_lunar_date" : "invalid_birth_date" };
+    }
+  }
+
   return {
     displayName: x.displayName,
     relationType: x.relationType as RelationType,
@@ -153,4 +176,21 @@ export function profileRowToSajuInput(row: {
     isLeapMonth: row.is_leap_month,
     gender: row.gender as SajuGender,
   };
+}
+
+// GET 목록용 — 행 하나가 계산에 실패해도(없는 음력 날짜 등) 목록 전체를 500 으로 죽이지 않게.
+// 그러면 마이페이지·생일 팝업이 self 를 못 봐 POST→409 루프에 갇힌다. 실패는 error 로 돌려주고, 기록은 호출부 몫.
+export function profileRowToSaju(row: {
+  birth_date: string | null;
+  birth_time: string | null;
+  is_lunar_input: boolean;
+  is_leap_month: boolean;
+  gender: string;
+}): { saju: SajuResult | null; error: Error | null } {
+  if (!row.birth_date) return { saju: null, error: null };
+  try {
+    return { saju: calcSaju(profileRowToSajuInput({ ...row, birth_date: row.birth_date })), error: null };
+  } catch (e) {
+    return { saju: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
 }

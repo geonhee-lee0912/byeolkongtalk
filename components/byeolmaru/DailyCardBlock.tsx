@@ -25,6 +25,8 @@ import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 
 interface DailyCard {
   cardId: number;
@@ -485,9 +487,14 @@ export default function DailyCardBlock({
                 {narrativeBlocked === "no_profile" && (
                   <p className="mt-2 text-xs leading-relaxed text-text-light">
                     생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
-                    <Link href="/mypage" className="text-lilac-deep underline">
-                      생년월일 입력하러 가기 →
-                    </Link>
+                    {/* 🔴 저장 뒤 새로 불러온다 — 날짜 상세 3탭 공통(스펙 §3). */}
+                    <BirthPromptButton
+                      surface={BIRTH_PROMPT_SURFACE.byeolmaruDayTarot}
+                      onSaved={reloadAfterSave}
+                      className="text-lilac-deep underline disabled:opacity-60"
+                    >
+                      생년월일 입력하기 →
+                    </BirthPromptButton>
                   </p>
                 )}
               </div>

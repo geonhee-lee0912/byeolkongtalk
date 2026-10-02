@@ -82,7 +82,7 @@ export default function RelationshipPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [relationships, setRelationships] = useState<RelHub[]>([]);
   const [self, setSelf] = useState<PersonProfileView | null>(null);
-  // 내 명식판 표시용 — /api/profiles 의 isPrimary 프로필 saju(생일 없으면 null).
+  // 내 명식판 표시용 — /api/profiles 의 isPrimary 프로필 saju(생일 없거나 계산 불가면 null).
   const [selfSaju, setSelfSaju] = useState<SajuResult | null>(null);
   // /api/profiles 의 프로필 id → saju 맵(상대 명식 조회용). partnerProfileId 로 lookup.
   const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>({});

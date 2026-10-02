@@ -14,6 +14,8 @@ import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
 import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
+import BirthPromptButton from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 
 interface CalendarResponse {
   today: string;
@@ -155,13 +157,17 @@ export default function ByeolmaruHub() {
   if (state.kind === "no_profile") return (
     <EmptyMonthShell
       cta={
-        <Link
-          href="/mypage"
+        // 🔴 /mypage 로 보내지 않는다(2026-10-02) — /mypage 는 저장 뒤 여기로 돌려보내지 않아,
+        //    광고로 온 신규 유저(가입 때 생일을 안 받는다)가 전원 길을 잃었다. 그 자리 팝업 → refresh().
+        //    guest_peek_clicked{profile_cta} 는 클릭 추세를 잇기 위해 그대로 쏜다.
+        <BirthPromptButton
+          surface={BIRTH_PROMPT_SURFACE.byeolmaruHub}
           onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "profile_cta", gated: true } })}
-          className="block rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream"
+          onSaved={refresh}
+          className="block w-full rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream disabled:opacity-60"
         >
-          생년월일 입력하러 가기
-        </Link>
+          생년월일 입력하기
+        </BirthPromptButton>
       }
     />
   );

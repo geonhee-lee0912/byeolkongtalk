@@ -5,7 +5,8 @@
 // variant="slim"(A 롤백): 얇은 한 줄.
 // 별콩이 이미지는 배경이 투명한 요소(public/fortune-byeolkong.webp) — 배경색은 이 컴포넌트 CSS 가 정한다.
 import Image from "next/image";
-import Link from "next/link";
+import BirthPromptButton from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 
 interface Props {
   variant?: "rich" | "slim";
@@ -59,13 +60,18 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
         <p className="mt-1 text-[11.5px] leading-relaxed text-text-light">
           생일만 알려줘, 한 장으로 정리해줄게
         </p>
-        <Link
-          href="/mypage"
-          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep transition active:scale-95"
+        {/* 🔴 /mypage 로 보내지 않는다(2026-10-02) — 그 자리 팝업. 비로그인은 로그인 후 /fortune 으로,
+            생일 있는 유저는 같은 팝업이 "내 사주 수정"으로 열린다(마이페이지와 동일).
+            저장 뒤 이 화면엔 바꿀 게 없어 닫기만 한다. */}
+        <BirthPromptButton
+          surface={BIRTH_PROMPT_SURFACE.fortuneHeader}
+          loginNext="/fortune"
+          onSaved={() => {}}
+          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep transition active:scale-95 disabled:opacity-60"
         >
           생일 등록하기
           <span aria-hidden>→</span>
-        </Link>
+        </BirthPromptButton>
       </div>
       </div>
     </section>

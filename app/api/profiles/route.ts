@@ -3,10 +3,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { calcSaju } from "@/lib/saju/calc";
+import { calcSaju, type SajuResult } from "@/lib/saju/calc";
 import {
   validateProfile,
   profileRowToSajuInput,
+  profileRowToSaju,
 } from "@/lib/saju/profile-input";
 import { logError } from "@/lib/logger";
 
@@ -26,11 +27,15 @@ interface ProfileRow {
   created_at: string;
 }
 
-function serializeProfile(row: ProfileRow) {
+// saju 를 넘기면 그대로 쓴다(GET — 행 단위 방어). 안 넘기면 여기서 계산한다(POST — 방금 validateProfile 을 통과한 행).
+function serializeProfile(
+  row: ProfileRow,
+  // 🔴 undefined 를 넘기면 기본값(=계산)이 돈다 — 계산 실패를 넘길 땐 반드시 null. (TS 는 명시적 undefined 를 막지 못한다)
   // birth_date 없으면 사주 계산 스킵(P2: 생일 없는 프로필) — calcSaju 는 null 을 못 받는다.
-  const saju = row.birth_date
+  saju: SajuResult | null = row.birth_date
     ? calcSaju(profileRowToSajuInput({ ...row, birth_date: row.birth_date }))
-    : null;
+    : null
+) {
   return {
     id: row.id,
     displayName: row.display_name,
@@ -67,9 +72,23 @@ export async function GET() {
     return NextResponse.json({ profiles: [], error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({
-    profiles: (data ?? []).map((r) => serializeProfile(r as ProfileRow)),
-  });
+  // 🔴 행 단위로 계산한다. 한 행이 계산에 실패해(없는 음력 날짜 등) 목록 전체가 500 이면 마이페이지·생일 팝업이
+  //    self 를 못 봐 POST→409 루프에 갇힌다. 실패 행은 saju:null 로 내려 [생일 추가하기]→PATCH 로 고치게 하고 기록만.
+  const profiles: ReturnType<typeof serializeProfile>[] = [];
+  for (const raw of data ?? []) {
+    const r = raw as ProfileRow;
+    const { saju, error: sajuError } = profileRowToSaju(r);
+    if (sajuError) {
+      await logError(sajuError, {
+        route: "/api/profiles",
+        userId,
+        extra: { stage: "profile_saju", profileId: r.id },
+      });
+    }
+    profiles.push(serializeProfile(r, saju));
+  }
+
+  return NextResponse.json({ profiles });
 }
 
 // POST /api/profiles — 프로필 생성 (계정 사주 또는 지인)

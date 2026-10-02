@@ -11,6 +11,7 @@ import {
 } from "@/lib/constants";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { safeInternalPath } from "@/lib/safe-internal-path";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -162,13 +163,7 @@ function ShopContent() {
         window.dispatchEvent(new Event("byeolkong:balance-updated"));
 
         // returnTo 쿼리 있으면 — 검증 후 대화로 복귀 (토스트 없이)
-        const rawReturnTo = searchParams.get("returnTo");
-        const validReturnTo =
-          rawReturnTo &&
-          rawReturnTo.startsWith("/") &&
-          !rawReturnTo.startsWith("//")
-            ? rawReturnTo
-            : null;
+        const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
         if (validReturnTo && !data.alreadyProcessed) {
           setTimeout(() => router.replace(validReturnTo), 1200);
         } else {
@@ -311,13 +306,7 @@ function ShopContent() {
               <Banner tone="success">충전 완료! 별이 추가됐어 ⭐</Banner>
             )}
             {status === "fail" && (() => {
-              const rawReturnTo = searchParams.get("returnTo");
-              const validReturnTo =
-                rawReturnTo &&
-                rawReturnTo.startsWith("/") &&
-                !rawReturnTo.startsWith("//")
-                  ? rawReturnTo
-                  : null;
+              const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
               return (
                 <Banner tone="fail">
                   {failMessage

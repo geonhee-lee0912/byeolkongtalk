@@ -175,6 +175,20 @@ export const UI_EVENTS = [
   /** 상품 설명 페이지 — 구매 모듈이 화면에 들어옴(설명을 읽고 내려옴). meta:{type}
    *  🔴 위 둘을 합쳐 재면 "설명이 일을 했나"를 영영 못 본다. 반드시 따로 읽을 것. */
   "fortune_landing_purchase_reached",
+  /** 생일 입력 팝업 — 버튼 탭. meta:{surface}
+   *  🔴 "열렸다"가 아니라 "눌렀다"다 — 비로그인은 팝업 없이 로그인으로 보내지는데도 찍힌다
+   *     (그 몫은 user_id IS NULL 로 대략 가른다). 사주 운세 헤더(fortune_header)는 생일 있는
+   *     유저도 "수정"하려고 누르므로, 그 자리의 클릭→저장은 생일 벽 전환율이 아니다.
+   *  surface 값은 lib/analytics/birth-prompt-surface.ts 가 단일 원천. */
+  "birth_prompt_clicked",
+  /** 생일 입력 팝업 — 저장 성공. meta:{surface, created, hadBirth}
+   *  🔴 신규 생일 입력 = hadBirth=false 로 셀 것. created(새 primary 행 POST 여부)로 세면
+   *     "primary 는 있는데 생일 없음"(/relationship 의 '생일 몰라요' 저장)의 첫 입력이 PATCH 라서
+   *     빠진다. created(POST 여부)는 신규 입력을 "내 사주 없음"과 "생일 없는 내 사주"로 가른다 —
+   *     fortune_picker 에선 벽 버튼(true)과 목록 안 버튼(false)을, compat_picker·compat_social_picker 에선
+   *     "내 생년월일부터" 카드(true)와 칸 아래 안내(false)를 가르는 유일한 값이니 지우지 말 것.
+   *     saved 는 저장 성공 때만 찍혀 409 는 여기 안 보인다. */
+  "birth_prompt_saved",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];

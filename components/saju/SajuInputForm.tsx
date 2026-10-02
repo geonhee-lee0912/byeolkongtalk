@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { SajuInput, SajuGender } from "@/lib/saju/calc";
 import Dropdown from "@/components/common/Dropdown";
+import { lunarLeapMonth, maxBirthDay } from "@/lib/saju/lunar-table";
 
 // 12지지 시간 매핑 — 각 시진 시작값을 manseryeok hour 로 전달.
 // 학설별 조자시/야자시 차이는 MVP 후 검토.
@@ -77,10 +78,11 @@ export default function SajuInputForm({
   );
 
   const daysInMonth = useMemo(() => {
-    // 윤년 + 월별 일수 (음력은 라이브러리가 알아서 처리, UI 는 양력 기준 보수적으로 31일)
-    const lastDay = new Date(year, month, 0).getDate(); // 양력 기준
+    // 🔴 음력은 그해 그달 실제 일수 — tyme4ts 는 없는 날짜(음력 30·31일·없는 윤달)에 throw 한다.
+    //    (구 manseryeok 시절 "음력은 라이브러리가 알아서 처리"는 틀렸다.) 규칙·DATE 상한은 lib/saju/lunar-table.ts.
+    const lastDay = maxBirthDay(year, month, calendar === "lunar", isLeapMonth);
     return Array.from({ length: lastDay }, (_, i) => i + 1);
-  }, [year, month]);
+  }, [year, month, calendar, isLeapMonth]);
 
   const yearOptions = useMemo(
     () => years.map((y) => ({ value: String(y), label: `${y}년` })),
@@ -108,6 +110,13 @@ export default function SajuInputForm({
   // day 가 월말보다 크면 자동 보정
   if (day > daysInMonth.length) {
     setDay(daysInMonth.length);
+  }
+
+  // 윤달은 그해 윤달이 이 달일 때만 고를 수 있다(윤달은 해마다 많아야 한 달). 아니면 자동 해제 —
+  // 다시 그달로 와도 체크된 채 나타나지 않게.
+  const leapAvailable = calendar === "lunar" && lunarLeapMonth(year) === month;
+  if (isLeapMonth && !leapAvailable) {
+    setIsLeapMonth(false);
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -150,17 +159,6 @@ export default function SajuInputForm({
             </button>
           ))}
         </div>
-        {calendar === "lunar" && (
-          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
-            <input
-              type="checkbox"
-              checked={isLeapMonth}
-              onChange={(e) => setIsLeapMonth(e.target.checked)}
-              className="w-4 h-4 accent-lilac-deep"
-            />
-            윤달이야
-          </label>
-        )}
       </fieldset>
 
       {/* 생년월일 */}
@@ -188,6 +186,17 @@ export default function SajuInputForm({
             options={dayOptions}
           />
         </div>
+        {leapAvailable && (
+          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
+            <input
+              type="checkbox"
+              checked={isLeapMonth}
+              onChange={(e) => setIsLeapMonth(e.target.checked)}
+              className="w-4 h-4 accent-lilac-deep"
+            />
+            윤달이야
+          </label>
+        )}
       </fieldset>
 
       {/* 태어난 시간 */}

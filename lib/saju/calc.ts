@@ -3,9 +3,11 @@
 //
 // 결정적 계산이라 Claude 미경유. tyme4ts: 절기=천문계산(입춘 년주·절기 월주), 야자시=23시 다음날 일주.
 // (구 manseryeok 은 년주 입춘 무시·월주 절기공식 버그로 교체 — 2026-08-23)
+// 음력→양력은 tyme4ts 가 아니라 KASI 표(lunar-table.ts)가 한다 — tyme4ts 음력은 중국 농력이다(2026-10-02).
 
-import { SolarTime, LunarHour, ChildLimit, Gender, type SixtyCycle } from "tyme4ts";
+import { SolarTime, ChildLimit, Gender, type SixtyCycle } from "tyme4ts";
 import type { FiveElement } from "./elements";
+import { lunarToSolar } from "./lunar-table";
 
 export type SajuGender = "male" | "female" | "other";
 
@@ -118,25 +120,25 @@ function toParts(cycle: SixtyCycle): PillarParts {
   };
 }
 
+/**
+ * 입력 날짜 → 양력 날짜. 음력은 KASI 표(lunarToSolar)로 바꾼다 — tyme4ts 의 음력(LunarHour 등)은 중국 농력이라
+ * 한국과 64개월이 다르다(2012·2017 윤달 포함, specs/2026-10-02-음력-KASI-대조-findings.md). 없는 음력 날짜는 throw.
+ */
+function toSolarDate(input: SajuInput): { year: number; month: number; day: number } {
+  if (input.isLunar !== true) return input;
+  const solar = lunarToSolar(input.year, input.month, input.day, input.isLeapMonth === true);
+  if (!solar) throw new Error(`없는 음력 날짜: ${input.year}-${input.month}${input.isLeapMonth ? "(윤)" : ""}-${input.day}`);
+  return solar;
+}
+
 export function calcSaju(input: SajuInput): SajuResult {
   const hourKnown = input.hour !== null && input.hour !== undefined;
   const hour = hourKnown ? input.hour! : 0; // 모름 = 자정 0시로 가정 (관습적 처리 — 조자시라 당일 일주)
   const minute = input.minute ?? 0;
   const isLunar = input.isLunar === true;
 
-  const eightChar = isLunar
-    ? // 윤달 = 음수월 관례 (예: 윤5월 = -5)
-      LunarHour.fromYmdHms(
-        input.year,
-        input.isLeapMonth === true ? -input.month : input.month,
-        input.day,
-        hour,
-        minute,
-        0
-      ).getEightChar()
-    : SolarTime.fromYmdHms(input.year, input.month, input.day, hour, minute, 0)
-        .getLunarHour()
-        .getEightChar();
+  const { year, month, day } = toSolarDate(input);
+  const eightChar = SolarTime.fromYmdHms(year, month, day, hour, minute, 0).getLunarHour().getEightChar();
 
   const y = toParts(eightChar.getYear());
   const mo = toParts(eightChar.getMonth());
@@ -175,6 +177,22 @@ export function calcSaju(input: SajuInput): SajuResult {
       isLeapMonth: input.isLeapMonth === true,
     },
   };
+}
+
+/**
+ * calcSaju 가 이 입력을 계산할 수 있는가 — 저장 전 검증용(validateProfile 등).
+ * calcSaju 는 없는 날짜에 throw 한다: 그달에 없는 음력 30·31일·그해에 없는 윤달·표(1900~2049) 밖 음력(KASI 표), 없는 양력 날짜(2/30, tyme4ts).
+ * 🔴 어떤 throw 든 false 다(시·분·연도 범위 밖 포함) — 날짜 말고 다른 원인은 호출부가 먼저 거를 것.
+ *    true 라고 DATE 컬럼에 저장 가능한 건 아니다(음력 1997-02-29 는 실존하지만 1997-02-29 는 그레고리력에 없음).
+ * (구 manseryeok 은 throw 없이 틀린 사주를 냈다 — 그래서 폼·검증이 이 전제를 못 따라왔다. 2026-10-02)
+ */
+export function canCalcSaju(input: SajuInput): boolean {
+  try {
+    calcSaju(input);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function toPillarLite(parts: PillarParts): PillarLite {
@@ -282,17 +300,8 @@ export interface DaeunPillar {
 export function calcDaeun(input: SajuInput, count = 9): DaeunPillar[] {
   const hour = input.hour ?? 0;
   const minute = input.minute ?? 0;
-  const isLunar = input.isLunar === true;
-  const solar = isLunar
-    ? LunarHour.fromYmdHms(
-        input.year,
-        input.isLeapMonth === true ? -input.month : input.month,
-        input.day,
-        hour,
-        minute,
-        0
-      ).getSolarTime()
-    : SolarTime.fromYmdHms(input.year, input.month, input.day, hour, minute, 0);
+  const { year, month, day } = toSolarDate(input);
+  const solar = SolarTime.fromYmdHms(year, month, day, hour, minute, 0);
   const gender = input.gender === "female" ? Gender.WOMAN : Gender.MAN;
   const childLimit = ChildLimit.fromSolarTime(solar, gender);
   const out: DaeunPillar[] = [];

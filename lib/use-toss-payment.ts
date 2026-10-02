@@ -6,6 +6,7 @@ import {
   type TossPaymentsPayment,
 } from "@tosspayments/tosspayments-sdk";
 import type { StarPackage } from "@/lib/constants";
+import { safeInternalPath } from "@/lib/safe-internal-path";
 
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
 
@@ -96,12 +97,10 @@ export function useTossPayment(): UseTossPaymentResult {
 
         // returnTo 가 있으면 successUrl/failUrl 에 쿼리로 추가
         // 토스가 자체 파라미터(paymentKey/orderId/amount)를 붙이므로 & 로 공존
-        const returnToParam =
-          opts?.returnTo &&
-          opts.returnTo.startsWith("/") &&
-          !opts.returnTo.startsWith("//")
-            ? `?returnTo=${encodeURIComponent(opts.returnTo)}`
-            : "";
+        const safeReturnTo = safeInternalPath(opts?.returnTo);
+        const returnToParam = safeReturnTo
+          ? `?returnTo=${encodeURIComponent(safeReturnTo)}`
+          : "";
 
         await paymentRef.current.requestPayment({
           method: "CARD",
@@ -109,7 +108,7 @@ export function useTossPayment(): UseTossPaymentResult {
           orderId: readyData.orderId,
           orderName: readyData.orderName,
           successUrl: `${baseUrl}/shop${returnToParam}`,
-          failUrl: `${baseUrl}/shop?status=fail${opts?.returnTo && opts.returnTo.startsWith("/") && !opts.returnTo.startsWith("//") ? `&returnTo=${encodeURIComponent(opts.returnTo)}` : ""}`,
+          failUrl: `${baseUrl}/shop?status=fail${safeReturnTo ? `&returnTo=${encodeURIComponent(safeReturnTo)}` : ""}`,
           customerName: customerName ?? undefined,
         });
         return true;
