@@ -30,6 +30,7 @@ interface ProfileRow {
 // saju 를 넘기면 그대로 쓴다(GET — 행 단위 방어). 안 넘기면 여기서 계산한다(POST — 방금 validateProfile 을 통과한 행).
 function serializeProfile(
   row: ProfileRow,
+  // 🔴 undefined 를 넘기면 기본값(=계산)이 돈다 — 계산 실패를 넘길 땐 반드시 null. (TS 는 명시적 undefined 를 막지 못한다)
   // birth_date 없으면 사주 계산 스킵(P2: 생일 없는 프로필) — calcSaju 는 null 을 못 받는다.
   saju: SajuResult | null = row.birth_date
     ? calcSaju(profileRowToSajuInput({ ...row, birth_date: row.birth_date }))
