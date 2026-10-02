@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import type { BirthPromptSurface } from "@/lib/analytics/birth-prompt-surface";
 import type { SajuResult } from "@/lib/saju/calc";
-import { pickerGate } from "./picker-gate";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { pickerGate, type PickerGate } from "./picker-gate";
 import { autoSlotSelf, noOneToPick } from "./dual-picker";
 
 interface PickerProfile {
@@ -74,6 +75,8 @@ export default function DualSajuPicker({
   const [active, setActive] = useState<"A" | "B">("A");
   const [listPage, setListPage] = useState(0);
   const [showNewPerson, setShowNewPerson] = useState(false);
+  // 벽 노출 계측은 gate 값이 바뀔 때만 — 재조회(생일 저장 뒤)·StrictMode 이중 마운트로 중복되지 않게.
+  const shownGateRef = useRef<PickerGate | null>(null);
 
   // 마운트와 생일 저장 뒤(BirthPromptButton.onSaved) 둘 다 이걸 부른다 — FortuneSajuPicker.loadProfiles 와 같은 모양.
   // 정본: docs/superpowers/specs/2026-10-02-궁합-비로그인-막다른길-design.md
@@ -94,6 +97,11 @@ export default function DualSajuPicker({
       //    다시 확인한다(FortuneSajuPicker 와 같은 정책).
       isAuthed = me?.isAuthenticated !== false;
     }
+    const gate = pickerGate({ profiles: list, lockPrimary: false, authenticated: isAuthed });
+    if (gate !== "list" && gate !== shownGateRef.current) {
+      trackUiEvent("picker_gate_shown", { meta: { surface: birthSurface, gate } });
+    }
+    shownGateRef.current = gate;
     setProfiles(list);
     setAuthed(isAuthed);
     // 🔴 무조건 첫 칸에 넣으면, 생일 없는 내 사주를 둘째 칸에 둔 채 생일을 저장했을 때 같은 사람이 두 칸이 된다.
@@ -157,6 +165,7 @@ export default function DualSajuPicker({
           {/* 카카오 버튼은 저장소 공통 컨벤션(FortuneSajuPicker·ByeolmaruHub 와 같은 마크업). */}
           <Link
             href={`/login?next=${encodeURIComponent(next)}`}
+            onClick={() => trackUiEvent("picker_login_clicked", { meta: { surface: birthSurface } })}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

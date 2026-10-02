@@ -189,6 +189,17 @@ export const UI_EVENTS = [
    *     "내 생년월일부터" 카드(true)와 칸 아래 안내(false)를 가르는 유일한 값이니 지우지 말 것.
    *     saved 는 저장 성공 때만 찍혀 409 는 여기 안 보인다. */
   "birth_prompt_saved",
+  /** 구매 칸(사주 FortuneSajuPicker · 궁합 DualSajuPicker) — 벽 노출. meta:{surface, gate:"login"|"birth", product?}
+   *  마운트당 gate 값마다 1회(생일 저장 뒤 목록으로 넘어가면 더 안 찍힌다).
+   *  surface 는 birth_prompt_* 와 같은 원천(birth-prompt-surface.ts) — gate="birth" 노출 → birth_prompt_clicked
+   *  → birth_prompt_saved(hadBirth=false) 가 같은 키로 이어진다.
+   *  product 는 사주 구매 칸에만 있다(FORTUNE_CONFIG type) — ui_events 는 경로를 안 남겨 19상품을 이걸로 가른다.
+   *  궁합 두 상품은 surface 값으로 갈린다.
+   *  🔴 "생일 없는 내 사주"(목록 안 버튼)는 벽이 아니라 여기 안 찍힌다(pickerGate 가 "list"). */
+  "picker_gate_shown",
+  /** 구매 칸 — 비로그인 벽의 카카오 버튼 탭. meta:{surface, product?}
+   *  분모는 picker_gate_shown(gate="login"). 로그인 완료 여부는 이 이벤트로 알 수 없다. */
+  "picker_login_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
