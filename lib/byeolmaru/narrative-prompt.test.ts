@@ -267,7 +267,7 @@ test("buildPairNarrativeSystem: lead:'partner' 신호는 받침 유무와 무관
   const base = buildPairCalendar(a, b, t.dailyLuck!, "2026-09-05")[0];
   const bd = pairBackdrop(a, b);
   // 달력 실제 lead 값에 의존하지 않게 partner 로 고정.
-  const cell: PairDayCell = { ...base, tags: { spark: false, bond: false, friction: false, lead: "partner" } };
+  const cell: PairDayCell = { ...base, tags: { spark: false, sparkBoth: false, bond: false, bondBoth: false, friction: false, lead: "partner" } };
 
   for (const name of ["민석", "지우"]) {
     // 민석 = 받침 있음("민석가"는 틀림), 지우 = 받침 없음("지우가"는 맞음) — 둘 다 같은 형태로 나와야 한다.
