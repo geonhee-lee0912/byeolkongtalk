@@ -56,6 +56,7 @@ function validateInput(body: unknown): SajuInput | { error: string } {
     gender: gender as SajuGender,
   };
   // 그달에 없는 음력 30·31일·없는 윤달·없는 양력 날짜는 calcSaju 가 throw 한다 — 500("internal") 대신 400.
+  // (위에서 연·월·일·시·분 범위를 이미 걸렀으니 false 는 "그 날·그 윤달이 없다"뿐 — 범위 검사를 풀면 이 전제도 깨진다)
   if (!canCalcSaju(input)) {
     return { error: input.isLunar ? "invalid_lunar_date" : "invalid_day" };
   }
