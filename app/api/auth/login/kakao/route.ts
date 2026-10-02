@@ -5,16 +5,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "crypto";
 import { getKakaoLoginUrl } from "@/lib/kakao";
+import { safeNextPath } from "@/lib/safe-internal-path";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 const STATE_TTL_SEC = 5 * 60; // 5분 — 카카오 동의 화면 진행 시간 고려
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const rawNext = searchParams.get("next") || "/";
-  // open redirect 방지 — 절대 URL 또는 //attacker.com 차단, 내부 path만 허용
-  const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  // open redirect 방지 — 내부 상대경로만 허용(백슬래시·탭·dot-segment 우회까지 차단)
+  const next = safeNextPath(searchParams.get("next"));
 
   const nonce = randomBytes(16).toString("hex");
   // state 형식: "{nonce}|{nextPath}" — nonce 는 32자 hex, nextPath 는 검증된 내부 path

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { safeNextPath } from "@/lib/safe-internal-path";
 
 export default function LoginPage() {
   return (
@@ -21,9 +22,7 @@ function LoginPageInner() {
   // 이미 로그인 상태면 next 경로로 즉시 이동
   useEffect(() => {
     // open redirect 차단 — 서버 콜백과 동일하게 내부 path 만 허용
-    const rawNext = sp.get("next") || "/";
-    const next =
-      rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+    const next = safeNextPath(sp.get("next"));
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -44,7 +43,7 @@ function LoginPageInner() {
     );
   }
 
-  const next = sp.get("next") || "/";
+  const next = safeNextPath(sp.get("next"));
   const kakaoHref = `/api/auth/login/kakao?next=${encodeURIComponent(next)}`;
 
   return (

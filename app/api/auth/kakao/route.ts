@@ -12,6 +12,7 @@ import { chargeStars } from "@/lib/stars";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 import { ACQ_COOKIE, parseAcqCookie } from "@/lib/acquisition";
+import { safeNextPath } from "@/lib/safe-internal-path";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -33,9 +34,8 @@ export async function GET(request: NextRequest) {
     cookieNonce === stateNonce &&
     stateNonce.length === 32;
 
-  // open redirect 차단
-  const next =
-    stateNext.startsWith("/") && !stateNext.startsWith("//") ? stateNext : "/";
+  // open redirect 차단 — 내부 상대경로만 허용(safeNextPath 가 정규화·재검증)
+  const next = safeNextPath(stateNext);
 
   const failRedirect = (reason: string) => {
     const u = new URL(baseUrl);
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
           `Kakao token invalid_grant (중복/만료 콜백): ${tokenData.error_code ?? tokenData.error}`,
           ctxFromRequest(request, { route: "/api/auth/kakao" })
         );
-        const u = new URL(next.startsWith("/") ? next : "/", baseUrl);
+        const u = new URL(next, baseUrl);
         const r = NextResponse.redirect(u);
         r.cookies.set(STATE_COOKIE, "", {
           httpOnly: true,
@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
     // TODO (Phase 5): byeolkong_anon_id 의 readings 를 user_id 로 이관 (migrate_anonymous_readings RPC)
 
     // 4. redirect + 쿠키 세팅
-    const redirectUrl = new URL(next.startsWith("/") ? next : "/", baseUrl);
+    const redirectUrl = new URL(next, baseUrl);
     redirectUrl.searchParams.set("login", "success");
     if (isNewUser) redirectUrl.searchParams.set("welcome", "1");
 
