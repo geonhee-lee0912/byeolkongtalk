@@ -135,6 +135,9 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
     <div className="w-full">
       <FortuneSajuPicker
         onConfirm={openConfirm}
+        // 🔴 cfg.href 다 — cfg.type 으로 조립하면 compat_social 이 /fortune/compat-social(하이픈)과
+        //    어긋나 로그인 후 404 로 돌아온다(추천 게이트웨이 A 실사고).
+        loginNext={cfg.href}
         confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
         showBoardDetail={false}

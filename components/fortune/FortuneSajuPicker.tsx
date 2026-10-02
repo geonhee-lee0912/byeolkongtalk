@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SajuBoard from "@/components/saju/SajuBoard";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
+import BirthPromptButton from "@/components/saju/BirthPromptButton";
+import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import type { SajuResult } from "@/lib/saju/calc";
+import { pickerGate } from "./picker-gate";
 
 interface PickerProfile {
   id: string;
@@ -74,6 +77,8 @@ export interface FortuneSajuPickerProps {
   reviewableByProfile?: Record<string, string>;
   /** 다시보기 클릭 핸들러 (reviewable 일 때만 호출) */
   onReview?: (readingId: string) => void;
+  /** 비로그인 카카오 CTA 가 로그인 후 돌아올 곳. 상품 href 를 넘긴다(없으면 지금 경로). */
+  loginNext?: string;
 }
 
 const LIST_PAGE_SIZE = 5;
@@ -89,24 +94,44 @@ export default function FortuneSajuPicker({
   onSelectedBirthLine,
   reviewableByProfile,
   onReview,
+  loginNext,
 }: FortuneSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listPage, setListPage] = useState(0);
   const [showNewPerson, setShowNewPerson] = useState(false);
+  const [authed, setAuthed] = useState(true);
 
-  useEffect(() => {
-    void (async () => {
-      const d = await fetch("/api/profiles", { cache: "no-store" })
+  // 마운트와 생일 저장 뒤(onSaved) 둘 다 이걸 부른다 — 저장 뒤엔 isPrimary 자동 선택이 그대로 돈다.
+  async function loadProfiles() {
+    const d = await fetch("/api/profiles", { cache: "no-store" })
+      .then((x) => (x.ok ? x.json() : null))
+      .catch(() => null);
+    // 조회가 실패하면 지금 목록을 그대로 둔다 — 생일 저장 직후 재조회가 실패해도 목록이 비어 벽으로
+    // 돌아가지 않게(마이페이지 reloadProfiles 와 같은 방식, Task 4 품질 리뷰). 첫 마운트 땐 지금 목록이 [] 다.
+    const list = Array.isArray(d?.profiles) ? (d.profiles as PickerProfile[]) : profiles;
+    // 🔴 GET /api/profiles 는 비로그인에게도 200 {profiles:[]} 를 준다 — 목록이 "내 사주 필요"일
+    //    때만 로그인 여부를 따로 묻는다(프로필 있는 유저는 요청이 늘지 않는다).
+    let isAuthed = true;
+    if (pickerGate({ profiles: list, lockPrimary: !!lockPrimary, authenticated: true }) !== "list") {
+      const me = await fetch("/api/auth/me", { cache: "no-store" })
         .then((x) => (x.ok ? x.json() : null))
         .catch(() => null);
-      const list = (d?.profiles ?? []) as PickerProfile[];
-      setProfiles(list);
-      const self = list.find((p) => p.isPrimary);
-      if (self) setSelectedId(self.id);
-      setReady(true);
-    })();
+      // 🔴 확인 자체가 실패하면(me === null) 로그인한 것으로 본다 → "birth" 가 뜨고, 버튼을 누를 때
+      //    BirthPromptButton 이 다시 확인해 비로그인이면 로그인으로 보낸다. 버튼과 같은 정책이다
+      //    (=== true 로 두면 일시 장애 때 로그인한 유저에게 카카오 버튼이 뜬다 — Task 2 품질 리뷰).
+      isAuthed = me?.isAuthenticated !== false;
+    }
+    setProfiles(list);
+    setAuthed(isAuthed);
+    const self = list.find((p) => p.isPrimary);
+    if (self) setSelectedId(self.id);
+    setReady(true);
+  }
+
+  useEffect(() => {
+    void loadProfiles();
   }, []);
 
   const self = profiles.find((p) => p.isPrimary) ?? null;
@@ -122,22 +147,48 @@ export default function FortuneSajuPicker({
     return <p className="text-center text-[13px] text-text-light py-6">잠시만…</p>;
   }
 
-  // 내 사주 미등록 안내 (오늘의 운세 + 모든 운세 공통)
-  if ((lockPrimary && !self) || profiles.length === 0) {
+  // 내 사주 필요 — 로그인 전이면 카카오, 로그인했으면 그 자리 생일 입력(2026-10-02, /mypage 이탈 제거).
+  // 🔴 예전엔 비로그인에게도 "아직 내 사주를 등록하지 않았어" 를 보였다 — 광고로 처음 온 사람은
+  //    전원 로그인 전이라 이 문구를 먼저 봤고, /mypage 는 저장 뒤 이 상품으로 돌려보내지 않았다.
+  const gate = pickerGate({ profiles, lockPrimary: !!lockPrimary, authenticated: authed });
+  if (gate === "login") {
+    // ready 이후에만 오므로(마운트 이펙트) window 접근이 SSR 에 닿지 않는다.
+    const next = loginNext ?? window.location.pathname;
     return (
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
           <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
-            아직 내 사주를 등록하지 않았어.
-            <br />
-            내 정보에서 사주를 입력하면 바로 운세를 볼 수 있어.
+            로그인하면 바로 내 사주로 볼 수 있어.
           </p>
+          {/* 카카오 버튼은 저장소 공통 컨벤션(ByeolmaruHub 와 같은 마크업). */}
           <Link
-            href="/mypage"
-            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+            href={`/login?next=${encodeURIComponent(next)}`}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
           >
-            내 사주 등록하러 가기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+            </svg>
+            카카오로 시작하기
           </Link>
+        </div>
+      </div>
+    );
+  }
+  if (gate === "birth") {
+    return (
+      <div className="w-full max-w-md mx-auto px-5">
+        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
+          <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
+            생년월일만 알려주면 바로 볼 수 있어.
+          </p>
+          {/* 🔴 저장 뒤 결제 확인을 자동으로 띄우지 않는다 — 내 사주를 골라 두기까지만(스펙 §3). */}
+          <BirthPromptButton
+            surface={BIRTH_PROMPT_SURFACE.fortunePicker}
+            onSaved={loadProfiles}
+            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-60"
+          >
+            생년월일 입력하기
+          </BirthPromptButton>
         </div>
       </div>
     );
@@ -179,6 +230,20 @@ export default function FortuneSajuPicker({
             <div className="-mx-4">
               {selected.saju ? (
                 <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
+              ) : selected.isPrimary ? (
+                // 🔴 내 사주는 있는데 생일이 없는 경우 — 예전엔 이 문구만 뜨고 확인 버튼이 꺼져 막다른
+                //    길이었다. 버튼은 내 사주를 PATCH 하므로 **내 사주일 때만** 단다(지인 프로필에 달면
+                //    엉뚱한 사람이 고쳐진다 — 지인은 아래 문구만 그대로).
+                <div className="py-4 text-center">
+                  <p className="text-[12px] text-text-light/70 mb-3">생일을 알려주면 사주도 보여줄게</p>
+                  <BirthPromptButton
+                    surface={BIRTH_PROMPT_SURFACE.fortunePicker}
+                    onSaved={loadProfiles}
+                    className="inline-block px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-60"
+                  >
+                    생년월일 입력하기
+                  </BirthPromptButton>
+                </div>
               ) : (
                 <p className="text-[12px] text-text-light/70 text-center py-4">
                   생일을 알려주면 사주도 보여줄게
