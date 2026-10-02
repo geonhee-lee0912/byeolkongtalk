@@ -245,7 +245,7 @@ export default function DualSajuPicker({
       {selfMissingBirth && (
         // 칸 버튼(<button onClick>) 밖에 둔다 — BirthPromptButton 팝업의 이벤트가 React 조상으로 버블된다.
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-4 text-center mb-5">
-          <p className="text-[12px] text-text-light/80 mb-3">내 생일을 알려주면 바로 궁합을 볼 수 있어.</p>
+          <p className="text-[12px] text-text-light/80 mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
           <BirthPromptButton
             surface={birthSurface}
             loginNext={loginNext}
