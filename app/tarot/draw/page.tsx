@@ -16,6 +16,8 @@ import {
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 
 export default function TarotDrawPage() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function TarotDrawPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
 
   // 선택 정보 로드 — /tarot 피커 플로우
   useEffect(() => {
@@ -128,8 +131,19 @@ export default function TarotDrawPage() {
           loading={balanceLoading}
           accent={accent}
           onConfirm={goToReading}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}
+        />
+      )}
+      {/* 🔴 닫혀 있으면 마운트하지 않는다 — 시트는 useTossPayment 를 호출해서
+          마운트만으로 /api/auth/me + 토스 SDK 초기화가 돈다. 상시 마운트하면
+          공개 지면(사주 운세 설명 20개 등) 방문자 전원에게 그 비용이 걸린다. */}
+      {rechargeSheetOpen && (
+        <RechargeSheet
+          open
+          returnTo="/tarot/draw"
+          source={RECHARGE_SOURCE.tarotDraw}
+          onClose={() => setRechargeSheetOpen(false)}
         />
       )}
     </main>

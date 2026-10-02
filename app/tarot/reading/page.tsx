@@ -19,6 +19,7 @@ import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/Clar
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet from "@/components/upsell/ClarifierSheet";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { getCard } from "@/lib/tarot/cards";
@@ -1171,6 +1172,7 @@ function TarotReadingInner() {
       {readingId && (
         <RechargeSheet
           open={rechargeSheetOpen}
+          source={RECHARGE_SOURCE.inchat}
           returnTo={`/tarot/reading?id=${readingId}`}
           pendingUpsell={
             readingId

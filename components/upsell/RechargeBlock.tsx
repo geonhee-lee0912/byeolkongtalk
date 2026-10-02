@@ -1,8 +1,9 @@
 "use client";
 
 // 결과 화면 최상단 재충전 블록 — 리딩 직후 따끈한 순간에 매출 CTA를 앞세운다.
-// 이 고민 이어가기(-40%) + 새 고민 + (자격자) 첫충전 +20% 보너스 인라인.
-import { useEffect, useState } from "react";
+// 이 고민 이어가기(-40%) + 새 고민.
+// 🔴 첫충전 +20% 배너는 2026-09-29 제거됐다 — 9월 클릭 1건으로 죽어 있었고,
+//    같은 안내를 RechargeSheet 가 결정 시점에 보여준다. 되살리지 말 것.
 import Link from "next/link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
@@ -28,15 +29,6 @@ export default function RechargeBlock({
   /** 계측 귀속용 reading id (선택). */
   readingId?: string;
 }) {
-  const [firstChargeEligible, setFirstChargeEligible] = useState(false);
-
-  useEffect(() => {
-    void fetch("/api/stars/first-charge-status", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setFirstChargeEligible(d?.eligible === true))
-      .catch(() => {});
-  }, []);
-
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-6">
       <div className="rounded-2xl bg-white/90 p-4">
@@ -88,24 +80,6 @@ export default function RechargeBlock({
             {newCostLabel}
           </span>
         </Link>
-        {firstChargeEligible && (
-          <Link
-            href="/shop"
-            onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "first_charge" } })}
-            className="flex items-center gap-2.5 mt-3 rounded-xl px-3 py-2.5 bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50"
-          >
-            <span className="text-[16px]">🎁</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-extrabold text-eye-purple">
-                지금 첫 충전하면 별 +20%
-              </p>
-              <p className="text-[10.5px] text-eye-purple/70 mt-0.5">
-                별이 부족해도 충전하면 바로 이어서 볼 수 있어
-              </p>
-            </div>
-            <span className="text-eye-purple/60 text-[15px]">›</span>
-          </Link>
-        )}
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import BackHeader from "./BackHeader";
 import SajuTodayView from "./SajuTodayView";
 import TarotTodayView from "./TarotTodayView";
 import WooriTodayView from "./WooriTodayView";
+import FreeToPaidCta from "@/components/upsell/FreeToPaidCta";
 
 /** 세 View 가 공유하는 주입 형태 — 라우트 응답 그대로. */
 export interface InjectedCalendar {
@@ -138,6 +139,22 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
           </div>
         ) : null
       )}
+      {/* 유료 다리 — 별마루에서 유일하게 비어 있던 자리(2026-10-02). 무료 2종(MBTI·별자리)은
+          이미 FreeToPaidCta 를 갖고 있고 여기만 없었다.
+          세 탭 공통으로 페이지 맨 아래 한 번만 — 탭마다 달면 같은 화면에 다리가 셋이 된다.
+          ⚠️ 별마루 구독(20별/30일)과 가격대가 겹치는 건 아는 선택이다(사용자 확정) —
+             어느 쪽이 팔리는지는 `source: "byeolmaru_day"` 로 갈라 보면 된다. */}
+      {/* 카드 3장을 이 화면의 세 탭에 각각 대응시킨다 — 사주(오늘 일진)→이번 달 흐름,
+          우리(관계)→인간 관계 궁합, 타로(오늘 카드)→타로 고민톡. 유저가 방금 본 축을
+          그대로 깊게 가는 구성이라 설득이 짧다. */}
+      <FreeToPaidCta
+        title="오늘 말고 더 멀리 볼래?"
+        subtitle="오늘 흐름은 무료 — 한 달 치 흐름도, 그 사람과의 결도, 지금 고민도"
+        chat={{ label: "지금 고민, 타로로 뽑아볼래?", tagline: "오늘 흐름 말고 지금 걸리는 그 일, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
+        products={["monthly", "compat_social"]}
+        source="byeolmaru_day"
+        bare
+      />
     </main>
   );
 }

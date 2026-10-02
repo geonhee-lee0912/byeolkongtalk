@@ -8,6 +8,8 @@ import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScree
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import FortuneRefundModal from "@/components/fortune/FortuneRefundModal";
 import AlreadyOwnedModal from "@/components/fortune/AlreadyOwnedModal";
+import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { FORTUNE_CONFIG } from "@/lib/fortune/types";
 
 type CompatKind = "compat" | "compat_social";
@@ -29,6 +31,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
   const [needCharge, setNeedCharge] = useState(false);
   const [refunded, setRefunded] = useState(false);
   const [alreadyOwned, setAlreadyOwned] = useState<{ id: string } | null>(null);
+  const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
 
   // 더블탭/연속 클릭으로 인한 중복 POST 차단 — state 는 리렌더 후 반영이라 ref 로 동기 가드.
   const inFlightRef = useRef(false);
@@ -140,9 +143,13 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         <div className="mt-4 text-center px-5 max-w-md">
           <p className="text-[12px] text-red-500">{error}</p>
           {needCharge && (
-            <Link href="/shop" className="mt-1 inline-block text-[12px] text-lilac-deep underline">
-              별콩 상점 가기
-            </Link>
+            <button
+              type="button"
+              onClick={() => setRechargeSheetOpen(true)}
+              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+            >
+              별 충전하기
+            </button>
           )}
         </div>
       )}
@@ -167,8 +174,19 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           confirmLabel="확인하고 궁합 보기"
           targetName={`${pending.nameA} · ${pending.nameB}`}
           onConfirm={() => handleGenerate(false)}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setPending(null)}
+        />
+      )}
+      {/* 🔴 닫혀 있으면 마운트하지 않는다 — 시트는 useTossPayment 를 호출해서
+          마운트만으로 /api/auth/me + 토스 SDK 초기화가 돈다. 상시 마운트하면
+          공개 지면(사주 운세 설명 20개 등) 방문자 전원에게 그 비용이 걸린다. */}
+      {rechargeSheetOpen && (
+        <RechargeSheet
+          open
+          returnTo={cfg.href}
+          source={RECHARGE_SOURCE.compat}
+          onClose={() => setRechargeSheetOpen(false)}
         />
       )}
 

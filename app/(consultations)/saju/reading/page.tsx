@@ -16,6 +16,7 @@ import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
+import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 
 interface Message {
   role: "user" | "assistant";
@@ -705,6 +706,7 @@ function ReadingInner() {
       {ctx && (
         <RechargeSheet
           open={rechargeSheetOpen}
+          source={RECHARGE_SOURCE.inchat}
           returnTo={`/saju/reading?id=${ctx.readingId}`}
           pendingUpsell={{ readingId: ctx.readingId, type: "extend" }}
           onClose={() => setRechargeSheetOpen(false)}

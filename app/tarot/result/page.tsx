@@ -333,7 +333,6 @@ function TarotResultInner() {
       {/* ③ 크로스셀 (궁합) — 공유 위로 */}
       <ResultUpsell
         variant="counsel"
-        showBonus={false}
         topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
       />
 
