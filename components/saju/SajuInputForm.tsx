@@ -112,7 +112,7 @@ export default function SajuInputForm({
     setDay(daysInMonth.length);
   }
 
-  // 윤달은 그해 윤달이 이 달일 때만 고를 수 있다(1900~2026 중 47해, 해마다 한 달). 아니면 자동 해제 —
+  // 윤달은 그해 윤달이 이 달일 때만 고를 수 있다(윤달은 해마다 많아야 한 달). 아니면 자동 해제 —
   // 다시 그달로 와도 체크된 채 나타나지 않게.
   const leapAvailable = calendar === "lunar" && lunarLeapMonth(year) === month;
   if (isLeapMonth && !leapAvailable) {
