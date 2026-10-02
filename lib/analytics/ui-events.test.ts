@@ -46,8 +46,8 @@ test("UI_EVENTS — 별마루 무료 목록 3종 클릭 이벤트가 등록돼 �
   assert.equal(isUiEvent("byeolmaru_free_item_clicked"), true);
 });
 
-// 2026-10-02 생일 벽 인라인 입력 — 자리별 "열기 → 저장" 판독.
+// 2026-10-02 생일 벽 인라인 입력 — 자리별 "클릭 → 저장" 판독.
 test("UI_EVENTS — 생일 입력 팝업 이벤트 2종이 등록돼 있다", () => {
-  assert.equal(isUiEvent("birth_prompt_opened"), true);
+  assert.equal(isUiEvent("birth_prompt_clicked"), true);
   assert.equal(isUiEvent("birth_prompt_saved"), true);
 });
