@@ -16,6 +16,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isUiEvent } from "@/lib/analytics/ui-events";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
+import { rechargeCapiEventId } from "@/lib/analytics/recharge-source";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,6 +108,18 @@ export async function POST(req: NextRequest) {
       }
     } else if (error) {
       console.error("[/api/event] insert failed:", error);
+    }
+
+    // 잔액 부족 → 그 자리 충전 시트 = Meta AddToCart (타로 광고 최적화 이벤트). 저장 성패와 무관하게 보낸다.
+    // 클라가 위조해도 자기 세션 몫이고 rate limit·유저/일 dedup 이 걸린다.
+    const atcId = rechargeCapiEventId(event, row.meta, session.userId ?? null, new Date());
+    if (atcId && session.userId) {
+      sendCapiEvent({
+        eventName: "AddToCart",
+        userId: session.userId,
+        eventId: atcId,
+        ...capiSignalsFromRequest(req),
+      });
     }
   } catch (e) {
     console.error("[/api/event] crash:", e);
