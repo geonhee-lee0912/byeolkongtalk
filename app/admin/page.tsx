@@ -49,9 +49,38 @@ async function loadStats() {
   // `Max rows`(서버 강제 상한, `.limit()` 을 조용히 덮어쓴다)에 닿을 다음 차례였다.
   // 합계는 반환이 항상 1행이라 cap 개념 자체가 소멸한다. 창 정의는 RPC 안: today = >= p_today,
   // yesterday = [p_yesterday, p_today), all = 날짜 필터 없음 — 구 pay() 3콜과 동일하다.
-  const [tu, yu, au, tr, yr, ar, revRes, errs, sens] = await Promise.all([
+  // 오늘/어제 리딩은 종목별로 센다 — 오늘의 운세가 별마루(별도 테이블)로 옮겨간 뒤(2026-09-28)
+  // readings 전체 한 칸은 사실상 타로톡만 남아 별마루·사주 운세가 안 보였다.
+  // 타로톡 = 타로 상담(운세 리포트 제외 · emotion_tag NULL 은 3값 논리라 명시) / 사주 운세 = fortune: 리포트 /
+  // 별마루 = 오늘 사주 리포트 + 오늘 타로 뽑기 + 우리 오늘(각 테이블 created_at 기준, 그날 만들어진 것).
+  // 연애 상담·시뮬(readings 의 나머지)은 이 줄에서 빠진다 — 누적 칸은 여전히 readings 전체.
+  type Kind = "tarot" | "fortune" | "bm_report" | "bm_card" | "bm_pair";
+  const KIND_TABLE: Record<Kind, string> = {
+    tarot: "readings", fortune: "readings",
+    bm_report: "byeolmaru_daily_report", bm_card: "byeolmaru_daily_card", bm_pair: "byeolmaru_pair_narrative",
+  };
+  const kindCnt = (k: Kind, s: string, u?: string) => {
+    // 별마루 테이블엔 id 컬럼이 없다 → "*" head count
+    let q = supa.from(KIND_TABLE[k]).select("*", { count: "exact", head: true }).gte("created_at", s);
+    if (u) q = q.lt("created_at", u);
+    if (k === "tarot") q = q.eq("consultation_type", "tarot").or("emotion_tag.is.null,emotion_tag.not.like.fortune:*");
+    if (k === "fortune") q = q.like("emotion_tag", "fortune:%");
+    if (excl) q = q.not("user_id", "in", excl);
+    return q;
+  };
+  const KINDS: Kind[] = ["tarot", "fortune", "bm_report", "bm_card", "bm_pair"];
+  const kindRes = await Promise.all(KINDS.flatMap((k) => [kindCnt(k, today), kindCnt(k, yesterday, today)]));
+  const readingsFailed = kindRes.some((r) => Boolean(r.error));
+  const kindVal = (k: Kind, day: 0 | 1) => kindRes[KINDS.indexOf(k) * 2 + day].count ?? 0;
+  const readingsBy = (day: 0 | 1) => {
+    const bm = { report: kindVal("bm_report", day), card: kindVal("bm_card", day), pair: kindVal("bm_pair", day) };
+    return { tarot: kindVal("tarot", day), fortune: kindVal("fortune", day), byeolmaru: bm.report + bm.card + bm.pair, bm };
+  };
+
+  const [tu, yu, au, tr, ar, revRes, errs, sens] = await Promise.all([
     cnt("users", "id", today), cnt("users", "id", yesterday, today), cnt("users", "id"),
-    cnt("readings", "user_id", today), cnt("readings", "user_id", yesterday, today), cnt("readings", "user_id"),
+    // tr = 오늘 readings 전체 — 누적 칸의 "어제까지"(누적 − 오늘) 계산용. 종목별 칸과 정의가 달라 따로 센다
+    cnt("readings", "user_id", today), cnt("readings", "user_id"),
     supa.rpc("admin_dashboard_revenue", { p_exclude, p_today: today, p_yesterday: yesterday }),
     supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
@@ -116,12 +145,12 @@ async function loadStats() {
   return {
     // ⚠️ uv(페이지뷰 귀속)와 mixUv(세션 시작 귀속)는 분모가 다르다 — 화면에서 mixUv 를 함께
     //    보여줘야 "신규+재방문 이 UV 와 안 맞는다"는 오독이 안 생긴다.
-    today: { uv: pv.today.uv, pv: pv.today.pv, mixUv: mixToday.uv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, readings: tr.count ?? 0, revenueWon: revenue.today },
-    yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, readings: yr.count ?? 0, revenueWon: revenue.yesterday },
+    today: { uv: pv.today.uv, pv: pv.today.pv, mixUv: mixToday.uv, newUv: mixToday.newUv, returningUv: mixToday.returningUv, newUsers: tu.count ?? 0, readings: readingsBy(0), readingsAll: tr.count ?? 0, revenueWon: revenue.today },
+    yesterday: { uv: pv.yesterday.uv, pv: pv.yesterday.pv, newUsers: yu.count ?? 0, readings: readingsBy(1), revenueWon: revenue.yesterday },
     all: { newUsers: au.count ?? 0, readings: ar.count ?? 0, revenueWon: revenue.all },
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
     // 실패한 RPC 블록. 화면이 0 대신 "—" + 경고 한 줄을 그리는 데 쓴다.
-    failed: { revenue: revenueFailed, traffic: trafficFailed },
+    failed: { revenue: revenueFailed, traffic: trafficFailed, readings: readingsFailed },
   };
 }
 
@@ -274,12 +303,29 @@ export default async function AdminDashboard() {
             왼쪽에 두는 배치 (퍼널 순서보다 판독 빈도 우선). UV/PV 는 봇 제외·어드민 제외 집계로
             /admin/traffic 과 같은 정의 (자세한 분해는 그 화면)
             ⚠️ 탈퇴는 2층 `탈퇴 ▾` 로 내려갔다(Task 8) — 오늘/어제·누적·가입대비가 거기 다 있다. */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {s.failed.readings && <LoadFailed className="mb-3" block="종목별 리딩(readings · byeolmaru_*)" />}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Stat label="신규 가입" value={s.today.newUsers}>
             <Delta today={s.today.newUsers} yesterday={s.yesterday.newUsers} />
           </Stat>
-          <Stat label="리딩" value={s.today.readings}>
-            <Delta today={s.today.readings} yesterday={s.yesterday.readings} />
+          <Stat label="타로톡" value={s.failed.readings ? "—" : s.today.readings.tarot}>
+            {!s.failed.readings && <Delta today={s.today.readings.tarot} yesterday={s.yesterday.readings.tarot} />}
+          </Stat>
+          <Stat label="사주 운세" value={s.failed.readings ? "—" : s.today.readings.fortune}>
+            {!s.failed.readings && <Delta today={s.today.readings.fortune} yesterday={s.yesterday.readings.fortune} />}
+          </Stat>
+          <Stat
+            label="별마루"
+            value={s.failed.readings ? "—" : s.today.readings.byeolmaru}
+            sub={
+              s.failed.readings ? undefined : (
+                <>
+                  사주 {s.today.readings.bm.report} · 타로 {s.today.readings.bm.card} · 우리 오늘 {s.today.readings.bm.pair}
+                </>
+              )
+            }
+          >
+            {!s.failed.readings && <Delta today={s.today.readings.byeolmaru} yesterday={s.yesterday.readings.byeolmaru} />}
           </Stat>
           <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.today.revenueWon.toLocaleString()}>
             {!s.failed.revenue && <Delta today={s.today.revenueWon} yesterday={s.yesterday.revenueWon} />}
@@ -415,7 +461,7 @@ export default async function AdminDashboard() {
             <Delta today={s.all.newUsers} yesterday={s.all.newUsers - s.today.newUsers} label="어제까지" />
           </Stat>
           <Stat label="리딩" value={s.all.readings}>
-            <Delta today={s.all.readings} yesterday={s.all.readings - s.today.readings} label="어제까지" />
+            <Delta today={s.all.readings} yesterday={s.all.readings - s.today.readingsAll} label="어제까지" />
           </Stat>
           <Stat label="매출(원)" value={s.failed.revenue ? "—" : s.all.revenueWon.toLocaleString()}>
             {!s.failed.revenue && (
