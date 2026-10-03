@@ -590,6 +590,13 @@ export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
 /** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */
 export const DEFAULT_FORTUNE_CHIP: FortuneCategory = "love_relation";
 
+/** `/fortune?chip=` 값 → 진열 칩. 광고 착지용(사주 광고 = `?chip=fun`, 웰컴 15별로 살 수 있는 15별 상품이 있는 칸).
+ * URL 은 외부 입력이라 FORTUNE_CHIPS 에 있는 키만 통과 — 그 외는 null(호출부가 기본 칩으로). */
+export function parseFortuneChip(v: string | string[] | undefined): FortuneCategory | null {
+  if (typeof v !== "string") return null;
+  return FORTUNE_CHIPS.find((c) => c.key === v)?.key ?? null;
+}
+
 /** 칩 카테고리에 속한 진열 상품 (FORTUNE_LIST 순서 보존). */
 export function fortuneProductsByCategory(cat: FortuneCategory): FortuneConfig[] {
   return FORTUNE_LIST.filter((f) => FORTUNE_CATEGORY[f.type] === cat);

@@ -7,6 +7,7 @@ import {
   FORTUNE_LIST,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
+  parseFortuneChip,
 } from "./types.ts";
 
 test("오늘의 운세는 완전 무료 — 무료 한도·유료 전환 없음", () => {
@@ -64,4 +65,16 @@ test("칩 5개 · 순서 · 기본은 연애·관계", () => {
     ["love_relation", "identity", "fun", "money_work", "timing"]
   );
   assert.equal(DEFAULT_FORTUNE_CHIP, "love_relation");
+});
+
+test("parseFortuneChip — 진열 칩 키만 통과, 나머지는 null", () => {
+  for (const c of FORTUNE_CHIPS) assert.equal(parseFortuneChip(c.key), c.key);
+  assert.equal(parseFortuneChip("fun"), "fun");
+  // 진열 안 하는 카테고리·임의값·배열·빈값은 기본 칩으로 떨어지게 null
+  assert.equal(parseFortuneChip("free"), null);
+  assert.equal(parseFortuneChip("FUN"), null);
+  assert.equal(parseFortuneChip("__proto__"), null);
+  assert.equal(parseFortuneChip(""), null);
+  assert.equal(parseFortuneChip(undefined), null);
+  assert.equal(parseFortuneChip(["fun", "timing"]), null);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FORTUNE_GRADIENTS,
@@ -8,6 +8,7 @@ import {
   FORTUNE_LENGTH_HINT,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
+  parseFortuneChip,
   type FortuneCategory,
 } from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
@@ -17,8 +18,14 @@ import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark from "@/components/common/SectionMark";
 
-export default function FortunePage() {
-  const [chip, setChip] = useState<FortuneCategory>(DEFAULT_FORTUNE_CHIP);
+export default function FortunePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // ?chip= 로 첫 칩 지정(광고 착지). 서버가 처음부터 그 칩으로 렌더해 기본 칩이 먼저 비치지 않는다.
+  const initialChip = parseFortuneChip(use(searchParams).chip) ?? DEFAULT_FORTUNE_CHIP;
+  const [chip, setChip] = useState<FortuneCategory>(initialChip);
   const [monthNum, setMonthNum] = useState<number | null>(null);
 
   // 이번 달 숫자는 클라에서만 계산 (SSR-클라 타임존 월 경계 mismatch 방지)
