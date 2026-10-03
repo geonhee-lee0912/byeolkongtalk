@@ -23,3 +23,36 @@ test("source 값은 서로 겹치지 않는다 — 겹치면 지면별로 갈라
 test("inchat 의 값은 'inchat' 그대로 — 바꾸면 기존 KPI 가 0 이 된다", () => {
   assert.equal(RECHARGE_SOURCE.inchat, "inchat");
 });
+
+// ── Meta CAPI AddToCart (타로 광고 최적화 이벤트) ──
+// 잔액 부족으로 "그 자리" 충전 시트가 열린 순간만 — /shop 진입(source "shop")은 신호가 흐려 제외.
+import { rechargeCapiEventId } from "./recharge-source.ts";
+
+const U = "11111111-1111-4111-8111-111111111111";
+const NOON_KST = new Date("2026-10-03T03:00:00Z");
+
+test("그 자리 충전 시트(전 source) + 로그인 → 유저·KST 날짜 단위 eventId", () => {
+  for (const source of Object.values(RECHARGE_SOURCE)) {
+    assert.equal(
+      rechargeCapiEventId("recharge_sheet_opened", { source }, U, NOON_KST),
+      `atc:${U}:2026-10-03`,
+      source
+    );
+  }
+});
+
+test("같은 날 여러 번 열어도 eventId 동일(Meta 중복제거) · KST 자정에 바뀐다", () => {
+  const lateUtc = new Date("2026-10-03T14:59:00Z"); // KST 23:59
+  const nextKst = new Date("2026-10-03T15:00:00Z"); // KST 다음날 00:00
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "inchat" }, U, lateUtc), `atc:${U}:2026-10-03`);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "inchat" }, U, nextKst), `atc:${U}:2026-10-04`);
+});
+
+test("보내지 않는 경우 — shop·미지 source·비로그인·다른 이벤트·meta 불량", () => {
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "shop" }, U, NOON_KST), null);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "evil" }, U, NOON_KST), null);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "inchat" }, null, NOON_KST), null);
+  assert.equal(rechargeCapiEventId("recharge_package_selected", { source: "inchat" }, U, NOON_KST), null);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", null, U, NOON_KST), null);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: ["inchat"] }, U, NOON_KST), null);
+});
