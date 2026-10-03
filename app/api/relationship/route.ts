@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError } from "@/lib/logger";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { isFirstBirthEntry } from "@/lib/birth-lead";
 import { validateProfile } from "@/lib/saju/profile-input";
 import { getActivePass, getTodayThreadTurns, getTodayExtendCount } from "@/lib/relationship/passes";
 import { dailyTurnAllowance, SLOT_COST, type RelationshipStatus, type RelationshipMemo } from "@/lib/relationship/types";
@@ -290,7 +292,7 @@ export async function PATCH(request: NextRequest) {
     // 기존 primary 있으면 UPDATE, 없으면 INSERT (partial unique index: user 당 primary 1개 보장).
     const { data: existing } = await supabase
       .from("user_profiles")
-      .select("id")
+      .select("id, birth_date")
       .eq("user_id", userId)
       .eq("is_primary", true)
       .maybeSingle();
@@ -305,6 +307,10 @@ export async function PATCH(request: NextRequest) {
         await logError(uErr, { route: "/api/relationship", userId, extra: { stage: "self_update" } });
         return NextResponse.json({ error: "self_profile_failed" }, { status: 500 });
       }
+      // Meta CAPI 리드 — 내 사주에 생일이 처음 들어간 순간(lib/birth-lead.ts). eventId 고정 = 48시간 안 중복은 Meta 가 합친다.
+      if (isFirstBirthEntry({ isPrimary: true, prevBirth: existing.birth_date, nextBirth: v.birthDate })) {
+        void sendCapiEvent({ eventName: "Lead", userId, eventId: `lead:${userId}`, ...capiSignalsFromRequest(request) });
+      }
       return NextResponse.json({ success: true, selfProfileId: existing.id });
     }
     const { data: sRow, error: sErr } = await supabase
@@ -315,6 +321,10 @@ export async function PATCH(request: NextRequest) {
     if (sErr || !sRow) {
       await logError(sErr ?? new Error("self profile insert null"), { route: "/api/relationship", userId, extra: { stage: "self_insert" } });
       return NextResponse.json({ error: "self_profile_failed" }, { status: 500 });
+    }
+    // Meta CAPI 리드 — 내 사주에 생일이 처음 들어간 순간(lib/birth-lead.ts). eventId 고정 = 48시간 안 중복은 Meta 가 합친다.
+    if (isFirstBirthEntry({ isPrimary: true, prevBirth: null, nextBirth: v.birthDate })) {
+      void sendCapiEvent({ eventName: "Lead", userId, eventId: `lead:${userId}`, ...capiSignalsFromRequest(request) });
     }
     return NextResponse.json({ success: true, selfProfileId: sRow.id });
   }

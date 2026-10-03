@@ -9,6 +9,8 @@ import {
   profileRowToSajuInput,
 } from "@/lib/saju/profile-input";
 import { logError } from "@/lib/logger";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { isFirstBirthEntry } from "@/lib/birth-lead";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,7 +80,7 @@ export async function PATCH(
   // 소유권 확인 (+ self 행의 relation_type/is_primary 불변 유지)
   const { data: owned } = await supabase
     .from("user_profiles")
-    .select("id, is_primary, relation_type")
+    .select("id, is_primary, relation_type, birth_date")
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -117,6 +119,11 @@ export async function PATCH(
       { error: error?.message ?? "update_failed" },
       { status: 500 }
     );
+  }
+
+  // Meta CAPI 리드 — 내 사주에 생일이 처음 들어간 순간(lib/birth-lead.ts). eventId 고정 = 48시간 안 중복은 Meta 가 합친다.
+  if (isFirstBirthEntry({ isPrimary: owned.is_primary, prevBirth: owned.birth_date, nextBirth: row.birth_date })) {
+    void sendCapiEvent({ eventName: "Lead", userId, eventId: `lead:${userId}`, ...capiSignalsFromRequest(req) });
   }
 
   return NextResponse.json({ profile: serializeProfile(row as ProfileRow) });

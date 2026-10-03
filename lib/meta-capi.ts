@@ -1,5 +1,5 @@
 // Meta Conversions API — 서버 발화 전환 이벤트 (iOS/쿠키 차단 대응).
-// Pixel(클라)은 PageView만, 전환(가입/체험완료/구매)은 여기서만 보내 중복을 원천 차단.
+// Pixel(클라)은 PageView만, 전환(가입/생일 첫 입력/체험완료/구매)은 여기서만 보내 중복을 원천 차단.
 import { createHash } from "crypto";
 import { waitUntil } from "@vercel/functions";
 import { logError } from "./logger";
@@ -10,6 +10,7 @@ const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
 type CapiEventName =
   | "CompleteRegistration" // 카카오 가입
   | "StartTrial" // 무료 리딩(체험) 완료
+  | "Lead" // 내 사주에 생년월일 첫 저장 (lib/birth-lead.ts)
   | "Purchase"; // 별 충전 결제
 
 type CapiEventParams = {

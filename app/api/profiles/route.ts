@@ -10,6 +10,8 @@ import {
   profileRowToSaju,
 } from "@/lib/saju/profile-input";
 import { logError } from "@/lib/logger";
+import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { isFirstBirthEntry } from "@/lib/birth-lead";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -161,6 +163,11 @@ export async function POST(req: NextRequest) {
       { error: error?.message ?? "insert_failed" },
       { status: 500 }
     );
+  }
+
+  // Meta CAPI 리드 — 내 사주에 생일이 처음 들어간 순간(lib/birth-lead.ts). eventId 고정 = 48시간 안 중복은 Meta 가 합친다.
+  if (isFirstBirthEntry({ isPrimary: row.is_primary, prevBirth: null, nextBirth: row.birth_date })) {
+    void sendCapiEvent({ eventName: "Lead", userId, eventId: `lead:${userId}`, ...capiSignalsFromRequest(req) });
   }
 
   return NextResponse.json({ profile: serializeProfile(row as ProfileRow) });
