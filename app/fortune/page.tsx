@@ -78,22 +78,25 @@ export default function FortunePage({
                 <FortuneIcon type={f.type} size={40} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                {/* 좁은 폭에서 긴 상품명이면 가격·분량이 찌그러지지 않고 한 덩어리로 다음 줄로 내려가게. */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-[15px] font-bold text-eye-purple">{f.label}</span>
-                  {f.cost === 0 ? (
-                    <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
-                      하루 1회 무료
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                      ⭐ {f.cost}
-                    </span>
-                  )}
-                  {FORTUNE_LENGTH_HINT[f.type] && (
-                    <span className="text-[10px] font-medium text-text-light/70">
-                      · {FORTUNE_LENGTH_HINT[f.type]}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                    {f.cost === 0 ? (
+                      <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                        하루 1회 무료
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                        ⭐ {f.cost}
+                      </span>
+                    )}
+                    {FORTUNE_LENGTH_HINT[f.type] && (
+                      <span className="text-[10px] font-medium text-text-light/70">
+                        · {FORTUNE_LENGTH_HINT[f.type]}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
                   {tagline}
