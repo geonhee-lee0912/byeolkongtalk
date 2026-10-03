@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { welcomeWallLine } from "@/lib/fortune/welcome-copy";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import type { BirthPromptSurface } from "@/lib/analytics/birth-prompt-surface";
@@ -56,6 +57,8 @@ export interface DualSajuPickerProps {
   loginNext?: string;
   /** 내 사주 생일 입력 버튼의 계측 자리. ui_events 는 경로를 남기지 않아 상품마다 값이 다르다. */
   birthSurface: BirthPromptSurface;
+  /** 상품 가격(별) — 비로그인 벽에 웰컴 별 안내. 없으면 기존 문구. */
+  cost?: number;
 }
 
 export default function DualSajuPicker({
@@ -66,6 +69,7 @@ export default function DualSajuPicker({
   newPersonRelation = "partner",
   loginNext,
   birthSurface,
+  cost,
 }: DualSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -160,7 +164,7 @@ export default function DualSajuPicker({
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
           <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
-            로그인하면 바로 두 사람 궁합을 볼 수 있어.
+            {cost != null ? welcomeWallLine(cost, "두 사람 궁합을") : "로그인하면 바로 두 사람 궁합을 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(FortuneSajuPicker·ByeolmaruHub 와 같은 마크업). */}
           <Link

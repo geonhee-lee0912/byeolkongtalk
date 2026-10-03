@@ -139,6 +139,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
         //    어긋나 로그인 후 404 로 돌아온다(추천 게이트웨이 A 실사고).
         loginNext={cfg.href}
         product={cfg.type}
+        cost={cfg.cost}
         confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
         showBoardDetail={false}
