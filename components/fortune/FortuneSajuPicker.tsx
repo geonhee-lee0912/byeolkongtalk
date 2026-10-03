@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { welcomeWallLine } from "@/lib/fortune/welcome-copy";
 import SajuBoard from "@/components/saju/SajuBoard";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
@@ -82,6 +83,8 @@ export interface FortuneSajuPickerProps {
   loginNext?: string;
   /** 벽 계측(picker_gate_shown·picker_login_clicked)의 meta.product — FORTUNE_CONFIG type. ui_events 는 경로를 안 남긴다. */
   product?: string;
+  /** 상품 가격(별) — 비로그인 벽에 웰컴 별 안내. 웰컴 별 이하면 "바로 볼 수 있어". 없으면 기존 문구. */
+  cost?: number;
 }
 
 const LIST_PAGE_SIZE = 5;
@@ -99,6 +102,7 @@ export default function FortuneSajuPicker({
   onReview,
   loginNext,
   product,
+  cost,
 }: FortuneSajuPickerProps) {
   const [profiles, setProfiles] = useState<PickerProfile[]>([]);
   const [ready, setReady] = useState(false);
@@ -173,7 +177,7 @@ export default function FortuneSajuPicker({
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
           <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
-            로그인하면 바로 내 사주로 볼 수 있어.
+            {cost != null ? welcomeWallLine(cost, "내 사주로") : "로그인하면 바로 내 사주로 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(ByeolmaruHub 와 같은 마크업). */}
           <Link

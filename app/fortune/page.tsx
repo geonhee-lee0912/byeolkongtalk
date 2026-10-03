@@ -14,6 +14,7 @@ import {
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneHeader from "@/components/fortune/FortuneHeader";
+import WelcomeStarsBanner from "@/components/fortune/WelcomeStarsBanner";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark from "@/components/common/SectionMark";
@@ -41,6 +42,7 @@ export default function FortunePage({
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
       <FortuneHeader />
+      <WelcomeStarsBanner />
 
       <FortuneGeneratingList />
 

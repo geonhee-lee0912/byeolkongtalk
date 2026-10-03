@@ -142,6 +142,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         newPersonRelation={newPersonRelation}
         loginNext={cfg.href}
         birthSurface={birthSurface}
+        cost={cfg.cost}
       />
 
       {error && (
