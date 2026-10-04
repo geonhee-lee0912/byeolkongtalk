@@ -63,12 +63,42 @@ const EXIT_NUDGE = [
 ];
 const FINISH_PHRASE = "대화 마무리할게"; // 하단 골드 버튼 경유
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
-const FINISH_PHRASE_RESULT_ONLY = "결과만 보고 마칠게"; // 첫 풀이 직후 링크 경유 (시안 B, 계측 구분용 — spec 2026-10-04 §3-6)
+const FINISH_PHRASE_RESULT_ONLY = "결과만 보고 마칠게"; // 첫 풀이 직후 작은 버튼 경유 (시안 B, 계측 구분용 — spec 2026-10-04 §3-6)
 // 재개 제안 없음 — 한 참조를 공유해 setReopen 이 같은 값으로 불필요한 리렌더를 만들지 않는다
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
 // 409(다른 구매가 처리 중) 뒤 서버 상태를 다시 읽기까지 — 바로 읽으면 그 요청이 반쯤 끝난 상태를 붙잡는다
 const RESYNC_DELAY_MS = 1500;
 // [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
+
+// 첫 답 마무리 안내 한 줄의 인라인 SVG — 저장소에 아이콘 라이브러리가 없다
+/** 4꼭지 금색 별(앱의 별 모티프) — 안내 문구 앞 */
+function HintStar() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="#E8C26A" aria-hidden="true" className="shrink-0">
+      <path d="M12 2l3.4 6.6L22 12l-6.6 3.4L12 22l-3.4-6.6L2 12l6.6-3.4L12 2z" />
+    </svg>
+  );
+}
+
+/** 작은 › — 결과만 볼래 버튼 끝 */
+function ChevronRight() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
 
 export default function TarotReadingPage() {
   return (
@@ -1294,15 +1324,23 @@ function TarotReadingInner() {
                   </button>
                 </div>
                 {isFirstAnswerOnly ? (
-                  // 시안 B — 첫 풀이 직후 종료가 41% 라 금색 버튼 대신 작은 링크
-                  <button
-                    type="button"
-                    onClick={() => handleFinish(FINISH_PHRASE_RESULT_ONLY)}
-                    disabled={isStreaming || !readingId || inPurchaseFlow}
-                    className="self-center py-1.5 text-[12px] text-text-light underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    결과만 보고 마칠래
-                  </button>
+                  // 시안 B — 첫 풀이 직후 종료가 41% 라 금색 버튼 대신 안내 한 줄 + 오른쪽 작은 버튼.
+                  // 안내는 truncate(min-w-0)라 320px 에서도 버튼을 밀어내지 않는다. 하단 바는 흰 배경이라 text-light 를 쓴다
+                  <div className="flex items-center justify-between gap-2.5">
+                    <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-light">
+                      <HintStar />
+                      <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleFinish(FINISH_PHRASE_RESULT_ONLY)}
+                      disabled={isStreaming || !readingId || inPurchaseFlow}
+                      className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-eye-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      결과만 볼래
+                      <ChevronRight />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
