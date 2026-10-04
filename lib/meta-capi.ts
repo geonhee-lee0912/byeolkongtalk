@@ -3,6 +3,8 @@
 import { createHash } from "crypto";
 import { waitUntil } from "@vercel/functions";
 import { logError } from "./logger";
+import { getServiceSupabase } from "./supabase";
+import { fbcFromAcquisition } from "./acquisition";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
@@ -34,8 +36,27 @@ export function sendCapiEvent(params: CapiEventParams): void {
   waitUntil(deliverCapiEvent(params));
 }
 
+// 요청에 _fbc 쿠키가 없을 때의 대체 — 유입 기록(user_acquisition)의 fbclid 로 만든다(lib/acquisition.ts).
+// 랜딩 때 _fbc 를 잡은 유입은 2,378건 중 23건뿐이었다(2026-10-04 prod, 이벤트 매칭 품질 6.1/10).
+// 조회가 실패해도 이벤트는 fbc 없이 보낸다(전환 유실 > fbc 유실).
+async function storedFbc(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await getServiceSupabase()
+      .from("user_acquisition")
+      .select("fbc, fbclid, first_seen_at, created_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? fbcFromAcquisition(data, new Date()) : null;
+  } catch (e) {
+    await logError(e, { route: "lib/meta-capi", userId, extra: { step: "fbc_lookup" } });
+    return null;
+  }
+}
+
 async function deliverCapiEvent(params: CapiEventParams): Promise<void> {
   try {
+    const fbc = params.fbc ?? (await storedFbc(params.userId));
     const body = {
       data: [
         {
@@ -49,7 +70,7 @@ async function deliverCapiEvent(params: CapiEventParams): Promise<void> {
               createHash("sha256").update(params.userId).digest("hex"),
             ],
             ...(params.fbp ? { fbp: params.fbp } : {}),
-            ...(params.fbc ? { fbc: params.fbc } : {}),
+            ...(fbc ? { fbc } : {}),
             ...(params.clientIp ? { client_ip_address: params.clientIp } : {}),
             ...(params.userAgent ? { client_user_agent: params.userAgent } : {}),
           },
