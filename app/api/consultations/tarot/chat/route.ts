@@ -6,7 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
 import { CHAT_MODEL } from "@/lib/claude/model-registry";
-import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
+import { effectiveWrapThresholds } from "@/lib/tarot/thresholds";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { logError, ctxFromRequest } from "@/lib/logger";
@@ -171,31 +171,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자)
+  // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자). 식의 단일 원천 = lib/tarot/thresholds.ts
   const spreadType = reading.spread_type as SpreadType;
   const drawnCards = (reading.drawn_cards as DrawnCard[]) ?? [];
-  const baseT = WRAP_THRESHOLDS[spreadType];
   const extraTurns = (reading.extra_turns ?? 0) as number;
   const clarifierCount = (reading.clarifier_count ?? 0) as number;
-  const bonusTurns = extraTurns + clarifierCount * 2;
-  const bonusChars = clarifierCount * 800;
-  const effT =
-    bonusTurns > 0 || bonusChars > 0
-      ? {
-          convergeStartTurn: baseT.convergeStartTurn + bonusTurns,
-          convergeStartChars: baseT.convergeStartChars + bonusChars,
-          hardCapTurn: baseT.hardCapTurn + bonusTurns,
-          hardCapChars: baseT.hardCapChars + bonusChars,
-          absTurnCap: baseT.absTurnCap + bonusTurns,
-        }
-      : undefined;
+  const effT = effectiveWrapThresholds(spreadType, extraTurns, clarifierCount);
+  if (!effT) {
+    // 모르는 스프레드 — 예전엔 기본 임계치가 undefined 라 아래 어딘가에서 TypeError 로 500 이었다. 같은 실패를 명시적으로 낸다(스트림 전·DB 쓰기 전)
+    return NextResponse.json({ error: "unknown_spread_type" }, { status: 500 });
+  }
 
   // 대화 연장 업셀 가능: extra_turns 0 + forceEnd 아님 + EXTEND_MAX 이내 (현재 max 1)
   const extendAvailable =
     extraTurns === 0 && body.forceEnd !== true;
 
   // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리면 서버가 보장
-  const effAbsTurnCap = (effT ?? baseT).absTurnCap;
+  const effAbsTurnCap = effT.absTurnCap;
   const mustEnd =
     body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
 
@@ -203,7 +195,7 @@ export async function POST(request: NextRequest) {
   const wrapMode = computeWrapMode(
     assistantTurnsSoFar + 1,
     cumulativeAssistantChars,
-    effT ?? baseT
+    effT
   ).mode;
 
   // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대(medium/low)는 haiku 2차 판정을

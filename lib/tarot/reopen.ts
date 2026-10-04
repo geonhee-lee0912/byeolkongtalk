@@ -1,19 +1,16 @@
 // 강제 종료선에서 닫힌 타로 대화의 재개("4턴 더"/"한 장 더") 자격 — 순수 판정
 // (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-4). 서버 판정의 단일 원천이고, 클라는
 // stripEndFromLastAssistant 만 쓴다(재개 직후 화면 상태 정리).
-import { WRAP_THRESHOLDS } from "./constants.ts";
-import type { SpreadType } from "./spreads.ts";
+import { effectiveWrapThresholds } from "./thresholds.ts";
 import { CLARIFIER_MAX, EXTEND_MAX, EXTEND_TURNS } from "../upsell.ts";
 
-/** 채팅 라우트의 effT 와 같은 식 — 기본 강제 종료선 + 연장 턴 + 보조 카드당 2턴 */
+/** 유효 강제 종료선 — 채팅 라우트와 같은 식(./thresholds.ts 단일 원천): 기본선 + 연장 턴 + 보조 카드당 2턴. 모르는 스프레드는 무한대(재개 대상 아님) */
 export function effectiveAbsTurnCap(
   spreadType: string,
   extraTurns: number,
   clarifierCount: number,
 ): number {
-  const t = WRAP_THRESHOLDS[spreadType as SpreadType];
-  if (!t) return Number.POSITIVE_INFINITY;
-  return t.absTurnCap + extraTurns + clarifierCount * 2;
+  return effectiveWrapThresholds(spreadType, extraTurns, clarifierCount)?.absTurnCap ?? Number.POSITIVE_INFINITY;
 }
 
 export function isEndedAtAbsCap(i: {
