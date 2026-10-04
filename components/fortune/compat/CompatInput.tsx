@@ -179,6 +179,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 궁합 보기"
           targetName={`${pending.nameA} · ${pending.nameB}`}
+          surface={RECHARGE_SOURCE.compat}
           onConfirm={() => handleGenerate(false)}
           onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setPending(null)}

@@ -354,6 +354,7 @@ export default function NightStage(props: NightStageProps) {
           title="답변 추천 받기"
           subtitle="지금 걔한테 할 만한 말 3가지를 골라줄게"
           confirmLabel="추천 받기"
+          surface="sim_suggest"
           onConfirm={fetchSuggest}
           onCharge={() => router.push("/shop?reason=sim_suggest")}
           onClose={() => {

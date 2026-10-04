@@ -110,7 +110,8 @@ export async function POST(req: NextRequest) {
       console.error("[/api/event] insert failed:", error);
     }
 
-    // 잔액 부족 → 그 자리 충전 시트 = Meta AddToCart (타로 광고 최적화 이벤트). 저장 성패와 무관하게 보낸다.
+    // 잔액 부족 확인 모달 노출(paywall_shown) 또는 그 자리 충전 시트 열림 = Meta AddToCart (타로 광고 최적화 이벤트).
+    // 2026-10-04 부터 모달 노출이 주 원천 — 시트 열림만으론 하루 1~2건이라 학습이 안 됐다. 저장 성패와 무관하게 보낸다.
     // 클라가 위조해도 자기 세션 몫이고 rate limit·유저/일 dedup 이 걸린다.
     const atcId = rechargeCapiEventId(event, row.meta, session.userId ?? null, new Date());
     if (atcId && session.userId) {

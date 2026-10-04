@@ -57,3 +57,8 @@ test("UI_EVENTS — 구매 칸 벽 노출·카카오 클릭 이벤트 2종이 �
   assert.equal(isUiEvent("picker_gate_shown"), true);
   assert.equal(isUiEvent("picker_login_clicked"), true);
 });
+
+// 2026-10-04 Meta AddToCart 원천 = 잔액 부족 확인 모달 노출. /api/event 가 allowlist 로 거르므로 여기 없으면 서버가 버린다.
+test("UI_EVENTS — 잔액 부족 모달 노출(paywall_shown)이 등록돼 있다", () => {
+  assert.equal(isUiEvent("paywall_shown"), true);
+});

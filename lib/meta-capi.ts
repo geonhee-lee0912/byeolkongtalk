@@ -11,7 +11,7 @@ type CapiEventName =
   | "CompleteRegistration" // 카카오 가입
   | "StartTrial" // 무료 리딩(체험) 완료
   | "Lead" // 내 사주에 생년월일 첫 저장 (lib/birth-lead.ts)
-  | "AddToCart" // 잔액 부족 → 그 자리 충전 시트 열림 (타로 광고 최적화, lib/analytics/recharge-source.ts)
+  | "AddToCart" // 잔액 부족 확인 모달 노출(paywall_shown, 2026-10-04~) 또는 그 자리 충전 시트 열림 (타로 광고 최적화, lib/analytics/recharge-source.ts)
   | "Purchase"; // 별 충전 결제
 
 type CapiEventParams = {

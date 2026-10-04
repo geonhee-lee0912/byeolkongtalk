@@ -161,6 +161,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
           accent={ACCENT}
           spreadLabel={cfg.label}
           confirmLabel="확인하고 카드 보기"
+          surface={RECHARGE_SOURCE.tarotReport}
           onConfirm={() => {
             if (pendingDrawn) void submit(pendingDrawn);
           }}

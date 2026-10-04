@@ -64,6 +64,7 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
       title="별마루 구독"
       subtitle="30일 동안 매일 더 자세하게 오늘의 운세를 볼 수 있어"
       confirmLabel="구독하기"
+      surface="byeolmaru_subscribe"
       // 구독 시트 전용 — 전체 가치 3종 + 가격을 여기서 한 번 크게(스펙 §9). 카피는 BAIT(허브·
       // 상세뷰 미끼 문구)에서 그대로 끌어와 중복 저작을 피한다.
       // 안심 문구는 스펙 원안("체험 중엔 별이 안 나가")을 안 쓴다 — 여기 오는 사람은 전원 이미

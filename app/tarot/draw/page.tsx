@@ -130,6 +130,7 @@ export default function TarotDrawPage() {
           balance={balance}
           loading={balanceLoading}
           accent={accent}
+          surface={RECHARGE_SOURCE.tarotDraw}
           onConfirm={goToReading}
           onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}

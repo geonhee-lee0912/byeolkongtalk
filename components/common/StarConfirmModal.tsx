@@ -3,8 +3,9 @@
 // 별 결제 확인 팝업 — 타로 카드 뽑기 + 별콩 운세 공용.
 // 타로는 spreadLabel 기반 기본 카피, 운세는 title/subtitle 직접 전달.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export interface StarConfirmModalProps {
   cost: number;
@@ -21,6 +22,8 @@ export interface StarConfirmModalProps {
   spreadLabel?: string;
   /** heading 블록과 비용/잔액 요약 박스 사이에 얹는 추가 콘텐츠(예: 별마루 구독 가치·가격). 미지정 시 아무것도 렌더하지 않는다 */
   extra?: ReactNode;
+  /** 계측용 지면 키 — 잔액 부족(paywall_shown) 노출의 meta.surface. 충전 시트를 여는 지면은 RECHARGE_SOURCE 값과 맞춘다 */
+  surface?: string;
   onConfirm: () => void;
   onCharge: () => void;
   onClose: () => void;
@@ -37,6 +40,7 @@ export default function StarConfirmModal({
   targetName,
   spreadLabel,
   extra,
+  surface,
   onConfirm,
   onCharge,
   onClose,
@@ -48,6 +52,15 @@ export default function StarConfirmModal({
 
   const insufficient = balance !== null && balance < cost;
   const afterBalance = balance !== null ? balance - cost : null;
+
+  // 잔액 부족 노출 계측 — Meta AddToCart 의 원천(2026-10-04, lib/analytics/ui-events.ts 참조).
+  // 잔액 로딩이 끝나 "부족"이 확정된 순간 마운트당 1회. loading 중엔 balance 가 스테일일 수 있어 기다린다.
+  const paywallTracked = useRef(false);
+  useEffect(() => {
+    if (paywallTracked.current || loading || !insufficient) return;
+    paywallTracked.current = true;
+    trackUiEvent("paywall_shown", { meta: { cost, balance, surface } });
+  }, [insufficient, loading, cost, balance, surface]);
   const heading = title ?? `별 ${cost}개로 상담을 시작할까?`;
   const sub = subtitle ?? (spreadLabel ? `${spreadLabel} 풀이가 바로 시작돼` : "");
 

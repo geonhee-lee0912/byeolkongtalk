@@ -176,6 +176,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 운세 보기"
           targetName={pendingName ?? undefined}
+          surface={RECHARGE_SOURCE.fortunePurchase}
           onConfirm={() => handleGenerate(false)}
           onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setPendingProfileId(null)}

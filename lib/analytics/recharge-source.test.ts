@@ -56,3 +56,26 @@ test("보내지 않는 경우 — shop·미지 source·비로그인·다른 이�
   assert.equal(rechargeCapiEventId("recharge_sheet_opened", null, U, NOON_KST), null);
   assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: ["inchat"] }, U, NOON_KST), null);
 });
+
+// ── 2026-10-04 AddToCart 정의 변경: 잔액 부족 모달 노출(paywall_shown)도 같은 id ──
+// 시트 열림(하루 1~2건)만으로는 Meta 학습(주 50건) 불가 → 그 앞 단계인 "잔액 부족 확인 모달 노출"로 당긴다.
+// 같은 유저·같은 날 paywall → 시트 열림이 이어져도 Meta 에는 1건이어야 한다(id 동일).
+test("paywall_shown + 로그인 → 유저·KST 날짜 단위 eventId (surface 무관)", () => {
+  assert.equal(
+    rechargeCapiEventId("paywall_shown", { cost: 20, balance: 5, surface: "tarot_draw" }, U, NOON_KST),
+    `atc:${U}:2026-10-03`
+  );
+  assert.equal(rechargeCapiEventId("paywall_shown", { surface: "relationship_skill" }, U, NOON_KST), `atc:${U}:2026-10-03`);
+  assert.equal(rechargeCapiEventId("paywall_shown", null, U, NOON_KST), `atc:${U}:2026-10-03`);
+});
+
+test("paywall_shown 비로그인 → null", () => {
+  assert.equal(rechargeCapiEventId("paywall_shown", { cost: 20, balance: 5, surface: "tarot_draw" }, null, NOON_KST), null);
+});
+
+test("같은 유저·같은 날 paywall_shown 과 recharge_sheet_opened 는 같은 id (Meta 1건으로 중복 제거)", () => {
+  const a = rechargeCapiEventId("paywall_shown", { cost: 20, balance: 5, surface: "tarot_draw" }, U, NOON_KST);
+  const b = rechargeCapiEventId("recharge_sheet_opened", { source: "tarot_draw" }, U, NOON_KST);
+  assert.ok(a);
+  assert.equal(a, b);
+});
