@@ -118,19 +118,23 @@ export interface ReopenReadingRow {
   clarifier_count: number | null;
 }
 
-/** 저장된 assistant 메시지(시간순)로 본 종료 상태 — 구매 라우트·GET 공용 판정의 단일 원천. 타로가 아니면(consultation_type) endedAtAbsCap 은 항상 false.
- *  reading 의 extra_turns/clarifier_count 는 **구매 반영 전** 값이어야 한다(반영 후 값이면 유효 강제 종료선이 올라가 재개 자격이 조용히 꺼진다). */
+/** 저장된 assistant 메시지(시간순)로 본 종료 상태 — 구매 라우트·GET 공용 판정의 단일 원천. 타로가 아니면(consultation_type) endedAtAbsCap·claimInProgress 는 항상 false.
+ *  reading 의 extra_turns/clarifier_count 는 **구매 반영 전** 값이어야 한다(반영 후 값이면 유효 강제 종료선이 올라가 재개 자격이 조용히 꺼진다).
+ *
+ *  claimInProgress — 끝나지 않았는데([END] 없음) 턴 수가 이미 유효 강제 종료선 이상이다. 정상 대화는 강제 종료선 턴이 [END] 로 닫히므로
+ *  이 상태는 (1) 다른 구매 요청이 [END] 를 선점해 진행 중이거나 (2) 복원이 실패한 뒤에만 생긴다(후자는 무료 한 턴 뒤 스스로 풀린다).
+ *  구매 라우트는 이때 409 로 돌려보낸다 — 이 요청이 '열린 대화'로 보고 선점 없이 진행하면, 선점한 쪽이 실패해 [END] 를 되살릴 때 이 요청의 구매를 덮는다.
+ *  (위기 has_sensitive 리딩은 강제 종료선을 넘어도 [END] 가 안 붙지만 구매 라우트가 그보다 앞서 403 으로 거른다.) */
 export function tarotEndState(
   assistantContents: string[],
   reading: ReopenReadingRow,
-): { ended: boolean; endedAtAbsCap: boolean } {
+): { ended: boolean; endedAtAbsCap: boolean; claimInProgress: boolean } {
   const ended = assistantContents.some((c) => c.includes("[END]"));
   const spreadType = reading.consultation_type === "tarot" ? reading.spread_type : null;
-  if (!ended || spreadType == null) return { ended, endedAtAbsCap: false };
-  const atAbsCap = isEndedAtAbsCap({
-    ended,
-    assistantTurns: assistantContents.length,
-    effAbsTurnCap: effectiveAbsTurnCap(spreadType, reading.extra_turns ?? 0, reading.clarifier_count ?? 0),
-  });
-  return { ended, endedAtAbsCap: atAbsCap && isReopenableByStrip(assistantContents) };
+  if (spreadType == null) return { ended, endedAtAbsCap: false, claimInProgress: false };
+  const assistantTurns = assistantContents.length;
+  const effAbsTurnCap = effectiveAbsTurnCap(spreadType, reading.extra_turns ?? 0, reading.clarifier_count ?? 0);
+  if (!ended) return { ended, endedAtAbsCap: false, claimInProgress: assistantTurns >= effAbsTurnCap };
+  const atAbsCap = isEndedAtAbsCap({ ended, assistantTurns, effAbsTurnCap });
+  return { ended, endedAtAbsCap: atAbsCap && isReopenableByStrip(assistantContents), claimInProgress: false };
 }

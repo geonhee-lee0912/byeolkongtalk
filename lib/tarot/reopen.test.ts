@@ -18,6 +18,7 @@ import {
   loadTarotEndState,
   reopenTarotReading,
   restoreTarotEnd,
+  undoSlotAndRestore,
   type LoadedTarotEndState,
   type ReopenLog,
 } from "./reopen-server.ts";
@@ -148,15 +149,17 @@ const row = (over: Partial<ReopenReadingRow> = {}): ReopenReadingRow => ({
 const READING = row();
 
 test("tarotEndState — 강제 종료선에서 끝 [END] 로 닫혔으면 재개 대상(공백·개행이 남아도, 연장 뒤 다시 닫혀도)", () => {
-  assert.deepEqual(tarotEndState(turns(12, CLOSE), row()), { ended: true, endedAtAbsCap: true });
+  assert.deepEqual(tarotEndState(turns(12, CLOSE), row()), { ended: true, endedAtAbsCap: true, claimInProgress: false });
   assert.deepEqual(tarotEndState(turns(12, "끝 인사야.\n\n[END]\n"), row()), {
     ended: true,
     endedAtAbsCap: true,
+    claimInProgress: false,
   });
   // 연장 1회(+4턴) 뒤 새 선(16)에서 다시 닫힌 대화 — 남은 상품(보조 카드)용으로 다시 재개 대상
   assert.deepEqual(tarotEndState(turns(16, CLOSE), row({ extra_turns: 4 })), {
     ended: true,
     endedAtAbsCap: true,
+    claimInProgress: false,
   });
 });
 
@@ -165,10 +168,12 @@ test("tarotEndState — 구매 반영 후 행을 넘기면 유효 강제 종료�
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ extra_turns: 4 })), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ clarifier_count: 1 })), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
 });
 
@@ -176,10 +181,12 @@ test("tarotEndState — 끝 [END] 뒤에 다른 글자가 붙으면 strip 이 �
   assert.deepEqual(tarotEndState(turns(12, "끝 인사야.\n[END]\n[RECO:continue]"), row()), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
   assert.deepEqual(tarotEndState(turns(12, "끝 인사야. [END]."), row()), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
 });
 
@@ -187,10 +194,11 @@ test("tarotEndState — [END] 가 둘 이상이면(같은 메시지·앞선 메�
   assert.deepEqual(tarotEndState(turns(12, "a [END] b\n\n[END]"), row()), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
   const earlier = turns(12, CLOSE);
   earlier[3] = "중간 마무리 [END]";
-  assert.deepEqual(tarotEndState(earlier, row()), { ended: true, endedAtAbsCap: false });
+  assert.deepEqual(tarotEndState(earlier, row()), { ended: true, endedAtAbsCap: false, claimInProgress: false });
 });
 
 test("tarotEndState — 소문자 [end] 가 남아도 재개 대상이 아니다(클라는 대소문자 무시로 감지해 새로고침 때 다시 닫힌다)", () => {
@@ -198,35 +206,70 @@ test("tarotEndState — 소문자 [end] 가 남아도 재개 대상이 아니다
   assert.deepEqual(tarotEndState(turns(12, "a [end] b\n\n[END]"), row()), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
   assert.deepEqual(tarotEndState(turns(12, "a [End] b\n\n[END]"), row()), {
     ended: true,
     endedAtAbsCap: false,
+    claimInProgress: false,
   });
   // 앞선 메시지에 소문자 [end]
   const earlier = turns(12, CLOSE);
   earlier[3] = "중간 마무리 [end]";
-  assert.deepEqual(tarotEndState(earlier, row()), { ended: true, endedAtAbsCap: false });
+  assert.deepEqual(tarotEndState(earlier, row()), { ended: true, endedAtAbsCap: false, claimInProgress: false });
 });
 
 test("tarotEndState — 타로가 아니거나(consultation_type)·스프레드가 없거나 모르면 ended 만 true", () => {
-  const closed = { ended: true, endedAtAbsCap: false };
+  const closed = { ended: true, endedAtAbsCap: false, claimInProgress: false };
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ consultation_type: "saju" })), closed);
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ consultation_type: null })), closed);
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ spread_type: null })), closed);
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ spread_type: "legacy_spread" })), closed);
 });
 
-test("tarotEndState — 강제 종료선 전에 닫힌(자연 마무리) 대화 · [END] 없는 대화 · 빈 대화", () => {
-  assert.deepEqual(tarotEndState(turns(9, CLOSE), row()), { ended: true, endedAtAbsCap: false });
-  assert.deepEqual(tarotEndState(turns(12, "그냥 답이야."), row()), { ended: false, endedAtAbsCap: false });
-  assert.deepEqual(tarotEndState([], row()), { ended: false, endedAtAbsCap: false });
+test("tarotEndState — 강제 종료선 전에 닫힌(자연 마무리) 대화 · 진행 중인 대화 · 빈 대화", () => {
+  assert.deepEqual(tarotEndState(turns(9, CLOSE), row()), { ended: true, endedAtAbsCap: false, claimInProgress: false });
+  assert.deepEqual(tarotEndState(turns(9, "그냥 답이야."), row()), { ended: false, endedAtAbsCap: false, claimInProgress: false });
+  assert.deepEqual(tarotEndState([], row()), { ended: false, endedAtAbsCap: false, claimInProgress: false });
+});
+
+// claimInProgress — 열려 있는데([END] 없음) 턴 수가 이미 유효 강제 종료선 이상 = 다른 구매가 [END] 를 선점해 진행 중인 틈(또는 복원이 실패한 뒤).
+// 구매 라우트는 이 틈에 들어온 늦은 요청을 쓰기 없이 409 로 돌려보낸다.
+test("tarotEndState.claimInProgress — 열려 있고 턴 수 ≥ 유효 강제 종료선이면 true(투카드 12, 넘어도)", () => {
+  assert.deepEqual(tarotEndState(turns(12, "그냥 답이야."), row()), { ended: false, endedAtAbsCap: false, claimInProgress: true });
+  assert.equal(tarotEndState(turns(13, "그냥 답이야."), row()).claimInProgress, true);
+  // 선점이 [END] 를 지운 직후의 실제 모양 — 12번째 답이 마무리 인사에서 [END] 만 빠진 상태
+  assert.equal(tarotEndState(turns(12, stripTrailingEnd(CLOSE)), row()).claimInProgress, true);
+});
+
+test("tarotEndState.claimInProgress — 열려 있고 턴 수 < 유효 강제 종료선이면 false(대화 중 · 선이 올라간 직후)", () => {
+  assert.equal(tarotEndState(turns(11, "그냥 답이야."), row()).claimInProgress, false);
+  assert.equal(tarotEndState(turns(5, "그냥 답이야."), row()).claimInProgress, false);
+  // 연장(+4)으로 선이 16 이 된 뒤 같은 12턴 — 선점한 구매가 CAS 까지 끝낸 상태라 정상적으로 열린 대화다
+  assert.equal(tarotEndState(turns(12, "그냥 답이야."), row({ extra_turns: 4 })).claimInProgress, false);
+  assert.equal(tarotEndState(turns(12, "그냥 답이야."), row({ clarifier_count: 1 })).claimInProgress, false);
+});
+
+test("tarotEndState.claimInProgress — 끝난([END] 있음) 대화는 false(재개 대상이든 아니든)", () => {
+  assert.equal(tarotEndState(turns(12, CLOSE), row()).claimInProgress, false); // 강제 종료선에서 닫힘
+  assert.equal(tarotEndState(turns(9, CLOSE), row()).claimInProgress, false); // 자연 마무리
+  assert.equal(tarotEndState(turns(12, "끝 인사야.\n[END]\n[RECO:continue]"), row()).claimInProgress, false); // 재개 못 하는 모양이어도
+});
+
+test("tarotEndState.claimInProgress — 타로가 아니면(사주 등)·스프레드가 없거나 모르면 false", () => {
+  const open12 = turns(12, "그냥 답이야.");
+  assert.equal(tarotEndState(open12, row({ consultation_type: "saju" })).claimInProgress, false);
+  assert.equal(tarotEndState(open12, row({ consultation_type: null })).claimInProgress, false);
+  assert.equal(tarotEndState(open12, row({ spread_type: null })).claimInProgress, false);
+  assert.equal(tarotEndState(open12, row({ spread_type: "legacy_spread" })).claimInProgress, false); // 무한대 선
+  assert.equal(tarotEndState(open12, row({ consultation_type: "saju", spread_type: "two_card" })).claimInProgress, false);
 });
 
 test("tarotEndState — 연장·보조 카드 횟수가 null 이면 0 으로 센다", () => {
   assert.deepEqual(tarotEndState(turns(12, CLOSE), row({ extra_turns: null, clarifier_count: null })), {
     ended: true,
     endedAtAbsCap: true,
+    claimInProgress: false,
   });
 });
 
@@ -280,6 +323,7 @@ test("loadTarotEndState — 이 리딩의 assistant 메시지를 시간 오름�
   assert.deepEqual(out.state, {
     ended: true,
     endedAtAbsCap: true,
+    claimInProgress: false,
     lastAssistant: { id: "m12", content: CLOSE },
   });
 });
@@ -295,11 +339,27 @@ test("loadTarotEndState — 행의 값으로 판정한다(타로 아님 · 구�
   assert.equal(afterPurchase.state.endedAtAbsCap, false);
 });
 
+test("loadTarotEndState — 열려 있는데 턴 수 ≥ 강제 종료선이면 claimInProgress 를 그대로 올려 준다(라우트가 이걸로 409)", async () => {
+  // 선점이 마지막 답의 [END] 를 지운 직후의 저장 상태 — 12번째 답이 마무리 인사에서 [END] 만 빠졌다
+  const openAtCap = turns(12, "끝 인사야.").map((content, i) => ({ id: `m${i + 1}`, content }));
+  const { client } = fakeMessages({ data: openAtCap, error: null });
+  const out = await loadTarotEndState(client, READING);
+  if (out.error) throw out.error;
+  assert.equal(out.state.claimInProgress, true);
+  assert.equal(out.state.ended, false);
+  assert.equal(out.state.endedAtAbsCap, false);
+  // 한 턴 모자라면(대화 중) 아니다
+  const { client: c2 } = fakeMessages({ data: openAtCap.slice(0, 11), error: null });
+  const mid = await loadTarotEndState(c2, READING);
+  if (mid.error) throw mid.error;
+  assert.equal(mid.state.claimInProgress, false);
+});
+
 test("loadTarotEndState — 메시지가 없으면 lastAssistant 는 null", async () => {
   const { client } = fakeMessages({ data: [], error: null });
   const out = await loadTarotEndState(client, READING);
   if (out.error) throw out.error;
-  assert.deepEqual(out.state, { ended: false, endedAtAbsCap: false, lastAssistant: null });
+  assert.deepEqual(out.state, { ended: false, endedAtAbsCap: false, claimInProgress: false, lastAssistant: null });
 });
 
 test("loadTarotEndState — select 에서 빠진 컬럼(undefined)이 있으면 조회 전에 error 로 막는다(라우트가 차감 전에 500)", async () => {
@@ -439,11 +499,15 @@ test("reopenTarotReading — DB 오류는 db_error(원인 error 동봉)로 돌�
 const endStateOf = (over: Partial<LoadedTarotEndState> = {}): LoadedTarotEndState => ({
   ended: true,
   endedAtAbsCap: true,
+  claimInProgress: false,
   lastAssistant: { id: "m12", content: CLOSE },
   ...over,
 });
+type LogCtx = { route?: string; userId?: string | null; extra?: Record<string, unknown> } | undefined;
+/** logs = error 레벨, warns = warn 레벨 — 둘을 따로 받아 로그 레벨까지 단언한다 */
 function fakeLog() {
-  const logs: { err: unknown; ctx: { route?: string; userId?: string | null; extra?: Record<string, unknown> } | undefined }[] = [];
+  const logs: { err: unknown; ctx: LogCtx }[] = [];
+  const warns: { message: string; ctx: LogCtx }[] = [];
   const log: ReopenLog = {
     tag: "[test]",
     route: "/api/test",
@@ -452,16 +516,19 @@ function fakeLog() {
     logError: async (err, ctx) => {
       logs.push({ err, ctx });
     },
+    logWarn: async (message, ctx) => {
+      warns.push({ message, ctx });
+    },
   };
-  return { log, logs };
+  return { log, logs, warns };
 }
 
 test("claimTarotReopen — 강제 종료선에서 닫힌 대화가 아니면 아무것도 쓰지 않는다(reopened=null · restore 는 no-op)", async () => {
   const { client, calls } = fakeWrites([]);
   const { log, logs } = fakeLog();
   for (const state of [
-    endStateOf({ ended: false, endedAtAbsCap: false }), // 진행 중
-    endStateOf({ endedAtAbsCap: false }), // 자연 종료·사주 — 끝났지만 강제 종료선 아님
+    endStateOf({ ended: false, endedAtAbsCap: false, claimInProgress: false }), // 진행 중
+    endStateOf({ endedAtAbsCap: false, claimInProgress: false }), // 자연 종료·사주 — 끝났지만 강제 종료선 아님
     endStateOf({ lastAssistant: null }), // 방어: 메시지가 없다
   ]) {
     const claim = await claimTarotReopen(client, state, log);
@@ -487,15 +554,16 @@ test("claimTarotReopen — 선점하면 reopened 를 돌려주고, restore() 가
   assert.deepEqual(logs, []);
 });
 
-test("claimTarotReopen — 동시 요청이 먼저 선점했으면 claim_lost: 복원할 게 없고 이유를 로그에 남긴다", async () => {
+test("claimTarotReopen — 동시 요청이 먼저 선점했으면 claim_lost: 복원할 게 없고 WARN 으로만 남긴다(설계된 정상 신호 — error 아님)", async () => {
   const { client, calls } = fakeWrites({ data: [], error: null });
-  const { log, logs } = fakeLog();
+  const { log, logs, warns } = fakeLog();
   const claim = await claimTarotReopen(client, endStateOf(), log);
   assert.deepEqual(claim, { ok: false, reason: "claim_lost" });
   assert.equal(updatesOf(calls).length, 1); // 선점 시도 하나뿐 — 복원 UPDATE 는 없다
-  assert.equal(logs.length, 1);
-  assert.match(String((logs[0].err as Error).message), /reopen_claim_lost: m12/);
-  assert.deepEqual(logs[0].ctx, { route: "/api/test", userId: "u1", extra: { stage: "reopen", readingId: "r1" } });
+  assert.deepEqual(logs, []); // error 레벨은 없다 — /admin/errors 에 더블탭마다 쌓이지 않게
+  assert.equal(warns.length, 1);
+  assert.match(warns[0].message, /reopen_claim_lost.*m12/);
+  assert.deepEqual(warns[0].ctx, { route: "/api/test", userId: "u1", extra: { stage: "reopen", readingId: "r1" } });
 });
 
 test("claimTarotReopen — DB 오류는 db_error 로 돌려주고 원인 error 를 그대로 로그한다", async () => {
@@ -522,6 +590,109 @@ test("claimTarotReopen — restore 가 실패하면 console.error(수동 보정 
   assert.equal(logs.length, 1);
   assert.equal(logs[0].err, boom);
   assert.deepEqual(logs[0].ctx, { route: "/api/test", userId: "u1", extra: { stage: "reopen_restore", readingId: "r1", messageId: "m12" } });
+});
+
+// ── undoSlotAndRestore — 차감 확정 부족 뒤: 슬롯을 두 카운터 CAS 로 반납하고, 정확히 1행이 깨끗이 되돌아갔을 때만 [END] 를 복원한다 ──
+const EXTEND_UNDO = { column: "extra_turns", applied: 4, previous: 0, other: { column: "clarifier_count", value: 0 } } as const;
+const CLARIFIER_UNDO = { column: "clarifier_count", applied: 1, previous: 0, other: { column: "extra_turns", value: 4 } } as const;
+const claimAndGet = async (
+  client: ReturnType<typeof fakeWrites>["client"],
+  log: ReopenLog,
+  state: LoadedTarotEndState = endStateOf(),
+) => {
+  const claim = await claimTarotReopen(client, state, log);
+  if (!claim.ok) throw new Error("claim should succeed in this test");
+  return claim;
+};
+const readingsCalls = (calls: unknown[][]) => {
+  // from("readings") 문장 하나의 체인만 잘라 낸다
+  const i = calls.findIndex((c) => c[0] === "from" && c[1] === "readings");
+  if (i < 0) return [];
+  let j = i + 1;
+  while (j < calls.length && calls[j][0] !== "from") j++;
+  return calls.slice(i, j);
+};
+
+test("undoSlotAndRestore — 두 카운터 CAS 로 반납하고, 정확히 1행이면 선점한 [END] 를 복원한다(extend)", async () => {
+  // 순서: 선점 → 슬롯 반납(1행) → 복원
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [{ id: "r1" }], error: null }, { error: null }]);
+  const { log, logs, warns } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "rolled_back");
+  // 반납 문장 — 절대값 UPDATE 가 아니라 이 요청이 쓴 값(4)과 다른 카운터(clarifier_count=0)를 함께 요구하는 CAS
+  assert.deepEqual(readingsCalls(calls), [
+    ["from", "readings"],
+    ["update", { extra_turns: 0 }],
+    ["eq", "id", "r1"],
+    ["eq", "extra_turns", 4],
+    ["eq", "clarifier_count", 0],
+    ["select", "id"],
+  ]);
+  assert.deepEqual(updatesOf(calls), [{ content: "끝 인사야." }, { extra_turns: 0 }, { content: CLOSE }]); // 복원은 반납 뒤
+  assert.deepEqual(logs, []);
+  assert.deepEqual(warns, []);
+});
+
+test("undoSlotAndRestore — clarifier 쪽은 clarifier_count 를 내리고 extra_turns 를 함께 요구한다", async () => {
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [{ id: "r1" }], error: null }, { error: null }]);
+  const { log } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, CLARIFIER_UNDO, log), "rolled_back");
+  assert.deepEqual(readingsCalls(calls), [
+    ["from", "readings"],
+    ["update", { clarifier_count: 0 }],
+    ["eq", "id", "r1"],
+    ["eq", "clarifier_count", 1],
+    ["eq", "extra_turns", 4],
+    ["select", "id"],
+  ]);
+});
+
+test("undoSlotAndRestore — 0행(다른 구매가 위에 쌓임)이면 복원하지 않고 대화를 열어 둔다 — WARN, 호출자는 그래도 402", async () => {
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [], error: null }]);
+  const { log, logs, warns } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "stacked");
+  assert.deepEqual(updatesOf(calls), [{ content: "끝 인사야." }, { extra_turns: 0 }]); // 복원(원문) UPDATE 없음
+  assert.deepEqual(logs, []); // error 가 아니라 warn
+  assert.equal(warns.length, 1);
+  assert.match(warns[0].message, /slot_rollback_stacked/);
+  assert.equal(warns[0].ctx?.extra?.stage, "slot_rollback_stacked");
+});
+
+test("undoSlotAndRestore — 반납이 오류면 복원하지 않는다(카운터가 올라간 채 [END] 만 되살리면 영영 재개 불가) — ERROR + 수동 보정 필요", async (t) => {
+  const consoleError = t.mock.method(console, "error", () => {});
+  const boom = new Error("rollback failed");
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: null, error: boom }]);
+  const { log, logs, warns } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "error");
+  assert.deepEqual(updatesOf(calls), [{ content: "끝 인사야." }, { extra_turns: 0 }]); // 복원 UPDATE 없음
+  assert.equal(consoleError.mock.callCount(), 1);
+  assert.match(String(consoleError.mock.calls[0].arguments[0]), /\[test\] 선점 반납 실패 — 수동 보정 필요/);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].err, boom);
+  assert.equal(logs[0].ctx?.extra?.stage, "slot_rollback");
+  assert.deepEqual(warns, []);
+});
+
+test("undoSlotAndRestore — 선점한 게 없는 요청(대화 중 구매·늦게 온 요청)도 슬롯은 반납하고 복원은 하지 않는다", async () => {
+  const { client, calls } = fakeWrites([{ data: [{ id: "r1" }], error: null }]);
+  const { log } = fakeLog();
+  const claim = await claimAndGet(client, log, endStateOf({ ended: false, endedAtAbsCap: false })); // reopened=null
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "rolled_back");
+  assert.deepEqual(updatesOf(calls), [{ extra_turns: 0 }]); // 반납만 — 메시지는 건드리지 않는다
+});
+
+test("undoSlotAndRestore — 반납은 됐는데 복원이 실패하면 던지지 않고 reopen_restore 를 남긴다(최악은 무료 1턴)", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const boom = new Error("restore failed");
+  const { client } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [{ id: "r1" }], error: null }, { error: boom }]);
+  const { log, logs } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "rolled_back");
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].ctx?.extra?.stage, "reopen_restore");
 });
 
 // ── X-Reopen 응답 헤더 — 서버(formatReopenHeader)와 클라(parseReopenHeader)가 한 쌍으로 쓴다 ──

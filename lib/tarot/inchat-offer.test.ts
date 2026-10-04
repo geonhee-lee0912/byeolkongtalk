@@ -398,7 +398,7 @@ test("finalizeAssistantText — 강제 종료 턴의 저장본은 어떤 입력�
       assert.equal(countEnds(saved), 1, label);
       assert.ok(/\[END\]\s*$/.test(saved), label);
       const turns = [...Array.from({ length: 11 }, (_, i) => `답 ${i + 1}`), saved];
-      assert.deepEqual(tarotEndState(turns, TWO_CARD_ROW), { ended: true, endedAtAbsCap: true }, label);
+      assert.deepEqual(tarotEndState(turns, TWO_CARD_ROW), { ended: true, endedAtAbsCap: true, claimInProgress: false }, label);
       // 스트림 계약: 꼬리가 있으면 저장본 = 이미 나간 글자 + 꼬리, 꼬리가 없으면 클라는 이미 종료 마커를 받았다
       if (streamTail !== "") assert.equal(saved, text + streamTail, label);
       else assert.ok(countEnds(text) >= 1, label);

@@ -1,19 +1,24 @@
 // 강제 종료선 재개 — 구매 라우트(extend·clarifier)의 공용 DB 단계. 판정은 ./reopen.ts 의 tarotEndState 가 정본.
-// 순서(사용자 결정 2026-10-04 ④ — 실패는 항상 돈 받기 전): loadTarotEndState → reopenTarotReading(차감 전 선점) → 슬롯 CAS → 차감.
-// 선점한 뒤 CAS·차감이 실패하면 restoreTarotEnd 로 원문을 되돌린다(선점한 요청만).
+// 순서(사용자 결정 2026-10-04 ④ — 실패는 항상 돈 받기 전, 결과가 불명하면 사용자에게 유리한 쪽):
+//   loadTarotEndState → claimInProgress 면 409 → 한도·잔액 사전 확인 → claimTarotReopen(차감 전 [END] 선점) → 슬롯 CAS(두 카운터) → 차감.
+// 실패 처리: 슬롯 CAS 0행이면 claim.restore. 차감이 확정 부족(insufficient)이면 undoSlotAndRestore(반납 CAS 가 깨끗할 때만 복원).
+// 결과 불명(슬롯 CAS 오류·차감 rpc_error)이면 되돌리지 않는다 — 적용·커밋됐을 수 있고, 올라간 선 아래에서 [END] 만 되살리면 영영 재개할 수 없다.
+// 복원은 선점한 요청만 한다.
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { getServiceSupabase } from "../supabase.ts";
-import type { logError } from "../logger.ts";
+import type { logError, logWarn } from "../logger.ts";
 import { stripTrailingEnd, tarotEndState, type ReopenReadingRow } from "./reopen.ts";
 
 export type { ReopenReadingRow };
 
 type ServiceSupabase = ReturnType<typeof getServiceSupabase>;
 
-/** loadTarotEndState 가 돌려주는 종료 상태 — tarotEndState() 의 반환({ ended, endedAtAbsCap })에 마지막 assistant 메시지가 붙는다 */
+/** loadTarotEndState 가 돌려주는 종료 상태 — tarotEndState() 의 반환({ ended, endedAtAbsCap, claimInProgress })에 마지막 assistant 메시지가 붙는다 */
 export interface LoadedTarotEndState {
   ended: boolean;
   endedAtAbsCap: boolean;
+  /** 열려 있는데 턴 수 ≥ 유효 강제 종료선 — 다른 구매가 [END] 를 선점해 진행 중이다. 구매 라우트는 409(purchase_in_progress) */
+  claimInProgress: boolean;
   lastAssistant: { id: string; content: string } | null;
 }
 
@@ -45,12 +50,12 @@ export async function loadTarotEndState(
   // 조회 실패를 '안 끝남'으로 삼키면 게이트가 열린 채 CAS·차감까지 간다 — 라우트가 그 전에 500 으로 끊도록 돌려준다
   if (error) return { state: null, error };
   const rows = (data ?? []) as { id: string; content: string }[];
-  const { ended, endedAtAbsCap } = tarotEndState(
+  const { ended, endedAtAbsCap, claimInProgress } = tarotEndState(
     rows.map((m) => m.content),
     reading,
   );
   return {
-    state: { ended, endedAtAbsCap, lastAssistant: rows.length > 0 ? rows[rows.length - 1] : null },
+    state: { ended, endedAtAbsCap, claimInProgress, lastAssistant: rows.length > 0 ? rows[rows.length - 1] : null },
     error: null,
   };
 }
@@ -81,7 +86,8 @@ export async function reopenTarotReading(
   return { ok: true };
 }
 
-/** 재개 선점 반납 — CAS·차감 실패 시 원문([END] 포함) 복원. 실패해도 최악은 무료 1턴(다음 채팅 턴이 강제 종료선이라 바로 닫힌다) */
+/** 재개 선점 반납 — CAS·차감 실패 시 원문([END] 포함) 복원. 실패해도 최악은 무료 1턴이다: [END] 는 UI·구매 마커일 뿐 비용 잠금이 아니다 —
+ *  채팅 라우트는 [END] 뒤에 온 메시지도 서버에서 막지 않고, 강제 종료선 턴이면 그냥 마무리 답을 내고 다시 닫는다. */
 export async function restoreTarotEnd(
   supabase: ServiceSupabase,
   lastAssistant: { id: string; content: string },
@@ -93,7 +99,7 @@ export async function restoreTarotEnd(
   return { error };
 }
 
-/** claim/restore 가 로그를 남길 때 쓰는 맥락 — 라우트마다 달라서 받는다. logError 를 주입받아 이 모듈이 로거에 묶이지 않는다(테스트에서 가짜를 넣는다) */
+/** claim/restore/rollback 이 로그를 남길 때 쓰는 맥락 — 라우트마다 달라서 받는다. logError·logWarn 을 주입받아 이 모듈이 로거에 묶이지 않는다(테스트에서 가짜를 넣는다) */
 export interface ReopenLog {
   /** console.error 접두 — "[extend]" · "[clarifier]" */
   tag: string;
@@ -101,6 +107,7 @@ export interface ReopenLog {
   userId: string;
   readingId: string;
   logError: typeof logError;
+  logWarn: typeof logWarn;
 }
 
 /** claimTarotReopen 결과 — 선점 못 함(claim_lost·db_error)이거나, 성공(재개할 게 없었으면 reopened=null · restore 는 아무것도 안 한다) */
@@ -110,7 +117,8 @@ export type ReopenClaim =
   | { ok: false; reason: "db_error"; error: unknown };
 
 /** 구매 라우트 공용 — 강제 종료선에서 닫힌 타로 대화면 [END] 를 선점(차감 전)하고, CAS·차감 실패 때 부를 restore 를 돌려준다.
- *  선점할 게 없으면(강제 종료선이 아니거나 사주) ok:true · reopened:null · restore 는 no-op. 선점 실패는 여기서 로그까지 남기고 사유만 돌려준다. */
+ *  선점할 게 없으면(강제 종료선이 아니거나 사주) ok:true · reopened:null · restore 는 no-op. 선점 실패는 여기서 로그까지 남기고 사유만 돌려준다:
+ *  claim_lost 는 더블탭에서 진 쪽 같은 설계된 정상 신호라 WARN(라우트는 409), db_error 만 ERROR(라우트는 500). */
 export async function claimTarotReopen(
   supabase: ServiceSupabase,
   endState: LoadedTarotEndState,
@@ -121,11 +129,12 @@ export async function claimTarotReopen(
 
   const r = await reopenTarotReading(supabase, target);
   if (!r.ok) {
-    await log.logError(r.reason === "db_error" ? r.error : new Error(`reopen_claim_lost: ${target.id}`), {
-      route: log.route,
-      userId: log.userId,
-      extra: { stage: "reopen", readingId: log.readingId },
-    });
+    const ctx = { route: log.route, userId: log.userId, extra: { stage: "reopen", readingId: log.readingId } };
+    if (r.reason === "claim_lost") {
+      await log.logWarn(`reopen_claim_lost: 다른 구매 요청이 먼저 [END] 를 선점했다(동시 구매) — message ${target.id}`, ctx);
+    } else {
+      await log.logError(r.error, ctx);
+    }
     return r;
   }
 
@@ -145,4 +154,57 @@ export async function claimTarotReopen(
     });
   };
   return { ok: true, reopened: target, restore };
+}
+
+export type SlotColumn = "extra_turns" | "clarifier_count";
+
+/** 차감이 확정 부족으로 실패한 뒤 슬롯 반납에 필요한 값 */
+export interface SlotUndo {
+  /** 이 요청의 CAS 가 올린 카운터 */
+  column: SlotColumn;
+  /** 이 요청의 CAS 가 쓴 값 — 반납 CAS 가 요구하는 현재 값 */
+  applied: number;
+  /** 되돌릴 값(CAS 전 값) */
+  previous: number;
+  /** 구매 판정(유효 강제 종료선)에 쓴 **다른** 카운터와 읽은 값 — 반납 CAS 도 이 값을 요구한다 */
+  other: { column: SlotColumn; value: number };
+}
+
+/** 차감이 **확정 부족**으로 실패한 뒤 — 슬롯을 두 카운터에 대한 CAS 로 반납하고, 정확히 1행이 깨끗이 되돌아갔을 때만 선점한 [END] 를 복원한다.
+ *  - 0행: 다른 구매가 위에 쌓였다(카운터가 바뀜). 복원하면 그 구매를 덮으므로 복원하지 않고 대화를 열어 둔다 — 최악은 공짜 슬롯. 경고 로그.
+ *  - 반납 오류: 카운터가 올라간 채일 수 있다. 그 상태에서 [END] 만 되살리면 턴 수 < 올라간 선이라 '강제 종료선에서 닫힌 대화'가 아니게 돼
+ *    영영 재개할 수 없다 → 복원하지 않는다. 오류 로그(수동 보정 필요).
+ *  절대값 UPDATE 가 아니라 CAS 인 이유: 다른 구매가 올린 카운터까지 덮어쓰지 않으려고(예: clarifier 는 최대 2회라 둘이 쌓일 수 있다).
+ *  결과가 불명한 차감(rpc_error)엔 부르지 않는다 — 라우트가 그 전에 반납·복원 없이 500 으로 끝낸다. */
+export async function undoSlotAndRestore(
+  supabase: ServiceSupabase,
+  claim: Extract<ReopenClaim, { ok: true }>,
+  slot: SlotUndo,
+  log: ReopenLog,
+): Promise<"rolled_back" | "stacked" | "error"> {
+  const ctx = { route: log.route, userId: log.userId };
+  const { data, error } = await supabase
+    .from("readings")
+    .update({ [slot.column]: slot.previous })
+    .eq("id", log.readingId)
+    .eq(slot.column, slot.applied)
+    .eq(slot.other.column, slot.other.value)
+    .select("id");
+  if (error) {
+    console.error(`${log.tag} 선점 반납 실패 — 수동 보정 필요(재개 [END] 복원도 건너뜀):`, {
+      readingId: log.readingId,
+      userId: log.userId,
+    });
+    await log.logError(error, { ...ctx, extra: { stage: "slot_rollback", readingId: log.readingId } });
+    return "error";
+  }
+  if (!data || data.length !== 1) {
+    await log.logWarn(
+      `slot_rollback_stacked: 다른 구매가 위에 쌓여 슬롯 반납·[END] 복원을 건너뛴다(${slot.column}) — 대화는 열어 둔다`,
+      { ...ctx, extra: { stage: "slot_rollback_stacked", readingId: log.readingId } },
+    );
+    return "stacked";
+  }
+  await claim.restore();
+  return "rolled_back";
 }
