@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { CLARIFIER_COST } from "@/lib/upsell";
 
 export type ClarifierChipState = "idle" | "done";
@@ -7,14 +8,22 @@ export type ClarifierChipState = "idle" | "done";
 interface Props {
   state: ClarifierChipState;
   onTap: () => void;
+  /** 노출 계측 — 마운트 1회 */
+  onShown?: () => void;
 }
 
 /**
  * 인챗 업셀 — 보조 카드 한 장 더 뽑기 칩.
  * RECO:tarot:clarifier 마커가 붙은 메시지 바로 아래에 렌더.
  */
-export default function ClarifierChip({ state, onTap }: Props) {
+export default function ClarifierChip({ state, onTap, onShown }: Props) {
   const done = state === "done";
+
+  // 노출 계측 — 마운트 1회. 리딩·상품·지면 단위 dedup 은 부모가 한다
+  useEffect(() => {
+    onShown?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="mt-2 mb-1 max-w-xs ml-10">
