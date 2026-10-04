@@ -17,7 +17,7 @@ import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/ClarifierChip";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
-import ClarifierSheet from "@/components/upsell/ClarifierSheet";
+import ClarifierSheet, { type ClarifierFailure } from "@/components/upsell/ClarifierSheet";
 import PostEndOffers from "@/components/upsell/PostEndOffers";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
@@ -26,6 +26,7 @@ import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { getCard } from "@/lib/tarot/cards";
 import { parseReopenHeader, stripEndFromLastAssistant, type ReopenOptions } from "@/lib/tarot/reopen";
 import { clarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
+import { purchaseRequest } from "@/lib/tarot/purchase-request";
 import {
   END_MARKER_REGEX,
   parseIntoBubbles,
@@ -65,6 +66,8 @@ const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 
 const FINISH_PHRASE_RESULT_ONLY = "결과만 보고 마칠게"; // 첫 풀이 직후 링크 경유 (시안 B, 계측 구분용 — spec 2026-10-04 §3-6)
 // 재개 제안 없음 — 한 참조를 공유해 setReopen 이 같은 값으로 불필요한 리렌더를 만들지 않는다
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
+// 409(다른 구매가 처리 중) 뒤 서버 상태를 다시 읽기까지 — 바로 읽으면 그 요청이 반쯤 끝난 상태를 붙잡는다
+const RESYNC_DELAY_MS = 1500;
 // [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
 
 export default function TarotReadingPage() {
@@ -129,6 +132,8 @@ function TarotReadingInner() {
   const [clarifierPurchasing, setClarifierPurchasing] = useState(false);
   // 구매 요청이 서버에 가 있는 동안엔 전송·마무리·다른 구매를 막는다 — 턴이 구매와 겹치면 강제 종료선 판정이 구매 반영 전/후로 갈려 [END] 가 경합한다
   const purchasing = extendState === "loading" || clarifierPurchasing;
+  // 구매 흐름 중 — 요청이 가 있거나 보조 카드 시트가 열려 있다. 이 사이엔 마무리·재전송도 막고 전송 대기 조각은 미룬다
+  const inPurchaseFlow = purchasing || clarifierSheetOpen;
   // RechargeSheet
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
   const [rechargeUpsellType, setRechargeUpsellType] = useState<"clarifier" | "extend">("extend");
@@ -595,7 +600,7 @@ function TarotReadingInner() {
   // 실패한 턴을 동일 인자로 재전송(유저 메시지 버블은 화면에 남아 있어 재입력 불필요).
   function retrySend() {
     const t = retryTurn;
-    if (!t || purchasing) return;
+    if (!t || inPurchaseFlow) return;
     setRetryTurn(null);
     void sendMessage(t.history, t.rid, t.opts);
   }
@@ -605,7 +610,7 @@ function TarotReadingInner() {
     if (input.trim()) return; // 입력창에 글자 남아있으면 보류 (다음 활동 때 재무장)
     if (isStreaming || isEnded || !readingId) return;
     // 구매 중이거나 보조 카드 시트가 열려 있으면 보내지 않고 잠시 뒤 다시 본다 — 턴이 구매와 겹치면 강제 종료선 판정이 구매 반영 전/후로 갈린다
-    if (purchasing || clarifierSheetOpen) {
+    if (inPurchaseFlow) {
       armFlushTimer();
       return;
     }
@@ -786,24 +791,27 @@ function TarotReadingInner() {
   }
 
   // 구매가 실패했거나 응답을 못 받았을 때 — 화면이 서버와 어긋났을 수 있다(다른 탭·늦게 온 요청·응답 유실).
-  // 서버 상태를 다시 받아 이어하기 복원과 같은 경로로 반영한다. best-effort — 실패하면 이미 띄운 오류 문구만 남는다
-  async function resyncFromServer() {
-    if (!readingId) return;
+  // 서버 상태를 다시 받아 이어하기 복원과 같은 경로로 반영한다. best-effort — 실패하면 이미 띄운 오류 문구만 남는다.
+  // 서버가 가진 카드 목록(GET 실패면 null)을 돌려준다 — 대화 반영을 건너뛴 경우에도 준다(settleUnknownClarifier 가 카드가 더 붙었는지 본다)
+  async function resyncFromServer(): Promise<TarotDrawResult["drawnCards"] | null> {
+    if (!readingId) return null;
     const before = messagesRef.current;
     try {
       const r = await fetch(`/api/readings/${readingId}`, { cache: "no-store" });
-      if (!r.ok) return;
+      if (!r.ok) return null;
       const d = await r.json();
+      const cards = (d.reading?.drawnCards ?? null) as TarotDrawResult["drawnCards"] | null;
       // 기다리는 사이 대화가 움직였으면(내 말 추가·전송 대기·답 출력 중) 이 응답은 낡았다 — 덮어쓰면 진행 중인 버블이 사라진다
-      if (messagesRef.current !== before || pendingFragmentsRef.current.length > 0 || typingIntervalRef.current) return;
+      if (messagesRef.current !== before || pendingFragmentsRef.current.length > 0 || typingIntervalRef.current) return cards;
       const msgs = (d.messages ?? []) as Message[];
-      if (msgs.length === 0) return;
+      if (msgs.length === 0) return cards;
       applyServerConversation(msgs, d.reopen);
       // 보조 카드가 서버에만 붙었을 수 있다(응답 유실) — 카드 판과 시트의 제외 목록도 서버 기준으로 맞춘다
-      const cards = d.reading?.drawnCards as TarotDrawResult["drawnCards"] | null | undefined;
       if (cards && cards.length > 0) setDraw((prev) => (prev ? { ...prev, drawnCards: cards } : prev));
+      return cards;
     } catch {
       // 재동기화 실패는 무음 — 이미 보여 준 오류 문구가 남는다
+      return null;
     }
   }
 
@@ -811,7 +819,9 @@ function TarotReadingInner() {
   // 재동기화가 실패해도 죽은 재개 버튼이 남지 않게 버튼부터 거둔다
   const handlePurchaseFailed = (code?: string) => {
     if (code === "reading_already_ended") setReopen(NO_REOPEN);
-    void resyncFromServer();
+    // 409 는 다른 요청이 한창 처리 중이다 — 바로 읽으면 그 요청이 반쯤 끝난 상태(예: [END] 만 걷힌 채)를 붙잡으니 잠시 뒤에 본다
+    if (code === "purchase_in_progress") setTimeout(() => void resyncFromServer(), RESYNC_DELAY_MS);
+    else void resyncFromServer();
   };
 
   // 서버가 끝난 대화를 다시 열었다 — 입력창 복귀 + 화면·ref 히스토리의 [END] 정리(모델에 '이미 끝났다'를 다시 보내지 않게)
@@ -829,16 +839,18 @@ function TarotReadingInner() {
     if (!readingId || isStreaming || purchasing) return;
     setExtendState("loading");
     try {
-      const res = await fetch(`/api/readings/${readingId}/extend`, { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 402) {
+      const { status, ok, data } = await purchaseRequest<{ error?: string; reopened?: boolean }>(
+        `/api/readings/${readingId}/extend`,
+        { method: "POST" },
+      );
+      if (status === 402) {
         setExtendState("idle");
         setRechargeUpsellType("extend");
         setRechargeSheetOpen(true);
         return;
       }
-      if (!res.ok) {
-        const code = (data as { error?: string }).error;
+      if (!ok) {
+        const code = data.error;
         setError(
           code === "extend_limit_reached"
             ? "이미 연장했어. 더 연장은 안 돼"
@@ -855,11 +867,12 @@ function TarotReadingInner() {
       setExtendState("done");
       setError(null); // 앞선 실패 문구가 성공 뒤에도 남지 않게
       // 서버가 끝난 대화를 다시 열었다(reopened)거나 화면이 끝난 상태였다면 입력창을 되살린다
-      if (isEnded || (data as { reopened?: boolean }).reopened === true) reopenChatLocally();
+      if (isEnded || data.reopened === true) reopenChatLocally();
     } catch {
+      // 끊김·시간 초과(PURCHASE_TIMEOUT_MS) — 요청은 서버에 닿았는데 응답만 잃었을 수 있다(결과를 모른다): 서버 상태를 다시 확인한다
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setExtendState("idle");
-      handlePurchaseFailed(); // 요청은 서버에 닿았는데 응답만 잃었을 수 있다 — 서버 상태를 다시 확인한다
+      handlePurchaseFailed();
     }
   };
 
@@ -895,8 +908,28 @@ function TarotReadingInner() {
     suppressScrollUntilRef.current = Date.now() + 1500;
   };
 
+  // 보조 카드 구매 결과를 모른다(응답 유실·타임아웃·5xx) — 서버엔 카드가 붙었을 수 있다. 그대로 두면 '다시 시도' 가 한 장을 더 사게 되니,
+  // 서버 기준으로 카드가 시도 전보다 많으면 성공으로 본다: 시트를 닫고 onDrawn 과 같은 경로로 카드 풀이 턴을 잇는다.
+  // 카드가 그대로면 안 산 것이니 재동기화만 한 셈이고 다시 시도해도 안전하다
+  const settleUnknownClarifier = async () => {
+    const before = draw?.drawnCards.length ?? 0; // 시도를 시작할 때의 카드 수 — 이 클로저는 그때 만들어졌다
+    const cards = await resyncFromServer();
+    // 그새 답이 나오기 시작했으면(시트를 닫고 마무리를 눌렀다 등) 카드 턴을 겹쳐 보내지 않는다 — 스트림 상태가 섞인다
+    if (!cards || cards.length <= before || typingIntervalRef.current) return;
+    setClarifierSheetOpen(false);
+    setError(null);
+    handleClarifierDrawn(cards);
+  };
+
+  // ClarifierSheet onFailed — 402 말고 구매가 실패했을 때
+  const handleClarifierFailed = (f: ClarifierFailure) => {
+    if (f.unseenMessage) setError(f.unseenMessage); // 시트를 닫은 뒤라 유저가 못 본 문구를 페이지에 보인다
+    if (f.unknown) void settleUnknownClarifier();
+    else handlePurchaseFailed(f.code);
+  };
+
   const handleFinish = (phrase: string = FINISH_PHRASE) => {
-    if (isStreaming || isEnded || !readingId || purchasing) return;
+    if (isStreaming || isEnded || !readingId || inPurchaseFlow) return;
     clearFlushTimer();
     clearIdleTimer();
     idleStageRef.current = 0;
@@ -1120,7 +1153,9 @@ function TarotReadingInner() {
                     });
                     handleFinish(FINISH_PHRASE_EXIT);
                   }}
-                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
+                  // 구매 흐름 중엔 handleFinish 가 아무것도 안 한다 — 눌러서 exit_chip_clicked 만 찍히지 않게 잠근다
+                  disabled={inPurchaseFlow}
+                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ✨ 결과 카드 보기
                 </button>
@@ -1166,7 +1201,8 @@ function TarotReadingInner() {
                   <button
                     type="button"
                     onClick={retrySend}
-                    className="mt-1.5 inline-block text-[12px] font-bold text-lilac-deep underline underline-offset-2"
+                    disabled={inPurchaseFlow}
+                    className="mt-1.5 inline-block text-[12px] font-bold text-lilac-deep underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     다시 시도
                   </button>
@@ -1194,7 +1230,7 @@ function TarotReadingInner() {
               <PostEndOffers
                 extend={reopen.extend}
                 clarifier={reopen.clarifier}
-                busy={purchasing}
+                busy={extendState === "loading" ? "extend" : clarifierPurchasing ? "clarifier" : null}
                 onShown={(p) => trackOfferShown(p, "postend")}
                 onExtend={() => {
                   trackOfferClicked("extend", "postend");
@@ -1262,7 +1298,7 @@ function TarotReadingInner() {
                   <button
                     type="button"
                     onClick={() => handleFinish(FINISH_PHRASE_RESULT_ONLY)}
-                    disabled={isStreaming || !readingId || purchasing}
+                    disabled={isStreaming || !readingId || inPurchaseFlow}
                     className="self-center py-1.5 text-[12px] text-text-light underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     결과만 보고 마칠래
@@ -1271,7 +1307,7 @@ function TarotReadingInner() {
                   <button
                     type="button"
                     onClick={() => handleFinish()}
-                    disabled={isStreaming || !readingId || purchasing}
+                    disabled={isStreaming || !readingId || inPurchaseFlow}
                     className="w-full py-2.5 rounded-xl font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#ffe29e", color: "#48464d" }}
                   >
@@ -1301,7 +1337,7 @@ function TarotReadingInner() {
           onClose={() => setClarifierSheetOpen(false)}
           onDrawn={handleClarifierDrawn}
           onPurchasingChange={setClarifierPurchasing}
-          onFailed={handlePurchaseFailed}
+          onFailed={handleClarifierFailed}
           onInsufficient={() => {
             setClarifierSheetOpen(false);
             setRechargeUpsellType("clarifier");

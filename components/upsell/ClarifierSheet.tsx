@@ -1,10 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import { CLARIFIER_COST } from "@/lib/upsell";
+import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+
+/** 구매 실패 — 402(잔액 부족)는 onInsufficient 로 따로 가고 여기엔 오지 않는다 */
+export interface ClarifierFailure {
+  /** 서버 error 코드(응답 본문이 없으면 undefined) */
+  code?: string;
+  /** 결과를 모른다 — 응답을 못 받았거나(끊김·타임아웃) 5xx. 서버엔 카드가 붙었을 수 있다 */
+  unknown: boolean;
+  /** 시트가 이미 닫혀 유저가 못 본 오류 문구 — 부모가 페이지에 대신 보여 준다 */
+  unseenMessage?: string;
+}
+
+interface ClarifierResponse {
+  error?: string;
+  balance?: number;
+  drawnCards?: DrawnCard[];
+  reopened?: boolean;
+}
 
 interface Props {
   open: boolean;
@@ -19,8 +37,8 @@ interface Props {
   onInsufficient?: (balance: number) => void;
   /** 구매 요청이 서버에 가 있는 동안 true — 부모가 그 사이 전송·다른 구매를 막는다(요청 중에 시트를 닫아도 요청은 계속 간다) */
   onPurchasingChange?: (purchasing: boolean) => void;
-  /** 구매가 402(잔액 부족) 말고 실패했을 때 — 화면이 서버와 어긋났을 수 있어 부모가 서버 상태로 다시 맞춘다. code = 서버 error 코드(응답을 못 받았으면 undefined) */
-  onFailed?: (code?: string) => void;
+  /** 구매가 402(잔액 부족) 말고 실패했을 때 — 화면이 서버와 어긋났을 수 있어 부모가 서버 상태로 다시 맞춘다 */
+  onFailed?: (failure: ClarifierFailure) => void;
 }
 
 /**
@@ -42,6 +60,11 @@ export default function ClarifierSheet({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  // 요청이 끝났을 때 시트가 아직 열려 있는지 — handleDrawComplete 의 클로저 값은 요청을 시작한 때의 것이라 쓸 수 없다
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  });
 
   // 열릴 때 잔액 로드 + shallow history push
   useEffect(() => {
@@ -95,26 +118,41 @@ export default function ClarifierSheet({
     setError(null);
     onPurchasingChange?.(true);
 
-    try {
-      const res = await fetch("/api/consultations/tarot/clarifier", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          readingId,
-          card: { card_id: card.card_id, direction: card.direction },
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
+    // 실패를 시트 화면과 부모 양쪽에 알린다
+    const fail = (message: string, f: { code?: string; unknown: boolean }) => {
+      setError(message);
+      setSubmitting(false);
+      // 요청 중에 시트를 닫았다면 유저는 이 문구를 못 본다 — 부모가 페이지에 대신 보여 주게 함께 넘긴다
+      onFailed?.({ ...f, unseenMessage: openRef.current ? undefined : message });
+    };
 
-      if (res.status === 402) {
-        const bal = (data as { balance?: number }).balance ?? 0;
+    try {
+      let res: PurchaseResponse<ClarifierResponse>;
+      try {
+        res = await purchaseRequest<ClarifierResponse>("/api/consultations/tarot/clarifier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            readingId,
+            card: { card_id: card.card_id, direction: card.direction },
+          }),
+        });
+      } catch {
+        // 끊김·시간 초과 — 요청은 서버에 닿았는데 응답만 잃었을 수 있다(결과를 모른다)
+        fail("연결이 흔들렸어. 잠시 후 다시 시도해줄래?", { unknown: true });
+        return;
+      }
+      const { status, ok, data } = res;
+
+      if (status === 402) {
+        const bal = data.balance ?? 0;
         if (onInsufficient) onInsufficient(bal);
         else setError(`별이 부족해. 현재 잔액: ⭐${bal}`);
         setSubmitting(false);
         return;
       }
-      if (!res.ok) {
-        const code = (data as { error?: string }).error;
+      if (!ok) {
+        const code = data.error;
         const msg =
           code === "clarifier_limit_reached"
             ? "이미 최대 횟수만큼 보조 카드를 뽑았어"
@@ -125,19 +163,13 @@ export default function ClarifierSheet({
             : code === "purchase_in_progress"
             ? "다른 곳에서 처리 중이야. 잠깐 뒤에 다시 확인해줘"
             : "카드를 추가하지 못했어. 잠시 후 다시 시도해줄래?";
-        setError(msg);
-        setSubmitting(false);
-        onFailed?.(code);
+        // 5xx 는 서버가 어디까지 했는지 모른다(예: 슬롯 CAS 오류는 카드가 붙은 뒤일 수 있다)
+        fail(msg, { code, unknown: status >= 500 });
         return;
       }
 
-      const updated = (data as { drawnCards?: DrawnCard[] }).drawnCards ?? [];
-      onDrawn(updated, (data as { reopened?: boolean }).reopened === true);
+      onDrawn(data.drawnCards ?? [], data.reopened === true);
       onClose();
-    } catch {
-      setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
-      setSubmitting(false);
-      onFailed?.(); // 요청은 서버에 닿았는데 응답만 잃었을 수 있다
     } finally {
       onPurchasingChange?.(false);
     }
