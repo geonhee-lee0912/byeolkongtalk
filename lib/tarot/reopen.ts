@@ -21,6 +21,25 @@ export function isEndedAtAbsCap(i: {
   return i.ended && i.assistantTurns >= i.effAbsTurnCap;
 }
 
+/**
+ * '한 장 더'(보조 카드)로 강제 종료선에서 다시 연 직후의 카드 풀이 턴인가 — 그 턴만 모드와 무관하게 열어 두기 가이드를 쓴다(사용자 결정 2026-10-04 ⑦).
+ * 연장(4턴 더)을 산 리딩은 자연 마무리선이 강제 종료선과 같아(③) 이 턴이 abs−1(마지막 수렴 턴)이 돼 얇은 정리 톤을 받는다 — 유료 카드 풀이가 빈약해지는 걸 막는다.
+ * 구매로 강제 종료선이 +2 오르므로 이 턴의 assistantTurnsSoFar 는 '구매 전 강제 종료선' = effectiveAbsTurnCap(.., clarifierCount − 1) 이다.
+ * ⚠️ 한계: 턴 수로만 찾으므로, 보조 카드를 대화 중에 일찍 산 리딩이 나중에 그 턴 수(구매 전 선)를 지날 때도 참이다.
+ * 그 턴은 새 강제 종료선 바로 앞 턴(abs−1)이라, 열어 두기 가이드를 한 번 받을 뿐 다음 턴이 강제 종료선이다.
+ */
+export function isClarifierReopenTurn(i: {
+  spreadType: string;
+  extraTurns: number;
+  clarifierCount: number;
+  assistantTurnsSoFar: number;
+}): boolean {
+  return (
+    i.clarifierCount > 0 &&
+    i.assistantTurnsSoFar === effectiveAbsTurnCap(i.spreadType, i.extraTurns, i.clarifierCount - 1)
+  );
+}
+
 export interface ReopenOptions {
   extend: boolean;
   clarifier: boolean;

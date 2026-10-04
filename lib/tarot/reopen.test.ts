@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   effectiveAbsTurnCap,
   isEndedAtAbsCap,
+  isClarifierReopenTurn,
   reopenOptions,
   formatReopenHeader,
   parseReopenHeader,
@@ -468,5 +469,69 @@ test("X-Reopen — 빈 값('')은 실제 Headers 를 거쳐도 '헤더 없음'(n
   for (const ro of ALL_OPTIONS) {
     const r = new Response(null, { headers: { "X-Reopen": formatReopenHeader(ro) } });
     assert.deepEqual(parseReopenHeader(r.headers.get("X-Reopen")), ro, JSON.stringify(ro));
+  }
+});
+
+// ── isClarifierReopenTurn — '한 장 더'(보조 카드)로 강제 종료선에서 다시 연 직후의 카드 풀이 턴 (사용자 결정 2026-10-04 ⑦) ──
+// 연장(4턴 더)을 산 리딩은 자연 마무리선이 강제 종료선과 같아(③) 이 턴이 abs−1(마지막 수렴 턴)이 돼 얇은 정리 톤을 받는다 — 유료 카드 풀이가 빈약해진다.
+// 구매로 강제 종료선이 +2 오르므로, 이 턴의 assistantTurnsSoFar 는 '구매 전 강제 종료선' = effectiveAbsTurnCap(.., clarifierCount − 1) 이다.
+const reopenTurn = (extraTurns: number, clarifierCount: number, assistantTurnsSoFar: number, spreadType = "two_card"): boolean =>
+  isClarifierReopenTurn({ spreadType, extraTurns, clarifierCount, assistantTurnsSoFar });
+
+test("isClarifierReopenTurn — 투카드(기본 12): 연장 → 강제 종료선(16) → 보조 카드 이면 새 카드를 읽는 턴(답 16개 뒤)이다", () => {
+  assert.equal(reopenTurn(4, 1, 16), true);
+  // 한 턴 어긋나면 아니다
+  assert.equal(reopenTurn(4, 1, 15), false);
+  assert.equal(reopenTurn(4, 1, 17), false);
+});
+
+test("isClarifierReopenTurn — 보조 카드(12) → 연장 순서면 연장 직후 턴(답 14개 뒤)은 보조 카드로 연 턴이 아니다", () => {
+  assert.equal(reopenTurn(4, 1, 14), false);
+});
+
+test("isClarifierReopenTurn — 연장 없이 강제 종료선(12)에서 보조 카드를 산 턴도 true(예전에도 열어 두기로 풀리던 경우)", () => {
+  assert.equal(reopenTurn(0, 1, 12), true);
+  assert.equal(reopenTurn(0, 1, 11), false);
+  assert.equal(reopenTurn(0, 1, 13), false);
+});
+
+test("isClarifierReopenTurn — 대화 중에 산 보조 카드·아직 중반인 턴은 아니다", () => {
+  assert.equal(reopenTurn(0, 1, 3), false);
+  assert.equal(reopenTurn(4, 1, 3), false);
+});
+
+test("isClarifierReopenTurn — 두 번째 보조 카드: 연장한 리딩(구매 전 선 12+4+2=18)·연장 안 한 리딩(구매 전 선 14) 모두", () => {
+  assert.equal(reopenTurn(4, 2, 18), true);
+  assert.equal(reopenTurn(0, 2, 14), true);
+  assert.equal(reopenTurn(4, 2, 16), false); // 첫 보조 카드 때의 턴 수는 이제 아니다
+});
+
+test("isClarifierReopenTurn — 보조 카드를 안 산 리딩은 어떤 턴 수에서도 false(강제 종료선 −2 같은 값에서도)", () => {
+  // 0..24 전부 — clarifierCount 가드가 빠지면 '구매 전 선'(= 현재 선 − 2)이 우연히 같아지는 턴에서 true 가 된다
+  for (const spread of ["one_card", "two_card", "relationship_5"]) {
+    for (let turns = 0; turns <= 24; turns++) {
+      assert.equal(reopenTurn(0, 0, turns, spread), false, `${spread} extra 0 · ${turns}`);
+      assert.equal(reopenTurn(4, 0, turns, spread), false, `${spread} extra 4 · ${turns}`);
+    }
+  }
+});
+
+test("isClarifierReopenTurn — 모르는 스프레드는 false(무한대 강제 종료선과는 어떤 턴 수도 같지 않다)", () => {
+  assert.equal(reopenTurn(0, 1, 12, "legacy_spread"), false);
+  assert.equal(reopenTurn(4, 2, 18, "constructor"), false);
+});
+
+test("isClarifierReopenTurn — 정의대로: 어떤 구매 전 강제 종료선 C 에서 보조 카드를 사면 다음 턴(턴 수 C)이 true, 연장으로 연 다음 턴은 false", () => {
+  for (const spread of ["one_card", "two_card", "three_card", "relationship_5", "checkin_6", "chakra_7"]) {
+    for (const extra of [0, 4]) {
+      for (const clar of [0, 1]) {
+        const cap = effectiveAbsTurnCap(spread, extra, clar); // 이 선에서 닫힌 대화
+        assert.equal(reopenTurn(extra, clar + 1, cap, spread), true, `${spread} extra=${extra} clar=${clar} → 보조 카드 재개`);
+        if (extra === 0) {
+          // 연장으로 열면 선이 +4 오르고 보조 카드 수는 그대로 — 보조 카드로 연 턴이 아니다
+          assert.equal(reopenTurn(extra + 4, clar, cap, spread), false, `${spread} clar=${clar} → 연장 재개`);
+        }
+      }
+    }
   }
 });

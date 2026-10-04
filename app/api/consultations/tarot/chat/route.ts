@@ -27,7 +27,7 @@ import {
   finalizeAssistantText,
   createEndMarkerFilter,
 } from "@/lib/tarot/inchat-offer";
-import { reopenOptions, formatReopenHeader } from "@/lib/tarot/reopen";
+import { reopenOptions, formatReopenHeader, isClarifierReopenTurn } from "@/lib/tarot/reopen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -221,8 +221,15 @@ export async function POST(request: NextRequest) {
     userClosing: userTurn.closing,
   });
 
-  // keep-open 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로
-  const turnSignals = keepOpen
+  // ⑦ 강제 종료선에서 '한 장 더'로 다시 연 직후의 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드(사용자 결정 2026-10-04).
+  // 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 얇은 정리 톤을 받는다. 위기·마무리 버튼·강제 종료선엔 진다.
+  // '한 장 더' 후보는 clarifierCount > 0 이라 이 턴에 이미 아니다.
+  const clarifierReopenTurn =
+    isClarifierReopenTurn({ spreadType, extraTurns, clarifierCount, assistantTurnsSoFar }) && !mustEnd && !crisisActive;
+  const keepOpenTurn = keepOpen || clarifierReopenTurn;
+
+  // 열어 두는 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로
+  const turnSignals = keepOpenTurn
     ? computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode: "free", ...signalCtx })
     : baseSignals;
 
@@ -254,6 +261,7 @@ export async function POST(request: NextRequest) {
     extendAvailable,
     thresholdOverride: effT,
     keepOpen,
+    clarifierReopenTurn,
     clarifierCandidate,
   });
 
@@ -304,7 +312,7 @@ export async function POST(request: NextRequest) {
   let assistantText = ""; // 화면에 나간(스트림으로 보낸) 글자 — 저장본(saved)은 정규화로 이와 다를 수 있다
   let rawChars = 0; // 모델이 보낸 글자 수(필터 통과 전) — keep-open 필터가 [END] 만 지워 빈 응답이 된 턴을 로그에서 구분하는 용도
   let endFiltered = false;
-  const endFilter = keepOpen ? createEndMarkerFilter() : null; // keep-open 턴 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
+  const endFilter = keepOpenTurn ? createEndMarkerFilter() : null; // 열어 두는 턴(keep-open · ⑦ 재개 직후 카드 풀이) 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
 
   const stream = new ReadableStream({
     async start(controller) {

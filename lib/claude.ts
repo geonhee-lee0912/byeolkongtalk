@@ -679,6 +679,11 @@ export interface TarotReadingContext {
    * 라우트(isClarifierCandidate)가 고르지만, 빌더도 위기·forceEnd·자유 구간 밖이거나 턴 마무리가 '정리'(단답 연속)면 이 지시를 빼 한 번 더 막는다(방어).
    */
   clarifierCandidate?: boolean;
+  /**
+   * 보조 카드로 다시 연 직후 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드 (사용자 결정 2026-10-04 ⑦). 위기·forceEnd·강제 종료선에는 진다.
+   * 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 짧은 정리 톤·출구 문구로 얇아진다 — 그걸 막는다. 라우트(isClarifierReopenTurn)가 고른다.
+   */
+  clarifierReopenTurn?: boolean;
 }
 
 export function formatDrawnCardsBlock(cards: DrawnCard[]): string {
@@ -803,13 +808,15 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
     : mode === "hardcap"
       ? absHardcap
         ? absHardcapGuide
-        : ctx.keepOpen
+        : ctx.keepOpen || ctx.clarifierReopenTurn
           ? TAROT_KEEP_OPEN_GUIDE
           : naturalHardcapGuide
-      : mode === "converge"
-        ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
-          userSignalGuide
-        : "";
+      : ctx.clarifierReopenTurn
+        ? TAROT_KEEP_OPEN_GUIDE
+        : mode === "converge"
+          ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
+            userSignalGuide
+          : "";
 
   // 열어 두기 가이드가 *실제로 선택된* 턴엔 정리 요청 규칙(SUMMARY_END_RULE)도 뺀다 — 서버 필터가 [END] 를 지우는 턴이라
   // 규칙은 작별 어휘만 더하고, 가이드의 "정리 요청이 와도 [END] 없이" 와 정면으로 어긋난다(위기 제외와 같은 모양). 정리 요청 처리는 가이드가 맡는다.

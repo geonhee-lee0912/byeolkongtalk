@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { computeWrapMode, buildTarotSystemMessage } from "./claude.ts";
 import { WRAP_THRESHOLDS } from "./tarot/constants.ts";
 import { CLARIFIER_MARKER } from "./tarot/inchat-offer.ts";
+import { effectiveWrapThresholds } from "./tarot/thresholds.ts";
 
 const t = WRAP_THRESHOLDS.two_card; // 7/3240/9/3640/12
 
@@ -136,6 +137,7 @@ test("staticPart 는 플래그 조합과 무관하게 동일하다 (프롬프트
     { ...ctxBase, crisisActive: true },
     { ...freeCtx, clarifierCandidate: true },
     { ...ctxBase, keepOpen: true, clarifierCandidate: true },
+    { ...ctxBase, clarifierReopenTurn: true },
   ];
   for (const v of variants) {
     assert.equal(buildTarotSystemMessage(v).staticPart, base);
@@ -175,5 +177,87 @@ test("clarifierCandidate 는 턴 마무리가 '정리'(단답 연속)면 빌더�
   // 대조: 막는 건 'settle' 하나뿐이다
   for (const turnClose of ["ask", "invite"] as const) {
     assert.ok(dyn({ ...freeCtx, clarifierCandidate: true, turnSignals: { turnClose } }).includes(CLARIFIER_HEAD), turnClose);
+  }
+});
+
+// ── ⑦ 보조 카드로 다시 연 직후의 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드 (사용자 결정 2026-10-04 ⑦) ──
+// 연장(4턴 더)을 산 리딩은 자연 마무리선이 강제 종료선과 같아(③) 이 턴이 abs−1(마지막 수렴 턴)이 된다 — 유료 카드 풀이가
+// 짧은 정리 톤·출구 문구로 얇아지지 않게 한다. 위기·forceEnd·강제 종료선에는 진다.
+const CONVERGE_HEAD = "## 수렴 모드";
+const LAST_CONVERGE_HEAD = "마지막 수렴 턴"; // convergeLastGuide 헤딩
+const NATURAL_HEAD = "## 마무리 단계"; // naturalHardcapGuide
+const midConvergeCtx = { ...ctxBase, assistantTurnsSoFar: 6, cumulativeAssistantChars: 3300 }; // 7번째 = 수렴(마지막 아님)
+
+test("clarifierReopenTurn — 마지막 수렴 턴(abs−1)에서도 열어 두기 가이드가 이긴다: 마지막 수렴 가이드·정리 요청 규칙이 없다", () => {
+  const before = dyn(convergeCtx); // 8번째 = 마지막 수렴 턴
+  assert.ok(before.includes(LAST_CONVERGE_HEAD) && before.includes(SUMMARY_RULE_HEAD), "대조군: 플래그 없으면 마지막 수렴 가이드 + 정리 요청 규칙");
+  const d = dyn({ ...convergeCtx, clarifierReopenTurn: true });
+  assert.ok(d.includes(KEEP_OPEN_HEAD));
+  assert.ok(!d.includes(LAST_CONVERGE_HEAD));
+  assert.ok(!d.includes(CONVERGE_HEAD));
+  assert.ok(!d.includes(SUMMARY_RULE_HEAD)); // 열어 두기 가이드가 선택된 턴 → 정리 요청 규칙 제외(keepOpenSelected)
+});
+
+test("clarifierReopenTurn — 연장 뒤 '한 장 더': 투카드(연장 4 + 보조 1 → 강제 종료선 18)의 카드 풀이 턴(17번째 = abs−1)", () => {
+  const eff = effectiveWrapThresholds("two_card", 4, 1);
+  assert.ok(eff);
+  const c = { ...ctxBase, thresholdOverride: eff, assistantTurnsSoFar: 16, cumulativeAssistantChars: 9000 };
+  assert.ok(dyn(c).includes(LAST_CONVERGE_HEAD), "대조군: 플래그가 없으면 abs−1 이라 마지막 수렴 턴(짧은 정리 톤 + 출구 문구)");
+  const d = dyn({ ...c, clarifierReopenTurn: true });
+  assert.ok(d.includes(KEEP_OPEN_HEAD));
+  assert.ok(!d.includes(LAST_CONVERGE_HEAD));
+  // 한 턴 뒤(18번째)는 강제 종료선 — 플래그가 남아 있어도 닫는다
+  const next = dyn({ ...c, assistantTurnsSoFar: 17, clarifierReopenTurn: true });
+  assert.ok(next.includes(MUST_CLOSE_HEAD));
+  assert.ok(!next.includes(KEEP_OPEN_HEAD));
+});
+
+test("clarifierReopenTurn — 자유·수렴·마지막 수렴·자연 마무리선 어디서든 열어 두기 가이드가 이기고, 자연 마무리선에선 keepOpen 과 바이트까지 같다", () => {
+  const modes: Array<[string, Ctx]> = [
+    ["자유 구간", freeCtx],
+    ["수렴(마지막 아님)", midConvergeCtx],
+    ["마지막 수렴", convergeCtx],
+    ["자연 마무리선", ctxBase],
+  ];
+  for (const [name, c] of modes) {
+    const d = dyn({ ...c, clarifierReopenTurn: true });
+    assert.ok(d.includes(KEEP_OPEN_HEAD), `${name}: 열어 두기 가이드`);
+    for (const head of [NATURAL_HEAD, CONVERGE_HEAD, LAST_CONVERGE_HEAD, SUMMARY_RULE_HEAD]) {
+      assert.ok(!d.includes(head), `${name}: '${head}' 가 새면 안 된다`);
+    }
+  }
+  assert.equal(dyn({ ...ctxBase, clarifierReopenTurn: true }), dyn({ ...ctxBase, keepOpen: true }));
+});
+
+test("clarifierReopenTurn 은 forceEnd·위기·강제 종료선 앞에서 물러난다 — 마무리 의무/위기 블록이 나오고 플래그 없을 때와 바이트까지 같다", () => {
+  const cases: Array<[string, Ctx, string]> = [
+    ["forceEnd", { ...convergeCtx, forceEnd: true }, MUST_CLOSE_HEAD],
+    ["crisisActive", { ...convergeCtx, crisisActive: true }, CRISIS_HEAD],
+    ["절대 턴캡", { ...ctxBase, assistantTurnsSoFar: t.absTurnCap - 1 }, MUST_CLOSE_HEAD],
+    ["위기 + forceEnd(버튼은 위기여도 닫는다)", { ...convergeCtx, crisisActive: true, forceEnd: true }, MUST_CLOSE_HEAD],
+  ];
+  for (const [name, c, expected] of cases) {
+    const withFlag = dyn({ ...c, clarifierReopenTurn: true });
+    assert.ok(!withFlag.includes(KEEP_OPEN_HEAD), `${name}: 열어 두기 가이드가 새면 안 된다`);
+    assert.ok(withFlag.includes(expected), `${name}: '${expected}' 블록이 있어야 한다`);
+    assert.equal(withFlag, dyn({ ...c, clarifierReopenTurn: false }), `${name}: 플래그는 출력에 영향이 없어야 한다`);
+  }
+});
+
+test("clarifierReopenTurn 이 없으면(미지정·false) 모든 구간의 출력이 예전 그대로다 — 구간별 기존 가이드가 그대로 나온다", () => {
+  const modes: Array<[string, Ctx, string[]]> = [
+    ["자유 구간", freeCtx, [SUMMARY_RULE_HEAD]],
+    ["수렴(마지막 아님)", midConvergeCtx, [CONVERGE_HEAD, SUMMARY_RULE_HEAD]],
+    ["마지막 수렴", convergeCtx, [LAST_CONVERGE_HEAD, SUMMARY_RULE_HEAD]],
+    ["자연 마무리선", ctxBase, [NATURAL_HEAD, SUMMARY_RULE_HEAD]],
+    ["자연 마무리선 + keepOpen", { ...ctxBase, keepOpen: true }, [KEEP_OPEN_HEAD]],
+    ["절대 턴캡", { ...ctxBase, assistantTurnsSoFar: t.absTurnCap - 1 }, [MUST_CLOSE_HEAD]],
+    ["forceEnd", { ...ctxBase, forceEnd: true }, [MUST_CLOSE_HEAD]],
+    ["위기", { ...ctxBase, crisisActive: true }, [CRISIS_HEAD]],
+  ];
+  for (const [name, c, heads] of modes) {
+    const unset = dyn(c);
+    for (const head of heads) assert.ok(unset.includes(head), `${name}: '${head}'`);
+    assert.equal(dyn({ ...c, clarifierReopenTurn: false }), unset, name);
   }
 });
