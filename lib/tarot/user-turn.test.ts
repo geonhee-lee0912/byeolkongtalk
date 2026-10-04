@@ -28,6 +28,11 @@ const cases: [string, boolean, boolean][] = [
   ["그 사람 마음 좀 봐줘", true, false],
   ["나 이제 어떡해", true, false],
   ["봐줘서 고마워", false, true],
+  // 접속어(근데·그리고…)로 말을 이으면 뒷말이 본론 — "고마워 근데 …" 는 뒷말로 판정
+  ["고마워 근데 궁금한 게 있어", true, false],
+  ["알겠어 근데 걔 마음 좀 봐줘", true, false],
+  ["고마워 근데 별콩아 진짜 고마워", false, true],
+  ["그렇구나 그리고 다음 달은 어떨까", true, false],
 ];
 
 for (const [text, asking, closing] of cases) {

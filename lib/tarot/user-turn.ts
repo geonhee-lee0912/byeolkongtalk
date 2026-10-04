@@ -27,8 +27,22 @@ function endsWithIndirectQuestion(t: string): boolean {
   return jong === 4 || jong === 8;
 }
 
+// "고마워 근데 …" 처럼 마무리어 뒤에 접속어로 말을 이으면 뒷말이 본론이다 → 마지막 접속어 뒤만 본다.
+const CONJ_RE = /(근데|그런데|그리고|그치만|하지만)/g;
+function afterLastConjunction(t: string): string {
+  let last = -1;
+  let len = 0;
+  for (const m of t.matchAll(CONJ_RE)) {
+    last = m.index ?? -1;
+    len = m[0].length;
+  }
+  if (last < 0) return t;
+  const tail = t.slice(last + len).trim();
+  return tail.length > 0 ? tail : t;
+}
+
 export interface UserTurnClass {
-  /** 질문 또는 새 고민 — 대화를 닫지 말아야 하는 신호 */
+  /** 질문·요청·궁금함 또는 새 고민 — 대화를 닫지 말아야 하는 신호 */
   asking: boolean;
   /** 마무리 신호(감사·수긍·짧은 동의) — 질문이 섞이면 false */
   closing: boolean;
@@ -36,10 +50,11 @@ export interface UserTurnClass {
 
 export function classifyUserTurn(text: string): UserTurnClass {
   const t = text.trim();
-  const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(t) || endsWithIndirectQuestion(t);
-  const closingPattern = CLOSING_RE.test(t) || SHORT_AGREE_RE.test(t);
+  const body = afterLastConjunction(t);
+  const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(body) || endsWithIndirectQuestion(body);
+  const closingPattern = CLOSING_RE.test(body) || SHORT_AGREE_RE.test(body);
   return {
-    asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(t) || t.length >= LONG_CONCERN_LEN)),
+    asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(body) || body.length >= LONG_CONCERN_LEN)),
     closing: closingPattern && !hasQuestion,
   };
 }
