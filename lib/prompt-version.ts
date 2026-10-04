@@ -18,4 +18,5 @@
 //   2026-08-29-fortune-luna   — 유료 리포트 5종 + 사주 chat resume sonnet→gpt-5.6-luna 이관 +
 //                               활성 JSON 리포트 4종 구조화 출력(json_schema strict) (spec: 2026-08-29-운세리포트-luna-구조화출력)
 //   2026-09-12-turn-close     — 턴 마무리 상태화: 코어 §5/§6 질문 억제 무조건→조건부 + 서버 turnClose(ask/invite/settle) 상한 주입 + messages.turn_close 계측 (spec: 2026-09-12-타로톡-턴마무리-상태화)
-export const PROMPT_VERSION = "2026-09-12-turn-close";
+//   2026-10-04-inchat-offer   — '카드 한 장 더' 하이브리드(서버 후보 턴 지시·마커 수리) + 전 스프레드 +3턴 + 자연 마무리선 keep-open + 선제 제안 문단 → 서버 지시 포인터 (spec: 2026-10-04-타로톡-인챗결제-대화길이)
+export const PROMPT_VERSION = "2026-10-04-inchat-offer";
