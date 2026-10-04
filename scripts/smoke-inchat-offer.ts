@@ -19,9 +19,9 @@
 //
 // --fixture — 브라우저 검수용 리딩 2건만 만든다(구매 없음 · 인자 없는 기본 모드는 위 그대로). 만든 리딩의 id·URL 을 찍는다:
 //   A 종료 후 제안   기본 모드와 같은 T1~T12 로 강제 종료선까지 몰고 멈춘다 — T12 [END]·X-End-Reason=abs_cap·X-Reopen="extend,clarifier" · GET reopen={extend:true, clarifier:true}. 종료된 채로 둔다
-//                    → 브라우저: '결과 보기 →' 아래 '4턴 더 이어가기'·'카드 한 장 더 뽑고 이어가기' 두 버튼
-//   B 첫 답 마무리 링크  다른 고민 문구로 T1 만(같은 문구면 60초 중복 생성 방어가 A 를 돌려준다) — 200 · [END] 없음
-//                    → 브라우저: 금색 마무리 버튼 대신 작은 링크 '결과만 보고 마칠래'
+//                    → 브라우저: '결과 보기 →' 아래 구분선 '아직 할 얘기가 남았다면' + 작은 칩 '4턴 더 ⭐10'·'카드 한 장 더 ⭐10'
+//   B 첫 답 화면     다른 고민 문구로 T1 만(같은 문구면 60초 중복 생성 방어가 A 를 돌려준다) — 200 · [END] 없음
+//                    → 브라우저: 입력창 아래 '✦ 궁금한 건 이어서 물어봐도 돼' + '마무리하고 결과 보기 ›' 한 줄(대화 내내 같은 줄, 금색 버튼 없음)
 //   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --fixture      (LLM 13회 · 소요 약 1분 20초, 2026-10-04 실측 82초)
 //
 // ⚠️ 로컬 .env.local 의 dev Supabase 를 쓰고 LLM 을 약 18회 호출한다(원가 발생 · 소요 약 2분, 2026-10-04 실측 108초). 리딩은 지우지 않는다(브라우저로 열어 보려고) — 테스트 유저(QA봇) 소유.
@@ -594,7 +594,7 @@ async function fixtureScenario() {
   await createFixture(
     "A",
     "종료 후 제안",
-    "닫힌 대화 — '결과 보기 →' 아래 '아직 할 얘기가 남았다면' + '4턴 더 이어가기 ⭐10' · '카드 한 장 더 뽑고 이어가기 ⭐10' 두 버튼",
+    "닫힌 대화 — '결과 보기 →' 아래 구분선 '아직 할 얘기가 남았다면' + 작은 칩 '4턴 더 ⭐10' · '카드 한 장 더 ⭐10'",
     CONCERN,
   );
   const a1 = await runTurn(CONCERN);
@@ -615,12 +615,12 @@ async function fixtureScenario() {
   check("A GET reopen = {extend:true, clarifier:true}", gA.status === 200 && gA.reopen?.extend === true && gA.reopen?.clarifier === true, { status: gA.status, reopen: gA.reopen });
   fixtures[0].state = await describeState();
 
-  // ── [B] 첫 답 마무리 링크 — T1 만 ──
-  console.log("\n── [B] 첫 답 마무리 링크 fixture — 투카드 T1 만 ──");
+  // ── [B] 첫 답 화면 — T1 만 ──
+  console.log("\n── [B] 첫 답 화면 fixture — 투카드 T1 만 ──");
   await createFixture(
     "B",
-    "첫 답 마무리 링크",
-    "열린 대화(별콩이 답 1개) — 금색 '대화 마무리하고 결과 확인하기' 버튼 대신 작은 밑줄 링크 '결과만 보고 마칠래'",
+    "첫 답 화면",
+    "열린 대화(별콩이 답 1개) — 입력창 아래 '✦ 궁금한 건 이어서 물어봐도 돼' + '마무리하고 결과 보기 ›' 한 줄(금색 버튼 없음)",
     CONCERN_B,
   );
   const b1 = await runTurn(CONCERN_B);
