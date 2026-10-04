@@ -16,6 +16,7 @@ const base = {
   clarifierCount: 0,
   pastAssistantTexts: ["첫 풀이", "두번째 답"],
   userAsking: true,
+  userShortStreak: false,
 };
 
 test("isClarifierCandidate — 기본 조건 충족이면 true", () => {
@@ -49,6 +50,11 @@ test("isClarifierCandidate — 기제안 마커가 이력의 처음·중간·마
   ]) {
     assert.equal(isClarifierCandidate({ ...base, assistantTurnsSoFar: 3, pastAssistantTexts }), false);
   }
+});
+
+test("isClarifierCandidate — 단답 연속(지친 신호·턴 마무리 '정리')이면 후보가 아니다 (사용자 결정 2026-10-04)", () => {
+  assert.equal(isClarifierCandidate({ ...base, userShortStreak: false }), true); // 대조군
+  assert.equal(isClarifierCandidate({ ...base, userShortStreak: true }), false);
 });
 
 test("shouldKeepOpen — 자연 마무리선 + 묻는 중이면 true, 강제 종료·위기·질문 아님·다른 구간이면 false", () => {
@@ -89,6 +95,18 @@ test("repairClarifierMarker — '한 장을 더'·'한장 더' 변형 제안에�
   ]) {
     assert.equal(repairClarifierMarker(text), `${text}\n${CLARIFIER_MARKER}`);
   }
+});
+
+test("repairClarifierMarker — [END] 가 있는(대화를 닫는) 응답엔 마커를 붙이지 않는다 — 끝난 대화에 칩이 떠 400 나는 것 방지 (사용자 결정 2026-10-04)", () => {
+  const offer = "답이야.\n\n이 부분은 카드 한 장 더 펼쳐 보면 더 또렷해져. 지금 얘기 계속해도 되고";
+  // 클라(lib/tarot/bubbles.ts END_MARKER_REGEX)는 대소문자를 무시하고 위치도 따지지 않는다 — 같은 눈으로 본다
+  for (const end of ["[END]", "[end]", "[End]"]) {
+    const closing = `${offer}\n\n${end}`;
+    assert.equal(repairClarifierMarker(closing), closing, end);
+  }
+  assert.equal(repairClarifierMarker(`[END]\n${offer}`), `[END]\n${offer}`);
+  // 대조: [END] 만 없으면 같은 문장에 마커를 붙인다
+  assert.equal(repairClarifierMarker(offer), `${offer}\n${CLARIFIER_MARKER}`);
 });
 
 test("마커 판정은 클라(parseAllRecoMarkers)처럼 대소문자를 무시한다 — 기제안 이력·마커 수리 모두", () => {

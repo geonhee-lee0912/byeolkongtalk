@@ -20,6 +20,11 @@ export interface ClarifierCandidateInput {
   pastAssistantTexts: string[];
   /** classifyUserTurn(이번 유저 말).asking */
   userAsking: boolean;
+  /**
+   * computeTurnSignals().userShortStreak — 유저 단답 2연속(턴 마무리 '정리').
+   * 코어 페르소나가 지친 신호로 보는 구간이라 이때는 유료 카드를 권하지 않는다(사용자 결정 2026-10-04).
+   */
+  userShortStreak: boolean;
 }
 
 /** 서버가 고르는 '한 장 더' 후보 턴 — 최종 제안 여부는 별콩이가 기준을 보고 정한다 */
@@ -27,6 +32,7 @@ export function isClarifierCandidate(i: ClarifierCandidateInput): boolean {
   if (i.assistantTurnsSoFar < 1) return false; // 첫 풀이 턴
   if (i.wrapMode !== "free") return false; // 정리·마무리 구간
   if (i.crisisActive || i.forceEnd) return false;
+  if (i.userShortStreak) return false; // 지친 신호 — 결제 제안 X
   if (i.clarifierCount > 0) return false; // 이미 보조 카드 구매
   if (i.pastAssistantTexts.some(hasClarifierMarker)) return false; // 대화당 1회
   return i.userAsking;
@@ -50,8 +56,16 @@ export function shouldKeepOpen(i: KeepOpenInput): boolean {
 const OFFER_PHRASE_RE = /한\s*장\s*(?:을\s*)?더/;
 const VISIBLE_MARKERS_RE = /\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi;
 
-/** 후보 턴 응답에 '한 장 더' 제안 문구가 있는데 마커만 빠졌으면 끝에 붙인다. 앞부분은 절대 바꾸지 않는다(스트림 꼬리로 보내기 때문) */
+// [END] 가 있는 응답 = 대화를 닫는 응답. 여기에 칩을 붙이면 끝난 대화에 칩이 떠서, 누르면 400(reading_already_ended).
+// 클라가 [END] 를 보는 눈(lib/tarot/bubbles.ts END_MARKER_REGEX — 대소문자 무시·위치 무관)과 같게 본다. 사용자 결정 2026-10-04
+const HAS_END_RE = /\[END\]/i;
+
+/**
+ * 후보 턴 응답에 '한 장 더' 제안 문구가 있는데 마커만 빠졌으면 끝에 붙인다. 앞부분은 절대 바꾸지 않는다(스트림 꼬리로 보내기 때문).
+ * [END] 가 있는(닫는) 응답은 건드리지 않는다.
+ */
 export function repairClarifierMarker(text: string): string {
+  if (HAS_END_RE.test(text)) return text;
   if (hasClarifierMarker(text)) return text;
   if (!OFFER_PHRASE_RE.test(text.replace(VISIBLE_MARKERS_RE, ""))) return text;
   return `${text}\n${CLARIFIER_MARKER}`;

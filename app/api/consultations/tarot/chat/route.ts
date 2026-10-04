@@ -238,6 +238,7 @@ export async function POST(request: NextRequest) {
       .filter((m) => m.role === "assistant")
       .map((m) => m.content as string),
     userAsking: userTurn.asking,
+    userShortStreak: turnSignals.userShortStreak === true,
   });
 
   const systemMessage = buildTarotSystemMessage({
