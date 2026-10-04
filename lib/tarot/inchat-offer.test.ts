@@ -9,6 +9,7 @@ import {
   finalizeAssistantText,
 } from "./inchat-offer.ts";
 import { tarotEndState, type ReopenReadingRow } from "./reopen.ts";
+import { classifyUserTurn } from "./user-turn.ts";
 
 const base = {
   assistantTurnsSoFar: 2,
@@ -60,12 +61,72 @@ test("isClarifierCandidate — 단답 연속(지친 신호·턴 마무리 '정�
 });
 
 test("shouldKeepOpen — 자연 마무리선 + 묻는 중이면 true, 강제 종료·위기·질문 아님·다른 구간이면 false", () => {
-  const k = { wrapMode: "hardcap" as const, mustEnd: false, crisisActive: false, userAsking: true };
+  const k = {
+    wrapMode: "hardcap" as const,
+    mustEnd: false,
+    crisisActive: false,
+    userAsking: true,
+    lastTurnEndedWithQuestion: false,
+    userClosing: false,
+  };
   assert.equal(shouldKeepOpen(k), true);
   assert.equal(shouldKeepOpen({ ...k, mustEnd: true }), false);
   assert.equal(shouldKeepOpen({ ...k, crisisActive: true }), false);
   assert.equal(shouldKeepOpen({ ...k, userAsking: false }), false);
   assert.equal(shouldKeepOpen({ ...k, wrapMode: "converge" }), false);
+});
+
+// ── ⑥ 별콩이가 직전 턴을 질문으로 끝냈으면 유저 답은 마무리 신호가 아닌 한 '묻는 중'처럼 열어 둔다 (사용자 결정 2026-10-04 ⑥) ──
+// 열어 둔 턴의 별콩이는 질문으로 끝낼 수 있다(턴 마무리 '질문'). 그 질문에 유저가 짧게 답했는데("일주일 전쯤") 그 답이 asking 이 아니라고
+// 자연 마무리 가이드로 닫으면 '묻고 → 답했더니 → 작별'이 된다. 연쇄는 스스로 끊긴다 — 질문 2연속 금지(computeTurnClose)로 다음 턴은 질문으로 끝나지 않고, 강제 종료선이 상한이다.
+const answerTurn = {
+  wrapMode: "hardcap" as const,
+  mustEnd: false,
+  crisisActive: false,
+  userAsking: false,
+  lastTurnEndedWithQuestion: true,
+  userClosing: false,
+};
+
+test("shouldKeepOpen ⑥ — 자연 마무리선 + 직전 턴이 질문 + 마무리 신호 아닌 답이면 열어 둔다, 마무리 신호('고마워')면 닫는다", () => {
+  assert.equal(shouldKeepOpen(answerTurn), true);
+  assert.equal(shouldKeepOpen({ ...answerTurn, userClosing: true }), false);
+  // 대조: 직전 턴이 질문이 아니면 예전 그대로(묻지도 않았고 마무리 신호도 없으면 자연 마무리)
+  assert.equal(shouldKeepOpen({ ...answerTurn, lastTurnEndedWithQuestion: false }), false);
+});
+
+test("shouldKeepOpen ⑥ — 유저가 묻는 중이면 직전 턴·마무리 신호와 무관하게 열어 둔다(기존 규칙 그대로)", () => {
+  for (const lastTurnEndedWithQuestion of [false, true]) {
+    for (const userClosing of [false, true]) {
+      assert.equal(
+        shouldKeepOpen({ ...answerTurn, userAsking: true, lastTurnEndedWithQuestion, userClosing }),
+        true,
+        `lastQ=${lastTurnEndedWithQuestion} closing=${userClosing}`,
+      );
+    }
+  }
+});
+
+test("shouldKeepOpen ⑥ — 직전 턴이 질문이어도 강제 종료·위기·자연 마무리선 밖에선 열어 두지 않는다", () => {
+  assert.equal(shouldKeepOpen({ ...answerTurn, mustEnd: true }), false);
+  assert.equal(shouldKeepOpen({ ...answerTurn, crisisActive: true }), false);
+  for (const wrapMode of ["free", "converge"] as const) {
+    assert.equal(shouldKeepOpen({ ...answerTurn, wrapMode }), false, wrapMode);
+    assert.equal(shouldKeepOpen({ ...answerTurn, wrapMode, userAsking: true }), false, `${wrapMode} asking`);
+  }
+});
+
+test("shouldKeepOpen ⑥ — 실제 유저 말 분류와 맞물린다: 질문에 대한 짧은 답은 열어 두고, 감사·수긍은 닫는다", () => {
+  const keep = (text: string) => {
+    const u = classifyUserTurn(text);
+    return shouldKeepOpen({ ...answerTurn, userAsking: u.asking, userClosing: u.closing });
+  };
+  for (const answer of ["일주일 전쯤", "아니 아직 연락 안 했어", "맞아", "그건 잘 모르겠어"]) {
+    assert.equal(keep(answer), true, answer);
+  }
+  for (const closing of ["고마워 별콩아", "알겠어", "음 그렇구나"]) assert.equal(keep(closing), false, closing);
+  // 알려진 한계: 단독 짧은 동의("응"·"네"·"그래")는 마무리 신호로 분류돼, 예/아니오 질문에 그렇게 답해도 닫힌다
+  assert.equal(keep("응"), false);
 });
 
 test("repairClarifierMarker — 제안 문구가 있고 마커가 없으면 끝에 붙인다(앞부분은 그대로)", () => {

@@ -206,19 +206,25 @@ export async function POST(request: NextRequest) {
 
   // 2026-10-04 인챗 결제 제안·keep-open (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-3·§3-5)
   const userTurn = classifyUserTurn(lastMessage.content);
+  const signalCtx = {
+    isFirstTurn: assistantTurnsSoFar === 0,
+    questionLen: (reading.question ?? "").trim().length,
+  };
+  // 실제 wrapMode 로 먼저 계산 — keep-open 판정(⑥)이 쓰는 lastTurnEndedWithQuestion 은 과거 메시지만 보므로 wrapMode 와 무관하다
+  const baseSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode, ...signalCtx });
   const keepOpen = shouldKeepOpen({
     wrapMode,
     mustEnd,
     crisisActive,
     userAsking: userTurn.asking,
+    lastTurnEndedWithQuestion: baseSignals.lastTurnEndedWithQuestion === true,
+    userClosing: userTurn.closing,
   });
 
-  const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
-    // keep-open 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않는다
-    wrapMode: keepOpen ? "free" : wrapMode,
-    isFirstTurn: assistantTurnsSoFar === 0,
-    questionLen: (reading.question ?? "").trim().length,
-  });
+  // keep-open 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로
+  const turnSignals = keepOpen
+    ? computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode: "free", ...signalCtx })
+    : baseSignals;
 
   const clarifierCandidate = isClarifierCandidate({
     assistantTurnsSoFar,

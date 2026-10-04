@@ -43,12 +43,30 @@ export interface KeepOpenInput {
   /** 강제 종료 턴(마무리 버튼·강제 종료선) */
   mustEnd: boolean;
   crisisActive: boolean;
+  /** classifyUserTurn(이번 유저 말).asking */
   userAsking: boolean;
+  /**
+   * 별콩이의 직전 턴이 질문으로 끝났나 — computeTurnSignals().lastTurnEndedWithQuestion.
+   * 과거 메시지만 보므로 wrapMode 와 무관하다(라우트는 실제 wrapMode 로 계산한 값을 쓴다).
+   */
+  lastTurnEndedWithQuestion: boolean;
+  /** classifyUserTurn(이번 유저 말).closing — 감사·수긍·작별·짧은 동의. asking 이면 항상 false */
+  userClosing: boolean;
 }
 
-/** 자연 마무리선 턴에서 유저가 묻는 중이면 닫지 않는다 */
+/**
+ * 자연 마무리선 턴에서 닫지 않을 때 — 유저가 묻는 중이거나(spec §3-3),
+ * 별콩이가 직전 턴을 질문으로 끝냈는데 유저 답이 마무리 신호가 아닐 때(⑥, 사용자 결정 2026-10-04).
+ * 후자: 열어 둔 턴의 별콩이는 질문으로 끝낼 수 있고, 그 질문에 짧게 답한("일주일 전쯤") 유저를 자연 마무리로 닫으면 '묻고 → 답했더니 → 작별'이 된다.
+ * 연쇄는 스스로 끊긴다 — 질문 2연속 금지(computeTurnClose)로 다음 턴은 질문으로 끝나지 않고, 강제 종료선이 상한이다.
+ */
 export function shouldKeepOpen(i: KeepOpenInput): boolean {
-  return i.wrapMode === "hardcap" && !i.mustEnd && !i.crisisActive && i.userAsking;
+  return (
+    i.wrapMode === "hardcap" &&
+    !i.mustEnd &&
+    !i.crisisActive &&
+    (i.userAsking || (i.lastTurnEndedWithQuestion && !i.userClosing))
+  );
 }
 
 // '카드 한 장' 은 넣지 않는다 — 마무리 인사("카드 한 장으로 다 풀리진 않지만")·평범한 문장에 걸려
