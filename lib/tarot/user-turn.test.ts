@@ -40,6 +40,10 @@ const cases: [string, boolean, boolean][] = [
   // 마무리어는 말끝 15자 안에서만 — 하소연 중간의 감사 표현은 마무리가 아니다
   ["걔가 그때 내 얘기 들어줘서 정말 고마웠는데 요즘은 연락도 뜸하고 나한테 관심이 없는 것 같아서 너무 서운해", true, false],
   ["고마워 별콩아 덕분에 힘이 났어", false, false],
+  // 작별어(갈게·안녕·잘 자…)도 마무리 신호 — 긴 작별 인사도 마무리로 본다
+  ["오늘 얘기 정말 고마웠어 덕분에 마음이 많이 편해졌어 이제 푹 자러 갈게 내일 또 보자", false, true],
+  ["잘 자 별콩아", false, true],
+  ["안녕", false, true],
 ];
 
 for (const [text, asking, closing] of cases) {
