@@ -1,4 +1,6 @@
 // 강제 종료선 재개 — 구매 라우트(extend·clarifier)의 공용 DB 단계. 판정은 ./reopen.ts 의 tarotEndState 가 정본.
+// 순서(사용자 결정 2026-10-04 ④ — 실패는 항상 돈 받기 전): loadTarotEndState → reopenTarotReading(차감 전 선점) → 슬롯 CAS → 차감.
+// 선점한 뒤 CAS·차감이 실패하면 restoreTarotEnd 로 원문을 되돌린다(선점한 요청만).
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { getServiceSupabase } from "../supabase.ts";
 import { stripTrailingEnd, tarotEndState, type ReopenReadingRow } from "./reopen.ts";
@@ -52,14 +54,36 @@ export async function loadTarotEndState(
   };
 }
 
-/** 구매 성공 뒤 — 마지막 assistant 메시지 끝 [END] 만 떼어 대화를 다시 연다 */
+/** 재개 선점 — 차감 **전에** 마지막 assistant 메시지 끝 [END] 만 떼어 대화를 다시 연다(사용자 결정 2026-10-04 ④: 실패는 항상 돈 받기 전).
+ *  아직 [END] 가 남은 행만 갱신하는 CAS 라 같은 대화의 동시 구매 요청 중 하나만 선점한다 — 이미 누가 선점했으면(0행) error(reopen_claim_lost).
+ *  복원은 선점한 요청만 해야 한다: 못 잡은 쪽이 원문을 되돌려 쓰면 먼저 잡은 쪽의 재개를 덮어, 돈은 냈는데 [END] 가 되살아난다.
+ *  (본문 전체를 `eq` 로 비교하지 않는 건 PostgREST 쿼리스트링에 메시지 전문이 URL 인코딩돼 실려 길이 한도에 걸릴 수 있어서다.)
+ *  이후 CAS·차감이 실패하면 restoreTarotEnd 로 되돌린다. */
 export async function reopenTarotReading(
+  supabase: ServiceSupabase,
+  lastAssistant: { id: string; content: string },
+): Promise<{ error: unknown }> {
+  const { data, error } = await supabase
+    .from("messages")
+    .update({ content: stripTrailingEnd(lastAssistant.content) })
+    .eq("id", lastAssistant.id)
+    .like("content", "%[END]%")
+    .select("id");
+  if (error) return { error };
+  if (!data || data.length === 0) {
+    return { error: new Error(`reopen_claim_lost: ${lastAssistant.id}`) };
+  }
+  return { error: null };
+}
+
+/** 재개 선점 반납 — CAS·차감 실패 시 원문([END] 포함) 복원. 실패해도 최악은 무료 1턴(다음 채팅 턴이 강제 종료선이라 바로 닫힌다) */
+export async function restoreTarotEnd(
   supabase: ServiceSupabase,
   lastAssistant: { id: string; content: string },
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from("messages")
-    .update({ content: stripTrailingEnd(lastAssistant.content) })
+    .update({ content: lastAssistant.content })
     .eq("id", lastAssistant.id);
   return { error };
 }

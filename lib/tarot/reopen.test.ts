@@ -12,7 +12,12 @@ import {
   type ReopenOptions,
   type ReopenReadingRow,
 } from "./reopen.ts";
-import { loadTarotEndState, type LoadedTarotEndState } from "./reopen-server.ts";
+import {
+  loadTarotEndState,
+  reopenTarotReading,
+  restoreTarotEnd,
+  type LoadedTarotEndState,
+} from "./reopen-server.ts";
 
 test("effectiveAbsTurnCap — 기본 + 연장 턴 + 보조 카드×2", () => {
   assert.equal(effectiveAbsTurnCap("two_card", 0, 0), 12);
@@ -333,6 +338,91 @@ test("loadTarotEndState — 반환형이 판별 유니온이라 error 만 확인
   if (out.error) throw out.error;
   const checkedWhole: LoadedTarotEndState = out.state; // 구조분해 안 한 형태도 동일
   assert.equal(checkedWhole.ended, true);
+});
+
+// ── 쓰기 헬퍼(재개 선점 · 복원) — update 체인(from → update → eq [→ like → select])을 기록하는 가짜 service client ──
+type WriteResult = { data?: { id: string }[] | null; error: unknown };
+function fakeWrites(result: WriteResult) {
+  type Chain = {
+    update: (payload: unknown) => Chain;
+    eq: (col: string, val: unknown) => Chain;
+    like: (col: string, pattern: unknown) => Chain;
+    select: (cols: string) => Chain;
+    then: (resolve: (r: WriteResult) => unknown) => unknown;
+  };
+  const calls: unknown[][] = [];
+  const chain: Chain = {
+    update: (payload) => {
+      calls.push(["update", payload]);
+      return chain;
+    },
+    eq: (col, val) => {
+      calls.push(["eq", col, val]);
+      return chain;
+    },
+    like: (col, pattern) => {
+      calls.push(["like", col, pattern]);
+      return chain;
+    },
+    select: (cols) => {
+      calls.push(["select", cols]);
+      return chain;
+    },
+    then: (resolve) => resolve(result), // await 하면 result 로 풀린다
+  };
+  return {
+    calls,
+    client: {
+      from: (table: string) => {
+        calls.push(["from", table]);
+        return chain;
+      },
+    } as unknown as Parameters<typeof restoreTarotEnd>[0],
+  };
+}
+
+test("restoreTarotEnd — 원문([END] 포함)을 그 메시지 id 에 되돌려 쓴다", async () => {
+  const { client, calls } = fakeWrites({ error: null });
+  const out = await restoreTarotEnd(client, { id: "m12", content: CLOSE });
+  assert.equal(out.error, null);
+  assert.deepEqual(calls, [
+    ["from", "messages"],
+    ["update", { content: CLOSE }],
+    ["eq", "id", "m12"],
+  ]);
+});
+
+test("restoreTarotEnd — DB 오류는 error 로 돌려준다(라우트가 로그 + 수동 보정 필요)", async () => {
+  const boom = new Error("db down");
+  const { client } = fakeWrites({ error: boom });
+  const out = await restoreTarotEnd(client, { id: "m12", content: CLOSE });
+  assert.equal(out.error, boom);
+});
+
+test("reopenTarotReading — [END] 가 남은 행만 갱신하는 CAS 로 선점한다(끝 [END] 만 제거)", async () => {
+  const { client, calls } = fakeWrites({ data: [{ id: "m12" }], error: null });
+  const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
+  assert.equal(out.error, null);
+  assert.deepEqual(calls, [
+    ["from", "messages"],
+    ["update", { content: "끝 인사야." }],
+    ["eq", "id", "m12"],
+    ["like", "content", "%[END]%"],
+    ["select", "id"],
+  ]);
+});
+
+test("reopenTarotReading — 동시 요청이 먼저 선점했으면(0행) error — 진 쪽은 복원하지 않고 차감 전에 멈춘다", async () => {
+  const { client } = fakeWrites({ data: [], error: null });
+  const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
+  assert.match(String(out.error), /reopen_claim_lost/);
+});
+
+test("reopenTarotReading — DB 오류는 error 로 돌려준다", async () => {
+  const boom = new Error("db down");
+  const { client } = fakeWrites({ data: null, error: boom });
+  const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
+  assert.equal(out.error, boom);
 });
 
 // ── X-Reopen 응답 헤더 — 서버(formatReopenHeader)와 클라(parseReopenHeader)가 한 쌍으로 쓴다 ──

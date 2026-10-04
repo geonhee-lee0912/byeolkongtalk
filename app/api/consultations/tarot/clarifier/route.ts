@@ -1,5 +1,8 @@
 // 보조 카드(clarifier) 구매 — 타로 리딩 중 카드 1장 추가 + 별 차감.
-// 검증: 세션 → 소유권 → tarot 타입 → ended 아님 → 한도 → 카드 중복 → 차감 → DB 업데이트.
+// 검증: 세션 → 소유권 → tarot 타입 → 종료 상태(조회 실패 500 · 끝났는데 강제 종료선이 아니면 400) → 카드 중복 → [재개 선점] → 한도(CAS) → 차감 → DB 업데이트.
+// 강제 종료선에서 닫힌 대화는 예외로 허용한다 — 끝 [END] 제거를 차감 **전에** 선점하고(사용자 결정 2026-10-04 ④),
+// CAS·차감이 실패하면 원문을 복원한다. 그래서 돈이 움직이기 전의 실패는 항상 되돌려진다.
+// (차감 뒤 drawn_cards 갱신 실패는 구매가 성립한 뒤라 복원하지 않는다 — 수동 보정, 대화는 열린 채 둔다.)
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
@@ -8,6 +11,7 @@ import { spendStars } from "@/lib/stars";
 import { logError } from "@/lib/logger";
 import { CLARIFIER_COST, CLARIFIER_MAX } from "@/lib/upsell";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import { loadTarotEndState, reopenTarotReading, restoreTarotEnd } from "@/lib/tarot/reopen-server";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
   const { data: reading, error: rErr } = await supabase
     .from("readings")
     .select(
-      "id, user_id, consultation_type, drawn_cards, clarifier_count, has_sensitive"
+      "id, user_id, consultation_type, drawn_cards, clarifier_count, has_sensitive, spread_type, extra_turns"
     )
     .eq("id", body.readingId)
     .maybeSingle();
@@ -69,22 +73,60 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "sensitive_blocked" }, { status: 403 });
   }
 
-  // ended 검증 — assistant 메시지에 [END] 존재하면 400
-  const { data: msgRows } = await supabase
-    .from("messages")
-    .select("content")
-    .eq("reading_id", reading.id)
-    .eq("role", "assistant");
-  const ended = (msgRows ?? []).some((m) => m.content.includes("[END]"));
-  if (ended) {
+  // 종료 상태 — 구매 반영 전 행으로 판정(spec §3-4). 조회 실패면 차감 전에 500.
+  const { state: endState, error: endErr } = await loadTarotEndState(supabase, reading);
+  if (endErr) {
+    await logError(endErr, {
+      route: "/api/consultations/tarot/clarifier",
+      userId,
+      extra: { stage: "end_state", readingId: reading.id },
+    });
+    return NextResponse.json({ error: "end_state_error" }, { status: 500 });
+  }
+  // [END] 가 있으면 400 — 단 강제 종료선에서 닫혔으면(endedAtAbsCap) 재개 구매를 허용한다
+  if (endState.ended && !endState.endedAtAbsCap) {
     return NextResponse.json({ error: "reading_already_ended" }, { status: 400 });
   }
 
-  // 카드 중복 검증 — 기존 drawn_cards에 동일 card_id 없어야 함
+  // 카드 중복 검증 — 기존 drawn_cards에 동일 card_id 없어야 함 (재개 선점보다 앞 — 이 거절은 아무것도 쓰기 전에)
   const drawnCards = ((reading.drawn_cards as DrawnCard[]) ?? []);
   if (drawnCards.some((c) => c.card_id === body.card.card_id)) {
     return NextResponse.json({ error: "card_already_drawn" }, { status: 400 });
   }
+
+  // 강제 종료선에서 닫힌 대화 — [END] 제거를 차감 전에 선점(사용자 결정 2026-10-04 ④): 실패는 항상 돈 받기 전
+  let reopened: { id: string; content: string } | null = null;
+  if (endState.endedAtAbsCap && endState.lastAssistant) {
+    const { error: reopenErr } = await reopenTarotReading(supabase, endState.lastAssistant);
+    if (reopenErr) {
+      await logError(reopenErr, {
+        route: "/api/consultations/tarot/clarifier",
+        userId,
+        extra: { stage: "reopen", readingId: reading.id },
+      });
+      return NextResponse.json({ error: "reopen_failed" }, { status: 500 });
+    }
+    reopened = endState.lastAssistant;
+  }
+  // 선점한 [END] 제거를 원문으로 되돌린다 — 이후 CAS·차감이 실패했을 때만 부른다.
+  // 복원이 실패해도 최악은 무료 1턴(다음 채팅 턴이 강제 종료선이라 바로 닫힌다)이라 로그만 남기고 원래 응답을 그대로 준다.
+  const restoreIfReopened = async () => {
+    const claimed = reopened;
+    if (!claimed) return;
+    const { error: restoreErr } = await restoreTarotEnd(supabase, claimed);
+    if (restoreErr) {
+      console.error("[clarifier] 재개 선점 복원 실패 — 수동 보정 필요:", {
+        readingId: reading.id,
+        userId,
+        messageId: claimed.id,
+      });
+      await logError(restoreErr, {
+        route: "/api/consultations/tarot/clarifier",
+        userId,
+        extra: { stage: "reopen_restore", readingId: reading.id, messageId: claimed.id },
+      });
+    }
+  };
 
   // 슬롯 원자 선점 — CAS: 읽었던 값과 정확히 일치할 때만 +1 (MAX>1이라 .lt만으론
   // 동시 요청이 둘 다 stale+1 을 써서 별만 2회 차감되는 구멍이 남음).
@@ -99,6 +141,7 @@ export async function POST(request: NextRequest) {
     .select("clarifier_count");
 
   if (slotErr) {
+    await restoreIfReopened();
     await logError(slotErr, {
       route: "/api/consultations/tarot/clarifier",
       userId,
@@ -107,6 +150,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "slot_error" }, { status: 500 });
   }
   if (!slotRows || slotRows.length === 0) {
+    await restoreIfReopened();
     return NextResponse.json(
       { error: "clarifier_limit_reached", max: CLARIFIER_MAX },
       { status: 400 }
@@ -134,6 +178,7 @@ export async function POST(request: NextRequest) {
         extra: { stage: "slot_rollback", readingId: reading.id },
       });
     }
+    await restoreIfReopened();
     return NextResponse.json(
       { error: "insufficient", balance: spend.balance },
       { status: 402 }
@@ -171,5 +216,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     drawnCards: updatedCards,
     clarifierCount: newClarifierCount,
+    reopened: reopened !== null,
   });
 }
