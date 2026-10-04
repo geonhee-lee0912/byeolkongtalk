@@ -10,13 +10,15 @@ interface Props {
   onTap: () => void;
   /** 노출 계측 — 마운트 1회 */
   onShown?: () => void;
+  /** 잠금 — 답이 출력되는 동안·다른 구매 중엔 못 누른다(문구는 그대로 두고 흐리게만) */
+  disabled?: boolean;
 }
 
 /**
  * 인챗 업셀 — 보조 카드 한 장 더 뽑기 칩.
  * RECO:tarot:clarifier 마커가 붙은 메시지 바로 아래에 렌더.
  */
-export default function ClarifierChip({ state, onTap, onShown }: Props) {
+export default function ClarifierChip({ state, onTap, onShown, disabled }: Props) {
   const done = state === "done";
 
   // 노출 계측 — 마운트 1회. 리딩·상품·지면 단위 dedup 은 부모가 한다
@@ -29,11 +31,13 @@ export default function ClarifierChip({ state, onTap, onShown }: Props) {
     <div className="mt-2 mb-1 max-w-xs ml-10">
       <button
         type="button"
-        onClick={done ? undefined : onTap}
-        disabled={done}
+        onClick={done || disabled ? undefined : onTap}
+        disabled={done || disabled}
         className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition text-left ${
           done
             ? "border-lilac-mid/30 bg-lilac-soft/40 cursor-default"
+            : disabled
+            ? "border-gold/30 bg-cream-warm opacity-60 cursor-not-allowed"
             : "border-gold/50 bg-cream-warm hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
         }`}
       >
