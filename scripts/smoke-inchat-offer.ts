@@ -16,6 +16,14 @@
 //
 // 실행 — dev 서버(localhost:3000)가 이 워킹트리로 떠 있어야 한다(서버측 코드·페르소나를 고쳤으면 재시작 후):
 //   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts
+//
+// --fixture — 브라우저 검수용 리딩 2건만 만든다(구매 없음 · 인자 없는 기본 모드는 위 그대로). 만든 리딩의 id·URL 을 찍는다:
+//   A 종료 후 제안   기본 모드와 같은 T1~T12 로 강제 종료선까지 몰고 멈춘다 — T12 [END]·X-End-Reason=abs_cap·X-Reopen="extend,clarifier" · GET reopen={extend:true, clarifier:true}. 종료된 채로 둔다
+//                    → 브라우저: '결과 보기 →' 아래 '4턴 더 이어가기'·'카드 한 장 더 뽑고 이어가기' 두 버튼
+//   B 첫 답 마무리 링크  다른 고민 문구로 T1 만(같은 문구면 60초 중복 생성 방어가 A 를 돌려준다) — 200 · [END] 없음
+//                    → 브라우저: 금색 마무리 버튼 대신 작은 링크 '결과만 보고 마칠래'
+//   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --fixture      (LLM 13회 · 소요 약 1분 20초, 2026-10-04 실측 82초)
+//
 // ⚠️ 로컬 .env.local 의 dev Supabase 를 쓰고 LLM 을 약 18회 호출한다(원가 발생 · 소요 약 2분, 2026-10-04 실측 108초). 리딩은 지우지 않는다(브라우저로 열어 보려고) — 테스트 유저(QA봇) 소유.
 // ⚠️ 같은 리딩을 60초 안에 다시 만들면 중복 생성 방어가 기존 리딩을 돌려준다 — 실행 사이에 1분 이상 띄울 것.
 // ⚠️ 모델 응답이 누적 3,640자에 못 미치면 9번째가 자연 마무리선(hardcap)이 아니라 keep-open 경로가 실행되지 않는다 → INFO 로 남는다. 질문을 더 자세히 청하게 고쳐 다시 돌릴 것.
@@ -35,6 +43,7 @@ import { EXTEND_COST, EXTEND_TURNS, CLARIFIER_COST, CLARIFIER_MAX } from "../lib
 const SPREAD = "two_card" as const;
 const CONCERN = "헤어진 사람한테 다시 연락이 올까? 계속 생각나";
 const EMOTION = "걔 속마음이 궁금해";
+const CONCERN_B = "걔가 요즘 답장이 부쩍 늦어졌어. 나한테 마음이 식은 건지 궁금해"; // --fixture B 전용 — CONCERN 과 달라야 60초 중복 생성 방어가 A 를 돌려주지 않는다
 const ABS = 12; // 기본 강제 종료선
 const ABS_EXTENDED = ABS + EXTEND_TURNS; // 연장 뒤 강제 종료선(16)
 const NATURAL_TURN = 9; // 자연 마무리선 턴
@@ -501,19 +510,159 @@ async function summary() {
   console.log(`집계       : PASS ${passed} · FAIL ${failed} · INFO ${infos}`);
 }
 
+// ── --fixture 모드 — 브라우저 검수용 리딩 2건 (구매 없음 · extend/clarifier 라우트는 부르지 않는다) ──
+interface Fixture {
+  tag: "A" | "B";
+  id: string;
+  title: string;
+  /** 브라우저에서 이 리딩을 열면 보여야 할 것 */
+  expect: string;
+  /** 만든 직후 DB 상태 한 줄 */
+  state?: string;
+}
+const fixtures: Fixture[] = [];
+
+/** 지금 S.readingId 리딩의 DB 상태 한 줄 — fixture 를 만든 직후 찍어 둔다(다음 fixture 로 넘어가면 S 가 바뀐다) */
+async function describeState(): Promise<string> {
+  const st = await assistantStats();
+  const row = await readingRow();
+  return `별콩이 답 ${st.count}턴 · drawn_cards ${row.drawn_cards.length}장 · extra_turns ${row.extra_turns} · clarifier_count ${row.clarifier_count} · has_sensitive ${row.has_sensitive} · 마지막 메시지 [END] ${hasEnd(st.last) ? "있음(닫힘)" : "없음(열림)"}`;
+}
+
+/** 로컬 dev 서버 전용 가드 + 접속 정보 한 줄 — fixture 모드용(기본 시나리오는 같은 코드를 인라인으로 가진다 — 기본 모드를 건드리지 않으려고 따로 둔다) */
+function preflight(title: string) {
+  console.log(title);
+  const base = new URL(config.BASE_URL);
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(base.hostname)) {
+    bail(`BASE_URL=${config.BASE_URL} — 로컬 dev 서버(localhost) 전용 스모크다`);
+  }
+  let sbHost = "(env 없음)";
+  try {
+    sbHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
+  } catch {
+    /* 표시용일 뿐 */
+  }
+  console.log(`BASE_URL=${config.BASE_URL}  test-user=${config.TEST_USER_ID}  supabase=${sbHost}`);
+}
+
+/** fixture 리딩 하나 생성 — S 를 비우고 새로 시작한다. 기본 시나리오 [2] 와 같은 생성 호출(고민 문구만 인자) */
+async function createFixture(tag: Fixture["tag"], title: string, expect: string, concern: string) {
+  S.readingId = "";
+  S.history = [];
+  S.turn = 0;
+  S.trail = [];
+  const drawnCards = [0, 1].map((i) => ({
+    position: i,
+    label: `pos${i}`,
+    card_id: QA_SEEDED_CARD_IDS[i],
+    direction: "upright" as const,
+  }));
+  const created = await postJson<{ id?: string; duplicate?: boolean; error?: string }>("/api/consultations/tarot", {
+    spreadType: SPREAD,
+    spreadCategory: "love",
+    emotion: EMOTION,
+    concern,
+    drawnCards,
+  });
+  if (!check(`${tag} 투카드(love) 리딩 생성 200`, created.status === 200 && !!created.json.id, created)) {
+    bail(`fixture ${tag} 리딩을 만들지 못했다`, true);
+  }
+  if (created.json.duplicate === true) {
+    bail(`fixture ${tag}: 60초 안에 같은 리딩을 만든 적이 있어 기존 리딩이 재사용됐다(중복 생성 방어) — 1분 뒤 다시 실행`);
+  }
+  S.readingId = created.json.id!;
+  fixtures.push({ tag, id: S.readingId, title, expect });
+  info(`fixture ${tag} reading id = ${S.readingId}`);
+}
+
+async function fixtureScenario() {
+  preflight("══ 타로톡 인챗 결제 제안 — 브라우저 검수용 fixture (구매 없음) ══");
+
+  // [대본 전제] A 가 T12 에서 강제 종료되려면 투카드 강제 종료선이 12 여야 한다
+  const abs = WRAP_THRESHOLDS[SPREAD].absTurnCap;
+  if (!check(`대본 전제(fixture) = 코드 상수 (투카드 강제 종료선 ${ABS})`, abs === ABS, { abs })) {
+    bail("투카드 강제 종료선이 바뀌어 T12 가 마지막 턴이 아니다 — 스크립트 갱신 필요", true);
+  }
+
+  console.log("\n── [준비] ──");
+  await ensureTestUser();
+  await topUpStars();
+  info(`시드 잔액 ${await getBalance()}별`);
+
+  // ── [A] 종료 후 제안 — 기본 모드 [2]~[3] 과 같은 대본으로 T12 까지 ──
+  console.log(`\n── [A] 종료 후 제안 fixture — 투카드 T1~T${ABS} 에서 멈춤 ──`);
+  await createFixture(
+    "A",
+    "종료 후 제안",
+    "닫힌 대화 — '결과 보기 →' 아래 '아직 할 얘기가 남았다면' + '4턴 더 이어가기 ⭐10' · '카드 한 장 더 뽑고 이어가기 ⭐10' 두 버튼",
+    CONCERN,
+  );
+  const a1 = await runTurn(CONCERN);
+  if (!check("A T1 첫 풀이 — [END] 없음", !a1.end, { wrap: a1.wrap })) bail("A T1 에서 조기 [END]", true);
+  let r12!: TurnResult;
+  for (let turn = 2; turn <= ABS; turn++) {
+    const r = await runTurn(QUESTIONS[turn - 2]);
+    if (turn === ABS) {
+      r12 = r;
+      break;
+    }
+    if (r.end) bail(`A T${turn} 에서 조기 [END] (wrap=${r.wrap}, 강제 종료선 ${ABS} 전)`);
+  }
+  check(`A T${ABS} [END] 있음`, r12.end, { wrap: r12.wrap });
+  check(`A T${ABS} X-End-Reason = abs_cap`, r12.res.headers["x-end-reason"] === "abs_cap", r12.res.headers["x-end-reason"]);
+  check(`A T${ABS} X-Reopen = "extend,clarifier"`, r12.res.headers["x-reopen"] === "extend,clarifier", r12.res.headers["x-reopen"]);
+  const gA = await getReading();
+  check("A GET reopen = {extend:true, clarifier:true}", gA.status === 200 && gA.reopen?.extend === true && gA.reopen?.clarifier === true, { status: gA.status, reopen: gA.reopen });
+  fixtures[0].state = await describeState();
+
+  // ── [B] 첫 답 마무리 링크 — T1 만 ──
+  console.log("\n── [B] 첫 답 마무리 링크 fixture — 투카드 T1 만 ──");
+  await createFixture(
+    "B",
+    "첫 답 마무리 링크",
+    "열린 대화(별콩이 답 1개) — 금색 '대화 마무리하고 결과 확인하기' 버튼 대신 작은 밑줄 링크 '결과만 보고 마칠래'",
+    CONCERN_B,
+  );
+  const b1 = await runTurn(CONCERN_B);
+  check("B T1 — HTTP 200 · [END] 없음", b1.res.status === 200 && !b1.end, { status: b1.res.status, wrap: b1.wrap });
+  fixtures[1].state = await describeState();
+}
+
+async function fixtureSummary() {
+  console.log("\n══ fixture 요약 (구매 없음) ══");
+  if (fixtures.length === 0) console.log("(리딩 생성 전 중단)");
+  for (const f of fixtures) {
+    if (!f.state && f.id === S.readingId) f.state = await describeState().catch(() => undefined); // 중간에 중단된 fixture 는 지금 상태라도 찍는다
+    console.log(`${f.tag} ${f.title} : ${f.id}`);
+    console.log(`   URL     : ${config.BASE_URL}/tarot/reading?id=${f.id}`);
+    console.log(`   상태    : ${f.state ?? "(상태 조회 못 함 — 중간 중단)"}`);
+    console.log(`   브라우저: ${f.expect}`);
+  }
+  console.log(`쿠키       : byeolkong_user_id=${config.TEST_USER_ID} 주입 필요`);
+  console.log(`집계       : PASS ${passed} · FAIL ${failed} · INFO ${infos}`);
+}
+
+const FIXTURE_MODE = process.argv.includes("--fixture");
+
 async function main() {
   try {
-    await scenario();
+    await (FIXTURE_MODE ? fixtureScenario() : scenario());
   } catch (e) {
     if (!(e instanceof Bail)) {
       failed++;
       console.log(`[FAIL] 예외: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
     }
   } finally {
-    await summary().catch((e: unknown) => console.log(`(요약 실패: ${String(e).slice(0, 120)})`));
+    await (FIXTURE_MODE ? fixtureSummary() : summary()).catch((e: unknown) => console.log(`(요약 실패: ${String(e).slice(0, 120)})`));
   }
   console.log(failed === 0 ? "\nALL PASS" : `\n${failed} FAIL`);
   process.exitCode = failed === 0 ? 0 : 1;
 }
 
+// 모르는 인자(오타 `--fixtures` 등)는 기본 모드로 흘려 LLM 18회·구매를 돌리지 않게 막는다 — 인자 없는 기본 모드는 그대로
+const unknownArgs = process.argv.slice(2).filter((a) => a !== "--fixture");
+if (unknownArgs.length > 0) {
+  console.error(`알 수 없는 인자: ${unknownArgs.join(" ")}\n사용법: node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts [--fixture]`);
+  process.exit(2);
+}
 void main();
