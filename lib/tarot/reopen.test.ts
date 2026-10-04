@@ -593,8 +593,8 @@ test("claimTarotReopen — restore 가 실패하면 console.error(수동 보정 
 });
 
 // ── undoSlotAndRestore — 차감 확정 부족 뒤: 슬롯을 두 카운터 CAS 로 반납하고, 정확히 1행이 깨끗이 되돌아갔을 때만 [END] 를 복원한다 ──
-const EXTEND_UNDO = { column: "extra_turns", applied: 4, previous: 0, other: { column: "clarifier_count", value: 0 } } as const;
-const CLARIFIER_UNDO = { column: "clarifier_count", applied: 1, previous: 0, other: { column: "extra_turns", value: 4 } } as const;
+const EXTEND_UNDO = { readingId: "r1", column: "extra_turns", applied: 4, previous: 0, other: { column: "clarifier_count", value: 0 } } as const;
+const CLARIFIER_UNDO = { readingId: "r1", column: "clarifier_count", applied: 1, previous: 0, other: { column: "extra_turns", value: 4 } } as const;
 const claimAndGet = async (
   client: ReturnType<typeof fakeWrites>["client"],
   log: ReopenLog,
@@ -693,6 +693,28 @@ test("undoSlotAndRestore — 반납은 됐는데 복원이 실패하면 던지�
   assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, log), "rolled_back");
   assert.equal(logs.length, 1);
   assert.equal(logs[0].ctx?.extra?.stage, "reopen_restore");
+});
+
+test("undoSlotAndRestore — 반납 CAS 의 행 id 는 SlotUndo.readingId 다: 로그 맥락(log.readingId)이 다른 값이어도 키는 바뀌지 않는다", async () => {
+  // log.readingId 가 표시용 값으로 바뀌어도(예: 사람이 읽는 id) 반납이 엉뚱한 행을 겨누거나 조용히 'stacked' 가 되면 안 된다
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [{ id: "r1" }], error: null }, { error: null }]);
+  const display: ReopenLog = { ...fakeLog().log, readingId: "display-only-id" };
+  const claim = await claimAndGet(client, display);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, display), "rolled_back");
+  assert.deepEqual(
+    readingsCalls(calls).filter((c) => c[0] === "eq" && c[1] === "id"),
+    [["eq", "id", "r1"]],
+  );
+});
+
+test("undoSlotAndRestore — 로그(경고·오류)의 readingId 는 log.readingId 를 쓴다 — 키와 로그 맥락은 별개", async () => {
+  const { client } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [], error: null }]);
+  const { log, warns } = fakeLog();
+  const display: ReopenLog = { ...log, readingId: "display-only-id" };
+  const claim = await claimAndGet(client, display);
+  assert.equal(await undoSlotAndRestore(client, claim, EXTEND_UNDO, display), "stacked");
+  assert.equal(warns.length, 1);
+  assert.equal(warns[0].ctx?.extra?.readingId, "display-only-id");
 });
 
 // ── X-Reopen 응답 헤더 — 서버(formatReopenHeader)와 클라(parseReopenHeader)가 한 쌍으로 쓴다 ──

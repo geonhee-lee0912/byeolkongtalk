@@ -2,8 +2,9 @@
 // 검증: 세션 → 소유권 → has_sensitive false → 종료 상태(조회 실패 500 · 늦게 온 요청 409 · 끝났는데 강제 종료선이 아니면 400)
 //      → 한도·잔액 사전 확인(선점 앞) → [재개 선점] → 한도(CAS) → 차감 → DB 업데이트.
 // 강제 종료선에서 닫힌 타로 대화는 예외로 허용한다 — 끝 [END] 제거를 차감 **전에** 선점하고(사용자 결정 2026-10-04 ④),
-// 이후 슬롯 CAS 가 0행이거나 차감이 확정 부족(insufficient)으로 실패하면 되돌린다(슬롯 반납 CAS 가 깨끗이 적용됐을 때만 [END] 복원). 그래서 실패는 돈이 움직이기 전이다.
-// 결과가 불명한 경우는 되돌리지 않는다 — 슬롯 CAS 오류·차감 rpc_error 는 실제로 적용·커밋됐을 수 있어, 사용자에게 유리한 쪽(열린 대화·올라간 슬롯)으로 둔다.
+// 이후 슬롯 CAS 가 0행(동시 경합 — 409)이거나 차감이 확정 부족(insufficient)으로 실패하면 되돌린다(슬롯 반납 CAS 가 깨끗이 적용됐을 때만 [END] 복원). 그래서 실패는 돈이 움직이기 전이다.
+// 결과가 불명한 경우는 되돌리지 않고 사용자에게 유리한 쪽으로 둔다 — 슬롯 CAS 오류는 열어 둔 채 500(적용됐을 수 있다),
+// 차감 rpc_error(커밋됐을 수 있다)는 효과가 이미 적용돼 있으니 성공으로 처리하고 spend_unknown_granted ERROR 로그를 남긴다(안 커밋됐다면 공짜 구매 — 드물어 받아들인다).
 // 사주(공용 라우트)는 endedAtAbsCap=false 라 재개 경로를 타지 않는다. 종전과 다른 점 둘: 종료 상태 조회 오류는 이제 사주도 500(예전엔 fail-open),
 // 한도·잔액 사전 확인이 슬롯 선점 앞에 붙는다(같은 400/402 응답을 쓰기 없이 먼저 준다).
 
@@ -89,7 +90,8 @@ export async function POST(
   // 슬롯 원자 선점 — CAS: 읽었던 값과 정확히 일치할 때만 +EXTEND_TURNS.
   // 두 카운터 모두 고정한다(clarifier_count 도) — 둘 다 유효 강제 종료선을 정하므로, 구매 판정('열려 있다/닫혔다')에 쓴 상태가 그대로일 때만 쓴다.
   // 안 그러면 늦게 온 요청이 다른 요청이 올렸다 반납한 카운터를 근거로 '열린 대화'라 판단한 채 CAS 를 통과해, [END] 가 복원된 대화에 자기 슬롯만 남긴다(영영 재개 불가).
-  // 반환 0행 → 한도 소진 또는 동시 경합 — 어느 쪽이든 차감 없이 400.
+  // 반환 0행 → 한도는 위 사전 확인이 같은 읽은 값으로 이미 걸렀으니, 0행은 읽은 뒤 행이 바뀐 동시 경합뿐이다 — 차감 없이 409(재시도 가능).
+  // (한도 술어 .lt 는 그대로 둔다 — 진짜 가드다. 예전엔 여기서 extend_limit_reached 400 을 줘 클라가 '이미 연장했어' 를 잘못 보여 줬다.)
   const { data: slotRows, error: slotErr } = await supabase
     .from("readings")
     .update({ extra_turns: extraTurns + EXTEND_TURNS })
@@ -112,10 +114,7 @@ export async function POST(
   }
   if (!slotRows || slotRows.length === 0) {
     await claim.restore();
-    return NextResponse.json(
-      { error: "extend_limit_reached", max: EXTEND_MAX },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "purchase_in_progress" }, { status: 409 });
   }
 
   const newExtraTurns = slotRows[0].extra_turns as number;
@@ -126,32 +125,34 @@ export async function POST(
     source: "extend",
   });
   if (!spend.success) {
-    // 결과가 불명(rpc_error 등) — RPC 가 실제로 커밋됐을 수 있다. 반납·복원 둘 다 하지 않고(사용자에게 유리) 500 만 준다.
-    if (spend.reason !== "insufficient") {
-      console.error("[extend] 차감 결과 불명 — 슬롯·재개 유지, 별 차감 여부 확인 필요:", { readingId: id, userId, reason: spend.reason });
-      await logError(new Error(`spend_unknown: ${spend.reason ?? "no reason"}`), {
-        route,
-        userId,
-        extra: { stage: "spend_unknown", readingId: id },
-      });
-      return NextResponse.json({ error: "spend_unknown" }, { status: 500 });
+    if (spend.reason === "insufficient") {
+      // 확정 부족 — 슬롯을 두 카운터 CAS 로 반납하고, 깨끗이 반납됐을 때만 선점한 [END] 를 복원한다
+      await undoSlotAndRestore(
+        supabase,
+        claim,
+        {
+          readingId: id,
+          column: "extra_turns",
+          applied: newExtraTurns,
+          previous: extraTurns,
+          other: { column: "clarifier_count", value: clarifierCount },
+        },
+        log,
+      );
+      return NextResponse.json(
+        { error: "insufficient", balance: spend.balance },
+        { status: 402 }
+      );
     }
-    // 확정 부족 — 슬롯을 두 카운터 CAS 로 반납하고, 깨끗이 반납됐을 때만 선점한 [END] 를 복원한다
-    await undoSlotAndRestore(
-      supabase,
-      claim,
-      {
-        column: "extra_turns",
-        applied: newExtraTurns,
-        previous: extraTurns,
-        other: { column: "clarifier_count", value: clarifierCount },
-      },
-      log,
-    );
-    return NextResponse.json(
-      { error: "insufficient", balance: spend.balance },
-      { status: 402 }
-    );
+    // 확정 부족이 아닌 모든 실패(rpc_error 등) — 결과 불명: RPC 가 실제로 커밋됐을 수 있다. 사용자에게 유리하게 **성공으로 처리**한다 —
+    // 효과(슬롯·재개)는 이미 적용돼 있으니 반납·복원 없이 정상 응답을 준다(예전엔 500 이라 클라가 '연장이 안 됐어' 를 보이는 사이 효과는 적용돼 있었다).
+    // 차감이 실제로는 커밋 안 됐다면 공짜 구매가 나가지만 드물어 받아들인다. star_transactions 와 대조할 수 있게 ERROR 로그를 남긴다.
+    console.error("[extend] 차감 결과 불명 → 성공 처리(spend_unknown_granted) — star_transactions 대조 필요:", { readingId: id, userId, reason: spend.reason });
+    await logError(new Error(`spend_unknown_granted: ${spend.reason ?? "no reason"}`), {
+      route,
+      userId,
+      extra: { stage: "spend_unknown_granted", readingId: id, source: "extend", cost: EXTEND_COST, reason: spend.reason ?? null },
+    });
   }
 
   return NextResponse.json({ extraTurns: newExtraTurns, reopened: claim.reopened !== null });

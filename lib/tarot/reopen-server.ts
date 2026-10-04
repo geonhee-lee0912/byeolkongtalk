@@ -1,8 +1,10 @@
 // 강제 종료선 재개 — 구매 라우트(extend·clarifier)의 공용 DB 단계. 판정은 ./reopen.ts 의 tarotEndState 가 정본.
 // 순서(사용자 결정 2026-10-04 ④ — 실패는 항상 돈 받기 전, 결과가 불명하면 사용자에게 유리한 쪽):
 //   loadTarotEndState → claimInProgress 면 409 → 한도·잔액 사전 확인 → claimTarotReopen(차감 전 [END] 선점) → 슬롯 CAS(두 카운터) → 차감.
-// 실패 처리: 슬롯 CAS 0행이면 claim.restore. 차감이 확정 부족(insufficient)이면 undoSlotAndRestore(반납 CAS 가 깨끗할 때만 복원).
-// 결과 불명(슬롯 CAS 오류·차감 rpc_error)이면 되돌리지 않는다 — 적용·커밋됐을 수 있고, 올라간 선 아래에서 [END] 만 되살리면 영영 재개할 수 없다.
+// 실패 처리: 슬롯 CAS 0행(읽은 뒤 행이 바뀐 동시 경합 — 한도는 사전 확인이 이미 걸렀다)이면 claim.restore 후 409.
+// 차감이 확정 부족(insufficient)이면 undoSlotAndRestore(반납 CAS 가 깨끗할 때만 복원) 후 402.
+// 결과 불명은 되돌리지 않는다 — 슬롯 CAS 오류는 열어 둔 채 500(적용됐을 수 있고, 올라간 선 아래에서 [END] 만 되살리면 영영 재개할 수 없다).
+// 차감 rpc_error 는 성공으로 처리한다(커밋됐을 수 있고 효과는 이미 적용돼 있다 — 라우트가 spend_unknown_granted ERROR 로그로 star_transactions 대조 표시를 남긴다).
 // 복원은 선점한 요청만 한다.
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { getServiceSupabase } from "../supabase.ts";
@@ -105,6 +107,7 @@ export interface ReopenLog {
   tag: string;
   route: string;
   userId: string;
+  /** 로그 맥락용(표시용) — DB 키가 아니다. 반납 CAS 의 키는 SlotUndo.readingId */
   readingId: string;
   logError: typeof logError;
   logWarn: typeof logWarn;
@@ -160,6 +163,8 @@ export type SlotColumn = "extra_turns" | "clarifier_count";
 
 /** 차감이 확정 부족으로 실패한 뒤 슬롯 반납에 필요한 값 */
 export interface SlotUndo {
+  /** 반납 CAS 가 갱신할 readings 행 id — DB 키다. 로그용 log.readingId 와 일부러 분리했다(표시용 id 가 나중에 생겨도 반납이 조용히 'stacked' 로 바뀌지 않게) */
+  readingId: string;
   /** 이 요청의 CAS 가 올린 카운터 */
   column: SlotColumn;
   /** 이 요청의 CAS 가 쓴 값 — 반납 CAS 가 요구하는 현재 값 */
@@ -175,7 +180,7 @@ export interface SlotUndo {
  *  - 반납 오류: 카운터가 올라간 채일 수 있다. 그 상태에서 [END] 만 되살리면 턴 수 < 올라간 선이라 '강제 종료선에서 닫힌 대화'가 아니게 돼
  *    영영 재개할 수 없다 → 복원하지 않는다. 오류 로그(수동 보정 필요).
  *  절대값 UPDATE 가 아니라 CAS 인 이유: 다른 구매가 올린 카운터까지 덮어쓰지 않으려고(예: clarifier 는 최대 2회라 둘이 쌓일 수 있다).
- *  결과가 불명한 차감(rpc_error)엔 부르지 않는다 — 라우트가 그 전에 반납·복원 없이 500 으로 끝낸다. */
+ *  결과가 불명한 차감(rpc_error)엔 부르지 않는다 — 라우트가 반납·복원 없이 성공으로 처리한다(spend_unknown_granted). */
 export async function undoSlotAndRestore(
   supabase: ServiceSupabase,
   claim: Extract<ReopenClaim, { ok: true }>,
@@ -186,7 +191,7 @@ export async function undoSlotAndRestore(
   const { data, error } = await supabase
     .from("readings")
     .update({ [slot.column]: slot.previous })
-    .eq("id", log.readingId)
+    .eq("id", slot.readingId)
     .eq(slot.column, slot.applied)
     .eq(slot.other.column, slot.other.value)
     .select("id");
