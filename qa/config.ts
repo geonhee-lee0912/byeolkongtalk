@@ -14,7 +14,9 @@ export const config = {
   TEST_USER_ID:
     process.env.QA_TEST_USER_ID ?? "11111111-1111-4111-8111-111111111111",
   // users.kakao_id NOT NULL — 실제 카카오 id(양수)와 충돌 안 나게 음수 센티넬.
-  TEST_KAKAO_ID: -999001,
+  // users.kakao_id 는 UNIQUE 라 QA_TEST_USER_ID 로 두 번째 테스트 유저를 쓸 땐 QA_TEST_KAKAO_ID 도 다른 음수로 줘야 한다
+  // (유저 하나가 분당 20건 레이트리밋이라 배치를 병렬로 돌리려면 유저를 나눠야 한다).
+  TEST_KAKAO_ID: Number(process.env.QA_TEST_KAKAO_ID ?? -999001),
   TEST_NICKNAME: "QA봇",
 
   // 시드 충전량 (전체 매트릭스 다 돌아도 안 모자라게)
