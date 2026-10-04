@@ -23,6 +23,11 @@ const cases: [string, boolean, boolean][] = [
   ["알겠어 근데 걔는 날 어떻게 생각하는 건지", true, false],
   ["그렇지", false, false],
   ["좋지 ㅎㅎ", false, false],
+  // 궁금함·요청 표현은 물음표 없이도 묻는 중, 마무리 패턴이 섞이면("봐줘서 고마워") 마무리
+  ["그 사람도 그렇게 생각할지 궁금해", true, false],
+  ["그 사람 마음 좀 봐줘", true, false],
+  ["나 이제 어떡해", true, false],
+  ["봐줘서 고마워", false, true],
 ];
 
 for (const [text, asking, closing] of cases) {
