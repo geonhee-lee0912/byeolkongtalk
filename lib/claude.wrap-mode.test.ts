@@ -64,7 +64,7 @@ const ctxBase = {
   cumulativeAssistantChars: 4000,
 };
 
-test("buildTarotSystemMessage — 자연 마무리선 + keepOpen 이면 이어가기 가이드, 아니면 기존 마무리 가이드", () => {
+test("buildTarotSystemMessage — 자연 마무리선 + keepOpen 이면 대화 열어 두기 가이드, 아니면 기존 마무리 가이드", () => {
   const open = buildTarotSystemMessage({ ...ctxBase, keepOpen: true }).dynamicPart;
   assert.ok(open.includes("## 대화 열어 두기"));
   assert.ok(!open.includes("## 마무리 단계"));
@@ -139,5 +139,41 @@ test("staticPart 는 플래그 조합과 무관하게 동일하다 (프롬프트
   ];
   for (const v of variants) {
     assert.equal(buildTarotSystemMessage(v).staticPart, base);
+  }
+});
+
+// ── 열어 두기 턴의 정리 요청 규칙 제외 · 단답 연속(settle) 방어 게이트 ──
+const SUMMARY_RULE_HEAD = "### 정리 요청 = 마무리"; // SUMMARY_END_RULE
+
+test("열어 두기 가이드가 선택된 턴엔 정리 요청 규칙(SUMMARY_END_RULE)을 싣지 않는다 — '[END] 없이' 와 '[END] 를 붙여' 가 한 프롬프트에 공존하지 않게", () => {
+  const open = dyn({ ...ctxBase, keepOpen: true });
+  assert.ok(open.includes(KEEP_OPEN_HEAD), "픽스처가 열어 두기 선택 턴이어야 한다");
+  assert.ok(!open.includes(SUMMARY_RULE_HEAD));
+  // 규칙을 뺀 대신 정리 요청 처리는 열어 두기 가이드 자체가 맡는다
+  assert.ok(open.includes("요약까지만"));
+  // 대조: 같은 자연 마무리선이라도 열어 두기가 아니면 규칙은 그대로다
+  assert.ok(dyn({ ...ctxBase, keepOpen: false }).includes(SUMMARY_RULE_HEAD));
+});
+
+test("keepOpen 이 무시되는 턴(forceEnd·절대 턴캡·수렴·자유)에선 정리 요청 규칙이 그대로 있고 출력이 keepOpen:false 와 바이트까지 같다", () => {
+  // 원시 ctx.keepOpen 으로 규칙을 빼면 여기서 깨진다 — '선택된 가이드'로 판단해야 계약(keepOpen 무시)이 지켜진다
+  const cases: Array<[string, Ctx]> = [
+    ["forceEnd", { ...ctxBase, forceEnd: true }],
+    ["절대 턴캡", { ...ctxBase, assistantTurnsSoFar: t.absTurnCap - 1 }],
+    ["수렴 턴", convergeCtx],
+    ["자유 구간", freeCtx],
+  ];
+  for (const [name, c] of cases) {
+    const withFlag = dyn({ ...c, keepOpen: true });
+    assert.ok(withFlag.includes(SUMMARY_RULE_HEAD), `${name}: 정리 요청 규칙이 있어야 한다`);
+    assert.equal(withFlag, dyn({ ...c, keepOpen: false }), `${name}: keepOpen 은 출력에 영향이 없어야 한다`);
+  }
+});
+
+test("clarifierCandidate 는 턴 마무리가 '정리'(단답 연속)면 빌더가 한 번 더 막는다 — 라우트 후보 판정과 같은 결정 (사용자 결정 2026-10-04)", () => {
+  assert.ok(!dyn({ ...freeCtx, clarifierCandidate: true, turnSignals: { turnClose: "settle" } }).includes(CLARIFIER_HEAD));
+  // 대조: 막는 건 'settle' 하나뿐이다
+  for (const turnClose of ["ask", "invite"] as const) {
+    assert.ok(dyn({ ...freeCtx, clarifierCandidate: true, turnSignals: { turnClose } }).includes(CLARIFIER_HEAD), turnClose);
   }
 });
