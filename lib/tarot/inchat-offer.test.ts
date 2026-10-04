@@ -151,6 +151,19 @@ test("shouldKeepOpen ⑥ — 질문 직후의 작별 구('오늘은 여기까지
   }
 });
 
+test("shouldKeepOpen ⑥ — 질문 직후의 약한 마무리어는 발화 전체일 때만 닫는다: '알겠어'·'응 알겠어'·'충분해'·'이만할게'·'ㅇㅋ' 는 닫고, 같은 낱말이 든 답은 연다 (사용자 결정 2026-10-04)", () => {
+  for (const closing of ["알겠어", "응 알겠어", "그렇구나", "충분해", "이만할게", "ㅇㅋ", "알겠어 고마워", "알겠어 이제 그만할게", "응 알겠어 오늘은 여기까지 할게요", "고생했어", "이제 자야겠다", "이제 잘래", "자러 갈게"]) {
+    assert.equal(keepForReply(closing), false, closing);
+  }
+  // 별콩이가 물은 것에 대한 대답 — 예전엔 말끝 창의 부분 문자열(알겠·충분·이만·마무리·알았·됐어)이 마무리로 잡혀 대화가 닫혔다
+  for (const answer of [
+    "충분히 노력했어", "그 사람이 알겠다고 했어", "이만큼 좋아했는데", "마무리 짓고 싶어", "걔가 알았다고 하더라", "그 정도면 충분한 것 같아",
+    "잘 안 됐어", "걔 마음은 이해돼", "아 그렇구나 그럼 기다려볼게", "알겠어 연락 그만할게", "나 고생했어", "요즘 잠을 못 자",
+  ]) {
+    assert.equal(keepForReply(answer), true, answer);
+  }
+});
+
 test("shouldKeepOpen ⑥ — '응' 은 별콩이가 질문으로 끝낸 직후에만 답이다: 질문이 아니었으면 열 근거가 없어 예전처럼 자연 마무리", () => {
   assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: true }), true);
   assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: false }), false);
