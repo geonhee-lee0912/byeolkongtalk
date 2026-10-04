@@ -57,3 +57,9 @@ test("UI_EVENTS — 구매 칸 벽 노출·카카오 클릭 이벤트 2종이 �
   assert.equal(isUiEvent("picker_gate_shown"), true);
   assert.equal(isUiEvent("picker_login_clicked"), true);
 });
+
+// 2026-10-04 타로톡 인챗 결제 제안 계측 — 제안 노출 → 탭 (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-7).
+test("UI_EVENTS — 인챗 제안 노출·탭 이벤트 2종이 등록돼 있다", () => {
+  assert.equal(isUiEvent("inchat_offer_shown"), true);
+  assert.equal(isUiEvent("inchat_offer_clicked"), true);
+});
