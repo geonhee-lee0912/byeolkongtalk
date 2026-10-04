@@ -18,10 +18,14 @@ export type RechargeSource =
   (typeof RECHARGE_SOURCE)[keyof typeof RECHARGE_SOURCE];
 
 /**
- * 충전 시트 계측 → Meta CAPI `AddToCart` eventId (보내지 않으면 null).
- * 타로 광고 최적화 이벤트: 잔액 부족으로 "그 자리" 충전 시트가 열린 순간(위 source 전부).
- * /shop 진입("shop")은 둘러보기가 섞여 결제 연관이 약해(하루 내 결제 8.6% vs 25.1%, 2026-10-03 실측) 제외.
- * 유저·KST 날짜 단위 id — 같은 날 여러 번 열어도 Meta 가 1건으로 중복 제거한다.
+ * 결제 퍼널 계측 → Meta CAPI `AddToCart` eventId (보내지 않으면 null).
+ * 타로 광고 최적화 이벤트. 두 이벤트가 같은 id 를 낸다:
+ * - `paywall_shown` — 잔액 부족 확인 모달(StarConfirmModal insufficient) 노출. **2026-10-04 부터 주 원천.**
+ *   meta 내용은 보지 않는다(surface 무관) — 모달 자체가 "결제 아니면 못 간다"를 본 순간이다.
+ * - `recharge_sheet_opened`(source ∈ RECHARGE_SOURCE) — 잔액 부족으로 "그 자리" 충전 시트가 열린 순간.
+ *   2026-10-03~04 의 원래 정의. 실발화가 하루 1~2건이라 Meta 학습 요건(주 50건)에 못 미쳐 위로 당겼다.
+ *   /shop 진입("shop")은 둘러보기가 섞여 결제 연관이 약해(하루 내 결제 8.6% vs 25.1%, 2026-10-03 실측) 여전히 제외.
+ * 유저·KST 날짜 단위 id — 같은 날 모달을 보고 시트까지 열어도 Meta 가 1건으로 중복 제거한다.
  * meta.source 는 클라가 보낸 값이라 RECHARGE_SOURCE 값만 통과시킨다.
  */
 export function rechargeCapiEventId(
@@ -30,8 +34,12 @@ export function rechargeCapiEventId(
   userId: string | null,
   now: Date
 ): string | null {
-  if (event !== "recharge_sheet_opened" || !userId) return null;
-  const source = (meta as { source?: unknown } | null)?.source;
-  if (!(Object.values(RECHARGE_SOURCE) as unknown[]).includes(source)) return null;
+  if (!userId) return null;
+  if (event === "recharge_sheet_opened") {
+    const source = (meta as { source?: unknown } | null)?.source;
+    if (!(Object.values(RECHARGE_SOURCE) as unknown[]).includes(source)) return null;
+  } else if (event !== "paywall_shown") {
+    return null;
+  }
   return `atc:${userId}:${kstDate(now.toISOString())}`;
 }

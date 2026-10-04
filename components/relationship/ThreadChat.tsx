@@ -808,6 +808,7 @@ export default function ThreadChat({
           title={`${pendingSkill.label} 시작할까?`}
           subtitle={pendingSkill.tagline}
           confirmLabel="확인하고 시작하기"
+          surface="relationship_skill"
           onConfirm={confirmLaunch}
           onCharge={() => router.push("/shop")}
           onClose={cancelConfirm}
