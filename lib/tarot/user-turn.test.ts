@@ -51,6 +51,21 @@ const cases: [string, boolean, boolean][] = [
   ["안녕히 주무세요", false, true],
   ["잘 자요", false, true],
 
+  // --- 존댓말 질문(까요·나요·ㄴ가요)·요청(주세요·줄래) — "가요" 단독("저 이제 가요")은 평서 ---
+  ["연락 올까요", true, false],
+  ["이거 되나요", true, false],
+  ["그 사람 마음인가요", true, false],
+  ["지금 연락해도 괜찮은가요", true, false],
+  ["저 이제 가요", false, false],
+  ["그 사람 마음 봐주세요", true, false],
+  ["알려줄래", true, false],
+
+  // --- "~니까(요)" 는 원인 접속 — 받침 ㅂ(합니까·습니까)일 때만 질문 ---
+  ["그러니까", false, false],
+  ["걔가 그렇게 말하니까", false, false],
+  ["그러니까요", false, false], // 존댓말 "-니까요" 도 같은 원인 접속
+  ["이게 맞습니까", true, false],
+
   // --- SHORT_AGREE 꼬리: 망설임 꼬리(…·ㅠ)는 동의가 아니고, 웃음 꼬리(ㅎ·ㅋ)는 동의다 ---
   ["응…", false, false],
   ["네ㅠㅠ", false, false],
