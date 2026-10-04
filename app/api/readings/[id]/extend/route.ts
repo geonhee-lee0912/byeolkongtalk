@@ -9,7 +9,7 @@ import { getSession } from "@/lib/session";
 import { spendStars } from "@/lib/stars";
 import { logError } from "@/lib/logger";
 import { EXTEND_COST, EXTEND_TURNS, EXTEND_MAX } from "@/lib/upsell";
-import { loadTarotEndState, reopenTarotReading, restoreTarotEnd } from "@/lib/tarot/reopen-server";
+import { loadTarotEndState, claimTarotReopen } from "@/lib/tarot/reopen-server";
 
 export const dynamic = "force-dynamic";
 
@@ -58,39 +58,18 @@ export async function POST(
 
   const extraTurns = (reading.extra_turns as number) ?? 0;
 
-  // 강제 종료선에서 닫힌 타로 대화 — [END] 제거를 차감 전에 선점(사용자 결정 2026-10-04 ④): 실패는 항상 돈 받기 전
-  let reopened: { id: string; content: string } | null = null;
-  if (endState.endedAtAbsCap && endState.lastAssistant) {
-    const { error: reopenErr } = await reopenTarotReading(supabase, endState.lastAssistant);
-    if (reopenErr) {
-      await logError(reopenErr, {
-        route: `/api/readings/${id}/extend`,
-        userId,
-        extra: { stage: "reopen", readingId: id },
-      });
-      return NextResponse.json({ error: "reopen_failed" }, { status: 500 });
-    }
-    reopened = endState.lastAssistant;
+  // 강제 종료선에서 닫힌 타로 대화 — [END] 제거를 차감 전에 선점(사용자 결정 2026-10-04 ④): 실패는 항상 돈 받기 전.
+  // claim.restore 는 이후 CAS·차감이 실패했을 때만 부른다(복원이 실패해도 최악은 무료 1턴 — 로그만 남기고 원래 응답을 그대로 준다).
+  const claim = await claimTarotReopen(supabase, endState, {
+    tag: "[extend]",
+    route: `/api/readings/${id}/extend`,
+    userId,
+    readingId: id,
+    logError,
+  });
+  if (!claim.ok) {
+    return NextResponse.json({ error: "reopen_failed" }, { status: 500 });
   }
-  // 선점한 [END] 제거를 원문으로 되돌린다 — 이후 CAS·차감이 실패했을 때만 부른다.
-  // 복원이 실패해도 최악은 무료 1턴(다음 채팅 턴이 강제 종료선이라 바로 닫힌다)이라 로그만 남기고 원래 응답을 그대로 준다.
-  const restoreIfReopened = async () => {
-    const claimed = reopened;
-    if (!claimed) return;
-    const { error: restoreErr } = await restoreTarotEnd(supabase, claimed);
-    if (restoreErr) {
-      console.error("[extend] 재개 선점 복원 실패 — 수동 보정 필요:", {
-        readingId: id,
-        userId,
-        messageId: claimed.id,
-      });
-      await logError(restoreErr, {
-        route: `/api/readings/${id}/extend`,
-        userId,
-        extra: { stage: "reopen_restore", readingId: id, messageId: claimed.id },
-      });
-    }
-  };
 
   // 슬롯 원자 선점 — CAS: 읽었던 값과 정확히 일치할 때만 +EXTEND_TURNS.
   // 반환 0행 → 한도 소진 또는 동시 경합 — 어느 쪽이든 차감 없이 400.
@@ -104,7 +83,7 @@ export async function POST(
     .select("extra_turns");
 
   if (slotErr) {
-    await restoreIfReopened();
+    await claim.restore();
     await logError(slotErr, {
       route: `/api/readings/${id}/extend`,
       userId,
@@ -113,7 +92,7 @@ export async function POST(
     return NextResponse.json({ error: "slot_error" }, { status: 500 });
   }
   if (!slotRows || slotRows.length === 0) {
-    await restoreIfReopened();
+    await claim.restore();
     return NextResponse.json(
       { error: "extend_limit_reached", max: EXTEND_MAX },
       { status: 400 }
@@ -141,12 +120,12 @@ export async function POST(
         extra: { stage: "slot_rollback", readingId: id },
       });
     }
-    await restoreIfReopened();
+    await claim.restore();
     return NextResponse.json(
       { error: "insufficient", balance: spend.balance },
       { status: 402 }
     );
   }
 
-  return NextResponse.json({ extraTurns: newExtraTurns, reopened: reopened !== null });
+  return NextResponse.json({ extraTurns: newExtraTurns, reopened: claim.reopened !== null });
 }

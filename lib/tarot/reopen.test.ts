@@ -14,10 +14,12 @@ import {
   type ReopenReadingRow,
 } from "./reopen.ts";
 import {
+  claimTarotReopen,
   loadTarotEndState,
   reopenTarotReading,
   restoreTarotEnd,
   type LoadedTarotEndState,
+  type ReopenLog,
 } from "./reopen-server.ts";
 
 test("effectiveAbsTurnCap — 기본 + 연장 턴 + 보조 카드×2", () => {
@@ -342,8 +344,9 @@ test("loadTarotEndState — 반환형이 판별 유니온이라 error 만 확인
 });
 
 // ── 쓰기 헬퍼(재개 선점 · 복원) — update 체인(from → update → eq [→ like → select])을 기록하는 가짜 service client ──
+// results 를 배열로 주면 from() 호출마다 순서대로 소비한다(선점 → 복원처럼 여러 문장을 쓰는 헬퍼용). 배열이 바닥나면 { error: null }.
 type WriteResult = { data?: { id: string }[] | null; error: unknown };
-function fakeWrites(result: WriteResult) {
+function fakeWrites(results: WriteResult | WriteResult[]) {
   type Chain = {
     update: (payload: unknown) => Chain;
     eq: (col: string, val: unknown) => Chain;
@@ -351,36 +354,41 @@ function fakeWrites(result: WriteResult) {
     select: (cols: string) => Chain;
     then: (resolve: (r: WriteResult) => unknown) => unknown;
   };
+  const queue = Array.isArray(results) ? [...results] : null;
   const calls: unknown[][] = [];
-  const chain: Chain = {
-    update: (payload) => {
-      calls.push(["update", payload]);
-      return chain;
-    },
-    eq: (col, val) => {
-      calls.push(["eq", col, val]);
-      return chain;
-    },
-    like: (col, pattern) => {
-      calls.push(["like", col, pattern]);
-      return chain;
-    },
-    select: (cols) => {
-      calls.push(["select", cols]);
-      return chain;
-    },
-    then: (resolve) => resolve(result), // await 하면 result 로 풀린다
+  const newChain = (result: WriteResult): Chain => {
+    const chain: Chain = {
+      update: (payload) => {
+        calls.push(["update", payload]);
+        return chain;
+      },
+      eq: (col, val) => {
+        calls.push(["eq", col, val]);
+        return chain;
+      },
+      like: (col, pattern) => {
+        calls.push(["like", col, pattern]);
+        return chain;
+      },
+      select: (cols) => {
+        calls.push(["select", cols]);
+        return chain;
+      },
+      then: (resolve) => resolve(result), // await 하면 result 로 풀린다
+    };
+    return chain;
   };
   return {
     calls,
     client: {
       from: (table: string) => {
         calls.push(["from", table]);
-        return chain;
+        return newChain(queue ? (queue.shift() ?? { error: null }) : (results as WriteResult));
       },
     } as unknown as Parameters<typeof restoreTarotEnd>[0],
   };
 }
+const updatesOf = (calls: unknown[][]) => calls.filter((c) => c[0] === "update").map((c) => c[1]);
 
 test("restoreTarotEnd — 원문([END] 포함)을 그 메시지 id 에 되돌려 쓴다", async () => {
   const { client, calls } = fakeWrites({ error: null });
@@ -403,7 +411,7 @@ test("restoreTarotEnd — DB 오류는 error 로 돌려준다(라우트가 로�
 test("reopenTarotReading — [END] 가 남은 행만 갱신하는 CAS 로 선점한다(끝 [END] 만 제거)", async () => {
   const { client, calls } = fakeWrites({ data: [{ id: "m12" }], error: null });
   const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
-  assert.equal(out.error, null);
+  assert.deepEqual(out, { ok: true });
   assert.deepEqual(calls, [
     ["from", "messages"],
     ["update", { content: "끝 인사야." }],
@@ -413,17 +421,107 @@ test("reopenTarotReading — [END] 가 남은 행만 갱신하는 CAS 로 선점
   ]);
 });
 
-test("reopenTarotReading — 동시 요청이 먼저 선점했으면(0행) error — 진 쪽은 복원하지 않고 차감 전에 멈춘다", async () => {
+test("reopenTarotReading — 동시 요청이 먼저 선점했으면(0행) claim_lost — 진 쪽은 복원하지 않고 차감 전에 멈춘다", async () => {
   const { client } = fakeWrites({ data: [], error: null });
-  const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
-  assert.match(String(out.error), /reopen_claim_lost/);
+  assert.deepEqual(await reopenTarotReading(client, { id: "m12", content: CLOSE }), { ok: false, reason: "claim_lost" });
+  // data 가 null 이어도 선점하지 못한 것이다
+  const { client: c2 } = fakeWrites({ data: null, error: null });
+  assert.deepEqual(await reopenTarotReading(c2, { id: "m12", content: CLOSE }), { ok: false, reason: "claim_lost" });
 });
 
-test("reopenTarotReading — DB 오류는 error 로 돌려준다", async () => {
+test("reopenTarotReading — DB 오류는 db_error(원인 error 동봉)로 돌려준다 — claim_lost 와 구분된다", async () => {
   const boom = new Error("db down");
   const { client } = fakeWrites({ data: null, error: boom });
-  const out = await reopenTarotReading(client, { id: "m12", content: CLOSE });
-  assert.equal(out.error, boom);
+  assert.deepEqual(await reopenTarotReading(client, { id: "m12", content: CLOSE }), { ok: false, reason: "db_error", error: boom });
+});
+
+// ── claimTarotReopen — 선점 + restore 클로저(구매 라우트 공용). 로거는 주입한 가짜 ──
+const endStateOf = (over: Partial<LoadedTarotEndState> = {}): LoadedTarotEndState => ({
+  ended: true,
+  endedAtAbsCap: true,
+  lastAssistant: { id: "m12", content: CLOSE },
+  ...over,
+});
+function fakeLog() {
+  const logs: { err: unknown; ctx: { route?: string; userId?: string | null; extra?: Record<string, unknown> } | undefined }[] = [];
+  const log: ReopenLog = {
+    tag: "[test]",
+    route: "/api/test",
+    userId: "u1",
+    readingId: "r1",
+    logError: async (err, ctx) => {
+      logs.push({ err, ctx });
+    },
+  };
+  return { log, logs };
+}
+
+test("claimTarotReopen — 강제 종료선에서 닫힌 대화가 아니면 아무것도 쓰지 않는다(reopened=null · restore 는 no-op)", async () => {
+  const { client, calls } = fakeWrites([]);
+  const { log, logs } = fakeLog();
+  for (const state of [
+    endStateOf({ ended: false, endedAtAbsCap: false }), // 진행 중
+    endStateOf({ endedAtAbsCap: false }), // 자연 종료·사주 — 끝났지만 강제 종료선 아님
+    endStateOf({ lastAssistant: null }), // 방어: 메시지가 없다
+  ]) {
+    const claim = await claimTarotReopen(client, state, log);
+    assert.equal(claim.ok, true);
+    if (!claim.ok) return;
+    assert.equal(claim.reopened, null);
+    await claim.restore();
+  }
+  assert.deepEqual(calls, []);
+  assert.deepEqual(logs, []);
+});
+
+test("claimTarotReopen — 선점하면 reopened 를 돌려주고, restore() 가 원문([END] 포함)을 되돌려 쓴다", async () => {
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { error: null }]);
+  const { log, logs } = fakeLog();
+  const claim = await claimTarotReopen(client, endStateOf(), log);
+  assert.equal(claim.ok, true);
+  if (!claim.ok) return;
+  assert.deepEqual(claim.reopened, { id: "m12", content: CLOSE });
+  assert.deepEqual(updatesOf(calls), [{ content: "끝 인사야." }]); // 선점만 나갔고 복원은 부를 때까지 없다
+  await claim.restore();
+  assert.deepEqual(updatesOf(calls), [{ content: "끝 인사야." }, { content: CLOSE }]);
+  assert.deepEqual(logs, []);
+});
+
+test("claimTarotReopen — 동시 요청이 먼저 선점했으면 claim_lost: 복원할 게 없고 이유를 로그에 남긴다", async () => {
+  const { client, calls } = fakeWrites({ data: [], error: null });
+  const { log, logs } = fakeLog();
+  const claim = await claimTarotReopen(client, endStateOf(), log);
+  assert.deepEqual(claim, { ok: false, reason: "claim_lost" });
+  assert.equal(updatesOf(calls).length, 1); // 선점 시도 하나뿐 — 복원 UPDATE 는 없다
+  assert.equal(logs.length, 1);
+  assert.match(String((logs[0].err as Error).message), /reopen_claim_lost: m12/);
+  assert.deepEqual(logs[0].ctx, { route: "/api/test", userId: "u1", extra: { stage: "reopen", readingId: "r1" } });
+});
+
+test("claimTarotReopen — DB 오류는 db_error 로 돌려주고 원인 error 를 그대로 로그한다", async () => {
+  const boom = new Error("db down");
+  const { client } = fakeWrites({ data: null, error: boom });
+  const { log, logs } = fakeLog();
+  assert.deepEqual(await claimTarotReopen(client, endStateOf(), log), { ok: false, reason: "db_error", error: boom });
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].err, boom);
+  assert.equal(logs[0].ctx?.extra?.stage, "reopen");
+});
+
+test("claimTarotReopen — restore 가 실패하면 console.error(수동 보정 필요) + reopen_restore 로그를 남기고 던지지 않는다", async (t) => {
+  const consoleError = t.mock.method(console, "error", () => {});
+  const boom = new Error("restore failed");
+  const { client } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { error: boom }]);
+  const { log, logs } = fakeLog();
+  const claim = await claimTarotReopen(client, endStateOf(), log);
+  assert.equal(claim.ok, true);
+  if (!claim.ok) return;
+  await claim.restore(); // 던지지 않는다
+  assert.equal(consoleError.mock.callCount(), 1);
+  assert.match(String(consoleError.mock.calls[0].arguments[0]), /\[test\] 재개 선점 복원 실패 — 수동 보정 필요/);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].err, boom);
+  assert.deepEqual(logs[0].ctx, { route: "/api/test", userId: "u1", extra: { stage: "reopen_restore", readingId: "r1", messageId: "m12" } });
 });
 
 // ── X-Reopen 응답 헤더 — 서버(formatReopenHeader)와 클라(parseReopenHeader)가 한 쌍으로 쓴다 ──
