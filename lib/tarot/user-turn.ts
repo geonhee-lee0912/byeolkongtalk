@@ -4,14 +4,16 @@
 // 질문에만 쓰이는 것(까·니·냐·는지·건가)만 본다. 단 "~지" 는 앞 글자 받침이 ㄴ·ㄹ 이면
 // 간접 의문(건지·은지·올지·될지…)으로 본다 — 그렇지·좋지·했지 같은 평서 "~지" 는 받침이 달라 제외.
 // 오분류 비용은 "한 턴 더 열어 둠"/"후보 탈락"으로 작다.
+// 원칙: 명시적 질문·요청은 마무리어보다 우선 — '묻는 중 닫힘'이 '한 턴 더 열림'보다 비싸다.
 
 const QUESTION_MARK_RE = /[?？]/;
 const QUESTION_ENDING_RE = /(까|니|냐|는지|건가)\s*[.…~!ㅠㅜㅋㅎ\s]*$/;
-const CLOSING_RE = /(고마워|고마웠|고맙|감사|알겠|알았|그렇구나|이해(했|됐|돼)|맞네|충분|이만|마무리|됐어|ㅇㅋ|오키|갈게|안녕|또\s*올게|잘\s*자|내일\s*(봐|보자)|들어갈게|바이|ㅂㅂ)/;
+// 작별어는 뒤에 한글이 붙지 않을 때만(안녕≠안녕하세요·바이≠바이브·잘 자≠잘 자지 못해·내일 봐≠내일 봐야) — 존댓말(안녕히·잘 자요)은 따로.
+const CLOSING_RE = /(고마워|고마웠|고맙|감사|알겠|알았|그렇구나|이해(했|됐|돼)|맞네|충분|이만|마무리|됐어|ㅇㅋ|오키|갈게|안녕(?![가-힣])|안녕히|또\s*올게|잘\s*자(?![가-힣])|잘\s*자요|내일\s*(봐|보자)(?![가-힣])|들어갈게|바이(?![가-힣])|ㅂㅂ)/;
 const SHORT_AGREE_RE = /^(응+|ㅇㅇ+|그래|네+|웅+|넹|엉)[.!~ㅎㅋ\s]*$/;
-// "궁금해·봐줘·알려줘·어때·어떡해" 류 요청·궁금함 — 물음표 없이도 답을 원하는 신호.
-// 단 "봐줘서 고마워" 처럼 마무리 패턴이 섞이면 asking 으로 보지 않는다(아래 조합 참고).
-const REQUEST_RE = /(궁금|알려\s*줘|말해\s*줘|봐\s*줘|어때|어떡해|어떻게\s*해)/;
+// "궁금해·봐줘·알려줘·어때·어떡해" 류 요청·궁금함 — 물음표 없이도 답을 원하는 신호. 마무리어보다 우선한다.
+// 인과 "-줘서"("봐줘서 고마워")는 요청이 아니라 감사라 제외(?!서).
+const REQUEST_RE = /(궁금|알려\s*줘(?!서)|말해\s*줘(?!서)|봐\s*줘(?!서)|어때|어떡해|어떻게\s*해)/;
 /** 물음표 없이도 새 고민을 길게 털어놓으면 '묻는 중'으로 본다 */
 const LONG_CONCERN_LEN = 40;
 // 마무리어는 말끝(마지막 15자)에 있을 때만 마무리로 본다 — "걔가 고마웠는데 요즘 서운해" 같은 하소연 중간의 감사 표현을 마무리로 오판하지 않게.
@@ -46,7 +48,7 @@ function afterLastConjunction(t: string): string {
 export interface UserTurnClass {
   /** 질문·요청·궁금함 또는 새 고민 — 대화를 닫지 말아야 하는 신호 */
   asking: boolean;
-  /** 마무리 신호(감사·수긍·짧은 동의) — 질문이 섞이면 false */
+  /** 마무리 신호(감사·수긍·작별·짧은 동의) — 질문·요청이 섞이면 false */
   closing: boolean;
 }
 
@@ -55,8 +57,7 @@ export function classifyUserTurn(text: string): UserTurnClass {
   const body = afterLastConjunction(t);
   const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(body) || endsWithIndirectQuestion(body);
   const closingPattern = CLOSING_RE.test(body.slice(-CLOSING_TAIL_LEN)) || SHORT_AGREE_RE.test(body);
-  return {
-    asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(body) || t.length >= LONG_CONCERN_LEN)),
-    closing: closingPattern && !hasQuestion,
-  };
+  // 명시적 질문·요청은 마무리어보다 우선 — '묻는 중 닫힘'이 '한 턴 더 열림'보다 비싸다.
+  const asking = hasQuestion || REQUEST_RE.test(body) || (t.length >= LONG_CONCERN_LEN && !closingPattern);
+  return { asking, closing: closingPattern && !asking };
 }

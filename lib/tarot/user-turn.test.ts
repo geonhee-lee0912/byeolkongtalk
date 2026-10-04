@@ -44,6 +44,12 @@ const cases: [string, boolean, boolean][] = [
   ["오늘 얘기 정말 고마웠어 덕분에 마음이 많이 편해졌어 이제 푹 자러 갈게 내일 또 보자", false, true],
   ["잘 자 별콩아", false, true],
   ["안녕", false, true],
+  // 명시적 질문·요청은 마무리어보다 우선 / 작별어는 뒤에 한글이 붙지 않을 때만(존댓말은 따로)
+  ["내일 봐야 하는데 나 어떡해", true, false],
+  ["요즘 고민 때문에 밤에 잠을 잘 자지 못해", false, false],
+  ["걔 요즘 바이브가 달라졌어", false, false],
+  ["안녕히 주무세요", false, true],
+  ["잘 자요", false, true],
 ];
 
 for (const [text, asking, closing] of cases) {
