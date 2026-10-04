@@ -6,7 +6,9 @@ import {
   shouldKeepOpen,
   repairClarifierMarker,
   createEndMarkerFilter,
+  finalizeAssistantText,
 } from "./inchat-offer.ts";
+import { tarotEndState, type ReopenReadingRow } from "./reopen.ts";
 
 const base = {
   assistantTurnsSoFar: 2,
@@ -183,4 +185,164 @@ test("createEndMarkerFilter — 지운 자리에서 새로 맞붙은 [END] 도 �
 test("createEndMarkerFilter — 스트림이 [END] 앞부분에서 끝나면 flush 가 그대로 내보낸다", () => {
   const f = createEndMarkerFilter();
   assert.equal(f.push("끝 [EN") + f.flush(), "끝 [EN");
+});
+
+// ── finalizeAssistantText — 응답 끝처리(강제 종료 턴 [END] 정규화 · '한 장 더' 마커 수리) ──
+// 재개 헤더(X-Reopen)는 모델 출력 전에 나가므로, 저장본이 그 약속의 모양([END] 정확히 하나, 맨 끝)이어야 재개 버튼이 산다.
+const END_TAIL = "\n\n[END]";
+const mustEndCtx = { mustEnd: true, crisisActive: false, forceEnd: false, clarifierCandidate: false };
+const countEnds = (s: string): number => (s.match(/\[END\]/gi) ?? []).length;
+const OFFER = "답이야.\n\n이 부분은 카드 한 장 더 펼쳐 보면 더 또렷해져. 지금 얘기 계속해도 되고";
+const candidateCtx = { mustEnd: false, crisisActive: false, forceEnd: false, clarifierCandidate: true };
+
+test("finalizeAssistantText (i) — 강제 종료 턴에 [END] 가 하나도 없으면 저장본·스트림 모두 끝에 붙인다", () => {
+  for (const forceEnd of [false, true]) {
+    assert.deepEqual(finalizeAssistantText("마무리 인사야.", { ...mustEndCtx, forceEnd }), {
+      saved: `마무리 인사야.${END_TAIL}`,
+      streamTail: END_TAIL,
+    });
+  }
+  // 닫히지 않은 조각("[EN", "[END")은 마커가 아니다 — 새로 붙인다
+  for (const partial of ["끝 [EN", "끝 [END"]) {
+    assert.deepEqual(finalizeAssistantText(partial, mustEndCtx), { saved: `${partial}${END_TAIL}`, streamTail: END_TAIL }, partial);
+  }
+});
+
+test("finalizeAssistantText (ii) — 대문자 [END] 가 딱 하나 맨 끝(뒤는 공백뿐)이면 그대로", () => {
+  for (const text of ["마무리 인사야.\n\n[END]", "마무리 인사야. [END]", "마무리 인사야.\n\n[END]\n", "마무리 인사야.\n[END]  \n\n", "[END]"]) {
+    assert.deepEqual(finalizeAssistantText(text, mustEndCtx), { saved: text, streamTail: "" }, JSON.stringify(text));
+  }
+  // 비대칭 굵게(`**[END]`)는 '대칭 굵게'가 아니라 건드리지 않는다 — 끝 [END] 하나라 재개 모양은 이미 맞다
+  assert.deepEqual(finalizeAssistantText("인사야.\n\n**[END]", mustEndCtx), { saved: "인사야.\n\n**[END]", streamTail: "" });
+});
+
+test("finalizeAssistantText (iii) — 소문자·굵게·중복·본문 중간·끝 뒤 글자는 [END] 를 전부 지우고 끝에 하나만, 스트림 꼬리는 없다", () => {
+  // [이름, 입력, 기대 saved] — 클라는 이미 종료 마커를 받았으니(대소문자 무시·위치 무관) 스트림엔 아무것도 더 보내지 않는다
+  const cases: [string, string, string][] = [
+    ["소문자", "인사야.\n\n[end]", "인사야.\n\n[END]"],
+    ["혼합 대소문자", "인사야.\n\n[End]\n", "인사야.\n\n[END]"],
+    ["굵게", "인사야.\n\n**[END]**", "인사야.\n\n[END]"],
+    ["굵게 + 소문자", "인사야.\n\n**[end]**\n", "인사야.\n\n[END]"],
+    ["본문 중간", "앞 [END] 뒤", "앞  뒤\n\n[END]"],
+    ["중복", "앞 [END] 뒤\n\n[END]", "앞  뒤\n\n[END]"],
+    ["셋 이상", "[END] 앞\n\n[end] 중간\n\n[END]", " 앞\n\n 중간\n\n[END]"],
+    ["끝 뒤에 다른 마커", "인사야.\n[END]\n[RECO:continue]", "인사야.\n\n[RECO:continue]\n\n[END]"],
+    ["끝 뒤에 문장부호", "인사야. [END].", "인사야. .\n\n[END]"],
+    ["굵게 + 맨 끝 일반", "**[END]** 앞\n\n[END]", " 앞\n\n[END]"],
+  ];
+  for (const [name, text, expected] of cases) {
+    for (const forceEnd of [false, true]) {
+      assert.deepEqual(finalizeAssistantText(text, { ...mustEndCtx, forceEnd }), { saved: expected, streamTail: "" }, `${name} forceEnd=${forceEnd}`);
+    }
+  }
+});
+
+test("finalizeAssistantText — 지운 자리에서 새로 맞붙은 [END] 까지 지운다(한 번 지우고 끝내지 않는다)", () => {
+  // "[E[END]ND]" 는 안쪽을 지우면 [END] 가 새로 생긴다 — 굵게 쪽도 마찬가지
+  assert.equal(finalizeAssistantText("답이야 [E[END]ND] 끝", mustEndCtx).saved, "답이야  끝\n\n[END]");
+  for (const text of ["**[E**[END]**ND]**", "[E[E[END]ND]ND]", "**[E[END]ND]**"]) {
+    const { saved, streamTail } = finalizeAssistantText(text, mustEndCtx);
+    assert.equal(countEnds(saved), 1, `${text} → ${JSON.stringify(saved)}`);
+    assert.ok(saved.endsWith(END_TAIL), text);
+    assert.equal(streamTail, "", text);
+  }
+});
+
+test("finalizeAssistantText — 위기(버튼 아님)로 자동 종료가 억제된 턴은 [END] 를 붙이지도 고치지도 않는다", () => {
+  const crisis = { ...mustEndCtx, crisisActive: true };
+  for (const text of ["곁에 있을게.", "곁에 있을게.\n\n[END]", "a [END] b [end]", "굵게 **[END]**"]) {
+    assert.deepEqual(finalizeAssistantText(text, crisis), { saved: text, streamTail: "" }, JSON.stringify(text));
+  }
+  // 마무리 버튼은 위기여도 닫는다 — 일반 강제 종료와 같이 처리
+  assert.deepEqual(finalizeAssistantText("곁에 있을게.", { ...crisis, forceEnd: true }), {
+    saved: `곁에 있을게.${END_TAIL}`,
+    streamTail: END_TAIL,
+  });
+  assert.deepEqual(finalizeAssistantText("a [END] b\n\n[end]", { ...crisis, forceEnd: true }), {
+    saved: `a  b${END_TAIL}`,
+    streamTail: "",
+  });
+});
+
+test("finalizeAssistantText — 강제 종료 턴이 아니면 [END] 를 건드리지 않는다(자연 마무리의 모델 [END]·중복도 그대로)", () => {
+  for (const crisisActive of [false, true]) {
+    for (const text of ["그냥 답이야.", "자연 마무리야.\n\n[END]", "a [END] b\n\n[end]"]) {
+      assert.deepEqual(
+        finalizeAssistantText(text, { mustEnd: false, crisisActive, forceEnd: false, clarifierCandidate: false }),
+        { saved: text, streamTail: "" },
+        `crisis=${crisisActive} ${JSON.stringify(text)}`,
+      );
+    }
+  }
+});
+
+test("finalizeAssistantText — 후보 턴에서 제안 문구는 있는데 마커가 없으면 마커를 붙이고, 스트림엔 붙인 꼬리만 보낸다", () => {
+  const out = finalizeAssistantText(OFFER, candidateCtx);
+  assert.equal(out.saved, `${OFFER}\n${CLARIFIER_MARKER}`);
+  assert.equal(out.streamTail, `\n${CLARIFIER_MARKER}`);
+  assert.equal(OFFER + out.streamTail, out.saved); // 스트림으로 이미 나간 글자 + 꼬리 = 저장본
+});
+
+test("finalizeAssistantText — 후보 턴이어도 마커가 이미 있거나·제안 문구가 없거나·[END] 가 있으면 그대로", () => {
+  for (const text of [`${OFFER}\n${CLARIFIER_MARKER}`, "그냥 답이야.", `${OFFER}\n\n[END]`, `${OFFER}\n\n[end]`]) {
+    assert.deepEqual(finalizeAssistantText(text, candidateCtx), { saved: text, streamTail: "" }, JSON.stringify(text));
+  }
+  // 후보가 아니면 제안 문구가 있어도 수리하지 않는다
+  assert.deepEqual(finalizeAssistantText(OFFER, { ...candidateCtx, clarifierCandidate: false }), { saved: OFFER, streamTail: "" });
+});
+
+test("finalizeAssistantText — 강제 종료와 후보가 겹치는 일은 없지만(후보는 free 구간만), 겹치면 종료가 이긴다 — 끝난 대화에 칩을 붙이지 않는다", () => {
+  assert.deepEqual(finalizeAssistantText(OFFER, { ...mustEndCtx, clarifierCandidate: true }), {
+    saved: `${OFFER}${END_TAIL}`,
+    streamTail: END_TAIL,
+  });
+});
+
+// 재개 판정(tarotEndState)과의 계약 — 헤더가 나가는 강제 종료 턴의 저장본은 [END] 가 정확히 하나·맨 끝이어야 재개된다.
+// 투카드(강제 종료선 12): 앞 11턴 + 이번 저장본 = 12턴.
+const TWO_CARD_ROW: ReopenReadingRow = {
+  id: "r1",
+  consultation_type: "tarot",
+  spread_type: "two_card",
+  extra_turns: 0,
+  clarifier_count: 0,
+};
+const ADVERSARIAL_FINAL_TEXTS = [
+  "마무리 인사야.",
+  "마무리 인사야.\n\n[END]",
+  "마무리 인사야.\n\n[END]\n",
+  "인사야.\n\n[end]",
+  "인사야.\n\n[End]\n",
+  "인사야.\n\n**[END]**",
+  "인사야.\n\n**[end]**\n",
+  "앞 [END] 뒤",
+  "앞 [END] 뒤\n\n[END]",
+  "[END] 앞\n\n[END] 뒤\n\n[END]",
+  "인사야.\n[END]\n[RECO:continue]",
+  "인사야. [END].",
+  "**[END]** 앞",
+  "[END]",
+  "[E[END]ND] 끝",
+  "**[E**[END]**ND]**",
+  "끝 [EN",
+  "끝 [END",
+  `${OFFER} [END]\n${CLARIFIER_MARKER}`,
+];
+
+test("finalizeAssistantText — 강제 종료 턴의 저장본은 어떤 입력에서도 tarotEndState 가 재개 대상으로 본다(정확히 [END] 하나·맨 끝)", () => {
+  for (const text of ADVERSARIAL_FINAL_TEXTS) {
+    for (const forceEnd of [false, true]) {
+      const { saved, streamTail } = finalizeAssistantText(text, { ...mustEndCtx, forceEnd });
+      const label = `${JSON.stringify(text)} forceEnd=${forceEnd} → ${JSON.stringify(saved)}`;
+      assert.equal(countEnds(saved), 1, label);
+      assert.ok(/\[END\]\s*$/.test(saved), label);
+      const turns = [...Array.from({ length: 11 }, (_, i) => `답 ${i + 1}`), saved];
+      assert.deepEqual(tarotEndState(turns, TWO_CARD_ROW), { ended: true, endedAtAbsCap: true }, label);
+      // 스트림 계약: 꼬리가 있으면 저장본 = 이미 나간 글자 + 꼬리, 꼬리가 없으면 클라는 이미 종료 마커를 받았다
+      if (streamTail !== "") assert.equal(saved, text + streamTail, label);
+      else assert.ok(countEnds(text) >= 1, label);
+      // 멱등 — 한 번 정규화한 저장본을 다시 넣어도 그대로
+      assert.deepEqual(finalizeAssistantText(saved, { ...mustEndCtx, forceEnd }), { saved, streamTail: "" }, label);
+    }
+  }
 });

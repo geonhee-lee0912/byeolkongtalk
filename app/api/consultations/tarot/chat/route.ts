@@ -24,10 +24,10 @@ import { classifyUserTurn } from "@/lib/tarot/user-turn";
 import {
   isClarifierCandidate,
   shouldKeepOpen,
-  repairClarifierMarker,
+  finalizeAssistantText,
   createEndMarkerFilter,
 } from "@/lib/tarot/inchat-offer";
-import { reopenOptions } from "@/lib/tarot/reopen";
+import { reopenOptions, formatReopenHeader } from "@/lib/tarot/reopen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -186,10 +186,10 @@ export async function POST(request: NextRequest) {
   const extendAvailable =
     extraTurns === 0 && body.forceEnd !== true;
 
-  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리면 서버가 보장
+  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리거나 모양이 틀리면 서버가 보장(finalizeAssistantText)
   const effAbsTurnCap = effT.absTurnCap;
-  const mustEnd =
-    body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
+  const atAbsCap = assistantTurnsSoFar + 1 >= effAbsTurnCap;
+  const mustEnd = body.forceEnd === true || atAbsCap;
 
   // wrap-mode — 클라 출구 nudge 발동 기준 (X-Wrap-Mode 헤더)
   const wrapMode = computeWrapMode(
@@ -271,9 +271,11 @@ export async function POST(request: NextRequest) {
     responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
     responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
-  // 강제 종료선 종료 턴 — 클라가 '결과 보기 →' 옆에 재개 제안을 띄울 근거 (spec §3-4).
-  // 마무리 버튼(forceEnd)·위기(자동 종료 억제)는 재개 대상이 아니다.
-  if (mustEnd && body.forceEnd !== true && !crisisActive) {
+  // 강제 종료선 턴 — 클라가 '결과 보기 →' 옆에 재개 제안을 띄울 근거 (spec §3-4).
+  // 헤더는 모델 출력 전에 나가므로 보낼 수 있는 이유는 abs_cap 하나뿐이다(자연 마무리·버튼 종료는 본문이 나와야 안다 → 헤더 없음 = 재개 대상 아님).
+  // 판정은 GET·구매 라우트와 같은 턴 수 기준이라 abs-cap 턴에 마무리 버튼을 눌러도 준다. 위기(자동 종료 억제)는 제외.
+  // 저장본의 [END] 모양은 아래 finalizeAssistantText 가 이 약속에 맞춰 보장한다.
+  if (atAbsCap && !crisisActive) {
     const ro = reopenOptions({
       endedAtAbsCap: true,
       hasSensitive: false,
@@ -281,9 +283,7 @@ export async function POST(request: NextRequest) {
       clarifierCount,
     });
     responseHeaders["X-End-Reason"] = "abs_cap";
-    responseHeaders["X-Reopen"] = [ro.extend ? "extend" : "", ro.clarifier ? "clarifier" : ""]
-      .filter(Boolean)
-      .join(",");
+    responseHeaders["X-Reopen"] = formatReopenHeader(ro);
   }
 
   // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
@@ -295,8 +295,10 @@ export async function POST(request: NextRequest) {
   }));
 
   const encoder = new TextEncoder();
-  let assistantText = "";
-  const endFilter = keepOpen ? createEndMarkerFilter() : null;
+  let assistantText = ""; // 화면에 나간(스트림으로 보낸) 글자 — 저장본(saved)은 정규화로 이와 다를 수 있다
+  let rawChars = 0; // 모델이 보낸 글자 수(필터 통과 전) — keep-open 필터가 [END] 만 지워 빈 응답이 된 턴을 로그에서 구분하는 용도
+  let endFiltered = false;
+  const endFilter = keepOpen ? createEndMarkerFilter() : null; // keep-open 턴 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -306,6 +308,7 @@ export async function POST(request: NextRequest) {
           userId,
           extra: { readingId: reading.id },
         }, CHAT_MODEL)) {
+          rawChars += chunk.length;
           const out = endFilter ? endFilter.push(chunk) : chunk;
           if (!out) continue;
           assistantText += out;
@@ -322,26 +325,23 @@ export async function POST(request: NextRequest) {
         // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
         // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
         if (!assistantText.trim()) {
+          // 필터가 지운 글자가 있으면 [END] 만 남았던 응답(모델이 닫으려던 keep-open 턴)이다 — 모델의 진짜 빈 응답과 로그(extra.endFiltered)에서 구분
+          endFiltered = rawChars > assistantText.length;
           throw new Error("empty_assistant_stream");
         }
 
-        // '한 장 더' 마커 누락 수리 — 후보 턴에서 제안 문구는 있는데 마커만 빠진 경우만 (spec §3-5 ③)
-        if (clarifierCandidate) {
-          const repaired = repairClarifierMarker(assistantText);
-          if (repaired !== assistantText) {
-            const tail = repaired.slice(assistantText.length);
-            assistantText = repaired;
-            controller.enqueue(encoder.encode(tail));
-          }
-        }
-
-        // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
-        // (마무리 버튼·절대 턴캡이 "안 눌린 것처럼" 보이는 상태 방지)
-        // 단, 위기 대화(버튼 아님)면 자동 [END] 강제 주입을 억제 — §위기 [END]금지 코드 강제(3d)
-        if (mustEnd && !(crisisActive && body.forceEnd !== true) && !assistantText.includes("[END]")) {
-          const tail = "\n\n[END]";
-          assistantText += tail;
-          controller.enqueue(encoder.encode(tail));
+        // 응답 끝처리 — 강제 종료 턴은 [END] 가 정확히 하나·맨 끝이 되게(재개 버튼이 저장본의 이 모양에 달렸다 — spec §3-4),
+        // '한 장 더' 후보 턴은 마커 누락 수리(§3-5 ③). 위기로 자동 종료가 억제된 턴(버튼 제외)은 건드리지 않는다(§위기 [END]금지 코드 강제 3d).
+        // 스트림은 이미 나간 글자를 못 바꾸니 꼬리만 보내고, 저장본은 정규화로 스트림과 달라질 수 있다(중복·소문자·본문 중간 [END] — 클라는 이미 종료 마커를 받았다).
+        const { saved, streamTail } = finalizeAssistantText(assistantText, {
+          mustEnd,
+          crisisActive,
+          forceEnd: body.forceEnd === true,
+          clarifierCandidate,
+        });
+        if (streamTail) {
+          assistantText += streamTail;
+          controller.enqueue(encoder.encode(streamTail));
         }
 
         const turnTs = Date.now();
@@ -355,7 +355,7 @@ export async function POST(request: NextRequest) {
           {
             reading_id: reading.id,
             role: "assistant",
-            content: assistantText,
+            content: saved,
             turn_close: turnSignals.turnClose ?? null,
             created_at: new Date(turnTs + 1).toISOString(),
           },
@@ -403,6 +403,8 @@ export async function POST(request: NextRequest) {
               readingId: reading.id,
               assistantTurnsSoFar,
               partialCharsShown: assistantText.length,
+              // keep-open 필터가 [END] 만 지워 응답이 빈 경우(모델이 닫으려던 턴) — 모델의 진짜 빈 응답과 구분
+              ...(endFiltered ? { endFiltered: true } : {}),
             },
           })
         );

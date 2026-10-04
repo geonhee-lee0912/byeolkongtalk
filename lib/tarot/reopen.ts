@@ -39,6 +39,18 @@ export function reopenOptions(i: {
   };
 }
 
+/** X-Reopen 응답 헤더 값(서버가 만들고 클라가 읽는 한 쌍 — spec §3-4). 가능한 상품만 쉼표로: "extend,clarifier" · "extend" · "clarifier" · "" (강제 종료선 종료지만 재개 상품 없음) */
+export function formatReopenHeader(ro: ReopenOptions): string {
+  return [ro.extend ? "extend" : "", ro.clarifier ? "clarifier" : ""].filter(Boolean).join(",");
+}
+
+/** X-Reopen 헤더 읽기 — null(헤더 없음) = 강제 종료선 종료가 아님, "" = 종료지만 재개 상품 없음. 모르는 토큰·빈 토큰은 무시한다(서버가 상품을 늘려도 옛 클라가 안 깨진다) */
+export function parseReopenHeader(v: string | null): ReopenOptions | null {
+  if (v === null) return null;
+  const tokens = v.split(",").map((t) => t.trim());
+  return { extend: tokens.includes("extend"), clarifier: tokens.includes("clarifier") };
+}
+
 /** 재개 시 마지막 assistant 메시지의 끝 [END] 와 그 주변 공백만 지운다(중간의 [END]·그 밖의 본문은 그대로) */
 export function stripTrailingEnd(content: string): string {
   return content.replace(/\s*\[END\]\s*$/, "");

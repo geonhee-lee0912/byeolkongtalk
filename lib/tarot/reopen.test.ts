@@ -4,9 +4,12 @@ import {
   effectiveAbsTurnCap,
   isEndedAtAbsCap,
   reopenOptions,
+  formatReopenHeader,
+  parseReopenHeader,
   stripTrailingEnd,
   stripEndFromLastAssistant,
   tarotEndState,
+  type ReopenOptions,
   type ReopenReadingRow,
 } from "./reopen.ts";
 import { loadTarotEndState, type LoadedTarotEndState } from "./reopen-server.ts";
@@ -330,4 +333,50 @@ test("loadTarotEndState — 반환형이 판별 유니온이라 error 만 확인
   if (out.error) throw out.error;
   const checkedWhole: LoadedTarotEndState = out.state; // 구조분해 안 한 형태도 동일
   assert.equal(checkedWhole.ended, true);
+});
+
+// ── X-Reopen 응답 헤더 — 서버(formatReopenHeader)와 클라(parseReopenHeader)가 한 쌍으로 쓴다 ──
+const ALL_OPTIONS: ReopenOptions[] = [
+  { extend: true, clarifier: true },
+  { extend: true, clarifier: false },
+  { extend: false, clarifier: true },
+  { extend: false, clarifier: false },
+];
+
+test("formatReopenHeader — 가능한 상품만 쉼표로(extend 먼저), 없으면 빈 문자열", () => {
+  assert.equal(formatReopenHeader({ extend: true, clarifier: true }), "extend,clarifier");
+  assert.equal(formatReopenHeader({ extend: true, clarifier: false }), "extend");
+  assert.equal(formatReopenHeader({ extend: false, clarifier: true }), "clarifier");
+  assert.equal(formatReopenHeader({ extend: false, clarifier: false }), "");
+});
+
+test("parseReopenHeader — null 은 헤더 없음(강제 종료선 종료가 아님), '' 는 강제 종료선 종료지만 재개 상품 없음", () => {
+  assert.equal(parseReopenHeader(null), null);
+  assert.deepEqual(parseReopenHeader(""), { extend: false, clarifier: false });
+});
+
+test("parseReopenHeader — 토큰별로 읽고, 모르는 토큰은 무시하고, 쉼표 뒤 공백을 허용한다", () => {
+  assert.deepEqual(parseReopenHeader("extend,clarifier"), { extend: true, clarifier: true });
+  assert.deepEqual(parseReopenHeader("extend"), { extend: true, clarifier: false });
+  assert.deepEqual(parseReopenHeader("clarifier"), { extend: false, clarifier: true });
+  assert.deepEqual(parseReopenHeader("clarifier,extend"), { extend: true, clarifier: true }); // 순서 무관
+  assert.deepEqual(parseReopenHeader("extend, clarifier"), { extend: true, clarifier: true });
+  assert.deepEqual(parseReopenHeader("extend,future_product,"), { extend: true, clarifier: false }); // 모르는 토큰·빈 토큰 무시
+  assert.deepEqual(parseReopenHeader("future_product"), { extend: false, clarifier: false });
+  assert.deepEqual(parseReopenHeader("Extend"), { extend: false, clarifier: false }); // 서버가 쓰는 소문자 토큰만 인정
+});
+
+test("formatReopenHeader ↔ parseReopenHeader — 모든 조합이 왕복한다", () => {
+  for (const ro of ALL_OPTIONS) assert.deepEqual(parseReopenHeader(formatReopenHeader(ro)), ro, JSON.stringify(ro));
+});
+
+test("X-Reopen — 빈 값('')은 실제 Headers 를 거쳐도 '헤더 없음'(null)과 구분된다", () => {
+  const withEmpty = new Response(null, { headers: { "X-Reopen": formatReopenHeader({ extend: false, clarifier: false }) } });
+  assert.deepEqual(parseReopenHeader(withEmpty.headers.get("X-Reopen")), { extend: false, clarifier: false });
+  assert.equal(parseReopenHeader(new Response(null).headers.get("X-Reopen")), null);
+  // 실제 응답 헤더를 거친 값도 왕복한다
+  for (const ro of ALL_OPTIONS) {
+    const r = new Response(null, { headers: { "X-Reopen": formatReopenHeader(ro) } });
+    assert.deepEqual(parseReopenHeader(r.headers.get("X-Reopen")), ro, JSON.stringify(ro));
+  }
 });
