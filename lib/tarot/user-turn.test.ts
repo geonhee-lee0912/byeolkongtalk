@@ -17,6 +17,12 @@ const cases: [string, boolean, boolean][] = [
   ["오늘 얘기 정말 고마워 덕분에 마음이 많이 편해졌어 다음에 또 올게 별콩아 진짜로 고마워", false, true],
   ["너무 힘들어", false, false],
   ["", false, false],
+  // "~ㄴ지/~ㄹ지" 간접 의문은 질문, 받침이 다른 평서 "~지" 는 중립
+  ["연락이 올지", true, false],
+  ["그 사람 마음이 괜찮은지", true, false],
+  ["알겠어 근데 걔는 날 어떻게 생각하는 건지", true, false],
+  ["그렇지", false, false],
+  ["좋지 ㅎㅎ", false, false],
 ];
 
 for (const [text, asking, closing] of cases) {
