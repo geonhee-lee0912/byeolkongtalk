@@ -255,3 +255,92 @@ test("classifyUserTurn — 보조 카드 구매 직후 synthetic 메시지는 �
   assert.equal(r.closing, false);
   assert.equal(r.closingExplicit, false);
 });
+
+// ── 작별 구(句) — keep-open ⑥ 의 명시적 마무리어 확대 (사용자 결정 2026-10-04: 명시적 마무리어는 닫는다) ──
+// 재검토에서 흔한 한국어 작별 25개 중 17개가 closingExplicit 이 아니어서, 별콩이가 질문한 직후 "이제 그만할게" 라고 해도 ⑥ 이 대화를 열어 뒀다.
+// 그만·여기까지·가볼게·잘게 같은 낱말을 약한 마무리어에 넣으면 "연락 그만할게"·"그 카페 한번 가볼게" 같은 연애 답을 닫으므로 구(句)로 넣고,
+// 말끝 창이 아니라 '발화 전체가 [군말…] + 구 (+ 호칭)' 일 때만 센다 — 대상·주어가 붙은 문장은 마무리가 아니다. asking 판정은 그대로(약한 마무리어).
+const GOODBYES: string[] = [
+  // 오늘은 여기까지
+  "오늘은 여기까지 할게", "오늘은 여기까지 할게요", "오늘은 여기까지 할게요 ㅎㅎ", "오늘은 여기까지만 할게!", "여기까지 할게", "오늘은 여기까지",
+  "오늘은 여기까지요~", "오늘은 여기까지 하자", "일단 여기까지 할게",
+  // 그만 / 끝
+  "이제 그만할게", "이제 그만할게요", "그만할래", "그만할래요", "이제 그만 할래~", "음 이제 그만할게요 ㅎㅎ", "그럼 이제 그만할게요", "별콩아 이제 그만할게",
+  "이제 끝낼게", "이제 끝낼게요", "이제 끝낼래", "오늘은 끝낼게",
+  // 다시 올게 / 다음에 봐
+  "나중에 다시 올게", "나중에 다시 올게요", "다음에 다시 올게요~", "다시 올게요", "나중에 올게", "곧 다시 올게",
+  "다음에 또 얘기하자", "다음에 또 얘기해요", "다음에 봐", "다음에 봐요", "다음에 봐~", "다음에 보자", "나중에 얘기하자",
+  // 잘 있어 / 수고했어
+  "잘 있어", "잘 있어요", "잘 있어~", "그럼 잘 있어", "별콩아 잘 있어",
+  "수고했어", "수고했어요", "오늘 수고했어", "수고했어 별콩아", "수고하셨어요", "오늘 정말 수고했어요 ㅎㅎ",
+  // 잘게 / 쉴게 / 가볼게 / 빠이
+  "잘게", "잘게요", "나 잘게", "이제 잘게", "먼저 잘게요", "푹 잘게 ㅎㅎ", "그럼 잘게!",
+  "이제 쉴게", "이제 쉴게요", "푹 쉴게요", "나 이제 쉴게", "좀 쉴게",
+  "이제 가볼게", "이제 가볼게요", "그럼 가볼게요", "이만 가볼게", "나 가볼게", "들어가볼게", "들어가볼게요", "들어가 볼게요", "이제 들어가볼게",
+  "빠이", "빠이빠이", "빠이~", "빠이 별콩아", "빠잇",
+  // 존댓말·군말·호칭·주제 표지(나는·저는)가 섞인 변형 — 답 군말(응·네·아니)이 앞에 와도 작별이다
+  "그럼 오늘은 여기까지 할게요~", "다음에 봐요 별콩아~", "아니 이제 그만할게", "응 이제 그만할게요", "네 오늘은 여기까지 할게요", "나 이제 그만할래",
+  "나 먼저 잘게", "오늘은 이만 잘게", "이제 슬슬 가볼게요", "오늘도 수고했어요", "정말 수고했어", "저는 이제 가볼게요", "나는 이제 쉴게", "저 이제 가볼게요", "그럼 먼저 가볼게요",
+];
+
+// 연애 답과 겹치는 모양 — 마무리가 아니다(질문 직후에 닫으면 답을 자르는 쪽이 더 비싸다)
+const NOT_GOODBYES: string[] = [
+  "이제 그만 연락하래", "이제 그만 만나자고 했어", "연락 그만할게", "그 사람이랑 이제 끝낼게", "이제 연락 안 할래", "이제 그만 잊을게", "그만 만날래", "그만 가볼게 그 얘기는",
+  "여기까지 왔는데 어떡해", "여기까지 온 거야", "우리 사이는 여기까지", "이제 여기까지인 것 같아", "여기까지", "오늘은 여기까지 왔어", "오늘은 여기까지 한대",
+  "그 카페 한번 가볼게", "가볼게", "한번 가볼게", "내일 그 사람한테 가볼게", "그 사람 보러 가볼게", "응 가볼게", "일단 가볼게",
+  "다음에 봐야 할까?", "다음에 봐야 해", "다음에 봐야지", "다음에 봐야겠다", "다음에 보면 말해볼게", "다음에 또 만날 것 같아", "나중에 다시 올게라고 했어", "다시 올 거야", "걔가 다시 올 것 같아",
+  "걔는 잘 있어", "응 잘 있어", "그 사람 잘 있어",
+  "걔가 수고했어라고 했어", "수고했어 한마디도 못 했어",
+  "걔 앞에선 잘게", "그 사람이랑 잘게",
+  "연애 쉴게", "쉴게", "이제 연애 쉴게", "끝낼게", "빠이팅",
+  // 같은 낱말이 다른 동사·대상과 붙은 연애 문장 — 군말 뒤에 구가 아닌 말이 오면 구가 아니다
+  "나 이제 그 사람 안 만날게", "이제 그만 만날게", "나 그만 가볼게 그 사람 집에", "내일 또 연락해볼게", "다음에 또 연락할게", "오늘은 여기까지 해보자",
+  "그 사람이 나중에 다시 올게요라고 했어", "이제 그 사람 얘기는 그만할게", "그 얘기는 그만할래", "걔랑은 이제 끝낼게", "나 이제 그 사람 쉴게",
+];
+
+test("classifyUserTurn — 작별 구는 명시적 마무리어다: closingExplicit·closing 둘 다 true, asking 은 false", () => {
+  for (const g of GOODBYES) {
+    const r = classifyUserTurn(g);
+    assert.equal(r.asking, false, `${g} asking`);
+    assert.equal(r.closingExplicit, true, `${g} closingExplicit`);
+    assert.equal(r.closing, true, `${g} closing`);
+  }
+});
+
+test("classifyUserTurn — 연애 답과 겹치는 모양은 마무리가 아니다(closingExplicit false)", () => {
+  for (const s of NOT_GOODBYES) assert.equal(classifyUserTurn(s).closingExplicit, false, s);
+});
+
+test("classifyUserTurn — 작별 구 표 전체에서도 closingExplicit ⇒ closing && !asking", () => {
+  for (const s of [...GOODBYES, ...NOT_GOODBYES]) {
+    const r = classifyUserTurn(s);
+    if (r.closingExplicit) {
+      assert.equal(r.closing, true, `${s} explicit ⇒ closing`);
+      assert.equal(r.asking, false, `${s} explicit ⇒ !asking`);
+    }
+  }
+});
+
+test("classifyUserTurn — 작별 구는 약한 마무리어라 asking 을 건드리지 않는다: 긴 고민 끝의 '이제 그만할게' 는 여전히 묻는 중, 앞에 접속어·대상이 붙으면 구가 아니다", () => {
+  // 40자 이상 + 약한 마무리어 → 긴 고민 판정이 그대로 asking (강한 마무리어·짧은 동의만 막는다)
+  const long = "요즘 그 사람이랑 연락이 뜸해져서 너무 속상하고 힘든데 어떻게 해야 할지 모르겠어서 이제 그만할게";
+  assert.ok(long.length >= 40);
+  assert.deepEqual({ asking: classifyUserTurn(long).asking, explicit: classifyUserTurn(long).closingExplicit }, { asking: true, explicit: false });
+  // 접속어(근데) 뒷말이 본론 — 뒷말이 작별 구면 마무리, 앞말이 구여도 뒷말이 질문이면 질문
+  assert.equal(classifyUserTurn("알겠어 근데 이제 그만할게").closingExplicit, true);
+  assert.equal(classifyUserTurn("이제 그만할게 근데 하나만 더 물어봐도 돼?").closingExplicit, false);
+});
+
+test("classifyUserTurn — 작별 구 판정은 선형이다(8000자 적대적 입력)", () => {
+  const inputs = [
+    "음 ".repeat(4000),
+    "이제 ".repeat(2666) + "x",
+    "별콩아 ".repeat(1300) + "잘 있어",
+    "오늘은 여기까지 ".repeat(500) + "할게",
+    "ㅎ".repeat(8000),
+  ];
+  const t0 = performance.now();
+  for (const s of inputs) classifyUserTurn(s);
+  const ms = performance.now() - t0;
+  assert.ok(ms < 200, `${inputs.length} adversarial inputs took ${ms.toFixed(0)}ms`);
+});

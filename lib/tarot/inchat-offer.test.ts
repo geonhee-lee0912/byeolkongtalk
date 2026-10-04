@@ -133,6 +133,19 @@ test("shouldKeepOpen ⑥ — 실제 유저 말 분류와 맞물린다: 질문에
   }
 });
 
+test("shouldKeepOpen ⑥ — 질문 직후의 작별 구('오늘은 여기까지 할게'·'이제 그만할게'·'다음에 봐' …)는 명시적 마무리어라 닫고, 같은 낱말이 든 연애 답은 열어 둔다", () => {
+  for (const goodbye of [
+    "오늘은 여기까지 할게", "이제 그만할게요", "그만할래", "이제 끝낼게", "나중에 다시 올게", "다음에 또 얘기하자", "다음에 봐", "잘 있어", "수고했어",
+    "잘게", "이제 쉴게", "이제 가볼게", "들어가볼게", "빠이", "응 이제 그만할게요", "오늘도 수고했어요 ㅎㅎ",
+  ]) {
+    assert.equal(keepForReply(goodbye), false, goodbye);
+  }
+  // 대상·주어가 붙은 같은 낱말 — 별콩이가 물은 것에 대한 대답이다
+  for (const answer of ["이제 그만 연락하래", "연락 그만할게", "그 카페 한번 가볼게", "여기까지 왔는데 그 사람이 걱정돼", "걔는 잘 있어", "그 사람이랑 이제 끝낼게", "다음에 봐야 해"]) {
+    assert.equal(keepForReply(answer), true, answer);
+  }
+});
+
 test("shouldKeepOpen ⑥ — '응' 은 별콩이가 질문으로 끝낸 직후에만 답이다: 질문이 아니었으면 열 근거가 없어 예전처럼 자연 마무리", () => {
   assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: true }), true);
   assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: false }), false);
