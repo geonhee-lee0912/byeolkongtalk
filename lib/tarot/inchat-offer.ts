@@ -72,6 +72,23 @@ export function shouldKeepOpen(i: KeepOpenInput): boolean {
   );
 }
 
+type TurnCloseLike = "ask" | "invite" | "settle";
+
+/**
+ * 강제 종료 직전(abs−1) 턴에서 열어 둔 턴은 질문으로 끝내지 않는다 — 마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙(사용자 결정 2026-10-04).
+ * 열어 둔 턴(keep-open · ⑦)은 turnSignals 를 wrapMode "free" 로 다시 계산하므로 turnClose 가 '질문'(ask)이 될 수 있다. 그런데 다음 턴은 강제 종료라
+ * 여기서 질문하면 유저가 답한 뒤 곧장 작별을 받는다 — ⑥ 이 다른 곳에서 없앤 '묻고 → 답했더니 → 작별'이다. ask 를 invite 로 내린다.
+ * ⑦ 턴은 항상 abs−1 이고, 자연 마무리선에서 열어 둔 턴도 abs−1 이면 해당된다. 그 밖(abs−2 이전 · 열어 둔 턴이 아님 · settle·invite)은 그대로다.
+ * 프롬프트와 저장되는 messages.turn_close 가 같은 값을 쓰도록 호출부는 turnSignals 자체를 이 결과로 만든다.
+ */
+export function capTurnCloseBeforeAbsCap(
+  turnClose: TurnCloseLike | undefined,
+  i: { keepOpenTurn: boolean; assistantTurnsSoFar: number; effAbsTurnCap: number },
+): TurnCloseLike | undefined {
+  // 이번 턴이 assistantTurnsSoFar+1 번째, 다음 턴이 +2 번째 — 다음 턴이 강제 종료선이면(abs−1) 질문으로 끝내지 않는다
+  return i.keepOpenTurn && i.assistantTurnsSoFar + 2 >= i.effAbsTurnCap && turnClose === "ask" ? "invite" : turnClose;
+}
+
 // '카드 한 장' 은 넣지 않는다 — 마무리 인사("카드 한 장으로 다 풀리진 않지만")·평범한 문장에 걸려
 // 제안 없는 칩이 붙는다(prod 표본 25건 중 제안 1건, 2026-10-04). spec §3-5 ③
 const OFFER_PHRASE_RE = /한\s*장\s*(?:을\s*)?더/;

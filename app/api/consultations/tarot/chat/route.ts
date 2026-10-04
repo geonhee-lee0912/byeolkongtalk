@@ -24,6 +24,7 @@ import { classifyUserTurn } from "@/lib/tarot/user-turn";
 import {
   isClarifierCandidate,
   shouldKeepOpen,
+  capTurnCloseBeforeAbsCap,
   finalizeAssistantText,
   createEndMarkerFilter,
 } from "@/lib/tarot/inchat-offer";
@@ -234,9 +235,17 @@ export async function POST(request: NextRequest) {
     !crisisActive;
   const keepOpenTurn = keepOpen || clarifierReopenTurn;
 
-  // 열어 두는 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로
-  const turnSignals = keepOpenTurn
+  // 열어 두는 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로.
+  // 단 강제 종료 직전(abs−1)이면 질문(ask)으로 끝내지 않는다 — 다음 턴이 강제 종료라 질문하면 유저가 답한 뒤 곧장 작별을 받는다(마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙).
+  // 프롬프트와 저장되는 turn_close 가 같은 값을 쓰도록 turnSignals 자체를 캡한 값으로 만든다.
+  const keepOpenSignals = keepOpenTurn
     ? computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode: "free", ...signalCtx })
+    : null;
+  const turnSignals = keepOpenSignals
+    ? {
+        ...keepOpenSignals,
+        turnClose: capTurnCloseBeforeAbsCap(keepOpenSignals.turnClose, { keepOpenTurn, assistantTurnsSoFar, effAbsTurnCap }),
+      }
     : baseSignals;
 
   const clarifierCandidate = isClarifierCandidate({

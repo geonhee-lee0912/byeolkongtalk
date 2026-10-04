@@ -7,10 +7,15 @@ import {
   repairClarifierMarker,
   createEndMarkerFilter,
   finalizeAssistantText,
+  capTurnCloseBeforeAbsCap,
   type KeepOpenInput,
 } from "./inchat-offer.ts";
 import { tarotEndState, type ReopenReadingRow } from "./reopen.ts";
 import { classifyUserTurn } from "./user-turn.ts";
+import { clarifierSyntheticMessage } from "./clarifier-message.ts";
+import { WRAP_THRESHOLDS } from "./constants.ts";
+import { effectiveWrapThresholds } from "./thresholds.ts";
+import { computeTurnSignals, computeWrapMode } from "../claude.ts";
 
 const base = {
   assistantTurnsSoFar: 2,
@@ -432,4 +437,66 @@ test("finalizeAssistantText — 강제 종료 턴의 저장본은 어떤 입력�
       assert.deepEqual(finalizeAssistantText(saved, { ...mustEndCtx, forceEnd }), { saved, streamTail: "" }, label);
     }
   }
+});
+
+// ── 강제 종료 직전(abs−1) 턴에서 열어 둔 턴은 질문으로 끝내지 않는다 (마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙, 사용자 결정 2026-10-04) ──
+// 열어 둔 턴(keep-open · ⑦)은 turnSignals 를 wrapMode "free" 로 다시 계산해 turnClose 가 '질문'(ask)이 될 수 있다. 그런데 다음 턴은 강제 종료라,
+// 여기서 질문하면 유저가 답한 뒤 곧장 작별을 받는다 — ⑥ 이 다른 곳에서 없앤 '묻고 → 답했더니 → 작별'이다. ask 를 invite 로 내린다.
+// 투카드 기본 강제 종료선 12: 11번째 턴(assistantTurnsSoFar 10)이 abs−1.
+const capAt = (turnClose: "ask" | "invite" | "settle" | undefined, over: Partial<Parameters<typeof capTurnCloseBeforeAbsCap>[1]> = {}) =>
+  capTurnCloseBeforeAbsCap(turnClose, { keepOpenTurn: true, assistantTurnsSoFar: 10, effAbsTurnCap: 12, ...over });
+
+test("capTurnCloseBeforeAbsCap — 강제 종료 직전(abs−1)에서 열어 둔 턴의 ask 는 invite 로 내린다", () => {
+  assert.equal(capAt("ask"), "invite");
+  // 선 이상이어도(방어 — 열어 둔 턴은 mustEnd 가 아니라 실제로는 오지 않는다) 같다
+  assert.equal(capAt("ask", { assistantTurnsSoFar: 11 }), "invite");
+  assert.equal(capAt("ask", { assistantTurnsSoFar: 15 }), "invite");
+});
+
+test("capTurnCloseBeforeAbsCap — abs−2 이전의 열어 둔 턴은 ask 그대로", () => {
+  assert.equal(capAt("ask", { assistantTurnsSoFar: 9 }), "ask"); // 10번째 턴 = abs−2
+  assert.equal(capAt("ask", { assistantTurnsSoFar: 3 }), "ask");
+});
+
+test("capTurnCloseBeforeAbsCap — 열어 둔 턴이 아니면 abs−1 이어도 그대로", () => {
+  assert.equal(capAt("ask", { keepOpenTurn: false }), "ask");
+});
+
+test("capTurnCloseBeforeAbsCap — settle·invite·미정(undefined)은 어디서나 그대로", () => {
+  for (const turnClose of ["settle", "invite", undefined] as const) {
+    for (const assistantTurnsSoFar of [3, 9, 10, 11]) {
+      assert.equal(capAt(turnClose, { assistantTurnsSoFar }), turnClose, `${turnClose} @${assistantTurnsSoFar}`);
+    }
+  }
+});
+
+test("capTurnCloseBeforeAbsCap — '+2' 는 '다음 턴이 강제 종료'다: 모든 스프레드·연장·보조 카드에서 경계가 computeWrapMode 의 절대 턴캡과 맞는다", () => {
+  for (const spread of Object.keys(WRAP_THRESHOLDS)) {
+    for (const [extra, clar] of [[0, 0], [4, 0], [0, 1], [4, 1]]) {
+      const eff = effectiveWrapThresholds(spread, extra, clar);
+      if (!eff) throw new Error(`알 수 없는 스프레드: ${spread}`);
+      for (let soFar = 0; soFar <= eff.absTurnCap; soFar++) {
+        // 이번 턴이 soFar+1 번째, 다음 턴이 soFar+2 번째. 다음 턴이 강제 종료선이면 캡이 걸린다
+        const nextIsForcedClose: boolean = computeWrapMode(soFar + 2, 50_000, eff).absHardcap;
+        const capped: boolean = capTurnCloseBeforeAbsCap("ask", { keepOpenTurn: true, assistantTurnsSoFar: soFar, effAbsTurnCap: eff.absTurnCap }) === "invite";
+        assert.equal(capped, nextIsForcedClose, `${spread} extra=${extra} clar=${clar} soFar=${soFar}`);
+      }
+    }
+  }
+});
+
+test("capTurnCloseBeforeAbsCap — ⑦ 턴(보조 카드로 다시 연 카드 풀이 턴 = 항상 abs−1): 앞선 유저 말이 짧고 synthetic 메시지가 길면 만들어지는 ask 를 invite 로 내린다", () => {
+  // 투카드: 연장 4 + 보조 1 → 강제 종료선 18. ⑦ 턴은 17번째(assistantTurnsSoFar 16). 앞선 유저 말이 짧고 synthetic 메시지가 길어 '다시 붙었다(성장)' → 캡 전엔 ask
+  const past = [
+    { role: "user", content: "네" },
+    { role: "assistant", content: "그 흐름은 아직 열려 있어." },
+  ];
+  const signals = computeTurnSignals(past, clarifierSyntheticMessage("'컵 2' (정방향)"), { wrapMode: "free", isFirstTurn: false, questionLen: 30 });
+  assert.equal(signals.turnClose, "ask", "캡 전 — 이게 ask 여야 이 테스트가 의미 있다");
+  const eff = effectiveWrapThresholds("two_card", 4, 1);
+  assert.ok(eff);
+  assert.equal(eff.absTurnCap, 18);
+  assert.equal(capTurnCloseBeforeAbsCap(signals.turnClose, { keepOpenTurn: true, assistantTurnsSoFar: 16, effAbsTurnCap: eff.absTurnCap }), "invite");
+  // 같은 신호가 abs−2 의 열어 둔 턴이면 그대로 ask
+  assert.equal(capTurnCloseBeforeAbsCap(signals.turnClose, { keepOpenTurn: true, assistantTurnsSoFar: 15, effAbsTurnCap: eff.absTurnCap }), "ask");
 });
