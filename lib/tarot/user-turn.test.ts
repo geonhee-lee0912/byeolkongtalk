@@ -105,6 +105,25 @@ const cases: [string, boolean, boolean][] = [
   ["내일 보자", false, true],
   [" 응 ", false, true],
   ["   ", false, false],
+
+  // --- 짧은 입력: 말끝 앞 글자가 없어도(jongseong 의 `if (!ch) return -1` 가드) 예외 없이 중립 ---
+  ["지", false, false],
+  ["가요", false, false],
+  ["니까", false, false],
+  ["니까요", false, false],
+  ["지ㅋㅋ", false, false],
+
+  // --- '나다' 복합 서술 "~나요" 는 평서 — 물음표가 붙거나 목록 밖 "~나요" 는 질문 ---
+  ["계속 생각나요", false, false],
+  ["눈물나요", false, false],
+  ["화나요", false, false],
+  ["생각나요?", true, false],
+  ["되나요", true, false],
+  ["이거 하나요", true, false],
+
+  // --- 스킨톤 수정자(Emoji_Modifier)·밑줄도 말끝 꼬리다 ---
+  ["연락 올까요 \u{1F64F}\u{1F3FD}", true, false], // 합장 이모지 + 스킨톤 수정자
+  ["언제 올까 ㅠ_ㅠ", true, false],
 ];
 
 for (const [text, asking, closing] of cases) {
@@ -132,6 +151,28 @@ for (const tail of [
     assert.equal(classifyUserTurn("연락이 올지" + tail).asking, true);
   });
 }
+
+// 어휘 핀 — 단독 발화로 각 마무리어(강한 것·약한 것·짧은 동의)가 한 번씩 closing 이 되는지
+test("classifyUserTurn — 마무리어 어휘 (단독 발화는 closing)", () => {
+  const words = [
+    "감사합니다", "고맙습니다", "고마웠어", "또 올게", "갈게", "바이바이", "ㅂㅂ", // 강
+    "알겠어", "알았어", "그렇구나", "이해했어", "맞네", "충분해", "이만", "마무리할게", "됐어", "ㅇㅋ", "오키", // 약
+    "그래", "네네", "웅", "엉", "넹", // 짧은 동의
+  ];
+  for (const w of words) assert.deepEqual(classifyUserTurn(w), { asking: false, closing: true }, w);
+});
+
+// 어휘 핀 — 질문 어미·요청 어휘가 단독 발화로 asking 이 되는지
+test("classifyUserTurn — 질문 어미·요청 어휘 (단독 발화는 asking)", () => {
+  for (const w of ["그게 맞니", "그게 말이 되냐", "나한테 마음이 있긴 한 건가", "말해줘", "어떻게 해야 돼", "궁금해", "어때"]) {
+    assert.equal(classifyUserTurn(w).asking, true, w);
+  }
+});
+
+// ☆ 꼬리 (★ 는 이모지 꼬리 루프에 있다)
+test("classifyUserTurn — ☆ 꼬리", () => {
+  assert.equal(classifyUserTurn("언제쯤 연락 올까☆").asking, true);
+});
 
 // 회귀 가드: 8000자(MAX_MESSAGE_LEN) 적대적 입력이 선형 시간이어야 한다 (이차 백트래킹이면 입력당 180~500ms)
 test("classifyUserTurn — 8000자 적대적 입력은 선형 시간으로 끝난다", () => {
