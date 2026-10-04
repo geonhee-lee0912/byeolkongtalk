@@ -648,6 +648,28 @@ test("undoSlotAndRestore — clarifier 쪽은 clarifier_count 를 내리고 extr
   ]);
 });
 
+test("undoSlotAndRestore — clarifier 는 슬롯과 같은 UPDATE 로 붙인 카드도 같은 반납 UPDATE 로 되돌린다(drawn_cards → 선점 전 배열)", async () => {
+  const before = [{ position: 0, label: "지금", card_id: 3, direction: "upright" as const }];
+  const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [{ id: "r1" }], error: null }, { error: null }]);
+  const { log } = fakeLog();
+  const claim = await claimAndGet(client, log);
+  assert.equal(await undoSlotAndRestore(client, claim, { ...CLARIFIER_UNDO, drawnCards: before }, log), "rolled_back");
+  // 한 문장 — 슬롯만 내리고 카드는 남기면 '카드는 있는데 슬롯은 반납된' 공짜 카드가 된다
+  assert.deepEqual(readingsCalls(calls), [
+    ["from", "readings"],
+    ["update", { clarifier_count: 0, drawn_cards: before }],
+    ["eq", "id", "r1"],
+    ["eq", "clarifier_count", 1],
+    ["eq", "extra_turns", 4],
+    ["select", "id"],
+  ]);
+  // 읽은 값이 null(옛 행)이면 null 로 되돌린다 — 빈 배열로 바꾸지 않는다
+  const w2 = fakeWrites([{ data: [{ id: "r1" }], error: null }]);
+  const claim2 = await claimAndGet(w2.client, log, endStateOf({ ended: false, endedAtAbsCap: false }));
+  await undoSlotAndRestore(w2.client, claim2, { ...CLARIFIER_UNDO, drawnCards: null }, log);
+  assert.deepEqual(updatesOf(w2.calls), [{ clarifier_count: 0, drawn_cards: null }]);
+});
+
 test("undoSlotAndRestore — 0행(다른 구매가 위에 쌓임)이면 복원하지 않고 대화를 열어 둔다 — WARN, 호출자는 그래도 402", async () => {
   const { client, calls } = fakeWrites([{ data: [{ id: "m12" }], error: null }, { data: [], error: null }]);
   const { log, logs, warns } = fakeLog();

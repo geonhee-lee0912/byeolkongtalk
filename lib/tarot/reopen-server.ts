@@ -10,6 +10,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import type { getServiceSupabase } from "../supabase.ts";
 import type { logError, logWarn } from "../logger.ts";
 import { stripTrailingEnd, tarotEndState, type ReopenReadingRow } from "./reopen.ts";
+import type { DrawnCard } from "./spreads.ts";
 
 export type { ReopenReadingRow };
 
@@ -173,6 +174,8 @@ export interface SlotUndo {
   previous: number;
   /** 구매 판정(유효 강제 종료선)에 쓴 **다른** 카운터와 읽은 값 — 반납 CAS 도 이 값을 요구한다 */
   other: { column: SlotColumn; value: number };
+  /** clarifier 만 — 슬롯 CAS 가 새 카드를 같은 UPDATE 로 붙였으므로, 반납도 같은 UPDATE 로 drawn_cards 를 슬롯 CAS 전에 읽은 값으로 되돌린다 */
+  drawnCards?: DrawnCard[] | null;
 }
 
 /** 차감이 **확정 부족**으로 실패한 뒤 — 슬롯을 두 카운터에 대한 CAS 로 반납하고, 정확히 1행이 깨끗이 되돌아갔을 때만 선점한 [END] 를 복원한다.
@@ -180,6 +183,7 @@ export interface SlotUndo {
  *  - 반납 오류: 카운터가 올라간 채일 수 있다. 그 상태에서 [END] 만 되살리면 턴 수 < 올라간 선이라 '강제 종료선에서 닫힌 대화'가 아니게 돼
  *    영영 재개할 수 없다 → 복원하지 않는다. 오류 로그(수동 보정 필요).
  *  절대값 UPDATE 가 아니라 CAS 인 이유: 다른 구매가 올린 카운터까지 덮어쓰지 않으려고(예: clarifier 는 최대 2회라 둘이 쌓일 수 있다).
+ *  clarifier 는 drawnCards 를 넘겨 카드도 같은 문장으로 되돌린다 — CAS 가 맞았다면 위에 쌓인 구매가 없으니 이 요청의 카드가 배열 맨 끝이다. 0행이면 카드도 슬롯과 함께 남는다(공짜 카드).
  *  결과가 불명한 차감(rpc_error)엔 부르지 않는다 — 라우트가 반납·복원 없이 성공으로 처리한다(spend_unknown_granted). */
 export async function undoSlotAndRestore(
   supabase: ServiceSupabase,
@@ -190,7 +194,10 @@ export async function undoSlotAndRestore(
   const ctx = { route: log.route, userId: log.userId };
   const { data, error } = await supabase
     .from("readings")
-    .update({ [slot.column]: slot.previous })
+    .update({
+      [slot.column]: slot.previous,
+      ...(slot.drawnCards === undefined ? {} : { drawn_cards: slot.drawnCards }),
+    })
     .eq("id", slot.readingId)
     .eq(slot.column, slot.applied)
     .eq(slot.other.column, slot.other.value)
