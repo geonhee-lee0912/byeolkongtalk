@@ -7,9 +7,11 @@
 // 원칙: 명시적 질문·요청은 마무리어보다 우선 — '묻는 중 닫힘'이 '한 턴 더 열림'보다 비싸다.
 
 const QUESTION_MARK_RE = /[?？]/;
-const QUESTION_ENDING_RE = /(까|니|냐|는지|건가)\s*[.…~!ㅠㅜㅋㅎ\s]*$/;
+// 꼬리(문장부호·ㅠㅜㅋㅎ·이모지)는 stripTrailingNoise 로 먼저 떼고 core 에 건다 — 꼬리를 `\s*[...]*$` 로 두면 이차 백트래킹.
+const QUESTION_ENDING_RE = /(까|니|냐|는지|건가)$/;
 // 작별어는 뒤에 한글이 붙지 않을 때만(안녕≠안녕하세요·바이≠바이브·잘 자≠잘 자지 못해·내일 봐≠내일 봐야) — 존댓말(안녕히·잘 자요)은 따로.
 const CLOSING_RE = /(고마워|고마웠|고맙|감사|알겠|알았|그렇구나|이해(했|됐|돼)|맞네|충분|이만|마무리|됐어|ㅇㅋ|오키|갈게|안녕(?![가-힣])|안녕히|또\s*올게|잘\s*자(?![가-힣])|잘\s*자요|내일\s*(봐|보자)(?![가-힣])|들어갈게|바이(?![가-힣])|ㅂㅂ)/;
+// 망설임 꼬리(…·ㅠ)는 동의로 보지 않는다 — 의도적으로 좁은 꼬리 집합
 const SHORT_AGREE_RE = /^(응+|ㅇㅇ+|그래|네+|웅+|넹|엉)[.!~ㅎㅋ\s]*$/;
 // "궁금해·봐줘·알려줘·어때·어떡해" 류 요청·궁금함 — 물음표 없이도 답을 원하는 신호. 마무리어보다 우선한다.
 // 인과 "-줘서"("봐줘서 고마워")는 요청이 아니라 감사라 제외(?!서).
@@ -19,13 +21,25 @@ const LONG_CONCERN_LEN = 40;
 // 마무리어는 말끝(마지막 15자)에 있을 때만 마무리로 본다 — "걔가 고마웠는데 요즘 서운해" 같은 하소연 중간의 감사 표현을 마무리로 오판하지 않게.
 const CLOSING_TAIL_LEN = 15;
 
-// "~ㄴ지/~ㄹ지" 간접 의문(건지·은지·올지·될지…) — 앞 글자 받침이 ㄴ(4)·ㄹ(8)이면 질문.
+// 말끝 꼬리 = 공백·문장부호·ㅠㅜㅋㅎㅡ·^ ;·♡★☆·전각 ！～。·이모지(VS16·ZWJ 포함). 뒤에서부터 한 code point 씩 센다 —
+// 서러게이트 쌍이 반쪽으로 끊기지 않고, 정규식 `[...]+$` 의 이차 백트래킹도 없다(선형). 룩비하인드는 쓰지 않는다(클라 번들 대비).
+const NOISE_CP_RE = /^(?:[\s.…~!^;ㅠㅜㅋㅎㅡ♡★☆！～。\uFE0F\u200D]|\p{Extended_Pictographic})$/u;
+function stripTrailingNoise(t: string): string {
+  let end = t.length;
+  while (end > 0) {
+    const lo = t.charCodeAt(end - 1);
+    const start = end >= 2 && lo >= 0xdc00 && lo <= 0xdfff ? end - 2 : end - 1;
+    if (!NOISE_CP_RE.test(t.slice(start, end))) break;
+    end = start;
+  }
+  return t.slice(0, end);
+}
+
+// "~ㄴ지/~ㄹ지" 간접 의문(건지·은지·올지·될지…) — 앞 글자 받침이 ㄴ(4)·ㄹ(8)이면 질문. core = 꼬리를 뗀 말끝.
 // "그렇지·좋지·했지" 같은 평서 "~지" 는 받침이 달라 걸리지 않는다.
-const TRAILING_NOISE_RE = /[\s.…~!ㅠㅜㅋㅎ]+$/;
-function endsWithIndirectQuestion(t: string): boolean {
-  const s = t.replace(TRAILING_NOISE_RE, "");
-  if (s.length < 2 || !s.endsWith("지")) return false;
-  const code = s.charCodeAt(s.length - 2) - 0xac00;
+function endsWithIndirectQuestion(core: string): boolean {
+  if (core.length < 2 || !core.endsWith("지")) return false;
+  const code = core.charCodeAt(core.length - 2) - 0xac00;
   if (code < 0 || code > 11171) return false;
   const jong = code % 28;
   return jong === 4 || jong === 8;
@@ -55,7 +69,8 @@ export interface UserTurnClass {
 export function classifyUserTurn(text: string): UserTurnClass {
   const t = text.trim();
   const body = afterLastConjunction(t);
-  const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(body) || endsWithIndirectQuestion(body);
+  const core = stripTrailingNoise(body); // 말끝 꼬리를 뗀 본문 — 질문 어미 판정용
+  const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(core) || endsWithIndirectQuestion(core);
   const closingPattern = CLOSING_RE.test(body.slice(-CLOSING_TAIL_LEN)) || SHORT_AGREE_RE.test(body);
   // 명시적 질문·요청은 마무리어보다 우선 — '묻는 중 닫힘'이 '한 턴 더 열림'보다 비싸다.
   const asking = hasQuestion || REQUEST_RE.test(body) || (t.length >= LONG_CONCERN_LEN && !closingPattern);

@@ -50,6 +50,42 @@ const cases: [string, boolean, boolean][] = [
   ["걔 요즘 바이브가 달라졌어", false, false],
   ["안녕히 주무세요", false, true],
   ["잘 자요", false, true],
+
+  // --- SHORT_AGREE 꼬리: 망설임 꼬리(…·ㅠ)는 동의가 아니고, 웃음 꼬리(ㅎ·ㅋ)는 동의다 ---
+  ["응…", false, false],
+  ["네ㅠㅠ", false, false],
+  ["넹ㅎㅎ", false, true],
+
+  // --- 접속어 처리: 위 케이스 중 afterLastConjunction 에만 의존하는 것은 일부뿐이라 경계를 따로 고정 ---
+  ["고마워 근데 나 아직 불안해", false, false], // 접속어 앞 감사는 버린다 (접속어가 없었다면 closing=true)
+  ["그 사람이랑 헤어진 지 한 달인데 아직 마음이 정리가 안 돼서 힘들어 고마워 근데 좀 불안해", true, false], // 15자 창 안의 앞쪽 감사가 긴 고민을 덮지 않는다
+  ["그리고 궁금해 근데 그냥 고마워", false, true], // 마지막 접속어 기준 (처음 접속어 기준이면 궁금 때문에 asking)
+  ["고마워 근데", false, true], // 접속어 뒤가 비면 전체로 폴백
+
+  // --- 최종 원칙: 명시적 요청·질문은 같은 말 안의 마무리어보다 우선 ---
+  ["알겠어 이거 알려줘", true, false],
+  ["고마워 어때", true, false],
+  ["알려줘서 고마워", false, true], // 인과 -줘서 는 요청이 아니라 감사
+  ["말해줘서 고마워", false, true],
+
+  // --- '?' 단독 경로 · 전각 · 접속어 앞 '?' ---
+  ["진짜?", true, false],
+  ["진짜？", true, false],
+  ["진짜? 근데 고마워", true, false], // '?' 는 접속어 앞이어도 센다 (본문 한정 아님)
+
+  // --- 임계값 경계 ---
+  ["가".repeat(39), false, false],
+  ["가".repeat(40), true, false],
+  ["고마워" + "ㅁ".repeat(12), false, true], // 총 15자: 마무리어가 말끝 15자 안
+  ["고마워" + "ㅁ".repeat(13), false, false], // 총 16자: 첫 글자가 창 밖
+
+  // --- 작별어 뒤 한글 금지 / 공백 trim ---
+  ["안녕하세요 별콩아", false, false],
+  ["내일 봐야 해서 걱정이야", false, false], // 요청어 없이도 '내일 봐' 로 걸리면 안 된다
+  ["내일 봐", false, true],
+  ["내일 보자", false, true],
+  [" 응 ", false, true],
+  ["   ", false, false],
 ];
 
 for (const [text, asking, closing] of cases) {
@@ -57,3 +93,38 @@ for (const [text, asking, closing] of cases) {
     assert.deepEqual(classifyUserTurn(text), { asking, closing });
   });
 }
+
+// 말끝 꼬리(문장부호·ㅠㅜㅋㅎ·공백)는 질문 어미 뒤에서도 질문으로 본다 — 꼬리 문자 집합 전체를 한 번씩
+for (const tail of [".", "..", "…", "~", "!", "ㅠㅠ", "ㅜㅜ", "ㅋㅋ", "ㅎㅎ", " ", "  ㅠ ", "\n"]) {
+  test(`classifyUserTurn — 질문 어미 + 꼬리 ${JSON.stringify(tail)}`, () => {
+    assert.equal(classifyUserTurn("언제쯤 연락 올까" + tail).asking, true);
+    assert.equal(classifyUserTurn("연락이 올지" + tail).asking, true);
+  });
+}
+
+// 이모지·이모티콘 꼬리도 같다 — 서러게이트 쌍(😭)·VS16·ZWJ 시퀀스는 이스케이프로 적어 비가시 문자가 깨지지 않게 한다
+for (const tail of [
+  "😭", " 🥺", "💕", "♡", "★", "^^", ";;", "ㅡㅡ", "。", "！", "～", "✨🙏",
+  "\u2764\uFE0F",
+  "\u{1F469}\u200D\u2764\uFE0F\u200D\u{1F468}",
+]) {
+  test(`classifyUserTurn — 질문 어미 + 이모지 꼬리 ${JSON.stringify(tail)}`, () => {
+    assert.equal(classifyUserTurn("언제쯤 연락 올까" + tail).asking, true);
+    assert.equal(classifyUserTurn("연락이 올지" + tail).asking, true);
+  });
+}
+
+// 회귀 가드: 8000자(MAX_MESSAGE_LEN) 적대적 입력이 선형 시간이어야 한다 (이차 백트래킹이면 입력당 180~500ms)
+test("classifyUserTurn — 8000자 적대적 입력은 선형 시간으로 끝난다", () => {
+  const N = 8000;
+  const inputs = [
+    "까" + " ".repeat(N - 2) + "x",
+    "가" + "ㅋ".repeat(N - 2) + "나",
+    "올지" + "ㅠ".repeat(N - 3) + "x",
+    "가" + "😭".repeat(N / 2 - 2) + "나", // 서러게이트 쌍 꼬리
+  ];
+  const t0 = performance.now();
+  for (const s of inputs) classifyUserTurn(s);
+  const ms = performance.now() - t0;
+  assert.ok(ms < 200, `${inputs.length} adversarial inputs took ${ms.toFixed(0)}ms`);
+});
