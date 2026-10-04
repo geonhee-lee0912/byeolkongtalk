@@ -39,7 +39,9 @@ export function shouldKeepOpen(i: KeepOpenInput): boolean {
   return i.wrapMode === "hardcap" && !i.mustEnd && !i.crisisActive && i.userAsking;
 }
 
-const OFFER_PHRASE_RE = /한\s*장\s*더|카드\s*한\s*장/;
+// '카드 한 장' 은 넣지 않는다 — 마무리 인사("카드 한 장으로 다 풀리진 않지만")·평범한 문장에 걸려
+// 제안 없는 칩이 붙는다(prod 표본 25건 중 제안 1건, 2026-10-04). spec §3-5 ③
+const OFFER_PHRASE_RE = /한\s*장\s*(?:을\s*)?더/;
 const VISIBLE_MARKERS_RE = /\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi;
 
 /** 후보 턴 응답에 '한 장 더' 제안 문구가 있는데 마커만 빠졌으면 끝에 붙인다. 앞부분은 절대 바꾸지 않는다(스트림 꼬리로 보내기 때문) */

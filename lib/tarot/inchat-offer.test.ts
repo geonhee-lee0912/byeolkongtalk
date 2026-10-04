@@ -58,6 +58,24 @@ test("repairClarifierMarker — 문구 없음·이미 마커 있음이면 그대
   assert.equal(repairClarifierMarker(withMarker), withMarker);
 });
 
+test("repairClarifierMarker — '카드 한 장' 만 있는 마무리 인사·평범한 문장엔 마커를 붙이지 않는다", () => {
+  for (const text of [
+    "그 마음, 카드 한 장으로 다 풀리진 않지만 오늘은 여기까지 함께 짚어왔어.",
+    "지금 카드 한 장의 결은 '내일 확실히 연락'보다는 먼저 서로의 입장을 생각하는 단계야.",
+  ]) {
+    assert.equal(repairClarifierMarker(text), text);
+  }
+});
+
+test("repairClarifierMarker — '한 장을 더'·'한장 더' 변형 제안에도 마커를 붙인다", () => {
+  for (const text of [
+    "이 부분은 카드 한 장을 더 펼쳐 보면 훨씬 또렷해질 수 있어.",
+    "한장 더 펼쳐서 볼 수도 있어.",
+  ]) {
+    assert.equal(repairClarifierMarker(text), `${text}\n${CLARIFIER_MARKER}`);
+  }
+});
+
 test("createEndMarkerFilter — 청크 경계에 걸친 [END] 도 지운다", () => {
   const f = createEndMarkerFilter();
   const out = f.push("답이야.\n\n[EN") + f.push("D]") + f.flush();
