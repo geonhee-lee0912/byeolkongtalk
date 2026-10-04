@@ -61,16 +61,15 @@ const EXIT_NUDGE = [
   "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
   "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
 ];
-const FINISH_PHRASE = "대화 마무리할게"; // 하단 골드 버튼 경유
+const FINISH_PHRASE = "대화 마무리할게"; // 입력창 아래 '마무리하고 결과 보기' 버튼 경유 — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
-const FINISH_PHRASE_RESULT_ONLY = "결과만 보고 마칠게"; // 첫 풀이 직후 작은 버튼 경유 (시안 B, 계측 구분용 — spec 2026-10-04 §3-6)
 // 재개 제안 없음 — 한 참조를 공유해 setReopen 이 같은 값으로 불필요한 리렌더를 만들지 않는다
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
 // 409(다른 구매가 처리 중) 뒤 서버 상태를 다시 읽기까지 — 바로 읽으면 그 요청이 반쯤 끝난 상태를 붙잡는다
 const RESYNC_DELAY_MS = 1500;
 // [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
 
-// 첫 답 마무리 안내 한 줄의 인라인 SVG — 저장소에 아이콘 라이브러리가 없다
+// 마무리 안내 한 줄의 인라인 SVG — 저장소에 아이콘 라이브러리가 없다
 /** 4꼭지 금색 별(앱의 별 모티프) — 안내 문구 앞 */
 function HintStar() {
   return (
@@ -80,7 +79,7 @@ function HintStar() {
   );
 }
 
-/** 작은 › — 결과만 볼래 버튼 끝 */
+/** 작은 › — 마무리하고 결과 보기 버튼 끝 */
 function ChevronRight() {
   return (
     <svg
@@ -1025,9 +1024,6 @@ function TarotReadingInner() {
     );
   }
 
-  // 별콩이 답이 1개뿐인 동안(첫 풀이 직후 ~ 두 번째 답 도착 전) — 금색 마무리 버튼 대신 작은 링크를 보인다(시안 B, spec §3-6)
-  const isFirstAnswerOnly = messages.filter((m) => m.role === "assistant" && !m.ephemeral).length < 2;
-
   return (
     <main
       className="flex flex-col items-stretch w-full min-h-0"
@@ -1323,35 +1319,23 @@ function TarotReadingInner() {
                     </span>
                   </button>
                 </div>
-                {isFirstAnswerOnly ? (
-                  // 시안 B — 첫 풀이 직후 종료가 41% 라 금색 버튼 대신 안내 한 줄 + 오른쪽 작은 버튼.
-                  // 안내는 truncate(min-w-0)라 320px 에서도 버튼을 밀어내지 않는다. 하단 바는 흰 배경이라 text-light 를 쓴다
-                  <div className="flex items-center justify-between gap-2.5">
-                    <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-light">
-                      <HintStar />
-                      <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleFinish(FINISH_PHRASE_RESULT_ONLY)}
-                      disabled={isStreaming || !readingId || inPurchaseFlow}
-                      className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-eye-purple disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      결과만 볼래
-                      <ChevronRight />
-                    </button>
-                  </div>
-                ) : (
+                {/* 시안 B — 대화 내내 안내 한 줄 + 오른쪽 작은 마무리 버튼(금색 버튼은 없앴다, spec §3-6). 버튼 라벨이 '누르면 대화가 끝난다'를 말한다.
+                    안내는 truncate(min-w-0)라 320px 에서도 버튼이 줄바꿈·넘침 없이 남는다. 하단 바는 흰 배경이라 text-light 를 쓴다 */}
+                <div className="flex items-center justify-between gap-2.5">
+                  <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-light">
+                    <HintStar />
+                    <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
+                  </p>
                   <button
                     type="button"
                     onClick={() => handleFinish()}
                     disabled={isStreaming || !readingId || inPurchaseFlow}
-                    className="w-full py-2.5 rounded-xl font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: "#ffe29e", color: "#48464d" }}
+                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-eye-purple disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    대화 마무리하고 결과 확인하기
+                    마무리하고 결과 보기
+                    <ChevronRight />
                   </button>
-                )}
+                </div>
               </form>
           )}
         </div>

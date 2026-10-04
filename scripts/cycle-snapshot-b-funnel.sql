@@ -12,7 +12,6 @@
 --    관측 가능한 건 **클릭**뿐 — 고정 유저 문구로 식별한다:
 --      '오늘은 여기서 마무리할게' = 출구 칩 (app/tarot/reading/page.tsx:58)
 --      '대화 마무리할게'          = 하단 골드 버튼 (동 파일 :57)
---      '결과만 보고 마칠게'       = 첫 풀이 직후 작은 텍스트 링크(시안 B, 동 파일 :65 · 2026-10-04). 초안 텍스트 뒤에 합쳐져 올 수 있어 like '%결과만 보고 마칠게' 로 잡는다 → 2b_link_result_only
 
 with
 ex as (select unnest(array[
@@ -54,7 +53,6 @@ trig as (
   select f.*,
          case when lu.content = '대화 마무리할게'            then '2_btn_finish'
               when lu.content = '오늘은 여기서 마무리할게'   then '1_exit_chip'
-              when lu.content like '%결과만 보고 마칠게'      then '2b_link_result_only'
               when lu.content like '%마무리%'                then '3_other_wrapup'
               when lu.content is null                        then '5_no_user_msg'
               else '4_no_close_signal' end as close_sig
@@ -131,7 +129,6 @@ close_prepost as (
          count(*) as n,
          count(*) filter (where close_sig = '1_exit_chip') as exit_chip,
          count(*) filter (where close_sig = '2_btn_finish') as btn_finish,
-         count(*) filter (where close_sig = '2b_link_result_only') as link_result_only,
          count(*) filter (where close_sig = '4_no_close_signal') as no_signal,
          count(*) filter (where user_turns = 1) as one_turn,
          count(*) filter (where user_turns = 1 and result_viewed_at is not null) as one_turn_viewed,
