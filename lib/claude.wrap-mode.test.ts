@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { computeWrapMode, buildTarotSystemMessage } from "./claude.ts";
 import { WRAP_THRESHOLDS } from "./tarot/constants.ts";
 import { CLARIFIER_MARKER } from "./tarot/inchat-offer.ts";
@@ -260,4 +262,37 @@ test("clarifierReopenTurn 이 없으면(미지정·false) 모든 구간의 출�
     for (const head of heads) assert.ok(unset.includes(head), `${name}: '${head}'`);
     assert.equal(dyn({ ...c, clarifierReopenTurn: false }), unset, name);
   }
+});
+
+// ── 열어 두기 가이드 문구 — 질문·답·요청 턴 모두에 맞는다 (⑥ 은 별콩이의 질문에 유저가 '답한' 턴, ⑦ 은 카드 풀이를 '청한' 턴) ──
+test("열어 두기 가이드는 유저가 '질문을 던졌다'고 단정하지 않는다 — 질문·답·요청(또는 새 고민)을 건넨 턴 모두에 맞는 문구", () => {
+  const d = dyn({ ...ctxBase, keepOpen: true });
+  assert.ok(d.includes("## 대화 열어 두기 (유저가 아직 이야기 중)"));
+  assert.ok(d.includes("유저가 방금 질문·답·요청(또는 새 고민)을 건넸어."));
+  assert.ok(d.includes("이번 턴은 그 말에 먼저 충실히 답하고, 대화는 열어 둬."));
+  for (const stale of ["아직 묻는 중", "방금 질문(또는 새 고민)을 던졌어", "그 질문에 먼저 충실히"]) {
+    assert.ok(!d.includes(stale), `옛 문구 '${stale}' 가 남으면 안 된다`);
+  }
+  // 나머지 지시는 그대로 — [END] 금지·작별 인사 금지·마무리 방식은 턴 마무리 상태대로
+  assert.ok(d.includes("[END] 마커 금지"));
+  assert.ok(d.includes("작별 인사"));
+  assert.ok(d.includes("턴 마무리 상태"));
+});
+
+// ── 페르소나 포인터 ↔ 서버 지시 헤딩 계약 (Task 8 리뷰) ──
+// data/persona/byeolkong_tarot.md 의 '먼저 제안하는 타이밍은 서버가 정해 줘' 문단은 서버 지시를 헤딩 문구로 가리킨다. 가이드 헤딩을 바꾸면 포인터가
+// 조용히 낡아 서버 주도 제안이 닻을 잃는다. 헤딩은 렌더된 가이드에서 뽑아(후보 턴에서만 더해지는 줄 중 첫 ## 헤딩) 문구를 두 번 적지 않는다.
+test("페르소나의 '한 장 더' 포인터는 서버 지시 헤딩을 그대로 인용한다", () => {
+  const lines = (s: string) => s.split("\n");
+  const plain = new Set(lines(dyn(freeCtx)));
+  const addedByCandidate = lines(dyn({ ...freeCtx, clarifierCandidate: true })).filter((l) => !plain.has(l));
+  const headingLine = addedByCandidate.find((l) => l.startsWith("## "));
+  assert.ok(headingLine, "후보 턴 프롬프트가 더하는 줄 중에 ## 헤딩이 있어야 한다");
+  const heading = headingLine.replace(/^##\s+/, "").trim();
+  assert.ok(heading.length > 0);
+  const persona = readFileSync(join(process.cwd(), "data", "persona", "byeolkong_tarot.md"), "utf-8");
+  assert.ok(
+    persona.includes(heading),
+    `페르소나가 서버 지시 헤딩 "${heading}" 을 인용해야 한다 — 가이드 헤딩을 바꿨다면 data/persona/byeolkong_tarot.md 의 포인터도 같이 고칠 것`,
+  );
 });
