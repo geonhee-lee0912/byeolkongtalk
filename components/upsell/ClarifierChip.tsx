@@ -21,9 +21,9 @@ interface Props {
 export default function ClarifierChip({ state, onTap, onShown, disabled }: Props) {
   const done = state === "done";
 
-  // 노출 계측 — 마운트 1회. 리딩·상품·지면 단위 dedup 은 부모가 한다
+  // 노출 계측 — 마운트 1회, 아직 안 산(idle) 칩만. 리딩·상품·지면 단위 dedup 은 부모가 한다
   useEffect(() => {
-    onShown?.();
+    if (state === "idle") onShown?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

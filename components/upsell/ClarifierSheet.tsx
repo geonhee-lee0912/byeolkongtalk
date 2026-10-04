@@ -19,6 +19,8 @@ interface Props {
   onInsufficient?: (balance: number) => void;
   /** 구매 요청이 서버에 가 있는 동안 true — 부모가 그 사이 전송·다른 구매를 막는다(요청 중에 시트를 닫아도 요청은 계속 간다) */
   onPurchasingChange?: (purchasing: boolean) => void;
+  /** 구매가 402(잔액 부족) 말고 실패했을 때 — 화면이 서버와 어긋났을 수 있어 부모가 서버 상태로 다시 맞춘다. code = 서버 error 코드(응답을 못 받았으면 undefined) */
+  onFailed?: (code?: string) => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export default function ClarifierSheet({
   onDrawn,
   onInsufficient,
   onPurchasingChange,
+  onFailed,
 }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,14 +114,20 @@ export default function ClarifierSheet({
         return;
       }
       if (!res.ok) {
+        const code = (data as { error?: string }).error;
         const msg =
-          (data as { error?: string }).error === "clarifier_limit_reached"
+          code === "clarifier_limit_reached"
             ? "이미 최대 횟수만큼 보조 카드를 뽑았어"
-            : (data as { error?: string }).error === "card_already_drawn"
+            : code === "card_already_drawn"
             ? "이미 나온 카드야. 다른 카드를 골라줘"
+            : code === "reading_already_ended"
+            ? "이 대화는 이미 마무리됐어"
+            : code === "purchase_in_progress"
+            ? "다른 곳에서 처리 중이야. 잠깐 뒤에 다시 확인해줘"
             : "카드를 추가하지 못했어. 잠시 후 다시 시도해줄래?";
         setError(msg);
         setSubmitting(false);
+        onFailed?.(code);
         return;
       }
 
@@ -128,6 +137,7 @@ export default function ClarifierSheet({
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setSubmitting(false);
+      onFailed?.(); // 요청은 서버에 닿았는데 응답만 잃었을 수 있다
     } finally {
       onPurchasingChange?.(false);
     }

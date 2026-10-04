@@ -211,33 +211,7 @@ function TarotReadingInner() {
               resumeId
             );
           } else {
-            setMessages(msgs);
-            const lastAssistant = [...msgs]
-              .reverse()
-              .find((m) => m.role === "assistant");
-            if (lastAssistant && END_MARKER_REGEX.test(lastAssistant.content)) {
-              setIsEnded(true);
-            }
-            END_MARKER_REGEX.lastIndex = 0;
-            // 강제 종료선에서 닫힌 대화면 재개 가능한 상품을 서버가 판정해 준다 (spec §3-4)
-            if (d.reopen) setReopen(d.reopen as ReopenOptions);
-            // 복원 시 RECO 마커 감지 — product별 최초 등장 인덱스 기록
-            {
-              const restored: Partial<Record<RecoProduct, number>> = {};
-              for (let i = 0; i < msgs.length; i++) {
-                if (msgs[i].role !== "assistant") continue;
-                for (const p of parseAllRecoMarkers(msgs[i].content)) {
-                  if (p === "continue") continue;
-                  if (restored[p] === undefined) restored[p] = i;
-                }
-              }
-              if (Object.keys(restored).length > 0) setRecoAttach(restored);
-            }
-            // 복원 직후 마지막 대화가 보이도록 하단으로 스크롤
-            setTimeout(() => {
-              const el = scrollRef.current;
-              if (el) el.scrollTo({ top: el.scrollHeight });
-            }, 120);
+            applyServerConversation(msgs, d.reopen);
           }
         } catch {
           router.replace("/readings");
@@ -766,15 +740,78 @@ function TarotReadingInner() {
     handleFinish();
   };
 
-  // 인챗 제안 계측 — 리딩·상품·지면당 노출 1회 (spec §3-7)
+  // 인챗 제안 계측 — 리딩·상품·지면당 노출 1회 (spec §3-7). 마운트 단위는 Set, 같은 탭의 새로고침·재진입은 sessionStorage 로 막는다
   const trackOfferShown = (product: "clarifier" | "extend", surface: "chat" | "postend") => {
+    if (!readingId) return;
     const key = `${product}:${surface}`;
     if (offerShownRef.current.has(key)) return;
     offerShownRef.current.add(key);
+    // 저장소가 막힌 환경(시크릿·차단)에선 읽기·쓰기가 던진다 — 그땐 마운트당 1회로 폴백
+    const storageKey = `byeolkong_offer_shown:${readingId}:${key}`;
+    try {
+      if (sessionStorage.getItem(storageKey) !== null) return;
+      sessionStorage.setItem(storageKey, "1");
+    } catch {
+      // 무음
+    }
     trackUiEvent("inchat_offer_shown", { readingId, meta: { product, surface } });
   };
   const trackOfferClicked = (product: "clarifier" | "extend", surface: "chat" | "postend") => {
     trackUiEvent("inchat_offer_clicked", { readingId, meta: { product, surface } });
+  };
+
+  // 서버가 가진 대화를 화면에 반영 — 이어하기 복원과 구매 실패 뒤 재동기화(resyncFromServer)가 같은 경로를 쓴다
+  function applyServerConversation(msgs: Message[], serverReopen: ReopenOptions | undefined) {
+    setMessages(msgs);
+    const lastAssistant = [...msgs].reverse().find((m) => m.role === "assistant");
+    setIsEnded(!!lastAssistant && END_MARKER_REGEX.test(lastAssistant.content));
+    END_MARKER_REGEX.lastIndex = 0;
+    // 강제 종료선에서 닫힌 대화면 재개 가능한 상품을 서버가 판정해 준다 (spec §3-4)
+    setReopen(serverReopen ?? NO_REOPEN);
+    // RECO 마커 감지 — product별 최초 등장 인덱스 기록(서버 메시지 기준이라 통째로 다시 만든다)
+    const restored: Partial<Record<RecoProduct, number>> = {};
+    for (let i = 0; i < msgs.length; i++) {
+      if (msgs[i].role !== "assistant") continue;
+      for (const p of parseAllRecoMarkers(msgs[i].content)) {
+        if (p === "continue") continue;
+        if (restored[p] === undefined) restored[p] = i;
+      }
+    }
+    setRecoAttach(restored);
+    // 마지막 대화가 보이도록 하단으로 스크롤
+    setTimeout(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight });
+    }, 120);
+  }
+
+  // 구매가 실패했거나 응답을 못 받았을 때 — 화면이 서버와 어긋났을 수 있다(다른 탭·늦게 온 요청·응답 유실).
+  // 서버 상태를 다시 받아 이어하기 복원과 같은 경로로 반영한다. best-effort — 실패하면 이미 띄운 오류 문구만 남는다
+  async function resyncFromServer() {
+    if (!readingId) return;
+    const before = messagesRef.current;
+    try {
+      const r = await fetch(`/api/readings/${readingId}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      // 기다리는 사이 대화가 움직였으면(내 말 추가·전송 대기·답 출력 중) 이 응답은 낡았다 — 덮어쓰면 진행 중인 버블이 사라진다
+      if (messagesRef.current !== before || pendingFragmentsRef.current.length > 0 || typingIntervalRef.current) return;
+      const msgs = (d.messages ?? []) as Message[];
+      if (msgs.length === 0) return;
+      applyServerConversation(msgs, d.reopen);
+      // 보조 카드가 서버에만 붙었을 수 있다(응답 유실) — 카드 판과 시트의 제외 목록도 서버 기준으로 맞춘다
+      const cards = d.reading?.drawnCards as TarotDrawResult["drawnCards"] | null | undefined;
+      if (cards && cards.length > 0) setDraw((prev) => (prev ? { ...prev, drawnCards: cards } : prev));
+    } catch {
+      // 재동기화 실패는 무음 — 이미 보여 준 오류 문구가 남는다
+    }
+  }
+
+  // 구매가 402(잔액 부족) 말고 실패했을 때 — 서버 상태로 다시 맞춘다. 재개 불가로 끝난 대화(reading_already_ended)면
+  // 재동기화가 실패해도 죽은 재개 버튼이 남지 않게 버튼부터 거둔다
+  const handlePurchaseFailed = (code?: string) => {
+    if (code === "reading_already_ended") setReopen(NO_REOPEN);
+    void resyncFromServer();
   };
 
   // 서버가 끝난 대화를 다시 열었다 — 입력창 복귀 + 화면·ref 히스토리의 [END] 정리(모델에 '이미 끝났다'를 다시 보내지 않게)
@@ -801,19 +838,28 @@ function TarotReadingInner() {
         return;
       }
       if (!res.ok) {
-        const msg = (data as {error?:string}).error === "extend_limit_reached"
-          ? "이미 연장했어. 더 연장은 안 돼"
-          : "연장이 안 됐어. 잠시 후 다시 시도해줄래?";
-        setError(msg);
+        const code = (data as { error?: string }).error;
+        setError(
+          code === "extend_limit_reached"
+            ? "이미 연장했어. 더 연장은 안 돼"
+            : code === "reading_already_ended"
+            ? "이 대화는 이미 마무리됐어"
+            : code === "purchase_in_progress"
+            ? "다른 곳에서 처리 중이야. 잠깐 뒤에 다시 확인해줘"
+            : "연장이 안 됐어. 잠시 후 다시 시도해줄래?"
+        );
         setExtendState("idle");
+        handlePurchaseFailed(code);
         return;
       }
       setExtendState("done");
+      setError(null); // 앞선 실패 문구가 성공 뒤에도 남지 않게
       // 서버가 끝난 대화를 다시 열었다(reopened)거나 화면이 끝난 상태였다면 입력창을 되살린다
       if (isEnded || (data as { reopened?: boolean }).reopened === true) reopenChatLocally();
     } catch {
       setError("연결이 흔들렸어. 잠시 후 다시 시도해줄래?");
       setExtendState("idle");
+      handlePurchaseFailed(); // 요청은 서버에 닿았는데 응답만 잃었을 수 있다 — 서버 상태를 다시 확인한다
     }
   };
 
@@ -908,6 +954,9 @@ function TarotReadingInner() {
       </main>
     );
   }
+
+  // 별콩이 답이 1개뿐인 동안(첫 풀이 직후 ~ 두 번째 답 도착 전) — 금색 마무리 버튼 대신 작은 링크를 보인다(시안 B, spec §3-6)
+  const isFirstAnswerOnly = messages.filter((m) => m.role === "assistant" && !m.ephemeral).length < 2;
 
   return (
     <main
@@ -1201,8 +1250,8 @@ function TarotReadingInner() {
                     </span>
                   </button>
                 </div>
-                {messages.filter((m) => m.role === "assistant" && !m.ephemeral).length < 2 ? (
-                  // 시안 B — 첫 풀이 직후엔 금색 버튼 대신 작은 링크 (첫 풀이 직후 종료가 41%, spec §3-6)
+                {isFirstAnswerOnly ? (
+                  // 시안 B — 첫 풀이 직후 종료가 41% 라 금색 버튼 대신 작은 링크
                   <button
                     type="button"
                     onClick={() => handleFinish(FINISH_PHRASE_RESULT_ONLY)}
@@ -1245,6 +1294,7 @@ function TarotReadingInner() {
           onClose={() => setClarifierSheetOpen(false)}
           onDrawn={handleClarifierDrawn}
           onPurchasingChange={setClarifierPurchasing}
+          onFailed={handlePurchaseFailed}
           onInsufficient={() => {
             setClarifierSheetOpen(false);
             setRechargeUpsellType("clarifier");
