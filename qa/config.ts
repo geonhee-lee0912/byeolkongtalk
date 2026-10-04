@@ -31,7 +31,8 @@ export const config = {
 
   // 안전 상한 — 한 대화의 최대 chat 콜 수 (시뮬레이터 폭주 방지).
   // 타로 relationship_5 의 absTurnCap(13)까지 자연 [END] 도달 여유를 두고 16.
-  MAX_CHAT_CALLS_PER_CASE: 16,
+  // 2026-10-04: 7장 자연 마무리선 17·강제 종료선 19 로 상향 → 16 이면 [END] 전에 잘려 mustEnd 오탐
+  MAX_CHAT_CALLS_PER_CASE: 20,
 
   // 관계 스레드는 [END] 자연 종료가 없어(소프트캡까지 무한) 행동 케이스를 이 콜 수로 끊는다.
   REL_MAX_TURNS: 6,
