@@ -1,7 +1,13 @@
 // 대화 중 '카드 한 장 더' 하이브리드 + 자연 마무리선 keep-open 의 순수 판정·후처리
 // (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-3·§3-5). 라우트는 이 함수들을 부르기만 한다.
 
+import { parseAllRecoMarkers } from "../reco-utils.ts";
+
 export const CLARIFIER_MARKER = "[RECO:tarot:clarifier]";
+
+// 마커 유무는 클라가 칩을 띄우는 기준(parseAllRecoMarkers — 대소문자 무시)과 같은 눈으로 본다.
+// 정확 문자열 비교는 "[RECO:Tarot:Clarifier]" 를 놓쳐, 칩은 뜨는데 '대화당 1회' 에는 안 세어진다.
+const hasClarifierMarker = (text: string): boolean => parseAllRecoMarkers(text).includes("tarot:clarifier");
 
 type WrapModeLike = "free" | "converge" | "hardcap";
 
@@ -22,7 +28,7 @@ export function isClarifierCandidate(i: ClarifierCandidateInput): boolean {
   if (i.wrapMode !== "free") return false; // 정리·마무리 구간
   if (i.crisisActive || i.forceEnd) return false;
   if (i.clarifierCount > 0) return false; // 이미 보조 카드 구매
-  if (i.pastAssistantTexts.some((t) => t.includes(CLARIFIER_MARKER))) return false; // 대화당 1회
+  if (i.pastAssistantTexts.some(hasClarifierMarker)) return false; // 대화당 1회
   return i.userAsking;
 }
 
@@ -46,7 +52,7 @@ const VISIBLE_MARKERS_RE = /\[(?:END|CARD:\d+|RECO:[a-z0-9_:]+)\]/gi;
 
 /** 후보 턴 응답에 '한 장 더' 제안 문구가 있는데 마커만 빠졌으면 끝에 붙인다. 앞부분은 절대 바꾸지 않는다(스트림 꼬리로 보내기 때문) */
 export function repairClarifierMarker(text: string): string {
-  if (text.includes(CLARIFIER_MARKER)) return text;
+  if (hasClarifierMarker(text)) return text;
   if (!OFFER_PHRASE_RE.test(text.replace(VISIBLE_MARKERS_RE, ""))) return text;
   return `${text}\n${CLARIFIER_MARKER}`;
 }

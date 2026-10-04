@@ -36,6 +36,21 @@ test("isClarifierCandidate — 첫 풀이 턴·정리 구간·위기·마무리 
   assert.equal(isClarifierCandidate({ ...base, userAsking: false }), false);
 });
 
+test("isClarifierCandidate — 첫 풀이 직후(assistantTurnsSoFar=1)부터 후보다(경계 ≥1)", () => {
+  assert.equal(isClarifierCandidate({ ...base, assistantTurnsSoFar: 1, pastAssistantTexts: ["첫 풀이"] }), true);
+});
+
+test("isClarifierCandidate — 기제안 마커가 이력의 처음·중간·마지막 어디에 있어도 후보에서 뺀다", () => {
+  const offered = `제안\n${CLARIFIER_MARKER}`;
+  for (const pastAssistantTexts of [
+    [offered, "다음 답", "또 다음 답"],
+    ["첫 풀이", offered, "또 다음 답"],
+    ["첫 풀이", "다음 답", offered],
+  ]) {
+    assert.equal(isClarifierCandidate({ ...base, assistantTurnsSoFar: 3, pastAssistantTexts }), false);
+  }
+});
+
 test("shouldKeepOpen — 자연 마무리선 + 묻는 중이면 true, 강제 종료·위기·질문 아님·다른 구간이면 false", () => {
   const k = { wrapMode: "hardcap" as const, mustEnd: false, crisisActive: false, userAsking: true };
   assert.equal(shouldKeepOpen(k), true);
@@ -76,6 +91,18 @@ test("repairClarifierMarker — '한 장을 더'·'한장 더' 변형 제안에�
   }
 });
 
+test("마커 판정은 클라(parseAllRecoMarkers)처럼 대소문자를 무시한다 — 기제안 이력·마커 수리 모두", () => {
+  for (const variant of ["[RECO:Tarot:Clarifier]", "[reco:tarot:clarifier]"]) {
+    // 클라는 이 마커로도 칩을 띄우므로 '대화당 1회' 에 센다
+    assert.equal(isClarifierCandidate({ ...base, pastAssistantTexts: ["답", `제안\n${variant}`] }), false);
+    // 이미 마커가 있는 응답엔(제안 문구가 있어도) 또 붙이지 않는다
+    const text = `한 장 더 볼 수 있어\n${variant}`;
+    assert.equal(repairClarifierMarker(text), text);
+  }
+  // 대조: 다른 칩(extend)의 마커는 '한 장 더' 로 세지 않는다
+  assert.equal(isClarifierCandidate({ ...base, pastAssistantTexts: ["답", "더 얘기하기\n[RECO:extend]"] }), true);
+});
+
 test("createEndMarkerFilter — 청크 경계에 걸친 [END] 도 지운다", () => {
   const f = createEndMarkerFilter();
   const out = f.push("답이야.\n\n[EN") + f.push("D]") + f.flush();
@@ -93,8 +120,20 @@ test("createEndMarkerFilter — 한 청크 안의 [END] 를 지운다", () => {
   assert.equal(f.push("끝[END]") + f.flush(), "끝");
 });
 
+test("createEndMarkerFilter — push 는 붙잡을 꼬리만 남기고 바로 내보낸다(flush 까지 모았다 내보내지 않는다)", () => {
+  const f = createEndMarkerFilter();
+  assert.equal(f.push("평범한 문장이야."), "평범한 문장이야."); // "[" 없는 텍스트는 즉시
+  assert.equal(f.push("답이야.\n\n[EN"), "답이야.\n\n"); // "[EN" 만 붙잡는다
+  assert.equal(f.push("D]"), ""); // 마커가 완성되면 통째로 사라진다
+  assert.equal(f.push("카드 [CARD:1] 와 ["), "카드 [CARD:1] 와 "); // 완성된 [CARD:1] 은 바로, 끝의 "[" 만 붙잡는다
+  assert.equal(f.push("보조]"), "[보조]"); // [END] 가 아니므로 붙잡았던 "[" 와 함께 나온다
+  assert.equal(f.flush(), "");
+});
+
 /** s 를 가능한 모든 청크 분할(2^(n-1)가지)로 필터에 흘린 결과들 — 청크 경계가 어디든 결과가 같아야 한다 */
 function filterEveryChunking(s: string): string[] {
+  // 비트마스크(1 << n)는 32자부터 넘쳐 반복이 0번 돌고 — 단언 없이 통과해 버린다. 짧은 문자열만 받고, 분할을 전부 돌렸는지 확인한다
+  assert.ok(s.length >= 1 && s.length <= 20, `전수 분할 검사는 1~20자만 다룬다(받은 길이 ${s.length})`);
   const outs: string[] = [];
   for (let mask = 0; mask < 1 << (s.length - 1); mask++) {
     const f = createEndMarkerFilter();
@@ -108,6 +147,7 @@ function filterEveryChunking(s: string): string[] {
     }
     outs.push(out + f.flush());
   }
+  assert.equal(outs.length, 2 ** (s.length - 1)); // 모든 분할을 실제로 돌렸다
   return outs;
 }
 
