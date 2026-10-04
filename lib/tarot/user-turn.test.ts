@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { classifyUserTurn } from "./user-turn.ts";
 import { clarifierSyntheticMessage } from "./clarifier-message.ts";
 
+// 기존 표는 {asking, closing} 만 고정한다 — closingExplicit(⑥) 은 아래 전용 테스트가 맡는다
+const ac = (text: string) => {
+  const { asking, closing } = classifyUserTurn(text);
+  return { asking, closing };
+};
+
 const cases: [string, boolean, boolean][] = [
   // [발화, asking, closing]
   ["그 사람 속마음은 어때?", true, false],
@@ -129,7 +135,7 @@ const cases: [string, boolean, boolean][] = [
 
 for (const [text, asking, closing] of cases) {
   test(`classifyUserTurn — "${text}"`, () => {
-    assert.deepEqual(classifyUserTurn(text), { asking, closing });
+    assert.deepEqual(ac(text), { asking, closing });
   });
 }
 
@@ -160,7 +166,7 @@ test("classifyUserTurn — 마무리어 어휘 (단독 발화는 closing)", () =
     "알겠어", "알았어", "그렇구나", "이해했어", "맞네", "충분해", "이만", "마무리할게", "됐어", "ㅇㅋ", "오키", // 약
     "그래", "네네", "웅", "엉", "넹", // 짧은 동의
   ];
-  for (const w of words) assert.deepEqual(classifyUserTurn(w), { asking: false, closing: true }, w);
+  for (const w of words) assert.deepEqual(ac(w), { asking: false, closing: true }, w);
 });
 
 // 어휘 핀 — 질문 어미·요청 어휘가 단독 발화로 asking 이 되는지
@@ -200,4 +206,52 @@ test("classifyUserTurn — 보조 카드 구매 직후 synthetic 메시지는 as
     const msg = clarifierSyntheticMessage(cardDesc);
     assert.equal(classifyUserTurn(msg).asking, true, msg);
   }
+});
+
+// ── closingExplicit — keep-open ⑥ 이 쓰는 '명시적 마무리어' 신호 (사용자 결정 2026-10-04: 질문에 대한 '응/네'는 답이다) ──
+// closing 은 단독 짧은 동의("응"·"네"·"그래"·"ㅇㅇ")도 마무리 신호로 센다. 그런데 별콩이가 질문으로 끝낸 직후의 "응" 은 마무리가 아니라 대답이다.
+// 그 맥락을 아는 쪽(⑥)은 감사·작별·수긍·종결 같은 명시적 마무리어만 마무리로 보는 closingExplicit 을 쓴다. closing 자체는 그대로(가산 변경).
+test("classifyUserTurn — closingExplicit: 단독 짧은 동의는 closing 이어도 explicit 이 아니다", () => {
+  for (const w of ["응", "네", "네네", "ㅇㅇ", "ㅇㅇㅇ", "그래", "웅", "넹", "엉", " 응 ", "응.", "넹ㅎㅎ", "네~"]) {
+    const r = classifyUserTurn(w);
+    assert.equal(r.asking, false, `${w} asking`);
+    assert.equal(r.closing, true, `${w} closing`);
+    assert.equal(r.closingExplicit, false, `${w} closingExplicit`);
+  }
+});
+
+test("classifyUserTurn — closingExplicit: 감사·작별·수긍·종결 같은 명시적 마무리어는 explicit(= closing)", () => {
+  const words = [
+    "알겠어", "고마워", "그렇구나", "음 그렇구나", "고마워 별콩아", "감사합니다", "고맙습니다", "고마웠어", "또 올게", "갈게", "잘 자 별콩아", "안녕", "ㅂㅂ", // 강
+    "알았어", "이해했어", "맞네", "충분해", "이만", "마무리할게", "됐어", "ㅇㅋ", "오키", // 약
+  ];
+  for (const w of words) {
+    const r = classifyUserTurn(w);
+    assert.equal(r.closingExplicit, true, `${w} closingExplicit`);
+    assert.equal(r.closing, true, `${w} closing`);
+  }
+});
+
+test("classifyUserTurn — closingExplicit: 질문·요청이 섞이면 마무리어가 있어도 false, 중립도 false", () => {
+  for (const w of ["고마워 어때", "고마워! 근데 언제 연락 올까?", "알겠어 이거 알려줘", "일주일 전쯤", "아니 아직 연락 안 했어", "맞아", "너무 힘들어", ""]) {
+    assert.equal(classifyUserTurn(w).closingExplicit, false, JSON.stringify(w));
+  }
+});
+
+test("classifyUserTurn — closingExplicit 은 closing 의 부분집합이고, 그 차이는 단독 짧은 동의뿐이다(기존 표 전체)", () => {
+  const SHORT_AGREE = /^(?:응+|ㅇㅇ+|그래|네+|웅+|넹|엉)[.!~ㅎㅋ\s]*$/; // 헤더가 정의한 '단독 짧은 동의'
+  for (const [text] of cases) {
+    const r = classifyUserTurn(text);
+    if (r.closingExplicit) {
+      assert.equal(r.closing, true, `${text} explicit ⇒ closing`);
+      assert.equal(r.asking, false, `${text} explicit ⇒ !asking`);
+    }
+    if (r.closing && !r.closingExplicit) assert.ok(SHORT_AGREE.test(text.trim()), `${text} closing 이지만 explicit 이 아니면 단독 짧은 동의여야 한다`);
+  }
+});
+
+test("classifyUserTurn — 보조 카드 구매 직후 synthetic 메시지는 마무리 신호가 아니다(closing·closingExplicit 모두 false)", () => {
+  const r = classifyUserTurn(clarifierSyntheticMessage("'컵 2' (정방향)"));
+  assert.equal(r.closing, false);
+  assert.equal(r.closingExplicit, false);
 });

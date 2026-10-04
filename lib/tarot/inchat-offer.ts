@@ -50,7 +50,10 @@ export interface KeepOpenInput {
    * 과거 메시지만 보므로 wrapMode 와 무관하다(라우트는 실제 wrapMode 로 계산한 값을 쓴다).
    */
   lastTurnEndedWithQuestion: boolean;
-  /** classifyUserTurn(이번 유저 말).closing — 감사·수긍·작별·짧은 동의. asking 이면 항상 false */
+  /**
+   * classifyUserTurn(이번 유저 말).closingExplicit — 감사·작별·수긍·종결 같은 **명시적 마무리어**. asking 이면 항상 false.
+   * 단독 짧은 동의("응"·"네"·"그래")는 closing 이어도 여기선 false — 별콩이가 질문한 직후엔 그게 마무리가 아니라 대답이다(⑥, 사용자 결정 2026-10-04).
+   */
   userClosing: boolean;
 }
 

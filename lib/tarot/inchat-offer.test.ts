@@ -7,6 +7,7 @@ import {
   repairClarifierMarker,
   createEndMarkerFilter,
   finalizeAssistantText,
+  type KeepOpenInput,
 } from "./inchat-offer.ts";
 import { tarotEndState, type ReopenReadingRow } from "./reopen.ts";
 import { classifyUserTurn } from "./user-turn.ts";
@@ -116,17 +117,29 @@ test("shouldKeepOpen ⑥ — 직전 턴이 질문이어도 강제 종료·위기
   }
 });
 
-test("shouldKeepOpen ⑥ — 실제 유저 말 분류와 맞물린다: 질문에 대한 짧은 답은 열어 두고, 감사·수긍은 닫는다", () => {
-  const keep = (text: string) => {
-    const u = classifyUserTurn(text);
-    return shouldKeepOpen({ ...answerTurn, userAsking: u.asking, userClosing: u.closing });
-  };
-  for (const answer of ["일주일 전쯤", "아니 아직 연락 안 했어", "맞아", "그건 잘 모르겠어"]) {
-    assert.equal(keep(answer), true, answer);
+// 마무리 신호 = 명시적 마무리어(classifyUserTurn().closingExplicit) — 질문 직후의 단독 '응/네/그래/ㅇㅇ' 는 마무리가 아니라 대답이다(사용자 결정 2026-10-04 ⑥)
+const keepForReply = (text: string, over: Partial<KeepOpenInput> = {}) => {
+  const u = classifyUserTurn(text);
+  return shouldKeepOpen({ ...answerTurn, userAsking: u.asking, userClosing: u.closingExplicit, ...over });
+};
+
+test("shouldKeepOpen ⑥ — 실제 유저 말 분류와 맞물린다: 질문에 대한 답('응'·'네' 같은 예/아니오 대답 포함)은 열어 두고, 명시적 마무리어(감사·수긍)는 닫는다", () => {
+  // 별콩이가 "혹시 그 사람이 먼저 연락한 적 있어?" 로 끝낸 직후
+  for (const answer of ["일주일 전쯤", "아니 아직 연락 안 했어", "맞아", "그건 잘 모르겠어", "응", "네", "네네", "그래", "ㅇㅇ", "응 있었어"]) {
+    assert.equal(keepForReply(answer), true, answer);
   }
-  for (const closing of ["고마워 별콩아", "알겠어", "음 그렇구나"]) assert.equal(keep(closing), false, closing);
-  // 알려진 한계: 단독 짧은 동의("응"·"네"·"그래")는 마무리 신호로 분류돼, 예/아니오 질문에 그렇게 답해도 닫힌다
-  assert.equal(keep("응"), false);
+  for (const closing of ["고마워 별콩아", "알겠어", "음 그렇구나", "충분해", "잘 자 별콩아", "알겠어 고마워"]) {
+    assert.equal(keepForReply(closing), false, closing);
+  }
+});
+
+test("shouldKeepOpen ⑥ — '응' 은 별콩이가 질문으로 끝낸 직후에만 답이다: 질문이 아니었으면 열 근거가 없어 예전처럼 자연 마무리", () => {
+  assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: true }), true);
+  assert.equal(keepForReply("응", { lastTurnEndedWithQuestion: false }), false);
+  // 질문 직후여도 강제 종료·위기·자연 마무리선 밖이면 여는 규칙은 없다
+  assert.equal(keepForReply("응", { mustEnd: true }), false);
+  assert.equal(keepForReply("응", { crisisActive: true }), false);
+  assert.equal(keepForReply("응", { wrapMode: "converge" }), false);
 });
 
 test("repairClarifierMarker — 제안 문구가 있고 마커가 없으면 끝에 붙인다(앞부분은 그대로)", () => {

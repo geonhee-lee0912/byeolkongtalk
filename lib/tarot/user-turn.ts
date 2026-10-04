@@ -19,6 +19,10 @@
 //       약한 것은 하소연 속에도 흔해("결국 잘 안 됐어") 긴 고민 판정을 막지 못한다.
 // 판정식:  asking  = 질문 || 요청 || (전체 40자 이상 && !(강한 마무리어 || 짧은 동의))
 //          closing = (마무리어 || 짧은 동의) && !asking     → 둘 다 false 면 중립, 둘 다 true 는 없다.
+//          closingExplicit = 마무리어 && !asking            → closing 에서 "단독 짧은 동의만인 경우"를 뺀 부분집합(가산 필드 — closing 은 그대로).
+//  - 단독 짧은 동의("응"·"네"·"그래"·"ㅇㅇ")는 별콩이 말에 맞장구치는 마무리일 수도, 예/아니오 질문에 대한 대답일 수도 있다. 별콩이가 질문으로 끝낸
+//    직후라면 대답이다 — 그 맥락을 아는 keep-open ⑥(spec §3-3, 사용자 결정 2026-10-04)은 closing 이 아니라 closingExplicit 으로 마무리를 가른다.
+//    ("고마워"·"알겠어"·"그렇구나" 같은 명시적 마무리어면 그대로 닫는다.)
 
 const QUESTION_MARK_RE = /[?？]/;
 // 꼬리(문장부호·ㅠㅜㅋㅎ·이모지)는 stripTrailingNoise 로 먼저 떼고 core 에 건다 — 꼬리를 `\s*[...]*$` 로 두면 이차 백트래킹.
@@ -104,10 +108,16 @@ export interface UserTurnClass {
   asking: boolean;
   /** 마무리 신호(감사·수긍·작별·짧은 동의) — 질문·요청이 섞이면 false */
   closing: boolean;
+  /**
+   * 명시적 마무리어(감사·작별·수긍·종결)만 — 단독 짧은 동의("응"·"네"·"그래"·"ㅇㅇ")는 제외한다. closing 의 부분집합.
+   * 별콩이가 질문으로 끝낸 직후의 "응" 은 마무리가 아니라 대답이라, keep-open ⑥ 은 이걸로 마무리를 가른다.
+   */
+  closingExplicit: boolean;
 }
 
 /**
- * 유저 한 턴을 분류한다. 둘 다 false = 중립(기본 동작), 동시에 true 인 경우는 없다(closing 은 asking 이 아닐 때만).
+ * 유저 한 턴을 분류한다. asking·closing 둘 다 false = 중립(기본 동작), 동시에 true 인 경우는 없다(closing 은 asking 이 아닐 때만).
+ * closingExplicit ⊆ closing — 단독 짧은 동의만인 closing 에서 false.
  * 규칙·원칙은 파일 상단 헤더 참고.
  */
 export function classifyUserTurn(text: string): UserTurnClass {
@@ -118,9 +128,10 @@ export function classifyUserTurn(text: string): UserTurnClass {
   const tail = body.slice(-CLOSING_TAIL_LEN);
   const strongTail = STRONG_CLOSING_RE.test(tail);
   const shortAgree = SHORT_AGREE_RE.test(body);
-  const closingPattern = strongTail || shortAgree || WEAK_CLOSING_RE.test(tail);
+  const explicitClosingWord = strongTail || WEAK_CLOSING_RE.test(tail); // 강·약 마무리어 — 단독 짧은 동의는 뺀다
+  const closingPattern = explicitClosingWord || shortAgree;
   // 명시적 질문·요청은 마무리어보다 우선 — '묻는 중 닫힘'이 '한 턴 더 열림'보다 비싸다.
   // 긴 고민 판정은 강한 마무리어·짧은 동의만 막는다(약한 마무리어는 하소연 속에도 흔하다).
   const asking = hasQuestion || REQUEST_RE.test(body) || (t.length >= LONG_CONCERN_LEN && !(strongTail || shortAgree));
-  return { asking, closing: closingPattern && !asking };
+  return { asking, closing: closingPattern && !asking, closingExplicit: explicitClosingWord && !asking };
 }

@@ -681,7 +681,7 @@ export interface TarotReadingContext {
   clarifierCandidate?: boolean;
   /**
    * 보조 카드로 다시 연 직후 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드 (사용자 결정 2026-10-04 ⑦). 위기·forceEnd·강제 종료선에는 진다.
-   * 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 짧은 정리 톤·출구 문구로 얇아진다 — 그걸 막는다. 라우트(isClarifierReopenTurn)가 고른다.
+   * 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 짧은 정리 톤·출구 문구로 얇아진다 — 그걸 막는다. 라우트가 고른다(isClarifierReopenTurn + 유저 말이 구매 직후 synthetic 메시지).
    */
   clarifierReopenTurn?: boolean;
 }

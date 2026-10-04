@@ -28,6 +28,7 @@ import {
   createEndMarkerFilter,
 } from "@/lib/tarot/inchat-offer";
 import { reopenOptions, formatReopenHeader, isClarifierReopenTurn } from "@/lib/tarot/reopen";
+import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -218,14 +219,19 @@ export async function POST(request: NextRequest) {
     crisisActive,
     userAsking: userTurn.asking,
     lastTurnEndedWithQuestion: baseSignals.lastTurnEndedWithQuestion === true,
-    userClosing: userTurn.closing,
+    // 마무리 신호는 명시적 마무리어만 — 별콩이가 질문한 직후의 단독 '응/네/그래' 는 마무리가 아니라 대답이다(⑥, 사용자 결정 2026-10-04)
+    userClosing: userTurn.closingExplicit,
   });
 
   // ⑦ 강제 종료선에서 '한 장 더'로 다시 연 직후의 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드(사용자 결정 2026-10-04).
   // 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 얇은 정리 톤을 받는다. 위기·마무리 버튼·강제 종료선엔 진다.
-  // '한 장 더' 후보는 clarifierCount > 0 이라 이 턴에 이미 아니다.
+  // 턴 수(구매 전 강제 종료선)만으론 보조 카드를 대화 중에 일찍 산 리딩이 나중에 같은 턴 수를 지날 때도 걸리므로, 유저 말이 구매 직후
+  // 클라가 보낸 synthetic 메시지일 때만 센다. '한 장 더' 후보는 clarifierCount > 0 이라 이 턴에 이미 아니다.
   const clarifierReopenTurn =
-    isClarifierReopenTurn({ spreadType, extraTurns, clarifierCount, assistantTurnsSoFar }) && !mustEnd && !crisisActive;
+    isClarifierReopenTurn({ spreadType, extraTurns, clarifierCount, assistantTurnsSoFar }) &&
+    isClarifierSyntheticMessage(lastMessage.content) &&
+    !mustEnd &&
+    !crisisActive;
   const keepOpenTurn = keepOpen || clarifierReopenTurn;
 
   // 열어 두는 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로
