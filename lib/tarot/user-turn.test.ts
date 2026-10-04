@@ -33,6 +33,10 @@ const cases: [string, boolean, boolean][] = [
   ["알겠어 근데 걔 마음 좀 봐줘", true, false],
   ["고마워 근데 별콩아 진짜 고마워", false, true],
   ["그렇구나 그리고 다음 달은 어떨까", true, false],
+  // 길이 규칙은 접속어 앞을 포함한 전체 문장 기준, "고마웠~" 도 마무리
+  ["그 사람이랑 사귄 지 3개월인데 요즘 연락이 뜸해졌어. 근데 내가 먼저 연락하면 부담스러워할까봐 못 하겠어", true, false],
+  ["시험에 또 떨어졌어. 하지만 괜찮은 척하고 있어 그리고 사실 너무 속상해서 잠도 안 와", true, false],
+  ["정말 고마웠어", false, true],
 ];
 
 for (const [text, asking, closing] of cases) {

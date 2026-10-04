@@ -7,7 +7,7 @@
 
 const QUESTION_MARK_RE = /[?？]/;
 const QUESTION_ENDING_RE = /(까|니|냐|는지|건가)\s*[.…~!ㅠㅜㅋㅎ\s]*$/;
-const CLOSING_RE = /(고마워|고맙|감사|알겠|알았|그렇구나|이해(했|됐|돼)|맞네|충분|이만|마무리|됐어|ㅇㅋ|오키)/;
+const CLOSING_RE = /(고마워|고마웠|고맙|감사|알겠|알았|그렇구나|이해(했|됐|돼)|맞네|충분|이만|마무리|됐어|ㅇㅋ|오키)/;
 const SHORT_AGREE_RE = /^(응+|ㅇㅇ+|그래|네+|웅+|넹|엉)[.!~ㅎㅋ\s]*$/;
 // "궁금해·봐줘·알려줘·어때·어떡해" 류 요청·궁금함 — 물음표 없이도 답을 원하는 신호.
 // 단 "봐줘서 고마워" 처럼 마무리 패턴이 섞이면 asking 으로 보지 않는다(아래 조합 참고).
@@ -54,7 +54,7 @@ export function classifyUserTurn(text: string): UserTurnClass {
   const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(body) || endsWithIndirectQuestion(body);
   const closingPattern = CLOSING_RE.test(body) || SHORT_AGREE_RE.test(body);
   return {
-    asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(body) || body.length >= LONG_CONCERN_LEN)),
+    asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(body) || t.length >= LONG_CONCERN_LEN)),
     closing: closingPattern && !hasQuestion,
   };
 }
