@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { classifyUserTurn } from "./user-turn.ts";
+import { clarifierSyntheticMessage } from "./clarifier-message.ts";
 
 const cases: [string, boolean, boolean][] = [
   // [발화, asking, closing]
@@ -189,13 +190,14 @@ test("classifyUserTurn — 8000자 적대적 입력은 선형 시간으로 끝�
   assert.ok(ms < 200, `${inputs.length} adversarial inputs took ${ms.toFixed(0)}ms`);
 });
 
-// 계약 핀: 보조 카드 구매 직후 클라가 보내는 synthetic 메시지(app/tarot/reading/page.tsx handleClarifierDrawn)는 asking 이어야 한다.
+// 계약 핀: 보조 카드 구매 직후 클라가 보내는 synthetic 메시지(lib/tarot/clarifier-message.ts — page.tsx handleClarifierDrawn 이 쓴다)는 asking 이어야 한다.
 // 재개한 대화의 이 턴은 대개 자연 마무리선 턴이라 asking 만 keep-open 을 만든다 — 아니면 방금 산 카드 풀이가 곧장 대화를 닫는다.
 test("classifyUserTurn — 보조 카드 구매 직후 synthetic 메시지는 asking", () => {
-  for (const msg of [
-    "방금 보조 카드로 '컵 2' (정방향)를 더 뽑았어. 지금까지 흐름이랑 이어서 봐줘",
-    "방금 보조 카드로 카드 한 장를 더 뽑았어. 지금까지 흐름이랑 이어서 봐줘", // cardDesc 폴백
+  for (const cardDesc of [
+    "'컵 2' (정방향)",
+    "카드 한 장", // handleClarifierDrawn 의 cardDesc 폴백
   ]) {
+    const msg = clarifierSyntheticMessage(cardDesc);
     assert.equal(classifyUserTurn(msg).asking, true, msg);
   }
 });
