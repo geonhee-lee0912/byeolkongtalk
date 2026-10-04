@@ -20,6 +20,14 @@ import type {
   DrawnCard,
 } from "@/lib/tarot/spreads";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { classifyUserTurn } from "@/lib/tarot/user-turn";
+import {
+  isClarifierCandidate,
+  shouldKeepOpen,
+  repairClarifierMarker,
+  createEndMarkerFilter,
+} from "@/lib/tarot/inchat-offer";
+import { reopenOptions } from "@/lib/tarot/reopen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -204,10 +212,32 @@ export async function POST(request: NextRequest) {
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
   const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 
-  const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
+  // 2026-10-04 인챗 결제 제안·keep-open (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-3·§3-5)
+  const userTurn = classifyUserTurn(lastMessage.content);
+  const keepOpen = shouldKeepOpen({
     wrapMode,
+    mustEnd,
+    crisisActive,
+    userAsking: userTurn.asking,
+  });
+
+  const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
+    // keep-open 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않는다
+    wrapMode: keepOpen ? "free" : wrapMode,
     isFirstTurn: assistantTurnsSoFar === 0,
     questionLen: (reading.question ?? "").trim().length,
+  });
+
+  const clarifierCandidate = isClarifierCandidate({
+    assistantTurnsSoFar,
+    wrapMode,
+    crisisActive,
+    forceEnd: body.forceEnd === true,
+    clarifierCount,
+    pastAssistantTexts: (pastMessages ?? [])
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content as string),
+    userAsking: userTurn.asking,
   });
 
   const systemMessage = buildTarotSystemMessage({
@@ -224,6 +254,8 @@ export async function POST(request: NextRequest) {
     crisisActive,
     extendAvailable,
     thresholdOverride: effT,
+    keepOpen,
+    clarifierCandidate,
   });
 
   // 프리미엄 첫 풀이 절단 방지 — 스트리밍 경로는 stopReason 을 버려 max_tokens 초과 시 [END]/종합 없이 조용히 잘림.
@@ -246,6 +278,20 @@ export async function POST(request: NextRequest) {
     responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
     responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
+  // 강제 종료선 종료 턴 — 클라가 '결과 보기 →' 옆에 재개 제안을 띄울 근거 (spec §3-4).
+  // 마무리 버튼(forceEnd)·위기(자동 종료 억제)는 재개 대상이 아니다.
+  if (mustEnd && body.forceEnd !== true && !crisisActive) {
+    const ro = reopenOptions({
+      endedAtAbsCap: true,
+      hasSensitive: false,
+      extraTurns,
+      clarifierCount,
+    });
+    responseHeaders["X-End-Reason"] = "abs_cap";
+    responseHeaders["X-Reopen"] = [ro.extend ? "extend" : "", ro.clarifier ? "clarifier" : ""]
+      .filter(Boolean)
+      .join(",");
+  }
 
   // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
   // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
@@ -257,6 +303,7 @@ export async function POST(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let assistantText = "";
+  const endFilter = keepOpen ? createEndMarkerFilter() : null;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -266,14 +313,33 @@ export async function POST(request: NextRequest) {
           userId,
           extra: { readingId: reading.id },
         }, CHAT_MODEL)) {
-          assistantText += chunk;
-          controller.enqueue(encoder.encode(chunk));
+          const out = endFilter ? endFilter.push(chunk) : chunk;
+          if (!out) continue;
+          assistantText += out;
+          controller.enqueue(encoder.encode(out));
+        }
+        if (endFilter) {
+          const rest = endFilter.flush();
+          if (rest) {
+            assistantText += rest;
+            controller.enqueue(encoder.encode(rest));
+          }
         }
 
         // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
         // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
         if (!assistantText.trim()) {
           throw new Error("empty_assistant_stream");
+        }
+
+        // '한 장 더' 마커 누락 수리 — 후보 턴에서 제안 문구는 있는데 마커만 빠진 경우만 (spec §3-5 ③)
+        if (clarifierCandidate) {
+          const repaired = repairClarifierMarker(assistantText);
+          if (repaired !== assistantText) {
+            const tail = repaired.slice(assistantText.length);
+            assistantText = repaired;
+            controller.enqueue(encoder.encode(tail));
+          }
         }
 
         // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
