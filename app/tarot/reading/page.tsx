@@ -1301,7 +1301,7 @@ function TarotReadingInner() {
                     placeholder={
                       isStreaming
                         ? "별콩이가 답하는 중…"
-                        : "별콩이에게 더 물어보기 (Shift+Enter 줄바꿈)"
+                        : "별콩이에게 더 물어보기"
                     }
                     disabled={isStreaming || !readingId}
                     maxLength={500}
