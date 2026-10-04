@@ -1331,7 +1331,8 @@ function TarotReadingInner() {
                     type="button"
                     onClick={() => handleFinish()}
                     disabled={isStreaming || !readingId || inPurchaseFlow}
-                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-eye-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                    // 색은 한 단계 낮춘 text-light(흰 바탕 4.7:1, AA 유지) — 전송 버튼보다 앞에 서지 않게(사용자 2026-10-04)
+                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-text-light disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     마무리하고 결과 보기
                     <ChevronRight />
