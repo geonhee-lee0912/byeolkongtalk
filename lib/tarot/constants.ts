@@ -69,7 +69,7 @@ export const WRAP_THRESHOLDS: Record<SpreadType, WrapThresholds> = {
     hardCapChars: 9140,
     absTurnCap: 15,
   },
-  // 6장: relationship_5 +1턴/+300자 (상대 관계 유지)
+  // 6장: 5장보다 긴 대화 허용 (2026-08-13 spec 타로톡-분량-턴구조-재설계 기준값 + 2026-10-04 +3턴)
   checkin_6: {
     convergeStartTurn: 14,
     convergeStartChars: 10140,
@@ -98,7 +98,7 @@ export const WRAP_THRESHOLDS: Record<SpreadType, WrapThresholds> = {
     hardCapChars: 10540,
     absTurnCap: 17,
   },
-  // 7장: relationship_5 +2턴/+600자 (상대 관계 유지)
+  // 7장: 6장보다 긴 대화 허용 (2026-08-13 spec 타로톡-분량-턴구조-재설계 기준값 + 2026-10-04 +3턴)
   reunion_deep_7: {
     convergeStartTurn: 16,
     convergeStartChars: 11540,

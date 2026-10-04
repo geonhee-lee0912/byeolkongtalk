@@ -32,3 +32,21 @@ test("two_card — 12번째는 강제 종료선", () => {
   assert.equal(r.mode, "hardcap");
   assert.equal(r.absHardcap, true);
 });
+
+test("two_card — 9번째라도 글자 미달이면 자연 마무리선 아님(수렴)", () => {
+  assert.equal(computeWrapMode(9, 3639, t).mode, "converge");
+});
+
+test("two_card — 7번째라도 글자 미달이면 자유 구간", () => {
+  assert.equal(computeWrapMode(7, 3239, t).mode, "free");
+});
+
+test("two_card — 8번째(마무리선−1)도 글자 미달이면 자유 구간", () => {
+  assert.equal(computeWrapMode(8, 3239, t).mode, "free");
+});
+
+test("two_card — 11번째(강제 종료선−1)는 글자 무관 마지막 수렴 턴", () => {
+  const r = computeWrapMode(11, 100, t);
+  assert.equal(r.mode, "converge");
+  assert.equal(r.isLastConvergeTurn, true);
+});
