@@ -279,6 +279,35 @@ test("열어 두기 가이드는 유저가 '질문을 던졌다'고 단정하지
   assert.ok(d.includes("턴 마무리 상태"));
 });
 
+// ── 열어 두기 가이드 + 턴 마무리 '정리' — 강제 종료 직전(abs−1)에서 열어 둔 턴이 받는 조합 (capTurnCloseBeforeAbsCap, 사용자 결정 2026-10-04) ──
+// 그 턴은 질문·예고 고리 없이 '정리'(③ 소신 정리+여백 / ④ 공감으로 열어두기)로 닫는다. 같은 프롬프트에 열어 두기 가이드([END]·작별 인사 금지,
+// 마무리 방식은 "아래 `턴 마무리 상태`대로")가 있으므로 둘이 서로 어긋나지 않아야 한다 — 가이드가 상태보다 위, 상태는 정리 하나, 정리 문구와 그것이 가리키는 ③④ 정의가 작별을 시키지 않는다.
+const STATE_MARK = "턴 마무리 상태:"; // 가이드 본문의 "`턴 마무리 상태`대로" 와 달리 콜론이 붙는 건 상태 줄뿐이다
+const CLOSING_WORDS = ["[END]", "작별", "오늘은 여기까지", "또 와", "안녕"];
+
+test("열어 두기 가이드 + '정리' 상태는 한 프롬프트에서 어긋나지 않는다 — 가이드가 [END]·작별을 막고 마무리 방식은 아래 상태에 맡기며, 정리는 ③④ 로만 닫고 ①②를 막는다", () => {
+  const { staticPart, dynamicPart: d } = buildTarotSystemMessage({ ...ctxBase, keepOpen: true, turnSignals: { turnClose: "settle" } });
+  assert.ok(d.includes(KEEP_OPEN_HEAD), "픽스처가 열어 두기 선택 턴이어야 한다");
+  // 상태 줄은 정리 하나뿐 — 질문·여지가 같이 오면 서로 다른 지시가 된다
+  const stateLines = d.split("\n").filter((l) => l.includes(STATE_MARK));
+  assert.equal(stateLines.length, 1);
+  const state = stateLines[0];
+  assert.ok(state.includes("`정리`"));
+  // 가이드가 위, 상태가 아래 — 가이드의 "아래 `턴 마무리 상태`대로" 가 성립한다
+  assert.ok(d.indexOf(KEEP_OPEN_HEAD) < d.indexOf(STATE_MARK));
+  // 열어 두기 가이드는 [END]·작별을 막고, 정리 상태는 그걸 시키지 않는다(③④ 로 닫고 ①②·예고를 막는다)
+  assert.ok(d.includes("[END] 마커 금지") && d.includes("작별 인사"));
+  assert.ok(state.includes("③") && state.includes("④") && state.includes("①(질문)도 ②(다음 볼거리 예고)도 쓰지 마"));
+  for (const w of CLOSING_WORDS) assert.ok(!state.includes(w), `'정리' 문구가 '${w}' 를 시키면 안 된다`);
+  // 정리가 가리키는 ③④ 의 정의(코어 §턴 마무리)가 정적 프롬프트에 있고, 그 정의도 [END]·작별을 시키지 않는다
+  const defs = staticPart.split("\n").filter((l) => l.startsWith("- ③") || l.startsWith("- ④"));
+  assert.equal(defs.length, 2, "③④ 정의가 하나씩 있어야 한다");
+  for (const line of defs) for (const w of CLOSING_WORDS) assert.ok(!line.includes(w), `${line.slice(0, 12)}… 가 '${w}' 를 시키면 안 된다`);
+  // 정리 요청 규칙·자연 마무리 가이드가 같이 새지 않는다(열어 두기 가이드가 선택된 턴)
+  assert.ok(!d.includes(SUMMARY_RULE_HEAD));
+  assert.ok(!d.includes(NATURAL_HEAD));
+});
+
 // ── 페르소나 포인터 ↔ 서버 지시 헤딩 계약 (Task 8 리뷰) ──
 // data/persona/byeolkong_tarot.md 의 '먼저 제안하는 타이밍은 서버가 정해 줘' 문단은 서버 지시를 헤딩 문구로 가리킨다. 가이드 헤딩을 바꾸면 포인터가
 // 조용히 낡아 서버 주도 제안이 닻을 잃는다. 헤딩은 렌더된 가이드에서 뽑아(후보 턴에서만 더해지는 줄 중 첫 ## 헤딩) 문구를 두 번 적지 않는다.

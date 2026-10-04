@@ -75,18 +75,21 @@ export function shouldKeepOpen(i: KeepOpenInput): boolean {
 type TurnCloseLike = "ask" | "invite" | "settle";
 
 /**
- * 강제 종료 직전(abs−1) 턴에서 열어 둔 턴은 질문으로 끝내지 않는다 — 마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙(사용자 결정 2026-10-04).
- * 열어 둔 턴(keep-open · ⑦)은 turnSignals 를 wrapMode "free" 로 다시 계산하므로 turnClose 가 '질문'(ask)이 될 수 있다. 그런데 다음 턴은 강제 종료라
- * 여기서 질문하면 유저가 답한 뒤 곧장 작별을 받는다 — ⑥ 이 다른 곳에서 없앤 '묻고 → 답했더니 → 작별'이다. ask 를 invite 로 내린다.
- * ⑦ 턴은 항상 abs−1 이고, 자연 마무리선에서 열어 둔 턴도 abs−1 이면 해당된다. 그 밖(abs−2 이전 · 열어 둔 턴이 아님 · settle·invite)은 그대로다.
+ * 강제 종료 직전(abs−1) 턴에서 열어 둔 턴은 질문·예고 고리 없이 정리(settle)로 끝낸다 — 마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙(사용자 결정 2026-10-04).
+ * 열어 둔 턴(keep-open · ⑦)은 turnSignals 를 wrapMode "free" 로 다시 계산하므로 turnClose 가 '질문'(ask)이나 '여지'(invite)가 될 수 있다. 그런데 다음 턴은 강제 종료라
+ * 질문(ask)으로 끝내면 유저가 답한 뒤 곧장 작별을 받는다 — ⑥ 이 다른 곳에서 없앤 '묻고 → 답했더니 → 작별'이다. 예고 고리(invite — "그 얘기 들으면 더 짚어줄 수 있어")도
+ * 답하고 싶어지게 여는 말이라 유저가 따라와도 이어갈 턴이 없다. 그래서 ask·invite 를 settle(③ 소신 정리+여백 / ④ 공감으로 열어두기 — 질문·예고 금지)로 내린다.
+ * ⑦ 턴은 항상 abs−1 이고, 자연 마무리선에서 열어 둔 턴도 abs−1 이면 해당된다. 그 밖(abs−2 이전 · 열어 둔 턴이 아님 · settle·미정)은 그대로다.
+ * 열어 두기 가이드는 [END]·작별 인사를 막고 마무리 방식은 `턴 마무리 상태` 에 맡기므로, settle 과 같은 프롬프트에서 서로 어긋나지 않는다(lib/claude.wrap-mode.test.ts 가 고정).
  * 프롬프트와 저장되는 messages.turn_close 가 같은 값을 쓰도록 호출부는 turnSignals 자체를 이 결과로 만든다.
  */
 export function capTurnCloseBeforeAbsCap(
   turnClose: TurnCloseLike | undefined,
   i: { keepOpenTurn: boolean; assistantTurnsSoFar: number; effAbsTurnCap: number },
 ): TurnCloseLike | undefined {
-  // 이번 턴이 assistantTurnsSoFar+1 번째, 다음 턴이 +2 번째 — 다음 턴이 강제 종료선이면(abs−1) 질문으로 끝내지 않는다
-  return i.keepOpenTurn && i.assistantTurnsSoFar + 2 >= i.effAbsTurnCap && turnClose === "ask" ? "invite" : turnClose;
+  // 이번 턴이 assistantTurnsSoFar+1 번째, 다음 턴이 +2 번째 — 다음 턴이 강제 종료선이면(abs−1) 질문·예고로 끝내지 않는다
+  const nextTurnIsForcedClose = i.assistantTurnsSoFar + 2 >= i.effAbsTurnCap;
+  return i.keepOpenTurn && nextTurnIsForcedClose && (turnClose === "ask" || turnClose === "invite") ? "settle" : turnClose;
 }
 
 // '카드 한 장' 은 넣지 않는다 — 마무리 인사("카드 한 장으로 다 풀리진 않지만")·평범한 문장에 걸려
