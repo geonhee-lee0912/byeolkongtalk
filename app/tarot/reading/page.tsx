@@ -878,10 +878,17 @@ function TarotReadingInner() {
       ? `'${cardInfo.name_kr}' (${newCard.direction === "reversed" ? "역방향" : "정방향"})`
       : "카드 한 장";
     const syntheticMsg = clarifierSyntheticMessage(cardDesc);
-    const currentHistory = messagesRef.current.filter((m) => !m.ephemeral);
+    // 시트가 열려 있는 동안 전송이 보류된 말(대기 조각)이 있으면 이 턴에 함께 싣는다 — handleFinish 와 같은 방식이다: 큐를 비우고,
+    // 조각 앞 스냅샷(baseHistoryRef)에 합친 한 턴으로 보낸다. 안 그러면 sendMessage 가 타이머만 지우고 조각은 큐에 남아
+    // (유휴 멘트·출구 칩·재동기화가 '대기 중'이라며 건너뛰고, 다음 전송이 낡은 스냅샷에 옛 말을 다시 합쳐 보낸다) 이번 카드 턴이 이력에서 빠진다.
+    // 서버는 마지막 유저 말 하나만 저장·분류하니 따로 보내면 앞 조각이 DB 에서 빠지고, 합쳐도 꼬리가 synthetic 이라 asking 이다
+    // (clarifier-merged-turn.test.ts). ⑦(synthetic 와 정확히 일치)은 강제 종료선에서 다시 연 턴 전용인데 그 턴엔 대기 조각이 없다(끝난 대화엔 입력창이 없다).
+    const queued = [...pendingFragmentsRef.current];
+    const base = queued.length > 0 ? baseHistoryRef.current : messagesRef.current;
+    pendingFragmentsRef.current = [];
     const newHistory: Message[] = [
-      ...currentHistory,
-      { role: "user", content: syntheticMsg },
+      ...base.filter((m) => !m.ephemeral),
+      { role: "user", content: [...queued, syntheticMsg].join("\n") },
     ];
     void sendMessage(newHistory, readingId, { skipSetMessages: true });
     setMessages((prev) => [...prev, { role: "user", content: syntheticMsg }]);
