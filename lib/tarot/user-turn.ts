@@ -14,6 +14,8 @@ const SHORT_AGREE_RE = /^(응+|ㅇㅇ+|그래|네+|웅+|넹|엉)[.!~ㅎㅋ\s]*$/
 const REQUEST_RE = /(궁금|알려\s*줘|말해\s*줘|봐\s*줘|어때|어떡해|어떻게\s*해)/;
 /** 물음표 없이도 새 고민을 길게 털어놓으면 '묻는 중'으로 본다 */
 const LONG_CONCERN_LEN = 40;
+// 마무리어는 말끝(마지막 15자)에 있을 때만 마무리로 본다 — "걔가 고마웠는데 요즘 서운해" 같은 하소연 중간의 감사 표현을 마무리로 오판하지 않게.
+const CLOSING_TAIL_LEN = 15;
 
 // "~ㄴ지/~ㄹ지" 간접 의문(건지·은지·올지·될지…) — 앞 글자 받침이 ㄴ(4)·ㄹ(8)이면 질문.
 // "그렇지·좋지·했지" 같은 평서 "~지" 는 받침이 달라 걸리지 않는다.
@@ -52,7 +54,7 @@ export function classifyUserTurn(text: string): UserTurnClass {
   const t = text.trim();
   const body = afterLastConjunction(t);
   const hasQuestion = QUESTION_MARK_RE.test(t) || QUESTION_ENDING_RE.test(body) || endsWithIndirectQuestion(body);
-  const closingPattern = CLOSING_RE.test(body) || SHORT_AGREE_RE.test(body);
+  const closingPattern = CLOSING_RE.test(body.slice(-CLOSING_TAIL_LEN)) || SHORT_AGREE_RE.test(body);
   return {
     asking: hasQuestion || (!closingPattern && (REQUEST_RE.test(body) || t.length >= LONG_CONCERN_LEN)),
     closing: closingPattern && !hasQuestion,

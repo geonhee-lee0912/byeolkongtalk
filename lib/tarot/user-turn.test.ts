@@ -37,6 +37,9 @@ const cases: [string, boolean, boolean][] = [
   ["그 사람이랑 사귄 지 3개월인데 요즘 연락이 뜸해졌어. 근데 내가 먼저 연락하면 부담스러워할까봐 못 하겠어", true, false],
   ["시험에 또 떨어졌어. 하지만 괜찮은 척하고 있어 그리고 사실 너무 속상해서 잠도 안 와", true, false],
   ["정말 고마웠어", false, true],
+  // 마무리어는 말끝 15자 안에서만 — 하소연 중간의 감사 표현은 마무리가 아니다
+  ["걔가 그때 내 얘기 들어줘서 정말 고마웠는데 요즘은 연락도 뜸하고 나한테 관심이 없는 것 같아서 너무 서운해", true, false],
+  ["고마워 별콩아 덕분에 힘이 났어", false, false],
 ];
 
 for (const [text, asking, closing] of cases) {
