@@ -1,28 +1,38 @@
 // 강제 종료선 재개 — 구매 라우트(extend·clarifier)의 공용 DB 단계. 판정은 ./reopen.ts 의 tarotEndState 가 정본.
+import type { PostgrestError } from "@supabase/supabase-js";
 import type { getServiceSupabase } from "../supabase.ts";
-import { stripTrailingEnd, tarotEndState } from "./reopen.ts";
+import { stripTrailingEnd, tarotEndState, type ReopenReadingRow } from "./reopen.ts";
+
+export type { ReopenReadingRow };
 
 type ServiceSupabase = ReturnType<typeof getServiceSupabase>;
 
-export interface TarotEndState {
+/** loadTarotEndState 가 돌려주는 종료 상태 — tarotEndState() 의 반환({ ended, endedAtAbsCap })에 마지막 assistant 메시지가 붙는다 */
+export interface LoadedTarotEndState {
   ended: boolean;
   endedAtAbsCap: boolean;
   lastAssistant: { id: string; content: string } | null;
 }
 
-export interface ReopenReadingRow {
-  id: string;
-  consultation_type: string | null;
-  spread_type: string | null;
-  extra_turns: number | null;
-  clarifier_count: number | null;
-}
+/** 재개 판정에 쓰는 reading 컬럼 — 라우트 select 에서 빠지면 undefined 가 된다 */
+const ROW_COLUMNS = ["consultation_type", "spread_type", "extra_turns", "clarifier_count"] as const;
 
-/** ⚠️ reading 은 CAS·차감 **전에** 읽은 행이어야 한다 — 구매 반영 후 값이면 재개 자격이 조용히 꺼진다. 타로가 아니면 endedAtAbsCap=false(기존 "끝났으면 400" 그대로) */
+/** ⚠️ reading 은 CAS·차감 **전에** 읽은 행이어야 한다 — 구매 반영 후 값이면 재개 자격이 조용히 꺼진다. 타로가 아니면 endedAtAbsCap=false(기존 "끝났으면 400" 그대로).
+ *  반환은 판별 유니온이라 `if (error) return …` 만으로 state 가 non-null 로 좁혀진다(구조분해해도). 실패 쪽 error 는 **객체 타입**이어야 한다 —
+ *  unknown 으로 두면 falsy 일 수 있어 `if (error)` 뒤에도 state 가 안 좁혀진다. */
 export async function loadTarotEndState(
   supabase: ServiceSupabase,
   reading: ReopenReadingRow,
-): Promise<{ state: TarotEndState | null; error: unknown }> {
+): Promise<
+  | { state: LoadedTarotEndState; error: null }
+  | { state: null; error: PostgrestError | Error }
+> {
+  // 라우트의 reading 은 untyped(any) 라 select 에서 컬럼을 빠뜨려도 타입이 못 잡는다. undefined(=select 안 함)면 '타로 아님'·'횟수 0' 으로
+  // 조용히 오판정되니 조회 전에 막는다 — 라우트가 CAS·차감 전에 500. null 은 DB 값이라 정상.
+  const missing = ROW_COLUMNS.filter((k) => reading[k] === undefined);
+  if (missing.length > 0) {
+    return { state: null, error: new Error(`reopen_row_missing_columns: ${missing.join(", ")}`) };
+  }
   const { data, error } = await supabase
     .from("messages")
     .select("id, content")
@@ -34,9 +44,7 @@ export async function loadTarotEndState(
   const rows = (data ?? []) as { id: string; content: string }[];
   const { ended, endedAtAbsCap } = tarotEndState(
     rows.map((m) => m.content),
-    reading.consultation_type === "tarot" ? reading.spread_type : null,
-    reading.extra_turns ?? 0,
-    reading.clarifier_count ?? 0,
+    reading,
   );
   return {
     state: { ended, endedAtAbsCap, lastAssistant: rows.length > 0 ? rows[rows.length - 1] : null },
