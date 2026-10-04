@@ -1311,7 +1311,8 @@ function TarotReadingInner() {
                   <button
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
-                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로 — 흐려지면 아래 '마무리하고 결과 보기'가 화면에서 가장 강해 보인다(사용자 2026-10-04). 동작 잠금은 disabled 가 그대로 한다
+                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     전송
                     <span className="text-[11px] font-normal text-white/70">
