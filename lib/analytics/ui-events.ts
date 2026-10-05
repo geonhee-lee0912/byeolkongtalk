@@ -210,6 +210,11 @@ export const UI_EVENTS = [
   /** 구매 칸 — 비로그인 벽의 카카오 버튼 탭. meta:{surface, product?}
    *  분모는 picker_gate_shown(gate="login"). 로그인 완료 여부는 이 이벤트로 알 수 없다. */
   "picker_login_clicked",
+  /** 타로톡 인챗 결제 제안 노출 — meta:{product:"clarifier"|"extend", surface:"chat"|"postend"}.
+   *  리딩·상품·지면당 1회 (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-7) */
+  "inchat_offer_shown",
+  /** 타로톡 인챗 결제 제안 탭 — meta:{product, surface} */
+  "inchat_offer_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];

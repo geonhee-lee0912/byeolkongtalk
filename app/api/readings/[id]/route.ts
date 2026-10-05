@@ -1,9 +1,10 @@
 // readings 단건 조회 — result + mypage 가 사용.
-// 소유권 검증 + messages 같이 반환.
+// 소유권 검증 + messages 같이 반환 + 강제 종료선에서 닫힌 타로 대화의 재개 제안 자격(reopen).
 
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { tarotEndState, reopenOptions } from "@/lib/tarot/reopen";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function GET(
   const { data: reading, error } = await supabase
     .from("readings")
     .select(
-      "id, user_id, profile_id, question, saju_data, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, stars_spent, has_sensitive, next_reco, created_at, relationship_id"
+      "id, user_id, profile_id, question, saju_data, consultation_type, spread_type, spread_category, emotion_tag, drawn_cards, stars_spent, has_sensitive, next_reco, created_at, relationship_id, extra_turns, clarifier_count"
     )
     .eq("id", id)
     .maybeSingle();
@@ -39,6 +40,18 @@ export async function GET(
     .eq("reading_id", reading.id)
     .order("created_at", { ascending: true })
     .order("role", { ascending: false });
+
+  // 강제 종료선에서 닫힌 타로 대화의 재개 제안 자격 (spec §3-4) — 서버 판정, 클라 신뢰 X
+  const { endedAtAbsCap } = tarotEndState(
+    (messages ?? []).filter((m) => m.role === "assistant").map((m) => m.content as string),
+    reading,
+  );
+  const reopen = reopenOptions({
+    endedAtAbsCap,
+    hasSensitive: reading.has_sensitive === true,
+    extraTurns: reading.extra_turns ?? 0,
+    clarifierCount: reading.clarifier_count ?? 0,
+  });
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -66,6 +79,7 @@ export async function GET(
     },
     profile,
     messages: messages ?? [],
+    reopen,
   });
 }
 

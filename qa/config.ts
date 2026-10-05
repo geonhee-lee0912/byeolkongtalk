@@ -14,7 +14,9 @@ export const config = {
   TEST_USER_ID:
     process.env.QA_TEST_USER_ID ?? "11111111-1111-4111-8111-111111111111",
   // users.kakao_id NOT NULL — 실제 카카오 id(양수)와 충돌 안 나게 음수 센티넬.
-  TEST_KAKAO_ID: -999001,
+  // users.kakao_id 는 UNIQUE 라 QA_TEST_USER_ID 로 두 번째 테스트 유저를 쓸 땐 QA_TEST_KAKAO_ID 도 다른 음수로 줘야 한다
+  // (유저 하나가 분당 20건 레이트리밋이라 배치를 병렬로 돌리려면 유저를 나눠야 한다).
+  TEST_KAKAO_ID: Number(process.env.QA_TEST_KAKAO_ID ?? -999001),
   TEST_NICKNAME: "QA봇",
 
   // 시드 충전량 (전체 매트릭스 다 돌아도 안 모자라게)
@@ -30,8 +32,9 @@ export const config = {
   PACING_MS: 3500,
 
   // 안전 상한 — 한 대화의 최대 chat 콜 수 (시뮬레이터 폭주 방지).
-  // 타로 relationship_5 의 absTurnCap(13)까지 자연 [END] 도달 여유를 두고 16.
-  MAX_CHAT_CALLS_PER_CASE: 16,
+  // 가장 긴 타로 스프레드(7장)의 강제 종료선(absTurnCap 19, 불변)까지 자연 [END] 도달 여유 + 1 = 20.
+  // (2026-10-04 7장 자연 마무리선이 14→17 로 밀려, 옛 상한 16 이면 [END] 전에 잘려 mustEnd 오탐)
+  MAX_CHAT_CALLS_PER_CASE: 20,
 
   // 관계 스레드는 [END] 자연 종료가 없어(소프트캡까지 무한) 행동 케이스를 이 콜 수로 끊는다.
   REL_MAX_TURNS: 6,

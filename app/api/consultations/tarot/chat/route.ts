@@ -6,10 +6,10 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { buildTarotSystemMessage, streamChat, computeWrapMode, computeTurnSignals } from "@/lib/claude";
 import { CHAT_MODEL } from "@/lib/claude/model-registry";
-import { WRAP_THRESHOLDS } from "@/lib/tarot/constants";
+import { effectiveWrapThresholds } from "@/lib/tarot/thresholds";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import {
   resolveSensitive,
   recordSensitiveAlert,
@@ -20,6 +20,17 @@ import type {
   DrawnCard,
 } from "@/lib/tarot/spreads";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
+import { classifyUserTurn } from "@/lib/tarot/user-turn";
+import {
+  isClarifierCandidate,
+  shouldKeepOpen,
+  capTurnCloseBeforeAbsCap,
+  finalizeAssistantText,
+  createEndMarkerFilter,
+} from "@/lib/tarot/inchat-offer";
+import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
+import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
+import { stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,39 +174,31 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자)
+  // 업셀 보정 임계치 — extra_turns(연장) + clarifier_count(보조 카드 1장당 +2턴/800자). 식의 단일 원천 = lib/tarot/thresholds.ts
   const spreadType = reading.spread_type as SpreadType;
   const drawnCards = (reading.drawn_cards as DrawnCard[]) ?? [];
-  const baseT = WRAP_THRESHOLDS[spreadType];
   const extraTurns = (reading.extra_turns ?? 0) as number;
   const clarifierCount = (reading.clarifier_count ?? 0) as number;
-  const bonusTurns = extraTurns + clarifierCount * 2;
-  const bonusChars = clarifierCount * 800;
-  const effT =
-    bonusTurns > 0 || bonusChars > 0
-      ? {
-          convergeStartTurn: baseT.convergeStartTurn + bonusTurns,
-          convergeStartChars: baseT.convergeStartChars + bonusChars,
-          hardCapTurn: baseT.hardCapTurn + bonusTurns,
-          hardCapChars: baseT.hardCapChars + bonusChars,
-          absTurnCap: baseT.absTurnCap + bonusTurns,
-        }
-      : undefined;
+  const effT = effectiveWrapThresholds(spreadType, extraTurns, clarifierCount);
+  if (!effT) {
+    // 모르는 스프레드 — 예전엔 기본 임계치가 undefined 라 아래 어딘가에서 TypeError 로 500 이었다. 같은 실패를 명시적으로 낸다(스트림 전·DB 쓰기 전)
+    return NextResponse.json({ error: "unknown_spread_type" }, { status: 500 });
+  }
 
   // 대화 연장 업셀 가능: extra_turns 0 + forceEnd 아님 + EXTEND_MAX 이내 (현재 max 1)
   const extendAvailable =
     extraTurns === 0 && body.forceEnd !== true;
 
-  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리면 서버가 보장
-  const effAbsTurnCap = (effT ?? baseT).absTurnCap;
-  const mustEnd =
-    body.forceEnd === true || assistantTurnsSoFar + 1 >= effAbsTurnCap;
+  // 강제 종료 턴 (마무리 버튼 or 절대 턴캡) — 모델이 [END] 빠뜨리거나 모양이 틀리면 서버가 보장(finalizeAssistantText)
+  const effAbsTurnCap = effT.absTurnCap;
+  const atAbsCap = assistantTurnsSoFar + 1 >= effAbsTurnCap;
+  const mustEnd = body.forceEnd === true || atAbsCap;
 
   // wrap-mode — 클라 출구 nudge 발동 기준 (X-Wrap-Mode 헤더)
   const wrapMode = computeWrapMode(
     assistantTurnsSoFar + 1,
     cumulativeAssistantChars,
-    effT ?? baseT
+    effT
   ).mode;
 
   // sensitive 게이트 감지 — high 는 regex 즉시 확정, 회색지대(medium/low)는 haiku 2차 판정을
@@ -204,10 +207,59 @@ export async function POST(request: NextRequest) {
   // 위기 게이트: 이번 메시지 sensitive 또는 이전 턴에서 이미 has_sensitive → 자동 종료([END]/수렴) 억제(버튼 제외)
   const crisisActive = !!sensitiveMatch || reading.has_sensitive === true;
 
-  const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
-    wrapMode,
+  // 2026-10-04 인챗 결제 제안·keep-open (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-3·§3-5)
+  const userTurn = classifyUserTurn(lastMessage.content);
+  const signalCtx = {
     isFirstTurn: assistantTurnsSoFar === 0,
     questionLen: (reading.question ?? "").trim().length,
+  };
+  // 실제 wrapMode 로 먼저 계산 — keep-open 판정(⑥)이 쓰는 lastTurnEndedWithQuestion 은 과거 메시지만 보므로 wrapMode 와 무관하다
+  const baseSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode, ...signalCtx });
+  const keepOpen = shouldKeepOpen({
+    wrapMode,
+    mustEnd,
+    crisisActive,
+    userAsking: userTurn.asking,
+    lastTurnEndedWithQuestion: baseSignals.lastTurnEndedWithQuestion === true,
+    // 마무리 신호는 명시적 마무리어만 — 별콩이가 질문한 직후의 단독 '응/네/그래' 는 마무리가 아니라 대답이다(⑥, 사용자 결정 2026-10-04)
+    userClosing: userTurn.closingExplicit,
+  });
+
+  // ⑦ 강제 종료선에서 '한 장 더'로 다시 연 직후의 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드(사용자 결정 2026-10-04).
+  // 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 얇은 정리 톤을 받는다. 위기·마무리 버튼·강제 종료선엔 진다.
+  // 턴 수(구매 전 강제 종료선)만으론 보조 카드를 대화 중에 일찍 산 리딩이 나중에 같은 턴 수를 지날 때도 걸리므로, 유저 말이 구매 직후
+  // 클라가 보낸 synthetic 메시지일 때만 센다. '한 장 더' 후보는 clarifierCount > 0 이라 이 턴에 이미 아니다.
+  const clarifierReopenTurn =
+    isClarifierReopenTurn({ spreadType, extraTurns, clarifierCount, assistantTurnsSoFar }) &&
+    isClarifierSyntheticMessage(lastMessage.content) &&
+    !mustEnd &&
+    !crisisActive;
+  const keepOpenTurn = keepOpen || clarifierReopenTurn;
+
+  // 열어 두는 턴은 대화를 이어가는 턴 — 'settle'(질문·예고 금지) 로 고정하지 않도록 free 로 다시 계산한다. 아니면 위 값 그대로.
+  // 단 강제 종료 직전(abs−1)이면 질문·예고 고리 없이 정리(settle)로 끝낸다 — 다음 턴이 강제 종료라 질문(ask)·예고(invite)로 열면 유저가 따라온 뒤 곧장 작별을 받는다(마지막 수렴 턴 가이드의 "새 질문 X" 와 같은 규칙).
+  // 프롬프트와 저장되는 turn_close 가 같은 값을 쓰도록 turnSignals 자체를 캡한 값으로 만든다.
+  const keepOpenSignals = keepOpenTurn
+    ? computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode: "free", ...signalCtx })
+    : null;
+  const turnSignals = keepOpenSignals
+    ? {
+        ...keepOpenSignals,
+        turnClose: capTurnCloseBeforeAbsCap(keepOpenSignals.turnClose, { keepOpenTurn, assistantTurnsSoFar, effAbsTurnCap }),
+      }
+    : baseSignals;
+
+  const clarifierCandidate = isClarifierCandidate({
+    assistantTurnsSoFar,
+    wrapMode,
+    crisisActive,
+    forceEnd: body.forceEnd === true,
+    clarifierCount,
+    pastAssistantTexts: (pastMessages ?? [])
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content as string),
+    userAsking: userTurn.asking,
+    userShortStreak: turnSignals.userShortStreak === true,
   });
 
   const systemMessage = buildTarotSystemMessage({
@@ -224,6 +276,9 @@ export async function POST(request: NextRequest) {
     crisisActive,
     extendAvailable,
     thresholdOverride: effT,
+    keepOpen,
+    clarifierReopenTurn,
+    clarifierCandidate,
   });
 
   // 프리미엄 첫 풀이 절단 방지 — 스트리밍 경로는 stopReason 을 버려 max_tokens 초과 시 [END]/종합 없이 조용히 잘림.
@@ -246,17 +301,35 @@ export async function POST(request: NextRequest) {
     responseHeaders["X-Sensitive-Category"] = sensitiveMatch.category;
     responseHeaders["X-Sensitive-Severity"] = String(sensitiveMatch.severity);
   }
+  // 강제 종료선 턴 — 클라가 '결과 보기 →' 옆에 재개 제안을 띄울 근거 (spec §3-4).
+  // 헤더는 모델 출력 전에 나가므로 보낼 수 있는 이유는 abs_cap 하나뿐이다(자연 마무리·버튼 종료는 본문이 나와야 안다 → 헤더 없음 = 재개 대상 아님).
+  // 판정은 GET·구매 라우트와 같은 턴 수 기준이라 abs-cap 턴에 마무리 버튼을 눌러도 준다. 위기(자동 종료 억제)는 제외.
+  // 저장본의 [END] 모양은 아래 finalizeAssistantText 가 이 약속에 맞춰 보장한다.
+  if (atAbsCap && !crisisActive) {
+    const ro = reopenOptions({
+      endedAtAbsCap: true,
+      hasSensitive: false,
+      extraTurns,
+      clarifierCount,
+    });
+    responseHeaders["X-End-Reason"] = "abs_cap";
+    responseHeaders["X-Reopen"] = formatReopenHeader(ro);
+  }
 
   // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
   // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
   // 여기서 role/content 만 추려 방어한다 (클라이언트 stripping 의 서버측 안전망).
+  // 지난 별콩이 답에 붙어 있던 모델 독백(lib/tarot/monologue-leak.ts)도 여기서 뗀다 — 클라 사본엔 스트림으로 받은 그대로 남아 있어, 그대로 넘기면 모델이 자기 메모를 다시 읽는다
   const apiMessages = body.messages.map((m) => ({
     role: m.role,
-    content: m.content,
+    content: m.role === "assistant" ? stripLeakedMonologue(m.content).text : m.content,
   }));
 
   const encoder = new TextEncoder();
-  let assistantText = "";
+  let assistantText = ""; // 화면에 나간(스트림으로 보낸) 글자 — 저장본(saved)은 정규화로 이와 다를 수 있다
+  let rawChars = 0; // 모델이 보낸 글자 수(필터 통과 전) — keep-open 필터가 [END] 만 지워 빈 응답이 된 턴을 로그에서 구분하는 용도
+  let endFiltered = false;
+  const endFilter = keepOpenTurn ? createEndMarkerFilter() : null; // 열어 두는 턴(keep-open · ⑦ 재개 직후 카드 풀이) 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -266,23 +339,71 @@ export async function POST(request: NextRequest) {
           userId,
           extra: { readingId: reading.id },
         }, CHAT_MODEL)) {
-          assistantText += chunk;
-          controller.enqueue(encoder.encode(chunk));
+          rawChars += chunk.length;
+          const out = endFilter ? endFilter.push(chunk) : chunk;
+          if (!out) continue;
+          assistantText += out;
+          controller.enqueue(encoder.encode(out));
+        }
+        if (endFilter) {
+          const rest = endFilter.flush();
+          if (rest) {
+            assistantText += rest;
+            controller.enqueue(encoder.encode(rest));
+          }
         }
 
         // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
         // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
         if (!assistantText.trim()) {
+          // 필터가 지운 글자가 있으면 [END] 만 남았던 응답(모델이 닫으려던 keep-open 턴)이다 — 모델의 진짜 빈 응답과 로그(extra.endFiltered)에서 구분
+          endFiltered = rawChars > assistantText.length;
           throw new Error("empty_assistant_stream");
         }
 
-        // 강제 종료 턴인데 모델이 [END] 를 빠뜨렸으면 서버가 붙여 종료를 보장
-        // (마무리 버튼·절대 턴캡이 "안 눌린 것처럼" 보이는 상태 방지)
-        // 단, 위기 대화(버튼 아님)면 자동 [END] 강제 주입을 억제 — §위기 [END]금지 코드 강제(3d)
-        if (mustEnd && !(crisisActive && body.forceEnd !== true) && !assistantText.includes("[END]")) {
-          const tail = "\n\n[END]";
-          assistantText += tail;
-          controller.enqueue(encoder.encode(tail));
+        // 응답 끝처리 — 강제 종료 턴은 [END] 가 정확히 하나·맨 끝이 되게(재개 버튼이 저장본의 이 모양에 달렸다 — spec §3-4),
+        // '한 장 더' 후보 턴은 마커 누락 수리(§3-5 ③). 위기로 자동 종료가 억제된 턴(버튼 제외)은 건드리지 않는다(§위기 [END]금지 코드 강제 3d).
+        // 스트림은 이미 나간 글자를 못 바꾸니 꼬리만 보내고, 저장본은 정규화로 스트림과 달라질 수 있다(중복·소문자·본문 중간 [END] — 클라는 이미 종료 마커를 받았다).
+        // 모델 독백 누출 — 답 끝에 붙은 규칙 점검 메모를 저장본에서 잘라낸다(lib/tarot/monologue-leak.ts). 스트림으로 이미 나간 글자는 못 바꾼다 —
+        // 새로고침·보관함·결과 화면·다음 턴 입력에서 사라진다. 끝처리([END] 보장·제안 마커 수리)는 잘라낸 글 기준으로 한다
+        const leak = stripLeakedMonologue(assistantText);
+        if (leak.cut) {
+          void logWarn(
+            "tarot_monologue_cut: 답 끝에 붙은 모델 독백을 저장본에서 잘라냈다",
+            ctxFromRequest(request, {
+              route: "/api/consultations/tarot/chat",
+              userId,
+              extra: { readingId: reading.id, reason: leak.reason, cutChars: leak.cutChars },
+            }),
+          );
+        }
+        const { saved, streamTail } = finalizeAssistantText(leak.text, {
+          mustEnd,
+          crisisActive,
+          forceEnd: body.forceEnd === true,
+          clarifierCandidate,
+        });
+        if (streamTail) {
+          assistantText += streamTail;
+          controller.enqueue(encoder.encode(streamTail));
+        }
+
+        // 다른 탭 경합(spec §7) — 닫는 턴이면 저장 직전에 구매 횟수를 다시 읽는다. 스트림 도중 다른 탭에서 재개 상품을 샀으면 [END] 를 저장하지 않는다.
+        // 마무리 버튼 턴도 같다 — 산 턴이 우선이고 결과 화면은 [END] 없는 리딩에 '이어서 대화하기'를 보여 준다(사용자 결정 2026-10-05) · 재조회가 실패하면 종전대로 저장한다
+        let toSave = saved;
+        if (/\[END\]/i.test(saved)) {
+          const { data: now } = await supabase
+            .from("readings")
+            .select("extra_turns, clarifier_count")
+            .eq("id", reading.id)
+            .maybeSingle();
+          if (now) {
+            toSave = dropEndIfPurchasedSince(
+              saved,
+              { extraTurns, clarifierCount },
+              { extraTurns: now.extra_turns ?? 0, clarifierCount: now.clarifier_count ?? 0 },
+            );
+          }
         }
 
         const turnTs = Date.now();
@@ -296,7 +417,7 @@ export async function POST(request: NextRequest) {
           {
             reading_id: reading.id,
             role: "assistant",
-            content: assistantText,
+            content: toSave,
             turn_close: turnSignals.turnClose ?? null,
             created_at: new Date(turnTs + 1).toISOString(),
           },
@@ -344,6 +465,8 @@ export async function POST(request: NextRequest) {
               readingId: reading.id,
               assistantTurnsSoFar,
               partialCharsShown: assistantText.length,
+              // keep-open 필터가 [END] 만 지워 응답이 빈 경우(모델이 닫으려던 턴) — 모델의 진짜 빈 응답과 구분
+              ...(endFiltered ? { endFiltered: true } : {}),
             },
           })
         );

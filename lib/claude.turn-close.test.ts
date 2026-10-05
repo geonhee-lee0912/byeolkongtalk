@@ -292,6 +292,39 @@ test("computeTurnSignals — 첫 턴 짧은 고민은 ask", () => {
   assert.equal(s.turnClose, "ask");
 });
 
+// ⑥ (spec 2026-10-04 §3-3, 사용자 결정): 라우트는 실제 wrapMode 로 계산한 baseSignals.lastTurnEndedWithQuestion 을 keep-open 판정에 쓰고,
+// keep-open 턴이면 wrapMode "free" 로 다시 계산한다. 두 계산에서 이 값이 같다는 전제를 고정한다.
+test("computeTurnSignals — lastTurnEndedWithQuestion 은 wrapMode 와 무관하다(과거 메시지만 본다)", () => {
+  const asked = [
+    { role: "user", content: "요즘 연락이 뜸해졌어" },
+    { role: "assistant", content: "마지막으로 연락한 게 언제쯤이야?" },
+  ];
+  const notAsked = [
+    { role: "user", content: "요즘 연락이 뜸해졌어" },
+    { role: "assistant", content: "이 흐름은 열려 있어." },
+  ];
+  for (const wrapMode of ["free", "converge", "hardcap"] as const) {
+    assert.equal(computeTurnSignals(asked, "일주일 전쯤", { wrapMode }).lastTurnEndedWithQuestion, true, wrapMode);
+    assert.equal(computeTurnSignals(notAsked, "일주일 전쯤", { wrapMode }).lastTurnEndedWithQuestion, false, wrapMode);
+  }
+});
+
+// ⑥ 의 연쇄는 스스로 끊긴다 — 열어 둔 턴(free 로 다시 계산)에서 별콩이가 질문으로 끝냈다면 그 답을 받는 다음 턴은 질문 2연속 금지로 invite 다.
+test("computeTurnSignals — 직전 턴이 질문이면 열어 둔 턴(free)의 turnClose 는 유저 답이 어떻든 ask 가 아니라 invite", () => {
+  // 앞선 유저 말이 12자를 넘어야 한다 — 둘 다 짧으면 단답 연속이라 settle 이 먼저다
+  const past = [
+    { role: "user", content: "요즘 연락이 뜸해져서 내가 뭘 잘못했나 싶어" },
+    { role: "assistant", content: "마지막으로 연락한 게 언제쯤이야?" },
+  ];
+  // 짧은 답 · 직전보다 20자 이상 길어진 답(성장 게이트가 ask 조건을 켜도) · 물음표가 든 답 — 전부 invite
+  for (const reply of ["일주일 전쯤", "일주일 전쯤인데 그 뒤로는 내가 먼저 연락하기가 좀 그래서 계속 미루고 있었어", "일주일 전쯤인데 왜?"]) {
+    assert.equal(computeTurnSignals(past, reply, { wrapMode: "free" }).turnClose, "invite", reply);
+  }
+  // 대조: 직전 턴이 질문이 아니면 같은 물음표 답이 ask 를 연다
+  const notAsked = [past[0], { role: "assistant", content: "이 흐름은 열려 있어." }];
+  assert.equal(computeTurnSignals(notAsked, "일주일 전쯤인데 왜?", { wrapMode: "free" }).turnClose, "ask");
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 질문 마감 오탐 (2026-09-13 전 종목 QA 실측 — 실패 3건이 전부 오탐이었다)
 // ─────────────────────────────────────────────────────────────────────────────

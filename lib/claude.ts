@@ -669,6 +669,21 @@ export interface TarotReadingContext {
   extendAvailable?: boolean;
   /** 업셀 보정 후 임계치 — extra_turns/clarifier_count 반영. 없으면 WRAP_THRESHOLDS 기본값 사용 */
   thresholdOverride?: WrapThresholds;
+  /**
+   * 자연 마무리선 턴에서 유저가 묻는 중 — 닫지 말고 답하며 이어가기 (spec 2026-10-04 §3-3)
+   * forceEnd·위기·절대 턴캡 가이드에는 밀리고, 자연 마무리선 밖(자유·수렴 구간)에서는 무시된다.
+   */
+  keepOpen?: boolean;
+  /**
+   * '카드 한 장 더' 제안 후보 턴 — 기준 충족 시 제안 + 마커 (spec 2026-10-04 §3-5)
+   * 라우트(isClarifierCandidate)가 고르지만, 빌더도 위기·forceEnd·자유 구간 밖이거나 턴 마무리가 '정리'(단답 연속)면 이 지시를 빼 한 번 더 막는다(방어).
+   */
+  clarifierCandidate?: boolean;
+  /**
+   * 보조 카드로 다시 연 직후 카드 풀이 턴 — 모드와 무관하게 열어 두기 가이드 (사용자 결정 2026-10-04 ⑦). 위기·forceEnd·강제 종료선에는 진다.
+   * 연장(③)을 산 리딩은 이 턴이 abs−1(마지막 수렴 턴)이라 유료 카드 풀이가 짧은 정리 톤·출구 문구로 얇아진다 — 그걸 막는다. 라우트가 고른다(isClarifierReopenTurn + 유저 말이 구매 직후 synthetic 메시지).
+   */
+  clarifierReopenTurn?: boolean;
 }
 
 export function formatDrawnCardsBlock(cards: DrawnCard[]): string {
@@ -731,6 +746,15 @@ export function computeWrapMode(
 
 const TAROT_FIRST_TURN_GUIDE = `\n\n## 첫 턴 가이드\n\n이번 턴은 **타로 풀이의 첫 응답**이야. 위 "타로 풀이 출력 구조" 의 스프레드별 흐름을 따라줘 — 도입은 관찰형 적중 훅(공통 코어 §관찰형 적중 훅), 각 카드 해석 직전에 [CARD:n] 마커를 한 줄 단독으로(원카드도 [CARD:1] 필수), 마지막에 사용자 고민에 §답 먼저 그대로 소신 있는 방향 답 + 마무리 3택 중 하나. 카드 이름은 반드시 해당 [CARD:n] 마커 뒤에서 처음 언급해 — 훅에서 개별 카드명 금지. 5장 이상 스프레드는 "각 카드 해석"의 3줄 라벨 골격(🃏/💫/🔗)을 카드마다 그대로.`;
 
+// 2026-10-04 (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-3) — 자연 마무리선에서 유저가 아직 이야기 중일 때(질문하는 중이거나,
+// 별콩이의 질문에 답한 ⑥, 보조 카드 풀이를 청한 ⑦ — 그래서 문구는 '질문을 던졌다'고 단정하지 않는다) naturalHardcapGuide("기본은 마무리") 대신 쓴다.
+// [END] 는 서버 스트림 필터(createEndMarkerFilter)가 한 번 더 막는다.
+// 헤딩에 "이어가기" 를 쓰지 않는다 — 이 프롬프트에서 그 말은 유료 이어가기(## 이어가기 세션·[RECO:continue])를 가리킨다.
+const TAROT_KEEP_OPEN_GUIDE = `\n\n## 대화 열어 두기 (유저가 아직 이야기 중)\n\n유저가 방금 질문·답·요청(또는 새 고민)을 건넸어. **이번 턴은 그 말에 먼저 충실히 답하고, 대화는 열어 둬.**\n- [END] 마커 금지(정리 요청이 와도 이번 턴은 요약까지만, [END] 없이). 작별 인사·"오늘은 여기까지"·"또 와" 같은 닫는 말 금지.\n- 새 주제를 먼저 꺼내지는 말고, 마무리 방식은 아래 \`턴 마무리 상태\`대로.`;
+
+// 2026-10-04 (spec §3-5) — 서버가 고른 후보 턴에만 붙는다. 최종 제안 여부는 아래 기준으로 별콩이가 판단.
+const TAROT_CLARIFIER_OFFER_GUIDE = `\n\n## 이번 턴: '카드 한 장 더' 제안 판단\n\n유저가 방금 질문(또는 새 고민)을 던졌어. 아래 기준으로 판단해.\n- 지금 펼친 카드로 충분히 답할 수 있는 질문(카드 의미 재질문, 이미 나온 흐름 확인)이면 **제안하지 마**.\n- 카드가 아직 비추지 않은 (같은 고민 안의) 새 측면 — 그 사람 속마음·행동·연락, 시기, 두 선택지 비교, 카드끼리 엇갈리는 지점 — 을 물었으면: 펼친 카드로 먼저 방향 있는 답을 주고, 응답 끝에 "이 부분은 카드 한 장 더 펼쳐 보면 더 또렷해져. 지금 얘기 계속해도 되고" 결의 한 문장을 자연스럽게 붙인 뒤 **맨 끝에 [RECO:tarot:clarifier] 마커를 단독 줄로**.\n- 제안하는 턴엔 그 한 문장이 턴의 마지막 말이야 — 물음표 없는 평서형으로, 따로 질문을 덧붙이지 마(위 \`턴 마무리 상태\`가 \`질문\`이어도). 마커는 그 다음 단독 줄에만. 제안하지 않는 턴은 \`턴 마무리 상태\`를 평소대로 따라.\n- 별·가격·결제 언급 금지. 불안을 자극해서 권하지 마. 이 대화에서 이미 제안했다면 다시 하지 마.`;
+
 // fresh 이어가기(새 카드 전체 재추첨, 정가 결제 — /api/readings/continue 의 tarot_fresh_uses_draw_flow
 // 로 인해 실제로는 /api/consultations/tarot 드로우 플로우를 거쳐 여기로 들어옴)는 짧은 이어가기 가이드가 아니라
 // 정규 첫 턴 가이드(스프레드 흐름+마커 규칙+골격)를 그대로 쓰고, 맥락 연결구만 앞에 붙인다.
@@ -785,11 +809,20 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
     : mode === "hardcap"
       ? absHardcap
         ? absHardcapGuide
-        : naturalHardcapGuide
-      : mode === "converge"
-        ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
-          userSignalGuide
-        : "";
+        : ctx.keepOpen || ctx.clarifierReopenTurn
+          ? TAROT_KEEP_OPEN_GUIDE
+          : naturalHardcapGuide
+      : ctx.clarifierReopenTurn
+        ? TAROT_KEEP_OPEN_GUIDE
+        : mode === "converge"
+          ? (isLastConvergeTurn ? convergeLastGuide : convergeOpenGuide) +
+            userSignalGuide
+          : "";
+
+  // 열어 두기 가이드가 *실제로 선택된* 턴엔 정리 요청 규칙(SUMMARY_END_RULE)도 뺀다 — 서버 필터가 [END] 를 지우는 턴이라
+  // 규칙은 작별 어휘만 더하고, 가이드의 "정리 요청이 와도 [END] 없이" 와 정면으로 어긋난다(위기 제외와 같은 모양). 정리 요청 처리는 가이드가 맡는다.
+  // 원시 ctx.keepOpen 이 아니라 선택 여부로 본다 — forceEnd·절대 턴캡·수렴·자유 구간에선 keepOpen 이 무시되므로 그 턴의 출력은 그대로여야 한다.
+  const keepOpenSelected = wrapGuide === TAROT_KEEP_OPEN_GUIDE;
 
   const emotionBlock = buildEmotionPersonaBlock(ctx.emotionTag);
 
@@ -804,7 +837,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 ${formatDrawnCardsBlock(ctx.drawnCards)}
 
 ---
-${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.crisisActive ? "" : SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
+${emotionBlock}${firstTurnGuide}${wrapGuide}${ctx.crisisActive || keepOpenSelected ? "" : SUMMARY_END_RULE}${buildTurnSignalBlock(ctx.turnSignals)}${ctx.clarifierCandidate && !ctx.crisisActive && !ctx.forceEnd && mode === "free" && ctx.turnSignals?.turnClose !== "settle" ? TAROT_CLARIFIER_OFFER_GUIDE : ""}${ctx.continuation ? buildContinuationBlock(ctx.continuation, "카드") : ""}`;
 
   return { staticPart, dynamicPart };
 }
