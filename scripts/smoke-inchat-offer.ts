@@ -31,7 +31,8 @@
 //            ★ T12 저장본에 [END] 없음 — 스트림 도중 산 턴이 닫힌 채 남지 않는다(채팅 라우트가 저장 직전 구매 횟수를 다시 읽는다)
 //   GET      reopen = {extend:false, clarifier:false} (닫히지 않았으니 재개 대상 아님)
 //   T13      새로고침과 같게 [END] 를 지운 이력으로 — 200 · [END] 없음(산 턴으로 이어진다)
-//   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --race      (LLM 13회 · 구매 1회)
+//   T14      '마무리하고 결과 보기'(forceEnd) 스트리밍 도중 '한 장 더' 구매 — 전제(스트림에 [END]) 뒤 ★ 저장본 [END] 없음(마무리 버튼 턴도 산 턴이 우선, 사용자 결정 2026-10-05)
+//   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --race      (LLM 14회 · 구매 2회)
 //
 // ⚠️ 로컬 .env.local 의 dev Supabase 를 쓰고 LLM 을 약 18회 호출한다(원가 발생 · 소요 약 2분, 2026-10-04 실측 108초). 리딩은 지우지 않는다(브라우저로 열어 보려고) — 테스트 유저(QA봇) 소유.
 // ⚠️ 같은 리딩을 60초 안에 다시 만들면 중복 생성 방어가 기존 리딩을 돌려준다 — 실행 사이에 1분 이상 띄울 것.
@@ -701,29 +702,10 @@ async function raceScenario() {
 
   // ── [2] T12 스트리밍 도중 extend 구매 ──
   console.log(`\n── [2] T${ABS} 스트리밍 도중 '4턴 더' 구매 (다른 탭) ──`);
-  const turn = S.turn + 1;
-  S.history.push({ role: "user", content: QUESTIONS[ABS - 2] });
   const balBefore = await getBalance();
-  // fetch 는 응답 헤더가 오면 풀린다 — 서버가 reading 을 읽어 이 턴을 강제 종료 턴으로 정하고(extra_turns 0) 모델 호출을 시작한 뒤다. 본문(스트림)은 아직이다
-  const res = await fetch(`${config.BASE_URL}${CHAT_PATH}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: `byeolkong_user_id=${config.TEST_USER_ID}` }, // qa/client.ts 와 같은 세션 쿠키
-    body: JSON.stringify({ readingId: S.readingId, messages: S.history }),
-  });
-  if (res.status !== 200) bail(`T${turn} chat HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  let purchaseDoneAt = 0;
-  const purchase = postJson<PurchaseJson>(`/api/readings/${S.readingId}/extend`, {}).then((r) => {
-    purchaseDoneAt = Date.now();
-    return r;
-  });
-  const text = await res.text(); // 서버는 저장(INSERT)을 마친 뒤 스트림을 닫는다 — 여기서 풀리면 T12 저장도 끝났다
-  const streamDoneAt = Date.now();
-  const ext = await purchase;
-  const headers: Record<string, string> = {};
-  res.headers.forEach((v, k) => (headers[k] = v));
-  S.history.push({ role: "assistant", content: text });
-  S.turn = turn;
-  const leadMs = streamDoneAt - purchaseDoneAt;
+  const { turn, text, headers, leadMs, purchase: ext } = await chatWhilePurchasing(QUESTIONS[ABS - 2], () =>
+    postJson<PurchaseJson>(`/api/readings/${S.readingId}/extend`, {}),
+  );
   info(
     `T${turn} 답 ${text.length}자 · 스트림(화면)엔 [END] ${hasEnd(text) ? "있음" : "없음"} · end-reason=${headers["x-end-reason"] ?? "-"} reopen="${headers["x-reopen"] ?? ""}" · 구매가 스트림 종료보다 ${leadMs}ms 먼저 끝남`,
   );
@@ -764,6 +746,80 @@ async function raceScenario() {
   const r13 = await runTurn(STATEMENTS[0]);
   check(`T${r13.turn} [END] 없음 — 대화가 이어진다`, !r13.end, { wrap: r13.wrap });
   check(`T${r13.turn} X-Wrap-Mode ≠ hardcap`, r13.wrap !== "hardcap", { wrap: r13.wrap });
+
+  // ── [4] 마무리 버튼(forceEnd) 턴 스트리밍 도중 '한 장 더' 구매 — 마무리 버튼 턴도 산 턴이 우선(사용자 결정 2026-10-05) ──
+  console.log(`\n── [4] T${S.turn + 1} 마무리 버튼 스트리밍 도중 '한 장 더' 구매 (다른 탭) ──`);
+  const drawnIds = (await readingRow()).drawn_cards.map((c) => c.card_id);
+  const spare = QA_SEEDED_CARD_IDS.find((id) => !drawnIds.includes(id));
+  if (spare === undefined) bail(`시드 덱에 안 뽑은 카드가 없다 (뽑힘 ${drawnIds.join(",")})`);
+  const balBeforeFin = await getBalance();
+  const fin = await chatWhilePurchasing(
+    "대화 마무리할게", // app/tarot/reading/page.tsx FINISH_PHRASE — '마무리하고 결과 보기' 버튼이 보내는 문구
+    () => postJson<PurchaseJson>(CLARIFIER_PATH, { readingId: S.readingId, card: { card_id: spare, direction: "upright" } }),
+    true,
+  );
+  info(`T${fin.turn} 답 ${fin.text.length}자 · 스트림(화면)엔 [END] ${hasEnd(fin.text) ? "있음" : "없음"} · 구매가 스트림 종료보다 ${fin.leadMs}ms 먼저 끝남`);
+  if (!check(`전제 — T${fin.turn} 는 마무리 버튼 턴(스트림에 [END])`, hasEnd(fin.text), { end: hasEnd(fin.text) })) {
+    bail(`T${fin.turn} 가 닫는 턴이 아니라 ★ 단언이 결정과 무관하게 통과한다 — 대본 확인`, true);
+  }
+  if (!check("경합 성립 — 구매가 스트림이 끝나기 1초 이상 전에 끝났다", fin.leadMs >= 1000, { leadMs: fin.leadMs })) {
+    bail("구매가 스트림 도중에 끝나지 않아 경합이 재현되지 않았다 — 다시 실행", true);
+  }
+  check(
+    "clarifier 구매 200 · reopened=false(구매 시점엔 아직 안 닫힘) · clarifierCount=1",
+    fin.purchase.status === 200 && fin.purchase.json.reopened === false && fin.purchase.json.clarifierCount === 1,
+    { status: fin.purchase.status, json: { ...fin.purchase.json, drawnCards: undefined } },
+  );
+  const balAfterFin = await getBalance();
+  check(`별 −${CLARIFIER_COST} (clarifier)`, balBeforeFin - balAfterFin === CLARIFIER_COST, { before: balBeforeFin, after: balAfterFin });
+  const stFin = await assistantStats();
+  check(`T${fin.turn} DB 별콩이 답 ${fin.turn}개`, stFin.count === fin.turn, { count: stFin.count });
+  check(`★ T${fin.turn} 저장본에 [END] 없음 — 마무리 버튼 턴도 산 턴이 우선`, !hasEnd(stFin.last), { tail: stFin.last.slice(-40) });
+  const gFin = await getReading();
+  check(
+    "GET reopen = {extend:false, clarifier:false} — 닫히지 않았으니 재개 대상 아님",
+    gFin.status === 200 && gFin.reopen?.extend === false && gFin.reopen?.clarifier === false,
+    { status: gFin.status, reopen: gFin.reopen },
+  );
+}
+
+interface RaceTurn<T> {
+  turn: number;
+  text: string;
+  headers: Record<string, string>;
+  purchase: { status: number; json: T };
+  /** 구매가 스트림 종료보다 먼저 끝난 시간(ms) — 클수록 확실히 스트림 도중에 산 것이다 */
+  leadMs: number;
+}
+
+/** 유저 말을 보내고, 응답 헤더가 오면(= 서버가 reading 을 읽어 이 턴의 종료 여부를 정하고 모델 호출을 시작한 뒤 · 본문은 아직) 다른 탭 구매를 끼워 넣는다.
+ *  서버는 저장(INSERT)을 마친 뒤 스트림을 닫으므로 본문을 다 읽으면 이 턴 저장도 끝났다 */
+async function chatWhilePurchasing<T>(
+  userText: string,
+  purchase: () => Promise<{ status: number; json: T }>,
+  forceEnd = false,
+): Promise<RaceTurn<T>> {
+  const turn = S.turn + 1;
+  S.history.push({ role: "user", content: userText });
+  const res = await fetch(`${config.BASE_URL}${CHAT_PATH}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: `byeolkong_user_id=${config.TEST_USER_ID}` }, // qa/client.ts 와 같은 세션 쿠키
+    body: JSON.stringify({ readingId: S.readingId, messages: S.history, ...(forceEnd ? { forceEnd: true } : {}) }),
+  });
+  if (res.status !== 200) bail(`T${turn} chat HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  let purchaseDoneAt = 0;
+  const pending = purchase().then((r) => {
+    purchaseDoneAt = Date.now();
+    return r;
+  });
+  const text = await res.text();
+  const streamDoneAt = Date.now();
+  const bought = await pending;
+  const headers: Record<string, string> = {};
+  res.headers.forEach((v, k) => (headers[k] = v));
+  S.history.push({ role: "assistant", content: text });
+  S.turn = turn;
+  return { turn, text, headers, purchase: bought, leadMs: streamDoneAt - purchaseDoneAt };
 }
 
 const FIXTURE_MODE = process.argv.includes("--fixture");

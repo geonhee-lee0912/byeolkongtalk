@@ -374,9 +374,9 @@ export async function POST(request: NextRequest) {
         }
 
         // 다른 탭 경합(spec §7) — 닫는 턴이면 저장 직전에 구매 횟수를 다시 읽는다. 스트림 도중 다른 탭에서 재개 상품을 샀으면 [END] 를 저장하지 않는다.
-        // 마무리 버튼 턴은 유저가 직접 닫은 것이라 그대로 · 재조회가 실패하면 종전대로 저장한다
+        // 마무리 버튼 턴도 같다 — 산 턴이 우선이고 결과 화면은 [END] 없는 리딩에 '이어서 대화하기'를 보여 준다(사용자 결정 2026-10-05) · 재조회가 실패하면 종전대로 저장한다
         let toSave = saved;
-        if (body.forceEnd !== true && /\[END\]/i.test(saved)) {
+        if (/\[END\]/i.test(saved)) {
           const { data: now } = await supabase
             .from("readings")
             .select("extra_turns, clarifier_count")

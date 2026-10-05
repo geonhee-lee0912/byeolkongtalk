@@ -104,7 +104,7 @@ export interface PurchaseCounts {
 /** 다른 탭 경합(spec §7) — 채팅 턴을 시작할 때 읽은 구매 횟수(before)보다 저장 직전 값(after)이 크면 스트림 도중 다른 탭에서 '4턴 더'·'한 장 더'를 산 것이다.
  *  이 턴의 [END] 는 구매 전 강제 종료선 기준이라 그대로 저장하면 산 턴이 닫힌 채 남고, 턴 수가 올라간 선 아래라 재개 자격도 없다(재개 구매는 reading_already_ended)
  *  → 저장본에서 [END] 를 위치·대소문자와 상관없이 전부 지운다. 스트림으로 이미 나간 [END] 는 못 바꾼다(그 탭은 닫힌 화면 — 새로고침하면 저장본대로 열린다).
- *  채팅 라우트는 마무리 버튼(forceEnd) 턴엔 부르지 않는다 — 유저가 직접 닫았다. */
+ *  마무리 버튼(forceEnd) 턴에도 쓴다 — 산 턴이 우선이다(사용자 결정 2026-10-05 · 결과 화면은 [END] 없는 리딩에 '이어서 대화하기'를 보여 준다). */
 export function dropEndIfPurchasedSince(saved: string, before: PurchaseCounts, after: PurchaseCounts): string {
   const purchased = after.extraTurns > before.extraTurns || after.clarifierCount > before.clarifierCount;
   if (!purchased || !hasEndToken(saved)) return saved;
