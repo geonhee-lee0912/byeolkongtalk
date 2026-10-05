@@ -176,6 +176,8 @@ export default function TarotInput({ type }: { type: FortuneType }) {
         <RechargeSheet
           open
           returnTo={cfg.href}
+          need={effectiveCost}
+          balance={balance}
           source={RECHARGE_SOURCE.tarotReport}
           onClose={() => setRechargeSheetOpen(false)}
         />

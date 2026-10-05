@@ -17,6 +17,7 @@ import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
+import { EXTEND_COST } from "@/lib/upsell";
 
 interface Message {
   role: "user" | "assistant";
@@ -708,6 +709,7 @@ function ReadingInner() {
           open={rechargeSheetOpen}
           source={RECHARGE_SOURCE.inchat}
           returnTo={`/saju/reading?id=${ctx.readingId}`}
+          need={EXTEND_COST}
           pendingUpsell={{ readingId: ctx.readingId, type: "extend" }}
           onClose={() => setRechargeSheetOpen(false)}
         />
