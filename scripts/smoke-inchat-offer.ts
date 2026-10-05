@@ -24,6 +24,15 @@
 //                    → 브라우저: 입력창 아래 '✦ 궁금한 건 이어서 물어봐도 돼' + '마무리하고 결과 보기 ›' 한 줄(대화 내내 같은 줄, 금색 버튼 없음)
 //   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --fixture      (LLM 13회 · 소요 약 1분 20초, 2026-10-04 실측 82초)
 //
+// --race — 다른 탭 경합(spec §7): 강제 종료선 턴(T12)이 스트리밍되는 도중 다른 탭에서 '4턴 더'를 산다. 새 투카드 리딩 하나로:
+//   T1~T11   기본 모드와 같은 대본(구매 없음)
+//   T12      응답 헤더가 오면(= 서버가 extra_turns 0 을 읽어 이 턴을 강제 종료 턴으로 정하고 모델 호출을 시작한 뒤) extend 구매 — 200 · reopened=false · 별 −10
+//            (전제 단언: 스트림에 [END] · X-End-Reason=abs_cap — 닫는 턴이 아니면 ★ 가 수정과 무관하게 통과하므로 중단)
+//            ★ T12 저장본에 [END] 없음 — 스트림 도중 산 턴이 닫힌 채 남지 않는다(채팅 라우트가 저장 직전 구매 횟수를 다시 읽는다)
+//   GET      reopen = {extend:false, clarifier:false} (닫히지 않았으니 재개 대상 아님)
+//   T13      새로고침과 같게 [END] 를 지운 이력으로 — 200 · [END] 없음(산 턴으로 이어진다)
+//   node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts --race      (LLM 13회 · 구매 1회)
+//
 // ⚠️ 로컬 .env.local 의 dev Supabase 를 쓰고 LLM 을 약 18회 호출한다(원가 발생 · 소요 약 2분, 2026-10-04 실측 108초). 리딩은 지우지 않는다(브라우저로 열어 보려고) — 테스트 유저(QA봇) 소유.
 // ⚠️ 같은 리딩을 60초 안에 다시 만들면 중복 생성 방어가 기존 리딩을 돌려준다 — 실행 사이에 1분 이상 띄울 것.
 // ⚠️ 모델 응답이 누적 3,640자에 못 미치면 9번째가 자연 마무리선(hardcap)이 아니라 keep-open 경로가 실행되지 않는다 → INFO 로 남는다. 질문을 더 자세히 청하게 고쳐 다시 돌릴 것.
@@ -44,6 +53,7 @@ const SPREAD = "two_card" as const;
 const CONCERN = "헤어진 사람한테 다시 연락이 올까? 계속 생각나";
 const EMOTION = "걔 속마음이 궁금해";
 const CONCERN_B = "걔가 요즘 답장이 부쩍 늦어졌어. 나한테 마음이 식은 건지 궁금해"; // --fixture B 전용 — CONCERN 과 달라야 60초 중복 생성 방어가 A 를 돌려주지 않는다
+const CONCERN_RACE = "썸 타던 사람이 요즘 연락이 뜸해졌어. 다시 가까워질 수 있을까?"; // --race 전용 — 다른 모드 문구와 달라야 60초 중복 생성 방어에 안 걸린다
 const ABS = 12; // 기본 강제 종료선
 const ABS_EXTENDED = ABS + EXTEND_TURNS; // 연장 뒤 강제 종료선(16)
 const NATURAL_TURN = 9; // 자연 마무리선 턴
@@ -642,11 +652,126 @@ async function fixtureSummary() {
   console.log(`집계       : PASS ${passed} · FAIL ${failed} · INFO ${infos}`);
 }
 
+// ── --race 모드 — 다른 탭 경합: 강제 종료선 턴이 스트리밍되는 도중 '4턴 더' 구매 (spec §7) ──
+async function raceScenario() {
+  preflight("══ 타로톡 인챗 결제 — 다른 탭 경합 (강제 종료선 턴 스트리밍 중 '4턴 더' 구매) ══");
+
+  // [대본 전제] T12 가 강제 종료 턴이고, 연장이 강제 종료선을 16 으로 올려야 T12·T13 이 열린 턴이 된다
+  const abs = WRAP_THRESHOLDS[SPREAD].absTurnCap;
+  const absExt = effectiveAbsTurnCap(SPREAD, EXTEND_TURNS, 0);
+  if (!check(`대본 전제(race) = 코드 상수 (투카드 강제 종료선 ${ABS} → 연장 뒤 ${ABS_EXTENDED} · 연장 ${EXTEND_COST}별)`, abs === ABS && absExt === ABS_EXTENDED && EXTEND_COST === 10, { abs, absExt })) {
+    bail("강제 종료선이 바뀌어 T12 가 강제 종료 턴이 아니다 — 스크립트 갱신 필요", true);
+  }
+
+  console.log("\n── [준비] ──");
+  await ensureTestUser();
+  await topUpStars();
+  S.balStart = await getBalance();
+
+  // ── [1] 리딩 생성 + T1~T11 ──
+  console.log(`\n── [1] 투카드 리딩 생성 + T1~T${ABS - 1} (구매 없음) ──`);
+  const drawnCards = [0, 1].map((i) => ({
+    position: i,
+    label: `pos${i}`,
+    card_id: QA_SEEDED_CARD_IDS[i],
+    direction: "upright" as const,
+  }));
+  const created = await postJson<{ id?: string; duplicate?: boolean; error?: string }>("/api/consultations/tarot", {
+    spreadType: SPREAD,
+    spreadCategory: "love",
+    emotion: EMOTION,
+    concern: CONCERN_RACE,
+    drawnCards,
+  });
+  if (!check("투카드(love) 리딩 생성 200", created.status === 200 && !!created.json.id, created)) {
+    bail("리딩을 만들지 못했다", true);
+  }
+  if (created.json.duplicate === true) {
+    bail("60초 안에 같은 리딩을 만든 적이 있어 기존 리딩이 재사용됐다(중복 생성 방어) — 1분 뒤 다시 실행");
+  }
+  S.readingId = created.json.id!;
+  S.balAfterCreate = await getBalance();
+  info(`reading id = ${S.readingId}`);
+  const t1 = await runTurn(CONCERN_RACE);
+  if (t1.end) bail("T1 에서 조기 [END]");
+  for (let turn = 2; turn < ABS; turn++) {
+    const r = await runTurn(QUESTIONS[turn - 2]);
+    if (r.end) bail(`T${turn} 에서 조기 [END] (wrap=${r.wrap}, 강제 종료선 ${ABS} 전)`);
+  }
+
+  // ── [2] T12 스트리밍 도중 extend 구매 ──
+  console.log(`\n── [2] T${ABS} 스트리밍 도중 '4턴 더' 구매 (다른 탭) ──`);
+  const turn = S.turn + 1;
+  S.history.push({ role: "user", content: QUESTIONS[ABS - 2] });
+  const balBefore = await getBalance();
+  // fetch 는 응답 헤더가 오면 풀린다 — 서버가 reading 을 읽어 이 턴을 강제 종료 턴으로 정하고(extra_turns 0) 모델 호출을 시작한 뒤다. 본문(스트림)은 아직이다
+  const res = await fetch(`${config.BASE_URL}${CHAT_PATH}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: `byeolkong_user_id=${config.TEST_USER_ID}` }, // qa/client.ts 와 같은 세션 쿠키
+    body: JSON.stringify({ readingId: S.readingId, messages: S.history }),
+  });
+  if (res.status !== 200) bail(`T${turn} chat HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  let purchaseDoneAt = 0;
+  const purchase = postJson<PurchaseJson>(`/api/readings/${S.readingId}/extend`, {}).then((r) => {
+    purchaseDoneAt = Date.now();
+    return r;
+  });
+  const text = await res.text(); // 서버는 저장(INSERT)을 마친 뒤 스트림을 닫는다 — 여기서 풀리면 T12 저장도 끝났다
+  const streamDoneAt = Date.now();
+  const ext = await purchase;
+  const headers: Record<string, string> = {};
+  res.headers.forEach((v, k) => (headers[k] = v));
+  S.history.push({ role: "assistant", content: text });
+  S.turn = turn;
+  const leadMs = streamDoneAt - purchaseDoneAt;
+  info(
+    `T${turn} 답 ${text.length}자 · 스트림(화면)엔 [END] ${hasEnd(text) ? "있음" : "없음"} · end-reason=${headers["x-end-reason"] ?? "-"} reopen="${headers["x-reopen"] ?? ""}" · 구매가 스트림 종료보다 ${leadMs}ms 먼저 끝남`,
+  );
+  // 전제 — 이 턴이 닫는 턴이어야 아래 ★(저장본 [END] 없음)가 수정을 가른다. 강제 종료 턴은 finalizeAssistantText 가 스트림 [END] 를 보장하므로 결정적이다
+  if (
+    !check(
+      `전제 — T${turn} 는 강제 종료 턴(스트림에 [END] · X-End-Reason=abs_cap)`,
+      hasEnd(text) && headers["x-end-reason"] === "abs_cap",
+      { end: hasEnd(text), endReason: headers["x-end-reason"] },
+    )
+  ) {
+    bail(`T${turn} 가 닫는 턴이 아니라 ★ 단언이 수정과 무관하게 통과한다 — 대본 확인`, true);
+  }
+  if (!check("경합 성립 — 구매가 T12 스트림이 끝나기 1초 이상 전에 끝났다", leadMs >= 1000, { leadMs })) {
+    bail("구매가 스트림 도중에 끝나지 않아 경합이 재현되지 않았다 — 다시 실행", true);
+  }
+  check(
+    `extend 구매 200 · reopened=false(구매 시점엔 아직 안 닫힘) · extraTurns=${EXTEND_TURNS}`,
+    ext.status === 200 && ext.json.reopened === false && ext.json.extraTurns === EXTEND_TURNS,
+    ext,
+  );
+  const balAfter = await getBalance();
+  check(`별 −${EXTEND_COST} (extend)`, balBefore - balAfter === EXTEND_COST, { before: balBefore, after: balAfter });
+  const st = await assistantStats();
+  check(`T${turn} DB 별콩이 답 ${turn}개`, st.count === turn, { count: st.count });
+  const savedOpen = check(`★ T${turn} 저장본에 [END] 없음 — 스트림 도중 산 턴이 닫힌 채 남지 않는다`, !hasEnd(st.last), { tail: st.last.slice(-40) });
+  const g = await getReading();
+  check(
+    "GET reopen = {extend:false, clarifier:false} — 닫히지 않았으니 재개 대상 아님",
+    g.status === 200 && g.reopen?.extend === false && g.reopen?.clarifier === false,
+    { status: g.status, reopen: g.reopen },
+  );
+  if (!savedOpen) bail(`T${turn} 저장본이 닫혀 산 턴을 쓸 수 없다 — 이후 단계 무의미`, true);
+
+  // ── [3] T13 — 산 턴으로 이어지는가 ──
+  console.log(`\n── [3] T${turn + 1} — 산 턴으로 이어지는가 ──`);
+  reopenLocally(); // 새로고침하면 클라 이력은 저장본(= [END] 없음)이 된다 — 같게 맞춘다
+  const r13 = await runTurn(STATEMENTS[0]);
+  check(`T${r13.turn} [END] 없음 — 대화가 이어진다`, !r13.end, { wrap: r13.wrap });
+  check(`T${r13.turn} X-Wrap-Mode ≠ hardcap`, r13.wrap !== "hardcap", { wrap: r13.wrap });
+}
+
 const FIXTURE_MODE = process.argv.includes("--fixture");
+const RACE_MODE = process.argv.includes("--race");
 
 async function main() {
   try {
-    await (FIXTURE_MODE ? fixtureScenario() : scenario());
+    await (FIXTURE_MODE ? fixtureScenario() : RACE_MODE ? raceScenario() : scenario());
   } catch (e) {
     if (!(e instanceof Bail)) {
       failed++;
@@ -659,10 +784,13 @@ async function main() {
   process.exitCode = failed === 0 ? 0 : 1;
 }
 
-// 모르는 인자(오타 `--fixtures` 등)는 기본 모드로 흘려 LLM 18회·구매를 돌리지 않게 막는다 — 인자 없는 기본 모드는 그대로
-const unknownArgs = process.argv.slice(2).filter((a) => a !== "--fixture");
-if (unknownArgs.length > 0) {
-  console.error(`알 수 없는 인자: ${unknownArgs.join(" ")}\n사용법: node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts [--fixture]`);
+// 모르는 인자(오타 `--fixtures` 등)는 기본 모드로 흘려 LLM 18회·구매를 돌리지 않게 막는다 — 인자 없는 기본 모드는 그대로. 모드는 하나만
+const args = process.argv.slice(2);
+const unknownArgs = args.filter((a) => a !== "--fixture" && a !== "--race");
+if (unknownArgs.length > 0 || args.length > 1) {
+  console.error(
+    `${unknownArgs.length > 0 ? `알 수 없는 인자: ${unknownArgs.join(" ")}` : "모드는 하나만"}\n사용법: node --import tsx --env-file=.env.local scripts/smoke-inchat-offer.ts [--fixture | --race]`,
+  );
   process.exit(2);
 }
 void main();

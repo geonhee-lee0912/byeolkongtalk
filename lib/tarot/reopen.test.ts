@@ -9,6 +9,7 @@ import {
   parseReopenHeader,
   stripTrailingEnd,
   stripEndFromLastAssistant,
+  dropEndIfPurchasedSince,
   tarotEndState,
   type ReopenOptions,
   type ReopenReadingRow,
@@ -847,4 +848,47 @@ test("isClarifierReopenTurn — 정의대로: 어떤 구매 전 강제 종료선
       }
     }
   }
+});
+
+// ── 다른 탭 경합(spec §7): 닫는 턴이 스트리밍되는 도중 다른 탭에서 재개 상품을 샀다 ──
+
+test("dropEndIfPurchasedSince — 스트림 도중 '4턴 더'(extra_turns ↑)를 샀으면 저장본의 [END] 를 지운다", () => {
+  assert.equal(dropEndIfPurchasedSince("오늘은 여기까지야.\n\n[END]", { extraTurns: 0, clarifierCount: 0 }, { extraTurns: 4, clarifierCount: 0 }), "오늘은 여기까지야.");
+});
+
+test("dropEndIfPurchasedSince — '한 장 더'(clarifier_count ↑)도 같다", () => {
+  assert.equal(dropEndIfPurchasedSince("정리해 볼게.\n[END]", { extraTurns: 4, clarifierCount: 0 }, { extraTurns: 4, clarifierCount: 1 }), "정리해 볼게.");
+});
+
+test("dropEndIfPurchasedSince — 그사이 구매가 없었으면 그대로(평소의 닫는 턴)", () => {
+  const saved = "오늘은 여기까지야.\n\n[END]";
+  assert.equal(dropEndIfPurchasedSince(saved, { extraTurns: 4, clarifierCount: 1 }, { extraTurns: 4, clarifierCount: 1 }), saved);
+});
+
+test("dropEndIfPurchasedSince — 횟수가 줄었으면(다른 탭 구매가 잔액 부족으로 슬롯을 반납) 구매가 아니라 그대로", () => {
+  const saved = "오늘은 여기까지야.\n\n[END]";
+  assert.equal(dropEndIfPurchasedSince(saved, { extraTurns: 4, clarifierCount: 1 }, { extraTurns: 0, clarifierCount: 1 }), saved);
+});
+
+test("dropEndIfPurchasedSince — [END] 가 없는 턴은 구매가 있었어도 글자 하나 안 바꾼다(끝 공백 포함)", () => {
+  const saved = "계속 얘기해 보자.  ";
+  assert.equal(dropEndIfPurchasedSince(saved, { extraTurns: 0, clarifierCount: 0 }, { extraTurns: 4, clarifierCount: 0 }), saved);
+});
+
+test("dropEndIfPurchasedSince — [END] 를 위치·대소문자와 상관없이 전부 지운다(클라 END_MARKER_REGEX 는 대소문자 무시라 하나라도 남으면 닫힌 화면이다)", () => {
+  assert.equal(
+    dropEndIfPurchasedSince("앞 [end] 뒤\n[END]  ", { extraTurns: 0, clarifierCount: 0 }, { extraTurns: 4, clarifierCount: 0 }),
+    "앞  뒤",
+  );
+});
+
+test("dropEndIfPurchasedSince — 지운 저장본이면 GET·구매 라우트 판정은 '열린 대화'(재개 대상 아님 · 409 아님) — 고치기 전엔 닫힘+재개 자격 없음이라 산 턴을 못 썼다", () => {
+  // 투카드 강제 종료선(12) 턴이 스트리밍되는 도중 '4턴 더'(선 16) — 저장 직전 재조회 값이 extra_turns 4
+  const earlier = Array.from({ length: 11 }, (_, i) => `답 ${i + 1}`);
+  const saved12 = "오늘은 여기까지야.\n\n[END]";
+  const after = { ...row(), extra_turns: 4 };
+  const kept = tarotEndState([...earlier, saved12], after);
+  assert.deepEqual(kept, { ended: true, endedAtAbsCap: false, claimInProgress: false }); // 그대로 저장하면: 닫혔는데 재개 자격도 없다
+  const dropped = dropEndIfPurchasedSince(saved12, { extraTurns: 0, clarifierCount: 0 }, { extraTurns: 4, clarifierCount: 0 });
+  assert.deepEqual(tarotEndState([...earlier, dropped], after), { ended: false, endedAtAbsCap: false, claimInProgress: false });
 });

@@ -28,7 +28,7 @@ import {
   finalizeAssistantText,
   createEndMarkerFilter,
 } from "@/lib/tarot/inchat-offer";
-import { reopenOptions, formatReopenHeader, isClarifierReopenTurn } from "@/lib/tarot/reopen";
+import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
 import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 
 export const runtime = "nodejs";
@@ -373,6 +373,24 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(streamTail));
         }
 
+        // 다른 탭 경합(spec §7) — 닫는 턴이면 저장 직전에 구매 횟수를 다시 읽는다. 스트림 도중 다른 탭에서 재개 상품을 샀으면 [END] 를 저장하지 않는다.
+        // 마무리 버튼 턴은 유저가 직접 닫은 것이라 그대로 · 재조회가 실패하면 종전대로 저장한다
+        let toSave = saved;
+        if (body.forceEnd !== true && /\[END\]/i.test(saved)) {
+          const { data: now } = await supabase
+            .from("readings")
+            .select("extra_turns, clarifier_count")
+            .eq("id", reading.id)
+            .maybeSingle();
+          if (now) {
+            toSave = dropEndIfPurchasedSince(
+              saved,
+              { extraTurns, clarifierCount },
+              { extraTurns: now.extra_turns ?? 0, clarifierCount: now.clarifier_count ?? 0 },
+            );
+          }
+        }
+
         const turnTs = Date.now();
         await supabase.from("messages").insert([
           {
@@ -384,7 +402,7 @@ export async function POST(request: NextRequest) {
           {
             reading_id: reading.id,
             role: "assistant",
-            content: saved,
+            content: toSave,
             turn_close: turnSignals.turnClose ?? null,
             created_at: new Date(turnTs + 1).toISOString(),
           },

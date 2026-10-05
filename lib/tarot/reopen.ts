@@ -95,6 +95,22 @@ export function stripEndFromLastAssistant<T extends { role: string; content: str
 /** 대소문자 무시 [END] 검사 — 클라가 그렇게 감지하므로(lib/tarot/bubbles.ts END_MARKER_REGEX) 재개 후 '남은 [END]' 도 같은 기준으로 본다 */
 const hasEndToken = (s: string): boolean => /\[END\]/i.test(s);
 
+/** 유효 강제 종료선을 올리는 구매 횟수 — readings.extra_turns · clarifier_count */
+export interface PurchaseCounts {
+  extraTurns: number;
+  clarifierCount: number;
+}
+
+/** 다른 탭 경합(spec §7) — 채팅 턴을 시작할 때 읽은 구매 횟수(before)보다 저장 직전 값(after)이 크면 스트림 도중 다른 탭에서 '4턴 더'·'한 장 더'를 산 것이다.
+ *  이 턴의 [END] 는 구매 전 강제 종료선 기준이라 그대로 저장하면 산 턴이 닫힌 채 남고, 턴 수가 올라간 선 아래라 재개 자격도 없다(재개 구매는 reading_already_ended)
+ *  → 저장본에서 [END] 를 위치·대소문자와 상관없이 전부 지운다. 스트림으로 이미 나간 [END] 는 못 바꾼다(그 탭은 닫힌 화면 — 새로고침하면 저장본대로 열린다).
+ *  채팅 라우트는 마무리 버튼(forceEnd) 턴엔 부르지 않는다 — 유저가 직접 닫았다. */
+export function dropEndIfPurchasedSince(saved: string, before: PurchaseCounts, after: PurchaseCounts): string {
+  const purchased = after.extraTurns > before.extraTurns || after.clarifierCount > before.clarifierCount;
+  if (!purchased || !hasEndToken(saved)) return saved;
+  return saved.replace(/\[END\]/gi, "").trimEnd();
+}
+
 /** stripTrailingEnd 가 [END] 를 실제로 전부 없앨 수 있는 모양인가 — [END] 가 대화 전체에서 딱 하나이고 마지막 메시지의 끝에 있을 때만.
  *  그 밖(끝 뒤에 다른 글자 · [END] 중복)이면 재개 UPDATE 가 성공해도 [END] 가 남아 차감만 되고 대화는 닫힌 채다.
  *  (b)(c) 는 대소문자를 무시한다 — 소문자 [end] 가 남으면 서버 검사는 통과해도 새로고침 때 클라가 다시 닫힌 것으로 본다. 비어 있지 않은 배열 전제. */
