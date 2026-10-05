@@ -810,7 +810,7 @@ export default function ThreadChat({
           confirmLabel="확인하고 시작하기"
           surface="relationship_skill"
           onConfirm={confirmLaunch}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => router.push(`/shop?need=${pendingSkill.starCost}`)}
           onClose={cancelConfirm}
         />
       )}

@@ -144,7 +144,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
           accent={info.accent}
           surface="relationship_skill"
           onConfirm={confirm}
-          onCharge={() => router.push("/shop")}
+          onCharge={() => router.push(`/shop?need=${skill.starCost}`)}
           onClose={() => setPending(null)}
         />
       )}
