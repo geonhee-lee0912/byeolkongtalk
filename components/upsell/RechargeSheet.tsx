@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
+import { STAR_PACKAGES } from "@/lib/constants";
+import {
+  pickDefaultPackage,
+  leftoverAfter,
+  receivedStars,
+  firstChargeBonusPercent,
+} from "@/lib/recharge-default";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
@@ -18,6 +24,11 @@ interface Props {
   returnTo: string;
   /** 현재 별 잔액 — 없으면 시트 내부에서 조회 */
   balance?: number | null;
+  /**
+   * 하려는 것의 가격(별). 알면 부족분에 맞춰 기본 선택을 정하고(lib/recharge-default)
+   * 각 줄에 "충전 후 ⭐N 남아" 를 보여준다. 모르면 기존 기본값(star_30)·표시 없음.
+   */
+  need?: number | null;
   /** 충전 시작 직전 sessionStorage 에 저장할 upsell 정보 */
   pendingUpsell?: {
     readingId: string;
@@ -45,6 +56,7 @@ export default function RechargeSheet({
   open,
   returnTo,
   balance: balanceProp,
+  need = null,
   pendingUpsell,
   source,
   onClose,
@@ -52,6 +64,12 @@ export default function RechargeSheet({
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
   const [selectedId, setSelectedId] = useState<string>("star_30");
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
+  // 자격 조회가 끝났는지 — 기본 선택은 잔액·자격이 다 정해진 뒤 한 번만 정한다
+  const [eligibilityLoaded, setEligibilityLoaded] = useState(false);
+  // '추천' 배지·금테 대상 = 이번에 기본으로 고른 패키지(기본 star_30)
+  const [recommendedId, setRecommendedId] = useState<string>("star_30");
+  // 사용자가 직접 고른 뒤에는 늦게 온 잔액/자격 응답으로 덮어쓰지 않는다
+  const userPickedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { paymentReady, paymentError, startPayment } = useTossPayment();
@@ -60,17 +78,21 @@ export default function RechargeSheet({
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setSelectedId("star_30"); // 추천 패키지 기본 선택
+    setSelectedId("star_30"); // 부족분 모르면 이 값 유지
+    setRecommendedId("star_30");
+    setEligibilityLoaded(false);
+    userPickedRef.current = false;
     trackUiEvent("recharge_sheet_opened", {
       readingId: pendingUpsell?.readingId,
-      meta: { source },
+      meta: { source, need, balance: balanceProp ?? null },
     });
 
     // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
     fetch("/api/stars/first-charge-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setFirstChargeEligible(d?.eligible === true))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setEligibilityLoaded(true));
 
     // 잔액 prop 이 없으면 직접 조회
     if (balanceProp == null) {
@@ -90,6 +112,21 @@ export default function RechargeSheet({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // 잔액·자격이 다 정해지면 부족분 맞춤 기본값을 한 번 적용
+  useEffect(() => {
+    if (!open || !eligibilityLoaded || userPickedRef.current) return;
+    const picked = pickDefaultPackage({
+      need,
+      balance,
+      bonusEligible: firstChargeEligible,
+      packages: INCHAT_PACKAGES,
+    });
+    if (picked) {
+      setSelectedId(picked);
+      setRecommendedId(picked);
+    }
+  }, [open, eligibilityLoaded, balance, firstChargeEligible, need]);
 
   // ESC + 배경 스크롤 잠금
   useEffect(() => {
@@ -200,7 +237,7 @@ export default function RechargeSheet({
           <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50">
             <span className="text-[15px]">🎁</span>
             <p className="text-[12px] font-extrabold text-eye-purple">
-              지금 첫 충전이면 별 <span className="tabular-nums">+20%</span> 더 얹어줘
+              지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
             </p>
           </div>
         )}
@@ -209,15 +246,18 @@ export default function RechargeSheet({
         <div className="px-5 flex flex-col gap-2 pb-2">
           {INCHAT_PACKAGES.map((pkg) => {
             const isSelected = selectedId === pkg.id;
-            const isRecommended = pkg.id === "star_30";
-            const bonus = firstChargeEligible
-              ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE)
-              : 0;
+            const isRecommended = pkg.id === recommendedId;
+            const bonus = receivedStars(pkg, firstChargeEligible) - pkg.stars;
+            const leftover =
+              need != null && balance !== null
+                ? leftoverAfter({ need, balance, pkg, bonusEligible: firstChargeEligible })
+                : null;
             return (
               <button
                 key={pkg.id}
                 type="button"
                 onClick={() => {
+                  userPickedRef.current = true;
                   setSelectedId(pkg.id);
                   trackUiEvent("recharge_package_selected", {
                     readingId: pendingUpsell?.readingId,
@@ -248,6 +288,19 @@ export default function RechargeSheet({
                   <span className="ml-2 text-[12px] text-text-light tabular-nums">
                     {pkg.price.toLocaleString()}원
                   </span>
+                  {leftover !== null && (
+                    <span
+                      className={`block mt-0.5 text-[11px] tabular-nums ${
+                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light/60"
+                      }`}
+                    >
+                      {leftover > 0
+                        ? `충전 후 이번 판 하고도 ⭐${leftover} 남아`
+                        : leftover === 0
+                        ? "충전하면 이번 판에 딱 맞아"
+                        : `⭐${-leftover} 모자라`}
+                    </span>
+                  )}
                 </div>
                 <span
                   className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
