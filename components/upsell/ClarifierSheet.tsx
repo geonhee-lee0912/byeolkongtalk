@@ -33,7 +33,7 @@ interface Props {
   onClose: () => void;
   /** clarifier API 성공 후 호출 — 갱신된 drawnCards 와, 서버가 끝난 대화를 다시 열었는지(reopened) 전달 */
   onDrawn: (newDrawnCards: DrawnCard[], reopened: boolean) => void;
-  /** 잔액 부족(402) 시 호출 — TODO: Task 7 RechargeSheet 연결 */
+  /** 잔액 부족(402) 시 호출 — 부모가 시트를 닫고 충전 시트(RechargeSheet)를 연다 */
   onInsufficient?: (balance: number) => void;
   /** 구매 요청이 서버에 가 있는 동안 true — 부모가 그 사이 전송·다른 구매를 막는다(요청 중에 시트를 닫아도 요청은 계속 간다) */
   onPurchasingChange?: (purchasing: boolean) => void;

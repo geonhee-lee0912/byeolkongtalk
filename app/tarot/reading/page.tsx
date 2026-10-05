@@ -63,7 +63,7 @@ const EXIT_NUDGE = [
 ];
 const FINISH_PHRASE = "대화 마무리할게"; // 입력창 아래 '마무리하고 결과 보기' 버튼 경유 — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
-// 재개 제안 없음 — 한 참조를 공유해 setReopen 이 같은 값으로 불필요한 리렌더를 만들지 않는다
+// 재개 제안 없음 — 헤더·서버 값이 없을 때의 기본값(서버가 {false,false} 를 주면 그 객체를 그대로 쓴다)
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
 // 409(다른 구매가 처리 중) 뒤 서버 상태를 다시 읽기까지 — 바로 읽으면 그 요청이 반쯤 끝난 상태를 붙잡는다
 const RESYNC_DELAY_MS = 1500;

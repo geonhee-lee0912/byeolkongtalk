@@ -12,8 +12,6 @@ import type { logError, logWarn } from "../logger.ts";
 import { stripTrailingEnd, tarotEndState, type ReopenReadingRow } from "./reopen.ts";
 import type { DrawnCard } from "./spreads.ts";
 
-export type { ReopenReadingRow };
-
 type ServiceSupabase = ReturnType<typeof getServiceSupabase>;
 
 /** loadTarotEndState 가 돌려주는 종료 상태 — tarotEndState() 의 반환({ ended, endedAtAbsCap, claimInProgress })에 마지막 assistant 메시지가 붙는다 */
