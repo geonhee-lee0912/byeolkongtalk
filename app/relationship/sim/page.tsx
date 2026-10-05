@@ -229,7 +229,7 @@ function SimPageInner() {
             confirmLabel="시작하기"
             surface="sim"
             onConfirm={createSession}
-            onCharge={() => router.push("/shop?reason=sim")}
+            onCharge={() => router.push(`/shop?reason=sim&need=${quote.cost}`)}
             onClose={() => setPending(null)}
           />
         ) : (

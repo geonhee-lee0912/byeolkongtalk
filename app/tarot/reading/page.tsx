@@ -1376,6 +1376,7 @@ function TarotReadingInner() {
           open={rechargeSheetOpen}
           source={RECHARGE_SOURCE.inchat}
           returnTo={`/tarot/reading?id=${readingId}`}
+          need={rechargeUpsellType === "clarifier" ? CLARIFIER_COST : EXTEND_COST}
           pendingUpsell={
             readingId
               ? { readingId, type: rechargeUpsellType }

@@ -356,7 +356,7 @@ export default function NightStage(props: NightStageProps) {
           confirmLabel="추천 받기"
           surface="sim_suggest"
           onConfirm={fetchSuggest}
-          onCharge={() => router.push("/shop?reason=sim_suggest")}
+          onCharge={() => router.push(`/shop?reason=sim_suggest&need=${SIM_SUGGEST_COST}`)}
           onClose={() => {
             if (!suggesting) setSuggestOpen(false);
           }}

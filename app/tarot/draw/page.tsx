@@ -143,6 +143,8 @@ export default function TarotDrawPage() {
         <RechargeSheet
           open
           returnTo="/tarot/draw"
+          need={info.starCost}
+          balance={balance}
           source={RECHARGE_SOURCE.tarotDraw}
           onClose={() => setRechargeSheetOpen(false)}
         />

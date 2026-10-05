@@ -12,6 +12,11 @@ import {
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { safeInternalPath } from "@/lib/safe-internal-path";
+import {
+  pickDefaultPackage,
+  parseNeedParam,
+  firstChargeBonusPercent,
+} from "@/lib/recharge-default";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -54,9 +59,14 @@ function ShopContent() {
   const paymentKey = searchParams.get("paymentKey");
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
+  // 잔액 부족 모달에서 넘어온 "하려는 것의 가격" — 있으면 부족분 맞춤 기본 선택(lib/recharge-default)
+  const need = parseNeedParam(searchParams.get("need"));
 
   const [balance, setBalance] = useState<number | null>(null);
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
+  const [eligibilityLoaded, setEligibilityLoaded] = useState(false);
+  // 직접 고른 뒤엔 늦게 온 잔액/자격 응답으로 덮어쓰지 않는다
+  const userPickedRef = useRef(false);
   const [selectedId, setSelectedId] = useState<string>("star_70");
   const [loading, setLoading] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
@@ -88,7 +98,7 @@ function ShopContent() {
   useEffect(() => {
     if (shopOpenedRef.current || paymentKey || status) return;
     shopOpenedRef.current = true;
-    trackUiEvent("recharge_sheet_opened", { meta: { source: "shop" } });
+    trackUiEvent("recharge_sheet_opened", { meta: { source: "shop", need } });
   }, [paymentKey, status]);
 
   // 첫 충전 보너스 자격 조회 — 자격 있을 때만 배너/보너스 표기 (서버가 권위)
@@ -96,8 +106,21 @@ function ShopContent() {
     fetch("/api/stars/first-charge-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setFirstChargeEligible(!!d?.eligible))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setEligibilityLoaded(true));
   }, []);
+
+  // ?need= 가 있으면 잔액·자격이 정해진 뒤 한 번 기본 선택을 맞춘다. 없으면 star_70 그대로.
+  useEffect(() => {
+    if (need == null || !eligibilityLoaded || balance === null || userPickedRef.current) return;
+    const picked = pickDefaultPackage({
+      need,
+      balance,
+      bonusEligible: firstChargeEligible,
+      packages: STAR_PACKAGES,
+    });
+    if (picked) setSelectedId(picked);
+  }, [need, eligibilityLoaded, balance, firstChargeEligible]);
 
   // 로그인 확인 + userId 확보 (리다이렉트 가드)
   useEffect(() => {
@@ -343,6 +366,7 @@ function ShopContent() {
                   pkg={pkg}
                   selected={selectedId === pkg.id}
                   onSelect={() => {
+                    userPickedRef.current = true;
                     setSelectedId(pkg.id);
                     trackUiEvent("recharge_package_selected", {
                       meta: { source: "shop", packageId: pkg.id },
@@ -506,7 +530,7 @@ function PackageCard({
           </p>
           {bonus > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-lilac-soft text-lilac-deep tracking-wide">
-              +20%
+              +{firstChargeBonusPercent()}%
             </span>
           )}
           {meta.badge && (
@@ -707,10 +731,10 @@ function FirstChargeBanner() {
       </div>
       <div className="min-w-0">
         <p className="text-[14px] font-black text-[#7A5A1F] leading-tight">
-          첫 충전 한정 · 별 +20% 보너스
+          첫 충전 한정 · 별 +{firstChargeBonusPercent()}% 보너스
         </p>
         <p className="text-[11px] text-[#9A7B3F] mt-0.5 leading-snug">
-          처음 충전하면 별을 1.5배로 드려요 (딱 한 번)
+          처음 충전하면 별을 {firstChargeBonusPercent()}% 더 드려요 (딱 한 번)
         </p>
       </div>
     </div>

@@ -95,7 +95,7 @@ export function useByeolmaruSubscribe(onChanged: () => void) {
         </div>
       }
       onConfirm={handleConfirm}
-      onCharge={() => (window.location.href = "/shop")}
+      onCharge={() => (window.location.href = `/shop?need=${BYEOLMARU_SUBSCRIPTION.cost}`)}
       onClose={() => setConfirmOpen(false)}
     />
   ) : null;

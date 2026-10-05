@@ -192,6 +192,8 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         <RechargeSheet
           open
           returnTo={cfg.href}
+          need={cfg.cost}
+          balance={balance}
           source={RECHARGE_SOURCE.compat}
           onClose={() => setRechargeSheetOpen(false)}
         />

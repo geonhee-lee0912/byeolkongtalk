@@ -189,6 +189,8 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
         <RechargeSheet
           open
           returnTo={cfg.href}
+          need={cfg.cost}
+          balance={balance}
           source={RECHARGE_SOURCE.fortunePurchase}
           onClose={() => setRechargeSheetOpen(false)}
         />
