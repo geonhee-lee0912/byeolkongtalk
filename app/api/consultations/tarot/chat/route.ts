@@ -9,7 +9,7 @@ import { CHAT_MODEL } from "@/lib/claude/model-registry";
 import { effectiveWrapThresholds } from "@/lib/tarot/thresholds";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import {
   resolveSensitive,
   recordSensitiveAlert,
@@ -30,6 +30,7 @@ import {
 } from "@/lib/tarot/inchat-offer";
 import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
 import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
+import { stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -318,9 +319,10 @@ export async function POST(request: NextRequest) {
   // Anthropic API 는 role/content 외 필드를 거절함("Extra inputs are not permitted").
   // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
   // 여기서 role/content 만 추려 방어한다 (클라이언트 stripping 의 서버측 안전망).
+  // 지난 별콩이 답에 붙어 있던 모델 독백(lib/tarot/monologue-leak.ts)도 여기서 뗀다 — 클라 사본엔 스트림으로 받은 그대로 남아 있어, 그대로 넘기면 모델이 자기 메모를 다시 읽는다
   const apiMessages = body.messages.map((m) => ({
     role: m.role,
-    content: m.content,
+    content: m.role === "assistant" ? stripLeakedMonologue(m.content).text : m.content,
   }));
 
   const encoder = new TextEncoder();
@@ -362,7 +364,20 @@ export async function POST(request: NextRequest) {
         // 응답 끝처리 — 강제 종료 턴은 [END] 가 정확히 하나·맨 끝이 되게(재개 버튼이 저장본의 이 모양에 달렸다 — spec §3-4),
         // '한 장 더' 후보 턴은 마커 누락 수리(§3-5 ③). 위기로 자동 종료가 억제된 턴(버튼 제외)은 건드리지 않는다(§위기 [END]금지 코드 강제 3d).
         // 스트림은 이미 나간 글자를 못 바꾸니 꼬리만 보내고, 저장본은 정규화로 스트림과 달라질 수 있다(중복·소문자·본문 중간 [END] — 클라는 이미 종료 마커를 받았다).
-        const { saved, streamTail } = finalizeAssistantText(assistantText, {
+        // 모델 독백 누출 — 답 끝에 붙은 규칙 점검 메모를 저장본에서 잘라낸다(lib/tarot/monologue-leak.ts). 스트림으로 이미 나간 글자는 못 바꾼다 —
+        // 새로고침·보관함·결과 화면·다음 턴 입력에서 사라진다. 끝처리([END] 보장·제안 마커 수리)는 잘라낸 글 기준으로 한다
+        const leak = stripLeakedMonologue(assistantText);
+        if (leak.cut) {
+          void logWarn(
+            "tarot_monologue_cut: 답 끝에 붙은 모델 독백을 저장본에서 잘라냈다",
+            ctxFromRequest(request, {
+              route: "/api/consultations/tarot/chat",
+              userId,
+              extra: { readingId: reading.id, reason: leak.reason, cutChars: leak.cutChars },
+            }),
+          );
+        }
+        const { saved, streamTail } = finalizeAssistantText(leak.text, {
           mustEnd,
           crisisActive,
           forceEnd: body.forceEnd === true,
