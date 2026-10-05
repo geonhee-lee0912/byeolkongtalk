@@ -530,7 +530,7 @@ function PackageCard({
           </p>
           {bonus > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-lilac-soft text-lilac-deep tracking-wide">
-              +20%
+              +{firstChargeBonusPercent()}%
             </span>
           )}
           {meta.badge && (

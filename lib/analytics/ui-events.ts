@@ -43,7 +43,7 @@ export const UI_EVENTS = [
    *     같은 키로 "모달 노출 → 시트 열림" 전환을 지면별로 잇기 위해서다. 시트 없이 /shop 으로 보내는 지면
    *     (byeolmaru_subscribe·relationship_skill·sim·sim_suggest)은 고유 값. */
   "paywall_shown",
-  /** 결제 퍼널 — 충전 시트/샵 열림. meta:{source:"inchat"|"shop"} */
+  /** 결제 퍼널 — 충전 시트/샵 열림. meta:{source, need, balance?} — need=하려는 것의 가격(모르면 null), balance=시트에 넘어온 잔액(샵은 없음). 2026-10-05~ */
   "recharge_sheet_opened",
   /** 결제 퍼널 — 패키지 선택(유저 탭). meta:{source, packageId} */
   "recharge_package_selected",
