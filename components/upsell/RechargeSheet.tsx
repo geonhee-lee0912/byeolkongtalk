@@ -76,7 +76,12 @@ export default function RechargeSheet({
 
   // 열릴 때 잔액 조회 + shallow history
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // 닫힐 때 비워 둔다 — 상시 마운트 호출부(reading 화면)에서 다시 열 때 지난번 자격·잔액으로 고르지 않게
+      setEligibilityLoaded(false);
+      if (balanceProp == null) setBalance(null);
+      return;
+    }
     setError(null);
     setSelectedId("star_30"); // 부족분 모르면 이 값 유지
     setRecommendedId("star_30");
@@ -122,10 +127,9 @@ export default function RechargeSheet({
       bonusEligible: firstChargeEligible,
       packages: INCHAT_PACKAGES,
     });
-    if (picked) {
-      setSelectedId(picked);
-      setRecommendedId(picked);
-    }
+    const next = picked ?? "star_30";
+    setSelectedId(next);
+    setRecommendedId(next);
   }, [open, eligibilityLoaded, balance, firstChargeEligible, need]);
 
   // ESC + 배경 스크롤 잠금
@@ -249,7 +253,7 @@ export default function RechargeSheet({
             const isRecommended = pkg.id === recommendedId;
             const bonus = receivedStars(pkg, firstChargeEligible) - pkg.stars;
             const leftover =
-              need != null && balance !== null
+              need != null && balance !== null && eligibilityLoaded
                 ? leftoverAfter({ need, balance, pkg, bonusEligible: firstChargeEligible })
                 : null;
             return (
