@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { stripLeakedMonologue } from "./monologue-leak.ts";
+import { createMonologueHoldFilter, stripLeakedMonologue } from "./monologue-leak.ts";
 
 // 테스트 문장은 전부 지어낸 것이다(리포가 공개라 실사용자 대화를 넣지 않는다). 누출 모양만 QA·prod 사례를 따랐다.
 const ANSWER =
@@ -139,4 +139,70 @@ test("stripLeakedMonologue — 조작된 입력에서도 길이에 비례해 끝
     const ms = performance.now() - t0;
     assert.ok(ms < 1500, `${s.slice(ANSWER.length, ANSWER.length + 12)}… 60회 ${Math.round(ms)}ms`);
   }
+});
+
+// ── 스트림 보류 필터 ──
+function runHold(input: string, size: number) {
+  const f = createMonologueHoldFilter();
+  let shown = "";
+  for (let i = 0; i < input.length; i += size) shown += f.push(input.slice(i, i + size));
+  const before = shown; // 스트림이 끝나기 전까지 화면에 나간 글
+  const { tail, leak, shownPastCut } = f.flush();
+  return { before, shown: shown + tail, leak, shownPastCut };
+}
+const SIZES = [1, 2, 3, 5, 8, 13, 40, 10_000];
+
+test("createMonologueHoldFilter — 누출 메모는 청크를 어디서 끊든 화면에 한 글자도 안 나가고, 화면 = 저장본 기준 글(공백 차이만)", () => {
+  for (const leak of [
+    " too fast? Let's keep it short, no question at the end.",
+    " Shame? no. End with summary and space, no question.",
+    "- 이번 턴 신호 상태가 질문이라 질문 하나 필요하지만 직전 내 턴 질문? so cannot ask. Good. final concise.",
+    "\n직전 별콩이 턴이 질문이었으니 이번엔 질문 금지.",
+    " so cannot ask, no question, keep it concise.\n\n[END]",
+    " need one more card offer, no question here.\n[RECO:tarot:clarifier]",
+  ]) {
+    for (const size of SIZES) {
+      const r = runHold(`${ANSWER}${leak}`, size);
+      assert.equal(r.leak.cut, true, leak);
+      const ws = (s: string) => s.replace(/s+/g, " ").trim(); // 메모 앞 공백 하나는 먼저 나갈 수 있다(무해)
+      assert.equal(ws(r.shown), ws(r.leak.text), `${size}: ${leak}`);
+      assert.ok(!/cannot|question|concise|이번 턴|직전/.test(r.before), `${size}: ${r.before}`);
+      assert.equal(r.shownPastCut, false, `${size}: ${leak}`);
+    }
+  }
+});
+
+test("createMonologueHoldFilter — 정상 답은 화면에 원문 그대로 나간다(영어 카드명·응원·마커 포함)", () => {
+  for (const ok of [
+    ANSWER,
+    `${ANSWER}\n\n[END]`,
+    `[CARD:1] The Wheel of Fortune 카드가 나온 건 흐름이 바뀌는 지점이라는 뜻이야. ${ANSWER}`,
+    `${ANSWER} Don't settle for less than you deserve 💜`,
+    `${ANSWER} 같은 패턴 신호가 반복되는지 살펴봐. ${ANSWER}`,
+    `${ANSWER} 응원할게 👩‍❤️‍👨 You got this.`,
+    `${ANSWER} ${"This part is a long English letter the user asked for, written with care and warmth. ".repeat(9)}`,
+  ]) {
+    for (const size of SIZES) {
+      const r = runHold(ok, size);
+      assert.equal(r.leak.cut, false, ok);
+      assert.equal(r.shown, ok, `${size}: ${ok.slice(0, 40)}`);
+    }
+  }
+});
+
+test("createMonologueHoldFilter — 영어가 섞여도 뒤로 한국어가 이어지면 스트림 도중에 내보낸다(끝까지 붙잡지 않는다)", () => {
+  const f = createMonologueHoldFilter();
+  const out = f.push(`The Lovers 카드가 나왔어. ${ANSWER}`);
+  assert.ok(out.includes("The Lovers"), out);
+  // 아주 긴 영어도 끝 500자 남짓만 붙잡는다
+  const g = createMonologueHoldFilter();
+  const shown = g.push(`${ANSWER} ${"Trust the timing of your life and keep going. ".repeat(40)}`);
+  assert.ok(shown.length > ANSWER.length + 1000, String(shown.length));
+});
+
+test("createMonologueHoldFilter — 메모와 같은 문장의 한국어가 먼저 나간 건 메모 노출로 세지 않는다", () => {
+  const r = runHold(`${ANSWER} 응원할게 so cannot ask, no question, keep it concise.`, 3);
+  assert.equal(r.leak.cut, true);
+  assert.ok(!/cannot/.test(r.shown), r.shown);
+  assert.equal(r.shownPastCut, false);
 });

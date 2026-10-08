@@ -30,7 +30,7 @@ import {
 } from "@/lib/tarot/inchat-offer";
 import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
 import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
-import { stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
+import { createMonologueHoldFilter, stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -330,6 +330,7 @@ export async function POST(request: NextRequest) {
   let rawChars = 0; // 모델이 보낸 글자 수(필터 통과 전) — keep-open 필터가 [END] 만 지워 빈 응답이 된 턴을 로그에서 구분하는 용도
   let endFiltered = false;
   const endFilter = keepOpenTurn ? createEndMarkerFilter() : null; // 열어 두는 턴(keep-open · ⑦ 재개 직후 카드 풀이) 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
+  const holdFilter = createMonologueHoldFilter(); // 모델 독백 누출 — 메모일 수 있는 꼬리를 화면에 내보내기 전에 붙잡는다(lib/tarot/monologue-leak.ts)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -340,40 +341,40 @@ export async function POST(request: NextRequest) {
           extra: { readingId: reading.id },
         }, CHAT_MODEL)) {
           rawChars += chunk.length;
-          const out = endFilter ? endFilter.push(chunk) : chunk;
+          const out = holdFilter.push(endFilter ? endFilter.push(chunk) : chunk);
           if (!out) continue;
           assistantText += out;
           controller.enqueue(encoder.encode(out));
         }
-        if (endFilter) {
-          const rest = endFilter.flush();
-          if (rest) {
-            assistantText += rest;
-            controller.enqueue(encoder.encode(rest));
-          }
+        const rest = holdFilter.push(endFilter ? endFilter.flush() : "");
+        // 스트림 끝 — 붙잡아 둔 꼬리를 판별해 메모면 버리고 나머지를 보낸다. leak.text 가 저장본 기준 글이다
+        const { tail, leak, input: filteredText, shownPastCut } = holdFilter.flush();
+        for (const piece of [rest, tail]) {
+          if (!piece) continue;
+          assistantText += piece;
+          controller.enqueue(encoder.encode(piece));
         }
 
         // 빈 스트림 가드 — 텍스트 0자로 정상 종료한 턴(모델 빈 응답)을 성공으로
         // 취급해 빈 assistant 를 저장하지 않는다. catch 로 넘겨 턴 전체를 실패 처리.
-        if (!assistantText.trim()) {
+        if (!filteredText.trim()) {
           // 필터가 지운 글자가 있으면 [END] 만 남았던 응답(모델이 닫으려던 keep-open 턴)이다 — 모델의 진짜 빈 응답과 로그(extra.endFiltered)에서 구분
-          endFiltered = rawChars > assistantText.length;
+          endFiltered = rawChars > filteredText.length;
           throw new Error("empty_assistant_stream");
         }
 
         // 응답 끝처리 — 강제 종료 턴은 [END] 가 정확히 하나·맨 끝이 되게(재개 버튼이 저장본의 이 모양에 달렸다 — spec §3-4),
         // '한 장 더' 후보 턴은 마커 누락 수리(§3-5 ③). 위기로 자동 종료가 억제된 턴(버튼 제외)은 건드리지 않는다(§위기 [END]금지 코드 강제 3d).
         // 스트림은 이미 나간 글자를 못 바꾸니 꼬리만 보내고, 저장본은 정규화로 스트림과 달라질 수 있다(중복·소문자·본문 중간 [END] — 클라는 이미 종료 마커를 받았다).
-        // 모델 독백 누출 — 답 끝에 붙은 규칙 점검 메모를 저장본에서 잘라낸다(lib/tarot/monologue-leak.ts). 스트림으로 이미 나간 글자는 못 바꾼다 —
-        // 새로고침·보관함·결과 화면·다음 턴 입력에서 사라진다. 끝처리([END] 보장·제안 마커 수리)는 잘라낸 글 기준으로 한다
-        const leak = stripLeakedMonologue(assistantText);
+        // 모델 독백 누출 — 답 끝에 붙은 규칙 점검 메모를 화면(위 holdFilter)과 저장본에서 잘라낸다(lib/tarot/monologue-leak.ts).
+        // 끝처리([END] 보장·제안 마커 수리)는 잘라낸 글 기준으로 한다
         if (leak.cut) {
           void logWarn(
             "tarot_monologue_cut: 답 끝에 붙은 모델 독백을 저장본에서 잘라냈다",
             ctxFromRequest(request, {
               route: "/api/consultations/tarot/chat",
               userId,
-              extra: { readingId: reading.id, reason: leak.reason, cutChars: leak.cutChars },
+              extra: { readingId: reading.id, reason: leak.reason, cutChars: leak.cutChars, shownPastCut },
             }),
           );
         }
