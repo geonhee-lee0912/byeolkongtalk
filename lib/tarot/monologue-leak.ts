@@ -108,3 +108,96 @@ export function stripLeakedMonologue(text: string): LeakCut {
   const out = markers ? `${kept}\n${markers}` : kept;
   return { text: out, cut: true, reason, cutChars: text.length - out.length };
 }
+
+// ── 스트림 보류 — 메모가 화면에 나가기 전에 붙잡는다(사용자 결정 2026-10-09, 저장본만 자르던 10-05 A안의 다음 단계) ──
+// 영문자나 '턴'·'이번'·'직전'이 나오면 그 문장 처음부터 내보내지 않고 붙잡는다. 그 뒤로 한국어가 다시 충분히 이어지면(카드명·영어 응원 한 줄)
+// 마지막 한글까지 내보내고 그 뒤를 다시 본다. 스트림이 끝나면 붙잡은 꼬리에 stripLeakedMonologue 를 걸어 메모면 버린다 —
+// 판별은 저장본과 같은 함수 하나라 화면과 저장본의 기준이 갈라지지 않는다. 대가 = 영어가 섞인 문장이 한국어 20자쯤 늦게 뜬다.
+// 붙잡은 구간이 HOLD_MAX_CHARS 를 넘으면 메모일 수 없으니(자를 구간 상한 500자) 내보낸다.
+// '이번'·'직전' = 내부 용어(이번 턴 신호·직전 내 턴)의 첫 낱말 — '턴'이 올 때 이미 나갔으면 메모 앞머리가 화면에 남는다
+const SUSPECT_RE = /[A-Za-z]|턴|이번|직전/;
+const SUSPECT_PREFIX_RE = /[이직]$/; // 청크 끝에 걸린 첫 글자 — 다음 청크까지 내보내지 않는다
+const RELEASE_HANGUL = 20;
+const RELEASE_HANGUL_SHARE = 0.5;
+const HOLD_MAX_CHARS = 600;
+
+export interface MonologueHoldFlush {
+  /** 아직 안 보낸 꼬리 — 클라에 마저 보낼 글자 */
+  tail: string;
+  /** 필터에 들어온 전체 글에 대한 판별 결과(leak.text = 저장본 기준 글) */
+  leak: LeakCut;
+  /** 필터에 들어온 전체 글(빈 응답 판정용) */
+  input: string;
+  /** 메모 글자(영문·내부 용어)가 이미 화면에 나갔다 — 보류가 메모를 다 못 막은 경우. prod 판독용.
+   *  메모와 같은 문장에 붙은 한국어("응원할게 so cannot…"의 '응원할게')만 먼저 나간 건 해당하지 않는다 */
+  shownPastCut: boolean;
+}
+
+export function createMonologueHoldFilter(): { push(chunk: string): string; flush(): MonologueHoldFlush } {
+  let text = "";
+  let emitted = 0; // 내보낸 길이 — text 의 앞부분
+  let holdAt = -1; // 붙잡기 시작한 위치(의심 글자가 든 문장의 처음, emitted 이상) · -1 = 붙잡지 않음
+  let suspectAt = -1; // 붙잡게 만든 의심 글자 위치
+
+  function advance(): string {
+    const from = emitted;
+    for (;;) {
+      if (holdAt < 0) {
+        const rel = text.slice(emitted).search(SUSPECT_RE);
+        if (rel < 0) {
+          // 끝의 공백·기호(메모 앞머리 '- ' 일 수 있다)와 내부 용어 첫 글자는 다음 글자가 올 때까지 남긴다
+          let end = text.length - (SUSPECT_PREFIX_RE.test(text) ? 1 : 0);
+          while (end > emitted && !HANGUL_RE.test(text[end - 1]) && !BOUNDARY_RE.test(text[end - 1])) end--;
+          emitted = Math.max(emitted, end);
+          break;
+        }
+        suspectAt = emitted + rel;
+        let i = suspectAt;
+        while (i > emitted && !BOUNDARY_RE.test(text[i - 1])) i--;
+        holdAt = i;
+        emitted = holdAt;
+        continue;
+      }
+      // 붙잡는 중 — 의심 글자 뒤로 한국어가 충분히 이어졌거나 구간이 너무 길면, 마지막 한글까지 내보내고 그 뒤를 다시 본다
+      const region = text.slice(suspectAt);
+      if (JARGON_RE.test(text.slice(holdAt)) && text.length - holdAt <= HOLD_MAX_CHARS) break;
+      let hangul = 0;
+      let latin = 0;
+      let lastHangul = -1;
+      for (let k = 0; k < region.length; k++) {
+        const ch = region[k];
+        if (HANGUL_RE.test(ch)) {
+          hangul++;
+          lastHangul = k;
+        } else if (LATIN_RE.test(ch)) latin++;
+      }
+      const korean = hangul >= RELEASE_HANGUL && hangul / (hangul + latin) > RELEASE_HANGUL_SHARE;
+      if (!korean && text.length - holdAt <= HOLD_MAX_CHARS) break;
+      // 너무 긴 영어(영어로 써 달라는 답)는 끝 MAX_CUT_CHARS 만 남기고 내보낸다 — 그 안에서 메모가 시작될 수 있다
+      let to = korean ? suspectAt + lastHangul + 1 : Math.max(text.length - MAX_CUT_CHARS, holdAt + 1);
+      if (to < text.length && /[\udc00-\udfff]/.test(text[to])) to++; // 서로게이트 쌍을 가르지 않는다
+      emitted = to;
+      holdAt = -1;
+      suspectAt = -1;
+      if (emitted >= text.length) break;
+    }
+    return text.slice(from, emitted);
+  }
+
+  return {
+    push(chunk: string): string {
+      text += chunk;
+      return advance();
+    },
+    flush(): MonologueHoldFlush {
+      const leak = stripLeakedMonologue(text);
+      // 이미 보낸 글자는 못 바꾼다 — 저장본 기준 글과 앞부분이 같은 데까지만 이어 붙인다(보낸 쪽이 더 길면 그 차이는 화면에만 남는다)
+      let same = 0;
+      const max = Math.min(emitted, leak.text.length);
+      while (same < max && leak.text.charCodeAt(same) === text.charCodeAt(same)) same++;
+      const early = text.slice(same, emitted);
+      const shownPastCut = LATIN_RE.test(early) || JARGON_RE.test(early);
+      return { tail: leak.text.slice(same), leak, input: text, shownPastCut };
+    },
+  };
+}
