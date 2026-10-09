@@ -11,7 +11,8 @@ export interface StarPackage {
 /** 판매 패키지 전체 — 반반 비교 두 그룹 진열의 합집합(2026-10 메뉴판·별 경제, 스펙 §3-1 · §9-1).
  *  결제 준비(/api/payment/ready)·승인(/api/payment/confirm)은 이 목록으로 검증한다 — id 마다 별·가격이 고정이라
  *  두 그룹 목록을 함께 받아도 안전하다(그룹은 진열만 가른다). 별당 가격은 클수록 확실히 싸진다(constants.test.ts).
- *  🗓️ 판정 뒤 정리 배포에서 진 쪽 전용 패키지(55·130 또는 150·300)를 지운다. */
+ *  🗓️ 판정 뒤 정리 배포에서 진 쪽 전용 패키지(55·130 또는 150·300)를 지운다.
+ *     정리 배포에선 진 쪽 패키지를 진열에서 먼저 빼고 승인(confirm)에선 한동안 받는다 — 결제창을 연 채 배포를 맞은 주문이 Amount mismatch 로 실패하지 않게(Task 1 의 교훈). */
 export const STAR_PACKAGES: StarPackage[] = [
   { id: "star_10", stars: 10, price: 1000, label: "10별" },
   { id: "star_30", stars: 30, price: 2800, label: "30별" },

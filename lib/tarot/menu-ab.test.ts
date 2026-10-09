@@ -38,6 +38,10 @@ test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 그룹식이 같은 끝 
   const sets = [...sql.matchAll(/position\(\s*right\([^)]*\)\s*in\s*'([0-9a-f]+)'\s*\)\s*>\s*0/g)].map((m) => m[1]);
   assert.ok(sets.length > 0, "그룹식을 못 찾았다");
   for (const s of sets) assert.equal(s, MENU_LAST_CHARS);
+  // 위 정규식은 모양이 다른 그룹식(예: right(id::text,1) in ('0','2',…))을 못 본다 — 그런 식이 SQL 에 섞여 들어와도 어긋난 채 통과하지 않게,
+  // 'menu' 로 가르는 자리(then 'menu') 수와 정규식이 읽은 그룹식 수가 같은지 센다. 그룹식은 기존 모양을 복사해 쓸 것.
+  const menuBranches = [...sql.matchAll(/then\s+'menu'/g)].length;
+  assert.equal(sets.length, menuBranches, `then 'menu' ${menuBranches}곳 중 ${sets.length}곳만 position(right(…) in '${MENU_LAST_CHARS}') > 0 모양이다 — 다른 모양의 그룹식이 섞였다`);
 });
 
 test("QA 하네스 기본 유저(11111111-…-111111111111)는 옛 그룹 — QA 스크립트가 SPREAD_INFO.starCost(=옛 가격)를 기대한다", () => {

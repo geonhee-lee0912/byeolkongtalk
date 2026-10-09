@@ -149,3 +149,58 @@ test("'고민 다시 적기' 링크는 CONCERN_REWRITE_HREF 로 건다", () => {
     `'고민 다시 적기' 링크가 CONCERN_REWRITE_HREF 가 아니다 — 이어가기가 조용히 끊긴다:\n  ${problems.join("\n  ")}`
   );
 });
+
+// 계약 — 동의를 만드는 함수(menuSelection·saveMenuSelection·saveDeepContinuation)를 가져가는 파일은 둘뿐이다.
+// 위 계약은 `consented: true` 리터럴이 menu-session.ts 한 곳에만 있다는 것까지만 막는다. 옛 그룹 화면(예: SpreadPicker)이 이 함수를 불러
+// 선택값을 저장하면 리터럴은 그대로인데 카드 뽑기의 확인 팝업이 조용히 사라진다 — 그래서 가져가는 쪽도 못 박는다.
+// app/tarot/draw/page.tsx 는 동의를 쓰는 쪽이라 spendConsent 만 가져간다(동의를 만들지 않는다).
+const CONSENT_MAKERS = ["menuSelection", "saveMenuSelection", "saveDeepContinuation"];
+const CONSENT_MAKER_IMPORTERS = [
+  "components/tarot/TarotMenu.tsx", // 메뉴판 상품 탭 — saveMenuSelection
+  "components/upsell/TeaserUpsellCard.tsx", // 맛보기 끝 '이어서 깊게' — saveDeepContinuation
+];
+
+/** src 가 menu-session 에서 가져오는 이름들. 그 모듈을 안 건드리면 null.
+ *  이름을 못 읽는 모양(기본·네임스페이스 가져오기, 동적 import, 재수출)은 "(…)" 로 남겨 만드는 쪽으로 센다(= 걸린다). */
+function menuSessionImports(src: string): string[] | null {
+  const refs = src.match(/["'][^"'\n]*menu-session(?:\.ts)?["']/g)?.length ?? 0;
+  if (refs === 0) return null;
+  const names: string[] = [];
+  let parsed = 0;
+  for (const m of src.matchAll(/import\s+(?:type\s+)?([^;"']*?)\s*from\s*["'][^"'\n]*menu-session(?:\.ts)?["']/g)) {
+    parsed++;
+    const braces = m[1].match(/\{([^}]*)\}/);
+    if (braces) {
+      names.push(...braces[1].split(",").map((s) => s.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim()).filter(Boolean));
+    }
+    const rest = m[1].replace(/\{[^}]*\}/, "").replace(/,/g, "").trim();
+    if (rest) names.push(`(${rest})`);
+  }
+  if (parsed !== refs) names.push("(정적 import 가 아닌 참조)");
+  return names;
+}
+
+test("동의를 만드는 함수는 메뉴판·맛보기 업셀 두 파일만 가져간다 — 카드 뽑기 화면은 spendConsent 만", () => {
+  const files: string[] = [];
+  for (const d of ["app", "components", "lib"]) walk(join(ROOT, d), files);
+  const imports: Record<string, string[]> = {};
+  for (const f of files) {
+    const names = menuSessionImports(stripComments(readFileSync(f, "utf8")));
+    if (names) imports[relative(ROOT, f).split(sep).join("/")] = names;
+  }
+  const makerImporters = Object.entries(imports)
+    .filter(([, names]) => names.some((n) => CONSENT_MAKERS.includes(n) || n.startsWith("(")))
+    .map(([file]) => file)
+    .sort();
+  // 기대한 두 파일이 다 있어야 한다 — 하나라도 사라지면(이름이 바뀌어 스캔이 비면) 빈 스캔으로 통과하지 않게 같이 걸린다
+  assert.deepEqual(
+    makerImporters,
+    CONSENT_MAKER_IMPORTERS,
+    `동의를 만드는 함수를 가져가는 파일이 ${CONSENT_MAKER_IMPORTERS.join(" · ")} 이 아니다 — 옛 그룹(prod) 흐름에 동의가 새면 카드 뽑기의 확인 팝업이 조용히 사라진다`
+  );
+  assert.deepEqual(
+    imports["app/tarot/draw/page.tsx"],
+    ["spendConsent"],
+    "app/tarot/draw/page.tsx 는 menu-session 에서 spendConsent 만 가져와야 한다(동의를 쓰는 쪽이지 만드는 쪽이 아니다)"
+  );
+});
