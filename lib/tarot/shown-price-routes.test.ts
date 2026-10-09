@@ -135,7 +135,7 @@ const withParent = (consultationType: "tarot" | "saju", spreadType: string | nul
 });
 
 /** 409 응답 — error = 옛 번들이 data.error 를 그대로 찍는 사용자 문구 · code = 새 화면이 판단하는 값 */
-const priceChanged = (cost: number) => ({ error: "가격이 바뀌었어 — 다시 확인해줘", code: "PRICE_CHANGED", cost });
+const priceChanged = (cost: number) => ({ error: "가격이 바뀌었어 — 새로고침하고 다시 해줘", code: "PRICE_CHANGED", cost });
 /** 막을 때 남기는 WARN(설계된 정상 신호) — 메시지가 error_logs fingerprint 의 씨앗이라 바꾸면 어드민 묶음도 바뀐다 */
 const WARN_MESSAGE = "PRICE_CHANGED: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)";
 /** 막을 때 남는 WARN 한 줄(가짜 logWarn 이 받은 그대로) — user_id 로 그룹을 세고, 화면 값(판정과 같은 정규화 · 없으면 "missing")과 서버 가격을 남긴다 */

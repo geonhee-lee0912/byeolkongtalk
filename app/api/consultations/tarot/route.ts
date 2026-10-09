@@ -146,8 +146,9 @@ export async function POST(request: NextRequest) {
         cost,
       },
     });
+    // error 를 찍는 건 옛 화면뿐(새 화면은 code 로 자기 문구) — prod 스큐 보호로 옛 탭은 이동해도 옛 번들이라 새로고침이 출구
     return NextResponse.json(
-      { error: "가격이 바뀌었어 — 다시 확인해줘", code: "PRICE_CHANGED", cost },
+      { error: "가격이 바뀌었어 — 새로고침하고 다시 해줘", code: "PRICE_CHANGED", cost },
       { status: 409 }
     );
   }
