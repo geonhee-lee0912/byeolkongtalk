@@ -6,7 +6,7 @@ import { WRAP_THRESHOLDS } from "./constants.ts";
 import { tarotPrice } from "./pricing.ts";
 import { productPositions, productPrice, type MenuProduct } from "./menu.ts";
 
-/** 맛보기를 가입 선물로 볼 수 있다 — 메뉴판 배너·맛보기 "선물로 무료"·홈 한 줄이 같은 조건을 쓴다. */
+/** 맛보기를 가입 선물로 볼 수 있다 — 메뉴판 배너·맛보기 "선물로 무료"·유료 줄 "선물 쓰면"·홈 한 줄이 같은 조건을 쓴다. */
 export function isGiftFree(w: Wallet): boolean {
   return w.giftUnused && w.balance >= tarotPrice("one_card", "menu");
 }
@@ -22,7 +22,7 @@ export interface PriceLine {
 
 /**
  * 맛보기: 선물로 볼 수 있으면 "선물로 무료", 아니면 "⭐15".
- * 유료: 모자란 만큼 — 선물을 아직 안 썼으면 "선물 쓰면 ⭐N만 더", 썼으면 "⭐N만 더", 충분하면 "지금 잔액으로 바로".
+ * 유료: 모자란 만큼 — 선물로 볼 수 있으면(isGiftFree) "선물 쓰면 ⭐N만 더", 아니면 "⭐N만 더", 충분하면 "지금 잔액으로 바로".
  * (스펙의 "⭐(P−15)" 는 잔액 = 선물 15 일 때의 값이다 — 실제 잔액으로 계산한다)
  */
 export function priceLine(p: MenuProduct, w: Wallet): PriceLine {
@@ -36,7 +36,8 @@ export function priceLine(p: MenuProduct, w: Wallet): PriceLine {
   if (short <= 0) return { main: `⭐${price}`, sub: "지금 잔액으로 바로", free: false };
   return {
     main: `⭐${price}`,
-    sub: w.giftUnused ? `선물 쓰면 ⭐${short}만 더` : `⭐${short}만 더`,
+    // "선물 쓰면"도 맛보기와 같은 조건(isGiftFree) — giftUnused 만 보면 잔액이 15 미만인 응답(balance 라우트의 조회 실패 0)에서 틀린 약속이 된다
+    sub: isGiftFree(w) ? `선물 쓰면 ⭐${short}만 더` : `⭐${short}만 더`,
     free: false,
   };
 }
