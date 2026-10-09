@@ -26,21 +26,33 @@ export function parseWallet(d: unknown): Wallet {
   };
 }
 
+/** 지갑 조회 제한 시간 — 보통 1초 안 · 콜드 스타트 2~3초. 그보다 길면 화면이 멈춘 것처럼 보이니 실패 경로로 떨어뜨린다.
+ *  뽑기 화면의 "잠시만…" 덮개(탭을 막는다)는 이게 없으면 끌 방법이 없다. */
+export const WALLET_TIMEOUT_MS = 5000;
+
 /**
  * 지갑 조회 — 브라우저 전용(상대 URL). 서버는 menuArmOf(session.userId) 를 직접 쓴다.
- * 실패면 null(호출부가 안전한 기본값 parseWallet(null) 을 고른다).
+ * 실패면 null(호출부가 안전한 기본값 parseWallet(null) 을 고른다). timeoutMs 안에 본문까지 못 읽으면 우리가 끊고 실패로 본다.
  * 🔴 실패하면 화면이 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹)으로 떨어지는데, 감시 쿼리(scripts/menu-ab-daily-check.sql)의 가격 대조는 서버 값끼리라
  *    이걸 못 잡는다 — wallet_fetch_failed 를 남겨 이 이벤트를 그룹(user_id 끝 글자)별로 센다.
- *    status = 응답을 받았으면 그 HTTP 상태(본문이 깨진 200 포함), fetch 자체가 던졌으면 "network".
+ *    status = 응답을 받았으면 그 HTTP 상태(본문이 깨진 200 포함), fetch 자체가 던졌으면 "network",
+ *    제한 시간에 걸려 우리가 끊었으면 "timeout"(본문을 읽다 끊긴 것 포함).
+ *    제한은 AbortController + setTimeout — AbortSignal.timeout 은 구형 iOS Safari 에 없어 호출 자체가 던진다.
  */
-export async function fetchWallet(): Promise<Wallet | null> {
-  let status: number | "network" = "network";
+export async function fetchWallet(timeoutMs: number = WALLET_TIMEOUT_MS): Promise<Wallet | null> {
+  let status: number | "network" | "timeout" = "network";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const r = await fetch("/api/stars/balance", { cache: "no-store" });
+    const r = await fetch("/api/stars/balance", { cache: "no-store", signal: ctrl.signal });
     status = r.status;
+    // 본문(r.json)도 try 안에서 기다린다 — 그래야 finally 의 clearTimeout 전까지 타이머가 본문 읽기까지 덮는다
     if (r.ok) return parseWallet(await r.json());
   } catch {
-    // 연결 단절·본문 깨짐 — 아래에서 같이 계측하고 null 로 낸다
+    // 연결 단절·본문 깨짐·시간 초과 — 아래에서 같이 계측하고 null 로 낸다
+    if (ctrl.signal.aborted) status = "timeout"; // 우리가 끊은 것(응답 상태를 받은 뒤 본문에서 끊긴 것 포함)
+  } finally {
+    clearTimeout(timer);
   }
   trackUiEvent("wallet_fetch_failed", { meta: { status } });
   return null;
