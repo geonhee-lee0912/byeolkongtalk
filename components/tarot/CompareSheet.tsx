@@ -7,7 +7,8 @@ import { compareFacts, koCardCount, priceLine, type CompareFacts } from "@/lib/t
 import type { Wallet } from "@/lib/wallet";
 
 /**
- * 유료 상품 비교 창 — 맛보기와 나란히: 보는 질문 수·카드 자리·첫 풀이 분량·대화 길이 (스펙 §5-2, 시안 menu-mock-v1 ③).
+ * 유료 상품 비교 창 — 맛보기와 나란히: 풀어주는 질문 수·카드 자리·첫 풀이 분량·대화 길이 (스펙 §5-2, 시안 menu-mock-v1 ③).
+ * 대화 턴은 '안팎' — 자연 마무리 지점이지 끊기는 상한이 아니다(더 일찍 끝내거나 '4턴 더'로 잇는다, 사용자 결정 2026-10-09).
  * 3장(₩1,000)과 깊게(₩4,900)의 차이가 "질문 3개 vs 5개"로 보여야 깊게 갈 사람이 3장으로 내려오지 않는다.
  * '이걸로 볼래'가 가격 동의를 겸한다. 뒤로가기·ESC·배경 탭으로 닫힌다(RechargeSheet 와 같은 관행).
  * 🔴 열 때 history 를 한 칸 쌓는다 — 여기서 다른 화면으로 갈 땐 호출부가 router.replace 로 그 칸을 바꿔 쓴다.
@@ -127,7 +128,7 @@ function FactColumn({ title, facts, highlight }: { title: string; facts: Compare
     >
       <p className="mb-1 text-[12px] font-black">{title}</p>
       <p>
-        보는 질문 <b>{facts.cards}개</b>
+        풀어주는 질문 <b>{facts.cards}개</b>
       </p>
       <ul className="mt-0.5">
         {facts.positions.map((label) => (
@@ -135,7 +136,7 @@ function FactColumn({ title, facts, highlight }: { title: string; facts: Compare
         ))}
       </ul>
       <p className="mt-1.5">풀이 {facts.chars}</p>
-      <p>대화 {facts.turns}턴</p>
+      <p>대화 {facts.turns}턴 안팎</p>
     </div>
   );
 }
