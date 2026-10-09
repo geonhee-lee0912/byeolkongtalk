@@ -53,14 +53,14 @@ test("pickDefaultPackage — 상한은 최소 충분 패키지보다 작아지�
   const pick = (shortfall: number) =>
     pickDefaultPackage({ need: 100 + shortfall, balance: 100, bonusEligible: false, packages: SHOP });
   assert.equal(pick(5), "star_30");
-  assert.equal(pick(20), "star_70");
-  assert.equal(pick(71), "star_150"); // star_70 로는 못 덮음 → min
-  assert.equal(pick(151), "star_300");
+  assert.equal(pick(20), "star_55");
+  assert.equal(pick(71), "star_130"); // star_70 로는 못 덮음 → min
+  assert.equal(pick(131), "star_130"); // 아무것도 못 덮음 → 가장 큰 것
 });
 
 test("pickDefaultPackage — 어느 것도 못 덮으면 목록의 가장 큰 패키지", () => {
   assert.equal(pickDefaultPackage({ need: 200, balance: 0, bonusEligible: false, packages: SHEET }), "star_70");
-  assert.equal(pickDefaultPackage({ need: 999, balance: 0, bonusEligible: false, packages: SHOP }), "star_300");
+  assert.equal(pickDefaultPackage({ need: 999, balance: 0, bonusEligible: false, packages: SHOP }), "star_130");
 });
 
 test("pickDefaultPackage — 패키지 순서와 무관(별 수로 정렬)", () => {
