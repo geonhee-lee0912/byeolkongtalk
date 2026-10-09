@@ -19,6 +19,9 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { getMenu } from "@/lib/tarot/menu";
+import { homeMenuLine } from "@/lib/tarot/menu-price";
+import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
 
 export default function Home() {
@@ -26,6 +29,8 @@ export default function Home() {
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
   const [audience, setAudience] = useState<Audience | null>(null);
+  // 큰 카드 한 줄 — 메뉴판 그룹 로그인 유저만(비로그인·옛 그룹은 지금 홈 그대로, 스펙 §9-1)
+  const wallet = useWallet("home");
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
   // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
@@ -161,6 +166,7 @@ export default function Home() {
           <div className="flex flex-col gap-2.5 mb-3">
             {highlightOptions.slice(0, 2).map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
+              const menuLine = homeMenuLine({ wallet, count: getMenu(option.tag).length });
               return (
                 <button
                   key={option.tag}
@@ -196,6 +202,11 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
+                    {menuLine && (
+                      <span className="inline-block mt-2 rounded-full border border-gold bg-white px-2.5 py-0.5 text-[10.5px] font-bold text-eye-purple">
+                        {menuLine}
+                      </span>
+                    )}
                   </div>
                 </button>
               );

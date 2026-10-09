@@ -12,7 +12,7 @@ import {
 } from "@/lib/fortune/types";
 import type { SpreadCategory } from "@/lib/tarot/spreads";
 
-// 타로 주제(SpreadCategory) → 톤 맞춘 사주 목적지(20~40★, 조사 결). 위로/재미/평생 금지.
+// 타로 주제(SpreadCategory) → 톤 맞춘 사주 목적지(10~40★, 조사 결). 위로/재미/평생 금지.
 const SAJU_BY_CATEGORY: Record<SpreadCategory, FortuneType> = {
   love: "love_self", // 연애 고민 → 내 연애 사주(1인·뿌리·패턴)
   interpersonal: "compat_social", // 사람 관계 → 인간관계 궁합

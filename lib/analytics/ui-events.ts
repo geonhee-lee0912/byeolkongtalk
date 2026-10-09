@@ -215,6 +215,29 @@ export const UI_EVENTS = [
   "inchat_offer_shown",
   /** 타로톡 인챗 결제 제안 탭 — meta:{product, surface} */
   "inchat_offer_clicked",
+  /** 지갑(/api/stars/balance) 조회 실패 — 화면이 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹)·잔액 0 으로 떨어진다.
+   *  meta:{status:숫자|"network"|"timeout", source:WalletSource}
+   *  (timeout = lib/wallet WALLET_TIMEOUT_MS 안에 못 읽어 끊음 · source = 지갑을 읽은 지면 — 정본은 lib/wallet 의 WalletSource)
+   *  🔴 메뉴판 반반 판정의 고장 감시용 — 감시 쿼리의 가격 대조(서버 차감 vs 서버 규칙)는 이 표시 고장을 못 잡는다.
+   *     user_id 끝 글자로 그룹을 갈라 센다(spec 2026-10-05-타로톡-메뉴판-별경제 §9).
+   *     ui_events 는 경로를 안 남겨 어느 화면의 실패인지는 source 로만 안다: 해로운 지면(tarot_router·tarot_draw·recharge_sheet·shop·continuation_modal)만
+   *     "고장"으로 세고, home·reading_end·result 는 알약·카드가 안 뜰 뿐이라 참고용이다 */
+  "wallet_fetch_failed",
+  /** 타로톡 메뉴판 노출(메뉴판 그룹) — 마운트당 1회. meta:{tag, giftUnused, balance}
+   *  (spec 2026-10-05-타로톡-메뉴판-별경제 §8 · 그룹은 user_id 끝 글자로 SQL 에서 가른다 — §9) */
+  "tarot_menu_viewed",
+  /** 메뉴판 상품 탭 — meta:{tag, product, spread, tier, price, balance}
+   *  product = lib/tarot/menu.ts 의 key(예: feelings_deep). 맛보기는 이 탭이 곧 시작이고, 유료는 비교 창이 열린다.
+   *  비교 창의 '맛보기부터 해볼래'도 맛보기 선택으로 여기 찍힌다 */
+  "tarot_product_selected",
+  /** 비교 창 열림(유료 상품 탭) — meta:{product} */
+  "tarot_compare_opened",
+  /** 비교 창 '이걸로 볼래' — 가격 동의를 겸한다. meta:{product} */
+  "tarot_compare_confirmed",
+  /** 맛보기 끝 "이어서 깊게" 노출 — meta:{surface:"reading_end"|"result", deepProduct}. 지면·마운트당 1회, readingId = 맛보기 리딩 */
+  "teaser_upsell_shown",
+  /** "이어서 깊게" 탭 — meta:{surface, deepProduct} */
+  "teaser_upsell_clicked",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];

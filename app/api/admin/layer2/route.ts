@@ -283,7 +283,7 @@ const LAYER2_HANDLERS: Record<Layer2Section, Layer2Handler> = {
     // 🔴 불변식: 이 표의 금액 합 == 같은 창의 admin_layer1_pnl 매출. 두 RPC 의 payments 필터가
     //    글자 단위로 같아서 성립한다(2026-09-27 prod 인라인 대조: 7d 48,600 / 30d 257,800 /
     //    전기간 656,200, 세 창 모두 diff 0). 어긋나면 한 화면 안에서 숫자가 갈린 것이다.
-    // 행 수는 STAR_PACKAGES(5종) × 2 로 **닫혀 있다** — route 표와 달리 절단이 필요 없다.
+    // 행 수는 역대 package_type 종류 수(지금 판매 7종 — 반반 두 그룹 합집합 — + 과거 id) × 2 로 **닫혀 있다** — route 표와 달리 절단이 필요 없다.
     const mix = await supa.rpc("admin_layer2_revenue_mix", {
       p_since: since,
       p_until: null,

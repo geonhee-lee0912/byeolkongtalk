@@ -1,17 +1,19 @@
 // 이어가기 — 서버 복사 생성. saju-fresh/saju-deep/tarot-deep 처리.
 // (tarot-fresh 는 새 카드 추첨이 필요해 /api/consultations/tarot 로 감)
 //
-// 흐름: 세션 → 부모 소유권 + ended 검증 → 부모 필드 복사 → 가격 계산
+// 흐름: 세션 → 부모 소유권 + ended 검증 → 부모 필드 복사 → 가격 계산(타로 부모는 화면이 본 가격 대조, 어긋나면 409)
 //       → readings INSERT(previous_reading_id+continuation_mode) → spendStars → 실패 시 롤백.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 import { continuationPrice, fullCostFor, type ContinuationMode } from "@/lib/continuation";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
 import type { SpreadType } from "@/lib/tarot/spreads";
+import { menuArmOf } from "@/lib/tarot/menu-ab";
+import { checkShownPrice, validShownPrice } from "@/lib/tarot/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,8 @@ interface ContinueBody {
   previousReadingId: string;
   mode: ContinuationMode;
   concern: string;
+  /** 이어가기 팝업이 이 버튼에 보여 준 가격. 옛 번들은 안 보낸다. 타로 부모만 대조한다(checkShownPrice — 0 이상 정수만 값) */
+  expectedCost?: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -86,11 +90,44 @@ export async function POST(request: NextRequest) {
   }
 
   // 가격: 상품 정가 기준
+  const arm = menuArmOf(userId);
   const fullCost = fullCostFor({
     consultationType,
     spreadType: parent.spread_type as SpreadType | null,
+    arm,
   });
   const cost = continuationPrice(fullCost, body.mode);
+
+  // 화면이 본 가격 대조(타로 부모만) — 잔액 확인·리딩 생성·차감보다 먼저. 배포 순간 낡은 이어가기 팝업은 옛 그룹 가격을 보여 주고
+  // expectedCost 를 안 보낸다 → 옛 화면 값 = 같은 계산(fullCostFor → continuationPrice)을 옛 그룹으로 — 반올림까지 서버 가격과 같은 길.
+  // 사주 부모는 대조하지 않는다 — 사주 이어가기 가격은 그룹과 무관하고 이번 배포에서 오르지 않았다(옛 화면이 덜 보여 주는 일이 없다)
+  // 409 모양: error = 사용자 문구(옛 번들은 data.error 를 그대로 찍는다 — 코드명으로 바꾸지 말 것) · code = 새 화면이 판단하는 값
+  if (consultationType === "tarot") {
+    const legacyShown = continuationPrice(
+      fullCostFor({ consultationType, spreadType: parent.spread_type as SpreadType | null, arm: "legacy" }),
+      body.mode
+    );
+    if (checkShownPrice({ expected: body.expectedCost, actual: cost, legacyShown }) === "changed") {
+      // 설계된 정상 신호(WARN — error 아님) — 배포 순간 낡은 번들, 판정 전환 배포 직후 잠깐 몰릴 수 있다.
+      // user_id 가 error_logs 에 남아 감시 SQL 이 그룹(끝 글자)별로 센다
+      await logWarn("PRICE_CHANGED: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)", {
+        route: "/api/readings/continue",
+        userId,
+        extra: {
+          spread: parent.spread_type,
+          mode: body.mode,
+          arm,
+          expected: validShownPrice(body.expectedCost) ?? "missing", // 판정과 같은 정규화
+          cost,
+        },
+      });
+      // error 를 찍는 건 옛 화면뿐(새 화면은 code 로 자기 문구) — prod 스큐 보호로 옛 탭은 이동해도 옛 번들이라 새로고침이 출구
+      return NextResponse.json(
+        { error: "가격이 바뀌었어 — 새로고침하고 다시 해줘", code: "PRICE_CHANGED", cost },
+        { status: 409 }
+      );
+    }
+  }
 
   // 잔액 사전 확인
   const balance = await getStarBalance(userId);

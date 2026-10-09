@@ -68,3 +68,22 @@ test("UI_EVENTS — 인챗 제안 노출·탭 이벤트 2종이 등록돼 있다
 test("UI_EVENTS — 잔액 부족 모달 노출(paywall_shown)이 등록돼 있다", () => {
   assert.equal(isUiEvent("paywall_shown"), true);
 });
+
+// 2026-10-09 메뉴판 반반 고장 감시 — 지갑 조회 실패. /api/event 가 allowlist 로 거르므로 여기 없으면 서버가 버린다.
+test("UI_EVENTS — 지갑 조회 실패(wallet_fetch_failed)가 등록돼 있다", () => {
+  assert.equal(isUiEvent("wallet_fetch_failed"), true);
+});
+
+// 2026-10-05 메뉴판·별경제 계측 — 메뉴 노출 → 상품 탭 → 비교 → 동의 · 맛보기 끝 이어서 깊게 (spec §8).
+test("UI_EVENTS — 메뉴판·이어서 깊게 이벤트 6종이 등록돼 있다", () => {
+  for (const e of [
+    "tarot_menu_viewed",
+    "tarot_product_selected",
+    "tarot_compare_opened",
+    "tarot_compare_confirmed",
+    "teaser_upsell_shown",
+    "teaser_upsell_clicked",
+  ]) {
+    assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
+  }
+});

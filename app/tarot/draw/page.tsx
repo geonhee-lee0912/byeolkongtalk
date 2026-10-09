@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SPREAD_INFO,
@@ -13,6 +13,9 @@ import {
   type TarotSpreadSelection,
   type TarotDrawResult,
 } from "@/lib/tarot/session";
+import { tarotPrice } from "@/lib/tarot/pricing";
+import { spendConsent } from "@/lib/tarot/menu-session";
+import { fetchWallet } from "@/lib/wallet";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
@@ -24,13 +27,28 @@ export default function TarotDrawPage() {
   const [selection, setSelection] = useState<TarotSpreadSelection | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pendingDrawn, setPendingDrawn] = useState<DrawnCard[] | null>(null);
-  // 별 결제 확인 팝업
+  // 별 결제 확인 팝업 — 가격·잔액은 뽑기가 끝난 순간 서버에서 다시 읽어 정한다
   const [showConfirm, setShowConfirm] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [cost, setCost] = useState<number | null>(null);
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
+  // 잔액·그룹을 읽는 중 안내 — prod 는 확인 팝업을 바로 띄워 '…' 를 보였지만 이제 팝업은 그룹 가격을 읽은 뒤에 뜬다(다른 곳 #8)
+  const [checking, setChecking] = useState(false);
+  // 잔액을 못 읽었다(실패·5초 초과) — 팝업 대신 '다시 눌러줘' 한 줄. 완료 버튼을 다시 누르면(onDrawn) 지우고 다시 읽는다
+  const [walletError, setWalletError] = useState(false);
+  // 대화로 넘어가는 중 / 잔액 확인 중 — 완료 버튼 연타로 두 번 이동·두 번 조회하지 않게
+  const leavingRef = useRef(false);
+  const checkingRef = useRef(false);
+  // 이 화면이 떠 있는가 — 잔액을 읽는 사이 뒤로 가기로 떠났으면 응답이 와도 대화로 끌고 가지 않는다(router.push 는 컴포넌트 수명과 무관한 전역 이동이라 떠난 뒤에도 차감된다)
+  const aliveRef = useRef(false);
+  useEffect(() => {
+    aliveRef.current = true; // 본문에서 다시 켠다 — 개발 StrictMode 의 가짜 언마운트(cleanup 뒤 재실행) 뒤에도 영구히 꺼져 있지 않게
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
 
-  // 선택 정보 로드 — /tarot 피커 플로우
+  // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게"
   useEffect(() => {
     const raw =
       typeof window !== "undefined"
@@ -74,31 +92,66 @@ export default function TarotDrawPage() {
   const cardCount = info.cardCount;
   const spreadType = selection.spreadType;
 
-  // 결제 확인 팝업 열기 + 현재 별 잔액 조회
-  const openConfirm = () => {
-    setShowConfirm(true);
-    setBalanceLoading(true);
-    setBalance(null);
-    void (async () => {
-      try {
-        const r = await fetch("/api/stars/balance");
-        const data = await r.json();
-        setBalance(typeof data?.balance === "number" ? data.balance : 0);
-      } catch {
-        setBalance(0);
-      } finally {
-        setBalanceLoading(false);
-      }
-    })();
-  };
-
-  const goToReading = () => {
-    if (!pendingDrawn) return;
-
-    // sessionStorage 로 넘기고 /tarot/reading 이 직접 POST
-    const payload: TarotDrawResult = { ...selection, drawnCards: pendingDrawn };
+  // 뽑은 카드는 인자로 받는다 — setPendingDrawn 직후의 state 는 아직 옛 값이다
+  // price = 이 판에 보여 준(쓴) 가격(팝업 가격 · 팝업 생략이면 그 자리에서 계산한 가격) — 대화 화면이 서버에 실어 보내 서버 가격과 대조한다(다르면 차감 없이 409)
+  const goToReading = (drawn: DrawnCard[], price: number) => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    // 동의는 한 판에 한 번 — 이 판을 시작하는 모든 길(팝업 생략·팝업 확인)에서 여기서 소모한다.
+    // 뒤로 가 다시 뽑으면 확인 팝업이 다시 뜬다(Task 4·8 리뷰). 충전 경로는 여기를 안 거쳐 동의가 남는다.
+    if (selection.consented) setSelection(spendConsent(sessionStorage, selection));
+    // sessionStorage 로 넘기고 /tarot/reading 이 직접 POST — 동의 표시는 대화로 넘기지 않는다(필드를 골라 담는다)
+    const payload: TarotDrawResult = {
+      spreadType: selection.spreadType,
+      spreadCategory: selection.spreadCategory,
+      emotion: selection.emotion,
+      concern: selection.concern,
+      drawnCards: drawn,
+      expectedCost: price,
+    };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
     router.push("/tarot/reading");
+  };
+
+  // 카드를 다 뽑으면 잔액·반반 그룹을 그 자리에서 읽어 이번 판 가격을 정한다(서버 차감과 같은 tarotPrice).
+  //  - 메뉴판 그룹 + 메뉴판에서 동의한 선택(consented)이고 잔액이 충분하면 확인 팝업 없이 바로 대화로(스펙 §4)
+  //  - 그 밖(옛 그룹 = 지금 prod 흐름 · 잔액 부족)은 확인 팝업 → 잔액 부족이면 충전 시트
+  //    (그 팝업의 잔액 부족 노출이 paywall_shown = Meta AddToCart 원천이라 자리를 그대로 둔다)
+  //  - 못 읽으면(실패·5초 초과) 팝업 없이 '다시 눌러줘' 한 줄 — 완료 버튼을 다시 누르면 다시 읽는다
+  const onDrawn = (drawn: DrawnCard[]) => {
+    setWalletError(false); // 다시 누름 = 다시 읽기 — 앞선 실패 줄을 지운다
+    if (leavingRef.current) return; // 대화로 넘어가는 중엔 완료를 다시 눌러도(키보드 등) 지갑 조회를 또 내보내지 않는다
+    setPendingDrawn(drawn);
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    setChecking(true);
+    const here = window.location.pathname; // 이 판을 시작한 주소 — 응답 때 달라졌으면 떠나는 중이다
+    void (async () => {
+      const w = await fetchWallet("tarot_draw");
+      checkingRef.current = false;
+      // 떠나는 중이거나 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지) — 뒤로 가기는 주소가 먼저 바뀌고 화면 정리(aliveRef)는 한 박자 늦는다
+      if (!aliveRef.current || window.location.pathname !== here) {
+        setChecking(false); // 언마운트면 아무 일도 안 한다 · 화면이 보존돼도(Activity) "잠시만…" 이 남지 않게
+        return;
+      }
+      // 못 읽었다(실패·5초 초과 — 계측은 fetchWallet 의 wallet_fetch_failed) → 팝업·paywall_shown·이동 없이 '다시 눌러줘'.
+      // 예전엔 잔액 0(parseWallet(null))으로 잔액 부족 팝업을 띄워, 별이 있는 유저를 충전으로 밀고 가짜 AddToCart 를 쐈다(사용자 결정 2026-10-09 B)
+      if (!w) {
+        setChecking(false);
+        setWalletError(true);
+        return;
+      }
+      const price = tarotPrice(spreadType, w.menuArm);
+      // 팝업 생략은 메뉴판 그룹만 — 남은 동의 선택(같은 탭에서 옛 그룹 계정으로 바꿈 · 스위치를 'legacy' 로 돌림)이어도 옛 그룹은 늘 확인 팝업
+      if (selection.consented && w.menuArm === "menu" && w.balance >= price) {
+        goToReading(drawn, price); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
+        return;
+      }
+      setChecking(false);
+      setCost(price);
+      setBalance(w.balance);
+      setShowConfirm(true);
+    })();
   };
 
   return (
@@ -117,21 +170,20 @@ export default function TarotDrawPage() {
         relationshipLayout={spreadType === "relationship_5"}
         backLabel="리딩 방법 선택"
         onBack={() => router.push("/tarot")}
-        onComplete={(drawn) => {
-          setPendingDrawn(drawn);
-          openConfirm();
-        }}
+        onComplete={onDrawn}
       />
 
-      {showConfirm && (
+      {showConfirm && cost !== null && (
         <StarConfirmModal
           spreadLabel={info.label}
-          cost={info.starCost}
+          cost={cost}
           balance={balance}
-          loading={balanceLoading}
+          loading={false}
           accent={accent}
           surface={RECHARGE_SOURCE.tarotDraw}
-          onConfirm={goToReading}
+          onConfirm={() => {
+            if (pendingDrawn) goToReading(pendingDrawn, cost); // 팝업이 보여 준 가격 그대로
+          }}
           onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}
         />
@@ -139,15 +191,35 @@ export default function TarotDrawPage() {
       {/* 🔴 닫혀 있으면 마운트하지 않는다 — 시트는 useTossPayment 를 호출해서
           마운트만으로 /api/auth/me + 토스 SDK 초기화가 돈다. 상시 마운트하면
           공개 지면(사주 운세 설명 20개 등) 방문자 전원에게 그 비용이 걸린다. */}
-      {rechargeSheetOpen && (
+      {rechargeSheetOpen && cost !== null && (
         <RechargeSheet
           open
           returnTo="/tarot/draw"
-          need={info.starCost}
+          need={cost}
           balance={balance}
           source={RECHARGE_SOURCE.tarotDraw}
           onClose={() => setRechargeSheetOpen(false)}
         />
+      )}
+      {/* fixed 덮개라 이 <main>(또는 조상)에 transform 이 남는 애니메이션(예: animate-fade-in)을 붙이면 fixed 의 기준이 화면이 아니라 그 요소가 돼 깨진다 — StarConfirmModal 이 포털을 쓰는 이유와 같다 */}
+      {checking && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="px-4 py-2 rounded-full bg-white/90 text-text-light text-sm shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
+            잠시만…
+          </p>
+        </div>
+      )}
+      {/* 잔액 조회 실패 한 줄 — 탭을 막지 않는다(pointer-events-none) · 완료 버튼을 다시 누르면 사라지고 다시 읽는다 */}
+      {walletError && (
+        <div role="alert" className="fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 pointer-events-none">
+          <p className="rounded-full bg-white/95 px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
+            잔액을 못 불러왔어 — 다시 눌러줘
+          </p>
+        </div>
       )}
     </main>
   );

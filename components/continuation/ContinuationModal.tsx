@@ -7,6 +7,8 @@ import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
+import { fetchWallet } from "@/lib/wallet";
+import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -43,6 +45,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
   const [closing, setClosing] = useState<string | null>(null);
   const [concern, setConcern] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
+  const [arm, setArm] = useState<MenuArm | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +56,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     setClosing(null);
     setConcern("");
     setBalance(null);
+    setArm(null);
     setError(null);
     let cancelled = false;
     void (async () => {
@@ -77,12 +81,21 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
         })
       );
       setLoading(false);
-      fetch("/api/stars/balance", { cache: "no-store" })
-        .then((x) => (x.ok ? x.json() : null))
-        .then((b) => {
-          if (!cancelled && b) setBalance(b.balance ?? 0);
-        })
-        .catch(() => {});
+      void fetchWallet("continuation_modal").then((w) => {
+        if (cancelled) return;
+        if (!w) {
+          // 못 읽으면 가격을 모르는 채로 결제하지 않게 버튼을 잠근다(arm 은 null 로 둔다) — 옛 가격을 보여 주고
+          // 서버는 메뉴판 가격을 받는 과다 청구 경로를 없앤다(실패는 fetchWallet 이 계측).
+          // 타로 부모만 — 사주 이어가기 가격은 그룹과 무관(fullCostFor)이라 못 읽어도 잠그지 않는다(잔액은 서버가 확인한다)
+          if (r.consultationType === "tarot") {
+            setError("가격을 불러오지 못했어 — 닫았다가 다시 열어줄래?");
+          }
+          return;
+        }
+        setBalance(w.balance);
+        // 타로 이어가기 정가는 반반 그룹마다 다르다 — 그룹을 알아야 가격이 정해진다(서버가 권위)
+        setArm(w.menuArm);
+      });
     })();
     return () => {
       cancelled = true;
@@ -108,13 +121,19 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
 
   const consultationType =
     (parent?.consultationType as "saju" | "tarot") ?? "saju";
-  const fullCost = parent
-    ? fullCostFor({ consultationType, spreadType: parent.spreadType })
+  // 가격이 정해졌는가 — 타로 이어가기 정가는 반반 그룹마다 달라 그룹(arm)을 알아야 한다.
+  // 사주는 그룹과 무관(fullCostFor)이라 지갑을 못 읽어도(arm null) 가격·버튼이 그대로다
+  const priceReady = parent !== null && (consultationType !== "tarot" || arm !== null);
+  // arm ?? "legacy" 의 "legacy" 는 사주 몫의 형식값이다 — fullCostFor 가 사주에선 그룹을 안 본다(타로는 priceReady 가 arm 을 보장)
+  const fullCost = parent && priceReady
+    ? fullCostFor({ consultationType, spreadType: parent.spreadType, arm: arm ?? "legacy" })
     : 0;
   const deepCost = continuationPrice(fullCost, "deep");
+  // 가격이 정해지기 전엔 가격 자리를 비워 둔다(옛 가격이 잠깐 보였다 바뀌지 않게)
+  const priceText = (n: number) => (priceReady ? String(n) : "…");
 
   const start = async (mode: "fresh" | "deep") => {
-    if (!parent) return;
+    if (!parent || !priceReady) return;
     if (concern.length < MIN_LEN) {
       setError(`고민을 ${MIN_LEN}자 이상 적어줘`);
       return;
@@ -150,12 +169,23 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       const res = await fetch("/api/readings/continue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ previousReadingId: parent.id, mode, concern }),
+        // expectedCost = 이 버튼에 보여 준 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 PRICE_CHANGED · 사주 부모는 대조 안 함)
+        body: JSON.stringify({ previousReadingId: parent.id, mode, concern, expectedCost: cost }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data?.code === "INSUFFICIENT_STARS") {
           router.push("/shop");
+          return;
+        }
+        // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 팝업은 자기 문구를 쓴다
+        if (data?.code === "PRICE_CHANGED") {
+          // 보여 준 가격이 서버 가격과 다르다(배포 순간 등) — 차감 없이 막혔다. 지갑 못 읽음과 같은 모양으로 가격을 모르는 상태로 되돌려
+          // 버튼을 잠근다(같은 가격으로 또 눌러 같은 409 를 받지 않게). 닫았다 열면 지갑을 다시 읽어 지금 가격으로 풀린다 —
+          // submitting 은 여기서 풀어 둔다(다시 열기는 이 값을 초기화하지 않아, 남기면 다시 연 뒤에도 버튼이 잠긴다)
+          setArm(null);
+          setError("가격이 바뀌었어 — 닫았다가 다시 열어줘");
+          setSubmitting(false);
           return;
         }
         setError(data?.error || "시작이 안 됐어. 잠시 후 다시 시도해줄래?");
@@ -256,27 +286,27 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <>
                   <button
                     onClick={() => start("fresh")}
-                    disabled={submitting || concern.length < MIN_LEN}
+                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    타로 카드 새로 뽑아 상담 (⭐ {fullCost})
+                    타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
-                    disabled={submitting || concern.length < MIN_LEN}
+                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
-                    동일한 카드로 이어서 상담 (⭐ {deepCost}
+                    동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
                     <span className="text-[11px] text-lilac-deep/70">40% 할인</span>)
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => start("deep")}
-                  disabled={submitting || concern.length < MIN_LEN}
+                  disabled={submitting || !priceReady || concern.length < MIN_LEN}
                   className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  지난 대화를 이어서 상담 (⭐ {deepCost}
+                  지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}
                   <span className="text-[11px] text-white/70">40% 할인</span>)
                 </button>
               )}

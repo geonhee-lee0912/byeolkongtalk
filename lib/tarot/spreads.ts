@@ -34,6 +34,7 @@ export type SpreadCategory =
 export interface SpreadInfo {
   type: SpreadType;
   cardCount: number;
+  /** 옛 그룹(지금 prod) 가격 — 그룹별 가격은 lib/tarot/pricing.ts tarotPrice(spread, arm) 를 쓸 것 */
   starCost: number;
   label: string;
   tagline: string;

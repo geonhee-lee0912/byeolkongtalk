@@ -4,19 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { STAR_PACKAGES } from "@/lib/constants";
 import {
+  sheetPackages,
   pickDefaultPackage,
   leftoverAfter,
   receivedStars,
   firstChargeBonusPercent,
 } from "@/lib/recharge-default";
+import { fetchWallet, parseWallet } from "@/lib/wallet";
+import type { MenuArm } from "@/lib/tarot/menu-ab";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
-
-// 인챗 충전 시트는 저·중가 3종만 노출 (150·300 은 /shop 전용). 문맥상 대용량 불필요.
-const INCHAT_PACKAGES = STAR_PACKAGES.filter((p) =>
-  ["star_10", "star_30", "star_70"].includes(p.id)
-);
 
 interface Props {
   open: boolean;
@@ -62,6 +60,8 @@ export default function RechargeSheet({
   onClose,
 }: Props) {
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
+  // 반반 비교 그룹 — 시트 칸이 그룹마다 다르다(메뉴판 10·30·55·70 / 옛 10·30·70). 열릴 때 읽는다
+  const [arm, setArm] = useState<MenuArm | null>(null);
   const [selectedId, setSelectedId] = useState<string>("star_30");
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
   // 자격 조회가 끝났는지 — 기본 선택은 잔액·자격이 다 정해진 뒤 한 번만 정한다
@@ -78,6 +78,7 @@ export default function RechargeSheet({
   useEffect(() => {
     if (!open) {
       // 닫힐 때 비워 둔다 — 상시 마운트 호출부(reading 화면)에서 다시 열 때 지난번 자격·잔액으로 고르지 않게
+      setArm(null);
       setEligibilityLoaded(false);
       if (balanceProp == null) setBalance(null);
       return;
@@ -92,27 +93,30 @@ export default function RechargeSheet({
       meta: { source, need, balance: balanceProp ?? null },
     });
 
+    // 응답 전에 닫히면(또는 StrictMode 첫 회 cleanup) 늦게 온 응답이 닫힘 분기가 비운 상태를 되살리지 못하게 한다
+    let alive = true;
+
     // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
     fetch("/api/stars/first-charge-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setFirstChargeEligible(d?.eligible === true))
+      .then((d) => { if (alive) setFirstChargeEligible(d?.eligible === true); })
       .catch(() => {})
-      .finally(() => setEligibilityLoaded(true));
+      .finally(() => { if (alive) setEligibilityLoaded(true); });
 
-    // 잔액 prop 이 없으면 직접 조회
-    if (balanceProp == null) {
-      fetch("/api/stars/balance", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d) setBalance(d.balance ?? 0); })
-        .catch(() => {});
-    } else {
-      setBalance(balanceProp);
-    }
+    // 잔액(prop 이 없을 때)과 반반 그룹을 함께 읽는다. 못 읽으면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) 칸 —
+    // 결제 준비·승인은 두 그룹 패키지를 다 받으니(lib/constants.ts STAR_PACKAGES) 결제는 그대로 된다
+    if (balanceProp != null) setBalance(balanceProp);
+    void fetchWallet("recharge_sheet").then((w) => {
+      if (!alive) return;
+      setArm((w ?? parseWallet(null)).menuArm);
+      if (balanceProp == null && w) setBalance(w.balance);
+    });
 
     history.pushState({ sheet: "recharge" }, "");
     const handlePop = () => { onClose(); };
     window.addEventListener("popstate", handlePop);
     return () => {
+      alive = false;
       window.removeEventListener("popstate", handlePop);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,17 +124,17 @@ export default function RechargeSheet({
 
   // 잔액·자격이 다 정해지면 부족분 맞춤 기본값을 한 번 적용
   useEffect(() => {
-    if (!open || !eligibilityLoaded || userPickedRef.current) return;
+    if (!open || !eligibilityLoaded || !arm || userPickedRef.current) return;
     const picked = pickDefaultPackage({
       need,
       balance,
       bonusEligible: firstChargeEligible,
-      packages: INCHAT_PACKAGES,
+      packages: sheetPackages(arm),
     });
     const next = picked ?? "star_30";
     setSelectedId(next);
     setRecommendedId(next);
-  }, [open, eligibilityLoaded, balance, firstChargeEligible, need]);
+  }, [open, eligibilityLoaded, arm, balance, firstChargeEligible, need]);
 
   // ESC + 배경 스크롤 잠금
   useEffect(() => {
@@ -246,9 +250,18 @@ export default function RechargeSheet({
           </div>
         )}
 
-        {/* 패키지 목록 */}
-        <div className="px-5 flex flex-col gap-2 pb-2">
-          {INCHAT_PACKAGES.map((pkg) => {
+        {/* 패키지 목록 — 반반 그룹을 읽기 전엔 자리만 둔다(다른 그룹 진열이 잠깐 보였다 바뀌지 않게).
+            스켈레톤 높이(52px)는 남는 별 줄이 붙은 실제 칸(≈70px)과 달라 열린 뒤 조금 자란다 — prod 에도 있던 52→70 점프 */}
+        <div className="px-5 flex flex-col gap-2 pb-2" aria-busy={arm === null}>
+          {arm === null &&
+            [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                aria-hidden
+                className="h-[52px] rounded-xl border-2 border-lilac-mid/20 bg-white/60 animate-pulse"
+              />
+            ))}
+          {arm !== null && sheetPackages(arm).map((pkg) => {
             const isSelected = selectedId === pkg.id;
             const isRecommended = pkg.id === recommendedId;
             const bonus = receivedStars(pkg, firstChargeEligible) - pkg.stars;
@@ -342,7 +355,7 @@ export default function RechargeSheet({
         <div className="px-5 pb-6 pt-3">
           <button
             onClick={() => void handleCharge()}
-            disabled={loading || !paymentReady || !selectedPkg}
+            disabled={loading || !paymentReady || !selectedPkg || arm === null}
             className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-[14px] font-bold shadow-md hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             <span>⭐</span>

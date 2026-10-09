@@ -19,6 +19,7 @@ import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/Clar
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet, { type ClarifierFailure } from "@/components/upsell/ClarifierSheet";
 import PostEndOffers from "@/components/upsell/PostEndOffers";
+import TeaserUpsellCard from "@/components/upsell/TeaserUpsellCard";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
@@ -27,6 +28,7 @@ import { getCard } from "@/lib/tarot/cards";
 import { parseReopenHeader, stripEndFromLastAssistant, type ReopenOptions } from "@/lib/tarot/reopen";
 import { clarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 import { purchaseRequest } from "@/lib/tarot/purchase-request";
+import { useWallet } from "@/lib/use-wallet";
 import {
   END_MARKER_REGEX,
   parseIntoBubbles,
@@ -143,6 +145,11 @@ function TarotReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
+  // 위기 감지된 리딩 — "이어서 깊게"를 숨긴다(서버도 이 리딩을 부모로 한 이어가기를 400 으로 막는다).
+  // safety 배너는 유저가 닫을 수 있어(onClose → null) 그 값과 따로 둔다
+  const [hasSensitive, setHasSensitive] = useState(false);
+  // 반반 비교 그룹 — "이어서 깊게"는 메뉴판 그룹만(스펙 §9-1)
+  const wallet = useWallet("reading_end");
   // 인챗 추천 카드 — product 별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
   // { [product]: messageIndex } 맵
   const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});
@@ -223,6 +230,7 @@ function TarotReadingInner() {
             emotionTag: string | null;
             question: string;
             drawnCards: TarotDrawResult["drawnCards"] | null;
+            hasSensitive?: boolean;
           };
           const msgs = (d.messages ?? []) as Message[];
           if (!reading.drawnCards || reading.drawnCards.length === 0) {
@@ -237,6 +245,7 @@ function TarotReadingInner() {
             drawnCards: reading.drawnCards,
           });
           setReadingId(resumeId);
+          setHasSensitive(reading.hasSensitive === true);
           // 메시지가 없으면(이어가기 deep 로 갓 생성됐거나 첫 스트림 도중 이탈해 미저장)
           // 첫 풀이를 자동 생성, 있으면 대화 복원.
           if (msgs.length === 0) {
@@ -278,6 +287,8 @@ function TarotReadingInner() {
     }
 
     void (async () => {
+      // 이 판을 시작한 주소 — 요청 전에 잡는다. 409(PRICE_CHANGED) 처리 때 요청이 오가는 사이나 문구를 보여 주는 사이에 떠났으면 아무것도 안 한다
+      const here = window.location.pathname;
       try {
         const contRaw =
           typeof window !== "undefined"
@@ -300,6 +311,8 @@ function TarotReadingInner() {
             drawnCards: parsed.drawnCards,
             previousReadingId: cont.previousReadingId,
             continuationMode: cont.mode === "fresh" ? "fresh" : undefined,
+            // 뽑기 화면이 보여 준(쓴) 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 PRICE_CHANGED)
+            expectedCost: typeof parsed.expectedCost === "number" ? parsed.expectedCost : undefined,
           }),
         });
         if (typeof window !== "undefined") {
@@ -313,6 +326,22 @@ function TarotReadingInner() {
           }
           if (data?.code === "INSUFFICIENT_STARS") {
             router.push("/shop");
+            return;
+          }
+          // 가격이 바뀌었다(배포 순간 낡은 뽑기 화면이 옛 가격을 보여 줬다 등) — 서버는 차감도 리딩도 안 만들었다.
+          // 카드를 다시 뽑게 뽑기 화면으로: 고른 상품(TAROT_SPREAD_KEY)은 남아 있고 동의는 이미 썼으니 지금 가격의 확인 팝업이 뜬다(다시 POST 하지 않는다 — 고리 없음).
+          // 이어가기 표시는 되살린다(바로 위에서 지웠다) — 다시 뽑은 판도 같은 이어가기여야 한다.
+          // 문구를 읽을 틈을 두고 옮기되, 그사이 다른 화면으로 떠났으면 끌고 오지 않는다(이동은 화면 수명과 무관한 전역 이동)
+          // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 화면은 자기 문구를 쓴다
+          if (data?.code === "PRICE_CHANGED") {
+            // 요청이 오가는 사이에 떠났으면 복원도 이동도 안 한다 — 되살린 이어가기 표시가 다른 새 리딩에 붙고, 떠난 화면에서 끌고 오게 된다
+            if (window.location.pathname !== here) return;
+            if (contRaw) sessionStorage.setItem("byeolkong:continuation", contRaw);
+            setError("가격이 바뀌었어 — 카드를 다시 뽑아서 확인해줘");
+            setTimeout(() => {
+              // 전체 새로고침으로 옮긴다 — 새 가격표 번들을 확실히 받는다(빌드가 같아도 그렇다)
+              if (window.location.pathname === here) window.location.replace("/tarot/draw");
+            }, 2000);
             return;
           }
           setError(data?.error || "시작이 안 됐어. 잠시 후 다시 시도해줄래?");
@@ -602,6 +631,7 @@ function TarotReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
+        setHasSensitive(true);
       }
       // 강제 종료선 종료 턴이면 재개 제안 자격을 서버가 헤더로 준다 (spec §3-4) — 헤더 없음 = 해당 없음
       setReopen(parseReopenHeader(r.headers.get("X-Reopen")) ?? NO_REOPEN);
@@ -1016,6 +1046,19 @@ function TarotReadingInner() {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
+  // 맛보기 끝 "이어서 깊게" 노출 — 메뉴판 그룹 · 맛보기 · 종료 · 위기 아님(스펙 §6·§9-1). 종료 블록 JSX 와 아래 스크롤 effect 가 같이 쓴다(state 값만 쓰는 순수 계산)
+  const showTeaser =
+    isEnded && !!readingId && wallet?.menuArm === "menu" && draw?.spreadType === "one_card" && !hasSensitive;
+
+  // 카드가 하단 바를 키워 스크롤 영역이 줄어든다 — 붙는 순간 맨 아래로 내려 마지막 답이 가려지지 않게(이어하기는 지갑이 늦게 오면 이때 붙는다)
+  useEffect(() => {
+    if (!showTeaser) return;
+    requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight });
+    });
+  }, [showTeaser]);
+
   if (!draw) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
@@ -1247,6 +1290,15 @@ function TarotReadingInner() {
               <p className="text-[12px] text-text-light text-center pb-2.5">
                 별콩이의 풀이가 마무리됐어 ✨
               </p>
+              {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹만, 같은 질문의 깊게 상품을 정가로(스펙 §6·§9-1). 위기 리딩엔 없음 */}
+              {showTeaser && (
+                <TeaserUpsellCard
+                  parentReadingId={readingId}
+                  emotion={draw.emotion}
+                  concern={draw.concern}
+                  surface="reading_end"
+                />
+              )}
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
                 className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"

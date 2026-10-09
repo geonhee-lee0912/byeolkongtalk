@@ -1,9 +1,11 @@
 // 이어가기 가격 헬퍼 — deep 은 상품 정가의 60%(="40% 할인") 반올림, fresh 는 정가.
 // 가격 기준은 부모 stars_spent 가 아니라 상품 정가 — 체인(이어가기를 또 이어가기) 시
-// 할인이 누적돼 0으로 수렴하는 것 방지.
+// 할인이 누적돼 0으로 수렴하는 것 방지. 타로 정가는 반반 비교 그룹마다 다르다(lib/tarot/pricing.ts).
 
 import { SAJU_READING_COST } from "@/lib/saju/constants";
-import { SPREAD_INFO, type SpreadType } from "@/lib/tarot/spreads";
+import type { SpreadType } from "@/lib/tarot/spreads";
+import { tarotPrice } from "@/lib/tarot/pricing";
+import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 export const CONTINUATION_DISCOUNT_RATE = 0.6;
 
@@ -17,9 +19,11 @@ export function continuationPrice(fullCost: number, mode: ContinuationMode): num
 export function fullCostFor(opts: {
   consultationType: "saju" | "tarot";
   spreadType?: SpreadType | null;
+  /** 반반 비교 그룹 — 타로 정가가 그룹마다 다르다. 사주는 공통 */
+  arm: MenuArm;
 }): number {
   if (opts.consultationType === "tarot" && opts.spreadType) {
-    return SPREAD_INFO[opts.spreadType].starCost;
+    return tarotPrice(opts.spreadType, opts.arm);
   }
   return SAJU_READING_COST;
 }

@@ -7,8 +7,12 @@ import Link from "next/link";
 import {
   STAR_PACKAGES,
   FIRST_CHARGE_BONUS_RATE,
+  shopPackages,
   type StarPackage,
 } from "@/lib/constants";
+import { fetchWallet, parseWallet } from "@/lib/wallet";
+import type { MenuArm } from "@/lib/tarot/menu-ab";
+import { PACKAGE_USES } from "@/lib/package-uses";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { safeInternalPath } from "@/lib/safe-internal-path";
@@ -42,7 +46,9 @@ type PackageMeta = {
 const PKG_META: Record<string, PackageMeta> = {
   star_10: {},
   star_30: {},
+  star_55: {},
   star_70: { badge: { label: "추천", tone: "primary" }, highlight: true },
+  star_130: {},
   star_150: {},
   star_300: {},
 };
@@ -63,6 +69,8 @@ function ShopContent() {
   const need = parseNeedParam(searchParams.get("need"));
 
   const [balance, setBalance] = useState<number | null>(null);
+  // 반반 비교 그룹 — 진열 칸이 그룹마다 다르다(메뉴판 10·30·55·70·130 / 옛 10·30·70·150·300)
+  const [arm, setArm] = useState<MenuArm | null>(null);
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
   const [eligibilityLoaded, setEligibilityLoaded] = useState(false);
   // 직접 고른 뒤엔 늦게 온 잔액/자격 응답으로 덮어쓰지 않는다
@@ -83,10 +91,18 @@ function ShopContent() {
 
   // 별 잔액 조회
   const fetchBalance = useCallback(() => {
-    fetch("/api/stars/balance")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setBalance(typeof d?.balance === "number" ? d.balance : 0))
-      .catch(() => setBalance(0));
+    // 잔액·반반 그룹을 함께 읽는다(lib/wallet — 실패는 wallet_fetch_failed 로 계측).
+    // 못 읽으면 잔액 0, 그룹은 이미 읽은 값을 지키고 처음이면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) —
+    // 결제 직후 재조회 실패가 이미 읽은 그룹을 폴백으로 덮지 않게
+    void fetchWallet("shop").then((w) => {
+      if (w) {
+        setBalance(w.balance);
+        setArm(w.menuArm);
+        return;
+      }
+      setBalance(0);
+      setArm((prev) => prev ?? parseWallet(null).menuArm);
+    });
   }, []);
 
   useEffect(() => {
@@ -112,15 +128,15 @@ function ShopContent() {
 
   // ?need= 가 있으면 잔액·자격이 정해진 뒤 한 번 기본 선택을 맞춘다. 없으면 star_70 그대로.
   useEffect(() => {
-    if (need == null || !eligibilityLoaded || balance === null || userPickedRef.current) return;
+    if (need == null || !eligibilityLoaded || balance === null || !arm || userPickedRef.current) return;
     const picked = pickDefaultPackage({
       need,
       balance,
       bonusEligible: firstChargeEligible,
-      packages: STAR_PACKAGES,
+      packages: shopPackages(arm),
     });
     if (picked) setSelectedId(picked);
-  }, [need, eligibilityLoaded, balance, firstChargeEligible]);
+  }, [need, eligibilityLoaded, balance, arm, firstChargeEligible]);
 
   // 로그인 확인 + userId 확보 (리다이렉트 가드)
   useEffect(() => {
@@ -359,11 +375,16 @@ function ShopContent() {
             {/* 패키지 섹션 */}
             <SectionDivider label="패키지 고르기" />
 
-            <div className="flex flex-col gap-2.5">
-              {STAR_PACKAGES.map((pkg) => (
+            <div className="flex flex-col gap-2.5" aria-busy={arm === null}>
+              {arm === null &&
+                [0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} aria-hidden className="h-[92px] rounded-2xl border-2 border-lilac-mid/20 bg-white/60 animate-pulse" />
+                ))}
+              {arm !== null && shopPackages(arm).map((pkg) => (
                 <PackageCard
                   key={pkg.id}
                   pkg={pkg}
+                  uses={arm === "menu" ? PACKAGE_USES[pkg.id] : undefined}
                   selected={selectedId === pkg.id}
                   onSelect={() => {
                     userPickedRef.current = true;
@@ -484,12 +505,15 @@ function BalanceCard({ balance }: { balance: number | null }) {
 
 function PackageCard({
   pkg,
+  uses,
   selected,
   onSelect,
   disabled,
   showBonus,
 }: {
   pkg: StarPackage;
+  /** 쓸 곳 한 줄 — 메뉴판 그룹 상점에만(옛 그룹은 undefined = 지금 prod 그대로) */
+  uses?: string;
   selected: boolean;
   onSelect: () => void;
   disabled?: boolean;
@@ -543,6 +567,7 @@ function PackageCard({
             · 별당 {Math.round(perStar)}원
           </span>
         </p>
+        {uses && <p className="mt-0.5 text-[11px] text-eye-purple/80">🃏 {uses}</p>}
         {bonus > 0 ? (
           <p className="mt-1 text-[12px] font-black text-lilac-deep tabular-nums">
             첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별

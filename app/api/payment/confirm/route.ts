@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     const idMatch = orderId.match(/^order_(.+?)_(\d+)_([a-z0-9]+)$/);
     const packageType = idMatch?.[1];
 
+    // 판매 목록 전체(반반 두 그룹 진열의 합집합)에서 찾는다 — id 마다 별·가격이 고정(lib/constants.ts)
     const pkg = STAR_PACKAGES.find(
       (p) => p.id === packageType || p.id === `star_${packageType}`
     );
