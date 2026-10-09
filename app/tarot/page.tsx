@@ -19,7 +19,7 @@ import {
   type SpreadType,
 } from "@/lib/tarot/spreads";
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
-import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
+import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
 // 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
@@ -88,7 +88,7 @@ export default function TarotSpreadPage() {
       {/* 최상단 — 고민 다시 적기 */}
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
-          href="/concern"
+          href={CONCERN_REWRITE_HREF}
           className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
         >
           <svg

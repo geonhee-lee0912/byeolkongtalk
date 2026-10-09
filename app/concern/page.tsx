@@ -16,6 +16,7 @@ import {
   type EmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
+import { CONTINUATION_KEY, isConcernRewrite } from "@/lib/tarot/session";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 
 const MIN_LEN = 10;
@@ -84,6 +85,10 @@ export default function ConcernPage() {
     }
 
     const payload: PendingConsultation = { emotion, concern, type: "tarot" };
+    // 새로 적은 고민 = 새 주제 — 앞서 버려진 이어가기 표시(예: "이어서 깊게"를 누르고 결제 없이 떠남)가
+    // 이 고민의 리딩에 붙어 옛 리딩 요약이 주입되지 않게 지운다.
+    // 단 이어가기 도중 "고민 다시 적기"(CONCERN_REWRITE_HREF)로 온 건 같은 이어가기의 고민을 다듬는 것이라 남긴다(지금 prod 그대로).
+    if (!isConcernRewrite(window.location.search)) sessionStorage.removeItem(CONTINUATION_KEY);
     sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
     router.push("/tarot");
   };
