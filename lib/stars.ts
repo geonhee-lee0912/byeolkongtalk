@@ -15,6 +15,22 @@ export async function getStarBalance(userId: string): Promise<number> {
 }
 
 /**
+ * 별을 한 번이라도 쓴 적 있는지 — star_transactions 에 spend 행이 있나.
+ * 타로 메뉴판·홈의 "선물로 무료" 표시용(giftUnused = !hasSpentStars). 조회 실패면 true(선물 약속을 하지 않는 쪽).
+ */
+export async function hasSpentStars(userId: string): Promise<boolean> {
+  const supabase = getServiceSupabase();
+  const { data, error } = await supabase
+    .from("star_transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", "spend")
+    .limit(1);
+  if (error) return true;
+  return (data?.length ?? 0) > 0;
+}
+
+/**
  * 별 차감. SELECT FOR UPDATE row lock 으로 동시 차감 직렬화.
  * readingId 는 Phase 5 에서 사주 풀이 결과 row 와 매칭 (현재는 null 허용).
  */
