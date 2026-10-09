@@ -31,6 +31,8 @@ export default function TeaserUpsellCard({
   const deep = getDeepProduct(emotion);
   const deepKey = deep?.key ?? null;
   const shownRef = useRef(false);
+  // 클릭 계측만 마운트당 1회 — 이동이 버려져 다시 눌러도 부풀지 않게. 저장·이동은 매번 한다(이동을 막는 가드는 두지 않는다 — 이동이 버려진 뒤 버튼이 죽는다)
+  const clickedRef = useRef(false);
 
   // 노출 — 지면·마운트당 1회
   useEffect(() => {
@@ -48,10 +50,13 @@ export default function TeaserUpsellCard({
   const locked = productPositions(deep).slice(1);
 
   const go = () => {
-    trackUiEvent("teaser_upsell_clicked", {
-      readingId: parentReadingId,
-      meta: { surface, deepProduct: deep.key },
-    });
+    if (!clickedRef.current) {
+      clickedRef.current = true;
+      trackUiEvent("teaser_upsell_clicked", {
+        readingId: parentReadingId,
+        meta: { surface, deepProduct: deep.key },
+      });
+    }
     saveDeepContinuation(sessionStorage, { parentReadingId, deep, concern });
     router.push("/tarot/draw");
   };
@@ -65,7 +70,7 @@ export default function TeaserUpsellCard({
       <div className="mt-2 flex flex-wrap gap-1">
         <span className="rounded-md bg-lilac-deep px-1.5 py-0.5 text-[10.5px] font-bold text-white">지금 마음 ✓</span>
         {locked.map((label) => (
-          <span key={label} className="rounded-md bg-lilac-soft px-1.5 py-0.5 text-[10.5px] text-eye-purple/80">
+          <span key={label} className="rounded-md bg-lilac-soft px-1.5 py-0.5 text-[10.5px] text-eye-purple">
             {label} 🔒
           </span>
         ))}

@@ -21,6 +21,7 @@ import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { useWallet } from "@/lib/use-wallet";
 import { tarotPrice } from "@/lib/tarot/pricing";
+import { getDeepProduct } from "@/lib/tarot/menu";
 import { MENU_AB } from "@/lib/tarot/menu-ab";
 
 export default function TarotResultPage() {
@@ -101,9 +102,10 @@ function TarotResultInner() {
         }
         const d = await r.json();
         setData(d as FetchData);
+        // 소유자 여부 — 다른 리딩으로 id 가 바뀌어 effect 가 다시 돌면 이전 값에 묶이지 않고 되돌아간다
+        setOwner(isOwner);
         // 소유자가 결과 화면을 연 경우만 열람 마킹 (완료 퍼널 계량용, fire-and-forget)
         if (isOwner) {
-          setOwner(true);
           void fetch(`/api/readings/${id}`, { method: "POST" }).catch(() => {});
         }
       } catch {
@@ -330,8 +332,9 @@ function TarotResultInner() {
         </div>
       )}
 
-      {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹 · 소유자 · [END] · 비민감 맛보기 리딩만(스펙 §6·§9-1). "이 고민 다시 뽑기"는 그 아래로 */}
-      {owner && wallet?.menuArm === "menu" && ended && !reading.hasSensitive && reading.spreadType === "one_card" && (
+      {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹 · 소유자 · [END] · 비민감 맛보기 리딩만(스펙 §6·§9-1). "이 고민 다시 뽑기"는 그 아래로.
+          깊게 상품이 있는 태그일 때만 — 태그가 없거나 모르는 값이면 카드는 null 인데 mt-6 래퍼만 남아 24px 틈이 생긴다 */}
+      {owner && wallet?.menuArm === "menu" && ended && !reading.hasSensitive && reading.spreadType === "one_card" && getDeepProduct(reading.emotionTag) !== null && (
         <div className="w-full max-w-md mx-auto px-5 mt-6">
           <TeaserUpsellCard
             parentReadingId={reading.id}
