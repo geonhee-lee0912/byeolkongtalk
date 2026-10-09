@@ -309,6 +309,8 @@ function TarotReadingInner() {
             drawnCards: parsed.drawnCards,
             previousReadingId: cont.previousReadingId,
             continuationMode: cont.mode === "fresh" ? "fresh" : undefined,
+            // 뽑기 화면이 보여 준(쓴) 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 price_changed)
+            expectedCost: typeof parsed.expectedCost === "number" ? parsed.expectedCost : undefined,
           }),
         });
         if (typeof window !== "undefined") {
@@ -322,6 +324,19 @@ function TarotReadingInner() {
           }
           if (data?.code === "INSUFFICIENT_STARS") {
             router.push("/shop");
+            return;
+          }
+          // 가격이 바뀌었다(배포 순간 낡은 뽑기 화면이 옛 가격을 보여 줬다 등) — 서버는 차감도 리딩도 안 만들었다.
+          // 카드를 다시 뽑게 뽑기 화면으로: 고른 상품(TAROT_SPREAD_KEY)은 남아 있고 동의는 이미 썼으니 지금 가격의 확인 팝업이 뜬다(다시 POST 하지 않는다 — 고리 없음).
+          // 이어가기 표시는 되살린다(바로 위에서 지웠다) — 다시 뽑은 판도 같은 이어가기여야 한다.
+          // 문구를 읽을 틈을 두고 옮기되, 그사이 다른 화면으로 떠났으면 끌고 오지 않는다(router 이동은 화면 수명과 무관한 전역 이동)
+          if (r.status === 409 && data?.error === "price_changed") {
+            if (contRaw) sessionStorage.setItem("byeolkong:continuation", contRaw);
+            setError("가격이 바뀌었어 — 카드를 다시 뽑아서 확인해줘");
+            const here = window.location.pathname;
+            setTimeout(() => {
+              if (window.location.pathname === here) router.replace("/tarot/draw");
+            }, 2000);
             return;
           }
           setError(data?.error || "시작이 안 됐어. 잠시 후 다시 시도해줄래?");

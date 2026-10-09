@@ -16,6 +16,9 @@ export interface TarotSpreadSelection {
 // /tarot/draw (카드 뽑기) → /tarot/reading 으로 넘기는 payload
 export interface TarotDrawResult extends TarotSpreadSelection {
   drawnCards: DrawnCard[];
+  /** 뽑기 화면이 이 판에 보여 준(쓴) 가격 — 확인 팝업 가격 · 팝업 생략이면 그 자리에서 계산한 가격.
+   *  대화 화면이 리딩 생성 POST 에 실어 보내고, 서버가 자기 가격과 대조한다(다르면 차감 없이 409 price_changed — lib/tarot/pricing.ts checkShownPrice) */
+  expectedCost?: number;
 }
 
 export const TAROT_SPREAD_KEY = "byeolkong:tarot_spread";

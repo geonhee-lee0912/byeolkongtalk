@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { SPREAD_INFO, type SpreadType } from "./spreads.ts";
-import { tarotPrice } from "./pricing.ts";
+import { checkShownPrice, tarotPrice } from "./pricing.ts";
 
 const SPREADS = Object.keys(SPREAD_INFO) as SpreadType[];
 
@@ -28,6 +28,40 @@ test("투카드·쓰리카드는 두 그룹이 같다", () => {
   for (const s of ["two_card", "three_card"] as SpreadType[]) {
     assert.equal(tarotPrice(s, "menu"), tarotPrice(s, "legacy"), s);
   }
+});
+
+// ── 화면이 본 가격 대조(checkShownPrice) — 서버는 화면이 보여 주지 않은 가격을 받지 않는다(배포 순간 낡은 번들) ──
+test("checkShownPrice — 화면이 보낸 가격(숫자)이 있으면 서버 가격과 같아야만 통과", () => {
+  assert.equal(checkShownPrice({ expected: 15, actual: 15, legacyShown: 10 }), "ok");
+  assert.equal(checkShownPrice({ expected: 10, actual: 15, legacyShown: 10 }), "changed"); // 옛 가격을 보고 새 가격이 빠질 뻔
+  assert.equal(checkShownPrice({ expected: 20, actual: 15, legacyShown: 15 }), "changed"); // 더 비싸게 보여 줬어도 다르면 막는다
+  assert.equal(checkShownPrice({ expected: 0, actual: 0, legacyShown: 10 }), "ok"); // 0 도 화면이 보여 준 값이다
+});
+
+test("checkShownPrice — 없으면(이 필드를 모르는 옛 번들) 옛 번들이 보여 줬을 값과 서버 가격이 같을 때만 통과", () => {
+  assert.equal(checkShownPrice({ expected: undefined, actual: 10, legacyShown: 10 }), "ok");
+  assert.equal(checkShownPrice({ expected: undefined, actual: 15, legacyShown: 10 }), "changed");
+});
+
+test("checkShownPrice — 0 이상 정수가 아니면 없는 것으로 본다(이상한 값이 '내가 본 가격' 노릇을 못 한다)", () => {
+  for (const bad of [null, "15", 15.5, -15, NaN, Infinity, [15], {}, true]) {
+    const label = `${typeof bad}:${String(bad)}`;
+    assert.equal(checkShownPrice({ expected: bad, actual: 25, legacyShown: 25 }), "ok", label);
+    // 서버 가격이 15 라도 "15"·[15] 는 15 가 아니다 — 없는 것으로 보고 옛 화면 값(10)과 대조해 막힌다
+    assert.equal(checkShownPrice({ expected: bad, actual: 15, legacyShown: 10 }), "changed", label);
+  }
+});
+
+test("checkShownPrice × 실제 가격 — 옛 번들(필드 없음): 옛 그룹은 전부 통과 · 메뉴판 그룹은 가격이 다른 상품만 막힌다", () => {
+  const oldBundle = (s: SpreadType, arm: "menu" | "legacy") =>
+    checkShownPrice({ expected: undefined, actual: tarotPrice(s, arm), legacyShown: tarotPrice(s, "legacy") });
+  // 옛 그룹(반반의 절반 · QA 하네스 기본 유저)은 배포 전 화면 그대로 결제된다
+  for (const s of SPREADS) assert.equal(oldBundle(s, "legacy"), "ok", s);
+  assert.equal(oldBundle("one_card", "menu"), "changed"); // 화면 10 · 서버 15
+  assert.equal(oldBundle("relationship_5", "menu"), "changed"); // 화면 40 · 서버 55
+  assert.equal(oldBundle("chakra_7", "menu"), "changed"); // 화면 55 · 서버 70
+  assert.equal(oldBundle("two_card", "menu"), "ok"); // 15 = 15
+  assert.equal(oldBundle("three_card", "menu"), "ok"); // 25 = 25
 });
 
 // 감시 SQL 의 price2 가 가격표의 두 번째 사본이다 — 나중에 가격을 바꾸고 SQL 을 안 고치면 price_mismatch 가 전부 울린다.

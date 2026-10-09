@@ -91,7 +91,8 @@ export default function TarotDrawPage() {
   const spreadType = selection.spreadType;
 
   // 뽑은 카드는 인자로 받는다 — setPendingDrawn 직후의 state 는 아직 옛 값이다
-  const goToReading = (drawn: DrawnCard[]) => {
+  // price = 이 판에 보여 준(쓴) 가격(팝업 가격 · 팝업 생략이면 그 자리에서 계산한 가격) — 대화 화면이 서버에 실어 보내 서버 가격과 대조한다(다르면 차감 없이 409)
+  const goToReading = (drawn: DrawnCard[], price: number) => {
     if (leavingRef.current) return;
     leavingRef.current = true;
     // 동의는 한 판에 한 번 — 이 판을 시작하는 모든 길(팝업 생략·팝업 확인)에서 여기서 소모한다.
@@ -104,6 +105,7 @@ export default function TarotDrawPage() {
       emotion: selection.emotion,
       concern: selection.concern,
       drawnCards: drawn,
+      expectedCost: price,
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
     router.push("/tarot/reading");
@@ -131,7 +133,7 @@ export default function TarotDrawPage() {
       }
       const price = tarotPrice(spreadType, w.menuArm);
       if (selection.consented && w.balance >= price) {
-        goToReading(drawn); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
+        goToReading(drawn, price); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
         return;
       }
       setChecking(false);
@@ -169,7 +171,7 @@ export default function TarotDrawPage() {
           accent={accent}
           surface={RECHARGE_SOURCE.tarotDraw}
           onConfirm={() => {
-            if (pendingDrawn) goToReading(pendingDrawn);
+            if (pendingDrawn) goToReading(pendingDrawn, cost); // 팝업이 보여 준 가격 그대로
           }}
           onCharge={() => setRechargeSheetOpen(true)}
           onClose={() => setShowConfirm(false)}
