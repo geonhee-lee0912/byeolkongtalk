@@ -124,7 +124,10 @@ export function getDeepProduct(rawTag: string | null | undefined): MenuProduct |
   return getMenu(rawTag).find((p) => p.tier === "deep") ?? null;
 }
 
-/** 리딩의 (emotion_tag, spread_type) → 메뉴 상품. 메뉴 밖 조합(투카드·옛 큐레이션)은 null. */
+/** 리딩의 (emotion_tag, spread_type) → 메뉴 상품. 메뉴 밖 조합(투카드·옛 큐레이션)은 null.
+ *  판독 SQL 의 카탈로그 매핑(스펙 §5·§8)과 같은 규칙의 JS 정본이다.
+ *  주의: 메뉴 32개 조합은 옛 큐레이션(TAG_SPREADS)에도 전부 있어서, 옛 그룹·배포 전 리딩도 같은 조합이면 복원된다.
+ *  "메뉴판에서 샀다"는 뜻이 아니니 그룹은 user_id 로 따로 가를 것(lib/tarot/menu-ab.ts). */
 export function productForReading(
   rawTag: string | null | undefined,
   spreadType: string | null | undefined
@@ -132,12 +135,15 @@ export function productForReading(
   return getMenu(rawTag).find((p) => p.spreadType === spreadType) ?? null;
 }
 
-/** 상품의 카드 자리 이름 — getPositionLabels 그대로(중복 정의 금지). */
-export function productPositions(p: MenuProduct): string[] {
+/** 상품의 카드 자리 이름 — getPositionLabels 그대로(중복 정의 금지).
+ *  spreads.ts 의 공유 배열을 그대로 돌려준다 — 고치지 말 것(readonly: sort·reverse·splice 가 모듈 테이블을 오염시킨다). */
+export function productPositions(p: MenuProduct): readonly string[] {
   return getPositionLabels(p.spreadType, EMOTION_TO_CATEGORY[p.tag], p.tag);
 }
 
-/** 상품 가격(별) — 메뉴판 그룹 가격. 서버도 같은 함수로 차감한다(lib/tarot/pricing.ts). */
+/** 상품 가격(별) — 메뉴판 그룹 가격(lib/tarot/pricing.ts tarotPrice(…, "menu")).
+ *  메뉴판은 메뉴판 그룹에만 그려지므로(호출부는 menuArm === "menu" 일 때만) 그 유저의 서버 차감
+ *  tarotPrice(spread, menuArmOf(userId)) 와 같다. 옛 그룹 유저에겐 청구 가격이 아니니 거기서는 부르지 말 것. */
 export function productPrice(p: MenuProduct): number {
   return tarotPrice(p.spreadType, "menu");
 }
