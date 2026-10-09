@@ -7,7 +7,7 @@ import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
-import { fetchWallet, parseWallet } from "@/lib/wallet";
+import { fetchWallet } from "@/lib/wallet";
 import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 const MIN_LEN = 10;
@@ -83,9 +83,15 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       setLoading(false);
       void fetchWallet().then((w) => {
         if (cancelled) return;
-        if (w) setBalance(w.balance);
-        // 타로 이어가기 정가는 반반 그룹마다 다르다 — 못 읽으면 옛 그룹(지금 prod) 가격으로 보인다(서버가 권위 · 실패는 fetchWallet 이 계측)
-        setArm((w ?? parseWallet(null)).menuArm);
+        if (!w) {
+          // 못 읽으면 가격을 모르는 채로 결제하지 않게 버튼을 잠근다(arm 은 null 로 둔다) — 옛 가격을 보여 주고
+          // 서버는 메뉴판 가격을 받는 과다 청구 경로를 없앤다(실패는 fetchWallet 이 계측)
+          setError("가격을 불러오지 못했어 — 닫았다가 다시 열어줄래?");
+          return;
+        }
+        setBalance(w.balance);
+        // 타로 이어가기 정가는 반반 그룹마다 다르다 — 그룹을 알아야 가격이 정해진다(서버가 권위)
+        setArm(w.menuArm);
       });
     })();
     return () => {
@@ -262,14 +268,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <>
                   <button
                     onClick={() => start("fresh")}
-                    disabled={submitting || concern.length < MIN_LEN}
+                    disabled={submitting || !arm || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
-                    disabled={submitting || concern.length < MIN_LEN}
+                    disabled={submitting || !arm || concern.length < MIN_LEN}
                     className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
@@ -279,7 +285,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
               ) : (
                 <button
                   onClick={() => start("deep")}
-                  disabled={submitting || concern.length < MIN_LEN}
+                  disabled={submitting || !arm || concern.length < MIN_LEN}
                   className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
                   지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}

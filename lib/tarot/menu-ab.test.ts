@@ -27,9 +27,9 @@ test("스위치가 'menu'·'legacy' 면 전원 한쪽", () => {
   assert.equal(armForMode(uuid("0"), "legacy"), "legacy");
 });
 
-test("배포 기본 스위치 = split", () => {
-  assert.equal(MENU_AB, "split");
-  assert.equal(menuArmOf(uuid("0")), "menu");
+test("구현 중 기본 스위치 = legacy(Task 15 에서 split 으로)", () => {
+  assert.equal(MENU_AB, "legacy");
+  assert.equal(menuArmOf(uuid("0")), "legacy");
   assert.equal(menuArmOf(uuid("1")), "legacy");
 });
 
