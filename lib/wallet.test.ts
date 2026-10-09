@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fetchWallet, parseWallet } from "./wallet.ts";
+import { menuArmOf } from "./tarot/menu-ab.ts";
 
 test("parseWallet — 정상 응답", () => {
   assert.deepEqual(parseWallet({ balance: 15, isGuest: false, giftUnused: true, menuArm: "menu" }), {
@@ -17,8 +18,8 @@ test("parseWallet — 정상 응답", () => {
   });
 });
 
-test("parseWallet — 모르는 값·실패는 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음 · 옛 그룹 = 지금 prod)", () => {
-  const safe = { balance: 0, isGuest: true, giftUnused: false, menuArm: "legacy" };
+test("parseWallet — 모르는 값·실패는 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음 · 스위치가 정한 비로그인 그룹)", () => {
+  const safe = { balance: 0, isGuest: true, giftUnused: false, menuArm: menuArmOf(null) };
   assert.deepEqual(parseWallet(null), safe);
   assert.deepEqual(parseWallet(undefined), safe);
   assert.deepEqual(parseWallet({ balance: "3", giftUnused: "true", menuArm: "x" }), safe);

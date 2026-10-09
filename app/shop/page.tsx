@@ -92,7 +92,8 @@ function ShopContent() {
   // 별 잔액 조회
   const fetchBalance = useCallback(() => {
     // 잔액·반반 그룹을 함께 읽는다(lib/wallet — 실패는 wallet_fetch_failed 로 계측).
-    // 못 읽으면 잔액 0, 그룹은 이미 읽은 값을 지키고 처음이면 옛 그룹(지금 prod) — 결제 직후 재조회 실패가 메뉴판 그룹을 옛 그룹으로 덮지 않게
+    // 못 읽으면 잔액 0, 그룹은 이미 읽은 값을 지키고 처음이면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) —
+    // 결제 직후 재조회 실패가 이미 읽은 그룹을 폴백으로 덮지 않게
     void fetchWallet().then((w) => {
       if (w) {
         setBalance(w.balance);
@@ -374,7 +375,7 @@ function ShopContent() {
             {/* 패키지 섹션 */}
             <SectionDivider label="패키지 고르기" />
 
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2.5" aria-busy={arm === null}>
               {arm === null &&
                 [0, 1, 2, 3, 4].map((i) => (
                   <div key={i} aria-hidden className="h-[92px] rounded-2xl border-2 border-lilac-mid/20 bg-white/60 animate-pulse" />
@@ -566,7 +567,7 @@ function PackageCard({
             · 별당 {Math.round(perStar)}원
           </span>
         </p>
-        {uses && <p className="mt-0.5 text-[11px] text-eye-purple/75">🃏 {uses}</p>}
+        {uses && <p className="mt-0.5 text-[11px] text-eye-purple/80">🃏 {uses}</p>}
         {bonus > 0 ? (
           <p className="mt-1 text-[12px] font-black text-lilac-deep tabular-nums">
             첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별

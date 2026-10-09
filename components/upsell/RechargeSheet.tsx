@@ -93,17 +93,21 @@ export default function RechargeSheet({
       meta: { source, need, balance: balanceProp ?? null },
     });
 
+    // 응답 전에 닫히면(또는 StrictMode 첫 회 cleanup) 늦게 온 응답이 닫힘 분기가 비운 상태를 되살리지 못하게 한다
+    let alive = true;
+
     // 첫 충전 보너스 자격 조회 (서버가 권위) — 자격 있을 때만 +20% 노출
     fetch("/api/stars/first-charge-status", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setFirstChargeEligible(d?.eligible === true))
+      .then((d) => { if (alive) setFirstChargeEligible(d?.eligible === true); })
       .catch(() => {})
-      .finally(() => setEligibilityLoaded(true));
+      .finally(() => { if (alive) setEligibilityLoaded(true); });
 
-    // 잔액(prop 이 없을 때)과 반반 그룹을 함께 읽는다. 못 읽으면 옛 그룹(지금 prod) 칸 —
+    // 잔액(prop 이 없을 때)과 반반 그룹을 함께 읽는다. 못 읽으면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) 칸 —
     // 결제 준비·승인은 두 그룹 패키지를 다 받으니(lib/constants.ts STAR_PACKAGES) 결제는 그대로 된다
     if (balanceProp != null) setBalance(balanceProp);
     void fetchWallet().then((w) => {
+      if (!alive) return;
       setArm((w ?? parseWallet(null)).menuArm);
       if (balanceProp == null && w) setBalance(w.balance);
     });
@@ -112,6 +116,7 @@ export default function RechargeSheet({
     const handlePop = () => { onClose(); };
     window.addEventListener("popstate", handlePop);
     return () => {
+      alive = false;
       window.removeEventListener("popstate", handlePop);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,8 +250,9 @@ export default function RechargeSheet({
           </div>
         )}
 
-        {/* 패키지 목록 — 반반 그룹을 읽기 전엔 자리만(칸 수가 그룹마다 달라 깜빡이지 않게) */}
-        <div className="px-5 flex flex-col gap-2 pb-2">
+        {/* 패키지 목록 — 반반 그룹을 읽기 전엔 자리만 둔다(다른 그룹 진열이 잠깐 보였다 바뀌지 않게).
+            스켈레톤 높이(52px)는 남는 별 줄이 붙은 실제 칸(≈70px)과 달라 열린 뒤 조금 자란다 — prod 에도 있던 52→70 점프 */}
+        <div className="px-5 flex flex-col gap-2 pb-2" aria-busy={arm === null}>
           {arm === null &&
             [0, 1, 2].map((i) => (
               <div
