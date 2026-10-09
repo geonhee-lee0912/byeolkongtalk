@@ -120,11 +120,15 @@ export default function TarotDrawPage() {
     if (checkingRef.current) return;
     checkingRef.current = true;
     setChecking(true);
+    const here = window.location.pathname; // 이 판을 시작한 주소 — 응답 때 달라졌으면 떠나는 중이다
     void (async () => {
       const w = (await fetchWallet()) ?? parseWallet(null);
       checkingRef.current = false;
-      // 확인 중에 화면을 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지)
-      if (!aliveRef.current) return;
+      // 떠나는 중이거나 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지) — 뒤로 가기는 주소가 먼저 바뀌고 화면 정리(aliveRef)는 한 박자 늦는다
+      if (!aliveRef.current || window.location.pathname !== here) {
+        setChecking(false); // 언마운트면 아무 일도 안 한다 · 화면이 보존돼도(Activity) "잠시만…" 이 남지 않게
+        return;
+      }
       const price = tarotPrice(spreadType, w.menuArm);
       if (selection.consented && w.balance >= price) {
         goToReading(drawn); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
@@ -138,10 +142,7 @@ export default function TarotDrawPage() {
   };
 
   return (
-    <main
-      className="flex flex-1 flex-col items-center w-full"
-      aria-busy={checking || undefined}
-    >
+    <main className="flex flex-1 flex-col items-center w-full">
       {/* 단계 인디케이터 */}
       <div className="mt-14 mb-8">
         <ProgressSteps current={3} />
