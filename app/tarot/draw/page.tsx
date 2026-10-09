@@ -15,7 +15,7 @@ import {
 } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { spendConsent } from "@/lib/tarot/menu-session";
-import { fetchWallet, parseWallet } from "@/lib/wallet";
+import { fetchWallet } from "@/lib/wallet";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
@@ -34,6 +34,8 @@ export default function TarotDrawPage() {
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
   // 잔액·그룹을 읽는 중 안내 — prod 는 확인 팝업을 바로 띄워 '…' 를 보였지만 이제 팝업은 그룹 가격을 읽은 뒤에 뜬다(다른 곳 #8)
   const [checking, setChecking] = useState(false);
+  // 잔액을 못 읽었다(실패·5초 초과) — 팝업 대신 '다시 눌러줘' 한 줄. 완료 버튼을 다시 누르면(onDrawn) 지우고 다시 읽는다
+  const [walletError, setWalletError] = useState(false);
   // 대화로 넘어가는 중 / 잔액 확인 중 — 완료 버튼 연타로 두 번 이동·두 번 조회하지 않게
   const leavingRef = useRef(false);
   const checkingRef = useRef(false);
@@ -112,11 +114,12 @@ export default function TarotDrawPage() {
   };
 
   // 카드를 다 뽑으면 잔액·반반 그룹을 그 자리에서 읽어 이번 판 가격을 정한다(서버 차감과 같은 tarotPrice).
-  //  - 메뉴판에서 동의한 선택(consented — 메뉴판 그룹만 심는다)이고 잔액이 충분하면 확인 팝업 없이 바로 대화로(스펙 §4)
-  //  - 그 밖(옛 그룹 = 지금 prod 흐름 · 잔액 부족 · 못 읽음)은 확인 팝업 → 잔액 부족이면 충전 시트
+  //  - 메뉴판 그룹 + 메뉴판에서 동의한 선택(consented)이고 잔액이 충분하면 확인 팝업 없이 바로 대화로(스펙 §4)
+  //  - 그 밖(옛 그룹 = 지금 prod 흐름 · 잔액 부족)은 확인 팝업 → 잔액 부족이면 충전 시트
   //    (그 팝업의 잔액 부족 노출이 paywall_shown = Meta AddToCart 원천이라 자리를 그대로 둔다)
-  //  못 읽으면 지금 prod 와 같은 실패 모양(잔액 0 → 잔액 부족 팝업) — 서버가 차감 때 다시 판단한다
+  //  - 못 읽으면(실패·5초 초과) 팝업 없이 '다시 눌러줘' 한 줄 — 완료 버튼을 다시 누르면 다시 읽는다
   const onDrawn = (drawn: DrawnCard[]) => {
+    setWalletError(false); // 다시 누름 = 다시 읽기 — 앞선 실패 줄을 지운다
     if (leavingRef.current) return; // 대화로 넘어가는 중엔 완료를 다시 눌러도(키보드 등) 지갑 조회를 또 내보내지 않는다
     setPendingDrawn(drawn);
     if (checkingRef.current) return;
@@ -124,15 +127,23 @@ export default function TarotDrawPage() {
     setChecking(true);
     const here = window.location.pathname; // 이 판을 시작한 주소 — 응답 때 달라졌으면 떠나는 중이다
     void (async () => {
-      const w = (await fetchWallet("tarot_draw")) ?? parseWallet(null);
+      const w = await fetchWallet("tarot_draw");
       checkingRef.current = false;
       // 떠나는 중이거나 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지) — 뒤로 가기는 주소가 먼저 바뀌고 화면 정리(aliveRef)는 한 박자 늦는다
       if (!aliveRef.current || window.location.pathname !== here) {
         setChecking(false); // 언마운트면 아무 일도 안 한다 · 화면이 보존돼도(Activity) "잠시만…" 이 남지 않게
         return;
       }
+      // 못 읽었다(실패·5초 초과 — 계측은 fetchWallet 의 wallet_fetch_failed) → 팝업·paywall_shown·이동 없이 '다시 눌러줘'.
+      // 예전엔 잔액 0(parseWallet(null))으로 잔액 부족 팝업을 띄워, 별이 있는 유저를 충전으로 밀고 가짜 AddToCart 를 쐈다(사용자 결정 2026-10-09 B)
+      if (!w) {
+        setChecking(false);
+        setWalletError(true);
+        return;
+      }
       const price = tarotPrice(spreadType, w.menuArm);
-      if (selection.consented && w.balance >= price) {
+      // 팝업 생략은 메뉴판 그룹만 — 남은 동의 선택(같은 탭에서 옛 그룹 계정으로 바꿈 · 스위치를 'legacy' 로 돌림)이어도 옛 그룹은 늘 확인 팝업
+      if (selection.consented && w.menuArm === "menu" && w.balance >= price) {
         goToReading(drawn, price); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
         return;
       }
@@ -199,6 +210,14 @@ export default function TarotDrawPage() {
         >
           <p className="px-4 py-2 rounded-full bg-white/90 text-text-light text-sm shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
             잠시만…
+          </p>
+        </div>
+      )}
+      {/* 잔액 조회 실패 한 줄 — 탭을 막지 않는다(pointer-events-none) · 완료 버튼을 다시 누르면 사라지고 다시 읽는다 */}
+      {walletError && (
+        <div role="alert" className="fixed inset-x-0 bottom-28 z-50 flex justify-center px-4 pointer-events-none">
+          <p className="rounded-full bg-white/95 px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
+            잔액을 못 불러왔어 — 다시 눌러줘
           </p>
         </div>
       )}
