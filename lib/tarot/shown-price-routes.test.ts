@@ -1,6 +1,6 @@
 // 화면이 본 가격 대조(409 price_changed) — 실제 라우트(POST)를 가짜 DB 위에서 돌린다.
 // 라우트가 import 하는 supabase·session·stars·logger 를 clarifier-race.fakes.ts 로 바꿔 끼우는 방식은 clarifier-race.test.ts 와 같다.
-// 지키는 것: 가격이 어긋나면 잔액 조회·중복 방어·리딩 생성·차감 어느 것보다 먼저 409 로 끝난다(별·행이 안 움직인다) ·
+// 지키는 것: 가격이 어긋나면 잔액 조회·중복 방어·리딩 생성·차감 어느 것보다 먼저 409 로 끝난다(별·행이 안 움직인다 · WARN 한 줄) ·
 //          어긋나지 않으면(옛 그룹 + 필드 없음 · 메뉴판 + 맞는 값 · 두 그룹 가격이 같은 상품 · 사주 부모) 대조를 지나 다음 단계로 간다.
 //          "지났다"는 잔액 0 으로 두고 잔액 확인의 402 로 본다(가짜 DB 는 insert 를 흉내 내지 않는다 — 그 뒤는 이번 변경과 무관).
 import { test } from "node:test";
@@ -131,6 +131,11 @@ const withParent = (consultationType: "tarot" | "saju", spreadType: string | nul
   messages: ENDED,
 });
 
+/** 409 응답 — error = 옛 번들이 data.error 를 그대로 찍는 사용자 문구 · code = 새 화면이 판단하는 값 */
+const priceChanged = (cost: number) => ({ error: "가격이 바뀌었어 — 다시 확인해줘", code: "price_changed", cost });
+/** 막을 때 남기는 WARN(설계된 정상 신호) — 메시지가 error_logs fingerprint 의 씨앗이라 바꾸면 어드민 묶음도 바뀐다 */
+const WARN_MESSAGE = "price_changed: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)";
+
 const skip = registerHooks ? false : "module.registerHooks 가 없는 Node(< 22.15) — 라우트 의존성을 바꿔 끼울 수 없다";
 
 test("전제 — 반반(split): 시나리오 유저의 그룹(스위치를 돌리면 시나리오를 다시 고를 것)", () => {
@@ -142,7 +147,7 @@ test("전제 — 반반(split): 시나리오 유저의 그룹(스위치를 돌�
 test("새 리딩 — 메뉴판 그룹 + 옛 번들(expectedCost 없음) + 가격이 다른 상품(원카드 화면 10 · 서버 15): 409 · DB·별을 하나도 안 건드린다", { skip }, async () => {
   const r = await call("create", MENU_USER, createBody("one_card", 1), { balance: 100 });
   assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { error: "price_changed", cost: 15 });
+  assert.deepEqual(r.body, priceChanged(15));
   assert.deepEqual(r.ops, []); // 잔액 조회·중복 방어·리딩 생성·차감 전부 그 전에 끝났다
   assert.deepEqual(r.world.spends, []);
   assert.deepEqual(r.world.tables.readings, []);
@@ -151,9 +156,21 @@ test("새 리딩 — 메뉴판 그룹 + 옛 번들(expectedCost 없음) + 가격
 test("새 리딩 — 메뉴판 그룹 + 화면이 옛 가격(10)을 보냄: 409 · 차감 없음", { skip }, async () => {
   const r = await call("create", MENU_USER, createBody("one_card", 1, { expectedCost: 10 }), { balance: 100 });
   assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { error: "price_changed", cost: 15 });
+  assert.deepEqual(r.body, priceChanged(15));
   assert.deepEqual(r.ops, []);
   assert.deepEqual(r.world.spends, []);
+  // 막을 때 WARN 한 줄 — user_id 로 그룹을 세고, 화면 값(숫자 · 없으면 "missing")과 서버 가격을 남긴다
+  assert.deepEqual(r.world.warns, [
+    {
+      reqId: 0,
+      message: WARN_MESSAGE,
+      ctx: {
+        route: "/api/consultations/tarot",
+        userId: MENU_USER,
+        extra: { spread: "one_card", arm: "menu", expected: 10, cost: 15 },
+      },
+    },
+  ]);
 });
 
 test("새 리딩 — 메뉴판 그룹 + 화면이 서버 가격(15)을 보냄: 대조를 지나 잔액 확인으로", { skip }, async () => {
@@ -181,10 +198,22 @@ test("새 리딩 — 메뉴판 그룹 + 옛 번들 + 두 그룹 가격이 같은
 test("이어가기 deep — 타로 부모(원카드) + 메뉴판 그룹 + 옛 번들(팝업 6 · 서버 9): 409 · 부모 확인만 하고 잔액·생성·차감 전", { skip }, async () => {
   const r = await call("continue", MENU_USER, continueBody(), { balance: 100, tables: withParent("tarot", "one_card", MENU_USER) });
   assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { error: "price_changed", cost: 9 });
+  assert.deepEqual(r.body, priceChanged(9));
   assert.deepEqual(r.ops, ["select readings", "select messages"]);
   assert.deepEqual(r.world.spends, []);
   assert.equal(r.world.tables.readings.length, 1); // 새 리딩 없음
+  // 막을 때 WARN 한 줄 — 이어가기는 부모 spread·mode 까지
+  assert.deepEqual(r.world.warns, [
+    {
+      reqId: 0,
+      message: WARN_MESSAGE,
+      ctx: {
+        route: "/api/readings/continue",
+        userId: MENU_USER,
+        extra: { spread: "one_card", mode: "deep", arm: "menu", expected: "missing", cost: 9 },
+      },
+    },
+  ]);
 });
 
 test("이어가기 deep — 타로 부모 + 메뉴판 그룹 + 화면이 서버 가격(9)을 보냄: 통과", { skip }, async () => {

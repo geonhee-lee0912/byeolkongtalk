@@ -178,7 +178,8 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           router.push("/shop");
           return;
         }
-        if (res.status === 409 && data?.error === "price_changed") {
+        // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 팝업은 자기 문구를 쓴다
+        if (data?.code === "price_changed") {
           // 보여 준 가격이 서버 가격과 다르다(배포 순간 등) — 차감 없이 막혔다. 지갑 못 읽음과 같은 모양으로 가격을 모르는 상태로 되돌려
           // 버튼을 잠근다(같은 가격으로 또 눌러 같은 409 를 받지 않게). 닫았다 열면 지갑을 다시 읽어 지금 가격으로 풀린다 —
           // submitting 은 여기서 풀어 둔다(다시 열기는 이 값을 초기화하지 않아, 남기면 다시 연 뒤에도 버튼이 잠긴다)

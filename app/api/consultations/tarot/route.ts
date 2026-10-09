@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, getStarBalance } from "@/lib/stars";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 import { findRecentDuplicateReading } from "@/lib/reading-dedupe";
 import {
   SPREAD_INFO,
@@ -120,11 +120,13 @@ export async function POST(request: NextRequest) {
   }
   const drawnCards = drawnValidated;
   // 가격 = 반반 비교 그룹의 가격 — 화면도 같은 함수(lib/tarot/pricing.ts)를 쓴다. 스펙 §9-1
-  const cost = tarotPrice(body.spreadType, menuArmOf(userId));
+  const arm = menuArmOf(userId);
+  const cost = tarotPrice(body.spreadType, arm);
 
   // 화면이 본 가격 대조 — 잔액 확인·중복 방어·리딩 생성·차감보다 먼저(가격이 어긋나면 어떤 돈 판단도 하지 않는다 —
   // 잔액 부족 402 도 유저가 본 적 없는 가격 기준이 된다). 배포 순간 낡은 뽑기 화면은 옛 그룹 가격을 보여 주고 expectedCost 를 안 보낸다
   // → 옛 그룹 가격과 서버 가격이 같을 때만 통과(lib/tarot/pricing.ts checkShownPrice). 새 대화 화면은 409 면 카드를 다시 뽑게 한다
+  // 409 모양: error = 사용자 문구(옛 번들은 data.error 를 그대로 찍는다 — 코드명으로 바꾸지 말 것) · code = 새 화면이 판단하는 값
   if (
     checkShownPrice({
       expected: body.expectedCost,
@@ -132,7 +134,22 @@ export async function POST(request: NextRequest) {
       legacyShown: tarotPrice(body.spreadType, "legacy"),
     }) === "changed"
   ) {
-    return NextResponse.json({ error: "price_changed", cost }, { status: 409 });
+    // 설계된 정상 신호(WARN — error 아님) — 배포 순간 낡은 번들, 판정 전환 배포 직후 잠깐 몰릴 수 있다.
+    // user_id 가 error_logs 에 남아 감시 SQL 이 그룹(끝 글자)별로 센다
+    await logWarn("price_changed: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)", {
+      route: "/api/consultations/tarot",
+      userId,
+      extra: {
+        spread: body.spreadType,
+        arm,
+        expected: typeof body.expectedCost === "number" ? body.expectedCost : "missing",
+        cost,
+      },
+    });
+    return NextResponse.json(
+      { error: "가격이 바뀌었어 — 다시 확인해줘", code: "price_changed", cost },
+      { status: 409 }
+    );
   }
 
   // 잔액 사전 확인 (UX 빠른 실패)

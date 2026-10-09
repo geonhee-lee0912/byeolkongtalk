@@ -1,5 +1,6 @@
 // clarifier-race.test.ts 전용 가짜 — 라우트(app/api/consultations/tarot/clarifier/route.ts)가 import 하는
 // @/lib/supabase · @/lib/session · @/lib/stars · @/lib/logger 자리에 이 모듈 하나가 들어간다(테스트의 resolve 훅).
+// shown-price-routes.test.ts 도 같은 방식으로 새 리딩·이어가기 라우트에 끼워 쓴다(가격 대조 409 와 그 다음 잔액 확인까지만 — insert 는 흉내 내지 않는다).
 // 상태(행·메시지·잔액)는 테스트가 setWorld 로 넣는다. DB 호출 하나 = 원자적 한 걸음 — 실행 직전 world.gate() 에서
 // 스케줄러가 이 요청의 차례를 줄 때까지 기다린다. 그래서 두 요청의 DB 호출 순서를 테스트가 정한다(결정적).
 // 쿼리 빌더는 라우트·reopen-server 가 실제로 쓰는 체인만 흉내 낸다(from → select/update → eq/lt/like → order/maybeSingle/select).
@@ -8,7 +9,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { getServiceSupabase as GetServiceSupabase } from "../supabase.ts";
 import type { getSession as GetSession } from "../session.ts";
 import type { getStarBalance as GetStarBalance, spendStars as SpendStars } from "../stars.ts";
-import type { logError as LogError, logWarn as LogWarn } from "../logger.ts";
+import type { logError as LogError, logWarn as LogWarn, LogContext } from "../logger.ts";
 
 export type Row = Record<string, unknown>;
 
@@ -19,7 +20,8 @@ export interface World {
   /** 성공한 차감만 — reqId 로 어느 요청이 돈을 냈는지 가린다 */
   spends: { reqId: number; amount: number; readingId: string | null; source: string | undefined }[];
   errors: { reqId: number; err: unknown }[];
-  warns: { reqId: number; message: string }[];
+  /** ctx = 라우트가 넘긴 로그 맥락(route·userId·extra) 그대로 */
+  warns: { reqId: number; message: string; ctx?: LogContext }[];
   /** true 면 차감이 응답 없이 끊긴 것처럼 rpc_error(결과 불명)를 돌려준다 — 실제로는 차감 안 됨 */
   spendError?: boolean;
   /** DB 호출 직전 — 스케줄러가 이 요청의 차례를 줄 때까지 기다린다 */
@@ -68,9 +70,9 @@ export const logError: typeof LogError = async (err) => {
   w.errors.push({ reqId, err });
 };
 
-export const logWarn: typeof LogWarn = async (message) => {
+export const logWarn: typeof LogWarn = async (message, ctx) => {
   const { w, reqId } = current();
-  w.warns.push({ reqId, message });
+  w.warns.push({ reqId, message, ctx });
 };
 
 type Filter = { kind: "eq" | "lt" | "like"; col: string; val: unknown };

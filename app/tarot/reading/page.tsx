@@ -330,7 +330,8 @@ function TarotReadingInner() {
           // 카드를 다시 뽑게 뽑기 화면으로: 고른 상품(TAROT_SPREAD_KEY)은 남아 있고 동의는 이미 썼으니 지금 가격의 확인 팝업이 뜬다(다시 POST 하지 않는다 — 고리 없음).
           // 이어가기 표시는 되살린다(바로 위에서 지웠다) — 다시 뽑은 판도 같은 이어가기여야 한다.
           // 문구를 읽을 틈을 두고 옮기되, 그사이 다른 화면으로 떠났으면 끌고 오지 않는다(router 이동은 화면 수명과 무관한 전역 이동)
-          if (r.status === 409 && data?.error === "price_changed") {
+          // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 화면은 자기 문구를 쓴다
+          if (data?.code === "price_changed") {
             if (contRaw) sessionStorage.setItem("byeolkong:continuation", contRaw);
             setError("가격이 바뀌었어 — 카드를 다시 뽑아서 확인해줘");
             const here = window.location.pathname;
