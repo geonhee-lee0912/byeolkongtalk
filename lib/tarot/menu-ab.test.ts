@@ -2,7 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { MENU_AB, MENU_LAST_CHARS, armForMode, menuArmOf } from "./menu-ab.ts";
+import { getMenu } from "./menu.ts";
 import { shopPackages } from "../constants.ts";
+import { EMOTION_OPTIONS } from "../emotions.ts";
+import { UI_EVENTS } from "../analytics/ui-events.ts";
 
 const uuid = (last: string) => `44444444-4444-4444-8444-44444444444${last}`;
 
@@ -62,4 +65,32 @@ test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 상대 그룹 단독 패
 
 test("QA 하네스 기본 유저(11111111-…-111111111111)는 옛 그룹 — QA 스크립트가 SPREAD_INFO.starCost(=옛 가격)를 기대한다", () => {
   assert.equal(armForMode("11111111-1111-4111-8111-111111111111", "split"), "legacy");
+});
+
+/** 감시 SQL 본문 — 주석을 지우고 줄끝을 LF 로 맞춘다(주석 속 같은 문구는 목록이 아니다) */
+const monitorSql = () =>
+  readFileSync(new URL("../../scripts/menu-ab-daily-check.sql", import.meta.url), "utf8")
+    .replace(/\r\n/g, "\n")
+    .replace(/--.*$/gm, "");
+
+// 감시 SQL 의 menu_catalog 는 메뉴 카탈로그(lib/tarot/menu.ts getMenu 전체)의 사본이다. 메뉴를 바꾸고 SQL 을 안 고치면
+// menu_off_catalog 가 멀쩡한 메뉴판 리딩을 '카탈로그 밖'으로 울리거나(더한 상품) 진짜 폴백을 놓친다(뺀 상품).
+test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 menu_catalog = getMenu 전체의 (emotion_tag, spread_type) 32개", () => {
+  const block = monitorSql().match(/menu_catalog\s*\(\s*emotion_tag\s*,\s*spread_type\s*\)\s*as\s*\(\s*values\s*\n([\s\S]*?)\n\),/);
+  assert.ok(block, "menu_catalog(emotion_tag, spread_type) as (values … ) 블록을 못 찾았다");
+  const sqlPairs = [...block[1].matchAll(/\(\s*'([^']*)'\s*,\s*'([a-z0-9_]+)'\s*\)/g)].map((m) => `${m[1]} | ${m[2]}`);
+  const menuPairs = EMOTION_OPTIONS.flatMap((o) => getMenu(o.tag)).map((p) => `${p.tag} | ${p.spreadType}`);
+  assert.equal(menuPairs.length, 32);
+  assert.equal(new Set(sqlPairs).size, sqlPairs.length, "menu_catalog 에 같은 조합이 두 번 있다");
+  assert.deepEqual([...sqlPairs].sort(), [...menuPairs].sort());
+});
+
+// arm_leak 이 세는 메뉴판 전용 이벤트 이름은 UI_EVENTS 의 사본이다 — 이름이 바뀌거나 오타가 나면 누출이 늘 0 으로 조용히 통과한다
+test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 menu_only_events 이름이 모두 UI_EVENTS 에 있다", () => {
+  const block = monitorSql().match(/menu_only_events\s*\(\s*event\s*\)\s*as\s*\(\s*values\s*([\s\S]*?)\n\),/);
+  assert.ok(block, "menu_only_events(event) as (values … ) 블록을 못 찾았다");
+  const names = [...block[1].matchAll(/\(\s*'([a-z_]+)'\s*\)/g)].map((m) => m[1]);
+  assert.ok(names.length > 0, "이벤트 이름을 못 읽었다");
+  const known = new Set<string>(UI_EVENTS);
+  assert.deepEqual(names.filter((n) => !known.has(n)), [], "UI_EVENTS 에 없는 이벤트 이름");
 });

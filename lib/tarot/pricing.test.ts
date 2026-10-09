@@ -4,6 +4,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { SPREAD_INFO, type SpreadType } from "./spreads.ts";
 import { checkShownPrice, tarotPrice, validShownPrice } from "./pricing.ts";
+import { CONTINUATION_DISCOUNT_RATE, continuationPrice } from "../continuation.ts";
 
 const SPREADS = Object.keys(SPREAD_INFO) as SpreadType[];
 
@@ -85,6 +86,28 @@ test("감시 쿼리(scripts/menu-ab-daily-check.sql) price2 의 그룹별 기대
   for (const arm of ["menu", "legacy"] as const) {
     for (const s of SPREADS) {
       assert.equal(tables.get(arm)!.get(SPREAD_INFO[s].cardCount), tarotPrice(s, arm), `${arm} ${s}`);
+    }
+  }
+});
+
+// 감시 SQL 은 deep 이어가기를 round(정가 × 배율) 로 대조한다 — 서버 차감은 lib/continuation.ts continuationPrice = Math.round(정가 × 0.6).
+// 두 언어의 반올림: Postgres round(numeric) 은 .5 를 0 에서 먼 쪽(양수면 올림) · round(float8) 은 짝수 쪽 · JS Math.round 는 +∞ 쪽.
+// SQL 의 정수 × 0.6 은 numeric 이라 양수에선 JS 와 같은 규칙이고, 지금 배율에선 정수 정가 × 0.6 의 소수가 .0·.2·.4·.6·.8 뿐이라 .5 경계 자체가 없다.
+// 배율·가격을 바꿔 .5 가 생기거나 SQL 배율이 앱과 달라지면 여기서 먼저 잡는다(.5 면 float 로 바뀐 SQL·JS 가 갈린다).
+test("감시 쿼리(scripts/menu-ab-daily-check.sql) deep 이어가기 기대 가격 = continuationPrice(tarotPrice, 'deep') — 같은 배율 · .5 경계 없음", () => {
+  const sql = readFileSync(new URL("../../scripts/menu-ab-daily-check.sql", import.meta.url), "utf8");
+  const m = sql.match(/when\s+p\.continuation_mode\s*=\s*'deep'\s+then\s+round\(\s*p\.full_price\s*\*\s*(\d*\.\d+)\s*\)/);
+  assert.ok(m, "price2 의 `when p.continuation_mode = 'deep' then round(p.full_price * <배율>)` 를 못 찾았다");
+  assert.equal(Number(m[1]), CONTINUATION_DISCOUNT_RATE, "SQL 배율 ≠ CONTINUATION_DISCOUNT_RATE");
+  // 배율 = n / den (십진 정확) — 정가 × 배율의 소수가 정확히 .5 ⇔ (정가 × n) mod den = den / 2
+  const den = 10 ** m[1].split(".")[1].length;
+  const n = Math.round(Number(m[1]) * den);
+  for (const arm of ["menu", "legacy"] as const) {
+    for (const s of SPREADS) {
+      const full = tarotPrice(s, arm);
+      assert.notEqual((full * n) % den, den / 2, `${arm} ${s}: 정가 ${full} × ${m[1]} 이 .5 로 끝난다 — SQL·JS 반올림이 갈릴 수 있다`);
+      // SQL round(numeric) = 십진 정확 계산의 반올림(양수) = floor((정가 × n + den/2) / den)
+      assert.equal(continuationPrice(full, "deep"), Math.floor((full * n + den / 2) / den), `${arm} ${s}`);
     }
   }
 });
