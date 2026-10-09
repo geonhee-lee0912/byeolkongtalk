@@ -7,14 +7,13 @@ export type MenuArm = "menu" | "legacy";
 export type MenuAbMode = "split" | MenuArm;
 
 /** 판정 스위치 — 'split' = 반반 · 'menu'·'legacy' = 전원 한쪽(판정 뒤·고장 시). 상수라 바꾸면 재배포(prod 는 사용자 go).
- *  menu-ab.test.ts 의 "배포 기본 스위치 = split" 테스트는 일부러 걸리게 해 뒀다 — 스위치를 돌리면 그 테스트도 같이 고칠 것(지우지 말 것).
- *  🔴 구현 중(2026-10-09~)엔 'legacy' 로 잠가 둔다 — 화면이 덜 된 중간 커밋이 배포돼도 전원 prod 그대로. 계획 Task 15 에서 'split' 으로 켠다(그때 menu-ab.test 의 기본 스위치 테스트도 같이). */
-export const MENU_AB: MenuAbMode = "legacy";
+ *  menu-ab.test.ts 의 "배포 기본 스위치 = split" 테스트는 일부러 걸리게 해 뒀다 — 스위치를 돌리면 그 테스트도 같이 고칠 것(지우지 말 것). */
+export const MENU_AB: MenuAbMode = "split";
 
 /** 메뉴판 그룹의 user_id 끝 글자 — 판정 SQL·감시 쿼리와 같아야 한다(menu-ab.test.ts 가 SQL 파일과 대조) */
 export const MENU_LAST_CHARS = "02468ace";
 
-/** 이 유저의 그룹(앱용 — 스위치 MENU_AB 를 따른다). 비로그인(그룹을 모름)은 옛 그룹 — 지금 prod 그대로 보인다. */
+/** 이 유저의 그룹(앱용 — 스위치 MENU_AB 를 따른다). 비로그인은 스위치를 따른다(반반 중엔 옛 그룹 = 지금 prod 그대로) — 지갑 조회 실패 폴백 parseWallet(null) 도 이것이다. */
 export function menuArmOf(userId: string | null | undefined): MenuArm {
   return armForMode(userId, MENU_AB);
 }

@@ -28,9 +28,9 @@ test("스위치가 'menu'·'legacy' 면 전원 한쪽", () => {
   assert.equal(armForMode(uuid("0"), "legacy"), "legacy");
 });
 
-test("구현 중 기본 스위치 = legacy(Task 15 에서 split 으로)", () => {
-  assert.equal(MENU_AB, "legacy");
-  assert.equal(menuArmOf(uuid("0")), "legacy");
+test("배포 기본 스위치 = split", () => {
+  assert.equal(MENU_AB, "split");
+  assert.equal(menuArmOf(uuid("0")), "menu");
   assert.equal(menuArmOf(uuid("1")), "legacy");
 });
 
@@ -61,5 +61,5 @@ test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 상대 그룹 단독 패
 });
 
 test("QA 하네스 기본 유저(11111111-…-111111111111)는 옛 그룹 — QA 스크립트가 SPREAD_INFO.starCost(=옛 가격)를 기대한다", () => {
-  assert.equal(menuArmOf("11111111-1111-4111-8111-111111111111"), "legacy");
+  assert.equal(armForMode("11111111-1111-4111-8111-111111111111", "split"), "legacy");
 });
