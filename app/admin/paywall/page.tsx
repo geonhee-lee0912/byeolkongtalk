@@ -22,7 +22,7 @@ import LoadFailed from "@/components/admin/LoadFailed";
 
 export const dynamic = "force-dynamic";
 
-const MIN_READING_COST = 10; // 최저 상품(타로 원카드 10별) — 이 미만이면 무료로 더 못 봄
+const MIN_READING_COST = 10; // 최저 상품(사주 단품 10별 — 타로 최저는 맛보기 15) — 이 미만이면 무료로 더 못 봄
 
 // 미결제 목록 한 페이지 행 수. 2026-07-31 실측 398행(약 24명/일 증가)을 한 표에 쏟아붓던 것을
 // 쪼갠다. 50 = 스크롤 한두 번으로 훑히면서 현 규모가 8페이지 안에 들어오는 크기. 목록·유저

@@ -58,6 +58,11 @@ export interface FortuneConfig {
   active: boolean;
 }
 
+/** 사주 단품 16종 가격 — 미끼 가격(2026-10 메뉴판·별경제, 사용자 판단 "본전보다 조금 이득").
+ *  가입 선물 15별로 사고 5별이 남는다 → 그 뒤 타로 맛보기(15)는 ₩1,000(5+12) 한 번이면 된다.
+ *  궁합(40)·2026 사주(60)·평생(70)은 제외. 스펙 2026-10-05-타로톡-메뉴판-별경제 §3-3. */
+export const SAJU_SINGLE_COST = 10;
+
 export const FORTUNE_SENTINEL_PREFIX = "fortune:";
 
 export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
@@ -82,7 +87,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🗓️",
     tagline: "이번 한 달, 너의 흐름을 미리 짚어줄게",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}monthly`,
     href: "/fortune/monthly",
     active: true,
@@ -174,7 +179,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🤝",
     tagline: "친구·가족·동료, 두 사람 사주로 관계 케미를",
     base: "saju",
-    cost: 20, // 2026-08-30 리워크: 35→20 (구매 0건 → 진입 상품화 + 분량 확장)
+    cost: SAJU_SINGLE_COST, // 2026-08-30 35→20(구매 0건 → 진입 상품화) · 2026-10 단품 미끼가 10
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}compat_social`,
     href: "/fortune/compat-social",
     active: true,
@@ -198,7 +203,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🌱",
     tagline: "내 사주에 새겨진 성격·기질·강점·그림자",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}nature_self`,
     href: "/fortune/nature_self",
     active: true,
@@ -209,7 +214,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🧭",
     tagline: "타고난 재능과 어울리는 일의 결",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}talent_path`,
     href: "/fortune/talent_path",
     active: true,
@@ -220,7 +225,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "📖",
     tagline: "남이 나를 어떻게 대하면 좋은지, 나 취급법",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}user_manual`,
     href: "/fortune/user_manual",
     active: true,
@@ -231,7 +236,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🌈",
     tagline: "내 기운의 균형과 채우는 법",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}element_balance`,
     href: "/fortune/element_balance",
     active: true,
@@ -242,7 +247,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🌌",
     tagline: "타고난 그릇부터 대운 10년 흐름까지, 인생 전체",
     base: "saju",
-    cost: 75,
+    cost: 70, // 2026-10 75→70 — 70칸에 딱 맞게(8주 판매 0)
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}life_full`,
     href: "/fortune/life_full",
     active: true,
@@ -253,7 +258,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💗",
     tagline: "나의 연애 성향과 끌림의 패턴",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}love_self`,
     href: "/fortune/love_self",
     active: true,
@@ -264,7 +269,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💘",
     tagline: "2026년 인연이 오는 시기와 흐름",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}love_year`,
     href: "/fortune/love_year",
     active: true,
@@ -275,7 +280,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💍",
     tagline: "결혼 인연의 결과 시기 흐름",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}marriage`,
     href: "/fortune/marriage",
     active: true,
@@ -286,7 +291,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💰",
     tagline: "타고난 돈그릇과 재물이 드는 결",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}wealth_vessel`,
     href: "/fortune/wealth_vessel",
     active: true,
@@ -297,7 +302,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "📈",
     tagline: "2026년 재물의 기회와 주의 시기",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}wealth_year`,
     href: "/fortune/wealth_year",
     active: true,
@@ -308,7 +313,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💼",
     tagline: "올해 직업운과 도전·이직 좋은 시기",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}career_timing`,
     href: "/fortune/career_timing",
     active: true,
@@ -319,7 +324,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "💥",
     tagline: "오늘만 솔직하게, 별콩이의 돌직구",
     base: "saju",
-    cost: 15,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}fact_bomb`,
     href: "/fortune/fact_bomb",
     active: true,
@@ -330,7 +335,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🔮",
     tagline: "넌 전생에 어떤 사람이었을까",
     base: "saju",
-    cost: 15,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}past_life`,
     href: "/fortune/past_life",
     active: true,
@@ -341,7 +346,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "🏆",
     tagline: "내 인생 항목별 점수표",
     base: "saju",
-    cost: 15,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_report_card`,
     href: "/fortune/saju_report_card",
     active: true,
@@ -352,7 +357,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     emoji: "📉",
     tagline: "대운으로 그리는 인생 곡선, 최고와 최저",
     base: "saju",
-    cost: 20,
+    cost: SAJU_SINGLE_COST,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}life_graph`,
     href: "/fortune/life_graph",
     active: true,
@@ -590,7 +595,7 @@ export const FORTUNE_CHIPS: { key: FortuneCategory; label: string }[] = [
 /** 첫 진입 시 활성 칩 (3개라 화면이 풍성 + 60별 대표 노출). */
 export const DEFAULT_FORTUNE_CHIP: FortuneCategory = "love_relation";
 
-/** `/fortune?chip=` 값 → 진열 칩. 광고 착지용(사주 광고 = `?chip=fun`, 웰컴 15별로 살 수 있는 15별 상품이 있는 칸).
+/** `/fortune?chip=` 값 → 진열 칩. 광고 착지용(사주 광고 = `?chip=fun` — 단품이 전부 10별이라 어느 칸이든 웰컴 별로 바로 산다).
  * URL 은 외부 입력이라 FORTUNE_CHIPS 에 있는 키만 통과 — 그 외는 null(호출부가 기본 칩으로). */
 export function parseFortuneChip(v: string | string[] | undefined): FortuneCategory | null {
   if (typeof v !== "string") return null;

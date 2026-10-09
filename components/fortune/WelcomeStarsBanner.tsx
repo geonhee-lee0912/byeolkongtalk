@@ -1,10 +1,11 @@
 "use client";
 
 // 사주 탭 비로그인 웰컴 별 배너 — 사주 광고(/fortune?chip=fun)로 온 신규는 홈을 안 거쳐 웰컴 별을 모른다.
-// 15별 상품(재미 칩)은 웰컴 별로 바로 살 수 있다는 걸 결정 전에 알린다.
+// 10별 사주 단품은 웰컴 별로 바로 살 수 있다는 걸 결정 전에 알린다.
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import { SAJU_SINGLE_COST } from "@/lib/fortune/types";
 
 export default function WelcomeStarsBanner() {
   // null = 확인 전 → 아무것도 안 그린다. 로그인 유저에게 깜빡이지 않게.
@@ -40,7 +41,7 @@ export default function WelcomeStarsBanner() {
             카카오로 시작하면 별 {WELCOME_BONUS_STARS}개 선물
           </p>
           <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
-            ⭐{WELCOME_BONUS_STARS} 리포트는 그걸로 바로 볼 수 있어
+            ⭐{SAJU_SINGLE_COST} 리포트는 그걸로 바로 볼 수 있어
           </p>
         </div>
         <span className="text-eye-purple/60 text-[16px] shrink-0">→</span>

@@ -6,9 +6,12 @@ import {
   FORTUNE_CHIPS,
   FORTUNE_LIST,
   DEFAULT_FORTUNE_CHIP,
+  SAJU_SINGLE_COST,
   fortuneProductsByCategory,
   parseFortuneChip,
+  type FortuneType,
 } from "./types.ts";
+import { WELCOME_BONUS_STARS } from "../constants.ts";
 
 test("오늘의 운세는 완전 무료 — 무료 한도·유료 전환 없음", () => {
   const daily = FORTUNE_CONFIG.daily;
@@ -77,4 +80,20 @@ test("parseFortuneChip — 진열 칩 키만 통과, 나머지는 null", () => {
   assert.equal(parseFortuneChip(""), null);
   assert.equal(parseFortuneChip(undefined), null);
   assert.equal(parseFortuneChip(["fun", "timing"]), null);
+});
+
+// 2026-10 메뉴판·별경제 §3-3 — 사주 단품 16종은 미끼 가격, 큰 상품 셋만 따로.
+test("사주 단품 16종 = SAJU_SINGLE_COST(10) · 궁합 40 · 2026 사주 60 · 평생 70", () => {
+  const special: Partial<Record<FortuneType, number>> = { compat: 40, saju_full: 60, life_full: 70 };
+  const singles = FORTUNE_LIST.filter((f) => !(f.type in special));
+  assert.equal(singles.length, 16);
+  for (const f of singles) assert.equal(f.cost, SAJU_SINGLE_COST, f.type);
+  for (const [type, cost] of Object.entries(special)) {
+    assert.equal(FORTUNE_CONFIG[type as FortuneType].cost, cost, type);
+  }
+  assert.equal(SAJU_SINGLE_COST, 10);
+});
+
+test("사주 단품은 가입 선물 별로 바로 살 수 있다", () => {
+  assert.ok(SAJU_SINGLE_COST <= WELCOME_BONUS_STARS);
 });
