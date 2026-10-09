@@ -39,7 +39,7 @@
 --   지인 6명 제외(8자 prefix)
 
 with
-params as (select timestamptz '2026-10-09 21:05:00+09' as deploy_at),   -- 2026-10-09 #2 prod 배포(e46261c2) — Vercel 배포 완료 12:05:00Z
+params as (select timestamptz '2026-10-09 21:29:15+09' as deploy_at),   -- 2026-10-09 #3 prod 배포(4d3eed86, 카드 문구) 완료 12:29:15Z — #2(21:05)에서 판정 창을 다시 시작
 ex as (select unnest(array[
   '9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0'
 ]) as p),
