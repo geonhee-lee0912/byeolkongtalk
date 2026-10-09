@@ -37,6 +37,14 @@ export default function TarotDrawPage() {
   // 대화로 넘어가는 중 / 잔액 확인 중 — 완료 버튼 연타로 두 번 이동·두 번 조회하지 않게
   const leavingRef = useRef(false);
   const checkingRef = useRef(false);
+  // 이 화면이 떠 있는가 — 잔액을 읽는 사이 뒤로 가기로 떠났으면 응답이 와도 대화로 끌고 가지 않는다(router.push 는 컴포넌트 수명과 무관한 전역 이동이라 떠난 뒤에도 차감된다)
+  const aliveRef = useRef(false);
+  useEffect(() => {
+    aliveRef.current = true; // 본문에서 다시 켠다 — 개발 StrictMode 의 가짜 언마운트(cleanup 뒤 재실행) 뒤에도 영구히 꺼져 있지 않게
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
 
   // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게"
   useEffect(() => {
@@ -107,6 +115,7 @@ export default function TarotDrawPage() {
   //    (그 팝업의 잔액 부족 노출이 paywall_shown = Meta AddToCart 원천이라 자리를 그대로 둔다)
   //  못 읽으면 지금 prod 와 같은 실패 모양(잔액 0 → 잔액 부족 팝업) — 서버가 차감 때 다시 판단한다
   const onDrawn = (drawn: DrawnCard[]) => {
+    if (leavingRef.current) return; // 대화로 넘어가는 중엔 완료를 다시 눌러도(키보드 등) 지갑 조회를 또 내보내지 않는다
     setPendingDrawn(drawn);
     if (checkingRef.current) return;
     checkingRef.current = true;
@@ -114,6 +123,8 @@ export default function TarotDrawPage() {
     void (async () => {
       const w = (await fetchWallet()) ?? parseWallet(null);
       checkingRef.current = false;
+      // 확인 중에 화면을 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지)
+      if (!aliveRef.current) return;
       const price = tarotPrice(spreadType, w.menuArm);
       if (selection.consented && w.balance >= price) {
         goToReading(drawn); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
@@ -127,7 +138,10 @@ export default function TarotDrawPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center w-full">
+    <main
+      className="flex flex-1 flex-col items-center w-full"
+      aria-busy={checking || undefined}
+    >
       {/* 단계 인디케이터 */}
       <div className="mt-14 mb-8">
         <ProgressSteps current={3} />
@@ -173,11 +187,12 @@ export default function TarotDrawPage() {
           onClose={() => setRechargeSheetOpen(false)}
         />
       )}
+      {/* fixed 덮개라 이 <main>(또는 조상)에 transform 이 남는 애니메이션(예: animate-fade-in)을 붙이면 fixed 의 기준이 화면이 아니라 그 요소가 돼 깨진다 — StarConfirmModal 이 포털을 쓰는 이유와 같다 */}
       {checking && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
+          role="status"
           aria-live="polite"
-          aria-busy="true"
         >
           <p className="px-4 py-2 rounded-full bg-white/90 text-text-light text-sm shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
             잠시만…
