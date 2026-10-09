@@ -7,7 +7,7 @@ import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
-import { parseWallet } from "@/lib/wallet";
+import { fetchWallet, parseWallet } from "@/lib/wallet";
 import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 const MIN_LEN = 10;
@@ -81,17 +81,12 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
         })
       );
       setLoading(false);
-      fetch("/api/stars/balance", { cache: "no-store" })
-        .then((x) => (x.ok ? x.json() : null))
-        .then((b) => {
-          if (cancelled) return;
-          if (b) setBalance(b.balance ?? 0);
-          // 타로 이어가기 정가는 반반 그룹마다 다르다 — 못 읽으면 옛 그룹(지금 prod) 가격으로 보인다(서버가 권위)
-          setArm(parseWallet(b).menuArm);
-        })
-        .catch(() => {
-          if (!cancelled) setArm(parseWallet(null).menuArm);
-        });
+      void fetchWallet().then((w) => {
+        if (cancelled) return;
+        if (w) setBalance(w.balance);
+        // 타로 이어가기 정가는 반반 그룹마다 다르다 — 못 읽으면 옛 그룹(지금 prod) 가격으로 보인다(서버가 권위 · 실패는 fetchWallet 이 계측)
+        setArm((w ?? parseWallet(null)).menuArm);
+      });
     })();
     return () => {
       cancelled = true;
