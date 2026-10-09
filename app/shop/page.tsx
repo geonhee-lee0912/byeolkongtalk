@@ -10,7 +10,7 @@ import {
   shopPackages,
   type StarPackage,
 } from "@/lib/constants";
-import { parseWallet } from "@/lib/wallet";
+import { fetchWallet, parseWallet } from "@/lib/wallet";
 import type { MenuArm } from "@/lib/tarot/menu-ab";
 import { PACKAGE_USES } from "@/lib/package-uses";
 import { useTossPayment } from "@/lib/use-toss-payment";
@@ -91,16 +91,17 @@ function ShopContent() {
 
   // 별 잔액 조회
   const fetchBalance = useCallback(() => {
-    fetch("/api/stars/balance")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        setBalance(typeof d?.balance === "number" ? d.balance : 0);
-        setArm(parseWallet(d).menuArm);
-      })
-      .catch(() => {
-        setBalance(0);
-        setArm(parseWallet(null).menuArm);
-      });
+    // 잔액·반반 그룹을 함께 읽는다(lib/wallet — 실패는 wallet_fetch_failed 로 계측).
+    // 못 읽으면 잔액 0, 그룹은 이미 읽은 값을 지키고 처음이면 옛 그룹(지금 prod) — 결제 직후 재조회 실패가 메뉴판 그룹을 옛 그룹으로 덮지 않게
+    void fetchWallet().then((w) => {
+      if (w) {
+        setBalance(w.balance);
+        setArm(w.menuArm);
+        return;
+      }
+      setBalance(0);
+      setArm((prev) => prev ?? parseWallet(null).menuArm);
+    });
   }, []);
 
   useEffect(() => {
