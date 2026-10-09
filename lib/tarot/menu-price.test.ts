@@ -58,7 +58,8 @@ test("homeMenuLine — 메뉴판 그룹 로그인 유저만, 비로그인·옛 �
   assert.equal(homeMenuLine({ wallet: w(15, true, "legacy"), count: 4 }), null);
   // 스위치를 'menu' 로 돌리면 게스트도 menuArm "menu" 가 된다 — 그래도 게스트에겐 안 보인다(§9-1)
   assert.equal(homeMenuLine({ wallet: { ...w(0, false), isGuest: true }, count: 4 }), null);
-  assert.equal(homeMenuLine({ wallet: w(15, true), count: 4 }), "🃏 첫 질문은 공짜 · 깊게 보기까지 4가지");
+  // 320px 에서도 한 줄(알약 안쪽 ≈168px) — 선물 문구는 짧게(사용자 결정 2026-10-09). 실측 폭: 선물 153px · 그 외 158px
+  assert.equal(homeMenuLine({ wallet: w(15, true), count: 4 }), "🃏 첫 질문 공짜 · 깊이 따라 4가지");
   assert.equal(homeMenuLine({ wallet: w(3, false), count: 4 }), "🃏 맛보기부터 깊게 보기까지 4가지");
   // 선물 미사용이어도 잔액이 15 미만이면 "첫 질문은 공짜"를 약속하지 않는다
   assert.equal(homeMenuLine({ wallet: w(14, true), count: 4 }), "🃏 맛보기부터 깊게 보기까지 4가지");

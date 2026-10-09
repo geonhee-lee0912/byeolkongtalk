@@ -46,8 +46,9 @@ export function priceLine(p: MenuProduct, w: Wallet): PriceLine {
  *  isGuest 를 따로 보는 이유: 스위치를 'menu' 로 돌리면 게스트도 menuArm "menu" 가 된다. */
 export function homeMenuLine(o: { wallet: Wallet | null; count: number }): string | null {
   if (!o.wallet || o.wallet.isGuest || o.wallet.menuArm !== "menu") return null;
+  // 320px 에서도 한 줄로(알약 안쪽 ≈168px) — 선물 문구는 짧게 줄였다(원래 "첫 질문은 공짜 · 깊게 보기까지"는 182px 로 넘쳤다, 사용자 결정 2026-10-09)
   return isGiftFree(o.wallet)
-    ? `🃏 첫 질문은 공짜 · 깊게 보기까지 ${o.count}가지`
+    ? `🃏 첫 질문 공짜 · 깊이 따라 ${o.count}가지`
     : `🃏 맛보기부터 깊게 보기까지 ${o.count}가지`;
 }
 
