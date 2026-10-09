@@ -22,3 +22,13 @@ test("쓸 곳 문구의 산수가 메뉴판 가격과 맞는다 — 가격을 �
   assert.ok(stars("star_70") >= FULL && stars("star_70") >= DEEP + TEASER, "끝까지 한 판 · 깊게 한 판 + 맛보기");
   assert.ok(stars("star_130") >= DEEP * 2 + TEASER, "깊게 두 판 + 맛보기 한 판");
 });
+
+test("쓸 곳 문구 스냅샷 — 바꾸면 위 산수 테스트도 같이 볼 것", () => {
+  assert.deepEqual(PACKAGE_USES, {
+    star_10: "한 장 더 · 대화 4턴 더",
+    star_30: "세 장 한 판 · 맛보기 두 판",
+    star_55: "깊게 한 판",
+    star_70: "끝까지 한 판 · 깊게 한 판 + 맛보기",
+    star_130: "깊게 두 판 + 맛보기 한 판",
+  });
+});

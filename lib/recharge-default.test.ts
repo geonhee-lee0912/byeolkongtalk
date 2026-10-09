@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { STAR_PACKAGES, shopPackages, type StarPackage } from "./constants.ts";
+import { STAR_PACKAGES, SHOP_PACKAGE_IDS, shopPackages, type StarPackage } from "./constants.ts";
 import {
+  SHEET_PACKAGE_IDS,
   sheetPackages,
   receivedStars,
   pickDefaultPackage,
@@ -21,6 +22,12 @@ const pickFrom = (packages: StarPackage[], bonusEligible = false) => (shortfall:
 test("시트 칸 — 메뉴판 10·30·55·70 / 옛 10·30·70(지금 prod) · 큰 칸은 /shop 전용", () => {
   assert.deepEqual(SHEET_MENU.map((p) => p.id), ["star_10", "star_30", "star_55", "star_70"]);
   assert.deepEqual(SHEET_LEGACY.map((p) => p.id), ["star_10", "star_30", "star_70"]);
+});
+
+test("시트 칸은 그 그룹 상점 칸의 부분집합 — 큰 칸·다른 그룹 칸이 시트로 새지 않게", () => {
+  for (const arm of ["menu", "legacy"] as const) {
+    for (const id of SHEET_PACKAGE_IDS[arm]) assert.ok(SHOP_PACKAGE_IDS[arm].includes(id), `${arm} ${id}`);
+  }
 });
 
 test("receivedStars — 보너스 자격이면 +20% 반올림(화면 표시와 같은 Math.round)", () => {
@@ -70,13 +77,16 @@ test("새 유저가 맛보기 뒤 깊게(55) — 잔액 0·첫 충전: 기본 70
 test("옛 시트(지금 prod) — 규칙 그대로", () => {
   const pick = pickFrom(SHEET_LEGACY);
   assert.equal(pick(1), "star_30");
+  assert.equal(pick(5), "star_30");
   assert.equal(pick(10), "star_30");
   assert.equal(pick(11), "star_70");
+  assert.equal(pick(30), "star_70"); // 메뉴판은 여기서 star_55 로 갈라진다 — 옛 그룹은 prod 그대로 70
   assert.equal(pick(31), "star_70");
   assert.equal(pick(70), "star_70");
   const pickBonus = pickFrom(SHEET_LEGACY, true);
   assert.equal(pickBonus(12), "star_30");
   assert.equal(pickBonus(13), "star_70");
+  assert.equal(pickBonus(36), "star_70"); // 메뉴판은 여기서 star_55
   assert.equal(pickBonus(37), "star_70");
 });
 
