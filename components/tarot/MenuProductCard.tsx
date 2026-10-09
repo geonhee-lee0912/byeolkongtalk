@@ -2,7 +2,7 @@
 
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { productPositions, type MenuProduct } from "@/lib/tarot/menu";
-import { priceLine } from "@/lib/tarot/menu-price";
+import { compareFacts, priceLine } from "@/lib/tarot/menu-price";
 import type { Wallet } from "@/lib/wallet";
 
 /**
@@ -21,6 +21,7 @@ export default function MenuProductCard({
 }) {
   const info = SPREAD_INFO[product.spreadType];
   const line = priceLine(product, wallet);
+  const facts = compareFacts(product);
   const isTeaser = product.tier === "teaser";
   const isDeep = product.tier === "deep";
 
@@ -53,7 +54,7 @@ export default function MenuProductCard({
       </div>
       {line.sub && <p className="mt-0.5 text-[11px] font-bold text-eye-purple/85">{line.sub}</p>}
       <p className="mt-1 text-[11px] text-eye-purple/70">
-        🃏 {info.cardCount}장 · {isTeaser ? "질문의 답 하나 · 대화 이어가기 OK" : `질문 ${info.cardCount}개`}
+        🃏 {info.cardCount}장 · 풀이 {facts.chars} · 대화 {facts.turns}턴 안팎
       </p>
       {!isTeaser && (
         <div className="mt-1.5 flex flex-wrap gap-1">
