@@ -38,7 +38,7 @@ export function saveDeepContinuation(
 }
 
 /**
- * 동의는 한 판에 한 번만 — 카드 뽑기가 팝업 없이 대화로 보낸 직후 부른다.
+ * 동의는 한 판에 한 번만 — 카드 뽑기가 이 판을 시작할 때(goToReading — 팝업 생략·팝업 확인 둘 다) 부른다.
  * 안 지우면 대화 화면에서 뒤로 가 다시 뽑을 때 확인 팝업 없이 같은 금액이 또 빠진다(Task 4 리뷰).
  * 잔액 부족 → 충전 → 뽑기로 돌아오는 경로에선 부르지 않는다(동의를 쓰지 않았으니 그대로 이어지게).
  * 새로 저장한 선택값(consented:false)을 돌려준다 — 호출부가 화면 state 도 맞춘다: setSelection(spendConsent(sessionStorage, selection)).

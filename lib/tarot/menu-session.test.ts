@@ -117,3 +117,35 @@ test("consented: true 를 만드는 곳은 lib/tarot/menu-session.ts 하나", ()
     `동의(consented: true)는 menu-session.ts 에서만 만든다 — 옛 그룹 흐름에 새면 확인 팝업이 조용히 사라진다:\n  ${offenders.join("\n  ")}`
   );
 });
+
+// 계약 — "고민 다시 적기" 링크는 CONCERN_REWRITE_HREF 로 건다.
+// 링크가 "/concern" 으로 되돌아가면 이어가기 도중 고민을 다듬는 길에서 이어가기 표시가 조용히 끊긴다
+// (/concern 은 ?rewrite=1 없이 들어오면 새 주제로 보고 표시를 지운다) — 옛 그룹 = prod 회귀. B안을 고른 이유다.
+// 이 문구를 쓰는 파일은 전부 이 검사에 들어온다(옛 스프레드 고르기, Task 12 의 TarotMenu 도).
+// 주석 속 언급은 링크가 아니니 뺀다 — 안 빼면 /concern 의 설명 주석이 '링크 파일'로 잡혀 빈 스캔 방지를 채워 버린다.
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+test("'고민 다시 적기' 링크는 CONCERN_REWRITE_HREF 로 건다", () => {
+  const files: string[] = [];
+  for (const d of ["app", "components"]) walk(join(ROOT, d), files);
+  const linkFiles: string[] = [];
+  const problems: string[] = [];
+  for (const f of files) {
+    const src = stripComments(readFileSync(f, "utf8"));
+    if (!src.includes("고민 다시 적기")) continue;
+    const rel = relative(ROOT, f).split(sep).join("/");
+    linkFiles.push(rel);
+    if (!src.includes("CONCERN_REWRITE_HREF")) problems.push(`${rel} — CONCERN_REWRITE_HREF 를 안 쓴다`);
+    if (/href\s*[=:]\s*\{?\s*["'`]\/concern["'`]/.test(src)) problems.push(`${rel} — href="/concern" 이 남아 있다`);
+  }
+  assert.ok(
+    linkFiles.length >= 1,
+    "'고민 다시 적기' 문구를 담은 파일이 하나도 없다 — 문구가 바뀌었다면 이 계약의 문구도 같이 바꿀 것(빈 스캔 방지)"
+  );
+  assert.deepEqual(
+    problems,
+    [],
+    `'고민 다시 적기' 링크가 CONCERN_REWRITE_HREF 가 아니다 — 이어가기가 조용히 끊긴다:\n  ${problems.join("\n  ")}`
+  );
+});
