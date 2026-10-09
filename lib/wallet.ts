@@ -30,16 +30,32 @@ export function parseWallet(d: unknown): Wallet {
  *  뽑기 화면의 "잠시만…" 덮개(탭을 막는다)는 이게 없으면 끌 방법이 없다. */
 export const WALLET_TIMEOUT_MS = 5000;
 
+/** 지갑을 읽는 지면 — wallet_fetch_failed 의 meta.source. ui_events 는 경로를 안 남겨 어느 화면의 실패인지 알 수 없고,
+ *  지면마다 실패의 해로움이 다르다 — 그래서 호출부가 자기 라벨을 직접 단다.
+ *  🔴 해로운 지면(실패하면 메뉴판 그룹 유저가 옛 화면·옛 가격·옛 진열을 보거나 버튼이 잠긴다): tarot_router · tarot_draw · recharge_sheet · shop · continuation_modal
+ *     무해한 지면(실패하면 그 자리의 알약·카드가 안 뜰 뿐): home · reading_end · result
+ *  감시 쿼리(scripts/menu-ab-daily-check.sql)의 wallet_fail 이 같은 두 목록을 쓴다 — 지면을 더하면 그쪽에도 같이 적을 것(wallet.test.ts 가 맞춰 본다). */
+export type WalletSource =
+  | "home"
+  | "tarot_router"
+  | "tarot_draw"
+  | "recharge_sheet"
+  | "shop"
+  | "continuation_modal"
+  | "reading_end"
+  | "result";
+
 /**
  * 지갑 조회 — 브라우저 전용(상대 URL). 서버는 menuArmOf(session.userId) 를 직접 쓴다.
  * 실패면 null(호출부가 안전한 기본값 parseWallet(null) 을 고른다). timeoutMs 안에 본문까지 못 읽으면 우리가 끊고 실패로 본다.
  * 🔴 실패하면 화면이 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹)으로 떨어지는데, 감시 쿼리(scripts/menu-ab-daily-check.sql)의 가격 대조는 서버 값끼리라
- *    이걸 못 잡는다 — wallet_fetch_failed 를 남겨 이 이벤트를 그룹(user_id 끝 글자)별로 센다.
+ *    이걸 못 잡는다 — wallet_fetch_failed 를 남겨 이 이벤트를 그룹(user_id 끝 글자)·지면(source)별로 센다.
+ *    meta = { status, source }. source = 부른 지면(WalletSource).
  *    status = 응답을 받았으면 그 HTTP 상태(본문이 깨진 200 포함), fetch 자체가 던졌으면 "network",
  *    제한 시간에 걸려 우리가 끊었으면 "timeout"(본문을 읽다 끊긴 것 포함).
  *    제한은 AbortController + setTimeout — AbortSignal.timeout 은 구형 iOS Safari 에 없어 호출 자체가 던진다.
  */
-export async function fetchWallet(timeoutMs: number = WALLET_TIMEOUT_MS): Promise<Wallet | null> {
+export async function fetchWallet(source: WalletSource, timeoutMs: number = WALLET_TIMEOUT_MS): Promise<Wallet | null> {
   let status: number | "network" | "timeout" = "network";
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -54,6 +70,6 @@ export async function fetchWallet(timeoutMs: number = WALLET_TIMEOUT_MS): Promis
   } finally {
     clearTimeout(timer);
   }
-  trackUiEvent("wallet_fetch_failed", { meta: { status } });
+  trackUiEvent("wallet_fetch_failed", { meta: { status, source } });
   return null;
 }

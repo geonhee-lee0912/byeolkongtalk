@@ -70,7 +70,7 @@ function TarotResultInner() {
   // 소유자인지 — 공유 링크로 들어온 사람에겐 "이어서 깊게"를 보이지 않는다(부모 소유 검증으로 서버가 막는 경로)
   const [owner, setOwner] = useState(false);
   // 반반 비교 그룹 — "이어서 깊게"·다시 뽑기 가격 표시가 그룹마다 다르다(스펙 §9-1)
-  const wallet = useWallet();
+  const wallet = useWallet("result");
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {

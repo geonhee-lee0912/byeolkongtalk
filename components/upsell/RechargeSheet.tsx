@@ -106,7 +106,7 @@ export default function RechargeSheet({
     // 잔액(prop 이 없을 때)과 반반 그룹을 함께 읽는다. 못 읽으면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) 칸 —
     // 결제 준비·승인은 두 그룹 패키지를 다 받으니(lib/constants.ts STAR_PACKAGES) 결제는 그대로 된다
     if (balanceProp != null) setBalance(balanceProp);
-    void fetchWallet().then((w) => {
+    void fetchWallet("recharge_sheet").then((w) => {
       if (!alive) return;
       setArm((w ?? parseWallet(null)).menuArm);
       if (balanceProp == null && w) setBalance(w.balance);

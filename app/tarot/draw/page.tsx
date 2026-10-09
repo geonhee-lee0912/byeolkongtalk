@@ -122,7 +122,7 @@ export default function TarotDrawPage() {
     setChecking(true);
     const here = window.location.pathname; // 이 판을 시작한 주소 — 응답 때 달라졌으면 떠나는 중이다
     void (async () => {
-      const w = (await fetchWallet()) ?? parseWallet(null);
+      const w = (await fetchWallet("tarot_draw")) ?? parseWallet(null);
       checkingRef.current = false;
       // 떠나는 중이거나 떠났으면 대화로 끌고 가지 않는다(떠난 뒤 차감 방지) — 뒤로 가기는 주소가 먼저 바뀌고 화면 정리(aliveRef)는 한 박자 늦는다
       if (!aliveRef.current || window.location.pathname !== here) {

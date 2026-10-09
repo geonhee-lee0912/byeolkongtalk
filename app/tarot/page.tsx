@@ -13,7 +13,7 @@ import TarotMenu from "@/components/tarot/TarotMenu";
 export default function TarotPage() {
   const router = useRouter();
   const [pending, setPending] = useState<PendingConsultation | null>(null);
-  const wallet = useWallet();
+  const wallet = useWallet("tarot_router");
 
   useEffect(() => {
     const raw =

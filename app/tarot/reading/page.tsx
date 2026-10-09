@@ -149,7 +149,7 @@ function TarotReadingInner() {
   // safety 배너는 유저가 닫을 수 있어(onClose → null) 그 값과 따로 둔다
   const [hasSensitive, setHasSensitive] = useState(false);
   // 반반 비교 그룹 — "이어서 깊게"는 메뉴판 그룹만(스펙 §9-1)
-  const wallet = useWallet();
+  const wallet = useWallet("reading_end");
   // 인챗 추천 카드 — product 별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
   // { [product]: messageIndex } 맵
   const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});

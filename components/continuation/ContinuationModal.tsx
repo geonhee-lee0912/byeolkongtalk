@@ -81,12 +81,15 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
         })
       );
       setLoading(false);
-      void fetchWallet().then((w) => {
+      void fetchWallet("continuation_modal").then((w) => {
         if (cancelled) return;
         if (!w) {
           // 못 읽으면 가격을 모르는 채로 결제하지 않게 버튼을 잠근다(arm 은 null 로 둔다) — 옛 가격을 보여 주고
-          // 서버는 메뉴판 가격을 받는 과다 청구 경로를 없앤다(실패는 fetchWallet 이 계측)
-          setError("가격을 불러오지 못했어 — 닫았다가 다시 열어줄래?");
+          // 서버는 메뉴판 가격을 받는 과다 청구 경로를 없앤다(실패는 fetchWallet 이 계측).
+          // 타로 부모만 — 사주 이어가기 가격은 그룹과 무관(fullCostFor)이라 못 읽어도 잠그지 않는다(잔액은 서버가 확인한다)
+          if (r.consultationType === "tarot") {
+            setError("가격을 불러오지 못했어 — 닫았다가 다시 열어줄래?");
+          }
           return;
         }
         setBalance(w.balance);
@@ -118,15 +121,19 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
 
   const consultationType =
     (parent?.consultationType as "saju" | "tarot") ?? "saju";
-  const fullCost = parent && arm
-    ? fullCostFor({ consultationType, spreadType: parent.spreadType, arm })
+  // 가격이 정해졌는가 — 타로 이어가기 정가는 반반 그룹마다 달라 그룹(arm)을 알아야 한다.
+  // 사주는 그룹과 무관(fullCostFor)이라 지갑을 못 읽어도(arm null) 가격·버튼이 그대로다
+  const priceReady = parent !== null && (consultationType !== "tarot" || arm !== null);
+  // arm ?? "legacy" 의 "legacy" 는 사주 몫의 형식값이다 — fullCostFor 가 사주에선 그룹을 안 본다(타로는 priceReady 가 arm 을 보장)
+  const fullCost = parent && priceReady
+    ? fullCostFor({ consultationType, spreadType: parent.spreadType, arm: arm ?? "legacy" })
     : 0;
   const deepCost = continuationPrice(fullCost, "deep");
-  // 그룹을 읽기 전엔 가격 자리를 비워 둔다(옛 가격이 잠깐 보였다 바뀌지 않게)
-  const priceText = (n: number) => (arm ? String(n) : "…");
+  // 가격이 정해지기 전엔 가격 자리를 비워 둔다(옛 가격이 잠깐 보였다 바뀌지 않게)
+  const priceText = (n: number) => (priceReady ? String(n) : "…");
 
   const start = async (mode: "fresh" | "deep") => {
-    if (!parent || !arm) return;
+    if (!parent || !priceReady) return;
     if (concern.length < MIN_LEN) {
       setError(`고민을 ${MIN_LEN}자 이상 적어줘`);
       return;
@@ -268,14 +275,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <>
                   <button
                     onClick={() => start("fresh")}
-                    disabled={submitting || !arm || concern.length < MIN_LEN}
+                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
-                    disabled={submitting || !arm || concern.length < MIN_LEN}
+                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
@@ -285,7 +292,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
               ) : (
                 <button
                   onClick={() => start("deep")}
-                  disabled={submitting || !arm || concern.length < MIN_LEN}
+                  disabled={submitting || !priceReady || concern.length < MIN_LEN}
                   className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
                   지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}

@@ -94,7 +94,7 @@ function ShopContent() {
     // 잔액·반반 그룹을 함께 읽는다(lib/wallet — 실패는 wallet_fetch_failed 로 계측).
     // 못 읽으면 잔액 0, 그룹은 이미 읽은 값을 지키고 처음이면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) —
     // 결제 직후 재조회 실패가 이미 읽은 그룹을 폴백으로 덮지 않게
-    void fetchWallet().then((w) => {
+    void fetchWallet("shop").then((w) => {
       if (w) {
         setBalance(w.balance);
         setArm(w.menuArm);
