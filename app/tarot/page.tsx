@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PENDING_KEY, type PendingConsultation } from "@/lib/emotions";
 import { useWallet } from "@/lib/use-wallet";
+import { MENU_AB } from "@/lib/tarot/menu-ab";
 import SpreadPicker from "@/components/tarot/SpreadPicker";
 import TarotMenu from "@/components/tarot/TarotMenu";
 
@@ -33,13 +34,16 @@ export default function TarotPage() {
     }
   }, [router]);
 
-  if (!pending || !wallet) {
-    return (
-      <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
-      </main>
-    );
-  }
+  const loading = (
+    <main className="flex flex-1 items-center justify-center px-5">
+      <p className="text-text-light text-sm">잠시만…</p>
+    </main>
+  );
+  if (!pending) return loading;
+  // 전원 옛 그룹(구현 중 잠금 · 판정 뒤 옛 그룹 승리)이면 그룹을 물을 필요가 없어 지금 prod 처럼 바로 고르기 화면을 띄운다.
+  // 반반 중엔 그룹을 알아야 해서 지갑 왕복을 기다린다(다른 곳 #11).
+  if (MENU_AB === "legacy") return <SpreadPicker pending={pending} />;
+  if (!wallet) return loading;
   if (wallet.menuArm === "menu") return <TarotMenu pending={pending} wallet={wallet} />;
   return <SpreadPicker pending={pending} />;
 }

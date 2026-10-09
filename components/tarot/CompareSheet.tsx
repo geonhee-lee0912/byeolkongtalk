@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { MenuProduct } from "@/lib/tarot/menu";
 import { compareFacts, koCardCount, priceLine, type CompareFacts } from "@/lib/tarot/menu-price";
@@ -27,8 +27,11 @@ export default function CompareSheet({
   onTeaser: () => void;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    history.pushState({ sheet: "compare" }, "");
+    // dev StrictMode 가 effect 를 두 번 돌려도 칸은 한 번만 쌓는다 — 두 번째엔 이미 시트 칸이라 건너뛴다
+    if (history.state?.sheet !== "compare") history.pushState({ sheet: "compare" }, "");
     const onPop = () => onClose();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
@@ -37,6 +40,7 @@ export default function CompareSheet({
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    panelRef.current?.focus(); // 열릴 때 포커스를 시트로 옮긴다(포커스 트랩은 없다)
     return () => {
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("keydown", onKey);
@@ -53,6 +57,7 @@ export default function CompareSheet({
   const a = compareFacts(teaser);
   const b = compareFacts(product);
   const line = priceLine(product, wallet);
+  const teaserLine = priceLine(teaser, wallet);
   const count = koCardCount(b.cards);
 
   return createPortal(
@@ -64,13 +69,23 @@ export default function CompareSheet({
       aria-label={`${product.name} — 맛보기와 비교`}
     >
       <div
-        className="w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl bg-cream px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)]"
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl bg-cream px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] outline-none"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          aria-label="닫기"
+          onClick={close}
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-text-light/70 hover:bg-lilac-soft/50"
+        >
+          ✕
+        </button>
         <div className="flex justify-center pb-2">
           <div className="h-1 w-10 rounded-full bg-lilac-mid/40" />
         </div>
-        <p className="text-center font-display text-[17px] leading-snug text-eye-purple">{product.name}</p>
+        <p className="px-6 text-center font-display text-[17px] leading-snug text-eye-purple">{product.name}</p>
         <p className="mt-1 text-center text-[11.5px] text-eye-purple/75">
           한 장으로는 답 하나까지만 보여. {count}이면 이만큼 달라져
         </p>
@@ -94,7 +109,7 @@ export default function CompareSheet({
           onClick={onTeaser}
           className="mt-1.5 w-full py-2 text-[12px] text-eye-purple/70 underline underline-offset-2"
         >
-          맛보기부터 해볼래
+          맛보기부터 해볼래 · {teaserLine.main}
         </button>
       </div>
     </div>,

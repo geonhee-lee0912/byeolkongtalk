@@ -23,12 +23,15 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
   const router = useRouter();
   const [comparing, setComparing] = useState<MenuProduct | null>(null);
   const viewedRef = useRef(false);
+  // 이동이 시작된 뒤의 탭은 무시한다 — 연타가 계측을 두 번 찍거나 시트 칸을 남기지 않게(돌아오면 재마운트로 초기화)
+  const leavingRef = useRef(false);
   const tag = normalizeEmotionTag(pending.emotion);
   const menu = useMemo(() => getMenu(tag), [tag]);
 
   // 메뉴는 현행 질문 10개에만 있다 — 모르는 태그면 고민 쓰기로 돌려보낸다
+  // ?rewrite=1 — 사주 대화의 [RECO:tarot] 추천 이동처럼 이어가기 표시를 심고 태그 없이 온 경우, 고민을 다시 적어도 그 이어가기가 남는다
   useEffect(() => {
-    if (!tag) router.replace("/concern");
+    if (!tag) router.replace(CONCERN_REWRITE_HREF);
   }, [tag, router]);
 
   // 메뉴판 노출 — 마운트당 1회
@@ -53,6 +56,8 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
 
   // 비교 창은 뒤로가기로 닫히게 history 를 한 칸 쌓는다 — 거기서 떠날 땐 그 칸을 바꿔 써서 뒤로가기가 두 번 걸리지 않게
   const start = (p: MenuProduct, from: "menu" | "sheet") => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
     saveMenuSelection(sessionStorage, p, pending.concern);
     if (from === "sheet") router.replace("/tarot/draw");
     else router.push("/tarot/draw");
@@ -71,6 +76,7 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
     });
 
   const onCardTap = (p: MenuProduct) => {
+    if (leavingRef.current) return;
     trackSelected(p);
     if (p.tier === "teaser") {
       start(p, "menu");
@@ -174,10 +180,12 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
           teaser={teaser}
           wallet={wallet}
           onConfirm={() => {
+            if (leavingRef.current) return;
             trackUiEvent("tarot_compare_confirmed", { meta: { product: comparing.key } });
             start(comparing, "sheet");
           }}
           onTeaser={() => {
+            if (leavingRef.current) return;
             trackSelected(teaser);
             start(teaser, "sheet");
           }}
