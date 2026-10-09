@@ -215,6 +215,10 @@ export const UI_EVENTS = [
   "inchat_offer_shown",
   /** 타로톡 인챗 결제 제안 탭 — meta:{product, surface} */
   "inchat_offer_clicked",
+  /** 지갑(/api/stars/balance) 조회 실패 — 화면이 옛 그룹·잔액 0 으로 떨어진다. meta:{status:숫자|"network"}
+   *  🔴 메뉴판 반반 판정의 고장 감시용 — 감시 쿼리의 가격 대조(서버 차감 vs 서버 규칙)는 이 표시 고장을 못 잡는다.
+   *     user_id 끝 글자로 그룹을 갈라 센다(spec 2026-10-05-타로톡-메뉴판-별경제 §9) */
+  "wallet_fetch_failed",
 ] as const;
 
 export type UiEvent = (typeof UI_EVENTS)[number];
