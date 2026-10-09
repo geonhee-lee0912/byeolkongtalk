@@ -17,7 +17,7 @@ import {
 } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS, type EmotionTag } from "@/lib/emotions";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
-import { checkShownPrice, tarotPrice } from "@/lib/tarot/pricing";
+import { checkShownPrice, tarotPrice, validShownPrice } from "@/lib/tarot/pricing";
 import { menuArmOf } from "@/lib/tarot/menu-ab";
 
 export const dynamic = "force-dynamic";
@@ -136,18 +136,18 @@ export async function POST(request: NextRequest) {
   ) {
     // 설계된 정상 신호(WARN — error 아님) — 배포 순간 낡은 번들, 판정 전환 배포 직후 잠깐 몰릴 수 있다.
     // user_id 가 error_logs 에 남아 감시 SQL 이 그룹(끝 글자)별로 센다
-    await logWarn("price_changed: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)", {
+    await logWarn("PRICE_CHANGED: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)", {
       route: "/api/consultations/tarot",
       userId,
       extra: {
         spread: body.spreadType,
         arm,
-        expected: typeof body.expectedCost === "number" ? body.expectedCost : "missing",
+        expected: validShownPrice(body.expectedCost) ?? "missing", // 판정과 같은 정규화
         cost,
       },
     });
     return NextResponse.json(
-      { error: "가격이 바뀌었어 — 다시 확인해줘", code: "price_changed", cost },
+      { error: "가격이 바뀌었어 — 다시 확인해줘", code: "PRICE_CHANGED", cost },
       { status: 409 }
     );
   }

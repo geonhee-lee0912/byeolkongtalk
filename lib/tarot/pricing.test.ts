@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { SPREAD_INFO, type SpreadType } from "./spreads.ts";
-import { checkShownPrice, tarotPrice } from "./pricing.ts";
+import { checkShownPrice, tarotPrice, validShownPrice } from "./pricing.ts";
 
 const SPREADS = Object.keys(SPREAD_INFO) as SpreadType[];
 
@@ -49,6 +49,14 @@ test("checkShownPrice — 0 이상 정수가 아니면 없는 것으로 본다(�
     assert.equal(checkShownPrice({ expected: bad, actual: 25, legacyShown: 25 }), "ok", label);
     // 서버 가격이 15 라도 "15"·[15] 는 15 가 아니다 — 없는 것으로 보고 옛 화면 값(10)과 대조해 막힌다
     assert.equal(checkShownPrice({ expected: bad, actual: 15, legacyShown: 10 }), "changed", label);
+  }
+});
+
+test("validShownPrice — 0 이상 정수만 그 숫자, 그 밖은 null(판정과 WARN 기록이 같은 정규화를 쓴다)", () => {
+  assert.equal(validShownPrice(15), 15);
+  assert.equal(validShownPrice(0), 0);
+  for (const bad of [undefined, null, "15", 15.5, -15, NaN, Infinity, [15], {}, true]) {
+    assert.equal(validShownPrice(bad), null, `${typeof bad}:${String(bad)}`);
   }
 });
 

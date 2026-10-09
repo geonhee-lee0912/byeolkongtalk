@@ -287,6 +287,8 @@ function TarotReadingInner() {
     }
 
     void (async () => {
+      // 이 판을 시작한 주소 — 요청 전에 잡는다. 409(PRICE_CHANGED) 처리 때 요청이 오가는 사이나 문구를 보여 주는 사이에 떠났으면 아무것도 안 한다
+      const here = window.location.pathname;
       try {
         const contRaw =
           typeof window !== "undefined"
@@ -309,7 +311,7 @@ function TarotReadingInner() {
             drawnCards: parsed.drawnCards,
             previousReadingId: cont.previousReadingId,
             continuationMode: cont.mode === "fresh" ? "fresh" : undefined,
-            // 뽑기 화면이 보여 준(쓴) 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 price_changed)
+            // 뽑기 화면이 보여 준(쓴) 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 PRICE_CHANGED)
             expectedCost: typeof parsed.expectedCost === "number" ? parsed.expectedCost : undefined,
           }),
         });
@@ -329,14 +331,16 @@ function TarotReadingInner() {
           // 가격이 바뀌었다(배포 순간 낡은 뽑기 화면이 옛 가격을 보여 줬다 등) — 서버는 차감도 리딩도 안 만들었다.
           // 카드를 다시 뽑게 뽑기 화면으로: 고른 상품(TAROT_SPREAD_KEY)은 남아 있고 동의는 이미 썼으니 지금 가격의 확인 팝업이 뜬다(다시 POST 하지 않는다 — 고리 없음).
           // 이어가기 표시는 되살린다(바로 위에서 지웠다) — 다시 뽑은 판도 같은 이어가기여야 한다.
-          // 문구를 읽을 틈을 두고 옮기되, 그사이 다른 화면으로 떠났으면 끌고 오지 않는다(router 이동은 화면 수명과 무관한 전역 이동)
+          // 문구를 읽을 틈을 두고 옮기되, 그사이 다른 화면으로 떠났으면 끌고 오지 않는다(이동은 화면 수명과 무관한 전역 이동)
           // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 화면은 자기 문구를 쓴다
-          if (data?.code === "price_changed") {
+          if (data?.code === "PRICE_CHANGED") {
+            // 요청이 오가는 사이에 떠났으면 복원도 이동도 안 한다 — 되살린 이어가기 표시가 다른 새 리딩에 붙고, 떠난 화면에서 끌고 오게 된다
+            if (window.location.pathname !== here) return;
             if (contRaw) sessionStorage.setItem("byeolkong:continuation", contRaw);
             setError("가격이 바뀌었어 — 카드를 다시 뽑아서 확인해줘");
-            const here = window.location.pathname;
             setTimeout(() => {
-              if (window.location.pathname === here) router.replace("/tarot/draw");
+              // 전체 새로고침으로 옮긴다 — 새 가격표 번들을 확실히 받는다(빌드가 같아도 그렇다)
+              if (window.location.pathname === here) window.location.replace("/tarot/draw");
             }, 2000);
             return;
           }
