@@ -7,7 +7,7 @@ export interface TarotSpreadSelection {
   spreadCategory: SpreadCategory;
   emotion: EmotionTag;
   concern: string;
-  /** 메뉴판에서 가격을 보고 고른 선택(맛보기 탭·비교 창 '이걸로 볼래'·맛보기 끝 이어서 깊게) — 메뉴판 그룹만 심는다.
+  /** 메뉴판에서 가격을 보고 고른 선택(맛보기 탭·비교 창 '이걸로 볼래'·비교 창 '맛보기부터 해볼래'(버튼에 맛보기 가격)·맛보기 끝 이어서 깊게) — 메뉴판 그룹만 심는다.
    *  카드 뽑기는 잔액이 충분하면 확인 팝업 없이 바로 대화로 보낸다 — 모자라면 지금처럼 뽑은 뒤 잔액 부족 팝업.
    *  스펙 2026-10-05-타로톡-메뉴판-별경제 §4 */
   consented?: boolean;

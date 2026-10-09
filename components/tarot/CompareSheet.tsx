@@ -40,7 +40,8 @@ export default function CompareSheet({
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    panelRef.current?.focus(); // 열릴 때 포커스를 시트로 옮긴다(포커스 트랩은 없다)
+    // 열릴 때 포커스를 시트로 옮긴다(포커스 트랩은 없다) — preventScroll: iOS 에서 fade-in 첫 프레임에 문서가 몇 px 스크롤되는 걸 막는다(구형은 옵션을 무시)
+    panelRef.current?.focus({ preventScroll: true });
     return () => {
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("keydown", onKey);

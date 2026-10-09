@@ -189,7 +189,11 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
             trackSelected(teaser);
             start(teaser, "sheet");
           }}
-          onClose={() => setComparing(null)}
+          // 동의 직후 대기 중이던 이동이 뒤로·✕·ESC 로 버려져 /tarot 에 남으면(Next 는 복원을 우선한다) leavingRef 가 true 로 남아 탭이 전부 무시된다 — 닫을 때 푼다(onClose 는 popstate·close() 에서만 불려, 이동이 커밋돼 언마운트될 땐 안 불린다)
+          onClose={() => {
+            leavingRef.current = false;
+            setComparing(null);
+          }}
         />
       )}
     </main>
