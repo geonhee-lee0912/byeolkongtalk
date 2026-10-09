@@ -19,6 +19,7 @@ import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/Clar
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet, { type ClarifierFailure } from "@/components/upsell/ClarifierSheet";
 import PostEndOffers from "@/components/upsell/PostEndOffers";
+import TeaserUpsellCard from "@/components/upsell/TeaserUpsellCard";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
@@ -27,6 +28,7 @@ import { getCard } from "@/lib/tarot/cards";
 import { parseReopenHeader, stripEndFromLastAssistant, type ReopenOptions } from "@/lib/tarot/reopen";
 import { clarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 import { purchaseRequest } from "@/lib/tarot/purchase-request";
+import { useWallet } from "@/lib/use-wallet";
 import {
   END_MARKER_REGEX,
   parseIntoBubbles,
@@ -143,6 +145,11 @@ function TarotReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
+  // 위기 감지된 리딩 — "이어서 깊게"를 숨긴다(서버도 이 리딩을 부모로 한 이어가기를 400 으로 막는다).
+  // safety 배너는 유저가 닫을 수 있어(onClose → null) 그 값과 따로 둔다
+  const [hasSensitive, setHasSensitive] = useState(false);
+  // 반반 비교 그룹 — "이어서 깊게"는 메뉴판 그룹만(스펙 §9-1)
+  const wallet = useWallet();
   // 인챗 추천 카드 — product 별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
   // { [product]: messageIndex } 맵
   const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});
@@ -223,6 +230,7 @@ function TarotReadingInner() {
             emotionTag: string | null;
             question: string;
             drawnCards: TarotDrawResult["drawnCards"] | null;
+            hasSensitive?: boolean;
           };
           const msgs = (d.messages ?? []) as Message[];
           if (!reading.drawnCards || reading.drawnCards.length === 0) {
@@ -237,6 +245,7 @@ function TarotReadingInner() {
             drawnCards: reading.drawnCards,
           });
           setReadingId(resumeId);
+          setHasSensitive(reading.hasSensitive === true);
           // 메시지가 없으면(이어가기 deep 로 갓 생성됐거나 첫 스트림 도중 이탈해 미저장)
           // 첫 풀이를 자동 생성, 있으면 대화 복원.
           if (msgs.length === 0) {
@@ -602,6 +611,7 @@ function TarotReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
+        setHasSensitive(true);
       }
       // 강제 종료선 종료 턴이면 재개 제안 자격을 서버가 헤더로 준다 (spec §3-4) — 헤더 없음 = 해당 없음
       setReopen(parseReopenHeader(r.headers.get("X-Reopen")) ?? NO_REOPEN);
@@ -1247,6 +1257,15 @@ function TarotReadingInner() {
               <p className="text-[12px] text-text-light text-center pb-2.5">
                 별콩이의 풀이가 마무리됐어 ✨
               </p>
+              {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹만, 같은 질문의 깊게 상품을 정가로(스펙 §6·§9-1). 위기 리딩엔 없음 */}
+              {readingId && wallet?.menuArm === "menu" && draw?.spreadType === "one_card" && !hasSensitive && (
+                <TeaserUpsellCard
+                  parentReadingId={readingId}
+                  emotion={draw.emotion}
+                  concern={draw.concern}
+                  surface="reading_end"
+                />
+              )}
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
                 className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"

@@ -11,6 +11,7 @@ import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { EMOTION_TO_CATEGORY } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import TeaserUpsellCard from "@/components/upsell/TeaserUpsellCard";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
@@ -18,6 +19,9 @@ import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
+import { useWallet } from "@/lib/use-wallet";
+import { tarotPrice } from "@/lib/tarot/pricing";
+import { MENU_AB } from "@/lib/tarot/menu-ab";
 
 export default function TarotResultPage() {
   return (
@@ -62,6 +66,10 @@ function TarotResultInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  // 소유자인지 — 공유 링크로 들어온 사람에겐 "이어서 깊게"를 보이지 않는다(부모 소유 검증으로 서버가 막는 경로)
+  const [owner, setOwner] = useState(false);
+  // 반반 비교 그룹 — "이어서 깊게"·다시 뽑기 가격 표시가 그룹마다 다르다(스펙 §9-1)
+  const wallet = useWallet();
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
@@ -95,6 +103,7 @@ function TarotResultInner() {
         setData(d as FetchData);
         // 소유자가 결과 화면을 연 경우만 열람 마킹 (완료 퍼널 계량용, fire-and-forget)
         if (isOwner) {
+          setOwner(true);
           void fetch(`/api/readings/${id}`, { method: "POST" }).catch(() => {});
         }
       } catch {
@@ -148,6 +157,8 @@ function TarotResultInner() {
   const emotionIcon = EMOTION_OPTIONS.find(
     (o) => o.tag === reading.emotionTag
   )?.icon;
+  // 다시 뽑기 가격의 그룹 — 스위치가 한쪽(구현 중 잠금 · 판정 뒤)이면 지갑을 기다리지 않는다(지금 prod 처럼 바로 "⭐10~")
+  const priceArm = MENU_AB === "split" ? (wallet?.menuArm ?? null) : MENU_AB;
 
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
@@ -319,14 +330,26 @@ function TarotResultInner() {
         </div>
       )}
 
-      {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로 */}
+      {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹 · 소유자 · [END] · 비민감 맛보기 리딩만(스펙 §6·§9-1). "이 고민 다시 뽑기"는 그 아래로 */}
+      {owner && wallet?.menuArm === "menu" && ended && !reading.hasSensitive && reading.spreadType === "one_card" && (
+        <div className="w-full max-w-md mx-auto px-5 mt-6">
+          <TeaserUpsellCard
+            parentReadingId={reading.id}
+            emotion={reading.emotionTag}
+            concern={reading.question}
+            surface="result"
+          />
+        </div>
+      )}
+
+      {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로. 가격 = 그 그룹의 맛보기(가장 싼 상품)부터 */}
       <RechargeBlock
         allowContinue={!reading.hasSensitive}
         showContinue={false}
         newHref="/tarot"
         newLabel="이 고민 다시 뽑기"
         newDesc="스프레드 다시 골라 카드 뽑기"
-        newCostLabel="⭐10~"
+        newCostLabel={priceArm ? `⭐${tarotPrice("one_card", priceArm)}~` : ""}
         readingId={reading.id}
       />
 
