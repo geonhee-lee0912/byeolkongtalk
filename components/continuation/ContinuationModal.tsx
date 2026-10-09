@@ -7,6 +7,8 @@ import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
+import { parseWallet } from "@/lib/wallet";
+import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -43,6 +45,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
   const [closing, setClosing] = useState<string | null>(null);
   const [concern, setConcern] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
+  const [arm, setArm] = useState<MenuArm | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +56,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     setClosing(null);
     setConcern("");
     setBalance(null);
+    setArm(null);
     setError(null);
     let cancelled = false;
     void (async () => {
@@ -80,9 +84,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       fetch("/api/stars/balance", { cache: "no-store" })
         .then((x) => (x.ok ? x.json() : null))
         .then((b) => {
-          if (!cancelled && b) setBalance(b.balance ?? 0);
+          if (cancelled) return;
+          if (b) setBalance(b.balance ?? 0);
+          // 타로 이어가기 정가는 반반 그룹마다 다르다 — 못 읽으면 옛 그룹(지금 prod) 가격으로 보인다(서버가 권위)
+          setArm(parseWallet(b).menuArm);
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!cancelled) setArm(parseWallet(null).menuArm);
+        });
     })();
     return () => {
       cancelled = true;
@@ -108,13 +117,15 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
 
   const consultationType =
     (parent?.consultationType as "saju" | "tarot") ?? "saju";
-  const fullCost = parent
-    ? fullCostFor({ consultationType, spreadType: parent.spreadType })
+  const fullCost = parent && arm
+    ? fullCostFor({ consultationType, spreadType: parent.spreadType, arm })
     : 0;
   const deepCost = continuationPrice(fullCost, "deep");
+  // 그룹을 읽기 전엔 가격 자리를 비워 둔다(옛 가격이 잠깐 보였다 바뀌지 않게)
+  const priceText = (n: number) => (arm ? String(n) : "…");
 
   const start = async (mode: "fresh" | "deep") => {
-    if (!parent) return;
+    if (!parent || !arm) return;
     if (concern.length < MIN_LEN) {
       setError(`고민을 ${MIN_LEN}자 이상 적어줘`);
       return;
@@ -259,14 +270,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                     disabled={submitting || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    타로 카드 새로 뽑아 상담 (⭐ {fullCost})
+                    타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
                     disabled={submitting || concern.length < MIN_LEN}
                     className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
-                    동일한 카드로 이어서 상담 (⭐ {deepCost}
+                    동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
                     <span className="text-[11px] text-lilac-deep/70">40% 할인</span>)
                   </button>
                 </>
@@ -276,7 +287,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   disabled={submitting || concern.length < MIN_LEN}
                   className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  지난 대화를 이어서 상담 (⭐ {deepCost}
+                  지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}
                   <span className="text-[11px] text-white/70">40% 할인</span>)
                 </button>
               )}

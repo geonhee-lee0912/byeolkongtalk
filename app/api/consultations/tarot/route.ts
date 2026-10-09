@@ -17,6 +17,8 @@ import {
 } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS, type EmotionTag } from "@/lib/emotions";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
+import { tarotPrice } from "@/lib/tarot/pricing";
+import { menuArmOf } from "@/lib/tarot/menu-ab";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +117,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: drawnValidated.error }, { status: 400 });
   }
   const drawnCards = drawnValidated;
-  const cost = info.starCost;
+  // 가격 = 반반 비교 그룹의 가격 — 화면도 같은 함수(lib/tarot/pricing.ts)를 쓴다. 스펙 §9-1
+  const cost = tarotPrice(body.spreadType, menuArmOf(userId));
 
   // 잔액 사전 확인 (UX 빠른 실패)
   const balance = await getStarBalance(userId);

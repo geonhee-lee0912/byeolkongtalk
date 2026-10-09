@@ -12,6 +12,7 @@ import { logError } from "@/lib/logger";
 import { continuationPrice, fullCostFor, type ContinuationMode } from "@/lib/continuation";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
 import type { SpreadType } from "@/lib/tarot/spreads";
+import { menuArmOf } from "@/lib/tarot/menu-ab";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
   const fullCost = fullCostFor({
     consultationType,
     spreadType: parent.spread_type as SpreadType | null,
+    arm: menuArmOf(userId),
   });
   const cost = continuationPrice(fullCost, body.mode);
 

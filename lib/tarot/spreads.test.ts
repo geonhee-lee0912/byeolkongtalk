@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SPREAD_INFO } from "./spreads.ts";
 
-// 가격 사다리 (스펙 2026-10-05-타로톡-메뉴판-별경제 §3-2): 맛보기 15 · 3장 25 · 깊게(5·6장) 55 · 끝까지(7장) 70.
-// 투카드는 메뉴 밖이지만 엔진·예전 리딩·이어가기용으로 15 그대로. 메뉴 밖 스프레드(readiness_6·chakra_7)도 카드 수 기준을 따른다.
-test("타로 가격은 카드 수로 정해진다", () => {
-  const byCards: Record<number, number> = { 1: 15, 2: 15, 3: 25, 5: 55, 6: 55, 7: 70 };
+// SPREAD_INFO.starCost = 반반 비교의 옛 그룹(지금 prod) 가격. 메뉴판 그룹 가격은 lib/tarot/pricing.ts 의 tarotPrice.
+// prod 값으로 두는 이유: 그룹을 모르는 코드가 남아도 prod 와 같은 값을 보이게(스펙 §9-1 "옛 그룹 = prod 그대로").
+test("옛 그룹(prod) 타로 가격은 카드 수로 정해진다 — 10·15·25·40·45·55", () => {
+  const byCards: Record<number, number> = { 1: 10, 2: 15, 3: 25, 5: 40, 6: 45, 7: 55 };
   for (const [type, info] of Object.entries(SPREAD_INFO)) {
     assert.equal(info.starCost, byCards[info.cardCount], `${type} (${info.cardCount}장)`);
   }

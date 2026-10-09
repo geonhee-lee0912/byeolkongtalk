@@ -1,5 +1,5 @@
 // 타로 풀이 [END] 수렴 임계치 — 스프레드별 분기 (카드 수 ↑ → 더 긴 대화 허용).
-// 비용은 SPREAD_INFO[type].starCost 가 정본 (lib/tarot/spreads.ts).
+// 비용은 lib/tarot/pricing.ts 의 tarotPrice(spread, 반반 그룹) 가 정본 (옛 그룹 = SPREAD_INFO.starCost).
 
 import type { SpreadType } from "./spreads";
 

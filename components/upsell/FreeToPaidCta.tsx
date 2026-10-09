@@ -1,6 +1,6 @@
 "use client";
 
-// 무료 상품(MBTI·별자리) 결과 → 유료 사주 유도 CTA. 목적지는 20~40★만(콜드 페이월 60★+ 금지).
+// 무료 상품(MBTI·별자리) 결과 → 유료 사주 유도 CTA. 목적지는 10~40★만(콜드 페이월 60★+ 금지).
 import Link from "next/link";
 import Image from "next/image";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
@@ -17,7 +17,7 @@ export default function FreeToPaidCta({
 }: {
   title?: string;
   subtitle?: string;
-  products: FortuneType[]; // 20~40★ 사주 종목만 넘길 것
+  products: FortuneType[]; // 10~40★ 사주 종목만 넘길 것
   source: string; // 계측 귀속 (mbti|byeoljari)
   /** 타로톡(대화) 카드 — 검증된 전환 엔진. 무료 유저의 저마찰 유료 진입. */
   chat?: { label: string; tagline: string };

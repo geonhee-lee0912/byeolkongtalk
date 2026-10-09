@@ -34,6 +34,7 @@ export type SpreadCategory =
 export interface SpreadInfo {
   type: SpreadType;
   cardCount: number;
+  /** 옛 그룹(지금 prod) 가격 — 그룹별 가격은 lib/tarot/pricing.ts tarotPrice(spread, arm) 를 쓸 것 */
   starCost: number;
   label: string;
   tagline: string;
@@ -43,7 +44,7 @@ export interface SpreadInfo {
 
 export const SPREAD_INFO: Record<SpreadType, SpreadInfo> = {
   one_card: {
-    type: "one_card", cardCount: 1, starCost: 15,
+    type: "one_card", cardCount: 1, starCost: 10,
     label: "원카드", tagline: "한 장으로 가볍게",
     description: "빠르게 한 줄, 지금 고민에 대한 답이 필요할 때",
     accent: "#6B8DD6",
@@ -61,67 +62,67 @@ export const SPREAD_INFO: Record<SpreadType, SpreadInfo> = {
     accent: "#E0976B",
   },
   relationship_5: {
-    type: "relationship_5", cardCount: 5, starCost: 55,
+    type: "relationship_5", cardCount: 5, starCost: 40,
     label: "관계 스프레드", tagline: "다섯 장으로 두 사람을",
     description: "너와 상대방의 관계, 서로의 기대와 앞으로의 방향까지",
     accent: "#D4708F",
   },
   deep_feelings_5: {
-    type: "deep_feelings_5", cardCount: 5, starCost: 55,
+    type: "deep_feelings_5", cardCount: 5, starCost: 40,
     label: "속마음 심층", tagline: "그 사람만 다섯 장으로",
     description: "겉모습 뒤의 진짜 속마음과 망설임, 다가올 태도까지 깊이",
     accent: "#C25C8A",
   },
   reunion_5: {
-    type: "reunion_5", cardCount: 5, starCost: 55,
+    type: "reunion_5", cardCount: 5, starCost: 40,
     label: "재회 스프레드", tagline: "다시 이어질 결을",
     description: "두 사람을 막고 있는 것과 다시 이어질 가능성을 봐줄게",
     accent: "#9F8AD0",
   },
   reunion_deep_7: {
-    type: "reunion_deep_7", cardCount: 7, starCost: 70,
+    type: "reunion_deep_7", cardCount: 7, starCost: 55,
     label: "재회 심층", tagline: "일곱 장으로 정직하게",
     description: "서로의 몫과 회복의 조건, 재회가 너에게 갖는 의미까지",
     accent: "#7E6BB5",
   },
   potential_7: {
-    type: "potential_7", cardCount: 7, starCost: 70,
+    type: "potential_7", cardCount: 7, starCost: 55,
     label: "가능성 스프레드", tagline: "장기 잠재력까지",
     description: "지금 상황부터 다음 단계, 멀리의 잠재력까지 일곱 장으로",
     accent: "#4E8FB8",
   },
   checkin_6: {
-    type: "checkin_6", cardCount: 6, starCost: 55,
+    type: "checkin_6", cardCount: 6, starCost: 45,
     label: "관계 체크인", tagline: "서로의 필요를 나란히",
     description: "두 사람의 상태와 서로에게 필요한 것을 대칭으로 점검해",
     accent: "#5CA88F",
   },
   stay_or_go_6: {
-    type: "stay_or_go_6", cardCount: 6, starCost: 55,
+    type: "stay_or_go_6", cardCount: 6, starCost: 45,
     label: "계속? 그만?", tagline: "두 갈래를 나란히",
     description: "머무를 이유와 떠날 이유, 각 선택 뒤의 너를 비교해줄게",
     accent: "#C98A4B",
   },
   new_love_5: {
-    type: "new_love_5", cardCount: 5, starCost: 55,
+    type: "new_love_5", cardCount: 5, starCost: 40,
     label: "새 인연 찾기", tagline: "다가올 인연의 결",
     description: "새 인연의 특성과 만나게 될 환경, 관계의 방향까지",
     accent: "#6FAE6F",
   },
   readiness_6: {
-    type: "readiness_6", cardCount: 6, starCost: 55,
+    type: "readiness_6", cardCount: 6, starCost: 45,
     label: "새 사랑 준비도", tagline: "나부터 들여다보기",
     description: "지난 연애의 교훈과 방해 요소, 마음·생각·삶의 준비 상태",
     accent: "#8FA85C",
   },
   healing_6: {
-    type: "healing_6", cardCount: 6, starCost: 55,
+    type: "healing_6", cardCount: 6, starCost: 45,
     label: "마음 치유", tagline: "남은 상처 돌보기",
     description: "반복되는 패턴과 남은 상처, 놓아주기 위한 방향을 짚어줄게",
     accent: "#B58AA5",
   },
   chakra_7: {
-    type: "chakra_7", cardCount: 7, starCost: 70,
+    type: "chakra_7", cardCount: 7, starCost: 55,
     label: "마음 차크라", tagline: "나를 일곱 층으로",
     description: "안정감부터 삶의 의미까지, 지금의 나를 일곱 층위로 봐줄게",
     accent: "#7D74C9",
