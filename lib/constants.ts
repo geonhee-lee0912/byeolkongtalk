@@ -1,4 +1,5 @@
 // 공용 상수 — 별 패키지 등. v1 (tarot-friend) lib/types.ts 에서 결제 관련만 이식.
+import type { MenuArm } from "./tarot/menu-ab.ts";
 
 export interface StarPackage {
   id: string;
@@ -7,31 +8,29 @@ export interface StarPackage {
   label: string;
 }
 
-/** 진열 패키지 — 2026-10 메뉴판·별 경제 재설계: 55(깊게 한 판)·130 신설, 150·300 진열 제거(8주 판매 0).
- *  별당 가격은 클수록 확실히 싸진다(constants.test.ts 가 단조 감소를 지킨다).
- *  스펙: docs/superpowers/specs/2026-10-05-타로톡-메뉴판-별경제-design.md §3-1 */
+/** 판매 패키지 전체 — 반반 비교 두 그룹 진열의 합집합(2026-10 메뉴판·별 경제, 스펙 §3-1 · §9-1).
+ *  결제 준비(/api/payment/ready)·승인(/api/payment/confirm)은 이 목록으로 검증한다 — id 마다 별·가격이 고정이라
+ *  두 그룹 목록을 함께 받아도 안전하다(그룹은 진열만 가른다). 별당 가격은 클수록 확실히 싸진다(constants.test.ts).
+ *  🗓️ 판정 뒤 정리 배포에서 진 쪽 전용 패키지(55·130 또는 150·300)를 지운다. */
 export const STAR_PACKAGES: StarPackage[] = [
   { id: "star_10", stars: 10, price: 1000, label: "10별" },
   { id: "star_30", stars: 30, price: 2800, label: "30별" },
   { id: "star_55", stars: 55, price: 4900, label: "55별" },
   { id: "star_70", stars: 70, price: 5900, label: "70별" },
   { id: "star_130", stars: 130, price: 9900, label: "130별" },
-];
-
-/** 진열에서 뺀 옛 패키지 — 결제 승인(/api/payment/confirm)에서만 받아준다.
- *  배포 직전에 결제창을 연 주문이 승인 단계에서 "Amount mismatch" 로 막히지 않게.
- *  결제 준비(/api/payment/ready)는 STAR_PACKAGES 만 받는다. 🗓️ 배포 2주 뒤 이 목록을 지운다. */
-export const LEGACY_STAR_PACKAGES: StarPackage[] = [
   { id: "star_150", stars: 150, price: 11000, label: "150별" },
   { id: "star_300", stars: 300, price: 19900, label: "300별" },
 ];
 
-/** 결제 승인용 패키지 조회 — 현행 + 레거시. orderId 에서 복원한 packageType('star_55', 옛 형식 '55')을 받는다. */
-export function findPackageForConfirm(packageType: string | undefined): StarPackage | undefined {
-  if (!packageType) return undefined;
-  return [...STAR_PACKAGES, ...LEGACY_STAR_PACKAGES].find(
-    (p) => p.id === packageType || p.id === `star_${packageType}`
-  );
+/** 상점 진열 — 메뉴판 그룹 10·30·55·70·130 / 옛 그룹 10·30·70·150·300(지금 prod 그대로). '추천'은 둘 다 70. */
+export const SHOP_PACKAGE_IDS: Record<MenuArm, readonly string[]> = {
+  menu: ["star_10", "star_30", "star_55", "star_70", "star_130"],
+  legacy: ["star_10", "star_30", "star_70", "star_150", "star_300"],
+};
+
+/** 그 그룹의 상점 진열(별 수 오름차순) */
+export function shopPackages(arm: MenuArm): StarPackage[] {
+  return STAR_PACKAGES.filter((p) => SHOP_PACKAGE_IDS[arm].includes(p.id));
 }
 
 /** 카카오 신규 가입 웰컴 별 — 타로 원카드(옛 그룹 10 · 메뉴판 맛보기 15)·투카드(15)·사주 단품(10) 1회 커버.

@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { STAR_PACKAGES, LEGACY_STAR_PACKAGES, findPackageForConfirm } from "./constants.ts";
+import { STAR_PACKAGES, SHOP_PACKAGE_IDS, shopPackages } from "./constants.ts";
 
-// 스펙 2026-10-05-타로톡-메뉴판-별경제 §3-1
-test("STAR_PACKAGES — 10·30·55·70·130", () => {
+// 스펙 §3-1 · §9-1 — 판매 목록 = 반반 두 그룹 진열의 합집합(결제 준비·승인 검증)
+test("STAR_PACKAGES — 두 그룹 합집합 7종", () => {
   assert.deepEqual(
     STAR_PACKAGES.map((p) => [p.id, p.stars, p.price]),
     [
@@ -12,11 +12,13 @@ test("STAR_PACKAGES — 10·30·55·70·130", () => {
       ["star_55", 55, 4900],
       ["star_70", 70, 5900],
       ["star_130", 130, 9900],
+      ["star_150", 150, 11000],
+      ["star_300", 300, 19900],
     ]
   );
 });
 
-test("STAR_PACKAGES — id 유일 · 별 수 오름차순(상점 BASE_PER_STAR 가 [0] 을 쓴다)", () => {
+test("id 유일 · 별 수 오름차순(상점 BASE_PER_STAR 가 [0] 을 쓴다)", () => {
   const ids = STAR_PACKAGES.map((p) => p.id);
   assert.equal(new Set(ids).size, ids.length);
   for (let i = 1; i < STAR_PACKAGES.length; i++) {
@@ -32,18 +34,13 @@ test("별당 가격은 클수록 확실히 싸진다(단조 감소)", () => {
   }
 });
 
-test("레거시(star_150·star_300)는 진열 목록에 없다", () => {
-  assert.deepEqual(LEGACY_STAR_PACKAGES.map((p) => p.id), ["star_150", "star_300"]);
-  for (const l of LEGACY_STAR_PACKAGES) {
-    assert.ok(!STAR_PACKAGES.some((p) => p.id === l.id), l.id);
-  }
+test("상점 진열 — 메뉴판 10·30·55·70·130 / 옛 10·30·70·150·300(지금 prod)", () => {
+  assert.deepEqual(shopPackages("menu").map((p) => p.id), ["star_10", "star_30", "star_55", "star_70", "star_130"]);
+  assert.deepEqual(shopPackages("legacy").map((p) => p.id), ["star_10", "star_30", "star_70", "star_150", "star_300"]);
 });
 
-test("findPackageForConfirm — 현행·레거시·옛 형식 id, 모르면 undefined", () => {
-  assert.equal(findPackageForConfirm("star_55")?.price, 4900);
-  assert.equal(findPackageForConfirm("star_150")?.price, 11000);
-  assert.equal(findPackageForConfirm("star_300")?.price, 19900);
-  assert.equal(findPackageForConfirm("130")?.id, "star_130");
-  assert.equal(findPackageForConfirm("star_999"), undefined);
-  assert.equal(findPackageForConfirm(undefined), undefined);
+test("진열 id 는 전부 판매 목록에 있고, 두 진열의 합집합이 판매 목록 전체다", () => {
+  const sold = STAR_PACKAGES.map((p) => p.id).sort();
+  const shown = [...new Set([...SHOP_PACKAGE_IDS.menu, ...SHOP_PACKAGE_IDS.legacy])].sort();
+  assert.deepEqual(shown, sold);
 });

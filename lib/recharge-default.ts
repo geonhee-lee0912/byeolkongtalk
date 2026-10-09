@@ -2,10 +2,23 @@
 // 결제는 거의 전부 "하려는 것 − 잔액" 을 덮는 최소 패키지다(2026-10-05 실측, 179건 중 star_10 의 86% 가 부족분 ≤10).
 // 기본값은 그 최소 패키지의 한 단계 위(star_70 상한, 단 최소보다 작아지지 않음). star_10 은 숨기지 않는다.
 // 스펙: docs/superpowers/specs/2026-10-05-잔액맞춤-충전기본값-design.md
-import { FIRST_CHARGE_BONUS_RATE, type StarPackage } from "./constants.ts";
+import { FIRST_CHARGE_BONUS_RATE, STAR_PACKAGES, type StarPackage } from "./constants.ts";
+import type { MenuArm } from "./tarot/menu-ab.ts";
 
 /** 기본 선택 상한 — 이보다 크게 기본으로 고르지 않는다(못 덮을 때 제외). */
 const DEFAULT_CAP_ID = "star_70";
+
+/** 그 자리 충전 시트(RechargeSheet)의 칸 — 저·중가만(큰 칸은 /shop 전용).
+ *  메뉴판 그룹 10·30·55·70(55 = 깊게 한 판) / 옛 그룹 10·30·70(지금 prod 그대로). 스펙 §7 · §9-1 */
+export const SHEET_PACKAGE_IDS: Record<MenuArm, readonly string[]> = {
+  menu: ["star_10", "star_30", "star_55", "star_70"],
+  legacy: ["star_10", "star_30", "star_70"],
+};
+
+/** 그 그룹의 시트 칸(별 수 오름차순) */
+export function sheetPackages(arm: MenuArm): StarPackage[] {
+  return STAR_PACKAGES.filter((p) => SHEET_PACKAGE_IDS[arm].includes(p.id));
+}
 
 /** 결제하면 실제로 받는 별. 보너스 반올림은 화면 표시(RechargeSheet·/shop)와 같은 Math.round. */
 export function receivedStars(pkg: StarPackage, bonusEligible: boolean): number {

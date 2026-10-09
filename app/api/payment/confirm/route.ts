@@ -5,7 +5,7 @@ import { chargeStars } from "@/lib/stars";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
-import { FIRST_CHARGE_BONUS_RATE, findPackageForConfirm } from "@/lib/constants";
+import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 // 개별 결제 실패가 아니라 상점 계정/키/설정 자체가 막힌 상태 — 전 유저 결제 불능.
@@ -72,8 +72,10 @@ export async function POST(request: NextRequest) {
     const idMatch = orderId.match(/^order_(.+?)_(\d+)_([a-z0-9]+)$/);
     const packageType = idMatch?.[1];
 
-    // 현행 + 진열에서 뺀 옛 패키지(배포 직전에 결제창을 연 주문) — lib/constants.ts LEGACY_STAR_PACKAGES
-    const pkg = findPackageForConfirm(packageType);
+    // 판매 목록 전체(반반 두 그룹 진열의 합집합)에서 찾는다 — id 마다 별·가격이 고정(lib/constants.ts)
+    const pkg = STAR_PACKAGES.find(
+      (p) => p.id === packageType || p.id === `star_${packageType}`
+    );
 
     if (!pkg || pkg.price !== amount) {
       return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
