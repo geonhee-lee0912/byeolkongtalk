@@ -73,7 +73,8 @@ export type AdminActionName =
   | "ad_spend_delete"
   | "ad_spend_sync"
   | "popup_send"
-  | "popup_revoke";
+  | "popup_revoke"
+  | "seen_mark";
 
 export async function logAdminAction(params: {
   adminId: string;
