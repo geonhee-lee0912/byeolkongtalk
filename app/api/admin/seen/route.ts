@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { requireAdminWrite, logAdminAction } from "@/lib/admin-actions";
+import { parseSeenUntil } from "@/lib/admin/daily";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,13 +18,13 @@ export async function POST(req: NextRequest) {
   if (typeof b.key !== "string" || !KEYS.has(b.key)) {
     return NextResponse.json({ error: "알 수 없는 key" }, { status: 400 });
   }
-  const t = typeof b.until === "string" ? Date.parse(b.until) : NaN;
-  if (!Number.isFinite(t) || t > Date.now() + 60_000) {
+  // 받은 문자열을 그대로 쓴다 — Date 로 왕복하면 마이크로초가 잘려 최신 응답이 계속 "새 것"으로 남는다.
+  const until = parseSeenUntil(b.until, new Date());
+  if (!until) {
     return NextResponse.json({ error: "until 이 잘못됐어요" }, { status: 400 });
   }
 
   const supa = getServiceSupabase();
-  const until = new Date(t).toISOString();
   const row = { seen_until: until, updated_by: gate.userId, updated_at: new Date().toISOString() };
   // 앞으로만 민다(원자적) — `seen_until < until` 조건부 UPDATE 한 방이라 두 기기가 동시에 눌러도
   // 늦게 도착한 쪽이 기준선을 되돌리지 못한다. 0행이면 행이 없거나 이미 ≥ 인 것.

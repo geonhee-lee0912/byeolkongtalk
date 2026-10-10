@@ -106,3 +106,18 @@ export function kstTimeLabel(iso: string, withDate = false): string {
   const time = `${h < 12 ? "오전" : "오후"} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
   return withDate ? `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${time}` : time;
 }
+
+// 오프셋까지 붙은 타임스탬프만 받는다(PostgREST 는 "2026-10-09T15:00:20.623963+00:00" 형태로 준다).
+const TS_RE = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
+
+/**
+ * [확인했어요] 의 until 검증. 통과하면 **받은 문자열 그대로** 돌려준다 — `new Date().toISOString()` 으로
+ * 다시 쓰면 마이크로초가 밀리초로 잘려 기준선이 그 응답보다 앞서고, 가장 최신 응답이 영원히
+ * "새 설문"으로 남는다(2026-10-10 prod 실측: 기준 .623 vs 응답 .623963).
+ */
+export function parseSeenUntil(v: unknown, now: Date): string | null {
+  if (typeof v !== "string" || !TS_RE.test(v)) return null;
+  const t = Date.parse(v);
+  if (!Number.isFinite(t) || t > now.getTime() + 60_000) return null;
+  return v;
+}
