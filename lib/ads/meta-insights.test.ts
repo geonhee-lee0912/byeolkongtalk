@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { datesInRange, kstToday, addDays, toAdSpendRows, type InsightRow } from "./meta-insights.ts";
+import { datesInRange, kstToday, addDays, toAdSpendRows, fetchInsights, type InsightRow } from "./meta-insights.ts";
 
 // 이 모듈의 계약. 핵심 두 가지:
 // ① 같은 (날짜·캠페인·세트·광고) 키는 한 행으로 합친다 — ad_spend UNIQUE 위반 방지.
@@ -94,4 +94,49 @@ test("toAdSpendRows — 이름 앞뒤 공백 제거, 누락 필드는 빈 문자
     spend_date: "2026-10-04", campaign: "", adset: "", creative_key: "love",
     impressions: null, clicks: null, spend_won: 5, reach: null, note: "api",
   });
+});
+
+function fakeFetch(pages: Array<{ status?: number; body: unknown }>) {
+  const calls: string[] = [];
+  const impl = (async (url: string) => {
+    calls.push(String(url));
+    const p = pages.shift();
+    if (!p) throw new Error("unexpected extra fetch");
+    return new Response(JSON.stringify(p.body), { status: p.status ?? 200 });
+  }) as unknown as typeof fetch;
+  return { impl, calls };
+}
+
+test("fetchInsights — 요청 파라미터: level=ad · 일별 · time_range · 계정 경로", async () => {
+  const { impl, calls } = fakeFetch([{ body: { data: [] } }]);
+  await fetchInsights({ from: "2026-10-01", to: "2026-10-08", token: "TKN", accountId: "123", fetchImpl: impl });
+  const u = new URL(calls[0]);
+  assert.equal(u.pathname, "/v23.0/act_123/insights");
+  assert.equal(u.searchParams.get("level"), "ad");
+  assert.equal(u.searchParams.get("time_increment"), "1");
+  assert.deepEqual(JSON.parse(u.searchParams.get("time_range")!), { since: "2026-10-01", until: "2026-10-08" });
+  assert.match(u.searchParams.get("fields")!, /inline_link_clicks/);
+});
+
+test("fetchInsights — paging.next 를 끝까지 따라간다", async () => {
+  const { impl, calls } = fakeFetch([
+    { body: { data: [{ date_start: "2026-10-01" }], paging: { next: "https://graph.facebook.com/next1" } } },
+    { body: { data: [{ date_start: "2026-10-02" }] } },
+  ]);
+  const rows = await fetchInsights({ from: "2026-10-01", to: "2026-10-02", token: "T", accountId: "1", fetchImpl: impl });
+  assert.equal(rows.length, 2);
+  assert.equal(calls[1], "https://graph.facebook.com/next1");
+});
+
+test("fetchInsights — API 에러는 메시지·코드로 throw, 토큰·URL 은 메시지에 없다", async () => {
+  const { impl } = fakeFetch([{ status: 400, body: { error: { message: "Invalid OAuth access token", code: 190 } } }]);
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "SECRET_TKN", accountId: "1", fetchImpl: impl }),
+    (e: Error) => {
+      assert.match(e.message, /Invalid OAuth access token/);
+      assert.match(e.message, /190/);
+      assert.doesNotMatch(e.message, /SECRET_TKN|graph\.facebook\.com/);
+      return true;
+    },
+  );
 });

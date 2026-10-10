@@ -127,3 +127,50 @@ export function toAdSpendRows(insights: InsightRow[], dates: string[]): AdSpendR
     a.adset.localeCompare(b.adset) ||
     a.creative_key.localeCompare(b.creative_key));
 }
+
+const FIELDS = [
+  "date_start", "campaign_name", "adset_name", "ad_name",
+  "spend", "impressions", "reach", "inline_link_clicks",
+].join(",");
+
+const MAX_PAGES = 50;
+
+/**
+ * act_{accountId}/insights 를 level=ad · 일별로 끝까지 읽는다.
+ * 🔴 에러 메시지에 URL(=토큰 포함)을 넣지 않는다 — Meta 가 준 message·code 만.
+ */
+export async function fetchInsights(opts: {
+  from: string;
+  to: string;
+  token: string;
+  accountId: string;
+  fetchImpl?: typeof fetch;
+}): Promise<InsightRow[]> {
+  const f = opts.fetchImpl ?? fetch;
+  const params = new URLSearchParams({
+    level: "ad",
+    time_increment: "1",
+    time_range: JSON.stringify({ since: opts.from, until: opts.to }),
+    fields: FIELDS,
+    limit: "500",
+    access_token: opts.token,
+  });
+  let url: string | null =
+    `https://graph.facebook.com/${GRAPH_VERSION}/act_${opts.accountId}/insights?${params}`;
+  const out: InsightRow[] = [];
+  for (let page = 0; url; page++) {
+    if (page >= MAX_PAGES) throw new Error(`Meta insights: ${MAX_PAGES}페이지 초과`);
+    const res = await f(url);
+    const j = (await res.json().catch(() => ({}))) as {
+      data?: InsightRow[];
+      paging?: { next?: string };
+      error?: { message?: string; code?: number };
+    };
+    if (!res.ok || j.error) {
+      throw new Error(`Meta insights 실패 (HTTP ${res.status}, code ${j.error?.code ?? "?"}): ${j.error?.message ?? "응답 없음"}`);
+    }
+    out.push(...(j.data ?? []));
+    url = j.paging?.next ?? null;
+  }
+  return out;
+}
