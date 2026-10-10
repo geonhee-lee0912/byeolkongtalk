@@ -89,7 +89,9 @@ async function loadStats() {
     // tr = 오늘 readings 전체 — 누적 칸의 "어제까지"(누적 − 오늘) 계산용. 종목별 칸과 정의가 달라 따로 센다
     cnt("readings", "user_id", today), cnt("readings", "user_id"),
     supa.rpc("admin_dashboard_revenue", { p_exclude, p_today: today, p_yesterday: yesterday }),
-    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null),
+    // 고장 신호 줄은 대응이 필요한 error·warn 만 센다 — info 는 "설계된 정상 신호"라 매일 빨간 줄을 켠다
+    // (어드민 메뉴 뱃지 app/admin/layout.tsx 와 같은 기준).
+    supa.from("error_logs").select("id", { count: "exact", head: true }).is("resolved_at", null).in("level", ["error", "warn"]),
     supa.from("sensitive_alerts").select("id", { count: "exact", head: true }).is("reviewed_at", null),
   ]);
   // BIGINT 는 PostgREST 를 지나며 문자열로 온다 → Number() 필수
