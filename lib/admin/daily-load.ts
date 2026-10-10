@@ -126,7 +126,7 @@ export async function loadDaily() {
     const revenue = Number(f?.revenue_won ?? 0);
     return {
       creative, spend_won: ad.spend, clicks: ad.clicks, signups, first_paid: Number(f?.first_paid ?? 0),
-      revenue_won: revenue, cac: signups > 0 ? ad.spend / signups : null, roas: ad.spend > 0 ? revenue / ad.spend : null,
+      revenue_won: revenue, cac: ad.spend > 0 && signups > 0 ? ad.spend / signups : null, roas: ad.spend > 0 ? revenue / ad.spend : null,
     };
   });
   creatives.sort((a, b) => b.spend_won - a.spend_won || b.signups - a.signups);
