@@ -58,7 +58,7 @@ Meta Marketing API Insights, `level=ad`, `time_increment=1`.
 
 | 경로 | 트리거 | 범위 | 인증 |
 |---|---|---|---|
-| `GET /api/cron/ad-spend-sync` | Vercel Cron 매일 05:00 KST (`0 20 * * *` UTC) | 오늘 포함 최근 8일(오늘 + 7일) | `Authorization: Bearer ${CRON_SECRET}` |
+| `GET /api/cron/ad-spend-sync` | Vercel Cron **매시 정각** (`0 * * * *`, Pro 확인 10-10) — 05:00 1회면 진행 중인 오늘 광고비가 하루 종일 0 근처로 멈춰 1층 기여가 부풀고 지연 경고도 꺼진다(최종 리뷰 #1) | 오늘 포함 최근 8일(오늘 + 7일) | `Authorization: Bearer ${CRON_SECRET}` |
 | `POST /api/admin/ads/sync` (버튼 "지금 동기화") | 어드민 | 오늘 포함 최근 8일 | `requireAdminWrite` |
 | 같은 라우트 + `{from, to}` (버튼 "기간 재수집") | 어드민이 날짜 지정 | 지정 기간(상한 400일) | `requireAdminWrite` + `logAdminAction` |
 

@@ -58,7 +58,7 @@ export default async function AdsPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold">광고 지출 <span className="text-white/40 text-sm">(Meta 자동 동기화)</span></h1>
       <p className="text-[13px] text-white/50">
-        매일 05:00(KST)에 Meta 에서 최근 8일을 가져와 날짜 단위로 교체합니다. 아래 수동 입력은 Meta 외 광고용 —
+        매시 정각에 Meta 에서 최근 8일(오늘 포함)을 가져와 날짜 단위로 교체합니다. 아래 수동 입력은 Meta 외 광고용 —
         Meta 행을 손으로 넣어도 그 날짜가 동기화되면 API 값으로 덮입니다.
       </p>
       <AdSyncPanel last={lastSync} loadFailed={syncFailed} />
