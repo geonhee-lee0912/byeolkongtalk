@@ -160,3 +160,12 @@ test("acqFromPageView — 행 → 페이로드", () => {
   });
   assert.deepEqual(p, { first_seen_at: "2026-10-01T00:00:00Z", utm_source: "ig", utm_campaign: "k", utm_content: "c", landing_variant: "v1" });
 });
+
+test("서버 쿠키 실경로 라운드트립 — Next 가 1회 인코드, request.cookies 가 1회 디코드해도 '%' 값 보존", () => {
+  for (const v of ["50% off", "a%2Fb"]) {
+    const encoded = buildServerAcqCookie(new URLSearchParams({ utm_content: v }), null, undefined, "t")!;
+    const wire = encodeURIComponent(decodeURIComponent(encoded)); // set(): 디코드한 JSON 을 넘기면 Next 가 인코드
+    const seenByRoute = decodeURIComponent(wire); // request.cookies.get(): 1회 디코드
+    assert.equal(parseAcqCookie(seenByRoute)?.utm_content, v);
+  }
+});

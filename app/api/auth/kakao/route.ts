@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
           const anonId = request.cookies.get("byeolkong_anon_id")?.value;
           if (anonId) {
             const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { data: pv } = await supabase
+            const { data: pv, error: pvErr } = await supabase
               .from("page_views")
               .select("utm_source,utm_medium,utm_campaign,utm_content,utm_term,landing_variant,referrer,created_at")
               .eq("anon_id", anonId)
@@ -158,7 +158,9 @@ export async function GET(request: NextRequest) {
               .order("created_at", { ascending: true })
               .limit(1)
               .maybeSingle();
-            if (pv) {
+            if (pvErr) {
+              await logError(pvErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition_pageview" } });
+            } else if (pv) {
               acq = acqFromPageView(pv);
               captureSource = "pageview";
             }
@@ -169,7 +171,7 @@ export async function GET(request: NextRequest) {
       }
       if (acq) {
         try {
-          const { error: acqErr } = await supabase.from("user_acquisition").insert({
+          const acqRow = {
             user_id: userId,
             utm_source: acq.utm_source ?? null,
             utm_medium: acq.utm_medium ?? null,
@@ -182,7 +184,14 @@ export async function GET(request: NextRequest) {
             referrer: acq.referrer ?? null,
             first_seen_at: acq.first_seen_at ?? null,
             capture_source: captureSource,
-          });
+          };
+          let { error: acqErr } = await supabase.from("user_acquisition").insert(acqRow);
+          if (acqErr?.code === "PGRST204") {
+            // 배포 직후 마이그레이션(capture_source 컬럼)이 아직 안 먹은 창 — 컬럼 없이 1회 재시도해 유입 기록을 잃지 않는다.
+            const { capture_source: _omit, ...legacyRow } = acqRow;
+            void _omit;
+            ({ error: acqErr } = await supabase.from("user_acquisition").insert(legacyRow));
+          }
           if (acqErr) {
             await logError(acqErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
           }

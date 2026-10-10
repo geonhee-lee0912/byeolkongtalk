@@ -75,16 +75,21 @@ export function fbcFromAcquisition(
   return `fb.1.${observedAt}.${id}`;
 }
 
-/** 쿠키 raw(encodeURIComponent(JSON)) → AcqPayload | null (방어적). */
+/**
+ * 쿠키 raw → AcqPayload | null (방어적). request.cookies.get 이 이미 1회 디코드하므로 raw JSON 을 먼저 시도하고,
+ * 실패할 때만 encodeURIComponent(JSON) 원본으로 보고 디코드한다(이중 디코드하면 값의 '%' 가 깨진다).
+ */
 export function parseAcqCookie(raw: string | undefined): AcqPayload | null {
   if (!raw) return null;
-  try {
-    const obj = JSON.parse(decodeURIComponent(raw)) as unknown;
-    if (!obj || typeof obj !== "object") return null;
-    return obj as AcqPayload;
-  } catch {
-    return null;
-  }
+  const attempt = (f: () => unknown): AcqPayload | null => {
+    try {
+      const obj = f();
+      return obj && typeof obj === "object" ? (obj as AcqPayload) : null;
+    } catch {
+      return null;
+    }
+  };
+  return attempt(() => JSON.parse(raw)) ?? attempt(() => JSON.parse(decodeURIComponent(raw)));
 }
 
 const OWN_HOSTS = new Set(["byeolkongtalk.com", "www.byeolkongtalk.com", "dev.byeolkongtalk.com", "localhost"]);
