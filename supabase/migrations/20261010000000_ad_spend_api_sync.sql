@@ -39,6 +39,10 @@ AS $$
 DECLARE
   n INTEGER;
 BEGIN
+  -- cron 과 버튼이 겹쳐 두 번 동시에 돌면, 뒤 트랜잭션의 DELETE 는 앞이 새로 넣은 행을 못 보고
+  -- INSERT 에서 UNIQUE 위반으로 죽는다. 트랜잭션 단위 advisory lock 으로 줄 세운다.
+  PERFORM pg_advisory_xact_lock(hashtext('admin_ad_spend_replace_days'));
+
   IF p_dates IS NULL OR cardinality(p_dates) = 0 THEN
     RAISE EXCEPTION 'p_dates is empty';
   END IF;
