@@ -460,11 +460,17 @@ export default async function AdminDashboard() {
       <section>
         <h2 className="text-sm text-white/60 mb-3">
           광고 소재 <span className="text-white/35">(최근 7일)</span>
+          <span className="ml-2 text-[12px] text-white/35">
+            {D.creatives.activeKnown ? "지금 게재 중인 광고만" : "게재 상태 미확인 — 지출 있는 소재 전부"}
+          </span>
         </h2>
         {D.creatives.failed ? (
           <LoadFailed block="광고 소재(admin_funnel · ad_spend)" />
         ) : (
-          <CreativeTable items={D.creatives.items} truncated={D.creatives.truncated} />
+          <CreativeTable
+            items={D.creatives.items} truncated={D.creatives.truncated}
+            activeKnown={D.creatives.activeKnown} untracked={D.creatives.untracked} organic={D.creatives.organic}
+          />
         )}
       </section>
 

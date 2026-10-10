@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  spendSourceLabel, summarizeSpends, payRateLines, adSyncAlert, sumSpendClicksByCreative, countPct,
+  filterActiveCreatives, nonAdSignups, spendSourceLabel, summarizeSpends, payRateLines, adSyncAlert, sumSpendClicksByCreative, countPct,
   type PayRateDay,
 } from "./daily.ts";
 
@@ -97,4 +97,30 @@ test("parseSeenUntil — 마이크로초를 자르지 않고 그대로 · 형식
   assert.equal(parseSeenUntil("2026-10-09T15:00:20", now), null);    // 시간대 없음 = 해석이 모호
   assert.equal(parseSeenUntil("2026-10-10T04:00:00Z", now), null);   // 미래
   assert.equal(parseSeenUntil(123, now), null);
+});
+
+test("filterActiveCreatives — 게재 목록이 있으면 그 소재만(별칭 병합 비교), 비광고 행은 빠진다", () => {
+  const rows = [
+    { creative: "tarot" }, { creative: "love" }, { creative: "(organic)" }, { creative: "(추적 안 됨)" },
+  ];
+  const canon = (k: string) => (k === "새 판매 광고 - 사본" ? "tarot" : k);
+  const r = filterActiveCreatives(rows, ["새 판매 광고 - 사본"], canon);
+  assert.equal(r.filtered, true);
+  assert.deepEqual(r.rows.map((x) => x.creative), ["tarot"]);
+  assert.deepEqual(filterActiveCreatives(rows, [], canon), { rows: [], filtered: true });
+});
+
+test("filterActiveCreatives — 목록 null 이면 필터 없이 비광고 행만 뺀다", () => {
+  const rows = [{ creative: "tarot" }, { creative: "love" }, { creative: "(organic)" }, { creative: "(추적 안 됨)" }];
+  const r = filterActiveCreatives(rows, null, (k) => k);
+  assert.equal(r.filtered, false);
+  assert.deepEqual(r.rows.map((x) => x.creative), ["tarot", "love"]);
+});
+
+test("nonAdSignups — 두 특수 행의 가입 수, 없으면 0", () => {
+  assert.deepEqual(
+    nonAdSignups([{ creative: "tarot", signups: 9 }, { creative: "(추적 안 됨)", signups: 4 }, { creative: "(organic)", signups: 2 }]),
+    { untracked: 4, organic: 2 },
+  );
+  assert.deepEqual(nonAdSignups([{ creative: "tarot", signups: 9 }]), { untracked: 0, organic: 0 });
 });

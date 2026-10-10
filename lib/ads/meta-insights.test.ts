@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { datesInRange, kstToday, addDays, toAdSpendRows, fetchInsights, type InsightRow } from "./meta-insights.ts";
+import { datesInRange, kstToday, addDays, toAdSpendRows, fetchInsights, fetchActiveAdNames, type InsightRow } from "./meta-insights.ts";
 
 // 이 모듈의 계약. 핵심 두 가지:
 // ① 같은 (날짜·캠페인·세트·광고) 키는 한 행으로 합친다 — ad_spend UNIQUE 위반 방지.
@@ -177,4 +177,44 @@ test("toAdSpendRows — impressions/clicks/reach 는 정수로 반올림, null �
   assert.equal(out[0].impressions, 2);
   assert.equal(out[0].clicks, 2);
   assert.equal(out[0].reach, null);
+});
+
+test("fetchActiveAdNames — 요청 파라미터: /ads · ACTIVE 필터 · limit 500", async () => {
+  const { impl, calls } = fakeFetch([{ body: { data: [] } }]);
+  await fetchActiveAdNames({ token: "TKN", accountId: "123", fetchImpl: impl });
+  const u = new URL(calls[0]);
+  assert.equal(u.pathname, "/v23.0/act_123/ads");
+  assert.equal(u.searchParams.get("fields"), "name,effective_status");
+  assert.deepEqual(JSON.parse(u.searchParams.get("filtering")!), [
+    { field: "effective_status", operator: "IN", value: ["ACTIVE"] },
+  ]);
+  assert.equal(u.searchParams.get("limit"), "500");
+});
+
+test("fetchActiveAdNames — 페이지를 따라가고 trim·중복 제거", async () => {
+  const { impl, calls } = fakeFetch([
+    { body: { data: [{ name: " love " }, { name: "tarot" }], paging: { next: "https://graph.facebook.com/n1" } } },
+    { body: { data: [{ name: "love" }, { name: "" }, {}] } },
+  ]);
+  const names = await fetchActiveAdNames({ token: "T", accountId: "1", fetchImpl: impl });
+  assert.deepEqual(names, ["love", "tarot"]);
+  assert.equal(calls[1], "https://graph.facebook.com/n1");
+});
+
+test("fetchActiveAdNames — 에러·형식 오류·네트워크 실패는 throw, 토큰·URL 은 메시지에 없다", async () => {
+  const bad = fakeFetch([{ status: 400, body: { error: { message: "Invalid OAuth access token", code: 190 } } }]);
+  await assert.rejects(fetchActiveAdNames({ token: "SECRET_TKN", accountId: "1", fetchImpl: bad.impl }), (e: Error) => {
+    assert.match(e.message, /190/);
+    assert.doesNotMatch(e.message, /SECRET_TKN|graph\.facebook\.com/);
+    return true;
+  });
+  const noData = fakeFetch([{ body: { foo: 1 } }]);
+  await assert.rejects(fetchActiveAdNames({ token: "T", accountId: "1", fetchImpl: noData.impl }), /data 없음/);
+  const html = (async () => new Response("<html/>", { status: 200 })) as unknown as typeof fetch;
+  await assert.rejects(fetchActiveAdNames({ token: "T", accountId: "1", fetchImpl: html }), /JSON 아님/);
+  const net = (async (u: string) => { throw new TypeError(`fail ${u} SECRET_TKN`); }) as unknown as typeof fetch;
+  await assert.rejects(fetchActiveAdNames({ token: "SECRET_TKN", accountId: "1", fetchImpl: net }), (e: Error) => {
+    assert.doesNotMatch(e.message, /SECRET_TKN|graph\.facebook\.com/);
+    return true;
+  });
 });

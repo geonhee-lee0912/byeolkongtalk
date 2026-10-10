@@ -4,7 +4,7 @@
 // 경고(adSpendStaleDays)가 세 번째 안전망으로 다시 켜진다.
 import { getServiceSupabase } from "@/lib/supabase";
 import { logError, logWarn } from "@/lib/logger";
-import { addDays, datesInRange, fetchInsights, kstToday, toAdSpendRows } from "./meta-insights";
+import { addDays, datesInRange, fetchActiveAdNames, fetchInsights, kstToday, toAdSpendRows } from "./meta-insights";
 
 export type SyncTrigger = "cron" | "manual" | "range";
 
@@ -57,9 +57,20 @@ export async function syncAdSpend(opts: {
     if (error) throw new Error(`replace_days 실패: ${error.message}`);
 
     const n = Number(written ?? 0);
+
+    // 지금 게재 중인 광고 목록 — 실패해도 지출 동기화는 성공이다(NULL 로 남기고 경고만).
+    let activeCreatives: string[] | null = null;
+    try {
+      activeCreatives = await fetchActiveAdNames({ token, accountId });
+    } catch (e) {
+      await logWarn("게재 중 광고 목록 조회 실패: " + (e instanceof Error ? e.message : String(e)), {
+        route: "ad-spend-sync", extra: { trigger: opts.trigger },
+      });
+    }
+
     if (runId != null) {
       await supa.from("ad_sync_runs")
-        .update({ finished_at: new Date().toISOString(), ok: true, rows_written: n })
+        .update({ finished_at: new Date().toISOString(), ok: true, rows_written: n, active_creatives: activeCreatives })
         .eq("id", runId);
     }
     return { ok: true, rows: n, days: dates.length };
