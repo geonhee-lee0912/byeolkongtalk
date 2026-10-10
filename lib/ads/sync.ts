@@ -3,7 +3,7 @@
 // 실패는 ad_sync_runs(ok=false) + error_logs 두 곳에 남는다 — 조용히 멈추면 1층 광고비 지연
 // 경고(adSpendStaleDays)가 세 번째 안전망으로 다시 켜진다.
 import { getServiceSupabase } from "@/lib/supabase";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 import { addDays, datesInRange, fetchInsights, kstToday, toAdSpendRows } from "./meta-insights";
 
 export type SyncTrigger = "cron" | "manual" | "range";
@@ -29,11 +29,14 @@ export async function syncAdSpend(opts: {
   adminId: string | null;
 }): Promise<SyncResult> {
   const supa = getServiceSupabase();
-  const { data: run } = await supa
+  const { data: run, error: runErr } = await supa
     .from("ad_sync_runs")
     .insert({ trigger: opts.trigger, date_from: opts.from, date_to: opts.to, created_by: opts.adminId })
     .select("id")
     .single();
+  if (runErr) {
+    await logWarn("ad_sync_runs insert 실패: " + runErr.message, { route: "ad-spend-sync", extra: { trigger: opts.trigger } });
+  }
   const runId = (run as { id: number } | null)?.id ?? null;
 
   try {

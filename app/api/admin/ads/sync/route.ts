@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
 
-  const b = (await req.json().catch(() => ({}))) as { from?: unknown; to?: unknown };
+  const b = ((await req.json().catch(() => null)) ?? {}) as { from?: unknown; to?: unknown };
   const isRange = b.from != null || b.to != null;
   let from: string;
   let to: string;
