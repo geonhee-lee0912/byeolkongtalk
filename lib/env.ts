@@ -30,6 +30,9 @@ export const OPTIONAL_ENV = [
   "GOOGLE_SITE_VERIFICATION",
   "NEXT_PUBLIC_META_PIXEL_ID",
   "META_CAPI_ACCESS_TOKEN",
+  "META_ADS_ACCESS_TOKEN",
+  "META_AD_ACCOUNT_ID",
+  "CRON_SECRET",
 ] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];
