@@ -95,3 +95,14 @@ export function sumSpendClicksByCreative(
   }
   return m;
 }
+
+/**
+ * KST "오전 11:05" / withDate 면 "10/10 오후 7:05".
+ * Intl 의 hour12 에 맡기지 않는다 — 서버(Node) ICU 가 ko-KR 에서도 "AM"을 내는 걸 실측했다(2026-10-10).
+ */
+export function kstTimeLabel(iso: string, withDate = false): string {
+  const d = new Date(Date.parse(iso) + 9 * 3_600_000);
+  const h = d.getUTCHours();
+  const time = `${h < 12 ? "오전" : "오후"} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  return withDate ? `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${time}` : time;
+}

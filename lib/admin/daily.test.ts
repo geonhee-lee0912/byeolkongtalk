@@ -79,3 +79,11 @@ test("sumSpendClicksByCreative — 별칭 병합 후 지출·클릭 합산, null
   assert.deepEqual(m.get("bm_v1"), { spend: 0, clicks: 0 });
   assert.equal(m.has(""), false);
 });
+
+test("kstTimeLabel — KST 기준 오전/오후 · 자정·정오는 12", async () => {
+  const { kstTimeLabel } = await import("./daily.ts");
+  assert.equal(kstTimeLabel("2026-10-10T02:05:00Z"), "오전 11:05");
+  assert.equal(kstTimeLabel("2026-10-10T10:05:00Z", true), "10/10 오후 7:05");
+  assert.equal(kstTimeLabel("2026-10-09T15:00:00Z", true), "10/10 오전 12:00"); // KST 자정
+  assert.equal(kstTimeLabel("2026-10-10T03:30:00Z"), "오후 12:30");              // KST 정오
+});

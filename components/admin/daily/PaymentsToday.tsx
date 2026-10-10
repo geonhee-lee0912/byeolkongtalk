@@ -1,9 +1,9 @@
 // components/admin/daily/PaymentsToday.tsx — 오늘 결제 목록 (재결제 여부 · 오늘 쓴 곳).
 import Link from "next/link";
 import { PAYMENTS_LIMIT, type TodayPayment } from "@/lib/admin/daily-load";
+import { kstTimeLabel } from "@/lib/admin/daily";
 
-const hhmm = (iso: string) =>
-  new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false });
+const hhmm = (iso: string) => kstTimeLabel(iso);
 
 export function PaymentsToday({
   items, totalWon, truncated,
