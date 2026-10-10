@@ -8,7 +8,8 @@ import { addDays, kstToday } from "@/lib/ads/meta-insights";
 import { CREATIVE_ALIASES, canonicalCreative } from "@/lib/analytics/creative-alias";
 import { adSyncAlert, payRateLines, sumSpendClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
 
-export const SURVEY_SHOW = 5;
+// 접힌 블록이라 미확인을 거의 다 보여준다(하루 ~1건). 넘치면 가장 오래된 것부터 이만큼 — 아래 주석.
+export const SURVEY_SHOW = 30;
 export const PAYMENTS_LIMIT = 50;
 const FUNNEL_LIMIT = 50;
 const CLICK_ROWS_LIMIT = 2000;
@@ -143,7 +144,9 @@ export async function loadDaily() {
       seenUntil,
       count: svCountRes.count ?? 0,
       items: ((svListRes.data ?? []) as { id: number; user_id: string | null; answers: unknown; created_at: string }[])
-        .map((r) => ({ id: r.id, created_at: r.created_at, answers: r.answers, nickname: r.user_id ? nameById.get(r.user_id) ?? null : null })),
+        .map((r) => ({ id: r.id, created_at: r.created_at, answers: r.answers, nickname: r.user_id ? nameById.get(r.user_id) ?? null : null }))
+        // 가져오기는 오래된 순(확인 범위가 틀리지 않게), 보여주기는 최신 순(사용자 요청 10-10).
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)),
     },
     payments: {
       failed: paymentsFailed, items: todayPayments,
