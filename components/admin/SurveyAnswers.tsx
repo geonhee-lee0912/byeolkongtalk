@@ -11,7 +11,7 @@ export function SurveyAnswers({ answers }: { answers: unknown }) {
       {list.map((qa, i) => (
         <div key={i}>
           <div className="text-[12px] font-bold text-white/70">{qa.q}</div>
-          <div className="text-[13px] text-white/90 whitespace-pre-wrap mt-0.5">{qa.a}</div>
+          <div className="text-[13px] text-white/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere] mt-0.5">{qa.a}</div>
         </div>
       ))}
     </div>

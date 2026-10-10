@@ -23,17 +23,20 @@ export async function POST(req: NextRequest) {
   }
 
   const supa = getServiceSupabase();
-  const { data: cur, error: readErr } = await supa
-    .from("admin_seen_markers").select("seen_until").eq("key", b.key).maybeSingle();
-  if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 });
-  // 앞으로만 민다 — 두 기기에서 늦게 누른 쪽이 기준선을 되돌리지 않게.
-  if (cur && Date.parse(cur.seen_until) >= t) return NextResponse.json({ ok: true, unchanged: true });
-
   const until = new Date(t).toISOString();
-  const { error } = await supa.from("admin_seen_markers").upsert({
-    key: b.key, seen_until: until, updated_by: gate.userId, updated_at: new Date().toISOString(),
-  });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const row = { seen_until: until, updated_by: gate.userId, updated_at: new Date().toISOString() };
+  // 앞으로만 민다(원자적) — `seen_until < until` 조건부 UPDATE 한 방이라 두 기기가 동시에 눌러도
+  // 늦게 도착한 쪽이 기준선을 되돌리지 못한다. 0행이면 행이 없거나 이미 ≥ 인 것.
+  const upd = await supa.from("admin_seen_markers").update(row).eq("key", b.key).lt("seen_until", until).select("key");
+  if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 500 });
+  if (!upd.data || upd.data.length === 0) {
+    const ins = await supa.from("admin_seen_markers").insert({ key: b.key, ...row });
+    if (ins.error) {
+      // 23505 = 이미 행이 있다(누군가 ≥ 값을 가짐 · 동시 삽입) → 변경 없음
+      if (ins.error.code === "23505") return NextResponse.json({ ok: true, unchanged: true });
+      return NextResponse.json({ error: ins.error.message }, { status: 500 });
+    }
+  }
 
   await logAdminAction({
     adminId: gate.userId, action: "seen_mark", targetType: "admin_seen_markers", targetId: b.key,

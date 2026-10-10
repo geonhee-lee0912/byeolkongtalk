@@ -81,15 +81,17 @@ export function adSyncAlert(
   return null;
 }
 
-/** ad_spend 행 → 소재(별칭 병합)별 클릭 합. */
-export function sumClicksByCreative(
-  rows: { creative_key: string; clicks: number | null }[],
+/** ad_spend 행 → 소재(별칭 병합)별 지출·클릭 합. 빈 creative_key 는 건너뛴다(no_delivery 0행). */
+export function sumSpendClicksByCreative(
+  rows: { creative_key: string; clicks: number | null; spend_won: number | null }[],
   canon: (k: string) => string,
-): Map<string, number> {
-  const m = new Map<string, number>();
+): Map<string, { spend: number; clicks: number }> {
+  const m = new Map<string, { spend: number; clicks: number }>();
   for (const r of rows) {
+    if (!r.creative_key) continue;
     const k = canon(r.creative_key);
-    m.set(k, (m.get(k) ?? 0) + (r.clicks ?? 0));
+    const cur = m.get(k) ?? { spend: 0, clicks: 0 };
+    m.set(k, { spend: cur.spend + Number(r.spend_won ?? 0), clicks: cur.clicks + Number(r.clicks ?? 0) });
   }
   return m;
 }

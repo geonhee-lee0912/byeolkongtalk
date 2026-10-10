@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  spendSourceLabel, summarizeSpends, payRateLines, adSyncAlert, sumClicksByCreative, countPct,
+  spendSourceLabel, summarizeSpends, payRateLines, adSyncAlert, sumSpendClicksByCreative, countPct,
   type PayRateDay,
 } from "./daily.ts";
 
@@ -64,12 +64,18 @@ test("adSyncAlert — 진행 중(ok=null)은 마지막 성공 기준으로만 �
   assert.match(adSyncAlert(null, null, NOW) ?? "", /기록 없음/);
 });
 
-test("sumClicksByCreative — 별칭 병합 후 합산, null 클릭은 0", () => {
+test("sumSpendClicksByCreative — 별칭 병합 후 지출·클릭 합산, null 은 0, 빈 키 제외", () => {
   const canon = (k: string) => (k === "love_old" ? "love" : k);
-  const m = sumClicksByCreative(
-    [{ creative_key: "love", clicks: 3 }, { creative_key: "love_old", clicks: 2 }, { creative_key: "bm_v1", clicks: null }],
+  const m = sumSpendClicksByCreative(
+    [
+      { creative_key: "love", clicks: 3, spend_won: 1000 },
+      { creative_key: "love_old", clicks: 2, spend_won: 500 },
+      { creative_key: "bm_v1", clicks: null, spend_won: null },
+      { creative_key: "", clicks: 9, spend_won: 9 },
+    ],
     canon,
   );
-  assert.equal(m.get("love"), 5);
-  assert.equal(m.get("bm_v1"), 0);
+  assert.deepEqual(m.get("love"), { spend: 1500, clicks: 5 });
+  assert.deepEqual(m.get("bm_v1"), { spend: 0, clicks: 0 });
+  assert.equal(m.has(""), false);
 });

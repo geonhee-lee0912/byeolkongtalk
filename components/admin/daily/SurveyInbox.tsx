@@ -7,10 +7,6 @@ import Link from "next/link";
 import { SurveyAnswers } from "@/components/admin/SurveyAnswers";
 import type { InboxSurvey } from "@/lib/admin/daily-load";
 
-// lib/admin/daily-load.ts 의 SURVEY_SHOW 와 같은 값 — 그 파일은 서버 전용(supabase)이라
-// 클라이언트 번들로 끌어오지 않고 상수만 복제한다. 바꿀 땐 둘을 같이.
-const SURVEY_SHOW = 5;
-
 const kst = (iso: string) =>
   new Date(iso).toLocaleString("ko-KR", {
     timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
@@ -31,9 +27,10 @@ export function SurveyInbox({
     );
   }
 
-  const overflow = count > SURVEY_SHOW;
-  // 보인 것만 확인 처리한다 — 넘친 응답까지 확인되면 안 본 설문이 사라진다. 최신이 맨 앞.
-  const until = overflow ? items[SURVEY_SHOW - 1].created_at : items[0].created_at;
+  // items 는 가장 오래된 미확인부터 오래된→최신 순이다. 보인 것 중 최신까지만 확인 처리한다 —
+  // 안 보인(더 새로운) 응답은 확인되지 않고 다음 차례에 나온다.
+  const rest = count - items.length;
+  const until = items.reduce((m, it) => (Date.parse(it.created_at) > Date.parse(m) ? it.created_at : m), items[0].created_at);
 
   async function mark() {
     setBusy(true);
@@ -59,8 +56,10 @@ export function SurveyInbox({
 
   return (
     <div className="space-y-3">
-      <div className="text-[13px] text-white/80">새 설문 {count}건</div>
-      {items.slice(0, SURVEY_SHOW).map((it) => (
+      <div className="text-[13px] text-white/80">
+        새 설문 {count}건 {rest > 0 && <span className="text-white/35">· 오래된 것부터</span>}
+      </div>
+      {items.map((it) => (
         <div key={it.id} className="rounded-xl bg-white/5 border border-white/10 p-4 min-w-0">
           <div className="text-[12px] text-white/50 mb-2">
             {it.nickname ?? "(탈퇴)"} · {kst(it.created_at)}
@@ -68,9 +67,9 @@ export function SurveyInbox({
           <SurveyAnswers answers={it.answers} />
         </div>
       ))}
-      {overflow && (
+      {rest > 0 && (
         <div className="text-[12px] text-white/50">
-          외 {count - SURVEY_SHOW}건 —{" "}
+          외 {rest}건 —{" "}
           <Link href="/admin/survey" className="underline">설문 화면에서</Link>
         </div>
       )}
@@ -79,7 +78,7 @@ export function SurveyInbox({
           type="button" onClick={mark} disabled={busy}
           className="rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 px-3 py-1.5 text-[13px] disabled:opacity-50"
         >
-          {busy ? "처리 중…" : overflow ? "5건 확인(나머지는 설문 화면)" : "확인했어요"}
+          {busy ? "처리 중…" : rest > 0 ? `${items.length}건 확인 (나머지 ${rest}건은 다음에)` : "확인했어요"}
         </button>
         {err && <span className="text-[12px] text-red-400">{err}</span>}
       </div>

@@ -6,7 +6,7 @@ import { adminExclusionArray } from "@/lib/admin";
 import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 import { addDays, kstToday } from "@/lib/ads/meta-insights";
 import { CREATIVE_ALIASES, canonicalCreative } from "@/lib/analytics/creative-alias";
-import { adSyncAlert, payRateLines, sumClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
+import { adSyncAlert, payRateLines, sumSpendClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
 
 export const SURVEY_SHOW = 5;
 export const PAYMENTS_LIMIT = 50;
@@ -31,7 +31,6 @@ export async function loadDaily() {
   const today = startOfTodayKstIso();
   const todayKst = kstToday();
   const win7 = daysAgoKstIso(6); // 오늘 포함 7일 — 1층 다른 블록과 같은 창
-  const failed: string[] = [];
 
   // ── 1차 병렬: 마커 · 오늘 결제 · 결제율 · 구독 · 소재 · 클릭 · 동기화 ──
   const [markerRes, payRes, rateRes, subTodayRes, sub7Res, funnelRes, clickRes, syncLatestRes, syncOkRes] =
@@ -45,7 +44,7 @@ export async function loadDaily() {
       supa.rpc("admin_layer2_subscription", { p_since: today, p_until: null, p_exclude }),
       supa.rpc("admin_layer2_subscription", { p_since: win7, p_until: null, p_exclude }),
       supa.rpc("admin_funnel", { p_since: win7, p_exclude, p_aliases: CREATIVE_ALIASES, p_limit: FUNNEL_LIMIT }),
-      supa.from("ad_spend").select("creative_key, clicks")
+      supa.from("ad_spend").select("creative_key, clicks, spend_won")
         .eq("platform", "meta").gte("spend_date", addDays(todayKst, -6)) // spend_date 는 이미 KST 날짜
         .limit(CLICK_ROWS_LIMIT),
       supa.from("ad_sync_runs").select("ok, error").order("started_at", { ascending: false }).limit(1),
@@ -53,16 +52,14 @@ export async function loadDaily() {
     ]);
 
   // ── 새 설문 (마커 이후 · 마커 없으면 최근 7일) ──
-  if (markerRes.error) failed.push("admin_seen_markers");
   const seenUntil: string | null = markerRes.data?.seen_until ?? null;
   const surveySince = seenUntil ?? daysAgoKstIso(6);
   const [svCountRes, svListRes] = await Promise.all([
     supa.from("survey_responses").select("id", { count: "exact", head: true }).gt("created_at", surveySince),
     supa.from("survey_responses").select("id, user_id, answers, created_at")
-      .gt("created_at", surveySince).order("created_at", { ascending: false }).limit(SURVEY_SHOW),
+      .gt("created_at", surveySince).order("created_at", { ascending: true }).limit(SURVEY_SHOW), // 가장 오래된 미확인부터 — until 을 보인 것의 최신으로 두면 안 보인 것이 확인 처리되지 않는다
   ]);
-  const surveyFailed = Boolean(svCountRes.error || svListRes.error || markerRes.error);
-
+  
   // ── 오늘 결제: 어드민 제외 → 재결제 여부 · 오늘 별 사용 ──
   const payments = ((payRes.data ?? []) as Omit<TodayPayment, "nickname" | "repeat" | "spends">[])
     .filter((p) => !p.user_id || !excluded.has(p.user_id));
@@ -98,7 +95,8 @@ export async function loadDaily() {
       spends: p.user_id ? summarizeSpends(spendsByUser.get(p.user_id) ?? []) : "",
     };
   }).reverse();
-  const paymentsFailed = Boolean(payRes.error || priorRes.error || spendRes.error);
+  const surveyFailed = Boolean(svCountRes.error || svListRes.error || markerRes.error || namesRes.error);
+  const paymentsFailed = Boolean(payRes.error || priorRes.error || spendRes.error || namesRes.error);
 
   // ── 결제율 ──
   const rateRows: PayRateDay[] = ((rateRes.data ?? []) as Record<string, string>[]).map((r) => ({
@@ -113,15 +111,24 @@ export async function loadDaily() {
   };
 
   // ── 소재 표 ──
-  const clicks = sumClicksByCreative(
-    ((clickRes.data ?? []) as { creative_key: string; clicks: number | null }[]),
+  // 지출·클릭은 ad_spend 에서 별칭 병합해 합산하고, 가입·결제·매출만 funnel 에서 가져온다.
+  // funnel 은 가입이 있는 소재만 나오므로 지출만 있고 가입 0 인 소재가 빠지지 않게 합집합으로 만든다.
+  const adAgg = sumSpendClicksByCreative(
+    ((clickRes.data ?? []) as { creative_key: string; clicks: number | null; spend_won: number | null }[]),
     (k) => canonicalCreative(k) ?? k,
   );
-  const creatives: CreativeRow[] = ((funnelRes.data ?? []) as Record<string, string | null>[]).map((r) => ({
-    creative: String(r.creative), spend_won: Number(r.spend_won ?? 0), clicks: clicks.get(String(r.creative)) ?? 0,
-    signups: Number(r.signups ?? 0), first_paid: Number(r.first_paid ?? 0), revenue_won: Number(r.revenue_won ?? 0),
-    cac: r.cac == null ? null : Number(r.cac), roas: r.roas == null ? null : Number(r.roas),
-  }));
+  const funnel = new Map(((funnelRes.data ?? []) as Record<string, string | null>[]).map((r) => [String(r.creative), r]));
+  const keys = new Set<string>([...adAgg.keys(), ...[...funnel.keys()].filter((k) => k !== "")]);
+  const creatives: CreativeRow[] = [...keys].map((creative) => {
+    const ad = adAgg.get(creative) ?? { spend: 0, clicks: 0 };
+    const f = funnel.get(creative);
+    const signups = Number(f?.signups ?? 0);
+    const revenue = Number(f?.revenue_won ?? 0);
+    return {
+      creative, spend_won: ad.spend, clicks: ad.clicks, signups, first_paid: Number(f?.first_paid ?? 0),
+      revenue_won: revenue, cac: signups > 0 ? ad.spend / signups : null, roas: ad.spend > 0 ? revenue / ad.spend : null,
+    };
+  });
   creatives.sort((a, b) => b.spend_won - a.spend_won || b.signups - a.signups);
 
   // ── 고장 신호 중 광고비 동기화 ──
@@ -153,6 +160,5 @@ export async function loadDaily() {
       truncated: (funnelRes.data ?? []).length >= FUNNEL_LIMIT || (clickRes.data ?? []).length >= CLICK_ROWS_LIMIT,
     },
     syncAlert,
-    failed,
   };
 }
