@@ -1,5 +1,7 @@
 "use client";
 // components/admin/daily/SurveyInbox.tsx — 새 설문 인박스 + [확인했어요].
+// 기본은 접힌 상태로 건수만 보인다(2026-10-10 사용자: 대시보드에 원문이 바로 펼쳐지는 건 별로).
+// [확인했어요]는 펼쳤을 때만 있다 — 안 읽은 응답을 접힌 채로 확인 처리하지 않게.
 // SurveyAnswers 는 훅 없는 순수 컴포넌트라 클라이언트 번들에서도 그대로 쓴다.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,6 +20,7 @@ export function SurveyInbox({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   if (count === 0 || items.length === 0) {
     return (
@@ -56,10 +59,15 @@ export function SurveyInbox({
 
   return (
     <div className="space-y-3">
-      <div className="text-[13px] text-white/80">
-        새 설문 {count}건 {rest > 0 && <span className="text-white/35">· 오래된 것부터</span>}
-      </div>
-      {items.map((it) => (
+      <button
+        type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="text-[13px] text-white/80 hover:text-white"
+      >
+        새 설문 <b className="text-gold">{count}건</b>{" "}
+        <span className="text-white/40">{open ? "▾ 접기" : "▸ 펼쳐 보기"}</span>
+        {open && rest > 0 && <span className="text-white/35"> · 오래된 것부터</span>}
+      </button>
+      {open && items.map((it) => (
         <div key={it.id} className="rounded-xl bg-white/5 border border-white/10 p-4 min-w-0">
           <div className="text-[12px] text-white/50 mb-2">
             {it.nickname ?? "(탈퇴)"} · {kst(it.created_at)}
@@ -67,12 +75,13 @@ export function SurveyInbox({
           <SurveyAnswers answers={it.answers} />
         </div>
       ))}
-      {rest > 0 && (
+      {open && rest > 0 && (
         <div className="text-[12px] text-white/50">
           외 {rest}건 —{" "}
           <Link href="/admin/survey" className="underline">설문 화면에서</Link>
         </div>
       )}
+      {open && (
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button" onClick={mark} disabled={busy}
@@ -82,6 +91,7 @@ export function SurveyInbox({
         </button>
         {err && <span className="text-[12px] text-red-400">{err}</span>}
       </div>
+      )}
     </div>
   );
 }
