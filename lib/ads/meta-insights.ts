@@ -194,3 +194,52 @@ export async function fetchInsights(opts: {
   }
   return out;
 }
+
+/**
+ * act_{accountId}/ads 중 effective_status=ACTIVE 인 광고 이름(trim·중복 제거).
+ * 🔴 fetchInsights 와 같은 이유로 에러에 URL(토큰 포함)을 넣지 않는다.
+ */
+export async function fetchActiveAdNames(opts: {
+  token: string;
+  accountId: string;
+  fetchImpl?: typeof fetch;
+}): Promise<string[]> {
+  const f = opts.fetchImpl ?? fetch;
+  const params = new URLSearchParams({
+    fields: "name,effective_status",
+    filtering: JSON.stringify([{ field: "effective_status", operator: "IN", value: ["ACTIVE"] }]),
+    limit: "500",
+    access_token: opts.token,
+  });
+  let url: string | null = `https://graph.facebook.com/${GRAPH_VERSION}/act_${opts.accountId}/ads?${params}`;
+  const names = new Set<string>();
+  for (let page = 0; url; page++) {
+    if (page >= MAX_PAGES) throw new Error(`Meta ads: ${MAX_PAGES}페이지 초과`);
+    let res: Response;
+    try {
+      res = await f(url);
+    } catch (e) {
+      throw new Error(`Meta ads 네트워크 실패: ${(e as Error).name}`);
+    }
+    let j: {
+      data?: { name?: string }[];
+      paging?: { next?: string };
+      error?: { message?: string; code?: number };
+    };
+    try {
+      j = await res.json();
+    } catch {
+      throw new Error(`Meta ads 실패 (HTTP ${res.status}): JSON 아님`);
+    }
+    if (!res.ok || j.error) {
+      throw new Error(`Meta ads 실패 (HTTP ${res.status}, code ${j.error?.code ?? "?"}): ${j.error?.message ?? "응답 없음"}`);
+    }
+    if (!Array.isArray(j.data)) throw new Error(`Meta ads 실패 (HTTP ${res.status}): data 없음`);
+    for (const a of j.data) {
+      const n = (a.name ?? "").trim();
+      if (n) names.add(n);
+    }
+    url = j.paging?.next ?? null;
+  }
+  return [...names];
+}

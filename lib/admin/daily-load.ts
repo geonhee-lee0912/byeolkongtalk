@@ -6,7 +6,7 @@ import { adminExclusionArray } from "@/lib/admin";
 import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 import { addDays, kstToday } from "@/lib/ads/meta-insights";
 import { CREATIVE_ALIASES, canonicalCreative } from "@/lib/analytics/creative-alias";
-import { adSyncAlert, payRateLines, sumSpendClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
+import { adSyncAlert, filterActiveCreatives, nonAdSignups, payRateLines, sumSpendClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
 
 // 접힌 블록이라 미확인을 거의 다 보여준다(하루 ~1건). 넘치면 가장 오래된 것부터 이만큼 — 아래 주석.
 export const SURVEY_SHOW = 30;
@@ -49,7 +49,7 @@ export async function loadDaily() {
         .eq("platform", "meta").gte("spend_date", addDays(todayKst, -6)) // spend_date 는 이미 KST 날짜
         .limit(CLICK_ROWS_LIMIT),
       supa.from("ad_sync_runs").select("ok, error").order("started_at", { ascending: false }).limit(1),
-      supa.from("ad_sync_runs").select("finished_at").eq("ok", true).order("finished_at", { ascending: false }).limit(1),
+      supa.from("ad_sync_runs").select("finished_at, active_creatives").eq("ok", true).order("finished_at", { ascending: false }).limit(1),
     ]);
 
   // ── 새 설문 (마커 이후 · 마커 없으면 최근 7일) ──
@@ -131,6 +131,9 @@ export async function loadDaily() {
     };
   });
   creatives.sort((a, b) => b.spend_won - a.spend_won || b.signups - a.signups);
+  const okRun = ((syncOkRes.data ?? []) as { finished_at: string | null; active_creatives: string[] | null }[])[0];
+  const activeFilter = filterActiveCreatives(creatives, okRun?.active_creatives ?? null, (k) => canonicalCreative(k) ?? k);
+  const nonAd = nonAdSignups(creatives);
 
   // ── 고장 신호 중 광고비 동기화 ──
   const syncFailed = Boolean(syncLatestRes.error || syncOkRes.error);
@@ -159,7 +162,8 @@ export async function loadDaily() {
       today: subOf(subTodayRes), last7: subOf(sub7Res),
     },
     creatives: {
-      failed: Boolean(funnelRes.error || clickRes.error), items: creatives,
+      failed: Boolean(funnelRes.error || clickRes.error), items: activeFilter.rows,
+      activeKnown: activeFilter.filtered, untracked: nonAd.untracked, organic: nonAd.organic,
       truncated: (funnelRes.data ?? []).length >= FUNNEL_LIMIT || (clickRes.data ?? []).length >= CLICK_ROWS_LIMIT,
     },
     syncAlert,

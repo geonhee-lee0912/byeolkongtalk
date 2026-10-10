@@ -47,6 +47,7 @@ export default function AuthBootstrap() {
 
     // 보조 신호
     payload.first_seen_at = new Date().toISOString();
+    payload.capture = "client";
     // 랜딩 종류: 전용 v 파라미터만 (2026-07-26 P2-8b: /start utm_content 폴백 제거 —
     // utm_content 는 소재명 전용이라 폴백이 landing_variant 를 오염시킴. 현행 광고는 전부 v= 사용)
     const lv = sp.get("v");

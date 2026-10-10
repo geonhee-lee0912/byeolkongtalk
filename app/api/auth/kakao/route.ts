@@ -11,7 +11,7 @@ import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import { chargeStars } from "@/lib/stars";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
-import { ACQ_COOKIE, parseAcqCookie } from "@/lib/acquisition";
+import { ACQ_COOKIE, parseAcqCookie, acqFromPageView, type AcqPayload } from "@/lib/acquisition";
 import { safeNextPath } from "@/lib/safe-internal-path";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
@@ -140,10 +140,38 @@ export async function GET(request: NextRequest) {
 
       // first-touch 유입 출처 저장 (신규 유저 1회). 쿠키 없으면(오가닉) 스킵.
       // 어트리뷰션은 로그인의 부수 작업 — 실패해도 가입/로그인을 막지 않도록 swallow + 로그.
-      const acq = parseAcqCookie(request.cookies.get(ACQ_COOKIE)?.value);
+      let acq: AcqPayload | null = parseAcqCookie(request.cookies.get(ACQ_COOKIE)?.value);
+      let captureSource: "client" | "server" | "pageview" = acq?.capture ?? "client";
+      if (!acq) {
+        // 안전망: 쿠키가 유실돼도 서버 쿠키(anon_id)는 살아 있다 → 비로그인 page_views 의 최초 유입 행으로 복구.
+        try {
+          const anonId = request.cookies.get("byeolkong_anon_id")?.value;
+          if (anonId) {
+            const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            const { data: pv, error: pvErr } = await supabase
+              .from("page_views")
+              .select("utm_source,utm_medium,utm_campaign,utm_content,utm_term,landing_variant,referrer,created_at")
+              .eq("anon_id", anonId)
+              .is("user_id", null)
+              .gte("created_at", since)
+              .or("utm_source.not.is.null,utm_content.not.is.null")
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (pvErr) {
+              await logError(pvErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition_pageview" } });
+            } else if (pv) {
+              acq = acqFromPageView(pv);
+              captureSource = "pageview";
+            }
+          }
+        } catch (pvCatch) {
+          await logError(pvCatch, { route: "/api/auth/kakao", extra: { step: "user_acquisition_pageview" } });
+        }
+      }
       if (acq) {
         try {
-          const { error: acqErr } = await supabase.from("user_acquisition").insert({
+          const acqRow = {
             user_id: userId,
             utm_source: acq.utm_source ?? null,
             utm_medium: acq.utm_medium ?? null,
@@ -155,7 +183,15 @@ export async function GET(request: NextRequest) {
             landing_variant: acq.landing_variant ?? null,
             referrer: acq.referrer ?? null,
             first_seen_at: acq.first_seen_at ?? null,
-          });
+            capture_source: captureSource,
+          };
+          let { error: acqErr } = await supabase.from("user_acquisition").insert(acqRow);
+          if (acqErr?.code === "PGRST204") {
+            // 배포 직후 마이그레이션(capture_source 컬럼)이 아직 안 먹은 창 — 컬럼 없이 1회 재시도해 유입 기록을 잃지 않는다.
+            const { capture_source: _omit, ...legacyRow } = acqRow;
+            void _omit;
+            ({ error: acqErr } = await supabase.from("user_acquisition").insert(legacyRow));
+          }
           if (acqErr) {
             await logError(acqErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
           }

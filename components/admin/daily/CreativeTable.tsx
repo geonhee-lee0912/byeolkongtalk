@@ -3,8 +3,24 @@ import type { CreativeRow } from "@/lib/admin/daily-load";
 
 const won = (n: number) => `₩${Math.round(n).toLocaleString("ko-KR")}`;
 
-export function CreativeTable({ items, truncated }: { items: CreativeRow[]; truncated: boolean }) {
-  if (items.length === 0) return <div className="text-[13px] text-white/50">최근 7일 소재 데이터 없음</div>;
+export function CreativeTable({
+  items, truncated, activeKnown, untracked, organic,
+}: { items: CreativeRow[]; truncated: boolean; activeKnown: boolean; untracked: number; organic: number }) {
+  const footnote = [
+    untracked > 0 ? `소재 미상 가입 ${untracked}명 (대부분 인스타 앱 안 브라우저에서 광고 표시가 빠진 것으로 보임)` : null,
+    organic > 0 ? `유기 유입 ${organic}명` : null,
+  ].filter(Boolean).join(" · ");
+  const note = footnote ? <div className="text-[12px] text-white/40 break-words">{footnote}</div> : null;
+  if (items.length === 0) {
+    return (
+      <div className="space-y-2">
+        <div className="text-[13px] text-white/50">
+          {activeKnown ? "지금 게재 중인 광고 없음" : "최근 7일 소재 데이터 없음"}
+        </div>
+        {note}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       {truncated && (
@@ -44,6 +60,7 @@ export function CreativeTable({ items, truncated }: { items: CreativeRow[]; trun
           </tbody>
         </table>
       </div>
+      {note}
     </div>
   );
 }

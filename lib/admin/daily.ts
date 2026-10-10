@@ -96,6 +96,30 @@ export function sumSpendClicksByCreative(
   return m;
 }
 
+const NON_AD_UNTRACKED = "(추적 안 됨)";
+const NON_AD_ORGANIC = "(organic)";
+
+/**
+ * 소재 표를 "지금 게재 중인 광고"로 좁힌다. activeNames 가 null(미기록)이면 필터 없이 비광고 행만 뺀다.
+ * 게재 목록의 이름도 같은 canon 으로 병합해 비교한다(행의 creative 는 이미 canon 된 값).
+ */
+export function filterActiveCreatives<T extends { creative: string }>(
+  rows: T[],
+  activeNames: string[] | null,
+  canon: (k: string) => string,
+): { rows: T[]; filtered: boolean } {
+  const ads = rows.filter((r) => r.creative !== NON_AD_UNTRACKED && r.creative !== NON_AD_ORGANIC);
+  if (activeNames == null) return { rows: ads, filtered: false };
+  const set = new Set(activeNames.map(canon));
+  return { rows: ads.filter((r) => set.has(r.creative)), filtered: true };
+}
+
+/** 비광고 두 행의 가입 수. */
+export function nonAdSignups(rows: { creative: string; signups: number }[]): { untracked: number; organic: number } {
+  const of = (k: string) => rows.filter((r) => r.creative === k).reduce((a, r) => a + r.signups, 0);
+  return { untracked: of(NON_AD_UNTRACKED), organic: of(NON_AD_ORGANIC) };
+}
+
 /**
  * KST "오전 11:05" / withDate 면 "10/10 오후 7:05".
  * Intl 의 hour12 에 맡기지 않는다 — 서버(Node) ICU 가 ko-KR 에서도 "AM"을 내는 걸 실측했다(2026-10-10).
