@@ -87,3 +87,14 @@ test("kstTimeLabel — KST 기준 오전/오후 · 자정·정오는 12", async 
   assert.equal(kstTimeLabel("2026-10-09T15:00:00Z", true), "10/10 오전 12:00"); // KST 자정
   assert.equal(kstTimeLabel("2026-10-10T03:30:00Z"), "오후 12:30");              // KST 정오
 });
+
+test("parseSeenUntil — 마이크로초를 자르지 않고 그대로 · 형식/미래 시각 거부", async () => {
+  const { parseSeenUntil } = await import("./daily.ts");
+  const now = new Date("2026-10-10T03:00:00Z");
+  assert.equal(parseSeenUntil("2026-10-09T15:00:20.623963+00:00", now), "2026-10-09T15:00:20.623963+00:00");
+  assert.equal(parseSeenUntil("2026-10-09T15:00:20Z", now), "2026-10-09T15:00:20Z");
+  assert.equal(parseSeenUntil("2026-10-09", now), null);             // 오프셋 없는 날짜만
+  assert.equal(parseSeenUntil("2026-10-09T15:00:20", now), null);    // 시간대 없음 = 해석이 모호
+  assert.equal(parseSeenUntil("2026-10-10T04:00:00Z", now), null);   // 미래
+  assert.equal(parseSeenUntil(123, now), null);
+});
