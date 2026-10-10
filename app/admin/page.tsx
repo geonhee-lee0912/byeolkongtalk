@@ -25,6 +25,13 @@ import {
   adSpendStaleDays,
   type DailyPnl,
 } from "@/lib/admin/band";
+import { AlertStrip } from "@/components/admin/daily/AlertStrip";
+import { SurveyInbox } from "@/components/admin/daily/SurveyInbox";
+import { PaymentsToday } from "@/components/admin/daily/PaymentsToday";
+import { PayRateTable } from "@/components/admin/daily/PayRateTable";
+import { SubscriptionRow } from "@/components/admin/daily/SubscriptionRow";
+import { CreativeTable } from "@/components/admin/daily/CreativeTable";
+import { loadDaily } from "@/lib/admin/daily-load";
 import { computeUnit, computeGuardrails, pct1, type GuardRow } from "@/lib/admin/layer1";
 
 export const dynamic = "force-dynamic";
@@ -150,7 +157,7 @@ async function loadStats() {
     all: { newUsers: au.count ?? 0, readings: ar.count ?? 0, revenueWon: revenue.all },
     alerts: { unresolvedErrors: errs.count ?? 0, unreviewedSensitive: sens.count ?? 0 },
     // 실패한 RPC 블록. 화면이 0 대신 "—" + 경고 한 줄을 그리는 데 쓴다.
-    failed: { revenue: revenueFailed, traffic: trafficFailed, readings: readingsFailed },
+    failed: { revenue: revenueFailed, traffic: trafficFailed, readings: readingsFailed, alerts: Boolean(errs.error || sens.error) },
   };
 }
 
@@ -256,7 +263,7 @@ async function loadLayer1() {
 }
 
 export default async function AdminDashboard() {
-  const [s, L1] = await Promise.all([loadStats(), loadLayer1()]);
+  const [s, L1, D] = await Promise.all([loadStats(), loadLayer1(), loadDaily()]);
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-bold">대시보드</h1>
@@ -351,26 +358,51 @@ export default async function AdminDashboard() {
         </div>
       </section>
 
+      <AlertStrip
+        unresolvedErrors={s.alerts.unresolvedErrors}
+        unreviewedSensitive={s.alerts.unreviewedSensitive}
+        alertsFailed={s.failed.alerts}
+        syncAlert={D.syncAlert}
+      />
+
       <section>
-        <h2 className="text-sm text-white/60 mb-3">
-          매출의 질 <span className="text-white/35">(최근 7일)</span>
-        </h2>
-        {L1.failed.quality ? (
-          <LoadFailed block="매출의 질(admin_layer1_quality)" />
+        <h2 className="text-sm text-white/60 mb-3">새 설문</h2>
+        {D.survey.failed ? (
+          <LoadFailed block="새 설문(survey_responses · admin_seen_markers)" />
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Metric metricKey="new_payment_won" value={L1.quality.newPaymentWon} n={0} />
-            <Metric metricKey="repeat_payment_won" value={L1.quality.repeatPaymentWon} n={0} />
-            <Metric
-              metricKey="subscription_won"
-              value={L1.quality.subscriptionWon}
-              n={0}
-              sub={`전체 ${L1.quality.subscriptionStars.toLocaleString("ko-KR")}별 중 유료별만 환산`}
-            />
-            <Metric metricKey="subscriber_net" value={L1.quality.subsNet} n={0} />
-          </div>
+          <SurveyInbox count={D.survey.count} items={D.survey.items} seenUntil={D.survey.seenUntil} />
         )}
       </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">오늘 결제</h2>
+        {D.payments.failed ? (
+          <LoadFailed block="오늘 결제(payments · star_transactions)" />
+        ) : (
+          <PaymentsToday items={D.payments.items} totalWon={D.payments.totalWon} truncated={D.payments.truncated} />
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">
+          결제율 <span className="text-white/35">(가입 후 48시간 안 결제 · 전체 유입)</span>
+        </h2>
+        {D.payRate.failed ? (
+          <LoadFailed block="결제율(admin_pay_rate)" />
+        ) : (
+          <PayRateTable today={D.payRate.today} yesterday={D.payRate.yesterday} mature7={D.payRate.mature7} />
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm text-white/60 mb-3">별마루 구독</h2>
+        {D.subscription.failed ? (
+          <LoadFailed block="별마루 구독(admin_layer2_subscription)" />
+        ) : (
+          <SubscriptionRow today={D.subscription.today} last7={D.subscription.last7} />
+        )}
+      </section>
+
 
       <section>
         <h2 className="text-sm text-white/60 mb-3">
@@ -424,9 +456,16 @@ export default async function AdminDashboard() {
       </section>
 
       <section>
-        <h2 className="text-sm text-white/60 mb-3">가드레일</h2>
-        {L1.failed.guard ? <LoadFailed block="가드레일(admin_layer1_guard)" /> : <GuardrailRow guards={L1.guards} />}
+        <h2 className="text-sm text-white/60 mb-3">
+          광고 소재 <span className="text-white/35">(최근 7일)</span>
+        </h2>
+        {D.creatives.failed ? (
+          <LoadFailed block="광고 소재(admin_funnel · ad_spend)" />
+        ) : (
+          <CreativeTable items={D.creatives.items} truncated={D.creatives.truncated} />
+        )}
       </section>
+
 
       {/* 2층(플랜B 단계4, Task 8) — 펼칠 때만 /api/admin/layer2 를 친다. 섹션 8개를 미리 다
           돌리면 첫 페인트가 죽는다. 기존 어드민 화면은 지우지 않고 링크 블록의 목적지로 남는다. */}
@@ -446,6 +485,32 @@ export default async function AdminDashboard() {
           <Drilldown section="d7" label="D7 — 코호트 리텐션 곡선" days={7} />
           <Drilldown section="withdrawal" label="탈퇴 — 오늘·누적·이탈 설문" days={7} />
         </div>
+      </section>
+
+      <section className="opacity-80">
+        <h2 className="text-sm text-white/60 mb-3">
+          보관함 · 매출의 질 <span className="text-white/35">(최근 7일)</span>
+        </h2>
+        {L1.failed.quality ? (
+          <LoadFailed block="매출의 질(admin_layer1_quality)" />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Metric metricKey="new_payment_won" value={L1.quality.newPaymentWon} n={0} />
+            <Metric metricKey="repeat_payment_won" value={L1.quality.repeatPaymentWon} n={0} />
+            <Metric
+              metricKey="subscription_won"
+              value={L1.quality.subscriptionWon}
+              n={0}
+              sub={`전체 ${L1.quality.subscriptionStars.toLocaleString("ko-KR")}별 중 유료별만 환산`}
+            />
+            <Metric metricKey="subscriber_net" value={L1.quality.subsNet} n={0} />
+          </div>
+        )}
+      </section>
+
+      <section className="opacity-80">
+        <h2 className="text-sm text-white/60 mb-3">보관함 · 가드레일</h2>
+        {L1.failed.guard ? <LoadFailed block="가드레일(admin_layer1_guard)" /> : <GuardrailRow guards={L1.guards} />}
       </section>
 
       <section>
@@ -468,13 +533,6 @@ export default async function AdminDashboard() {
               <Delta today={s.all.revenueWon} yesterday={s.all.revenueWon - s.today.revenueWon} label="어제까지" />
             )}
           </Stat>
-        </div>
-      </section>
-      <section>
-        <h2 className="text-sm text-white/60 mb-3">처리 대기</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Stat label="미해결 에러" value={s.alerts.unresolvedErrors} />
-          <Stat label="미검토 민감알림" value={s.alerts.unreviewedSensitive} />
         </div>
       </section>
     </div>
