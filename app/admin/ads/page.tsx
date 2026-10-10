@@ -1,4 +1,4 @@
-// app/admin/ads/page.tsx — 광고 지출 입력/목록.
+// app/admin/ads/page.tsx — 광고 지출: Meta 동기화 상태 · 수동 입력(비-Meta) · 목록.
 //
 // 소재 제안·총 지출 집계는 Postgres RPC 가 한다 — 원본 행을 앱으로 끌어오지 않는다. 이전 구현은
 // user_acquisition(90일)·ad_spend 를 `.limit(100000)` 으로 받아 앱에서 dedupe·reduce 했는데,
@@ -9,7 +9,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { daysAgoKstIso } from "@/lib/admin-time";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
-import { AdSpendUpload } from "@/components/admin/AdSpendUpload";
+import { AdSyncPanel, type LastSyncRun } from "@/components/admin/AdSyncPanel";
 import LoadFailed from "@/components/admin/LoadFailed";
 import { CREATIVE_ALIASES } from "@/lib/analytics/creative-alias";
 
@@ -24,7 +24,7 @@ const CREATIVE_LIMIT = 200;
 
 export default async function AdsPage() {
   const supa = getServiceSupabase();
-  const [listRes, sugRes, totalRes] = await Promise.all([
+  const [listRes, sugRes, totalRes, syncRes] = await Promise.all([
     supa.from("ad_spend").select("*").order("spend_date", { ascending: false }).limit(LIST_LIMIT),
     supa.rpc("admin_ad_creative_suggestions", {
       p_since: daysAgoKstIso(89),
@@ -34,6 +34,7 @@ export default async function AdsPage() {
       p_limit: CREATIVE_LIMIT,
     }),
     supa.rpc("admin_ad_spend_total"),
+    supa.from("ad_sync_runs").select("*").order("started_at", { ascending: false }).limit(1),
   ]);
 
   // 세 소스는 각자 실패할 수 있다 — `?? []`·`?? 0` 이 실패를 "값이 없음"으로 위장하지 않게
@@ -41,6 +42,8 @@ export default async function AdsPage() {
   const listFailed = !!listRes.error;
   const suggestionsFailed = !!sugRes.error;
   const totalFailed = !!totalRes.error;
+  const syncFailed = !!syncRes.error;
+  const lastSync = ((syncRes.data ?? []) as LastSyncRun[])[0] ?? null;
 
   // ⚠️ RPC 가 유입 많은 순으로 이미 정렬·중복 제거·빈값 제거를 끝냈다 — 앱에서 다시 하지 않는다.
   const suggestionRows = (sugRes.data ?? []) as { creative: string }[];
@@ -53,9 +56,12 @@ export default async function AdsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">광고 지출 <span className="text-white/40 text-sm">(수동 입력 · 선택)</span></h1>
-      <p className="text-[13px] text-white/50">메타 Ads Manager 숫자를 일자·소재별로 입력하면 애널리틱스의 CAC·ROAS가 채워집니다. 입력 안 해도 다른 지표는 모두 동작합니다.</p>
-      <AdSpendUpload />
+      <h1 className="text-xl font-bold">광고 지출 <span className="text-white/40 text-sm">(Meta 자동 동기화)</span></h1>
+      <p className="text-[13px] text-white/50">
+        매일 05:00(KST)에 Meta 에서 최근 8일을 가져와 날짜 단위로 교체합니다. 아래 수동 입력은 Meta 외 광고용 —
+        Meta 행을 손으로 넣어도 그 날짜가 동기화되면 API 값으로 덮입니다.
+      </p>
+      <AdSyncPanel last={lastSync} loadFailed={syncFailed} />
       <AdSpendForm creativeSuggestions={suggestions} />
       {/* 자동완성이 비면 "등록된 소재가 없다"로 읽힌다 — 조회 실패는 그렇게 위장하지 않는다. */}
       {suggestionsFailed && <LoadFailed block="admin_ad_creative_suggestions" />}
@@ -67,7 +73,7 @@ export default async function AdsPage() {
       )}
 
       <div className="rounded-xl bg-white/5 border border-white/10 p-4 inline-block">
-        <div className="text-[12px] text-white/50">업로드된 총 지출 (전체 누적)</div>
+        <div className="text-[12px] text-white/50">총 지출 (전체 누적)</div>
         {/* 실패한 집계는 ₩0 이 아니라 —. ₩0 은 "광고를 안 돌렸다"는 뜻이 되어버린다. */}
         <div className="text-xl font-bold mt-1">{totalFailed ? "—" : `₩ ${totalSpend.toLocaleString()}`}</div>
       </div>
@@ -88,20 +94,21 @@ export default async function AdsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead className="text-white/50 text-left"><tr>
-                <th className="py-1">날짜</th><th>캠페인</th><th>소재</th><th>노출</th><th>클릭</th><th>지출(원)</th>
+                <th className="py-1">날짜</th><th>캠페인</th><th>세트</th><th>소재</th><th>노출</th><th>클릭</th><th>지출(원)</th>
               </tr></thead>
               <tbody>
                 {(rows ?? []).map((r: Record<string, unknown>) => (
                   <tr key={String(r.id)} className="border-t border-white/10">
                     <td className="py-1.5">{String(r.spend_date)}</td>
                     <td>{String(r.campaign ?? "")}</td>
+                    <td>{String(r.adset ?? "")}</td>
                     <td>{String(r.creative_key ?? "")}</td>
                     <td>{r.impressions == null ? "—" : Number(r.impressions).toLocaleString()}</td>
                     <td>{r.clicks == null ? "—" : Number(r.clicks).toLocaleString()}</td>
                     <td>{Number(r.spend_won).toLocaleString()}</td>
                   </tr>
                 ))}
-                {(rows ?? []).length === 0 && <tr><td colSpan={6} className="py-3 text-white/30">아직 입력된 지출이 없어요.</td></tr>}
+                {(rows ?? []).length === 0 && <tr><td colSpan={7} className="py-3 text-white/30">아직 입력된 지출이 없어요.</td></tr>}
               </tbody>
             </table>
           </div>
