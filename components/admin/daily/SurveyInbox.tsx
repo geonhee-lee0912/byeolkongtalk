@@ -28,7 +28,7 @@ export function SurveyInbox({
     );
   }
 
-  // items 는 가장 오래된 미확인부터 오래된→최신 순이다. 보인 것 중 최신까지만 확인 처리한다 —
+  // items 는 최신→오래된 순으로 온다(가져오기는 가장 오래된 미확인부터). 보인 것 중 최신까지만 확인 처리한다 —
   // 안 보인(더 새로운) 응답은 확인되지 않고 다음 차례에 나온다.
   const rest = count - items.length;
   const until = items.reduce((m, it) => (Date.parse(it.created_at) > Date.parse(m) ? it.created_at : m), items[0].created_at);
@@ -63,7 +63,7 @@ export function SurveyInbox({
       >
         새 설문 <b className="text-gold">{count}건</b>{" "}
         <span className="text-white/40">{open ? "▾ 접기" : "▸ 펼쳐 보기"}</span>
-        {open && rest > 0 && <span className="text-white/35"> · 오래된 것부터</span>}
+        {open && rest > 0 && <span className="text-white/35"> · 오래된 {items.length}건만 표시</span>}
       </button>
       {open && items.map((it) => (
         <div key={it.id} className="rounded-xl bg-white/5 border border-white/10 p-4 min-w-0">
