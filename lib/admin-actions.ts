@@ -71,6 +71,7 @@ export type AdminActionName =
   | "inquiry_reply"
   | "ad_spend_upsert"
   | "ad_spend_delete"
+  | "ad_spend_sync"
   | "popup_send"
   | "popup_revoke";
 
