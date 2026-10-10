@@ -34,7 +34,9 @@ const DAY_MS = 86_400_000;
 
 function utcMidnight(d: string): number {
   if (!DATE_RE.test(d)) throw new Error(`bad date: ${d}`);
-  return Date.parse(`${d}T00:00:00Z`);
+  const t = Date.parse(`${d}T00:00:00Z`);
+  if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== d) throw new Error(`bad date: ${d}`);
+  return t;
 }
 
 /** from~to (양 끝 포함) YYYY-MM-DD 목록. */
@@ -108,7 +110,13 @@ export function toAdSpendRows(insights: InsightRow[], dates: string[]): AdSpendR
 
   const out: AdSpendRow[] = [];
   for (const { rawSpend, ...r } of byKey.values()) {
-    out.push({ ...r, spend_won: Math.round(rawSpend) });
+    out.push({
+      ...r,
+      impressions: r.impressions == null ? null : Math.round(r.impressions),
+      clicks: r.clicks == null ? null : Math.round(r.clicks),
+      reach: r.reach == null ? null : Math.round(r.reach),
+      spend_won: Math.round(rawSpend),
+    });
   }
 
   const delivered = new Set(out.map((r) => r.spend_date));
@@ -160,16 +168,28 @@ export async function fetchInsights(opts: {
   const out: InsightRow[] = [];
   for (let page = 0; url; page++) {
     if (page >= MAX_PAGES) throw new Error(`Meta insights: ${MAX_PAGES}페이지 초과`);
-    const res = await f(url);
-    const j = (await res.json().catch(() => ({}))) as {
+    let res: Response;
+    try {
+      res = await f(url);
+    } catch (e) {
+      // 원본 에러 메시지에 URL(토큰 포함)이 있을 수 있어 name 만 남긴다.
+      throw new Error(`Meta insights 네트워크 실패: ${(e as Error).name}`);
+    }
+    let j: {
       data?: InsightRow[];
       paging?: { next?: string };
       error?: { message?: string; code?: number };
     };
+    try {
+      j = await res.json();
+    } catch {
+      throw new Error(`Meta insights 실패 (HTTP ${res.status}): JSON 아님`);
+    }
     if (!res.ok || j.error) {
       throw new Error(`Meta insights 실패 (HTTP ${res.status}, code ${j.error?.code ?? "?"}): ${j.error?.message ?? "응답 없음"}`);
     }
-    out.push(...(j.data ?? []));
+    if (!Array.isArray(j.data)) throw new Error(`Meta insights 실패 (HTTP ${res.status}): data 없음`);
+    out.push(...j.data);
     url = j.paging?.next ?? null;
   }
   return out;

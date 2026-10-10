@@ -140,3 +140,41 @@ test("fetchInsights — API 에러는 메시지·코드로 throw, 토큰·URL �
     },
   );
 });
+
+test("fetchInsights — 200 이어도 data 가 없으면 throw (0원 덮어쓰기 방지)", async () => {
+  const { impl } = fakeFetch([{ body: { foo: 1 } }]);
+  await assert.rejects(fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl }), /data 없음/);
+});
+
+test("fetchInsights — 200 이어도 JSON 이 아니면 throw", async () => {
+  const impl = (async () => new Response("<html>oops</html>", { status: 200 })) as unknown as typeof fetch;
+  await assert.rejects(fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl }), /JSON 아님/);
+});
+
+test("fetchInsights — 두 번째 페이지가 비정상이면 부분 결과 없이 throw", async () => {
+  const { impl } = fakeFetch([
+    { body: { data: [{ date_start: "2026-10-01" }], paging: { next: "https://graph.facebook.com/next1" } } },
+    { body: { foo: 1 } },
+  ]);
+  await assert.rejects(fetchInsights({ from: "2026-10-01", to: "2026-10-02", token: "T", accountId: "1", fetchImpl: impl }), /data 없음/);
+});
+
+test("fetchInsights — 네트워크 에러 메시지에 URL·토큰이 새지 않는다", async () => {
+  const impl = (async () => { throw new Error("Failed to parse URL from https://x?access_token=SECRET"); }) as unknown as typeof fetch;
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "SECRET", accountId: "1", fetchImpl: impl }),
+    (e: Error) => { assert.doesNotMatch(e.message, /SECRET|https/); return true; },
+  );
+});
+
+test("존재하지 않는 날짜는 throw", () => {
+  assert.throws(() => datesInRange("2026-02-30", "2026-03-02"), /bad date/);
+  assert.throws(() => addDays("2026-13-01", 1), /bad date/);
+});
+
+test("toAdSpendRows — impressions/clicks/reach 는 정수로 반올림, null 유지", () => {
+  const out = toAdSpendRows([row({ impressions: "1.5", inline_link_clicks: "2.4", reach: undefined })], ["2026-10-04"]);
+  assert.equal(out[0].impressions, 2);
+  assert.equal(out[0].clicks, 2);
+  assert.equal(out[0].reach, null);
+});
