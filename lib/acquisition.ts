@@ -22,6 +22,8 @@ export type AcqPayload = {
   landing_variant?: string;
   referrer?: string;
   first_seen_at?: string;
+  /** 쿠키를 쓴 주체. 없으면(2026-10-10 이전 쿠키) client 로 본다. */
+  capture?: "client" | "server";
 };
 
 /**
@@ -83,4 +85,58 @@ export function parseAcqCookie(raw: string | undefined): AcqPayload | null {
   } catch {
     return null;
   }
+}
+
+const OWN_HOSTS = new Set(["byeolkongtalk.com", "www.byeolkongtalk.com", "dev.byeolkongtalk.com", "localhost"]);
+
+/**
+ * proxy.ts 용 — 서버가 심는 first-touch 쿠키 값(encodeURIComponent(JSON)). 클라(AuthBootstrap)와 같은 페이로드 모양.
+ * 캡처 키가 하나도 없으면 null. Referer 가 우리 도메인이면 referrer 는 넣지 않는다.
+ * 주의: NextResponse.cookies.set 은 값을 스스로 encodeURIComponent 한다(@edge-runtime/cookies stringifyCookie) —
+ * 이 반환값을 그대로 넘기면 이중 인코딩이라 parseAcqCookie 가 못 읽는다. 넘길 땐 decodeURIComponent 한 JSON 을.
+ */
+export function buildServerAcqCookie(
+  params: URLSearchParams,
+  referer: string | null,
+  fbcCookie: string | undefined,
+  nowIso: string
+): string | null {
+  const map: Record<string, string | undefined> = {};
+  for (const k of ACQ_KEYS) map[k] = params.get(k) ?? undefined;
+  const payload = buildAcqPayload(map);
+  if (!payload) return null;
+  payload.first_seen_at = nowIso;
+  const lv = params.get("v");
+  if (lv) payload.landing_variant = lv.slice(0, 200);
+  if (referer) {
+    try {
+      if (!OWN_HOSTS.has(new URL(referer).hostname)) payload.referrer = referer.slice(0, 200);
+    } catch {}
+  }
+  if (fbcCookie) payload.fbc = fbcCookie;
+  payload.capture = "server";
+  return encodeURIComponent(JSON.stringify(payload));
+}
+
+export type PageViewAcqRow = {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  landing_variant: string | null;
+  referrer: string | null;
+  created_at: string;
+};
+
+/** 가입 시 쿠키가 없을 때 — page_views 최초 유입 행 → AcqPayload (fbclid/fbc 는 page_views 에 없다). */
+export function acqFromPageView(row: PageViewAcqRow): AcqPayload {
+  const out: AcqPayload = { first_seen_at: row.created_at };
+  for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const) {
+    const v = row[k];
+    if (v) out[k] = v.slice(0, 200);
+  }
+  if (row.landing_variant) out.landing_variant = row.landing_variant.slice(0, 200);
+  if (row.referrer) out.referrer = row.referrer.slice(0, 200);
+  return out;
 }

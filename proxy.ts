@@ -3,6 +3,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdminToken } from "@/lib/auth-token";
+import { ACQ_COOKIE, buildServerAcqCookie } from "@/lib/acquisition";
 
 const ANON_COOKIE = "byeolkong_anon_id";
 const USER_COOKIE = "byeolkong_user_id";
@@ -47,6 +48,27 @@ export async function proxy(req: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 365, // 1년
     });
+  }
+
+  // first-touch 유입 쿠키를 서버에서도 심는다 — 인스타 인앱브라우저에서 JS 쿠키가 로그인 왕복 중 유실되는 문제 대응.
+  // 이미 있으면 덮어쓰지 않는다(first-touch). 클라(AuthBootstrap)는 쿠키가 있으면 스킵하므로 충돌 없음.
+  if (req.method === "GET" && !pathname.startsWith("/api/") && !req.cookies.get(ACQ_COOKIE)) {
+    const encoded = buildServerAcqCookie(
+      req.nextUrl.searchParams,
+      req.headers.get("referer"),
+      req.cookies.get("_fbc")?.value,
+      new Date().toISOString()
+    );
+    if (encoded) {
+      // cookies.set 이 값을 다시 encodeURIComponent 하므로 디코드한 JSON 을 넘긴다(이중 인코딩 방지).
+      res.cookies.set(ACQ_COOKIE, decodeURIComponent(encoded), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
   }
 
   return res;
