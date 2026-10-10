@@ -3,6 +3,7 @@
 // components/admin/AdSyncPanel.tsx — 광고비 Meta 동기화: 마지막 실행 표시 + 지금 동기화 + 기간 재수집.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { kstTimeLabel } from "@/lib/admin/daily";
 
 export interface LastSyncRun {
   started_at: string;
@@ -20,9 +21,7 @@ const TRIGGER_LABEL: Record<string, string> = { cron: "자동", manual: "수동"
 const STALE_MS = 5 * 60 * 1000;
 
 function kstTime(iso: string): string {
-  return new Date(iso).toLocaleString("ko-KR", {
-    timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
-  });
+  return kstTimeLabel(iso, true);
 }
 
 export function AdSyncPanel({ last, loadFailed }: { last: LastSyncRun | null; loadFailed: boolean }) {
