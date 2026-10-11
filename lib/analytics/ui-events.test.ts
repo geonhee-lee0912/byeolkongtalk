@@ -36,6 +36,11 @@ test("UI_EVENTS — 별마루 ② 페이월 이벤트가 등록돼 있다", () =
   assert.equal(isUiEvent("byeolmaru_subscribe_completed"), true);
 });
 
+// 2026-10-11 체험 중 구독 노출 — 구독 실패(402·500·network) 계측. /api/event 가 allowlist 로 거르므로 여기 없으면 서버가 버린다.
+test("UI_EVENTS — 별마루 구독 실패(byeolmaru_subscribe_failed)가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_subscribe_failed"), true);
+});
+
 // P5-4 T3 — 미끼 당일 접힘(slot별) 닫기 클릭 계측.
 test("UI_EVENTS — 별마루 미끼 닫기(당일 접힘) 이벤트가 등록돼 있다", () => {
   assert.equal(isUiEvent("byeolmaru_gate_dismissed"), true);

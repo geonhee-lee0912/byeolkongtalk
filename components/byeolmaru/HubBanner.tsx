@@ -24,6 +24,7 @@
 //    배너가 다시 빈 칸이 된다(그게 이 작업의 출발점이었다).
 import Image from "next/image";
 import { TRIAL_DAYS } from "@/lib/byeolmaru/entitlement";
+import { daysLeft } from "@/lib/byeolmaru/subscribe-offer";
 
 interface Props {
   /** 🔴 false 면 버튼·칩을 아예 안 그린다 — 게스트(EmptyMonthShell)용. 그 화면엔 이미 더 큰
@@ -38,13 +39,12 @@ interface Props {
   trialEndsAt?: string | null;
   /** 비자격자가 버튼을 눌렀을 때 — 허브가 체험/구독 중 맞는 쪽을 고른다. */
   onSubscribe?: () => void;
+  /** 체험 시작 처리 중 — 버튼을 '여는 중…'으로 막는다(연타 방지는 useByeolmaruSubscribe 의 ref 잠금). */
+  busy?: boolean;
 }
 
-/** 남은 일수 — 경과 24h 블록 기준(만료 판정이 타임스탬프 비교라 그쪽과 잣대를 맞춘다).
- *  자격이 있다는 건 만료가 미래라는 뜻이라 최소 1을 보장한다(D-0 은 "오늘 끝"으로 읽혀 혼동된다). */
-function daysLeft(iso: string, now: number): number {
-  return Math.max(1, Math.ceil((new Date(iso).getTime() - now) / 86_400_000));
-}
+// 남은 일수(D-N)는 subscribe-offer.ts 의 daysLeft 다 — 체험 넛지(리포트 끝 "체험 D-n야")와 같은 잣대여야
+// 한 사람이 두 화면에서 다른 숫자를 보지 않는다(2026-10-11 에 여기 있던 지역 함수를 옮겼다).
 
 export default function HubBanner({
   cta = true,
@@ -53,6 +53,7 @@ export default function HubBanner({
   subscriptionExpiresAt = null,
   trialEndsAt = null,
   onSubscribe,
+  busy = false,
 }: Props) {
   // 🔴 렌더 중 Date.now() — 서버·클라 값이 달라도 문제가 없다. 이 컴포넌트는 허브가 캘린더를
   //    fetch 한 뒤(클라 전용 상태)에만 그려지므로 SSR 결과가 존재하지 않는다.
@@ -90,9 +91,9 @@ export default function HubBanner({
             {expiry ? ` · D-${daysLeft(expiry, now)}` : ""}
           </span>
         ) : (
-          <button type="button" onClick={onSubscribe} className={`${chipClass} transition active:scale-95`}>
-            {trialUsed ? "구독하기" : `${TRIAL_DAYS}일 무료 체험`}
-            <span aria-hidden>→</span>
+          <button type="button" onClick={onSubscribe} disabled={busy} className={`${chipClass} transition active:scale-95 disabled:opacity-60`}>
+            {trialUsed ? "구독하기" : busy ? "여는 중…" : `${TRIAL_DAYS}일 무료 체험`}
+            {!busy && <span aria-hidden>→</span>}
           </button>
         )}
       </div>

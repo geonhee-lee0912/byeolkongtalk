@@ -46,9 +46,11 @@ interface Props {
   onStartTrial: (slot?: string) => void;
   onSubscribe: (slot?: string) => void;
   slot: BaitSlot;
+  /** 체험 시작 처리 중 — 체험 버튼을 '여는 중…'으로 막는다(연타 방지는 useByeolmaruSubscribe 의 ref 잠금). */
+  trialBusy?: boolean;
 }
 
-export default function PaywallCut({ freeChars, paidChars, sections, blurText, trialUsed, onStartTrial, onSubscribe, slot }: Props) {
+export default function PaywallCut({ freeChars, paidChars, sections, blurText, trialUsed, onStartTrial, onSubscribe, slot, trialBusy = false }: Props) {
   useEffect(() => {
     // PremiumBlock 에서 이식 — 이벤트 이름·meta 모양을 그대로 써서 자리별 분모(스펙 §13)의
     // **계열**을 잇는다. 🔴 잇는 건 계열이지 값이 아니다: 접기가 없어 `!dismissed` 게이트도
@@ -130,8 +132,12 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
       {/* CTA 는 잠금이 아니라 열쇠다(스펙 §9) — PremiumBlock 과 같은 문구·같은 2단 가격 노출. */}
       {!trialUsed ? (
         <>
-          <button onClick={() => onStartTrial(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
-            3일 무료로 열어보기
+          <button
+            onClick={() => onStartTrial(slot)}
+            disabled={trialBusy}
+            className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night disabled:opacity-60"
+          >
+            {trialBusy ? "여는 중…" : "3일 무료로 열어보기"}
           </button>
           {/* 🔴 text-light 가 아니라 eye-purple 이다. 예전 호스트가 bg-cream-warm 이라 text-light 가
               4.49:1 로 AA(4.5:1)에 **0.01 미달**이었다. 2026-09-27 에 호스트가 bg-white 로 바뀌어

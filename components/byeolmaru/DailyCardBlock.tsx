@@ -19,6 +19,7 @@ import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
 import { TAROT_PAID_CHARS, TAROT_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
+import type { SubscribeSurface } from "@/lib/byeolmaru/subscribe-offer";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import CardReportView, { CardGaugeView } from "./CardReportView";
@@ -69,6 +70,7 @@ export default function DailyCardBlock({
   trialUsed,
   onStartTrial,
   onSubscribe,
+  trialBusy = false,
   autoOpenRitual = false,
 }: {
   /** 보고 있는 날짜(YYYY-MM-DD). 오늘이 아니면 뽑기 의식은 열리지 않는다. */
@@ -78,7 +80,10 @@ export default function DailyCardBlock({
   entitled: boolean;
   trialUsed: boolean;
   onStartTrial: (slot?: string) => void;
-  onSubscribe: (slot?: string) => void;
+  /** useByeolmaruSubscribe 의 openSubscribe 그대로 — surface 는 이 블록 안 자리마다 다르다(절단선·받은 글 아래). */
+  onSubscribe: (surface: SubscribeSurface, slot?: string) => void;
+  /** 체험 시작 처리 중 — 체험 버튼을 '여는 중…'으로 막는다(연타 방지는 훅의 ref 잠금). */
+  trialBusy?: boolean;
   /** 주소가 타로를 가리켜 들어온 진입인가 — 아래 자동 열기의 전제. 기본값 false 라
    *  이 prop 을 안 주는 호출부는 **안 여는 쪽**으로 안전하게 떨어진다. */
   autoOpenRitual?: boolean;
@@ -521,7 +526,7 @@ export default function DailyCardBlock({
                       </p>
                       {trialUsed ? (
                         <button
-                          onClick={() => onSubscribe("tarot_rich")}
+                          onClick={() => onSubscribe("kept_report", "tarot_rich")}
                           className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
                         >
                           구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
@@ -529,9 +534,10 @@ export default function DailyCardBlock({
                       ) : (
                         <button
                           onClick={() => onStartTrial("tarot_rich")}
-                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                          disabled={trialBusy}
+                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
                         >
-                          3일 무료로 열어보기
+                          {trialBusy ? "여는 중…" : "3일 무료로 열어보기"}
                         </button>
                       )}
                     </div>
@@ -557,8 +563,9 @@ export default function DailyCardBlock({
                     blurText={taste}
                     trialUsed={trialUsed}
                     onStartTrial={onStartTrial}
-                    onSubscribe={onSubscribe}
+                    onSubscribe={(slot) => onSubscribe("cut", slot)}
                     slot="tarot_rich"
+                    trialBusy={trialBusy}
                   />
               ) : null}
               {narrativeFailed && (

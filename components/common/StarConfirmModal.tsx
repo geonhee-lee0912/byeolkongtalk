@@ -24,6 +24,9 @@ export interface StarConfirmModalProps {
   extra?: ReactNode;
   /** 계측용 지면 키 — 잔액 부족(paywall_shown) 노출의 meta.surface. 충전 시트를 여는 지면은 RECHARGE_SOURCE 값과 맞춘다 */
   surface?: string;
+  /** 확인을 처리 중 — 확인 버튼을 막는다. 눈에 보이는 쪽일 뿐이고 연타 차단 자체는 호출부의 ref 잠금이 한다
+   *  (state 는 다음 렌더에야 반영돼 같은 틱의 두 번째 탭을 못 막는다). 라벨은 호출부가 confirmLabel 로 바꾼다 */
+  busy?: boolean;
   onConfirm: () => void;
   onCharge: () => void;
   onClose: () => void;
@@ -41,6 +44,7 @@ export default function StarConfirmModal({
   spreadLabel,
   extra,
   surface,
+  busy = false,
   onConfirm,
   onCharge,
   onClose,
@@ -144,12 +148,12 @@ export default function StarConfirmModal({
           ) : (
             <button
               onClick={onConfirm}
-              disabled={loading || balance === null}
+              disabled={loading || balance === null || busy}
               className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
               style={{
                 background: accent,
                 boxShadow:
-                  loading || balance === null ? "none" : `0 6px 18px ${accent}55`,
+                  loading || balance === null || busy ? "none" : `0 6px 18px ${accent}55`,
               }}
             >
               {confirmLabel ?? "확인하고 시작하기"}

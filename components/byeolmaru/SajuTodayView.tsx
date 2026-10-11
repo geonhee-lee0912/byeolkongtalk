@@ -26,6 +26,8 @@ interface CalendarResponse {
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
+  /** 체험 자격자의 만료(구독자는 null) — 체험 넛지의 D-N 과 구독 확인창 단계가 본다. */
+  trialEndsAt: string | null;
   monthStart: string;
   monthEnd: string;
 }
@@ -138,7 +140,10 @@ export default function SajuTodayView({
 
   // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
   //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    refreshFromServer,
+    state.kind === "ready" ? state.data : null
+  );
 
   async function refreshFromServer() {
     const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
@@ -225,7 +230,7 @@ export default function SajuTodayView({
                 </p>
                 {data.trialUsed ? (
                   <button
-                    onClick={() => openSubscribe("saju_report")}
+                    onClick={() => openSubscribe("kept_report", "saju_report")}
                     className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
                   >
                     구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
@@ -233,9 +238,10 @@ export default function SajuTodayView({
                 ) : (
                   <button
                     onClick={() => startTrial("saju_report")}
-                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                    disabled={trialStarting}
+                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
                   >
-                    3일 무료로 열어보기
+                    {trialStarting ? "여는 중…" : "3일 무료로 열어보기"}
                   </button>
                 )}
               </div>
@@ -259,8 +265,9 @@ export default function SajuTodayView({
             blurText={tasteText}
             trialUsed={data.trialUsed}
             onStartTrial={startTrial}
-            onSubscribe={openSubscribe}
+            onSubscribe={(slot) => openSubscribe("cut", slot)}
             slot="saju_report"
+            trialBusy={trialStarting}
           />
         ) : (
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">

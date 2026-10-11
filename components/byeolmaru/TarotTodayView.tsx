@@ -10,11 +10,30 @@ import GuestLoginWall from "./GuestLoginWall";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
+type Ent = {
+  entitled: boolean;
+  trialUsed: boolean;
+  /** 체험 자격자의 만료(구독자는 null) — 체험 넛지의 D-N 과 구독 확인창 단계가 본다. */
+  trialEndsAt: string | null;
+  subscriptionExpiresAt: string | null;
+};
+
 type State =
   | { kind: "loading" }
   | { kind: "need_login" }
   | { kind: "error" }
-  | { kind: "ready"; entitled: boolean; trialUsed: boolean; today: string };
+  | ({ kind: "ready"; today: string } & Ent);
+
+// 캘린더 응답(200·404 공통)의 자격 필드 — 라우트가 404 에도 네 필드를 다 싣는다. 네 곳에서 같은 모양으로
+// 읽으니 한 군데로 모은다(필드가 늘 때 한 곳만 빠뜨리는 일이 없게).
+function entFrom(j: Partial<Ent> | null): Ent {
+  return {
+    entitled: !!j?.entitled,
+    trialUsed: !!j?.trialUsed,
+    trialEndsAt: j?.trialEndsAt ?? null,
+    subscriptionExpiresAt: j?.subscriptionExpiresAt ?? null,
+  };
+}
 
 export default function TarotTodayView({
   initialDate,
@@ -45,17 +64,16 @@ export default function TarotTodayView({
       // 세션만 확인한다). 🔴 다만 자격은 **바디에서 읽는다**. 라우트가 404 에도 entitled/
       // trialUsed 를 실어 보내므로, 프로필 없는 구독자에게 체험 CTA 를 보여주는 일이 없다.
       if (status === 404) {
-        const j = body as { entitled?: boolean; trialUsed?: boolean } | null;
-        setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed, today: kstNow });
+        setState({ kind: "ready", ...entFrom(body as Partial<Ent> | null), today: kstNow });
         return;
       }
       // 🔴 404 외 오류(500·네트워크 등)는 "모르는 상태"다 — entitled:false 로 접으면 이미
       //    체험을 쓴 구독자에게 "3일 무료 체험 시작"이 다시 뜬다(위 404 분기와 같은 버그가
       //    트리거만 바뀐 것). error 로 보내 별도 화면을 띄운다.
       if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
-      const j = body as { entitled?: boolean; trialUsed?: boolean; today?: string } | null;
+      const j = body as (Partial<Ent> & { today?: string }) | null;
       if (!j) { setState({ kind: "error" }); return; }
-      setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed, today: j.today ?? kstNow });
+      setState({ kind: "ready", ...entFrom(j), today: j.today ?? kstNow });
     } catch {
       setState({ kind: "error" });
     }
@@ -64,7 +82,10 @@ export default function TarotTodayView({
 
   // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
   //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    refreshFromServer,
+    state.kind === "ready" ? state : null
+  );
 
   async function refreshFromServer() {
     const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
@@ -72,13 +93,12 @@ export default function TarotTodayView({
     const kstNow = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
     if (res.status === 401) { setState({ kind: "need_login" }); return; }
     if (res.status === 404) {
-      const j = body as { entitled?: boolean; trialUsed?: boolean } | null;
-      setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed, today: kstNow });
+      setState({ kind: "ready", ...entFrom(body as Partial<Ent> | null), today: kstNow });
       return;
     }
     if (!res.ok || !body) { setState({ kind: "error" }); return; }
-    const j = body as { entitled?: boolean; trialUsed?: boolean; today?: string };
-    setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed, today: j.today ?? kstNow });
+    const j = body as Partial<Ent> & { today?: string };
+    setState({ kind: "ready", ...entFrom(j), today: j.today ?? kstNow });
   }
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
@@ -108,6 +128,7 @@ export default function TarotTodayView({
         trialUsed={state.trialUsed}
         onStartTrial={startTrial}
         onSubscribe={openSubscribe}
+        trialBusy={trialStarting}
         autoOpenRitual={autoOpenRitual}
       />
       {subscribeModal}

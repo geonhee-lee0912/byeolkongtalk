@@ -22,7 +22,25 @@ type State =
   | { kind: "need_login" }
   | { kind: "no_profile" }
   | { kind: "error" }
-  | { kind: "ready"; entitled: boolean; trialUsed: boolean; today: string };
+  | {
+      kind: "ready";
+      entitled: boolean;
+      trialUsed: boolean;
+      today: string;
+      /** 체험 자격자의 만료(구독자는 null) — 체험 넛지의 D-N 과 구독 확인창 단계가 본다. */
+      trialEndsAt: string | null;
+      subscriptionExpiresAt: string | null;
+    };
+
+// 캘린더 응답 중 이 화면이 쓰는 필드 — refresh·refreshFromServer 두 곳이 같은 모양으로 읽는다.
+type CalendarBody = {
+  cells?: unknown[];
+  entitled?: boolean;
+  trialUsed?: boolean;
+  today?: string;
+  trialEndsAt?: string | null;
+  subscriptionExpiresAt?: string | null;
+};
 
 // 🔴 initialSubject(?subject=) 가 사라졌다(2026-09-24) — 상대가 한 명이라 고를 것이 없고,
 //    그 파라미터를 붙여 보내는 링크도 앱 안엔 없었다. 딥링크가 다시 필요해지면 상대 id 가
@@ -86,11 +104,14 @@ export default function WooriTodayView({
       if (status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
       if (status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
       if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
-      const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean; today?: string } | null;
+      const data = body as CalendarBody | null;
       // 🔴 today 가 없으면 error 로 접는다 — 이 값이 아래 isPastDate(과거 판정) 의 유일한
       //    근거라, 빈 값을 "오늘 아님"으로 접으면 과거 조회가 조용히 막힌다.
       if (!data || !Array.isArray(data.cells) || data.cells.length === 0 || !data.today) { setState({ kind: "error" }); return; }
-      setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today });
+      setState({
+        kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today,
+        trialEndsAt: data.trialEndsAt ?? null, subscriptionExpiresAt: data.subscriptionExpiresAt ?? null,
+      });
       await loadPartners();
     } catch { setState({ kind: "error" }); }
   }
@@ -118,7 +139,10 @@ export default function WooriTodayView({
 
   // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
   //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    refreshFromServer,
+    state.kind === "ready" ? state : null
+  );
 
   async function refreshFromServer() {
     const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
@@ -126,9 +150,12 @@ export default function WooriTodayView({
     if (res.status === 401) { setState({ kind: "need_login" }); return; }
     if (res.status === 404) { setState({ kind: "no_profile" }); return; }
     if (!res.ok || !body) { setState({ kind: "error" }); return; }
-    const data = body as { cells?: unknown[]; entitled?: boolean; trialUsed?: boolean; today?: string };
+    const data = body as CalendarBody;
     if (!Array.isArray(data.cells) || data.cells.length === 0 || !data.today) { setState({ kind: "error" }); return; }
-    setState({ kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today });
+    setState({
+      kind: "ready", entitled: !!data.entitled, trialUsed: !!data.trialUsed, today: data.today,
+      trialEndsAt: data.trialEndsAt ?? null, subscriptionExpiresAt: data.subscriptionExpiresAt ?? null,
+    });
   }
 
   // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 deps 에 넣어 같은 상대를
@@ -373,13 +400,14 @@ export default function WooriTodayView({
                 blurText={pairTasteText}
                 trialUsed={trialUsed}
                 slot="woori_30d"
+                trialBusy={trialStarting}
                 onStartTrial={(slot) => {
                   trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "trial", slot } });
                   void startTrial(slot);
                 }}
                 onSubscribe={(slot) => {
                   trackUiEvent("byeolmaru_subscribe_from_woori", { meta: { action: "subscribe", slot } });
-                  openSubscribe(slot);
+                  openSubscribe("cut", slot);
                 }}
               />
             ) : pairDailyLimit && !isPastDate ? (

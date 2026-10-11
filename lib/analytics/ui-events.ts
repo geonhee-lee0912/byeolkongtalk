@@ -41,9 +41,9 @@ export const UI_EVENTS = [
    *     (기대 주 60~100건). 같은 유저·같은 날이면 시트 열림과 **같은 eventId** 라 Meta 엔 1건이다.
    *  🔴 단 surface `byeolmaru_subscribe`(별마루 구독)는 2026-10-11 부터 AddToCart 에서 뺀다(타로 광고 신호 — 사용자 결정).
    *     이벤트 자체는 그대로 쌓인다 — 빠지는 건 Meta 전송뿐이다.
-   *  surface 는 RECHARGE_SOURCE 값과 맞춘다(tarot_draw·fortune_purchase·compat·tarot_report) — 시트 source 와
+   *  surface 는 RECHARGE_SOURCE 값과 맞춘다(tarot_draw·fortune_purchase·compat·tarot_report·byeolmaru_subscribe) — 시트 source 와
    *     같은 키로 "모달 노출 → 시트 열림" 전환을 지면별로 잇기 위해서다. 시트 없이 /shop 으로 보내는 지면
-   *     (byeolmaru_subscribe·relationship_skill·sim·sim_suggest)은 고유 값. */
+   *     (relationship_skill·sim·sim_suggest)은 고유 값. byeolmaru_subscribe 는 2026-10-11 부터 그 자리 시트를 연다(그 전엔 /shop). */
   "paywall_shown",
   /** 결제 퍼널 — 충전 시트/샵 열림. meta:{source, need, balance?} — need=하려는 것의 가격(모르면 null), balance=시트에 넘어온 잔액(샵은 없음). 2026-10-05~ */
   "recharge_sheet_opened",
@@ -121,12 +121,24 @@ export const UI_EVENTS = [
    *     바뀐다 — 허브/상세 분해는 위 gate_shown 의 surface 가 한다) /
    *     `woori_30d` 도 2026-09-24 부터 0(그 자리도 PaywallCut 이 됐다). 추세선 단절이니 행동 변화로 오독하지 말 것. */
   "byeolmaru_gate_dismissed",
-  /** 별마루 — 3일 무료 체험 시작 클릭. meta:{slot?} */
+  /** 별마루 — 3일 무료 체험 시작 클릭. meta:{slot?}
+   *  ⚠️ 2026-10-11(체험 중 구독 노출) 코드부터 진행 중 잠금이 걸려 연타가 한 번만 찍힌다 — events 수가 줄고
+   *     실인원은 그대로다. **배포 전후 events 수 비교 금지**(예전 어드민 events 열이 ~3배 부풀었던 원인이 이 연타다). */
   "byeolmaru_trial_started",
-  /** 별마루 — 구독 CTA 클릭. meta:{slot?} */
+  /** 별마루 — 구독 CTA 클릭(확인창 열림). meta:{slot?, surface, phase}
+   *  surface = 선택지가 그려진 자리 "cut"(절단선)|"report_end"(체험 중 리포트 끝 넛지)|"banner"(허브 배너)|"kept_report"(받은 글 아래 안내)
+   *  phase = 누른 순간의 단계 "pre_trial"|"trial"|"post_trial"(lib/byeolmaru/subscribe-offer.ts subscribePhase)
+   *  ⚠️ surface·phase 는 2026-10-11 코드부터 — 그 전 행엔 없다(그때는 전부 체험 후, slot 없음 = 배너).
+   *  충전하고 돌아와 자동으로 다시 열린 확인창은 클릭이 아니라 여기 안 찍힌다(완료·실패의 resumed 로 본다). */
   "byeolmaru_subscribe_clicked",
-  /** 별마루 — 구독 결제 완료. meta:{stars} */
+  /** 별마루 — 구독 결제 완료. meta:{stars, surface, phase, slot?, resumed?}
+   *  resumed=true = 충전하고 돌아와 자동으로 다시 열린 확인창에서 산 것. surface·phase·resumed 는 2026-10-11 코드부터.
+   *  🔴 실제 일수는 phase 가 정한다(체험 전 33 · 체험 중 30+남은 체험 · 체험 후 30) — 구독 행의 expires_at 이 정본. */
   "byeolmaru_subscribe_completed",
+  /** 별마루 — 구독 실패(확인을 눌렀는데 안 됨). meta:{status, surface, phase, slot?, resumed?}
+   *  status = 402(잔액 부족 → 그 자리 충전 시트가 열린다 · 고장 아님) | 500(구매 실패 — 서버가 error_logs 에 남긴다) |
+   *  그 밖의 HTTP 숫자(401 등) | "network"(응답 없음). 2026-10-11~ */
+  "byeolmaru_subscribe_failed",
   /** 별마루 우리오늘 — 칩에서 상대 선택. meta:{}
    *  🔴 2026-09-21 경계에서 **뜻이 좁아진다.** 이전엔 허브 달력 판의 인연 칩 + 우리 오늘 화면의
    *     토글 둘이 찍어 사실상 "우리 오늘 도달"이었다. 허브 칩이 사라진 뒤로는 우리 오늘 화면에서

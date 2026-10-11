@@ -116,7 +116,10 @@ export default function ByeolmaruHub() {
   }
   useEffect(() => { void refresh(); }, []);
 
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    refresh,
+    state.kind === "ready" ? state.data : null
+  );
 
   const router = useRouter();
 
@@ -188,7 +191,7 @@ export default function ByeolmaruHub() {
   const todayCell = data.cells.find((c) => c.isToday) ?? null;
 
   // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 배너 CTA 가 쓴다.
-  const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
+  const nextStep = () => (data.trialUsed ? openSubscribe("banner") : startTrial());
 
   // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
   function openDay(date: string) {
@@ -209,6 +212,7 @@ export default function ByeolmaruHub() {
         subscriptionExpiresAt={data.subscriptionExpiresAt}
         trialEndsAt={data.trialEndsAt}
         onSubscribe={nextStep}
+        busy={trialStarting}
       />
 
       {/* 🔴 달력 판 — 출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).

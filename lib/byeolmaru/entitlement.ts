@@ -1,8 +1,10 @@
 // lib/byeolmaru/entitlement.ts — 별마루 구독/체험 자격 판정.
 // 순수 computeEntitlement(테스트 대상) + DB getEntitlement/startTrial.
 import { getServiceSupabase } from "@/lib/supabase";
+import { TRIAL_DAYS } from "./constants";
 
-export const TRIAL_DAYS = 3;
+// 값의 원천은 constants.ts(클라 세이프) — 기존 import(HubBanner·테스트)를 깨지 않게 여기서 다시 내보낸다.
+export { TRIAL_DAYS };
 
 export type Entitlement = {
   entitled: boolean;
