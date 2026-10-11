@@ -254,7 +254,7 @@ export const UI_EVENTS = [
   /** 카카오 로그인 버튼 탭 — meta:{surface:"login_page"|"draw_sheet", spread?}
    *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다 */
   "login_kakao_clicked",
-  /** 로그인 창 '나중에 할래'·바깥 탭 — meta:{spread} */
+  /** 로그인 창 '나중에 할래'·바깥 탭·Esc — meta:{spread} */
   "login_sheet_dismissed",
   /** 로그인 실패로 뽑기 화면에 돌아옴 — meta:{reason}(콜백 failRedirect 의 reason)
    *  ⚠️ 화면 진입 순간에 찍히므로 안내를 실제로 보여 주지 못한 경우(저장이 없어 /tarot 로 빠짐 등)도 센다 — 과대 집계다.

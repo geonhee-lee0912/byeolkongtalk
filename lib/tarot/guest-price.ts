@@ -20,7 +20,8 @@ export function minTopUpWon(short: number, arm: MenuArm): number | null {
   return pkg ? pkg.price : null;
 }
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
+// 사용자 화면의 금액 관례는 `4,900원`(충전 시트·상점·결제 내역) — `₩` 는 어드민만 쓴다
+const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 /** 상품 한 줄 — 가격 P 를 선물 15 기준으로. free = 선물로 다 된다 */
 export function guestShortLine(price: number, arm: MenuArm): { free: boolean; text: string } {
