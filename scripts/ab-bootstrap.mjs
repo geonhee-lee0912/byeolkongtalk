@@ -1,7 +1,8 @@
 // 반반(A/B) 판정 부트스트랩 — 단위 행(방문자·가입자)에서 두 그룹 평균 차이의 95% 구간.
 // 사용: node scripts/ab-bootstrap.mjs <rows.json> [--a new] [--b old] [--metric signed_up] [--metric rev48] [--iters 10000]
 // rows.json = run-prod-query 출력(JSON 배열 — 각 행에 arm 과 지표 열). 지표를 안 주면 signed_up·rev48.
-// 결정론적 난수(재실행해도 같은 구간). 판정 문구: 구간이 0 위 = "확실히 +", 0 아래 = "확실히 −", 걸치면 "걸침".
+// 결정론적 난수 — 재실행해도, --metric 으로 지표를 하나만 골라 돌려도 같은 구간이다(지표마다 시드를 처음 값으로 되돌린다).
+// 판정 문구: 구간이 0 위 = "확실히 +", 0 아래 = "확실히 −", 걸치면 "걸침".
 // 스펙: docs/superpowers/specs/2026-10-11-타로-로그인전-맛보기-design.md §7 (메뉴판 판정에도 --a menu --b legacy 로 쓸 수 있다)
 import { readFileSync } from "node:fs";
 
@@ -21,8 +22,9 @@ const B = opt("b", "old");
 const iters = Number(opt("iters", "10000"));
 const rows = JSON.parse(readFileSync(file, "utf8"));
 
-// mulberry32 — 시드 고정
-let seed = 20261011;
+// mulberry32 — 시드 고정. 아래 루프가 지표마다 SEED 로 되돌린다(앞 지표가 난수를 얼마나 썼는지가 뒤 지표의 구간을 바꾸지 않게)
+const SEED = 20261011;
+let seed = SEED;
 const rand = () => {
   seed = (seed + 0x6d2b79f5) | 0;
   let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -32,6 +34,7 @@ const rand = () => {
 const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
 
 for (const m of metrics.length ? metrics : ["signed_up", "rev48"]) {
+  seed = SEED;
   const a = rows.filter((r) => r.arm === A).map((r) => Number(r[m]));
   const b = rows.filter((r) => r.arm === B).map((r) => Number(r[m]));
   if (!a.length || !b.length) {

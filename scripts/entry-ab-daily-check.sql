@@ -8,7 +8,8 @@
 --   pending_missing 이 날마다 이어진다         → 로그인·결제 뒤 복원 실패(저장 유실 · 다른 브라우저 귀환 급증)
 --   daily 에서 한쪽만 신규 가입 0 이 2일 넘게   → 한쪽 흐름이 막혔다
 --   login_fail 이 한쪽에 몰린다                 → 새 흐름 로그인 경로 고장
---   arm_leak 에 행이 있다                       → 옛 그룹이 새 흐름 전용 화면(공개·로그인 창)을 봤다 — 그룹 판정·스위치 고장
+--                                                 (⚠️ 과대 집계 — 안내를 못 보여 주고 /tarot 로 빠진 경우도 찍힌다. events 의 login_sheet_shown trigger=fail 과 같이 읽을 것)
+--   arm_leak 에 행이 있다                       → 옛 그룹이 새 흐름 전용 화면(공개·로그인 창·고민 쓰기 위기 배너)을 봤다 — 그룹 판정·스위치 고장
 --   price_changed 에 행이 있다                  → 로그인 전후 가격 어긋남(MENU_AB 를 승자로 고정하지 않고 켰다)
 -- 정의:
 --   daily.visitors = 그날 첫 PV 가 생긴 익명 방문자 중 첫 PV utm_source='meta' · 첫 PV 비로그인 · 봇 제외
@@ -78,7 +79,7 @@ ev as (
   where params.deploy_at is not null and e.created_at >= params.deploy_at and e.anon_id is not null
     and e.event in ('home_tag_clicked', 'cards_revealed', 'login_sheet_shown', 'login_kakao_clicked',
                     'login_sheet_dismissed', 'login_fail_shown', 'pending_draw_resumed', 'pending_draw_missing',
-                    'returning_short_shown')
+                    'returning_short_shown', 'concern_safety_banner_shown')
     and (e.user_id is null or left(e.user_id::text, 8) not in (select p from ex))
 ),
 events as (
@@ -102,7 +103,7 @@ arm_leak as (
   select event, count(*) as events, count(distinct anon_id) as anons
   from ev
   where arm = 'old'
-    and (event in ('cards_revealed', 'login_sheet_shown', 'login_sheet_dismissed')
+    and (event in ('cards_revealed', 'login_sheet_shown', 'login_sheet_dismissed', 'concern_safety_banner_shown')
          or (event = 'login_kakao_clicked' and meta->>'surface' = 'draw_sheet'))
   group by 1
 ),

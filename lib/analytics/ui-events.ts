@@ -240,25 +240,33 @@ export const UI_EVENTS = [
   "teaser_upsell_clicked",
   /** 홈 태그 탭 — meta:{tag, flow:"new"|"old"|"member", armKnown}. 입구 반반(spec 2026-10-11-타로-로그인전-맛보기 §6).
    *  flow = 실제로 탄 흐름(새 흐름 그룹이어도 지갑 응답 전에 누르면 old) — 배정은 anon_id 끝 글자로 SQL 에서 가른다.
-   *  armKnown=false = 지갑 응답 전에 눌렀다. 🔴 지갑 조회가 실패한 뒤 누른 건 armKnown=true·flow old 로 찍힌다(실패 폴백이 old) —
+   *  armKnown=false = 지갑 응답 전에 눌렀다 — 홈이 그룹을 모른 채 옛 흐름(로그인 먼저)으로 보낸 것이다.
+   *  입구 반반에서 새 그룹 방문자가 옛 흐름을 타 버리는(새 흐름 쪽 노출이 줄어드는) 경로라 감시 때 센다.
+   *  🔴 지갑 조회가 실패한 뒤 누른 건 armKnown=true·flow old 로 찍힌다(실패 폴백이 old) —
    *  노출 어긋남을 셀 땐 wallet_fetch_failed{source:"home"} 와 합쳐 읽을 것 */
   "home_tag_clicked",
   /** 로그인 전 맛보기 — 새로 뽑은 판의 카드 공개. meta:{spread, count} */
   "cards_revealed",
-  /** 로그인 창 노출 — meta:{spread, price, short, trigger:"auto"|"reopen"|"fail"} */
+  /** 로그인 창 노출 — meta:{spread, price, short, trigger:"auto"|"reopen"|"fail"}
+   *  ⚠️ short = 가격 − 가입 선물(WELCOME_BONUS_STARS=15), 0 하한 — '신규 회원이 된다고 가정했을 때' 모자란 별이다(실제 잔액이 아니다).
+   *     returning_short_shown.meta.short(= 가격 − 실제 잔액)와 이름만 같고 뜻이 다르니 합치지 말 것 */
   "login_sheet_shown",
   /** 카카오 로그인 버튼 탭 — meta:{surface:"login_page"|"draw_sheet", spread?}
    *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다 */
   "login_kakao_clicked",
   /** 로그인 창 '나중에 할래'·바깥 탭 — meta:{spread} */
   "login_sheet_dismissed",
-  /** 로그인 실패로 뽑기 화면에 돌아와 안내를 봄 — meta:{reason}(콜백 failRedirect 의 reason) */
+  /** 로그인 실패로 뽑기 화면에 돌아옴 — meta:{reason}(콜백 failRedirect 의 reason)
+   *  ⚠️ 화면 진입 순간에 찍히므로 안내를 실제로 보여 주지 못한 경우(저장이 없어 /tarot 로 빠짐 등)도 센다 — 과대 집계다.
+   *     안내를 실제로 본 수는 login_sheet_shown{trigger:"fail"} 이니 둘을 같이 읽을 것 */
   "login_fail_shown",
-  /** 저장된 판 복원 — meta:{via:"login"|"payment"|"home"|"match"}(match = 이어가기 표시 없이 같은 판으로 돌아옴) */
+  /** 저장된 판 복원 — meta:{via:"login"|"payment"|"home"|"match", loginFailed?:true}
+   *  match = 이어가기 표시 없이 같은 판으로 돌아옴 · loginFailed = 로그인 실패로 돌아온 복원(성공 복귀로 오독하지 말 것) */
   "pending_draw_resumed",
   /** 🔴 고장 신호 — 이어가기 표시로 왔는데 저장된 판이 없다(localStorage 유실·다른 브라우저). meta:{via} */
   "pending_draw_missing",
-  /** 다시 온 회원 안내 노출 — 로그인 전 맛보기에서 '가입 선물'을 보고 왔는데 선물이 없고 별이 모자람. meta:{short} */
+  /** 다시 온 회원 안내 노출 — 로그인 전 맛보기에서 '가입 선물'을 보고 왔는데 선물이 없고 별이 모자람. meta:{short}
+   *  ⚠️ short = 가격 − 실제 잔액. login_sheet_shown.meta.short(= 가격 − 가입 선물 15, 가정값)와 뜻이 다르다 */
   "returning_short_shown",
   /** 고민 쓰기 위기 배너 노출(정규식 확신 high) — meta:{severity, category}. 새 흐름(로그인 전 맛보기) 방문자만 — 회원·옛 흐름은 지금 그대로 */
   "concern_safety_banner_shown",

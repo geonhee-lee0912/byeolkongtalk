@@ -23,7 +23,7 @@ import { getMenu } from "@/lib/tarot/menu";
 import { homeMenuLine } from "@/lib/tarot/menu-price";
 import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
-import { ENTRY_FLOW_KEY } from "@/lib/tarot/entry-ab";
+import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
 import { loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
 
 export default function Home() {
@@ -34,10 +34,10 @@ export default function Home() {
   // 큰 카드 한 줄 — 메뉴판 그룹 로그인 유저만(비로그인·옛 그룹은 지금 홈 그대로, 스펙 §9-1)
   const wallet = useWallet("home");
   // 로그인 전 맛보기 — 저장된 판이 있으면(7일 안) '아까 뽑은 카드' 한 줄(스펙 2026-10-11 §3 ⑥).
-  // 저장은 스위치가 켜졌을 때만 생기므로 ENTRY_AB='old' 동안엔 늘 false 다
+  // 스위치(entryFeaturesOn)에 묶는다 — 켰다가 되돌려도 남은 저장 때문에 줄이 남으면 안 된다(뽑기 화면은 스위치가 꺼지면 복원하지 않아, 눌러도 이어지지 않는다). ENTRY_AB='old' 동안엔 늘 false 다
   const [pendingDraw, setPendingDraw] = useState(false);
   useEffect(() => {
-    setPendingDraw(loadPendingDraw(localStorage) !== null);
+    setPendingDraw(entryFeaturesOn() && loadPendingDraw(localStorage) !== null);
   }, []);
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
@@ -103,11 +103,7 @@ export default function Home() {
     }
     // 입구 반반(스펙 2026-10-11-타로-로그인전-맛보기 §5-1) — 새 흐름 그룹 비로그인은 로그인 없이 고민 쓰기로.
     // 그룹을 아직 못 받았으면(지갑 응답 전·실패) 옛 흐름 — 분석은 배정(anon_id) 기준이고 노출 어긋남은 armKnown 으로 잰다
-    const flow: "member" | "new" | "old" = user
-      ? "member"
-      : wallet?.isGuest && wallet.entryArm === "new"
-        ? "new"
-        : "old";
+    const flow: "member" | "new" | "old" = user ? "member" : isNewFlowGuest(wallet) ? "new" : "old";
     trackUiEvent("home_tag_clicked", { meta: { tag, flow, armKnown: wallet !== null } });
     try {
       if (flow === "new") sessionStorage.setItem(ENTRY_FLOW_KEY, "new");
