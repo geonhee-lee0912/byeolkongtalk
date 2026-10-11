@@ -10,6 +10,7 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
+import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
 
 interface Me {
@@ -122,6 +123,8 @@ export default function MyPage() {
       localStorage.removeItem("byeolkong_user");
       localStorage.removeItem("byeolkong_token");
       sessionStorage.removeItem("byeolkong:auth-sync");
+      // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+      clearPendingDraw(localStorage);
     }
     router.replace("/");
   };
@@ -136,6 +139,8 @@ export default function MyPage() {
         if (typeof window !== "undefined") {
           localStorage.removeItem("byeolkong_user");
           localStorage.removeItem("byeolkong_token");
+          // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+          clearPendingDraw(localStorage);
         }
         router.replace("/");
       } else {

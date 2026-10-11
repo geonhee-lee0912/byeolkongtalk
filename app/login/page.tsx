@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { safeNextPath } from "@/lib/safe-internal-path";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function LoginPage() {
   return (
@@ -74,6 +75,7 @@ function LoginPageInner() {
 
       <a
         href={kakaoHref}
+        onClick={() => trackUiEvent("login_kakao_clicked", { meta: { surface: "login_page" } })}
         className="mt-10 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] hover:brightness-95 active:scale-[0.98] transition"
       >
         <svg
