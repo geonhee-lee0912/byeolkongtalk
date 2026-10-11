@@ -6,6 +6,7 @@ import {
   entryArmForMode,
   entryArmOf,
   entryFeaturesOnFor,
+  isNewFlowGuest,
 } from "./entry-ab.ts";
 
 const anon = (last: string) => `55555555-5555-4555-8555-55555555555${last}`;
@@ -46,4 +47,12 @@ test("구현 중 기본 스위치 = old — 켤 때 이 테스트도 같이 고�
 
 test("고민 쓰기 안내 키는 고정 문자열", () => {
   assert.equal(ENTRY_FLOW_KEY, "byeolkong:entry_flow");
+});
+
+test("isNewFlowGuest — 지갑이 '새 흐름 비로그인'일 때만", () => {
+  assert.equal(isNewFlowGuest(null), false);
+  assert.equal(isNewFlowGuest(undefined), false);
+  assert.equal(isNewFlowGuest({ isGuest: true, entryArm: "new" }), true);
+  assert.equal(isNewFlowGuest({ isGuest: false, entryArm: "new" }), false);
+  assert.equal(isNewFlowGuest({ isGuest: true, entryArm: "old" }), false);
 });

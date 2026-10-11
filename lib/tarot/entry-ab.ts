@@ -43,3 +43,9 @@ export function entryFeaturesOn(): boolean {
 export function entryFeaturesOnFor(mode: EntryAbMode, menuMode: MenuAbMode): boolean {
   return mode !== "old" && menuMode !== "split";
 }
+
+/** 지갑 응답이 '새 흐름 비로그인'인가 — 로그인 전 맛보기 분기의 단일 판정(뽑기 화면 · 홈 · /tarot · 메뉴판 가격 줄).
+ *  옛 흐름 비로그인(entryArm old)은 서버 가드가 없는 화면에 직접 들어와도 지금 prod 그대로여야 한다 */
+export function isNewFlowGuest(w: { isGuest: boolean; entryArm: EntryArm } | null | undefined): boolean {
+  return !!w && w.isGuest && w.entryArm === "new";
+}
