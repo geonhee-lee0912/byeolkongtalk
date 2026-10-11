@@ -174,7 +174,7 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                 </div>
                 {/* 로그인 전 방문자(새 흐름) — 가입 선물 15별 기준 한 줄(스펙 2026-10-11 §3-1) */}
                 {guest && (
-                  <p className="text-[11px] font-bold text-lilac-deep mb-1">
+                  <p className="text-[11px] font-bold text-eye-purple mb-1">
                     {guestShortLine(tarotPrice(type, "legacy"), "legacy").text}
                   </p>
                 )}

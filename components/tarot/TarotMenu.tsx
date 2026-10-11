@@ -143,11 +143,13 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
         </div>
       </div>
 
-      {/* 가입 선물 배너 — 맛보기를 선물로 볼 수 있을 때만 */}
+      {/* 가입 선물 배너 — 맛보기를 선물로 볼 수 있을 때만. 로그인 전 방문자(표시용 지갑)는 아직 못 받았으니 '가입하면' */}
       {isGiftFree(wallet) && (
         <div className="w-full max-w-md mx-auto px-5 mb-4">
           <p className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-gold-soft to-gold text-[13px] font-black text-eye-purple">
-            🎁 가입 선물 별 {WELCOME_BONUS_STARS}개 — 첫 질문은 공짜야
+            {wallet.isGuest
+              ? `🎁 가입하면 별 ${WELCOME_BONUS_STARS}개 선물 — 첫 질문은 공짜야`
+              : `🎁 가입 선물 별 ${WELCOME_BONUS_STARS}개 — 첫 질문은 공짜야`}
           </p>
         </div>
       )}
