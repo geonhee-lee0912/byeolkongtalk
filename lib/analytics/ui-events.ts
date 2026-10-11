@@ -240,7 +240,8 @@ export const UI_EVENTS = [
   "teaser_upsell_clicked",
   /** 홈 태그 탭 — meta:{tag, flow:"new"|"old"|"member", armKnown}. 입구 반반(spec 2026-10-11-타로-로그인전-맛보기 §6).
    *  flow = 실제로 탄 흐름(새 흐름 그룹이어도 지갑 응답 전에 누르면 old) — 배정은 anon_id 끝 글자로 SQL 에서 가른다.
-   *  armKnown=false = 지갑 응답 전에 눌렀다 — 홈이 그룹을 모른 채 옛 흐름(로그인 먼저)으로 보낸 것이다.
+   *  armKnown=false = 지갑 응답 전에 눌렀다 — 비로그인(flow old)이면 홈이 그룹을 모른 채 옛 흐름(로그인 먼저)으로 보낸 것이다.
+   *  회원도 응답 전에 누르면 false 로 찍히니(flow member) 노출 어긋남은 flow='old' 로 걸러 센다.
    *  입구 반반에서 새 그룹 방문자가 옛 흐름을 타 버리는(새 흐름 쪽 노출이 줄어드는) 경로라 감시 때 센다.
    *  🔴 지갑 조회가 실패한 뒤 누른 건 armKnown=true·flow old 로 찍힌다(실패 폴백이 old) —
    *  노출 어긋남을 셀 땐 wallet_fetch_failed{source:"home"} 와 합쳐 읽을 것 */
@@ -248,7 +249,7 @@ export const UI_EVENTS = [
   /** 로그인 전 맛보기 — 새로 뽑은 판의 카드 공개. meta:{spread, count} */
   "cards_revealed",
   /** 로그인 창 노출 — meta:{spread, price, short, trigger:"auto"|"reopen"|"fail"}
-   *  ⚠️ short = 가격 − 가입 선물(WELCOME_BONUS_STARS=15), 0 하한 — '신규 회원이 된다고 가정했을 때' 모자란 별이다(실제 잔액이 아니다).
+   *  ⚠️ short = 가격 − 가입 선물(WELCOME_BONUS_STARS, 현재 15), 0 하한 — '신규 회원이 된다고 가정했을 때' 모자란 별이다(실제 잔액이 아니다).
    *     returning_short_shown.meta.short(= 가격 − 실제 잔액)와 이름만 같고 뜻이 다르니 합치지 말 것 */
   "login_sheet_shown",
   /** 카카오 로그인 버튼 탭 — meta:{surface:"login_page"|"draw_sheet", spread?}

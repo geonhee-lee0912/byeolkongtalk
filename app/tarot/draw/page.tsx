@@ -51,6 +51,8 @@ const RESUME_KEYS = ["resume", ...CALLBACK_KEYS] as const;
 /** 주소창에서 이 키들만 뺀다(지울 게 없으면 아무것도 안 한다). router.replace 가 아니라 history.replaceState 다 — router.replace 는 Next 의 이동 큐에 들어가 대기 중인 router.push 를 버리게 한다.
  *  state 는 null 로 덮지 않고 그대로 넘긴다: Next 는 이 항목의 라우터 상태(__NA·트리)를 history.state 에 두는데, 화면이 처음 뜬 직후엔 history 를 가로채는 Next 의 패치가 아직 안 걸려 있을 수 있어
  *  (자식 effect 가 부모보다 먼저 돈다) null 로 덮으면 그 상태가 사라져 뒤로 가기가 라우터를 못 탈 수 있다(popstate 무시 또는 전체 새로고침). 상태를 그대로 넘기면 패치가 걸려 있어도 큐를 건드리지 않고 주소만 바뀐다.
+ *  대가: 라우터는 이 정리를 모른다 — useSearchParams()·라우터의 canonicalUrl 은 이 화면을 떠날 때까지 옛 쿼리다.
+ *  이 화면에 router.refresh() 처럼 라우터 상태를 바꾸는 걸 넣으면 Next 가 주소를 canonicalUrl 로 다시 써 콜백 표시(login·welcome)가 주소로 돌아온다(새로고침 때 토스트·실패 안내 재표시).
  *  정리 실패(주소 접근 불가)는 삼킨다 — 정리는 편의일 뿐 화면 진입·풀이 시작을 막으면 안 된다 */
 function dropQueryKeys(keys: readonly string[]): void {
   try {
