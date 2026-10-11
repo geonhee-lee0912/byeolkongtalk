@@ -30,7 +30,8 @@ export default function CardReveal({
     return () => clearTimeout(t);
   }, [drawn.length]);
 
-  const width = drawn.length === 1 ? "w-40" : drawn.length <= 3 ? "w-[30%]" : "w-[22%]";
+  // 2장 이상은 3열 — 풀이 화면(CardSpreadView)과 같은 배치(5장 3+2 · 6장 3+3 · 7장 3+3+1)
+  const width = drawn.length === 1 ? "w-40" : "w-[30%]";
 
   return (
     <div className="w-full flex flex-col items-center">
