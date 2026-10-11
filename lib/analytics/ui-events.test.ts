@@ -87,3 +87,20 @@ test("UI_EVENTS — 메뉴판·이어서 깊게 이벤트 6종이 등록돼 있�
     assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
   }
 });
+
+test("UI_EVENTS — 입구 반반(로그인 전 맛보기) 이벤트 10종", () => {
+  for (const e of [
+    "home_tag_clicked",
+    "cards_revealed",
+    "login_sheet_shown",
+    "login_kakao_clicked",
+    "login_sheet_dismissed",
+    "login_fail_shown",
+    "pending_draw_resumed",
+    "pending_draw_missing",
+    "returning_short_shown",
+    "concern_safety_banner_shown",
+  ]) {
+    assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
+  }
+});
