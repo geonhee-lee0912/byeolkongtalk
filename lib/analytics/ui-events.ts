@@ -39,6 +39,8 @@ export const UI_EVENTS = [
    *     이전 원천이던 "그 자리 충전 시트 열림"(recharge_sheet_opened, source≠shop)은 실발화가 하루 1~2건이라
    *     Meta 학습 요건(주 50건)에 턱없이 못 미쳤다 — 그 한 단계 앞인 "잔액 부족을 눈으로 본 순간"으로 당긴다
    *     (기대 주 60~100건). 같은 유저·같은 날이면 시트 열림과 **같은 eventId** 라 Meta 엔 1건이다.
+   *  🔴 단 surface `byeolmaru_subscribe`(별마루 구독)는 2026-10-11 부터 AddToCart 에서 뺀다(타로 광고 신호 — 사용자 결정).
+   *     이벤트 자체는 그대로 쌓인다 — 빠지는 건 Meta 전송뿐이다.
    *  surface 는 RECHARGE_SOURCE 값과 맞춘다(tarot_draw·fortune_purchase·compat·tarot_report) — 시트 source 와
    *     같은 키로 "모달 노출 → 시트 열림" 전환을 지면별로 잇기 위해서다. 시트 없이 /shop 으로 보내는 지면
    *     (byeolmaru_subscribe·relationship_skill·sim·sim_suggest)은 고유 값. */
