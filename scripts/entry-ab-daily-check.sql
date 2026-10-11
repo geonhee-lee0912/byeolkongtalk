@@ -153,6 +153,7 @@ price_changed as (
   from error_logs l, params
   where params.deploy_at is not null and l.created_at >= params.deploy_at
     and l.level = 'warn' and left(l.message, 14) = 'PRICE_CHANGED:'
+    and (l.user_id is null or left(l.user_id::text, 8) not in (select p from ex))   -- 지인 테스트 409 가 멈춤 신호로 읽히지 않게(menu-ab-daily-check 와 같은 제외)
   group by 1, 2
 )
 
