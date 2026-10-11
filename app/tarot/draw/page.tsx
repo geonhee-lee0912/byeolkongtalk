@@ -340,7 +340,9 @@ export default function TarotDrawPage() {
           <CardReveal drawn={revealed} accent={accent} onRevealed={onRevealed} />
           {/* 창·팝업을 닫았을 때 다시 잇는 버튼 — 공개 애니메이션이 끝난 뒤에만 */}
           {revealDone && !sheetOpen && !showConfirm && !rechargeSheetOpen && !checking && (
-            <div className="w-full mt-8 flex flex-col items-center gap-3">
+            // 하단 고정(스펙 §3 ④) — 7장 판·작은 화면에선 카드가 길어 이 줄이 하단 탭(h-16) 아래로 밀린다(375×812 에서 7장 = 872px, 탭은 747px부터).
+            // sticky 라 짧은 판에선 제자리, 긴 판에선 하단 탭 바로 위에 붙는다 — 카드 위에 떠도 읽히게 반투명 바탕
+            <div className="sticky bottom-[72px] z-30 w-full mt-8 flex flex-col items-center gap-3 rounded-2xl bg-cream/90 backdrop-blur-md px-4 py-3">
               <button
                 type="button"
                 onClick={() => (guestMode ? openSheet("reopen", guestPrice ?? 0) : onDrawn(revealed))}
