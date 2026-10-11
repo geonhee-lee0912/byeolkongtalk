@@ -41,6 +41,11 @@ test("UI_EVENTS — 별마루 구독 실패(byeolmaru_subscribe_failed)가 등�
   assert.equal(isUiEvent("byeolmaru_subscribe_failed"), true);
 });
 
+// 구독 선택지 노출 = 클릭의 분모(체험 전 링크·체험 중 넛지·체험 후 배너/절단선/받은 글 안내). 없으면 서버가 버려 전환율이 무한대로 읽힌다.
+test("UI_EVENTS — 별마루 구독 선택지 노출(byeolmaru_subscribe_offer_shown)이 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_subscribe_offer_shown"), true);
+});
+
 // P5-4 T3 — 미끼 당일 접힘(slot별) 닫기 클릭 계측.
 test("UI_EVENTS — 별마루 미끼 닫기(당일 접힘) 이벤트가 등록돼 있다", () => {
   assert.equal(isUiEvent("byeolmaru_gate_dismissed"), true);

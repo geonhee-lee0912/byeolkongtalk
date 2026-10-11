@@ -24,6 +24,8 @@ import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
+import TrialSubscribeNudge from "./TrialSubscribeNudge";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
@@ -68,6 +70,8 @@ export default function DailyCardBlock({
   todayKst,
   entitled,
   trialUsed,
+  trialEndsAt = null,
+  subscriptionExpiresAt = null,
   onStartTrial,
   onSubscribe,
   trialBusy = false,
@@ -79,6 +83,10 @@ export default function DailyCardBlock({
   todayKst: string;
   entitled: boolean;
   trialUsed: boolean;
+  /** 체험 만료(구독자는 null) — 체험 중 리포트 끝 넛지의 D-N. */
+  trialEndsAt?: string | null;
+  /** 구독 만료(체험자는 null) — `entitled && !subscriptionExpiresAt` 이 곧 체험 중이다. */
+  subscriptionExpiresAt?: string | null;
   onStartTrial: (slot?: string) => void;
   /** useByeolmaruSubscribe 의 openSubscribe 그대로 — surface 는 이 블록 안 자리마다 다르다(절단선·받은 글 아래). */
   onSubscribe: (surface: SubscribeSurface, slot?: string) => void;
@@ -515,22 +523,34 @@ export default function DailyCardBlock({
                 <>
                   {/* 🔴 border-t 래퍼를 씌우지 말 것 — CardReportView 의 첫 블록이 이미 자기 선을 긋는다. */}
                   <CardReportView report={report} />
+                  {/* 체험 중 — 리포트를 다 읽은 자리에서 '이어서 구독' 한 줄(2026-10-11, 사용자 결정).
+                      아래 비자격 안내와 자격 조건이 반대라 둘이 함께 뜨는 일은 없다. */}
+                  {entitled && !subscriptionExpiresAt && trialEndsAt && (
+                    <TrialSubscribeNudge
+                      trialEndsAt={trialEndsAt}
+                      slot="tarot_rich"
+                      onSubscribe={() => onSubscribe("report_end", "tarot_rich")}
+                    />
+                  )}
                   {!entitled && (
                     /* 🔴 받았던 글은 계속 보여주되(§4-4), 지금 비자격이면 조용히 재구독을 권한다.
                        PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
                        거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 을 찍어 분모도 오염시킨다).
-                       계측 없음(확신이 안 서 스킵 — 보고 참고). */
+                       gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
                     <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
                       <p className="text-xs text-text-light">
                         지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                       </p>
                       {trialUsed ? (
-                        <button
-                          onClick={() => onSubscribe("kept_report", "tarot_rich")}
-                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
-                        >
-                          구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-                        </button>
+                        <>
+                          <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="tarot_rich" />
+                          <button
+                            onClick={() => onSubscribe("kept_report", "tarot_rich")}
+                            className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                          >
+                            구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={() => onStartTrial("tarot_rich")}

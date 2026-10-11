@@ -25,6 +25,7 @@
 import Image from "next/image";
 import { TRIAL_DAYS } from "@/lib/byeolmaru/entitlement";
 import { daysLeft } from "@/lib/byeolmaru/subscribe-offer";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 
 interface Props {
   /** 🔴 false 면 버튼·칩을 아예 안 그린다 — 게스트(EmptyMonthShell)용. 그 화면엔 이미 더 큰
@@ -91,10 +92,14 @@ export default function HubBanner({
             {expiry ? ` · D-${daysLeft(expiry, now)}` : ""}
           </span>
         ) : (
-          <button type="button" onClick={onSubscribe} disabled={busy} className={`${chipClass} transition active:scale-95 disabled:opacity-60`}>
-            {trialUsed ? "구독하기" : busy ? "여는 중…" : `${TRIAL_DAYS}일 무료 체험`}
-            {!busy && <span aria-hidden>→</span>}
-          </button>
+          <>
+            {/* 구독 선택지 노출 — 체험 후일 때만(체험 전 배너는 체험 버튼이라 구독 선택지가 아니다). */}
+            {trialUsed && <SubscribeOfferShown surface="banner" phase="post_trial" />}
+            <button type="button" onClick={onSubscribe} disabled={busy} className={`${chipClass} transition active:scale-95 disabled:opacity-60`}>
+              {trialUsed ? "구독하기" : busy ? "여는 중…" : `${TRIAL_DAYS}일 무료 체험`}
+              {!busy && <span aria-hidden>→</span>}
+            </button>
+          </>
         )}
       </div>
       {/* alt="" — 장식이다. 2탭 FortuneHeader 는 alt="별콩이" 를 쓰지만, 그 이름은 화면 어디에도

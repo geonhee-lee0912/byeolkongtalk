@@ -126,6 +126,8 @@ export default function TarotTodayView({
         todayKst={state.today}
         entitled={state.entitled}
         trialUsed={state.trialUsed}
+        trialEndsAt={state.trialEndsAt}
+        subscriptionExpiresAt={state.subscriptionExpiresAt}
         onStartTrial={startTrial}
         onSubscribe={openSubscribe}
         trialBusy={trialStarting}

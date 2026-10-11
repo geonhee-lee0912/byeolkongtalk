@@ -24,10 +24,15 @@
 // 🔴 호출부 계약 — 이 컴포넌트는 `entitled` 를 받지 않고, 마운트되면 무조건 gate_shown 을 찍는다.
 //    **비자격 경로에서만 렌더할 것.** 자격자에게 렌더하면 gate_shown 분모가 구독자로 오염된다
 //    (PremiumBlock 은 `!entitled` 를 자기 안에서 봤지만 여기는 호출부가 책임진다).
+//    구독 선택지 노출(byeolmaru_subscribe_offer_shown)도 같은 전제로 찍는다 — 단계는 trialUsed 로 가른다
+//    (비자격이니 체험 안 썼으면 체험 전, 썼으면 체험 후).
+// 🔴 2026-10-11 부터 체험 전에도 구독 선택지가 있다 — 캡션 자리의 '바로 구독' 링크(사용자 결정). 주 버튼은
+//    체험 그대로다. 체험 전 구독 = 체험 3일 + 30일(구독 라우트가 33일로 산다 — subscribe-offer.ts).
 import { useEffect } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
+import { BYEOLMARU_SUBSCRIPTION, TRIAL_DAYS } from "@/lib/byeolmaru/constants";
 import type { BaitSlot } from "@/lib/byeolmaru/bait";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 
 // 형제 CardReportView.tsx 와 같은 관행 — 인라인 style 로 쓸 금색은 지역 상수로 둔다(@theme --color-gold 와 같은 값).
 const GOLD = "#E8C26A";
@@ -143,15 +148,27 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
               4.49:1 로 AA(4.5:1)에 **0.01 미달**이었다. 2026-09-27 에 호스트가 bg-white 로 바뀌어
               지금은 text-light 도 4.73:1 로 통과하지만 되돌리지 않는다 — 이 컴포넌트는 호스트를
               고르지 않으므로(사주·타로 둘 다 얹힌다) 더 어두운 쪽이 안전하다. 위계는 11px 크기가 진다.
-              🔴 opacity·알파로 흐리지 말 것 — 배경과 섞여 실효 대비가 다시 떨어진다(이 리포의 전례). */}
+              🔴 opacity·알파로 흐리지 말 것 — 배경과 섞여 실효 대비가 다시 떨어진다(이 리포의 전례).
+              🔴 '바로 구독' 은 버튼이 아니라 이 캡션 안의 텍스트 링크다(2026-10-11, 사용자 결정) — 주 버튼은
+                 체험 하나로 둔다. 두 조각을 inline-block 으로 감싸 375px 에서 줄이 바뀌어도 문구 중간이
+                 아니라 '·' 뒤에서 꺾인다. 링크도 eye-purple + 밑줄이다(lilac-deep 은 흰 바탕 3:1 로 AA 미달). */}
+          <SubscribeOfferShown surface="cut" phase="pre_trial" slot={slot} />
           <p className="mt-1.5 text-center text-[11px] text-eye-purple">
-            체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+            <span className="inline-block">
+              체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일 ·
+            </span>{" "}
+            <button type="button" onClick={() => onSubscribe(slot)} className="inline-block font-semibold underline underline-offset-2">
+              바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일 →
+            </button>
           </p>
         </>
       ) : (
-        <button onClick={() => onSubscribe(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
-          구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-        </button>
+        <>
+          <SubscribeOfferShown surface="cut" phase="post_trial" slot={slot} />
+          <button onClick={() => onSubscribe(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
+            구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+          </button>
+        </>
       )}
     </div>
   );

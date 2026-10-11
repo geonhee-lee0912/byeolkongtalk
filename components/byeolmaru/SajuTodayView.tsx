@@ -16,6 +16,8 @@ import GuestLoginWall from "./GuestLoginWall";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import PaywallCut from "./PaywallCut";
+import TrialSubscribeNudge from "./TrialSubscribeNudge";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -220,21 +222,33 @@ export default function SajuTodayView({
             {/* dateLabel={null} — 날짜는 한 장의 헤더가 이미 말했다. embedded 는 상단 바 자체를
                 안 그려 넘겨도 안 보이지만, 계약을 분명히 하려고 null 을 준다. */}
             <DailyReportCard report={report} dateLabel={null} dayWord={dayWord} variant="embedded" />
+            {/* 체험 중 — 리포트를 다 읽은 자리에서 '이어서 구독' 한 줄(2026-10-11, 사용자 결정). 아래
+                비자격 안내와 자격 조건이 반대라 둘이 함께 뜨는 일은 없다. */}
+            {data.entitled && !data.subscriptionExpiresAt && data.trialEndsAt && (
+              <TrialSubscribeNudge
+                trialEndsAt={data.trialEndsAt}
+                slot="saju_report"
+                onSubscribe={() => openSubscribe("report_end", "saju_report")}
+              />
+            )}
             {!data.entitled && (
               /* 🔴 PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
                  거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 도 찍어 분모를 오염시킨다).
-                 계측 없음(확신이 안 서 스킵 — 보고 참고). */
+                 gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
               <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
                 <p className="text-xs text-text-light">
                   지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                 </p>
                 {data.trialUsed ? (
-                  <button
-                    onClick={() => openSubscribe("kept_report", "saju_report")}
-                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
-                  >
-                    구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-                  </button>
+                  <>
+                    <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="saju_report" />
+                    <button
+                      onClick={() => openSubscribe("kept_report", "saju_report")}
+                      className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                    >
+                      구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                    </button>
+                  </>
                 ) : (
                   <button
                     onClick={() => startTrial("saju_report")}

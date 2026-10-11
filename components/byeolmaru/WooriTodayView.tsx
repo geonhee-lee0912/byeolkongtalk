@@ -12,6 +12,7 @@ import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import CurrentPartner, { type WatchedPartner } from "./CurrentPartner";
 import WatchAddModal from "./WatchAddModal";
 import PaywallCut from "./PaywallCut";
+import TrialSubscribeNudge from "./TrialSubscribeNudge";
 import PairReportView from "./PairReportView";
 import { isPairReport, type PairReport } from "@/lib/byeolmaru/pair-report";
 import { PAIR_PAID_CHARS, PAIR_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
@@ -375,6 +376,15 @@ export default function WooriTodayView({
                     두면 과거 글을 "오늘 얘기"라고 거꾸로 우기게 된다. 예전 "지우지 말 것" 지시는
                     그 어긋남이 있던 시절 전제라, 어긋남이 없어진 지금은 반대로 적용된다. */}
                 <PairReportView report={pairNarrative} />
+                {/* 체험 중 — 리포트를 다 읽은 자리에서 '이어서 구독' 한 줄(2026-10-11, 사용자 결정).
+                    자격은 내 캘린더 응답(state)으로 본다 — 사주·타로 탭과 같은 판정이어야 세 탭이 같이 움직인다. */}
+                {state.entitled && !state.subscriptionExpiresAt && state.trialEndsAt && (
+                  <TrialSubscribeNudge
+                    trialEndsAt={state.trialEndsAt}
+                    slot="woori_30d"
+                    onSubscribe={() => openSubscribe("report_end", "woori_30d")}
+                  />
+                )}
               </div>
             ) : pastNoRecord ? (
               /* 🔴 과거 + 기록 없음 — 소급 생성은 금지라 "그때 받은 것만" 보여줄 수 있다는 걸

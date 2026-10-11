@@ -135,6 +135,13 @@ export const UI_EVENTS = [
    *  resumed=true = 충전하고 돌아와 자동으로 다시 열린 확인창에서 산 것. surface·phase·resumed 는 2026-10-11 코드부터.
    *  🔴 실제 일수는 phase 가 정한다(체험 전 33 · 체험 중 30+남은 체험 · 체험 후 30) — 구독 행의 expires_at 이 정본. */
   "byeolmaru_subscribe_completed",
+  /** 별마루 — 구독 선택지가 그려졌다(components/byeolmaru/SubscribeOfferShown, 마운트당 1회). meta:{surface, phase, slot?}
+   *  = byeolmaru_subscribe_clicked 의 분모. 자리·단계 조합(2026-10-11~):
+   *    cut·pre_trial(체험 전 절단선 '바로 구독' 링크) · report_end·trial(체험 중 리포트 끝 넛지) ·
+   *    banner|cut|kept_report·post_trial(체험 후 — 예전부터 있던 구독 버튼).
+   *  🔴 byeolmaru_gate_shown 과 다르다 — 그쪽은 절단선 '형태' 노출(체험 버튼만 있어도 센다)이고 추세 잇기용으로 그대로 둔다.
+   *  ⚠️ 과거 데이터엔 없다 — 2026-10-11 이전의 체험 후 노출은 gate_shown(slot)으로만 근사된다(배너·받은 글 안내는 0). */
+  "byeolmaru_subscribe_offer_shown",
   /** 별마루 — 구독 실패(확인을 눌렀는데 안 됨). meta:{status, surface, phase, slot?, resumed?}
    *  status = 402(잔액 부족 → 그 자리 충전 시트가 열린다 · 고장 아님) | 500(구매 실패 — 서버가 error_logs 에 남긴다) |
    *  그 밖의 HTTP 숫자(401 등) | "network"(응답 없음). 2026-10-11~ */
