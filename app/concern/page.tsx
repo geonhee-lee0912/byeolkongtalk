@@ -22,6 +22,7 @@ import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
 import { ENTRY_FLOW_KEY } from "@/lib/tarot/entry-ab";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { isLoggedInClient } from "@/lib/consultation-entry";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -59,7 +60,8 @@ export default function ConcernPage() {
     }
     // 구 태그(v2)·낯선 문자열도 정규화해서 흐름을 계속 이어간다
     setEmotion(normalizeEmotionTag(stored) ?? DEFAULT_TAG);
-    setEntryNew(sessionStorage.getItem(ENTRY_FLOW_KEY) === "new");
+    // 새 흐름 표시는 로그인 뒤에도 같은 탭에 남는다 — 회원에겐 안내·위기 배너를 안 띄운다(홈과 같은 로그인 판정)
+    setEntryNew(sessionStorage.getItem(ENTRY_FLOW_KEY) === "new" && !isLoggedInClient());
 
     // /tarot에서 뒤로 돌아온 경우: 기 입력한 고민 복원
     const raw = sessionStorage.getItem(PENDING_KEY);
