@@ -515,7 +515,11 @@ export default function DailyCardBlock({
               {/* 🔴 report 유무만 본다 — date·entitled 로 먼저 가르지 않는다(2026-09-26, 스펙
                   §4-4). 과거든 오늘이든 서술이 있으면 받았던 글이니 그대로 보여주고, 없을 때만
                   narrativeLoading/notGenerated/locked 세 이유를 가려 보여준다. */}
-              {narrativeLoading ? (
+              {/* 🔴 `locked && entitled` 도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것이라
+                  서술 effect(entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼
+                  '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다 — 다른 탭에서 체험을 시작해
+                  이 탭(숨김)이 새 자격을 받을 때도 같다(SajuTodayView 와 같은 게이트). */}
+              {narrativeLoading || (locked && entitled) ? (
                 <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                   별콩이가 카드를 네 사주 위에 얹는 중…
                 </p>

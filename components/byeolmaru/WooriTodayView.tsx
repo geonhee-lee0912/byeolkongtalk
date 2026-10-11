@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PairDayCell, PairBackdrop } from "@/lib/byeolmaru/pair-day";
 import { getPairTaste } from "@/lib/byeolmaru/static-lines";
 import type { RelationshipStatus } from "@/lib/relationship/types";
@@ -56,9 +56,13 @@ type CalendarBody = {
 export default function WooriTodayView({
   initialDate,
   injected,
+  reloadEntitlement,
 }: {
   initialDate?: string;
   injected?: { status: number; body: unknown };
+  /** 껍데기(DayTabsView)의 캘린더 다시 받기 — 체험·구독 뒤 이 탭을 포함해 열린 탭 전부를 새 자격으로 그린다.
+   *  없으면(껍데기 밖) 이 탭만 서버에서 다시 읽는다(refreshFromServer). */
+  reloadEntitlement?: () => Promise<void>;
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   // 🔴 상대는 0 또는 1명이다 — 목록이 아니라 단일 값. subject 는 여기서 파생시킨다(이중 상태 금지:
@@ -138,19 +142,19 @@ export default function WooriTodayView({
   const entitledNow = state.kind === "ready" && state.entitled;
   const trialUsed = state.kind === "ready" ? state.trialUsed : false;
 
-  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
-  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **진입 스냅샷을 다시 읽지 않는다** — 그건 진입 때 한 번 받은 값이라 방금 산
+  //    구독이 안 보인다. 껍데기 안이면 껍데기가 다시 받아 열린 탭 전부에 내려주고(reloadEntitlement — 아래
+  //    useLayoutEffect 가 받아 그린다), 밖이면 이 탭만 서버를 다시 문다.
   const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
-    refreshFromServer,
+    reloadEntitlement ?? refreshFromServer,
     state.kind === "ready" ? state : null
   );
 
-  async function refreshFromServer() {
-    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-    const body = await res.json().catch(() => null);
-    if (res.status === 401) { setState({ kind: "need_login" }); return; }
-    if (res.status === 404) { setState({ kind: "no_profile" }); return; }
-    if (!res.ok || !body) { setState({ kind: "error" }); return; }
+  // 자격이 바뀐 뒤의 캘린더 응답 → 화면(진입 refresh 와 같은 판단이되 계측·상대 목록 다시 받기는 안 한다 — 자격만 바뀌었다).
+  function applyCalendar(status: number, body: unknown) {
+    if (status === 401) { setState({ kind: "need_login" }); return; }
+    if (status === 404) { setState({ kind: "no_profile" }); return; }
+    if (status < 200 || status >= 300 || !body) { setState({ kind: "error" }); return; }
     const data = body as CalendarBody;
     if (!Array.isArray(data.cells) || data.cells.length === 0 || !data.today) { setState({ kind: "error" }); return; }
     setState({
@@ -158,6 +162,21 @@ export default function WooriTodayView({
       trialEndsAt: data.trialEndsAt ?? null, subscriptionExpiresAt: data.subscriptionExpiresAt ?? null,
     });
   }
+
+  async function refreshFromServer() {
+    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+    applyCalendar(res.status, await res.json().catch(() => null));
+  }
+
+  // 🔴 껍데기가 자격 스냅샷을 다시 받아 내려주면(byeolmaru:entitlement-changed) 그걸로 다시 그린다 — 다른 탭에서 체험·구독을
+  //    해도 이 탭의 넛지·절단선·구독 버튼이 새 자격을 따라야 한다. 첫 주입은 refresh() 몫. layout effect 인 이유는 SajuTodayView 와 같다.
+  const appliedInjected = useRef(injected);
+  useLayoutEffect(() => {
+    if (!injected || injected === appliedInjected.current) return;
+    appliedInjected.current = injected;
+    applyCalendar(injected.status, injected.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injected]);
 
   // subject 가 상대로 바뀔 때마다 우리 캘린더를 새로 받는다. entitledNow 를 deps 에 넣어 같은 상대를
   // 보는 도중 체험/구독이 풀렸을 때도(false→true) 잠금 없는 응답을 자동으로 다시 받는다.
@@ -361,8 +380,11 @@ export default function WooriTodayView({
                 (SajuTodayView 의 `report ? (...)` 와 같은 원칙, 2026-09-26). 안 그러면 방금 고친
                 effect 가 과거 서술을 잘 받아와도 이 바깥 게이트가 pairData.entitled(=지금 자격)
                 만 보고 PaywallCut 으로 버린다 — 11642fd 가 타로에서 고친 "불러놓고 렌더가 버리는"
-                바로 그 패턴이 된다. 자격 만료 뒤에도 그때 받은 글은 그대로 보여야 한다. */}
-            {pairNarrativeLoading ? (
+                바로 그 패턴이 된다. 자격 만료 뒤에도 그때 받은 글은 그대로 보여야 한다.
+                🔴 `entitledNow && !pairData.entitled` 도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 우리 캘린더는 옛
+                   자격으로 받은 것이라 위 effect(entitledNow 의존)가 곧 다시 받는다. 그 틈에 PaywallCut 을 그리면 trialUsed 가
+                   막 true 가 돼 '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다(사주·타로와 같은 게이트). */}
+            {pairNarrativeLoading || (entitledNow && !pairData.entitled && !isPastDate) ? (
               <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                 별콩이가 둘 사이 오늘을 읽고 있어…
               </div>

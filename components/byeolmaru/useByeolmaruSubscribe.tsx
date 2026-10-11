@@ -4,10 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { BYEOLMARU_SUBSCRIPTION, TRIAL_DAYS } from "@/lib/byeolmaru/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
+import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { BAIT, BAIT_SLOTS } from "@/lib/byeolmaru/bait";
 import {
+  BYEOLMARU_REQUEST_TIMEOUT_MS,
+  ENTITLEMENT_CHANGED_EVENT,
+  alreadySubscribedNotice,
+  shouldResumeSubscribe,
   subscribePhase,
   takeSubscribeResume,
   withSubscribeResume,
@@ -28,6 +33,19 @@ const SUBTITLE: Record<SubscribePhase, string> = {
   subscribed: `지금 구독이 끝난 다음부터 ${DAYS}일 더 이어서 볼 수 있어`,
 };
 
+// 결과를 모르는 실패(연결 끊김·15초 시간 초과) — 서버엔 반영됐을 수 있어 화면을 새로 읽고 그걸 보게 한다.
+// 다시 눌러도 안전하다: 체험 시작은 1회성이고, 구독은 이미 구독 중이면 서버가 409 로 막는다(차감 없음).
+const LOST_RESPONSE_NOTICE = "연결이 흔들렸어. 화면을 새로 불러올게 — 버튼이 그대로면 다시 눌러줄래?";
+
+/** 구독 라우트 응답 — 성공(phase·days·expiresAt) · 402(balance) · 409(expiresAt) · 그 밖의 실패(error). */
+interface SubscribeBody {
+  error?: string;
+  balance?: number;
+  expiresAt?: string;
+  phase?: string;
+  days?: number;
+}
+
 /** 확인창을 연 맥락 — 완료·실패 계측과 충전 후 재오픈 표시가 이걸 쓴다. phase 는 연 순간의 단계다. */
 interface Offer {
   surface: SubscribeSurface;
@@ -47,7 +65,8 @@ function offerMeta(o: Offer): Record<string, unknown> {
 }
 
 // 별마루 trial/subscribe 공유 훅 — 허브·saju·tarot·woori 네 뷰가 같은 결제 흐름을 쓴다.
-// onChanged: 체험/구독 성공 후 그 뷰의 데이터 재조회(entitled 재판정). 각 뷰가 자기 refresh 를 넘긴다 —
+// onChanged: 체험/구독 뒤 그 화면의 자격 재조회(entitled 재판정). 허브는 자기 refresh, 날짜 상세의 세 뷰는
+//   껍데기(DayTabsView)의 캘린더 다시 받기를 넘긴다 — 열린 탭 전부가 같이 바뀐다(syncEntitlement 주석).
 //   Promise 를 돌려주면 끝날 때까지 체험 버튼이 '여는 중…'으로 남는다(원래 문구로 한 번 깜빡이지 않게).
 // ent: 그 뷰가 지금 아는 자격(캘린더 응답). 확인창 문구·계측 phase·충전 후 재오픈 판정이 쓴다. 로딩 중엔 null.
 export function useByeolmaruSubscribe(
@@ -62,7 +81,7 @@ export function useByeolmaruSubscribe(
   const [subscribing, setSubscribing] = useState(false);
   const [trialStarting, setTrialStarting] = useState(false);
   // 🔴 진행 중 잠금은 ref 다 — state 는 다음 렌더에야 보여서 같은 틱의 두 번째 탭이 그대로 통과한다
-  //    (확인 두 번 = 20별 두 번 차감 + 구독 이어 붙이기. 서버엔 중복 방지 키가 없다 — 스펙 §4-1).
+  //    (확인 두 번 = 요청 두 번. 둘째는 이제 서버가 409 로 막지만(2026-10-12) 두 요청이 '동시'면 못 막는다 — 스펙 §4-1).
   //    state(subscribing·trialStarting)는 버튼 라벨 '여는 중…'용이다. FortunePurchasePanel inFlightRef 와 같은 이유.
   const confirmLockRef = useRef(false);
   const trialLockRef = useRef(false);
@@ -70,11 +89,20 @@ export function useByeolmaruSubscribe(
 
   const phase = ent ? subscribePhase(ent) : null;
 
-  async function refreshView() {
+  // 자격이 바뀌었을 수 있다 — 체험·구독의 성공뿐 아니라 409·실패·시간 초과 뒤에도 부른다(응답을 못 받았어도 서버엔
+  // 반영됐을 수 있다 — iOS 앱 전환 등). ① window 에 알려 같은 화면의 다른 탭도 새 자격을 받게 하고
+  // (byeolmaru:entitlement-changed → DayTabsView 가 캘린더를 다시 받아 열린 탭 전부에 내려준다 — 예전엔 누른 탭만
+  // 새로 고쳐, 다른 탭에 남은 구독 버튼이 20별을 또 뺐다) ② 이 화면의 새로 읽기(onChanged)를 기다린다.
+  // 날짜 상세에선 ②가 ①과 같은 다시 받기라 요청은 한 번이다(DayTabsView 가 합친다).
+  // notice: 함께 띄울 짧은 안내 — 요청을 먼저 걸어 둔 뒤 띄운다(alert 가 막는 동안에도 다시 읽기는 간다).
+  async function syncEntitlement(notice?: string) {
+    window.dispatchEvent(new Event(ENTITLEMENT_CHANGED_EVENT));
+    const refreshed = Promise.resolve(onChanged());
+    if (notice) alert(notice);
     try {
-      await onChanged();
+      await refreshed;
     } catch {
-      // 화면 갱신 실패 — 체험·구독은 이미 서버에 반영됐다. 다음 진입이 바로잡는다
+      // 화면 갱신 실패 — 낡은 구독 버튼은 서버가 409 로 막고(차감 없음) 체험 시작은 1회성이다. 다음 진입이 바로잡는다
     }
   }
 
@@ -87,13 +115,31 @@ export function useByeolmaruSubscribe(
     // ⚠️ 잠금 뒤라 연타가 한 번만 찍힌다 — 잠금 전(2026-10-11 이전) events 수와 비교하지 말 것(실인원은 같다)
     trackUiEvent("byeolmaru_trial_started", slot ? { meta: { slot } } : undefined);
     try {
-      await fetch("/api/byeolmaru/trial", { method: "POST" });
-      await refreshView();
-    } catch {
-      // 네트워크 실패 — 잠금만 풀어 다시 누를 수 있게 한다(서버 startTrial 은 1회성이라 재시도가 안전하다)
+      let notice: string | undefined;
+      try {
+        // 15초 제한 — 응답이 영영 안 오면 버튼이 '여는 중…'에 갇힌다
+        const r = await purchaseRequest("/api/byeolmaru/trial", { method: "POST" }, BYEOLMARU_REQUEST_TIMEOUT_MS);
+        if (!r.ok) notice = "체험이 안 열렸어. 잠시 후 다시 시도해줄래?";
+      } catch {
+        // 연결 끊김·시간 초과 — 결과를 모른다(서버 startTrial 은 1회성이라 다시 눌러도 안전하다)
+        notice = LOST_RESPONSE_NOTICE;
+      }
+      // 실패여도 다시 읽는다 — 서버엔 반영됐을 수 있다
+      await syncEntitlement(notice);
     } finally {
       trialLockRef.current = false;
       setTrialStarting(false);
+    }
+  }
+
+  // 별 잔액 — 못 읽으면 null(확인창은 0 으로 보고 '충전하러 가기'를 띄운다 · 충전 후 재오픈은 안 연다)
+  async function fetchStarBalance(): Promise<number | null> {
+    try {
+      const r = await fetch("/api/stars/balance", { cache: "no-store" });
+      const d = r.ok ? await r.json() : null;
+      return typeof d?.balance === "number" ? d.balance : null;
+    } catch {
+      return null;
     }
   }
 
@@ -102,15 +148,9 @@ export function useByeolmaruSubscribe(
     setSubBalanceLoading(true);
     setSubBalance(null);
     void (async () => {
-      try {
-        const r = await fetch("/api/stars/balance", { cache: "no-store" });
-        const d = r.ok ? await r.json() : null;
-        setSubBalance(typeof d?.balance === "number" ? d.balance : 0);
-      } catch {
-        setSubBalance(0);
-      } finally {
-        setSubBalanceLoading(false);
-      }
+      const b = await fetchStarBalance();
+      setSubBalance(b ?? 0);
+      setSubBalanceLoading(false);
     })();
   }
 
@@ -133,45 +173,61 @@ export function useByeolmaruSubscribe(
     confirmLockRef.current = true;
     setSubscribing(true);
     const meta = offerMeta(offer);
+    let r: PurchaseResponse<SubscribeBody> | null = null;
+    let lost: "timeout" | "network" = "network";
     try {
-      let res: Response;
-      try {
-        res = await fetch("/api/byeolmaru/subscribe", { method: "POST" });
-      } catch {
-        trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: "network" } });
-        setOffer(null);
-        alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
-        return;
-      }
-      if (res.status === 402) {
-        // 확인창을 연 뒤 잔액이 줄었다(다른 탭 결제 등). 서버 잔액으로 확인창을 '부족' 상태로 바꾸고
-        // 그 위에 충전 시트를 연다 — 시트를 닫으면 '별 충전하러 가기' 확인창이 그대로 남는다.
-        trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: 402 } });
-        const j = await res.json().catch(() => null);
-        setSubBalance(typeof j?.balance === "number" ? j.balance : 0);
-        openRecharge(offer.surface);
-        return;
-      }
-      if (res.ok) {
-        trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: COST, ...meta } });
-        // 헤더 잔액 칩 갱신 — 다른 구매 경로와 같은 이벤트(없으면 20별이 빠졌는데 헤더 숫자가 그대로다)
-        window.dispatchEvent(new Event("byeolkong:balance-updated"));
-        setOffer(null);
-        await refreshView();
-        return;
-      }
-      trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: res.status } });
-      setOffer(null);
-      alert("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
+      // 15초 제한 — 처리 중엔 확인창을 못 닫아서(아래 onClose) 응답이 영영 안 오면 갇힌다
+      r = await purchaseRequest<SubscribeBody>("/api/byeolmaru/subscribe", { method: "POST" }, BYEOLMARU_REQUEST_TIMEOUT_MS);
+    } catch (e) {
+      // AbortError = 우리 타이머가 끊었다(시간 초과) · 그 밖 = 연결 끊김. 둘 다 결과를 모른다
+      if ((e as { name?: unknown } | null)?.name === "AbortError") lost = "timeout";
     } finally {
+      // 🔴 응답(또는 시간 초과)까지만 잠근다 — 뒤의 화면 새로 읽기까지 잡고 있으면, 그게 늦을 때 새로 연 확인창이
+      //    '여는 중…'에 갇혀 닫히지도 않는다. 그 사이 다시 산다고 눌러도 서버가 409 로 막는다(차감 없음).
       confirmLockRef.current = false;
       setSubscribing(false);
     }
+    if (!r) {
+      trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: lost } });
+      setOffer(null);
+      await syncEntitlement(LOST_RESPONSE_NOTICE);
+      return;
+    }
+    if (r.status === 402) {
+      // 확인창을 연 뒤 잔액이 줄었다(다른 탭 결제 등). 서버 잔액으로 확인창을 '부족' 상태로 바꾸고
+      // 그 위에 충전 시트를 연다 — 시트를 닫으면 '별 충전하러 가기' 확인창이 그대로 남는다.
+      trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: 402 } });
+      setSubBalance(typeof r.data.balance === "number" ? r.data.balance : 0);
+      openRecharge(offer.surface);
+      return;
+    }
+    if (r.status === 409) {
+      // 이미 구독 중 — 이 화면이 낡았다(다른 탭에서 막 샀다). 서버가 차감 없이 막았다(2026-10-12) — 알리고 화면을 새로 읽는다
+      trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: 409 } });
+      setOffer(null);
+      await syncEntitlement(alreadySubscribedNotice(r.data.expiresAt));
+      return;
+    }
+    if (r.ok) {
+      trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: COST, ...meta } });
+      // 헤더 잔액 칩 갱신 — 다른 구매 경로와 같은 이벤트(없으면 20별이 빠졌는데 헤더 숫자가 그대로다)
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      setOffer(null);
+      await syncEntitlement();
+      return;
+    }
+    trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: r.status } });
+    setOffer(null);
+    // 5xx 도 다시 읽는다 — 서버엔 반영됐는데 응답만 잃었을 수 있다
+    await syncEntitlement("구독이 안 됐어. 잠시 후 다시 시도해줄래?");
   }
 
   // 충전하고 돌아오면 확인창을 **한 번만** 다시 연다(사용자 결정 2026-10-11). 자격을 읽은 뒤에야 판단한다 —
   // 이미 구독 중이면(다른 탭에서 샀다) 열지 않는다. 표시는 열든 안 열든 주소에서 지운다(새로고침에 또 뜨지 않게).
+  // 🔴 **충전하고 돌아왔을 때만** 연다 = 잔액이 20 이상일 때만(2026-10-12, shouldResumeSubscribe) — 결제 실패·취소 뒤
+  //    /shop 의 '← 대화로 돌아가기'도 같은 returnTo(표시 포함)로 와서, 예전엔 잔액 그대로 '부족' 창이 또 떴다.
   // 🔴 한 화면에 이 훅이 둘 이상 떠도 표시를 먼저 읽은 쪽이 지우므로 한 번만 열린다(날짜 상세는 연 탭만 마운트).
+  //    그래서 주소 정리는 잔액을 묻기 **전에** 동기로 한다.
   useEffect(() => {
     if (!ent || resumeCheckedRef.current) return;
     resumeCheckedRef.current = true;
@@ -187,8 +243,15 @@ export function useByeolmaruSubscribe(
     }
     if (!surface) return;
     const now = subscribePhase(ent);
-    if (now === "subscribed") return;
-    showConfirm({ surface, phase: now, resumed: true });
+    if (now === "subscribed") return; // 잔액을 물을 것도 없다
+    void (async () => {
+      const balance = await fetchStarBalance();
+      if (!shouldResumeSubscribe(now, balance)) return;
+      // 방금 읽은 잔액으로 바로 연다 — showConfirm 처럼 한 번 더 묻지 않는다
+      setOffer({ surface, phase: now, resumed: true });
+      setSubBalance(balance);
+      setSubBalanceLoading(false);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ent]);
 

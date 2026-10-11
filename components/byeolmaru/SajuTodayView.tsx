@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -45,9 +45,13 @@ type State =
 export default function SajuTodayView({
   initialDate,
   injected,
+  reloadEntitlement,
 }: {
   initialDate?: string;
   injected?: { status: number; body: unknown };
+  /** 껍데기(DayTabsView)의 캘린더 다시 받기 — 체험·구독 뒤 이 탭을 포함해 열린 탭 전부를 새 자격으로 그린다.
+   *  없으면(껍데기 밖) 이 탭만 서버에서 다시 읽는다(refreshFromServer). */
+  reloadEntitlement?: () => Promise<void>;
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
@@ -140,21 +144,38 @@ export default function SajuTodayView({
     //    뿐이라 자격이 바뀌면 다시 확인해야 참이 된다).
   }, [entitled, selected, todayKst]);
 
-  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
-  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **진입 스냅샷을 다시 읽지 않는다** — 그건 진입 때 한 번 받은 값이라 방금 산
+  //    구독이 안 보인다. 껍데기 안이면 껍데기가 다시 받아 열린 탭 전부에 내려주고(reloadEntitlement — 아래
+  //    useLayoutEffect 가 받아 그린다), 밖이면 이 탭만 서버를 다시 문다.
   const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
-    refreshFromServer,
+    reloadEntitlement ?? refreshFromServer,
     state.kind === "ready" ? state.data : null
   );
 
-  async function refreshFromServer() {
-    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-    const body = await res.json().catch(() => null);
-    if (res.status === 401) { setState({ kind: "need_login" }); return; }
-    if (res.status === 404) { setState({ kind: "no_profile" }); return; }
-    if (!res.ok || !body) { setState({ kind: "error" }); return; }
+  // 자격이 바뀐 뒤의 캘린더 응답 → 화면. 🔴 진입(refresh)과 달리 선택 날짜·리포트는 건드리지 않는다 —
+  // 리포트를 비우면 체험 중 구독(자격 true→true)에선 리포트 effect 가 다시 안 돌아 빈 자리가 남는다.
+  function applyCalendar(status: number, body: unknown) {
+    if (status === 401) { setState({ kind: "need_login" }); return; }
+    if (status === 404) { setState({ kind: "no_profile" }); return; }
+    if (status < 200 || status >= 300 || !body) { setState({ kind: "error" }); return; }
     setState({ kind: "ready", data: body as CalendarResponse });
   }
+
+  async function refreshFromServer() {
+    const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+    applyCalendar(res.status, await res.json().catch(() => null));
+  }
+
+  // 🔴 껍데기가 자격 스냅샷을 다시 받아 내려주면(byeolmaru:entitlement-changed) 그걸로 다시 그린다 — 이 탭이 체험·구독을
+  //    한 탭이 아니어도 넛지·받은 글 아래 안내·절단선·구독 버튼이 새 자격을 따라야 한다(2026-10-12). 첫 주입은 refresh() 몫.
+  //    layout effect 인 이유: 누른 탭은 같은 커밋에서 '여는 중…'이 풀린다 — 칠하기 전에 바꿔야 옛 버튼이 한 프레임 안 비친다.
+  const appliedInjected = useRef(injected);
+  useLayoutEffect(() => {
+    if (!injected || injected === appliedInjected.current) return;
+    appliedInjected.current = injected;
+    applyCalendar(injected.status, injected.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injected]);
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   // 🔴 벽은 세 탭이 공유한다(GuestLoginWall) — 문구·레이아웃을 여기서 다시 쓰지 말 것.
@@ -206,11 +227,14 @@ export default function SajuTodayView({
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             그날 아침에 열려.
           </p>
-        ) : reportLoading ? (
+        ) : reportLoading || (locked && data.entitled) ? (
           /* 🔴 로딩 문구가 report/notGenerated/locked 세 분기보다 **먼저** 온다(2026-09-26) —
              오늘 + 비자격도 이제 fetch 가 실제로 돈다. locked 는 fetch 가 끝나야만 true 가 될 수
              있어 이 순서가 없어도 PaywallCut 이 로딩 중에 뜰 길은 없지만, "PaywallCut 이 잠깐
-             떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다. */
+             떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다.
+             🔴 `locked && entitled` = 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것 — 리포트 effect(entitled 의존)가
+                곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼 '체험 후 구독 버튼'이 비치고
+                구독 선택지 노출(post_trial)이 잘못 찍혔다(2026-10-12 — 열린 탭마다 생길 뻔했다). 그래서 로딩으로 본다. */
           <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             {dayWord} 리포트를 펼치는 중…
           </div>
