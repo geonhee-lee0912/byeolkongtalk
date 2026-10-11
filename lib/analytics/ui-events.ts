@@ -272,7 +272,7 @@ export const UI_EVENTS = [
   /** 다시 온 회원 안내 노출 — 로그인 전 맛보기에서 '가입 선물'을 보고 왔는데 선물이 없고 별이 모자람. meta:{short}
    *  ⚠️ short = 가격 − 실제 잔액. login_sheet_shown.meta.short(= 가격 − 가입 선물 15, 가정값)와 뜻이 다르다 */
   "returning_short_shown",
-  /** 고민 쓰기 위기 배너 노출(정규식 확신 high) — meta:{severity, category}. 새 흐름(로그인 전 맛보기) 방문자만 — 회원·옛 흐름은 지금 그대로 */
+  /** 고민 쓰기 위기 배너 노출(정규식 확신 high) — meta:{severity, category}. 모두에게(회원·옛 흐름 포함 — 사용자 결정 2026-10-11, 정규식 권장안 뒤) */
   "concern_safety_banner_shown",
 ] as const;
 

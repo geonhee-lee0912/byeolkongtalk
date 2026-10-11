@@ -35,19 +35,18 @@ export default function ConcernPage() {
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  // 새 흐름(로그인 전 맛보기)으로 온 비로그인 — 홈이 심은 표시. 안내 한 줄·위기 배너가 이 방문자에게만 뜬다(스펙 2026-10-11 §3 ① · §5-5)
+  // 새 흐름(로그인 전 맛보기)으로 온 비로그인 — 홈이 심은 표시. 안내 한 줄이 이 방문자에게만 뜬다(스펙 2026-10-11 §3 ①). 위기 배너는 모두에게(§5-5)
   const [entryNew, setEntryNew] = useState(false);
   // 위기 배너 노출 계측 — 같은 분류·강도는 한 번만
   const bannerSeen = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!entryNew) return;
     const m = concernSafetyMatch(concern);
     if (!m) return;
     const key = `${m.category}:${m.severity}`;
     if (bannerSeen.current.has(key)) return;
     bannerSeen.current.add(key);
     trackUiEvent("concern_safety_banner_shown", { meta: { severity: m.severity, category: m.category } });
-  }, [concern, entryNew]);
+  }, [concern]);
 
   useEffect(() => {
     const stored =
@@ -88,9 +87,9 @@ export default function ConcernPage() {
 
   const canProceed = concern.length >= MIN_LEN && concern.length <= MAX_LEN;
 
-  // 위기 신호(정규식 확신 high) — 로그인 전 방문자에게도 그 자리에서 상담 전화를. 진행은 막지 않는다.
-  // 새 흐름에만: 기존 high 정규식의 연애 어휘 오탐('약속…먹고' 등)이 확인돼 수정 전까진 범위를 좁혔다(회원·옛 흐름은 로그인 뒤 서버 판정 그대로)
-  const safety = entryNew ? concernSafetyMatch(concern) : null;
+  // 위기 신호(정규식 확신 high) — 고민을 쓰는 그 자리에서 상담 전화를. 진행은 막지 않는다.
+  // 모두에게(회원·옛 흐름 포함 — 사용자 결정 2026-10-11): high 정규식을 권장안으로 고쳐 연애 어휘 오탐('약속…먹고'·'재회에 목매' 등)을 걷어낸 뒤 넓혔다(lib/sensitive-patterns)
+  const safety = concernSafetyMatch(concern);
 
   const handleSelectTag = (tag: EmotionTag) => {
     setEmotion(tag);

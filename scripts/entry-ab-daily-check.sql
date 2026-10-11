@@ -11,7 +11,8 @@
 --                                                 사용자가 카카오에서 취소한 것(access_denied)은 fails_cancel 로 따로 본다 — 취소는 고장이 아니다
 --                                                 (⚠️ fails 는 안내를 못 보여 주고 /tarot 로 빠진 경우도 센다 — events 의 login_sheet_shown trigger=fail 과 같이 읽을 것 ·
 --                                                  같은 판을 새로고침하면 resume=login 이 남아 성공 복귀가 한 번 더 셀 수 있어 실패율이 조금 낮게 나온다)
---   arm_leak 에 행이 있다                       → 옛 그룹이 새 흐름 전용 화면(공개·로그인 창·고민 쓰기 위기 배너)을 봤다 — 그룹 판정·스위치 고장
+--   arm_leak 에 행이 있다                       → 옛 그룹이 새 흐름 전용 화면(공개·로그인 창)을 봤다 — 그룹 판정·스위치 고장
+--     (고민 쓰기 위기 배너는 모두에게 뜬다 — 사용자 결정 2026-10-11. 그래서 누출이 아니라 events 에서 그룹별로 세기만 한다)
 --   price_changed 에서 after_24h=true 행이 이어진다 → 로그인 전후 가격 어긋남(MENU_AB 를 승자로 고정하지 않고 켰다)
 --                                                 배포 순간 낡은 번들이 내는 PRICE_CHANGED 는 설계된 정상 신호라 배포 24시간 안(after_24h=false)은 고장으로 읽지 않는다.
 --                                                 ⚠️ 메뉴판 쪽 409 와 구분하지 못한다 — 그래서 MENU_AB 를 승자로 고정한 뒤에 켠다
@@ -142,7 +143,7 @@ arm_leak as (
   select event, count(*) as events, count(distinct anon_id) as anons
   from ev
   where arm = 'old'
-    and (event in ('cards_revealed', 'login_sheet_shown', 'login_sheet_dismissed', 'concern_safety_banner_shown')
+    and (event in ('cards_revealed', 'login_sheet_shown', 'login_sheet_dismissed')
          or (event = 'login_kakao_clicked' and meta->>'surface' = 'draw_sheet'))
   group by 1
 ),
