@@ -1,5 +1,6 @@
 // /api/stars/balance 응답 → 화면이 쓰는 지갑 값(잔액·게스트 여부·선물 미사용·반반 그룹). 표시·분기용 — 서버가 권위다.
 import { menuArmOf, type MenuArm } from "./tarot/menu-ab.ts";
+import type { EntryArm } from "./tarot/entry-ab.ts";
 import { trackUiEvent } from "./analytics/ui-events.ts";
 
 export interface Wallet {
@@ -10,6 +11,8 @@ export interface Wallet {
   giftUnused: boolean;
   /** 반반 비교 그룹 — 서버가 user_id 로 계산(lib/tarot/menu-ab.ts) */
   menuArm: MenuArm;
+  /** 입구 반반 그룹 — 서버가 익명 쿠키로 계산(lib/tarot/entry-ab.ts). 비로그인만 의미 있다. 회원·모름 = "old" */
+  entryArm: EntryArm;
 }
 
 /** 응답 JSON → Wallet. 모양이 이상하면 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음 · 스위치가 정한 비로그인 그룹 — 반반 중엔 옛 그룹 = 지금 prod).
@@ -23,6 +26,7 @@ export function parseWallet(d: unknown): Wallet {
     isGuest: o.isGuest !== false, // 모르면 게스트 = 약속하지 않는 쪽
     giftUnused: o.giftUnused === true,
     menuArm: arm === "menu" || arm === "legacy" ? arm : menuArmOf(null),
+    entryArm: o.entryArm === "new" ? "new" : "old",
   };
 }
 
