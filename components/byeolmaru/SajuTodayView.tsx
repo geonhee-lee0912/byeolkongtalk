@@ -62,7 +62,11 @@ export default function SajuTodayView({
   // 🔴 "오늘 + 캐시 미스 + 비자격"이 **확정**됐다는 신호(daily-report 의 403) — report===null 이
   //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. PaywallCut 은 이 값이
   //    true 일 때만 마운트한다(스펙 §4-4, 2026-09-26 — gate_shown 계측 계약 유지).
-  const [locked, setLocked] = useState(false);
+  // 🔴 값 = 그 잠금을 **어떤 자격으로 물었나**(null = 안 잠김, 2026-10-12). 지금 자격과 다르면 그 뒤에 자격이 바뀐 것
+  //    (체험·구독 직후)이라 리포트 effect 가 곧 다시 부른다 — 그 틈은 로딩으로 그린다(아래 렌더). 같으면 서버 판정 그대로
+  //    PaywallCut 이다(만료 경계에서 스냅샷이 아직 '자격'이어도 — 로딩에 갇히지 않는다).
+  const [lockedUnder, setLockedUnder] = useState<boolean | null>(null);
+  const locked = lockedUnder !== null;
 
   async function refresh() {
     try {
@@ -99,14 +103,14 @@ export default function SajuTodayView({
   const entitled = state.kind === "ready" && state.data.entitled;
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setLocked(false); return; }
+    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setLockedUnder(null); return; }
     const p = reportDatePolicy(selected, todayKst);
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
     //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다. 화면 안내 문구는
     //    이제 아래 렌더의 policy 분기가 자격과 무관하게 책임지므로(2026-09-26), 여기 남은 이유는
     //    오직 어차피 400 이 될 요청을 막는 것뿐이다.
     if (p === "out_of_range") {
-      setReport(null); setNotGenerated(false); setReportLoading(false); setLocked(false);
+      setReport(null); setNotGenerated(false); setReportLoading(false); setLockedUnder(null);
       return;
     }
     // 🔴 "오늘 + 비자격이면 부르지 않는다"는 가드를 뺐다(2026-09-26) — 라우트가 캐시 조회를
@@ -115,7 +119,7 @@ export default function SajuTodayView({
     let cancelled = false;
     setReport(null);
     setNotGenerated(false);
-    setLocked(false);
+    setLockedUnder(null);
     setReportLoading(true);
     void (async () => {
       try {
@@ -124,7 +128,7 @@ export default function SajuTodayView({
         //    없음이 **확정**된 유일한 신호다. reportLoading=false·report=null 만으로 잠금을
         //    단정하지 않는다 — 그러면 네트워크 blip 도 PaywallCut 으로 보인다(요구사항 2).
         if (res.status === 403) {
-          if (!cancelled) { setReport(null); setNotGenerated(false); setLocked(true); }
+          if (!cancelled) { setReport(null); setNotGenerated(false); setLockedUnder(entitled); }
           return;
         }
         const j = await res.json();
@@ -227,14 +231,15 @@ export default function SajuTodayView({
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             그날 아침에 열려.
           </p>
-        ) : reportLoading || (locked && data.entitled) ? (
+        ) : reportLoading || (locked && lockedUnder !== entitled) ? (
           /* 🔴 로딩 문구가 report/notGenerated/locked 세 분기보다 **먼저** 온다(2026-09-26) —
              오늘 + 비자격도 이제 fetch 가 실제로 돈다. locked 는 fetch 가 끝나야만 true 가 될 수
              있어 이 순서가 없어도 PaywallCut 이 로딩 중에 뜰 길은 없지만, "PaywallCut 이 잠깐
              떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다.
-             🔴 `locked && entitled` = 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것 — 리포트 effect(entitled 의존)가
-                곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼 '체험 후 구독 버튼'이 비치고
-                구독 선택지 노출(post_trial)이 잘못 찍혔다(2026-10-12 — 열린 탭마다 생길 뻔했다). 그래서 로딩으로 본다. */
+             🔴 잠금을 물은 자격 ≠ 지금 자격 = 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것 — 리포트 effect
+                (entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼 '체험 후 구독
+                버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍혔다(dev 실측 10-11 — 체험 시작·구매 직후 매번,
+                2026-10-12 동기화로 열린 탭마다 생길 뻔했다). 그래서 로딩으로 본다. */
           <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             {dayWord} 리포트를 펼치는 중…
           </div>

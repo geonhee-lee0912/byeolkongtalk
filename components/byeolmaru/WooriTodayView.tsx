@@ -79,6 +79,9 @@ export default function WooriTodayView({
     partnerName: string;
     entitled: boolean;
     status: RelationshipStatus | null;
+    /** 이 응답을 **어떤 자격(내 캘린더 entitledNow)으로 물었나**(2026-10-12) — 지금 자격과 다르면 그 뒤에 자격이 바뀐 것이라
+     *  아래 effect 가 곧 다시 받는다. 그 틈은 로딩으로 그린다(렌더의 PaywallCut 게이트). */
+    fetchedUnder: boolean;
   } | null>(null);
   const [pairLoading, setPairLoading] = useState(false);
   const [pairError, setPairError] = useState(false);
@@ -198,6 +201,7 @@ export default function WooriTodayView({
             partnerName: j.partnerName,
             entitled: !!j.entitled,
             status: j.status ?? null,
+            fetchedUnder: entitledNow,
           });
           return;
         }
@@ -381,10 +385,12 @@ export default function WooriTodayView({
                 effect 가 과거 서술을 잘 받아와도 이 바깥 게이트가 pairData.entitled(=지금 자격)
                 만 보고 PaywallCut 으로 버린다 — 11642fd 가 타로에서 고친 "불러놓고 렌더가 버리는"
                 바로 그 패턴이 된다. 자격 만료 뒤에도 그때 받은 글은 그대로 보여야 한다.
-                🔴 `entitledNow && !pairData.entitled` 도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 우리 캘린더는 옛
+                🔴 우리 캘린더를 물은 자격 ≠ 지금 자격도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 우리 캘린더는 옛
                    자격으로 받은 것이라 위 effect(entitledNow 의존)가 곧 다시 받는다. 그 틈에 PaywallCut 을 그리면 trialUsed 가
-                   막 true 가 돼 '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다(사주·타로와 같은 게이트). */}
-            {pairNarrativeLoading || (entitledNow && !pairData.entitled && !isPastDate) ? (
+                   막 true 가 돼 '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다(사주·타로와 같은 게이트).
+                   `entitledNow && !pairData.entitled` 로 보면 안 된다 — 화면을 열어 둔 채 체험이 끝난 뒤 이 탭을 열면 스냅샷은
+                   아직 '자격'인데 서버는 비자격이라 그 조건이 영영 참이다(로딩에 갇힌다). */}
+            {pairNarrativeLoading || (pairData.fetchedUnder !== entitledNow && !isPastDate) ? (
               <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                 별콩이가 둘 사이 오늘을 읽고 있어…
               </div>

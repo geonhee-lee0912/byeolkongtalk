@@ -124,7 +124,12 @@ export default function DailyCardBlock({
   //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. card-narrative 는 이 상태를
   //    403 이 아니라 200 으로 표현하므로(entitled:false, report·reason 둘 다 없음) 응답 바디를
   //    직접 읽어야 한다. PaywallCut 은 이 값이 true 일 때만 마운트한다(gate_shown 계측 계약 유지).
-  const [locked, setLocked] = useState(false);
+  // 🔴 값 = 그 잠금을 **어떤 자격으로 물었나**(null = 안 잠김, 2026-10-12). 지금 자격(prop)과 다르면 그 뒤에 자격이 바뀐 것
+  //    (체험·구독 직후 — 다른 탭에서 한 것 포함)이라 서술 effect 가 곧 다시 부른다 — 그 틈은 로딩으로 그린다(아래 렌더).
+  //    같으면 서버 판정 그대로 PaywallCut 이다 — 날짜 화면을 열어 둔 채 체험이 끝나고 이 탭에서 뽑으면 스냅샷은 아직
+  //    '자격'인데 서버는 잠금이라, 단순히 `locked && entitled` 를 로딩으로 보면 거기 갇힌다.
+  const [lockedUnder, setLockedUnder] = useState<boolean | null>(null);
+  const locked = lockedUnder !== null;
 
   // 그날 카드 조회 — ?date= 없으면 라우트가 오늘로 떨어뜨리지만, 여기선 항상 명시해 보낸다
   // (화면이 보고 있는 날과 조회한 날이 갈라지지 않게).
@@ -164,12 +169,12 @@ export default function DailyCardBlock({
   useEffect(() => {
     if (cardDate !== date) {
       setReport(null); setGauge(null); setNarrativeLoading(false);
-      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
+      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLockedUnder(null);
       return;
     }
     let cancelled = false;
     setReport(null); setGauge(null);
-    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
+    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLockedUnder(null);
     // 🔴 로딩 문구는 콘텐츠가 뜰 화면에서만 — 오늘 + 비자격(유일한 페이월 자리)은 기다릴 글이
     //    없다. 과거는 자격과 무관하게 콘텐츠 화면이다(받았던 글은 계속 본다, 스펙 §4-4) — 그래서
     //    todayKst 비교가 entitled 와 or 로 묶인다(아래 렌더 게이트와 같은 식이어야 한다).
@@ -203,7 +208,7 @@ export default function DailyCardBlock({
           // 🔴 "오늘 + 비자격 + 캐시 없음"(라우트 계약 ④)은 report·reason 이 둘 다 없다 — 그
           //    확정 신호로만 잠금을 세운다(이 라우트는 403 이 아니라 200 으로 이 상태를 표현해
           //    상태코드로는 구분이 안 된다). PaywallCut 은 이 확정 뒤에만 마운트한다(추측 금지).
-          setLocked(!j.report && j.reason == null && j.entitled === false);
+          setLockedUnder(!j.report && j.reason == null && j.entitled === false ? entitled : null);
         }
       } catch {
         if (!cancelled) { setReport(null); setGauge(null); setNarrativeFailed(true); }
@@ -515,11 +520,11 @@ export default function DailyCardBlock({
               {/* 🔴 report 유무만 본다 — date·entitled 로 먼저 가르지 않는다(2026-09-26, 스펙
                   §4-4). 과거든 오늘이든 서술이 있으면 받았던 글이니 그대로 보여주고, 없을 때만
                   narrativeLoading/notGenerated/locked 세 이유를 가려 보여준다. */}
-              {/* 🔴 `locked && entitled` 도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것이라
-                  서술 effect(entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼
+              {/* 🔴 잠금을 물은 자격 ≠ 지금 자격도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은
+                  것이라 서술 effect(entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼
                   '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다 — 다른 탭에서 체험을 시작해
                   이 탭(숨김)이 새 자격을 받을 때도 같다(SajuTodayView 와 같은 게이트). */}
-              {narrativeLoading || (locked && entitled) ? (
+              {narrativeLoading || (locked && lockedUnder !== entitled) ? (
                 <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                   별콩이가 카드를 네 사주 위에 얹는 중…
                 </p>
