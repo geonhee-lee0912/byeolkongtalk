@@ -43,6 +43,27 @@ type SheetTrigger = "auto" | "reopen" | "fail";
 /** 콜백 실패 사유는 쿼리라 누구나 넣을 수 있다 — 콜백이 쓰는 모양(영문·숫자·밑줄 40자)만 그대로 계측한다 */
 const LOGIN_FAIL_REASON = /^[A-Za-z0-9_]{1,40}$/;
 
+/** 카카오 콜백이 붙이는 표시 — 복귀하면 주소에서 뺀다(실패 안내·가입 선물 토스트는 한 번만 · 성공은 AuthBootstrap 이 이 화면 주소를 안 건드리므로 여기서) */
+const CALLBACK_KEYS = ["login", "welcome", "migrated", "reason"] as const;
+/** 이어가기 표시 전부 — 풀이를 시작하며 떠날 때 뺀다 */
+const RESUME_KEYS = ["resume", ...CALLBACK_KEYS] as const;
+
+/** 주소창에서 이 키들만 뺀다(지울 게 없으면 아무것도 안 한다). router.replace 가 아니라 history.replaceState 다 — router.replace 는 Next 의 이동 큐에 들어가 대기 중인 router.push 를 버리게 한다.
+ *  state 는 null 로 덮지 않고 그대로 넘긴다: Next 는 이 항목의 라우터 상태(__NA·트리)를 history.state 에 두는데, 화면이 처음 뜬 직후엔 history 를 가로채는 Next 의 패치가 아직 안 걸려 있을 수 있어
+ *  (자식 effect 가 부모보다 먼저 돈다) null 로 덮으면 그 상태가 사라져 뒤로 가기가 라우터를 못 탈 수 있다(popstate 무시 또는 전체 새로고침). 상태를 그대로 넘기면 패치가 걸려 있어도 큐를 건드리지 않고 주소만 바뀐다.
+ *  정리 실패(주소 접근 불가)는 삼킨다 — 정리는 편의일 뿐 화면 진입·풀이 시작을 막으면 안 된다 */
+function dropQueryKeys(keys: readonly string[]): void {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!keys.some((k) => params.has(k))) return;
+    for (const k of keys) params.delete(k);
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  } catch {
+    // noop
+  }
+}
+
 export default function TarotDrawPage() {
   const router = useRouter();
   const [selection, setSelection] = useState<TarotSpreadSelection | null>(null);
@@ -59,6 +80,9 @@ export default function TarotDrawPage() {
   const [walletError, setWalletError] = useState(false);
   // 로그인 전 맛보기(스펙 2026-10-11-타로-로그인전-맛보기) — 공개한 카드(로그인·결제·홈에서 돌아와 복원한 판 포함)
   const [revealed, setRevealed] = useState<DrawnCard[] | null>(null);
+  // 공개 애니메이션이 끝났다 — 끝나기 전엔 아래 버튼 줄을 숨긴다(onRevealed 가 켜고 restart 가 끈다).
+  // 애니메이션 중에 탭하면 새로 뽑은 판은 로그인 창이 두 번 계측되고(reopen → auto) 닫은 창이 다시 뜨며, 복원한 판은 지갑 응답 전이라 회원 문구가 보이고 자동 이어가기와 겹쳐 지갑을 두 번 읽는다
+  const [revealDone, setRevealDone] = useState(false);
   // 새 흐름 그룹 비로그인으로 판정됨 — 확인 팝업 대신 로그인 창
   const [guestMode, setGuestMode] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -88,6 +112,7 @@ export default function TarotDrawPage() {
   // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게".
   // 로그인·결제·홈에서 돌아온 판은 저장된 진행으로 복원한다(뽑기 의식 건너뜀 — 스펙 §5-2).
   // 새 장치가 꺼져 있으면(스위치 'old' — 지금 prod) 복원·이어가기 표시·실패 표시를 보지 않는다 — 켰다가 되돌려도 남은 저장이 결제 막다른 길로 끌고 가지 않게
+  // (성공 콜백 표시를 주소에서 빼는 일만 스위치와 무관하다 — 그 정리를 AuthBootstrap 이 이 화면에선 하지 않는다)
   useEffect(() => {
     const featuresOn = entryFeaturesOn();
     const params = new URLSearchParams(window.location.search);
@@ -99,12 +124,11 @@ export default function TarotDrawPage() {
       setLoginFailed(true);
       const reason = params.get("reason") ?? "";
       trackUiEvent("login_fail_shown", { meta: { reason: LOGIN_FAIL_REASON.test(reason) ? reason : "other" } });
-      // 실패 표시는 한 번만 — 새로고침에 다시 뜨지 않게 주소에서 뺀다(AuthBootstrap 은 성공 콜백만 정리한다)
-      params.delete("login");
-      params.delete("reason");
-      const qs = params.toString();
-      window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
     }
+    // 콜백 표시는 한 번만 — 새로고침에 실패 안내·가입 선물 토스트가 다시 뜨지 않게 주소에서 뺀다(resume 은 남긴다: 새로고침해도 저장된 판을 이어 간다).
+    // 성공 복귀(login=success)는 스위치와 무관하게 여기서 정리한다 — AuthBootstrap 은 이 화면 주소를 안 건드린다
+    // (복원한 판의 자동 이어가기가 router.push 를 내는 사이에 AuthBootstrap 의 router.replace 가 오면 라우터가 대기 중인 push 를 버려 '잠시만…' 에 갇힌다)
+    if (failed || params.get("login") === "success") dropQueryKeys(CALLBACK_KEYS);
 
     let sel: TarotSpreadSelection | null = null;
     try {
@@ -184,6 +208,10 @@ export default function TarotDrawPage() {
       expectedCost: price,
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
+    // 이 주소의 이어가기·콜백 표시를 지운다 — 대화에서 뒤로 오면 이 주소로 돌아오는데, 표시가 남아 있으면(저장은 아래에서 지워진다) '저장이 없다'로 읽혀
+    // pending_draw_missing(고장 신호)이 오탐으로 찍힌다. 표시가 없으면(스위치 'old' 의 보통 주소) 아무것도 안 한다.
+    // 🔴 push 보다 먼저 — 주소 바꾸기가 push 뒤에 오면 라우터가 대기 중인 push 를 버릴 수 있다
+    dropQueryKeys(RESUME_KEYS);
     router.push("/tarot/reading");
     // 이 판을 시작했으니 저장해 둔 진행은 더 필요 없다(뒤로 가 다시 들어와도 복원하지 않게).
     // 🔴 이동 뒤에 지운다 — 스위치 'old'(지금 prod)에서도 도는 줄이라, localStorage 접근 자체가 던지는 브라우저여도 풀이 시작을 막지 않게
@@ -230,7 +258,8 @@ export default function TarotDrawPage() {
       if (isNewFlowGuest(w)) {
         setChecking(false);
         const price = tarotPrice(spreadType, w.menuArm);
-        savePendingDraw(localStorage, selection, drawn);
+        // 새로 뽑은 판만 저장한다 — 복원한 판은 저장소에 같은 값이 이미 있고, 다시 쓰면 savedAt 이 갱신돼 볼 때마다 7일이 다시 시작한다(스펙 §5-2 · §10 고민 원문은 최대 7일)
+        if (!revealed) savePendingDraw(localStorage, selection, drawn);
         setGuestPrice(price);
         setSheetPriceText(guestSheetLine(price, w.menuArm));
         setGuestMode(true);
@@ -266,6 +295,7 @@ export default function TarotDrawPage() {
 
   // 공개 애니메이션이 끝났다 — 새로 뽑은 판(비로그인)은 로그인 창, 복원한 판은 '뽑은 뒤' 단계를 이어간다(버튼 없이, 한 번만 — 스펙 §3 ⑤)
   const onRevealed = () => {
+    setRevealDone(true); // 버튼 줄은 이제부터 보인다 — 아래 분기가 창·지갑 조회를 같은 렌더에서 시작하므로(sheetOpen·checking) 버튼과 겹치지 않는다
     if (guestMode) {
       openSheet(loginFailed ? "fail" : "auto", guestPrice ?? 0);
       return;
@@ -279,6 +309,7 @@ export default function TarotDrawPage() {
   const restart = () => {
     clearPendingDraw(localStorage);
     setRevealed(null);
+    setRevealDone(false); // 다시 뽑은 판의 공개가 끝날 때까지 버튼 줄을 숨긴다
     setGuestMode(false);
     setSheetOpen(false);
     setLoginFailed(false); // 버린 판의 로그인 실패 표시가 새로 뽑은 판의 창에 남지 않게
@@ -302,8 +333,8 @@ export default function TarotDrawPage() {
       {revealed ? (
         <div className="w-full max-w-md mx-auto px-5 pb-16 flex flex-col items-center">
           <CardReveal drawn={revealed} accent={accent} onRevealed={onRevealed} />
-          {/* 창·팝업을 닫았을 때 다시 잇는 버튼 */}
-          {!sheetOpen && !showConfirm && !rechargeSheetOpen && !checking && (
+          {/* 창·팝업을 닫았을 때 다시 잇는 버튼 — 공개 애니메이션이 끝난 뒤에만 */}
+          {revealDone && !sheetOpen && !showConfirm && !rechargeSheetOpen && !checking && (
             <div className="w-full mt-8 flex flex-col items-center gap-3">
               <button
                 type="button"

@@ -116,7 +116,11 @@ export default function AuthBootstrap() {
         if (window.location.pathname !== pathname) return;
         // /start 는 login/welcome 파라미터를 스스로 소비·정리한다(웰컴 팝업/자동 진행).
         // 여기서 먼저 지우면 Suspense 하이드레이션 타이밍에 따라 팝업이 유실된다.
-        if (pathname === "/start") return;
+        // /tarot/draw 도 스스로 정리한다(login/welcome/migrated/reason 을 지우고 resume 은 새로고침 복원용으로 남긴다) — 이유는 /start 와 같은 푸시 경합:
+        // 로그인 복귀한 뽑기 화면은 카드 공개 → 지갑 확인 뒤 바로 router.push("/tarot/reading") 을 내는데, 그 push 가 RSC 응답을 기다리는 동안 여기서 router.replace 가 오면
+        // Next 의 액션 큐가 대기 중인 push 를 버린다(app-router-instance.js dispatchAction — 새 navigate 가 pending 을 discarded 로 표시)
+        // → 화면이 '잠시만…' 덮개에 갇힌다(/api/auth/me 가 콜드 스타트로 늦을 때). 세션 sync·localStorage 갱신은 위에서 이미 끝났다 — 건너뛰는 건 주소 정리뿐.
+        if (pathname === "/start" || pathname === "/tarot/draw") return;
         const params = new URLSearchParams(sp.toString());
         params.delete("login");
         params.delete("welcome");
