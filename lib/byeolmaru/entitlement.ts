@@ -1,9 +1,11 @@
 // lib/byeolmaru/entitlement.ts — 별마루 구독/체험 자격 판정.
 // 순수 computeEntitlement(테스트 대상) + DB getEntitlement/startTrial.
 import { getServiceSupabase } from "@/lib/supabase";
+import { logError } from "@/lib/logger";
 import { TRIAL_DAYS } from "./constants";
 
-// 값의 원천은 constants.ts(클라 세이프) — 기존 import(HubBanner·테스트)를 깨지 않게 여기서 다시 내보낸다.
+// 값의 원천은 constants.ts(클라 세이프) — 기존 import(테스트)를 깨지 않게 여기서 다시 내보낸다.
+// 🔴 클라 컴포넌트는 여기서 가져오지 말 것 — 이 파일은 getServiceSupabase 를 물고 있다(HubBanner 가 그랬다, 2026-10-12 정리).
 export { TRIAL_DAYS };
 
 export type Entitlement = {
@@ -38,29 +40,44 @@ export function computeEntitlement(
 
 export async function getEntitlement(userId: string): Promise<Entitlement> {
   const supa = getServiceSupabase();
-  const [{ data: u }, { data: subs }] = await Promise.all([
+  const [{ data: u, error: userErr }, { data: subs, error: subErr }] = await Promise.all([
     supa.from("users").select("byeolmaru_trial_started_at").eq("id", userId).single(),
     supa.from("byeolmaru_subscriptions").select("expires_at").eq("user_id", userId)
       .gt("expires_at", new Date().toISOString()).order("expires_at", { ascending: false }).limit(1),
   ]);
+  // 🔴 DB 에러는 남기기만 한다 — 동작은 그대로(못 읽은 쪽은 '없음' = 체험 전·구독 없음으로 떨어진다). 호출처가 많아
+  //    (캘린더·리포트 4종·구독 라우트) 여기서 동작을 바꾸지 않는다. postgrest-js 는 DB 에러를 throw 하지 않아 호출처
+  //    catch 로는 안 잡히고, 예전엔 그대로 삼켜져 '구독자에게 절단선' 같은 오판이 /admin/errors 에 아무 흔적도 없었다.
+  if (userErr || subErr) {
+    await logError(userErr ?? subErr, {
+      route: "lib/byeolmaru/entitlement",
+      userId,
+      extra: { stage: "get_entitlement", users: userErr?.message ?? null, subscriptions: subErr?.message ?? null },
+    });
+  }
   return computeEntitlement(
     { trialStartedAt: u?.byeolmaru_trial_started_at ?? null, subscriptionExpiresAt: subs?.[0]?.expires_at ?? null },
     new Date()
   );
 }
 
-/** 체험 시작 — trial_started_at 이 NULL 일 때만 기록(1회성). 이미 있으면 alreadyUsed. */
+/** 체험 시작 — trial_started_at 이 NULL 일 때만 기록(1회성). 이미 있으면 alreadyUsed.
+ *  🔴 DB 에러면 던진다(2026-10-12) — postgrest-js 는 에러를 throw 하지 않고 { error } 로 돌려줘서, 예전엔 기록이 실패해도
+ *     data=null → '이미 썼음'으로 성공처럼 돌아갔다(체험 라우트 200 · 구독 라우트 stage:"record_trial" logError 는 죽은 코드).
+ *     호출부(체험 라우트·구독 라우트)가 잡아 logError 로 남긴다. */
 export async function startTrial(
   userId: string
 ): Promise<{ started: boolean; alreadyUsed: boolean; trialEndsAt: string }> {
   const supa = getServiceSupabase();
   const nowIso = new Date().toISOString();
-  const { data } = await supa.from("users")
+  const { data, error } = await supa.from("users")
     .update({ byeolmaru_trial_started_at: nowIso })
     .eq("id", userId).is("byeolmaru_trial_started_at", null)
     .select("byeolmaru_trial_started_at");
+  if (error) throw error;
   const started = !!data && data.length > 0;
-  const { data: cur } = await supa.from("users").select("byeolmaru_trial_started_at").eq("id", userId).single();
+  const { data: cur, error: curErr } = await supa.from("users").select("byeolmaru_trial_started_at").eq("id", userId).single();
+  if (curErr) throw curErr;
   const startedAt = cur?.byeolmaru_trial_started_at ?? nowIso;
   const trialEndsAt = new Date(new Date(startedAt).getTime() + TRIAL_DAYS * 86400000).toISOString();
   return { started, alreadyUsed: !started, trialEndsAt };

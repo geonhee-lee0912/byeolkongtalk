@@ -23,7 +23,8 @@
 // 🔴 구독자에겐 남은 기간 칩을 대신 띄운다 — 구독자에게 구독 버튼은 뜻이 없고, 그렇다고 비우면
 //    배너가 다시 빈 칸이 된다(그게 이 작업의 출발점이었다).
 import Image from "next/image";
-import { TRIAL_DAYS } from "@/lib/byeolmaru/entitlement";
+// 🔴 constants(클라 세이프)에서 — entitlement.ts 는 getServiceSupabase 를 물고 있어 클라 번들에 서버 모듈이 딸려온다.
+import { TRIAL_DAYS } from "@/lib/byeolmaru/constants";
 import { daysLeft } from "@/lib/byeolmaru/subscribe-offer";
 import SubscribeOfferShown from "./SubscribeOfferShown";
 

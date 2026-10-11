@@ -131,9 +131,11 @@ export const UI_EVENTS = [
    *  ⚠️ surface·phase 는 2026-10-11 코드부터 — 그 전 행엔 없다(그때는 전부 체험 후, slot 없음 = 배너).
    *  충전하고 돌아와 자동으로 다시 열린 확인창은 클릭이 아니라 여기 안 찍힌다(완료·실패의 resumed 로 본다). */
   "byeolmaru_subscribe_clicked",
-  /** 별마루 — 구독 결제 완료. meta:{stars, surface, phase, slot?, resumed?}
+  /** 별마루 — 구독 결제 완료. meta:{stars, surface, phase, days, slot?, resumed?}
    *  resumed=true = 충전하고 돌아와 자동으로 다시 열린 확인창에서 산 것. surface·phase·resumed 는 2026-10-11 코드부터.
-   *  🔴 실제 일수는 phase 가 정한다(체험 전 33 · 체험 중 30+남은 체험 · 체험 후 30) — 구독 행의 expires_at 이 정본. */
+   *  🔴 phase·days 는 2026-10-12 코드부터 **서버가 판정한 값**(구독 라우트 응답 — 그 전 phase 는 확인창을 연 순간 화면이 안
+   *     단계였다). clicked 의 phase(화면 기준)와 다를 수 있다. 실제 일수는 phase 가 정한다(체험 전 33 · 체험 중 30+남은 체험 ·
+   *     체험 후 30) — 구독 행의 expires_at 이 정본. */
   "byeolmaru_subscribe_completed",
   /** 별마루 — 구독 선택지가 그려졌다(components/byeolmaru/SubscribeOfferShown, 마운트당 1회). meta:{surface, phase, slot?}
    *  = byeolmaru_subscribe_clicked 의 분모. 자리·단계 조합(2026-10-11~):

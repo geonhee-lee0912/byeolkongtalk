@@ -24,13 +24,12 @@ import {
 const { cost: COST, days: DAYS } = BYEOLMARU_SUBSCRIPTION;
 
 // 구독 확인창 부제 — 단계마다 "언제부터 30일인가"가 다르다(스펙 2026-10-11 §3-2, 사용자 결정).
-// 체험 후는 예전 문구 그대로다. 구독 중은 화면에 버튼이 없어 거의 안 오지만, 다른 탭에서 막 산 뒤
-// 남아 있던 버튼을 누르면 온다 — RPC 가 지금 구독 뒤에 이어 붙이므로 그 사실을 말한다.
-const SUBTITLE: Record<SubscribePhase, string> = {
+// 체험 후는 예전 문구 그대로다. 🔴 구독 중 문구는 없다(2026-10-12) — 구독자 화면엔 구독 버튼이 없고, 낡은 화면에서
+// 눌러도 그 화면의 단계는 '구독 중'이 아니다(낡았으니까). 그 구매는 서버가 차감 없이 409 로 막는다(handleConfirm).
+const SUBTITLE: Record<Exclude<SubscribePhase, "subscribed">, string> = {
   pre_trial: `체험 ${TRIAL_DAYS}일 + ${DAYS}일 동안 매일 더 자세하게 오늘의 운세를 볼 수 있어`,
   trial: `체험 끝난 다음부터 ${DAYS}일 동안 매일 더 자세하게 오늘의 운세를 볼 수 있어`,
   post_trial: `${DAYS}일 동안 매일 더 자세하게 오늘의 운세를 볼 수 있어`,
-  subscribed: `지금 구독이 끝난 다음부터 ${DAYS}일 더 이어서 볼 수 있어`,
 };
 
 // 결과를 모르는 실패(연결 끊김·15초 시간 초과) — 서버엔 반영됐을 수 있어 화면을 새로 읽고 그걸 보게 한다.
@@ -209,7 +208,13 @@ export function useByeolmaruSubscribe(
       return;
     }
     if (r.ok) {
-      trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: COST, ...meta } });
+      // phase·days 는 **서버가 판정한 값**(구독 라우트 응답)으로 싣는다 — 확인창을 연 순간 화면이 안 단계(clicked 의 phase)와
+      // 다를 수 있다(다른 탭에서 체험을 시작한 뒤 등). 실제 일수의 정본은 구독 행 expires_at 이다.
+      const server = {
+        ...(typeof r.data.phase === "string" ? { phase: r.data.phase } : {}),
+        ...(typeof r.data.days === "number" ? { days: r.data.days } : {}),
+      };
+      trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: COST, ...meta, ...server } });
       // 헤더 잔액 칩 갱신 — 다른 구매 경로와 같은 이벤트(없으면 20별이 빠졌는데 헤더 숫자가 그대로다)
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       setOffer(null);
@@ -265,7 +270,7 @@ export function useByeolmaruSubscribe(
           busy={subscribing}
           accent="#E8C26A"
           title="별마루 구독"
-          subtitle={SUBTITLE[offer.phase ?? "post_trial"]}
+          subtitle={SUBTITLE[offer.phase === "pre_trial" || offer.phase === "trial" ? offer.phase : "post_trial"]}
           confirmLabel={subscribing ? "여는 중…" : "구독하기"}
           surface={RECHARGE_SOURCE.byeolmaruSubscribe}
           // 구독 시트 전용 — 전체 가치 3종 + 가격을 여기서 한 번 크게(스펙 §9). 카피는 BAIT(허브·
