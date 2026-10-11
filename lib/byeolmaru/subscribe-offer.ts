@@ -41,7 +41,7 @@ export function daysLeft(iso: string, now: number): number {
  * - 체험 전: 30 + 3, 성공 뒤 체험 시작을 기록한다(recordTrial) — 안 하면 33일 뒤 '3일 무료 체험'이 다시 뜬다
  * - 체험 중: 30 + 남은 체험(시간 기준 올림 — 71.9h → 3일 · 0.1h → 1일, 남는 몇 시간은 유저 몫)
  * - 체험 후: 30
- * - 구독 중: 30 — RPC 가 활성 만료 뒤에 이어 붙인다
+ * - 구독 중: 라우트가 이 함수 **전에** 409 로 막는다(alreadySubscribedUntil, 2026-10-12) — 여기 값(30)은 방어값이다
  */
 export function subscriptionPurchaseDays(
   e: EntitlementSnapshot,
@@ -56,6 +56,40 @@ export function subscriptionPurchaseDays(
     return { phase, days: base + Math.max(0, left), recordTrial: false };
   }
   return { phase, days: base, recordTrial: false };
+}
+
+/**
+ * 이미 구독 중이면 사지 않는다 — 구독 라우트가 차감 없이 409 `already_subscribed` 로 돌려준다(사용자 결정 2026-10-12).
+ * 돌려주는 값 = 지금 구독의 만료(안내 "M월 D일까지"용) · 구독 중이 아니면 null(산다).
+ * 🔴 구독자 화면엔 연장 버튼이 없다 — 구독 중 구매는 사실상 전부 **낡은 화면**(다른 탭에서 막 산 뒤 남은 버튼)에서 온다.
+ *    예전엔 RPC 가 30일을 이어 붙이고 20별을 또 뺐다. 순차 중복(앞 요청이 커밋된 뒤 도착)도 여기서 막힌다 —
+ *    남는 건 두 기기 '동시' 구매뿐이다(둘 다 커밋 전에 자격을 읽는다 — 스펙 §4-1, 판독 SQL 이 감시).
+ */
+export function alreadySubscribedUntil(e: EntitlementSnapshot): string | null {
+  return subscribePhase(e) === "subscribed" ? e.subscriptionExpiresAt ?? null : null;
+}
+
+/** 409 안내 — "이미 구독 중이야 — M월 D일까지"(만료의 KST 날짜). 만료를 모르면 날짜 없이. */
+export function alreadySubscribedNotice(expiresAt: string | null | undefined): string {
+  const t = expiresAt ? Date.parse(expiresAt) : NaN;
+  if (Number.isNaN(t)) return "이미 구독 중이야";
+  const kst = new Date(t + 9 * 3_600_000);
+  return `이미 구독 중이야 — ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일까지`;
+}
+
+/** 체험 시작·구독 요청과, 그 뒤 날짜 상세 껍데기의 자격 다시 받기의 시간 제한. 처리 중엔 구독 확인창을 못 닫아서
+ *  응답이 영영 안 오면 갇힌다 — 시간이 지나면 잠금을 풀고 '결과를 모른다'로 다룬다(화면을 새로 읽는다). */
+export const BYEOLMARU_REQUEST_TIMEOUT_MS = 15_000;
+
+/** 별마루 자격이 바뀌었을 수 있다 — useByeolmaruSubscribe 가 체험·구독의 성공·409·실패·시간 초과 뒤 window 에 보낸다.
+ *  같은 화면에서 자격 스냅샷을 든 곳(날짜 상세 껍데기 DayTabsView)이 듣고 캘린더를 다시 받아 열린 탭 전부에 내려준다. */
+export const ENTITLEMENT_CHANGED_EVENT = "byeolmaru:entitlement-changed";
+
+/** 충전하고 돌아와 구독 확인창을 다시 여는가 — 잔액이 구독 가격 이상일 때만(사용자 결정 2026-10-12).
+ *  결제 실패·취소 뒤 '← 대화로 돌아가기'도 returnTo(표시 포함)로 오는데, 그때 열면 같은 '별이 부족해' 창이 또 뜬다.
+ *  잔액을 못 읽었으면(null) 열지 않는다. 이미 구독 중이면 안 연다(다른 탭에서 샀을 수 있다). */
+export function shouldResumeSubscribe(phase: SubscribePhase, balance: number | null): boolean {
+  return phase !== "subscribed" && balance !== null && balance >= BYEOLMARU_SUBSCRIPTION.cost;
 }
 
 /** 충전하고 돌아오면 구독 확인창을 다시 연다 — RechargeSheet returnTo 에 실어 보내는 표시 키. */

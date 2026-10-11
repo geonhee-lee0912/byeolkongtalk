@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getEntitlement, startTrial } from "@/lib/byeolmaru/entitlement";
 import { purchaseByeolmaruSubscription } from "@/lib/byeolmaru/subscription";
-import { subscriptionPurchaseDays } from "@/lib/byeolmaru/subscribe-offer";
-import { logError, ctxFromRequest } from "@/lib/logger";
+import { alreadySubscribedUntil, subscriptionPurchaseDays } from "@/lib/byeolmaru/subscribe-offer";
+import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,19 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "login_required" }, { status: 401 });
   try {
     // 🔴 단계는 서버가 지금 DB 로 판정한다 — 클라가 확인창에 띄운 단계는 문구일 뿐 일수의 근거가 아니다.
-    const plan = subscriptionPurchaseDays(await getEntitlement(userId), new Date());
+    const ent = await getEntitlement(userId);
+    // 🔴 이미 구독 중이면 차감 없이 409(사용자 결정 2026-10-12) — 구독자 화면엔 연장 버튼이 없어 이 요청은 낡은
+    //    화면(다른 탭에서 막 산 뒤 남은 버튼)에서 온다. 예전엔 RPC 가 30일을 이어 붙이고 20별을 또 뺐다.
+    const until = alreadySubscribedUntil(ent);
+    if (until) {
+      // 설계된 정상 신호(WARN — error 아님). 빈도만 본다 — 늘면 화면 동기화(byeolmaru:entitlement-changed)가 안 먹는다는 뜻
+      await logWarn(
+        "ALREADY_SUBSCRIBED: 구독 중인 사람의 구독 구매를 차감 전에 막았다(409)",
+        ctxFromRequest(req, { route: ROUTE, userId, extra: { expiresAt: until } })
+      );
+      return NextResponse.json({ error: "already_subscribed", expiresAt: until }, { status: 409 });
+    }
+    const plan = subscriptionPurchaseDays(ent, new Date());
     const r = await purchaseByeolmaruSubscription(userId, plan.days);
     if (!r.success) {
       // 402 는 설계된 정상 신호(잔액 부족 → 그 자리 충전 시트)라 남기지 않는다 — /admin/errors 관례.

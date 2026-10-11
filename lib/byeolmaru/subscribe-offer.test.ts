@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  alreadySubscribedNotice,
+  alreadySubscribedUntil,
   daysLeft,
+  shouldResumeSubscribe,
   subscribePhase,
   subscriptionPurchaseDays,
   takeSubscribeResume,
@@ -58,12 +61,64 @@ test("체험 후 = 30 · 기록 안 함", () => {
   });
 });
 
-test("이미 구독 중 = 30 — RPC 가 활성 만료 뒤에 이어 붙인다(체험 기록 안 함)", () => {
+test("구독 중 = 30(방어값) — 라우트는 그 전에 409 로 막아 실제론 여기 안 온다(alreadySubscribedUntil)", () => {
   const r = subscriptionPurchaseDays(
     { entitled: true, trialUsed: true, trialEndsAt: null, subscriptionExpiresAt: iso(5 * 24 * H) },
     NOW
   );
   assert.deepEqual(r, { phase: "subscribed", days: 30, recordTrial: false });
+});
+
+// ── 구독 중 구매 막기(409 already_subscribed) — 사용자 결정 10-12 ──
+// 구독자 화면엔 연장 버튼이 없다 → 구독 중 구매는 낡은 화면(다른 탭에서 막 산 뒤 남은 버튼)에서만 온다.
+test("alreadySubscribedUntil — 구독 중이면 지금 구독의 만료, 체험 전·중·후는 null(산다)", () => {
+  const exp = iso(10 * 24 * H);
+  assert.equal(alreadySubscribedUntil({ entitled: true, trialUsed: true, trialEndsAt: null, subscriptionExpiresAt: exp }), exp);
+  assert.equal(alreadySubscribedUntil({ entitled: false, trialUsed: false }), null);
+  assert.equal(
+    alreadySubscribedUntil({ entitled: true, trialUsed: true, trialEndsAt: iso(H), subscriptionExpiresAt: null }),
+    null
+  );
+  assert.equal(alreadySubscribedUntil({ entitled: false, trialUsed: true }), null);
+});
+
+// 라우트가 실제로 쓰는 경로 그대로 — DB 원본(체험 시작·구독 만료) → computeEntitlement → 판정.
+test("alreadySubscribedUntil — computeEntitlement 를 거쳐도: 활성 구독이면 막고, 만료된 구독이면 산다", () => {
+  // 체험 중에 산 사람(체험 기록 + 활성 구독 행) — 구독이 우선이라 막힌다(두 번째 탭의 남은 버튼)
+  const trialBuyer = computeEntitlement({ trialStartedAt: iso(-H), subscriptionExpiresAt: iso(33 * 24 * H) }, NOW);
+  assert.equal(alreadySubscribedUntil(trialBuyer), iso(33 * 24 * H));
+  // 체험 전에 산 사람(구독 직후 체험 기록이 수 초 차로 생긴다)
+  const preTrialBuyer = computeEntitlement({ trialStartedAt: iso(0), subscriptionExpiresAt: iso(33 * 24 * H) }, NOW);
+  assert.equal(alreadySubscribedUntil(preTrialBuyer), iso(33 * 24 * H));
+  // 구독이 끝났다 = 체험 후 — 다시 산다(30일)
+  const lapsed = computeEntitlement({ trialStartedAt: iso(-40 * 24 * H), subscriptionExpiresAt: iso(-H) }, NOW);
+  assert.equal(alreadySubscribedUntil(lapsed), null);
+  assert.equal(subscriptionPurchaseDays(lapsed, NOW).days, 30);
+});
+
+test("alreadySubscribedNotice — 만료를 KST 날짜로 'M월 D일까지', 모르면 날짜 없이", () => {
+  assert.equal(alreadySubscribedNotice("2026-11-09T15:00:00Z"), "이미 구독 중이야 — 11월 10일까지"); // KST 11-10 00:00
+  assert.equal(alreadySubscribedNotice("2026-11-09T14:59:59Z"), "이미 구독 중이야 — 11월 9일까지"); // KST 11-09 23:59
+  assert.equal(alreadySubscribedNotice("2026-12-31T16:00:00Z"), "이미 구독 중이야 — 1월 1일까지"); // 해 넘김
+  assert.equal(alreadySubscribedNotice(null), "이미 구독 중이야");
+  assert.equal(alreadySubscribedNotice(undefined), "이미 구독 중이야");
+  assert.equal(alreadySubscribedNotice("not-a-date"), "이미 구독 중이야");
+});
+
+// ── 충전 후 재오픈은 '충전하고 돌아왔을 때'만 — 사용자 결정 10-12 ──
+// 결제 실패·취소 뒤 '← 대화로 돌아가기'도 returnTo(bm_sub 표시)로 온다 — 잔액이 그대로라 열면 같은 '부족' 창이다.
+test("shouldResumeSubscribe — 잔액이 구독 가격 이상일 때만 다시 연다", () => {
+  const cost = BYEOLMARU_SUBSCRIPTION.cost;
+  assert.equal(shouldResumeSubscribe("post_trial", cost), true);
+  assert.equal(shouldResumeSubscribe("pre_trial", cost + 100), true);
+  assert.equal(shouldResumeSubscribe("trial", cost), true);
+  assert.equal(shouldResumeSubscribe("post_trial", cost - 1), false); // 결제 실패·취소로 돌아왔다
+  assert.equal(shouldResumeSubscribe("pre_trial", 0), false);
+  assert.equal(shouldResumeSubscribe("post_trial", null), false); // 잔액을 못 읽었다 — 열지 않는다
+});
+
+test("shouldResumeSubscribe — 이미 구독 중이면 잔액과 무관하게 안 연다(다른 탭에서 샀다)", () => {
+  assert.equal(shouldResumeSubscribe("subscribed", 500), false);
 });
 
 // 라우트가 실제로 쓰는 경로 그대로 — DB 원본(체험 시작 시각) → computeEntitlement → 일수.

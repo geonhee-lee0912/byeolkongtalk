@@ -9,9 +9,15 @@
 --   구매(구독 행) 4명+                             → 유지
 --   기대치 = 4주 구매 1건 안팎(0건 확률 ~30%) — 0건으로 실패를 단정하지 말고 '막힌 단계'로 읽는다
 -- 즉시 조치 고장(행이 한 줄이라도 있으면 멈추고 본다):
---   broken_500        — 구독 라우트 error 로그(구매 실패 — 402 는 정상 신호라 안 남는다) · 클라 failed{status=500}
+--   broken_500        — 구독 라우트 error 로그(구매 실패 — 402·409 는 정상 신호라 error 로 안 남는다) · 클라 failed{status=500}
 --   broken_no_row     — 완료 이벤트인데 그 앞뒤로 구독 행이 없다
---   broken_double_row — 같은 유저 1분 안 구독 행 2개(연타·두 탭 이중 차감 — 스펙 §4-1. 나오면 서버 방어를 넣는다)
+--   broken_double_row — 같은 유저 1분 안 구독 행 2개(연타·두 탭 이중 차감 — 스펙 §4-1)
+--   broken_extension  — 구독 중에 산 행(sub_rows.extension=true). 2026-10-12 부터 구독 라우트가 구독 중 구매를 차감 없이
+--                       409 already_subscribed 로 막는다 — 남는 길은 두 기기 '동시' 구매(둘 다 커밋 전에 자격을 읽음)뿐이라
+--                       한 줄이라도 나오면 그 경합이 실제로 났거나 방어가 고장 난 것이다(그때 RPC 안 잠금 아래로 옮긴다 — 스펙 §4-1)
+-- ℹ️ failures 의 status 409 = 낡은 화면에서 누른 구독을 서버가 막은 것(차감 없음 · 고장 아님). 서버도 warn
+--    'ALREADY_SUBSCRIBED:' 를 남긴다 — 늘면 화면 동기화(byeolmaru:entitlement-changed)가 안 먹는다는 뜻이다.
+--    status "timeout" = 15초 안에 응답이 없어 클라가 끊은 것(결과 모름 — 화면을 다시 읽는다).
 -- ⚠️ byeolmaru_trial_started 는 이 배포부터 진행 중 잠금으로 연타가 한 번만 찍힌다 — events 수가 줄고 실인원은 그대로다.
 --    배포 전후 events 수 비교 금지(이 쿼리는 실인원만 센다 · 어드민 별마루 퍼널의 events 열도 같은 이유로 꺾인다).
 -- ⚠️ phase 별 퍼널은 더해지지 않는다 — 한 사람이 체험 전 링크·체험 중 넛지·체험 후 배너를 다 볼 수 있다. 중복 없는 합은 funnel_overall.
@@ -25,6 +31,7 @@
 --   phase '(없음)' = surface·phase 를 안 싣는 낡은 번들의 클릭(배포 직후 잠깐)
 --   sub_rows = 배포 뒤 구독 행 전부(지인 포함·acquaintance 표시) — 구매 일수(p_days)가 단계대로 났는지 본다:
 --     체험 전 구매 33 · 체험 중 30 + 남은 체험 올림 · 체험 후 30 · 연장(extension)은 이어 붙여 더 길다(기대값 없음).
+--     🔴 extension=true 는 이제 정상 구매가 아니다(409 가 막는다) — 지인 아닌 행은 broken_extension 에 따로 뜬다.
 --     len_days 가 expected_days 와 1일 어긋나면 먼저 남은 체험이 하루 경계에서 몇 초 차이였는지 본다(서버·DB 시계 차).
 --     phase_at_purchase 'no_trial_record' = 체험 기록이 없다 — 체험 전 구매 뒤 기록 실패(error_logs stage=record_trial) 의심
 --   user_id 는 8자 prefix 로만 내보낸다(풀 UUID = 로그인 자격 — 출력·커밋 금지). 지인 6명 제외(sub_rows 만 표시로 남긴다)
@@ -220,6 +227,12 @@ sub_rows as (
     from subs_all s
     join users u on u.id = s.user_id
   ) x
+),
+-- 구독 중에 산 행 — 409 가 막았어야 하는 구매(지인 제외 · 다른 broken_* 와 같은 규칙). 지인 행은 sub_rows 의 extension 으로 본다
+broken_extension as (
+  select s.user8, s.started_kst, s.len_days, s.stars_spent, s.phase_at_purchase
+  from sub_rows s
+  where s.extension and not s.acquaintance
 )
 
 select 'window' as metric, to_jsonb(array_agg(x)) as value from win x
@@ -231,6 +244,7 @@ union all select 'daily',             to_jsonb(array_agg(d order by d.kst_date))
 union all select 'broken_500',        to_jsonb(array_agg(b order by b.at_kst)) from broken_500 b
 union all select 'broken_no_row',     to_jsonb(array_agg(b order by b.completed_at_kst)) from broken_no_row b
 union all select 'broken_double_row', to_jsonb(array_agg(b order by b.first_kst)) from broken_double_row b
+union all select 'broken_extension',  to_jsonb(array_agg(b order by b.started_kst)) from broken_extension b
 union all select 'sub_rows',
   to_jsonb(array_agg(jsonb_build_object(
     'user8', s.user8, 'acquaintance', s.acquaintance, 'started_kst', s.started_kst, 'len_days', s.len_days,
