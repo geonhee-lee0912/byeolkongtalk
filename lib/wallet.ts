@@ -26,6 +26,7 @@ export function parseWallet(d: unknown): Wallet {
     isGuest: o.isGuest !== false, // 모르면 게스트 = 약속하지 않는 쪽
     giftUnused: o.giftUnused === true,
     menuArm: arm === "menu" || arm === "legacy" ? arm : menuArmOf(null),
+    // 모르는 값·누락(배포 순간 옛 서버 응답)은 old — 새 흐름은 서버가 "new" 를 명시할 때만 켜진다. 회원은 서버가 늘 "old" 를 준다(app/api/stars/balance)
     entryArm: o.entryArm === "new" ? "new" : "old",
   };
 }

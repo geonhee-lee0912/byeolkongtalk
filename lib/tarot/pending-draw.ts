@@ -2,7 +2,7 @@
 // 저장소를 인자로 받는다(유닛 테스트용 가짜 저장소). 화면에선 localStorage 를 넘긴다 — 탭을 닫아도 같은 브라우저면 남게.
 // 고민 원문이 기기에 최대 7일 남는다 — 풀이가 시작되거나(goToReading) 로그아웃·탈퇴하면 지운다.
 // 스펙: docs/superpowers/specs/2026-10-11-타로-로그인전-맛보기-design.md §5-2
-import { PENDING_KEY, type EmotionTag, type PendingConsultation } from "../emotions.ts";
+import { EMOTION_OPTIONS, PENDING_KEY, type EmotionTag, type PendingConsultation } from "../emotions.ts";
 import { EMOTION_KEY } from "../consultation-entry.ts";
 import { SPREAD_INFO, type DrawnCard, type SpreadCategory, type SpreadType } from "./spreads.ts";
 import { TAROT_SPREAD_KEY, type TarotSpreadSelection } from "./session.ts";
@@ -61,12 +61,26 @@ function isDrawnCard(c: unknown): c is DrawnCard {
   );
 }
 
+/** 서버(/api/consultations/tarot VALID_CATEGORIES)가 받는 카테고리 전부 — Record<SpreadCategory, …> 라 카테고리를 더하면 여기서 컴파일이 막힌다 */
+const KNOWN_CATEGORIES: Record<SpreadCategory, true> = {
+  love: true,
+  interpersonal: true,
+  career: true,
+  decision: true,
+  mental: true,
+  worry: true,
+  default: true,
+};
+
 function isPendingDraw(p: unknown): p is PendingDraw {
   const o = (p && typeof p === "object" ? p : null) as Record<string, unknown> | null;
   return (
     !!o &&
     o.v === 1 &&
     typeof o.emotion === "string" &&
+    // 현행 감정 태그만 — 풀이 요청 서버(VALID_EMOTIONS)가 현행만 받는다. 이름이 바뀐 뒤 남은 저장(구 태그 포함)을 받으면 로그인·결제를 다 마치고서야 400 으로 막다른 길이 된다.
+    // 프로토타입 키("constructor" 등)는 설정 조회에서 죽는다 — getMenu 의 MENU[태그].items 가 TypeError(normalizeEmotionTag 가 LEGACY_EMOTION_TAGS["constructor"] 를 그대로 돌려준다)
+    EMOTION_OPTIONS.some((e) => e.tag === o.emotion) &&
     typeof o.concern === "string" &&
     o.concern.length > 0 &&
     typeof o.spreadType === "string" &&
@@ -74,9 +88,14 @@ function isPendingDraw(p: unknown): p is PendingDraw {
     // `in` 이 아니라 hasOwnProperty: "constructor" 같은 프로토타입 키를 통과시킨다(lib/tarot/thresholds.ts 와 같은 관용구)
     Object.prototype.hasOwnProperty.call(SPREAD_INFO, o.spreadType) &&
     typeof o.spreadCategory === "string" &&
+    // 카테고리도 같다 — 모르는 이름은 getPositionLabels 의 `|| map.default` 폴백이 받지만 프로토타입 키는 그 폴백을 뚫고 배열이 아닌 값을 돌려준다
+    Object.prototype.hasOwnProperty.call(KNOWN_CATEGORIES, o.spreadCategory) &&
+    // 동의 표시는 있으면 boolean — 문자열이 truthy 로 복원돼 TarotSpreadSelection.consented?: boolean 타입을 속이지 않게(없는 건 정상: 동의 없이 저장한 판)
+    (o.consented === undefined || typeof o.consented === "boolean") &&
     typeof o.savedAt === "number" &&
     Array.isArray(o.drawnCards) &&
-    o.drawnCards.length > 0 &&
+    // 뽑은 장수 = 그 스프레드 장수 — 손으로 고친 값·스프레드 정의가 바뀐 뒤 남은 저장이 공개 화면 라벨 수·풀이 요청(서버가 장수를 대조해 400)과 어긋나지 않게. 0장도 이 검사가 거른다
+    o.drawnCards.length === SPREAD_INFO[o.spreadType as SpreadType].cardCount &&
     o.drawnCards.every(isDrawnCard)
   );
 }

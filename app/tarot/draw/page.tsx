@@ -308,6 +308,9 @@ export default function TarotDrawPage() {
   // 처음부터 다시 뽑기 — 저장한 판을 버리고 의식으로
   const restart = () => {
     clearPendingDraw(localStorage);
+    // 주소의 이어가기 표시도 지운다 — 남아 있으면 다시 뽑은 뒤 새로고침·뒤로 오기가 '이어가기'로 읽혀, 방금 우리가 지운 저장을 찾다
+    // pending_draw_missing(고장 신호)을 오탐으로 찍는다(goToReading 이 떠날 때 지우는 것과 같은 이유 — 이쪽은 떠나지 않고 판만 버린다)
+    dropQueryKeys(RESUME_KEYS);
     setRevealed(null);
     setRevealDone(false); // 다시 뽑은 판의 공개가 끝날 때까지 버튼 줄을 숨긴다
     setGuestMode(false);

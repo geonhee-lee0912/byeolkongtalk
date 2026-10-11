@@ -32,3 +32,15 @@ test("회귀차단: next 가 안 걸러진 값이어도 결과는 항상 baseUrl
     assert.equal(loginFailRedirectUrl(next, "x", BASE).origin, BASE, next);
   }
 });
+
+test("next 에 이미 login·reason 이 붙어 있어도 덮어쓴다 — login=fail 하나 · reason=<새 값> 하나(덧붙지 않는다)", () => {
+  // 한 번 실패하고 돌아온 주소(?login=fail&reason=…)에서 다시 로그인해 또 실패해도, 이어가기 표시만 남기고 최신 실패만 싣는다
+  const u = loginFailRedirectUrl("/tarot/draw?resume=login&login=success&reason=old_reason&login=fail", "csrf_state_mismatch", BASE);
+  assert.equal(u.pathname, "/tarot/draw");
+  assert.deepEqual(u.searchParams.getAll("login"), ["fail"]);
+  assert.deepEqual(u.searchParams.getAll("reason"), ["csrf_state_mismatch"]);
+  assert.equal(u.searchParams.get("resume"), "login"); // 이어가기 표시는 그대로
+  // 홈으로 가는 쪽은 next 의 쿼리를 아예 안 가져간다
+  const home = loginFailRedirectUrl("/concern?login=success&reason=old_reason", "no_code", BASE);
+  assert.equal(home.search, "?login=fail&reason=no_code");
+});
