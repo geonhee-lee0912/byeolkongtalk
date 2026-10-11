@@ -223,12 +223,14 @@ export const UI_EVENTS = [
    *     ui_events 는 경로를 안 남겨 어느 화면의 실패인지는 source 로만 안다: 해로운 지면(tarot_router·tarot_draw·recharge_sheet·shop·continuation_modal)만
    *     "고장"으로 세고, home·reading_end·result 는 알약·카드가 안 뜰 뿐이라 참고용이다 */
   "wallet_fetch_failed",
-  /** 타로톡 메뉴판 노출(메뉴판 그룹) — 마운트당 1회. meta:{tag, giftUnused, balance}
-   *  (spec 2026-10-05-타로톡-메뉴판-별경제 §8 · 그룹은 user_id 끝 글자로 SQL 에서 가른다 — §9) */
+  /** 타로톡 메뉴판 노출(메뉴판 그룹) — 마운트당 1회. meta:{tag, giftUnused, balance, guest?}
+   *  (spec 2026-10-05-타로톡-메뉴판-별경제 §8 · 그룹은 user_id 끝 글자로 SQL 에서 가른다 — §9)
+   *  guest=true = 로그인 전 방문자(입구 새 흐름) — 이때 balance·giftUnused 는 표시용 지갑(가입 선물 15별·미사용)이 지어낸 값이다. 회원 이벤트엔 guest 키가 없다 */
   "tarot_menu_viewed",
-  /** 메뉴판 상품 탭 — meta:{tag, product, spread, tier, price, balance}
+  /** 메뉴판 상품 탭 — meta:{tag, product, spread, tier, price, balance, guest?}
    *  product = lib/tarot/menu.ts 의 key(예: feelings_deep). 맛보기는 이 탭이 곧 시작이고, 유료는 비교 창이 열린다.
-   *  비교 창의 '맛보기부터 해볼래'도 맛보기 선택으로 여기 찍힌다 */
+   *  비교 창의 '맛보기부터 해볼래'도 맛보기 선택으로 여기 찍힌다
+   *  guest=true = 로그인 전 방문자 — balance 는 표시용 지갑 값이다(위 tarot_menu_viewed 와 같다) */
   "tarot_product_selected",
   /** 비교 창 열림(유료 상품 탭) — meta:{product} */
   "tarot_compare_opened",
@@ -252,8 +254,9 @@ export const UI_EVENTS = [
    *  ⚠️ short = 가격 − 가입 선물(WELCOME_BONUS_STARS, 현재 15), 0 하한 — '신규 회원이 된다고 가정했을 때' 모자란 별이다(실제 잔액이 아니다).
    *     returning_short_shown.meta.short(= 가격 − 실제 잔액)와 이름만 같고 뜻이 다르니 합치지 말 것 */
   "login_sheet_shown",
-  /** 카카오 로그인 버튼 탭 — meta:{surface:"login_page"|"draw_sheet", spread?}
-   *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다 */
+  /** 카카오 로그인 버튼 탭 — meta:{surface:"login_page"|"draw_sheet", spread?, next?}
+   *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다
+   *  login_page 에만 next = 로그인 뒤 갈 경로(쿼리·해시를 뗀 경로 부분 · next 가 없으면 "/" · 영숫자·/·_·- 밖이거나 40자를 넘으면 "other") — 어느 로그인 벽에서 눌렀는지 가른다 */
   "login_kakao_clicked",
   /** 로그인 창 '나중에 할래'·바깥 탭·Esc — meta:{spread} */
   "login_sheet_dismissed",

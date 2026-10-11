@@ -24,7 +24,7 @@ import { homeMenuLine } from "@/lib/tarot/menu-price";
 import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
 import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
-import { loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
+import { clearPendingDraw, loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
 
 export default function Home() {
   const router = useRouter();
@@ -35,9 +35,20 @@ export default function Home() {
   const wallet = useWallet("home");
   // 로그인 전 맛보기 — 저장된 판이 있으면(7일 안) '아까 뽑은 카드' 한 줄(스펙 2026-10-11 §3 ⑥).
   // 스위치(entryFeaturesOn)에 묶는다 — 켰다가 되돌려도 남은 저장 때문에 줄이 남으면 안 된다(뽑기 화면은 스위치가 꺼지면 복원하지 않아, 눌러도 이어지지 않는다). ENTRY_AB='old' 동안엔 늘 false 다
+  // 꺼져 있으면 읽지 않고 지운다 — 안 읽고 안 지우면 켰다가 되돌린 기기(롤백 · 판정에서 옛 흐름 승)에 그동안 저장된 고민 원문이 복원도 못 한 채 무기한 남는다
+  // (7일 만료는 loadPendingDraw 가 하는데 꺼져 있으면 아무도 안 부른다 — 스펙 §10 '최대 7일'과 어긋난다). 옛 흐름의 보통 방문엔 지울 키가 없어 화면은 그대로다.
+  // 스위치 'old'(지금 prod)에서도 도는 줄이라 localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다 — 그땐 이어가기 줄만 안 뜬다
   const [pendingDraw, setPendingDraw] = useState(false);
   useEffect(() => {
-    setPendingDraw(entryFeaturesOn() && loadPendingDraw(localStorage) !== null);
+    try {
+      if (!entryFeaturesOn()) {
+        clearPendingDraw(localStorage);
+        return;
+      }
+      setPendingDraw(loadPendingDraw(localStorage) !== null);
+    } catch {
+      // noop
+    }
   }, []);
 
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.

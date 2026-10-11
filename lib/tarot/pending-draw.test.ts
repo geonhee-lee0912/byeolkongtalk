@@ -281,3 +281,19 @@ test("마이페이지 — 로그아웃·탈퇴 둘 다 진행 저장(고민 원�
     `clearPendingDraw( 호출이 ${calls}곳이다 — 로그아웃·탈퇴 둘 다 지워야 한다. 안 지우면 공용 기기에 고민 원문이 최대 7일 남고, 다음 사람이 뽑기 화면에서 그 판을 이어 보게 된다(스펙 §10)`
   );
 });
+
+test("홈 — 새 장치가 꺼져 있으면 저장된 판을 지우고(try 안에서), 켜져 있으면 읽는다", () => {
+  const code = sourceOf("app/page.tsx");
+  const off = code.match(/if\s*\(\s*!\s*entryFeaturesOn\(\)\s*\)\s*\{([^}]*)\}/);
+  assert.ok(
+    off,
+    "홈에서 `if (!entryFeaturesOn()) { … }` 분기를 못 찾았다 — 꺼져 있을 때 저장을 읽지도 지우지도 않으면, 켰다가 되돌린 기기(롤백 · 판정에서 옛 흐름 승)에 고민 원문이 복원도 못 한 채 무기한 남는다(스펙 §10 '최대 7일'과 어긋난다)"
+  );
+  assert.match(off[1], /clearPendingDraw\(\s*localStorage\s*\)/, "꺼진 분기가 clearPendingDraw(localStorage) 를 부르지 않는다");
+  assert.match(code, /loadPendingDraw\(\s*localStorage\s*\)/, "켜진 쪽이 저장을 읽지 않는다 — 홈의 '아까 뽑은 카드가 기다리고 있어' 줄이 사라진다");
+  assert.match(
+    code,
+    /try\s*\{\s*if\s*\(\s*!\s*entryFeaturesOn\(\)/,
+    "이 분기는 try 안에 있어야 한다 — 스위치 'old'(지금 prod)에서도 도는 줄이라, localStorage 접근 자체가 던지는 브라우저(저장소 차단)에서 홈이 죽으면 안 된다"
+  );
+});

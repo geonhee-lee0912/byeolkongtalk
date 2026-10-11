@@ -85,7 +85,7 @@ function isPendingDraw(p: unknown): p is PendingDraw {
     o.concern.length > 0 &&
     typeof o.spreadType === "string" &&
     // 모르는 종류(배포로 이름이 바뀐 뒤 남은 저장·손으로 고친 값)는 거른다 — 복원값을 뽑기 화면이 SPREAD_INFO[…].accent 로 곧장 읽어 죽는다.
-    // `in` 이 아니라 hasOwnProperty: "constructor" 같은 프로토타입 키를 통과시킨다(lib/tarot/thresholds.ts 와 같은 관용구)
+    // `in` 이 아니라 hasOwnProperty: `in` 은 "constructor" 같은 프로토타입 키까지 통과시키고 hasOwnProperty 는 막는다(lib/tarot/thresholds.ts 와 같은 관용구)
     Object.prototype.hasOwnProperty.call(SPREAD_INFO, o.spreadType) &&
     typeof o.spreadCategory === "string" &&
     // 카테고리도 같다 — 모르는 이름은 getPositionLabels 의 `|| map.default` 폴백이 받지만 프로토타입 키는 그 폴백을 뚫고 배열이 아닌 값을 돌려준다

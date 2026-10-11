@@ -34,12 +34,14 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
     if (!tag) router.replace(CONCERN_REWRITE_HREF);
   }, [tag, router]);
 
-  // 메뉴판 노출 — 마운트당 1회
+  // 메뉴판 노출 — 마운트당 1회.
+  // 로그인 전 방문자(입구 새 흐름)는 표시용 지갑(잔액 15·선물 미사용)이 그려져 balance·giftUnused 가 회원 값처럼 찍힌다 — guest 표시를 더해 가른다.
+  // 회원은 {}(= 키를 더하지 않는다)라 meta 가 그대로다 — 메뉴판 반반 판정 데이터 불변
   useEffect(() => {
     if (viewedRef.current || !tag) return;
     viewedRef.current = true;
     trackUiEvent("tarot_menu_viewed", {
-      meta: { tag, giftUnused: wallet.giftUnused, balance: wallet.balance },
+      meta: { tag, giftUnused: wallet.giftUnused, balance: wallet.balance, ...(wallet.isGuest ? { guest: true } : {}) },
     });
   }, [tag, wallet]);
 
@@ -72,6 +74,7 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
         tier: p.tier,
         price: productPrice(p),
         balance: wallet.balance,
+        ...(wallet.isGuest ? { guest: true } : {}), // 위 tarot_menu_viewed 와 같은 이유
       },
     });
 
