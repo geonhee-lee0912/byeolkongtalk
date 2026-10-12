@@ -2,7 +2,7 @@
 // 1) /v1/user/access_token_info 의 app_id 가 우리 카카오 앱(KAKAO_APP_ID)인지 2) /v2/user/me 로 회원번호·프로필.
 // 카카오 토큰은 서버에 저장하지 않는다(애플 지침 5.1.1(v) — 소셜 토큰을 기기 밖에 두지 말 것).
 // 계약: 토큰 무효(카카오 401·-2)면 {ok:false, reason:"token_invalid"}, 다른 앱 토큰이면 {ok:false, reason:"app_mismatch", appId}.
-//       카카오 쪽 장애(-1·-7·-10 은 HTTP 400, 5xx)·이상한 응답·네트워크 오류·타임아웃(두 호출 합쳐 5초)·앱 ID 설정 오류는 throw
+//       카카오 쪽 장애(-1·-7·-10 은 HTTP 400, 5xx)·이상한 응답·네트워크 오류·타임아웃(두 호출 합쳐 5초)·앱 ID 형식 오류(숫자 아님 — 숫자인데 다른 앱이면 app_mismatch)는 throw
 //       — 호출 라우트가 500 + 오류 로그로 남긴다(조용히 '무효 토큰' 으로 접히지 않게).
 export type KakaoIdentity = { kakaoId: string; nickname: string; profileImg: string | null };
 export type KakaoVerifyResult =
