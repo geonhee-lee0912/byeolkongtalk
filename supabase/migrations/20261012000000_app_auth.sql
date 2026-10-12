@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS app_handoff_codes (
   used_at     TIMESTAMPTZ,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_app_handoff_codes_user ON app_handoff_codes(user_id);
 ALTER TABLE app_handoff_codes ENABLE ROW LEVEL SECURITY;
 
 -- 5) 해시 칸의 뜻이 넓어졌다. 칸 이름은 배포 순서 사고를 피하려고 그대로 둔다
