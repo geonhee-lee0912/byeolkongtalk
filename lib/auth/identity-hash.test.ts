@@ -18,3 +18,7 @@ test("애플 해시는 'apple:' 접두가 붙어 같은 문자열의 카카오 �
     createHash("sha256").update("apple:001234.abc.0987").digest("hex"),
   );
 });
+
+test("카카오 해시 고정값 — prod 원장에 이미 쌓인 형식(소문자 hex 64자)", () => {
+  assert.equal(identityHash("kakao", 4123456789), "d0ffdbf2c37cf49783479743ec4b3b553371f9e8591db9a9f1860792f35a5b91");
+});

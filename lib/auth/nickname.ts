@@ -1,5 +1,5 @@
 // 새 애플 회원 닉네임 — 애플은 이름을 첫 로그인 때만 준다(사용자가 숨길 수도 있다).
-// 카카오 닉네임 규칙(프로필 닉네임, 없으면 별콩이_{회원번호})은 lib/auth/kakao-verify.ts 에 있다.
+// 카카오 닉네임 규칙(프로필 닉네임, 없으면 별콩이_{회원번호})은 카카오 쪽(웹 콜백 app/api/auth/kakao · 앱 lib/auth/kakao-verify.ts)에 있다.
 // users.nickname 은 VARCHAR(50).
 const MAX = 50;
 

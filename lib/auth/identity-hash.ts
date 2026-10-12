@@ -7,6 +7,19 @@ import { createHash } from "node:crypto";
 export type AuthProvider = "kakao" | "apple";
 
 export function identityHash(provider: AuthProvider, providerUserId: string | number): string {
-  const raw = provider === "kakao" ? String(providerUserId) : `apple:${providerUserId}`;
+  let raw: string;
+  switch (provider) {
+    case "kakao":
+      raw = String(providerUserId);
+      break;
+    case "apple":
+      raw = `apple:${providerUserId}`;
+      break;
+    default: {
+      // 수단을 늘리면 여기서 컴파일 에러가 난다 — 원장 키가 조용히 다른 수단과 같은 값을 내면 안 된다
+      const unknown: never = provider;
+      throw new Error(`unknown auth provider: ${String(unknown)}`);
+    }
+  }
   return createHash("sha256").update(raw).digest("hex");
 }
