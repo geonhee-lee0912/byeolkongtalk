@@ -18,7 +18,8 @@ CREATE INDEX IF NOT EXISTS idx_user_identities_user ON user_identities(user_id);
 ALTER TABLE user_identities ENABLE ROW LEVEL SECURITY;
 
 -- 기존 카카오 회원을 옮겨 담는다.
--- 이 마이그레이션과 새 코드 배포 사이에 옛 코드로 가입한 사람은 lib/auth/sign-in.ts 가 다음 로그인 때 자가 치유한다.
+-- 이 마이그레이션과 새 코드 배포 사이에 옛 코드로 가입한 사람은 lib/auth/sign-in.ts 가 다음 로그인 때 자가 치유하고,
+-- 그 전까지 조회는 lib/auth/user-identity.ts 가 users.kakao_id 로 보충한다. users.kakao_id 칸을 지우기 전엔 이 INSERT 를 한 번 더 돌릴 것.
 INSERT INTO user_identities (user_id, provider, provider_user_id, created_at)
 SELECT id, 'kakao', kakao_id::text, created_at
 FROM users
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS app_refresh_tokens (
   platform    TEXT CHECK (platform IN ('ios', 'android')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at  TIMESTAMPTZ NOT NULL,
-  rotated_at  TIMESTAMPTZ,                            -- 새 토큰으로 교체된 시각(다시 오면 재사용)
+  rotated_at  TIMESTAMPTZ,                            -- 새 토큰으로 교체된 시각(이 토큰이 다시 오면 재사용 감지 → 묶음 폐기)
   revoked_at  TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_app_refresh_tokens_user ON app_refresh_tokens(user_id);
@@ -57,8 +58,8 @@ CREATE INDEX IF NOT EXISTS idx_app_handoff_codes_user ON app_handoff_codes(user_
 ALTER TABLE app_handoff_codes ENABLE ROW LEVEL SECURITY;
 
 -- 5) 해시 칸의 뜻이 넓어졌다. 칸 이름은 배포 순서 사고를 피하려고 그대로 둔다
-COMMENT ON COLUMN bonus_claims.kakao_id_hash IS '로그인 수단 해시 — 카카오: sha256(카카오 회원번호 문자열), 애플: sha256(''apple:''||sub). 정본 lib/auth/identity-hash.ts';
-COMMENT ON COLUMN account_withdrawals.kakao_id_hash IS '로그인 수단 해시 — 카카오: sha256(카카오 회원번호 문자열), 애플: sha256(''apple:''||sub). 정본 lib/auth/identity-hash.ts';
+COMMENT ON COLUMN bonus_claims.kakao_id_hash IS '로그인 수단 해시(sha256 hex) — 카카오: sha256(카카오 회원번호 문자열), 애플: sha256(''apple:''||sub). 정본 lib/auth/identity-hash.ts';
+COMMENT ON COLUMN account_withdrawals.kakao_id_hash IS '로그인 수단 해시(sha256 hex) — 카카오: sha256(카카오 회원번호 문자열), 애플: sha256(''apple:''||sub). 정본 lib/auth/identity-hash.ts';
 
--- 6) 기본 권한은 이미 닫혀 있지만(2026-07-29) 이중 방어
-REVOKE ALL ON user_identities, app_refresh_tokens, app_handoff_codes FROM anon, authenticated;
+-- 6) 기본 권한은 이미 닫혀 있지만(2026-07-29) 이중 방어 — 저장소 관례대로 PUBLIC 까지 셋 다
+REVOKE ALL ON TABLE user_identities, app_refresh_tokens, app_handoff_codes FROM PUBLIC, anon, authenticated;
