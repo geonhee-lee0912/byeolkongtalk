@@ -7,6 +7,7 @@ import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { acceptReloadedCalendar } from "@/lib/byeolmaru/day-tabs";
+import { BYEOLMARU_REQUEST_TIMEOUT_MS } from "@/lib/byeolmaru/subscribe-offer";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
 import TodayLead from "./TodayLead";
@@ -123,8 +124,11 @@ export default function ByeolmaruHub() {
   //    누르면 안내 직후 허브가 통째로 '못 펼쳤어'로 바뀌어 다시 누를 버튼이 사라졌다. 첫 진입 로딩 실패는 refresh 쪽 그대로 error 다.
   //    401·404 는 확정된 상태라 반영한다(진입 계측은 안 찍는다 — 화면을 처음 본 게 아니다).
   async function reloadAfterChange() {
+    // 시간 제한 — 훅이 이걸 기다리는 동안 체험 버튼이 '여는 중…'이라, 응답이 안 오면 거기 갇힌다(DayTabsView.reload 와 같은 규칙)
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), BYEOLMARU_REQUEST_TIMEOUT_MS);
     try {
-      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store", signal: ctrl.signal });
       const body = await res.json().catch(() => null);
       if (!acceptReloadedCalendar(res.status, body)) return;
       if (res.status === 401) { setState({ kind: "need_login" }); return; }
@@ -133,7 +137,11 @@ export default function ByeolmaruHub() {
       if (!Array.isArray(data.cells) || data.cells.length === 0) return;
       setState({ kind: "ready", data });
       setAttendance(data.attendance);
-    } catch { /* 못 받았다 — 지금 허브 그대로. 낡은 구독 버튼은 서버가 409 로 막는다 */ }
+    } catch {
+      /* 못 받았다(시간 초과 포함) — 지금 허브 그대로. 낡은 구독 버튼은 서버가 409 로 막는다 */
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
