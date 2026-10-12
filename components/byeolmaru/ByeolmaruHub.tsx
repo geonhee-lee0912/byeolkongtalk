@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
+import { acceptReloadedCalendar } from "@/lib/byeolmaru/day-tabs";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
 import TodayLead from "./TodayLead";
@@ -116,8 +117,27 @@ export default function ByeolmaruHub() {
   }
   useEffect(() => { void refresh(); }, []);
 
+  // 체험·구독 뒤의 다시 읽기 — useByeolmaruSubscribe 의 onChanged(성공뿐 아니라 실패·409·시간 초과 뒤에도 불린다).
+  // 🔴 refresh() 와 달리 **이미 그려 둔 허브를 덮지 않는다**: 못 읽었으면(5xx·throw·깨진 본문·빈 달력) 지금 화면을 그대로 둔다 —
+  //    날짜 상세 껍데기의 다시 받기와 같은 규칙(acceptReloadedCalendar). 진입용 refresh 를 넘겼을 땐 오프라인에서 배너의 체험·구독을
+  //    누르면 안내 직후 허브가 통째로 '못 펼쳤어'로 바뀌어 다시 누를 버튼이 사라졌다. 첫 진입 로딩 실패는 refresh 쪽 그대로 error 다.
+  //    401·404 는 확정된 상태라 반영한다(진입 계측은 안 찍는다 — 화면을 처음 본 게 아니다).
+  async function reloadAfterChange() {
+    try {
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
+      const body = await res.json().catch(() => null);
+      if (!acceptReloadedCalendar(res.status, body)) return;
+      if (res.status === 401) { setState({ kind: "need_login" }); return; }
+      if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+      const data = body as CalendarResponse;
+      if (!Array.isArray(data.cells) || data.cells.length === 0) return;
+      setState({ kind: "ready", data });
+      setAttendance(data.attendance);
+    } catch { /* 못 받았다 — 지금 허브 그대로. 낡은 구독 버튼은 서버가 409 로 막는다 */ }
+  }
+
   const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
-    refresh,
+    reloadAfterChange,
     state.kind === "ready" ? state.data : null
   );
 

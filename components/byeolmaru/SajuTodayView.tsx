@@ -162,7 +162,11 @@ export default function SajuTodayView({
     if (status === 401) { setState({ kind: "need_login" }); return; }
     if (status === 404) { setState({ kind: "no_profile" }); return; }
     if (status < 200 || status >= 300 || !body) { setState({ kind: "error" }); return; }
-    setState({ kind: "ready", data: body as CalendarResponse });
+    // 🔴 cells 가 비었거나 없으면 지금 화면을 그대로 둔다 — ready 로 만들면 아래 렌더의 todayCell 이 undefined 라 cell.date 에서
+    //    터져 날짜 상세가 통째로 죽는다(진입 refresh 가 빈 cells 를 거르는 것과 같은 이유 — 다만 이미 그려 둔 화면을 error 로 덮지는 않는다).
+    const data = body as CalendarResponse;
+    if (!Array.isArray(data.cells) || data.cells.length === 0) return;
+    setState({ kind: "ready", data });
   }
 
   async function refreshFromServer() {

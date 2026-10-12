@@ -33,8 +33,11 @@ const SUBTITLE: Record<Exclude<SubscribePhase, "subscribed">, string> = {
 };
 
 // 결과를 모르는 실패(연결 끊김·15초 시간 초과) — 서버엔 반영됐을 수 있어 화면을 새로 읽고 그걸 보게 한다.
-// 다시 눌러도 안전하다: 체험 시작은 1회성이고, 구독은 이미 구독 중이면 서버가 409 로 막는다(차감 없음).
+// 다시 눌러도 안전한 건 **첫 요청이 이미 커밋된 경우뿐**이다: 체험 시작은 1회성이라 늘 안전하고, 구독은 이미 구독 중이면
+// 서버가 409 로 막는다(차감 없음). 첫 요청이 서버에서 아직 안 끝났으면(15초 시간 초과 직후) 바로 다시 누른 요청은
+// 그 409 판정(RPC 잠금 밖)을 통과해 20별을 또 뺄 수 있다 — 그래서 구독의 시간 초과 안내는 재시도를 권하지 않는다.
 const LOST_RESPONSE_NOTICE = "연결이 흔들렸어. 화면을 새로 불러올게 — 버튼이 그대로면 다시 눌러줄래?";
+const SUBSCRIBE_TIMEOUT_NOTICE = "응답이 늦어서 결과를 아직 몰라. 이미 구독됐을 수 있으니, 잠시 뒤 화면을 새로 불러와서 구독 상태부터 확인해줘.";
 
 /** 구독 라우트 응답 — 성공(phase·days·expiresAt) · 402(balance) · 409(expiresAt) · 그 밖의 실패(error). */
 interface SubscribeBody {
@@ -64,8 +67,10 @@ function offerMeta(o: Offer): Record<string, unknown> {
 }
 
 // 별마루 trial/subscribe 공유 훅 — 허브·saju·tarot·woori 네 뷰가 같은 결제 흐름을 쓴다.
-// onChanged: 체험/구독 뒤 그 화면의 자격 재조회(entitled 재판정). 허브는 자기 refresh, 날짜 상세의 세 뷰는
+// onChanged: 체험/구독 뒤 그 화면의 자격 재조회(entitled 재판정). 허브는 자기 reloadAfterChange, 날짜 상세의 세 뷰는
 //   껍데기(DayTabsView)의 캘린더 다시 받기를 넘긴다 — 열린 탭 전부가 같이 바뀐다(syncEntitlement 주석).
+//   🔴 둘 다 **못 읽으면 지금 화면을 그대로 둔다**(acceptReloadedCalendar) — 이 훅은 실패·시간 초과 뒤에도 부르므로, 진입용
+//   refresh 를 넘기면 오프라인에서 허브가 통째로 '못 펼쳤어'로 바뀌어 다시 누를 버튼이 사라진다.
 //   Promise 를 돌려주면 끝날 때까지 체험 버튼이 '여는 중…'으로 남는다(원래 문구로 한 번 깜빡이지 않게).
 // ent: 그 뷰가 지금 아는 자격(캘린더 응답). 확인창 문구·계측 phase·충전 후 재오픈 판정이 쓴다. 로딩 중엔 null.
 export function useByeolmaruSubscribe(
@@ -93,9 +98,13 @@ export function useByeolmaruSubscribe(
   // (byeolmaru:entitlement-changed → DayTabsView 가 캘린더를 다시 받아 열린 탭 전부에 내려준다 — 예전엔 누른 탭만
   // 새로 고쳐, 다른 탭에 남은 구독 버튼이 20별을 또 뺐다) ② 이 화면의 새로 읽기(onChanged)를 기다린다.
   // 날짜 상세에선 ②가 ①과 같은 다시 받기라 요청은 한 번이다(DayTabsView 가 합친다).
+  // 🔴 헤더 잔액 칩도 여기서 같이 다시 받게 한다(byeolkong:balance-updated — 다른 구매 경로와 같은 이벤트). 성공만이 아니라
+  //    결과를 모르는 실패(시간 초과·연결 끊김·5xx)에도 서버에선 20별이 이미 빠졌을 수 있다 — 안 보내면 헤더 숫자가 그대로다.
+  //    (체험 시작엔 차감이 없어 잔액 조회가 한 번 헛걸음이다 — 감수한다.)
   // notice: 함께 띄울 짧은 안내 — 요청을 먼저 걸어 둔 뒤 띄운다(alert 가 막는 동안에도 다시 읽기는 간다).
   async function syncEntitlement(notice?: string) {
     window.dispatchEvent(new Event(ENTITLEMENT_CHANGED_EVENT));
+    window.dispatchEvent(new Event("byeolkong:balance-updated"));
     const refreshed = Promise.resolve(onChanged());
     if (notice) alert(notice);
     try {
@@ -189,7 +198,8 @@ export function useByeolmaruSubscribe(
     if (!r) {
       trackUiEvent("byeolmaru_subscribe_failed", { meta: { ...meta, status: lost } });
       setOffer(null);
-      await syncEntitlement(LOST_RESPONSE_NOTICE);
+      // 시간 초과만 재시도를 권하지 않는다 — 첫 요청이 서버에서 아직 안 끝났을 수 있다(LOST_RESPONSE_NOTICE 주석). 연결 끊김은 그대로
+      await syncEntitlement(lost === "timeout" ? SUBSCRIBE_TIMEOUT_NOTICE : LOST_RESPONSE_NOTICE);
       return;
     }
     if (r.status === 402) {
@@ -215,8 +225,7 @@ export function useByeolmaruSubscribe(
         ...(typeof r.data.days === "number" ? { days: r.data.days } : {}),
       };
       trackUiEvent("byeolmaru_subscribe_completed", { meta: { stars: COST, ...meta, ...server } });
-      // 헤더 잔액 칩 갱신 — 다른 구매 경로와 같은 이벤트(없으면 20별이 빠졌는데 헤더 숫자가 그대로다)
-      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      // 헤더 잔액 칩 갱신은 syncEntitlement 가 한다(20별이 빠졌는데 헤더 숫자가 그대로이면 안 된다)
       setOffer(null);
       await syncEntitlement();
       return;
