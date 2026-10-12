@@ -13,6 +13,7 @@ test("해시는 결정적이고 원본과 다른 64자 hex", () => {
   assert.equal(hashSecretToken("x"), hashSecretToken("x"));
   assert.notEqual(hashSecretToken("x"), "x");
   assert.match(hashSecretToken("x"), /^[0-9a-f]{64}$/);
+  assert.equal(hashSecretToken("x"), "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"); // DB 에 영속되는 키 — 알고리즘이 바뀌면 모든 앱 로그인이 조용히 풀린다
 });
 
 test("수명: 리프레시 90일 · 교환 코드 60초", () => {
