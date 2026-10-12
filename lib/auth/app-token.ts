@@ -1,0 +1,59 @@
+// 앱 액세스 토큰 — 앱(React Native) 쪽이 서버를 부를 때 쓰는 1시간짜리 서명 토큰.
+// 웹뷰는 쿠키(byeolkong_user_id)를 쓰고 앱 쪽 호출은 이 토큰을 쓴다(웹뷰와 앱은 쿠키 저장소가 따로다).
+// 서명 비밀값(APP_ACCESS_TOKEN_SECRET)은 어드민 토큰(AUTH_TOKEN_SECRET)과 분리한다 — 따로 교체할 수 있게.
+import { SignJWT, jwtVerify } from "jose";
+import { isValidSessionId } from "../session-id.ts";
+
+const ISSUER = "byeolkongtalk";
+const AUDIENCE = "byeolkong-app";
+export const ACCESS_TTL_SEC = 60 * 60;
+
+function secretKey(secret: string | undefined): Uint8Array {
+  if (!secret || secret.length < 32) {
+    throw new Error("APP_ACCESS_TOKEN_SECRET not set or too short (min 32 chars)");
+  }
+  return new TextEncoder().encode(secret);
+}
+
+export async function signAccessToken(
+  userId: string,
+  opts: { secret?: string; nowSec?: number } = {},
+): Promise<{ token: string; expiresAt: number }> {
+  const now = opts.nowSec ?? Math.floor(Date.now() / 1000);
+  const exp = now + ACCESS_TTL_SEC;
+  const token = await new SignJWT({ typ: "access", v: 1 })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt(now)
+    .setExpirationTime(exp)
+    .sign(secretKey(opts.secret ?? process.env.APP_ACCESS_TOKEN_SECRET));
+  return { token, expiresAt: exp * 1000 };
+}
+
+/** 통과하면 회원 ID, 아니면 null — 만료·위조·형식 오류·비밀값 없음 전부 null(fail-closed) */
+export async function verifyAccessToken(
+  token: string,
+  opts: { secret?: string; nowSec?: number } = {},
+): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, secretKey(opts.secret ?? process.env.APP_ACCESS_TOKEN_SECRET), {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      algorithms: ["HS256"],
+      ...(opts.nowSec !== undefined ? { currentDate: new Date(opts.nowSec * 1000) } : {}),
+    });
+    if (payload.typ !== "access") return null;
+    return isValidSessionId(payload.sub) ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+/** "Bearer <토큰>" 헤더에서 토큰만 꺼낸다. 형식이 아니면 null */
+export function parseBearer(header: string | null | undefined): string | null {
+  if (!header) return null;
+  const m = /^Bearer\s+(\S+)$/i.exec(header.trim());
+  return m ? m[1] : null;
+}
