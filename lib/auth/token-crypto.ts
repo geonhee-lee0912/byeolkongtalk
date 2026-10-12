@@ -23,7 +23,8 @@ export function decryptSecret(blob: string, rawKey: string | undefined = process
   const iv = buf.subarray(0, 12);
   const tag = buf.subarray(12, 28);
   const enc = buf.subarray(28);
-  const decipher = createDecipheriv("aes-256-gcm", keyFrom(rawKey), iv);
+  // 태그는 16바이트로 고정한다 — 짧은(잘린) 태그를 받아들이지 않게(Node DEP0182)
+  const decipher = createDecipheriv("aes-256-gcm", keyFrom(rawKey), iv, { authTagLength: 16 });
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
 }
