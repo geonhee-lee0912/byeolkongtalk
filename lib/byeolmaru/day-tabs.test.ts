@@ -39,3 +39,13 @@ test("acceptReloadedCalendar — 본문 있는 2xx·401·404 만 받고 5xx·본
   assert.equal(acceptReloadedCalendar(504, null), false);
   assert.equal(acceptReloadedCalendar(400, { error: "bad" }), false);
 });
+
+// 🔴 본문 없는 404 는 '생일 없음'이 아니다 — 프록시·CDN 이 돌려준 HTML 404(res.json() 이 null 로 떨어진다)를 받아들이면
+//    열린 탭 전부가 no_profile 로 바뀌어 읽던 리포트를 잃는다. 404 는 라우트가 자격을 실어 보낸 JSON 일 때만 확정된 상태다
+//    (본문이 필요 없는 401 만 예외 — 로그인 벽).
+test("acceptReloadedCalendar — 본문 없는 404 는 버린다(라우트가 자격을 실은 404 만 받는다)", () => {
+  assert.equal(acceptReloadedCalendar(404, null), false);
+  assert.equal(acceptReloadedCalendar(404, undefined), false);
+  assert.equal(acceptReloadedCalendar(404, { error: "profile_not_found", entitled: false, trialUsed: true }), true);
+  assert.equal(acceptReloadedCalendar(401, undefined), true); // 401 은 본문과 무관하다
+});
