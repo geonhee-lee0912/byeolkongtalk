@@ -15,8 +15,13 @@ export function getAppInfo(): AppInfo | null {
   return parseAppUserAgent(navigator.userAgent);
 }
 
-/** 앱에 메시지 — 앱 밖(브라우저)에선 아무것도 안 한다 */
+/** 앱에 메시지 — 앱 밖(브라우저)에선 아무것도 안 한다. 앱 쪽 연결이 던져도 던지지 않는다 */
 export function postToApp(type: WebToAppType): void {
   if (typeof window === "undefined") return;
-  (window as AppWindow).ReactNativeWebView?.postMessage(encodeWebToApp(type));
+  try {
+    (window as AppWindow).ReactNativeWebView?.postMessage(encodeWebToApp(type));
+  } catch {
+    // 앱 쪽 연결이 끊긴 순간(웹뷰 해체 중 등) — 닿지 못한 알림은 되살릴 방법이 없다. 그래도 부르는 쪽(마이페이지 로그아웃·탈퇴)의
+    // 저장소 정리(고민 원문 삭제 포함)·이동은 이 호출 뒤에 있으니, 여기서 던져 그걸 막지 않는다
+  }
 }

@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { getAppInfo, postToApp } from "./app-context.ts";
 import { parseWebToApp } from "./app-bridge/protocol.ts";
 
@@ -60,4 +61,50 @@ test("postToApp — 앱 웹뷰(window.ReactNativeWebView)에 앱이 읽는 모�
 test("postToApp — 서버·일반 브라우저에선 아무것도 안 하고 던지지도 않는다", () => {
   assert.doesNotThrow(() => postToApp("auth.loggedOut"));
   withBrowser(SAFARI, {}, () => assert.doesNotThrow(() => postToApp("auth.loggedOut")));
+});
+
+// 앱 쪽 연결이 던지면(웹뷰 해체 중 등) 메시지는 이미 못 닿는다 — 그래도 부르는 쪽의 정리·이동(마이페이지 로그아웃·탈퇴: 저장소·고민 원문 삭제, router.replace)이 막히면 안 된다
+test("postToApp — 앱 쪽 연결이 던져도 웹으로 번지지 않는다", () => {
+  withBrowser(
+    ANDROID_APP,
+    {
+      ReactNativeWebView: {
+        postMessage: () => {
+          throw new TypeError("bridge gone");
+        },
+      },
+    },
+    () => assert.doesNotThrow(() => postToApp("auth.loggedOut")),
+  );
+});
+
+// ── 배선 계약 — 소스를 읽어 지키는 것. 주석 속 언급은 배선이 아니니 뺀다(lib/tarot/pending-draw.test.ts 와 같은 관용구) ──────────
+// 위 테스트는 postToApp 자체만 잠근다. '부르는 곳'이 빠지면 타입·빌드·위 테스트가 전부 통과하고 오류도 안 난다 —
+// 웹은 로그아웃됐는데 앱이 토큰을 들고 있다가 다음 실행 때 조용히 다시 로그인시킨다(실기기 확인표 3b 까지 가야 보인다)
+const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+test("마이페이지 — 로그아웃·탈퇴가 앱에 auth.loggedOut 을 한 번씩, 화면 이동 앞에서 보낸다(탈퇴는 성공 분기에서만)", () => {
+  const code = stripComments(readFileSync(new URL("../app/mypage/page.tsx", import.meta.url), "utf8"));
+  const CALL = 'postToApp("auth.loggedOut")';
+  assert.equal(
+    code.split(CALL).length - 1,
+    2,
+    `${CALL} 호출이 정확히 2곳(로그아웃·탈퇴)이어야 한다 — 빠지면 앱이 토큰을 남겨 다음 실행 때 조용히 재로그인, 겹치면 앱이 같은 알림을 두 번 받는다`,
+  );
+  const logout = code.indexOf("const handleLogout");
+  const withdraw = code.indexOf("const handleWithdraw");
+  assert.ok(logout >= 0 && withdraw > logout, "handleLogout·handleWithdraw 정의를 못 찾았다 — 이 계약의 기준 줄이 사라졌다면 계약도 같이 고칠 것(빈 스캔 방지)");
+  const first = code.indexOf(CALL);
+  const second = code.indexOf(CALL, first + 1);
+  // 이동 앞이어야 하는 이유 — 평소 router.replace 는 문서를 안 바꾸지만, deploymentId(스큐 보호)가 켜진 배포에서 버전이 어긋나면 Next 16 이 하드 내비게이션(문서 교체)으로 바꾼다
+  const BEFORE_NAV = "router.replace 앞에서 앱에 알려야 한다 — 버전이 어긋난 배포에선 router.replace 가 문서를 교체할 수 있다(Next 16 deploymentId)";
+  // 로그아웃 — handleLogout 안, router.replace 앞
+  assert.ok(first > logout && first < withdraw, "첫 호출이 handleLogout 안이 아니다");
+  assert.ok(first < code.indexOf("router.replace(", logout), `로그아웃은 ${BEFORE_NAV}`);
+  // 탈퇴 — 서버가 회원을 지운 뒤(if (r.ok) 분기 안)에만, router.replace 앞
+  const ok = code.indexOf("if (r.ok)", withdraw);
+  const otherwise = code.indexOf("} else {", ok);
+  assert.ok(ok > 0 && otherwise > ok, "if (r.ok) { … } else { … } 모양을 못 찾았다");
+  assert.ok(second > ok && second < otherwise, "탈퇴 알림은 if (r.ok) 분기 안에서만 — 실패(503·500)에서 나가면 회원은 남았는데 앱만 로그아웃된다");
+  assert.ok(second < code.indexOf("router.replace(", ok), `탈퇴는 ${BEFORE_NAV}`);
 });
