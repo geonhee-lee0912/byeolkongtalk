@@ -7,6 +7,9 @@
 export const BRIDGE_VERSION = 1;
 /** 앱 웹뷰 UA 끝에 붙는 표식 — `ByeolkongApp/<버전> (<ios|android>)` */
 export const APP_UA_TOKEN = "ByeolkongApp";
+/** 웹뷰 쿠키 발급(handoff) 요청에서 교환 코드를 싣는 헤더 — 주소엔 싣지 않는다(서버는 주소의 code 를 보지 않는다).
+ *  앱(mobile/src/urls.ts handoffSource)이 붙이고 서버(app/api/auth/app/handoff)가 읽는다. 🔴 이름을 바꾸면 현장의 옛 앱 로그인이 막힌다 */
+export const HANDOFF_CODE_HEADER = "X-Byeolkong-Handoff";
 
 export type AppPlatform = "ios" | "android";
 /** 앱이 문서 시작 전에 window.__BYEOLKONG_APP__ 로 주입하는 값 */

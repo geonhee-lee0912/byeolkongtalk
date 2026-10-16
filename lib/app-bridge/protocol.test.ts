@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   APP_UA_TOKEN,
+  HANDOFF_CODE_HEADER,
   appUserAgentSuffix,
   encodeWebToApp,
   isAppInfo,
@@ -84,4 +85,8 @@ test("메시지 — 선 위 모양 고정(현장의 옛 앱이 읽는다), 웹�
   ]) {
     assert.equal(parseWebToApp(raw), null, raw);
   }
+});
+
+test("교환 코드 헤더 이름 고정 — 현장의 옛 앱이 이 이름으로 보낸다", () => {
+  assert.equal(HANDOFF_CODE_HEADER, "X-Byeolkong-Handoff");
 });
