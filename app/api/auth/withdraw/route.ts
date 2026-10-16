@@ -82,13 +82,18 @@ export async function POST(request: NextRequest) {
           extra: { kakaoId: ident.providerUserId },
         });
       }
-    } else {
+    } else if (ident.provider === "apple") {
       // 애플 revoke(애플 지침 5.1.1(v)). 토큰이 있는데 실패하면 카카오처럼 멈춘다.
-      // 토큰이 없으면(가입 때 인가 코드 교환이 실패한 경우) 회수할 게 없다 — 경고만 남기고 진행
+      // 토큰이 없으면(가입 때 인가 코드 교환이 실패한 경우) 회수할 게 없다 — 경고만 남기고 진행.
+      // 탈퇴가 끝나면 이 경고의 user_id 는 NULL 이 된다(error_logs FK SET NULL) — 남는 단서는 extra 뿐이다
       if (!ident.appleRefreshTokenEnc || !ident.appleClientId) {
         await logWarn("Apple refresh token missing at withdraw — proceeding without revoke", {
           route: ROUTE,
           userId,
+          extra: {
+            appleClientId: ident.appleClientId,
+            reason: ident.appleRefreshTokenEnc ? "no_client_id" : "no_token",
+          },
         });
         continue;
       }
@@ -122,6 +127,19 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
+    } else {
+      // 끊는 법을 모르는 수단 — 연결을 남긴 채 회원을 지우지 않는다.
+      // 수단을 늘리면 여기서 컴파일 에러가 난다(identity-hash.ts 와 같은 장치 — 그쪽만 고치면 빌드가 통과하고 새 수단은 끊기지 않은 채 지워진다)
+      const unknown: never = ident.provider;
+      await logError(new Error(`unknown auth provider at withdraw: ${String(unknown)}`), {
+        route: ROUTE,
+        userId,
+        extra: { severity: "WITHDRAW_UNKNOWN_PROVIDER" },
+      });
+      return NextResponse.json(
+        { error: "탈퇴 처리 중 문제가 생겼어. 잠시 후 다시 시도하거나 고객센터로 문의해줘" },
+        { status: 503 }
+      );
     }
   }
 
