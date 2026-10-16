@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import AppleLoginButton from "@/components/auth/AppleLoginButton";
 
 // 로그인 창 — 타로 로그인 전 맛보기(스펙 2026-10-11-타로-로그인전-맛보기 §3 ④). 뽑은 카드 위로 올라오는 시트.
 // 카카오 버튼은 로그인 뒤 /tarot/draw?resume=login 으로 돌아와 버튼 없이 이어간다(진행은 localStorage — lib/tarot/pending-draw).
@@ -14,6 +15,8 @@ export interface LoginSheetProps {
   /** guestSheetLine — "첫 풀이는 가입 선물로 무료" / "가입 선물 15별 + ⭐N만 더 (X원부터)" */
   priceText: string;
   kakaoHref: string;
+  /** 로그인 뒤 돌아올 내부 경로 — 애플 버튼용(카카오 버튼 href 의 next 와 같은 값) */
+  loginNext: string;
   /** 로그인 실패로 돌아옴 — "다시 눌러줘" */
   failed: boolean;
   /** 계측용 스프레드 */
@@ -21,7 +24,7 @@ export interface LoginSheetProps {
   onDismiss: () => void;
 }
 
-export default function LoginSheet({ concern, priceText, kakaoHref, failed, spread, onDismiss }: LoginSheetProps) {
+export default function LoginSheet({ concern, priceText, kakaoHref, loginNext, failed, spread, onDismiss }: LoginSheetProps) {
   const [mounted, setMounted] = useState(false);
   const kakaoRef = useRef<HTMLAnchorElement>(null);
   useEffect(() => setMounted(true), []);
@@ -91,6 +94,7 @@ export default function LoginSheet({ concern, priceText, kakaoHref, failed, spre
           </svg>
           카카오로 3초 시작
         </a>
+        <AppleLoginButton next={loginNext} surface="draw_sheet" meta={{ spread }} className="mt-3" />
         <p className="mt-2 text-[12px] text-eye-purple/80 text-center">뽑은 카드는 그대로 이어져</p>
         <p className="mt-1 text-[11px] text-text-light/80 text-center">
           이미 가입했다면 남은 별로 이어져 (가입 선물은 처음 한 번)

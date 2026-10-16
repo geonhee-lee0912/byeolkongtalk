@@ -114,3 +114,7 @@ test("UI_EVENTS — 입구 반반(로그인 전 맛보기) 이벤트 10종", () 
     assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
   }
 });
+
+test("UI_EVENTS — 애플 로그인 버튼 이벤트(앱 ①)", () => {
+  assert.equal(isUiEvent("login_apple_clicked"), true);
+});

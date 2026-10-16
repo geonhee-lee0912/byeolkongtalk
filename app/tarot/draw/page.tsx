@@ -413,6 +413,7 @@ export default function TarotDrawPage() {
           concern={selection.concern}
           priceText={sheetPriceText}
           kakaoHref={`/api/auth/login/kakao?next=${encodeURIComponent(resumeHref("login"))}`}
+          loginNext={resumeHref("login")}
           failed={loginFailed}
           spread={spreadType}
           onDismiss={() => setSheetOpen(false)}

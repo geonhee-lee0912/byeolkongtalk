@@ -283,6 +283,9 @@ export const UI_EVENTS = [
    *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다
    *  login_page 에만 next = 로그인 뒤 갈 경로(쿼리·해시를 뗀 경로 부분 · next 가 없으면 "/" · 영숫자·/·_·- 밖이거나 40자를 넘으면 "other") — 어느 로그인 벽에서 눌렀는지 가른다 */
   "login_kakao_clicked",
+  /** 애플 로그인 버튼 탭 — meta:{surface:"login_page"|"start_page"|"draw_sheet", spread?, next?}
+   *  버튼 노출: 웹=스위치(APPLE_LOGIN_WEB) · iOS 앱=늘 · 안드로이드 앱=숨김(lib/auth/apple-login-flag.ts). iOS 앱에선 앱이 이동을 가로채 네이티브 로그인을 띄운다 */
+  "login_apple_clicked",
   /** 로그인 창 '나중에 할래'·바깥 탭·Esc — meta:{spread} */
   "login_sheet_dismissed",
   /** 로그인 실패로 뽑기 화면에 돌아옴 — meta:{reason}(콜백 failRedirect 의 reason)

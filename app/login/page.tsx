@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { safeNextPath } from "@/lib/safe-internal-path";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import AppleLoginButton from "@/components/auth/AppleLoginButton";
 
 export default function LoginPage() {
   return (
@@ -92,6 +93,7 @@ function LoginPageInner() {
         </svg>
         카카오로 시작하기
       </a>
+      <AppleLoginButton next={next} surface="login_page" meta={{ next: nextLabel }} className="mt-3" />
 
       <p className="mt-4 text-[11px] text-text-light/70 text-center leading-relaxed">
         시작하면{" "}

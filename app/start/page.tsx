@@ -24,6 +24,7 @@ import {
   type FortuneConfig,
 } from "@/lib/fortune/types";
 import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
+import AppleLoginButton from "@/components/auth/AppleLoginButton";
 import {
   DAILY_TURN_CAP,
   EXTEND_COST,
@@ -291,6 +292,7 @@ function StartPageInner() {
               </svg>
               카카오로 3초만에 가입하고 별 받기
             </a>
+            <AppleLoginButton next={`/start?${sp.toString()}`} surface="start_page" />
           </div>
         )}
 
