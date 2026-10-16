@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminUserId } from "@/lib/admin";
+import { getUserIdentities, primaryIdentity } from "@/lib/auth/user-identity";
+import type { AuthProvider } from "@/lib/auth/identity-hash";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ export async function GET() {
   const supabase = getServiceSupabase();
   const { data: row } = await supabase
     .from("users")
-    .select("id, kakao_id, nickname, profile_img")
+    .select("id, nickname, profile_img")
     .eq("id", userId)
     .single();
 
@@ -36,12 +38,20 @@ export async function GET() {
     });
   }
 
+  // 로그인 수단 — 표시용이라 조회가 실패해도 내 정보는 내려준다(기본 카카오)
+  let provider: AuthProvider = "kakao";
+  try {
+    provider = primaryIdentity(await getUserIdentities(row.id))?.provider ?? "kakao";
+  } catch {
+    // 기본값 유지
+  }
+
   return NextResponse.json({
     user: {
       id: row.id,
       nickname: row.nickname,
       profile_img: row.profile_img,
-      provider: "kakao",
+      provider,
     },
     anonymousId,
     isAuthenticated: true,

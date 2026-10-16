@@ -1,11 +1,13 @@
 // 첫 충전 보너스 자격 조회 — 상점에서 배너/보너스 표기 여부 결정용.
 // 서버가 권위(bonus_claims 원장) — 자격 없으면 화면에서 첫 충전 보너스를 숨긴다.
 // 실제 지급 판정은 결제 confirm 라우트가 다시 하므로, 이 값은 표시용일 뿐이다.
+// 원장 키 = 로그인 수단 해시(lib/auth/identity-hash.ts — 카카오는 옛 공식과 같은 값).
 
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
 import { getSession } from "@/lib/session";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getUserIdentities, primaryIdentity } from "@/lib/auth/user-identity";
+import { identityHash } from "@/lib/auth/identity-hash";
 
 export const dynamic = "force-dynamic";
 
@@ -14,21 +16,14 @@ export async function GET() {
   if (!userId) return NextResponse.json({ eligible: false });
 
   try {
-    const supabase = getServiceSupabase();
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("kakao_id")
-      .eq("id", userId)
-      .single();
-    if (!userRow?.kakao_id) return NextResponse.json({ eligible: false });
+    const primary = primaryIdentity(await getUserIdentities(userId));
+    if (!primary) return NextResponse.json({ eligible: false });
 
-    const kakaoIdHash = createHash("sha256")
-      .update(String(userRow.kakao_id))
-      .digest("hex");
+    const supabase = getServiceSupabase();
     const { data: claim } = await supabase
       .from("bonus_claims")
       .select("kakao_id_hash")
-      .eq("kakao_id_hash", kakaoIdHash)
+      .eq("kakao_id_hash", identityHash(primary.provider, primary.providerUserId))
       .eq("bonus_type", "first_charge")
       .maybeSingle();
 

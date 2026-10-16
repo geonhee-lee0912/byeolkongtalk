@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const supabase = getServiceSupabase();
   let query = supabase
     .from("users")
-    .select("id, nickname, kakao_id, created_at", { count: "exact" })
+    .select("id, nickname, kakao_id, created_at, user_identities(provider)", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(page * size, page * size + size - 1);
   if (q) {
