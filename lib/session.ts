@@ -1,13 +1,17 @@
-// 세션/쿠키 헬퍼 (Next 16, cookies() async)
+// 세션/쿠키 헬퍼 (Next 16, cookies()·headers() async)
 // - byeolkong_anon_id: 게스트 식별자 (proxy 자동 발급 — 구 middleware.ts)
-// - byeolkong_user_id: 카카오 로그인 후 발급 (users.id UUID)
+// - byeolkong_user_id: 로그인 후 발급 (users.id UUID) — 브라우저·앱 웹뷰용
 // - byeolkong_admin_token: ADMIN_USER_IDS 화이트리스트 유저만 발급 (HMAC-SHA256)
+// - Authorization: Bearer <앱 액세스 토큰> — 앱(React Native) 쪽 호출용(스펙 2026-10-12-앱-1 §7-4).
+//   토큰이 있으면 토큰만 본다(실패면 비로그인 — 쿠키로 넘어가지 않는다). 결정 규칙은 lib/auth/session-resolve.ts.
+//   iOS 는 웹뷰와 앱 호출의 쿠키 저장소가 따로고, 안드로이드는 공유될 수 있다.
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { NextResponse } from "next/server";
 import { isAdminUserId } from "@/lib/admin";
 import { signAdminToken } from "@/lib/auth-token";
-import { isValidSessionId } from "@/lib/session-id";
+import { parseBearer, verifyAccessToken } from "@/lib/auth/app-token";
+import { resolveSessionUserId } from "@/lib/auth/session-resolve";
 
 const ANON_COOKIE = "byeolkong_anon_id";
 const USER_COOKIE = "byeolkong_user_id";
@@ -28,16 +32,18 @@ export type Session = {
 };
 
 /**
- * 현재 요청의 세션 정보 반환. Next 16 의 cookies() 는 async 이므로
+ * 현재 요청의 세션 정보 반환. Next 16 의 cookies()·headers() 는 async 이므로
  * 모든 호출처에서 await 필요.
  */
 export async function getSession(): Promise<Session> {
   const store = await cookies();
-  // 서명 없는 쿠키라 형식 검증으로 위조/주입을 거른다. users.id 는 UUID 이므로
-  // 형식 밖 값(필터 메타문자 포함 등)은 비로그인 취급(lib/session-id.ts).
-  const rawUserId = store.get(USER_COOKIE)?.value;
-  const userId = isValidSessionId(rawUserId) ? rawUserId : null;
   const anonymousId = store.get(ANON_COOKIE)?.value || null;
+  const bearer = parseBearer((await headers()).get("authorization"));
+  const userId = resolveSessionUserId({
+    hasBearer: bearer !== null,
+    tokenUserId: bearer ? await verifyAccessToken(bearer) : null,
+    cookieUserId: store.get(USER_COOKIE)?.value,
+  });
   return {
     userId,
     anonymousId,
@@ -59,7 +65,7 @@ export async function requireSessionId(): Promise<{
 }
 
 /**
- * 카카오 로그인 성공 후 응답에 user_id 쿠키 세팅.
+ * 로그인 성공 후 응답에 user_id 쿠키 세팅(카카오·애플 웹 콜백, 앱 웹뷰 교환 코드).
  * ADMIN_USER_IDS 유저면 HMAC 서명 어드민 토큰도 같이 발급.
  */
 export async function setUserCookie(res: NextResponse, userId: string) {
