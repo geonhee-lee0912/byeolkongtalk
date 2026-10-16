@@ -56,7 +56,9 @@ export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
-/** 받은 값을 같은 출처 POST 로 다시 보내는 페이지. 값은 전부 이스케이프한다(애플 user 필드엔 사용자 이름이 그대로 들어 있다) */
+/** 받은 값을 같은 출처 POST 로 다시 보내는 페이지. 값은 전부 이스케이프한다(애플 user 필드엔 사용자 이름이 그대로 들어 있다).
+ *  버튼은 스크립트가 못 도는 경우(꺼짐·CSP 차단)의 출구다 — <noscript> 는 CSP 가 스크립트만 막으면 그려지지 않아 빈 화면에 갇힌다.
+ *  스크립트가 돌면 버튼을 먼저 숨기고 제출한다(응답을 기다리는 동안 한 번 더 눌러 두 번 보내지 않게) */
 export function renderAutoPostForm(action: string, fields: Record<string, string>): string {
   const inputs = Object.entries(fields)
     .map(([k, v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`)
@@ -65,7 +67,7 @@ export function renderAutoPostForm(action: string, fields: Record<string, string
     `<!doctype html><html lang="ko"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">` +
     `<title>별콩톡</title></head><body>` +
-    `<form method="post" action="${escapeHtml(action)}">${inputs}<noscript><button type="submit">계속하기</button></noscript></form>` +
-    `<script>document.forms[0].submit()</script></body></html>`
+    `<form method="post" action="${escapeHtml(action)}">${inputs}<button type="submit">계속하기</button></form>` +
+    `<script>var f=document.forms[0];f.querySelector("button").hidden=true;f.submit()</script></body></html>`
   );
 }

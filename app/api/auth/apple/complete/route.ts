@@ -1,7 +1,9 @@
 // 웹 애플 로그인 마무리 — callback 이 같은 출처로 다시 보낸 POST 라 Lax 쿠키(state·acq·anon·_fbp)가 실려 온다.
 // state 확인 → id_token 검증(aud=Services ID, nonce) → 코드 교환(애플 리프레시 토큰) → signIn → 세션 쿠키 → next.
 // 리다이렉트·실패 처리는 카카오 콜백과 같다(login=success·welcome=1 / loginFailRedirectUrl). 스펙 2026-10-12-앱-1 §7-5.
-// 다른 사이트가 이 주소로 직접 POST 하면 Lax state 쿠키가 안 실려 와서 csrf_state_mismatch 로 끝난다.
+// 다른 사이트가 이 주소로 직접 POST 하면 Lax state 쿠키가 안 실려 와서 csrf_state_mismatch 로 끝난다. 🔴 단 callback 은 누가 POST 하든
+// 같은 출처 POST 로 다시 보내므로(그땐 쿠키가 실린다) 실제로 막는 건 SameSite 가 아니라 아래 state 쿠키 nonce 일치다 —
+// 이 검사를 빼거나 애플 error 처리 뒤로 미루지 말 것(lib/auth/apple-web-routes.test.ts 가 잠근다).
 import { NextRequest, NextResponse } from "next/server";
 import { setUserCookie } from "@/lib/session";
 import { logError, logWarn, ctxFromRequest } from "@/lib/logger";

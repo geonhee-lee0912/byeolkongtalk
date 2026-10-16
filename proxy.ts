@@ -8,6 +8,10 @@ import { ACQ_COOKIE, buildServerAcqCookie } from "@/lib/acquisition";
 const ANON_COOKIE = "byeolkong_anon_id";
 const USER_COOKIE = "byeolkong_user_id";
 const ADMIN_TOKEN_COOKIE = "byeolkong_admin_token";
+// 웹 애플 로그인 콜백 — 애플이 보내는 교차 사이트 POST 라 Lax 쿠키가 안 실려 온다(lib/auth/apple-web.ts).
+// 브라우저엔 익명 쿠키가 있는데 안 실렸을 뿐이니 여기서 새로 심지 않는다 — 교차 사이트 '최상위' 이동의 응답은 Lax 쿠키도 저장돼서
+// 기존 anon 을 덮어쓴다(가입 뒤 별자리 지도 승계·유입 복구·입구 반반 그룹이 끊긴다). 다음 요청(complete, 같은 출처)이 원래 anon 을 싣고 온다
+const APPLE_FORM_POST_PATH = "/api/auth/apple/callback";
 
 const ADMIN_IDS = new Set(
   (process.env.ADMIN_USER_IDS ?? "")
@@ -39,7 +43,7 @@ export async function proxy(req: NextRequest) {
 
   const res = NextResponse.next();
 
-  if (!req.cookies.get(ANON_COOKIE)) {
+  if (!req.cookies.get(ANON_COOKIE) && pathname !== APPLE_FORM_POST_PATH) {
     const anonId = crypto.randomUUID();
     res.cookies.set(ANON_COOKIE, anonId, {
       httpOnly: true,
