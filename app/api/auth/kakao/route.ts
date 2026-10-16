@@ -1,19 +1,17 @@
-// 카카오 OAuth 콜백 — 토큰 발급, 사용자 정보 조회, users upsert, 세션 쿠키 설정.
-// Phase 4 (b) 시점: readings/star_balances 테이블 없으므로 게스트 마이그레이션 + 별 잔액 초기화는 미적용.
-// Phase 4 (c) stars 이식 + Phase 5 readings 추가 시 보강 (아래 TODO 주석 참고).
+// 카카오 OAuth 콜백 — 토큰 발급, 사용자 정보 조회, 회원 찾기·만들기, 세션 쿠키 설정.
+// 회원 찾기·만들기와 신규 가입 처리(유입 기록·별 잔액·웰컴 별·CAPI)는 lib/auth/sign-in.ts + sign-in-deps.ts 로 옮겼다 —
+// 앱 로그인(카카오·애플)과 웹 애플 로그인이 같은 처리를 쓴다(스펙 2026-10-12-앱-1 §7-1). 이 라우트의 겉 동작은 그대로다
+// (lib/auth/kakao-callback.test.ts 가 잠근다).
 
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
 import { getKakaoToken, getKakaoUser } from "@/lib/kakao";
-import { getServiceSupabase } from "@/lib/supabase";
 import { setUserCookie } from "@/lib/session";
 import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
-import { chargeStars } from "@/lib/stars";
-import { WELCOME_BONUS_STARS } from "@/lib/constants";
-import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
-import { ACQ_COOKIE, parseAcqCookie, acqFromPageView, type AcqPayload } from "@/lib/acquisition";
+import { ACQ_COOKIE } from "@/lib/acquisition";
 import { safeNextPath } from "@/lib/safe-internal-path";
 import { loginFailRedirectUrl } from "@/lib/auth-redirect";
+import { signIn } from "@/lib/auth/sign-in";
+import { supabaseSignInDeps } from "@/lib/auth/sign-in-deps";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -100,157 +98,15 @@ export async function GET(request: NextRequest) {
     const profileImg =
       kakaoUser.kakao_account?.profile?.profile_image_url || null;
 
-    // 3. Supabase users upsert
-    const supabase = getServiceSupabase();
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("kakao_id", kakaoId)
-      .maybeSingle();
-
-    let userId: string;
-    let isNewUser = false;
-
-    if (existingUser) {
-      userId = existingUser.id;
-      await supabase
-        .from("users")
-        .update({
-          nickname,
-          profile_img: profileImg,
-          last_login: new Date().toISOString(),
-        })
-        .eq("id", userId);
-    } else {
-      const { data: newUser, error: insErr } = await supabase
-        .from("users")
-        .insert({ kakao_id: kakaoId, nickname, profile_img: profileImg })
-        .select("id")
-        .single();
-      if (insErr || !newUser) {
-        await logError(insErr ?? new Error("user insert null"), {
-          route: "/api/auth/kakao",
-          extra: { kakaoId, nickname },
-        });
-        return failRedirect("user_insert_failed");
-      }
-      userId = newUser.id;
-      isNewUser = true;
-
-      // first-touch 유입 출처 저장 (신규 유저 1회). 쿠키 없으면(오가닉) 스킵.
-      // 어트리뷰션은 로그인의 부수 작업 — 실패해도 가입/로그인을 막지 않도록 swallow + 로그.
-      let acq: AcqPayload | null = parseAcqCookie(request.cookies.get(ACQ_COOKIE)?.value);
-      let captureSource: "client" | "server" | "pageview" = acq?.capture ?? "client";
-      if (!acq) {
-        // 안전망: 쿠키가 유실돼도 서버 쿠키(anon_id)는 살아 있다 → 비로그인 page_views 의 최초 유입 행으로 복구.
-        try {
-          const anonId = request.cookies.get("byeolkong_anon_id")?.value;
-          if (anonId) {
-            const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { data: pv, error: pvErr } = await supabase
-              .from("page_views")
-              .select("utm_source,utm_medium,utm_campaign,utm_content,utm_term,landing_variant,referrer,created_at")
-              .eq("anon_id", anonId)
-              .is("user_id", null)
-              .gte("created_at", since)
-              .or("utm_source.not.is.null,utm_content.not.is.null")
-              .order("created_at", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-            if (pvErr) {
-              await logError(pvErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition_pageview" } });
-            } else if (pv) {
-              acq = acqFromPageView(pv);
-              captureSource = "pageview";
-            }
-          }
-        } catch (pvCatch) {
-          await logError(pvCatch, { route: "/api/auth/kakao", extra: { step: "user_acquisition_pageview" } });
-        }
-      }
-      if (acq) {
-        try {
-          const acqRow = {
-            user_id: userId,
-            utm_source: acq.utm_source ?? null,
-            utm_medium: acq.utm_medium ?? null,
-            utm_campaign: acq.utm_campaign ?? null,
-            utm_content: acq.utm_content ?? null,
-            utm_term: acq.utm_term ?? null,
-            fbclid: acq.fbclid ?? null,
-            fbc: acq.fbc ?? null,
-            landing_variant: acq.landing_variant ?? null,
-            referrer: acq.referrer ?? null,
-            first_seen_at: acq.first_seen_at ?? null,
-            capture_source: captureSource,
-          };
-          let { error: acqErr } = await supabase.from("user_acquisition").insert(acqRow);
-          if (acqErr?.code === "PGRST204") {
-            // 배포 직후 마이그레이션(capture_source 컬럼)이 아직 안 먹은 창 — 컬럼 없이 1회 재시도해 유입 기록을 잃지 않는다.
-            const { capture_source: _omit, ...legacyRow } = acqRow;
-            void _omit;
-            ({ error: acqErr } = await supabase.from("user_acquisition").insert(legacyRow));
-          }
-          if (acqErr) {
-            await logError(acqErr, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
-          }
-        } catch (acqCatch) {
-          await logError(acqCatch, { route: "/api/auth/kakao", extra: { step: "user_acquisition" } });
-        }
-      }
-
-      // 별 잔액 초기화 (신규 유저). RLS 우회 service_role 라 직접 INSERT.
-      await supabase.from("star_balances").insert({
-        user_id: userId,
-        balance: 0,
-        total_earned: 0,
-        total_spent: 0,
-      });
-
-      // 웰컴 별 파밍 방지: 탈퇴해도 남는 원장에 kakao 해시로 1회 청구.
-      // upsert(ignoreDuplicates)가 새 row 반환 → 처음 → 지급. 이미 있으면 빈 배열 → 스킵.
-      // 청구 판정 에러면 안전하게 스킵(파밍 재개 방지) + 로그.
-      const kakaoIdHash = createHash("sha256").update(String(kakaoId)).digest("hex");
-      const { data: welcomeClaim, error: welcomeClaimErr } = await supabase
-        .from("bonus_claims")
-        .upsert(
-          { kakao_id_hash: kakaoIdHash, bonus_type: "welcome" },
-          { onConflict: "kakao_id_hash,bonus_type", ignoreDuplicates: true }
-        )
-        .select("kakao_id_hash");
-      if (welcomeClaimErr) {
-        await logError(welcomeClaimErr, {
-          route: "/api/auth/kakao",
-          userId,
-          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED" },
-        });
-      }
-      if (!welcomeClaimErr && (welcomeClaim?.length ?? 0) > 0) {
-        // charge_stars RPC 멱등 키(welcome:{userId}) — 같은 계정 더블 콜백 방어
-        const welcome = await chargeStars(
-          userId,
-          WELCOME_BONUS_STARS,
-          `welcome:${userId}`,
-          "welcome_bonus"
-        );
-        if (!welcome.success) {
-          await logError(new Error("welcome bonus grant failed"), {
-            route: "/api/auth/kakao",
-            userId,
-            extra: { severity: "WELCOME_BONUS_FAILED" },
-          });
-        }
-      }
-
-      // Meta CAPI 가입 전환 (신규 유저만). eventId=reg:{userId} 로 Pixel/재시도 중복 제거.
-      const signals = capiSignalsFromRequest(request);
-      void sendCapiEvent({
-        eventName: "CompleteRegistration",
-        userId,
-        eventId: `reg:${userId}`,
-        ...signals,
-      });
+    // 3. 회원 찾기·만들기 — 신규면 유입 기록·별 잔액·웰컴 별·CAPI 까지(lib/auth/sign-in-deps.ts)
+    const result = await signIn(
+      { provider: "kakao", providerUserId: String(kakaoId), nickname, profileImg },
+      supabaseSignInDeps(request, "/api/auth/kakao")
+    );
+    if (!result.ok) {
+      return failRedirect(result.reason);
     }
+    const { userId, isNewUser } = result;
 
     // TODO (Phase 5): byeolkong_anon_id 의 readings 를 user_id 로 이관 (migrate_anonymous_readings RPC)
 
