@@ -33,6 +33,15 @@ export const OPTIONAL_ENV = [
   "META_ADS_ACCESS_TOKEN",
   "META_AD_ACCOUNT_ID",
   "CRON_SECRET",
+  // 앱 ① 로그인(스펙 2026-10-12-앱-1 §10) — 없어도 웹 기존 기능은 돈다(앱 로그인·애플 로그인만 503)
+  "APP_ACCESS_TOKEN_SECRET",
+  "KAKAO_APP_ID",
+  "APPLE_TEAM_ID",
+  "APPLE_KEY_ID",
+  "APPLE_PRIVATE_KEY",
+  "APPLE_BUNDLE_ID",
+  "APPLE_SERVICES_ID",
+  "APPLE_TOKEN_ENC_KEY",
 ] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];
