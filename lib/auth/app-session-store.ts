@@ -24,6 +24,14 @@ export function supabaseAppSessionStore(): AppSessionStore {
         ? { user_id: data.user_id as string, family_id: data.family_id as string, platform: (data.platform as Platform | null) ?? null }
         : null;
     },
+    async releaseRefresh(tokenHash, rotatedAtIso) {
+      const { error } = await db
+        .from("app_refresh_tokens")
+        .update({ rotated_at: null })
+        .eq("token_hash", tokenHash)
+        .eq("rotated_at", rotatedAtIso);
+      if (error) throw error;
+    },
     async findRefresh(tokenHash) {
       const { data, error } = await db
         .from("app_refresh_tokens")

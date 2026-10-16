@@ -14,6 +14,8 @@ export interface AppSessionStore {
   insertRefresh(row: { user_id: string; family_id: string; token_hash: string; platform: Platform | null; expires_at: string }): Promise<void>;
   /** 원자적: 교체·폐기 전이고 만료 전이면 rotated_at=now 로 표시하고 행을 돌려준다. 아니면 null */
   claimRefresh(tokenHash: string, nowIso: string): Promise<{ user_id: string; family_id: string; platform: Platform | null } | null>;
+  /** claimRefresh 되돌리기 — rotated_at 이 그 claim 이 남긴 값일 때만 비운다(새 토큰을 못 만들었을 때 옛 토큰을 살려 둔다) */
+  releaseRefresh(tokenHash: string, rotatedAtIso: string): Promise<void>;
   findRefresh(tokenHash: string): Promise<{ family_id: string; rotated_at: string | null; revoked_at: string | null } | null>;
   revokeFamily(familyId: string, nowIso: string): Promise<void>;
   insertHandoff(row: { code_hash: string; user_id: string; is_new_user: boolean; expires_at: string }): Promise<void>;
@@ -66,7 +68,12 @@ export async function rotateRefreshToken(
     }
     return { ok: false, reason: "invalid" };
   }
-  const t = await issueAppTokens(store, claimed.user_id, claimed.platform, { now, familyId: claimed.family_id });
+  const t = await issueAppTokens(store, claimed.user_id, claimed.platform, { now, familyId: claimed.family_id }).catch(async (err: unknown) => {
+    // 옛 토큰만 소모하고 새 토큰을 못 줬다(DB 순간 오류·서명 비밀값 설정 오류) — 그대로 두면 앱의 다음 시도가 invalid/reused 로
+    // 로그아웃되고 가짜 '재사용' 경고까지 남는다. 옛 토큰을 되살려 다시 시도할 수 있게 한다(되살리기 실패는 삼키고 원래 오류를 올린다)
+    await store.releaseRefresh(hash, nowIso).catch(() => {});
+    throw err;
+  });
   return {
     ok: true,
     userId: claimed.user_id,
