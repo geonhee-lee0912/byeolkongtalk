@@ -16,8 +16,8 @@ export async function getStarBalance(userId: string): Promise<number> {
 
 /**
  * 가입 선물(웰컴 별)을 받았고 아직 별을 한 번도 안 썼는지 — 메뉴판 "선물로 무료"·홈 "첫 질문은 공짜" 표시 조건.
- * 웰컴은 카카오 계정당 1회(bonus_claims)라 탈퇴 후 재가입·지급 실패 유저는 선물이 없다 — "안 썼다"만으로는 안 된다.
- * 웰컴 지급 = star_transactions.source 'welcome_bonus'(app/api/auth/kakao/route.ts). 조회 실패면 false(선물 약속을 하지 않는 쪽).
+ * 웰컴은 로그인 수단(카카오·애플 계정)당 1회(bonus_claims)라 탈퇴 후 재가입·지급 실패 유저는 선물이 없다 — "안 썼다"만으로는 안 된다.
+ * 웰컴 지급 = star_transactions.source 'welcome_bonus'(lib/auth/sign-in-deps.ts 의 onNewUser). 조회 실패면 false(선물 약속을 하지 않는 쪽).
  */
 export async function isWelcomeGiftUnused(userId: string): Promise<boolean> {
   const supabase = getServiceSupabase();

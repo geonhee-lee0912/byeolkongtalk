@@ -1,7 +1,8 @@
 // 카카오 OAuth 콜백 — 토큰 발급, 사용자 정보 조회, 회원 찾기·만들기, 세션 쿠키 설정.
 // 회원 찾기·만들기와 신규 가입 처리(유입 기록·별 잔액·웰컴 별·CAPI)는 lib/auth/sign-in.ts + sign-in-deps.ts 로 옮겼다 —
 // 앱 로그인(카카오·애플)과 웹 애플 로그인이 같은 처리를 쓴다(스펙 2026-10-12-앱-1 §7-1). 이 라우트의 겉 동작은 그대로다
-// (lib/auth/kakao-callback.test.ts 가 잠근다).
+// (lib/auth/kakao-callback.test.ts 가 잠근다). 옮기며 달라진 건 실패 사유뿐이다 — DB 조회 오류·카카오 사용자 조회 실패는 internal
+// (옛: user_insert_failed), 로그인 수단 저장 실패는 identity_insert_failed, 같은 계정 동시 가입은 늦은 쪽도 로그인된다(옛: user_insert_failed).
 
 import { NextRequest, NextResponse } from "next/server";
 import { getKakaoToken, getKakaoUser } from "@/lib/kakao";

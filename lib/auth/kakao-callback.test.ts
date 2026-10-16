@@ -2,9 +2,15 @@
 // 그대로인지 잠근다(스펙 2026-10-12-앱-1 §12). 의존성은 resolve 훅으로 ./kakao-callback.fakes.ts 로 바꿔 끼운다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import * as nodeModule from "node:module";
 import { NextRequest } from "next/server";
 import type * as Fakes from "./kakao-callback.fakes.ts";
+
+// 이 라우트 경로엔 실제 네트워크가 없어야 한다(카카오·DB 는 전부 가짜) — 새 import 가 실서버·DB 로 새면 여기서 바로 드러난다
+globalThis.fetch = (async (input: unknown) => {
+  throw new Error(`kakao-callback.test: 네트워크 호출 금지 — ${String(input)}`);
+}) as typeof fetch;
 
 // registerHooks 는 Node 22.15·23.5+ 에 있는데 설치된 @types/node(20) 엔 아직 타입이 없다 — 쓰는 모양만 선언한다.
 type ResolveResult = { url: string; format?: string | null; shortCircuit?: boolean };
@@ -47,11 +53,14 @@ function callback(params: Record<string, string>, cookie = `byeolkong_oauth_stat
 }
 const location = (res: Response) => new URL(res.headers.get("location")!);
 const setCookies = (res: Response) => res.headers.getSetCookie().join("\n");
+/** 웰컴 별 원장(bonus_claims)에 이미 쌓여 있는 카카오 공식 — 바뀌면 탈퇴→재가입이 웰컴 별을 또 받는다 */
+const ledgerHash = (kakaoId: number) => createHash("sha256").update(String(kakaoId)).digest("hex");
 
 test("신규 회원 — next 로 login=success&welcome=1, 세션 쿠키, state·acq 쿠키 정리, 신규 처리 1번", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
-  const res = await GET(callback({ code: "c1", state: `${NONCE}|/tarot/draw?resume=login` }));
+  const req = callback({ code: "c1", state: `${NONCE}|/tarot/draw?resume=login` });
+  const res = await GET(req);
   const loc = location(res);
   assert.equal(loc.origin, "http://localhost:3000");
   assert.equal(loc.pathname, "/tarot/draw");
@@ -64,7 +73,30 @@ test("신규 회원 — next 로 login=success&welcome=1, 세션 쿠키, state·
   assert.match(setCookies(res), /byeolkong_acq=;/);
 });
 
-test("기존 회원 — welcome 없이 login=success, 신규 처리(웰컴 별) 안 부름", async () => {
+test("신규 회원 — 카카오 회원번호·닉네임·프로필을 그대로 넘기고, 웰컴 별 해시는 원장 공식, 유입·CAPI 는 이 요청에서 읽는다", async () => {
+  const { GET, fakes } = await load();
+  fakes.reset();
+  const req = callback({ code: "c1", state: `${NONCE}|/` });
+  await GET(req);
+  assert.deepEqual(fakes.state.lastInsertUser, {
+    kakao_id: 4123456789,
+    nickname: "별콩",
+    profile_img: "https://img.example/p.jpg",
+  });
+  assert.equal(fakes.state.newUserHash, ledgerHash(4123456789));
+  assert.equal(fakes.state.depsRoute, "/api/auth/kakao");
+  assert.equal(fakes.state.depsRequest, req);
+});
+
+test("카카오 프로필이 비어 있으면 닉네임 별콩이_{회원번호}, 프로필 null", async () => {
+  const { GET, fakes } = await load();
+  fakes.reset();
+  fakes.state.user = { id: 4123456789 };
+  await GET(callback({ code: "c1", state: `${NONCE}|/` }));
+  assert.deepEqual(fakes.state.lastInsertUser, { kakao_id: 4123456789, nickname: "별콩이_4123456789", profile_img: null });
+});
+
+test("기존 회원 — welcome 없이 login=success, 닉네임·프로필 갱신, 신규 처리(웰컴 별) 안 부름", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
   fakes.state.existingUserId = "old-user";
@@ -72,36 +104,85 @@ test("기존 회원 — welcome 없이 login=success, 신규 처리(웰컴 별) 
   assert.equal(loc.searchParams.get("login"), "success");
   assert.equal(loc.searchParams.get("welcome"), null);
   assert.equal(fakes.state.cookieUserId, "old-user");
+  assert.deepEqual(fakes.state.lastUserUpdate, {
+    userId: "old-user",
+    patch: { nickname: "별콩", profile_img: "https://img.example/p.jpg" },
+  });
+  assert.equal(fakes.state.lastInsertUser, null);
   assert.equal(fakes.state.newUserCalls, 0);
 });
 
-test("state 쿠키가 없으면 login=fail&reason=csrf_state_mismatch, 세션 쿠키 없음", async () => {
+test("회원 만들기 실패 — login=fail&reason=user_insert_failed(뽑기 이어가기면 그 화면으로), 세션 쿠키 없음, state 쿠키 정리, 신규 처리 없음", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
-  const loc = location(await GET(callback({ code: "c1", state: `${NONCE}|/` }, "")));
+  fakes.state.insertUserResult = { ok: false, duplicate: false };
+  const res = await GET(callback({ code: "c1", state: `${NONCE}|/tarot/draw?resume=login` }));
+  const loc = location(res);
+  assert.equal(loc.pathname, "/tarot/draw");
+  assert.equal(loc.searchParams.get("resume"), "login");
+  assert.equal(loc.searchParams.get("login"), "fail");
+  assert.equal(loc.searchParams.get("reason"), "user_insert_failed");
+  assert.equal(fakes.state.cookieUserId, null);
+  assert.equal(fakes.state.newUserCalls, 0);
+  assert.match(setCookies(res), /byeolkong_oauth_state=;/);
+});
+
+test("state 쿠키가 없으면 login=fail&reason=csrf_state_mismatch, 세션 쿠키 없음, state 쿠키 정리", async () => {
+  const { GET, fakes } = await load();
+  fakes.reset();
+  const res = await GET(callback({ code: "c1", state: `${NONCE}|/` }, ""));
+  const loc = location(res);
   assert.equal(loc.pathname, "/");
   assert.equal(loc.searchParams.get("login"), "fail");
   assert.equal(loc.searchParams.get("reason"), "csrf_state_mismatch");
   assert.equal(fakes.state.cookieUserId, null);
+  assert.match(setCookies(res), /byeolkong_oauth_state=;/);
 });
 
-test("KOE320(이미 쓴 인가 코드) — 실패 화면 없이 next 로, warn 1건, 세션 쿠키 없음", async () => {
+test("state 쿠키와 nonce 가 다르거나 32자가 아니면 csrf_state_mismatch, 세션 쿠키 없음", async () => {
+  const { GET, fakes } = await load();
+  for (const [stateNonce, cookieNonce] of [
+    [NONCE, "b".repeat(32)],
+    ["abc", "abc"],
+  ]) {
+    fakes.reset();
+    const loc = location(await GET(callback({ code: "c1", state: `${stateNonce}|/` }, `byeolkong_oauth_state=${cookieNonce}`)));
+    assert.equal(loc.searchParams.get("reason"), "csrf_state_mismatch", stateNonce);
+    assert.equal(fakes.state.cookieUserId, null);
+  }
+});
+
+// 카카오 동의 화면에서 취소하면 code 없이 error=access_denied 로 온다 — scripts/entry-ab-daily-check.sql 이 이 reason 을 센다
+test("카카오에서 취소(error=access_denied) — login=fail&reason=access_denied, 세션 쿠키 없음", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
-  fakes.state.token = { error: "invalid_grant", error_code: "KOE320" };
-  const loc = location(await GET(callback({ code: "c1", state: `${NONCE}|/fortune` })));
-  assert.equal(loc.pathname, "/fortune");
-  assert.equal(loc.searchParams.get("login"), null);
-  assert.equal(fakes.state.warns.length, 1);
+  const loc = location(await GET(callback({ error: "access_denied", state: `${NONCE}|/` })));
+  assert.equal(loc.searchParams.get("login"), "fail");
+  assert.equal(loc.searchParams.get("reason"), "access_denied");
   assert.equal(fakes.state.cookieUserId, null);
 });
 
-test("그 밖의 토큰 실패 — login=fail&reason=token_failed", async () => {
+test("KOE320(이미 쓴 인가 코드) — 실패 화면 없이 next 로, warn 1건, 세션 쿠키 없음, state 쿠키 정리", async () => {
+  const { GET, fakes } = await load();
+  fakes.reset();
+  fakes.state.token = { error: "invalid_grant", error_code: "KOE320" };
+  const res = await GET(callback({ code: "c1", state: `${NONCE}|/fortune` }));
+  const loc = location(res);
+  assert.equal(loc.pathname, "/fortune");
+  assert.equal(loc.searchParams.get("login"), null);
+  assert.equal(fakes.state.warns.length, 1);
+  assert.equal(fakes.state.errors.length, 0);
+  assert.equal(fakes.state.cookieUserId, null);
+  assert.match(setCookies(res), /byeolkong_oauth_state=;/);
+});
+
+test("그 밖의 토큰 실패 — login=fail&reason=token_failed, 오류 로그 1건", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
   fakes.state.token = { error: "invalid_client" };
   const loc = location(await GET(callback({ code: "c1", state: `${NONCE}|/` })));
   assert.equal(loc.searchParams.get("reason"), "token_failed");
+  assert.equal(fakes.state.errors.length, 1);
 });
 
 test("next 가 바깥 주소면 홈으로(open redirect 차단)", async () => {
@@ -122,6 +203,7 @@ test("카카오 사용자 조회 실패(id 없음) — login=fail&reason=interna
   assert.equal(loc.searchParams.get("login"), "fail");
   assert.equal(loc.searchParams.get("reason"), "internal");
   assert.equal(fakes.state.cookieUserId, null);
+  assert.equal(fakes.state.lastInsertUser, null);
   assert.equal(fakes.state.newUserCalls, 0);
   assert.equal(fakes.state.errors.length, 1);
 });
