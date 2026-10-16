@@ -5,7 +5,7 @@ import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
 import { verifyKakaoAccessToken } from "@/lib/auth/kakao-verify";
 import { signIn } from "@/lib/auth/sign-in";
 import { supabaseSignInDeps } from "@/lib/auth/sign-in-deps";
-import { appLoginResponse, parsePlatform, rateLimited, readJson, str } from "@/lib/auth/app-route";
+import { appLoginResponse, appTokenNotConfigured, parsePlatform, rateLimited, readJson, str } from "@/lib/auth/app-route";
 
 const ROUTE = "/api/auth/app/kakao";
 
@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     await logError(new Error("KAKAO_APP_ID not set"), ctxFromRequest(request, { route: ROUTE }));
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
+  const tokenNotReady = await appTokenNotConfigured(request, ROUTE);
+  if (tokenNotReady) return tokenNotReady;
 
   const body = await readJson(request);
   const accessToken = str(body?.accessToken);

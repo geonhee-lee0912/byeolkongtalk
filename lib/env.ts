@@ -33,7 +33,10 @@ export const OPTIONAL_ENV = [
   "META_ADS_ACCESS_TOKEN",
   "META_AD_ACCOUNT_ID",
   "CRON_SECRET",
-  // 앱 ① 로그인(스펙 2026-10-12-앱-1 §10) — 없어도 웹 기존 기능은 돈다(앱 로그인·애플 로그인만 503)
+  // 앱 ① 로그인(스펙 2026-10-12-앱-1 §10) — 없어도 웹 기존 기능은 돈다. /api/health 는 '있다'만 본다(길이·형식은 못 본다).
+  // 앱 로그인 503: KAKAO_APP_ID(카카오)·APPLE_BUNDLE_ID(애플)·APP_ACCESS_TOKEN_SECRET(둘 다, 32자 이상). 웹 애플 로그인은 APPLE_SERVICES_ID 가 없으면 apple_not_configured.
+  // APPLE_TEAM_ID·APPLE_KEY_ID·APPLE_PRIVATE_KEY(client_secret 서명)·APPLE_TOKEN_ENC_KEY(보관 암호화)가 없으면 애플 로그인은 되지만
+  // 리프레시 토큰을 못 남겨(오류 로그 step apple_code_exchange) 탈퇴 때 애플 연결을 못 끊고, 이미 남긴 회원은 탈퇴가 503 이다
   "APP_ACCESS_TOKEN_SECRET",
   "KAKAO_APP_ID",
   "APPLE_TEAM_ID",

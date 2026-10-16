@@ -6,7 +6,7 @@ import { appleNonceHash, verifyAppleIdentityToken } from "@/lib/auth/apple";
 import { appleNickname } from "@/lib/auth/nickname";
 import { signIn } from "@/lib/auth/sign-in";
 import { supabaseSignInDeps } from "@/lib/auth/sign-in-deps";
-import { appLoginResponse, appleRefreshTokenEnc, parsePlatform, rateLimited, readJson, str } from "@/lib/auth/app-route";
+import { appLoginResponse, appleRefreshTokenEnc, appTokenNotConfigured, parsePlatform, rateLimited, readJson, str } from "@/lib/auth/app-route";
 
 const ROUTE = "/api/auth/app/apple";
 
@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
     await logError(new Error("APPLE_BUNDLE_ID not set"), ctxFromRequest(request, { route: ROUTE }));
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
+  const tokenNotReady = await appTokenNotConfigured(request, ROUTE);
+  if (tokenNotReady) return tokenNotReady;
 
   const body = await readJson(request);
   const identityToken = str(body?.identityToken);

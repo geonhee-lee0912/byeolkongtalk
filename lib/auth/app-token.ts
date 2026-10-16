@@ -8,12 +8,23 @@ const ISSUER = "byeolkongtalk";
 const AUDIENCE = "byeolkong-app";
 const VERSION = 1;
 export const ACCESS_TTL_SEC = 60 * 60;
+const MIN_SECRET_LEN = 32;
+
+function usableSecret(secret: string | undefined): secret is string {
+  return typeof secret === "string" && secret.length >= MIN_SECRET_LEN;
+}
 
 function secretKey(secret: string | undefined): Uint8Array {
-  if (!secret || secret.length < 32) {
+  if (!usableSecret(secret)) {
     throw new Error("APP_ACCESS_TOKEN_SECRET not set or too short (min 32 chars)");
   }
   return new TextEncoder().encode(secret);
+}
+
+/** 운영 서명 비밀값(APP_ACCESS_TOKEN_SECRET)을 쓸 수 있나 — 앱 로그인 라우트가 가입(signIn) 전에 본다.
+ *  없거나 짧은 채로 가입까지 가면 회원·웰컴 별·CAPI 는 생기고 토큰만 못 줘 500 이 난다(/api/health 는 '있다'만 본다) */
+export function appTokenSecretReady(): boolean {
+  return usableSecret(process.env.APP_ACCESS_TOKEN_SECRET);
 }
 
 export async function signAccessToken(
