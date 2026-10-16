@@ -11,6 +11,7 @@ import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
+import { postToApp } from "@/lib/app-context";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
 
 interface Me {
@@ -119,6 +120,8 @@ export default function MyPage() {
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    // 앱 안이면 앱도 로그아웃(그 기기 토큰 폐기) — 브라우저에선 아무것도 안 한다(스펙 2026-10-12-앱-1 §5)
+    postToApp("auth.loggedOut");
     if (typeof window !== "undefined") {
       localStorage.removeItem("byeolkong_user");
       localStorage.removeItem("byeolkong_token");
@@ -136,6 +139,8 @@ export default function MyPage() {
     try {
       const r = await fetch("/api/auth/withdraw", { method: "POST" });
       if (r.ok) {
+        // 앱 안이면 앱도 로그아웃(기기 토큰 정리) — 서버 쪽 앱 토큰은 회원 삭제로 이미 지워졌다
+        postToApp("auth.loggedOut");
         if (typeof window !== "undefined") {
           localStorage.removeItem("byeolkong_user");
           localStorage.removeItem("byeolkong_token");
