@@ -20,12 +20,14 @@ export async function GET() {
     if (!primary) return NextResponse.json({ eligible: false });
 
     const supabase = getServiceSupabase();
-    const { data: claim } = await supabase
+    const { data: claim, error } = await supabase
       .from("bonus_claims")
       .select("kakao_id_hash")
       .eq("kakao_id_hash", identityHash(primary.provider, primary.providerUserId))
       .eq("bonus_type", "first_charge")
       .maybeSingle();
+    // 원장을 못 읽으면 이미 받은 사람인지 모른다 — 아래 catch 와 같은 이유로 비노출(supabase-js 는 조회 오류를 throw 하지 않는다)
+    if (error) return NextResponse.json({ eligible: false });
 
     return NextResponse.json({ eligible: !claim });
   } catch {
