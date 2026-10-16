@@ -25,4 +25,5 @@ jobs:
       - run: npm ci
       # qa/ 는 제외 — 실 CLAUDE_API_KEY 를 로드 시점에 요구하는 로컬 QA 하네스(.env.local 전용)
       - name: unit tests
-        run: node --import tsx --test $(find . -name "*.test.ts" -not -path "./node_modules/*" -not -path "./qa/*")
+        # mobile/src 의 순수 모듈 테스트(react-native import 없음)는 여기서 같이 돈다. 앱 라이브러리 폴더만 뺀다
+        run: node --import tsx --test $(find . -name "*.test.ts" -not -path "./node_modules/*" -not -path "./qa/*" -not -path "./mobile/node_modules/*")
