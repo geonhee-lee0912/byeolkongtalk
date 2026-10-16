@@ -24,7 +24,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
