@@ -284,7 +284,8 @@ export const UI_EVENTS = [
    *  login_page 에만 next = 로그인 뒤 갈 경로(쿼리·해시를 뗀 경로 부분 · next 가 없으면 "/" · 영숫자·/·_·- 밖이거나 40자를 넘으면 "other") — 어느 로그인 벽에서 눌렀는지 가른다 */
   "login_kakao_clicked",
   /** 애플 로그인 버튼 탭 — meta:{surface:"login_page"|"start_page"|"draw_sheet", spread?, next?}
-   *  버튼 노출: 웹=스위치(APPLE_LOGIN_WEB) · iOS 앱=늘 · 안드로이드 앱=숨김(lib/auth/apple-login-flag.ts). iOS 앱에선 앱이 이동을 가로채 네이티브 로그인을 띄운다 */
+   *  버튼 노출: 웹=스위치(APPLE_LOGIN_WEB) · iOS 앱=늘 · 안드로이드 앱=숨김(lib/auth/apple-login-flag.ts). iOS 앱에선 앱이 이동을 가로채 네이티브 로그인을 띄운다
+   *  ⚠️ start_page 는 짝이 없다 — /start 카카오 버튼엔 login_kakao_clicked 가 없다. 앱/웹은 meta 로 못 가른다 — anon_id 로 page_views.browser_env='app' 과 이어 가른다 */
   "login_apple_clicked",
   /** 로그인 창 '나중에 할래'·바깥 탭·Esc — meta:{spread} */
   "login_sheet_dismissed",

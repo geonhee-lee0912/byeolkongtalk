@@ -292,7 +292,7 @@ function StartPageInner() {
               </svg>
               카카오로 3초만에 가입하고 별 받기
             </a>
-            <AppleLoginButton next={`/start?${sp.toString()}`} surface="start_page" />
+            <AppleLoginButton next={`/start?${sp.toString()}`} surface="start_page" compact />
           </div>
         )}
 
