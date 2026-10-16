@@ -5,6 +5,13 @@ import type { ExpoConfig } from "expo/config";
 const IS_PROD = process.env.APP_VARIANT === "production";
 const SCHEME = IS_PROD ? "byeolkong" : "byeolkong-dev";
 const BUNDLE_ID = IS_PROD ? "com.byeolkongtalk.app" : "com.byeolkongtalk.app.dev";
+const KAKAO_NATIVE_APP_KEY = process.env.KAKAO_NATIVE_APP_KEY ?? "";
+
+// EAS 빌드 서버(EAS_BUILD=true — 로컬 expo config·expo start 엔 없다)에서 카카오 키가 비면 빌드를 멈춘다.
+// 비어도 prebuild 는 조용히 성공하고 앱의 카카오 로그인만 죽는다
+if (process.env.EAS_BUILD === "true" && !KAKAO_NATIVE_APP_KEY) {
+  throw new Error("KAKAO_NATIVE_APP_KEY 가 비었다 — 이 빌드 프로필의 EAS 환경(eas.json environment)에 넣는다");
+}
 
 const config: ExpoConfig = {
   name: IS_PROD ? "별콩톡" : "별콩톡 dev",
@@ -28,14 +35,20 @@ const config: ExpoConfig = {
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#FAF6F0" }],
     // 카카오 SDK 안드로이드 저장소
     ["expo-build-properties", { android: { extraMavenRepos: ["https://devrepo.kakao.com/nexus/content/groups/public/"] } }],
-    ["@react-native-seoul/kakao-login", { kakaoAppKey: process.env.KAKAO_NATIVE_APP_KEY ?? "" }],
+    // 안드로이드 자동 백업·기기 이전에서 보안 저장소(리프레시 토큰)를 뺀다 — 백업 범위가 shared prefs 로 좁아져 웹뷰 쿠키도 안 간다.
+    // Face ID 는 쓰지 않는다(requireAuthentication 미사용) — 권한 문구를 넣지 않는다
+    ["expo-secure-store", { faceIDPermission: false }],
+    // 🔴 카카오 플러그인보다 앞에 둔다 — 이유는 plugins/withKakaoOpenUrl.js 머리 주석
+    "./plugins/withKakaoOpenUrl.js",
+    ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
   ],
   extra: {
     variant: IS_PROD ? "production" : "development",
     scheme: SCHEME,
     baseUrl: process.env.EXPO_PUBLIC_BASE_URL ?? (IS_PROD ? "https://byeolkongtalk.com" : "https://dev.byeolkongtalk.com"),
-    // 개발용 빌드만 — dev 사이트 Vercel 접근 보호 통과용. 운영 빌드엔 절대 넣지 않는다
-    vercelBypass: IS_PROD ? null : (process.env.VERCEL_BYPASS_SECRET ?? null),
+    // 개발용 빌드만 — dev 사이트 Vercel 접근 보호 통과용. 운영 빌드엔 절대 넣지 않는다.
+    // 🔴 null 금지 — @expo/config 가 설정을 직렬화하며 null 을 {} 로 바꾼다. undefined 는 키째 빠진다(읽는 쪽 src/extra.ts 도 문자열만 받는다)
+    vercelBypass: IS_PROD ? undefined : process.env.VERCEL_BYPASS_SECRET || undefined,
   },
 };
 

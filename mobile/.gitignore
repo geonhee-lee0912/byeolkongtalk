@@ -51,3 +51,9 @@ dist/
 *.key
 *.mobileprovision
 .env*.local
+# EAS 로컬 자격 증명(credentials.json 엔 키스토어·인증서 비밀번호가 평문) · 키스토어 · 빌드 산출물(개발용 빌드엔 Vercel 우회 값이 들어 있다)
+credentials.json
+*.keystore
+*.apk
+*.aab
+*.ipa
