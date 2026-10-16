@@ -140,3 +140,38 @@ test("detectBrowserEnv — Threads(Barcelona) 는 ig 로 접는다", () => {
     "ig",
   );
 });
+
+// 우리 앱(React Native 웹뷰) — 안드로이드 웹뷰 UA 에도 '; wv' 가 있어 other_inapp 보다 먼저 봐야 한다(스펙 2026-10-12-앱-1 §6)
+test("detectBrowserEnv — 우리 앱 웹뷰는 app (iOS·안드로이드)", () => {
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (Linux; Android 14; SM-S921N Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.0.0 Mobile Safari/537.36 ByeolkongApp/1.0.0 (android)",
+    ),
+    "app",
+  );
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ByeolkongApp/1.0.0 (ios)",
+    ),
+    "app",
+  );
+});
+
+test("우리 앱 UA 는 봇이 아니다", () => {
+  assert.equal(
+    isBotUserAgent(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ByeolkongApp/1.0.0 (ios)",
+    ),
+    false,
+  );
+});
+
+// 서버 관문(parseAppUserAgent)과 같은 판정 — 표식만 있고 꼬리 모양이 틀리면 app 이 아니다(includes 로 되돌리면 이 테스트가 잡는다)
+test("detectBrowserEnv — 꼬리 모양이 틀린 우리 표식은 app 이 아니다(서버 관문과 같은 판정)", () => {
+  assert.equal(
+    detectBrowserEnv(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ByeolkongApp/1.0.0 (web)",
+    ),
+    "browser",
+  );
+});
