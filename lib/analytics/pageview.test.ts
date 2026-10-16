@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { detectBrowserEnv, isBotUserAgent, normalizePath } from "./pageview.ts";
+import { parseAppUserAgent } from "../app-bridge/protocol.ts";
 
 test("isBotUserAgent — UA 없으면 봇 취급", () => {
   assert.equal(isBotUserAgent(null), true);
@@ -174,4 +175,23 @@ test("detectBrowserEnv — 꼬리 모양이 틀린 우리 표식은 app 이 아�
     ),
     "browser",
   );
+});
+
+// app 은 서버 관문(parseAppUserAgent)과 한 몸이어야 한다 — 따로 정규식을 두면 경계값(긴 버전·허용 밖 문자·대소문자)에서 갈라진다
+test("detectBrowserEnv — app 판정 = 서버 관문 판정(경계값 포함)", () => {
+  const base = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
+  const tails = [
+    "ByeolkongApp/1.0.0 (ios)",
+    "ByeolkongApp/1.0.0 (android)",
+    "ByeolkongApp/1.0.0 (web)",
+    "ByeolkongApp/ (ios)",
+    "ByeolkongApp/1.0.0+5 (ios)",
+    `ByeolkongApp/${"1".repeat(32)} (ios)`,
+    `ByeolkongApp/${"1".repeat(33)} (ios)`,
+    "byeolkongapp/1.0.0 (ios)",
+  ];
+  for (const tail of tails) {
+    const ua = `${base} ${tail}`;
+    assert.equal(detectBrowserEnv(ua) === "app", parseAppUserAgent(ua) !== null, tail);
+  }
 });

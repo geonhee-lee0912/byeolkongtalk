@@ -43,7 +43,7 @@ export function detectBrowserEnv(
   ua: string | null | undefined,
 ): BrowserEnv | null {
   if (!ua) return null; // 추측하지 않는다 — 모르면 null
-  if (parseAppUserAgent(ua)) return "app"; // 우리 앱 웹뷰(스펙 2026-10-12-앱-1 §6) — 서버 관문(handoff·reset)과 같은 판정이라, 관문이 앱을 못 알아보면 어드민 트래픽의 앱 비중으로도 드러난다
+  if (parseAppUserAgent(ua)) return "app"; // 우리 앱 웹뷰(스펙 2026-10-12-앱-1 §6) — 서버 관문(handoff·reset)과 같은 함수로 판정한다. 앱·웹을 나눠 보는 어드민 화면은 아직 없다(앱 전환 상위 설계 ④) — 그 전엔 page_views.browser_env 를 원시 SQL 로 본다
   if (/instagram|barcelona/i.test(ua)) return "ig"; // Barcelona = Threads
   if (/fban|fbav|fb_iab/i.test(ua)) return "fb";
   if (/kakaotalk/i.test(ua)) return "kakao";
