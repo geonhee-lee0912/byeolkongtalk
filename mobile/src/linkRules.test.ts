@@ -36,14 +36,19 @@ test("다른 http(s) 사이트는 앱 안 브라우저로 — 단 iframe 이동�
   assert.deepEqual(decideNavigation("https://www.facebook.com/tr?id=1", BASE, { isTopFrame: false }), { kind: "allow" });
 });
 
-test("앱 호출 주소는 OS 로, 엔진 내부 주소는 그대로, file: 과 모양 없는 값은 막는다", () => {
+test("앱 호출 주소는 OS 로, 엔진 내부 주소는 그대로, file:·data:·남의 blob: 과 모양 없는 값은 막는다", () => {
   for (const u of ["kakaolink://send?x=1", "kakaotalk://inappbrowser", "intent://send#Intent;scheme=kakaolink;end", "tel:0212345678", "mailto:a@b.c"]) {
     assert.deepEqual(decideNavigation(u, BASE), { kind: "os" }, u);
   }
-  for (const u of ["about:blank", "blob:https://byeolkongtalk.com/1", "data:text/plain,hi"]) {
+  for (const u of ["about:blank", "blob:https://byeolkongtalk.com/1"]) {
     assert.deepEqual(decideNavigation(u, BASE), { kind: "allow" }, u);
   }
   assert.deepEqual(decideNavigation("file:///etc/passwd", BASE), { kind: "block" });
+  // 최상위 data:·남의 blob: — 주소창 없는 앱 화면에 남이 만든 HTML 이 뜬다(iframe 안은 위 isTopFrame 규칙으로 그대로 둔다)
+  for (const u of ["data:text/html,<h1>hi</h1>", "blob:https://evil.example/1", "blob:null/1"]) {
+    assert.deepEqual(decideNavigation(u, BASE), { kind: "block" }, u);
+  }
+  assert.deepEqual(decideNavigation("data:text/html,<h1>hi</h1>", BASE, { isTopFrame: false }), { kind: "allow" });
   assert.deepEqual(decideNavigation("no-scheme", BASE), { kind: "block" });
 });
 
@@ -58,4 +63,15 @@ test("intent: — 카카오톡 공유 주소를 scheme 주소와 대체 주소�
   );
   assert.deepEqual(parseIntentUrl("intent://x"), { primary: null, fallback: null });
   assert.equal(parseIntentUrl("https://byeolkongtalk.com"), null);
+});
+
+test("intent: — 대체 주소는 http(s) 만(javascript:·intent: 는 버리고 마켓으로)", () => {
+  assert.deepEqual(
+    parseIntentUrl("intent://x#Intent;scheme=foo;package=com.kakao.talk;S.browser_fallback_url=javascript%3Aalert(1);end"),
+    { primary: "foo://x", fallback: "market://details?id=com.kakao.talk" },
+  );
+  assert.deepEqual(
+    parseIntentUrl("intent://x#Intent;scheme=foo;S.browser_fallback_url=intent%3A%2F%2Fy%23Intent%3Bend;end"),
+    { primary: "foo://x", fallback: null },
+  );
 });

@@ -27,9 +27,11 @@ export function pathOf(rest: string): string {
   return rest.split(/[?#]/)[0] || "/";
 }
 
-/** 쿼리 값 하나 — 없거나 디코딩이 깨지면 null(해시 뒤는 보지 않는다) */
+/** 쿼리 값 하나 — 없거나 디코딩이 깨지면 null(해시 뒤는 보지 않는다). 쿼리는 첫 ? 뒤 전부다(URLSearchParams 와 같다 — 값 속 ? 에서 자르지 않는다) */
 export function queryParam(rest: string, name: string): string | null {
-  const q = rest.split("#")[0].split("?")[1];
+  const head = rest.split("#")[0];
+  const qAt = head.indexOf("?");
+  const q = qAt >= 0 ? head.slice(qAt + 1) : "";
   if (!q) return null;
   for (const part of q.split("&")) {
     const eq = part.indexOf("=");
@@ -50,8 +52,8 @@ export function safeAppPath(raw: string | null | undefined): string | null {
   if (!raw.startsWith("/") || raw.startsWith("//")) return null;
   // 백슬래시·공백·제어문자는 브라우저가 정규화하며 바깥 주소로 바뀔 수 있다 — 아예 거절
   if (/[\\\s\u0000-\u001f\u007f]/.test(raw)) return null;
-  // 경로의 . / .. 조각 거절(쿼리 값의 점은 괜찮다)
-  if (/(^|\/)\.{1,2}(\/|$)/.test(pathOf(raw))) return null;
+  // 경로의 . / .. 조각 거절(쿼리 값의 점은 괜찮다). 퍼센트 인코딩 점(%2e)도 URL 파서가 점 조각으로 푼다 — /%2e%2e//x 는 //x 가 된다
+  if (/(^|\/)(\.|%2e){1,2}(\/|$)/i.test(pathOf(raw))) return null;
   return raw;
 }
 

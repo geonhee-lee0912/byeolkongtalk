@@ -15,11 +15,14 @@ const LOGIN_PATHS: Record<string, "kakao" | "apple"> = {
   "/api/auth/login/apple": "apple",
 };
 
-/** 웹뷰 안에서 그대로 두는 엔진 내부 주소 */
-const INTERNAL_SCHEMES = new Set(["about", "blob", "data", "javascript"]);
+/** 웹뷰 안에서 그대로 두는 엔진 내부 주소. data:·남의 blob: 은 막는다 — 최상위로 열리면 주소창 없는 앱 화면에 남이 만든 HTML 이 뜬다
+ *  (우리 웹은 data: 로 이동하지 않고, blob: 은 우리 출처 것만 쓴다 — 이미지 저장) */
+const INTERNAL_SCHEMES = new Set(["about", "javascript"]);
 
 export function decideNavigation(url: string, base: string, opts: { isTopFrame?: boolean } = {}): NavDecision {
-  // iframe(메타 픽셀·결제 위젯 등)의 이동은 건드리지 않는다 — 메인 화면 이동만 규칙을 탄다
+  // iframe(메타 픽셀·결제 위젯 등)의 이동은 건드리지 않는다 — 메인 화면 이동만 규칙을 탄다.
+  // isTopFrame 은 iOS 만 준다(react-native-webview 14). 안드로이드는 이 값이 없어 최상위로 본다 — 크로미움이 iframe 의 http(s)·about 이동은
+  // 묻지 않고 다른 주소 체계(intent: 등)만 물어서[추정 — Task 28 #12], 안드로이드에선 iframe 의 intent: 도 아래 규칙을 그대로 탄다
   if (opts.isTopFrame === false) return { kind: "allow" };
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)?.[1]?.toLowerCase();
   if (!scheme) return { kind: "block" };
@@ -31,12 +34,13 @@ export function decideNavigation(url: string, base: string, opts: { isTopFrame?:
     return { kind: "allow" };
   }
   if (INTERNAL_SCHEMES.has(scheme)) return { kind: "allow" };
-  if (scheme === "file") return { kind: "block" };
+  if (scheme === "blob") return isOurUrl(url.slice("blob:".length), base) ? { kind: "allow" } : { kind: "block" };
+  if (scheme === "file" || scheme === "data") return { kind: "block" };
   return { kind: "os" };
 }
 
 /** 안드로이드 intent: 주소 → 열어 볼 주소 후보(RN Linking 은 intent: 를 직접 못 연다 — 카카오톡 공유가 이걸 쓴다).
- *  primary = scheme 주소, fallback = S.browser_fallback_url → 없으면 마켓 */
+ *  primary = scheme 주소, fallback = S.browser_fallback_url(http(s) 만 — 크롬과 같은 규칙) → 없으면 마켓 */
 export function parseIntentUrl(url: string): { primary: string | null; fallback: string | null } | null {
   if (!/^intent:/i.test(url)) return null;
   const marker = url.indexOf("#Intent;");
@@ -50,7 +54,9 @@ export function parseIntentUrl(url: string): { primary: string | null; fallback:
     else if (part.startsWith("package=")) pkg = part.slice("package=".length);
     else if (part.startsWith("S.browser_fallback_url=")) {
       try {
-        fallback = decodeURIComponent(part.slice("S.browser_fallback_url=".length));
+        const v = decodeURIComponent(part.slice("S.browser_fallback_url=".length));
+        // javascript:·intent:·다른 앱 주소는 버린다 — 대체 주소는 웹 페이지만
+        fallback = /^https?:\/\//i.test(v) ? v : null;
       } catch {
         fallback = null;
       }

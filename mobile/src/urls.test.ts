@@ -14,6 +14,8 @@ test("isOurUrl — 같은 scheme·host 와 www 만 우리 주소", () => {
   assert.equal(isOurUrl("https://byeolkongtalk.com@evil.example/", BASE), false);
   assert.equal(isOurUrl("https://dev.byeolkongtalk.com/", BASE), false);
   assert.equal(isOurUrl("kakaolink://send", BASE), false);
+  // 주소 맨 앞만 본다 — 웹뷰 메시지를 보낸 data: 문서 안에 우리 주소 글자가 있어도 우리 것이 아니다
+  assert.equal(isOurUrl("data:text/html,https://byeolkongtalk.com/", BASE), false);
 });
 
 test("queryParam — 값 하나를 꺼내 디코딩, 없거나 깨지면 null", () => {
@@ -22,12 +24,19 @@ test("queryParam — 값 하나를 꺼내 디코딩, 없거나 깨지면 null", 
   assert.equal(queryParam("/x?a=1#next=/evil", "next"), null);
   assert.equal(queryParam("/x", "next"), null);
   assert.equal(queryParam("/x?next=%E0%A4%A", "next"), null);
+  // 값 속 ? 는 쿼리의 일부다(URLSearchParams 와 같다)
+  assert.equal(queryParam("/api/auth/login/kakao?next=/a?b=1", "next"), "/a?b=1");
 });
 
 test("safeAppPath — 내부 경로만", () => {
   assert.equal(safeAppPath("/tarot/draw?resume=login"), "/tarot/draw?resume=login");
   assert.equal(safeAppPath("/"), "/");
   assert.equal(safeAppPath("/a?x=../y"), "/a?x=../y");
+  assert.equal(safeAppPath("/a?x=/../y"), "/a?x=/../y");
+  // 퍼센트 인코딩 점 조각도 점 조각이다 — 웹 safeNextPath 는 /%2e%2e//x 를 //x 로 풀어 거절한다
+  for (const bad of ["/%2e%2e//evil.example", "/a/%2e%2e/b", "/.%2E/a", "/%2e/a"]) {
+    assert.equal(safeAppPath(bad), null, bad);
+  }
   for (const bad of ["", "tarot", "//evil.example", "/\\evil.example", "https://evil.example", "/a/../b", "/./a", "/a b", "/a\nb", `/${"a".repeat(500)}`, null, undefined]) {
     assert.equal(safeAppPath(bad as string | null | undefined), null, String(bad));
   }
