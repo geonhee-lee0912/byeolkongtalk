@@ -15,8 +15,10 @@ export class ApiError extends Error {
   }
 }
 
-/** 서버가 토큰을 거절했다(무효·재사용·회원 없음) — 기기 토큰을 지울 신호 */
-export const isAuthError = (e: unknown) => e instanceof ApiError && e.status === 401;
+/** 서버가 토큰을 거절했다(무효·재사용·회원 없음) — 기기 토큰을 지울 신호. 우리 갱신 라우트의 401 코드만 본다 —
+ *  우리 서버가 아닌 401(개발용 빌드의 Vercel 접근 보호 등 — 본문이 JSON 이 아니라 http_401)로 토큰을 지우지 않게 */
+export const isAuthError = (e: unknown) =>
+  e instanceof ApiError && e.status === 401 && (e.code === "invalid" || e.code === "reused");
 
 async function post(path: string, body: Record<string, unknown>, accessToken?: string): Promise<Record<string, unknown>> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };

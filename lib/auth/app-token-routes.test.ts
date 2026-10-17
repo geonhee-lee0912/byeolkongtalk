@@ -1,7 +1,7 @@
 // 앱 토큰 라우트(app/api/auth/app/refresh · handoff-code · logout · handoff · reset)의 겉 동작을 잠근다(스펙 2026-10-12-앱-1 §7-4).
 // ① 응답 모양 = 현장의 앱(mobile/src/auth/api.ts — tokensFrom·handoffCode)이 읽는 계약. 갱신 응답 모양이 깨지면 서버는 옛 토큰을 이미 교체했는데
 //    앱은 새 토큰을 저장하지 못해, 다음 실행 때 옛 토큰이 '재사용'으로 판정되고 그 기기들이 전부 로그아웃된다(앱은 서버처럼 바로 못 고친다)
-// ② 앱은 401 만 '이 기기 로그인은 끝났다'로 읽고(기기 토큰을 지운다) 429·500·503 이면 토큰을 지킨다(Task 23 isAuthError) — 상태 코드가 곧 앱 동작이다
+// ② 앱은 401 + 본문 error 가 invalid·reused 일 때만 '이 기기 로그인은 끝났다'로 읽고(기기 토큰을 지운다) 429·500·503 이면 토큰을 지킨다(Task 23 isAuthError) — 상태 코드와 본문 코드가 곧 앱 동작이다
 // ③ 교환 코드는 Bearer 로만 발급하고(쿠키 세션으로는 안 된다), 토큰·코드 원문은 로그에 남지 않으며, 무효 코드는 로그를 남기지 않는다
 // handoff 의 앱 UA 관문·헤더 코드는 app-handoff-route.test.ts 가 따로 잠근다.
 // 의존성은 resolve 훅으로 ./app-token-routes.fakes.ts(메모리 표 + 로그)로 바꿔 끼운다. 토큰 교체·서명·속도 제한·쿠키는 진짜다.

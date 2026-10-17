@@ -37,6 +37,17 @@ export function createAuthSession(deps: {
   const now = deps.now ?? Date.now;
   let access: { token: string; expiresAt: number } | null = null;
   let refreshing: Promise<string | null> | null = null;
+  // 토큰을 바꾸는 일(갱신·로그인 저장·로그아웃)은 한 줄로 세운다 — 엇갈리면 로그아웃 뒤에 시작한 갱신이 지운 토큰을 되살리고,
+  // 늦게 끝난 갱신이 방금 로그인한 토큰을 옛 토큰으로 덮거나(성공) 지운다(401)
+  let queue: Promise<unknown> = Promise.resolve();
+  function serial<T>(job: () => Promise<T>): Promise<T> {
+    const run = queue.then(job);
+    queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
 
   async function save(t: Tokens): Promise<void> {
     await deps.store.setRefresh(t.refreshToken);
@@ -63,7 +74,7 @@ export function createAuthSession(deps: {
   async function ensureAccessToken(): Promise<string | null> {
     if (access && access.expiresAt - now() > EARLY_REFRESH_MS) return access.token;
     if (!refreshing) {
-      refreshing = refreshOnce().finally(() => {
+      refreshing = serial(refreshOnce).finally(() => {
         refreshing = null;
       });
     }
@@ -87,19 +98,25 @@ export function createAuthSession(deps: {
 
   async function login(payload: LoginPayload): Promise<{ handoffCode: string; isNewUser: boolean }> {
     const r = await deps.api.login(payload);
-    await save(r);
+    // 앞서 시작한 갱신이 끝난 뒤에 저장한다 — 늦게 온 그 결과(옛 토큰·401 지우기)가 이 로그인을 덮지 않게
+    await serial(() => save(r));
     return { handoffCode: r.handoffCode, isNewUser: r.isNewUser };
   }
 
   /** 기기 토큰을 지우고 서버에 그 기기 묶음 폐기를 알린다(서버 실패는 무시 — 기기엔 이미 없다) */
   async function logout(): Promise<void> {
-    // 진행 중인 갱신이 끝난 뒤의 토큰으로 — 늦게 끝난 갱신이 로그아웃 뒤에 토큰을 되살리지 않게
-    await refreshing?.catch(() => null);
-    // 보안 저장소 읽기·지우기가 실패해도(키체인 오류) 할 수 있는 건 끝까지 한다 — 웹은 이미 로그아웃됐고, 못 지운 토큰이 서버에서도 살아 있으면
-    // 다음 실행 때 앱이 조용히 다시 로그인시킨다. 서버 묶음만 폐기해 두면 그 토큰은 다음 실행에 401 → reset 으로 끝난다
-    const refreshToken = await deps.store.getRefresh().catch(() => null);
+    // 지금부터는 메모리 토큰을 내주지 않고, 새 토큰 요청은 로그아웃 뒤에 줄을 세운다(그때 기기엔 토큰이 없다)
     access = null;
-    await deps.store.clear().catch(() => {});
+    refreshing = null;
+    // 앞서 시작한 갱신이 끝난 뒤의 토큰으로 — 늦게 끝난 갱신이 로그아웃 뒤에 토큰을 되살리지 않게(갱신은 api.ts 가 10초에 끊으니 최대 그만큼 기다린다)
+    const refreshToken = await serial(async () => {
+      access = null; // 앞서 끝난 갱신이 넣은 것까지
+      // 보안 저장소 읽기·지우기가 실패해도(키체인 오류) 할 수 있는 건 끝까지 한다 — 웹은 이미 로그아웃됐고, 못 지운 토큰이 서버에서도 살아 있으면
+      // 다음 실행 때 앱이 조용히 다시 로그인시킨다. 서버 묶음만 폐기해 두면 그 토큰은 다음 실행에 401 → reset 으로 끝난다
+      const rt = await deps.store.getRefresh().catch(() => null);
+      await deps.store.clear().catch(() => {});
+      return rt;
+    });
     if (refreshToken) await deps.api.logout(refreshToken).catch(() => {});
   }
 

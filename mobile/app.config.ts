@@ -45,7 +45,8 @@ const config: ExpoConfig = {
   extra: {
     variant: IS_PROD ? "production" : "development",
     scheme: SCHEME,
-    baseUrl: process.env.EXPO_PUBLIC_BASE_URL ?? (IS_PROD ? "https://byeolkongtalk.com" : "https://dev.byeolkongtalk.com"),
+    // 주소 바꾸기(EXPO_PUBLIC_BASE_URL — 로컬 개발 서버 등)는 개발용 빌드만. 운영 빌드는 늘 운영 주소 — EAS 환경 변수를 잘못 넣어도 운영 앱이 다른 서버로 붙지 않게
+    baseUrl: IS_PROD ? "https://byeolkongtalk.com" : (process.env.EXPO_PUBLIC_BASE_URL ?? "https://dev.byeolkongtalk.com"),
     // 개발용 빌드만 — dev 사이트 Vercel 접근 보호 통과용. 운영 빌드엔 절대 넣지 않는다.
     // 🔴 null 금지 — @expo/config 가 설정을 직렬화하며 null 을 {} 로 바꾼다. undefined 는 키째 빠진다(읽는 쪽 src/extra.ts 도 문자열만 받는다)
     vercelBypass: IS_PROD ? undefined : process.env.VERCEL_BYPASS_SECRET || undefined,
