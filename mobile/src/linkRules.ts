@@ -1,5 +1,5 @@
 // 웹뷰 이동 규칙 — 스펙 2026-10-12-앱-1 §4. 순수 함수(테스트 linkRules.test.ts). react-native import 금지.
-// 1) 우리 로그인 시작 주소 → 네이티브 로그인  2) 그 밖의 우리 주소 → 웹뷰  3) 다른 http(s) → 앱 안 브라우저
+// 1) 우리 로그인 시작 주소 → 네이티브 로그인  2) 그 밖의 우리 주소 → 웹뷰  3) 다른 http(s) → 앱 안 브라우저(앱을 여는 유니버설 링크는 OS)
 // 4) 앱 호출 주소(kakaolink: · intent: · tel: …) → OS. 로그아웃은 주소가 아니라 웹 메시지(auth.loggedOut)로 받는다.
 import { isOurUrl, pathOf, queryParam, safeAppPath, splitUrl } from "./urls.ts";
 
@@ -19,6 +19,12 @@ const LOGIN_PATHS: Record<string, "kakao" | "apple"> = {
  *  (우리 웹은 data: 로 이동하지 않고, blob: 은 우리 출처 것만 쓴다 — 이미지 저장) */
 const INTERNAL_SCHEMES = new Set(["about", "javascript"]);
 
+/** 다른 사이트 주소지만 앱을 여는 유니버설 링크 — 앱 안 브라우저(iOS SFSafariViewController)로 처음 연 주소는 앱을 열지 않고 그 웹 페이지만 띄운다.
+ *  OS 에 넘기면(Linking.openURL) 그 앱이 열리고, 앱이 없으면 기본 브라우저가 연다.
+ *  카카오 JS SDK 2.7.4 공유는 iOS 에서 카카오톡을 https://talk-apps.kakao.com/scheme/<encodeURIComponent(kakaolink://send…)> 로 연다
+ *  (callWeb2appForTalk → web2appViaCustomUrlSchemeForIOS 가 window.top.location.href 로. 안드로이드는 intent:) */
+const APP_LINK_HOSTS = new Set(["talk-apps.kakao.com"]);
+
 export function decideNavigation(url: string, base: string, opts: { isTopFrame?: boolean } = {}): NavDecision {
   // iframe(메타 픽셀·결제 위젯 등)의 이동은 건드리지 않는다 — 메인 화면 이동만 규칙을 탄다.
   // isTopFrame 은 iOS 만 준다(react-native-webview 14). 안드로이드는 이 값이 없어 최상위로 본다 — 크로미움이 iframe 의 http(s)·about 이동은
@@ -27,7 +33,7 @@ export function decideNavigation(url: string, base: string, opts: { isTopFrame?:
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)?.[1]?.toLowerCase();
   if (!scheme) return { kind: "block" };
   if (scheme === "http" || scheme === "https") {
-    if (!isOurUrl(url, base)) return { kind: "browser" };
+    if (!isOurUrl(url, base)) return APP_LINK_HOSTS.has(splitUrl(url)?.host ?? "") ? { kind: "os" } : { kind: "browser" };
     const rest = splitUrl(url)?.rest ?? "";
     const provider = LOGIN_PATHS[pathOf(rest)];
     if (provider) return { kind: "login", provider, next: safeAppPath(queryParam(rest, "next")) ?? "/" };

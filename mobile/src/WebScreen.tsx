@@ -11,7 +11,7 @@ import { appUserAgentSuffix, parseWebToApp } from "../../lib/app-bridge/protocol
 import { appInfo, config } from "./config";
 import { decideNavigation, parseIntentUrl, type NavDecision } from "./linkRules.ts";
 import { pathFromDeepLink } from "./deeplink.ts";
-import { handoffSource, isOurUrl, resetUrl, withVercelBypass, type HandoffMode, type WebSource } from "./urls.ts";
+import { handoffSource, isOurUrl, pathOf, resetUrl, splitUrl, withVercelBypass, type HandoffMode, type WebSource } from "./urls.ts";
 import { createAuthSession } from "./auth/session.ts";
 import { secureTokenStore } from "./auth/tokenStore";
 import { authApi, isAuthError } from "./auth/api";
@@ -54,6 +54,14 @@ async function openExternal(url: string): Promise<void> {
   }
 }
 
+/** 딥링크 → 웹뷰가 그대로 열 경로. 이동 규칙이 가로채는 경로(로그인 시작 주소)는 버린다 — 바깥 링크 하나로 네이티브 로그인이 뜨고,
+ *  콜드 스타트면 첫 이동이 가로채여 화면이 하나도 안 떠 스플래시가 닫히지 않는다(로그인을 취소하면 그대로 멈춘다).
+ *  iOS 는 source 이동도 이동 규칙에 묻고 안드로이드는 묻지 않아 플랫폼마다 달랐다 — 여기서 같은 규칙으로 거른다 */
+function openablePath(url: string | null | undefined): string | null {
+  const path = pathFromDeepLink(url, config.scheme);
+  return path && decideNavigation(config.baseUrl + path, config.baseUrl).kind === "allow" ? path : null;
+}
+
 export default function WebScreen() {
   const webRef = useRef<WebView<object>>(null);
   const [source, setSource] = useState<WebSource | null>(null);
@@ -65,10 +73,14 @@ export default function WebScreen() {
   // 앱을 껐다 켤 때까지 로그인 버튼이 죽는다
   const loginTurn = useRef(0);
   const loginStartedAt = useRef(0);
+  // 웹뷰를 새로 만들 때(reopen) 바꾸는 key · 그때 열 마지막 화면(우리 페이지만, /api/ 주소 빼고)
+  const [webKey, setWebKey] = useState(0);
+  const lastPage = useRef<string | null>(null);
 
   // 앱 실행 — 토큰 갱신 + 교환 코드로 웹뷰 쿠키를 맞춘다(스펙 §7-4). 딥링크로 열렸으면 그 경로로
   const boot = useCallback(async () => {
-    const next = pathFromDeepLink(await Linking.getInitialURL(), config.scheme) ?? "/";
+    // 실행 주소를 못 읽어도 부팅은 끝까지 간다 — 여기서 멈추면 source 가 안 생겨 스플래시가 닫히지 않는다
+    const next = openablePath(await Linking.getInitialURL().catch(() => null)) ?? "/";
     const target = await auth.startTarget();
     setSource(
       target.kind === "handoff"
@@ -84,7 +96,7 @@ export default function WebScreen() {
   // 앱이 떠 있을 때 들어온 딥링크
   useEffect(() => {
     const sub = Linking.addEventListener("url", ({ url }) => {
-      const path = pathFromDeepLink(url, config.scheme);
+      const path = openablePath(url);
       if (path) setSource(plain(config.baseUrl + path)); // 헤더 없이 — 경로에 code 를 넣어 와도 서버가 보지 않는다
     });
     return () => sub.remove();
@@ -181,11 +193,22 @@ export default function WebScreen() {
     }
   }, [boot]);
 
+  // 안드로이드 — 웹뷰 렌더 프로세스가 죽으면(백그라운드 메모리 회수·충돌) 그 웹뷰는 다시 못 쓴다(WebViewClient.onRenderProcessGone 문서).
+  // 라이브러리는 앱이 꺼지지 않게만 막고 죽은 웹뷰를 그대로 둬 화면이 빈다 — 새 웹뷰(key)로 마지막 화면을 연다.
+  // source 를 그대로 다시 열면 교환 코드 주소(이미 쓴 코드)라 로그인 실패로 간다 — 헤더 없는 마지막 화면 주소로
+  const reopen = useCallback(() => {
+    canGoBack.current = false;
+    setOffline(false);
+    setSource(plain(lastPage.current ?? config.baseUrl + "/"));
+    setWebKey((k) => k + 1);
+  }, []);
+
   if (!source) return <View style={styles.fill} />;
 
   return (
     <View style={styles.fill}>
       <WebView<object>
+        key={webKey}
         ref={webRef}
         source={source}
         style={styles.fill}
@@ -201,6 +224,7 @@ export default function WebScreen() {
         onMessage={onMessage}
         onNavigationStateChange={(s) => {
           canGoBack.current = s.canGoBack;
+          if (isOurUrl(s.url, config.baseUrl) && !pathOf(splitUrl(s.url)?.rest ?? "").startsWith("/api/")) lastPage.current = s.url;
         }}
         onLoad={() => {
           loadedOnce.current = true;
@@ -209,6 +233,10 @@ export default function WebScreen() {
           SplashScreen.hideAsync().catch(() => {});
         }}
         onError={onError}
+        // iOS — 웹 콘텐츠 프로세스가 죽으면(백그라운드 메모리 회수 등) 화면이 빈 채로 남는다: 라이브러리가 종료 알림 함수를 갖고 있어
+        // WebKit 이 '앱이 처리했다'고 보고 스스로 다시 읽지 않는다 — 앱이 다시 읽는다(기록·주소 그대로)
+        onContentProcessDidTerminate={() => webRef.current?.reload()}
+        onRenderProcessGone={reopen}
         domStorageEnabled
         allowsBackForwardNavigationGestures
         webviewDebuggingEnabled={config.variant === "development"}

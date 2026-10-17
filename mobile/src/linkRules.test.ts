@@ -36,6 +36,19 @@ test("다른 http(s) 사이트는 앱 안 브라우저로 — 단 iframe 이동�
   assert.deepEqual(decideNavigation("https://www.facebook.com/tr?id=1", BASE, { isTopFrame: false }), { kind: "allow" });
 });
 
+test("앱을 여는 유니버설 링크(카카오 SDK iOS 공유)는 OS 로 — 앱 안 브라우저로 열면 카카오톡이 안 열린다", () => {
+  // 카카오 JS SDK 2.7.4 callWeb2appForTalk: URL.universalKakaoLink("https://talk-apps.kakao.com/scheme/") + encodeURIComponent(urlScheme)
+  const share = "https://talk-apps.kakao.com/scheme/" + encodeURIComponent("kakaolink://send?appkey=k&linkver=4.0");
+  assert.deepEqual(decideNavigation(share, BASE, { isTopFrame: true }), { kind: "os" });
+  assert.deepEqual(decideNavigation(share, BASE), { kind: "os" });
+  // 비슷한 호스트·사용자 정보로 꾸민 주소는 그대로 앱 안 브라우저
+  assert.deepEqual(decideNavigation("https://talk-apps.kakao.com.evil.example/scheme/x", BASE), { kind: "browser" });
+  assert.deepEqual(decideNavigation("https://talk-apps.kakao.com@evil.example/scheme/x", BASE), { kind: "browser" });
+  assert.deepEqual(decideNavigation("https://evil.example/talk-apps.kakao.com/scheme/x", BASE), { kind: "browser" });
+  // iframe 안 이동은 여전히 건드리지 않는다
+  assert.deepEqual(decideNavigation(share, BASE, { isTopFrame: false }), { kind: "allow" });
+});
+
 test("앱 호출 주소는 OS 로, 엔진 내부 주소는 그대로, file:·data:·남의 blob: 과 모양 없는 값은 막는다", () => {
   for (const u of ["kakaolink://send?x=1", "kakaotalk://inappbrowser", "intent://send#Intent;scheme=kakaolink;end", "tel:0212345678", "mailto:a@b.c"]) {
     assert.deepEqual(decideNavigation(u, BASE), { kind: "os" }, u);
