@@ -25,6 +25,8 @@ const config: ExpoConfig = {
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: false,
     usesAppleSignIn: true,
+    // 웹뷰에서 이미지를 길게 눌러 '사진 앱에 저장'하면 iOS 가 이 문구를 요구한다 — 없으면 앱을 종료시킨다(Task 28 #8c)
+    infoPlist: { NSPhotoLibraryAddUsageDescription: "결과 이미지를 사진에 저장할 때 사용해요" },
   },
   android: {
     package: BUNDLE_ID,
