@@ -5,6 +5,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminUserId } from "@/lib/admin";
 import { getUserIdentities, primaryIdentity } from "@/lib/auth/user-identity";
+import { httpsProfileImg } from "@/lib/auth/profile-img";
 import type { AuthProvider } from "@/lib/auth/identity-hash";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export async function GET() {
     user: {
       id: row.id,
       nickname: row.nickname,
-      profile_img: row.profile_img,
+      profile_img: httpsProfileImg(row.profile_img),
       provider,
     },
     anonymousId,
