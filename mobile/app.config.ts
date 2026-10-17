@@ -44,7 +44,9 @@ const config: ExpoConfig = {
     "./plugins/withKakaoOpenUrl.js",
     ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
   ],
+  owner: "braveshine",
   extra: {
+    eas: { projectId: "57d7d377-ce97-4c95-9565-433a261df123" },
     variant: IS_PROD ? "production" : "development",
     scheme: SCHEME,
     // 주소 바꾸기(EXPO_PUBLIC_BASE_URL — 로컬 개발 서버 등)는 개발용 빌드만. 운영 빌드는 늘 운영 주소 — EAS 환경 변수를 잘못 넣어도 운영 앱이 다른 서버로 붙지 않게
