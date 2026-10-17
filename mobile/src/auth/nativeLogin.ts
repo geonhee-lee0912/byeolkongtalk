@@ -7,11 +7,17 @@ import type { AppleFullName } from "./session.ts";
 
 export class LoginCancelled extends Error {}
 
+// 라이브러리(6.0.4)의 거절 code 는 늘 "RNKakaoLogins" 라 message 로 가른다. iOS 는 라이브러리가 사유 이름을 붙이고("ClientFailed(Cancelled): …"),
+// 안드로이드는 카카오 SDK 오류의 message 그대로다(기본 문구가 영어·한국어 어느 쪽인지 확인 전 — Task 28 #2b).
+// 카카오 계정 동의 화면의 '취소'는 Cancelled 가 아니라 access_denied 로 온다 — 설명 "User denied access"(카카오 문서의 로그인 취소 응답, iOS 는
+// "AuthFailed(AccessDenied): User denied access"). 설명이 다른 access_denied 는 실패로 둔다
 function isKakaoCancel(e: unknown): boolean {
   const { code, message } = (e ?? {}) as { code?: unknown; message?: unknown };
-  return code === "E_CANCELLED_OPERATION" || (typeof message === "string" && /cancel/i.test(message));
+  return code === "E_CANCELLED_OPERATION" || (typeof message === "string" && /cancel|취소|user denied access/i.test(message));
 }
 
+/** 🔴 iOS 에서 카카오톡으로 넘어간 뒤 복귀 주소 없이 돌아오면(왼쪽 위 '◀ 별콩톡'·앱 전환) 카카오 SDK 가 끝을 알리지 않아 이 Promise 는
+ *  영영 끝나지 않는다(KakaoSDKAuth 2.22.7 AuthController — 완료는 handleOpenUrl 로만). 부르는 쪽은 이 끝을 기다리는 잠금을 두지 않는다 */
 export async function kakaoNativeLogin(): Promise<{ accessToken: string }> {
   try {
     const token = await kakaoLogin();
