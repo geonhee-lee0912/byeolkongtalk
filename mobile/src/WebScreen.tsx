@@ -3,7 +3,7 @@
 // 교환 코드는 주소가 아니라 source.headers 로 싣는다(handoffSource — 서버는 주소의 code 를 보지 않는다). 헤더는 앱이 연 그 첫 요청에만
 // 실리고 웹뷰 안 이동엔 안 실린다 — 그래서 딥링크·일반 이동은 헤더 없이(plain) 열어도 남의 코드를 먹일 수 없다.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, BackHandler, Linking, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { WebView, type WebViewProps } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
@@ -31,6 +31,9 @@ const auth = createAuthSession({ store: secureTokenStore, api: authApi, isAuthEr
 const UA_SUFFIX = appUserAgentSuffix(appInfo);
 /** 로그인 연타 막기 — 이 시간 안에 다시 온 로그인 시작은 버린다(같은 로그인 화면이 두 번 뜨지 않게) */
 const LOGIN_TAP_GUARD_MS = 1_000;
+/** 로그인 마무리 덮개의 화면 단계 최대 시간 — 교환 코드 이동을 건 뒤부터 잰다. 보통은 로그인된 첫 화면이 뜨면(수 초) 걷힌다.
+ *  끝내 안 뜨면 이 시간 뒤에 걷어 다시 시도할 수 있게 한다 */
+const LOGIN_COVER_MAX_MS = 30_000;
 // 문서가 뜨기 전에 — 웹이 앱 안인지 판단하는 1차 근거(lib/app-context.ts). UA 꼬리가 2차
 const INJECT_APP_INFO = `window.__BYEOLKONG_APP__=${JSON.stringify(appInfo)};true;`;
 /** 헤더 없이 여는 주소 — 개발용 빌드의 우회 값은 주소에 단다(Vercel 이 우회 쿠키를 리다이렉트로 심는다). 교환 코드를 싣는 요청은 handoff() 로만 */
@@ -73,6 +76,15 @@ export default function WebScreen() {
   // 앱을 껐다 켤 때까지 로그인 버튼이 죽는다
   const loginTurn = useRef(0);
   const loginStartedAt = useRef(0);
+  // 로그인 마무리 덮개 — 카카오톡·애플 확인이 끝난 뒤 로그인된 첫 화면이 뜰 때까지(서버 로그인 + 쿠키 맞추기 + 페이지 로드) 화면을 덮는다.
+  // 그동안 옛 로그인 화면이 그대로 보여 다시 누르게 되는데, 누를 때마다 로그인이 또 시작되고 진행 중이던 화면 전환이 끊겨
+  // 쿠키가 안 들어가거나 웹의 로그인 표시가 안 맞았다(2026-10-17 실기기 — 7번 탭에 서버 로그인 5번, 앱을 다시 켜야 로그인돼 보임).
+  // 덮개가 떠 있는 동안 새 로그인 시작·뒤로 가기는 무시한다. 카카오톡 화면이 떠 있는 단계엔 덮지 않는다 — 위 번호표 주석의 iOS 경우
+  const [covering, setCovering] = useState(false);
+  const coveringRef = useRef(false);
+  const coverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 교환 코드 이동을 걸어 둔 뒤 그 첫 화면이 아직 안 끝났다 — 끝나면(onLoadEnd) 덮개를 걷는다
+  const handoffLoading = useRef(false);
   // 웹뷰를 새로 만들 때(reopen) 바꾸는 key · 그때 열 마지막 화면(우리 페이지만, /api/ 주소 빼고)
   const [webKey, setWebKey] = useState(0);
   const lastPage = useRef<string | null>(null);
@@ -106,6 +118,7 @@ export default function WebScreen() {
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (coveringRef.current) return true; // 로그인 마무리 중 — 뒤로 가면 쿠키 맞추기 이동이 끊긴다
       if (!canGoBack.current) return false;
       webRef.current?.goBack();
       return true;
@@ -113,23 +126,50 @@ export default function WebScreen() {
     return () => sub.remove();
   }, []);
 
-  const startNativeLogin = useCallback(async (provider: "kakao" | "apple", next: string) => {
-    if (Date.now() - loginStartedAt.current < LOGIN_TAP_GUARD_MS) return;
-    loginStartedAt.current = Date.now();
-    const turn = ++loginTurn.current;
-    try {
-      const payload =
-        provider === "kakao"
-          ? { provider: "kakao" as const, ...(await kakaoNativeLogin()) }
-          : { provider: "apple" as const, ...(await appleNativeLogin()) };
-      // 그사이 새 시도가 시작됐다 — 이 결과는 버린다(서버엔 아직 안 갔다. 서버 로그인까지 간 뒤엔 끝까지 적용한다 — 토큰은 이미 저장됐다)
-      if (turn !== loginTurn.current) return;
-      const r = await auth.login(payload);
-      setSource(handoff(r.handoffCode, next, "login"));
-    } catch (e) {
-      if (turn === loginTurn.current && !(e instanceof LoginCancelled)) Alert.alert("로그인이 안 됐어", "잠시 후 다시 시도해줘");
-    }
+  const endCover = useCallback(() => {
+    if (coverTimer.current) clearTimeout(coverTimer.current);
+    coverTimer.current = null;
+    handoffLoading.current = false;
+    coveringRef.current = false;
+    setCovering(false);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (coverTimer.current) clearTimeout(coverTimer.current);
+    },
+    [],
+  );
+
+  const startNativeLogin = useCallback(
+    async (provider: "kakao" | "apple", next: string) => {
+      if (coveringRef.current) return; // 앞 로그인을 마무리하는 중 — 새 로그인을 시작하면 그 화면 전환이 끊긴다
+      if (Date.now() - loginStartedAt.current < LOGIN_TAP_GUARD_MS) return;
+      loginStartedAt.current = Date.now();
+      const turn = ++loginTurn.current;
+      try {
+        const payload =
+          provider === "kakao"
+            ? { provider: "kakao" as const, ...(await kakaoNativeLogin()) }
+            : { provider: "apple" as const, ...(await appleNativeLogin()) };
+        // 그사이 새 시도가 시작됐다 — 이 결과는 버린다(서버엔 아직 안 갔다. 서버 로그인까지 간 뒤엔 끝까지 적용한다 — 토큰은 이미 저장됐다)
+        if (turn !== loginTurn.current) return;
+        coveringRef.current = true;
+        setCovering(true);
+        const r = await auth.login(payload);
+        handoffLoading.current = true;
+        // 30초는 화면 단계만 잰다 — 서버 단계는 요청 시간 제한(api.ts 10초)으로 반드시 아래 catch 로 끝난다. 서버 단계부터 재면 앱이 멈췄다 돌아올 때
+        // 덮개가 먼저 걷혀 새 로그인이 시작될 수 있고, 이 로그인은 서버 단계 뒤엔 번호표를 안 보니 교환 코드 이동이 연달아 두 번 나간다
+        coverTimer.current = setTimeout(endCover, LOGIN_COVER_MAX_MS);
+        setSource(handoff(r.handoffCode, next, "login"));
+      } catch (e) {
+        if (turn !== loginTurn.current) return;
+        endCover();
+        if (!(e instanceof LoginCancelled)) Alert.alert("로그인이 안 됐어", "잠시 후 다시 시도해줘");
+      }
+    },
+    [endCover],
+  );
 
   /** 이동 규칙 결정을 실행한다. 웹뷰가 그대로 열어도 되면 true */
   const act = useCallback(
@@ -178,9 +218,10 @@ export default function WebScreen() {
     const { code } = e.nativeEvent;
     // iOS -999(이동 취소)·102(정책상 중단 — 가로챈 이동)는 실패가 아니다
     if (Platform.OS === "ios" && (code === -999 || code === 102)) return;
+    endCover(); // 덮개가 '다시 시도' 화면을 가리지 않게
     setOffline(true);
     SplashScreen.hideAsync().catch(() => {});
-  }, []);
+  }, [endCover]);
 
   const retry = useCallback(() => {
     setOffline(false);
@@ -231,6 +272,10 @@ export default function WebScreen() {
         }}
         onLoadEnd={() => {
           SplashScreen.hideAsync().catch(() => {});
+          // 교환 코드 이동(리다이렉트를 거친 첫 화면)이 끝났다 — 로그인 덮개를 걷는다. iOS 는 라이브러리가 history 변경(pushState·replaceState)에도
+          // 이 이벤트를 보내 옛 화면이 history 를 건드리면 일찍 걷힌다 — 로그인 시작 화면은 덮개 동안 건드리지 않는다(/login 은 안 쓰고,
+          // /start·/tarot/draw 의 replaceState 는 로그인 복귀 뒤·사용자 동작 때만 — 2026-10-17 확인)
+          if (handoffLoading.current) endCover();
         }}
         onError={onError}
         // iOS — 웹 콘텐츠 프로세스가 죽으면(백그라운드 메모리 회수 등) 화면이 빈 채로 남는다: 라이브러리가 종료 알림 함수를 갖고 있어
@@ -240,12 +285,23 @@ export default function WebScreen() {
         domStorageEnabled
         allowsBackForwardNavigationGestures
         webviewDebuggingEnabled={config.variant === "development"}
+        // 덮개가 떠 있는 동안엔 스크린리더로도 웹을 못 누르게(안드로이드) — 누르면 진행 중인 교환 코드 이동이 끊긴다. 아이폰은 덮개의 accessibilityViewIsModal
+        importantForAccessibility={covering ? "no-hide-descendants" : "auto"}
       />
       {offline && <OfflineView onRetry={retry} />}
+      {covering && (
+        <View style={styles.cover} accessibilityViewIsModal>
+          <ActivityIndicator size="large" color="#5A3E8C" />
+          <Text style={styles.coverText}>로그인하는 중이야…</Text>
+        </View>
+      )}
     </View>
   );
 }
 
+// 색은 웹 디자인 토큰(cream·eye-purple) — OfflineView 와 같다
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: "#FAF6F0" },
+  cover: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(250, 246, 240, 0.94)" },
+  coverText: { marginTop: 14, fontSize: 15, color: "#5A3E8C" },
 });
