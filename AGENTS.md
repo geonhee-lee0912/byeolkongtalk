@@ -16,7 +16,7 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 - Styling: **Tailwind CSS v4** (`@theme` 토큰, CSS-only — `tailwind.config.ts` 없음)
 - Fonts: Noto Sans KR(본문) + Cafe24Ssurround(`--font-display`, 타이틀)
 - DB: Supabase (PostgreSQL) — Branching with Git sync
-- Auth: 카카오 OAuth + 익명 식별자 + httpOnly 쿠키 세션
+- Auth: 카카오·애플 로그인(`user_identities`) + 익명 식별자 + httpOnly 쿠키 세션 + 앱 토큰(`Authorization: Bearer`, 앱 쪽 호출용)
 - Payment: 토스페이먼츠 (결제창 / API 개별 연동)
 - AI: Claude API (`claude-sonnet-5`, SSE 스트리밍) + haiku(요약·민감 2차 판정)
 - 사주 계산: `manseryeok`(결정적 계산) + Claude(해석만)
@@ -39,6 +39,7 @@ components/
   consultations/ · relationship/ · admin/ · layout/ · safety/ · reco/ · common/
 data/persona/          # 코어 + 도메인별 system prompt
 supabase/migrations/   # <timestamp>_<name>.sql — GitHub 연동으로 자동 적용
+mobile/                # Expo SDK 58 앱(웹뷰 껍데기) — 설정 정본은 app.config.ts(app.json 을 만들면 무시된다). Expo API 는 학습 기억 말고 버전 문서(docs.expo.dev/versions/v58.0.0)로. 루트 tsconfig 에서 제외(.vercelignore 도 있으나 Git 배포 적용은 미확정). 웹과 공유하는 건 lib/app-bridge 뿐. mobile/src 의 순수 모듈 테스트는 루트 CI 가 같이 돌린다 — react-native·expo import 금지(CI 엔 mobile/node_modules 가 없다)
 docs/superpowers/{specs,plans}/
 ```
 
@@ -100,6 +101,9 @@ docs/superpowers/{specs,plans}/
 
 ## 코딩 규칙
 
+- 🔴 **로그인 수단은 `user_identities` 가 정본** — `users.kakao_id` 를 직접 읽지 말 것(애플 회원은 NULL). 회원의 수단·해시는 `lib/auth/user-identity.ts`·`identity-hash.ts`(카카오 해시 = 옛 원장 공식 그대로 — 바꾸면 웰컴 별 재수령), 가입·로그인은 `lib/auth/sign-in.ts` 하나로(신규 처리·웰컴 별 1회가 거기 있다). `getSession()` 은 `Authorization` 이 Bearer 방식이면(앱 토큰 — 비었거나 틀려도) 토큰만 본다 — 실패면 비로그인, 회원·익명 쿠키 폴백 없음(규칙 `lib/auth/session-resolve.ts` · 연결부 잠금 `lib/session.test.ts`)
+- 🔴 **마이그레이션과 그걸 읽는 코드는 따로 올린다** — 표가 생기기 전에 코드가 뜨면 그 몇 분 동안 로그인이 깨진다(앱 ① `user_identities`). 마이그레이션 커밋만 먼저 push → Supabase 체크 success → 나머지. prod 머지도 같은 순서
+- 🔴 **웹에서 세션을 끝내는 곳은 앱에도 알린다** — `/api/auth/logout`·`/api/auth/withdraw` 를 부르면 `postToApp("auth.loggedOut")` 도(웹 쿠키만 지우면 앱이 토큰을 들고 있다가 다음 실행 때 조용히 다시 로그인시킨다). 지금은 마이페이지 둘뿐이고 `lib/app-context.test.ts` 의 배선 계약이 잠근다 — 새 곳을 만들면 그 테스트도 고칠 것
 - Server Components 기본, Client Components 는 인터랙션 필요 시만. 함수형 + hooks
 - Tailwind v4 기본(`@theme` 토큰 확장). 복잡 애니메이션만 `globals.css`
 - Next 16 의 `cookies()` 는 async → **`await getSession()` 필수**
@@ -139,6 +143,7 @@ docs/superpowers/{specs,plans}/
 
 ## 운영 함정 (실사고 기록)
 
+- proxy 익명 쿠키 발급은 교차 사이트 POST 를 받는 경로에서 뺀다(지금 `/api/auth/apple/callback`) — Lax 쿠키가 안 실려 '없음'으로 보이지만 새로 심으면 기존 anon 을 덮어쓴다(가입 뒤 지도 승계·유입 복구·입구 반반 그룹이 끊김). 이런 경로를 새로 만들면 같은 예외와 `proxy.test.ts` 한 줄을 더할 것
 - **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `proxy.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). proxy 를 건드릴 때 이 사실을 기억할 것
 - **날짜 기준 = 전부 KST 자정** (2026-07-31 통일, `20260731000000`). 이전엔 `/admin`·`/admin/traffic` 만 오전 10시 롤오버라 같은 "오늘"이 화면마다 다른 날을 뜻했다 — 실측 왜곡이 컸다(07-25 UV 10시 63 vs 자정 27 = 2.3배). 버킷의 단일 원천은 `lib/admin-time.ts` 의 `kstDate`(3함수만 존재, 계약은 `lib/admin-time.test.ts` 가 지킴) / SQL 은 `(created_at at time zone 'UTC' + interval '9 hours')::date` — **`at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다**
   - ⚠️ **한 화면에 UV 정의가 2개다**(의도된 것): `/admin/traffic` 의 일별 추세 UV = **페이지뷰 귀속**(PV 와 짝) / 방문자 구성 UV = **세션 시작 귀속**(30분 갭, `SESSION_GAP`). 실측 차이 하루 최대 1명. 같은 값으로 기대하지 말 것
