@@ -35,6 +35,7 @@ import { geminiAdapter } from "@/lib/claude/adapters/gemini";
 import { providerOf, resolveChatModel } from "@/lib/claude/model-registry";
 import type { ProviderAdapter, StopReason } from "@/lib/claude/adapters/types";
 import { recordUsage } from "@/lib/claude/usage-log";
+import { systemDynamicForAttempt } from "@/lib/claude/empty-retry";
 
 // summarizeOlder(haiku 요약)가 여전히 이 모듈 레벨 클라이언트를 쓴다 — streamChat 이관 후에도 유지.
 const anthropic = new Anthropic({
@@ -525,9 +526,17 @@ export async function* streamChat(
   // hiccup)을 성공으로 전환. 정상(비어있지 않은) 경로는 첫 조각에서 확정되어 오버헤드 0.
   const MAX_ATTEMPTS = 2;
   let lastStopReason: StopReason = null;
+  let prevAttemptEmpty = false; // 직전 시도가 0자 완료였나 — 그대로 재호출하면 모델이 일부러 침묵한 경우 또 빈다(lib/claude/empty-retry.ts)
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const it = adapter.stream({ systemStatic, systemDynamic, messages, maxTokens, model: resolved, responseFormat });
+    const it = adapter.stream({
+      systemStatic,
+      systemDynamic: systemDynamicForAttempt(systemDynamic, prevAttemptEmpty),
+      messages,
+      maxTokens,
+      model: resolved,
+      responseFormat,
+    });
 
     let yielded = false;
     let stopReason: StopReason = null;
@@ -578,6 +587,7 @@ export async function* streamChat(
     // 모든 시도 소진(terminal)은 유저 턴이 실제로 실패하는 경로 → warn 으로 남긴다.
     // route/userId/readingId 는 호출부가 logCtx 로 주입(없으면 "(route: 없음)" 로그가 됨).
     lastStopReason = stopReason;
+    prevAttemptEmpty = true;
     const emptyLogCtx: LogContext = {
       ...logCtx,
       extra: {
