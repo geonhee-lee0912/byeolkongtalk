@@ -8,7 +8,8 @@ export type MenuAbMode = "split" | MenuArm;
 
 /** 판정 스위치 — 'split' = 반반 · 'menu'·'legacy' = 전원 한쪽(판정 뒤·고장 시). 상수라 바꾸면 재배포(prod 는 사용자 go).
  *  menu-ab.test.ts 의 "배포 기본 스위치 = split" 테스트는 일부러 걸리게 해 뒀다 — 스위치를 돌리면 그 테스트도 같이 고칠 것(지우지 말 것). */
-export const MENU_AB: MenuAbMode = "split";
+// 2026-10-25 판정: 메뉴판 패(가입당 48h 매출 ₩54 vs ₩157 · 결제율 2.3% vs 7.6%) → 전원 옛 타로톡(사용자 결정)
+export const MENU_AB: MenuAbMode = "legacy";
 
 /** 메뉴판 그룹의 user_id 끝 글자 — 판정 SQL·감시 쿼리와 같아야 한다(menu-ab.test.ts 가 SQL 파일과 대조) */
 export const MENU_LAST_CHARS = "02468ace";

@@ -31,10 +31,12 @@ test("스위치가 'menu'·'legacy' 면 전원 한쪽", () => {
   assert.equal(armForMode(uuid("0"), "legacy"), "legacy");
 });
 
-test("배포 기본 스위치 = split", () => {
-  assert.equal(MENU_AB, "split");
-  assert.equal(menuArmOf(uuid("0")), "menu");
+// 2026-10-25 판정으로 전원 옛 타로톡 — 스위치를 다시 돌리면 이 테스트도 같이 고칠 것(지우지 말 것)
+test("배포 기본 스위치 = legacy(판정 뒤 전원 옛 타로톡)", () => {
+  assert.equal(MENU_AB, "legacy");
+  assert.equal(menuArmOf(uuid("0")), "legacy");
   assert.equal(menuArmOf(uuid("1")), "legacy");
+  assert.equal(menuArmOf(null), "legacy");
 });
 
 test("감시 쿼리(scripts/menu-ab-daily-check.sql)의 그룹식이 같은 끝 글자 집합을 쓴다", () => {
