@@ -20,12 +20,13 @@ import {
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
+import { guestShortLine } from "@/lib/tarot/guest-price";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
 // 옛 타로톡 스프레드 고르기 — 반반 비교의 옛 그룹(지금 prod 그대로). 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다.
 // 가격만 그룹 가격 함수(tarotPrice(…, "legacy") = SPREAD_INFO.starCost)로 읽는다. 🗓️ 판정 뒤 메뉴판이 이기면 이 파일을 지운다.
 // 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
-export default function SpreadPicker({ pending }: { pending: PendingConsultation }) {
+export default function SpreadPicker({ pending, guest = false }: { pending: PendingConsultation; guest?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<SpreadType | null>(null);
 
@@ -171,6 +172,12 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                     ⭐ {tarotPrice(type, "legacy")}별
                   </span>
                 </div>
+                {/* 로그인 전 방문자(새 흐름) — 가입 선물 15별 기준 한 줄(스펙 2026-10-11 §3-1) */}
+                {guest && (
+                  <p className="text-[11px] font-bold text-eye-purple mb-1">
+                    {guestShortLine(tarotPrice(type, "legacy"), "legacy").text}
+                  </p>
+                )}
                 <p className="text-[12px] text-text-light leading-snug mb-1.5">
                   {getSpreadDescription(type, category)}
                 </p>

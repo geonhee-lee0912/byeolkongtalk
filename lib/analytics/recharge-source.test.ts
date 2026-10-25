@@ -31,8 +31,9 @@ import { rechargeCapiEventId } from "./recharge-source.ts";
 const U = "11111111-1111-4111-8111-111111111111";
 const NOON_KST = new Date("2026-10-03T03:00:00Z");
 
-test("그 자리 충전 시트(전 source) + 로그인 → 유저·KST 날짜 단위 eventId", () => {
+test("그 자리 충전 시트(별마루 구독 뺀 전 source) + 로그인 → 유저·KST 날짜 단위 eventId", () => {
   for (const source of Object.values(RECHARGE_SOURCE)) {
+    if (source === RECHARGE_SOURCE.byeolmaruSubscribe) continue; // 아래 별마루 제외 테스트가 본다
     assert.equal(
       rechargeCapiEventId("recharge_sheet_opened", { source }, U, NOON_KST),
       `atc:${U}:2026-10-03`,
@@ -78,4 +79,24 @@ test("같은 유저·같은 날 paywall_shown 과 recharge_sheet_opened 는 같�
   const b = rechargeCapiEventId("recharge_sheet_opened", { source: "tarot_draw" }, U, NOON_KST);
   assert.ok(a);
   assert.equal(a, b);
+});
+
+// ── 2026-10-11 별마루 구독의 잔액 부족은 AddToCart 에서 뺀다(타로 광고 최적화 신호 — 사용자 결정) ──
+// 모달 surface 와 시트 source 가 같은 값이라 한쪽만 빼면 같은 날 다른 쪽으로 새어 나간다.
+test("별마루 구독 — 잔액 부족 모달·충전 시트 둘 다 Meta 로 안 나간다", () => {
+  assert.equal(RECHARGE_SOURCE.byeolmaruSubscribe, "byeolmaru_subscribe");
+  assert.equal(
+    rechargeCapiEventId("paywall_shown", { cost: 20, balance: 5, surface: "byeolmaru_subscribe" }, U, NOON_KST),
+    null
+  );
+  assert.equal(
+    rechargeCapiEventId("recharge_sheet_opened", { source: "byeolmaru_subscribe", need: 20, balance: 5 }, U, NOON_KST),
+    null
+  );
+});
+
+test("별마루 제외가 다른 지면을 끌고 가지 않는다 — surface 없는 paywall_shown·타로 시트는 그대로", () => {
+  assert.equal(rechargeCapiEventId("paywall_shown", { cost: 20, balance: 5 }, U, NOON_KST), `atc:${U}:2026-10-03`);
+  assert.equal(rechargeCapiEventId("paywall_shown", { surface: "byeolmaru" }, U, NOON_KST), `atc:${U}:2026-10-03`);
+  assert.equal(rechargeCapiEventId("recharge_sheet_opened", { source: "tarot_report" }, U, NOON_KST), `atc:${U}:2026-10-03`);
 });

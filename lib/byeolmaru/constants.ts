@@ -4,6 +4,10 @@
 // PASS_PLANS 가 서버 전용 lib/relationship/passes.ts 와 분리돼 있는 것과 같은 이유로 분리한다.
 export const BYEOLMARU_SUBSCRIPTION = { cost: 20, days: 30 } as const;
 
+/** 3일 무료 체험(1회성). 🔴 원래 entitlement.ts 에 있었다 — 구독 일수·단계 계산(subscribe-offer.ts)이
+ *  클라에서도 돌아서 여기로 옮겼다. entitlement.ts 가 같은 값을 다시 내보내 기존 import 는 그대로다. */
+export const TRIAL_DAYS = 3;
+
 // 🔴 WATCH_FREE_SLOTS(2) · WATCH_EXTRA_COST(5) 는 2026-09-24 삭제됐다 — 우리 오늘의 상대는
 //    **한 명**이고 교체는 무료다. 근거: prod 상대 등록 142명 중 유료 슬롯 전환 0, dev 포함
 //    구매 이력 0건. 되살리려면 lib/byeolmaru/watch.ts 의 setWatch(교체 의미)부터 되돌려야 한다.

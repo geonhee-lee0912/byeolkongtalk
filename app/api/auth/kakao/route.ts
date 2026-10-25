@@ -13,6 +13,7 @@ import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 import { ACQ_COOKIE, parseAcqCookie, acqFromPageView, type AcqPayload } from "@/lib/acquisition";
 import { safeNextPath } from "@/lib/safe-internal-path";
+import { loginFailRedirectUrl } from "@/lib/auth-redirect";
 
 const STATE_COOKIE = "byeolkong_oauth_state";
 
@@ -38,10 +39,8 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(stateNext);
 
   const failRedirect = (reason: string) => {
-    const u = new URL(baseUrl);
-    u.searchParams.set("login", "fail");
-    u.searchParams.set("reason", reason);
-    const r = NextResponse.redirect(u);
+    // 뽑기 이어가기로 가던 로그인만 그 화면으로 돌려보내 안내한다 — 그 밖은 지금처럼 홈(lib/auth-redirect.ts)
+    const r = NextResponse.redirect(loginFailRedirectUrl(next, reason, baseUrl));
     r.cookies.set(STATE_COOKIE, "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

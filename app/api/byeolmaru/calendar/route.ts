@@ -47,7 +47,15 @@ export async function GET(req: NextRequest) {
       //    (실제로 재현됨). 상태 코드는 404 그대로라 기존 소비처(no_profile 분기)는 무회귀다.
       const ent = await getEntitlement(userId);
       return NextResponse.json(
-        { error: "profile_not_found", entitled: ent.entitled, trialUsed: ent.trialUsed },
+        {
+          error: "profile_not_found",
+          entitled: ent.entitled,
+          trialUsed: ent.trialUsed,
+          // 🔴 아래 200 응답과 같은 두 필드 — 체험 단계(구독 확인창 문구·충전 후 재오픈의 '이미 구독 중'
+          //    판정, 2026-10-11)를 가른다. 없으면 생일 없는 구독자가 타로 탭에서 '체험 중'으로 읽힌다.
+          subscriptionExpiresAt: ent.subscriptionExpiresAt,
+          trialEndsAt: ent.trialEndsAt,
+        },
         { status: 404 }
       );
     }

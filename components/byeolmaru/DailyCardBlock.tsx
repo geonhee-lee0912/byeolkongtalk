@@ -19,10 +19,13 @@ import type { CardReport } from "@/lib/byeolmaru/card-report";
 import type { CardGauge } from "@/lib/byeolmaru/card-gauge";
 import { TAROT_PAID_CHARS, TAROT_PAID_SECTIONS } from "@/lib/byeolmaru/paywall-sections";
 import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
+import type { SubscribeSurface } from "@/lib/byeolmaru/subscribe-offer";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
+import TrialSubscribeNudge from "./TrialSubscribeNudge";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
@@ -67,8 +70,11 @@ export default function DailyCardBlock({
   todayKst,
   entitled,
   trialUsed,
+  trialEndsAt = null,
+  subscriptionExpiresAt = null,
   onStartTrial,
   onSubscribe,
+  trialBusy = false,
   autoOpenRitual = false,
 }: {
   /** 보고 있는 날짜(YYYY-MM-DD). 오늘이 아니면 뽑기 의식은 열리지 않는다. */
@@ -77,8 +83,15 @@ export default function DailyCardBlock({
   todayKst: string;
   entitled: boolean;
   trialUsed: boolean;
+  /** 체험 만료(구독자는 null) — 체험 중 리포트 끝 넛지의 D-N. */
+  trialEndsAt?: string | null;
+  /** 구독 만료(체험자는 null) — `entitled && !subscriptionExpiresAt` 이 곧 체험 중이다. */
+  subscriptionExpiresAt?: string | null;
   onStartTrial: (slot?: string) => void;
-  onSubscribe: (slot?: string) => void;
+  /** useByeolmaruSubscribe 의 openSubscribe 그대로 — surface 는 이 블록 안 자리마다 다르다(절단선·받은 글 아래). */
+  onSubscribe: (surface: SubscribeSurface, slot?: string) => void;
+  /** 체험 시작 처리 중 — 체험 버튼을 '여는 중…'으로 막는다(연타 방지는 훅의 ref 잠금). */
+  trialBusy?: boolean;
   /** 주소가 타로를 가리켜 들어온 진입인가 — 아래 자동 열기의 전제. 기본값 false 라
    *  이 prop 을 안 주는 호출부는 **안 여는 쪽**으로 안전하게 떨어진다. */
   autoOpenRitual?: boolean;
@@ -111,7 +124,12 @@ export default function DailyCardBlock({
   //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. card-narrative 는 이 상태를
   //    403 이 아니라 200 으로 표현하므로(entitled:false, report·reason 둘 다 없음) 응답 바디를
   //    직접 읽어야 한다. PaywallCut 은 이 값이 true 일 때만 마운트한다(gate_shown 계측 계약 유지).
-  const [locked, setLocked] = useState(false);
+  // 🔴 값 = 그 잠금을 **어떤 자격으로 물었나**(null = 안 잠김, 2026-10-12). 지금 자격(prop)과 다르면 그 뒤에 자격이 바뀐 것
+  //    (체험·구독 직후 — 다른 탭에서 한 것 포함)이라 서술 effect 가 곧 다시 부른다 — 그 틈은 로딩으로 그린다(아래 렌더).
+  //    같으면 서버 판정 그대로 PaywallCut 이다 — 날짜 화면을 열어 둔 채 체험이 끝나고 이 탭에서 뽑으면 스냅샷은 아직
+  //    '자격'인데 서버는 잠금이라, 단순히 `locked && entitled` 를 로딩으로 보면 거기 갇힌다.
+  const [lockedUnder, setLockedUnder] = useState<boolean | null>(null);
+  const locked = lockedUnder !== null;
 
   // 그날 카드 조회 — ?date= 없으면 라우트가 오늘로 떨어뜨리지만, 여기선 항상 명시해 보낸다
   // (화면이 보고 있는 날과 조회한 날이 갈라지지 않게).
@@ -151,12 +169,12 @@ export default function DailyCardBlock({
   useEffect(() => {
     if (cardDate !== date) {
       setReport(null); setGauge(null); setNarrativeLoading(false);
-      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
+      setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLockedUnder(null);
       return;
     }
     let cancelled = false;
     setReport(null); setGauge(null);
-    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLocked(false);
+    setNarrativeBlocked(null); setNarrativeFailed(false); setNotGenerated(false); setLockedUnder(null);
     // 🔴 로딩 문구는 콘텐츠가 뜰 화면에서만 — 오늘 + 비자격(유일한 페이월 자리)은 기다릴 글이
     //    없다. 과거는 자격과 무관하게 콘텐츠 화면이다(받았던 글은 계속 본다, 스펙 §4-4) — 그래서
     //    todayKst 비교가 entitled 와 or 로 묶인다(아래 렌더 게이트와 같은 식이어야 한다).
@@ -190,7 +208,7 @@ export default function DailyCardBlock({
           // 🔴 "오늘 + 비자격 + 캐시 없음"(라우트 계약 ④)은 report·reason 이 둘 다 없다 — 그
           //    확정 신호로만 잠금을 세운다(이 라우트는 403 이 아니라 200 으로 이 상태를 표현해
           //    상태코드로는 구분이 안 된다). PaywallCut 은 이 확정 뒤에만 마운트한다(추측 금지).
-          setLocked(!j.report && j.reason == null && j.entitled === false);
+          setLockedUnder(!j.report && j.reason == null && j.entitled === false ? entitled : null);
         }
       } catch {
         if (!cancelled) { setReport(null); setGauge(null); setNarrativeFailed(true); }
@@ -502,7 +520,11 @@ export default function DailyCardBlock({
               {/* 🔴 report 유무만 본다 — date·entitled 로 먼저 가르지 않는다(2026-09-26, 스펙
                   §4-4). 과거든 오늘이든 서술이 있으면 받았던 글이니 그대로 보여주고, 없을 때만
                   narrativeLoading/notGenerated/locked 세 이유를 가려 보여준다. */}
-              {narrativeLoading ? (
+              {/* 🔴 잠금을 물은 자격 ≠ 지금 자격도 로딩이다(2026-10-12) — 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은
+                  것이라 서술 effect(entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼
+                  '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다 — 다른 탭에서 체험을 시작해
+                  이 탭(숨김)이 새 자격을 받을 때도 같다(SajuTodayView 와 같은 게이트). */}
+              {narrativeLoading || (locked && lockedUnder !== entitled) ? (
                 <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
                   별콩이가 카드를 네 사주 위에 얹는 중…
                 </p>
@@ -510,28 +532,41 @@ export default function DailyCardBlock({
                 <>
                   {/* 🔴 border-t 래퍼를 씌우지 말 것 — CardReportView 의 첫 블록이 이미 자기 선을 긋는다. */}
                   <CardReportView report={report} />
+                  {/* 체험 중 — 리포트를 다 읽은 자리에서 '이어서 구독' 한 줄(2026-10-11, 사용자 결정).
+                      아래 비자격 안내와 자격 조건이 반대라 둘이 함께 뜨는 일은 없다. */}
+                  {entitled && !subscriptionExpiresAt && trialEndsAt && (
+                    <TrialSubscribeNudge
+                      trialEndsAt={trialEndsAt}
+                      slot="tarot_rich"
+                      onSubscribe={() => onSubscribe("report_end", "tarot_rich")}
+                    />
+                  )}
                   {!entitled && (
                     /* 🔴 받았던 글은 계속 보여주되(§4-4), 지금 비자격이면 조용히 재구독을 권한다.
                        PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
                        거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 을 찍어 분모도 오염시킨다).
-                       계측 없음(확신이 안 서 스킵 — 보고 참고). */
+                       gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
                     <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
                       <p className="text-xs text-text-light">
                         지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                       </p>
                       {trialUsed ? (
-                        <button
-                          onClick={() => onSubscribe("tarot_rich")}
-                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
-                        >
-                          구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-                        </button>
+                        <>
+                          <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="tarot_rich" />
+                          <button
+                            onClick={() => onSubscribe("kept_report", "tarot_rich")}
+                            className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                          >
+                            구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={() => onStartTrial("tarot_rich")}
-                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                          disabled={trialBusy}
+                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
                         >
-                          3일 무료로 열어보기
+                          {trialBusy ? "여는 중…" : "3일 무료로 열어보기"}
                         </button>
                       )}
                     </div>
@@ -557,8 +592,9 @@ export default function DailyCardBlock({
                     blurText={taste}
                     trialUsed={trialUsed}
                     onStartTrial={onStartTrial}
-                    onSubscribe={onSubscribe}
+                    onSubscribe={(slot) => onSubscribe("cut", slot)}
                     slot="tarot_rich"
+                    trialBusy={trialBusy}
                   />
               ) : null}
               {narrativeFailed && (

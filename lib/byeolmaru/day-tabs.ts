@@ -20,3 +20,13 @@ export const DEFAULT_DAY_TAB: DayTab = "saju";
 export function parseDayTab(raw: unknown): DayTab {
   return DAY_TABS.some((t) => t.key === raw) ? (raw as DayTab) : DEFAULT_DAY_TAB;
 }
+
+/** 자격이 바뀐 뒤(byeolmaru:entitlement-changed) 다시 받은 캘린더 응답을 이미 그려 둔 화면에 반영할까 — 날짜 상세 껍데기
+ *  (열린 탭들에 내려준다)와 허브(ByeolmaruHub)가 같은 규칙을 쓴다.
+ *  본문 있는 2xx·404 와 401 만 — 각 화면이 그 상태를 판단한다(401 = 로그인 벽, 404 = 생일 없음이지만 타로는 자격으로 그린다).
+ *  404 는 라우트가 자격을 실어 보낸 JSON 일 때만이다 — 프록시·CDN 이 돌려준 HTML 404(본문 null)는 '생일 없음'이 아니다.
+ *  🔴 5xx·본문 깨짐은 버리고 지금 화면을 그대로 둔다 — 진입 때와 달리 이미 그려 둔 화면이 있어, 덮으면 통째로
+ *     '못 펼쳤어'가 되고 읽던 리포트·다시 누를 버튼을 잃는다. 낡은 채 남는 구독 버튼은 서버가 409 로 막고(차감 없음) 체험 시작은 1회성이다. */
+export function acceptReloadedCalendar(status: number, body: unknown): boolean {
+  return status === 401 || (body != null && (status === 404 || (status >= 200 && status < 300)));
+}

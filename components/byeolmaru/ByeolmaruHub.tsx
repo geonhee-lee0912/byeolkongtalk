@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { AttendanceState } from "@/lib/byeolmaru/attendance";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
+import { acceptReloadedCalendar } from "@/lib/byeolmaru/day-tabs";
+import { BYEOLMARU_REQUEST_TIMEOUT_MS } from "@/lib/byeolmaru/subscribe-offer";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
 import TodayLead from "./TodayLead";
@@ -116,7 +118,36 @@ export default function ByeolmaruHub() {
   }
   useEffect(() => { void refresh(); }, []);
 
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(refresh);
+  // 체험·구독 뒤의 다시 읽기 — useByeolmaruSubscribe 의 onChanged(성공뿐 아니라 실패·409·시간 초과 뒤에도 불린다).
+  // 🔴 refresh() 와 달리 **이미 그려 둔 허브를 덮지 않는다**: 못 읽었으면(5xx·throw·깨진 본문·빈 달력) 지금 화면을 그대로 둔다 —
+  //    날짜 상세 껍데기의 다시 받기와 같은 규칙(acceptReloadedCalendar). 진입용 refresh 를 넘겼을 땐 오프라인에서 배너의 체험·구독을
+  //    누르면 안내 직후 허브가 통째로 '못 펼쳤어'로 바뀌어 다시 누를 버튼이 사라졌다. 첫 진입 로딩 실패는 refresh 쪽 그대로 error 다.
+  //    401·404 는 확정된 상태라 반영한다(진입 계측은 안 찍는다 — 화면을 처음 본 게 아니다).
+  async function reloadAfterChange() {
+    // 시간 제한 — 훅이 이걸 기다리는 동안 체험 버튼이 '여는 중…'이라, 응답이 안 오면 거기 갇힌다(DayTabsView.reload 와 같은 규칙)
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), BYEOLMARU_REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store", signal: ctrl.signal });
+      const body = await res.json().catch(() => null);
+      if (!acceptReloadedCalendar(res.status, body)) return;
+      if (res.status === 401) { setState({ kind: "need_login" }); return; }
+      if (res.status === 404) { setState({ kind: "no_profile" }); return; }
+      const data = body as CalendarResponse;
+      if (!Array.isArray(data.cells) || data.cells.length === 0) return;
+      setState({ kind: "ready", data });
+      setAttendance(data.attendance);
+    } catch {
+      /* 못 받았다(시간 초과 포함) — 지금 허브 그대로. 낡은 구독 버튼은 서버가 409 로 막는다 */
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    reloadAfterChange,
+    state.kind === "ready" ? state.data : null
+  );
 
   const router = useRouter();
 
@@ -188,7 +219,7 @@ export default function ByeolmaruHub() {
   const todayCell = data.cells.find((c) => c.isToday) ?? null;
 
   // 비자격자의 다음 걸음 — 체험을 안 썼으면 체험, 썼으면 구독. 배너 CTA 가 쓴다.
-  const nextStep = () => (data.trialUsed ? openSubscribe() : startTrial());
+  const nextStep = () => (data.trialUsed ? openSubscribe("banner") : startTrial());
 
   // 🔴 허브의 날짜 칸은 "고르는" 곳이 아니라 "여는" 곳이다 — 요약은 안, 전문은 밖(스펙 §7).
   function openDay(date: string) {
@@ -209,6 +240,7 @@ export default function ByeolmaruHub() {
         subscriptionExpiresAt={data.subscriptionExpiresAt}
         trialEndsAt={data.trialEndsAt}
         onSubscribe={nextStep}
+        busy={trialStarting}
       />
 
       {/* 🔴 달력 판 — 출석·격자는 **한 물건**이다(다 "이 사람의 이 달"을 말한다).

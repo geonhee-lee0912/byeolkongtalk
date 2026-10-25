@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -16,6 +16,8 @@ import GuestLoginWall from "./GuestLoginWall";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import PaywallCut from "./PaywallCut";
+import TrialSubscribeNudge from "./TrialSubscribeNudge";
+import SubscribeOfferShown from "./SubscribeOfferShown";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 
 interface CalendarResponse {
@@ -26,6 +28,8 @@ interface CalendarResponse {
   entitled: boolean;
   trialUsed: boolean;
   subscriptionExpiresAt: string | null;
+  /** 체험 자격자의 만료(구독자는 null) — 체험 넛지의 D-N 과 구독 확인창 단계가 본다. */
+  trialEndsAt: string | null;
   monthStart: string;
   monthEnd: string;
 }
@@ -41,9 +45,13 @@ type State =
 export default function SajuTodayView({
   initialDate,
   injected,
+  reloadEntitlement,
 }: {
   initialDate?: string;
   injected?: { status: number; body: unknown };
+  /** 껍데기(DayTabsView)의 캘린더 다시 받기 — 체험·구독 뒤 이 탭을 포함해 열린 탭 전부를 새 자격으로 그린다.
+   *  없으면(껍데기 밖) 이 탭만 서버에서 다시 읽는다(refreshFromServer). */
+  reloadEntitlement?: () => Promise<void>;
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
@@ -54,7 +62,11 @@ export default function SajuTodayView({
   // 🔴 "오늘 + 캐시 미스 + 비자격"이 **확정**됐다는 신호(daily-report 의 403) — report===null 이
   //    "아직 로딩"인지 "네트워크 blip"인지 "정말 잠김"인지를 가른다. PaywallCut 은 이 값이
   //    true 일 때만 마운트한다(스펙 §4-4, 2026-09-26 — gate_shown 계측 계약 유지).
-  const [locked, setLocked] = useState(false);
+  // 🔴 값 = 그 잠금을 **어떤 자격으로 물었나**(null = 안 잠김, 2026-10-12). 지금 자격과 다르면 그 뒤에 자격이 바뀐 것
+  //    (체험·구독 직후)이라 리포트 effect 가 곧 다시 부른다 — 그 틈은 로딩으로 그린다(아래 렌더). 같으면 서버 판정 그대로
+  //    PaywallCut 이다(만료 경계에서 스냅샷이 아직 '자격'이어도 — 로딩에 갇히지 않는다).
+  const [lockedUnder, setLockedUnder] = useState<boolean | null>(null);
+  const locked = lockedUnder !== null;
 
   async function refresh() {
     try {
@@ -91,14 +103,14 @@ export default function SajuTodayView({
   const entitled = state.kind === "ready" && state.data.entitled;
   const todayKst = state.kind === "ready" ? state.data.today : null;
   useEffect(() => {
-    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setLocked(false); return; }
+    if (!selected || !todayKst) { setReport(null); setReportLoading(false); setNotGenerated(false); setLockedUnder(null); return; }
     const p = reportDatePolicy(selected, todayKst);
     // 🔴 범위 밖 미래는 서버에 묻지 않는다 — 달력이 전면 무료라 **누구나** 이번 달 모든 날짜를
     //    클릭할 수 있는데, 내일부터는 라우트가 400 date_out_of_range 를 준다. 화면 안내 문구는
     //    이제 아래 렌더의 policy 분기가 자격과 무관하게 책임지므로(2026-09-26), 여기 남은 이유는
     //    오직 어차피 400 이 될 요청을 막는 것뿐이다.
     if (p === "out_of_range") {
-      setReport(null); setNotGenerated(false); setReportLoading(false); setLocked(false);
+      setReport(null); setNotGenerated(false); setReportLoading(false); setLockedUnder(null);
       return;
     }
     // 🔴 "오늘 + 비자격이면 부르지 않는다"는 가드를 뺐다(2026-09-26) — 라우트가 캐시 조회를
@@ -107,7 +119,7 @@ export default function SajuTodayView({
     let cancelled = false;
     setReport(null);
     setNotGenerated(false);
-    setLocked(false);
+    setLockedUnder(null);
     setReportLoading(true);
     void (async () => {
       try {
@@ -116,7 +128,7 @@ export default function SajuTodayView({
         //    없음이 **확정**된 유일한 신호다. reportLoading=false·report=null 만으로 잠금을
         //    단정하지 않는다 — 그러면 네트워크 blip 도 PaywallCut 으로 보인다(요구사항 2).
         if (res.status === 403) {
-          if (!cancelled) { setReport(null); setNotGenerated(false); setLocked(true); }
+          if (!cancelled) { setReport(null); setNotGenerated(false); setLockedUnder(entitled); }
           return;
         }
         const j = await res.json();
@@ -136,18 +148,42 @@ export default function SajuTodayView({
     //    뿐이라 자격이 바뀌면 다시 확인해야 참이 된다).
   }, [entitled, selected, todayKst]);
 
-  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
-  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **진입 스냅샷을 다시 읽지 않는다** — 그건 진입 때 한 번 받은 값이라 방금 산
+  //    구독이 안 보인다. 껍데기 안이면 껍데기가 다시 받아 열린 탭 전부에 내려주고(reloadEntitlement — 아래
+  //    useLayoutEffect 가 받아 그린다), 밖이면 이 탭만 서버를 다시 문다.
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    reloadEntitlement ?? refreshFromServer,
+    state.kind === "ready" ? state.data : null
+  );
+
+  // 자격이 바뀐 뒤의 캘린더 응답 → 화면. 🔴 진입(refresh)과 달리 선택 날짜·리포트는 건드리지 않는다 —
+  // 리포트를 비우면 체험 중 구독(자격 true→true)에선 리포트 effect 가 다시 안 돌아 빈 자리가 남는다.
+  function applyCalendar(status: number, body: unknown) {
+    if (status === 401) { setState({ kind: "need_login" }); return; }
+    if (status === 404) { setState({ kind: "no_profile" }); return; }
+    if (status < 200 || status >= 300 || !body) { setState({ kind: "error" }); return; }
+    // 🔴 cells 가 비었거나 없으면 지금 화면을 그대로 둔다 — ready 로 만들면 아래 렌더의 todayCell 이 undefined 라 cell.date 에서
+    //    터져 날짜 상세가 통째로 죽는다(진입 refresh 가 빈 cells 를 거르는 것과 같은 이유 — 다만 이미 그려 둔 화면을 error 로 덮지는 않는다).
+    const data = body as CalendarResponse;
+    if (!Array.isArray(data.cells) || data.cells.length === 0) return;
+    setState({ kind: "ready", data });
+  }
 
   async function refreshFromServer() {
     const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-    const body = await res.json().catch(() => null);
-    if (res.status === 401) { setState({ kind: "need_login" }); return; }
-    if (res.status === 404) { setState({ kind: "no_profile" }); return; }
-    if (!res.ok || !body) { setState({ kind: "error" }); return; }
-    setState({ kind: "ready", data: body as CalendarResponse });
+    applyCalendar(res.status, await res.json().catch(() => null));
   }
+
+  // 🔴 껍데기가 자격 스냅샷을 다시 받아 내려주면(byeolmaru:entitlement-changed) 그걸로 다시 그린다 — 이 탭이 체험·구독을
+  //    한 탭이 아니어도 넛지·받은 글 아래 안내·절단선·구독 버튼이 새 자격을 따라야 한다(2026-10-12). 첫 주입은 refresh() 몫.
+  //    layout effect 인 이유: 누른 탭은 같은 커밋에서 '여는 중…'이 풀린다 — 칠하기 전에 바꿔야 옛 버튼이 한 프레임 안 비친다.
+  const appliedInjected = useRef(injected);
+  useLayoutEffect(() => {
+    if (!injected || injected === appliedInjected.current) return;
+    appliedInjected.current = injected;
+    applyCalendar(injected.status, injected.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injected]);
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   // 🔴 벽은 세 탭이 공유한다(GuestLoginWall) — 문구·레이아웃을 여기서 다시 쓰지 말 것.
@@ -199,11 +235,15 @@ export default function SajuTodayView({
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             그날 아침에 열려.
           </p>
-        ) : reportLoading ? (
+        ) : reportLoading || (locked && lockedUnder !== entitled) ? (
           /* 🔴 로딩 문구가 report/notGenerated/locked 세 분기보다 **먼저** 온다(2026-09-26) —
              오늘 + 비자격도 이제 fetch 가 실제로 돈다. locked 는 fetch 가 끝나야만 true 가 될 수
              있어 이 순서가 없어도 PaywallCut 이 로딩 중에 뜰 길은 없지만, "PaywallCut 이 잠깐
-             떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다. */
+             떴다가 글로 바뀌면 안 된다"(요구사항 1)를 코드 구조로도 분명히 해 둔다.
+             🔴 잠금을 물은 자격 ≠ 지금 자격 = 체험·구독이 막 성공했는데 잠금은 옛 자격으로 받은 것 — 리포트 effect
+                (entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼 '체험 후 구독
+                버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍혔다(dev 실측 10-11 — 체험 시작·구매 직후 매번,
+                2026-10-12 동기화로 열린 탭마다 생길 뻔했다). 그래서 로딩으로 본다. */
           <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
             {dayWord} 리포트를 펼치는 중…
           </div>
@@ -215,27 +255,40 @@ export default function SajuTodayView({
             {/* dateLabel={null} — 날짜는 한 장의 헤더가 이미 말했다. embedded 는 상단 바 자체를
                 안 그려 넘겨도 안 보이지만, 계약을 분명히 하려고 null 을 준다. */}
             <DailyReportCard report={report} dateLabel={null} dayWord={dayWord} variant="embedded" />
+            {/* 체험 중 — 리포트를 다 읽은 자리에서 '이어서 구독' 한 줄(2026-10-11, 사용자 결정). 아래
+                비자격 안내와 자격 조건이 반대라 둘이 함께 뜨는 일은 없다. */}
+            {data.entitled && !data.subscriptionExpiresAt && data.trialEndsAt && (
+              <TrialSubscribeNudge
+                trialEndsAt={data.trialEndsAt}
+                slot="saju_report"
+                onSubscribe={() => openSubscribe("report_end", "saju_report")}
+              />
+            )}
             {!data.entitled && (
               /* 🔴 PaywallCut 재사용 금지 — 이 글은 이미 다 나와 있어 "여기부터 더 있어"가
                  거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 도 찍어 분모를 오염시킨다).
-                 계측 없음(확신이 안 서 스킵 — 보고 참고). */
+                 gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
               <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
                 <p className="text-xs text-text-light">
                   지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                 </p>
                 {data.trialUsed ? (
-                  <button
-                    onClick={() => openSubscribe("saju_report")}
-                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
-                  >
-                    구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
-                  </button>
+                  <>
+                    <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="saju_report" />
+                    <button
+                      onClick={() => openSubscribe("kept_report", "saju_report")}
+                      className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                    >
+                      구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
+                    </button>
+                  </>
                 ) : (
                   <button
                     onClick={() => startTrial("saju_report")}
-                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                    disabled={trialStarting}
+                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
                   >
-                    3일 무료로 열어보기
+                    {trialStarting ? "여는 중…" : "3일 무료로 열어보기"}
                   </button>
                 )}
               </div>
@@ -259,8 +312,9 @@ export default function SajuTodayView({
             blurText={tasteText}
             trialUsed={data.trialUsed}
             onStartTrial={startTrial}
-            onSubscribe={openSubscribe}
+            onSubscribe={(slot) => openSubscribe("cut", slot)}
             slot="saju_report"
+            trialBusy={trialStarting}
           />
         ) : (
           <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">

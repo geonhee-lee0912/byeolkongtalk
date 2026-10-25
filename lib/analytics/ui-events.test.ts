@@ -36,6 +36,16 @@ test("UI_EVENTS — 별마루 ② 페이월 이벤트가 등록돼 있다", () =
   assert.equal(isUiEvent("byeolmaru_subscribe_completed"), true);
 });
 
+// 2026-10-11 체험 중 구독 노출 — 구독 실패(402·500·network) 계측. /api/event 가 allowlist 로 거르므로 여기 없으면 서버가 버린다.
+test("UI_EVENTS — 별마루 구독 실패(byeolmaru_subscribe_failed)가 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_subscribe_failed"), true);
+});
+
+// 구독 선택지 노출 = 클릭의 분모(체험 전 링크·체험 중 넛지·체험 후 배너/절단선/받은 글 안내). 없으면 서버가 버려 전환율이 무한대로 읽힌다.
+test("UI_EVENTS — 별마루 구독 선택지 노출(byeolmaru_subscribe_offer_shown)이 등록돼 있다", () => {
+  assert.equal(isUiEvent("byeolmaru_subscribe_offer_shown"), true);
+});
+
 // P5-4 T3 — 미끼 당일 접힘(slot별) 닫기 클릭 계측.
 test("UI_EVENTS — 별마루 미끼 닫기(당일 접힘) 이벤트가 등록돼 있다", () => {
   assert.equal(isUiEvent("byeolmaru_gate_dismissed"), true);
@@ -83,6 +93,23 @@ test("UI_EVENTS — 메뉴판·이어서 깊게 이벤트 6종이 등록돼 있�
     "tarot_compare_confirmed",
     "teaser_upsell_shown",
     "teaser_upsell_clicked",
+  ]) {
+    assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
+  }
+});
+
+test("UI_EVENTS — 입구 반반(로그인 전 맛보기) 이벤트 10종", () => {
+  for (const e of [
+    "home_tag_clicked",
+    "cards_revealed",
+    "login_sheet_shown",
+    "login_kakao_clicked",
+    "login_sheet_dismissed",
+    "login_fail_shown",
+    "pending_draw_resumed",
+    "pending_draw_missing",
+    "returning_short_shown",
+    "concern_safety_banner_shown",
   ]) {
     assert.equal(isUiEvent(e), true, `${e} 가 UI_EVENTS 에 없다`);
   }

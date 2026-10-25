@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,6 +18,11 @@ import {
 } from "@/lib/emotions";
 import { CONTINUATION_KEY, isConcernRewrite } from "@/lib/tarot/session";
 import ProgressSteps from "@/components/concern/ProgressSteps";
+import SafetyBanner from "@/components/safety/SafetyBanner";
+import { concernSafetyMatch } from "@/lib/sensitive-patterns";
+import { ENTRY_FLOW_KEY } from "@/lib/tarot/entry-ab";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { isLoggedInClient } from "@/lib/consultation-entry";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -30,6 +35,18 @@ export default function ConcernPage() {
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
+  // 새 흐름(로그인 전 맛보기)으로 온 비로그인 — 홈이 심은 표시. 안내 한 줄이 이 방문자에게만 뜬다(스펙 2026-10-11 §3 ①). 위기 배너는 모두에게(§5-5)
+  const [entryNew, setEntryNew] = useState(false);
+  // 위기 배너 노출 계측 — 같은 분류·강도는 한 번만
+  const bannerSeen = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const m = concernSafetyMatch(concern);
+    if (!m) return;
+    const key = `${m.category}:${m.severity}`;
+    if (bannerSeen.current.has(key)) return;
+    bannerSeen.current.add(key);
+    trackUiEvent("concern_safety_banner_shown", { meta: { severity: m.severity, category: m.category } });
+  }, [concern]);
 
   useEffect(() => {
     const stored =
@@ -42,6 +59,8 @@ export default function ConcernPage() {
     }
     // 구 태그(v2)·낯선 문자열도 정규화해서 흐름을 계속 이어간다
     setEmotion(normalizeEmotionTag(stored) ?? DEFAULT_TAG);
+    // 새 흐름 표시는 로그인 뒤에도 같은 탭에 남는다 — 회원에겐 안내·위기 배너를 안 띄운다(홈과 같은 로그인 판정)
+    setEntryNew(sessionStorage.getItem(ENTRY_FLOW_KEY) === "new" && !isLoggedInClient());
 
     // /tarot에서 뒤로 돌아온 경우: 기 입력한 고민 복원
     const raw = sessionStorage.getItem(PENDING_KEY);
@@ -67,6 +86,10 @@ export default function ConcernPage() {
   const remain = MAX_LEN - concern.length;
 
   const canProceed = concern.length >= MIN_LEN && concern.length <= MAX_LEN;
+
+  // 위기 신호(정규식 확신 high) — 고민을 쓰는 그 자리에서 상담 전화를. 진행은 막지 않는다.
+  // 모두에게(회원·옛 흐름 포함 — 사용자 결정 2026-10-11): high 정규식을 권장안으로 고쳐 연애 어휘 오탐('약속…먹고'·'재회에 목매' 등)을 걷어낸 뒤 넓혔다(lib/sensitive-patterns)
+  const safety = concernSafetyMatch(concern);
 
   const handleSelectTag = (tag: EmotionTag) => {
     setEmotion(tag);
@@ -254,6 +277,12 @@ export default function ConcernPage() {
           </div>
         </div>
 
+        {safety && (
+          <div className="w-full max-w-md mx-auto px-5 -mt-3 mb-3">
+            <SafetyBanner category={safety.category} severity={safety.severity} />
+          </div>
+        )}
+
         {error && (
           <p className="text-[12px] text-red-500 text-center px-5 max-w-md mb-3">
             {error}
@@ -270,6 +299,11 @@ export default function ConcernPage() {
               ? `${MIN_LEN}자 이상 적어줘`
               : "타로 카드 뽑으러 가기"}
           </button>
+          {entryNew && (
+            <p className="text-[11.5px] text-text-light/80 text-center">
+              풀이는 카카오로 3초 시작하면 바로 볼 수 있어
+            </p>
+          )}
           <Link
             href="/"
             className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"

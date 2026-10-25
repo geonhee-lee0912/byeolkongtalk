@@ -5,6 +5,8 @@ import { SPREAD_INFO } from "./spreads.ts";
 import { WRAP_THRESHOLDS } from "./constants.ts";
 import { tarotPrice } from "./pricing.ts";
 import { productPositions, productPrice, type MenuProduct } from "./menu.ts";
+import { guestShortLine } from "./guest-price.ts";
+import { isNewFlowGuest } from "./entry-ab.ts";
 
 /** 맛보기를 가입 선물로 볼 수 있다 — 메뉴판 배너·맛보기 "선물로 무료"·유료 줄 "선물 쓰면"·홈 한 줄이 같은 조건을 쓴다. */
 export function isGiftFree(w: Wallet): boolean {
@@ -27,6 +29,12 @@ export interface PriceLine {
  */
 export function priceLine(p: MenuProduct, w: Wallet): PriceLine {
   const price = productPrice(p);
+  // 로그인 전 방문자(새 흐름 그룹 — 표시용 지갑 guestWallet) — 가입 선물 기준 문구(스펙 2026-10-11-타로-로그인전-맛보기 §3-1).
+  // entryArm 까지 보는 이유: 옛 흐름 그룹 비로그인이 /tarot 에 직접 들어와도(서버 가드 없음) 지금 문구 그대로여야 대조군이 안 바뀐다
+  if (isNewFlowGuest(w)) {
+    const g = guestShortLine(price, w.menuArm);
+    return g.free ? { main: g.text, sub: null, free: true } : { main: `⭐${price}`, sub: g.text, free: false };
+  }
   if (p.tier === "teaser") {
     return isGiftFree(w)
       ? { main: "선물로 무료", sub: null, free: true }

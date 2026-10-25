@@ -8,10 +8,16 @@
 //    세 View 의 분기가 서로 다르기 때문이다(타로는 404 여도 화면이 뜬다: 오늘 타로는 생일이
 //    필요 없고, 라우트가 404 에도 entitled/trialUsed 를 실어 보낸다). 껍데기가 404 를 접으면
 //    생일 없는 사람의 타로 탭이 죽는다.
-import { useEffect, useRef, useState } from "react";
+//    (예외 하나 — 자격이 바뀐 뒤의 **다시 받기**가 5xx 면 버린다: acceptReloadedCalendar 주석)
+// 🔴 자격이 바뀌면(체험·구독 — useByeolmaruSubscribe 가 보내는 byeolmaru:entitlement-changed) 여기서 캘린더를
+//    **한 번** 다시 받아 열린 탭 전부에 내려준다(2026-10-12). 예전엔 진입 스냅샷 그대로라, 사주 탭에서 체험을
+//    시작해도 타로 탭엔 '3일 무료로 열어보기'가, 한 탭에서 구독한 뒤 다른 탭엔 [구독하고 매일 보기]가 남아 20별을
+//    또 뺐다. 탭을 오갈 때는 여전히 요청 0 이다.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { DAY_TABS, type DayTab } from "@/lib/byeolmaru/day-tabs";
+import { DAY_TABS, acceptReloadedCalendar, type DayTab } from "@/lib/byeolmaru/day-tabs";
+import { BYEOLMARU_REQUEST_TIMEOUT_MS, ENTITLEMENT_CHANGED_EVENT } from "@/lib/byeolmaru/subscribe-offer";
 import BackHeader from "./BackHeader";
 import SajuTodayView from "./SajuTodayView";
 import TarotTodayView from "./TarotTodayView";
@@ -53,6 +59,38 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
       }
     })();
   }, []);
+
+  // 자격 스냅샷 다시 받기 — 이벤트(아래)와, 체험·구독을 한 탭의 훅(onChanged 로 넘긴다)이 **같은 호출**을 거의 동시에
+  // 부른다. 진행 중이면 그 Promise 를 돌려줘 요청을 하나로 합친다(둘 다 응답을 받은 **뒤**에 부르므로 합쳐도 낡지 않다).
+  // 훅은 이 Promise 를 기다려 '여는 중…'을 새 화면이 그려질 때까지 유지한다.
+  // 🔴 새 injected 객체가 내려가면 각 View 가 그걸로 다시 그린다(View 의 useLayoutEffect) — 선택 날짜·읽던 리포트는 둔다.
+  const reloadRef = useRef<Promise<void> | null>(null);
+  const reload = useCallback((): Promise<void> => {
+    if (reloadRef.current) return reloadRef.current;
+    const p = (async () => {
+      // 시간 제한 — 훅이 이걸 기다리는 동안 체험 버튼이 '여는 중…'이라, 응답이 안 오면 거기 갇힌다
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), BYEOLMARU_REQUEST_TIMEOUT_MS);
+      try {
+        const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store", signal: ctrl.signal });
+        const body = await res.json().catch(() => null);
+        if (acceptReloadedCalendar(res.status, body)) setInjected({ status: res.status, body });
+      } catch {
+        // 못 받았다 — 지금 스냅샷을 그대로 둔다(낡은 구독 버튼은 서버가 409 로 막는다). 다음 진입이 바로잡는다
+      } finally {
+        clearTimeout(timer);
+        reloadRef.current = null;
+      }
+    })();
+    reloadRef.current = p;
+    return p;
+  }, []);
+
+  useEffect(() => {
+    const onChanged = () => void reload();
+    window.addEventListener(ENTITLEMENT_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(ENTITLEMENT_CHANGED_EVENT, onChanged);
+  }, [reload]);
 
   // 🔴 initialTab 은 useState 초기값이라 URL 이 바뀌어도 탭이 안 따라온다 — 같은 화면 안의
   //    크로스링크(예: 사주 상세의 "그날 카드 보러가기")가 ?tab= 만 바꿔 오기 때문에 필요하다.
@@ -127,15 +165,16 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
           //    (사주에서 맨 위 "이번 달 잘 맞는 날" 줄을 걷어내며 실제로 그렇게 됐다).
           //    한 곳이라 사주·타로·우리가 같은 값을 갖는다 — View 별로 흩어놓지 말 것.
           <div key={t.key} hidden={t.key !== tab} className="mt-4">
-            {t.key === "saju" && <SajuTodayView initialDate={initialDate} injected={injected} />}
+            {t.key === "saju" && <SajuTodayView initialDate={initialDate} injected={injected} reloadEntitlement={reload} />}
             {t.key === "tarot" && (
               <TarotTodayView
                 initialDate={initialDate}
                 injected={injected}
+                reloadEntitlement={reload}
                 autoOpenRitual={entryTab.current === "tarot"}
               />
             )}
-            {t.key === "woori" && <WooriTodayView initialDate={initialDate} injected={injected} />}
+            {t.key === "woori" && <WooriTodayView initialDate={initialDate} injected={injected} reloadEntitlement={reload} />}
           </div>
         ) : null
       )}

@@ -16,11 +16,55 @@ import {
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { spendConsent } from "@/lib/tarot/menu-session";
 import { fetchWallet } from "@/lib/wallet";
+import { entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
+import { guestSheetLine } from "@/lib/tarot/guest-price";
+import {
+  clearPendingDraw,
+  loadPendingDraw,
+  matchesSelection,
+  parseResume,
+  restoreSession,
+  resumeHref,
+  savePendingDraw,
+  type ResumeVia,
+} from "@/lib/tarot/pending-draw";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import CardReveal from "@/components/tarot/CardReveal";
+import LoginSheet from "@/components/tarot/LoginSheet";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
+
+type SheetTrigger = "auto" | "reopen" | "fail";
+
+/** 콜백 실패 사유는 쿼리라 누구나 넣을 수 있다 — 콜백이 쓰는 모양(영문·숫자·밑줄 40자)만 그대로 계측한다 */
+const LOGIN_FAIL_REASON = /^[A-Za-z0-9_]{1,40}$/;
+
+/** 카카오 콜백이 붙이는 표시 — 복귀하면 주소에서 뺀다(실패 안내·가입 선물 토스트는 한 번만 · 성공은 AuthBootstrap 이 이 화면 주소를 안 건드리므로 여기서) */
+const CALLBACK_KEYS = ["login", "welcome", "migrated", "reason"] as const;
+/** 이어가기 표시 전부 — 풀이를 시작하며 떠날 때 뺀다 */
+const RESUME_KEYS = ["resume", ...CALLBACK_KEYS] as const;
+
+/** 주소창에서 이 키들만 뺀다(지울 게 없으면 아무것도 안 한다). router.replace 가 아니라 history.replaceState 다 — router.replace 는 Next 의 이동 큐에 들어가 대기 중인 router.push 를 버리게 한다.
+ *  state 는 null 로 덮지 않고 그대로 넘긴다: Next 는 이 항목의 라우터 상태(__NA·트리)를 history.state 에 두는데, 화면이 처음 뜬 직후엔 history 를 가로채는 Next 의 패치가 아직 안 걸려 있을 수 있어
+ *  (자식 effect 가 부모보다 먼저 돈다) null 로 덮으면 그 상태가 사라져 뒤로 가기가 라우터를 못 탈 수 있다(popstate 무시 또는 전체 새로고침). 상태를 그대로 넘기면 패치가 걸려 있어도 큐를 건드리지 않고 주소만 바뀐다.
+ *  대가: 라우터는 이 정리를 모른다 — useSearchParams()·라우터의 canonicalUrl 은 이 화면을 떠날 때까지 옛 쿼리다.
+ *  이 화면에 router.refresh() 처럼 라우터 상태를 바꾸는 걸 넣으면 Next 가 주소를 canonicalUrl 로 다시 써 콜백 표시(login·welcome)가 주소로 돌아온다(새로고침 때 토스트·실패 안내 재표시).
+ *  정리 실패(주소 접근 불가)는 삼킨다 — 정리는 편의일 뿐 화면 진입·풀이 시작을 막으면 안 된다 */
+function dropQueryKeys(keys: readonly string[]): void {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!keys.some((k) => params.has(k))) return;
+    for (const k of keys) params.delete(k);
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  } catch {
+    // noop
+  }
+}
 
 export default function TarotDrawPage() {
   const router = useRouter();
@@ -36,6 +80,25 @@ export default function TarotDrawPage() {
   const [checking, setChecking] = useState(false);
   // 잔액을 못 읽었다(실패·5초 초과) — 팝업 대신 '다시 눌러줘' 한 줄. 완료 버튼을 다시 누르면(onDrawn) 지우고 다시 읽는다
   const [walletError, setWalletError] = useState(false);
+  // 로그인 전 맛보기(스펙 2026-10-11-타로-로그인전-맛보기) — 공개한 카드(로그인·결제·홈에서 돌아와 복원한 판 포함)
+  const [revealed, setRevealed] = useState<DrawnCard[] | null>(null);
+  // 공개 애니메이션이 끝났다 — 끝나기 전엔 아래 버튼 줄을 숨긴다(onRevealed 가 켜고 restart 가 끈다).
+  // 애니메이션 중에 탭하면 새로 뽑은 판은 로그인 창이 두 번 계측되고(reopen → auto) 닫은 창이 다시 뜨며, 복원한 판은 지갑 응답 전이라 회원 문구가 보이고 자동 이어가기와 겹쳐 지갑을 두 번 읽는다
+  const [revealDone, setRevealDone] = useState(false);
+  // 새 흐름 그룹 비로그인으로 판정됨 — 확인 팝업 대신 로그인 창
+  const [guestMode, setGuestMode] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [guestPrice, setGuestPrice] = useState<number | null>(null);
+  const [sheetPriceText, setSheetPriceText] = useState("");
+  // 로그인 실패로 돌아옴 — 창에 "다시 눌러줘"
+  const [loginFailed, setLoginFailed] = useState(false);
+  // 다시 온 회원 — 로그인 전 '가입 선물'을 보고 왔는데 선물이 없고 별이 모자란 만큼(스펙 §4)
+  const [returningShort, setReturningShort] = useState<number | null>(null);
+  const [welcomeToast, setWelcomeToast] = useState(false);
+  // 이 화면에 들어온 길 — resume=login|payment|home(lib/tarot/pending-draw)
+  const resumeRef = useRef<ResumeVia | null>(null);
+  // 복원한 판의 자동 이어가기는 한 번만(CardReveal 의 공개 완료 콜백이 부른다)
+  const autoRanRef = useRef(false);
   // 대화로 넘어가는 중 / 잔액 확인 중 — 완료 버튼 연타로 두 번 이동·두 번 조회하지 않게
   const leavingRef = useRef(false);
   const checkingRef = useRef(false);
@@ -48,24 +111,59 @@ export default function TarotDrawPage() {
     };
   }, []);
 
-  // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게"
+  // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게".
+  // 로그인·결제·홈에서 돌아온 판은 저장된 진행으로 복원한다(뽑기 의식 건너뜀 — 스펙 §5-2).
+  // 새 장치가 꺼져 있으면(스위치 'old' — 지금 prod) 복원·이어가기 표시·실패 표시를 보지 않는다 — 켰다가 되돌려도 남은 저장이 결제 막다른 길로 끌고 가지 않게
+  // (성공 콜백 표시를 주소에서 빼는 일만 스위치와 무관하다 — 그 정리를 AuthBootstrap 이 이 화면에선 하지 않는다)
   useEffect(() => {
-    const raw =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem(TAROT_SPREAD_KEY)
-        : null;
-    if (!raw) {
+    const featuresOn = entryFeaturesOn();
+    const params = new URLSearchParams(window.location.search);
+    const via = featuresOn ? parseResume(window.location.search) : null;
+    resumeRef.current = via;
+    if (params.get("welcome") === "1") setWelcomeToast(true);
+    const failed = featuresOn && params.get("login") === "fail";
+    if (failed) {
+      setLoginFailed(true);
+      const reason = params.get("reason") ?? "";
+      trackUiEvent("login_fail_shown", { meta: { reason: LOGIN_FAIL_REASON.test(reason) ? reason : "other" } });
+    }
+    // 콜백 표시는 한 번만 — 새로고침에 실패 안내·가입 선물 토스트가 다시 뜨지 않게 주소에서 뺀다(resume 은 남긴다: 새로고침해도 저장된 판을 이어 간다).
+    // 성공 복귀(login=success)는 스위치와 무관하게 여기서 정리한다 — AuthBootstrap 은 이 화면 주소를 안 건드린다
+    // (복원한 판의 자동 이어가기가 router.push 를 내는 사이에 AuthBootstrap 의 router.replace 가 오면 라우터가 대기 중인 push 를 버려 '잠시만…' 에 갇힌다)
+    if (failed || params.get("login") === "success") dropQueryKeys(CALLBACK_KEYS);
+
+    let sel: TarotSpreadSelection | null = null;
+    try {
+      const raw = sessionStorage.getItem(TAROT_SPREAD_KEY);
+      sel = raw ? (JSON.parse(raw) as TarotSpreadSelection) : null;
+    } catch {
+      sel = null;
+    }
+
+    const saved = featuresOn ? loadPendingDraw(localStorage) : null;
+    if (saved && (via || matchesSelection(saved, sel))) {
+      setSelection(restoreSession(sessionStorage, saved));
+      setRevealed(saved.drawnCards);
+      setMounted(true);
+      // 실패로 돌아온 복원도 여기 찍힌다 — 성공 복귀로 오독하지 않게 표시를 붙인다
+      trackUiEvent("pending_draw_resumed", { meta: { via: via ?? "match", ...(failed ? { loginFailed: true } : {}) } });
+      return;
+    }
+    if (via) trackUiEvent("pending_draw_missing", { meta: { via } });
+    if (!sel) {
       router.replace("/tarot");
       return;
     }
-    try {
-      const parsed = JSON.parse(raw) as TarotSpreadSelection;
-      setSelection(parsed);
-      setMounted(true);
-    } catch {
-      router.replace("/tarot");
-    }
+    setSelection(sel);
+    setMounted(true);
   }, [router]);
+
+  // 가입 선물 토스트 — 막지 않고 잠깐
+  useEffect(() => {
+    if (!welcomeToast) return;
+    const t = setTimeout(() => setWelcomeToast(false), 2600);
+    return () => clearTimeout(t);
+  }, [welcomeToast]);
 
   const labels = useMemo(
     () =>
@@ -91,6 +189,8 @@ export default function TarotDrawPage() {
   const accent = info.accent;
   const cardCount = info.cardCount;
   const spreadType = selection.spreadType;
+  // 새 장치(진행 저장·회원 충전 왕복 복원) — 스위치가 'old' 면 꺼져 지금 prod 그대로(스펙 §5-2 · §8)
+  const featuresOn = entryFeaturesOn();
 
   // 뽑은 카드는 인자로 받는다 — setPendingDrawn 직후의 state 는 아직 옛 값이다
   // price = 이 판에 보여 준(쓴) 가격(팝업 가격 · 팝업 생략이면 그 자리에서 계산한 가격) — 대화 화면이 서버에 실어 보내 서버 가격과 대조한다(다르면 차감 없이 409)
@@ -110,10 +210,25 @@ export default function TarotDrawPage() {
       expectedCost: price,
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
+    // 이 주소의 이어가기·콜백 표시를 지운다 — 대화에서 뒤로 오면 이 주소로 돌아오는데, 표시가 남아 있으면(저장은 아래에서 지워진다) '저장이 없다'로 읽혀
+    // pending_draw_missing(고장 신호)이 오탐으로 찍힌다. 표시가 없으면(스위치 'old' 의 보통 주소) 아무것도 안 한다.
+    // 🔴 push 보다 먼저 — 주소 바꾸기가 push 뒤에 오면 라우터가 대기 중인 push 를 버릴 수 있다
+    dropQueryKeys(RESUME_KEYS);
     router.push("/tarot/reading");
+    // 이 판을 시작했으니 저장해 둔 진행은 더 필요 없다(뒤로 가 다시 들어와도 복원하지 않게).
+    // 🔴 이동 뒤에 지운다 — 스위치 'old'(지금 prod)에서도 도는 줄이라, localStorage 접근 자체가 던지는 브라우저여도 풀이 시작을 막지 않게
+    clearPendingDraw(localStorage);
+  };
+
+  const openSheet = (trigger: SheetTrigger, price: number) => {
+    setSheetOpen(true);
+    trackUiEvent("login_sheet_shown", {
+      meta: { spread: spreadType, price, short: Math.max(0, price - WELCOME_BONUS_STARS), trigger },
+    });
   };
 
   // 카드를 다 뽑으면 잔액·반반 그룹을 그 자리에서 읽어 이번 판 가격을 정한다(서버 차감과 같은 tarotPrice).
+  //  - 로그인 전 맛보기(새 흐름 그룹 비로그인) — 확인 팝업 대신 카드 공개 + 로그인 창. 진행을 저장해 로그인 뒤 이어간다(스펙 §3·§5-2)
   //  - 메뉴판 그룹 + 메뉴판에서 동의한 선택(consented)이고 잔액이 충분하면 확인 팝업 없이 바로 대화로(스펙 §4)
   //  - 그 밖(옛 그룹 = 지금 prod 흐름 · 잔액 부족)은 확인 팝업 → 잔액 부족이면 충전 시트
   //    (그 팝업의 잔액 부족 노출이 paywall_shown = Meta AddToCart 원천이라 자리를 그대로 둔다)
@@ -141,6 +256,26 @@ export default function TarotDrawPage() {
         setWalletError(true);
         return;
       }
+      // 로그인 전 맛보기 — 새 흐름 그룹 비로그인
+      if (isNewFlowGuest(w)) {
+        setChecking(false);
+        const price = tarotPrice(spreadType, w.menuArm);
+        // 새로 뽑은 판만 저장한다 — 복원한 판은 저장소에 같은 값이 이미 있고, 다시 쓰면 savedAt 이 갱신돼 볼 때마다 7일이 다시 시작한다(스펙 §5-2 · §10 고민 원문은 최대 7일)
+        if (!revealed) savePendingDraw(localStorage, selection, drawn);
+        setGuestPrice(price);
+        setSheetPriceText(guestSheetLine(price, w.menuArm));
+        setGuestMode(true);
+        if (revealed) {
+          // 이미 공개된 판(복원) — 바로 창
+          openSheet(loginFailed ? "fail" : "auto", price);
+        } else {
+          // 새로 뽑은 판 — 공개 애니메이션이 끝나면 CardReveal 이 onRevealed 로 창을 올린다
+          autoRanRef.current = true;
+          setRevealed(drawn);
+          trackUiEvent("cards_revealed", { meta: { spread: spreadType, count: drawn.length } });
+        }
+        return;
+      }
       const price = tarotPrice(spreadType, w.menuArm);
       // 팝업 생략은 메뉴판 그룹만 — 남은 동의 선택(같은 탭에서 옛 그룹 계정으로 바꿈 · 스위치를 'legacy' 로 돌림)이어도 옛 그룹은 늘 확인 팝업
       if (selection.consented && w.menuArm === "menu" && w.balance >= price) {
@@ -150,8 +285,47 @@ export default function TarotDrawPage() {
       setChecking(false);
       setCost(price);
       setBalance(w.balance);
+      // 다시 온 회원 — 로그인 전 맛보기에서 '가입 선물'을 보고 왔는데 선물이 없다(카카오 계정당 1회) → 팝업에 한 줄(스펙 §4)
+      const via = resumeRef.current;
+      const short = price - w.balance;
+      const returning = (via === "login" || via === "home") && !w.giftUnused && short > 0;
+      setReturningShort(returning ? short : null);
+      if (returning) trackUiEvent("returning_short_shown", { meta: { short } });
       setShowConfirm(true);
     })();
+  };
+
+  // 공개 애니메이션이 끝났다 — 새로 뽑은 판(비로그인)은 로그인 창, 복원한 판은 '뽑은 뒤' 단계를 이어간다(버튼 없이, 한 번만 — 스펙 §3 ⑤)
+  const onRevealed = () => {
+    setRevealDone(true); // 버튼 줄은 이제부터 보인다 — 아래 분기가 창·지갑 조회를 같은 렌더에서 시작하므로(sheetOpen·checking) 버튼과 겹치지 않는다
+    if (guestMode) {
+      openSheet(loginFailed ? "fail" : "auto", guestPrice ?? 0);
+      return;
+    }
+    if (autoRanRef.current || !revealed) return;
+    autoRanRef.current = true;
+    onDrawn(revealed);
+  };
+
+  // 처음부터 다시 뽑기 — 저장한 판을 버리고 의식으로
+  const restart = () => {
+    clearPendingDraw(localStorage);
+    // 주소의 이어가기 표시도 지운다 — 남아 있으면 다시 뽑은 뒤 새로고침·뒤로 오기가 '이어가기'로 읽혀, 방금 우리가 지운 저장을 찾다
+    // pending_draw_missing(고장 신호)을 오탐으로 찍는다(goToReading 이 떠날 때 지우는 것과 같은 이유 — 이쪽은 떠나지 않고 판만 버린다)
+    dropQueryKeys(RESUME_KEYS);
+    setRevealed(null);
+    setRevealDone(false); // 다시 뽑은 판의 공개가 끝날 때까지 버튼 줄을 숨긴다
+    setGuestMode(false);
+    setSheetOpen(false);
+    setLoginFailed(false); // 버린 판의 로그인 실패 표시가 새로 뽑은 판의 창에 남지 않게
+    setPendingDrawn(null);
+    setReturningShort(null);
+  };
+
+  // 충전하러 간다 — 새 장치가 켜졌으면 진행을 저장해 결제 뒤 다시 뽑지 않게(스위치 'old' 동안엔 지금 prod 그대로)
+  const openRecharge = () => {
+    if (featuresOn && pendingDrawn) savePendingDraw(localStorage, selection, pendingDrawn);
+    setRechargeSheetOpen(true);
   };
 
   return (
@@ -161,17 +335,41 @@ export default function TarotDrawPage() {
         <ProgressSteps current={3} />
       </div>
 
-      <CardDrawRitual
-        cardCount={cardCount}
-        slotLabels={labels}
-        accent={accent}
-        ritualLabel={info.label}
-        completeLabel="고민 상담 시작하기"
-        relationshipLayout={spreadType === "relationship_5"}
-        backLabel="리딩 방법 선택"
-        onBack={() => router.push("/tarot")}
-        onComplete={onDrawn}
-      />
+      {revealed ? (
+        <div className="w-full max-w-md mx-auto px-5 pb-16 flex flex-col items-center">
+          <CardReveal drawn={revealed} accent={accent} onRevealed={onRevealed} />
+          {/* 창·팝업을 닫았을 때 다시 잇는 버튼 — 공개 애니메이션이 끝난 뒤에만 */}
+          {revealDone && !sheetOpen && !showConfirm && !rechargeSheetOpen && !checking && (
+            // 하단 고정(스펙 §3 ④) — 7장 판·작은 화면에선 카드가 길어 이 줄이 하단 탭(h-16) 아래로 밀린다(375×812 에서 7장 = 872px, 탭은 747px부터).
+            // sticky 라 짧은 판에선 제자리, 긴 판에선 하단 탭 바로 위에 붙는다 — 카드 위에 떠도 읽히게 반투명 바탕
+            <div className="sticky bottom-[72px] z-30 w-full mt-8 flex flex-col items-center gap-3 rounded-2xl bg-cream/90 backdrop-blur-md px-4 py-3">
+              <button
+                type="button"
+                onClick={() => (guestMode ? openSheet("reopen", guestPrice ?? 0) : onDrawn(revealed))}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-[15px] active:scale-[0.98] transition"
+                style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
+              >
+                {guestMode ? "로그인하고 풀이 보기" : "이 카드로 풀이 시작하기"}
+              </button>
+              <button type="button" onClick={restart} className="text-[12px] text-text-light/80 underline">
+                처음부터 다시 뽑기
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <CardDrawRitual
+          cardCount={cardCount}
+          slotLabels={labels}
+          accent={accent}
+          ritualLabel={info.label}
+          completeLabel="고민 상담 시작하기"
+          relationshipLayout={spreadType === "relationship_5"}
+          backLabel="리딩 방법 선택"
+          onBack={() => router.push("/tarot")}
+          onComplete={onDrawn}
+        />
+      )}
 
       {showConfirm && cost !== null && (
         <StarConfirmModal
@@ -181,10 +379,19 @@ export default function TarotDrawPage() {
           loading={false}
           accent={accent}
           surface={RECHARGE_SOURCE.tarotDraw}
+          extra={
+            returningShort !== null ? (
+              <p className="mb-4 rounded-2xl bg-lilac-soft/50 px-4 py-3 text-center text-[12.5px] font-bold leading-relaxed text-eye-purple">
+                다시 와줘서 반가워! 가입 선물은 처음 한 번뿐이라
+                <br />
+                별 {returningShort}개가 더 필요해
+              </p>
+            ) : undefined
+          }
           onConfirm={() => {
             if (pendingDrawn) goToReading(pendingDrawn, cost); // 팝업이 보여 준 가격 그대로
           }}
-          onCharge={() => setRechargeSheetOpen(true)}
+          onCharge={openRecharge}
           onClose={() => setShowConfirm(false)}
         />
       )}
@@ -194,11 +401,21 @@ export default function TarotDrawPage() {
       {rechargeSheetOpen && cost !== null && (
         <RechargeSheet
           open
-          returnTo="/tarot/draw"
+          returnTo={featuresOn ? resumeHref("payment") : "/tarot/draw"}
           need={cost}
           balance={balance}
           source={RECHARGE_SOURCE.tarotDraw}
           onClose={() => setRechargeSheetOpen(false)}
+        />
+      )}
+      {sheetOpen && (
+        <LoginSheet
+          concern={selection.concern}
+          priceText={sheetPriceText}
+          kakaoHref={`/api/auth/login/kakao?next=${encodeURIComponent(resumeHref("login"))}`}
+          failed={loginFailed}
+          spread={spreadType}
+          onDismiss={() => setSheetOpen(false)}
         />
       )}
       {/* fixed 덮개라 이 <main>(또는 조상)에 transform 이 남는 애니메이션(예: animate-fade-in)을 붙이면 fixed 의 기준이 화면이 아니라 그 요소가 돼 깨진다 — StarConfirmModal 이 포털을 쓰는 이유와 같다 */}
@@ -218,6 +435,14 @@ export default function TarotDrawPage() {
         <div role="alert" className="fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 pointer-events-none">
           <p className="rounded-full bg-white/95 px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
             잔액을 못 불러왔어 — 다시 눌러줘
+          </p>
+        </div>
+      )}
+      {/* 가입 선물 토스트 — 막지 않는다 */}
+      {welcomeToast && (
+        <div role="status" className="fixed inset-x-0 top-20 z-50 flex justify-center px-4 pointer-events-none">
+          <p className="rounded-full bg-gold-soft px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(232,194,106,0.35)]">
+            🎁 가입 선물 별 {WELCOME_BONUS_STARS}개 받았어
           </p>
         </div>
       )}

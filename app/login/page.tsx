@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { safeNextPath } from "@/lib/safe-internal-path";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 
 export default function LoginPage() {
   return (
@@ -45,6 +46,9 @@ function LoginPageInner() {
 
   const next = safeNextPath(sp.get("next"));
   const kakaoHref = `/api/auth/login/kakao?next=${encodeURIComponent(next)}`;
+  // 계측용 — 어느 로그인 벽에서 왔는지(next 가 없으면 safeNextPath 기본값 "/"). 경로 부분만 보낸다: 쿼리·해시엔 고민 원문·id 가 실릴 수 있다. 모양이 이상하거나 길면(id 가 든 경로 등) "other"
+  const nextPath = next.split(/[?#]/)[0];
+  const nextLabel = /^\/[A-Za-z0-9/_-]{0,40}$/.test(nextPath) ? nextPath : "other";
 
   return (
     <main className="flex flex-1 flex-col items-center px-5 py-12 max-w-md mx-auto w-full animate-fade-in">
@@ -74,6 +78,7 @@ function LoginPageInner() {
 
       <a
         href={kakaoHref}
+        onClick={() => trackUiEvent("login_kakao_clicked", { meta: { surface: "login_page", next: nextLabel } })}
         className="mt-10 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] hover:brightness-95 active:scale-[0.98] transition"
       >
         <svg

@@ -12,21 +12,30 @@ export const RECHARGE_SOURCE = {
   fortunePurchase: "fortune_purchase",
   compat: "compat",
   tarotReport: "tarot_report",
+  /** 별마루 구독 확인창(2026-10-11~). 잔액 부족 모달 surface 도 같은 값 — 아래 AddToCart 에선 뺀다 */
+  byeolmaruSubscribe: "byeolmaru_subscribe",
 } as const;
 
 export type RechargeSource =
   (typeof RECHARGE_SOURCE)[keyof typeof RECHARGE_SOURCE];
 
+/** Meta AddToCart 에서 빼는 지면 — 모달 surface 와 시트 source 양쪽에 같은 값으로 걸린다.
+ *  🔴 AddToCart 는 **타로 광고 최적화 신호**다. 별마루 구독(20별/30일)의 잔액 부족은 사려는 물건이 달라
+ *     섞이면 Meta 가 별마루 쪽 사람을 타로 결제 의향으로 배운다(사용자 결정 2026-10-11). */
+const CAPI_EXCLUDED: readonly unknown[] = [RECHARGE_SOURCE.byeolmaruSubscribe];
+
 /**
  * 결제 퍼널 계측 → Meta CAPI `AddToCart` eventId (보내지 않으면 null).
  * 타로 광고 최적화 이벤트. 두 이벤트가 같은 id 를 낸다:
  * - `paywall_shown` — 잔액 부족 확인 모달(StarConfirmModal insufficient) 노출. **2026-10-04 부터 주 원천.**
- *   meta 내용은 보지 않는다(surface 무관) — 모달 자체가 "결제 아니면 못 간다"를 본 순간이다.
- * - `recharge_sheet_opened`(source ∈ RECHARGE_SOURCE) — 잔액 부족으로 "그 자리" 충전 시트가 열린 순간.
+ *   meta 는 surface 하나만 본다 — 별마루 구독(CAPI_EXCLUDED)만 빼고, 나머지는 모달 자체가 "결제 아니면 못 간다"를 본 순간이다.
+ * - `recharge_sheet_opened`(source ∈ RECHARGE_SOURCE, CAPI_EXCLUDED 제외) — 잔액 부족으로 "그 자리" 충전 시트가 열린 순간.
  *   2026-10-03~04 의 원래 정의. 실발화가 하루 1~2건이라 Meta 학습 요건(주 50건)에 못 미쳐 위로 당겼다.
  *   /shop 진입("shop")은 둘러보기가 섞여 결제 연관이 약해(하루 내 결제 8.6% vs 25.1%, 2026-10-03 실측) 여전히 제외.
  * 유저·KST 날짜 단위 id — 같은 날 모달을 보고 시트까지 열어도 Meta 가 1건으로 중복 제거한다.
  * meta.source 는 클라가 보낸 값이라 RECHARGE_SOURCE 값만 통과시킨다.
+ * ⚠️ 별마루 제외는 서버 판정이라 배포 순간부터 낡은 번들의 이벤트에도 걸린다. 그 전 기간은 Meta 로 나갔다 —
+ *    scripts/atc-vs-purchase-verdict.sql 은 그 시절 정의(별마루 포함) 그대로다.
  */
 export function rechargeCapiEventId(
   event: string,
@@ -38,7 +47,10 @@ export function rechargeCapiEventId(
   if (event === "recharge_sheet_opened") {
     const source = (meta as { source?: unknown } | null)?.source;
     if (!(Object.values(RECHARGE_SOURCE) as unknown[]).includes(source)) return null;
-  } else if (event !== "paywall_shown") {
+    if (CAPI_EXCLUDED.includes(source)) return null;
+  } else if (event === "paywall_shown") {
+    if (CAPI_EXCLUDED.includes((meta as { surface?: unknown } | null)?.surface)) return null;
+  } else {
     return null;
   }
   return `atc:${userId}:${kstDate(now.toISOString())}`;

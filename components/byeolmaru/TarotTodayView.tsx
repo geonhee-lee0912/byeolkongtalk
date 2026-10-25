@@ -4,25 +4,48 @@
 // 🔴 DailyCardBlock 은 자격(entitled/trialUsed)을 props 로 받는다 — 허브가 넘겨주던 값이다.
 //    전용 페이지가 되면서 스스로 캘린더 응답에서 자격을 읽어야 한다(같은 라우트를 쓴다 —
 //    자격 전용 API 를 새로 만들지 않는다. 응답이 이미 entitled/trialUsed 를 싣고 있다).
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import DailyCardBlock from "./DailyCardBlock";
 import GuestLoginWall from "./GuestLoginWall";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
+type Ent = {
+  entitled: boolean;
+  trialUsed: boolean;
+  /** 체험 자격자의 만료(구독자는 null) — 체험 넛지의 D-N 과 구독 확인창 단계가 본다. */
+  trialEndsAt: string | null;
+  subscriptionExpiresAt: string | null;
+};
+
 type State =
   | { kind: "loading" }
   | { kind: "need_login" }
   | { kind: "error" }
-  | { kind: "ready"; entitled: boolean; trialUsed: boolean; today: string };
+  | ({ kind: "ready"; today: string } & Ent);
+
+// 캘린더 응답(200·404 공통)의 자격 필드 — 라우트가 404 에도 네 필드를 다 싣는다. 네 곳에서 같은 모양으로
+// 읽으니 한 군데로 모은다(필드가 늘 때 한 곳만 빠뜨리는 일이 없게).
+function entFrom(j: Partial<Ent> | null): Ent {
+  return {
+    entitled: !!j?.entitled,
+    trialUsed: !!j?.trialUsed,
+    trialEndsAt: j?.trialEndsAt ?? null,
+    subscriptionExpiresAt: j?.subscriptionExpiresAt ?? null,
+  };
+}
 
 export default function TarotTodayView({
   initialDate,
   injected,
+  reloadEntitlement,
   autoOpenRitual = false,
 }: {
   initialDate?: string;
   injected?: { status: number; body: unknown };
+  /** 껍데기(DayTabsView)의 캘린더 다시 받기 — 체험·구독 뒤 이 탭을 포함해 열린 탭 전부를 새 자격으로 그린다.
+   *  없으면(껍데기 밖) 이 탭만 서버에서 다시 읽는다(refreshFromServer). */
+  reloadEntitlement?: () => Promise<void>;
   /** 주소가 타로를 가리켜 들어왔나(= 뽑으러 온 것). 껍데기가 **진입 시점**에 판정해 넘긴다 —
    *  여기서 URL 을 다시 읽으면 탭 전환의 `router.replace` 와 구분이 안 된다. */
   autoOpenRitual?: boolean;
@@ -45,41 +68,58 @@ export default function TarotTodayView({
       // 세션만 확인한다). 🔴 다만 자격은 **바디에서 읽는다**. 라우트가 404 에도 entitled/
       // trialUsed 를 실어 보내므로, 프로필 없는 구독자에게 체험 CTA 를 보여주는 일이 없다.
       if (status === 404) {
-        const j = body as { entitled?: boolean; trialUsed?: boolean } | null;
-        setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed, today: kstNow });
+        setState({ kind: "ready", ...entFrom(body as Partial<Ent> | null), today: kstNow });
         return;
       }
       // 🔴 404 외 오류(500·네트워크 등)는 "모르는 상태"다 — entitled:false 로 접으면 이미
       //    체험을 쓴 구독자에게 "3일 무료 체험 시작"이 다시 뜬다(위 404 분기와 같은 버그가
       //    트리거만 바뀐 것). error 로 보내 별도 화면을 띄운다.
       if (status < 200 || status >= 300) { setState({ kind: "error" }); return; }
-      const j = body as { entitled?: boolean; trialUsed?: boolean; today?: string } | null;
+      const j = body as (Partial<Ent> & { today?: string }) | null;
       if (!j) { setState({ kind: "error" }); return; }
-      setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed, today: j.today ?? kstNow });
+      setState({ kind: "ready", ...entFrom(j), today: j.today ?? kstNow });
     } catch {
       setState({ kind: "error" });
     }
   }
   useEffect(() => { void refresh(); }, []);
 
-  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **주입을 무시하고 서버를 다시 문다** — 주입값은 껍데기가
-  //    진입 시 한 번 받은 스냅샷이라, 그걸 다시 읽으면 방금 산 구독이 화면에 반영되지 않는다.
-  const { startTrial, openSubscribe, subscribeModal } = useByeolmaruSubscribe(() => void refreshFromServer());
+  // 🔴 구독·체험이 바뀐 뒤의 갱신은 **진입 스냅샷을 다시 읽지 않는다** — 그건 진입 때 한 번 받은 값이라 방금 산
+  //    구독이 안 보인다. 껍데기 안이면 껍데기가 다시 받아 열린 탭 전부에 내려주고(reloadEntitlement — 아래
+  //    useLayoutEffect 가 받아 그린다), 밖이면 이 탭만 서버를 다시 문다.
+  const { startTrial, trialStarting, openSubscribe, subscribeModal } = useByeolmaruSubscribe(
+    reloadEntitlement ?? refreshFromServer,
+    state.kind === "ready" ? state : null
+  );
+
+  // 자격이 바뀐 뒤의 캘린더 응답 → 화면(진입 refresh 와 같은 판단이되 계측은 안 찍는다).
+  function applyCalendar(status: number, body: unknown) {
+    const kstNow = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+    if (status === 401) { setState({ kind: "need_login" }); return; }
+    if (status === 404) {
+      setState({ kind: "ready", ...entFrom(body as Partial<Ent> | null), today: kstNow });
+      return;
+    }
+    if (status < 200 || status >= 300 || !body) { setState({ kind: "error" }); return; }
+    const j = body as Partial<Ent> & { today?: string };
+    setState({ kind: "ready", ...entFrom(j), today: j.today ?? kstNow });
+  }
 
   async function refreshFromServer() {
     const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
-    const body = await res.json().catch(() => null);
-    const kstNow = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
-    if (res.status === 401) { setState({ kind: "need_login" }); return; }
-    if (res.status === 404) {
-      const j = body as { entitled?: boolean; trialUsed?: boolean } | null;
-      setState({ kind: "ready", entitled: !!j?.entitled, trialUsed: !!j?.trialUsed, today: kstNow });
-      return;
-    }
-    if (!res.ok || !body) { setState({ kind: "error" }); return; }
-    const j = body as { entitled?: boolean; trialUsed?: boolean; today?: string };
-    setState({ kind: "ready", entitled: !!j.entitled, trialUsed: !!j.trialUsed, today: j.today ?? kstNow });
+    applyCalendar(res.status, await res.json().catch(() => null));
   }
+
+  // 🔴 껍데기가 자격 스냅샷을 다시 받아 내려주면(byeolmaru:entitlement-changed) 그걸로 다시 그린다 — 실측(10-11):
+  //    사주 탭에서 체험을 시작한 뒤 이 탭에서 카드를 뽑으면 리포트 아래에 "지금은 구독 중이 아니야" + '3일 무료로
+  //    열어보기'가 떴다(진입 스냅샷). 첫 주입은 refresh() 몫. layout effect 인 이유는 SajuTodayView 와 같다.
+  const appliedInjected = useRef(injected);
+  useLayoutEffect(() => {
+    if (!injected || injected === appliedInjected.current) return;
+    appliedInjected.current = injected;
+    applyCalendar(injected.status, injected.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injected]);
 
   if (state.kind === "loading") return <p className="text-center text-text-light">펼치는 중…</p>;
   // 🔴 벽은 세 탭이 공유한다(GuestLoginWall) — 문구·레이아웃을 여기서 다시 쓰지 말 것.
@@ -106,8 +146,11 @@ export default function TarotTodayView({
         todayKst={state.today}
         entitled={state.entitled}
         trialUsed={state.trialUsed}
+        trialEndsAt={state.trialEndsAt}
+        subscriptionExpiresAt={state.subscriptionExpiresAt}
         onStartTrial={startTrial}
         onSubscribe={openSubscribe}
+        trialBusy={trialStarting}
         autoOpenRitual={autoOpenRitual}
       />
       {subscribeModal}

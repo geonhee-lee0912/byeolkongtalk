@@ -34,12 +34,14 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
     if (!tag) router.replace(CONCERN_REWRITE_HREF);
   }, [tag, router]);
 
-  // 메뉴판 노출 — 마운트당 1회
+  // 메뉴판 노출 — 마운트당 1회.
+  // 로그인 전 방문자(입구 새 흐름)는 표시용 지갑(잔액 15·선물 미사용)이 그려져 balance·giftUnused 가 회원 값처럼 찍힌다 — guest 표시를 더해 가른다.
+  // 회원은 {}(= 키를 더하지 않는다)라 meta 가 그대로다 — 메뉴판 반반 판정 데이터 불변
   useEffect(() => {
     if (viewedRef.current || !tag) return;
     viewedRef.current = true;
     trackUiEvent("tarot_menu_viewed", {
-      meta: { tag, giftUnused: wallet.giftUnused, balance: wallet.balance },
+      meta: { tag, giftUnused: wallet.giftUnused, balance: wallet.balance, ...(wallet.isGuest ? { guest: true } : {}) },
     });
   }, [tag, wallet]);
 
@@ -72,6 +74,7 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
         tier: p.tier,
         price: productPrice(p),
         balance: wallet.balance,
+        ...(wallet.isGuest ? { guest: true } : {}), // 위 tarot_menu_viewed 와 같은 이유
       },
     });
 
@@ -143,11 +146,13 @@ export default function TarotMenu({ pending, wallet }: { pending: PendingConsult
         </div>
       </div>
 
-      {/* 가입 선물 배너 — 맛보기를 선물로 볼 수 있을 때만 */}
+      {/* 가입 선물 배너 — 맛보기를 선물로 볼 수 있을 때만. 로그인 전 방문자(표시용 지갑)는 아직 못 받았으니 '가입하면' */}
       {isGiftFree(wallet) && (
         <div className="w-full max-w-md mx-auto px-5 mb-4">
           <p className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-gold-soft to-gold text-[13px] font-black text-eye-purple">
-            🎁 가입 선물 별 {WELCOME_BONUS_STARS}개 — 첫 질문은 공짜야
+            {wallet.isGuest
+              ? `🎁 가입하면 별 ${WELCOME_BONUS_STARS}개 선물 — 첫 질문은 공짜야`
+              : `🎁 가입 선물 별 ${WELCOME_BONUS_STARS}개 — 첫 질문은 공짜야`}
           </p>
         </div>
       )}

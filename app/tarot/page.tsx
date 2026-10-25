@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PENDING_KEY, type PendingConsultation } from "@/lib/emotions";
 import { useWallet } from "@/lib/use-wallet";
 import { MENU_AB } from "@/lib/tarot/menu-ab";
+import { isNewFlowGuest } from "@/lib/tarot/entry-ab";
+import { guestWallet } from "@/lib/tarot/guest-price";
 import SpreadPicker from "@/components/tarot/SpreadPicker";
 import TarotMenu from "@/components/tarot/TarotMenu";
 
@@ -40,10 +42,14 @@ export default function TarotPage() {
     </main>
   );
   if (!pending) return loading;
+  // 로그인 전 맛보기 — 새 흐름 그룹 비로그인만 '가입 선물 15별 신규 회원' 기준으로 그린다(스펙 2026-10-11 §3-1).
+  // 옛 흐름 비로그인이 직접 들어와도 지금 화면 그대로(대조군 불변). 서버 차감은 로그인 뒤
+  const guestNew = isNewFlowGuest(wallet);
   // 전원 옛 그룹(구현 중 잠금 · 판정 뒤 옛 그룹 승리)이면 그룹을 물을 필요가 없어 지금 prod 처럼 바로 고르기 화면을 띄운다.
   // 반반 중엔 그룹을 알아야 해서 지갑 왕복을 기다린다(다른 곳 #11).
-  if (MENU_AB === "legacy") return <SpreadPicker pending={pending} />;
+  if (MENU_AB === "legacy") return <SpreadPicker pending={pending} guest={guestNew} />;
   if (!wallet) return loading;
-  if (wallet.menuArm === "menu") return <TarotMenu pending={pending} wallet={wallet} />;
-  return <SpreadPicker pending={pending} />;
+  const shown = guestNew ? guestWallet(wallet.menuArm) : wallet;
+  if (shown.menuArm === "menu") return <TarotMenu pending={pending} wallet={shown} />;
+  return <SpreadPicker pending={pending} guest={guestNew} />;
 }

@@ -12,6 +12,7 @@ const w = (balance: number, giftUnused: boolean, menuArm: Wallet["menuArm"] = "m
   giftUnused,
   menuArm,
   isGuest: false,
+  entryArm: "old",
 });
 
 test("isGiftFree — 선물 미사용 + 맛보기 가격 이상", () => {
