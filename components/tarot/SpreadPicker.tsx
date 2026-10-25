@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,7 +14,6 @@ import {
   EMOTION_TO_CATEGORY,
   getSpreadOptionsForTag,
   getSpreadDescription,
-  getPositionLabels,
   type SpreadType,
 } from "@/lib/tarot/spreads";
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
@@ -131,7 +130,6 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
         {options.map((type) => {
           const info = SPREAD_INFO[type];
           const isSelected = selected === type;
-          const positions = getPositionLabels(type, category, pending.emotion);
           return (
             <button
               key={type}
@@ -187,20 +185,10 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                 <p className="text-[11px] font-medium text-eye-purple/85 mb-1">
                   {spreadAmountLine(type)}
                 </p>
-                <p className="text-[12px] text-text-light leading-snug mb-1.5">
-                  {getSpreadDescription(type, category)}
-                </p>
-                <p
-                  className="text-[11px] font-bold leading-snug"
-                  style={{ color: info.accent }}
-                >
-                  {/* 자리 이름은 이름 단위로만 줄바꿈("망설이는 / 이유" 방지). 가운뎃점 앞은 붙는 공백이라 줄은 "… ·" 로 끝나고 다음 줄은 이름으로 시작한다 */}
-                  {positions.map((label, i) => (
-                    <Fragment key={i}>
-                      {i > 0 && " · "}
-                      <span className="whitespace-nowrap">{label}</span>
-                    </Fragment>
-                  ))}
+                {/* 설명 한 줄이 '뭘 보는지'를 맡는다 — 자리 이름 줄은 지웠다(1~3장은 설명과 같은 말 · 5장 이상은 설명을 길게 써서 대신,
+                    spec 2026-10-25 §11 사용자 결정). 자리 이름은 뽑기 화면 칸마다 나온다 */}
+                <p className="text-[12px] text-text-light leading-snug">
+                  {getSpreadDescription(type, category, pending.emotion)}
                 </p>
               </div>
             </button>
