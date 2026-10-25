@@ -44,10 +44,12 @@ test("새 장치(진행 저장·회원 충전 왕복 복원)는 스위치가 old
   assert.equal(entryFeaturesOnFor("new", "legacy"), true);
 });
 
-test("구현 중 기본 스위치 = old — 켤 때 이 테스트도 같이 고칠 것(지우지 말 것)", () => {
-  assert.equal(ENTRY_AB, "old");
-  assert.equal(entryArmOf(anon("0")), "old");
-  assert.equal(entryFeaturesOn(), false); // 새 장치(진행 저장·회원 충전 왕복 복원)도 꺼진 채 배포된다
+// 2026-10-25 켬 — 스위치를 다시 돌리면(old 로 끄기 · new 로 전원) 이 테스트도 같이 고칠 것(지우지 말 것)
+test("배포 스위치 = split(입구 반반 진행 중)", () => {
+  assert.equal(ENTRY_AB, "split");
+  assert.equal(entryArmOf(anon("0")), "new");
+  assert.equal(entryArmOf(anon("1")), "old");
+  assert.equal(entryFeaturesOn(), true); // MENU_AB 가 반반이 아니어서(legacy) 새 장치가 켜진다
 });
 
 // 입구 반반은 메뉴판 판정이 끝나 MENU_AB 를 승자로 고정한 뒤에만 켠다 — 둘 다 반반이면 런타임 가드가 입구를 조용히 전원 old 로 막아 2주를 날린다
