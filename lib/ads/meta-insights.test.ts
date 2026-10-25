@@ -141,6 +141,34 @@ test("fetchInsights — API 에러는 메시지·코드로 throw, 토큰·URL �
   );
 });
 
+test("fetchInsights — Meta 일시 오류(code 2·is_transient)는 같은 페이지를 다시 읽는다 (10-25 prod 실측)", async () => {
+  const transient = { status: 400, body: { error: { message: "Service temporarily unavailable", code: 2, is_transient: true } } };
+  const { impl, calls } = fakeFetch([
+    { body: { data: [{ date_start: "2026-10-01" }], paging: { next: "https://graph.facebook.com/next1" } } },
+    transient,
+    { body: { data: [{ date_start: "2026-10-02" }] } },
+  ]);
+  const rows = await fetchInsights({ from: "2026-10-01", to: "2026-10-02", token: "T", accountId: "1", fetchImpl: impl, retryDelaysMs: [0, 0] });
+  assert.equal(rows.length, 2);
+  assert.deepEqual(calls.slice(1), ["https://graph.facebook.com/next1", "https://graph.facebook.com/next1"]);
+});
+
+test("fetchInsights — 일시 오류가 재시도 횟수를 넘기면 throw", async () => {
+  const transient = { status: 400, body: { error: { message: "Service temporarily unavailable", code: 2 } } };
+  const { impl, calls } = fakeFetch([transient, transient, transient]);
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl, retryDelaysMs: [0, 0] }),
+    /code 2/,
+  );
+  assert.equal(calls.length, 3);
+});
+
+test("fetchInsights — 영구 오류(토큰 만료 190)는 재시도하지 않는다", async () => {
+  const { impl, calls } = fakeFetch([{ status: 400, body: { error: { message: "Invalid OAuth access token", code: 190 } } }]);
+  await assert.rejects(fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl, retryDelaysMs: [0, 0] }), /190/);
+  assert.equal(calls.length, 1);
+});
+
 test("fetchInsights — 200 이어도 data 가 없으면 throw (0원 덮어쓰기 방지)", async () => {
   const { impl } = fakeFetch([{ body: { foo: 1 } }]);
   await assert.rejects(fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl }), /data 없음/);
