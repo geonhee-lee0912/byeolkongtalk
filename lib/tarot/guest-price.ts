@@ -23,12 +23,12 @@ export function minTopUpWon(short: number, arm: MenuArm): number | null {
 // 사용자 화면의 금액 관례는 `4,900원`(충전 시트·상점·결제 내역) — `₩` 는 어드민만 쓴다
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
-/** 상품 한 줄 — 가격 P 를 선물 15 기준으로. free = 선물로 다 된다 */
-export function guestShortLine(price: number, arm: MenuArm): { free: boolean; text: string } {
+/** 상품 한 줄 — 가격 P 를 선물 15 기준으로. free = 선물로 다 된다.
+ *  금액("(1,000원부터)")은 넣지 않는다 — 좁은 카드에서 줄이 넘쳐 단어 중간에서 끊겼다(사용자 2026-10-25). 금액은 로그인 창 줄(guestSheetLine)에만 */
+export function guestShortLine(price: number): { free: boolean; text: string } {
   const short = price - WELCOME_BONUS_STARS;
   if (short <= 0) return { free: true, text: "가입 선물로 무료" };
-  const w = minTopUpWon(short, arm);
-  return { free: false, text: `가입 선물 + ⭐${short}만 더${w ? ` (${won(w)}부터)` : ""}` };
+  return { free: false, text: `가입 선물 + ⭐${short}만 더` };
 }
 
 /** 로그인 창 가격 줄 */

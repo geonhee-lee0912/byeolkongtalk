@@ -33,11 +33,12 @@ test("minTopUpWon 경계 — 칸이 덮는 최대 모자람 = 그 칸 가격 · 
   }
 });
 
-test("guestShortLine — 선물로 되면 무료, 넘으면 모자란 별 + 최소 금액", () => {
-  assert.deepEqual(guestShortLine(15, "menu"), { free: true, text: "가입 선물로 무료" });
-  assert.deepEqual(guestShortLine(10, "legacy"), { free: true, text: "가입 선물로 무료" });
-  assert.deepEqual(guestShortLine(55, "menu"), { free: false, text: "가입 선물 + ⭐40만 더 (4,900원부터)" });
-  assert.deepEqual(guestShortLine(40, "legacy"), { free: false, text: "가입 선물 + ⭐25만 더 (2,800원부터)" });
+test("guestShortLine — 선물로 되면 무료, 넘으면 모자란 별만(금액은 로그인 창 줄에만 — 사용자 2026-10-25)", () => {
+  assert.deepEqual(guestShortLine(15), { free: true, text: "가입 선물로 무료" });
+  assert.deepEqual(guestShortLine(10), { free: true, text: "가입 선물로 무료" });
+  assert.deepEqual(guestShortLine(55), { free: false, text: "가입 선물 + ⭐40만 더" });
+  assert.deepEqual(guestShortLine(40), { free: false, text: "가입 선물 + ⭐25만 더" });
+  assert.deepEqual(guestShortLine(25), { free: false, text: "가입 선물 + ⭐10만 더" });
 });
 
 test("guestSheetLine — 로그인 창 가격 줄", () => {
@@ -45,12 +46,12 @@ test("guestSheetLine — 로그인 창 가격 줄", () => {
   assert.equal(guestSheetLine(70, "menu"), "가입 선물 15별 + ⭐55만 더 (4,900원부터)");
 });
 
-test("priceLine — 로그인 전(표시용 지갑): 맛보기 '가입 선물로 무료' · 유료는 모자란 별 + 최소 금액", () => {
+test("priceLine — 로그인 전(표시용 지갑): 맛보기 '가입 선물로 무료' · 유료는 모자란 별", () => {
   const [teaser, mid, deep] = getMenu("걔 속마음이 궁금해");
   const g = guestWallet("menu");
   assert.deepEqual(priceLine(teaser, g), { main: "가입 선물로 무료", sub: null, free: true });
-  assert.deepEqual(priceLine(mid, g), { main: "⭐25", sub: "가입 선물 + ⭐10만 더 (1,000원부터)", free: false });
-  assert.deepEqual(priceLine(deep, g), { main: "⭐55", sub: "가입 선물 + ⭐40만 더 (4,900원부터)", free: false });
+  assert.deepEqual(priceLine(mid, g), { main: "⭐25", sub: "가입 선물 + ⭐10만 더", free: false });
+  assert.deepEqual(priceLine(deep, g), { main: "⭐55", sub: "가입 선물 + ⭐40만 더", free: false });
 });
 
 test("priceLine — 옛 흐름 그룹 비로그인의 실제 지갑(entryArm old)은 지금 문구 그대로(대조군 불변)", () => {

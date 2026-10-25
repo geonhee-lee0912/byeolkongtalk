@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -53,8 +53,11 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
     router.push("/tarot/draw");
   };
 
+  // break-keep — 한글 단어 중간에서 줄이 끊기지 않게(320px 에서 "봐줄/게"·"깊/이"·"1,000원부/터", 사용자 2026-10-25).
+  // break-words — 띄어쓰기 없는 긴 고민 글은 그래도 칸을 넘치지 않게 끊는다(LoginSheet 와 같은 짝)
+  // text-pretty — 마지막 줄에 단어 하나만 남지 않게(지원 안 하는 브라우저는 그냥 break-keep 로 끊긴다)
   return (
-    <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
+    <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in break-keep break-words text-pretty">
       {/* 최상단 — 고민 다시 적기 */}
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
@@ -88,7 +91,7 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
           priority
           className="drop-shadow-lg"
         />
-        <h1 className="font-display text-[24px] text-eye-purple text-center mt-4 tracking-wide leading-snug">
+        <h1 className="font-display text-[24px] text-eye-purple text-center mt-4 tracking-wide leading-snug text-balance">
           너의 고민을 내가 해결해 줄게
         </h1>
         <p className="text-[12px] text-text-light text-center mt-1">
@@ -161,22 +164,23 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
+                {/* 배지·가격은 각각 쪼개지 않는다 — 한 줄에 안 들어가면 가격이 통째로 다음 줄로(320px 7장 "가능성 스프레드 · / 7카드"·"⭐ / 55별") */}
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
                   <span
-                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white"
+                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white whitespace-nowrap"
                     style={{ backgroundColor: info.accent }}
                   >
                     {info.label}
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
-                  <span className="text-[11px] font-bold text-text-light">
+                  <span className="text-[11px] font-bold text-text-light whitespace-nowrap">
                     ⭐ {tarotPrice(type, "legacy")}별
                   </span>
                 </div>
                 {/* 로그인 전 방문자(새 흐름) — 가입 선물 15별 기준 한 줄(스펙 2026-10-11 §3-1) */}
                 {guest && (
                   <p className="text-[11px] font-bold text-eye-purple mb-1">
-                    {guestShortLine(tarotPrice(type, "legacy"), "legacy").text}
+                    {guestShortLine(tarotPrice(type, "legacy")).text}
                   </p>
                 )}
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}
@@ -190,7 +194,13 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                   className="text-[11px] font-bold leading-snug"
                   style={{ color: info.accent }}
                 >
-                  {positions.join(" · ")}
+                  {/* 자리 이름은 이름 단위로만 줄바꿈("망설이는 / 이유" 방지). 가운뎃점 앞은 붙는 공백이라 줄은 "… ·" 로 끝나고 다음 줄은 이름으로 시작한다 */}
+                  {positions.map((label, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && " · "}
+                      <span className="whitespace-nowrap">{label}</span>
+                    </Fragment>
+                  ))}
                 </p>
               </div>
             </button>

@@ -33,7 +33,7 @@ export function priceLine(p: MenuProduct, w: Wallet): PriceLine {
   // 로그인 전 방문자(새 흐름 그룹 — 표시용 지갑 guestWallet) — 가입 선물 기준 문구(스펙 2026-10-11-타로-로그인전-맛보기 §3-1).
   // entryArm 까지 보는 이유: 옛 흐름 그룹 비로그인이 /tarot 에 직접 들어와도(서버 가드 없음) 지금 문구 그대로여야 대조군이 안 바뀐다
   if (isNewFlowGuest(w)) {
-    const g = guestShortLine(price, w.menuArm);
+    const g = guestShortLine(price);
     return g.free ? { main: g.text, sub: null, free: true } : { main: `⭐${price}`, sub: g.text, free: false };
   }
   if (p.tier === "teaser") {
