@@ -2,7 +2,7 @@
 // spec: docs/superpowers/specs/2026-10-04-타로톡-인챗결제-대화길이-design.md §3-1 ~ §3-5
 //
 // 투카드(love) 리딩 하나를 실제 API 로 끝까지 몰아 아래를 확인한다. 결정적인 것만 PASS/FAIL, 모델 판단에 달린 것은 INFO.
-//   T2~T11    자연 마무리선(9번째 · 누적 3,640자 도달 시)에서 유저가 묻는 중이면 [END] 없음(keep-open §3-3). 강제 종료선 전 조기 [END] 는 FAIL + 중단
+//   T2~T11    자연 마무리선(6번째 · 누적 2,200자 도달 시)에서 유저가 묻는 중이면 [END] 없음(keep-open §3-3). 강제 종료선 전 조기 [END] 는 FAIL + 중단
 //   T12       강제 종료선 — [END] · X-End-Reason=abs_cap · X-Reopen 에 extend·clarifier (§3-4)
 //   GET       /api/readings/:id → reopen = {extend:true, clarifier:true}
 //   extend    구매 200 · ★ 마지막 별콩이 메시지 [END] 제거(선점 CAS `.like("content","%[END]%")` 가 실 PostgREST 에서 먹는가) · 별 −10 · star_transactions(spend/extend)
@@ -36,7 +36,7 @@
 //
 // ⚠️ 로컬 .env.local 의 dev Supabase 를 쓰고 LLM 을 약 18회 호출한다(원가 발생 · 소요 약 2분, 2026-10-04 실측 108초). 리딩은 지우지 않는다(브라우저로 열어 보려고) — 테스트 유저(QA봇) 소유.
 // ⚠️ 같은 리딩을 60초 안에 다시 만들면 중복 생성 방어가 기존 리딩을 돌려준다 — 실행 사이에 1분 이상 띄울 것.
-// ⚠️ 모델 응답이 누적 3,640자에 못 미치면 9번째가 자연 마무리선(hardcap)이 아니라 keep-open 경로가 실행되지 않는다 → INFO 로 남는다. 질문을 더 자세히 청하게 고쳐 다시 돌릴 것.
+// ⚠️ 모델 응답이 누적 2,200자에 못 미치면 6번째가 자연 마무리선(hardcap)이 아니라 keep-open 경로가 실행되지 않는다 → INFO 로 남는다. 질문을 더 자세히 청하게 고쳐 다시 돌릴 것.
 import { config } from "../qa/config.ts";
 import { ensureTestUser, topUpStars, getBalance } from "../qa/seed.ts";
 import { postJson, postChat, type ChatResponse } from "../qa/client.ts";
@@ -57,13 +57,13 @@ const CONCERN_B = "걔가 요즘 답장이 부쩍 늦어졌어. 나한테 마음
 const CONCERN_RACE = "썸 타던 사람이 요즘 연락이 뜸해졌어. 다시 가까워질 수 있을까?"; // --race 전용 — 다른 모드 문구와 달라야 60초 중복 생성 방어에 안 걸린다
 const ABS = 12; // 기본 강제 종료선
 const ABS_EXTENDED = ABS + EXTEND_TURNS; // 연장 뒤 강제 종료선(16)
-const NATURAL_TURN = 9; // 자연 마무리선 턴
-const NATURAL_CHARS = 3640; // 자연 마무리선 글자 임계
+const NATURAL_TURN = 6; // 자연 마무리선 턴 (2026-10-25 9 → 6)
+const NATURAL_CHARS = 2200; // 자연 마무리선 글자 임계 (2026-10-25 3,640 → 2,200)
 const PURCHASES = 4; // 시드 잔액 여유 계산용 — extend 1 + clarifier 1 + 동시 clarifier 2
 const CHAT_PATH = "/api/consultations/tarot/chat";
 const CLARIFIER_PATH = "/api/consultations/tarot/clarifier";
 
-// T2~T12 질문 — 전부 물음표가 있어 classifyUserTurn().asking=true. 응답이 길어지도록 '자세히'를 청한다(누적 3,640자 도달용).
+// T2~T12 질문 — 전부 물음표가 있어 classifyUserTurn().asking=true. 응답이 길어지도록 '자세히'를 청한다(누적 2,200자 도달용).
 // 위기 감지(lib/sensitive.ts)에 걸릴 말(우울·외로움·포기류)은 일부러 뺐다 — 걸리면 has_sensitive 로 재개 상품이 막혀 시나리오가 무효가 된다.
 const QUESTIONS: string[] = [
   /* T2 */ "그 사람은 지금 나를 어떻게 생각하고 있을까? 카드가 보여주는 마음을 자세히 풀어서 알려줄래?",
@@ -287,7 +287,7 @@ async function scenario() {
     premise.clarifierMax === 2;
   if (
     !check(
-      "대본 전제 = 코드 상수 (투카드 자연 9번째·3,640자 / 강제 12 → 연장 16 → 보조1 18 → 보조2 20 / 구매 각 10별 / 보조 최대 2)",
+      "대본 전제 = 코드 상수 (투카드 자연 6번째·2,200자 / 강제 12 → 연장 16 → 보조1 18 → 보조2 20 / 구매 각 10별 / 보조 최대 2)",
       premiseOk,
       premise,
     )
