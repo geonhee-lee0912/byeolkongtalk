@@ -144,6 +144,17 @@ const FIELDS = [
 const MAX_PAGES = 50;
 
 /**
+ * Meta 가 "잠깐 뒤 다시"라고 하는 오류 — code 1(unknown)·2(Service temporarily unavailable) 또는 is_transient.
+ * 10-25 prod 에서 code 2 가 한 번 떠 그 시각 동기화가 통째로 실패했다(다음 시각엔 정상).
+ * 토큰 만료(190)·권한·파라미터 오류는 다시 불러도 같으니 재시도하지 않는다.
+ */
+function isTransientMetaError(err: { code?: number; is_transient?: boolean } | undefined): boolean {
+  return err?.is_transient === true || err?.code === 1 || err?.code === 2;
+}
+
+const RETRY_DELAYS_MS = [2_000, 5_000];
+
+/**
  * act_{accountId}/insights 를 level=ad · 일별로 끝까지 읽는다.
  * 🔴 에러 메시지에 URL(=토큰 포함)을 넣지 않는다 — Meta 가 준 message·code 만.
  */
@@ -153,8 +164,11 @@ export async function fetchInsights(opts: {
   token: string;
   accountId: string;
   fetchImpl?: typeof fetch;
+  /** 일시 오류 재시도 간격 (길이 = 재시도 횟수). 테스트는 [0, 0]. cron maxDuration 60초 안에 든다. */
+  retryDelaysMs?: number[];
 }): Promise<InsightRow[]> {
   const f = opts.fetchImpl ?? fetch;
+  const retryDelays = opts.retryDelaysMs ?? RETRY_DELAYS_MS;
   const params = new URLSearchParams({
     level: "ad",
     time_increment: "1",
@@ -166,7 +180,7 @@ export async function fetchInsights(opts: {
   let url: string | null =
     `https://graph.facebook.com/${GRAPH_VERSION}/act_${opts.accountId}/insights?${params}`;
   const out: InsightRow[] = [];
-  for (let page = 0; url; page++) {
+  for (let page = 0, attempt = 0; url; page++) {
     if (page >= MAX_PAGES) throw new Error(`Meta insights: ${MAX_PAGES}페이지 초과`);
     let res: Response;
     try {
@@ -178,12 +192,17 @@ export async function fetchInsights(opts: {
     let j: {
       data?: InsightRow[];
       paging?: { next?: string };
-      error?: { message?: string; code?: number };
+      error?: { message?: string; code?: number; is_transient?: boolean };
     };
     try {
       j = await res.json();
     } catch {
       throw new Error(`Meta insights 실패 (HTTP ${res.status}): JSON 아님`);
+    }
+    if ((!res.ok || j.error) && isTransientMetaError(j.error) && attempt < retryDelays.length) {
+      await new Promise((r) => setTimeout(r, retryDelays[attempt++]));
+      page--; // 같은 페이지를 다시 — MAX_PAGES 를 재시도로 소모하지 않는다
+      continue;
     }
     if (!res.ok || j.error) {
       throw new Error(`Meta insights 실패 (HTTP ${res.status}, code ${j.error?.code ?? "?"}): ${j.error?.message ?? "응답 없음"}`);
