@@ -294,36 +294,59 @@ export const SPREAD_DESCRIPTIONS: Record<
     interpersonal: "나·상대·관계 흐름을 세 장으로 풀어줄게",
     default: "세 장을 이어서 흐름까지 짚어줄게",
   },
-  relationship_5: { default: "너와 상대방의 관계, 서로의 기대와 앞으로의 방향까지" },
+  // 5장 이상은 자리 이름 줄이 하던 일까지 맡는다 — 실제 자리 중 그 고민에 맞는 것만 골라 문장으로(spec 2026-10-25 §11, 사용자 결정)
+  relationship_5: { default: "너와 상대, 서로가 이 관계에 바라는 것과 앞으로의 방향까지 다섯 장으로" },
   deep_feelings_5: {
-    interpersonal: "그 사람의 속마음과 나에 대한 평가를 다섯 장으로",
-    default: "그 사람 한 명을 다섯 장으로 깊이 — 겉모습 뒤의 진심까지",
+    interpersonal: "그 사람의 속마음과 거리를 두는 이유, 너를 어떻게 보는지까지 다섯 장으로",
+    default: "겉모습 뒤의 속마음, 망설이는 이유, 너를 향한 진심과 다가올 태도까지 다섯 장으로",
   },
-  reunion_5: { default: "이별의 매듭과 다시 이어질 가능성을 다섯 장으로" },
-  reunion_deep_7: { default: "서로의 몫과 회복의 조건, 재회의 의미까지 정직하게" },
+  reunion_5: { default: "너와 그 사람의 지금, 둘 사이를 막고 있는 것과 필요한 행동, 다시 이어질 가능성까지" },
+  reunion_deep_7: { default: "서로의 몫과 회복의 조건, 바깥 사정과 재회가 너에게 갖는 의미까지 정직하게" },
   potential_7: {
-    career: "커리어의 다음 단계와 장기 잠재력까지 일곱 장으로",
-    default: "이 관계가 어디까지 갈 수 있는지, 잠재력까지 일곱 장으로",
+    career: "지금의 너와 목표 사이에 넘어야 할 것, 다음 단계와 멀리 보이는 가능성까지",
+    decision: "마음이 기우는 쪽과 넘어야 할 것, 그 선택 뒤의 다음 단계까지 일곱 장으로",
+    default: "이 관계가 어디까지 갈 수 있을지, 넘어야 할 것과 다음 단계까지 일곱 장으로",
   },
   checkin_6: {
-    interpersonal: "그 사람과의 관계를 여섯 장으로 점검해보자",
-    default: "두 사람의 상태와 서로의 필요를 나란히 점검해보자",
+    interpersonal: "너와 그 사람 사이의 공기, 너에게 필요한 것과 그 사람의 입장, 관계의 방향까지",
+    default: "지금의 두 사람과 둘 사이 에너지, 서로에게 필요한 것과 나아갈 방향까지",
   },
   stay_or_go_6: {
-    career: "남을까 떠날까, 두 갈래 뒤의 너를 비교해줄게",
-    decision: "두 선택 뒤의 너를 나란히 놓고 비교해줄게",
-    default: "계속 갈지 멈출지, 두 갈래 뒤의 감정까지 비교해줄게",
+    career: "남을 이유와 떠날 이유, 각 선택 뒤의 너와 결정의 기준까지 비교해줄게",
+    decision: "각 선택지를 고를 이유, 그 선택 뒤의 너와 결정의 기준까지 나란히 비교해줄게",
+    default: "머무를 이유와 떠날 이유, 각 선택 뒤의 너와 결정의 기준까지 비교해줄게",
   },
-  new_love_5: { default: "다가올 인연의 결과 만나게 될 환경까지 다섯 장으로" },
-  readiness_6: { default: "새 사랑을 시작할 준비가 됐는지, 나부터 들여다보자" },
-  healing_6: { default: "반복되는 패턴과 남은 상처, 놓아주는 방향까지" },
-  chakra_7: { default: "지금의 나를 일곱 층위로 — 안정감부터 삶의 의미까지" },
+  new_love_5: { default: "지금 너의 준비 상태와 다가올 인연의 결, 만남의 환경, 관계의 방향까지" },
+  readiness_6: { default: "네가 원하는 사랑과 지난 연애의 교훈, 방해하는 것, 감정·생각·삶의 준비까지" },
+  healing_6: { default: "반복되는 패턴과 남아 있는 상처, 그 상처가 드러나는 방식과 놓아주는 방향까지" },
+  chakra_7: { default: "안정감과 자존감, 감정과 직관, 삶의 의미까지 — 지금의 너를 일곱 층으로 들여다볼게" },
 };
 
+/** 질문별 설명 — TAG_LABEL_OVERRIDES 로 자리 이름을 바꾼 곳의 짝. 카테고리 문장("너와 상대, 둘 사이의 에너지")이 실제 카드와 달랐다(새 인연엔 아직 상대가 없다) */
+const TAG_DESCRIPTION_OVERRIDES: Partial<
+  Record<EmotionTag, Partial<Record<SpreadType, string>>>
+> = {
+  "언제 연락 올까, 타이밍이 궁금해": {
+    three_card: "지금의 흐름과 전환점, 다가올 신호까지 짚어줄게",
+  },
+  "재회할 수 있을까": {
+    three_card: "너와 그 사람, 아직 남은 결까지 봐줄게",
+  },
+  "새로운 인연, 언제쯤 올까": {
+    three_card: "지금의 너와 다가올 기류, 준비할 것까지 봐줄게",
+  },
+};
+
+// 고르기 카드엔 이 한 줄만 나간다(자리 이름 줄은 지웠다) — 자리 이름을 질문·카테고리로 가르면 설명도 같이 가를 것.
+// 안 가르면 기본 문장이 실제 카드와 어긋난다(spreads.test.ts 가 잡는다 · 길이 50자 이하도 거기서)
 export function getSpreadDescription(
   spread: SpreadType,
-  category: SpreadCategory
+  category: SpreadCategory,
+  rawTag?: string | null
 ): string {
+  const tag = rawTag ? normalizeEmotionTag(rawTag) : null;
+  const override = tag ? TAG_DESCRIPTION_OVERRIDES[tag]?.[spread] : undefined;
+  if (override) return override;
   const map = SPREAD_DESCRIPTIONS[spread];
   return map[category] ?? map.default;
 }
