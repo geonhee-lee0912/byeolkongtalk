@@ -33,7 +33,7 @@
 --     새 그룹 행에서 flow_old_* 가 클수록 새 흐름 노출이 줄어든다. 옛 그룹 행의 flow_old_* 는 정상(옛 흐름이 맞다) — 새 그룹 행만 읽을 것
 
 with
-params as (select timestamptz '2026-10-25 10:23:00+09' as deploy_at),   -- ENTRY_AB split prod(f841c1f3) Vercel 완료 10:22:39 KST → 분 올림
+params as (select timestamptz '2026-10-25 15:48:00+09' as deploy_at),   -- 창 재시작: 원·투카드 마무리 + 분량 안내 줄 prod(1f5d19f5) Vercel 완료 15:47:52 KST → 분 올림 (처음 켠 f841c1f3 10:23 → 결과를 보기 전 재시작, 스펙 2026-10-25-타로-원투카드-마무리-안내줄 §7)
 ex as (select unnest(array[
   '9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0'
 ]) as p),
