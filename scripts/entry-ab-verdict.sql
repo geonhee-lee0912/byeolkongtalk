@@ -9,7 +9,7 @@
 -- 결정 규칙(스펙 §7): signed_up 차이 95% 구간이 0 위 + rev48 차이 95% 구간이 0 아래가 아님 → 전원 새 흐름 / signed_up 0 아래 또는 rev48 0 아래 → 옛 흐름 / 걸침 → 1주 연장(최대 3주)
 
 with
-params as (select null::timestamptz as start_at, interval '14 days' as win),   -- ▶ 예: timestamptz '2026-10-26 21:00:00+09'
+params as (select timestamptz '2026-10-25 10:23:00+09' as start_at, interval '14 days' as win),   -- ENTRY_AB split prod(f841c1f3) Vercel 완료 10:22:39 KST → 분 올림. 실행 = 2026-11-10 10:23 KST 이후
 ex as (select unnest(array[
   '9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0'
 ]) as p),

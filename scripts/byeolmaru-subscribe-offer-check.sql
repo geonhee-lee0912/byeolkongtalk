@@ -38,7 +38,7 @@
 --   날짜는 전부 KST — (created_at at time zone 'UTC' + interval '9 hours')
 
 with
-params as (select null::timestamptz as deploy_at),   -- ▶ 예: timestamptz '2026-10-26 21:00:00+09'
+params as (select timestamptz '2026-10-25 10:20:00+09' as deploy_at),   -- 체험 중 구독 노출 prod(9018e929) Vercel 완료 10:19:51 KST → 분 올림. 판정 = 2026-11-22 10:20 KST 이후
 ex as (select unnest(array[
   '9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0'
 ]) as p),
