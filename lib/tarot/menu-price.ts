@@ -7,6 +7,7 @@ import { tarotPrice } from "./pricing.ts";
 import { productPositions, productPrice, type MenuProduct } from "./menu.ts";
 import { guestShortLine } from "./guest-price.ts";
 import { isNewFlowGuest } from "./entry-ab.ts";
+import { firstAnswerChars } from "./spread-facts.ts";
 
 /** 맛보기를 가입 선물로 볼 수 있다 — 메뉴판 배너·맛보기 "선물로 무료"·유료 줄 "선물 쓰면"·홈 한 줄이 같은 조건을 쓴다. */
 export function isGiftFree(w: Wallet): boolean {
@@ -60,10 +61,6 @@ export function homeMenuLine(o: { wallet: Wallet | null; count: number }): strin
     : `🃏 맛보기부터 깊게 보기까지 ${o.count}가지`;
 }
 
-/** 첫 풀이 분량(대략, 카드 수별). prod 9월~ 첫 답 중앙값: 1장 803 · 2장 1,189 · 3장 2,014 · 5장 3,061~3,554 · 7장 4,643~4,692자.
- *  6장은 prod 표본이 1건(3,792)뿐이라 페르소나 목표(3,500~4,200)·QA 평균(3,858)으로 잡았다. */
-const FIRST_ANSWER_CHARS: Record<number, number> = { 1: 800, 2: 1200, 3: 2000, 5: 3500, 6: 3800, 7: 4700 };
-
 export interface CompareFacts {
   /** 보는 질문 수 = 카드 수 */
   cards: number;
@@ -80,7 +77,7 @@ export function compareFacts(p: MenuProduct): CompareFacts {
   return {
     cards,
     positions: productPositions(p),
-    chars: `~${FIRST_ANSWER_CHARS[cards].toLocaleString("ko-KR")}자`,
+    chars: firstAnswerChars(p.spreadType),
     turns: WRAP_THRESHOLDS[p.spreadType].hardCapTurn,
   };
 }
