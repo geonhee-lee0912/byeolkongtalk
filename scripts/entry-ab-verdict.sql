@@ -9,7 +9,7 @@
 -- 결정 규칙(스펙 §7): signed_up 차이 95% 구간이 0 위 + rev48 차이 95% 구간이 0 아래가 아님 → 전원 새 흐름 / signed_up 0 아래 또는 rev48 0 아래 → 옛 흐름 / 걸침 → 1주 연장(최대 3주)
 
 with
-params as (select timestamptz '2026-10-25 15:48:00+09' as start_at, interval '14 days' as win),   -- 창 재시작: 원·투카드 마무리 + 분량 안내 줄 prod(1f5d19f5) Vercel 완료 15:47:52 KST → 분 올림(처음 켠 f841c1f3 10:23 → 결과를 보기 전 재시작, 스펙 2026-10-25-타로-원투카드-마무리-안내줄 §7). 실행 = 2026-11-10 15:48 KST 이후
+params as (select timestamptz '2026-10-25 18:57:00+09' as start_at, interval '14 days' as win),   -- 창 재시작 2회차: 스프레드 카드 다듬기 prod(c8cc2bdc — 새 흐름 로그인 전 화면이 바뀜) Vercel 완료 18:56:51 KST → 분 올림(처음 켠 f841c1f3 10:23 → 1f5d19f5 15:48 → 이번, 매번 결과를 보기 전 재시작, 스펙 2026-10-25-타로-원투카드-마무리-안내줄 §7·§10·§11). 실행 = 2026-11-10 18:57 KST 이후
 ex as (select unnest(array[
   '9ff43266','b9e5dd5a','7f83a4d7','a3bcc2c7','3d648ebe','d8fdcdd0'
 ]) as p),
