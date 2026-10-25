@@ -9,7 +9,8 @@ export type EntryAbMode = "split" | EntryArm;
 
 /** 스위치 — 'old' = 전원 지금 prod(구현 중 기본값: 중간 커밋이 dev→main 에 섞여 나가도 무해) · 'split' = 반반 · 'new' = 전원 새 흐름.
  *  상수라 바꾸면 재배포(prod 는 사용자 go). entry-ab.test.ts 의 "기본 스위치 = old" 테스트는 일부러 걸리게 해 뒀다 — 켤 때 그 테스트도 같이 고칠 것. */
-export const ENTRY_AB: EntryAbMode = "old";
+// 2026-10-25 켬(사용자 결정 — 메뉴판 판정 뒤 MENU_AB legacy 고정 다음 배포). 판정 = 이 배포 + 14일 + 48시간(scripts/entry-ab-verdict.sql)
+export const ENTRY_AB: EntryAbMode = "split";
 
 /** 새 흐름 그룹의 익명 쿠키 끝 글자 — 판정 SQL·감시 쿼리와 같아야 한다(entry-ab.test.ts 가 SQL 파일과 대조) */
 export const ENTRY_LAST_CHARS = "02468ace";
