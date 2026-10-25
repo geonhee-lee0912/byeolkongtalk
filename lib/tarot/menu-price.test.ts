@@ -67,7 +67,7 @@ test("homeMenuLine — 메뉴판 그룹 로그인 유저만, 비로그인·옛 �
 });
 
 test("compareFacts — 질문 수·자리·분량·자연 마무리 턴", () => {
-  assert.deepEqual(compareFacts(teaser), { cards: 1, positions: ["질문의 답"], chars: "~800자", turns: 8 });
+  assert.deepEqual(compareFacts(teaser), { cards: 1, positions: ["질문의 답"], chars: "~800자", turns: 5 });
   const d = compareFacts(deep);
   assert.equal(d.cards, 5);
   assert.equal(d.positions.length, 5);

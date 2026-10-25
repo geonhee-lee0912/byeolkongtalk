@@ -7,26 +7,20 @@ import { WRAP_THRESHOLDS } from "./tarot/constants.ts";
 import { CLARIFIER_MARKER } from "./tarot/inchat-offer.ts";
 import { effectiveWrapThresholds } from "./tarot/thresholds.ts";
 
-const t = WRAP_THRESHOLDS.two_card; // 7/3240/9/3640/12
+const t = WRAP_THRESHOLDS.two_card; // 5/1800/6/2200/12 (2026-10-25)
 
-test("two_card — 6번째 답은 이제 자유 구간(예전 자연 마무리선)", () => {
-  assert.equal(computeWrapMode(6, 5000, t).mode, "free");
+test("two_card — 4번째 답은 자유 구간", () => {
+  assert.equal(computeWrapMode(4, 5000, t).mode, "free");
 });
 
-test("two_card — 7번째부터 정리 말투", () => {
-  const r = computeWrapMode(7, 3300, t);
-  assert.equal(r.mode, "converge");
-  assert.equal(r.isLastConvergeTurn, false);
-});
-
-test("two_card — 8번째(자연 마무리선−1)는 마지막 수렴 턴", () => {
-  const r = computeWrapMode(8, 3300, t);
+test("two_card — 5번째(자연 마무리선−1)는 마지막 수렴 턴", () => {
+  const r = computeWrapMode(5, 1900, t);
   assert.equal(r.mode, "converge");
   assert.equal(r.isLastConvergeTurn, true);
 });
 
-test("two_card — 9번째 + 글자 충족이면 자연 마무리선", () => {
-  const r = computeWrapMode(9, 3700, t);
+test("two_card — 6번째 + 글자 충족이면 자연 마무리선", () => {
+  const r = computeWrapMode(6, 2300, t);
   assert.equal(r.mode, "hardcap");
   assert.equal(r.absHardcap, false);
 });
@@ -37,16 +31,18 @@ test("two_card — 12번째는 강제 종료선", () => {
   assert.equal(r.absHardcap, true);
 });
 
-test("two_card — 9번째라도 글자 미달이면 자연 마무리선 아님(수렴)", () => {
-  assert.equal(computeWrapMode(9, 3639, t).mode, "converge");
+test("two_card — 6번째라도 글자 미달이면 자연 마무리선 아님(수렴, 마지막 아님)", () => {
+  const r = computeWrapMode(6, 2199, t);
+  assert.equal(r.mode, "converge");
+  assert.equal(r.isLastConvergeTurn, false);
 });
 
 test("two_card — 7번째라도 글자 미달이면 자유 구간", () => {
-  assert.equal(computeWrapMode(7, 3239, t).mode, "free");
+  assert.equal(computeWrapMode(7, 1799, t).mode, "free");
 });
 
-test("two_card — 8번째(마무리선−1)도 글자 미달이면 자유 구간", () => {
-  assert.equal(computeWrapMode(8, 3239, t).mode, "free");
+test("two_card — 5번째(마무리선−1)도 글자 미달이면 자유 구간", () => {
+  assert.equal(computeWrapMode(5, 1799, t).mode, "free");
 });
 
 test("two_card — 11번째(강제 종료선−1)는 글자 무관 마지막 수렴 턴", () => {
@@ -63,7 +59,7 @@ const ctxBase = {
     { position: 0, label: "상황", card_id: 1, direction: "upright" as const },
     { position: 1, label: "조언", card_id: 2, direction: "upright" as const },
   ],
-  assistantTurnsSoFar: 8, // 다음 = 9번째 = 자연 마무리선
+  assistantTurnsSoFar: 5, // 다음 = 6번째 = 자연 마무리선
   cumulativeAssistantChars: 4000,
 };
 
@@ -91,7 +87,7 @@ const CLARIFIER_HEAD = "'카드 한 장 더' 제안 판단";
 type Ctx = Parameters<typeof buildTarotSystemMessage>[0];
 const dyn = (ctx: Ctx) => buildTarotSystemMessage(ctx).dynamicPart;
 const freeCtx = { ...ctxBase, assistantTurnsSoFar: 2, cumulativeAssistantChars: 1500 }; // 3번째 = 자유 구간
-const convergeCtx = { ...ctxBase, assistantTurnsSoFar: 7, cumulativeAssistantChars: 3300 }; // 8번째 = 마지막 수렴 턴
+const convergeCtx = { ...ctxBase, assistantTurnsSoFar: 4, cumulativeAssistantChars: 3300 }; // 5번째 = 마지막 수렴 턴
 
 test("keepOpen 은 forceEnd·위기·절대 턴캡 앞에서 물러난다 — 열어 두기 대신 마무리 의무/위기 블록", () => {
   const cases: Array<[string, Ctx, string]> = [
@@ -188,10 +184,10 @@ test("clarifierCandidate 는 턴 마무리가 '정리'(단답 연속)면 빌더�
 const CONVERGE_HEAD = "## 수렴 모드";
 const LAST_CONVERGE_HEAD = "마지막 수렴 턴"; // convergeLastGuide 헤딩
 const NATURAL_HEAD = "## 마무리 단계"; // naturalHardcapGuide
-const midConvergeCtx = { ...ctxBase, assistantTurnsSoFar: 6, cumulativeAssistantChars: 3300 }; // 7번째 = 수렴(마지막 아님)
+const midConvergeCtx = { ...ctxBase, assistantTurnsSoFar: 5, cumulativeAssistantChars: 2000 }; // 6번째 + 글자 2,200 미만 = 수렴(마지막 아님)
 
 test("clarifierReopenTurn — 마지막 수렴 턴(abs−1)에서도 열어 두기 가이드가 이긴다: 마지막 수렴 가이드·정리 요청 규칙이 없다", () => {
-  const before = dyn(convergeCtx); // 8번째 = 마지막 수렴 턴
+  const before = dyn(convergeCtx); // 5번째 = 마지막 수렴 턴
   assert.ok(before.includes(LAST_CONVERGE_HEAD) && before.includes(SUMMARY_RULE_HEAD), "대조군: 플래그 없으면 마지막 수렴 가이드 + 정리 요청 규칙");
   const d = dyn({ ...convergeCtx, clarifierReopenTurn: true });
   assert.ok(d.includes(KEEP_OPEN_HEAD));

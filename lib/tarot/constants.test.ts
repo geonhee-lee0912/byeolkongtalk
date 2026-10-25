@@ -4,10 +4,12 @@ import { WRAP_THRESHOLDS } from "./constants.ts";
 
 // 2026-10-04 +3턴 개편 계약 (spec 2026-10-04-타로톡-인챗결제-대화길이 §3-1):
 // convergeStart·자연 마무리선 +3턴/+1,440자(3턴×480), 강제 종료선(absTurnCap)은 불변.
+// 2026-10-25 원·투카드만 되돌림 (spec 2026-10-25-타로-원투카드-마무리-안내줄 §4-1): 자연 마무리선 원 5·투 6번째 답,
+// 정리 말투는 그 한 턴 전부터(3장+ 와 같은 간격), 글자 임계는 10-04 이전 값.
 // [convergeStartTurn, convergeStartChars, hardCapTurn, hardCapChars, absTurnCap]
 const EXPECTED: Record<string, [number, number, number, number, number]> = {
-  one_card: [6, 2840, 8, 3140, 11],
-  two_card: [7, 3240, 9, 3640, 12],
+  one_card: [4, 1400, 5, 1700, 11],
+  two_card: [5, 1800, 6, 2200, 12],
   three_card: [9, 3640, 10, 4140, 13],
   relationship_5: [12, 8640, 13, 9140, 15],
   deep_feelings_5: [12, 8640, 13, 9140, 15],
@@ -22,7 +24,7 @@ const EXPECTED: Record<string, [number, number, number, number, number]> = {
   chakra_7: [16, 11540, 17, 12040, 19],
 };
 
-test("WRAP_THRESHOLDS — 2026-10-04 +3턴 표와 정확히 일치", () => {
+test("WRAP_THRESHOLDS — 2026-10-04 +3턴 표(원·투카드는 2026-10-25 값)와 정확히 일치", () => {
   assert.deepEqual(Object.keys(WRAP_THRESHOLDS).sort(), Object.keys(EXPECTED).sort());
   for (const [k, expected] of Object.entries(EXPECTED)) {
     const t = WRAP_THRESHOLDS[k as keyof typeof WRAP_THRESHOLDS];

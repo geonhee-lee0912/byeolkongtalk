@@ -54,20 +54,20 @@ test("effectiveWrapThresholds — 연장 리딩은 예전 식에서 자연 마�
   }
 });
 
-test("effectiveWrapThresholds — 투카드 연장 4턴 = 수렴 11 · 자연 마무리선 16 = 강제 종료선 16", () => {
+test("effectiveWrapThresholds — 투카드 연장 4턴 = 수렴 9 · 자연 마무리선 16 = 강제 종료선 16", () => {
   assert.deepEqual(effectiveWrapThresholds("two_card", 4, 0), {
-    convergeStartTurn: 11,
-    convergeStartChars: 3240,
+    convergeStartTurn: 9,
+    convergeStartChars: 1800,
     hardCapTurn: 16,
-    hardCapChars: 3640,
+    hardCapChars: 2200,
     absTurnCap: 16,
   });
   // 연장 + 보조 카드 1장: 턴 +6, 글자 +800
   assert.deepEqual(effectiveWrapThresholds("two_card", 4, 1), {
-    convergeStartTurn: 13,
-    convergeStartChars: 4040,
+    convergeStartTurn: 11,
+    convergeStartChars: 2600,
     hardCapTurn: 18,
-    hardCapChars: 4440,
+    hardCapChars: 3000,
     absTurnCap: 18,
   });
 });
