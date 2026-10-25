@@ -21,6 +21,7 @@ import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { guestShortLine } from "@/lib/tarot/guest-price";
+import { spreadAmountLine } from "@/lib/tarot/spread-facts";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
 // 옛 타로톡 스프레드 고르기 — 반반 비교의 옛 그룹(지금 prod 그대로). 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다.
@@ -178,6 +179,10 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                     {guestShortLine(tarotPrice(type, "legacy"), "legacy").text}
                   </p>
                 )}
+                {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}
+                <p className="text-[11px] font-medium text-eye-purple/85 mb-1">
+                  {spreadAmountLine(type)}
+                </p>
                 <p className="text-[12px] text-text-light leading-snug mb-1.5">
                   {getSpreadDescription(type, category)}
                 </p>
