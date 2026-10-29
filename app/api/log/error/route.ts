@@ -6,10 +6,13 @@
 // - body 사이즈 제한 (32KB)
 // - source 강제 'client' 로 덮어쓰기 (위조 방지)
 // - user_id/anonymous_id 는 서버 세션에서 추출 (클라이언트가 보낸 값 무시)
+// - 봇 UA 는 context.bot=true 로 표시만 하고 저장 (/api/pv 의 is_bot 과 같은 규칙, 필터는 어드민·분석 쿼리에서)
+//   — 크롤러도 JS 를 돌리다 청크 로드를 끊으면 사람처럼 chunk-load-error 를 보낸다(2026-10-28 meta-externalagent)
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { isBotUserAgent } from "@/lib/analytics/pageview";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,6 +70,12 @@ export async function POST(req: NextRequest) {
   // 세션 정보 보강 (클라이언트가 보낸 user_id 신뢰 X)
   const session = await getSession();
 
+  const ua = req.headers.get("user-agent");
+  const clientContext =
+    body.context && typeof body.context === "object"
+      ? (body.context as Record<string, unknown>)
+      : null;
+
   const payload = {
     level,
     source: "client" as const, // 클라 라우트는 무조건 client
@@ -80,10 +89,10 @@ export async function POST(req: NextRequest) {
     route: typeof body.route === "string" ? body.route : null,
     user_id: session.userId ?? null,
     anonymous_id: session.anonymousId ?? null,
-    user_agent: req.headers.get("user-agent")?.slice(0, 500) ?? null,
+    user_agent: ua?.slice(0, 500) ?? null,
     ip: ip.slice(0, 64),
-    context:
-      body.context && typeof body.context === "object" ? body.context : null,
+    // 사람 UA 면 클라가 보낸 context 그대로(없으면 null) — 기존 행과 같은 모양을 유지한다
+    context: isBotUserAgent(ua) ? { ...clientContext, bot: true } : clientContext,
   };
 
   try {
