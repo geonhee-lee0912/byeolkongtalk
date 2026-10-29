@@ -8,7 +8,9 @@ import { recentRange, syncAdSpend } from "@/lib/ads/sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Meta 요청 상한 20초 × 시도 3번 + 재시도 간격 7초 + 게재 중 광고 조회 20초 ≈ 90초 (lib/ads/meta-insights.ts).
+// 60초였을 땐 30초짜리 실패 3번에 Vercel 이 함수를 죽여 실행 기록도 로그도 안 남을 수 있었다(10-29 실측 30초 실패).
+export const maxDuration = 120;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

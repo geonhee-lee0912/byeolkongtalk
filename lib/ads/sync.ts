@@ -81,7 +81,14 @@ export async function syncAdSpend(opts: {
         .update({ finished_at: new Date().toISOString(), ok: false, error: message.slice(0, 500) })
         .eq("id", runId);
     }
-    await logError(e, { route: "ad-spend-sync", extra: { trigger: opts.trigger, from: opts.from, to: opts.to } });
+    const extra = { trigger: opts.trigger, from: opts.from, to: opts.to };
+    if ((e as { transient?: unknown } | null)?.transient === true) {
+      // Meta 쪽 일시 장애(재시도까지 소진) — 매시 cron 의 다음 회차가 같은 창을 다시 읽어 메운다
+      // (10-25·10-29 prod 둘 다 다음 시각 정상). 대시보드 adSyncAlert 가 '최신 실행 실패'를 따로 띄우니 error 로 올리지 않는다.
+      await logWarn(message, { route: "ad-spend-sync", extra: { ...extra, transient: true } });
+    } else {
+      await logError(e, { route: "ad-spend-sync", extra });
+    }
     return { ok: false, error: message };
   }
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { datesInRange, kstToday, addDays, toAdSpendRows, fetchInsights, fetchActiveAdNames, type InsightRow } from "./meta-insights.ts";
+import { datesInRange, kstToday, addDays, toAdSpendRows, fetchInsights, fetchActiveAdNames, MetaTransientError, type InsightRow } from "./meta-insights.ts";
 
 // 이 모듈의 계약. 핵심 두 가지:
 // ① 같은 (날짜·캠페인·세트·광고) 키는 한 행으로 합친다 — ad_spend UNIQUE 위반 방지.
@@ -190,7 +190,7 @@ test("fetchInsights — 두 번째 페이지가 비정상이면 부분 결과 �
 test("fetchInsights — 네트워크 에러 메시지에 URL·토큰이 새지 않는다", async () => {
   const impl = (async () => { throw new Error("Failed to parse URL from https://x?access_token=SECRET"); }) as unknown as typeof fetch;
   await assert.rejects(
-    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "SECRET", accountId: "1", fetchImpl: impl }),
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "SECRET", accountId: "1", fetchImpl: impl, retryDelaysMs: [0] }),
     (e: Error) => { assert.doesNotMatch(e.message, /SECRET|https/); return true; },
   );
 });
@@ -245,4 +245,77 @@ test("fetchActiveAdNames — 에러·형식 오류·네트워크 실패는 throw
     assert.doesNotMatch(e.message, /SECRET_TKN|graph\.facebook\.com/);
     return true;
   });
+});
+
+// ── 10-29 prod 실측: 실패 2회가 둘 다 정확히 30초 뒤 code 2 (정상은 2초) = Meta 쪽 시간 초과.
+//    요청당 상한이 없으면 30초짜리 시도 3번이 cron maxDuration 을 넘겨 Vercel 이 함수를 죽인다(기록 0).
+
+test("fetchInsights — 요청마다 시간 상한(signal)을 붙이고, 매달린 요청은 끊고 같은 페이지를 다시 읽는다", async () => {
+  const signals: unknown[] = [];
+  let n = 0;
+  const impl = ((_url: string, init?: RequestInit) => {
+    const signal = init?.signal as AbortSignal | undefined;
+    signals.push(signal);
+    if (n++ === 0) {
+      // 첫 시도는 응답 없이 매달린다 — 상한이 끊어야 다음 시도로 간다
+      return new Promise<Response>((_, reject) => signal?.addEventListener("abort", () => reject(signal.reason)));
+    }
+    return Promise.resolve(new Response(JSON.stringify({ data: [{ date_start: "2026-10-01" }] })));
+  }) as unknown as typeof fetch;
+  const rows = await fetchInsights({
+    from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1",
+    fetchImpl: impl, retryDelaysMs: [0, 0], requestTimeoutMs: 20,
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(signals.length, 2, "끊긴 뒤 한 번 더");
+  assert.ok(signals.every((s) => s instanceof AbortSignal), "모든 요청에 시간 상한 signal");
+});
+
+test("fetchInsights — 재시도까지 다 실패한 일시 오류·네트워크 실패는 transient 표시 에러 (sync 가 warn 으로 내린다)", async () => {
+  const transient = { status: 400, body: { error: { message: "Service temporarily unavailable", code: 2 } } };
+  const { impl } = fakeFetch([transient, transient, transient]);
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: impl, retryDelaysMs: [0, 0] }),
+    (e: Error & { transient?: unknown }) => {
+      assert.ok(e instanceof MetaTransientError);
+      assert.equal(e.transient, true);
+      assert.match(e.message, /HTTP 400, code 2/);
+      return true;
+    },
+  );
+  // 네트워크 실패도 재시도 뒤엔 transient — 메시지엔 여전히 토큰·URL 없음
+  let calls = 0;
+  const net = (async (u: string) => { calls++; throw new TypeError(`fail ${u} SECRET_TKN`); }) as unknown as typeof fetch;
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "SECRET_TKN", accountId: "1", fetchImpl: net, retryDelaysMs: [0] }),
+    (e: Error & { transient?: unknown }) => {
+      assert.equal(e.transient, true);
+      assert.doesNotMatch(e.message, /SECRET_TKN|graph\.facebook\.com/);
+      return true;
+    },
+  );
+  assert.equal(calls, 2, "네트워크 실패도 재시도 횟수만큼 다시 부른다");
+});
+
+test("fetchInsights — 영구 오류(190)·형식 오류는 transient 가 아니다 (error 로 남아야 한다)", async () => {
+  const perm = fakeFetch([{ status: 400, body: { error: { message: "Invalid OAuth access token", code: 190 } } }]);
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: perm.impl, retryDelaysMs: [0, 0] }),
+    (e: Error & { transient?: unknown }) => { assert.notEqual(e.transient, true); return true; },
+  );
+  const noData = fakeFetch([{ body: { foo: 1 } }]);
+  await assert.rejects(
+    fetchInsights({ from: "2026-10-01", to: "2026-10-01", token: "T", accountId: "1", fetchImpl: noData.impl, retryDelaysMs: [0, 0] }),
+    (e: Error & { transient?: unknown }) => { assert.notEqual(e.transient, true); return true; },
+  );
+});
+
+test("fetchActiveAdNames — 요청에 시간 상한(signal)을 붙인다", async () => {
+  let signal: unknown;
+  const impl = (async (_u: string, init?: RequestInit) => {
+    signal = init?.signal;
+    return new Response(JSON.stringify({ data: [] }));
+  }) as unknown as typeof fetch;
+  await fetchActiveAdNames({ token: "T", accountId: "1", fetchImpl: impl });
+  assert.ok(signal instanceof AbortSignal);
 });
