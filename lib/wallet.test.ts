@@ -3,36 +3,33 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fetchWallet, parseWallet, type WalletSource } from "./wallet.ts";
-import { menuArmOf } from "./tarot/menu-ab.ts";
 
 test("parseWallet — 정상 응답", () => {
-  assert.deepEqual(parseWallet({ balance: 15, isGuest: false, giftUnused: true, menuArm: "menu" }), {
+  assert.deepEqual(parseWallet({ balance: 15, isGuest: false, giftUnused: true }), {
     balance: 15,
     isGuest: false,
     giftUnused: true,
-    menuArm: "menu",
     entryArm: "old",
   });
-  assert.deepEqual(parseWallet({ balance: 0, isGuest: true, giftUnused: false, menuArm: "legacy" }), {
+  assert.deepEqual(parseWallet({ balance: 0, isGuest: true, giftUnused: false }), {
     balance: 0,
     isGuest: true,
     giftUnused: false,
-    menuArm: "legacy",
     entryArm: "old",
   });
 });
 
 test("parseWallet — 입구 그룹은 'new' 일 때만 new, 없음·이상한 값은 old(옛 흐름 = 지금 prod)", () => {
-  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, menuArm: "legacy", entryArm: "new" }).entryArm, "new");
-  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, menuArm: "legacy", entryArm: "x" }).entryArm, "old");
+  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, entryArm: "new" }).entryArm, "new");
+  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, entryArm: "x" }).entryArm, "old");
   assert.equal(parseWallet({ balance: 0, isGuest: true }).entryArm, "old");
 });
 
-test("parseWallet — 모르는 값·실패는 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음 · 스위치가 정한 비로그인 그룹)", () => {
-  const safe = { balance: 0, isGuest: true, giftUnused: false, menuArm: menuArmOf(null), entryArm: "old" };
+test("parseWallet — 모르는 값·실패는 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음)", () => {
+  const safe = { balance: 0, isGuest: true, giftUnused: false, entryArm: "old" };
   assert.deepEqual(parseWallet(null), safe);
   assert.deepEqual(parseWallet(undefined), safe);
-  assert.deepEqual(parseWallet({ balance: "3", giftUnused: "true", menuArm: "x" }), safe);
+  assert.deepEqual(parseWallet({ balance: "3", giftUnused: "true" }), safe);
 });
 
 type SentEvent = { event: string; meta?: { status?: number | string; source?: string } };
@@ -68,10 +65,11 @@ async function fetchWalletWith(
 // trackUiEvent 는 navigator 가 있어야 발사한다(노드 21+). 없는 노드에선 이벤트 단언만 건너뛴다.
 const canTrack = typeof navigator !== "undefined";
 
+// 옛 응답의 지운 필드도 같은 길로 버려진다.
 test("fetchWallet — 200 이면 응답을 parseWallet 한 값(모르는 필드는 버린다) · 이벤트는 안 남긴다", async () => {
-  const body = { balance: 15, isGuest: false, giftUnused: true, menuArm: "menu", extra: "버려진다" };
+  const body = { balance: 15, isGuest: false, giftUnused: true, extra: "버려진다" };
   const { wallet, sent } = await fetchWalletWith(async () => new Response(JSON.stringify(body), { status: 200 }));
-  assert.deepEqual(wallet, { balance: 15, isGuest: false, giftUnused: true, menuArm: "menu", entryArm: "old" });
+  assert.deepEqual(wallet, { balance: 15, isGuest: false, giftUnused: true, entryArm: "old" });
   assert.deepEqual(sent, []);
 });
 
@@ -142,17 +140,15 @@ test("fetchWallet — 정상 응답이면 타이머를 남기지 않는다(제�
 });
 
 // ── 호출 지면 라벨(wallet_fetch_failed 의 meta.source) ──
-// 같은 경로의 화면도 지면이 달라 실패의 해로움이 다르다(lib/wallet.ts WalletSource). 이 표가 아래 계약들의 기준이다.
-// Record 타입이라 지면을 더하고 여기에 안 적으면 tsc 가 막는다(분류가 빠진 채 감시 쿼리와 어긋나지 않게).
-const KIND: Record<WalletSource, "harmful" | "harmless"> = {
-  tarot_router: "harmful",
-  tarot_draw: "harmful",
-  recharge_sheet: "harmful",
-  shop: "harmful",
-  continuation_modal: "harmful",
-  home: "harmless",
-  reading_end: "harmless",
-  result: "harmless",
+// 지갑을 읽는 지면 목록.
+// Record 타입으로 지면 누락을 막는다.
+const KIND: Record<WalletSource, true> = {
+  tarot_router: true,
+  tarot_draw: true,
+  recharge_sheet: true,
+  shop: true,
+  continuation_modal: true,
+  home: true,
 };
 const SOURCES = Object.keys(KIND) as WalletSource[];
 
@@ -164,27 +160,13 @@ test("fetchWallet — 실패 이벤트에 부른 지면 라벨이 그대로 실�
   }
 });
 
-test("감시 쿼리(scripts/menu-ab-daily-check.sql) wallet_fail 의 harmful·harmless 목록 = 지면 분류(모든 지면이 한 번씩)", () => {
-  // 주석 속 같은 문구는 목록이 아니다
-  const sql = readFileSync(new URL("../scripts/menu-ab-daily-check.sql", import.meta.url), "utf8").replace(/--.*$/gm, "");
-  const sqlKinds: Record<string, string[]> = {};
-  for (const m of sql.matchAll(/when\s+source\s+in\s*\(([^)]*)\)\s+then\s+'(harmful|harmless)'/g)) {
-    sqlKinds[m[2]] = [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort();
-  }
-  const sourcesOf = (kind: string) => SOURCES.filter((s) => KIND[s] === kind).sort();
-  // 두 목록이 모든 지면을 겹침 없이 덮어야 한다 — 빠진 지면은 unknown 으로 떨어지고, 잘못 든 지면은 고장 집계를 부풀리거나 숨긴다
-  assert.deepEqual(sqlKinds, { harmful: sourcesOf("harmful"), harmless: sourcesOf("harmless") });
-});
-
 // 계약 — 지면마다 자기 라벨로 지갑을 읽는다. 타입은 라벨이 "유효한가"만 보장한다 — 뽑기 화면을 "home" 으로 달아도 tsc 는 통과하고,
-// 그러면 해로운 실패가 무해한 쪽으로 세어져 감시가 못 본다(복사해 붙이다 라벨을 안 고치는 사고).
+// 복사한 호출부에도 올바른 지면 라벨을 붙인다.
 const ROOT = join(import.meta.dirname, "..");
 const SOURCE_BY_FILE: Record<string, WalletSource> = {
   "app/page.tsx": "home",
   "app/tarot/page.tsx": "tarot_router",
   "app/tarot/draw/page.tsx": "tarot_draw",
-  "app/tarot/reading/page.tsx": "reading_end",
-  "app/tarot/result/page.tsx": "result",
   "app/shop/page.tsx": "shop",
   "components/upsell/RechargeSheet.tsx": "recharge_sheet",
   "components/continuation/ContinuationModal.tsx": "continuation_modal",

@@ -23,8 +23,8 @@ import { guestShortLine } from "@/lib/tarot/guest-price";
 import { spreadAmountLine } from "@/lib/tarot/spread-facts";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
-// 옛 타로톡 스프레드 고르기 — 반반 비교의 옛 그룹(지금 prod 그대로). 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다.
-// 가격만 그룹 가격 함수(tarotPrice(…, "legacy") = SPREAD_INFO.starCost)로 읽는다. 🗓️ 판정 뒤 메뉴판이 이기면 이 파일을 지운다.
+// 타로톡 스프레드 고르기 — 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다(메뉴판 반반은 2026-10-25 판정에서 이 화면이 이겼다).
+// 가격은 서버 차감과 같은 tarotPrice(= SPREAD_INFO.starCost)로 읽는다.
 // 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
 export default function SpreadPicker({ pending, guest = false }: { pending: PendingConsultation; guest?: boolean }) {
   const router = useRouter();
@@ -172,13 +172,13 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
                   <span className="text-[11px] font-bold text-text-light whitespace-nowrap">
-                    ⭐ {tarotPrice(type, "legacy")}별
+                    ⭐ {tarotPrice(type)}별
                   </span>
                 </div>
                 {/* 로그인 전 방문자(새 흐름) — 가입 선물 15별 기준 한 줄(스펙 2026-10-11 §3-1) */}
                 {guest && (
                   <p className="text-[11px] font-bold text-eye-purple mb-1">
-                    {guestShortLine(tarotPrice(type, "legacy")).text}
+                    {guestShortLine(tarotPrice(type)).text}
                   </p>
                 )}
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}

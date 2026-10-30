@@ -14,7 +14,6 @@ import {
   type TarotDrawResult,
 } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
-import { spendConsent } from "@/lib/tarot/menu-session";
 import { fetchWallet } from "@/lib/wallet";
 import { entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
 import { guestSheetLine } from "@/lib/tarot/guest-price";
@@ -111,7 +110,7 @@ export default function TarotDrawPage() {
     };
   }, []);
 
-  // 선택 정보 로드 — /tarot(메뉴판 또는 옛 스프레드 고르기) 또는 맛보기 끝 "이어서 깊게".
+  // 선택 정보 로드 — /tarot(스프레드 고르기).
   // 로그인·결제·홈에서 돌아온 판은 저장된 진행으로 복원한다(뽑기 의식 건너뜀 — 스펙 §5-2).
   // 새 장치가 꺼져 있으면(스위치 'old' — 지금 prod) 복원·이어가기 표시·실패 표시를 보지 않는다 — 켰다가 되돌려도 남은 저장이 결제 막다른 길로 끌고 가지 않게
   // (성공 콜백 표시를 주소에서 빼는 일만 스위치와 무관하다 — 그 정리를 AuthBootstrap 이 이 화면에선 하지 않는다)
@@ -197,10 +196,7 @@ export default function TarotDrawPage() {
   const goToReading = (drawn: DrawnCard[], price: number) => {
     if (leavingRef.current) return;
     leavingRef.current = true;
-    // 동의는 한 판에 한 번 — 이 판을 시작하는 모든 길(팝업 생략·팝업 확인)에서 여기서 소모한다.
-    // 뒤로 가 다시 뽑으면 확인 팝업이 다시 뜬다(Task 4·8 리뷰). 충전 경로는 여기를 안 거쳐 동의가 남는다.
-    if (selection.consented) setSelection(spendConsent(sessionStorage, selection));
-    // sessionStorage 로 넘기고 /tarot/reading 이 직접 POST — 동의 표시는 대화로 넘기지 않는다(필드를 골라 담는다)
+    // sessionStorage 로 넘기고 /tarot/reading 이 직접 POST — 필드를 골라 담는다
     const payload: TarotDrawResult = {
       spreadType: selection.spreadType,
       spreadCategory: selection.spreadCategory,
@@ -227,10 +223,9 @@ export default function TarotDrawPage() {
     });
   };
 
-  // 카드를 다 뽑으면 잔액·반반 그룹을 그 자리에서 읽어 이번 판 가격을 정한다(서버 차감과 같은 tarotPrice).
+  // 카드를 다 뽑으면 잔액을 그 자리에서 읽는다(가격은 서버 차감과 같은 tarotPrice).
   //  - 로그인 전 맛보기(새 흐름 그룹 비로그인) — 확인 팝업 대신 카드 공개 + 로그인 창. 진행을 저장해 로그인 뒤 이어간다(스펙 §3·§5-2)
-  //  - 메뉴판 그룹 + 메뉴판에서 동의한 선택(consented)이고 잔액이 충분하면 확인 팝업 없이 바로 대화로(스펙 §4)
-  //  - 그 밖(옛 그룹 = 지금 prod 흐름 · 잔액 부족)은 확인 팝업 → 잔액 부족이면 충전 시트
+  //  - 그 밖은 확인 팝업 → 잔액 부족이면 충전 시트
   //    (그 팝업의 잔액 부족 노출이 paywall_shown = Meta AddToCart 원천이라 자리를 그대로 둔다)
   //  - 못 읽으면(실패·5초 초과) 팝업 없이 '다시 눌러줘' 한 줄 — 완료 버튼을 다시 누르면 다시 읽는다
   const onDrawn = (drawn: DrawnCard[]) => {
@@ -259,11 +254,11 @@ export default function TarotDrawPage() {
       // 로그인 전 맛보기 — 새 흐름 그룹 비로그인
       if (isNewFlowGuest(w)) {
         setChecking(false);
-        const price = tarotPrice(spreadType, w.menuArm);
+        const price = tarotPrice(spreadType);
         // 새로 뽑은 판만 저장한다 — 복원한 판은 저장소에 같은 값이 이미 있고, 다시 쓰면 savedAt 이 갱신돼 볼 때마다 7일이 다시 시작한다(스펙 §5-2 · §10 고민 원문은 최대 7일)
         if (!revealed) savePendingDraw(localStorage, selection, drawn);
         setGuestPrice(price);
-        setSheetPriceText(guestSheetLine(price, w.menuArm));
+        setSheetPriceText(guestSheetLine(price));
         setGuestMode(true);
         if (revealed) {
           // 이미 공개된 판(복원) — 바로 창
@@ -276,12 +271,7 @@ export default function TarotDrawPage() {
         }
         return;
       }
-      const price = tarotPrice(spreadType, w.menuArm);
-      // 팝업 생략은 메뉴판 그룹만 — 남은 동의 선택(같은 탭에서 옛 그룹 계정으로 바꿈 · 스위치를 'legacy' 로 돌림)이어도 옛 그룹은 늘 확인 팝업
-      if (selection.consented && w.menuArm === "menu" && w.balance >= price) {
-        goToReading(drawn, price); // 동의 소모는 goToReading 안에서 · 안내(checking)는 화면이 넘어갈 때까지 켜 둔다
-        return;
-      }
+      const price = tarotPrice(spreadType);
       setChecking(false);
       setCost(price);
       setBalance(w.balance);
