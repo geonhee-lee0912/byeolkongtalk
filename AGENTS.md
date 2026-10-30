@@ -6,6 +6,8 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 
 사주·타로·연애를 아우르는 멀티모달 운세 상담 서비스. 캐릭터 **별콩이** — 별의 수호자, 작은 신령/요정. 흐름과 가능성, 선택의 방향을 안내한다.
 
+> 🏢 **사업 맥락·일하는 방식·결정 기록·보안 규율은 비공개 저장소 `geonhee-lee0912/braveshine-company` 에 있다**(`company/` 공통, `services/byeolkongtalk/` 이 서비스). 기획·판정·운영 판단 전에 거기 `README.md` 부터. 이 문서는 코드 쪽만.
+
 > ⚠️ **이 문서는 "지금 코드를 만질 때 필요한 것"만 담는다.** Phase 0~5 진행 로그·세션별 완료 기록·역사적 트러블슈팅은 `docs/AGENTS-archive-2026-07-27.md` 로 이관했다(2026-07-27 압축, 30,628자 → 이 파일. 모든 세션에 자동 로드돼 ~26k 토큰을 먹던 문제).
 > **아카이브가 필요하면 Grep 으로 섹션만 — 전문 Read 금지.**
 > 진행 중 작업·판정 스케줄은 이 문서가 아니라 메모리 `w1-w7-work-queue` 가 관리한다. **이 문서에 진행 로그를 append 하지 말 것** — 그게 30k 로 불어난 원인이다.
@@ -88,7 +90,7 @@ docs/superpowers/{specs,plans}/
 ## 현행 prod 상태 (기준 2026-07-27)
 
 - **재화 정본 — 가격은 코드 상수가 정본이다. 문서 숫자와 어긋나면 코드를 믿을 것.**
-  웰컴 20별(`WELCOME_BONUS_STARS`) · 첫충전 +20%(`FIRST_CHARGE_BONUS_RATE`) · 연애 패스 30/60/100(`PASS_PLANS`) + 무료 인트로 3턴(`FREE_INTRO_TURNS`) · 소프트캡 20턴/일 + 5별=+5턴(무제한) · 사주 20(`SAJU_READING_COST`)
+  웰컴 15별(`WELCOME_BONUS_STARS`, 09-28 20→15) · 첫충전 +20%(`FIRST_CHARGE_BONUS_RATE`) · 연애 패스 30/60/100(`PASS_PLANS`) + 무료 인트로 3턴(`FREE_INTRO_TURNS`) · 소프트캡 20턴/일 + 5별=+5턴(무제한) · 사주 20(`SAJU_READING_COST`)
 - **우리 사이 스킬 4종 = 스레드 내부 실행** (`lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`) — 관계체크인 45 / 걔속마음 40 / 우리궁합 40 / 싸움판정 30. 별도 라우트·화면 없음(`lib/relationship/{draw,compat}-thread.ts` + `ThreadDrawModal`/`ThreadCompatCard`/`ThreadCardStrip`). 칩 UI 는 입력창 ⚡ `SkillSheet`. 스킬은 활성 패스 필요
 - **관계 기억** = 최근 24메시지 원문 + 초과분 haiku 델타 요약(`rolling_summary`/`summarized_msg_count` 커서, `lib/relationship/memory.ts`). 최근창은 항상 user 발화로 시작(Anthropic 규칙)
 - **민감 감지**: 회색지대는 **스트림 시작 전 haiku 2차 판정을 await**(~1초, 3초 타임아웃 시 regex 폴백). regex high 는 즉시 확정. 패턴은 `lib/sensitive-patterns.ts` PATTERNS(고민 쓰기 화면도 쓰는 순수 모듈 — import 0 계약 테스트), hotline 은 `components/safety/SafetyBanner.tsx` `HOTLINES`. `has_sensitive=true` 면 공유 차단 + OG 라우트 403
