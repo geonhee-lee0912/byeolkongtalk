@@ -1,5 +1,4 @@
 // 공용 상수 — 별 패키지 등. v1 (tarot-friend) lib/types.ts 에서 결제 관련만 이식.
-import type { MenuArm } from "./tarot/menu-ab.ts";
 
 export interface StarPackage {
   id: string;
@@ -8,33 +7,16 @@ export interface StarPackage {
   label: string;
 }
 
-/** 판매 패키지 전체 — 반반 비교 두 그룹 진열의 합집합(2026-10 메뉴판·별 경제, 스펙 §3-1 · §9-1).
- *  결제 준비(/api/payment/ready)·승인(/api/payment/confirm)은 이 목록으로 검증한다 — id 마다 별·가격이 고정이라
- *  두 그룹 목록을 함께 받아도 안전하다(그룹은 진열만 가른다). 별당 가격은 클수록 확실히 싸진다(constants.test.ts).
- *  🗓️ 판정 뒤 정리 배포에서 진 쪽 전용 패키지(55·130 또는 150·300)를 지운다.
- *     정리 배포에선 진 쪽 패키지를 진열에서 먼저 빼고 승인(confirm)에선 한동안 받는다 — 결제창을 연 채 배포를 맞은 주문이 Amount mismatch 로 실패하지 않게(Task 1 의 교훈). */
+/** 판매 패키지 — 결제 준비·승인은 이 목록으로 별·가격을 검증한다. */
 export const STAR_PACKAGES: StarPackage[] = [
   { id: "star_10", stars: 10, price: 1000, label: "10별" },
   { id: "star_30", stars: 30, price: 2800, label: "30별" },
-  { id: "star_55", stars: 55, price: 4900, label: "55별" },
   { id: "star_70", stars: 70, price: 5900, label: "70별" },
-  { id: "star_130", stars: 130, price: 9900, label: "130별" },
   { id: "star_150", stars: 150, price: 11000, label: "150별" },
   { id: "star_300", stars: 300, price: 19900, label: "300별" },
 ];
 
-/** 상점 진열 — 메뉴판 그룹 10·30·55·70·130 / 옛 그룹 10·30·70·150·300(지금 prod 그대로). '추천'은 둘 다 70. */
-export const SHOP_PACKAGE_IDS: Record<MenuArm, readonly string[]> = {
-  menu: ["star_10", "star_30", "star_55", "star_70", "star_130"],
-  legacy: ["star_10", "star_30", "star_70", "star_150", "star_300"],
-};
-
-/** 그 그룹의 상점 진열(별 수 오름차순) */
-export function shopPackages(arm: MenuArm): StarPackage[] {
-  return STAR_PACKAGES.filter((p) => SHOP_PACKAGE_IDS[arm].includes(p.id));
-}
-
-/** 카카오 신규 가입 웰컴 별 — 타로 원카드(옛 그룹 10 · 메뉴판 맛보기 15)·투카드(15)·사주 단품(10) 1회 커버.
+/** 카카오 신규 가입 웰컴 별 — 타로 원카드(10)·투카드(15)·사주 단품(10) 1회 커버.
  * 2026-07-22 30→20: 결제 66%가 star_10 갭결제(재구매 8%)라 갭을 벌려 star_30(₩2,800) 첫 결제 유도.
  * 2026-09-13 20→15: 웰컴 20 = 별마루 구독 20 이 정확히 일치해 **가입만 하면 첫 달 구독이 공짜**였다
  * (그 사람의 첫 달 매출은 ₩0 인데 nano 원가는 30일치가 나간다). 15 면 구독에 최소 1회 충전이 걸리는데

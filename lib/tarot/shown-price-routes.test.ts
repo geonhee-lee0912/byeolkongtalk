@@ -1,7 +1,7 @@
 // 화면이 본 가격 대조(409 PRICE_CHANGED) — 실제 라우트(POST)를 가짜 DB 위에서 돌린다.
 // 라우트가 import 하는 supabase·session·stars·logger 를 clarifier-race.fakes.ts 로 바꿔 끼우는 방식은 clarifier-race.test.ts 와 같다.
 // 지키는 것: 가격이 어긋나면 잔액 조회·중복 방어·리딩 생성·차감 어느 것보다 먼저 409 로 끝난다(별·행이 안 움직인다 · WARN 한 줄) ·
-//          어긋나지 않으면(옛 그룹 + 필드 없음 · 메뉴판 + 맞는 값 · 두 그룹 가격이 같은 상품 · 사주 부모) 대조를 지나 다음 단계로 간다(WARN 없음).
+//          가격이 맞거나 필드가 없으면 통과한다. 사주 부모는 대조하지 않는다.
 //          "지났다"는 잔액 0 으로 두고 잔액 확인의 402 로 본다(가짜 DB 는 insert 를 흉내 내지 않는다 — 그 뒤는 이번 변경과 무관).
 // 맨 아래는 화면 쪽 계약 — expectedCost 를 싣는 세 자리(소스로 묶는다).
 import { test } from "node:test";
@@ -12,7 +12,6 @@ import { join } from "node:path";
 import { NextRequest } from "next/server";
 import type * as Fakes from "./clarifier-race.fakes.ts";
 import type { Row, World } from "./clarifier-race.fakes.ts";
-import { MENU_AB, menuArmOf } from "./menu-ab.ts";
 import { EMOTION_OPTIONS } from "../emotions.ts";
 
 // ── 라우트 의존성 바꿔 끼우기(clarifier-race.test.ts 와 같다) ──
@@ -52,9 +51,7 @@ function load(): Promise<Loaded> {
 }
 
 // ── 시나리오 ──
-// 그룹은 user_id 끝 글자로 정해진다(짝수 = 메뉴판) — 반반(split) 전제. 스위치를 돌리면 아래 "전제" 테스트가 먼저 깨진다
-const MENU_USER = "menu-user-0";
-const LEGACY_USER = "legacy-user-1";
+const USER = "user-1";
 const EMOTION = EMOTION_OPTIONS[0].tag;
 const PARENT_ID = "parent-1";
 
@@ -138,90 +135,50 @@ const withParent = (consultationType: "tarot" | "saju", spreadType: string | nul
 const priceChanged = (cost: number) => ({ error: "가격이 바뀌었어 — 새로고침하고 다시 해줘", code: "PRICE_CHANGED", cost });
 /** 막을 때 남기는 WARN(설계된 정상 신호) — 메시지가 error_logs fingerprint 의 씨앗이라 바꾸면 어드민 묶음도 바뀐다 */
 const WARN_MESSAGE = "PRICE_CHANGED: 화면이 본 가격과 서버 가격이 달라 차감 전에 막았다(409)";
-/** 막을 때 남는 WARN 한 줄(가짜 logWarn 이 받은 그대로) — user_id 로 그룹을 세고, 화면 값(판정과 같은 정규화 · 없으면 "missing")과 서버 가격을 남긴다 */
+/** 막을 때 남는 WARN 한 줄(가짜 logWarn 이 받은 그대로) — 화면 값(판정과 같은 정규화 · 없으면 "missing")과 서버 가격을 남긴다 */
 const warnOnce = (route: string, userId: string, extra: Record<string, unknown>) => [
   { reqId: 0, message: WARN_MESSAGE, ctx: { route, userId, extra } },
 ];
 
 const skip = registerHooks ? false : "module.registerHooks 가 없는 Node(< 22.15) — 라우트 의존성을 바꿔 끼울 수 없다";
-// 메뉴판 그룹 시나리오는 반반(split)일 때만 — 2026-10-25 판정으로 전원 옛 타로톡(MENU_AB legacy)이라 메뉴판 그룹 유저가 없다. 다시 반반을 켜면 저절로 돈다
-const menuSkip = skip || (MENU_AB !== "split" ? "메뉴판 반반 종료(전원 옛 타로톡) — 메뉴판 그룹 시나리오 없음" : false);
-
-test("전제 — 시나리오 유저의 그룹(반반이면 짝수 = 메뉴판 · 전원 옛이면 둘 다 옛 — 스위치를 돌리면 시나리오를 다시 고를 것)", () => {
-  assert.equal(menuArmOf(MENU_USER), MENU_AB === "split" ? "menu" : MENU_AB);
-  assert.equal(menuArmOf(LEGACY_USER), MENU_AB === "split" ? "legacy" : MENU_AB);
-});
 
 // ── 새 리딩(/api/consultations/tarot) ──
-test("새 리딩 — 메뉴판 그룹 + 옛 번들(expectedCost 없음) + 가격이 다른 상품(원카드 화면 10 · 서버 15): 409 · DB·별을 하나도 안 건드린다", { skip: menuSkip }, async () => {
-  const r = await call("create", MENU_USER, createBody("one_card", 1), { balance: 100 });
-  assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, priceChanged(15));
-  assert.deepEqual(r.ops, []); // 잔액 조회·중복 방어·리딩 생성·차감 전부 그 전에 끝났다
-  assert.deepEqual(r.world.spends, []);
-  assert.deepEqual(r.world.tables.readings, []);
-  assert.deepEqual(
-    r.world.warns,
-    warnOnce("/api/consultations/tarot", MENU_USER, { spread: "one_card", arm: "menu", expected: "missing", cost: 15 }),
-  );
-});
 
-test("새 리딩 — 메뉴판 그룹 + 화면이 옛 가격(10)을 보냄: 409 · 차감 없음", { skip: menuSkip }, async () => {
-  const r = await call("create", MENU_USER, createBody("one_card", 1, { expectedCost: 10 }), { balance: 100 });
-  assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, priceChanged(15));
-  assert.deepEqual(r.ops, []);
-  assert.deepEqual(r.world.spends, []);
-  assert.deepEqual(
-    r.world.warns,
-    warnOnce("/api/consultations/tarot", MENU_USER, { spread: "one_card", arm: "menu", expected: 10, cost: 15 }),
-  );
-});
-
-test("새 리딩 — 옛 그룹 유저가 어긋난 숫자(메뉴판 가격 15)를 보냄: 409 — 숫자가 오면 그룹과 무관하게 그 값이어야 한다", { skip }, async () => {
-  const r = await call("create", LEGACY_USER, createBody("one_card", 1, { expectedCost: 15 }), { balance: 100 });
+test("새 리딩 — 어긋난 숫자(15)를 보냄: 409 — 숫자가 오면 그 값이어야 한다", { skip }, async () => {
+  const r = await call("create", USER, createBody("one_card", 1, { expectedCost: 15 }), { balance: 100 });
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.deepEqual(r.body, priceChanged(10));
   assert.deepEqual(r.ops, []);
   assert.deepEqual(
     r.world.warns,
-    warnOnce("/api/consultations/tarot", LEGACY_USER, { spread: "one_card", arm: "legacy", expected: 15, cost: 10 }),
+    warnOnce("/api/consultations/tarot", USER, { spread: "one_card", expected: 15, cost: 10 }),
   );
 });
 
-test("새 리딩 — 숫자가 아닌 expectedCost(\"15\")는 없는 것: 메뉴판 원카드면 409 · WARN 의 expected 도 판정처럼 \"missing\"", { skip: menuSkip }, async () => {
-  const r = await call("create", MENU_USER, createBody("one_card", 1, { expectedCost: "15" }), { balance: 100 });
-  assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.equal(r.world.warns[0]?.ctx?.extra?.expected, "missing");
-});
-
-test("새 리딩 — 이어가기(fresh · previousReadingId)도 부모 검증보다 먼저 409: 없는 부모여도 부모 조회조차 안 한다(DB 호출 0)", { skip: menuSkip }, async () => {
-  const body = createBody("one_card", 1, { previousReadingId: "no-such-parent", continuationMode: "fresh" });
-  const r = await call("create", MENU_USER, body, { balance: 100 });
+test("새 리딩 — fresh 이어가기도 가격 불일치면 부모 조회 전에 409", { skip }, async () => {
+  const body = createBody("one_card", 1, {
+    previousReadingId: "no-such-parent",
+    continuationMode: "fresh",
+    expectedCost: 15,
+  });
+  const r = await call("create", USER, body, { balance: 100 });
   assert.equal(r.status, 409, JSON.stringify(r.body)); // 부모를 먼저 봤다면 400 invalid_previous_reading
-  assert.deepEqual(r.body, priceChanged(15));
-  assert.deepEqual(r.ops, []);
+  assert.deepEqual(r.body, priceChanged(10));
+  assert.deepEqual(r.ops, []); // 부모 조회조차 하지 않는다
   assert.deepEqual(r.world.spends, []);
+  assert.deepEqual(r.world.tables.readings, []);
 });
 
-test("새 리딩 — 메뉴판 그룹 + 화면이 서버 가격(15)을 보냄: 대조를 지나 잔액 확인으로", { skip: menuSkip }, async () => {
-  const r = await call("create", MENU_USER, createBody("one_card", 1, { expectedCost: 15 }));
-  assert.equal(r.status, 402, JSON.stringify(r.body));
-  assert.equal(r.body.required, 15);
-  assert.deepEqual(r.ops, ["balance"]);
-  assert.deepEqual(r.world.warns, []);
-});
-
-test("새 리딩 — 옛 그룹 + 옛 번들(필드 없음): 그대로 통과 — QA 스크립트(기본 유저 = 옛 그룹)가 타는 경로", { skip }, async () => {
-  const r = await call("create", LEGACY_USER, createBody("one_card", 1));
+test("새 리딩 — 옛 번들(필드 없음): 그대로 통과", { skip }, async () => {
+  const r = await call("create", USER, createBody("one_card", 1));
   assert.equal(r.status, 402, JSON.stringify(r.body));
   assert.equal(r.body.required, 10);
   assert.deepEqual(r.ops, ["balance"]);
   assert.deepEqual(r.world.warns, []);
 });
 
-test("새 리딩 — 메뉴판 그룹 + 옛 번들 + 두 그룹 가격이 같은 상품(3장 25): 통과", { skip }, async () => {
-  const r = await call("create", MENU_USER, createBody("three_card", 3));
+test("새 리딩 — 옛 번들 + 3장(25): 통과", { skip }, async () => {
+  const r = await call("create", USER, createBody("three_card", 3));
   assert.equal(r.status, 402, JSON.stringify(r.body));
   assert.equal(r.body.required, 25);
   assert.deepEqual(r.ops, ["balance"]);
@@ -229,38 +186,33 @@ test("새 리딩 — 메뉴판 그룹 + 옛 번들 + 두 그룹 가격이 같은
 });
 
 // ── 이어가기 deep(/api/readings/continue) ──
-test("이어가기 deep — 타로 부모(원카드) + 메뉴판 그룹 + 옛 번들(팝업 6 · 서버 9): 409 · 부모 확인만 하고 잔액·생성·차감 전", { skip: menuSkip }, async () => {
-  const r = await call("continue", MENU_USER, continueBody(), { balance: 100, tables: withParent("tarot", "one_card", MENU_USER) });
+
+test("이어가기 deep — 가격 불일치면 부모 확인만 하고 잔액·생성·차감 전에 409", { skip }, async () => {
+  const r = await call("continue", USER, continueBody({ expectedCost: 5 }), {
+    balance: 100,
+    tables: withParent("tarot", "one_card", USER),
+  });
   assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.deepEqual(r.body, priceChanged(9));
+  assert.deepEqual(r.body, priceChanged(6));
   assert.deepEqual(r.ops, ["select readings", "select messages"]);
   assert.deepEqual(r.world.spends, []);
-  assert.equal(r.world.tables.readings.length, 1); // 새 리딩 없음
-  // 이어가기는 부모 spread·mode 까지
+  assert.equal(r.world.tables.readings.length, 1);
   assert.deepEqual(
     r.world.warns,
-    warnOnce("/api/readings/continue", MENU_USER, { spread: "one_card", mode: "deep", arm: "menu", expected: "missing", cost: 9 }),
+    warnOnce("/api/readings/continue", USER, { spread: "one_card", mode: "deep", expected: 5, cost: 6 }),
   );
 });
 
-test("이어가기 deep — 타로 부모 + 메뉴판 그룹 + 화면이 서버 가격(9)을 보냄: 통과", { skip: menuSkip }, async () => {
-  const r = await call("continue", MENU_USER, continueBody({ expectedCost: 9 }), { tables: withParent("tarot", "one_card", MENU_USER) });
-  assert.equal(r.status, 402, JSON.stringify(r.body));
-  assert.equal(r.body.required, 9);
-  assert.deepEqual(r.ops, ["select readings", "select messages", "balance"]);
-  assert.deepEqual(r.world.warns, []);
-});
-
-test("이어가기 deep — 타로 부모 + 옛 그룹 + 옛 번들(필드 없음): 통과(6)", { skip }, async () => {
-  const r = await call("continue", LEGACY_USER, continueBody(), { tables: withParent("tarot", "one_card", LEGACY_USER) });
+test("이어가기 deep — 타로 부모 + 옛 번들(필드 없음): 통과(6)", { skip }, async () => {
+  const r = await call("continue", USER, continueBody(), { tables: withParent("tarot", "one_card", USER) });
   assert.equal(r.status, 402, JSON.stringify(r.body));
   assert.equal(r.body.required, 6);
   assert.deepEqual(r.world.warns, []);
 });
 
-test("이어가기 deep — 사주 부모는 대조하지 않는다(메뉴판 그룹 · 필드 없음이든 엉뚱한 값이든 통과)", { skip }, async () => {
+test("이어가기 deep — 사주 부모는 대조하지 않는다(필드 없음이든 엉뚱한 값이든 통과)", { skip }, async () => {
   for (const extra of [{}, { expectedCost: 999 }]) {
-    const r = await call("continue", MENU_USER, continueBody(extra), { tables: withParent("saju", null, MENU_USER) });
+    const r = await call("continue", USER, continueBody(extra), { tables: withParent("saju", null, USER) });
     assert.equal(r.status, 402, JSON.stringify({ extra, body: r.body }));
     assert.equal(r.body.required, 12, JSON.stringify(extra));
     assert.deepEqual(r.world.warns, [], JSON.stringify(extra));
@@ -268,9 +220,8 @@ test("이어가기 deep — 사주 부모는 대조하지 않는다(메뉴판 �
 });
 
 // ── 계약: 화면이 본 가격(expectedCost)을 싣는 세 자리 ──
-// 이 필드가 리팩터로 빠지면 서버는 그 요청을 "옛 번들"로 보고 옛 그룹 가격과 대조한다 → 메뉴판 유저의 1·5·6·7장(이어가기 deep 도)이
-// 전부 409 → 카드 다시 뽑기 → 또 409 로 돈다(돈은 안 빠지지만 그 상품을 영영 못 산다). tsc·빌드·유닛은 필드가 빠져도 다 통과하고
-// 옛 그룹·투카드·3장은 멀쩡해서 눈으로도 늦게 잡힌다 — 그래서 소스로 묶는다.
+// 이 필드가 빠지면 서버는 그 요청을 옛 번들로 보고 그냥 통과시킨다 → 배포 순간 낡은 번들이 보여 준 것과 다른 가격이 조용히 차감된다.
+// tsc·빌드·유닛은 필드가 빠져도 통과한다 — 그래서 소스로 묶는다.
 const ROOT = join(import.meta.dirname, "..", "..");
 /** 주석 속 언급은 싣는 게 아니다 — 지우고 본다(pricing.test.ts 와 같은 규칙) */
 const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");

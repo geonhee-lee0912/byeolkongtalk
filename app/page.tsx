@@ -19,8 +19,6 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { getMenu } from "@/lib/tarot/menu";
-import { homeMenuLine } from "@/lib/tarot/menu-price";
 import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
 import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
@@ -31,7 +29,7 @@ export default function Home() {
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
   const [audience, setAudience] = useState<Audience | null>(null);
-  // 큰 카드 한 줄 — 메뉴판 그룹 로그인 유저만(비로그인·옛 그룹은 지금 홈 그대로, 스펙 §9-1)
+  // 입구 반반 그룹(isNewFlowGuest) — 태그 탭의 흐름 판단·계측(home_tag_clicked)
   const wallet = useWallet("home");
   // 로그인 전 맛보기 — 저장된 판이 있으면(7일 안) '아까 뽑은 카드' 한 줄(스펙 2026-10-11 §3 ⑥).
   // 스위치(entryFeaturesOn)에 묶는다 — 켰다가 되돌려도 남은 저장 때문에 줄이 남으면 안 된다(뽑기 화면은 스위치가 꺼지면 복원하지 않아, 눌러도 이어지지 않는다). ENTRY_AB='old' 동안엔 늘 false 다
@@ -212,7 +210,6 @@ export default function Home() {
           <div className="flex flex-col gap-2.5 mb-3">
             {highlightOptions.slice(0, 2).map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
-              const menuLine = homeMenuLine({ wallet, count: getMenu(option.tag).length });
               return (
                 <button
                   key={option.tag}
@@ -248,11 +245,6 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
-                    {menuLine && (
-                      <span className="inline-block mt-2 rounded-full border border-gold bg-white px-2.5 py-0.5 text-[10.5px] font-bold text-eye-purple">
-                        {menuLine}
-                      </span>
-                    )}
                   </div>
                 </button>
               );

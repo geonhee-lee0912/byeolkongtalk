@@ -8,7 +8,6 @@ import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
 import { fetchWallet } from "@/lib/wallet";
-import type { MenuArm } from "@/lib/tarot/menu-ab";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -45,7 +44,8 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
   const [closing, setClosing] = useState<string | null>(null);
   const [concern, setConcern] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
-  const [arm, setArm] = useState<MenuArm | null>(null);
+  // 서버가 409 PRICE_CHANGED 로 막았다 — 보여 준 가격이 서버 가격과 다르니 다시 열 때까지 버튼을 잠근다
+  const [priceStale, setPriceStale] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +56,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     setClosing(null);
     setConcern("");
     setBalance(null);
-    setArm(null);
+    setPriceStale(false);
     setError(null);
     let cancelled = false;
     void (async () => {
@@ -81,20 +81,10 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
         })
       );
       setLoading(false);
+      // 잔액만 읽는다 — 못 읽으면(실패는 fetchWallet 이 계측) 잔액 확인은 서버가 한다(모자라면 402 → 상점)
       void fetchWallet("continuation_modal").then((w) => {
-        if (cancelled) return;
-        if (!w) {
-          // 못 읽으면 가격을 모르는 채로 결제하지 않게 버튼을 잠근다(arm 은 null 로 둔다) — 옛 가격을 보여 주고
-          // 서버는 메뉴판 가격을 받는 과다 청구 경로를 없앤다(실패는 fetchWallet 이 계측).
-          // 타로 부모만 — 사주 이어가기 가격은 그룹과 무관(fullCostFor)이라 못 읽어도 잠그지 않는다(잔액은 서버가 확인한다)
-          if (r.consultationType === "tarot") {
-            setError("가격을 불러오지 못했어 — 닫았다가 다시 열어줄래?");
-          }
-          return;
-        }
+        if (cancelled || !w) return;
         setBalance(w.balance);
-        // 타로 이어가기 정가는 반반 그룹마다 다르다 — 그룹을 알아야 가격이 정해진다(서버가 권위)
-        setArm(w.menuArm);
       });
     })();
     return () => {
@@ -121,15 +111,13 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
 
   const consultationType =
     (parent?.consultationType as "saju" | "tarot") ?? "saju";
-  // 가격이 정해졌는가 — 타로 이어가기 정가는 반반 그룹마다 달라 그룹(arm)을 알아야 한다.
-  // 사주는 그룹과 무관(fullCostFor)이라 지갑을 못 읽어도(arm null) 가격·버튼이 그대로다
-  const priceReady = parent !== null && (consultationType !== "tarot" || arm !== null);
-  // arm ?? "legacy" 의 "legacy" 는 사주 몫의 형식값이다 — fullCostFor 가 사주에선 그룹을 안 본다(타로는 priceReady 가 arm 을 보장)
+  // 가격을 보여 주고 받을 수 있는가 — 부모를 읽었고, 서버가 가격 어긋남(409)으로 막지 않았다
+  const priceReady = parent !== null && !priceStale;
   const fullCost = parent && priceReady
-    ? fullCostFor({ consultationType, spreadType: parent.spreadType, arm: arm ?? "legacy" })
+    ? fullCostFor({ consultationType, spreadType: parent.spreadType })
     : 0;
   const deepCost = continuationPrice(fullCost, "deep");
-  // 가격이 정해지기 전엔 가격 자리를 비워 둔다(옛 가격이 잠깐 보였다 바뀌지 않게)
+  // 가격을 못 믿는 동안엔 가격 자리를 비워 둔다
   const priceText = (n: number) => (priceReady ? String(n) : "…");
 
   const start = async (mode: "fresh" | "deep") => {
@@ -180,10 +168,10 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
         }
         // 판단은 code 로 — error 는 옛 번들용 공용 문구라 이 팝업은 자기 문구를 쓴다
         if (data?.code === "PRICE_CHANGED") {
-          // 보여 준 가격이 서버 가격과 다르다(배포 순간 등) — 차감 없이 막혔다. 지갑 못 읽음과 같은 모양으로 가격을 모르는 상태로 되돌려
-          // 버튼을 잠근다(같은 가격으로 또 눌러 같은 409 를 받지 않게). 닫았다 열면 지갑을 다시 읽어 지금 가격으로 풀린다 —
+          // 보여 준 가격이 서버 가격과 다르다(배포 순간 등) — 차감 없이 막혔다. 가격을 못 믿는 상태로 두고
+          // 버튼을 잠근다(같은 가격으로 또 눌러 같은 409 를 받지 않게). 닫았다 열면 풀린다 —
           // submitting 은 여기서 풀어 둔다(다시 열기는 이 값을 초기화하지 않아, 남기면 다시 연 뒤에도 버튼이 잠긴다)
-          setArm(null);
+          setPriceStale(true);
           setError("가격이 바뀌었어 — 닫았다가 다시 열어줘");
           setSubmitting(false);
           return;

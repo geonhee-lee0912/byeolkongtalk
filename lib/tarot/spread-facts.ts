@@ -1,4 +1,4 @@
-// 스프레드 분량 안내 — 옛 타로톡 스프레드 카드의 한 줄과 메뉴판 비교 수치(menu-price.ts compareFacts)가 같은 표를 읽는다.
+// 스프레드 분량 안내 — 스프레드 카드의 한 줄이 읽는 공통 표.
 // 순수 함수(클라 안전). spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1·§4-2
 import { SPREAD_INFO, type SpreadType } from "./spreads.ts";
 import { WRAP_THRESHOLDS } from "./constants.ts";
