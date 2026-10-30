@@ -6,11 +6,37 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 
 사주·타로·연애를 아우르는 멀티모달 운세 상담 서비스. 캐릭터 **별콩이** — 별의 수호자, 작은 신령/요정. 흐름과 가능성, 선택의 방향을 안내한다.
 
-> 🏢 **사업 맥락·일하는 방식·결정 기록·보안 규율은 비공개 저장소 `geonhee-lee0912/braveshine-company` 에 있다**(`company/` 공통, `services/byeolkongtalk/` 이 서비스). 기획·판정·운영 판단 전에 거기 `README.md` 부터. 이 문서는 코드 쪽만.
-
 > ⚠️ **이 문서는 "지금 코드를 만질 때 필요한 것"만 담는다.** Phase 0~5 진행 로그·세션별 완료 기록·역사적 트러블슈팅은 `docs/AGENTS-archive-2026-07-27.md` 로 이관했다(2026-07-27 압축, 30,628자 → 이 파일. 모든 세션에 자동 로드돼 ~26k 토큰을 먹던 문제).
 > **아카이브가 필요하면 Grep 으로 섹션만 — 전문 Read 금지.**
-> 진행 중 작업·판정 스케줄은 이 문서가 아니라 메모리 `w1-w7-work-queue` 가 관리한다. **이 문서에 진행 로그를 append 하지 말 것** — 그게 30k 로 불어난 원인이다.
+> 진행 중 작업·판정 스케줄은 이 문서가 아니라 GitHub 이슈가 관리한다(로컬 메모리 `w1-w7-work-queue` 에서 옮기는 중 — 이슈에 없으면 운영자에게 물을 것). **이 문서에 진행 로그를 append 하지 말 것** — 그게 30k 로 불어난 원인이다.
+
+## 공통 규칙
+
+> 모든 서비스 레포의 이 절은 같은 글이다 — 고칠 땐 다른 서비스 레포의 같은 절도 함께 고친다. Claude Code 는 `CLAUDE.md`(`@AGENTS.md`)로, Codex 는 이 파일을 직접 읽는다. 사업 맥락·결정 기록·사례는 비공개 저장소 `geonhee-lee0912/braveshine-company`(기획·판정 때만 연다 — 코드 일은 이 파일로 충분해야 한다).
+
+- **역할** — 이 서비스를 맡은 플랫폼(Claude 또는 Codex)이 기획·디자인·개발을 다 한다. 리뷰만 반대 플랫폼이 한다. 사용량 때문에 다른 플랫폼이 잠시 이어받아도 규칙은 같다.
+- **리뷰는 PR 을 만든 쪽의 반대편** — 서비스가 아니라 작성자 기준. 작업 브랜치 머리로 만든 쪽을 표시한다(`claude/…`·`codex/…`). Claude 가 만든 PR 은 연 뒤 `@codex review` 댓글, Codex 가 만든 PR 은 Claude 리뷰를 명시 호출(`/code-review <PR>`). 같은 플랫폼의 리뷰는 반대편 리뷰가 아니고, 봇 리뷰는 승인이 아니다. 승인·머지는 운영자.
+- **운영자 승인이 필요한 일**(결과물을 들고 와서 묻는다) — ①돈이 나가는 일(금액·이유·기대 효과 한 줄) ②사용자에게 보이는 운영 배포(미리보기·바뀐 점 3줄·되돌리는 법, 운영자가 "go" 할 때만) ③밖으로 나가는 것(광고·공지·SNS·이메일 — 실물) ④되돌리기 어려운 일(DB 구조·삭제, 결제·로그인, 약관 — 위험 설명 + 반대편 리뷰). 승인 없이 하는 일: 개발, dev 배포·미리보기, 리뷰, 분석·보고서, 이슈 정리, 문서.
+- **결정** — 범위 축소·연기·분석 결론·구현 방향은 혼자 정하지 않는다. 결정 카드로 하나씩 묻는다: 결과물, 고를 안, 추천, 한 줄 답("지금 바빠"도 답이다 — 그러면 상관없는 일을 먼저). 기다리는 동안 작업은 브랜치에 push 해 둔다. 운영자가 드롭한 항목을 되살리지 않고, 정한 방향에 "검증 먼저" 관문을 끼우지 않는다.
+- **절대 금지** — `main` 직접 push·머지 · 운영 DB 쓰기와 운영 콘솔·결제·광고 계정 조작(운영 데이터는 읽기 전용 스크립트로만, 쓰기는 SQL 을 만들어 운영자에게) · 키·풀 UUID·사용자 식별자를 코드·문서·PR·대화에 쓰기(공개 저장소) · Vercel·Supabase 프로젝트 연결 변경 · 공유 워킹 트리에서 `git add -A`·`git commit --amend`·`npm ci`/`npm install`(의존성은 `scripts/agent/init.sh` 만).
+- **판정** — "문제다" 전에 반증을 시도하고 확인됨/유력/의심을 붙인다. 실패가 조용한 변경(권한·설정·배포·네트워크)은 설정을 읽어 판정하지 말고 실물로 호출한다. 못 돌린 것은 미확인이라고 쓴다.
+- **넘기기** — 세션 메모리·플랫폼 전용 기능에 기대지 않는다. 다른 플랫폼·환경이 이어받을 상태는 브랜치(push)·PR 본문·GitHub 이슈에 둔다. 세션이 길어지면 상태를 거기 적고 새로 연다.
+- **커밋·PR** — 메시지는 파일로(`git commit -F <파일> -- <경로>`), 제목 다음 줄은 비운다. 커밋 전 diff 에서 키·UUID·식별자를 훑는다. PR 은 "어디에 영향이 가는지"를 먼저 쓴다(`.github/pull_request_template.md`). 화면 일은 승인한 시안을 정답으로 삼고 정답과 실제를 나란히 찍어(폰·PC 폭) 붙인다.
+- **답** — 한국어. 결론 먼저, 짧게. 확인 못 한 것은 맨 앞에. 숫자는 근거와 함께. 운영자는 코드를 읽지 않는다 — 결과물로 보고하고, 운영자 몫의 다음 할 일은 어디서 무엇을 하는지 구체적으로. 다단계 작업은 단계마다 완료 현황을 표시한다.
+
+## 명령 (두 플랫폼·로컬·클라우드 공통)
+
+- **세션 시작 1회**: `scripts/agent/init.sh` — dev 리소스인지 확인 · 빈 `.env.local` · 필요할 때만 `npm ci` · 필수 키 이름 확인(값은 출력 안 함). Node 는 `.nvmrc`(24, CI 와 같음)
+- 타입: `npx tsc --noEmit --incremental false`
+- 테스트(vitest 아님, CI 와 동일): `node --import tsx --test $(find . -name "*.test.ts" -not -path "./node_modules/*" -not -path "./qa/*" -not -path "./mobile/node_modules/*")`
+- 빌드: `npx next build` — `Failed to fetch ... Google Fonts` 면 `.next` 를 지우지 말고 재시도. 라우트 표에 `ƒ Proxy` 가 있어야 한다
+- dev 서버: `npm run dev`(:3000, 백그라운드). 페르소나 수정 뒤엔 재시작
+- QA: `npm run qa -- --case=<id>` — dev 서버 필요, dev DB 의 QA봇
+- 화면 확인: `scripts/agent/shot.sh http://localhost:3000/<경로> /tmp/a.png [유저UUID]` 후 이미지를 직접 본다. QA봇 = `11111111-1111-4111-8111-111111111111`. playwright 가 깔린 폴더가 필요하다(`BK_PLAYWRIGHT_DIR`, 기본 `/opt/bk-tools`)
+- 어드민 화면: 키를 환경에 두지 말고 그 명령에만 — `ADMIN_USER_IDS=<uuid> npm run dev`
+- 운영 배포: 운영자가 "prod 배포하자"고 할 때만, `docs/agent/deploy.md` 절차대로(점검은 `scripts/agent/deploy-check.sh <ref>`)
+- 네트워크 판정은 샌드박스 `curl` 상태코드가 아니라 앱과 같은 Node `fetch` 로
+- GitHub: 클라우드 세션에선 `gh pr`·`gh issue`(GraphQL)가 막힌다 — `gh api repos/geonhee-lee0912/byeolkongtalk/...` REST 로
 
 ## 기술 스택
 
@@ -99,7 +125,7 @@ docs/superpowers/{specs,plans}/
 - **next_reco 중단** — haiku 태깅 off + 결과 화면 추천 카드 제거. **인챗 칩(clarifier·extend·이어가기)과 `components/reco/RecoInlineCard` 는 생존**
 - **계측**: `page_views` + `/api/pv` + `/admin/traffic` · 탈퇴 시 utm 스냅샷 보존 · `PROMPT_VERSION`(`lib/prompt-version.ts`) 코호트
 - ⚠️ **`[END]` → 결과는 자동 이동이 아니라 수동 [결과 보기 →] 버튼**. `result_viewed_at` 은 사실상 **"버튼을 눌렀나"**를 잰다. 🚫 **자동 이동은 2026-07-31 기각** — 유저 통제를 뺏고, 게다가 이 지표가 "종료 도달"과 같아져 **정의상 소멸**한다. 미열람의 본체는 어차피 **종료 동작 자체를 안 하는 53%** 쪽이다 — `specs/2026-07-26-unviewed-results-findings.md` 를 그 축으로 재검토할 것
-- 🗑️ **측정 창 규율(수익성 판정 사이클) 폐기 (2026-07-31)** — 광고 배급 붕괴로 관측 창이 오염돼 사이클이 깨졌다. day 0·d4~d28 캘린더·배포 슬롯 규율 전부 삭제. 다음 로드맵은 새로 짠다. 실측 판독과 판독 도구(`scripts/cycle-snapshot-*.sql`)는 살아 있다 — 메모리 `w1-w7-work-queue`
+- 🗑️ **측정 창 규율(수익성 판정 사이클) 폐기 (2026-07-31)** — 광고 배급 붕괴로 관측 창이 오염돼 사이클이 깨졌다. day 0·d4~d28 캘린더·배포 슬롯 규율 전부 삭제. 다음 로드맵은 새로 짠다. 실측 판독과 판독 도구(`scripts/cycle-snapshot-*.sql`)는 살아 있다 — 판독 일정은 GitHub 이슈(옮기기 전엔 로컬 메모리 `w1-w7-work-queue`)
 
 ## 코딩 규칙
 
@@ -161,6 +187,15 @@ docs/superpowers/{specs,plans}/
 - **`/admin/errors` 의 "설계된 정상 신호"** 가 있다 — 중복차단 warn·카카오 -101 info 등. 전부 버그로 보지 말 것
 - **prod 쓰기 작업은 항상 사용자 손** — `scripts/run-prod-query.mjs` 는 `read_only:true` 고정
 - **QA**: 별콩이 검증은 QA 하네스로 자체 수행(`.env.local` 로 충분). ⚠️**페르소나 수정 후 dev 서버 재시작 필수**(모듈 캐시)
+
+## Review guidelines
+
+반대편 리뷰(Codex 의 GitHub 자동 리뷰 포함)는 이 절을 따른다. 리뷰는 한국어로 쓴다.
+
+- **되돌리기 어려운 일인지 첫 줄에 적는다.** 아래에 닿으면 해당 — 머지 전에 반대편 리뷰 + 운영자 승인: `supabase/migrations/`·RPC 권한 / 별 잔액·결제(`lib/stars.ts`·`app/api/stars/`·`app/api/payment{,s}/`) / 로그인·세션·탈퇴(`lib/auth/`·`app/api/auth/`·`proxy.ts`) / 페르소나 코어(`data/persona/byeolkong_core.md`) / dev→main 정식 머지.
+- 키·풀 UUID·사용자 식별자가 diff 에 있으면 가장 먼저 지적한다(공개 저장소).
+- 우선 볼 함정(위 "코딩 규칙"·"운영 함정"): 마이그레이션과 그걸 읽는 코드를 한 PR 에 섞음 · 새 `SECURITY DEFINER` RPC 의 REVOKE 3종 누락 · 새 테이블의 service_role GRANT 누락 · `users(id)` FK 의 ON DELETE 누락 · 어드민 집계에서 원본 행을 앱으로 끌어옴(`.limit` 은 Max rows 에 조용히 잘림) · SQL 날짜식에서 `at time zone 'UTC'` 누락 · `[RECO:…]` 마커를 정규식으로 직접 캐스팅 · 페이지 metadata 의 `openGraph`·`twitter` 부분 덮어쓰기 · 웹 로그아웃·탈퇴에서 `postToApp("auth.loggedOut")` 누락 · `users.kakao_id` 직접 읽기 · 별 잔액 RPC 직접 호출.
+- 테스트·빌드 통과를 안전의 증거로 보지 않는다 — 이 저장소의 큰 사고들은 둘 다 통과하고 운영까지 갔다. 조용히 실패하는 경로(권한·잘림·캐스트·설정)를 본다.
 
 ## 보류된 부채
 
