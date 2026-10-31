@@ -5,7 +5,7 @@
 
 1. `git fetch origin main dev` 후 `git switch -c deploy/<날짜>-<n> origin/main`.
 2. 통째면 `git merge --no-ff -F <파일> origin/dev`, 일부면 해당 커밋만 `git cherry-pick`. `lib/sensitive.ts` 충돌은 dev 쪽을 고른다. 다른 충돌은 어떻게 풀었는지 PR 본문에 적는다.
-3. `scripts/agent/deploy-check.sh`. 걸리면 멈추고 목록을 운영자에게 보여 준다. 운영자가 허락한 항목만 넘어간다. DB 마이그레이션이 있으면 로컬 세션으로 넘긴다(사전 검증에 prod DB 가 필요하다).
+3. `scripts/agent/deploy-check.sh`(exit 1 = 확인할 항목 있음, exit 2 = 점검 자체 실패 — ref·네트워크부터 본다). 걸리면 멈추고 목록을 운영자에게 보여 준다. 운영자가 허락한 항목만 넘어간다. DB 마이그레이션이 있으면 로컬 세션으로 넘긴다(사전 검증에 prod DB 가 필요하다).
 4. 그 브랜치에서 타입·테스트·빌드(`AGENTS.md` "명령").
 5. 대조: 통째 머지면 `git rev-parse HEAD^{tree}` 가 `origin/dev^{tree}` 와 같은지, 일부면 바뀐 파일이 dev 와 같은지(`git diff --quiet <dev커밋> HEAD -- <파일>`). 다르면 이유를 PR 에 적는다.
 6. push 후 PR(base `main`), 제목 `deploy: dev -> main (YYYY-MM-DD #n) - 요약`. 본문 맨 위에 사용자에게 바뀌는 것, 나가는 커밋 수, 2~5 결과, 그리고 "**Create a merge commit** 으로 머지할 것(Squash·Rebase 금지)".

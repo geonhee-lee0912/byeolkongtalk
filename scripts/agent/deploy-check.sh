@@ -1,9 +1,11 @@
 #!/bin/bash
 # 운영 배포 전 점검: scripts/agent/deploy-check.sh [ref, 기본 HEAD] — 절차 전체는 docs/agent/deploy.md
-# origin/main 대비 나갈 변경 중 운영자 확인이 필요한 것을 찾는다. 걸리면 exit 1.
+# origin/main 대비 나갈 변경 중 운영자 확인이 필요한 것을 찾는다. 걸리면 exit 1, 점검 자체를 못 하면 exit 2.
 ref=${1:-HEAD}
-git fetch -q origin main || { echo "origin/main 을 못 받았다"; exit 1; }
-files=$(git diff --name-only origin/main "$ref")
+git fetch -q origin main || { echo "중단: origin/main 을 못 받았다"; exit 2; }
+# 비교 대상을 못 읽으면 빈 목록으로 '점검 통과'가 나오므로 먼저 막는다
+git rev-parse -q --verify "$ref^{commit}" >/dev/null || { echo "중단: '$ref' 를 찾을 수 없다(오타이거나 fetch 안 됨)"; exit 2; }
+files=$(git diff --name-only origin/main "$ref") || { echo "중단: origin/main 과 비교하지 못했다"; exit 2; }
 echo "나갈 커밋 $(git rev-list --count origin/main.."$ref")개 · 바뀌는 파일 $(printf '%s\n' "$files" | grep -c .)개"
 stop=0
 report() {
