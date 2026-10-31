@@ -15,7 +15,7 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 > 모든 서비스 레포의 이 절은 같은 글이다 — 고칠 땐 다른 서비스 레포의 같은 절도 함께 고친다. Claude Code 는 `CLAUDE.md`(`@AGENTS.md`)로, Codex 는 이 파일을 직접 읽는다. 사업 맥락·결정 기록·사례는 비공개 저장소 `geonhee-lee0912/braveshine-company`(기획·판정 때만 연다 — 코드 일은 이 파일로 충분해야 한다).
 
 - **역할** — 이 서비스를 맡은 플랫폼(Claude 또는 Codex)이 기획·디자인·개발을 다 한다. 리뷰만 반대 플랫폼이 한다. 사용량 때문에 다른 플랫폼이 잠시 이어받아도 규칙은 같다. 어느 도구도 다른 도구를 일꾼으로 부르지 않는다(`codex exec`·Claude 호출 금지). PR 에 리뷰를 청하는 `@codex review` 댓글은 예외.
-- **리뷰는 PR 을 만든 쪽의 반대편** — 서비스가 아니라 작성자 기준. 작업 브랜치 머리로 만든 쪽을 표시한다(`claude/…`·`codex/…`). Claude 가 만든 PR 은 연 뒤 `@codex review` 댓글, Codex 가 만든 PR 은 Claude 리뷰를 명시 호출(`/code-review <PR>`). 같은 플랫폼의 리뷰는 반대편 리뷰가 아니고, 봇 리뷰는 승인이 아니다. 승인·머지는 운영자.
+- **리뷰는 PR 을 만든 쪽의 반대편** — 서비스가 아니라 작성자 기준. 작업 브랜치 머리로 만든 쪽을 표시한다(`claude/…`·`codex/…`). Claude 가 만든 PR 은 연 뒤 `@codex review` 댓글, Codex 가 만든 PR 은 Claude 리뷰를 명시 호출(`/code-review <PR>`). 같은 플랫폼의 리뷰는 반대편 리뷰가 아니고, 봇 리뷰는 승인이 아니다. 승인·머지는 운영자. 되돌리기 어려운 일(DB·결제·별·로그인·탈퇴·페르소나 코어·dev→main)의 PR 은 작성자가 누구든 Claude `/code-review <PR>` 도 한 번 더 돌린다 — Codex 자동 리뷰 측정(10-31, 결함 2개 중 1개)에서 조용히 지나가는 경계 결함을 놓쳤다.
 - **운영자 승인이 필요한 일**(결과물을 들고 와서 묻는다) — ①돈이 나가는 일(금액·이유·기대 효과 한 줄) ②사용자에게 보이는 운영 배포(미리보기·바뀐 점 3줄·되돌리는 법, 운영자가 "go" 할 때만) ③밖으로 나가는 것(광고·공지·SNS·이메일 — 실물) ④되돌리기 어려운 일(DB 구조·삭제, 결제·로그인, 약관 — 위험 설명 + 반대편 리뷰). 승인 없이 하는 일: 개발, dev 배포·미리보기, 리뷰, 분석·보고서, 이슈 정리, 문서.
 - **결정** — 범위 축소·연기·분석 결론·구현 방향은 혼자 정하지 않는다. 결정 카드로 하나씩 묻는다: 결과물, 고를 안, 추천, 한 줄 답("지금 바빠"도 답이다 — 그러면 상관없는 일을 먼저). 기다리는 동안 작업은 브랜치에 push 해 둔다. 운영자가 드롭한 항목을 되살리지 않고, 정한 방향에 "검증 먼저" 관문을 끼우지 않는다.
 - **절대 금지** — `main` 직접 push·머지 · 운영 DB 쓰기와 운영 콘솔·결제·광고 계정 조작(운영 데이터는 읽기 전용 스크립트로만, 쓰기는 SQL 을 만들어 운영자에게) · 키·풀 UUID·사용자 식별자를 코드·문서·PR·대화에 쓰기(공개 저장소) · Vercel·Supabase 프로젝트 연결 변경 · 공유 워킹 트리에서 `git add -A`·`git commit --amend`·패키지 매니저 설치 명령 직접 실행(의존성은 `scripts/agent/init.sh` 만).
@@ -76,61 +76,10 @@ mobile/                # Expo SDK 58 앱(웹뷰 껍데기) — 설정 정본은 
 docs/superpowers/{specs,plans}/
 ```
 
-## 디자인 시스템
-
-`app/globals.css` `@theme` 블록이 정본.
-
-| 키 | HEX | 용도 |
-|---|---|---|
-| `cream` / `cream-warm` | `#FAF6F0` / `#FFF8F0` | 메인 배경 / 카드·패널 |
-| `lilac-soft` / `lilac` / `lilac-mid` / `lilac-deep` | `#E8DEF5` / `#D4C7EE` / `#B8A8D8` / `#9F8AD0` | 보조배경·hover / 강조 / 보더 / 액티브 |
-| `gold` / `gold-soft` | `#E8C26A` / `#F2D78A` | 포인트(별·CTA) / 글로우 |
-| `eye-purple` / `text-light` | `#5A3E8C` / `#7A6BA0` | 본문 / 보조 텍스트 |
-| `night` / `night-deep` | `#1F1735` / `#2A1F4D` | 다크 영역(사주판) |
-
-- 그라데이션: 메인 배경 `cream`→`lilac-soft`(html) / 다크 영역 `night`→`night-deep` + 금색 별 파티클
-- 애니메이션: `animate-float`(3s) · `animate-star-twinkle`(2.5s) · `animate-fade-in`(0.5s)
-- 모티프: 4·8꼭지 별(액센트·로딩·구분선) · 구름/물결(섹션 배경) · 금테+태슬(유료 카드) · `rounded-2xl` 이상 기본
-- 오행 색상은 별콩이 톤(전통 채도와 다름) — `components/saju/SajuBoard` 의 `ELEMENT_COLORS`. 일관 유지
-
 ## 별콩이 페르소나
 
 **구조**: `data/persona/byeolkong_core.md` 가 화법·위기 안전망·금지표현의 **단일 원천**이고, `byeolkong_{saju,tarot,fortune,relationship,relationship_draw,verdict_inthread}.md` 가 도메인별로 얹힌다.
-⚠️ **코어 편집 = 전 종목 전역 변경** → 광범위 회귀 QA 필수. 위기 안전망·금지표현을 도메인 파일로 복사하지 말 것(드리프트 사고 방지).
-
-- 정체성: 따뜻함 + 차분함 + 신비로움 + 약간의 장난기. 판단하지 않고 단정 짓지 않는다
-- 화법: ①**단정적 예언 금지**("~할 가능성이 있어", "이런 흐름이 보여") ②흐름·가능성·선택 3키워드 ③불안 자극·운명론적 협박 금지 ④장난기는 한 턴에 한 번 ⑤따뜻한 마무리 ⑥위기 시 페르소나 내려놓고 hotline 우선
-- 1인칭 `별콩이는`/`나는`, 2인칭 `너`(반말). 호칭은 `users.nickname`
-- 화법 v3 = 답 먼저 · 소신형("내가 보기엔") · 부정은 완곡+출구 · 관찰형 훅 · **매턴 질문 금지**(2연속 질문 마무리 금지). `computeTurnSignals` 가 직전 턴 신호로 동적 경고 주입
-- 프롬프트는 정적 블록을 `cache_control: ephemeral` + `ttl:"1h"` 로 마킹(입력비 ~35%↓). turn-specific 데이터는 user 메시지에 동적 주입
-- ⚠️ **심문 피로 판정은 LLM judge 를 믿지 말 것** — Sonnet judge 가 "질문=심문" 프라이어로 과대평가한다. 신뢰할 신호는 객관 단언 `no_consecutive_question_close`
-- ⚠️ **페르소나 규칙을 조이면 반대편 과잉으로 튄다**(회피구↔확언). 케이스당 n=1 이라 조정은 1회로 끊고 실데이터로 판단
-
-## 현재 사용자 흐름
-
-- `/` 홈 → 연애 존 6태그(`LOVE_TAGS`) + 궁합 크로스링크 + 비연애 4태그(`OTHER_TAGS`)
-- 태그 → 로그인 가드 → `/concern`(감정 칩 + 고민 10~200자) → **타로 직행**(사주/타로 picker 없음)
-- `/tarot`(태그별 큐레이션 5, `TAG_SPREADS`) → `/tarot/draw` → `/tarot/reading`(SSE → `[END]` → 결과/공유)
-- **사주는 상담 진입 폐쇄** — `/select` 는 `/concern` 리다이렉트 스텁(구 링크 하위호환). `/saju*` 는 기존 reading 열람·resume 전용. 새 사주 수요는 `/fortune` **one-shot 리포트**가 받는다
-- `/relationship` "연애 상담" — 지속 대화형 스레드(종결 없음). 미등록=콜드스타트+상대등록 / 등록=스레드
-- 이어가기: 완료 reading 참조 새 reading(`/api/readings/continue`, `previous_reading_id`+`continuation_mode`). deep = 정가×0.6. UI 는 `ContinuationModal`(타로만 fresh 버튼 있음, 사주는 deep 단일)
-- 레이아웃 (`components/layout/`): `AppShell` 이 pathname 기반(`/login` 제외) `Header`+`BottomTab` 자동 부착(`pb-20`). **BottomTab 5탭** (라벨은 `BottomTab.tsx` 의 `TABS` 가 정본) = 타로톡`/` · 사주 운세`/fortune` · **별마루`/byeolmaru`** · 별콩 상점`/shop` · 마이`/mypage`. 보관함`/readings` 는 마이에서 진입(`?from=history` 시 마이 탭 하이라이트).
-  - 🔴 **`우리 사이` 탭은 2026-09-04 제거됨 → 그 자리가 별마루**(`c34a4cf`). `/relationship` 페이지·코드는 **살아 있고** 진입점만 별마루 안 슬롯으로 옮겼다 — 스레드는 죽었지만(8월 85건 중 무료 3턴 통과 0명·별 소모 0) **상대 등록의 64.6%(월 84건)가 이 경로**라 끊으면 별마루 "우리 오늘"의 연료가 마른다. → **2026-09-06 `/relationship` 진입점을 홈 고정 카드('별콩이와 연애 상담', 구 궁합 슬롯)로 이동**하고 별마루 탭 `matchPrefixes` 에서 `/relationship` 을 **제거**했다. 이제 `/relationship` 은 어떤 하단탭도 활성이 아니다(홈에서 진입하는데 3탭이 켜지는 게 어색). 진입은 홈 고정 카드 + 캐러셀 sim. 근거·판정 = `specs/2026-08-31-별마루-리텐션허브-design.md` §7-b
-  - `Footer` 는 **홈과 마이페이지에서만**(마이페이지는 로그인 게이트 뒤라 크롤러가 보는 건 사실상 홈 하나 — SEO 상 중요)
-
-## 현행 prod 상태 (기준 2026-07-27)
-
-- **재화 정본 — 가격은 코드 상수가 정본이다. 문서 숫자와 어긋나면 코드를 믿을 것.**
-  웰컴 15별(`WELCOME_BONUS_STARS`, 09-28 20→15) · 첫충전 +20%(`FIRST_CHARGE_BONUS_RATE`) · 연애 패스 30/60/100(`PASS_PLANS`) + 무료 인트로 3턴(`FREE_INTRO_TURNS`) · 소프트캡 20턴/일 + 5별=+5턴(무제한) · 사주 20(`SAJU_READING_COST`)
-- **우리 사이 스킬 4종 = 스레드 내부 실행** (`lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`) — 관계체크인 45 / 걔속마음 40 / 우리궁합 40 / 싸움판정 30. 별도 라우트·화면 없음(`lib/relationship/{draw,compat}-thread.ts` + `ThreadDrawModal`/`ThreadCompatCard`/`ThreadCardStrip`). 칩 UI 는 입력창 ⚡ `SkillSheet`. 스킬은 활성 패스 필요
-- **관계 기억** = 최근 24메시지 원문 + 초과분 haiku 델타 요약(`rolling_summary`/`summarized_msg_count` 커서, `lib/relationship/memory.ts`). 최근창은 항상 user 발화로 시작(Anthropic 규칙)
-- **민감 감지**: 회색지대는 **스트림 시작 전 haiku 2차 판정을 await**(~1초, 3초 타임아웃 시 regex 폴백). regex high 는 즉시 확정. 패턴은 `lib/sensitive-patterns.ts` PATTERNS(고민 쓰기 화면도 쓰는 순수 모듈 — import 0 계약 테스트), hotline 은 `components/safety/SafetyBanner.tsx` `HOTLINES`. `has_sensitive=true` 면 공유 차단 + OG 라우트 403
-- **위기 대화는 서버측 강제 종료 없음** — `has_sensitive` 면 abs-cap `[END]` 억제(안전 > 비용). rate-limit 20/분은 유지
-- **타로 프리미엄(5장+)**: 첫 풀이 3라벨 골격(🃏💫🔗) + 카드당 6~7문장 + `[CARD:n]` 마커 선행 강제. 수렴 임계치는 카드 수 기준(`WRAP_THRESHOLDS`)
-- **next_reco 중단** — haiku 태깅 off + 결과 화면 추천 카드 제거. **인챗 칩(clarifier·extend·이어가기)과 `components/reco/RecoInlineCard` 는 생존**
-- **계측**: `page_views` + `/api/pv` + `/admin/traffic` · 탈퇴 시 utm 스냅샷 보존 · `PROMPT_VERSION`(`lib/prompt-version.ts`) 코호트
-- ⚠️ **`[END]` → 결과는 자동 이동이 아니라 수동 [결과 보기 →] 버튼**. `result_viewed_at` 은 사실상 **"버튼을 눌렀나"**를 잰다. 🚫 **자동 이동은 2026-07-31 기각** — 유저 통제를 뺏고, 게다가 이 지표가 "종료 도달"과 같아져 **정의상 소멸**한다. 미열람의 본체는 어차피 **종료 동작 자체를 안 하는 53%** 쪽이다 — `specs/2026-07-26-unviewed-results-findings.md` 를 그 축으로 재검토할 것
-- 🗑️ **측정 창 규율(수익성 판정 사이클) 폐기 (2026-07-31)** — 광고 배급 붕괴로 관측 창이 오염돼 사이클이 깨졌다. day 0·d4~d28 캘린더·배포 슬롯 규율 전부 삭제. 다음 로드맵은 새로 짠다. 실측 판독과 판독 도구(`scripts/cycle-snapshot-*.sql`)는 살아 있다 — 판독 일정은 회사 레포 이슈(옮기기 전엔 로컬 메모리 `w1-w7-work-queue`)
+⚠️ **코어 편집 = 전 종목 전역 변경** → 광범위 회귀 QA 필수(`[로컬에서]`). 위기 안전망·금지표현을 도메인 파일로 복사하지 말 것(드리프트 사고 방지). 화법·judge·캐시 규칙은 `docs/agent/persona.md`.
 
 ## 코딩 규칙
 
@@ -202,13 +151,16 @@ docs/superpowers/{specs,plans}/
 - 우선 볼 함정(위 "코딩 규칙"·"운영 함정"): 마이그레이션과 그걸 읽는 코드를 한 PR 에 섞음 · 새 `SECURITY DEFINER` RPC 의 REVOKE 3종 누락 · 새 테이블의 service_role GRANT 누락 · `users(id)` FK 의 ON DELETE 누락 · 어드민 집계에서 원본 행을 앱으로 끌어옴(`.limit` 은 Max rows 에 조용히 잘림) · SQL 날짜식에서 `at time zone 'UTC'` 누락 · `[RECO:…]` 마커를 정규식으로 직접 캐스팅 · 페이지 metadata 의 `openGraph`·`twitter` 부분 덮어쓰기 · 웹 로그아웃·탈퇴에서 `postToApp("auth.loggedOut")` 누락 · `users.kakao_id` 직접 읽기 · 별 잔액 RPC 직접 호출.
 - 테스트·빌드 통과를 안전의 증거로 보지 않는다 — 이 저장소의 큰 사고들은 둘 다 통과하고 운영까지 갔다. 조용히 실패하는 경로(권한·잘림·캐스트·설정)를 본다.
 
-## 보류된 부채
-
-- ✅ **`middleware.ts` → `proxy.ts` 전환 완료 (2026-07-31)**. Next 16 은 루트 `proxy.ts` + `export function proxy(req)` 를 쓴다(`config` 는 그대로 · 문서 `node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`). 코드모드 대신 수동 rename — 병렬 작업 중 리포 전체 코드모드가 위험했고, 실제 변경이 파일명+함수명뿐이라 얻는 게 없었다.
-  ⚠️ **이 전환은 조용히 실패한다** — 인식이 안 되면 크래시 없이 anon 쿠키 미발급(계측 전체 오염) + `/admin` 페이지 가드 소실. 그래서 검증 3종이 필수다: ①빌드 라우트 표에 `ƒ Proxy` 가 뜨는가 ②새 시크릿 창에서 anon 쿠키 발급 ③토큰 없이 `/admin` → 리다이렉트
-
 ## 관련
 
 - 아카이브: `docs/AGENTS-archive-2026-07-27.md`(Phase 로그·세션 기록·역사적 트러블슈팅) · `docs/superpowers/2026-07-27-work-queue-archive.md`(W1~W7 실행 로그)
 - 설계·플랜 원장: `docs/superpowers/{specs,plans}/`
 - v1 (sunset 예정, 인프라 패턴 참고용): https://github.com/geonhee-lee0912/tarot-friend
+
+## 더 읽을 것 (그 영역을 만질 때만)
+
+- 재화·상품·prod 상태, 완료된 전환 기록: `docs/agent/product-state.md`
+- 화면·라우트·하단탭 흐름: `docs/agent/user-flow.md`
+- 디자인 토큰·모티프: `docs/agent/design-system.md`
+- 별콩이 화법·judge·프롬프트 캐시 규칙: `docs/agent/persona.md`
+- 운영 배포 절차: `docs/agent/deploy.md`
