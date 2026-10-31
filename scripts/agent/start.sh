@@ -45,7 +45,8 @@ else
   titles=""
   for b in $branches; do
     echo "== $b"
-    if h=$(git show "$b:HANDOFF.md" 2>/dev/null); then
+    # 터미널 제어문자(ESC·BEL 등)와 CR 은 떼고 출력한다 — 다른 사람이 푸시한 브랜치의 메모가 화면·컨텍스트를 오염시키지 않게. 탭·줄바꿈만 남긴다
+    if h=$(git show "$b:HANDOFF.md" 2>/dev/null | tr -d '\000-\010\013-\037\177'); then
       printf '%s\n' "$h" | head -20
       titles="$titles
 $(printf '%s\n' "$h" | head -1 | sed 's/^# HANDOFF — //')"
