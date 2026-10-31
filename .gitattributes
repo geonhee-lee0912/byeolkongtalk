@@ -1,0 +1,2 @@
+# 셸 스크립트는 항상 LF — Windows 체크아웃(autocrlf)에서 CRLF 로 바뀌면 Git Bash 밖의 bash 가 깨진다
+*.sh text eol=lf

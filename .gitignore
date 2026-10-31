@@ -65,3 +65,7 @@ scripts/tmp-render-overlays.mjs
 scripts/qual-results.json
 scripts/smoke-skill-edges.ts
 scripts/smoke-skill-refund.ts
+
+# 세션이 남기는 로컬 잡동사니 — scripts/agent/stop.sh 가 "커밋 안 된 변경"으로 잡지 않게
+error.log
+scratchpad/
