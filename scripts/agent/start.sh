@@ -45,12 +45,13 @@ $(printf '%s\n' "$h" | head -1 | sed 's/^# HANDOFF — //')"
       echo "(HANDOFF.md 없음)"
     fi
   done
-  # "다음" 줄 중 HANDOFF 제목에 들어 있는 문구는 진행 중으로 표시
+  # "다음" 줄 가운데 어느 HANDOFF 제목을 품은 줄은 진행 중으로 표시(로드맵 줄은 제목 뒤에 상세가 붙어도 된다)
   if [ -n "$next" ]; then
     echo "== 다음 중 진행 중"
     printf '%s\n' "$next" | while IFS= read -r line; do
-      text=$(printf '%s' "$line" | sed -E 's/^[0-9]+\. *//; s/^- *//; s/ *\[.*$//')
-      [ -n "$text" ] && printf '%s\n' "$titles" | grep -qF -- "$text" && echo "$line ← 진행 중"
+      printf '%s\n' "$titles" | while IFS= read -r t; do
+        [ -n "$t" ] && case "$line" in *"$t"*) echo "$line ← 진행 중";; esac
+      done
     done
   fi
 fi
