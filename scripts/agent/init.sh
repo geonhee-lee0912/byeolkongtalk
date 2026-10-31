@@ -1,20 +1,27 @@
 #!/bin/bash
 # 세션 시작 때 1회: scripts/agent/init.sh (두 번째부터는 수 초)
-# dev 리소스인지 확인 → 빈 .env.local → 의존성(필요할 때만) → 필수 키 이름 확인. 키 값은 출력하지 않는다.
+# 키가 있으면 dev 리소스인지 확인 → 빈 .env.local → 의존성(필요할 때만) → 필수 키 이름 확인. 키 값은 출력하지 않는다.
+# 비밀값이 전혀 없는 트리(클라우드 기본 환경)에서도 통과한다.
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "저장소 안에서 실행할 것"; exit 1; }
 cd "$root" || exit 1
 
-# 키는 환경 변수(클라우드) 또는 .env.local(로컬)에 있다
-from_file() { grep -E "^$1=" .env.local 2>/dev/null | head -1 | cut -d= -f2-; }
-has() { [ -n "${!1}" ] || [ -n "$(from_file "$1")" ]; }
+# 키는 환경 변수(클라우드) 또는 .env.local(로컬)에 있다. 키의 "있음"은 값을 읽지 않고 grep -q 로만 본다(값이 셸 변수·추적에 실리지 않게).
+# 값을 읽는 것은 Supabase 주소 하나뿐(비밀값 아님). 파일 값의 따옴표와 CR(Windows 줄 끝)은 벗긴다 — Node 의 --env-file 과 같은 해석
+from_file() { grep -E "^$1=" .env.local 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\r' | sed -E "s/^'//; s/'$//"; }
+has() { [ -n "${!1}" ] || grep -qE "^$1=[\"']?[^\"'[:space:]]" .env.local 2>/dev/null; }
 
-# dev Supabase 프로젝트가 아니면 멈춘다. 공개 저장소라 프로젝트 ref 원문 대신 sha256 으로 대조한다
+# Supabase 주소가 있으면 dev 프로젝트인지 대조하고, 아니면 멈춘다. 공개 저장소라 프로젝트 ref 원문 대신 sha256 으로 대조한다.
+# 주소가 없으면(비밀값 0 인 클라우드 기본 환경) 대조할 것이 없으니 안내만 하고 지나간다.
 DEV_REF_SHA256=824c4ca106c4ac8b112ea1a2bb1de581a46dabcfaab73c44dec1d78edaebdef4
 url=${NEXT_PUBLIC_SUPABASE_URL:-$(from_file NEXT_PUBLIC_SUPABASE_URL)}
-ref=$(printf %s "$url" | sed -nE 's#^https://([a-z0-9]+)\.supabase\.co.*#\1#p')
-if [ "$(printf %s "$ref" | sha256sum | cut -d' ' -f1)" != "$DEV_REF_SHA256" ]; then
-  echo "중단: NEXT_PUBLIC_SUPABASE_URL 이 dev 프로젝트가 아니다"
-  exit 1
+if [ -z "$url" ]; then
+  echo "비밀값 없음 — 클라우드 기본 환경이면 정상, 로컬이면 .env.local 을 확인할 것"
+else
+  ref=$(printf %s "$url" | sed -nE 's#^https://([a-z0-9]+)\.supabase\.co.*#\1#p')
+  if [ "$(printf %s "$ref" | sha256sum | cut -d' ' -f1)" != "$DEV_REF_SHA256" ]; then
+    echo "중단: NEXT_PUBLIC_SUPABASE_URL 이 dev 프로젝트가 아니다"
+    exit 1
+  fi
 fi
 
 # qa·smoke 의 --env-file=.env.local 용. 없을 때만 빈 파일을 만든다(클라우드에선 키를 파일에 쓰지 않는다)
@@ -33,13 +40,6 @@ fi
 want=$(tr -d '[:space:]' <.nvmrc 2>/dev/null)
 have=$(node -v | sed -E 's/^v([0-9]+).*/\1/')
 [ -z "$want" ] || [ "$have" = "$want" ] || echo "주의: Node $have — 이 저장소는 $want(.nvmrc, CI 와 같음). 테스트 결과가 CI 와 다를 수 있다"
-
-# Codex 로그인 복원(환경이 CODEX_AUTH_B64 를 줄 때만). 이미 있으면 덮지 않는다 — Codex 가 갱신한 토큰이 더 새것이다
-if [ -n "$CODEX_AUTH_B64" ] && [ ! -s ~/.codex/auth.json ]; then
-  mkdir -p ~/.codex
-  (umask 077; printf %s "$CODEX_AUTH_B64" | base64 -d >~/.codex/auth.json)
-fi
-command -v codex >/dev/null && codex login status 2>&1 | head -1
 
 for k in NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY CLAUDE_API_KEY OPENAI_API_KEY AUTH_TOKEN_SECRET NEXT_PUBLIC_BASE_URL; do
   has "$k" || echo "키 없음: $k"
