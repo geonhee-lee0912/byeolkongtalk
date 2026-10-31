@@ -22,6 +22,12 @@ if [ "$current" != "$BASE" ] && [ ! -f HANDOFF.md ]; then
   echo "HANDOFF.md 없음 — 만들 것(PR 직전이면 무시)"
 fi
 
+# 기본 브랜치에 직접 커밋한 것은 푸시하지 않는다(공통 규칙 "절대 금지"). 작업 브랜치로 옮기게 한다.
+if [ "$current" = "$BASE" ] && git status -sb | head -1 | grep -q 'ahead'; then
+  echo "기본 브랜치 $BASE 에 푸시 안 된 커밋이 있다 — 직접 push 금지. git switch -c claude/<일> 로 옮기고, $BASE 는 운영자 확인 뒤 git reset --keep origin/$BASE"
+  exit 1
+fi
+
 upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)
 if [ -z "$upstream" ]; then
   echo "푸시 안 됨(원격 없음) — git push -u origin $current"

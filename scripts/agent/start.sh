@@ -11,6 +11,7 @@ git fetch --prune -q origin || echo "fetch 실패 — 네트워크를 확인할 
 current=$(git branch --show-current)
 if [ "$current" = "$BASE" ]; then
   git pull -q --ff-only || echo "빨리감기 불가 — 두 자리가 $BASE 를 건드렸다. 운영자에게"
+  git status -sb | head -1 | grep -q 'ahead' && echo "주의: $BASE 에 푸시 안 된 커밋이 있다 — 직접 push 금지. git switch -c claude/<일> 로 옮길 것"
 fi
 
 # 원격 기본 브랜치에 이미 합쳐진 로컬 브랜치만 지운다. dev·main·현재 브랜치는 건드리지 않는다.
