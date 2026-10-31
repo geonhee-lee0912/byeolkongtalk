@@ -1,0 +1,14 @@
+# PR 에 HANDOFF.md 가 남아 있으면 막는다 — 일이 끝난 브랜치는 마지막 커밋에서 HANDOFF.md 를 지운다(AGENTS.md "일의 단위").
+# 진행 중인 브랜치를 미리 보이고 싶으면 draft PR 로 열고, 합칠 때 지운다.
+name: handoff-guard
+
+on:
+  pull_request:
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: HANDOFF.md 가 없어야 한다
+        run: test ! -f HANDOFF.md || { echo "HANDOFF.md 가 남아 있다 — 일이 끝났으면 지우고, 아니면 PR 을 draft 로"; exit 1; }
