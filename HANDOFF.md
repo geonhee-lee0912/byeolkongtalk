@@ -1,5 +1,5 @@
 # HANDOFF — 작업 구조 적용 — 공통 규칙·절차·로드맵
-- 마지막 갱신: 2026-10-31 · 자리: 로컬/Claude
+- 마지막 갱신: 2026-10-31 · 자리: 클라우드/Claude
 
 ## 목표
 `AGENTS.md` 공통 규칙에 일의 단위(브랜치 = 일 = HANDOFF.md)·시작·종료·자리 옮기기를 넣고, `scripts/agent/{start,stop}.sh` 를 만들고, `init.sh` 가 비밀값 없는 클라우드에서도 통과하게 고치고, `ROADMAP.md`·HANDOFF 가드·결정 카드를 더한다. 설계는 회사 저장소(비공개) `docs/2026-10-31-작업-구조-design.md`.
