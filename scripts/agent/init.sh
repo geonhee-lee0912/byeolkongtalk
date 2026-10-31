@@ -5,9 +5,10 @@
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "저장소 안에서 실행할 것"; exit 1; }
 cd "$root" || exit 1
 
-# 키는 환경 변수(클라우드) 또는 .env.local(로컬)에 있다. 파일 값의 따옴표와 CR(Windows 줄 끝)은 벗긴다 — Node 의 --env-file 과 같은 해석
+# 키는 환경 변수(클라우드) 또는 .env.local(로컬)에 있다. 키의 "있음"은 값을 읽지 않고 grep -q 로만 본다(값이 셸 변수·추적에 실리지 않게).
+# 값을 읽는 것은 Supabase 주소 하나뿐(비밀값 아님). 파일 값의 따옴표와 CR(Windows 줄 끝)은 벗긴다 — Node 의 --env-file 과 같은 해석
 from_file() { grep -E "^$1=" .env.local 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\r' | sed -E "s/^'//; s/'$//"; }
-has() { [ -n "${!1}" ] || [ -n "$(from_file "$1")" ]; }
+has() { [ -n "${!1}" ] || grep -qE "^$1=[\"']?[^\"'[:space:]]" .env.local 2>/dev/null; }
 
 # Supabase 주소가 있으면 dev 프로젝트인지 대조하고, 아니면 멈춘다. 공개 저장소라 프로젝트 ref 원문 대신 sha256 으로 대조한다.
 # 주소가 없으면(비밀값 0 인 클라우드 기본 환경) 대조할 것이 없으니 안내만 하고 지나간다.

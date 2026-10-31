@@ -33,10 +33,11 @@ if [ -z "$upstream" ]; then
   echo "푸시 안 됨(원격 없음) — git push -u origin $current"
   exit 1
 fi
-if git status -sb | head -1 | grep -q 'ahead'; then
-  echo "푸시 안 됨 — git push"
-  exit 1
-fi
+first=$(git status -sb | head -1)
+case "$first" in
+  *'[gone]'*) echo "원격 브랜치가 사라졌다 — 로컬 커밋이 어디에도 없다. git push -u origin $current"; exit 1;;
+  *ahead*) echo "푸시 안 됨 — git push"; exit 1;;
+esac
 
 echo "stop 완료 — 이 자리를 떠나도 된다"
 exit 0
