@@ -23,9 +23,10 @@
 - [x] 재배포 뒤 확인: `/api/health`, 앱 애플 주소 503→401, 웹 애플 로그인이 애플 화면으로 이동. dev 는 Vercel 보호막 뒤라 우회 값을 넣어 호출하고, 출력에 값을 남기지 않는다
 
 ### 2. iOS 빌드 [로컬에서] — Task 28 Step 2·6
-- [ ] 카카오 디벨로퍼스 iOS 번들 ID 등록: dev 앱·prod 앱 각각
-- [ ] 카카오 prod 앱 Android: 패키지명 `com.byeolkongtalk.app`. 키 해시는 운영 서명 키가 생기는 출시 단계에서 넣는다(dev 확인에는 영향 없음)
-- [ ] Vercel 우회 값 교체: 새 값 추가 → EAS `VERCEL_BYPASS_SECRET`(development·preview)·`mobile/.env.local` 갱신 → 새 빌드 설치 뒤 옛 값 삭제. 이전 값 일부가 작업 출력에 노출된 적이 있어 교체한다
+- [x] 카카오 디벨로퍼스 iOS 번들 ID 등록: dev 앱·prod 앱 각각(운영자 완료 보고)
+- [ ] 카카오 prod 앱 Android 키 해시: 운영 서명 키가 생기는 출시 단계에서 넣는다(dev 확인에는 영향 없음)
+- [x] Vercel 우회 새 값 추가, `mobile/.env.local` 갱신(새 값으로 dev 200, 값 없으면 보호막 확인). EAS 값은 숨김이라 새 빌드가 dev 에 들어가는지로 확인한다
+- [ ] 새 빌드 설치 뒤 옛 우회 값이 Vercel 에 남아 있으면 삭제
 - [ ] `npx eas-cli@latest device:create` → `npx eas-cli@latest build -p ios --profile preview` → 설치, 아이폰 개발자 모드 켜기
 - [ ] 첫 iOS 빌드는 `plugins/withKakaoOpenUrl.js` 의 Swift 가 처음 컴파일되는 곳이다. 그 줄에서 깨지면 오류를 들고 멈춘다
 - [ ] 빌드 뒤 dev App ID 가 여전히 primary 에 그룹돼 있는지 확인
