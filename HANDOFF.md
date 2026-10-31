@@ -11,19 +11,16 @@
 
 - 앱 코드 Task 1~27 은 dev 에 있다. 안드로이드 preview 빌드가 실기기에 깔려 있다.
 - 안드로이드 확인표: #1·#2(기존 계정)·#2c·#3·#3b·#4·#4b·#4c·#4d·#6·#7·#8·#9·#10·#11·#12·#16·#17·#18·#19·#20·#21 통과. #4e·#8b 는 알려진 한계로 기록.
-- 애플 개발자 등록은 승인됐다. Vercel Preview 에 애플 값 5개가 들어갔다(이름·대상 확인, 값은 안 봄). dev 재배포 뒤 앱 애플 주소 401 까지 확인했다.
-- **막힌 곳:** Vercel Preview 의 `NEXT_PUBLIC_BASE_URL` 값 맨 앞에 탭 문자가 있어 웹 애플 로그인이 애플에서 거절된다(`Invalid web redirect url`). 탭을 뺀 주소는 애플이 받아 준다. 값을 고치고 dev 를 재배포한 뒤 다시 확인한다. 운영 값은 깨끗하다.
+- 애플 개발자 등록은 승인됐다. Vercel Preview 에 애플 값 5개가 들어갔다(이름·대상 확인, 값은 안 봄). dev 재배포 뒤 앱 애플 주소 401, 웹 애플 로그인 화면 진입까지 확인했다(Task 28 Step 1 끝. 실제 로그인·키는 아직 안 돌렸다).
+- Vercel Preview `NEXT_PUBLIC_BASE_URL` 맨 앞의 탭 문자는 지웠다. 이 값 때문에 애플이 웹 로그인을 거절했었다.
 - Vercel 에서 값을 저장한 직후 운영 배포를 다시 돌리는 일이 있었다(코드·운영 값 변화 없음). dev 재배포는 Preview 배포를 골라서 한다.
 - Task 29 는 Step 1~3 끝. Step 4(기록)만 남았다.
 
 ## 다음 할 일
 
 ### 1. 애플 설정 [로컬에서] — 운영자 손, Task 28 Step 1
-- [ ] App ID 2개: `com.byeolkongtalk.app`(primary), `com.byeolkongtalk.app.dev`(primary 에 그룹). 둘 다 Sign In with Apple
-- [ ] Services ID `com.byeolkongtalk.web`: 도메인·Return URL 은 계획 Step 1 그대로
-- [ ] 애플 로그인 키(.p8): 한 번만 받을 수 있다. 저장소 밖에 보관. Key ID·Team ID 메모
-- [ ] Vercel Preview 에만: `APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`·`APPLE_SERVICES_ID`·`APPLE_BUNDLE_ID` → dev 재배포
-- [ ] 재배포 뒤 확인: `/api/health`, 앱 애플 주소 503→401, 웹 애플 로그인이 애플 화면으로 이동(Task 27 Step 6). dev 는 Vercel 보호막 뒤라 우회 값을 넣어 호출하고, 출력에 값을 남기지 않는다
+- [x] App ID 2개, Services ID, 애플 로그인 키, Vercel Preview 값 5개, dev 재배포
+- [x] 재배포 뒤 확인: `/api/health`, 앱 애플 주소 503→401, 웹 애플 로그인이 애플 화면으로 이동. dev 는 Vercel 보호막 뒤라 우회 값을 넣어 호출하고, 출력에 값을 남기지 않는다
 
 ### 2. iOS 빌드 [로컬에서] — Task 28 Step 2·6
 - [ ] 카카오 디벨로퍼스 iOS 번들 ID 등록: dev 앱·prod 앱 각각
