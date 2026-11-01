@@ -27,10 +27,10 @@
 - [ ] 카카오 prod 앱 Android 키 해시: 운영 서명 키가 생기는 출시 단계에서 넣는다(dev 확인에는 영향 없음)
 - [x] Vercel 우회 새 값 추가, `mobile/.env.local` 갱신(새 값으로 dev 200, 값 없으면 보호막 확인). EAS 값은 숨김이라 새 빌드가 dev 에 들어가는지로 확인한다
 - [ ] 새 빌드 설치 뒤 옛 우회 값이 Vercel 에 남아 있으면 삭제
-- [ ] `npx eas-cli@latest device:create` → `npx eas-cli@latest build -p ios --profile preview` → 설치, 아이폰 개발자 모드 켜기
-- [ ] 첫 iOS 빌드는 `plugins/withKakaoOpenUrl.js` 의 Swift 가 처음 컴파일되는 곳이다. 그 줄에서 깨지면 오류를 들고 멈춘다
+- [x] 아이폰 등록, iOS preview 빌드 완료(`plugins/withKakaoOpenUrl.js` 포함 컴파일 통과), 운영자 설치 완료 보고
+- [x] 안드로이드 preview 새 빌드 완료, 운영자 설치 완료 보고
+- [ ] 두 앱이 dev 에 들어가는지 확인(EAS 우회 값 확인을 겸한다)
 - [ ] 빌드 뒤 dev App ID 가 여전히 primary 에 그룹돼 있는지 확인
-- [ ] 안드로이드도 새 빌드(우회 값이 바뀌므로)
 
 ### 3. 아이폰 확인표 [로컬에서] — Task 28 Step 7
 - [ ] #1 · #2 · #2b · #2c · #3 · #3b · #4 · #4b · #4c · #4d · #4e(기록) · #5 · #5b · #7 · #8 · #8b(기록) · #8c · #9 · #10 · #12 · #13 · #14 · #14b · #15 · #16 · #17 · #20 · #21 · #3c(선택)
