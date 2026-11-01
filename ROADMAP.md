@@ -23,6 +23,7 @@
 - Preview 를 대상으로 한 AI QA (클라우드에서 페르소나 회귀가 반복해서 필요해질 때)
 
 ## 끝남 (최근 5)
+- 아이폰 입력칸 자동 확대 수정 — 브랜치 `claude/ios-input-zoom` (2026-11-01)
 - 운영 배포 점검이 없는 ref 를 통과시키던 것 수정 — 브랜치 `claude/deploy-check-missing-ref` (2026-10-31)
 - 작업 구조 적용 — 공통 규칙·절차·로드맵 — 브랜치 `claude/work-structure` (2026-10-31)
 - 두 플랫폼 공통 기본 조건 — 브랜치 `claude/eager-noether-rs2r1t` (2026-10-31)
