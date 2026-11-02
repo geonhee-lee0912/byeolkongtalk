@@ -2,6 +2,7 @@
 // (첫 화면이 스플래시에 갇히지 않게 — 실패면 session.ts 가 웹뷰 쿠키에 맡기고 연다). 스펙 2026-10-12-앱-1 §7-3·§7-4.
 import { Platform } from "react-native";
 import { config } from "../config";
+import { loginFailureLog, type LoginProvider } from "./loginFailure.ts";
 import type { AuthApi, Tokens } from "./session.ts";
 
 const TIMEOUT_MS = 10_000;
@@ -48,6 +49,11 @@ function tokensFrom(d: Record<string, unknown>): Tokens {
   }
   // 만료는 기기 시계로 다시 잰다 — 서버의 절대 시각을 기기 시계와 비교하면, 기기 시계가 틀릴 때 매번 갱신하거나 만료된 토큰을 보낸다
   return { accessToken: d.accessToken, refreshToken: d.refreshToken, accessExpiresAt: Date.now() + d.accessExpiresIn * 1000 };
+}
+
+/** 로그인 실패 사유를 서버 로그로 — 기록 실패는 사용자와 무관하니 삼킨다 */
+export function reportLoginFailure(provider: LoginProvider, e: unknown): void {
+  post("/api/log/error", loginFailureLog(provider, Platform.OS, e)).catch(() => {});
 }
 
 export const authApi: AuthApi = {
