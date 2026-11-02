@@ -14,7 +14,7 @@ import { pathFromDeepLink } from "./deeplink.ts";
 import { handoffSource, isOurUrl, pathOf, resetUrl, splitUrl, withVercelBypass, type HandoffMode, type WebSource } from "./urls.ts";
 import { createAuthSession } from "./auth/session.ts";
 import { secureTokenStore } from "./auth/tokenStore";
-import { authApi, isAuthError } from "./auth/api";
+import { authApi, isAuthError, reportLoginFailure } from "./auth/api";
 import { appleNativeLogin, kakaoNativeLogin, LoginCancelled } from "./auth/nativeLogin";
 import OfflineView from "./OfflineView";
 
@@ -165,7 +165,10 @@ export default function WebScreen() {
       } catch (e) {
         if (turn !== loginTurn.current) return;
         endCover();
-        if (!(e instanceof LoginCancelled)) Alert.alert("로그인이 안 됐어", "잠시 후 다시 시도해줘");
+        if (!(e instanceof LoginCancelled)) {
+          reportLoginFailure(provider, e);
+          Alert.alert("로그인이 안 됐어", "잠시 후 다시 시도해줘");
+        }
       }
     },
     [endCover],
