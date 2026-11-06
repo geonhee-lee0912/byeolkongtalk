@@ -34,10 +34,15 @@ export async function activeDeviceTokens(userId: string, db: Db = getServiceSupa
   return (data ?? []).map((r: { token: string }) => r.token);
 }
 
+/** 필터가 주소(쿼리 문자열)에 실리니 토큰 수백 개를 한 번에 넣으면 주소 길이 한도를 넘는다 — 100개씩 나눈다 */
+const DISABLE_CHUNK = 100;
+
 export async function disableTokens(tokens: string[], db: Db = getServiceSupabase()): Promise<void> {
-  if (tokens.length === 0) return;
-  const { error } = await db.from("push_devices").update({ disabled_at: new Date().toISOString() }).in("token", tokens);
-  check(error, "disableTokens");
+  const at = new Date().toISOString();
+  for (let i = 0; i < tokens.length; i += DISABLE_CHUNK) {
+    const { error } = await db.from("push_devices").update({ disabled_at: at }).in("token", tokens.slice(i, i + DISABLE_CHUNK));
+    check(error, "disableTokens");
+  }
 }
 
 export async function getRevisitPref(userId: string, db: Db = getServiceSupabase()): Promise<boolean> {
@@ -174,6 +179,18 @@ export const supabaseDispatchStore: DispatchStore = {
       check(error, "claimSend");
     }
     return data ? (data.id as number) : null;
+  },
+  async deliveredSend(r) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_sends")
+      .select("device_count")
+      .eq("user_id", r.userId)
+      .eq("kind", r.kind)
+      .eq("ref_id", r.refId)
+      .eq("send_date", r.sendDate)
+      .maybeSingle();
+    check(error, "deliveredSend");
+    return !!data && (data.device_count as number) > 0;
   },
   async releaseSend(sendId) {
     const { error } = await getServiceSupabase().from("push_sends").delete().eq("id", sendId);

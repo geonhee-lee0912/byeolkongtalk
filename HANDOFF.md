@@ -9,7 +9,7 @@
 
 ## 지금 상태
 
-- 코드는 브랜치 `claude/app-push` 에서 다 만들었고 dev 로 PR 을 열었다(리뷰·운영자 머지 대기). 이 브랜치는 그 브랜치 끝에서 땄다 — 코드 PR 이 머지되면 `origin/dev` 를 이 브랜치에 merge 한다.
+- 코드는 PR #18 로 dev 에 머지됨(2026-11-07). 이 브랜치에 `origin/dev` 를 merge 해 맞췄다.
 - 알림 표 5개는 dev DB 에 적용됨(PR #17). anon 키로 다섯 표 읽기·쓰기 모두 401 확인(2026-11-07).
 - 운영자 결정(11-06, 설계 §10): 위기 안내가 나간 상담은 시트를 자동으로 열지 않고 카드만 · 안드로이드 채널 중요도 보통(배너 없음).
 - dev 에서는 Vercel cron 이 돌지 않는다 — 발송은 `/api/cron/push-dispatch` 를 `CRON_SECRET` Bearer 로 손으로 부른다.
@@ -17,7 +17,7 @@
 ## 다음 할 일
 
 1. [로컬에서] 운영자 손(실행 중 안내): Firebase 프로젝트에 dev 안드로이드 앱(`com.byeolkongtalk.app.dev`) 등록 → `google-services.json` 을 EAS 파일 환경 변수 `GOOGLE_SERVICES_JSON` 으로 · FCM v1 서비스 계정 키와 애플 푸시 키(APNs)는 `eas credentials` · Vercel Preview 의 `CRON_SECRET`(필요하면 `EXPO_ACCESS_TOKEN`) 확인. 값은 채팅에 쓰지 않는다.
-2. [로컬에서] 코드 PR 머지 뒤 `origin/dev` 를 이 브랜치에 merge, EAS 개발용 빌드 2개(iOS·안드로이드) 설치.
+2. [로컬에서] EAS 개발용 빌드 2개(iOS·안드로이드) 설치(운영자 손 — 1번이 끝난 뒤).
 3. [로컬에서] 계획 Task 11 확인표 P1~P10 + 더할 행: 리프레시 토큰이 무효가 된 뒤 앱을 다시 켜면 기기 행이 지워지는지 · 로그인 덮개 중에 알림을 누르면 로그인 흐름이 끊기지 않는지 · 앱이 꺼진 상태에서 알림을 누르면 그 리딩이 열리는지 · 위기 안내가 나간 상담은 카드만 뜨는지 · 사주 결과 화면.
 4. [어디서든] 결과를 계획 문서 표에 적고 이 파일을 지운 뒤 PR(ROADMAP 1번을 끝남으로).
 
