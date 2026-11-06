@@ -286,8 +286,11 @@ export default function WebScreen() {
       const msg = parseWebToApp(e.nativeEvent.data);
       switch (msg?.type) {
         case "auth.loggedOut":
-          // 알림 토큰을 먼저 지운다(로그인 없이 받는 라우트 — 실패해도 로그아웃은 간다)
-          void unregisterPush().then(() => auth.logout());
+          // 둘을 따로 바로 시작한다 — 로그아웃은 알림 해제(최대 10초)를 기다리지 않는다. 기다리는 동안 앱이 꺼지면 앱 토큰이 남아
+          // 다음 실행 때 조용히 다시 로그인된다. 알림 해제는 앱 토큰을 쓰지 않고(로그인 없이 받는 라우트) 그 실패는 로그아웃과 무관하다.
+          // auth.logout 은 리프레시 토큰 키만 지운다(auth/tokenStore.ts) — push_token 은 그대로라 순서가 필요 없다
+          void unregisterPush();
+          void auth.logout();
           break;
         case "push.status":
           void getPushState().then(replyPushState);
