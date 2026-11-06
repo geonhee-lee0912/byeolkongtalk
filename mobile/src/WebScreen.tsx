@@ -125,6 +125,9 @@ export default function WebScreen() {
     // 실행 주소를 못 읽어도 부팅은 끝까지 간다 — 여기서 멈추면 source 가 안 생겨 스플래시가 닫히지 않는다
     const next = fromNotification ?? openablePath(await Linking.getInitialURL().catch(() => null)) ?? "/";
     const target = await auth.startTarget();
+    // reset = 이 기기 로그인이 끝났다(웹 로그아웃 없이 갱신 401·재사용·만료로 끝난 것 포함) — 이 기기 알림 묶음도 푼다.
+    // 앞서 로그아웃 때 해제가 실패했어도 여기서 다시 한다. 기억한 토큰이 없으면 아무것도 안 하고 던지지 않는다. 기다리지 않는다
+    if (target.kind === "reset") void unregisterPush();
     setSource(
       target.kind === "handoff"
         ? handoff(target.code, next, "launch")
