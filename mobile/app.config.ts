@@ -22,6 +22,12 @@ const GOOGLE_SERVICES_FILE =
 if (process.env.EAS_BUILD === "true" && !KAKAO_NATIVE_APP_KEY) {
   throw new Error("KAKAO_NATIVE_APP_KEY 가 비었다 — 이 빌드 프로필의 EAS 환경(eas.json environment)에 넣는다");
 }
+// 운영 안드로이드 EAS 빌드에서 FCM 파일이 없으면 빌드를 멈춘다 — 없어도 빌드는 성공하고 운영 앱의 알림만 조용히 죽는다.
+// 개발용 빌드·로컬은 없어도 된다(위 GOOGLE_SERVICES_FILE). iOS 빌드는 이 파일을 쓰지 않는다 — EAS_BUILD_PLATFORM 은 EAS 가 넣는 android | ios
+// (docs.expo.dev/eas/environment-variables/usage). 값이 없으면 안드로이드일 수 있다고 보고 멈춘다
+if (process.env.EAS_BUILD === "true" && IS_PROD && process.env.EAS_BUILD_PLATFORM !== "ios" && !GOOGLE_SERVICES_FILE) {
+  throw new Error("google-services.json 이 없다 — 운영 빌드 프로필의 EAS 환경에 파일 변수 GOOGLE_SERVICES_JSON 을 넣는다");
+}
 
 const config: ExpoConfig = {
   name: IS_PROD ? "별콩톡" : "별콩톡 dev",
