@@ -27,6 +27,8 @@ function setup(o: {
   const checked: number[][] = [];
   const logs: { err: unknown; extra?: Record<string, unknown> }[] = [];
   const log = (err: unknown, ctx?: { extra?: Record<string, unknown> }) => { logs.push({ err, extra: ctx?.extra }); };
+  const warns: { message: string; extra?: Record<string, unknown> }[] = [];
+  const warn = (message: string, ctx?: { extra?: Record<string, unknown> }) => { warns.push({ message, extra: ctx?.extra }); };
   let released = 0;
   let nextId = 1;
   const store: DispatchStore = {
@@ -54,7 +56,7 @@ function setup(o: {
     },
     receipts: async () => o.receipts ?? {},
   };
-  return { store, expo, log, logs, sent, marks, disabled, saved, checked, get released() { return released; } };
+  return { store, expo, log, logs, warn, warns, sent, marks, disabled, saved, checked, get released() { return released; } };
 }
 
 test("cron 이 두 번 돌아도 한 번만 보낸다", async () => {
@@ -155,4 +157,71 @@ test("지원하지 않는 상담 종류는 skipped", async () => {
   await dispatchRevisits(OPEN, s.store, s.expo, s.log);
   assert.equal(s.sent.length, 0);
   assert.deepEqual(s.marks, [["s1", "skipped"]]);
+});
+
+test("DeviceNotRegistered 가 아닌 티켓 오류는 코드별로 경고하고, ok 가 하나도 없으면 보낸 걸로 세지 않는다", async () => {
+  const s = setup({
+    devices: { u1: ["tokA", "tokB"] },
+    tickets: () => [
+      { status: "error", message: "bad creds", details: { error: "InvalidCredentials" } },
+      { status: "error", message: "bad creds", details: { error: "InvalidCredentials" } },
+    ],
+  });
+  const r = await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.equal(r.sent, 0);
+  assert.equal(r.failed, 1);
+  assert.deepEqual(s.marks, []); // pending 그대로 — 다음 실행이 다시 잡는다
+  assert.equal(s.released, 1); // 통째 실패와 같게 선점을 푼다
+  assert.deepEqual(s.saved, []);
+  assert.deepEqual(s.disabled, []);
+  assert.equal(s.warns.length, 1);
+  assert.match(s.warns[0].message, /InvalidCredentials/);
+  assert.equal(s.warns[0].extra?.code, "InvalidCredentials");
+  assert.equal(s.warns[0].extra?.tickets, 2);
+});
+
+test("ok 가 하나라도 있으면 보낸 것 — 섞인 오류는 경고만", async () => {
+  const s = setup({
+    devices: { u1: ["tokA", "tokB"] },
+    tickets: () => [{ status: "ok", id: "x1" }, { status: "error", message: "too big", details: { error: "MessageTooBig" } }],
+  });
+  const r = await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.equal(r.sent, 1);
+  assert.deepEqual(s.marks, [["s1", "sent"]]);
+  assert.deepEqual(s.saved[0].tickets, [{ id: "x1", token: "tokA" }]);
+  assert.equal(s.warns.length, 1);
+  assert.equal(s.warns[0].extra?.code, "MessageTooBig");
+});
+
+test("영수증 오류(DeviceNotRegistered 말고)는 코드별로 한 번 경고한다", async () => {
+  const s = setup({
+    due: [],
+    unchecked: [{ sendId: 9, tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }, { id: "c", token: "t3" }] }],
+    receipts: {
+      a: { status: "error", details: { error: "MessageRateExceeded" } },
+      b: { status: "error", details: { error: "MessageRateExceeded" } },
+      c: { status: "error", details: { error: "DeviceNotRegistered" } },
+    },
+  });
+  const r = await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.deepEqual(s.disabled, [["t3"]]);
+  assert.equal(r.disabled, 1);
+  assert.equal(s.warns.length, 1);
+  assert.match(s.warns[0].message, /MessageRateExceeded/);
+  assert.equal(s.warns[0].extra?.code, "MessageRateExceeded");
+  assert.equal(s.warns[0].extra?.receipts, 2);
+});
+
+test("ok 없이 전부 DeviceNotRegistered 면 토큰을 끄고 선점을 풀며 보낸 걸로 세지 않는다", async () => {
+  const s = setup({
+    tickets: () => [{ status: "error", message: "gone", details: { error: "DeviceNotRegistered" } }],
+  });
+  const r = await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.deepEqual(s.disabled, [["tokA"]]);
+  assert.equal(r.disabled, 1);
+  assert.equal(r.sent, 0);
+  assert.equal(r.failed, 1);
+  assert.equal(s.released, 1);
+  assert.deepEqual(s.marks, []);
+  assert.deepEqual(s.warns, []); // 끊긴 기기는 정상 신호 — 경고하지 않는다
 });

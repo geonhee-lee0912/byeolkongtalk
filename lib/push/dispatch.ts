@@ -1,7 +1,7 @@
 // 다시 볼 날 발송 본체 — 순수 규칙(schedule.ts)으로 예약마다 판정하고 Expo 로 보낸다.
 // 저장소·Expo 는 인자로 받는다(시험은 메모리 가짜). 한 예약의 실패가 다른 예약을 막지 않는다.
 import { kstDate } from "../admin-time.ts";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 import type { ExpoMessage, ExpoTicket, ExpoReceipt } from "./expo.ts";
 import { decideRevisit, revisitWindow } from "./schedule.ts";
 import { readingPath, revisitMessage } from "./templates.ts";
@@ -34,16 +34,30 @@ export type DispatchResult = { sent: number; skipped: number; disabled: number; 
 const RECEIPT_DELAY_MS = 15 * 60 * 1000;
 
 export type LogFn = (err: unknown, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
+export type WarnFn = (message: string, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
 
-/** log 는 시험에서 기록기를 꽂는 자리 — 기본은 실제 로거. */
+const ROUTE = "cron/push-dispatch";
+const DNR = "DeviceNotRegistered";
+
+/** log·warn 은 시험에서 기록기를 꽂는 자리 — 기본은 실제 로거. */
 export async function dispatchRevisits(
   now: Date,
   store: DispatchStore,
   expo: ExpoApi,
   log: LogFn = logError,
+  opts: { warn?: WarnFn } = {},
 ): Promise<DispatchResult> {
+  const warn = opts.warn ?? logWarn;
   const result: DispatchResult = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
   const today = kstDate(now.toISOString());
+  // DeviceNotRegistered 말고 Expo 가 돌려준 오류 — 코드별로 모아 실행 끝에 코드당 한 번 경고한다(조용히 '보냄'으로 세지 않게)
+  const expoErrors = new Map<string, { tickets: number; receipts: number }>();
+  const countError = (code: string | undefined, where: "tickets" | "receipts") => {
+    const k = code || "unknown";
+    const c = expoErrors.get(k) ?? { tickets: 0, receipts: 0 };
+    c[where]++;
+    expoErrors.set(k, c);
+  };
 
   for (const r of await store.dueRevisits(today)) {
     try {
@@ -80,18 +94,25 @@ export async function dispatchRevisits(
       const dead: string[] = [];
       tickets.forEach((t, i) => {
         if (t.status === "ok") ok.push({ id: t.id, token: tokens[i] });
-        else if (t.details?.error === "DeviceNotRegistered") dead.push(tokens[i]);
+        else if (t.details?.error === DNR) dead.push(tokens[i]);
+        else countError(t.details?.error, "tickets");
       });
-      await store.saveTickets(sendId, ok);
       if (dead.length) {
         await store.disableTokens(dead);
         result.disabled += dead.length;
       }
+      if (ok.length === 0) {
+        // 한 기기에도 안 나갔다 — 통째 실패와 같게 선점을 풀고 pending 으로 둔다(다음 실행이 다시 잡거나, 기기가 없으면 skipped)
+        await store.releaseSend(sendId);
+        result.failed++;
+        continue;
+      }
+      await store.saveTickets(sendId, ok);
       await store.markSchedule(r.id, "sent");
       result.sent++;
     } catch (e) {
       result.failed++;
-      await log(e, { route: "cron/push-dispatch", extra: { scheduleId: r.id } });
+      await log(e, { route: ROUTE, extra: { scheduleId: r.id } });
     }
   }
 
@@ -104,7 +125,9 @@ export async function dispatchRevisits(
       for (const p of pending) {
         for (const t of p.tickets) {
           const rc = byId[t.id];
-          if (rc?.status === "error" && rc.details?.error === "DeviceNotRegistered") dead.add(t.token);
+          if (rc?.status !== "error") continue;
+          if (rc.details?.error === DNR) dead.add(t.token);
+          else countError(rc.details?.error, "receipts");
         }
       }
       if (dead.size) {
@@ -114,7 +137,11 @@ export async function dispatchRevisits(
       await store.markReceiptsChecked(pending.map((p) => p.sendId));
     }
   } catch (e) {
-    await log(e, { route: "cron/push-dispatch", extra: { phase: "receipts" } });
+    await log(e, { route: ROUTE, extra: { phase: "receipts" } });
+  }
+
+  for (const [code, c] of expoErrors) {
+    await warn(`expo push error ${code}`, { route: ROUTE, extra: { code, tickets: c.tickets, receipts: c.receipts } });
   }
   return result;
 }
