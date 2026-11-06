@@ -123,3 +123,13 @@ export async function upsertRevisit(
   check(insErr, "upsertRevisit(insert)");
   return "ok";
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** 리딩 주인. UUID 모양이 아니거나 없으면 null(호출자는 둘을 같게 다뤄 존재 여부를 흘리지 않는다). */
+export async function readingOwner(readingId: string, db: Db = getServiceSupabase()): Promise<string | null> {
+  if (!UUID_RE.test(readingId)) return null;
+  const { data, error } = await db.from("readings").select("user_id").eq("id", readingId).maybeSingle();
+  check(error, "readingOwner");
+  return data ? ((data.user_id as string | null) ?? null) : null;
+}
