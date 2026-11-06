@@ -341,7 +341,7 @@ function TarotResultInner() {
       />
 
       {/* 다시 볼 날 — 소유자·앱에서만(공유 위) */}
-      {isOwner && <RevisitSheet readingId={reading.id} />}
+      {isOwner && <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />}
 
       {/* ④ 공유 — 크로스셀 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">

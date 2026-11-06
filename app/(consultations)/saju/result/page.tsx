@@ -234,7 +234,7 @@ function ResultPageInner() {
       />
 
       {/* 다시 볼 날 — 앱에서만(공유 위). 이 화면은 소유자만 불러온다 */}
-      <RevisitSheet readingId={reading.id} />
+      <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />
 
       {/* ② 공유 — 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">

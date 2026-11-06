@@ -37,7 +37,9 @@ function monthDay(sendOn: string): string {
   return `${Number(m)}월 ${Number(d)}일`;
 }
 
-export default function RevisitSheet({ readingId }: { readingId: string }) {
+/** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 카드로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
+ *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다 */
+export default function RevisitSheet({ readingId, autoOpen = true }: { readingId: string; autoOpen?: boolean }) {
   const { ready } = useAppInfo();
   const [mode, setMode] = useState<Mode>("loading");
   const [firstSheet, setFirstSheet] = useState(false); // 이번 방문에 자동 시트로 열렸는지 — ask 기록은 이때만
@@ -90,7 +92,7 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
           setMode("card");
           return;
         }
-        const first = !asksBody.moments.includes(FIRST_MOMENT);
+        const first = autoOpen && !asksBody.moments.includes(FIRST_MOMENT);
         setFirstSheet(first);
         setMode(first ? "sheet" : "card");
       } catch {
@@ -100,7 +102,7 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [ready, readingId]);
+  }, [ready, readingId, autoOpen]);
 
   /** 권한 확인(필요하면 OS 창) → 예약. 카드는 칩을 누르는 즉시, 시트는 [알림 받을래] 로 부른다 */
   async function commit(choice: RevisitChoice) {
