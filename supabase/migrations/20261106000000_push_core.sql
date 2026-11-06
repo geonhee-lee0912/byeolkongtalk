@@ -4,7 +4,8 @@
 -- 같은 마이그레이션에서 RLS 를 켜고 service_role GRANT 를 직접 쓴다
 -- (AGENTS.md 코딩 규칙 'DB 권한 기본값', 2026-10-30 이후 자동 권한 중단 대비).
 --
--- 롤백: 표 5개 drop (아직 읽는 코드가 없는 단계라 데이터 손실 없음).
+-- 롤백: 표 5개 drop. 데이터 손실이 없는 건 이 표를 쓰는 코드(브랜치 claude/app-push)가 올라가기 전까지뿐이다 —
+-- 그 뒤엔 기기 등록·예약·발송 기록(중복 발송 방어 포함)이 사라진다.
 
 create table public.push_devices (
   token text primary key,                       -- Expo 푸시 토큰
@@ -15,7 +16,8 @@ create table public.push_devices (
   last_seen_at timestamptz not null default now(),
   disabled_at timestamptz                         -- Expo 가 '등록 안 된 기기'라고 하면 채운다
 );
-create index push_devices_user_idx on public.push_devices(user_id) where disabled_at is null;
+-- 부분 인덱스(where disabled_at is null)로 두지 않는다 — 회원 탈퇴 CASCADE(delete ... where user_id = $1)가 못 쓴다
+create index push_devices_user_idx on public.push_devices(user_id);
 
 create table public.push_preferences (
   user_id uuid primary key references public.users(id) on delete cascade,
@@ -43,6 +45,7 @@ create table public.push_schedules (
   unique (reading_id, kind)
 );
 create index push_schedules_due_idx on public.push_schedules(send_on) where status = 'pending';
+create index push_schedules_user_idx on public.push_schedules(user_id);  -- 회원 탈퇴 CASCADE
 
 create table public.push_sends (
   id bigserial primary key,
@@ -58,6 +61,8 @@ create table public.push_sends (
   opened_at timestamptz,
   unique (user_id, kind, ref_id, send_date)
 );
+-- cron 이 15분마다 영수증을 아직 확인 안 한 발송만 읽는다(order by id limit 500)
+create index push_sends_receipt_pending_idx on public.push_sends(id) where receipt_checked_at is null;
 
 alter table public.push_devices enable row level security;
 alter table public.push_preferences enable row level security;
