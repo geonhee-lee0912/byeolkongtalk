@@ -13,7 +13,7 @@ function fakeStore(initial?: string) {
 test("세 번까지 보이고 네 번째부터 안 보인다", () => {
   const s = fakeStore();
   assert.deepEqual(
-    [1, 2, 3, 4, 5].map(() => takeBannerView(s, "k", "a", 3)),
+    [1, 2, 3, 4, 5].map(() => takeBannerView(() => s, "k", "a", 3)),
     [true, true, true, false, false]
   );
 });
@@ -21,21 +21,21 @@ test("세 번까지 보이고 네 번째부터 안 보인다", () => {
 test("한 번 제한은 처음만 보인다", () => {
   const s = fakeStore();
   assert.deepEqual(
-    [1, 2].map(() => takeBannerView(s, "k", "a", 1)),
+    [1, 2].map(() => takeBannerView(() => s, "k", "a", 1)),
     [true, false]
   );
 });
 
 test("대상이 바뀌면 처음부터 다시 센다", () => {
   const s = fakeStore();
-  takeBannerView(s, "k", "a", 1);
-  assert.equal(takeBannerView(s, "k", "b", 1), true);
-  assert.equal(takeBannerView(s, "k", "b", 1), false);
+  takeBannerView(() => s, "k", "a", 1);
+  assert.equal(takeBannerView(() => s, "k", "b", 1), true);
+  assert.equal(takeBannerView(() => s, "k", "b", 1), false);
 });
 
 test("저장값이 깨졌으면 처음으로 본다", () => {
-  assert.equal(takeBannerView(fakeStore("{깨짐"), "k", "a", 1), true);
-  assert.equal(takeBannerView(fakeStore('{"target":"a","count":"많이"}'), "k", "a", 1), true);
+  assert.equal(takeBannerView(() => fakeStore("{깨짐"), "k", "a", 1), true);
+  assert.equal(takeBannerView(() => fakeStore('{"target":"a","count":"많이"}'), "k", "a", 1), true);
 });
 
 test("저장소가 던지면 보이는 쪽으로 둔다", () => {
@@ -47,5 +47,12 @@ test("저장소가 던지면 보이는 쪽으로 둔다", () => {
       throw new Error("blocked");
     },
   };
-  assert.equal(takeBannerView(throwing, "k", "a", 1), true);
+  assert.equal(takeBannerView(() => throwing, "k", "a", 1), true);
+});
+
+test("저장소를 꺼내는 순간 던져도 보이는 쪽으로 둔다(저장소가 막힌 브라우저의 localStorage)", () => {
+  const blocked = () => {
+    throw new Error("SecurityError");
+  };
+  assert.equal(takeBannerView(blocked, "k", "a", 1), true);
 });

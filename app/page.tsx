@@ -55,7 +55,7 @@ export default function Home() {
       if (!saved) return;
       // 한 번 방문에 한 번만 센다(개발 모드는 이 효과가 두 번 돈다)
       pendingDrawView.current ??= takeBannerView(
-        localStorage,
+        () => localStorage,
         PENDING_DRAW_BANNER_KEY,
         String(saved.savedAt),
         PENDING_DRAW_BANNER_MAX_VIEWS
@@ -93,7 +93,7 @@ export default function Home() {
         if (resumable && resumeView.current?.id !== resumable.id) {
           resumeView.current = {
             id: resumable.id,
-            show: takeBannerView(localStorage, RESUME_BANNER_KEY, resumable.id, RESUME_BANNER_MAX_VIEWS),
+            show: takeBannerView(() => localStorage, RESUME_BANNER_KEY, resumable.id, RESUME_BANNER_MAX_VIEWS),
           };
         }
         setHasResumable(!!resumable && resumeView.current?.show === true);
