@@ -11,6 +11,7 @@ import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { EMOTION_TO_CATEGORY } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
@@ -63,6 +64,7 @@ function TarotResultInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
@@ -82,7 +84,7 @@ function TarotResultInner() {
     void (async () => {
       try {
         let r = await fetch(`/api/readings/${id}`, { cache: "no-store" });
-        const isOwner = r.ok; // 첫 조회 성공 = 소유자 (공개 폴백 아님)
+        const owner = r.ok; // 첫 조회 성공 = 소유자 (공개 폴백 아님)
         // 비로그인 또는 비소유자(공유 링크) — 공개 조회로 폴백
         if (r.status === 401 || r.status === 403) {
           r = await fetch(`/api/readings/${id}/public`, { cache: "no-store" });
@@ -95,7 +97,8 @@ function TarotResultInner() {
         const d = await r.json();
         setData(d as FetchData);
         // 소유자가 결과 화면을 연 경우만 열람 마킹 (완료 퍼널 계량용, fire-and-forget)
-        if (isOwner) {
+        if (owner) {
+          setIsOwner(true);
           void fetch(`/api/readings/${id}`, { method: "POST" }).catch(() => {});
         }
       } catch {
@@ -336,6 +339,9 @@ function TarotResultInner() {
         variant="counsel"
         topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
       />
+
+      {/* 다시 볼 날 — 소유자·앱에서만(공유 위) */}
+      {isOwner && <RevisitSheet readingId={reading.id} />}
 
       {/* ④ 공유 — 크로스셀 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">

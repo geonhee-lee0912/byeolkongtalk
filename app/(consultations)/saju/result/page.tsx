@@ -10,6 +10,7 @@ import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import RechargeBlock from "@/components/upsell/RechargeBlock";
+import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -231,6 +232,9 @@ function ResultPageInner() {
         newCostLabel={`⭐${SAJU_READING_COST}`}
         readingId={reading.id}
       />
+
+      {/* 다시 볼 날 — 앱에서만(공유 위). 이 화면은 소유자만 불러온다 */}
+      <RevisitSheet readingId={reading.id} />
 
       {/* ② 공유 — 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
