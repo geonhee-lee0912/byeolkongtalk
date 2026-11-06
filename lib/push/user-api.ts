@@ -30,6 +30,23 @@ export async function handleRevisitPost(
   return { status: 200, body: { sendOn } };
 }
 
+/** 결과 화면 카드용 — 이 리딩의 예약과 다시 볼 날 설정. 설정이 꺼져 있으면 카드가 칩 대신 설정 안내를 보인다 */
+export async function handleRevisitGet(
+  readingId: string,
+  userId: string | null,
+  deps: {
+    readingOwner(readingId: string): Promise<string | null>;
+    getRevisit(userId: string, readingId: string): Promise<{ sendOn: string; status: string } | null>;
+    getRevisitPref(userId: string): Promise<boolean>;
+  },
+): Promise<HandlerResult> {
+  if (!userId) return UNAUTH;
+  // 없는 리딩과 남의 리딩을 같게 답한다(403) — 존재 여부를 흘리지 않는다.
+  if ((await deps.readingOwner(readingId)) !== userId) return { status: 403, body: { error: "forbidden" } };
+  const [revisit, revisitPref] = await Promise.all([deps.getRevisit(userId, readingId), deps.getRevisitPref(userId)]);
+  return { status: 200, body: { revisit, revisitPref } };
+}
+
 const ANSWERS = ["accepted", "later", "os_denied"] as const;
 
 export async function handleAskPost(

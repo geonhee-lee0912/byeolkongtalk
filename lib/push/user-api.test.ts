@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handleRevisitPost, handleAskPost, handleSettingsPost } from "./user-api.ts";
+import { handleRevisitPost, handleRevisitGet, handleAskPost, handleSettingsPost } from "./user-api.ts";
 import { readingOwner } from "./store.ts";
 
 test("남의 리딩 403, 없는 리딩 403, 이상한 choice 400", async () => {
@@ -47,4 +47,21 @@ test("settings 는 boolean 만 받는다", async () => {
 test("readingOwner 는 UUID 모양이 아니면 DB 를 부르지 않고 null", async () => {
   const db = { from() { throw new Error("db touched"); } } as never;
   assert.equal(await readingOwner("ghost", db), null);
+});
+
+test("GET 다시 볼 날은 예약과 함께 설정(revisitPref)을 돌려주고, 남의·없는 리딩은 403", async () => {
+  const deps = {
+    readingOwner: async (id: string) => (id === "mine" ? "u1" : id === "theirs" ? "u2" : null),
+    getRevisit: async () => ({ sendOn: "2026-11-13", status: "pending" }),
+    getRevisitPref: async () => false,
+  };
+  assert.deepEqual(await handleRevisitGet("mine", "u1", deps), {
+    status: 200,
+    body: { revisit: { sendOn: "2026-11-13", status: "pending" }, revisitPref: false },
+  });
+  const none = await handleRevisitGet("mine", "u1", { ...deps, getRevisit: async () => null, getRevisitPref: async () => true });
+  assert.deepEqual(none.body, { revisit: null, revisitPref: true });
+  assert.equal((await handleRevisitGet("theirs", "u1", deps)).status, 403);
+  assert.equal((await handleRevisitGet("ghost", "u1", deps)).status, 403);
+  assert.equal((await handleRevisitGet("mine", null, deps)).status, 401);
 });

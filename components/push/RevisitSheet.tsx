@@ -4,6 +4,7 @@
 // 앱(push 지원) 안에서만 그린다. 소유자 확인은 부르는 쪽 책임. 시안: docs/superpowers/specs/assets/2026-11-06-앱-알림-시안.html ①~④
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { askAppPush, appSupportsPush } from "@/lib/app-push";
 import { postToApp } from "@/lib/app-context";
 import { useAppInfo } from "@/lib/use-app-info";
@@ -16,6 +17,8 @@ const CHIPS: { choice: RevisitChoice; label: string }[] = [
   { choice: "2w", label: "2주 뒤" },
 ];
 const FIRST_MOMENT = "first_reading_end";
+const MSG_SENT = "이 리딩은 이미 알려줬어";
+const MSG_SKIPPED = "이 리딩의 다시 볼 날은 지났어";
 
 type Mode = "loading" | "hidden" | "sheet" | "card" | "closed";
 type AskAnswer = "accepted" | "later" | "os_denied";
@@ -40,7 +43,10 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
   const [firstSheet, setFirstSheet] = useState(false); // 이번 방문에 자동 시트로 열렸는지 — ask 기록은 이때만
   const [perm, setPerm] = useState<PushState>("undetermined");
   const [sendOn, setSendOn] = useState<string | null>(null);
-  const [alreadySent, setAlreadySent] = useState(false);
+  // 이 리딩의 예약이 끝났을 때(보냄·건너뜀) 칩 대신 보일 한 줄
+  const [done, setDone] = useState<string | null>(null);
+  // 알림 설정에서 다시 볼 날이 꺼져 있다 — 예약해도 안 간다. 칩 대신 설정 안내(설정을 저절로 켜지 않는다)
+  const [prefOff, setPrefOff] = useState(false);
   const [picked, setPicked] = useState<RevisitChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -66,14 +72,21 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
         }
         const rvBody = (await rv.json()) as {
           revisit: { sendOn: string; status: "pending" | "sent" | "skipped" } | null;
+          revisitPref: boolean;
         };
         const asksBody = (await asks.json()) as { moments: string[] };
         if (cancelled) return;
         setPerm(status);
+        setPrefOff(rvBody.revisitPref === false);
         const rev = rvBody.revisit;
         if (rev) {
           if (rev.status === "pending") setSendOn(rev.sendOn);
-          else setAlreadySent(true);
+          else setDone(rev.status === "skipped" ? MSG_SKIPPED : MSG_SENT);
+          setMode("card");
+          return;
+        }
+        // 설정이 꺼져 있으면 시트를 저절로 열지 않는다(질문도 기록하지 않는다) — 카드로 안내만
+        if (rvBody.revisitPref === false) {
           setMode("card");
           return;
         }
@@ -119,7 +132,7 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
         body: JSON.stringify({ readingId, choice }),
       });
       if (r.status === 409) {
-        setAlreadySent(true);
+        setDone(MSG_SENT);
         setSendOn(null);
         setMode("card");
         return;
@@ -237,8 +250,22 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-4">
       <div className="bg-cream-warm border border-lilac-mid/35 rounded-[20px] p-4">
-        {alreadySent ? (
-          <p className="text-[14px] font-black">이 리딩은 이미 알려줬어</p>
+        {done ? (
+          <p className="text-[14px] font-black">{done}</p>
+        ) : prefOff ? (
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
+            <div>
+              <p className="text-[14px] font-black">알림 설정에서 다시 볼 날이 꺼져 있어</p>
+              <Link
+                href="/mypage/notifications"
+                className="mt-2 inline-block px-3.5 py-2 rounded-full text-[12px] font-bold text-eye-purple bg-lilac-soft"
+              >
+                알림 설정
+              </Link>
+            </div>
+          </div>
         ) : (
           <>
             {sendOn ? (
