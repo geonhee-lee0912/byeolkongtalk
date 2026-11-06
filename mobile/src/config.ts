@@ -10,4 +10,6 @@ export const config = parseAppExtra(Constants.expoConfig?.extra);
 export const appInfo: AppInfo = {
   version: Constants.expoConfig?.version ?? "0",
   platform: Platform.OS === "ios" ? "ios" : "android",
+  // 웹은 이 표시가 있을 때만 알림 메시지(push.*)를 보낸다(lib/app-bridge/protocol.ts hasCap) — 옛 앱엔 없다
+  caps: ["push"],
 };

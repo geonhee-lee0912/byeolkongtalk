@@ -57,3 +57,5 @@ credentials.json
 *.apk
 *.aab
 *.ipa
+# 안드로이드 FCM 설정 — EAS 파일 환경 변수 GOOGLE_SERVICES_JSON 으로만 넣는다(app.config.ts)
+google-services.json

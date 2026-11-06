@@ -31,6 +31,9 @@ const config: ExpoConfig = {
   android: {
     package: BUNDLE_ID,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#FAF6F0" },
+    // 안드로이드 푸시(FCM) 설정 파일 — EAS 파일 환경 변수 GOOGLE_SERVICES_JSON(빌드 서버의 경로)로 넣는다. 🔴 저장소에 json 을 커밋하지 않는다(.gitignore).
+    // 파일이 없으면 안드로이드 prebuild 가 멈춘다(@expo/config-plugins GoogleServices — 복사 실패 throw)
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
   },
   plugins: [
     // 웹뷰 첫 화면이 뜰 때까지 유지(src/WebScreen.tsx 가 hideAsync)
@@ -43,6 +46,8 @@ const config: ExpoConfig = {
     // 🔴 카카오 플러그인보다 앞에 둔다 — 이유는 plugins/withKakaoOpenUrl.js 머리 주석
     "./plugins/withKakaoOpenUrl.js",
     ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
+    // 알림 — 안드로이드 상태바 아이콘(흰색·투명) + 색은 eye-purple(흰 알림창에서 보이는 색)
+    ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#5A3E8C" }],
   ],
   owner: "braveshine",
   extra: {
