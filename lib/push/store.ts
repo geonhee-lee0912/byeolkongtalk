@@ -194,14 +194,15 @@ export const supabaseDispatchStore: DispatchStore = {
   async uncheckedReceipts(beforeIso) {
     const { data, error } = await getServiceSupabase()
       .from("push_sends")
-      .select("id, expo_tickets")
+      .select("id, sent_at, expo_tickets")
       .is("receipt_checked_at", null)
       .lt("sent_at", beforeIso)
       .order("id")
       .limit(500);
     check(error, "uncheckedReceipts");
-    return (data ?? []).map((r: { id: number; expo_tickets: { id: string; token: string }[] | null }) => ({
+    return (data ?? []).map((r: { id: number; sent_at: string; expo_tickets: { id: string; token: string }[] | null }) => ({
       sendId: r.id,
+      sentAt: r.sent_at,
       tickets: r.expo_tickets ?? [],
     }));
   },

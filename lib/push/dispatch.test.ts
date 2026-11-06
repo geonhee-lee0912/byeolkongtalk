@@ -15,7 +15,7 @@ function setup(o: {
   tickets?: (m: ExpoMessage[]) => ExpoTicket[];
   sendThrows?: boolean;
   receipts?: Record<string, { status: "ok" | "error"; details?: { error?: string } }>;
-  unchecked?: { sendId: number; tickets: { id: string; token: string }[] }[];
+  unchecked?: { sendId: number; sentAt: string; tickets: { id: string; token: string }[] }[];
 } = {}) {
   const due: DueRevisit[] = o.due ?? [{ id: "s1", userId: "u1", readingId: "r1", consultationType: "tarot", sendOn: "2026-11-10" }];
   const devices = o.devices ?? { u1: ["tokA"] };
@@ -103,7 +103,7 @@ test("DeviceNotRegistered 티켓·영수증의 토큰을 끈다", async () => {
   const s = setup({
     devices: { u1: ["tokA", "tokB"] },
     tickets: () => [{ status: "ok", id: "x1" }, { status: "error", message: "gone", details: { error: "DeviceNotRegistered" } }],
-    unchecked: [{ sendId: 9, tickets: [{ id: "old1", token: "tokOld" }, { id: "old2", token: "tokFine" }] }],
+    unchecked: [{ sendId: 9, sentAt: "2026-11-10T00:30:00Z", tickets: [{ id: "old1", token: "tokOld" }, { id: "old2", token: "tokFine" }] }],
     receipts: { old1: { status: "error", details: { error: "DeviceNotRegistered" } }, old2: { status: "ok" } },
   });
   const r = await dispatchRevisits(OPEN, s.store, s.expo, s.log);
@@ -196,7 +196,7 @@ test("ok 가 하나라도 있으면 보낸 것 — 섞인 오류는 경고만", 
 test("영수증 오류(DeviceNotRegistered 말고)는 코드별로 한 번 경고한다", async () => {
   const s = setup({
     due: [],
-    unchecked: [{ sendId: 9, tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }, { id: "c", token: "t3" }] }],
+    unchecked: [{ sendId: 9, sentAt: "2026-11-10T00:30:00Z", tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }, { id: "c", token: "t3" }] }],
     receipts: {
       a: { status: "error", details: { error: "MessageRateExceeded" } },
       b: { status: "error", details: { error: "MessageRateExceeded" } },
@@ -230,8 +230,8 @@ test("영수증이 아직 안 나온 티켓이 있는 발송은 확인 표시를
   const s = setup({
     due: [],
     unchecked: [
-      { sendId: 9, tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }] },
-      { sendId: 10, tickets: [{ id: "c", token: "t3" }] },
+      { sendId: 9, sentAt: "2026-11-10T00:30:00Z", tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }] },
+      { sendId: 10, sentAt: "2026-11-10T00:30:00Z", tickets: [{ id: "c", token: "t3" }] },
     ],
     receipts: { a: { status: "ok" }, c: { status: "ok" } }, // b 는 아직
   });
@@ -253,4 +253,21 @@ test("시간 예산을 넘기면 새 예약을 시작하지 않는다 — 남은
   assert.equal(r.sent, 1);
   assert.equal(s.sent.length, 1);
   assert.deepEqual(s.marks, [["s1", "sent"]]);
+});
+
+test("하루가 지난 발송은 영수증이 빠져 있어도 확인 처리하고, 빠진 수를 한 번 경고한다", async () => {
+  const s = setup({
+    due: [],
+    unchecked: [
+      { sendId: 1, sentAt: "2026-11-09T00:00:00Z", tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }] }, // 25시간 전, b 빠짐
+      { sendId: 2, sentAt: "2026-11-08T12:00:00Z", tickets: [{ id: "c", token: "t3" }] }, // 37시간 전, c 빠짐
+      { sendId: 3, sentAt: "2026-11-09T12:00:00Z", tickets: [{ id: "d", token: "t4" }] }, // 13시간 전, d 빠짐
+    ],
+    receipts: { a: { status: "ok" } },
+  });
+  await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.deepEqual(s.checked, [[1, 2]]);
+  assert.equal(s.warns.length, 1);
+  assert.match(s.warns[0].message, /missing/);
+  assert.equal(s.warns[0].extra?.count, 2);
 });

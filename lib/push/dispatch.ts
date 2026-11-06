@@ -20,7 +20,7 @@ export interface DispatchStore {
   saveTickets(sendId: number, tickets: TicketRef[]): Promise<void>;
   markSchedule(id: string, status: "sent" | "skipped"): Promise<void>;
   disableTokens(tokens: string[]): Promise<void>;
-  uncheckedReceipts(beforeIso: string): Promise<{ sendId: number; tickets: TicketRef[] }[]>;
+  uncheckedReceipts(beforeIso: string): Promise<{ sendId: number; sentAt: string; tickets: TicketRef[] }[]>;
   markReceiptsChecked(sendIds: number[]): Promise<void>;
 }
 
@@ -32,6 +32,8 @@ export type ExpoApi = {
 export type DispatchResult = { sent: number; skipped: number; disabled: number; failed: number };
 
 const RECEIPT_DELAY_MS = 15 * 60 * 1000;
+/** Expo 는 영수증을 ~24시간만 둔다 — 이보다 오래된 발송은 빠진 영수증이 끝내 안 오니 확인 처리한다 */
+const RECEIPT_GIVE_UP_MS = 24 * 60 * 60 * 1000;
 /** cron maxDuration 60초 — 이만큼 지나면 새 예약을 시작하지 않는다(남은 건 pending 그대로라 다음 실행이 잡는다) */
 const TIME_BUDGET_MS = 45 * 1000;
 
@@ -127,10 +129,18 @@ export async function dispatchRevisits(
       const ids = pending.flatMap((p) => p.tickets.map((t) => t.id));
       const byId = ids.length > 0 ? await expo.receipts(ids) : {};
       const dead = new Set<string>();
-      // 티켓 영수증이 전부 나온 발송만 확인 표시 — 아직 안 나온 게 있으면 다음 실행이 다시 본다
+      // 티켓 영수증이 전부 나온 발송만 확인 표시 — 아직 안 나온 게 있으면 다음 실행이 다시 본다.
+      // 단 하루가 지난 발송은 빠진 게 있어도 확인 처리한다(끝내 안 온다 — 남겨 두면 조회 상한을 막는다)
       const complete: number[] = [];
+      const giveUpBefore = now.getTime() - RECEIPT_GIVE_UP_MS;
+      let missingPastCutoff = 0;
       for (const p of pending) {
-        if (p.tickets.every((t) => Object.hasOwn(byId, t.id))) complete.push(p.sendId);
+        const missing = p.tickets.filter((t) => !Object.hasOwn(byId, t.id)).length;
+        if (missing === 0) complete.push(p.sendId);
+        else if (Date.parse(p.sentAt) < giveUpBefore) {
+          complete.push(p.sendId);
+          missingPastCutoff += missing;
+        }
         for (const t of p.tickets) {
           const rc = byId[t.id];
           if (rc?.status !== "error") continue;
@@ -143,6 +153,9 @@ export async function dispatchRevisits(
         result.disabled += dead.size;
       }
       await store.markReceiptsChecked(complete);
+      if (missingPastCutoff > 0) {
+        await warn("expo push receipts missing past 24h", { route: ROUTE, extra: { count: missingPastCutoff } });
+      }
     }
   } catch (e) {
     await log(e, { route: ROUTE, extra: { phase: "receipts" } });
