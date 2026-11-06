@@ -107,7 +107,10 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
         setPerm(asked);
       }
       if (state !== "granted") {
-        if (firstSheet) recordAsk("os_denied");
+        if (firstSheet) {
+          recordAsk("os_denied");
+          setFirstSheet(false); // 이 시트의 질문은 한 번만 기록
+        }
         return;
       }
       const r = await fetch("/api/push/revisit", {
@@ -142,6 +145,7 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
   }
 
   function later() {
+    if (busyRef.current) return; // 예약·권한 요청 중엔 닫지 않는다
     if (firstSheet) recordAsk("later");
     setFirstSheet(false);
     setMode("closed");
@@ -220,7 +224,7 @@ export default function RevisitSheet({ readingId }: { readingId: string }) {
               {retry}
             </>
           )}
-          <button type="button" onClick={later} className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep">
+          <button type="button" disabled={busy} onClick={later} className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep">
             나중에
           </button>
         </div>
