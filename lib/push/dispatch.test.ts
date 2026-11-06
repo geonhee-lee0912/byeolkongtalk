@@ -225,3 +225,32 @@ test("ok 없이 전부 DeviceNotRegistered 면 토큰을 끄고 선점을 풀며
   assert.deepEqual(s.marks, []);
   assert.deepEqual(s.warns, []); // 끊긴 기기는 정상 신호 — 경고하지 않는다
 });
+
+test("영수증이 아직 안 나온 티켓이 있는 발송은 확인 표시를 하지 않는다", async () => {
+  const s = setup({
+    due: [],
+    unchecked: [
+      { sendId: 9, tickets: [{ id: "a", token: "t1" }, { id: "b", token: "t2" }] },
+      { sendId: 10, tickets: [{ id: "c", token: "t3" }] },
+    ],
+    receipts: { a: { status: "ok" }, c: { status: "ok" } }, // b 는 아직
+  });
+  await dispatchRevisits(OPEN, s.store, s.expo, s.log, { warn: s.warn });
+  assert.deepEqual(s.checked, [[10]]);
+});
+
+test("시간 예산을 넘기면 새 예약을 시작하지 않는다 — 남은 건 pending 그대로", async () => {
+  const s = setup({
+    due: [
+      { id: "s1", userId: "u1", readingId: "r1", consultationType: "tarot", sendOn: "2026-11-10" },
+      { id: "s2", userId: "u2", readingId: "r2", consultationType: "saju", sendOn: "2026-11-10" },
+    ],
+    devices: { u1: ["tokA"], u2: ["tokB"] },
+  });
+  let t = 0;
+  const slow: ExpoApi = { ...s.expo, send: async (m) => { const out = await s.expo.send(m); t = 50_000; return out; } };
+  const r = await dispatchRevisits(OPEN, s.store, slow, s.log, { warn: s.warn, clock: () => t });
+  assert.equal(r.sent, 1);
+  assert.equal(s.sent.length, 1);
+  assert.deepEqual(s.marks, [["s1", "sent"]]);
+});

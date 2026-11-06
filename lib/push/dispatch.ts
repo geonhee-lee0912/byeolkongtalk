@@ -32,6 +32,8 @@ export type ExpoApi = {
 export type DispatchResult = { sent: number; skipped: number; disabled: number; failed: number };
 
 const RECEIPT_DELAY_MS = 15 * 60 * 1000;
+/** cron maxDuration 60초 — 이만큼 지나면 새 예약을 시작하지 않는다(남은 건 pending 그대로라 다음 실행이 잡는다) */
+const TIME_BUDGET_MS = 45 * 1000;
 
 export type LogFn = (err: unknown, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
 export type WarnFn = (message: string, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
@@ -45,9 +47,11 @@ export async function dispatchRevisits(
   store: DispatchStore,
   expo: ExpoApi,
   log: LogFn = logError,
-  opts: { warn?: WarnFn } = {},
+  opts: { warn?: WarnFn; clock?: () => number } = {},
 ): Promise<DispatchResult> {
   const warn = opts.warn ?? logWarn;
+  const clock = opts.clock ?? Date.now;
+  const startedAt = clock();
   const result: DispatchResult = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
   const today = kstDate(now.toISOString());
   // DeviceNotRegistered 말고 Expo 가 돌려준 오류 — 코드별로 모아 실행 끝에 코드당 한 번 경고한다(조용히 '보냄'으로 세지 않게)
@@ -60,6 +64,7 @@ export async function dispatchRevisits(
   };
 
   for (const r of await store.dueRevisits(today)) {
+    if (clock() - startedAt >= TIME_BUDGET_MS) break;
     try {
       const w = revisitWindow(r.sendOn, now);
       if (w === "early") continue;
@@ -122,7 +127,10 @@ export async function dispatchRevisits(
       const ids = pending.flatMap((p) => p.tickets.map((t) => t.id));
       const byId = ids.length > 0 ? await expo.receipts(ids) : {};
       const dead = new Set<string>();
+      // 티켓 영수증이 전부 나온 발송만 확인 표시 — 아직 안 나온 게 있으면 다음 실행이 다시 본다
+      const complete: number[] = [];
       for (const p of pending) {
+        if (p.tickets.every((t) => Object.hasOwn(byId, t.id))) complete.push(p.sendId);
         for (const t of p.tickets) {
           const rc = byId[t.id];
           if (rc?.status !== "error") continue;
@@ -134,7 +142,7 @@ export async function dispatchRevisits(
         await store.disableTokens([...dead]);
         result.disabled += dead.size;
       }
-      await store.markReceiptsChecked(pending.map((p) => p.sendId));
+      await store.markReceiptsChecked(complete);
     }
   } catch (e) {
     await log(e, { route: ROUTE, extra: { phase: "receipts" } });
