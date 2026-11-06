@@ -33,7 +33,15 @@ export type DispatchResult = { sent: number; skipped: number; disabled: number; 
 
 const RECEIPT_DELAY_MS = 15 * 60 * 1000;
 
-export async function dispatchRevisits(now: Date, store: DispatchStore, expo: ExpoApi): Promise<DispatchResult> {
+export type LogFn = (err: unknown, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
+
+/** log 는 시험에서 기록기를 꽂는 자리 — 기본은 실제 로거. */
+export async function dispatchRevisits(
+  now: Date,
+  store: DispatchStore,
+  expo: ExpoApi,
+  log: LogFn = logError,
+): Promise<DispatchResult> {
   const result: DispatchResult = { sent: 0, skipped: 0, disabled: 0, failed: 0 };
   const today = kstDate(now.toISOString());
 
@@ -83,7 +91,7 @@ export async function dispatchRevisits(now: Date, store: DispatchStore, expo: Ex
       result.sent++;
     } catch (e) {
       result.failed++;
-      await logError(e, { route: "cron/push-dispatch", extra: { scheduleId: r.id } });
+      await log(e, { route: "cron/push-dispatch", extra: { scheduleId: r.id } });
     }
   }
 
@@ -106,7 +114,7 @@ export async function dispatchRevisits(now: Date, store: DispatchStore, expo: Ex
       await store.markReceiptsChecked(pending.map((p) => p.sendId));
     }
   } catch (e) {
-    await logError(e, { route: "cron/push-dispatch", extra: { phase: "receipts" } });
+    await log(e, { route: "cron/push-dispatch", extra: { phase: "receipts" } });
   }
   return result;
 }
