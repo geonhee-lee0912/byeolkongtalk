@@ -3,6 +3,7 @@
 // 마지막 인자 db 는 시험에서 가짜 클라이언트를 꽂는 자리다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
+import type { DispatchStore } from "./dispatch.ts";
 
 type Db = SupabaseClient;
 
@@ -135,3 +136,81 @@ export async function readingOwner(readingId: string, db: Db = getServiceSupabas
   check(error, "readingOwner");
   return data ? ((data.user_id as string | null) ?? null) : null;
 }
+
+/** cron 발송용 저장소 — DispatchStore 의 service_role 구현. */
+export const supabaseDispatchStore: DispatchStore = {
+  async dueRevisits(todayKst) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_schedules")
+      .select("id, user_id, reading_id, send_on, readings(consultation_type)")
+      .eq("kind", "revisit")
+      .eq("status", "pending")
+      .lte("send_on", todayKst)
+      .order("send_on")
+      .limit(1000);
+    check(error, "dueRevisits");
+    return (data ?? []).map((r: Record<string, unknown>) => {
+      const rd = r.readings as { consultation_type?: string } | { consultation_type?: string }[] | null;
+      const ct = (Array.isArray(rd) ? rd[0]?.consultation_type : rd?.consultation_type) ?? "";
+      return {
+        id: r.id as string,
+        userId: r.user_id as string,
+        readingId: r.reading_id as string,
+        consultationType: ct,
+        sendOn: r.send_on as string,
+      };
+    });
+  },
+  activeDeviceTokens: (userId) => activeDeviceTokens(userId),
+  getRevisitPref: (userId) => getRevisitPref(userId),
+  async claimSend(r) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_sends")
+      .insert({ user_id: r.userId, kind: r.kind, class: r.klass, ref_id: r.refId, send_date: r.sendDate })
+      .select("id")
+      .single();
+    if (error) {
+      if (error.code === "23505") return null;
+      check(error, "claimSend");
+    }
+    return data ? (data.id as number) : null;
+  },
+  async releaseSend(sendId) {
+    const { error } = await getServiceSupabase().from("push_sends").delete().eq("id", sendId);
+    check(error, "releaseSend");
+  },
+  async saveTickets(sendId, tickets) {
+    const { error } = await getServiceSupabase()
+      .from("push_sends")
+      .update({ expo_tickets: tickets, device_count: tickets.length })
+      .eq("id", sendId);
+    check(error, "saveTickets");
+  },
+  async markSchedule(id, status) {
+    const { error } = await getServiceSupabase().from("push_schedules").update({ status }).eq("id", id);
+    check(error, "markSchedule");
+  },
+  disableTokens: (tokens) => disableTokens(tokens),
+  async uncheckedReceipts(beforeIso) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_sends")
+      .select("id, expo_tickets")
+      .is("receipt_checked_at", null)
+      .lt("sent_at", beforeIso)
+      .order("id")
+      .limit(500);
+    check(error, "uncheckedReceipts");
+    return (data ?? []).map((r: { id: number; expo_tickets: { id: string; token: string }[] | null }) => ({
+      sendId: r.id,
+      tickets: r.expo_tickets ?? [],
+    }));
+  },
+  async markReceiptsChecked(sendIds) {
+    if (sendIds.length === 0) return;
+    const { error } = await getServiceSupabase()
+      .from("push_sends")
+      .update({ receipt_checked_at: new Date().toISOString() })
+      .in("id", sendIds);
+    check(error, "markReceiptsChecked");
+  },
+};
