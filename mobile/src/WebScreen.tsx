@@ -1,5 +1,5 @@
-// 웹뷰 화면 — 링크 규칙·네이티브 로그인·웹 메시지·뒤로 가기·오프라인·딥링크. 스펙 2026-10-12-앱-1 §4·§5·§7.
-// 앱 토큰은 웹에 절대 넘기지 않는다 — 웹뷰는 교환 코드로 받은 쿠키만 쓴다.
+// 웹뷰 화면 — 링크 규칙·네이티브 로그인·웹 메시지·뒤로 가기·오프라인·딥링크·알림 누름. 스펙 2026-10-12-앱-1 §4·§5·§7 · 2026-11-06-앱-알림.
+// 앱 토큰·푸시 토큰은 웹에 절대 넘기지 않는다 — 웹뷰는 교환 코드로 받은 쿠키만 쓰고, 알림은 권한 상태만 알린다.
 // 교환 코드는 주소가 아니라 source.headers 로 싣는다(handoffSource — 서버는 주소의 code 를 보지 않는다). 헤더는 앱이 연 그 첫 요청에만
 // 실리고 웹뷰 안 이동엔 안 실린다 — 그래서 딥링크·일반 이동은 헤더 없이(plain) 열어도 남의 코드를 먹일 수 없다.
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,7 +7,8 @@ import { ActivityIndicator, Alert, BackHandler, Linking, Platform, StyleSheet, T
 import { WebView, type WebViewProps } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
-import { appUserAgentSuffix, parseWebToApp } from "../../lib/app-bridge/protocol.ts";
+import * as Notifications from "expo-notifications";
+import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
 import { appInfo, config } from "./config";
 import { decideNavigation, parseIntentUrl, type NavDecision } from "./linkRules.ts";
 import { pathFromDeepLink } from "./deeplink.ts";
@@ -17,6 +18,8 @@ import { secureTokenStore } from "./auth/tokenStore";
 import { authApi, isAuthError, reportLoginFailure } from "./auth/api";
 import { appleNativeLogin, kakaoNativeLogin, LoginCancelled } from "./auth/nativeLogin";
 import OfflineView from "./OfflineView";
+import { pathFromNotificationData } from "./push/state.ts";
+import { ensureAndroidChannel, getPushState, requestPush, showNotificationsInForeground, syncPushToken, unregisterPush } from "./push/register";
 
 // 🔴 react-native-webview 14.0.1 의 타입 선언은 class WebView<P = undefined> extends Component<WebViewProps & P> 라 P 를 안 주면 props 가 never 가 된다
 //    (ComponentProps<typeof WebView> 도 never) — 이벤트 타입은 패키지의 WebViewProps 에서 꺼내고, ref·JSX 에는 타입 인자 object 를 준다(WebView<object>)
@@ -26,6 +29,7 @@ type OpenWindowEvent = Parameters<NonNullable<WebViewProps["onOpenWindow"]>>[0];
 type ErrorEvent = Parameters<NonNullable<WebViewProps["onError"]>>[0];
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+showNotificationsInForeground();
 
 const auth = createAuthSession({ store: secureTokenStore, api: authApi, isAuthError });
 const UA_SUFFIX = appUserAgentSuffix(appInfo);
@@ -61,8 +65,29 @@ async function openExternal(url: string): Promise<void> {
  *  콜드 스타트면 첫 이동이 가로채여 화면이 하나도 안 떠 스플래시가 닫히지 않는다(로그인을 취소하면 그대로 멈춘다).
  *  iOS 는 source 이동도 이동 규칙에 묻고 안드로이드는 묻지 않아 플랫폼마다 달랐다 — 여기서 같은 규칙으로 거른다 */
 function openablePath(url: string | null | undefined): string | null {
-  const path = pathFromDeepLink(url, config.scheme);
+  return allowedPath(pathFromDeepLink(url, config.scheme));
+}
+
+function allowedPath(path: string | null): string | null {
   return path && decideNavigation(config.baseUrl + path, config.baseUrl).kind === "allow" ? path : null;
+}
+
+/** 알림 누름 → 웹뷰가 열 경로. 딥링크와 같은 규칙으로 거른다. 알림 본문을 누른 것(기본 동작)만 — 다른 버튼은 아직 없다 */
+function notificationPath(r: Notifications.NotificationResponse | null): string | null {
+  if (!r || r.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return null;
+  return allowedPath(pathFromNotificationData(r.notification.request.content.data));
+}
+
+/** 앱을 띄운 알림 누름 — 읽고 지운다(지우지 않으면 앱 화면이 다시 만들어질 때 옛 알림의 화면이 또 열린다). 실패해도 부팅은 간다 */
+function takeLaunchNotification(): Notifications.NotificationResponse | null {
+  try {
+    const r = Notifications.getLastNotificationResponse();
+    if (r) Notifications.clearLastNotificationResponse();
+    return r;
+  } catch (e) {
+    console.warn("[push] 앱을 띄운 알림을 못 읽었다", e);
+    return null;
+  }
 }
 
 export default function WebScreen() {
@@ -88,12 +113,21 @@ export default function WebScreen() {
   // 웹뷰를 새로 만들 때(reopen) 바꾸는 key · 그때 열 마지막 화면(우리 페이지만, /api/ 주소 빼고)
   const [webKey, setWebKey] = useState(0);
   const lastPage = useRef<string | null>(null);
+  // 마지막으로 처리한 알림 누름 — 앱을 띄운 알림이 누름 수신(listener)으로도 한 번 더 올 수 있어 같은 알림은 한 번만 연다
+  const handledNotification = useRef<string | null>(null);
 
-  // 앱 실행 — 토큰 갱신 + 교환 코드로 웹뷰 쿠키를 맞춘다(스펙 §7-4). 딥링크로 열렸으면 그 경로로
+  // 앱 실행 — 토큰 갱신 + 교환 코드로 웹뷰 쿠키를 맞춘다(스펙 §7-4). 알림을 눌러 열렸으면 그 경로로, 딥링크로 열렸으면 그 경로로
   const boot = useCallback(async () => {
+    // 알림 누름은 await 앞에서 읽는다 — 아래 누름 수신 effect 가 붙기 전에 '처리함'으로 적어 둬야 같은 누름을 두 번 열지 않는다
+    const launch = takeLaunchNotification();
+    if (launch) handledNotification.current = launch.notification.request.identifier;
+    const fromNotification = notificationPath(launch);
     // 실행 주소를 못 읽어도 부팅은 끝까지 간다 — 여기서 멈추면 source 가 안 생겨 스플래시가 닫히지 않는다
-    const next = openablePath(await Linking.getInitialURL().catch(() => null)) ?? "/";
+    const next = fromNotification ?? openablePath(await Linking.getInitialURL().catch(() => null)) ?? "/";
     const target = await auth.startTarget();
+    // reset = 이 기기 로그인이 끝났다(웹 로그아웃 없이 갱신 401·재사용·만료로 끝난 것 포함) — 이 기기 알림 묶음도 푼다.
+    // 앞서 로그아웃 때 해제가 실패했어도 여기서 다시 한다. 기억한 토큰이 없으면 아무것도 안 하고 던지지 않는다. 기다리지 않는다
+    if (target.kind === "reset") void unregisterPush();
     setSource(
       target.kind === "handoff"
         ? handoff(target.code, next, "launch")
@@ -104,6 +138,34 @@ export default function WebScreen() {
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  // 알림 — 안드로이드 채널을 만들고, 이미 허락·로그인돼 있으면 토큰을 다시 등록한다(토큰 회전 대비). 실패는 register.ts 가 삼킨다
+  useEffect(() => {
+    void ensureAndroidChannel();
+    void syncPushToken(auth.ensureAccessToken);
+  }, []);
+
+  // 앱이 떠 있을 때(뒤에 있다 돌아온 것 포함) 누른 알림 — 딥링크와 같은 방식으로 연다
+  useEffect(() => {
+    let sub: { remove(): void } | null = null;
+    try {
+      sub = Notifications.addNotificationResponseReceivedListener((r) => {
+        const id = r.notification.request.identifier;
+        if (id === handledNotification.current) return;
+        handledNotification.current = id;
+        try {
+          Notifications.clearLastNotificationResponse();
+        } catch {
+          // 지우기 실패 — 앱 화면이 다시 만들어질 때 이 알림 화면이 한 번 더 열릴 뿐이다
+        }
+        const path = notificationPath(r);
+        if (path) setSource(plain(config.baseUrl + path));
+      });
+    } catch (e) {
+      console.warn("[push] 알림 누름 수신을 못 붙였다", e);
+    }
+    return () => sub?.remove();
+  }, []);
 
   // 앱이 떠 있을 때 들어온 딥링크
   useEffect(() => {
@@ -157,6 +219,8 @@ export default function WebScreen() {
         coveringRef.current = true;
         setCovering(true);
         const r = await auth.login(payload);
+        // 이미 알림을 허락한 기기면 이 회원으로 다시 등록한다(로그아웃 때 서버에서 지웠다). 다음 실행까지 기다리지 않게
+        void syncPushToken(auth.ensureAccessToken);
         handoffLoading.current = true;
         // 30초는 화면 단계만 잰다 — 서버 단계는 요청 시간 제한(api.ts 10초)으로 반드시 아래 catch 로 끝난다. 서버 단계부터 재면 앱이 멈췄다 돌아올 때
         // 덮개가 먼저 걷혀 새 로그인이 시작될 수 있고, 이 로그인은 서버 단계 뒤엔 번호표를 안 보니 교환 코드 이동이 연달아 두 번 나간다
@@ -211,11 +275,39 @@ export default function WebScreen() {
     [act],
   );
 
-  const onMessage = useCallback((e: MessageEvent) => {
-    if (!isOurUrl(e.nativeEvent.url, config.baseUrl)) return; // 우리 페이지가 보낸 메시지만
-    const msg = parseWebToApp(e.nativeEvent.data);
-    if (msg?.type === "auth.loggedOut") void auth.logout();
+  /** 웹에 알림 권한 상태를 알린다 — window 의 CustomEvent(APP_EVENT). 웹은 요청마다 답 하나를 기다리니 요청마다 꼭 한 번 부른다.
+   *  🔴 상태만 싣는다 — 푸시 토큰·앱 토큰은 넘기지 않는다 */
+  const replyPushState = useCallback((state: PushState) => {
+    webRef.current?.injectJavaScript(
+      `window.dispatchEvent(new CustomEvent(${JSON.stringify(APP_EVENT)},{detail:${JSON.stringify(encodeAppToWeb(state))}}));true;`,
+    );
   }, []);
+
+  const onMessage = useCallback(
+    (e: MessageEvent) => {
+      if (!isOurUrl(e.nativeEvent.url, config.baseUrl)) return; // 우리 페이지가 보낸 메시지만
+      const msg = parseWebToApp(e.nativeEvent.data);
+      switch (msg?.type) {
+        case "auth.loggedOut":
+          // 둘을 따로 바로 시작한다 — 로그아웃은 알림 해제(최대 10초)를 기다리지 않는다. 기다리는 동안 앱이 꺼지면 앱 토큰이 남아
+          // 다음 실행 때 조용히 다시 로그인된다. 알림 해제는 앱 토큰을 쓰지 않고(로그인 없이 받는 라우트) 그 실패는 로그아웃과 무관하다.
+          // auth.logout 은 리프레시 토큰 키만 지운다(auth/tokenStore.ts) — push_token 은 그대로라 순서가 필요 없다
+          void unregisterPush();
+          void auth.logout();
+          break;
+        case "push.status":
+          void getPushState().then(replyPushState);
+          break;
+        case "push.request":
+          void requestPush(auth.ensureAccessToken).then(replyPushState);
+          break;
+        case "push.openSettings":
+          void Linking.openSettings().catch(() => {});
+          break;
+      }
+    },
+    [replyPushState],
+  );
 
   const onError = useCallback((e: ErrorEvent) => {
     const { code } = e.nativeEvent;

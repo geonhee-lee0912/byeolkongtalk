@@ -1,11 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  APP_EVENT,
   APP_UA_TOKEN,
   HANDOFF_CODE_HEADER,
   appUserAgentSuffix,
+  encodeAppToWeb,
   encodeWebToApp,
+  hasCap,
   isAppInfo,
+  parseAppToWeb,
   parseAppUserAgent,
   parseWebToApp,
 } from "./protocol.ts";
@@ -89,4 +93,31 @@ test("메시지 — 선 위 모양 고정(현장의 옛 앱이 읽는다), 웹�
 
 test("교환 코드 헤더 이름 고정 — 현장의 옛 앱이 이 이름으로 보낸다", () => {
   assert.equal(HANDOFF_CODE_HEADER, "X-Byeolkong-Handoff");
+});
+
+test("푸시 메시지 3종이 왕복한다", () => {
+  for (const t of ["push.status", "push.request", "push.openSettings"] as const)
+    assert.deepEqual(parseWebToApp(encodeWebToApp(t)), { v: 1, type: t, payload: {} });
+});
+
+test("caps 없는 옛 앱은 push 기능이 없다", () => {
+  assert.equal(hasCap({ version: "1.0.0", platform: "ios" }, "push"), false);
+  assert.equal(hasCap({ version: "1.1.0", platform: "ios", caps: ["push"] }, "push"), true);
+  assert.equal(hasCap(null, "push"), false);
+});
+
+test("isAppInfo 는 caps 가 있어도 받는다", () => {
+  assert.equal(isAppInfo({ version: "1", platform: "android", caps: ["push"] }), true);
+});
+
+test("앱→웹 상태 왕복과 이상한 값 거절", () => {
+  assert.equal(APP_EVENT, "byeolkong:app");
+  assert.deepEqual(parseAppToWeb(encodeAppToWeb("denied")), { v: 1, type: "push.state", state: "denied" });
+  assert.deepEqual(parseAppToWeb({ v: 1, type: "push.state", state: "granted", extra: 1 }), { v: 1, type: "push.state", state: "granted" });
+  assert.equal(parseAppToWeb('{"v":1,"type":"push.state","state":"yes"}'), null);
+  assert.equal(parseAppToWeb('{"v":2,"type":"push.state","state":"granted"}'), null);
+  assert.equal(parseAppToWeb('{"v":1,"type":"push.state","state":"toString"}'), null);
+  assert.equal(parseAppToWeb("{"), null);
+  assert.equal(parseAppToWeb(42), null);
+  assert.equal(parseAppToWeb(null), null);
 });

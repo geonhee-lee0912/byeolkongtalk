@@ -1,6 +1,7 @@
 {
   "regions": ["icn1"],
   "crons": [
-    { "path": "/api/cron/ad-spend-sync", "schedule": "0 * * * *" }
+    { "path": "/api/cron/ad-spend-sync", "schedule": "0 * * * *" },
+    { "path": "/api/cron/push-dispatch", "schedule": "*/15 * * * *" }
   ]
 }
