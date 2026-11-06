@@ -3,7 +3,9 @@ import * as realStore from "./store";
 
 export type HandlerResult = { status: number; body: object };
 
-const TOKEN_RE = /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/;
+// Expo 서버 SDK 의 isExpoPushToken 과 같은 규칙 — 접두사 두 가지(ExponentPushToken·ExpoPushToken), 안쪽 문자는 가리지 않는다.
+// 너무 엄격하면 정상 기기 등록이 400 으로 조용히 실패한다(앱은 경고만 남긴다). 공백·대괄호만 막고 길이에 상한을 둔다
+const TOKEN_RE = /^(?:ExponentPushToken|ExpoPushToken)\[[^\[\]\s]{1,200}\]$/;
 
 function obj(body: unknown): Record<string, unknown> {
   return body && typeof body === "object" ? (body as Record<string, unknown>) : {};

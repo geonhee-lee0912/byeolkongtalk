@@ -15,6 +15,8 @@ export interface DispatchStore {
   getRevisitPref(userId: string): Promise<boolean>;
   /** 새 push_sends id. 이미 기록이 있으면(유니크 위반) null. */
   claimSend(r: { userId: string; kind: "revisit"; klass: "info"; refId: string; sendDate: string }): Promise<number | null>;
+  /** 그 선점 기록에 실제로 나간 티켓이 있는지(device_count > 0) — 앞 실행이 보내고 sent 표시만 못 한 경우를 가린다. */
+  deliveredSend(r: { userId: string; kind: "revisit"; refId: string; sendDate: string }): Promise<boolean>;
   /** 발송이 통째로 실패했을 때 선점 기록을 지워 다음 실행이 다시 잡게 한다. */
   releaseSend(sendId: number): Promise<void>;
   saveTickets(sendId: number, tickets: TicketRef[]): Promise<void>;
@@ -84,7 +86,14 @@ export async function dispatchRevisits(
         continue;
       }
       const sendId = await store.claimSend({ userId: r.userId, kind: "revisit", klass: "info", refId: r.id, sendDate: today });
-      if (sendId === null) continue; // 이미 보낸 기록이 있다
+      if (sendId === null) {
+        // 이미 기록이 있다 — 앞 실행이 보내고 sent 표시에서 실패했으면 여기서 맞춘다(그냥 두면 밤에 skipped 가 되어
+        // 카드가 '지났어'로 보인다). 티켓 없는 선점만 남은 경우(보내기 전에 죽음)는 그대로 둔다
+        if (await store.deliveredSend({ userId: r.userId, kind: "revisit", refId: r.id, sendDate: today })) {
+          await store.markSchedule(r.id, "sent");
+        }
+        continue;
+      }
 
       const { title, body } = revisitMessage();
       const msgs: ExpoMessage[] = tokens.map((to) => ({

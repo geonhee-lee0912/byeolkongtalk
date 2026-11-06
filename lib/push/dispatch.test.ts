@@ -19,7 +19,7 @@ function setup(o: {
 } = {}) {
   const due: DueRevisit[] = o.due ?? [{ id: "s1", userId: "u1", readingId: "r1", consultationType: "tarot", sendOn: "2026-11-10" }];
   const devices = o.devices ?? { u1: ["tokA"] };
-  const claimed = new Set<string>();
+  const claimed = new Map<string, number>();
   const sent: ExpoMessage[][] = [];
   const marks: [string, string][] = [];
   const disabled: string[][] = [];
@@ -38,8 +38,12 @@ function setup(o: {
     claimSend: async (r) => {
       const k = `${r.userId}|${r.refId}|${r.sendDate}`;
       if (claimed.has(k)) return null;
-      claimed.add(k);
+      claimed.set(k, nextId);
       return nextId++;
+    },
+    deliveredSend: async (r) => {
+      const id = claimed.get(`${r.userId}|${r.refId}|${r.sendDate}`);
+      return saved.some((x) => x.sendId === id && x.tickets.length > 0);
     },
     releaseSend: async () => { released++; claimed.clear(); },
     saveTickets: async (sendId, tickets) => { saved.push({ sendId, tickets }); },
@@ -66,6 +70,24 @@ test("cron 이 두 번 돌아도 한 번만 보낸다", async () => {
   await dispatchRevisits(OPEN, again, s.expo, s.log);
   await dispatchRevisits(OPEN, again, s.expo, s.log);
   assert.equal(s.sent.length, 1);
+});
+
+test("이미 보낸 기록이 있는데 예약이 pending 이면(앞 실행의 sent 표시 실패) sent 로 맞춘다 — 다시 보내지 않는다", async () => {
+  const s = setup();
+  const again: DispatchStore = { ...s.store, dueRevisits: async () => [{ id: "s1", userId: "u1", readingId: "r1", consultationType: "tarot", sendOn: "2026-11-10" }] };
+  await dispatchRevisits(OPEN, again, s.expo, s.log);
+  s.marks.length = 0;
+  await dispatchRevisits(OPEN, again, s.expo, s.log);
+  assert.equal(s.sent.length, 1);
+  assert.deepEqual(s.marks, [["s1", "sent"]]);
+});
+
+test("선점만 남고 보낸 티켓이 없는 기록이면 sent 로 바꾸지 않는다(pending 그대로 — 창이 지나면 skipped)", async () => {
+  const s = setup();
+  const store: DispatchStore = { ...s.store, deliveredSend: async () => false, claimSend: async () => null };
+  await dispatchRevisits(OPEN, store, s.expo, s.log);
+  assert.equal(s.sent.length, 0);
+  assert.deepEqual(s.marks, []);
 });
 
 test("예약 회원의 기기에만 보낸다", async () => {
