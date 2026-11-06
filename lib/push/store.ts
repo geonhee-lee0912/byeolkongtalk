@@ -110,15 +110,17 @@ export async function upsertRevisit(
     // 이미 행이 있는데 pending 이 아니다(위 update 가 못 건드림) — 또는 동시 삽입 경쟁.
     const cur = await getRevisit(userId, readingId, db);
     if (cur && cur.status !== "pending") return "already_sent";
-    const { error: retryErr } = await db
+    const { data: retried, error: retryErr } = await db
       .from("push_schedules")
       .update({ send_on: sendOn })
       .eq("user_id", userId)
       .eq("reading_id", readingId)
       .eq("kind", "revisit")
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id");
     check(retryErr, "upsertRevisit(retry)");
-    return "ok";
+    // 쓰기가 확인될 때만 ok — 다른 사용자 소유 행 등으로 0행이면 성공을 답하지 않는다.
+    return retried && retried.length > 0 ? "ok" : "already_sent";
   }
   check(insErr, "upsertRevisit(insert)");
   return "ok";
