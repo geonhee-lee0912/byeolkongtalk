@@ -3,10 +3,16 @@
 // - 메모리만: 새로 고침·앱을 새로 켜면 비어 있다. 그래서 첫 그림(하이드레이션)은 늘 서버와 같다 — useState 초깃값으로 읽어도 된다.
 // - 주인: 로그인 정보(localStorage byeolkong_user, components/auth/AuthBootstrap 이 쓴다)가 바뀌거나 지워지면(로그아웃·탈퇴·세션 만료)
 //   전부 비운다 — 공용 기기에서 다른 사람의 데이터가 잠깐이라도 보이지 않게. 주인이 없으면 기억하지 않는다.
+// - 쓰기는 화면을 연 회원으로 고정한다(writeAs·useScreenCache) — 다른 탭에서 회원이 바뀐 뒤 옛 화면이 들고 있던 데이터를
+//   쓰면 새 회원 이름으로 남는다(Codex PR #23 P1). 연 회원과 지금 회원이 같을 때만 쓴다.
+import { useCallback, useRef, useState } from "react";
 
 export type ScreenCache = {
+  /** 지금 회원(없으면 null) — 화면을 열 때 읽어 두고 writeAs 에 넘긴다 */
+  owner(): string | null;
   read<T>(key: string): T | undefined;
-  write(key: string, value: unknown): void;
+  /** openedBy 가 지금 회원과 같을 때만 기억한다 */
+  writeAs(openedBy: string | null, key: string, value: unknown): void;
 };
 
 export function createScreenCache(getOwner: () => string | null): ScreenCache {
@@ -29,11 +35,12 @@ export function createScreenCache(getOwner: () => string | null): ScreenCache {
   };
 
   return {
+    owner: current,
     read<T>(key: string): T | undefined {
       return current() === null ? undefined : (store.get(key) as T | undefined);
     },
-    write(key: string, value: unknown): void {
-      if (current() !== null) store.set(key, value);
+    writeAs(openedBy: string | null, key: string, value: unknown): void {
+      if (openedBy !== null && current() === openedBy) store.set(key, value);
     },
   };
 }
@@ -52,3 +59,19 @@ export function ownerFromStoredUser(raw: string | null): string | null {
 export const screenCache = createScreenCache(() =>
   typeof window === "undefined" ? null : ownerFromStoredUser(window.localStorage.getItem("byeolkong_user")),
 );
+
+/** 화면에서 쓰는 손잡이 — 처음 그릴 기억(cached)과, 화면을 연 회원으로 고정한 쓰기(save).
+ *  열 때 회원을 아직 모르면 처음 쓸 때의 회원으로 고정한다. 그때도 모르면(새 기기·로그인 직후 첫 화면 — 로그인 정보를 AuthBootstrap 이
+ *  아직 안 채웠다) 그 화면은 이번엔 기억하지 않는다 — 다음에 열 때부터 기억한다 */
+export function useScreenCache<T>(key: string): { cached: T | undefined; save: (value: T) => void } {
+  const [opened] = useState(() => ({ by: screenCache.owner(), cached: screenCache.read<T>(key) }));
+  const by = useRef<string | null>(opened.by);
+  const save = useCallback(
+    (value: T) => {
+      if (by.current === null) by.current = screenCache.owner();
+      screenCache.writeAs(by.current, key, value);
+    },
+    [key],
+  );
+  return { cached: opened.cached, save };
+}

@@ -15,7 +15,7 @@ import { postToApp } from "@/lib/app-context";
 import { appSupportsPush } from "@/lib/app-push";
 import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -44,7 +44,7 @@ const CACHE_KEY = "mypage";
 export default function MyPage() {
   const router = useRouter();
   const { ready: appReady } = useAppInfo();
-  const [cached] = useState(() => screenCache.read<MyPageSnapshot>(CACHE_KEY));
+  const { cached, save } = useScreenCache<MyPageSnapshot>(CACHE_KEY);
   const [me, setMe] = useState<Me | null>(cached?.me ?? null);
   const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
   const [loading, setLoading] = useState(!cached);
@@ -62,7 +62,7 @@ export default function MyPage() {
 
   useEffect(() => {
     if (loading || !me?.user) return;
-    screenCache.write(CACHE_KEY, {
+    save({
       me,
       balance,
       profiles,
@@ -72,7 +72,7 @@ export default function MyPage() {
       readings,
       supportUnread,
     } satisfies MyPageSnapshot);
-  }, [loading, me, balance, profiles, relationshipProfileIds, relationshipCount, relationshipPassActive, readings, supportUnread]);
+  }, [save, loading, me, balance, profiles, relationshipProfileIds, relationshipCount, relationshipPassActive, readings, supportUnread]);
 
   useEffect(() => {
     void (async () => {

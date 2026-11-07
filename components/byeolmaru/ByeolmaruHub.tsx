@@ -18,7 +18,8 @@ import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
+import { hubCardTile } from "@/lib/byeolmaru/hub-card-tile";
 
 interface CalendarResponse {
   today: string;
@@ -110,7 +111,7 @@ interface HubSnapshot {
 const CACHE_KEY = "byeolmaru";
 
 export default function ByeolmaruHub() {
-  const [cached] = useState(() => screenCache.read<HubSnapshot>(CACHE_KEY));
+  const { cached, save } = useScreenCache<HubSnapshot>(CACHE_KEY);
   const [state, setState] = useState<State>(cached ? { kind: "ready", data: cached.data } : { kind: "loading" });
   const [attendance, setAttendance] = useState<AttendanceState | null>(cached?.data.attendance ?? null);
 
@@ -167,15 +168,14 @@ export default function ByeolmaruHub() {
   // 오늘 뽑은 카드 — 목록 행 타일에만 쓴다(뽑기 자체는 /byeolmaru/tarot 가 한다).
   const [dailyCard, setDailyCard] = useState<{ cardId: number } | null>(cached?.dailyCard ?? null);
   useEffect(() => {
-    if (state.kind === "ready") screenCache.write(CACHE_KEY, { data: state.data, dailyCard } satisfies HubSnapshot);
-  }, [state, dailyCard]);
+    if (state.kind === "ready") save({ data: state.data, dailyCard } satisfies HubSnapshot);
+  }, [save, state, dailyCard]);
   useEffect(() => {
     void (async () => {
       try {
         const res = await fetch("/api/byeolmaru/daily-card", { cache: "no-store" });
         if (!res.ok) return;
-        const j = await res.json();
-        if (j?.card?.cardId != null) setDailyCard({ cardId: j.card.cardId });
+        setDailyCard(hubCardTile(await res.json()));
       } catch { /* 목록 타일이 뒷면으로 남을 뿐이라 조용히 넘긴다 */ }
     })();
   }, []);

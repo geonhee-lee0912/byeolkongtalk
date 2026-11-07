@@ -13,7 +13,7 @@ import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/Thread
 import ProfileDetails from "@/components/relationship/ProfileDetails";
 import type { SajuResult } from "@/lib/saju/calc";
 import { formatPassRemaining } from "@/lib/relationship/passDisplay";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
 import {
   DAILY_TURN_CAP,
   EXTEND_COST,
@@ -97,7 +97,7 @@ const CACHE_KEY = "relationship";
 
 export default function RelationshipPage() {
   const router = useRouter();
-  const [cached] = useState(() => screenCache.read<RelationshipSnapshot>(CACHE_KEY));
+  const { cached, save } = useScreenCache<RelationshipSnapshot>(CACHE_KEY);
   const [loading, setLoading] = useState(!cached);
   const [me, setMe] = useState<Me | null>(cached?.me ?? null);
   const [relationships, setRelationships] = useState<RelHub[]>(cached?.relationships ?? []);
@@ -218,7 +218,7 @@ export default function RelationshipPage() {
 
   useEffect(() => {
     if (loading || !me?.user || selectionLoading || selected !== loadSelectedRef.current) return;
-    screenCache.write(CACHE_KEY, {
+    save({
       me,
       relationships,
       self,
@@ -231,7 +231,7 @@ export default function RelationshipPage() {
       activeSkill,
       balance,
     } satisfies RelationshipSnapshot);
-  }, [loading, me, relationships, self, selfSaju, profileSaju, selected, pass, daily, messages, activeSkill, balance, selectionLoading]);
+  }, [save, loading, me, relationships, self, selfSaju, profileSaju, selected, pass, daily, messages, activeSkill, balance, selectionLoading]);
 
   // 현재 선택을 유지한 채 데이터만 새로고침(편집 저장·패스 구매·스킬 종료 등)
   const refresh = async (sel: "me" | string = selected) => {

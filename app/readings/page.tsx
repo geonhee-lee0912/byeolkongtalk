@@ -12,7 +12,7 @@ import { readingCategory } from "@/lib/readings/category";
 import { getSituation } from "@/lib/relationship/situations";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
 
 interface ReadingItem {
   id: string;
@@ -414,7 +414,7 @@ const CACHE_KEY = "readings";
 function ReadingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [cached] = useState(() => screenCache.read<ReadingsSnapshot>(CACHE_KEY));
+  const { cached, save } = useScreenCache<ReadingsSnapshot>(CACHE_KEY);
   const [readings, setReadings] = useState<ReadingItem[]>(cached?.readings ?? []);
   const [relationships, setRelationships] = useState<RelationshipListItem[]>(cached?.relationships ?? []);
   const [loading, setLoading] = useState(!cached);
@@ -428,8 +428,8 @@ function ReadingsPageInner() {
   const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
 
   useEffect(() => {
-    if (!loading) screenCache.write(CACHE_KEY, { readings, relationships, tab, page } satisfies ReadingsSnapshot);
-  }, [loading, readings, relationships, tab, page]);
+    if (!loading) save({ readings, relationships, tab, page } satisfies ReadingsSnapshot);
+  }, [save, loading, readings, relationships, tab, page]);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })

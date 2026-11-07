@@ -7,7 +7,7 @@ import {
   INQUIRY_CATEGORY_ICON,
   type InquiryCategory,
 } from "@/lib/inquiries";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
 
 interface InquiryListItem {
   id: string;
@@ -31,14 +31,14 @@ const PAGE_SIZE = 5;
 const CACHE_KEY = "mypage/support";
 
 export default function SupportListPage() {
-  const [cached] = useState(() => screenCache.read<InquiryListItem[]>(CACHE_KEY));
+  const { cached, save } = useScreenCache<InquiryListItem[]>(CACHE_KEY);
   const [items, setItems] = useState<InquiryListItem[]>(cached ?? []);
   const [loading, setLoading] = useState(!cached);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    if (!loading) screenCache.write(CACHE_KEY, items);
-  }, [loading, items]);
+    if (!loading) save(items);
+  }, [save, loading, items]);
 
   useEffect(() => {
     void (async () => {

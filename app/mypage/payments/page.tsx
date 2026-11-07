@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { screenCache } from "@/lib/screen-cache";
+import { useScreenCache } from "@/lib/screen-cache";
 
 interface Payment {
   id: string;
@@ -58,7 +58,7 @@ interface PaymentsSnapshot {
 const CACHE_KEY = "mypage/payments";
 
 export default function PaymentsPage() {
-  const [cached] = useState(() => screenCache.read<PaymentsSnapshot>(CACHE_KEY));
+  const { cached, save } = useScreenCache<PaymentsSnapshot>(CACHE_KEY);
   const [payments, setPayments] = useState<Payment[]>(cached?.payments ?? []);
   const [txs, setTxs] = useState<StarTx[]>(cached?.txs ?? []);
   const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
@@ -66,8 +66,8 @@ export default function PaymentsPage() {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    if (!loading) screenCache.write(CACHE_KEY, { payments, txs, balance } satisfies PaymentsSnapshot);
-  }, [loading, payments, txs, balance]);
+    if (!loading) save({ payments, txs, balance } satisfies PaymentsSnapshot);
+  }, [save, loading, payments, txs, balance]);
 
   useEffect(() => {
     void (async () => {
