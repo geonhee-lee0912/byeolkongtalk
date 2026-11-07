@@ -141,6 +141,7 @@ export default function BottomTab() {
                     : "text-text-light hover:text-eye-purple",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
+                data-nav="tab"
                 onClick={(e) => {
                   // 지금 탭을 다시 누르면 맨 위로(앱 관례 — 스펙 2026-11-07-앱-화면 §5 ⑤). 웹도 같은 동작
                   if (active && pathname === tab.href) {

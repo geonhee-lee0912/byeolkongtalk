@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { appScreen, nextDepth } from "@/lib/app-shell/screens";
+import { markBackButton } from "@/lib/app-shell/nav-direction";
+import { runBackTransition } from "./AppNavDirection";
 import type { HeaderUser } from "./useHeaderAccount";
 
 /** '‹' 를 눌렀는데 이 시간 안에 화면이 안 바뀌면(기록 맨 앞 — 웹뷰에서 뒤로가 아무 일도 안 함) 탭 첫 화면으로 바꿔 연다 */
@@ -51,7 +53,8 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
       router.replace(root);
       return;
     }
-    router.back();
+    markBackButton();
+    runBackTransition(() => router.back());
     stuckTimer.current = setTimeout(() => router.replace(root), BACK_STUCK_MS);
   };
 
@@ -63,6 +66,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
           {user ? (
             <Link
               href="/shop"
+              data-nav="tab"
               className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40"
               aria-label="별콩 상점"
             >

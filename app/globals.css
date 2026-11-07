@@ -196,3 +196,104 @@ html[data-app] :is(a, button, [role="button"]):not(nav[aria-label="주요 메뉴
   transform: scale(0.97);
   opacity: 0.85;
 }
+
+/* 앱 화면 전환 — OS별 쌓기 흉내(스펙 §6). 방향은 html[data-nav](components/layout/AppNavDirection.tsx), 페이지 묶음은 .app-nav(AppShell).
+   헤더·탭바는 따로 이름을 줘 페이지 그림이 그 위로 지나가지 않게 하고, 움직이지 않는다. */
+html[data-app] header.app-only {
+  view-transition-name: app-header;
+}
+html[data-app] nav[aria-label="주요 메뉴"] {
+  view-transition-name: app-tabbar;
+}
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(app-header),
+::view-transition-old(app-header),
+::view-transition-new(app-header),
+::view-transition-group(app-tabbar),
+::view-transition-old(app-tabbar),
+::view-transition-new(app-tabbar),
+::view-transition-group(.app-nav) {
+  animation: none;
+}
+/* 웹(브라우저)·방향 없음·탭 바꾸기·아이폰 손가락 뒤로 가기 — 움직이지 않는다 */
+html:not([data-app])::view-transition-old(*),
+html:not([data-app])::view-transition-new(*),
+html:not([data-nav])::view-transition-old(.app-nav),
+html:not([data-nav])::view-transition-new(.app-nav),
+html:is([data-nav="tab"], [data-nav="none"])::view-transition-old(.app-nav),
+html:is([data-nav="tab"], [data-nav="none"])::view-transition-new(.app-nav) {
+  animation: none;
+}
+@keyframes app-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes app-out-left {
+  to {
+    transform: translateX(-30%);
+    filter: brightness(0.82);
+  }
+}
+@keyframes app-in-left {
+  from {
+    transform: translateX(-30%);
+    filter: brightness(0.82);
+  }
+}
+@keyframes app-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes app-rise-in {
+  from {
+    transform: translateY(8%);
+    opacity: 0;
+  }
+}
+@keyframes app-sink-out {
+  to {
+    transform: translateY(8%);
+    opacity: 0;
+  }
+}
+@keyframes app-hold {
+  to {
+    opacity: 1;
+  }
+}
+html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-new(.app-nav) {
+  animation: app-in-right 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-old(.app-nav) {
+  animation: app-out-left 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="back"]::view-transition-old(.app-nav) {
+  z-index: 1;
+  animation: app-out-right 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="back"]::view-transition-new(.app-nav) {
+  animation: app-in-left 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-app][data-platform="android"][data-nav="forward"]::view-transition-new(.app-nav) {
+  animation: app-rise-in 0.3s cubic-bezier(0.2, 0, 0, 1) both;
+}
+html[data-app][data-platform="android"][data-nav="forward"]::view-transition-old(.app-nav) {
+  animation: app-hold 0.3s both;
+}
+html[data-app][data-platform="android"][data-nav="back"]::view-transition-old(.app-nav) {
+  z-index: 1;
+  animation: app-sink-out 0.3s cubic-bezier(0.3, 0, 0.8, 0.15) both;
+}
+html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.app-nav) {
+  animation: app-hold 0.3s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
