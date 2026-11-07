@@ -12,7 +12,8 @@
 - 코드는 PR #18 로 dev 에 머지됨(2026-11-07). 이 브랜치에 `origin/dev` 를 merge 해 맞췄다.
 - 알림 표 5개는 dev DB 에 적용됨(PR #17). anon 키로 다섯 표 읽기·쓰기 모두 401 확인(2026-11-07).
 - 운영자 결정(11-06, 설계 §10): 위기 안내가 나간 상담은 시트를 자동으로 열지 않고 카드만 · 안드로이드 채널 중요도 보통(배너 없음).
-- dev 에서는 Vercel cron 이 돌지 않는다 — 발송은 `/api/cron/push-dispatch` 를 `CRON_SECRET` Bearer 로 손으로 부른다.
+- dev 에서는 Vercel cron 이 돌지 않는다 — 발송은 `/api/cron/push-dispatch` 를 `CRON_SECRET` Bearer 로 손으로 부른다. dev 배포는 보호(SSO)가 걸려 있으니, 로컬 dev 서버를 그 명령에만 `CRON_SECRET=<임시값>` 을 주고 띄워 localhost 로 부르는 게 쉽다(같은 dev DB·실제 Expo 로 나간다).
+- dev 배포(Vercel)·unit·Supabase 체크 모두 success(머지 커밋 `6d387dfe`). dev 사이트에서 알림 API 를 직접 불러 보지는 않았다(보호 때문).
 
 ## 다음 할 일
 
