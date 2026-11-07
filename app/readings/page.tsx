@@ -12,6 +12,7 @@ import { readingCategory } from "@/lib/readings/category";
 import { getSituation } from "@/lib/relationship/situations";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
+import { screenCache } from "@/lib/screen-cache";
 
 interface ReadingItem {
   id: string;
@@ -401,18 +402,34 @@ export default function ReadingsPage() {
   );
 }
 
+// 화면 기억(lib/screen-cache) — 결과를 보고 돌아오면 '잠시만…' 없이 보던 탭·쪽 그대로. 목록은 늘 새로 불러와 바꾼다
+interface ReadingsSnapshot {
+  readings: ReadingItem[];
+  relationships: RelationshipListItem[];
+  tab: ReadingsTab;
+  page: number;
+}
+const CACHE_KEY = "readings";
+
 function ReadingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [readings, setReadings] = useState<ReadingItem[]>([]);
-  const [relationships, setRelationships] = useState<RelationshipListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => screenCache.read<ReadingsSnapshot>(CACHE_KEY));
+  const [readings, setReadings] = useState<ReadingItem[]>(cached?.readings ?? []);
+  const [relationships, setRelationships] = useState<RelationshipListItem[]>(cached?.relationships ?? []);
+  const [loading, setLoading] = useState(!cached);
+  // 주소에 탭이 있으면 그게 우선, 없으면 기억해 둔 탭(쪽도 같은 탭일 때만 되살린다)
   const [tab, setTab] = useState<ReadingsTab>(() => {
     const t = searchParams.get("tab");
-    return READINGS_TABS.some((x) => x.key === t) ? (t as ReadingsTab) : "tarot";
+    if (READINGS_TABS.some((x) => x.key === t)) return t as ReadingsTab;
+    return cached?.tab ?? "tarot";
   });
   const [continueId, setContinueId] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
+
+  useEffect(() => {
+    if (!loading) screenCache.write(CACHE_KEY, { readings, relationships, tab, page } satisfies ReadingsSnapshot);
+  }, [loading, readings, relationships, tab, page]);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })

@@ -13,6 +13,7 @@ import ThreadChat, { type ThreadChatMsg } from "@/components/relationship/Thread
 import ProfileDetails from "@/components/relationship/ProfileDetails";
 import type { SajuResult } from "@/lib/saju/calc";
 import { formatPassRemaining } from "@/lib/relationship/passDisplay";
+import { screenCache } from "@/lib/screen-cache";
 import {
   DAILY_TURN_CAP,
   EXTEND_COST,
@@ -76,38 +77,59 @@ interface HubGet {
 
 const SKILL_PREVIEWS = RELATIONSHIP_SKILL_PREVIEWS;
 
+// 화면 기억(lib/screen-cache) — 다시 열면 '잠시만…' 대신 마지막 허브를 바로 그리고 load() 가 새로 불러와 바꾼다.
+// 기억하는 건 load() 가 고르는 관계(서버 selectedId)를 보고 있을 때의 모습뿐 — 다른 사람을 고른 상태를 기억하면
+// 다시 열 때 load() 가 서버 선택으로 되돌리며 화면이 한 번 튄다. 패스·잔액은 잠깐 옛 값일 수 있다(구매·차감은 서버가 판정).
+interface RelationshipSnapshot {
+  me: Me;
+  relationships: RelHub[];
+  self: PersonProfileView | null;
+  selfSaju: SajuResult | null;
+  profileSaju: Record<string, SajuResult | null>;
+  selected: "me" | string;
+  pass: PassData | null;
+  daily: DailyData | null;
+  messages: ThreadChatMsg[];
+  activeSkill: string | null;
+  balance: number | null;
+}
+const CACHE_KEY = "relationship";
+
 export default function RelationshipPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<Me | null>(null);
-  const [relationships, setRelationships] = useState<RelHub[]>([]);
-  const [self, setSelf] = useState<PersonProfileView | null>(null);
+  const [cached] = useState(() => screenCache.read<RelationshipSnapshot>(CACHE_KEY));
+  const [loading, setLoading] = useState(!cached);
+  const [me, setMe] = useState<Me | null>(cached?.me ?? null);
+  const [relationships, setRelationships] = useState<RelHub[]>(cached?.relationships ?? []);
+  const [self, setSelf] = useState<PersonProfileView | null>(cached?.self ?? null);
   // 내 명식판 표시용 — /api/profiles 의 isPrimary 프로필 saju(생일 없거나 계산 불가면 null).
-  const [selfSaju, setSelfSaju] = useState<SajuResult | null>(null);
+  const [selfSaju, setSelfSaju] = useState<SajuResult | null>(cached?.selfSaju ?? null);
   // /api/profiles 의 프로필 id → saju 맵(상대 명식 조회용). partnerProfileId 로 lookup.
-  const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>({});
+  const [profileSaju, setProfileSaju] = useState<Record<string, SajuResult | null>>(cached?.profileSaju ?? {});
   // 선택 대상: "me"(나 앵커) 또는 관계 id
-  const [selected, setSelected] = useState<"me" | string>("me");
+  const [selected, setSelected] = useState<"me" | string>(cached?.selected ?? "me");
   // 선택 상대의 다음 시뮬 판 자금원 — ProductList 시뮬 회수 표기용(/sim/quote).
   const [simQuote, setSimQuote] = useState<{ funding: "runway" | "hook" | "paid"; cost: number; runwayRemaining: number; weeklyAvailable: boolean } | null>(null);
   // 상대 카드 아래 상세(성격·MBTI·명식) 펼침 — 상대 전환 시 접힘으로 리셋
   const [partnerExpanded, setPartnerExpanded] = useState(false);
   // 허브(스위처+프로필+상품) ↔ 스레드(대화) 뷰 토글
   const [view, setView] = useState<"hub" | "thread">("hub");
-  const [pass, setPass] = useState<PassData | null>(null);
-  const [daily, setDaily] = useState<DailyData | null>(null);
-  const [messages, setMessages] = useState<ThreadChatMsg[]>([]);
+  const [pass, setPass] = useState<PassData | null>(cached?.pass ?? null);
+  const [daily, setDaily] = useState<DailyData | null>(cached?.daily ?? null);
+  const [messages, setMessages] = useState<ThreadChatMsg[]>(cached?.messages ?? []);
   // 새 사람 추가 — create 등록 모달 / 슬롯 구매 시트(슬롯 필요 시만). handleAddPerson 이 분기.
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [slotSheet, setSlotSheet] = useState<{ nextCost: number } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPassSheet, setShowPassSheet] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [activeSkill, setActiveSkill] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
+  const [activeSkill, setActiveSkill] = useState<string | null>(cached?.activeSkill ?? null);
   // 관계 전환 중 스코프드 데이터(messages/pass/daily)를 아직 못 받은 상태 — 이전 관계 값 표시 방지.
   const [selectionLoading, setSelectionLoading] = useState(false);
   // 조회 순서 토큰 — 빠른 A→B→A 전환에서 늦게 도착한 이전 응답이 최신 선택을 덮어쓰지 않도록.
   const reqTokenRef = useRef(0);
+  // load() 가 고른 관계 — 이 관계를 보고 있을 때만 화면 기억에 쓴다(위 RelationshipSnapshot 설명)
+  const loadSelectedRef = useRef<"me" | string | null>(cached?.selected ?? null);
   // 무료 인트로 배너 표시용 — 이번 마운트에서 보낸 유저 턴 수. load()/refresh() 가 messages 를
   // 다시 받아오면 그 안에 이미 포함되므로 0 으로 리셋한다(이중 계산 방지).
   const [sentFreeTurns, setSentFreeTurns] = useState(0);
@@ -189,9 +211,27 @@ export default function RelationshipPage() {
     if (rel && token === reqTokenRef.current) {
       applyGet(rel, token);
       setSelected(rel.selectedId ?? "me");
+      loadSelectedRef.current = rel.selectedId ?? "me";
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (loading || !me?.user || selectionLoading || selected !== loadSelectedRef.current) return;
+    screenCache.write(CACHE_KEY, {
+      me,
+      relationships,
+      self,
+      selfSaju,
+      profileSaju,
+      selected,
+      pass,
+      daily,
+      messages,
+      activeSkill,
+      balance,
+    } satisfies RelationshipSnapshot);
+  }, [loading, me, relationships, self, selfSaju, profileSaju, selected, pass, daily, messages, activeSkill, balance, selectionLoading]);
 
   // 현재 선택을 유지한 채 데이터만 새로고침(편집 저장·패스 구매·스킬 종료 등)
   const refresh = async (sel: "me" | string = selected) => {

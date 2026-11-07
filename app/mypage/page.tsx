@@ -15,6 +15,7 @@ import { postToApp } from "@/lib/app-context";
 import { appSupportsPush } from "@/lib/app-push";
 import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
+import { screenCache } from "@/lib/screen-cache";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -27,23 +28,51 @@ interface ReadingListItem {
   emotionTag?: string | null;
 }
 
+// 화면 기억(lib/screen-cache) — 다시 열면 '잠시만…' 대신 마지막 모습을 바로 그리고 새로 불러와 바꾼다
+interface MyPageSnapshot {
+  me: Me;
+  balance: number | null;
+  profiles: ProfileItem[];
+  relationshipProfileIds: string[];
+  relationshipCount: number;
+  relationshipPassActive: boolean;
+  readings: ReadingListItem[];
+  supportUnread: number;
+}
+const CACHE_KEY = "mypage";
+
 export default function MyPage() {
   const router = useRouter();
   const { ready: appReady } = useAppInfo();
-  const [me, setMe] = useState<Me | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => screenCache.read<MyPageSnapshot>(CACHE_KEY));
+  const [me, setMe] = useState<Me | null>(cached?.me ?? null);
+  const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawAck, setWithdrawAck] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [profiles, setProfiles] = useState<ProfileItem[]>(cached?.profiles ?? []);
   const [showSelfEdit, setShowSelfEdit] = useState(false);
   const [showAcqModal, setShowAcqModal] = useState(false);
-  const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
-  const [relationshipCount, setRelationshipCount] = useState(0);
-  const [relationshipPassActive, setRelationshipPassActive] = useState(false);
-  const [readings, setReadings] = useState<ReadingListItem[]>([]);
-  const [supportUnread, setSupportUnread] = useState(0);
+  const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>(cached?.relationshipProfileIds ?? []);
+  const [relationshipCount, setRelationshipCount] = useState(cached?.relationshipCount ?? 0);
+  const [relationshipPassActive, setRelationshipPassActive] = useState(cached?.relationshipPassActive ?? false);
+  const [readings, setReadings] = useState<ReadingListItem[]>(cached?.readings ?? []);
+  const [supportUnread, setSupportUnread] = useState(cached?.supportUnread ?? 0);
+
+  useEffect(() => {
+    if (loading || !me?.user) return;
+    screenCache.write(CACHE_KEY, {
+      me,
+      balance,
+      profiles,
+      relationshipProfileIds,
+      relationshipCount,
+      relationshipPassActive,
+      readings,
+      supportUnread,
+    } satisfies MyPageSnapshot);
+  }, [loading, me, balance, profiles, relationshipProfileIds, relationshipCount, relationshipPassActive, readings, supportUnread]);
 
   useEffect(() => {
     void (async () => {
