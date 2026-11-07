@@ -157,3 +157,12 @@ body {
     font-size: 16px;
   }
 }
+
+/* 앱 모드 — 웹·앱이 다른 부분은 둘 다 그려 두고 하나를 숨긴다. data-app 은 루트 레이아웃 첫 스크립트가 붙인다(lib/app-shell/mode.ts).
+   스펙 docs/superpowers/specs/2026-11-07-앱-화면-design.md §3 */
+html[data-app] .web-only {
+  display: none !important;
+}
+html:not([data-app]) .app-only {
+  display: none !important;
+}
