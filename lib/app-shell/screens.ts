@@ -72,3 +72,9 @@ export function appScreen(pathname: string): AppScreen {
 export function nextDepth(depth: number, ev: "push" | "pop"): number {
   return ev === "push" ? depth + 1 : Math.max(0, depth - 1);
 }
+
+/** 주소(경로+쿼리)가 바뀔 때의 기록 깊이 — 쿼리만 바뀐 이동도 기록 한 칸이다. prevKey 가 없으면(첫 화면) 그대로 */
+export function depthOnChange(depth: number, prevKey: string | null, key: string, popped: boolean): number {
+  if (prevKey === null || prevKey === key) return depth;
+  return nextDepth(depth, popped ? "pop" : "push");
+}

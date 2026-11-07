@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appScreen, nextDepth } from "./screens.ts";
+import { appScreen, depthOnChange, nextDepth } from "./screens.ts";
 
 test("탭 첫 화면 5개", () => {
   assert.deepEqual(appScreen("/"), { kind: "tab", title: "타로톡" });
@@ -69,4 +69,14 @@ test("nextDepth — push 는 하나 늘고 pop 은 0 아래로 안 내려간다"
   assert.equal(nextDepth(0, "pop"), 0);
   assert.equal(nextDepth(2, "push"), 3);
   assert.equal(nextDepth(3, "pop"), 2);
+});
+
+test("depthOnChange — 쿼리만 바뀐 이동도 한 칸으로 센다(Codex PR #21 P2: 별마루 지난 날짜 → 오늘 카드)", () => {
+  assert.equal(depthOnChange(0, "/byeolmaru/day?tab=tarot&date=2026-11-01", "/byeolmaru/day?tab=tarot", false), 1);
+  assert.equal(depthOnChange(1, "/byeolmaru/day?tab=tarot", "/byeolmaru/day?tab=tarot&date=2026-11-01", true), 0);
+});
+
+test("depthOnChange — 첫 화면(이전 없음)·같은 주소는 그대로", () => {
+  assert.equal(depthOnChange(0, null, "/mypage/payments", false), 0);
+  assert.equal(depthOnChange(2, "/mypage?x=1", "/mypage?x=1", false), 2);
 });

@@ -49,8 +49,10 @@ export function runBackTransition(goBack: () => void): void {
   layer.style.cssText = "position:fixed;inset:0;z-index:39;overflow:hidden;pointer-events:none;";
   const clone = page.cloneNode(true) as HTMLElement;
   clone.removeAttribute("data-app-page");
+  clone.classList.add("app-back-clone"); // 복제로 다시 도는 등장 애니메이션 끄기(globals.css)
   const bodyBg = getComputedStyle(document.body);
-  clone.style.cssText += `;position:absolute;left:0;top:${rect.top}px;width:${rect.width}px;margin:0;` +
+  // 높이도 원본만큼 — 절대 위치라 flex-1 이 풀려 내용 높이로 줄면 그 아래로 돌아간 화면이 먼저 드러나 이음매가 보인다
+  clone.style.cssText += `;position:absolute;left:0;top:${rect.top}px;width:${rect.width}px;min-height:${rect.height}px;margin:0;` +
     `background:${bodyBg.backgroundColor} ${bodyBg.backgroundImage};background-attachment:fixed;` +
     (platform === "ios" ? "box-shadow:-8px 0 24px rgba(31,23,53,0.18);" : "");
   layer.appendChild(clone);
@@ -61,7 +63,9 @@ export function runBackTransition(goBack: () => void): void {
     clone.animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], { duration: 350, easing: IOS_EASE, fill: "forwards" }).onfinish = done;
     page.animate([{ transform: "translateX(-30%)", filter: "brightness(0.82)" }, { transform: "none", filter: "none" }], { duration: 350, easing: IOS_EASE });
   } else {
-    clone.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(8%)", opacity: 0 }], { duration: 300, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" }).onfinish = done;
+    // 가라앉는 건 0.3초, 옅어지는 건 마지막 0.1초만 — 오래 반투명이면 두 화면이 겹쳐 보인다(2026-11-07 실기기)
+    clone.animate([{ transform: "none" }, { transform: "translateY(8%)" }], { duration: 300, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" }).onfinish = done;
+    clone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, delay: 200, fill: "forwards" });
   }
   setTimeout(done, 1_000); // 애니메이션이 끝나지 못해도(탭 전환으로 멈춤 등) 덮개는 반드시 걷는다
 }

@@ -204,6 +204,17 @@ html[data-app] :is(a, button, [role="button"]):not(nav[aria-label="주요 메뉴
 html[data-app] header.app-only {
   view-transition-name: app-header;
 }
+/* 화면 묶음은 불투명하게 — 배경이 없으면 전환 중 들어오는 화면 틈으로 아래 화면이 비친다(2026-11-07 아이폰 실기기). 바탕(html)과 같은 색 */
+html[data-app] [data-app-page] {
+  background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
+  background-attachment: fixed;
+}
+/* ‹ 뒤로 전환의 복제본(AppNavDirection runBackTransition) — 복제하면 페이지 등장 애니메이션(fade-in 등)이 처음부터 다시 돌아 빈 장처럼 보인다 */
+.app-back-clone,
+.app-back-clone * {
+  animation: none !important;
+  transition: none !important;
+}
 html[data-app] nav[aria-label="주요 메뉴"] {
   view-transition-name: app-tabbar;
 }
@@ -250,9 +261,13 @@ html:is([data-nav="tab"], [data-nav="none"])::view-transition-new(.app-nav) {
     transform: translateX(100%);
   }
 }
-@keyframes app-rise-in {
+@keyframes app-rise {
   from {
     transform: translateY(8%);
+  }
+}
+@keyframes app-appear {
+  from {
     opacity: 0;
   }
 }
@@ -280,8 +295,11 @@ html[data-app][data-platform="ios"][data-nav="back"]::view-transition-old(.app-n
 html[data-app][data-platform="ios"][data-nav="back"]::view-transition-new(.app-nav) {
   animation: app-in-left 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+/* 안드로이드 — 떠오르는 움직임은 0.3초, 진해지는 건 0.1초만(오래 반투명이면 두 화면이 겹쳐 보인다 — 2026-11-07 실기기) */
 html[data-app][data-platform="android"][data-nav="forward"]::view-transition-new(.app-nav) {
-  animation: app-rise-in 0.3s cubic-bezier(0.2, 0, 0, 1) both;
+  animation:
+    app-rise 0.3s cubic-bezier(0.2, 0, 0, 1) both,
+    app-appear 0.1s linear both;
 }
 html[data-app][data-platform="android"][data-nav="forward"]::view-transition-old(.app-nav) {
   animation: app-hold 0.3s both;

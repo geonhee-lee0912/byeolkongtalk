@@ -5,8 +5,8 @@
 // 상태바와 이어지게 단색 cream(앱 SafeAreaView 배경과 같다). 계정·잔액은 웹 헤더가 넘겨준다(한 번만 불러오게).
 import Link from "next/link";
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { appScreen, nextDepth } from "@/lib/app-shell/screens";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { appScreen, depthOnChange } from "@/lib/app-shell/screens";
 import { markBackButton, requestBack } from "@/lib/app-shell/nav-direction";
 import { runBackTransition } from "./AppNavDirection";
 import type { HeaderUser } from "./useHeaderAccount";
@@ -14,10 +14,10 @@ import type { HeaderUser } from "./useHeaderAccount";
 /** '‹' 를 눌렀는데 이 시간 안에 기록 뒤로(popstate)가 안 오면(기록 맨 앞 — 웹뷰에서 뒤로가 아무 일도 안 함) 탭 첫 화면으로 바꿔 연다 */
 const BACK_STUCK_MS = 400;
 
-// 앱 안 기록 깊이 — 헤더가 다시 그려져도 이어지게 모듈에 둔다. 셸이 숨는 화면(/login 등)을 거친 이동은 세지 못해 적게 셀 수 있고,
+// 앱 안 기록 깊이 — 헤더가 다시 그려져도 이어지게 모듈에 둔다. 경로+쿼리로 센다(쿼리만 바뀐 이동도 기록 한 칸 — 아래 AppHistoryDepth). 셸이 숨는 화면(/login 등)을 거친 이동은 세지 못해 적게 셀 수 있고,
 // router.replace 를 push 로 세어 많게 셀 수도 있다 — 많게 센 경우는 requestBack 의 BACK_STUCK_MS 가 막는다
 let depth = 0;
-let lastPath: string | null = null;
+let lastKey: string | null = null;
 let popped = false;
 if (typeof window !== "undefined") {
   window.addEventListener("popstate", () => {
@@ -25,16 +25,23 @@ if (typeof window !== "undefined") {
   });
 }
 
+/** 기록 깊이 세기 — 쿼리를 읽어야 해서(useSearchParams) AppShell 이 Suspense 안에 따로 둔다 */
+export function AppHistoryDepth() {
+  const pathname = usePathname() || "/";
+  const search = useSearchParams()?.toString() ?? "";
+  const key = search ? `${pathname}?${search}` : pathname;
+  useEffect(() => {
+    depth = depthOnChange(depth, lastKey, key, popped);
+    popped = false;
+    lastKey = key;
+  }, [key]);
+  return null;
+}
+
 export default function AppHeader({ user, balance }: { user: HeaderUser | null; balance: number | null }) {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const screen = appScreen(pathname);
-
-  useEffect(() => {
-    if (lastPath !== null && lastPath !== pathname) depth = nextDepth(depth, popped ? "pop" : "push");
-    popped = false;
-    lastPath = pathname;
-  }, [pathname]);
 
   const goBack = () => {
     if (screen.kind !== "sub") return;
