@@ -12,6 +12,8 @@ import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import { postToApp } from "@/lib/app-context";
+import { appSupportsPush } from "@/lib/app-push";
+import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
 
 interface Me {
@@ -27,6 +29,7 @@ interface ReadingListItem {
 
 export default function MyPage() {
   const router = useRouter();
+  const { ready: appReady } = useAppInfo();
   const [me, setMe] = useState<Me | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -319,6 +322,17 @@ export default function MyPage() {
             </span>
             <span className="text-text-light/40">›</span>
           </Link>
+          {appReady && appSupportsPush() && (
+            <Link href="/mypage/notifications" className="flex items-center gap-3 p-3.5">
+              <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                  <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21" />
+                </svg>
+              </span>
+              <span className="flex-1 text-[14px] text-eye-purple font-medium">알림 설정</span>
+              <span className="text-text-light/40">›</span>
+            </Link>
+          )}
           <button
             onClick={() => setShowWithdrawConfirm(true)}
             className="w-full flex items-center gap-3 p-3.5"

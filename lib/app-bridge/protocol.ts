@@ -13,10 +13,15 @@ export const HANDOFF_CODE_HEADER = "X-Byeolkong-Handoff";
 
 export type AppPlatform = "ios" | "android";
 /** 앱이 문서 시작 전에 window.__BYEOLKONG_APP__ 로 주입하는 값 */
-export type AppInfo = { version: string; platform: AppPlatform };
+export type AppInfo = { version: string; platform: AppPlatform; caps?: string[] };
+
+/** 앱이 가진 기능 표시 — caps 가 없는 옛 앱은 아무 기능도 없는 것으로 본다 */
+export function hasCap(info: AppInfo | null, cap: "push"): boolean {
+  return !!info && Array.isArray(info.caps) && info.caps.includes(cap);
+}
 
 /** 웹이 앱에 보내는 메시지 종류 — 이 목록이 단일 원천이다(타입도 여기서 나온다). 목록에 없는 종류는 앱이 버린다 */
-const WEB_TO_APP_TYPES = ["auth.loggedOut"] as const;
+const WEB_TO_APP_TYPES = ["auth.loggedOut", "push.status", "push.request", "push.openSettings"] as const;
 export type WebToAppType = (typeof WEB_TO_APP_TYPES)[number];
 export type WebToAppMessage = { v: typeof BRIDGE_VERSION; type: WebToAppType; payload: Record<string, never> };
 
@@ -61,6 +66,30 @@ export function parseWebToApp(raw: string): WebToAppMessage | null {
     const m = JSON.parse(raw) as Record<string, unknown> | null;
     if (!m || m.v !== BRIDGE_VERSION || !isWebToAppType(m.type)) return null;
     return { v: BRIDGE_VERSION, type: m.type, payload: {} };
+  } catch {
+    return null;
+  }
+}
+
+export type PushState = "granted" | "denied" | "undetermined";
+const PUSH_STATES = ["granted", "denied", "undetermined"] as const;
+
+/** 앱이 웹에 알릴 때 window 에 쏘는 CustomEvent 이름 (detail = encodeAppToWeb 이 만든 문자열) */
+export const APP_EVENT = "byeolkong:app";
+export type AppToWebMessage = { v: typeof BRIDGE_VERSION; type: "push.state"; state: PushState };
+
+export function encodeAppToWeb(state: PushState): string {
+  const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "push.state", state };
+  return JSON.stringify(msg);
+}
+
+/** 웹이 받은 값(JSON 문자열 또는 이미 읽힌 객체) → 아는 메시지면 새로 만든 객체, 아니면 null */
+export function parseAppToWeb(raw: unknown): AppToWebMessage | null {
+  try {
+    const m = (typeof raw === "string" ? JSON.parse(raw) : raw) as Record<string, unknown> | null;
+    if (!m || typeof m !== "object" || m.v !== BRIDGE_VERSION || m.type !== "push.state") return null;
+    const state = (PUSH_STATES as readonly unknown[]).find((s) => s === m.state) as PushState | undefined;
+    return state ? { v: BRIDGE_VERSION, type: "push.state", state } : null;
   } catch {
     return null;
   }

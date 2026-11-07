@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   EMOTION_OPTIONS,
@@ -23,6 +23,13 @@ import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
 import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
 import { clearPendingDraw, loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
+import {
+  PENDING_DRAW_BANNER_KEY,
+  PENDING_DRAW_BANNER_MAX_VIEWS,
+  RESUME_BANNER_KEY,
+  RESUME_BANNER_MAX_VIEWS,
+  takeBannerView,
+} from "@/lib/home-banner-views";
 
 export default function Home() {
   const router = useRouter();
@@ -37,13 +44,23 @@ export default function Home() {
   // (7일 만료는 loadPendingDraw 가 하는데 꺼져 있으면 아무도 안 부른다 — 스펙 §10 '최대 7일'과 어긋난다). 옛 흐름의 보통 방문엔 지울 키가 없어 화면은 그대로다.
   // 스위치 'old'(지금 prod)에서도 도는 줄이라 localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다 — 그땐 이어가기 줄만 안 뜬다
   const [pendingDraw, setPendingDraw] = useState(false);
+  const pendingDrawView = useRef<boolean | null>(null);
   useEffect(() => {
     try {
       if (!entryFeaturesOn()) {
         clearPendingDraw(localStorage);
         return;
       }
-      setPendingDraw(loadPendingDraw(localStorage) !== null);
+      const saved = loadPendingDraw(localStorage);
+      if (!saved) return;
+      // 한 번 방문에 한 번만 센다(개발 모드는 이 효과가 두 번 돈다)
+      pendingDrawView.current ??= takeBannerView(
+        () => localStorage,
+        PENDING_DRAW_BANNER_KEY,
+        String(saved.savedAt),
+        PENDING_DRAW_BANNER_MAX_VIEWS
+      );
+      setPendingDraw(pendingDrawView.current);
     } catch {
       // noop
     }
@@ -52,6 +69,7 @@ export default function Home() {
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
   // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
   // 로그인 직후 새로고침 없이 배너가 따라오게.
+  const resumeView = useRef<{ id: string; show: boolean } | null>(null);
   useEffect(() => {
     const load = async () => {
       try {
@@ -59,17 +77,26 @@ export default function Home() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null);
         const readings = (list?.readings ?? []) as Array<{
+          id: string;
           consultationType?: string;
           emotionTag?: string | null;
           ended?: boolean;
         }>;
-        const resumable = readings.some(
+        // 목록은 최신순 — 가장 최근의 끝나지 않은 대화를 기준으로 센다
+        const resumable = readings.find(
           (r) =>
             r.consultationType === "tarot" &&
             !fortuneTypeFromTag(r.emotionTag ?? null) &&
             r.ended === false
         );
-        setHasResumable(resumable);
+        // 로그인 동기화 뒤 이 함수가 다시 돌아도 한 번 방문에 한 번만 센다
+        if (resumable && resumeView.current?.id !== resumable.id) {
+          resumeView.current = {
+            id: resumable.id,
+            show: takeBannerView(() => localStorage, RESUME_BANNER_KEY, resumable.id, RESUME_BANNER_MAX_VIEWS),
+          };
+        }
+        setHasResumable(!!resumable && resumeView.current?.show === true);
 
         // 웰컴 넛지: 로그인했는데 리딩이 하나도 없는 유저 (광고 가입 후 이탈 재방문 등)
         let loggedIn = false;

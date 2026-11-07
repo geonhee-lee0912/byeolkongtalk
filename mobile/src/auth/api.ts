@@ -2,6 +2,7 @@
 // (첫 화면이 스플래시에 갇히지 않게 — 실패면 session.ts 가 웹뷰 쿠키에 맡기고 연다). 스펙 2026-10-12-앱-1 §7-3·§7-4.
 import { Platform } from "react-native";
 import { config } from "../config";
+import { loginFailureLog, type LoginProvider } from "./loginFailure.ts";
 import type { AuthApi, Tokens } from "./session.ts";
 
 const TIMEOUT_MS = 10_000;
@@ -20,7 +21,13 @@ export class ApiError extends Error {
 export const isAuthError = (e: unknown) =>
   e instanceof ApiError && e.status === 401 && (e.code === "invalid" || e.code === "reused");
 
-async function post(path: string, body: Record<string, unknown>, accessToken?: string): Promise<Record<string, unknown>> {
+/** 우리 서버 JSON 호출 — 인증 라우트와 알림 기기 등록·해제(push/register.ts)가 같이 쓴다 */
+export async function postJson(
+  path: string,
+  body: Record<string, unknown>,
+  accessToken?: string,
+  method: "POST" | "DELETE" = "POST",
+): Promise<Record<string, unknown>> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   // 개발용 빌드만 — dev 사이트 Vercel 접근 보호 통과
@@ -29,7 +36,7 @@ async function post(path: string, body: Record<string, unknown>, accessToken?: s
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(`${config.baseUrl}${path}`, {
-      method: "POST",
+      method,
       headers,
       body: JSON.stringify(body),
       signal: ctrl.signal,
@@ -50,22 +57,27 @@ function tokensFrom(d: Record<string, unknown>): Tokens {
   return { accessToken: d.accessToken, refreshToken: d.refreshToken, accessExpiresAt: Date.now() + d.accessExpiresIn * 1000 };
 }
 
+/** 로그인 실패 사유를 서버 로그로 — 기록 실패는 사용자와 무관하니 삼킨다 */
+export function reportLoginFailure(provider: LoginProvider, e: unknown): void {
+  postJson("/api/log/error", loginFailureLog(provider, Platform.OS, e)).catch(() => {});
+}
+
 export const authApi: AuthApi = {
   async login(payload) {
     const { provider, ...rest } = payload;
-    const d = await post(`/api/auth/app/${provider}`, { ...rest, platform: Platform.OS });
+    const d = await postJson(`/api/auth/app/${provider}`, { ...rest, platform: Platform.OS });
     if (typeof d.handoffCode !== "string") throw new ApiError(500, "bad_response");
     return { ...tokensFrom(d), handoffCode: d.handoffCode, isNewUser: d.isNewUser === true };
   },
   async refresh(refreshToken) {
-    return tokensFrom(await post("/api/auth/app/refresh", { refreshToken }));
+    return tokensFrom(await postJson("/api/auth/app/refresh", { refreshToken }));
   },
   async handoffCode(accessToken) {
-    const d = await post("/api/auth/app/handoff-code", {}, accessToken);
+    const d = await postJson("/api/auth/app/handoff-code", {}, accessToken);
     if (typeof d.handoffCode !== "string") throw new ApiError(500, "bad_response");
     return d.handoffCode;
   },
   async logout(refreshToken) {
-    await post("/api/auth/app/logout", { refreshToken });
+    await postJson("/api/auth/app/logout", { refreshToken });
   },
 };
