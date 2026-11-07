@@ -11,7 +11,7 @@ import { navKindForClick, navKindForPopstate, takeBackButton, type NavKind } fro
 /** 화면이 바뀐 뒤 data-nav 를 지우기까지 — 전환 애니메이션(최대 0.35초)이 끝날 만큼 */
 const CLEAR_AFTER_NAV_MS = 600;
 /** 값을 넣었는데 화면이 안 바뀌었을 때(이동이 막힌 링크 등) 지우기까지 — 남아 있으면 다음 화면 안 트랜지션이 미끄러진다 */
-const CLEAR_IF_STUCK_MS = 3_000;
+const CLEAR_IF_STUCK_MS = 1_500;
 
 let clearTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -82,7 +82,8 @@ export default function AppNavDirection() {
         download: a.hasAttribute("download"),
         modified: e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0,
         navAttr: a.getAttribute("data-nav"),
-        samePath: url.pathname + url.search === location.pathname + location.search,
+        // 경로가 같으면(쿼리만 다른 같은 화면 안 탭) 새 화면으로 미끄러지지 않는다
+        samePath: url.pathname === location.pathname,
       });
       if (kind) setNav(kind);
     };

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { markBackButton, navKindForClick, navKindForPopstate, takeBackButton } from "./nav-direction.ts";
+import { markBackButton, navKindForClick, navKindForPopstate, requestBack, takeBackButton } from "./nav-direction.ts";
 
 const LINK = { sameOrigin: true, target: null, download: false, modified: false, navAttr: null, samePath: false };
 
@@ -39,4 +39,32 @@ test("‹ 표시는 한 번만 꺼내진다", () => {
   markBackButton();
   assert.equal(takeBackButton(), true);
   assert.equal(takeBackButton(), false);
+});
+
+test("경로가 같고 쿼리만 다르면 이동으로 보지 않는다(같은 화면 안 탭) — 리뷰 #4", () => {
+  assert.equal(navKindForClick({ ...LINK, samePath: true }), null);
+});
+
+test("뒤로 대기 — 대기 중 두 번째 요청은 무시, popstate 가 오면 풀리고 막힘 처리는 안 부른다 — 리뷰 #1·#2", async () => {
+  const target = new EventTarget();
+  let backs = 0;
+  let stuck = 0;
+  assert.equal(requestBack(target, () => backs++, () => stuck++, 30), true);
+  assert.equal(requestBack(target, () => backs++, () => stuck++, 30), false);
+  target.dispatchEvent(new Event("popstate"));
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(backs, 1);
+  assert.equal(stuck, 0);
+  assert.equal(requestBack(target, () => backs++, () => stuck++, 30), true);
+  target.dispatchEvent(new Event("popstate"));
+});
+
+test("뒤로 대기 — popstate 가 안 오면(기록 맨 앞) 막힘 처리를 한 번 부르고 풀린다", async () => {
+  const target = new EventTarget();
+  let stuck = 0;
+  requestBack(target, () => {}, () => stuck++, 20);
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(stuck, 1);
+  assert.equal(requestBack(target, () => {}, () => stuck++, 20), true);
+  target.dispatchEvent(new Event("popstate"));
 });

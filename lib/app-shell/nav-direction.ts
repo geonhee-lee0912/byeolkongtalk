@@ -11,7 +11,7 @@ export type ClickInfo = {
   modified: boolean;
   /** 링크의 data-nav 값(하단 탭은 "tab") */
   navAttr: string | null;
-  /** 지금과 같은 경로·쿼리 — 이동이 아니다 */
+  /** 지금과 같은 경로(쿼리는 안 본다) — 같은 화면 안의 바뀜이라 미끄러지지 않는다 */
   samePath: boolean;
 };
 
@@ -38,4 +38,29 @@ export function takeBackButton(): boolean {
   const v = backButton;
   backButton = false;
   return v;
+}
+
+let backPending = false;
+
+/**
+ * 앱 헤더 '‹' 의 뒤로 가기. 기다리는 동안 다시 눌린 것은 무시한다(빠른 두 번 누름이 두 칸 뒤로 가지 않게).
+ * popstate 가 오면 뒤로가 일어난 것이니 풀고, stuckMs 안에 안 오면(웹뷰 기록 맨 앞 — 뒤로가 아무 일도 안 함) onStuck 을 부른다.
+ * 경로가 같은 칸(쿼리만 다른 기록·결과 화면의 보관함 복귀용 칸)으로 돌아가도 popstate 는 오므로 잘못 onStuck 하지 않는다.
+ * 부른 쪽이 실제로 뒤로 가기 시작했으면 true
+ */
+export function requestBack(target: EventTarget, goBack: () => void, onStuck: () => void, stuckMs: number): boolean {
+  if (backPending) return false;
+  backPending = true;
+  const finish = () => {
+    backPending = false;
+    clearTimeout(timer);
+    target.removeEventListener("popstate", finish);
+  };
+  const timer = setTimeout(() => {
+    finish();
+    onStuck();
+  }, stuckMs);
+  target.addEventListener("popstate", finish);
+  goBack();
+  return true;
 }

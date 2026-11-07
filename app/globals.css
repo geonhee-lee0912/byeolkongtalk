@@ -181,6 +181,8 @@ html[data-app] textarea,
 html[data-app] [contenteditable] {
   -webkit-user-select: text;
   user-select: text;
+  /* touch-callout 은 상속된다 — 풀지 않으면 아이폰에서 복사·붙여넣기 메뉴가 안 뜬다 */
+  -webkit-touch-callout: default;
 }
 /* 복사 허용 영역 안이라도 버튼·링크는 길게 눌러 글자가 잡히지 않게 */
 html[data-app] .selectable :is(a, button, [role="button"]),
