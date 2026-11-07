@@ -7,6 +7,7 @@ import {
   INQUIRY_CATEGORY_ICON,
   type InquiryCategory,
 } from "@/lib/inquiries";
+import { screenCache } from "@/lib/screen-cache";
 
 interface InquiryListItem {
   id: string;
@@ -26,10 +27,18 @@ function fmtDate(iso: string): string {
 
 const PAGE_SIZE = 5;
 
+// 화면 기억(lib/screen-cache) — 문의를 보고 돌아오면 '잠시만…' 대신 마지막 목록을 바로 그리고 새로 불러와 바꾼다(답변 읽음 표시 등)
+const CACHE_KEY = "mypage/support";
+
 export default function SupportListPage() {
-  const [items, setItems] = useState<InquiryListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => screenCache.read<InquiryListItem[]>(CACHE_KEY));
+  const [items, setItems] = useState<InquiryListItem[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (!loading) screenCache.write(CACHE_KEY, items);
+  }, [loading, items]);
 
   useEffect(() => {
     void (async () => {

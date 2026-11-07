@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { screenCache } from "@/lib/screen-cache";
 
 interface Payment {
   id: string;
@@ -48,12 +49,25 @@ type Row =
   | { kind: "payment"; id: string; time: number; payment: Payment }
   | { kind: "star"; id: string; time: number; tx: StarTx };
 
+// 화면 기억(lib/screen-cache) — 다시 열면 '잠시만…' 대신 마지막 내역을 바로 그리고 새로 불러와 바꾼다
+interface PaymentsSnapshot {
+  payments: Payment[];
+  txs: StarTx[];
+  balance: number | null;
+}
+const CACHE_KEY = "mypage/payments";
+
 export default function PaymentsPage() {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [txs, setTxs] = useState<StarTx[]>([]);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => screenCache.read<PaymentsSnapshot>(CACHE_KEY));
+  const [payments, setPayments] = useState<Payment[]>(cached?.payments ?? []);
+  const [txs, setTxs] = useState<StarTx[]>(cached?.txs ?? []);
+  const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (!loading) screenCache.write(CACHE_KEY, { payments, txs, balance } satisfies PaymentsSnapshot);
+  }, [loading, payments, txs, balance]);
 
   useEffect(() => {
     void (async () => {

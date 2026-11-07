@@ -18,6 +18,7 @@ import { scoreDisplay } from "@/lib/byeolmaru/calendar-visual";
 import { useByeolmaruSubscribe } from "./useByeolmaruSubscribe";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
+import { screenCache } from "@/lib/screen-cache";
 
 interface CalendarResponse {
   today: string;
@@ -100,21 +101,33 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
   );
 }
 
+// 화면 기억(lib/screen-cache) — 다시 열면 '펼치고 있어…' 대신 마지막 허브를 바로 그리고 refresh() 가 새로 받아 바꾼다.
+// 구독·체험 상태가 잠깐 옛 값일 수 있다 — 낡은 구독 버튼은 서버가 409 로 막는다(아래 reloadAfterChange 주석)
+interface HubSnapshot {
+  data: CalendarResponse;
+  dailyCard: { cardId: number } | null;
+}
+const CACHE_KEY = "byeolmaru";
+
 export default function ByeolmaruHub() {
-  const [state, setState] = useState<State>({ kind: "loading" });
-  const [attendance, setAttendance] = useState<AttendanceState | null>(null);
+  const [cached] = useState(() => screenCache.read<HubSnapshot>(CACHE_KEY));
+  const [state, setState] = useState<State>(cached ? { kind: "ready", data: cached.data } : { kind: "loading" });
+  const [attendance, setAttendance] = useState<AttendanceState | null>(cached?.data.attendance ?? null);
+
+  // 못 읽었을 때 — 기억해 둔 허브를 그리고 있으면 그대로 두고(다시 열었을 뿐인데 '못 펼쳤어'로 바뀌지 않게), 아니면 error
+  const failed = () => setState((s) => (s.kind === "ready" ? s : { kind: "error" }));
 
   async function refresh() {
     try {
       const res = await fetch("/api/byeolmaru/calendar", { cache: "no-store" });
       if (res.status === 401) { trackUiEvent("byeolmaru_need_login"); setState({ kind: "need_login" }); return; }
       if (res.status === 404) { trackUiEvent("byeolmaru_no_profile"); setState({ kind: "no_profile" }); return; }
-      if (!res.ok) { setState({ kind: "error" }); return; }
+      if (!res.ok) { failed(); return; }
       const data: CalendarResponse = await res.json();
-      if (data.cells.length === 0) { setState({ kind: "error" }); return; }
+      if (data.cells.length === 0) { failed(); return; }
       setState({ kind: "ready", data });
       setAttendance(data.attendance);
-    } catch { setState({ kind: "error" }); }
+    } catch { failed(); }
   }
   useEffect(() => { void refresh(); }, []);
 
@@ -152,7 +165,10 @@ export default function ByeolmaruHub() {
   const router = useRouter();
 
   // 오늘 뽑은 카드 — 목록 행 타일에만 쓴다(뽑기 자체는 /byeolmaru/tarot 가 한다).
-  const [dailyCard, setDailyCard] = useState<{ cardId: number } | null>(null);
+  const [dailyCard, setDailyCard] = useState<{ cardId: number } | null>(cached?.dailyCard ?? null);
+  useEffect(() => {
+    if (state.kind === "ready") screenCache.write(CACHE_KEY, { data: state.data, dailyCard } satisfies HubSnapshot);
+  }, [state, dailyCard]);
   useEffect(() => {
     void (async () => {
       try {
