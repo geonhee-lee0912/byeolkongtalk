@@ -2,69 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-interface UserInfo {
-  id: string;
-  nickname: string;
-  profile_img: string | null;
-}
+import AppHeader from "./AppHeader";
+import { useHeaderAccount } from "./useHeaderAccount";
 
 export default function Header() {
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-
-  useEffect(() => {
-    const sync = () => {
-      const stored = localStorage.getItem("byeolkong_user");
-      if (stored) {
-        try {
-          setUser(JSON.parse(stored));
-        } catch {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    };
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener("byeolkong:user-updated", sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("byeolkong:user-updated", sync);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setBalance(null);
-      return;
-    }
-    let cancelled = false;
-    const fetchBalance = async () => {
-      try {
-        const r = await fetch("/api/stars/balance", { cache: "no-store" });
-        if (!r.ok) return;
-        const data = (await r.json()) as { balance?: number };
-        if (!cancelled && typeof data.balance === "number") {
-          setBalance(data.balance);
-        }
-      } catch {
-        // ignore
-      }
-    };
-    fetchBalance();
-    const onUpdate = () => fetchBalance();
-    window.addEventListener("byeolkong:balance-updated", onUpdate);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("byeolkong:balance-updated", onUpdate);
-    };
-  }, [user]);
+  const { user, balance } = useHeaderAccount();
 
   return (
-    <header className="sticky top-0 z-50 bg-cream/85 backdrop-blur-md border-b border-lilac-soft/60">
+    <>
+    {/* 웹 헤더(web-only) + 앱 헤더(app-only) — 둘 다 그려 두고 CSS 로 하나를 숨긴다(스펙 2026-11-07-앱-화면 §3·§4) */}
+    <header className="web-only sticky top-0 z-50 bg-cream/85 backdrop-blur-md border-b border-lilac-soft/60">
       <div className="max-w-md mx-auto h-14 flex items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-1.5">
           <span className="relative w-7 h-7 shrink-0 rounded-lg bg-lilac-soft flex items-center justify-center overflow-hidden">
@@ -133,5 +80,7 @@ export default function Header() {
         </div>
       </div>
     </header>
+    <AppHeader user={user} balance={balance} />
+    </>
   );
 }
