@@ -37,7 +37,9 @@ export function appUserAgentSuffix(info: AppInfo): string {
 }
 
 /** 버전 문자·길이는 uaVersion 과 같다(길이 상한 — UA 는 누구나 보낼 수 있어 읽은 버전을 어디에 남겨도 커지지 않게) */
-const UA_RE = /ByeolkongApp\/([0-9A-Za-z._-]{1,32}) \((ios|android)\)/;
+// 루트 레이아웃의 앱 모드 스크립트(lib/app-shell/mode.ts)도 이 원천을 쓴다 — 두 판정이 갈라지지 않게
+export const APP_UA_RE_SOURCE = String.raw`ByeolkongApp\/([0-9A-Za-z._-]{1,32}) \((ios|android)\)`;
+const UA_RE = new RegExp(APP_UA_RE_SOURCE);
 
 export function parseAppUserAgent(ua: string | null | undefined): AppInfo | null {
   if (!ua) return null;

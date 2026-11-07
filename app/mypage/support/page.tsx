@@ -52,7 +52,8 @@ export default function SupportListPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        <Link href="/mypage" className="text-[12px] text-text-light/70">
+        {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
+        <Link href="/mypage" className="web-only text-[12px] text-text-light/70">
           ‹ 내 정보
         </Link>
         {/* 빈 상태에선 목록 안 "첫 문의 작성하기" 버튼과 중복 → 숨김 */}

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import BusinessInfo from "./BusinessInfo";
 
+// 앱에서는 숨긴다(web-only) — 약관·사업자 정보는 마이 > 약관·사업자 정보(/mypage/legal). 스펙 2026-11-07-앱-화면 §9
 export default function Footer() {
   return (
-    <footer className="w-full mt-auto -mb-20">
+    <footer className="web-only w-full mt-auto -mb-20">
       <div className="max-w-md mx-auto px-5 pt-6 pb-24 bg-white/[0.75] backdrop-blur-sm border-t border-lilac-soft/40 rounded-t-3xl">
         {/* 브랜딩 */}
         <div className="flex items-center gap-2.5 mb-4">
@@ -24,15 +26,7 @@ export default function Footer() {
         <div className="h-px bg-lilac-soft/40 mb-4" />
 
         {/* 사업자 정보 */}
-        <div className="text-[11px] text-text-light/90 leading-loose space-y-0.5">
-          <p>상호: 브레이브샤인</p>
-          <p>대표자: 이건희</p>
-          <p>사업자등록번호: 537-29-02059</p>
-          <p>통신판매업신고번호: 2026-서울영등포-1106호</p>
-          <p>주소: 서울특별시 영등포구 양평로</p>
-          <p>대표전화: 0502-1924-6473</p>
-          <p>이메일: oneulcard@gmail.com</p>
-        </div>
+        <BusinessInfo />
 
         {/* 콘텐츠 존 진입 — 🔴 SEO 상 이 링크가 존재 이유다.
             /guide 이하 30개 URL 은 sitemap 에만 있고 **사이트 어디에서도 링크되지 않아**

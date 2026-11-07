@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
 import AppShell from "@/components/layout/AppShell";
+import { appModeScript } from "@/lib/app-shell/mode";
 import MetaPixel from "@/components/analytics/MetaPixel";
 import PageViewBeacon from "@/components/analytics/PageViewBeacon";
 import "./globals.css";
@@ -73,11 +74,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // suppressHydrationWarning — <body> 첫 스크립트(appModeScript)가 하이드레이션 전에 data-app·data-platform 을 붙인다
     <html
       lang="ko"
+      suppressHydrationWarning
       className={`${notoSansKR.variable} ${cafe24Ssurround.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* 앱 모드 표시 — AppShell 보다 앞이어야 헤더가 그려지기 전에 실행된다(스펙 2026-11-07-앱-화면 §3) */}
+        <script dangerouslySetInnerHTML={{ __html: appModeScript() }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

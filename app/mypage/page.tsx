@@ -333,6 +333,16 @@ export default function MyPage() {
               <span className="text-text-light/40">›</span>
             </Link>
           )}
+          {/* 앱에서만 — 앱은 푸터를 숨기므로 약관·사업자 정보를 여기서 연다(스펙 2026-11-07-앱-화면 §9) */}
+          <Link href="/mypage/legal" className="app-only flex items-center gap-3 p-3.5">
+            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+            </span>
+            <span className="flex-1 text-[14px] text-eye-purple font-medium">약관·사업자 정보</span>
+            <span className="text-text-light/40">›</span>
+          </Link>
           <button
             onClick={() => setShowWithdrawConfirm(true)}
             className="w-full flex items-center gap-3 p-3.5"

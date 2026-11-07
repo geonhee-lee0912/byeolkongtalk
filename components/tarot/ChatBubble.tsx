@@ -29,7 +29,7 @@ export default function ChatBubble({
   if (role === "user") {
     return (
       <div className="flex justify-end mb-3 animate-fade-in">
-        <div className="max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-md text-[14px] leading-relaxed whitespace-pre-wrap">
+        <div className="selectable max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-md text-[14px] leading-relaxed whitespace-pre-wrap">
           {content}
         </div>
       </div>
@@ -41,7 +41,8 @@ export default function ChatBubble({
   const card = dc ? getCard(dc.card_id) : null;
 
   return (
-    <div className="flex items-start gap-2 mb-3 animate-fade-in">
+    // selectable — 앱은 기본으로 글자 선택을 막지만 상담 답변은 복사할 수 있게 둔다(스펙 2026-11-07-앱-화면 §5 ①)
+    <div className="selectable flex items-start gap-2 mb-3 animate-fade-in">
       {/* 프로필 컬럼 — 턴의 첫 버블 + 카드 해석 시작 버블에만 노출 */}
       <div className="w-8 shrink-0">
         {showAvatar && (

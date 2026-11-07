@@ -124,18 +124,20 @@ function ResultPageInner() {
   );
 
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
+    // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
+    <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="text-[12px] text-text-light/70">
+          <button onClick={() => router.back()} className="web-only text-[12px] text-text-light/70">
             ‹ 뒤로
           </button>
         ) : (
-          <Link href="/" className="text-[12px] text-text-light/70">
+          <Link href="/" className="web-only text-[12px] text-text-light/70">
             ‹ 홈으로
           </Link>
         )}
-        <div className="text-[11px] text-text-light/60">
+        {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
+        <div className="ml-auto text-[11px] text-text-light/60">
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>
       </div>

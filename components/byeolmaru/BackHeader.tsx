@@ -13,7 +13,8 @@ export default function BackHeader() {
     //    Link 쪽 margin 이 아니라 여기인 이유: Link 는 inline-flex 라 세로 마진이 줄 박스
     //    계산과 얽히고, 링크에 pl 을 주면 탭 영역이 화면 왼쪽 끝까지 끌려간다. 패딩은 위치만 민다.
     // 🔴 그래서 `←` 는 더 이상 아래 탭 판 왼쪽 끝과 정렬되지 않는다 — 의도된 것이다.
-    <header className="pl-2 pt-2">
+    // 앱에선 앱 헤더(‹ + 제목)와 겹쳐 숨긴다(web-only, 스펙 2026-11-07-앱-화면 §4)
+    <header className="web-only pl-2 pt-2">
       <Link
         href="/byeolmaru"
         // 🔴 칩(연보라 알약)이 아니라 **텍스트형**이다(2026-09-27, 사용자 결정). 바로 아래 탭
