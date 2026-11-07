@@ -49,7 +49,8 @@ export default function SupportNewPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-5">
+      {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
+      <div className="web-only w-full max-w-md mx-auto px-5 mb-5">
         <Link href="/mypage/support" className="text-[12px] text-text-light/70">
           ‹ 문의 목록
         </Link>

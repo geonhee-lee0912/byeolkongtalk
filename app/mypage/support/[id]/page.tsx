@@ -77,7 +77,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
     return (
       <main className="flex flex-1 flex-col items-center py-8 w-full">
         <div className="w-full max-w-md mx-auto px-5">
-          <Link href="/mypage/support" className="text-[12px] text-text-light/70">
+          <Link href="/mypage/support" className="web-only text-[12px] text-text-light/70">
             ‹ 문의 목록
           </Link>
           <p className="text-text-light/70 text-[13px] text-center py-12">
@@ -91,7 +91,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage/support" className="text-[12px] text-text-light/70">
+        <Link href="/mypage/support" className="web-only text-[12px] text-text-light/70">
           ‹ 문의 목록
         </Link>
       </div>

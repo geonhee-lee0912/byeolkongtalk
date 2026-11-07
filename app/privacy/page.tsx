@@ -36,15 +36,16 @@ export default function PrivacyPage() {
   const router = useRouter();
   return (
     <div className="w-full max-w-md mx-auto px-5 pt-3 pb-16 animate-fade-in">
+      {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
         개인정보처리방침
       </h1>
       <p className="text-[11px] text-text-light text-center mb-6">
