@@ -7,6 +7,7 @@ import Header from "./Header";
 import BottomTab from "./BottomTab";
 import UserPopupGate from "@/components/popup/UserPopupGate";
 import AppNavDirection from "./AppNavDirection";
+import { AppHistoryDepth } from "./AppHeader";
 import { useAppInfo } from "@/lib/use-app-info";
 
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
@@ -36,19 +37,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      {/* data-app-page — ‹ 뒤로 전환이 복제·이동하는 화면 묶음(AppNavDirection runBackTransition) */}
-      <div
-        data-app-page
-        className="flex-1 flex flex-col"
-        style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
-      >
-        {/* 앱 화면 전환 — 방향은 <html data-nav>(AppNavDirection), 움직임은 globals.css 의 .app-nav. 값이 없으면 움직이지 않는다 */}
-        <ViewTransition update={app ? "app-nav" : "none"} default="none">
+      {/* 앱 화면 전환 — 방향은 <html data-nav>(AppNavDirection), 움직임은 globals.css 의 .app-nav. 값이 없으면 움직이지 않는다.
+          전환 그림은 화면 묶음 전체(헤더 아래~탭바 뒤, 앱에선 불투명 배경) — 페이지 본문만 찍으면 투명한 틈으로 아래 화면이 비친다 */}
+      <ViewTransition update={app ? "app-nav" : "none"} default="none">
+        {/* data-app-page — ‹ 뒤로 전환이 복제·이동하는 화면 묶음(AppNavDirection runBackTransition) */}
+        <div
+          data-app-page
+          className="flex-1 flex flex-col"
+          style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+        >
           {children}
-        </ViewTransition>
-      </div>
+        </div>
+      </ViewTransition>
       <AppNavDirection />
       <Suspense fallback={null}>
+        <AppHistoryDepth />
         <BottomTab />
       </Suspense>
       <UserPopupGate />
