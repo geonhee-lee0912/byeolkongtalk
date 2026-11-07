@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>앱 화면 구조 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* 구조 시안 — 헤더·시트·전환·약관 줄의 '자리와 동작'만. 색·꾸밈은 다음 일(전체 디자인 다듬기)에서 정한다. 스펙 2026-11-07-앱-화면-design.md */
+  :root {
+    --cream:#FAF6F0; --cream-warm:#FFF8F0; --lilac-soft:#E8DEF5; --lilac:#D4C7EE; --lilac-mid:#B8A8D8;
+    --lilac-deep:#9F8AD0; --gold:#E8C26A; --eye:#5A3E8C; --text-light:#7A6BA0; --night:#1F1735; --night-deep:#2A1F4D;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Noto Sans KR",system-ui,sans-serif; background:#efeaf6; color:var(--eye); padding:24px 16px 64px; }
+  h1 { font-size:20px; font-weight:900; margin:0 0 4px; }
+  .lead { font-size:13px; color:var(--text-light); margin-bottom:24px; line-height:1.6; }
+  .grid { display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; }
+  .cell { width:320px; max-width:100%; }
+  .cap { font-size:13px; font-weight:700; margin:0 0 8px; }
+  .cap small { display:block; font-weight:400; color:var(--text-light); margin-top:2px; line-height:1.5; }
+  .phone { position:relative; width:320px; max-width:100%; height:620px; border-radius:34px; overflow:hidden; background:var(--cream);
+    box-shadow:0 10px 30px rgba(31,23,53,.18); border:6px solid #241b3d; }
+  .status { height:30px; display:flex; justify-content:space-between; align-items:center; padding:0 22px; font-size:11px; font-weight:700; color:var(--night); background:var(--cream); }
+  /* 앱 헤더 */
+  .hdr-tab { height:52px; display:flex; align-items:center; justify-content:space-between; padding:0 18px; background:var(--cream); }
+  .hdr-tab .t { font-size:22px; font-weight:900; letter-spacing:-.4px; color:var(--night); }
+  .star { display:flex; align-items:center; gap:4px; height:30px; padding:0 11px; border-radius:999px; background:#fff; border:1px solid var(--lilac); font-size:12px; font-weight:700; }
+  .hdr-sub { height:48px; display:grid; grid-template-columns:48px 1fr 48px; align-items:center; background:var(--cream); border-bottom:1px solid rgba(184,168,216,.35); }
+  .hdr-sub .back { font-size:28px; line-height:1; text-align:center; color:var(--night); font-weight:300; }
+  .hdr-sub .t { text-align:center; font-size:16px; font-weight:700; color:var(--night); }
+  /* 지금 웹 헤더 */
+  .hdr-web { height:52px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; background:rgba(250,246,240,.85); border-bottom:1px solid rgba(232,222,245,.6); }
+  .logo { display:flex; align-items:center; gap:6px; font-weight:900; font-size:19px; }
+  .logo i { width:26px; height:26px; border-radius:8px; background:var(--lilac-soft); display:inline-block; }
+  .chips { display:flex; gap:6px; }
+  .pill { height:28px; padding:0 9px; border-radius:999px; background:#fff; border:1px solid var(--lilac-soft); font-size:11px; font-weight:700; display:flex; align-items:center; }
+  .body { padding:14px 18px; }
+  .card { background:#fff; border-radius:16px; padding:14px; margin-bottom:10px; }
+  .line { height:9px; border-radius:6px; background:var(--lilac-soft); margin:7px 0; }
+  .line.s { width:60%; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:64px; background:#fff; border-top:1px solid var(--lilac-soft); display:flex; justify-content:space-around; align-items:center; font-size:10px; color:var(--text-light); }
+  .tabs b { color:var(--eye); }
+  .tabs span, .tabs b { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tabs span::before, .tabs b::before { content:""; width:20px; height:20px; border-radius:6px; background:var(--lilac); }
+  .tabs b::before { background:var(--eye); }
+  .footer { margin-top:10px; padding:14px; border-radius:18px 18px 0 0; background:rgba(255,255,255,.75); font-size:10px; color:var(--text-light); line-height:1.8; }
+  .x { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .tag { position:absolute; font-size:10px; font-weight:700; color:#fff; background:#d0506a; padding:3px 8px; border-radius:999px; }
+  .tag.ok { background:#3f8f6b; }
+  /* 시트 */
+  .dim { position:absolute; inset:0; background:rgba(31,23,53,.45); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--cream); border-radius:22px 22px 0 0; padding:10px 20px 34px; }
+  .grab { width:38px; height:5px; border-radius:3px; background:var(--lilac-mid); margin:0 auto 16px; }
+  .sheet .st { font-size:16px; font-weight:900; text-align:center; }
+  .sheet .ss { font-size:12px; color:var(--text-light); text-align:center; margin-top:6px; }
+  .sheet .btn { margin-top:18px; height:46px; border-radius:999px; background:var(--eye); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .arrow-down { position:absolute; right:18px; top:-58px; font-size:11px; color:#fff; text-align:center; line-height:1.4; }
+  /* 마이 */
+  .row { display:flex; justify-content:space-between; align-items:center; padding:14px 4px; border-top:1px solid var(--lilac-soft); font-size:13px; }
+  .row:last-child { border-bottom:1px solid var(--lilac-soft); }
+  .row em { font-style:normal; color:var(--lilac-mid); }
+  .biz { font-size:11.5px; line-height:1.9; color:var(--text-light); }
+  /* 전환 그림 */
+  .trans { display:flex; gap:10px; }
+  .mini { position:relative; width:150px; height:270px; border-radius:20px; overflow:hidden; border:4px solid #241b3d; background:var(--cream); }
+  .layer { position:absolute; inset:0; padding:30px 10px 10px; }
+  .layer .hb { height:18px; border-radius:5px; background:var(--lilac); margin-bottom:8px; }
+  .under { background:var(--cream); }
+  .ios .under { transform:translateX(-30%); filter:brightness(.82); }
+  .ios .over { transform:translateX(55%); background:#fff; box-shadow:-8px 0 16px rgba(31,23,53,.18); }
+  .and .over { transform:translateY(8%); opacity:.85; background:#fff; box-shadow:0 -6px 16px rgba(31,23,53,.15); border-radius:14px 14px 0 0; }
+  .note { font-size:11px; color:var(--text-light); margin-top:8px; line-height:1.6; }
+  section { margin-bottom:40px; }
+  h2 { font-size:15px; font-weight:900; margin:0 0 12px; }
+</style>
+</head>
+<body>
+<h1>앱 화면 구조 시안</h1>
+<p class="lead">자리와 동작만 보여 주는 구조 시안이에요. 색·글꼴·꾸밈은 다음 일 '전체 디자인 다듬기'에서 정해요.<br>스펙: <code>docs/superpowers/specs/2026-11-07-앱-화면-design.md</code></p>
+
+<section>
+<h2>① 헤더 — 지금 웹 헤더 vs 앱 헤더</h2>
+<div class="grid">
+  <div class="cell">
+    <p class="cap">지금 (앱에서도 웹 헤더)<small>로고 + 별 잔액 + 프로필 칩, 모든 화면에 같은 모양 · 맨 아래 사업자 정보 푸터</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-web"><span class="logo"><i></i>별콩톡</span><span class="chips"><span class="pill">⭐ 12</span><span class="pill">QA봇</span></span></div>
+      <div class="body">
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="footer">상호 · 대표자 · 사업자등록번호 · 통신판매업신고번호 · 주소 · 대표전화 · 이메일<br>타로 가이드 · 이용약관 · 개인정보처리방침 · 환불정책</div>
+      </div>
+      <div class="tabs"><b>타로톡</b><span>사주 운세</span><span>별마루</span><span>별콩 상점</span><span>마이</span></div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">앱 · 탭 첫 화면<small>왼쪽 화면 제목 + 오른쪽 별 잔액 하나 · 로고·프로필 칩 없음 · 푸터 없음 · 상태바와 헤더가 같은 단색</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-tab"><span class="t">타로톡</span><span class="star">⭐ 12</span></div>
+      <div class="body">
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+      </div>
+      <div class="tabs"><b>타로톡</b><span>사주 운세</span><span>별마루</span><span>별콩 상점</span><span>마이</span></div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">앱 · 하위 화면<small>‹ 뒤로 + 가운데 제목 · 화면이 갖던 '← 돌아가기' 줄은 앱에서 숨김 · 하단 탭 표시 여부는 지금 그대로</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-sub"><span class="back">‹</span><span class="t">알림 설정</span><span></span></div>
+      <div class="body">
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="card"><div class="line"></div><div class="line"></div><div class="line s"></div></div>
+      </div>
+      <div class="tabs"><span>타로톡</span><span>사주 운세</span><span>별마루</span><span>별콩 상점</span><b>마이</b></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>② 화면 쌓기 — OS별 흉내</h2>
+<div class="grid">
+  <div class="cell">
+    <p class="cap">아이폰 · 들어가기<small>새 화면이 오른쪽에서 덮고, 아래 화면은 왼쪽으로 1/3 밀리며 어두워짐 · 왼쪽 끝 밀기 뒤로 가기는 웹뷰 기본(손가락을 따라감)</small></p>
+    <div class="trans ios">
+      <div class="mini"><div class="layer under"><div class="hb"></div><div class="line"></div><div class="line s"></div></div><div class="layer over"><div class="hb"></div><div class="line"></div><div class="line s"></div></div></div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">안드로이드 · 들어가기<small>새 화면이 살짝 아래에서 떠오르며 나타남 · 뒤로 버튼은 반대로 · 예측 뒤로 가기 미리보기는 없음</small></p>
+    <div class="trans and">
+      <div class="mini"><div class="layer under"><div class="hb"></div><div class="line"></div><div class="line s"></div></div><div class="layer over"><div class="hb"></div><div class="line"></div><div class="line s"></div></div></div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">공통<small>탭 바꾸기는 애니메이션 없이 즉시 · 지원 안 되는 기기는 지금처럼 바로 바뀜 · 웹(브라우저)은 애니메이션 없음</small></p>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>③ 공통 시트 · ④ 마이의 약관·사업자 정보</h2>
+<div class="grid">
+  <div class="cell">
+    <p class="cap">공통 시트 (예: 다시 볼 날)<small>손잡이 · 끌어내려 닫기 · 바깥 누르면 닫기 · 안드로이드 뒤로 버튼 = 시트만 닫기 · 뒤 화면 스크롤 잠금</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-sub"><span class="back">‹</span><span class="t">타로 결과</span><span></span></div>
+      <div class="body"><div class="card"><div class="line"></div><div class="line"></div><div class="line s"></div></div></div>
+      <div class="dim"></div>
+      <div class="sheet">
+        <div class="arrow-down">↓<br>끌어내려 닫기</div>
+        <div class="grab"></div>
+        <p class="st">이 고민, 언제 다시 볼까?</p>
+        <p class="ss">그날 별콩이가 알려줄게.</p>
+        <div class="btn">알림 받을래</div>
+      </div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">마이 맨 아래<small>앱에서만 보이는 한 줄 '약관·사업자 정보'</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-tab"><span class="t">마이</span><span class="star">⭐ 12</span></div>
+      <div class="body">
+        <div class="card"><div class="line"></div><div class="line s"></div></div>
+        <div class="row">알림 설정 <em>›</em></div>
+        <div class="row">고객센터 <em>›</em></div>
+        <div class="row">로그아웃 <em>›</em></div>
+        <div class="row">약관·사업자 정보 <em>›</em></div>
+      </div>
+      <div class="tabs"><span>타로톡</span><span>사주 운세</span><span>별마루</span><span>별콩 상점</span><b>마이</b></div>
+    </div>
+  </div>
+  <div class="cell">
+    <p class="cap">약관·사업자 정보 (/mypage/legal)<small>사업자 정보 7줄(지금 푸터와 같은 내용) + 약관 세 링크</small></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr-sub"><span class="back">‹</span><span class="t">약관·사업자 정보</span><span></span></div>
+      <div class="body">
+        <div class="row">이용약관 <em>›</em></div>
+        <div class="row">개인정보처리방침 <em>›</em></div>
+        <div class="row">환불정책 <em>›</em></div>
+        <p class="biz" style="margin-top:16px">상호 · 대표자 · 사업자등록번호 · 통신판매업신고번호 · 주소 · 대표전화 · 이메일<br>(지금 푸터 내용 그대로)</p>
+      </div>
+      <div class="tabs"><span>타로톡</span><span>사주 운세</span><span>별마루</span><span>별콩 상점</span><b>마이</b></div>
+    </div>
+  </div>
+</div>
+</section>
+</body>
+</html>
