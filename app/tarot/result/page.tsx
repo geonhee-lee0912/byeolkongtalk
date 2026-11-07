@@ -154,7 +154,8 @@ function TarotResultInner() {
   )?.icon;
 
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
+    // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
+    <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {sp.get("from") === "history" ? (
           <button onClick={() => router.back()} className="web-only text-[12px] text-text-light/70">

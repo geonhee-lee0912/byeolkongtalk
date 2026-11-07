@@ -166,3 +166,33 @@ html[data-app] .web-only {
 html:not([data-app]) .app-only {
   display: none !important;
 }
+
+/* 앱 작은 동작(스펙 §5 ①③) — 앱에서만. 글자 선택은 기본으로 막고 상담 답변·리포트 본문(.selectable)과 입력칸만 연다.
+   🔴 입력칸을 풀어 두지 않으면 아이폰에서 타이핑·커서 이동이 안 된다 */
+html[data-app] body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html[data-app] .selectable,
+html[data-app] .selectable *,
+html[data-app] input,
+html[data-app] textarea,
+html[data-app] [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* 복사 허용 영역 안이라도 버튼·링크는 길게 눌러 글자가 잡히지 않게 */
+html[data-app] .selectable :is(a, button, [role="button"]),
+html[data-app] .selectable :is(a, button, [role="button"]) * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+html[data-app] * {
+  -webkit-tap-highlight-color: transparent;
+}
+/* 누르는 동안 살짝 작아지고 옅어진다 — 하단 탭바는 통째로 줄지 않게 뺀다 */
+html[data-app] :is(a, button, [role="button"]):not(nav[aria-label="주요 메뉴"] *):active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}

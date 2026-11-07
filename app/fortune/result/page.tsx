@@ -474,6 +474,8 @@ function FortuneResultInner() {
         </div>
       )}
 
+      {/* 앱에서도 리포트 본문은 복사할 수 있게(selectable). contents — 레이아웃에 상자를 더하지 않는다 */}
+      <div className="selectable contents">
       {isDaily && dailyReport ? (
         <DailyReportCard report={dailyReport} dateLabel={dateLabel} />
       ) : isMonthly && monthlyReport ? (
@@ -526,6 +528,7 @@ function FortuneResultInner() {
           ))}
         </div>
       )}
+      </div>
 
       <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
         {isPublic ? (
