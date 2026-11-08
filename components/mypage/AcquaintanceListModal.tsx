@@ -2,8 +2,9 @@
 
 // 지인 사주 팝업 — 원래 SajuProfileModal 의 "지인 사주" 파트(목록·추가/수정·케밥·삭제확인·
 // 페이지네이션)를 분리. 명식(self) 편집은 SelfSajuEditModal 이 담당.
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import {
@@ -35,14 +36,7 @@ export default function AcquaintanceListModal({
   const [sheetId, setSheetId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 배경 스크롤 잠금
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog(목록 · 케밥 · 삭제 확인 각각 — 맨 위 하나만 닫힌다)
 
   const acquaintances = profiles.filter((p) => !p.isPrimary);
 
@@ -83,13 +77,15 @@ export default function AcquaintanceListModal({
     }
   };
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
+  return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5"
-        onClick={onClose}
+      <Dialog
+        label="지인 사주"
+        onClose={onClose}
+        z={50}
+        widthClassName="max-w-md"
+        gutterClassName="px-5"
+        backdropClassName="bg-black/30"
       >
         <div
           ref={scrollRef}
@@ -99,13 +95,12 @@ export default function AcquaintanceListModal({
           {/* 헤더 */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
             <h2 className="text-[15px] font-bold text-eye-purple">지인 사주</h2>
-            <button
-              onClick={onClose}
+            <OverlayCloseButton
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
             >
               ✕
-            </button>
+            </OverlayCloseButton>
           </div>
 
           <div className="px-5 pb-5">
@@ -274,18 +269,19 @@ export default function AcquaintanceListModal({
             )}
           </div>
         </div>
-      </div>
+      </Dialog>
 
       {/* 지인 행 케밥 팝업 */}
       {sheetId && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-5"
-          onClick={() => setSheetId(null)}
+        <Dialog
+          label="지인 사주 메뉴"
+          onClose={() => setSheetId(null)}
+          z={60}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-black/30"
         >
-          <div
-            className="bg-white rounded-2xl w-full max-w-xs p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-white rounded-2xl w-full max-w-xs p-2">
             <button
               onClick={() => {
                 setEditAcqId(sheetId);
@@ -307,19 +303,28 @@ export default function AcquaintanceListModal({
             >
               삭제
             </button>
-            <button
-              onClick={() => setSheetId(null)}
-              className="w-full py-3.5 rounded-xl text-[14px] text-text-light/70"
-            >
+            <OverlayCloseButton className="w-full py-3.5 rounded-xl text-[14px] text-text-light/70">
               취소
-            </button>
+            </OverlayCloseButton>
           </div>
-        </div>
+        </Dialog>
       )}
 
-      {/* 지인 삭제 확인 모달 (연애 상담 사용 중이면 경고 체크 게이트) */}
+      {/* 지인 삭제 확인 모달 (연애 상담 사용 중이면 경고 체크 게이트) — 버튼으로만 닫힌다 */}
       {deleteAcqId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-5">
+        <Dialog
+          label="지인 사주 삭제"
+          role="alertdialog"
+          dismissible={false}
+          onClose={() => {
+            setDeleteAcqId(null);
+            setDeleteAck(false);
+          }}
+          z={60}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-black/30"
+        >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
             <p className="text-[14px] font-bold text-eye-purple mb-2">지인 사주 삭제</p>
             <p className="text-[12px] text-text-light leading-relaxed mb-4">
@@ -343,15 +348,9 @@ export default function AcquaintanceListModal({
               </div>
             )}
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setDeleteAcqId(null);
-                  setDeleteAck(false);
-                }}
-                className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
-              >
+              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]">
                 취소
-              </button>
+              </OverlayCloseButton>
               <button
                 onClick={() => deleteAcquaintance(deleteAcqId)}
                 disabled={relationshipProfileIds.includes(deleteAcqId) && !deleteAck}
@@ -361,9 +360,8 @@ export default function AcquaintanceListModal({
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
-    </>,
-    document.body
+    </>
   );
 }

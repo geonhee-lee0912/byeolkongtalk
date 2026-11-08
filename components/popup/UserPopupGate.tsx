@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
 import PopupCard, { type PopupContent } from "./PopupCard";
 
 interface Popup extends PopupContent {
@@ -49,10 +49,10 @@ export default function UserPopupGate() {
     setBusy(false);
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 bg-night/45 backdrop-blur-[2px] animate-fade-in">
+  // "확인했어"로만 닫힌다(바깥 누르기·ESC 무시) — 판은 PopupCard(어드민 미리보기와 같이 쓴다)
+  return (
+    <Dialog label="안내" onClose={() => void ack()} dismissible={false} z={100}>
       <PopupCard content={popup} onConfirm={ack} busy={busy} />
-    </div>,
-    document.body
+    </Dialog>
   );
 }

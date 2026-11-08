@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
@@ -330,30 +331,28 @@ function EmotionTagSheet({
   const loveOptions = EMOTION_OPTIONS.filter((o) => LOVE_TAGS.includes(o.tag));
   const otherOptions = EMOTION_OPTIONS.filter((o) => OTHER_TAGS.includes(o.tag));
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center px-5 bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="고민 태그 변경"
+  // 이름은 바텀시트지만 모양은 가운데 창 — 공통 Dialog(배경 스크롤 잠금·ESC)
+  return (
+    <Dialog
+      label="고민 태그 변경"
+      onClose={onClose}
+      z={90}
+      widthClassName="max-w-md"
+      gutterClassName="px-5"
+      backdropClassName="bg-night/70 backdrop-blur-sm"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <h2 className="font-display text-[16px] font-bold text-eye-purple">
             어떤 고민이야?
           </h2>
-          <button
-            onClick={onClose}
+          <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
           >
             ✕
-          </button>
+          </OverlayCloseButton>
         </div>
 
         <div className="px-5 pb-6">
@@ -386,8 +385,7 @@ function EmotionTagSheet({
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </Dialog>
   );
 }
 
