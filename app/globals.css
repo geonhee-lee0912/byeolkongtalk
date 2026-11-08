@@ -325,9 +325,62 @@ html[data-app][data-platform="android"][data-nav="back"]::view-transition-old(.a
 html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.app-nav) {
   animation: app-hold 0.3s both;
 }
+/* 공통 시트(components/common/Sheet.tsx) — 앱에서만 판이 아래에서 올라오고, 닫을 때(data-closing) 내려가며 뒤 배경이 옅어진다.
+   웹은 겉(.sheet-root)의 animate-fade-in 그대로. 값: 아이폰 0.4초 올라오기 / 0.25초 내려가기, 안드로이드 0.3초 / 0.2초(Sheet.tsx EXIT_MS 와 같다) */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-dim-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-dim-out {
+  to {
+    opacity: 0;
+  }
+}
+html[data-app] .sheet-root {
+  animation: none;
+}
+html[data-app][data-platform="ios"] .sheet-backdrop {
+  animation: sheet-dim-in 0.4s ease-out both;
+}
+html[data-app][data-platform="ios"] .sheet-panel {
+  animation: sheet-up 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-backdrop {
+  animation: sheet-dim-out 0.25s ease-in both;
+}
+html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-panel {
+  animation: sheet-down 0.25s ease-in both;
+}
+html[data-app][data-platform="android"] .sheet-backdrop {
+  animation: sheet-dim-in 0.3s ease-out both;
+}
+html[data-app][data-platform="android"] .sheet-panel {
+  animation: sheet-up 0.3s cubic-bezier(0.2, 0, 0, 1) both;
+}
+html[data-app][data-platform="android"] .sheet-root[data-closing] .sheet-backdrop {
+  animation: sheet-dim-out 0.2s ease-in both;
+}
+html[data-app][data-platform="android"] .sheet-root[data-closing] .sheet-panel {
+  animation: sheet-down 0.2s ease-in both;
+}
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*) {
+    animation: none !important;
+  }
+  html[data-app] .sheet-backdrop,
+  html[data-app] .sheet-panel {
     animation: none !important;
   }
 }
