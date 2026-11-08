@@ -351,8 +351,9 @@ html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.a
 html[data-app] .sheet-root {
   animation: none;
 }
-/* 닫히는 동안(내려가는 0.2~0.25초)엔 누르기가 시트에 닿지 않는다 — 나중에 연타의 두 번째 탭이 내려오던 버튼·체크칸을 누르던 것(최종 리뷰 #1) */
-.sheet-root[data-closing] {
+/* 닫히는 동안(내려가는 0.2~0.25초)엔 누르기가 판에 닿지 않는다 — 나중에 연타의 두 번째 탭이 내려오던 버튼·체크칸을 누르던 것(최종 리뷰 #1).
+   배경막은 계속 누르기를 받아 삼킨다(이미 닫는 중이라 아무 일 없음) — 겉 전체를 막으면 뒤 화면 하단 탭까지 눌렸다(Codex #38) */
+.sheet-root[data-closing] .sheet-panel {
   pointer-events: none;
 }
 html[data-app][data-platform="ios"] .sheet-backdrop {
