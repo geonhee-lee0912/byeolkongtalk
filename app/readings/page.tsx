@@ -527,7 +527,7 @@ function ReadingsPageInner() {
   const pageEnd = pageStart + PAGE_SIZE;
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"

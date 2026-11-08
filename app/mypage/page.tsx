@@ -198,7 +198,7 @@ export default function MyPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
