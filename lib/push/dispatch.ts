@@ -9,6 +9,7 @@ import { revisitWindow } from "./schedule.ts";
 import { decidePush, type PushKind } from "./decide.ts";
 import { readingPath, revisitMessage } from "./templates.ts";
 import { makeUnsubToken } from "./unsub-token.ts";
+import { MAX_ACTIVE_DEVICES_PER_USER } from "./device-cap.ts";
 
 export type DueRevisit = { id: string; userId: string; readingId: string; consultationType: string; sendOn: string };
 type TicketRef = { id: string; token: string };
@@ -105,7 +106,9 @@ export async function dispatchRevisits(
   };
   const overBudget = () => clock() - startedAt >= TIME_BUDGET_MS;
 
-  const deliver: DispatchCtx["deliver"] = async (a) => {
+  const deliver: DispatchCtx["deliver"] = async (input) => {
+    // 상한을 넘는 옛 기기 행이 남아 있어도 한 회원에게 상한만큼만 보낸다(등록 때 상한을 지키지만 이중 방어)
+    const a = { ...input, tokens: input.tokens.slice(0, MAX_ACTIVE_DEVICES_PER_USER) };
     const sendId = await store.claimSend({ userId: a.userId, kind: a.kind, klass: a.klass, refId: a.refId, sendDate: today });
     if (sendId === null) {
       return { outcome: "dup", delivered: await store.deliveredSend({ userId: a.userId, kind: a.kind, refId: a.refId, sendDate: today }) };

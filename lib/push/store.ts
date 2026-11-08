@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
 import { computeEntitlement, getEntitlement } from "@/lib/byeolmaru/entitlement";
+import { devicesOverCap } from "./device-cap.ts";
 import type { DispatchStore } from "./dispatch.ts";
 import type { AdStatus, AskAnswer, AskKind, AskMoment, AskRecord } from "./asks.ts";
 import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
@@ -29,6 +30,19 @@ export async function upsertDevice(
     { onConflict: "token" },
   );
   check(error, "upsertDevice");
+}
+
+/** 기기 상한(MAX_ACTIVE_DEVICES_PER_USER)을 넘은 이 회원의 켜진 기기를 끈다 — 방금 등록한 기기는 최근 확인이 가장 늦어 남는다 */
+export async function trimUserDevices(userId: string, db: Db = getServiceSupabase()): Promise<void> {
+  const { data, error } = await db
+    .from("push_devices")
+    .select("token, last_seen_at")
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .limit(200);
+  check(error, "trimUserDevices");
+  const over = devicesOverCap((data ?? []).map((r: { token: string; last_seen_at: string }) => ({ token: r.token, lastSeenAt: r.last_seen_at })));
+  if (over.length) await disableTokens(over, db);
 }
 
 export async function deleteDevice(token: string, db: Db = getServiceSupabase()): Promise<void> {
@@ -335,28 +349,42 @@ function rowsOrThrow<T>(data: T[] | null, error: { message: string } | null, wha
   return rows;
 }
 
-export const supabaseFactsStore: FactsStore = {
-  async activeDevices() {
-    const out = new Map<string, DeviceGroup>();
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await getServiceSupabase()
-        .from("push_devices")
-        .select("token, user_id, last_seen_at")
-        .is("disabled_at", null)
-        .order("token")
-        .range(from, from + 999);
-      check(error, "activeDevices");
-      const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
-      for (const r of rows) {
-        const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
-        g.tokens.push(r.token);
-        g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
-        out.set(r.user_id, g);
-      }
-      if (rows.length < 1000) return out;
+async function loadActiveDevices(): Promise<Map<string, DeviceGroup>> {
+  const out = new Map<string, DeviceGroup>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_devices")
+      .select("token, user_id, last_seen_at")
+      .is("disabled_at", null)
+      .order("token")
+      .range(from, from + 999);
+    check(error, "activeDevices");
+    const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
+    for (const r of rows) {
+      const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
+      g.tokens.push(r.token);
+      g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
+      out.set(r.user_id, g);
     }
-  },
+    if (rows.length < 1000) return out;
+  }
+}
 
+/** 같은 cron 실행 안에서 아침 흐름·깨우기가 기기 목록을 두 번 읽지 않게 잠깐 기억한다(실행 간격 15분보다 훨씬 짧게) */
+const DEVICE_CACHE_MS = 30_000;
+let deviceCache: { at: number; value: Promise<Map<string, DeviceGroup>> } | null = null;
+
+export const supabaseFactsStore: FactsStore = {
+  activeDevices() {
+    const now = Date.now();
+    if (deviceCache && now - deviceCache.at < DEVICE_CACHE_MS) return deviceCache.value;
+    const value = loadActiveDevices();
+    deviceCache = { at: now, value };
+    value.catch(() => {
+      deviceCache = null; // 실패는 기억하지 않는다
+    });
+    return value;
+  },
   async facts(userIds, now, todayKst) {
     const db = getServiceSupabase();
     const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();

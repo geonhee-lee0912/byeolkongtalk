@@ -118,6 +118,22 @@ export default function PushGate() {
     };
   }, [ready]);
 
+  // 이미 그 화면에 떠 있을 때 알림을 누르면 앱이 주소 끝 표식(#bkp·#bku)만 바꿔 같은 문서 안에서 이동할 수 있다 —
+  // 그때는 다시 마운트되지 않으니 hashchange 로도 읽는다(Codex 리뷰 #35). 열람 기록은 비로그인이면 서버가 401 로 버린다
+  useEffect(() => {
+    if (!ready || !appSupportsPush()) return;
+    const onHash = () => {
+      const h = takePushHash();
+      if (h.unsub) {
+        setUnsubMsg(null);
+        setUnsubToken(h.unsub);
+      }
+      if (h.sendId) beaconOpened(h.sendId);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [ready]);
+
   // 앱이 뒤에 있다 앞으로 오면 '연 시각'을 다시 남긴다(웹뷰가 새로 뜨지 않으니 위 effect 는 다시 안 돈다)
   useEffect(() => {
     if (!loggedIn) return;

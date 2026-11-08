@@ -65,3 +65,12 @@ test("정보성 — 열람 표식만 붙고 표·광고 채널은 없다", async
   assert.equal(m.channelId, "info");
   assert.equal(m.categoryId, undefined);
 });
+
+test("한 회원에게 기기 상한(5)까지만 보낸다", async () => {
+  const h = harness();
+  const job: DispatchJob = async (ctx) => {
+    await ctx.deliver({ userId: "u1", kind: "revisit", klass: "info", refId: "r", tokens: Array.from({ length: 9 }, (_, i) => `tok${i}`), path: "/", message: { title: "t", body: "b" } });
+  };
+  await dispatchRevisits(new Date("2026-11-08T03:00:00Z"), h.store, h.expo, () => {}, { warn: () => {}, jobs: [job], unsubSecret: SECRET });
+  assert.equal(h.sent[0].length, 5);
+});
