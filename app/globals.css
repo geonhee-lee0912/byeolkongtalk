@@ -325,7 +325,8 @@ html[data-app][data-platform="android"][data-nav="back"]::view-transition-old(.a
 html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.app-nav) {
   animation: app-hold 0.3s both;
 }
-/* 공통 시트(components/common/Sheet.tsx) — 앱에서만 판이 아래에서 올라오고, 닫을 때(data-closing) 내려가며 뒤 배경이 옅어진다.
+/* 올라오기는 backwards — 끝나면 애니메이션이 빠져 끌기의 인라인 transform 이 바로 먹는다(fill both 면 끝난 뒤에도 남아 WebKit 에서 끌기가 안 따라올 수 있다, 최종 리뷰 #2). 내려가기는 both(끌어내린 자리에서 출발).
+   공통 시트(components/common/Sheet.tsx) — 앱에서만 판이 아래에서 올라오고, 닫을 때(data-closing) 내려가며 뒤 배경이 옅어진다.
    웹은 겉(.sheet-root)의 animate-fade-in 그대로. 값: 아이폰 0.4초 올라오기 / 0.25초 내려가기, 안드로이드 0.3초 / 0.2초(Sheet.tsx EXIT_MS 와 같다) */
 @keyframes sheet-up {
   from {
@@ -350,11 +351,15 @@ html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.a
 html[data-app] .sheet-root {
   animation: none;
 }
+/* 닫히는 동안(내려가는 0.2~0.25초)엔 누르기가 시트에 닿지 않는다 — 나중에 연타의 두 번째 탭이 내려오던 버튼·체크칸을 누르던 것(최종 리뷰 #1) */
+.sheet-root[data-closing] {
+  pointer-events: none;
+}
 html[data-app][data-platform="ios"] .sheet-backdrop {
-  animation: sheet-dim-in 0.4s ease-out both;
+  animation: sheet-dim-in 0.4s ease-out backwards;
 }
 html[data-app][data-platform="ios"] .sheet-panel {
-  animation: sheet-up 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: sheet-up 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
 html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-backdrop {
   animation: sheet-dim-out 0.25s ease-in both;
@@ -363,10 +368,10 @@ html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-panel {
   animation: sheet-down 0.25s ease-in both;
 }
 html[data-app][data-platform="android"] .sheet-backdrop {
-  animation: sheet-dim-in 0.3s ease-out both;
+  animation: sheet-dim-in 0.3s ease-out backwards;
 }
 html[data-app][data-platform="android"] .sheet-panel {
-  animation: sheet-up 0.3s cubic-bezier(0.2, 0, 0, 1) both;
+  animation: sheet-up 0.3s cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 html[data-app][data-platform="android"] .sheet-root[data-closing] .sheet-backdrop {
   animation: sheet-dim-out 0.2s ease-in both;
