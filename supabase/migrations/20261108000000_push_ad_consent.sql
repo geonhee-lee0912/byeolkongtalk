@@ -47,7 +47,8 @@ grant select, insert, update, delete on public.ad_consent_events to service_role
 grant usage, select, update on sequence public.ad_consent_events_id_seq to service_role;
 
 -- ⑤ 동의·철회 + 결과 통지 기록 + (수신거부 표면) 표 사용 표시를 한 트랜잭션으로.
---    p_send_id 가 있으면 그 회원의 '광고' 발송이고 아직 안 쓴 표일 때만 진행한다(아니면 token_used — 재사용·광고 아닌 발송).
+--    p_send_id(수신거부 표)는 철회에만 쓴다. 그 회원의 '광고' 발송이고 아직 안 쓴 표일 때만 진행한다.
+--    거절 이유: token_invalid(없는 발송·남의 발송·정보성 발송) / token_used(이미 쓴 표).
 --    돌려주는 값: { ok, reason?, changed, status, at }
 --    SECURITY INVOKER — service_role 이 표 권한으로 부른다(권한 상승 없음).
 create or replace function public.push_set_ad_consent(
@@ -65,6 +66,21 @@ declare
   v_status text;
   v_changed boolean := false;
 begin
+  -- 상태가 안 바뀌는 호출에서도 잘못된 source 를 바로 드러낸다(이벤트 CHECK 는 바뀔 때만 걸린다)
+  if p_source not in (
+    'first_reading_end','second_launch','reading_end','byeolmaru_first','birthday',
+    'settings','unsubscribe_button','unsubscribe_line','reconfirm_popup'
+  ) then
+    raise exception 'push_set_ad_consent: bad source %', p_source;
+  end if;
+  if p_send_id is not null and p_grant then
+    raise exception 'push_set_ad_consent: unsubscribe token cannot grant';
+  end if;
+
+  -- 같은 회원의 동의·철회를 줄 세운다 — 행이 아직 없는 첫 동의는 FOR UPDATE 로 잠글 행이 없어,
+  -- 동시에 두 번 들어오면 둘 다 '바뀜'으로 이벤트·통지가 두 번 남았다
+  perform pg_advisory_xact_lock(hashtextextended('push_set_ad_consent:' || p_user_id::text, 0));
+
   if p_send_id is not null then
     update public.push_sends
        set unsubscribed_at = v_now
@@ -73,11 +89,14 @@ begin
        and class = 'ad'
        and unsubscribed_at is null;
     if not found then
-      return jsonb_build_object('ok', false, 'reason', 'token_used');
+      if exists (select 1 from public.push_sends where id = p_send_id and user_id = p_user_id and class = 'ad') then
+        return jsonb_build_object('ok', false, 'reason', 'token_used');
+      end if;
+      return jsonb_build_object('ok', false, 'reason', 'token_invalid');
     end if;
   end if;
 
-  select status into v_status from public.ad_consents where user_id = p_user_id for update;
+  select status into v_status from public.ad_consents where user_id = p_user_id;
 
   if p_grant then
     if v_status is distinct from 'granted' then
@@ -85,6 +104,7 @@ begin
       values (p_user_id, 'granted', v_now, v_now, v_now)
       on conflict (user_id) do update
         set status = 'granted', granted_at = v_now, updated_at = v_now;
+      v_status := 'granted';
       v_changed := true;
     end if;
   else
@@ -92,6 +112,7 @@ begin
       update public.ad_consents
          set status = 'withdrawn', withdrawn_at = v_now, updated_at = v_now
        where user_id = p_user_id;
+      v_status := 'withdrawn';
       v_changed := true;
     end if;
   end if;
@@ -102,7 +123,6 @@ begin
            (p_user_id, 'result_notice', p_source);
   end if;
 
-  select status into v_status from public.ad_consents where user_id = p_user_id;
   return jsonb_build_object(
     'ok', true,
     'changed', v_changed,
