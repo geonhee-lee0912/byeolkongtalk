@@ -112,7 +112,7 @@ export async function setAdConsent(
   check(error, "setAdConsent");
   const r = data as { ok: boolean; reason?: string; changed?: boolean; status?: AdStatus; at?: string } | null;
   if (!r) throw new Error("push store setAdConsent: no data");
-  if (!r.ok) return { ok: false, reason: "token_used" };
+  if (!r.ok) return { ok: false, reason: r.reason === "token_invalid" ? "token_invalid" : "token_used" };
   return { ok: true, changed: !!r.changed, status: r.status ?? "none", at: r.at ?? new Date().toISOString() };
 }
 

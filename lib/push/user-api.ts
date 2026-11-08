@@ -62,7 +62,7 @@ export type AdConsentRow = {
 
 export type SetConsentResult =
   | { ok: true; changed: boolean; status: AdStatus; at: string }
-  | { ok: false; reason: "token_used" };
+  | { ok: false; reason: "token_used" | "token_invalid" };
 
 /** 동의·철회 결과 → 화면이 띄울 결과 통지(§4-4). 바뀌지 않았으면 통지 없음 */
 function noticeOf(r: { changed: boolean; status: AdStatus; at: string }): { kind: "grant" | "withdraw"; date: string } | null {
@@ -190,6 +190,6 @@ export async function handleUnsubscribePost(
   const owner = await deps.sendOwner(t.sendId);
   if (!owner || owner.klass !== "ad" || !verifyUnsubToken(token as string, owner.userId, deps.secret)) return forbidden;
   const r = await deps.setAdConsent(owner.userId, false, source, t.sendId);
-  if (!r.ok) return { status: 409, body: { error: "used" } };
+  if (!r.ok) return r.reason === "token_used" ? { status: 409, body: { error: "used" } } : forbidden;
   return { status: 200, body: { status: r.status, notice: noticeOf(r) } };
 }

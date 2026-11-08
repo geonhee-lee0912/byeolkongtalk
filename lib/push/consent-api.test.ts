@@ -92,6 +92,15 @@ test("수신거부 — 정상 표는 철회 + 통지, 같은 표 재사용은 40
   assert.deepEqual(calls, [["u1", false, "unsubscribe_button", 7], ["u1", false, "unsubscribe_line", 7]]);
 });
 
+test("수신거부 — DB 가 표를 무효라고 하면(발송 주인·종류가 그 사이 바뀜) 409 가 아니라 403", async () => {
+  const deps = {
+    secret: SECRET,
+    sendOwner: async () => ({ userId: "u1", klass: "ad" as const }),
+    setAdConsent: async (): Promise<SetConsentResult> => ({ ok: false, reason: "token_invalid" }),
+  };
+  assert.equal((await handleUnsubscribePost({ token: makeUnsubToken(7, "u1", SECRET), source: "unsubscribe_button" }, deps)).status, 403);
+});
+
 test("수신거부 — 위조·남의 표·광고 아닌 발송·모양 틀림은 403, 철회를 부르지 않는다", async () => {
   let called = 0;
   const deps = {
