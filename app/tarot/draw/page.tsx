@@ -22,27 +22,6 @@ import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 
-/** 카카오 콜백이 붙이는 표시 — 로그인하고 돌아오면 주소에서 뺀다(가입 선물 토스트는 한 번만 · AuthBootstrap 이 이 화면 주소를 안 건드리므로 여기서) */
-const CALLBACK_KEYS = ["login", "welcome", "migrated", "reason"] as const;
-
-/** 주소창에서 이 키들만 뺀다(지울 게 없으면 아무것도 안 한다). router.replace 가 아니라 history.replaceState 다 — router.replace 는 Next 의 이동 큐에 들어가 대기 중인 router.push 를 버리게 한다.
- *  state 는 null 로 덮지 않고 그대로 넘긴다: Next 는 이 항목의 라우터 상태(__NA·트리)를 history.state 에 두는데, 화면이 처음 뜬 직후엔 history 를 가로채는 Next 의 패치가 아직 안 걸려 있을 수 있어
- *  (자식 effect 가 부모보다 먼저 돈다) null 로 덮으면 그 상태가 사라져 뒤로 가기가 라우터를 못 탈 수 있다(popstate 무시 또는 전체 새로고침). 상태를 그대로 넘기면 패치가 걸려 있어도 큐를 건드리지 않고 주소만 바뀐다.
- *  대가: 라우터는 이 정리를 모른다 — useSearchParams()·라우터의 canonicalUrl 은 이 화면을 떠날 때까지 옛 쿼리다.
- *  이 화면에 router.refresh() 처럼 라우터 상태를 바꾸는 걸 넣으면 Next 가 주소를 canonicalUrl 로 다시 써 콜백 표시(login·welcome)가 주소로 돌아온다(새로고침 때 토스트 재표시).
- *  정리 실패(주소 접근 불가)는 삼킨다 — 정리는 편의일 뿐 화면 진입·풀이 시작을 막으면 안 된다 */
-function dropQueryKeys(keys: readonly string[]): void {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (!keys.some((k) => params.has(k))) return;
-    for (const k of keys) params.delete(k);
-    const qs = params.toString();
-    window.history.replaceState(window.history.state, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  } catch {
-    // noop
-  }
-}
-
 export default function TarotDrawPage() {
   const router = useRouter();
   const [selection, setSelection] = useState<TarotSpreadSelection | null>(null);
@@ -71,12 +50,10 @@ export default function TarotDrawPage() {
   }, []);
 
   // 선택 정보 로드 — /tarot(스프레드 고르기).
-  // 로그인하고 돌아온 표시(login=success)는 여기서 주소에서 뺀다 — 새로고침에 가입 선물 토스트가 다시 뜨지 않게.
-  // AuthBootstrap 은 이 화면 주소를 안 건드린다(components/auth/AuthBootstrap.tsx 의 /tarot/draw 예외 — 짝이다)
+  // 가입하고 돌아왔으면(welcome=1) 토스트 — 주소의 로그인 표시는 AuthBootstrap 이 세션 확인 뒤 지운다(이 효과가 먼저 읽는다)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("welcome") === "1") setWelcomeToast(true);
-    if (params.get("login") === "success") dropQueryKeys(CALLBACK_KEYS);
 
     let sel: TarotSpreadSelection | null = null;
     try {

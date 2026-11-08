@@ -2,7 +2,7 @@
 // 🔴 교환 코드는 헤더(HANDOFF_CODE_HEADER = X-Byeolkong-Handoff)로만 받는다 — 주소의 code 는 보지 않는다(계획 앞 '스펙과 달라진 점').
 //    헤더는 앱이 자기가 여는 요청에만 붙일 수 있다(링크·딥링크·next 리다이렉트로는 못 붙인다). 주소로 받으면 딥링크·next 로 남의 코드를
 //    앱 웹뷰에 먹일 수 있고, 그 요청도 앱 UA 라 아래 관문을 통과한다(앱 안 login CSRF). 덤으로 코드가 요청 로그·방문 기록에 남지 않는다.
-// mode=login : 웹 카카오 콜백과 같은 쿼리(login=success, 신규면 welcome=1) — AuthBootstrap·맛보기 이어하기가 그대로 돈다.
+// mode=login : 웹 카카오 콜백과 같은 쿼리(login=success, 신규면 welcome=1) — AuthBootstrap 이 그대로 돈다.
 //              코드가 없거나 안 맞으면 카카오 콜백 실패와 같은 규칙(loginFailRedirectUrl, reason=handoff_invalid).
 // mode=launch: 앱 실행 때 쿠키만 맞춘다(쿼리 없음). 코드가 없거나 안 맞으면 쿠키 없이 그냥 next 로.
 // 코드는 32바이트 무작위라 맞혀 볼 수 없다 — 웹뷰 화면에 429 JSON 이 뜨지 않게 이 주소엔 속도 제한을 걸지 않는다.
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(searchParams.get("next"));
   const isLogin = searchParams.get("mode") === "login";
   const fail = () =>
-    noStore(NextResponse.redirect(isLogin ? loginFailRedirectUrl(next, "handoff_invalid", baseUrl) : new URL(next, baseUrl)));
+    noStore(NextResponse.redirect(isLogin ? loginFailRedirectUrl("handoff_invalid", baseUrl) : new URL(next, baseUrl)));
   if (!parseAppUserAgent(request.headers.get("user-agent"))) return fail();
 
   let consumed: { userId: string; isNewUser: boolean } | null = null;

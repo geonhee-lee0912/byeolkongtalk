@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(stateNext);
 
   const failRedirect = (reason: string) => {
-    // 뽑기 이어가기로 가던 로그인만 그 화면으로 돌려보내 안내한다 — 그 밖은 지금처럼 홈(lib/auth-redirect.ts)
-    const r = NextResponse.redirect(loginFailRedirectUrl(next, reason, baseUrl));
+    // 실패는 홈으로(lib/auth-redirect.ts)
+    const r = NextResponse.redirect(loginFailRedirectUrl(reason, baseUrl));
     r.cookies.set(STATE_COOKIE, "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

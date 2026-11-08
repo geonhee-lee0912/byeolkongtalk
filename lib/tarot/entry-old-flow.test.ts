@@ -31,15 +31,16 @@ test("뽑기 화면 — 확인 팝업 → 충전 시트, 충전 뒤엔 /tarot/dr
   assert.match(code, /onCharge=\{\(\) => setRechargeSheetOpen\(true\)\}/, "충전 버튼은 충전 시트만 연다");
 });
 
-test("뽑기 화면 ↔ AuthBootstrap — 로그인 복귀 표시는 뽑기 화면이 직접 주소에서 뺀다(AuthBootstrap 은 이 화면을 건너뛴다)", () => {
-  const draw = sourceOf("app/tarot/draw/page.tsx");
+test("뽑기 화면의 로그인 복귀 표시(login·welcome)는 AuthBootstrap 이 지운다 — 예외는 /start 하나", () => {
   const boot = sourceOf("components/auth/AuthBootstrap.tsx");
-  assert.match(boot, /pathname\s*===\s*["']\/tarot\/draw["']/, "AuthBootstrap 이 /tarot/draw 를 건너뛴다(짝)");
-  assert.match(
-    draw,
-    /if \(params\.get\("login"\) === "success"\) dropQueryKeys\(CALLBACK_KEYS\);/,
-    "AuthBootstrap 이 건너뛰니 뽑기 화면이 login=success·welcome 을 지워야 한다 — 안 지우면 새로고침마다 가입 선물 토스트가 다시 뜬다"
-  );
+  assert.doesNotMatch(boot, /["']\/tarot\/draw["']/, "AuthBootstrap 이 /tarot/draw 를 건너뛰면 뽑기 화면 주소에 login·welcome 이 남아 새로고침마다 가입 선물 토스트가 다시 뜬다");
+  assert.match(boot, /if \(pathname === "\/start"\) return;/, "/start 예외(웰컴 팝업이 스스로 정리)는 그대로");
+  assert.doesNotMatch(sourceOf("app/tarot/draw/page.tsx"), /replaceState/, "뽑기 화면이 따로 주소를 정리하면 AuthBootstrap 과 두 군데서 같은 일을 한다");
+});
+
+test("로그인 실패는 어디서 출발했든 홈으로 — 뽑기 화면엔 실패 안내가 없다", async () => {
+  const { loginFailRedirectUrl } = await import("../auth-redirect.ts");
+  assert.equal(loginFailRedirectUrl("access_denied", "https://byeolkongtalk.com").pathname, "/");
 });
 
 test("새 흐름 장치가 남아 있지 않다", () => {
