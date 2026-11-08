@@ -80,3 +80,7 @@ test("depthOnChange — 첫 화면(이전 없음)·같은 주소는 그대로", 
   assert.equal(depthOnChange(0, null, "/mypage/payments", false), 0);
   assert.equal(depthOnChange(2, "/mypage?x=1", "/mypage?x=1", false), 2);
 });
+
+test("광고 수신거부 화면 — 하위 화면, 마이 탭", () => {
+  assert.deepEqual(appScreen("/push/unsubscribe"), { kind: "sub", title: "광고 수신거부", tabRoot: "/mypage" });
+});
