@@ -8,7 +8,8 @@
 메뉴판 반반의 남은 진 코드(`lib/tarot/menu-ab.ts`·`TarotSpreadSelection.consented`)를 걷어낸다. 옛 흐름 동작은 그대로.
 
 ## 지금 상태
-- 지울 범위 조사 끝. 코드 수정 시작 전
+- 코드 정리 커밋 `0c6971dc` 푸시. 타입·전체 테스트(fail 0 — 광고 테스트 취소 4건은 기준 브랜치도 같음, Node 22 탓으로 보임)·빌드(`ƒ Proxy` 있음) 통과
+- PR(base dev) 열고 리뷰 2회(`@codex review` · Claude code-review) 받는 중
 
 ## 다음 할 일
 - [어디서든] 홈·고민 쓰기·/tarot·뽑기 화면·지갑·마이페이지에서 새 흐름 분기 제거 → 타입·테스트·빌드 → PR(base dev) → 리뷰 2회
