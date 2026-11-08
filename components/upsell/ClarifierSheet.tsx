@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import { CLARIFIER_COST } from "@/lib/upsell";
 import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
@@ -88,19 +89,7 @@ export default function ClarifierSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // ESC + 배경 스크롤 잠금
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeSheet(); };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // ESC·배경 스크롤 잠금은 공통 Sheet
 
   function closeSheet() {
     // history 스택이 아직 우리 항목이면 정리
@@ -179,20 +168,18 @@ export default function ClarifierSheet({
 
   const excludeIds = drawnCards.map((c) => c.card_id);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={closeSheet}
-      role="dialog"
-      aria-modal="true"
-      aria-label="보조 카드 뽑기"
+  // 그랩바는 웹 전용 — 앱은 Sheet 손잡이(끌어내리기)
+  return (
+    <Sheet
+      label="보조 카드 뽑기"
+      onClose={closeSheet}
+      z={90}
+      align="bottom"
+      backdropClassName="bg-night/70 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[90vh] overflow-y-auto"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* 그랩바 */}
-        <div className="flex justify-center pt-3 pb-1">
+        <div className="web-only flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
 
@@ -201,13 +188,12 @@ export default function ClarifierSheet({
           <h2 className="font-display text-[17px] font-bold text-eye-purple">
             카드 한 장 더 뽑기
           </h2>
-          <button
-            onClick={closeSheet}
+          <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
           >
             ✕
-          </button>
+          </OverlayCloseButton>
         </div>
 
         {/* 안내 */}
@@ -244,8 +230,6 @@ export default function ClarifierSheet({
             onComplete={handleDrawComplete}
           />
         )}
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }

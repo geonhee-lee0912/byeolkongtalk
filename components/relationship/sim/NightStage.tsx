@@ -10,6 +10,8 @@ import ByeolkongNote from "./ByeolkongNote";
 import SimBubble from "./SimBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { hideTrailingSendMarker } from "@/lib/relationship/sim-stream";
 import { SIM_SUGGEST_COST, type RelationshipStatus } from "@/lib/relationship/types";
 import type { SensitiveCategory } from "@/lib/sensitive";
@@ -309,19 +311,17 @@ export default function NightStage(props: NightStageProps) {
       </div>
 
       {suggestions.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-deep/60"
-          onClick={() => setSuggestions([])}
+        <Sheet
+          label="이렇게 말해보는 건 어때?"
+          onClose={() => setSuggestions([])}
+          z={50}
+          align="bottom"
+          backdropClassName="bg-night-deep/60"
+          panelClassName="bg-night rounded-t-3xl border-t border-lilac-mid/30 p-5 pb-[max(env(safe-area-inset-bottom),20px)] animate-fade-in"
         >
-          <div
-            className="w-full max-w-md bg-night rounded-t-3xl border-t border-lilac-mid/30 p-5 pb-[max(env(safe-area-inset-bottom),20px)] animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-cream-warm font-bold text-[15px]">이렇게 말해보는 건 어때?</h3>
-              <button type="button" onClick={() => setSuggestions([])} className="text-lilac-soft/60 text-[13px]">
-                닫기
-              </button>
+              <OverlayCloseButton className="text-lilac-soft/60 text-[13px]">닫기</OverlayCloseButton>
             </div>
             <div className="flex flex-col gap-2.5">
               {suggestions.map((s, i) => (
@@ -341,8 +341,7 @@ export default function NightStage(props: NightStageProps) {
             <p className="text-center text-lilac-soft/50 text-[11px] mt-3">
               탭하면 입력창에 담겨 — 자유롭게 다듬어 보내
             </p>
-          </div>
-        </div>
+        </Sheet>
       )}
 
       {suggestOpen && (
