@@ -8,7 +8,8 @@ import { WebView, type WebViewProps } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
-import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
+import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, encodeAppToWebBack, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
+import { decideAndroidBack, iosPullEnabled } from "./ui.ts";
 import { appInfo, config } from "./config";
 import { decideNavigation, parseIntentUrl, type NavDecision } from "./linkRules.ts";
 import { pathFromDeepLink } from "./deeplink.ts";
@@ -111,6 +112,10 @@ export default function WebScreen() {
   const [source, setSource] = useState<WebSource | null>(null);
   const [offline, setOffline] = useState(false);
   const canGoBack = useRef(false);
+  // 웹이 미리 알린 겹창(시트·확인창) 열림 상태(ui.overlay) — 안드로이드 뒤로 버튼이 이걸 보고 정한다. 새 문서를 읽기 시작하면 닫힘
+  const overlayOpen = useRef(false);
+  // 아이폰 당겨서 새로고침 — 탭 첫 화면에서만 켠다(지금 주소 기준)
+  const [pullOn, setPullOn] = useState(false);
   const loadedOnce = useRef(false);
   // 네이티브 로그인 번호표 — 새 시도가 앞 시도를 대신한다. 끝나지 않은 앞 시도를 기다리는 잠금은 두지 않는다:
   // iOS 카카오톡에서 복귀 주소 없이 돌아오면('◀ 별콩톡'·앱 전환) kakaoNativeLogin 이 영영 끝나지 않아(auth/nativeLogin.ts) 잠금이면
@@ -195,14 +200,25 @@ export default function WebScreen() {
     return () => sub.remove();
   }, []);
 
-  // 안드로이드 뒤로 가기 — 웹뷰 기록이 있으면 뒤로, 없으면 OS 기본(앱 닫기)
+  // 안드로이드 뒤로 가기 — 로그인 마무리 덮개 중엔 무시(쿠키 맞추기 이동이 끊긴다), 겹창이 열려 있으면 웹이 맨 위를 닫게(ui.back),
+  // 아니면 웹뷰 기록이 있으면 뒤로, 없으면 OS 기본(앱 닫기). 판단은 ui.ts(테스트)
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (coveringRef.current) return true; // 로그인 마무리 중 — 뒤로 가면 쿠키 맞추기 이동이 끊긴다
-      if (!canGoBack.current) return false;
-      webRef.current?.goBack();
-      return true;
+      switch (decideAndroidBack({ covering: coveringRef.current, overlayOpen: overlayOpen.current, canGoBack: canGoBack.current })) {
+        case "consume":
+          return true;
+        case "sendBack":
+          webRef.current?.injectJavaScript(
+            `window.dispatchEvent(new CustomEvent(${JSON.stringify(APP_EVENT)},{detail:${JSON.stringify(encodeAppToWebBack())}}));true;`,
+          );
+          return true;
+        case "goBack":
+          webRef.current?.goBack();
+          return true;
+        case "exit":
+          return false;
+      }
     });
     return () => sub.remove();
   }, []);
@@ -323,6 +339,15 @@ export default function WebScreen() {
         case "push.openSettings":
           void Linking.openSettings().catch(() => {});
           break;
+        case "ui.overlay":
+          overlayOpen.current = msg.payload.open;
+          break;
+        case "ui.refresh":
+          webRef.current?.reload();
+          break;
+        case "ui.haptic":
+          // 진동은 expo-haptics 설치 뒤에 붙인다(운영자 설치 대기 — 계획 2026-11-08-앱-화면-4 Task 0). 그때까진 아무것도 안 한다
+          break;
       }
     },
     [replyPushState],
@@ -377,8 +402,12 @@ export default function WebScreen() {
         onShouldStartLoadWithRequest={onShouldStart}
         onOpenWindow={onOpenWindow}
         onMessage={onMessage}
+        onLoadStart={() => {
+          overlayOpen.current = false; // 새 문서엔 겹창이 없다 — 웹이 closed 를 못 보내고 떠난 경우에도 뒤로 버튼이 먹게
+        }}
         onNavigationStateChange={(s) => {
           canGoBack.current = s.canGoBack;
+          setPullOn(iosPullEnabled(s.url, config.baseUrl));
           if (isOurUrl(s.url, config.baseUrl) && !pathOf(splitUrl(s.url)?.rest ?? "").startsWith("/api/")) lastPage.current = s.url;
         }}
         onLoad={() => {
@@ -398,6 +427,9 @@ export default function WebScreen() {
         onRenderProcessGone={reopen}
         domStorageEnabled
         allowsBackForwardNavigationGestures
+        // 아이폰: 탭 첫 화면에서만 당겨서 새로고침(안드로이드는 웹이 그린다 — 이 속성은 iOS 전용) · 링크 길게 누르기 미리보기 끔. 스펙 §5 ②④
+        pullToRefreshEnabled={pullOn}
+        allowsLinkPreview={false}
         webviewDebuggingEnabled={config.variant === "development"}
         // 덮개가 떠 있는 동안엔 스크린리더로도 웹을 못 누르게(안드로이드) — 누르면 진행 중인 교환 코드 이동이 끊긴다. 아이폰은 덮개의 accessibilityViewIsModal
         importantForAccessibility={covering ? "no-hide-descendants" : "auto"}
