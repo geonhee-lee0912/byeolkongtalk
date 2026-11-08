@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
 import { computeEntitlement, getEntitlement } from "@/lib/byeolmaru/entitlement";
+import { devicesOverCap } from "./device-cap.ts";
 import type { DispatchStore } from "./dispatch.ts";
 import type { AdStatus, AskAnswer, AskKind, AskMoment, AskRecord } from "./asks.ts";
 import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
@@ -27,6 +28,19 @@ export async function upsertDevice(
     { onConflict: "token" },
   );
   check(error, "upsertDevice");
+}
+
+/** 기기 상한(MAX_ACTIVE_DEVICES_PER_USER)을 넘은 이 회원의 켜진 기기를 끈다 — 방금 등록한 기기는 최근 확인이 가장 늦어 남는다 */
+export async function trimUserDevices(userId: string, db: Db = getServiceSupabase()): Promise<void> {
+  const { data, error } = await db
+    .from("push_devices")
+    .select("token, last_seen_at")
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .limit(200);
+  check(error, "trimUserDevices");
+  const over = devicesOverCap((data ?? []).map((r: { token: string; last_seen_at: string }) => ({ token: r.token, lastSeenAt: r.last_seen_at })));
+  if (over.length) await disableTokens(over, db);
 }
 
 export async function deleteDevice(token: string, db: Db = getServiceSupabase()): Promise<void> {
