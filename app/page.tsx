@@ -19,48 +19,20 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
-import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
-import { clearPendingDraw, loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
-import {
-  PENDING_DRAW_BANNER_KEY,
-  PENDING_DRAW_BANNER_MAX_VIEWS,
-  RESUME_BANNER_KEY,
-  RESUME_BANNER_MAX_VIEWS,
-  takeBannerView,
-} from "@/lib/home-banner-views";
+import { clearPendingDraw } from "@/lib/tarot/pending-draw";
+import { RESUME_BANNER_KEY, RESUME_BANNER_MAX_VIEWS, takeBannerView } from "@/lib/home-banner-views";
 
 export default function Home() {
   const router = useRouter();
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
   const [audience, setAudience] = useState<Audience | null>(null);
-  // 입구 반반 그룹(isNewFlowGuest) — 태그 탭의 흐름 판단·계측(home_tag_clicked)
-  const wallet = useWallet("home");
-  // 로그인 전 맛보기 — 저장된 판이 있으면(7일 안) '아까 뽑은 카드' 한 줄(스펙 2026-10-11 §3 ⑥).
-  // 스위치(entryFeaturesOn)에 묶는다 — 켰다가 되돌려도 남은 저장 때문에 줄이 남으면 안 된다(뽑기 화면은 스위치가 꺼지면 복원하지 않아, 눌러도 이어지지 않는다). ENTRY_AB='old' 동안엔 늘 false 다
-  // 꺼져 있으면 읽지 않고 지운다 — 안 읽고 안 지우면 켰다가 되돌린 기기(롤백 · 판정에서 옛 흐름 승)에 그동안 저장된 고민 원문이 복원도 못 한 채 무기한 남는다
-  // (7일 만료는 loadPendingDraw 가 하는데 꺼져 있으면 아무도 안 부른다 — 스펙 §10 '최대 7일'과 어긋난다). 옛 흐름의 보통 방문엔 지울 키가 없어 화면은 그대로다.
-  // 스위치 'old'(지금 prod)에서도 도는 줄이라 localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다 — 그땐 이어가기 줄만 안 뜬다
-  const [pendingDraw, setPendingDraw] = useState(false);
-  const pendingDrawView = useRef<boolean | null>(null);
+  // 입구 반반 때 새 흐름 기기에 남은 진행 저장(고민 원문)을 지운다 — 읽어 줄 코드가 없어 안 지우면 무기한 남는다(lib/tarot/pending-draw.ts).
+  // 보통 방문엔 지울 키가 없어 화면은 그대로다. localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다
   useEffect(() => {
     try {
-      if (!entryFeaturesOn()) {
-        clearPendingDraw(localStorage);
-        return;
-      }
-      const saved = loadPendingDraw(localStorage);
-      if (!saved) return;
-      // 한 번 방문에 한 번만 센다(개발 모드는 이 효과가 두 번 돈다)
-      pendingDrawView.current ??= takeBannerView(
-        () => localStorage,
-        PENDING_DRAW_BANNER_KEY,
-        String(saved.savedAt),
-        PENDING_DRAW_BANNER_MAX_VIEWS
-      );
-      setPendingDraw(pendingDrawView.current);
+      clearPendingDraw(localStorage);
     } catch {
       // noop
     }
@@ -137,16 +109,9 @@ export default function Home() {
     } catch {
       user = null;
     }
-    // 입구 반반(스펙 2026-10-11-타로-로그인전-맛보기 §5-1) — 새 흐름 그룹 비로그인은 로그인 없이 고민 쓰기로.
-    // 그룹을 아직 못 받았으면(지갑 응답 전·실패) 옛 흐름 — 분석은 배정(anon_id) 기준이고 노출 어긋남은 armKnown 으로 잰다
-    const flow: "member" | "new" | "old" = user ? "member" : isNewFlowGuest(wallet) ? "new" : "old";
-    trackUiEvent("home_tag_clicked", { meta: { tag, flow, armKnown: wallet !== null } });
-    try {
-      if (flow === "new") sessionStorage.setItem(ENTRY_FLOW_KEY, "new");
-      else sessionStorage.removeItem(ENTRY_FLOW_KEY);
-    } catch {
-      // noop — 안내 한 줄만 안 뜬다
-    }
+    // 비로그인은 먼저 로그인 — 돌아오면 고민 쓰기로(입구 반반 판정 2026-11-07: 옛 흐름 고정)
+    const flow: "member" | "old" = user ? "member" : "old";
+    trackUiEvent("home_tag_clicked", { meta: { tag, flow } });
     if (flow === "old") {
       router.push(`/login?next=${encodeURIComponent("/concern")}`);
       return;
@@ -209,23 +174,6 @@ export default function Home() {
                 </p>
               </div>
               <span className="text-white/70 text-[16px] shrink-0">›</span>
-            </Link>
-          )}
-          {pendingDraw && (
-            <Link
-              href={resumeHref("home")}
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-white/90 border-2 border-gold/60 shadow-[0_4px_18px_rgba(232,194,106,0.2)] animate-fade-in"
-            >
-              <span className="text-[20px] shrink-0">🃏</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-eye-purple leading-tight">
-                  아까 뽑은 카드가 기다리고 있어
-                </p>
-                <p className="text-[11.5px] text-text-light mt-0.5 leading-tight">
-                  이어서 볼래?
-                </p>
-              </div>
-              <span className="text-eye-purple/60 text-[16px] shrink-0">›</span>
             </Link>
           )}
 
