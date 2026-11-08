@@ -8,6 +8,7 @@ import { WebView, type WebViewProps } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
+import * as Haptics from "expo-haptics";
 import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, encodeAppToWebBack, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
 import { decideAndroidBack, iosPullEnabled, overlayAfterLoadStart } from "./ui.ts";
 import { appInfo, config } from "./config";
@@ -346,7 +347,11 @@ export default function WebScreen() {
           webRef.current?.reload();
           break;
         case "ui.haptic":
-          // 진동은 expo-haptics 설치 뒤에 붙인다(운영자 설치 대기 — 계획 2026-11-08-앱-화면-4 Task 0). 그때까진 아무것도 안 한다
+          // 탭 전환·카드 놓기 = 가벼운 톡, 결제 완료 = 완료 진동. 진동이 안 되는 기기·설정이면 조용히 넘어간다. 스펙 §5 ⑥
+          void (msg.payload.kind === "success"
+            ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+            : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+          ).catch(() => {});
           break;
       }
     },
