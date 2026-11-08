@@ -15,9 +15,9 @@ import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import PushAskSheet from "./PushAskSheet";
 import { fetchAsk, setAdConsent } from "./api";
 
-const LAUNCHES_KEY = "bk_push_launches"; // 로그인한 상태로 웹뷰가 뜬 횟수(기기별)
-const COUNTED_KEY = "bk_push_launch_counted"; // 이 웹뷰 수명 동안 이미 셌다
-const SECOND_DONE_KEY = "bk_push_second_checked"; // 이 웹뷰 수명 동안 두 번째 실행 질문을 이미 확인했다
+const LAUNCHES_KEY = "byeolkong_push_launches"; // 로그인한 상태로 웹뷰가 뜬 횟수(기기별)
+const COUNTED_KEY = "byeolkong_push_launch_counted"; // 이 웹뷰 수명 동안 이미 셌다
+const SECOND_DONE_KEY = "byeolkong_push_second_checked"; // 이 웹뷰 수명 동안 두 번째 실행 질문을 이미 확인했다
 
 function storageGet(s: () => Storage, k: string): string | null {
   try {
@@ -79,6 +79,7 @@ export default function PushGate() {
   const [unsubMsg, setUnsubMsg] = useState<string | null>(null);
   const [notice, setNotice] = useState<ConsentNotice | null>(null);
   const [reconfirm, setReconfirm] = useState<{ grantedOn: string } | null>(null);
+  const [reconfirmFailed, setReconfirmFailed] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [launches, setLaunches] = useState(0);
   const [second, setSecond] = useState<{ ad: AdStatus } | null>(null);
@@ -178,8 +179,14 @@ export default function PushGate() {
     busy.current = true;
     try {
       const r = await setAdConsent(false, "reconfirm_popup");
+      // 실패하면 팝업을 그대로 두고 다시 누르게 한다 — 팝업은 열 때 이미 '알림'으로 기록돼 다음 실행엔 다시 안 뜬다
+      if (!r) {
+        setReconfirmFailed(true);
+        return;
+      }
+      setReconfirmFailed(false);
       setReconfirm(null);
-      if (r?.notice) setNotice(r.notice);
+      if (r.notice) setNotice(r.notice);
     } finally {
       busy.current = false;
     }
@@ -235,6 +242,9 @@ export default function PushGate() {
               >
                 그대로 둘게
               </button>
+              {reconfirmFailed && (
+                <p className="mt-2 text-[12px] text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>
+              )}
               <button
                 type="button"
                 onClick={() => void withdrawFromReconfirm()}
