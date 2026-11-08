@@ -56,6 +56,12 @@ export default function Sheet({
       onCloseRef.current();
       setTimeout(() => {
         if (!mounted.current) return;
+        // 끌어내려 닫던 중이었다면 손가락 위치(인라인 transform)가 남아 판이 그 자리에 걸린다 — 지우고 올린다
+        const panel = panelRef.current;
+        if (panel) {
+          panel.style.transform = "";
+          panel.style.transition = "";
+        }
         setClosing(false);
         c.reset();
       }, REARM_MS);
