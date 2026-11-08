@@ -5,9 +5,13 @@ import {
   APP_UA_TOKEN,
   HANDOFF_CODE_HEADER,
   appUserAgentSuffix,
+  APP_TAB_ROOTS,
   encodeAppToWeb,
+  encodeAppToWebBack,
   encodeWebToApp,
+  encodeWebToAppWith,
   hasCap,
+  isAppTabRoot,
   isAppInfo,
   parseAppToWeb,
   parseAppUserAgent,
@@ -120,4 +124,52 @@ test("앱→웹 상태 왕복과 이상한 값 거절", () => {
   assert.equal(parseAppToWeb("{"), null);
   assert.equal(parseAppToWeb(42), null);
   assert.equal(parseAppToWeb(null), null);
+});
+
+test("ui.overlay 왕복 — open 만 살아남는다", () => {
+  assert.deepEqual(parseWebToApp(encodeWebToAppWith("ui.overlay", { open: true })), { v: 1, type: "ui.overlay", payload: { open: true } });
+  assert.deepEqual(parseWebToApp('{"v":1,"type":"ui.overlay","payload":{"open":false,"x":1}}'), {
+    v: 1,
+    type: "ui.overlay",
+    payload: { open: false },
+  });
+});
+
+test("ui.overlay open 이 boolean 이 아니면 버린다", () => {
+  for (const raw of [
+    '{"v":1,"type":"ui.overlay","payload":{"open":"true"}}',
+    '{"v":1,"type":"ui.overlay","payload":{"open":1}}',
+    '{"v":1,"type":"ui.overlay","payload":{}}',
+    '{"v":1,"type":"ui.overlay"}',
+  ])
+    assert.equal(parseWebToApp(raw), null, raw);
+});
+
+test("ui.haptic kind 는 light·success 만", () => {
+  assert.deepEqual(parseWebToApp(encodeWebToAppWith("ui.haptic", { kind: "success" })), { v: 1, type: "ui.haptic", payload: { kind: "success" } });
+  assert.equal(parseWebToApp('{"v":1,"type":"ui.haptic","payload":{"kind":"heavy"}}'), null);
+  assert.equal(parseWebToApp('{"v":1,"type":"ui.haptic","payload":{"kind":"toString"}}'), null);
+});
+
+test("ui.refresh 는 payload 없이", () => {
+  assert.deepEqual(parseWebToApp(encodeWebToApp("ui.refresh")), { v: 1, type: "ui.refresh", payload: {} });
+  assert.deepEqual(parseWebToApp('{"v":1,"type":"ui.refresh","payload":{"url":"x"}}'), { v: 1, type: "ui.refresh", payload: {} });
+});
+
+test("앱→웹 ui.back 왕복, push.state 그대로", () => {
+  assert.deepEqual(parseAppToWeb(encodeAppToWebBack()), { v: 1, type: "ui.back" });
+  assert.deepEqual(parseAppToWeb({ v: 1, type: "ui.back", extra: 1 }), { v: 1, type: "ui.back" });
+  assert.equal(parseAppToWeb('{"v":2,"type":"ui.back"}'), null);
+  assert.deepEqual(parseAppToWeb(encodeAppToWeb("granted")), { v: 1, type: "push.state", state: "granted" });
+});
+
+test("hasCap ui — caps 에 ui 가 있을 때만", () => {
+  assert.equal(hasCap({ version: "1.1.0", platform: "android", caps: ["push"] }, "ui"), false);
+  assert.equal(hasCap({ version: "1.2.0", platform: "android", caps: ["push", "ui"] }, "ui"), true);
+});
+
+test("isAppTabRoot — 5개만, 끝 슬래시·쿼리 무시", () => {
+  assert.deepEqual([...APP_TAB_ROOTS], ["/", "/fortune", "/byeolmaru", "/shop", "/mypage"]);
+  for (const p of ["/", "/shop/", "/?tab=1", "/mypage#x", "/fortune"]) assert.equal(isAppTabRoot(p), true, p);
+  for (const p of ["/shop/x", "/fortune/love_year", "/tarot/draw", "", "shop"]) assert.equal(isAppTabRoot(p), false, p);
 });

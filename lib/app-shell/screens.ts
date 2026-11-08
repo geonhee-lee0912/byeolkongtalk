@@ -1,7 +1,10 @@
 // 앱 헤더가 쓰는 화면 판정 — 탭 첫 화면인지, 하위 화면이면 제목과 '‹' 가 기록 없이 갈 탭. 스펙 2026-11-07-앱-화면 §4.
 // 탭 첫 화면은 정확히 일치할 때만이다(하단 탭 불 켜기용 BottomTab matchPrefixes 와 별개).
 
-export type TabRoot = "/" | "/fortune" | "/byeolmaru" | "/shop" | "/mypage";
+import type { AppTabRoot } from "../app-bridge/protocol.ts";
+
+/** 탭 첫 화면 — 목록의 원천은 lib/app-bridge/protocol.ts APP_TAB_ROOTS(앱의 당겨서 새로고침도 같은 목록을 쓴다) */
+export type TabRoot = AppTabRoot;
 export type AppScreen = { kind: "tab"; title: string } | { kind: "sub"; title: string; tabRoot: TabRoot };
 
 const TABS: Record<TabRoot, string> = {

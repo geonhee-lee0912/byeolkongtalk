@@ -1,6 +1,6 @@
 // 웹이 앱(React Native 웹뷰) 안에서 열렸는지 판단하고 앱에 메시지를 보낸다(브라우저 전용). 스펙 2026-10-12-앱-1 §5·§6.
 // 1차 근거 = 앱이 문서 시작 전에 주입한 window.__BYEOLKONG_APP__, 2차 = UA 의 ByeolkongApp/ 표식(서버는 parseAppUserAgent 로 UA 만 본다).
-import { encodeWebToApp, isAppInfo, parseAppUserAgent, type AppInfo, type WebToAppType } from "./app-bridge/protocol.ts";
+import { encodeWebToApp, isAppInfo, parseAppUserAgent, type AppInfo, type PlainWebToAppType } from "./app-bridge/protocol.ts";
 
 type AppWindow = Window & {
   __BYEOLKONG_APP__?: unknown;
@@ -16,7 +16,7 @@ export function getAppInfo(): AppInfo | null {
 }
 
 /** 앱에 메시지 — 앱 밖(브라우저)에선 아무것도 안 한다. 앱 쪽 연결이 던져도 던지지 않는다 */
-export function postToApp(type: WebToAppType): void {
+export function postToApp(type: PlainWebToAppType): void {
   if (typeof window === "undefined") return;
   try {
     (window as AppWindow).ReactNativeWebView?.postMessage(encodeWebToApp(type));
