@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -92,21 +93,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     };
   }, [readingId, onClose]);
 
-  // ESC 로 닫기 + 열려 있는 동안 배경 스크롤 잠금
-  useEffect(() => {
-    if (!readingId) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [readingId, onClose]);
-
+  // ESC·배경 스크롤 잠금은 공통 Sheet
   if (!readingId || typeof document === "undefined") return null;
 
   const consultationType =
@@ -191,17 +178,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
     }
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
+  return (
+    <Sheet
+      label="이 고민, 이어가볼까?"
+      onClose={onClose}
+      z={100}
+      backdropClassName="bg-night/75 backdrop-blur-md"
+      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="px-5 pt-5 pb-6 flex flex-col">
           {/* 헤더 */}
           <div className="flex items-center justify-between mb-3">
@@ -211,13 +195,12 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 이 고민, 이어가볼까?
               </h2>
             </div>
-            <button
-              onClick={onClose}
+            <OverlayCloseButton
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
             >
               ✕
-            </button>
+            </OverlayCloseButton>
           </div>
 
           {loading ? (
@@ -301,8 +284,6 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
             </>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }

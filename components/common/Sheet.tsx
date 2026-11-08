@@ -5,7 +5,7 @@
 // 손잡이 쪽 띠(위 44px)를 끌어내려 닫는다(app/globals.css 의 .sheet-*). 뒤 화면 스크롤 잠금과 "맨 위 하나 닫기"는 overlayStack.
 // 부모가 보여 줄 때만 그린다(조건부 렌더). 안쪽 버튼은 useOverlayClose() 로 닫기를 요청한다.
 // 웹 모양을 지금대로 두려고 판·배경막 모양과 정렬(align="bottom" = 데스크톱에서도 아래)을 넘겨받는다.
-// 판 모양을 넘기면 판에 패딩이 없다고 보고 손잡이 띠가 음수 여백을 쓰지 않는다
+// 앱 손잡이 띠는 판에 p-6 이 있을 때만 음수 여백으로 판 위 끝에 붙인다(패딩 없는 판은 그대로 맨 위에 놓인다)
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAppInfo } from "@/lib/use-app-info";
@@ -77,6 +77,8 @@ export default function Sheet({
 
   const drag = useRef<Drag | null>(null);
   const canDrag = !!app && dismissible;
+  const panel = panelClassName ?? PANEL_DEFAULT;
+  const padded = /(^|\s)p-6(\s|$)/.test(panel);
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (!canDrag || !panelRef.current) return;
@@ -122,11 +124,11 @@ export default function Sheet({
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className={`sheet-panel relative w-full max-w-md mx-auto ${panelClassName ?? PANEL_DEFAULT}`}
+        className={`sheet-panel relative w-full max-w-md mx-auto ${panel}`}
       >
         {/* 앱 전용 손잡이 + 끌어내리기 띠(44px) — 시트 안 스크롤과 다투지 않게 여기서만 끈다 */}
         <div
-          className={`app-only ${panelClassName ? "" : "-mx-6 -mt-6 mb-1"} h-11 flex items-start justify-center pt-2.5 touch-none`}
+          className={`app-only ${padded ? "-mx-6 -mt-6 mb-1" : ""} h-11 flex items-start justify-center pt-2.5 touch-none`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

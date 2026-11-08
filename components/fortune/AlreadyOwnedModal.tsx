@@ -2,7 +2,8 @@
 
 // 이미 같은 사주로 본 상품을 다시 사려 할 때 — 보관함 유도 + 재생성(force) 선택.
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 
 export default function AlreadyOwnedModal({
   label,
@@ -21,15 +22,8 @@ export default function AlreadyOwnedModal({
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <Sheet label="이미 이 사주로 봤어" onClose={onClose} z={80}>
         <div className="text-center mb-5">
           <p className="font-display text-[17px] text-eye-purple leading-tight">이미 이 사주로 봤어</p>
           <p className="text-[12.5px] text-text-light/85 mt-1.5 leading-relaxed">
@@ -51,12 +45,8 @@ export default function AlreadyOwnedModal({
           >
             그래도 새로 뽑기 · ⭐{cost}
           </button>
-          <button onClick={onClose} className="w-full py-2.5 text-[13px] text-text-light">
-            닫기
-          </button>
+          <OverlayCloseButton className="w-full py-2.5 text-[13px] text-text-light">닫기</OverlayCloseButton>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }
