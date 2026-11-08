@@ -8,8 +8,8 @@ import { usePathname } from "next/navigation";
 import { useAppInfo } from "@/lib/use-app-info";
 import { navKindForClick, navKindForPopstate, takeBackButton, type NavKind } from "@/lib/app-shell/nav-direction";
 
-/** 화면이 바뀐 뒤 data-nav 를 지우기까지 — 전환 애니메이션(최대 0.35초)이 끝날 만큼 */
-const CLEAR_AFTER_NAV_MS = 600;
+/** 화면이 바뀐 뒤 data-nav 를 지우기까지 — 전환 애니메이션(최대 0.54초, 아이폰)이 끝날 만큼. 도중에 지우면 그 움직임의 CSS 가 풀려 화면이 튄다 */
+const CLEAR_AFTER_NAV_MS = 800;
 /** 값을 넣었는데 화면이 안 바뀌었을 때(이동이 막힌 링크 등) 지우기까지 — 남아 있으면 다음 화면 안 트랜지션이 미끄러진다 */
 const CLEAR_IF_STUCK_MS = 1_500;
 
@@ -33,7 +33,9 @@ function setNav(kind: NavKind, clearMs: number = CLEAR_IF_STUCK_MS) {
 // 그래서 지금 화면을 복제한 덮개를 위에 두고 뒤로 간 뒤 덮개를 밀어낸다 — 아이폰은 오른쪽으로 빠지며 아래 화면이 왼쪽 1/3 에서
 // 밝아지며 들어오고, 안드로이드는 덮개가 아래로 가라앉으며 사라진다. 덮개는 헤더(z-50)·탭바(z-40) 아래(z-39)라 둘은 그대로 있다.
 // 🔴 안드로이드 하드웨어 뒤로는 앱이 웹뷰 goBack 을 바로 불러 이 길을 못 탄다 — 4단계에서 앱이 웹에 뒤로를 청하게 바꾼다
-const IOS_EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+// 아이폰 값은 globals.css 의 아이폰 전환과 같다(0.54초·같은 곡선) — 바꿀 땐 둘 다
+const IOS_MS = 540;
+const IOS_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 
 export function runBackTransition(goBack: () => void): void {
   const page = document.querySelector<HTMLElement>("[data-app-page]");
@@ -60,8 +62,8 @@ export function runBackTransition(goBack: () => void): void {
   goBack();
   const done = () => layer.remove();
   if (platform === "ios") {
-    clone.animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], { duration: 350, easing: IOS_EASE, fill: "forwards" }).onfinish = done;
-    page.animate([{ transform: "translateX(-30%)", filter: "brightness(0.82)" }, { transform: "none", filter: "none" }], { duration: 350, easing: IOS_EASE });
+    clone.animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], { duration: IOS_MS, easing: IOS_EASE, fill: "forwards" }).onfinish = done;
+    page.animate([{ transform: "translateX(-30%)", filter: "brightness(0.82)" }, { transform: "none", filter: "none" }], { duration: IOS_MS, easing: IOS_EASE });
   } else {
     // 가라앉는 건 0.3초, 옅어지는 건 마지막 0.1초만 — 오래 반투명이면 두 화면이 겹쳐 보인다(2026-11-07 실기기)
     clone.animate([{ transform: "none" }, { transform: "translateY(8%)" }], { duration: 300, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" }).onfinish = done;

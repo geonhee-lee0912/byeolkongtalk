@@ -282,18 +282,19 @@ html:is([data-nav="tab"], [data-nav="none"])::view-transition-new(.app-nav) {
     opacity: 1;
   }
 }
+/* 아이폰 — 0.54초 · 천천히 출발해 부드럽게 멈추는 곡선(Ionic 의 iOS 화면 전환 값). 0.35초 앞쏠림 곡선은 실기기에서 "너무 빨라 어색"(2026-11-08) */
 html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-new(.app-nav) {
-  animation: app-in-right 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: app-in-right 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-old(.app-nav) {
-  animation: app-out-left 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: app-out-left 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 html[data-app][data-platform="ios"][data-nav="back"]::view-transition-old(.app-nav) {
   z-index: 1;
-  animation: app-out-right 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: app-out-right 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 html[data-app][data-platform="ios"][data-nav="back"]::view-transition-new(.app-nav) {
-  animation: app-in-left 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: app-in-left 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 /* 안드로이드 — 떠오르는 움직임은 0.3초, 진해지는 건 0.1초만(오래 반투명이면 두 화면이 겹쳐 보인다 — 2026-11-07 실기기) */
 html[data-app][data-platform="android"][data-nav="forward"]::view-transition-new(.app-nav) {
