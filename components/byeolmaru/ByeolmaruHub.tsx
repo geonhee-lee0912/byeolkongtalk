@@ -20,6 +20,7 @@ import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import { useScreenCache } from "@/lib/screen-cache";
 import { hubCardTile } from "@/lib/byeolmaru/hub-card-tile";
+import PushMomentAsk from "@/components/push/PushMomentAsk";
 
 interface CalendarResponse {
   today: string;
@@ -249,6 +250,8 @@ export default function ByeolmaruHub() {
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
+      {/* 앱 알림 — 별마루 오늘 흐름을 처음 볼 때 한 번 묻는다(앱 알림 설계 §4-3). 물을 게 없으면 아무것도 안 그린다 */}
+      <PushMomentAsk moment="byeolmaru_first" />
       {/* 🔴 배너가 허브의 **유일한** 구독 면이다(2026-09-24). 예전엔 ①DayStrip 아래 인라인 문구
           ②달력 밑 PremiumBlock 둘이 더 있었는데, 375×812 실측에서 셋 다 첫 화면에 들어왔다.
           판매는 "더 보고 싶다"가 생기는 자리 — 오늘 사주·오늘 타로의 PaywallCut(절단선) — 가

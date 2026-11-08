@@ -3,7 +3,16 @@
 // 마지막 인자 db 는 시험에서 가짜 클라이언트를 꽂는 자리다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
+import { computeEntitlement, getEntitlement } from "@/lib/byeolmaru/entitlement";
+import { devicesOverCap } from "./device-cap.ts";
 import type { DispatchStore } from "./dispatch.ts";
+import type { AdStatus, AskAnswer, AskKind, AskMoment, AskRecord } from "./asks.ts";
+import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
+import type { ReconfirmCandidate, ReconfirmStore } from "./reconfirm-job.ts";
+import { laterOf, type DeviceGroup, type FactsStore, type PushFacts } from "./facts.ts";
+import type { ProfileRow } from "./today-flow.ts";
+import type { ResumeStore } from "./comeback-job.ts";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
 type Db = SupabaseClient;
 
@@ -21,6 +30,19 @@ export async function upsertDevice(
     { onConflict: "token" },
   );
   check(error, "upsertDevice");
+}
+
+/** 기기 상한(MAX_ACTIVE_DEVICES_PER_USER)을 넘은 이 회원의 켜진 기기를 끈다 — 방금 등록한 기기는 최근 확인이 가장 늦어 남는다 */
+export async function trimUserDevices(userId: string, db: Db = getServiceSupabase()): Promise<void> {
+  const { data, error } = await db
+    .from("push_devices")
+    .select("token, last_seen_at")
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .limit(200);
+  check(error, "trimUserDevices");
+  const over = devicesOverCap((data ?? []).map((r: { token: string; last_seen_at: string }) => ({ token: r.token, lastSeenAt: r.last_seen_at })));
+  if (over.length) await disableTokens(over, db);
 }
 
 export async function deleteDevice(token: string, db: Db = getServiceSupabase()): Promise<void> {
@@ -58,20 +80,80 @@ export async function setRevisitPref(userId: string, on: boolean, db: Db = getSe
   check(error, "setRevisitPref");
 }
 
-export async function listAskMoments(userId: string, db: Db = getServiceSupabase()): Promise<string[]> {
-  const { data, error } = await db.from("push_asks").select("moment").eq("user_id", userId);
-  check(error, "listAskMoments");
-  return (data ?? []).map((r: { moment: string }) => r.moment);
+export async function listAsks(userId: string, db: Db = getServiceSupabase()): Promise<AskRecord[]> {
+  const { data, error } = await db.from("push_asks").select("moment, kind, answer").eq("user_id", userId).order("id");
+  check(error, "listAsks");
+  return (data ?? []) as AskRecord[];
 }
 
 export async function recordAsk(
   userId: string,
-  moment: "first_reading_end",
-  answer: "accepted" | "later" | "os_denied",
+  moment: AskMoment,
+  kind: AskKind,
+  answer: AskAnswer,
   db: Db = getServiceSupabase(),
 ): Promise<void> {
-  const { error } = await db.from("push_asks").insert({ user_id: userId, moment, answer });
+  const { error } = await db.from("push_asks").insert({ user_id: userId, moment, kind, answer });
   check(error, "recordAsk");
+}
+
+export async function getAdConsent(userId: string, db: Db = getServiceSupabase()): Promise<AdConsentRow> {
+  const { data, error } = await db
+    .from("ad_consents")
+    .select("status, first_granted_at, granted_at, last_reconfirm_notice_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  check(error, "getAdConsent");
+  if (!data) return null;
+  return {
+    status: data.status as "granted" | "withdrawn",
+    firstGrantedAt: data.first_granted_at as string,
+    grantedAt: data.granted_at as string,
+    lastReconfirmNoticeAt: (data.last_reconfirm_notice_at as string | null) ?? null,
+  };
+}
+
+/** 동의·철회 + 결과 통지 기록(+ 수신거부 표 사용) — 한 트랜잭션(RPC push_set_ad_consent) */
+export async function setAdConsent(
+  userId: string,
+  grant: boolean,
+  source: string,
+  sendId: number | null = null,
+  db: Db = getServiceSupabase(),
+): Promise<SetConsentResult> {
+  const { data, error } = await db.rpc("push_set_ad_consent", {
+    p_user_id: userId,
+    p_grant: grant,
+    p_source: source,
+    p_send_id: sendId,
+  });
+  check(error, "setAdConsent");
+  const r = data as { ok: boolean; reason?: string; changed?: boolean; status?: AdStatus; at?: string } | null;
+  if (!r) throw new Error("push store setAdConsent: no data");
+  if (!r.ok) return { ok: false, reason: r.reason === "token_invalid" ? "token_invalid" : "token_used" };
+  return { ok: true, changed: !!r.changed, status: r.status ?? "none", at: r.at ?? new Date().toISOString() };
+}
+
+export async function recordReconfirmNotice(
+  userId: string,
+  source: "reconfirm_popup" | "reconfirm_push",
+  db: Db = getServiceSupabase(),
+): Promise<boolean> {
+  const { data, error } = await db.rpc("push_record_reconfirm_notice", { p_user_id: userId, p_source: source });
+  check(error, "recordReconfirmNotice");
+  return data === true;
+}
+
+/** 수신거부 표의 발송 — 주인과 정보성/광고 */
+export async function sendOwner(sendId: number, db: Db = getServiceSupabase()): Promise<{ userId: string; klass: "info" | "ad" } | null> {
+  const { data, error } = await db.from("push_sends").select("user_id, class").eq("id", sendId).maybeSingle();
+  check(error, "sendOwner");
+  return data ? { userId: data.user_id as string, klass: data.class as "info" | "ad" } : null;
+}
+
+/** 유료 구독 중인가(체험 제외) — 별마루 자격 판정을 그대로 쓴다 */
+export async function isSubscriber(userId: string): Promise<boolean> {
+  return (await getEntitlement(userId)).reason === "subscription";
 }
 
 export async function getRevisit(
@@ -230,5 +312,189 @@ export const supabaseDispatchStore: DispatchStore = {
       .update({ receipt_checked_at: new Date().toISOString() })
       .in("id", sendIds);
     check(error, "markReceiptsChecked");
+  },
+};
+
+/** 2년 재확인 푸시 cron 용 — ReconfirmStore 의 service_role 구현 */
+export const supabaseReconfirmStore: ReconfirmStore = {
+  async reconfirmCandidates(cutoffIso) {
+    // 동의 중인 회원 중 최초 동의가 cutoff 이전 — 행수가 데이터에 비례하니 1000행씩 끝까지 읽는다(Max rows 가 조용히 자른다)
+    const out: ReconfirmCandidate[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await getServiceSupabase()
+        .from("ad_consents")
+        .select("user_id, first_granted_at, granted_at, last_reconfirm_notice_at")
+        .eq("status", "granted")
+        .lte("first_granted_at", cutoffIso)
+        .order("user_id")
+        .range(from, from + 999);
+      check(error, "reconfirmCandidates");
+      const rows = (data ?? []) as { user_id: string; first_granted_at: string; granted_at: string; last_reconfirm_notice_at: string | null }[];
+      for (const r of rows) {
+        out.push({ userId: r.user_id, firstGrantedAt: r.first_granted_at, grantedAt: r.granted_at, lastReconfirmNoticeAt: r.last_reconfirm_notice_at });
+      }
+      if (rows.length < 1000) return out;
+    }
+  },
+  recordReconfirmNotice: (userId, source) => recordReconfirmNotice(userId, source),
+};
+
+// ── 단계 3·4 cron 판정 재료(FactsStore) ───────────────────────────────────────────
+
+/** 한 묶음(회원 100명 이하) 조회가 Max rows(1000)에 닿으면 조용히 잘린다 — 위기 신호처럼 빠지면 안 되는 값이 섞여 있어 던진다 */
+function rowsOrThrow<T>(data: T[] | null, error: { message: string } | null, what: string): T[] {
+  check(error, what);
+  const rows = data ?? [];
+  if (rows.length >= 1000) throw new Error(`push store ${what}: 1000 rows — chunk too large, refusing partial data`);
+  return rows;
+}
+
+async function loadActiveDevices(): Promise<Map<string, DeviceGroup>> {
+  const out = new Map<string, DeviceGroup>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_devices")
+      .select("token, user_id, last_seen_at")
+      .is("disabled_at", null)
+      .order("token")
+      .range(from, from + 999);
+    check(error, "activeDevices");
+    const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
+    for (const r of rows) {
+      const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
+      g.tokens.push(r.token);
+      g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
+      out.set(r.user_id, g);
+    }
+    if (rows.length < 1000) return out;
+  }
+}
+
+/** 같은 cron 실행 안에서 아침 흐름·깨우기가 기기 목록을 두 번 읽지 않게 잠깐 기억한다(실행 간격 15분보다 훨씬 짧게) */
+const DEVICE_CACHE_MS = 30_000;
+let deviceCache: { at: number; value: Promise<Map<string, DeviceGroup>> } | null = null;
+
+export const supabaseFactsStore: FactsStore = {
+  activeDevices() {
+    const now = Date.now();
+    if (deviceCache && now - deviceCache.at < DEVICE_CACHE_MS) return deviceCache.value;
+    const value = loadActiveDevices();
+    deviceCache = { at: now, value };
+    value.catch(() => {
+      deviceCache = null; // 실패는 기억하지 않는다
+    });
+    return value;
+  },
+  async facts(userIds, now, todayKst) {
+    const db = getServiceSupabase();
+    const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+    const [prefs, consents, users, subs, alerts, sensitive, opens, sends, profiles, devices, wakes] = await Promise.all([
+      db.from("push_preferences").select("user_id, morning").in("user_id", userIds),
+      db.from("ad_consents").select("user_id, status").in("user_id", userIds),
+      db.from("users").select("id, byeolmaru_trial_started_at").in("id", userIds),
+      db.from("byeolmaru_subscriptions").select("user_id, expires_at").in("user_id", userIds).gt("expires_at", now.toISOString()),
+      db.from("sensitive_alerts").select("user_id").in("user_id", userIds).gte("created_at", since30),
+      db.from("readings").select("user_id").in("user_id", userIds).eq("has_sensitive", true).gte("created_at", since30),
+      db.from("push_app_opens").select("user_id, last_open_at").in("user_id", userIds),
+      db.from("push_sends").select("user_id, kind, class").in("user_id", userIds).eq("send_date", todayKst),
+      db.from("user_profiles").select("user_id, birth_date, birth_time, is_lunar_input, is_leap_month, gender").in("user_id", userIds).eq("is_primary", true),
+      db.from("push_devices").select("user_id, last_seen_at").in("user_id", userIds),
+      db.from("push_sends").select("user_id, ref_id").in("user_id", userIds).eq("kind", "wake").gte("sent_at", since30),
+    ]);
+    const prefRows = rowsOrThrow(prefs.data as { user_id: string; morning: boolean }[] | null, prefs.error, "facts.prefs");
+    const consentRows = rowsOrThrow(consents.data as { user_id: string; status: string }[] | null, consents.error, "facts.consents");
+    const userRows = rowsOrThrow(users.data as { id: string; byeolmaru_trial_started_at: string | null }[] | null, users.error, "facts.users");
+    const subRows = rowsOrThrow(subs.data as { user_id: string; expires_at: string }[] | null, subs.error, "facts.subs");
+    const alertRows = rowsOrThrow(alerts.data as { user_id: string }[] | null, alerts.error, "facts.alerts");
+    const sensitiveRows = rowsOrThrow(sensitive.data as { user_id: string }[] | null, sensitive.error, "facts.sensitive");
+    const openRows = rowsOrThrow(opens.data as { user_id: string; last_open_at: string }[] | null, opens.error, "facts.opens");
+    const sendRows = rowsOrThrow(sends.data as { user_id: string; kind: string; class: "info" | "ad" }[] | null, sends.error, "facts.sends");
+    const profileRows = rowsOrThrow(profiles.data as (ProfileRow & { user_id: string })[] | null, profiles.error, "facts.profiles");
+    const deviceRows = rowsOrThrow(devices.data as { user_id: string; last_seen_at: string | null }[] | null, devices.error, "facts.devices");
+    const wakeRows = rowsOrThrow(wakes.data as { user_id: string; ref_id: string }[] | null, wakes.error, "facts.wakes");
+
+    const crisis = new Set([...alertRows, ...sensitiveRows].map((r) => r.user_id));
+    const out = new Map<string, PushFacts>();
+    for (const id of userIds) {
+      const u = userRows.find((r) => r.id === id);
+      const sub = subRows.filter((r) => r.user_id === id).map((r) => r.expires_at).sort().pop() ?? null;
+      const ent = computeEntitlement({ trialStartedAt: u?.byeolmaru_trial_started_at ?? null, subscriptionExpiresAt: sub }, now);
+      const deviceSeen = deviceRows.filter((r) => r.user_id === id).reduce<string | null>((a, r) => laterOf(a, r.last_seen_at), null);
+      const p = profileRows.find((r) => r.user_id === id);
+      out.set(id, {
+        morningPref: prefRows.find((r) => r.user_id === id)?.morning !== false,
+        adConsent: consentRows.find((r) => r.user_id === id)?.status === "granted",
+        subscription: ent.reason === "subscription" ? "paid" : ent.reason === "trial" ? "trial" : "none",
+        crisisWithin30d: crisis.has(id),
+        lastOpenAt: laterOf(openRows.find((r) => r.user_id === id)?.last_open_at ?? null, deviceSeen),
+        sendsToday: sendRows.filter((r) => r.user_id === id).map((r) => ({ kind: r.kind, klass: r.class })),
+        profile: p
+          ? { birth_date: p.birth_date, birth_time: p.birth_time, is_lunar_input: p.is_lunar_input, is_leap_month: p.is_leap_month, gender: p.gender }
+          : null,
+        wakeRefsSent: wakeRows.filter((r) => r.user_id === id).map((r) => r.ref_id),
+      });
+    }
+    return out;
+  },
+};
+
+/** 앱을 연 시각을 남긴다(웹 PushGate 가 앱 안에서 부른다) */
+export async function recordAppOpen(userId: string, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_app_opens")
+    .upsert({ user_id: userId, last_open_at: new Date().toISOString() }, { onConflict: "user_id" });
+  check(error, "recordAppOpen");
+}
+
+/** 알림을 누르고 연 시각 — 그 회원의 발송이고 처음 연 것만 */
+export async function markSendOpened(userId: string, sendId: number, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_sends")
+    .update({ opened_at: new Date().toISOString() })
+    .eq("id", sendId)
+    .eq("user_id", userId)
+    .is("opened_at", null);
+  check(error, "markSendOpened");
+}
+
+export async function getMorningPref(userId: string, db: Db = getServiceSupabase()): Promise<boolean> {
+  const { data, error } = await db.from("push_preferences").select("morning").eq("user_id", userId).maybeSingle();
+  check(error, "getMorningPref");
+  return data ? data.morning !== false : true;
+}
+
+export async function setMorningPref(userId: string, on: boolean, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_preferences")
+    .upsert({ user_id: userId, morning: on, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  check(error, "setMorningPref");
+}
+
+/** 이어가기 cron 용 — 가장 최근의 (운세가 아닌) 타로 상담과 그 대화 상태. 홈 이어가기 버튼(app/page.tsx)과 같은 대상 */
+export const supabaseResumeStore: ResumeStore = {
+  async latestTarot(userId) {
+    const db = getServiceSupabase();
+    const { data, error } = await db
+      .from("readings")
+      .select("id, emotion_tag")
+      .eq("user_id", userId)
+      .eq("consultation_type", "tarot")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    check(error, "latestTarot");
+    const r = (data ?? []).find((x: { emotion_tag: string | null }) => !fortuneTypeFromTag(x.emotion_tag));
+    if (!r) return null;
+    const [lastUser, endRow] = await Promise.all([
+      db.from("messages").select("created_at").eq("reading_id", r.id).eq("role", "user").order("created_at", { ascending: false }).limit(1),
+      // [END] 마커 — '['·']' 는 LIKE 의 특수문자가 아니다(% · _ 만)
+      db.from("messages").select("id").eq("reading_id", r.id).eq("role", "assistant").like("content", "%[END]%").limit(1),
+    ]);
+    check(lastUser.error, "latestTarot.lastUser");
+    check(endRow.error, "latestTarot.ended");
+    return {
+      readingId: r.id as string,
+      ended: (endRow.data ?? []).length > 0,
+      lastUserAt: ((lastUser.data ?? [])[0] as { created_at: string } | undefined)?.created_at ?? null,
+    };
   },
 };

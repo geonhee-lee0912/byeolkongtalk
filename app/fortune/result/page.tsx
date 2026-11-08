@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
+import PushMomentAsk from "@/components/push/PushMomentAsk";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import MonthlyReportView from "@/components/fortune/monthly/MonthlyReportView";
 import {
@@ -579,6 +580,8 @@ function FortuneResultInner() {
         )}
       </div>
 
+      {/* 앱 알림 — 사주를 처음 볼 때 한 번 묻는다(앱 알림 설계 §4-3 ②). 내 리포트·사주 기반일 때만 */}
+      {!isPublic && ftType && !isTarot && <PushMomentAsk moment="birthday" />}
       {!isPublic && ftType && <ResultUpsell variant={ftType} />}
 
       {!isPublic && <SurveyResultCard />}

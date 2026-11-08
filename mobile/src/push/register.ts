@@ -9,12 +9,15 @@ import { Platform } from "react-native";
 import type { PushState } from "../../../lib/app-bridge/protocol.ts";
 import { postJson } from "../auth/api";
 import { appInfo } from "../config";
-import { toPushState } from "./state.ts";
+import { toPushState, UNSUBSCRIBE_ACTION } from "./state.ts";
 
 /** 이 기기의 Expo 푸시 토큰 — 로그아웃 때 서버에서 지울 토큰 */
 const TOKEN_KEY = "push_token";
-/** 안드로이드 알림 채널 — 서버가 보내는 channelId 와 같다(lib/push/expo.ts) */
+/** 안드로이드 알림 채널 — 서버가 보내는 channelId 와 같다(lib/push/expo.ts). 정보성 / 광고(설계 §6-2) */
 const CHANNEL_ID = "info";
+const AD_CHANNEL_ID = "ad";
+/** 광고 알림 카테고리 — [수신거부] 버튼(설계 §4-7). 서버가 광고에 categoryId "ad" 를 싣는다 */
+const AD_CATEGORY_ID = "ad";
 
 /** 앱이 앞에 떠 있을 때 받은 알림도 배너로 보인다 */
 export function showNotificationsInForeground(): void {
@@ -118,7 +121,24 @@ export async function ensureAndroidChannel(): Promise<void> {
       name: "별콩이 알림",
       importance: Notifications.AndroidImportance.DEFAULT,
     });
+    // 광고 — 사용자가 OS 설정에서 이 채널만 따로 끌 수 있다. 중요도는 정보성과 같은 DEFAULT(운영자 결정 11-06 을 따름)
+    await Notifications.setNotificationChannelAsync(AD_CHANNEL_ID, {
+      name: "혜택·소식",
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
   } catch (e) {
     console.warn("[push] 알림 채널 만들기 실패", e);
+  }
+}
+
+/** 광고 알림의 [수신거부] 버튼(iOS 카테고리 · 안드로이드 액션) — 누르면 앱이 앞으로 열려 수신거부 화면을 연다(WebScreen).
+ *  아이폰은 알림을 길게 눌러야 버튼이 보인다 — 그래서 열린 화면에도 같은 철회 줄이 있다(웹 PushGate) */
+export async function ensureNotificationCategories(): Promise<void> {
+  try {
+    await Notifications.setNotificationCategoryAsync(AD_CATEGORY_ID, [
+      { identifier: UNSUBSCRIBE_ACTION, buttonTitle: "수신거부", options: { opensAppToForeground: true } },
+    ]);
+  } catch (e) {
+    console.warn("[push] 알림 버튼 만들기 실패", e);
   }
 }

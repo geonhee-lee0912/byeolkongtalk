@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Header from "./Header";
 import BottomTab from "./BottomTab";
 import UserPopupGate from "@/components/popup/UserPopupGate";
+import PushGate from "@/components/push/PushGate";
 import AppNavDirection from "./AppNavDirection";
 import { AppHistoryDepth } from "./AppHeader";
 import { useAppInfo } from "@/lib/use-app-info";
@@ -55,6 +56,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <BottomTab />
       </Suspense>
       <UserPopupGate />
+      {/* 앱 알림 — 수신거부 줄·2년 재확인 팝업·두 번째 실행 질문(앱 안에서만 일한다) */}
+      <PushGate />
     </>
   );
 }

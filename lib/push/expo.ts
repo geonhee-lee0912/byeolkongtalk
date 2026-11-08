@@ -3,9 +3,13 @@ export type ExpoMessage = {
   to: string;
   title: string;
   body: string;
-  data: { path: string; kind: string; sendId: number };
+  /** unsub = 광고 알림의 수신거부 표(앱의 [수신거부] 버튼이 쓴다) */
+  data: { path: string; kind: string; sendId: number; unsub?: string };
   sound: "default";
-  channelId: "info";
+  /** 안드로이드 채널 — 'info' 별콩이 알림(정보성) / 'ad' 혜택·소식(광고). 앱(mobile/src/push/register.ts)이 같은 이름으로 만든다 */
+  channelId: "info" | "ad";
+  /** iOS 카테고리·안드로이드 버튼 — 'ad' 는 [수신거부] 버튼이 붙는다 */
+  categoryId?: "ad";
 };
 
 export type ExpoTicket =
