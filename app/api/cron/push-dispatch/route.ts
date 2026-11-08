@@ -1,11 +1,12 @@
-// Vercel Cron (15분마다, vercel.json) — 오늘 보낼 '다시 볼 날' 알림, 그 뒤 2년 재확인 통지를 보낸다.
+// Vercel Cron (15분마다, vercel.json) — 오늘 보낼 '다시 볼 날' 알림, 2년 재확인 통지, 아침 별 흐름을 보낸다.
 // Vercel 이 `Authorization: Bearer ${CRON_SECRET}` 를 붙여 부른다. 시크릿이 없으면 무조건 거부.
 // Vercel Cron 은 production 배포에서만 돈다 — dev 는 손으로 호출한다.
 import { NextRequest, NextResponse } from "next/server";
 import { dispatchRevisits } from "@/lib/push/dispatch";
 import { getReceipts, sendExpo } from "@/lib/push/expo";
-import { supabaseDispatchStore, supabaseReconfirmStore } from "@/lib/push/store";
+import { supabaseDispatchStore, supabaseFactsStore, supabaseReconfirmStore } from "@/lib/push/store";
 import { reconfirmJob } from "@/lib/push/reconfirm-job";
+import { morningJob } from "@/lib/push/morning-job";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -22,7 +23,8 @@ export async function GET(req: NextRequest) {
     supabaseDispatchStore,
     { send: (m) => sendExpo(m), receipts: (ids) => getReceipts(ids) },
     logError,
-    { jobs: [reconfirmJob(supabaseReconfirmStore)] },
+    // 순서: 다시 볼 날(위) → 2년 재확인 → 아침 별 흐름(08:30~11:00 에만 일한다)
+    { jobs: [reconfirmJob(supabaseReconfirmStore), morningJob(supabaseFactsStore)] },
   );
   return NextResponse.json(r);
 }

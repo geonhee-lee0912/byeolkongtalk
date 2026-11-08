@@ -36,7 +36,7 @@ test("기한 7일 전부터, 낮 시간에 정보성으로 한 번 보내고 기
   assert.equal(m.channelId, "info");
   assert.equal(m.categoryId, undefined);
   assert.equal(m.data.unsub, undefined);
-  assert.equal(m.data.path, "/mypage/notifications");
+  assert.equal(m.data.path, `/mypage/notifications#bkp=${m.data.sendId}`);
   assert.ok(m.body.includes("2024년 11월 12일"));
   assert.ok(!m.title.startsWith("(광고)"));
   assert.deepEqual(r.recorded, ["u1"]);

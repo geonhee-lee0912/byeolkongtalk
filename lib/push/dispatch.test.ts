@@ -139,7 +139,7 @@ test("DeviceNotRegistered 티켓·영수증의 토큰을 끈다", async () => {
 test("알림 data.path 는 그 리딩 결과 경로", async () => {
   const s = setup();
   await dispatchRevisits(OPEN, s.store, s.expo, s.log);
-  assert.equal(s.sent[0][0].data.path, "/tarot/result?id=r1");
+  assert.equal(s.sent[0][0].data.path, `/tarot/result?id=r1#bkp=${s.sent[0][0].data.sendId}`);
   assert.equal(s.sent[0][0].data.kind, "revisit");
 });
 

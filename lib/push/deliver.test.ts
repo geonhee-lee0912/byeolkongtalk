@@ -37,7 +37,7 @@ test("광고 — 표·채널·카테고리", async () => {
   assert.equal(m.channelId, "ad");
   assert.equal(m.categoryId, "ad");
   assert.ok(m.data.unsub && verifyUnsubToken(m.data.unsub, "u1", SECRET));
-  assert.equal(m.data.path, `/#bku=${m.data.unsub}`);
+  assert.equal(m.data.path, `/#bkp=42&bku=${m.data.unsub}`);
   assert.equal(m.data.sendId, 42);
 });
 
@@ -51,6 +51,19 @@ test("광고 — 표를 못 만들면(비밀값 없음) 보내지 않고 선점�
   assert.equal(h.sent.length, 0);
   assert.equal(h.released, 1);
   assert.equal(logs.length, 1);
+});
+
+test("정보성 — 열람 표식만 붙고 표·광고 채널은 없다", async () => {
+  const h = harness();
+  const job: DispatchJob = async (ctx) => {
+    await ctx.deliver({ userId: "u1", kind: "morning", klass: "info", refId: "d", tokens: ["tokA"], path: "/byeolmaru/day", message: { title: "t", body: "b" } });
+  };
+  await dispatchRevisits(new Date("2026-11-08T00:00:00Z"), h.store, h.expo, () => {}, { warn: () => {}, jobs: [job], unsubSecret: SECRET });
+  const m = h.sent[0][0];
+  assert.equal(m.data.path, "/byeolmaru/day#bkp=42");
+  assert.equal(m.data.unsub, undefined);
+  assert.equal(m.channelId, "info");
+  assert.equal(m.categoryId, undefined);
 });
 
 test("한 회원에게 기기 상한(5)까지만 보낸다", async () => {

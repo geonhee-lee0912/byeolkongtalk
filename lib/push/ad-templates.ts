@@ -14,3 +14,9 @@ export const AD_FOOTER = `무료 수신거부: 알림의 [수신거부] 버튼 �
 export function adMessage(title: string, body: string): { title: string; body: string } {
   return { title: AD_PREFIX + title, body: `${AD_PREFIX}${body}\n${AD_FOOTER}` };
 }
+
+/** 오늘의 별 흐름 — 비구독자(체험 포함)용 광고 틀(설계 §3 C): 별마루 맛보기 한 줄 */
+export function morningAdMessage(flow: { name: string; line: string }): { title: string; body: string } {
+  const first = flow.line.split(/(?<=[.!?])\s+/)[0] ?? flow.line;
+  return adMessage(`오늘은 ${flow.name}`, `${first} 별마루에서 오늘 흐름을 더 볼 수 있어.`);
+}

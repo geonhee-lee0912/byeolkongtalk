@@ -117,18 +117,24 @@ export async function handleSettingsGet(
   userId: string | null,
   deps: {
     getRevisitPref(userId: string): Promise<boolean>;
+    getMorningPref?(userId: string): Promise<boolean>;
     getAdConsent(userId: string): Promise<AdConsentRow>;
     now(): Date;
   },
 ): Promise<HandlerResult> {
   if (!userId) return UNAUTH;
-  const [revisit, c] = await Promise.all([deps.getRevisitPref(userId), deps.getAdConsent(userId)]);
+  const [revisit, morning, c] = await Promise.all([
+    deps.getRevisitPref(userId),
+    deps.getMorningPref ? deps.getMorningPref(userId) : Promise.resolve(true),
+    deps.getAdConsent(userId),
+  ]);
   const granted = c?.status === "granted";
   const reconfirm = granted && reconfirmState(c.firstGrantedAt, c.lastReconfirmNoticeAt, deps.now()).popup;
   return {
     status: 200,
     body: {
       revisit,
+      morning,
       ad: {
         status: c?.status ?? "none",
         // 동의일 — 가장 최근 동의(재동의했으면 그 날)
@@ -145,6 +151,7 @@ export async function handleSettingsPost(
   userId: string | null,
   deps: {
     setRevisitPref(userId: string, on: boolean): Promise<void>;
+    setMorningPref?(userId: string, on: boolean): Promise<void>;
     setAdConsent?(userId: string, grant: boolean, source: string): Promise<SetConsentResult>;
     recordReconfirmNotice?(userId: string, source: "reconfirm_popup"): Promise<boolean>;
   },
@@ -165,6 +172,12 @@ export async function handleSettingsPost(
     if (b.reconfirmSeen !== true) return { status: 400, body: { error: "bad_reconfirm" } };
     if (!deps.recordReconfirmNotice) throw new Error("recordReconfirmNotice missing");
     await deps.recordReconfirmNotice(userId, "reconfirm_popup");
+    return { status: 200, body: { ok: true } };
+  }
+  if ("morning" in b) {
+    if (typeof b.morning !== "boolean") return { status: 400, body: { error: "bad_morning" } };
+    if (!deps.setMorningPref) throw new Error("setMorningPref missing");
+    await deps.setMorningPref(userId, b.morning);
     return { status: 200, body: { ok: true } };
   }
   const { revisit } = b;
@@ -192,4 +205,20 @@ export async function handleUnsubscribePost(
   const r = await deps.setAdConsent(owner.userId, false, source, t.sendId);
   if (!r.ok) return r.reason === "token_used" ? { status: 409, body: { error: "used" } } : forbidden;
   return { status: 200, body: { status: r.status, notice: noticeOf(r) } };
+}
+
+/** 앱을 열었다 + (알림을 눌러 열었으면) 그 발송의 열람 시각 — 웹 PushGate 가 앱 안에서 부른다 */
+export async function handleOpenedPost(
+  body: unknown,
+  userId: string | null,
+  deps: { recordAppOpen(userId: string): Promise<void>; markSendOpened(userId: string, sendId: number): Promise<void> },
+): Promise<HandlerResult> {
+  if (!userId) return UNAUTH;
+  const { sendId } = obj(body);
+  if (sendId !== undefined && !(typeof sendId === "number" && Number.isSafeInteger(sendId) && sendId > 0)) {
+    return { status: 400, body: { error: "bad_send" } };
+  }
+  await deps.recordAppOpen(userId);
+  if (typeof sendId === "number") await deps.markSendOpened(userId, sendId); // 남의 발송 번호면 0행 — 아무 일도 안 한다
+  return { status: 200, body: { ok: true } };
 }

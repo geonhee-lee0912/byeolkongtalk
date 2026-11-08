@@ -1,7 +1,7 @@
 // 설계 §8 — 광고 동의 라우트: 설정의 동의·철회와 결과 통지, 묻는 순간 판정, 수신거부 표 위조·재사용.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handleAskGet, handleSettingsGet, handleSettingsPost, handleUnsubscribePost, type SetConsentResult } from "./user-api.ts";
+import { handleAskGet, handleOpenedPost, handleSettingsGet, handleSettingsPost, handleUnsubscribePost, type SetConsentResult } from "./user-api.ts";
 import { makeUnsubToken } from "./unsub-token.ts";
 
 const SECRET = "x".repeat(40);
@@ -38,11 +38,11 @@ test("설정 GET — 동의일과 2년 재확인 팝업 여부", async () => {
   const consent = { status: "granted" as const, firstGrantedAt: "2026-11-08T03:00:00Z", grantedAt: "2026-11-08T03:00:00Z", lastReconfirmNoticeAt: null };
   const deps = (now: string) => ({ getRevisitPref: async () => true, getAdConsent: async () => consent, now: () => new Date(now) });
   const early = await handleSettingsGet("u1", deps("2027-01-01T00:00:00Z"));
-  assert.deepEqual(early.body, { revisit: true, ad: { status: "granted", grantedOn: "2026년 11월 8일", reconfirm: null } });
+  assert.deepEqual(early.body, { revisit: true, morning: true, ad: { status: "granted", grantedOn: "2026년 11월 8일", reconfirm: null } });
   const due = await handleSettingsGet("u1", deps("2028-10-20T00:00:00Z"));
   assert.deepEqual((due.body as { ad: { reconfirm: unknown } }).ad.reconfirm, { grantedOn: "2026년 11월 8일" });
   const none = await handleSettingsGet("u1", { getRevisitPref: async () => false, getAdConsent: async () => null, now: () => new Date() });
-  assert.deepEqual(none.body, { revisit: false, ad: { status: "none", grantedOn: null, reconfirm: null } });
+  assert.deepEqual(none.body, { revisit: false, morning: true, ad: { status: "none", grantedOn: null, reconfirm: null } });
   assert.equal((await handleSettingsGet(null, deps("2027-01-01T00:00:00Z"))).status, 401);
 });
 
@@ -124,4 +124,25 @@ test("수신거부 — 위조·남의 표·광고 아닌 발송·모양 틀림�
   }
   assert.equal((await handleUnsubscribePost({ token: good, source: "elsewhere" }, deps)).status, 400);
   assert.equal(called, 0);
+});
+
+test("아침 별 흐름 칸 — boolean 만 받는다", async () => {
+  const rec: unknown[] = [];
+  const deps = { setRevisitPref: async () => {}, setMorningPref: async (...a: unknown[]) => { rec.push(a); } };
+  assert.equal((await handleSettingsPost({ morning: "off" }, "u1", deps)).status, 400);
+  assert.deepEqual(await handleSettingsPost({ morning: false }, "u1", deps), { status: 200, body: { ok: true } });
+  assert.deepEqual(rec, [["u1", false]]);
+  const g = await handleSettingsGet("u1", { getRevisitPref: async () => true, getMorningPref: async () => false, getAdConsent: async () => null, now: () => new Date() });
+  assert.equal((g.body as { morning: boolean }).morning, false);
+});
+
+test("열람 기록 — 앱 열기는 늘, 발송 번호가 있으면 그 회원의 발송만", async () => {
+  const rec: unknown[] = [];
+  const deps = { recordAppOpen: async (u: string) => { rec.push(["open", u]); }, markSendOpened: async (u: string, id: number) => { rec.push(["sent", u, id]); } };
+  assert.equal((await handleOpenedPost({}, null, deps)).status, 401);
+  assert.equal((await handleOpenedPost({ sendId: "1" }, "u1", deps)).status, 400);
+  assert.equal((await handleOpenedPost({ sendId: -1 }, "u1", deps)).status, 400);
+  assert.equal((await handleOpenedPost({}, "u1", deps)).status, 200);
+  assert.equal((await handleOpenedPost({ sendId: 9 }, "u1", deps)).status, 200);
+  assert.deepEqual(rec, [["open", "u1"], ["open", "u1"], ["sent", "u1", 9]]);
 });
