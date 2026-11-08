@@ -7,9 +7,13 @@
   - 계획 Task 1~5 커밋 완료: 메시지 규약(ui.overlay·ui.back·ui.haptic·ui.refresh, caps ui, APP_TAB_ROOTS) · 겹창 스택↔앱 다리(z 가장 높은 창을 닫음) · 진동 요청 3곳 · 안드로이드 당김 표시 · 앱 WebScreen 받기(뒤로 버튼·새로고침·iOS 당김·링크 미리보기 끔)
   - 검사: 타입(웹·앱) 0 · 테스트 1960/1960 · 빌드 성공 + `ƒ Proxy`
   - 헤드리스(앱 흉내) 확인 완료: 뒤로 버튼 신호·닫을 수 없는 창 소비·옛 앱 무신호·탭 진동·당겨서 새로고침
-  - 최종 리뷰(새 문맥)를 돌리던 중 멈춤 — 결과를 못 받았으면 다시 돌린다
+  - 최종 리뷰(새 문맥, `01aae4db..b6f92360`) 받음 — Critical 0 · Important 1 · Minor 4. 아직 안 고침
 - 다음 할 일:
-  1. [로컬에서] 최종 리뷰 — 결과가 없으면 리뷰 묶음을 다시 만들어(`01aae4db..HEAD`) 다시 맡긴다. Critical·Important 만 고친다(재현 → 고침 → 재확인)
+  1. [로컬에서] 최종 리뷰 Important 1 고치기
+     - 문제(유력, 라이브러리 원본 코드로 판정): 안드로이드 웹뷰는 `onLoadStart` 를 새 문서뿐 아니라 모든 기록 변경(pushState·replaceState·뒤로)마다 보낸다(`react-native-webview` 14 `RNCWebViewClient.java` doUpdateVisitedHistory). 그런데 `mobile/src/WebScreen.tsx` 는 그때마다 겹창 상태를 닫힘으로 되돌린다. 웹 다리는 0↔1 때만 알리니 다시 안 맞는다
+     - 예: 별 확인 시트 위에 별 충전 시트(pushState)가 열리면 → 뒤로 두 번째에 확인창이 열린 채 페이지가 뒤로 간다(첫 화면이면 앱이 닫힘)
+     - 고칠 방향(리뷰어 제안): `onLoadStart={(e) => { if (e.nativeEvent.loading) overlayOpen.current = false }}` — 진짜 문서 읽기에서만 되돌림. 또는 웹이 pagehide 때 closed 를 보낸다. 실기기 확인표에 "확인창 위 충전 시트 → 뒤로 두 번"을 더한다
+     - Minor(미룸, 실기기 확인표로): 아이폰 당김이 겹창 위에서도 켜져 있을 수 있음(`pullOn && !overlayOpen` 후보) · 안드로이드 기본 늘어남 효과와 웹 당김 표시가 겹침(`overScrollMode="never"` 후보) · 새로고침 요청 뒤 4초 안에 다시 당기면 요청이 겹침(무해, `onStart` 에 refreshing 확인 한 줄)
   2. [로컬에서, 운영자] `cd mobile && npx expo install expo-haptics` — 설치되면 `WebScreen.tsx` 의 `ui.haptic` 자리에 진동을 붙인다(light = impactAsync Light, success = notificationAsync Success)
   3. [운영자 결정] 앱 아이콘(Task 6) — 생성 전에 대상·스타일·프롬프트 합의. 대상 = `public/byeolkong-head.png` 별콩이 머리, 귀걸이·머리 위 고리 같은 잔장식은 덜어 냄, 배경 night `#1F1735` 계열. 지금 `mobile/assets/icon.png` 은 500px·모서리 투명이라 아이폰 제출에 걸린다. 상태바 아이콘은 이미 규격(96×96 흰 4꼭지 별)이라 그대로 둔다
   4. 아이콘까지 끝나면 HANDOFF 지우고 PR(base dev) + `@codex review`
