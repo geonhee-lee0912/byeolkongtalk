@@ -18,8 +18,16 @@ import { secureTokenStore } from "./auth/tokenStore";
 import { authApi, isAuthError, reportLoginFailure } from "./auth/api";
 import { appleNativeLogin, kakaoNativeLogin, LoginCancelled } from "./auth/nativeLogin";
 import OfflineView from "./OfflineView";
-import { pathFromNotificationData } from "./push/state.ts";
-import { ensureAndroidChannel, getPushState, requestPush, showNotificationsInForeground, syncPushToken, unregisterPush } from "./push/register";
+import { pathFromNotificationResponse, UNSUBSCRIBE_ACTION } from "./push/state.ts";
+import {
+  ensureAndroidChannel,
+  ensureNotificationCategories,
+  getPushState,
+  requestPush,
+  showNotificationsInForeground,
+  syncPushToken,
+  unregisterPush,
+} from "./push/register";
 
 // 🔴 react-native-webview 14.0.1 의 타입 선언은 class WebView<P = undefined> extends Component<WebViewProps & P> 라 P 를 안 주면 props 가 never 가 된다
 //    (ComponentProps<typeof WebView> 도 never) — 이벤트 타입은 패키지의 WebViewProps 에서 꺼내고, ref·JSX 에는 타입 인자 object 를 준다(WebView<object>)
@@ -72,10 +80,18 @@ function allowedPath(path: string | null): string | null {
   return path && decideNavigation(config.baseUrl + path, config.baseUrl).kind === "allow" ? path : null;
 }
 
-/** 알림 누름 → 웹뷰가 열 경로. 딥링크와 같은 규칙으로 거른다. 알림 본문을 누른 것(기본 동작)만 — 다른 버튼은 아직 없다 */
+/** 알림 누름 → 웹뷰가 열 경로. 딥링크와 같은 규칙으로 거른다. 본문 누름은 그 화면, 광고의 [수신거부] 버튼은 수신거부 화면 */
 function notificationPath(r: Notifications.NotificationResponse | null): string | null {
-  if (!r || r.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return null;
-  return allowedPath(pathFromNotificationData(r.notification.request.content.data));
+  if (!r) return null;
+  return allowedPath(
+    pathFromNotificationResponse(r.actionIdentifier, Notifications.DEFAULT_ACTION_IDENTIFIER, r.notification.request.content.data),
+  );
+}
+
+/** [수신거부] 버튼을 눌렀으면 그 알림을 알림창에서 걷는다(안드로이드는 버튼을 눌러도 알림이 남는다). 실패해도 무시 */
+function dismissIfUnsubscribed(r: Notifications.NotificationResponse | null): void {
+  if (r?.actionIdentifier !== UNSUBSCRIBE_ACTION) return;
+  void Notifications.dismissNotificationAsync(r.notification.request.identifier).catch(() => {});
 }
 
 /** 앱을 띄운 알림 누름 — 읽고 지운다(지우지 않으면 앱 화면이 다시 만들어질 때 옛 알림의 화면이 또 열린다). 실패해도 부팅은 간다 */
@@ -121,6 +137,7 @@ export default function WebScreen() {
     // 알림 누름은 await 앞에서 읽는다 — 아래 누름 수신 effect 가 붙기 전에 '처리함'으로 적어 둬야 같은 누름을 두 번 열지 않는다
     const launch = takeLaunchNotification();
     if (launch) handledNotification.current = launch.notification.request.identifier;
+    dismissIfUnsubscribed(launch);
     const fromNotification = notificationPath(launch);
     // 실행 주소를 못 읽어도 부팅은 끝까지 간다 — 여기서 멈추면 source 가 안 생겨 스플래시가 닫히지 않는다
     const next = fromNotification ?? openablePath(await Linking.getInitialURL().catch(() => null)) ?? "/";
@@ -142,6 +159,7 @@ export default function WebScreen() {
   // 알림 — 안드로이드 채널을 만들고, 이미 허락·로그인돼 있으면 토큰을 다시 등록한다(토큰 회전 대비). 실패는 register.ts 가 삼킨다
   useEffect(() => {
     void ensureAndroidChannel();
+    void ensureNotificationCategories();
     void syncPushToken(auth.ensureAccessToken);
   }, []);
 
@@ -158,6 +176,7 @@ export default function WebScreen() {
         } catch {
           // 지우기 실패 — 앱 화면이 다시 만들어질 때 이 알림 화면이 한 번 더 열릴 뿐이다
         }
+        dismissIfUnsubscribed(r);
         const path = notificationPath(r);
         if (path) setSource(plain(config.baseUrl + path));
       });

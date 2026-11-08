@@ -3,7 +3,11 @@
 // 마지막 인자 db 는 시험에서 가짜 클라이언트를 꽂는 자리다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getEntitlement } from "@/lib/byeolmaru/entitlement";
 import type { DispatchStore } from "./dispatch.ts";
+import type { AdStatus, AskAnswer, AskKind, AskMoment, AskRecord } from "./asks.ts";
+import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
+import type { ReconfirmCandidate, ReconfirmStore } from "./reconfirm-job.ts";
 
 type Db = SupabaseClient;
 
@@ -58,20 +62,80 @@ export async function setRevisitPref(userId: string, on: boolean, db: Db = getSe
   check(error, "setRevisitPref");
 }
 
-export async function listAskMoments(userId: string, db: Db = getServiceSupabase()): Promise<string[]> {
-  const { data, error } = await db.from("push_asks").select("moment").eq("user_id", userId);
-  check(error, "listAskMoments");
-  return (data ?? []).map((r: { moment: string }) => r.moment);
+export async function listAsks(userId: string, db: Db = getServiceSupabase()): Promise<AskRecord[]> {
+  const { data, error } = await db.from("push_asks").select("moment, kind, answer").eq("user_id", userId).order("id");
+  check(error, "listAsks");
+  return (data ?? []) as AskRecord[];
 }
 
 export async function recordAsk(
   userId: string,
-  moment: "first_reading_end",
-  answer: "accepted" | "later" | "os_denied",
+  moment: AskMoment,
+  kind: AskKind,
+  answer: AskAnswer,
   db: Db = getServiceSupabase(),
 ): Promise<void> {
-  const { error } = await db.from("push_asks").insert({ user_id: userId, moment, answer });
+  const { error } = await db.from("push_asks").insert({ user_id: userId, moment, kind, answer });
   check(error, "recordAsk");
+}
+
+export async function getAdConsent(userId: string, db: Db = getServiceSupabase()): Promise<AdConsentRow> {
+  const { data, error } = await db
+    .from("ad_consents")
+    .select("status, first_granted_at, granted_at, last_reconfirm_notice_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  check(error, "getAdConsent");
+  if (!data) return null;
+  return {
+    status: data.status as "granted" | "withdrawn",
+    firstGrantedAt: data.first_granted_at as string,
+    grantedAt: data.granted_at as string,
+    lastReconfirmNoticeAt: (data.last_reconfirm_notice_at as string | null) ?? null,
+  };
+}
+
+/** 동의·철회 + 결과 통지 기록(+ 수신거부 표 사용) — 한 트랜잭션(RPC push_set_ad_consent) */
+export async function setAdConsent(
+  userId: string,
+  grant: boolean,
+  source: string,
+  sendId: number | null = null,
+  db: Db = getServiceSupabase(),
+): Promise<SetConsentResult> {
+  const { data, error } = await db.rpc("push_set_ad_consent", {
+    p_user_id: userId,
+    p_grant: grant,
+    p_source: source,
+    p_send_id: sendId,
+  });
+  check(error, "setAdConsent");
+  const r = data as { ok: boolean; reason?: string; changed?: boolean; status?: AdStatus; at?: string } | null;
+  if (!r) throw new Error("push store setAdConsent: no data");
+  if (!r.ok) return { ok: false, reason: "token_used" };
+  return { ok: true, changed: !!r.changed, status: r.status ?? "none", at: r.at ?? new Date().toISOString() };
+}
+
+export async function recordReconfirmNotice(
+  userId: string,
+  source: "reconfirm_popup" | "reconfirm_push",
+  db: Db = getServiceSupabase(),
+): Promise<boolean> {
+  const { data, error } = await db.rpc("push_record_reconfirm_notice", { p_user_id: userId, p_source: source });
+  check(error, "recordReconfirmNotice");
+  return data === true;
+}
+
+/** 수신거부 표의 발송 — 주인과 정보성/광고 */
+export async function sendOwner(sendId: number, db: Db = getServiceSupabase()): Promise<{ userId: string; klass: "info" | "ad" } | null> {
+  const { data, error } = await db.from("push_sends").select("user_id, class").eq("id", sendId).maybeSingle();
+  check(error, "sendOwner");
+  return data ? { userId: data.user_id as string, klass: data.class as "info" | "ad" } : null;
+}
+
+/** 유료 구독 중인가(체험 제외) — 별마루 자격 판정을 그대로 쓴다 */
+export async function isSubscriber(userId: string): Promise<boolean> {
+  return (await getEntitlement(userId)).reason === "subscription";
 }
 
 export async function getRevisit(
@@ -231,4 +295,28 @@ export const supabaseDispatchStore: DispatchStore = {
       .in("id", sendIds);
     check(error, "markReceiptsChecked");
   },
+};
+
+/** 2년 재확인 푸시 cron 용 — ReconfirmStore 의 service_role 구현 */
+export const supabaseReconfirmStore: ReconfirmStore = {
+  async reconfirmCandidates(cutoffIso) {
+    // 동의 중인 회원 중 최초 동의가 cutoff 이전 — 행수가 데이터에 비례하니 1000행씩 끝까지 읽는다(Max rows 가 조용히 자른다)
+    const out: ReconfirmCandidate[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await getServiceSupabase()
+        .from("ad_consents")
+        .select("user_id, first_granted_at, granted_at, last_reconfirm_notice_at")
+        .eq("status", "granted")
+        .lte("first_granted_at", cutoffIso)
+        .order("user_id")
+        .range(from, from + 999);
+      check(error, "reconfirmCandidates");
+      const rows = (data ?? []) as { user_id: string; first_granted_at: string; granted_at: string; last_reconfirm_notice_at: string | null }[];
+      for (const r of rows) {
+        out.push({ userId: r.user_id, firstGrantedAt: r.first_granted_at, grantedAt: r.granted_at, lastReconfirmNoticeAt: r.last_reconfirm_notice_at });
+      }
+      if (rows.length < 1000) return out;
+    }
+  },
+  recordReconfirmNotice: (userId, source) => recordReconfirmNotice(userId, source),
 };
