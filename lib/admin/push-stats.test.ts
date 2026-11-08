@@ -27,6 +27,13 @@ test("광고 동의율 — 물은 순간이 있을 때만, 설정·수신거부�
   assert.deepEqual(t[1], { source: "unsubscribe_button", grant: 0, withdraw: 1, asked: null, grantRate: null });
 });
 
+test("물었는데 아무도 동의하지 않은 순간도 0건·0% 로 남는다", () => {
+  const t = consentTable([], [
+    { moment: "byeolmaru_first", kind: "ad", answer: "later", cnt: 10, users: 10 },
+  ]);
+  assert.deepEqual(t, [{ source: "byeolmaru_first", grant: 0, withdraw: 0, asked: 10, grantRate: 0 }]);
+});
+
 test("종류별 열람률·수신거부율 — 정보성은 수신거부율 없음, 보낸 0 이면 잴 수 없음", () => {
   const rows = [
     { day: "2026-11-09", kind: "morning", klass: "ad", sent: 10, claimed: 10, opened: 3, unsubscribed: 1 },
@@ -41,15 +48,14 @@ test("종류별 열람률·수신거부율 — 정보성은 수신거부율 없�
   assert.deepEqual(sendsByDay(rows).map((d) => [d.day, d.info, d.ad, d.opened]), [["2026-11-10", 4, 10, 3], ["2026-11-09", 0, 10, 3]]);
 });
 
-test("다시 볼 날 — 상태·보낸 비율·간격", () => {
+test("다시 볼 날 — 상태·보낸 비율", () => {
   const s = revisitSummary([
-    { status: "sent", gap_days: 3, cnt: 3, users: 3 },
-    { status: "skipped", gap_days: 7, cnt: 1, users: 1 },
-    { status: "pending", gap_days: 14, cnt: "2", users: "2" },
+    { status: "sent", cnt: 3, users: 3 },
+    { status: "skipped", cnt: 1, users: 1 },
+    { status: "pending", cnt: "2", users: "2" },
   ]);
   assert.equal(s.total, 6);
   assert.equal(s.deliveredRate, 75);
-  assert.deepEqual(s.gaps, [{ days: 3, cnt: 3 }, { days: 7, cnt: 1 }, { days: 14, cnt: 2 }]);
   assert.equal(revisitSummary([]).deliveredRate, null);
 });
 

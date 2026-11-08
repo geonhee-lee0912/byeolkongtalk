@@ -41,7 +41,7 @@ export type SendRow = {
   /** 보냄 = 한 기기 이상에 나간 발송. claimed = 선점 전체(진행 중·멈춘 것 포함) — 차이가 크면 발송이 멈춘 것 */
   sent: number | string; claimed: number | string; opened: number | string; unsubscribed: number | string;
 };
-export type RevisitRow = { status: string; gap_days: number | string; cnt: number | string; users: number | string };
+export type RevisitRow = { status: string; cnt: number | string; users: number | string };
 
 /** 묻는 순간 × 종류별 — 받아들임·나중에·휴대폰 거부와 허용률(받아들임 / 전체) */
 export function askTable(rows: AskRow[]) {
@@ -62,11 +62,13 @@ export function askTable(rows: AskRow[]) {
     .map((e) => ({ ...e, acceptRate: pct1(e.accepted, e.total) }));
 }
 
-/** 순간(source)별 — 광고 동의·철회 수. 동의율은 '그 순간에 물은 수' 대비(묻는 기록이 있는 순간만) */
+/** 순간(source)별 — 광고 동의·철회 수. 동의율은 '그 순간에 물은 수' 대비(묻는 기록이 있는 순간만).
+ *  물었는데 아무도 동의하지 않은 순간도 0건·0% 로 남긴다 — 동의가 있는 순간만 보이면 순간끼리 비교가 왜곡된다 */
 export function consentTable(rows: ConsentRow[], asks: AskRow[]) {
   const asked = new Map<string, number>();
   for (const a of asks) asked.set(a.moment, (asked.get(a.moment) ?? 0) + n(a.cnt));
   const by = new Map<string, { source: string; grant: number; withdraw: number }>();
+  for (const moment of asked.keys()) by.set(moment, { source: moment, grant: 0, withdraw: 0 });
   for (const r of rows) {
     if (r.event !== "grant" && r.event !== "withdraw") continue;
     const e = by.get(r.source) ?? { source: r.source, grant: 0, withdraw: 0 };
@@ -109,20 +111,15 @@ export function sendsByDay(rows: SendRow[]) {
   return [...by.values()].sort((a, b) => (a.day < b.day ? 1 : -1));
 }
 
-/** 다시 볼 날 — 상태별 수와 '그날 보냄' 비율(보냄 / (보냄 + 건너뜀)), 고른 간격 분포 */
+/** 다시 볼 날 — 상태별 수와 '그날 보냄' 비율(보냄 / (보냄 + 건너뜀)) */
 export function revisitSummary(rows: RevisitRow[]) {
   const status = { pending: 0, sent: 0, skipped: 0 };
-  const gaps = new Map<number, number>();
   for (const r of rows) {
-    const c = n(r.cnt);
-    if (r.status === "pending" || r.status === "sent" || r.status === "skipped") status[r.status] += c;
-    gaps.set(n(r.gap_days), (gaps.get(n(r.gap_days)) ?? 0) + c);
+    if (r.status === "pending" || r.status === "sent" || r.status === "skipped") status[r.status] += n(r.cnt);
   }
-  const total = status.pending + status.sent + status.skipped;
   return {
     ...status,
-    total,
+    total: status.pending + status.sent + status.skipped,
     deliveredRate: pct1(status.sent, status.sent + status.skipped),
-    gaps: [...gaps.entries()].sort((a, b) => a[0] - b[0]).map(([days, cnt]) => ({ days, cnt })),
   };
 }

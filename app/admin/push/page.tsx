@@ -192,10 +192,6 @@ export default async function AdminPushPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Stat label="예약" value={rv.total.toLocaleString()} sub={`기다림 ${rv.pending} · 보냄 ${rv.sent} · 건너뜀 ${rv.skipped}`} />
             <Stat label="보낸 비율" value={formatPercentOrDash(rv.deliveredRate)} />
-            <Stat
-              label="고른 간격"
-              value={rv.gaps.length ? rv.gaps.map((g) => `${g.days}일 ${g.cnt}`).join(" · ") : "—"}
-            />
           </div>
         )}
       </section>
