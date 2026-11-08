@@ -5,12 +5,13 @@
 //  - kind "ad"  : 알림은 이미 허용, 광고 동의만. 동의를 누르면 바로 기록하고 결과 통지
 // 모양은 RevisitSheet 시트와 같은 틀(새 공통 틀은 만들지 않는다 — 앱 화면 손보기에서 정리).
 import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { askAppPush } from "@/lib/app-push";
 import type { AdStatus, AskKind, AskMoment } from "@/lib/push/asks";
 import AdConsentCheck, { AD_CONSENT_CONTENTS, AD_CONSENT_HOW_TO_OFF, AD_CONSENT_LABEL } from "./AdConsentCheck";
 import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import { postAsk, setAdConsent } from "./api";
+import Sheet from "@/components/common/Sheet";
+import LaterButton from "./LaterButton";
 
 /** 순간별 질문 — 두 번째 실행은 첫 질문 시트에서 다시 볼 날만 뺀 것 */
 function copy(moment: AskMoment, kind: AskKind): { title: string; sub: string } {
@@ -102,14 +103,9 @@ export default function PushAskSheet({
     ) : null;
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in" onClick={later}>
-      <div
-        role="dialog"
-        aria-label={title}
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6 max-h-[88vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+  // 공통 시트 틀(components/common/Sheet). 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
+  return (
+    <Sheet label={title} onClose={later} dismissible={!busy} z={80}>
         <div className="flex flex-col items-center text-center">
           <div className="relative w-[52px] h-[52px] mb-2">
             <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
@@ -137,11 +133,7 @@ export default function PushAskSheet({
           {kind === "ad" ? "광고성 정보 수신 동의하기" : "알림 받을래"}
         </button>
         {failed && <p className="mt-2 text-[12px] text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
-        <button type="button" disabled={busy} onClick={later} className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep">
-          나중에
-        </button>
-      </div>
-    </div>,
-    document.body,
+        <LaterButton disabled={busy} />
+    </Sheet>
   );
 }

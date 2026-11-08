@@ -14,6 +14,7 @@ import type { AdStatus } from "@/lib/push/asks";
 import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import PushAskSheet from "./PushAskSheet";
 import { fetchAsk, setAdConsent } from "./api";
+import Dialog from "@/components/common/Dialog";
 
 const LAUNCHES_KEY = "byeolkong_push_launches"; // 로그인한 상태로 웹뷰가 뜬 횟수(기기별)
 const COUNTED_KEY = "byeolkong_push_launch_counted"; // 이 웹뷰 수명 동안 이미 셌다
@@ -240,10 +241,10 @@ export default function PushGate() {
           document.body,
         )}
 
-      {reconfirm &&
-        createPortal(
-          <div className="fixed inset-0 z-[105] flex items-center justify-center px-6 bg-night/45 backdrop-blur-[2px] animate-fade-in">
-            <div role="alertdialog" aria-label="광고성 정보 수신 동의 확인 안내" className="w-full max-w-sm bg-cream rounded-3xl p-6">
+      {/* 공통 확인창 틀(components/common/Dialog) — 2년 재확인은 법정 통지라 버튼으로만 닫는다 */}
+      {reconfirm && (
+          <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
+            <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
               <p className="text-[16px] font-black tracking-tight text-center">광고성 정보 수신 동의 확인 안내</p>
               <p className="mt-3 text-[13px] leading-relaxed">
                 별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
@@ -269,9 +270,8 @@ export default function PushGate() {
                 수신 거부
               </button>
             </div>
-          </div>,
-          document.body,
-        )}
+          </Dialog>
+      )}
 
       {second && <PushAskSheet moment="second_launch" kind="push" ad={second.ad} onDone={() => setSecond(null)} />}
       {notice && <AdConsentNotice notice={notice} onClose={() => setNotice(null)} />}

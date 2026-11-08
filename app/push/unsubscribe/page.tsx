@@ -62,7 +62,8 @@ export default function PushUnsubscribePage() {
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-[16px] font-black">광고 알림 수신거부</h1>
+        {/* 앱에선 앱 헤더(‹ 광고 수신거부)와 겹쳐 숨긴다 */}
+        <h1 className="web-only text-[16px] font-black">광고 알림 수신거부</h1>
         <p className="mt-3 text-[14px]">{text}</p>
         {view.kind === "done" && view.notice && (
           <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-[13px] leading-relaxed">

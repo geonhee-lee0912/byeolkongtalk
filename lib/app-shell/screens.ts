@@ -37,6 +37,7 @@ const SUBS: [string, string, TabRoot][] = [
   ["/byeolmaru/tarot", "오늘 타로", "/byeolmaru"],
   ["/byeolmaru/woori", "우리 사이", "/byeolmaru"],
   ["/mypage/notifications", "알림 설정", "/mypage"],
+  ["/push/unsubscribe", "광고 수신거부", "/mypage"],
   ["/mypage/payments", "결제·별 내역", "/mypage"],
   ["/mypage/support", "문의 내용", "/mypage"],
   ["/mypage/support/new", "문의 남기기", "/mypage"],
