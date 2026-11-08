@@ -107,7 +107,7 @@ function hiddenFields(html: string): Record<string, string> {
 }
 
 /** 실패 리다이렉트 공통 — 303, login=fail&reason, 세션 쿠키 없음, state 쿠키는 지운다(1회용) */
-function assertFail(res: Response, reason: string, pathname = "/tarot/draw") {
+function assertFail(res: Response, reason: string, pathname = "/") {
   assert.equal(res.status, 303);
   const loc = location(res);
   assert.equal(loc.origin, BASE);
@@ -179,12 +179,12 @@ test("시작 — next 가 바깥 주소면 state 의 next 는 '/'(open redirect 
   }
 });
 
-test("시작 — Services ID 가 없으면 애플로 가지 않고 login=fail&reason=apple_not_configured(뽑기 이어가기면 그 화면), state 쿠키 없음", async () => {
+test("시작 — Services ID 가 없으면 애플로 가지 않고 홈으로 login=fail&reason=apple_not_configured, state 쿠키 없음", async () => {
   const { start } = await load();
   await withEnv("APPLE_SERVICES_ID", undefined, async () => {
     const res = await start(new NextRequest(`${BASE}/api/auth/login/apple?next=${encodeURIComponent("/tarot/draw?resume=login")}`));
     assert.equal(res.status, 307);
-    assert.equal(res.headers.get("location"), `${BASE}/tarot/draw?resume=login&login=fail&reason=apple_not_configured`);
+    assert.equal(res.headers.get("location"), `${BASE}/?login=fail&reason=apple_not_configured`);
     assert.equal(setCookie(res, "byeolkong_apple_state"), undefined);
   });
 });
@@ -408,7 +408,7 @@ test("callback 을 거친 위조 — 쿠키는 실려 와도(같은 출처 자�
     fakes.reset();
     const page = await (await callback(callbackReq(good({ state })))).text();
     const res = await complete(completeReq(hiddenFields(page), `${cookie}; ${SITE_COOKIES}`));
-    assertFail(res, "csrf_state_mismatch", state.includes("/tarot/draw") ? "/tarot/draw" : "/");
+    assertFail(res, "csrf_state_mismatch");
     assert.equal(fakes.state.appleCalls.length, 0, state);
     assert.equal(fakes.state.depsRoute, null, state);
   }
@@ -478,11 +478,13 @@ test("회원 만들기 실패 → user_insert_failed, DB 장애(throw) → inter
   assert.equal(fakes.state.newUserCalls, 0);
 });
 
-test("실패 목적지 — 뽑기 이어가기(/tarot/draw…)만 그 화면으로, 그 밖은 홈", async () => {
+test("실패 목적지 — next 가 어디든(뽑기 화면 포함) 홈", async () => {
   const { complete, fakes } = await load();
-  fakes.reset();
-  fakes.state.apple = { ok: false, reason: "token_invalid" };
-  assertFail(await complete(completeReq(good({ state: `${N}|/fortune` }))), "invalid_token", "/");
+  for (const next of ["/fortune", "/tarot/draw?resume=login", "/tarot/draw"]) {
+    fakes.reset();
+    fakes.state.apple = { ok: false, reason: "token_invalid" };
+    assertFail(await complete(completeReq(good({ state: `${N}|${next}` }))), "invalid_token", "/");
+  }
 });
 
 test("open redirect — state 의 next 가 바깥 주소면 성공·실패 모두 우리 출처의 홈으로", async () => {

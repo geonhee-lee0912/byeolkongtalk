@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     return r;
   };
   // POST 에 대한 리다이렉트는 303 — 목적지를 GET 으로 연다
-  const fail = (reason: string) => clearState(NextResponse.redirect(loginFailRedirectUrl(next, reason, baseUrl), 303));
+  const fail = (reason: string) => clearState(NextResponse.redirect(loginFailRedirectUrl(reason, baseUrl), 303));
 
   if (!cookieNonce || !stateNonce || cookieNonce !== stateNonce || stateNonce.length !== 32) {
     return fail("csrf_state_mismatch");

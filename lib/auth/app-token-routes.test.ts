@@ -371,8 +371,8 @@ test("handoff — 무효 코드는 로그를 남기지 않는다(속도 제한 �
   const login = await handoff(handoffReq("next=%2Ftarot%2Fdraw%3Fresume%3Dlogin&mode=login", code));
   const loc = redirectTo(login);
   assert.deepEqual([loc.pathname, loc.searchParams.get("resume"), loc.searchParams.get("login"), loc.searchParams.get("reason")], [
-    "/tarot/draw",
-    "login",
+    "/",
+    null,
     "fail",
     "handoff_invalid",
   ]);

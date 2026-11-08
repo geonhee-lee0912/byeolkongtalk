@@ -9,24 +9,24 @@ test("parseWallet — 정상 응답", () => {
     balance: 15,
     isGuest: false,
     giftUnused: true,
-    entryArm: "old",
   });
   assert.deepEqual(parseWallet({ balance: 0, isGuest: true, giftUnused: false }), {
     balance: 0,
     isGuest: true,
     giftUnused: false,
-    entryArm: "old",
   });
 });
 
-test("parseWallet — 입구 그룹은 'new' 일 때만 new, 없음·이상한 값은 old(옛 흐름 = 지금 prod)", () => {
-  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, entryArm: "new" }).entryArm, "new");
-  assert.equal(parseWallet({ balance: 0, isGuest: true, giftUnused: false, entryArm: "x" }).entryArm, "old");
-  assert.equal(parseWallet({ balance: 0, isGuest: true }).entryArm, "old");
+test("parseWallet — 배포 순간 옛 서버 응답의 입구 그룹(entryArm)은 버린다", () => {
+  assert.deepEqual(parseWallet({ balance: 0, isGuest: true, giftUnused: false, entryArm: "new" }), {
+    balance: 0,
+    isGuest: true,
+    giftUnused: false,
+  });
 });
 
 test("parseWallet — 모르는 값·실패는 안전한 쪽(잔액 0 · 게스트 · 선물 약속 없음)", () => {
-  const safe = { balance: 0, isGuest: true, giftUnused: false, entryArm: "old" };
+  const safe = { balance: 0, isGuest: true, giftUnused: false };
   assert.deepEqual(parseWallet(null), safe);
   assert.deepEqual(parseWallet(undefined), safe);
   assert.deepEqual(parseWallet({ balance: "3", giftUnused: "true" }), safe);
@@ -69,7 +69,7 @@ const canTrack = typeof navigator !== "undefined";
 test("fetchWallet — 200 이면 응답을 parseWallet 한 값(모르는 필드는 버린다) · 이벤트는 안 남긴다", async () => {
   const body = { balance: 15, isGuest: false, giftUnused: true, extra: "버려진다" };
   const { wallet, sent } = await fetchWalletWith(async () => new Response(JSON.stringify(body), { status: 200 }));
-  assert.deepEqual(wallet, { balance: 15, isGuest: false, giftUnused: true, entryArm: "old" });
+  assert.deepEqual(wallet, { balance: 15, isGuest: false, giftUnused: true });
   assert.deepEqual(sent, []);
 });
 
@@ -143,12 +143,10 @@ test("fetchWallet — 정상 응답이면 타이머를 남기지 않는다(제�
 // 지갑을 읽는 지면 목록.
 // Record 타입으로 지면 누락을 막는다.
 const KIND: Record<WalletSource, true> = {
-  tarot_router: true,
   tarot_draw: true,
   recharge_sheet: true,
   shop: true,
   continuation_modal: true,
-  home: true,
 };
 const SOURCES = Object.keys(KIND) as WalletSource[];
 
@@ -164,8 +162,6 @@ test("fetchWallet — 실패 이벤트에 부른 지면 라벨이 그대로 실�
 // 복사한 호출부에도 올바른 지면 라벨을 붙인다.
 const ROOT = join(import.meta.dirname, "..");
 const SOURCE_BY_FILE: Record<string, WalletSource> = {
-  "app/page.tsx": "home",
-  "app/tarot/page.tsx": "tarot_router",
   "app/tarot/draw/page.tsx": "tarot_draw",
   "app/shop/page.tsx": "shop",
   "components/upsell/RechargeSheet.tsx": "recharge_sheet",

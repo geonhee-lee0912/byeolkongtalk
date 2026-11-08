@@ -265,6 +265,10 @@ export const UI_EVENTS = [
   "teaser_upsell_shown",
   /** "이어서 깊게" 탭 — meta:{surface, deepProduct} */
   "teaser_upsell_clicked",
+  /** 입구 반반(2026-10-25~11-07)은 끝났다 — 판정: 옛 흐름(먼저 로그인) 고정. 새 흐름 코드는 걷어냈고, 아래 이름들은 쌓인 데이터와
+   *  판정·감시 SQL(scripts/entry-ab-*.sql)을 읽으려고 남긴다. 지금도 찍히는 건 home_tag_clicked(flow old|member 만, armKnown 없음)·
+   *  login_kakao_clicked·login_apple_clicked(surface login_page|start_page)·concern_safety_banner_shown 뿐이다.
+   *  아래 설명은 실험 때 기준이다. */
   /** 홈 태그 탭 — meta:{tag, flow:"new"|"old"|"member", armKnown}. 입구 반반(spec 2026-10-11-타로-로그인전-맛보기 §6).
    *  flow = 실제로 탄 흐름(새 흐름 그룹이어도 지갑 응답 전에 누르면 old) — 배정은 anon_id 끝 글자로 SQL 에서 가른다.
    *  armKnown=false = 지갑 응답 전에 눌렀다 — 비로그인(flow old)이면 홈이 그룹을 모른 채 옛 흐름(로그인 먼저)으로 보낸 것이다.

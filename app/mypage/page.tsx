@@ -158,7 +158,7 @@ export default function MyPage() {
       localStorage.removeItem("byeolkong_user");
       localStorage.removeItem("byeolkong_token");
       sessionStorage.removeItem("byeolkong:auth-sync");
-      // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+      // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다(공용 기기 — lib/tarot/pending-draw.ts)
       clearPendingDraw(localStorage);
     }
     router.replace("/");
@@ -176,7 +176,7 @@ export default function MyPage() {
         if (typeof window !== "undefined") {
           localStorage.removeItem("byeolkong_user");
           localStorage.removeItem("byeolkong_token");
-          // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+          // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다(공용 기기 — lib/tarot/pending-draw.ts)
           clearPendingDraw(localStorage);
         }
         router.replace("/");

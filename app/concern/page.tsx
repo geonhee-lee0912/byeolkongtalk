@@ -20,9 +20,7 @@ import { CONTINUATION_KEY, isConcernRewrite } from "@/lib/tarot/session";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
-import { ENTRY_FLOW_KEY } from "@/lib/tarot/entry-ab";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { isLoggedInClient } from "@/lib/consultation-entry";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -35,8 +33,6 @@ export default function ConcernPage() {
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  // 새 흐름(로그인 전 맛보기)으로 온 비로그인 — 홈이 심은 표시. 안내 한 줄이 이 방문자에게만 뜬다(스펙 2026-10-11 §3 ①). 위기 배너는 모두에게(§5-5)
-  const [entryNew, setEntryNew] = useState(false);
   // 위기 배너 노출 계측 — 같은 분류·강도는 한 번만
   const bannerSeen = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -59,8 +55,6 @@ export default function ConcernPage() {
     }
     // 구 태그(v2)·낯선 문자열도 정규화해서 흐름을 계속 이어간다
     setEmotion(normalizeEmotionTag(stored) ?? DEFAULT_TAG);
-    // 새 흐름 표시는 로그인 뒤에도 같은 탭에 남는다 — 회원에겐 안내·위기 배너를 안 띄운다(홈과 같은 로그인 판정)
-    setEntryNew(sessionStorage.getItem(ENTRY_FLOW_KEY) === "new" && !isLoggedInClient());
 
     // /tarot에서 뒤로 돌아온 경우: 기 입력한 고민 복원
     const raw = sessionStorage.getItem(PENDING_KEY);
@@ -299,11 +293,6 @@ export default function ConcernPage() {
               ? `${MIN_LEN}자 이상 적어줘`
               : "타로 카드 뽑으러 가기"}
           </button>
-          {entryNew && (
-            <p className="text-[11.5px] text-text-light/80 text-center">
-              풀이는 카카오로 3초 시작하면 바로 볼 수 있어
-            </p>
-          )}
           <Link
             href="/"
             className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"

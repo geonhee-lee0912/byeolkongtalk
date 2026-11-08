@@ -11,7 +11,7 @@ export interface AppleLoginButtonProps {
   /** 로그인 뒤 돌아갈 내부 경로 — 같은 화면 카카오 버튼의 next 와 같은 값 */
   next: string;
   /** 계측 — 어느 로그인 벽인지 */
-  surface: "login_page" | "start_page" | "draw_sheet";
+  surface: "login_page" | "start_page";
   meta?: Record<string, string>;
   /** 같은 자리 카카오 버튼이 작은 지면(/start 가입 박스 — py-3 · 14px)에 맞춘다. 애플 HIG: 다른 로그인 버튼과 같은 크기 */
   compact?: boolean;

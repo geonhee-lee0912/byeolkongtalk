@@ -19,14 +19,13 @@ import {
 import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
-import { guestShortLine } from "@/lib/tarot/guest-price";
 import { spreadAmountLine } from "@/lib/tarot/spread-facts";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 
 // 타로톡 스프레드 고르기 — 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다(메뉴판 반반은 2026-10-25 판정에서 이 화면이 이겼다).
 // 가격은 서버 차감과 같은 tarotPrice(= SPREAD_INFO.starCost)로 읽는다.
 // 추천 기능은 0697771에서 제품 결정으로 제거 — 자동선택·추천 뱃지 없이 유저가 직접 고른다.
-export default function SpreadPicker({ pending, guest = false }: { pending: PendingConsultation; guest?: boolean }) {
+export default function SpreadPicker({ pending }: { pending: PendingConsultation }) {
   const router = useRouter();
   const [selected, setSelected] = useState<SpreadType | null>(null);
 
@@ -53,7 +52,7 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
   };
 
   // break-keep — 한글 단어 중간에서 줄이 끊기지 않게(320px 에서 "봐줄/게"·"깊/이"·"1,000원부/터", 사용자 2026-10-25).
-  // break-words — 띄어쓰기 없는 긴 고민 글은 그래도 칸을 넘치지 않게 끊는다(LoginSheet 와 같은 짝)
+  // break-words — 띄어쓰기 없는 긴 고민 글은 그래도 칸을 넘치지 않게 끊는다
   // text-pretty — 마지막 줄에 단어 하나만 남지 않게(지원 안 하는 브라우저는 그냥 break-keep 로 끊긴다)
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in break-keep break-words text-pretty">
@@ -175,12 +174,6 @@ export default function SpreadPicker({ pending, guest = false }: { pending: Pend
                     ⭐ {tarotPrice(type)}별
                   </span>
                 </div>
-                {/* 로그인 전 방문자(새 흐름) — 가입 선물 15별 기준 한 줄(스펙 2026-10-11 §3-1) */}
-                {guest && (
-                  <p className="text-[11px] font-bold text-eye-purple mb-1">
-                    {guestShortLine(tarotPrice(type)).text}
-                  </p>
-                )}
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}
                 <p className="text-[11px] font-medium text-eye-purple/85 mb-1">
                   {spreadAmountLine(type)}

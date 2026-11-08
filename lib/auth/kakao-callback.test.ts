@@ -112,14 +112,14 @@ test("기존 회원 — welcome 없이 login=success, 닉네임·프로필 갱�
   assert.equal(fakes.state.newUserCalls, 0);
 });
 
-test("회원 만들기 실패 — login=fail&reason=user_insert_failed(뽑기 이어가기면 그 화면으로), 세션 쿠키 없음, state 쿠키 정리, 신규 처리 없음", async () => {
+test("회원 만들기 실패 — 홈으로 login=fail&reason=user_insert_failed(next 가 어디든), 세션 쿠키 없음, state 쿠키 정리, 신규 처리 없음", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
   fakes.state.insertUserResult = { ok: false, duplicate: false };
   const res = await GET(callback({ code: "c1", state: `${NONCE}|/tarot/draw?resume=login` }));
   const loc = location(res);
-  assert.equal(loc.pathname, "/tarot/draw");
-  assert.equal(loc.searchParams.get("resume"), "login");
+  assert.equal(loc.pathname, "/");
+  assert.equal(loc.searchParams.get("resume"), null);
   assert.equal(loc.searchParams.get("login"), "fail");
   assert.equal(loc.searchParams.get("reason"), "user_insert_failed");
   assert.equal(fakes.state.cookieUserId, null);

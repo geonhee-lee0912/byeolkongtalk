@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   // open redirect 방지 — 내부 상대경로만 허용
   const next = safeNextPath(new URL(request.url).searchParams.get("next"));
   const servicesId = process.env.APPLE_SERVICES_ID;
-  if (!servicesId) return NextResponse.redirect(loginFailRedirectUrl(next, "apple_not_configured", baseUrl));
+  if (!servicesId) return NextResponse.redirect(loginFailRedirectUrl("apple_not_configured", baseUrl));
 
   // 무작위 값 하나로 state(CSRF)와 nonce(id_token 재사용 방지)를 같이 묶는다 — 원본은 state 로 애플을 거쳐 돌아오고(카카오와 같은 모양)
   // nonce 칸엔 sha256 을 넘긴다. 그래서 id_token 만 새면 재사용 못 하지만, 애플이 보낸 폼 본문(state + id_token)이 통째로 새면

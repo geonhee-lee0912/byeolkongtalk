@@ -248,7 +248,7 @@ export function useByeolmaruSubscribe(
     const { found, surface, rest } = takeSubscribeResume(window.location.search);
     if (!found) return;
     // 🔴 router.replace 금지(대기 중인 이동을 버린다) · state 를 null 로 덮지 말 것(첫 로드에 Next 의 __NA 가
-    //    지워져 뒤로 가기가 라우터를 못 탈 수 있다) — app/tarot/draw/page.tsx dropQueryKeys 와 같은 방식·같은 이유.
+    //    지워져 뒤로 가기가 라우터를 못 탈 수 있다) (Next 라우터의 이동 큐·history.state 사정).
     //    대가도 같다: useSearchParams() 는 이 화면을 떠날 때까지 옛 쿼리다(이 표시를 그걸로 읽는 곳은 없다).
     try {
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${rest}${window.location.hash}`);

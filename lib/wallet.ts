@@ -1,5 +1,4 @@
-// /api/stars/balance 응답 → 화면이 쓰는 지갑 값(잔액·게스트 여부·선물 미사용·입구 그룹). 표시·분기용 — 서버가 권위다.
-import type { EntryArm } from "./tarot/entry-ab.ts";
+// /api/stars/balance 응답 → 화면이 쓰는 지갑 값(잔액·게스트 여부·선물 미사용). 표시·분기용 — 서버가 권위다.
 import { trackUiEvent } from "./analytics/ui-events.ts";
 
 export interface Wallet {
@@ -8,19 +7,15 @@ export interface Wallet {
   isGuest: boolean;
   /** 가입 선물을 받았고 아직 별을 한 번도 안 씀 */
   giftUnused: boolean;
-  /** 입구 반반 그룹 — 서버가 익명 쿠키로 계산(lib/tarot/entry-ab.ts). 비로그인만 의미 있다. 회원·모름 = "old" */
-  entryArm: EntryArm;
 }
 
-/** 응답 JSON → Wallet. 모양이 이상하면 잔액 0 · 게스트 · 선물 약속 없음으로 처리한다. */
+/** 응답 JSON → Wallet. 모양이 이상하면 잔액 0 · 게스트 · 선물 약속 없음으로 처리한다. 모르는 필드(옛 응답의 지운 필드 포함)는 버린다. */
 export function parseWallet(d: unknown): Wallet {
   const o = (d && typeof d === "object" ? d : {}) as Record<string, unknown>;
   return {
     balance: typeof o.balance === "number" ? o.balance : 0,
     isGuest: o.isGuest !== false, // 모르면 게스트 = 약속하지 않는 쪽
     giftUnused: o.giftUnused === true,
-    // 모르는 값·누락(배포 순간 옛 서버 응답)은 old — 새 흐름은 서버가 "new" 를 명시할 때만 켜진다. 회원은 서버가 늘 "old" 를 준다(app/api/stars/balance)
-    entryArm: o.entryArm === "new" ? "new" : "old",
   };
 }
 
@@ -31,8 +26,6 @@ export const WALLET_TIMEOUT_MS = 5000;
 /** 지갑을 읽는 지면 — wallet_fetch_failed 의 meta.source. ui_events 는 경로를 안 남겨 어느 화면의 실패인지 알 수 없다.
  *  그래서 호출부가 자기 라벨을 직접 단다(wallet.test.ts 가 지면마다 자기 라벨인지 소스로 본다). */
 export type WalletSource =
-  | "home"
-  | "tarot_router"
   | "tarot_draw"
   | "recharge_sheet"
   | "shop"
