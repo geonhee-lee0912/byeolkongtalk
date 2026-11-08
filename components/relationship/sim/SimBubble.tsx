@@ -3,6 +3,7 @@
 // 👍/👎 → 팝업(모달)에서 "실제 성격 / 왜 걔답거나 안 걔다운지" 한 칸 서술 → personality 누적(다음 턴 반영).
 // 별콩이 각인 없음(ByeolkongNote 와 구분). onFeedback 없으면(스트리밍 live) 버튼 미표시.
 import { useState } from "react";
+import { OverlayEntry } from "@/components/common/use-overlay-entry";
 
 export default function SimBubble({
   content,
@@ -90,6 +91,8 @@ export default function SimBubble({
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-night-deep/70 px-4 py-6"
           onClick={close}
         >
+          {/* 배경 스크롤 잠금 + ESC(반영 중엔 닫기 불가) — 떠 있는 카드라 Sheet·Dialog 대신 스택만 */}
+          <OverlayEntry close={close} dismissible={!busy} />
           <div
             className="w-full max-w-sm rounded-2xl border border-lilac-mid/30 bg-night p-5 animate-fade-in"
             onClick={(e) => e.stopPropagation()}

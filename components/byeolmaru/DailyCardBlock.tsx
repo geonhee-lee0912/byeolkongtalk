@@ -22,6 +22,7 @@ import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import type { SubscribeSurface } from "@/lib/byeolmaru/subscribe-offer";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import { OverlayEntry } from "@/components/common/use-overlay-entry";
 import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
 import TrialSubscribeNudge from "./TrialSubscribeNudge";
@@ -226,25 +227,9 @@ export default function DailyCardBlock({
   //    없어, 오늘 열어둔 의식이 `?date=지난날` 로 돌아가도 그대로 살아남는다(뒤로가기가 그 경로다).
   //    그러면 POST 는 서버 오늘로 저장하는데 화면은 "그날의 카드"라고 말해 — 소급으로 뽑은 것처럼
   //    보인다(스펙 §4 "그때 받은 것만" 위반). 선언적으로 잠근다.
-  //    🔴 잠금 effect 와 포털 중 **하나만** 잠그면 안 된다: 포털만 닫으면 ritualOpen 이 true 라
-  //       이 effect 의 cleanup 이 안 돌아 body overflow:hidden 이 남는다(다이얼로그 없이 스크롤 먹통).
+  //    🔴 잠금과 포털이 따로 놀면 안 된다: 포털만 닫히고 잠금이 남으면 다이얼로그 없이 스크롤 먹통이 된다.
+  //       그래서 잠금(겹창 스택의 OverlayEntry)을 포털 **안에** 같이 그린다 — 포털이 사라지면 잠금도 풀린다.
   const ritualVisible = ritualOpen && date === todayKst;
-
-  // 배경 스크롤 잠금 + ESC 닫기 — WatchAddModal 과 동일 패턴(저장 중엔 닫기 불가).
-  useEffect(() => {
-    if (!ritualVisible) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) closeRitual();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ritualVisible, saving]);
 
   function openRitual() {
     // 🔴 소급 뽑기 금지 — POST 는 언제나 **오늘**로 저장한다(스펙 §4 "그때 받은 것만").
@@ -633,6 +618,8 @@ export default function DailyCardBlock({
             aria-modal="true"
             aria-label="오늘의 카드 뽑기"
           >
+            {/* 배경 스크롤 잠금 + ESC(저장 중엔 닫기 불가) — 전체 화면 무대라 Sheet·Dialog 대신 스택만 */}
+            <OverlayEntry close={closeRitual} dismissible={!saving} />
             <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-2">
               <h2 className="font-display text-[15px] font-bold text-eye-purple">오늘의 카드</h2>
               <button

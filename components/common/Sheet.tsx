@@ -114,6 +114,8 @@ export default function Sheet({
       className={`sheet-root fixed inset-0 flex items-end ${align === "responsive" ? "sm:items-center" : ""} justify-center animate-fade-in`}
       style={{ zIndex: z }}
       data-closing={closing ? "" : undefined}
+      // 포털 안 클릭은 React 트리로 겹창을 그린 부모까지 번진다 — 부모의 onClick(닫기 등)이 안쪽 버튼에 불리지 않게 여기서 끊는다
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         className={`sheet-backdrop absolute inset-0 ${backdropClassName}`}

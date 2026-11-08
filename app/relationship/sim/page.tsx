@@ -9,6 +9,7 @@ import SituationSelect from "@/components/relationship/sim/SituationSelect";
 import NightStage from "@/components/relationship/sim/NightStage";
 import SimDebrief from "@/components/relationship/sim/SimDebrief";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import { OverlayEntry } from "@/components/common/use-overlay-entry";
 import { SIM_COST, type RelationshipStatus } from "@/lib/relationship/types";
 
 type Phase = "select" | "stage" | "debrief";
@@ -234,6 +235,8 @@ function SimPageInner() {
           />
         ) : (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={() => setPending(null)}>
+            {/* 배경 스크롤 잠금 + ESC — 떠 있는 카드라 Sheet·Dialog 대신 스택만(지금처럼 만드는 중에도 닫힌다) */}
+            <OverlayEntry close={() => setPending(null)} dismissible />
             <div className="w-full max-w-sm rounded-2xl bg-cream-warm p-5 text-eye-purple" onClick={(e) => e.stopPropagation()}>
               <div className="text-center">
                 <div className="text-lg font-display mb-1">🎁 이번 판은 무료야</div>

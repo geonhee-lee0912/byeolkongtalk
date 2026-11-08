@@ -53,6 +53,8 @@ export default function Dialog({
     <div
       className={`fixed inset-0 flex items-center justify-center ${gutterClassName} animate-fade-in`}
       style={{ zIndex: z }}
+      // 포털 안 클릭은 React 트리로 겹창을 그린 부모까지 번진다 — 부모의 onClick(닫기 등)이 안쪽 버튼에 불리지 않게 여기서 끊는다
+      onClick={(e) => e.stopPropagation()}
     >
       <div className={`absolute inset-0 ${backdropClassName}`} onClick={dismissible ? requestClose : undefined} />
       <div role={role} aria-modal="true" aria-label={label} className={`relative w-full ${widthClassName}`}>

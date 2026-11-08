@@ -21,6 +21,12 @@ export function useOverlayEntry(close: () => void, dismissible: boolean): void {
   );
 }
 
+/** 조건부로 뜨는 겹창용 — 보여 줄 때만 이것을 함께 그리면(아무것도 안 그린다) 그동안만 스택에 올라간다 */
+export function OverlayEntry({ close, dismissible }: { close: () => void; dismissible: boolean }): null {
+  useOverlayEntry(close, dismissible);
+  return null;
+}
+
 /** 부모가 닫기를 거절했는지 볼 때까지의 여유 — onClose 뒤 이만큼 지나도 창이 남아 있으면 거절로 본다 */
 export const REARM_MS = 150;
 
