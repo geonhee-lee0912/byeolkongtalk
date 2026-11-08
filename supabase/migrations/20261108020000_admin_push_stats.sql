@@ -66,19 +66,16 @@ language sql stable security invoker set search_path = public as $$
   order by 1, 2, 3;
 $$;
 
--- ⑤ 다시 볼 날 — 예약 상태(창 안에서 만든 예약)와 고른 간격
+-- ⑤ 다시 볼 날 — 예약 상태(창 안에서 만든 예약). 고른 간격은 세지 않는다 — 날짜를 바꾸면 send_on 만 갱신되고
+--    created_at 은 그대로라 간격을 거꾸로 계산할 수 없다(Codex 리뷰 #36)
 create or replace function public.admin_push_revisit(p_since timestamptz, p_exclude uuid[])
-returns table (status text, gap_days int, cnt bigint, users bigint)
+returns table (status text, cnt bigint, users bigint)
 language sql stable security invoker set search_path = public as $$
-  select
-    s.status,
-    (s.send_on - (s.created_at at time zone 'UTC' + interval '9 hours')::date)::int,
-    count(*)::bigint,
-    count(distinct s.user_id)::bigint
+  select s.status, count(*)::bigint, count(distinct s.user_id)::bigint
   from push_schedules s
   where s.created_at >= p_since and s.user_id <> all(coalesce(p_exclude, '{}'::uuid[]))
-  group by 1, 2
-  order by 1, 2;
+  group by s.status
+  order by 1;
 $$;
 
 -- 날짜 창으로 읽는 발송 기록 — 행이 회원 × 알림 × 날로 늘어난다
