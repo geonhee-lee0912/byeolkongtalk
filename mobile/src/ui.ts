@@ -20,3 +20,11 @@ export function iosPullEnabled(url: string, baseUrl: string): boolean {
   if (!isOurUrl(url, baseUrl)) return false;
   return isAppTabRoot(pathOf(splitUrl(url)?.rest ?? ""));
 }
+
+/** onLoadStart 뒤의 겹창 열림 상태 — 새 문서를 읽기 시작할 때만 닫힘으로 되돌린다(새 문서엔 겹창이 없다).
+ *  안드로이드 웹뷰는 onLoadStart 를 기록이 바뀔 때마다 보낸다(react-native-webview 14 RNCWebViewClient.doUpdateVisitedHistory —
+ *  시트의 pushState·replaceState·뒤로 포함). loading 은 progress != 100 이라 다 읽힌 페이지 안의 기록 변경은 false 로 온다.
+ *  매번 되돌리면 별 확인 위에 별 충전(pushState)이 열린 뒤 뒤로 두 번째에 확인창이 떠 있는데 페이지가 뒤로 갔다(4단계 최종 리뷰) */
+export function overlayAfterLoadStart(current: boolean, e: { loading: boolean }): boolean {
+  return e.loading ? false : current;
+}

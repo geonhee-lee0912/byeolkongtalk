@@ -9,7 +9,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, encodeAppToWebBack, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
-import { decideAndroidBack, iosPullEnabled } from "./ui.ts";
+import { decideAndroidBack, iosPullEnabled, overlayAfterLoadStart } from "./ui.ts";
 import { appInfo, config } from "./config";
 import { decideNavigation, parseIntentUrl, type NavDecision } from "./linkRules.ts";
 import { pathFromDeepLink } from "./deeplink.ts";
@@ -402,8 +402,10 @@ export default function WebScreen() {
         onShouldStartLoadWithRequest={onShouldStart}
         onOpenWindow={onOpenWindow}
         onMessage={onMessage}
-        onLoadStart={() => {
-          overlayOpen.current = false; // 새 문서엔 겹창이 없다 — 웹이 closed 를 못 보내고 떠난 경우에도 뒤로 버튼이 먹게
+        onLoadStart={(e) => {
+          // 새 문서를 읽기 시작할 때만 닫힘으로(웹이 closed 를 못 보내고 떠난 경우에도 뒤로 버튼이 먹게).
+          // 안드로이드는 페이지 안 기록 변경(시트의 pushState)에도 이 이벤트를 보낸다 — 그땐 그대로 둔다(ui.ts)
+          overlayOpen.current = overlayAfterLoadStart(overlayOpen.current, e.nativeEvent);
         }}
         onNavigationStateChange={(s) => {
           canGoBack.current = s.canGoBack;
