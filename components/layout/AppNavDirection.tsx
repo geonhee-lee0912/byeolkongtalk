@@ -59,11 +59,28 @@ export function runBackTransition(goBack: () => void): void {
     (platform === "ios" ? "box-shadow:-8px 0 24px rgba(31,23,53,0.18);" : "");
   layer.appendChild(clone);
   document.body.appendChild(layer);
+  // 아이폰 헤더 — 지금 헤더를 복제해 진짜 헤더(z-50) 위에 두고 서서히 지운다. 그 밑에서 새 헤더가 드러나 이전 → 새 헤더가 화면과 같은
+  // 0.54초에 걸쳐 바뀐다(들어가기는 globals.css 의 app-header 교차 페이드). 복제는 전환 이름을 끈다 — 같은 이름이 둘이면 그 사이 다른
+  // 화면 이동의 전환이 통째로 건너뛰어진다
+  const header = platform === "ios" ? document.querySelector<HTMLElement>("header.app-only") : null;
+  let headerClone: HTMLElement | null = null;
+  if (header) {
+    const hr = header.getBoundingClientRect();
+    headerClone = header.cloneNode(true) as HTMLElement;
+    headerClone.setAttribute("aria-hidden", "true");
+    headerClone.classList.add("app-back-clone");
+    headerClone.style.cssText += `;position:fixed;left:${hr.left}px;top:${hr.top}px;width:${hr.width}px;height:${hr.height}px;margin:0;z-index:51;pointer-events:none;view-transition-name:none;`;
+    document.body.appendChild(headerClone);
+  }
   goBack();
-  const done = () => layer.remove();
+  const done = () => {
+    layer.remove();
+    headerClone?.remove();
+  };
   if (platform === "ios") {
     clone.animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], { duration: IOS_MS, easing: IOS_EASE, fill: "forwards" }).onfinish = done;
     page.animate([{ transform: "translateX(-30%)", filter: "brightness(0.82)" }, { transform: "none", filter: "none" }], { duration: IOS_MS, easing: IOS_EASE });
+    headerClone?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: IOS_MS, easing: IOS_EASE, fill: "forwards" });
   } else {
     // 가라앉는 건 0.3초, 옅어지는 건 마지막 0.1초만 — 오래 반투명이면 두 화면이 겹쳐 보인다(2026-11-07 실기기)
     clone.animate([{ transform: "none" }, { transform: "translateY(8%)" }], { duration: 300, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" }).onfinish = done;

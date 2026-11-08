@@ -271,6 +271,11 @@ html:is([data-nav="tab"], [data-nav="none"])::view-transition-new(.app-nav) {
     opacity: 0;
   }
 }
+@keyframes app-vanish {
+  to {
+    opacity: 0;
+  }
+}
 @keyframes app-sink-out {
   to {
     transform: translateY(8%);
@@ -295,6 +300,14 @@ html[data-app][data-platform="ios"][data-nav="back"]::view-transition-old(.app-n
 }
 html[data-app][data-platform="ios"][data-nav="back"]::view-transition-new(.app-nav) {
   animation: app-in-left 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+/* 아이폰 헤더 — 화면과 같은 0.54초에 걸쳐 이전 헤더가 스르르 사라지고 새 헤더가 나타난다. 한순간에 바뀌면 맨 위에서 오갈 때
+   바로 밑에서 움직이는 화면과 따로 놀아 어색했다(2026-11-08 실기기). ‹ 뒤로는 AppNavDirection runBackTransition 이 같은 값으로 한다 */
+html[data-app][data-platform="ios"]:is([data-nav="forward"], [data-nav="back"])::view-transition-old(app-header) {
+  animation: app-vanish 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"]:is([data-nav="forward"], [data-nav="back"])::view-transition-new(app-header) {
+  animation: app-appear 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 /* 안드로이드 — 떠오르는 움직임은 0.3초, 진해지는 건 0.1초만(오래 반투명이면 두 화면이 겹쳐 보인다 — 2026-11-07 실기기) */
 html[data-app][data-platform="android"][data-nav="forward"]::view-transition-new(.app-nav) {
