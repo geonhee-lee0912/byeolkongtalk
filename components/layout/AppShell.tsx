@@ -8,6 +8,7 @@ import BottomTab from "./BottomTab";
 import UserPopupGate from "@/components/popup/UserPopupGate";
 import PushGate from "@/components/push/PushGate";
 import AppNavDirection from "./AppNavDirection";
+import AppPullRefresh from "./AppPullRefresh";
 import { AppHistoryDepth } from "./AppHeader";
 import { useAppInfo } from "@/lib/use-app-info";
 import { overlayStack } from "@/lib/app-shell/overlay-stack";
@@ -56,6 +57,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </ViewTransition>
       <AppNavDirection />
+      <AppPullRefresh />
       <Suspense fallback={null}>
         <AppHistoryDepth />
         <BottomTab />
