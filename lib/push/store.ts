@@ -347,28 +347,42 @@ function rowsOrThrow<T>(data: T[] | null, error: { message: string } | null, wha
   return rows;
 }
 
-export const supabaseFactsStore: FactsStore = {
-  async activeDevices() {
-    const out = new Map<string, DeviceGroup>();
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await getServiceSupabase()
-        .from("push_devices")
-        .select("token, user_id, last_seen_at")
-        .is("disabled_at", null)
-        .order("token")
-        .range(from, from + 999);
-      check(error, "activeDevices");
-      const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
-      for (const r of rows) {
-        const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
-        g.tokens.push(r.token);
-        g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
-        out.set(r.user_id, g);
-      }
-      if (rows.length < 1000) return out;
+async function loadActiveDevices(): Promise<Map<string, DeviceGroup>> {
+  const out = new Map<string, DeviceGroup>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await getServiceSupabase()
+      .from("push_devices")
+      .select("token, user_id, last_seen_at")
+      .is("disabled_at", null)
+      .order("token")
+      .range(from, from + 999);
+    check(error, "activeDevices");
+    const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
+    for (const r of rows) {
+      const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
+      g.tokens.push(r.token);
+      g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
+      out.set(r.user_id, g);
     }
-  },
+    if (rows.length < 1000) return out;
+  }
+}
 
+/** 같은 cron 실행 안에서 아침 흐름·깨우기가 기기 목록을 두 번 읽지 않게 잠깐 기억한다(실행 간격 15분보다 훨씬 짧게) */
+const DEVICE_CACHE_MS = 30_000;
+let deviceCache: { at: number; value: Promise<Map<string, DeviceGroup>> } | null = null;
+
+export const supabaseFactsStore: FactsStore = {
+  activeDevices() {
+    const now = Date.now();
+    if (deviceCache && now - deviceCache.at < DEVICE_CACHE_MS) return deviceCache.value;
+    const value = loadActiveDevices();
+    deviceCache = { at: now, value };
+    value.catch(() => {
+      deviceCache = null; // 실패는 기억하지 않는다
+    });
+    return value;
+  },
   async facts(userIds, now, todayKst) {
     const db = getServiceSupabase();
     const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
