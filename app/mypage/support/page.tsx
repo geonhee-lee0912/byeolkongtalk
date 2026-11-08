@@ -59,7 +59,7 @@ export default function SupportListPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
         <Link href="/mypage" className="web-only text-[12px] text-text-light/70">

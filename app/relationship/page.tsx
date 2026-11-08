@@ -683,7 +683,7 @@ export default function RelationshipPage() {
 
   // 허브 뷰 — 스위처 + (프로필 카드 / 상품 목록 / 미등록 마케팅)
   return (
-    <main className="flex flex-1 flex-col items-center w-full pb-20 pt-5 animate-fade-in">
+    <main className={`flex flex-1 flex-col items-center w-full pb-20 pt-5 ${cached ? "" : "animate-fade-in"}`}>
       <div className="w-full max-w-md mx-auto px-5">
         <HubSwitcher
           me={meCard}
