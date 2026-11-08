@@ -15,4 +15,6 @@ create table public.push_app_opens (
 );
 
 alter table public.push_app_opens enable row level security;
+-- 기본 권한이 플랫폼 쪽에서 되돌아가도 닫혀 있게 — 이중 방어(AGENTS.md 'DB 권한 기본값')
+revoke all on table public.push_app_opens from public, anon, authenticated;
 grant select, insert, update, delete on public.push_app_opens to service_role;
