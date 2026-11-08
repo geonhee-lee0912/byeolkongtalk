@@ -131,7 +131,10 @@ export default async function AdminPushPage() {
 
       <section className="space-y-3">
         <h2 className="text-[15px] font-bold">보낸 알림 — 종류별 열람률·수신거부율</h2>
-        <p className="text-[12px] text-white/50">열람 = 알림을 누르고 앱이 열린 것(웹이 기록). 수신거부율은 광고만.</p>
+        <p className="text-[12px] text-white/50">
+          보냄 = 한 기기 이상에 나간 알림. 열람 = 알림을 누르고 앱이 열린 것(웹이 기록). 수신거부 = 그 알림의 수신거부를 누른 수(광고만) —
+          실제로 철회된 사람 수는 위 표의 '철회'.
+        </p>
         {failed("sends") ? (
           <LoadFailed block="admin_push_sends_daily" />
         ) : totals.length === 0 ? (
@@ -142,7 +145,7 @@ export default async function AdminPushPage() {
               <table className="w-full text-[13px]">
                 <thead className="bg-white/5"><tr>
                   <th className={th}>종류</th><th className={th}>분류</th><th className={th}>보냄</th><th className={th}>열람</th>
-                  <th className={th}>열람률</th><th className={th}>수신거부</th><th className={th}>수신거부율</th>
+                  <th className={th}>열람률</th><th className={th}>수신거부 누름</th><th className={th}>수신거부율</th>
                 </tr></thead>
                 <tbody>
                   {totals.map((r) => (

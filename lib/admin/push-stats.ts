@@ -38,7 +38,8 @@ export type AskRow = { moment: string; kind: string; answer: string; cnt: number
 export type ConsentRow = { event: string; source: string; cnt: number | string; users: number | string };
 export type SendRow = {
   day: string; kind: string; klass: string;
-  sent: number | string; delivered: number | string; opened: number | string; unsubscribed: number | string;
+  /** 보냄 = 한 기기 이상에 나간 발송. claimed = 선점 전체(진행 중·멈춘 것 포함) — 차이가 크면 발송이 멈춘 것 */
+  sent: number | string; claimed: number | string; opened: number | string; unsubscribed: number | string;
 };
 export type RevisitRow = { status: string; gap_days: number | string; cnt: number | string; users: number | string };
 
@@ -77,7 +78,8 @@ export function consentTable(rows: ConsentRow[], asks: AskRow[]) {
     .map((e) => ({ ...e, asked: asked.get(e.source) ?? null, grantRate: asked.has(e.source) ? pct1(e.grant, asked.get(e.source) ?? 0) : null }));
 }
 
-/** 종류 × 정보성/광고 합계 — 열람률(누르고 연 것 / 보낸 것)·수신거부율(광고만 의미) */
+/** 종류 × 정보성/광고 합계 — 열람률(누르고 연 것 / 보낸 것)·수신거부율(광고만 의미).
+ *  수신거부 = 그 알림의 수신거부 표를 쓴 수 — 이미 철회한 뒤 옛 알림의 표를 써도 센다. 실제 철회 수는 동의·철회 표의 '철회' */
 export function sendTotals(rows: SendRow[]) {
   const by = new Map<string, { kind: string; klass: string; sent: number; opened: number; unsubscribed: number }>();
   for (const r of rows) {

@@ -29,9 +29,9 @@ test("광고 동의율 — 물은 순간이 있을 때만, 설정·수신거부�
 
 test("종류별 열람률·수신거부율 — 정보성은 수신거부율 없음, 보낸 0 이면 잴 수 없음", () => {
   const rows = [
-    { day: "2026-11-09", kind: "morning", klass: "ad", sent: 10, delivered: 10, opened: 3, unsubscribed: 1 },
-    { day: "2026-11-10", kind: "morning", klass: "ad", sent: "10", delivered: "10", opened: "1", unsubscribed: "0" },
-    { day: "2026-11-10", kind: "revisit", klass: "info", sent: 4, delivered: 4, opened: 2, unsubscribed: 0 },
+    { day: "2026-11-09", kind: "morning", klass: "ad", sent: 10, claimed: 10, opened: 3, unsubscribed: 1 },
+    { day: "2026-11-10", kind: "morning", klass: "ad", sent: "10", claimed: "10", opened: "1", unsubscribed: "0" },
+    { day: "2026-11-10", kind: "revisit", klass: "info", sent: 4, claimed: 4, opened: 2, unsubscribed: 0 },
   ];
   const t = sendTotals(rows);
   assert.deepEqual(t.map((r) => [r.kind, r.klass, r.sent, r.openRate, r.unsubRate]), [
