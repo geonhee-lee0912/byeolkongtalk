@@ -31,16 +31,24 @@ test("뽑기 화면 — 확인 팝업 → 충전 시트, 충전 뒤엔 /tarot/dr
   assert.match(code, /onCharge=\{\(\) => setRechargeSheetOpen\(true\)\}/, "충전 버튼은 충전 시트만 연다");
 });
 
-test("뽑기 화면의 로그인 복귀 표시(login·welcome)는 AuthBootstrap 이 지운다 — 예외는 /start 하나", () => {
-  const boot = sourceOf("components/auth/AuthBootstrap.tsx");
-  assert.doesNotMatch(boot, /["']\/tarot\/draw["']/, "AuthBootstrap 이 /tarot/draw 를 건너뛰면 뽑기 화면 주소에 login·welcome 이 남아 새로고침마다 가입 선물 토스트가 다시 뜬다");
-  assert.match(boot, /if \(pathname === "\/start"\) return;/, "/start 예외(웰컴 팝업이 스스로 정리)는 그대로");
-  assert.doesNotMatch(sourceOf("app/tarot/draw/page.tsx"), /replaceState/, "뽑기 화면이 따로 주소를 정리하면 AuthBootstrap 과 두 군데서 같은 일을 한다");
+test("로그인 실패 리다이렉트 호출부 4곳은 목적지(next)를 넘기지 않는다 — 실패는 늘 홈(lib/auth-redirect.ts)", () => {
+  const callers = [
+    "app/api/auth/kakao/route.ts",
+    "app/api/auth/login/apple/route.ts",
+    "app/api/auth/apple/complete/route.ts",
+    "app/api/auth/app/handoff/route.ts",
+  ];
+  for (const f of callers) {
+    const calls = [...sourceOf(f).matchAll(/loginFailRedirectUrl\(([^)]*)\)/g)].map((m) => m[1]);
+    assert.ok(calls.length > 0, `${f}: loginFailRedirectUrl 호출을 못 찾았다`);
+    for (const args of calls) assert.doesNotMatch(args, /\bnext\b/, `${f}: 실패 목적지에 next 를 넘긴다 — ${args}`);
+  }
 });
 
-test("로그인 실패는 어디서 출발했든 홈으로 — 뽑기 화면엔 실패 안내가 없다", async () => {
-  const { loginFailRedirectUrl } = await import("../auth-redirect.ts");
-  assert.equal(loginFailRedirectUrl("access_denied", "https://byeolkongtalk.com").pathname, "/");
+test("AuthBootstrap 의 주소 정리 예외는 /start 하나 — 뽑기 화면 예외(새 흐름 자동 이어가기용)는 없다", () => {
+  const boot = sourceOf("components/auth/AuthBootstrap.tsx");
+  assert.doesNotMatch(boot, /["']\/tarot\/draw["']/);
+  assert.match(boot, /if \(pathname === "\/start"\) return;/);
 });
 
 test("새 흐름 장치가 남아 있지 않다", () => {

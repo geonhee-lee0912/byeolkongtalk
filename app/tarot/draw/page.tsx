@@ -15,7 +15,7 @@ import {
 } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { fetchWallet } from "@/lib/wallet";
-import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
@@ -32,11 +32,10 @@ export default function TarotDrawPage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [cost, setCost] = useState<number | null>(null);
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
-  // 잔액·그룹을 읽는 중 안내 — prod 는 확인 팝업을 바로 띄워 '…' 를 보였지만 이제 팝업은 그룹 가격을 읽은 뒤에 뜬다(다른 곳 #8)
+  // 잔액을 읽는 중 안내 — 확인 팝업은 잔액을 읽은 뒤에 뜬다
   const [checking, setChecking] = useState(false);
   // 잔액을 못 읽었다(실패·5초 초과) — 팝업 대신 '다시 눌러줘' 한 줄. 완료 버튼을 다시 누르면(onDrawn) 지우고 다시 읽는다
   const [walletError, setWalletError] = useState(false);
-  const [welcomeToast, setWelcomeToast] = useState(false);
   // 대화로 넘어가는 중 / 잔액 확인 중 — 완료 버튼 연타로 두 번 이동·두 번 조회하지 않게
   const leavingRef = useRef(false);
   const checkingRef = useRef(false);
@@ -50,11 +49,7 @@ export default function TarotDrawPage() {
   }, []);
 
   // 선택 정보 로드 — /tarot(스프레드 고르기).
-  // 가입하고 돌아왔으면(welcome=1) 토스트 — 주소의 로그인 표시는 AuthBootstrap 이 세션 확인 뒤 지운다(이 효과가 먼저 읽는다)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("welcome") === "1") setWelcomeToast(true);
-
     let sel: TarotSpreadSelection | null = null;
     try {
       const raw = sessionStorage.getItem(TAROT_SPREAD_KEY);
@@ -70,13 +65,6 @@ export default function TarotDrawPage() {
     setSelection(sel);
     setMounted(true);
   }, [router]);
-
-  // 가입 선물 토스트 — 막지 않고 잠깐
-  useEffect(() => {
-    if (!welcomeToast) return;
-    const t = setTimeout(() => setWelcomeToast(false), 2600);
-    return () => clearTimeout(t);
-  }, [welcomeToast]);
 
   const labels = useMemo(
     () =>
@@ -119,6 +107,13 @@ export default function TarotDrawPage() {
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
     router.push("/tarot/reading");
+    // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다 — 홈을 거치지 않고 들어온 기기도 정리되게(lib/tarot/pending-draw.ts).
+    // 이동 뒤에 둔다 — localStorage 접근 자체가 던지는 브라우저여도 풀이 시작을 막지 않게
+    try {
+      clearPendingDraw(localStorage);
+    } catch {
+      // noop
+    }
   };
 
   // 카드를 다 뽑으면 잔액을 그 자리에서 읽는다(가격은 서버 차감과 같은 tarotPrice).
@@ -220,14 +215,6 @@ export default function TarotDrawPage() {
         <div role="alert" className="fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 pointer-events-none">
           <p className="rounded-full bg-white/95 px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(90,62,140,0.15)]">
             잔액을 못 불러왔어 — 다시 눌러줘
-          </p>
-        </div>
-      )}
-      {/* 가입 선물 토스트 — 막지 않는다 */}
-      {welcomeToast && (
-        <div role="status" className="fixed inset-x-0 top-20 z-50 flex justify-center px-4 pointer-events-none">
-          <p className="rounded-full bg-gold-soft px-4 py-2 text-[13px] font-bold text-eye-purple shadow-[0_4px_18px_rgba(232,194,106,0.35)]">
-            🎁 가입 선물 별 {WELCOME_BONUS_STARS}개 받았어
           </p>
         </div>
       )}

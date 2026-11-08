@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { PENDING_DRAW_KEY, clearPendingDraw } from "./pending-draw.ts";
+import { PENDING_DRAW_BANNER_KEY, PENDING_DRAW_KEY, clearPendingDraw } from "./pending-draw.ts";
 
 // 입구 반반(로그인 전 맛보기)이 남긴 진행 저장 청소 — 저장·복원 코드는 판정(2026-11-07, 옛 흐름 고정) 뒤 걷어냈다.
 
@@ -17,14 +17,17 @@ function memStore() {
 
 test("키는 입구 반반 때 쓰던 그대로다 — 바뀌면 남은 저장을 못 지운다", () => {
   assert.equal(PENDING_DRAW_KEY, "byeolkong:pending_draw");
+  assert.equal(PENDING_DRAW_BANNER_KEY, "byeolkong:home_pending_draw_banner");
 });
 
 test("clearPendingDraw 는 남은 저장만 지운다", () => {
   const s = memStore();
   s.setItem(PENDING_DRAW_KEY, JSON.stringify({ v: 1, concern: "고민 원문" }));
+  s.setItem(PENDING_DRAW_BANNER_KEY, JSON.stringify({ target: "1", count: 1 }));
   s.setItem("byeolkong_user", "{}");
   clearPendingDraw(s);
   assert.equal(s.m.has(PENDING_DRAW_KEY), false);
+  assert.equal(s.m.has(PENDING_DRAW_BANNER_KEY), false);
   assert.equal(s.m.has("byeolkong_user"), true);
 });
 
@@ -50,6 +53,15 @@ test("홈 — 방문 때 남은 저장을 지운다(try 안에서)", () => {
     code,
     /try\s*\{\s*clearPendingDraw\(\s*localStorage\s*\)/,
     "홈이 남은 저장을 안 지우면 새 흐름 기기에 고민 원문이 무기한 남는다. try 밖이면 localStorage 가 막힌 브라우저에서 홈이 죽는다"
+  );
+});
+
+test("뽑기 화면 — 풀이로 떠날 때(이동 뒤, try 안에서) 남은 저장을 지운다 — 홈을 안 거치는 기기", () => {
+  const code = sourceOf("app/tarot/draw/page.tsx");
+  assert.match(
+    code,
+    /router\.push\("\/tarot\/reading"\);\s*try\s*\{\s*clearPendingDraw\(\s*localStorage\s*\)/,
+    "광고 → /start → 뽑기로만 오는 기기는 홈을 안 거친다 — 풀이 시작 때도 지워야 고민 원문이 안 남는다"
   );
 });
 
