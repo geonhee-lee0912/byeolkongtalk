@@ -1,16 +1,23 @@
 // 겹창(시트·확인창) 스택 — 열린 것들을 쌓아 두고 맨 위 하나만 닫는다. 첫 창이 열릴 때 뒤 화면 스크롤을 잠그고 마지막이 닫힐 때 푼다.
 // components/common/Sheet·Dialog(와 틀 밖 겹창의 useOverlayEntry)가 쓴다. ESC 도 여기서 맨 위 하나만 닫는다.
-// 4단계에서 앱의 안드로이드 뒤로 버튼(ui.back)이 closeTop 을 부른다. 스펙 2026-11-07-앱-화면 §8
+// 앱의 안드로이드 뒤로 버튼(ui.back)도 closeTop 을 부른다(lib/app-shell/overlay-bridge.ts). 스펙 2026-11-07-앱-화면 §7·§8
+// "맨 위" = z 가 가장 높은 창(같으면 나중에 연 창) — 화면에 보이는 맨 위. 연 순서만 보면 늦게 뜬 낮은 창이 높은 창 밑에서 닫힌다
 
-/** close = 닫기 요청, canDismiss = 지금 닫아도 되는가(처리 중·법정 통지면 false — 그땐 요청을 소비만 한다) */
-export type OverlayEntry = { close: () => void; canDismiss: () => boolean };
+/** close = 닫기 요청, canDismiss = 지금 닫아도 되는가(처리 중·법정 통지면 false — 그땐 요청을 소비만 한다), z = 그 창의 z-index */
+export type OverlayEntry = { close: () => void; canDismiss: () => boolean; z: number };
 type Slot = OverlayEntry & { removed: boolean };
 
 export function createOverlayStack(setLocked: (locked: boolean) => void) {
   const entries: Slot[] = [];
+  const listeners = new Set<(open: boolean) => void>();
+  const changed = (open: boolean) => {
+    setLocked(open);
+    for (const f of listeners) f(open);
+  };
 
   const closeTop = (): boolean => {
-    const top = entries[entries.length - 1];
+    let top: Slot | undefined;
+    for (const e of entries) if (!top || e.z >= top.z) top = e; // 같은 z 면 나중 것
     if (!top) return false;
     if (top.canDismiss()) top.close();
     return true;
@@ -21,13 +28,13 @@ export function createOverlayStack(setLocked: (locked: boolean) => void) {
     push(entry: OverlayEntry): () => void {
       const slot: Slot = { ...entry, removed: false };
       entries.push(slot);
-      if (entries.length === 1) setLocked(true);
+      if (entries.length === 1) changed(true);
       return () => {
         if (slot.removed) return;
         slot.removed = true;
         const i = entries.indexOf(slot);
         if (i >= 0) entries.splice(i, 1);
-        if (entries.length === 0) setLocked(false);
+        if (entries.length === 0) changed(false);
       };
     },
     /** 맨 위 창에 닫기를 요청한다(닫을 수 없는 창이면 소비만). 열린 게 없으면 false */
@@ -38,6 +45,13 @@ export function createOverlayStack(setLocked: (locked: boolean) => void) {
     },
     size(): number {
       return entries.length;
+    },
+    /** 열림(0→1)·닫힘(1→0) 알림 — 잠금과 같은 순간. 돌려준 함수로 뗀다 */
+    subscribe(fn: (open: boolean) => void): () => void {
+      listeners.add(fn);
+      return () => {
+        listeners.delete(fn);
+      };
     },
   };
 }

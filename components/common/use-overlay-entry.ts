@@ -6,7 +6,8 @@
 import { useEffect, useRef } from "react";
 import { overlayStack } from "@/lib/app-shell/overlay-stack";
 
-export function useOverlayEntry(close: () => void, dismissible: boolean): void {
+/** z = 그 창의 z-index — 뒤로 버튼·ESC 는 z 가 가장 높은 창(화면 맨 위)을 닫는다. 마운트 때 값으로 고정한다 */
+export function useOverlayEntry(close: () => void, dismissible: boolean, z: number): void {
   const ref = useRef({ close, dismissible });
   useEffect(() => {
     ref.current = { close, dismissible };
@@ -16,14 +17,16 @@ export function useOverlayEntry(close: () => void, dismissible: boolean): void {
       overlayStack.push({
         close: () => ref.current.close(),
         canDismiss: () => ref.current.dismissible,
+        z,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 }
 
 /** 조건부로 뜨는 겹창용 — 보여 줄 때만 이것을 함께 그리면(아무것도 안 그린다) 그동안만 스택에 올라간다 */
-export function OverlayEntry({ close, dismissible }: { close: () => void; dismissible: boolean }): null {
-  useOverlayEntry(close, dismissible);
+export function OverlayEntry({ close, dismissible, z }: { close: () => void; dismissible: boolean; z: number }): null {
+  useOverlayEntry(close, dismissible, z);
   return null;
 }
 

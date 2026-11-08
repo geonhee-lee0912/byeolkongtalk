@@ -619,7 +619,7 @@ export default function DailyCardBlock({
             aria-label="오늘의 카드 뽑기"
           >
             {/* 배경 스크롤 잠금 + ESC(저장 중엔 닫기 불가) — 전체 화면 무대라 Sheet·Dialog 대신 스택만 */}
-            <OverlayEntry close={closeRitual} dismissible={!saving} />
+            <OverlayEntry close={closeRitual} dismissible={!saving} z={75} />
             <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-2">
               <h2 className="font-display text-[15px] font-bold text-eye-purple">오늘의 카드</h2>
               <button

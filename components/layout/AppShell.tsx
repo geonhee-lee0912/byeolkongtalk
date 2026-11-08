@@ -1,7 +1,7 @@
 "use client";
 /// <reference types="react/canary" />
 
-import { Suspense, ViewTransition } from "react";
+import { Suspense, ViewTransition, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import BottomTab from "./BottomTab";
@@ -10,6 +10,8 @@ import PushGate from "@/components/push/PushGate";
 import AppNavDirection from "./AppNavDirection";
 import { AppHistoryDepth } from "./AppHeader";
 import { useAppInfo } from "@/lib/use-app-info";
+import { overlayStack } from "@/lib/app-shell/overlay-stack";
+import { installOverlayBridge } from "@/lib/app-shell/overlay-bridge";
 
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
 const HIDE_SHELL_PREFIXES: string[] = [
@@ -30,6 +32,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hide = shouldHideShell(pathname);
   // 웹(브라우저)에선 전환을 아예 열지 않는다("none") — prop 만 바뀌어 화면이 다시 마운트되지 않는다
   const { app } = useAppInfo();
+
+  // 겹창 스택 ↔ 앱(caps ui 일 때만): 열림·닫힘을 알리고 안드로이드 뒤로 버튼(ui.back)으로 맨 위 창을 닫는다 — 셸을 숨기는 화면에서도
+  useEffect(() => installOverlayBridge(window, overlayStack, app), [app]);
 
   if (hide) {
     return <>{children}</>;

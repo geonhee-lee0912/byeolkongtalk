@@ -36,7 +36,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
   }, []);
 
   // ESC + 배경 스크롤 잠금 — 겹창 스택(모양이 Sheet·Dialog 에 안 맞아 스택만). 뽑기 처리 중엔 ESC 로 안 닫힌다
-  useOverlayEntry(() => closeModal(), !submitting);
+  useOverlayEntry(() => closeModal(), !submitting, 75);
 
   function closeModal() {
     if (submitting) return;

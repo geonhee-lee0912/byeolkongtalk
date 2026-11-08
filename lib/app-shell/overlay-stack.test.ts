@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createOverlayStack, onceClose, shouldDismissSheet } from "./overlay-stack.ts";
 
 const ok = () => true;
-const entry = (close: () => void, canDismiss: () => boolean = ok) => ({ close, canDismiss });
+const entry = (close: () => void, canDismiss: () => boolean = ok, z = 0) => ({ close, canDismiss, z });
 
 test("맨 위부터 닫는다 — closeTop 은 마지막에 올린 것만", () => {
   const s = createOverlayStack(() => {});
@@ -87,4 +87,36 @@ test("onceClose 는 reset 뒤 다시 한 번 부른다 — 부모가 닫기를 �
   c();
   c();
   assert.equal(n, 2);
+});
+
+test("closeTop 은 z 가 가장 높은 창 — 늦게 연 낮은 창보다 먼저", () => {
+  const s = createOverlayStack(() => {});
+  const log: string[] = [];
+  s.push(entry(() => log.push("z100"), ok, 100));
+  s.push(entry(() => log.push("z75"), ok, 75));
+  s.closeTop();
+  assert.deepEqual(log, ["z100"]);
+});
+
+test("z 가 같으면 나중에 연 창", () => {
+  const s = createOverlayStack(() => {});
+  const log: string[] = [];
+  s.push(entry(() => log.push("a"), ok, 80));
+  s.push(entry(() => log.push("b"), ok, 80));
+  s.closeTop();
+  assert.deepEqual(log, ["b"]);
+});
+
+test("onChange 는 0↔1 에서만", () => {
+  const s = createOverlayStack(() => {});
+  const seen: boolean[] = [];
+  const off = s.subscribe((open) => seen.push(open));
+  const ra = s.push(entry(() => {}));
+  const rb = s.push(entry(() => {}));
+  rb();
+  ra();
+  assert.deepEqual(seen, [true, false]);
+  off();
+  s.push(entry(() => {}));
+  assert.deepEqual(seen, [true, false]);
 });

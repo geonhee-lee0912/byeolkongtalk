@@ -46,7 +46,7 @@ export default function Dialog({
     return c;
   }, [mounted]);
 
-  useOverlayEntry(requestClose, dismissible);
+  useOverlayEntry(requestClose, dismissible, z);
 
   if (typeof document === "undefined") return null;
   return createPortal(
