@@ -33,3 +33,13 @@ export function reconfirmMessage(grantedOn: string): { title: string; body: stri
 
 /** 알림 설정 화면 — 재확인 통지를 누르면 여기로 */
 export const NOTIFICATION_SETTINGS_PATH = "/mypage/notifications";
+
+/** 오늘의 별 흐름 — 유료 구독자용 정보성 틀(설계 §3 B). 구독 내용물 그대로: 하루 이름 + 풀이 두 문장.
+ *  🔴 출석·별·체험·구독 얘기를 섞지 않는다(섞이면 전체가 광고, 08시 전 도착이면 야간 위반까지 겹친다).
+ *  '별' 이 판촉 단어라 제목도 "오늘의 별 흐름" 이 아니라 하루 이름으로 쓴다 */
+export function morningInfoMessage(flow: { name: string; line: string }): { title: string; body: string } {
+  return { title: `오늘은 ${flow.name}`, body: flow.line };
+}
+
+/** 별마루 오늘 화면 — 아침 알림을 누르면 여기로 */
+export const BYEOLMARU_TODAY_PATH = "/byeolmaru/day";

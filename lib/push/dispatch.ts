@@ -1,6 +1,7 @@
 // 알림 발송 본체(cron) — 다시 볼 날을 먼저 보내고, 다른 종류(2년 재확인·아침 흐름·이어가기·깨우기)는 jobs 로 이어 붙인 뒤 영수증을 본다.
 // 보낼지는 순수 판정(decide.ts)이 정한다. 저장소·Expo 는 인자로 받는다(시험은 메모리 가짜). 한 건의 실패가 다른 건을 막지 않는다.
 // 광고(klass "ad")는 여기서 수신거부 표를 붙인다 — data.unsub(알림의 [수신거부] 버튼) + 경로 #bku=(열린 화면의 철회 줄).
+// 모든 알림 경로 끝엔 #bkp=<발송 번호> 를 붙여, 누르고 연 화면(웹 PushGate)이 열람 시각을 남긴다(설계 §1 '알림 종류별 열람률').
 import { kstDate } from "../admin-time.ts";
 import { logError, logWarn } from "@/lib/logger";
 import type { ExpoMessage, ExpoTicket, ExpoReceipt } from "./expo.ts";
@@ -46,6 +47,12 @@ export type LogFn = (err: unknown, ctx?: { route?: string; extra?: Record<string
 export type WarnFn = (message: string, ctx?: { route?: string; extra?: Record<string, unknown> }) => unknown;
 
 const ROUTE = "cron/push-dispatch";
+
+/** 알림 경로 끝의 표식 — #bkp=<발송 번호>[&bku=<수신거부 표>]. 웹(components/push/PushGate)이 읽고 주소에서 지운다 */
+export function withPushHash(path: string, sendId: number, unsub: string | null): string {
+  const base = path.split("#")[0];
+  return `${base}#bkp=${sendId}${unsub ? `&bku=${unsub}` : ""}`;
+}
 const DNR = "DeviceNotRegistered";
 
 /** 한 회원에게 한 건 보내기 — 선점(중복 방지) → 표(광고) → Expo → 죽은 토큰 끄기 → 티켓 저장.
@@ -106,7 +113,7 @@ export async function dispatchRevisits(
     let msgs: ExpoMessage[];
     try {
       const unsub = a.klass === "ad" ? makeUnsubToken(sendId, a.userId, opts.unsubSecret) : null;
-      const path = unsub ? `${a.path}#bku=${unsub}` : a.path;
+      const path = withPushHash(a.path, sendId, unsub);
       msgs = a.tokens.map((to) => ({
         to,
         title: a.message.title,

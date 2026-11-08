@@ -3,11 +3,13 @@
 // 마지막 인자 db 는 시험에서 가짜 클라이언트를 꽂는 자리다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
-import { getEntitlement } from "@/lib/byeolmaru/entitlement";
+import { computeEntitlement, getEntitlement } from "@/lib/byeolmaru/entitlement";
 import type { DispatchStore } from "./dispatch.ts";
 import type { AdStatus, AskAnswer, AskKind, AskMoment, AskRecord } from "./asks.ts";
 import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
 import type { ReconfirmCandidate, ReconfirmStore } from "./reconfirm-job.ts";
+import { laterOf, type DeviceGroup, type FactsStore, type PushFacts } from "./facts.ts";
+import type { ProfileRow } from "./today-flow.ts";
 
 type Db = SupabaseClient;
 
@@ -320,3 +322,117 @@ export const supabaseReconfirmStore: ReconfirmStore = {
   },
   recordReconfirmNotice: (userId, source) => recordReconfirmNotice(userId, source),
 };
+
+// ── 단계 3·4 cron 판정 재료(FactsStore) ───────────────────────────────────────────
+
+/** 한 묶음(회원 100명 이하) 조회가 Max rows(1000)에 닿으면 조용히 잘린다 — 위기 신호처럼 빠지면 안 되는 값이 섞여 있어 던진다 */
+function rowsOrThrow<T>(data: T[] | null, error: { message: string } | null, what: string): T[] {
+  check(error, what);
+  const rows = data ?? [];
+  if (rows.length >= 1000) throw new Error(`push store ${what}: 1000 rows — chunk too large, refusing partial data`);
+  return rows;
+}
+
+export const supabaseFactsStore: FactsStore = {
+  async activeDevices() {
+    const out = new Map<string, DeviceGroup>();
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await getServiceSupabase()
+        .from("push_devices")
+        .select("token, user_id, last_seen_at")
+        .is("disabled_at", null)
+        .order("token")
+        .range(from, from + 999);
+      check(error, "activeDevices");
+      const rows = (data ?? []) as { token: string; user_id: string; last_seen_at: string | null }[];
+      for (const r of rows) {
+        const g = out.get(r.user_id) ?? { tokens: [], lastSeenAt: null };
+        g.tokens.push(r.token);
+        g.lastSeenAt = laterOf(g.lastSeenAt, r.last_seen_at);
+        out.set(r.user_id, g);
+      }
+      if (rows.length < 1000) return out;
+    }
+  },
+
+  async facts(userIds, now, todayKst) {
+    const db = getServiceSupabase();
+    const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+    const [prefs, consents, users, subs, alerts, sensitive, opens, sends, profiles, devices] = await Promise.all([
+      db.from("push_preferences").select("user_id, morning").in("user_id", userIds),
+      db.from("ad_consents").select("user_id, status").in("user_id", userIds),
+      db.from("users").select("id, byeolmaru_trial_started_at").in("id", userIds),
+      db.from("byeolmaru_subscriptions").select("user_id, expires_at").in("user_id", userIds).gt("expires_at", now.toISOString()),
+      db.from("sensitive_alerts").select("user_id").in("user_id", userIds).gte("created_at", since30),
+      db.from("readings").select("user_id").in("user_id", userIds).eq("has_sensitive", true).gte("created_at", since30),
+      db.from("push_app_opens").select("user_id, last_open_at").in("user_id", userIds),
+      db.from("push_sends").select("user_id, kind, class").in("user_id", userIds).eq("send_date", todayKst),
+      db.from("user_profiles").select("user_id, birth_date, birth_time, is_lunar_input, is_leap_month, gender").in("user_id", userIds).eq("is_primary", true),
+      db.from("push_devices").select("user_id, last_seen_at").in("user_id", userIds),
+    ]);
+    const prefRows = rowsOrThrow(prefs.data as { user_id: string; morning: boolean }[] | null, prefs.error, "facts.prefs");
+    const consentRows = rowsOrThrow(consents.data as { user_id: string; status: string }[] | null, consents.error, "facts.consents");
+    const userRows = rowsOrThrow(users.data as { id: string; byeolmaru_trial_started_at: string | null }[] | null, users.error, "facts.users");
+    const subRows = rowsOrThrow(subs.data as { user_id: string; expires_at: string }[] | null, subs.error, "facts.subs");
+    const alertRows = rowsOrThrow(alerts.data as { user_id: string }[] | null, alerts.error, "facts.alerts");
+    const sensitiveRows = rowsOrThrow(sensitive.data as { user_id: string }[] | null, sensitive.error, "facts.sensitive");
+    const openRows = rowsOrThrow(opens.data as { user_id: string; last_open_at: string }[] | null, opens.error, "facts.opens");
+    const sendRows = rowsOrThrow(sends.data as { user_id: string; kind: string; class: "info" | "ad" }[] | null, sends.error, "facts.sends");
+    const profileRows = rowsOrThrow(profiles.data as (ProfileRow & { user_id: string })[] | null, profiles.error, "facts.profiles");
+    const deviceRows = rowsOrThrow(devices.data as { user_id: string; last_seen_at: string | null }[] | null, devices.error, "facts.devices");
+
+    const crisis = new Set([...alertRows, ...sensitiveRows].map((r) => r.user_id));
+    const out = new Map<string, PushFacts>();
+    for (const id of userIds) {
+      const u = userRows.find((r) => r.id === id);
+      const sub = subRows.filter((r) => r.user_id === id).map((r) => r.expires_at).sort().pop() ?? null;
+      const ent = computeEntitlement({ trialStartedAt: u?.byeolmaru_trial_started_at ?? null, subscriptionExpiresAt: sub }, now);
+      const deviceSeen = deviceRows.filter((r) => r.user_id === id).reduce<string | null>((a, r) => laterOf(a, r.last_seen_at), null);
+      const p = profileRows.find((r) => r.user_id === id);
+      out.set(id, {
+        morningPref: prefRows.find((r) => r.user_id === id)?.morning !== false,
+        adConsent: consentRows.find((r) => r.user_id === id)?.status === "granted",
+        subscription: ent.reason === "subscription" ? "paid" : ent.reason === "trial" ? "trial" : "none",
+        crisisWithin30d: crisis.has(id),
+        lastOpenAt: laterOf(openRows.find((r) => r.user_id === id)?.last_open_at ?? null, deviceSeen),
+        sendsToday: sendRows.filter((r) => r.user_id === id).map((r) => ({ kind: r.kind, klass: r.class })),
+        profile: p
+          ? { birth_date: p.birth_date, birth_time: p.birth_time, is_lunar_input: p.is_lunar_input, is_leap_month: p.is_leap_month, gender: p.gender }
+          : null,
+      });
+    }
+    return out;
+  },
+};
+
+/** 앱을 연 시각을 남긴다(웹 PushGate 가 앱 안에서 부른다) */
+export async function recordAppOpen(userId: string, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_app_opens")
+    .upsert({ user_id: userId, last_open_at: new Date().toISOString() }, { onConflict: "user_id" });
+  check(error, "recordAppOpen");
+}
+
+/** 알림을 누르고 연 시각 — 그 회원의 발송이고 처음 연 것만 */
+export async function markSendOpened(userId: string, sendId: number, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_sends")
+    .update({ opened_at: new Date().toISOString() })
+    .eq("id", sendId)
+    .eq("user_id", userId)
+    .is("opened_at", null);
+  check(error, "markSendOpened");
+}
+
+export async function getMorningPref(userId: string, db: Db = getServiceSupabase()): Promise<boolean> {
+  const { data, error } = await db.from("push_preferences").select("morning").eq("user_id", userId).maybeSingle();
+  check(error, "getMorningPref");
+  return data ? data.morning !== false : true;
+}
+
+export async function setMorningPref(userId: string, on: boolean, db: Db = getServiceSupabase()): Promise<void> {
+  const { error } = await db
+    .from("push_preferences")
+    .upsert({ user_id: userId, morning: on, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  check(error, "setMorningPref");
+}

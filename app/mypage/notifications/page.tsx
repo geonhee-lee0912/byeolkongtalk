@@ -35,6 +35,7 @@ export default function NotificationSettingsPage() {
   const inApp = ready && appSupportsPush();
   const [loaded, setLoaded] = useState(false);
   const [revisit, setRevisit] = useState(false);
+  const [morning, setMorning] = useState(false);
   const [ad, setAd] = useState<{ status: AdStatus; grantedOn: string | null }>({ status: "none", grantedOn: null });
   const [notice, setNotice] = useState<ConsentNotice | null>(null);
   const [perm, setPerm] = useState<PushState | null>(null);
@@ -68,6 +69,7 @@ export default function NotificationSettingsPage() {
       if (cancelled) return;
       if (s) {
         setRevisit(Boolean(s.revisit));
+        setMorning(s.morning !== false);
         if (s.ad) setAd({ status: s.ad.status, grantedOn: s.ad.grantedOn ?? null });
       }
       setPerm(status);
@@ -78,23 +80,24 @@ export default function NotificationSettingsPage() {
     };
   }, [ready, router]);
 
-  /** 낙관적으로 뒤집고 저장, 실패하면 되돌린다 */
-  async function toggleRevisit() {
+  /** 종류 칸 — 낙관적으로 뒤집고 저장, 실패하면 되돌린다 */
+  async function togglePref(key: "revisit" | "morning") {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setFailed(false);
-    const next = !revisit;
-    setRevisit(next);
+    const set = key === "revisit" ? setRevisit : setMorning;
+    const next = !(key === "revisit" ? revisit : morning);
+    set(next);
     try {
       const r = await fetch("/api/push/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revisit: next }),
+        body: JSON.stringify({ [key]: next }),
       });
       if (!r.ok) throw new Error("save_failed");
     } catch {
-      setRevisit(!next);
+      set(!next);
       setFailed(true);
     } finally {
       busyRef.current = false;
@@ -155,7 +158,23 @@ export default function NotificationSettingsPage() {
                 <p className="text-[14px] font-bold">다시 볼 날</p>
                 <p className="text-[11.5px] text-text-light mt-[3px] leading-normal">리딩 끝에 고른 날, 한 번 알려줘</p>
               </div>
-              <Toggle on={revisit} label="다시 볼 날 알림" disabled={busy} onClick={() => void toggleRevisit()} />
+              <Toggle on={revisit} label="다시 볼 날 알림" disabled={busy} onClick={() => void togglePref("revisit")} />
+            </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-lilac-mid/20">
+              <div>
+                <p className="text-[14px] font-bold">아침 별 흐름</p>
+                <p className="text-[11.5px] text-text-light mt-[3px] leading-normal">
+                  매일 아침 별마루 오늘의 흐름을 알려줘
+                  {/* 비구독자에겐 광고로 간다 — 이 칸과 광고 동의가 둘 다 켜져야 받는다(설계 §4-6) */}
+                  {morning && ad.status !== "granted" && (
+                    <>
+                      <br />
+                      별마루 구독 중이 아니면 아래 광고성 정보 수신 동의도 켜야 받아
+                    </>
+                  )}
+                </p>
+              </div>
+              <Toggle on={morning} label="아침 별 흐름 알림" disabled={busy} onClick={() => void togglePref("morning")} />
             </div>
           </div>
           <div className="mt-3.5 bg-white rounded-[18px] border border-lilac-mid/30 overflow-hidden">

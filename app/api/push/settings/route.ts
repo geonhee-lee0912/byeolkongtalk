@@ -1,8 +1,16 @@
-// 알림 설정 — 다시 볼 날 칸, 광고성 정보 수신 동의(결과 통지 포함), 2년 재확인 팝업 기록. 웹뷰 쿠키 세션.
+// 알림 설정 — 다시 볼 날·아침 별 흐름 칸, 광고성 정보 수신 동의(결과 통지 포함), 2년 재확인 팝업 기록. 웹뷰 쿠키 세션.
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { logError, ctxFromRequest } from "@/lib/logger";
-import { getAdConsent, getRevisitPref, recordReconfirmNotice, setAdConsent, setRevisitPref } from "@/lib/push/store";
+import {
+  getAdConsent,
+  getMorningPref,
+  getRevisitPref,
+  recordReconfirmNotice,
+  setAdConsent,
+  setMorningPref,
+  setRevisitPref,
+} from "@/lib/push/store";
 import { handleSettingsGet, handleSettingsPost } from "@/lib/push/user-api";
 
 const ROUTE = "/api/push/settings";
@@ -18,7 +26,7 @@ async function readJson(request: NextRequest): Promise<unknown> {
 export async function GET(request: NextRequest) {
   const { userId } = await getSession();
   try {
-    const r = await handleSettingsGet(userId ?? null, { getRevisitPref, getAdConsent, now: () => new Date() });
+    const r = await handleSettingsGet(userId ?? null, { getRevisitPref, getMorningPref, getAdConsent, now: () => new Date() });
     return NextResponse.json(r.body, { status: r.status });
   } catch (err) {
     await logError(err, ctxFromRequest(request, { route: ROUTE, userId: userId ?? undefined }));
@@ -31,6 +39,7 @@ export async function POST(request: NextRequest) {
   try {
     const r = await handleSettingsPost(await readJson(request), userId ?? null, {
       setRevisitPref,
+      setMorningPref,
       setAdConsent: (u, grant, source) => setAdConsent(u, grant, source),
       recordReconfirmNotice,
     });

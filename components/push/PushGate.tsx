@@ -4,6 +4,7 @@
 //  ① 알림을 눌러 열린 화면 위의 수신거부 줄(설계 §4-7) — 광고 알림의 경로 끝 #bku=<표>. 로그인 없이 표로 철회한다
 //  ② 2년 재확인 팝업(§4-5) — 기한 30일 전부터 앱을 열면. 띄운 사실을 서버에 남긴다
 //  ③ 첫 상담을 못 끝낸 회원의 두 번째 실행 질문(§4-2) — 로그인한 상태로 웹뷰가 두 번째 뜰 때 홈에서 한 번
+//  ④ 앱을 연 시각·누르고 연 알림(#bkp=)을 서버에 남긴다 — 아침 알림 14일 멈춤·깨우기·종류별 열람률(§1·§5-3)
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
@@ -44,17 +45,32 @@ function countLaunch(): number {
   return prev + 1;
 }
 
-/** 경로 끝의 #bku=<표> 를 읽고 주소에서 지운다(뒤로 가기·공유에 남지 않게) */
-function takeUnsubToken(): string | null {
-  const m = /(?:^#|&)bku=([A-Za-z0-9._-]{1,80})(?:&|$)/.exec(window.location.hash);
-  if (!m) return null;
-  try {
-    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
-  } catch {
-    // 주소를 못 고쳐도 줄은 보인다
+/** 알림 경로 끝의 #bkp=<발송 번호>[&bku=<수신거부 표>] 를 읽고 주소에서 지운다(뒤로 가기·공유에 남지 않게). 서버 lib/push/dispatch.ts withPushHash */
+function takePushHash(): { sendId: number | null; unsub: string | null } {
+  const h = window.location.hash;
+  const sendM = /(?:^#|&)bkp=([1-9][0-9]{0,15})(?:&|$)/.exec(h);
+  const unsubM = /(?:^#|&)bku=([A-Za-z0-9._-]{1,80})(?:&|$)/.exec(h);
+  if (sendM || unsubM) {
+    try {
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    } catch {
+      // 주소를 못 고쳐도 줄은 보인다
+    }
   }
-  return m[1];
+  return { sendId: sendM ? Number(sendM[1]) : null, unsub: unsubM ? unsubM[1] : null };
 }
+
+/** 앱을 연 시각(+ 누르고 연 알림) — 아침 알림 14일 멈춤·깨우기·열람률. 실패는 무시 */
+function beaconOpened(sendId: number | null): void {
+  void fetch("/api/push/opened", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sendId ? { sendId } : {}),
+    keepalive: true,
+  }).catch(() => {});
+}
+/** 앱이 뒤에 있다 앞으로 올 때도 '연 것'으로 친다 — 너무 잦지 않게 */
+const OPEN_BEACON_GAP_MS = 60 * 60 * 1000;
 
 export default function PushGate() {
   const pathname = usePathname() || "/";
@@ -71,7 +87,8 @@ export default function PushGate() {
   // ①·② — 처음 한 번
   useEffect(() => {
     if (!ready || !appSupportsPush()) return;
-    setUnsubToken(takeUnsubToken());
+    const pushHash = takePushHash();
+    setUnsubToken(pushHash.unsub);
     let cancelled = false;
     void (async () => {
       try {
@@ -81,6 +98,7 @@ export default function PushGate() {
         if (cancelled) return;
         setLoggedIn(true);
         setLaunches(countLaunch());
+        beaconOpened(pushHash.sendId);
         if (b.ad?.reconfirm) {
           setReconfirm(b.ad.reconfirm);
           storageSet(session, SECOND_DONE_KEY, "1"); // 팝업을 둘 겹쳐 띄우지 않는다
@@ -98,6 +116,19 @@ export default function PushGate() {
       cancelled = true;
     };
   }, [ready]);
+
+  // 앱이 뒤에 있다 앞으로 오면 '연 시각'을 다시 남긴다(웹뷰가 새로 뜨지 않으니 위 effect 는 다시 안 돈다)
+  useEffect(() => {
+    if (!loggedIn) return;
+    let last = Date.now();
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || Date.now() - last < OPEN_BEACON_GAP_MS) return;
+      last = Date.now();
+      beaconOpened(null);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loggedIn]);
 
   // ③ — 홈에서, 두 번째 실행부터, 이 웹뷰 수명 동안 한 번만 확인
   useEffect(() => {
