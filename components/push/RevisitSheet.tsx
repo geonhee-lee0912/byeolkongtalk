@@ -4,7 +4,6 @@
 // 시트엔 광고성 정보 수신 동의 체크칸이 붙는다(단계 2, 설계 §4-2) — 비운 채 시작, '알림 받을래'는 체크와 상관없이 누를 수 있다.
 // 앱(push 지원) 안에서만 그린다. 소유자 확인은 부르는 쪽 책임. 시안: docs/superpowers/specs/assets/2026-11-06-앱-알림-시안.html ①~④
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { askAppPush, appSupportsPush } from "@/lib/app-push";
 import { postToApp } from "@/lib/app-context";
@@ -15,6 +14,8 @@ import type { AdStatus } from "@/lib/push/asks";
 import AdConsentCheck from "./AdConsentCheck";
 import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import { fetchAsk, postAsk, setAdConsent } from "./api";
+import Sheet from "@/components/common/Sheet";
+import LaterButton from "./LaterButton";
 
 const CHIPS: { choice: RevisitChoice; label: string }[] = [
   { choice: "3d", label: "3일 뒤" },
@@ -212,21 +213,11 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
       on ? "bg-eye-purple border-eye-purple text-white shadow-md" : "bg-white border-lilac-mid text-eye-purple"
     }`;
 
-  // ── 시트(① 자동으로 열림)
+  // ── 시트(① 자동으로 열림) — 공통 시트 틀(components/common/Sheet). 예약·권한 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
   if (mode === "sheet") {
     return (
       <>
-        {createPortal(
-      <div
-        className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
-        onClick={later}
-      >
-        <div
-          role="dialog"
-          aria-label="다시 볼 날"
-          className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6 max-h-[88vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <Sheet label="다시 볼 날" onClose={later} dismissible={!busy} z={80}>
           <div className="flex flex-col items-center text-center">
             <div className="relative w-[52px] h-[52px] mb-2">
               <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
@@ -265,13 +256,8 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
               {retry}
             </>
           )}
-          <button type="button" disabled={busy} onClick={later} className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep">
-            나중에
-          </button>
-        </div>
-      </div>,
-      document.body,
-        )}
+          <LaterButton disabled={busy} />
+        </Sheet>
         {noticePopup}
       </>
     );
