@@ -24,15 +24,17 @@ test("정상 예약은 KST 날짜를 돌려주고, 이미 보낸 건 409", async
   assert.deepEqual(sent.body, { error: "already_sent" });
 });
 
-test("asks 는 first_reading_end 만 받는다", async () => {
+test("asks 는 정해진 순간·종류·답만 받는다", async () => {
   const rec: unknown[] = [];
   const deps = { recordAsk: async (...a: unknown[]) => { rec.push(a); } };
-  assert.equal((await handleAskPost({ moment: "birthday", answer: "later" }, "u1", deps)).status, 400);
+  assert.equal((await handleAskPost({ moment: "somewhere", answer: "later" }, "u1", deps)).status, 400);
+  assert.equal((await handleAskPost({ moment: "birthday", kind: "promo", answer: "later" }, "u1", deps)).status, 400);
   assert.equal((await handleAskPost({ moment: "first_reading_end", answer: "maybe" }, "u1", deps)).status, 400);
   assert.equal((await handleAskPost({ moment: "first_reading_end", answer: "later" }, null, deps)).status, 401);
   assert.equal(rec.length, 0);
   assert.equal((await handleAskPost({ moment: "first_reading_end", answer: "later" }, "u1", deps)).status, 200);
-  assert.equal(rec.length, 1);
+  assert.equal((await handleAskPost({ moment: "birthday", kind: "ad", answer: "accepted" }, "u1", deps)).status, 200);
+  assert.deepEqual(rec, [["u1", "first_reading_end", "push", "later"], ["u1", "birthday", "ad", "accepted"]]);
 });
 
 test("settings 는 boolean 만 받는다", async () => {

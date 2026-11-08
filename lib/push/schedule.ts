@@ -31,13 +31,3 @@ export function revisitWindow(sendOn: string, now: Date): "early" | "open" | "mi
   if (min >= CLOSE_MIN) return "missed";
   return "open";
 }
-
-export type PushDecision =
-  | { send: true; klass: "info" }
-  | { send: false; reason: "no_device" | "pref_off" };
-
-export function decideRevisit(input: { activeDevices: number; revisitPref: boolean }): PushDecision {
-  if (input.activeDevices <= 0) return { send: false, reason: "no_device" };
-  if (!input.revisitPref) return { send: false, reason: "pref_off" };
-  return { send: true, klass: "info" };
-}

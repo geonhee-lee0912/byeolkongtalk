@@ -3,6 +3,8 @@ import * as realStore from "./store";
 
 export type HandlerResult = { status: number; body: object };
 
+export { MAX_ACTIVE_DEVICES_PER_USER, devicesOverCap } from "./device-cap.ts";
+
 // Expo 서버 SDK 의 isExpoPushToken 과 같은 규칙 — 접두사 두 가지(ExponentPushToken·ExpoPushToken), 안쪽 문자는 가리지 않는다.
 // 너무 엄격하면 정상 기기 등록이 400 으로 조용히 실패한다(앱은 경고만 남긴다). 공백·대괄호만 막고 길이에 상한을 둔다
 const TOKEN_RE = /^(?:ExponentPushToken|ExpoPushToken)\[[^\[\]\s]{1,200}\]$/;
@@ -14,7 +16,7 @@ function obj(body: unknown): Record<string, unknown> {
 export async function handleDevicePost(
   body: unknown,
   userId: string | null,
-  store: Pick<typeof realStore, "upsertDevice"> = realStore,
+  store: Pick<typeof realStore, "upsertDevice"> & Partial<Pick<typeof realStore, "trimUserDevices">> = realStore,
 ): Promise<HandlerResult> {
   if (!userId) return { status: 401, body: { error: "unauthorized" } };
   const b = obj(body);
@@ -23,6 +25,7 @@ export async function handleDevicePost(
   if (platform !== "ios" && platform !== "android") return { status: 400, body: { error: "bad_platform" } };
   const appVersion = typeof b.appVersion === "string" && b.appVersion.length <= 32 ? b.appVersion : null;
   await store.upsertDevice({ token, userId, platform, appVersion });
+  await store.trimUserDevices?.(userId);
   return { status: 200, body: { ok: true } };
 }
 
