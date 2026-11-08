@@ -9,7 +9,7 @@ const SECRET = "m".repeat(40);
 const profile = { birth_date: "1995-03-14", birth_time: null, is_lunar_input: false, is_leap_month: false, gender: "female" };
 const fact = (o: Partial<PushFacts> = {}): PushFacts => ({
   morningPref: true, adConsent: false, subscription: "none", crisisWithin30d: false,
-  lastOpenAt: "2026-11-09T00:00:00Z", sendsToday: [], profile, ...o,
+  lastOpenAt: "2026-11-09T00:00:00Z", sendsToday: [], profile, wakeRefsSent: [], ...o,
 });
 
 function harness(users: Record<string, PushFacts>) {

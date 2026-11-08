@@ -20,3 +20,15 @@ export function morningAdMessage(flow: { name: string; line: string }): { title:
   const first = flow.line.split(/(?<=[.!?])\s+/)[0] ?? flow.line;
   return adMessage(`오늘은 ${flow.name}`, `${first} 별마루에서 오늘 흐름을 더 볼 수 있어.`);
 }
+
+/** 하던 이야기 이어가기(설계 §3 C) — 🔴 고민 내용은 넣지 않는다(잠금화면에 보인다). 재촉·불안 자극 없이 */
+export function resumeAdMessage(): { title: string; body: string } {
+  return adMessage("어제 하던 이야기, 이어서 할래?", "별콩이랑 나누던 이야기가 남아 있어. 편할 때 이어서 들려줘.");
+}
+
+/** 조용한 사람 깨우기(설계 §3 C) — 7일·14일. 탓하거나 겁주지 않는다 */
+export function wakeAdMessage(step: 7 | 14): { title: string; body: string } {
+  return step === 7
+    ? adMessage("요즘 어떻게 지내?", "별콩이가 네 생각 하고 있었어. 잠깐 들러 줄래?")
+    : adMessage("오랜만이야", "마음에 걸리는 일이 생기면 언제든 별콩이한테 들려줘.");
+}

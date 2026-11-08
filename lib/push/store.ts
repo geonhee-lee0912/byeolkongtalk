@@ -11,6 +11,8 @@ import type { AdConsentRow, SetConsentResult } from "./user-api.ts";
 import type { ReconfirmCandidate, ReconfirmStore } from "./reconfirm-job.ts";
 import { laterOf, type DeviceGroup, type FactsStore, type PushFacts } from "./facts.ts";
 import type { ProfileRow } from "./today-flow.ts";
+import type { ResumeStore } from "./comeback-job.ts";
+import { fortuneTypeFromTag } from "@/lib/fortune/types";
 
 type Db = SupabaseClient;
 
@@ -386,7 +388,7 @@ export const supabaseFactsStore: FactsStore = {
   async facts(userIds, now, todayKst) {
     const db = getServiceSupabase();
     const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
-    const [prefs, consents, users, subs, alerts, sensitive, opens, sends, profiles, devices] = await Promise.all([
+    const [prefs, consents, users, subs, alerts, sensitive, opens, sends, profiles, devices, wakes] = await Promise.all([
       db.from("push_preferences").select("user_id, morning").in("user_id", userIds),
       db.from("ad_consents").select("user_id, status").in("user_id", userIds),
       db.from("users").select("id, byeolmaru_trial_started_at").in("id", userIds),
@@ -397,6 +399,7 @@ export const supabaseFactsStore: FactsStore = {
       db.from("push_sends").select("user_id, kind, class").in("user_id", userIds).eq("send_date", todayKst),
       db.from("user_profiles").select("user_id, birth_date, birth_time, is_lunar_input, is_leap_month, gender").in("user_id", userIds).eq("is_primary", true),
       db.from("push_devices").select("user_id, last_seen_at").in("user_id", userIds),
+      db.from("push_sends").select("user_id, ref_id").in("user_id", userIds).eq("kind", "wake").gte("sent_at", since30),
     ]);
     const prefRows = rowsOrThrow(prefs.data as { user_id: string; morning: boolean }[] | null, prefs.error, "facts.prefs");
     const consentRows = rowsOrThrow(consents.data as { user_id: string; status: string }[] | null, consents.error, "facts.consents");
@@ -408,6 +411,7 @@ export const supabaseFactsStore: FactsStore = {
     const sendRows = rowsOrThrow(sends.data as { user_id: string; kind: string; class: "info" | "ad" }[] | null, sends.error, "facts.sends");
     const profileRows = rowsOrThrow(profiles.data as (ProfileRow & { user_id: string })[] | null, profiles.error, "facts.profiles");
     const deviceRows = rowsOrThrow(devices.data as { user_id: string; last_seen_at: string | null }[] | null, devices.error, "facts.devices");
+    const wakeRows = rowsOrThrow(wakes.data as { user_id: string; ref_id: string }[] | null, wakes.error, "facts.wakes");
 
     const crisis = new Set([...alertRows, ...sensitiveRows].map((r) => r.user_id));
     const out = new Map<string, PushFacts>();
@@ -427,6 +431,7 @@ export const supabaseFactsStore: FactsStore = {
         profile: p
           ? { birth_date: p.birth_date, birth_time: p.birth_time, is_lunar_input: p.is_lunar_input, is_leap_month: p.is_leap_month, gender: p.gender }
           : null,
+        wakeRefsSent: wakeRows.filter((r) => r.user_id === id).map((r) => r.ref_id),
       });
     }
     return out;
@@ -464,3 +469,32 @@ export async function setMorningPref(userId: string, on: boolean, db: Db = getSe
     .upsert({ user_id: userId, morning: on, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
   check(error, "setMorningPref");
 }
+
+/** 이어가기 cron 용 — 가장 최근의 (운세가 아닌) 타로 상담과 그 대화 상태. 홈 이어가기 버튼(app/page.tsx)과 같은 대상 */
+export const supabaseResumeStore: ResumeStore = {
+  async latestTarot(userId) {
+    const db = getServiceSupabase();
+    const { data, error } = await db
+      .from("readings")
+      .select("id, emotion_tag")
+      .eq("user_id", userId)
+      .eq("consultation_type", "tarot")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    check(error, "latestTarot");
+    const r = (data ?? []).find((x: { emotion_tag: string | null }) => !fortuneTypeFromTag(x.emotion_tag));
+    if (!r) return null;
+    const [lastUser, endRow] = await Promise.all([
+      db.from("messages").select("created_at").eq("reading_id", r.id).eq("role", "user").order("created_at", { ascending: false }).limit(1),
+      // [END] 마커 — '['·']' 는 LIKE 의 특수문자가 아니다(% · _ 만)
+      db.from("messages").select("id").eq("reading_id", r.id).eq("role", "assistant").like("content", "%[END]%").limit(1),
+    ]);
+    check(lastUser.error, "latestTarot.lastUser");
+    check(endRow.error, "latestTarot.ended");
+    return {
+      readingId: r.id as string,
+      ended: (endRow.data ?? []).length > 0,
+      lastUserAt: ((lastUser.data ?? [])[0] as { created_at: string } | undefined)?.created_at ?? null,
+    };
+  },
+};

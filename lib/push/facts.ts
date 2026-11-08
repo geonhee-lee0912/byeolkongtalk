@@ -16,6 +16,8 @@ export type PushFacts = {
   /** 오늘(KST) 이 회원에게 나간 알림 */
   sendsToday: { kind: string; klass: "info" | "ad" }[];
   profile: ProfileRow | null;
+  /** 최근 30일에 보낸 깨우기 표식(comeback.ts wakeRef) — 같은 미접속엔 단계마다 한 번 */
+  wakeRefsSent: string[];
 };
 
 export interface FactsStore {
