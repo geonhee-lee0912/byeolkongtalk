@@ -67,7 +67,7 @@ declare
   v_changed boolean := false;
 begin
   -- 상태가 안 바뀌는 호출에서도 잘못된 source 를 바로 드러낸다(이벤트 CHECK 는 바뀔 때만 걸린다)
-  if p_source not in (
+  if p_source is null or p_source not in (
     'first_reading_end','second_launch','reading_end','byeolmaru_first','birthday',
     'settings','unsubscribe_button','unsubscribe_line','reconfirm_popup'
   ) then
