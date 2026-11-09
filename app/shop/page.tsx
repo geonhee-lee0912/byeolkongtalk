@@ -330,7 +330,7 @@ function ShopContent() {
           <>
             {/* 단순 status 배너 (success/fail/cancel) */}
             {status === "success" && (
-              <Banner tone="success">충전 완료! 별이 추가됐어 <Icon name="star" size={14} className="inline align-[-2px]" /></Banner>
+              <Banner tone="success">충전 완료! 별이 추가됐어 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" /></Banner>
             )}
             {status === "fail" && (() => {
               const validReturnTo = safeInternalPath(searchParams.get("returnTo"));

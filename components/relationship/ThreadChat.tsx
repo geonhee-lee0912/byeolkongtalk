@@ -631,7 +631,7 @@ export default function ThreadChat({
                           {busyKey === skill.key ? "여는 중…" : skill.label}
                         </span>
                         <span className="text-11 font-bold text-accent">
-                          <Icon name="star" size={14} className="inline align-[-2px]" />{skill.starCost}
+                          <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{skill.starCost}
                         </span>
                       </button>
                     </div>

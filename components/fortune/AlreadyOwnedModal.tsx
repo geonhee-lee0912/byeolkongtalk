@@ -44,7 +44,7 @@ export default function AlreadyOwnedModal({
             onClick={onRegenerate}
             className="btn btn-text btn-lg"
           >
-            그래도 새로 뽑기 · <Icon name="star" size={14} className="inline align-[-2px]" />{cost}
+            그래도 새로 뽑기 · <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}
           </button>
           <OverlayCloseButton className="w-full py-2.5 text-13 text-text-light">닫기</OverlayCloseButton>
         </div>

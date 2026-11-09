@@ -223,7 +223,7 @@ export default function MyPage() {
                 {me.user.nickname}
               </div>
               <div className="text-20 font-bold text-gold-soft mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px]" />{balance ?? 0}별
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance ?? 0}별
               </div>
             </div>
             <Link
@@ -288,10 +288,10 @@ export default function MyPage() {
           className="card mt-2.5 w-full flex items-center gap-3"
         >
           <span
-            className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-15"
+            className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-accent"
             aria-hidden
           >
-           
+            <Icon name="people" size={18} />
           </span>
           <span className="flex-1 text-left text-14 text-eye-purple font-medium">
             지인 사주 <span className="text-text-light">{acquaintanceCount}명</span>

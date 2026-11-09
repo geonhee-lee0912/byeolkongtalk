@@ -580,7 +580,7 @@ function FortuneMenuList({
                 </span>
                 {f.cost > 0 && (
                   <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                    <Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}
+                    <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{f.cost}
                   </span>
                 )}
               </div>

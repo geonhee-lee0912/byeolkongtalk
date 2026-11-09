@@ -54,7 +54,7 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
                 카드 한 장 더 뽑기
               </div>
               <div className="text-11 text-text-light mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px]" />{CLARIFIER_COST} · 지금 대화에서 바로
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{CLARIFIER_COST} · 지금 대화에서 바로
               </div>
             </>
           )}

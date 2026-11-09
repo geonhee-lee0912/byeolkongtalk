@@ -200,3 +200,8 @@ test("화면 글자에 이모지가 없다", () => {
   });
   assert.deepEqual(hits, []);
 });
+
+// ── 글자 고정(스펙 §2.2) — 안드로이드 웹뷰가 기기 글자 배율을 따라가지 않게
+test("앱 웹뷰 글자 배율을 100 으로 고정한다", () => {
+  assert.match(readFileSync("mobile/src/WebScreen.tsx", "utf8"), /<WebView<object>[\s\S]*?textZoom=\{100\}/);
+});

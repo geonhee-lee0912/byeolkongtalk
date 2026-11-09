@@ -76,7 +76,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
               aria-label="별콩 상점"
             >
               <span className="text-13 leading-none" aria-hidden>
-                <Icon name="star" size={14} className="inline align-[-2px]" />
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />
               </span>
               <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">{balance ?? "-"}</span>
             </Link>

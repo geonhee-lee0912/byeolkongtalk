@@ -51,7 +51,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
                 </p>
                 <p className="text-12 text-text-light leading-snug">{s.tagline}</p>
               </div>
-              <span className="text-12 font-bold text-accent shrink-0"><Icon name="star" size={14} className="inline align-[-2px]" />{s.starCost}</span>
+              <span className="text-12 font-bold text-accent shrink-0"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{s.starCost}</span>
             </button>
           ))}
         </div>

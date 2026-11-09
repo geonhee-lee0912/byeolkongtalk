@@ -32,7 +32,7 @@ export default function PassPanel({
         <p className="text-14 font-bold text-eye-purple">패스 선택하기</p>
         {typeof balance === "number" && (
           <span className="text-12 text-text-light">
-            <Icon name="star" size={14} className="inline align-[-2px]" />보유 {balance}별
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />보유 {balance}별
           </span>
         )}
       </div>
@@ -49,7 +49,7 @@ export default function PassPanel({
               {p.label}
             </span>
             <span className="text-14 font-bold text-accent">
-              <Icon name="star" size={14} className="inline align-[-2px]" />{p.cost}별
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{p.cost}별
             </span>
           </button>
         ))}

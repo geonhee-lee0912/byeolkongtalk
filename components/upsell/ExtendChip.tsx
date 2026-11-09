@@ -61,7 +61,7 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
                 별콩이랑 더 얘기하기
               </div>
               <div className="text-11 text-text-light mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px]" />{EXTEND_COST} · +{EXTEND_TURNS}턴
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{EXTEND_COST} · +{EXTEND_TURNS}턴
               </div>
             </>
           )}

@@ -108,7 +108,7 @@ export default function FortuneLandingSections({
                     <FortuneIcon type={t} size={34} />
                   </span>
                   <span className="text-12 font-bold text-eye-purple text-center leading-tight">{f.label}</span>
-                  <span className="text-11 text-text-light"><Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}</span>
+                  <span className="text-11 text-text-light"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{f.cost}</span>
                 </Link>
               );
             })}

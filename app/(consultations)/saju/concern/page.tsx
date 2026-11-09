@@ -205,7 +205,7 @@ export default function ConcernPage() {
         <div className="bg-lilac-soft/60 rounded-xl p-3 flex items-center justify-between text-13 mt-2">
           <span className="text-text-light">사주 풀이 비용</span>
           <span className="text-eye-purple font-bold">
-            <Icon name="star" size={14} className="inline align-[-2px]" />{SAJU_READING_COST}별
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{SAJU_READING_COST}별
           </span>
         </div>
         {balance !== null && (

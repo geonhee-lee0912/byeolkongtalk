@@ -72,7 +72,7 @@ export default function FortuneReportHeader({
         )}
         {typeof cost === "number" && (
           <span className="mt-2 inline-flex items-center rounded-full bg-gold-soft/30 px-2.5 py-1 text-11 font-bold text-sub-warm">
-            <Icon name="star" size={14} className="inline align-[-2px]" />{cost}별
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}별
           </span>
         )}
       </div>

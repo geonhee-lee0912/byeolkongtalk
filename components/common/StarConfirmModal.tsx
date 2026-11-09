@@ -106,7 +106,7 @@ export default function StarConfirmModal({
           )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
-            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px]" />{cost}</span>
+            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}</span>
           </div>
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">현재 잔액</span>
@@ -118,7 +118,7 @@ export default function StarConfirmModal({
             <div className="flex items-center justify-between py-1 border-t border-lilac-mid/15 mt-1 pt-2">
               <span className="text-text-light">결제 후 잔액</span>
               <span className="font-bold tabular-nums" style={{ color: accent }}>
-                <Icon name="star" size={14} className="inline align-[-2px]" />{afterBalance}
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{afterBalance}
               </span>
             </div>
           )}

@@ -88,7 +88,7 @@ function OfferChip({
         {icon}
         <span className="font-bold">{label}</span>
         {/* 가격 글자색 #8A6A1F — 금빛을 눌러 cream-warm 위에서 AA(약 4.8:1)를 넘긴다 */}
-        <span className="font-normal text-[#8A6A1F]"><Icon name="star" size={14} className="inline align-[-2px]" />{price}</span>
+        <span className="font-normal text-[#8A6A1F]"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{price}</span>
       </span>
       {working && <span className="absolute inset-0 flex items-center justify-center font-bold">처리 중…</span>}
     </button>

@@ -27,7 +27,8 @@ export default function Icon({
       width={size}
       height={size}
       fill="currentColor"
-      className={className ? `shrink-0 ${className}` : "shrink-0"}
+      // inline-block — Tailwind 기본(preflight)은 svg 를 block 으로 만들어 글자 사이에 넣으면 줄이 바뀐다
+      className={className ? `inline-block shrink-0 ${className}` : "inline-block shrink-0"}
       {...(title ? { role: "img", "aria-label": title } : { "aria-hidden": true })}
       dangerouslySetInnerHTML={{ __html: body }}
     />

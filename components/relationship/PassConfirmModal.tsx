@@ -73,7 +73,7 @@ export default function PassConfirmModal({
             {plan.label} 구매할까?
           </p>
           <p className="mt-1.5 text-17 font-bold text-accent">
-            <Icon name="star" size={14} className="inline align-[-2px]" />{plan.cost}별 차감
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{plan.cost}별 차감
           </p>
         </div>
 

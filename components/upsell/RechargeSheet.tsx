@@ -211,7 +211,7 @@ export default function RechargeSheet({
           <p className="text-13 text-eye-purple leading-relaxed">
             별이 조금 모자라
             {balance !== null ? (
-              <span className="font-bold"> — 지금 잔액 <Icon name="star" size={14} className="inline align-[-2px]" />{balance}</span>
+              <span className="font-bold"> — 지금 잔액 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance}</span>
             ) : null}
           </p>
           <p className="text-11 text-text-light mt-1 leading-snug">

@@ -88,7 +88,7 @@ export default function FreeToPaidCta({
             <div className="flex items-center gap-1.5">
               <span className="text-14 font-bold text-eye-purple">{f.label}</span>
               <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                <Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{f.cost}
               </span>
             </div>
             <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">{f.tagline}</p>

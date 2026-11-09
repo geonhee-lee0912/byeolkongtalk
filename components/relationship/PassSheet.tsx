@@ -127,7 +127,7 @@ export default function PassSheet({
                 <span className="text-13 font-bold text-eye-purple">
                   {extending ? "연장하는 중…" : `오늘 ${EXTEND_TURNS}번 더 (제한 없이)`}
                 </span>
-                <span className="text-13 font-bold text-accent"><Icon name="star" size={14} className="inline align-[-2px]" />{EXTEND_COST}</span>
+                <span className="text-13 font-bold text-accent"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{EXTEND_COST}</span>
               </button>
               {extendError && (
                 <p className="mt-1.5 text-11 text-red-500">{extendError}</p>

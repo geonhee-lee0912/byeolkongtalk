@@ -172,7 +172,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
                   <span className="text-11 font-bold text-text-light whitespace-nowrap">
-                    <Icon name="star" size={14} className="inline align-[-2px]" />{tarotPrice(type)}별
+                    <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{tarotPrice(type)}별
                   </span>
                 </div>
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}

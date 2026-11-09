@@ -203,7 +203,7 @@ export default function ClarifierSheet({
             마음 가는 카드 한 장만 더 골라줘
           </p>
           <p className="text-11 text-text-light mt-1 leading-snug">
-            뽑는 순간 <Icon name="star" size={14} className="inline align-[-2px]" />{CLARIFIER_COST}
+            뽑는 순간 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{CLARIFIER_COST}
             {balance !== null ? ` · 현재 잔액 별 ${balance}` : ""}
              · 지금 카드들과 이어서 봐줄게
           </p>

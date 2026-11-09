@@ -42,7 +42,7 @@ export default function WelcomeStarsBanner() {
             카카오로 시작하면 별 {WELCOME_BONUS_STARS}개 선물
           </p>
           <p className="text-12 text-eye-purple/75 mt-0.5 leading-tight">
-            <Icon name="star" size={14} className="inline align-[-2px]" />{SAJU_SINGLE_COST} 리포트는 그걸로 바로 볼 수 있어
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{SAJU_SINGLE_COST} 리포트는 그걸로 바로 볼 수 있어
           </p>
         </div>
         <span className="text-eye-purple/60 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>

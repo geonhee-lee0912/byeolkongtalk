@@ -46,7 +46,7 @@ export default function WelcomeStarsModal({
         </p>
         <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gold-soft/40">
           <span className="text-13 font-extrabold text-eye-purple">
-            현재 잔액 <Icon name="star" size={14} className="inline align-[-2px]" />{WELCOME_BONUS_STARS}
+            현재 잔액 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{WELCOME_BONUS_STARS}
           </span>
         </div>
         <button

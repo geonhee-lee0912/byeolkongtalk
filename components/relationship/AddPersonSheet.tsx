@@ -108,7 +108,7 @@ export default function AddPersonSheet({
               className="text-13 font-bold"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              <Icon name="star" size={14} className="inline align-[-2px]" />{nextCost}
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{nextCost}
             </span>
           </div>
           <div className="card-inner flex items-center justify-between mb-4">
@@ -117,7 +117,7 @@ export default function AddPersonSheet({
               className="text-13 font-bold text-accent"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              <Icon name="star" size={14} className="inline align-[-2px]" />{bal}
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{bal}
               {insufficient && " (부족)"}
             </span>
           </div>
