@@ -30,24 +30,24 @@ export default function StorageSummary({ counts, relationshipPassActive }: Stora
             }`}
           >
             <span className="flex items-center justify-center gap-1.5">
-              <span className="text-[15px]" aria-hidden>
+              <span className="text-15" aria-hidden>
                 {item.icon}
               </span>
               {isRel ? (
                 <span
-                  className={`text-[16px] font-bold leading-none ${
+                  className={`text-17 font-bold leading-none ${
                     relationshipPassActive ? "text-lilac-deep" : "text-text-light/40"
                   }`}
                 >
                   {relationshipPassActive ? "ON" : "OFF"}
                 </span>
               ) : (
-                <span className="text-[20px] font-bold text-eye-purple leading-none">
+                <span className="text-20 font-bold text-eye-purple leading-none">
                   {counts[item.key]}
                 </span>
               )}
             </span>
-            <span className="mt-2 text-[10.5px] text-text-light font-medium whitespace-nowrap">
+            <span className="mt-2 text-11 text-text-light font-medium whitespace-nowrap">
               {item.label}
             </span>
           </Link>

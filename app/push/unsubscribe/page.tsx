@@ -63,10 +63,10 @@ export default function PushUnsubscribePage() {
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
         {/* 앱에선 앱 헤더(‹ 광고 수신거부)와 겹쳐 숨긴다 */}
-        <h1 className="web-only text-[16px] font-black">광고 알림 수신거부</h1>
-        <p className="mt-3 text-[14px]">{text}</p>
+        <h1 className="web-only text-17 font-black">광고 알림 수신거부</h1>
+        <p className="mt-3 text-14">{text}</p>
         {view.kind === "done" && view.notice && (
-          <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-[13px] leading-relaxed">
+          <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
             {noticeLines(view.notice).map((l) => (
               <div key={l.label} className="flex gap-3 py-0.5">
                 <dt className="shrink-0 w-[64px] text-text-light">{l.label}</dt>
@@ -76,7 +76,7 @@ export default function PushUnsubscribePage() {
           </dl>
         )}
         {view.kind !== "working" && (
-          <p className="mt-4 text-[12.5px] text-text-light leading-relaxed">
+          <p className="mt-4 text-13 text-text-light leading-relaxed">
             지금 상태는 마이 → 알림 설정에서 보고 바꿀 수 있어.{" "}
             <Link href="/mypage/notifications" className="underline">
               알림 설정

@@ -29,15 +29,15 @@ export default function TodayLead({ todayName, todayScore, attendance }: Props) 
       <p className="min-w-0 truncate">
         {todayName ? (
           <>
-            <span className="text-[14px] font-semibold text-eye-purple">
+            <span className="text-14 font-semibold text-eye-purple">
               오늘{todayScore !== null ? ` ${todayScore}점` : ""}
             </span>
-            <span className="text-[13px] text-text-light"> · {todayName}</span>
+            <span className="text-13 text-text-light"> · {todayName}</span>
           </>
         ) : null}
       </p>
       {streak !== null && (
-        <p className="shrink-0 text-[12px] text-text-light">
+        <p className="shrink-0 text-12 text-text-light">
           <span className="font-medium text-eye-purple">{streak}일 연속</span> 들르는 중
         </p>
       )}

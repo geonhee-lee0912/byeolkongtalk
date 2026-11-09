@@ -99,7 +99,7 @@ export default function HeroBanner({
 
         <h1
           className={`font-display text-white leading-snug tracking-wide text-center ${
-            compact ? "text-[19px]" : "text-[24px]"
+            compact ? "text-20" : "text-22"
           }`}
           style={{ textShadow: "0 2px 16px rgba(0,0,0,0.4)" }}
         >
@@ -107,13 +107,13 @@ export default function HeroBanner({
         </h1>
 
         {subtitle && (
-          <p className="mt-2 text-[13px] text-white/80 text-center leading-relaxed">
+          <p className="mt-2 text-13 text-white/80 text-center leading-relaxed">
             {subtitle}
           </p>
         )}
 
         {badge && (
-          <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[12px] font-bold text-white backdrop-blur-sm">
+          <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-12 font-bold text-white backdrop-blur-sm">
             {badge}
           </span>
         )}

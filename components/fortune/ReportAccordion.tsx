@@ -45,7 +45,7 @@ export default function ReportAccordion({
         <button
           type="button"
           onClick={toggleAll}
-          className="text-[12px] font-bold text-lilac-deep px-3 py-1.5 rounded-full bg-lilac-soft/50 hover:bg-lilac-soft transition"
+          className="text-12 font-bold text-lilac-deep px-3 py-1.5 rounded-full bg-lilac-soft/50 hover:bg-lilac-soft transition"
         >
           {allOpen ? "전체 접기" : "전체 펼치기"}
         </button>
@@ -80,7 +80,7 @@ export default function ReportAccordion({
                     aria-hidden
                   />
                 )}
-                <span className="text-[12.5px] font-extrabold text-lilac-deep shrink-0">{it.group}</span>
+                <span className="text-13 font-extrabold text-lilac-deep shrink-0">{it.group}</span>
                 <span className="flex-1 h-px bg-lilac-mid/25" />
               </div>
             )}

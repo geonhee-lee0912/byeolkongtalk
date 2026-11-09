@@ -140,7 +140,7 @@ export default function SajuInputForm({
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto px-5 flex flex-col gap-5">
       {/* 양/음력 토글 */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">
+        <legend className="text-13 font-bold text-eye-purple mb-1">
           달력
         </legend>
         <div className="flex gap-2">
@@ -149,7 +149,7 @@ export default function SajuInputForm({
               key={c}
               type="button"
               onClick={() => setCalendar(c)}
-              className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold transition ${
+              className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
                 calendar === c
                   ? "bg-lilac-deep text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
@@ -163,7 +163,7 @@ export default function SajuInputForm({
 
       {/* 생년월일 */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">
+        <legend className="text-13 font-bold text-eye-purple mb-1">
           생년월일
         </legend>
         <div className="grid grid-cols-3 gap-2">
@@ -187,7 +187,7 @@ export default function SajuInputForm({
           />
         </div>
         {leapAvailable && (
-          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
+          <label className="flex items-center gap-2 text-12 text-text-light mt-1">
             <input
               type="checkbox"
               checked={isLeapMonth}
@@ -201,7 +201,7 @@ export default function SajuInputForm({
 
       {/* 태어난 시간 */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">
+        <legend className="text-13 font-bold text-eye-purple mb-1">
           태어난 시간
         </legend>
         <Dropdown
@@ -211,7 +211,7 @@ export default function SajuInputForm({
           options={hourOptions}
         />
         {hourValue === HOUR_UNKNOWN && (
-          <p className="text-[11px] text-text-light/80 leading-relaxed mt-1">
+          <p className="text-11 text-text-light/80 leading-relaxed mt-1">
             괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.
           </p>
         )}
@@ -219,7 +219,7 @@ export default function SajuInputForm({
 
       {/* 성별 */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">
+        <legend className="text-13 font-bold text-eye-purple mb-1">
           성별
         </legend>
         <div className="grid grid-cols-3 gap-2">
@@ -234,7 +234,7 @@ export default function SajuInputForm({
               key={opt.v}
               type="button"
               onClick={() => setGender(opt.v)}
-              className={`py-2.5 rounded-xl text-[14px] font-bold transition ${
+              className={`py-2.5 rounded-xl text-14 font-bold transition ${
                 gender === opt.v
                   ? "bg-lilac-deep text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
@@ -249,7 +249,7 @@ export default function SajuInputForm({
       <button
         type="submit"
         disabled={loading}
-        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? "별콩이가 펼치는 중…" : (submitLabel ?? "사주 펼쳐보기")}
       </button>

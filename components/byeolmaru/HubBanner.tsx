@@ -62,7 +62,7 @@ export default function HubBanner({
   const now = Date.now();
   const expiry = subscriptionExpiresAt ?? trialEndsAt;
   const chipClass =
-    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep";
+    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-lilac-deep";
 
   return (
     <section
@@ -77,13 +77,13 @@ export default function HubBanner({
       }}
     >
       {/* 위쪽 밝은 영역 별 반짝임 — 2탭과 같은 장치다. 별마루는 별·달이 모티브라 여기선 더 맞는다. */}
-      <span className="absolute top-2 left-[42%] text-[10px] text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-5 left-[55%] text-[8px] text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-1.5 left-[61%] text-[9px] text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
+      <span className="absolute top-2 left-[42%] text-11 text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
+      <span className="absolute top-5 left-[55%] text-11 text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
+      <span className="absolute top-1.5 left-[61%] text-11 text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
 
       <div className="relative min-w-0 flex-1">
-        <h1 className="font-display text-[17px] font-black text-eye-purple">별마루</h1>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-text-light">
+        <h1 className="font-display text-17 font-black text-eye-purple">별마루</h1>
+        <p className="mt-1 text-12 leading-relaxed text-text-light">
           오늘 너의 하늘, 한 자리에 모아뒀어
         </p>
         {!cta ? null : entitled ? (

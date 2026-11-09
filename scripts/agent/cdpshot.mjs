@@ -40,7 +40,12 @@ if (args.includes("--reduce")) await send("Emulation.setEmulatedMedia", { featur
 if (user) await send("Network.setCookie", { name: "byeolkong_user_id", value: user, url: new URL(url).origin });
 const ev = async (js) => (await send("Runtime.evaluate", { expression: js, returnByValue: true, awaitPromise: true })).result.result?.value;
 const full = args.includes("--full");
-const shot = async (p) => { const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: full }); writeFileSync(p, Buffer.from(r.result.data, "base64")); };
+const shot = async (p) => {
+  let clip;
+  if (full) { const m = (await send("Page.getLayoutMetrics")).result.cssContentSize; clip = { x: 0, y: 0, width: m.width, height: Math.min(m.height, 8000), scale: 1 }; }
+  const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: full, ...(clip ? { clip } : {}) });
+  writeFileSync(p, Buffer.from(r.result.data, "base64"));
+};
 await send("Page.navigate", { url });
 for (let i = 0; i < 100; i++) { await sleep(300); if ((await ev("document.readyState")) === "complete") break; }
 await sleep(2500);

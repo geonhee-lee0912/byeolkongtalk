@@ -87,7 +87,7 @@ export default function CompatReportView({
       children: (
         <ol className="flex flex-col gap-1.5">
           {report.advice.map((a, i) => (
-            <li key={i} className="flex gap-2 text-[13.5px] text-[#4F4A5E] leading-[1.7]">
+            <li key={i} className="flex gap-2 text-14 text-[#4F4A5E] leading-[1.7]">
               <span className="font-bold text-lilac-deep flex-shrink-0">{i + 1}.</span>
               <span>{a}</span>
             </li>
@@ -113,15 +113,15 @@ export default function CompatReportView({
         </div>
         <div className="flex justify-center">
           <span
-            className="rounded-full px-4 py-1.5 text-[13px] font-bold"
+            className="rounded-full px-4 py-1.5 text-13 font-bold"
             style={{ backgroundColor: gradeColor, color: "#1F1735" }}
           >
             {report.grade}
           </span>
         </div>
-        <p className="mt-3 font-display text-[19px] font-bold text-center leading-snug">{report.theme}</p>
+        <p className="mt-3 font-display text-20 font-bold text-center leading-snug">{report.theme}</p>
         <div className="my-4 h-px bg-white/15" />
-        <MarkdownLite text={report.summary} tone="dark" className="text-[13.5px] leading-[1.85] text-white/90" />
+        <MarkdownLite text={report.summary} tone="dark" className="text-16 text-white/90" />
       </div>
 
       {/* 두 사주판 나란히 */}
@@ -129,21 +129,21 @@ export default function CompatReportView({
         {saju ? (
           <div className="flex flex-col gap-5">
             <div>
-              <p className="text-[13px] font-bold text-eye-purple text-center mb-2">{saju.names.a}</p>
+              <p className="text-13 font-bold text-eye-purple text-center mb-2">{saju.names.a}</p>
               <SajuBoard saju={saju.a} showDetail={false} />
             </div>
             <div className="flex justify-center">
-              <span className="rounded-full bg-lilac-soft/60 px-3.5 py-1 text-[12px] font-bold text-lilac-deep">
+              <span className="rounded-full bg-lilac-soft/60 px-3.5 py-1 text-12 font-bold text-lilac-deep">
                 {saju.a.dayStem}({saju.a.dayElement}) ↔ {saju.b.dayStem}({saju.b.dayElement})
               </span>
             </div>
             <div>
-              <p className="text-[13px] font-bold text-eye-purple text-center mb-2">{saju.names.b}</p>
+              <p className="text-13 font-bold text-eye-purple text-center mb-2">{saju.names.b}</p>
               <SajuBoard saju={saju.b} showDetail={false} />
             </div>
           </div>
         ) : (
-          <p className="text-[12.5px] text-text-light text-center py-4">
+          <p className="text-13 text-text-light text-center py-4">
             공유 링크에서는 사주판이 표시되지 않아
           </p>
         )}
@@ -165,9 +165,9 @@ export default function CompatReportView({
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+          <span className="text-14 font-bold text-gold">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.9] text-white/90" />
+        <MarkdownLite text={report.note} tone="dark" className="text-16 text-white/90" />
       </div>
     </div>
   );

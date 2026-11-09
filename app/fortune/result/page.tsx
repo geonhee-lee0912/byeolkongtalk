@@ -442,7 +442,7 @@ function FortuneResultInner() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">별콩이가 운세를 펼치는 중…</p>
+        <p className="text-text-light text-14">별콩이가 운세를 펼치는 중…</p>
       </main>
     );
   }
@@ -450,8 +450,8 @@ function FortuneResultInner() {
   if (error) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 gap-3">
-        <p className="text-text-light text-sm">운세를 찾을 수 없어.</p>
-        <Link href="/fortune" className="text-lilac-deep text-sm font-bold underline">
+        <p className="text-text-light text-14">운세를 찾을 수 없어.</p>
+        <Link href="/fortune" className="text-lilac-deep text-14 font-bold underline">
           별콩 운세로 돌아가기
         </Link>
       </main>
@@ -466,9 +466,9 @@ function FortuneResultInner() {
             <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
-            <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
+            <p className="mt-2 text-12 font-medium text-lilac-deep">{dateLabel}</p>
           )}
-          <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
+          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
             <FortuneIcon type={ftType} size={26} className="inline-block object-contain" />
             {label}
           </h1>
@@ -509,7 +509,7 @@ function FortuneResultInner() {
               <MarkdownLite
                 key={j}
                 text={s.body}
-                className="text-[14.5px] text-text leading-[1.9] [&:not(:first-child)]:mt-4"
+                className="text-15 text-text leading-[1.9] [&:not(:first-child)]:mt-4"
               />
             ))}
           </div>
@@ -522,9 +522,9 @@ function FortuneResultInner() {
               className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
             >
               {s.title && (
-                <h2 className="text-[14px] font-bold text-lilac-deep mb-2">{s.title}</h2>
+                <h2 className="text-14 font-bold text-lilac-deep mb-2">{s.title}</h2>
               )}
-              <MarkdownLite text={s.body} className="text-[13.5px] text-text leading-relaxed" />
+              <MarkdownLite text={s.body} className="text-14 text-text leading-relaxed" />
             </div>
           ))}
         </div>
@@ -535,7 +535,7 @@ function FortuneResultInner() {
         {isPublic ? (
           <Link
             href="/login"
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
           >
             로그인하고 오늘의 운세 무료로 보기
           </Link>
@@ -544,14 +544,14 @@ function FortuneResultInner() {
             {relationshipId && (
               <Link
                 href="/relationship"
-                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-[15px] text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-15 text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
               >
                 💬 연애 상담으로 돌아가 이어 얘기하기
               </Link>
             )}
             <button
               onClick={handleKakaoShare}
-              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
+              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-15 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -560,19 +560,19 @@ function FortuneResultInner() {
             </button>
             <button
               onClick={handleShare}
-              className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-13 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
             >
               링크 / 텍스트로 공유하기
             </button>
             <Link
               href="/fortune"
-              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
+              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 text-center hover:bg-lilac-deep/5 transition"
             >
               다른 운세 보기
             </Link>
             <Link
               href="/readings"
-              className="w-full py-2 text-text-light/70 text-[12px] text-center"
+              className="w-full py-2 text-text-light/70 text-12 text-center"
             >
               내 고민톡에서 다시 보기
             </Link>
@@ -586,12 +586,12 @@ function FortuneResultInner() {
 
       {!isPublic && <SurveyResultCard />}
 
-      <p className="mt-5 text-[11px] text-text-light/45 text-center px-8 leading-relaxed">
+      <p className="mt-5 text-11 text-text-light/45 text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어 ✨
       </p>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-[12px] px-4 py-2 rounded-full shadow-lg z-50">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-12 px-4 py-2 rounded-full shadow-lg z-50">
           {toast}
         </div>
       )}
@@ -604,7 +604,7 @@ export default function FortuneResultPage() {
     <Suspense
       fallback={
         <main className="flex flex-1 items-center justify-center px-5">
-          <p className="text-text-light text-sm">잠시만…</p>
+          <p className="text-text-light text-14">잠시만…</p>
         </main>
       }
     >

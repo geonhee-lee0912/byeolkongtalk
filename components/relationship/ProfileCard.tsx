@@ -48,14 +48,14 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
             <DollAvatar kind="me" imageUrl={me.imageUrl} name={me.name} size={40} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-extrabold leading-tight text-eye-purple truncate">
+            <div className="text-17 font-extrabold leading-tight text-eye-purple truncate">
               {me.name}
             </div>
           </div>
           <button
             type="button"
             onClick={onEdit}
-            className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white bg-lilac-deep active:scale-95 transition"
+            className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-11 font-bold text-white bg-lilac-deep active:scale-95 transition"
           >
             <PencilIcon />
             수정
@@ -78,10 +78,10 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
           <DollAvatar kind="partner" status={status} size={40} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[16px] font-extrabold leading-tight truncate">
+          <div className="text-17 font-extrabold leading-tight truncate">
             {label} <span style={{ color: "#F4A6C0" }} aria-hidden>❤</span>
           </div>
-          <div className="text-[10px] mt-0.5 opacity-80 leading-snug">
+          <div className="text-11 mt-0.5 opacity-80 leading-snug">
             {RELATIONSHIP_STATUS_LABELS[status]}
             {noBirth && " · 생일 추가하면 궁합 ›"}
           </div>
@@ -89,7 +89,7 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
         <button
           type="button"
           onClick={onEdit}
-          className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white bg-white/20 active:scale-95 transition"
+          className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-11 font-bold text-white bg-white/20 active:scale-95 transition"
         >
           <PencilIcon />
           수정

@@ -59,7 +59,7 @@ export default function FreeList({
              줄어드는 변경이 아니라 잘림·재배치 회귀가 없다. */}
       <div className="mb-2 flex items-center gap-2">
         <SectionMark kind={mark} />
-        <h2 className="text-[15px] font-bold text-eye-purple">{title}</h2>
+        <h2 className="text-15 font-bold text-eye-purple">{title}</h2>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it) => (
@@ -85,24 +85,24 @@ export default function FreeList({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-bold text-eye-purple">{it.label}</span>
+                  <span className="text-15 font-bold text-eye-purple">{it.label}</span>
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    className={`rounded-full px-1.5 py-0.5 text-11 font-bold ${
                       it.chipTone === "gold" ? "bg-gold-soft/30 text-eye-purple" : "bg-lilac-soft/60 text-lilac-deep"
                     }`}
                   >
                     {it.chip}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-text-light/80">{it.tagline}</p>
+                <p className="mt-1 line-clamp-2 text-13 leading-snug text-text-light/80">{it.tagline}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1">
                   {it.paidChip ? (
-                    <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-[10px] font-bold text-eye-purple">
+                    <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-11 font-bold text-eye-purple">
                       {it.paidChip}
                     </span>
                   ) : null}
                   {it.hashtags.map((h) => (
-                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-[11px] font-bold text-lilac-deep">
+                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-11 font-bold text-lilac-deep">
                       #{h}
                     </span>
                   ))}

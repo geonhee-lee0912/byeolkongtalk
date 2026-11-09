@@ -143,27 +143,27 @@ export function SajuMbtiFlow({
   }
 
   if (!ready) {
-    return <div className="w-full py-24 text-center text-text-light text-sm animate-fade-in">별콩이가 준비하는 중…</div>;
+    return <div className="w-full py-24 text-center text-text-light text-14 animate-fade-in">별콩이가 준비하는 중…</div>;
   }
 
   return (
     <>
       {stage === "intro" && (
         <div className="w-full max-w-md mx-auto px-6 py-16 text-center animate-fade-in" data-stage="intro">
-          <p className="text-[12px] tracking-[0.16em] text-lilac-deep mb-4">별콩톡 · 사주 MBTI</p>
+          <p className="text-12 tracking-[0.16em] text-lilac-deep mb-4">별콩톡 · 사주 MBTI</p>
           <div className="flex justify-center mb-3">
             <Image src="/saju-mbti/intro.png" alt="별콩이가 자아·팔자 두 오브를 든 모습" width={200} height={200} className="w-44 h-44 object-contain" priority />
           </div>
-          <h1 className="font-display text-[28px] text-eye-purple leading-snug text-balance">
+          <h1 className="font-display text-28 text-eye-purple leading-snug text-balance">
             네가 아는 너<br />vs<br />타고난 너
           </h1>
-          <p className="text-[14px] leading-relaxed text-text-light mt-4 max-w-[300px] mx-auto break-keep">
+          <p className="text-14 leading-relaxed text-text-light mt-4 max-w-[300px] mx-auto break-keep">
             12문항으로 네 성격을 읽고, 생년월일로 타고난 팔자를 펼쳐서<br />둘이 얼마나 닮았는지 별콩이가 짚어줄게.
           </p>
           <button
             type="button"
             onClick={() => { trackUiEvent("saju_mbti_started"); setStage("quiz"); }}
-            className="mt-8 w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-[16px] active:scale-[0.98] transition"
+            className="mt-8 w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-15 active:scale-[0.98] transition"
           >
             시작하기
           </button>
@@ -187,7 +187,7 @@ export function SajuMbtiFlow({
       {stage === "shared" && decoded && <SharedTeaser tokens={decoded} onStart={onRestart} />}
 
       {toast && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-night text-cream-warm text-[13px] px-4 py-2.5 rounded-full shadow-lg animate-fade-in">
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-night text-cream-warm text-13 px-4 py-2.5 rounded-full shadow-lg animate-fade-in">
           {toast}
         </div>
       )}

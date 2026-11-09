@@ -77,7 +77,7 @@ export default function SelfSajuEditModal({
     >
       <div className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
-          <h2 className="text-[15px] font-bold text-eye-purple">
+          <h2 className="text-15 font-bold text-eye-purple">
             {self?.saju ? "내 사주 수정" : "내 사주 입력"}
           </h2>
           <OverlayCloseButton
@@ -97,7 +97,7 @@ export default function SelfSajuEditModal({
             onSubmit={saveSelf}
           />
           {err && (
-            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-[12px] text-red-500">
+            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-12 text-red-500">
               {err}
             </p>
           )}

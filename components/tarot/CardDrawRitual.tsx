@@ -124,7 +124,7 @@ export default function CardDrawRitual({
   if (!mounted) {
     return (
       <div className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">카드를 섞는 중…</p>
+        <p className="text-text-light text-14">카드를 섞는 중…</p>
       </div>
     );
   }
@@ -261,15 +261,15 @@ export default function CardDrawRitual({
                 boxShadow: "0 2px 8px rgba(232,194,106,0.25)",
               }}
             >
-              <span className="text-[13px]">✨</span>
+              <span className="text-13">✨</span>
               <span
-                className="text-[11px] font-black tracking-wide"
+                className="text-11 font-black tracking-wide"
                 style={{ color: accent }}
               >
                 {ritualLabel}
               </span>
               <span className="w-[1px] h-3 bg-gold/40" />
-              <span className="text-[12px] font-medium text-[#8A6A2A]">
+              <span className="text-12 font-medium text-[#8A6A2A]">
                 숨 고르고 고민에 집중해봐
               </span>
             </div>
@@ -280,7 +280,7 @@ export default function CardDrawRitual({
         {!slim && (
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-lilac-soft" />
-            <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+            <span className="text-11 font-bold text-text-light tracking-[0.15em]">
               {phase === "direction" ? "방향 선택" : "카드 뽑기"}
             </span>
             <div className="flex-1 h-px bg-lilac-soft" />
@@ -302,7 +302,7 @@ export default function CardDrawRitual({
           )}
           {phase === "pick" ? (
             <>
-              <p className="font-display text-[17px] text-eye-purple leading-tight text-center">
+              <p className="font-display text-17 text-eye-purple leading-tight text-center">
                 {allFilled ? (
                   <>카드를 다 골랐네!</>
                 ) : cardCount > 1 && activeSlot >= 0 ? (
@@ -325,7 +325,7 @@ export default function CardDrawRitual({
                   "마음이 끌리는 카드를 골라봐"
                 )}
               </p>
-              <p className="text-[12px] text-text-light/85 mt-1.5 leading-relaxed text-center">
+              <p className="text-12 text-text-light/85 mt-1.5 leading-relaxed text-center">
                 {allFilled
                   ? "이제 카드 방향을 정해볼까?"
                   : "“별이 이끄는 대로, 손끝이 멈추는 그 카드로”"}
@@ -333,10 +333,10 @@ export default function CardDrawRitual({
             </>
           ) : (
             <>
-              <p className="font-display text-[17px] text-eye-purple leading-tight text-center">
+              <p className="font-display text-17 text-eye-purple leading-tight text-center">
                 카드 방향도 정해줄래?
               </p>
-              <p className="text-[12px] text-text-light/85 mt-1.5 leading-relaxed text-center">
+              <p className="text-12 text-text-light/85 mt-1.5 leading-relaxed text-center">
                 &ldquo;정·역에 따라 별이 전하는 결이 달라져&rdquo;
               </p>
             </>
@@ -393,7 +393,7 @@ export default function CardDrawRitual({
               {backLabel && (
                 <button
                   onClick={onBack}
-                  className="flex-1 max-w-[160px] py-2.5 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
+                  className="flex-1 max-w-[160px] py-2.5 text-13 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
                 >
                   {backLabel}
                 </button>
@@ -401,7 +401,7 @@ export default function CardDrawRitual({
               <button
                 onClick={pickAction}
                 disabled={pickDisabled}
-                className="flex-1 max-w-[160px] py-2.5 text-[13px] font-bold text-white rounded-full active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
+                className="flex-1 max-w-[160px] py-2.5 text-13 font-bold text-white rounded-full active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
                 style={{
                   background: accent,
                   boxShadow: pickDisabled ? "none" : `0 6px 18px ${accent}55`,
@@ -425,7 +425,7 @@ export default function CardDrawRitual({
           <button
             onClick={handleComplete}
             disabled={!canProceed}
-            className="w-[260px] py-3 text-white rounded-full font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
+            className="w-[260px] py-3 text-white rounded-full font-bold text-14 active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
             style={{
               background: accent,
               boxShadow: !canProceed ? "none" : `0 6px 18px ${accent}55`,
@@ -435,7 +435,7 @@ export default function CardDrawRitual({
           </button>
           <button
             onClick={backToPick}
-            className="w-[260px] py-3 text-[14px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
+            className="w-[260px] py-3 text-14 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
           >
             카드 다시 뽑으러 가기
           </button>
@@ -796,7 +796,7 @@ function DeckScrollbar({
                 fill={accent}
               />
             </svg>
-            <span className="absolute left-0 right-0 top-[5px] text-center text-white text-[10px] font-black tabular-nums leading-none pointer-events-none">
+            <span className="absolute left-0 right-0 top-[5px] text-center text-white text-11 font-black tabular-nums leading-none pointer-events-none">
               {slotNum}
             </span>
           </button>
@@ -858,7 +858,7 @@ function DeckScrollbar({
         >
           {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치 */}
           <div
-            className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-md text-[10px] font-black tabular-nums whitespace-nowrap"
+            className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-md text-11 font-black tabular-nums whitespace-nowrap"
             style={{ background: accent, color: "#fff" }}
           >
             {/* 꼬리 — 썸 쪽(위)으로 */}
@@ -1090,7 +1090,7 @@ function Slot({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span
-              className="text-[14px] font-black tabular-nums"
+              className="text-14 font-black tabular-nums"
               style={{ color: `${accent}90` }}
             >
               {index + 1}
@@ -1140,7 +1140,7 @@ function Slot({
   return (
     <div className="flex flex-col items-center gap-1.5" style={{ width: boxW }}>
       {isDirectionPhase && (
-        <p className="text-[12px] font-black text-eye-purple leading-tight text-center whitespace-nowrap">
+        <p className="text-12 font-black text-eye-purple leading-tight text-center whitespace-nowrap">
           {label}
         </p>
       )}
@@ -1149,7 +1149,7 @@ function Slot({
 
       {!isDirectionPhase && (
         <span
-          className="text-[11px] font-black leading-none whitespace-nowrap"
+          className="text-11 font-black leading-none whitespace-nowrap"
           style={{ color: accent }}
         >
           {label}
@@ -1197,7 +1197,7 @@ function DirectionToggle({
       />
       <button
         onClick={() => onChange("upright")}
-        className="relative z-10 w-8 py-[3px] text-[11px] font-black transition-colors"
+        className="relative z-10 w-8 py-[3px] text-11 font-black transition-colors"
         style={{ color: !isReversed ? "#fff" : accent }}
         aria-label="정방향"
         aria-pressed={!isReversed}
@@ -1206,7 +1206,7 @@ function DirectionToggle({
       </button>
       <button
         onClick={() => onChange("reversed")}
-        className="relative z-10 w-8 py-[3px] text-[11px] font-black transition-colors"
+        className="relative z-10 w-8 py-[3px] text-11 font-black transition-colors"
         style={{ color: isReversed ? "#fff" : accent }}
         aria-label="역방향"
         aria-pressed={isReversed}

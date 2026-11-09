@@ -24,15 +24,15 @@ function SectionCard({ heading, body }: { heading: string; body: string }) {
     <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
       <div className="flex items-center gap-2.5 mb-3">
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
           style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
           aria-hidden
         >
           {emoji}
         </span>
-        <h3 className="text-[14.5px] font-extrabold text-eye-purple">{title}</h3>
+        <h3 className="text-17 font-extrabold text-eye-purple">{title}</h3>
       </div>
-      <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+      <MarkdownLite text={body} className="text-16 text-[#4F4A5E]" />
     </div>
   );
 }
@@ -71,7 +71,7 @@ export default function GenericReportView({
       {saju && <ElementChart saju={saju} />}
       {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
+        <MarkdownLite text={report.intro} className="text-16 text-[#4F4A5E]" />
       </div>
 
       {/* 대운 10년 흐름 표 (결정론 십신 테마 + LLM 개인화 한 줄, life_full 등 daeun 있는 상품만) */}
@@ -99,9 +99,9 @@ export default function GenericReportView({
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+          <span className="text-14 font-bold text-gold">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
+        <MarkdownLite text={report.note} tone="dark" className="text-16 text-white/90" />
       </div>
     </div>
   );

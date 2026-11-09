@@ -85,18 +85,18 @@ export default function StarConfirmModal({
               className="relative w-full h-full object-contain"
             />
           </div>
-          <p className="font-display text-[17px] text-eye-purple leading-tight">
+          <p className="font-display text-17 text-eye-purple leading-tight">
             {heading}
           </p>
           {sub && (
-            <p className="text-[12px] text-text-light/85 mt-1">{sub}</p>
+            <p className="text-12 text-text-light/85 mt-1">{sub}</p>
           )}
         </div>
 
         {extra}
 
         {/* 비용/잔액 요약 */}
-        <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-[13px]">
+        <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-13">
           {targetName && (
             <div className="flex items-center justify-between py-1 border-b border-lilac-mid/15 mb-1 pb-2">
               <span className="text-text-light">대상</span>
@@ -122,7 +122,7 @@ export default function StarConfirmModal({
             </div>
           )}
           {!loading && insufficient && (
-            <p className="text-[12px] text-red-500 font-bold text-center mt-2">
+            <p className="text-12 text-red-500 font-bold text-center mt-2">
               별이 {cost - (balance ?? 0)}개 부족해
             </p>
           )}
@@ -133,7 +133,7 @@ export default function StarConfirmModal({
           {insufficient ? (
             <button
               onClick={onCharge}
-              className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all"
+              className="w-full py-3.5 rounded-full text-white font-bold text-14 active:scale-[0.98] transition-all"
               style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
             >
               별 충전하러 가기
@@ -142,7 +142,7 @@ export default function StarConfirmModal({
             <button
               onClick={onConfirm}
               disabled={loading || balance === null || busy}
-              className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
+              className="w-full py-3.5 rounded-full text-white font-bold text-14 active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
               style={{
                 background: accent,
                 boxShadow:
@@ -152,7 +152,7 @@ export default function StarConfirmModal({
               {confirmLabel ?? "확인하고 시작하기"}
             </button>
           )}
-          <OverlayCloseButton className="w-full py-3 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
+          <OverlayCloseButton className="w-full py-3 text-13 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
             취소
           </OverlayCloseButton>
         </div>

@@ -12,7 +12,7 @@ function daysInMonth(y: string, m: string): number {
 
 // 브랜드 톤 트리거 — 네이티브 select와 동일한 필드 스타일(라운드·테두리·포커스 링)을 버튼에 그대로 얹는다.
 const TRIGGER_CLS =
-  "w-full rounded-xl border border-lilac bg-white px-3 py-2.5 pr-8 text-left text-sm transition focus:border-lilac-deep focus:outline-none focus:ring-2 focus:ring-lilac-deep/20";
+  "w-full rounded-xl border border-lilac bg-white px-3 py-2.5 pr-8 text-left text-14 transition focus:border-lilac-deep focus:outline-none focus:ring-2 focus:ring-lilac-deep/20";
 
 function CustomSelect({
   value,
@@ -58,7 +58,7 @@ function CustomSelect({
       >
         {value || placeholder}
       </button>
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-lilac-deep">
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-11 text-lilac-deep">
         ▼
       </span>
       {open && (
@@ -73,7 +73,7 @@ function CustomSelect({
                 key={o}
                 type="button"
                 data-selected={selected ? "true" : undefined}
-                className={`w-full px-3 py-2 text-left text-sm text-eye-purple hover:bg-lilac-soft ${
+                className={`w-full px-3 py-2 text-left text-14 text-eye-purple hover:bg-lilac-soft ${
                   selected ? "bg-lilac-soft font-semibold" : ""
                 }`}
                 onClick={() => {

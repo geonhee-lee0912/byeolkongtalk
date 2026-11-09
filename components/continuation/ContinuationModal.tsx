@@ -191,7 +191,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Image src="/byeolkong-main.png" alt="별콩이" width={32} height={32} />
-              <h2 className="font-display text-[17px] font-bold text-eye-purple">
+              <h2 className="font-display text-17 font-bold text-eye-purple">
                 이 고민, 이어가볼까?
               </h2>
             </div>
@@ -204,35 +204,35 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           </div>
 
           {loading ? (
-            <p className="text-text-light text-sm py-10 text-center">잠시만…</p>
+            <p className="text-text-light text-14 py-10 text-center">잠시만…</p>
           ) : !parent ? (
-            <p className="text-text-light text-sm py-10 text-center">
+            <p className="text-text-light text-14 py-10 text-center">
               {error ?? "불러오지 못했어"}
             </p>
           ) : (
             <>
               {/* 지난 맥락 — 다크톤 */}
               <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-night-deep mb-2">
-                <div className="text-[11px] font-bold text-lilac-soft/70 mb-1">
+                <div className="text-11 font-bold text-lilac-soft/70 mb-1">
                   지난번 고민
                 </div>
-                <p className="text-[13px] text-cream leading-relaxed whitespace-pre-wrap">
+                <p className="text-13 text-cream leading-relaxed whitespace-pre-wrap">
                   {parent.question}
                 </p>
               </div>
               {closing && (
                 <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-4 border border-gold-soft/40 mb-2">
-                  <div className="text-[11px] font-bold text-eye-purple mb-1">
+                  <div className="text-11 font-bold text-eye-purple mb-1">
                     지난번 별콩이 정리
                   </div>
-                  <p className="text-[13px] text-eye-purple leading-relaxed">
+                  <p className="text-13 text-eye-purple leading-relaxed">
                     {closing}
                   </p>
                 </div>
               )}
 
               {/* 새 고민 (빈 칸) */}
-              <label className="text-[12px] text-text-light mt-2">
+              <label className="text-12 text-text-light mt-2">
                 이어서 나눌 고민
               </label>
               <textarea
@@ -240,16 +240,16 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 onChange={(e) => setConcern(e.target.value.slice(0, MAX_LEN))}
                 rows={4}
                 placeholder="오늘은 어떤 결을 이어서 풀어볼까?"
-                className="mt-1 w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] leading-relaxed resize-none placeholder:text-text-light/50"
+                className="mt-1 w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-light/50"
               />
-              <div className="flex justify-between text-[11px] text-text-light/70 mt-1">
+              <div className="flex justify-between text-11 text-text-light/70 mt-1">
                 <span>{concern.length < MIN_LEN ? `최소 ${MIN_LEN}자` : " "}</span>
                 <span>
                   {concern.length} / {MAX_LEN}
                 </span>
               </div>
               {error && (
-                <p className="text-[12px] text-red-500 text-center mt-1">{error}</p>
+                <p className="text-12 text-red-500 text-center mt-1">{error}</p>
               )}
 
               {/* 경로 — 타로는 2개(새로 뽑기 / 같은 카드 이어서), 사주는 1개(이어서 상담) */}
@@ -258,27 +258,27 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   <button
                     onClick={() => start("fresh")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-[15px] hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-15 hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
-                    <span className="text-[11px] text-lilac-deep/70">40% 할인</span>)
+                    <span className="text-11 text-lilac-deep/70">40% 할인</span>)
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => start("deep")}
                   disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                  className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
                   지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}
-                  <span className="text-[11px] text-white/70">40% 할인</span>)
+                  <span className="text-11 text-white/70">40% 할인</span>)
                 </button>
               )}
             </>

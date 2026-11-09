@@ -23,7 +23,7 @@ export default function ElementBalanceView({
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 오행 분포 차트 (결정론) */}
       <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <h3 className="text-[14.5px] font-extrabold text-lilac-deep mb-4">🌈 내 오행 분포</h3>
+        <h3 className="text-15 font-extrabold text-lilac-deep mb-4">🌈 내 오행 분포</h3>
         <div className="flex flex-col gap-2.5">
           {ORDER.map((e) => {
             const c = counts[e] ?? 0;
@@ -32,7 +32,7 @@ export default function ElementBalanceView({
             const isZero = c === 0;
             return (
               <div key={e} className="flex items-center gap-2.5">
-                <span className="w-11 text-[12.5px] font-bold shrink-0" style={{ color: ELEMENT_COLOR[e] }}>
+                <span className="w-11 text-13 font-bold shrink-0" style={{ color: ELEMENT_COLOR[e] }}>
                   {LABEL[e]}
                 </span>
                 <div className="flex-1 h-5 rounded-full bg-[#F0EEF4] overflow-hidden">
@@ -41,14 +41,14 @@ export default function ElementBalanceView({
                     style={{ width: `${Math.max(4, (c / max) * 100)}%`, background: ELEMENT_COLOR[e], opacity: isZero ? 0.15 : 1 }}
                   />
                 </div>
-                <span className="w-14 text-right text-[11.5px] tabular-nums text-text-light shrink-0">
+                <span className="w-14 text-right text-12 tabular-nums text-text-light shrink-0">
                   {c}개 · {pct}%{isMax ? " ★" : ""}
                 </span>
               </div>
             );
           })}
         </div>
-        <p className="text-[11px] text-text-light/70 mt-3 leading-snug">
+        <p className="text-11 text-text-light/70 mt-3 leading-snug">
           여덟 글자(사주) 안 오행의 개수야. 넘치는 기운엔 ★, 0개는 옅게 표시했어.
         </p>
       </div>

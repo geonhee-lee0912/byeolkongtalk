@@ -64,3 +64,12 @@ test("부품 클래스가 있다", () => {
 test("조립식 임의값 클래스가 없다", () => {
   assert.deepEqual(offenders(/(text|rounded|shadow)-\[\$\{/), []);
 });
+
+// ── 글자 크기 10단계(스펙 §2.2) — text-11·12·13·14·15·16·17·20·22·28 + 큰 숫자 44·52 만
+test("임의 px 글자 크기가 없다", () => {
+  assert.deepEqual(offenders(/\btext-\[\d+(\.\d+)?px\]/), []);
+});
+test("Tailwind 기본 글자 크기를 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/(?<![\w-])text-(xs|sm|base|lg|xl|[2-9]xl)\b/), []);
+});
+

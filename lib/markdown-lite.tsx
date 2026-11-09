@@ -181,8 +181,8 @@ export function MarkdownLite({
               border: "1px solid rgba(232, 194, 106, 0.4)",
             }}
           >
-            <span className="shrink-0 text-[15px]" aria-hidden>💡</span>
-            <p className="text-[13px] leading-relaxed" style={{ color: "#6A5A3A" }}>
+            <span className="shrink-0 text-15" aria-hidden>💡</span>
+            <p className="text-13 leading-relaxed" style={{ color: "#6A5A3A" }}>
               {renderInline(b.parts, `co-${i}`)}
             </p>
           </div>

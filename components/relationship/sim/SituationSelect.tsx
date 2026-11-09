@@ -34,8 +34,8 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
     return (
       <StageFrame>
         <div className="px-6 pt-8 pb-10 animate-fade-in">
-          <button onClick={onClose} className="text-lilac-soft/60 text-xs mb-2" aria-label="닫기">‹ 나가기</button>
-          <h1 className="text-center text-cream-warm font-display text-lg mb-5">어떤 상황을 연습해볼까?</h1>
+          <button onClick={onClose} className="text-lilac-soft/60 text-12 mb-2" aria-label="닫기">‹ 나가기</button>
+          <h1 className="text-center text-cream-warm font-display text-17 mb-5">어떤 상황을 연습해볼까?</h1>
 
           {/* 관계 칩 — 내 관계 맨 앞·기본 선택, 탭하면 그 관계 목록으로 교체 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hover pb-1 mb-5">
@@ -46,7 +46,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                   key={s}
                   type="button"
                   onClick={() => setChip(s)}
-                  className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
+                  className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-13 font-bold transition-colors ${
                     active
                       ? "bg-gold text-night-deep"
                       : "bg-cream-warm/10 text-lilac-soft border border-lilac/25"
@@ -62,23 +62,23 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
           {chip === "intro" ? (
             <div className="rounded-2xl bg-cream-warm/[0.07] border border-lilac/20 p-4 text-cream-warm animate-fade-in">
               <p className="font-bold mb-1">🎭 연애 시뮬이 뭐야?</p>
-              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed">
+              <p className="text-14 text-lilac-soft/90 leading-relaxed">
                 네가 그린 <b className="text-cream-warm">그 사람 인형</b>과 <b className="text-cream-warm">여러 가지 상황</b>을 미리 연습하는 리허설이야.
                 별콩이가 상황을 여럿 준비해두지만, <b className="text-cream-warm">원하면 네가 직접 상황을 적어도 돼!</b>
               </p>
-              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed mt-2">
+              <p className="text-14 text-lilac-soft/90 leading-relaxed mt-2">
                 인형은 <b className="text-cream-warm">네가 다듬을수록 더 그 사람처럼</b> 돼 — 이렇게 키워:
               </p>
-              <ul className="text-[13px] text-lilac-soft/85 leading-relaxed mt-1 space-y-1">
+              <ul className="text-13 text-lilac-soft/85 leading-relaxed mt-1 space-y-1">
                 <li>· 대화 중 인형 대사에 <b className="text-cream-warm">👍 / 👎</b>로 “실제론 이래” 알려주기</li>
                 <li>· <b className="text-cream-warm">디브리핑</b>에서 “걔는 사실 이런 사람” 한 줄 적어주기</li>
                 <li>· 걔 <b className="text-cream-warm">기본 정보</b>(MBTI·성격)를 프로필에 채워두기</li>
               </ul>
-              <p className="text-[13.5px] text-lilac-soft/90 leading-relaxed mt-2">
+              <p className="text-14 text-lilac-soft/90 leading-relaxed mt-2">
                 안 채워도 쓸 순 있지만, 그만큼 <b className="text-cream-warm">실제 걔와는 많이 달라질 수밖에 없어.</b>{" "}
                 몇 판 쌓여야 진짜 걔 같아지니까, <b className="text-gold-soft">처음 몇 판은 무료</b>로 부담 없이 만들어봐.
               </p>
-              <button type="button" onClick={() => setChip(status)} className="mt-3 w-full rounded-xl py-2.5 bg-gold text-night-deep font-bold text-sm">
+              <button type="button" onClick={() => setChip(status)} className="mt-3 w-full rounded-xl py-2.5 bg-gold text-night-deep font-bold text-14">
                 상황 고르러 가기 →
               </button>
             </div>
@@ -100,10 +100,10 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                       : "bg-cream-warm/[0.07] border-lilac/20 hover:border-gold/40"
                   }`}
                 >
-                  <span className="text-2xl shrink-0">{s.emoji}</span>
+                  <span className="text-22 shrink-0">{s.emoji}</span>
                   <span className="min-w-0">
                     <span className="block font-bold text-cream-warm">{s.label}</span>
-                    <span className="block text-[13px] text-lilac-soft/70 mt-0.5">{s.desc}</span>
+                    <span className="block text-13 text-lilac-soft/70 mt-0.5">{s.desc}</span>
                   </span>
                 </button>
               );
@@ -120,8 +120,8 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
   return (
     <StageFrame>
       <div className="px-6 pt-8 pb-10 animate-fade-in">
-        <button onClick={() => setPicked(null)} className="text-lilac-soft/60 text-xs mb-2" aria-label="뒤로">‹ 뒤로</button>
-        <h1 className="text-center text-cream-warm font-display text-lg mb-5">
+        <button onClick={() => setPicked(null)} className="text-lilac-soft/60 text-12 mb-2" aria-label="뒤로">‹ 뒤로</button>
+        <h1 className="text-center text-cream-warm font-display text-17 mb-5">
           {picked.emoji} {picked.label}
         </h1>
         <p className="text-cream-warm font-medium mb-2">{picked.contextPrompt}</p>
@@ -141,12 +141,12 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
             시작하기
           </button>
           {!isCustom && (
-            <button onClick={() => onPick(picked.id, "")} className="w-full rounded-xl py-2.5 text-lilac-soft/70 text-sm">
+            <button onClick={() => onPick(picked.id, "")} className="w-full rounded-xl py-2.5 text-lilac-soft/70 text-14">
               건너뛰고 바로 시작
             </button>
           )}
           {isCustom && !ctx.trim() && (
-            <p className="text-xs text-lilac-soft/60 text-center">직접 쓰기는 상황을 한 줄이라도 적어줘</p>
+            <p className="text-12 text-lilac-soft/60 text-center">직접 쓰기는 상황을 한 줄이라도 적어줘</p>
           )}
         </div>
       </div>

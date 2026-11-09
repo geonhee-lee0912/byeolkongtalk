@@ -66,7 +66,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
     <header className="app-only sticky top-0 z-50 h-14 bg-cream">
       {screen.kind === "tab" ? (
         <div className="max-w-md mx-auto h-14 flex items-center justify-between px-5">
-          <span className="text-[22px] font-black tracking-tight text-night">{screen.title}</span>
+          <span className="text-22 font-black tracking-tight text-night">{screen.title}</span>
           {user ? (
             <Link
               href="/shop"
@@ -74,13 +74,13 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
               className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40"
               aria-label="별콩 상점"
             >
-              <span className="text-[13px] leading-none" aria-hidden>
+              <span className="text-13 leading-none" aria-hidden>
                 ⭐
               </span>
-              <span className="text-[12px] font-bold text-eye-purple leading-none tabular-nums">{balance ?? "-"}</span>
+              <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">{balance ?? "-"}</span>
             </Link>
           ) : (
-            <Link href="/login" className="text-sm text-text-light">
+            <Link href="/login" className="text-14 text-text-light">
               로그인
             </Link>
           )}
@@ -97,7 +97,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
               <path d="M15 5l-7 7 7 7" />
             </svg>
           </button>
-          <span className="text-center text-[16px] font-bold text-night truncate">{screen.title}</span>
+          <span className="text-center text-17 font-bold text-night truncate">{screen.title}</span>
           <span aria-hidden />
         </div>
       )}

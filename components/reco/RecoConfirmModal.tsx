@@ -35,26 +35,26 @@ export default function RecoConfirmModal({
     >
         <div className="px-5 pt-5 pb-6 flex flex-col gap-3">
           <div>
-            <h2 className="font-display text-[17px] font-bold text-eye-purple mb-1">
+            <h2 className="font-display text-17 font-bold text-eye-purple mb-1">
               이 대화를 마무리하고 넘어갈까?
             </h2>
-            <p className="text-[13px] text-text-light leading-relaxed">
+            <p className="text-13 text-text-light leading-relaxed">
               별콩이가 지금 대화를 정리해서 닫아줘요. 남은 대화가 있다면 계속해도 좋아요.
             </p>
           </div>
 
-          <div className="px-3 py-2.5 rounded-xl bg-cream-warm border border-gold/30 text-[12px] text-text-light text-center">
+          <div className="px-3 py-2.5 rounded-xl bg-cream-warm border border-gold/30 text-12 text-text-light text-center">
             → {display.label}로 이어서 봐요
           </div>
 
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
           >
             마무리하고 넘어가기
           </button>
-          <OverlayCloseButton className="w-full py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-[14px] hover:bg-lilac-soft/30 active:scale-[0.98] transition">
+          <OverlayCloseButton className="w-full py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-14 hover:bg-lilac-soft/30 active:scale-[0.98] transition">
             아니, 대화 더 할래
           </OverlayCloseButton>
         </div>

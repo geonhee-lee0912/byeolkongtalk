@@ -18,10 +18,10 @@ export default function ThreadCardStrip({ draw }: { draw: ThreadDraw }) {
       >
         <div className="flex items-center gap-1.5 mb-3">
           <span aria-hidden>{skill?.emoji ?? "🃏"}</span>
-          <span className="text-[12px] font-bold text-gold">
+          <span className="text-12 font-bold text-gold">
             {skill?.label ?? "카드"}
           </span>
-          <span className="text-[11px] text-white/50">· {draw.cards.length}장</span>
+          <span className="text-11 text-white/50">· {draw.cards.length}장</span>
         </div>
         <CardSpreadView drawnCards={draw.cards} spreadType={draw.spread} activeIndex={null} />
       </div>

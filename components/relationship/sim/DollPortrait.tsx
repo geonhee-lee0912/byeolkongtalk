@@ -32,12 +32,12 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
       {!collapsed && (
         <>
           <span className="text-cream-warm font-bold">{label}</span>
-          <span className="text-[12px] text-gold-soft text-center px-6 leading-relaxed">
+          <span className="text-12 text-gold-soft text-center px-6 leading-relaxed">
             🌙 너의 설명으로 그린 그 사람이야, 인형이라 생각해!
           </span>
         </>
       )}
-      {collapsed && <span className="text-sm text-cream-warm/90">{label}</span>}
+      {collapsed && <span className="text-14 text-cream-warm/90">{label}</span>}
     </div>
   );
 }

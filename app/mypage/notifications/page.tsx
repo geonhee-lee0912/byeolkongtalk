@@ -129,24 +129,24 @@ export default function NotificationSettingsPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 앱에선 앱 헤더(‹ + 알림 설정)와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
-        <Link href="/mypage" className="text-[12px] text-text-light/70">
+        <Link href="/mypage" className="text-12 text-text-light/70">
           ‹ 내 정보
         </Link>
-        <h1 className="mt-3 text-[16px] font-black">알림 설정</h1>
+        <h1 className="mt-3 text-17 font-black">알림 설정</h1>
       </div>
 
       {!ready || !loaded ? null : !inApp ? (
-        <p className="w-full max-w-md mx-auto px-5 text-[13px] text-text-light">알림은 앱에서 설정할 수 있어</p>
+        <p className="w-full max-w-md mx-auto px-5 text-13 text-text-light">알림은 앱에서 설정할 수 있어</p>
       ) : (
         <div className="w-full max-w-md mx-auto px-5">
           {perm === "denied" && (
-            <div className="mb-3.5 rounded-2xl bg-cream-warm border border-dashed border-lilac-deep px-3.5 py-3 text-[12.5px] leading-relaxed">
+            <div className="mb-3.5 rounded-2xl bg-cream-warm border border-dashed border-lilac-deep px-3.5 py-3 text-13 leading-relaxed">
               휴대폰 알림이 꺼져 있어. 켜야 별콩이가 알려줄 수 있어.
               <br />
               <button
                 type="button"
                 onClick={() => postToApp("push.openSettings")}
-                className="mt-2 inline-block px-3.5 py-2 rounded-full text-[12px] font-bold text-eye-purple bg-lilac-soft"
+                className="mt-2 inline-block px-3.5 py-2 rounded-full text-12 font-bold text-eye-purple bg-lilac-soft"
               >
                 설정 열기
               </button>
@@ -155,15 +155,15 @@ export default function NotificationSettingsPage() {
           <div className="bg-white rounded-[18px] border border-lilac-mid/30 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <div>
-                <p className="text-[14px] font-bold">다시 볼 날</p>
-                <p className="text-[11.5px] text-text-light mt-[3px] leading-normal">리딩 끝에 고른 날, 한 번 알려줘</p>
+                <p className="text-14 font-bold">다시 볼 날</p>
+                <p className="text-12 text-text-light mt-[3px] leading-normal">리딩 끝에 고른 날, 한 번 알려줘</p>
               </div>
               <Toggle on={revisit} label="다시 볼 날 알림" disabled={busy} onClick={() => void togglePref("revisit")} />
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-lilac-mid/20">
               <div>
-                <p className="text-[14px] font-bold">아침 별 흐름</p>
-                <p className="text-[11.5px] text-text-light mt-[3px] leading-normal">
+                <p className="text-14 font-bold">아침 별 흐름</p>
+                <p className="text-12 text-text-light mt-[3px] leading-normal">
                   매일 아침 별마루 오늘의 흐름을 알려줘
                   {/* 비구독자에겐 광고로 간다 — 이 칸과 광고 동의가 둘 다 켜져야 받는다(설계 §4-6) */}
                   {morning && ad.status !== "granted" && (
@@ -180,15 +180,15 @@ export default function NotificationSettingsPage() {
           <div className="mt-3.5 bg-white rounded-[18px] border border-lilac-mid/30 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <div>
-                <p className="text-[14px] font-bold">광고성 정보 수신 동의 (앱 푸시)</p>
-                <p className="text-[11.5px] text-text-light mt-[3px] leading-normal">
+                <p className="text-14 font-bold">광고성 정보 수신 동의 (앱 푸시)</p>
+                <p className="text-12 text-text-light mt-[3px] leading-normal">
                   {ad.status === "granted" && ad.grantedOn ? `동의일 ${ad.grantedOn}` : "아침 별 흐름 맛보기 · 생일 아침 운세 · 이벤트 소식"}
                 </p>
               </div>
               <Toggle on={ad.status === "granted"} label="광고성 정보 수신 동의" disabled={busy} onClick={() => void toggleAd()} />
             </div>
           </div>
-          {failed && <p className="mt-2 text-[12px] text-text-light">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
+          {failed && <p className="mt-2 text-12 text-text-light">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
           {notice && <AdConsentNotice notice={notice} onClose={() => setNotice(null)} />}
         </div>
       )}

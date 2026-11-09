@@ -59,7 +59,7 @@ export default function PairDayDetailCard({
             <Image src={a.assetSrc} alt={a.animal} width={44} height={44} className="h-11 w-11 shrink-0 object-contain" />
           ) : null;
         })()}
-        <h2 className="font-display text-base text-eye-purple">
+        <h2 className="font-display text-17 text-eye-purple">
           {/* 🔴 `{partnerName}와 나` 는 받침에서 틀린다("지민와") — 어순을 뒤집어 조사를 '나'에 붙인다. */}
           나와 {partnerName} · {cell.isToday ? "오늘" : md}
         </h2>
@@ -69,13 +69,13 @@ export default function PairDayDetailCard({
           쓴다: Cafe24Ssurround 에 천간·지지 22자가 하나도 없어(cmap 실측 0/22) 굵기만 얇아진다.
           🔴 캡션 색은 **그날 천간의 오행 색**(ELEMENT_COLORS) — 사주 탭과 같은 원천이다. */}
       <div className="mb-3 text-center">
-        <div className="text-[44px] font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
-        <div className="mt-3 text-[11px] font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
+        <div className="text-44 font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
+        <div className="mt-3 text-11 font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
           {cell.ganji} · {cell.isToday ? "오늘" : "그날"} 들어온 기운 · {cell.element}
         </div>
       </div>
 
-      <p className="text-center font-display text-2xl leading-snug text-eye-purple">{PAIR_TONE_LABEL[cell.tone]}</p>
+      <p className="text-center font-display text-22 leading-snug text-eye-purple">{PAIR_TONE_LABEL[cell.tone]}</p>
 
       {(marks.length > 0 || leadChip) && (
         <ul className="mb-4 flex flex-wrap gap-2">
@@ -84,14 +84,14 @@ export default function PairDayDetailCard({
             //    같은 문법을 쓴다(2026-09-24). 옛 테두리 필은 색이 아예 없어 마크끼리 구분이 안 됐다.
             <li
               key={m.glyph}
-              className="rounded-full px-3 py-1 text-xs font-bold"
+              className="rounded-full px-3 py-1 text-12 font-bold"
               style={{ background: MARK_CHIP[m.glyph].bg, color: MARK_CHIP[m.glyph].fg }}
             >
               <span aria-hidden>{m.glyph}</span> {m.label}
             </li>
           ))}
           {leadChip && (
-            <li className="rounded-full border border-lilac-mid px-3 py-1 text-xs text-eye-purple">{leadChip}</li>
+            <li className="rounded-full border border-lilac-mid px-3 py-1 text-12 text-eye-purple">{leadChip}</li>
           )}
         </ul>
       )}
@@ -107,7 +107,7 @@ export default function PairDayDetailCard({
              사이에 그 줄이 끼는데, 라벨에 마진을 주면 칩이 있는 날만 간격이 두 번 들어간다.
              박스에 주면 인접 형제 마진이 상쇄돼(16 vs 16) 칩 유무와 상관없이 16px 로 같다. */}
       <div className="mt-4 rounded-xl border border-lilac-soft bg-white/60 p-3">
-        <p className="mb-2 text-[11px] font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
+        <p className="mb-2 text-11 font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
 
         {/* 십신 — 서로를 어떻게 보는지. 방향이 다르므로 마주보게 둔다(한 줄 `A ↔ B` 는 누가 누구를
             그렇게 보는지가 안 보였다). */}
@@ -117,8 +117,8 @@ export default function PairDayDetailCard({
             { who: `${partnerName}가 보는 나`, label: backdrop.labelBtoA },
           ].map((x) => (
             <div key={x.who} className="flex-1 rounded-lg bg-lilac-soft/50 px-2.5 py-2 text-center">
-              <p className="text-[10px] leading-tight text-text-light">{x.who}</p>
-              <p className="mt-0.5 text-[12.5px] font-bold leading-tight text-eye-purple">{x.label}</p>
+              <p className="text-11 leading-tight text-text-light">{x.who}</p>
+              <p className="mt-0.5 text-13 font-bold leading-tight text-eye-purple">{x.label}</p>
             </div>
           ))}
         </div>
@@ -134,12 +134,12 @@ export default function PairDayDetailCard({
         {(backdrop.spark || backdrop.bond || backdrop.harmony > 0) && (
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {backdrop.spark && (
-              <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
+              <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-11 font-bold text-eye-purple">
                 <span aria-hidden>✦</span> 둘 사이 설렘
               </li>
             )}
             {backdrop.bond && (
-              <li className="rounded-full bg-lilac/50 px-2 py-0.5 text-[11px] font-bold text-eye-purple">
+              <li className="rounded-full bg-lilac/50 px-2 py-0.5 text-11 font-bold text-eye-purple">
                 <span aria-hidden>◈</span> 둘 사이 척척
               </li>
             )}
@@ -148,7 +148,7 @@ export default function PairDayDetailCard({
                 점수(1~4)는 안 쓴다 — 있고 없고만 말하는 게 형제 칩과 같은 문법이고,
                 1과 2의 차이를 설명할 자리가 없다. */}
             {backdrop.harmony > 0 && (
-              <li className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ background: "#6B4BA8", color: "#ffffff" }}>
+              <li className="rounded-full px-2 py-0.5 text-11 font-bold" style={{ background: "#6B4BA8", color: "#ffffff" }}>
                 <span aria-hidden>✧</span> 타고난 궁합
               </li>
             )}
@@ -168,7 +168,7 @@ export default function PairDayDetailCard({
           🔴 미래 문구는 단정하지 않는다 — 별콩이 화법 ①(단정적 예언 금지). "이렇게 흐른다"가
              아니라 "이런 결이 보여". */}
       {!cell.isToday && (
-        <p className="mt-3 text-xs text-text-light">
+        <p className="mt-3 text-12 text-text-light">
           {cell.date < todayKst
             ? "그날 둘 사이를 보고 별콩이가 건넨 말이야."
             : "그날 둘 사이엔 이런 결이 보여."}
@@ -178,7 +178,7 @@ export default function PairDayDetailCard({
           🔴 상단 간격이 프레이밍 줄에 걸린다 — 둘 다 mt-3 이면 한 덩어리로 읽혀야 할 둘 사이가
              벌어진다(그 줄은 이 문단의 머리말이다). 타로의 같은 처리와 값까지 맞췄다. */}
       {taste ? (
-        <div className={`${cell.isToday ? "mt-3" : "mt-1.5"} space-y-2 text-sm leading-relaxed text-eye-purple`}>
+        <div className={`${cell.isToday ? "mt-3" : "mt-1.5"} space-y-2 text-14 leading-relaxed text-eye-purple`}>
           <p>{taste.signal}</p>
           <p>{taste.relation}</p>
           <p>{taste.lead}</p>

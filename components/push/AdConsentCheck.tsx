@@ -25,9 +25,9 @@ export default function AdConsentCheck({
         className="mt-[3px] w-[18px] h-[18px] shrink-0 accent-eye-purple"
       />
       <span>
-        <span className="block text-[13px] font-bold">{AD_CONSENT_LABEL}</span>
-        <span className="block text-[11.5px] text-text-light mt-1 leading-normal">{AD_CONSENT_CONTENTS}</span>
-        <span className="block text-[11.5px] text-text-light mt-0.5 leading-normal">{AD_CONSENT_HOW_TO_OFF}</span>
+        <span className="block text-13 font-bold">{AD_CONSENT_LABEL}</span>
+        <span className="block text-12 text-text-light mt-1 leading-normal">{AD_CONSENT_CONTENTS}</span>
+        <span className="block text-12 text-text-light mt-0.5 leading-normal">{AD_CONSENT_HOW_TO_OFF}</span>
       </span>
     </label>
   );

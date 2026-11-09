@@ -137,7 +137,7 @@ export default function Dropdown({
         aria-label={ariaLabel}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onTriggerKeyDown}
-        className={`w-full rounded-xl bg-cream-warm border border-lilac-mid/40 px-3 py-2.5 text-[14px] text-eye-purple flex items-center justify-between gap-1 transition disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`w-full rounded-xl bg-cream-warm border border-lilac-mid/40 px-3 py-2.5 text-14 text-eye-purple flex items-center justify-between gap-1 transition disabled:opacity-60 disabled:cursor-not-allowed ${
           className ?? ""
         }`}
       >
@@ -178,7 +178,7 @@ export default function Dropdown({
                 }}
                 onClick={() => select(opt.value)}
                 onMouseEnter={() => setHighlighted(idx)}
-                className={`block w-full px-3 py-2.5 text-[14px] text-left cursor-pointer transition-colors ${
+                className={`block w-full px-3 py-2.5 text-14 text-left cursor-pointer transition-colors ${
                   isSelected
                     ? "bg-lilac-soft text-lilac-deep font-bold"
                     : isHighlighted

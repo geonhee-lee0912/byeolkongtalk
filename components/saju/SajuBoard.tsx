@@ -57,7 +57,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
           return (
             <div key={key} className="flex flex-col">
-              <div className="text-[11px] text-text-light text-center mb-1.5">
+              <div className="text-11 text-text-light text-center mb-1.5">
                 {label}
                 {isDayMaster && (
                   <span className="ml-1 text-gold font-bold">★</span>
@@ -72,10 +72,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
                   color: ELEMENT_COLORS[stemEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-sans">
+                <div className="text-28 font-bold leading-none font-sans">
                   {stemHanja}
                 </div>
-                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.stem}</div>
+                <div className="text-11 mt-1 font-bold opacity-80">{pillar.stem}</div>
               </div>
 
               {/* 지지 */}
@@ -86,10 +86,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
                   color: ELEMENT_COLORS[branchEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-sans">
+                <div className="text-28 font-bold leading-none font-sans">
                   {branchHanja}
                 </div>
-                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.branch}</div>
+                <div className="text-11 mt-1 font-bold opacity-80">{pillar.branch}</div>
               </div>
             </div>
           );
@@ -98,7 +98,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
       {/* 시주 모름 안내 */}
       {!saju.input.hourKnown && (
-        <p className="text-[11px] text-text-light/80 text-center mb-4 -mt-3">
+        <p className="text-11 text-text-light/80 text-center mb-4 -mt-3">
           시간을 몰라 시주는 참고용으로 봐줘
         </p>
       )}
@@ -112,10 +112,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
             return (
               <span
                 key={el}
-                className="inline-flex items-center gap-1 text-[12px]"
+                className="inline-flex items-center gap-1 text-12"
               >
                 <span
-                  className={`inline-flex w-5 h-5 rounded items-center justify-center text-[11px] font-bold ${
+                  className={`inline-flex w-5 h-5 rounded items-center justify-center text-11 font-bold ${
                     isMax ? "ring-1 ring-eye-purple/40" : ""
                   }`}
                   style={{
@@ -133,7 +133,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
           })}
         </div>
         {showDetail && (
-          <div className="flex items-center justify-center gap-x-2 mt-2 text-[12px] text-text-light">
+          <div className="flex items-center justify-center gap-x-2 mt-2 text-12 text-text-light">
             <span>
               일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
               ({saju.dayElement})

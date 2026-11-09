@@ -88,18 +88,18 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto px-5 py-8 flex flex-col gap-5 animate-fade-in" data-stage="birth">
-      <p className="font-display text-lg text-eye-purple text-center mb-1">마지막! 네 생년월일을 알려줘</p>
-      <p className="text-[13px] text-text-light text-center -mt-3 mb-1">타고난 팔자를 펼쳐볼게.</p>
+      <p className="font-display text-17 text-eye-purple text-center mb-1">마지막! 네 생년월일을 알려줘</p>
+      <p className="text-13 text-text-light text-center -mt-3 mb-1">타고난 팔자를 펼쳐볼게.</p>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">달력</legend>
+        <legend className="text-13 font-bold text-eye-purple mb-1">달력</legend>
         <div className="flex gap-2">
           {(["solar", "lunar"] as const).map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setCalendar(c)}
-              className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold transition ${
+              className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
                 calendar === c ? "bg-lilac-deep text-white" : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
@@ -110,14 +110,14 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">생년월일</legend>
+        <legend className="text-13 font-bold text-eye-purple mb-1">생년월일</legend>
         <div className="grid grid-cols-3 gap-2">
           <Dropdown ariaLabel="년" value={String(year)} onChange={(v) => setYear(parseInt(v, 10))} options={yearOptions} />
           <Dropdown ariaLabel="월" value={String(month)} onChange={(v) => setMonth(parseInt(v, 10))} options={monthOptions} />
           <Dropdown ariaLabel="일" value={String(day)} onChange={(v) => setDay(parseInt(v, 10))} options={dayOptions} />
         </div>
         {leapAvailable && (
-          <label className="flex items-center gap-2 text-[12px] text-text-light mt-1">
+          <label className="flex items-center gap-2 text-12 text-text-light mt-1">
             <input type="checkbox" checked={isLeapMonth} onChange={(e) => setIsLeapMonth(e.target.checked)} className="w-4 h-4 accent-lilac-deep" />
             윤달이야
           </label>
@@ -125,16 +125,16 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-bold text-eye-purple mb-1">태어난 시간</legend>
+        <legend className="text-13 font-bold text-eye-purple mb-1">태어난 시간</legend>
         <Dropdown ariaLabel="태어난 시간" value={hourValue} onChange={(v) => setHourValue(v)} options={hourOptions} />
         {hourValue === HOUR_UNKNOWN && (
-          <p className="text-[11px] text-text-light/80 leading-relaxed mt-1">괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.</p>
+          <p className="text-11 text-text-light/80 leading-relaxed mt-1">괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.</p>
         )}
       </fieldset>
 
       <button
         type="submit"
-        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
       >
         결과 보기 →
       </button>

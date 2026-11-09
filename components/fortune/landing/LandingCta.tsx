@@ -16,7 +16,7 @@ export default function LandingCta({
     <a
       href={href}
       onClick={() => trackUiEvent("fortune_landing_cta_clicked", { meta: { type: trackType } })}
-      className="mt-4 block w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14.5px] text-center active:scale-[0.98] transition"
+      className="mt-4 block w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 text-center active:scale-[0.98] transition"
     >
       {label}
     </a>

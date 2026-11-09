@@ -72,7 +72,7 @@ export default function ConcernPage() {
   if (!emotion) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -141,12 +141,12 @@ export default function ConcernPage() {
                     className="object-contain"
                   />
                 </span>
-                <span className="font-bold text-eye-purple text-[13px]">
+                <span className="font-bold text-eye-purple text-13">
                   {option.tag}
                 </span>
-                <span className="text-text-light/50 text-[11px]">변경</span>
+                <span className="text-text-light/50 text-11">변경</span>
               </div>
-              <p className="text-[11px] text-text-light/80 text-center leading-relaxed">
+              <p className="text-11 text-text-light/80 text-center leading-relaxed">
                 {option.description}
               </p>
             </button>
@@ -180,10 +180,10 @@ export default function ConcernPage() {
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#4A3877]" />
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-white leading-tight">
+                <p className="text-14 font-bold text-white leading-tight">
                   별콩이
                 </p>
-                <p className="text-[11px] text-white/60 leading-snug mt-0.5">
+                <p className="text-11 text-white/60 leading-snug mt-0.5">
                   고민이 있는 날에도, 괜히 마음이 궁금한 날에도 별콩이는 여기 있어
                 </p>
               </div>
@@ -226,10 +226,10 @@ export default function ConcernPage() {
                     boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
                   }}
                 >
-                  <p className="text-[14px] font-bold text-eye-purple leading-tight">
+                  <p className="text-14 font-bold text-eye-purple leading-tight">
                     어떤 고민이야?
                   </p>
-                  <p className="text-[12px] text-eye-purple/85 mt-1 leading-relaxed">
+                  <p className="text-12 text-eye-purple/85 mt-1 leading-relaxed">
                     편하게 말해줘. 별콩이가 들어볼게 ❤️
                   </p>
                 </div>
@@ -248,9 +248,9 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-[14px] text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-light/40"
+                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-light/40"
                   />
-                  <div className="flex justify-between items-center px-4 pb-2.5 text-[11px]">
+                  <div className="flex justify-between items-center px-4 pb-2.5 text-11">
                     <span className="text-text-light/70">
                       구체적일수록 더 깊은 대화가 가능해
                     </span>
@@ -279,7 +279,7 @@ export default function ConcernPage() {
         )}
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 max-w-md mb-3">
+          <p className="text-12 text-red-500 text-center px-5 max-w-md mb-3">
             {error}
           </p>
         )}
@@ -288,7 +288,7 @@ export default function ConcernPage() {
           <button
             onClick={handleNext}
             disabled={!canProceed}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
           >
             {concern.length < MIN_LEN
               ? `${MIN_LEN}자 이상 적어줘`
@@ -296,7 +296,7 @@ export default function ConcernPage() {
           </button>
           <Link
             href="/"
-            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-15 text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
           >
             뒤로
           </Link>
@@ -344,7 +344,7 @@ function EmotionTagSheet({
       <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             어떤 고민이야?
           </h2>
           <OverlayCloseButton
@@ -356,7 +356,7 @@ function EmotionTagSheet({
         </div>
 
         <div className="px-5 pb-6">
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light/70 mb-2">
             연애 고민
           </p>
           <div className="flex flex-col gap-2 mb-4">
@@ -370,7 +370,7 @@ function EmotionTagSheet({
             ))}
           </div>
 
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light/70 mb-2">
             다른 고민
           </p>
           <div className="flex flex-col gap-2">
@@ -413,7 +413,7 @@ function TagSheetItem({
       >
         <Image src={option.icon} alt="" width={28} height={28} className="object-contain" />
       </span>
-      <span className="flex-1 min-w-0 font-bold text-eye-purple text-[13.5px] leading-snug">
+      <span className="flex-1 min-w-0 font-bold text-eye-purple text-14 leading-snug">
         {option.tag}
       </span>
     </button>

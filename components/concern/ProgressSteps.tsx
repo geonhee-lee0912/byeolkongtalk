@@ -15,7 +15,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
               <div className="flex items-center gap-1.5">
                 <span
                   className={[
-                    "w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold leading-none transition-colors",
+                    "w-5 h-5 rounded-full flex items-center justify-center text-11 font-bold leading-none transition-colors",
                     done
                       ? "bg-lilac-deep text-white"
                       : active
@@ -27,7 +27,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
                 </span>
                 <span
                   className={[
-                    "text-[12px] leading-none whitespace-nowrap transition-colors",
+                    "text-12 leading-none whitespace-nowrap transition-colors",
                     active
                       ? "font-bold text-eye-purple"
                       : done

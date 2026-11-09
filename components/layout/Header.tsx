@@ -23,7 +23,7 @@ export default function Header() {
               className="object-contain"
             />
           </span>
-          <span className="font-display text-[22px] text-eye-purple tracking-wide font-bold">
+          <span className="font-display text-22 text-eye-purple tracking-wide font-bold">
             별콩톡
           </span>
         </Link>
@@ -37,10 +37,10 @@ export default function Header() {
                 className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 transition-colors"
                 aria-label="별콩 상점"
               >
-                <span className="text-[13px] leading-none" aria-hidden>
+                <span className="text-13 leading-none" aria-hidden>
                   ⭐
                 </span>
-                <span className="text-[12px] font-bold text-eye-purple leading-none tabular-nums">
+                <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">
                   {balance ?? "-"}
                 </span>
               </Link>
@@ -64,7 +64,7 @@ export default function Header() {
                     className="w-full h-full object-cover"
                   />
                 </span>
-                <span className="text-[12px] font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
+                <span className="text-12 font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
                   {user.nickname}
                 </span>
               </Link>
@@ -72,7 +72,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="text-sm text-text-light hover:text-eye-purple transition-colors"
+              className="text-14 text-text-light hover:text-eye-purple transition-colors"
             >
               로그인
             </Link>

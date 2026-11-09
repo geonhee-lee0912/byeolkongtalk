@@ -29,10 +29,10 @@ export default function MonthlyReportView({
         <ol className="flex flex-col gap-[14px]">
           {report.weekly.map((w) => (
             <li key={w.week} className="flex gap-3">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-lilac-soft/60 text-eye-purple text-[11px] font-extrabold flex items-center justify-center mt-0.5">
+              <span className="shrink-0 w-7 h-7 rounded-full bg-lilac-soft/60 text-eye-purple text-11 font-extrabold flex items-center justify-center mt-0.5">
                 {w.week}주
               </span>
-              <MarkdownLite text={w.body} className="flex-1 text-[13px] leading-[1.8] text-[#4F4A5E]" />
+              <MarkdownLite text={w.body} className="flex-1 text-13 leading-[1.8] text-[#4F4A5E]" />
             </li>
           ))}
         </ol>
@@ -49,20 +49,20 @@ export default function MonthlyReportView({
       children: (
         <div className="flex flex-col gap-2.5">
           <div className="rounded-2xl bg-[#F3F7F2] px-3.5 py-3">
-            <div className="text-[11px] font-extrabold text-[#3F8E5C] mb-1">흐름이 좋아</div>
-            <MarkdownLite text={report.timing.good} className="text-[12.5px] leading-[1.7] text-[#4F4A5E]" />
+            <div className="text-11 font-extrabold text-[#3F8E5C] mb-1">흐름이 좋아</div>
+            <MarkdownLite text={report.timing.good} className="text-13 leading-[1.7] text-[#4F4A5E]" />
           </div>
           <div className="rounded-2xl bg-[#FBF4EE] px-3.5 py-3">
-            <div className="text-[11px] font-extrabold text-[#C2723E] mb-1">점검할 때</div>
-            <MarkdownLite text={report.timing.caution} className="text-[12.5px] leading-[1.7] text-[#4F4A5E]" />
+            <div className="text-11 font-extrabold text-[#C2723E] mb-1">점검할 때</div>
+            <MarkdownLite text={report.timing.caution} className="text-13 leading-[1.7] text-[#4F4A5E]" />
           </div>
           <div className="flex flex-col gap-[9px] pt-1">
-            <div className="flex gap-[9px] items-start text-[13px] leading-[1.7] text-[#4F4A5E]">
-              <span className="shrink-0 text-[11px] font-extrabold text-[#3F8E5C] mt-0.5">좋아</span>
+            <div className="flex gap-[9px] items-start text-13 leading-[1.7] text-[#4F4A5E]">
+              <span className="shrink-0 text-11 font-extrabold text-[#3F8E5C] mt-0.5">좋아</span>
               <span>{report.balance.good}</span>
             </div>
-            <div className="flex gap-[9px] items-start text-[13px] leading-[1.7] text-[#4F4A5E]">
-              <span className="shrink-0 text-[11px] font-extrabold text-[#C2723E] mt-0.5">주의</span>
+            <div className="flex gap-[9px] items-start text-13 leading-[1.7] text-[#4F4A5E]">
+              <span className="shrink-0 text-11 font-extrabold text-[#C2723E] mt-0.5">주의</span>
               <span>{report.balance.warn}</span>
             </div>
           </div>

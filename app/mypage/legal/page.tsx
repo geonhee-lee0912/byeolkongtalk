@@ -21,7 +21,7 @@ export default function LegalPage() {
         <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="flex items-center gap-3 p-3.5">
-              <span className="flex-1 text-[14px] text-eye-purple font-medium">{l.label}</span>
+              <span className="flex-1 text-14 text-eye-purple font-medium">{l.label}</span>
               <span className="text-text-light/40">›</span>
             </Link>
           ))}

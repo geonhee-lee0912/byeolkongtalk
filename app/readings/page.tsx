@@ -172,7 +172,7 @@ function sajuAvatar(r: ReadingItem) {
     );
   }
   return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
       🔮
     </div>
   );
@@ -187,7 +187,7 @@ function fortuneIcon(emotionTag: string | null | undefined, size: number) {
 function simAvatar(r: ReadingItem) {
   const emoji = getSituation(r.sajuData?.situationId ?? "")?.emoji ?? "🎭";
   return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
       {emoji}
     </div>
   );
@@ -205,10 +205,10 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
         className="mx-auto mb-3"
         aria-hidden
       />
-      <p className="text-[13px] text-text-light leading-relaxed">{c.text}</p>
+      <p className="text-13 text-text-light leading-relaxed">{c.text}</p>
       <Link
         href={c.href}
-        className="mt-3 inline-block px-5 py-2 rounded-xl bg-lilac-deep text-white text-[12px] font-bold"
+        className="mt-3 inline-block px-5 py-2 rounded-xl bg-lilac-deep text-white text-12 font-bold"
       >
         {c.cta}
       </Link>
@@ -259,12 +259,12 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+            <span className="text-14 font-bold text-eye-purple whitespace-nowrap">
               {r.emotionTag ?? "고민 상담"}
             </span>
             {r.hasSensitive && (
               <span
-                className="shrink-0 text-[11px] text-rose-400"
+                className="shrink-0 text-11 text-rose-400"
                 role="img"
                 aria-label="민감 시그널이 감지된 대화"
               >
@@ -272,20 +272,20 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
               </span>
             )}
             {chip && (
-              <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+              <span className="shrink-0 text-11 font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
                 {chip}
               </span>
             )}
             {canResume && (
-              <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
+              <span className="shrink-0 text-11 font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
                 이어하기
               </span>
             )}
           </div>
-          <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+          <p className="text-11 text-text-light/60 mt-0.5 leading-snug line-clamp-2">
             {subtitle}
           </p>
-          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light/80 mt-1 leading-snug line-clamp-2">
             {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
           </p>
         </div>
@@ -293,7 +293,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
       {!canResume && !r.hasSensitive && (
         <button
           onClick={() => onContinue(r.id)}
-          className="absolute top-2.5 right-2.5 text-[10px] font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
+          className="absolute top-2.5 right-2.5 text-11 font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
         >
           후속 상담
         </button>
@@ -312,14 +312,14 @@ function renderReportCard(r: ReadingItem) {
         key={r.id}
         className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
       >
-        <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+        <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
           {fortuneIcon(r.emotionTag, 24)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+          <div className="text-13 text-gold-soft font-medium line-clamp-1">
             {genLabel}
           </div>
-          <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
+          <div className="text-11 text-cream/60 mt-1 flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
             별콩이가 리포트를 만들고 있어…
           </div>
@@ -333,20 +333,20 @@ function renderReportCard(r: ReadingItem) {
       href={`/fortune/result?id=${r.id}&from=history`}
       className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
     >
-      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
+      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-17">
         {fortuneIcon(r.emotionTag, 24)}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+        <div className="text-13 text-eye-purple line-clamp-1 font-medium">
           {r.question}
         </div>
-        <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+        <div className="text-11 text-text-light/70 mt-0.5 flex items-center gap-1.5">
           <span>{formatDate(r.createdAt)}</span>
           <span>·</span>
           <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
         </div>
         {r.preview?.trim() && (
-          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light/80 mt-1 leading-snug line-clamp-2">
             {r.preview.trim()}
           </p>
         )}
@@ -374,19 +374,19 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
       {simAvatar(r)}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+          <span className="text-14 font-bold text-eye-purple whitespace-nowrap">
             {r.question}
           </span>
           <span
             className={[
-              "shrink-0 text-[10px] font-bold rounded-full px-1.5 py-0.5",
+              "shrink-0 text-11 font-bold rounded-full px-1.5 py-0.5",
               done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
             ].join(" ")}
           >
             {done ? "완료" : "진행 중"}
           </span>
         </div>
-        <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+        <p className="text-11 text-text-light/60 mt-0.5 leading-snug line-clamp-2">
           {subParts.join(" · ")}
         </p>
       </div>
@@ -510,7 +510,7 @@ function ReadingsPageInner() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -531,7 +531,7 @@ function ReadingsPageInner() {
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
         >
           <svg
             width="12"
@@ -548,8 +548,8 @@ function ReadingsPageInner() {
           </svg>
           <span>뒤로</span>
         </Link>
-        <h1 className="text-[18px] font-bold text-eye-purple">내 상담 보관함</h1>
-        <p className="text-[12px] text-text-light/70 mt-1">
+        <h1 className="text-17 font-bold text-eye-purple">내 상담 보관함</h1>
+        <p className="text-12 text-text-light/70 mt-1">
           별콩이와 나눈 상담과 운세를 다시 볼 수 있어
         </p>
       </div>
@@ -565,13 +565,13 @@ function ReadingsPageInner() {
                 onClick={() => switchTab(t.key)}
                 aria-pressed={tab === t.key}
                 className={[
-                  "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
+                  "shrink-0 text-13 font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
                   tab === t.key
                     ? "bg-eye-purple text-white"
                     : "bg-white border border-lilac-soft text-text-light",
                 ].join(" ")}
               >
-                {t.label} {count > 0 && <span className="text-[12px]">{count}</span>}
+                {t.label} {count > 0 && <span className="text-12">{count}</span>}
               </button>
             );
           })}
@@ -617,7 +617,7 @@ function ReadingsPageInner() {
                     key={i}
                     onClick={() => setPage(i)}
                     aria-label={`${i + 1}페이지`}
-                    className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                    className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safePage
                         ? "bg-lilac-deep text-white"
                         : "text-text-light/70 hover:bg-lilac-soft/50"

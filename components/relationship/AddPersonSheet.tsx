@@ -89,31 +89,31 @@ export default function AddPersonSheet({
         </OverlayCloseButton>
 
         <div className="px-5 pt-3 pb-2">
-          <div className="text-center text-[30px] leading-none mb-2" aria-hidden>
+          <div className="text-center text-28 leading-none mb-2" aria-hidden>
             🧸✨
           </div>
-          <h2 className="font-display text-[16px] font-bold text-eye-purple text-center">
+          <h2 className="font-display text-17 font-bold text-eye-purple text-center">
             새로운 사람 만나기
           </h2>
-          <p className="text-[11.5px] text-text-light text-center mt-1 mb-4">
+          <p className="text-12 text-text-light text-center mt-1 mb-4">
             {insufficient
               ? "슬롯을 열려면 별이 조금 부족해"
               : "새 사람을 추가하려면 슬롯이 필요해"}
           </p>
 
           <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-2">
-            <span className="text-[12.5px] text-text-light">새 사람 슬롯</span>
+            <span className="text-13 text-text-light">새 사람 슬롯</span>
             <span
-              className="text-[12.5px] font-bold"
+              className="text-13 font-bold"
               style={{ color: insufficient ? WARN : undefined }}
             >
               ⭐{nextCost}
             </span>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-4">
-            <span className="text-[12.5px] text-text-light">내 별</span>
+            <span className="text-13 text-text-light">내 별</span>
             <span
-              className="text-[12.5px] font-bold text-lilac-deep"
+              className="text-13 font-bold text-lilac-deep"
               style={{ color: insufficient ? WARN : undefined }}
             >
               ⭐{bal}
@@ -125,7 +125,7 @@ export default function AddPersonSheet({
             <button
               type="button"
               onClick={onGoShop}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-[15px] active:scale-[0.98] transition"
+              className="w-full py-3.5 rounded-xl text-white font-bold text-15 active:scale-[0.98] transition"
               style={{ background: WARN }}
             >
               별 충전하러 가기 →
@@ -135,19 +135,19 @@ export default function AddPersonSheet({
               type="button"
               onClick={() => void handlePurchase()}
               disabled={purchasing}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60"
+              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60"
             >
               {purchasing ? "슬롯 여는 중…" : "슬롯 열고 추가하기"}
             </button>
           )}
 
           {!insufficient && (
-            <p className="text-center text-[10.5px] font-bold text-lilac-mid mt-2.5">
+            <p className="text-center text-11 font-bold text-lilac-mid mt-2.5">
               열면 바로 이름·관계 입력
             </p>
           )}
           {error && (
-            <p className="mt-2 text-[11px] text-red-500 text-center">{error}</p>
+            <p className="mt-2 text-11 text-red-500 text-center">{error}</p>
           )}
         </div>
     </Sheet>

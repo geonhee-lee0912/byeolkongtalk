@@ -130,21 +130,21 @@ export default function FortuneGeneratingList() {
           key={r.id}
           className="rounded-2xl p-3.5 border border-cream/20 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
         >
-          <div className="w-10 h-10 rounded-lg bg-cream/10 flex items-center justify-center text-[18px]">
+          <div className="w-10 h-10 rounded-lg bg-cream/10 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] text-cream font-medium line-clamp-1">
+            <div className="text-13 text-cream font-medium line-clamp-1">
               {labelFromTag(r.emotionTag)}
             </div>
-            <div className="text-[11px] text-cream/60 mt-1">
+            <div className="text-11 text-cream/60 mt-1">
               리포트를 못 만들어서 {r.refundedStars}별을 돌려줬어
             </div>
           </div>
           <button
             type="button"
             onClick={() => void ackRefund(r.id)}
-            className="shrink-0 text-[12px] text-gold-soft border border-gold/30 rounded-lg px-3 py-1.5 active:scale-95 transition"
+            className="shrink-0 text-12 text-gold-soft border border-gold/30 rounded-lg px-3 py-1.5 active:scale-95 transition"
           >
             확인
           </button>
@@ -155,14 +155,14 @@ export default function FortuneGeneratingList() {
           key={r.id}
           className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
         >
-          <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+          <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+            <div className="text-13 text-gold-soft font-medium line-clamp-1">
               {label(r)}
             </div>
-            <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
+            <div className="text-11 text-cream/60 mt-1 flex items-center gap-1.5">
               <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
               별콩이가 리포트를 만들고 있어…
             </div>
@@ -175,18 +175,18 @@ export default function FortuneGeneratingList() {
           href={`/fortune/result?id=${r.id}&from=recover`}
           className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep active:scale-[0.99] transition"
         >
-          <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+          <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+            <div className="text-13 text-gold-soft font-medium line-clamp-1">
               {label(r)}
             </div>
-            <div className="text-[11px] text-gold mt-1">
+            <div className="text-11 text-gold mt-1">
               ✨ 리포트가 준비됐어 · 보러가기 →
             </div>
           </div>
-          <span className="text-cream/40 text-sm">›</span>
+          <span className="text-cream/40 text-14">›</span>
         </Link>
       ))}
     </div>

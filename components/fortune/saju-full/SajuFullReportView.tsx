@@ -17,7 +17,7 @@ function Chips({ items }: { items: string[] }) {
       {items.map((c, i) => (
         <span
           key={i}
-          className="bg-white border border-lilac-mid/40 rounded-full px-2.5 py-1 text-[11px] font-bold text-lilac-deep"
+          className="bg-white border border-lilac-mid/40 rounded-full px-2.5 py-1 text-11 font-bold text-lilac-deep"
         >
           {c}
         </span>
@@ -55,7 +55,7 @@ export default function SajuFullReportView({
         <div>
           <ElementChart saju={saju} className="mb-3" />
           <ElementCycleDiagram saju={saju} className="mb-3" />
-          <MarkdownLite text={report.self.balance.lack} className="text-[13.5px] text-[#4F4A5E] leading-[1.85]" />
+          <MarkdownLite text={report.self.balance.lack} className="text-14 text-[#4F4A5E] leading-[1.85]" />
           <div className="mt-2.5">
             <Chips items={report.self.balance.supplements} />
           </div>
@@ -112,8 +112,8 @@ export default function SajuFullReportView({
         <div className="flex flex-col">
           {report.monthly.map((m) => (
             <div key={m.month} className="flex gap-2.5 py-2 border-b border-lilac-mid/20 last:border-0">
-              <div className="text-[11px] font-bold text-lilac-deep w-7 flex-shrink-0 pt-0.5">{m.month}월</div>
-              <MarkdownLite text={m.body} className="text-[12.5px] text-[#4F4A5E] leading-[1.7]" />
+              <div className="text-11 font-bold text-lilac-deep w-7 flex-shrink-0 pt-0.5">{m.month}월</div>
+              <MarkdownLite text={m.body} className="text-13 text-[#4F4A5E] leading-[1.7]" />
             </div>
           ))}
         </div>
@@ -129,12 +129,12 @@ export default function SajuFullReportView({
           <YearTimeline good={report.timing.good} caution={report.timing.caution} />
           <div className="flex gap-2.5">
             <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#65b28f1a] border border-[#65b28f44]">
-              <p className="text-[11px] font-bold text-[#3f8c66] mb-1">흐름 좋은 달</p>
-              <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.good}</p>
+              <p className="text-11 font-bold text-[#3f8c66] mb-1">흐름 좋은 달</p>
+              <p className="text-14 font-bold text-[#322E3D]">{report.timing.good}</p>
             </div>
             <div className="flex-1 rounded-xl px-3 py-2.5 bg-[#e0976b1a] border border-[#e0976b44]">
-              <p className="text-[11px] font-bold text-[#b5703f] mb-1">점검할 달</p>
-              <p className="text-[14px] font-bold text-[#322E3D]">{report.timing.caution}</p>
+              <p className="text-11 font-bold text-[#b5703f] mb-1">점검할 달</p>
+              <p className="text-14 font-bold text-[#322E3D]">{report.timing.caution}</p>
             </div>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default function SajuFullReportView({
       children: (
         <ol className="flex flex-col gap-1.5">
           {report.actions.map((a, i) => (
-            <li key={i} className="flex gap-2 text-[13.5px] text-[#4F4A5E] leading-[1.7]">
+            <li key={i} className="flex gap-2 text-14 text-[#4F4A5E] leading-[1.7]">
               <span className="font-bold text-lilac-deep flex-shrink-0">{i + 1}.</span>
               <span>{a}</span>
             </li>
@@ -188,18 +188,18 @@ export default function SajuFullReportView({
             <Image src="/fortune-hero-saju_full.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
           </div>
         </div>
-        <p className="text-[12px] font-bold text-gold/90 text-center">
+        <p className="text-12 font-bold text-gold/90 text-center">
           2026 종합운 · {report.year2026.hanja}년
         </p>
-        <p className="mt-2 font-display text-[19px] font-bold text-center leading-snug">{report.theme}</p>
+        <p className="mt-2 font-display text-20 font-bold text-center leading-snug">{report.theme}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-          <span className="bg-white/12 rounded-full px-2.5 py-1 text-[11px] font-bold">🎨 {report.lucky.color}</span>
-          <span className="bg-white/12 rounded-full px-2.5 py-1 text-[11px] font-bold">🧭 {report.lucky.direction}</span>
-          <span className="bg-white/12 rounded-full px-2.5 py-1 text-[11px] font-bold">🍀 {report.lucky.months}</span>
-          <span className="bg-white/12 rounded-full px-2.5 py-1 text-[11px] font-bold">✨ {report.lucky.keyword}</span>
+          <span className="bg-white/12 rounded-full px-2.5 py-1 text-11 font-bold">🎨 {report.lucky.color}</span>
+          <span className="bg-white/12 rounded-full px-2.5 py-1 text-11 font-bold">🧭 {report.lucky.direction}</span>
+          <span className="bg-white/12 rounded-full px-2.5 py-1 text-11 font-bold">🍀 {report.lucky.months}</span>
+          <span className="bg-white/12 rounded-full px-2.5 py-1 text-11 font-bold">✨ {report.lucky.keyword}</span>
         </div>
         <div className="my-4 h-px bg-white/15" />
-        <MarkdownLite text={report.summary} tone="dark" className="text-[13.5px] leading-[1.85] text-white/90" />
+        <MarkdownLite text={report.summary} tone="dark" className="text-16 text-white/90" />
       </div>
 
       {/* 사주판 박스 */}
@@ -211,14 +211,14 @@ export default function SajuFullReportView({
               className="mt-4 mx-auto max-w-[300px] rounded-2xl px-4 py-3 text-center text-white"
               style={{ backgroundColor: dayElementColor }}
             >
-              <p className="text-[11px] opacity-90">나를 상징하는 일간</p>
-              <p className="text-[15px] font-bold mt-0.5">
+              <p className="text-11 opacity-90">나를 상징하는 일간</p>
+              <p className="text-15 font-bold mt-0.5">
                 {saju.pillars.day.hanja[0]} · {saju.dayStem}({saju.dayElement})
               </p>
             </div>
           </>
         ) : (
-          <p className="text-[12.5px] text-text-light text-center py-4">
+          <p className="text-13 text-text-light text-center py-4">
             공유 링크에서는 사주판이 표시되지 않아
           </p>
         )}
@@ -245,9 +245,9 @@ export default function SajuFullReportView({
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+          <span className="text-14 font-bold text-gold">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
+        <MarkdownLite text={report.note} tone="dark" className="text-16 text-white/90" />
       </div>
     </div>
   );

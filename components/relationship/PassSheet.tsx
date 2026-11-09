@@ -95,7 +95,7 @@ export default function PassSheet({
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">{pass ? "패스 · 오늘 대화" : "패스 선택하기"}</h2>
+          <h2 className="font-display text-17 font-bold text-eye-purple">{pass ? "패스 · 오늘 대화" : "패스 선택하기"}</h2>
           <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
@@ -106,7 +106,7 @@ export default function PassSheet({
 
         <div className="px-5">
           {pass && (
-            <div className="rounded-2xl border border-lilac-mid/25 bg-white/70 px-4 py-3 mb-3 text-[12.5px]">
+            <div className="rounded-2xl border border-lilac-mid/25 bg-white/70 px-4 py-3 mb-3 text-13">
               <div className="flex items-center justify-between">
                 <span className="text-text-light">지금 패스</span>
                 <span className="font-bold text-eye-purple">{remaining}</span>
@@ -123,13 +123,13 @@ export default function PassSheet({
                 disabled={extending}
                 className="mt-3 w-full flex items-center justify-between rounded-xl bg-lilac-soft/50 px-3.5 py-2.5 active:scale-[0.99] transition disabled:opacity-60"
               >
-                <span className="text-[12.5px] font-bold text-eye-purple">
+                <span className="text-13 font-bold text-eye-purple">
                   {extending ? "연장하는 중…" : `오늘 ${EXTEND_TURNS}번 더 (제한 없이)`}
                 </span>
-                <span className="text-[12.5px] font-bold text-lilac-deep">⭐{EXTEND_COST}</span>
+                <span className="text-13 font-bold text-lilac-deep">⭐{EXTEND_COST}</span>
               </button>
               {extendError && (
-                <p className="mt-1.5 text-[11px] text-red-500">{extendError}</p>
+                <p className="mt-1.5 text-11 text-red-500">{extendError}</p>
               )}
             </div>
           )}

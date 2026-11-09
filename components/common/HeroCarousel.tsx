@@ -102,14 +102,14 @@ export default function HeroCarousel({ audience }: { audience: Audience | null }
           style={{ background: BAR }}
         >
           <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight" style={{ color: TITLE }}>
+            <p className="text-15 font-bold leading-tight" style={{ color: TITLE }}>
               {card.title}
             </p>
-            <p className="mt-1 text-[12px] leading-snug" style={{ color: DESC }}>
+            <p className="mt-1 text-12 leading-snug" style={{ color: DESC }}>
               {card.desc}
             </p>
           </div>
-          <span className="shrink-0 rounded-lg px-3.5 py-1.5 text-[13px] font-bold text-white" style={{ background: "#9F8AD0" }}>
+          <span className="shrink-0 rounded-lg px-3.5 py-1.5 text-13 font-bold text-white" style={{ background: "#9F8AD0" }}>
             {card.cta}
           </span>
         </Link>

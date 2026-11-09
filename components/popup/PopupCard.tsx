@@ -42,10 +42,10 @@ export default function PopupCard({
               height={72}
             />
           </div>
-          <h2 className="font-display text-[20px] text-eye-purple mb-2">
+          <h2 className="font-display text-20 text-eye-purple mb-2">
             {content.title}
           </h2>
-          <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap text-left">
+          <p className="text-13 text-text-light leading-relaxed whitespace-pre-wrap text-left">
             {content.body}
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function PopupCard({
         <button
           onClick={onConfirm}
           disabled={busy}
-          className="w-full py-3 bg-lilac-deep text-white rounded-full text-[14px] font-bold hover:bg-lilac-deep/90 transition-colors disabled:opacity-60"
+          className="w-full py-3 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-colors disabled:opacity-60"
         >
           확인했어
         </button>

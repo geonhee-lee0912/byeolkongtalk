@@ -11,20 +11,20 @@ export default function TermsPage() {
       {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="web-only inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="web-only font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
         이용약관
       </h1>
-      <p className="text-[11px] text-text-light text-center mb-6">
+      <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
       </p>
 
-      <div className="text-[13px] text-eye-purple leading-relaxed space-y-6">
+      <div className="text-13 text-eye-purple leading-relaxed space-y-6">
         <Article title="제1조 (목적)">
           이 약관은 브레이브샤인(이하 &ldquo;회사&rdquo;)이 운영하는 AI 사주·타로
           상담 서비스 &lsquo;별콩톡&rsquo;(이하 &ldquo;서비스&rdquo;)을 이용함에
@@ -219,7 +219,7 @@ export default function TermsPage() {
           <p>대표전화: 0502-1924-6473</p>
         </Article>
 
-        <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">
+        <p className="text-12 text-text-light pt-6 border-t border-lilac-soft/40">
           부칙: 본 약관은 {SHIM_DATE}부터 시행됩니다.
         </p>
       </div>
@@ -236,8 +236,8 @@ function Article({
 }) {
   return (
     <section>
-      <h2 className="text-[14px] font-bold text-eye-purple mb-1.5">{title}</h2>
-      <div className="text-eye-purple/95 text-[12.5px] leading-[1.7]">
+      <h2 className="text-14 font-bold text-eye-purple mb-1.5">{title}</h2>
+      <div className="text-eye-purple/95 text-13 leading-[1.7]">
         {children}
       </div>
     </section>

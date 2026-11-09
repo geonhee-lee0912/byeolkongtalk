@@ -119,10 +119,10 @@ export default function SajuPage() {
         <div className="relative animate-float">
           <Image src="/byeolkong-saju.png" alt="별콩이" width={140} height={140} priority />
         </div>
-        <h1 className="mt-5 font-display text-2xl font-bold text-eye-purple text-center">
+        <h1 className="mt-5 font-display text-22 font-bold text-eye-purple text-center">
           누구 사주를 볼까?
         </h1>
-        <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
+        <p className="mt-2 text-13 text-text-light text-center leading-relaxed">
           저장된 사주에서 고르거나 새로 입력해줘.
         </p>
       </div>
@@ -134,10 +134,10 @@ export default function SajuPage() {
       />
 
       {error && (
-        <p className="mt-4 text-[12px] text-red-500 text-center px-5 max-w-md">{error}</p>
+        <p className="mt-4 text-12 text-red-500 text-center px-5 max-w-md">{error}</p>
       )}
 
-      <Link href="/" className="mt-6 text-[12px] text-text-light/70 underline">
+      <Link href="/" className="mt-6 text-12 text-text-light/70 underline">
         나중에 할래
       </Link>
     </main>

@@ -75,7 +75,7 @@ export default async function CardPage({
           }).replace(/</g, "\\u003c"),
         }}
       />
-      <nav className="text-[11px] text-text-light mb-3">
+      <nav className="text-11 text-text-light mb-3">
         <Link href="/guide/tarot-cards" className="hover:text-eye-purple">
           타로 카드 도감
         </Link>
@@ -83,10 +83,10 @@ export default async function CardPage({
         <span>{card.name_kr}</span>
       </nav>
 
-      <h1 className="font-display text-[22px] text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug">
         {card.name_kr} 카드 의미
       </h1>
-      <p className="text-[12px] text-text-light mt-1">
+      <p className="text-12 text-text-light mt-1">
         정방향 · 역방향 · 연애 타로 해석
       </p>
 
@@ -100,10 +100,10 @@ export default async function CardPage({
         />
       </div>
 
-      <section className="space-y-5 text-[13.5px] text-eye-purple/90 leading-relaxed">
+      <section className="space-y-5 text-14 text-eye-purple/90 leading-relaxed">
         <p>{entry.intro}</p>
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             정방향 — 연애에서는
           </h2>
           <p>{entry.uprightLove}</p>
@@ -111,7 +111,7 @@ export default async function CardPage({
             {card.upright.map((k) => (
               <span
                 key={k}
-                className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
               >
                 #{k}
               </span>
@@ -119,7 +119,7 @@ export default async function CardPage({
           </div>
         </div>
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             역방향 — 연애에서는
           </h2>
           <p>{entry.reversedLove}</p>
@@ -127,7 +127,7 @@ export default async function CardPage({
             {card.reversed.map((k) => (
               <span
                 key={k}
-                className="text-[11px] font-bold text-text-light bg-cream-warm px-2 py-0.5 rounded-full border border-lilac-soft"
+                className="text-11 font-bold text-text-light bg-cream-warm px-2 py-0.5 rounded-full border border-lilac-soft"
               >
                 #{k}
               </span>
@@ -135,7 +135,7 @@ export default async function CardPage({
           </div>
         </div>
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             별콩이의 한마디
           </h2>
           <p>{entry.advice}</p>
@@ -144,7 +144,7 @@ export default async function CardPage({
 
       <GuideCta tag="걔 속마음이 궁금해" />
 
-      <nav className="flex justify-between mt-6 text-[12px] text-lilac-deep font-bold">
+      <nav className="flex justify-between mt-6 text-12 text-lilac-deep font-bold">
         {prev && buildCardSlug(prev) in CONTENT ? (
           <Link href={`/guide/tarot-cards/${buildCardSlug(prev)}`}>
             ‹ {prev.name_kr}

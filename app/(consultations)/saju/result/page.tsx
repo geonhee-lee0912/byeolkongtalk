@@ -89,10 +89,10 @@ function ResultPageInner() {
   if (error) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center">
-        <p className="text-[14px] text-text-light mb-4">{error}</p>
+        <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
           href="/saju"
-          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14"
         >
           새 사주 보러가기
         </Link>
@@ -103,7 +103,7 @@ function ResultPageInner() {
   if (!data) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">결과 불러오는 중…</p>
+        <p className="text-text-light text-14">결과 불러오는 중…</p>
       </main>
     );
   }
@@ -128,22 +128,22 @@ function ResultPageInner() {
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="web-only text-[12px] text-text-light/70">
+          <button onClick={() => router.back()} className="web-only text-12 text-text-light/70">
             ‹ 뒤로
           </button>
         ) : (
-          <Link href="/" className="web-only text-[12px] text-text-light/70">
+          <Link href="/" className="web-only text-12 text-text-light/70">
             ‹ 홈으로
           </Link>
         )}
         {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
-        <div className="ml-auto text-[11px] text-text-light/60">
+        <div className="ml-auto text-11 text-text-light/60">
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-6 text-center">
-        <h1 className="font-display text-2xl font-bold text-eye-purple">
+        <h1 className="font-display text-22 font-bold text-eye-purple">
           별콩이와 나눈 풀이
         </h1>
       </div>
@@ -154,10 +154,10 @@ function ResultPageInner() {
       {/* 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mt-6">
         <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-          <div className="text-[11px] font-bold text-text-light mb-1">
+          <div className="text-11 font-bold text-text-light mb-1">
             그날의 고민
           </div>
-          <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
+          <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap">
             {reading.question}
           </p>
         </div>
@@ -167,7 +167,7 @@ function ResultPageInner() {
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
           <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-5 border border-gold-soft/40 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-4xl font-serif leading-none">
+            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
               ❝
             </div>
             <div className="flex items-center gap-2 mb-2 relative">
@@ -177,11 +177,11 @@ function ResultPageInner() {
                 width={28}
                 height={28}
               />
-              <span className="text-[12px] font-bold text-eye-purple">
+              <span className="text-12 font-bold text-eye-purple">
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-[14px] text-eye-purple leading-relaxed relative">
+            <p className="text-14 text-eye-purple leading-relaxed relative">
               {closingLine}
             </p>
           </div>
@@ -192,7 +192,7 @@ function ResultPageInner() {
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <button
           onClick={() => setShowHistory((v) => !v)}
-          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-[12px] font-bold text-eye-purple flex items-center justify-center gap-1"
+          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-12 font-bold text-eye-purple flex items-center justify-center gap-1"
         >
           대화 전체 다시보기 {showHistory ? "▴" : "▾"}
         </button>
@@ -218,7 +218,7 @@ function ResultPageInner() {
         <div className="w-full max-w-md mx-auto px-5 mt-3">
           <Link
             href={`/saju/reading?id=${reading.id}`}
-            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-[12.5px] font-bold text-lilac-deep flex items-center justify-center"
+            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-13 font-bold text-lilac-deep flex items-center justify-center"
           >
             💬 이어서 대화하기
           </Link>

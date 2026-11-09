@@ -130,7 +130,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
 
       {type === "tarot_daily" && freeRemaining !== null && (
         <div className="w-full max-w-md mx-auto px-5 mt-3 mb-1 text-center">
-          <p className="text-[11px] text-gold-soft">
+          <p className="text-11 text-gold-soft">
             {freeRemaining > 0
               ? `무료 ${freeRemaining}회 남음`
               : `무료 소진 · ⭐${cfg.paidCost}별`}
@@ -148,7 +148,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
       />
 
       {error && (
-        <p className="text-[12px] text-rose-500 mt-3 px-5 text-center">
+        <p className="text-12 text-rose-500 mt-3 px-5 text-center">
           {error}
         </p>
       )}

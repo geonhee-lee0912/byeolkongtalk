@@ -65,20 +65,20 @@ export default function SajuIdentityRow({
           color: ELEMENT_COLORS[saju.dayElement].text,
         }}
       >
-        <span className="text-[16px] font-bold leading-none">
+        <span className="text-17 font-bold leading-none">
           {saju.pillars.day.hanja}
         </span>
       </div>
       <div className="flex-1 min-w-0 text-left">
-        <div className="text-[14px] font-bold text-eye-purple truncate">
+        <div className="text-14 font-bold text-eye-purple truncate">
           {title}
           {badge && (
-            <span className="ml-1.5 text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+            <span className="ml-1.5 text-11 font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
               {badge}
             </span>
           )}
         </div>
-        <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+        <div className="text-11 text-text-light/70 mt-0.5 truncate">
           {caption}
         </div>
       </div>

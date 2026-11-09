@@ -117,7 +117,7 @@ export default async function SpreadPage({
 
   return (
     <article>
-      <nav className="text-[11px] text-text-light mb-3">
+      <nav className="text-11 text-text-light mb-3">
         <Link href="/guide/spreads" className="hover:text-eye-purple">
           스프레드 가이드
         </Link>
@@ -125,10 +125,10 @@ export default async function SpreadPage({
         <span>{info.label}</span>
       </nav>
 
-      <h1 className="font-display text-[21px] text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug">
         {spreadTitle(info.label)}
       </h1>
-      <p className="text-[12px] text-text-light mt-1">
+      <p className="text-12 text-text-light mt-1">
         {info.cardCount}장 배열 · {getSpreadDescription(type, "default")}
       </p>
 
@@ -146,18 +146,18 @@ export default async function SpreadPage({
         />
       </div>
 
-      <section className="space-y-5 text-[13.5px] text-eye-purple/90 leading-relaxed mt-5">
+      <section className="space-y-5 text-14 text-eye-purple/90 leading-relaxed mt-5">
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             언제 펼치는 배열일까
           </h2>
           <p>{entry.whenToUse}</p>
         </div>
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             포지션 읽는 순서
           </h2>
-          <ol className="list-decimal list-inside space-y-1 text-[13px]">
+          <ol className="list-decimal list-inside space-y-1 text-13">
             {labels.map((l, i) => (
               <li key={i}>{l}</li>
             ))}

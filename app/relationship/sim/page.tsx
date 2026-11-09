@@ -131,13 +131,13 @@ function SimPageInner() {
   if (noProfile) {
     return (
       <main className="min-h-dvh bg-gradient-to-br from-night to-night-deep flex flex-col items-center justify-center gap-4 px-8 text-center text-cream-warm">
-        <p className="text-[15px] leading-relaxed">
+        <p className="text-15 leading-relaxed">
           이 상대는 아직 프로필이 없어 시뮬레이션을 시작할 수 없어.
           <br />먼저 상대 프로필을 등록해줘.
         </p>
         <button
           onClick={() => router.replace("/relationship")}
-          className="rounded-xl px-5 py-2.5 bg-gold text-night-deep font-bold text-sm"
+          className="rounded-xl px-5 py-2.5 bg-gold text-night-deep font-bold text-14"
         >
           파일로 돌아가기
         </button>
@@ -239,8 +239,8 @@ function SimPageInner() {
             <OverlayEntry close={() => setPending(null)} dismissible z={50} />
             <div className="w-full max-w-sm rounded-2xl bg-cream-warm p-5 text-eye-purple" onClick={(e) => e.stopPropagation()}>
               <div className="text-center">
-                <div className="text-lg font-display mb-1">🎁 이번 판은 무료야</div>
-                <p className="text-[13px] text-text-light mb-4">
+                <div className="text-17 font-display mb-1">🎁 이번 판은 무료야</div>
+                <p className="text-13 text-text-light mb-4">
                   {quote.funding === "runway"
                     ? `무료로 즐기는 판이야 (남은 무료 ${quote.runwayRemaining}판). 편하게 걔 인형을 만나봐.`
                     : "이번 주 돌아온 김에 주는 무료 판이야. 초상화를 더 채워보자."}

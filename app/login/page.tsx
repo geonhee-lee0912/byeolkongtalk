@@ -40,7 +40,7 @@ function LoginPageInner() {
   if (checking) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">별콩이가 너를 찾는 중이야…</p>
+        <p className="text-text-light text-14">별콩이가 너를 찾는 중이야…</p>
       </main>
     );
   }
@@ -68,10 +68,10 @@ function LoginPageInner() {
         />
       </div>
 
-      <h1 className="mt-6 text-2xl font-bold text-eye-purple text-center">
+      <h1 className="mt-6 text-22 font-bold text-eye-purple text-center">
         먼저 인사부터 할까?
       </h1>
-      <p className="mt-3 text-sm text-text-light text-center leading-relaxed">
+      <p className="mt-3 text-14 text-text-light text-center leading-relaxed">
         로그인하면 너의 사주와 대화 기록이 안전하게 저장돼.
         <br />
         다음에 다시 와도 별콩이가 이어서 봐줄게.
@@ -80,7 +80,7 @@ function LoginPageInner() {
       <a
         href={kakaoHref}
         onClick={() => trackUiEvent("login_kakao_clicked", { meta: { surface: "login_page", next: nextLabel } })}
-        className="mt-10 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] hover:brightness-95 active:scale-[0.98] transition"
+        className="mt-10 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-15 hover:brightness-95 active:scale-[0.98] transition"
       >
         <svg
           width="20"
@@ -95,7 +95,7 @@ function LoginPageInner() {
       </a>
       <AppleLoginButton next={next} surface="login_page" meta={{ next: nextLabel }} className="mt-3" />
 
-      <p className="mt-4 text-[11px] text-text-light/70 text-center leading-relaxed">
+      <p className="mt-4 text-11 text-text-light/70 text-center leading-relaxed">
         시작하면{" "}
         <Link href="/terms" className="underline">
           이용약관
@@ -109,7 +109,7 @@ function LoginPageInner() {
 
       <Link
         href="/"
-        className="mt-8 text-[13px] text-text-light/80 underline"
+        className="mt-8 text-13 text-text-light/80 underline"
       >
         나중에 할래
       </Link>

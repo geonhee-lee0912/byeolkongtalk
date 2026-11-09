@@ -26,7 +26,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">이런 것도 꺼내 쓸 수 있어</h2>
+          <h2 className="font-display text-17 font-bold text-eye-purple">이런 것도 꺼내 쓸 수 있어</h2>
           <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
@@ -43,14 +43,14 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
               disabled={busyKey === s.key}
               className="flex items-center gap-3 rounded-2xl border border-lilac-mid/25 bg-white px-4 py-3 text-left active:scale-[0.99] transition disabled:opacity-60"
             >
-              <span className="text-[20px]" aria-hidden>{s.emoji}</span>
+              <span className="text-20" aria-hidden>{s.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-bold text-eye-purple">
+                <p className="text-14 font-bold text-eye-purple">
                   {busyKey === s.key ? "여는 중…" : s.label}
                 </p>
-                <p className="text-[11.5px] text-text-light leading-snug">{s.tagline}</p>
+                <p className="text-12 text-text-light leading-snug">{s.tagline}</p>
               </div>
-              <span className="text-[12px] font-bold text-lilac-deep shrink-0">⭐{s.starCost}</span>
+              <span className="text-12 font-bold text-lilac-deep shrink-0">⭐{s.starCost}</span>
             </button>
           ))}
         </div>

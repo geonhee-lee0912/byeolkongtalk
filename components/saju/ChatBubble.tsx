@@ -21,7 +21,7 @@ export default function ChatBubble({
   if (role === "user") {
     return (
       <div className="flex justify-end mb-3">
-        <div className="selectable max-w-[82%] bg-lilac-deep text-white rounded-2xl rounded-br-md px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap">
+        <div className="selectable max-w-[82%] bg-lilac-deep text-white rounded-2xl rounded-br-md px-4 py-2.5 text-16 whitespace-pre-wrap">
           {content}
         </div>
       </div>
@@ -42,10 +42,10 @@ export default function ChatBubble({
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-[12px] font-bold text-eye-purple">별콩이</span>
+            <span className="text-12 font-bold text-eye-purple">별콩이</span>
           </div>
         )}
-        <div className="selectable bg-cream-warm text-eye-purple rounded-2xl rounded-tl-md px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap border border-lilac-mid/20">
+        <div className="selectable bg-cream-warm text-eye-purple rounded-2xl rounded-tl-md px-4 py-2.5 text-16 whitespace-pre-wrap border border-lilac-mid/20">
           <EmphasisText text={content} />
           {streaming && content.length === 0 && (
             <span className="inline-flex gap-0.5 items-center text-text-light/60">

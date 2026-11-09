@@ -25,7 +25,7 @@ export default function ResultUpsell({
 
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
-      <p className="text-[13px] font-bold text-eye-purple px-1 mt-1">
+      <p className="text-13 font-bold text-eye-purple px-1 mt-1">
         {variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어 ✨"}
       </p>
       {cards.map((c) => (
@@ -36,7 +36,7 @@ export default function ResultUpsell({
           className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
         >
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] shrink-0"
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-22 shrink-0"
             style={{ background: c.gradient }}
           >
             {c.iconSrc ? (
@@ -49,14 +49,14 @@ export default function ResultUpsell({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[14px] font-bold text-eye-purple">
+              <span className="text-14 font-bold text-eye-purple">
                 {c.label}
               </span>
-              <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+              <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                 {c.badge}
               </span>
             </div>
-            <p className="text-[12px] text-text-light mt-0.5 leading-snug line-clamp-2">
+            <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">
               {c.tagline}
             </p>
           </div>

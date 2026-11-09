@@ -76,7 +76,7 @@ export default function NewPersonModal({
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[85vh] overflow-y-auto p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
         <div className="text-center mb-5">
-          <p className="font-display text-[17px] font-bold text-eye-purple">
+          <p className="font-display text-17 font-bold text-eye-purple">
             새 사람 사주 입력
           </p>
         </div>
@@ -91,11 +91,11 @@ export default function NewPersonModal({
 
         {err && (
           <div ref={errRef} role="alert" className="text-center mt-3">
-            <p className="text-[12px] text-red-500">{err}</p>
+            <p className="text-12 text-red-500">{err}</p>
             {needLogin && (
               <Link
                 href={`/login?next=${encodeURIComponent(next)}`}
-                className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+                className="mt-1 inline-block text-12 text-lilac-deep underline"
               >
                 다시 로그인하기
               </Link>
@@ -105,7 +105,7 @@ export default function NewPersonModal({
 
         <OverlayCloseButton
           disabled={saving}
-          className="w-full mt-3 py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-[14px] hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
+          className="w-full mt-3 py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-14 hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
         >
           취소
         </OverlayCloseButton>

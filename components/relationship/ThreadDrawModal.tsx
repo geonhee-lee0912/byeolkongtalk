@@ -97,7 +97,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             {skill.emoji} {skill.label}
           </h2>
           <button
@@ -110,11 +110,11 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-2">{error}</p>
+          <p className="text-12 text-red-500 text-center px-5 mb-2">{error}</p>
         )}
 
         {submitting ? (
-          <div className="py-16 text-center text-text-light text-sm">
+          <div className="py-16 text-center text-text-light text-14">
             별콩이가 카드를 펼치는 중…
           </div>
         ) : (

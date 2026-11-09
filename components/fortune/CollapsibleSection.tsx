@@ -36,16 +36,16 @@ export default function CollapsibleSection({
         className="w-full flex items-center gap-2.5 px-[22px] py-5 text-left"
       >
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
           style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
           aria-hidden
         >
           {emoji}
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-[14.5px] font-extrabold text-eye-purple">{title}</span>
+          <span className="block text-17 font-extrabold text-eye-purple">{title}</span>
           {!open && previewText && (
-            <span className="block text-[12px] text-text-light/70 mt-0.5 truncate">{previewText}</span>
+            <span className="block text-12 text-text-light/70 mt-0.5 truncate">{previewText}</span>
           )}
         </span>
         <svg
@@ -60,7 +60,7 @@ export default function CollapsibleSection({
       {open && (
         <div className="px-[22px] pb-6 -mt-1">
           {body ? (
-            <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+            <MarkdownLite text={body} className="text-16 text-[#4F4A5E]" />
           ) : (
             children
           )}

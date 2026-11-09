@@ -36,21 +36,21 @@ export default function WelcomeStarsModal({
             className="relative w-full h-full object-contain"
           />
         </div>
-        <p className="font-display text-[22px] text-eye-purple leading-tight">
+        <p className="font-display text-22 text-eye-purple leading-tight">
           웰컴 별 {WELCOME_BONUS_STARS}개 도착 ✨
         </p>
-        <p className="mt-2 text-[13px] text-text-light leading-relaxed">
+        <p className="mt-2 text-13 text-text-light leading-relaxed">
           만나서 반가워! 별콩이가 선물을 준비했어.
           <br />이 별로 상담이나 운세를 바로 볼 수 있어.
         </p>
         <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gold-soft/40">
-          <span className="text-[13px] font-extrabold text-eye-purple">
+          <span className="text-13 font-extrabold text-eye-purple">
             현재 잔액 ⭐ {WELCOME_BONUS_STARS}
           </span>
         </div>
         <button
           onClick={onStart}
-          className="mt-6 w-full py-3.5 rounded-full bg-lilac-deep text-white font-bold text-[15px] active:scale-[0.98] transition"
+          className="mt-6 w-full py-3.5 rounded-full bg-lilac-deep text-white font-bold text-15 active:scale-[0.98] transition"
         >
           바로 시작하기
         </button>

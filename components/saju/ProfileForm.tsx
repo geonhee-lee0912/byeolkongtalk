@@ -119,25 +119,25 @@ export default function ProfileForm({
       {mode === "acquaintance" && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-5 mb-5">
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[13px] font-bold text-eye-purple mb-1">이름</legend>
+            <legend className="text-13 font-bold text-eye-purple mb-1">이름</legend>
             <input
               type="text"
               value={name}
               maxLength={50}
               onChange={(e) => setName(e.target.value)}
               placeholder="누구 사주야?"
-              className="px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
+              className="px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14"
             />
           </fieldset>
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[13px] font-bold text-eye-purple mb-1">관계</legend>
+            <legend className="text-13 font-bold text-eye-purple mb-1">관계</legend>
             <div className="grid grid-cols-4 gap-2">
               {RELATION_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setRelation(opt.value)}
-                  className={`py-2.5 rounded-xl text-[13px] font-bold transition ${
+                  className={`py-2.5 rounded-xl text-13 font-bold transition ${
                     relation === opt.value
                       ? "bg-lilac-deep text-white"
                       : "bg-cream-warm text-text-light border border-lilac-mid/40"
@@ -154,14 +154,14 @@ export default function ProfileForm({
       {extended && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-5 mb-5">
           <div>
-            <p className="text-[13px] font-bold text-eye-purple mb-1">더 정확하게 (선택)</p>
-            <p className="text-[11.5px] text-text-light leading-relaxed">
+            <p className="text-13 font-bold text-eye-purple mb-1">더 정확하게 (선택)</p>
+            <p className="text-12 text-text-light leading-relaxed">
               몰라도 괜찮아 — 알려주면 별콩이가 더 잘 짚어볼게.
             </p>
           </div>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[13px] font-bold text-eye-purple mb-1">MBTI</legend>
+            <legend className="text-13 font-bold text-eye-purple mb-1">MBTI</legend>
             <Dropdown
               ariaLabel="MBTI"
               value={mbti ?? ""}
@@ -175,18 +175,18 @@ export default function ProfileForm({
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[13px] font-bold text-eye-purple mb-1">성격</legend>
+            <legend className="text-13 font-bold text-eye-purple mb-1">성격</legend>
             <textarea
               value={personality}
               maxLength={500}
               onChange={(e) => setPersonality(e.target.value)}
               placeholder="어떤 성격인지 알려줄래? (예: 다정한데 무뚝뚝한 척해)"
               rows={3}
-              className="px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] resize-none"
+              className="px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 resize-none"
             />
           </fieldset>
 
-          <label className="flex items-center gap-2 text-[12px] text-text-light">
+          <label className="flex items-center gap-2 text-12 text-text-light">
             <input
               type="checkbox"
               checked={birthUnknown}
@@ -204,7 +204,7 @@ export default function ProfileForm({
             type="button"
             onClick={handleNoBirthSubmit}
             disabled={loading}
-            className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "저장하는 중…" : (submitLabel ?? "저장하기")}
           </button>

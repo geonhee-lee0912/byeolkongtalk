@@ -30,7 +30,7 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
   return (
     <div className="w-full max-w-md mx-auto px-5 py-8 animate-fade-in" data-stage="quiz">
       <div className="mb-6">
-        <div className="flex justify-between items-center text-[12px] text-text-light mb-2">
+        <div className="flex justify-between items-center text-12 text-text-light mb-2">
           <span>
             {idx + 1} / {total}
           </span>
@@ -45,7 +45,7 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
         </div>
       </div>
 
-      <p className="text-lg text-eye-purple mb-6 leading-snug text-balance">{q.prompt}</p>
+      <p className="text-17 text-eye-purple mb-6 leading-snug text-balance">{q.prompt}</p>
 
       <div className="flex flex-col gap-3">
         {q.options.map((o) => {
@@ -55,7 +55,7 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
               key={o.id}
               type="button"
               onClick={() => pick(o.id)}
-              className={`text-left rounded-2xl border px-4 py-3.5 text-[15px] text-eye-purple transition-colors ${
+              className={`text-left rounded-2xl border px-4 py-3.5 text-15 text-eye-purple transition-colors ${
                 chosen ? "bg-lilac-soft border-lilac-deep" : "bg-cream-warm border-lilac hover:bg-lilac-soft hover:border-lilac-deep"
               }`}
             >

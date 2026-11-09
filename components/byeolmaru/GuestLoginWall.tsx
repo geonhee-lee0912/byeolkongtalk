@@ -31,12 +31,12 @@ export default function GuestLoginWall({
       <Image src="/byeolkong-curious.png" alt="" width={120} height={120} priority />
       {/* 🔴 `text-balance` + 폭 제한이 한 쌍이다 — 이걸 빼면 375px 에서 마지막 줄에 "어." 한
           조각만 남는다(실측). 문구를 바꿀 때 줄 모양을 다시 볼 것. */}
-      <p className="mt-2 max-w-[19rem] text-balance text-[14px] leading-relaxed text-eye-purple">
+      <p className="mt-2 max-w-[19rem] text-balance text-14 leading-relaxed text-eye-purple">
         로그인하면 매일 무료로 오늘의 사주와 원카드 타로 리딩, 상대방과의 오늘 궁합 관계를 볼 수 있어.
       </p>
       <Link
         href={`/login?next=${encodeURIComponent(next)}`}
-        className="mt-3 inline-block rounded-xl bg-lilac-deep px-4 py-2.5 text-[14px] font-semibold text-cream transition active:scale-[0.98]"
+        className="mt-3 inline-block rounded-xl bg-lilac-deep px-4 py-2.5 text-14 font-semibold text-cream transition active:scale-[0.98]"
       >
         로그인하러 가기
       </Link>

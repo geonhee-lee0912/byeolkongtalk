@@ -69,7 +69,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -77,10 +77,10 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
     return (
       <main className="flex flex-1 flex-col items-center py-8 w-full">
         <div className="w-full max-w-md mx-auto px-5">
-          <Link href="/mypage/support" className="web-only text-[12px] text-text-light/70">
+          <Link href="/mypage/support" className="web-only text-12 text-text-light/70">
             ‹ 문의 목록
           </Link>
-          <p className="text-text-light/70 text-[13px] text-center py-12">
+          <p className="text-text-light/70 text-13 text-center py-12">
             문의를 찾을 수 없어.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage/support" className="web-only text-[12px] text-text-light/70">
+        <Link href="/mypage/support" className="web-only text-12 text-text-light/70">
           ‹ 문의 목록
         </Link>
       </div>
@@ -106,16 +106,16 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
               </svg>
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] text-lilac-deep font-bold">
+              <div className="text-11 text-lilac-deep font-bold">
                 {INQUIRY_CATEGORIES[item.category]}
               </div>
-              <div className="text-[11px] text-text-light/60">
+              <div className="text-11 text-text-light/60">
                 {fmtDateTime(item.created_at)}
               </div>
             </div>
           </div>
-          <h1 className="text-[16px] font-bold text-eye-purple mb-2">{item.title}</h1>
-          <p className="text-[14px] text-eye-purple/90 whitespace-pre-wrap leading-relaxed">
+          <h1 className="text-17 font-bold text-eye-purple mb-2">{item.title}</h1>
+          <p className="text-14 text-eye-purple/90 whitespace-pre-wrap leading-relaxed">
             {item.body}
           </p>
         </div>
@@ -133,18 +133,18 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
         {item.status === "answered" && item.answer_body ? (
           <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-lilac-deep/30 shadow-lg shadow-night/30">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[13px] font-bold text-gold-soft">✨ 별콩이 답변</span>
+              <span className="text-13 font-bold text-gold-soft">✨ 별콩이 답변</span>
               {item.answered_at && (
-                <span className="text-[11px] text-white/45">· {fmtDateTime(item.answered_at)}</span>
+                <span className="text-11 text-white/45">· {fmtDateTime(item.answered_at)}</span>
               )}
             </div>
-            <p className="text-[14px] text-white/90 whitespace-pre-wrap leading-relaxed">
+            <p className="text-14 text-white/90 whitespace-pre-wrap leading-relaxed">
               {item.answer_body}
             </p>
           </div>
         ) : (
           <div className="bg-cream rounded-2xl p-4 border border-lilac-mid/20 text-center">
-            <p className="text-[13px] text-text-light/70">
+            <p className="text-13 text-text-light/70">
               별콩이가 확인하고 있어 ✨ 답변이 달리면 알려줄게.
             </p>
           </div>
@@ -156,26 +156,26 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="text-[12px] text-text-light/60 underline mx-auto block"
+                className="text-12 text-text-light/60 underline mx-auto block"
               >
                 문의 삭제
               </button>
             ) : (
               <div className="bg-white rounded-2xl p-4 border border-lilac-mid/30">
-                <p className="text-[13px] text-eye-purple text-center mb-3">
+                <p className="text-13 text-eye-purple text-center mb-3">
                   이 문의를 삭제할까? 되돌릴 수 없어.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
+                    className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-12"
                   >
                     취소
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50"
+                    className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-12 font-bold disabled:opacity-50"
                   >
                     삭제
                   </button>

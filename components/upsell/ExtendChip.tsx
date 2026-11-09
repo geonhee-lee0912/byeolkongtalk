@@ -44,29 +44,29 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
             : "border-gold/50 bg-cream-warm hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
         }`}
       >
-        <span className="text-[15px] shrink-0">💬</span>
+        <span className="text-15 shrink-0">💬</span>
         <div className="flex-1 min-w-0">
           {done ? (
-            <div className="text-[12px] font-bold text-text-light truncate">
+            <div className="text-12 font-bold text-text-light truncate">
               ✓ 이어가는 중
             </div>
           ) : loading ? (
-            <div className="text-[12px] font-bold text-eye-purple truncate">
+            <div className="text-12 font-bold text-eye-purple truncate">
               처리 중…
             </div>
           ) : (
             <>
-              <div className="text-[12px] font-bold text-eye-purple truncate">
+              <div className="text-12 font-bold text-eye-purple truncate">
                 별콩이랑 더 얘기하기
               </div>
-              <div className="text-[11px] text-text-light mt-0.5">
+              <div className="text-11 text-text-light mt-0.5">
                 ⭐{EXTEND_COST} · +{EXTEND_TURNS}턴
               </div>
             </>
           )}
         </div>
         {!done && !loading && (
-          <span className="text-text-light/60 text-[14px] shrink-0">›</span>
+          <span className="text-text-light/60 text-14 shrink-0">›</span>
         )}
       </button>
     </div>

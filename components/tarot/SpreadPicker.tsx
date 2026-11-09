@@ -60,7 +60,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href={CONCERN_REWRITE_HREF}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
         >
           <svg
             width="12"
@@ -89,10 +89,10 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
           priority
           className="drop-shadow-lg"
         />
-        <h1 className="font-display text-[24px] text-eye-purple text-center mt-4 tracking-wide leading-snug text-balance">
+        <h1 className="font-display text-22 text-eye-purple text-center mt-4 tracking-wide leading-snug text-balance">
           너의 고민을 내가 해결해 줄게
         </h1>
-        <p className="text-[12px] text-text-light text-center mt-1">
+        <p className="text-12 text-text-light text-center mt-1">
           카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨
         </p>
       </div>
@@ -104,12 +104,12 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
           style={{ background: TAROT_HERO_GRADIENT }}
         >
           <div className="flex items-center gap-2 mb-2">
-            {option && <span className="text-lg">{option.emoji}</span>}
-            <span className="text-[13px] font-bold text-gold-soft">
+            {option && <span className="text-17">{option.emoji}</span>}
+            <span className="text-13 font-bold text-gold-soft">
               {pending.emotion}
             </span>
           </div>
-          <p className="text-[13px] text-white/75 leading-relaxed line-clamp-3">
+          <p className="text-13 text-white/75 leading-relaxed line-clamp-3">
             {pending.concern}
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
       {/* 디바이더 — 리딩 방법 고르기 */}
       <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center gap-3">
         <span className="flex-1 h-px bg-lilac-mid/30" />
-        <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+        <span className="text-11 font-bold text-text-light tracking-[0.15em]">
           리딩 방법 고르기
         </span>
         <span className="flex-1 h-px bg-lilac-mid/30" />
@@ -164,23 +164,23 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 {/* 배지·가격은 각각 쪼개지 않는다 — 한 줄에 안 들어가면 가격이 통째로 다음 줄로(320px 7장 "가능성 스프레드 · / 7카드"·"⭐ / 55별") */}
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
                   <span
-                    className="text-[12.5px] font-black px-1.5 py-0.5 rounded-md text-white whitespace-nowrap"
+                    className="text-13 font-black px-1.5 py-0.5 rounded-md text-white whitespace-nowrap"
                     style={{ backgroundColor: info.accent }}
                   >
                     {info.label}
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
-                  <span className="text-[11px] font-bold text-text-light whitespace-nowrap">
+                  <span className="text-11 font-bold text-text-light whitespace-nowrap">
                     ⭐ {tarotPrice(type)}별
                   </span>
                 </div>
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}
-                <p className="text-[11px] font-medium text-eye-purple/85 mb-1">
+                <p className="text-11 font-medium text-eye-purple/85 mb-1">
                   {spreadAmountLine(type)}
                 </p>
                 {/* 설명 한 줄이 '뭘 보는지'를 맡는다 — 자리 이름 줄은 지웠다(1~3장은 설명과 같은 말 · 5장 이상은 설명을 길게 써서 대신,
                     spec 2026-10-25 §11 사용자 결정). 자리 이름은 뽑기 화면 칸마다 나온다 */}
-                <p className="text-[12px] text-text-light leading-snug">
+                <p className="text-12 text-text-light leading-snug">
                   {getSpreadDescription(type, category, pending.emotion)}
                 </p>
               </div>
@@ -196,10 +196,10 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
             href="/fortune/compat-social"
             className="flex items-center justify-between p-3.5 rounded-2xl border border-dashed border-lilac-mid/60 bg-cream/50"
           >
-            <span className="text-[12.5px] text-eye-purple">
+            <span className="text-13 text-eye-purple">
               🤝 두 사람 사주로 보는 <b>인간관계 궁합</b>도 있어
             </span>
-            <span className="text-text-light text-[12px]">›</span>
+            <span className="text-text-light text-12">›</span>
           </Link>
         )}
       </div>
@@ -209,7 +209,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
         <button
           onClick={handleStart}
           disabled={!selected}
-          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {selected ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기` : "스프레드를 골라줘"}
         </button>

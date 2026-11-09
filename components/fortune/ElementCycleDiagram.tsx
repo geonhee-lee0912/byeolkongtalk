@@ -58,8 +58,8 @@ export default function ElementCycleDiagram({
     <div
       className={`bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-[14.5px] font-extrabold text-lilac-deep mb-1.5">🔄 내 오행의 상생상극</h3>
-      <p className="text-[11px] text-text-light/70 leading-snug mb-2">
+      <h3 className="text-15 font-extrabold text-lilac-deep mb-1.5">🔄 내 오행의 상생상극</h3>
+      <p className="text-11 text-text-light/70 leading-snug mb-2">
         다섯 기운이 서로 북돋우고(상생) 누르는(상극) 관계야. 원이 클수록 내 사주에 그 기운이 많아.
       </p>
       <svg viewBox="0 -18 320 320" className="w-full max-w-[320px] mx-auto block" role="img" aria-label="오행 상생상극도">
@@ -143,13 +143,13 @@ export default function ElementCycleDiagram({
 
       {/* 범례 */}
       <div className="flex items-center justify-center gap-4 mt-1">
-        <span className="flex items-center gap-1.5 text-[11px] text-text-light">
+        <span className="flex items-center gap-1.5 text-11 text-text-light">
           <svg width="20" height="8" aria-hidden>
             <line x1="1" y1="4" x2="19" y2="4" stroke={SHENG_COLOR} strokeWidth="2.2" />
           </svg>
           상생 · 북돋움
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-text-light">
+        <span className="flex items-center gap-1.5 text-11 text-text-light">
           <svg width="20" height="8" aria-hidden>
             <line x1="1" y1="4" x2="19" y2="4" stroke={KE_COLOR} strokeWidth="1.6" strokeDasharray="3 4" />
           </svg>

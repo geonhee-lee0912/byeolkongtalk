@@ -35,16 +35,16 @@ export default function WelcomeStarsBanner() {
         href={`/login?next=${encodeURIComponent(next)}`}
         className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in active:scale-[0.99] transition"
       >
-        <span className="text-[20px] shrink-0">⭐</span>
+        <span className="text-20 shrink-0">⭐</span>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-eye-purple leading-tight">
+          <p className="text-13 font-bold text-eye-purple leading-tight">
             카카오로 시작하면 별 {WELCOME_BONUS_STARS}개 선물
           </p>
-          <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
+          <p className="text-12 text-eye-purple/75 mt-0.5 leading-tight">
             ⭐{SAJU_SINGLE_COST} 리포트는 그걸로 바로 볼 수 있어
           </p>
         </div>
-        <span className="text-eye-purple/60 text-[16px] shrink-0">→</span>
+        <span className="text-eye-purple/60 text-17 shrink-0">→</span>
       </Link>
     </div>
   );

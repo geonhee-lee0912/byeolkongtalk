@@ -29,7 +29,7 @@ export default function YearTimeline({ good, caution }: { good?: string; caution
           return (
             <div
               key={m}
-              className="flex-1 h-9 rounded-lg flex items-center justify-center text-[11px] font-extrabold tabular-nums"
+              className="flex-1 h-9 rounded-lg flex items-center justify-center text-11 font-extrabold tabular-nums"
               style={{ background: bg, color: fg }}
               title={`${m}월${g ? " · 좋은 달" : c ? " · 점검할 달" : ""}`}
             >
@@ -39,11 +39,11 @@ export default function YearTimeline({ good, caution }: { good?: string; caution
         })}
       </div>
       <div className="flex items-center justify-center gap-4 mt-2.5">
-        <span className="flex items-center gap-1.5 text-[11px] text-text-light">
+        <span className="flex items-center gap-1.5 text-11 text-text-light">
           <span className="w-3 h-3 rounded" style={{ background: GOOD }} />
           좋은 달
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-text-light">
+        <span className="flex items-center gap-1.5 text-11 text-text-light">
           <span className="w-3 h-3 rounded" style={{ background: CAUTION }} />
           점검할 달
         </span>

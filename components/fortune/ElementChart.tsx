@@ -24,7 +24,7 @@ export default function ElementChart({
     <div
       className={`bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-[14.5px] font-extrabold text-lilac-deep mb-4">🌈 내 오행 분포</h3>
+      <h3 className="text-15 font-extrabold text-lilac-deep mb-4">🌈 내 오행 분포</h3>
       <div className="flex flex-col gap-2.5">
         {ORDER.map((e) => {
           const c = counts[e] ?? 0;
@@ -34,7 +34,7 @@ export default function ElementChart({
           return (
             <div key={e} className="flex items-center gap-2.5">
               <span
-                className={`w-11 text-[12.5px] shrink-0 ${isMax ? "font-extrabold" : "font-bold"}`}
+                className={`w-11 text-13 shrink-0 ${isMax ? "font-extrabold" : "font-bold"}`}
                 style={{ color: ELEMENT_COLOR[e] }}
               >
                 {LABEL[e]}
@@ -50,7 +50,7 @@ export default function ElementChart({
                 />
               </div>
               <span
-                className={`w-14 text-right text-[11.5px] tabular-nums shrink-0 ${isMax ? "font-extrabold" : "text-text-light"}`}
+                className={`w-14 text-right text-12 tabular-nums shrink-0 ${isMax ? "font-extrabold" : "text-text-light"}`}
                 style={isMax ? { color: ELEMENT_COLOR[e] } : undefined}
               >
                 {c}개 · {pct}%
@@ -59,7 +59,7 @@ export default function ElementChart({
           );
         })}
       </div>
-      <p className="text-[11px] text-text-light/70 mt-3 leading-snug">
+      <p className="text-11 text-text-light/70 mt-3 leading-snug">
         여덟 글자(사주) 안 오행의 개수야. 가장 많은 기운은 진하게, 0개는 옅게 표시했어.
       </p>
     </div>

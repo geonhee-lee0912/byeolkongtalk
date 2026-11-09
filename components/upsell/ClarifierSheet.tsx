@@ -185,7 +185,7 @@ export default function ClarifierSheet({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[17px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             카드 한 장 더 뽑기
           </h2>
           <OverlayCloseButton
@@ -198,10 +198,10 @@ export default function ClarifierSheet({
 
         {/* 안내 */}
         <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
-          <p className="text-[13px] text-eye-purple leading-relaxed">
+          <p className="text-13 text-eye-purple leading-relaxed">
             마음 가는 카드 한 장만 더 골라줘
           </p>
-          <p className="text-[11px] text-text-light mt-1 leading-snug">
+          <p className="text-11 text-text-light mt-1 leading-snug">
             뽑는 순간 ⭐{CLARIFIER_COST}
             {balance !== null ? ` · 현재 잔액 ⭐${balance}` : ""}
              · 지금 카드들과 이어서 봐줄게
@@ -209,13 +209,13 @@ export default function ClarifierSheet({
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-3">
+          <p className="text-12 text-red-500 text-center px-5 mb-3">
             {error}
           </p>
         )}
 
         {submitting ? (
-          <div className="py-10 text-center text-text-light text-sm">
+          <div className="py-10 text-center text-text-light text-14">
             처리 중…
           </div>
         ) : (

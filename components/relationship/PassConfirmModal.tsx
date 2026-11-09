@@ -67,23 +67,23 @@ export default function PassConfirmModal({
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
         <div className="text-center mb-5">
-          <p className="font-display text-[17px] font-bold text-eye-purple">
+          <p className="font-display text-17 font-bold text-eye-purple">
             {plan.label} 구매할까?
           </p>
-          <p className="mt-1.5 text-[16px] font-bold text-lilac-deep">
+          <p className="mt-1.5 text-17 font-bold text-lilac-deep">
             ⭐ {plan.cost}별 차감
           </p>
         </div>
 
         <div className="rounded-xl border border-gold/50 bg-gold-soft/20 p-3 mb-5">
-          <p className="text-[11.5px] text-eye-purple leading-relaxed">
+          <p className="text-12 text-eye-purple leading-relaxed">
             하루 <b>{DAILY_TURN_CAP}번</b> 대화 · 초과 시 <b>{EXTEND_COST}별</b>
             마다 <b>{EXTEND_TURNS}번</b>씩 횟수 제한 없이 연장 · 자정 초기화
           </p>
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>
+          <p className="text-12 text-red-500 text-center mb-3">{error}</p>
         )}
 
         <div className="flex flex-col gap-2.5">
@@ -91,13 +91,13 @@ export default function PassConfirmModal({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "구매하는 중…" : "구매하기"}
           </button>
           <OverlayCloseButton
             disabled={loading}
-            className="w-full py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-[14px] hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
+            className="w-full py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-14 hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
           >
             취소
           </OverlayCloseButton>

@@ -46,7 +46,7 @@ export default function FortunePage({
 
       <FortuneGeneratingList />
 
-      <p className="w-full max-w-md mx-auto px-5 pt-6 text-[15px] font-bold text-eye-purple flex items-center gap-1.5">
+      <p className="w-full max-w-md mx-auto px-5 pt-6 text-15 font-bold text-eye-purple flex items-center gap-1.5">
         <SectionMark kind="fortune" /> 어떤 운세가 궁금해?
       </p>
       <CategoryChips active={chip} onSelect={selectChip} />
@@ -80,32 +80,32 @@ export default function FortunePage({
               <div className="flex-1 min-w-0">
                 {/* 좁은 폭에서 긴 상품명이면 가격·분량이 찌그러지지 않고 한 덩어리로 다음 줄로 내려가게. */}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-[15px] font-bold text-eye-purple">{f.label}</span>
+                  <span className="text-15 font-bold text-eye-purple">{f.label}</span>
                   <span className="inline-flex items-center gap-2 whitespace-nowrap">
                     {f.cost === 0 ? (
-                      <span className="text-[10px] font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
+                      <span className="text-11 font-bold text-sub-warm bg-gold-soft/30 px-1.5 py-0.5 rounded-full">
                         하루 1회 무료
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                      <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                         ⭐ {f.cost}
                       </span>
                     )}
                     {FORTUNE_LENGTH_HINT[f.type] && (
-                      <span className="text-[10px] font-medium text-text-light/70">
+                      <span className="text-11 font-medium text-text-light/70">
                         · {FORTUNE_LENGTH_HINT[f.type]}
                       </span>
                     )}
                   </span>
                 </div>
-                <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+                <p className="text-13 text-text-light/80 mt-1 leading-snug line-clamp-2">
                   {tagline}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {FORTUNE_HASHTAGS[f.type].map((h) => (
                     <span
                       key={h}
-                      className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                      className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                     >
                       #{h}
                     </span>
@@ -113,7 +113,7 @@ export default function FortunePage({
                 </div>
               </div>
               {!f.active && (
-                <span className="text-[10px] text-text-light/50 shrink-0">준비 중</span>
+                <span className="text-11 text-text-light/50 shrink-0">준비 중</span>
               )}
             </div>
           );
@@ -128,7 +128,7 @@ export default function FortunePage({
         })}
       </div>
 
-      <p className="mt-6 text-[11px] text-text-light/50 text-center px-8 leading-relaxed">
+      <p className="mt-6 text-11 text-text-light/50 text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성을 비춰주는 거야.
         <br />
         결과는 <span className="text-text-light/70">내 고민톡</span>에서 다시 볼 수 있어.

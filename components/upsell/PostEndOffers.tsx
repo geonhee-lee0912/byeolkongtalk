@@ -80,7 +80,7 @@ function OfferChip({
       aria-label={ariaLabel}
       aria-busy={working || undefined}
       // whitespace-nowrap: 칩 안에서 단어가 꺾이지 않는다(폭이 모자라면 칩 단위로 줄을 바꾼다) · relative: 처리 중 문구를 겹쳐 놓는 기준
-      className="relative inline-flex items-center whitespace-nowrap rounded-full border border-gold bg-cream-warm px-3 py-1.5 text-[12px] text-eye-purple transition enabled:hover:bg-gold/10 enabled:active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="relative inline-flex items-center whitespace-nowrap rounded-full border border-gold bg-cream-warm px-3 py-1.5 text-12 text-eye-purple transition enabled:hover:bg-gold/10 enabled:active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {/* 처리 중에도 원래 내용을 자리에 남겨(보이지 않게) 칩 폭이 바뀌지 않게 한다 */}
       <span className={`inline-flex items-center gap-[5px]${working ? " invisible" : ""}`}>
@@ -114,7 +114,7 @@ export default function PostEndOffers({ extend, clarifier, busy, onExtend, onCla
       {/* 가는 구분선 + 가운데 안내 — 하단 바는 흰 배경이라 text-light 를 쓴다 */}
       <div className="flex items-center gap-2">
         <span aria-hidden="true" className="h-px flex-1 bg-lilac-mid/40" />
-        <p className="whitespace-nowrap text-[11px] text-text-light">아직 할 얘기가 남았다면</p>
+        <p className="whitespace-nowrap text-11 text-text-light">아직 할 얘기가 남았다면</p>
         <span aria-hidden="true" className="h-px flex-1 bg-lilac-mid/40" />
       </div>
       {/* 375px 에선 한 줄. 320px 근처에서 폭이 모자라면 칩 단위로 두 줄 가운데 정렬 */}

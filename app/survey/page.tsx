@@ -76,15 +76,15 @@ export default function SurveyPage() {
   if (phase === "loading") {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">불러오는 중…</p>
+        <p className="text-text-light text-14">불러오는 중…</p>
       </main>
     );
   }
   if (phase === "already") {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center gap-4">
-        <p className="text-[15px] text-eye-purple">이미 이야기 들려줬어. 고마워 🌟</p>
-        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]">
+        <p className="text-15 text-eye-purple">이미 이야기 들려줬어. 고마워 🌟</p>
+        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14">
           홈으로
         </Link>
       </main>
@@ -93,12 +93,12 @@ export default function SurveyPage() {
   if (phase === "done") {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center gap-4">
-        <p className="text-[15px] text-eye-purple leading-relaxed">
+        <p className="text-15 text-eye-purple leading-relaxed">
           들려줘서 고마워!
           <br />
           별콩별 {SURVEY_REWARD_STARS}개를 넣어줬어 🌟
         </p>
-        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]">
+        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14">
           홈으로
         </Link>
       </main>
@@ -108,11 +108,11 @@ export default function SurveyPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-lg font-bold text-eye-purple mb-2">별콩이의 질문</h1>
-        <p className="text-[13px] text-text-light leading-relaxed mb-3">
+        <h1 className="text-17 font-bold text-eye-purple mb-2">별콩이의 질문</h1>
+        <p className="text-13 text-text-light leading-relaxed mb-3">
           별콩이를 도와줘! 너의 한마디로 더 좋은 별콩이가 될 수 있으니 편하고 솔직하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개를 줄게~!
         </p>
-        <p className="text-[12px] text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
+        <p className="text-12 text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
           🌟 매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
         </p>
         <div className="space-y-5">
@@ -120,7 +120,7 @@ export default function SurveyPage() {
             if (q.type === "multi") {
               return (
                 <div key={q.id}>
-                  <label className="block text-[13.5px] font-bold text-eye-purple mb-2">
+                  <label className="block text-14 font-bold text-eye-purple mb-2">
                     {i + 1}. {q.text}
                   </label>
                   <div className="space-y-2">
@@ -128,7 +128,7 @@ export default function SurveyPage() {
                       const on = contactChecked.includes(opt.id);
                       return (
                         <div key={opt.id}>
-                          <label className="flex items-center gap-2 text-[13px] text-eye-purple cursor-pointer">
+                          <label className="flex items-center gap-2 text-13 text-eye-purple cursor-pointer">
                             <input
                               type="checkbox"
                               checked={on}
@@ -144,7 +144,7 @@ export default function SurveyPage() {
                               onChange={(e) => setContactInput(opt.id, e.target.value)}
                               maxLength={MULTI_INPUT_MAX}
                               placeholder={opt.input.prompt}
-                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/40 bg-cream-warm p-2.5 text-[13px] text-eye-purple focus:outline-none focus:border-lilac-deep"
+                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/40 bg-cream-warm p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
                             />
                           )}
                         </div>
@@ -152,7 +152,7 @@ export default function SurveyPage() {
                     })}
                   </div>
                   {!contactValid && (
-                    <div className="text-[11px] mt-1.5 text-text-light/50">
+                    <div className="text-11 mt-1.5 text-text-light/50">
                       하나 이상 골라줘 (직접 입력 항목은 내용도 적어줘)
                     </div>
                   )}
@@ -163,7 +163,7 @@ export default function SurveyPage() {
             const ok = len >= SURVEY_MIN_CHARS;
             return (
               <div key={q.id}>
-                <label className="block text-[13.5px] font-bold text-eye-purple mb-2">
+                <label className="block text-14 font-bold text-eye-purple mb-2">
                   {i + 1}. {q.text}
                 </label>
                 <textarea
@@ -172,21 +172,21 @@ export default function SurveyPage() {
                     setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))
                   }
                   rows={3}
-                  className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-[13px] text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
+                  className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
                   placeholder="편하게 작성해줘"
                 />
-                <div className={`text-[11px] mt-1 text-right ${ok ? "text-lilac-deep" : "text-text-light/50"}`}>
+                <div className={`text-11 mt-1 text-right ${ok ? "text-lilac-deep" : "text-text-light/50"}`}>
                   {ok ? `✓ ${len}자` : `최소 ${SURVEY_MIN_CHARS}자 · ${len}자`}
                 </div>
               </div>
             );
           })}
         </div>
-        {error && <p className="text-[12px] text-rose-500 mt-4">{error}</p>}
+        {error && <p className="text-12 text-rose-500 mt-4">{error}</p>}
         <button
           onClick={submit}
           disabled={!allValid || submitting}
-          className="w-full mt-6 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full mt-6 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting ? "보내는 중…" : `별콩별 ${SURVEY_REWARD_STARS}개 받기`}
         </button>

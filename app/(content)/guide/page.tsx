@@ -52,10 +52,10 @@ export default function GuideHome() {
         />
       </div>
 
-      <h1 className="font-display text-[22px] text-eye-purple">
+      <h1 className="font-display text-22 text-eye-purple">
         별콩이의 타로 가이드
       </h1>
-      <p className="text-[12.5px] text-text-light mt-1.5 leading-relaxed">
+      <p className="text-13 text-text-light mt-1.5 leading-relaxed">
         카드가 처음이어도 괜찮아 — 고민별로 무엇을 어떻게 보는지 차근차근
         정리해뒀어.
       </p>
@@ -67,13 +67,13 @@ export default function GuideHome() {
             href={h.href}
             className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
           >
-            <p className="text-[14px] font-bold text-eye-purple">{h.title}</p>
-            <p className="text-[11.5px] text-text-light mt-0.5">{h.desc}</p>
+            <p className="text-14 font-bold text-eye-purple">{h.title}</p>
+            <p className="text-12 text-text-light mt-0.5">{h.desc}</p>
           </Link>
         ))}
       </div>
 
-      <h2 className="text-[14px] font-bold text-eye-purple mt-6 mb-2">
+      <h2 className="text-14 font-bold text-eye-purple mt-6 mb-2">
         고민별 타로 가이드
       </h2>
       <div className="flex flex-col gap-2.5">
@@ -83,10 +83,10 @@ export default function GuideHome() {
             href={`/guide/themes/${slug}`}
             className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
           >
-            <p className="text-[14px] font-bold text-eye-purple">
+            <p className="text-14 font-bold text-eye-purple">
               {t.title.split("—")[0].trim()}
             </p>
-            <p className="text-[11.5px] text-text-light mt-0.5">
+            <p className="text-12 text-text-light mt-0.5">
               {t.title.split("—")[1].trim()}
             </p>
           </Link>

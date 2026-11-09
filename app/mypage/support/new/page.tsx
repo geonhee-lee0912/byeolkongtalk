@@ -51,20 +51,20 @@ export default function SupportNewPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage/support" className="text-[12px] text-text-light/70">
+        <Link href="/mypage/support" className="text-12 text-text-light/70">
           ‹ 문의 목록
         </Link>
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
-        <h1 className="text-[16px] font-bold text-eye-purple">문의하기</h1>
+        <h1 className="text-17 font-bold text-eye-purple">문의하기</h1>
 
         <div>
-          <label className="block text-[12px] font-bold text-eye-purple mb-1.5">분류</label>
+          <label className="block text-12 font-bold text-eye-purple mb-1.5">분류</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as InquiryCategory)}
-            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-[14px] text-eye-purple"
+            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-14 text-eye-purple"
           >
             {CATEGORY_ENTRIES.map(([key, label]) => (
               <option key={key} value={key}>
@@ -75,35 +75,35 @@ export default function SupportNewPage() {
         </div>
 
         <div>
-          <label className="block text-[12px] font-bold text-eye-purple mb-1.5">제목</label>
+          <label className="block text-12 font-bold text-eye-purple mb-1.5">제목</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, INQUIRY_TITLE_MAX))}
             placeholder="제목을 입력해줘"
-            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-[14px] text-eye-purple"
+            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-14 text-eye-purple"
           />
         </div>
 
         <div>
-          <label className="block text-[12px] font-bold text-eye-purple mb-1.5">내용</label>
+          <label className="block text-12 font-bold text-eye-purple mb-1.5">내용</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, INQUIRY_BODY_MAX))}
             rows={8}
             placeholder="어떤 점이 불편했는지, 무엇이 궁금한지 자세히 적어줘."
-            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-[14px] text-eye-purple resize-none"
+            className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-14 text-eye-purple resize-none"
           />
-          <div className="text-[11px] text-text-light/60 text-right mt-1">
+          <div className="text-11 text-text-light/60 text-right mt-1">
             {bodyLen} / {INQUIRY_BODY_MAX}
           </div>
         </div>
 
-        {error && <p className="text-[12px] text-rose-500">{error}</p>}
+        {error && <p className="text-12 text-rose-500">{error}</p>}
 
         <button
           onClick={submit}
           disabled={!canSubmit}
-          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? "보내는 중…" : "문의 보내기"}
         </button>

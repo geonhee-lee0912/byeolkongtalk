@@ -77,7 +77,7 @@ export default async function ThemePage({
           }).replace(/</g, "\\u003c"),
         }}
       />
-      <nav className="text-[11px] text-text-light mb-3">
+      <nav className="text-11 text-text-light mb-3">
         <Link href="/guide" className="hover:text-eye-purple">
           별콩이의 타로 가이드
         </Link>
@@ -110,16 +110,16 @@ export default async function ThemePage({
         </div>
       )}
 
-      <h1 className="font-display text-[21px] text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug">
         {entry.title}
       </h1>
-      <p className="text-[13.5px] text-eye-purple/90 leading-relaxed mt-4">
+      <p className="text-14 text-eye-purple/90 leading-relaxed mt-4">
         {entry.intro}
       </p>
 
       {spreads.length > 0 && (
         <>
-          <h2 className="text-[15px] font-bold text-eye-purple mt-6 mb-2">
+          <h2 className="text-15 font-bold text-eye-purple mt-6 mb-2">
             이 고민에 맞는 스프레드
           </h2>
           <div className="flex flex-col gap-2">
@@ -127,7 +127,7 @@ export default async function ThemePage({
               <Link
                 key={s}
                 href={`/guide/spreads/${buildSpreadSlug(s)}`}
-                className="text-[13px] font-bold text-lilac-deep bg-white/80 border border-lilac-soft rounded-xl px-3.5 py-2.5 hover:border-lilac-deep/40 transition"
+                className="text-13 font-bold text-lilac-deep bg-white/80 border border-lilac-soft rounded-xl px-3.5 py-2.5 hover:border-lilac-deep/40 transition"
               >
                 {SPREAD_INFO[s].label} ({SPREAD_INFO[s].cardCount}장) ›
               </Link>
@@ -136,14 +136,14 @@ export default async function ThemePage({
         </>
       )}
 
-      <h2 className="text-[15px] font-bold text-eye-purple mt-6 mb-2">
+      <h2 className="text-15 font-bold text-eye-purple mt-6 mb-2">
         자주 묻는 질문
       </h2>
       <div className="space-y-3">
         {entry.faq.map((f) => (
           <div key={f.q}>
-            <p className="text-[13px] font-bold text-eye-purple">Q. {f.q}</p>
-            <p className="text-[13px] text-eye-purple/90 leading-relaxed mt-1">
+            <p className="text-13 font-bold text-eye-purple">Q. {f.q}</p>
+            <p className="text-13 text-eye-purple/90 leading-relaxed mt-1">
               {f.a}
             </p>
           </div>

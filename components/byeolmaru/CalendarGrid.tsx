@@ -108,7 +108,7 @@ export default function CalendarGrid({
              어디에도 없어진다(접이식 버튼이 2026-09-26 에 삭제되며 한 번 겪은 일이다).
           🔴 월 이동(◀▶)은 이번 스코프가 아니다 — 넣으면 "지난 달 리포트 소급 생성"·"몇 달
              전까지 보나" 같은 정책이 줄줄이 붙는다. */}
-      <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs">
+      <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-12">
         {WEEKDAYS.map((w, i) => (
           // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.
           // 팔레트에 빨강이 없으므로 lilac-deep 으로 구분한다.
@@ -134,7 +134,7 @@ export default function CalendarGrid({
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
                 style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >
-                <span className="text-[11px] leading-[13px] text-text-light/60">{Number(date.slice(8, 10))}</span>
+                <span className="text-11 leading-[13px] text-text-light/60">{Number(date.slice(8, 10))}</span>
                 {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. */}
                 <span aria-hidden className="h-[20px]" />
               </div>
@@ -176,7 +176,7 @@ export default function CalendarGrid({
                   찾기 어려웠다(30칸이 다 찬 뒤 드러난 결함). 점수가 주 신호라는 위계는
                   유지한다: bold 로 만들거나 점수와 같은 크기로 올리지 않는다. */}
               <span
-                className="text-[11px] leading-[13px]"
+                className="text-11 leading-[13px]"
                 style={{
                   color: c.isToday ? "rgba(255,255,255,.72)" : "rgba(122,107,160,.78)",
                 }}
@@ -190,7 +190,7 @@ export default function CalendarGrid({
                   🔴 크기는 16px 다 — 2026-09-26 에 "점" 제거와 묶여 17px 로 올라갔는데 스펙 §6-3 은
                   제거만 말했다. 명시 안 된 1px 라 2026-09-27 실물 검수에서 되돌렸다. */}
               <span
-                className="text-[16px] font-semibold leading-[20px]"
+                className="text-16 font-semibold leading-[20px]"
                 style={{ color: c.isToday ? "#ffffff" : cellTextColor(c.score) }}
               >
                 {scoreDisplay(c.score)}

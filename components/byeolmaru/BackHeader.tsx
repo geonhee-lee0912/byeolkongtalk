@@ -25,9 +25,9 @@ export default function BackHeader() {
         //    음수 마진은 여전히 안 쓴다(2026-09-24 지적).
         // 🔴 세로 패딩(py-2)은 장식이 아니라 **탭 타깃**이다 — 13px 글자만 두면 높이가 ~18px 라
         //    손가락으로 누르기 어렵다. 빼지 말 것.
-        className="inline-flex items-center gap-1.5 py-2 pr-2 text-[13px] font-medium text-eye-purple transition hover:opacity-70 active:scale-[0.97]"
+        className="inline-flex items-center gap-1.5 py-2 pr-2 text-13 font-medium text-eye-purple transition hover:opacity-70 active:scale-[0.97]"
       >
-        <span aria-hidden className="text-[15px] leading-none">←</span>
+        <span aria-hidden className="text-15 leading-none">←</span>
         별마루
       </Link>
     </header>

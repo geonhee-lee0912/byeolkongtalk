@@ -54,10 +54,10 @@ export default function Error({
         className="mb-4"
         aria-hidden
       />
-      <h1 className="font-display text-[28px] text-eye-purple mb-2">
+      <h1 className="font-display text-28 text-eye-purple mb-2">
         별콩이가 잠깐 별을 놓쳤어
       </h1>
-      <p className="text-[14px] text-text-light mb-6 leading-relaxed">
+      <p className="text-14 text-text-light mb-6 leading-relaxed">
         하늘이 잠시 흐려졌나봐.
         <br />
         다시 한 번 시도해줄래?
@@ -66,20 +66,20 @@ export default function Error({
       <div className="flex flex-col gap-2 w-full max-w-[260px]">
         <button
           onClick={() => (chunkError ? window.location.reload() : reset())}
-          className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] hover:bg-lilac-deep/90 transition"
+          className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 hover:bg-lilac-deep/90 transition"
         >
           다시 시도하기
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] hover:bg-lilac-deep/5 transition"
+          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 hover:bg-lilac-deep/5 transition"
         >
           홈으로 돌아가기
         </Link>
       </div>
 
       {error.digest && (
-        <p className="mt-6 text-[11px] text-text-light/50 font-mono">
+        <p className="mt-6 text-11 text-text-light/50 font-mono">
           {error.digest}
         </p>
       )}
