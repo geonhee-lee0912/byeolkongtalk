@@ -16,17 +16,98 @@
   --color-gold: #E8C26A;
   --color-gold-soft: #F2D78A;
   --color-eye-purple: #5A3E8C;
-  --color-text-light: #7A6BA0;
+  /* 글자색 4개(스펙 2026-11-09 §2.5) — 밝은 바탕에서 4.5:1 이상. 투명도 글자(text-text-light/70 등)는 쓰지 않는다 */
+  --color-text-light: #726398;
+  --color-accent: #775CB0; /* 강조 글자·칩·주 버튼 바탕 */
+  --color-accent-on-dark: #9F8AD0; /* 밤 바탕 위 강조 글자(lilac-deep 과 같은 색) */
+  --color-text-faint: #978AB3; /* 입력 전 안내·못 누르는 상태만 */
+  --color-inner: #FBF8FE; /* 안쪽 칸 바탕 */
+  --color-gold-wash: #FBF1D6; /* 골드 안내 배너 바탕 */
   --color-night: #1F1735;
   --color-night-deep: #2A1F4D;
+
+  /* 글자 크기 10단계 + 큰 숫자(스펙 §2.2). rem 이지만 html 을 16px 로 고정해 기기·브라우저 글자 설정과 무관 */
+  --text-11: 0.6875rem;
+  --text-11--line-height: 1rem;
+  --text-12: 0.75rem;
+  --text-12--line-height: 1.125rem;
+  --text-13: 0.8125rem;
+  --text-13--line-height: 1.25rem;
+  --text-14: 0.875rem;
+  --text-14--line-height: 1.3125rem;
+  --text-15: 0.9375rem;
+  --text-15--line-height: 1.375rem;
+  --text-16: 1rem; /* 읽는 본문 — 상담 말풍선·리포트 본문 */
+  --text-16--line-height: 1.625rem;
+  --text-17: 1.0625rem;
+  --text-17--line-height: 1.5rem;
+  --text-20: 1.25rem;
+  --text-20--line-height: 1.75rem;
+  --text-22: 1.375rem;
+  --text-22--line-height: 1.875rem;
+  --text-28: 1.75rem;
+  --text-28--line-height: 2.25rem;
+  --text-44: 2.75rem;
+  --text-44--line-height: 1;
+  --text-52: 3.25rem;
+  --text-52--line-height: 1;
+
+  /* 그림자 3단계(스펙 §2.4) — 높이 뜬 것일수록 진하게. 바텀시트는 그림자 없이 뒤 막으로 */
+  --shadow-card: 0 1px 4px rgba(90, 62, 140, 0.08);
+  --shadow-float: 0 4px 16px rgba(40, 30, 70, 0.12);
+  --shadow-float-up: 0 -4px 16px rgba(40, 30, 70, 0.12);
+  --shadow-modal: 0 8px 32px rgba(31, 23, 53, 0.25);
 
   /* 폰트 — Noto Sans KR (본문) / Cafe24 Ssurround (디스플레이/타이틀) */
   --font-sans: var(--font-noto-sans-kr), system-ui, sans-serif;
   --font-display: var(--font-cafe24), var(--font-noto-sans-kr), system-ui, sans-serif;
 }
 
+/* ─────────────────────────────────────────────
+   공용 부품(스펙 2026-11-09 §2.6·§2.7) — <button>·<Link>·<a> 어디에나 붙인다
+   버튼: btn + 종류(btn-primary|btn-secondary|btn-text) + 크기(btn-lg|btn-md|btn-sm)
+   카드: card(크림 위 바닥 카드) · card-report(글 많은 리포트) · card-inner(카드·시트 안 칸) · card-night(밤 카드)
+   ───────────────────────────────────────────── */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-15 transition active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+}
+@utility btn-primary {
+  @apply bg-accent text-white;
+}
+@utility btn-secondary {
+  @apply bg-lilac-soft text-eye-purple;
+}
+@utility btn-text {
+  @apply bg-transparent text-eye-purple;
+}
+@utility btn-lg {
+  @apply h-13 w-full px-5;
+}
+@utility btn-md {
+  @apply h-11 px-[18px];
+}
+@utility btn-sm {
+  @apply h-9 px-3.5 text-13;
+}
+@utility card {
+  @apply bg-white rounded-2xl shadow-card p-4;
+}
+@utility card-report {
+  @apply bg-white rounded-2xl shadow-card p-5;
+}
+@utility card-inner {
+  @apply bg-inner border border-lilac-mid/35 rounded-xl p-3;
+}
+@utility bg-night-card {
+  background: linear-gradient(140deg, #2A1F4D, #1F1735);
+}
+@utility card-night {
+  @apply bg-night-card rounded-2xl p-4 text-cream-warm;
+}
+
 /* 메인 배경 — 크림 → 연보라 그라데이션 (별콩이 외형 톤) */
 html {
+  font-size: 16px; /* 글자 고정(스펙 §2.2) — 기기·브라우저 글자 설정과 무관. 나중에 켤 땐 여기 */
   background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
   background-attachment: fixed;
   min-height: 100%;

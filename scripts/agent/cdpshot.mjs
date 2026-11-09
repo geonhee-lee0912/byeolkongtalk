@@ -1,4 +1,4 @@
-// 헤드리스 Edge(CDP) 화면 찍기 [로컬에서] — node scripts/agent/cdpshot.mjs <url> <out.png> [--app ios|android] [--user <uuid>] [--eval <js>] [--steps <json>]
+// 헤드리스 Edge(CDP) 화면 찍기 [로컬에서] — node scripts/agent/cdpshot.mjs <url> <out.png> [--app ios|android] [--user <uuid>] [--eval <js>] [--steps <json>] [--full]
 // --steps: [{"click":"css"},{"wait":500},{"eval":"js"},{"shot":"path"},{"back":true},{"scroll":800}]
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdtempSync } from "node:fs";
@@ -39,7 +39,8 @@ if (args.includes("--transparent")) await send("Emulation.setDefaultBackgroundCo
 if (args.includes("--reduce")) await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
 if (user) await send("Network.setCookie", { name: "byeolkong_user_id", value: user, url: new URL(url).origin });
 const ev = async (js) => (await send("Runtime.evaluate", { expression: js, returnByValue: true, awaitPromise: true })).result.result?.value;
-const shot = async (p) => { const r = await send("Page.captureScreenshot", { format: "png" }); writeFileSync(p, Buffer.from(r.result.data, "base64")); };
+const full = args.includes("--full");
+const shot = async (p) => { const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: full }); writeFileSync(p, Buffer.from(r.result.data, "base64")); };
 await send("Page.navigate", { url });
 for (let i = 0; i < 100; i++) { await sleep(300); if ((await ev("document.readyState")) === "complete") break; }
 await sleep(2500);
