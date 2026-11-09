@@ -175,7 +175,7 @@ export default function ClarifierSheet({
       onClose={closeSheet}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[90vh] overflow-y-auto"
     >
         {/* 그랩바 */}

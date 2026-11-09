@@ -37,7 +37,7 @@ export default function CollapsibleSection({
       >
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
-          style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
+          style={{ background: "#F3E9DF" }}
           aria-hidden
         >
           {emoji}

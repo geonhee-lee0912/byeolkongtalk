@@ -9,7 +9,6 @@ import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import ReportAccordion, { type AccordionItem } from "@/components/fortune/ReportAccordion";
 
-const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
 function Chips({ items }: { items: string[] }) {
   return (
@@ -182,7 +181,7 @@ export default function SajuFullReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 다크 종합운 히어로 */}
-      <div className="rounded-2xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-6 text-white bg-night-card">
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
             <Image src="/fortune-hero-saju_full.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
@@ -236,7 +235,7 @@ export default function SajuFullReportView({
       />
 
       {/* 별콩이의 한마디 — 항상 노출 */}
-      <div className="rounded-2xl px-6 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-6 py-6 text-white bg-night-card">
         <div className="flex items-center gap-2 mb-2">
           <Image
             src="/byeolkong-main.png"

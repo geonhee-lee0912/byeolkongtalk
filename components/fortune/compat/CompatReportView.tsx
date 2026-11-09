@@ -12,7 +12,6 @@ import ReportAccordion, { type AccordionItem } from "@/components/fortune/Report
 import CompatMatchDiagram from "./CompatMatchDiagram";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
 
-const DARK_GRADIENT = "linear-gradient(140deg, #2A1F4D, #1F1735)";
 
 const GRADE_COLOR: Record<CompatGrade, string> = {
   // 연애 궁합
@@ -100,7 +99,7 @@ export default function CompatReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 다크 히어로 — 등급 배지 + 테마 + summary */}
-      <div className="rounded-2xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-6 text-white bg-night-card">
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
             <Image
@@ -156,7 +155,7 @@ export default function CompatReportView({
       <ReportAccordion items={items} accentIcon="/byeolkong-cheer.png" />
 
       {/* 다크 별콩이의 한마디 — 항상 노출 */}
-      <div className="rounded-2xl px-5 py-5 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-5 text-white bg-night-card">
         <div className="flex items-center gap-2 mb-2">
           <Image
             src="/byeolkong-main.png"

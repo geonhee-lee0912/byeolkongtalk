@@ -291,7 +291,7 @@ export default function CardDrawRitual({
         <div className={`flex flex-col items-center ${slim ? "mb-3" : "mb-5"}`}>
           {!slim && (
             <div className="relative w-14 h-14 mb-2">
-              <div className="absolute inset-0 bg-gold/30 rounded-full blur-xl scale-110" />
+              <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/profile.png"

@@ -64,7 +64,7 @@ export default function PassConfirmModal({
       onClose={onClose}
       dismissible={!loading}
       z={100}
-      backdropClassName="bg-night/75 backdrop-blur-md"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
         <div className="text-center mb-5">

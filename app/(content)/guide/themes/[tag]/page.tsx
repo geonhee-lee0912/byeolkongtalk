@@ -93,7 +93,7 @@ export default async function ThemePage({
             // → 배경이 구워진 신규 WebP 4종과 톤을 맞추려고 CSS 그라데이션을 깐다
             hero.hasBackground
               ? null
-              : "bg-gradient-to-b from-lilac-soft to-lilac",
+              : "bg-lilac-soft",
           ]
             .filter(Boolean)
             .join(" ")}

@@ -116,7 +116,8 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
                 boxDecorationBreak: "clone",
                 WebkitBoxDecorationBreak: "clone",
               }
-            : { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
+            : // design-allow: 형광펜 밑줄(기능)
+              { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
         }
       >
         {p.s}
@@ -163,7 +164,7 @@ export function MarkdownLite({
                 <span className="shrink-0 flex h-[1.7em] items-center" aria-hidden>
                   <span
                     className="w-4 h-4 rounded-lg flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
+                    style={{ background: "#E8DEF5" }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#9F8AD0" }} />
                   </span>
@@ -177,7 +178,7 @@ export function MarkdownLite({
             key={i}
             className="my-3 flex gap-2.5 rounded-2xl px-4 py-3"
             style={{
-              background: "linear-gradient(135deg, #FBF3DE, #F7EAF3)",
+              background: "#FBF3DE",
               border: "1px solid rgba(232, 194, 106, 0.4)",
             }}
           >

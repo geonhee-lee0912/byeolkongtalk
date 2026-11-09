@@ -70,13 +70,11 @@ export default function HeroBanner({
           return (
             <div
               key={i}
-              className={`absolute ${p.size} ${p.color} rounded-full animate-star-twinkle`}
+              className={`absolute ${p.size} ${p.color} rounded-full`}
               style={style}
             />
           );
         })}
-        <div className="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -left-16 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
       </div>
 
       <div
@@ -85,7 +83,7 @@ export default function HeroBanner({
         }`}
       >
         <div
-          className="relative mb-3 animate-float"
+          className="relative mb-3"
           style={{ width: imageSize, height: imageSize }}
         >
           <Image

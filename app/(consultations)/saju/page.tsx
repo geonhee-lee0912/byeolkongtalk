@@ -116,7 +116,7 @@ export default function SajuPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-6 flex flex-col items-center">
-        <div className="relative animate-float">
+        <div className="relative">
           <Image src="/byeolkong-saju.png" alt="별콩이" width={140} height={140} priority />
         </div>
         <h1 className="mt-5 font-display text-22 font-bold text-eye-purple text-center">

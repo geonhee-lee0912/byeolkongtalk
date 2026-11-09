@@ -85,7 +85,7 @@ export default function AcquaintanceListModal({
         z={50}
         widthClassName="max-w-md"
         gutterClassName="px-5"
-        backdropClassName="bg-black/30"
+        backdropClassName="bg-night/50 backdrop-blur-sm"
       >
         <div
           ref={scrollRef}
@@ -279,7 +279,7 @@ export default function AcquaintanceListModal({
           z={60}
           widthClassName="max-w-xs"
           gutterClassName="px-5"
-          backdropClassName="bg-black/30"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
         >
           <div className="bg-white rounded-2xl w-full max-w-xs p-2">
             <button
@@ -323,7 +323,7 @@ export default function AcquaintanceListModal({
           z={60}
           widthClassName="max-w-xs"
           gutterClassName="px-5"
-          backdropClassName="bg-black/30"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
         >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
             <p className="text-14 font-bold text-eye-purple mb-2">지인 사주 삭제</p>

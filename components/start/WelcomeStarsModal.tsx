@@ -24,11 +24,11 @@ export default function WelcomeStarsModal({
       dismissible={false}
       z={80}
       gutterClassName="px-5"
-      backdropClassName="bg-night/60 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
       <div className="w-full max-w-sm bg-cream rounded-3xl p-7 text-center">
         <div className="relative w-24 h-24 mx-auto mb-3">
-          <div className="absolute inset-0 bg-gold/40 rounded-full blur-xl scale-110" />
+          <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/byeolkong-joy.png"

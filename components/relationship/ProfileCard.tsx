@@ -70,8 +70,7 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
   const noBirth = !partner?.birthDate;
   return (
     <div
-      className="rounded-2xl p-4 mt-4"
-      style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)", color: "#fff" }}
+      className="card-night mt-4 text-white"
     >
       <div className="flex items-center gap-2.5">
         <div className="shrink-0 ring-1 ring-white/25 rounded-full">

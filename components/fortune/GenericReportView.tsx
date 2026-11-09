@@ -25,7 +25,7 @@ function SectionCard({ heading, body }: { heading: string; body: string }) {
       <div className="flex items-center gap-2.5 mb-3">
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
-          style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
+          style={{ background: "#F3E9DF" }}
           aria-hidden
         >
           {emoji}
@@ -88,8 +88,7 @@ export default function GenericReportView({
 
       {/* 별콩이 한마디 — 항상 노출 */}
       <div
-        className="rounded-2xl px-6 py-6 text-white"
-        style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
+        className="rounded-2xl px-6 py-6 text-white bg-night-card"
       >
         <div className="flex items-center gap-2 mb-2">
           <Image

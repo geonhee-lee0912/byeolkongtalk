@@ -310,7 +310,7 @@ function renderReportCard(r: ReadingItem) {
     return (
       <div
         key={r.id}
-        className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+        className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-night-card"
       >
         <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
           {fortuneIcon(r.emotionTag, 24)}

@@ -19,7 +19,7 @@ export default function SurveyResultCard() {
     <div className="w-full max-w-md mx-auto px-5 mt-4">
       <Link
         href="/survey"
-        className="block rounded-2xl border border-gold/40 bg-gradient-to-br from-gold-soft/25 to-cream-warm p-4 transition"
+        className="block card transition"
       >
         <div className="text-14 font-bold text-eye-purple">별콩이가 너한테 궁금한 게 있어 🌟</div>
         <div className="text-12 text-text-light mt-1">

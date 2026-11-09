@@ -72,7 +72,7 @@ const BYEOLMARU_SAJU_CARD: CrossCard = {
   badge: "무료",
   // 🔴 FORTUNE_GRADIENTS.daily(금색)를 쓰면 안 된다 — 이 아이콘은 크림색 마루라 금색 타일
   //    위에서 대비가 사라져 형태가 뭉개진다(56px 실측). 홈 카드와 같은 라일락으로 맞춘다.
-  gradient: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+  gradient: "#E8DEF5",
 };
 
 export interface CrossCard {
@@ -142,7 +142,7 @@ export function crossCards(
       label: "타로로 고민 상담",
       tagline: "리포트로 다 못 짚은 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐",
       badge: "타로",
-      gradient: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+      gradient: "#EFEAF6",
     },
     cardFromFortune(next),
   ];

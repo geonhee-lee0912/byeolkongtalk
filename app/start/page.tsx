@@ -209,46 +209,44 @@ function StartPageInner() {
           className="relative w-full overflow-hidden rounded-b-3xl"
           style={{
             background:
-              "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)",
+              "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)", // design-allow: 광고 랜딩 밤하늘 첫 화면(스펙 §2.8 장면)
           }}
         >
           {/* 별 파티클 */}
           <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-[10%] left-[16%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
+            <div className="absolute top-[10%] left-[16%] w-2 h-2 bg-gold rounded-full" />
             <div
-              className="absolute top-[18%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[18%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full"
               style={{ animationDelay: "0.4s" }}
             />
             <div
-              className="absolute top-[34%] left-[9%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              className="absolute top-[34%] left-[9%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "0.8s" }}
             />
             <div
-              className="absolute top-[26%] right-[26%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[26%] right-[26%] w-1 h-1 bg-gold-soft rounded-full"
               style={{ animationDelay: "1.2s" }}
             />
             <div
-              className="absolute top-[56%] right-[12%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
+              className="absolute top-[56%] right-[12%] w-1.5 h-1.5 bg-gold rounded-full"
               style={{ animationDelay: "0.6s" }}
             />
             <div
-              className="absolute top-[14%] left-[42%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              className="absolute top-[14%] left-[42%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "1.6s" }}
             />
             <div
-              className="absolute top-[48%] left-[20%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[48%] left-[20%] w-1 h-1 bg-gold-soft rounded-full"
               style={{ animationDelay: "1.0s" }}
             />
             <div
-              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "0.2s" }}
             />
-            <div className="absolute -top-10 -right-10 w-44 h-44 bg-lilac/20 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 -left-12 w-40 h-40 bg-gold/10 rounded-full blur-3xl" />
           </div>
 
           <div className="relative z-10 px-5 pt-12 pb-8 flex flex-col items-center">
-            <div className="relative w-[120px] h-[120px] mb-3 animate-float">
+            <div className="relative w-[120px] h-[120px] mb-3">
               <Image
                 src="/byeolkong-hero.png"
                 alt="별콩이"
@@ -383,7 +381,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       <p className="text-13 font-bold text-eye-purple px-1">
         별콩이는 이런 친구야
       </p>
-      <div className="rounded-2xl p-4 border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm">
+      <div className="card">
         <div className="flex items-start gap-2.5">
           <span className="text-22 leading-none" aria-hidden>💜</span>
           <div>

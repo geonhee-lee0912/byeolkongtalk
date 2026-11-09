@@ -54,7 +54,7 @@ export default function FreeToPaidCta({
         >
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)" }}
+            style={{ background: "#EFEAF6" }}
           >
             <Image src="/icons/fortune/tarot_counsel.webp" alt="" width={36} height={36} className="object-contain" />
           </div>

@@ -128,7 +128,7 @@ export default function FortuneGeneratingList() {
       {refunds.map((r) => (
         <div
           key={r.id}
-          className="rounded-2xl p-3.5 border border-cream/20 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+          className="rounded-2xl p-3.5 border border-cream/20 flex items-center gap-3 bg-night-card"
         >
           <div className="w-10 h-10 rounded-lg bg-cream/10 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}
@@ -153,7 +153,7 @@ export default function FortuneGeneratingList() {
       {generating.map((r) => (
         <div
           key={r.id}
-          className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+          className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-night-card"
         >
           <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}
@@ -173,7 +173,7 @@ export default function FortuneGeneratingList() {
         <Link
           key={r.id}
           href={`/fortune/result?id=${r.id}&from=recover`}
-          className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep active:scale-[0.99] transition"
+          className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-night-card active:scale-[0.99] transition"
         >
           <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
             {icon(r.emotionTag, 24)}

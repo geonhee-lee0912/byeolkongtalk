@@ -30,7 +30,7 @@ export default function RecoConfirmModal({
       label="이 대화를 마무리하고 넘어갈까?"
       onClose={onCancel}
       z={100}
-      backdropClassName="bg-night/75 backdrop-blur-md"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal"
     >
         <div className="px-5 pt-5 pb-6 flex flex-col gap-3">

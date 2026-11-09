@@ -68,8 +68,7 @@ export default function ThreadCompatCard({
               </ol>
             </div>
             <div
-              className="rounded-2xl px-3.5 py-3 text-white"
-              style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
+              className="rounded-2xl px-3.5 py-3 text-white bg-night-card"
             >
               <h4 className="text-13 font-bold text-gold mb-1">🌙 별콩이의 한마디</h4>
               <p className="text-13 leading-[1.8] text-white/90 whitespace-pre-line">{report.note}</p>

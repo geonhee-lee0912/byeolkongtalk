@@ -144,7 +144,7 @@ export default function Home() {
                   .getElementById("emotion-grid")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
-              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left animate-fade-in"
+              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gold-wash text-left animate-fade-in"
             >
               <span className="text-20 shrink-0">⭐</span>
               <div className="flex-1 min-w-0">
@@ -162,7 +162,7 @@ export default function Home() {
           {hasResumable && (
             <Link
               href="/readings"
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-float animate-fade-in"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-night-card text-white shadow-float animate-fade-in"
             >
               <span className="text-20 shrink-0">💬</span>
               <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export default function Home() {
               style={{
                 // 🔴 금색(FORTUNE_GRADIENTS.daily)을 쓰면 안 된다 — 이 아이콘은 크림색 마루라
                 //    금색 타일 위에서 대비가 사라져 형태가 뭉개진다(56px 실측 확인). 라일락이어야 읽힌다.
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+                background: "#E8DEF5",
               }}
             >
               <Image
@@ -324,7 +324,7 @@ export default function Home() {
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+                background: "#E8DEF5",
               }}
             >
               <Image

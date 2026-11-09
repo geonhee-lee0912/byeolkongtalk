@@ -130,7 +130,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 "축 3종"(연애·돈·일)은 내부 용어였다 — 읽는 사람이 뭘 받는지 몰랐다.
       //    #무료 해시태그는 접근 조건 칩과 중복이라 뺐다(5행 공통).
       hashtags: ["하루흐름"],
-      tileBg: "linear-gradient(135deg, #FFF3D6 0%, #EFEAF6 100%)",
+      tileBg: "#FFF3D6",
       // 🔴 오늘 사주가 목록으로 내려온다(P5 §3 의 "목록에 없다"를 뒤집는다) — 지금은 오늘 타로만
       //    목록이고 오늘 사주는 달력 안 타일이라 진입점 문법이 달랐다. 히어로 타일은 §2 에서 없앴다.
       // 🔴 열람 횟수 제한이 없다 — 매일 갱신될 뿐이라 "하루 1회"가 아니라 "매일"이다(타로·우리와 다름).
@@ -147,7 +147,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 해시태그는 행마다 하나로 맞춘다 — 구독 칩이 그 줄 앞자리를 먹어서, 두 개면 이 행만
       //    둘째 줄로 밀려 세 행의 높이가 어긋난다(실측). "#오늘의카드"는 "#하루한장"과 같은 뜻이었다.
       hashtags: ["하루한장"],
-      tileBg: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
+      tileBg: "#FFF3D6",
       chip: drawn ? "오늘 뽑음" : "하루 1회 무료",
       chipTone: "gold",
       paidChip: `구독하면 ${TAROT_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
@@ -172,7 +172,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 "걸어둔"은 앱 안에서만 통하는 말이라 뺐다.
       tagline: "그 사람과 나, 오늘 둘 사이가 어떤지 봐줄게",
       hashtags: ["둘사이"],
-      tileBg: "linear-gradient(135deg, #F7E3EC 0%, #EFEAF6 100%)",
+      tileBg: "#F7E3EC",
       // 🔴 하루 1명 생성 상한(PAIR_REPORT_DAILY_LIMIT = 1)이라 "하루 1회"가 참이다.
       chip: "하루 1회 무료",
       chipTone: "gold",
@@ -205,7 +205,7 @@ export function buildSelfItems(): FreeListItem[] {
       //    여긴 "여긴 뭐가 있나". 다섯 행이 한 규칙으로 읽히게 하는 게 목적이고, 이 2종엔
       //    유료 확장이 없으니 구독 대신 결과물을 말한다.
       paidChip: "4축 해설까지",
-      tileBg: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+      tileBg: "#EFEAF6",
       chip: "무료",
       chipTone: "lilac",
       image: "/icons/fortune/saju_mbti.webp",
@@ -217,7 +217,7 @@ export function buildSelfItems(): FreeListItem[] {
       tagline: "내 사람들과의 인연을 별자리로 이어볼게",
       hashtags: ["인연지도"],
       paidChip: "인연 점수 순위",
-      tileBg: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+      tileBg: "#E8DEF5",
       chip: "무료",
       chipTone: "lilac",
       image: "/icons/fortune/byeoljari.webp",

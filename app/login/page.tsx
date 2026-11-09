@@ -53,18 +53,13 @@ function LoginPageInner() {
 
   return (
     <main className="flex flex-1 flex-col items-center px-5 py-12 max-w-md mx-auto w-full animate-fade-in">
-      <div className="relative animate-float">
+      <div className="relative">
         <Image
           src="/byeolkong-main.png"
           alt="별콩이"
           width={200}
           height={200}
           priority
-        />
-        <div className="absolute -top-1 left-4 w-2.5 h-2.5 bg-gold rounded-full animate-star-twinkle" />
-        <div
-          className="absolute top-10 -right-1 w-2 h-2 bg-gold-soft rounded-full animate-star-twinkle"
-          style={{ animationDelay: "0.6s" }}
         />
       </div>
 

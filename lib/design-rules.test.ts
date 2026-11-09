@@ -140,3 +140,34 @@ test("크림 바탕 둥근 칸을 카드로 쓰지 않는다(card · card-inner 
   );
   assert.deepEqual(blocks.map(at), []);
 });
+
+// ── 장식 정리(스펙 §2.8) — 그라데이션·빛·움직임은 장면과 기능에만
+const SCENE_FILES = [
+  "components/relationship/sim/", // 연애 시뮬 무대 조명·밤 배경
+  "app/relationship/sim/page.tsx", // 시뮬 화면 밤 배경
+  "components/common/EmphasisText.tsx", // 형광펜 밑줄
+  "components/fortune/landing/FortuneSamplePreview.tsx", // 글 끝 흐림
+  "components/fortune/FortuneGeneratingScreen.tsx", // 진행 막대
+  "components/byeolmaru/CardReportView.tsx", // 줄무늬 게이지
+  "components/relationship/DollAvatar.tsx", // 아바타 색
+  "components/tarot/CardDrawRitual.tsx", // 카드 뽑기 의식
+  "app/global-error.tsx", // 전면 오류 화면 밤하늘
+  "lib/heroGradients.ts", // 히어로 배너 밤하늘 장면
+];
+test("카드·배너·버튼·타일에 그라데이션이 없다", () => {
+  assert.deepEqual(offenders(/linear-gradient|radial-gradient|bg-gradient-to-/, SCENE_FILES), []);
+});
+test("반짝·둥둥 움직임이 없다", () => {
+  // 움직임은 로딩·카드 뽑기·시뮬 무대에만
+  assert.deepEqual(offenders(/animate-(star-twinkle|float)\b/, ["components/fortune/FortuneGeneratingScreen.tsx", "components/tarot/CardDrawRitual.tsx", "components/relationship/sim/"]), []);
+});
+test("배경 빛 덩어리가 없다", () => {
+  assert.deepEqual(offenders(/(?<![\w-])blur-3xl\b/), []);
+});
+test("시트·창 뒤 막은 하나다", () => {
+  assert.deepEqual(offenders(/backdropClassName=(?!"bg-night\/50 backdrop-blur-sm")/), []);
+  assert.match(readFileSync("components/common/Dialog.tsx", "utf8"), /backdropClassName = "bg-night\/50 backdrop-blur-sm"/);
+});
+test("별콩이 후광은 한 값이다(bg-gold/30 blur-lg)", () => {
+  assert.deepEqual(offenders(/bg-gold\/(25|40)\b[^"]*\bblur-|\bblur-(xl|2xl)\b[^"]*bg-gold|bg-gold\/\d+[^"]*\bblur-(xl|2xl)\b/), []);
+});

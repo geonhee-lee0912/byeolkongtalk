@@ -14,7 +14,7 @@ export default function GuideCta({
 }) {
   const router = useRouter();
   return (
-    <div className="mt-8 rounded-2xl border border-gold/30 bg-gradient-to-br from-night to-night-deep p-4 text-center">
+    <div className="mt-8 rounded-2xl border border-gold/30 bg-night-card p-4 text-center">
       <p className="text-14 font-bold text-cream leading-snug">
         이 고민, 지금 마음에 있다면
       </p>

@@ -83,7 +83,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
         </div>
       ))}
 
-      <div className="rounded-2xl px-6 py-6 text-white" style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}>
+      <div className="rounded-2xl px-6 py-6 text-white bg-night-card">
         <h3 className="text-14 font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
         <MarkdownLite text={report.note} tone="dark" className="text-14 leading-[1.95] text-white/90" />
       </div>

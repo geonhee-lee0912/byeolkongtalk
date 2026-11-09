@@ -15,7 +15,7 @@ export default function Dialog({
   dismissible = true,
   z = 105,
   role = "dialog",
-  backdropClassName = "bg-night/45 backdrop-blur-[2px]",
+  backdropClassName = "bg-night/50 backdrop-blur-sm",
   widthClassName = "max-w-sm",
   gutterClassName = "px-6",
   children,

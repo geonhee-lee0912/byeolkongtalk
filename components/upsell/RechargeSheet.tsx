@@ -184,7 +184,7 @@ export default function RechargeSheet({
       onClose={closeSheet}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto"
     >
         {/* 그랩바 */}
@@ -220,7 +220,7 @@ export default function RechargeSheet({
 
         {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
         {firstChargeEligible && (
-          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50">
+          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
             <span className="text-15">🎁</span>
             <p className="text-12 font-extrabold text-eye-purple">
               지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘

@@ -74,13 +74,10 @@ export default function HubBanner({
         //    명도에서 채도 체감이 낮아 흰색으로 번질 때 먼저 죽는다. lilac-deep 까지 올려야 두 탭의
         //    번짐 강도가 비슷하게 읽힌다(나란히 놓고 실측 비교 후 조정).
         background:
-          "radial-gradient(97% 83% at 50% 123%, #9F8AD0 0%, #C6B6E8 37%, #EAE3F6 69%, #FFFFFF 100%)",
+          "radial-gradient(97% 83% at 50% 123%, #9F8AD0 0%, #C6B6E8 37%, #EAE3F6 69%, #FFFFFF 100%)", // design-allow: 별마루 탭 머리 배너 번짐(화면별 단계에서 운영자 확인)
       }}
     >
       {/* 위쪽 밝은 영역 별 반짝임 — 2탭과 같은 장치다. 별마루는 별·달이 모티브라 여기선 더 맞는다. */}
-      <span className="absolute top-2 left-[42%] text-11 text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-5 left-[55%] text-11 text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-1.5 left-[61%] text-11 text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
 
       <div className="relative min-w-0 flex-1">
         <h1 className="font-display text-17 font-black text-eye-purple">별마루</h1>

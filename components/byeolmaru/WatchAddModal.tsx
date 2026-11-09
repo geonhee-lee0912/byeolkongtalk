@@ -190,7 +190,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
       z={75}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-night/75 backdrop-blur-md"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
       <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">

@@ -27,7 +27,7 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "linear-gradient(135deg,#FCE7EE,#F8C9D6)" }}
+          style={{ background: "#FCE7EE" }}
         >
           <Image src="/icons/relationship/consult.webp" alt="" width={40} height={40} className="object-contain" />
         </div>
@@ -60,7 +60,7 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "linear-gradient(135deg,#FBEAF2,#F2BFD3)" }}
+          style={{ background: "#FBEAF2" }}
         >
           <Image src="/icons/relationship/sim.webp" alt="" width={40} height={40} className="object-contain" />
         </div>

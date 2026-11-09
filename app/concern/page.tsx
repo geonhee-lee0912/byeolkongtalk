@@ -159,7 +159,7 @@ export default function ConcernPage() {
             className="relative rounded-2xl border border-lilac-deep/30 overflow-hidden"
             style={{
               background:
-                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)",
+                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)", // design-allow: 고민 화면 밤하늘 채팅창(스펙 §2.8 장면)
               boxShadow:
                 "0 4px 20px rgba(30,22,53,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
@@ -191,29 +191,27 @@ export default function ConcernPage() {
 
             {/* 별 파티클 */}
             <div className="absolute inset-0 pointer-events-none" aria-hidden>
-              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full animate-star-twinkle" />
+              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full" />
               <div
-                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full animate-star-twinkle"
+                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full"
                 style={{ animationDelay: "0.5s" }}
               />
               <div
-                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full animate-star-twinkle"
+                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full"
                 style={{ animationDelay: "0.3s" }}
               />
               <div
-                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full animate-star-twinkle"
+                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full"
                 style={{ animationDelay: "0.9s" }}
               />
               <div
-                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full animate-star-twinkle"
+                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full"
                 style={{ animationDelay: "0.2s" }}
               />
               <div
-                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full animate-star-twinkle"
+                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full"
                 style={{ animationDelay: "1.2s" }}
               />
-              <div className="absolute top-1/3 -right-10 w-48 h-48 bg-lilac/10 rounded-full blur-3xl" />
-              <div className="absolute top-2/3 -left-10 w-40 h-40 bg-gold/[0.05] rounded-full blur-3xl" />
             </div>
 
             <div className="relative px-3.5 pt-5 pb-5 flex flex-col gap-3.5">
@@ -339,7 +337,7 @@ function EmotionTagSheet({
       z={90}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
       <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[72vh] overflow-y-auto scrollbar-hover">
         {/* 헤더 */}

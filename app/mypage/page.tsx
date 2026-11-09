@@ -203,7 +203,7 @@ export default function MyPage() {
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4">
+        <div className="bg-night-card rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
               {me.user.profile_img ? (
@@ -415,7 +415,7 @@ export default function MyPage() {
           z={50}
           widthClassName="max-w-xs"
           gutterClassName="px-5"
-          backdropClassName="bg-black/30"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
         >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
             <p className="text-14 font-bold text-eye-purple mb-2">

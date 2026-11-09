@@ -117,17 +117,17 @@ export const EMOTION_OPTIONS: EmotionOption[] = [
 /** 아이콘 타일 그라데이션 — 의미 그룹별 색 (연애=따뜻한 핑크·로즈·피치 / 비연애 고민=차분한 블루·페리윙클). */
 export const EMOTION_GRADIENTS: Record<EmotionTag, string> = {
   // 연애 존 — 따뜻한 핑크·로즈·피치 (pink → rose → peach 순환)
-  "걔 속마음이 궁금해":           "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  "재회할 수 있을까":             "linear-gradient(135deg, #FBEAF2 0%, #F2BFD3 100%)",
-  "언제 연락 올까, 타이밍이 궁금해": "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
-  "썸, 이 관계 어떻게 될까":       "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  "요즘 우리, 예전 같지 않아":     "linear-gradient(135deg, #FBEAF2 0%, #F2BFD3 100%)",
-  "새로운 인연, 언제쯤 올까":      "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
+  "걔 속마음이 궁금해":           "#FCE7EE",
+  "재회할 수 있을까":             "#FBEAF2",
+  "언제 연락 올까, 타이밍이 궁금해": "#FFEFE3",
+  "썸, 이 관계 어떻게 될까":       "#FCE7EE",
+  "요즘 우리, 예전 같지 않아":     "#FBEAF2",
+  "새로운 인연, 언제쯤 올까":      "#FFEFE3",
   // 비연애 고민 — 차분한 블루·페리윙클 (sky ↔ periwinkle 교대)
-  "진로·방향이 고민이야":          "linear-gradient(135deg, #E3F1FA 0%, #C2DEF5 100%)",
-  "어떤 선택이 맞을지 모르겠어":    "linear-gradient(135deg, #E6E7FB 0%, #C6C9F1 100%)",
-  "직장·학교에서 사람이 어려워":    "linear-gradient(135deg, #E3F1FA 0%, #C2DEF5 100%)",
-  "그냥 별콩이한테 털어놓고 싶어":  "linear-gradient(135deg, #E6E7FB 0%, #C6C9F1 100%)",
+  "진로·방향이 고민이야":          "#E3F1FA",
+  "어떤 선택이 맞을지 모르겠어":    "#E6E7FB",
+  "직장·학교에서 사람이 어려워":    "#E3F1FA",
+  "그냥 별콩이한테 털어놓고 싶어":  "#E6E7FB",
 };
 
 /** 2열 그리드 등 좁은 공간용 짧은 라벨 (없으면 tag 사용). tag 자체는 DB·로직용이라 불변. */

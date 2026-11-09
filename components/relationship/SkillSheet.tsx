@@ -19,7 +19,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
       onClose={onClose}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up pb-[max(env(safe-area-inset-bottom),16px)]"
     >
         <div className="web-only flex justify-center pt-3 pb-1">

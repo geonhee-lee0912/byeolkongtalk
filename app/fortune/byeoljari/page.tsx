@@ -59,7 +59,7 @@ export default function ByeoljariCreatePage() {
   if (checking) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16 text-center text-text-light">
-        <p className="animate-star-twinkle text-22">✨</p>
+        <p className="animate-pulse-soft text-22">✨</p>
         <p className="mt-3 text-14">별자리를 불러오는 중…</p>
       </main>
     );

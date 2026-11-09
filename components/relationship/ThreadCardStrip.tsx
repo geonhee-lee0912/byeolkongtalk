@@ -13,8 +13,7 @@ export default function ThreadCardStrip({ draw }: { draw: ThreadDraw }) {
   return (
     <div className="flex justify-start mb-3 pl-10">
       <div
-        className="w-full max-w-[300px] rounded-2xl px-3.5 pt-3 pb-4 shadow-card"
-        style={{ background: "linear-gradient(150deg, #2A1F4D, #1F1735)" }}
+        className="w-full max-w-[300px] rounded-2xl px-3.5 pt-3 pb-4 bg-night-card"
       >
         <div className="flex items-center gap-1.5 mb-3">
           <span aria-hidden>{skill?.emoji ?? "🃏"}</span>

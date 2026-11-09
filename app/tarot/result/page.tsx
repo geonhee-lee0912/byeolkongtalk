@@ -255,7 +255,7 @@ function TarotResultInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-5 relative overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
             <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
               ❝
             </div>

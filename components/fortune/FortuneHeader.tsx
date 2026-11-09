@@ -17,7 +17,7 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
     return (
       <section
         className="w-full max-w-md mx-auto flex items-center gap-3 px-5 py-3.5"
-        style={{ background: "linear-gradient(135deg,#FFF9F2,#FFFFFF)" }}
+        style={{ background: "#FFF9F2" }}
       >
         <div>
           <p className="text-13 font-extrabold text-eye-purple leading-tight">사주 운세</p>
@@ -34,13 +34,10 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
         style={{
           // 황혼 — 위쪽 흰색, 하단 중앙에서 원형으로 번지는 주황
           background:
-            "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)",
+            "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)", // design-allow: 운세 탭 머리 배너 번짐(화면별 단계에서 운영자 확인)
         }}
       >
       {/* 좌측 흰 영역 별 반짝임 */}
-      <span className="absolute top-2 left-[44%] text-11 text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-5 left-[57%] text-11 text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-1.5 left-[63%] text-11 text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
 
       {/* 별콩이 (우측 하단, 60% 감·왼쪽으로 조금) */}
       <div className="pointer-events-none absolute right-8 top-1/2 h-[100px] w-[77px] -translate-y-1/2">

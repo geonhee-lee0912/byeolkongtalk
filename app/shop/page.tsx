@@ -515,10 +515,10 @@ function PackageCard({
       }`}
     >
       {/* 좌측 별 비주얼 */}
-      <div className="relative shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] flex items-center justify-center">
+      <div className="relative shrink-0 w-14 h-14 rounded-2xl bg-[#FFF6E3] flex items-center justify-center">
         <StarIcon className="w-9 h-9 drop-shadow-[0_2px_3px_rgba(214,167,40,0.35)]" />
         {meta.highlight && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gold animate-star-twinkle" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gold" />
         )}
       </div>
 
@@ -598,7 +598,7 @@ function InlineBadge({
 }) {
   const cls =
     tone === "gold"
-      ? "bg-gradient-to-r from-gold-soft to-gold text-white"
+      ? "bg-gold-wash text-eye-purple"
       : tone === "primary"
       ? "bg-lilac-deep text-white"
       : "bg-rose-400 text-white";
@@ -629,7 +629,7 @@ function PaymentStatusPanel({
         style={{
           background:
             tone === "success"
-              ? "linear-gradient(135deg, #FFF6E3, #FCDFCD)"
+              ? "#FFF6E3"
               : tone === "fail"
               ? "rgba(244,184,200,0.18)"
               : "rgba(159,138,208,0.12)",
@@ -637,7 +637,7 @@ function PaymentStatusPanel({
       >
         {tone === "progress" && <SpinnerDots />}
         {tone === "success" && (
-          <StarIcon className="w-9 h-9 animate-star-twinkle" />
+          <StarIcon className="w-9 h-9" />
         )}
         {tone === "fail" && (
           <span className="text-28" aria-hidden>

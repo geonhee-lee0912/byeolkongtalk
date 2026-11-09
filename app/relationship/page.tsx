@@ -423,8 +423,7 @@ export default function RelationshipPage() {
 
     const headerCard = (
       <div
-        className="rounded-2xl px-3.5 h-[64px] flex items-center gap-2.5"
-        style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
+        className="rounded-2xl px-3.5 h-[64px] flex items-center gap-2.5 bg-night-card"
       >
         <button
           type="button"
@@ -698,7 +697,7 @@ export default function RelationshipPage() {
           <div className="mt-6">
             {/* 히어로 */}
             <div className="flex flex-col items-center text-center mb-7">
-              <div className="relative w-[110px] h-[110px] mb-3 animate-float">
+              <div className="relative w-[110px] h-[110px] mb-3">
                 <Image
                   src="/byeolkong-listen.png"
                   alt="별콩이"
@@ -731,7 +730,7 @@ export default function RelationshipPage() {
                 별콩이는 이런 친구야
               </p>
               {/* 핵심 — 지속 대화 */}
-              <div className="rounded-2xl p-4 border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm mb-3">
+              <div className="card mb-3">
                 <div className="flex items-start gap-2.5">
                   <span className="text-22 leading-none" aria-hidden>💜</span>
                   <div>

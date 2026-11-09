@@ -183,7 +183,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       label="이 고민, 이어가볼까?"
       onClose={onClose}
       z={100}
-      backdropClassName="bg-night/75 backdrop-blur-md"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal max-h-[88vh] overflow-y-auto"
     >
         <div className="px-5 pt-5 pb-6 flex flex-col">
@@ -212,7 +212,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           ) : (
             <>
               {/* 지난 맥락 — 다크톤 */}
-              <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-night-deep mb-2">
+              <div className="bg-night-card rounded-2xl p-4 border border-night-deep mb-2">
                 <div className="text-11 font-bold text-lilac-soft/70 mb-1">
                   지난번 고민
                 </div>
@@ -221,7 +221,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 </p>
               </div>
               {closing && (
-                <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-4 border border-gold-soft/40 mb-2">
+                <div className="card-inner mb-2">
                   <div className="text-11 font-bold text-eye-purple mb-1">
                     지난번 별콩이 정리
                   </div>

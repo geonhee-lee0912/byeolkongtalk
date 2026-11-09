@@ -55,7 +55,7 @@ export default function FortuneGeneratingScreen({
     <main className="flex flex-1 flex-col items-center justify-center w-full px-5 animate-fade-in">
       <div className="w-full max-w-md mx-auto flex flex-col items-center">
         <div className="relative w-28 h-28 mb-6">
-          <div className="absolute inset-0 bg-gold/25 rounded-full blur-2xl scale-110 animate-pulse-soft" />
+          <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110 animate-pulse-soft" />
           <Image
             src="/byeolkong-focus.png"
             alt="별콩이"

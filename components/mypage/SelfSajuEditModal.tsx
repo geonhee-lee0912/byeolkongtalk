@@ -73,7 +73,7 @@ export default function SelfSajuEditModal({
       z={50}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-black/30"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
       <div className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">

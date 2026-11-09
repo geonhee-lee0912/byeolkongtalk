@@ -316,7 +316,7 @@ export default function NightStage(props: NightStageProps) {
           onClose={() => setSuggestions([])}
           z={50}
           align="bottom"
-          backdropClassName="bg-night-deep/60"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
           panelClassName="bg-night rounded-t-3xl border-t border-lilac-mid/30 p-5 pb-[max(env(safe-area-inset-bottom),20px)] animate-fade-in"
         >
             <div className="flex items-center justify-between mb-3">

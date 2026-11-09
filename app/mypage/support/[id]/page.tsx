@@ -131,7 +131,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
         {/* 답변 */}
         {item.status === "answered" && item.answer_body ? (
-          <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-lilac-deep/30">
+          <div className="bg-night-card rounded-2xl p-4 border border-lilac-deep/30">
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-13 font-bold text-gold-soft">✨ 별콩이 답변</span>
               {item.answered_at && (

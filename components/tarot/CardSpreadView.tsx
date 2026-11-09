@@ -110,7 +110,7 @@ function BackgroundStars() {
       {STAR_POSITIONS.map((s, i) => (
         <span
           key={i}
-          className="absolute rounded-full bg-white animate-star-twinkle"
+          className="absolute rounded-full bg-white"
           style={{
             top: s.top,
             left: s.left,
