@@ -11,6 +11,7 @@ import {
 } from "@/lib/seo/tarot-slugs";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import GuideCta from "@/components/seo/GuideCta";
+import Icon from "@/components/common/Icon";
 
 interface CardEntry {
   intro: string;
@@ -79,7 +80,7 @@ export default async function CardPage({
         <Link href="/guide/tarot-cards" className="hover:text-eye-purple">
           타로 카드 도감
         </Link>
-        <span className="mx-1">›</span>
+        <span className="mx-1"><Icon name="chev_r" size={16} /></span>
         <span>{card.name_kr}</span>
       </nav>
 
@@ -154,7 +155,7 @@ export default async function CardPage({
         )}
         {next && buildCardSlug(next) in CONTENT ? (
           <Link href={`/guide/tarot-cards/${buildCardSlug(next)}`}>
-            {next.name_kr} ›
+            {next.name_kr}
           </Link>
         ) : (
           <span />

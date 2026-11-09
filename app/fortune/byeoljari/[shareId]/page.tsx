@@ -195,7 +195,7 @@ export default function ByeoljariGuestPage() {
           {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
           {!state.graph.viewerIsOwner && (
             <Link href="/byeolmaru" className="mt-2 block text-center text-12 text-accent">
-              별마루에서 무료로 다 보기 →
+              별마루에서 무료로 다 보기
             </Link>
           )}
 

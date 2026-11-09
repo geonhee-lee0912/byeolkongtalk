@@ -22,7 +22,7 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
       {/* 성적표 카드 (공유용) */}
       <div className="card-report">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-15 font-extrabold text-eye-purple">🏆 사주 성적표</h3>
+          <h3 className="text-15 font-extrabold text-eye-purple">사주 성적표</h3>
           <div className="flex items-center gap-2">
             <span className="text-11 text-text-light">종합</span>
             <span
@@ -53,14 +53,14 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
           })}
         </div>
         <div className="mt-4 pt-4 border-t border-[#F0EEF4]">
-          <div className="text-12 font-bold text-accent mb-1">📝 담임 총평</div>
+          <div className="text-12 font-bold text-accent mb-1">담임 총평</div>
           <MarkdownLite text={report.totalComment} className="text-13 text-[#4F4A5E] leading-[1.85]" />
         </div>
       </div>
 
       {/* 별콩이 한마디 */}
       <div className="rounded-2xl px-6 py-6 text-white bg-night-card">
-        <h3 className="text-14 font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
+        <h3 className="text-14 font-bold text-gold mb-2">별콩이의 한마디</h3>
         <MarkdownLite text={report.note} tone="dark" className="text-14 leading-[1.95] text-white/90" />
       </div>
     </div>

@@ -184,7 +184,7 @@ function FortuneResultInner() {
   const [error, setError] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [label, setLabel] = useState("별콩 운세");
-  const [emoji, setEmoji] = useState("🌤️");
+  const [emoji, setEmoji] = useState("");
   const [ftType, setFtType] = useState<FortuneType | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
@@ -546,7 +546,7 @@ function FortuneResultInner() {
                 href="/relationship"
                 className="btn btn-secondary btn-lg"
               >
-                💬 연애 상담으로 돌아가 이어 얘기하기
+                연애 상담으로 돌아가 이어 얘기하기
               </Link>
             )}
             <button
@@ -587,7 +587,7 @@ function FortuneResultInner() {
       {!isPublic && <SurveyResultCard />}
 
       <p className="mt-5 text-11 text-text-light text-center px-8 leading-relaxed">
-        운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어 ✨
+        운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어
       </p>
 
       {toast && (

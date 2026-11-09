@@ -128,14 +128,14 @@ export default function SimDebrief({
         </div>
         {sendMessage && (
           <div className="mt-4 rounded-2xl border border-gold/50 bg-gold/10 p-4">
-            <div className="text-gold-soft text-12 font-bold mb-1.5">💌 이 사람에게 보낼 말</div>
+            <div className="text-gold-soft text-12 font-bold mb-1.5">이 사람에게 보낼 말</div>
             <p className="text-cream-warm text-15 leading-relaxed">{sendMessage}</p>
-            <button onClick={copySend} className="btn btn-primary btn-lg mt-3">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
+            <button onClick={copySend} className="btn btn-primary btn-lg mt-3">{copied ? "복사됐어" : "보낼 말 복사하기"}</button>
           </div>
         )}
         {portrait.trim() && (
           <div className="mt-4 rounded-2xl border border-lilac-mid/30 bg-night/40 p-4">
-            <div className="text-lilac text-12 font-bold mb-2">🖼️ 별콩이가 알아가는 초상화</div>
+            <div className="text-lilac text-12 font-bold mb-2">별콩이가 알아가는 초상화</div>
             <ul className="space-y-1.5">
               {portrait.split("\n").map((line, i) => {
                 const t = line.replace(/^·\s*/, "").trim();
@@ -148,7 +148,7 @@ export default function SimDebrief({
           <div className="mt-3 rounded-2xl border border-lilac-mid/20 bg-night/30 p-4">
             <div className="text-lilac text-12 mb-2">걔는 사실 이런 사람이야 — 적을수록 인형이 더 걔처럼 돼</div>
             {traitDone ? (
-              <p className="text-gold-soft text-13">초상화에 더했어, 고마워 ✓</p>
+              <p className="text-gold-soft text-13">초상화에 더했어, 고마워</p>
             ) : (
               <>
                 <textarea
@@ -170,7 +170,7 @@ export default function SimDebrief({
             )}
           </div>
         )}
-        <button onClick={() => router.push("/relationship")} className="btn btn-secondary btn-lg mt-6">별콩이랑 더 얘기하기 →</button>
+        <button onClick={() => router.push("/relationship")} className="btn btn-secondary btn-lg mt-6">별콩이랑 더 얘기하기</button>
       </div>
     </div>
   );

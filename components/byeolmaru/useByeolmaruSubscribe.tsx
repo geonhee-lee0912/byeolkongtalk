@@ -295,7 +295,7 @@ export function useByeolmaruSubscribe(
               <ul className="space-y-1 mb-6">
                 {BAIT_SLOTS.map((slot) => (
                   <li key={slot} className="flex items-start gap-1.5 text-13 leading-snug">
-                    <span aria-hidden className="text-eye-purple shrink-0">✦</span>
+                    
                     <span>
                       <span className="font-medium text-eye-purple">{BAIT[slot].title}</span>
                       <span className="text-eye-purple/85 text-12"> · {BAIT[slot].chips[0]}</span>
@@ -305,7 +305,7 @@ export function useByeolmaruSubscribe(
                 {/* 🔴 앱 아침 알림이 '구독 내용물'이라는 표시 — 구독자에게 정보성(광고 아님)으로 보내는 근거다
                     (앱 알림 설계 2026-11-06 §3 B "구독 상품 설명에 이 알림들이 구독 내용이라고 적는다"). 지우지 말 것 */}
                 <li className="flex items-start gap-1.5 text-13 leading-snug">
-                  <span aria-hidden className="text-eye-purple shrink-0">✦</span>
+                  
                   <span>
                     <span className="font-medium text-eye-purple">아침 알림</span>
                     <span className="text-eye-purple/85 text-12"> · 앱에서 알림을 켜면 매일 아침 오늘의 흐름을 보내줘</span>

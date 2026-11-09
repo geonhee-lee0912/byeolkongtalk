@@ -236,7 +236,7 @@ export default function NightStage(props: NightStageProps) {
               onClick={props.onDebrief}
               className="w-full h-11 rounded-xl text-gold-soft border border-gold/40 font-bold text-13 hover:bg-gold/10 transition-colors"
             >
-              🌙 정리 보기
+              정리 보기
             </button>
           </div>
         ) : (
@@ -250,7 +250,7 @@ export default function NightStage(props: NightStageProps) {
               className="shrink-0 self-end flex flex-col items-center justify-center gap-0.5 w-12 h-11 rounded-xl text-gold-soft border border-gold/30 disabled:opacity-40"
               aria-label="답변 추천"
             >
-              <span className="text-17 leading-none">{suggesting ? "⏳" : "💡"}</span>
+              <span className="text-17 leading-none">{suggesting ? "" : ""}</span>
               <span className="text-11 leading-none">추천</span>
             </button>
             {/* 입력창 + 내부 전송(원형 없이 아이콘만) */}
@@ -333,7 +333,7 @@ export default function NightStage(props: NightStageProps) {
                 >
                   <p className="text-cream-warm text-14 leading-relaxed">{s.say}</p>
                   {s.why && (
-                    <p className="text-gold-soft/75 text-12 mt-1.5 leading-relaxed">💡 {s.why}</p>
+                    <p className="text-gold-soft/75 text-12 mt-1.5 leading-relaxed">{s.why}</p>
                   )}
                 </button>
               ))}

@@ -201,7 +201,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
       <div className="flex items-center gap-3 my-1" aria-hidden>
         <span className="flex-1 h-px bg-lilac-mid/40" />
-        <span className="text-gold text-11">✦</span>
+        
         <span className="flex-1 h-px bg-lilac-mid/40" />
       </div>
 
@@ -255,7 +255,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
               <span className={`w-8 ${a.agree ? "text-lilac-mid" : "text-[#E0A0A0]"}`}>{AXIS_LABEL[a.axis]}</span>
               <span className="flex-1 flex items-center justify-center gap-3">
                 <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>{a.selfPole}</span>
-                <span className="w-4 text-center text-accent-on-dark text-11">↔</span>
+                <span className="w-4 text-center text-accent-on-dark text-11"></span>
                 <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>{a.paljaPole}</span>
               </span>
               <span className={`w-8 text-right ${a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}`}>{a.agree ? "일치" : "갈림"}</span>
@@ -283,7 +283,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             나도 해보기
           </button>
           <Link href="/byeolmaru" className="block text-center text-12 text-accent mt-2">
-            별마루에서 무료로 다 보기 →
+            별마루에서 무료로 다 보기
           </Link>
         </>
       ) : (

@@ -3,7 +3,7 @@ import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FortuneType } from "@/lib/fortune/types";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { splitHeadingEmoji } from "@/lib/fortune/heading";
+import { stripHeadingEmoji } from "@/lib/fortune/heading";
 import SajuSummaryChips from "./SajuSummaryChips";
 import ElementChart from "./ElementChart";
 import ElementCycleDiagram from "./ElementCycleDiagram";
@@ -18,17 +18,16 @@ const ELEMENT_FOCUSED: ReadonlySet<string> = new Set(["element_balance", "nature
 const ACCORDION_MIN_BODY_CHARS = 4500;
 
 // 펼친 섹션 카드 — 아이콘 헤더 + 마크다운. 짧은 리포트(플랫 모드)용.
-function SectionCard({ heading, body }: { heading: string; body: string }) {
-  const { emoji, title } = splitHeadingEmoji(heading);
+function SectionCard({ heading, body, index }: { heading: string; body: string; index: number }) {
+  const title = stripHeadingEmoji(heading);
   return (
     <div className="card-report">
       <div className="flex items-center gap-2.5 mb-3">
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
-          style={{ background: "#F3E9DF" }}
+          className="w-7 h-7 rounded-lg bg-lilac-soft flex items-center justify-center text-13 font-extrabold text-accent shrink-0 tabular-nums"
           aria-hidden
         >
-          {emoji}
+          {index}
         </span>
         <h3 className="text-17 font-extrabold text-eye-purple">{title}</h3>
       </div>
@@ -83,7 +82,7 @@ export default function GenericReportView({
       {useAccordion ? (
         <ReportAccordion items={items} accentIcon="/byeolkong-curious.png" />
       ) : (
-        report.sections.map((s, i) => <SectionCard key={i} heading={s.heading} body={s.body} />)
+        report.sections.map((s, i) => <SectionCard key={i} index={i + 1} heading={s.heading} body={s.body} />)
       )}
 
       {/* 별콩이 한마디 — 항상 노출 */}

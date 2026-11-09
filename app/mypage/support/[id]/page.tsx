@@ -133,7 +133,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
         {item.status === "answered" && item.answer_body ? (
           <div className="bg-night-card rounded-2xl p-4 border border-lilac-deep/30">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-13 font-bold text-gold-soft">✨ 별콩이 답변</span>
+              <span className="text-13 font-bold text-gold-soft">별콩이 답변</span>
               {item.answered_at && (
                 <span className="text-11 text-white/45">· {fmtDateTime(item.answered_at)}</span>
               )}
@@ -145,7 +145,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
         ) : (
           <div className="bg-cream rounded-2xl p-4 border border-lilac-mid/20 text-center">
             <p className="text-13 text-text-light">
-              별콩이가 확인하고 있어 ✨ 답변이 달리면 알려줄게.
+              별콩이가 확인하고 있어 답변이 달리면 알려줄게.
             </p>
           </div>
         )}

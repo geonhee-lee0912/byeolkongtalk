@@ -60,12 +60,12 @@ export default function CompatMatchDiagram({
   //    다른 이름을 갖지 않게 맞춘다. 선정 기준은 lib/byeolmaru/day-label.ts dayMarks JSDoc 참조.
   //    (이 화면은 두 사람을 보므로 "목적어가 빈다"는 그쪽 근거는 해당 없지만, 이름은 통일한다.)
   const badges: { emoji: string; label: string }[] = [];
-  if (rel.heavenlyCombo) badges.push({ emoji: "⚡", label: "설렘" });
-  if (rel.sixCombo) badges.push({ emoji: "🔗", label: "척척" });
+  if (rel.heavenlyCombo) badges.push({ emoji: "", label: "설렘" });
+  if (rel.sixCombo) badges.push({ emoji: "", label: "척척" });
 
   return (
     <div className="card-report">
-      <h3 className="text-15 font-extrabold text-accent mb-1.5">💞 궁합 한눈에</h3>
+      <h3 className="text-15 font-extrabold text-accent mb-1.5">궁합 한눈에</h3>
       <p className="text-11 text-text-light leading-snug mb-4">
         두 일간이 만나 만드는 기운의 결이야. 아래 풀이의 결정론적 뼈대.
       </p>
@@ -81,14 +81,13 @@ export default function CompatMatchDiagram({
                   key={bd.label}
                   className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-accent"
                 >
-                  <span aria-hidden>{bd.emoji}</span>
                   {bd.label}
                 </span>
               ))}
             </div>
           ) : (
             <span className="text-17 text-lilac-mid" aria-hidden>
-              ↔
+             
             </span>
           )}
         </div>

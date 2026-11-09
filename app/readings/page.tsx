@@ -173,7 +173,7 @@ function sajuAvatar(r: ReadingItem) {
   }
   return (
     <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
-      🔮
+     
     </div>
   );
 }
@@ -185,10 +185,9 @@ function fortuneIcon(emotionTag: string | null | undefined, size: number) {
 
 /** 시뮬 아바타 — 상황 카탈로그의 이모지(situationId 매칭), 없으면 기본 🎭 */
 function simAvatar(r: ReadingItem) {
-  const emoji = getSituation(r.sajuData?.situationId ?? "")?.emoji ?? "🎭";
   return (
     <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
-      {emoji}
+      <img src="/icons/relationship/sim.webp" alt="" width={30} height={30} className="object-contain" />
     </div>
   );
 }
@@ -268,7 +267,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
                 role="img"
                 aria-label="민감 시그널이 감지된 대화"
               >
-                🤍
+               
               </span>
             )}
             {chip && (
@@ -343,7 +342,7 @@ function renderReportCard(r: ReadingItem) {
         <div className="text-11 text-text-light mt-0.5 flex items-center gap-1.5">
           <span>{formatDate(r.createdAt)}</span>
           <span>·</span>
-          <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
+          <span>{r.starsSpent === 0 ? "무료" : `별 ${r.starsSpent}`}</span>
         </div>
         {r.preview?.trim() && (
           <p className="text-12 text-text-light mt-1 leading-snug line-clamp-2">
@@ -364,7 +363,7 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
   const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
   const subParts = [formatDate(r.createdAt)];
   if (relLabel) subParts.push(relLabel);
-  subParts.push(r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`);
+  subParts.push(r.starsSpent === 0 ? "무료" : `별 ${r.starsSpent}`);
   return (
     <Link
       key={r.id}

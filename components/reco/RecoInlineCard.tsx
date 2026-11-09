@@ -4,6 +4,7 @@
 // `continue` product는 이 컴포넌트를 사용하지 않음 (호출측에서 필터).
 import type { RecoProduct } from "@/lib/reco-utils";
 import { RECO_DISPLAY } from "@/lib/reco-utils";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   product: RecoProduct;
@@ -30,7 +31,7 @@ export default function RecoInlineCard({ product, onTap }: Props) {
             지난 고민을 기억한 채 이어져요
           </div>
         </div>
-        <span className="text-text-light text-14 shrink-0">›</span>
+        <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
       </button>
     </div>
   );

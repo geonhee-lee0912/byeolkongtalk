@@ -180,9 +180,9 @@ export default function PushGate() {
         else setUnsubMsg("이미 광고 알림을 받지 않고 있어");
       } else if (r.status === 409) {
         setUnsubToken(null);
-        setUnsubMsg("이 알림의 수신거부는 이미 처리됐어. 지금 상태는 마이 → 알림 설정에서 볼 수 있어");
+        setUnsubMsg("이 알림의 수신거부는 이미 처리됐어. 지금 상태는 마이의 알림 설정에서 볼 수 있어");
       } else {
-        setUnsubMsg("잘 안 됐어. 마이 → 알림 설정에서 끌 수 있어");
+        setUnsubMsg("잘 안 됐어. 마이의 알림 설정에서 끌 수 있어");
       }
     } catch {
       setUnsubMsg("잘 안 됐어. 한 번 더 눌러 줄래?");
@@ -234,7 +234,7 @@ export default function PushGate() {
                 }}
                 className="shrink-0 w-7 h-7 text-text-light"
               >
-                ✕
+               
               </button>
             </div>
           </div>,
@@ -250,7 +250,7 @@ export default function PushGate() {
                 별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
               </p>
               <p className="mt-2 text-13 text-text-light leading-relaxed">
-                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이 → 알림 설정에서 끌 수 있어.
+                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이의 알림 설정에서 끌 수 있어.
               </p>
               <button
                 type="button"

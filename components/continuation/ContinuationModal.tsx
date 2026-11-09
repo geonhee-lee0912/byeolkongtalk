@@ -9,6 +9,7 @@ import { extractClosingLine } from "@/lib/saju/closing";
 import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
 import { fetchWallet } from "@/lib/wallet";
+import Icon from "@/components/common/Icon";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -199,7 +200,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-              ✕
+             
             </OverlayCloseButton>
           </div>
 
@@ -260,14 +261,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    타로 카드 새로 뽑아 상담 (⭐ {priceText(fullCost)})
+                    타로 카드 새로 뽑아 상담 (<Icon name="star" size={14} className="inline align-[-2px]" />{priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
                     className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-accent font-bold text-15 hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
-                    동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
+                    동일한 카드로 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px]" />{priceText(deepCost)}
                     <span className="text-11 text-accent">40% 할인</span>)
                   </button>
                 </>
@@ -277,7 +278,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   disabled={submitting || !priceReady || concern.length < MIN_LEN}
                   className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  지난 대화를 이어서 상담 (⭐ {priceText(deepCost)}
+                  지난 대화를 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px]" />{priceText(deepCost)}
                   <span className="text-11 text-white/70">40% 할인</span>)
                 </button>
               )}

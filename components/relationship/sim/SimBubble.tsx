@@ -71,15 +71,15 @@ export default function SimBubble({
         <div className="mt-1 pl-1">
           {done ? (
             <span className="text-12 text-lilac-soft/70">
-              {done === "down" ? "반영했어 🌙 다음부터 그렇게 반응할게" : "고마워 🌙"}
+              {done === "down" ? "반영했어 다음부터 그렇게 반응할게" : "고마워"}
             </span>
           ) : (
             <div className="flex gap-2 text-15">
               <button type="button" onClick={() => open("up")} className="text-lilac-soft/70 hover:text-gold-soft" aria-label="이 반응 맞아요">
-                👍
+               
               </button>
               <button type="button" onClick={() => open("down")} className="text-lilac-soft/70 hover:text-gold-soft" aria-label="이 반응 달라요">
-                👎
+               
               </button>
             </div>
           )}

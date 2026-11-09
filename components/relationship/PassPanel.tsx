@@ -9,6 +9,7 @@ import {
   type PassPlan,
 } from "@/lib/relationship/types";
 import PassConfirmModal from "@/components/relationship/PassConfirmModal";
+import Icon from "@/components/common/Icon";
 
 interface PassPanelProps {
   relationshipId: string;
@@ -31,7 +32,7 @@ export default function PassPanel({
         <p className="text-14 font-bold text-eye-purple">패스 선택하기</p>
         {typeof balance === "number" && (
           <span className="text-12 text-text-light">
-            ⭐ 보유 {balance}별
+            <Icon name="star" size={14} className="inline align-[-2px]" />보유 {balance}별
           </span>
         )}
       </div>
@@ -48,7 +49,7 @@ export default function PassPanel({
               {p.label}
             </span>
             <span className="text-14 font-bold text-accent">
-              ⭐ {p.cost}별
+              <Icon name="star" size={14} className="inline align-[-2px]" />{p.cost}별
             </span>
           </button>
         ))}

@@ -171,3 +171,32 @@ test("시트·창 뒤 막은 하나다", () => {
 test("별콩이 후광은 한 값이다(bg-gold/30 blur-lg)", () => {
   assert.deepEqual(offenders(/bg-gold\/(25|40)\b[^"]*\bblur-|\bblur-(xl|2xl)\b[^"]*bg-gold|bg-gold\/\d+[^"]*\bblur-(xl|2xl)\b/), []);
 });
+
+// ── 이모지(스펙 §2.1) — 화면 글자에 이모지·기호를 쓰지 않는다(면 아이콘 Icon · 기존 일러스트로)
+// 프롬프트·공유 문구·날짜 기호(✧◇△◈)는 제외. 줄 끝 주석(// …)은 화면 글자가 아니라 본다.
+const EMOJI_ALLOW = [
+  "lib/claude.ts", "lib/byeolmaru/narrative-prompt.ts", "lib/fortune/prompt.ts", "lib/emotion-persona.ts", "lib/relationship/sim.ts", // 모델 지시문
+  "components/saju/ShareButtons.tsx", "components/tarot/TarotShareButtons.tsx", "lib/kakao-share.ts", // 카톡·복사 공유 문구
+  "lib/byeolmaru/day-label.ts", // 별마루 날짜 기호 정본
+  "lib/push/templates.ts", // 앱 푸시 알림 문구(밖으로 나가는 글)
+  "lib/analytics/route-labels.ts", // 어드민 분석 라벨
+  "lib/tarot/user-turn.ts", // 사용자 말 판별 정규식(★☆ 꼬리 = 잡음) — 화면 글자 아님
+  "app/fortune/result/page.tsx", // 결과 복사·공유 문구 빌더(별점 ★☆·▪) — 화면 글자는 변환 때 정리함
+];
+test("화면 글자에 이모지가 없다", () => {
+  const EMO = /[\p{Extended_Pictographic}✦✓✕★☆→←↑↓▾▴▸▼›]/u;
+  const blanked = new Map<string, string[]>(); // 여러 줄 주석을 지운 파일 줄
+  const lineOf = (file: string, n: number) => {
+    if (!blanked.has(file)) {
+      const t = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+      blanked.set(file, t.split("\n"));
+    }
+    return blanked.get(file)![n - 1];
+  };
+  const hits = offenders(/./, EMOJI_ALLOW).filter((at) => {
+    const i = at.lastIndexOf(":");
+    const line = lineOf(at.slice(0, i), +at.slice(i + 1));
+    return !line.includes("shareText:") && EMO.test(line.replace(/\r$/, "").replace(/\s\/\/\s.*$/, ""));
+  });
+  assert.deepEqual(hits, []);
+});

@@ -18,6 +18,7 @@ import { appSupportsPush } from "@/lib/app-push";
 import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -222,7 +223,7 @@ export default function MyPage() {
                 {me.user.nickname}
               </div>
               <div className="text-20 font-bold text-gold-soft mt-0.5">
-                ⭐ {balance ?? 0}별
+                <Icon name="star" size={14} className="inline align-[-2px]" />{balance ?? 0}별
               </div>
             </div>
             <Link
@@ -290,7 +291,7 @@ export default function MyPage() {
             className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-15"
             aria-hidden
           >
-            👥
+           
           </span>
           <span className="flex-1 text-left text-14 text-eye-purple font-medium">
             지인 사주 <span className="text-text-light">{acquaintanceCount}명</span>
@@ -340,7 +341,7 @@ export default function MyPage() {
                 </span>
               )}
             </span>
-            <span className="text-text-light">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           <Link href="/mypage/payments" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
@@ -351,7 +352,7 @@ export default function MyPage() {
             <span className="flex-1 text-14 text-eye-purple font-medium">
               결제 · 별 내역
             </span>
-            <span className="text-text-light">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           {appReady && appSupportsPush() && (
             <Link href="/mypage/notifications" className="flex items-center gap-3 p-3.5">
@@ -361,7 +362,7 @@ export default function MyPage() {
                 </svg>
               </span>
               <span className="flex-1 text-14 text-eye-purple font-medium">알림 설정</span>
-              <span className="text-text-light">›</span>
+              <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
             </Link>
           )}
           {/* 앱에서만 — 앱은 푸터를 숨기므로 약관·사업자 정보를 여기서 연다(스펙 2026-11-07-앱-화면 §9) */}
@@ -372,7 +373,7 @@ export default function MyPage() {
               </svg>
             </span>
             <span className="flex-1 text-14 text-eye-purple font-medium">약관·사업자 정보</span>
-            <span className="text-text-light">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           <button
             onClick={() => setShowWithdrawConfirm(true)}
@@ -386,7 +387,7 @@ export default function MyPage() {
             <span className="flex-1 text-left text-14 text-text-light font-medium">
               회원 탈퇴
             </span>
-            <span className="text-text-light">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </button>
         </div>
       </div>

@@ -273,7 +273,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             onClick={resetToOverview}
             className="btn btn-secondary btn-sm absolute left-2 top-2 z-10"
           >
-            ← 전체 지도 보기
+            전체 지도 보기
           </button>
         )}
         <ConstellationCanvas
@@ -302,7 +302,7 @@ export default function ConstellationView({ graph, meId }: Props) {
               <h3 className="font-display text-17 text-eye-purple">{card.target.name ?? "이 별"}</h3>
             </div>
             <button onClick={resetToOverview} className="text-14 text-text-light">
-              닫기 ✕
+              닫기
             </button>
           </div>
           <InyeonDetail

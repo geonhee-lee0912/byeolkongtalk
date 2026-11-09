@@ -6,6 +6,7 @@ import {
   type DailyReport,
 } from "@/lib/fortune/daily-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
+import Icon from "@/components/common/Icon";
 
 // 바깥 껍데기 — standalone 은 제 몸으로 서는 카드(/fortune/result·어드민)라 가운데 정렬 + 흰 카드를
 // 두르지만, embedded 는 이미 DayDetailCard 의 한 장(2026-09-27 부터 bg-white p-4) **안**이다. 거기서 흰 카드를
@@ -95,8 +96,8 @@ export default function DailyReportCard({
       <div className="flex items-center justify-center gap-2 mb-[9px]">
         <span className="text-11 font-bold text-text-light">{dayWord} 종합운</span>
         <span className="text-13 tracking-[2px] text-[#C9C4D6]">
-          <b className="text-eye-purple">{"★".repeat(filled)}</b>
-          {"☆".repeat(5 - filled)}
+          <b className="text-eye-purple">{"".repeat(filled)}</b>
+          {"".repeat(5 - filled)}
         </span>
       </div>
 
@@ -126,7 +127,6 @@ export default function DailyReportCard({
         return (
           <div key={meta.key} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
             <div className="flex items-center gap-[7px] mb-1.5">
-              <span className="text-13 opacity-85">{meta.icon}</span>
               <span className="text-13 font-extrabold text-[#4A4458]">{meta.title}</span>
             </div>
             <MarkdownLite text={sec.body} className="text-13 leading-[1.85] text-[#4F4A5E]" />
@@ -137,7 +137,7 @@ export default function DailyReportCard({
       {/* 오늘의 균형 */}
       <div className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
         <div className="flex items-center gap-[7px] mb-1.5">
-          <span className="text-13 opacity-85">⚖️</span>
+          <span className="text-13 opacity-85"><Icon name="scale" size={16} /></span>
           <span className="text-13 font-extrabold text-[#4A4458]">{dayWord}의 균형</span>
         </div>
         <div className="flex flex-col gap-[9px]">

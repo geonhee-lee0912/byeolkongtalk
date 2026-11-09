@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Sheet from "@/components/common/Sheet";
 import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import Icon from "@/components/common/Icon";
 
 export default function AlreadyOwnedModal({
   label,
@@ -43,7 +44,7 @@ export default function AlreadyOwnedModal({
             onClick={onRegenerate}
             className="btn btn-text btn-lg"
           >
-            그래도 새로 뽑기 · ⭐{cost}
+            그래도 새로 뽑기 · <Icon name="star" size={14} className="inline align-[-2px]" />{cost}
           </button>
           <OverlayCloseButton className="w-full py-2.5 text-13 text-text-light">닫기</OverlayCloseButton>
         </div>

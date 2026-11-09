@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface Payment {
   id: string;
@@ -126,7 +127,7 @@ export default function PaymentsPage() {
           <div>
             <div className="text-11 text-white/75 mb-1">현재 별 잔액</div>
             <div className="text-22 font-bold text-gold-soft">
-              ⭐ {balance ?? 0}별
+              <Icon name="star" size={14} className="inline align-[-2px]" />{balance ?? 0}별
             </div>
           </div>
           <div className="text-right">
@@ -165,7 +166,7 @@ export default function PaymentsPage() {
                       <span className="font-bold text-eye-purple/80">
                         {fmtDate(row.payment.paidAt)} {fmtTime(row.payment.paidAt)}
                       </span>
-                      <span className="text-text-light"> · ⭐{row.payment.stars}별</span>
+                      <span className="text-text-light"> · <Icon name="star" size={14} className="inline align-[-2px]" />{row.payment.stars}별</span>
                     </div>
                   </div>
                   <div className="text-14 font-bold text-eye-purple">

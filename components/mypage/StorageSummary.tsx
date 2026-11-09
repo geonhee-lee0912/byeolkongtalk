@@ -10,10 +10,10 @@ export interface StorageSummaryProps {
 }
 
 const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
-  { key: "tarot", icon: "🔮", label: "타로톡" },
-  { key: "fortune", icon: "📜", label: "사주·운세" },
-  { key: "sim", icon: "🎭", label: "시뮬레이션" },
-  { key: "relationship", icon: "💬", label: "연애 상담" },
+  { key: "tarot", icon: "/icons/fortune/tarot_counsel.webp", label: "타로톡" },
+  { key: "fortune", icon: "/icons/fortune/saju_full.webp", label: "사주·운세" },
+  { key: "sim", icon: "/icons/relationship/sim.webp", label: "시뮬레이션" },
+  { key: "relationship", icon: "/icons/relationship/consult.webp", label: "연애 상담" },
 ];
 
 export default function StorageSummary({ counts, relationshipPassActive }: StorageSummaryProps) {
@@ -31,7 +31,7 @@ export default function StorageSummary({ counts, relationshipPassActive }: Stora
           >
             <span className="flex items-center justify-center gap-1.5">
               <span className="text-15" aria-hidden>
-                {item.icon}
+                <img src={item.icon} alt="" width={22} height={22} className="object-contain" />
               </span>
               {isRel ? (
                 <span

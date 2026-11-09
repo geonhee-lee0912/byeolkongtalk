@@ -98,14 +98,14 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 className="font-display text-17 font-bold text-eye-purple">
-            {skill.emoji} {skill.label}
+            {skill.label}
           </h2>
           <button
             onClick={closeModal}
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </button>
         </div>
 

@@ -33,6 +33,7 @@ import {
   getLatestCardIndex,
   type Bubble,
 } from "@/lib/tarot/bubbles";
+import Icon from "@/components/common/Icon";
 
 interface Message {
   role: "user" | "assistant";
@@ -405,12 +406,7 @@ function TarotReadingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const emotionEmoji = useMemo(() => {
-    if (!draw) return "✨";
-    return (
-      EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.emoji ?? "✨"
-    );
-  }, [draw]);
+  const emotionIcon = useMemo(() => (draw ? EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.icon : undefined), [draw]);
 
   // 컨테이너 하단 스크롤 — 쓰로틀 + 유저 전송 직후 일시정지 존중
   function scrollToBottom() {
@@ -1070,7 +1066,7 @@ function TarotReadingInner() {
             aria-expanded={concernExpanded}
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-14 shrink-0">{emotionEmoji}</span>
+              {emotionIcon && <img src={emotionIcon} alt="" width={18} height={18} className="shrink-0 object-contain" />}
               <span className="text-12 font-bold text-text-light tracking-wide shrink-0">
                 {draw.emotion}
               </span>
@@ -1084,7 +1080,7 @@ function TarotReadingInner() {
                   concernExpanded ? "rotate-180" : ""
                 }`}
               >
-                ▾
+                <Icon name="chev_d" size={14} />
               </span>
             </div>
             {concernExpanded && (
@@ -1203,7 +1199,7 @@ function TarotReadingInner() {
                   disabled={inPurchaseFlow}
                   className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ✨ 결과 카드 보기
+                  결과 카드 보기
                 </button>
               </div>
             )}
@@ -1265,13 +1261,13 @@ function TarotReadingInner() {
           {isEnded ? (
             <div className="flex flex-col gap-2">
               <p className="text-12 text-text-light text-center pb-2.5">
-                별콩이의 풀이가 마무리됐어 ✨
+                별콩이의 풀이가 마무리됐어
               </p>
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
                 className="btn btn-primary btn-lg"
               >
-                결과 보기 →
+                결과 보기
               </Link>
               <PostEndOffers
                 extend={reopen.extend}
@@ -1413,7 +1409,7 @@ function TarotReadingInner() {
             className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-15 shrink-0">⭐</span>
+            <span className="text-15 shrink-0"><Icon name="star" size={16} /></span>
             <p className="flex-1 text-13 font-bold text-eye-purple leading-snug">
               충전 완료!{" "}
               {pendingResumeBanner.type === "clarifier"

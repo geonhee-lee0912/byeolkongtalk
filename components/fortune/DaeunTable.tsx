@@ -28,7 +28,7 @@ export default function DaeunTable({
 
   return (
     <div className="card-report">
-      <h3 className="text-15 font-extrabold text-eye-purple mb-1.5">🌌 대운 10년 흐름</h3>
+      <h3 className="text-15 font-extrabold text-eye-purple mb-1.5">대운 10년 흐름</h3>
       <p className="text-11 text-text-light leading-snug mb-5">
         10년마다 바뀌는 인생의 큰 기운이야. 각 시기가 네 사주와 만나 어떤 국면을 여는지 담았어.
       </p>
@@ -45,7 +45,6 @@ export default function DaeunTable({
                 </span>
                 {theme && (
                   <span className="flex items-center gap-1 bg-lilac-soft/60 rounded-full pl-2 pr-2.5 py-0.5 text-12 font-bold text-eye-purple shrink-0">
-                    <span aria-hidden>{theme.emoji}</span>
                     {theme.label}
                   </span>
                 )}

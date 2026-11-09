@@ -9,10 +9,10 @@ const STEPS = [
 ];
 
 const PRODUCTS = [
-  { e: "🃏", t: "타로톡", d: "고민을 타로로 풀어보기" },
-  { e: "🔮", t: "별콩 운세", d: "사주로 보는 나의 흐름" },
-  { e: "💬", t: "연애 상담", d: "그 사람 이야기를 계속" },
-  { e: "🎭", t: "연애 시뮬", d: "그 사람과 상황 연습" },
+  { e: "", t: "타로톡", d: "고민을 타로로 풀어보기" },
+  { e: "", t: "별콩 운세", d: "사주로 보는 나의 흐름" },
+  { e: "", t: "연애 상담", d: "그 사람 이야기를 계속" },
+  { e: "", t: "연애 시뮬", d: "그 사람과 상황 연습" },
 ];
 
 export default function HowToUsePage() {
@@ -66,7 +66,7 @@ export default function HowToUsePage() {
 
         <section className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
           <p className="text-14 text-eye-purple leading-relaxed">
-            🌟 처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
+            처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
           </p>
         </section>
 

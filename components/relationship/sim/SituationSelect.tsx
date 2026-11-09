@@ -7,10 +7,10 @@ import StageFrame from "./StageFrame";
 // 관계 칩 — 짧은 라벨 + 대표 이모지. 순서는 내 관계를 맨 앞으로(chipOrder).
 const ALL_STATUSES: RelationshipStatus[] = ["crush", "dating", "onesided", "breakup"];
 const CHIP: Record<RelationshipStatus, { label: string; emoji: string }> = {
-  crush: { label: "썸", emoji: "💗" },
-  dating: { label: "연애", emoji: "💞" },
-  onesided: { label: "짝사랑", emoji: "🌱" },
-  breakup: { label: "이별", emoji: "🥀" },
+  crush: { label: "썸", emoji: "" },
+  dating: { label: "연애", emoji: "" },
+  onesided: { label: "짝사랑", emoji: "" },
+  breakup: { label: "이별", emoji: "" },
 };
 
 interface Props {
@@ -52,7 +52,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                       : "bg-cream-warm/10 text-lilac-soft border border-lilac/25"
                   }`}
                 >
-                  {s === "intro" ? "🎭 이게 뭐야?" : `${CHIP[s].emoji} ${CHIP[s].label}`}
+                  {s === "intro" ? "이게 뭐야?" : CHIP[s].label}
                 </button>
               );
             })}
@@ -61,7 +61,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
           {/* 안내 칩이면 설명(고도화 가이드), 아니면 상황 목록 + 직접쓰기 */}
           {chip === "intro" ? (
             <div className="rounded-2xl bg-cream-warm/[0.07] border border-lilac/20 p-4 text-cream-warm animate-fade-in">
-              <p className="font-bold mb-1">🎭 연애 시뮬이 뭐야?</p>
+              <p className="font-bold mb-1">연애 시뮬이 뭐야?</p>
               <p className="text-14 text-lilac-soft/90 leading-relaxed">
                 네가 그린 <b className="text-cream-warm">그 사람 인형</b>과 <b className="text-cream-warm">여러 가지 상황</b>을 미리 연습하는 리허설이야.
                 별콩이가 상황을 여럿 준비해두지만, <b className="text-cream-warm">원하면 네가 직접 상황을 적어도 돼!</b>
@@ -70,7 +70,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                 인형은 <b className="text-cream-warm">네가 다듬을수록 더 그 사람처럼</b> 돼 — 이렇게 키워:
               </p>
               <ul className="text-13 text-lilac-soft/85 leading-relaxed mt-1 space-y-1">
-                <li>· 대화 중 인형 대사에 <b className="text-cream-warm">👍 / 👎</b>로 “실제론 이래” 알려주기</li>
+                <li>· 대화 중 인형 대사에 <b className="text-cream-warm">/</b>로 “실제론 이래” 알려주기</li>
                 <li>· <b className="text-cream-warm">디브리핑</b>에서 “걔는 사실 이런 사람” 한 줄 적어주기</li>
                 <li>· 걔 <b className="text-cream-warm">기본 정보</b>(MBTI·성격)를 프로필에 채워두기</li>
               </ul>
@@ -79,7 +79,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                 몇 판 쌓여야 진짜 걔 같아지니까, <b className="text-gold-soft">처음 몇 판은 무료</b>로 부담 없이 만들어봐.
               </p>
               <button type="button" onClick={() => setChip(status)} className="mt-3 w-full rounded-xl py-2.5 bg-gold text-night-deep font-bold text-14">
-                상황 고르러 가기 →
+                상황 고르러 가기
               </button>
             </div>
           ) : (
@@ -100,7 +100,6 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
                       : "bg-cream-warm/[0.07] border-lilac/20 hover:border-gold/40"
                   }`}
                 >
-                  <span className="text-22 shrink-0">{s.emoji}</span>
                   <span className="min-w-0">
                     <span className="block font-bold text-cream-warm">{s.label}</span>
                     <span className="block text-13 text-lilac-soft/70 mt-0.5">{s.desc}</span>
@@ -122,7 +121,7 @@ export default function SituationSelect({ status, onPick, onClose }: Props) {
       <div className="px-6 pt-8 pb-10 animate-fade-in">
         <button onClick={() => setPicked(null)} className="text-lilac-soft/60 text-12 mb-2" aria-label="뒤로">‹ 뒤로</button>
         <h1 className="text-center text-cream-warm font-display text-17 mb-5">
-          {picked.emoji} {picked.label}
+          {picked.label}
         </h1>
         <p className="text-cream-warm font-medium mb-2">{picked.contextPrompt}</p>
         <textarea

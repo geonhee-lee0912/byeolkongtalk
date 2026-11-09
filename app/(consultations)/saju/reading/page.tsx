@@ -18,6 +18,7 @@ import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { EXTEND_COST } from "@/lib/upsell";
+import Icon from "@/components/common/Icon";
 
 interface Message {
   role: "user" | "assistant";
@@ -515,7 +516,7 @@ function ReadingInner() {
           >
             <span className="font-bold">사주판</span>
             <span className="text-text-light">
-              {showSajuBoard ? "접기 ▴" : "펼치기 ▾"}
+              {showSajuBoard ? "접기" : "펼치기"}
             </span>
           </button>
           <Link
@@ -625,7 +626,7 @@ function ReadingInner() {
                 }}
                 className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in"
               >
-                ✨ 결과 카드 보기
+                결과 카드 보기
               </button>
             </div>
           )}
@@ -652,13 +653,13 @@ function ReadingInner() {
           {isEnded ? (
             <div className="flex flex-col gap-2">
               <p className="text-12 text-text-light text-center">
-                별콩이의 풀이가 마무리됐어 ✨
+                별콩이의 풀이가 마무리됐어
               </p>
               <Link
                 href={`/saju/result?id=${ctx.readingId}`}
                 className="btn btn-primary btn-lg"
               >
-                결과 보기 →
+                결과 보기
               </Link>
             </div>
           ) : (
@@ -688,7 +689,7 @@ function ReadingInner() {
                 disabled={isStreaming}
                 className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-13 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ✨ 이 풀이로 결과 카드 받기
+                이 풀이로 결과 카드 받기
               </button>
             </form>
           )}
@@ -722,7 +723,7 @@ function ReadingInner() {
             className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-15 shrink-0">⭐</span>
+            <span className="text-15 shrink-0"><Icon name="star" size={16} /></span>
             <p className="flex-1 text-13 font-bold text-eye-purple leading-snug">
               충전 완료! 이어갈까?
             </p>

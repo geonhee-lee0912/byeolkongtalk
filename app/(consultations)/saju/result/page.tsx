@@ -16,6 +16,7 @@ import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
 import type { SajuResult } from "@/lib/saju/calc";
+import Icon from "@/components/common/Icon";
 
 export default function ResultPage() {
   return (
@@ -194,7 +195,7 @@ function ResultPageInner() {
           onClick={() => setShowHistory((v) => !v)}
           className="btn btn-secondary btn-lg"
         >
-          대화 전체 다시보기 {showHistory ? "▴" : "▾"}
+          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
         </button>
         {showHistory && (
           <div className="card mt-3">
@@ -220,7 +221,7 @@ function ResultPageInner() {
             href={`/saju/reading?id=${reading.id}`}
             className="btn btn-secondary btn-lg"
           >
-            💬 이어서 대화하기
+            이어서 대화하기
           </Link>
         </div>
       )}
@@ -231,7 +232,7 @@ function ResultPageInner() {
         onContinue={() => setContinueOpen(true)}
         newHref="/saju"
         newLabel="새 사주 보기"
-        newCostLabel={`⭐${SAJU_READING_COST}`}
+        newCostLabel={`별 ${SAJU_READING_COST}`}
         readingId={reading.id}
       />
 

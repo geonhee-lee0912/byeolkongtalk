@@ -36,10 +36,10 @@ const LIST_PAGE_SIZE = 5;
 
 const STATUS_OPTIONS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
 const STATUS_EMOJI: Record<RelationshipStatus, string> = {
-  crush: "💗",
-  dating: "💞",
-  onesided: "🌱",
-  breakup: "🥀",
+  crush: "",
+  dating: "",
+  onesided: "",
+  breakup: "",
 };
 
 export interface WatchAddModalProps {
@@ -203,7 +203,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               disabled={busy}
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
             >
-              ✕
+             
             </OverlayCloseButton>
           </div>
 

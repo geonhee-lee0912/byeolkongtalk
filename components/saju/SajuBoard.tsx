@@ -2,6 +2,7 @@
 
 import type { SajuResult } from "@/lib/saju/calc";
 import { ELEMENT_COLORS, type FiveElement } from "@/lib/saju/elements";
+import Icon from "@/components/common/Icon";
 
 // 시주-left 정렬 (항상). 강조는 key === "day"로 판정하므로 순서만 반전.
 const PILLAR_LABELS: { key: "year" | "month" | "day" | "hour"; label: string }[] = [
@@ -60,7 +61,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
               <div className="text-11 text-text-light text-center mb-1.5">
                 {label}
                 {isDayMaster && (
-                  <span className="ml-1 text-gold font-bold">★</span>
+                  <span className="ml-1 text-gold font-bold"><Icon name="rate_on" size={16} /></span>
                 )}
               </div>
 

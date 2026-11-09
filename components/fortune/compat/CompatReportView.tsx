@@ -35,18 +35,18 @@ const SECTION_LABELS: Record<
   { attraction: string; conflict: string; communication: string; longterm: string; growth: string }
 > = {
   romantic: {
-    attraction: "💘 끌림·성격 케미",
-    conflict: "🌗 갈등 포인트",
-    communication: "💬 잘 통하는 대화법",
-    longterm: "🌱 장기 전망",
-    growth: "🌿 관계 성장 포인트",
+    attraction: "끌림·성격 케미",
+    conflict: "갈등 포인트",
+    communication: "잘 통하는 대화법",
+    longterm: "장기 전망",
+    growth: "관계 성장 포인트",
   },
   social: {
-    attraction: "🤝 성향 케미",
-    conflict: "🌗 부딪히는 지점",
-    communication: "💬 소통의 결",
-    longterm: "🌱 관계의 미래",
-    growth: "🌿 관계 성장 포인트",
+    attraction: "성향 케미",
+    conflict: "부딪히는 지점",
+    communication: "소통의 결",
+    longterm: "관계의 미래",
+    growth: "관계 성장 포인트",
   },
 };
 
@@ -65,23 +65,23 @@ export default function CompatReportView({
   // 접이식 섹션 — 오행 케미부터. optional 필드는 있을 때만(구 리포트 하위호환).
   const opt = (cond: unknown, item: AccordionItem): AccordionItem[] => (cond ? [item] : []);
   const items: AccordionItem[] = [
-    { key: "chemistry", heading: "🔮 오행 케미", body: report.chemistry },
+    { key: "chemistry", heading: "오행 케미", body: report.chemistry },
     { key: "attraction", heading: labels.attraction, body: report.attraction },
     { key: "conflict", heading: labels.conflict, body: report.conflict },
     ...opt(report.communication, { key: "communication", heading: labels.communication, body: report.communication! }),
     { key: "longterm", heading: labels.longterm, body: report.longterm },
     ...opt(report.growth, { key: "growth", heading: labels.growth, body: report.growth! }),
-    ...opt(report.individual, { key: "individual", heading: "👥 두 사람 각자의 모습", body: report.individual! }),
-    ...opt(report.stages, { key: "stages", heading: "📈 관계 시기별 흐름", body: report.stages! }),
-    ...opt(report.repair, { key: "repair", heading: "🩹 다툼과 화해의 기술", body: report.repair! }),
-    ...opt(report.intimacy, { key: "intimacy", heading: "💞 애정·거리감 표현법", body: report.intimacy! }),
-    ...opt(report.loveLanguage, { key: "loveLanguage", heading: "💌 서로의 사랑의 언어", body: report.loveLanguage! }),
-    ...opt(report.warningSigns, { key: "warningSigns", heading: "🚦 위기 신호와 조기 대응", body: report.warningSigns! }),
-    ...opt(report.badHabits, { key: "badHabits", heading: "🌵 각자 조심할 습관", body: report.badHabits! }),
-    ...opt(report.spark, { key: "spark", heading: "✨ 관계에 활기를 더하는 법", body: report.spark! }),
+    ...opt(report.individual, { key: "individual", heading: "두 사람 각자의 모습", body: report.individual! }),
+    ...opt(report.stages, { key: "stages", heading: "관계 시기별 흐름", body: report.stages! }),
+    ...opt(report.repair, { key: "repair", heading: "다툼과 화해의 기술", body: report.repair! }),
+    ...opt(report.intimacy, { key: "intimacy", heading: "애정·거리감 표현법", body: report.intimacy! }),
+    ...opt(report.loveLanguage, { key: "loveLanguage", heading: "서로의 사랑의 언어", body: report.loveLanguage! }),
+    ...opt(report.warningSigns, { key: "warningSigns", heading: "위기 신호와 조기 대응", body: report.warningSigns! }),
+    ...opt(report.badHabits, { key: "badHabits", heading: "각자 조심할 습관", body: report.badHabits! }),
+    ...opt(report.spark, { key: "spark", heading: "관계에 활기를 더하는 법", body: report.spark! }),
     {
       key: "advice",
-      heading: "💡 관계를 위한 조언",
+      heading: "관계를 위한 조언",
       preview: report.advice[0],
       children: (
         <ol className="flex flex-col gap-1.5">
@@ -133,7 +133,7 @@ export default function CompatReportView({
             </div>
             <div className="flex justify-center">
               <span className="rounded-full bg-lilac-soft/60 px-3.5 py-1 text-12 font-bold text-accent">
-                {saju.a.dayStem}({saju.a.dayElement}) ↔ {saju.b.dayStem}({saju.b.dayElement})
+                {saju.a.dayStem}({saju.a.dayElement}) {saju.b.dayStem}({saju.b.dayElement})
               </span>
             </div>
             <div>

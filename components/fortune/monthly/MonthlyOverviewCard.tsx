@@ -64,8 +64,8 @@ export default function MonthlyOverviewCard({
       <div className="flex items-center justify-center gap-2 mb-[9px]">
         <span className="text-11 font-bold text-text-light">이번 달 종합운</span>
         <span className="text-13 tracking-[2px] text-[#C9C4D6]">
-          <b className="text-eye-purple">{"★".repeat(filled)}</b>
-          {"☆".repeat(5 - filled)}
+          <b className="text-eye-purple">{"".repeat(filled)}</b>
+          {"".repeat(5 - filled)}
         </span>
       </div>
 

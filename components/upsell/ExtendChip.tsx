@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/upsell";
+import Icon from "@/components/common/Icon";
 
 export type ExtendChipState = "idle" | "loading" | "done";
 
@@ -44,11 +45,11 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
             : "border-gold/50 bg-white hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
         }`}
       >
-        <span className="text-15 shrink-0">💬</span>
+        <span className="text-15 shrink-0"><Icon name="bubble" size={16} /></span>
         <div className="flex-1 min-w-0">
           {done ? (
             <div className="text-12 font-bold text-text-light truncate">
-              ✓ 이어가는 중
+              이어가는 중
             </div>
           ) : loading ? (
             <div className="text-12 font-bold text-eye-purple truncate">
@@ -60,13 +61,13 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
                 별콩이랑 더 얘기하기
               </div>
               <div className="text-11 text-text-light mt-0.5">
-                ⭐{EXTEND_COST} · +{EXTEND_TURNS}턴
+                <Icon name="star" size={14} className="inline align-[-2px]" />{EXTEND_COST} · +{EXTEND_TURNS}턴
               </div>
             </>
           )}
         </div>
         {!done && !loading && (
-          <span className="text-text-light text-14 shrink-0">›</span>
+          <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
         )}
       </button>
     </div>

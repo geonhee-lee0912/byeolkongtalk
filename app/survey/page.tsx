@@ -84,7 +84,7 @@ export default function SurveyPage() {
   if (phase === "already") {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center gap-4">
-        <p className="text-15 text-eye-purple">이미 이야기 들려줬어. 고마워 🌟</p>
+        <p className="text-15 text-eye-purple">이미 이야기 들려줬어. 고마워</p>
         <Link href="/" className="btn btn-primary btn-md">
           홈으로
         </Link>
@@ -97,7 +97,7 @@ export default function SurveyPage() {
         <p className="text-15 text-eye-purple leading-relaxed">
           들려줘서 고마워!
           <br />
-          별콩별 {SURVEY_REWARD_STARS}개를 넣어줬어 🌟
+          별콩별 {SURVEY_REWARD_STARS}개를 넣어줬어
         </p>
         <Link href="/" className="btn btn-primary btn-md">
           홈으로
@@ -114,7 +114,7 @@ export default function SurveyPage() {
           별콩이를 도와줘! 너의 한마디로 더 좋은 별콩이가 될 수 있으니 편하고 솔직하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개를 줄게~!
         </p>
         <p className="text-12 text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
-          🌟 매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
+          매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
         </p>
         <div className="space-y-5">
           {SURVEY_QUESTIONS.map((q, i) => {
@@ -177,7 +177,7 @@ export default function SurveyPage() {
                   placeholder="편하게 작성해줘"
                 />
                 <div className={`text-11 mt-1 text-right ${ok ? "text-accent" : "text-text-light"}`}>
-                  {ok ? `✓ ${len}자` : `최소 ${SURVEY_MIN_CHARS}자 · ${len}자`}
+                  {ok ? `${len}자` : `최소 ${SURVEY_MIN_CHARS}자 · ${len}자`}
                 </div>
               </div>
             );

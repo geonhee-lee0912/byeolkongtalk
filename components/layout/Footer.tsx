@@ -63,7 +63,7 @@ export default function Footer() {
         </div>
 
         <p className="text-11 text-text-light mt-4">
-          © 2026 별콩톡. All rights reserved.
+          2026 별콩톡. All rights reserved.
         </p>
       </div>
     </footer>

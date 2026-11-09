@@ -6,6 +6,7 @@ import { splitLengthHint } from "@/lib/fortune/outline";
 import OutlineChips from "./OutlineChips";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
+import Icon from "@/components/common/Icon";
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -53,7 +54,7 @@ export default function FortuneLandingSections({
         <ul className="flex flex-col gap-1.5">
           {questions.map((q) => (
             <li key={q} className="text-13 text-text-light leading-relaxed flex gap-2">
-              <span className="text-gold shrink-0" aria-hidden>✦</span>
+              
               <span>{q}</span>
             </li>
           ))}
@@ -107,7 +108,7 @@ export default function FortuneLandingSections({
                     <FortuneIcon type={t} size={34} />
                   </span>
                   <span className="text-12 font-bold text-eye-purple text-center leading-tight">{f.label}</span>
-                  <span className="text-11 text-text-light">⭐ {f.cost}</span>
+                  <span className="text-11 text-text-light"><Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}</span>
                 </Link>
               );
             })}

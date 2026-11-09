@@ -77,7 +77,7 @@ export default function PushUnsubscribePage() {
         )}
         {view.kind !== "working" && (
           <p className="mt-4 text-13 text-text-light leading-relaxed">
-            지금 상태는 마이 → 알림 설정에서 보고 바꿀 수 있어.{" "}
+            지금 상태는 마이의 알림 설정에서 보고 바꿀 수 있어.{""}
             <Link href="/mypage/notifications" className="underline">
               알림 설정
             </Link>

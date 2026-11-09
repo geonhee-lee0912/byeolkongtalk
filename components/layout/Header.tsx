@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AppHeader from "./AppHeader";
 import { useHeaderAccount } from "./useHeaderAccount";
+import Icon from "@/components/common/Icon";
 
 export default function Header() {
   const { user, balance } = useHeaderAccount();
@@ -38,7 +39,7 @@ export default function Header() {
                 aria-label="별콩 상점"
               >
                 <span className="text-13 leading-none" aria-hidden>
-                  ⭐
+                  <Icon name="star" size={14} className="inline align-[-2px]" />
                 </span>
                 <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">
                   {balance ?? "-"}

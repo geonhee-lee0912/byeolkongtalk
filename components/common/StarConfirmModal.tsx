@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import Sheet from "./Sheet";
 import OverlayCloseButton from "./OverlayCloseButton";
+import Icon from "@/components/common/Icon";
 
 export interface StarConfirmModalProps {
   cost: number;
@@ -105,19 +106,19 @@ export default function StarConfirmModal({
           )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
-            <span className="font-bold text-eye-purple tabular-nums">⭐ {cost}</span>
+            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px]" />{cost}</span>
           </div>
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">현재 잔액</span>
             <span className="font-bold text-eye-purple tabular-nums">
-              {loading || balance === null ? "…" : `⭐ ${balance}`}
+              {loading || balance === null ? "…" : `별 ${balance}`}
             </span>
           </div>
           {!loading && afterBalance !== null && !insufficient && (
             <div className="flex items-center justify-between py-1 border-t border-lilac-mid/15 mt-1 pt-2">
               <span className="text-text-light">결제 후 잔액</span>
               <span className="font-bold tabular-nums" style={{ color: accent }}>
-                ⭐ {afterBalance}
+                <Icon name="star" size={14} className="inline align-[-2px]" />{afterBalance}
               </span>
             </div>
           )}

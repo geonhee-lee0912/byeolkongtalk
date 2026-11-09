@@ -136,7 +136,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
         type="submit"
         className="btn btn-primary btn-lg mt-2"
       >
-        결과 보기 →
+        결과 보기
       </button>
     </form>
   );

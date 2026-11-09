@@ -23,6 +23,7 @@ import {
 } from "@/lib/relationship/draw-thread";
 import { getCard } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import Icon from "@/components/common/Icon";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -509,7 +510,7 @@ export default function ThreadChat({
           {showStarter && (
             <div className="flex flex-col items-center text-center py-10 px-4 animate-fade-in">
               <span className="text-28 mb-2" aria-hidden>
-                💬
+               
               </span>
               <p className="text-14 font-bold text-eye-purple mb-1">
                 별콩이랑 얘기 시작하기
@@ -625,12 +626,12 @@ export default function ThreadChat({
                         disabled={busyKey === skill.key || !!activeSkill}
                         className="btn btn-secondary btn-sm whitespace-nowrap"
                       >
-                        <span aria-hidden>{skill.emoji}</span>
+                        <Icon name={skill.icon} size={14} />
                         <span className="text-12 font-bold text-eye-purple">
                           {busyKey === skill.key ? "여는 중…" : skill.label}
                         </span>
                         <span className="text-11 font-bold text-accent">
-                          ⭐{skill.starCost}
+                          <Icon name="star" size={14} className="inline align-[-2px]" />{skill.starCost}
                         </span>
                       </button>
                     </div>
@@ -653,7 +654,7 @@ export default function ThreadChat({
           {compatLoading && (
             <ChatBubble
               role="assistant"
-              content="별콩이가 두 사주로 궁합을 보는 중 ✨"
+              content="별콩이가 두 사주로 궁합을 보는 중"
               showAvatar
               showName
               streaming
@@ -663,7 +664,7 @@ export default function ThreadChat({
           {drawLoading && (
             <ChatBubble
               role="assistant"
-              content="별콩이가 카드를 펼치는 중 ✨"
+              content="별콩이가 카드를 펼치는 중"
               showAvatar
               showName
               streaming
@@ -707,10 +708,10 @@ export default function ThreadChat({
                 disabled={extending}
                 className="btn btn-primary btn-md"
               >
-                <span aria-hidden>💬</span>
+                <span aria-hidden><Icon name="bubble" size={16} /></span>
                 {extending
                   ? "연장하는 중…"
-                  : `오늘 대화 추가 구매 · ⭐${EXTEND_COST}로 ${EXTEND_TURNS}번 더`}
+                  : `오늘 대화 추가 구매 · 별 ${EXTEND_COST}로 ${EXTEND_TURNS}번 더`}
               </button>
               <p className="text-11 text-text-light text-center">
                 오늘은 여기까지 · 내일 자정에 다시 채워져

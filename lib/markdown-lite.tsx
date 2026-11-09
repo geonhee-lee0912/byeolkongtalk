@@ -1,4 +1,5 @@
 import React from "react";
+import Icon from "@/components/common/Icon";
 
 // 경량 마크다운 — 신뢰된 LLM 출력 전용(중첩·이스케이프 미지원). dangerouslySetInnerHTML 안 씀.
 export type InlinePart = { t: "text"; s: string } | { t: "b"; s: string } | { t: "hl"; s: string };
@@ -182,7 +183,7 @@ export function MarkdownLite({
               border: "1px solid rgba(232, 194, 106, 0.4)",
             }}
           >
-            <span className="shrink-0 text-15" aria-hidden>💡</span>
+            <span className="shrink-0 text-15" aria-hidden><Icon name="bulb" size={16} /></span>
             <p className="text-13 leading-relaxed" style={{ color: "#6A5A3A" }}>
               {renderInline(b.parts, `co-${i}`)}
             </p>

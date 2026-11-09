@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import Dialog from "@/components/common/Dialog";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
+import Icon from "@/components/common/Icon";
 
 export default function WelcomeStarsModal({
   onStart,
@@ -37,7 +38,7 @@ export default function WelcomeStarsModal({
           />
         </div>
         <p className="font-display text-22 text-eye-purple leading-tight">
-          웰컴 별 {WELCOME_BONUS_STARS}개 도착 ✨
+          웰컴 별 {WELCOME_BONUS_STARS}개 도착
         </p>
         <p className="mt-2 text-13 text-text-light leading-relaxed">
           만나서 반가워! 별콩이가 선물을 준비했어.
@@ -45,7 +46,7 @@ export default function WelcomeStarsModal({
         </p>
         <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gold-soft/40">
           <span className="text-13 font-extrabold text-eye-purple">
-            현재 잔액 ⭐ {WELCOME_BONUS_STARS}
+            현재 잔액 <Icon name="star" size={14} className="inline align-[-2px]" />{WELCOME_BONUS_STARS}
           </span>
         </div>
         <button

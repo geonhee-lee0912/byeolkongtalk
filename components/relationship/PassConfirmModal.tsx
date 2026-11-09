@@ -13,6 +13,7 @@ import {
   type PassPlan,
 } from "@/lib/relationship/types";
 import ButtonDots from "@/components/common/ButtonDots";
+import Icon from "@/components/common/Icon";
 
 interface PassConfirmModalProps {
   relationshipId: string;
@@ -72,7 +73,7 @@ export default function PassConfirmModal({
             {plan.label} 구매할까?
           </p>
           <p className="mt-1.5 text-17 font-bold text-accent">
-            ⭐ {plan.cost}별 차감
+            <Icon name="star" size={14} className="inline align-[-2px]" />{plan.cost}별 차감
           </p>
         </div>
 

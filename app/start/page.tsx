@@ -33,6 +33,8 @@ import {
   RELATIONSHIP_SKILL_PREVIEWS,
 } from "@/lib/relationship/types";
 import { safeInternalPath } from "@/lib/safe-internal-path";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
+import Icon from "@/components/common/Icon";
 
 const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love", "relationship"] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -271,7 +273,7 @@ function StartPageInner() {
         {loggedIn === false && (
           <div className="card mx-5 mt-4 flex flex-col items-center gap-3">
             <p className="text-14 font-extrabold text-eye-purple">
-              지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
+              지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개
             </p>
             <a
               href={`/api/auth/login/kakao?next=${encodeURIComponent(
@@ -352,7 +354,7 @@ function StartPageInner() {
             onClick={() => router.push("/")}
             className="btn btn-text btn-lg"
           >
-            별콩톡 전체 보러가기 →
+            별콩톡 전체 보러가기
           </button>
         </div>
       </div>
@@ -368,7 +370,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       {/* 배지 + 소개 */}
       <div className="flex flex-col items-center text-center mb-1">
         <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
-          <span aria-hidden style={{ color: "#E48BA0" }}>♥</span>
+          <span aria-hidden style={{ color: "#E48BA0" }}><Icon name="heart" size={16} /></span>
           연애 상담
         </span>
         <p className="text-13 text-text-light leading-relaxed">
@@ -383,7 +385,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       </p>
       <div className="card">
         <div className="flex items-start gap-2.5">
-          <span className="text-22 leading-none" aria-hidden>💜</span>
+          <span className="text-22 leading-none" aria-hidden><Icon name="heart" size={16} /></span>
           <div>
             <p className="text-14 font-bold text-eye-purple leading-snug">
               너만의 연애 상담 친구
@@ -404,7 +406,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
             key={s.label}
             className="card"
           >
-            <div className="text-22 mb-1.5" aria-hidden>{s.emoji}</div>
+            <div className="mb-1.5 text-accent" aria-hidden><Icon name={s.icon} size={24} /></div>
             <p className="text-13 font-bold text-eye-purple leading-snug">
               {s.label}
             </p>
@@ -422,14 +424,14 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
           패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
         </p>
         <p className="text-13 font-bold text-eye-purple text-center">
-          {PASS_PLANS.map((p) => `${p.label} ⭐${p.cost}`).join("  ·  ")}
+          {PASS_PLANS.map((p) => `${p.label} 별 ${p.cost}`).join("  ·  ")}
         </p>
       </div>
 
       {/* 하루 대화 한도 — 또렷하게 (연장 무제한 명시 · 환불 분쟁 방지) */}
       <div className="rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
         <p className="text-14 font-bold text-eye-purple flex items-center gap-1.5">
-          <span aria-hidden>📌</span> 하루에 얼마나 대화할 수 있어?
+          하루에 얼마나 대화할 수 있어?
         </p>
         <p className="mt-2 text-13 text-eye-purple/90 leading-relaxed">
           패스가 있는 동안 하루 <b>대략 {DAILY_TURN_CAP}번</b>(4천~8천 자쯤) 주고받을
@@ -569,7 +571,7 @@ function FortuneMenuList({
               className="w-12 h-12 rounded-xl flex items-center justify-center text-22 shrink-0"
               style={{ background: FORTUNE_GRADIENTS[f.type] }}
             >
-              {f.emoji}
+              <FortuneIcon type={f.type} size={30} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -578,7 +580,7 @@ function FortuneMenuList({
                 </span>
                 {f.cost > 0 && (
                   <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                    ⭐ {f.cost}
+                    <Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}
                   </span>
                 )}
               </div>

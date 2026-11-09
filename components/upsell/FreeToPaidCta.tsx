@@ -6,6 +6,7 @@ import Image from "next/image";
 import { FORTUNE_CONFIG, FORTUNE_GRADIENTS, type FortuneType } from "@/lib/fortune/types";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import Icon from "@/components/common/Icon";
 
 export default function FreeToPaidCta({
   title = "네 사주, 더 깊이 볼래?",
@@ -39,7 +40,7 @@ export default function FreeToPaidCta({
       {/* 결과 본문과 CTA 구분선 — 골드 별 + 라일락 헤어라인(별콩 모티프) */}
       <div className="flex items-center gap-3 mb-1" aria-hidden>
         <span className="h-px flex-1 bg-lilac-soft/70" />
-        <span className="text-gold text-11 leading-none">✦</span>
+        
         <span className="h-px flex-1 bg-lilac-soft/70" />
       </div>
       <div className="px-1">
@@ -67,7 +68,7 @@ export default function FreeToPaidCta({
             </div>
             <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">{chat.tagline}</p>
           </div>
-          <span className="text-eye-purple/50 text-17 shrink-0">›</span>
+          <span className="text-eye-purple/50 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>
         </Link>
       )}
       {items.map((f) => (
@@ -87,12 +88,12 @@ export default function FreeToPaidCta({
             <div className="flex items-center gap-1.5">
               <span className="text-14 font-bold text-eye-purple">{f.label}</span>
               <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                ⭐ {f.cost}
+                <Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}
               </span>
             </div>
             <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">{f.tagline}</p>
           </div>
-          <span className="text-eye-purple/50 text-17 shrink-0">›</span>
+          <span className="text-eye-purple/50 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>
         </Link>
       ))}
     </div>

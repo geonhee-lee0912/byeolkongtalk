@@ -10,6 +10,7 @@ import { TAG_HERO } from "@/lib/seo/tag-hero";
 import { buildSpreadSlug } from "@/lib/seo/spread-slugs";
 import { SPREAD_INFO, TAG_SPREADS } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
+import Icon from "@/components/common/Icon";
 
 interface TagEntry {
   title: string;
@@ -81,7 +82,7 @@ export default async function ThemePage({
         <Link href="/guide" className="hover:text-eye-purple">
           별콩이의 타로 가이드
         </Link>
-        <span className="mx-1">›</span>
+        <span className="mx-1"><Icon name="chev_r" size={16} /></span>
         <span>{entry.title.split("—")[0].trim()}</span>
       </nav>
 
@@ -129,7 +130,7 @@ export default async function ThemePage({
                 href={`/guide/spreads/${buildSpreadSlug(s)}`}
                 className="btn btn-secondary btn-md"
               >
-                {SPREAD_INFO[s].label} ({SPREAD_INFO[s].cardCount}장) ›
+                {SPREAD_INFO[s].label} ({SPREAD_INFO[s].cardCount}장)
               </Link>
             ))}
           </div>

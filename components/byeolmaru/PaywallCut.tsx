@@ -158,7 +158,7 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
               체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일 ·
             </span>{" "}
             <button type="button" onClick={() => onSubscribe(slot)} className="inline-block font-semibold underline underline-offset-2">
-              바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일 →
+              바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일
             </button>
           </p>
         </>

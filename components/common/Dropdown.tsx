@@ -3,6 +3,7 @@
 // 커스텀 드롭다운 — 시스템 <select> 대체. 트리거·열린 목록·스크롤바까지
 // 디자인 시스템(cream/lilac 토큰)으로 통일. controlled(value/onChange) 드롭인.
 import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/common/Icon";
 
 export interface DropdownOption {
   value: string;
@@ -154,7 +155,7 @@ export default function Dropdown({
           }`}
           aria-hidden="true"
         >
-          ▾
+          <Icon name="chev_d" size={14} />
         </span>
       </button>
 

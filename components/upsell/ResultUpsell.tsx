@@ -26,7 +26,7 @@ export default function ResultUpsell({
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
       <p className="text-13 font-bold text-eye-purple px-1 mt-1">
-        {variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어 ✨"}
+        {variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어"}
       </p>
       {cards.map((c) => (
         <Link
@@ -43,9 +43,7 @@ export default function ResultUpsell({
               <Image src={c.iconSrc} alt="" width={36} height={36} className="object-contain" />
             ) : c.fortuneType ? (
               <FortuneIcon type={c.fortuneType} size={36} />
-            ) : (
-              c.emoji
-            )}
+            ) : null}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">

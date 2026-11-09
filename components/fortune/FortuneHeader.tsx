@@ -7,6 +7,7 @@
 import Image from "next/image";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   variant?: "rich" | "slim";
@@ -67,7 +68,7 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
           className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-accent transition active:scale-95 disabled:opacity-60"
         >
           생일 등록하기
-          <span aria-hidden>→</span>
+          <span aria-hidden><Icon name="chev_r" size={16} /></span>
         </BirthPromptButton>
       </div>
       </div>

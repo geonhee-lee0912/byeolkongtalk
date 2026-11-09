@@ -86,6 +86,7 @@ export default function ReportAccordion({
             )}
             <CollapsibleSection
               heading={it.heading}
+              index={idx + 1}
               body={it.body}
               preview={it.preview}
               open={openSet.has(it.key)}

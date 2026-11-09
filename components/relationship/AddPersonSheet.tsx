@@ -6,6 +6,7 @@
 import { useState } from "react";
 import Sheet from "@/components/common/Sheet";
 import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import Icon from "@/components/common/Icon";
 
 interface AddPersonSheetProps {
   /** 새 슬롯 가격(SLOT_COST) — 서버 getSlotInfo 권위 */
@@ -85,12 +86,12 @@ export default function AddPersonSheet({
           aria-label="닫기"
           className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
         >
-          ✕
+         
         </OverlayCloseButton>
 
         <div className="px-5 pt-3 pb-2">
           <div className="text-center text-28 leading-none mb-2" aria-hidden>
-            🧸✨
+            
           </div>
           <h2 className="font-display text-17 font-bold text-eye-purple text-center">
             새로운 사람 만나기
@@ -107,7 +108,7 @@ export default function AddPersonSheet({
               className="text-13 font-bold"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              ⭐{nextCost}
+              <Icon name="star" size={14} className="inline align-[-2px]" />{nextCost}
             </span>
           </div>
           <div className="card-inner flex items-center justify-between mb-4">
@@ -116,7 +117,7 @@ export default function AddPersonSheet({
               className="text-13 font-bold text-accent"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              ⭐{bal}
+              <Icon name="star" size={14} className="inline align-[-2px]" />{bal}
               {insufficient && " (부족)"}
             </span>
           </div>
@@ -128,7 +129,7 @@ export default function AddPersonSheet({
               className="btn btn-lg text-white"
               style={{ background: WARN }}
             >
-              별 충전하러 가기 →
+              별 충전하러 가기
             </button>
           ) : (
             <button

@@ -22,6 +22,7 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark from "@/components/common/SectionMark";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import { RESUME_BANNER_KEY, RESUME_BANNER_MAX_VIEWS, takeBannerView } from "@/lib/home-banner-views";
+import Icon from "@/components/common/Icon";
 
 export default function Home() {
   const router = useRouter();
@@ -146,7 +147,7 @@ export default function Home() {
               }
               className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gold-wash text-left animate-fade-in"
             >
-              <span className="text-20 shrink-0">⭐</span>
+              <span className="text-20 shrink-0"><Icon name="star" size={16} /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-13 font-bold text-eye-purple leading-tight">
                   웰컴 별 {WELCOME_BONUS_STARS}개가 기다리고 있어
@@ -156,7 +157,7 @@ export default function Home() {
                   탭에서!
                 </p>
               </div>
-              <span className="text-eye-purple/60 text-17 shrink-0">↓</span>
+              <Icon name="chev_d" size={16} className="text-eye-purple/60" />
             </button>
           )}
           {hasResumable && (
@@ -164,7 +165,7 @@ export default function Home() {
               href="/readings"
               className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-night-card text-white shadow-float animate-fade-in"
             >
-              <span className="text-20 shrink-0">💬</span>
+              <span className="text-20 shrink-0"><Icon name="bubble" size={16} /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-13 font-bold leading-tight">
                   이어서 나눌 수 있는 대화가 있어
@@ -173,7 +174,7 @@ export default function Home() {
                   내 고민톡에서 별콩이와 다시 이야기해볼까?
                 </p>
               </div>
-              <span className="text-white/70 text-17 shrink-0">›</span>
+              <span className="text-white/70 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>
             </Link>
           )}
 
@@ -264,7 +265,7 @@ export default function Home() {
           {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
           <div className="flex items-center gap-3 mb-4" aria-hidden>
             <span className="flex-1 h-px bg-lilac-mid/40" />
-            <span className="text-gold text-11">✦</span>
+            
             <span className="flex-1 h-px bg-lilac-mid/40" />
           </div>
 

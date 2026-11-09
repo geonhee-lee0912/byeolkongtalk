@@ -32,7 +32,7 @@ export default function SpreadsIndex() {
       </p>
       <div className="flex items-center gap-3 mt-4 mb-4" aria-hidden>
         <span className="flex-1 h-px bg-lilac-mid/40" />
-        <span className="text-gold text-11">✦</span>
+        
         <span className="flex-1 h-px bg-lilac-mid/40" />
       </div>
       <div className="flex flex-col gap-2.5">

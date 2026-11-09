@@ -13,6 +13,7 @@ import {
   getSpreadDescription,
 } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
+import Icon from "@/components/common/Icon";
 
 interface SpreadEntry {
   whenToUse: string;
@@ -121,7 +122,7 @@ export default async function SpreadPage({
         <Link href="/guide/spreads" className="hover:text-eye-purple">
           스프레드 가이드
         </Link>
-        <span className="mx-1">›</span>
+        <span className="mx-1"><Icon name="chev_r" size={16} /></span>
         <span>{info.label}</span>
       </nav>
 

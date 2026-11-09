@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { CLARIFIER_COST } from "@/lib/upsell";
+import Icon from "@/components/common/Icon";
 
 export type ClarifierChipState = "idle" | "done";
 
@@ -41,11 +42,11 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
             : "border-gold/50 bg-white hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
         }`}
       >
-        <span className="text-15 shrink-0">🃏</span>
+        
         <div className="flex-1 min-w-0">
           {done ? (
             <div className="text-12 font-bold text-text-light truncate">
-              ✓ 카드를 이어서 봤어
+              카드를 이어서 봤어
             </div>
           ) : (
             <>
@@ -53,13 +54,13 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
                 카드 한 장 더 뽑기
               </div>
               <div className="text-11 text-text-light mt-0.5">
-                ⭐{CLARIFIER_COST} · 지금 대화에서 바로
+                <Icon name="star" size={14} className="inline align-[-2px]" />{CLARIFIER_COST} · 지금 대화에서 바로
               </div>
             </>
           )}
         </div>
         {!done && (
-          <span className="text-text-light text-14 shrink-0">›</span>
+          <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
         )}
       </button>
     </div>

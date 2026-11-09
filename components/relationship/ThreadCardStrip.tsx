@@ -6,6 +6,7 @@
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import { getSkill } from "@/lib/relationship/skills";
 import type { ThreadDraw } from "@/lib/relationship/draw-thread";
+import Icon from "@/components/common/Icon";
 
 export default function ThreadCardStrip({ draw }: { draw: ThreadDraw }) {
   const skill = getSkill(draw.skill);
@@ -16,7 +17,7 @@ export default function ThreadCardStrip({ draw }: { draw: ThreadDraw }) {
         className="w-full max-w-[300px] rounded-2xl px-3.5 pt-3 pb-4 bg-night-card"
       >
         <div className="flex items-center gap-1.5 mb-3">
-          <span aria-hidden>{skill?.emoji ?? "🃏"}</span>
+          <Icon name={skill?.icon ?? "sparkle"} size={14} />
           <span className="text-12 font-bold text-gold">
             {skill?.label ?? "카드"}
           </span>

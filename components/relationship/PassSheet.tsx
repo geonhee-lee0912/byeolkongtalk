@@ -12,6 +12,7 @@ import {
   EXTEND_TURNS,
   PASS_PLAN_BY_KIND,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 interface PassInfo {
   kind: string;
@@ -100,7 +101,7 @@ export default function PassSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
@@ -126,7 +127,7 @@ export default function PassSheet({
                 <span className="text-13 font-bold text-eye-purple">
                   {extending ? "연장하는 중…" : `오늘 ${EXTEND_TURNS}번 더 (제한 없이)`}
                 </span>
-                <span className="text-13 font-bold text-accent">⭐{EXTEND_COST}</span>
+                <span className="text-13 font-bold text-accent"><Icon name="star" size={14} className="inline align-[-2px]" />{EXTEND_COST}</span>
               </button>
               {extendError && (
                 <p className="mt-1.5 text-11 text-red-500">{extendError}</p>

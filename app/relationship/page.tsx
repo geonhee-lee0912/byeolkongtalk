@@ -25,6 +25,7 @@ import {
   RELATIONSHIP_STATUS_LABELS,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -448,7 +449,7 @@ export default function RelationshipPage() {
         <div className="min-w-0">
           <div className="flex items-center gap-1 text-11 text-white leading-none">
             <span>{RELATIONSHIP_STATUS_LABELS[relationship.status]}</span>
-            <span aria-hidden style={{ color: "#F4A6C0" }}>❤</span>
+            <span aria-hidden style={{ color: "#F4A6C0" }}><Icon name="heart" size={16} /></span>
           </div>
           <div className="flex items-center gap-1.5 mt-1 text-14 text-white">
             <span className="font-bold truncate">{relationship.label}</span>
@@ -485,7 +486,7 @@ export default function RelationshipPage() {
             <span className="font-bold text-white">{passStatus}</span>
             <span className="mx-1.5 text-white/30">|</span>
             <span className="font-bold text-gold-soft">패스권 구매</span>
-            <span className="ml-0.5 text-white/50">›</span>
+            <span className="ml-0.5 text-white/50"><Icon name="chev_r" size={16} /></span>
           </button>
         )}
       </div>
@@ -498,7 +499,7 @@ export default function RelationshipPage() {
         className="mt-3 w-full flex items-center gap-2 rounded-xl border border-gold/50 bg-gold-soft/20 px-3.5 py-2.5 text-left hover:bg-gold-soft/30 active:scale-[0.99] transition"
       >
         <span className="text-13 shrink-0" aria-hidden>
-          💡
+         
         </span>
         <p className="text-12 text-eye-purple leading-snug">
           상대 생년월일이 없어 — 궁합 볼 때 필요해
@@ -528,10 +529,10 @@ export default function RelationshipPage() {
               <p className="text-12 text-eye-purple leading-snug">
                 {freeShownLeft > 0 ? (
                   <>
-                    💜 무료 첫 대화 <b>{freeShownTurn}/{FREE_INTRO_TURNS}턴</b> — 먼저 편하게 얘기해봐
+                    무료 첫 대화 <b>{freeShownTurn}/{FREE_INTRO_TURNS}턴</b> — 먼저 편하게 얘기해봐
                   </>
                 ) : (
-                  <>💜 무료 첫 대화를 다 썼어 — 패스를 켜면 이어서 얘기할 수 있어</>
+                  <>무료 첫 대화를 다 썼어 — 패스를 켜면 이어서 얘기할 수 있어</>
                 )}
               </p>
               <button
@@ -539,7 +540,7 @@ export default function RelationshipPage() {
                 onClick={() => setShowPassSheet(true)}
                 className="shrink-0 text-11 font-bold text-accent active:scale-95 transition"
               >
-                패스 보기 ›
+                패스 보기
               </button>
             </div>
           </div>
@@ -709,7 +710,7 @@ export default function RelationshipPage() {
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
                 <span aria-hidden style={{ color: "#E48BA0" }}>
-                  ♥
+                 
                 </span>
                 연애 상담
               </span>
@@ -732,7 +733,7 @@ export default function RelationshipPage() {
               {/* 핵심 — 지속 대화 */}
               <div className="card mb-3">
                 <div className="flex items-start gap-2.5">
-                  <span className="text-22 leading-none" aria-hidden>💜</span>
+                  <span className="text-22 leading-none" aria-hidden><Icon name="heart" size={16} /></span>
                   <div>
                     <p className="text-14 font-bold text-eye-purple leading-snug">
                       너만의 연애 상담 친구
@@ -754,7 +755,7 @@ export default function RelationshipPage() {
                     className="card"
                   >
                     <div className="text-22 mb-1.5" aria-hidden>
-                      {s.emoji}
+                      <Icon name={s.icon} size={24} className="text-accent" />
                     </div>
                     <p className="text-13 font-bold text-eye-purple leading-snug">
                       {s.label}
@@ -775,7 +776,7 @@ export default function RelationshipPage() {
                   패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
                 </p>
                 <p className="text-13 font-bold text-eye-purple text-center">
-                  {PASS_PLANS.map((p) => `${p.label} ⭐${p.cost}`).join("  ·  ")}
+                  {PASS_PLANS.map((p) => `${p.label} 별 ${p.cost}`).join("  ·  ")}
                 </p>
               </div>
             </div>
@@ -783,7 +784,7 @@ export default function RelationshipPage() {
             {/* 하루 대화 한도 — 또렷하게 (연장 무제한 명시 · 환불 분쟁 방지) */}
             <div className="mb-7 rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
               <p className="text-14 font-bold text-eye-purple flex items-center gap-1.5">
-                <span aria-hidden>📌</span> 하루에 얼마나 대화할 수 있어?
+                하루에 얼마나 대화할 수 있어?
               </p>
               <p className="mt-2 text-13 text-eye-purple/90 leading-relaxed">
                 패스가 있는 동안 하루 <b>대략 {DAILY_TURN_CAP}번</b>(4천~8천 자쯤) 주고받을
@@ -820,7 +821,7 @@ export default function RelationshipPage() {
               className="btn btn-secondary btn-lg mt-2"
             >
               {partnerExpanded ? "상대 정보 접기" : "상대 정보 펼치기"}
-              <span aria-hidden>{partnerExpanded ? "▾" : "▸"}</span>
+              <Icon name="chev_d" size={14} className={partnerExpanded ? "" : "-rotate-90"} />
             </button>
             {partnerExpanded && (
               <ProfileDetails

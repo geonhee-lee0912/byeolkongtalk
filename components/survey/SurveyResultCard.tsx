@@ -21,9 +21,9 @@ export default function SurveyResultCard() {
         href="/survey"
         className="block card transition"
       >
-        <div className="text-14 font-bold text-eye-purple">별콩이가 너한테 궁금한 게 있어 🌟</div>
+        <div className="text-14 font-bold text-eye-purple">별콩이가 너한테 궁금한 게 있어</div>
         <div className="text-12 text-text-light mt-1">
-          이야기 들려주면 별 {SURVEY_REWARD_STARS}개를 줄게 · 참여하기 →
+          이야기 들려주면 별 {SURVEY_REWARD_STARS}개를 줄게 · 참여하기
         </div>
       </Link>
     </div>

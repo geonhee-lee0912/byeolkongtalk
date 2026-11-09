@@ -228,7 +228,7 @@ export default function ConcernPage() {
                     어떤 고민이야?
                   </p>
                   <p className="text-12 text-eye-purple/85 mt-1 leading-relaxed">
-                    편하게 말해줘. 별콩이가 들어볼게 ❤️
+                    편하게 말해줘. 별콩이가 들어볼게
                   </p>
                 </div>
               </div>
@@ -349,7 +349,7 @@ function EmotionTagSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 

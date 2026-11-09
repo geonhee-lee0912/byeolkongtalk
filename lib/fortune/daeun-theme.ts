@@ -11,7 +11,6 @@ export type DaeunThemeKey = "비겁" | "식상" | "재성" | "관성" | "인성"
 
 export interface DaeunTheme {
   key: DaeunThemeKey;
-  emoji: string;
   label: string; // "결실을 거두는 때"
   desc: string; // 테마 기본 한 줄(개인화 LLM 줄이 없을 때 대체로 노출)
 }
@@ -27,11 +26,11 @@ const BUCKET: Record<TenGod, DaeunThemeKey> = {
 
 // 별콩 톤 — 단정 예언 금지, "~흐름" 가능성 화법.
 const THEME: Record<DaeunThemeKey, DaeunTheme> = {
-  비겁: { key: "비겁", emoji: "🌱", label: "나를 세우는 때", desc: "자기 색이 또렷해지고, 사람들과 부대끼며 나를 키우는 흐름" },
-  식상: { key: "식상", emoji: "✨", label: "재능이 트이는 때", desc: "표현하고 만들고 싶은 마음이 커지는, 끼와 활동의 흐름" },
-  재성: { key: "재성", emoji: "🌾", label: "결실을 거두는 때", desc: "현실 감각과 성과, 재물의 기회가 도드라지는 흐름" },
-  관성: { key: "관성", emoji: "🏛️", label: "자리를 잡는 때", desc: "책임과 역할이 무거워지며 자리가 단단해지는 흐름" },
-  인성: { key: "인성", emoji: "📖", label: "배우고 채우는 때", desc: "공부·문서·안정처럼 나를 안으로 채우는 흐름" },
+  비겁: { key: "비겁", label: "나를 세우는 때", desc: "자기 색이 또렷해지고, 사람들과 부대끼며 나를 키우는 흐름" },
+  식상: { key: "식상", label: "재능이 트이는 때", desc: "표현하고 만들고 싶은 마음이 커지는, 끼와 활동의 흐름" },
+  재성: { key: "재성", label: "결실을 거두는 때", desc: "현실 감각과 성과, 재물의 기회가 도드라지는 흐름" },
+  관성: { key: "관성", label: "자리를 잡는 때", desc: "책임과 역할이 무거워지며 자리가 단단해지는 흐름" },
+  인성: { key: "인성", label: "배우고 채우는 때", desc: "공부·문서·안정처럼 나를 안으로 채우는 흐름" },
 };
 
 /**

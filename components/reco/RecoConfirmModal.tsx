@@ -44,7 +44,7 @@ export default function RecoConfirmModal({
           </div>
 
           <div className="card-inner text-12 text-text-light text-center">
-            → {display.label}로 이어서 봐요
+            {display.label}로 이어서 봐요
           </div>
 
           <button

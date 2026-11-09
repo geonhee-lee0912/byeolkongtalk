@@ -10,6 +10,7 @@ import { appScreen, depthOnChange } from "@/lib/app-shell/screens";
 import { markBackButton, requestBack } from "@/lib/app-shell/nav-direction";
 import { runBackTransition } from "./AppNavDirection";
 import type { HeaderUser } from "./useHeaderAccount";
+import Icon from "@/components/common/Icon";
 
 /** '‹' 를 눌렀는데 이 시간 안에 기록 뒤로(popstate)가 안 오면(기록 맨 앞 — 웹뷰에서 뒤로가 아무 일도 안 함) 탭 첫 화면으로 바꿔 연다 */
 const BACK_STUCK_MS = 400;
@@ -75,7 +76,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
               aria-label="별콩 상점"
             >
               <span className="text-13 leading-none" aria-hidden>
-                ⭐
+                <Icon name="star" size={14} className="inline align-[-2px]" />
               </span>
               <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">{balance ?? "-"}</span>
             </Link>

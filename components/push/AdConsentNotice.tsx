@@ -30,7 +30,7 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
             </div>
           ))}
         </dl>
-        <p className="mt-3 text-12 text-text-light text-center">언제든 마이 → 알림 설정에서 바꿀 수 있어</p>
+        <p className="mt-3 text-12 text-text-light text-center">언제든 마이의 알림 설정에서 바꿀 수 있어</p>
         <button
           type="button"
           onClick={onClose}

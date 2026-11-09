@@ -5,6 +5,7 @@ import Link from "next/link";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import ConstellationPreview from "@/components/byeoljari/ConstellationPreview";
 import ButtonDots from "@/components/common/ButtonDots";
+import Icon from "@/components/common/Icon";
 
 // 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
 export default function ByeoljariCreatePage() {
@@ -59,7 +60,7 @@ export default function ByeoljariCreatePage() {
   if (checking) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16 text-center text-text-light">
-        <p className="animate-pulse-soft text-22">✨</p>
+        <Icon name="sparkle" size={22} className="mx-auto text-gold animate-pulse-soft" />
         <p className="mt-3 text-14">별자리를 불러오는 중…</p>
       </main>
     );
@@ -70,9 +71,9 @@ export default function ByeoljariCreatePage() {
     <main className="mx-auto w-full max-w-md px-4 py-8">
       <h1 className="mb-2 text-center font-display text-22 text-eye-purple">인연 별자리 만들기</h1>
       <div className="mb-5 space-y-1.5 text-center text-14 text-text-light">
-        <p>🌟 생일을 넣으면 네 별이 가운데 떠</p>
-        <p>💞 친구를 부르면 궁합 관계를 별자리로 볼 수 있어</p>
-        <p>✨ 관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
+        <p>생일을 넣으면 네 별이 가운데 떠</p>
+        <p>친구를 부르면 궁합 관계를 별자리로 볼 수 있어</p>
+        <p>관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
       </div>
       <ConstellationPreview />
       <p className="mt-4 mb-5 text-center text-12 text-text-light">친구를 부를수록 이렇게 자라나</p>

@@ -3,6 +3,7 @@
 // value/onChange 계약: 년/월/일이 전부 채워졌을 때만 "YYYY-MM-DD", 아니면 ""(부모의 `!birth` disabled 가드 유지).
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/common/Icon";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -59,7 +60,7 @@ function CustomSelect({
         {value || placeholder}
       </button>
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-11 text-accent">
-        ▼
+        <Icon name="chev_d" size={14} />
       </span>
       {open && (
         <div

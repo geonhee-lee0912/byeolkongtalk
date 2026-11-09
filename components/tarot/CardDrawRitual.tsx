@@ -261,7 +261,7 @@ export default function CardDrawRitual({
                 boxShadow: "0 2px 8px rgba(232,194,106,0.25)",
               }}
             >
-              <span className="text-13">✨</span>
+              
               <span
                 className="text-11 font-black tracking-wide"
                 style={{ color: accent }}

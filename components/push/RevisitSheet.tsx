@@ -290,7 +290,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
             {sendOn ? (
               <>
                 <p className="flex items-center gap-2 text-14 font-black">
-                  <span className="text-gold text-17">✦</span>
+                  
                   {monthDay(sendOn)}에 알려줄게
                 </p>
                 <p className="text-12 text-text-light mt-1.5">날짜 바꾸기</p>

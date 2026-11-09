@@ -7,6 +7,7 @@ import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import { CLARIFIER_COST } from "@/lib/upsell";
 import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import Icon from "@/components/common/Icon";
 
 /** 구매 실패 — 402(잔액 부족)는 onInsufficient 로 따로 가고 여기엔 오지 않는다 */
 export interface ClarifierFailure {
@@ -136,7 +137,7 @@ export default function ClarifierSheet({
       if (status === 402) {
         const bal = data.balance ?? 0;
         if (onInsufficient) onInsufficient(bal);
-        else setError(`별이 부족해. 현재 잔액: ⭐${bal}`);
+        else setError(`별이 부족해. 현재 잔액: 별 ${bal}`);
         setSubmitting(false);
         return;
       }
@@ -192,7 +193,7 @@ export default function ClarifierSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
@@ -202,8 +203,8 @@ export default function ClarifierSheet({
             마음 가는 카드 한 장만 더 골라줘
           </p>
           <p className="text-11 text-text-light mt-1 leading-snug">
-            뽑는 순간 ⭐{CLARIFIER_COST}
-            {balance !== null ? ` · 현재 잔액 ⭐${balance}` : ""}
+            뽑는 순간 <Icon name="star" size={14} className="inline align-[-2px]" />{CLARIFIER_COST}
+            {balance !== null ? ` · 현재 잔액 별 ${balance}` : ""}
              · 지금 카드들과 이어서 봐줄게
           </p>
         </div>
@@ -225,7 +226,7 @@ export default function ClarifierSheet({
             slotLabels={["+1"]}
             accent={accent}
             ritualLabel="보조 카드"
-            completeLabel={`카드 선택 · ⭐${CLARIFIER_COST}`}
+            completeLabel={`카드 선택 · 별 ${CLARIFIER_COST}`}
             excludeCardIds={excludeIds}
             onComplete={handleDrawComplete}
           />

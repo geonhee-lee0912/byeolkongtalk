@@ -15,6 +15,7 @@ import { fetchWallet } from "@/lib/wallet";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   open: boolean;
@@ -201,7 +202,7 @@ export default function RechargeSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
@@ -210,7 +211,7 @@ export default function RechargeSheet({
           <p className="text-13 text-eye-purple leading-relaxed">
             별이 조금 모자라
             {balance !== null ? (
-              <span className="font-bold"> — 지금 잔액 ⭐{balance}</span>
+              <span className="font-bold"> — 지금 잔액 <Icon name="star" size={14} className="inline align-[-2px]" />{balance}</span>
             ) : null}
           </p>
           <p className="text-11 text-text-light mt-1 leading-snug">
@@ -221,7 +222,7 @@ export default function RechargeSheet({
         {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
         {firstChargeEligible && (
           <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
-            <span className="text-15">🎁</span>
+            <span className="text-15"><Icon name="gift" size={16} /></span>
             <p className="text-12 font-extrabold text-eye-purple">
               지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
             </p>
@@ -256,7 +257,7 @@ export default function RechargeSheet({
                     : "border-lilac-mid/30 bg-white hover:border-lilac/70"
                 } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
               >
-                <span className="text-17 shrink-0">⭐</span>
+                <span className="text-17 shrink-0"><Icon name="star" size={16} /></span>
                 <div className="flex-1 min-w-0">
                   <span className="text-14 font-black text-eye-purple tabular-nums">
                     {pkg.stars}별
@@ -281,10 +282,10 @@ export default function RechargeSheet({
                       }`}
                     >
                       {leftover > 0
-                        ? `충전 후 이번 판 하고도 ⭐${leftover} 남아`
+                        ? `충전 후 이번 판 하고도 별 ${leftover} 남아`
                         : leftover === 0
                         ? "충전하면 이번 판에 딱 맞아"
-                        : `⭐${-leftover} 모자라`}
+                        : `별 ${-leftover} 모자라`}
                     </span>
                   )}
                 </div>
@@ -327,7 +328,7 @@ export default function RechargeSheet({
             disabled={loading || !paymentReady || !selectedPkg}
             className="btn btn-primary btn-lg"
           >
-            <span>⭐</span>
+            <span><Icon name="star" size={16} /></span>
             <span className="tabular-nums">
               {!paymentReady && !paymentError
                 ? "잠시만, 결제 준비 중..."

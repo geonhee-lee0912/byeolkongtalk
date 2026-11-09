@@ -28,6 +28,7 @@ import { TRIAL_DAYS } from "@/lib/byeolmaru/constants";
 import { daysLeft } from "@/lib/byeolmaru/subscribe-offer";
 import SubscribeOfferShown from "./SubscribeOfferShown";
 import ButtonDots from "@/components/common/ButtonDots";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   /** 🔴 false 면 버튼·칩을 아예 안 그린다 — 게스트(EmptyMonthShell)용. 그 화면엔 이미 더 큰
@@ -96,7 +97,7 @@ export default function HubBanner({
             {trialUsed && <SubscribeOfferShown surface="banner" phase="post_trial" />}
             <button type="button" onClick={onSubscribe} disabled={busy} className={`${chipClass} transition active:scale-95 disabled:opacity-60`}>
               {trialUsed ? "구독하기" : busy ? <ButtonDots /> : `${TRIAL_DAYS}일 무료 체험`}
-              {!busy && <span aria-hidden>→</span>}
+              {!busy && <span aria-hidden><Icon name="chev_r" size={16} /></span>}
             </button>
           </>
         )}

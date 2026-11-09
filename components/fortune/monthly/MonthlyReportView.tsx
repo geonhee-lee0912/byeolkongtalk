@@ -16,14 +16,14 @@ export default function MonthlyReportView({
 
   const domainItems: AccordionItem[] = DAILY_SECTIONS.flatMap((meta) => {
     const sec = report.sections.find((s) => s.key === meta.key);
-    return sec ? [{ key: `dom-${meta.key}`, heading: `${meta.icon} ${meta.title}`, body: sec.body }] : [];
+    return sec ? [{ key: `dom-${meta.key}`, heading: meta.title, body: sec.body }] : [];
   });
 
   const items: AccordionItem[] = [
-    { key: "intro", heading: "🌙 이번 달 들어온 두 글자", body: report.intro },
+    { key: "intro", heading: "이번 달 들어온 두 글자", body: report.intro },
     {
       key: "weekly",
-      heading: "🗓️ 주차별 흐름",
+      heading: "주차별 흐름",
       preview: "1주차부터 4주차까지 이번 달 흐름",
       children: (
         <ol className="flex flex-col gap-[14px]">
@@ -39,12 +39,12 @@ export default function MonthlyReportView({
       ),
     },
     ...domainItems,
-    ...opt(report.relationships, { key: "relationships", heading: "🤝 인간관계·귀인", body: report.relationships! }),
-    ...opt(report.emotion, { key: "emotion", heading: "💗 마음·감정 컨디션", body: report.emotion! }),
-    ...opt(report.action, { key: "action", heading: "🎯 이번 달 실천 포인트", body: report.action! }),
+    ...opt(report.relationships, { key: "relationships", heading: "인간관계·귀인", body: report.relationships! }),
+    ...opt(report.emotion, { key: "emotion", heading: "마음·감정 컨디션", body: report.emotion! }),
+    ...opt(report.action, { key: "action", heading: "이번 달 실천 포인트", body: report.action! }),
     {
       key: "timing",
-      heading: "📌 주목할 시기·챙길 점",
+      heading: "주목할 시기·챙길 점",
       preview: "흐름 좋은 때와 점검할 때",
       children: (
         <div className="flex flex-col gap-2.5">

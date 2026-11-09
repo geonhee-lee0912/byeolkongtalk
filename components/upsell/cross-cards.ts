@@ -53,7 +53,7 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
 // FortuneConfig 가 아니라 수동 CrossCard(별마루는 FortuneType 이 아님). 민트=무료 톤.
 const BYEOLMARU_SAJU_CARD: CrossCard = {
   href: "/byeolmaru",
-  emoji: "🗓", // iconSrc 가 있으면 안 쓰인다 — 아이콘 파일이 사라졌을 때의 폴백으로만 둔다
+  emoji: "", // iconSrc 가 있으면 안 쓰인다 — 아이콘 파일이 사라졌을 때의 폴백으로만 둔다
   iconSrc: "/icons/byeolmaru/hub.webp",
   // 라벨은 목적지와 맞춘다 — href 가 허브(/byeolmaru)인데 "오늘 사주"라고 부르면 한 칸 어긋난다
   // (오늘 사주 본문은 /byeolmaru/day 라 한 번 더 눌러야 나온다). 대신 잃는 구체성은 태그라인이
@@ -95,7 +95,7 @@ function cardFromFortune(f: FortuneConfig): CrossCard {
     fortuneType: f.type,
     label: f.label,
     tagline: f.tagline,
-    badge: f.cost === 0 ? "무료" : `⭐ ${f.cost}`,
+    badge: f.cost === 0 ? "무료" : `별 ${f.cost}`,
     gradient: FORTUNE_GRADIENTS[f.type],
   };
 }
@@ -137,7 +137,7 @@ export function crossCards(
   return [
     {
       href: "/",
-      emoji: "🃏",
+      emoji: "",
       iconSrc: "/icons/fortune/tarot_counsel.webp",
       label: "타로로 고민 상담",
       tagline: "리포트로 다 못 짚은 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐",

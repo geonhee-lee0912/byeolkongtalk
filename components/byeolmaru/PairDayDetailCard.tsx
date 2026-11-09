@@ -135,7 +135,7 @@ export default function PairDayDetailCard({
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {backdrop.spark && (
               <li className="rounded-full bg-gold-soft/40 px-2 py-0.5 text-11 font-bold text-eye-purple">
-                <span aria-hidden>✦</span> 둘 사이 설렘
+                둘 사이 설렘
               </li>
             )}
             {backdrop.bond && (

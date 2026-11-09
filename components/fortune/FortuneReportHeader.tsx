@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import Icon from "@/components/common/Icon";
 
 interface FortuneReportHeaderProps {
   title: ReactNode;
@@ -71,7 +72,7 @@ export default function FortuneReportHeader({
         )}
         {typeof cost === "number" && (
           <span className="mt-2 inline-flex items-center rounded-full bg-gold-soft/30 px-2.5 py-1 text-11 font-bold text-sub-warm">
-            ⭐ {cost}별
+            <Icon name="star" size={14} className="inline align-[-2px]" />{cost}별
           </span>
         )}
       </div>
@@ -81,7 +82,7 @@ export default function FortuneReportHeader({
         <span className="flex-1 h-px bg-lilac-mid/30" />
         {dividerStar ? (
           <span className="text-gold text-11 leading-none" aria-hidden>
-            ✦
+           
           </span>
         ) : (
           <span className="text-11 font-bold text-text-light tracking-[0.15em]">

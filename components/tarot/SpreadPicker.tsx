@@ -21,6 +21,7 @@ import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } fro
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { spreadAmountLine } from "@/lib/tarot/spread-facts";
 import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
+import Icon from "@/components/common/Icon";
 
 // 타로톡 스프레드 고르기 — 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다(메뉴판 반반은 2026-10-25 판정에서 이 화면이 이겼다).
 // 가격은 서버 차감과 같은 tarotPrice(= SPREAD_INFO.starCost)로 읽는다.
@@ -93,7 +94,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
           너의 고민을 내가 해결해 줄게
         </h1>
         <p className="text-12 text-text-light text-center mt-1">
-          카드를 몇 장으로 깊이 볼지는 네가 골라봐 ✨
+          카드를 몇 장으로 깊이 볼지는 네가 골라봐
         </p>
       </div>
 
@@ -104,7 +105,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
           style={{ background: TAROT_HERO_GRADIENT }}
         >
           <div className="flex items-center gap-2 mb-2">
-            {option && <span className="text-17">{option.emoji}</span>}
+            {option && <img src={option.icon} alt="" width={22} height={22} className="object-contain" />}
             <span className="text-13 font-bold text-gold-soft">
               {pending.emotion}
             </span>
@@ -171,7 +172,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
                   <span className="text-11 font-bold text-text-light whitespace-nowrap">
-                    ⭐ {tarotPrice(type)}별
+                    <Icon name="star" size={14} className="inline align-[-2px]" />{tarotPrice(type)}별
                   </span>
                 </div>
                 {/* 분량 안내 — 첫 답 길이 + 자연 마무리까지 받는 질문 수(spec 2026-10-25-타로-원투카드-마무리-안내줄 §2-1) */}
@@ -197,9 +198,9 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
             className="flex items-center justify-between p-3.5 rounded-2xl border border-dashed border-lilac-mid/60 bg-cream/50"
           >
             <span className="text-13 text-eye-purple">
-              🤝 두 사람 사주로 보는 <b>인간관계 궁합</b>도 있어
+              두 사람 사주로 보는 <b>인간관계 궁합</b>도 있어
             </span>
-            <span className="text-text-light text-12">›</span>
+            <span className="text-text-light text-12"><Icon name="chev_r" size={16} /></span>
           </Link>
         )}
       </div>

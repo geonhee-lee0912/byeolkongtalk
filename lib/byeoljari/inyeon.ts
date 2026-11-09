@@ -60,9 +60,9 @@ export function inyeonGrade(score: number): InyeonGrade {
 /** 점수에 기여한 요소를 별콩이 톤 근거 문구로. 오행 한 줄은 항상 마지막. */
 export function inyeonReasons(x: InyeonInput): string[] {
   const r: string[] = [];
-  if (x.heavenlyCombo) r.push("✨ 케미 스파크 — 유난히 끌리는 기운");
-  if (x.sixCombo) r.push("🔗 척척 — 손발이 맞는 사이");
-  if (x.triadShared) r.push("🌟 같은 국 — 함께면 시너지가 나");
+  if (x.heavenlyCombo) r.push("케미 스파크 — 유난히 끌리는 기운");
+  if (x.sixCombo) r.push("척척 — 손발이 맞는 사이");
+  if (x.triadShared) r.push("같은 국 — 함께면 시너지가 나");
   r.push(elementRelationLabel(x.element));
   return r;
 }

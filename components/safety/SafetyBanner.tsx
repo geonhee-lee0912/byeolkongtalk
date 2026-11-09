@@ -71,7 +71,7 @@ export default function SafetyBanner({
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <span className="text-17" aria-hidden>
-            🤍
+           
           </span>
           <p className="text-14 font-bold text-eye-purple leading-tight">
             {CATEGORY_LABEL[category]}

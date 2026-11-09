@@ -6,6 +6,7 @@
 // [수정] → 부모가 ProfileEditModal 오픈. 스펙 §P2.
 import DollAvatar from "./DollAvatar";
 import { RELATIONSHIP_STATUS_LABELS, type RelationshipStatus } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 interface ProfileCardRel {
   label: string;
@@ -78,11 +79,11 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-17 font-extrabold leading-tight truncate">
-            {label} <span style={{ color: "#F4A6C0" }} aria-hidden>❤</span>
+            {label} <span style={{ color: "#F4A6C0" }} aria-hidden><Icon name="heart" size={16} /></span>
           </div>
           <div className="text-11 mt-0.5 opacity-80 leading-snug">
             {RELATIONSHIP_STATUS_LABELS[status]}
-            {noBirth && " · 생일 추가하면 궁합 ›"}
+            {noBirth && " · 생일 추가하면 궁합"}
           </div>
         </div>
         <button

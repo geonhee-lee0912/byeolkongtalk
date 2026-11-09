@@ -69,7 +69,7 @@ export default function RefundPage() {
         <Article title="제3조 (환불 신청 방법)">
           환불을 원하시는 회원은 아래 이메일로 다음 정보를 보내주시기 바랍니다.
           <div className="mt-3 px-4 py-3 rounded-2xl bg-cream/50 border border-lilac-soft/60">
-            <p className="font-bold mb-1.5">📧 oneulcard@gmail.com</p>
+            <p className="font-bold mb-1.5">oneulcard@gmail.com</p>
             <ul className="list-disc pl-5 space-y-0.5 text-12">
               <li>회원 카카오 닉네임</li>
               <li>가입 이메일 (선택)</li>

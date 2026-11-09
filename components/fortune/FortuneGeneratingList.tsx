@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fortuneTypeFromTag, FORTUNE_CONFIG } from "@/lib/fortune/types";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
+import Icon from "@/components/common/Icon";
 
 interface FortuneReading {
   id: string;
@@ -183,10 +184,10 @@ export default function FortuneGeneratingList() {
               {label(r)}
             </div>
             <div className="text-11 text-gold mt-1">
-              ✨ 리포트가 준비됐어 · 보러가기 →
+              리포트가 준비됐어 · 보러가기
             </div>
           </div>
-          <span className="text-cream/40 text-14">›</span>
+          <span className="text-cream/40 text-14"><Icon name="chev_r" size={16} /></span>
         </Link>
       ))}
     </div>

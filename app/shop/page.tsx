@@ -19,6 +19,7 @@ import {
   parseNeedParam,
   firstChargeBonusPercent,
 } from "@/lib/recharge-default";
+import Icon from "@/components/common/Icon";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -329,7 +330,7 @@ function ShopContent() {
           <>
             {/* 단순 status 배너 (success/fail/cancel) */}
             {status === "success" && (
-              <Banner tone="success">충전 완료! 별이 추가됐어 ⭐</Banner>
+              <Banner tone="success">충전 완료! 별이 추가됐어 <Icon name="star" size={14} className="inline align-[-2px]" /></Banner>
             )}
             {status === "fail" && (() => {
               const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
@@ -348,7 +349,7 @@ function ShopContent() {
                       onClick={() => router.replace(validReturnTo)}
                       className="block mt-2 text-11 underline opacity-80"
                     >
-                      ← 대화로 돌아가기
+                      대화로 돌아가기
                     </button>
                   )}
                 </Banner>
@@ -548,7 +549,7 @@ function PackageCard({
         </p>
         {bonus > 0 ? (
           <p className="mt-1 text-12 font-black text-accent tabular-nums">
-            첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별
+            첫 충전 보너스 +{bonus}별, 총 {pkg.stars + bonus}별
           </p>
         ) : (
           discountPct > 0 && (
@@ -641,7 +642,7 @@ function PaymentStatusPanel({
         )}
         {tone === "fail" && (
           <span className="text-28" aria-hidden>
-            😢
+           
           </span>
         )}
       </div>
@@ -729,7 +730,7 @@ function FirstChargeBanner() {
     <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#FFF6E3]">
       <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-card shrink-0">
         <span className="text-22" aria-hidden>
-          🎁
+         
         </span>
       </div>
       <div className="min-w-0">

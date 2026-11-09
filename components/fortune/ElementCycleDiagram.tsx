@@ -58,7 +58,7 @@ export default function ElementCycleDiagram({
     <div
       className={`card-report${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-15 font-extrabold text-accent mb-1.5">🔄 내 오행의 상생상극</h3>
+      <h3 className="text-15 font-extrabold text-accent mb-1.5">내 오행의 상생상극</h3>
       <p className="text-11 text-text-light leading-snug mb-2">
         다섯 기운이 서로 북돋우고(상생) 누르는(상극) 관계야. 원이 클수록 내 사주에 그 기운이 많아.
       </p>

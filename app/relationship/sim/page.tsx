@@ -239,7 +239,7 @@ function SimPageInner() {
             <OverlayEntry close={() => setPending(null)} dismissible z={50} />
             <div className="w-full max-w-sm rounded-2xl bg-cream-warm p-5 text-eye-purple" onClick={(e) => e.stopPropagation()}>
               <div className="text-center">
-                <div className="text-17 font-display mb-1">🎁 이번 판은 무료야</div>
+                <div className="text-17 font-display mb-1">이번 판은 무료야</div>
                 <p className="text-13 text-text-light mb-4">
                   {quote.funding === "runway"
                     ? `무료로 즐기는 판이야 (남은 무료 ${quote.runwayRemaining}판). 편하게 걔 인형을 만나봐.`

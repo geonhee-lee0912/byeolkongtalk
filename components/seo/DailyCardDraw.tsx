@@ -81,7 +81,7 @@ export default function DailyCardDraw() {
               href={`/guide/tarot-cards/${slug}`}
               className="inline-block mt-2 text-12 font-bold text-accent"
             >
-              이 카드 의미 자세히 보기 ›
+              이 카드 의미 자세히 보기
             </Link>
           )}
           <button

@@ -23,7 +23,7 @@ export default function ElementBalanceView({
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 오행 분포 차트 (결정론) */}
       <div className="card-report">
-        <h3 className="text-15 font-extrabold text-accent mb-4">🌈 내 오행 분포</h3>
+        <h3 className="text-15 font-extrabold text-accent mb-4">내 오행 분포</h3>
         <div className="flex flex-col gap-2.5">
           {ORDER.map((e) => {
             const c = counts[e] ?? 0;
@@ -42,19 +42,19 @@ export default function ElementBalanceView({
                   />
                 </div>
                 <span className="w-14 text-right text-12 tabular-nums text-text-light shrink-0">
-                  {c}개 · {pct}%{isMax ? " ★" : ""}
+                  {c}개 · {pct}%{isMax ? "" : ""}
                 </span>
               </div>
             );
           })}
         </div>
         <p className="text-11 text-text-light mt-3 leading-snug">
-          여덟 글자(사주) 안 오행의 개수야. 넘치는 기운엔 ★, 0개는 옅게 표시했어.
+          여덟 글자(사주) 안 오행의 개수야. 넘치는 기운엔 , 0개는 옅게 표시했어.
         </p>
       </div>
 
       {/* 해석 섹션(공용) */}
-      <GenericReportView report={report} accentEmoji="🌈" />
+      <GenericReportView report={report} accentEmoji="" />
     </div>
   );
 }

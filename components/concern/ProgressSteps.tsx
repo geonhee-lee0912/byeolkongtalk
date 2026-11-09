@@ -23,7 +23,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
                       : "bg-lilac-soft/70 text-text-light",
                   ].join(" ")}
                 >
-                  {done ? "✓" : step}
+                  {done ? "" : step}
                 </span>
                 <span
                   className={[

@@ -24,7 +24,7 @@ export default function ElementChart({
     <div
       className={`card-report${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-15 font-extrabold text-accent mb-4">🌈 내 오행 분포</h3>
+      <h3 className="text-15 font-extrabold text-accent mb-4">내 오행 분포</h3>
       <div className="flex flex-col gap-2.5">
         {ORDER.map((e) => {
           const c = counts[e] ?? 0;

@@ -20,6 +20,7 @@ import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { tarotPrice } from "@/lib/tarot/pricing";
+import Icon from "@/components/common/Icon";
 
 export default function TarotResultPage() {
   return (
@@ -178,7 +179,7 @@ function TarotResultInner() {
             href="/relationship"
             className="btn btn-secondary btn-lg"
           >
-            💬 연애 상담으로 돌아가 이어 얘기하기
+            연애 상담으로 돌아가 이어 얘기하기
           </Link>
         </div>
       )}
@@ -283,7 +284,7 @@ function TarotResultInner() {
           onClick={() => setShowHistory((v) => !v)}
           className="btn btn-secondary btn-lg"
         >
-          대화 전체 다시보기 {showHistory ? "▴" : "▾"}
+          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
         </button>
         {showHistory && (
           <div className="card mt-3">
@@ -320,7 +321,7 @@ function TarotResultInner() {
             href={`/tarot/reading?id=${reading.id}`}
             className="btn btn-secondary btn-lg"
           >
-            💬 이어서 대화하기
+            이어서 대화하기
           </Link>
         </div>
       )}
@@ -332,7 +333,7 @@ function TarotResultInner() {
         newHref="/tarot"
         newLabel="이 고민 다시 뽑기"
         newDesc="스프레드 다시 골라 카드 뽑기"
-        newCostLabel={`⭐${tarotPrice("one_card")}~`}
+        newCostLabel={`별 ${tarotPrice("one_card")}~`}
         readingId={reading.id}
       />
 

@@ -3,6 +3,7 @@
 import Sheet from "@/components/common/Sheet";
 import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import type { RelationshipSkill } from "@/lib/relationship/skills";
+import Icon from "@/components/common/Icon";
 
 interface SkillSheetProps {
   skills: RelationshipSkill[];
@@ -31,7 +32,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
         <div className="px-5 pb-2 flex flex-col gap-2">
@@ -43,14 +44,14 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
               disabled={busyKey === s.key}
               className="btn btn-secondary btn-md gap-3 text-left"
             >
-              <span className="text-20" aria-hidden>{s.emoji}</span>
+              <Icon name={s.icon} size={20} className="text-accent" />
               <div className="flex-1 min-w-0">
                 <p className="text-14 font-bold text-eye-purple">
                   {busyKey === s.key ? "여는 중…" : s.label}
                 </p>
                 <p className="text-12 text-text-light leading-snug">{s.tagline}</p>
               </div>
-              <span className="text-12 font-bold text-accent shrink-0">⭐{s.starCost}</span>
+              <span className="text-12 font-bold text-accent shrink-0"><Icon name="star" size={14} className="inline align-[-2px]" />{s.starCost}</span>
             </button>
           ))}
         </div>

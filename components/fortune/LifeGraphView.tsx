@@ -51,7 +51,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
 
       {/* 곡선 차트 */}
       <div className="card-report">
-        <h3 className="text-15 font-extrabold text-accent mb-3">📉 내 인생 곡선 (대운)</h3>
+        <h3 className="text-15 font-extrabold text-accent mb-3">내 인생 곡선 (대운)</h3>
         <Curve decades={report.decades} />
         <div className="flex gap-4 justify-center mt-2 text-11">
           <span className="text-[#B5843F]">● 최고 시기</span>
@@ -62,11 +62,11 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
       {/* 최고/저점 */}
       <div className="flex flex-col gap-3">
         <div className="bg-gold-soft/25 rounded-2xl px-4 py-3.5 border border-gold/40">
-          <div className="text-13 font-extrabold text-[#B5843F] mb-1">☀️ 가장 빛나는 시기</div>
+          <div className="text-13 font-extrabold text-[#B5843F] mb-1">가장 빛나는 시기</div>
           <MarkdownLite text={report.peak} className="text-13 text-[#4F4A5E] leading-[1.8]" />
         </div>
         <div className="bg-lilac-soft/40 rounded-2xl px-4 py-3.5 border border-lilac-mid/30">
-          <div className="text-13 font-extrabold text-accent mb-1">🌙 웅크리며 준비할 시기</div>
+          <div className="text-13 font-extrabold text-accent mb-1">웅크리며 준비할 시기</div>
           <MarkdownLite text={report.valley} className="text-13 text-[#4F4A5E] leading-[1.8]" />
         </div>
       </div>
@@ -84,7 +84,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
       ))}
 
       <div className="rounded-2xl px-6 py-6 text-white bg-night-card">
-        <h3 className="text-14 font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
+        <h3 className="text-14 font-bold text-gold mb-2">별콩이의 한마디</h3>
         <MarkdownLite text={report.note} tone="dark" className="text-14 leading-[1.95] text-white/90" />
       </div>
     </div>

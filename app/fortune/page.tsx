@@ -18,6 +18,7 @@ import WelcomeStarsBanner from "@/components/fortune/WelcomeStarsBanner";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark from "@/components/common/SectionMark";
+import Icon from "@/components/common/Icon";
 
 export default function FortunePage({
   searchParams,
@@ -88,7 +89,7 @@ export default function FortunePage({
                       </span>
                     ) : (
                       <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                        ⭐ {f.cost}
+                        <Icon name="star" size={14} className="inline align-[-2px]" />{f.cost}
                       </span>
                     )}
                     {FORTUNE_LENGTH_HINT[f.type] && (

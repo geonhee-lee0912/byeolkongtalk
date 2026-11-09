@@ -364,7 +364,7 @@ export default function DailyCardBlock({
             //    이 링크를 거쳐 뒤로가기로 돌아와도 살아남는다. 포털도 `ritualVisible` 로 같이 잠근다.
             <p className="text-14 text-text-light">
               {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
-              <Link href="/byeolmaru/day?tab=tarot" className="text-accent underline">오늘 카드 뽑으러 가기 →</Link>
+              <Link href="/byeolmaru/day?tab=tarot" className="text-accent underline">오늘 카드 뽑으러 가기</Link>
             </p>
           )}
         </section>
@@ -496,7 +496,7 @@ export default function DailyCardBlock({
                       onSaved={reloadAfterSave}
                       className="text-accent underline disabled:opacity-60"
                     >
-                      생년월일 입력하기 →
+                      생년월일 입력하기
                     </BirthPromptButton>
                   </p>
                 )}
@@ -628,7 +628,7 @@ export default function DailyCardBlock({
                 disabled={saving}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
               >
-                ✕
+               
               </button>
             </div>
 

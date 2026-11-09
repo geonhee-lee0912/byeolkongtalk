@@ -77,7 +77,7 @@ export default function FortuneGeneratingScreen({
         <p className="mt-2 text-13 text-text-light text-center leading-relaxed">
           별콩이가 너의 운세를 펼치고 있어.
           <br />
-          조금만 기다려줘 ✨
+          조금만 기다려줘
         </p>
 
         {/* 로딩바 */}

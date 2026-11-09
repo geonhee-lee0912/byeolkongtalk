@@ -133,7 +133,7 @@ export default function TarotInput({ type }: { type: FortuneType }) {
           <p className="text-11 text-gold-soft">
             {freeRemaining > 0
               ? `무료 ${freeRemaining}회 남음`
-              : `무료 소진 · ⭐${cfg.paidCost}별`}
+              : `무료 소진 · 별 ${cfg.paidCost}별`}
           </p>
         </div>
       )}

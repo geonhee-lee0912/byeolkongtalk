@@ -33,7 +33,7 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
         <>
           <span className="text-cream-warm font-bold">{label}</span>
           <span className="text-12 text-gold-soft text-center px-6 leading-relaxed">
-            🌙 너의 설명으로 그린 그 사람이야, 인형이라 생각해!
+            너의 설명으로 그린 그 사람이야, 인형이라 생각해!
           </span>
         </>
       )}

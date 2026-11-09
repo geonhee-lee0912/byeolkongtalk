@@ -14,7 +14,6 @@ export default function PairReportView({ report }: { report: PairReport }) {
       {bodyBlocks.map((meta) => (
         <div key={meta.key} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
           <div className="mb-1.5 flex items-center gap-[7px]">
-            <span className="text-13 opacity-85">{meta.icon}</span>
             <span className="text-13 font-extrabold text-[#4A4458]">{meta.title}</span>
           </div>
           <MarkdownLite text={report.blocks[meta.key]} className="text-16 text-[#4F4A5E]" />
