@@ -146,7 +146,7 @@ export default function NotificationSettingsPage() {
               <button
                 type="button"
                 onClick={() => postToApp("push.openSettings")}
-                className="mt-2 inline-block px-3.5 py-2 rounded-full text-12 font-bold text-eye-purple bg-lilac-soft"
+                className="btn btn-secondary btn-sm mt-2"
               >
                 설정 열기
               </button>

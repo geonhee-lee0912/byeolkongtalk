@@ -69,7 +69,7 @@ export default function SupportListPage() {
         {!loading && items.length > 0 && (
           <Link
             href="/mypage/support/new"
-            className="px-3 py-1.5 rounded-xl bg-lilac-deep text-white font-bold text-12"
+            className="btn btn-primary btn-sm"
           >
             문의하기
           </Link>
@@ -87,7 +87,7 @@ export default function SupportListPage() {
             </p>
             <Link
               href="/mypage/support/new"
-              className="inline-block px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-13"
+              className="btn btn-primary btn-md"
             >
               첫 문의 작성하기
             </Link>
@@ -154,7 +154,7 @@ export default function SupportListPage() {
                   aria-label={`${i + 1}페이지`}
                   className={`w-7 h-7 rounded-lg text-12 font-bold ${
                     i === safePage
-                      ? "bg-lilac-deep text-white"
+                      ? "bg-accent text-white"
                       : "text-text-light hover:bg-lilac-soft/50"
                   }`}
                 >

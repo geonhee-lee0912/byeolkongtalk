@@ -214,7 +214,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               disabled={busy}
               className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "pick"
-                  ? "bg-lilac-deep text-white"
+                  ? "bg-accent text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
@@ -226,7 +226,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               disabled={busy}
               className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "register"
-                  ? "bg-lilac-deep text-white"
+                  ? "bg-accent text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
@@ -250,7 +250,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                   disabled={busy}
                   className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                     status === s
-                      ? "bg-lilac-deep text-white"
+                      ? "bg-accent text-white"
                       : "bg-cream-warm text-text-light border border-lilac-mid/40"
                   }`}
                 >
@@ -298,7 +298,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                       type="button"
                       onClick={() => startAddFlow(s.id)}
                       disabled={busy}
-                      className="w-full px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 font-bold text-left hover:bg-lilac-soft/40 active:scale-[0.98] transition disabled:opacity-50"
+                      className="btn btn-secondary btn-lg text-left"
                     >
                       {s.name}
                     </button>
@@ -327,7 +327,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                           aria-current={i === page ? "page" : undefined}
                           disabled={busy}
                           className={`w-7 h-7 rounded-lg text-12 font-bold ${
-                            i === page ? "bg-lilac-deep text-white" : "text-text-light hover:bg-lilac-soft/50"
+                            i === page ? "bg-accent text-white" : "text-text-light hover:bg-lilac-soft/50"
                           }`}
                         >
                           {i + 1}
@@ -359,7 +359,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               type="button"
               onClick={() => startAddFlow(registered.id)}
               disabled={busy}
-              className="w-full py-2.5 rounded-xl bg-lilac-deep text-white text-14 font-bold disabled:opacity-50"
+              className="btn btn-primary btn-lg"
             >
               우리 오늘에 담기
             </button>

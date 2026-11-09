@@ -42,7 +42,7 @@ export default function PassPanel({
             key={p.kind}
             type="button"
             onClick={() => setSelectedPlan(p)}
-            className="flex items-center justify-between rounded-2xl px-4 py-3 border text-left transition border-lilac-mid/30 bg-white hover:border-lilac-deep/60 hover:bg-lilac-soft/20 active:scale-[0.98]"
+            className="btn btn-secondary btn-md justify-between text-left"
           >
             <span className="text-14 font-bold text-eye-purple">
               {p.label}

@@ -113,7 +113,7 @@ function TarotResultInner() {
         <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
           href="/tarot"
-          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14"
+          className="btn btn-primary btn-md"
         >
           새 카드 뽑으러 가기
         </Link>
@@ -176,7 +176,7 @@ function TarotResultInner() {
         <div className="w-full max-w-md mx-auto px-5 mb-4">
           <Link
             href="/relationship"
-            className="w-full py-3 rounded-xl bg-white border border-lilac-mid/40 text-accent font-bold text-14 text-center flex items-center justify-center gap-1.5 hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+            className="btn btn-secondary btn-lg"
           >
             💬 연애 상담으로 돌아가 이어 얘기하기
           </Link>
@@ -281,7 +281,7 @@ function TarotResultInner() {
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <button
           onClick={() => setShowHistory((v) => !v)}
-          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-12 font-bold text-eye-purple flex items-center justify-center gap-1"
+          className="btn btn-secondary btn-lg"
         >
           대화 전체 다시보기 {showHistory ? "▴" : "▾"}
         </button>
@@ -318,7 +318,7 @@ function TarotResultInner() {
         <div className="w-full max-w-md mx-auto px-5 mt-3">
           <Link
             href={`/tarot/reading?id=${reading.id}`}
-            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-13 font-bold text-accent flex items-center justify-center"
+            className="btn btn-secondary btn-lg"
           >
             💬 이어서 대화하기
           </Link>

@@ -35,13 +35,13 @@ export default function AlreadyOwnedModal({
         <div className="flex flex-col gap-2.5">
           <button
             onClick={onReview}
-            className="w-full py-3.5 rounded-full bg-lilac-deep text-white font-bold text-14 active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg"
           >
             보관함에서 보기
           </button>
           <button
             onClick={onRegenerate}
-            className="w-full py-3 rounded-full border-2 border-lilac-deep/40 text-accent font-bold text-13 hover:bg-lilac-deep/5 transition"
+            className="btn btn-text btn-lg"
           >
             그래도 새로 뽑기 · ⭐{cost}
           </button>

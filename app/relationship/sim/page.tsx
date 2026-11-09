@@ -245,7 +245,7 @@ function SimPageInner() {
                     ? `무료로 즐기는 판이야 (남은 무료 ${quote.runwayRemaining}판). 편하게 걔 인형을 만나봐.`
                     : "이번 주 돌아온 김에 주는 무료 판이야. 초상화를 더 채워보자."}
                 </p>
-                <button disabled={creating} onClick={createSession} className="w-full rounded-xl py-3 bg-lilac-deep text-white font-bold disabled:opacity-40">
+                <button disabled={creating} onClick={createSession} className="btn btn-primary btn-lg">
                   {creating ? "여는 중…" : "무료로 시작하기"}
                 </button>
               </div>

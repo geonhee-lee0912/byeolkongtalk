@@ -81,7 +81,7 @@ export default function ThreadCompatCard({
           type="button"
           onClick={() => setOpen((v) => !v)}
           className={`w-full mt-3 rounded-xl text-12 font-bold py-2.5 active:scale-[0.98] transition ${
-            open ? "bg-lilac-soft/60 text-accent" : "bg-lilac-deep text-white"
+            open ? "bg-lilac-soft/60 text-accent" : "bg-accent text-white"
           }`}
         >
           {open ? "접기 ▴" : "전체 궁합 펼쳐보기 ▾"}

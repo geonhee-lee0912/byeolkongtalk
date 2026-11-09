@@ -234,7 +234,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                   if (focusId) resetToOverview(); // 포커스 중 필터 누르면 전체 지도로 나가며 적용
                 }}
                 className={`rounded-full px-3 py-1 text-12 ${
-                  active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
+                  active ? "bg-accent text-white" : "bg-lilac-soft text-eye-purple"
                 }`}
               >
                 {t === null ? "전체" : BOND_FILTER_LABEL[t]}
@@ -271,7 +271,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           <button
             type="button"
             onClick={resetToOverview}
-            className="absolute left-2 top-2 z-10 rounded-full bg-cream-warm/90 px-3 py-1 text-12 text-eye-purple shadow-card"
+            className="btn btn-secondary btn-sm absolute left-2 top-2 z-10"
           >
             ← 전체 지도 보기
           </button>

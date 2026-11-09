@@ -200,7 +200,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
       <button
         type="button"
         onClick={() => postToApp("push.openSettings")}
-        className="mt-2 inline-block px-3.5 py-2 rounded-full text-12 font-bold text-eye-purple bg-lilac-soft"
+        className="btn btn-secondary btn-sm mt-2"
       >
         설정 열기
       </button>
@@ -249,7 +249,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
                 type="button"
                 disabled={busy}
                 onClick={() => void commit(picked)}
-                className="block w-full mt-4 py-3.5 rounded-full text-14 font-bold text-white bg-eye-purple disabled:opacity-40"
+                className="btn btn-primary btn-lg mt-4"
               >
                 알림 받을래
               </button>
@@ -279,7 +279,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
               <p className="text-14 font-black">알림 설정에서 다시 볼 날이 꺼져 있어</p>
               <Link
                 href="/mypage/notifications"
-                className="mt-2 inline-block px-3.5 py-2 rounded-full text-12 font-bold text-eye-purple bg-lilac-soft"
+                className="btn btn-secondary btn-sm mt-2"
               >
                 알림 설정
               </Link>

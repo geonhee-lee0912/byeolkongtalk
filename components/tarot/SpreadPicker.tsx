@@ -209,7 +209,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
         <button
           onClick={handleStart}
           disabled={!selected}
-          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn btn-primary btn-lg disabled:cursor-not-allowed"
         >
           {selected ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기` : "스프레드를 골라줘"}
         </button>

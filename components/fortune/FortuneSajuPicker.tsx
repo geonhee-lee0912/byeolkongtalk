@@ -354,7 +354,7 @@ export default function FortuneSajuPicker({
                   aria-label={`${i + 1}페이지`}
                   className={`w-7 h-7 rounded-lg text-12 font-bold ${
                     i === safeListPage
-                      ? "bg-lilac-deep text-white"
+                      ? "bg-accent text-white"
                       : "text-text-light hover:bg-lilac-soft/50"
                   }`}
                 >
@@ -384,7 +384,7 @@ export default function FortuneSajuPicker({
           if (reviewId && onReview) onReview(reviewId);
           else onConfirm(selected.id, displayName(selected));
         }}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 disabled:opacity-60"
+        className="btn btn-primary btn-lg"
       >
         {selected && reviewableByProfile?.[selected.id]
           ? "이번 달 운세 다시보기"

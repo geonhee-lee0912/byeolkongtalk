@@ -221,7 +221,7 @@ export default function PaymentsPage() {
                 aria-label={`${i + 1}페이지`}
                 className={`w-7 h-7 rounded-lg text-12 font-bold ${
                   i === safePage
-                    ? "bg-lilac-deep text-white"
+                    ? "bg-accent text-white"
                     : "text-text-light hover:bg-lilac-soft/50"
                 }`}
               >

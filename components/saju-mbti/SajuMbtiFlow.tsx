@@ -163,7 +163,7 @@ export function SajuMbtiFlow({
           <button
             type="button"
             onClick={() => { trackUiEvent("saju_mbti_started"); setStage("quiz"); }}
-            className="mt-8 w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-15 active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg mt-8"
           >
             시작하기
           </button>

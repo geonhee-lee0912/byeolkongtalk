@@ -609,7 +609,7 @@ export default function RelationshipPage() {
             <button
               type="button"
               onClick={() => setShowPassSheet(true)}
-              className="shrink-0 mt-4 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              className="btn btn-primary btn-lg shrink-0 mt-4"
             >
               패스 시작하기
             </button>
@@ -801,7 +801,7 @@ export default function RelationshipPage() {
             <button
               type="button"
               onClick={() => void handleAddPerson()}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              className="btn btn-primary btn-lg"
             >
               상대 등록하고 시작하기
             </button>
@@ -818,7 +818,7 @@ export default function RelationshipPage() {
               type="button"
               onClick={() => setPartnerExpanded((v) => !v)}
               aria-expanded={partnerExpanded}
-              className="w-full mt-2 py-2.5 rounded-xl border border-lilac-mid/30 bg-white/70 text-12 font-bold text-accent active:scale-[0.99] transition flex items-center justify-center gap-1"
+              className="btn btn-secondary btn-lg mt-2"
             >
               {partnerExpanded ? "상대 정보 접기" : "상대 정보 펼치기"}
               <span aria-hidden>{partnerExpanded ? "▾" : "▸"}</span>

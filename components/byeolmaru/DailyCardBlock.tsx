@@ -601,7 +601,7 @@ export default function DailyCardBlock({
                 // 🔴 `mt-*` 를 주지 않는다 — 이 버튼은 fragment 를 거쳐 TarotTodayView 의
                 //    `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 이미 온다.
                 //    `mt-4` 를 얹었더니 32px 이 돼 사주(16px)보다 멀어졌다(실측).
-                className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-accent disabled:opacity-40"
+                className="btn btn-secondary btn-lg"
               >
                 오늘 카드 공유하기
               </button>

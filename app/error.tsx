@@ -66,13 +66,13 @@ export default function Error({
       <div className="flex flex-col gap-2 w-full max-w-[260px]">
         <button
           onClick={() => (chunkError ? window.location.reload() : reset())}
-          className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 hover:bg-lilac-deep/90 transition"
+          className="btn btn-primary btn-lg"
         >
           다시 시도하기
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 hover:bg-lilac-deep/5 transition"
+          className="btn btn-text btn-lg"
         >
           홈으로 돌아가기
         </Link>

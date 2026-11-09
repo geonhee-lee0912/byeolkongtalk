@@ -50,7 +50,7 @@ export default function RecoConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg"
           >
             마무리하고 넘어가기
           </button>

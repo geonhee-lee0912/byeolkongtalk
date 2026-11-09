@@ -278,7 +278,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           <button
             type="button"
             onClick={onStart}
-            className="w-full py-4 rounded-2xl bg-lilac-deep text-white font-bold text-15 active:scale-[0.98] transition mt-3"
+            className="btn btn-primary btn-lg mt-3"
           >
             나도 해보기
           </button>
@@ -291,14 +291,14 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           <button
             type="button"
             onClick={onShare}
-            className="flex-1 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 active:scale-[0.98] transition"
+            className="btn btn-primary btn-md flex-1"
           >
             친구한테 공유하기
           </button>
           <button
             type="button"
             onClick={onRestart}
-            className="px-4 py-3 rounded-xl bg-cream-warm border border-lilac text-accent font-medium text-14 active:scale-[0.98] transition"
+            className="btn btn-secondary btn-md"
           >
             다시
           </button>

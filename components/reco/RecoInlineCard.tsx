@@ -20,7 +20,7 @@ export default function RecoInlineCard({ product, onTap }: Props) {
       <button
         type="button"
         onClick={onTap}
-        className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-gold/50 bg-cream-warm hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98] transition text-left"
+        className="btn btn-secondary btn-lg gap-3 text-left"
       >
         <div className="flex-1 min-w-0">
           <div className="text-12 font-bold text-eye-purple truncate">

@@ -163,7 +163,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       <div className="w-full max-w-md mx-auto px-5 mt-3">
         <Link
           href="/fortune"
-          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+          className="btn btn-text btn-lg"
         >
           다른 운세 보기
         </Link>

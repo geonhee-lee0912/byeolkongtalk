@@ -38,3 +38,17 @@ export function offenders(re: RegExp, allow: string[] = []): string[] {
   }
   return hits;
 }
+
+/** 태그(<button>·<Link> 등)의 className 묶음 — 속성이 여러 줄이어도 통째로. 줄 번호는 className 이 시작하는 줄. */
+export function classBlocks(tags: string[]): { file: string; line: number; cls: string }[] {
+  const out: { file: string; line: number; cls: string }[] = [];
+  const re = new RegExp(`<(${tags.join("|")})\\b(?:(?!<|/>)[\\s\\S]){0,600}?className=(\\{\`[\\s\\S]*?\`\\}|"[^"]*"|\\{[^{}]*\\})`, "g");
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(re)) {
+      const at = (m.index ?? 0) + m[0].length - m[2].length;
+      out.push({ file: p.replace(/\\/g, "/"), line: text.slice(0, at).split("\n").length, cls: m[2] });
+    }
+  }
+  return out;
+}

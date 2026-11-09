@@ -325,7 +325,7 @@ export default function RechargeSheet({
           <button
             onClick={() => void handleCharge()}
             disabled={loading || !paymentReady || !selectedPkg}
-            className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="btn btn-primary btn-lg"
           >
             <span>⭐</span>
             <span className="tabular-nums">

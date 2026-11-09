@@ -50,7 +50,7 @@ export default function WelcomeStarsModal({
         </div>
         <button
           onClick={onStart}
-          className="mt-6 w-full py-3.5 rounded-full bg-lilac-deep text-white font-bold text-15 active:scale-[0.98] transition"
+          className="btn btn-primary btn-lg mt-6"
         >
           바로 시작하기
         </button>

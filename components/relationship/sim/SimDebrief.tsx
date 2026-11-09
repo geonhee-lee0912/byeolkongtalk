@@ -130,7 +130,7 @@ export default function SimDebrief({
           <div className="mt-4 rounded-2xl border border-gold/50 bg-gold/10 p-4">
             <div className="text-gold-soft text-12 font-bold mb-1.5">💌 이 사람에게 보낼 말</div>
             <p className="text-cream-warm text-15 leading-relaxed">{sendMessage}</p>
-            <button onClick={copySend} className="mt-3 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-14">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
+            <button onClick={copySend} className="btn btn-primary btn-lg mt-3">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
           </div>
         )}
         {portrait.trim() && (
@@ -162,7 +162,7 @@ export default function SimDebrief({
                 <button
                   disabled={traitSaving || !traitInput.trim()}
                   onClick={saveTrait}
-                  className="mt-2 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-14 disabled:opacity-40"
+                  className="btn btn-primary btn-lg mt-2"
                 >
                   {traitSaving ? "저장 중…" : "초상화에 더하기"}
                 </button>
@@ -170,7 +170,7 @@ export default function SimDebrief({
             )}
           </div>
         )}
-        <button onClick={() => router.push("/relationship")} className="mt-6 w-full rounded-xl py-3 bg-cream-warm text-eye-purple font-bold hover:bg-white transition-colors">별콩이랑 더 얘기하기 →</button>
+        <button onClick={() => router.push("/relationship")} className="btn btn-secondary btn-lg mt-6">별콩이랑 더 얘기하기 →</button>
       </div>
     </div>
   );

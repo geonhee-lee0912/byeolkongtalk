@@ -133,8 +133,9 @@ export default function StarConfirmModal({
           {insufficient ? (
             <button
               onClick={onCharge}
-              className="w-full py-3.5 rounded-full text-white font-bold text-14 active:scale-[0.98] transition-all"
-              style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
+              // 바탕은 스프레드 고유 색(accent) — 모양만 공용 큰 버튼
+              className="btn btn-lg text-white"
+              style={{ background: accent }}
             >
               별 충전하러 가기
             </button>
@@ -142,17 +143,13 @@ export default function StarConfirmModal({
             <button
               onClick={onConfirm}
               disabled={loading || balance === null || busy}
-              className="w-full py-3.5 rounded-full text-white font-bold text-14 active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
-              style={{
-                background: accent,
-                boxShadow:
-                  loading || balance === null || busy ? "none" : `0 6px 18px ${accent}55`,
-              }}
+              className="btn btn-lg text-white"
+              style={{ background: accent }}
             >
               {confirmLabel ?? "확인하고 시작하기"}
             </button>
           )}
-          <OverlayCloseButton className="w-full py-3 text-13 font-bold text-accent rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
+          <OverlayCloseButton className="btn btn-text btn-lg">
             취소
           </OverlayCloseButton>
         </div>

@@ -227,7 +227,7 @@ export default function MyPage() {
             </div>
             <Link
               href="/shop"
-              className="shrink-0 px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-12"
+              className="btn btn-secondary btn-sm shrink-0"
             >
               충전
             </Link>
@@ -254,7 +254,7 @@ export default function MyPage() {
           {self?.saju && (
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-11 font-bold"
+              className="btn btn-secondary btn-sm shrink-0"
             >
               수정
             </button>
@@ -274,7 +274,7 @@ export default function MyPage() {
             </p>
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14"
+              className="btn btn-primary btn-lg"
             >
               {self ? "생일 추가하기" : "내 사주 입력하기"}
             </button>
@@ -396,7 +396,7 @@ export default function MyPage() {
         <div className="h-px bg-lilac-mid/30 mb-5" />
         <button
           onClick={handleLogout}
-          className="w-full py-3 rounded-xl bg-eye-purple text-white font-bold text-14"
+          className="btn btn-primary btn-lg"
         >
           로그아웃
         </button>

@@ -623,7 +623,7 @@ export default function ThreadChat({
                         type="button"
                         onClick={() => launch(skill.key)}
                         disabled={busyKey === skill.key || !!activeSkill}
-                        className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
+                        className="btn btn-secondary btn-sm whitespace-nowrap"
                       >
                         <span aria-hidden>{skill.emoji}</span>
                         <span className="text-12 font-bold text-eye-purple">
@@ -687,7 +687,7 @@ export default function ThreadChat({
                   type="button"
                   onClick={() => void send(retryText, true)}
                   disabled={sending}
-                  className="inline-flex items-center gap-1 rounded-full bg-lilac-deep text-white font-bold text-12 px-3.5 py-1.5 active:scale-[0.97] transition disabled:opacity-60"
+                  className="btn btn-primary btn-sm"
                 >
                   다시 보내기
                 </button>
@@ -705,7 +705,7 @@ export default function ThreadChat({
                 type="button"
                 onClick={() => void handleExtend()}
                 disabled={extending}
-                className="inline-flex items-center gap-1.5 rounded-full bg-lilac-deep text-white font-bold text-13 px-4 py-2.5 active:scale-[0.97] transition disabled:opacity-60"
+                className="btn btn-primary btn-md"
               >
                 <span aria-hidden>💬</span>
                 {extending
@@ -767,7 +767,7 @@ export default function ThreadChat({
               <button
                 type="submit"
                 disabled={sending || compatLoading || drawLoading || !input.trim()}
-                className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-13 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary btn-md shrink-0 disabled:cursor-not-allowed"
               >
                 전송
               </button>

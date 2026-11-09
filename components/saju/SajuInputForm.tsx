@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { SajuInput, SajuGender } from "@/lib/saju/calc";
 import Dropdown from "@/components/common/Dropdown";
 import { lunarLeapMonth, maxBirthDay } from "@/lib/saju/lunar-table";
+import ButtonDots from "@/components/common/ButtonDots";
 
 // 12지지 시간 매핑 — 각 시진 시작값을 manseryeok hour 로 전달.
 // 학설별 조자시/야자시 차이는 MVP 후 검토.
@@ -151,7 +152,7 @@ export default function SajuInputForm({
               onClick={() => setCalendar(c)}
               className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
                 calendar === c
-                  ? "bg-lilac-deep text-white"
+                  ? "bg-accent text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
@@ -236,7 +237,7 @@ export default function SajuInputForm({
               onClick={() => setGender(opt.v)}
               className={`py-2.5 rounded-xl text-14 font-bold transition ${
                 gender === opt.v
-                  ? "bg-lilac-deep text-white"
+                  ? "bg-accent text-white"
                   : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
@@ -249,9 +250,9 @@ export default function SajuInputForm({
       <button
         type="submit"
         disabled={loading}
-        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+        className="btn btn-primary btn-lg mt-2 disabled:cursor-not-allowed"
       >
-        {loading ? "별콩이가 펼치는 중…" : (submitLabel ?? "사주 펼쳐보기")}
+        {loading ? <ButtonDots /> : (submitLabel ?? "사주 펼쳐보기")}
       </button>
     </form>
   );

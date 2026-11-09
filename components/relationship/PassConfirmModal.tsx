@@ -12,6 +12,7 @@ import {
   EXTEND_TURNS,
   type PassPlan,
 } from "@/lib/relationship/types";
+import ButtonDots from "@/components/common/ButtonDots";
 
 interface PassConfirmModalProps {
   relationshipId: string;
@@ -91,9 +92,9 @@ export default function PassConfirmModal({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn btn-primary btn-lg disabled:cursor-not-allowed"
           >
-            {loading ? "구매하는 중…" : "구매하기"}
+            {loading ? <ButtonDots /> : "구매하기"}
           </button>
           <OverlayCloseButton
             disabled={loading}

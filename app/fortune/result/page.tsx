@@ -535,7 +535,7 @@ function FortuneResultInner() {
         {isPublic ? (
           <Link
             href="/login"
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg"
           >
             로그인하고 오늘의 운세 무료로 보기
           </Link>
@@ -544,7 +544,7 @@ function FortuneResultInner() {
             {relationshipId && (
               <Link
                 href="/relationship"
-                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-accent font-bold text-15 text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+                className="btn btn-secondary btn-lg"
               >
                 💬 연애 상담으로 돌아가 이어 얘기하기
               </Link>
@@ -560,13 +560,13 @@ function FortuneResultInner() {
             </button>
             <button
               onClick={handleShare}
-              className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-13 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+              className="btn btn-primary btn-lg"
             >
               링크 / 텍스트로 공유하기
             </button>
             <Link
               href="/fortune"
-              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 transition"
+              className="btn btn-text btn-lg"
             >
               다른 운세 보기
             </Link>

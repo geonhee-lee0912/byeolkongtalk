@@ -100,7 +100,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
               type="button"
               onClick={() => setCalendar(c)}
               className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
-                calendar === c ? "bg-lilac-deep text-white" : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                calendar === c ? "bg-accent text-white" : "bg-cream-warm text-text-light border border-lilac-mid/40"
               }`}
             >
               {c === "solar" ? "양력" : "음력"}
@@ -134,7 +134,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
 
       <button
         type="submit"
-        className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="btn btn-primary btn-lg mt-2"
       >
         결과 보기 →
       </button>

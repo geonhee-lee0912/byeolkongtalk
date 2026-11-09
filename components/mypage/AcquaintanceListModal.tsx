@@ -165,7 +165,7 @@ export default function AcquaintanceListModal({
                 </p>
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14"
+                  className="btn btn-primary btn-lg"
                 >
                   지인 추가하기
                 </button>
@@ -248,7 +248,7 @@ export default function AcquaintanceListModal({
                     aria-label={`${i + 1}페이지`}
                     className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safeListPage
-                        ? "bg-lilac-deep text-white"
+                        ? "bg-accent text-white"
                         : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >
@@ -289,7 +289,7 @@ export default function AcquaintanceListModal({
                 setSheetId(null);
                 scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="w-full py-3.5 rounded-xl text-14 text-eye-purple font-medium hover:bg-lilac-soft/40"
+              className="btn btn-text btn-lg"
             >
               수정
             </button>

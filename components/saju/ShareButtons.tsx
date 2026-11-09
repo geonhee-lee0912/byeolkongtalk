@@ -121,7 +121,7 @@ export default function ShareButtons({
       </button>
       <button
         onClick={handleShare}
-        className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-13 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="btn btn-primary btn-lg"
       >
         링크 / 텍스트로 공유하기
       </button>

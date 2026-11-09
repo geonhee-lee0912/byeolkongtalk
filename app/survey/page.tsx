@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SURVEY_QUESTIONS, SURVEY_MIN_CHARS, CONTACT_OPTIONS, MULTI_INPUT_MAX, composeMultiAnswer, isMultiSelectionValid } from "@/lib/survey/questions";
 import { SURVEY_REWARD_STARS } from "@/lib/constants";
+import ButtonDots from "@/components/common/ButtonDots";
 
 type Phase = "loading" | "form" | "already" | "done";
 
@@ -84,7 +85,7 @@ export default function SurveyPage() {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center gap-4">
         <p className="text-15 text-eye-purple">이미 이야기 들려줬어. 고마워 🌟</p>
-        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14">
+        <Link href="/" className="btn btn-primary btn-md">
           홈으로
         </Link>
       </main>
@@ -98,7 +99,7 @@ export default function SurveyPage() {
           <br />
           별콩별 {SURVEY_REWARD_STARS}개를 넣어줬어 🌟
         </p>
-        <Link href="/" className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14">
+        <Link href="/" className="btn btn-primary btn-md">
           홈으로
         </Link>
       </main>
@@ -186,9 +187,9 @@ export default function SurveyPage() {
         <button
           onClick={submit}
           disabled={!allValid || submitting}
-          className="w-full mt-6 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn btn-primary btn-lg mt-6 disabled:cursor-not-allowed"
         >
-          {submitting ? "보내는 중…" : `별콩별 ${SURVEY_REWARD_STARS}개 받기`}
+          {submitting ? <ButtonDots /> : `별콩별 ${SURVEY_REWARD_STARS}개 받기`}
         </button>
       </div>
     </main>

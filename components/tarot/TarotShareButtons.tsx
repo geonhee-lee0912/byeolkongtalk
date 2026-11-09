@@ -145,13 +145,13 @@ export default function TarotShareButtons({
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleShare}
-          className="py-3.5 rounded-xl bg-white text-accent border border-lilac-mid/40 font-bold text-13 hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+          className="btn btn-secondary btn-md"
         >
           링크로 공유하기
         </button>
         <button
           onClick={handleInstaSave}
-          className="py-3.5 rounded-xl bg-white text-accent border border-lilac-mid/40 font-bold text-13 hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+          className="btn btn-secondary btn-md"
         >
           이미지로 저장
         </button>

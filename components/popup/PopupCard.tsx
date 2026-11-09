@@ -54,7 +54,7 @@ export default function PopupCard({
         <button
           onClick={onConfirm}
           disabled={busy}
-          className="w-full py-3 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-colors disabled:opacity-60"
+          className="btn btn-primary btn-lg"
         >
           확인했어
         </button>

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { offenders } from "./design-scan";
+import { classBlocks, offenders } from "./design-scan";
 
 const css = () => readFileSync("app/globals.css", "utf8");
 
@@ -99,4 +99,24 @@ test("투명도 글자를 쓰지 않는다", () => {
 });
 test("밝은 바탕에서 연보라 글자를 쓰지 않는다", () => {
   assert.deepEqual(offenders(/(?<![\w-])text-lilac-deep\b/), []);
+});
+
+// ── 버튼 종류 3 × 크기 3(스펙 §2.6) — btn + btn-primary|secondary|text + btn-lg|md|sm
+const BUTTONS = () => classBlocks(["button", "Link", "a"]);
+const at = (b: { file: string; line: number }) => `${b.file}:${b.line}`;
+test("버튼 바탕에 진보라·흰 글자 조합을 쓰지 않는다(주 버튼은 btn-primary, 선택 상태는 bg-accent)", () => {
+  const solid = /(?<![\w:-])bg-(lilac-deep|eye-purple)(?![\w/-])[^"'`]*\btext-white\b|\btext-white\b[^"'`]*(?<![\w:-])bg-(lilac-deep|eye-purple)(?![\w/-])/;
+  assert.deepEqual(BUTTONS().filter((b) => solid.test(b.cls)).map(at), []);
+});
+// 금색 구독·별 버튼, 회사 규정(카카오·애플), 위험(탈퇴·삭제), 목록 줄은 제외
+const NOT_PART = /FEE500|bg-black|rose-|bg-gold\b|text-left|design-allow/;
+test("큰 버튼은 부품 클래스를 쓴다", () => {
+  const big = BUTTONS().filter((b) => /\bw-full\b/.test(b.cls) && /\bpy-(3|3\.5|4)\b/.test(b.cls) && /\bfont-bold\b/.test(b.cls) && !/\bbtn\b/.test(b.cls) && !NOT_PART.test(b.cls));
+  assert.deepEqual(big.map(at), []);
+});
+test("카카오·애플 버튼은 규정 색을 유지한다", () => {
+  const kakao = BUTTONS().filter((b) => /FEE500/.test(b.cls));
+  assert.ok(kakao.length >= 8, `카카오 버튼이 사라졌다: ${kakao.length}`);
+  assert.deepEqual(kakao.filter((b) => /\bbtn-(primary|secondary|text)\b/.test(b.cls)).map(at), []);
+  assert.match(readFileSync("components/auth/AppleLoginButton.tsx", "utf8"), /bg-black/);
 });

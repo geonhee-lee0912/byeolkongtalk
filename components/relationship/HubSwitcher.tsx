@@ -91,7 +91,7 @@ export default function HubSwitcher({
           type="button"
           onClick={onAddPerson}
           aria-label="새 사람 추가"
-          className="w-14 h-14 rounded-full bg-lilac-soft border-[1.5px] border-dashed border-lilac-mid flex items-center justify-center text-28 text-accent active:scale-95 transition"
+          className="btn btn-secondary btn-md w-14 text-28"
         >
           ＋
         </button>

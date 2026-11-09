@@ -35,7 +35,7 @@ export default function OutlineChips({ items }: { items: string[] }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="mt-2.5 w-full py-2 rounded-xl border border-lilac-mid/30 text-12 font-bold text-accent hover:bg-lilac-soft/40 active:scale-[0.99] transition"
+          className="btn btn-text btn-sm mt-2.5 w-full"
         >
           {open ? "접기" : `+ ${hiddenCount}개 더 보기`}
         </button>

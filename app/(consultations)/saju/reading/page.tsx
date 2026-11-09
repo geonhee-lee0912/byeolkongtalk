@@ -656,7 +656,7 @@ function ReadingInner() {
               </p>
               <Link
                 href={`/saju/result?id=${ctx.readingId}`}
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 text-center"
+                className="btn btn-primary btn-lg"
               >
                 결과 보기 →
               </Link>
@@ -677,7 +677,7 @@ function ReadingInner() {
                 <button
                   type="submit"
                   disabled={isStreaming || !input.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-13 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn btn-primary btn-md disabled:cursor-not-allowed"
                 >
                   전송
                 </button>
@@ -732,7 +732,7 @@ function ReadingInner() {
                 setPendingResumeBanner(null);
                 void handleExtendTap();
               }}
-              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-12 font-bold hover:bg-lilac-deep/90"
+              className="btn btn-primary btn-sm shrink-0"
             >
               좋아
             </button>

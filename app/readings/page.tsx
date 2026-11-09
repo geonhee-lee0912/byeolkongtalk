@@ -208,7 +208,7 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
       <p className="text-13 text-text-light leading-relaxed">{c.text}</p>
       <Link
         href={c.href}
-        className="mt-3 inline-block px-5 py-2 rounded-xl bg-lilac-deep text-white text-12 font-bold"
+        className="btn btn-primary btn-sm mt-3"
       >
         {c.cta}
       </Link>
@@ -293,7 +293,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
       {!canResume && !r.hasSensitive && (
         <button
           onClick={() => onContinue(r.id)}
-          className="absolute top-2.5 right-2.5 text-11 font-bold text-accent bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
+          className="btn btn-secondary btn-sm absolute top-2.5 right-2.5"
         >
           후속 상담
         </button>
@@ -567,7 +567,7 @@ function ReadingsPageInner() {
                 className={[
                   "shrink-0 text-13 font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
                   tab === t.key
-                    ? "bg-eye-purple text-white"
+                    ? "bg-accent text-white"
                     : "bg-white border border-lilac-soft text-text-light",
                 ].join(" ")}
               >
@@ -619,7 +619,7 @@ function ReadingsPageInner() {
                     aria-label={`${i + 1}페이지`}
                     className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safePage
-                        ? "bg-lilac-deep text-white"
+                        ? "bg-accent text-white"
                         : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >

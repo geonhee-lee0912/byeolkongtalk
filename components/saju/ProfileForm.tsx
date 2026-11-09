@@ -8,6 +8,7 @@ import type { SajuInput } from "@/lib/saju/calc";
 import type { RelationType } from "@/lib/saju/profile-input";
 import { MBTI_OPTIONS } from "@/lib/relationship/types";
 import Dropdown from "@/components/common/Dropdown";
+import ButtonDots from "@/components/common/ButtonDots";
 
 // SajuInput → readings/profiles API가 받는 birth 필드 페이로드
 export interface ProfilePayload {
@@ -139,7 +140,7 @@ export default function ProfileForm({
                   onClick={() => setRelation(opt.value)}
                   className={`py-2.5 rounded-xl text-13 font-bold transition ${
                     relation === opt.value
-                      ? "bg-lilac-deep text-white"
+                      ? "bg-accent text-white"
                       : "bg-cream-warm text-text-light border border-lilac-mid/40"
                   }`}
                 >
@@ -204,9 +205,9 @@ export default function ProfileForm({
             type="button"
             onClick={handleNoBirthSubmit}
             disabled={loading}
-            className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn btn-primary btn-lg mt-2 disabled:cursor-not-allowed"
           >
-            {loading ? "저장하는 중…" : (submitLabel ?? "저장하기")}
+            {loading ? <ButtonDots /> : (submitLabel ?? "저장하기")}
           </button>
         </div>
       ) : (

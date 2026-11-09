@@ -41,7 +41,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
               type="button"
               onClick={() => onLaunch(s.key)}
               disabled={busyKey === s.key}
-              className="flex items-center gap-3 rounded-2xl border border-lilac-mid/25 bg-white px-4 py-3 text-left active:scale-[0.99] transition disabled:opacity-60"
+              className="btn btn-secondary btn-md gap-3 text-left"
             >
               <span className="text-20" aria-hidden>{s.emoji}</span>
               <div className="flex-1 min-w-0">

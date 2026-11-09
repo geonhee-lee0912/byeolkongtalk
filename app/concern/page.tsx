@@ -125,7 +125,7 @@ export default function ConcernPage() {
             <button
               type="button"
               onClick={() => setTagSheetOpen(true)}
-              className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-card hover:border-lilac-deep/40 transition-colors"
+              className="btn btn-secondary btn-lg flex-col backdrop-blur-sm"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -288,7 +288,7 @@ export default function ConcernPage() {
           <button
             onClick={handleNext}
             disabled={!canProceed}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            className="btn btn-primary btn-lg disabled:cursor-not-allowed"
           >
             {concern.length < MIN_LEN
               ? `${MIN_LEN}자 이상 적어줘`
@@ -296,7 +296,7 @@ export default function ConcernPage() {
           </button>
           <Link
             href="/"
-            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-accent rounded-2xl font-bold text-15 text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+            className="btn btn-text btn-lg"
           >
             뒤로
           </Link>

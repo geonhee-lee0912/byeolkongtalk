@@ -92,7 +92,7 @@ function ResultPageInner() {
         <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
           href="/saju"
-          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14"
+          className="btn btn-primary btn-md"
         >
           새 사주 보러가기
         </Link>
@@ -192,7 +192,7 @@ function ResultPageInner() {
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <button
           onClick={() => setShowHistory((v) => !v)}
-          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-12 font-bold text-eye-purple flex items-center justify-center gap-1"
+          className="btn btn-secondary btn-lg"
         >
           대화 전체 다시보기 {showHistory ? "▴" : "▾"}
         </button>
@@ -218,7 +218,7 @@ function ResultPageInner() {
         <div className="w-full max-w-md mx-auto px-5 mt-3">
           <Link
             href={`/saju/reading?id=${reading.id}`}
-            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-13 font-bold text-accent flex items-center justify-center"
+            className="btn btn-secondary btn-lg"
           >
             💬 이어서 대화하기
           </Link>

@@ -272,7 +272,7 @@ export default function ProfileEditModal({
                       onClick={() => setStatus(s)}
                       className={`py-2.5 rounded-xl text-14 font-bold transition ${
                         status === s
-                          ? "bg-lilac-deep text-white"
+                          ? "bg-accent text-white"
                           : "bg-cream-warm text-text-light border border-lilac-mid/40"
                       }`}
                     >

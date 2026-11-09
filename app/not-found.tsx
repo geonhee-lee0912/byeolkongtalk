@@ -32,7 +32,7 @@ export default function NotFound() {
 
       <Link
         href="/"
-        className="inline-block px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 hover:bg-lilac-deep/90 transition"
+        className="btn btn-primary btn-md"
       >
         홈으로 돌아가기
       </Link>

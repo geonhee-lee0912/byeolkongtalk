@@ -125,7 +125,7 @@ export default function AddPersonSheet({
             <button
               type="button"
               onClick={onGoShop}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-15 active:scale-[0.98] transition"
+              className="btn btn-lg text-white"
               style={{ background: WARN }}
             >
               별 충전하러 가기 →
@@ -135,7 +135,7 @@ export default function AddPersonSheet({
               type="button"
               onClick={() => void handlePurchase()}
               disabled={purchasing}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60"
+              className="btn btn-primary btn-lg"
             >
               {purchasing ? "슬롯 여는 중…" : "슬롯 열고 추가하기"}
             </button>

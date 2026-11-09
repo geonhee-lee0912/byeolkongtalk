@@ -220,7 +220,7 @@ export default function PushGate() {
                 <button
                   type="button"
                   onClick={() => void unsubscribe()}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-12 font-bold text-eye-purple bg-lilac-soft"
+                  className="btn btn-secondary btn-sm shrink-0"
                 >
                   수신거부
                 </button>
@@ -255,7 +255,7 @@ export default function PushGate() {
               <button
                 type="button"
                 onClick={() => setReconfirm(null)}
-                className="block w-full mt-4 py-3 rounded-full text-14 font-bold text-white bg-eye-purple"
+                className="btn btn-primary btn-lg mt-4"
               >
                 그대로 둘게
               </button>
@@ -265,7 +265,7 @@ export default function PushGate() {
               <button
                 type="button"
                 onClick={() => void withdrawFromReconfirm()}
-                className="block w-full mt-1.5 py-2.5 text-13 font-bold text-accent"
+                className="btn btn-text btn-lg mt-1.5"
               >
                 수신 거부
               </button>

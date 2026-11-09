@@ -1066,7 +1066,7 @@ function TarotReadingInner() {
           <button
             type="button"
             onClick={() => setConcernExpanded((v) => !v)}
-            className="w-full text-left mb-4 px-4 py-3 bg-cream-warm rounded-2xl border border-lilac-mid/20 hover:border-lilac-mid/40 transition-colors"
+            className="btn btn-secondary btn-lg text-left mb-4"
             aria-expanded={concernExpanded}
           >
             <div className="flex items-center gap-1.5">
@@ -1269,7 +1269,7 @@ function TarotReadingInner() {
               </p>
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 text-center"
+                className="btn btn-primary btn-lg"
               >
                 결과 보기 →
               </Link>
@@ -1332,7 +1332,7 @@ function TarotReadingInner() {
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
                     // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로 — 흐려지면 아래 '마무리하고 결과 보기'가 화면에서 가장 강해 보인다(사용자 2026-10-04). 동작 잠금은 disabled 가 그대로 한다
-                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-13 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="btn btn-primary btn-md shrink-0 disabled:cursor-not-allowed"
                   >
                     전송
                     <span className="text-11 font-normal text-white/70">
@@ -1432,7 +1432,7 @@ function TarotReadingInner() {
                 }
               }}
               disabled={isStreaming || purchasing}
-              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-12 font-bold hover:bg-lilac-deep/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary btn-sm shrink-0 disabled:cursor-not-allowed"
             >
               좋아
             </button>

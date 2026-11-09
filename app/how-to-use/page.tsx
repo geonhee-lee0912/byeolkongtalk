@@ -72,7 +72,7 @@ export default function HowToUsePage() {
 
         <Link
           href="/concern"
-          className="block w-full text-center py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15"
+          className="btn btn-primary btn-lg"
         >
           별콩이랑 시작하기
         </Link>

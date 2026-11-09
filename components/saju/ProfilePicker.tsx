@@ -215,7 +215,7 @@ export default function ProfilePicker({
             },
           });
         }}
-        className="w-full mt-5 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 disabled:opacity-60"
+        className="btn btn-primary btn-lg mt-5"
       >
         {confirmLabel ?? "이 사주로 보기"}
       </button>

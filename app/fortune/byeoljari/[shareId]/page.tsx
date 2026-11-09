@@ -86,7 +86,7 @@ export default function ByeoljariGuestPage() {
           {!meId && !state.graph.viewerIsOwner && !showJoin && (
             <button
               onClick={() => setShowJoin(true)}
-              className="mt-4 w-full rounded-xl bg-lilac-deep py-3 text-white"
+              className="btn btn-primary btn-lg mt-4"
             >
               이 별자리에 내 별 놓기
             </button>
@@ -149,7 +149,7 @@ export default function ByeoljariGuestPage() {
                         onClick={() => setRelationType(rt)}
                         className={
                           on
-                            ? "rounded-full bg-lilac-deep px-3 py-1 text-12 text-white"
+                            ? "rounded-full bg-accent px-3 py-1 text-12 text-white"
                             : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-12 text-text-light"
                         }
                       >
@@ -174,7 +174,7 @@ export default function ByeoljariGuestPage() {
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}
-                className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+                className="btn btn-primary btn-lg"
               >
                 내 별 놓기
               </button>

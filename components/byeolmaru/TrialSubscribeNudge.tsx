@@ -34,7 +34,7 @@ export default function TrialSubscribeNudge({
       <button
         type="button"
         onClick={onSubscribe}
-        className="mt-2 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-12 font-bold text-eye-purple"
+        className="btn btn-secondary btn-sm mt-2 w-full"
       >
         이어서 구독하기 · {BYEOLMARU_SUBSCRIPTION.cost}별
       </button>

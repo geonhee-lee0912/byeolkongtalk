@@ -352,7 +352,7 @@ function StartPageInner() {
         <div className="mx-5 mb-10">
           <button
             onClick={() => router.push("/")}
-            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+            className="btn btn-text btn-lg"
           >
             별콩톡 전체 보러가기 →
           </button>
@@ -447,7 +447,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       <button
         type="button"
         onClick={onStart}
-        className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="btn btn-primary btn-lg mt-1"
       >
         별콩이랑 연애 상담 시작하기
       </button>
@@ -496,7 +496,7 @@ function LoveDirectMenu({
         </p>
         <button
           onClick={() => onSelect(tag)}
-          className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          className="btn btn-primary btn-lg mt-1"
         >
           별콩이한테 물어보기
         </button>

@@ -55,7 +55,7 @@ export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
           <button
             type="button"
             onClick={onEdit}
-            className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-11 font-bold text-white bg-lilac-deep active:scale-95 transition"
+            className="btn btn-primary btn-sm shrink-0"
           >
             <PencilIcon />
             수정

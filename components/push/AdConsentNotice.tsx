@@ -34,7 +34,7 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
         <button
           type="button"
           onClick={onClose}
-          className="block w-full mt-4 py-3 rounded-full text-14 font-bold text-white bg-eye-purple"
+          className="btn btn-primary btn-lg mt-4"
         >
           확인
         </button>

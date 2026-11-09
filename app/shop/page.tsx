@@ -424,7 +424,7 @@ function ShopContent() {
             <button
               onClick={handlePay}
               disabled={loading || !paymentReady}
-              className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+              className="btn btn-primary btn-lg"
             >
               <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
               <span className="tabular-nums">
@@ -661,7 +661,7 @@ function PaymentStatusPanel({
       {tone === "fail" && (
         <button
           onClick={onRetry}
-          className="mt-4 px-5 py-2.5 bg-lilac-deep text-white rounded-full text-12 font-bold hover:bg-lilac-deep/90 transition-colors"
+          className="btn btn-primary btn-md mt-4"
         >
           다시 시도
         </button>

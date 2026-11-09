@@ -45,7 +45,7 @@ export default function ReportAccordion({
         <button
           type="button"
           onClick={toggleAll}
-          className="text-12 font-bold text-accent px-3 py-1.5 rounded-full bg-lilac-soft/50 hover:bg-lilac-soft transition"
+          className="btn btn-secondary btn-sm"
         >
           {allOpen ? "전체 접기" : "전체 펼치기"}
         </button>

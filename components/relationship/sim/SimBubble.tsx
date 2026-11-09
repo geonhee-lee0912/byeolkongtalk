@@ -4,6 +4,7 @@
 // 별콩이 각인 없음(ByeolkongNote 와 구분). onFeedback 없으면(스트리밍 live) 버튼 미표시.
 import { useState } from "react";
 import { OverlayEntry } from "@/components/common/use-overlay-entry";
+import ButtonDots from "@/components/common/ButtonDots";
 
 export default function SimBubble({
   content,
@@ -140,7 +141,7 @@ export default function SimBubble({
                 disabled={busy || (modal === "down" && !note.trim())}
                 className="flex-1 rounded-xl py-2.5 bg-gold text-night-deep text-14 font-bold disabled:opacity-40"
               >
-                {busy ? "반영 중…" : "반영하기"}
+                {busy ? <ButtonDots /> : "반영하기"}
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   INQUIRY_BODY_MIN,
   INQUIRY_BODY_MAX,
 } from "@/lib/inquiries";
+import ButtonDots from "@/components/common/ButtonDots";
 
 const CATEGORY_ENTRIES = Object.entries(INQUIRY_CATEGORIES) as [InquiryCategory, string][];
 
@@ -103,9 +104,9 @@ export default function SupportNewPage() {
         <button
           onClick={submit}
           disabled={!canSubmit}
-          className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-14 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn btn-primary btn-lg disabled:cursor-not-allowed"
         >
-          {busy ? "보내는 중…" : "문의 보내기"}
+          {busy ? <ButtonDots /> : "문의 보내기"}
         </button>
       </div>
     </main>

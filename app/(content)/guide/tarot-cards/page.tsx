@@ -60,7 +60,7 @@ export default function TarotCardsIndex() {
                   <Link
                     key={c.id}
                     href={`/guide/tarot-cards/${buildCardSlug(c)}`}
-                    className="text-12 font-bold text-accent bg-white/80 border border-lilac-soft rounded-full px-3 py-1.5 hover:border-lilac-deep/40 transition"
+                    className="btn btn-secondary btn-sm"
                   >
                     {c.name_kr}
                   </Link>

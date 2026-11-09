@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import ConstellationPreview from "@/components/byeoljari/ConstellationPreview";
+import ButtonDots from "@/components/common/ButtonDots";
 
 // 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
 export default function ByeoljariCreatePage() {
@@ -95,9 +96,9 @@ export default function ByeoljariCreatePage() {
         <button
           disabled={busy || !name || !birth}
           onClick={create}
-          className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+          className="btn btn-primary btn-lg"
         >
-          {busy ? "만드는 중…" : "만들기"}
+          {busy ? <ButtonDots /> : "만들기"}
         </button>
       </div>
       <p className="mt-3 text-11 text-text-light text-center leading-relaxed">
@@ -111,7 +112,7 @@ export default function ByeoljariCreatePage() {
       {!loggedIn && (
         <a
           href="/login?next=/fortune/byeoljari"
-          className="mt-3 block w-full rounded-xl border border-lilac-deep py-3 text-center font-medium text-accent transition active:scale-[0.99]"
+          className="btn btn-text btn-lg mt-3"
         >
           로그인하고 시작하기
         </a>

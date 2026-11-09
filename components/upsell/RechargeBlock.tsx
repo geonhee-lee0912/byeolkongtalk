@@ -43,7 +43,7 @@ export default function RechargeBlock({
               trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "continue" } });
               onContinue();
             }}
-            className="w-full py-3 mb-2 rounded-xl bg-lilac-deep text-white font-bold text-14 flex items-center justify-between px-4 hover:bg-lilac-deep/90 transition"
+            className="btn btn-primary btn-lg mb-2 justify-between"
           >
             <span>이 고민 이어가기</span>
             <span className="text-12 font-bold bg-white/20 rounded-lg px-2 py-0.5">
@@ -54,11 +54,7 @@ export default function RechargeBlock({
         <Link
           href={newHref}
           onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } })}
-          className={`w-full py-3 rounded-xl font-bold text-14 flex items-center justify-between px-4 transition ${
-            showContinue
-              ? "border border-lilac-deep/40 text-accent hover:bg-lilac-deep/5"
-              : "bg-lilac-deep text-white hover:bg-lilac-deep/90"
-          }`}
+          className={`btn btn-lg justify-between px-4 ${showContinue ? "btn-secondary" : "btn-primary"}`}
         >
           <span className="flex flex-col min-w-0">
             <span>{newLabel}</span>
