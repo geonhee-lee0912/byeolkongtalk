@@ -10,15 +10,15 @@ export interface StorageSummaryProps {
 }
 
 const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
-  { key: "tarot", icon: "🔮", label: "타로톡" },
-  { key: "fortune", icon: "📜", label: "사주·운세" },
-  { key: "sim", icon: "🎭", label: "시뮬레이션" },
-  { key: "relationship", icon: "💬", label: "연애 상담" },
+  { key: "tarot", icon: "/icons/fortune/tarot_counsel.webp", label: "타로톡" },
+  { key: "fortune", icon: "/icons/fortune/saju_full.webp", label: "사주·운세" },
+  { key: "sim", icon: "/icons/relationship/sim.webp", label: "시뮬레이션" },
+  { key: "relationship", icon: "/icons/relationship/consult.webp", label: "연애 상담" },
 ];
 
 export default function StorageSummary({ counts, relationshipPassActive }: StorageSummaryProps) {
   return (
-    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] px-1 py-4">
+    <div className="flex bg-white rounded-2xl shadow-card px-1 py-4">
       {ITEMS.map((item, i) => {
         const isRel = item.key === "relationship";
         return (
@@ -30,24 +30,24 @@ export default function StorageSummary({ counts, relationshipPassActive }: Stora
             }`}
           >
             <span className="flex items-center justify-center gap-1.5">
-              <span className="text-[15px]" aria-hidden>
-                {item.icon}
+              <span className="text-15" aria-hidden>
+                <img src={item.icon} alt="" width={22} height={22} className="object-contain" />
               </span>
               {isRel ? (
                 <span
-                  className={`text-[16px] font-bold leading-none ${
-                    relationshipPassActive ? "text-lilac-deep" : "text-text-light/40"
+                  className={`text-17 font-bold leading-none ${
+                    relationshipPassActive ? "text-accent" : "text-text-light"
                   }`}
                 >
                   {relationshipPassActive ? "ON" : "OFF"}
                 </span>
               ) : (
-                <span className="text-[20px] font-bold text-eye-purple leading-none">
+                <span className="text-20 font-bold text-eye-purple leading-none">
                   {counts[item.key]}
                 </span>
               )}
             </span>
-            <span className="mt-2 text-[10.5px] text-text-light font-medium whitespace-nowrap">
+            <span className="mt-2 text-11 text-text-light font-medium whitespace-nowrap">
               {item.label}
             </span>
           </Link>

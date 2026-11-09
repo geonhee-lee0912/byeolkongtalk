@@ -33,6 +33,8 @@ import {
   RELATIONSHIP_SKILL_PREVIEWS,
 } from "@/lib/relationship/types";
 import { safeInternalPath } from "@/lib/safe-internal-path";
+import { FortuneIcon } from "@/components/fortune/FortuneIcon";
+import Icon from "@/components/common/Icon";
 
 const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love", "relationship"] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -209,46 +211,44 @@ function StartPageInner() {
           className="relative w-full overflow-hidden rounded-b-3xl"
           style={{
             background:
-              "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)",
+              "linear-gradient(180deg, #16122E 0%, #241C49 45%, #4A3A82 100%)", // design-allow: 광고 랜딩 밤하늘 첫 화면(스펙 §2.8 장면)
           }}
         >
           {/* 별 파티클 */}
           <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-[10%] left-[16%] w-2 h-2 bg-gold rounded-full animate-star-twinkle" />
+            <div className="absolute top-[10%] left-[16%] w-2 h-2 bg-gold rounded-full" />
             <div
-              className="absolute top-[18%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[18%] right-[14%] w-1.5 h-1.5 bg-gold-soft rounded-full"
               style={{ animationDelay: "0.4s" }}
             />
             <div
-              className="absolute top-[34%] left-[9%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              className="absolute top-[34%] left-[9%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "0.8s" }}
             />
             <div
-              className="absolute top-[26%] right-[26%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[26%] right-[26%] w-1 h-1 bg-gold-soft rounded-full"
               style={{ animationDelay: "1.2s" }}
             />
             <div
-              className="absolute top-[56%] right-[12%] w-1.5 h-1.5 bg-gold rounded-full animate-star-twinkle"
+              className="absolute top-[56%] right-[12%] w-1.5 h-1.5 bg-gold rounded-full"
               style={{ animationDelay: "0.6s" }}
             />
             <div
-              className="absolute top-[14%] left-[42%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
+              className="absolute top-[14%] left-[42%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "1.6s" }}
             />
             <div
-              className="absolute top-[48%] left-[20%] w-1 h-1 bg-gold-soft rounded-full animate-star-twinkle"
+              className="absolute top-[48%] left-[20%] w-1 h-1 bg-gold-soft rounded-full"
               style={{ animationDelay: "1.0s" }}
             />
             <div
-              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white/80 rounded-full animate-star-twinkle"
+              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white rounded-full"
               style={{ animationDelay: "0.2s" }}
             />
-            <div className="absolute -top-10 -right-10 w-44 h-44 bg-lilac/20 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 -left-12 w-40 h-40 bg-gold/10 rounded-full blur-3xl" />
           </div>
 
           <div className="relative z-10 px-5 pt-12 pb-8 flex flex-col items-center">
-            <div className="relative w-[120px] h-[120px] mb-3 animate-float">
+            <div className="relative w-[120px] h-[120px] mb-3">
               <Image
                 src="/byeolkong-hero.png"
                 alt="별콩이"
@@ -259,7 +259,7 @@ function StartPageInner() {
               />
             </div>
             <h1
-              className="font-display text-[26px] text-white leading-snug text-center"
+              className="font-display text-28 text-white leading-snug text-center"
               style={{ textShadow: "0 2px 16px rgba(120,90,200,0.55)" }}
             >
               {heroCopy.line1}
@@ -271,15 +271,15 @@ function StartPageInner() {
 
         {/* 가입 유도 박스 — 웰컴 별 안내 + 카카오 가입 (비로그인만) */}
         {loggedIn === false && (
-          <div className="mx-5 mt-4 p-4 rounded-2xl bg-white/90 border border-gold/50 shadow-[0_4px_18px_rgba(232,194,106,0.25)] flex flex-col items-center gap-3">
-            <p className="text-[14px] font-extrabold text-eye-purple">
-              지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
+          <div className="card mx-5 mt-4 flex flex-col items-center gap-3">
+            <p className="text-14 font-extrabold text-eye-purple">
+              지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개
             </p>
             <a
               href={`/api/auth/login/kakao?next=${encodeURIComponent(
                 `/start?${sp.toString()}`
               )}`}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[14px] hover:brightness-95 active:scale-[0.98] transition"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-14 hover:brightness-95 active:scale-[0.98] transition"
             >
               <svg
                 width="18"
@@ -300,7 +300,7 @@ function StartPageInner() {
         <section className="w-full px-5 py-6 flex flex-col gap-3">
         {variant === "counsel" && (
           <>
-            <p className="text-[13px] font-bold text-eye-purple px-1">
+            <p className="text-13 font-bold text-eye-purple px-1">
               어떤 고민이야? 골라봐
             </p>
             <EmotionList
@@ -326,7 +326,7 @@ function StartPageInner() {
 
         {variant === "daily" && (
           <>
-            <p className="text-[13px] font-bold text-eye-purple px-1">
+            <p className="text-13 font-bold text-eye-purple px-1">
               보고 싶은 운세 리포트를 골라봐
             </p>
             <FortuneMenuList
@@ -338,7 +338,7 @@ function StartPageInner() {
 
         {variant === "tarot" && (
           <>
-            <p className="text-[13px] font-bold text-eye-purple px-1">
+            <p className="text-13 font-bold text-eye-purple px-1">
               어떤 고민이야? 골라봐
             </p>
             <EmotionList
@@ -352,9 +352,9 @@ function StartPageInner() {
         <div className="mx-5 mb-10">
           <button
             onClick={() => router.push("/")}
-            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[13.5px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+            className="btn btn-text btn-lg"
           >
-            별콩톡 전체 보러가기 →
+            별콩톡 전체 보러가기
           </button>
         </div>
       </div>
@@ -369,48 +369,48 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
     <>
       {/* 배지 + 소개 */}
       <div className="flex flex-col items-center text-center mb-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-[11px] font-bold text-lilac-deep mb-3">
-          <span aria-hidden style={{ color: "#E48BA0" }}>♥</span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
+          <span aria-hidden style={{ color: "#E48BA0" }}><Icon name="heart" size={16} /></span>
           연애 상담
         </span>
-        <p className="text-[13px] text-text-light leading-relaxed">
+        <p className="text-13 text-text-light leading-relaxed">
           한 번 보고 끝나는 상담이 아니야. 상대를 등록하면 별콩이랑 언제든 이어서
           대화할 수 있어, 지난 얘기를 다 기억하니까.
         </p>
       </div>
 
       {/* 무엇을 할 수 있나 — 핵심은 지속 대화, 스킬은 부가 */}
-      <p className="text-[13px] font-bold text-eye-purple px-1">
+      <p className="text-13 font-bold text-eye-purple px-1">
         별콩이는 이런 친구야
       </p>
-      <div className="rounded-2xl p-4 border border-lilac-mid/40 bg-gradient-to-br from-lilac-soft/60 to-cream-warm">
+      <div className="card">
         <div className="flex items-start gap-2.5">
-          <span className="text-[24px] leading-none" aria-hidden>💜</span>
+          <span className="text-22 leading-none" aria-hidden><Icon name="heart" size={16} /></span>
           <div>
-            <p className="text-[14px] font-bold text-eye-purple leading-snug">
+            <p className="text-14 font-bold text-eye-purple leading-snug">
               너만의 연애 상담 친구
             </p>
-            <p className="text-[11.5px] text-text-light mt-1 leading-relaxed">
+            <p className="text-12 text-text-light mt-1 leading-relaxed">
               설레는 것도, 서운한 것도, 어떻게 해야 할지 모를 때도 그냥 편하게
               털어놔. 별콩이가 네 편에서 같이 고민해줄게.
             </p>
           </div>
         </div>
       </div>
-      <p className="text-[11.5px] text-text-light/80 px-1">
+      <p className="text-12 text-text-light px-1">
         여기에 더해, 이런 것도 꺼내 쓸 수 있어
       </p>
       <div className="grid grid-cols-2 gap-2.5">
         {RELATIONSHIP_SKILL_PREVIEWS.map((s) => (
           <div
             key={s.label}
-            className="bg-white/90 rounded-2xl p-3.5 border border-lilac-soft"
+            className="card"
           >
-            <div className="text-[22px] mb-1.5" aria-hidden>{s.emoji}</div>
-            <p className="text-[13px] font-bold text-eye-purple leading-snug">
+            <div className="mb-1.5 text-accent" aria-hidden><Icon name={s.icon} size={24} /></div>
+            <p className="text-13 font-bold text-eye-purple leading-snug">
               {s.label}
             </p>
-            <p className="text-[11px] text-text-light mt-1 leading-snug">
+            <p className="text-11 text-text-light mt-1 leading-snug">
               {s.tagline}
             </p>
           </div>
@@ -418,26 +418,26 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       </div>
 
       {/* 이용권 */}
-      <p className="text-[13px] font-bold text-eye-purple px-1 mt-2">이용권</p>
-      <div className="rounded-2xl border border-lilac-mid/30 bg-white/70 p-4">
-        <p className="text-[12.5px] text-text-light leading-relaxed mb-2.5">
+      <p className="text-13 font-bold text-eye-purple px-1 mt-2">이용권</p>
+      <div className="card">
+        <p className="text-13 text-text-light leading-relaxed mb-2.5">
           패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
         </p>
-        <p className="text-[13px] font-bold text-eye-purple text-center">
-          {PASS_PLANS.map((p) => `${p.label} ⭐${p.cost}`).join("  ·  ")}
+        <p className="text-13 font-bold text-eye-purple text-center">
+          {PASS_PLANS.map((p) => `${p.label} 별 ${p.cost}`).join("  ·  ")}
         </p>
       </div>
 
       {/* 하루 대화 한도 — 또렷하게 (연장 무제한 명시 · 환불 분쟁 방지) */}
       <div className="rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
-        <p className="text-[13.5px] font-bold text-eye-purple flex items-center gap-1.5">
-          <span aria-hidden>📌</span> 하루에 얼마나 대화할 수 있어?
+        <p className="text-14 font-bold text-eye-purple flex items-center gap-1.5">
+          하루에 얼마나 대화할 수 있어?
         </p>
-        <p className="mt-2 text-[12.5px] text-eye-purple/90 leading-relaxed">
+        <p className="mt-2 text-13 text-eye-purple/90 leading-relaxed">
           패스가 있는 동안 하루 <b>대략 {DAILY_TURN_CAP}번</b>(4천~8천 자쯤) 주고받을
           수 있어. 웬만한 고민 하나는 그날 깊이 풀 양이야.
         </p>
-        <p className="mt-1.5 text-[11.5px] text-text-light leading-relaxed">
+        <p className="mt-1.5 text-12 text-text-light leading-relaxed">
           {DAILY_TURN_CAP}번을 다 써도 {EXTEND_COST}별마다 대화 {EXTEND_TURNS}번씩{" "}
           <b className="text-eye-purple/80">횟수 제한 없이</b> 더 이어갈 수 있고,
           매일 자정엔 {DAILY_TURN_CAP}번이 다시 채워져.
@@ -447,7 +447,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
       <button
         type="button"
         onClick={onStart}
-        className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+        className="btn btn-primary btn-lg mt-1"
       >
         별콩이랑 연애 상담 시작하기
       </button>
@@ -469,9 +469,9 @@ function LoveDirectMenu({
 
   return (
     <>
-      <div className="p-5 bg-white/95 rounded-2xl border-2 border-lilac-deep/50 shadow-[0_4px_20px_rgba(90,62,140,0.15)] flex flex-col items-center gap-3 text-center">
+      <div className="card-report flex flex-col items-center gap-3 text-center">
         <span
-          className="text-[12px] font-bold px-3 py-1 rounded-full bg-[#E48BA0]/10"
+          className="text-12 font-bold px-3 py-1 rounded-full bg-[#E48BA0]/10"
           style={{ color: "#E48BA0" }}
         >
           네가 보고 온 그 고민
@@ -488,21 +488,21 @@ function LoveDirectMenu({
             className="object-contain"
           />
         </div>
-        <p className="font-display text-[19px] text-eye-purple leading-snug">
+        <p className="font-display text-20 text-eye-purple leading-snug">
           {tag}
         </p>
-        <p className="text-[12.5px] text-text-light leading-relaxed -mt-1.5">
+        <p className="text-13 text-text-light leading-relaxed -mt-1.5">
           {option.description}
         </p>
         <button
           onClick={() => onSelect(tag)}
-          className="w-full mt-1 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+          className="btn btn-primary btn-lg mt-1"
         >
           별콩이한테 물어보기
         </button>
       </div>
 
-      <p className="text-[13px] font-bold text-eye-purple px-1 mt-2">
+      <p className="text-13 font-bold text-eye-purple px-1 mt-2">
         다른 연애 고민이라면
       </p>
       <EmotionList options={otherOptions} onSelect={onSelect} />
@@ -523,7 +523,7 @@ function EmotionList({
         <button
           key={option.tag}
           onClick={() => onSelect(option.tag)}
-          className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition text-left"
+          className="card flex items-center gap-3.5 transition text-left"
         >
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -538,10 +538,10 @@ function EmotionList({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-eye-purple text-[15px] leading-snug">
+            <p className="font-bold text-eye-purple text-15 leading-snug">
               {option.tag}
             </p>
-            <p className="text-[12px] text-text-light mt-0.5 leading-relaxed">
+            <p className="text-12 text-text-light mt-0.5 leading-relaxed">
               {option.description}
             </p>
           </div>
@@ -565,26 +565,26 @@ function FortuneMenuList({
           <button
             key={f.type}
             onClick={() => onSelect(f.href)}
-            className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl text-left transition border border-lilac-soft hover:border-lilac-deep/40"
+            className="card flex items-center gap-3.5 text-left transition"
           >
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-22 shrink-0"
               style={{ background: FORTUNE_GRADIENTS[f.type] }}
             >
-              {f.emoji}
+              <FortuneIcon type={f.type} size={30} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[15px] font-bold text-eye-purple">
+                <span className="text-15 font-bold text-eye-purple">
                   {f.label}
                 </span>
                 {f.cost > 0 && (
-                  <span className="text-[10px] font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                    ⭐ {f.cost}
+                  <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                    <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{f.cost}
                   </span>
                 )}
               </div>
-              <p className="text-[12.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+              <p className="text-13 text-text-light mt-1 leading-snug line-clamp-2">
                 {f.tagline}
               </p>
             </div>

@@ -21,11 +21,11 @@ export interface DailySectionMeta {
 
 /** 도메인 섹션 — 제목/아이콘/순서는 코드 고정 (AI 는 key 별 body 만 채움). */
 export const DAILY_SECTIONS: DailySectionMeta[] = [
-  { key: "money", title: "재물운", icon: "💰" },
-  { key: "work", title: "직장 · 업무운", icon: "💼" },
-  { key: "love", title: "애정 · 관계운", icon: "💗" },
-  { key: "health", title: "건강 · 멘탈운", icon: "🌿" },
-  { key: "study", title: "학업 · 문서 · 이동운", icon: "📄" },
+  { key: "money", title: "재물운", icon: "" },
+  { key: "work", title: "직장 · 업무운", icon: "" },
+  { key: "love", title: "애정 · 관계운", icon: "" },
+  { key: "health", title: "건강 · 멘탈운", icon: "" },
+  { key: "study", title: "학업 · 문서 · 이동운", icon: "" },
 ];
 
 const SECTION_KEYS: DailySectionKey[] = DAILY_SECTIONS.map((s) => s.key);

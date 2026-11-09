@@ -110,7 +110,7 @@ function BackgroundStars() {
       {STAR_POSITIONS.map((s, i) => (
         <span
           key={i}
-          className="absolute rounded-full bg-white animate-star-twinkle"
+          className="absolute rounded-full bg-white"
           style={{
             top: s.top,
             left: s.left,
@@ -126,10 +126,10 @@ function BackgroundStars() {
 }
 
 const SIZE_MAP = {
-  xs: { w: "w-[52px]", h: "h-[80px]", name: "text-[10px]", label: "text-[9px]", gap: "gap-1.5" },
-  sm: { w: "w-[64px]", h: "h-[100px]", name: "text-[11px]", label: "text-[10px]", gap: "gap-2" },
-  md: { w: "w-[88px]", h: "h-[136px]", name: "text-[12px]", label: "text-[11px]", gap: "gap-2.5" },
-  lg: { w: "w-[120px]", h: "h-[188px]", name: "text-[14px]", label: "text-[12px]", gap: "gap-3" },
+  xs: { w: "w-[52px]", h: "h-[80px]", name: "text-11", label: "text-11", gap: "gap-1.5" },
+  sm: { w: "w-[64px]", h: "h-[100px]", name: "text-11", label: "text-11", gap: "gap-2" },
+  md: { w: "w-[88px]", h: "h-[136px]", name: "text-12", label: "text-11", gap: "gap-2.5" },
+  lg: { w: "w-[120px]", h: "h-[188px]", name: "text-14", label: "text-12", gap: "gap-3" },
 } as const;
 
 interface CardTileProps {
@@ -158,7 +158,7 @@ function CardTile({ dc, active, size }: CardTileProps) {
       <div
         className={`relative ${s.w} ${s.h} rounded-lg overflow-hidden transition-all duration-500 ${
           active
-            ? "ring-2 ring-gold shadow-[0_0_24px_rgba(232,194,106,0.45)] scale-105"
+            ? "ring-2 ring-gold shadow-[0_0_24px_rgba(232,194,106,0.45)] scale-105" // design-allow: 카드 뽑기 선택 금빛(의식 연출)
             : "ring-1 ring-white/15 opacity-[0.95]"
         }`}
       >

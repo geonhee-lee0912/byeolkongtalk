@@ -69,7 +69,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   daily: {
     type: "daily",
     label: "오늘의 운세",
-    emoji: "🌤️",
+    emoji: "",
     tagline: "오늘 하루 흐름을 짚어줄게",
     base: "saju",
     // 전면 무료 — 하루 1회(같은 날 이미 본 리딩 반환, create 라우트 alreadyToday).
@@ -84,7 +84,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   monthly: {
     type: "monthly",
     label: "이번달 어떤 일들이?",
-    emoji: "🗓️",
+    emoji: "",
     tagline: "이번 한 달, 너의 흐름을 미리 짚어줄게",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -108,7 +108,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   tarot_daily: {
     type: "tarot_daily",
     label: "오늘의 타로",
-    emoji: "🃏",
+    emoji: "",
     tagline: "오늘 너에게 오는 한 장의 메시지",
     base: "tarot",
     cost: 0,
@@ -121,7 +121,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   tarot_love: {
     type: "tarot_love",
     label: "연애운 타로",
-    emoji: "💗",
+    emoji: "",
     tagline: "지금 너의 연애, 카드 세 장으로 풀어볼게",
     base: "tarot",
     cost: 20,
@@ -132,7 +132,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   tarot_money: {
     type: "tarot_money",
     label: "금전운 타로",
-    emoji: "💰",
+    emoji: "",
     tagline: "돈의 흐름과 기회를 카드로 짚어줄게",
     base: "tarot",
     cost: 20,
@@ -143,7 +143,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   tarot_career: {
     type: "tarot_career",
     label: "직장·진로 타로",
-    emoji: "💼",
+    emoji: "",
     tagline: "일과 진로의 갈림길, 카드가 길을 보여줄게",
     base: "tarot",
     cost: 20,
@@ -154,7 +154,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   tarot_relation: {
     type: "tarot_relation",
     label: "인간관계 타로",
-    emoji: "🤝",
+    emoji: "",
     tagline: "사람 사이의 거리, 카드로 들여다볼게",
     base: "tarot",
     cost: 20,
@@ -165,7 +165,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   compat: {
     type: "compat",
     label: "사랑하는 사람과의 궁합 분석",
-    emoji: "💞",
+    emoji: "",
     tagline: "두 사람 사주로 연애·결혼 궁합을 깊이 봐줄게",
     base: "saju",
     cost: 40,
@@ -176,7 +176,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   compat_social: {
     type: "compat_social",
     label: "인간 관계 궁합 분석",
-    emoji: "🤝",
+    emoji: "",
     tagline: "친구·가족·동료, 두 사람 사주로 관계 케미를",
     base: "saju",
     cost: SAJU_SINGLE_COST, // 2026-08-30 35→20(구매 0건 → 진입 상품화) · 2026-10 단품 미끼가 10
@@ -187,7 +187,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   good_days: {
     type: "good_days",
     label: "좋은 날 리포트",
-    emoji: "📅",
+    emoji: "",
     tagline: "앞으로 한 달, 너에게 좋은 날과 조심할 날",
     base: "saju",
     cost: 35,
@@ -200,7 +200,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   nature_self: {
     type: "nature_self",
     label: "타고난 나",
-    emoji: "🌱",
+    emoji: "",
     tagline: "내 사주에 새겨진 성격·기질·강점·그림자",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -211,7 +211,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   talent_path: {
     type: "talent_path",
     label: "재능·적성·진로",
-    emoji: "🧭",
+    emoji: "",
     tagline: "타고난 재능과 어울리는 일의 결",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -222,7 +222,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   user_manual: {
     type: "user_manual",
     label: "나 사용설명서",
-    emoji: "📖",
+    emoji: "",
     tagline: "남이 나를 어떻게 대하면 좋은지, 나 취급법",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -233,7 +233,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   element_balance: {
     type: "element_balance",
     label: "오행 밸런스",
-    emoji: "🌈",
+    emoji: "",
     tagline: "내 기운의 균형과 채우는 법",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -244,7 +244,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   life_full: {
     type: "life_full",
     label: "평생 사주·대운",
-    emoji: "🌌",
+    emoji: "",
     tagline: "타고난 그릇부터 대운 10년 흐름까지, 인생 전체",
     base: "saju",
     cost: 70, // 2026-10 75→70 — 70칸에 딱 맞게(8주 판매 0)
@@ -255,7 +255,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   love_self: {
     type: "love_self",
     label: "내 연애 사주",
-    emoji: "💗",
+    emoji: "",
     tagline: "나의 연애 성향과 끌림의 패턴",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -266,7 +266,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   love_year: {
     type: "love_year",
     label: "올해 나의 연애 흐름",
-    emoji: "💘",
+    emoji: "",
     tagline: "2026년 인연이 오는 시기와 흐름",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -277,7 +277,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   marriage: {
     type: "marriage",
     label: "결혼운·시기",
-    emoji: "💍",
+    emoji: "",
     tagline: "결혼 인연의 결과 시기 흐름",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -288,7 +288,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   wealth_vessel: {
     type: "wealth_vessel",
     label: "재물 그릇",
-    emoji: "💰",
+    emoji: "",
     tagline: "타고난 돈그릇과 재물이 드는 결",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -299,7 +299,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   wealth_year: {
     type: "wealth_year",
     label: "올해 재물 흐름",
-    emoji: "📈",
+    emoji: "",
     tagline: "2026년 재물의 기회와 주의 시기",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -310,7 +310,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   career_timing: {
     type: "career_timing",
     label: "취업·이직 타이밍",
-    emoji: "💼",
+    emoji: "",
     tagline: "올해 직업운과 도전·이직 좋은 시기",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -321,7 +321,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   fact_bomb: {
     type: "fact_bomb",
     label: "팩폭 사주",
-    emoji: "💥",
+    emoji: "",
     tagline: "오늘만 솔직하게, 별콩이의 돌직구",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -332,7 +332,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   past_life: {
     type: "past_life",
     label: "전생 사주",
-    emoji: "🔮",
+    emoji: "",
     tagline: "넌 전생에 어떤 사람이었을까",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -343,7 +343,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   saju_report_card: {
     type: "saju_report_card",
     label: "사주 성적표",
-    emoji: "🏆",
+    emoji: "",
     tagline: "내 인생 항목별 점수표",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -354,7 +354,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
   life_graph: {
     type: "life_graph",
     label: "내 인생 그래프",
-    emoji: "📉",
+    emoji: "",
     tagline: "대운으로 그리는 인생 곡선, 최고와 최저",
     base: "saju",
     cost: SAJU_SINGLE_COST,
@@ -388,32 +388,32 @@ export const FORTUNE_LIST: FortuneConfig[] = [
 
 /** 운세 종류별 타일 그라데이션 — 의미 그룹별 (궁합=핑크·로즈 / 타이밍=골드 / 무료=민트). */
 export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
-  daily: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
-  monthly: "linear-gradient(135deg, #FFF2D2 0%, #F8D888 100%)",
-  saju_full: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
-  compat: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  compat_social: "linear-gradient(135deg, #FBEAF2 0%, #F2BFD3 100%)",
-  tarot_daily: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
-  tarot_love: "linear-gradient(135deg, #FFEFE3 0%, #FACDB4 100%)",
-  tarot_money: "linear-gradient(135deg, #FFF8DD 0%, #FBE89E 100%)",
-  tarot_career: "linear-gradient(135deg, #DEF1EC 0%, #BAE0D4 100%)",
-  tarot_relation: "linear-gradient(135deg, #E4F6E8 0%, #C2E8CC 100%)",
-  good_days: "linear-gradient(135deg, #FFEAC4 0%, #F3C25E 100%)",
-  nature_self: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
-  talent_path: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
-  user_manual: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
-  element_balance: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
-  life_full: "linear-gradient(135deg, #EAF3EC 0%, #CDE6D5 100%)",
-  love_self: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  love_year: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  marriage: "linear-gradient(135deg, #FCE7EE 0%, #F8C9D6 100%)",
-  wealth_vessel: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
-  wealth_year: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
-  career_timing: "linear-gradient(135deg, #FFF6D8 0%, #F6DE95 100%)",
-  fact_bomb: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
-  past_life: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
-  saju_report_card: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
-  life_graph: "linear-gradient(135deg, #EFE4F8 0%, #D6BCEE 100%)",
+  daily: "#E4F6E8",
+  monthly: "#FFF2D2",
+  saju_full: "#FFEAC4",
+  compat: "#FCE7EE",
+  compat_social: "#FBEAF2",
+  tarot_daily: "#EFEAF6",
+  tarot_love: "#FFEFE3",
+  tarot_money: "#FFF8DD",
+  tarot_career: "#DEF1EC",
+  tarot_relation: "#E4F6E8",
+  good_days: "#FFEAC4",
+  nature_self: "#EAF3EC",
+  talent_path: "#EAF3EC",
+  user_manual: "#EAF3EC",
+  element_balance: "#EAF3EC",
+  life_full: "#EAF3EC",
+  love_self: "#FCE7EE",
+  love_year: "#FCE7EE",
+  marriage: "#FCE7EE",
+  wealth_vessel: "#FFF6D8",
+  wealth_year: "#FFF6D8",
+  career_timing: "#FFF6D8",
+  fact_bomb: "#EFE4F8",
+  past_life: "#EFE4F8",
+  saju_report_card: "#EFE4F8",
+  life_graph: "#EFE4F8",
 };
 
 /** 운세 종류별 해시태그 (홈 카드 #태그 칩 스타일) */

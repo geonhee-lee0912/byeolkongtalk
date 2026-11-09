@@ -6,7 +6,7 @@ import { useOverlayClose } from "@/components/common/overlay-close";
 export default function LaterButton({ disabled }: { disabled: boolean }) {
   const close = useOverlayClose();
   return (
-    <button type="button" disabled={disabled} onClick={close} className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep">
+    <button type="button" disabled={disabled} onClick={close} className="btn btn-text btn-lg mt-1.5">
       나중에
     </button>
   );

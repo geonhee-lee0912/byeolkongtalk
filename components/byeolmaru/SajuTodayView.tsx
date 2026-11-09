@@ -232,7 +232,7 @@ export default function SajuTodayView({
              블록이 "카드는 그날 뽑는 거야."를 말해서, 둘이 연달아 붙으면 **같은 말을 두 번**
              하는 것처럼 읽혔다(둘 다 "그날"로 시작하고 어조가 같다). 가리키는 대상은
              다르므로(카드 / 리포트) 카드 줄을 지우지 않고 이쪽을 짧게 만들어 결을 벌린다. */
-          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
             그날 아침에 열려.
           </p>
         ) : reportLoading || (locked && lockedUnder !== entitled) ? (
@@ -244,7 +244,7 @@ export default function SajuTodayView({
                 (entitled 의존)가 곧 다시 부른다. 그 틈에 PaywallCut 을 그리면 trialUsed 가 막 true 가 돼 '체험 후 구독
                 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍혔다(dev 실측 10-11 — 체험 시작·구매 직후 매번,
                 2026-10-12 동기화로 열린 탭마다 생길 뻔했다). 그래서 로딩으로 본다. */
-          <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+          <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
             {dayWord} 리포트를 펼치는 중…
           </div>
         ) : report ? (
@@ -269,7 +269,7 @@ export default function SajuTodayView({
                  거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 도 찍어 분모를 오염시킨다).
                  gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
               <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
-                <p className="text-xs text-text-light">
+                <p className="text-12 text-text-light">
                   지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                 </p>
                 {data.trialUsed ? (
@@ -277,7 +277,7 @@ export default function SajuTodayView({
                     <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="saju_report" />
                     <button
                       onClick={() => openSubscribe("kept_report", "saju_report")}
-                      className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                      className="mt-2 w-full rounded-xl bg-gold py-2 text-12 font-bold text-night"
                     >
                       구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
                     </button>
@@ -286,7 +286,7 @@ export default function SajuTodayView({
                   <button
                     onClick={() => startTrial("saju_report")}
                     disabled={trialStarting}
-                    className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
+                    className="mt-2 w-full rounded-xl bg-gold py-2 text-12 font-bold text-night disabled:opacity-60"
                   >
                     {trialStarting ? "여는 중…" : "3일 무료로 열어보기"}
                   </button>
@@ -295,7 +295,7 @@ export default function SajuTodayView({
             )}
           </div>
         ) : notGenerated ? (
-          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
             그날은 리포트를 안 받았어.
             <br />
             지난 날은 그때 받은 것만 보여줄 수 있어.
@@ -317,7 +317,7 @@ export default function SajuTodayView({
             trialBusy={trialStarting}
           />
         ) : (
-          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+          <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
             별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
           </p>
         )}
@@ -342,7 +342,7 @@ export default function SajuTodayView({
           // 🔴 `py-2.5 text-sm` 은 바로 위 구독 CTA(PaywallCut 의 금색 버튼)와 **같은 상자**다
           //    (2026-09-27, 사용자 요청). 예전 `py-2 text-xs` 는 34px 로 41px 짜리 CTA 아래에
           //    혼자 납작해 보였다. 둘 중 하나를 바꿀 땐 같이 볼 것.
-          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-sm font-medium text-lilac-deep disabled:opacity-40"
+          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-accent disabled:opacity-40"
         >
           오늘 사주 공유하기
         </button>

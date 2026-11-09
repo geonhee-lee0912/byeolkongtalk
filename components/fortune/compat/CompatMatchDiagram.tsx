@@ -27,13 +27,13 @@ function Node({ saju, name }: { saju: SajuResult; name: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5 w-[92px] shrink-0">
       <div
-        className="w-[62px] h-[62px] rounded-full flex items-center justify-center text-white shadow-[0_4px_14px_rgba(40,30,70,0.15)]"
+        className="w-[62px] h-[62px] rounded-full flex items-center justify-center text-white shadow-card"
         style={{ background: color }}
       >
-        <span className="text-[26px] font-extrabold leading-none">{hanja}</span>
+        <span className="text-28 font-extrabold leading-none">{hanja}</span>
       </div>
-      <span className="text-[12.5px] font-bold text-eye-purple max-w-[92px] truncate">{name}</span>
-      <span className="text-[10.5px] font-semibold" style={{ color }}>
+      <span className="text-13 font-bold text-eye-purple max-w-[92px] truncate">{name}</span>
+      <span className="text-11 font-semibold" style={{ color }}>
         {saju.dayStem}·{saju.dayElement}
       </span>
     </div>
@@ -60,13 +60,13 @@ export default function CompatMatchDiagram({
   //    다른 이름을 갖지 않게 맞춘다. 선정 기준은 lib/byeolmaru/day-label.ts dayMarks JSDoc 참조.
   //    (이 화면은 두 사람을 보므로 "목적어가 빈다"는 그쪽 근거는 해당 없지만, 이름은 통일한다.)
   const badges: { emoji: string; label: string }[] = [];
-  if (rel.heavenlyCombo) badges.push({ emoji: "⚡", label: "설렘" });
-  if (rel.sixCombo) badges.push({ emoji: "🔗", label: "척척" });
+  if (rel.heavenlyCombo) badges.push({ emoji: "", label: "설렘" });
+  if (rel.sixCombo) badges.push({ emoji: "", label: "척척" });
 
   return (
-    <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-      <h3 className="text-[14.5px] font-extrabold text-lilac-deep mb-1.5">💞 궁합 한눈에</h3>
-      <p className="text-[11px] text-text-light/70 leading-snug mb-4">
+    <div className="card-report">
+      <h3 className="text-15 font-extrabold text-accent mb-1.5">궁합 한눈에</h3>
+      <p className="text-11 text-text-light leading-snug mb-4">
         두 일간이 만나 만드는 기운의 결이야. 아래 풀이의 결정론적 뼈대.
       </p>
 
@@ -79,16 +79,15 @@ export default function CompatMatchDiagram({
               {badges.map((bd) => (
                 <span
                   key={bd.label}
-                  className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/60 px-2.5 py-1 text-[11px] font-bold text-lilac-deep"
+                  className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-accent"
                 >
-                  <span aria-hidden>{bd.emoji}</span>
                   {bd.label}
                 </span>
               ))}
             </div>
           ) : (
-            <span className="text-[18px] text-lilac-mid" aria-hidden>
-              ↔
+            <span className="text-17 text-lilac-mid" aria-hidden>
+             
             </span>
           )}
         </div>
@@ -96,20 +95,20 @@ export default function CompatMatchDiagram({
       </div>
 
       {/* 오행 관계 헤드라인 */}
-      <p className="text-center text-[13.5px] font-extrabold text-eye-purple mt-4">
+      <p className="text-center text-14 font-extrabold text-eye-purple mt-4">
         {elementHeadline(rel.element, names.a, names.b)}
       </p>
 
       {/* 십신 양방향 */}
       <div className="mt-4 pt-4 border-t border-lilac-mid/20 flex flex-col gap-2">
-        <div className="flex items-baseline gap-2 text-[12.5px]">
-          <span className="text-text-light/70 shrink-0">
+        <div className="flex items-baseline gap-2 text-13">
+          <span className="text-text-light shrink-0">
             {names.a}에게 {names.b}는
           </span>
           <span className="font-bold text-eye-purple">{rel.labelAtoB}</span>
         </div>
-        <div className="flex items-baseline gap-2 text-[12.5px]">
-          <span className="text-text-light/70 shrink-0">
+        <div className="flex items-baseline gap-2 text-13">
+          <span className="text-text-light shrink-0">
             {names.b}에게 {names.a}는
           </span>
           <span className="font-bold text-eye-purple">{rel.labelBtoA}</span>

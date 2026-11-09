@@ -150,7 +150,7 @@ export default function DualSajuPicker({
   };
 
   if (!ready) {
-    return <p className="text-center text-[13px] text-text-light py-6">잠시만…</p>;
+    return <p className="text-center text-13 text-text-light py-6">잠시만…</p>;
   }
 
   // 내 사주 필요 — 로그인 전이면 카카오, 로그인했으면 그 자리 생일 입력(사주 단일 상품 구매 칸과 같은 3분기).
@@ -162,15 +162,15 @@ export default function DualSajuPicker({
     const next = loginNext ?? window.location.pathname;
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
+        <div className="card-report text-center">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             {cost != null ? welcomeWallLine(cost, "두 사람 궁합을") : "로그인하면 바로 두 사람 궁합을 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(FortuneSajuPicker·ByeolmaruHub 와 같은 마크업). */}
           <Link
             href={`/login?next=${encodeURIComponent(next)}`}
             onClick={() => trackUiEvent("picker_login_clicked", { meta: { surface: birthSurface } })}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-15 font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -184,8 +184,8 @@ export default function DualSajuPicker({
   if (gate === "birth") {
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
+        <div className="card-report text-center">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             내 생년월일부터 알려줘. 그다음에 상대를 고르면 돼.
           </p>
           {/* 🔴 저장 뒤 상대 입력·결제 확인을 자동으로 띄우지 않는다 — 나를 첫 칸에 넣어 두기까지만(스펙 §2). */}
@@ -193,7 +193,7 @@ export default function DualSajuPicker({
             surface={birthSurface}
             loginNext={loginNext}
             onSaved={loadProfiles}
-            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-60"
+            className="btn btn-primary btn-md"
           >
             내 생년월일 입력하기
           </BirthPromptButton>
@@ -241,16 +241,16 @@ export default function DualSajuPicker({
             <button
               key={slot}
               onClick={() => setActive(slot)}
-              className={`rounded-2xl border px-4 py-5 text-center transition ${
+              className={`bg-white rounded-2xl shadow-card px-4 py-5 text-center transition ${
                 isActive
-                  ? "border-lilac-deep bg-lilac-soft/40"
-                  : "border-lilac-mid/40 bg-cream-warm"
+                  ? "outline-2 outline-accent -outline-offset-2"
+                  : ""
               }`}
             >
-              <p className="text-[11px] text-text-light/70 mb-1">
+              <p className="text-11 text-text-light mb-1">
                 {slot === "A" ? "첫 번째 사람" : "두 번째 사람"}
               </p>
-              <p className="text-[15px] font-bold text-eye-purple">
+              <p className="text-15 font-bold text-eye-purple">
                 {name ?? "선택 안 됨"}
               </p>
             </button>
@@ -260,13 +260,13 @@ export default function DualSajuPicker({
 
       {selfNeedsBirth && (
         // 칸 버튼(<button onClick>) 밖에 둔다 — BirthPromptButton 팝업의 이벤트가 React 조상으로 버블된다.
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-4 text-center mb-5">
-          <p className="text-[12px] text-text-light/80 mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
+        <div className="card text-center mb-5">
+          <p className="text-12 text-text-light mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
           <BirthPromptButton
             surface={birthSurface}
             loginNext={loginNext}
             onSaved={loadProfiles}
-            className="inline-block px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-60"
+            className="btn btn-primary btn-sm"
           >
             생년월일 입력하기
           </BirthPromptButton>
@@ -274,7 +274,7 @@ export default function DualSajuPicker({
       )}
 
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[12px] font-bold text-eye-purple">
+        <p className="text-12 font-bold text-eye-purple">
           {active === "A" ? "첫 번째 사람" : "두 번째 사람"} 고르기
         </p>
         {/* 고를 사람이 없을 땐 아래 큰 버튼이 같은 일을 한다 — 같은 버튼을 두 번 보이지 않는다. */}
@@ -282,7 +282,7 @@ export default function DualSajuPicker({
           <button
             type="button"
             onClick={() => setShowNewPerson(true)}
-            className="text-[11px] font-bold text-lilac-deep"
+            className="text-11 font-bold text-accent"
           >
             + 새 사람 입력
           </button>
@@ -291,12 +291,12 @@ export default function DualSajuPicker({
 
       {/* 프로필 목록 — 활성 칸에 고를 사람이 없으면 그 자리에 큰 "+ 새 사람 입력"(자동으로 열지는 않는다) */}
       {nothingToPick ? (
-        <div className="bg-white rounded-2xl border border-dashed border-lilac-mid/50 px-4 py-5 text-center mb-3">
-          <p className="text-[12px] text-text-light/80 mb-3">궁합 볼 사람을 새로 넣어줘.</p>
+        <div className="card text-center mb-3">
+          <p className="text-12 text-text-light mb-3">궁합 볼 사람을 새로 넣어줘.</p>
           <button
             type="button"
             onClick={() => setShowNewPerson(true)}
-            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+            className="btn btn-primary btn-md"
           >
             + 새 사람 입력
           </button>
@@ -318,16 +318,16 @@ export default function DualSajuPicker({
                 } ${usedInOther ? "opacity-40" : ""}`}
               >
                 <div className="min-w-0">
-                  <div className="text-[14px] font-bold text-eye-purple">
+                  <div className="text-14 font-bold text-eye-purple">
                     {displayName(p)}
-                    <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                    <span className="ml-2 text-11 text-text-light font-normal">
                       {relationBadge(p)}
                     </span>
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5">{birthShort(p)}</div>
+                  <div className="text-11 text-text-light mt-0.5">{birthShort(p)}</div>
                 </div>
                 {usedInOther && (
-                  <span className="shrink-0 ml-2 text-[10px] text-text-light/60">
+                  <span className="shrink-0 ml-2 text-11 text-text-light">
                     반대편 선택됨
                   </span>
                 )}
@@ -354,10 +354,10 @@ export default function DualSajuPicker({
               key={i}
               onClick={() => setListPage(i)}
               aria-label={`${i + 1}페이지`}
-              className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+              className={`w-7 h-7 rounded-lg text-12 font-bold ${
                 i === safeListPage
-                  ? "bg-lilac-deep text-white"
-                  : "text-text-light/70 hover:bg-lilac-soft/50"
+                  ? "bg-accent text-white"
+                  : "text-text-light hover:bg-lilac-soft/50"
               }`}
             >
               {i + 1}
@@ -387,7 +387,7 @@ export default function DualSajuPicker({
               slotName(slotB) ?? "두 번째 사람"
             );
         }}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
+        className="btn btn-primary btn-lg"
       >
         {confirmLabel ?? "궁합 보기"}
       </button>

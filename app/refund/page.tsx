@@ -11,21 +11,21 @@ export default function RefundPage() {
       {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="web-only inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="web-only font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
         환불정책
       </h1>
-      <p className="text-[11px] text-text-light text-center mb-6">
+      <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
       </p>
 
-      <div className="text-[13px] text-eye-purple leading-relaxed space-y-6">
-        <p className="text-[12.5px] text-text-light leading-[1.7]">
+      <div className="text-13 text-eye-purple leading-relaxed space-y-6">
+        <p className="text-13 text-text-light leading-[1.7]">
           브레이브샤인(이하 &ldquo;회사&rdquo;, 서비스명: 별콩톡)는 회원이 결제한 별(Star)에 대해 다음과
           같이 환불정책을 운영합니다. 본 정책은 「전자상거래등에서의
           소비자보호에 관한 법률」 및 「콘텐츠산업진흥법」에 근거합니다.
@@ -69,8 +69,8 @@ export default function RefundPage() {
         <Article title="제3조 (환불 신청 방법)">
           환불을 원하시는 회원은 아래 이메일로 다음 정보를 보내주시기 바랍니다.
           <div className="mt-3 px-4 py-3 rounded-2xl bg-cream/50 border border-lilac-soft/60">
-            <p className="font-bold mb-1.5">📧 oneulcard@gmail.com</p>
-            <ul className="list-disc pl-5 space-y-0.5 text-[12px]">
+            <p className="font-bold mb-1.5">oneulcard@gmail.com</p>
+            <ul className="list-disc pl-5 space-y-0.5 text-12">
               <li>회원 카카오 닉네임</li>
               <li>가입 이메일 (선택)</li>
               <li>결제 일시 및 금액</li>
@@ -148,7 +148,7 @@ export default function RefundPage() {
           <p>처리 시간: 평일 10:00 ~ 18:00 (주말·공휴일 제외)</p>
         </Article>
 
-        <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">
+        <p className="text-12 text-text-light pt-6 border-t border-lilac-soft/40">
           부칙: 본 환불정책은 {SHIM_DATE}부터 시행됩니다.
         </p>
       </div>
@@ -165,8 +165,8 @@ function Article({
 }) {
   return (
     <section>
-      <h2 className="text-[14px] font-bold text-eye-purple mb-1.5">{title}</h2>
-      <div className="text-eye-purple/95 text-[12.5px] leading-[1.7]">
+      <h2 className="text-14 font-bold text-eye-purple mb-1.5">{title}</h2>
+      <div className="text-eye-purple/95 text-13 leading-[1.7]">
         {children}
       </div>
     </section>

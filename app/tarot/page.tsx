@@ -31,7 +31,7 @@ export default function TarotPage() {
 
   const loading = (
     <main className="flex flex-1 items-center justify-center px-5">
-      <p className="text-text-light text-sm">잠시만…</p>
+      <p className="text-text-light text-14">잠시만…</p>
     </main>
   );
   if (!pending) return loading;

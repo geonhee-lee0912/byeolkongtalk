@@ -153,12 +153,12 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
 
       {error && (
         <div className="mt-4 text-center px-5 max-w-md">
-          <p className="text-[12px] text-red-500">{error}</p>
+          <p className="text-12 text-red-500">{error}</p>
           {needCharge && (
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>

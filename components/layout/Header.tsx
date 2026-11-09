@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AppHeader from "./AppHeader";
 import { useHeaderAccount } from "./useHeaderAccount";
+import Icon from "@/components/common/Icon";
 
 export default function Header() {
   const { user, balance } = useHeaderAccount();
@@ -23,7 +24,7 @@ export default function Header() {
               className="object-contain"
             />
           </span>
-          <span className="font-display text-[22px] text-eye-purple tracking-wide font-bold">
+          <span className="font-display text-22 text-eye-purple tracking-wide font-bold">
             별콩톡
           </span>
         </Link>
@@ -37,10 +38,10 @@ export default function Header() {
                 className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 transition-colors"
                 aria-label="별콩 상점"
               >
-                <span className="text-[13px] leading-none" aria-hidden>
-                  ⭐
+                <span className="text-13 leading-none" aria-hidden>
+                  <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />
                 </span>
-                <span className="text-[12px] font-bold text-eye-purple leading-none tabular-nums">
+                <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">
                   {balance ?? "-"}
                 </span>
               </Link>
@@ -48,7 +49,7 @@ export default function Header() {
               {/* MY — 프로필 아바타 + 닉네임 */}
               <Link
                 href="/mypage"
-                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white/70 rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
+                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
                 aria-label="내 정보"
               >
                 <span className="relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-lilac-soft ring-1 ring-white/80">
@@ -64,7 +65,7 @@ export default function Header() {
                     className="w-full h-full object-cover"
                   />
                 </span>
-                <span className="text-[12px] font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
+                <span className="text-12 font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
                   {user.nickname}
                 </span>
               </Link>
@@ -72,7 +73,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="text-sm text-text-light hover:text-eye-purple transition-colors"
+              className="text-14 text-text-light hover:text-eye-purple transition-colors"
             >
               로그인
             </Link>

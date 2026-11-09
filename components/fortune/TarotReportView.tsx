@@ -59,28 +59,28 @@ export default function TarotReportView({
           <Image src="/byeolkong-tarot.png" alt="별콩이" fill className="object-contain" />
         </div>
       </div>
-      <h1 className="text-[20px] font-bold text-eye-purple text-center leading-snug">
+      <h1 className="text-20 font-bold text-eye-purple text-center leading-snug">
         {report.headline}
       </h1>
 
       {/* 별콩이의 조언 — 헤드라인 바로 아래로 이동. advice 누락 시(파서가 ""로 폴백) 박스 숨김 */}
       {report.advice && (
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
-          <div className="text-[12px] font-bold text-gold-soft mb-1.5">
+        <div className="bg-night-card rounded-2xl p-4">
+          <div className="text-12 font-bold text-gold-soft mb-1.5">
             별콩이의 조언
           </div>
-          <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">
+          <p className="text-13 text-white/90 leading-relaxed whitespace-pre-wrap">
             {report.advice}
           </p>
         </div>
       )}
 
       {/* 카드별 해석 + 종합 해석을 하나의 박스로 통합 */}
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col gap-6">
+      <div className="card flex flex-col gap-6">
         {items.map((card) => (
           <div key={card.key} className="flex flex-col items-center text-center">
-            <div className="text-[12px] text-text-light/70">{card.position}</div>
-            <div className="text-[16px] font-bold text-eye-purple mt-0.5">
+            <div className="text-12 text-text-light">{card.position}</div>
+            <div className="text-17 font-bold text-eye-purple mt-0.5">
               {card.cardName}
             </div>
             {card.cardId !== null && (
@@ -97,19 +97,19 @@ export default function TarotReportView({
                 />
               </div>
             )}
-            <div className="text-[12px] text-text-light/70 mt-2">
+            <div className="text-12 text-text-light mt-2">
               {card.direction === "upright" ? "정방향" : "역방향"}
             </div>
-            <p className="text-[13px] text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">
+            <p className="text-13 text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">
               {card.reading}
             </p>
           </div>
         ))}
         <div className="w-full pt-4 border-t border-lilac-mid/30 text-left">
-          <div className="text-[12px] font-bold mb-1.5" style={{ color: accent }}>
+          <div className="text-12 font-bold mb-1.5" style={{ color: accent }}>
             종합 해석
           </div>
-          <p className="text-[13px] text-text-light leading-relaxed whitespace-pre-wrap">
+          <p className="text-13 text-text-light leading-relaxed whitespace-pre-wrap">
             {report.summary}
           </p>
         </div>

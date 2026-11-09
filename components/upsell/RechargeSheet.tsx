@@ -15,6 +15,7 @@ import { fetchWallet } from "@/lib/wallet";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   open: boolean;
@@ -184,8 +185,8 @@ export default function RechargeSheet({
       onClose={closeSheet}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto"
     >
         {/* 그랩바 */}
         <div className="web-only flex justify-center pt-3 pb-1">
@@ -194,35 +195,35 @@ export default function RechargeSheet({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[17px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             별 충전하기
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
         {/* 잔액 + 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
-          <p className="text-[13px] text-eye-purple leading-relaxed">
+        <div className="card-inner mx-5 mb-4">
+          <p className="text-13 text-eye-purple leading-relaxed">
             별이 조금 모자라
             {balance !== null ? (
-              <span className="font-bold"> — 지금 잔액 ⭐{balance}</span>
+              <span className="font-bold"> — 지금 잔액 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance}</span>
             ) : null}
           </p>
-          <p className="text-[11px] text-text-light mt-1 leading-snug">
+          <p className="text-11 text-text-light mt-1 leading-snug">
             충전하면 보던 자리로 바로 돌아와요
           </p>
         </div>
 
         {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
         {firstChargeEligible && (
-          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50">
-            <span className="text-[15px]">🎁</span>
-            <p className="text-[12px] font-extrabold text-eye-purple">
+          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
+            <span className="text-15"><Icon name="gift" size={16} /></span>
+            <p className="text-12 font-extrabold text-eye-purple">
               지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
             </p>
           </div>
@@ -252,39 +253,39 @@ export default function RechargeSheet({
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
                   isSelected
-                    ? "border-lilac-deep bg-lilac-soft/30 shadow-[0_0_0_2px_rgba(159,138,208,0.15)]"
+                    ? "border-lilac-deep bg-lilac-soft/30 ring-2 ring-lilac-deep/20"
                     : "border-lilac-mid/30 bg-white hover:border-lilac/70"
                 } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
               >
-                <span className="text-[16px] shrink-0">⭐</span>
+                <span className="text-17 shrink-0"><Icon name="star" size={16} /></span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[14px] font-black text-eye-purple tabular-nums">
+                  <span className="text-14 font-black text-eye-purple tabular-nums">
                     {pkg.stars}별
                     {bonus > 0 && (
-                      <span className="ml-1 text-[12px] font-black text-gold tabular-nums">
+                      <span className="ml-1 text-12 font-black text-gold tabular-nums">
                         +{bonus}
                       </span>
                     )}
                     {isRecommended && (
-                      <span className="ml-2 text-[10px] font-black text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
+                      <span className="ml-2 text-11 font-black text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
                         추천
                       </span>
                     )}
                   </span>
-                  <span className="ml-2 text-[12px] text-text-light tabular-nums">
+                  <span className="ml-2 text-12 text-text-light tabular-nums">
                     {pkg.price.toLocaleString()}원
                   </span>
                   {leftover !== null && (
                     <span
-                      className={`block mt-0.5 text-[11px] tabular-nums ${
-                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light/60"
+                      className={`block mt-0.5 text-11 tabular-nums ${
+                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light"
                       }`}
                     >
                       {leftover > 0
-                        ? `충전 후 이번 판 하고도 ⭐${leftover} 남아`
+                        ? `충전 후 이번 판 하고도 별 ${leftover} 남아`
                         : leftover === 0
                         ? "충전하면 이번 판에 딱 맞아"
-                        : `⭐${-leftover} 모자라`}
+                        : `별 ${-leftover} 모자라`}
                     </span>
                   )}
                 </div>
@@ -315,7 +316,7 @@ export default function RechargeSheet({
         </div>
 
         {(error || paymentError) && (
-          <p className="text-[12px] text-red-500 text-center px-5 mt-2 mb-1">
+          <p className="text-12 text-red-500 text-center px-5 mt-2 mb-1">
             {error ?? "결제 모듈을 불러오지 못했어. 새로고침해줘."}
           </p>
         )}
@@ -325,9 +326,9 @@ export default function RechargeSheet({
           <button
             onClick={() => void handleCharge()}
             disabled={loading || !paymentReady || !selectedPkg}
-            className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-[14px] font-bold shadow-md hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="btn btn-primary btn-lg"
           >
-            <span>⭐</span>
+            <span><Icon name="star" size={16} /></span>
             <span className="tabular-nums">
               {!paymentReady && !paymentError
                 ? "잠시만, 결제 준비 중..."

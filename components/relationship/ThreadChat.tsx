@@ -23,6 +23,7 @@ import {
 } from "@/lib/relationship/draw-thread";
 import { getCard } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import Icon from "@/components/common/Icon";
 
 export interface ThreadChatMsg {
   role: "user" | "assistant";
@@ -508,13 +509,13 @@ export default function ThreadChat({
         <div className="max-w-md mx-auto px-5 py-4">
           {showStarter && (
             <div className="flex flex-col items-center text-center py-10 px-4 animate-fade-in">
-              <span className="text-[28px] mb-2" aria-hidden>
-                💬
+              <span className="text-28 mb-2" aria-hidden>
+               
               </span>
-              <p className="text-[14px] font-bold text-eye-purple mb-1">
+              <p className="text-14 font-bold text-eye-purple mb-1">
                 별콩이랑 얘기 시작하기
               </p>
-              <p className="text-[12.5px] text-text-light leading-relaxed">
+              <p className="text-13 text-text-light leading-relaxed">
                 지금 마음 편하게 이야기해봐 — 별콩이가 다 기억할게.
               </p>
             </div>
@@ -527,7 +528,7 @@ export default function ThreadChat({
             const dateDivider =
               curKey !== null && curKey !== prevKey ? (
                 <div className="flex justify-center my-3">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/50 px-3 py-1 text-[11px] font-medium text-text-light/80">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/50 px-3 py-1 text-11 font-medium text-text-light">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                       <path d="M19,4H18V2H16V4H8V2H6V4H5A2,2 0 0,0 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z" />
                     </svg>
@@ -586,7 +587,7 @@ export default function ThreadChat({
                       <div key={k}>
                         {card && (
                           <div className="pl-10 mb-1">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft px-2.5 py-0.5 text-[11px] font-bold text-lilac-deep">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft px-2.5 py-0.5 text-11 font-bold text-accent">
                               {card.label} · {getCard(card.card_id)?.name_kr ?? ""}
                               {card.direction === "reversed" ? " (역)" : ""}
                             </span>
@@ -623,14 +624,14 @@ export default function ThreadChat({
                         type="button"
                         onClick={() => launch(skill.key)}
                         disabled={busyKey === skill.key || !!activeSkill}
-                        className="flex items-center gap-1.5 rounded-full border border-lilac-mid/30 bg-white px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition disabled:opacity-60"
+                        className="btn btn-secondary btn-sm whitespace-nowrap"
                       >
-                        <span aria-hidden>{skill.emoji}</span>
-                        <span className="text-[12px] font-bold text-eye-purple">
+                        <Icon name={skill.icon} size={14} />
+                        <span className="text-12 font-bold text-eye-purple">
                           {busyKey === skill.key ? "여는 중…" : skill.label}
                         </span>
-                        <span className="text-[11px] font-bold text-lilac-deep">
-                          ⭐{skill.starCost}
+                        <span className="text-11 font-bold text-accent">
+                          <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{skill.starCost}
                         </span>
                       </button>
                     </div>
@@ -653,7 +654,7 @@ export default function ThreadChat({
           {compatLoading && (
             <ChatBubble
               role="assistant"
-              content="별콩이가 두 사주로 궁합을 보는 중 ✨"
+              content="별콩이가 두 사주로 궁합을 보는 중"
               showAvatar
               showName
               streaming
@@ -663,7 +664,7 @@ export default function ThreadChat({
           {drawLoading && (
             <ChatBubble
               role="assistant"
-              content="별콩이가 카드를 펼치는 중 ✨"
+              content="별콩이가 카드를 펼치는 중"
               showAvatar
               showName
               streaming
@@ -680,14 +681,14 @@ export default function ThreadChat({
 
           {error && (
             <div className="mt-2 flex flex-col items-center gap-2">
-              <p className="text-[12px] text-red-500 text-center">{error}</p>
+              <p className="text-12 text-red-500 text-center">{error}</p>
               {/* 재전송 가능한 실패(연결 끊김)에만 뜬다 — 패스 부족 402 는 다시 눌러도 같다. */}
               {retryText && (
                 <button
                   type="button"
                   onClick={() => void send(retryText, true)}
                   disabled={sending}
-                  className="inline-flex items-center gap-1 rounded-full bg-lilac-deep text-white font-bold text-[12px] px-3.5 py-1.5 active:scale-[0.97] transition disabled:opacity-60"
+                  className="btn btn-primary btn-sm"
                 >
                   다시 보내기
                 </button>
@@ -705,17 +706,17 @@ export default function ThreadChat({
                 type="button"
                 onClick={() => void handleExtend()}
                 disabled={extending}
-                className="inline-flex items-center gap-1.5 rounded-full bg-lilac-deep text-white font-bold text-[12.5px] px-4 py-2.5 active:scale-[0.97] transition disabled:opacity-60"
+                className="btn btn-primary btn-md"
               >
-                <span aria-hidden>💬</span>
+                <span aria-hidden><Icon name="bubble" size={16} /></span>
                 {extending
                   ? "연장하는 중…"
-                  : `오늘 대화 추가 구매 · ⭐${EXTEND_COST}로 ${EXTEND_TURNS}번 더`}
+                  : `오늘 대화 추가 구매 · 별 ${EXTEND_COST}로 ${EXTEND_TURNS}번 더`}
               </button>
-              <p className="text-[11px] text-text-light text-center">
+              <p className="text-11 text-text-light text-center">
                 오늘은 여기까지 · 내일 자정에 다시 채워져
               </p>
-              {extendError && <p className="text-[11px] text-red-500">{extendError}</p>}
+              {extendError && <p className="text-11 text-red-500">{extendError}</p>}
             </div>
           ) : (canSend || activeSkill) ? (
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
@@ -761,13 +762,13 @@ export default function ThreadChat({
                 }
                 disabled={sending || compatLoading || drawLoading}
                 maxLength={8000}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
                 type="submit"
                 disabled={sending || compatLoading || drawLoading || !input.trim()}
-                className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary btn-md shrink-0 disabled:cursor-not-allowed"
               >
                 전송
               </button>
@@ -780,7 +781,7 @@ export default function ThreadChat({
         typeof document !== "undefined" &&
         createPortal(
           <div className="fixed bottom-24 inset-x-0 z-[90] flex justify-center px-8 pointer-events-none">
-            <div className="max-w-xs text-center bg-night/90 text-cream text-[12.5px] rounded-full px-4 py-2.5 shadow-lg animate-fade-in">
+            <div className="max-w-xs text-center bg-night/90 text-cream text-13 rounded-full px-4 py-2.5 shadow-float animate-fade-in">
               {toastMsg}
             </div>
           </div>,

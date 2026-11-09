@@ -194,23 +194,23 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
 
   const denied = perm === "denied";
   const warn = (
-    <div className="mt-3 rounded-2xl bg-white border border-lilac-mid/35 px-3 py-2.5 text-[12.5px] leading-relaxed">
+    <div className="card-inner mt-3 text-13 leading-relaxed">
       알림이 꺼져 있어서 그날 못 알려줘.
       <br />
       <button
         type="button"
         onClick={() => postToApp("push.openSettings")}
-        className="mt-2 inline-block px-3.5 py-2 rounded-full text-[12px] font-bold text-eye-purple bg-lilac-soft"
+        className="btn btn-secondary btn-sm mt-2"
       >
         설정 열기
       </button>
     </div>
   );
-  const retry = failed ? <p className="mt-2 text-[12px] text-text-light">잘 안 됐어. 한 번 더 눌러 줄래?</p> : null;
+  const retry = failed ? <p className="mt-2 text-12 text-text-light">잘 안 됐어. 한 번 더 눌러 줄래?</p> : null;
 
   const chipClass = (on: boolean, small: boolean) =>
-    `${small ? "px-3 py-[7px] text-[12px]" : "px-[15px] py-[9px] text-[13px]"} rounded-full font-bold border-[1.5px] transition-colors disabled:opacity-50 ${
-      on ? "bg-eye-purple border-eye-purple text-white shadow-md" : "bg-white border-lilac-mid text-eye-purple"
+    `${small ? "px-3 py-[7px] text-12" : "px-[15px] py-[9px] text-13"} rounded-full font-bold border-[1.5px] transition-colors disabled:opacity-50 ${
+      on ? "bg-eye-purple border-eye-purple text-white" : "bg-white border-lilac-mid text-eye-purple"
     }`;
 
   // ── 시트(① 자동으로 열림) — 공통 시트 틀(components/common/Sheet). 예약·권한 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
@@ -224,8 +224,8 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/profile.png" alt="" className="relative w-full h-full object-contain" />
             </div>
-            <p className="text-[17px] font-black tracking-tight">이 고민, 언제 다시 볼까?</p>
-            <p className="text-[12.5px] text-text-light mt-1.5 leading-normal">그날 별콩이가 알려줄게. 알림을 켜 줘.</p>
+            <p className="text-17 font-black tracking-tight">이 고민, 언제 다시 볼까?</p>
+            <p className="text-13 text-text-light mt-1.5 leading-normal">그날 별콩이가 알려줄게. 알림을 켜 줘.</p>
           </div>
           {denied ? (
             warn
@@ -249,7 +249,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
                 type="button"
                 disabled={busy}
                 onClick={() => void commit(picked)}
-                className="block w-full mt-4 py-3.5 rounded-full text-[14px] font-bold text-white bg-eye-purple shadow-lg disabled:opacity-40"
+                className="btn btn-primary btn-lg mt-4"
               >
                 알림 받을래
               </button>
@@ -268,18 +268,18 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
     <>
     {noticePopup}
     <div className="w-full max-w-md mx-auto px-5 mt-4">
-      <div className="bg-cream-warm border border-lilac-mid/35 rounded-[20px] p-4">
+      <div className="card-inner">
         {done ? (
-          <p className="text-[14px] font-black">{done}</p>
+          <p className="text-14 font-black">{done}</p>
         ) : prefOff ? (
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
             <div>
-              <p className="text-[14px] font-black">알림 설정에서 다시 볼 날이 꺼져 있어</p>
+              <p className="text-14 font-black">알림 설정에서 다시 볼 날이 꺼져 있어</p>
               <Link
                 href="/mypage/notifications"
-                className="mt-2 inline-block px-3.5 py-2 rounded-full text-[12px] font-bold text-eye-purple bg-lilac-soft"
+                className="btn btn-secondary btn-sm mt-2"
               >
                 알림 설정
               </Link>
@@ -289,19 +289,19 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
           <>
             {sendOn ? (
               <>
-                <p className="flex items-center gap-2 text-[14px] font-black">
-                  <span className="text-gold text-[18px]">✦</span>
+                <p className="flex items-center gap-2 text-14 font-black">
+                  
                   {monthDay(sendOn)}에 알려줄게
                 </p>
-                <p className="text-[12px] text-text-light mt-1.5">날짜 바꾸기</p>
+                <p className="text-12 text-text-light mt-1.5">날짜 바꾸기</p>
               </>
             ) : (
               <div className="flex items-center gap-2.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
                 <div>
-                  <p className="text-[14px] font-black">이 고민, 언제 다시 볼까?</p>
-                  {!denied && <p className="text-[12px] text-text-light mt-0.5">그날 별콩이가 알려줄게.</p>}
+                  <p className="text-14 font-black">이 고민, 언제 다시 볼까?</p>
+                  {!denied && <p className="text-12 text-text-light mt-0.5">그날 별콩이가 알려줄게.</p>}
                 </div>
               </div>
             )}

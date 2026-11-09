@@ -24,7 +24,7 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
       </div>
       {!collapsed && (
         <div
-          className="pointer-events-none w-[120px] h-5 -mt-1.5 rounded-[50%]"
+          className="pointer-events-none w-[120px] h-5 -mt-1.5 rounded-full"
           aria-hidden
           style={{ background: "radial-gradient(ellipse,rgba(232,194,106,0.3),transparent 70%)" }}
         />
@@ -32,12 +32,12 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
       {!collapsed && (
         <>
           <span className="text-cream-warm font-bold">{label}</span>
-          <span className="text-[12px] text-gold-soft text-center px-6 leading-relaxed">
-            🌙 너의 설명으로 그린 그 사람이야, 인형이라 생각해!
+          <span className="text-12 text-gold-soft text-center px-6 leading-relaxed">
+            너의 설명으로 그린 그 사람이야, 인형이라 생각해!
           </span>
         </>
       )}
-      {collapsed && <span className="text-sm text-cream-warm/90">{label}</span>}
+      {collapsed && <span className="text-14 text-cream-warm/90">{label}</span>}
     </div>
   );
 }

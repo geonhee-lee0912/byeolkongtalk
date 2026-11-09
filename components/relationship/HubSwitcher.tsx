@@ -46,8 +46,8 @@ function SwitchItem({
         {children}
       </button>
       <span
-        className={`text-[9px] max-w-[52px] truncate ${
-          selected ? "font-extrabold text-lilac-deep" : "font-bold text-text-light"
+        className={`text-11 max-w-16 truncate ${
+          selected ? "font-extrabold text-accent" : "font-bold text-text-light"
         }`}
       >
         {name}
@@ -91,11 +91,11 @@ export default function HubSwitcher({
           type="button"
           onClick={onAddPerson}
           aria-label="새 사람 추가"
-          className="w-14 h-14 rounded-full bg-lilac-soft border-[1.5px] border-dashed border-lilac-mid flex items-center justify-center text-[26px] text-lilac-deep active:scale-95 transition"
+          className="btn btn-secondary w-14 h-14 rounded-full text-28"
         >
           ＋
         </button>
-        <span className="text-[9px] font-bold text-text-light max-w-[52px] truncate">
+        <span className="text-11 font-bold text-text-light max-w-16 truncate">
           {relationships.length === 0 ? "첫 사람" : "새 사람"}
         </span>
       </div>

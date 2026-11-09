@@ -31,7 +31,7 @@ export default function FortuneLandingHero({
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href="/fortune"
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <polyline points="11.5 3 5 9 11.5 15" />
@@ -56,16 +56,16 @@ export default function FortuneLandingHero({
       )}
 
       <div className="w-full max-w-md mx-auto px-5 mt-4 flex flex-col items-center">
-        <h1 className="font-display text-[22px] text-eye-purple text-center tracking-wide leading-snug">
+        <h1 className="font-display text-22 text-eye-purple text-center tracking-wide leading-snug">
           {title}
         </h1>
-        <p className="text-[13px] text-text-light text-center mt-2 leading-relaxed whitespace-pre-line">
+        <p className="text-13 text-text-light text-center mt-2 leading-relaxed whitespace-pre-line">
           {hook}
         </p>
 
         <div className="flex flex-wrap gap-1.5 justify-center mt-3">
           {chips.map((c) => (
-            <span key={c} className="text-[11px] font-bold text-eye-purple bg-white/80 px-2.5 py-1 rounded-full">
+            <span key={c} className="text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full">
               {c}
             </span>
           ))}

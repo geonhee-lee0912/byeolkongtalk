@@ -6,6 +6,7 @@ import {
   type DailyReport,
 } from "@/lib/fortune/daily-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
+import Icon from "@/components/common/Icon";
 
 // 바깥 껍데기 — standalone 은 제 몸으로 서는 카드(/fortune/result·어드민)라 가운데 정렬 + 흰 카드를
 // 두르지만, embedded 는 이미 DayDetailCard 의 한 장(2026-09-27 부터 bg-white p-4) **안**이다. 거기서 흰 카드를
@@ -14,7 +15,7 @@ function Shell({ embedded, children }: { embedded: boolean; children: ReactNode 
   if (embedded) return <>{children}</>;
   return (
     <div className="w-full max-w-md mx-auto px-5">
-      <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+      <div className="card-report">
         {children}
       </div>
     </div>
@@ -56,27 +57,27 @@ export default function DailyReportCard({
           </div>
           {/* 상단 바 */}
           <div className="flex items-baseline justify-between mb-5">
-            <span className="text-[16px] font-bold text-[#1C1A24]">{dayWord}의 운세</span>
+            <span className="text-17 font-bold text-[#1C1A24]">{dayWord}의 운세</span>
             {dateLabel && (
-              <span className="text-[11.5px] font-semibold text-text-light/70">{dateLabel}</span>
+              <span className="text-12 font-semibold text-text-light">{dateLabel}</span>
             )}
           </div>
 
           {/* 일진 히어로 — 유일한 큰 컬러 포인트 */}
           <div className="text-center mb-[18px]">
-            <div className="text-[52px] font-extrabold text-eye-purple leading-none tracking-[2px]">
+            <div className="text-52 font-extrabold text-eye-purple leading-none tracking-[2px]">
               {iljin.hanja}
             </div>
-            <div className="mt-[7px] text-[12px] font-semibold text-[#8B84A0]">
+            <div className="mt-[7px] text-12 font-semibold text-[#8B84A0]">
               {iljin.stem}
               {iljin.branch} · {dayWord} 들어온 기운
             </div>
             <div className="mt-[9px] flex gap-[6px] justify-center">
-              <span className="text-[10.5px] font-bold text-[#6E6880] inline-flex items-center gap-[3px]">
+              <span className="text-11 font-bold text-[#6E6880] inline-flex items-center gap-[3px]">
                 <i className="w-[6px] h-[6px] rounded-full inline-block" style={{ background: ELEMENT_COLOR[iljin.stemElement] }} />
                 {iljin.stemElement} {c1}
               </span>
-              <span className="text-[10.5px] font-bold text-[#6E6880] inline-flex items-center gap-[3px]">
+              <span className="text-11 font-bold text-[#6E6880] inline-flex items-center gap-[3px]">
                 <i className="w-[6px] h-[6px] rounded-full inline-block" style={{ background: ELEMENT_COLOR[iljin.branchElement] }} />
                 {iljin.branchElement} {c2}
               </span>
@@ -88,35 +89,36 @@ export default function DailyReportCard({
       {/* 한 줄 총평 */}
       <MarkdownLite
         text={report.summary}
-        className="text-center text-[14px] font-bold text-[#322E3D] leading-[1.5] mb-[14px]"
+        className="text-center text-14 font-bold text-[#322E3D] leading-[1.5] mb-[14px]"
       />
 
       {/* 종합운 별점 (해시태그 위) */}
       <div className="flex items-center justify-center gap-2 mb-[9px]">
-        <span className="text-[11px] font-bold text-text-light/70">{dayWord} 종합운</span>
-        <span className="text-[13px] tracking-[2px] text-[#C9C4D6]">
-          <b className="text-eye-purple">{"★".repeat(filled)}</b>
-          {"☆".repeat(5 - filled)}
+        <span className="text-11 font-bold text-text-light">{dayWord} 종합운</span>
+        <span className="inline-flex items-center gap-0.5" role="img" aria-label={`별 5개 중 ${filled}개`}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <Icon key={i} name={i < filled ? "rate_on" : "rate_off"} size={13} className={i < filled ? "text-accent" : "text-lilac"} />
+          ))}
         </span>
       </div>
 
       {/* 칩 3종 */}
       <div className="flex gap-[6px] justify-center flex-wrap mb-1.5">
-        <span className="text-[10.5px] text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
+        <span className="text-11 text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
           # {report.lucky.keyword}
         </span>
-        <span className="text-[10.5px] text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
+        <span className="text-11 text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
           {report.lucky.color}
         </span>
-        <span className="text-[10.5px] text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
+        <span className="text-11 text-[#6E6880] border border-lilac-mid/40 rounded-full px-[11px] py-1 font-semibold">
           {report.lucky.time}
         </span>
       </div>
 
       {/* 도입 — 오늘 들어온 두 글자 */}
       <div className="pt-[17px] mt-[18px] border-t border-lilac-mid/25">
-        <div className="text-[12.5px] font-extrabold text-[#4A4458] mb-1.5">{dayWord} 들어온 두 글자</div>
-        <MarkdownLite text={report.intro} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
+        <div className="text-13 font-extrabold text-[#4A4458] mb-1.5">{dayWord} 들어온 두 글자</div>
+        <MarkdownLite text={report.intro} className="text-13 leading-[1.85] text-[#4F4A5E]" />
       </div>
 
       {/* 5개 도메인 섹션 (DAILY_SECTIONS 가 정본) */}
@@ -126,10 +128,9 @@ export default function DailyReportCard({
         return (
           <div key={meta.key} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
             <div className="flex items-center gap-[7px] mb-1.5">
-              <span className="text-[13px] opacity-85">{meta.icon}</span>
-              <span className="text-[12.5px] font-extrabold text-[#4A4458]">{meta.title}</span>
+              <span className="text-13 font-extrabold text-[#4A4458]">{meta.title}</span>
             </div>
-            <MarkdownLite text={sec.body} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
+            <MarkdownLite text={sec.body} className="text-13 leading-[1.85] text-[#4F4A5E]" />
           </div>
         );
       })}
@@ -137,16 +138,16 @@ export default function DailyReportCard({
       {/* 오늘의 균형 */}
       <div className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
         <div className="flex items-center gap-[7px] mb-1.5">
-          <span className="text-[13px] opacity-85">⚖️</span>
-          <span className="text-[12.5px] font-extrabold text-[#4A4458]">{dayWord}의 균형</span>
+          <span className="text-13 opacity-85"><Icon name="scale" size={16} /></span>
+          <span className="text-13 font-extrabold text-[#4A4458]">{dayWord}의 균형</span>
         </div>
         <div className="flex flex-col gap-[9px]">
-          <div className="flex gap-[9px] items-start text-[13px] leading-[1.7] text-[#4F4A5E]">
-            <span className="shrink-0 text-[11px] font-extrabold text-[#3F8E5C] mt-0.5">좋아</span>
+          <div className="flex gap-[9px] items-start text-13 leading-[1.7] text-[#4F4A5E]">
+            <span className="shrink-0 text-11 font-extrabold text-[#3F8E5C] mt-0.5">좋아</span>
             <span>{report.balance.good}</span>
           </div>
-          <div className="flex gap-[9px] items-start text-[13px] leading-[1.7] text-[#4F4A5E]">
-            <span className="shrink-0 text-[11px] font-extrabold text-[#C2723E] mt-0.5">주의</span>
+          <div className="flex gap-[9px] items-start text-13 leading-[1.7] text-[#4F4A5E]">
+            <span className="shrink-0 text-11 font-extrabold text-[#C2723E] mt-0.5">주의</span>
             <span>{report.balance.warn}</span>
           </div>
         </div>
@@ -162,7 +163,7 @@ export default function DailyReportCard({
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
+          <span className="text-12 font-extrabold text-[#F5D680]">별콩이의 한마디</span>
         </div>
         {/* 🔴 빈 줄을 지워 **한 덩어리로 뭉친다**(2026-09-27, 사용자 지적). 모델이 note 를
             문장마다 빈 줄로 끊어 보내서(실측: 4문장 = 4문단) 두세 줄짜리 마무리 한마디가
@@ -172,7 +173,7 @@ export default function DailyReportCard({
                유저·날짜별 1행)는 옛 모양 그대로다. 여기서 뭉개면 지난 글까지 같이 고쳐진다.
             🔴 문장이 5개 이상이면 MarkdownLite 의 splitLongParagraph 가 3문장씩 다시 끊는다 —
                한 덩어리가 벽이 되는 건 막아준다. 그 동작은 그대로 둔다. */}
-        <MarkdownLite text={report.note.replace(/\n\s*\n/g, " ")} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
+        <MarkdownLite text={report.note.replace(/\n\s*\n/g, " ")} tone="dark" className="text-13 leading-[1.78] text-[#ECE3FB]" />
       </div>
     </Shell>
   );

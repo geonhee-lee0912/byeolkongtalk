@@ -163,7 +163,7 @@ export default function FortuneSajuPicker({
   }, [selected, onSelectedBirthLine]);
 
   if (!ready) {
-    return <p className="text-center text-[13px] text-text-light py-6">잠시만…</p>;
+    return <p className="text-center text-13 text-text-light py-6">잠시만…</p>;
   }
 
   // 내 사주 필요 — 로그인 전이면 카카오, 로그인했으면 그 자리 생일 입력(2026-10-02, /mypage 이탈 제거).
@@ -175,8 +175,8 @@ export default function FortuneSajuPicker({
     const next = loginNext ?? window.location.pathname;
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
+        <div className="card-report text-center">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             {cost != null ? welcomeWallLine(cost, "내 사주로") : "로그인하면 바로 내 사주로 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(ByeolmaruHub 와 같은 마크업). */}
@@ -187,7 +187,7 @@ export default function FortuneSajuPicker({
                 meta: { surface: BIRTH_PROMPT_SURFACE.fortunePicker, product },
               })
             }
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-15 font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -201,8 +201,8 @@ export default function FortuneSajuPicker({
   if (gate === "birth") {
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-[13px] text-text-light/85 leading-relaxed mb-4">
+        <div className="card-report text-center">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             생년월일만 알려주면 바로 볼 수 있어.
           </p>
           {/* 🔴 저장 뒤 결제 확인을 자동으로 띄우지 않는다 — 내 사주를 골라 두기까지만(스펙 §3). */}
@@ -210,7 +210,7 @@ export default function FortuneSajuPicker({
             surface={BIRTH_PROMPT_SURFACE.fortunePicker}
             loginNext={loginNext}
             onSaved={loadProfiles}
-            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] disabled:opacity-60"
+            className="btn btn-primary btn-md"
           >
             생년월일 입력하기
           </BirthPromptButton>
@@ -234,20 +234,20 @@ export default function FortuneSajuPicker({
   return (
     <div className="w-full max-w-md mx-auto px-5">
       {/* 선택된 사주 — 8자판 + 오행 분석 */}
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 mb-5">
+      <div className="card mb-5">
         {selected && (
           <>
             <div className="mb-3 px-1">
               <div className="flex items-center gap-2">
-                <span className="text-[14px] font-bold text-eye-purple">
+                <span className="text-14 font-bold text-eye-purple">
                   {displayName(selected)}
                 </span>
-                <span className="text-[11px] text-text-light/70">
+                <span className="text-11 text-text-light">
                   {relationBadge(selected)}
                 </span>
               </div>
               {!hideBirthLine && (
-                <p className="text-[11px] text-text-light/60 mt-0.5">
+                <p className="text-11 text-text-light mt-0.5">
                   {birthLine(selected)}
                 </p>
               )}
@@ -260,18 +260,18 @@ export default function FortuneSajuPicker({
                 //    길이었다. 버튼은 내 사주를 PATCH 하므로 **내 사주일 때만** 단다(지인 프로필에 달면
                 //    엉뚱한 사람이 고쳐진다 — 지인은 아래 문구만 그대로).
                 <div className="py-4 text-center">
-                  <p className="text-[12px] text-text-light/70 mb-3">생일을 알려주면 사주도 보여줄게</p>
+                  <p className="text-12 text-text-light mb-3">생일을 알려주면 사주도 보여줄게</p>
                   <BirthPromptButton
                     surface={BIRTH_PROMPT_SURFACE.fortunePicker}
                     loginNext={loginNext}
                     onSaved={loadProfiles}
-                    className="inline-block px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-60"
+                    className="btn btn-primary btn-sm"
                   >
                     생년월일 입력하기
                   </BirthPromptButton>
                 </div>
               ) : (
-                <p className="text-[12px] text-text-light/70 text-center py-4">
+                <p className="text-12 text-text-light text-center py-4">
                   생일을 알려주면 사주도 보여줄게
                 </p>
               )}
@@ -284,11 +284,11 @@ export default function FortuneSajuPicker({
       {!lockPrimary && (
         <div className="mb-5">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[12px] font-bold text-eye-purple">사주 목록</div>
+            <div className="text-12 font-bold text-eye-purple">사주 목록</div>
             <button
               type="button"
               onClick={() => setShowNewPerson(true)}
-              className="text-[11px] font-bold text-lilac-deep"
+              className="text-11 font-bold text-accent"
             >
               + 새 사람 입력
             </button>
@@ -306,13 +306,13 @@ export default function FortuneSajuPicker({
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="text-[14px] font-bold text-eye-purple">
+                    <div className="text-14 font-bold text-eye-purple">
                       {displayName(p)}
-                      <span className="ml-2 text-[11px] text-text-light/70 font-normal">
+                      <span className="ml-2 text-11 text-text-light font-normal">
                         {relationBadge(p)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5">
+                    <div className="text-11 text-text-light mt-0.5">
                       {birthLine(p)}
                     </div>
                   </div>
@@ -352,10 +352,10 @@ export default function FortuneSajuPicker({
                   key={i}
                   onClick={() => setListPage(i)}
                   aria-label={`${i + 1}페이지`}
-                  className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                  className={`w-7 h-7 rounded-lg text-12 font-bold ${
                     i === safeListPage
-                      ? "bg-lilac-deep text-white"
-                      : "text-text-light/70 hover:bg-lilac-soft/50"
+                      ? "bg-accent text-white"
+                      : "text-text-light hover:bg-lilac-soft/50"
                   }`}
                 >
                   {i + 1}
@@ -384,7 +384,7 @@ export default function FortuneSajuPicker({
           if (reviewId && onReview) onReview(reviewId);
           else onConfirm(selected.id, displayName(selected));
         }}
-        className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
+        className="btn btn-primary btn-lg"
       >
         {selected && reviewableByProfile?.[selected.id]
           ? "이번 달 운세 다시보기"

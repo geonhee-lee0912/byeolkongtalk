@@ -31,7 +31,7 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
   const them = target.name ?? "이 별";
   if (!oriented) {
     return (
-      <p className="text-sm text-text-light">
+      <p className="text-14 text-text-light">
         {triadShared ? "같은 결 (삼합) — 함께면 시너지가 나" : "이 별과의 궁합은 아직 볼 수 없어."}
       </p>
     );
@@ -44,20 +44,20 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
       {inyeon && (
         <div className="rounded-xl bg-eye-purple p-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-lg text-cream-warm">인연 점수 {inyeon.score}</span>
-            <span className="text-xs text-lilac-soft">{inyeon.grade.label}</span>
+            <span className="font-display text-17 text-cream-warm">인연 점수 {inyeon.score}</span>
+            <span className="text-12 text-lilac-soft">{inyeon.grade.label}</span>
           </div>
-          <ul className="mt-2 space-y-1 text-sm text-cream-warm/90">
+          <ul className="mt-2 space-y-1 text-14 text-cream-warm/90">
             {inyeon.reasons.map((r, i) => (
               <li key={i}>{r}</li>
             ))}
           </ul>
         </div>
       )}
-      {showProse && <p className="text-sm text-eye-purple">{rd.prose}</p>}
+      {showProse && <p className="text-14 text-eye-purple">{rd.prose}</p>}
       {pivotIsMe && (
         // 내가 보는 X / X가 보는 나 = 한 박스(구분선). "보는 나"는 차별점이라 굵게 강조.
-        <div className="rounded-xl bg-white/60 p-3 text-sm">
+        <div className="card text-14">
           <div className="font-bold text-eye-purple">내가 보는 {them}</div>
           <div className="text-eye-purple">{iSee}</div>
           <div className="mt-2 border-t border-lilac-soft pt-2 font-bold text-eye-purple">
@@ -67,7 +67,7 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
         </div>
       )}
       {(rd.good || rd.caution) && (
-        <div className="rounded-xl bg-lilac-soft/40 p-3 text-sm">
+        <div className="rounded-xl bg-lilac-soft/40 p-3 text-14">
           {rd.good && <div className="text-eye-purple"><span className="font-bold">잘 맞는 점</span> · {rd.good}</div>}
           {rd.caution && <div className="mt-1 text-text-light"><span className="font-bold">살짝 조심</span> · {rd.caution}</div>}
         </div>

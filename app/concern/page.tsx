@@ -72,7 +72,7 @@ export default function ConcernPage() {
   if (!emotion) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -125,7 +125,7 @@ export default function ConcernPage() {
             <button
               type="button"
               onClick={() => setTagSheetOpen(true)}
-              className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)] hover:border-lilac-deep/40 transition-colors"
+              className="btn btn-secondary btn-lg flex-col backdrop-blur-sm"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -141,12 +141,12 @@ export default function ConcernPage() {
                     className="object-contain"
                   />
                 </span>
-                <span className="font-bold text-eye-purple text-[13px]">
+                <span className="font-bold text-eye-purple text-13">
                   {option.tag}
                 </span>
-                <span className="text-text-light/50 text-[11px]">변경</span>
+                <span className="text-text-light text-11">변경</span>
               </div>
-              <p className="text-[11px] text-text-light/80 text-center leading-relaxed">
+              <p className="text-11 text-text-light text-center leading-relaxed">
                 {option.description}
               </p>
             </button>
@@ -159,7 +159,7 @@ export default function ConcernPage() {
             className="relative rounded-2xl border border-lilac-deep/30 overflow-hidden"
             style={{
               background:
-                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)",
+                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)", // design-allow: 고민 화면 밤하늘 채팅창(스펙 §2.8 장면)
               boxShadow:
                 "0 4px 20px rgba(30,22,53,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
@@ -180,10 +180,10 @@ export default function ConcernPage() {
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#4A3877]" />
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-white leading-tight">
+                <p className="text-14 font-bold text-white leading-tight">
                   별콩이
                 </p>
-                <p className="text-[11px] text-white/60 leading-snug mt-0.5">
+                <p className="text-11 text-white/60 leading-snug mt-0.5">
                   고민이 있는 날에도, 괜히 마음이 궁금한 날에도 별콩이는 여기 있어
                 </p>
               </div>
@@ -191,46 +191,44 @@ export default function ConcernPage() {
 
             {/* 별 파티클 */}
             <div className="absolute inset-0 pointer-events-none" aria-hidden>
-              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full animate-star-twinkle" />
+              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full" />
               <div
-                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full animate-star-twinkle"
+                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full"
                 style={{ animationDelay: "0.5s" }}
               />
               <div
-                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full animate-star-twinkle"
+                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full"
                 style={{ animationDelay: "0.3s" }}
               />
               <div
-                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full animate-star-twinkle"
+                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full"
                 style={{ animationDelay: "0.9s" }}
               />
               <div
-                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full animate-star-twinkle"
+                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full"
                 style={{ animationDelay: "0.2s" }}
               />
               <div
-                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full animate-star-twinkle"
+                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full"
                 style={{ animationDelay: "1.2s" }}
               />
-              <div className="absolute top-1/3 -right-10 w-48 h-48 bg-lilac/10 rounded-full blur-3xl" />
-              <div className="absolute top-2/3 -left-10 w-40 h-40 bg-gold/[0.05] rounded-full blur-3xl" />
             </div>
 
             <div className="relative px-3.5 pt-5 pb-5 flex flex-col gap-3.5">
               {/* 별콩이 인사 말풍선 */}
               <div className="flex self-end max-w-[88%]">
                 <div
-                  className="relative rounded-2xl rounded-br-md px-4 py-3"
+                  className="relative rounded-2xl rounded-br-sm px-4 py-3"
                   style={{
                     background: "#FBE89E",
                     boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
                   }}
                 >
-                  <p className="text-[14px] font-bold text-eye-purple leading-tight">
+                  <p className="text-14 font-bold text-eye-purple leading-tight">
                     어떤 고민이야?
                   </p>
-                  <p className="text-[12px] text-eye-purple/85 mt-1 leading-relaxed">
-                    편하게 말해줘. 별콩이가 들어볼게 ❤️
+                  <p className="text-12 text-eye-purple/85 mt-1 leading-relaxed">
+                    편하게 말해줘. 별콩이가 들어볼게
                   </p>
                 </div>
               </div>
@@ -238,7 +236,7 @@ export default function ConcernPage() {
               {/* 사용자 입력 */}
               <div className="flex self-end w-full">
                 <div
-                  className="relative flex-1 bg-white rounded-2xl rounded-bl-md overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
+                  className="relative flex-1 bg-white rounded-2xl rounded-bl-sm overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
                   style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.18)" }}
                 >
                   <textarea
@@ -248,10 +246,10 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-[14px] text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-light/40"
+                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
                   />
-                  <div className="flex justify-between items-center px-4 pb-2.5 text-[11px]">
-                    <span className="text-text-light/70">
+                  <div className="flex justify-between items-center px-4 pb-2.5 text-11">
+                    <span className="text-text-light">
                       구체적일수록 더 깊은 대화가 가능해
                     </span>
                     <span
@@ -260,7 +258,7 @@ export default function ConcernPage() {
                           ? "text-red-500"
                           : concern.length >= MAX_LEN * 0.85
                           ? "text-gold"
-                          : "text-text-light/60"
+                          : "text-text-light"
                       }`}
                     >
                       {concern.length} / {MAX_LEN}
@@ -279,7 +277,7 @@ export default function ConcernPage() {
         )}
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 max-w-md mb-3">
+          <p className="text-12 text-red-500 text-center px-5 max-w-md mb-3">
             {error}
           </p>
         )}
@@ -288,7 +286,7 @@ export default function ConcernPage() {
           <button
             onClick={handleNext}
             disabled={!canProceed}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            className="btn btn-primary btn-lg disabled:cursor-not-allowed"
           >
             {concern.length < MIN_LEN
               ? `${MIN_LEN}자 이상 적어줘`
@@ -296,7 +294,7 @@ export default function ConcernPage() {
           </button>
           <Link
             href="/"
-            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+            className="btn btn-text btn-lg"
           >
             뒤로
           </Link>
@@ -339,24 +337,24 @@ function EmotionTagSheet({
       z={90}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
-      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover">
+      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[72vh] overflow-y-auto scrollbar-hover">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             어떤 고민이야?
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
         <div className="px-5 pb-6">
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light mb-2">
             연애 고민
           </p>
           <div className="flex flex-col gap-2 mb-4">
@@ -370,7 +368,7 @@ function EmotionTagSheet({
             ))}
           </div>
 
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light mb-2">
             다른 고민
           </p>
           <div className="flex flex-col gap-2">
@@ -402,8 +400,8 @@ function TagSheetItem({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`w-full flex items-center gap-3 p-3 rounded-2xl bg-white/90 text-left transition-all border ${
-        active ? "border-2 border-lilac-deep bg-lilac-soft/30" : "border-lilac-soft/70"
+      className={`w-full card flex items-center gap-3 text-left transition-all ${
+        active ? "outline-2 outline-accent -outline-offset-2" : ""
       }`}
     >
       <span
@@ -413,7 +411,7 @@ function TagSheetItem({
       >
         <Image src={option.icon} alt="" width={28} height={28} className="object-contain" />
       </span>
-      <span className="flex-1 min-w-0 font-bold text-eye-purple text-[13.5px] leading-snug">
+      <span className="flex-1 min-w-0 font-bold text-eye-purple text-14 leading-snug">
         {option.tag}
       </span>
     </button>

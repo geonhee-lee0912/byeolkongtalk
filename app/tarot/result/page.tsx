@@ -20,6 +20,7 @@ import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { tarotPrice } from "@/lib/tarot/pricing";
+import Icon from "@/components/common/Icon";
 
 export default function TarotResultPage() {
   return (
@@ -110,10 +111,10 @@ function TarotResultInner() {
   if (error) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center">
-        <p className="text-[14px] text-text-light mb-4">{error}</p>
+        <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
           href="/tarot"
-          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+          className="btn btn-primary btn-md"
         >
           새 카드 뽑으러 가기
         </Link>
@@ -124,7 +125,7 @@ function TarotResultInner() {
   if (!data) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">결과 불러오는 중…</p>
+        <p className="text-text-light text-14">결과 불러오는 중…</p>
       </main>
     );
   }
@@ -158,16 +159,16 @@ function TarotResultInner() {
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="web-only text-[12px] text-text-light/70">
+          <button onClick={() => router.back()} className="web-only text-12 text-text-light">
             ‹ 뒤로
           </button>
         ) : (
-          <Link href="/" className="web-only text-[12px] text-text-light/70">
+          <Link href="/" className="web-only text-12 text-text-light">
             ‹ 홈으로
           </Link>
         )}
         {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
-        <div className="ml-auto text-[11px] text-text-light/60">
+        <div className="ml-auto text-11 text-text-light">
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>
       </div>
@@ -176,9 +177,9 @@ function TarotResultInner() {
         <div className="w-full max-w-md mx-auto px-5 mb-4">
           <Link
             href="/relationship"
-            className="w-full py-3 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-[14px] text-center flex items-center justify-center gap-1.5 hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+            className="btn btn-secondary btn-lg"
           >
-            💬 연애 상담으로 돌아가 이어 얘기하기
+            연애 상담으로 돌아가 이어 얘기하기
           </Link>
         </div>
       )}
@@ -186,7 +187,7 @@ function TarotResultInner() {
       {/* 고민 분류 + 나의 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
         {reading.emotionTag && (
-          <h1 className="text-xl font-bold text-eye-purple flex items-center justify-center gap-2 mb-7">
+          <h1 className="text-20 font-bold text-eye-purple flex items-center justify-center gap-2 mb-7">
             {emotionIcon && (
               <Image
                 src={emotionIcon}
@@ -208,11 +209,11 @@ function TarotResultInner() {
             )}
           </h1>
         )}
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-          <div className="text-[11px] font-bold text-text-light mb-1">
+        <div className="card">
+          <div className="text-11 font-bold text-text-light mb-1">
             나의 고민
           </div>
-          <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
+          <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap">
             {reading.question}
           </p>
         </div>
@@ -226,7 +227,7 @@ function TarotResultInner() {
               const card = getCard(c.card_id);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50 shadow-lg">
+                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCardImagePath(c.card_id)}
@@ -238,10 +239,10 @@ function TarotResultInner() {
                       }}
                     />
                   </div>
-                  <span className="text-[12px] font-extrabold text-white leading-tight text-center max-w-[96px]">
+                  <span className="text-12 font-extrabold text-white leading-tight text-center max-w-[96px]">
                     {c.label}
                   </span>
-                  <span className="text-[11px] text-white/90 leading-tight text-center max-w-[96px]">
+                  <span className="text-11 text-white/90 leading-tight text-center max-w-[96px]">
                     {card?.name_kr}
                     {c.direction === "reversed" ? " (역)" : ""}
                   </span>
@@ -255,8 +256,8 @@ function TarotResultInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-5 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-4xl font-serif leading-none">
+          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
+            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
               ❝
             </div>
             <div className="flex items-center gap-2 mb-2 relative">
@@ -266,11 +267,11 @@ function TarotResultInner() {
                 width={28}
                 height={28}
               />
-              <span className="text-[12px] font-bold text-eye-purple">
+              <span className="text-12 font-bold text-eye-purple">
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-[14px] text-eye-purple leading-relaxed relative">
+            <p className="text-14 text-eye-purple leading-relaxed relative">
               {closingLine}
             </p>
           </div>
@@ -281,12 +282,12 @@ function TarotResultInner() {
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <button
           onClick={() => setShowHistory((v) => !v)}
-          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-[12px] font-bold text-eye-purple flex items-center justify-center gap-1"
+          className="btn btn-secondary btn-lg"
         >
-          대화 전체 다시보기 {showHistory ? "▴" : "▾"}
+          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
         </button>
         {showHistory && (
-          <div className="mt-3 bg-cream-warm/40 rounded-2xl p-3 border border-lilac-mid/20">
+          <div className="card mt-3">
             {data.messages.map((m, i) => {
               if (m.role === "user") {
                 return <ChatBubble key={i} role="user" content={m.content} />;
@@ -318,9 +319,9 @@ function TarotResultInner() {
         <div className="w-full max-w-md mx-auto px-5 mt-3">
           <Link
             href={`/tarot/reading?id=${reading.id}`}
-            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-[12.5px] font-bold text-lilac-deep flex items-center justify-center"
+            className="btn btn-secondary btn-lg"
           >
-            💬 이어서 대화하기
+            이어서 대화하기
           </Link>
         </div>
       )}
@@ -332,7 +333,7 @@ function TarotResultInner() {
         newHref="/tarot"
         newLabel="이 고민 다시 뽑기"
         newDesc="스프레드 다시 골라 카드 뽑기"
-        newCostLabel={`⭐${tarotPrice("one_card")}~`}
+        newCostLabel={`별 ${tarotPrice("one_card")}~`}
         readingId={reading.id}
       />
 

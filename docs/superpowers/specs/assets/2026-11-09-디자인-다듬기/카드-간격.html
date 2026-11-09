@@ -1,0 +1,71 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카드와 간격</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--cw:#FFF8F0;--ls:#E8DEF5;--l:#D4C7EE;--ld:#9F8AD0;--ink:#5A3E8C;--tl:#7A6BA0;--btn:#7E66BA;--night:#1F1735}
+*{box-sizing:border-box}body{margin:0;background:#EEE8F4;color:#3b3350;font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 14px}
+section{background:#fff;border-radius:20px;padding:18px;margin-top:16px}h2{color:var(--ink);font-size:17px;margin:0 0 10px}h2 small{font-weight:400;color:var(--tl);font-size:13px}
+table{border-collapse:collapse;width:100%}td,th{padding:9px 8px;border-top:1px solid #f1ebf7;text-align:left;font-size:13px;vertical-align:middle}th{color:var(--tl);font-weight:500;border-top:0;font-size:12px}
+.n{font-weight:900;color:var(--ink);white-space:nowrap}
+.phones{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.phone{width:375px;background:var(--cream);border-radius:28px;padding:20px;border:1px solid #e3d9f0;position:relative}
+.phone h3{margin:0 0 4px;text-align:center;color:var(--ink);font-size:15px}.phone .cap{text-align:center;font-size:12px;color:var(--tl);margin:0 0 14px}
+.h{font-size:17px;font-weight:900;color:#1F1735;margin:0 0 12px}
+.c1{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(90,62,140,.08);margin-bottom:12px}
+.c1 b{color:var(--ink);font-size:16px;display:block}.c1 p{margin:2px 0 12px;color:var(--tl);font-size:13px}
+.c2{background:var(--cw);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:13px}
+.c3{background:var(--night);border-radius:16px;padding:16px;color:#FFF8F0;margin-bottom:12px;font-size:14px}.c3 small{display:block;color:var(--l);font-size:12px;margin-bottom:4px}
+.btn{border:0;font:700 15px/1 "Noto Sans KR";border-radius:12px;height:44px;padding:0 18px;background:var(--btn);color:#fff;display:inline-flex;align-items:center}
+.gap24{height:12px}
+.now .a{background:#fff;border-radius:22px;padding:24px 22px;border:1px solid rgba(184,168,216,.25);box-shadow:0 8px 30px rgba(40,30,70,.08);margin-bottom:10px}
+.now .b{background:var(--cw);border-radius:16px;padding:14px;border:1px solid rgba(184,168,216,.3);margin-bottom:14px}
+.now .c{background:rgba(255,255,255,.7);border-radius:12px;padding:10px 14px;border:2px solid var(--ls);margin-bottom:8px}
+.now b{color:var(--ink);font-size:15px;display:block}.now p{margin:2px 0 0;color:var(--tl);font-size:12.5px}
+.ann{font-size:11px;color:#E48BA0;font-weight:700}
+.note{font-size:12.5px;color:var(--tl);margin:10px 0 0}
+</style></head><body><div class="wrap">
+<h1>카드와 간격</h1>
+<p class="lead">카드는 3종류로, 간격은 역할마다 값 하나로 정해요. 모서리·그림자·버튼은 앞에서 정한 것을 써요.</p>
+
+<section><h2>카드 3종</h2>
+<table><tr><th>종류</th><th>모양</th><th>쓰는 곳</th></tr>
+<tr><td class="n">기본 카드</td><td>흰 바탕 · 모서리 16 · 그림자 1단계 · <b>테두리 없음</b> · 안쪽 16 (글 많은 리포트 카드는 20)</td><td>크림 화면 위에 놓이는 모든 카드</td></tr>
+<tr><td class="n">옅은 칸</td><td>크림 바탕 · 모서리 12 · 그림자·테두리 없음 · 안쪽 12~14</td><td>카드·시트 <b>안</b>의 묶음, 안내 상자, 선택지</td></tr>
+<tr><td class="n">밤 카드</td><td>밤색 바탕 · 모서리 16 · 그림자 없음</td><td>별콩이 한마디, 연애 시뮬 — 지금 그대로</td></tr>
+</table>
+<p class="note">지금 카드 257개 중 161개가 테두리, 34개가 그림자, 일부는 둘 다예요. <b>테두리 또는 그림자 중 하나만</b> 쓰게 해요 — 바닥 카드는 그림자, 안쪽 칸은 바탕색 차이로 구분.<br>
+반투명 흰 카드(흰 70~90%, 18곳)는 기본 카드로 합쳐요. 그라데이션 카드 28개는 C(장식 정리)에서 봐요.</p>
+</section>
+
+<section><h2>간격 <small>값은 지금 가장 많이 쓰는 것으로</small></h2>
+<table><tr><th>자리</th><th>값</th><th>지금</th></tr>
+<tr><td class="n">화면 좌우 여백</td><td>20</td><td>주요 화면 대부분 20 (일부 16)</td></tr>
+<tr><td class="n">카드와 카드 사이</td><td>12</td><td>12가 가장 많음 (10·14 섞임)</td></tr>
+<tr><td class="n">묶음(섹션) 사이</td><td>24</td><td>20·24·32 섞임</td></tr>
+<tr><td class="n">섹션 제목 → 첫 카드</td><td>12</td><td>세어 보지 않음 — 옮길 때 확인</td></tr>
+<tr><td class="n">카드 안 줄 사이</td><td>제목→설명 2 · 설명→버튼 12</td><td>제각각</td></tr>
+</table>
+<p class="note">이 밖의 작은 간격은 당근 SEED 처럼 2px 단위를 그대로 써요(새 규칙 없음).</p>
+</section>
+
+<section><h2>지금과 바꾼 뒤</h2>
+<div class="phones">
+<div class="phone now"><h3>지금 — 한 화면에 카드 모양 3가지</h3><p class="cap">테두리+그림자 · 테두리 · 반투명+두꺼운 테두리</p>
+<div class="a"><b>오늘의 타로</b><p>카드 한 장으로 오늘 흐름을 봐요</p></div>
+<div class="b"><b>별마루</b><p>오늘 우리 사이 흐름</p></div>
+<div class="c"><b>지난 상담</b><p>11월 7일 · 연애</p></div>
+<div class="c"><b>지난 상담</b><p>11월 2일 · 재물</p></div>
+</div>
+<div class="phone"><h3>바꾼 뒤</h3><p class="cap">바닥 카드는 한 모양 · 안쪽 칸은 바탕색으로</p>
+<p class="h">오늘 볼 것</p>
+<div class="c1"><b>오늘의 타로</b><p>카드 한 장으로 오늘 흐름을 봐요</p><span class="btn">카드 뽑기</span></div>
+<div class="c1"><b>별마루</b><p>오늘 우리 사이 흐름</p><div class="c2">오늘은 먼저 연락하기 좋은 날</div></div>
+<div class="gap24"></div>
+<p class="h">지난 상담</p>
+<div class="c3"><small>별콩이 한마디</small>천천히 가도 괜찮아.</div>
+<div class="c1" style="padding:14px 16px"><b style="font-size:15px">11월 7일 · 연애</b></div>
+</div>
+</div>
+</section>
+</div></body></html>

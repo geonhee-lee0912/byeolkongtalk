@@ -102,14 +102,14 @@ export default function HeroCarousel({ audience }: { audience: Audience | null }
           style={{ background: BAR }}
         >
           <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight" style={{ color: TITLE }}>
+            <p className="text-15 font-bold leading-tight" style={{ color: TITLE }}>
               {card.title}
             </p>
-            <p className="mt-1 text-[12px] leading-snug" style={{ color: DESC }}>
+            <p className="mt-1 text-12 leading-snug" style={{ color: DESC }}>
               {card.desc}
             </p>
           </div>
-          <span className="shrink-0 rounded-lg px-3.5 py-1.5 text-[13px] font-bold text-white" style={{ background: "#9F8AD0" }}>
+          <span className="shrink-0 rounded-lg px-3.5 py-1.5 text-13 font-bold text-white" style={{ background: "#9F8AD0" }}>
             {card.cta}
           </span>
         </Link>
@@ -117,14 +117,14 @@ export default function HeroCarousel({ audience }: { audience: Audience | null }
         <button
           onClick={() => go(-1)}
           aria-label="이전 배너"
-          className="absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-sm backdrop-blur-sm active:scale-95"
+          className="absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-card backdrop-blur-sm active:scale-95"
         >
           {chevron}
         </button>
         <button
           onClick={() => go(1)}
           aria-label="다음 배너"
-          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 rotate-180 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-sm backdrop-blur-sm active:scale-95"
+          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 rotate-180 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-card backdrop-blur-sm active:scale-95"
         >
           {chevron}
         </button>

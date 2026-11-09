@@ -24,7 +24,7 @@ const PARTICLES: Particle[] = [
   { top: "24%", side: "right", offset: "9%", size: "w-1 h-1", color: "bg-gold-soft", delay: "1.2s" },
   { top: "58%", side: "right", offset: "22%", size: "w-1.5 h-1.5", color: "bg-gold", delay: "0.6s" },
   { top: "12%", side: "left", offset: "44%", size: "w-1 h-1", color: "bg-white", delay: "1.6s" },
-  { top: "20%", side: "left", offset: "30%", size: "w-1.5 h-1.5", color: "bg-white/90", delay: "0.2s" },
+  { top: "20%", side: "left", offset: "30%", size: "w-1.5 h-1.5", color: "bg-white", delay: "0.2s" },
   { top: "46%", side: "right", offset: "12%", size: "w-1 h-1", color: "bg-gold", delay: "1.0s" },
   { top: "52%", side: "left", offset: "14%", size: "w-1 h-1", color: "bg-gold-soft", delay: "1.4s" },
   { top: "70%", side: "left", offset: "26%", size: "w-1 h-1", color: "bg-white", delay: "0.5s" },
@@ -70,13 +70,11 @@ export default function HeroBanner({
           return (
             <div
               key={i}
-              className={`absolute ${p.size} ${p.color} rounded-full animate-star-twinkle`}
+              className={`absolute ${p.size} ${p.color} rounded-full`}
               style={style}
             />
           );
         })}
-        <div className="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -left-16 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
       </div>
 
       <div
@@ -85,7 +83,7 @@ export default function HeroBanner({
         }`}
       >
         <div
-          className="relative mb-3 animate-float"
+          className="relative mb-3"
           style={{ width: imageSize, height: imageSize }}
         >
           <Image
@@ -99,7 +97,7 @@ export default function HeroBanner({
 
         <h1
           className={`font-display text-white leading-snug tracking-wide text-center ${
-            compact ? "text-[19px]" : "text-[24px]"
+            compact ? "text-20" : "text-22"
           }`}
           style={{ textShadow: "0 2px 16px rgba(0,0,0,0.4)" }}
         >
@@ -107,13 +105,13 @@ export default function HeroBanner({
         </h1>
 
         {subtitle && (
-          <p className="mt-2 text-[13px] text-white/80 text-center leading-relaxed">
+          <p className="mt-2 text-13 text-white/80 text-center leading-relaxed">
             {subtitle}
           </p>
         )}
 
         {badge && (
-          <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[12px] font-bold text-white backdrop-blur-sm">
+          <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-12 font-bold text-white backdrop-blur-sm">
             {badge}
           </span>
         )}

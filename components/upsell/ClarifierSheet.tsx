@@ -7,6 +7,7 @@ import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import { CLARIFIER_COST } from "@/lib/upsell";
 import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import Icon from "@/components/common/Icon";
 
 /** 구매 실패 — 402(잔액 부족)는 onInsufficient 로 따로 가고 여기엔 오지 않는다 */
 export interface ClarifierFailure {
@@ -136,7 +137,7 @@ export default function ClarifierSheet({
       if (status === 402) {
         const bal = data.balance ?? 0;
         if (onInsufficient) onInsufficient(bal);
-        else setError(`별이 부족해. 현재 잔액: ⭐${bal}`);
+        else setError(`별이 부족해. 현재 잔액: 별 ${bal}`);
         setSubmitting(false);
         return;
       }
@@ -175,8 +176,8 @@ export default function ClarifierSheet({
       onClose={closeSheet}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[90vh] overflow-y-auto"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[90vh] overflow-y-auto"
     >
         {/* 그랩바 */}
         <div className="web-only flex justify-center pt-3 pb-1">
@@ -185,37 +186,37 @@ export default function ClarifierSheet({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[17px] font-bold text-eye-purple">
+          <h2 className="font-display text-17 font-bold text-eye-purple">
             카드 한 장 더 뽑기
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
 
         {/* 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
-          <p className="text-[13px] text-eye-purple leading-relaxed">
+        <div className="card-inner mx-5 mb-4">
+          <p className="text-13 text-eye-purple leading-relaxed">
             마음 가는 카드 한 장만 더 골라줘
           </p>
-          <p className="text-[11px] text-text-light mt-1 leading-snug">
-            뽑는 순간 ⭐{CLARIFIER_COST}
-            {balance !== null ? ` · 현재 잔액 ⭐${balance}` : ""}
+          <p className="text-11 text-text-light mt-1 leading-snug">
+            뽑는 순간 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{CLARIFIER_COST}
+            {balance !== null ? ` · 현재 잔액 별 ${balance}` : ""}
              · 지금 카드들과 이어서 봐줄게
           </p>
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-3">
+          <p className="text-12 text-red-500 text-center px-5 mb-3">
             {error}
           </p>
         )}
 
         {submitting ? (
-          <div className="py-10 text-center text-text-light text-sm">
+          <div className="py-10 text-center text-text-light text-14">
             처리 중…
           </div>
         ) : (
@@ -225,7 +226,7 @@ export default function ClarifierSheet({
             slotLabels={["+1"]}
             accent={accent}
             ritualLabel="보조 카드"
-            completeLabel={`카드 선택 · ⭐${CLARIFIER_COST}`}
+            completeLabel={`카드 선택 · 별 ${CLARIFIER_COST}`}
             excludeCardIds={excludeIds}
             onComplete={handleDrawComplete}
           />

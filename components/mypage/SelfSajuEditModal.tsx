@@ -73,18 +73,18 @@ export default function SelfSajuEditModal({
       z={50}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-black/30"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
       <div className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
-          <h2 className="text-[15px] font-bold text-eye-purple">
+          <h2 className="text-15 font-bold text-eye-purple">
             {self?.saju ? "내 사주 수정" : "내 사주 입력"}
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </OverlayCloseButton>
         </div>
         <div className="pb-5">
@@ -97,7 +97,7 @@ export default function SelfSajuEditModal({
             onSubmit={saveSelf}
           />
           {err && (
-            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-[12px] text-red-500">
+            <p ref={errRef} role="alert" className="mt-3 px-5 text-center text-12 text-red-500">
               {err}
             </p>
           )}

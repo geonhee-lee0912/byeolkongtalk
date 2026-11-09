@@ -2,6 +2,7 @@
 
 import type { SajuResult } from "@/lib/saju/calc";
 import { ELEMENT_COLORS, type FiveElement } from "@/lib/saju/elements";
+import Icon from "@/components/common/Icon";
 
 // 시주-left 정렬 (항상). 강조는 key === "day"로 판정하므로 순서만 반전.
 const PILLAR_LABELS: { key: "year" | "month" | "day" | "hour"; label: string }[] = [
@@ -57,39 +58,40 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
           return (
             <div key={key} className="flex flex-col">
-              <div className="text-[11px] text-text-light text-center mb-1.5">
+              <div className="text-11 text-text-light text-center mb-1.5">
                 {label}
                 {isDayMaster && (
-                  <span className="ml-1 text-gold font-bold">★</span>
+                  <span className="ml-1 text-gold font-bold"><Icon name="rate_on" size={16} /></span>
                 )}
               </div>
 
               {/* 천간 */}
               <div
-                className="rounded-t-xl px-2 py-3 flex flex-col items-center"
+                // 금(金)은 바탕이 흰색이라 흰 카드 위에서 칸이 사라진다 — 얇은 안쪽 테두리로 칸을 보이게(색은 그대로)
+                className={`rounded-t-xl px-2 py-3 flex flex-col items-center${stemEl === "금" ? " ring-1 ring-inset ring-lilac-mid/40" : ""}`}
                 style={{
                   backgroundColor: ELEMENT_COLORS[stemEl].bg,
                   color: ELEMENT_COLORS[stemEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-sans">
+                <div className="text-28 font-bold leading-none font-sans">
                   {stemHanja}
                 </div>
-                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.stem}</div>
+                <div className="text-11 mt-1 font-bold opacity-80">{pillar.stem}</div>
               </div>
 
               {/* 지지 */}
               <div
-                className="rounded-b-xl px-2 py-3 flex flex-col items-center border-t border-white/30"
+                className={`rounded-b-xl px-2 py-3 flex flex-col items-center border-t border-white/30${branchEl === "금" ? " ring-1 ring-inset ring-lilac-mid/40" : ""}`}
                 style={{
                   backgroundColor: ELEMENT_COLORS[branchEl].bg,
                   color: ELEMENT_COLORS[branchEl].text,
                 }}
               >
-                <div className="text-[28px] font-bold leading-none font-sans">
+                <div className="text-28 font-bold leading-none font-sans">
                   {branchHanja}
                 </div>
-                <div className="text-[11px] mt-1 font-bold opacity-80">{pillar.branch}</div>
+                <div className="text-11 mt-1 font-bold opacity-80">{pillar.branch}</div>
               </div>
             </div>
           );
@@ -98,13 +100,13 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
       {/* 시주 모름 안내 */}
       {!saju.input.hourKnown && (
-        <p className="text-[11px] text-text-light/80 text-center mb-4 -mt-3">
+        <p className="text-11 text-text-light text-center mb-4 -mt-3">
           시간을 몰라 시주는 참고용으로 봐줘
         </p>
       )}
 
       {/* 오행 요약 — 폭을 위 8자 판(300px)에 맞추고, 일간·음양은 아래 한 줄로 */}
-      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 max-w-[360px] mx-auto">
+      <div className="card-inner max-w-[360px] mx-auto">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           {ELEMENTS.map((el) => {
             const count = saju.elementCount[el];
@@ -112,10 +114,10 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
             return (
               <span
                 key={el}
-                className="inline-flex items-center gap-1 text-[12px]"
+                className="inline-flex items-center gap-1 text-12"
               >
                 <span
-                  className={`inline-flex w-5 h-5 rounded items-center justify-center text-[11px] font-bold ${
+                  className={`inline-flex w-5 h-5 rounded-lg items-center justify-center text-11 font-bold ${
                     isMax ? "ring-1 ring-eye-purple/40" : ""
                   }`}
                   style={{
@@ -133,7 +135,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
           })}
         </div>
         {showDetail && (
-          <div className="flex items-center justify-center gap-x-2 mt-2 text-[12px] text-text-light">
+          <div className="flex items-center justify-center gap-x-2 mt-2 text-12 text-text-light">
             <span>
               일간 <span className="text-eye-purple font-bold">{saju.dayStem}</span>
               ({saju.dayElement})

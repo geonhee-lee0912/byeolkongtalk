@@ -15,18 +15,18 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 도입 */}
-      <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
+      <div className="card-report">
+        <MarkdownLite text={report.intro} className="text-14 leading-[1.9] text-[#4F4A5E]" />
       </div>
 
       {/* 성적표 카드 (공유용) */}
-      <div className="bg-white rounded-3xl border border-lilac-mid/30 shadow-[0_8px_30px_rgba(40,30,70,0.10)] px-[22px] py-6">
+      <div className="card-report">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[15px] font-extrabold text-eye-purple">🏆 사주 성적표</h3>
+          <h3 className="text-15 font-extrabold text-eye-purple">사주 성적표</h3>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-light">종합</span>
+            <span className="text-11 text-text-light">종합</span>
             <span
-              className="text-[18px] font-black px-3 py-0.5 rounded-xl tabular-nums"
+              className="text-17 font-black px-3 py-0.5 rounded-xl tabular-nums"
               style={{ background: total.bg, color: total.fg }}
             >
               {report.totalGrade}
@@ -39,29 +39,29 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
             return (
               <div key={i} className="flex items-start gap-3 py-3">
                 <span
-                  className="text-[15px] font-black w-11 text-center py-1 rounded-lg shrink-0 tabular-nums"
+                  className="text-15 font-black w-11 text-center py-1 rounded-lg shrink-0 tabular-nums"
                   style={{ background: c.bg, color: c.fg }}
                 >
                   {s.grade}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-bold text-[#4A4458]">{s.domain}</div>
-                  <MarkdownLite text={s.comment} className="text-[12.5px] text-[#4F4A5E] leading-[1.7] mt-0.5" />
+                  <div className="text-13 font-bold text-[#4A4458]">{s.domain}</div>
+                  <MarkdownLite text={s.comment} className="text-13 text-[#4F4A5E] leading-[1.7] mt-0.5" />
                 </div>
               </div>
             );
           })}
         </div>
         <div className="mt-4 pt-4 border-t border-[#F0EEF4]">
-          <div className="text-[12px] font-bold text-lilac-deep mb-1">📝 담임 총평</div>
-          <MarkdownLite text={report.totalComment} className="text-[13px] text-[#4F4A5E] leading-[1.85]" />
+          <div className="text-12 font-bold text-accent mb-1">담임 총평</div>
+          <MarkdownLite text={report.totalComment} className="text-13 text-[#4F4A5E] leading-[1.85]" />
         </div>
       </div>
 
       {/* 별콩이 한마디 */}
-      <div className="rounded-3xl px-6 py-6 text-white" style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}>
-        <h3 className="text-[14px] font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
+      <div className="rounded-2xl px-6 py-6 text-white bg-night-card">
+        <h3 className="text-14 font-bold text-gold mb-2">별콩이의 한마디</h3>
+        <MarkdownLite text={report.note} tone="dark" className="text-14 leading-[1.95] text-white/90" />
       </div>
     </div>
   );

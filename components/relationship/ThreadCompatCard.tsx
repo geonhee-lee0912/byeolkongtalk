@@ -7,9 +7,9 @@ import type { CompatReport } from "@/lib/fortune/compat-report";
 
 function Section({ title, body }: { title: string; body: string }) {
   return (
-    <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
-      <h4 className="text-[12.5px] font-bold text-lilac-deep mb-1">{title}</h4>
-      <p className="text-[12.5px] text-[#322E3D] leading-[1.75] whitespace-pre-line">{body}</p>
+    <div className="card">
+      <h4 className="text-13 font-bold text-accent mb-1">{title}</h4>
+      <p className="text-13 text-[#322E3D] leading-[1.75] whitespace-pre-line">{body}</p>
     </div>
   );
 }
@@ -26,22 +26,22 @@ export default function ThreadCompatCard({
 
   return (
     <div className="flex justify-start mb-3 pl-10">
-      <div className="w-full max-w-[300px] bg-white rounded-2xl border border-lilac-mid/40 shadow-sm px-3.5 pt-3 pb-3.5">
+      <div className="w-full max-w-[300px] bg-white rounded-2xl shadow-card px-3.5 pt-3 pb-3.5">
         {/* 헤더 — 등급 배지 + 테마 */}
-        <div className="flex items-center gap-1.5 text-[11px] text-text-light mb-2">
-          <span aria-hidden>💑</span>
+        <div className="flex items-center gap-1.5 text-11 text-text-light mb-2">
+          
           <span className="font-bold text-eye-purple">{namesLine}</span>
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="shrink-0 rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-bold text-[#7a5a12]">
+          <span className="shrink-0 rounded-full bg-gold-soft px-2.5 py-1 text-11 font-bold text-[#7a5a12]">
             {report.grade}
           </span>
-          <span className="text-[12.5px] font-bold text-eye-purple leading-snug">{report.theme}</span>
+          <span className="text-13 font-bold text-eye-purple leading-snug">{report.theme}</span>
         </div>
 
         {/* summary — 접힘엔 2줄 클램프 */}
         <p
-          className={`text-[12.5px] text-[#322E3D] leading-[1.7] whitespace-pre-line ${
+          className={`text-13 text-[#322E3D] leading-[1.7] whitespace-pre-line ${
             open ? "" : "line-clamp-2"
           }`}
         >
@@ -50,29 +50,28 @@ export default function ThreadCompatCard({
 
         {open && (
           <div className="mt-3 flex flex-col gap-2.5">
-            <Section title="🔮 오행 케미" body={report.chemistry} />
-            <Section title="💘 끌림·성격 케미" body={report.attraction} />
-            <Section title="🌗 갈등 포인트" body={report.conflict} />
-            {report.communication && <Section title="💬 잘 통하는 대화법" body={report.communication} />}
-            <Section title="🌱 장기 전망" body={report.longterm} />
-            {report.growth && <Section title="🌿 관계 성장 포인트" body={report.growth} />}
-            <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
-              <h4 className="text-[12.5px] font-bold text-lilac-deep mb-1.5">💡 관계를 위한 조언</h4>
+            <Section title="오행 케미" body={report.chemistry} />
+            <Section title="끌림·성격 케미" body={report.attraction} />
+            <Section title="갈등 포인트" body={report.conflict} />
+            {report.communication && <Section title="잘 통하는 대화법" body={report.communication} />}
+            <Section title="장기 전망" body={report.longterm} />
+            {report.growth && <Section title="관계 성장 포인트" body={report.growth} />}
+            <div className="card-inner">
+              <h4 className="text-13 font-bold text-accent mb-1.5">관계를 위한 조언</h4>
               <ol className="flex flex-col gap-1">
                 {report.advice.map((a, i) => (
-                  <li key={i} className="flex gap-1.5 text-[12.5px] text-[#322E3D] leading-[1.6]">
-                    <span className="font-bold text-lilac-deep shrink-0">{i + 1}.</span>
+                  <li key={i} className="flex gap-1.5 text-13 text-[#322E3D] leading-[1.6]">
+                    <span className="font-bold text-accent shrink-0">{i + 1}.</span>
                     <span>{a}</span>
                   </li>
                 ))}
               </ol>
             </div>
             <div
-              className="rounded-2xl px-3.5 py-3 text-white"
-              style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
+              className="rounded-2xl px-3.5 py-3 text-white bg-night-card"
             >
-              <h4 className="text-[12.5px] font-bold text-gold mb-1">🌙 별콩이의 한마디</h4>
-              <p className="text-[12.5px] leading-[1.8] text-white/90 whitespace-pre-line">{report.note}</p>
+              <h4 className="text-13 font-bold text-gold mb-1">별콩이의 한마디</h4>
+              <p className="text-13 leading-[1.8] text-white/90 whitespace-pre-line">{report.note}</p>
             </div>
           </div>
         )}
@@ -80,11 +79,11 @@ export default function ThreadCompatCard({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className={`w-full mt-3 rounded-xl text-[12px] font-bold py-2.5 active:scale-[0.98] transition ${
-            open ? "bg-lilac-soft/60 text-lilac-deep" : "bg-lilac-deep text-white"
+          className={`w-full mt-3 rounded-xl text-12 font-bold py-2.5 active:scale-[0.98] transition ${
+            open ? "bg-lilac-soft/60 text-accent" : "bg-accent text-white"
           }`}
         >
-          {open ? "접기 ▴" : "전체 궁합 펼쳐보기 ▾"}
+          {open ? "접기" : "전체 궁합 펼쳐보기"}
         </button>
       </div>
     </div>

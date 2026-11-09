@@ -59,7 +59,7 @@ export default function FreeList({
              줄어드는 변경이 아니라 잘림·재배치 회귀가 없다. */}
       <div className="mb-2 flex items-center gap-2">
         <SectionMark kind={mark} />
-        <h2 className="text-[15px] font-bold text-eye-purple">{title}</h2>
+        <h2 className="text-15 font-bold text-eye-purple">{title}</h2>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it) => (
@@ -67,7 +67,7 @@ export default function FreeList({
             key={it.key}
             href={it.href}
             onClick={() => trackUiEvent("byeolmaru_free_item_clicked", { meta: { item: it.key } })}
-            className="w-full rounded-2xl border border-lilac-mid/20 bg-white p-4 shadow-[0_2px_10px_rgba(159,138,208,0.08)] transition hover:border-lilac-deep/60 active:scale-[0.99]"
+            className="card w-full transition active:scale-[0.99]"
           >
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ background: it.tileBg }}>
@@ -85,24 +85,24 @@ export default function FreeList({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-bold text-eye-purple">{it.label}</span>
+                  <span className="text-15 font-bold text-eye-purple">{it.label}</span>
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      it.chipTone === "gold" ? "bg-gold-soft/30 text-eye-purple" : "bg-lilac-soft/60 text-lilac-deep"
+                    className={`rounded-full px-1.5 py-0.5 text-11 font-bold ${
+                      it.chipTone === "gold" ? "bg-gold-soft/30 text-eye-purple" : "bg-lilac-soft/60 text-accent"
                     }`}
                   >
                     {it.chip}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-text-light/80">{it.tagline}</p>
+                <p className="mt-1 line-clamp-2 text-13 leading-snug text-text-light">{it.tagline}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1">
                   {it.paidChip ? (
-                    <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-[10px] font-bold text-eye-purple">
+                    <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-11 font-bold text-eye-purple">
                       {it.paidChip}
                     </span>
                   ) : null}
                   {it.hashtags.map((h) => (
-                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-[11px] font-bold text-lilac-deep">
+                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-11 font-bold text-accent">
                       #{h}
                     </span>
                   ))}
@@ -130,7 +130,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 "축 3종"(연애·돈·일)은 내부 용어였다 — 읽는 사람이 뭘 받는지 몰랐다.
       //    #무료 해시태그는 접근 조건 칩과 중복이라 뺐다(5행 공통).
       hashtags: ["하루흐름"],
-      tileBg: "linear-gradient(135deg, #FFF3D6 0%, #EFEAF6 100%)",
+      tileBg: "#FFF3D6",
       // 🔴 오늘 사주가 목록으로 내려온다(P5 §3 의 "목록에 없다"를 뒤집는다) — 지금은 오늘 타로만
       //    목록이고 오늘 사주는 달력 안 타일이라 진입점 문법이 달랐다. 히어로 타일은 §2 에서 없앴다.
       // 🔴 열람 횟수 제한이 없다 — 매일 갱신될 뿐이라 "하루 1회"가 아니라 "매일"이다(타로·우리와 다름).
@@ -147,7 +147,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 해시태그는 행마다 하나로 맞춘다 — 구독 칩이 그 줄 앞자리를 먹어서, 두 개면 이 행만
       //    둘째 줄로 밀려 세 행의 높이가 어긋난다(실측). "#오늘의카드"는 "#하루한장"과 같은 뜻이었다.
       hashtags: ["하루한장"],
-      tileBg: "linear-gradient(135deg, #FFF3D6 0%, #F2D78A 100%)",
+      tileBg: "#FFF3D6",
       chip: drawn ? "오늘 뽑음" : "하루 1회 무료",
       chipTone: "gold",
       paidChip: `구독하면 ${TAROT_PAID_CHARS.toLocaleString("ko-KR")}자 추가`,
@@ -172,7 +172,7 @@ export function buildDailyItems(drawn: { cardId: number } | null): FreeListItem[
       // 🔴 "걸어둔"은 앱 안에서만 통하는 말이라 뺐다.
       tagline: "그 사람과 나, 오늘 둘 사이가 어떤지 봐줄게",
       hashtags: ["둘사이"],
-      tileBg: "linear-gradient(135deg, #F7E3EC 0%, #EFEAF6 100%)",
+      tileBg: "#F7E3EC",
       // 🔴 하루 1명 생성 상한(PAIR_REPORT_DAILY_LIMIT = 1)이라 "하루 1회"가 참이다.
       chip: "하루 1회 무료",
       chipTone: "gold",
@@ -205,7 +205,7 @@ export function buildSelfItems(): FreeListItem[] {
       //    여긴 "여긴 뭐가 있나". 다섯 행이 한 규칙으로 읽히게 하는 게 목적이고, 이 2종엔
       //    유료 확장이 없으니 구독 대신 결과물을 말한다.
       paidChip: "4축 해설까지",
-      tileBg: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+      tileBg: "#EFEAF6",
       chip: "무료",
       chipTone: "lilac",
       image: "/icons/fortune/saju_mbti.webp",
@@ -217,7 +217,7 @@ export function buildSelfItems(): FreeListItem[] {
       tagline: "내 사람들과의 인연을 별자리로 이어볼게",
       hashtags: ["인연지도"],
       paidChip: "인연 점수 순위",
-      tileBg: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+      tileBg: "#E8DEF5",
       chip: "무료",
       chipTone: "lilac",
       image: "/icons/fortune/byeoljari.webp",

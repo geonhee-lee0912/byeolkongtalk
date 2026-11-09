@@ -328,13 +328,13 @@ export default function WooriTodayView({
         //    (else 가지). pairData/pairCell 이 없어 PairDayDetailCard 는 못 쓴다(그건 상대
         //    사주가 있어야 그리는 카드다) — 서술만 단독으로 보여준다.
         isPastDate && (pairNarrativeLoading || pairNarrative || pastNoRecord) ? (
-          <div className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+          <div className="card">
             {pairNarrativeLoading ? (
-              <p className="text-center text-sm text-text-light">별콩이가 그날 이야기를 읽고 있어…</p>
+              <p className="text-center text-14 text-text-light">별콩이가 그날 이야기를 읽고 있어…</p>
             ) : pairNarrative ? (
               <PairReportView report={pairNarrative} />
             ) : (
-              <p className="text-center text-sm text-text-light">
+              <p className="text-center text-14 text-text-light">
                 그날은 리포트를 안 받았어.
                 <br />
                 지난 날은 그때 받은 것만 보여줄 수 있어.
@@ -342,7 +342,7 @@ export default function WooriTodayView({
             )}
           </div>
         ) : (
-          <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">
+          <p className="card text-center text-14 text-text-light">
             {/* 🔴 상대가 0명인 것과 아직 못 물어본 것을 가른다 — 콜드 진입이라 목록을 받기 전에
                 "먼저 걸어두면…"을 띄우면 이미 상대가 있는 사람에게 거짓말이 한 프레임 스친다.
                 목록이 도착하고 0명이면 위 칩 자리의 금색 점선 버튼과 이 문구가 한 쌍이 된다. */}
@@ -350,11 +350,11 @@ export default function WooriTodayView({
           </p>
         )
       ) : pairError ? (
-        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
+        <p className="card text-center text-14 text-text-light">지금은 우리 오늘을 못 펼쳤어. 잠시 후 다시 볼래?</p>
       ) : pairCellMissing ? (
         // 🔴 다른 날의 진짜 카드를 대신 그리지 않는다 — 예: 오늘 카드를 그리고 "오늘"이라 라벨하면
         //    요청한 날짜가 조용히 다른 날로 바뀐 게 화면에서 안 보인다(방금 고친 버그와 같은 모양).
-        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">
+        <p className="card text-center text-14 text-text-light">
           그 날짜의 우리 오늘은 못 찾았어. 이번 달 안에서 다시 골라줄래?
         </p>
       ) : pairData && pairCell ? (
@@ -391,7 +391,7 @@ export default function WooriTodayView({
                    `entitledNow && !pairData.entitled` 로 보면 안 된다 — 화면을 열어 둔 채 체험이 끝난 뒤 이 탭을 열면 스냅샷은
                    아직 '자격'인데 서버는 비자격이라 그 조건이 영영 참이다(로딩에 갇힌다). */}
             {pairNarrativeLoading || (pairData.fetchedUnder !== entitledNow && !isPastDate) ? (
-              <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+              <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                 별콩이가 둘 사이 오늘을 읽고 있어…
               </div>
             ) : pairNarrative ? (
@@ -417,7 +417,7 @@ export default function WooriTodayView({
             ) : pastNoRecord ? (
               /* 🔴 과거 + 기록 없음 — 소급 생성은 금지라 "그때 받은 것만" 보여줄 수 있다는 걸
                     분명히 한다(대기·재시도를 권하지 않는다 — 기다려도 안 생긴다). */
-              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                 그날은 리포트를 안 받았어.
                 <br />
                 지난 날은 그때 받은 것만 보여줄 수 있어.
@@ -455,8 +455,8 @@ export default function WooriTodayView({
                  🔴 !isPastDate 게이트 — 하루 상한은 "오늘" 개념이라 과거 조회엔 적용될 수 없다(서버도
                     cache_only 경로에선 이 reason 을 안 준다). 방어적으로 명시한다. */
               <div className="mt-4 border-t border-lilac-mid/20 pt-4 text-center">
-                <p className="text-sm text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
-                <p className="mt-1 text-[13px] text-text-light">
+                <p className="text-14 text-eye-purple">오늘 깊게 읽어준 사람은 이미 한 명 있어.</p>
+                <p className="mt-1 text-13 text-text-light">
                   이 사람 이야기는 내일 들려줄게. 오늘 본 사람은 다시 볼 수 있어.
                 </p>
               </div>
@@ -464,18 +464,18 @@ export default function WooriTodayView({
               /* 🔴 미래 — 사주 탭의 같은 자리와 **같은 문구**를 쓴다. 서버가 400 을 주는 건
                  장애가 아니라 정책이다(소급·선행 생성 금지). 아래 기본 폴백으로 흘리면
                  "숨 고르는 중"이 되어 곧 될 것처럼 들린다. */
-              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                 그날 아침에 열려.
               </p>
             ) : (
-              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+              <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                 별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
               </p>
             )}
           </PairDayDetailCard>
         </>
       ) : pairLoading ? (
-        <p className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4 text-center text-sm text-text-light">우리 오늘을 펼치는 중…</p>
+        <p className="card text-center text-14 text-text-light">우리 오늘을 펼치는 중…</p>
       ) : null}
 
       {subscribeModal}

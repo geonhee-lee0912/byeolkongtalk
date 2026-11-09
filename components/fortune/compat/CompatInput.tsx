@@ -147,12 +147,12 @@ export default function CompatInput({ type }: { type: CompatKind }) {
 
       {error && (
         <div className="mt-4 text-center px-5 max-w-md">
-          <p className="text-[12px] text-red-500">{error}</p>
+          <p className="text-12 text-red-500">{error}</p>
           {needCharge && (
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>
@@ -163,7 +163,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       <div className="w-full max-w-md mx-auto px-5 mt-3">
         <Link
           href="/fortune"
-          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+          className="btn btn-text btn-lg"
         >
           다른 운세 보기
         </Link>

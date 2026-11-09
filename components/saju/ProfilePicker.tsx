@@ -105,7 +105,7 @@ export default function ProfilePicker({
   };
 
   if (!ready) {
-    return <p className="text-center text-[13px] text-text-light py-6">잠시만…</p>;
+    return <p className="text-center text-13 text-text-light py-6">잠시만…</p>;
   }
 
   if (mode === "new") {
@@ -117,7 +117,7 @@ export default function ProfilePicker({
           loading={loading || calcLoading}
           onSubmit={handleInlineSubmit}
         />
-        <label className="flex items-center justify-center gap-2 text-[12px] text-text-light mt-3">
+        <label className="flex items-center justify-center gap-2 text-12 text-text-light mt-3">
           <input
             type="checkbox"
             checked={saveNew}
@@ -129,7 +129,7 @@ export default function ProfilePicker({
         {profiles.length > 0 && (
           <button
             onClick={() => setMode("list")}
-            className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
+            className="mx-auto mt-3 block text-12 text-text-light underline"
           >
             저장된 사주에서 고르기
           </button>
@@ -145,10 +145,10 @@ export default function ProfilePicker({
           <button
             key={p.id}
             onClick={() => setSelectedId(p.id)}
-            className={`flex items-center gap-3 rounded-2xl p-3 border transition ${
+            className={`flex items-center gap-3 card transition ${
               selectedId === p.id
-                ? "border-lilac-deep bg-lilac-soft/40"
-                : "border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+                ? "outline-2 outline-accent -outline-offset-2"
+                : ""
             }`}
           >
             {p.saju ? (
@@ -161,20 +161,20 @@ export default function ProfilePicker({
             ) : (
               <>
                 <div className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center bg-lilac-soft/30">
-                  <span className="text-[15px] text-lilac-mid" aria-hidden>
+                  <span className="text-15 text-lilac-mid" aria-hidden>
                     ?
                   </span>
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[14px] font-bold text-eye-purple truncate">
+                  <div className="text-14 font-bold text-eye-purple truncate">
                     {p.isPrimary ? "내 사주" : p.displayName}
                     {!p.isPrimary && (
-                      <span className="ml-1.5 text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                      <span className="ml-1.5 text-11 font-bold text-text-light bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
                         {RELATION_LABEL[p.relationType] ?? "지인"}
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+                  <div className="text-11 text-text-light mt-0.5 truncate">
                     생일 미입력
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function ProfilePicker({
         ))}
         <button
           onClick={() => setMode("new")}
-          className="rounded-2xl p-3 border border-dashed border-lilac-mid text-[13px] text-lilac-deep font-bold"
+          className="rounded-2xl p-3 border border-dashed border-lilac-mid text-13 text-accent font-bold"
         >
           + 새로 입력
         </button>
@@ -194,7 +194,7 @@ export default function ProfilePicker({
         (selected.saju ? (
           <SajuBoard saju={selected.saju} />
         ) : (
-          <p className="text-[12px] text-text-light/70 text-center py-4">
+          <p className="text-12 text-text-light text-center py-4">
             생일을 알려주면 사주도 보여줄게
           </p>
         ))}
@@ -215,7 +215,7 @@ export default function ProfilePicker({
             },
           });
         }}
-        className="w-full mt-5 py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] disabled:opacity-60"
+        className="btn btn-primary btn-lg mt-5"
       >
         {confirmLabel ?? "이 사주로 보기"}
       </button>

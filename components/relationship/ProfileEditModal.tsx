@@ -223,24 +223,24 @@ export default function ProfileEditModal({
       z={100}
       widthClassName="max-w-md"
       gutterClassName="px-5"
-      backdropClassName="bg-night/75 backdrop-blur-md"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
-      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide">
+      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-[17px] font-bold text-eye-purple">
+            <h2 className="font-display text-17 font-bold text-eye-purple">
               {isMe ? "내 프로필 수정" : isCreate ? "누구 얘기를 해볼까?" : "관계 정보 수정"}
             </h2>
             <OverlayCloseButton
               aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-              ✕
+             
             </OverlayCloseButton>
           </div>
 
           {isCreate && (
-            <p className="text-[12px] text-text-light -mt-1 leading-relaxed">
+            <p className="text-12 text-text-light -mt-1 leading-relaxed">
               아는 만큼만 — 몰라도 시작할 수 있어
             </p>
           )}
@@ -248,7 +248,7 @@ export default function ProfileEditModal({
           {(rel || isCreate) && (
             <>
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] font-bold text-eye-purple mb-1">
+                <legend className="text-13 font-bold text-eye-purple mb-1">
                   호칭
                 </legend>
                 <input
@@ -256,12 +256,12 @@ export default function ProfileEditModal({
                   value={label}
                   maxLength={50}
                   onChange={(e) => setLabel(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14"
                 />
               </fieldset>
 
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] font-bold text-eye-purple mb-1">
+                <legend className="text-13 font-bold text-eye-purple mb-1">
                   관계 상태
                 </legend>
                 <div className="grid grid-cols-2 gap-2">
@@ -270,10 +270,10 @@ export default function ProfileEditModal({
                       key={s}
                       type="button"
                       onClick={() => setStatus(s)}
-                      className={`py-2.5 rounded-xl text-[14px] font-bold transition ${
+                      className={`py-2.5 rounded-xl text-14 font-bold transition ${
                         status === s
-                          ? "bg-lilac-deep text-white"
-                          : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                          ? "bg-accent text-white"
+                          : "bg-lilac-soft text-eye-purple"
                       }`}
                     >
                       {RELATIONSHIP_STATUS_LABELS[s]}
@@ -285,7 +285,7 @@ export default function ProfileEditModal({
           )}
 
           {error && (
-            <p className="text-[12px] text-red-500 text-center">{error}</p>
+            <p className="text-12 text-red-500 text-center">{error}</p>
           )}
         </div>
 

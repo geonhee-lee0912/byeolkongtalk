@@ -26,7 +26,7 @@ export default function TrialSubscribeNudge({
   return (
     <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
       <SubscribeOfferShown surface="report_end" phase="trial" slot={slot} />
-      <p className="text-xs leading-relaxed text-text-light">
+      <p className="text-12 leading-relaxed text-text-light">
         체험 D-{n}야. 지금 구독해 두면 체험 끝난 다음부터 {BYEOLMARU_SUBSCRIPTION.days}일 이어서 받아.
       </p>
       {/* 금색 CTA 가 아니라 공유 버튼과 같은 흰 보조 버튼이다. 글자는 lilac-deep(흰 바탕 3:1, AA 미달) 대신
@@ -34,11 +34,11 @@ export default function TrialSubscribeNudge({
       <button
         type="button"
         onClick={onSubscribe}
-        className="mt-2 w-full rounded-xl border border-lilac-mid/40 bg-white py-2 text-xs font-bold text-eye-purple"
+        className="btn btn-secondary btn-sm mt-2 w-full"
       >
         이어서 구독하기 · {BYEOLMARU_SUBSCRIPTION.cost}별
       </button>
-      <p className="mt-1.5 text-[11px] text-eye-purple">
+      <p className="mt-1.5 text-11 text-eye-purple">
         자동결제 아니야 — {BYEOLMARU_SUBSCRIPTION.cost}별 한 번이면 끝.
       </p>
     </div>

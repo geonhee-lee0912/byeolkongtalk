@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface Payment {
   id: string;
@@ -115,23 +116,23 @@ export default function PaymentsPage() {
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage" className="text-[12px] text-text-light/70">
+        <Link href="/mypage" className="text-12 text-text-light">
           ‹ 내 정보
         </Link>
       </div>
 
       {/* 요약 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30 flex items-center justify-between">
+        <div className="bg-night-card rounded-2xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-white/75 mb-1">현재 별 잔액</div>
-            <div className="text-[22px] font-bold text-gold-soft">
-              ⭐ {balance ?? 0}별
+            <div className="text-11 text-white/75 mb-1">현재 별 잔액</div>
+            <div className="text-22 font-bold text-gold-soft">
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance ?? 0}별
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] text-white/75 mb-1">누적 결제</div>
-            <div className="text-[15px] font-bold text-white">
+            <div className="text-11 text-white/75 mb-1">누적 결제</div>
+            <div className="text-15 font-bold text-white">
               {totalCharged.toLocaleString()}원
             </div>
           </div>
@@ -141,9 +142,9 @@ export default function PaymentsPage() {
       {/* 통합 내역 */}
       <div className="w-full max-w-md mx-auto px-5">
         {loading ? (
-          <p className="text-text-light text-[13px] text-center py-8">잠시만…</p>
+          <p className="text-text-light text-13 text-center py-8">잠시만…</p>
         ) : rows.length === 0 ? (
-          <p className="text-text-light/70 text-[13px] text-center py-8">
+          <p className="text-text-light text-13 text-center py-8">
             아직 내역이 없어
           </p>
         ) : (
@@ -152,44 +153,44 @@ export default function PaymentsPage() {
               row.kind === "payment" ? (
                 <div
                   key={row.id}
-                  className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
+                  className="card flex items-center justify-between"
                 >
                   <div>
-                    <div className="text-[14px] font-bold text-eye-purple">
+                    <div className="text-14 font-bold text-eye-purple">
                       {row.payment.packageLabel}
-                      <span className="ml-2 text-[11px] font-normal text-text-light/70">
+                      <span className="ml-2 text-11 font-normal text-text-light">
                         결제 · {PAYMENT_STATUS_LABEL[row.payment.status]}
                       </span>
                     </div>
-                    <div className="text-[11px] mt-0.5">
+                    <div className="text-11 mt-0.5">
                       <span className="font-bold text-eye-purple/80">
                         {fmtDate(row.payment.paidAt)} {fmtTime(row.payment.paidAt)}
                       </span>
-                      <span className="text-text-light/70"> · ⭐{row.payment.stars}별</span>
+                      <span className="text-text-light"> · <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{row.payment.stars}별</span>
                     </div>
                   </div>
-                  <div className="text-[14px] font-bold text-eye-purple">
+                  <div className="text-14 font-bold text-eye-purple">
                     {row.payment.amount.toLocaleString()}원
                   </div>
                 </div>
               ) : (
                 <div
                   key={row.id}
-                  className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
+                  className="card flex items-center justify-between"
                 >
                   <div>
-                    <div className="text-[14px] font-bold text-eye-purple">
+                    <div className="text-14 font-bold text-eye-purple">
                       {row.tx.typeLabel}
                     </div>
-                    <div className="text-[11px] mt-0.5">
+                    <div className="text-11 mt-0.5">
                       <span className="font-bold text-eye-purple/80">
                         {fmtDate(row.tx.createdAt)} {fmtTime(row.tx.createdAt)}
                       </span>
-                      <span className="text-text-light/70"> · 잔액 {row.tx.balanceAfter}별</span>
+                      <span className="text-text-light"> · 잔액 {row.tx.balanceAfter}별</span>
                     </div>
                   </div>
                   <div
-                    className={`text-[14px] font-bold ${
+                    className={`text-14 font-bold ${
                       row.tx.signedAmount < 0 ? "text-text-light" : "text-eye-purple"
                     }`}
                   >
@@ -219,10 +220,10 @@ export default function PaymentsPage() {
                 key={i}
                 onClick={() => goPage(i)}
                 aria-label={`${i + 1}페이지`}
-                className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                className={`w-7 h-7 rounded-lg text-12 font-bold ${
                   i === safePage
-                    ? "bg-lilac-deep text-white"
-                    : "text-text-light/70 hover:bg-lilac-soft/50"
+                    ? "bg-accent text-white"
+                    : "text-text-light hover:bg-lilac-soft/50"
                 }`}
               >
                 {i + 1}

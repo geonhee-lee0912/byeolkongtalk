@@ -14,10 +14,9 @@ export default function PairReportView({ report }: { report: PairReport }) {
       {bodyBlocks.map((meta) => (
         <div key={meta.key} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
           <div className="mb-1.5 flex items-center gap-[7px]">
-            <span className="text-[13px] opacity-85">{meta.icon}</span>
-            <span className="text-[12.5px] font-extrabold text-[#4A4458]">{meta.title}</span>
+            <span className="text-13 font-extrabold text-[#4A4458]">{meta.title}</span>
           </div>
-          <MarkdownLite text={report.blocks[meta.key]} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
+          <MarkdownLite text={report.blocks[meta.key]} className="text-16 text-[#4F4A5E]" />
         </div>
       ))}
 
@@ -31,9 +30,9 @@ export default function PairReportView({ report }: { report: PairReport }) {
             height={32}
             className="h-8 w-8 rounded-full border-[1.5px] border-[#4A3D6B] bg-[#3A2F55] object-cover"
           />
-          <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
+          <span className="text-12 font-extrabold text-[#F5D680]">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.blocks.note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
+        <MarkdownLite text={report.blocks.note} tone="dark" className="text-16 text-[#ECE3FB]" />
       </div>
     </div>
   );

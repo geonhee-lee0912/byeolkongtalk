@@ -80,7 +80,7 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
             뻔했다**. 두 호출부가 같이 움직여야 하는 한 쌍이다. */}
         <div className="flex items-center gap-2">
           <SectionMark kind="calendar" />
-          <h2 className="text-[15px] font-bold text-eye-purple">{Number(today.slice(5, 7))}월 · 내 하루 달력</h2>
+          <h2 className="text-15 font-bold text-eye-purple">{Number(today.slice(5, 7))}월 · 내 하루 달력</h2>
         </div>
         {/* 이 빈 달력은 cells=[] + lockedCells=이번 달 전체로 "안 칠해진 달"을 그린다. CalendarGrid 의
             잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
@@ -90,7 +90,7 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
             빈 칸만 보고는 **여기 뭐가 들어오는지**를 알 수 없어서, 첫 줄이 내용물을 말하고
             둘째 줄이 조건을 말한다. `no_profile` 상태도 같은 문장을 쓴다("생년월일만 알려주면"이
             로그인·생일입력 양쪽에 다 참이다). */}
-        <p className="text-center text-[13px] leading-relaxed text-text-light">
+        <p className="text-center text-13 leading-relaxed text-text-light">
           이 칸 하나하나가 네 사주로 본 그날의 흐름이야.
           <br />
           생년월일만 알려주면 이번 달이 전부 채워져.
@@ -195,7 +195,7 @@ export default function ByeolmaruHub() {
         <Link
           href="/login?next=/byeolmaru"
           onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "login_cta", gated: true } })}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-[15px] font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-15 font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -287,7 +287,7 @@ export default function ByeolmaruHub() {
             항상 이번 달이라 잡음이다. */}
         <div className="flex items-center gap-2">
           <SectionMark kind="calendar" />
-          <h2 className="text-[15px] font-bold text-eye-purple">{Number(data.today.slice(5, 7))}월 · 내 하루 달력</h2>
+          <h2 className="text-15 font-bold text-eye-purple">{Number(data.today.slice(5, 7))}월 · 내 하루 달력</h2>
         </div>
 
         {/* 🔴 p-3 은 칸 폭 계산의 일부다 — main p-4(32) → 343 / 판 p-3(24) → 319 /

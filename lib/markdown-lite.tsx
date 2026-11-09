@@ -1,4 +1,5 @@
 import React from "react";
+import Icon from "@/components/common/Icon";
 
 // 경량 마크다운 — 신뢰된 LLM 출력 전용(중첩·이스케이프 미지원). dangerouslySetInnerHTML 안 씀.
 export type InlinePart = { t: "text"; s: string } | { t: "b"; s: string } | { t: "hl"; s: string };
@@ -116,7 +117,8 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
                 boxDecorationBreak: "clone",
                 WebkitBoxDecorationBreak: "clone",
               }
-            : { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
+            : // design-allow: 형광펜 밑줄(기능)
+              { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
         }
       >
         {p.s}
@@ -127,7 +129,7 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
       //    둘을 같은 모양으로 만들면 문법이 두 개인 이유가 사라진다.
       <mark
         key={`${key}-${i}`}
-        className="rounded-[3px] px-1 py-px"
+        className="rounded-sm px-1 py-px"
         style={
           tone === "dark"
             ? { background: "rgba(232, 222, 245, 0.18)", color: "#ECE3FB" }
@@ -162,8 +164,8 @@ export function MarkdownLite({
               <li key={j} className="flex gap-2.5 items-start">
                 <span className="shrink-0 flex h-[1.7em] items-center" aria-hidden>
                   <span
-                    className="w-4 h-4 rounded-md flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
+                    className="w-4 h-4 rounded-lg flex items-center justify-center"
+                    style={{ background: "#E8DEF5" }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#9F8AD0" }} />
                   </span>
@@ -177,12 +179,12 @@ export function MarkdownLite({
             key={i}
             className="my-3 flex gap-2.5 rounded-2xl px-4 py-3"
             style={{
-              background: "linear-gradient(135deg, #FBF3DE, #F7EAF3)",
+              background: "#FBF3DE",
               border: "1px solid rgba(232, 194, 106, 0.4)",
             }}
           >
-            <span className="shrink-0 text-[15px]" aria-hidden>💡</span>
-            <p className="text-[13px] leading-relaxed" style={{ color: "#6A5A3A" }}>
+            <span className="shrink-0 text-15" aria-hidden><Icon name="bulb" size={16} /></span>
+            <p className="text-13 leading-relaxed" style={{ color: "#6A5A3A" }}>
               {renderInline(b.parts, `co-${i}`)}
             </p>
           </div>

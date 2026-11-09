@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BirthdaySelect from "@/components/byeoljari/BirthdaySelect";
 import ConstellationPreview from "@/components/byeoljari/ConstellationPreview";
+import ButtonDots from "@/components/common/ButtonDots";
+import Icon from "@/components/common/Icon";
 
 // 만들기 → memberId 저장(뷰어 식별) → 개인 별자리로 이동. 진입 시 claim 트리거 유지.
 export default function ByeoljariCreatePage() {
@@ -58,8 +60,8 @@ export default function ByeoljariCreatePage() {
   if (checking) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16 text-center text-text-light">
-        <p className="animate-star-twinkle text-2xl">✨</p>
-        <p className="mt-3 text-sm">별자리를 불러오는 중…</p>
+        <Icon name="sparkle" size={22} className="mx-auto text-gold animate-pulse-soft" />
+        <p className="mt-3 text-14">별자리를 불러오는 중…</p>
       </main>
     );
   }
@@ -67,14 +69,14 @@ export default function ByeoljariCreatePage() {
   return (
     // w-full — body flex-col 안에서 mx-auto 가 stretch 를 무효화해 내용물 폭으로 줄어드는 것 방지([shareId] 지도 폭 출렁임과 동일 결함)
     <main className="mx-auto w-full max-w-md px-4 py-8">
-      <h1 className="mb-2 text-center font-display text-2xl text-eye-purple">인연 별자리 만들기</h1>
-      <div className="mb-5 space-y-1.5 text-center text-sm text-text-light">
-        <p>🌟 생일을 넣으면 네 별이 가운데 떠</p>
-        <p>💞 친구를 부르면 궁합 관계를 별자리로 볼 수 있어</p>
-        <p>✨ 관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
+      <h1 className="mb-2 text-center font-display text-22 text-eye-purple">인연 별자리 만들기</h1>
+      <div className="mb-5 space-y-1.5 text-center text-14 text-text-light">
+        <p>생일을 넣으면 네 별이 가운데 떠</p>
+        <p>친구를 부르면 궁합 관계를 별자리로 볼 수 있어</p>
+        <p>관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
       </div>
       <ConstellationPreview />
-      <p className="mt-4 mb-5 text-center text-xs text-text-light/60">친구를 부를수록 이렇게 자라나</p>
+      <p className="mt-4 mb-5 text-center text-12 text-text-light">친구를 부를수록 이렇게 자라나</p>
       <div className="space-y-3">
         <input
           className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
@@ -83,7 +85,7 @@ export default function ByeoljariCreatePage() {
           onChange={(e) => setName(e.target.value)}
         />
         <BirthdaySelect value={birth} onChange={setBirth} />
-        <label className="flex items-center gap-2 text-sm text-text-light">
+        <label className="flex items-center gap-2 text-14 text-text-light">
           <input
             type="checkbox"
             checked={namePublic}
@@ -95,12 +97,12 @@ export default function ByeoljariCreatePage() {
         <button
           disabled={busy || !name || !birth}
           onClick={create}
-          className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+          className="btn btn-primary btn-lg"
         >
-          {busy ? "만드는 중…" : "만들기"}
+          {busy ? <ButtonDots /> : "만들기"}
         </button>
       </div>
-      <p className="mt-3 text-[11px] text-text-light/70 text-center leading-relaxed">
+      <p className="mt-3 text-11 text-text-light text-center leading-relaxed">
         만 14세 이상만 이용할 수 있어요. 생년월일은 별자리 계산에만 쓰이고 다른
         사람에게 보이지 않아요. 만들기를 누르면{" "}
         <Link href="/privacy" className="underline">
@@ -111,12 +113,12 @@ export default function ByeoljariCreatePage() {
       {!loggedIn && (
         <a
           href="/login?next=/fortune/byeoljari"
-          className="mt-3 block w-full rounded-xl border border-lilac-deep py-3 text-center font-medium text-lilac-deep transition active:scale-[0.99]"
+          className="btn btn-text btn-lg mt-3"
         >
           로그인하고 시작하기
         </a>
       )}
-      <p className="mt-6 text-center text-xs text-text-light">
+      <p className="mt-6 text-center text-12 text-text-light">
         로그인하면 이 별자리를 영구 보관해요. 안 하면 이 기기에서만 볼 수 있어요.
       </p>
     </main>

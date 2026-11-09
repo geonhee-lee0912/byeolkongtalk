@@ -71,7 +71,7 @@ export default function AppPullRefresh() {
       className="fixed left-1/2 z-[45] pointer-events-none"
       style={{ top: "env(safe-area-inset-top)", transform: `translate(-50%, ${y - 40}px)` }}
     >
-      <div className="w-9 h-9 rounded-full bg-cream shadow-[0_4px_12px_rgba(31,23,53,0.18)] flex items-center justify-center">
+      <div className="w-9 h-9 rounded-full bg-cream shadow-float flex items-center justify-center">
         <span
           className={`block w-5 h-5 rounded-full border-2 border-lilac-soft border-t-eye-purple ${refreshing ? "animate-spin" : ""}`}
           style={refreshing ? undefined : { transform: `rotate(${dist * 3}deg)`, opacity: ready ? 1 : 0.6 }}

@@ -93,28 +93,28 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
       aria-label={`${skill.label} 카드 뽑기`}
     >
       <div
-        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.28)] overflow-y-auto"
+        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
-            {skill.emoji} {skill.label}
+          <h2 className="font-display text-17 font-bold text-eye-purple">
+            {skill.label}
           </h2>
           <button
             onClick={closeModal}
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+           
           </button>
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-2">{error}</p>
+          <p className="text-12 text-red-500 text-center px-5 mb-2">{error}</p>
         )}
 
         {submitting ? (
-          <div className="py-16 text-center text-text-light text-sm">
+          <div className="py-16 text-center text-text-light text-14">
             별콩이가 카드를 펼치는 중…
           </div>
         ) : (

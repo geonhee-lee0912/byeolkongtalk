@@ -1,0 +1,55 @@
+// 디자인 규칙 훑기 — 사용자 화면 파일에서 규칙 위반 줄을 찾는다. lib/design-rules.test.ts 와 이 브랜치의 변환 스크립트가 같이 쓴다.
+// 예외: 파일 전체는 offenders 의 allow, 줄 하나는 그 줄이나 바로 윗줄에 `design-allow: <이유>` 주석.
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const ROOTS = ["app", "components", "lib"];
+// 범위 밖: 어드민·API(OG 포함)·공유 이미지
+const OUT_OF_SCOPE = [/^app[\\/]admin[\\/]/, /^components[\\/]admin[\\/]/, /^app[\\/]api[\\/]/, /opengraph-image\.tsx$/, /^lib[\\/]admin/];
+
+export function sources(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) && !OUT_OF_SCOPE.some((r) => r.test(p))) out.push(p);
+    }
+  };
+  ROOTS.forEach(walk);
+  return out;
+}
+
+const COMMENT = /^\s*(\/\/|\*|\/\*|\{\/\*)/;
+const ALLOW_MARK = "design-allow:";
+
+/** 규칙 위반 `파일:줄` 목록. 주석 줄, `design-allow:` 표시 줄(또는 바로 아랫줄), allow 파일은 건너뛴다. */
+export function offenders(re: RegExp, allow: string[] = []): string[] {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const norm = p.replace(/\\/g, "/");
+    if (allow.some((a) => norm === a || (a.endsWith("/") && norm.startsWith(a)))) continue;
+    const lines = readFileSync(p, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (COMMENT.test(line)) return;
+      if (line.includes(ALLOW_MARK) || (i > 0 && lines[i - 1].includes(ALLOW_MARK))) return;
+      if (re.test(line)) hits.push(`${norm}:${i + 1}`);
+    });
+  }
+  return hits;
+}
+
+/** 태그(<button>·<Link> 등)의 className 묶음 — 속성이 여러 줄이어도 통째로. 줄 번호는 className 이 시작하는 줄. */
+export function classBlocks(tags: string[]): { file: string; line: number; cls: string }[] {
+  const out: { file: string; line: number; cls: string }[] = [];
+  // 속성 안의 비교 연산자(`a < b`)에서 멈추지 않게, 다음 태그 시작(`<` + 글자·/)에서만 멈춘다
+  const re = new RegExp(`<(${tags.join("|")})\\b(?:(?!<[A-Za-z/]|/>)[\\s\\S]){0,600}?className=(\\{\`[\\s\\S]*?\`\\}|"[^"]*"|\\{[^{}]*\\})`, "g");
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(re)) {
+      const at = (m.index ?? 0) + m[0].length - m[2].length;
+      out.push({ file: p.replace(/\\/g, "/"), line: text.slice(0, at).split("\n").length, cls: m[2] });
+    }
+  }
+  return out;
+}

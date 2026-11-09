@@ -18,6 +18,7 @@ import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { EXTEND_COST } from "@/lib/upsell";
+import Icon from "@/components/common/Icon";
 
 interface Message {
   role: "user" | "assistant";
@@ -65,7 +66,7 @@ export default function ReadingPage() {
     <Suspense
       fallback={
         <main className="flex flex-1 items-center justify-center px-5">
-          <p className="text-text-light text-sm">잠시만…</p>
+          <p className="text-text-light text-14">잠시만…</p>
         </main>
       }
     >
@@ -492,7 +493,7 @@ function ReadingInner() {
   if (!ctx) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -511,23 +512,23 @@ function ReadingInner() {
         <div className="max-w-md mx-auto px-5 py-2.5 flex items-center justify-between">
           <button
             onClick={() => setShowSajuBoard((v) => !v)}
-            className="flex items-center gap-2 text-[12px] text-eye-purple"
+            className="flex items-center gap-2 text-12 text-eye-purple"
           >
             <span className="font-bold">사주판</span>
-            <span className="text-text-light/70">
-              {showSajuBoard ? "접기 ▴" : "펼치기 ▾"}
+            <span className="text-text-light">
+              {showSajuBoard ? "접기" : "펼치기"}
             </span>
           </button>
           <Link
             href="/saju"
-            className="text-[11px] text-text-light/70"
+            className="text-11 text-text-light"
           >
             ‹ 처음으로
           </Link>
         </div>
         {showSajuBoard && (
           <div className="max-w-md mx-auto px-5 pb-3">
-            <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
+            <div className="card flex items-center gap-3">
               <SajuIdentityRow
                 saju={ctx.saju}
                 title={
@@ -623,9 +624,9 @@ function ReadingInner() {
                   });
                   handleFinish(FINISH_PHRASE_EXIT);
                 }}
-                className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
+                className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in"
               >
-                ✨ 결과 카드 보기
+                결과 카드 보기
               </button>
             </div>
           )}
@@ -641,7 +642,7 @@ function ReadingInner() {
             />
           )}
           {error && (
-            <p className="text-[12px] text-red-500 text-center mt-2">{error}</p>
+            <p className="text-12 text-red-500 text-center mt-2">{error}</p>
           )}
         </div>
       </div>
@@ -651,14 +652,14 @@ function ReadingInner() {
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">
-              <p className="text-[12px] text-text-light text-center">
-                별콩이의 풀이가 마무리됐어 ✨
+              <p className="text-12 text-text-light text-center">
+                별콩이의 풀이가 마무리됐어
               </p>
               <Link
                 href={`/saju/result?id=${ctx.readingId}`}
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"
+                className="btn btn-primary btn-lg"
               >
-                결과 보기 →
+                결과 보기
               </Link>
             </div>
           ) : (
@@ -672,12 +673,12 @@ function ReadingInner() {
                     isStreaming ? "별콩이가 답하는 중…" : "별콩이에게 더 물어보기"
                   }
                   disabled={isStreaming}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] placeholder:text-text-light/50 disabled:opacity-60"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 placeholder:text-text-faint disabled:opacity-60"
                 />
                 <button
                   type="submit"
                   disabled={isStreaming || !input.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn btn-primary btn-md disabled:cursor-not-allowed"
                 >
                   전송
                 </button>
@@ -686,9 +687,9 @@ function ReadingInner() {
                 type="button"
                 onClick={() => handleFinish()}
                 disabled={isStreaming}
-                className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-xl bg-gold text-night font-bold text-13 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ✨ 이 풀이로 결과 카드 받기
+                이 풀이로 결과 카드 받기
               </button>
             </form>
           )}
@@ -719,11 +720,11 @@ function ReadingInner() {
       {pendingResumeBanner && (
         <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
           <div
-            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-[15px] shrink-0">⭐</span>
-            <p className="flex-1 text-[13px] font-bold text-eye-purple leading-snug">
+            <span className="text-15 shrink-0"><Icon name="star" size={16} /></span>
+            <p className="flex-1 text-13 font-bold text-eye-purple leading-snug">
               충전 완료! 이어갈까?
             </p>
             <button
@@ -732,7 +733,7 @@ function ReadingInner() {
                 setPendingResumeBanner(null);
                 void handleExtendTap();
               }}
-              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-[12px] font-bold hover:bg-lilac-deep/90"
+              className="btn btn-primary btn-sm shrink-0"
             >
               좋아
             </button>
@@ -741,7 +742,7 @@ function ReadingInner() {
                 sessionStorage.removeItem("byeolkong:pending_upsell");
                 setPendingResumeBanner(null);
               }}
-              className="shrink-0 text-[11px] text-text-light/70 hover:text-text-light"
+              className="shrink-0 text-11 text-text-light hover:text-text-light"
             >
               나중에
             </button>

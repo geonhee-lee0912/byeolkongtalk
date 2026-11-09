@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import Sheet from "./Sheet";
 import OverlayCloseButton from "./OverlayCloseButton";
+import Icon from "@/components/common/Icon";
 
 export interface StarConfirmModalProps {
   cost: number;
@@ -85,18 +86,18 @@ export default function StarConfirmModal({
               className="relative w-full h-full object-contain"
             />
           </div>
-          <p className="font-display text-[17px] text-eye-purple leading-tight">
+          <p className="font-display text-17 text-eye-purple leading-tight">
             {heading}
           </p>
           {sub && (
-            <p className="text-[12px] text-text-light/85 mt-1">{sub}</p>
+            <p className="text-12 text-text-light mt-1">{sub}</p>
           )}
         </div>
 
         {extra}
 
         {/* 비용/잔액 요약 */}
-        <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-[13px]">
+        <div className="card-inner mb-5 text-13">
           {targetName && (
             <div className="flex items-center justify-between py-1 border-b border-lilac-mid/15 mb-1 pb-2">
               <span className="text-text-light">대상</span>
@@ -105,24 +106,24 @@ export default function StarConfirmModal({
           )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
-            <span className="font-bold text-eye-purple tabular-nums">⭐ {cost}</span>
+            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}</span>
           </div>
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">현재 잔액</span>
             <span className="font-bold text-eye-purple tabular-nums">
-              {loading || balance === null ? "…" : `⭐ ${balance}`}
+              {loading || balance === null ? "…" : `별 ${balance}`}
             </span>
           </div>
           {!loading && afterBalance !== null && !insufficient && (
             <div className="flex items-center justify-between py-1 border-t border-lilac-mid/15 mt-1 pt-2">
               <span className="text-text-light">결제 후 잔액</span>
               <span className="font-bold tabular-nums" style={{ color: accent }}>
-                ⭐ {afterBalance}
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{afterBalance}
               </span>
             </div>
           )}
           {!loading && insufficient && (
-            <p className="text-[12px] text-red-500 font-bold text-center mt-2">
+            <p className="text-12 text-red-500 font-bold text-center mt-2">
               별이 {cost - (balance ?? 0)}개 부족해
             </p>
           )}
@@ -133,8 +134,9 @@ export default function StarConfirmModal({
           {insufficient ? (
             <button
               onClick={onCharge}
-              className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all"
-              style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
+              // 바탕은 스프레드 고유 색(accent) — 모양만 공용 큰 버튼
+              className="btn btn-lg text-white"
+              style={{ background: accent }}
             >
               별 충전하러 가기
             </button>
@@ -142,17 +144,13 @@ export default function StarConfirmModal({
             <button
               onClick={onConfirm}
               disabled={loading || balance === null || busy}
-              className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
-              style={{
-                background: accent,
-                boxShadow:
-                  loading || balance === null || busy ? "none" : `0 6px 18px ${accent}55`,
-              }}
+              className="btn btn-lg text-white"
+              style={{ background: accent }}
             >
               {confirmLabel ?? "확인하고 시작하기"}
             </button>
           )}
-          <OverlayCloseButton className="w-full py-3 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
+          <OverlayCloseButton className="btn btn-text btn-lg">
             취소
           </OverlayCloseButton>
         </div>

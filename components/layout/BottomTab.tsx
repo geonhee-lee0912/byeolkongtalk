@@ -194,7 +194,7 @@ export default function BottomTab() {
                   </span>
                   <span
                     className={[
-                      "text-[10.5px] leading-none tracking-tight",
+                      "text-11 leading-none tracking-tight",
                       active ? "font-bold" : "font-medium",
                     ].join(" ")}
                   >

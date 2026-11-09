@@ -27,6 +27,8 @@ import Image from "next/image";
 import { TRIAL_DAYS } from "@/lib/byeolmaru/constants";
 import { daysLeft } from "@/lib/byeolmaru/subscribe-offer";
 import SubscribeOfferShown from "./SubscribeOfferShown";
+import ButtonDots from "@/components/common/ButtonDots";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   /** 🔴 false 면 버튼·칩을 아예 안 그린다 — 게스트(EmptyMonthShell)용. 그 화면엔 이미 더 큰
@@ -62,7 +64,7 @@ export default function HubBanner({
   const now = Date.now();
   const expiry = subscriptionExpiresAt ?? trialEndsAt;
   const chipClass =
-    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep";
+    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-accent";
 
   return (
     <section
@@ -73,17 +75,14 @@ export default function HubBanner({
         //    명도에서 채도 체감이 낮아 흰색으로 번질 때 먼저 죽는다. lilac-deep 까지 올려야 두 탭의
         //    번짐 강도가 비슷하게 읽힌다(나란히 놓고 실측 비교 후 조정).
         background:
-          "radial-gradient(97% 83% at 50% 123%, #9F8AD0 0%, #C6B6E8 37%, #EAE3F6 69%, #FFFFFF 100%)",
+          "radial-gradient(97% 83% at 50% 123%, #9F8AD0 0%, #C6B6E8 37%, #EAE3F6 69%, #FFFFFF 100%)", // design-allow: 별마루 탭 머리 배너 번짐(화면별 단계에서 운영자 확인)
       }}
     >
       {/* 위쪽 밝은 영역 별 반짝임 — 2탭과 같은 장치다. 별마루는 별·달이 모티브라 여기선 더 맞는다. */}
-      <span className="absolute top-2 left-[42%] text-[10px] text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-5 left-[55%] text-[8px] text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-1.5 left-[61%] text-[9px] text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
 
       <div className="relative min-w-0 flex-1">
-        <h1 className="font-display text-[17px] font-black text-eye-purple">별마루</h1>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-text-light">
+        <h1 className="font-display text-17 font-black text-eye-purple">별마루</h1>
+        <p className="mt-1 text-12 leading-relaxed text-text-light">
           오늘 너의 하늘, 한 자리에 모아뒀어
         </p>
         {!cta ? null : entitled ? (
@@ -97,8 +96,8 @@ export default function HubBanner({
             {/* 구독 선택지 노출 — 체험 후일 때만(체험 전 배너는 체험 버튼이라 구독 선택지가 아니다). */}
             {trialUsed && <SubscribeOfferShown surface="banner" phase="post_trial" />}
             <button type="button" onClick={onSubscribe} disabled={busy} className={`${chipClass} transition active:scale-95 disabled:opacity-60`}>
-              {trialUsed ? "구독하기" : busy ? "여는 중…" : `${TRIAL_DAYS}일 무료 체험`}
-              {!busy && <span aria-hidden>→</span>}
+              {trialUsed ? "구독하기" : busy ? <ButtonDots /> : `${TRIAL_DAYS}일 무료 체험`}
+              {!busy && <span aria-hidden><Icon name="chev_r" size={16} /></span>}
             </button>
           </>
         )}

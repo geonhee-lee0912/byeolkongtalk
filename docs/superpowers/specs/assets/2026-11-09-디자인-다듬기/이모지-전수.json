@@ -1,0 +1,5519 @@
+[
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "큰 장식 그림 대용: 에러 화면 반짝이(56px)",
+  "screen": "전역 에러 화면",
+  "file": "app/global-error.tsx",
+  "line": 67,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 문구 앞 반짝이",
+  "screen": "사이트 기본 OG 이미지(링크 미리보기)",
+  "file": "app/opengraph-image.tsx",
+  "line": 91,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 웰컴 별 배너",
+  "screen": "/ 홈",
+  "file": "app/page.tsx",
+  "line": 149,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 이어서 대화 배너",
+  "screen": "/ 홈",
+  "file": "app/page.tsx",
+  "line": 167,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "/ 홈",
+  "file": "app/page.tsx",
+  "line": 267,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/ 홈",
+  "file": "app/page.tsx",
+  "line": 273,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/saju/concern 사주 고민 입력",
+  "file": "app/(consultations)/saju/concern/page.tsx",
+  "line": 207,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/saju/concern 사주 고민 입력",
+  "file": "app/(consultations)/saju/concern/page.tsx",
+  "line": 227,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 결과 카드 보기",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 628,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 풀이 마무리 안내",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 655,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 결과 카드 받기",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 691,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 충전 완료 배너",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 725,
+  "note": ""
+ },
+ {
+  "glyph": "❝",
+  "kind": "heading-deco",
+  "meaning": "인용부호 장식: 별콩이 한마디 카드",
+  "screen": "/saju/result 사주 상담 결과",
+  "file": "app/(consultations)/saju/result/page.tsx",
+  "line": 171,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 이어서 대화하기",
+  "screen": "/saju/result 사주 상담 결과",
+  "file": "app/(consultations)/saju/result/page.tsx",
+  "line": 223,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/saju/result 사주 상담 결과",
+  "file": "app/(consultations)/saju/result/page.tsx",
+  "line": 234,
+  "note": "이어서 상담 모달 가격 라벨"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "/guide/spreads 타로 스프레드 가이드",
+  "file": "app/(content)/guide/spreads/page.tsx",
+  "line": 35,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 반짝이",
+  "screen": "공유 OG 이미지: 별마루 사주",
+  "file": "app/api/og/byeolmaru/saju/route.tsx",
+  "line": 104,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 반짝이(90px)",
+  "screen": "공유 OG 이미지: 운세 리포트",
+  "file": "app/api/og/fortune/[readingId]/route.tsx",
+  "line": 96,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 기본 마무리 문구 끝",
+  "screen": "공유 OG 이미지: 사주 상담",
+  "file": "app/api/og/saju/[readingId]/route.tsx",
+  "line": 75,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 반짝이",
+  "screen": "공유 OG 이미지: 사주 상담",
+  "file": "app/api/og/saju/[readingId]/route.tsx",
+  "line": 130,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 반짝이",
+  "screen": "공유 OG 이미지: 사주 MBTI",
+  "file": "app/api/og/saju-mbti/route.tsx",
+  "line": 68,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 기본 마무리 문구 끝",
+  "screen": "공유 OG 이미지: 타로 상담",
+  "file": "app/api/og/tarot/[readingId]/route.tsx",
+  "line": 107,
+  "note": ""
+ },
+ {
+  "glyph": "❤",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 고민 입력 안내(하트)",
+  "screen": "/concern 고민 입력",
+  "file": "app/concern/page.tsx",
+  "line": 233,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/concern 고민 입력",
+  "file": "app/concern/page.tsx",
+  "line": 354,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/fortune 사주 탭(운세 목록)",
+  "file": "app/fortune/page.tsx",
+  "line": 91,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "큰 장식 그림 대용: 로딩 반짝임",
+  "screen": "/fortune/byeoljari 별 인연 지도",
+  "file": "app/fortune/byeoljari/page.tsx",
+  "line": 61,
+  "note": "별자리 불러오는 중"
+ },
+ {
+  "glyph": "🌟",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "/fortune/byeoljari 별 인연 지도",
+  "file": "app/fortune/byeoljari/page.tsx",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "/fortune/byeoljari 별 인연 지도",
+  "file": "app/fortune/byeoljari/page.tsx",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "/fortune/byeoljari 별 인연 지도",
+  "file": "app/fortune/byeoljari/page.tsx",
+  "line": 74,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 문구 앞 반짝이",
+  "screen": "공유 OG 이미지: 별 인연 지도",
+  "file": "app/fortune/byeoljari/[shareId]/opengraph-image.tsx",
+  "line": 122,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별점(★☆)",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 83,
+  "note": "오늘의 운세 공유문"
+ },
+ {
+  "glyph": "☆",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별점(★☆)",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 83,
+  "note": "오늘의 운세 공유문"
+ },
+ {
+  "glyph": "✅",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 좋은 점 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 96,
+  "note": "오늘의 운세 공유문"
+ },
+ {
+  "glyph": "⚠",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 주의 점 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 96,
+  "note": "오늘의 운세 공유문"
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별콩이 한마디 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 97,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별점(★☆)",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 103,
+  "note": "이번달 공유문"
+ },
+ {
+  "glyph": "☆",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별점(★☆)",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 103,
+  "note": "이번달 공유문"
+ },
+ {
+  "glyph": "✅",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 좋은 점 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 120,
+  "note": "이번달 공유문"
+ },
+ {
+  "glyph": "⚠",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 주의 점 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 120,
+  "note": "이번달 공유문"
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별콩이 한마디 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 121,
+  "note": ""
+ },
+ {
+  "glyph": "🍀",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 행운 항목 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 132,
+  "note": "사주 종합 공유문"
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별콩이 한마디 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 142,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 별콩이 한마디 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 159,
+  "note": "궁합 공유문"
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 요약 머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 172,
+  "note": "타로 운세 공유문"
+ },
+ {
+  "glyph": "🌤",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 기본값(종류 로드 전)",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 187,
+  "note": "state 초기값. 생성 대기 화면은 type 이 있으면 webp 를 쓰므로 거의 안 보임"
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 링크 앞 달",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 363,
+  "note": "일반 리포트 공유문"
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 카카오 카드 설명 기본 문구 끝",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 395,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 연애 상담으로 돌아가기",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 549,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 면책 안내",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 590,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 별콩 운세",
+  "screen": "/how-to-use 이용 안내",
+  "file": "app/how-to-use/page.tsx",
+  "line": 13,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 연애 상담",
+  "screen": "/how-to-use 이용 안내",
+  "file": "app/how-to-use/page.tsx",
+  "line": 14,
+  "note": ""
+ },
+ {
+  "glyph": "🎭",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 연애 시뮬",
+  "screen": "/how-to-use 이용 안내",
+  "file": "app/how-to-use/page.tsx",
+  "line": 15,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 웰컴 별 안내",
+  "screen": "/how-to-use 이용 안내",
+  "file": "app/how-to-use/page.tsx",
+  "line": 69,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/mypage 마이페이지",
+  "file": "app/mypage/page.tsx",
+  "line": 225,
+  "note": ""
+ },
+ {
+  "glyph": "👥",
+  "kind": "category-icon",
+  "meaning": "메뉴 행 아이콘: 지인 사주",
+  "screen": "/mypage 마이페이지",
+  "file": "app/mypage/page.tsx",
+  "line": 293,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/mypage/payments 결제 내역",
+  "file": "app/mypage/payments/page.tsx",
+  "line": 129,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 결제 행 별 수량",
+  "screen": "/mypage/payments 결제 내역",
+  "file": "app/mypage/payments/page.tsx",
+  "line": 168,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "라벨 장식: 별콩이 답변",
+  "screen": "/mypage/support/[id] 문의 상세",
+  "file": "app/mypage/support/[id]/page.tsx",
+  "line": 136,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 중간 장식: 답변 대기 안내",
+  "screen": "/mypage/support/[id] 문의 상세",
+  "file": "app/mypage/support/[id]/page.tsx",
+  "line": 148,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "category-icon",
+  "meaning": "보관함 항목 썸네일 폴백(아이콘 없는 항목)",
+  "screen": "/readings 보관함(내 고민톡)",
+  "file": "app/readings/page.tsx",
+  "line": 176,
+  "note": ""
+ },
+ {
+  "glyph": "🎭",
+  "kind": "category-icon",
+  "meaning": "보관함 시뮬 항목 아이콘 폴백",
+  "screen": "/readings 보관함(내 고민톡)",
+  "file": "app/readings/page.tsx",
+  "line": 188,
+  "note": ""
+ },
+ {
+  "glyph": "🤍",
+  "kind": "ui-mark",
+  "meaning": "민감 대화 표시(하트)",
+  "screen": "/readings 보관함(내 고민톡)",
+  "file": "app/readings/page.tsx",
+  "line": 271,
+  "note": "aria-label \"민감 시그널이 감지된 대화\""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 사용한 별",
+  "screen": "/readings 보관함(내 고민톡)",
+  "file": "app/readings/page.tsx",
+  "line": 346,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 사용한 별",
+  "screen": "/readings 보관함(내 고민톡)",
+  "file": "app/readings/page.tsx",
+  "line": 367,
+  "note": ""
+ },
+ {
+  "glyph": "📧",
+  "kind": "heading-deco",
+  "meaning": "연락처 앞 메일 아이콘",
+  "screen": "/refund 환불 안내",
+  "file": "app/refund/page.tsx",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "❤",
+  "kind": "heading-deco",
+  "meaning": "라벨 옆 하트: 관계 상태",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 452,
+  "note": ""
+ },
+ {
+  "glyph": "💡",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 프로필 보강 팁",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 502,
+  "note": ""
+ },
+ {
+  "glyph": "💜",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 무료 첫 대화 안내",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 532,
+  "note": ""
+ },
+ {
+  "glyph": "💜",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 무료 첫 대화 소진 안내",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 535,
+  "note": ""
+ },
+ {
+  "glyph": "♥",
+  "kind": "heading-deco",
+  "meaning": "라벨 옆 하트: \"연애 상담\" 배지",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 713,
+  "note": ""
+ },
+ {
+  "glyph": "💜",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 너만의 연애 상담 친구",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 736,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 779,
+  "note": "패스 요금 한 줄"
+ },
+ {
+  "glyph": "📌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 하루 대화량 FAQ",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 787,
+  "note": ""
+ },
+ {
+  "glyph": "🎁",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이번 판 무료",
+  "screen": "/relationship/sim 연애 시뮬",
+  "file": "app/relationship/sim/page.tsx",
+  "line": 242,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "inline-text",
+  "meaning": "별 재화 아이콘: 충전 완료 문구 끝",
+  "screen": "/shop 별 상점",
+  "file": "app/shop/page.tsx",
+  "line": 332,
+  "note": "같은 파일 성공 상태는 이미 로컬 SVG StarIcon 사용"
+ },
+ {
+  "glyph": "😢",
+  "kind": "heading-deco",
+  "meaning": "결과 상태 아이콘: 결제 실패",
+  "screen": "/shop 별 상점",
+  "file": "app/shop/page.tsx",
+  "line": 644,
+  "note": "성공 쪽은 SVG StarIcon"
+ },
+ {
+  "glyph": "🎁",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 첫 충전 보너스",
+  "screen": "/shop 별 상점",
+  "file": "app/shop/page.tsx",
+  "line": 732,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 웰컴 별 안내",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 276,
+  "note": ""
+ },
+ {
+  "glyph": "♥",
+  "kind": "heading-deco",
+  "meaning": "라벨 옆 하트: \"연애 상담\" 배지",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 373,
+  "note": ""
+ },
+ {
+  "glyph": "💜",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 너만의 연애 상담 친구",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 388,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 427,
+  "note": "패스 요금 한 줄"
+ },
+ {
+  "glyph": "📌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 하루 대화량 FAQ",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 434,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 583,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 설문 완료 감사",
+  "screen": "/survey 설문",
+  "file": "app/survey/page.tsx",
+  "line": 86,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 설문 보상 안내",
+  "screen": "/survey 설문",
+  "file": "app/survey/page.tsx",
+  "line": 99,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 추가 보상 안내",
+  "screen": "/survey 설문",
+  "file": "app/survey/page.tsx",
+  "line": 116,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "ui-mark",
+  "meaning": "체크 표시: 최소 글자 충족",
+  "screen": "/survey 설문",
+  "file": "app/survey/page.tsx",
+  "line": 179,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 폴백",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 409,
+  "note": "상단 고민 칩"
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 폴백",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 411,
+  "note": "상단 고민 칩"
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 결과 카드 보기",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 1206,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 풀이 마무리 안내",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 1268,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 충전 완료 배너",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 1416,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 연애 상담으로 돌아가기",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 181,
+  "note": ""
+ },
+ {
+  "glyph": "❝",
+  "kind": "heading-deco",
+  "meaning": "인용부호 장식: 별콩이 한마디 카드",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 260,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 이어서 대화하기",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 323,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 335,
+  "note": "이어서 상담 모달 가격 라벨"
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/fortune/byeoljari/[shareId] 별 인연 지도 보기",
+  "file": "components/byeoljari/ConstellationView.tsx",
+  "line": 305,
+  "note": "\"닫기 ✕\" 텍스트 버튼"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/ByeolmaruHub.tsx",
+  "line": 74,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/ByeolmaruHub.tsx",
+  "line": 272,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/ByeolmaruHub.tsx",
+  "line": 277,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/ByeolmaruHub.tsx",
+  "line": 300,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/ByeolmaruHub.tsx",
+  "line": 332,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 달력",
+  "file": "components/byeolmaru/CalendarGrid.tsx",
+  "line": 107,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 달력",
+  "file": "components/byeolmaru/CalendarGrid.tsx",
+  "line": 109,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 달력",
+  "file": "components/byeolmaru/CalendarGrid.tsx",
+  "line": 170,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 달력",
+  "file": "components/byeolmaru/CalendarGrid.tsx",
+  "line": 190,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 420,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 429,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 467,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 469,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 478,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 569,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 571,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 595,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 631,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 73,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 95,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "☐",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 97,
+  "note": "\"두부 ☐\" 설명"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 108,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 118,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 170,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "⚠",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 날짜 탭",
+  "file": "components/byeolmaru/DayTabsView.tsx",
+  "line": 184,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브 무료 목록",
+  "file": "components/byeolmaru/FreeList.tsx",
+  "line": 58,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브 무료 목록",
+  "file": "components/byeolmaru/FreeList.tsx",
+  "line": 76,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/byeolmaru 별마루 허브 배너",
+  "file": "components/byeolmaru/HubBanner.tsx",
+  "line": 80,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/byeolmaru 별마루 허브 배너",
+  "file": "components/byeolmaru/HubBanner.tsx",
+  "line": 81,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/byeolmaru 별마루 허브 배너",
+  "file": "components/byeolmaru/HubBanner.tsx",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 53,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 70,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 102,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 106,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 133,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "✦",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 둘 사이 설렘",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 138,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 타고난 궁합",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 152,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 163,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 165,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 168,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 178,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 87,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 101,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 103,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 151,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 152,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭",
+  "file": "components/byeolmaru/SajuTodayView.tsx",
+  "line": 221,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭",
+  "file": "components/byeolmaru/SajuTodayView.tsx",
+  "line": 229,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭",
+  "file": "components/byeolmaru/SajuTodayView.tsx",
+  "line": 243,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 사주 탭",
+  "file": "components/byeolmaru/SajuTodayView.tsx",
+  "line": 306,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 허브",
+  "file": "components/byeolmaru/TodayLead.tsx",
+  "line": 25,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "/byeolmaru 별마루 구독 시트(전 탭)",
+  "file": "components/byeolmaru/useByeolmaruSubscribe.tsx",
+  "line": 298,
+  "note": "구독 혜택 목록"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "/byeolmaru 별마루 구독 시트(전 탭)",
+  "file": "components/byeolmaru/useByeolmaruSubscribe.tsx",
+  "line": 308,
+  "note": "구독 혜택 목록"
+ },
+ {
+  "glyph": "💗",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 썸",
+  "screen": "/byeolmaru 별마루 우리 탭 상대 추가 모달",
+  "file": "components/byeolmaru/WatchAddModal.tsx",
+  "line": 39,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 연애",
+  "screen": "/byeolmaru 별마루 우리 탭 상대 추가 모달",
+  "file": "components/byeolmaru/WatchAddModal.tsx",
+  "line": 40,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 짝사랑",
+  "screen": "/byeolmaru 별마루 우리 탭 상대 추가 모달",
+  "file": "components/byeolmaru/WatchAddModal.tsx",
+  "line": 41,
+  "note": ""
+ },
+ {
+  "glyph": "🥀",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 이별",
+  "screen": "/byeolmaru 별마루 우리 탭 상대 추가 모달",
+  "file": "components/byeolmaru/WatchAddModal.tsx",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/byeolmaru 별마루 우리 탭 상대 추가 모달",
+  "file": "components/byeolmaru/WatchAddModal.tsx",
+  "line": 206,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭",
+  "file": "components/byeolmaru/WooriTodayView.tsx",
+  "line": 365,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭",
+  "file": "components/byeolmaru/WooriTodayView.tsx",
+  "line": 388,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭",
+  "file": "components/byeolmaru/WooriTodayView.tsx",
+  "line": 428,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭",
+  "file": "components/byeolmaru/WooriTodayView.tsx",
+  "line": 431,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/byeolmaru 별마루 우리 탭",
+  "file": "components/byeolmaru/WooriTodayView.tsx",
+  "line": 455,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "/fortune/tarot/[type] 타로 운세 입력",
+  "file": "components/common/HeroDivider.tsx",
+  "line": 10,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "별 사용 확인 모달(/tarot/draw·/relationship·/relationship/sim·운세 구매·궁합 입력·별마루 구독)",
+  "file": "components/common/StarConfirmModal.tsx",
+  "line": 108,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "별 사용 확인 모달(/tarot/draw·/relationship·/relationship/sim·운세 구매·궁합 입력·별마루 구독)",
+  "file": "components/common/StarConfirmModal.tsx",
+  "line": 113,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 사용 후 잔액",
+  "screen": "별 사용 확인 모달(/tarot/draw·/relationship·/relationship/sim·운세 구매·궁합 입력·별마루 구독)",
+  "file": "components/common/StarConfirmModal.tsx",
+  "line": 120,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "ui-mark",
+  "meaning": "체크 표시: 단계 완료",
+  "screen": "/concern·/tarot/draw 진행 단계 표시",
+  "file": "components/concern/ProgressSteps.tsx",
+  "line": 26,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "이어서 상담 모달(/saju/result·/readings)",
+  "file": "components/continuation/ContinuationModal.tsx",
+  "line": 202,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "이어서 상담 모달(/saju/result·/readings)",
+  "file": "components/continuation/ContinuationModal.tsx",
+  "line": 263,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "이어서 상담 모달(/saju/result·/readings)",
+  "file": "components/continuation/ContinuationModal.tsx",
+  "line": 270,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "이어서 상담 모달(/saju/result·/readings)",
+  "file": "components/continuation/ContinuationModal.tsx",
+  "line": 280,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "이미 산 리포트 모달(운세 구매·궁합 입력)",
+  "file": "components/fortune/AlreadyOwnedModal.tsx",
+  "line": 46,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "🌌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 대운 10년 흐름",
+  "screen": "/fortune/result 사주 리포트(대운 표)",
+  "file": "components/fortune/DaeunTable.tsx",
+  "line": 31,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "ui-mark",
+  "meaning": "별점(5점 척도) 채움",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭",
+  "file": "components/fortune/DailyReportCard.tsx",
+  "line": 98,
+  "note": ""
+ },
+ {
+  "glyph": "☆",
+  "kind": "ui-mark",
+  "meaning": "별점(5점 척도) 빈칸",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭",
+  "file": "components/fortune/DailyReportCard.tsx",
+  "line": 99,
+  "note": ""
+ },
+ {
+  "glyph": "⚖",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘의 균형",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭",
+  "file": "components/fortune/DailyReportCard.tsx",
+  "line": 140,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭",
+  "file": "components/fortune/DailyReportCard.tsx",
+  "line": 171,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭",
+  "file": "components/fortune/DailyReportCard.tsx",
+  "line": 173,
+  "note": "JSX/블록 여러 줄 주석 안 — 화면에 안 나옴"
+ },
+ {
+  "glyph": "🌈",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 내 오행 분포",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/ElementBalanceView.tsx",
+  "line": 26,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "★",
+  "kind": "ui-mark",
+  "meaning": "최다 오행 표시 별",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/ElementBalanceView.tsx",
+  "line": 45,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "★",
+  "kind": "inline-text",
+  "meaning": "최다 오행 표시 별(설명 문구)",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/ElementBalanceView.tsx",
+  "line": 52,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "🌈",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: accentEmoji(폐기된 prop)",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/ElementBalanceView.tsx",
+  "line": 57,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "🌈",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 내 오행 분포",
+  "screen": "/fortune/result 사주 리포트 · 운세 설명 페이지 샘플",
+  "file": "components/fortune/ElementChart.tsx",
+  "line": 27,
+  "note": ""
+ },
+ {
+  "glyph": "🔄",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오행 상생상극",
+  "screen": "/fortune/result 사주 리포트",
+  "file": "components/fortune/ElementCycleDiagram.tsx",
+  "line": 61,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 리포트 준비 완료",
+  "screen": "/fortune 생성 중 목록",
+  "file": "components/fortune/FortuneGeneratingList.tsx",
+  "line": 186,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 대기 안내",
+  "screen": "운세 생성 대기 화면",
+  "file": "components/fortune/FortuneGeneratingScreen.tsx",
+  "line": 80,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/fortune 상단 헤더",
+  "file": "components/fortune/FortuneHeader.tsx",
+  "line": 41,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/fortune 상단 헤더",
+  "file": "components/fortune/FortuneHeader.tsx",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "heading-deco",
+  "meaning": "반짝임 별 장식(배경 애니메이션)",
+  "screen": "/fortune 상단 헤더",
+  "file": "components/fortune/FortuneHeader.tsx",
+  "line": 43,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 폴백(종류 없음)",
+  "screen": "운세 아이콘 공통(/fortune·/fortune/result·/readings 등)",
+  "file": "components/fortune/FortuneIcon.tsx",
+  "line": 59,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/FortuneReportHeader.tsx",
+  "line": 74,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "(미사용 컴포넌트 — import 0)",
+  "file": "components/fortune/FortuneReportHeader.tsx",
+  "line": 84,
+  "note": "미사용 컴포넌트"
+ },
+ {
+  "glyph": "📉",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 인생 곡선",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 54,
+  "note": ""
+ },
+ {
+  "glyph": "☀",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 가장 빛나는 시기",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 65,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 웅크리며 준비할 시기",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 69,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 별콩이의 한마디",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 87,
+  "note": ""
+ },
+ {
+  "glyph": "🏆",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 사주 성적표",
+  "screen": "/fortune/result 사주 성적표 · 설명 페이지 샘플",
+  "file": "components/fortune/ReportCardView.tsx",
+  "line": 25,
+  "note": ""
+ },
+ {
+  "glyph": "📝",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 담임 총평",
+  "screen": "/fortune/result 사주 성적표 · 설명 페이지 샘플",
+  "file": "components/fortune/ReportCardView.tsx",
+  "line": 56,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 별콩이의 한마디",
+  "screen": "/fortune/result 사주 성적표 · 설명 페이지 샘플",
+  "file": "components/fortune/ReportCardView.tsx",
+  "line": 63,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 웰컴 별 배너",
+  "screen": "/fortune 웰컴 별 배너",
+  "file": "components/fortune/WelcomeStarsBanner.tsx",
+  "line": 38,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/fortune 웰컴 별 배너",
+  "file": "components/fortune/WelcomeStarsBanner.tsx",
+  "line": 44,
+  "note": "문장 안"
+ },
+ {
+  "glyph": "⚡",
+  "kind": "category-icon",
+  "meaning": "궁합 배지 아이콘: 설렘",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatMatchDiagram.tsx",
+  "line": 63,
+  "note": ""
+ },
+ {
+  "glyph": "🔗",
+  "kind": "category-icon",
+  "meaning": "궁합 배지 아이콘: 척척",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatMatchDiagram.tsx",
+  "line": 64,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 궁합 한눈에",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatMatchDiagram.tsx",
+  "line": 68,
+  "note": ""
+ },
+ {
+  "glyph": "💘",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 끌림·성격 케미",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 39,
+  "note": ""
+ },
+ {
+  "glyph": "🌗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 갈등 포인트",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 40,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 잘 통하는 대화법",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 41,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 장기 전망",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계 성장 포인트",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 43,
+  "note": ""
+ },
+ {
+  "glyph": "🤝",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 성향 케미(인간관계)",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 46,
+  "note": ""
+ },
+ {
+  "glyph": "🌗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 부딪히는 지점(인간관계)",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 47,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 소통의 결(인간관계)",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 48,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계의 미래(인간관계)",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 49,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계 성장 포인트(인간관계)",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 50,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오행 케미",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 69,
+  "note": ""
+ },
+ {
+  "glyph": "👥",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 두 사람 각자의 모습",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 75,
+  "note": ""
+ },
+ {
+  "glyph": "📈",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계 시기별 흐름",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 76,
+  "note": ""
+ },
+ {
+  "glyph": "🩹",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 다툼과 화해의 기술",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 77,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 애정·거리감 표현법",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 78,
+  "note": ""
+ },
+ {
+  "glyph": "💌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 서로의 사랑의 언어",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 79,
+  "note": ""
+ },
+ {
+  "glyph": "🚦",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 위기 신호와 조기 대응",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 80,
+  "note": ""
+ },
+ {
+  "glyph": "🌵",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 각자 조심할 습관",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 81,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계에 활기를 더하는 법",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "💡",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계를 위한 조언",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 85,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "운세 설명 페이지(/fortune/[type]·compat·saju-mbti)",
+  "file": "components/fortune/landing/FortuneLandingSections.tsx",
+  "line": 56,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "운세 설명 페이지(/fortune/[type]·compat·saju-mbti)",
+  "file": "components/fortune/landing/FortuneLandingSections.tsx",
+  "line": 110,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "ui-mark",
+  "meaning": "별점(5점 척도) 채움",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyOverviewCard.tsx",
+  "line": 67,
+  "note": ""
+ },
+ {
+  "glyph": "☆",
+  "kind": "ui-mark",
+  "meaning": "별점(5점 척도) 빈칸",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyOverviewCard.tsx",
+  "line": 68,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이번 달 들어온 두 글자",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 23,
+  "note": ""
+ },
+ {
+  "glyph": "🗓",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 주차별 흐름",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 26,
+  "note": ""
+ },
+ {
+  "glyph": "🤝",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 인간관계·귀인",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 마음·감정 컨디션",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 43,
+  "note": ""
+ },
+ {
+  "glyph": "🎯",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이번 달 실천 포인트",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 44,
+  "note": ""
+ },
+ {
+  "glyph": "📌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 주목할 시기·챙길 점",
+  "screen": "/fortune/result 이번달 리포트",
+  "file": "components/fortune/monthly/MonthlyReportView.tsx",
+  "line": 47,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 타고난 기질·성격",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 46,
+  "note": ""
+ },
+ {
+  "glyph": "💎",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 나의 강점",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 47,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 조심할 성향",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 48,
+  "note": ""
+ },
+ {
+  "glyph": "⚖",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오행 밸런스 진단",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 52,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 타고난 적성",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 65,
+  "note": ""
+ },
+ {
+  "glyph": "🌊",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 큰 흐름",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 68,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 마음·감정 흐름",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 69,
+  "note": ""
+ },
+ {
+  "glyph": "💘",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 사랑·인연",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 70,
+  "note": ""
+ },
+ {
+  "glyph": "🤝",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 인간관계·사회",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 71,
+  "note": ""
+ },
+ {
+  "glyph": "💼",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 일·커리어",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "💰",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 재물·금전",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 건강·컨디션",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 74,
+  "note": ""
+ },
+ {
+  "glyph": "📚",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 학업·자기계발",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 75,
+  "note": ""
+ },
+ {
+  "glyph": "🧳",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이동·변화",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 76,
+  "note": ""
+ },
+ {
+  "glyph": "🏡",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 가족·주변",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 77,
+  "note": ""
+ },
+ {
+  "glyph": "💰",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 재물 심층",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 78,
+  "note": ""
+ },
+ {
+  "glyph": "💼",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 일·커리어 심층",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 79,
+  "note": ""
+ },
+ {
+  "glyph": "💘",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 연애 심층",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 80,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 건강 심층",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 81,
+  "note": ""
+ },
+ {
+  "glyph": "🌅",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 상반기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "🌇",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 하반기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 83,
+  "note": ""
+ },
+ {
+  "glyph": "🍀",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 1분기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 84,
+  "note": ""
+ },
+ {
+  "glyph": "☀",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2분기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 85,
+  "note": ""
+ },
+ {
+  "glyph": "🍁",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 3분기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 86,
+  "note": ""
+ },
+ {
+  "glyph": "❄",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 4분기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 87,
+  "note": ""
+ },
+ {
+  "glyph": "🔀",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 전환점·변화 포인트",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 88,
+  "note": ""
+ },
+ {
+  "glyph": "🎯",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 놓치면 아까운 기회",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 92,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 조심할 함정",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 98,
+  "note": ""
+ },
+ {
+  "glyph": "🗺",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 인연 지도",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 101,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계 지도 확장",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 102,
+  "note": ""
+ },
+ {
+  "glyph": "🎯",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 올해의 성장 과제",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 103,
+  "note": ""
+ },
+ {
+  "glyph": "📅",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 월별 흐름",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 109,
+  "note": ""
+ },
+ {
+  "glyph": "🍀",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 행운 가이드",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 148,
+  "note": ""
+ },
+ {
+  "glyph": "🎨",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 색",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 153,
+  "note": "행운 가이드 본문"
+ },
+ {
+  "glyph": "🧭",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 방향",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 154,
+  "note": "행운 가이드 본문"
+ },
+ {
+  "glyph": "🍀",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 달",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 155,
+  "note": "행운 가이드 본문"
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 키워드",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 156,
+  "note": "행운 가이드 본문"
+ },
+ {
+  "glyph": "🕯",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 2026 개운법",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 161,
+  "note": ""
+ },
+ {
+  "glyph": "🌈",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오행 활용법",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 162,
+  "note": ""
+ },
+ {
+  "glyph": "🛁",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 셀프케어 루틴",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 163,
+  "note": ""
+ },
+ {
+  "glyph": "📌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 올해 실천 3가지",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 167,
+  "note": ""
+ },
+ {
+  "glyph": "🎨",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 색",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 196,
+  "note": "상단 히어로 칩"
+ },
+ {
+  "glyph": "🧭",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 방향",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 197,
+  "note": "상단 히어로 칩"
+ },
+ {
+  "glyph": "🍀",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 달",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 198,
+  "note": "상단 히어로 칩"
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "행운 항목 아이콘: 키워드",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 199,
+  "note": "상단 히어로 칩"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/fortune/tarot/[type] 타로 운세 입력",
+  "file": "components/fortune/tarot/TarotInput.tsx",
+  "line": 136,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 헤더 잔액 칩",
+  "screen": "전 화면 상단 헤더(앱)",
+  "file": "components/layout/AppHeader.tsx",
+  "line": 78,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "non-ui",
+  "meaning": "코드 주석(개발 메모)",
+  "screen": "홈·마이 푸터",
+  "file": "components/layout/Footer.tsx",
+  "line": 36,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 헤더 잔액 칩",
+  "screen": "전 화면 상단 헤더(웹)",
+  "file": "components/layout/Header.tsx",
+  "line": 41,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/mypage 지인 사주 모달",
+  "file": "components/mypage/AcquaintanceListModal.tsx",
+  "line": 102,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/mypage 내 사주 수정 모달",
+  "file": "components/mypage/SelfSajuEditModal.tsx",
+  "line": 87,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 타로톡",
+  "screen": "/mypage 보관함 요약",
+  "file": "components/mypage/StorageSummary.tsx",
+  "line": 13,
+  "note": "보관함 요약"
+ },
+ {
+  "glyph": "📜",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 사주·운세",
+  "screen": "/mypage 보관함 요약",
+  "file": "components/mypage/StorageSummary.tsx",
+  "line": 14,
+  "note": "보관함 요약"
+ },
+ {
+  "glyph": "🎭",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 연애 시뮬",
+  "screen": "/mypage 보관함 요약",
+  "file": "components/mypage/StorageSummary.tsx",
+  "line": 15,
+  "note": "보관함 요약"
+ },
+ {
+  "glyph": "💬",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 연애 상담",
+  "screen": "/mypage 보관함 요약",
+  "file": "components/mypage/StorageSummary.tsx",
+  "line": 16,
+  "note": "보관함 요약"
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "알림 권유 시트(전역)",
+  "file": "components/push/PushGate.tsx",
+  "line": 237,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "안내 목록 글머리",
+  "screen": "재방문 알림 시트(/saju/result·/tarot/result)",
+  "file": "components/push/RevisitSheet.tsx",
+  "line": 293,
+  "note": "\"N월 N일에 알려줄게\" 앞"
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 88,
+  "note": ""
+ },
+ {
+  "glyph": "🧸",
+  "kind": "heading-deco",
+  "meaning": "큰 장식 그림 대용: 인형+반짝이(30px)",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 93,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "큰 장식 그림 대용: 인형+반짝이(30px)",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 93,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 110,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 119,
+  "note": ""
+ },
+ {
+  "glyph": "🧸",
+  "kind": "category-icon",
+  "meaning": "아바타 그림 대용: 상대 인형",
+  "screen": "/relationship 상대 아바타(허브·프로필·시뮬)",
+  "file": "components/relationship/DollAvatar.tsx",
+  "line": 33,
+  "note": ""
+ },
+ {
+  "glyph": "🙂",
+  "kind": "category-icon",
+  "meaning": "아바타 그림 대용: 이니셜 없을 때 폴백",
+  "screen": "/relationship 상대 아바타(허브·프로필·시뮬)",
+  "file": "components/relationship/DollAvatar.tsx",
+  "line": 59,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 패스 확인 모달",
+  "file": "components/relationship/PassConfirmModal.tsx",
+  "line": 74,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/relationship 패스 시트",
+  "file": "components/relationship/PassPanel.tsx",
+  "line": 34,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 패스 시트",
+  "file": "components/relationship/PassPanel.tsx",
+  "line": 51,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/relationship 패스 시트",
+  "file": "components/relationship/PassSheet.tsx",
+  "line": 103,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 패스 시트",
+  "file": "components/relationship/PassSheet.tsx",
+  "line": 129,
+  "note": ""
+ },
+ {
+  "glyph": "❤",
+  "kind": "heading-deco",
+  "meaning": "라벨 옆 하트: 상대 라벨",
+  "screen": "/relationship 상대 프로필 카드",
+  "file": "components/relationship/ProfileCard.tsx",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/relationship 프로필 수정 모달",
+  "file": "components/relationship/ProfileEditModal.tsx",
+  "line": 238,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/relationship 대화 스킬 시트",
+  "file": "components/relationship/SkillSheet.tsx",
+  "line": 34,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 대화 스킬 시트",
+  "file": "components/relationship/SkillSheet.tsx",
+  "line": 53,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "큰 장식 그림 대용: 대화 시작 전 빈 상태",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 512,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 633,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 진행 중 안내(궁합)",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 656,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 진행 중 안내(카드)",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 666,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 대화 추가 구매",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 710,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/relationship 연애 상담 대화창",
+  "file": "components/relationship/ThreadChat.tsx",
+  "line": 713,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "💑",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 궁합 카드 제목",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 32,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오행 케미",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 53,
+  "note": ""
+ },
+ {
+  "glyph": "💘",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 끌림·성격 케미",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 54,
+  "note": ""
+ },
+ {
+  "glyph": "🌗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 갈등 포인트",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 55,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 잘 통하는 대화법",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 56,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 장기 전망",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 57,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계 성장 포인트",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 58,
+  "note": ""
+ },
+ {
+  "glyph": "💡",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 관계를 위한 조언",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 60,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 별콩이의 한마디",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 74,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/relationship 대화 속 카드 뽑기 모달",
+  "file": "components/relationship/ThreadDrawModal.tsx",
+  "line": 108,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "라벨 장식: 별콩이 노트",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/ByeolkongNote.tsx",
+  "line": 14,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 인형 초상 안내",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/DollPortrait.tsx",
+  "line": 36,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "inline-text",
+  "meaning": "버튼 문구 장식: 정리 보기",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/NightStage.tsx",
+  "line": 239,
+  "note": ""
+ },
+ {
+  "glyph": "💡",
+  "kind": "ui-mark",
+  "meaning": "답변 추천 버튼 아이콘(전구)",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/NightStage.tsx",
+  "line": 253,
+  "note": "추천 중엔 ⏳ 로 바뀜"
+ },
+ {
+  "glyph": "💡",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 추천 이유",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/NightStage.tsx",
+  "line": 336,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "inline-text",
+  "meaning": "문장 장식: 피드백 반영 감사(달)",
+  "screen": "/relationship/sim 시뮬 밤 무대(인형 말풍선)",
+  "file": "components/relationship/sim/SimBubble.tsx",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "👍",
+  "kind": "ui-mark",
+  "meaning": "피드백 버튼: 좋아요",
+  "screen": "/relationship/sim 시뮬 밤 무대(인형 말풍선)",
+  "file": "components/relationship/sim/SimBubble.tsx",
+  "line": 78,
+  "note": ""
+ },
+ {
+  "glyph": "👎",
+  "kind": "ui-mark",
+  "meaning": "피드백 버튼: 싫어요",
+  "screen": "/relationship/sim 시뮬 밤 무대(인형 말풍선)",
+  "file": "components/relationship/sim/SimBubble.tsx",
+  "line": 81,
+  "note": ""
+ },
+ {
+  "glyph": "💌",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이 사람에게 보낼 말",
+  "screen": "/relationship/sim 시뮬 디브리핑",
+  "file": "components/relationship/sim/SimDebrief.tsx",
+  "line": 131,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "inline-text",
+  "meaning": "체크 표시: 복사 완료(버튼 문구)",
+  "screen": "/relationship/sim 시뮬 디브리핑",
+  "file": "components/relationship/sim/SimDebrief.tsx",
+  "line": 133,
+  "note": ""
+ },
+ {
+  "glyph": "🖼",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 별콩이가 알아가는 초상화",
+  "screen": "/relationship/sim 시뮬 디브리핑",
+  "file": "components/relationship/sim/SimDebrief.tsx",
+  "line": 138,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "inline-text",
+  "meaning": "체크 표시: 초상화 반영 완료(문구)",
+  "screen": "/relationship/sim 시뮬 디브리핑",
+  "file": "components/relationship/sim/SimDebrief.tsx",
+  "line": 151,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 썸",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 10,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 연애",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 11,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 짝사랑",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 12,
+  "note": ""
+ },
+ {
+  "glyph": "🥀",
+  "kind": "category-icon",
+  "meaning": "관계 상태 아이콘: 이별",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 13,
+  "note": ""
+ },
+ {
+  "glyph": "🎭",
+  "kind": "heading-deco",
+  "meaning": "칩 장식: \"이게 뭐야?\" 칩",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 55,
+  "note": ""
+ },
+ {
+  "glyph": "🎭",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 연애 시뮬이 뭐야?",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 64,
+  "note": ""
+ },
+ {
+  "glyph": "👍",
+  "kind": "inline-text",
+  "meaning": "피드백 버튼 설명(👍/👎)",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "👎",
+  "kind": "inline-text",
+  "meaning": "피드백 버튼 설명(👍/👎)",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "🤍",
+  "kind": "heading-deco",
+  "meaning": "위기 안내 배너 아이콘(하트)",
+  "screen": "위기 안내 배너(사주·타로·고민·연애 상담·시뮬 채팅)",
+  "file": "components/safety/SafetyBanner.tsx",
+  "line": 74,
+  "note": "안전 장치 — 교체 시 톤 주의"
+ },
+ {
+  "glyph": "★",
+  "kind": "ui-mark",
+  "meaning": "일간(나) 표시 별",
+  "screen": "사주 명식표(/saju/result·/mypage·운세 리포트·프로필 등)",
+  "file": "components/saju/SajuBoard.tsx",
+  "line": 63,
+  "note": ""
+ },
+ {
+  "glyph": "💭",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 질문 머리",
+  "screen": "/saju/result 공유",
+  "file": "components/saju/ShareButtons.tsx",
+  "line": 25,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 일간 머리",
+  "screen": "/saju/result 공유",
+  "file": "components/saju/ShareButtons.tsx",
+  "line": 26,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 한마디 머리",
+  "screen": "/saju/result 공유",
+  "file": "components/saju/ShareButtons.tsx",
+  "line": 28,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 링크 앞 달",
+  "screen": "/saju/result 공유",
+  "file": "components/saju/ShareButtons.tsx",
+  "line": 29,
+  "note": ""
+ },
+ {
+  "glyph": "🤍",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 비공개 기록 안내(하트)",
+  "screen": "/saju/result 공유",
+  "file": "components/saju/ShareButtons.tsx",
+  "line": 47,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "/fortune/saju-mbti 사주 MBTI 결과",
+  "file": "components/saju-mbti/ResultView.tsx",
+  "line": 204,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 웰컴 별 도착",
+  "screen": "/start 웰컴 별 모달",
+  "file": "components/start/WelcomeStarsModal.tsx",
+  "line": 40,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/start 웰컴 별 모달",
+  "file": "components/start/WelcomeStarsModal.tsx",
+  "line": 48,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 설문 권유 카드 제목",
+  "screen": "결과 화면 설문 카드(/saju/result·/tarot/result·/fortune/result)",
+  "file": "components/survey/SurveyResultCard.tsx",
+  "line": 24,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "배지 아이콘: 뽑기 의식 라벨",
+  "screen": "카드 뽑기 의식(/tarot/draw·별마루 타로·타로 운세·연애 상담·추가 카드)",
+  "file": "components/tarot/CardDrawRitual.tsx",
+  "line": 264,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 스프레드 고르기 안내",
+  "screen": "/tarot 스프레드 선택",
+  "file": "components/tarot/SpreadPicker.tsx",
+  "line": 96,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot 스프레드 선택",
+  "file": "components/tarot/SpreadPicker.tsx",
+  "line": 174,
+  "note": ""
+ },
+ {
+  "glyph": "🤝",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 궁합 안내",
+  "screen": "/tarot 스프레드 선택",
+  "file": "components/tarot/SpreadPicker.tsx",
+  "line": 200,
+  "note": ""
+ },
+ {
+  "glyph": "💭",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 질문 머리",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 26,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 한마디 머리",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 30,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 링크 앞 달",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 31,
+  "note": ""
+ },
+ {
+  "glyph": "🤍",
+  "kind": "inline-text",
+  "meaning": "문장 앞 장식: 비공개 기록 안내(하트)",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 49,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 이미지 저장 토스트",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 108,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "ui-mark",
+  "meaning": "체크 표시: 추가 카드 완료",
+  "screen": "/tarot/reading 추가 카드 칩",
+  "file": "components/upsell/ClarifierChip.tsx",
+  "line": 48,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot/reading 추가 카드 칩",
+  "file": "components/upsell/ClarifierChip.tsx",
+  "line": 56,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "inline-text",
+  "meaning": "별 재화 아이콘: 잔액 부족 에러 문구",
+  "screen": "/tarot/reading 추가 카드 시트",
+  "file": "components/upsell/ClarifierSheet.tsx",
+  "line": 139,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "/tarot/reading 추가 카드 시트",
+  "file": "components/upsell/ClarifierSheet.tsx",
+  "line": 195,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot/reading 추가 카드 시트",
+  "file": "components/upsell/ClarifierSheet.tsx",
+  "line": 205,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "/tarot/reading 추가 카드 시트",
+  "file": "components/upsell/ClarifierSheet.tsx",
+  "line": 206,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot/reading 추가 카드 시트",
+  "file": "components/upsell/ClarifierSheet.tsx",
+  "line": 228,
+  "note": "버튼 문구 안"
+ },
+ {
+  "glyph": "🗓",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 별마루 카드 폴백",
+  "screen": "결과 화면 교차 추천 카드(ResultUpsell·운세 설명 페이지)",
+  "file": "components/upsell/cross-cards.ts",
+  "line": 56,
+  "note": "iconSrc(webp) 있으면 안 보임"
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 배지",
+  "screen": "결과 화면 교차 추천 카드(ResultUpsell·운세 설명 페이지)",
+  "file": "components/upsell/cross-cards.ts",
+  "line": 98,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 대화 연장 칩",
+  "screen": "/saju/reading·/tarot/reading 대화 연장 칩",
+  "file": "components/upsell/ExtendChip.tsx",
+  "line": 47,
+  "note": ""
+ },
+ {
+  "glyph": "✓",
+  "kind": "ui-mark",
+  "meaning": "체크 표시: 이어가는 중",
+  "screen": "/saju/reading·/tarot/reading 대화 연장 칩",
+  "file": "components/upsell/ExtendChip.tsx",
+  "line": 51,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/saju/reading·/tarot/reading 대화 연장 칩",
+  "file": "components/upsell/ExtendChip.tsx",
+  "line": 63,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "구분선 ✦ 장식",
+  "screen": "무료→유료 추천 블록(별 인연 지도·별마루 날짜·사주 MBTI)",
+  "file": "components/upsell/FreeToPaidCta.tsx",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "무료→유료 추천 블록(별 인연 지도·별마루 날짜·사주 MBTI)",
+  "file": "components/upsell/FreeToPaidCta.tsx",
+  "line": 90,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 가격 표시",
+  "screen": "/tarot/reading 상담 끝 제안",
+  "file": "components/upsell/PostEndOffers.tsx",
+  "line": 90,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "ui-mark",
+  "meaning": "닫기 버튼",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 204,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 잔액 표시",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 213,
+  "note": ""
+ },
+ {
+  "glyph": "🎁",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 첫 충전 보너스",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 224,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 충전 패키지 행",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 259,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "inline-text",
+  "meaning": "별 재화 아이콘: 충전 후 남는 별 문구",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 284,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "inline-text",
+  "meaning": "별 재화 아이콘: 모자란 별 문구",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 287,
+  "note": ""
+ },
+ {
+  "glyph": "⭐",
+  "kind": "ui-mark",
+  "meaning": "별 재화 아이콘: 충전 버튼",
+  "screen": "별 충전 시트(상담 채팅·카드 뽑기·운세 구매·별마루 구독)",
+  "file": "components/upsell/RechargeSheet.tsx",
+  "line": 330,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "문장 끝 장식: 추천 블록 제목",
+  "screen": "결과 화면 추천 블록(/saju/result·/tarot/result·/fortune/result)",
+  "file": "components/upsell/ResultUpsell.tsx",
+  "line": 29,
+  "note": ""
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "어드민 지표 정의 설명(경고 머리)",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 208,
+  "note": "어드민 /admin 지표 툴팁 문구 — 범위 밖"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "어드민 지표 정의 설명(경고 머리)",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 233,
+  "note": "어드민 /admin 지표 툴팁 문구 — 범위 밖"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "어드민 지표 정의 설명(경고 머리)",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 277,
+  "note": "어드민 /admin 지표 툴팁 문구 — 범위 밖"
+ },
+ {
+  "glyph": "🔴",
+  "kind": "non-ui",
+  "meaning": "어드민 지표 정의 설명(경고 머리)",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 294,
+  "note": "어드민 /admin 지표 툴팁 문구 — 범위 밖"
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠ 위기 시그널)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 88,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 291,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 298,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 일간 강조 표시(★)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 366,
+  "note": "모델 입력용 사주 표"
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 일운 강조 표시(★)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 383,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: ★ 일운 참조",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 396,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠ 마무리 의무)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 458,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 460,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 462,
+  "note": ""
+ },
+ {
+  "glyph": "💫",
+  "kind": "llm",
+  "meaning": "프롬프트: 모델이 출력할 카드 해석 라벨(🃏/💫/🔗)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 757,
+  "note": "5장 이상 스프레드 → 채팅 말풍선에 그대로 보임(data/persona/byeolkong_tarot.md:79-81)"
+ },
+ {
+  "glyph": "🔗",
+  "kind": "llm",
+  "meaning": "프롬프트: 모델이 출력할 카드 해석 라벨(🃏/💫/🔗)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 757,
+  "note": "5장 이상 스프레드 → 채팅 말풍선에 그대로 보임(data/persona/byeolkong_tarot.md:79-81)"
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠ 마무리 의무)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 804,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 806,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 808,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠ 판정 마무리)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 938,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 1049,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 강조 머리(⚠ 위기)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 1050,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "llm",
+  "meaning": "프롬프트: 금지 예시 표시(✕)",
+  "screen": "(서버) 감정별 페르소나 프롬프트",
+  "file": "lib/emotion-persona.ts",
+  "line": 16,
+  "note": "모델 지시문 안 — 화면에 직접 안 나옴"
+ },
+ {
+  "glyph": "✕",
+  "kind": "llm",
+  "meaning": "프롬프트: 금지 예시 표시(✕)",
+  "screen": "(서버) 감정별 페르소나 프롬프트",
+  "file": "lib/emotion-persona.ts",
+  "line": 28,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "llm",
+  "meaning": "프롬프트: 금지 예시 표시(✕)",
+  "screen": "(서버) 감정별 페르소나 프롬프트",
+  "file": "lib/emotion-persona.ts",
+  "line": 31,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "llm",
+  "meaning": "프롬프트: 금지 예시 표시(✕)",
+  "screen": "(서버) 감정별 페르소나 프롬프트",
+  "file": "lib/emotion-persona.ts",
+  "line": 67,
+  "note": ""
+ },
+ {
+  "glyph": "✕",
+  "kind": "llm",
+  "meaning": "프롬프트: 금지 예시 표시(✕)",
+  "screen": "(서버) 감정별 페르소나 프롬프트",
+  "file": "lib/emotion-persona.ts",
+  "line": 88,
+  "note": ""
+ },
+ {
+  "glyph": "💭",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 걔 속마음이 궁금해",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 47,
+  "note": "홈·/concern·/start 는 webp 아이콘 사용 — 이모지는 /tarot 쪽만"
+ },
+ {
+  "glyph": "🥀",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 재회할 수 있을까",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 54,
+  "note": ""
+ },
+ {
+  "glyph": "📱",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 연락 타이밍",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 61,
+  "note": ""
+ },
+ {
+  "glyph": "💕",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 썸",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 68,
+  "note": ""
+ },
+ {
+  "glyph": "🌧",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 예전 같지 않아",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 75,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 새로운 인연",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 진로·방향",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 89,
+  "note": ""
+ },
+ {
+  "glyph": "⚖",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 선택 고민",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 96,
+  "note": ""
+ },
+ {
+  "glyph": "🏢",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 직장·학교 사람",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 103,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "category-icon",
+  "meaning": "고민 감정 아이콘: 그냥 털어놓기",
+  "screen": "/tarot 스프레드 선택 머리 · /tarot/reading 상단 고민 칩",
+  "file": "lib/emotions.ts",
+  "line": 110,
+  "note": ""
+ },
+ {
+  "glyph": "💡",
+  "kind": "heading-deco",
+  "meaning": "강조 상자(인용 블록) 아이콘(전구)",
+  "screen": "LLM 본문 렌더러(운세 리포트·별마루 리포트·궁합)",
+  "file": "lib/markdown-lite.tsx",
+  "line": 184,
+  "note": "LLM 본문의 \"> \" 인용줄을 💡 상자로 렌더"
+ },
+ {
+  "glyph": "✨",
+  "kind": "inline-text",
+  "meaning": "특별 인연 이유 문구 머리: 케미 스파크",
+  "screen": "/fortune/byeoljari/[shareId] 별 인연 지도 특별 인연 이유",
+  "file": "lib/byeoljari/inyeon.ts",
+  "line": 63,
+  "note": ""
+ },
+ {
+  "glyph": "🔗",
+  "kind": "inline-text",
+  "meaning": "특별 인연 이유 문구 머리: 척척",
+  "screen": "/fortune/byeoljari/[shareId] 별 인연 지도 특별 인연 이유",
+  "file": "lib/byeoljari/inyeon.ts",
+  "line": 64,
+  "note": ""
+ },
+ {
+  "glyph": "🌟",
+  "kind": "inline-text",
+  "meaning": "특별 인연 이유 문구 머리: 같은 국",
+  "screen": "/fortune/byeoljari/[shareId] 별 인연 지도 특별 인연 이유",
+  "file": "lib/byeoljari/inyeon.ts",
+  "line": 65,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘 애정·관계",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 29,
+  "note": "별마루 카드 리포트 블록 아이콘"
+ },
+ {
+  "glyph": "💼",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘 일·돈",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 30,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 카드가 비추는 마음",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 31,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘 조심할 하나",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 32,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘의 한 수",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 33,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 설렘(타입 정의)",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 45,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 설렘(칩 색)",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 설렘",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 91,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 128,
+  "note": "화면 아이콘은 pair-report.ts 가 따로 붙임"
+ },
+ {
+  "glyph": "💗",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 129,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 130,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 132,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 133,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 243,
+  "note": "화면 아이콘은 card-report.ts 가 따로 붙임"
+ },
+ {
+  "glyph": "💼",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 244,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 245,
+  "note": ""
+ },
+ {
+  "glyph": "⚠",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 246,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 247,
+  "note": ""
+ },
+ {
+  "glyph": "✧",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 설렘",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 마크 칩",
+  "file": "lib/byeolmaru/pair-day.ts",
+  "line": 136,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘 둘 사이",
+  "screen": "/byeolmaru 별마루 우리 탭 리포트",
+  "file": "lib/byeolmaru/pair-report.ts",
+  "line": 40,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 오늘 벌어질 장면",
+  "screen": "/byeolmaru 별마루 우리 탭 리포트",
+  "file": "lib/byeolmaru/pair-report.ts",
+  "line": 41,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 너희 고정된 결",
+  "screen": "/byeolmaru 별마루 우리 탭 리포트",
+  "file": "lib/byeolmaru/pair-report.ts",
+  "line": 42,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 둘 사이 타이밍",
+  "screen": "/byeolmaru 별마루 우리 탭 리포트",
+  "file": "lib/byeolmaru/pair-report.ts",
+  "line": 43,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "대운 테마 아이콘: 비겁(나를 세우는 때)",
+  "screen": "/fortune/result 사주 리포트 대운 표",
+  "file": "lib/fortune/daeun-theme.ts",
+  "line": 30,
+  "note": ""
+ },
+ {
+  "glyph": "✨",
+  "kind": "category-icon",
+  "meaning": "대운 테마 아이콘: 식상(재능이 트이는 때)",
+  "screen": "/fortune/result 사주 리포트 대운 표",
+  "file": "lib/fortune/daeun-theme.ts",
+  "line": 31,
+  "note": ""
+ },
+ {
+  "glyph": "🌾",
+  "kind": "category-icon",
+  "meaning": "대운 테마 아이콘: 재성(결실을 거두는 때)",
+  "screen": "/fortune/result 사주 리포트 대운 표",
+  "file": "lib/fortune/daeun-theme.ts",
+  "line": 32,
+  "note": ""
+ },
+ {
+  "glyph": "🏛",
+  "kind": "category-icon",
+  "meaning": "대운 테마 아이콘: 관성(자리를 잡는 때)",
+  "screen": "/fortune/result 사주 리포트 대운 표",
+  "file": "lib/fortune/daeun-theme.ts",
+  "line": 33,
+  "note": ""
+ },
+ {
+  "glyph": "📖",
+  "kind": "category-icon",
+  "meaning": "대운 테마 아이콘: 인성(배우고 채우는 때)",
+  "screen": "/fortune/result 사주 리포트 대운 표",
+  "file": "lib/fortune/daeun-theme.ts",
+  "line": 34,
+  "note": ""
+ },
+ {
+  "glyph": "💰",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 재물운",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭 · 이번달 리포트",
+  "file": "lib/fortune/daily-report.ts",
+  "line": 24,
+  "note": "오늘의 운세 영역 아이콘"
+ },
+ {
+  "glyph": "💼",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 직장·업무운",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭 · 이번달 리포트",
+  "file": "lib/fortune/daily-report.ts",
+  "line": 25,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 애정·관계운",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭 · 이번달 리포트",
+  "file": "lib/fortune/daily-report.ts",
+  "line": 26,
+  "note": ""
+ },
+ {
+  "glyph": "🌿",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 건강·멘탈운",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭 · 이번달 리포트",
+  "file": "lib/fortune/daily-report.ts",
+  "line": 27,
+  "note": ""
+ },
+ {
+  "glyph": "📄",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 학업·문서·이동운",
+  "screen": "/fortune/result 오늘의 운세 · 별마루 사주 탭 · 이번달 리포트",
+  "file": "lib/fortune/daily-report.ts",
+  "line": 28,
+  "note": ""
+ },
+ {
+  "glyph": "✦",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이모지 없는 섹션 기본값(✦)",
+  "screen": "운세 리포트 접이식 섹션(CollapsibleSection)",
+  "file": "lib/fortune/heading.ts",
+  "line": 19,
+  "note": "섹션 제목 첫 글자가 이모지면 떼어 아이콘으로 씀"
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 일간 강조 표시(★)",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 28,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 중요 표시(★)",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 632,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 중요 표시(★)",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 641,
+  "note": ""
+ },
+ {
+  "glyph": "★",
+  "kind": "llm",
+  "meaning": "프롬프트: 중요 표시(★)",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 699,
+  "note": ""
+ },
+ {
+  "glyph": "🌤",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 오늘의 운세",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "🗓",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 이번달",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 87,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 연애운 타로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 124,
+  "note": "webp 없음 → 모든 지면에서 이모지 노출"
+ },
+ {
+  "glyph": "💰",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 금전운 타로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 135,
+  "note": "webp 없음 → 모든 지면에서 이모지 노출"
+ },
+ {
+  "glyph": "💼",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 직장·진로 타로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 146,
+  "note": "webp 없음 → 모든 지면에서 이모지 노출"
+ },
+ {
+  "glyph": "🤝",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 인간관계 타로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 157,
+  "note": "webp 없음 → 모든 지면에서 이모지 노출"
+ },
+ {
+  "glyph": "💞",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 연인 궁합",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 168,
+  "note": ""
+ },
+ {
+  "glyph": "🤝",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 인간관계 궁합",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 179,
+  "note": ""
+ },
+ {
+  "glyph": "📅",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 좋은 날",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 190,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 타고난 나",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 203,
+  "note": ""
+ },
+ {
+  "glyph": "🧭",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 재능·적성·진로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 214,
+  "note": ""
+ },
+ {
+  "glyph": "📖",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 나 사용설명서",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 225,
+  "note": ""
+ },
+ {
+  "glyph": "🌈",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 오행 밸런스",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 236,
+  "note": ""
+ },
+ {
+  "glyph": "🌌",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 평생 사주·대운",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 247,
+  "note": ""
+ },
+ {
+  "glyph": "💗",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 내 연애 사주",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 258,
+  "note": ""
+ },
+ {
+  "glyph": "💘",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 올해 연애 흐름",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 269,
+  "note": ""
+ },
+ {
+  "glyph": "💍",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 결혼운·시기",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 280,
+  "note": ""
+ },
+ {
+  "glyph": "💰",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 재물 그릇",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 291,
+  "note": ""
+ },
+ {
+  "glyph": "📈",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 올해 재물 흐름",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 302,
+  "note": ""
+ },
+ {
+  "glyph": "💼",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 취업·이직 타이밍",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 313,
+  "note": ""
+ },
+ {
+  "glyph": "💥",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 팩폭 사주",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 324,
+  "note": ""
+ },
+ {
+  "glyph": "🔮",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 전생 사주",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 335,
+  "note": ""
+ },
+ {
+  "glyph": "🏆",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 사주 성적표",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 346,
+  "note": ""
+ },
+ {
+  "glyph": "📉",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 내 인생 그래프",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 357,
+  "note": ""
+ },
+ {
+  "glyph": "👍",
+  "kind": "inline-text",
+  "meaning": "피드백 버튼 설명(👍👎)",
+  "screen": "/relationship/sim 시뮬 밤 무대 첫 별콩이 노트",
+  "file": "lib/relationship/sim.ts",
+  "line": 75,
+  "note": "첫 별콩이 노트 고정 문구"
+ },
+ {
+  "glyph": "👎",
+  "kind": "inline-text",
+  "meaning": "피드백 버튼 설명(👍👎)",
+  "screen": "/relationship/sim 시뮬 밤 무대 첫 별콩이 노트",
+  "file": "lib/relationship/sim.ts",
+  "line": 75,
+  "note": "첫 별콩이 노트 고정 문구"
+ },
+ {
+  "glyph": "💗",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 썸-고백",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 21,
+  "note": ""
+ },
+ {
+  "glyph": "📱",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 썸-먼저 연락",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 33,
+  "note": ""
+ },
+ {
+  "glyph": "🌧",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 연애-서운함",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 45,
+  "note": ""
+ },
+ {
+  "glyph": "🕊",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 연애-화해",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 57,
+  "note": ""
+ },
+ {
+  "glyph": "🌱",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 짝사랑-다가가기",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 69,
+  "note": ""
+ },
+ {
+  "glyph": "🎲",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 짝사랑-결정",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 81,
+  "note": ""
+ },
+ {
+  "glyph": "🔗",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 이별-재연결",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 95,
+  "note": ""
+ },
+ {
+  "glyph": "🌙",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 이별-마음 정리",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 107,
+  "note": ""
+ },
+ {
+  "glyph": "✍",
+  "kind": "category-icon",
+  "meaning": "시뮬 상황 아이콘: 직접 입력",
+  "screen": "/relationship/sim 상황 선택 · /readings 시뮬 항목",
+  "file": "lib/relationship/situations.ts",
+  "line": 124,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 우리 궁합",
+  "screen": "/relationship 대화 스킬 시트·카드",
+  "file": "lib/relationship/skills.ts",
+  "line": 27,
+  "note": ""
+ },
+ {
+  "glyph": "🔍",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 걔 속마음",
+  "screen": "/relationship 대화 스킬 시트·카드",
+  "file": "lib/relationship/skills.ts",
+  "line": 39,
+  "note": ""
+ },
+ {
+  "glyph": "💑",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 관계 체크인",
+  "screen": "/relationship 대화 스킬 시트·카드",
+  "file": "lib/relationship/skills.ts",
+  "line": 51,
+  "note": ""
+ },
+ {
+  "glyph": "⚖",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 싸움 잘잘못 판정",
+  "screen": "/relationship 대화 스킬 시트·카드",
+  "file": "lib/relationship/skills.ts",
+  "line": 62,
+  "note": ""
+ },
+ {
+  "glyph": "💬",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 관계 체크인(미리보기)",
+  "screen": "/relationship 첫 화면 스킬 미리보기 · /start?v=relationship",
+  "file": "lib/relationship/types.ts",
+  "line": 71,
+  "note": ""
+ },
+ {
+  "glyph": "🔍",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 걔 속마음(미리보기)",
+  "screen": "/relationship 첫 화면 스킬 미리보기 · /start?v=relationship",
+  "file": "lib/relationship/types.ts",
+  "line": 72,
+  "note": ""
+ },
+ {
+  "glyph": "💞",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 우리 궁합(미리보기)",
+  "screen": "/relationship 첫 화면 스킬 미리보기 · /start?v=relationship",
+  "file": "lib/relationship/types.ts",
+  "line": 73,
+  "note": ""
+ },
+ {
+  "glyph": "⚖",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 싸움 판정(미리보기)",
+  "screen": "/relationship 첫 화면 스킬 미리보기 · /start?v=relationship",
+  "file": "lib/relationship/types.ts",
+  "line": 74,
+  "note": ""
+ },
+ {
+  "glyph": "👀",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 문장 끝 이모지",
+  "screen": "/fortune/saju-mbti 공유 문구",
+  "file": "lib/saju-mbti/content.ts",
+  "line": 82,
+  "note": ""
+ },
+ {
+  "glyph": "♡",
+  "kind": "non-ui",
+  "meaning": "유저 입력 잡음 판정 정규식",
+  "screen": "(서버) 타로 유저 발화 판정",
+  "file": "lib/tarot/user-turn.ts",
+  "line": 157,
+  "note": "타로 채팅 서버 — 화면 무관"
+ },
+ {
+  "glyph": "★",
+  "kind": "non-ui",
+  "meaning": "유저 입력 잡음 판정 정규식",
+  "screen": "(서버) 타로 유저 발화 판정",
+  "file": "lib/tarot/user-turn.ts",
+  "line": 157,
+  "note": "타로 채팅 서버 — 화면 무관"
+ },
+ {
+  "glyph": "☆",
+  "kind": "non-ui",
+  "meaning": "유저 입력 잡음 판정 정규식",
+  "screen": "(서버) 타로 유저 발화 판정",
+  "file": "lib/tarot/user-turn.ts",
+  "line": 157,
+  "note": "타로 채팅 서버 — 화면 무관"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 카드",
+  "screen": "공유 OG 이미지: 별마루 타로",
+  "file": "app/api/og/byeolmaru/tarot/route.tsx",
+  "line": 77,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "share-text",
+  "meaning": "공유 이미지 장식: 카드",
+  "screen": "공유 OG 이미지: 타로 상담",
+  "file": "app/api/og/tarot/[readingId]/route.tsx",
+  "line": 205,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 타로톡",
+  "screen": "/how-to-use 이용 안내",
+  "file": "app/how-to-use/page.tsx",
+  "line": 12,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "category-icon",
+  "meaning": "연애 상담 스킬 아이콘: 폴백(카드)",
+  "screen": "/relationship 대화 속 스킬 카드 줄",
+  "file": "components/relationship/ThreadCardStrip.tsx",
+  "line": 20,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "share-text",
+  "meaning": "공유 텍스트: 스프레드 이름 머리",
+  "screen": "/tarot/result 공유",
+  "file": "components/tarot/TarotShareButtons.tsx",
+  "line": 27,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "heading-deco",
+  "meaning": "배너·카드 앞 아이콘: 추가 카드 칩",
+  "screen": "/tarot/reading 추가 카드 칩",
+  "file": "components/upsell/ClarifierChip.tsx",
+  "line": 44,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "category-icon",
+  "meaning": "상품 아이콘: 교차 추천 카드(타로)",
+  "screen": "결과 화면 교차 추천 카드(ResultUpsell·운세 설명 페이지)",
+  "file": "components/upsell/cross-cards.ts",
+  "line": 140,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 이 카드가 온 자리",
+  "screen": "/byeolmaru 별마루 타로 탭 카드 리포트",
+  "file": "lib/byeolmaru/card-report.ts",
+  "line": 28,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "llm",
+  "meaning": "프롬프트: 블록 의미 힌트 이모지",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 242,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "category-icon",
+  "meaning": "운세 종류 아이콘: 오늘의 타로",
+  "screen": "/start 운세 목록(이모지 그대로 노출) · 그 외는 webp 폴백",
+  "file": "lib/fortune/types.ts",
+  "line": 111,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "🃏",
+  "kind": "llm",
+  "meaning": "프롬프트: 모델이 출력할 카드 해석 라벨(🃏/💫/🔗)",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 757,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "⏳",
+  "kind": "ui-mark",
+  "meaning": "답변 추천 버튼 아이콘: 추천 중(모래시계)",
+  "screen": "/relationship/sim 시뮬 밤 무대",
+  "file": "components/relationship/sim/NightStage.tsx",
+  "line": 253,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "⏰",
+  "kind": "heading-deco",
+  "meaning": "소제목 장식: 주목할 시기",
+  "screen": "/fortune/result 사주 종합(saju_full) 리포트",
+  "file": "components/fortune/saju-full/SajuFullReportView.tsx",
+  "line": 125,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "●",
+  "kind": "ui-mark",
+  "meaning": "그래프 범례 점",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 57,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "●",
+  "kind": "ui-mark",
+  "meaning": "그래프 범례 점",
+  "screen": "/fortune/result 인생 그래프 리포트 · 설명 페이지 샘플",
+  "file": "components/fortune/LifeGraphView.tsx",
+  "line": 58,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "◈",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 둘 사이 척척",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 143,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "◇",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 타입 정의(◇△＋)",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 45,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "◇",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 칩 색",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 73,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "△",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 칩 색",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 74,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "◇",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 척척",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 92,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "△",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 조심",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 93,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "◇",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 척척",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 마크 칩",
+  "file": "lib/byeolmaru/pair-day.ts",
+  "line": 137,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "△",
+  "kind": "category-icon",
+  "meaning": "날짜 마크 기호: 조심",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 마크 칩",
+  "file": "lib/byeolmaru/pair-day.ts",
+  "line": 140,
+  "note": "입력 목록 누락분(추출 범위 밖 문자)"
+ },
+ {
+  "glyph": "↓",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 아래로 스크롤",
+  "screen": "/ 홈",
+  "file": "app/page.tsx",
+  "line": 159,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span className=\"text-eye-purple/60 text-[16px] shrink-0\">↓</span>"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 518,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {showSajuBoard ? \"접기 ▴\" : \"펼치기 ▾\"}"
+ },
+ {
+  "glyph": "▴",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 518,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {showSajuBoard ? \"접기 ▴\" : \"펼치기 ▾\"}"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/saju/reading 사주 상담 채팅",
+  "file": "app/(consultations)/saju/reading/page.tsx",
+  "line": 661,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 결과 보기 →"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/saju/result 사주 상담 결과",
+  "file": "app/(consultations)/saju/result/page.tsx",
+  "line": 197,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 대화 전체 다시보기 {showHistory ? \"▴\" : \"▾\"}"
+ },
+ {
+  "glyph": "▴",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/saju/result 사주 상담 결과",
+  "file": "app/(consultations)/saju/result/page.tsx",
+  "line": 197,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 대화 전체 다시보기 {showHistory ? \"▴\" : \"▾\"}"
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "app/api/consultations/tarot/clarifier/route.ts",
+  "file": "app/api/consultations/tarot/clarifier/route.ts",
+  "line": 200,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): console.error(\"[clarifier] 차감 결과 불명 → 성공 처리(spend_unknown_granted) — s"
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "app/api/readings/[id]/extend/route.ts",
+  "file": "app/api/readings/[id]/extend/route.ts",
+  "line": 150,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): console.error(\"[extend] 차감 결과 불명 → 성공 처리(spend_unknown_granted) — star"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "app/fortune/byeoljari/[shareId]/page.tsx",
+  "file": "app/fortune/byeoljari/[shareId]/page.tsx",
+  "line": 198,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 별마루에서 무료로 다 보기 →"
+ },
+ {
+  "glyph": "▪",
+  "kind": "share-text",
+  "meaning": "공유 텍스트 글머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 86,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): return sec ? `▪ ${m.title}\\n${sec.body}` : \"\";"
+ },
+ {
+  "glyph": "▪",
+  "kind": "share-text",
+  "meaning": "공유 텍스트 글머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 107,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): return sec ? `▪ ${m.title}\\n${sec.body}` : \"\";"
+ },
+ {
+  "glyph": "▪",
+  "kind": "share-text",
+  "meaning": "공유 텍스트 글머리",
+  "screen": "/fortune/result 운세 리포트 결과",
+  "file": "app/fortune/result/page.tsx",
+  "line": 362,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): sections.map((s) => (s.title ? `▪ ${s.title}\\n${s.body}` : s.body)).jo"
+ },
+ {
+  "glyph": "※",
+  "kind": "ui-mark",
+  "meaning": "참고 표시(약관 문서)",
+  "screen": "/privacy 개인정보처리방침",
+  "file": "app/privacy/page.tsx",
+  "line": 81,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ※ 다른 사람의 정보를 입력할 때는 그 사람에게 먼저 알려 주세요."
+ },
+ {
+  "glyph": "※",
+  "kind": "ui-mark",
+  "meaning": "참고 표시(약관 문서)",
+  "screen": "/privacy 개인정보처리방침",
+  "file": "app/privacy/page.tsx",
+  "line": 178,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ※ 회원의 실명·전화번호·주소 등 직접 식별 정보는 기록되지"
+ },
+ {
+  "glyph": "※",
+  "kind": "ui-mark",
+  "meaning": "참고 표시(약관 문서)",
+  "screen": "/privacy 개인정보처리방침",
+  "file": "app/privacy/page.tsx",
+  "line": 210,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ※ 외부 기관 연계는 일상적 대화에 적용되지 않으며, 운영자의"
+ },
+ {
+  "glyph": "※",
+  "kind": "ui-mark",
+  "meaning": "참고 표시(약관 문서)",
+  "screen": "/privacy 개인정보처리방침",
+  "file": "app/privacy/page.tsx",
+  "line": 265,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ※ 해외 업체로의 개인정보 이전은 제6조의2에서 안내합니다."
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "app/push/unsubscribe/page.tsx",
+  "file": "app/push/unsubscribe/page.tsx",
+  "line": 80,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 지금 상태는 마이 → 알림 설정에서 보고 바꿀 수 있어.{\" \"}"
+ },
+ {
+  "glyph": "▸",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 824,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span aria-hidden>{partnerExpanded ? \"▾\" : \"▸\"}</span>"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/relationship 연애 상담(우리 사이)",
+  "file": "app/relationship/page.tsx",
+  "line": 824,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span aria-hidden>{partnerExpanded ? \"▾\" : \"▸\"}</span>"
+ },
+ {
+  "glyph": "←",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 뒤로",
+  "screen": "/shop 별 상점",
+  "file": "app/shop/page.tsx",
+  "line": 351,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ← 대화로 돌아가기"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/shop 별 상점",
+  "file": "app/shop/page.tsx",
+  "line": 551,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/start 광고 랜딩",
+  "file": "app/start/page.tsx",
+  "line": 357,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 별콩톡 전체 보러가기 →"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 1087,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ▾"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/tarot/reading 타로 상담 채팅",
+  "file": "app/tarot/reading/page.tsx",
+  "line": 1274,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 결과 보기 →"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 286,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 대화 전체 다시보기 {showHistory ? \"▴\" : \"▾\"}"
+ },
+ {
+  "glyph": "▴",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/tarot/result 타로 상담 결과",
+  "file": "app/tarot/result/page.tsx",
+  "line": 286,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 대화 전체 다시보기 {showHistory ? \"▴\" : \"▾\"}"
+ },
+ {
+  "glyph": "▼",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "components/byeoljari/BirthdaySelect.tsx",
+  "file": "components/byeoljari/BirthdaySelect.tsx",
+  "line": 62,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ▼"
+ },
+ {
+  "glyph": "←",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 뒤로",
+  "screen": "/fortune/byeoljari/[shareId] 별 인연 지도 보기",
+  "file": "components/byeoljari/ConstellationView.tsx",
+  "line": 276,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ← 전체 지도 보기"
+ },
+ {
+  "glyph": "←",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 뒤로",
+  "screen": "components/byeolmaru/BackHeader.tsx",
+  "file": "components/byeolmaru/BackHeader.tsx",
+  "line": 30,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span aria-hidden className=\"text-[15px] leading-none\">←</span>"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 367,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <Link href=\"/byeolmaru/day?tab=tarot\" className=\"text-lilac-deep under"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/byeolmaru 별마루 타로 탭(오늘의 카드)",
+  "file": "components/byeolmaru/DailyCardBlock.tsx",
+  "line": 499,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 생년월일 입력하기 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/byeolmaru 별마루 사주 탭 날짜 상세",
+  "file": "components/byeolmaru/DayDetailCard.tsx",
+  "line": 81,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 가져가므로 56→44px 로 낮춘다(둘이 같은 크기면 상단에서 서로 싸운다). */}"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/byeolmaru 별마루 허브 배너",
+  "file": "components/byeolmaru/HubBanner.tsx",
+  "line": 101,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {!busy && <span aria-hidden>→</span>}"
+ },
+ {
+  "glyph": "↔",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 양방향",
+  "screen": "/byeolmaru 별마루 우리 탭 날짜 상세",
+  "file": "components/byeolmaru/PairDayDetailCard.tsx",
+  "line": 100,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 예전엔 `든든한 지원군 ↔ 내가 아끼는 사람` / `둘 사이 설렘 · 연월조화 0` 처럼 **본문도 아닌"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/byeolmaru 별마루 유료 절단선",
+  "file": "components/byeolmaru/PaywallCut.tsx",
+  "line": 161,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일 →"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "components/common/Dropdown.tsx",
+  "file": "components/common/Dropdown.tsx",
+  "line": 157,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ▾"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/fortune 생성 중 목록",
+  "file": "components/fortune/FortuneGeneratingList.tsx",
+  "line": 186,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ✨ 리포트가 준비됐어 · 보러가기 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/fortune 상단 헤더",
+  "file": "components/fortune/FortuneHeader.tsx",
+  "line": 73,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span aria-hidden>→</span>"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/fortune 웰컴 별 배너",
+  "file": "components/fortune/WelcomeStarsBanner.tsx",
+  "line": 47,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span className=\"text-eye-purple/60 text-[16px] shrink-0\">→</span>"
+ },
+ {
+  "glyph": "↔",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 양방향",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatMatchDiagram.tsx",
+  "line": 91,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ↔"
+ },
+ {
+  "glyph": "↔",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 양방향",
+  "screen": "/fortune/result 궁합 리포트",
+  "file": "components/fortune/compat/CompatReportView.tsx",
+  "line": 137,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {saju.a.dayStem}({saju.a.dayElement}) ↔ {saju.b.dayStem}({saju.b.dayEl"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "components/push/AdConsentCheck.tsx",
+  "file": "components/push/AdConsentCheck.tsx",
+  "line": 7,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): export const AD_CONSENT_HOW_TO_OFF = \"언제든 마이페이지 → 알림 설정에서 끌 수 있어\";"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "components/push/AdConsentNotice.tsx",
+  "file": "components/push/AdConsentNotice.tsx",
+  "line": 33,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <p className=\"mt-3 text-[11.5px] text-text-light text-center\">언제든 마이 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "알림 권유 시트(전역)",
+  "file": "components/push/PushGate.tsx",
+  "line": 183,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): setUnsubMsg(\"이 알림의 수신거부는 이미 처리됐어. 지금 상태는 마이 → 알림 설정에서 볼 수 있어\");"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "알림 권유 시트(전역)",
+  "file": "components/push/PushGate.tsx",
+  "line": 185,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): setUnsubMsg(\"잘 안 됐어. 마이 → 알림 설정에서 끌 수 있어\");"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "알림 권유 시트(전역)",
+  "file": "components/push/PushGate.tsx",
+  "line": 253,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이 → 알림 설정에서 끌 수 있어."
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "components/reco/RecoConfirmModal.tsx",
+  "file": "components/reco/RecoConfirmModal.tsx",
+  "line": 47,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): → {display.label}로 이어서 봐요"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/relationship 상대 추가 시트",
+  "file": "components/relationship/AddPersonSheet.tsx",
+  "line": 131,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 별 충전하러 가기 →"
+ },
+ {
+  "glyph": "▾",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 87,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {open ? \"접기 ▴\" : \"전체 궁합 펼쳐보기 ▾\"}"
+ },
+ {
+  "glyph": "▴",
+  "kind": "ui-mark",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "/relationship 대화 속 궁합 카드",
+  "file": "components/relationship/ThreadCompatCard.tsx",
+  "line": 87,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): {open ? \"접기 ▴\" : \"전체 궁합 펼쳐보기 ▾\"}"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/relationship/sim 시뮬 디브리핑",
+  "file": "components/relationship/sim/SimDebrief.tsx",
+  "line": 173,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <button onClick={() => router.push(\"/relationship\")} className=\"mt-6 w"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/relationship/sim 시뮬 상황 선택",
+  "file": "components/relationship/sim/SituationSelect.tsx",
+  "line": 82,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 상황 고르러 가기 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "components/saju-mbti/BirthStage.tsx",
+  "file": "components/saju-mbti/BirthStage.tsx",
+  "line": 139,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 결과 보기 →"
+ },
+ {
+  "glyph": "←",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 뒤로",
+  "screen": "components/saju-mbti/QuizStage.tsx",
+  "file": "components/saju-mbti/QuizStage.tsx",
+  "line": 39,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ← 이전"
+ },
+ {
+  "glyph": "↔",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 양방향",
+  "screen": "/fortune/saju-mbti 사주 MBTI 결과",
+  "file": "components/saju-mbti/ResultView.tsx",
+  "line": 258,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): <span className=\"w-4 text-center text-lilac-deep text-[10px]\">↔</span>"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/fortune/saju-mbti 사주 MBTI 결과",
+  "file": "components/saju-mbti/ResultView.tsx",
+  "line": 286,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 별마루에서 무료로 다 보기 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "결과 화면 설문 카드(/saju/result·/tarot/result·/fortune/result)",
+  "file": "components/survey/SurveyResultCard.tsx",
+  "line": 26,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 이야기 들려주면 별 {SURVEY_REWARD_STARS}개를 줄게 · 참여하기 →"
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 153,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"result_viewed_at 은 '[결과 보기 →] 버튼을 눌렀나'를 잰다. 자동 이동이 아니라 수동 버튼이다. 무료 첫 "
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 165,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"2026-09-20 실측 67.6%(30일 1,531명 중 496명 이탈). 미탐지 봇·단순 구경이 섞였을 수 있어 해석은 "
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 169,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): label: \"결제 시작→완료\","
+ },
+ {
+  "glyph": "▾",
+  "kind": "non-ui",
+  "meaning": "펼침/접힘 삼각형",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 330,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"연장 재구매는 **신규에도 만료에도 안 들어간다** — 구독 연장은 새 행을 만들지만(started_at = now()) 구"
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 352,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"공유 링크 착지(page_views.utm_source=<상품>) → 가입 → 결제. 결제는 **착지 이후** 것만 센다.\""
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 지표 설명(범위 밖)",
+  "file": "lib/admin-metrics.ts",
+  "line": 360,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"'전환율'이 아니라 **획득**을 재는 퍼널이다 — 무료→결제는 2026-08-24 실측에서 역인과로 판명됐다. 리텐션 리프"
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 328,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): return `\\n\\n## 첫 턴 가이드 — 이어가기 세션\\n\\n이번 턴은 지난 고민을 이어받는 첫 응답이야. (1) \"지난번"
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 396,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): today_letters: `\\n\\n## 첫 턴 가이드 — \"오늘 들어온 글자\"\\n\\n이번 턴 흐름: (1) 관찰형 적중 훅 "
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 397,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): nature: `\\n\\n## 첫 턴 가이드 — \"타고난 성향 기반 상담\"\\n\\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 "
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 398,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): choice: `\\n\\n## 첫 턴 가이드 — \"선택지 비교\"\\n\\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일간·오행"
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 399,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): good_days: `\\n\\n## 첫 턴 가이드 — \"좋은 날 추천\"\\n\\n이번 턴 흐름: (1) 관찰형 적중 훅 한 줄 (일"
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 466,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ? `\\n\\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\\n\\n다음 발화·패턴 중 하나라도 보이면 이번 "
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 812,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): ? `\\n\\n### 사용자 마무리 시그널 (감지 시 askBonus 톤 전환)\\n\\n다음 발화·패턴 중 하나라도 보이면 이번 "
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 상담 채팅 시스템 프롬프트",
+  "file": "lib/claude.ts",
+  "line": 1049,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): const SIM_DEBRIEF_GUIDE = `\\n\\n## 이번 호출 — 디브리핑 (정리하기)\\n인형을 내려놓고 유저 곁으로"
+ },
+ {
+  "glyph": "→",
+  "kind": "non-ui",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "어드민 라우트 라벨(범위 밖)",
+  "file": "lib/analytics/route-labels.ts",
+  "line": 37,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): \"/select\": \"방식 선택 (폐쇄됨 → 고민톡으로 리다이렉트)\","
+ },
+ {
+  "glyph": "△",
+  "kind": "ui-mark",
+  "meaning": "날짜 마크 기호",
+  "screen": "/byeolmaru 별마루 달력·사주 날짜 상세 마크 칩",
+  "file": "lib/byeolmaru/day-label.ts",
+  "line": 45,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): export type DayGlyph = \"✧\" | \"◇\" | \"△\" | \"＋\";"
+ },
+ {
+  "glyph": "↑",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 위",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 93,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): if (cell.tags.spark) sig.push(\"설렘↑\");"
+ },
+ {
+  "glyph": "↔",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 양방향",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 108,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): `너희 결(고정): ${backdrop.labelAtoB} ↔ ${backdrop.labelBtoA}${backdrop.spa"
+ },
+ {
+  "glyph": "○",
+  "kind": "llm",
+  "meaning": "도형 기호",
+  "screen": "(서버) 별마루 리포트 생성 프롬프트",
+  "file": "lib/byeolmaru/narrative-prompt.ts",
+  "line": 248,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): `  \"note\": \"<따뜻한 마무리 ${blockSentences(\"note\")}문장. 제목·머리말('○○의 한마디:' 같은"
+ },
+ {
+  "glyph": "←",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 뒤로",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 137,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): const here = currentAge !== null && currentAge >= d.startAge && curren"
+ },
+ {
+  "glyph": "○",
+  "kind": "llm",
+  "meaning": "도형 기호",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 408,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): `  \"note\": \"<${\"{{DAY_WORD}}\"} 챙기면 좋을 따뜻한 응원 4문장. 제목·머리말('○○의 한마디:' 같은"
+ },
+ {
+  "glyph": "→",
+  "kind": "llm",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "(서버) 운세 리포트 생성 프롬프트",
+  "file": "lib/fortune/prompt.ts",
+  "line": 610,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): `  \"stages\": \"<관계 시기별 흐름: 지금 이 관계가 어느 단계이고 앞으로 어떻게 흘러갈지(서먹→친해짐→깊어짐·소원 "
+ },
+ {
+  "glyph": "→",
+  "kind": "inline-text",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "앱 푸시 알림 문구",
+  "file": "lib/push/templates.ts",
+  "line": 30,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): body: `${grantedOn}에 동의한 별콩톡 광고성 정보(앱 푸시) 수신이 계속되고 있어. 그대로 두면 계속 받고, 그"
+ },
+ {
+  "glyph": "→",
+  "kind": "ui-mark",
+  "meaning": "화살표(텍스트): 이동·다음·결과",
+  "screen": "/fortune/saju-mbti 공유 문구",
+  "file": "lib/saju-mbti/content.ts",
+  "line": 234,
+  "note": "입력 목록 누락분 · 자동 분류(화면 확인 안 함): 이거 어디서 구함? → 제비한테 물어보면 됨."
+ }
+]

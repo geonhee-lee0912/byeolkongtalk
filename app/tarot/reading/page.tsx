@@ -33,6 +33,7 @@ import {
   getLatestCardIndex,
   type Bubble,
 } from "@/lib/tarot/bubbles";
+import Icon from "@/components/common/Icon";
 
 interface Message {
   role: "user" | "assistant";
@@ -104,7 +105,7 @@ export default function TarotReadingPage() {
     <Suspense
       fallback={
         <main className="flex flex-1 items-center justify-center px-5">
-          <p className="text-text-light text-sm">카드를 펼치는 중…</p>
+          <p className="text-text-light text-14">카드를 펼치는 중…</p>
         </main>
       }
     >
@@ -405,12 +406,7 @@ function TarotReadingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const emotionEmoji = useMemo(() => {
-    if (!draw) return "✨";
-    return (
-      EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.emoji ?? "✨"
-    );
-  }, [draw]);
+  const emotionIcon = useMemo(() => (draw ? EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.icon : undefined), [draw]);
 
   // 컨테이너 하단 스크롤 — 쓰로틀 + 유저 전송 직후 일시정지 존중
   function scrollToBottom() {
@@ -1039,7 +1035,7 @@ function TarotReadingInner() {
   if (!draw) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">카드를 펼치는 중…</p>
+        <p className="text-text-light text-14">카드를 펼치는 중…</p>
       </main>
     );
   }
@@ -1066,29 +1062,29 @@ function TarotReadingInner() {
           <button
             type="button"
             onClick={() => setConcernExpanded((v) => !v)}
-            className="w-full text-left mb-4 px-4 py-3 bg-cream-warm rounded-2xl border border-lilac-mid/20 hover:border-lilac-mid/40 transition-colors"
+            className="btn btn-secondary btn-lg text-left mb-4"
             aria-expanded={concernExpanded}
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-[14px] shrink-0">{emotionEmoji}</span>
-              <span className="text-[12px] font-bold text-text-light tracking-wide shrink-0">
+              {emotionIcon && <img src={emotionIcon} alt="" width={18} height={18} className="shrink-0 object-contain" />}
+              <span className="text-12 font-bold text-text-light tracking-wide shrink-0">
                 {draw.emotion}
               </span>
               {!concernExpanded && (
-                <span className="text-[12px] text-text-light/70 truncate flex-1 ml-1">
+                <span className="text-12 text-text-light truncate flex-1 ml-1">
                   · {draw.concern || "지금 내 흐름이 궁금해"}
                 </span>
               )}
               <span
-                className={`text-text-light text-[14px] shrink-0 transition-transform ml-auto ${
+                className={`text-text-light text-14 shrink-0 transition-transform ml-auto ${
                   concernExpanded ? "rotate-180" : ""
                 }`}
               >
-                ▾
+                <Icon name="chev_d" size={14} />
               </span>
             </div>
             {concernExpanded && (
-              <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap break-words mt-2">
+              <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap break-words mt-2">
                 {draw.concern || "지금 내 흐름이 궁금해"}
               </p>
             )}
@@ -1201,9 +1197,9 @@ function TarotReadingInner() {
                   }}
                   // 구매 흐름 중엔 handleFinish 가 아무것도 안 한다 — 눌러서 exit_chip_clicked 만 찍히지 않게 잠근다
                   disabled={inPurchaseFlow}
-                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ✨ 결과 카드 보기
+                  결과 카드 보기
                 </button>
               </div>
             )}
@@ -1242,13 +1238,13 @@ function TarotReadingInner() {
 
             {error && (
               <div className="text-center mt-2">
-                <p className="text-[12px] text-red-500">{error}</p>
+                <p className="text-12 text-red-500">{error}</p>
                 {retryTurn && (
                   <button
                     type="button"
                     onClick={retrySend}
                     disabled={inPurchaseFlow}
-                    className="mt-1.5 inline-block text-[12px] font-bold text-lilac-deep underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-1.5 inline-block text-12 font-bold text-accent underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     다시 시도
                   </button>
@@ -1264,14 +1260,14 @@ function TarotReadingInner() {
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">
-              <p className="text-[12px] text-text-light text-center pb-2.5">
-                별콩이의 풀이가 마무리됐어 ✨
+              <p className="text-12 text-text-light text-center pb-2.5">
+                별콩이의 풀이가 마무리됐어
               </p>
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"
+                className="btn btn-primary btn-lg"
               >
-                결과 보기 →
+                결과 보기
               </Link>
               <PostEndOffers
                 extend={reopen.extend}
@@ -1325,17 +1321,17 @@ function TarotReadingInner() {
                     }
                     disabled={isStreaming || !readingId}
                     maxLength={500}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                     style={{ minHeight: "44px", maxHeight: "120px" }}
                   />
                   <button
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
                     // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로 — 흐려지면 아래 '마무리하고 결과 보기'가 화면에서 가장 강해 보인다(사용자 2026-10-04). 동작 잠금은 disabled 가 그대로 한다
-                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="btn btn-primary btn-md shrink-0 disabled:cursor-not-allowed"
                   >
                     전송
-                    <span className="text-[11px] font-normal text-white/70">
+                    <span className="text-11 font-normal text-white/70">
                       {input.length}/500
                     </span>
                   </button>
@@ -1343,7 +1339,7 @@ function TarotReadingInner() {
                 {/* 시안 B — 대화 내내 안내 한 줄 + 오른쪽 작은 마무리 버튼(금색 버튼은 없앴다, spec §3-6). 버튼 라벨이 '누르면 대화가 끝난다'를 말한다.
                     안내는 truncate(min-w-0)라 320px 에서도 버튼이 줄바꿈·넘침 없이 남는다. 하단 바는 흰 배경이라 text-light 를 쓴다 */}
                 <div className="flex items-center justify-between gap-2.5">
-                  <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-light">
+                  <p className="flex min-w-0 items-center gap-1.5 text-11 text-text-light">
                     <HintStar />
                     <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
                   </p>
@@ -1352,7 +1348,7 @@ function TarotReadingInner() {
                     onClick={() => handleFinish()}
                     disabled={isStreaming || !readingId || inPurchaseFlow}
                     // 색은 한 단계 낮춘 text-light(흰 바탕 4.7:1, AA 유지) — 전송 버튼보다 앞에 서지 않게(사용자 2026-10-04)
-                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-text-light disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-12 font-bold text-text-light disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     마무리하고 결과 보기
                     <ChevronRight />
@@ -1410,11 +1406,11 @@ function TarotReadingInner() {
       {pendingResumeBanner && (
         <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
           <div
-            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-[15px] shrink-0">⭐</span>
-            <p className="flex-1 text-[13px] font-bold text-eye-purple leading-snug">
+            <span className="text-15 shrink-0"><Icon name="star" size={16} /></span>
+            <p className="flex-1 text-13 font-bold text-eye-purple leading-snug">
               충전 완료!{" "}
               {pendingResumeBanner.type === "clarifier"
                 ? "이어서 뽑을까?"
@@ -1432,7 +1428,7 @@ function TarotReadingInner() {
                 }
               }}
               disabled={isStreaming || purchasing}
-              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-[12px] font-bold hover:bg-lilac-deep/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary btn-sm shrink-0 disabled:cursor-not-allowed"
             >
               좋아
             </button>
@@ -1441,7 +1437,7 @@ function TarotReadingInner() {
                 sessionStorage.removeItem("byeolkong:pending_upsell");
                 setPendingResumeBanner(null);
               }}
-              className="shrink-0 text-[11px] text-text-light/70 hover:text-text-light"
+              className="shrink-0 text-11 text-text-light hover:text-text-light"
             >
               나중에
             </button>

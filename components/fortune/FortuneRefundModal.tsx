@@ -25,10 +25,10 @@ export default function FortuneRefundModal({ cost, label, onClose }: FortuneRefu
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="별콩이" className="relative w-full h-full object-contain" />
           </div>
-          <p className="font-display text-[17px] text-eye-purple leading-tight">
+          <p className="font-display text-17 text-eye-purple leading-tight">
             앗, {label} 리포트를 만들다 문제가 생겼어
           </p>
-          <p className="text-[12.5px] text-text-light/85 mt-2 leading-relaxed">
+          <p className="text-13 text-text-light mt-2 leading-relaxed">
             사용한 별 <span className="font-bold text-eye-purple">{cost}개</span>는 다시 돌려놨어.
             <br />
             잠시 후 다시 시도해줄래?
@@ -36,8 +36,7 @@ export default function FortuneRefundModal({ cost, label, onClose }: FortuneRefu
         </div>
 
         <OverlayCloseButton
-          className="w-full py-3.5 rounded-full text-white font-bold text-[14px] active:scale-[0.98] transition-all"
-          style={{ background: "#9F8AD0", boxShadow: "0 6px 18px #9F8AD055" }}
+          className="btn btn-primary btn-lg"
         >
           확인
         </OverlayCloseButton>

@@ -44,8 +44,8 @@ export default function TarotShareButtons({
 
   if (hasSensitive) {
     return (
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-        <p className="text-[13px] text-eye-purple text-center leading-relaxed">
+      <div className="card">
+        <p className="text-13 text-eye-purple text-center leading-relaxed">
           🤍 이 대화는 너만의 기록으로 둘게.
           <br />
           공유 없이 마이페이지에서 다시 볼 수 있어.
@@ -135,7 +135,7 @@ export default function TarotShareButtons({
       <button
         onClick={handleKakaoShare}
         disabled={!isKakaoReady()}
-        className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[14px] flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-14 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -145,19 +145,19 @@ export default function TarotShareButtons({
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleShare}
-          className="py-3.5 rounded-xl bg-white text-lilac-deep border border-lilac-mid/40 font-bold text-[13px] hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+          className="btn btn-secondary btn-md"
         >
           링크로 공유하기
         </button>
         <button
           onClick={handleInstaSave}
-          className="py-3.5 rounded-xl bg-white text-lilac-deep border border-lilac-mid/40 font-bold text-[13px] hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+          className="btn btn-secondary btn-md"
         >
           이미지로 저장
         </button>
       </div>
       {toast && (
-        <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-[12px] whitespace-nowrap shadow-lg">
+        <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-float">
           {toast}
         </div>
       )}

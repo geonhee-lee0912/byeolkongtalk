@@ -398,6 +398,8 @@ export default function WebScreen() {
         source={source}
         style={styles.fill}
         applicationNameForUserAgent={UA_SUFFIX}
+        // 글자 고정(스펙 2026-11-09 §2.2) — 안드로이드 웹뷰는 기본으로 기기 글자 배율을 따라가 칸이 깨진다. 켤 땐 웹 html 루트와 같이
+        textZoom={100}
         injectedJavaScriptBeforeContentLoaded={INJECT_APP_INFO}
         // 🔴 모든 주소를 이동 규칙(decideNavigation)이 정하게 연다. 기본값(http·https)이면 그 밖의 주소(intent:·kakaolink:·tel:·data:·blob: …)는
         //    라이브러리가 onShouldStartLoadWithRequest 를 건너뛰고 Linking.canOpenURL → openURL 로 직접 연다(iframe 이 보낸 것도 —

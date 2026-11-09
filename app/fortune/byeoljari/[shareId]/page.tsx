@@ -86,7 +86,7 @@ export default function ByeoljariGuestPage() {
           {!meId && !state.graph.viewerIsOwner && !showJoin && (
             <button
               onClick={() => setShowJoin(true)}
-              className="mt-4 w-full rounded-xl bg-lilac-deep py-3 text-white"
+              className="btn btn-primary btn-lg mt-4"
             >
               이 별자리에 내 별 놓기
             </button>
@@ -105,7 +105,7 @@ export default function ByeoljariGuestPage() {
                   /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
                 }
               }}
-              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-sm transition active:scale-[0.99] ${
+              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-card transition active:scale-[0.99] ${
                 copied ? "bg-[#3E9E7A]" : "bg-lilac-deep"
               }`}
             >
@@ -128,7 +128,7 @@ export default function ByeoljariGuestPage() {
             </button>
           )}
           {showJoin && (
-            <div className="mt-4 space-y-2 rounded-2xl bg-cream-warm p-4">
+            <div className="card mt-4 space-y-2">
               <input
                 className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
                 placeholder="내 이름"
@@ -137,7 +137,7 @@ export default function ByeoljariGuestPage() {
               />
               <BirthdaySelect value={birth} onChange={setBirth} />
               <div>
-                <p className="mb-1 text-xs text-text-light">별자리 주인과 어떤 사이야?</p>
+                <p className="mb-1 text-12 text-text-light">별자리 주인과 어떤 사이야?</p>
                 <div className="flex flex-wrap gap-2">
                   {RELATION_ORDER.map((rt) => {
                     const on = relationType === rt;
@@ -149,8 +149,8 @@ export default function ByeoljariGuestPage() {
                         onClick={() => setRelationType(rt)}
                         className={
                           on
-                            ? "rounded-full bg-lilac-deep px-3 py-1 text-xs text-white"
-                            : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-xs text-text-light"
+                            ? "rounded-full bg-accent px-3 py-1 text-12 text-white"
+                            : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-12 text-text-light"
                         }
                       >
                         {RELATION_TYPE_LABEL[rt]}
@@ -159,7 +159,7 @@ export default function ByeoljariGuestPage() {
                   })}
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm text-text-light">
+              <label className="flex items-center gap-2 text-14 text-text-light">
                 <input
                   type="checkbox"
                   checked={namePublic}
@@ -169,16 +169,16 @@ export default function ByeoljariGuestPage() {
                 별자리에 내 이름 보이기
               </label>
               {joinError && (
-                <p className="text-[12px] text-red-500 text-center">{joinError}</p>
+                <p className="text-12 text-red-500 text-center">{joinError}</p>
               )}
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}
-                className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+                className="btn btn-primary btn-lg"
               >
                 내 별 놓기
               </button>
-              <p className="text-[11px] text-text-light/70 text-center leading-relaxed">
+              <p className="text-11 text-text-light text-center leading-relaxed">
                 만 14세 이상만 참여할 수 있어. 생년월일은 별자리 계산에만 쓰이고
                 다른 사람에게 보이지 않아. 내 별을 놓으면{" "}
                 <Link href="/privacy" className="underline">
@@ -189,13 +189,13 @@ export default function ByeoljariGuestPage() {
             </div>
           )}
 
-          <p className="mt-6 text-center text-xs text-text-light">
+          <p className="mt-6 text-center text-12 text-text-light">
             로그인하면 이 별자리를 계속 볼 수 있어. 안 하면 이 기기에서만 보여.
           </p>
           {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
           {!state.graph.viewerIsOwner && (
-            <Link href="/byeolmaru" className="mt-2 block text-center text-xs text-lilac-deep">
-              별마루에서 무료로 다 보기 →
+            <Link href="/byeolmaru" className="mt-2 block text-center text-12 text-accent">
+              별마루에서 무료로 다 보기
             </Link>
           )}
 

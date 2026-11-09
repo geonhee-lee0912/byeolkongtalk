@@ -7,6 +7,7 @@
 import Image from "next/image";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   variant?: "rich" | "slim";
@@ -17,11 +18,11 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
     return (
       <section
         className="w-full max-w-md mx-auto flex items-center gap-3 px-5 py-3.5"
-        style={{ background: "linear-gradient(135deg,#FFF9F2,#FFFFFF)" }}
+        style={{ background: "#FFF9F2" }}
       >
         <div>
-          <p className="text-[13px] font-extrabold text-eye-purple leading-tight">사주 운세</p>
-          <p className="text-[11.5px] text-text-light">생일만 알려줘, 한 장으로 정리해줄게</p>
+          <p className="text-13 font-extrabold text-eye-purple leading-tight">사주 운세</p>
+          <p className="text-12 text-text-light">생일만 알려줘, 한 장으로 정리해줄게</p>
         </div>
       </section>
     );
@@ -34,13 +35,10 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
         style={{
           // 황혼 — 위쪽 흰색, 하단 중앙에서 원형으로 번지는 주황
           background:
-            "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)",
+            "radial-gradient(97% 83% at 50% 123%, #FFC97F 0%, #FFDCA6 37%, #FFF2E1 69%, #FFFFFF 100%)", // design-allow: 운세 탭 머리 배너 번짐(화면별 단계에서 운영자 확인)
         }}
       >
       {/* 좌측 흰 영역 별 반짝임 */}
-      <span className="absolute top-2 left-[44%] text-[10px] text-gold opacity-70 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-5 left-[57%] text-[8px] text-gold-soft opacity-60 animate-star-twinkle" aria-hidden>✦</span>
-      <span className="absolute top-1.5 left-[63%] text-[9px] text-gold opacity-50 animate-star-twinkle" aria-hidden>✧</span>
 
       {/* 별콩이 (우측 하단, 60% 감·왼쪽으로 조금) */}
       <div className="pointer-events-none absolute right-8 top-1/2 h-[100px] w-[77px] -translate-y-1/2">
@@ -56,8 +54,8 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
 
       {/* 좌측 텍스트 + 생일 등록 버튼 */}
       <div className="relative max-w-[78%] px-5 pb-5 pt-9">
-        <p className="font-display text-[17px] font-black text-eye-purple">사주 운세</p>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-text-light">
+        <p className="font-display text-17 font-black text-eye-purple">사주 운세</p>
+        <p className="mt-1 text-12 leading-relaxed text-text-light">
           생일만 알려줘, 한 장으로 정리해줄게
         </p>
         {/* 🔴 /mypage 로 보내지 않는다(2026-10-02) — 그 자리 팝업. 비로그인은 로그인 후 /fortune 으로,
@@ -67,10 +65,10 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
           surface={BIRTH_PROMPT_SURFACE.fortuneHeader}
           loginNext="/fortune"
           onSaved={() => {}}
-          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-[11.5px] font-semibold text-lilac-deep transition active:scale-95 disabled:opacity-60"
+          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-accent transition active:scale-95 disabled:opacity-60"
         >
           생일 등록하기
-          <span aria-hidden>→</span>
+          <span aria-hidden><Icon name="chev_r" size={16} /></span>
         </BirthPromptButton>
       </div>
       </div>

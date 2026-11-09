@@ -31,9 +31,9 @@ export default function RechargeBlock({
 }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-6">
-      <div className="rounded-2xl bg-white/90 p-4">
+      <div className="card">
         {showContinue && (
-          <p className="text-[14px] font-bold text-eye-purple mb-3">
+          <p className="text-14 font-bold text-eye-purple mb-3">
             이 고민, 더 깊이 이어가볼까?
           </p>
         )}
@@ -43,10 +43,10 @@ export default function RechargeBlock({
               trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "continue" } });
               onContinue();
             }}
-            className="w-full py-3 mb-2 rounded-xl bg-lilac-deep text-white font-bold text-[14px] flex items-center justify-between px-4 hover:bg-lilac-deep/90 transition"
+            className="btn btn-primary btn-lg mb-2 justify-between"
           >
             <span>이 고민 이어가기</span>
-            <span className="text-[12px] font-bold bg-white/20 rounded-lg px-2 py-0.5">
+            <span className="text-12 font-bold bg-white/20 rounded-lg px-2 py-0.5">
               40% 할인
             </span>
           </button>
@@ -54,18 +54,14 @@ export default function RechargeBlock({
         <Link
           href={newHref}
           onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } })}
-          className={`w-full py-3 rounded-xl font-bold text-[13.5px] flex items-center justify-between px-4 transition ${
-            showContinue
-              ? "border border-lilac-deep/40 text-lilac-deep hover:bg-lilac-deep/5"
-              : "bg-lilac-deep text-white hover:bg-lilac-deep/90"
-          }`}
+          className={`btn btn-lg justify-between px-4 ${showContinue ? "btn-secondary" : "btn-primary"}`}
         >
           <span className="flex flex-col min-w-0">
             <span>{newLabel}</span>
             {newDesc && (
               <span
-                className={`text-[11px] font-normal mt-0.5 ${
-                  showContinue ? "text-text-light/80" : "text-white/80"
+                className={`text-11 font-normal mt-0.5 ${
+                  showContinue ? "text-text-light" : "text-white/80"
                 }`}
               >
                 {newDesc}
@@ -73,8 +69,8 @@ export default function RechargeBlock({
             )}
           </span>
           <span
-            className={`text-[12px] shrink-0 ml-2 ${
-              showContinue ? "text-text-light/80" : "text-white/80"
+            className={`text-12 shrink-0 ml-2 ${
+              showContinue ? "text-text-light" : "text-white/80"
             }`}
           >
             {newCostLabel}

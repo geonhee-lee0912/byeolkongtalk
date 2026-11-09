@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import Icon from "@/components/common/Icon";
 
 interface FortuneReportHeaderProps {
   title: ReactNode;
@@ -32,7 +33,7 @@ export default function FortuneReportHeader({
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href={backHref}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
         >
           <svg
             width="12"
@@ -61,17 +62,17 @@ export default function FortuneReportHeader({
           priority
           className="drop-shadow-lg"
         />
-        <h1 className="font-display text-[22px] text-eye-purple text-center mt-4 tracking-wide leading-snug">
+        <h1 className="font-display text-22 text-eye-purple text-center mt-4 tracking-wide leading-snug">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[12px] text-text-light text-center mt-1 leading-relaxed">
+          <p className="text-12 text-text-light text-center mt-1 leading-relaxed">
             {subtitle}
           </p>
         )}
         {typeof cost === "number" && (
-          <span className="mt-2 inline-flex items-center rounded-full bg-gold-soft/30 px-2.5 py-1 text-[11px] font-bold text-sub-warm">
-            ⭐ {cost}별
+          <span className="mt-2 inline-flex items-center rounded-full bg-gold-soft/30 px-2.5 py-1 text-11 font-bold text-sub-warm">
+            <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}별
           </span>
         )}
       </div>
@@ -80,11 +81,11 @@ export default function FortuneReportHeader({
       <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center gap-3">
         <span className="flex-1 h-px bg-lilac-mid/30" />
         {dividerStar ? (
-          <span className="text-gold text-[11px] leading-none" aria-hidden>
-            ✦
+          <span className="text-gold text-11 leading-none" aria-hidden>
+           
           </span>
         ) : (
-          <span className="text-[11px] font-bold text-text-light tracking-[0.15em]">
+          <span className="text-11 font-bold text-text-light tracking-[0.15em]">
             {dividerLabel}
           </span>
         )}

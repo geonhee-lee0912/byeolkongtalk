@@ -3,7 +3,7 @@ import type { GenericReport } from "@/lib/fortune/generic-report";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { FortuneType } from "@/lib/fortune/types";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { splitHeadingEmoji } from "@/lib/fortune/heading";
+import { stripHeadingEmoji } from "@/lib/fortune/heading";
 import SajuSummaryChips from "./SajuSummaryChips";
 import ElementChart from "./ElementChart";
 import ElementCycleDiagram from "./ElementCycleDiagram";
@@ -18,21 +18,20 @@ const ELEMENT_FOCUSED: ReadonlySet<string> = new Set(["element_balance", "nature
 const ACCORDION_MIN_BODY_CHARS = 4500;
 
 // 펼친 섹션 카드 — 아이콘 헤더 + 마크다운. 짧은 리포트(플랫 모드)용.
-function SectionCard({ heading, body }: { heading: string; body: string }) {
-  const { emoji, title } = splitHeadingEmoji(heading);
+function SectionCard({ heading, body, index }: { heading: string; body: string; index: number }) {
+  const title = stripHeadingEmoji(heading);
   return (
-    <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+    <div className="card-report">
       <div className="flex items-center gap-2.5 mb-3">
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[19px] shrink-0"
-          style={{ background: "linear-gradient(135deg, #F3E9DF, #EADFF2)" }}
+          className="w-7 h-7 rounded-lg bg-lilac-soft flex items-center justify-center text-13 font-extrabold text-accent shrink-0 tabular-nums"
           aria-hidden
         >
-          {emoji}
+          {index}
         </span>
-        <h3 className="text-[14.5px] font-extrabold text-eye-purple">{title}</h3>
+        <h3 className="text-17 font-extrabold text-eye-purple">{title}</h3>
       </div>
-      <MarkdownLite text={body} className="text-[13.5px] leading-[1.9] text-[#4F4A5E]" />
+      <MarkdownLite text={body} className="text-16 text-[#4F4A5E]" />
     </div>
   );
 }
@@ -70,8 +69,8 @@ export default function GenericReportView({
       )}
       {saju && <ElementChart saju={saju} />}
       {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
-      <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
-        <MarkdownLite text={report.intro} className="text-[14px] leading-[1.9] text-[#4F4A5E]" />
+      <div className="card-report">
+        <MarkdownLite text={report.intro} className="text-16 text-[#4F4A5E]" />
       </div>
 
       {/* 대운 10년 흐름 표 (결정론 십신 테마 + LLM 개인화 한 줄, life_full 등 daeun 있는 상품만) */}
@@ -83,13 +82,12 @@ export default function GenericReportView({
       {useAccordion ? (
         <ReportAccordion items={items} accentIcon="/byeolkong-curious.png" />
       ) : (
-        report.sections.map((s, i) => <SectionCard key={i} heading={s.heading} body={s.body} />)
+        report.sections.map((s, i) => <SectionCard key={i} index={i + 1} heading={s.heading} body={s.body} />)
       )}
 
       {/* 별콩이 한마디 — 항상 노출 */}
       <div
-        className="rounded-3xl px-6 py-6 text-white"
-        style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}
+        className="rounded-2xl px-6 py-6 text-white bg-night-card"
       >
         <div className="flex items-center gap-2 mb-2">
           <Image
@@ -99,9 +97,9 @@ export default function GenericReportView({
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[14px] font-bold text-gold">별콩이의 한마디</span>
+          <span className="text-14 font-bold text-gold">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.note} tone="dark" className="text-[13.5px] leading-[1.95] text-white/90" />
+        <MarkdownLite text={report.note} tone="dark" className="text-16 text-white/90" />
       </div>
     </div>
   );

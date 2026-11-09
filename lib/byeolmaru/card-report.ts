@@ -25,12 +25,12 @@ export interface CardReportBlockMeta {
 // (5/5/4)와 다르다 — **글자수 목표가 정본이고 문장 수는 그 목표에 도달하기 위해 실측으로 조정한
 // 수단**이다. 문장 수를 표에 맞춰 되돌리지 말 것(그러면 다시 -20~-38% 부족으로 돌아간다).
 export const CARD_REPORT_BLOCKS = [
-  { key: "place", title: "이 카드가 온 자리", icon: "🃏", sentences: 8 },
-  { key: "love", title: "오늘 애정 · 관계", icon: "💗", sentences: 6 },
-  { key: "work", title: "오늘 일 · 돈", icon: "💼", sentences: 6 },
-  { key: "mind", title: "카드가 비추는 마음", icon: "🌙", sentences: 5 },
-  { key: "caution", title: "오늘 조심할 하나", icon: "⚠️", sentences: 5 },
-  { key: "move", title: "오늘의 한 수", icon: "✨", sentences: 5 },
+  { key: "place", title: "이 카드가 온 자리", icon: "", sentences: 8 },
+  { key: "love", title: "오늘 애정 · 관계", icon: "", sentences: 6 },
+  { key: "work", title: "오늘 일 · 돈", icon: "", sentences: 6 },
+  { key: "mind", title: "카드가 비추는 마음", icon: "", sentences: 5 },
+  { key: "caution", title: "오늘 조심할 하나", icon: "", sentences: 5 },
+  { key: "move", title: "오늘의 한 수", icon: "", sentences: 5 },
   { key: "note", title: "별콩이의 한마디", icon: "", sentences: 4 },
 ] as const satisfies readonly CardReportBlockMeta[];
 

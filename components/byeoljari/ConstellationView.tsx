@@ -26,7 +26,7 @@ function rankChipClass(i: number): string {
   if (i === 0) return "bg-gold text-night";
   if (i === 1) return "bg-[#C4CAD4] text-[#33373F]"; // 은
   if (i === 2) return "bg-[#CD9A6B] text-white"; // 동
-  return "bg-white/70 text-eye-purple";
+  return "bg-white text-eye-purple";
 }
 
 // 인연 점수 등급 칩 색상 — 점수 구간별 색. 전부 밝은 채움이라 1위 다크 행에서도 판독됨.
@@ -204,7 +204,7 @@ export default function ConstellationView({ graph, meId }: Props) {
   return (
     <div>
       {/* 형상 엠블럼 헤더 — "{신수이름}자리". shape null(노드0)이면 "우리 별자리" 텍스트만. */}
-      <h1 className="mb-3 flex items-center justify-center gap-2 font-display text-lg text-eye-purple">
+      <h1 className="mb-3 flex items-center justify-center gap-2 font-display text-17 text-eye-purple">
         {shape && (
           <img
             src={shape.assetSrc}
@@ -233,8 +233,8 @@ export default function ConstellationView({ graph, meId }: Props) {
                   setActiveTriadGroup(t === "triad" ? 0 : null); // 같은 결이면 기본 1번 선택
                   if (focusId) resetToOverview(); // 포커스 중 필터 누르면 전체 지도로 나가며 적용
                 }}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  active ? "bg-lilac-deep text-white" : "bg-lilac-soft text-eye-purple"
+                className={`rounded-full px-3 py-1 text-12 ${
+                  active ? "bg-accent text-white" : "bg-lilac-soft text-eye-purple"
                 }`}
               >
                 {t === null ? "전체" : BOND_FILTER_LABEL[t]}
@@ -253,7 +253,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                   aria-pressed={on}
                   aria-label={`같은 결 ${i + 1}번 무리`}
                   onClick={() => setActiveTriadGroup(i)}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-12"
                   style={
                     on
                       ? { backgroundColor: BOND_COLOR.triad, color: "#fff" }
@@ -271,9 +271,9 @@ export default function ConstellationView({ graph, meId }: Props) {
           <button
             type="button"
             onClick={resetToOverview}
-            className="absolute left-2 top-2 z-10 rounded-full bg-cream-warm/90 px-3 py-1 text-xs text-eye-purple shadow"
+            className="btn btn-secondary btn-sm absolute left-2 top-2 z-10"
           >
-            ← 전체 지도 보기
+            전체 지도 보기
           </button>
         )}
         <ConstellationCanvas
@@ -295,14 +295,14 @@ export default function ConstellationView({ graph, meId }: Props) {
       </div>
       {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
       {focusId && card?.target && (
-        <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow">
+        <div ref={detailRef} className="card mt-3 animate-fade-in scroll-mb-20">
           <div className="mb-2 flex items-start justify-between">
             <div>
-              <div className="text-xs text-text-light">{relationTypeLabel(card.target.relationType)}</div>
-              <h3 className="font-display text-lg text-eye-purple">{card.target.name ?? "이 별"}</h3>
+              <div className="text-12 text-text-light">{relationTypeLabel(card.target.relationType)}</div>
+              <h3 className="font-display text-17 text-eye-purple">{card.target.name ?? "이 별"}</h3>
             </div>
-            <button onClick={resetToOverview} className="text-sm text-text-light">
-              닫기 ✕
+            <button onClick={resetToOverview} className="text-14 text-text-light">
+              닫기
             </button>
           </div>
           <InyeonDetail
@@ -313,9 +313,9 @@ export default function ConstellationView({ graph, meId }: Props) {
             inyeon={card.inyeonInfo}
           />
           <div className="mt-4 border-t border-lilac/30 pt-3">
-            <div className="mb-1 text-xs font-semibold text-eye-purple">{focusName}의 인연</div>
+            <div className="mb-1 text-12 font-semibold text-eye-purple">{focusName}의 인연</div>
             {summary && (
-              <p className="mb-2 text-sm text-eye-purple">
+              <p className="mb-2 text-14 text-eye-purple">
                 {summary.total > 0
                   ? `강하게 엮인 인연 ${summary.total}명 — 설렘 ${summary.chemi} · 척척 ${summary.bond} · 같은 결 ${summary.triad}. ${summary.comment}`
                   : summary.comment}
@@ -327,11 +327,11 @@ export default function ConstellationView({ graph, meId }: Props) {
                 if (!members.length) return null;
                 return (
                   <div key={tag}>
-                    <div className="mb-1.5 text-xs font-bold text-eye-purple">{tag}</div>
+                    <div className="mb-1.5 text-12 font-bold text-eye-purple">{tag}</div>
                     {tag === "같은 결" ? (
                       // 무리 = 이름 나열(한 줄 3명·콤마) + 오른쪽 무리 점수(높이 가운데 정렬)
-                      <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
-                        <div className="min-w-0 flex-1 text-sm text-eye-purple">
+                      <div className="card flex items-center justify-between">
+                        <div className="min-w-0 flex-1 text-14 text-eye-purple">
                           {(() => {
                             const names = members.map((nb) => nb.name ?? "이 별");
                             const lines: string[] = [];
@@ -341,7 +341,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                           })()}
                         </div>
                         {focusTriadScore != null && (
-                          <div className="shrink-0 pl-3 text-sm font-semibold text-eye-purple">
+                          <div className="shrink-0 pl-3 text-14 font-semibold text-eye-purple">
                             무리 인연 {focusTriadScore}
                           </div>
                         )}
@@ -351,17 +351,17 @@ export default function ConstellationView({ graph, meId }: Props) {
                         {members.map((nb) => {
                           const open = expandedNeighborId === nb.id;
                           return (
-                            <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/70 ${open ? "ring-1 ring-lilac" : ""}`}>
+                            <div key={nb.id} className={`overflow-hidden rounded-xl bg-white ${open ? "ring-1 ring-lilac" : ""}`}>
                               <button
                                 type="button"
                                 onClick={() => setExpandedNeighborId(open ? null : nb.id)}
                                 className="flex w-full items-center justify-between px-3 py-2 text-left"
                               >
-                                <span className="text-sm text-eye-purple">
+                                <span className="text-14 text-eye-purple">
                                   {nb.name ?? "이 별"}
                                 </span>
                                 {nb.inyeonInfo && (
-                                  <span className="text-sm font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
+                                  <span className="text-14 font-semibold text-eye-purple">인연 점수 {nb.inyeonInfo.score}</span>
                                 )}
                               </button>
                               {open && (
@@ -390,8 +390,8 @@ export default function ConstellationView({ graph, meId }: Props) {
         </div>
       )}
       {/* 범례 — 크림 박스로 대비 확보. 오행(위) / 선 종류(아래) 구분선으로 분리. */}
-      <div className="mt-3 rounded-2xl bg-cream-warm px-4 py-3 shadow-sm">
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-eye-purple">
+      <div className="card mt-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-12 text-eye-purple">
           {LEGEND.map(([label, color]) => (
             <span key={label} className="inline-flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full border border-lilac-mid/40" style={{ backgroundColor: color }} />
@@ -399,7 +399,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             </span>
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-xs text-eye-purple">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-12 text-eye-purple">
           <span className="inline-flex items-center gap-1.5">
             <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.heavenly} strokeWidth="2" strokeLinecap="round" /></svg>
             설렘
@@ -416,14 +416,14 @@ export default function ConstellationView({ graph, meId }: Props) {
       </div>
       {ranking.length > 0 && (
         <div className="mt-4">
-          <div className="mb-2 text-xs font-semibold text-eye-purple">인연 점수 높은 순</div>
+          <div className="mb-2 text-12 font-semibold text-eye-purple">인연 점수 높은 순</div>
           <div className="space-y-2">
             {ranking.map((r, i) => {
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
               const grade = inyeonGrade(r.inyeon);
               return (
-                <div key={r.id} className="overflow-hidden rounded-2xl bg-cream-warm">
+                <div key={r.id} className="overflow-hidden rounded-2xl bg-white shadow-card">
                   <button
                     type="button"
                     aria-expanded={open}
@@ -435,40 +435,40 @@ export default function ConstellationView({ graph, meId }: Props) {
                     className="block w-full px-4 py-3 text-left transition active:scale-[0.99] hover:bg-lilac-mid/15"
                   >
                     <span className="flex items-center gap-2.5">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${rankChipClass(i)}`}>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-12 font-medium ${rankChipClass(i)}`}>
                         {i + 1}
                       </span>
                       <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-14 font-medium"
                         style={{ backgroundColor: starColor(r.element), color: "#1F1735" }}
                       >
                         {r.element}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-eye-purple">
+                        <span className="block truncate text-14 font-semibold text-eye-purple">
                           {r.name ?? "이 별"}
                         </span>
                         {r.dayType && (
-                          <span className="block truncate text-xs text-text-light">
+                          <span className="block truncate text-12 text-text-light">
                             {r.dayType}
                           </span>
                         )}
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="block font-display text-lg font-bold leading-none text-eye-purple">
+                        <span className="block font-display text-17 font-bold leading-none text-eye-purple">
                           {r.inyeon}
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-text-light">
+                        <span className="mt-0.5 block text-11 text-text-light">
                           인연 점수
                         </span>
                       </span>
                     </span>
                     <span className="mt-2.5 block border-t border-lilac-mid/30 pt-2.5">
                       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                        <span className={`rounded-full px-2 py-0.5 text-xs ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-12 ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
                           {grade.label}
                         </span>
-                        <span className="text-xs text-eye-purple">
+                        <span className="text-12 text-eye-purple">
                           {relationRole(r.relation)} · {elementPair(r.relation, myEl, r.element)}
                         </span>
                       </span>
@@ -485,7 +485,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                         showProse={false}
                       />
                       {isOwner && !rowDetail.target.isHost && (
-                        <div className="mt-3 flex items-center justify-end gap-2 text-xs">
+                        <div className="mt-3 flex items-center justify-end gap-2 text-12">
                           {confirmDeleteId === r.id ? (
                             <>
                               <span className="text-text-light">지울까?</span>

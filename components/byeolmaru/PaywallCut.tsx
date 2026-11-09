@@ -72,7 +72,7 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
       {/* 절단선 — 금색 선 + 무료 분량 칩. "여기서 잘렸다"를 자물쇠 없이 말한다(스펙 §9 톤). */}
       <div className="flex items-center gap-2">
         <span className="h-px flex-1" style={{ background: GOLD }} />
-        <span className="shrink-0 whitespace-nowrap rounded-full border border-gold/50 bg-[#FFF7E8] px-2.5 py-0.5 text-[11px] font-bold text-[#8A6A1A]">
+        <span className="shrink-0 whitespace-nowrap rounded-full border border-gold/50 bg-[#FFF7E8] px-2.5 py-0.5 text-11 font-bold text-[#8A6A1A]">
           {/* 아래 "여기부터 N자"와 같은 포맷이어야 한다 — 한 카드 안에서 무료가 1,000자를 넘는 날
               `1023자` 와 `1,800자` 가 나란히 서면 같은 단위로 안 읽힌다. 로케일 고정 이유는 아래 참조. */}
           여기까지 무료 · {freeChars.toLocaleString("ko-KR")}자
@@ -106,8 +106,8 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
             <div key={title}>
               {/* 제목의 크기·굵기·색은 DailyReportCard(embedded)의 섹션 헤딩과 같은 값이다 —
                   흐린 상태에서도 "저게 그 리포트구나"로 읽히려면 같은 모양이어야 한다. */}
-              <div className="text-[12.5px] font-extrabold text-[#4A4458]">{title}</div>
-              <p className="mt-1 text-[13px] leading-[1.85] text-[#4F4A5E]">
+              <div className="text-13 font-extrabold text-[#4A4458]">{title}</div>
+              <p className="mt-1 text-13 leading-[1.85] text-[#4F4A5E]">
                 {/* 본문은 무료 taste 를 잘라 쓴다 — 없는 글을 지어내지 않는다(LLM 0·원가 0).
                     60자면 3줄 남짓이라 세 블록이 상자 위아래로 고르게 걸친다. taste 가 짧아
                     빈 조각이 나오면 앞머리를 재사용해 빈 줄이 생기지 않게 한다. */}
@@ -117,15 +117,15 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           ))}
         </div>
         <div className="absolute inset-0 flex items-center justify-center p-2">
-          <div className="max-w-[260px] rounded-xl bg-white/90 p-3 text-center shadow-[0_4px_16px_rgba(90,62,140,0.14)]">
-            <b className="mb-3 block text-[12px] font-bold text-eye-purple">
+          <div className="max-w-[260px] rounded-xl bg-white p-3 text-center shadow-float">
+            <b className="mb-3 block text-12 font-bold text-eye-purple">
               {/* 🔴 로케일 고정 — 인자 없는 toLocaleString 은 서버(Node 기본 로케일)와 브라우저가
                   다른 구분자를 낼 수 있어(de-DE 면 "1.800") 하이드레이션 불일치가 난다. */}
               여기부터 {paidChars.toLocaleString("ko-KR")}자가 더 있어
             </b>
             <div className="flex flex-wrap justify-center gap-1">
               {sections.map((s) => (
-                <span key={s} className="rounded-lg border border-lilac-mid/50 px-1.5 py-0.5 text-[10px] font-bold text-[#6E6880]">
+                <span key={s} className="rounded-lg border border-lilac-mid/50 px-1.5 py-0.5 text-11 font-bold text-[#6E6880]">
                   {s}
                 </span>
               ))}
@@ -140,7 +140,7 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           <button
             onClick={() => onStartTrial(slot)}
             disabled={trialBusy}
-            className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night disabled:opacity-60"
+            className="mt-4 w-full rounded-xl bg-gold py-2.5 text-14 font-bold text-night disabled:opacity-60"
           >
             {trialBusy ? "여는 중…" : "3일 무료로 열어보기"}
           </button>
@@ -153,19 +153,19 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
                  체험 하나로 둔다. 두 조각을 inline-block 으로 감싸 375px 에서 줄이 바뀌어도 문구 중간이
                  아니라 '·' 뒤에서 꺾인다. 링크도 eye-purple + 밑줄이다(lilac-deep 은 흰 바탕 3:1 로 AA 미달). */}
           <SubscribeOfferShown surface="cut" phase="pre_trial" slot={slot} />
-          <p className="mt-1.5 text-center text-[11px] text-eye-purple">
+          <p className="mt-1.5 text-center text-11 text-eye-purple">
             <span className="inline-block">
               체험 끝나면 {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일 ·
             </span>{" "}
             <button type="button" onClick={() => onSubscribe(slot)} className="inline-block font-semibold underline underline-offset-2">
-              바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일 →
+              바로 구독하면 체험 {TRIAL_DAYS}일 + {BYEOLMARU_SUBSCRIPTION.days}일
             </button>
           </p>
         </>
       ) : (
         <>
           <SubscribeOfferShown surface="cut" phase="post_trial" slot={slot} />
-          <button onClick={() => onSubscribe(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-sm font-bold text-night">
+          <button onClick={() => onSubscribe(slot)} className="mt-4 w-full rounded-xl bg-gold py-2.5 text-14 font-bold text-night">
             구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
           </button>
         </>

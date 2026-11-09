@@ -9,10 +9,10 @@ const STEPS = [
 ];
 
 const PRODUCTS = [
-  { e: "🃏", t: "타로톡", d: "고민을 타로로 풀어보기" },
-  { e: "🔮", t: "별콩 운세", d: "사주로 보는 나의 흐름" },
-  { e: "💬", t: "연애 상담", d: "그 사람 이야기를 계속" },
-  { e: "🎭", t: "연애 시뮬", d: "그 사람과 상황 연습" },
+  { e: "", t: "타로톡", d: "고민을 타로로 풀어보기" },
+  { e: "", t: "별콩 운세", d: "사주로 보는 나의 흐름" },
+  { e: "", t: "연애 상담", d: "그 사람 이야기를 계속" },
+  { e: "", t: "연애 시뮬", d: "그 사람과 상황 연습" },
 ];
 
 export default function HowToUsePage() {
@@ -28,23 +28,23 @@ export default function HowToUsePage() {
             className="mx-auto rounded-full bg-cream-warm object-cover"
             priority
           />
-          <h1 className="mt-4 text-xl font-bold text-eye-purple">별콩이가 처음이야?</h1>
-          <p className="mt-2 text-[14px] text-text-light leading-relaxed">
+          <h1 className="mt-4 text-20 font-bold text-eye-purple">별콩이가 처음이야?</h1>
+          <p className="mt-2 text-14 text-text-light leading-relaxed">
             별콩이는 별의 수호자야. 타로와 사주로 네 마음의 흐름을 함께 읽어주는 친구지. 어떻게 노는지 알려줄게!
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-3">이렇게 시작해</h2>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">이렇게 시작해</h2>
           <div className="space-y-3">
             {STEPS.map((s) => (
-              <div key={s.n} className="flex gap-3 rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac-deep text-white text-[13px] font-bold">
+              <div key={s.n} className="card flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac-deep text-white text-13 font-bold">
                   {s.n}
                 </span>
                 <div>
-                  <p className="text-[14px] font-bold text-eye-purple">{s.t}</p>
-                  <p className="mt-0.5 text-[13px] text-text-light leading-snug">{s.d}</p>
+                  <p className="text-14 font-bold text-eye-purple">{s.t}</p>
+                  <p className="mt-0.5 text-13 text-text-light leading-snug">{s.d}</p>
                 </div>
               </div>
             ))}
@@ -52,27 +52,27 @@ export default function HowToUsePage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-3">뭘 할 수 있어</h2>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">뭘 할 수 있어</h2>
           <div className="grid grid-cols-2 gap-3">
             {PRODUCTS.map((p) => (
-              <div key={p.t} className="rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
-                <div className="text-2xl">{p.e}</div>
-                <p className="mt-1.5 text-[13.5px] font-bold text-eye-purple">{p.t}</p>
-                <p className="mt-0.5 text-[12px] text-text-light leading-snug">{p.d}</p>
+              <div key={p.t} className="card">
+                <div className="text-22">{p.e}</div>
+                <p className="mt-1.5 text-14 font-bold text-eye-purple">{p.t}</p>
+                <p className="mt-0.5 text-12 text-text-light leading-snug">{p.d}</p>
               </div>
             ))}
           </div>
         </section>
 
         <section className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
-          <p className="text-[13.5px] text-eye-purple leading-relaxed">
-            🌟 처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
+          <p className="text-14 text-eye-purple leading-relaxed">
+            처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
           </p>
         </section>
 
         <Link
           href="/concern"
-          className="block w-full text-center py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px]"
+          className="btn btn-primary btn-lg"
         >
           별콩이랑 시작하기
         </Link>

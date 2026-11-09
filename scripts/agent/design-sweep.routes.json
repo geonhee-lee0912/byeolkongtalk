@@ -1,0 +1,20 @@
+{
+  "home": "/",
+  "tarot": "/tarot",
+  "saju": "/saju",
+  "fortune": "/fortune",
+  "relationship": "/relationship",
+  "sim": "/relationship/sim",
+  "byeolmaru": "/byeolmaru",
+  "shop": "/shop",
+  "mypage": "/mypage",
+  "notifications": "/mypage/notifications",
+  "readings": "/readings",
+  "start": "/start",
+  "concern": "/concern",
+  "guide": "/guide",
+  "daily-card": "/free/daily-card",
+  "fortune-type": "/fortune/nature_self",
+  "daily-fortune": "/fortune/daily",
+  "saju-mbti": "/fortune/saju-mbti"
+}

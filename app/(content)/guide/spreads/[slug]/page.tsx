@@ -13,6 +13,7 @@ import {
   getSpreadDescription,
 } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
+import Icon from "@/components/common/Icon";
 
 interface SpreadEntry {
   whenToUse: string;
@@ -117,25 +118,25 @@ export default async function SpreadPage({
 
   return (
     <article>
-      <nav className="text-[11px] text-text-light mb-3">
+      <nav className="text-11 text-text-light mb-3">
         <Link href="/guide/spreads" className="hover:text-eye-purple">
           스프레드 가이드
         </Link>
-        <span className="mx-1">›</span>
+        <span className="mx-1"><Icon name="chev_r" size={16} /></span>
         <span>{info.label}</span>
       </nav>
 
-      <h1 className="font-display text-[21px] text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug">
         {spreadTitle(info.label)}
       </h1>
-      <p className="text-[12px] text-text-light mt-1">
+      <p className="text-12 text-text-light mt-1">
         {info.cardCount}장 배열 · {getSpreadDescription(type, "default")}
       </p>
 
       {/* 중간 삽화 — 페이지의 얼굴(히어로)이 아니라 본문 사이 장식이라 태그 랜딩 히어로보다
           작게 둔다. 투명 PNG 라 태그 랜딩(hasBackground:false) 과 동일하게 라일락
           그라데이션 컨테이너 + object-contain 로 감싼다. */}
-      <div className="relative w-36 h-36 mx-auto my-8 rounded-2xl overflow-hidden bg-gradient-to-b from-lilac-soft to-lilac">
+      <div className="relative w-36 h-36 mx-auto my-8 rounded-2xl overflow-hidden bg-lilac-soft">
         <Image
           src={poseForSpread(type)}
           alt=""
@@ -146,18 +147,18 @@ export default async function SpreadPage({
         />
       </div>
 
-      <section className="space-y-5 text-[13.5px] text-eye-purple/90 leading-relaxed mt-5">
+      <section className="space-y-5 text-14 text-eye-purple/90 leading-relaxed mt-5">
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             언제 펼치는 배열일까
           </h2>
           <p>{entry.whenToUse}</p>
         </div>
         <div>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-1.5">
+          <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             포지션 읽는 순서
           </h2>
-          <ol className="list-decimal list-inside space-y-1 text-[13px]">
+          <ol className="list-decimal list-inside space-y-1 text-13">
             {labels.map((l, i) => (
               <li key={i}>{l}</li>
             ))}

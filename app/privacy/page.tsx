@@ -39,21 +39,21 @@ export default function PrivacyPage() {
       {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="web-only inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="web-only font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
         개인정보처리방침
       </h1>
-      <p className="text-[11px] text-text-light text-center mb-6">
+      <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
       </p>
 
-      <div className="text-[13px] text-eye-purple leading-relaxed space-y-6">
-        <p className="text-[12.5px] text-text-light leading-[1.7]">
+      <div className="text-13 text-eye-purple leading-relaxed space-y-6">
+        <p className="text-13 text-text-light leading-[1.7]">
           브레이브샤인(이하 &ldquo;회사&rdquo;, 서비스명: 별콩톡)는 「개인정보 보호법」 및 「정보통신망
           이용촉진 및 정보보호 등에 관한 법률」에 따라 회원의 개인정보를
           소중히 여기며, 다음과 같이 개인정보처리방침을 수립하여 공개합니다.
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
           </p>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">1. 감지 항목</p>
+            <p className="font-bold text-13 mb-1.5">1. 감지 항목</p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>자살·자해</li>
               <li>학교폭력·따돌림</li>
@@ -155,7 +155,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">2. 감지 방식</p>
+            <p className="font-bold text-13 mb-1.5">2. 감지 방식</p>
             <p className="text-text-light">
               회원이 입력한 메시지 중 위 항목에 해당할 가능성이 있는 표현을
               자동으로 분류합니다. 일상적 대화에 대한 모니터링은 수행하지
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">
+            <p className="font-bold text-13 mb-1.5">
               3. 기록되는 정보 (익명화)
             </p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
@@ -181,7 +181,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">4. 이용 목적</p>
+            <p className="font-bold text-13 mb-1.5">4. 이용 목적</p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>회원에게 즉시 전문기관 연락처 안내 (자살예방상담전화 109 등)</li>
               <li>해당 대화의 공유·이미지 저장 자동 비활성화</li>
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">
+            <p className="font-bold text-13 mb-1.5">
               5. 외부 기관 연계
             </p>
             <p className="text-text-light">
@@ -213,7 +213,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">6. 보유 기간</p>
+            <p className="font-bold text-13 mb-1.5">6. 보유 기간</p>
             <p className="text-text-light">
               감지 기록은 안전성 검토 및 서비스 품질 개선을 위해 최대 1년간
               보관 후 자동 파기됩니다. 회원 탈퇴 시 즉시 익명 처리되거나
@@ -226,7 +226,7 @@ export default function PrivacyPage() {
           회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를
           위탁하고 있습니다.
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-[12px] border-collapse">
+            <table className="w-full text-12 border-collapse">
               <thead>
                 <tr className="bg-cream/60 text-left">
                   <th className="px-2 py-1.5 border border-lilac-soft/60 font-bold">수탁사</th>
@@ -261,7 +261,7 @@ export default function PrivacyPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[12px] text-text-light/80">
+          <p className="mt-3 text-12 text-text-light">
             ※ 해외 업체로의 개인정보 이전은 제6조의2에서 안내합니다.
           </p>
         </Article>
@@ -274,7 +274,7 @@ export default function PrivacyPage() {
             {OVERSEAS_TRANSFERS.map((t) => (
               <div
                 key={t.to}
-                className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-[12px]"
+                className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-12"
               >
                 <p className="font-bold">{t.to}</p>
                 <ul className="mt-1 space-y-0.5 text-text-light">
@@ -400,7 +400,7 @@ export default function PrivacyPage() {
           중대한 영향을 미치는 변경의 경우 30일 전 공지합니다.
         </Article>
 
-        <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">
+        <p className="text-12 text-text-light pt-6 border-t border-lilac-soft/40">
           부칙: 본 방침은 {SHIM_DATE}부터 시행됩니다.
         </p>
       </div>
@@ -417,8 +417,8 @@ function Article({
 }) {
   return (
     <section>
-      <h2 className="text-[14px] font-bold text-eye-purple mb-1.5">{title}</h2>
-      <div className="text-eye-purple/95 text-[12.5px] leading-[1.7]">
+      <h2 className="text-14 font-bold text-eye-purple mb-1.5">{title}</h2>
+      <div className="text-eye-purple/95 text-13 leading-[1.7]">
         {children}
       </div>
     </section>

@@ -22,6 +22,7 @@ import { trackUiEvent } from "@/lib/analytics/ui-events";
 import SectionMark from "@/components/common/SectionMark";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import { RESUME_BANNER_KEY, RESUME_BANNER_MAX_VIEWS, takeBannerView } from "@/lib/home-banner-views";
+import Icon from "@/components/common/Icon";
 
 export default function Home() {
   const router = useRouter();
@@ -144,40 +145,40 @@ export default function Home() {
                   .getElementById("emotion-grid")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
-              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in"
+              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gold-wash text-left animate-fade-in"
             >
-              <span className="text-[20px] shrink-0">⭐</span>
+              <span className="text-20 shrink-0"><Icon name="star" size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-eye-purple leading-tight">
+                <p className="text-13 font-bold text-eye-purple leading-tight">
                   웰컴 별 {WELCOME_BONUS_STARS}개가 기다리고 있어
                 </p>
-                <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
+                <p className="text-12 text-eye-purple/75 mt-0.5 leading-tight">
                   아래에서 첫 고민을 골라봐 · 운세 리포트는 하단 사주
                   탭에서!
                 </p>
               </div>
-              <span className="text-eye-purple/60 text-[16px] shrink-0">↓</span>
+              <Icon name="chev_d" size={16} className="text-eye-purple/60" />
             </button>
           )}
           {hasResumable && (
             <Link
               href="/readings"
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-night-card text-white shadow-float animate-fade-in"
             >
-              <span className="text-[20px] shrink-0">💬</span>
+              <span className="text-20 shrink-0"><Icon name="bubble" size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold leading-tight">
+                <p className="text-13 font-bold leading-tight">
                   이어서 나눌 수 있는 대화가 있어
                 </p>
-                <p className="text-[11.5px] text-white/80 mt-0.5 leading-tight">
+                <p className="text-12 text-white/80 mt-0.5 leading-tight">
                   내 고민톡에서 별콩이와 다시 이야기해볼까?
                 </p>
               </div>
-              <span className="text-white/70 text-[16px] shrink-0">›</span>
+              <span className="text-white/70 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>
             </Link>
           )}
 
-          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
+          <p className="text-15 text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <SectionMark kind="love" /> 연애 고민
           </p>
 
@@ -189,7 +190,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-3.5 p-3.5 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="card flex items-center gap-3.5 transition-all text-left group"
                 >
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -204,17 +205,17 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-eye-purple text-[16px]">
+                    <p className="font-bold text-eye-purple text-17">
                       {option.tag}
                     </p>
-                    <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+                    <p className="text-12 text-text-light mt-0.5 leading-snug">
                       {option.description}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {option.hashtags.slice(0, 3).map((h) => (
                         <span
                           key={h}
-                          className="text-[10.5px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                          className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                         >
                           #{h}
                         </span>
@@ -233,7 +234,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -248,10 +249,10 @@ export default function Home() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                    <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>
@@ -264,7 +265,7 @@ export default function Home() {
           {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
           <div className="flex items-center gap-3 mb-4" aria-hidden>
             <span className="flex-1 h-px bg-lilac-mid/40" />
-            <span className="text-gold text-[11px]">✦</span>
+            
             <span className="flex-1 h-px bg-lilac-mid/40" />
           </div>
 
@@ -276,14 +277,14 @@ export default function Home() {
           <Link
             href="/byeolmaru"
             onClick={() => trackUiEvent("home_byeolmaru_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-2.5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-2.5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
                 // 🔴 금색(FORTUNE_GRADIENTS.daily)을 쓰면 안 된다 — 이 아이콘은 크림색 마루라
                 //    금색 타일 위에서 대비가 사라져 형태가 뭉개진다(56px 실측 확인). 라일락이어야 읽힌다.
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+                background: "#E8DEF5",
               }}
             >
               <Image
@@ -295,18 +296,18 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
                 별마루
-                <span className="text-[11px] font-bold text-text-light">무료</span>
+                <span className="text-11 font-bold text-text-light">무료</span>
               </p>
-              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+              <p className="text-12 text-text-light mt-0.5 leading-snug">
                 오늘 사주랑 오늘 타로, 매일 무료로 확인해봐
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {["오늘사주", "오늘타로", "매일무료"].map((h) => (
                   <span
                     key={h}
-                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>
@@ -319,12 +320,12 @@ export default function Home() {
           <Link
             href="/relationship"
             onClick={() => trackUiEvent("home_relationship_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+                background: "#E8DEF5",
               }}
             >
               <Image
@@ -336,20 +337,20 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
                 별콩이와 연애 상담
-                <span className="text-[11px] font-bold text-text-light">
+                <span className="text-11 font-bold text-text-light">
                   무료 시작
                 </span>
               </p>
-              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+              <p className="text-12 text-text-light mt-0.5 leading-snug">
                 썸·연애 고민 상담하고 대화도 미리 시뮬레이션
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {["연애상담", "썸", "시뮬레이션"].map((h) => (
                   <span
                     key={h}
-                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>
@@ -359,7 +360,7 @@ export default function Home() {
           </Link>
 
           {/* 다른 고민 */}
-          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
+          <p className="text-15 text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <SectionMark kind="other" /> 다른 고민
           </p>
 
@@ -371,7 +372,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/80 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -386,10 +387,10 @@ export default function Home() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                    <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>

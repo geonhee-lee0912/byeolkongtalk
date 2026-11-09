@@ -21,8 +21,8 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
   return (
     <Dialog label="광고성 정보 수신 동의 결과 안내" role="alertdialog" dismissible={false} z={110} onClose={onClose}>
       <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-        <p className="text-[16px] font-black tracking-tight text-center">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
-        <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-[13px] leading-relaxed">
+        <p className="text-17 font-black tracking-tight text-center">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
+        <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
           {noticeLines(notice).map((l) => (
             <div key={l.label} className="flex gap-3 py-0.5">
               <dt className="shrink-0 w-[64px] text-text-light">{l.label}</dt>
@@ -30,11 +30,11 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
             </div>
           ))}
         </dl>
-        <p className="mt-3 text-[11.5px] text-text-light text-center">언제든 마이 → 알림 설정에서 바꿀 수 있어</p>
+        <p className="mt-3 text-12 text-text-light text-center">언제든 마이의 알림 설정에서 바꿀 수 있어</p>
         <button
           type="button"
           onClick={onClose}
-          className="block w-full mt-4 py-3 rounded-full text-[14px] font-bold text-white bg-eye-purple"
+          className="btn btn-primary btn-lg mt-4"
         >
           확인
         </button>

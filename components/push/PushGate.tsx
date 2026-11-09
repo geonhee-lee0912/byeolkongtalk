@@ -180,9 +180,9 @@ export default function PushGate() {
         else setUnsubMsg("이미 광고 알림을 받지 않고 있어");
       } else if (r.status === 409) {
         setUnsubToken(null);
-        setUnsubMsg("이 알림의 수신거부는 이미 처리됐어. 지금 상태는 마이 → 알림 설정에서 볼 수 있어");
+        setUnsubMsg("이 알림의 수신거부는 이미 처리됐어. 지금 상태는 마이의 알림 설정에서 볼 수 있어");
       } else {
-        setUnsubMsg("잘 안 됐어. 마이 → 알림 설정에서 끌 수 있어");
+        setUnsubMsg("잘 안 됐어. 마이의 알림 설정에서 끌 수 있어");
       }
     } catch {
       setUnsubMsg("잘 안 됐어. 한 번 더 눌러 줄래?");
@@ -214,13 +214,13 @@ export default function PushGate() {
       {(unsubToken || unsubMsg) &&
         createPortal(
           <div className="fixed left-0 right-0 z-[70] px-4" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
-            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white/95 border border-lilac-mid/40 shadow-md px-3.5 py-2.5 text-[12.5px]">
+            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float px-3.5 py-2.5 text-13">
               <p className="flex-1 leading-snug">{unsubMsg ?? "이 광고 알림을 그만 받으려면"}</p>
               {unsubToken && !unsubMsg && (
                 <button
                   type="button"
                   onClick={() => void unsubscribe()}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold text-eye-purple bg-lilac-soft"
+                  className="btn btn-secondary btn-sm shrink-0"
                 >
                   수신거부
                 </button>
@@ -234,7 +234,7 @@ export default function PushGate() {
                 }}
                 className="shrink-0 w-7 h-7 text-text-light"
               >
-                ✕
+               
               </button>
             </div>
           </div>,
@@ -245,27 +245,27 @@ export default function PushGate() {
       {reconfirm && (
           <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
             <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-              <p className="text-[16px] font-black tracking-tight text-center">광고성 정보 수신 동의 확인 안내</p>
-              <p className="mt-3 text-[13px] leading-relaxed">
+              <p className="text-17 font-black tracking-tight text-center">광고성 정보 수신 동의 확인 안내</p>
+              <p className="mt-3 text-13 leading-relaxed">
                 별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
               </p>
-              <p className="mt-2 text-[12.5px] text-text-light leading-relaxed">
-                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이 → 알림 설정에서 끌 수 있어.
+              <p className="mt-2 text-13 text-text-light leading-relaxed">
+                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이의 알림 설정에서 끌 수 있어.
               </p>
               <button
                 type="button"
                 onClick={() => setReconfirm(null)}
-                className="block w-full mt-4 py-3 rounded-full text-[14px] font-bold text-white bg-eye-purple"
+                className="btn btn-primary btn-lg mt-4"
               >
                 그대로 둘게
               </button>
               {reconfirmFailed && (
-                <p className="mt-2 text-[12px] text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>
+                <p className="mt-2 text-12 text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>
               )}
               <button
                 type="button"
                 onClick={() => void withdrawFromReconfirm()}
-                className="block w-full mt-1.5 py-2.5 text-[13px] font-bold text-lilac-deep"
+                className="btn btn-text btn-lg mt-1.5"
               >
                 수신 거부
               </button>

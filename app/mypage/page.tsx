@@ -18,6 +18,7 @@ import { appSupportsPush } from "@/lib/app-push";
 import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -194,7 +195,7 @@ export default function MyPage() {
   if (loading || !me?.user) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -203,7 +204,7 @@ export default function MyPage() {
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+        <div className="bg-night-card rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
               {me.user.profile_img ? (
@@ -218,16 +219,16 @@ export default function MyPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-white truncate">
+              <div className="text-14 font-bold text-white truncate">
                 {me.user.nickname}
               </div>
-              <div className="text-[20px] font-bold text-gold-soft mt-0.5">
-                ⭐ {balance ?? 0}별
+              <div className="text-20 font-bold text-gold-soft mt-0.5">
+                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance ?? 0}별
               </div>
             </div>
             <Link
               href="/shop"
-              className="shrink-0 px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
+              className="btn btn-secondary btn-sm shrink-0"
             >
               충전
             </Link>
@@ -237,7 +238,7 @@ export default function MyPage() {
 
       {/* 보관함 — 종목별 요약 (한 박스 가로 4분할) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
+        <div className="text-12 font-bold text-eye-purple mb-3 flex items-center">
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           보관함
         </div>
@@ -247,14 +248,14 @@ export default function MyPage() {
       {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-[12px] font-bold text-eye-purple flex items-center">
+          <div className="text-12 font-bold text-eye-purple flex items-center">
             <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
             내 사주
           </div>
           {self?.saju && (
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
+              className="btn btn-secondary btn-sm shrink-0"
             >
               수정
             </button>
@@ -262,19 +263,19 @@ export default function MyPage() {
         </div>
 
         {self?.saju ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 py-4">
+          <div className="bg-white rounded-2xl shadow-card py-4">
             <SajuBoard saju={self.saju} />
           </div>
         ) : (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 px-4 py-6 text-center">
-            <p className="text-[12px] text-text-light/70 mb-3">
+          <div className="card-report text-center">
+            <p className="text-12 text-text-light mb-3">
               {self
                 ? "생일을 알려주면 사주도 보여줄게."
                 : "아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘."}
             </p>
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+              className="btn btn-primary btn-lg"
             >
               {self ? "생일 추가하기" : "내 사주 입력하기"}
             </button>
@@ -284,18 +285,18 @@ export default function MyPage() {
         {/* 지인 사주 → 팝업 */}
         <button
           onClick={() => setShowAcqModal(true)}
-          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+          className="card mt-2.5 w-full flex items-center gap-3"
         >
           <span
-            className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center text-[15px]"
+            className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-accent"
             aria-hidden
           >
-            👥
+            <Icon name="people" size={18} />
           </span>
-          <span className="flex-1 text-left text-[14px] text-eye-purple font-medium">
+          <span className="flex-1 text-left text-14 text-eye-purple font-medium">
             지인 사주 <span className="text-text-light">{acquaintanceCount}명</span>
           </span>
-          <span className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold">
+          <span className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-11 font-bold">
             관리
           </span>
         </button>
@@ -320,18 +321,18 @@ export default function MyPage() {
 
       {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
+        <div className="text-12 font-bold text-eye-purple mb-3 flex items-center">
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           계정
         </div>
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M12,1C7,1 3,5 3,10V17A3,3 0 0,0 6,20H9V12H5V10A7,7 0 0,1 12,3A7,7 0 0,1 19,10V12H15V20H19A3,3 0 0,0 22,17V10C22,5 17,1 12,1Z" />
               </svg>
             </span>
-            <span className="flex-1 text-[14px] text-eye-purple font-medium flex items-center gap-2">
+            <span className="flex-1 text-14 text-eye-purple font-medium flex items-center gap-2">
               고객센터 / 문의
               {supportUnread > 0 && (
                 <span className="relative flex h-2 w-2" aria-label="새 답변">
@@ -340,53 +341,53 @@ export default function MyPage() {
                 </span>
               )}
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           <Link href="/mypage/payments" className="flex items-center gap-3 p-3.5">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
               </svg>
             </span>
-            <span className="flex-1 text-[14px] text-eye-purple font-medium">
+            <span className="flex-1 text-14 text-eye-purple font-medium">
               결제 · 별 내역
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           {appReady && appSupportsPush() && (
             <Link href="/mypage/notifications" className="flex items-center gap-3 p-3.5">
-              <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+              <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                   <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21" />
                 </svg>
               </span>
-              <span className="flex-1 text-[14px] text-eye-purple font-medium">알림 설정</span>
-              <span className="text-text-light/40">›</span>
+              <span className="flex-1 text-14 text-eye-purple font-medium">알림 설정</span>
+              <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
             </Link>
           )}
           {/* 앱에서만 — 앱은 푸터를 숨기므로 약관·사업자 정보를 여기서 연다(스펙 2026-11-07-앱-화면 §9) */}
           <Link href="/mypage/legal" className="app-only flex items-center gap-3 p-3.5">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
               </svg>
             </span>
-            <span className="flex-1 text-[14px] text-eye-purple font-medium">약관·사업자 정보</span>
-            <span className="text-text-light/40">›</span>
+            <span className="flex-1 text-14 text-eye-purple font-medium">약관·사업자 정보</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           <button
             onClick={() => setShowWithdrawConfirm(true)}
             className="w-full flex items-center gap-3 p-3.5"
           >
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft/60 flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light/70" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft/60 flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light" aria-hidden>
                 <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
               </svg>
             </span>
-            <span className="flex-1 text-left text-[14px] text-text-light/70 font-medium">
+            <span className="flex-1 text-left text-14 text-text-light font-medium">
               회원 탈퇴
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </button>
         </div>
       </div>
@@ -396,7 +397,7 @@ export default function MyPage() {
         <div className="h-px bg-lilac-mid/30 mb-5" />
         <button
           onClick={handleLogout}
-          className="w-full py-3 rounded-xl bg-eye-purple text-white font-bold text-[14px]"
+          className="btn btn-primary btn-lg"
         >
           로그아웃
         </button>
@@ -415,17 +416,17 @@ export default function MyPage() {
           z={50}
           widthClassName="max-w-xs"
           gutterClassName="px-5"
-          backdropClassName="bg-black/30"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
         >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
-            <p className="text-[14px] font-bold text-eye-purple mb-2">
+            <p className="text-14 font-bold text-eye-purple mb-2">
               정말 떠나려고?
             </p>
-            <p className="text-[12px] text-text-light leading-relaxed mb-3">
+            <p className="text-12 text-text-light leading-relaxed mb-3">
               탈퇴하면 너의 사주 풀이, 별 잔액, 모든 기록이 영구적으로 삭제돼.
               되돌릴 수 없어.
             </p>
-            <label className="flex items-center gap-2 text-[12px] text-text-light mb-4">
+            <label className="flex items-center gap-2 text-12 text-text-light mb-4">
               <input
                 type="checkbox"
                 checked={withdrawAck}
@@ -435,13 +436,13 @@ export default function MyPage() {
               위 내용에 동의해
             </label>
             <div className="flex gap-2">
-              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]">
+              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-12">
                 취소
               </OverlayCloseButton>
               <button
                 onClick={handleWithdraw}
                 disabled={!withdrawAck || withdrawing}
-                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-12 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 탈퇴하기
               </button>

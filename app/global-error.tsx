@@ -63,8 +63,7 @@ export default function GlobalError({
           textAlign: "center",
         }}
       >
-        <div style={{ maxWidth: 360 }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>✨</div>
+        <div style={{ maxWidth: 360 }}>
           <h1
             style={{
               fontSize: 24,

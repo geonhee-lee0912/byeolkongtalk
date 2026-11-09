@@ -294,28 +294,28 @@ export function useByeolmaruSubscribe(
                   에선 "20별 / 30일"이 세 번째 항목의 넷째 줄처럼 붙어 읽혔다. */}
               <ul className="space-y-1 mb-6">
                 {BAIT_SLOTS.map((slot) => (
-                  <li key={slot} className="flex items-start gap-1.5 text-[13px] leading-snug">
-                    <span aria-hidden className="text-eye-purple shrink-0">✦</span>
+                  <li key={slot} className="flex items-start gap-1.5 text-13 leading-snug">
+                    
                     <span>
                       <span className="font-medium text-eye-purple">{BAIT[slot].title}</span>
-                      <span className="text-eye-purple/85 text-[12px]"> · {BAIT[slot].chips[0]}</span>
+                      <span className="text-eye-purple/85 text-12"> · {BAIT[slot].chips[0]}</span>
                     </span>
                   </li>
                 ))}
                 {/* 🔴 앱 아침 알림이 '구독 내용물'이라는 표시 — 구독자에게 정보성(광고 아님)으로 보내는 근거다
                     (앱 알림 설계 2026-11-06 §3 B "구독 상품 설명에 이 알림들이 구독 내용이라고 적는다"). 지우지 말 것 */}
-                <li className="flex items-start gap-1.5 text-[13px] leading-snug">
-                  <span aria-hidden className="text-eye-purple shrink-0">✦</span>
+                <li className="flex items-start gap-1.5 text-13 leading-snug">
+                  
                   <span>
                     <span className="font-medium text-eye-purple">아침 알림</span>
-                    <span className="text-eye-purple/85 text-[12px]"> · 앱에서 알림을 켜면 매일 아침 오늘의 흐름을 보내줘</span>
+                    <span className="text-eye-purple/85 text-12"> · 앱에서 알림을 켜면 매일 아침 오늘의 흐름을 보내줘</span>
                   </span>
                 </li>
               </ul>
-              <p className="text-center font-display text-xl font-bold text-eye-purple">
+              <p className="text-center font-display text-20 font-bold text-eye-purple">
                 {COST}별 / {DAYS}일
               </p>
-              <p className="mt-2 text-center text-[11px] text-eye-purple/85">
+              <p className="mt-2 text-center text-11 text-eye-purple/85">
                 {offer.phase === "pre_trial" ? `체험 ${TRIAL_DAYS}일 + ${DAYS}일` : `${DAYS}일`} 지나면 그냥 끝나 — 자동으로 또 빠져나가지 않아.
               </p>
             </div>

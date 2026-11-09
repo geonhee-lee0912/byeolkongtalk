@@ -1,0 +1,60 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>버튼 규칙</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--ls:#E8DEF5;--ld:#9F8AD0;--ink:#5A3E8C;--tl:#7A6BA0;--mid:#7E66BA}
+*{box-sizing:border-box}body{margin:0;background:#EEE8F4;color:#3b3350;font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 14px}
+section{background:#fff;border-radius:20px;padding:18px;margin-top:16px}h2{color:var(--ink);font-size:17px;margin:0 0 10px}h2 small{font-weight:400;color:var(--tl);font-size:13px}
+table{border-collapse:collapse;width:100%}td,th{padding:9px 8px;border-top:1px solid #f1ebf7;text-align:left;font-size:13px;vertical-align:middle}th{color:var(--tl);font-weight:500;border-top:0;font-size:12px}
+.n{font-weight:900;color:var(--ink);white-space:nowrap}
+.btn{border:0;font:700 15px/1 "Noto Sans KR";border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:default}
+.lg{height:52px;width:100%}.md{height:44px;padding:0 18px}.sm{height:36px;padding:0 14px;font-size:13px}
+.pri{background:var(--mid);color:#fff}.sec{background:var(--ls);color:var(--ink)}.txt{background:none;color:var(--ink);text-decoration:none}.dis{opacity:.4}
+.kakao{background:#FEE500;color:#191919}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.opt{background:var(--cream);border-radius:16px;padding:14px;border:2px solid transparent}.opt.rec{border-color:var(--ld)}
+.opt h4{margin:0 0 4px;color:var(--ink);font-size:14px;display:flex;gap:6px;align-items:center}.r{background:var(--ink);color:#fff;font-size:11px;border-radius:999px;padding:1px 8px}
+.ratio{font-size:12.5px;margin:0 0 10px;color:var(--tl)}.ok{color:#2E8B57;font-weight:700}.ng{color:#C0392B;font-weight:700}
+.card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(90,62,140,.08)}.card b{color:var(--ink);font-size:16px;display:block}.card p{margin:2px 0 12px;color:var(--tl);font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{font-size:12.5px;color:var(--tl);margin:10px 0 0}
+</style></head><body><div class="wrap">
+<h1>버튼 — 32가지 모양을 종류 3 × 크기 3으로</h1>
+<p class="lead">모서리 12 · 글자 굵게(700) · 글자 크기 15(작은 버튼 13)는 앞에서 정한 대로예요.</p>
+
+<section><h2>종류와 크기</h2>
+<table><tr><th>종류</th><th>모양</th><th>쓰는 곳</th></tr>
+<tr><td class="n">주 버튼</td><td><span class="btn md pri">결제하기</span></td><td>그 화면에서 가장 중요한 행동 하나 (뽑기·결제·시작)</td></tr>
+<tr><td class="n">보조 버튼</td><td><span class="btn md sec">다른 카드 보기</span></td><td>주 버튼 옆 두 번째 선택. 지금 흰 바탕+테두리(20여 곳) → 연보라 채움으로</td></tr>
+<tr><td class="n">글자 버튼</td><td><span class="btn md txt">나중에 할게</span></td><td>취소·건너뛰기·더 보기</td></tr>
+</table>
+<table style="margin-top:8px"><tr><th>크기</th><th>높이</th><th>쓰는 곳</th><th>근거</th></tr>
+<tr><td class="n">큰</td><td>52</td><td>화면·시트 맨 아래 폭 가득 버튼</td><td>당근 큰 버튼 52 · 지금 약 50</td></tr>
+<tr><td class="n">중간</td><td>44</td><td>카드 안 버튼</td><td>애플 최소 터치 크기 44 · 당근 40</td></tr>
+<tr><td class="n">작은</td><td>36</td><td>목록 옆 작은 행동, 글자 13</td><td>당근 작은 버튼 36</td></tr>
+</table>
+<p class="note"><b>상태:</b> 누르면 살짝 작아짐(지금 쓰는 효과 하나로) · 못 누를 때 흐리게 40% · 처리 중엔 글자 대신 점 세 개.<br>
+<b>예외로 그대로 두는 것:</b> 카카오 로그인·공유 노란 버튼, 애플 로그인 검정 버튼(각 회사 규정 모양), 탈퇴·삭제 확인의 위험 버튼.</p>
+</section>
+
+<section><h2>고를 것 — 주 버튼 색 <small>흰 글자가 잘 읽히는지(대비)가 걸려요</small></h2>
+<div class="opts">
+<div class="opt"><h4>지금 — 연보라 #9F8AD0</h4><p class="ratio">흰 글자 대비 <span class="ng">3.0 : 1</span> — 웹 접근성 기준(4.5) 미달</p>
+<span class="btn lg" style="background:#9F8AD0;color:#fff">카드 뽑기</span></div>
+<div class="opt rec"><h4>버튼 보라 #7E66BA <span class="r">추천</span></h4><p class="ratio">흰 글자 대비 <span class="ok">4.7 : 1</span> — 기준 통과. 연보라 느낌은 남아요</p>
+<span class="btn lg" style="background:#7E66BA;color:#fff">카드 뽑기</span></div>
+<div class="opt"><h4>진보라 #5A3E8C (지금 글자색)</h4><p class="ratio">흰 글자 대비 <span class="ok">8.4 : 1</span> — 가장 또렷, 대신 무거워요</p>
+<span class="btn lg" style="background:#5A3E8C;color:#fff">카드 뽑기</span></div>
+</div>
+<p class="note">주 버튼은 36곳 이상이라 화면 인상이 꽤 바뀌어요. #7E66BA 는 팔레트에 없던 색이라 '버튼 보라' 토큰을 하나 새로 만들어요.</p>
+</section>
+
+<section><h2>추천안으로 모으면</h2>
+<div class="opts">
+<div class="card"><b>오늘의 타로</b><p>카드 한 장으로 오늘 흐름을 봐요</p><div class="row"><span class="btn md pri">카드 뽑기</span><span class="btn md sec">설명 보기</span></div></div>
+<div class="card"><b>별 충전</b><p>원하는 만큼 골라서 충전해요</p><span class="btn lg pri">결제하기</span><div style="text-align:center;margin-top:6px"><span class="btn sm txt">나중에 할게</span></div></div>
+<div class="card"><b>로그인하고 이어서 보기</b><p>지금까지 본 결과가 저장돼요</p><span class="btn lg kakao">카카오로 시작하기</span><div class="row" style="margin-top:8px"><span class="btn sm sec">알림 설정</span><span class="btn sm pri dis">저장</span></div></div>
+</div>
+</section>
+</div></body></html>

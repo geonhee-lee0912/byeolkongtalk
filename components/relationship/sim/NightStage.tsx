@@ -15,6 +15,7 @@ import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { hideTrailingSendMarker } from "@/lib/relationship/sim-stream";
 import { SIM_SUGGEST_COST, type RelationshipStatus } from "@/lib/relationship/types";
 import type { SensitiveCategory } from "@/lib/sensitive";
+import Icon from "@/components/common/Icon";
 
 export interface NightStageProps {
   simReadingId: string;
@@ -211,7 +212,7 @@ export default function NightStage(props: NightStageProps) {
             ) : m.who === "user" ? (
               <div
                 key={m.id}
-                className="max-w-[82%] self-end rounded-2xl rounded-tr-sm bg-lilac-deep text-white px-3.5 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap"
+                className="max-w-[82%] self-end rounded-2xl rounded-tr-sm bg-lilac-deep text-white px-3.5 py-2.5 text-16 whitespace-pre-wrap"
               >
                 {m.text}
               </div>
@@ -225,7 +226,7 @@ export default function NightStage(props: NightStageProps) {
             ) : (
               <SimBubble content={live.text} streaming />
             ))}
-          {error && <p className="self-center text-[13px] text-rose-300">{error}</p>}
+          {error && <p className="self-center text-13 text-rose-300">{error}</p>}
         </div>
 
         {/* 하단 한 줄 — readOnly(완료 재열람)면 '정리 보기'만, 아니면 입력바 */}
@@ -234,9 +235,9 @@ export default function NightStage(props: NightStageProps) {
             <button
               type="button"
               onClick={props.onDebrief}
-              className="w-full h-11 rounded-xl text-gold-soft border border-gold/40 font-bold text-[13px] hover:bg-gold/10 transition-colors"
+              className="w-full h-11 rounded-xl text-gold-soft border border-gold/40 font-bold text-13 hover:bg-gold/10 transition-colors"
             >
-              🌙 정리 보기
+              정리 보기
             </button>
           </div>
         ) : (
@@ -250,8 +251,8 @@ export default function NightStage(props: NightStageProps) {
               className="shrink-0 self-end flex flex-col items-center justify-center gap-0.5 w-12 h-11 rounded-xl text-gold-soft border border-gold/30 disabled:opacity-40"
               aria-label="답변 추천"
             >
-              <span className="text-base leading-none">{suggesting ? "⏳" : "💡"}</span>
-              <span className="text-[10px] leading-none">추천</span>
+              <Icon name={suggesting ? "hourglass" : "bulb"} size={16} />
+              <span className="text-11 leading-none">추천</span>
             </button>
             {/* 입력창 + 내부 전송(원형 없이 아이콘만) */}
             <div className="relative flex-1">
@@ -278,7 +279,7 @@ export default function NightStage(props: NightStageProps) {
                 maxLength={8000}
                 placeholder={busy ? "별콩이가 답하는 중…" : "편하게 말 걸어봐"}
                 disabled={busy}
-                className="block w-full pl-3.5 pr-11 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-[14px] leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="block w-full pl-3.5 pr-11 py-2.5 rounded-xl bg-night/60 border border-lilac-mid/30 text-cream-warm text-14 leading-[22px] placeholder:text-lilac/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button
@@ -297,7 +298,7 @@ export default function NightStage(props: NightStageProps) {
             <button
               type="button"
               onClick={props.onDebrief}
-              className={`shrink-0 self-end inline-flex items-center h-11 rounded-xl px-3 text-[13px] font-bold border transition-colors ${
+              className={`shrink-0 self-end inline-flex items-center h-11 rounded-xl px-3 text-13 font-bold border transition-colors ${
                 forceDebrief
                   ? "bg-gold text-night-deep border-gold animate-pulse-soft"
                   : "text-gold-soft border-gold/40 hover:bg-gold/10"
@@ -316,12 +317,12 @@ export default function NightStage(props: NightStageProps) {
           onClose={() => setSuggestions([])}
           z={50}
           align="bottom"
-          backdropClassName="bg-night-deep/60"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
           panelClassName="bg-night rounded-t-3xl border-t border-lilac-mid/30 p-5 pb-[max(env(safe-area-inset-bottom),20px)] animate-fade-in"
         >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-cream-warm font-bold text-[15px]">이렇게 말해보는 건 어때?</h3>
-              <OverlayCloseButton className="text-lilac-soft/60 text-[13px]">닫기</OverlayCloseButton>
+              <h3 className="text-cream-warm font-bold text-15">이렇게 말해보는 건 어때?</h3>
+              <OverlayCloseButton className="text-lilac-soft/60 text-13">닫기</OverlayCloseButton>
             </div>
             <div className="flex flex-col gap-2.5">
               {suggestions.map((s, i) => (
@@ -331,14 +332,14 @@ export default function NightStage(props: NightStageProps) {
                   onClick={() => useSuggestion(s.say)}
                   className="text-left rounded-2xl bg-gold/10 border border-gold/30 p-3.5 hover:bg-gold/15 active:scale-[0.99] transition"
                 >
-                  <p className="text-cream-warm text-[14px] leading-relaxed">{s.say}</p>
+                  <p className="text-cream-warm text-14 leading-relaxed">{s.say}</p>
                   {s.why && (
-                    <p className="text-gold-soft/75 text-[12px] mt-1.5 leading-relaxed">💡 {s.why}</p>
+                    <p className="text-gold-soft/75 text-12 mt-1.5 leading-relaxed">{s.why}</p>
                   )}
                 </button>
               ))}
             </div>
-            <p className="text-center text-lilac-soft/50 text-[11px] mt-3">
+            <p className="text-center text-lilac-soft/50 text-11 mt-3">
               탭하면 입력창에 담겨 — 자유롭게 다듬어 보내
             </p>
         </Sheet>

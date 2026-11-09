@@ -6,6 +6,7 @@
 import { useState } from "react";
 import Sheet from "@/components/common/Sheet";
 import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import Icon from "@/components/common/Icon";
 
 interface AddPersonSheetProps {
   /** 새 슬롯 가격(SLOT_COST) — 서버 getSlotInfo 권위 */
@@ -74,8 +75,8 @@ export default function AddPersonSheet({
       dismissible={!purchasing}
       z={90}
       align="bottom"
-      backdropClassName="bg-night/70 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto scrollbar-hover pb-[max(env(safe-area-inset-bottom),16px)]"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto scrollbar-hover pb-[max(env(safe-area-inset-bottom),16px)]"
     >
         <div className="web-only flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
@@ -83,40 +84,40 @@ export default function AddPersonSheet({
         <OverlayCloseButton
           disabled={purchasing}
           aria-label="닫기"
-          className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+          className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
         >
-          ✕
+         
         </OverlayCloseButton>
 
         <div className="px-5 pt-3 pb-2">
-          <div className="text-center text-[30px] leading-none mb-2" aria-hidden>
-            🧸✨
+          <div className="text-center text-28 leading-none mb-2" aria-hidden>
+            
           </div>
-          <h2 className="font-display text-[16px] font-bold text-eye-purple text-center">
+          <h2 className="font-display text-17 font-bold text-eye-purple text-center">
             새로운 사람 만나기
           </h2>
-          <p className="text-[11.5px] text-text-light text-center mt-1 mb-4">
+          <p className="text-12 text-text-light text-center mt-1 mb-4">
             {insufficient
               ? "슬롯을 열려면 별이 조금 부족해"
               : "새 사람을 추가하려면 슬롯이 필요해"}
           </p>
 
-          <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-2">
-            <span className="text-[12.5px] text-text-light">새 사람 슬롯</span>
+          <div className="card-inner flex items-center justify-between mb-2">
+            <span className="text-13 text-text-light">새 사람 슬롯</span>
             <span
-              className="text-[12.5px] font-bold"
+              className="text-13 font-bold"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              ⭐{nextCost}
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{nextCost}
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-4">
-            <span className="text-[12.5px] text-text-light">내 별</span>
+          <div className="card-inner flex items-center justify-between mb-4">
+            <span className="text-13 text-text-light">내 별</span>
             <span
-              className="text-[12.5px] font-bold text-lilac-deep"
+              className="text-13 font-bold text-accent"
               style={{ color: insufficient ? WARN : undefined }}
             >
-              ⭐{bal}
+              <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{bal}
               {insufficient && " (부족)"}
             </span>
           </div>
@@ -125,29 +126,29 @@ export default function AddPersonSheet({
             <button
               type="button"
               onClick={onGoShop}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-[15px] active:scale-[0.98] transition"
+              className="btn btn-lg text-white"
               style={{ background: WARN }}
             >
-              별 충전하러 가기 →
+              별 충전하러 가기
             </button>
           ) : (
             <button
               type="button"
               onClick={() => void handlePurchase()}
               disabled={purchasing}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-60"
+              className="btn btn-primary btn-lg"
             >
               {purchasing ? "슬롯 여는 중…" : "슬롯 열고 추가하기"}
             </button>
           )}
 
           {!insufficient && (
-            <p className="text-center text-[10.5px] font-bold text-lilac-mid mt-2.5">
+            <p className="text-center text-11 font-bold text-lilac-mid mt-2.5">
               열면 바로 이름·관계 입력
             </p>
           )}
           {error && (
-            <p className="mt-2 text-[11px] text-red-500 text-center">{error}</p>
+            <p className="mt-2 text-11 text-red-500 text-center">{error}</p>
           )}
         </div>
     </Sheet>
