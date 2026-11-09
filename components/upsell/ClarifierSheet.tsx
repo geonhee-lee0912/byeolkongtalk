@@ -190,7 +190,7 @@ export default function ClarifierSheet({
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
             ✕
           </OverlayCloseButton>

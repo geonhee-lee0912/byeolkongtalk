@@ -197,7 +197,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
             </div>
             <OverlayCloseButton
               aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
               ✕
             </OverlayCloseButton>
@@ -240,9 +240,9 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 onChange={(e) => setConcern(e.target.value.slice(0, MAX_LEN))}
                 rows={4}
                 placeholder="오늘은 어떤 결을 이어서 풀어볼까?"
-                className="mt-1 w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-light/50"
+                className="mt-1 w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-faint"
               />
-              <div className="flex justify-between text-11 text-text-light/70 mt-1">
+              <div className="flex justify-between text-11 text-text-light mt-1">
                 <span>{concern.length < MIN_LEN ? `최소 ${MIN_LEN}자` : " "}</span>
                 <span>
                   {concern.length} / {MAX_LEN}
@@ -265,10 +265,10 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   <button
                     onClick={() => start("deep")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-lilac-deep font-bold text-15 hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-accent font-bold text-15 hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     동일한 카드로 이어서 상담 (⭐ {priceText(deepCost)}
-                    <span className="text-11 text-lilac-deep/70">40% 할인</span>)
+                    <span className="text-11 text-accent">40% 할인</span>)
                   </button>
                 </>
               ) : (

@@ -199,7 +199,7 @@ export default function RechargeSheet({
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
             ✕
           </OverlayCloseButton>
@@ -277,7 +277,7 @@ export default function RechargeSheet({
                   {leftover !== null && (
                     <span
                       className={`block mt-0.5 text-11 tabular-nums ${
-                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light/60"
+                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light"
                       }`}
                     >
                       {leftover > 0

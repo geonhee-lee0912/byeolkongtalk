@@ -1075,7 +1075,7 @@ function TarotReadingInner() {
                 {draw.emotion}
               </span>
               {!concernExpanded && (
-                <span className="text-12 text-text-light/70 truncate flex-1 ml-1">
+                <span className="text-12 text-text-light truncate flex-1 ml-1">
                   · {draw.concern || "지금 내 흐름이 궁금해"}
                 </span>
               )}
@@ -1248,7 +1248,7 @@ function TarotReadingInner() {
                     type="button"
                     onClick={retrySend}
                     disabled={inPurchaseFlow}
-                    className="mt-1.5 inline-block text-12 font-bold text-lilac-deep underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-1.5 inline-block text-12 font-bold text-accent underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     다시 시도
                   </button>
@@ -1325,7 +1325,7 @@ function TarotReadingInner() {
                     }
                     disabled={isStreaming || !readingId}
                     maxLength={500}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                     style={{ minHeight: "44px", maxHeight: "120px" }}
                   />
                   <button
@@ -1441,7 +1441,7 @@ function TarotReadingInner() {
                 sessionStorage.removeItem("byeolkong:pending_upsell");
                 setPendingResumeBanner(null);
               }}
-              className="shrink-0 text-11 text-text-light/70 hover:text-text-light"
+              className="shrink-0 text-11 text-text-light hover:text-text-light"
             >
               나중에
             </button>

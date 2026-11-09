@@ -28,7 +28,7 @@ export default function FortuneRefundModal({ cost, label, onClose }: FortuneRefu
           <p className="font-display text-17 text-eye-purple leading-tight">
             앗, {label} 리포트를 만들다 문제가 생겼어
           </p>
-          <p className="text-13 text-text-light/85 mt-2 leading-relaxed">
+          <p className="text-13 text-text-light mt-2 leading-relaxed">
             사용한 별 <span className="font-bold text-eye-purple">{cost}개</span>는 다시 돌려놨어.
             <br />
             잠시 후 다시 시도해줄래?

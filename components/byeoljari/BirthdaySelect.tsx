@@ -58,7 +58,7 @@ function CustomSelect({
       >
         {value || placeholder}
       </button>
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-11 text-lilac-deep">
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-11 text-accent">
         ▼
       </span>
       {open && (

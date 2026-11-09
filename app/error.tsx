@@ -72,14 +72,14 @@ export default function Error({
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 hover:bg-lilac-deep/5 transition"
+          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 hover:bg-lilac-deep/5 transition"
         >
           홈으로 돌아가기
         </Link>
       </div>
 
       {error.digest && (
-        <p className="mt-6 text-11 text-text-light/50 font-mono">
+        <p className="mt-6 text-11 text-text-light font-mono">
           {error.digest}
         </p>
       )}

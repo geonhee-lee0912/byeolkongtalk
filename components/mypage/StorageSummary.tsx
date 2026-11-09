@@ -36,7 +36,7 @@ export default function StorageSummary({ counts, relationshipPassActive }: Stora
               {isRel ? (
                 <span
                   className={`text-17 font-bold leading-none ${
-                    relationshipPassActive ? "text-lilac-deep" : "text-text-light/40"
+                    relationshipPassActive ? "text-accent" : "text-text-light"
                   }`}
                 >
                   {relationshipPassActive ? "ON" : "OFF"}

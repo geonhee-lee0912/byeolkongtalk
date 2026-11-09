@@ -30,7 +30,7 @@ export default function RecoInlineCard({ product, onTap }: Props) {
             지난 고민을 기억한 채 이어져요
           </div>
         </div>
-        <span className="text-text-light/60 text-14 shrink-0">›</span>
+        <span className="text-text-light text-14 shrink-0">›</span>
       </button>
     </div>
   );

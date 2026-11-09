@@ -342,7 +342,7 @@ export default function SajuTodayView({
           // 🔴 `py-2.5 text-sm` 은 바로 위 구독 CTA(PaywallCut 의 금색 버튼)와 **같은 상자**다
           //    (2026-09-27, 사용자 요청). 예전 `py-2 text-xs` 는 34px 로 41px 짜리 CTA 아래에
           //    혼자 납작해 보였다. 둘 중 하나를 바꿀 땐 같이 볼 것.
-          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-lilac-deep disabled:opacity-40"
+          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-accent disabled:opacity-40"
         >
           오늘 사주 공유하기
         </button>

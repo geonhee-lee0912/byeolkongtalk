@@ -77,10 +77,10 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
     return (
       <main className="flex flex-1 flex-col items-center py-8 w-full">
         <div className="w-full max-w-md mx-auto px-5">
-          <Link href="/mypage/support" className="web-only text-12 text-text-light/70">
+          <Link href="/mypage/support" className="web-only text-12 text-text-light">
             ‹ 문의 목록
           </Link>
-          <p className="text-text-light/70 text-13 text-center py-12">
+          <p className="text-text-light text-13 text-center py-12">
             문의를 찾을 수 없어.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage/support" className="web-only text-12 text-text-light/70">
+        <Link href="/mypage/support" className="web-only text-12 text-text-light">
           ‹ 문의 목록
         </Link>
       </div>
@@ -101,15 +101,15 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
         <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="shrink-0 w-10 h-10 rounded-xl bg-lilac-soft flex items-center justify-center">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d={INQUIRY_CATEGORY_ICON[item.category]} />
               </svg>
             </div>
             <div className="min-w-0">
-              <div className="text-11 text-lilac-deep font-bold">
+              <div className="text-11 text-accent font-bold">
                 {INQUIRY_CATEGORIES[item.category]}
               </div>
-              <div className="text-11 text-text-light/60">
+              <div className="text-11 text-text-light">
                 {fmtDateTime(item.created_at)}
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
           </div>
         ) : (
           <div className="bg-cream rounded-2xl p-4 border border-lilac-mid/20 text-center">
-            <p className="text-13 text-text-light/70">
+            <p className="text-13 text-text-light">
               별콩이가 확인하고 있어 ✨ 답변이 달리면 알려줄게.
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="text-12 text-text-light/60 underline mx-auto block"
+                className="text-12 text-text-light underline mx-auto block"
               >
                 문의 삭제
               </button>

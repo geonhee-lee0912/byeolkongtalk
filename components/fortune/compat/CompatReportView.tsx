@@ -88,7 +88,7 @@ export default function CompatReportView({
         <ol className="flex flex-col gap-1.5">
           {report.advice.map((a, i) => (
             <li key={i} className="flex gap-2 text-14 text-[#4F4A5E] leading-[1.7]">
-              <span className="font-bold text-lilac-deep flex-shrink-0">{i + 1}.</span>
+              <span className="font-bold text-accent flex-shrink-0">{i + 1}.</span>
               <span>{a}</span>
             </li>
           ))}
@@ -133,7 +133,7 @@ export default function CompatReportView({
               <SajuBoard saju={saju.a} showDetail={false} />
             </div>
             <div className="flex justify-center">
-              <span className="rounded-full bg-lilac-soft/60 px-3.5 py-1 text-12 font-bold text-lilac-deep">
+              <span className="rounded-full bg-lilac-soft/60 px-3.5 py-1 text-12 font-bold text-accent">
                 {saju.a.dayStem}({saju.a.dayElement}) ↔ {saju.b.dayStem}({saju.b.dayElement})
               </span>
             </div>

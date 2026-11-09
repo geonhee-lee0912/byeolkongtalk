@@ -70,7 +70,7 @@ export default function PassConfirmModal({
           <p className="font-display text-17 font-bold text-eye-purple">
             {plan.label} 구매할까?
           </p>
-          <p className="mt-1.5 text-17 font-bold text-lilac-deep">
+          <p className="mt-1.5 text-17 font-bold text-accent">
             ⭐ {plan.cost}별 차감
           </p>
         </div>

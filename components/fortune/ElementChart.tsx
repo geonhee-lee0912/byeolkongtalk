@@ -24,7 +24,7 @@ export default function ElementChart({
     <div
       className={`bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-15 font-extrabold text-lilac-deep mb-4">🌈 내 오행 분포</h3>
+      <h3 className="text-15 font-extrabold text-accent mb-4">🌈 내 오행 분포</h3>
       <div className="flex flex-col gap-2.5">
         {ORDER.map((e) => {
           const c = counts[e] ?? 0;
@@ -59,7 +59,7 @@ export default function ElementChart({
           );
         })}
       </div>
-      <p className="text-11 text-text-light/70 mt-3 leading-snug">
+      <p className="text-11 text-text-light mt-3 leading-snug">
         여덟 글자(사주) 안 오행의 개수야. 가장 많은 기운은 진하게, 0개는 옅게 표시했어.
       </p>
     </div>

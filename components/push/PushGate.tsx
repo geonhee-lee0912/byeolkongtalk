@@ -265,7 +265,7 @@ export default function PushGate() {
               <button
                 type="button"
                 onClick={() => void withdrawFromReconfirm()}
-                className="block w-full mt-1.5 py-2.5 text-13 font-bold text-lilac-deep"
+                className="block w-full mt-1.5 py-2.5 text-13 font-bold text-accent"
               >
                 수신 거부
               </button>

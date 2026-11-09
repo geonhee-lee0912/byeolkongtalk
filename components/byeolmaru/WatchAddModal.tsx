@@ -201,7 +201,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
             <OverlayCloseButton
               aria-label="닫기"
               disabled={busy}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
             >
               ✕
             </OverlayCloseButton>
@@ -327,7 +327,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                           aria-current={i === page ? "page" : undefined}
                           disabled={busy}
                           className={`w-7 h-7 rounded-lg text-12 font-bold ${
-                            i === page ? "bg-lilac-deep text-white" : "text-text-light/70 hover:bg-lilac-soft/50"
+                            i === page ? "bg-lilac-deep text-white" : "text-text-light hover:bg-lilac-soft/50"
                           }`}
                         >
                           {i + 1}

@@ -214,7 +214,7 @@ export default function Home() {
                       {option.hashtags.slice(0, 3).map((h) => (
                         <span
                           key={h}
-                          className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                          className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                         >
                           #{h}
                         </span>
@@ -251,7 +251,7 @@ export default function Home() {
                     <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-11 font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>
@@ -389,7 +389,7 @@ export default function Home() {
                     <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-11 font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>

@@ -74,7 +74,7 @@ export default function ByeoljariCreatePage() {
         <p>✨ 관계 속에 유난히 잘 맞는 특별한 인연도 찾아줄게</p>
       </div>
       <ConstellationPreview />
-      <p className="mt-4 mb-5 text-center text-12 text-text-light/60">친구를 부를수록 이렇게 자라나</p>
+      <p className="mt-4 mb-5 text-center text-12 text-text-light">친구를 부를수록 이렇게 자라나</p>
       <div className="space-y-3">
         <input
           className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
@@ -100,7 +100,7 @@ export default function ByeoljariCreatePage() {
           {busy ? "만드는 중…" : "만들기"}
         </button>
       </div>
-      <p className="mt-3 text-11 text-text-light/70 text-center leading-relaxed">
+      <p className="mt-3 text-11 text-text-light text-center leading-relaxed">
         만 14세 이상만 이용할 수 있어요. 생년월일은 별자리 계산에만 쓰이고 다른
         사람에게 보이지 않아요. 만들기를 누르면{" "}
         <Link href="/privacy" className="underline">
@@ -111,7 +111,7 @@ export default function ByeoljariCreatePage() {
       {!loggedIn && (
         <a
           href="/login?next=/fortune/byeoljari"
-          className="mt-3 block w-full rounded-xl border border-lilac-deep py-3 text-center font-medium text-lilac-deep transition active:scale-[0.99]"
+          className="mt-3 block w-full rounded-xl border border-lilac-deep py-3 text-center font-medium text-accent transition active:scale-[0.99]"
         >
           로그인하고 시작하기
         </a>

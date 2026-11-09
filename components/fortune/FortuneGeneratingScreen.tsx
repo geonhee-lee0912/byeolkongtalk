@@ -88,7 +88,7 @@ export default function FortuneGeneratingScreen({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-3 text-12 text-text-light/80 text-center transition-opacity">
+          <p className="mt-3 text-12 text-text-light text-center transition-opacity">
             {steps[step]}
           </p>
         </div>

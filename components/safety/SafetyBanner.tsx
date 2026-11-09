@@ -80,7 +80,7 @@ export default function SafetyBanner({
         {onClose && (
           <button
             onClick={onClose}
-            className="text-text-light/70 text-17 leading-none px-1"
+            className="text-text-light text-17 leading-none px-1"
             aria-label="닫기"
           >
             ×
@@ -100,11 +100,11 @@ export default function SafetyBanner({
             className="flex items-baseline gap-2 text-13 bg-white/60 rounded-lg px-3 py-2"
           >
             <span className="font-bold text-eye-purple">{h.name}</span>
-            <span className="font-mono text-lilac-deep font-bold">
+            <span className="font-mono text-accent font-bold">
               {h.number}
             </span>
             {h.note && (
-              <span className="text-11 text-text-light/80 ml-auto">
+              <span className="text-11 text-text-light ml-auto">
                 {h.note}
               </span>
             )}
@@ -112,7 +112,7 @@ export default function SafetyBanner({
         ))}
       </div>
 
-      <p className="text-11 text-text-light/60 mt-3 leading-relaxed">
+      <p className="text-11 text-text-light mt-3 leading-relaxed">
         별콩이의 풀이는 정신건강 전문 상담을 대체하지 않아.
       </p>
     </div>

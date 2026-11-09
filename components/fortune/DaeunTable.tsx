@@ -29,7 +29,7 @@ export default function DaeunTable({
   return (
     <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
       <h3 className="text-15 font-extrabold text-eye-purple mb-1.5">🌌 대운 10년 흐름</h3>
-      <p className="text-11 text-text-light/70 leading-snug mb-5">
+      <p className="text-11 text-text-light leading-snug mb-5">
         10년마다 바뀌는 인생의 큰 기운이야. 각 시기가 네 사주와 만나 어떤 국면을 여는지 담았어.
       </p>
       <div className="flex flex-col gap-4">
@@ -53,11 +53,11 @@ export default function DaeunTable({
               {/* 간지 + 오행 */}
               <div className="flex items-center gap-1.5 mb-1.5 text-11">
                 <span className="text-13 font-bold text-eye-purple leading-none">{d.hanja}</span>
-                <span className="text-text-light/70">
+                <span className="text-text-light">
                   {d.stem}
                   {d.branch}
                 </span>
-                <span className="text-text-light/30">·</span>
+                <span className="text-text-light">·</span>
                 <span className="font-bold" style={{ color: ELEMENT_COLOR[d.stemElement] }}>
                   {d.stemElement}
                 </span>
@@ -74,7 +74,7 @@ export default function DaeunTable({
         })}
       </div>
       {dayStem && (
-        <p className="text-11 text-text-light/60 mt-4 leading-snug">
+        <p className="text-11 text-text-light mt-4 leading-snug">
           국면 테마는 네 일간과 그 시기 대운의 관계(십신)로 자동 계산한 거야.
         </p>
       )}

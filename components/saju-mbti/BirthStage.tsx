@@ -128,7 +128,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
         <legend className="text-13 font-bold text-eye-purple mb-1">태어난 시간</legend>
         <Dropdown ariaLabel="태어난 시간" value={hourValue} onChange={(v) => setHourValue(v)} options={hourOptions} />
         {hourValue === HOUR_UNKNOWN && (
-          <p className="text-11 text-text-light/80 leading-relaxed mt-1">괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.</p>
+          <p className="text-11 text-text-light leading-relaxed mt-1">괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.</p>
         )}
       </fieldset>
 

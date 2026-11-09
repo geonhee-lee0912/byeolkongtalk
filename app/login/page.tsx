@@ -95,7 +95,7 @@ function LoginPageInner() {
       </a>
       <AppleLoginButton next={next} surface="login_page" meta={{ next: nextLabel }} className="mt-3" />
 
-      <p className="mt-4 text-11 text-text-light/70 text-center leading-relaxed">
+      <p className="mt-4 text-11 text-text-light text-center leading-relaxed">
         시작하면{" "}
         <Link href="/terms" className="underline">
           이용약관
@@ -109,7 +109,7 @@ function LoginPageInner() {
 
       <Link
         href="/"
-        className="mt-8 text-13 text-text-light/80 underline"
+        className="mt-8 text-13 text-text-light underline"
       >
         나중에 할래
       </Link>

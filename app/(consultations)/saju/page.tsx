@@ -137,7 +137,7 @@ export default function SajuPage() {
         <p className="mt-4 text-12 text-red-500 text-center px-5 max-w-md">{error}</p>
       )}
 
-      <Link href="/" className="mt-6 text-12 text-text-light/70 underline">
+      <Link href="/" className="mt-6 text-12 text-text-light underline">
         나중에 할래
       </Link>
     </main>

@@ -111,7 +111,7 @@ export default async function CardPage({
             {card.upright.map((k) => (
               <span
                 key={k}
-                className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
               >
                 #{k}
               </span>
@@ -144,7 +144,7 @@ export default async function CardPage({
 
       <GuideCta tag="걔 속마음이 궁금해" />
 
-      <nav className="flex justify-between mt-6 text-12 text-lilac-deep font-bold">
+      <nav className="flex justify-between mt-6 text-12 text-accent font-bold">
         {prev && buildCardSlug(prev) in CONTENT ? (
           <Link href={`/guide/tarot-cards/${buildCardSlug(prev)}`}>
             ‹ {prev.name_kr}

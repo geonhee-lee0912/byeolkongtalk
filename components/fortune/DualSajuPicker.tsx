@@ -163,7 +163,7 @@ export default function DualSajuPicker({
     return (
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-13 text-text-light/85 leading-relaxed mb-4">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             {cost != null ? welcomeWallLine(cost, "두 사람 궁합을") : "로그인하면 바로 두 사람 궁합을 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(FortuneSajuPicker·ByeolmaruHub 와 같은 마크업). */}
@@ -185,7 +185,7 @@ export default function DualSajuPicker({
     return (
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-13 text-text-light/85 leading-relaxed mb-4">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             내 생년월일부터 알려줘. 그다음에 상대를 고르면 돼.
           </p>
           {/* 🔴 저장 뒤 상대 입력·결제 확인을 자동으로 띄우지 않는다 — 나를 첫 칸에 넣어 두기까지만(스펙 §2). */}
@@ -247,7 +247,7 @@ export default function DualSajuPicker({
                   : "border-lilac-mid/40 bg-cream-warm"
               }`}
             >
-              <p className="text-11 text-text-light/70 mb-1">
+              <p className="text-11 text-text-light mb-1">
                 {slot === "A" ? "첫 번째 사람" : "두 번째 사람"}
               </p>
               <p className="text-15 font-bold text-eye-purple">
@@ -261,7 +261,7 @@ export default function DualSajuPicker({
       {selfNeedsBirth && (
         // 칸 버튼(<button onClick>) 밖에 둔다 — BirthPromptButton 팝업의 이벤트가 React 조상으로 버블된다.
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-4 text-center mb-5">
-          <p className="text-12 text-text-light/80 mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
+          <p className="text-12 text-text-light mb-3">내 생일을 알려주면 궁합을 볼 수 있어.</p>
           <BirthPromptButton
             surface={birthSurface}
             loginNext={loginNext}
@@ -282,7 +282,7 @@ export default function DualSajuPicker({
           <button
             type="button"
             onClick={() => setShowNewPerson(true)}
-            className="text-11 font-bold text-lilac-deep"
+            className="text-11 font-bold text-accent"
           >
             + 새 사람 입력
           </button>
@@ -292,7 +292,7 @@ export default function DualSajuPicker({
       {/* 프로필 목록 — 활성 칸에 고를 사람이 없으면 그 자리에 큰 "+ 새 사람 입력"(자동으로 열지는 않는다) */}
       {nothingToPick ? (
         <div className="bg-white rounded-2xl border border-dashed border-lilac-mid/50 px-4 py-5 text-center mb-3">
-          <p className="text-12 text-text-light/80 mb-3">궁합 볼 사람을 새로 넣어줘.</p>
+          <p className="text-12 text-text-light mb-3">궁합 볼 사람을 새로 넣어줘.</p>
           <button
             type="button"
             onClick={() => setShowNewPerson(true)}
@@ -320,14 +320,14 @@ export default function DualSajuPicker({
                 <div className="min-w-0">
                   <div className="text-14 font-bold text-eye-purple">
                     {displayName(p)}
-                    <span className="ml-2 text-11 text-text-light/70 font-normal">
+                    <span className="ml-2 text-11 text-text-light font-normal">
                       {relationBadge(p)}
                     </span>
                   </div>
-                  <div className="text-11 text-text-light/70 mt-0.5">{birthShort(p)}</div>
+                  <div className="text-11 text-text-light mt-0.5">{birthShort(p)}</div>
                 </div>
                 {usedInOther && (
-                  <span className="shrink-0 ml-2 text-11 text-text-light/60">
+                  <span className="shrink-0 ml-2 text-11 text-text-light">
                     반대편 선택됨
                   </span>
                 )}
@@ -357,7 +357,7 @@ export default function DualSajuPicker({
               className={`w-7 h-7 rounded-lg text-12 font-bold ${
                 i === safeListPage
                   ? "bg-lilac-deep text-white"
-                  : "text-text-light/70 hover:bg-lilac-soft/50"
+                  : "text-text-light hover:bg-lilac-soft/50"
               }`}
             >
               {i + 1}

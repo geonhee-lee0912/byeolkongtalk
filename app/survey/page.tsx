@@ -152,7 +152,7 @@ export default function SurveyPage() {
                     })}
                   </div>
                   {!contactValid && (
-                    <div className="text-11 mt-1.5 text-text-light/50">
+                    <div className="text-11 mt-1.5 text-text-light">
                       하나 이상 골라줘 (직접 입력 항목은 내용도 적어줘)
                     </div>
                   )}
@@ -175,7 +175,7 @@ export default function SurveyPage() {
                   className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
                   placeholder="편하게 작성해줘"
                 />
-                <div className={`text-11 mt-1 text-right ${ok ? "text-lilac-deep" : "text-text-light/50"}`}>
+                <div className={`text-11 mt-1 text-right ${ok ? "text-accent" : "text-text-light"}`}>
                   {ok ? `✓ ${len}자` : `최소 ${SURVEY_MIN_CHARS}자 · ${len}자`}
                 </div>
               </div>

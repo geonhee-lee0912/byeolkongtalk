@@ -23,7 +23,7 @@ export default function SajuSummaryChips({ saju }: { saju: SajuResult | null }) 
           key={c.k}
           className="flex items-center gap-1.5 bg-cream-warm border border-lilac-mid/25 rounded-2xl px-3 py-2"
         >
-          <span className="text-11 font-bold text-text-light/70">{c.k}</span>
+          <span className="text-11 font-bold text-text-light">{c.k}</span>
           <span className="text-13 font-bold" style={{ color: c.color ?? "#5A3E8C" }}>
             {c.v}
           </span>

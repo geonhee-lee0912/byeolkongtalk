@@ -56,7 +56,7 @@ export default function RechargeBlock({
           onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } })}
           className={`w-full py-3 rounded-xl font-bold text-14 flex items-center justify-between px-4 transition ${
             showContinue
-              ? "border border-lilac-deep/40 text-lilac-deep hover:bg-lilac-deep/5"
+              ? "border border-lilac-deep/40 text-accent hover:bg-lilac-deep/5"
               : "bg-lilac-deep text-white hover:bg-lilac-deep/90"
           }`}
         >
@@ -65,7 +65,7 @@ export default function RechargeBlock({
             {newDesc && (
               <span
                 className={`text-11 font-normal mt-0.5 ${
-                  showContinue ? "text-text-light/80" : "text-white/80"
+                  showContinue ? "text-text-light" : "text-white/80"
                 }`}
               >
                 {newDesc}
@@ -74,7 +74,7 @@ export default function RechargeBlock({
           </span>
           <span
             className={`text-12 shrink-0 ml-2 ${
-              showContinue ? "text-text-light/80" : "text-white/80"
+              showContinue ? "text-text-light" : "text-white/80"
             }`}
           >
             {newCostLabel}

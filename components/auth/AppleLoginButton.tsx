@@ -33,7 +33,7 @@ export default function AppleLoginButton({ next, surface, meta, compact = false,
         </svg>
         Apple로 계속하기
       </a>
-      <p className="mt-1.5 text-11 text-text-light/80 text-center">이미 카카오로 가입했다면 카카오로 로그인해줘</p>
+      <p className="mt-1.5 text-11 text-text-light text-center">이미 카카오로 가입했다면 카카오로 로그인해줘</p>
     </div>
   );
 }

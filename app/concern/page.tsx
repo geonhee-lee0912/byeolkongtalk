@@ -144,9 +144,9 @@ export default function ConcernPage() {
                 <span className="font-bold text-eye-purple text-13">
                   {option.tag}
                 </span>
-                <span className="text-text-light/50 text-11">변경</span>
+                <span className="text-text-light text-11">변경</span>
               </div>
-              <p className="text-11 text-text-light/80 text-center leading-relaxed">
+              <p className="text-11 text-text-light text-center leading-relaxed">
                 {option.description}
               </p>
             </button>
@@ -248,10 +248,10 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-light/40"
+                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
                   />
                   <div className="flex justify-between items-center px-4 pb-2.5 text-11">
-                    <span className="text-text-light/70">
+                    <span className="text-text-light">
                       구체적일수록 더 깊은 대화가 가능해
                     </span>
                     <span
@@ -260,7 +260,7 @@ export default function ConcernPage() {
                           ? "text-red-500"
                           : concern.length >= MAX_LEN * 0.85
                           ? "text-gold"
-                          : "text-text-light/60"
+                          : "text-text-light"
                       }`}
                     >
                       {concern.length} / {MAX_LEN}
@@ -296,7 +296,7 @@ export default function ConcernPage() {
           </button>
           <Link
             href="/"
-            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-15 text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-accent rounded-2xl font-bold text-15 text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
           >
             뒤로
           </Link>
@@ -349,14 +349,14 @@ function EmotionTagSheet({
           </h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
             ✕
           </OverlayCloseButton>
         </div>
 
         <div className="px-5 pb-6">
-          <p className="text-12 font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light mb-2">
             연애 고민
           </p>
           <div className="flex flex-col gap-2 mb-4">
@@ -370,7 +370,7 @@ function EmotionTagSheet({
             ))}
           </div>
 
-          <p className="text-12 font-bold text-text-light/70 mb-2">
+          <p className="text-12 font-bold text-text-light mb-2">
             다른 고민
           </p>
           <div className="flex flex-col gap-2">

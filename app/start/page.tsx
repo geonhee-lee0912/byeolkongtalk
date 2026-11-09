@@ -352,7 +352,7 @@ function StartPageInner() {
         <div className="mx-5 mb-10">
           <button
             onClick={() => router.push("/")}
-            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+            className="block w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
           >
             별콩톡 전체 보러가기 →
           </button>
@@ -369,7 +369,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
     <>
       {/* 배지 + 소개 */}
       <div className="flex flex-col items-center text-center mb-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-lilac-deep mb-3">
+        <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
           <span aria-hidden style={{ color: "#E48BA0" }}>♥</span>
           연애 상담
         </span>
@@ -397,7 +397,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
           </div>
         </div>
       </div>
-      <p className="text-12 text-text-light/80 px-1">
+      <p className="text-12 text-text-light px-1">
         여기에 더해, 이런 것도 꺼내 쓸 수 있어
       </p>
       <div className="grid grid-cols-2 gap-2.5">
@@ -579,12 +579,12 @@ function FortuneMenuList({
                   {f.label}
                 </span>
                 {f.cost > 0 && (
-                  <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                  <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                     ⭐ {f.cost}
                   </span>
                 )}
               </div>
-              <p className="text-13 text-text-light/80 mt-1 leading-snug line-clamp-2">
+              <p className="text-13 text-text-light mt-1 leading-snug line-clamp-2">
                 {f.tagline}
               </p>
             </div>

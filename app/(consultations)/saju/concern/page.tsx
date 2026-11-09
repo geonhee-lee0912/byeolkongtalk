@@ -146,7 +146,7 @@ export default function ConcernPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/saju" className="text-12 text-text-light/70">
+        <Link href="/saju" className="text-12 text-text-light">
           ‹ 사주판 다시 보기
         </Link>
       </div>
@@ -192,9 +192,9 @@ export default function ConcernPage() {
           onChange={(e) => setConcern(e.target.value.slice(0, MAX_LEN))}
           placeholder="예) 요즘 진로를 고민 중인데 어떤 결로 가는 게 나한테 맞을까?"
           rows={5}
-          className="w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-light/50"
+          className="w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-faint"
         />
-        <div className="flex justify-between text-11 text-text-light/70">
+        <div className="flex justify-between text-11 text-text-light">
           <span>{concern.length < MIN_LEN ? `최소 ${MIN_LEN}자` : " "}</span>
           <span>
             {concern.length} / {MAX_LEN}
@@ -208,7 +208,7 @@ export default function ConcernPage() {
           </span>
         </div>
         {balance !== null && (
-          <div className="text-11 text-text-light/80 text-right">
+          <div className="text-11 text-text-light text-right">
             내 별 잔액: {balance}별
           </div>
         )}

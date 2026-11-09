@@ -60,7 +60,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href={CONCERN_REWRITE_HREF}
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
         >
           <svg
             width="12"

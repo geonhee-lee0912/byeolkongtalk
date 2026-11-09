@@ -89,7 +89,7 @@ export default function StarConfirmModal({
             {heading}
           </p>
           {sub && (
-            <p className="text-12 text-text-light/85 mt-1">{sub}</p>
+            <p className="text-12 text-text-light mt-1">{sub}</p>
           )}
         </div>
 
@@ -152,7 +152,7 @@ export default function StarConfirmModal({
               {confirmLabel ?? "확인하고 시작하기"}
             </button>
           )}
-          <OverlayCloseButton className="w-full py-3 text-13 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
+          <OverlayCloseButton className="w-full py-3 text-13 font-bold text-accent rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
             취소
           </OverlayCloseButton>
         </div>

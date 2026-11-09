@@ -59,7 +59,7 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
           )}
         </div>
         {!done && (
-          <span className="text-text-light/60 text-14 shrink-0">›</span>
+          <span className="text-text-light text-14 shrink-0">›</span>
         )}
       </button>
     </div>

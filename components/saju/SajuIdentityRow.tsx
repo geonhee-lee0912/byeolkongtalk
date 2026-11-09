@@ -73,12 +73,12 @@ export default function SajuIdentityRow({
         <div className="text-14 font-bold text-eye-purple truncate">
           {title}
           {badge && (
-            <span className="ml-1.5 text-11 font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+            <span className="ml-1.5 text-11 font-bold text-text-light bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
               {badge}
             </span>
           )}
         </div>
-        <div className="text-11 text-text-light/70 mt-0.5 truncate">
+        <div className="text-11 text-text-light mt-0.5 truncate">
           {caption}
         </div>
       </div>

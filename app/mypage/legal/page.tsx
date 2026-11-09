@@ -22,7 +22,7 @@ export default function LegalPage() {
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="flex items-center gap-3 p-3.5">
               <span className="flex-1 text-14 text-eye-purple font-medium">{l.label}</span>
-              <span className="text-text-light/40">›</span>
+              <span className="text-text-light">›</span>
             </Link>
           ))}
         </div>

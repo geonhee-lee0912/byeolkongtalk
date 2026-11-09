@@ -176,7 +176,7 @@ export default function FortuneSajuPicker({
     return (
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-13 text-text-light/85 leading-relaxed mb-4">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             {cost != null ? welcomeWallLine(cost, "내 사주로") : "로그인하면 바로 내 사주로 볼 수 있어."}
           </p>
           {/* 카카오 버튼은 저장소 공통 컨벤션(ByeolmaruHub 와 같은 마크업). */}
@@ -202,7 +202,7 @@ export default function FortuneSajuPicker({
     return (
       <div className="w-full max-w-md mx-auto px-5">
         <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
-          <p className="text-13 text-text-light/85 leading-relaxed mb-4">
+          <p className="text-13 text-text-light leading-relaxed mb-4">
             생년월일만 알려주면 바로 볼 수 있어.
           </p>
           {/* 🔴 저장 뒤 결제 확인을 자동으로 띄우지 않는다 — 내 사주를 골라 두기까지만(스펙 §3). */}
@@ -242,12 +242,12 @@ export default function FortuneSajuPicker({
                 <span className="text-14 font-bold text-eye-purple">
                   {displayName(selected)}
                 </span>
-                <span className="text-11 text-text-light/70">
+                <span className="text-11 text-text-light">
                   {relationBadge(selected)}
                 </span>
               </div>
               {!hideBirthLine && (
-                <p className="text-11 text-text-light/60 mt-0.5">
+                <p className="text-11 text-text-light mt-0.5">
                   {birthLine(selected)}
                 </p>
               )}
@@ -260,7 +260,7 @@ export default function FortuneSajuPicker({
                 //    길이었다. 버튼은 내 사주를 PATCH 하므로 **내 사주일 때만** 단다(지인 프로필에 달면
                 //    엉뚱한 사람이 고쳐진다 — 지인은 아래 문구만 그대로).
                 <div className="py-4 text-center">
-                  <p className="text-12 text-text-light/70 mb-3">생일을 알려주면 사주도 보여줄게</p>
+                  <p className="text-12 text-text-light mb-3">생일을 알려주면 사주도 보여줄게</p>
                   <BirthPromptButton
                     surface={BIRTH_PROMPT_SURFACE.fortunePicker}
                     loginNext={loginNext}
@@ -271,7 +271,7 @@ export default function FortuneSajuPicker({
                   </BirthPromptButton>
                 </div>
               ) : (
-                <p className="text-12 text-text-light/70 text-center py-4">
+                <p className="text-12 text-text-light text-center py-4">
                   생일을 알려주면 사주도 보여줄게
                 </p>
               )}
@@ -288,7 +288,7 @@ export default function FortuneSajuPicker({
             <button
               type="button"
               onClick={() => setShowNewPerson(true)}
-              className="text-11 font-bold text-lilac-deep"
+              className="text-11 font-bold text-accent"
             >
               + 새 사람 입력
             </button>
@@ -308,11 +308,11 @@ export default function FortuneSajuPicker({
                   <div className="min-w-0">
                     <div className="text-14 font-bold text-eye-purple">
                       {displayName(p)}
-                      <span className="ml-2 text-11 text-text-light/70 font-normal">
+                      <span className="ml-2 text-11 text-text-light font-normal">
                         {relationBadge(p)}
                       </span>
                     </div>
-                    <div className="text-11 text-text-light/70 mt-0.5">
+                    <div className="text-11 text-text-light mt-0.5">
                       {birthLine(p)}
                     </div>
                   </div>
@@ -355,7 +355,7 @@ export default function FortuneSajuPicker({
                   className={`w-7 h-7 rounded-lg text-12 font-bold ${
                     i === safeListPage
                       ? "bg-lilac-deep text-white"
-                      : "text-text-light/70 hover:bg-lilac-soft/50"
+                      : "text-text-light hover:bg-lilac-soft/50"
                   }`}
                 >
                   {i + 1}

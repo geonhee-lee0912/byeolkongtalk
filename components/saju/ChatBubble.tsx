@@ -48,7 +48,7 @@ export default function ChatBubble({
         <div className="selectable bg-cream-warm text-eye-purple rounded-2xl rounded-tl-sm px-4 py-2.5 text-16 whitespace-pre-wrap border border-lilac-mid/20">
           <EmphasisText text={content} />
           {streaming && content.length === 0 && (
-            <span className="inline-flex gap-0.5 items-center text-text-light/60">
+            <span className="inline-flex gap-0.5 items-center text-text-light">
               <span className="animate-pulse">·</span>
               <span className="animate-pulse" style={{ animationDelay: "0.15s" }}>
                 ·

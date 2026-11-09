@@ -58,8 +58,8 @@ export default function ElementCycleDiagram({
     <div
       className={`bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-15 font-extrabold text-lilac-deep mb-1.5">🔄 내 오행의 상생상극</h3>
-      <p className="text-11 text-text-light/70 leading-snug mb-2">
+      <h3 className="text-15 font-extrabold text-accent mb-1.5">🔄 내 오행의 상생상극</h3>
+      <p className="text-11 text-text-light leading-snug mb-2">
         다섯 기운이 서로 북돋우고(상생) 누르는(상극) 관계야. 원이 클수록 내 사주에 그 기운이 많아.
       </p>
       <svg viewBox="0 -18 320 320" className="w-full max-w-[320px] mx-auto block" role="img" aria-label="오행 상생상극도">

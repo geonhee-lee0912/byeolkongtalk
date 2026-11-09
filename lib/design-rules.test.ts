@@ -92,3 +92,11 @@ test("그림자 색 접미사가 없다", () => {
   assert.deepEqual(offenders(/\bshadow-(lilac|night|lilac-deep|gold|gold-soft|eye-purple)(\/\d+)?\b/), []);
 });
 
+
+// ── 글자색 4개(스펙 §2.5) — 투명도 글자 없음, 밝은 바탕 연보라 글자는 accent, 밤 바탕은 accent-on-dark
+test("투명도 글자를 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/\btext-text-light\/\d+/), []);
+});
+test("밝은 바탕에서 연보라 글자를 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/(?<![\w-])text-lilac-deep\b/), []);
+});

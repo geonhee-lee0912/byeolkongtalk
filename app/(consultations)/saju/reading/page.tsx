@@ -514,13 +514,13 @@ function ReadingInner() {
             className="flex items-center gap-2 text-12 text-eye-purple"
           >
             <span className="font-bold">사주판</span>
-            <span className="text-text-light/70">
+            <span className="text-text-light">
               {showSajuBoard ? "접기 ▴" : "펼치기 ▾"}
             </span>
           </button>
           <Link
             href="/saju"
-            className="text-11 text-text-light/70"
+            className="text-11 text-text-light"
           >
             ‹ 처음으로
           </Link>
@@ -672,7 +672,7 @@ function ReadingInner() {
                     isStreaming ? "별콩이가 답하는 중…" : "별콩이에게 더 물어보기"
                   }
                   disabled={isStreaming}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 placeholder:text-text-light/50 disabled:opacity-60"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 placeholder:text-text-faint disabled:opacity-60"
                 />
                 <button
                   type="submit"
@@ -741,7 +741,7 @@ function ReadingInner() {
                 sessionStorage.removeItem("byeolkong:pending_upsell");
                 setPendingResumeBanner(null);
               }}
-              className="shrink-0 text-11 text-text-light/70 hover:text-text-light"
+              className="shrink-0 text-11 text-text-light hover:text-text-light"
             >
               나중에
             </button>

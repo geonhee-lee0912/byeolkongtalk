@@ -53,7 +53,7 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
           })}
         </div>
         <div className="mt-4 pt-4 border-t border-[#F0EEF4]">
-          <div className="text-12 font-bold text-lilac-deep mb-1">📝 담임 총평</div>
+          <div className="text-12 font-bold text-accent mb-1">📝 담임 총평</div>
           <MarkdownLite text={report.totalComment} className="text-13 text-[#4F4A5E] leading-[1.85]" />
         </div>
       </div>

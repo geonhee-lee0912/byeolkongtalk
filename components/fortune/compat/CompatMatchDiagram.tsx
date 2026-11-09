@@ -65,8 +65,8 @@ export default function CompatMatchDiagram({
 
   return (
     <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
-      <h3 className="text-15 font-extrabold text-lilac-deep mb-1.5">💞 궁합 한눈에</h3>
-      <p className="text-11 text-text-light/70 leading-snug mb-4">
+      <h3 className="text-15 font-extrabold text-accent mb-1.5">💞 궁합 한눈에</h3>
+      <p className="text-11 text-text-light leading-snug mb-4">
         두 일간이 만나 만드는 기운의 결이야. 아래 풀이의 결정론적 뼈대.
       </p>
 
@@ -79,7 +79,7 @@ export default function CompatMatchDiagram({
               {badges.map((bd) => (
                 <span
                   key={bd.label}
-                  className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-lilac-deep"
+                  className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-accent"
                 >
                   <span aria-hidden>{bd.emoji}</span>
                   {bd.label}
@@ -103,13 +103,13 @@ export default function CompatMatchDiagram({
       {/* 십신 양방향 */}
       <div className="mt-4 pt-4 border-t border-lilac-mid/20 flex flex-col gap-2">
         <div className="flex items-baseline gap-2 text-13">
-          <span className="text-text-light/70 shrink-0">
+          <span className="text-text-light shrink-0">
             {names.a}에게 {names.b}는
           </span>
           <span className="font-bold text-eye-purple">{rel.labelAtoB}</span>
         </div>
         <div className="flex items-baseline gap-2 text-13">
-          <span className="text-text-light/70 shrink-0">
+          <span className="text-text-light shrink-0">
             {names.b}에게 {names.a}는
           </span>
           <span className="font-bold text-eye-purple">{rel.labelBtoA}</span>

@@ -47,7 +47,7 @@ export default function PassPanel({
             <span className="text-14 font-bold text-eye-purple">
               {p.label}
             </span>
-            <span className="text-14 font-bold text-lilac-deep">
+            <span className="text-14 font-bold text-accent">
               ⭐ {p.cost}별
             </span>
           </button>

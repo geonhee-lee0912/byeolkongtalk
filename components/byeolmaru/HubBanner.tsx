@@ -62,7 +62,7 @@ export default function HubBanner({
   const now = Date.now();
   const expiry = subscriptionExpiresAt ?? trialEndsAt;
   const chipClass =
-    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-lilac-deep";
+    "mt-2.5 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-accent";
 
   return (
     <section

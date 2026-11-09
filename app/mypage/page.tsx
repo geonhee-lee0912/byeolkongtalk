@@ -267,7 +267,7 @@ export default function MyPage() {
           </div>
         ) : (
           <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-card px-4 py-6 text-center">
-            <p className="text-12 text-text-light/70 mb-3">
+            <p className="text-12 text-text-light mb-3">
               {self
                 ? "생일을 알려주면 사주도 보여줄게."
                 : "아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘."}
@@ -327,7 +327,7 @@ export default function MyPage() {
         <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M12,1C7,1 3,5 3,10V17A3,3 0 0,0 6,20H9V12H5V10A7,7 0 0,1 12,3A7,7 0 0,1 19,10V12H15V20H19A3,3 0 0,0 22,17V10C22,5 17,1 12,1Z" />
               </svg>
             </span>
@@ -340,53 +340,53 @@ export default function MyPage() {
                 </span>
               )}
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light">›</span>
           </Link>
           <Link href="/mypage/payments" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
               </svg>
             </span>
             <span className="flex-1 text-14 text-eye-purple font-medium">
               결제 · 별 내역
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light">›</span>
           </Link>
           {appReady && appSupportsPush() && (
             <Link href="/mypage/notifications" className="flex items-center gap-3 p-3.5">
               <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                   <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21" />
                 </svg>
               </span>
               <span className="flex-1 text-14 text-eye-purple font-medium">알림 설정</span>
-              <span className="text-text-light/40">›</span>
+              <span className="text-text-light">›</span>
             </Link>
           )}
           {/* 앱에서만 — 앱은 푸터를 숨기므로 약관·사업자 정보를 여기서 연다(스펙 2026-11-07-앱-화면 §9) */}
           <Link href="/mypage/legal" className="app-only flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
               </svg>
             </span>
             <span className="flex-1 text-14 text-eye-purple font-medium">약관·사업자 정보</span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light">›</span>
           </Link>
           <button
             onClick={() => setShowWithdrawConfirm(true)}
             className="w-full flex items-center gap-3 p-3.5"
           >
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft/60 flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light/70" aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light" aria-hidden>
                 <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
               </svg>
             </span>
-            <span className="flex-1 text-left text-14 text-text-light/70 font-medium">
+            <span className="flex-1 text-left text-14 text-text-light font-medium">
               회원 탈퇴
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light">›</span>
           </button>
         </div>
       </div>

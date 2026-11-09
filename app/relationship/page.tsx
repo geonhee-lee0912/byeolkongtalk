@@ -538,7 +538,7 @@ export default function RelationshipPage() {
               <button
                 type="button"
                 onClick={() => setShowPassSheet(true)}
-                className="shrink-0 text-11 font-bold text-lilac-deep active:scale-95 transition"
+                className="shrink-0 text-11 font-bold text-accent active:scale-95 transition"
               >
                 패스 보기 ›
               </button>
@@ -708,7 +708,7 @@ export default function RelationshipPage() {
                   className="object-contain"
                 />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-lilac-deep mb-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
                 <span aria-hidden style={{ color: "#E48BA0" }}>
                   ♥
                 </span>
@@ -745,7 +745,7 @@ export default function RelationshipPage() {
                   </div>
                 </div>
               </div>
-              <p className="text-12 text-text-light/80 mb-2 px-1">
+              <p className="text-12 text-text-light mb-2 px-1">
                 여기에 더해, 이런 것도 꺼내 쓸 수 있어
               </p>
               <div className="grid grid-cols-2 gap-2.5">
@@ -818,7 +818,7 @@ export default function RelationshipPage() {
               type="button"
               onClick={() => setPartnerExpanded((v) => !v)}
               aria-expanded={partnerExpanded}
-              className="w-full mt-2 py-2.5 rounded-xl border border-lilac-mid/30 bg-white/70 text-12 font-bold text-lilac-deep active:scale-[0.99] transition flex items-center justify-center gap-1"
+              className="w-full mt-2 py-2.5 rounded-xl border border-lilac-mid/30 bg-white/70 text-12 font-bold text-accent active:scale-[0.99] transition flex items-center justify-center gap-1"
             >
               {partnerExpanded ? "상대 정보 접기" : "상대 정보 펼치기"}
               <span aria-hidden>{partnerExpanded ? "▾" : "▸"}</span>

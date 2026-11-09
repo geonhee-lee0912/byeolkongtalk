@@ -178,7 +178,7 @@ export default function ByeoljariGuestPage() {
               >
                 내 별 놓기
               </button>
-              <p className="text-11 text-text-light/70 text-center leading-relaxed">
+              <p className="text-11 text-text-light text-center leading-relaxed">
                 만 14세 이상만 참여할 수 있어. 생년월일은 별자리 계산에만 쓰이고
                 다른 사람에게 보이지 않아. 내 별을 놓으면{" "}
                 <Link href="/privacy" className="underline">
@@ -194,7 +194,7 @@ export default function ByeoljariGuestPage() {
           </p>
           {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
           {!state.graph.viewerIsOwner && (
-            <Link href="/byeolmaru" className="mt-2 block text-center text-12 text-lilac-deep">
+            <Link href="/byeolmaru" className="mt-2 block text-center text-12 text-accent">
               별마루에서 무료로 다 보기 →
             </Link>
           )}

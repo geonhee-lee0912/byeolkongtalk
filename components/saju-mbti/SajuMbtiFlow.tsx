@@ -150,7 +150,7 @@ export function SajuMbtiFlow({
     <>
       {stage === "intro" && (
         <div className="w-full max-w-md mx-auto px-6 py-16 text-center animate-fade-in" data-stage="intro">
-          <p className="text-12 tracking-[0.16em] text-lilac-deep mb-4">별콩톡 · 사주 MBTI</p>
+          <p className="text-12 tracking-[0.16em] text-accent mb-4">별콩톡 · 사주 MBTI</p>
           <div className="flex justify-center mb-3">
             <Image src="/saju-mbti/intro.png" alt="별콩이가 자아·팔자 두 오브를 든 모습" width={200} height={200} className="w-44 h-44 object-contain" priority />
           </div>

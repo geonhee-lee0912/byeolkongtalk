@@ -15,13 +15,13 @@ export default function ProfileDetails({ saju, mbti, personality, mine }: Profil
   return (
     <div className="mt-3 rounded-2xl border border-lilac-mid/20 bg-white shadow-card py-4">
       {/* 1. 사주 명식 */}
-      <div className="px-5 text-11 font-bold text-lilac-deep mb-2">
+      <div className="px-5 text-11 font-bold text-accent mb-2">
         {mine ? "내 사주 명식" : "사주 명식"}
       </div>
       {saju ? (
         <SajuBoard saju={saju} showDetail={false} />
       ) : (
-        <p className="px-5 text-13 text-text-light/80 leading-relaxed">
+        <p className="px-5 text-13 text-text-light leading-relaxed">
           아직 생일을 안 알려줬어 — 수정에서 추가하면 명식이 보여.
         </p>
       )}
@@ -30,19 +30,19 @@ export default function ProfileDetails({ saju, mbti, personality, mine }: Profil
 
       {/* 2. MBTI (칩) */}
       <div className="px-5 mb-4">
-        <div className="text-11 font-bold text-lilac-deep mb-1.5">MBTI</div>
+        <div className="text-11 font-bold text-accent mb-1.5">MBTI</div>
         {mbti ? (
-          <span className="inline-block rounded-lg bg-lilac-soft text-lilac-deep text-12 font-bold px-2.5 py-1">
+          <span className="inline-block rounded-lg bg-lilac-soft text-accent text-12 font-bold px-2.5 py-1">
             {mbti}
           </span>
         ) : (
-          <p className="text-13 text-text-light/50">미입력</p>
+          <p className="text-13 text-text-light">미입력</p>
         )}
       </div>
 
       {/* 3. 성격 */}
       <div className="px-5">
-        <div className="text-11 font-bold text-lilac-deep mb-1">
+        <div className="text-11 font-bold text-accent mb-1">
           {mine ? "내 성격" : "성격"}
         </div>
         {personality ? (
@@ -50,7 +50,7 @@ export default function ProfileDetails({ saju, mbti, personality, mine }: Profil
             {personality}
           </p>
         ) : (
-          <p className="text-13 text-text-light/50">미입력</p>
+          <p className="text-13 text-text-light">미입력</p>
         )}
       </div>
     </div>

@@ -66,7 +66,7 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
           )}
         </div>
         {!done && !loading && (
-          <span className="text-text-light/60 text-14 shrink-0">›</span>
+          <span className="text-text-light text-14 shrink-0">›</span>
         )}
       </button>
     </div>

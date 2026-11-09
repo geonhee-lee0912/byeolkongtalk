@@ -35,7 +35,7 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
             {idx + 1} / {total}
           </span>
           {idx > 0 && (
-            <button type="button" onClick={() => setIdx(idx - 1)} className="text-lilac-deep">
+            <button type="button" onClick={() => setIdx(idx - 1)} className="text-accent">
               ← 이전
             </button>
           )}

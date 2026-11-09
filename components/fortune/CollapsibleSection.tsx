@@ -45,11 +45,11 @@ export default function CollapsibleSection({
         <span className="flex-1 min-w-0">
           <span className="block text-17 font-extrabold text-eye-purple">{title}</span>
           {!open && previewText && (
-            <span className="block text-12 text-text-light/70 mt-0.5 truncate">{previewText}</span>
+            <span className="block text-12 text-text-light mt-0.5 truncate">{previewText}</span>
           )}
         </span>
         <svg
-          className={`w-4 h-4 shrink-0 text-lilac-deep transition-transform ${open ? "rotate-180" : ""}`}
+          className={`w-4 h-4 shrink-0 text-accent transition-transform ${open ? "rotate-180" : ""}`}
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden

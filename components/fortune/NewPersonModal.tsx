@@ -95,7 +95,7 @@ export default function NewPersonModal({
             {needLogin && (
               <Link
                 href={`/login?next=${encodeURIComponent(next)}`}
-                className="mt-1 inline-block text-12 text-lilac-deep underline"
+                className="mt-1 inline-block text-12 text-accent underline"
               >
                 다시 로그인하기
               </Link>

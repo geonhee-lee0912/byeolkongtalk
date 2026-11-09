@@ -31,7 +31,7 @@ export default function FortuneLandingHero({
       <div className="w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href="/fortune"
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <polyline points="11.5 3 5 9 11.5 15" />

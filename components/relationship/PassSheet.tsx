@@ -98,7 +98,7 @@ export default function PassSheet({
           <h2 className="font-display text-17 font-bold text-eye-purple">{pass ? "패스 · 오늘 대화" : "패스 선택하기"}</h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
             ✕
           </OverlayCloseButton>
@@ -126,7 +126,7 @@ export default function PassSheet({
                 <span className="text-13 font-bold text-eye-purple">
                   {extending ? "연장하는 중…" : `오늘 ${EXTEND_TURNS}번 더 (제한 없이)`}
                 </span>
-                <span className="text-13 font-bold text-lilac-deep">⭐{EXTEND_COST}</span>
+                <span className="text-13 font-bold text-accent">⭐{EXTEND_COST}</span>
               </button>
               {extendError && (
                 <p className="mt-1.5 text-11 text-red-500">{extendError}</p>

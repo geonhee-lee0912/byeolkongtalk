@@ -98,7 +98,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
       {/* 시주 모름 안내 */}
       {!saju.input.hourKnown && (
-        <p className="text-11 text-text-light/80 text-center mb-4 -mt-3">
+        <p className="text-11 text-text-light text-center mb-4 -mt-3">
           시간을 몰라 시주는 참고용으로 봐줘
         </p>
       )}

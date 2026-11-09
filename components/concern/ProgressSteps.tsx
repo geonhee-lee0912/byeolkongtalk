@@ -20,7 +20,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
                       ? "bg-lilac-deep text-white"
                       : active
                       ? "bg-lilac-deep text-white ring-2 ring-lilac-soft"
-                      : "bg-lilac-soft/70 text-text-light/70",
+                      : "bg-lilac-soft/70 text-text-light",
                   ].join(" ")}
                 >
                   {done ? "✓" : step}
@@ -31,8 +31,8 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
                     active
                       ? "font-bold text-eye-purple"
                       : done
-                      ? "font-medium text-lilac-deep"
-                      : "font-medium text-text-light/60",
+                      ? "font-medium text-accent"
+                      : "font-medium text-text-light",
                   ].join(" ")}
                 >
                   {label}

@@ -278,7 +278,7 @@ function ShopContent() {
             }
           }}
           aria-label="뒤로 가기"
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
         >
           <svg
             width="12"
@@ -393,7 +393,7 @@ function ShopContent() {
               <p className="text-11 font-bold text-text-light tracking-wide mb-1.5">
                 결제 안내
               </p>
-              <ul className="space-y-1 text-11 text-text-light/80 leading-relaxed">
+              <ul className="space-y-1 text-11 text-text-light leading-relaxed">
                 <li>· 토스페이먼츠로 안전하게 결제됩니다</li>
                 <li>· 카드, 토스페이, 계좌이체 등 다양한 수단 지원</li>
                 <li>· 결제 버튼을 누르면 결제창이 열립니다</li>
@@ -401,7 +401,7 @@ function ShopContent() {
                   · 충전한 별은{" "}
                   <Link
                     href="/refund"
-                    className="underline underline-offset-2 hover:text-lilac-deep"
+                    className="underline underline-offset-2 hover:text-accent"
                   >
                     환불 정책
                   </Link>
@@ -473,7 +473,7 @@ function BalanceCard({ balance }: { balance: number | null }) {
         ) : (
           <p className="text-22 font-black text-eye-purple tabular-nums leading-tight animate-fade-in">
             {balance}
-            <span className="text-13 font-bold text-text-light/70 ml-1">
+            <span className="text-13 font-bold text-text-light ml-1">
               별
             </span>
           </p>
@@ -527,12 +527,12 @@ function PackageCard({
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="text-17 font-black text-eye-purple tabular-nums leading-none">
             {pkg.stars}
-            <span className="text-12 font-bold text-text-light/70 ml-0.5">
+            <span className="text-12 font-bold text-text-light ml-0.5">
               별
             </span>
           </p>
           {bonus > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-11 font-black bg-lilac-soft text-lilac-deep tracking-wide">
+            <span className="px-1.5 py-0.5 rounded-full text-11 font-black bg-lilac-soft text-accent tracking-wide">
               +{firstChargeBonusPercent()}%
             </span>
           )}
@@ -542,12 +542,12 @@ function PackageCard({
         </div>
         <p className="mt-1 text-13 font-bold text-eye-purple tabular-nums">
           {pkg.price.toLocaleString()}원
-          <span className="text-11 font-medium text-text-light/70 ml-1.5">
+          <span className="text-11 font-medium text-text-light ml-1.5">
             · 별당 {Math.round(perStar)}원
           </span>
         </p>
         {bonus > 0 ? (
-          <p className="mt-1 text-12 font-black text-lilac-deep tabular-nums">
+          <p className="mt-1 text-12 font-black text-accent tabular-nums">
             첫 충전 보너스 +{bonus}별 → 총 {pkg.stars + bonus}별
           </p>
         ) : (

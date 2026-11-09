@@ -44,7 +44,7 @@ export default function FreeToPaidCta({
       </div>
       <div className="px-1">
         <p className="text-14 font-extrabold text-eye-purple">{title}</p>
-        {subtitle && <p className="text-12 text-text-light/80 mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-12 text-text-light mt-0.5">{subtitle}</p>}
       </div>
       {chat && (
         <Link
@@ -86,7 +86,7 @@ export default function FreeToPaidCta({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-14 font-bold text-eye-purple">{f.label}</span>
-              <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+              <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                 ⭐ {f.cost}
               </span>
             </div>

@@ -52,7 +52,7 @@ export default function ResultUpsell({
               <span className="text-14 font-bold text-eye-purple">
                 {c.label}
               </span>
-              <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+              <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                 {c.badge}
               </span>
             </div>

@@ -112,7 +112,7 @@ export default function CalendarGrid({
         {WEEKDAYS.map((w, i) => (
           // 주말을 진하게 — 7열이 전부 같은 회색이면 주가 어디서 끊기는지 안 보인다.
           // 팔레트에 빨강이 없으므로 lilac-deep 으로 구분한다.
-          <div key={w} className={i === 0 || i === 6 ? "font-medium text-lilac-deep" : "text-text-light"}>
+          <div key={w} className={i === 0 || i === 6 ? "font-medium text-accent" : "text-text-light"}>
             {w}
           </div>
         ))}
@@ -134,7 +134,7 @@ export default function CalendarGrid({
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border border-dashed"
                 style={{ background: "rgba(255,255,255,.28)", borderColor: "rgba(184,168,216,.40)" }}
               >
-                <span className="text-11 leading-[13px] text-text-light/60">{Number(date.slice(8, 10))}</span>
+                <span className="text-11 leading-[13px] text-text-light">{Number(date.slice(8, 10))}</span>
                 {/* 점수 자리는 비운다 — 없는 걸 있는 척하지 않는다. */}
                 <span aria-hidden className="h-[20px]" />
               </div>

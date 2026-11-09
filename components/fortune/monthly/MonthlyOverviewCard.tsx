@@ -25,7 +25,7 @@ export default function MonthlyOverviewCard({
       <div className="flex items-baseline justify-between mb-5">
         <span className="text-17 font-bold text-[#1C1A24]">이번 달 운세</span>
         {monthLabel && (
-          <span className="text-12 font-semibold text-text-light/70">{monthLabel}</span>
+          <span className="text-12 font-semibold text-text-light">{monthLabel}</span>
         )}
       </div>
 
@@ -62,7 +62,7 @@ export default function MonthlyOverviewCard({
 
       {/* 종합운 별점 */}
       <div className="flex items-center justify-center gap-2 mb-[9px]">
-        <span className="text-11 font-bold text-text-light/70">이번 달 종합운</span>
+        <span className="text-11 font-bold text-text-light">이번 달 종합운</span>
         <span className="text-13 tracking-[2px] text-[#C9C4D6]">
           <b className="text-eye-purple">{"★".repeat(filled)}</b>
           {"☆".repeat(5 - filled)}

@@ -129,7 +129,7 @@ export default function ProfilePicker({
         {profiles.length > 0 && (
           <button
             onClick={() => setMode("list")}
-            className="mx-auto mt-3 block text-12 text-text-light/60 underline"
+            className="mx-auto mt-3 block text-12 text-text-light underline"
           >
             저장된 사주에서 고르기
           </button>
@@ -169,12 +169,12 @@ export default function ProfilePicker({
                   <div className="text-14 font-bold text-eye-purple truncate">
                     {p.isPrimary ? "내 사주" : p.displayName}
                     {!p.isPrimary && (
-                      <span className="ml-1.5 text-11 font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                      <span className="ml-1.5 text-11 font-bold text-text-light bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
                         {RELATION_LABEL[p.relationType] ?? "지인"}
                       </span>
                     )}
                   </div>
-                  <div className="text-11 text-text-light/70 mt-0.5 truncate">
+                  <div className="text-11 text-text-light mt-0.5 truncate">
                     생일 미입력
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function ProfilePicker({
         ))}
         <button
           onClick={() => setMode("new")}
-          className="rounded-2xl p-3 border border-dashed border-lilac-mid text-13 text-lilac-deep font-bold"
+          className="rounded-2xl p-3 border border-dashed border-lilac-mid text-13 text-accent font-bold"
         >
           + 새로 입력
         </button>
@@ -194,7 +194,7 @@ export default function ProfilePicker({
         (selected.saju ? (
           <SajuBoard saju={selected.saju} />
         ) : (
-          <p className="text-12 text-text-light/70 text-center py-4">
+          <p className="text-12 text-text-light text-center py-4">
             생일을 알려주면 사주도 보여줄게
           </p>
         ))}

@@ -158,7 +158,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-12 text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>

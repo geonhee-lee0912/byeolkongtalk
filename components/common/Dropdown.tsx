@@ -143,7 +143,7 @@ export default function Dropdown({
       >
         <span
           className={`min-w-0 truncate text-left ${
-            selectedOption ? "" : "text-text-light/60"
+            selectedOption ? "" : "text-text-light"
           }`}
         >
           {selectedOption ? selectedOption.label : placeholder ?? ""}
@@ -180,7 +180,7 @@ export default function Dropdown({
                 onMouseEnter={() => setHighlighted(idx)}
                 className={`block w-full px-3 py-2.5 text-14 text-left cursor-pointer transition-colors ${
                   isSelected
-                    ? "bg-lilac-soft text-lilac-deep font-bold"
+                    ? "bg-lilac-soft text-accent font-bold"
                     : isHighlighted
                       ? "bg-lilac-soft/60 text-eye-purple"
                       : "text-eye-purple hover:bg-lilac-soft/60"

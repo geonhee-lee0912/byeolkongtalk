@@ -65,11 +65,11 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
   return (
     <div className="w-full max-w-md mx-auto px-4 pt-4 pb-10 flex flex-col gap-3 animate-fade-in" data-stage="result">
       {shared && (
-        <p className="text-center text-12 tracking-[0.14em] text-lilac-deep">누군가의 사주 MBTI 결과</p>
+        <p className="text-center text-12 tracking-[0.14em] text-accent">누군가의 사주 MBTI 결과</p>
       )}
       {/* ① 팔자 히어로 */}
       <div className="bg-night rounded-2xl px-5 py-6 text-center">
-        <p className="text-11 tracking-[0.14em] text-lilac-deep mb-4">타고난 너 · 사주 팔자</p>
+        <p className="text-11 tracking-[0.14em] text-accent-on-dark mb-4">타고난 너 · 사주 팔자</p>
         <div className="flex justify-center mb-1">
           {charImg && (
             <Image src={charImg} alt={content.character} width={144} height={144} className="w-32 h-32 object-contain" priority />
@@ -128,7 +128,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* ③ 본문 */}
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-        <p className="text-15 font-bold tracking-wide text-lilac-deep mb-1.5">성격</p>
+        <p className="text-15 font-bold tracking-wide text-accent mb-1.5">성격</p>
         <MarkdownLite text={content.personality} className="text-14 leading-relaxed text-eye-purple" />
       </section>
 
@@ -138,7 +138,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           <MarkdownLite text={content.light} className="text-13 leading-relaxed text-eye-purple" />
         </section>
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-          <p className="text-15 font-bold tracking-wide text-lilac-deep mb-1.5">그림자</p>
+          <p className="text-15 font-bold tracking-wide text-accent mb-1.5">그림자</p>
           <MarkdownLite text={content.shadow} className="text-13 leading-relaxed text-eye-purple" />
         </section>
       </div>
@@ -149,7 +149,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       </section>
 
       <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
-        <p className="text-15 font-bold tracking-wide text-lilac-deep mb-2">궁합</p>
+        <p className="text-15 font-bold tracking-wide text-accent mb-2">궁합</p>
         <div className="grid grid-cols-2 gap-2.5">
           {content.compat.fits.map((c) => {
             const t = TYPE_CONTENT[c.code];
@@ -173,7 +173,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             const img = characterImage(c.code);
             return (
               <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
-                <p className="text-11 font-medium text-lilac-deep">부딪혀</p>
+                <p className="text-11 font-medium text-accent">부딪혀</p>
                 <div className="flex items-center gap-2 mt-1">
                   {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
                   <div className="min-w-0">
@@ -208,7 +208,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
         <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-2 py-4">
-          <p className="text-15 font-bold tracking-wide text-lilac-deep mb-3 text-center">타고난 너의 사주 원판</p>
+          <p className="text-15 font-bold tracking-wide text-accent mb-3 text-center">타고난 너의 사주 원판</p>
           <SajuBoard saju={saju} />
           <div className="flex justify-center mt-2">
             <ElementPentagon dist={palja.elementDist} />
@@ -222,12 +222,12 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <div className="flex items-stretch gap-2 mb-4">
           <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(150,130,210,0.20)" }}>
             <p className="text-12 font-bold" style={{ color: SELF_COLOR }}>내가 답한 나</p>
-            <p className="text-11 text-lilac-deep">문항 12개</p>
+            <p className="text-11 text-accent-on-dark">문항 12개</p>
             {selfImg && <Image src={selfImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
             <p className="font-display text-15 mt-0.5" style={{ color: SELF_COLOR }}>{selfContent?.character ?? self.code}</p>
             <p className="text-11 text-lilac-mid">{self.code}</p>
           </div>
-          <div className="flex items-center text-lilac-deep text-12 font-medium">vs</div>
+          <div className="flex items-center text-accent-on-dark text-12 font-medium">vs</div>
           <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(242,215,138,0.40)" }}>
             <p className="text-12 font-bold text-cream-warm">타고난 나</p>
             <p className="text-11 text-cream-warm/70">사주 팔자</p>
@@ -255,7 +255,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
               <span className={`w-8 ${a.agree ? "text-lilac-mid" : "text-[#E0A0A0]"}`}>{AXIS_LABEL[a.axis]}</span>
               <span className="flex-1 flex items-center justify-center gap-3">
                 <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>{a.selfPole}</span>
-                <span className="w-4 text-center text-lilac-deep text-11">↔</span>
+                <span className="w-4 text-center text-accent-on-dark text-11">↔</span>
                 <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>{a.paljaPole}</span>
               </span>
               <span className={`w-8 text-right ${a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}`}>{a.agree ? "일치" : "갈림"}</span>
@@ -282,7 +282,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           >
             나도 해보기
           </button>
-          <Link href="/byeolmaru" className="block text-center text-12 text-lilac-deep/70 mt-2">
+          <Link href="/byeolmaru" className="block text-center text-12 text-accent mt-2">
             별마루에서 무료로 다 보기 →
           </Link>
         </>
@@ -298,7 +298,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           <button
             type="button"
             onClick={onRestart}
-            className="px-4 py-3 rounded-xl bg-cream-warm border border-lilac text-lilac-deep font-medium text-14 active:scale-[0.98] transition"
+            className="px-4 py-3 rounded-xl bg-cream-warm border border-lilac text-accent font-medium text-14 active:scale-[0.98] transition"
           >
             다시
           </button>

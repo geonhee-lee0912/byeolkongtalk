@@ -21,7 +21,7 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ value, unit, label }: { value: string; unit: string; label: string }) {
   return (
     <div className="flex-1 flex items-baseline justify-center gap-2">
-      <span className="text-11 text-text-light/70 shrink-0">{label}</span>
+      <span className="text-11 text-text-light shrink-0">{label}</span>
       <span className="font-display text-20 text-eye-purple leading-none whitespace-nowrap">
         {value}
         <span className="text-12 ml-0.5">{unit}</span>
@@ -107,7 +107,7 @@ export default function FortuneLandingSections({
                     <FortuneIcon type={t} size={34} />
                   </span>
                   <span className="text-12 font-bold text-eye-purple text-center leading-tight">{f.label}</span>
-                  <span className="text-11 text-text-light/70">⭐ {f.cost}</span>
+                  <span className="text-11 text-text-light">⭐ {f.cost}</span>
                 </Link>
               );
             })}

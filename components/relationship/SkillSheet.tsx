@@ -29,7 +29,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
           <h2 className="font-display text-17 font-bold text-eye-purple">이런 것도 꺼내 쓸 수 있어</h2>
           <OverlayCloseButton
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
             ✕
           </OverlayCloseButton>
@@ -50,7 +50,7 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
                 </p>
                 <p className="text-12 text-text-light leading-snug">{s.tagline}</p>
               </div>
-              <span className="text-12 font-bold text-lilac-deep shrink-0">⭐{s.starCost}</span>
+              <span className="text-12 font-bold text-accent shrink-0">⭐{s.starCost}</span>
             </button>
           ))}
         </div>

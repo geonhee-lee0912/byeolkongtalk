@@ -115,7 +115,7 @@ export default function PaymentsPage() {
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage" className="text-12 text-text-light/70">
+        <Link href="/mypage" className="text-12 text-text-light">
           ‹ 내 정보
         </Link>
       </div>
@@ -143,7 +143,7 @@ export default function PaymentsPage() {
         {loading ? (
           <p className="text-text-light text-13 text-center py-8">잠시만…</p>
         ) : rows.length === 0 ? (
-          <p className="text-text-light/70 text-13 text-center py-8">
+          <p className="text-text-light text-13 text-center py-8">
             아직 내역이 없어
           </p>
         ) : (
@@ -157,7 +157,7 @@ export default function PaymentsPage() {
                   <div>
                     <div className="text-14 font-bold text-eye-purple">
                       {row.payment.packageLabel}
-                      <span className="ml-2 text-11 font-normal text-text-light/70">
+                      <span className="ml-2 text-11 font-normal text-text-light">
                         결제 · {PAYMENT_STATUS_LABEL[row.payment.status]}
                       </span>
                     </div>
@@ -165,7 +165,7 @@ export default function PaymentsPage() {
                       <span className="font-bold text-eye-purple/80">
                         {fmtDate(row.payment.paidAt)} {fmtTime(row.payment.paidAt)}
                       </span>
-                      <span className="text-text-light/70"> · ⭐{row.payment.stars}별</span>
+                      <span className="text-text-light"> · ⭐{row.payment.stars}별</span>
                     </div>
                   </div>
                   <div className="text-14 font-bold text-eye-purple">
@@ -185,7 +185,7 @@ export default function PaymentsPage() {
                       <span className="font-bold text-eye-purple/80">
                         {fmtDate(row.tx.createdAt)} {fmtTime(row.tx.createdAt)}
                       </span>
-                      <span className="text-text-light/70"> · 잔액 {row.tx.balanceAfter}별</span>
+                      <span className="text-text-light"> · 잔액 {row.tx.balanceAfter}별</span>
                     </div>
                   </div>
                   <div
@@ -222,7 +222,7 @@ export default function PaymentsPage() {
                 className={`w-7 h-7 rounded-lg text-12 font-bold ${
                   i === safePage
                     ? "bg-lilac-deep text-white"
-                    : "text-text-light/70 hover:bg-lilac-soft/50"
+                    : "text-text-light hover:bg-lilac-soft/50"
                 }`}
               >
                 {i + 1}

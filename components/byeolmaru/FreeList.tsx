@@ -88,13 +88,13 @@ export default function FreeList({
                   <span className="text-15 font-bold text-eye-purple">{it.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-11 font-bold ${
-                      it.chipTone === "gold" ? "bg-gold-soft/30 text-eye-purple" : "bg-lilac-soft/60 text-lilac-deep"
+                      it.chipTone === "gold" ? "bg-gold-soft/30 text-eye-purple" : "bg-lilac-soft/60 text-accent"
                     }`}
                   >
                     {it.chip}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-13 leading-snug text-text-light/80">{it.tagline}</p>
+                <p className="mt-1 line-clamp-2 text-13 leading-snug text-text-light">{it.tagline}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1">
                   {it.paidChip ? (
                     <span className="rounded-full bg-eye-purple/10 px-2 py-0.5 text-11 font-bold text-eye-purple">
@@ -102,7 +102,7 @@ export default function FreeList({
                     </span>
                   ) : null}
                   {it.hashtags.map((h) => (
-                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-11 font-bold text-lilac-deep">
+                    <span key={h} className="rounded-full bg-lilac-soft/60 px-2 py-0.5 text-11 font-bold text-accent">
                       #{h}
                     </span>
                   ))}

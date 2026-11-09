@@ -312,7 +312,7 @@ export default function CardDrawRitual({
                       style={{ color: accent }}
                     >
                       {activeSlot + 1}
-                      <span className="text-text-light/50 mx-0.5">/</span>
+                      <span className="text-text-light mx-0.5">/</span>
                       {cardCount}
                     </span>
                     {"  "}
@@ -325,7 +325,7 @@ export default function CardDrawRitual({
                   "마음이 끌리는 카드를 골라봐"
                 )}
               </p>
-              <p className="text-12 text-text-light/85 mt-1.5 leading-relaxed text-center">
+              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
                 {allFilled
                   ? "이제 카드 방향을 정해볼까?"
                   : "“별이 이끄는 대로, 손끝이 멈추는 그 카드로”"}
@@ -336,7 +336,7 @@ export default function CardDrawRitual({
               <p className="font-display text-17 text-eye-purple leading-tight text-center">
                 카드 방향도 정해줄래?
               </p>
-              <p className="text-12 text-text-light/85 mt-1.5 leading-relaxed text-center">
+              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
                 &ldquo;정·역에 따라 별이 전하는 결이 달라져&rdquo;
               </p>
             </>
@@ -393,7 +393,7 @@ export default function CardDrawRitual({
               {backLabel && (
                 <button
                   onClick={onBack}
-                  className="flex-1 max-w-[160px] py-2.5 text-13 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
+                  className="flex-1 max-w-[160px] py-2.5 text-13 font-bold text-accent rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
                 >
                   {backLabel}
                 </button>
@@ -435,7 +435,7 @@ export default function CardDrawRitual({
           </button>
           <button
             onClick={backToPick}
-            className="w-[260px] py-3 text-14 font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
+            className="w-[260px] py-3 text-14 font-bold text-accent rounded-full bg-transparent border-2 border-lilac-deep/45 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
           >
             카드 다시 뽑으러 가기
           </button>

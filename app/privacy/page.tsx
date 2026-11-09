@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
@@ -261,7 +261,7 @@ export default function PrivacyPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-12 text-text-light/80">
+          <p className="mt-3 text-12 text-text-light">
             ※ 해외 업체로의 개인정보 이전은 제6조의2에서 안내합니다.
           </p>
         </Article>

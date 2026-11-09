@@ -83,7 +83,7 @@ export default function AddPersonSheet({
         <OverlayCloseButton
           disabled={purchasing}
           aria-label="닫기"
-          className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+          className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
         >
           ✕
         </OverlayCloseButton>
@@ -113,7 +113,7 @@ export default function AddPersonSheet({
           <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-4">
             <span className="text-13 text-text-light">내 별</span>
             <span
-              className="text-13 font-bold text-lilac-deep"
+              className="text-13 font-bold text-accent"
               style={{ color: insufficient ? WARN : undefined }}
             >
               ⭐{bal}

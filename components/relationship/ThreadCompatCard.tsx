@@ -8,7 +8,7 @@ import type { CompatReport } from "@/lib/fortune/compat-report";
 function Section({ title, body }: { title: string; body: string }) {
   return (
     <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
-      <h4 className="text-13 font-bold text-lilac-deep mb-1">{title}</h4>
+      <h4 className="text-13 font-bold text-accent mb-1">{title}</h4>
       <p className="text-13 text-[#322E3D] leading-[1.75] whitespace-pre-line">{body}</p>
     </div>
   );
@@ -57,11 +57,11 @@ export default function ThreadCompatCard({
             <Section title="🌱 장기 전망" body={report.longterm} />
             {report.growth && <Section title="🌿 관계 성장 포인트" body={report.growth} />}
             <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
-              <h4 className="text-13 font-bold text-lilac-deep mb-1.5">💡 관계를 위한 조언</h4>
+              <h4 className="text-13 font-bold text-accent mb-1.5">💡 관계를 위한 조언</h4>
               <ol className="flex flex-col gap-1">
                 {report.advice.map((a, i) => (
                   <li key={i} className="flex gap-1.5 text-13 text-[#322E3D] leading-[1.6]">
-                    <span className="font-bold text-lilac-deep shrink-0">{i + 1}.</span>
+                    <span className="font-bold text-accent shrink-0">{i + 1}.</span>
                     <span>{a}</span>
                   </li>
                 ))}
@@ -81,7 +81,7 @@ export default function ThreadCompatCard({
           type="button"
           onClick={() => setOpen((v) => !v)}
           className={`w-full mt-3 rounded-xl text-12 font-bold py-2.5 active:scale-[0.98] transition ${
-            open ? "bg-lilac-soft/60 text-lilac-deep" : "bg-lilac-deep text-white"
+            open ? "bg-lilac-soft/60 text-accent" : "bg-lilac-deep text-white"
           }`}
         >
           {open ? "접기 ▴" : "전체 궁합 펼쳐보기 ▾"}

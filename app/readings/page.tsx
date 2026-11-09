@@ -272,7 +272,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
               </span>
             )}
             {chip && (
-              <span className="shrink-0 text-11 font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+              <span className="shrink-0 text-11 font-bold text-accent bg-lilac-soft rounded-full px-1.5 py-0.5">
                 {chip}
               </span>
             )}
@@ -282,10 +282,10 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
               </span>
             )}
           </div>
-          <p className="text-11 text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+          <p className="text-11 text-text-light mt-0.5 leading-snug line-clamp-2">
             {subtitle}
           </p>
-          <p className="text-12 text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light mt-1 leading-snug line-clamp-2">
             {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
           </p>
         </div>
@@ -293,7 +293,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
       {!canResume && !r.hasSensitive && (
         <button
           onClick={() => onContinue(r.id)}
-          className="absolute top-2.5 right-2.5 text-11 font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
+          className="absolute top-2.5 right-2.5 text-11 font-bold text-accent bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
         >
           후속 상담
         </button>
@@ -340,13 +340,13 @@ function renderReportCard(r: ReadingItem) {
         <div className="text-13 text-eye-purple line-clamp-1 font-medium">
           {r.question}
         </div>
-        <div className="text-11 text-text-light/70 mt-0.5 flex items-center gap-1.5">
+        <div className="text-11 text-text-light mt-0.5 flex items-center gap-1.5">
           <span>{formatDate(r.createdAt)}</span>
           <span>·</span>
           <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
         </div>
         {r.preview?.trim() && (
-          <p className="text-12 text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light mt-1 leading-snug line-clamp-2">
             {r.preview.trim()}
           </p>
         )}
@@ -380,13 +380,13 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
           <span
             className={[
               "shrink-0 text-11 font-bold rounded-full px-1.5 py-0.5",
-              done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
+              done ? "text-accent bg-lilac-soft" : "text-text-light bg-lilac-soft/40",
             ].join(" ")}
           >
             {done ? "완료" : "진행 중"}
           </span>
         </div>
-        <p className="text-11 text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+        <p className="text-11 text-text-light mt-0.5 leading-snug line-clamp-2">
           {subParts.join(" · ")}
         </p>
       </div>
@@ -531,7 +531,7 @@ function ReadingsPageInner() {
       <div className="w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
         >
           <svg
             width="12"
@@ -549,7 +549,7 @@ function ReadingsPageInner() {
           <span>뒤로</span>
         </Link>
         <h1 className="text-17 font-bold text-eye-purple">내 상담 보관함</h1>
-        <p className="text-12 text-text-light/70 mt-1">
+        <p className="text-12 text-text-light mt-1">
           별콩이와 나눈 상담과 운세를 다시 볼 수 있어
         </p>
       </div>
@@ -620,7 +620,7 @@ function ReadingsPageInner() {
                     className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safePage
                         ? "bg-lilac-deep text-white"
-                        : "text-text-light/70 hover:bg-lilac-soft/50"
+                        : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >
                     {i + 1}

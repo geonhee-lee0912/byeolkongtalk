@@ -211,7 +211,7 @@ export default function SajuInputForm({
           options={hourOptions}
         />
         {hourValue === HOUR_UNKNOWN && (
-          <p className="text-11 text-text-light/80 leading-relaxed mt-1">
+          <p className="text-11 text-text-light leading-relaxed mt-1">
             괜찮아, 시간 모르면 시주는 참고용으로 짚어볼게.
           </p>
         )}

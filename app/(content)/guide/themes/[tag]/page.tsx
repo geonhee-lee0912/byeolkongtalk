@@ -127,7 +127,7 @@ export default async function ThemePage({
               <Link
                 key={s}
                 href={`/guide/spreads/${buildSpreadSlug(s)}`}
-                className="text-13 font-bold text-lilac-deep bg-white/80 border border-lilac-soft rounded-xl px-3.5 py-2.5 hover:border-lilac-deep/40 transition"
+                className="text-13 font-bold text-accent bg-white/80 border border-lilac-soft rounded-xl px-3.5 py-2.5 hover:border-lilac-deep/40 transition"
               >
                 {SPREAD_INFO[s].label} ({SPREAD_INFO[s].cardCount}장) ›
               </Link>

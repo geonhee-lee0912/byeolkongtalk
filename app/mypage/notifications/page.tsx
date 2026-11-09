@@ -129,7 +129,7 @@ export default function NotificationSettingsPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 앱에선 앱 헤더(‹ + 알림 설정)와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
-        <Link href="/mypage" className="text-12 text-text-light/70">
+        <Link href="/mypage" className="text-12 text-text-light">
           ‹ 내 정보
         </Link>
         <h1 className="mt-3 text-17 font-black">알림 설정</h1>

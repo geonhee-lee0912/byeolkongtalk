@@ -67,7 +67,7 @@ export default function FortuneHeader({ variant = "rich" }: Props) {
           surface={BIRTH_PROMPT_SURFACE.fortuneHeader}
           loginNext="/fortune"
           onSaved={() => {}}
-          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-lilac-deep transition active:scale-95 disabled:opacity-60"
+          className="mt-3 -ml-0.5 inline-flex items-center gap-1 rounded-xl border border-lilac-mid/60 bg-white/50 px-3 py-1 text-12 font-semibold text-accent transition active:scale-95 disabled:opacity-60"
         >
           생일 등록하기
           <span aria-hidden>→</span>

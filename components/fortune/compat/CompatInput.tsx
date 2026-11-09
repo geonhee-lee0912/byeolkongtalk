@@ -152,7 +152,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-12 text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>
@@ -163,7 +163,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       <div className="w-full max-w-md mx-auto px-5 mt-3">
         <Link
           href="/fortune"
-          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
+          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
         >
           다른 운세 보기
         </Link>

@@ -17,7 +17,7 @@ function Chips({ items }: { items: string[] }) {
       {items.map((c, i) => (
         <span
           key={i}
-          className="bg-white border border-lilac-mid/40 rounded-full px-2.5 py-1 text-11 font-bold text-lilac-deep"
+          className="bg-white border border-lilac-mid/40 rounded-full px-2.5 py-1 text-11 font-bold text-accent"
         >
           {c}
         </span>
@@ -112,7 +112,7 @@ export default function SajuFullReportView({
         <div className="flex flex-col">
           {report.monthly.map((m) => (
             <div key={m.month} className="flex gap-2.5 py-2 border-b border-lilac-mid/20 last:border-0">
-              <div className="text-11 font-bold text-lilac-deep w-7 flex-shrink-0 pt-0.5">{m.month}월</div>
+              <div className="text-11 font-bold text-accent w-7 flex-shrink-0 pt-0.5">{m.month}월</div>
               <MarkdownLite text={m.body} className="text-13 text-[#4F4A5E] leading-[1.7]" />
             </div>
           ))}
@@ -170,7 +170,7 @@ export default function SajuFullReportView({
         <ol className="flex flex-col gap-1.5">
           {report.actions.map((a, i) => (
             <li key={i} className="flex gap-2 text-14 text-[#4F4A5E] leading-[1.7]">
-              <span className="font-bold text-lilac-deep flex-shrink-0">{i + 1}.</span>
+              <span className="font-bold text-accent flex-shrink-0">{i + 1}.</span>
               <span>{a}</span>
             </li>
           ))}

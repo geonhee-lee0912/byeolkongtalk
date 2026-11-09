@@ -87,25 +87,25 @@ export default function FortunePage({
                         하루 1회 무료
                       </span>
                     ) : (
-                      <span className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
+                      <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
                         ⭐ {f.cost}
                       </span>
                     )}
                     {FORTUNE_LENGTH_HINT[f.type] && (
-                      <span className="text-11 font-medium text-text-light/70">
+                      <span className="text-11 font-medium text-text-light">
                         · {FORTUNE_LENGTH_HINT[f.type]}
                       </span>
                     )}
                   </span>
                 </div>
-                <p className="text-13 text-text-light/80 mt-1 leading-snug line-clamp-2">
+                <p className="text-13 text-text-light mt-1 leading-snug line-clamp-2">
                   {tagline}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {FORTUNE_HASHTAGS[f.type].map((h) => (
                     <span
                       key={h}
-                      className="text-11 font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                      className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                     >
                       #{h}
                     </span>
@@ -113,7 +113,7 @@ export default function FortunePage({
                 </div>
               </div>
               {!f.active && (
-                <span className="text-11 text-text-light/50 shrink-0">준비 중</span>
+                <span className="text-11 text-text-light shrink-0">준비 중</span>
               )}
             </div>
           );
@@ -128,10 +128,10 @@ export default function FortunePage({
         })}
       </div>
 
-      <p className="mt-6 text-11 text-text-light/50 text-center px-8 leading-relaxed">
+      <p className="mt-6 text-11 text-text-light text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성을 비춰주는 거야.
         <br />
-        결과는 <span className="text-text-light/70">내 고민톡</span>에서 다시 볼 수 있어.
+        결과는 <span className="text-text-light">내 고민톡</span>에서 다시 볼 수 있어.
       </p>
     </main>
   );

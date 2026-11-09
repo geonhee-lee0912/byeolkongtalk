@@ -11,7 +11,7 @@ export default function RefundPage() {
       {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>

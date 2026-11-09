@@ -79,7 +79,7 @@ export default function TarotReportView({
       <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col gap-6">
         {items.map((card) => (
           <div key={card.key} className="flex flex-col items-center text-center">
-            <div className="text-12 text-text-light/70">{card.position}</div>
+            <div className="text-12 text-text-light">{card.position}</div>
             <div className="text-17 font-bold text-eye-purple mt-0.5">
               {card.cardName}
             </div>
@@ -97,7 +97,7 @@ export default function TarotReportView({
                 />
               </div>
             )}
-            <div className="text-12 text-text-light/70 mt-2">
+            <div className="text-12 text-text-light mt-2">
               {card.direction === "upright" ? "정방향" : "역방향"}
             </div>
             <p className="text-13 text-text-light leading-relaxed mt-4 whitespace-pre-wrap text-left">

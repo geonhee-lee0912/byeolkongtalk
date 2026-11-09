@@ -364,7 +364,7 @@ export default function DailyCardBlock({
             //    이 링크를 거쳐 뒤로가기로 돌아와도 살아남는다. 포털도 `ritualVisible` 로 같이 잠근다.
             <p className="text-14 text-text-light">
               {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
-              <Link href="/byeolmaru/day?tab=tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
+              <Link href="/byeolmaru/day?tab=tarot" className="text-accent underline">오늘 카드 뽑으러 가기 →</Link>
             </p>
           )}
         </section>
@@ -449,11 +449,11 @@ export default function DailyCardBlock({
                   </p>
                   {/* 🔴 쉼표 나열 한 줄 → 칩(2026-09-27, 사용자 요청). 키워드는 문장이 아니라
                       **낱개 항목**이라 나열문으로 두면 아래 taste 본문과 결이 섞였다.
-                      칩 모양은 같은 화면 FreeList 해시태그 칩(`bg-lilac-soft/60` + `text-lilac-deep`)
+                      칩 모양은 같은 화면 FreeList 해시태그 칩(`bg-lilac-soft/60` + `text-accent`)
                       을 그대로 쓴다 — 별마루 안에서 새 칩 문법을 만들지 않는다. */}
                   <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
                     {kwList.map((k) => (
-                      <li key={k} className="rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-lilac-deep">
+                      <li key={k} className="rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-accent">
                         {k}
                       </li>
                     ))}
@@ -494,7 +494,7 @@ export default function DailyCardBlock({
                     <BirthPromptButton
                       surface={BIRTH_PROMPT_SURFACE.byeolmaruDayTarot}
                       onSaved={reloadAfterSave}
-                      className="text-lilac-deep underline disabled:opacity-60"
+                      className="text-accent underline disabled:opacity-60"
                     >
                       생년월일 입력하기 →
                     </BirthPromptButton>
@@ -601,7 +601,7 @@ export default function DailyCardBlock({
                 // 🔴 `mt-*` 를 주지 않는다 — 이 버튼은 fragment 를 거쳐 TarotTodayView 의
                 //    `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 이미 온다.
                 //    `mt-4` 를 얹었더니 32px 이 돼 사주(16px)보다 멀어졌다(실측).
-                className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-lilac-deep disabled:opacity-40"
+                className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-accent disabled:opacity-40"
               >
                 오늘 카드 공유하기
               </button>
@@ -626,7 +626,7 @@ export default function DailyCardBlock({
                 onClick={closeRitual}
                 aria-label="닫기"
                 disabled={saving}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
               >
                 ✕
               </button>

@@ -63,7 +63,7 @@ export default function CurrentPartner({
           삭제 전용 버튼을 두면 그 되돌림 가능성이 안 보인다(그리고 이 화면엔 지울 이유가 없다). */}
       <button
         onClick={onChange}
-        className="shrink-0 rounded-lg border border-lilac-mid/60 px-2.5 py-1 text-12 font-semibold text-lilac-deep transition active:scale-95"
+        className="shrink-0 rounded-lg border border-lilac-mid/60 px-2.5 py-1 text-12 font-semibold text-accent transition active:scale-95"
       >
         바꾸기
       </button>

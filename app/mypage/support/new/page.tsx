@@ -51,7 +51,7 @@ export default function SupportNewPage() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-5">
-        <Link href="/mypage/support" className="text-12 text-text-light/70">
+        <Link href="/mypage/support" className="text-12 text-text-light">
           ‹ 문의 목록
         </Link>
       </div>
@@ -93,7 +93,7 @@ export default function SupportNewPage() {
             placeholder="어떤 점이 불편했는지, 무엇이 궁금한지 자세히 적어줘."
             className="w-full bg-cream-warm border border-lilac-mid/40 rounded-xl px-3 py-2.5 text-14 text-eye-purple resize-none"
           />
-          <div className="text-11 text-text-light/60 text-right mt-1">
+          <div className="text-11 text-text-light text-right mt-1">
             {bodyLen} / {INQUIRY_BODY_MAX}
           </div>
         </div>

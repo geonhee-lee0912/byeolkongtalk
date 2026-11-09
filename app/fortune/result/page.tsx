@@ -451,7 +451,7 @@ function FortuneResultInner() {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 gap-3">
         <p className="text-text-light text-14">운세를 찾을 수 없어.</p>
-        <Link href="/fortune" className="text-lilac-deep text-14 font-bold underline">
+        <Link href="/fortune" className="text-accent text-14 font-bold underline">
           별콩 운세로 돌아가기
         </Link>
       </main>
@@ -466,7 +466,7 @@ function FortuneResultInner() {
             <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
-            <p className="mt-2 text-12 font-medium text-lilac-deep">{dateLabel}</p>
+            <p className="mt-2 text-12 font-medium text-accent">{dateLabel}</p>
           )}
           <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
             <FortuneIcon type={ftType} size={26} className="inline-block object-contain" />
@@ -522,7 +522,7 @@ function FortuneResultInner() {
               className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
             >
               {s.title && (
-                <h2 className="text-14 font-bold text-lilac-deep mb-2">{s.title}</h2>
+                <h2 className="text-14 font-bold text-accent mb-2">{s.title}</h2>
               )}
               <MarkdownLite text={s.body} className="text-14 text-text leading-relaxed" />
             </div>
@@ -544,7 +544,7 @@ function FortuneResultInner() {
             {relationshipId && (
               <Link
                 href="/relationship"
-                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-15 text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
+                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-accent font-bold text-15 text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
               >
                 💬 연애 상담으로 돌아가 이어 얘기하기
               </Link>
@@ -566,13 +566,13 @@ function FortuneResultInner() {
             </button>
             <Link
               href="/fortune"
-              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-14 text-center hover:bg-lilac-deep/5 transition"
+              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-accent font-bold text-14 text-center hover:bg-lilac-deep/5 transition"
             >
               다른 운세 보기
             </Link>
             <Link
               href="/readings"
-              className="w-full py-2 text-text-light/70 text-12 text-center"
+              className="w-full py-2 text-text-light text-12 text-center"
             >
               내 고민톡에서 다시 보기
             </Link>
@@ -586,7 +586,7 @@ function FortuneResultInner() {
 
       {!isPublic && <SurveyResultCard />}
 
-      <p className="mt-5 text-11 text-text-light/45 text-center px-8 leading-relaxed">
+      <p className="mt-5 text-11 text-text-light text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어 ✨
       </p>
 

@@ -527,7 +527,7 @@ export default function ThreadChat({
             const dateDivider =
               curKey !== null && curKey !== prevKey ? (
                 <div className="flex justify-center my-3">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/50 px-3 py-1 text-11 font-medium text-text-light/80">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft/50 px-3 py-1 text-11 font-medium text-text-light">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                       <path d="M19,4H18V2H16V4H8V2H6V4H5A2,2 0 0,0 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z" />
                     </svg>
@@ -586,7 +586,7 @@ export default function ThreadChat({
                       <div key={k}>
                         {card && (
                           <div className="pl-10 mb-1">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft px-2.5 py-0.5 text-11 font-bold text-lilac-deep">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft px-2.5 py-0.5 text-11 font-bold text-accent">
                               {card.label} · {getCard(card.card_id)?.name_kr ?? ""}
                               {card.direction === "reversed" ? " (역)" : ""}
                             </span>
@@ -629,7 +629,7 @@ export default function ThreadChat({
                         <span className="text-12 font-bold text-eye-purple">
                           {busyKey === skill.key ? "여는 중…" : skill.label}
                         </span>
-                        <span className="text-11 font-bold text-lilac-deep">
+                        <span className="text-11 font-bold text-accent">
                           ⭐{skill.starCost}
                         </span>
                       </button>
@@ -761,7 +761,7 @@ export default function ThreadChat({
                 }
                 disabled={sending || compatLoading || drawLoading}
                 maxLength={8000}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
               />
               <button

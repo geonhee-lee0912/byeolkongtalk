@@ -97,7 +97,7 @@ export default function AcquaintanceListModal({
             <h2 className="text-15 font-bold text-eye-purple">지인 사주</h2>
             <OverlayCloseButton
               aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
               ✕
             </OverlayCloseButton>
@@ -106,12 +106,12 @@ export default function AcquaintanceListModal({
           <div className="px-5 pb-5">
             <div className="flex items-center justify-between mb-3">
               <div className="text-12 font-bold text-eye-purple">
-                전체 <span className="text-text-light/60 font-normal">{acquaintances.length}</span>
+                전체 <span className="text-text-light font-normal">{acquaintances.length}</span>
               </div>
               {!showAddAcq && !editAcqId && (
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="text-11 text-lilac-deep font-bold underline"
+                  className="text-11 text-accent font-bold underline"
                 >
                   + 지인 추가
                 </button>
@@ -147,7 +147,7 @@ export default function AcquaintanceListModal({
                     setShowAddAcq(false);
                     setEditAcqId(null);
                   }}
-                  className="mx-auto mt-3 block text-12 text-text-light/60 underline"
+                  className="mx-auto mt-3 block text-12 text-text-light underline"
                 >
                   취소
                 </button>
@@ -160,7 +160,7 @@ export default function AcquaintanceListModal({
 
             {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
               <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-4 py-6">
-                <p className="text-12 text-text-light/70 text-center mb-3">
+                <p className="text-12 text-text-light text-center mb-3">
                   아직 함께 보는 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
                 </p>
                 <button
@@ -195,11 +195,11 @@ export default function AcquaintanceListModal({
                     <div className="flex-1 min-w-0">
                       <div className="text-14 font-bold text-eye-purple truncate">
                         {p.displayName}
-                        <span className="ml-1.5 text-11 font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                        <span className="ml-1.5 text-11 font-bold text-text-light bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
                           {RELATION_LABEL[p.relationType] ?? "지인"}
                         </span>
                       </div>
-                      <div className="text-11 text-text-light/70 mt-0.5 truncate">
+                      <div className="text-11 text-text-light mt-0.5 truncate">
                         {p.saju && p.birthDate ? (
                           <>
                             {p.saju.dayStem}
@@ -216,7 +216,7 @@ export default function AcquaintanceListModal({
                     <button
                       onClick={() => setSheetId(p.id)}
                       aria-label="더보기"
-                      className="shrink-0 p-1.5 rounded-lg text-text-light/60 hover:bg-lilac-soft/50"
+                      className="shrink-0 p-1.5 rounded-lg text-text-light hover:bg-lilac-soft/50"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="5" r="1.6" />
@@ -249,7 +249,7 @@ export default function AcquaintanceListModal({
                     className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safeListPage
                         ? "bg-lilac-deep text-white"
-                        : "text-text-light/70 hover:bg-lilac-soft/50"
+                        : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >
                     {i + 1}
@@ -303,7 +303,7 @@ export default function AcquaintanceListModal({
             >
               삭제
             </button>
-            <OverlayCloseButton className="w-full py-3.5 rounded-xl text-14 text-text-light/70">
+            <OverlayCloseButton className="w-full py-3.5 rounded-xl text-14 text-text-light">
               취소
             </OverlayCloseButton>
           </div>
