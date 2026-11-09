@@ -102,7 +102,7 @@ test("밝은 바탕에서 연보라 글자를 쓰지 않는다", () => {
 });
 
 // ── 버튼 종류 3 × 크기 3(스펙 §2.6) — btn + btn-primary|secondary|text + btn-lg|md|sm
-const BUTTONS = () => classBlocks(["button", "Link", "a"]);
+const BUTTONS = () => classBlocks(["button", "Link", "a", "BirthPromptButton", "OverlayCloseButton"]); // className 을 그대로 넘기는 버튼 래퍼 포함
 const at = (b: { file: string; line: number }) => `${b.file}:${b.line}`;
 test("버튼 바탕에 진보라·흰 글자 조합을 쓰지 않는다(주 버튼은 btn-primary, 선택 상태는 bg-accent)", () => {
   const solid = /(?<![\w:-])bg-(lilac-deep|eye-purple)(?![\w/-])[^"'`]*\btext-white\b|\btext-white\b[^"'`]*(?<![\w:-])bg-(lilac-deep|eye-purple)(?![\w/-])/;
@@ -204,4 +204,11 @@ test("화면 글자에 이모지가 없다", () => {
 // ── 글자 고정(스펙 §2.2) — 안드로이드 웹뷰가 기기 글자 배율을 따라가지 않게
 test("앱 웹뷰 글자 배율을 100 으로 고정한다", () => {
   assert.match(readFileSync("mobile/src/WebScreen.tsx", "utf8"), /<WebView<object>[\s\S]*?textZoom=\{100\}/);
+});
+
+// ── 최종 리뷰에서 잡힌 회귀 잠금
+test("관계 전환: + 버튼은 아바타와 같은 56px 원, 이름 칸은 11px 5자가 들어가는 폭", () => {
+  const s = readFileSync("components/relationship/HubSwitcher.tsx", "utf8");
+  assert.match(s, /aria-label="새 사람 추가"\s*className="[^"]*\bw-14 h-14 rounded-full\b/);
+  assert.doesNotMatch(s, /max-w-\[52px\]/);
 });

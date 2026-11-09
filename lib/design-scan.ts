@@ -42,7 +42,8 @@ export function offenders(re: RegExp, allow: string[] = []): string[] {
 /** 태그(<button>·<Link> 등)의 className 묶음 — 속성이 여러 줄이어도 통째로. 줄 번호는 className 이 시작하는 줄. */
 export function classBlocks(tags: string[]): { file: string; line: number; cls: string }[] {
   const out: { file: string; line: number; cls: string }[] = [];
-  const re = new RegExp(`<(${tags.join("|")})\\b(?:(?!<|/>)[\\s\\S]){0,600}?className=(\\{\`[\\s\\S]*?\`\\}|"[^"]*"|\\{[^{}]*\\})`, "g");
+  // 속성 안의 비교 연산자(`a < b`)에서 멈추지 않게, 다음 태그 시작(`<` + 글자·/)에서만 멈춘다
+  const re = new RegExp(`<(${tags.join("|")})\\b(?:(?!<[A-Za-z/]|/>)[\\s\\S]){0,600}?className=(\\{\`[\\s\\S]*?\`\\}|"[^"]*"|\\{[^{}]*\\})`, "g");
   for (const p of sources()) {
     const text = readFileSync(p, "utf8");
     for (const m of text.matchAll(re)) {

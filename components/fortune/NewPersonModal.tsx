@@ -105,7 +105,7 @@ export default function NewPersonModal({
 
         <OverlayCloseButton
           disabled={saving}
-          className="w-full mt-3 py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-14 hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
+          className="btn btn-secondary btn-lg mt-3"
         >
           취소
         </OverlayCloseButton>

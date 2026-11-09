@@ -193,7 +193,7 @@ export default function DualSajuPicker({
             surface={birthSurface}
             loginNext={loginNext}
             onSaved={loadProfiles}
-            className="inline-block px-5 py-3 rounded-xl bg-lilac-deep text-white font-bold text-14 disabled:opacity-60"
+            className="btn btn-primary btn-md"
           >
             내 생년월일 입력하기
           </BirthPromptButton>
@@ -266,7 +266,7 @@ export default function DualSajuPicker({
             surface={birthSurface}
             loginNext={loginNext}
             onSaved={loadProfiles}
-            className="inline-block px-4 py-2 rounded-xl bg-lilac-deep text-white font-bold text-13 disabled:opacity-60"
+            className="btn btn-primary btn-sm"
           >
             생년월일 입력하기
           </BirthPromptButton>

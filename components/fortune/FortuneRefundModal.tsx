@@ -36,8 +36,7 @@ export default function FortuneRefundModal({ cost, label, onClose }: FortuneRefu
         </div>
 
         <OverlayCloseButton
-          className="w-full py-3.5 rounded-full text-white font-bold text-14 active:scale-[0.98] transition-all"
-          style={{ background: "#9F8AD0", boxShadow: "0 6px 18px #9F8AD055" }}
+          className="btn btn-primary btn-lg"
         >
           확인
         </OverlayCloseButton>

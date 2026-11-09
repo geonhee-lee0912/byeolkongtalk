@@ -221,7 +221,7 @@ export default function ConcernPage() {
         <button
           onClick={handleStart}
           disabled={submitting || concern.length < MIN_LEN}
-          className="mt-2 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn btn-primary btn-lg mt-2 disabled:cursor-not-allowed"
         >
           {submitting
             ? "별콩이 부르는 중…"

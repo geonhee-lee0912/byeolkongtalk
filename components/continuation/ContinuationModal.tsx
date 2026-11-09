@@ -259,14 +259,14 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                   <button
                     onClick={() => start("fresh")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn btn-primary btn-lg mt-3 disabled:cursor-not-allowed"
                   >
                     타로 카드 새로 뽑아 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(fullCost)})
                   </button>
                   <button
                     onClick={() => start("deep")}
                     disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="mt-2 w-full py-3.5 rounded-xl border border-lilac-deep/50 text-accent font-bold text-15 hover:bg-lilac-deep/5 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="btn btn-secondary btn-lg mt-2 disabled:cursor-not-allowed gap-1.5"
                   >
                     동일한 카드로 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(deepCost)}
                     <span className="text-11 text-accent">40% 할인</span>)
@@ -276,7 +276,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <button
                   onClick={() => start("deep")}
                   disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                  className="mt-3 w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-15 hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  className="btn btn-primary btn-lg mt-3 disabled:cursor-not-allowed"
                 >
                   지난 대화를 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(deepCost)}
                   <span className="text-11 text-white/70">40% 할인</span>)

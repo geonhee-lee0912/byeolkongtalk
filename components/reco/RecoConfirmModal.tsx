@@ -54,7 +54,7 @@ export default function RecoConfirmModal({
           >
             마무리하고 넘어가기
           </button>
-          <OverlayCloseButton className="w-full py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-14 hover:bg-lilac-soft/30 active:scale-[0.98] transition">
+          <OverlayCloseButton className="btn btn-secondary btn-lg">
             아니, 대화 더 할래
           </OverlayCloseButton>
         </div>
