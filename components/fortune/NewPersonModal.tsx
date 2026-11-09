@@ -1,9 +1,10 @@
 "use client";
 
 // 새 사람 사주 입력 모달 — FortuneSajuPicker/DualSajuPicker 공용 팝업.
-// 포털/백드롭/ESC 패턴은 PassConfirmModal 과 동일.
+// 포털·배경막·ESC·스크롤 잠금은 공통 Sheet(저장 중엔 닫기 불가).
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import Link from "next/link";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { profileSaveErrorMessage } from "@/components/saju/profile-save-error";
@@ -35,24 +36,6 @@ export default function NewPersonModal({
     if (err) errRef.current?.scrollIntoView({ block: "nearest" });
   }, [err]);
 
-  // 배경 스크롤 잠금 — 마운트 동안 유지
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  // ESC 닫기 (저장 중엔 닫기 불가) — saving 최신값을 반영해야 하므로 deps에 포함
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [saving, onClose]);
-
   if (typeof document === "undefined") return null;
 
   const handleSubmit = async (payload: ProfilePayload) => {
@@ -83,17 +66,15 @@ export default function NewPersonModal({
   // 위 typeof document 가드 뒤라 window 접근이 SSR 에 닿지 않는다.
   const next = loginNext ?? window.location.pathname + window.location.search;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in"
-      onClick={() => !saving && onClose()}
-      role="dialog"
-      aria-modal="true"
+  return (
+    <Sheet
+      label="새 사람 사주 입력"
+      onClose={onClose}
+      dismissible={!saving}
+      z={100}
+      backdropClassName="bg-night/75 backdrop-blur-md"
+      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[85vh] overflow-y-auto p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[85vh] overflow-y-auto p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="text-center mb-5">
           <p className="font-display text-[17px] font-bold text-eye-purple">
             새 사람 사주 입력
@@ -122,16 +103,12 @@ export default function NewPersonModal({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => !saving && onClose()}
+        <OverlayCloseButton
           disabled={saving}
           className="w-full mt-3 py-3 rounded-xl border border-lilac-mid/40 text-text-light font-bold text-[14px] hover:bg-lilac-soft/30 active:scale-[0.98] transition disabled:opacity-50"
         >
           취소
-        </button>
-      </div>
-    </div>,
-    document.body
+        </OverlayCloseButton>
+    </Sheet>
   );
 }

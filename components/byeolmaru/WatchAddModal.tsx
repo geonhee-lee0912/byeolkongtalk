@@ -7,7 +7,8 @@
 //    🔴 되돌리기가 값싸다: 과거 리포트는 (user, partner, 날짜) 키라 남아 있고, 프로필도 안 지우므로
 //       예전 상대를 다시 고르면 그날 기록이 그대로 살아난다.
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import {
@@ -88,25 +89,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
     };
   }, []);
 
-  // 배경 스크롤 잠금 — ProfileEditModal과 동일 패턴
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  // ESC 닫기(제출 중엔 닫기 불가) — ProfileEditModal과 동일 패턴
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !submitting) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [submitting, onClose]);
-
-  if (typeof document === "undefined") return null;
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog(처리 중엔 닫기 불가)
 
   // 🔴 별 확인 단계가 없다(2026-09-24) — 교체는 무료라 곧장 POST 한다. 예전엔 무료 슬롯이
   //    소진되면 잔액을 조회해 StarConfirmModal 을 띄웠다.
@@ -197,32 +180,31 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   }
 
 
-  return createPortal(
-    <div
-      // z-[75] — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
+  return (
+    <Dialog
+      label="누구를 담아볼까?"
+      onClose={onClose}
+      dismissible={!busy}
+      // z 75 — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
       // (ThreadDrawModal과 동일 이유·동일 값. z-100으로 올리면 결제 확인이 이 모달 아래 깔려 클릭 불가해진다)
-      className="fixed inset-0 z-[75] flex items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in px-5"
-      onClick={() => !busy && onClose()}
-      role="dialog"
-      aria-modal="true"
+      z={75}
+      widthClassName="max-w-md"
+      gutterClassName="px-5"
+      backdropClassName="bg-night/75 backdrop-blur-md"
     >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-[17px] font-bold text-eye-purple">
               누구를 담아볼까?
             </h2>
-            <button
-              onClick={() => !busy && onClose()}
+            <OverlayCloseButton
               aria-label="닫기"
               disabled={busy}
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
             >
               ✕
-            </button>
+            </OverlayCloseButton>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -420,8 +402,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         )}
         <div className="h-5" />
       </div>
-
-    </div>,
-    document.body
+    </Dialog>
   );
 }

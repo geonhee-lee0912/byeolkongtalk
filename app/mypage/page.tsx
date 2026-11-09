@@ -9,6 +9,8 @@ import StorageSummary from "@/components/mypage/StorageSummary";
 import SajuBoard from "@/components/saju/SajuBoard";
 import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
 import { postToApp } from "@/lib/app-context";
@@ -400,9 +402,21 @@ export default function MyPage() {
         </button>
       </div>
 
-      {/* 회원 탈퇴 확인 모달 */}
+      {/* 회원 탈퇴 확인 모달 — 버튼으로만 닫힌다. body 포털(Dialog)이라 <main> 의 fade 에 위치가 묶이지 않는다 */}
       {showWithdrawConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5">
+        <Dialog
+          label="회원 탈퇴 확인"
+          role="alertdialog"
+          dismissible={false}
+          onClose={() => {
+            setShowWithdrawConfirm(false);
+            setWithdrawAck(false);
+          }}
+          z={50}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-black/30"
+        >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
             <p className="text-[14px] font-bold text-eye-purple mb-2">
               정말 떠나려고?
@@ -421,15 +435,9 @@ export default function MyPage() {
               위 내용에 동의해
             </label>
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowWithdrawConfirm(false);
-                  setWithdrawAck(false);
-                }}
-                className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
-              >
+              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]">
                 취소
-              </button>
+              </OverlayCloseButton>
               <button
                 onClick={handleWithdraw}
                 disabled={!withdrawAck || withdrawing}
@@ -439,7 +447,7 @@ export default function MyPage() {
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       <Footer />

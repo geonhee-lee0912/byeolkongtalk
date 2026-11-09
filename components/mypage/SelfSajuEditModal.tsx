@@ -3,7 +3,8 @@
 // 내 명식 편집 모달 — 원래 SajuProfileModal 의 "내 명식 편집" 파트를 분리.
 // 명식 표시는 마이페이지 인라인(SajuBoard)이 담당하고, 이 모달은 편집만 담당한다.
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { type ProfileItem, toInitial } from "@/components/mypage/sajuShared";
 import { profileSaveErrorMessage } from "@/components/saju/profile-save-error";
@@ -31,14 +32,7 @@ export default function SelfSajuEditModal({
     if (err) errRef.current?.scrollIntoView({ block: "nearest" });
   }, [err]);
 
-  // 배경 스크롤 잠금 — 마운트 동안 유지
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog
 
   const saveSelf = async (payload: ProfilePayload) => {
     setSaving(true);
@@ -72,28 +66,26 @@ export default function SelfSajuEditModal({
     onClose();
   };
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5"
-      onClick={onClose}
+  return (
+    <Dialog
+      label={self?.saju ? "내 사주 수정" : "내 사주 입력"}
+      onClose={onClose}
+      z={50}
+      widthClassName="max-w-md"
+      gutterClassName="px-5"
+      backdropClassName="bg-black/30"
     >
-      <div
-        className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-cream rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hover">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
           <h2 className="text-[15px] font-bold text-eye-purple">
             {self?.saju ? "내 사주 수정" : "내 사주 입력"}
           </h2>
-          <button
-            onClick={onClose}
+          <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
           >
             ✕
-          </button>
+          </OverlayCloseButton>
         </div>
         <div className="pb-5">
           <ProfileForm
@@ -111,7 +103,6 @@ export default function SelfSajuEditModal({
           )}
         </div>
       </div>
-    </div>,
-    document.body
+    </Dialog>
   );
 }

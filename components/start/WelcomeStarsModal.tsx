@@ -4,7 +4,7 @@
 // body 포털 (페이지 transform 스택 컨텍스트에서 z-40/50 쉘 아래 깔리는 문제 회피).
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 
 export default function WelcomeStarsModal({
@@ -16,8 +16,16 @@ export default function WelcomeStarsModal({
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-night/60 backdrop-blur-sm animate-fade-in px-5">
+  // '바로 시작하기'로만 닫힌다(바깥 누르기·ESC 무시)
+  return (
+    <Dialog
+      label={`웰컴 별 ${WELCOME_BONUS_STARS}개 도착`}
+      onClose={onStart}
+      dismissible={false}
+      z={80}
+      gutterClassName="px-5"
+      backdropClassName="bg-night/60 backdrop-blur-sm"
+    >
       <div className="w-full max-w-sm bg-cream rounded-3xl p-7 text-center">
         <div className="relative w-24 h-24 mx-auto mb-3">
           <div className="absolute inset-0 bg-gold/40 rounded-full blur-xl scale-110" />
@@ -47,7 +55,6 @@ export default function WelcomeStarsModal({
           바로 시작하기
         </button>
       </div>
-    </div>,
-    document.body
+    </Dialog>
   );
 }

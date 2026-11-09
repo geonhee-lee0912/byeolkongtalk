@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { STAR_PACKAGES } from "@/lib/constants";
 import {
   sheetPackages,
@@ -130,21 +131,7 @@ export default function RechargeSheet({
     setRecommendedId(next);
   }, [open, eligibilityLoaded, balance, firstChargeEligible, need]);
 
-  // ESC + 배경 스크롤 잠금
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeSheet();
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // ESC·배경 스크롤 잠금은 공통 Sheet
 
   function closeSheet() {
     if (history.state?.sheet === "recharge") {
@@ -190,20 +177,18 @@ export default function RechargeSheet({
 
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={closeSheet}
-      role="dialog"
-      aria-modal="true"
-      aria-label="별 충전"
+  // 그랩바는 웹 전용 — 앱은 Sheet 손잡이(끌어내리기)
+  return (
+    <Sheet
+      label="별 충전"
+      onClose={closeSheet}
+      z={90}
+      align="bottom"
+      backdropClassName="bg-night/70 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* 그랩바 */}
-        <div className="flex justify-center pt-3 pb-1">
+        <div className="web-only flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
 
@@ -212,13 +197,12 @@ export default function RechargeSheet({
           <h2 className="font-display text-[17px] font-bold text-eye-purple">
             별 충전하기
           </h2>
-          <button
-            onClick={closeSheet}
+          <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
           >
             ✕
-          </button>
+          </OverlayCloseButton>
         </div>
 
         {/* 잔액 + 안내 */}
@@ -353,8 +337,6 @@ export default function RechargeSheet({
             </span>
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }

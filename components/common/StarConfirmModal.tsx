@@ -4,8 +4,9 @@
 // 타로는 spreadLabel 기반 기본 카피, 운세는 title/subtitle 직접 전달.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import Sheet from "./Sheet";
+import OverlayCloseButton from "./OverlayCloseButton";
 
 export interface StarConfirmModalProps {
   cost: number;
@@ -49,8 +50,8 @@ export default function StarConfirmModal({
   onCharge,
   onClose,
 }: StarConfirmModalProps) {
-  // 팝업은 body 로 포털 — 페이지 <main> 의 animate-fade-in(transform) 이 만드는
-  // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다.
+  // 팝업은 body 로 포털(Sheet) — 페이지 <main> 의 animate-fade-in(transform) 이 만드는
+  // 스택 컨텍스트에 갇혀 헤더/하단탭(z-50/z-40) 아래로 깔리는 문제를 피한다. mounted 는 첫 그림(서버)과 맞추려고 둔다
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -70,17 +71,9 @@ export default function StarConfirmModal({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      {/* max-h+overflow — 구독 시트처럼 내용이 긴 호출부에서 뷰포트를 넘으면 스크롤 없이 잘려
-          확인 버튼에 손이 안 닿는다(WatchAddModal 과 같은 처방). 짧은 호출부엔 영향 없다. */}
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6 max-h-[88vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+  // 판은 공통 Sheet 기본 판 그대로(max-h 88vh + 스크롤 — 구독 시트처럼 긴 호출부에서도 확인 버튼에 손이 닿는다)
+  return (
+    <Sheet label={heading} onClose={onClose} z={80}>
         {/* 별콩이 + 안내 */}
         <div className="flex flex-col items-center text-center mb-5">
           <div className="relative w-12 h-12 mb-2">
@@ -159,15 +152,10 @@ export default function StarConfirmModal({
               {confirmLabel ?? "확인하고 시작하기"}
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="w-full py-3 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors"
-          >
+          <OverlayCloseButton className="w-full py-3 text-[13px] font-bold text-lilac-deep rounded-full bg-transparent border-2 border-lilac-deep/40 hover:border-lilac-deep/70 hover:bg-lilac-deep/5 transition-colors">
             취소
-          </button>
+          </OverlayCloseButton>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }
