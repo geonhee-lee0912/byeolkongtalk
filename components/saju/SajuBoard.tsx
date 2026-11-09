@@ -67,7 +67,8 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
               {/* 천간 */}
               <div
-                className="rounded-t-xl px-2 py-3 flex flex-col items-center"
+                // 금(金)은 바탕이 흰색이라 흰 카드 위에서 칸이 사라진다 — 얇은 안쪽 테두리로 칸을 보이게(색은 그대로)
+                className={`rounded-t-xl px-2 py-3 flex flex-col items-center${stemEl === "금" ? " ring-1 ring-inset ring-lilac-mid/40" : ""}`}
                 style={{
                   backgroundColor: ELEMENT_COLORS[stemEl].bg,
                   color: ELEMENT_COLORS[stemEl].text,
@@ -81,7 +82,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
               {/* 지지 */}
               <div
-                className="rounded-b-xl px-2 py-3 flex flex-col items-center border-t border-white/30"
+                className={`rounded-b-xl px-2 py-3 flex flex-col items-center border-t border-white/30${branchEl === "금" ? " ring-1 ring-inset ring-lilac-mid/40" : ""}`}
                 style={{
                   backgroundColor: ELEMENT_COLORS[branchEl].bg,
                   color: ELEMENT_COLORS[branchEl].text,

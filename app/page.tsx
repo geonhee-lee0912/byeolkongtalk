@@ -234,7 +234,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="card flex items-center gap-2.5 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -372,7 +372,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="card flex items-center gap-2.5 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
