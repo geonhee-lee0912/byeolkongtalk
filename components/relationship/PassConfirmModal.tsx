@@ -64,7 +64,7 @@ export default function PassConfirmModal({
       dismissible={!loading}
       z={100}
       backdropClassName="bg-night/75 backdrop-blur-md"
-      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)] p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
+      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
         <div className="text-center mb-5">
           <p className="font-display text-17 font-bold text-eye-purple">

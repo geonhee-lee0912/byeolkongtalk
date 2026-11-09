@@ -176,7 +176,7 @@ export default function ClarifierSheet({
       z={90}
       align="bottom"
       backdropClassName="bg-night/70 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[90vh] overflow-y-auto"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[90vh] overflow-y-auto"
     >
         {/* 그랩바 */}
         <div className="web-only flex justify-center pt-3 pb-1">

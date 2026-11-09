@@ -24,7 +24,8 @@ for (const p of sources()) {
   lines.forEach((line, i) => {
     if (COMMENT.test(line) || line.includes("design-allow:")) return;
     // 따옴표가 줄 안에서 안 닫히는 템플릿 문자열(여러 줄 className)도 있어 줄 전체의 토큰을 본다 — 변환표에 걸리는 모양만 바뀐다
-    const next = line.replace(/[^\s"'`${}()]+/g, (tok) => {
+    // 토큰 = 괄호 밖 글자 + [..] 대괄호 묶음(rgba(..) 처럼 괄호가 든 임의값을 통째로)
+    const next = line.replace(/(?:[^\s"'`${}()[\]]|\[[^\]\s"'`]*\])+/g, (tok) => {
       const r = mapper(tok, { line, file: text, lineNo: i });
       if ("manual" in r) {
         manual.push(`${p.replace(/\\/g, "/")}:${i + 1}  ${tok} → ${r.manual}`);

@@ -90,7 +90,7 @@ export default async function CardPage({
         정방향 · 역방향 · 연애 타로 해석
       </p>
 
-      <div className="relative w-[140px] h-[238px] mx-auto my-5 rounded-xl overflow-hidden shadow-md">
+      <div className="relative w-[140px] h-[238px] mx-auto my-5 rounded-xl overflow-hidden shadow-card">
         <Image
           src={getCardImagePath(card.id)}
           alt={`${card.name_kr} 타로 카드`}

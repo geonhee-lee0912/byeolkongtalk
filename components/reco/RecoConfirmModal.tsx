@@ -31,7 +31,7 @@ export default function RecoConfirmModal({
       onClose={onCancel}
       z={100}
       backdropClassName="bg-night/75 backdrop-blur-md"
-      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] sm:shadow-[0_8px_32px_rgba(31,23,53,0.25)]"
+      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal"
     >
         <div className="px-5 pt-5 pb-6 flex flex-col gap-3">
           <div>

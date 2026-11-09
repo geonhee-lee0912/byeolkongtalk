@@ -210,7 +210,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
 
   const chipClass = (on: boolean, small: boolean) =>
     `${small ? "px-3 py-[7px] text-12" : "px-[15px] py-[9px] text-13"} rounded-full font-bold border-[1.5px] transition-colors disabled:opacity-50 ${
-      on ? "bg-eye-purple border-eye-purple text-white shadow-md" : "bg-white border-lilac-mid text-eye-purple"
+      on ? "bg-eye-purple border-eye-purple text-white" : "bg-white border-lilac-mid text-eye-purple"
     }`;
 
   // ── 시트(① 자동으로 열림) — 공통 시트 틀(components/common/Sheet). 예약·권한 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
@@ -249,7 +249,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
                 type="button"
                 disabled={busy}
                 onClick={() => void commit(picked)}
-                className="block w-full mt-4 py-3.5 rounded-full text-14 font-bold text-white bg-eye-purple shadow-lg disabled:opacity-40"
+                className="block w-full mt-4 py-3.5 rounded-full text-14 font-bold text-white bg-eye-purple disabled:opacity-40"
               >
                 알림 받을래
               </button>

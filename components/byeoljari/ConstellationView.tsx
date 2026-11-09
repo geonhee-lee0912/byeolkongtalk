@@ -271,7 +271,7 @@ export default function ConstellationView({ graph, meId }: Props) {
           <button
             type="button"
             onClick={resetToOverview}
-            className="absolute left-2 top-2 z-10 rounded-full bg-cream-warm/90 px-3 py-1 text-12 text-eye-purple shadow"
+            className="absolute left-2 top-2 z-10 rounded-full bg-cream-warm/90 px-3 py-1 text-12 text-eye-purple shadow-card"
           >
             ← 전체 지도 보기
           </button>
@@ -295,7 +295,7 @@ export default function ConstellationView({ graph, meId }: Props) {
       </div>
       {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
       {focusId && card?.target && (
-        <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow">
+        <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow-card">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <div className="text-12 text-text-light">{relationTypeLabel(card.target.relationType)}</div>
@@ -390,7 +390,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         </div>
       )}
       {/* 범례 — 크림 박스로 대비 확보. 오행(위) / 선 종류(아래) 구분선으로 분리. */}
-      <div className="mt-3 rounded-2xl bg-cream-warm px-4 py-3 shadow-sm">
+      <div className="mt-3 rounded-2xl bg-cream-warm px-4 py-3 shadow-card">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-12 text-eye-purple">
           {LEGEND.map(([label, color]) => (
             <span key={label} className="inline-flex items-center gap-1">

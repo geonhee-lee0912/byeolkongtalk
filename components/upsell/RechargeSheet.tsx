@@ -185,7 +185,7 @@ export default function RechargeSheet({
       z={90}
       align="bottom"
       backdropClassName="bg-night/70 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto"
     >
         {/* 그랩바 */}
         <div className="web-only flex justify-center pt-3 pb-1">
@@ -252,7 +252,7 @@ export default function RechargeSheet({
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
                   isSelected
-                    ? "border-lilac-deep bg-lilac-soft/30 shadow-[0_0_0_2px_rgba(159,138,208,0.15)]"
+                    ? "border-lilac-deep bg-lilac-soft/30 ring-2 ring-lilac-deep/20"
                     : "border-lilac-mid/30 bg-white hover:border-lilac/70"
                 } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
               >
@@ -325,7 +325,7 @@ export default function RechargeSheet({
           <button
             onClick={() => void handleCharge()}
             disabled={loading || !paymentReady || !selectedPkg}
-            className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold shadow-md hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             <span>⭐</span>
             <span className="tabular-nums">

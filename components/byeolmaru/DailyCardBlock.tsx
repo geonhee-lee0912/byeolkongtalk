@@ -345,7 +345,7 @@ export default function DailyCardBlock({
       {/* 🔴 날짜 정합까지 본다 — 아래 drawn 분기와 같은 가드다. 없으면 날짜가 바뀐 한 프레임 동안
           **지난 날짜의 "안 뽑았어" 안내가 새 날짜 헤더 밑에** 그대로 남는다. */}
       {state.kind === "none" && state.date === date && (
-        <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+        <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4">
           <h2 className="mb-2 font-display text-17 text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
             <>
@@ -410,7 +410,7 @@ export default function DailyCardBlock({
 
           return (
             <>
-            <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+            <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4">
               {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다. 상단 BackHeader 가 날짜를 지던 시절엔 dayWord("그날")로
                   충분했지만, 타이틀이 사라져 이제 여기가 유일한 날짜 표기다. */}
@@ -435,7 +435,7 @@ export default function DailyCardBlock({
                      확인한 적은 없으니 "그래서 안 읽힌다"로 단정하지도 말 것. */}
               <div aria-live="polite">
                 <div className="flex flex-col items-center text-center">
-                  <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
+                  <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-card">
                     <Image
                       src={getCardImagePath(drawnCard.cardId)}
                       alt={tarotCard.name_kr}

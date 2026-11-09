@@ -148,7 +148,7 @@ export default function ProfilePicker({
             className={`flex items-center gap-3 rounded-2xl p-3 border transition ${
               selectedId === p.id
                 ? "border-lilac-deep bg-lilac-soft/40"
-                : "border-lilac-mid/20 bg-white shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+                : "border-lilac-mid/20 bg-white shadow-card"
             }`}
           >
             {p.saju ? (

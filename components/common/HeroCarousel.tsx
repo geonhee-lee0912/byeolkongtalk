@@ -117,14 +117,14 @@ export default function HeroCarousel({ audience }: { audience: Audience | null }
         <button
           onClick={() => go(-1)}
           aria-label="이전 배너"
-          className="absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-sm backdrop-blur-sm active:scale-95"
+          className="absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-card backdrop-blur-sm active:scale-95"
         >
           {chevron}
         </button>
         <button
           onClick={() => go(1)}
           aria-label="다음 배너"
-          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 rotate-180 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-sm backdrop-blur-sm active:scale-95"
+          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 rotate-180 items-center justify-center rounded-full bg-white/55 text-eye-purple shadow-card backdrop-blur-sm active:scale-95"
         >
           {chevron}
         </button>

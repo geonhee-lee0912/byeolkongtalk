@@ -158,7 +158,7 @@ function CardTile({ dc, active, size }: CardTileProps) {
       <div
         className={`relative ${s.w} ${s.h} rounded-lg overflow-hidden transition-all duration-500 ${
           active
-            ? "ring-2 ring-gold shadow-[0_0_24px_rgba(232,194,106,0.45)] scale-105"
+            ? "ring-2 ring-gold shadow-[0_0_24px_rgba(232,194,106,0.45)] scale-105" // design-allow: 카드 뽑기 선택 금빛(의식 연출)
             : "ring-1 ring-white/15 opacity-[0.95]"
         }`}
       >

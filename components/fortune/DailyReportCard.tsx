@@ -14,7 +14,7 @@ function Shell({ embedded, children }: { embedded: boolean; children: ReactNode 
   if (embedded) return <>{children}</>;
   return (
     <div className="w-full max-w-md mx-auto px-5">
-      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
         {children}
       </div>
     </div>

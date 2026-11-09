@@ -157,7 +157,7 @@ export default function TarotShareButtons({
         </button>
       </div>
       {toast && (
-        <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-lg">
+        <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-float">
           {toast}
         </div>
       )}

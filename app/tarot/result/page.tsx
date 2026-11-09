@@ -226,7 +226,7 @@ function TarotResultInner() {
               const card = getCard(c.card_id);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50 shadow-lg">
+                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50 shadow-card">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCardImagePath(c.card_id)}

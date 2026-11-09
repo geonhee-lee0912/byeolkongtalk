@@ -147,7 +147,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white shadow-sm"
+                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white shadow-card"
                     style={{ transform: `rotate(${(i - (info.cardCount - 1) / 2) * 6}deg)` }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

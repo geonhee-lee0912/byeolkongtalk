@@ -82,3 +82,13 @@ test("rounded-md 와 맨 rounded 를 쓰지 않는다", () => {
   assert.deepEqual(offenders(/\brounded(-(t|b|l|r|tl|tr|bl|br))?-md\b|(?<![\w-])rounded(?=[\s"'`])/), []);
 });
 
+
+// ── 그림자 3단계(스펙 §2.4) — shadow-card · shadow-float(-up) · shadow-modal 만
+// drop-shadow-* 는 그림·아이콘에 거는 필터라 이 규칙 밖(상자 그림자만 본다)
+test("임의·기본 그림자를 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/(?<!drop-)\bshadow-(\[|sm\b|md\b|lg\b|xl\b|2xl\b)|(?<![\w-])shadow(?=[\s"'`])/), []);
+});
+test("그림자 색 접미사가 없다", () => {
+  assert.deepEqual(offenders(/\bshadow-(lilac|night|lilac-deep|gold|gold-soft|eye-purple)(\/\d+)?\b/), []);
+});
+

@@ -24,7 +24,7 @@ export default function PopupCard({
 }) {
   const isImage = !!content.imageUrl;
   return (
-    <div className="w-full max-w-sm bg-cream rounded-3xl border border-lilac-mid/40 shadow-2xl overflow-hidden">
+    <div className="w-full max-w-sm bg-cream rounded-3xl border border-lilac-mid/40 shadow-modal overflow-hidden">
       {isImage ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img

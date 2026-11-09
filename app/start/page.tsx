@@ -271,7 +271,7 @@ function StartPageInner() {
 
         {/* 가입 유도 박스 — 웰컴 별 안내 + 카카오 가입 (비로그인만) */}
         {loggedIn === false && (
-          <div className="mx-5 mt-4 p-4 rounded-2xl bg-white/90 border border-gold/50 shadow-[0_4px_18px_rgba(232,194,106,0.25)] flex flex-col items-center gap-3">
+          <div className="mx-5 mt-4 p-4 rounded-2xl bg-white/90 border border-gold/50 flex flex-col items-center gap-3">
             <p className="text-14 font-extrabold text-eye-purple">
               지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
             </p>
@@ -469,7 +469,7 @@ function LoveDirectMenu({
 
   return (
     <>
-      <div className="p-5 bg-white/95 rounded-2xl border-2 border-lilac-deep/50 shadow-[0_4px_20px_rgba(90,62,140,0.15)] flex flex-col items-center gap-3 text-center">
+      <div className="p-5 bg-white/95 rounded-2xl border-2 border-lilac-deep/50 shadow-card flex flex-col items-center gap-3 text-center">
         <span
           className="text-12 font-bold px-3 py-1 rounded-full bg-[#E48BA0]/10"
           style={{ color: "#E48BA0" }}

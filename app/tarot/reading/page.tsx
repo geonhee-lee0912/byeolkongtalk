@@ -1201,7 +1201,7 @@ function TarotReadingInner() {
                   }}
                   // 구매 흐름 중엔 handleFinish 가 아무것도 안 한다 — 눌러서 exit_chip_clicked 만 찍히지 않게 잠근다
                   disabled={inPurchaseFlow}
-                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ✨ 결과 카드 보기
                 </button>
@@ -1410,7 +1410,7 @@ function TarotReadingInner() {
       {pendingResumeBanner && (
         <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
           <div
-            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="text-15 shrink-0">⭐</span>

@@ -64,7 +64,7 @@ function CustomSelect({
       {open && (
         <div
           ref={listRef}
-          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-lilac bg-white py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-lilac bg-white py-1 shadow-float"
         >
           {options.map((o) => {
             const selected = String(o) === value;

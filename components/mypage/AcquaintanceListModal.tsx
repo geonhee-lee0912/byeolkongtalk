@@ -119,7 +119,7 @@ export default function AcquaintanceListModal({
             </div>
 
             {(showAddAcq || editAcqId) && (
-              <div className="bg-white rounded-2xl p-4 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] mb-3">
+              <div className="bg-white rounded-2xl p-4 border border-lilac-mid/20 shadow-card mb-3">
                 <ProfileForm
                   mode="acquaintance"
                   initial={
@@ -159,7 +159,7 @@ export default function AcquaintanceListModal({
             )}
 
             {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
-              <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] px-4 py-6">
+              <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-4 py-6">
                 <p className="text-12 text-text-light/70 text-center mb-3">
                   아직 함께 보는 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
                 </p>
@@ -175,7 +175,7 @@ export default function AcquaintanceListModal({
                 {pagedProfiles.map((p) => (
                   <div
                     key={p.id}
-                    className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-3 flex items-center gap-3"
+                    className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-3 flex items-center gap-3"
                   >
                     <div
                       className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center"

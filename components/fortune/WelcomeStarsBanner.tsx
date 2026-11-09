@@ -33,7 +33,7 @@ export default function WelcomeStarsBanner() {
     <div className="w-full max-w-md mx-auto px-4 pt-4">
       <Link
         href={`/login?next=${encodeURIComponent(next)}`}
-        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in active:scale-[0.99] transition"
+        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left animate-fade-in active:scale-[0.99] transition"
       >
         <span className="text-20 shrink-0">⭐</span>
         <div className="flex-1 min-w-0">

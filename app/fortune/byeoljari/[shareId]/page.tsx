@@ -105,7 +105,7 @@ export default function ByeoljariGuestPage() {
                   /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
                 }
               }}
-              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-sm transition active:scale-[0.99] ${
+              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-card transition active:scale-[0.99] ${
                 copied ? "bg-[#3E9E7A]" : "bg-lilac-deep"
               }`}
             >

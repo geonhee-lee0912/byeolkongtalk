@@ -122,7 +122,7 @@ export default function PaymentsPage() {
 
       {/* 요약 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30 flex items-center justify-between">
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 flex items-center justify-between">
           <div>
             <div className="text-11 text-white/75 mb-1">현재 별 잔액</div>
             <div className="text-22 font-bold text-gold-soft">

@@ -162,7 +162,7 @@ export default function Dropdown({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute left-0 right-0 mt-1 z-50 rounded-xl bg-cream border border-lilac-mid/40 shadow-[0_8px_24px_rgba(90,62,140,0.16)] max-h-[240px] overflow-y-auto scrollbar-hover py-1"
+          className="absolute left-0 right-0 mt-1 z-50 rounded-xl bg-cream border border-lilac-mid/40 shadow-float max-h-[240px] overflow-y-auto scrollbar-hover py-1"
         >
           {options.map((opt, idx) => {
             const isSelected = opt.value === value;

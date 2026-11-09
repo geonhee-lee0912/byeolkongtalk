@@ -101,7 +101,7 @@ export default function SupportListPage() {
                 <Link
                   key={it.id}
                   href={`/mypage/support/${it.id}`}
-                  className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-3 flex items-center gap-3"
+                  className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-3 flex items-center gap-3"
                 >
                   <div className="shrink-0 w-11 h-11 rounded-xl bg-lilac-soft flex items-center justify-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>

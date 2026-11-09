@@ -168,7 +168,7 @@ export default function ConcernPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-4">
-        <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
+        <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-card flex items-center gap-3">
           <SajuIdentityRow
             saju={pending.saju}
             title={

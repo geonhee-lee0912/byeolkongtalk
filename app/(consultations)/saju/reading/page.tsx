@@ -527,7 +527,7 @@ function ReadingInner() {
         </div>
         {showSajuBoard && (
           <div className="max-w-md mx-auto px-5 pb-3">
-            <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] flex items-center gap-3">
+            <div className="bg-white rounded-2xl p-3 border border-lilac-mid/20 shadow-card flex items-center gap-3">
               <SajuIdentityRow
                 saju={ctx.saju}
                 title={
@@ -623,7 +623,7 @@ function ReadingInner() {
                   });
                   handleFinish(FINISH_PHRASE_EXIT);
                 }}
-                className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in"
+                className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in"
               >
                 ✨ 결과 카드 보기
               </button>
@@ -719,7 +719,7 @@ function ReadingInner() {
       {pendingResumeBanner && (
         <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
           <div
-            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="text-15 shrink-0">⭐</span>

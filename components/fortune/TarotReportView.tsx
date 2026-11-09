@@ -65,7 +65,7 @@ export default function TarotReportView({
 
       {/* 별콩이의 조언 — 헤드라인 바로 아래로 이동. advice 누락 시(파서가 ""로 폴백) 박스 숨김 */}
       {report.advice && (
-        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+        <div className="bg-gradient-to-br from-eye-purple via-lilac-deep to-eye-purple rounded-2xl p-4">
           <div className="text-12 font-bold text-gold-soft mb-1.5">
             별콩이의 조언
           </div>

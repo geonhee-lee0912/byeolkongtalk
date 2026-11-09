@@ -125,7 +125,7 @@ export default function ConcernPage() {
             <button
               type="button"
               onClick={() => setTagSheetOpen(true)}
-              className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)] hover:border-lilac-deep/40 transition-colors"
+              className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-card hover:border-lilac-deep/40 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -341,7 +341,7 @@ function EmotionTagSheet({
       gutterClassName="px-5"
       backdropClassName="bg-night/70 backdrop-blur-sm"
     >
-      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover">
+      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[72vh] overflow-y-auto scrollbar-hover">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <h2 className="font-display text-17 font-bold text-eye-purple">

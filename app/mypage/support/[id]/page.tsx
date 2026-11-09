@@ -98,7 +98,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
         {/* 내 질문 */}
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-4">
+        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="shrink-0 w-10 h-10 rounded-xl bg-lilac-soft flex items-center justify-center">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
@@ -131,7 +131,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
         {/* 답변 */}
         {item.status === "answered" && item.answer_body ? (
-          <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-lilac-deep/30 shadow-lg shadow-night/30">
+          <div className="bg-gradient-to-br from-night to-night-deep rounded-2xl p-4 border border-lilac-deep/30">
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-13 font-bold text-gold-soft">✨ 별콩이 답변</span>
               {item.answered_at && (

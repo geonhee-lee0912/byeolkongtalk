@@ -144,7 +144,7 @@ export default function Home() {
                   .getElementById("emotion-grid")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
-              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in"
+              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left animate-fade-in"
             >
               <span className="text-20 shrink-0">⭐</span>
               <div className="flex-1 min-w-0">
@@ -162,7 +162,7 @@ export default function Home() {
           {hasResumable && (
             <Link
               href="/readings"
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-float animate-fade-in"
             >
               <span className="text-20 shrink-0">💬</span>
               <div className="flex-1 min-w-0">

@@ -424,7 +424,7 @@ function ShopContent() {
             <button
               onClick={handlePay}
               disabled={loading || !paymentReady}
-              className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold shadow-lg hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+              className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-14 font-bold hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
             >
               <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
               <span className="tabular-nums">
@@ -449,7 +449,7 @@ function ShopContent() {
 
 function BalanceCard({ balance }: { balance: number | null }) {
   return (
-    <div className="relative overflow-hidden p-4 rounded-2xl border border-gold-soft/40 bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] shadow-md flex items-center gap-3">
+    <div className="relative overflow-hidden p-4 rounded-2xl border border-gold-soft/40 bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] shadow-card flex items-center gap-3">
       {/* 배경 별 데코 */}
       <div className="absolute -right-3 -top-3 opacity-25 rotate-12 pointer-events-none">
         <StarIcon className="w-16 h-16" />
@@ -458,7 +458,7 @@ function BalanceCard({ balance }: { balance: number | null }) {
         <StarIcon className="w-7 h-7" />
       </div>
 
-      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-sm shrink-0">
+      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-card shrink-0">
         <StarIcon className="w-7 h-7" />
       </div>
       <div className="relative flex-1 min-w-0">
@@ -510,7 +510,7 @@ function PackageCard({
       disabled={disabled}
       className={`relative w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white border-2 transition-all disabled:opacity-50 active:scale-[0.99] text-left ${
         selected
-          ? "border-lilac-deep shadow-[0_0_0_3px_rgba(159,138,208,0.18)]"
+          ? "border-lilac-deep ring-2 ring-lilac-deep/20"
           : "border-lilac-mid/30 hover:border-lilac/70"
       }`}
     >
@@ -563,7 +563,7 @@ function PackageCard({
       <span
         className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
           selected
-            ? "bg-lilac-deep shadow-sm"
+            ? "bg-lilac-deep shadow-card"
             : "bg-cream border-2 border-lilac-mid/40"
         }`}
         aria-hidden
@@ -604,7 +604,7 @@ function InlineBadge({
       : "bg-rose-400 text-white";
   return (
     <span
-      className={`px-2 py-0.5 rounded-full text-11 font-black tracking-wide whitespace-nowrap shadow-sm ${cls}`}
+      className={`px-2 py-0.5 rounded-full text-11 font-black tracking-wide whitespace-nowrap shadow-card ${cls}`}
     >
       {children}
     </span>
@@ -623,7 +623,7 @@ function PaymentStatusPanel({
   onRetry: () => void;
 }) {
   return (
-    <div className="mt-5 p-7 bg-white rounded-2xl border border-lilac-mid/30 shadow-md text-center">
+    <div className="mt-5 p-7 bg-white rounded-2xl border border-lilac-mid/30 shadow-card text-center">
       <div
         className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-3"
         style={{
@@ -726,8 +726,8 @@ function SectionDivider({ label }: { label: string }) {
 
 function FirstChargeBanner() {
   return (
-    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] border border-gold-soft/50 shadow-sm">
-      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-sm shrink-0">
+    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] border border-gold-soft/50 shadow-card">
+      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-card shrink-0">
         <span className="text-22" aria-hidden>
           🎁
         </span>

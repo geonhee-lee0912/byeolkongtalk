@@ -591,7 +591,7 @@ function FortuneResultInner() {
       </p>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-12 px-4 py-2 rounded-full shadow-lg z-50">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-12 px-4 py-2 rounded-full shadow-float z-50">
           {toast}
         </div>
       )}

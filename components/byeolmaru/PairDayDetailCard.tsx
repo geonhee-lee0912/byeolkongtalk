@@ -45,7 +45,7 @@ export default function PairDayDetailCard({
   return (
     // DayDetailCard 와 동일하게 aria-live — 그리드에서 다른 날짜/상대를 고르면 이 카드만
     // 갱신되고 포커스는 그리드 버튼에 남는다.
-    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4" aria-live="polite">
+    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4" aria-live="polite">
       {/* 🔴 헤더·히어로·등급 세 층을 **사주 탭(DayDetailCard)과 같은 양식**으로 맞췄다
           (2026-09-27, 사용자 요청). 예전엔 같은 정보가 탭마다 다른 모양이었다 —
           간지가 사주는 44px 한자 히어로인데 여긴 헤더 오른쪽 끝 13px 한글이었고,

@@ -18,7 +18,7 @@ const ITEMS: { key: ReadingCategory; icon: string; label: string }[] = [
 
 export default function StorageSummary({ counts, relationshipPassActive }: StorageSummaryProps) {
   return (
-    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] px-1 py-4">
+    <div className="flex bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-1 py-4">
       {ITEMS.map((item, i) => {
         const isRel = item.key === "relationship";
         return (

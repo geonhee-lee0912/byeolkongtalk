@@ -128,7 +128,7 @@ export default function PushAskSheet({
           type="button"
           disabled={busy}
           onClick={() => void accept()}
-          className="block w-full mt-4 py-3.5 rounded-full text-14 font-bold text-white bg-eye-purple shadow-lg disabled:opacity-40"
+          className="block w-full mt-4 py-3.5 rounded-full text-14 font-bold text-white bg-eye-purple disabled:opacity-40"
         >
           {kind === "ad" ? "광고성 정보 수신 동의하기" : "알림 받을래"}
         </button>

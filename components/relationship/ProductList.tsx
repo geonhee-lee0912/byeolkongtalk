@@ -23,7 +23,7 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       <button
         type="button"
         onClick={onOpenThread}
-        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
+        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-card hover:border-lilac-deep/60 active:scale-[0.99]"
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
@@ -56,7 +56,7 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       <button
         type="button"
         onClick={onOpenSim}
-        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
+        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-card hover:border-lilac-deep/60 active:scale-[0.99]"
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"

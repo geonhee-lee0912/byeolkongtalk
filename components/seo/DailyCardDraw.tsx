@@ -58,7 +58,7 @@ export default function DailyCardDraw() {
         />
       )}
 
-      <div className="relative w-[150px] h-[255px] mx-auto rounded-xl overflow-hidden shadow-md">
+      <div className="relative w-[150px] h-[255px] mx-auto rounded-xl overflow-hidden shadow-card">
         <Image
           src={drawn ? getCardImagePath(drawn.card.id) : CARD_BACK_IMAGE}
           alt={drawn ? `${drawn.card.name_kr} 타로 카드` : "타로 카드 뒷면"}

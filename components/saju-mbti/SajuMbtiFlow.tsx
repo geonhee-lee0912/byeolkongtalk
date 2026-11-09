@@ -187,7 +187,7 @@ export function SajuMbtiFlow({
       {stage === "shared" && decoded && <SharedTeaser tokens={decoded} onStart={onRestart} />}
 
       {toast && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-night text-cream-warm text-13 px-4 py-2.5 rounded-full shadow-lg animate-fade-in">
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-night text-cream-warm text-13 px-4 py-2.5 rounded-full shadow-float animate-fade-in">
           {toast}
         </div>
       )}

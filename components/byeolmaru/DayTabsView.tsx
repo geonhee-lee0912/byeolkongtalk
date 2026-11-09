@@ -151,7 +151,7 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
             aria-current={t.key === tab ? "page" : undefined}
             className={
               "flex-1 rounded-xl py-2 text-14 font-semibold transition " +
-              (t.key === tab ? "bg-white text-eye-purple shadow-sm" : "text-text-light active:scale-[0.97]")
+              (t.key === tab ? "bg-white text-eye-purple shadow-card" : "text-text-light active:scale-[0.97]")
             }
           >
             {t.label}

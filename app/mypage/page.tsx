@@ -203,7 +203,7 @@ export default function MyPage() {
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
+        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
               {me.user.profile_img ? (
@@ -262,11 +262,11 @@ export default function MyPage() {
         </div>
 
         {self?.saju ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 py-4">
+          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-card py-4">
             <SajuBoard saju={self.saju} />
           </div>
         ) : (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 px-4 py-6 text-center">
+          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-card px-4 py-6 text-center">
             <p className="text-12 text-text-light/70 mb-3">
               {self
                 ? "생일을 알려주면 사주도 보여줄게."
@@ -284,7 +284,7 @@ export default function MyPage() {
         {/* 지인 사주 → 팝업 */}
         <button
           onClick={() => setShowAcqModal(true)}
-          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-card"
         >
           <span
             className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-15"
@@ -324,7 +324,7 @@ export default function MyPage() {
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           계정
         </div>
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>

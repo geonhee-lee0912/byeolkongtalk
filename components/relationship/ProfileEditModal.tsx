@@ -225,7 +225,7 @@ export default function ProfileEditModal({
       gutterClassName="px-5"
       backdropClassName="bg-night/75 backdrop-blur-md"
     >
-      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide">
+      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-17 font-bold text-eye-purple">

@@ -42,7 +42,7 @@ function PencilIcon() {
 export default function ProfileCard({ target, me, onEdit }: ProfileCardProps) {
   if (target === "me") {
     return (
-      <div className="rounded-2xl p-4 border bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] mt-4">
+      <div className="rounded-2xl p-4 border bg-white border-lilac-mid/20 shadow-card mt-4">
         <div className="flex items-center gap-2.5">
           <div className="shrink-0 ring-1 ring-lilac-mid/25 rounded-full">
             <DollAvatar kind="me" imageUrl={me.imageUrl} name={me.name} size={40} />

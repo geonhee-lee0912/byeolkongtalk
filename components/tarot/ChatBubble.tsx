@@ -67,7 +67,7 @@ export default function ChatBubble({
 
         {showCardImage && card && dc && (
           <div className="mb-2 ml-0.5 flex items-end gap-2 w-fit animate-fade-in">
-            <div className="relative w-14 h-[88px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-sm shrink-0">
+            <div className="relative w-14 h-[88px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-card shrink-0">
               <Image
                 src={getCardImagePath(dc.card_id)}
                 alt={card.name_kr}

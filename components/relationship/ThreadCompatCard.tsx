@@ -26,7 +26,7 @@ export default function ThreadCompatCard({
 
   return (
     <div className="flex justify-start mb-3 pl-10">
-      <div className="w-full max-w-[300px] bg-white rounded-2xl border border-lilac-mid/40 shadow-sm px-3.5 pt-3 pb-3.5">
+      <div className="w-full max-w-[300px] bg-white rounded-2xl border border-lilac-mid/40 shadow-card px-3.5 pt-3 pb-3.5">
         {/* 헤더 — 등급 배지 + 테마 */}
         <div className="flex items-center gap-1.5 text-11 text-text-light mb-2">
           <span aria-hidden>💑</span>

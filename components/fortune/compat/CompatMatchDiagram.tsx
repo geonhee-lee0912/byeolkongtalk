@@ -27,7 +27,7 @@ function Node({ saju, name }: { saju: SajuResult; name: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5 w-[92px] shrink-0">
       <div
-        className="w-[62px] h-[62px] rounded-full flex items-center justify-center text-white shadow-[0_4px_14px_rgba(40,30,70,0.15)]"
+        className="w-[62px] h-[62px] rounded-full flex items-center justify-center text-white shadow-card"
         style={{ background: color }}
       >
         <span className="text-28 font-extrabold leading-none">{hanja}</span>
@@ -64,7 +64,7 @@ export default function CompatMatchDiagram({
   if (rel.sixCombo) badges.push({ emoji: "🔗", label: "척척" });
 
   return (
-    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
       <h3 className="text-15 font-extrabold text-lilac-deep mb-1.5">💞 궁합 한눈에</h3>
       <p className="text-11 text-text-light/70 leading-snug mb-4">
         두 일간이 만나 만드는 기운의 결이야. 아래 풀이의 결정론적 뼈대.

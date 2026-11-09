@@ -67,7 +67,7 @@ export default function DayDetailCard({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4">
       {/* 그리드에서 다른 날짜를 고르면 이 카드 내용만 바뀌고 포커스는 그대로 그리드 버튼에 남는다 —
           aria-live 없이는 스크린리더 사용자에게 "선택이 바뀌었다"는 신호가 전혀 안 갔다.
           🔴 live region 은 **무료 블록만** 감싼다(section 전체가 아니다). 아래 {children} 에는 유료

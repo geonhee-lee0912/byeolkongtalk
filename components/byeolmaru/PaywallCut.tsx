@@ -117,7 +117,7 @@ export default function PaywallCut({ freeChars, paidChars, sections, blurText, t
           ))}
         </div>
         <div className="absolute inset-0 flex items-center justify-center p-2">
-          <div className="max-w-[260px] rounded-xl bg-white/90 p-3 text-center shadow-[0_4px_16px_rgba(90,62,140,0.14)]">
+          <div className="max-w-[260px] rounded-xl bg-white/90 p-3 text-center shadow-float">
             <b className="mb-3 block text-12 font-bold text-eye-purple">
               {/* 🔴 로케일 고정 — 인자 없는 toLocaleString 은 서버(Node 기본 로케일)와 브라우저가
                   다른 구분자를 낼 수 있어(de-DE 면 "1.800") 하이드레이션 불일치가 난다. */}
