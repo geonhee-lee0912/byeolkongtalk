@@ -212,3 +212,8 @@ test("관계 전환: + 버튼은 아바타와 같은 56px 원, 이름 칸은 11p
   assert.match(s, /aria-label="새 사람 추가"\s*className="[^"]*\bw-14 h-14 rounded-full\b/);
   assert.doesNotMatch(s, /max-w-\[52px\]/);
 });
+// 이모지를 지우다 남은 '빈 글자' — 별점(★☆)·완료 표시(✓) 같은 정보 기호가 빈 문자열이 되면 화면에서 조용히 사라진다(PR #41 Codex 지적)
+test("빈 문자열 반복·양쪽 빈 조건식이 없다(정보 기호는 Icon 으로)", () => {
+  // 속성 값(data-x={c ? "" : undefined})과 `?? ""` 는 정상 코드라 제외
+  assert.deepEqual(offenders(/""\.repeat\(|(?<!\?)\?\s*""\s*:\s*""\s*\}|(?<!=)\{\s*\w+\s*\?\s*""\s*:\s*\w+\s*\}/), []);
+});

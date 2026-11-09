@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import type { MonthlyReport } from "@/lib/fortune/monthly-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
+import Icon from "@/components/common/Icon";
 
 export default function MonthlyOverviewCard({
   report,
@@ -63,9 +64,10 @@ export default function MonthlyOverviewCard({
       {/* 종합운 별점 */}
       <div className="flex items-center justify-center gap-2 mb-[9px]">
         <span className="text-11 font-bold text-text-light">이번 달 종합운</span>
-        <span className="text-13 tracking-[2px] text-[#C9C4D6]">
-          <b className="text-eye-purple">{"".repeat(filled)}</b>
-          {"".repeat(5 - filled)}
+        <span className="inline-flex items-center gap-0.5" role="img" aria-label={`별 5개 중 ${filled}개`}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <Icon key={i} name={i < filled ? "rate_on" : "rate_off"} size={13} className={i < filled ? "text-accent" : "text-lilac"} />
+          ))}
         </span>
       </div>
 

@@ -15,6 +15,7 @@ import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { hideTrailingSendMarker } from "@/lib/relationship/sim-stream";
 import { SIM_SUGGEST_COST, type RelationshipStatus } from "@/lib/relationship/types";
 import type { SensitiveCategory } from "@/lib/sensitive";
+import Icon from "@/components/common/Icon";
 
 export interface NightStageProps {
   simReadingId: string;
@@ -250,7 +251,7 @@ export default function NightStage(props: NightStageProps) {
               className="shrink-0 self-end flex flex-col items-center justify-center gap-0.5 w-12 h-11 rounded-xl text-gold-soft border border-gold/30 disabled:opacity-40"
               aria-label="답변 추천"
             >
-              <span className="text-17 leading-none">{suggesting ? "" : ""}</span>
+              <Icon name={suggesting ? "hourglass" : "bulb"} size={16} />
               <span className="text-11 leading-none">추천</span>
             </button>
             {/* 입력창 + 내부 전송(원형 없이 아이콘만) */}

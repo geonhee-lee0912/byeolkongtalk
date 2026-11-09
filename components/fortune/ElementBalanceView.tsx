@@ -3,6 +3,7 @@ import type { SajuResult } from "@/lib/saju/calc";
 import type { FiveElement } from "@/lib/saju/elements";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
 import GenericReportView from "./GenericReportView";
+import Icon from "@/components/common/Icon";
 
 const ORDER: FiveElement[] = ["목", "화", "토", "금", "수"];
 const LABEL: Record<FiveElement, string> = { 목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)" };
@@ -42,7 +43,7 @@ export default function ElementBalanceView({
                   />
                 </div>
                 <span className="w-14 text-right text-12 tabular-nums text-text-light shrink-0">
-                  {c}개 · {pct}%{isMax ? "" : ""}
+                  {c}개 · {pct}%{isMax ? <Icon name="rate_on" size={12} className="inline ml-0.5 text-gold" /> : null}
                 </span>
               </div>
             );

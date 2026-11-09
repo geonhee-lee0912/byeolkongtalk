@@ -1,3 +1,4 @@
+import Icon from "@/components/common/Icon";
 const STEPS = ["고민", "운세 선택", "카드 뽑기"] as const;
 
 /** 고민 → 운세 선택 → 카드 3단 진행 표시 (current: 1~3) */
@@ -23,7 +24,7 @@ export default function ProgressSteps({ current }: { current: 1 | 2 | 3 }) {
                       : "bg-lilac-soft/70 text-text-light",
                   ].join(" ")}
                 >
-                  {done ? "" : step}
+                  {done ? <Icon name="check" size={14} /> : step}
                 </span>
                 <span
                   className={[
