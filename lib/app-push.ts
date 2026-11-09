@@ -26,7 +26,7 @@ export function askAppPush(
     };
     const onEvent = (e: Event) => {
       const msg = parseAppToWeb((e as CustomEvent).detail);
-      if (msg) finish(msg.state);
+      if (msg?.type === "push.state") finish(msg.state); // ui.back 같은 다른 앱 신호는 이 답이 아니다
     };
     // 답이 동기로 올 수도 있어 리스너를 먼저 건다
     win.addEventListener(APP_EVENT, onEvent);

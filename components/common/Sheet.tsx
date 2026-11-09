@@ -79,7 +79,7 @@ export default function Sheet({
   }, [app, mounted]);
 
   // 스택에 한 번 올리고(첫 창이면 뒤 화면 스크롤 잠금), 사라질 때 뺀다 — 닫기 요청 없이 부모가 지워도 잠금이 남지 않는다
-  useOverlayEntry(requestClose, dismissible);
+  useOverlayEntry(requestClose, dismissible, z);
 
   const drag = useRef<Drag | null>(null);
   const canDrag = !!app && dismissible;

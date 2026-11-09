@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { getAppInfo, postToApp } from "./app-context.ts";
+import { appHaptic, appRefresh, getAppInfo, postToApp } from "./app-context.ts";
 import { parseWebToApp } from "./app-bridge/protocol.ts";
 
 /**
@@ -107,4 +107,26 @@ test("마이페이지 — 로그아웃·탈퇴가 앱에 auth.loggedOut 을 한 
   assert.ok(ok > 0 && otherwise > ok, "if (r.ok) { … } else { … } 모양을 못 찾았다");
   assert.ok(second > ok && second < otherwise, "탈퇴 알림은 if (r.ok) 분기 안에서만 — 실패(503·500)에서 나가면 회원은 남았는데 앱만 로그아웃된다");
   assert.ok(second < code.indexOf("router.replace(", ok), `탈퇴는 ${BEFORE_NAV}`);
+});
+
+test("appHaptic·appRefresh 는 caps ui 일 때만 보낸다 — 옛 앱(push 만)·브라우저는 0건", () => {
+  const sent: string[] = [];
+  const bridge = { postMessage: (m: string) => void sent.push(m) };
+  withBrowser(ANDROID_APP, { ReactNativeWebView: bridge, __BYEOLKONG_APP__: { version: "1.1.0", platform: "android", caps: ["push"] } }, () => {
+    appHaptic("light");
+    appRefresh();
+  });
+  withBrowser(SAFARI, {}, () => {
+    appHaptic("light");
+    appRefresh();
+  });
+  assert.equal(sent.length, 0);
+  withBrowser(ANDROID_APP, { ReactNativeWebView: bridge, __BYEOLKONG_APP__: { version: "1.2.0", platform: "android", caps: ["push", "ui"] } }, () => {
+    appHaptic("success");
+    appRefresh();
+  });
+  assert.deepEqual(sent.map((m) => parseWebToApp(m)), [
+    { v: 1, type: "ui.haptic", payload: { kind: "success" } },
+    { v: 1, type: "ui.refresh", payload: {} },
+  ]);
 });

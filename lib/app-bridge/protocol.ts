@@ -15,15 +15,36 @@ export type AppPlatform = "ios" | "android";
 /** 앱이 문서 시작 전에 window.__BYEOLKONG_APP__ 로 주입하는 값 */
 export type AppInfo = { version: string; platform: AppPlatform; caps?: string[] };
 
-/** 앱이 가진 기능 표시 — caps 가 없는 옛 앱은 아무 기능도 없는 것으로 본다 */
-export function hasCap(info: AppInfo | null, cap: "push"): boolean {
+/** 앱이 가진 기능 표시 — caps 가 없는 옛 앱은 아무 기능도 없는 것으로 본다.
+ *  push = 알림 메시지(push.*) · ui = 화면 메시지(ui.* — 겹창 열림·뒤로 버튼·진동·새로고침, 스펙 2026-11-07-앱-화면 §7) */
+export function hasCap(info: AppInfo | null, cap: "push" | "ui"): boolean {
   return !!info && Array.isArray(info.caps) && info.caps.includes(cap);
 }
 
-/** 웹이 앱에 보내는 메시지 종류 — 이 목록이 단일 원천이다(타입도 여기서 나온다). 목록에 없는 종류는 앱이 버린다 */
-const WEB_TO_APP_TYPES = ["auth.loggedOut", "push.status", "push.request", "push.openSettings"] as const;
-export type WebToAppType = (typeof WEB_TO_APP_TYPES)[number];
-export type WebToAppMessage = { v: typeof BRIDGE_VERSION; type: WebToAppType; payload: Record<string, never> };
+/** 웹이 앱에 보내는 메시지 종류 — 이 목록이 단일 원천이다(타입도 여기서 나온다). 목록에 없는 종류는 앱이 버린다.
+ *  PLAIN = 값 없는 메시지 · ui.overlay·ui.haptic = 값을 싣는 메시지(받는 쪽이 허용 목록으로 다시 만든다) */
+const PLAIN_WEB_TO_APP_TYPES = ["auth.loggedOut", "push.status", "push.request", "push.openSettings", "ui.refresh"] as const;
+export type PlainWebToAppType = (typeof PLAIN_WEB_TO_APP_TYPES)[number];
+export type HapticKind = "light" | "success";
+const HAPTIC_KINDS = ["light", "success"] as const;
+export type WebToAppPayloads = { "ui.overlay": { open: boolean }; "ui.haptic": { kind: HapticKind } };
+export type WebToAppType = PlainWebToAppType | keyof WebToAppPayloads;
+export type WebToAppMessage =
+  | { v: typeof BRIDGE_VERSION; type: PlainWebToAppType; payload: Record<string, never> }
+  | { v: typeof BRIDGE_VERSION; type: "ui.overlay"; payload: WebToAppPayloads["ui.overlay"] }
+  | { v: typeof BRIDGE_VERSION; type: "ui.haptic"; payload: WebToAppPayloads["ui.haptic"] };
+
+/** 앱의 탭 첫 화면 5개 — 웹 헤더(lib/app-shell/screens.ts)와 앱의 당겨서 새로고침(mobile/src/ui.ts)이 같이 쓴다 */
+export const APP_TAB_ROOTS = ["/", "/fortune", "/byeolmaru", "/shop", "/mypage"] as const;
+export type AppTabRoot = (typeof APP_TAB_ROOTS)[number];
+
+/** 경로(쿼리·해시·끝 슬래시 무시)가 탭 첫 화면인가 — 정확히 일치할 때만 */
+export function isAppTabRoot(path: string): boolean {
+  const p = path.split(/[?#]/)[0];
+  if (!p.startsWith("/")) return false;
+  const norm = p.length > 1 ? p.replace(/\/+$/, "") || "/" : p;
+  return (APP_TAB_ROOTS as readonly string[]).includes(norm);
+}
 
 /** UA 꼬리에 싣는 버전 — UA_RE 가 읽는 문자([0-9A-Za-z._-]) 밖은 "_" 로 바꾸고 32자로 자른다. 비면 "0".
  *  🔴 서버 관문(handoff·reset)은 이 꼬리가 parseAppUserAgent 로 읽혀야 앱으로 본다. 못 읽는 꼬리("1.0.0+5"·공백·빈 값)를 만들면
@@ -53,21 +74,35 @@ export function isAppInfo(v: unknown): v is AppInfo {
   return typeof o.version === "string" && (o.platform === "ios" || o.platform === "android");
 }
 
-export function encodeWebToApp(type: WebToAppType): string {
+export function encodeWebToApp(type: PlainWebToAppType): string {
   const msg: WebToAppMessage = { v: BRIDGE_VERSION, type, payload: {} };
   return JSON.stringify(msg);
 }
 
-function isWebToAppType(t: unknown): t is WebToAppType {
-  return (WEB_TO_APP_TYPES as readonly unknown[]).includes(t);
+/** 값을 싣는 메시지(ui.overlay·ui.haptic) */
+export function encodeWebToAppWith<T extends keyof WebToAppPayloads>(type: T, payload: WebToAppPayloads[T]): string {
+  return JSON.stringify({ v: BRIDGE_VERSION, type, payload });
 }
 
-/** 앱이 받은 문자열 → 아는 메시지면 새로 만든 그 메시지(웹이 보낸 payload 는 쓰지 않는다), 아니면 null(모르는 건 버린다) */
+function isPlainType(t: unknown): t is PlainWebToAppType {
+  return (PLAIN_WEB_TO_APP_TYPES as readonly unknown[]).includes(t);
+}
+
+/** 앱이 받은 문자열 → 아는 메시지면 새로 만든 그 메시지(웹이 보낸 payload 는 허용한 값만 옮긴다), 아니면 null(모르는 건 버린다) */
 export function parseWebToApp(raw: string): WebToAppMessage | null {
   try {
     const m = JSON.parse(raw) as Record<string, unknown> | null;
-    if (!m || m.v !== BRIDGE_VERSION || !isWebToAppType(m.type)) return null;
-    return { v: BRIDGE_VERSION, type: m.type, payload: {} };
+    if (!m || m.v !== BRIDGE_VERSION) return null;
+    if (isPlainType(m.type)) return { v: BRIDGE_VERSION, type: m.type, payload: {} };
+    const p = m.payload && typeof m.payload === "object" ? (m.payload as Record<string, unknown>) : null;
+    if (m.type === "ui.overlay") {
+      return p && typeof p.open === "boolean" ? { v: BRIDGE_VERSION, type: "ui.overlay", payload: { open: p.open } } : null;
+    }
+    if (m.type === "ui.haptic") {
+      const kind = HAPTIC_KINDS.find((k) => k === p?.kind);
+      return kind ? { v: BRIDGE_VERSION, type: "ui.haptic", payload: { kind } } : null;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -78,10 +113,18 @@ const PUSH_STATES = ["granted", "denied", "undetermined"] as const;
 
 /** 앱이 웹에 알릴 때 window 에 쏘는 CustomEvent 이름 (detail = encodeAppToWeb 이 만든 문자열) */
 export const APP_EVENT = "byeolkong:app";
-export type AppToWebMessage = { v: typeof BRIDGE_VERSION; type: "push.state"; state: PushState };
+/** push.state = 알림 권한 답 · ui.back = 안드로이드 뒤로 버튼이 눌렸고 겹창이 열려 있다(웹이 맨 위를 닫는다) */
+export type AppToWebMessage =
+  | { v: typeof BRIDGE_VERSION; type: "push.state"; state: PushState }
+  | { v: typeof BRIDGE_VERSION; type: "ui.back" };
 
 export function encodeAppToWeb(state: PushState): string {
   const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "push.state", state };
+  return JSON.stringify(msg);
+}
+
+export function encodeAppToWebBack(): string {
+  const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "ui.back" };
   return JSON.stringify(msg);
 }
 
@@ -89,7 +132,9 @@ export function encodeAppToWeb(state: PushState): string {
 export function parseAppToWeb(raw: unknown): AppToWebMessage | null {
   try {
     const m = (typeof raw === "string" ? JSON.parse(raw) : raw) as Record<string, unknown> | null;
-    if (!m || typeof m !== "object" || m.v !== BRIDGE_VERSION || m.type !== "push.state") return null;
+    if (!m || typeof m !== "object" || m.v !== BRIDGE_VERSION) return null;
+    if (m.type === "ui.back") return { v: BRIDGE_VERSION, type: "ui.back" };
+    if (m.type !== "push.state") return null;
     const state = (PUSH_STATES as readonly unknown[]).find((s) => s === m.state) as PushState | undefined;
     return state ? { v: BRIDGE_VERSION, type: "push.state", state } : null;
   } catch {

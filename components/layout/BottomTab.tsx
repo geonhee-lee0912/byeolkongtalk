@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { appHaptic } from "@/lib/app-context";
 
 type TabKey = "consult" | "fortune" | "byeolmaru" | "shop" | "me";
 
@@ -148,6 +149,8 @@ export default function BottomTab() {
                     e.preventDefault();
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }
+                  // 다른 탭으로 옮길 때만 가볍게 진동(앱 caps ui) — 스펙 §5 ⑥
+                  if (!active) appHaptic("light");
                 }}
               >
                 {/* 선택 탭: 아이콘+라벨을 라일락 pill 로 함께 감싼다. 패딩은 항상 유지해 레이아웃 고정. */}

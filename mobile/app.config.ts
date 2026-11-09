@@ -46,7 +46,8 @@ const config: ExpoConfig = {
   },
   android: {
     package: BUNDLE_ID,
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#FAF6F0" },
+    // 별콩이 얼굴(앱 화면 4단계, 운영자 A안 11-09) — 배경색은 그림 가장자리 색(night 계열)과 같게 해 이음새가 안 보이게
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#201238" },
     // 없으면 키째 뺀다(위 GOOGLE_SERVICES_FILE) — null 은 직렬화에서 {} 로 바뀐다(아래 extra 주석)
     ...(GOOGLE_SERVICES_FILE ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
   },

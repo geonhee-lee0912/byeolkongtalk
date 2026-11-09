@@ -92,7 +92,7 @@ export default function SimBubble({
           onClick={close}
         >
           {/* 배경 스크롤 잠금 + ESC(반영 중엔 닫기 불가) — 떠 있는 카드라 Sheet·Dialog 대신 스택만 */}
-          <OverlayEntry close={close} dismissible={!busy} />
+          <OverlayEntry close={close} dismissible={!busy} z={50} />
           <div
             className="w-full max-w-sm rounded-2xl border border-lilac-mid/30 bg-night p-5 animate-fade-in"
             onClick={(e) => e.stopPropagation()}

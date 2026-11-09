@@ -12,6 +12,7 @@ import {
 import { fetchWallet } from "@/lib/wallet";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { appHaptic } from "@/lib/app-context";
 import { safeInternalPath } from "@/lib/safe-internal-path";
 import {
   pickDefaultPackage,
@@ -173,6 +174,7 @@ function ShopContent() {
       if (res.ok) {
         const data = await res.json();
         setConfirmTone("success");
+        appHaptic("success"); // 충전 완료(이미 처리된 결제여도 사용자가 보는 건 완료 화면) — 앱 caps ui, 스펙 §5 ⑥
         setConfirmMessage(
           data.alreadyProcessed
             ? "이미 처리된 결제야"

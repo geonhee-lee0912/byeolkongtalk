@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { shuffleDeck, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import { appHaptic } from "@/lib/app-context";
 
 type CardDirection = "upright" | "reversed";
 type Phase = "pick" | "direction";
@@ -147,6 +148,7 @@ export default function CardDrawRitual({
     const slotIdx = activeSlot;
     if (slotIdx < 0) return;
     if (slotCards[slotIdx] !== null) return;
+    appHaptic("light"); // 카드 한 장을 자리에 놓는 순간(앱 caps ui) — 스펙 §5 ⑥
 
     const deckEl = document.querySelector<HTMLElement>(
       '[data-deck-center="true"]'
