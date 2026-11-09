@@ -40,11 +40,11 @@ export default function YearTimeline({ good, caution }: { good?: string; caution
       </div>
       <div className="flex items-center justify-center gap-4 mt-2.5">
         <span className="flex items-center gap-1.5 text-11 text-text-light">
-          <span className="w-3 h-3 rounded" style={{ background: GOOD }} />
+          <span className="w-3 h-3 rounded-lg" style={{ background: GOOD }} />
           좋은 달
         </span>
         <span className="flex items-center gap-1.5 text-11 text-text-light">
-          <span className="w-3 h-3 rounded" style={{ background: CAUTION }} />
+          <span className="w-3 h-3 rounded-lg" style={{ background: CAUTION }} />
           점검할 달
         </span>
       </div>

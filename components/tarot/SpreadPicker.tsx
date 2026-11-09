@@ -147,7 +147,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[26px] aspect-[2/3] rounded-[4px] overflow-hidden border border-white shadow-sm"
+                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white shadow-sm"
                     style={{ transform: `rotate(${(i - (info.cardCount - 1) / 2) * 6}deg)` }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -164,7 +164,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 {/* 배지·가격은 각각 쪼개지 않는다 — 한 줄에 안 들어가면 가격이 통째로 다음 줄로(320px 7장 "가능성 스프레드 · / 7카드"·"⭐ / 55별") */}
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
                   <span
-                    className="text-13 font-black px-1.5 py-0.5 rounded-md text-white whitespace-nowrap"
+                    className="text-13 font-black px-1.5 py-0.5 rounded-lg text-white whitespace-nowrap"
                     style={{ backgroundColor: info.accent }}
                   >
                     {info.label}

@@ -115,7 +115,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
                 className="inline-flex items-center gap-1 text-12"
               >
                 <span
-                  className={`inline-flex w-5 h-5 rounded items-center justify-center text-11 font-bold ${
+                  className={`inline-flex w-5 h-5 rounded-lg items-center justify-center text-11 font-bold ${
                     isMax ? "ring-1 ring-eye-purple/40" : ""
                   }`}
                   style={{

@@ -459,7 +459,7 @@ function FlyingCardOverlay({
   const target = flight.active ? flight.to : flight.from;
   return (
     <div
-      className="fixed pointer-events-none z-[60] rounded-md overflow-hidden"
+      className="fixed pointer-events-none z-[60] rounded-lg overflow-hidden"
       style={{
         left: target.x,
         top: target.y,
@@ -672,7 +672,7 @@ function HorizontalDeck({
                     jumpTo(i);
                   }
                 }}
-                className="rounded-md overflow-hidden pointer-events-auto block"
+                className="rounded-lg overflow-hidden pointer-events-auto block"
                 draggable={false}
                 style={{
                   width: CARD_W,
@@ -858,7 +858,7 @@ function DeckScrollbar({
         >
           {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치 */}
           <div
-            className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-md text-11 font-black tabular-nums whitespace-nowrap"
+            className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-lg text-11 font-black tabular-nums whitespace-nowrap"
             style={{ background: accent, color: "#fff" }}
           >
             {/* 꼬리 — 썸 쪽(위)으로 */}
@@ -1027,7 +1027,7 @@ function Slot({
     <div
       data-slot={index}
       onClick={canSelect ? () => onSelectSlot(index) : undefined}
-      className={`relative rounded-md transition-all ${
+      className={`relative rounded-lg transition-all ${
         canSelect ? "cursor-pointer" : ""
       }`}
       style={{
@@ -1050,7 +1050,7 @@ function Slot({
           : undefined,
       }}
     >
-      <div className="w-full h-full rounded-md overflow-hidden relative">
+      <div className="w-full h-full rounded-lg overflow-hidden relative">
         {filled && cardId !== null ? (
           horizontal ? (
             <Image
@@ -1099,7 +1099,7 @@ function Slot({
         )}
         {isCurrent && !filled && (
           <div
-            className="absolute inset-0 animate-pulse-soft pointer-events-none rounded-md"
+            className="absolute inset-0 animate-pulse-soft pointer-events-none rounded-lg"
             style={{
               boxShadow: `inset 0 0 0 2px ${accent}`,
             }}

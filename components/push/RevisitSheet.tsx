@@ -268,7 +268,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
     <>
     {noticePopup}
     <div className="w-full max-w-md mx-auto px-5 mt-4">
-      <div className="bg-cream-warm border border-lilac-mid/35 rounded-[20px] p-4">
+      <div className="bg-cream-warm border border-lilac-mid/35 rounded-2xl p-4">
         {done ? (
           <p className="text-14 font-black">{done}</p>
         ) : prefOff ? (

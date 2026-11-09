@@ -27,7 +27,7 @@ export default function DaeunTable({
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
       <h3 className="text-15 font-extrabold text-eye-purple mb-1.5">🌌 대운 10년 흐름</h3>
       <p className="text-11 text-text-light/70 leading-snug mb-5">
         10년마다 바뀌는 인생의 큰 기운이야. 각 시기가 네 사주와 만나 어떤 국면을 여는지 담았어.

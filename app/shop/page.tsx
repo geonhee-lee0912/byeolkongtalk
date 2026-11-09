@@ -467,7 +467,7 @@ function BalanceCard({ balance }: { balance: number | null }) {
         </p>
         {balance === null ? (
           <span
-            className="inline-block mt-1 w-12 h-6 rounded-md bg-[#7A5A1F]/12 animate-pulse"
+            className="inline-block mt-1 w-12 h-6 rounded-lg bg-[#7A5A1F]/12 animate-pulse"
             aria-label="잔액 불러오는 중"
           />
         ) : (
@@ -623,7 +623,7 @@ function PaymentStatusPanel({
   onRetry: () => void;
 }) {
   return (
-    <div className="mt-5 p-7 bg-white rounded-3xl border border-lilac-mid/30 shadow-md text-center">
+    <div className="mt-5 p-7 bg-white rounded-2xl border border-lilac-mid/30 shadow-md text-center">
       <div
         className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-3"
         style={{

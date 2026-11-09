@@ -127,7 +127,7 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
       //    둘을 같은 모양으로 만들면 문법이 두 개인 이유가 사라진다.
       <mark
         key={`${key}-${i}`}
-        className="rounded-[3px] px-1 py-px"
+        className="rounded-sm px-1 py-px"
         style={
           tone === "dark"
             ? { background: "rgba(232, 222, 245, 0.18)", color: "#ECE3FB" }
@@ -162,7 +162,7 @@ export function MarkdownLite({
               <li key={j} className="flex gap-2.5 items-start">
                 <span className="shrink-0 flex h-[1.7em] items-center" aria-hidden>
                   <span
-                    className="w-4 h-4 rounded-md flex items-center justify-center"
+                    className="w-4 h-4 rounded-lg flex items-center justify-center"
                     style={{ background: "linear-gradient(135deg, #E8DEF5, #D4C7EE)" }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#9F8AD0" }} />

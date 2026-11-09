@@ -152,7 +152,7 @@ export default function NotificationSettingsPage() {
               </button>
             </div>
           )}
-          <div className="bg-white rounded-[18px] border border-lilac-mid/30 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <div>
                 <p className="text-14 font-bold">다시 볼 날</p>
@@ -177,7 +177,7 @@ export default function NotificationSettingsPage() {
               <Toggle on={morning} label="아침 별 흐름 알림" disabled={busy} onClick={() => void togglePref("morning")} />
             </div>
           </div>
-          <div className="mt-3.5 bg-white rounded-[18px] border border-lilac-mid/30 overflow-hidden">
+          <div className="mt-3.5 bg-white rounded-2xl border border-lilac-mid/30 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <div>
                 <p className="text-14 font-bold">광고성 정보 수신 동의 (앱 푸시)</p>

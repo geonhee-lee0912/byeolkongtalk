@@ -45,12 +45,12 @@ function Curve({ decades }: { decades: LifeGraphReport["decades"] }) {
 export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
-      <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
+      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] px-[22px] py-6">
         <MarkdownLite text={report.intro} className="text-14 leading-[1.9] text-[#4F4A5E]" />
       </div>
 
       {/* 곡선 차트 */}
-      <div className="bg-white rounded-3xl border border-lilac-mid/30 shadow-[0_8px_30px_rgba(40,30,70,0.10)] px-[18px] py-6">
+      <div className="bg-white rounded-2xl border border-lilac-mid/30 shadow-[0_8px_30px_rgba(40,30,70,0.10)] px-[18px] py-6">
         <h3 className="text-15 font-extrabold text-lilac-deep mb-3">📉 내 인생 곡선 (대운)</h3>
         <Curve decades={report.decades} />
         <div className="flex gap-4 justify-center mt-2 text-11">
@@ -83,7 +83,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
         </div>
       ))}
 
-      <div className="rounded-3xl px-6 py-6 text-white" style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}>
+      <div className="rounded-2xl px-6 py-6 text-white" style={{ background: "linear-gradient(140deg, #2A1F4D, #1F1735)" }}>
         <h3 className="text-14 font-bold text-gold mb-2">🌙 별콩이의 한마디</h3>
         <MarkdownLite text={report.note} tone="dark" className="text-14 leading-[1.95] text-white/90" />
       </div>

@@ -182,7 +182,7 @@ export default function SajuFullReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 다크 종합운 히어로 */}
-      <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
             <Image src="/fortune-hero-saju_full.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
@@ -203,7 +203,7 @@ export default function SajuFullReportView({
       </div>
 
       {/* 사주판 박스 */}
-      <div className="bg-cream-warm rounded-3xl px-3 py-5 border border-lilac-mid/30">
+      <div className="bg-cream-warm rounded-2xl px-3 py-5 border border-lilac-mid/30">
         {saju?.pillars ? (
           <>
             <SajuBoard saju={saju} showDetail={false} />
@@ -236,7 +236,7 @@ export default function SajuFullReportView({
       />
 
       {/* 별콩이의 한마디 — 항상 노출 */}
-      <div className="rounded-3xl px-6 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-6 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex items-center gap-2 mb-2">
           <Image
             src="/byeolkong-main.png"

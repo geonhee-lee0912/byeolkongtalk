@@ -3,7 +3,7 @@ import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyNoteCard({ note }: { note: string }) {
   return (
-    <div className="bg-[#211A33] rounded-3xl px-4 pt-4 pb-[17px]">
+    <div className="bg-[#211A33] rounded-2xl px-4 pt-4 pb-[17px]">
       <div className="flex items-center gap-[9px] mb-[9px]">
         <Image
           src="/byeolkong-main.png"

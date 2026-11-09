@@ -29,7 +29,7 @@ export default function ChatBubble({
   if (role === "user") {
     return (
       <div className="flex justify-end mb-3 animate-fade-in">
-        <div className="selectable max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-md text-16 whitespace-pre-wrap">
+        <div className="selectable max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-sm text-16 whitespace-pre-wrap">
           {content}
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function ChatBubble({
 
         {showCardImage && card && dc && (
           <div className="mb-2 ml-0.5 flex items-end gap-2 w-fit animate-fade-in">
-            <div className="relative w-14 h-[88px] rounded-md overflow-hidden ring-1 ring-gold/60 shadow-sm shrink-0">
+            <div className="relative w-14 h-[88px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-sm shrink-0">
               <Image
                 src={getCardImagePath(dc.card_id)}
                 alt={card.name_kr}
@@ -87,7 +87,7 @@ export default function ChatBubble({
           </div>
         )}
 
-        <div className="w-full px-4 py-3 bg-cream-warm text-eye-purple rounded-2xl rounded-tl-md text-16 whitespace-pre-wrap border border-lilac-mid/20">
+        <div className="w-full px-4 py-3 bg-cream-warm text-eye-purple rounded-2xl rounded-tl-sm text-16 whitespace-pre-wrap border border-lilac-mid/20">
           {(content && <EmphasisText text={content} />) || (
             <span className="inline-flex gap-1 items-center py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lilac-deep/50 animate-pulse-soft" />

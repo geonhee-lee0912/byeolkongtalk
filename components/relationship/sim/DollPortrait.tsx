@@ -24,7 +24,7 @@ export default function DollPortrait({ status, label, collapsed }: DollPortraitP
       </div>
       {!collapsed && (
         <div
-          className="pointer-events-none w-[120px] h-5 -mt-1.5 rounded-[50%]"
+          className="pointer-events-none w-[120px] h-5 -mt-1.5 rounded-full"
           aria-hidden
           style={{ background: "radial-gradient(ellipse,rgba(232,194,106,0.3),transparent 70%)" }}
         />

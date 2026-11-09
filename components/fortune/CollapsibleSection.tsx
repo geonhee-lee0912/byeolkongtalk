@@ -28,7 +28,7 @@ export default function CollapsibleSection({
   const previewText = open ? "" : body ? sectionPreview(body) : (preview ?? "");
 
   return (
-    <div className="bg-white rounded-3xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] overflow-hidden">
+    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}

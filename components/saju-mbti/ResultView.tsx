@@ -68,7 +68,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <p className="text-center text-12 tracking-[0.14em] text-lilac-deep">누군가의 사주 MBTI 결과</p>
       )}
       {/* ① 팔자 히어로 */}
-      <div className="bg-night rounded-[18px] px-5 py-6 text-center">
+      <div className="bg-night rounded-2xl px-5 py-6 text-center">
         <p className="text-11 tracking-[0.14em] text-lilac-deep mb-4">타고난 너 · 사주 팔자</p>
         <div className="flex justify-center mb-1">
           {charImg && (
@@ -217,7 +217,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       )}
 
       {/* ⑤ 리빌 */}
-      <div className="bg-night rounded-[18px] px-4 py-5">
+      <div className="bg-night rounded-2xl px-4 py-5">
         <p className="text-13 text-lilac-soft mb-3">문항으로 답한 나 <span style={{ color: SELF_COLOR }}>vs</span> 사주로 타고난 나 —</p>
         <div className="flex items-stretch gap-2 mb-4">
           <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(150,130,210,0.20)" }}>

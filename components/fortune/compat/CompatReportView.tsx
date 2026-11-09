@@ -100,7 +100,7 @@ export default function CompatReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 다크 히어로 — 등급 배지 + 테마 + summary */}
-      <div className="rounded-3xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-6 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
             <Image
@@ -125,7 +125,7 @@ export default function CompatReportView({
       </div>
 
       {/* 두 사주판 나란히 */}
-      <div className="bg-cream-warm rounded-3xl px-3 py-5 border border-lilac-mid/30">
+      <div className="bg-cream-warm rounded-2xl px-3 py-5 border border-lilac-mid/30">
         {saju ? (
           <div className="flex flex-col gap-5">
             <div>
@@ -156,7 +156,7 @@ export default function CompatReportView({
       <ReportAccordion items={items} accentIcon="/byeolkong-cheer.png" />
 
       {/* 다크 별콩이의 한마디 — 항상 노출 */}
-      <div className="rounded-3xl px-5 py-5 text-white" style={{ background: DARK_GRADIENT }}>
+      <div className="rounded-2xl px-5 py-5 text-white" style={{ background: DARK_GRADIENT }}>
         <div className="flex items-center gap-2 mb-2">
           <Image
             src="/byeolkong-main.png"

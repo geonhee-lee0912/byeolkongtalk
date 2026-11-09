@@ -220,7 +220,7 @@ export default function ConcernPage() {
               {/* 별콩이 인사 말풍선 */}
               <div className="flex self-end max-w-[88%]">
                 <div
-                  className="relative rounded-2xl rounded-br-md px-4 py-3"
+                  className="relative rounded-2xl rounded-br-sm px-4 py-3"
                   style={{
                     background: "#FBE89E",
                     boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
@@ -238,7 +238,7 @@ export default function ConcernPage() {
               {/* 사용자 입력 */}
               <div className="flex self-end w-full">
                 <div
-                  className="relative flex-1 bg-white rounded-2xl rounded-bl-md overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
+                  className="relative flex-1 bg-white rounded-2xl rounded-bl-sm overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
                   style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.18)" }}
                 >
                   <textarea

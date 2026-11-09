@@ -73,3 +73,12 @@ test("Tailwind 기본 글자 크기를 쓰지 않는다", () => {
   assert.deepEqual(offenders(/(?<![\w-])text-(xs|sm|base|lg|xl|[2-9]xl)\b/), []);
 });
 
+
+// ── 모서리 4단계(스펙 §2.3) — rounded-lg 8 · xl 12 · 2xl 16 · 3xl 24 · full, 말풍선 꼬리만 -sm
+test("임의 모서리 값이 없다", () => {
+  assert.deepEqual(offenders(/\brounded(-[a-z]{1,2})?-\[/), []);
+});
+test("rounded-md 와 맨 rounded 를 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/\brounded(-(t|b|l|r|tl|tr|bl|br))?-md\b|(?<![\w-])rounded(?=[\s"'`])/), []);
+});
+

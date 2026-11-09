@@ -95,7 +95,7 @@ export default function StageFrame({
           />
           {/* 스포트라이트 착지 웅덩이 */}
           <div
-            className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 w-[240px] h-9 rounded-[50%] z-0"
+            className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 w-[240px] h-9 rounded-full z-0"
             aria-hidden
             style={{ background: "radial-gradient(ellipse, rgba(242,215,138,0.16), transparent 70%)" }}
           />
