@@ -208,7 +208,7 @@ function TarotResultInner() {
             )}
           </h1>
         )}
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+        <div className="card">
           <div className="text-11 font-bold text-text-light mb-1">
             나의 고민
           </div>
@@ -226,7 +226,7 @@ function TarotResultInner() {
               const card = getCard(c.card_id);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50 shadow-card">
+                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCardImagePath(c.card_id)}
@@ -286,7 +286,7 @@ function TarotResultInner() {
           대화 전체 다시보기 {showHistory ? "▴" : "▾"}
         </button>
         {showHistory && (
-          <div className="mt-3 bg-cream-warm/40 rounded-2xl p-3 border border-lilac-mid/20">
+          <div className="card mt-3">
             {data.messages.map((m, i) => {
               if (m.role === "user") {
                 return <ChatBubble key={i} role="user" content={m.content} />;

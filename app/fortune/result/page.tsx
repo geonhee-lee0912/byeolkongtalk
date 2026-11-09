@@ -504,7 +504,7 @@ function FortuneResultInner() {
         />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
-          <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
+          <div className="card-report">
             {sections.map((s, j) => (
               <MarkdownLite
                 key={j}
@@ -519,7 +519,7 @@ function FortuneResultInner() {
           {sections.map((s, i) => (
             <div
               key={i}
-              className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
+              className="card"
             >
               {s.title && (
                 <h2 className="text-14 font-bold text-accent mb-2">{s.title}</h2>

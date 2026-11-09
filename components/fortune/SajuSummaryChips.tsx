@@ -21,7 +21,7 @@ export default function SajuSummaryChips({ saju }: { saju: SajuResult | null }) 
       {chips.map((c) => (
         <div
           key={c.k}
-          className="flex items-center gap-1.5 bg-cream-warm border border-lilac-mid/25 rounded-2xl px-3 py-2"
+          className="card flex items-center gap-1.5"
         >
           <span className="text-11 font-bold text-text-light">{c.k}</span>
           <span className="text-13 font-bold" style={{ color: c.color ?? "#5A3E8C" }}>

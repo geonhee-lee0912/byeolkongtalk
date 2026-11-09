@@ -13,7 +13,7 @@ export interface ProfileDetailsProps {
 
 export default function ProfileDetails({ saju, mbti, personality, mine }: ProfileDetailsProps) {
   return (
-    <div className="mt-3 rounded-2xl border border-lilac-mid/20 bg-white shadow-card py-4">
+    <div className="mt-3 rounded-2xl bg-white shadow-card py-4">
       {/* 1. 사주 명식 */}
       <div className="px-5 text-11 font-bold text-accent mb-2">
         {mine ? "내 사주 명식" : "사주 명식"}

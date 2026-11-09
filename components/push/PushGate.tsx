@@ -214,7 +214,7 @@ export default function PushGate() {
       {(unsubToken || unsubMsg) &&
         createPortal(
           <div className="fixed left-0 right-0 z-[70] px-4" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
-            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white/95 border border-lilac-mid/40 shadow-float px-3.5 py-2.5 text-13">
+            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float px-3.5 py-2.5 text-13">
               <p className="flex-1 leading-snug">{unsubMsg ?? "이 광고 알림을 그만 받으려면"}</p>
               {unsubToken && !unsubMsg && (
                 <button

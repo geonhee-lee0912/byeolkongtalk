@@ -134,7 +134,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
               key={type}
               onClick={() => setSelected(type)}
               aria-pressed={isSelected}
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/90 text-left transition-all"
+              className="card flex items-center gap-3.5 text-left transition-all"
               style={{
                 border: isSelected
                   ? `2px solid ${info.accent}`
@@ -147,7 +147,7 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white shadow-card"
+                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white"
                     style={{ transform: `rotate(${(i - (info.cardCount - 1) / 2) * 6}deg)` }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -55,8 +55,8 @@ export function QuizStage({ onDone }: { onDone: (answers: Record<string, string>
               key={o.id}
               type="button"
               onClick={() => pick(o.id)}
-              className={`text-left rounded-2xl border px-4 py-3.5 text-15 text-eye-purple transition-colors ${
-                chosen ? "bg-lilac-soft border-lilac-deep" : "bg-cream-warm border-lilac hover:bg-lilac-soft hover:border-lilac-deep"
+              className={`text-left bg-white rounded-2xl shadow-card px-4 py-3.5 text-15 text-eye-purple transition-colors ${
+                chosen ? "outline-2 outline-accent -outline-offset-2" : "hover:bg-inner"
               }`}
             >
               {o.text}

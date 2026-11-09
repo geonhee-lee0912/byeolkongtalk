@@ -45,7 +45,7 @@ export default function PairDayDetailCard({
   return (
     // DayDetailCard 와 동일하게 aria-live — 그리드에서 다른 날짜/상대를 고르면 이 카드만
     // 갱신되고 포커스는 그리드 버튼에 남는다.
-    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4" aria-live="polite">
+    <section className="card" aria-live="polite">
       {/* 🔴 헤더·히어로·등급 세 층을 **사주 탭(DayDetailCard)과 같은 양식**으로 맞췄다
           (2026-09-27, 사용자 요청). 예전엔 같은 정보가 탭마다 다른 모양이었다 —
           간지가 사주는 44px 한자 히어로인데 여긴 헤더 오른쪽 끝 13px 한글이었고,
@@ -106,7 +106,7 @@ export default function PairDayDetailCard({
           🔴 라벨이 아니라 **박스에** 준 이유: 마크 칩 줄(`ul.mb-4`)이 있는 날엔 라벨과 박스
              사이에 그 줄이 끼는데, 라벨에 마진을 주면 칩이 있는 날만 간격이 두 번 들어간다.
              박스에 주면 인접 형제 마진이 상쇄돼(16 vs 16) 칩 유무와 상관없이 16px 로 같다. */}
-      <div className="mt-4 rounded-xl border border-lilac-soft bg-white/60 p-3">
+      <div className="card-inner mt-4">
         <p className="mb-2 text-11 font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
 
         {/* 십신 — 서로를 어떻게 보는지. 방향이 다르므로 마주보게 둔다(한 줄 `A ↔ B` 는 누가 누구를

@@ -22,7 +22,7 @@ export default function ElementBalanceView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 오행 분포 차트 (결정론) */}
-      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
+      <div className="card-report">
         <h3 className="text-15 font-extrabold text-accent mb-4">🌈 내 오행 분포</h3>
         <div className="flex flex-col gap-2.5">
           {ORDER.map((e) => {

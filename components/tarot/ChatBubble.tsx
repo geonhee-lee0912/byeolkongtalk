@@ -87,7 +87,7 @@ export default function ChatBubble({
           </div>
         )}
 
-        <div className="w-full px-4 py-3 bg-cream-warm text-eye-purple rounded-2xl rounded-tl-sm text-16 whitespace-pre-wrap border border-lilac-mid/20">
+        <div className="card w-full text-eye-purple rounded-tl-sm text-16 whitespace-pre-wrap">
           {(content && <EmphasisText text={content} />) || (
             <span className="inline-flex gap-1 items-center py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lilac-deep/50 animate-pulse-soft" />

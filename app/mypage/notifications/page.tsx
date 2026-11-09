@@ -140,7 +140,7 @@ export default function NotificationSettingsPage() {
       ) : (
         <div className="w-full max-w-md mx-auto px-5">
           {perm === "denied" && (
-            <div className="mb-3.5 rounded-2xl bg-cream-warm border border-dashed border-lilac-deep px-3.5 py-3 text-13 leading-relaxed">
+            <div className="card mb-3.5 text-13 leading-relaxed">
               휴대폰 알림이 꺼져 있어. 켜야 별콩이가 알려줄 수 있어.
               <br />
               <button

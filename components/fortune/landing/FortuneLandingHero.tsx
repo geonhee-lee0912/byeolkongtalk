@@ -65,7 +65,7 @@ export default function FortuneLandingHero({
 
         <div className="flex flex-wrap gap-1.5 justify-center mt-3">
           {chips.map((c) => (
-            <span key={c} className="text-11 font-bold text-eye-purple bg-white/80 px-2.5 py-1 rounded-full">
+            <span key={c} className="text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full">
               {c}
             </span>
           ))}

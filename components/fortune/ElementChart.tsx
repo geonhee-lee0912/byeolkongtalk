@@ -22,7 +22,7 @@ export default function ElementChart({
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6${className ? ` ${className}` : ""}`}
+      className={`card-report${className ? ` ${className}` : ""}`}
     >
       <h3 className="text-15 font-extrabold text-accent mb-4">🌈 내 오행 분포</h3>
       <div className="flex flex-col gap-2.5">

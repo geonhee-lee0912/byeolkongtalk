@@ -26,7 +26,7 @@ function rankChipClass(i: number): string {
   if (i === 0) return "bg-gold text-night";
   if (i === 1) return "bg-[#C4CAD4] text-[#33373F]"; // 은
   if (i === 2) return "bg-[#CD9A6B] text-white"; // 동
-  return "bg-white/70 text-eye-purple";
+  return "bg-white text-eye-purple";
 }
 
 // 인연 점수 등급 칩 색상 — 점수 구간별 색. 전부 밝은 채움이라 1위 다크 행에서도 판독됨.
@@ -295,7 +295,7 @@ export default function ConstellationView({ graph, meId }: Props) {
       </div>
       {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
       {focusId && card?.target && (
-        <div ref={detailRef} className="mt-3 animate-fade-in scroll-mb-20 rounded-2xl bg-cream-warm p-4 shadow-card">
+        <div ref={detailRef} className="card mt-3 animate-fade-in scroll-mb-20">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <div className="text-12 text-text-light">{relationTypeLabel(card.target.relationType)}</div>
@@ -330,7 +330,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                     <div className="mb-1.5 text-12 font-bold text-eye-purple">{tag}</div>
                     {tag === "같은 결" ? (
                       // 무리 = 이름 나열(한 줄 3명·콤마) + 오른쪽 무리 점수(높이 가운데 정렬)
-                      <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
+                      <div className="card flex items-center justify-between">
                         <div className="min-w-0 flex-1 text-14 text-eye-purple">
                           {(() => {
                             const names = members.map((nb) => nb.name ?? "이 별");
@@ -351,7 +351,7 @@ export default function ConstellationView({ graph, meId }: Props) {
                         {members.map((nb) => {
                           const open = expandedNeighborId === nb.id;
                           return (
-                            <div key={nb.id} className={`overflow-hidden rounded-xl bg-white/70 ${open ? "ring-1 ring-lilac" : ""}`}>
+                            <div key={nb.id} className={`overflow-hidden rounded-xl bg-white ${open ? "ring-1 ring-lilac" : ""}`}>
                               <button
                                 type="button"
                                 onClick={() => setExpandedNeighborId(open ? null : nb.id)}
@@ -390,7 +390,7 @@ export default function ConstellationView({ graph, meId }: Props) {
         </div>
       )}
       {/* 범례 — 크림 박스로 대비 확보. 오행(위) / 선 종류(아래) 구분선으로 분리. */}
-      <div className="mt-3 rounded-2xl bg-cream-warm px-4 py-3 shadow-card">
+      <div className="card mt-3">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-12 text-eye-purple">
           {LEGEND.map(([label, color]) => (
             <span key={label} className="inline-flex items-center gap-1">
@@ -423,7 +423,7 @@ export default function ConstellationView({ graph, meId }: Props) {
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
               const grade = inyeonGrade(r.inyeon);
               return (
-                <div key={r.id} className="overflow-hidden rounded-2xl bg-cream-warm">
+                <div key={r.id} className="overflow-hidden rounded-2xl bg-white shadow-card">
                   <button
                     type="button"
                     aria-expanded={open}

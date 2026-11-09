@@ -96,7 +96,7 @@ export default function StarConfirmModal({
         {extra}
 
         {/* 비용/잔액 요약 */}
-        <div className="rounded-2xl bg-cream-warm border border-lilac-mid/20 px-4 py-3 mb-5 text-13">
+        <div className="card-inner mb-5 text-13">
           {targetName && (
             <div className="flex items-center justify-between py-1 border-b border-lilac-mid/15 mb-1 pb-2">
               <span className="text-text-light">대상</span>

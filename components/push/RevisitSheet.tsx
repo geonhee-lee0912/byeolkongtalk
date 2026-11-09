@@ -194,7 +194,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
 
   const denied = perm === "denied";
   const warn = (
-    <div className="mt-3 rounded-2xl bg-white border border-lilac-mid/35 px-3 py-2.5 text-13 leading-relaxed">
+    <div className="card-inner mt-3 text-13 leading-relaxed">
       알림이 꺼져 있어서 그날 못 알려줘.
       <br />
       <button
@@ -268,7 +268,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
     <>
     {noticePopup}
     <div className="w-full max-w-md mx-auto px-5 mt-4">
-      <div className="bg-cream-warm border border-lilac-mid/35 rounded-2xl p-4">
+      <div className="card-inner">
         {done ? (
           <p className="text-14 font-black">{done}</p>
         ) : prefOff ? (

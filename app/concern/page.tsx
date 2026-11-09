@@ -402,8 +402,8 @@ function TagSheetItem({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`w-full flex items-center gap-3 p-3 rounded-2xl bg-white/90 text-left transition-all border ${
-        active ? "border-2 border-lilac-deep bg-lilac-soft/30" : "border-lilac-soft/70"
+      className={`w-full card flex items-center gap-3 text-left transition-all ${
+        active ? "outline-2 outline-accent -outline-offset-2" : ""
       }`}
     >
       <span

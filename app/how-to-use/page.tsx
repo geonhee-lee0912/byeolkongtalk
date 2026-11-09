@@ -38,7 +38,7 @@ export default function HowToUsePage() {
           <h2 className="text-15 font-bold text-eye-purple mb-3">이렇게 시작해</h2>
           <div className="space-y-3">
             {STEPS.map((s) => (
-              <div key={s.n} className="flex gap-3 rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
+              <div key={s.n} className="card flex gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac-deep text-white text-13 font-bold">
                   {s.n}
                 </span>
@@ -55,7 +55,7 @@ export default function HowToUsePage() {
           <h2 className="text-15 font-bold text-eye-purple mb-3">뭘 할 수 있어</h2>
           <div className="grid grid-cols-2 gap-3">
             {PRODUCTS.map((p) => (
-              <div key={p.t} className="rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
+              <div key={p.t} className="card">
                 <div className="text-22">{p.e}</div>
                 <p className="mt-1.5 text-14 font-bold text-eye-purple">{p.t}</p>
                 <p className="mt-0.5 text-12 text-text-light leading-snug">{p.d}</p>

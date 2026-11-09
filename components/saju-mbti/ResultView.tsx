@@ -88,7 +88,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* 4축 정도 — 사주(팔자) 백분위 단일 척도 (공유 뷰는 생일 없어 숨김) */}
       {!shared && (
-      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-4">
+      <section className="card">
         <p className="text-17 font-bold text-eye-purple mb-4">타고난 너의 4축</p>
         <div className="flex flex-col gap-4">
           {AXES.map((axis) => {
@@ -127,28 +127,28 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       )}
 
       {/* ③ 본문 */}
-      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
+      <section className="card">
         <p className="text-15 font-bold tracking-wide text-accent mb-1.5">성격</p>
         <MarkdownLite text={content.personality} className="text-14 leading-relaxed text-eye-purple" />
       </section>
 
       <div className="grid grid-cols-1 gap-2.5">
-        <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
+        <section className="card">
           <p className="text-15 font-bold tracking-wide text-[#C99A3A] mb-1.5">빛</p>
           <MarkdownLite text={content.light} className="text-13 leading-relaxed text-eye-purple" />
         </section>
-        <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
+        <section className="card">
           <p className="text-15 font-bold tracking-wide text-accent mb-1.5">그림자</p>
           <MarkdownLite text={content.shadow} className="text-13 leading-relaxed text-eye-purple" />
         </section>
       </div>
 
-      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
+      <section className="card">
         <p className="text-15 font-bold tracking-wide text-[#C86A8A] mb-1.5">연애</p>
         <MarkdownLite text={content.love} className="text-14 leading-relaxed text-eye-purple" />
       </section>
 
-      <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-4 py-3.5">
+      <section className="card">
         <p className="text-15 font-bold tracking-wide text-accent mb-2">궁합</p>
         <div className="grid grid-cols-2 gap-2.5">
           {content.compat.fits.map((c) => {
@@ -190,7 +190,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* 오행 질감 */}
       <section
-        className="bg-white border rounded-2xl px-4 py-3.5"
+        className="card-inner"
         style={{ borderColor: ELEMENT_COLORS[palja.element].bar }}
       >
         <p className="text-15 font-bold tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
@@ -207,7 +207,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
 
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
-        <section className="bg-cream-warm border border-lilac/60 rounded-2xl px-2 py-4">
+        <section className="bg-white rounded-2xl shadow-card px-2 py-4">
           <p className="text-15 font-bold tracking-wide text-accent mb-3 text-center">타고난 너의 사주 원판</p>
           <SajuBoard saju={saju} />
           <div className="flex justify-center mt-2">

@@ -203,7 +203,7 @@ export default function SajuFullReportView({
       </div>
 
       {/* 사주판 박스 */}
-      <div className="bg-cream-warm rounded-2xl px-3 py-5 border border-lilac-mid/30">
+      <div className="card">
         {saju?.pillars ? (
           <>
             <SajuBoard saju={saju} showDetail={false} />

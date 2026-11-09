@@ -389,7 +389,7 @@ function ShopContent() {
             )}
 
             {/* 안내 카피 */}
-            <div className="mt-5 px-4 py-3.5 bg-cream-warm/60 rounded-2xl border border-lilac-mid/30">
+            <div className="card mt-5">
               <p className="text-11 font-bold text-text-light tracking-wide mb-1.5">
                 결제 안내
               </p>
@@ -449,7 +449,7 @@ function ShopContent() {
 
 function BalanceCard({ balance }: { balance: number | null }) {
   return (
-    <div className="relative overflow-hidden p-4 rounded-2xl border border-gold-soft/40 bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] shadow-card flex items-center gap-3">
+    <div className="relative overflow-hidden p-4 rounded-2xl bg-[#FFF6E3] flex items-center gap-3">
       {/* 배경 별 데코 */}
       <div className="absolute -right-3 -top-3 opacity-25 rotate-12 pointer-events-none">
         <StarIcon className="w-16 h-16" />
@@ -458,7 +458,7 @@ function BalanceCard({ balance }: { balance: number | null }) {
         <StarIcon className="w-7 h-7" />
       </div>
 
-      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-card shrink-0">
+      <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-card shrink-0">
         <StarIcon className="w-7 h-7" />
       </div>
       <div className="relative flex-1 min-w-0">
@@ -508,10 +508,10 @@ function PackageCard({
       type="button"
       onClick={onSelect}
       disabled={disabled}
-      className={`relative w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white border-2 transition-all disabled:opacity-50 active:scale-[0.99] text-left ${
+      className={`relative w-full flex items-center gap-4 card transition-all disabled:opacity-50 active:scale-[0.99] text-left ${
         selected
-          ? "border-lilac-deep ring-2 ring-lilac-deep/20"
-          : "border-lilac-mid/30 hover:border-lilac/70"
+          ? "outline-2 outline-accent -outline-offset-2"
+          : ""
       }`}
     >
       {/* 좌측 별 비주얼 */}
@@ -623,7 +623,7 @@ function PaymentStatusPanel({
   onRetry: () => void;
 }) {
   return (
-    <div className="mt-5 p-7 bg-white rounded-2xl border border-lilac-mid/30 shadow-card text-center">
+    <div className="card-report mt-5 text-center">
       <div
         className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-3"
         style={{
@@ -726,8 +726,8 @@ function SectionDivider({ label }: { label: string }) {
 
 function FirstChargeBanner() {
   return (
-    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-br from-[#FFF6E3] via-[#FDE9D4] to-[#FCDFCD] border border-gold-soft/50 shadow-card">
-      <div className="relative w-11 h-11 rounded-full bg-white/80 flex items-center justify-center shadow-card shrink-0">
+    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#FFF6E3]">
+      <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-card shrink-0">
         <span className="text-22" aria-hidden>
           🎁
         </span>

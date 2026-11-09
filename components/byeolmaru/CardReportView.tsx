@@ -76,7 +76,7 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
  *     호출부는 report-date.ts 의 dayWordFor 를 쓴다(삼항을 새로 적지 말 것 — 그 말의 단일 원천이다). */
 export function CardGaugeView({ gauge, reversed, dayWord }: { gauge: CardGauge; reversed: boolean; dayWord: "오늘" | "그날" }) {
   return (
-    <section aria-label={`${dayWord} 흐름 게이지`} className="mt-3 rounded-2xl bg-white/70 p-3">
+    <section aria-label={`${dayWord} 흐름 게이지`} className="card mt-3">
       <ul className="space-y-2">
         {AXES.map(({ key, label }) => (
           <GaugeBar key={key} label={label} axis={gauge[key]} />

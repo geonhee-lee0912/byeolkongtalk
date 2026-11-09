@@ -240,7 +240,7 @@ function StartPageInner() {
               style={{ animationDelay: "1.0s" }}
             />
             <div
-              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white/80 rounded-full animate-star-twinkle"
+              className="absolute top-[64%] left-[38%] w-1 h-1 bg-white rounded-full animate-star-twinkle"
               style={{ animationDelay: "0.2s" }}
             />
             <div className="absolute -top-10 -right-10 w-44 h-44 bg-lilac/20 rounded-full blur-3xl" />
@@ -271,7 +271,7 @@ function StartPageInner() {
 
         {/* 가입 유도 박스 — 웰컴 별 안내 + 카카오 가입 (비로그인만) */}
         {loggedIn === false && (
-          <div className="mx-5 mt-4 p-4 rounded-2xl bg-white/90 border border-gold/50 flex flex-col items-center gap-3">
+          <div className="card mx-5 mt-4 flex flex-col items-center gap-3">
             <p className="text-14 font-extrabold text-eye-purple">
               지금 가입하면 웰컴 별 {WELCOME_BONUS_STARS}개 ✨
             </p>
@@ -404,7 +404,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
         {RELATIONSHIP_SKILL_PREVIEWS.map((s) => (
           <div
             key={s.label}
-            className="bg-white/90 rounded-2xl p-3.5 border border-lilac-soft"
+            className="card"
           >
             <div className="text-22 mb-1.5" aria-hidden>{s.emoji}</div>
             <p className="text-13 font-bold text-eye-purple leading-snug">
@@ -419,7 +419,7 @@ function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
 
       {/* 이용권 */}
       <p className="text-13 font-bold text-eye-purple px-1 mt-2">이용권</p>
-      <div className="rounded-2xl border border-lilac-mid/30 bg-white/70 p-4">
+      <div className="card">
         <p className="text-13 text-text-light leading-relaxed mb-2.5">
           패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
         </p>
@@ -469,7 +469,7 @@ function LoveDirectMenu({
 
   return (
     <>
-      <div className="p-5 bg-white/95 rounded-2xl border-2 border-lilac-deep/50 shadow-card flex flex-col items-center gap-3 text-center">
+      <div className="card-report flex flex-col items-center gap-3 text-center">
         <span
           className="text-12 font-bold px-3 py-1 rounded-full bg-[#E48BA0]/10"
           style={{ color: "#E48BA0" }}
@@ -523,7 +523,7 @@ function EmotionList({
         <button
           key={option.tag}
           onClick={() => onSelect(option.tag)}
-          className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition text-left"
+          className="card flex items-center gap-3.5 transition text-left"
         >
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -565,7 +565,7 @@ function FortuneMenuList({
           <button
             key={f.type}
             onClick={() => onSelect(f.href)}
-            className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl text-left transition border border-lilac-soft hover:border-lilac-deep/40"
+            className="card flex items-center gap-3.5 text-left transition"
           >
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center text-22 shrink-0"

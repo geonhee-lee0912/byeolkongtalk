@@ -125,7 +125,7 @@ export default function CompatReportView({
       </div>
 
       {/* 두 사주판 나란히 */}
-      <div className="bg-cream-warm rounded-2xl px-3 py-5 border border-lilac-mid/30">
+      <div className="card">
         {saju ? (
           <div className="flex flex-col gap-5">
             <div>

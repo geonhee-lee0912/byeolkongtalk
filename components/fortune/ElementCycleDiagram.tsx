@@ -56,7 +56,7 @@ export default function ElementCycleDiagram({
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6${className ? ` ${className}` : ""}`}
+      className={`card-report${className ? ` ${className}` : ""}`}
     >
       <h3 className="text-15 font-extrabold text-accent mb-1.5">🔄 내 오행의 상생상극</h3>
       <p className="text-11 text-text-light leading-snug mb-2">

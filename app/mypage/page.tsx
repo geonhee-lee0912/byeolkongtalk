@@ -262,11 +262,11 @@ export default function MyPage() {
         </div>
 
         {self?.saju ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-card py-4">
+          <div className="bg-white rounded-2xl shadow-card py-4">
             <SajuBoard saju={self.saju} />
           </div>
         ) : (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-card px-4 py-6 text-center">
+          <div className="card-report text-center">
             <p className="text-12 text-text-light mb-3">
               {self
                 ? "생일을 알려주면 사주도 보여줄게."
@@ -284,7 +284,7 @@ export default function MyPage() {
         {/* 지인 사주 → 팝업 */}
         <button
           onClick={() => setShowAcqModal(true)}
-          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-card"
+          className="card mt-2.5 w-full flex items-center gap-3"
         >
           <span
             className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-15"
@@ -324,7 +324,7 @@ export default function MyPage() {
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           계정
         </div>
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
             <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>

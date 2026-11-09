@@ -189,7 +189,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-3.5 p-3.5 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="card flex items-center gap-3.5 transition-all text-left group"
                 >
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -233,7 +233,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="card flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -276,7 +276,7 @@ export default function Home() {
           <Link
             href="/byeolmaru"
             onClick={() => trackUiEvent("home_byeolmaru_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-2.5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-2.5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -319,7 +319,7 @@ export default function Home() {
           <Link
             href="/relationship"
             onClick={() => trackUiEvent("home_relationship_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -371,7 +371,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/80 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="card flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"

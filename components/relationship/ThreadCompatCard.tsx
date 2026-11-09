@@ -7,7 +7,7 @@ import type { CompatReport } from "@/lib/fortune/compat-report";
 
 function Section({ title, body }: { title: string; body: string }) {
   return (
-    <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
+    <div className="card">
       <h4 className="text-13 font-bold text-accent mb-1">{title}</h4>
       <p className="text-13 text-[#322E3D] leading-[1.75] whitespace-pre-line">{body}</p>
     </div>
@@ -26,7 +26,7 @@ export default function ThreadCompatCard({
 
   return (
     <div className="flex justify-start mb-3 pl-10">
-      <div className="w-full max-w-[300px] bg-white rounded-2xl border border-lilac-mid/40 shadow-card px-3.5 pt-3 pb-3.5">
+      <div className="w-full max-w-[300px] bg-white rounded-2xl shadow-card px-3.5 pt-3 pb-3.5">
         {/* 헤더 — 등급 배지 + 테마 */}
         <div className="flex items-center gap-1.5 text-11 text-text-light mb-2">
           <span aria-hidden>💑</span>
@@ -56,7 +56,7 @@ export default function ThreadCompatCard({
             {report.communication && <Section title="💬 잘 통하는 대화법" body={report.communication} />}
             <Section title="🌱 장기 전망" body={report.longterm} />
             {report.growth && <Section title="🌿 관계 성장 포인트" body={report.growth} />}
-            <div className="bg-cream-warm rounded-2xl px-3.5 py-3 border border-lilac-mid/25">
+            <div className="card-inner">
               <h4 className="text-13 font-bold text-accent mb-1.5">💡 관계를 위한 조언</h4>
               <ol className="flex flex-col gap-1">
                 {report.advice.map((a, i) => (

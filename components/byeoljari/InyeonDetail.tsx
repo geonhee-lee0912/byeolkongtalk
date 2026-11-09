@@ -57,7 +57,7 @@ export default function InyeonDetail({ target, oriented, inyeon, pivotIsMe = tru
       {showProse && <p className="text-14 text-eye-purple">{rd.prose}</p>}
       {pivotIsMe && (
         // 내가 보는 X / X가 보는 나 = 한 박스(구분선). "보는 나"는 차별점이라 굵게 강조.
-        <div className="rounded-xl bg-white/60 p-3 text-14">
+        <div className="card text-14">
           <div className="font-bold text-eye-purple">내가 보는 {them}</div>
           <div className="text-eye-purple">{iSee}</div>
           <div className="mt-2 border-t border-lilac-soft pt-2 font-bold text-eye-purple">

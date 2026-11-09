@@ -24,7 +24,7 @@ const PARTICLES: Particle[] = [
   { top: "24%", side: "right", offset: "9%", size: "w-1 h-1", color: "bg-gold-soft", delay: "1.2s" },
   { top: "58%", side: "right", offset: "22%", size: "w-1.5 h-1.5", color: "bg-gold", delay: "0.6s" },
   { top: "12%", side: "left", offset: "44%", size: "w-1 h-1", color: "bg-white", delay: "1.6s" },
-  { top: "20%", side: "left", offset: "30%", size: "w-1.5 h-1.5", color: "bg-white/90", delay: "0.2s" },
+  { top: "20%", side: "left", offset: "30%", size: "w-1.5 h-1.5", color: "bg-white", delay: "0.2s" },
   { top: "46%", side: "right", offset: "12%", size: "w-1 h-1", color: "bg-gold", delay: "1.0s" },
   { top: "52%", side: "left", offset: "14%", size: "w-1 h-1", color: "bg-gold-soft", delay: "1.4s" },
   { top: "70%", side: "left", offset: "26%", size: "w-1 h-1", color: "bg-white", delay: "0.5s" },

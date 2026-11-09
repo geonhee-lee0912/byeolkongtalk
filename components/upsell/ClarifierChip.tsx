@@ -37,8 +37,8 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
           done
             ? "border-lilac-mid/30 bg-lilac-soft/40 cursor-default"
             : disabled
-            ? "border-gold/30 bg-cream-warm opacity-60 cursor-not-allowed"
-            : "border-gold/50 bg-cream-warm hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
+            ? "border-gold/30 bg-white opacity-60 cursor-not-allowed"
+            : "border-gold/50 bg-white hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
         }`}
       >
         <span className="text-15 shrink-0">🃏</span>

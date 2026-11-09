@@ -345,7 +345,7 @@ export default function DailyCardBlock({
       {/* 🔴 날짜 정합까지 본다 — 아래 drawn 분기와 같은 가드다. 없으면 날짜가 바뀐 한 프레임 동안
           **지난 날짜의 "안 뽑았어" 안내가 새 날짜 헤더 밑에** 그대로 남는다. */}
       {state.kind === "none" && state.date === date && (
-        <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4">
+        <section className="card">
           <h2 className="mb-2 font-display text-17 text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
             <>
@@ -410,7 +410,7 @@ export default function DailyCardBlock({
 
           return (
             <>
-            <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-card p-4">
+            <section className="card">
               {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다. 상단 BackHeader 가 날짜를 지던 시절엔 dayWord("그날")로
                   충분했지만, 타이틀이 사라져 이제 여기가 유일한 날짜 표기다. */}

@@ -76,7 +76,7 @@ export default function TarotReportView({
       )}
 
       {/* 카드별 해석 + 종합 해석을 하나의 박스로 통합 */}
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 flex flex-col gap-6">
+      <div className="card flex flex-col gap-6">
         {items.map((card) => (
           <div key={card.key} className="flex flex-col items-center text-center">
             <div className="text-12 text-text-light">{card.position}</div>

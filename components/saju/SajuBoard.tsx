@@ -104,7 +104,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
       )}
 
       {/* 오행 요약 — 폭을 위 8자 판(300px)에 맞추고, 일간·음양은 아래 한 줄로 */}
-      <div className="bg-cream-warm rounded-xl px-3 py-2.5 border border-lilac-mid/30 max-w-[360px] mx-auto">
+      <div className="card-inner max-w-[360px] mx-auto">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           {ELEMENTS.map((el) => {
             const count = saju.elementCount[el];

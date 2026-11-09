@@ -65,7 +65,7 @@ export default function GuideHome() {
           <Link
             key={h.href}
             href={h.href}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
+            className="card transition"
           >
             <p className="text-14 font-bold text-eye-purple">{h.title}</p>
             <p className="text-12 text-text-light mt-0.5">{h.desc}</p>
@@ -81,7 +81,7 @@ export default function GuideHome() {
           <Link
             key={slug}
             href={`/guide/themes/${slug}`}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
+            className="card transition"
           >
             <p className="text-14 font-bold text-eye-purple">
               {t.title.split("—")[0].trim()}

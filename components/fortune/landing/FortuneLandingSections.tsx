@@ -76,13 +76,13 @@ export default function FortuneLandingSections({
 
       <Block title="이런 대목이 나와">
         {sample ? (
-          <div className="bg-cream-warm rounded-2xl px-4 py-3.5">
+          <div className="card">
             {/* 발췌는 실제 리포트와 같은 마크다운 렌더를 탄다 — 그냥 넣으면 **볼드**가 별표로 뜬다. */}
             <MarkdownLite text={sample} className="text-13 text-eye-purple leading-[1.85]" />
             <p className="text-11 text-lilac-mid mt-2">예시 · 실제 리포트는 네 사주로 다시 쓰여</p>
           </div>
         ) : (
-          <div className="bg-cream-warm rounded-2xl px-3 py-3.5">
+          <div className="card">
             {samplePreview}
             <p className="text-11 text-lilac-mid mt-2 px-1">예시 · 실제 결과는 네 사주로 그려져</p>
           </div>
@@ -98,7 +98,7 @@ export default function FortuneLandingSections({
                 <Link
                   key={t}
                   href={f.href}
-                  className="flex-1 bg-white rounded-2xl border border-lilac-mid/20 p-3 flex flex-col items-center gap-1.5 active:scale-[0.99] transition"
+                  className="card flex-1 flex flex-col items-center gap-1.5 active:scale-[0.99] transition"
                 >
                   <span
                     className="w-10 h-10 rounded-xl flex items-center justify-center"

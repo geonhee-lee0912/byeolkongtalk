@@ -423,7 +423,7 @@ export default function RelationshipPage() {
 
     const headerCard = (
       <div
-        className="rounded-2xl px-3.5 h-[64px] border border-lilac-mid/20 shadow-card flex items-center gap-2.5"
+        className="rounded-2xl px-3.5 h-[64px] flex items-center gap-2.5"
         style={{ background: "linear-gradient(135deg, #2A1F4D 0%, #1F1735 100%)" }}
       >
         <button
@@ -752,7 +752,7 @@ export default function RelationshipPage() {
                 {SKILL_PREVIEWS.map((s) => (
                   <div
                     key={s.label}
-                    className="bg-white/90 rounded-2xl p-3.5 border border-lilac-soft"
+                    className="card"
                   >
                     <div className="text-22 mb-1.5" aria-hidden>
                       {s.emoji}
@@ -771,7 +771,7 @@ export default function RelationshipPage() {
             {/* 패스 가격 */}
             <div className="mb-4">
               <p className="text-13 font-bold text-eye-purple mb-2 px-1">이용권</p>
-              <div className="rounded-2xl border border-lilac-mid/30 bg-white/70 p-4">
+              <div className="card">
                 <p className="text-13 text-text-light leading-relaxed mb-2.5">
                   패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
                 </p>

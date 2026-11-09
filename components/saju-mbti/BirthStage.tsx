@@ -100,7 +100,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
               type="button"
               onClick={() => setCalendar(c)}
               className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
-                calendar === c ? "bg-accent text-white" : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                calendar === c ? "bg-accent text-white" : "bg-lilac-soft text-eye-purple"
               }`}
             >
               {c === "solar" ? "양력" : "음력"}

@@ -145,10 +145,10 @@ export default function ProfilePicker({
           <button
             key={p.id}
             onClick={() => setSelectedId(p.id)}
-            className={`flex items-center gap-3 rounded-2xl p-3 border transition ${
+            className={`flex items-center gap-3 card transition ${
               selectedId === p.id
-                ? "border-lilac-deep bg-lilac-soft/40"
-                : "border-lilac-mid/20 bg-white shadow-card"
+                ? "outline-2 outline-accent -outline-offset-2"
+                : ""
             }`}
           >
             {p.saju ? (

@@ -45,7 +45,7 @@ export default function ChatBubble({
             <span className="text-12 font-bold text-eye-purple">별콩이</span>
           </div>
         )}
-        <div className="selectable bg-cream-warm text-eye-purple rounded-2xl rounded-tl-sm px-4 py-2.5 text-16 whitespace-pre-wrap border border-lilac-mid/20">
+        <div className="card selectable text-eye-purple rounded-tl-sm text-16 whitespace-pre-wrap">
           <EmphasisText text={content} />
           {streaming && content.length === 0 && (
             <span className="inline-flex gap-0.5 items-center text-text-light">

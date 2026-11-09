@@ -206,7 +206,7 @@ export default function RechargeSheet({
         </div>
 
         {/* 잔액 + 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
+        <div className="card-inner mx-5 mb-4">
           <p className="text-13 text-eye-purple leading-relaxed">
             별이 조금 모자라
             {balance !== null ? (

@@ -65,10 +65,10 @@ export default function FortunePage({
           const inner = (
             <div
               className={[
-                "w-full rounded-2xl p-4 border flex items-center gap-3.5 transition",
+                "w-full card flex items-center gap-3.5 transition",
                 f.active
-                  ? "bg-white border-lilac-mid/20 shadow-card hover:border-lilac-deep/60 active:scale-[0.99]"
-                  : "bg-white/40 border-lilac-mid/15 opacity-70",
+                  ? "active:scale-[0.99]"
+                  : "opacity-60 shadow-none",
               ].join(" ")}
             >
               <div

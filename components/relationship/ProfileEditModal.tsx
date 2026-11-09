@@ -273,7 +273,7 @@ export default function ProfileEditModal({
                       className={`py-2.5 rounded-xl text-14 font-bold transition ${
                         status === s
                           ? "bg-accent text-white"
-                          : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                          : "bg-lilac-soft text-eye-purple"
                       }`}
                     >
                       {RELATIONSHIP_STATUS_LABELS[s]}

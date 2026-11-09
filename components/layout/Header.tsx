@@ -48,7 +48,7 @@ export default function Header() {
               {/* MY — 프로필 아바타 + 닉네임 */}
               <Link
                 href="/mypage"
-                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white/70 rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
+                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
                 aria-label="내 정보"
               >
                 <span className="relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-lilac-soft ring-1 ring-white/80">

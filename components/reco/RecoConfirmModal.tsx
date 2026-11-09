@@ -43,7 +43,7 @@ export default function RecoConfirmModal({
             </p>
           </div>
 
-          <div className="px-3 py-2.5 rounded-xl bg-cream-warm border border-gold/30 text-12 text-text-light text-center">
+          <div className="card-inner text-12 text-text-light text-center">
             → {display.label}로 이어서 봐요
           </div>
 

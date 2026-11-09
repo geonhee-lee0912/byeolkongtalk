@@ -45,12 +45,12 @@ function Curve({ decades }: { decades: LifeGraphReport["decades"] }) {
 export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
-      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
+      <div className="card-report">
         <MarkdownLite text={report.intro} className="text-14 leading-[1.9] text-[#4F4A5E]" />
       </div>
 
       {/* 곡선 차트 */}
-      <div className="bg-white rounded-2xl border border-lilac-mid/30 shadow-card px-[18px] py-6">
+      <div className="card-report">
         <h3 className="text-15 font-extrabold text-accent mb-3">📉 내 인생 곡선 (대운)</h3>
         <Curve decades={report.decades} />
         <div className="flex gap-4 justify-center mt-2 text-11">
@@ -73,7 +73,7 @@ export default function LifeGraphView({ report }: { report: LifeGraphReport }) {
 
       {/* 구간별 상세 */}
       {report.decades.map((d, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-lilac-mid/20 px-4 py-3.5">
+        <div key={i} className="card">
           <div className="flex items-center justify-between mb-1">
             <span className="text-13 font-extrabold text-eye-purple">{d.ageLabel}</span>
             <span className="text-11 tabular-nums text-accent font-bold">{d.score}점</span>

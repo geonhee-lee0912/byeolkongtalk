@@ -33,7 +33,7 @@ export default function ResultUpsell({
           key={c.href}
           href={c.href}
           onClick={() => trackUiEvent("result_cta_clicked", { meta: { cta: "cross_sell", product: c.href } })}
-          className="flex items-center gap-3.5 p-4 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition"
+          className="card flex items-center gap-3.5 transition"
         >
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center text-22 shrink-0"

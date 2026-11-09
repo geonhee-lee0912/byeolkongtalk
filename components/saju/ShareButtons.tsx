@@ -42,7 +42,7 @@ export default function ShareButtons({
 
   if (hasSensitive) {
     return (
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+      <div className="card">
         <p className="text-13 text-eye-purple text-center leading-relaxed">
           🤍 이 대화는 너만의 기록으로 둘게.
           <br />

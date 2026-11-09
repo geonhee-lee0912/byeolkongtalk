@@ -101,7 +101,7 @@ export default function AddPersonSheet({
               : "새 사람을 추가하려면 슬롯이 필요해"}
           </p>
 
-          <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-2">
+          <div className="card-inner flex items-center justify-between mb-2">
             <span className="text-13 text-text-light">새 사람 슬롯</span>
             <span
               className="text-13 font-bold"
@@ -110,7 +110,7 @@ export default function AddPersonSheet({
               ⭐{nextCost}
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-lilac-mid/25 bg-white/70 px-3.5 py-2.5 mb-4">
+          <div className="card-inner flex items-center justify-between mb-4">
             <span className="text-13 text-text-light">내 별</span>
             <span
               className="text-13 font-bold text-accent"

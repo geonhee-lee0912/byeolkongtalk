@@ -141,7 +141,7 @@ export default function ProfileForm({
                   className={`py-2.5 rounded-xl text-13 font-bold transition ${
                     relation === opt.value
                       ? "bg-accent text-white"
-                      : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                      : "bg-lilac-soft text-eye-purple"
                   }`}
                 >
                   {opt.label}

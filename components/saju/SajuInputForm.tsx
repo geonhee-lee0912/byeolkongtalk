@@ -153,7 +153,7 @@ export default function SajuInputForm({
               className={`flex-1 py-2.5 rounded-xl text-14 font-bold transition ${
                 calendar === c
                   ? "bg-accent text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               {c === "solar" ? "양력" : "음력"}
@@ -238,7 +238,7 @@ export default function SajuInputForm({
               className={`py-2.5 rounded-xl text-14 font-bold transition ${
                 gender === opt.v
                   ? "bg-accent text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               {opt.label}

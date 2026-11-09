@@ -205,7 +205,7 @@ export default function TarotDrawPage() {
           role="status"
           aria-live="polite"
         >
-          <p className="px-4 py-2 rounded-full bg-white/90 text-text-light text-14 shadow-float">
+          <p className="px-4 py-2 rounded-full bg-white text-text-light text-14 shadow-float">
             잠시만…
           </p>
         </div>
@@ -213,7 +213,7 @@ export default function TarotDrawPage() {
       {/* 잔액 조회 실패 한 줄 — 탭을 막지 않는다(pointer-events-none) · 완료 버튼을 다시 누르면 사라지고 다시 읽는다 */}
       {walletError && (
         <div role="alert" className="fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 pointer-events-none">
-          <p className="rounded-full bg-white/95 px-4 py-2 text-13 font-bold text-eye-purple shadow-float">
+          <p className="rounded-full bg-white px-4 py-2 text-13 font-bold text-eye-purple shadow-float">
             잔액을 못 불러왔어 — 다시 눌러줘
           </p>
         </div>

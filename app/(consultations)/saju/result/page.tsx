@@ -153,7 +153,7 @@ function ResultPageInner() {
 
       {/* 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mt-6">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
+        <div className="card">
           <div className="text-11 font-bold text-text-light mb-1">
             그날의 고민
           </div>
@@ -197,7 +197,7 @@ function ResultPageInner() {
           대화 전체 다시보기 {showHistory ? "▴" : "▾"}
         </button>
         {showHistory && (
-          <div className="mt-3 bg-cream-warm/40 rounded-2xl p-3 border border-lilac-mid/20">
+          <div className="card mt-3">
             {messages.map((m, i) => (
               <ChatBubble
                 key={i}

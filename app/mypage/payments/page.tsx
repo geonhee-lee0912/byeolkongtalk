@@ -152,7 +152,7 @@ export default function PaymentsPage() {
               row.kind === "payment" ? (
                 <div
                   key={row.id}
-                  className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
+                  className="card flex items-center justify-between"
                 >
                   <div>
                     <div className="text-14 font-bold text-eye-purple">
@@ -175,7 +175,7 @@ export default function PaymentsPage() {
               ) : (
                 <div
                   key={row.id}
-                  className="bg-cream-warm rounded-2xl p-3 border border-lilac-mid/30 flex items-center justify-between"
+                  className="card flex items-center justify-between"
                 >
                   <div>
                     <div className="text-14 font-bold text-eye-purple">

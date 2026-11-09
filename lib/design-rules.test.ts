@@ -120,3 +120,23 @@ test("카카오·애플 버튼은 규정 색을 유지한다", () => {
   assert.deepEqual(kakao.filter((b) => /\bbtn-(primary|secondary|text)\b/.test(b.cls)).map(at), []);
   assert.match(readFileSync("components/auth/AppleLoginButton.tsx", "utf8"), /bg-black/);
 });
+
+// ── 카드 3종(스펙 §2.7) — card(바닥, 그림자만) · card-inner(안쪽 칸, 테두리+아주 옅은 바탕) · card-night
+test("반투명 흰 카드가 없다", () => {
+  assert.deepEqual(offenders(/(?<![\w:-])bg-white\/(70|75|80|85|90|95)\b/), []);
+});
+test("카드는 테두리와 그림자를 같이 쓰지 않는다", () => {
+  assert.deepEqual(offenders(/(?=.*\bshadow-card\b)(?=.*(?<![\w:-])border(?![\w-]*-(0|t|b|l|r|x|y)\b)(\s|-lilac|-gold|-cream|-white|"))/), []);
+});
+// 입력칸(input·textarea)은 카드가 아니라 이 규칙 밖. 말풍선(꼬리 -sm)·창 판(max-w-)·입력칸 모양 선택 상자(Dropdown)도 제외
+test("크림 바탕 둥근 칸을 카드로 쓰지 않는다(card · card-inner 로)", () => {
+  const blocks = classBlocks(["div", "section", "article", "li", "a", "Link", "button", "p"]).filter(
+    (b) =>
+      /(?<![\w:-])bg-cream-warm(?![\w/-])/.test(b.cls) &&
+      /\brounded-(xl|2xl)\b/.test(b.cls) &&
+      !/rounded-(tl|tr|bl|br)-sm|max-w-/.test(b.cls) &&
+      b.file !== "components/common/Dropdown.tsx" &&
+      b.file !== "components/safety/SafetyBanner.tsx", // 위기 안내 — 톤을 지키려고 바탕·테두리 그대로
+  );
+  assert.deepEqual(blocks.map(at), []);
+});

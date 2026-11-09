@@ -196,7 +196,7 @@ function simAvatar(r: ReadingItem) {
 function EmptyState({ tab }: { tab: ReadingsTab }) {
   const c = EMPTY_COPY[tab];
   return (
-    <div className="bg-white rounded-2xl p-6 border border-lilac-mid/20 shadow-card text-center">
+    <div className="card-report text-center">
       <Image
         src="/byeolkong-curious.png"
         alt=""
@@ -242,7 +242,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
     <div key={r.id} className="relative">
       <Link
         href={href}
-        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-card flex gap-3 items-start hover:border-lilac-deep/50 transition"
+        className="card flex gap-3 items-start transition"
       >
         {isTarot ? (
           <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
@@ -331,7 +331,7 @@ function renderReportCard(r: ReadingItem) {
     <Link
       key={r.id}
       href={`/fortune/result?id=${r.id}&from=history`}
-      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-card flex items-start gap-3 hover:border-lilac-deep/50 transition"
+      className="card flex items-start gap-3 transition"
     >
       <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-17">
         {fortuneIcon(r.emotionTag, 24)}
@@ -369,7 +369,7 @@ function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
     <Link
       key={r.id}
       href={href}
-      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-card flex gap-3 items-start hover:border-lilac-deep/50 transition"
+      className="card flex gap-3 items-start transition"
     >
       {simAvatar(r)}
       <div className="flex-1 min-w-0">

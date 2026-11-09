@@ -21,7 +21,7 @@ const ACCORDION_MIN_BODY_CHARS = 4500;
 function SectionCard({ heading, body }: { heading: string; body: string }) {
   const { emoji, title } = splitHeadingEmoji(heading);
   return (
-    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
+    <div className="card-report">
       <div className="flex items-center gap-2.5 mb-3">
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center text-20 shrink-0"
@@ -70,7 +70,7 @@ export default function GenericReportView({
       )}
       {saju && <ElementChart saju={saju} />}
       {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
-      <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
+      <div className="card-report">
         <MarkdownLite text={report.intro} className="text-16 text-[#4F4A5E]" />
       </div>
 

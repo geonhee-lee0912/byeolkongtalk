@@ -98,7 +98,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
         {/* 내 질문 */}
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-4">
+        <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="shrink-0 w-10 h-10 rounded-xl bg-lilac-soft flex items-center justify-center">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
@@ -161,7 +161,7 @@ export default function SupportDetailPage({ params }: { params: Promise<{ id: st
                 문의 삭제
               </button>
             ) : (
-              <div className="bg-white rounded-2xl p-4 border border-lilac-mid/30">
+              <div className="card">
                 <p className="text-13 text-eye-purple text-center mb-3">
                   이 문의를 삭제할까? 되돌릴 수 없어.
                 </p>

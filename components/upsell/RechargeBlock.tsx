@@ -31,7 +31,7 @@ export default function RechargeBlock({
 }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-6">
-      <div className="rounded-2xl bg-white/90 p-4">
+      <div className="card">
         {showContinue && (
           <p className="text-14 font-bold text-eye-purple mb-3">
             이 고민, 더 깊이 이어가볼까?

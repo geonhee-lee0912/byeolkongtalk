@@ -16,7 +16,7 @@ export default function MonthlyOverviewCard({
   const filled = Math.min(5, Math.max(1, report.stars));
 
   return (
-    <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card px-[22px] py-6">
+    <div className="card-report">
       <div className="flex justify-center mb-2">
         <div className="relative w-[88px] h-[100px]">
           <Image src="/fortune-hero-monthly.webp" alt="별콩이" fill className="object-contain" />

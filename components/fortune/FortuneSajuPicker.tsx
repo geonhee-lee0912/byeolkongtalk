@@ -175,7 +175,7 @@ export default function FortuneSajuPicker({
     const next = loginNext ?? window.location.pathname;
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
+        <div className="card-report text-center">
           <p className="text-13 text-text-light leading-relaxed mb-4">
             {cost != null ? welcomeWallLine(cost, "내 사주로") : "로그인하면 바로 내 사주로 볼 수 있어."}
           </p>
@@ -201,7 +201,7 @@ export default function FortuneSajuPicker({
   if (gate === "birth") {
     return (
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-6 text-center">
+        <div className="card-report text-center">
           <p className="text-13 text-text-light leading-relaxed mb-4">
             생년월일만 알려주면 바로 볼 수 있어.
           </p>
@@ -234,7 +234,7 @@ export default function FortuneSajuPicker({
   return (
     <div className="w-full max-w-md mx-auto px-5">
       {/* 선택된 사주 — 8자판 + 오행 분석 */}
-      <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30 mb-5">
+      <div className="card mb-5">
         {selected && (
           <>
             <div className="mb-3 px-1">

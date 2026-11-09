@@ -106,7 +106,7 @@ export default function PassSheet({
 
         <div className="px-5">
           {pass && (
-            <div className="rounded-2xl border border-lilac-mid/25 bg-white/70 px-4 py-3 mb-3 text-13">
+            <div className="card-inner mb-3 text-13">
               <div className="flex items-center justify-between">
                 <span className="text-text-light">지금 패스</span>
                 <span className="font-bold text-eye-purple">{remaining}</span>

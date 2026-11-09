@@ -42,7 +42,7 @@ export default function CurrentPartner({
 
   const color = partner.status ? DOLL_COLORS[partner.status][0] : "#B8A8D8";
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-lilac-soft bg-white/60 px-3 py-2.5">
+    <div className="card flex items-center gap-2.5">
       <span
         aria-hidden
         className="h-2.5 w-2.5 shrink-0 rounded-full"

@@ -40,7 +40,7 @@ export default function SpreadsIndex() {
           <Link
             key={t}
             href={`/guide/spreads/${buildSpreadSlug(t)}`}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 border border-lilac-soft hover:border-lilac-deep/40 transition"
+            className="card transition"
           >
             <p className="text-14 font-bold text-eye-purple">
               {SPREAD_INFO[t].label}{" "}

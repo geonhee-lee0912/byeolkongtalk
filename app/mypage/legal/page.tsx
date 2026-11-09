@@ -18,7 +18,7 @@ export default function LegalPage() {
   return (
     <main className="flex flex-1 flex-col w-full py-6 animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="flex items-center gap-3 p-3.5">
               <span className="flex-1 text-14 text-eye-purple font-medium">{l.label}</span>

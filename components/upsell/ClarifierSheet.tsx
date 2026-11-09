@@ -197,7 +197,7 @@ export default function ClarifierSheet({
         </div>
 
         {/* 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
+        <div className="card-inner mx-5 mb-4">
           <p className="text-13 text-eye-purple leading-relaxed">
             마음 가는 카드 한 장만 더 골라줘
           </p>

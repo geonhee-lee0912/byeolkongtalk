@@ -81,7 +81,7 @@ export default function SupportListPage() {
         {loading ? (
           <p className="text-text-light text-13 text-center py-8">잠시만…</p>
         ) : items.length === 0 ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-8 text-center">
+          <div className="bg-white rounded-2xl shadow-card px-4 py-8 text-center">
             <p className="text-13 text-text-light mb-4">
               아직 보낸 문의가 없어. 불편한 점이나 궁금한 게 있으면 별콩이에게 알려줘.
             </p>
@@ -101,7 +101,7 @@ export default function SupportListPage() {
                 <Link
                   key={it.id}
                   href={`/mypage/support/${it.id}`}
-                  className="bg-white rounded-2xl border border-lilac-mid/20 shadow-card p-3 flex items-center gap-3"
+                  className="card flex items-center gap-3"
                 >
                   <div className="shrink-0 w-11 h-11 rounded-xl bg-lilac-soft flex items-center justify-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>

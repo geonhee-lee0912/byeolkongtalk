@@ -26,7 +26,7 @@ export default function PassPanel({
   const [selectedPlan, setSelectedPlan] = useState<PassPlan | null>(null);
 
   return (
-    <div className="rounded-2xl border border-lilac-mid/30 bg-white/90 p-4">
+    <div className="card-inner">
       <div className="flex items-center justify-between mb-3">
         <p className="text-14 font-bold text-eye-purple">패스 선택하기</p>
         {typeof balance === "number" && (

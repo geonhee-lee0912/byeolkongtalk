@@ -215,7 +215,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "pick"
                   ? "bg-accent text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               이미 아는 사람
@@ -227,7 +227,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "register"
                   ? "bg-accent text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               새로 등록
@@ -251,7 +251,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                   className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                     status === s
                       ? "bg-accent text-white"
-                      : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                      : "bg-lilac-soft text-eye-purple"
                   }`}
                 >
                   {STATUS_EMOJI[s]} {RELATIONSHIP_STATUS_LABELS[s]}
