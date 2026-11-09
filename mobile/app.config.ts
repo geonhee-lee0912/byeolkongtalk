@@ -54,7 +54,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     // 웹뷰 첫 화면이 뜰 때까지 유지(src/WebScreen.tsx 가 hideAsync)
-    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#FAF6F0" }],
+    // 흰 바탕 + 캐릭터 뒤 연보라 번짐 + '별콩톡'(운영자 11-09). 그림 바탕도 흰색이라 이음새가 없다. 폭 216 = 캐릭터 약 130pt(예전과 같은 크기)
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 216, resizeMode: "contain", backgroundColor: "#FFFFFF" }],
     // 카카오 SDK 안드로이드 저장소
     ["expo-build-properties", { android: { extraMavenRepos: ["https://devrepo.kakao.com/nexus/content/groups/public/"] } }],
     // 안드로이드 자동 백업·기기 이전에서 보안 저장소(리프레시 토큰)를 뺀다 — 백업 범위가 shared prefs 로 좁아져 웹뷰 쿠키도 안 간다.
