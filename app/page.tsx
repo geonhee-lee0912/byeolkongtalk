@@ -136,7 +136,8 @@ export default function Home() {
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
           id="emotion-grid"
-          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10"
+          // scroll-mt-14 — 사용법의 '별콩이랑 시작하기'(/#emotion-grid)로 올 때 고정 헤더(h-14)에 안 가리게
+          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10 scroll-mt-14"
         >
           {welcomeNudge && (
             <button

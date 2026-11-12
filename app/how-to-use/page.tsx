@@ -74,18 +74,19 @@ export default function HowToUsePage() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
-          <p className="text-14 text-eye-purple leading-relaxed">
-            처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
-          </p>
+        {/* 무료 별 안내에도 소제목을 달고, 버튼은 안내 바로 아래로(섹션 간격 32 대신 20) — 디자인 다듬기 ② 운영자 11-12 */}
+        <section>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">무료로 시작해</h2>
+          <div className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
+            <p className="text-14 text-eye-purple leading-relaxed">
+              처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
+            </p>
+          </div>
+          {/* 고민 고르기가 1단계라 홈의 고민 카드로 바로(전엔 /concern → 고른 고민 없음 → 홈으로 튕김) */}
+          <Link href="/#emotion-grid" className="mt-5 btn btn-primary btn-lg">
+            별콩이랑 시작하기
+          </Link>
         </section>
-
-        <Link
-          href="/concern"
-          className="btn btn-primary btn-lg"
-        >
-          별콩이랑 시작하기
-        </Link>
       </div>
     </main>
   );
