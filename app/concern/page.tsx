@@ -285,9 +285,10 @@ export default function ConcernPage() {
               ? `${MIN_LEN}자 이상 적어줘`
               : "타로 카드 뽑으러 가기"}
           </button>
+          {/* 앱에선 위 헤더 ‹ 와 겹쳐 숨긴다(web-only) — 디자인 다듬기 ② /concern 운영자 A안 11-12 */}
           <Link
             href="/"
-            className="btn btn-text btn-lg"
+            className="web-only btn btn-text btn-lg"
           >
             뒤로
           </Link>
