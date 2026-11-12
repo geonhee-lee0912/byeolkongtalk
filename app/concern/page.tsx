@@ -22,6 +22,7 @@ import ProgressSteps from "@/components/concern/ProgressSteps";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import Icon from "@/components/common/Icon";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -343,7 +344,7 @@ function EmotionTagSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </OverlayCloseButton>
         </div>
 

@@ -236,3 +236,14 @@ test("구분선 두 개 사이가 빈 채로 남은 곳이 없다", () => {
   }
   assert.deepEqual(hits, []);
 });
+
+test("빈 버튼이 없다(닫기 ✕ 를 지우고 아이콘을 안 넣은 곳 — 11-12 발견, 13곳)", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(/<(OverlayCloseButton|button)\b[^>]*>\s*<\/\1>/g)) {
+      hits.push(`${p.replaceAll(String.fromCharCode(92), "/")}:${text.slice(0, m.index).split(String.fromCharCode(10)).length}`);
+    }
+  }
+  assert.deepEqual(hits, []);
+});

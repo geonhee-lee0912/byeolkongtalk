@@ -8,6 +8,7 @@ import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { type ProfileItem, toInitial } from "@/components/mypage/sajuShared";
 import { profileSaveErrorMessage } from "@/components/saju/profile-save-error";
+import Icon from "@/components/common/Icon";
 
 interface SelfSajuEditModalProps {
   self: ProfileItem | null;
@@ -84,7 +85,7 @@ export default function SelfSajuEditModal({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </OverlayCloseButton>
         </div>
         <div className="pb-5">

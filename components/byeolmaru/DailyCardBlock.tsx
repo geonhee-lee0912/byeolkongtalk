@@ -31,6 +31,7 @@ import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
+import Icon from "@/components/common/Icon";
 
 interface DailyCard {
   cardId: number;
@@ -628,7 +629,7 @@ export default function DailyCardBlock({
                 disabled={saving}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
               >
-               
+                <Icon name="close" size={18} />
               </button>
             </div>
 

@@ -11,6 +11,7 @@ import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { useOverlayEntry } from "@/components/common/use-overlay-entry";
 import { SPREAD_INFO, getPositionLabels, type DrawnCard } from "@/lib/tarot/spreads";
 import type { RelationshipSkill } from "@/lib/relationship/skills";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   skill: RelationshipSkill;
@@ -105,7 +106,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </button>
         </div>
 

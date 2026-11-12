@@ -15,6 +15,7 @@ import {
   RELATIONSHIP_STATUS_LABELS,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 interface WatchCandidate {
   id: string;
@@ -203,7 +204,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               disabled={busy}
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
             >
-             
+              <Icon name="close" size={18} />
             </OverlayCloseButton>
           </div>
 

@@ -13,6 +13,7 @@ import {
   birthTimeToSijin,
   toInitial,
 } from "@/components/mypage/sajuShared";
+import Icon from "@/components/common/Icon";
 
 interface AcquaintanceListModalProps {
   profiles: ProfileItem[];
@@ -99,7 +100,7 @@ export default function AcquaintanceListModal({
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-             
+              <Icon name="close" size={18} />
             </OverlayCloseButton>
           </div>
 

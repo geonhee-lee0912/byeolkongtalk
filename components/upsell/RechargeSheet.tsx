@@ -202,7 +202,7 @@ export default function RechargeSheet({
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </OverlayCloseButton>
         </div>
 

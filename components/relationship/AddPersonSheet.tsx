@@ -86,7 +86,7 @@ export default function AddPersonSheet({
           aria-label="닫기"
           className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
         >
-         
+          <Icon name="close" size={18} />
         </OverlayCloseButton>
 
         <div className="px-5 pt-3 pb-2">

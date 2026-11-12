@@ -13,6 +13,7 @@ import {
   SLOT_COST,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 const STATUS_OPTIONS: RelationshipStatus[] = [
   "crush",
@@ -235,7 +236,7 @@ export default function ProfileEditModal({
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-             
+              <Icon name="close" size={18} />
             </OverlayCloseButton>
           </div>
 
