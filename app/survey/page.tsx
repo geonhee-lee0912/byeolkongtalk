@@ -126,17 +126,18 @@ export default function SurveyPage() {
                   <label className="block text-15 font-bold text-eye-purple mb-2">
                     {i + 1}. {q.text}
                   </label>
-                  <div className="space-y-2">
+                  {/* 체크박스 20 · 한 줄 40 — 작아서 누르기 어려웠다(디자인 다듬기 ② /survey 운영자 B안 11-12) */}
+                  <div>
                     {q.options.map((opt) => {
                       const on = contactChecked.includes(opt.id);
                       return (
                         <div key={opt.id}>
-                          <label className="flex items-center gap-2 text-13 text-eye-purple cursor-pointer">
+                          <label className="flex items-center gap-2.5 min-h-10 text-14 text-eye-purple cursor-pointer">
                             <input
                               type="checkbox"
                               checked={on}
                               onChange={() => toggleContact(opt.id)}
-                              className="h-4 w-4 accent-lilac-deep"
+                              className="h-5 w-5 shrink-0 accent-lilac-deep"
                             />
                             {opt.label}
                           </label>
@@ -147,7 +148,7 @@ export default function SurveyPage() {
                               onChange={(e) => setContactInput(opt.id, e.target.value)}
                               maxLength={MULTI_INPUT_MAX}
                               placeholder={opt.input.prompt}
-                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/35 bg-inner p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
+                              className="mt-1 mb-1.5 ml-7.5 w-[calc(100%-1.875rem)] rounded-xl border border-lilac-mid/35 bg-inner p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
                             />
                           )}
                         </div>
