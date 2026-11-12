@@ -16,7 +16,6 @@ import {
   getSpreadDescription,
   type SpreadType,
 } from "@/lib/tarot/spreads";
-import { CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { spreadAmountLine } from "@/lib/tarot/spread-facts";
@@ -143,20 +142,15 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
                 boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
               }}
             >
-              {/* 카드 미니어처 */}
+              {/* 카드 미니어처 — 밤보라 뒷면 + 금테 + 반짝임. 실제 뒷면 그림은 작게 줄이면 검은 덩어리로 보였다(디자인 다듬기 ② /tarot 운영자 D2안 11-12) */}
               <div className="flex flex-shrink-0 items-center -space-x-3.5 w-[58px] justify-center">
                 {Array.from({ length: info.cardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[26px] aspect-[2/3] rounded-lg overflow-hidden border border-white"
+                    className="w-[26px] aspect-[2/3] rounded-lg bg-night border border-gold ring-1 ring-white flex items-center justify-center"
                     style={{ transform: `rotate(${(i - (info.cardCount - 1) / 2) * 6}deg)` }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={CARD_BACK_IMAGE}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                    <Icon name="sparkle" size={10} className="text-gold" />
                   </div>
                 ))}
               </div>
