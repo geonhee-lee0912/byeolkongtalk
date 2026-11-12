@@ -122,33 +122,36 @@ export default function ConcernPage() {
         {/* 감정 컨텍스트 칩 — 탭하면 태그 변경 */}
         {option && (
           <div className="w-full max-w-md mx-auto px-5 mb-5">
+            {/* 홈에서 누른 고민 카드가 따라온 모양 — 흰 카드 한 줄 + 바꾸기 알약(디자인 다듬기 ② /concern 운영자 A안 11-12) */}
             <button
               type="button"
               onClick={() => setTagSheetOpen(true)}
-              className="btn btn-secondary btn-lg flex-col backdrop-blur-sm"
+              className="card w-full flex items-center gap-3 p-3 text-left"
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
-                  style={{ background: EMOTION_GRADIENTS[emotion] }}
-                  aria-hidden
-                >
-                  <Image
-                    src={option.icon}
-                    alt=""
-                    width={18}
-                    height={18}
-                    className="object-contain"
-                  />
-                </span>
-                <span className="font-bold text-eye-purple text-13">
+              <span
+                className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={{ background: EMOTION_GRADIENTS[emotion] }}
+                aria-hidden
+              >
+                <Image
+                  src={option.icon}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="object-contain"
+                />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-eye-purple text-15 leading-snug">
                   {option.tag}
                 </span>
-                <span className="text-text-light text-11">변경</span>
-              </div>
-              <p className="text-11 text-text-light text-center leading-relaxed">
-                {option.description}
-              </p>
+                <span className="block text-12 text-text-light mt-0.5 leading-snug">
+                  {option.description}
+                </span>
+              </span>
+              <span className="flex items-center px-3 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 text-12 font-bold text-eye-purple shrink-0">
+                바꾸기
+              </span>
             </button>
           </div>
         )}
