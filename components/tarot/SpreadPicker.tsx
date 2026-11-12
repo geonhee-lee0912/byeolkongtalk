@@ -19,7 +19,6 @@ import {
 import { CONCERN_REWRITE_HREF, TAROT_SPREAD_KEY, type TarotSpreadSelection } from "@/lib/tarot/session";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { spreadAmountLine } from "@/lib/tarot/spread-facts";
-import { TAROT_HERO_GRADIENT } from "@/lib/heroGradients";
 import Icon from "@/components/common/Icon";
 
 // 타로톡 스프레드 고르기 — 2026-10-09 이전 app/tarot/page.tsx 를 그대로 옮겼다(메뉴판 반반은 2026-10-25 판정에서 이 화면이 이겼다).
@@ -97,12 +96,9 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
         </p>
       </div>
 
-      {/* 고민 내용 — 히어로 팔레트 배경 */}
+      {/* 고민 내용 — 밤 카드(card-night). 카드 뒷면 밤보라와 같은 색 — 옛 자주 그라데이션 판만 색이 따로 놀았다(디자인 다듬기 ② /tarot 운영자 C안 11-12) */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div
-          className="p-4 rounded-2xl border border-lilac-mid/25"
-          style={{ background: TAROT_HERO_GRADIENT }}
-        >
+        <div className="card-night">
           <div className="flex items-center gap-2 mb-2">
             {option && <img src={option.icon} alt="" width={22} height={22} className="object-contain" />}
             <span className="text-13 font-bold text-gold-soft">
