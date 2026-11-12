@@ -67,7 +67,8 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
     <header className="app-only sticky top-0 z-50 h-14 bg-cream">
       {screen.kind === "tab" ? (
         <div className="max-w-md mx-auto h-14 flex items-center justify-between px-5">
-          <span className="text-22 font-black tracking-tight text-night">{screen.title}</span>
+          {/* 탭 제목은 로고 글꼴·진보라, 비로그인 로그인은 잔액 알약과 같은 자리·모양(테두리 알약) — 디자인 다듬기 ② 헤더 운영자 B·2안(11-12) */}
+          <span className="font-display text-22 text-eye-purple">{screen.title}</span>
           {user ? (
             <Link
               href="/shop"
@@ -81,7 +82,10 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
               <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">{balance ?? "-"}</span>
             </Link>
           ) : (
-            <Link href="/login" className="text-14 text-text-light">
+            <Link
+              href="/login"
+              className="flex items-center px-3 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 text-13 font-bold text-eye-purple"
+            >
               로그인
             </Link>
           )}
@@ -92,13 +96,13 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
             type="button"
             onClick={goBack}
             aria-label="뒤로"
-            className="h-12 w-12 flex items-center justify-center text-night"
+            className="h-12 w-12 flex items-center justify-center text-eye-purple"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M15 5l-7 7 7 7" />
             </svg>
           </button>
-          <span className="text-center text-17 font-bold text-night truncate">{screen.title}</span>
+          <span className="text-center text-17 font-bold text-eye-purple truncate">{screen.title}</span>
           <span aria-hidden />
         </div>
       )}

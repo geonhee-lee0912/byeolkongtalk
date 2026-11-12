@@ -73,7 +73,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="text-14 text-text-light hover:text-eye-purple transition-colors"
+              className="flex items-center px-3 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 text-13 font-bold text-eye-purple transition-colors"
             >
               로그인
             </Link>
