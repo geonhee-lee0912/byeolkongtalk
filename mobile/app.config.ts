@@ -64,7 +64,7 @@ const config: ExpoConfig = {
     // 🔴 카카오 플러그인보다 앞에 둔다 — 이유는 plugins/withKakaoOpenUrl.js 머리 주석
     "./plugins/withKakaoOpenUrl.js",
     ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
-    // 알림 — 안드로이드 상태바 아이콘(흰색·투명) + 색은 eye-purple(흰 알림창에서 보이는 색)
+    // 알림 — 안드로이드 상태바 아이콘(흰색·투명, 카드 두 장 + 별 — 운영자 11-12) + 색은 eye-purple(흰 알림창에서 보이는 색)
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#5A3E8C" }],
   ],
   owner: "braveshine",
