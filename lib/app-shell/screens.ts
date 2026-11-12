@@ -20,6 +20,7 @@ const SUBS: [string, string, TabRoot][] = [
   ["/tarot/result", "타로 결과", "/"],
   ["/tarot/reading", "타로 풀이", "/"],
   ["/tarot/draw", "타로 카드 뽑기", "/"],
+  ["/tarot", "리딩 방법 고르기", "/"],
   ["/saju/result", "사주 결과", "/"],
   ["/saju/reading", "사주 풀이", "/"],
   ["/saju/concern", "사주 고민 적기", "/"],

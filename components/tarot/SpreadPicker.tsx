@@ -55,29 +55,6 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
   // text-pretty — 마지막 줄에 단어 하나만 남지 않게(지원 안 하는 브라우저는 그냥 break-keep 로 끊긴다)
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in break-keep break-words text-pretty">
-      {/* 최상단 — 고민 다시 적기 */}
-      <div className="w-full max-w-md mx-auto px-5 pt-3">
-        <Link
-          href={CONCERN_REWRITE_HREF}
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 18 18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <polyline points="11.5 3 5 9 11.5 15" />
-          </svg>
-          <span>고민 다시 적기</span>
-        </Link>
-      </div>
-
       {/* 별콩이 + 타이틀 + 설명 (히어로 대체) */}
       <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mt-2 mb-5">
         <Image
@@ -108,6 +85,17 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
           <p className="text-13 text-white/75 leading-relaxed line-clamp-3">
             {pending.concern}
           </p>
+          {/* 고민 다시 적기 — 맨 위 '‹' 링크였던 것을 고민 글 아래로(앱 헤더 ‹ 와 뒤로가 둘로 보였다). 이어가기(새 카드)로 바로 온 사람은
+              헤더 ‹ 가 지난 풀이로 가서 고민을 고칠 길이 이것뿐이라 웹·앱 다 남긴다(디자인 다듬기 ② /tarot 운영자 11-12) */}
+          <div className="flex justify-end mt-1 -mb-1">
+            <Link
+              href={CONCERN_REWRITE_HREF}
+              className="inline-flex items-center gap-0.5 py-1 text-11 font-medium text-white/45 hover:text-white/70 transition-colors"
+            >
+              고민 다시 적기
+              <Icon name="chev_r" size={10} />
+            </Link>
+          </div>
         </div>
       </div>
 
