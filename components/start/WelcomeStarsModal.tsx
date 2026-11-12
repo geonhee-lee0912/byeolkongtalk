@@ -1,12 +1,12 @@
 "use client";
 
-// 웰컴 별 도착 팝업 — 광고 랜딩(/start) 신규 가입 복귀 시 1회 노출.
+// 웰컴 별 도착 팝업 — 신규 가입 복귀 시 1회. /start 는 자기 페이지에서, 그 밖(앱·웹)은 AuthBootstrap 이 띄운다.
+// '현재 잔액' 알약은 뺐다 — 제목과 같은 숫자를 한 번 더 말할 뿐이었다(디자인 다듬기 ② 운영자 11-12).
 // body 포털 (페이지 transform 스택 컨텍스트에서 z-40/50 쉘 아래 깔리는 문제 회피).
 
 import { useEffect, useState } from "react";
 import Dialog from "@/components/common/Dialog";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
-import Icon from "@/components/common/Icon";
 
 export default function WelcomeStarsModal({
   onStart,
@@ -44,11 +44,6 @@ export default function WelcomeStarsModal({
           만나서 반가워! 별콩이가 선물을 준비했어.
           <br />이 별로 상담이나 운세를 바로 볼 수 있어.
         </p>
-        <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gold-soft/40">
-          <span className="text-13 font-extrabold text-eye-purple">
-            현재 잔액 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{WELCOME_BONUS_STARS}
-          </span>
-        </div>
         <button
           onClick={onStart}
           className="btn btn-primary btn-lg mt-6"
