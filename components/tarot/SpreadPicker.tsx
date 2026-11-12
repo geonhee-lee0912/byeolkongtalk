@@ -178,16 +178,15 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
         )}
       </div>
 
-      {/* 시작 버튼 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-2">
-        <button
-          onClick={handleStart}
-          disabled={!selected}
-          className="btn btn-primary btn-lg disabled:cursor-not-allowed"
-        >
-          {selected ? `${SPREAD_INFO[selected].label}로 카드 뽑으러 가기` : "스프레드를 골라줘"}
-        </button>
-      </div>
+      {/* 시작 버튼 — 고르면 아래 탭 바로 위에 붙어 나타난다. 맨 위 카드를 골라도 버튼이 화면 밖이라 끝까지 내려야 했다
+          (디자인 다듬기 ② /tarot 운영자 B안 11-12). 고르기 전엔 버튼이 없다 */}
+      {selected && (
+        <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] w-full max-w-md mx-auto mt-2 px-5 py-3 bg-cream shadow-float-up animate-fade-in">
+          <button onClick={handleStart} className="btn btn-primary btn-lg">
+            {`${SPREAD_INFO[selected].label}로 카드 뽑으러 가기`}
+          </button>
+        </div>
+      )}
     </main>
   );
 }
