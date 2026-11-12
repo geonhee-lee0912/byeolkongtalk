@@ -109,7 +109,8 @@ export default function SurveyPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-17 font-bold text-eye-purple mb-2">별콩이의 질문</h1>
+        {/* 앱에선 위 헤더 제목(별콩이의 질문)과 겹쳐 숨긴다(web-only) */}
+        <h1 className="web-only text-17 font-bold text-eye-purple mb-2">별콩이의 질문</h1>
         <p className="text-13 text-text-light leading-relaxed mb-3">
           별콩이를 도와줘! 너의 한마디로 더 좋은 별콩이가 될 수 있으니 편하고 솔직하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개를 줄게~!
         </p>
