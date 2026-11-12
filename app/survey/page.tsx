@@ -116,12 +116,13 @@ export default function SurveyPage() {
         <p className="text-12 text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
           매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
         </p>
-        <div className="space-y-5">
+        {/* 질문마다 흰 카드 + 안쪽 입력칸(card-inner 모양) — 디자인 다듬기 ② /survey 운영자 A안 11-12 */}
+        <div className="flex flex-col gap-3">
           {SURVEY_QUESTIONS.map((q, i) => {
             if (q.type === "multi") {
               return (
-                <div key={q.id}>
-                  <label className="block text-14 font-bold text-eye-purple mb-2">
+                <div key={q.id} className="card">
+                  <label className="block text-15 font-bold text-eye-purple mb-2">
                     {i + 1}. {q.text}
                   </label>
                   <div className="space-y-2">
@@ -145,7 +146,7 @@ export default function SurveyPage() {
                               onChange={(e) => setContactInput(opt.id, e.target.value)}
                               maxLength={MULTI_INPUT_MAX}
                               placeholder={opt.input.prompt}
-                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/40 bg-cream-warm p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
+                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/35 bg-inner p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
                             />
                           )}
                         </div>
@@ -163,8 +164,8 @@ export default function SurveyPage() {
             const len = answers[i].trim().length;
             const ok = len >= SURVEY_MIN_CHARS;
             return (
-              <div key={q.id}>
-                <label className="block text-14 font-bold text-eye-purple mb-2">
+              <div key={q.id} className="card">
+                <label className="block text-15 font-bold text-eye-purple mb-2">
                   {i + 1}. {q.text}
                 </label>
                 <textarea
@@ -173,7 +174,7 @@ export default function SurveyPage() {
                     setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))
                   }
                   rows={3}
-                  className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
+                  className="w-full rounded-xl border border-lilac-mid/35 bg-inner p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
                   placeholder="편하게 작성해줘"
                 />
                 <div className={`text-11 mt-1 text-right ${ok ? "text-accent" : "text-text-light"}`}>
