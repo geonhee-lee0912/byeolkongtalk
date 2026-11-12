@@ -32,7 +32,7 @@ export default function Header() {
         <div className="flex items-center gap-1.5">
           {user ? (
             <>
-              {/* 별 잔액 */}
+              {/* 별 잔액만 — 앱 헤더와 같게. 내 정보는 아래 '마이' 탭(얼굴·이름 알약은 뺌, 디자인 다듬기 ② 헤더 운영자 A안 11-12) */}
               <Link
                 href="/shop"
                 className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 transition-colors"
@@ -43,30 +43,6 @@ export default function Header() {
                 </span>
                 <span className="text-12 font-bold text-eye-purple leading-none tabular-nums">
                   {balance ?? "-"}
-                </span>
-              </Link>
-
-              {/* MY — 프로필 아바타 + 닉네임 */}
-              <Link
-                href="/mypage"
-                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
-                aria-label="내 정보"
-              >
-                <span className="relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-lilac-soft ring-1 ring-white/80">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      user.profile_img ||
-                      `https://api.dicebear.com/7.x/lorelei/svg?seed=${encodeURIComponent(
-                        user.nickname || "byeolkong"
-                      )}&backgroundColor=ede6f8,d4c7ee,c0aede,f2d78a,e8c26a`
-                    }
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </span>
-                <span className="text-12 font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
-                  {user.nickname}
                 </span>
               </Link>
             </>
