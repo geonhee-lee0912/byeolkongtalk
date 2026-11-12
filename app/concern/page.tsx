@@ -4,16 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import Dialog from "@/components/common/Dialog";
-import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
-  LOVE_TAGS,
-  OTHER_TAGS,
   PENDING_KEY,
   normalizeEmotionTag,
-  type EmotionOption,
   type EmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
@@ -22,7 +17,6 @@ import ProgressSteps from "@/components/concern/ProgressSteps";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import Icon from "@/components/common/Icon";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -34,7 +28,6 @@ export default function ConcernPage() {
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [tagSheetOpen, setTagSheetOpen] = useState(false);
   // 위기 배너 노출 계측 — 같은 분류·강도는 한 번만
   const bannerSeen = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -87,12 +80,6 @@ export default function ConcernPage() {
   // 모두에게(회원·옛 흐름 포함 — 사용자 결정 2026-10-11): high 정규식을 권장안으로 고쳐 연애 어휘 오탐('약속…먹고'·'재회에 목매' 등)을 걷어낸 뒤 넓혔다(lib/sensitive-patterns)
   const safety = concernSafetyMatch(concern);
 
-  const handleSelectTag = (tag: EmotionTag) => {
-    setEmotion(tag);
-    sessionStorage.setItem("byeolkong:emotion", tag);
-    setTagSheetOpen(false);
-  };
-
   const handleNext = () => {
     if (concern.length < MIN_LEN) {
       setError(`고민을 ${MIN_LEN}자 이상 적어줘`);
@@ -120,15 +107,11 @@ export default function ConcernPage() {
           <ProgressSteps current={1} />
         </div>
 
-        {/* 감정 컨텍스트 칩 — 탭하면 태그 변경 */}
+        {/* 고른 고민 — 보여 주기만(바꾸려면 뒤로 → 홈에서 다시 고른다. '바꾸기'·고르기 창은 운영자 결정으로 뺌 11-12) */}
         {option && (
           <div className="w-full max-w-md mx-auto px-5 mb-5">
-            {/* 홈에서 누른 고민 카드가 따라온 모양 — 흰 카드 한 줄 + 바꾸기 알약(디자인 다듬기 ② /concern 운영자 A안 11-12) */}
-            <button
-              type="button"
-              onClick={() => setTagSheetOpen(true)}
-              className="card w-full flex items-center gap-3 p-3 text-left"
-            >
+            {/* 홈에서 누른 고민 카드가 따라온 모양 — 흰 카드 한 줄(디자인 다듬기 ② /concern 운영자 A안 11-12) */}
+            <div className="card w-full flex items-center gap-3 p-3">
               <span
                 className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
                 style={{ background: EMOTION_GRADIENTS[emotion] }}
@@ -150,10 +133,7 @@ export default function ConcernPage() {
                   {option.description}
                 </span>
               </span>
-              <span className="flex items-center px-3 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 text-12 font-bold text-eye-purple shrink-0">
-                바꾸기
-              </span>
-            </button>
+            </div>
           </div>
         )}
 
@@ -295,120 +275,6 @@ export default function ConcernPage() {
           </Link>
         </div>
       </main>
-
-      {tagSheetOpen && (
-        <EmotionTagSheet
-          current={emotion}
-          onSelect={handleSelectTag}
-          onClose={() => setTagSheetOpen(false)}
-        />
-      )}
     </>
-  );
-}
-
-/** 감정 컨텍스트 칩 탭 → 태그 변경 바텀시트 (연애 6 + 비연애 4) */
-function EmotionTagSheet({
-  current,
-  onSelect,
-  onClose,
-}: {
-  current: EmotionTag;
-  onSelect: (tag: EmotionTag) => void;
-  onClose: () => void;
-}) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  const loveOptions = EMOTION_OPTIONS.filter((o) => LOVE_TAGS.includes(o.tag));
-  const otherOptions = EMOTION_OPTIONS.filter((o) => OTHER_TAGS.includes(o.tag));
-
-  // 이름은 바텀시트지만 모양은 가운데 창 — 공통 Dialog(배경 스크롤 잠금·ESC)
-  return (
-    <Dialog
-      label="고민 태그 변경"
-      onClose={onClose}
-      z={90}
-      widthClassName="max-w-md"
-      gutterClassName="px-5"
-      backdropClassName="bg-night/50 backdrop-blur-sm"
-    >
-      <div className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[72vh] overflow-y-auto scrollbar-hover">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <h2 className="font-display text-17 font-bold text-eye-purple">
-            어떤 고민이야?
-          </h2>
-          <OverlayCloseButton
-            aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
-          >
-            <Icon name="close" size={18} />
-          </OverlayCloseButton>
-        </div>
-
-        <div className="px-5 pb-6">
-          <p className="text-12 font-bold text-text-light mb-2">
-            연애 고민
-          </p>
-          <div className="flex flex-col gap-2 mb-4">
-            {loveOptions.map((option) => (
-              <TagSheetItem
-                key={option.tag}
-                option={option}
-                active={option.tag === current}
-                onClick={() => onSelect(option.tag)}
-              />
-            ))}
-          </div>
-
-          <p className="text-12 font-bold text-text-light mb-2">
-            다른 고민
-          </p>
-          <div className="flex flex-col gap-2">
-            {otherOptions.map((option) => (
-              <TagSheetItem
-                key={option.tag}
-                option={option}
-                active={option.tag === current}
-                onClick={() => onSelect(option.tag)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </Dialog>
-  );
-}
-
-function TagSheetItem({
-  option,
-  active,
-  onClick,
-}: {
-  option: EmotionOption;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={`w-full card flex items-center gap-3 text-left transition-all ${
-        active ? "outline-2 outline-accent -outline-offset-2" : ""
-      }`}
-    >
-      <span
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-        style={{ background: EMOTION_GRADIENTS[option.tag] }}
-        aria-hidden
-      >
-        <Image src={option.icon} alt="" width={28} height={28} className="object-contain" />
-      </span>
-      <span className="flex-1 min-w-0 font-bold text-eye-purple text-14 leading-snug">
-        {option.tag}
-      </span>
-    </button>
   );
 }
