@@ -29,6 +29,9 @@ test("토큰 값이 스펙과 같다", () => {
     "--color-text-faint": "#978AB3",
     "--color-inner": "#FBF8FE",
     "--color-gold-wash": "#FBF1D6",
+    "--color-cream": "#F6F5F2",
+    "--color-disabled": "#E7E5E1",
+    "--color-disabled-text": "#A5A1AA",
     "--shadow-card": "0 1px 4px rgba(90, 62, 140, 0.08)",
     "--shadow-float": "0 4px 16px rgba(40, 30, 70, 0.12)",
     "--shadow-float-up": "0 -4px 16px rgba(40, 30, 70, 0.12)",
@@ -52,6 +55,13 @@ test("입력칸 16 규칙이 레이어 밖에 있다", () => {
   const before = c.slice(0, i);
   const opens = (before.match(/@layer[^{;]*\{/g) ?? []).length;
   assert.equal(opens, 0, "입력칸 규칙이 @layer 안에 있으면 text-* 유틸리티에 진다");
+});
+
+test("못 누르는 주 버튼은 흐리게가 아니라 회색 바탕·회색 글자다(디자인 다듬기 ② 운영자 B안 11-12)", () => {
+  const block = css().match(/@utility btn-primary\s*\{([\s\S]*?)\r?\n\}/)?.[1] ?? "";
+  assert.match(block, /&:disabled\s*\{[^}]*background-color:\s*var\(--color-disabled\)/);
+  assert.match(block, /&:disabled\s*\{[^}]*color:\s*var\(--color-disabled-text\)/);
+  assert.match(block, /&:disabled\s*\{[^}]*opacity:\s*1/);
 });
 
 test("부품 클래스가 있다", () => {

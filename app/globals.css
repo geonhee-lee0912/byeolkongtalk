@@ -23,6 +23,8 @@
   --color-text-faint: #978AB3; /* 입력 전 안내·못 누르는 상태만 */
   --color-inner: #FBF8FE; /* 안쪽 칸 바탕 */
   --color-gold-wash: #FBF1D6; /* 골드 안내 배너 바탕 */
+  --color-disabled: #E7E5E1; /* 못 누르는 주 버튼 바탕 */
+  --color-disabled-text: #A5A1AA; /* 못 누르는 주 버튼 글자 */
   --color-night: #1F1735;
   --color-night-deep: #2A1F4D;
 
@@ -73,6 +75,12 @@
 }
 @utility btn-primary {
   @apply bg-accent text-white;
+  /* 못 누를 때는 흐리게(진보라 40%)가 아니라 회색 — 흐린 진보라가 바탕과 섞여 탁해 보였다(디자인 다듬기 ② 운영자 B안 11-12) */
+  &:disabled {
+    opacity: 1;
+    background-color: var(--color-disabled);
+    color: var(--color-disabled-text);
+  }
 }
 @utility btn-secondary {
   @apply bg-lilac-soft text-eye-purple;
