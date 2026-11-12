@@ -7,7 +7,7 @@
 
 | 토큰 | HEX | 용도 |
 |---|---|---|
-| `cream` / `cream-warm` | `#FAF6F0` / `#FFF8F0` | 화면 바탕 / 말풍선·입력칸 |
+| `cream` / `cream-warm` | `#F6F5F2`(따뜻한 회색, 11-12 — 옛 #FAF6F0) / `#FFF8F0` | 화면 바탕(단색, 그라데이션 없음)·시트·헤더·탭 / 말풍선·입력칸 |
 | `lilac-soft` / `lilac` / `lilac-mid` / `lilac-deep` | `#E8DEF5` / `#D4C7EE` / `#B8A8D8` / `#9F8AD0` | 보조 버튼·번호 타일 / 테두리 / 테두리 / **글자가 아닌 곳**(아이콘·장식) |
 | `gold` / `gold-soft` / `gold-wash` | `#E8C26A` / `#F2D78A` / `#FBF1D6` | 별 재화 / 장식 / 골드 안내 배너 바탕 |
 | `night` / `night-deep` | `#1F1735` / `#2A1F4D` | 밤 장면 |

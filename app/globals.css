@@ -7,7 +7,7 @@
 
 @theme {
   /* 컬러 — 크림빛 몸 / 연보라 구름 / 금색 별 */
-  --color-cream: #FAF6F0;
+  --color-cream: #F6F5F2; /* 화면 바탕 — 이름은 cream 이지만 값은 따뜻한 회색(디자인 다듬기 ② 운영자 D안 11-12, 옛 크림). 시트·헤더·탭도 이 색 */
   --color-cream-warm: #FFF8F0;
   --color-lilac-soft: #E8DEF5;
   --color-lilac: #D4C7EE;
@@ -105,11 +105,10 @@
   @apply bg-night-card rounded-2xl p-4 text-cream-warm;
 }
 
-/* 메인 배경 — 크림 → 연보라 그라데이션 (별콩이 외형 톤) */
+/* 화면 바탕 — 단색(옛 크림→연보라 세로 그라데이션은 아래쪽이 연보라 버튼·칩을 묻고 헤더·탭과 띠가 져서 뺐다, 11-12) */
 html {
   font-size: 16px; /* 글자 고정(스펙 §2.2) — 기기·브라우저 글자 설정과 무관. 나중에 켤 땐 여기 */
-  background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
-  background-attachment: fixed;
+  background: var(--color-cream);
   min-height: 100%;
 }
 
@@ -287,8 +286,7 @@ html[data-app] header.app-only {
 }
 /* 화면 묶음은 불투명하게 — 배경이 없으면 전환 중 들어오는 화면 틈으로 아래 화면이 비친다(2026-11-07 아이폰 실기기). 바탕(html)과 같은 색 */
 html[data-app] [data-app-page] {
-  background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
-  background-attachment: fixed;
+  background: var(--color-cream);
 }
 /* ‹ 뒤로 전환의 복제본(AppNavDirection runBackTransition) — 복제하면 페이지 등장 애니메이션(fade-in 등)이 처음부터 다시 돌아 빈 장처럼 보인다 */
 .app-back-clone,

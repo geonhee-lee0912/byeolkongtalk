@@ -16,7 +16,7 @@ export default function OfflineView({ onRetry }: { onRetry: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", backgroundColor: "#FAF6F0", padding: 24 },
+  wrap: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", backgroundColor: "#F6F5F2", padding: 24 },
   art: { width: 96, height: 123, marginBottom: 20 },
   title: { fontSize: 20, fontWeight: "700", color: "#5A3E8C" },
   body: { marginTop: 8, fontSize: 14, lineHeight: 21, color: "#726398", textAlign: "center" },
