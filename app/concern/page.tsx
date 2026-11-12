@@ -167,29 +167,21 @@ export default function ConcernPage() {
                 "0 4px 20px rgba(30,22,53,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
           >
-            {/* 헤더 — 별콩이 프로필 바 */}
+            {/* 위 바 — 카톡 대화방 이름처럼 얇게(작은 얼굴 + 이름). 디자인 다듬기 ② /concern 운영자 K1안 11-12 */}
             <div
-              className="relative z-10 flex items-center gap-2.5 px-4 py-3 border-b border-white/15"
+              className="relative z-10 flex items-center gap-2 px-4 py-2.5"
               style={{ background: "#4A3877" }}
             >
-              <span className="relative w-9 h-9 flex-shrink-0">
+              <span className="relative w-7 h-7 flex-shrink-0">
                 <Image
                   src="/profile.png"
-                  alt="별콩이"
+                  alt=""
                   fill
-                  sizes="36px"
+                  sizes="28px"
                   className="rounded-full object-cover"
                 />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#4A3877]" />
               </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-14 font-bold text-white leading-tight">
-                  별콩이
-                </p>
-                <p className="text-11 text-white/60 leading-snug mt-0.5">
-                  고민이 있는 날에도, 괜히 마음이 궁금한 날에도 별콩이는 여기 있어
-                </p>
-              </div>
+              <p className="text-15 font-bold text-white">별콩이</p>
             </div>
 
             {/* 별 파티클 */}
@@ -217,31 +209,29 @@ export default function ConcernPage() {
               />
             </div>
 
-            <div className="relative px-3.5 pt-5 pb-5 flex flex-col gap-3.5">
-              {/* 별콩이 인사 말풍선 */}
-              <div className="flex self-end max-w-[88%]">
-                <div
-                  className="relative rounded-2xl rounded-br-sm px-4 py-3"
-                  style={{
-                    background: "#FBE89E",
-                    boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
-                  }}
-                >
-                  <p className="text-14 font-bold text-eye-purple leading-tight">
-                    어떤 고민이야?
-                  </p>
-                  <p className="text-12 text-eye-purple/85 mt-1 leading-relaxed">
-                    편하게 말해줘. 별콩이가 들어볼게
-                  </p>
+            <div className="relative pt-5 flex flex-col">
+              {/* 별콩이 말 — 카톡처럼 왼쪽 프사 + 이름 + 흰 말풍선(실제 대화 화면의 별콩이 말과 같은 쪽) */}
+              <div className="flex items-start gap-2 self-start max-w-[86%] px-3.5">
+                <span className="relative w-10 h-10 flex-shrink-0 rounded-2xl overflow-hidden bg-white">
+                  <Image src="/profile.png" alt="별콩이" fill sizes="40px" className="object-cover" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-12 text-accent-on-dark mb-1 ml-0.5">별콩이</p>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                    <p className="text-14 font-bold text-eye-purple leading-tight">
+                      어떤 고민이야?
+                    </p>
+                    <p className="text-12 text-text-light mt-1 leading-relaxed">
+                      편하게 말해줘. 별콩이가 들어볼게
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* 사용자 입력 */}
-              <div className="flex self-end w-full">
-                <div
-                  className="relative flex-1 bg-white rounded-2xl rounded-bl-sm overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
-                  style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.18)" }}
-                >
+              {/* 입력칸 — 카톡 메시지 입력창처럼 판 아래에 끝까지 붙는다 */}
+              <div className="flex w-full mt-5">
+                <div className="relative flex-1 bg-white focus-within:ring-2 focus-within:ring-inset focus-within:ring-lilac-deep/50 transition-all">
                   <textarea
                     value={concern}
                     onChange={(e) => {
@@ -249,7 +239,7 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
+                    className="w-full h-28 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
                   />
                   <div className="flex justify-between items-center px-4 pb-2.5 text-11">
                     <span className="text-text-light">
