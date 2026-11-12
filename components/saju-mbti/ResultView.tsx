@@ -199,11 +199,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-13 leading-relaxed text-eye-purple" />
       </section>
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
-      <div className="flex items-center gap-3 my-1" aria-hidden>
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-        
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-      </div>
+      <div className="h-px bg-lilac-mid/40 my-1" aria-hidden />
 
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (

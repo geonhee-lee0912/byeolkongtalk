@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { classBlocks, offenders } from "./design-scan";
+import { classBlocks, offenders, sources } from "./design-scan";
 
 const css = () => readFileSync("app/globals.css", "utf8");
 
@@ -216,4 +216,13 @@ test("관계 전환: + 버튼은 아바타와 같은 56px 원, 이름 칸은 11p
 test("빈 문자열 반복·양쪽 빈 조건식이 없다(정보 기호는 Icon 으로)", () => {
   // 속성 값(data-x={c ? "" : undefined})과 `?? ""` 는 정상 코드라 제외
   assert.deepEqual(offenders(/""\.repeat\(|(?<!\?)\?\s*""\s*:\s*""\s*\}|(?<!=)\{\s*\w+\s*\?\s*""\s*:\s*\w+\s*\}/), []);
+});
+// 장식 기호(✦)를 지우다 남은 '끊긴 구분선' — "선 ✦ 선" 에서 가운데만 비어 두 선 사이에 틈이 생긴다(디자인 다듬기 ② 홈에서 발견)
+test("구분선 두 개 사이가 빈 채로 남은 곳이 없다", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    if (/<span[^>\n]*\bh-px\b[^>\n]*\/>\s*\n\s*\n\s*<span[^>\n]*\bh-px\b/.test(text)) hits.push(p.replace(/\\/g, "/"));
+  }
+  assert.deepEqual(hits, []);
 });

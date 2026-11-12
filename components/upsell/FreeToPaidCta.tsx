@@ -37,12 +37,8 @@ export default function FreeToPaidCta({
           : "w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3"
       }
     >
-      {/* 결과 본문과 CTA 구분선 — 골드 별 + 라일락 헤어라인(별콩 모티프) */}
-      <div className="flex items-center gap-3 mb-1" aria-hidden>
-        <span className="h-px flex-1 bg-lilac-soft/70" />
-        
-        <span className="h-px flex-1 bg-lilac-soft/70" />
-      </div>
+      {/* 결과 본문과 CTA 구분선 — 라일락 헤어라인 */}
+      <div className="h-px bg-lilac-soft/70 mb-1" aria-hidden />
       <div className="px-1">
         <p className="text-14 font-extrabold text-eye-purple">{title}</p>
         {subtitle && <p className="text-12 text-text-light mt-0.5">{subtitle}</p>}

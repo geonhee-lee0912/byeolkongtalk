@@ -262,12 +262,8 @@ export default function Home() {
             })}
           </div>
 
-          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
-          <div className="flex items-center gap-3 mb-4" aria-hidden>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-            
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-          </div>
+          {/* 디바이더 — 연애 고민(타로) ↔ 별마루·연애 상담 경계 */}
+          <div className="h-px bg-lilac-mid/40 mb-4" aria-hidden />
 
           {/* 별마루 진입 — 연애 상담 카드 **위**(사용자 확정 2026-10-02). 전체 폭 가로 행이라
               2단 그리드가 아니고, 글자 크기는 아래 연애 상담 카드와 동일하다.
@@ -296,7 +292,7 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-17 flex items-center gap-1.5">
                 별마루
                 <span className="text-11 font-bold text-text-light">무료</span>
               </p>
@@ -307,7 +303,7 @@ export default function Home() {
                 {["오늘사주", "오늘타로", "매일무료"].map((h) => (
                   <span
                     key={h}
-                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>
@@ -337,7 +333,7 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-17 flex items-center gap-1.5">
                 별콩이와 연애 상담
                 <span className="text-11 font-bold text-text-light">
                   무료 시작
@@ -350,7 +346,7 @@ export default function Home() {
                 {["연애상담", "썸", "시뮬레이션"].map((h) => (
                   <span
                     key={h}
-                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>
