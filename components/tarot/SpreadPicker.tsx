@@ -134,13 +134,10 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
               key={type}
               onClick={() => setSelected(type)}
               aria-pressed={isSelected}
-              className="card flex items-center gap-3.5 text-left transition-all"
-              style={{
-                border: isSelected
-                  ? `2px solid ${info.accent}`
-                  : "1px solid #E8DEF5",
-                boxShadow: isSelected ? `0 0 0 3px ${info.accent}1f` : "none",
-              }}
+              // 고르면 주 버튼과 같은 보라 테두리 하나 — 스프레드마다 다른 색은 뺐다(디자인 다듬기 ② /tarot 운영자 B안 11-12)
+              className={`card flex items-center gap-3.5 text-left transition-all ${
+                isSelected ? "border-2 border-accent ring-3 ring-accent/15" : "border border-lilac-soft"
+              }`}
             >
               {/* 카드 미니어처 — 밤보라 뒷면 + 금테 + 반짝임. 실제 뒷면 그림은 작게 줄이면 검은 덩어리로 보였다(디자인 다듬기 ② /tarot 운영자 D2안 11-12) */}
               <div className="flex flex-shrink-0 items-center -space-x-3.5 w-[58px] justify-center">
@@ -158,10 +155,8 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
               <div className="flex-1 min-w-0">
                 {/* 배지·가격은 각각 쪼개지 않는다 — 한 줄에 안 들어가면 가격이 통째로 다음 줄로(320px 7장 "가능성 스프레드 · / 7카드"·"⭐ / 55별") */}
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
-                  <span
-                    className="text-13 font-black px-1.5 py-0.5 rounded-lg text-white whitespace-nowrap"
-                    style={{ backgroundColor: info.accent }}
-                  >
+                  {/* 이름은 판 없이 굵은 글자로(운영자 B안 11-12) — 색 이름표 5개가 무지개처럼 섞여 보였다 */}
+                  <span className="text-15 font-extrabold text-eye-purple whitespace-nowrap">
                     {info.label}
                     {info.cardCount > 3 && ` · ${info.cardCount}카드`}
                   </span>
