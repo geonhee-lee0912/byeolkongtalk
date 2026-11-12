@@ -155,11 +155,6 @@ export default function SurveyPage() {
                       );
                     })}
                   </div>
-                  {!contactValid && (
-                    <div className="text-11 mt-1.5 text-text-light">
-                      하나 이상 골라줘 (직접 입력 항목은 내용도 적어줘)
-                    </div>
-                  )}
                 </div>
               );
             }
