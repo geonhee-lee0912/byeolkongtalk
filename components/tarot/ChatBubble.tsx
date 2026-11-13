@@ -66,21 +66,22 @@ export default function ChatBubble({
         )}
 
         {showCardImage && card && dc && (
-          <div className="mb-2 ml-0.5 flex items-end gap-2 w-fit animate-fade-in">
-            <div className="relative w-14 h-[88px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-card shrink-0">
+          // 72×113 · 위 말풍선과 띄움(mt-3) — 디자인 다듬기 ② /tarot/reading 운영자 11-13 (그림은 원카드에도 그대로 둔다)
+          <div className="mt-3 mb-2 ml-0.5 flex items-end gap-2 w-fit animate-fade-in">
+            <div className="relative w-[72px] h-[113px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-card shrink-0">
               <Image
                 src={getCardImagePath(dc.card_id)}
                 alt={card.name_kr}
                 fill
-                sizes="56px"
+                sizes="72px"
                 className={`object-cover ${
                   dc.direction === "reversed" ? "rotate-180" : ""
                 }`}
               />
             </div>
-            <div className="text-11 leading-tight pb-1">
-              <p className="font-bold text-eye-purple">{card.name_kr}</p>
-              <p className="text-text-light mt-px whitespace-nowrap">
+            <div className="leading-tight pb-1.5">
+              <p className="text-14 font-bold text-eye-purple">{card.name_kr}</p>
+              <p className="text-12 text-text-light mt-0.5 whitespace-nowrap">
                 {dc.label} · {dc.direction === "upright" ? "정방향" : "역방향"}
               </p>
             </div>
