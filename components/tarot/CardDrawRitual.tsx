@@ -420,6 +420,26 @@ export default function CardDrawRitual({
           const stickyClass = isCompact
             ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
             : `w-full max-w-md mx-auto px-5 ${pageLayout ? "mt-3" : "mt-6"}`;
+          // pageLayout: 공통 주 버튼 하나(전체 폭) + '리딩 방법 선택'은 웹에서만 글자 버튼 — 앱에선 헤더 ‹ 와 같은 곳이라 숨김
+          // (디자인 다듬기 ⑤ 운영자 A안 11-13, /concern 의 '뒤로'와 같은 방식)
+          if (pageLayout) {
+            return (
+              <div className={`flex flex-col gap-1 ${stickyClass}`}>
+                <button
+                  onClick={pickAction}
+                  disabled={pickDisabled}
+                  className="btn btn-primary btn-lg"
+                >
+                  {pickLabel}
+                </button>
+                {backLabel && (
+                  <button onClick={onBack} className="web-only btn btn-text btn-lg">
+                    {backLabel}
+                  </button>
+                )}
+              </div>
+            );
+          }
           return (
             <div
               className={`flex items-center justify-center gap-2 ${stickyClass}`}
@@ -447,14 +467,34 @@ export default function CardDrawRitual({
           );
         })()}
 
+      {/* direction 단계(pageLayout): 공통 주 버튼 + 글자 버튼 '카드 다시 고르기'(화면 안에서 고르기로 돌아가서 앱에서도 둔다) */}
+      {phase === "direction" && pageLayout && (
+        <div
+          className={`flex flex-col gap-1 ${
+            isCompact
+              ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
+              : "w-full max-w-md mx-auto px-5 mt-3"
+          }`}
+        >
+          <button
+            onClick={handleComplete}
+            disabled={!canProceed}
+            className="btn btn-primary btn-lg"
+          >
+            {completeLabel ?? "결과 보기"}
+          </button>
+          <button onClick={backToPick} className="btn btn-text btn-lg">
+            카드 다시 고르기
+          </button>
+        </div>
+      )}
+
       {/* direction 단계: 완료 + 카드 다시 뽑으러 가기 (세로) */}
-      {phase === "direction" && (
+      {phase === "direction" && !pageLayout && (
         <div
           className={`flex flex-col items-center gap-2.5 ${
             isCompact
               ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
-              : pageLayout
-              ? "mt-3"
               : "mt-9"
           }`}
         >
