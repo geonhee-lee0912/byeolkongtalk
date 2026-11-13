@@ -29,8 +29,9 @@ export default function ChatBubble({
 }: Props) {
   if (role === "user") {
     return (
+      // 진보라 바탕(흰 글자 8.39:1) — 옛 연보라는 2.99:1. 디자인 다듬기 /tarot/reading ⑤ 운영자 11-13
       <div className="flex justify-end mb-3 animate-fade-in">
-        <div className="selectable max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-sm text-16 whitespace-pre-wrap">
+        <div className="selectable max-w-[82%] px-4 py-3 bg-eye-purple text-white rounded-2xl rounded-br-sm text-16 whitespace-pre-wrap">
           {content}
         </div>
       </div>
