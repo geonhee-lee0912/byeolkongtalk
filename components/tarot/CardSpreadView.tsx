@@ -11,6 +11,11 @@ interface Props {
   activeIndex?: number | null;
   /** 밤 판 맨 위에 얹는 줄(대화 화면의 고민 한 줄 — 디자인 다듬기 ② /tarot/reading 운영자 C안 11-13). 없으면 예전 그대로 */
   header?: ReactNode;
+  /**
+   * 대화 화면 크기(디자인 다듬기 ② /tarot/reading 운영자 B안 11-13): 1장 104×164(조금 작게 — 첫 답이 덜 밀림) ·
+   * 3장 md · 5~7장 sm · 관계5 sm+md(판 폭을 더 채움). 없으면 예전 크기(우리 사이 카드 줄)
+   */
+  roomy?: boolean;
 }
 
 // 5장(비관계) 3+2 그리드 / 6장 2x3 그리드 / 7장 3+3(+마지막 1장은 중앙 단독 렌더)
@@ -25,12 +30,14 @@ export default function CardSpreadView({
   spreadType,
   activeIndex = null,
   header,
+  roomy = false,
 }: Props) {
+  const multi = roomy ? "sm" : "xs";
   const inner = (() => {
     if (spreadType === "one_card") {
       return (
         <div className="flex justify-center">
-          <CardTile dc={drawnCards[0]} active={true} size="lg" />
+          <CardTile dc={drawnCards[0]} active={true} size={roomy ? "lgB" : "lg"} />
         </div>
       );
     }
@@ -44,11 +51,11 @@ export default function CardSpreadView({
                 key={i}
                 dc={drawnCards[i]}
                 active={activeIndex === i}
-                size="xs"
+                size={multi}
               />
             ))}
           </div>
-          <CardTile dc={drawnCards[4]} active={activeIndex === 4} size="sm" />
+          <CardTile dc={drawnCards[4]} active={activeIndex === 4} size={roomy ? "md" : "sm"} />
         </div>
       );
     }
@@ -64,7 +71,7 @@ export default function CardSpreadView({
                   key={i}
                   dc={drawnCards[i]}
                   active={activeIndex === i}
-                  size="xs"
+                  size={multi}
                 />
               ))}
             </div>
@@ -75,9 +82,9 @@ export default function CardSpreadView({
         </div>
       );
     }
-    const size = spreadType === "two_card" ? "md" : "sm";
+    const size = spreadType === "two_card" || roomy ? "md" : "sm";
     return (
-      <div className="flex items-start justify-center gap-5">
+      <div className={`flex items-start justify-center ${roomy ? "gap-3" : "gap-5"}`}>
         {drawnCards.map((dc, i) => (
           <CardTile key={i} dc={dc} active={activeIndex === i} size={size} />
         ))}
@@ -146,12 +153,13 @@ const SIZE_MAP = {
   sm: { w: "w-[64px]", h: "h-[100px]", name: "text-11", label: "text-11", gap: "gap-2" },
   md: { w: "w-[88px]", h: "h-[136px]", name: "text-12", label: "text-11", gap: "gap-2.5" },
   lg: { w: "w-[120px]", h: "h-[188px]", name: "text-14", label: "text-12", gap: "gap-3" },
+  lgB: { w: "w-[104px]", h: "h-[164px]", name: "text-14", label: "text-12", gap: "gap-3" },
 } as const;
 
 interface CardTileProps {
   dc: DrawnCard;
   active: boolean;
-  size: "xs" | "sm" | "md" | "lg";
+  size: keyof typeof SIZE_MAP;
 }
 
 function CardTile({ dc, active, size }: CardTileProps) {

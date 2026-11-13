@@ -1064,6 +1064,7 @@ function TarotReadingInner() {
             drawnCards={draw.drawnCards}
             spreadType={draw.spreadType}
             activeIndex={activeCardIndex}
+            roomy
             header={
               <button
                 type="button"
