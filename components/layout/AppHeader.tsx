@@ -11,6 +11,7 @@ import { markBackButton, requestBack } from "@/lib/app-shell/nav-direction";
 import { runBackTransition } from "./AppNavDirection";
 import type { HeaderUser } from "./useHeaderAccount";
 import Icon from "@/components/common/Icon";
+import HeaderActionButton, { useHeaderAction } from "./HeaderActionButton";
 
 /** '‹' 를 눌렀는데 이 시간 안에 기록 뒤로(popstate)가 안 오면(기록 맨 앞 — 웹뷰에서 뒤로가 아무 일도 안 함) 탭 첫 화면으로 바꿔 연다 */
 const BACK_STUCK_MS = 400;
@@ -43,6 +44,8 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
   const pathname = usePathname() || "/";
   const router = useRouter();
   const screen = appScreen(pathname);
+  // 화면이 오른쪽 버튼을 올렸으면 양옆 칸을 넓혀 제목을 가운데에 둔다(지금은 타로 대화의 '결과 보기')
+  const hasAction = useHeaderAction() !== null;
 
   const goBack = () => {
     if (screen.kind !== "sub") return;
@@ -91,7 +94,7 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
           )}
         </div>
       ) : (
-        <div className="max-w-md mx-auto h-14 grid grid-cols-[48px_1fr_48px] items-center border-b border-lilac-soft/60">
+        <div className={`max-w-md mx-auto h-14 grid ${hasAction ? "grid-cols-[96px_1fr_96px]" : "grid-cols-[48px_1fr_48px]"} items-center border-b border-lilac-soft/60`}>
           <button
             type="button"
             onClick={goBack}
@@ -103,7 +106,13 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
             </svg>
           </button>
           <span className="text-center text-17 font-bold text-eye-purple truncate">{screen.title}</span>
-          <span aria-hidden />
+          {hasAction ? (
+            <span className="flex justify-end pr-3">
+              <HeaderActionButton />
+            </span>
+          ) : (
+            <span aria-hidden />
+          )}
         </div>
       )}
     </header>

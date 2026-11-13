@@ -5,6 +5,7 @@ import Link from "next/link";
 import AppHeader from "./AppHeader";
 import { useHeaderAccount } from "./useHeaderAccount";
 import Icon from "@/components/common/Icon";
+import HeaderActionButton from "./HeaderActionButton";
 
 export default function Header() {
   const { user, balance } = useHeaderAccount();
@@ -30,6 +31,8 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-1.5">
+          {/* 화면이 올린 버튼(지금은 타로 대화의 '결과 보기') — 잔액 왼쪽 */}
+          <HeaderActionButton />
           {user ? (
             <>
               {/* 별 잔액만 — 앱 헤더와 같게. 내 정보는 아래 '마이' 탭(얼굴·이름 알약은 뺌, 디자인 다듬기 ② 헤더 운영자 A안 11-12) */}

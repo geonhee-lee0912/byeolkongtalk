@@ -34,6 +34,9 @@ import {
   type Bubble,
 } from "@/lib/tarot/bubbles";
 import Icon from "@/components/common/Icon";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import { setHeaderAction } from "@/lib/header-action";
 
 interface Message {
   role: "user" | "assistant";
@@ -62,7 +65,7 @@ const EXIT_NUDGE = [
   "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
   "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
 ];
-const FINISH_PHRASE = "대화 마무리할게"; // 입력창 아래 '마무리하고 결과 보기' 버튼 경유 — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
+const FINISH_PHRASE = "대화 마무리할게"; // 헤더 '결과 보기' → 확인 창 경유(옛 입력창 아래 '마무리하고 결과 보기') — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
 // 재개 제안 없음 — 헤더·서버 값이 없을 때의 기본값(서버가 {false,false} 를 주면 그 객체를 그대로 쓴다)
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
@@ -70,35 +73,6 @@ const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
 const RESYNC_DELAY_MS = 1500;
 // [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
 
-// 마무리 안내 한 줄의 인라인 SVG — 저장소에 아이콘 라이브러리가 없다
-/** 4꼭지 금색 별(앱의 별 모티프) — 안내 문구 앞 */
-function HintStar() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#E8C26A" aria-hidden="true" className="shrink-0">
-      <path d="M12 2l3.4 6.6L22 12l-6.6 3.4L12 22l-3.4-6.6L2 12l6.6-3.4L12 2z" />
-    </svg>
-  );
-}
-
-/** 작은 › — 마무리하고 결과 보기 버튼 끝 */
-function ChevronRight() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
 
 export default function TarotReadingPage() {
   return (
@@ -164,6 +138,14 @@ function TarotReadingInner() {
   const purchasing = extendState === "loading" || clarifierPurchasing;
   // 구매 흐름 중 — 요청이 가 있거나 보조 카드 시트가 열려 있다. 이 사이엔 마무리·재전송도 막고 전송 대기 조각은 미룬다
   const inPurchaseFlow = purchasing || clarifierSheetOpen;
+  // 헤더 '결과 보기'(금색) → 확인 창 → handleFinish. 입력창 아래 마무리 줄을 대신한다 — 디자인 다듬기 /tarot/reading ⑦ 운영자 11-13
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  const finishDisabled = isStreaming || !readingId || inPurchaseFlow;
+  useEffect(() => {
+    if (isEnded || !readingId) return;
+    setHeaderAction({ label: "결과 보기", onClick: () => setFinishConfirmOpen(true), disabled: finishDisabled });
+    return () => setHeaderAction(null);
+  }, [isEnded, readingId, finishDisabled]);
   // RechargeSheet
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
   const [rechargeUpsellType, setRechargeUpsellType] = useState<"clarifier" | "extend">("extend");
@@ -1338,28 +1320,38 @@ function TarotReadingInner() {
                     </span>
                   </button>
                 </div>
-                {/* 시안 B — 대화 내내 안내 한 줄 + 오른쪽 작은 마무리 버튼(금색 버튼은 없앴다, spec §3-6). 버튼 라벨이 '누르면 대화가 끝난다'를 말한다.
-                    안내는 truncate(min-w-0)라 320px 에서도 버튼이 줄바꿈·넘침 없이 남는다. 하단 바는 흰 배경이라 text-light 를 쓴다 */}
-                <div className="flex items-center justify-between gap-2.5">
-                  <p className="flex min-w-0 items-center gap-1.5 text-11 text-text-light">
-                    <HintStar />
-                    <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleFinish()}
-                    disabled={isStreaming || !readingId || inPurchaseFlow}
-                    // 색은 한 단계 낮춘 text-light(흰 바탕 4.7:1, AA 유지) — 전송 버튼보다 앞에 서지 않게(사용자 2026-10-04)
-                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-12 font-bold text-text-light disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    마무리하고 결과 보기
-                    <ChevronRight />
-                  </button>
-                </div>
               </form>
           )}
         </div>
       </div>
+
+      {/* 헤더 '결과 보기' 확인 — 라벨이 '대화가 끝난다'를 말하지 않아 한 번 묻는다(일찍 끝내기도 줄인다) */}
+      {finishConfirmOpen && (
+        <Dialog
+          label="대화 마무리 확인"
+          onClose={() => setFinishConfirmOpen(false)}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+        >
+          <div className="bg-white rounded-2xl p-5">
+            <p className="text-16 font-bold text-eye-purple text-center">대화를 마무리하고 결과를 볼까?</p>
+            <p className="text-13 text-text-light text-center mt-1.5">지금까지 나눈 얘기를 결과 카드로 정리해 줄게</p>
+            <div className="flex gap-2 mt-5">
+              <OverlayCloseButton className="btn btn-secondary btn-md flex-1">더 물어보기</OverlayCloseButton>
+              <button
+                type="button"
+                onClick={() => {
+                  setFinishConfirmOpen(false);
+                  handleFinish();
+                }}
+                className="btn btn-primary btn-md flex-1"
+              >
+                결과 보기
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
 
       {/* 인챗 추천 확인 모달 (cross-type) */}
       <RecoConfirmModal
