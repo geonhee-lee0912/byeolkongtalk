@@ -87,7 +87,9 @@ export default function TarotDrawPage() {
   }
 
   const info = SPREAD_INFO[selection.spreadType];
-  const accent = info.accent;
+  // 주 버튼 보라(--color-accent) 하나 — 스프레드마다 초록·주황·분홍으로 버튼·자리·별 확인 시트 색이 바뀌던 것을 맞췄다(디자인 다듬기 ② /tarot/draw 운영자 A안 11-13).
+  // 값이 hex 인 건 CardDrawRitual 이 `${accent}55` 처럼 투명도를 붙여 쓰기 때문(CSS 변수는 못 붙인다)
+  const accent = "#775CB0";
   const cardCount = info.cardCount;
   const spreadType = selection.spreadType;
 
