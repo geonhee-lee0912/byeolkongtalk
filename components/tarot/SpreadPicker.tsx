@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   EMOTION_OPTIONS,
   normalizeEmotionTag,
@@ -55,20 +54,12 @@ export default function SpreadPicker({ pending }: { pending: PendingConsultation
   // text-pretty — 마지막 줄에 단어 하나만 남지 않게(지원 안 하는 브라우저는 그냥 break-keep 로 끊긴다)
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in break-keep break-words text-pretty">
-      {/* 별콩이 + 타이틀 + 설명 (히어로 대체) */}
-      <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mt-2 mb-5">
-        <Image
-          src="/byeolkong-tarot.png"
-          alt="별콩이"
-          width={120}
-          height={120}
-          priority
-          className="drop-shadow-lg"
-        />
-        <h1 className="font-display text-22 text-eye-purple text-center mt-4 tracking-wide leading-snug text-balance">
+      {/* 타이틀 + 설명 — 별콩이 그림은 뺐다. 고민 적기·카드 뽑기와 같은 자리·크기(20/13)(디자인 다듬기 ② 운영자 V안 11-13) */}
+      <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mt-5 mb-5">
+        <h1 className="font-display text-20 text-eye-purple text-center text-balance">
           너의 고민을 내가 해결해 줄게
         </h1>
-        <p className="text-12 text-text-light text-center mt-1">
+        <p className="text-13 text-text-light text-center mt-1">
           카드를 몇 장으로 깊이 볼지는 네가 골라봐
         </p>
       </div>

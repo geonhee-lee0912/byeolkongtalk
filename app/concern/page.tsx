@@ -104,6 +104,16 @@ export default function ConcernPage() {
           화면 위치는 앱 헤더 제목이 알려 준다(디자인 다듬기 ② 운영자 K안 11-13) */}
       <main className="flex flex-1 flex-col items-center pt-5 pb-8 w-full animate-fade-in">
 
+        {/* 제목 — 고민 적기·리딩 방법 고르기·카드 뽑기 세 화면이 같은 자리·크기(20/13)로 시작한다(디자인 다듬기 ② 운영자 X안 11-13) */}
+        <div className="w-full max-w-md mx-auto px-5 mb-5 flex flex-col items-center">
+          <h1 className="font-display text-20 text-eye-purple text-center">
+            어떤 고민이야?
+          </h1>
+          <p className="text-13 text-text-light text-center mt-1">
+            편하게 말해줘. 별콩이가 들어볼게
+          </p>
+        </div>
+
         {/* 고른 고민 — 보여 주기만(바꾸려면 뒤로 → 홈에서 다시 고른다. '바꾸기'·고르기 창은 운영자 결정으로 뺌 11-12) */}
         {option && (
           <div className="w-full max-w-md mx-auto px-5 mb-5">
@@ -187,7 +197,7 @@ export default function ConcernPage() {
               />
             </div>
 
-            <div className="relative pt-5 flex flex-col">
+            <div className="relative pt-9 flex flex-col">
               {/* 별콩이 말 — 카톡처럼 왼쪽 프사 + 이름 + 흰 말풍선(실제 대화 화면의 별콩이 말과 같은 쪽) */}
               <div className="flex items-start gap-2 self-start max-w-[86%] px-3.5">
                 <span className="relative w-10 h-10 flex-shrink-0 rounded-2xl overflow-hidden bg-white">
@@ -197,18 +207,18 @@ export default function ConcernPage() {
                   <p className="text-12 text-accent-on-dark mb-1 ml-0.5">별콩이</p>
                   <div className="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5">
                     <p className="text-14 font-bold text-eye-purple leading-tight">
-                      어떤 고민이야?
+                      무슨 일이 있었어?
                     </p>
                     <p className="text-12 text-text-light mt-1 leading-relaxed">
-                      편하게 말해줘. 별콩이가 들어볼게
+                      천천히, 생각나는 대로 적어줘
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* 사용자 입력 */}
-              {/* 입력칸 — 카톡 메시지 입력창처럼 판 아래에 끝까지 붙는다 */}
-              <div className="flex w-full mt-5">
+              {/* 입력칸 — 카톡 메시지 입력창처럼 판 아래에 끝까지 붙는다. 밤 판을 넉넉히(mt-21) 두고 입력칸은 160px(운영자 X안 11-13) */}
+              <div className="flex w-full mt-21">
                 <div className="relative flex-1 bg-white focus-within:ring-2 focus-within:ring-inset focus-within:ring-lilac-deep/50 transition-all">
                   <textarea
                     value={concern}
@@ -217,7 +227,7 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-28 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
+                    className="w-full h-40 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
                   />
                   <div className="flex justify-between items-center px-4 pb-2.5 text-11">
                     <span className="text-text-light">

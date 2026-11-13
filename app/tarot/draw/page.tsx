@@ -166,6 +166,7 @@ export default function TarotDrawPage() {
         backLabel="리딩 방법 선택"
         onBack={() => router.push("/tarot")}
         onComplete={onDrawn}
+        pageLayout
       />
 
       {showConfirm && cost !== null && (

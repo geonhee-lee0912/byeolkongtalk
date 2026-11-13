@@ -38,6 +38,12 @@ interface CardDrawRitualProps {
   slim?: boolean;
   /** 이미 뽑힌 card_id 목록 — shuffleDeck 결과에서 제외 */
   excludeCardIds?: number[];
+  /**
+   * true면 한 화면 배치(/tarot/draw 전용, 디자인 다듬기 11-13 운영자 결정):
+   * 호흡 pill·디바이더·프로필 없이 제목 20/13 → 남는 위쪽 가운데에 자리 칸 → 덱·버튼은 아래에 붙인다.
+   * 3장 이하는 자리 칸 1.3배, 5장 이상은 칸 줄 사이를 좁혀 한 화면에 들어가게 한다
+   */
+  pageLayout?: boolean;
 }
 
 export default function CardDrawRitual({
@@ -52,7 +58,11 @@ export default function CardDrawRitual({
   onComplete,
   slim = false,
   excludeCardIds,
+  pageLayout = false,
 }: CardDrawRitualProps) {
+  // pageLayout 은 slim 처럼 장식(pill·디바이더·프로필)을 숨긴다
+  const bare = slim || pageLayout;
+  const slotScale = pageLayout && cardCount <= 3 && !relationshipLayout ? 1.3 : 1;
   const [mounted, setMounted] = useState(false);
   const [deck, setDeck] = useState<number[]>([]);
   const [isShuffling, setIsShuffling] = useState(true);
@@ -242,15 +252,19 @@ export default function CardDrawRitual({
     ? phase === "direction"
       ? "pb-[180px]"
       : "pb-28"
+    : pageLayout
+    ? "pb-4"
     : "pb-16";
 
   return (
     <div
       className={`flex flex-1 flex-col items-center w-full animate-fade-in ${containerPb}`}
     >
-      <div className="w-full max-w-md mx-auto px-5">
+      <div
+        className={`w-full max-w-md mx-auto px-5 ${pageLayout ? "flex flex-1 flex-col" : ""}`}
+      >
         {/* 호흡 가이드 + 스프레드 요약 pill — slim 모드에서 숨김 */}
-        {!slim && (
+        {!bare && (
           <div className="flex justify-center mb-5">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
@@ -277,7 +291,7 @@ export default function CardDrawRitual({
         )}
 
         {/* 섹션 디바이더 — slim 모드에서 숨김 */}
-        {!slim && (
+        {!bare && (
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-lilac-soft" />
             <span className="text-11 font-bold text-text-light tracking-[0.15em]">
@@ -288,8 +302,10 @@ export default function CardDrawRitual({
         )}
 
         {/* 별콩이 + 메시지 — slim 모드에서 프로필 이미지 숨김 */}
-        <div className={`flex flex-col items-center ${slim ? "mb-3" : "mb-5"}`}>
-          {!slim && (
+        <div
+          className={`flex flex-col items-center ${pageLayout ? "" : slim ? "mb-3" : "mb-5"}`}
+        >
+          {!bare && (
             <div className="relative w-14 h-14 mb-2">
               <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -302,7 +318,9 @@ export default function CardDrawRitual({
           )}
           {phase === "pick" ? (
             <>
-              <p className="font-display text-17 text-eye-purple leading-tight text-center">
+              <p
+                className={`font-display text-eye-purple text-center ${pageLayout ? "text-20 break-keep text-balance" : "text-17 leading-tight"}`}
+              >
                 {allFilled ? (
                   <>카드를 다 골랐네!</>
                 ) : cardCount > 1 && activeSlot >= 0 ? (
@@ -325,7 +343,9 @@ export default function CardDrawRitual({
                   "마음이 끌리는 카드를 골라봐"
                 )}
               </p>
-              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
+              <p
+                className={`text-text-light text-center ${pageLayout ? "text-13 mt-1" : "text-12 mt-1.5 leading-relaxed"}`}
+              >
                 {allFilled
                   ? "이제 카드 방향을 정해볼까?"
                   : "“별이 이끄는 대로, 손끝이 멈추는 그 카드로”"}
@@ -333,17 +353,26 @@ export default function CardDrawRitual({
             </>
           ) : (
             <>
-              <p className="font-display text-17 text-eye-purple leading-tight text-center">
+              <p
+                className={`font-display text-eye-purple text-center ${pageLayout ? "text-20 break-keep text-balance" : "text-17 leading-tight"}`}
+              >
                 카드 방향도 정해줄래?
               </p>
-              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
+              <p
+                className={`text-text-light text-center ${pageLayout ? "text-13 mt-1" : "text-12 mt-1.5 leading-relaxed"}`}
+              >
                 &ldquo;정·역에 따라 별이 전하는 결이 달라져&rdquo;
               </p>
             </>
           )}
         </div>
 
-        {/* 슬롯 */}
+        {/* 슬롯 — pageLayout 이면 제목과 덱(방향 단계는 버튼) 사이 남는 높이의 가운데 */}
+        <div
+          className={
+            pageLayout ? "flex flex-1 flex-col items-center justify-center py-5" : ""
+          }
+        >
         <SlotRow
           labels={slotLabels}
           slotCards={slotCards}
@@ -356,12 +385,15 @@ export default function CardDrawRitual({
           onToggleDirection={setDir}
           onRemove={removeCard}
           onSelectSlot={selectSlot}
+          scale={slotScale}
+          tightRows={pageLayout}
         />
+        </div>
       </div>
 
       {/* pick 단계: 가로 스와이프 덱 */}
       {phase === "pick" && (
-        <div className="w-full max-w-md mx-auto mt-6">
+        <div className={`w-full max-w-md mx-auto ${pageLayout ? "" : "mt-6"}`}>
           <HorizontalDeck
             deck={deck}
             pickedSlotByCard={pickedSlotByCard}
@@ -385,7 +417,7 @@ export default function CardDrawRitual({
             : pendingCardId === null || flight !== null || activeSlot < 0;
           const stickyClass = isCompact
             ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
-            : "w-full max-w-md mx-auto px-5 mt-6";
+            : `w-full max-w-md mx-auto px-5 ${pageLayout ? "mt-3" : "mt-6"}`;
           return (
             <div
               className={`flex items-center justify-center gap-2 ${stickyClass}`}
@@ -419,6 +451,8 @@ export default function CardDrawRitual({
           className={`flex flex-col items-center gap-2.5 ${
             isCompact
               ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
+              : pageLayout
+              ? "mt-3"
               : "mt-9"
           }`}
         >
@@ -907,6 +941,8 @@ function SlotRow({
   onToggleDirection,
   onRemove,
   onSelectSlot,
+  scale = 1,
+  tightRows = false,
 }: {
   labels: string[];
   slotCards: (number | null)[];
@@ -919,6 +955,10 @@ function SlotRow({
   onToggleDirection: (idx: number, dir: CardDirection) => void;
   onRemove: (idx: number) => void;
   onSelectSlot: (idx: number) => void;
+  /** 자리 칸 배율 — pageLayout 3장 이하 1.3 */
+  scale?: number;
+  /** 5장 이상 칸 줄 사이 좁힘(pageLayout) */
+  tightRows?: boolean;
 }) {
   const renderSlot = (i: number, horizontal?: boolean) => (
     <Slot
@@ -932,6 +972,7 @@ function SlotRow({
       phase={phase}
       accent={accent}
       horizontal={horizontal}
+      scale={scale}
       onToggleDirection={onToggleDirection}
       onRemove={onRemove}
       onSelectSlot={onSelectSlot}
@@ -964,7 +1005,7 @@ function SlotRow({
   // 5장(비관계): 3+2 / 6장: 3+3 / 7장: 3+3+1(중앙) 피라미드
   // (5슬롯 단일 행 = 56*5 + 20*4 = 360px > 375px 뷰포트 가용폭 335px)
   const renderRows = (rows: number[][]) => (
-    <div className="flex flex-col gap-6 items-center">
+    <div className={`flex flex-col items-center ${tightRows ? "gap-3.5" : "gap-6"}`}>
       {rows.map((row, rowIdx) => (
         <div key={rowIdx} className="flex items-start gap-5 justify-center">
           {row.map((i) => renderSlot(i))}
@@ -981,7 +1022,10 @@ function SlotRow({
   return (
     <div className="flex flex-col gap-3 items-center">
       {rows.map((row, rowIdx) => (
-        <div key={rowIdx} className="flex items-start gap-6 justify-center">
+        <div
+          key={rowIdx}
+          className={`flex items-start justify-center ${scale > 1 ? "gap-8" : "gap-6"}`}
+        >
           {row.map((i) => renderSlot(i))}
         </div>
       ))}
@@ -999,6 +1043,7 @@ function Slot({
   phase,
   accent,
   horizontal,
+  scale = 1,
   onToggleDirection,
   onRemove,
   onSelectSlot,
@@ -1012,16 +1057,18 @@ function Slot({
   phase: Phase;
   accent: string;
   horizontal?: boolean;
+  scale?: number;
   onToggleDirection: (idx: number, dir: CardDirection) => void;
   onRemove: (idx: number) => void;
   onSelectSlot: (idx: number) => void;
 }) {
+  const big = scale > 1;
   const filled = cardId !== null && !isIncoming;
   const showIncomingHint = isIncoming;
   const canSelect = !filled && !isIncoming && phase === "pick";
   const isDirectionPhase = phase === "direction";
-  const boxW = horizontal ? SLOT_H : SLOT_W;
-  const boxH = horizontal ? SLOT_W : SLOT_H;
+  const boxW = (horizontal ? SLOT_H : SLOT_W) * scale;
+  const boxH = (horizontal ? SLOT_W : SLOT_H) * scale;
 
   const cardBox = (
     <div
@@ -1090,7 +1137,7 @@ function Slot({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span
-              className="text-14 font-black tabular-nums"
+              className={`${big ? "text-17" : "text-14"} font-black tabular-nums`}
               style={{ color: `${accent}90` }}
             >
               {index + 1}
@@ -1140,7 +1187,9 @@ function Slot({
   return (
     <div className="flex flex-col items-center gap-1.5" style={{ width: boxW }}>
       {isDirectionPhase && (
-        <p className="text-12 font-black text-eye-purple leading-tight text-center whitespace-nowrap">
+        <p
+          className={`${big ? "text-14" : "text-12"} font-black text-eye-purple leading-tight text-center whitespace-nowrap`}
+        >
           {label}
         </p>
       )}
@@ -1149,7 +1198,7 @@ function Slot({
 
       {!isDirectionPhase && (
         <span
-          className="text-11 font-black leading-none whitespace-nowrap"
+          className={`${big ? "text-14" : "text-11"} font-black leading-none whitespace-nowrap`}
           style={{ color: accent }}
         >
           {label}
