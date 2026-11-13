@@ -404,6 +404,7 @@ export default function CardDrawRitual({
             isShuffling={isShuffling}
             totalSlots={cardCount}
             thinBar={pageLayout}
+            onPickCenter={pageLayout ? confirmPick : undefined}
           />
         </div>
       )}
@@ -533,6 +534,7 @@ function HorizontalDeck({
   isShuffling,
   totalSlots,
   thinBar = false,
+  onPickCenter,
 }: {
   deck: number[];
   pickedSlotByCard: Map<number, number>;
@@ -544,6 +546,11 @@ function HorizontalDeck({
   totalSlots: number;
   /** 번호 막대 얇게(pageLayout) */
   thinBar?: boolean;
+  /**
+   * 가운데 카드를 누르면 바로 자리로(= 카드 선택 버튼, pageLayout). 디자인 다듬기 ④ 운영자 A안 11-13 —
+   * 가운데 카드는 이미 자동으로 고른 카드라 누르기만 하면 아무 변화가 없었다
+   */
+  onPickCenter?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [centeredIndex, setCenteredIndex] = useState(0);
@@ -705,7 +712,9 @@ function HorizontalDeck({
                   if (isShuffling) return;
                   if (suppressClickRef.current) return;
                   if (isCenter) {
-                    if (!isPicked) onTap(cardId);
+                    if (isPicked) return;
+                    if (onPickCenter && cardId === pendingCardId) onPickCenter();
+                    else onTap(cardId);
                   } else {
                     jumpTo(i);
                   }
