@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import type { DrawnCard, SpreadType } from "@/lib/tarot/spreads";
@@ -8,6 +9,8 @@ interface Props {
   drawnCards: DrawnCard[];
   spreadType: SpreadType;
   activeIndex?: number | null;
+  /** 밤 판 맨 위에 얹는 줄(대화 화면의 고민 한 줄 — 디자인 다듬기 ② /tarot/reading 운영자 C안 11-13). 없으면 예전 그대로 */
+  header?: ReactNode;
 }
 
 // 5장(비관계) 3+2 그리드 / 6장 2x3 그리드 / 7장 3+3(+마지막 1장은 중앙 단독 렌더)
@@ -21,6 +24,7 @@ export default function CardSpreadView({
   drawnCards,
   spreadType,
   activeIndex = null,
+  header,
 }: Props) {
   const inner = (() => {
     if (spreadType === "one_card") {
@@ -80,6 +84,18 @@ export default function CardSpreadView({
       </div>
     );
   })();
+
+  if (header) {
+    return (
+      <div className="rounded-2xl bg-night overflow-hidden border border-lilac-mid/20">
+        <div className="border-b border-white/10">{header}</div>
+        <div className="relative p-5">
+          <BackgroundStars />
+          <div className="relative z-10">{inner}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative rounded-2xl bg-night p-5 overflow-hidden border border-lilac-mid/20">

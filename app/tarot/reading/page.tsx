@@ -1058,43 +1058,44 @@ function TarotReadingInner() {
             />
           )}
 
-          {/* 고민 컨텍스트 — 접기/펼치기 토글, 디폴트 접힘 */}
-          <button
-            type="button"
-            onClick={() => setConcernExpanded((v) => !v)}
-            className="btn btn-secondary btn-lg text-left mb-4"
-            aria-expanded={concernExpanded}
-          >
-            <div className="flex items-center gap-1.5">
-              {emotionIcon && <img src={emotionIcon} alt="" width={18} height={18} className="shrink-0 object-contain" />}
-              <span className="text-12 font-bold text-text-light tracking-wide shrink-0">
-                {draw.emotion}
-              </span>
-              {!concernExpanded && (
-                <span className="text-12 text-text-light truncate flex-1 ml-1">
-                  · {draw.concern || "지금 내 흐름이 궁금해"}
-                </span>
-              )}
-              <span
-                className={`text-text-light text-14 shrink-0 transition-transform ml-auto ${
-                  concernExpanded ? "rotate-180" : ""
-                }`}
-              >
-                <Icon name="chev_d" size={14} />
-              </span>
-            </div>
-            {concernExpanded && (
-              <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap break-words mt-2">
-                {draw.concern || "지금 내 흐름이 궁금해"}
-              </p>
-            )}
-          </button>
-
-          {/* 카드 영역 (다크 배경 + 별 파티클) */}
+          {/* 카드 영역 (다크 배경 + 별 파티클) — 맨 위에 고민 한 줄(접기/펼치기, 디폴트 접힘).
+              고민은 따로 떠 있던 연보라 상자였는데 11-09 버튼 모양이 씌워져 글이 넘쳤다 → 밤 판 안으로 합침(디자인 다듬기 ② 운영자 C안 11-13) */}
           <CardSpreadView
             drawnCards={draw.drawnCards}
             spreadType={draw.spreadType}
             activeIndex={activeCardIndex}
+            header={
+              <button
+                type="button"
+                onClick={() => setConcernExpanded((v) => !v)}
+                className="w-full text-left px-4 py-3"
+                aria-expanded={concernExpanded}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {emotionIcon && <img src={emotionIcon} alt="" width={18} height={18} className="shrink-0 object-contain" />}
+                  <span className="text-12 font-bold text-white/85 tracking-wide shrink-0">
+                    {draw.emotion}
+                  </span>
+                  {!concernExpanded && (
+                    <span className="text-12 text-white/60 truncate flex-1 min-w-0 ml-1">
+                      · {draw.concern || "지금 내 흐름이 궁금해"}
+                    </span>
+                  )}
+                  <span
+                    className={`text-white/60 shrink-0 transition-transform ml-auto ${
+                      concernExpanded ? "rotate-180" : ""
+                    }`}
+                  >
+                    <Icon name="chev_d" size={14} />
+                  </span>
+                </div>
+                {concernExpanded && (
+                  <p className="text-13 text-white/85 leading-relaxed whitespace-pre-wrap break-words mt-2">
+                    {draw.concern || "지금 내 흐름이 궁금해"}
+                  </p>
+                )}
+              </button>
+            }
           />
 
           {/* 대화 영역 */}
