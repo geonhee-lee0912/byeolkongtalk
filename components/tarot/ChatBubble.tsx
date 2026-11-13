@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import EmphasisText from "@/components/common/EmphasisText";
@@ -88,7 +89,14 @@ export default function ChatBubble({
               </div>
             </div>
           )}
-          {(content && <EmphasisText text={content} />) || (
+          {/* 빈 줄 없는 줄바꿈도 한 줄(12px) 띄움 — 빈 줄은 이미 말풍선을 나눔. 디자인 다듬기 /tarot/reading ④ 운영자 11-13 */}
+          {(content &&
+            content.split("\n").map((line, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span className="block h-3" />}
+                <EmphasisText text={line} />
+              </Fragment>
+            ))) || (
             <span className="inline-flex gap-1 items-center py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lilac-deep/50 animate-pulse-soft" />
               <span
