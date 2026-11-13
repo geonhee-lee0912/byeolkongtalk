@@ -58,6 +58,9 @@ export default function StarConfirmModal({
 
   const insufficient = balance !== null && balance < cost;
   const afterBalance = balance !== null ? balance - cost : null;
+  // 별 숫자는 세 줄 모두 별 아이콘 + 천 단위 쉼표(디자인 다듬기 ⑥ 운영자 A안 11-13 — '별 999990'·✦999965 가 섞여 있었다)
+  const n = (v: number) => v.toLocaleString("ko-KR");
+  const starIcon = <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />;
 
   // 잔액 부족 노출 계측 — Meta AddToCart 의 원천(2026-10-04, lib/analytics/ui-events.ts 참조).
   // 잔액 로딩이 끝나 "부족"이 확정된 순간 마운트당 1회. loading 중엔 balance 가 스테일일 수 있어 기다린다.
@@ -106,25 +109,25 @@ export default function StarConfirmModal({
           )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
-            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}</span>
+            <span className="font-bold text-eye-purple tabular-nums">{starIcon}{n(cost)}</span>
           </div>
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">현재 잔액</span>
             <span className="font-bold text-eye-purple tabular-nums">
-              {loading || balance === null ? "…" : `별 ${balance}`}
+              {loading || balance === null ? "…" : <>{starIcon}{n(balance)}</>}
             </span>
           </div>
           {!loading && afterBalance !== null && !insufficient && (
             <div className="flex items-center justify-between py-1 border-t border-lilac-mid/15 mt-1 pt-2">
               <span className="text-text-light">결제 후 잔액</span>
               <span className="font-bold tabular-nums" style={{ color: accent }}>
-                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{afterBalance}
+                {starIcon}{n(afterBalance)}
               </span>
             </div>
           )}
           {!loading && insufficient && (
             <p className="text-12 text-red-500 font-bold text-center mt-2">
-              별이 {cost - (balance ?? 0)}개 부족해
+              별이 {n(cost - (balance ?? 0))}개 부족해
             </p>
           )}
         </div>
