@@ -16,7 +16,6 @@ import {
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { fetchWallet } from "@/lib/wallet";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
-import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
@@ -154,11 +153,8 @@ export default function TarotDrawPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center w-full">
-      {/* 단계 인디케이터 */}
-      <div className="mt-14 mb-8">
-        <ProgressSteps current={3} />
-      </div>
+    // 진행 단계는 뺐다(고민 적기와 같이 — 디자인 다듬기 ② 운영자 K안 11-13)
+    <main className="flex flex-1 flex-col items-center pt-5 w-full">
 
       <CardDrawRitual
         cardCount={cardCount}

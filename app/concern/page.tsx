@@ -13,7 +13,6 @@ import {
   type PendingConsultation,
 } from "@/lib/emotions";
 import { CONTINUATION_KEY, isConcernRewrite } from "@/lib/tarot/session";
-import ProgressSteps from "@/components/concern/ProgressSteps";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -101,11 +100,9 @@ export default function ConcernPage() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
-        {/* 진행 단계 */}
-        <div className="mb-8">
-          <ProgressSteps current={1} />
-        </div>
+      {/* 진행 단계(고민·운세 선택·카드 뽑기)는 뺐다 — 2단계였던 /select 가 07-17 에 없어진 뒤로 1·3단계에만 남아 끊겨 보였다.
+          화면 위치는 앱 헤더 제목이 알려 준다(디자인 다듬기 ② 운영자 K안 11-13) */}
+      <main className="flex flex-1 flex-col items-center pt-5 pb-8 w-full animate-fade-in">
 
         {/* 고른 고민 — 보여 주기만(바꾸려면 뒤로 → 홈에서 다시 고른다. '바꾸기'·고르기 창은 운영자 결정으로 뺌 11-12) */}
         {option && (
