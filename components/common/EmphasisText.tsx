@@ -14,7 +14,9 @@ export default function EmphasisText({ text }: { text: string }) {
           <strong
             key={i}
             className="font-bold text-eye-purple"
-            style={{ background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }}
+            // 형광펜 띠 → 글자 아래 얇은 밑줄(72~92%) — 디자인 다듬기 /tarot/reading ④ 운영자 11-13.
+            // 운세 리포트(lib/markdown-lite)는 아직 옛 띠 — 그 화면 차례에 맞출지 본다
+            style={{ background: "linear-gradient(transparent 72%, rgba(242, 215, 138, 0.5) 72%, rgba(242, 215, 138, 0.5) 92%, transparent 92%)" }}
           >
             {s.text}
           </strong>
