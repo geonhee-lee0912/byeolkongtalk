@@ -403,6 +403,7 @@ export default function CardDrawRitual({
             accent={accent}
             isShuffling={isShuffling}
             totalSlots={cardCount}
+            thinBar={pageLayout}
           />
         </div>
       )}
@@ -531,6 +532,7 @@ function HorizontalDeck({
   accent,
   isShuffling,
   totalSlots,
+  thinBar = false,
 }: {
   deck: number[];
   pickedSlotByCard: Map<number, number>;
@@ -540,6 +542,8 @@ function HorizontalDeck({
   accent: string;
   isShuffling: boolean;
   totalSlots: number;
+  /** 번호 막대 얇게(pageLayout) */
+  thinBar?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [centeredIndex, setCenteredIndex] = useState(0);
@@ -751,6 +755,7 @@ function HorizontalDeck({
         visibleCards={visibleCards}
         centeredIndex={centeredIndex}
         onJump={(i, smooth) => jumpTo(i, smooth)}
+        thin={thinBar}
       />
     </div>
   );
@@ -766,6 +771,7 @@ function DeckScrollbar({
   visibleCards,
   centeredIndex,
   onJump,
+  thin = false,
 }: {
   accent: string;
   total: number;
@@ -774,6 +780,11 @@ function DeckScrollbar({
   visibleCards: number[];
   centeredIndex: number;
   onJump: (i: number, smooth?: boolean) => void;
+  /**
+   * 얇은 막대(/tarot/draw, 디자인 다듬기 ③ 운영자 B안 11-13): 눈금·'#번호' 말풍선 없이 얇은 줄 + 작은 동그라미 손잡이,
+   * 좌우는 아래 버튼 끝선(32px)에 맞춘다. 누르거나 끌어서 넘어가기·고른 카드 핀은 그대로
+   */
+  thin?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -801,7 +812,7 @@ function DeckScrollbar({
     .filter((m): m is { deckIdx: number; slotNum: number } => m !== null);
 
   return (
-    <div className="mt-2 px-4">
+    <div className={`mt-2 ${thin ? "px-8" : "px-4"}`}>
       {/* 뽑힌 카드 마커 행 — 트랙 위 (지도 핀 모양, 클릭하면 해당 카드로 점프) */}
       <div className="relative h-6 mb-1">
         {pickedMarkers.map(({ deckIdx, slotNum }) => (
@@ -852,10 +863,10 @@ function DeckScrollbar({
           e.currentTarget.releasePointerCapture(e.pointerId);
         }}
         onPointerCancel={() => setDragging(false)}
-        className="relative h-1.5 bg-lilac-soft rounded-full cursor-pointer touch-none select-none"
+        className={`relative ${thin ? "h-1" : "h-1.5"} bg-lilac-soft rounded-full cursor-pointer touch-none select-none`}
       >
         {/* 10장마다 눈금 */}
-        {tickPositions.map((n) => (
+        {!thin && tickPositions.map((n) => (
           <div
             key={n}
             className="absolute top-0 h-full w-[1.5px] rounded-full pointer-events-none"
@@ -878,19 +889,21 @@ function DeckScrollbar({
           />
         ))}
 
-        {/* 썸 */}
+        {/* 썸 — thin 이면 흰 테두리 동그라미(16) */}
         <div
           className="absolute top-1/2 -translate-y-1/2 rounded-full pointer-events-none"
           style={{
-            left: `calc(${ratio * 100}% - 14px)`,
-            width: 28,
-            height: 12,
+            left: `calc(${ratio * 100}% - ${thin ? 8 : 14}px)`,
+            width: thin ? 16 : 28,
+            height: thin ? 16 : 12,
             background: accent,
+            border: thin ? "3px solid #fff" : undefined,
             boxShadow: `0 2px 6px ${accent}66`,
             transition: dragging ? "none" : "left 150ms ease-out",
           }}
         >
-          {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치 */}
+          {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치(thin 이면 없음) */}
+          {!thin && (
           <div
             className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-lg text-11 font-black tabular-nums whitespace-nowrap"
             style={{ background: accent, color: "#fff" }}
@@ -908,11 +921,12 @@ function DeckScrollbar({
             />
             #{centeredIndex + 1}
           </div>
+          )}
         </div>
       </div>
 
       {/* 툴팁 공간 확보 */}
-      <div className="h-6" />
+      <div className={thin ? "h-2" : "h-6"} />
     </div>
   );
 }
