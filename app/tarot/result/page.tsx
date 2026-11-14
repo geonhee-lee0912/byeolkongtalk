@@ -139,10 +139,7 @@ function TarotResultInner() {
     content: m.role === "assistant" ? cleanContent(m.content) : m.content,
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
-  // W3: [END] 없이 증발한(stale) 리딩 — "이어서 대화하기" 보조 버튼 노출용 (strip 전 원본에서 판정)
-  const ended = data.messages.some(
-    (m) => m.role === "assistant" && m.content.includes("[END]")
-  );
+  // 끊긴 대화의 '이어서 대화하기'는 뺐다 — 결과 화면에 오면 결과로 끝(디자인 다듬기 /tarot/result ⑤ 운영자 11-14, 쓰임 7%)
   const cards = reading.drawnCards ?? [];
   const cardsText = cards
     .map((c) => {
@@ -284,17 +281,6 @@ function TarotResultInner() {
         )}
       </div>
 
-      {/* W3: 미완료(증발) 리딩 — 대화 복귀 경로 보존 */}
-      {!ended && (
-        <div className="w-full max-w-md mx-auto px-5 mt-3">
-          <Link
-            href={`/tarot/reading?id=${reading.id}`}
-            className="btn btn-secondary btn-lg"
-          >
-            이어서 대화하기
-          </Link>
-        </div>
-      )}
 
       {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로. 가격 = 가장 싼 스프레드(원카드)부터 */}
       <RechargeBlock
