@@ -1271,7 +1271,8 @@ function TarotReadingInner() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-                <div className="flex items-end gap-2">
+                {/* 카카오톡처럼 둥근 입력칸 안 오른쪽에 ↑ 전송(H안) — 디자인 다듬기 /tarot/reading ⑥ 운영자 11-14. 칸이 화면 폭을 다 써 글 쓸 자리가 넓다 */}
+                <div className="flex items-end gap-1 p-1 rounded-3xl bg-white border border-lilac-mid/55 focus-within:border-lilac-deep focus-within:ring-2 focus-within:ring-lilac-deep/30">
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -1306,21 +1307,26 @@ function TarotReadingInner() {
                     }
                     disabled={isStreaming || !readingId}
                     maxLength={500}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-14 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
-                    style={{ minHeight: "44px", maxHeight: "120px" }}
+                    // 16px — 아이폰은 이보다 작은 입력칸을 누르면 화면을 저절로 확대한다
+                    className="flex-1 min-w-0 pl-3.5 pr-1.5 py-[9px] bg-transparent text-eye-purple text-16 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none"
+                    style={{ minHeight: "40px", maxHeight: "120px" }}
                   />
                   <button
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
-                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로 — 흐려지면 아래 '마무리하고 결과 보기'가 화면에서 가장 강해 보인다(사용자 2026-10-04). 동작 잠금은 disabled 가 그대로 한다
-                    className="btn btn-primary btn-md shrink-0 disabled:cursor-not-allowed"
+                    aria-label="전송"
+                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로(사용자 2026-10-04 — 흐려지면 다른 것이 화면에서 가장 강해 보였다). 동작 잠금은 disabled 가 그대로 한다
+                    className="shrink-0 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center transition active:scale-[0.96] disabled:active:scale-100 disabled:cursor-not-allowed"
                   >
-                    전송
-                    <span className="text-11 font-normal text-white/70">
-                      {input.length}/500
-                    </span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+                    </svg>
                   </button>
                 </div>
+                {/* 글자 수는 끝(500)에 가까워질 때만 */}
+                {input.length >= 400 && (
+                  <p className="text-11 text-text-light text-right pr-3 -mt-1 tabular-nums">{input.length}/500</p>
+                )}
               </form>
           )}
         </div>
