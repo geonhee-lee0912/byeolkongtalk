@@ -16,7 +16,6 @@ export default function RechargeBlock({
   newCostLabel,
   newDesc,
   readingId,
-  onNew,
 }: {
   allowContinue: boolean;
   onContinue?: () => void;
@@ -29,8 +28,6 @@ export default function RechargeBlock({
   newDesc?: string;
   /** 계측 귀속용 reading id (선택). */
   readingId?: string;
-  /** 새 CTA 를 누른 순간(이동 전) — 타로 결과는 여기서 이 고민을 넘긴다(lib/tarot/redraw). */
-  onNew?: () => void;
 }) {
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-6">
@@ -56,10 +53,7 @@ export default function RechargeBlock({
         )}
         <Link
           href={newHref}
-          onClick={() => {
-            trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } });
-            onNew?.();
-          }}
+          onClick={() => trackUiEvent("result_cta_clicked", { readingId, meta: { cta: "new" } })}
           className={`btn btn-lg justify-between px-4 ${showContinue ? "btn-secondary" : "btn-primary"}`}
         >
           <span className="flex flex-col min-w-0">

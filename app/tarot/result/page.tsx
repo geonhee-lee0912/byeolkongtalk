@@ -12,7 +12,6 @@ import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { EMOTION_TO_CATEGORY } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
-import RechargeBlock from "@/components/upsell/RechargeBlock";
 import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -22,7 +21,8 @@ import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS, PENDING_KEY } from "@/lib/emotions";
 import { CONTINUATION_KEY } from "@/lib/tarot/session";
-import { redrawTarget } from "@/lib/tarot/redraw";
+import { redrawCard, redrawTarget } from "@/lib/tarot/redraw";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import Icon from "@/components/common/Icon";
 
@@ -288,26 +288,21 @@ function TarotResultInner() {
       </div>
 
 
-      {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로. 가격 = 가장 싼 스프레드(원카드)부터 */}
-      <RechargeBlock
-        allowContinue={!reading.hasSensitive}
-        showContinue={false}
-        newHref={redraw.href}
-        onNew={() => {
-          // 이 고민을 넘긴다 — 고민 적기와 같이, 남은 이어가기 표시는 지운다(새 리딩에 옛 요약이 붙지 않게)
-          sessionStorage.removeItem(CONTINUATION_KEY);
-          if (redraw.pending) sessionStorage.setItem(PENDING_KEY, JSON.stringify(redraw.pending));
-        }}
-        newLabel="이 고민 다시 뽑기"
-        newDesc="스프레드 다시 골라 카드 뽑기"
-        newCostLabel={`별 ${tarotPrice("one_card")}~`}
-        readingId={reading.id}
-      />
-
-      {/* ③ 크로스셀 (궁합) — 공유 위로 */}
+      {/* ② 다음 — '이 고민으로 카드 다시 뽑기'를 추천 묶음 맨 위에 같은 무게로(디자인 다듬기 /tarot/result ③ M2, 운영자 11-14).
+          예전엔 재충전 블록의 보라 버튼이었다. 가격 = 가장 싼 스프레드(원카드)부터. 계측은 그때와 같은 cta:"new" */}
       <ResultUpsell
         variant="counsel"
         topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
+        title="다음엔 뭐 볼래?"
+        lead={{
+          ...redrawCard(redraw.href, tarotPrice("one_card")),
+          onClick: () => {
+            trackUiEvent("result_cta_clicked", { readingId: reading.id, meta: { cta: "new" } });
+            // 이 고민을 넘긴다 — 고민 적기와 같이, 남은 이어가기 표시는 지운다(새 리딩에 옛 요약이 붙지 않게)
+            sessionStorage.removeItem(CONTINUATION_KEY);
+            if (redraw.pending) sessionStorage.setItem(PENDING_KEY, JSON.stringify(redraw.pending));
+          },
+        }}
       />
 
       {/* 다시 볼 날 — 소유자·앱에서만(공유 위) */}
