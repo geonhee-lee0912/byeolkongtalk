@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import ConcernQuote from "@/components/tarot/ConcernQuote";
 import Image from "next/image";
 import ChatBubble from "@/components/tarot/ChatBubble";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
@@ -180,20 +181,13 @@ function TarotResultInner() {
             {reading.emotionTag}
           </h1>
         )}
-        <p className="text-13 text-text-light text-center mt-1 mb-6">
+        <p className="text-13 text-text-light text-center mt-1 mb-4">
           {(() => {
             const d = new Date(reading.createdAt);
             return `${d.getMonth() + 1}월 ${d.getDate()}일 · ${spreadLabel}`;
           })()}
         </p>
-        <div className="card">
-          <div className="text-11 font-bold text-text-light mb-1">
-            나의 고민
-          </div>
-          <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap">
-            {reading.question}
-          </p>
-        </div>
+        <ConcernQuote text={reading.question} />
       </div>
 
       {/* 뽑은 카드 스프레드 */}
