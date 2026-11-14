@@ -196,9 +196,12 @@ function TarotResultInner() {
           <div className="flex flex-wrap justify-center gap-4">
             {cards.map((c, i) => {
               const card = getCard(c.card_id);
+              // 카드 이름이 먼저(굵게), 자리 이름은 아래 작게 — 옛 판은 자리 이름이 크고 카드 이름이 작았다. 정/역 글자는 뺐다(역방향은 그림이 뒤집혀 보인다).
+              // 1장이면 대화 화면 판과 같은 104×164 로 키운다 — 디자인 다듬기 /tarot/result ③ 운영자 11-14
+              const one = cards.length === 1;
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50">
+                  <div className={`relative ${one ? "w-[104px] h-[164px]" : "w-[88px] aspect-[2/3]"} rounded-lg overflow-hidden border border-card-gold/50`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCardImagePath(c.card_id)}
@@ -210,13 +213,10 @@ function TarotResultInner() {
                       }}
                     />
                   </div>
-                  <span className="text-12 font-extrabold text-white leading-tight text-center max-w-[96px]">
-                    {c.label}
-                  </span>
-                  <span className="text-11 text-white/90 leading-tight text-center max-w-[96px]">
-                    {card?.name_kr}
-                    {c.direction === "reversed" ? " (역)" : ""}
-                  </span>
+                  <div className="text-center max-w-[104px]">
+                    <p className="text-14 font-bold text-white leading-tight">{card?.name_kr}</p>
+                    <p className="text-11 text-white/60 leading-tight mt-1">{c.label}</p>
+                  </div>
                 </div>
               );
             })}
