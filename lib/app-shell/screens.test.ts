@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appScreen, backGoesToTabRoot, depthOnChange, nextDepth } from "./screens.ts";
+import { appScreen, backGoesToTabRoot, depthOnChange, hidesBottomTab, nextDepth } from "./screens.ts";
 
 test("탭 첫 화면 5개", () => {
   assert.deepEqual(appScreen("/"), { kind: "tab", title: "타로톡" });
@@ -94,4 +94,13 @@ test("보관함·결과 화면에서 id 를 들고 연 타로 대화와 다른 �
   assert.equal(backGoesToTabRoot("/tarot/reading", "?id=abc"), false);
   assert.equal(backGoesToTabRoot("/tarot/draw", ""), false);
   assert.equal(backGoesToTabRoot("/saju/reading", ""), false);
+});
+
+test("하단탭은 타로 대화 화면에서만 숨긴다 — 결과 화면·뽑기·다른 대화는 그대로(디자인 다듬기 /tarot/reading 운영자 11-14)", () => {
+  assert.equal(hidesBottomTab("/tarot/reading"), true);
+  assert.equal(hidesBottomTab("/tarot/reading/"), true);
+  assert.equal(hidesBottomTab("/tarot/result"), false);
+  assert.equal(hidesBottomTab("/tarot/draw"), false);
+  assert.equal(hidesBottomTab("/tarot"), false);
+  assert.equal(hidesBottomTab("/saju/reading"), false);
 });

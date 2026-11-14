@@ -93,3 +93,8 @@ export function backGoesToTabRoot(pathname: string, search: string): boolean {
   if (normalize(pathname) !== "/tarot/reading") return false;
   return !new URLSearchParams(search).has("id");
 }
+
+/** 하단탭을 숨기는 화면 — 타로 대화만(채팅방처럼 채팅만 남긴다). 나가는 길은 헤더('‹' → 홈 · 웹은 로고). 디자인 다듬기 /tarot/reading 운영자 11-14 */
+export function hidesBottomTab(pathname: string): boolean {
+  return normalize(pathname) === "/tarot/reading";
+}

@@ -1026,7 +1026,8 @@ function TarotReadingInner() {
     <main
       className="flex flex-col items-stretch w-full min-h-0"
       style={{
-        height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
+        // 하단탭 없음(lib/app-shell/screens hidesBottomTab) — 헤더(3.5rem)·아래 안전 영역만 뺀다
+        height: "calc(100dvh - 3.5rem - env(safe-area-inset-bottom))",
       }}
     >
       {/* 스크롤 영역 — 고민 + 카드 스프레드 + 대화 */}
