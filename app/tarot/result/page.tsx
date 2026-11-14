@@ -157,22 +157,6 @@ function TarotResultInner() {
   return (
     // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="web-only text-12 text-text-light">
-            ‹ 뒤로
-          </button>
-        ) : (
-          <Link href="/" className="web-only text-12 text-text-light">
-            ‹ 홈으로
-          </Link>
-        )}
-        {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
-        <div className="ml-auto text-11 text-text-light">
-          {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
-        </div>
-      </div>
-
       {reading.relationshipId && (
         <div className="w-full max-w-md mx-auto px-5 mb-4">
           <Link
@@ -186,29 +170,22 @@ function TarotResultInner() {
 
       {/* 고민 분류 + 나의 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
+        {/* 맨 위 — 큰 감정 아이콘 하나 + 다른 화면과 같은 제목(로고 글꼴 20) + 날짜·스프레드 한 줄(C안) — 디자인 다듬기 /tarot/result ① 운영자 11-14.
+            옛 양옆 아이콘 두 개·오른쪽 위 날짜·웹 '‹ 홈으로'(로고·아래 탭이 같은 일)는 뺐다 */}
+        {emotionIcon && (
+          <Image src={emotionIcon} alt="" width={52} height={52} className="mx-auto mb-2" />
+        )}
         {reading.emotionTag && (
-          <h1 className="text-20 font-bold text-eye-purple flex items-center justify-center gap-2 mb-7">
-            {emotionIcon && (
-              <Image
-                src={emotionIcon}
-                alt=""
-                width={36}
-                height={36}
-                className="shrink-0"
-              />
-            )}
+          <h1 className="font-display text-20 text-eye-purple text-center text-balance break-keep">
             {reading.emotionTag}
-            {emotionIcon && (
-              <Image
-                src={emotionIcon}
-                alt=""
-                width={36}
-                height={36}
-                className="shrink-0"
-              />
-            )}
           </h1>
         )}
+        <p className="text-13 text-text-light text-center mt-1 mb-6">
+          {(() => {
+            const d = new Date(reading.createdAt);
+            return `${d.getMonth() + 1}월 ${d.getDate()}일 · ${spreadLabel}`;
+          })()}
+        </p>
         <div className="card">
           <div className="text-11 font-bold text-text-light mb-1">
             나의 고민
