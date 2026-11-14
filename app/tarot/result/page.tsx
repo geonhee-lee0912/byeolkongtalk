@@ -20,7 +20,9 @@ import { stripRecoMarkers } from "@/lib/reco-utils";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
-import { EMOTION_OPTIONS } from "@/lib/emotions";
+import { EMOTION_OPTIONS, PENDING_KEY } from "@/lib/emotions";
+import { CONTINUATION_KEY } from "@/lib/tarot/session";
+import { redrawTarget } from "@/lib/tarot/redraw";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import Icon from "@/components/common/Icon";
 
@@ -140,6 +142,10 @@ function TarotResultInner() {
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
   // 끊긴 대화의 '이어서 대화하기'는 뺐다 — 결과 화면에 오면 결과로 끝(디자인 다듬기 /tarot/result ⑤ 운영자 11-14, 쓰임 7%)
+  // 공유 링크로 온 남(비소유자)에게 남의 고민을 넘기지 않는다 — 자기 고민 적기로
+  const redraw = isOwner
+    ? redrawTarget(reading.question, reading.emotionTag)
+    : { href: "/concern", pending: null };
   const cards = reading.drawnCards ?? [];
   const cardsText = cards
     .map((c) => {
@@ -286,7 +292,12 @@ function TarotResultInner() {
       <RechargeBlock
         allowContinue={!reading.hasSensitive}
         showContinue={false}
-        newHref="/tarot"
+        newHref={redraw.href}
+        onNew={() => {
+          // 이 고민을 넘긴다 — 고민 적기와 같이, 남은 이어가기 표시는 지운다(새 리딩에 옛 요약이 붙지 않게)
+          sessionStorage.removeItem(CONTINUATION_KEY);
+          if (redraw.pending) sessionStorage.setItem(PENDING_KEY, JSON.stringify(redraw.pending));
+        }}
         newLabel="이 고민 다시 뽑기"
         newDesc="스프레드 다시 골라 카드 뽑기"
         newCostLabel={`별 ${tarotPrice("one_card")}~`}
