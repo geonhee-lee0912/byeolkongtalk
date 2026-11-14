@@ -48,22 +48,13 @@ interface Message {
 const TYPING_SPEED = 45;
 const THINKING_PROBABILITY = 0.2; // 새 버블 생성 전 "생각 중" pause 확률
 const DEBOUNCE_FLUSH_MS = 2000;
-const IDLE_NUDGE_1_MS = 10000;
-const IDLE_NUDGE_2_MS = 40000; // 1단계 멘트 이후 추가 대기
-const NUDGE_STAGE_1 = [
-  "어디 갔어~? 천천히 생각해도 괜찮아 :)",
-  "음, 아직 거기 있어? 별콩이 여기서 기다릴게",
-  "다른 거 하는 중이야? 돌아오면 마저 봐줄게",
-];
-const NUDGE_STAGE_2 = [
-  "별콩이 여기 있을게, 천천히 와",
-  "급할 거 없어. 마음 정리되면 다시 얘기하자",
-];
-// W3 출구 nudge — 수렴 이후 무응답 지속 시 "마무리하고 결과 보기" 제안 (로컬 멘트, API 호출 X)
-const IDLE_EXIT_MS = 60000; // 2단계 멘트 이후 출구 제안까지 추가 대기
+// 기다림 멘트는 결과 제안 하나만 — 답이 끝나고 5분 동안 말이 없으면 "결과 카드로 볼래? 더 얘기해도 돼"(로컬 멘트, API 호출 X).
+// 예전엔 10초 뒤 "어디 갔어~?"·50초 뒤 "여기 있을게"가 먼저 떴는데, 읽는 중에 재촉한다는 CS 가 많아 없앴다(운영자 11-14).
+// 결과 제안은 남긴다 — 30일 실측에서 칩이 뜬 대화의 약 1/4 이 그걸 눌러 결과로 갔다(말없이 떠났을 사람들)
+const IDLE_EXIT_MS = 300000;
 const EXIT_NUDGE = [
-  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
-  "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
+  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기는 결과 카드로 정리해둘게 — 더 궁금한 게 있으면 이어서 물어봐도 되고!",
+  "마음 가는 만큼만 하면 돼. 오늘 얘기를 결과 카드로 볼 수도 있고, 이어서 더 얘기해도 좋아",
 ];
 const FINISH_PHRASE = "대화 마무리할게"; // 헤더 '결과 보기' → 확인 창 경유(옛 입력창 아래 '마무리하고 결과 보기') — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
@@ -173,7 +164,7 @@ function TarotReadingInner() {
   const baseHistoryRef = useRef<Message[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=2단계 후, 3=종료
+  const idleStageRef = useRef(0); // 0=아직, 3=결과 제안 뒤(더는 안 띄움)
   const flushPendingRef = useRef<() => void>(() => {});
   const runIdleNudgeRef = useRef<() => void>(() => {});
   // W3 출구 nudge — 출구 칩 노출 상태
@@ -539,7 +530,7 @@ function TarotReadingInner() {
         }
       } else {
         idleStageRef.current = 0;
-        armIdleTimer(IDLE_NUDGE_1_MS);
+        armIdleTimer(IDLE_EXIT_MS);
       }
     }, 80);
   }
@@ -657,10 +648,14 @@ function TarotReadingInner() {
 
   function pushNudge(pool: string[]) {
     const text = pool[Math.floor(Math.random() * pool.length)];
+    // 위로 올려 앞 답을 읽는 중이면 끌어내리지 않는다 — 맨 아래 근처에 있을 때만 따라 내려간다
+    const el0 = scrollRef.current;
+    const nearBottom = !el0 || el0.scrollHeight - el0.scrollTop - el0.clientHeight < 160;
     setMessages((prev) => [
       ...prev,
       { role: "assistant", content: text, ephemeral: true },
     ]);
+    if (!nearBottom) return;
     requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
@@ -677,16 +672,7 @@ function TarotReadingInner() {
     );
     if (!assistantSpoke) return;
 
-    const stage = idleStageRef.current;
-    if (stage === 0) {
-      pushNudge(NUDGE_STAGE_1);
-      idleStageRef.current = 1;
-      armIdleTimer(IDLE_NUDGE_2_MS);
-    } else if (stage === 1) {
-      pushNudge(NUDGE_STAGE_2);
-      idleStageRef.current = 2;
-      armIdleTimer(IDLE_EXIT_MS);
-    } else if (stage === 2) {
+    if (idleStageRef.current === 0) {
       // 출구 칩 — 첫 턴부터 노출 (2026-07-26 P0-2: 1턴 만족 이탈도 결과 화면을 경유하도록
       // wrapMode 게이트 제거. 근거: 결과 미도달 47.4% + 1턴 시점 마무리 안내 0)
       idleStageRef.current = 3; // 종료 — 더는 무장하지 않음
