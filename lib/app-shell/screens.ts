@@ -83,3 +83,13 @@ export function depthOnChange(depth: number, prevKey: string | null, key: string
   if (prevKey === null || prevKey === key) return depth;
   return nextDepth(depth, popped ? "pop" : "push");
 }
+
+/**
+ * '‹' 가 기록 뒤가 아니라 탭 첫 화면으로 가야 하는 화면 — 카드 뽑기에서 막 들어온 타로 대화(주소에 id 가 없다).
+ * 기록 뒤는 카드 뽑기라 '다시 뽑으라는' 화면처럼 보였다(디자인 다듬기 /tarot/reading 운영자 11-14: 홈으로).
+ * 보관함·결과 화면에서 id 를 들고 연 대화는 평소처럼 뒤로(보관함으로) 간다
+ */
+export function backGoesToTabRoot(pathname: string, search: string): boolean {
+  if (normalize(pathname) !== "/tarot/reading") return false;
+  return !new URLSearchParams(search).has("id");
+}

@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { appScreen, depthOnChange } from "@/lib/app-shell/screens";
+import { appScreen, backGoesToTabRoot, depthOnChange } from "@/lib/app-shell/screens";
 import { markBackButton, requestBack } from "@/lib/app-shell/nav-direction";
 import { runBackTransition } from "./AppNavDirection";
 import type { HeaderUser } from "./useHeaderAccount";
@@ -50,7 +50,8 @@ export default function AppHeader({ user, balance }: { user: HeaderUser | null; 
   const goBack = () => {
     if (screen.kind !== "sub") return;
     const root = screen.tabRoot;
-    if (depth === 0) {
+    // 카드 뽑기에서 막 들어온 타로 대화는 기록 뒤(카드 뽑기)가 아니라 홈으로(lib/app-shell/screens backGoesToTabRoot)
+    if (depth === 0 || backGoesToTabRoot(pathname, window.location.search)) {
       router.replace(root);
       return;
     }

@@ -107,7 +107,8 @@ export default function TarotDrawPage() {
       expectedCost: price,
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
-    router.push("/tarot/reading");
+    // 바꿔치기 — 기록에 카드 뽑기를 남기면 대화에서 뒤로 가기(웹 브라우저)가 '다시 뽑기' 화면으로 돌아왔다(디자인 다듬기 /tarot/reading 운영자 11-14). 앱 '‹' 는 홈으로(AppHeader)
+    router.replace("/tarot/reading");
     // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다 — 홈을 거치지 않고 들어온 기기도 정리되게(lib/tarot/pending-draw.ts).
     // 이동 뒤에 둔다 — localStorage 접근 자체가 던지는 브라우저여도 풀이 시작을 막지 않게
     try {
