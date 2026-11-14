@@ -1,7 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
+import Sheet from "@/components/common/Sheet";
+import { useOverlayClose } from "@/components/common/overlay-close";
+
+// 결과 화면 공유 — '공유하기' 버튼 하나, 누르면 시트에서 카톡·링크·이미지 중 고른다(디자인 다듬기 /tarot/result ⑥ B, 운영자 11-14).
+// 예전엔 노란 카톡 큰 버튼 + 연보라 버튼 둘이 늘 펼쳐져 화면에서 제일 큰 색 덩어리였다.
+// 아이콘 셋은 면 아이콘 30종(components/common/Icon)에 없는 것이라 여기 선 그림으로 둔다 — 카톡 말풍선은 원래 있던 그림.
+const line = (d: ReactNode, size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    {d}
+  </svg>
+);
+const SHARE_ICON = line(<><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></>, 18);
+const LINK_ICON = line(<><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></>, 24);
+const SAVE_ICON = line(<><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></>, 24);
+const KAKAO_ICON = (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
+  </svg>
+);
+
+/** 시트 안 공유 칸 하나 — 누르면 시트를 닫고 그 공유를 한다 */
+function ShareOption({
+  icon,
+  label,
+  circleClass,
+  disabled,
+  onPick,
+}: {
+  icon: ReactNode;
+  label: string;
+  circleClass: string;
+  disabled?: boolean;
+  onPick: () => void;
+}) {
+  const close = useOverlayClose();
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => {
+        onPick(); // 기기 공유창(navigator.share)은 누른 그 순간에 불러야 열린다 — 닫기보다 먼저
+        close();
+      }}
+      className="flex flex-col items-center gap-2 disabled:opacity-50"
+    >
+      <span className={`w-14 h-14 rounded-full flex items-center justify-center ${circleClass}`}>{icon}</span>
+      <span className="text-13 font-semibold text-eye-purple">{label}</span>
+    </button>
+  );
+}
 
 export interface TarotShareButtonsProps {
   readingId: string;
@@ -41,6 +91,7 @@ export default function TarotShareButtons({
   hasSensitive,
 }: TarotShareButtonsProps) {
   const [toast, setToast] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   if (hasSensitive) {
     return (
@@ -131,31 +182,27 @@ export default function TarotShareButtons({
   };
 
   return (
-    <div className="relative flex flex-col gap-2">
-      <button
-        onClick={handleKakaoShare}
-        disabled={!isKakaoReady()}
-        className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-14 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
-        </svg>
-        카카오톡으로 공유하기
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(true)} className="btn btn-secondary btn-lg gap-2">
+        {SHARE_ICON}
+        공유하기
       </button>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={handleShare}
-          className="btn btn-secondary btn-md"
-        >
-          링크로 공유하기
-        </button>
-        <button
-          onClick={handleInstaSave}
-          className="btn btn-secondary btn-md"
-        >
-          이미지로 저장
-        </button>
-      </div>
+      {open && (
+        <Sheet label="공유하기" onClose={() => setOpen(false)} z={80}>
+          <p className="text-17 font-black tracking-tight text-center mb-[22px]">어디로 공유할까?</p>
+          <div className="grid grid-cols-3">
+            <ShareOption
+              icon={KAKAO_ICON}
+              label="카카오톡"
+              circleClass="bg-[#FEE500] text-[#3C1E1E]"
+              disabled={!isKakaoReady()}
+              onPick={handleKakaoShare}
+            />
+            <ShareOption icon={LINK_ICON} label="링크로 공유" circleClass="bg-lilac-soft text-eye-purple" onPick={handleShare} />
+            <ShareOption icon={SAVE_ICON} label="이미지 저장" circleClass="bg-lilac-soft text-eye-purple" onPick={handleInstaSave} />
+          </div>
+        </Sheet>
+      )}
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-float">
           {toast}

@@ -288,6 +288,18 @@ function TarotResultInner() {
       </div>
 
 
+      {/* 공유 — '공유하기' 하나(누르면 시트), 다시보기 바로 아래·'다음엔 뭐 볼래?' 위(디자인 다듬기 /tarot/result ⑥, 운영자 11-14) */}
+      <div className="w-full max-w-md mx-auto px-5 mt-4">
+        <TarotShareButtons
+          readingId={reading.id}
+          question={reading.question}
+          spreadLabel={spreadLabel}
+          cardsText={cardsText}
+          closingLine={closingLine}
+          hasSensitive={reading.hasSensitive}
+        />
+      </div>
+
       {/* ② 다음 — '이 고민으로 카드 다시 뽑기'를 추천 묶음 맨 위에 같은 무게로(디자인 다듬기 /tarot/result ③ M2, 운영자 11-14).
           예전엔 재충전 블록의 보라 버튼이었다. 가격 = 가장 싼 스프레드(원카드)부터. 계측은 그때와 같은 cta:"new" */}
       <ResultUpsell
@@ -305,20 +317,8 @@ function TarotResultInner() {
         }}
       />
 
-      {/* 다시 볼 날 — 소유자·앱에서만(공유 위) */}
+      {/* 다시 볼 날 — 소유자·앱에서만(자리는 결과 화면 ⑩ 에서 다시 정한다) */}
       {isOwner && <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />}
-
-      {/* ④ 공유 — 크로스셀 아래로 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-4">
-        <TarotShareButtons
-          readingId={reading.id}
-          question={reading.question}
-          spreadLabel={spreadLabel}
-          cardsText={cardsText}
-          closingLine={closingLine}
-          hasSensitive={reading.hasSensitive}
-        />
-      </div>
 
       <SurveyResultCard />
     </main>

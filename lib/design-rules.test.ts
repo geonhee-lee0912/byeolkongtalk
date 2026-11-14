@@ -126,7 +126,8 @@ test("큰 버튼은 부품 클래스를 쓴다", () => {
 });
 test("카카오·애플 버튼은 규정 색을 유지한다", () => {
   const kakao = BUTTONS().filter((b) => /FEE500/.test(b.cls));
-  assert.ok(kakao.length >= 8, `카카오 버튼이 사라졌다: ${kakao.length}`);
+  // 7 — 타로 결과 공유는 '공유하기' 하나 + 시트로 바뀌어 노란 바탕이 버튼이 아니라 시트 안 동그라미에 있다(11-14, 8→7)
+  assert.ok(kakao.length >= 7, `카카오 버튼이 사라졌다: ${kakao.length}`);
   assert.deepEqual(kakao.filter((b) => /\bbtn-(primary|secondary|text)\b/.test(b.cls)).map(at), []);
   assert.match(readFileSync("components/auth/AppleLoginButton.tsx", "utf8"), /bg-black/);
 });
