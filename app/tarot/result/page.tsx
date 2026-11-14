@@ -6,6 +6,7 @@ import Link from "next/link";
 import ConcernQuote from "@/components/tarot/ConcernQuote";
 import Image from "next/image";
 import ChatBubble from "@/components/tarot/ChatBubble";
+import EmphasisText from "@/components/common/EmphasisText";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
@@ -227,11 +228,9 @@ function TarotResultInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
-              ❝
-            </div>
-            <div className="flex items-center gap-2 mb-2 relative">
+          {/* ❝ 장식 뺌 · ** 를 대화 말풍선과 같은 강조로 · 본문 15 — 디자인 다듬기 /tarot/result ④ 운영자 A안 11-14 */}
+          <div className="bg-white rounded-2xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src="/byeolkong-cheer.png"
                 alt="별콩이"
@@ -242,8 +241,8 @@ function TarotResultInner() {
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-14 text-eye-purple leading-relaxed relative">
-              {closingLine}
+            <p className="text-15 text-eye-purple leading-relaxed">
+              <EmphasisText text={closingLine} />
             </p>
           </div>
         </div>
