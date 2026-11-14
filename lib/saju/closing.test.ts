@@ -38,6 +38,16 @@ test("excludeInvite: '다음에는 … 이어서 같이 볼 수 있어' 도 자�
   );
 });
 
+test("excludeInvite: 끝의 '오늘은 여기까지 …' 마무리 문장을 자른다", () => {
+  assert.equal(
+    extractClosingLine(
+      last("상대의 책임 있는 태도도 꼭 확인해야 해. 오늘은 여기까지 함께 정리해둘게."),
+      { excludeInvite: true }
+    ),
+    "상대의 책임 있는 태도도 꼭 확인해야 해."
+  );
+});
+
 test("excludeInvite: 그 문장뿐인 문단은 건너뛰고 앞 문단을 쓴다", () => {
   assert.equal(
     extractClosingLine(
