@@ -805,7 +805,6 @@ export default function ThreadChat({
           cost={pendingSkill.starCost}
           balance={confirmBalance}
           loading={confirmBalance === null || busyKey === pendingSkill.key}
-          accent="#9F8AD0"
           title={`${pendingSkill.label} 시작할까?`}
           subtitle={pendingSkill.tagline}
           confirmLabel="확인하고 시작하기"

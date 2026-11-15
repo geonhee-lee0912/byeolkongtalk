@@ -224,7 +224,6 @@ function SimPageInner() {
             cost={quote.cost}
             balance={balance}
             loading={creating}
-            accent="#9F8AD0"
             title="연애 시뮬레이션 한 판"
             subtitle="연습 + 별콩이 코칭 + 디브리핑까지 포함"
             confirmLabel="시작하기"

@@ -174,7 +174,6 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           cost={cfg.cost}
           balance={balance}
           loading={balanceLoading}
-          accent="#9F8AD0"
           title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 궁합 보기"

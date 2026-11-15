@@ -277,7 +277,6 @@ export function useByeolmaruSubscribe(
           balance={subBalance}
           loading={subBalanceLoading}
           busy={subscribing}
-          accent="#E8C26A"
           title="별마루 구독"
           subtitle={SUBTITLE[offer.phase === "pre_trial" || offer.phase === "trial" ? offer.phase : "post_trial"]}
           confirmLabel={subscribing ? "여는 중…" : "구독하기"}

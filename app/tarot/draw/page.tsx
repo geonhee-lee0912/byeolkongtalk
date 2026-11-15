@@ -176,7 +176,6 @@ export default function TarotDrawPage() {
           cost={cost}
           balance={balance}
           loading={false}
-          accent={accent}
           surface={RECHARGE_SOURCE.tarotDraw}
           onConfirm={() => {
             if (pendingDrawn) goToReading(pendingDrawn, cost); // 팝업이 보여 준 가격 그대로
