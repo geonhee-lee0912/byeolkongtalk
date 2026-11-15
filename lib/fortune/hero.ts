@@ -11,6 +11,7 @@ const HERO: Partial<Record<FortuneType, string>> = {
   fact_bomb: "/fortune-hero-fact_bomb.webp",
   past_life: "/fortune-hero-past_life.webp",
   saju_full: "/fortune-hero-saju_full.webp",
+  saju_2027: "/fortune-hero-saju_2027.webp",
   compat: "/fortune-hero-compat.webp",
   compat_social: "/fortune-hero-compat_social.webp",
   love_self: "/fortune-hero-love_self.webp",
@@ -48,7 +49,7 @@ const CARD_KEYS = new Set([
   "nature_self", "talent_path", "user_manual", "element_balance", "life_full",
   "wealth_vessel", "wealth_year", "career_timing",
   "fact_bomb", "past_life", "saju_report_card", "life_graph",
-  "saju_full", "monthly", "saju_mbti",
+  "saju_full", "saju_2027", "monthly", "saju_mbti",
 ]);
 
 /** 상품 카드 배너 경로. 카드가 없는 종목(비활성·타로)은 null. */

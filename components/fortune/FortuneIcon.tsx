@@ -11,6 +11,7 @@ const HAS_ICON: readonly FortuneType[] = [
   "compat",
   "compat_social",
   "saju_full",
+  "saju_2027",
   "monthly",
   "good_days",
   "daily",
