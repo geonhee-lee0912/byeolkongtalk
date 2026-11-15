@@ -6,11 +6,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import LandingCta from "./LandingCta";
+import Icon from "@/components/common/Icon";
 
 export default function FortuneLandingHero({
   title,
   hook,
   cardSrc,
+  cost,
   chips,
   ctaLabel,
   ctaHref = "#buy",
@@ -20,15 +22,19 @@ export default function FortuneLandingHero({
   hook: string;
   /** 카드 배너(4:3 원본을 16:10 으로 crop). 없으면 카드 없이 제목부터. */
   cardSrc: string | null;
+  /** 값(별) — 있으면 칩 맨 앞에 '✦N'(별 아이콘 + 숫자, 공통 표기) */
+  cost?: number;
   chips: string[];
-  ctaLabel: string;
+  /** 없으면 위 버튼을 안 그린다 — 사주 상품 페이지는 사주 고르기가 바로 아래라 필요 없다(디자인 다듬기 묶음 4 B, 운영자 11-15) */
+  ctaLabel?: string;
   ctaHref?: string;
   /** 계측용 상품 키 — fortune_landing_cta_clicked 의 meta.type */
   trackType: string;
 }) {
   return (
     <header className="w-full">
-      <div className="w-full max-w-md mx-auto px-5 pt-3">
+      {/* 앱에선 머리 ‹ 와 같은 곳이라 웹에서만(디자인 다듬기 묶음 4 — /tarot ⑤ 와 같은 방식) */}
+      <div className="web-only w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href="/fortune"
           className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
@@ -64,6 +70,12 @@ export default function FortuneLandingHero({
         </p>
 
         <div className="flex flex-wrap gap-1.5 justify-center mt-3">
+          {cost !== undefined && (
+            <span className="inline-flex items-center text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full tabular-nums">
+              <Icon name="star" size={13} className="mr-0.5" />
+              {cost}
+            </span>
+          )}
           {chips.map((c) => (
             <span key={c} className="text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full">
               {c}
@@ -71,7 +83,7 @@ export default function FortuneLandingHero({
           ))}
         </div>
 
-        <LandingCta label={ctaLabel} href={ctaHref} trackType={trackType} />
+        {ctaLabel && <LandingCta label={ctaLabel} href={ctaHref} trackType={trackType} />}
       </div>
     </header>
   );

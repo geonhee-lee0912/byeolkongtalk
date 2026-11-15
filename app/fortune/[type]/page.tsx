@@ -33,11 +33,22 @@ export default async function FortuneProductPage({
         title={cfg.label}
         hook={copy.hook}
         cardSrc={fortuneCardSrc(key)}
-        chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
-        ctaLabel="이 사주로 보기"
+        cost={cfg.cost}
+        chips={[FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
         trackType={type}
       />
 
+      {/* 사주 고르기를 그림 바로 아래로 — 운영 30일 상품 페이지를 본 86명 중 76명이 맨 위 버튼('이 사주로 보기' = 여기로 건너뛰기)을
+          눌렀다. 그래서 위 버튼 없이 처음부터 여기에 둔다(디자인 다듬기 묶음 4 B, 운영자 11-15). 설명은 아래로 — 검색으로 온 사람용으로 그대로 남긴다 */}
+      <div id="buy" className="w-full max-w-md mx-auto px-5 mt-6 scroll-mt-4">
+        <PurchaseReachedBeacon type={type} />
+        <h2 className="text-15 font-bold text-eye-purple mb-4">누구 사주로 볼까</h2>
+      </div>
+      <FortunePurchasePanel type={type} />
+
+      <div className="w-full max-w-md mx-auto px-5 mt-8">
+        <div className="h-px bg-lilac-mid/30" />
+      </div>
       <FortuneLandingSections
         questions={copy.questions}
         outline={fortuneOutline(key)}
@@ -46,13 +57,6 @@ export default async function FortuneProductPage({
         samplePreview={<FortuneSamplePreview landingKey={key} />}
         related={related}
       />
-
-      <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
-        <div className="h-px bg-lilac-mid/30" />
-        <PurchaseReachedBeacon type={type} />
-        <h2 className="text-15 font-bold text-eye-purple mt-5 mb-4">누구 사주로 볼까</h2>
-      </div>
-      <FortunePurchasePanel type={type} />
     </main>
   );
 }

@@ -26,7 +26,8 @@ export default function CompatPage() {
         title={cfg.label}
         hook={copy.hook}
         cardSrc={fortuneCardSrc("compat")}
-        chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT.compat ?? "", copy.minutes].filter(Boolean)}
+        cost={cfg.cost}
+        chips={[FORTUNE_LENGTH_HINT.compat ?? "", copy.minutes].filter(Boolean)}
         ctaLabel="두 사람 사주로 보기"
         trackType="compat"
       />
