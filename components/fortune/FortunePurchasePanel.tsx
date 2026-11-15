@@ -187,7 +187,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
       {rechargeSheetOpen && (
         <RechargeSheet
           open
-          returnTo={cfg.href}
+          returnTo={`${cfg.href}/buy`} // 충전 뒤엔 사주 고르기 페이지로(설명과 나눴다 — 11-15)
           need={cfg.cost}
           balance={balance}
           source={RECHARGE_SOURCE.fortunePurchase}
