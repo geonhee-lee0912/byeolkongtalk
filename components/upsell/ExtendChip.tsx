@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { EXTEND_COST, EXTEND_TURNS } from "@/lib/upsell";
 import Icon from "@/components/common/Icon";
+import OfferCard from "@/components/reco/OfferCard";
 
 export type ExtendChipState = "idle" | "loading" | "done";
 
@@ -29,47 +30,16 @@ export default function ExtendChip({ state, onTap, onShown, disabled }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 모양은 대화 속 제안 카드 하나로(OfferCard — 디자인 다듬기 묶음 2 대화 속 칩 A안, 운영자 11-15)
   return (
-    <div className="mt-2 mb-1 max-w-xs ml-10">
-      <button
-        type="button"
-        onClick={done || loading || disabled ? undefined : onTap}
-        disabled={done || loading || disabled}
-        className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition text-left ${
-          done
-            ? "border-lilac-mid/30 bg-lilac-soft/40 cursor-default"
-            : loading
-            ? "border-gold/30 bg-white opacity-70 cursor-wait"
-            : disabled
-            ? "border-gold/30 bg-white opacity-60 cursor-not-allowed"
-            : "border-gold/50 bg-white hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
-        }`}
-      >
-        <span className="text-15 shrink-0"><Icon name="bubble" size={16} /></span>
-        <div className="flex-1 min-w-0">
-          {done ? (
-            <div className="text-12 font-bold text-text-light truncate">
-              이어가는 중
-            </div>
-          ) : loading ? (
-            <div className="text-12 font-bold text-eye-purple truncate">
-              처리 중…
-            </div>
-          ) : (
-            <>
-              <div className="text-12 font-bold text-eye-purple truncate">
-                별콩이랑 더 얘기하기
-              </div>
-              <div className="text-11 text-text-light mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{EXTEND_COST} · +{EXTEND_TURNS}턴
-              </div>
-            </>
-          )}
-        </div>
-        {!done && !loading && (
-          <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
-        )}
-      </button>
-    </div>
+    <OfferCard
+      icon={{ node: <Icon name="bubble" size={22} /> }}
+      title={done ? "이어가는 중" : loading ? "처리 중…" : "별콩이랑 더 얘기하기"}
+      badge={`별 ${EXTEND_COST}`}
+      sub={done ? `${EXTEND_TURNS}번 더 이야기할 수 있어` : `지금 대화 그대로 ${EXTEND_TURNS}번 더 이어서`}
+      onTap={onTap}
+      disabled={disabled || loading}
+      done={done}
+    />
   );
 }

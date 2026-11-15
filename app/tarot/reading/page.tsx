@@ -7,6 +7,7 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import RecoInlineCard from "@/components/reco/RecoInlineCard";
+import { OfferDivider } from "@/components/reco/OfferCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
@@ -1082,7 +1083,9 @@ function TarotReadingInner() {
               // 이 메시지에 부착된 product들
               const attachedProducts = (Object.entries(recoAttach) as [RecoProduct, number][])
                 .filter(([, idx]) => idx === msgI)
-                .map(([p]) => p);
+                .map(([p]) => p)
+                // 그리는 것만 — 인챗 칩은 끝난 대화엔 안 띄운다(아래). 구분선은 보일 카드가 있을 때만
+                .filter((p) => !INCHAT_ONLY_PRODUCTS.includes(p) || (!isEnded && (p === "tarot:clarifier" || p === "extend")));
               return (
                 <div key={msgI}>
                   {bubbles.map((b, bI) => {
@@ -1100,6 +1103,7 @@ function TarotReadingInner() {
                       />
                     );
                   })}
+                  {attachedProducts.length > 0 && <OfferDivider />}
                   {attachedProducts.map((product) => {
                     if (INCHAT_ONLY_PRODUCTS.includes(product)) {
                       // 인챗 전용 칩 — 끝난 대화엔 안 띄운다(강제 종료선 재개는 하단 PostEndOffers 가 맡고, 그 밖의 종료는 구매가 400)

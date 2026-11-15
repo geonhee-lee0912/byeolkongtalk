@@ -1,9 +1,11 @@
 "use client";
 
-// 인챗 인라인 추천 카드 — assistant 말풍선 아래 붙는 소형 카드.
+// 인챗 인라인 추천 카드 — assistant 말풍선 아래 붙는 다른 상품 추천(사주·타로 관계 카드).
 // `continue` product는 이 컴포넌트를 사용하지 않음 (호출측에서 필터).
+// 모양은 대화 속 제안 카드 하나로(OfferCard — 디자인 다듬기 묶음 2 대화 속 칩 A안, 운영자 11-15)
 import type { RecoProduct } from "@/lib/reco-utils";
 import { RECO_DISPLAY } from "@/lib/reco-utils";
+import OfferCard from "./OfferCard";
 import Icon from "@/components/common/Icon";
 
 interface Props {
@@ -17,22 +19,12 @@ export default function RecoInlineCard({ product, onTap }: Props) {
   if (!display) return null;
 
   return (
-    <div className="mt-2 mb-1 max-w-xs ml-10">
-      <button
-        type="button"
-        onClick={onTap}
-        className="btn btn-secondary btn-lg gap-3 text-left"
-      >
-        <div className="flex-1 min-w-0">
-          <div className="text-12 font-bold text-eye-purple truncate">
-            {display.label}
-          </div>
-          <div className="text-11 text-text-light mt-0.5 leading-snug">
-            지난 고민을 기억한 채 이어져요
-          </div>
-        </div>
-        <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
-      </button>
-    </div>
+    <OfferCard
+      icon={display.iconSrc ? { src: display.iconSrc } : { node: <Icon name="sparkle" size={22} /> }}
+      title={display.cardTitle ?? display.label}
+      badge={display.target === "saju" ? "사주" : display.target === "tarot" ? "타로" : undefined}
+      sub="이 고민 그대로 이어서 봐"
+      onTap={onTap}
+    />
   );
 }
