@@ -112,7 +112,7 @@ export default function PushAskSheet({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="" className="relative w-full h-full object-contain" />
           </div>
-          <p className="text-17 font-black tracking-tight">{title}</p>
+          <p className="font-display text-17 text-eye-purple">{title}</p>
           {sub && <p className="text-13 text-text-light mt-1.5 leading-normal">{sub}</p>}
         </div>
         {kind === "push" && ad === "none" && <AdConsentCheck checked={checked} onChange={setChecked} disabled={busy} />}

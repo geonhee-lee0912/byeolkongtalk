@@ -189,7 +189,7 @@ export default function TarotShareButtons({
       </button>
       {open && (
         <Sheet label="공유하기" onClose={() => setOpen(false)} z={80}>
-          <p className="text-17 font-black tracking-tight text-center mb-[22px]">어디로 공유할까?</p>
+          <p className="font-display text-17 text-eye-purple text-center mb-[22px]">어디로 공유할까?</p>
           <div className="grid grid-cols-3">
             <ShareOption
               icon={KAKAO_ICON}

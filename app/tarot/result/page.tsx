@@ -285,7 +285,7 @@ function TarotResultInner() {
           panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl h-[88vh] flex flex-col"
         >
           <div className="flex items-center px-5 pt-1 sm:pt-5 pb-3">
-            <p className="flex-1 text-17 font-black tracking-tight text-eye-purple">대화 다시보기</p>
+            <p className="flex-1 font-display text-17 text-eye-purple">대화 다시보기</p>
             <OverlayCloseButton
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"

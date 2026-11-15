@@ -192,7 +192,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Image src="/byeolkong-main.png" alt="별콩이" width={32} height={32} />
-              <h2 className="font-display text-17 font-bold text-eye-purple">
+              <h2 className="font-display text-17 text-eye-purple">
                 이 고민, 이어가볼까?
               </h2>
             </div>

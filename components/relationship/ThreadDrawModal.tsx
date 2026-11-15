@@ -98,7 +98,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="font-display text-17 font-bold text-eye-purple">
+          <h2 className="font-display text-17 text-eye-purple">
             {skill.label}
           </h2>
           <button

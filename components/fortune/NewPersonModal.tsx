@@ -76,7 +76,7 @@ export default function NewPersonModal({
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal max-h-[85vh] overflow-y-auto p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
         <div className="text-center mb-5">
-          <p className="font-display text-17 font-bold text-eye-purple">
+          <p className="font-display text-17 text-eye-purple">
             새 사람 사주 입력
           </p>
         </div>

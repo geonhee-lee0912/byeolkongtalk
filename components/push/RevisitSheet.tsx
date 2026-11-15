@@ -255,7 +255,7 @@ export default function RevisitSheet({
           <div className="flex flex-col items-center text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="" className="w-11 h-11 object-contain mb-1.5" />
-            <p className="text-17 font-black tracking-tight">{copy.title}</p>
+            <p className="font-display text-17 text-eye-purple">{copy.title}</p>
             <p className="text-13 text-text-light mt-1 leading-normal">{copy.sub}</p>
           </div>
           {denied ? (

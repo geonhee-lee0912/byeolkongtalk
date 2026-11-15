@@ -245,7 +245,7 @@ export default function PushGate() {
       {reconfirm && (
           <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
             <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-              <p className="text-17 font-black tracking-tight text-center">광고성 정보 수신 동의 확인 안내</p>
+              <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 동의 확인 안내</p>
               <p className="mt-3 text-13 leading-relaxed">
                 별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
               </p>

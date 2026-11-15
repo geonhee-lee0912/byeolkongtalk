@@ -35,7 +35,7 @@ export default function RecoConfirmModal({
     >
         <div className="px-5 pt-5 pb-6 flex flex-col gap-3">
           <div>
-            <h2 className="font-display text-17 font-bold text-eye-purple mb-1">
+            <h2 className="font-display text-17 text-eye-purple mb-1">
               이 대화를 마무리하고 넘어갈까?
             </h2>
             <p className="text-13 text-text-light leading-relaxed">

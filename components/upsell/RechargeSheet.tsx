@@ -195,7 +195,7 @@ export default function RechargeSheet({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-17 font-bold text-eye-purple">
+          <h2 className="font-display text-17 text-eye-purple">
             별 충전하기
           </h2>
           <OverlayCloseButton
