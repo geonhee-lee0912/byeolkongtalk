@@ -19,7 +19,7 @@ export default function LandingBuyBar({ href, cost, trackType }: { href: string;
           <Icon name="star" size={16} className="mr-0.5" />
           {cost}
         </span>
-        · 내 사주로 보기
+        · 사주 골라서 보기
       </Link>
     </div>
   );
