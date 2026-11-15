@@ -334,7 +334,16 @@ function TarotResultInner() {
       />
 
       {/* 다시 볼 날 — 소유자·앱에서만(자리는 결과 화면 ⑩ 에서 다시 정한다) */}
-      {isOwner && <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />}
+      {isOwner && (
+        <RevisitSheet
+          readingId={reading.id}
+          autoOpen={!reading.hasSensitive}
+          copy={{
+            title: "흐름이 바뀌었는지, 며칠 뒤에 다시 뽑아 볼까?",
+            sub: `그날 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
+          }}
+        />
+      )}
 
       <SurveyResultCard />
     </main>

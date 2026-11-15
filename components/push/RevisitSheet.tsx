@@ -35,7 +35,24 @@ function monthDay(sendOn: string): string {
 
 /** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 카드로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
  *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다 */
-export default function RevisitSheet({ readingId, autoOpen = true }: { readingId: string; autoOpen?: boolean }) {
+/** 시트·카드 위 두 줄 — 기본은 사주 결과가 쓰는 글. 타로 결과는 다시 뽑기 값을 밝힌 글을 넘긴다
+ *  (디자인 다듬기 /tarot/result ⑩ W3, 운영자 11-15 — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게). 알림 문구는 그대로 중립 */
+type RevisitCopy = { title: string; sub: string; /** 시트에서만 쓰는 둘째 줄(없으면 sub) */ sheetSub?: string };
+const DEFAULT_COPY: RevisitCopy = {
+  title: "이 고민, 언제 다시 볼까?",
+  sub: "그날 별콩이가 알려줄게.",
+  sheetSub: "그날 별콩이가 알려줄게. 알림을 켜 줘.",
+};
+
+export default function RevisitSheet({
+  readingId,
+  autoOpen = true,
+  copy = DEFAULT_COPY,
+}: {
+  readingId: string;
+  autoOpen?: boolean;
+  copy?: RevisitCopy;
+}) {
   const { ready } = useAppInfo();
   const [mode, setMode] = useState<Mode>("loading");
   // 이번 방문에 저절로 열린 시트의 순간 — 질문 기록은 이때만. 한 번 답하면 null
@@ -207,8 +224,8 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/profile.png" alt="" className="relative w-full h-full object-contain" />
             </div>
-            <p className="text-17 font-black tracking-tight">이 고민, 언제 다시 볼까?</p>
-            <p className="text-13 text-text-light mt-1.5 leading-normal">그날 별콩이가 알려줄게. 알림을 켜 줘.</p>
+            <p className="text-17 font-black tracking-tight">{copy.title}</p>
+            <p className="text-13 text-text-light mt-1.5 leading-normal">{copy.sheetSub ?? copy.sub}</p>
           </div>
           {denied ? (
             warn
@@ -280,8 +297,8 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
                 <div>
-                  <p className="text-14 font-black">이 고민, 언제 다시 볼까?</p>
-                  {!denied && <p className="text-12 text-text-light mt-0.5">그날 별콩이가 알려줄게.</p>}
+                  <p className="text-14 font-black">{copy.title}</p>
+                  {!denied && <p className="text-12 text-text-light mt-0.5">{copy.sub}</p>}
                 </div>
               </div>
             )}
