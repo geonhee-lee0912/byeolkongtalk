@@ -16,7 +16,7 @@ import TarotChatBubble from "@/components/tarot/ChatBubble";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import { tryParseStoredDailyReport } from "@/lib/fortune/daily-report";
 import { tryParseStoredMonthlyReport } from "@/lib/fortune/monthly-report";
-import { tryParseStoredSajuFullReport } from "@/lib/fortune/saju-full-report";
+import { tryParseStoredSajuFullReport, isSajuYearType } from "@/lib/fortune/saju-full-report";
 import { tryParseStoredCompatReport, type CompatSajuPair } from "@/lib/fortune/compat-report";
 import { tryParseStoredTarotReport } from "@/lib/fortune/tarot-report";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
@@ -233,7 +233,7 @@ export default function ReadingDetailView({
     } else if (ft === "monthly") {
       const r = tryParseStoredMonthlyReport(report);
       body = r ? <MonthlyReportView report={r} monthLabel={monthLabel} /> : null;
-    } else if (ft === "saju_full") {
+    } else if (isSajuYearType(ft)) {
       const r = tryParseStoredSajuFullReport(report);
       body = r ? <SajuFullReportView report={r} saju={sajuData} /> : null;
     } else if (isCompat) {

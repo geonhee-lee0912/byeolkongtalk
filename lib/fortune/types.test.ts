@@ -55,6 +55,17 @@ test("타이밍엔 daily 없음, 2026 사주 포함", () => {
   assert.ok(timing.includes("saju_full"));
 });
 
+test("2027년 사주 분석 — 타이밍 칩, 2026 사주 바로 앞", () => {
+  const timing = fortuneProductsByCategory("timing").map((f) => f.type);
+  assert.equal(timing.indexOf("saju_2027") + 1, timing.indexOf("saju_full"));
+  const c = FORTUNE_CONFIG.saju_2027;
+  assert.equal(c.label, "2027년 사주 분석");
+  assert.equal(c.href, "/fortune/saju_2027");
+  assert.equal(c.emotionTag, "fortune:saju_2027");
+  assert.equal(c.active, true);
+  assert.equal(FORTUNE_CATEGORY.saju_2027, "timing");
+});
+
 test("2탭 유료 전용화 — 무료 칩 제거 · daily 진열 은퇴", () => {
   assert.ok(!FORTUNE_LIST.some((f) => f.type === "daily"), "FORTUNE_LIST 에 daily 없음");
   assert.ok(!FORTUNE_CHIPS.some((c) => c.key === "free"), "FORTUNE_CHIPS 에 free 칩 없음");
@@ -83,8 +94,8 @@ test("parseFortuneChip — 진열 칩 키만 통과, 나머지는 null", () => {
 });
 
 // 2026-10 메뉴판·별경제 §3-3 — 사주 단품 16종은 미끼 가격, 큰 상품 셋만 따로.
-test("사주 단품 16종 = SAJU_SINGLE_COST(10) · 궁합 40 · 2026 사주 60 · 평생 70", () => {
-  const special: Partial<Record<FortuneType, number>> = { compat: 40, saju_full: 60, life_full: 70 };
+test("사주 단품 16종 = SAJU_SINGLE_COST(10) · 궁합 40 · 2026·2027 사주 60 · 평생 70", () => {
+  const special: Partial<Record<FortuneType, number>> = { compat: 40, saju_full: 60, saju_2027: 60, life_full: 70 };
   const singles = FORTUNE_LIST.filter((f) => !(f.type in special));
   assert.equal(singles.length, 16);
   for (const f of singles) assert.equal(f.cost, SAJU_SINGLE_COST, f.type);
