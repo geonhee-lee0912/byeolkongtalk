@@ -25,6 +25,9 @@ import { redrawCard, redrawTarget } from "@/lib/tarot/redraw";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import Icon from "@/components/common/Icon";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import { replayMessages } from "@/lib/tarot/replay";
 
 export default function TarotResultPage() {
   return (
@@ -251,17 +254,31 @@ function TarotResultInner() {
         </div>
       )}
 
-      {/* 대화 다시보기 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-4">
-        <button
-          onClick={() => setShowHistory((v) => !v)}
-          className="btn btn-secondary btn-lg"
-        >
-          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
+      {/* 대화 다시보기 — 가벼운 글자 버튼, 누르면 시트(디자인 다듬기 /tarot/result ①, 운영자 11-15).
+          예전엔 연보라 큰 버튼 + 그 자리 흰 카드 펼침이라 아래 공유·다음이 대화 길이만큼 밀려 내려갔다 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-2">
+        <button type="button" onClick={() => setShowHistory(true)} className="btn btn-text btn-md w-full text-14 text-text-light">
+          대화 전체 다시보기 <Icon name="chev_r" size={14} />
         </button>
-        {showHistory && (
-          <div className="card mt-3">
-            {data.messages.map((m, i) => {
+      </div>
+      {showHistory && (
+        <Sheet
+          label="대화 다시보기"
+          onClose={() => setShowHistory(false)}
+          z={80}
+          panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl h-[88vh] flex flex-col"
+        >
+          <div className="flex items-center px-5 pt-1 sm:pt-5 pb-3">
+            <p className="flex-1 text-17 font-black tracking-tight text-eye-purple">대화 다시보기</p>
+            <OverlayCloseButton
+              aria-label="닫기"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
+            >
+              <Icon name="close" size={18} />
+            </OverlayCloseButton>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(env(safe-area-inset-bottom),24px)]">
+            {replayMessages(data.messages, reading.question).map((m, i) => {
               if (m.role === "user") {
                 return <ChatBubble key={i} role="user" content={m.content} />;
               }
@@ -284,9 +301,8 @@ function TarotResultInner() {
               );
             })}
           </div>
-        )}
-      </div>
-
+        </Sheet>
+      )}
 
       {/* 공유 — '공유하기' 하나(누르면 시트), 다시보기 바로 아래·'다음엔 뭐 볼래?' 위(디자인 다듬기 /tarot/result ⑥, 운영자 11-14) */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
