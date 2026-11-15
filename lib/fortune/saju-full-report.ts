@@ -1,12 +1,36 @@
-// 2026년 사주 분석(saju_full) 전용 — AI JSON 파싱·검증 + 2026 병오년 고정값 병합 + 저장/복원.
+// 연간 사주 분석(saju_full=2026 · saju_2027) 공용 — AI JSON 파싱·검증 + 연도 간지 고정값 병합 + 저장/복원.
 // daily-report.ts / monthly-report.ts 와 동형. 저장은 messages.content 에 병합 JSON 문자열(v:1).
-// 2026 은 고정 연도라 temporal(일진/월건) 의존이 없다.
+// 기준 연도가 상품마다 고정이라 temporal(일진/월건) 의존이 없다.
 
 import { parseReportJson } from "./json-recover";
 import { stripNoteHeading } from "./note-heading";
 
-/** 2026 병오년 — 코드 고정 결정론적 값. */
-export const YEAR_2026 = { stem: "병", branch: "오", hanja: "丙午" } as const;
+/** 연간 사주 분석 상품 — 같은 틀(스키마·결과 화면)을 쓰고 기준 연도만 다르다. */
+export type SajuYearType = "saju_full" | "saju_2027";
+
+export interface SajuYearSpec {
+  type: SajuYearType;
+  year: number;
+  stem: string;
+  branch: string;
+  hanja: string;
+  /** 간지 한글 두 글자 — 프롬프트의 "병오년"·"정미년" */
+  ganjiKr: string;
+}
+
+/** 상품별 기준 연도 — 코드 고정 결정론적 값. */
+export const SAJU_YEAR_SPECS: Record<SajuYearType, SajuYearSpec> = {
+  saju_full: { type: "saju_full", year: 2026, stem: "병", branch: "오", hanja: "丙午", ganjiKr: "병오" },
+  saju_2027: { type: "saju_2027", year: 2027, stem: "정", branch: "미", hanja: "丁未", ganjiKr: "정미" },
+};
+
+export function isSajuYearType(t: string | null | undefined): t is SajuYearType {
+  return typeof t === "string" && Object.prototype.hasOwnProperty.call(SAJU_YEAR_SPECS, t);
+}
+
+export function sajuYearSpecByYear(year: number): SajuYearSpec | null {
+  return Object.values(SAJU_YEAR_SPECS).find((s) => s.year === year) ?? null;
+}
 
 export interface SajuFullMonth {
   month: number; // 1~12
@@ -188,7 +212,9 @@ export const SAJU_FULL_REPORT_SCHEMA = {
 /** 저장/렌더 최종 형태. */
 export interface SajuFullReport extends SajuFullReportAI {
   v: 1;
-  year2026: { stem: string; branch: string; hanja: string };
+  /** 기준 연도 간지. 🔴 2026-11 이전 저장본은 이 필드 대신 `year2026`({stem,branch,hanja})만 있다 —
+   *  tryParseStoredSajuFullReport 가 읽을 때 yearPillar 로 채운다(그 저장본은 전부 2026). */
+  yearPillar: { year: number; stem: string; branch: string; hanja: string };
 }
 
 function isNonEmptyString(v: unknown): v is string {
@@ -347,12 +373,13 @@ export function parseSajuFullReportJson(raw: string): SajuFullReportAI | null {
   };
 }
 
-/** AI JSON + 2026 고정값 → 저장 최종본. */
-export function buildSajuFullReport(ai: SajuFullReportAI): SajuFullReport {
+/** AI JSON + 상품의 기준 연도 간지 → 저장 최종본. */
+export function buildSajuFullReport(ai: SajuFullReportAI, type: SajuYearType): SajuFullReport {
+  const { year, stem, branch, hanja } = SAJU_YEAR_SPECS[type];
   return {
     v: 1,
     ...ai,
-    year2026: { ...YEAR_2026 },
+    yearPillar: { year, stem, branch, hanja },
   };
 }
 
@@ -377,8 +404,14 @@ export function tryParseStoredSajuFullReport(content: string): SajuFullReport | 
   if (!obj || typeof obj !== "object") return null;
   const o = obj as Record<string, unknown>;
   if (o.v !== 1) return null;
-  if (!o.year2026 || typeof o.year2026 !== "object") return null;
   if (!Array.isArray(o.monthly)) return null;
   if (!o.year || typeof o.year !== "object") return null;
-  return obj as SajuFullReport;
+  if (o.yearPillar && typeof o.yearPillar === "object") return obj as SajuFullReport;
+  // 옛 2026 저장본 — year2026 만 있다
+  if (o.year2026 && typeof o.year2026 === "object") {
+    const { year2026, ...rest } = o;
+    const y = year2026 as { stem: string; branch: string; hanja: string };
+    return { ...rest, yearPillar: { year: 2026, stem: y.stem, branch: y.branch, hanja: y.hanja } } as unknown as SajuFullReport;
+  }
+  return null;
 }
