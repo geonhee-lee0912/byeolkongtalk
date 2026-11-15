@@ -67,3 +67,15 @@ test("GET 다시 볼 날은 예약과 함께 설정(revisitPref)을 돌려주고
   assert.equal((await handleRevisitGet("ghost", "u1", deps)).status, 403);
   assert.equal((await handleRevisitGet("mine", null, deps)).status, 401);
 });
+
+test("달력에서 고른 날로도 예약한다 — 범위 밖·이상한 날은 400", async () => {
+  const deps = {
+    readingOwner: async () => "u1",
+    upsertRevisit: async () => "ok" as const,
+    now: () => new Date("2026-11-06T03:00:00Z"), // KST 11-06
+  };
+  assert.deepEqual(await handleRevisitPost({ readingId: "mine", date: "2026-11-20" }, "u1", deps), { status: 200, body: { sendOn: "2026-11-20" } });
+  assert.deepEqual(await handleRevisitPost({ readingId: "mine", date: "2026-11-06" }, "u1", deps), { status: 400, body: { error: "bad_date" } });
+  assert.deepEqual(await handleRevisitPost({ readingId: "mine", date: "2027-01-01" }, "u1", deps), { status: 400, body: { error: "bad_date" } });
+  assert.equal((await handleRevisitPost({ readingId: "mine" }, "u1", deps)).status, 400);
+});

@@ -316,6 +316,18 @@ function TarotResultInner() {
         />
       </div>
 
+      {/* 다시 볼 날 — 소유자·앱에서만. 카드는 공유 아래·'다음엔 뭐 볼래?' 위(이 결과에 속한 것 바로 뒤 — 디자인 다듬기 /tarot/result ⑩ P2, 운영자 11-15) */}
+      {isOwner && (
+        <RevisitSheet
+          readingId={reading.id}
+          autoOpen={!reading.hasSensitive}
+          copy={{
+            title: "흐름이 바뀌었는지, 며칠 뒤에 다시 뽑아 볼까?",
+            sub: `그날 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
+          }}
+        />
+      )}
+
       {/* ② 다음 — '이 고민으로 카드 다시 뽑기'를 추천 묶음 맨 위에 같은 무게로(디자인 다듬기 /tarot/result ③ M2, 운영자 11-14).
           예전엔 재충전 블록의 보라 버튼이었다. 가격 = 가장 싼 스프레드(원카드)부터. 계측은 그때와 같은 cta:"new" */}
       <ResultUpsell
@@ -332,18 +344,6 @@ function TarotResultInner() {
           },
         }}
       />
-
-      {/* 다시 볼 날 — 소유자·앱에서만(자리는 결과 화면 ⑩ 에서 다시 정한다) */}
-      {isOwner && (
-        <RevisitSheet
-          readingId={reading.id}
-          autoOpen={!reading.hasSensitive}
-          copy={{
-            title: "흐름이 바뀌었는지, 며칠 뒤에 다시 뽑아 볼까?",
-            sub: `그날 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
-          }}
-        />
-      )}
 
       <SurveyResultCard />
     </main>

@@ -10,7 +10,7 @@ import { askAppPush, appSupportsPush } from "@/lib/app-push";
 import { postToApp } from "@/lib/app-context";
 import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
-import type { RevisitChoice } from "@/lib/push/schedule";
+import { revisitDateRange, type RevisitChoice } from "@/lib/push/schedule";
 import { fetchAsk, postAsk } from "./api";
 import Sheet from "@/components/common/Sheet";
 import LaterButton from "./LaterButton";
@@ -33,8 +33,6 @@ function monthDay(sendOn: string): string {
   return `${Number(m)}월 ${Number(d)}일`;
 }
 
-/** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 카드로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
- *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다 */
 /** 시트·카드 위 두 줄 — 기본은 사주 결과가 쓰는 글. 타로 결과는 다시 뽑기 값을 밝힌 글을 넘긴다
  *  (디자인 다듬기 /tarot/result ⑩ W3, 운영자 11-15 — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게). 알림 문구는 그대로 중립 */
 type RevisitCopy = { title: string; sub: string; /** 시트에서만 쓰는 둘째 줄(없으면 sub) */ sheetSub?: string };
@@ -44,6 +42,42 @@ const DEFAULT_COPY: RevisitCopy = {
   sheetSub: "그날 별콩이가 알려줄게. 알림을 켜 줘.",
 };
 
+/** 고른 것 — 칩("3d"·"1w"·"2w") 또는 달력에서 고른 날("YYYY-MM-DD") */
+type Pick = RevisitChoice | string;
+const isDate = (p: Pick) => /^\d{4}-\d{2}-\d{2}$/.test(p);
+
+/** 칩 줄 끝의 '날짜 고르기' — 휴대폰 기본 날짜 선택창(내일~30일 뒤). 고르면 칩 글이 그 날로 바뀐다.
+ *  투명한 날짜 입력칸을 칩 위에 겹쳐 둔다 — 아이폰은 눌러서 바로 열리고, 안드로이드·PC 는 showPicker 로 연다 */
+function DateChip({ picked, disabled, className, onPick }: { picked: Pick | null; disabled: boolean; className: string; onPick: (date: string) => void }) {
+  const { min, max } = revisitDateRange(new Date());
+  return (
+    <span className={`relative ${className}`}>
+      {picked && isDate(picked) ? monthDay(picked) : "날짜 고르기"}
+      <input
+        type="date"
+        aria-label="날짜 고르기"
+        min={min}
+        max={max}
+        disabled={disabled}
+        value={picked && isDate(picked) ? picked : ""}
+        onClick={(e) => {
+          try {
+            e.currentTarget.showPicker?.();
+          } catch {
+            // 이미 열려 있거나 막힌 곳 — 아이폰은 눌러서 열린다
+          }
+        }}
+        onChange={(e) => {
+          if (e.target.value) onPick(e.target.value);
+        }}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
+      />
+    </span>
+  );
+}
+
+/** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 카드로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
+ *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다 */
 export default function RevisitSheet({
   readingId,
   autoOpen = true,
@@ -63,7 +97,7 @@ export default function RevisitSheet({
   const [done, setDone] = useState<string | null>(null);
   // 알림 설정에서 다시 볼 날이 꺼져 있다 — 예약해도 안 간다. 칩 대신 설정 안내(설정을 저절로 켜지 않는다)
   const [prefOff, setPrefOff] = useState(false);
-  const [picked, setPicked] = useState<RevisitChoice | null>(null);
+  const [picked, setPicked] = useState<Pick | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const busyRef = useRef(false);
@@ -129,7 +163,7 @@ export default function RevisitSheet({
 
   /** 권한 확인(필요하면 OS 창) → 예약.
    *  카드는 칩을 누르는 즉시, 시트는 [알림 받을래] 로 부른다 — 시트에선 날짜를 안 골라도 누를 수 있다(§4-2) */
-  async function commit(choice: RevisitChoice | null) {
+  async function commit(choice: Pick | null) {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
@@ -158,7 +192,7 @@ export default function RevisitSheet({
       const r = await fetch("/api/push/revisit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readingId, choice }),
+        body: JSON.stringify(isDate(choice) ? { readingId, date: choice } : { readingId, choice }),
       });
       if (r.status === 409) {
         setDone(MSG_SENT);
@@ -231,7 +265,7 @@ export default function RevisitSheet({
             warn
           ) : (
             <>
-              <div className="flex gap-2 justify-center mt-[18px] mb-1.5">
+              <div className="flex flex-wrap gap-2 justify-center mt-[18px] mb-1.5">
                 {CHIPS.map((c) => (
                   <button
                     key={c.choice}
@@ -243,6 +277,7 @@ export default function RevisitSheet({
                     {c.label}
                   </button>
                 ))}
+                <DateChip picked={picked} disabled={busy} className={chipClass(picked !== null && isDate(picked), false)} onPick={setPicked} />
               </div>
               <button
                 type="button"
@@ -306,7 +341,7 @@ export default function RevisitSheet({
               warn
             ) : (
               <>
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {CHIPS.map((c) => (
                     <button
                       key={c.choice}
@@ -318,6 +353,12 @@ export default function RevisitSheet({
                       {c.label}
                     </button>
                   ))}
+                  <DateChip
+                    picked={picked}
+                    disabled={busy}
+                    className={chipClass(sendOn !== null && picked !== null && isDate(picked), true)}
+                    onPick={(d) => void commit(d)}
+                  />
                 </div>
                 {denied && warn}
                 {retry}

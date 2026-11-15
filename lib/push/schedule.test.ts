@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { revisitSendOn, revisitWindow } from "./schedule.ts";
+import { revisitDateRange, revisitSendOn, revisitSendOnFromDate, revisitWindow } from "./schedule.ts";
 
 test("23:50 KST 에 고르면 KST 날짜로 센다", () => {
   assert.equal(revisitSendOn("3d", new Date("2026-11-06T14:50:00Z")), "2026-11-09"); // KST 11-06 23:50
@@ -16,4 +16,20 @@ test("보낼 창 경계", () => {
   assert.equal(revisitWindow(on, new Date("2026-11-09T12:00:00Z")), "missed"); // 21:00
   assert.equal(revisitWindow(on, new Date("2026-11-10T00:00:00Z")), "missed"); // 다음 날
   assert.equal(revisitWindow(on, new Date("2026-11-07T03:00:00Z")), "early"); // 이틀 전
+});
+
+test("달력으로 고를 수 있는 날 — 내일부터 30일 뒤까지(KST)", () => {
+  assert.deepEqual(revisitDateRange(new Date("2026-11-06T14:50:00Z")), { min: "2026-11-07", max: "2026-12-06" }); // KST 11-06 23:50
+  assert.deepEqual(revisitDateRange(new Date("2026-11-06T15:10:00Z")), { min: "2026-11-08", max: "2026-12-07" }); // KST 11-07 00:10
+});
+
+test("달력에서 고른 날 — 범위 안의 진짜 날짜만 받는다", () => {
+  const now = new Date("2026-11-06T03:00:00Z"); // KST 11-06 12:00
+  assert.equal(revisitSendOnFromDate("2026-11-07", now), "2026-11-07");
+  assert.equal(revisitSendOnFromDate("2026-12-06", now), "2026-12-06");
+  assert.equal(revisitSendOnFromDate("2026-11-06", now), null); // 오늘은 안 됨(이미 아침 발송이 지났을 수 있다)
+  assert.equal(revisitSendOnFromDate("2026-12-07", now), null); // 30일 넘음
+  assert.equal(revisitSendOnFromDate("2026-11-31", now), null); // 없는 날
+  assert.equal(revisitSendOnFromDate("2026-11-7", now), null);
+  assert.equal(revisitSendOnFromDate("내일", now), null);
 });
