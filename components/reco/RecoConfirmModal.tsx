@@ -41,7 +41,8 @@ export default function RecoConfirmModal({
         </span>
         <p className="font-display text-17 text-eye-purple break-keep">{title}</p>
         <p className="text-13 text-text-light mt-1 leading-relaxed break-keep">
-          지금 대화는 별콩이가 정리해서 닫아둘게. 더 하고 싶으면 계속해도 돼.
+          지금 대화는 별콩이가 정리해서 닫아둘게.
+          <br />더 하고 싶으면 계속해도 돼.
         </p>
       </div>
       <button type="button" onClick={onConfirm} className="btn btn-primary btn-lg mt-5">
