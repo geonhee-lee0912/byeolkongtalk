@@ -4,7 +4,6 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FORTUNE_GRADIENTS,
-  FORTUNE_HASHTAGS,
   FORTUNE_LENGTH_HINT,
   DEFAULT_FORTUNE_CHIP,
   fortuneProductsByCategory,
@@ -13,7 +12,7 @@ import {
 } from "@/lib/fortune/types";
 import FortuneGeneratingList from "@/components/fortune/FortuneGeneratingList";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
-import FortuneHeader from "@/components/fortune/FortuneHeader";
+import MySajuRow from "@/components/fortune/MySajuRow";
 import WelcomeStarsBanner from "@/components/fortune/WelcomeStarsBanner";
 import CategoryChips from "@/components/fortune/CategoryChips";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
@@ -42,7 +41,7 @@ export default function FortunePage({
 
   return (
     <main className="flex flex-1 flex-col items-center pb-8 w-full animate-fade-in">
-      <FortuneHeader />
+      <MySajuRow />
       <WelcomeStarsBanner />
 
       <FortuneGeneratingList />
@@ -102,16 +101,6 @@ export default function FortunePage({
                 <p className="text-13 text-text-light mt-1 leading-snug line-clamp-2">
                   {tagline}
                 </p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {FORTUNE_HASHTAGS[f.type].map((h) => (
-                    <span
-                      key={h}
-                      className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
-                    >
-                      #{h}
-                    </span>
-                  ))}
-                </div>
               </div>
               {!f.active && (
                 <span className="text-11 text-text-light shrink-0">준비 중</span>
@@ -132,7 +121,7 @@ export default function FortunePage({
       <p className="mt-6 text-11 text-text-light text-center px-8 leading-relaxed">
         운세는 정해진 미래가 아니라 흐름과 가능성을 비춰주는 거야.
         <br />
-        결과는 <span className="text-text-light">내 고민톡</span>에서 다시 볼 수 있어.
+        결과는 보관함에서 다시 볼 수 있어.
       </p>
     </main>
   );
