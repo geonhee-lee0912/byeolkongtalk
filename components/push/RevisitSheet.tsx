@@ -1,7 +1,8 @@
 "use client";
 
 // 결과 화면의 "다시 볼 날" — 첫 리딩이면(또는 '나중에' 뒤 다시 묻는 리딩이면) 하단 시트로 자동으로 열리고, 그 뒤엔 결과 안의 카드로만 둔다.
-// 시트엔 광고성 정보 수신 동의 체크칸이 붙는다(단계 2, 설계 §4-2) — 비운 채 시작, '알림 받을래'는 체크와 상관없이 누를 수 있다.
+// 이 시트엔 광고성 정보 수신 동의 체크칸을 두지 않는다(디자인 다듬기 /tarot/result ⑩ 운영자 11-15 — 설계 §4-2 의 체크칸을 뺌).
+// 광고 동의는 다른 묻는 순간(PushAskSheet)과 마이페이지 알림 설정에서 받는다.
 // 앱(push 지원) 안에서만 그린다. 소유자 확인은 부르는 쪽 책임. 시안: docs/superpowers/specs/assets/2026-11-06-앱-알림-시안.html ①~④
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -10,10 +11,7 @@ import { postToApp } from "@/lib/app-context";
 import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
 import type { RevisitChoice } from "@/lib/push/schedule";
-import type { AdStatus } from "@/lib/push/asks";
-import AdConsentCheck from "./AdConsentCheck";
-import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
-import { fetchAsk, postAsk, setAdConsent } from "./api";
+import { fetchAsk, postAsk } from "./api";
 import Sheet from "@/components/common/Sheet";
 import LaterButton from "./LaterButton";
 
@@ -40,7 +38,7 @@ function monthDay(sendOn: string): string {
 export default function RevisitSheet({ readingId, autoOpen = true }: { readingId: string; autoOpen?: boolean }) {
   const { ready } = useAppInfo();
   const [mode, setMode] = useState<Mode>("loading");
-  // 이번 방문에 저절로 열린 시트의 순간 — 질문 기록·광고 체크칸은 이때만. 한 번 답하면 null
+  // 이번 방문에 저절로 열린 시트의 순간 — 질문 기록은 이때만. 한 번 답하면 null
   const [askMoment, setAskMoment] = useState<SheetMoment | null>(null);
   const [perm, setPerm] = useState<PushState>("undetermined");
   const [sendOn, setSendOn] = useState<string | null>(null);
@@ -49,10 +47,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
   // 알림 설정에서 다시 볼 날이 꺼져 있다 — 예약해도 안 간다. 칩 대신 설정 안내(설정을 저절로 켜지 않는다)
   const [prefOff, setPrefOff] = useState(false);
   const [picked, setPicked] = useState<RevisitChoice | null>(null);
-  // 광고 동의 — 한 번도 안 한 사람(none)에게만 체크칸을 보인다(철회한 사람에겐 먼저 묻지 않는다, §4-3 ④)
-  const [ad, setAd] = useState<AdStatus>("none");
-  const [adChecked, setAdChecked] = useState(false);
-  const [notice, setNotice] = useState<ConsentNotice | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const busyRef = useRef(false);
@@ -86,7 +80,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
         }
         if (cancelled) return;
         setPerm(status);
-        setAd(first.ad);
         setPrefOff(rvBody.revisitPref === false);
         const rev = rvBody.revisit;
         if (rev) {
@@ -117,7 +110,7 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
     };
   }, [ready, readingId, autoOpen]);
 
-  /** 권한 확인(필요하면 OS 창) → 광고 동의(시트에서 체크했으면) → 예약.
+  /** 권한 확인(필요하면 OS 창) → 예약.
    *  카드는 칩을 누르는 즉시, 시트는 [알림 받을래] 로 부른다 — 시트에선 날짜를 안 골라도 누를 수 있다(§4-2) */
   async function commit(choice: RevisitChoice | null) {
     if (busyRef.current) return;
@@ -139,14 +132,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
       if (moment) {
         postAsk(moment, "push", state === "granted" ? "accepted" : "os_denied");
         setAskMoment(null); // 이 시트의 질문은 한 번만 기록
-        // 체크했으면 OS 창을 거부했어도 광고 동의는 남긴다 — 나중에 알림을 켜면 바로 받는다(§4-2 표)
-        if (adChecked && ad === "none") {
-          const r = await setAdConsent(true, moment);
-          if (r) {
-            setAd(r.status);
-            if (r.notice) setNotice(r.notice);
-          }
-        }
       }
       if (state !== "granted") return;
       if (choice === null) {
@@ -187,10 +172,8 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
     setMode("closed");
   }
 
-  const noticePopup = notice ? <AdConsentNotice notice={notice} onClose={() => setNotice(null)} /> : null;
-
   if (mode === "loading" || mode === "hidden") return null;
-  if (mode === "closed") return noticePopup;
+  if (mode === "closed") return null;
 
   const denied = perm === "denied";
   const warn = (
@@ -244,7 +227,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
                   </button>
                 ))}
               </div>
-              {askMoment && ad === "none" && <AdConsentCheck checked={adChecked} onChange={setAdChecked} disabled={busy} />}
               <button
                 type="button"
                 disabled={busy}
@@ -258,7 +240,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
           )}
           <LaterButton disabled={busy} />
         </Sheet>
-        {noticePopup}
       </>
     );
   }
@@ -266,7 +247,6 @@ export default function RevisitSheet({ readingId, autoOpen = true }: { readingId
   // ── 카드(②③④ 결과 화면 안)
   return (
     <>
-    {noticePopup}
     <div className="w-full max-w-md mx-auto px-5 mt-4">
       <div className="card-inner">
         {done ? (
