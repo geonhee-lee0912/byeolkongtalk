@@ -37,15 +37,16 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
   wealth_year: ["wealth_vessel", "career_timing"],
   career_timing: ["talent_path", "wealth_year"],
   monthly: ["wealth_year", "love_year"],
+  saju_2027: ["life_full", "monthly"],
   saju_full: ["life_full", "monthly"],
-  life_full: ["saju_full", "life_graph"],
+  life_full: ["saju_2027", "life_graph"],
   compat: ["love_self", "compat_social"],
   compat_social: ["user_manual", "compat"],
   good_days: ["monthly", "wealth_year"],
   fact_bomb: ["past_life", "saju_report_card"],
   past_life: ["fact_bomb", "life_graph"],
   saju_report_card: ["fact_bomb", "life_full"],
-  life_graph: ["life_full", "saju_full"],
+  life_graph: ["life_full", "saju_2027"],
   daily: ["love_self", "monthly"],
 };
 
