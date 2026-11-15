@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { shuffleDeck, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
@@ -29,12 +29,14 @@ interface CardDrawRitualProps {
   slotLabels: string[];
   accent: string;
   ritualLabel: string; // breathing pill + section divider 표시용
-  completeLabel?: string; // direction phase 완료 버튼 라벨 (기본 "결과 보기")
+  completeLabel?: ReactNode; // direction phase 완료 버튼 라벨 (기본 "결과 보기") — 별 아이콘을 넣을 수 있게 ReactNode
   relationshipLayout?: boolean; // true면 2x2 + 중앙 5번 배치
   backLabel?: string; // pick phase 좌측 버튼 라벨 (없으면 버튼 숨김)
   onBack?: () => void;
   onComplete: (drawn: DrawnCard[]) => void;
-  /** true면 호흡 pill·섹션 디바이더·별콩이 프로필 숨김 (ClarifierSheet용 슬림 모드) */
+  /** true면 시트 안 모양(ClarifierSheet 전용): 호흡 pill·섹션 디바이더·별콩이 프로필·고르기 단계 제목을 숨기고,
+   *  버튼·얇은 막대·가운데 카드 누르면 바로 자리로는 /tarot/draw(pageLayout)와 같다. 아래 고정 버튼 띠는 안 쓴다(시트 안이라)
+   *  — 디자인 다듬기 묶음 2 카드 한 장 더 시트 B안, 운영자 11-15 */
   slim?: boolean;
   /** 이미 뽑힌 card_id 목록 — shuffleDeck 결과에서 제외 */
   excludeCardIds?: number[];
@@ -62,6 +64,8 @@ export default function CardDrawRitual({
 }: CardDrawRitualProps) {
   // pageLayout 은 slim 처럼 장식(pill·디바이더·프로필)을 숨긴다
   const bare = slim || pageLayout;
+  // 버튼·막대·가운데 누르기는 화면(pageLayout)과 시트(slim)가 같다
+  const flat = slim || pageLayout;
   const slotScale = pageLayout && cardCount <= 3 && !relationshipLayout ? 1.3 : 1;
   const [mounted, setMounted] = useState(false);
   const [deck, setDeck] = useState<number[]>([]);
@@ -76,11 +80,11 @@ export default function CardDrawRitual({
 
   // viewport 세로가 부족한 디바이스(iPhone SE 등)에서만 하단 CTA sticky
   useEffect(() => {
-    const check = () => setIsCompact(window.innerHeight < 820);
+    const check = () => setIsCompact(!slim && window.innerHeight < 820); // 시트 안에선 아래 고정 띠를 안 쓴다
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
+  }, [slim]);
 
   // compact 디바이스 첫 진입: 덱/스크롤바/버튼이 한 화면에 보이도록 자동 스크롤
   useEffect(() => {
@@ -254,6 +258,8 @@ export default function CardDrawRitual({
       : "pb-28"
     : pageLayout
     ? "pb-4"
+    : slim
+    ? "pb-2"
     : "pb-16";
 
   return (
@@ -317,6 +323,7 @@ export default function CardDrawRitual({
             </div>
           )}
           {phase === "pick" ? (
+            slim ? null : (
             <>
               <p
                 className={`font-display text-eye-purple text-center ${pageLayout ? "text-20 break-keep text-balance" : "text-17 leading-tight"}`}
@@ -351,6 +358,7 @@ export default function CardDrawRitual({
                   : "“별이 이끄는 대로, 손끝이 멈추는 그 카드로”"}
               </p>
             </>
+            )
           ) : (
             <>
               <p
@@ -403,8 +411,8 @@ export default function CardDrawRitual({
             accent={accent}
             isShuffling={isShuffling}
             totalSlots={cardCount}
-            thinBar={pageLayout}
-            onPickCenter={pageLayout ? confirmPick : undefined}
+            thinBar={flat}
+            onPickCenter={flat ? confirmPick : undefined}
           />
         </div>
       )}
@@ -422,7 +430,7 @@ export default function CardDrawRitual({
             : `w-full max-w-md mx-auto px-5 ${pageLayout ? "mt-3" : "mt-6"}`;
           // pageLayout: 공통 주 버튼 하나(전체 폭) + '리딩 방법 선택'은 웹에서만 글자 버튼 — 앱에선 헤더 ‹ 와 같은 곳이라 숨김
           // (디자인 다듬기 ⑤ 운영자 A안 11-13, /concern 의 '뒤로'와 같은 방식)
-          if (pageLayout) {
+          if (flat) {
             return (
               <div className={`flex flex-col gap-1 ${stickyClass}`}>
                 <button
@@ -468,7 +476,7 @@ export default function CardDrawRitual({
         })()}
 
       {/* direction 단계(pageLayout): 공통 주 버튼 + 글자 버튼 '카드 다시 고르기'(화면 안에서 고르기로 돌아가서 앱에서도 둔다) */}
-      {phase === "direction" && pageLayout && (
+      {phase === "direction" && flat && (
         <div
           className={`flex flex-col gap-1 ${
             isCompact
@@ -490,7 +498,7 @@ export default function CardDrawRitual({
       )}
 
       {/* direction 단계: 완료 + 카드 다시 뽑으러 가기 (세로) */}
-      {phase === "direction" && !pageLayout && (
+      {phase === "direction" && !flat && (
         <div
           className={`flex flex-col items-center gap-2.5 ${
             isCompact

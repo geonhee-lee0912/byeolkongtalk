@@ -23,7 +23,6 @@ import PostEndOffers from "@/components/upsell/PostEndOffers";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
-import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { getCard } from "@/lib/tarot/cards";
 import { parseReopenHeader, stripEndFromLastAssistant, type ReopenOptions } from "@/lib/tarot/reopen";
 import { clarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
@@ -1364,7 +1363,6 @@ function TarotReadingInner() {
           open={clarifierSheetOpen}
           readingId={readingId}
           drawnCards={draw.drawnCards}
-          accent={SPREAD_INFO[draw.spreadType]?.accent ?? "#6B8DD6"}
           onClose={() => setClarifierSheetOpen(false)}
           onDrawn={handleClarifierDrawn}
           onPurchasingChange={setClarifierPurchasing}
