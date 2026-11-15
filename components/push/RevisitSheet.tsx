@@ -1,19 +1,23 @@
 "use client";
 
-// 결과 화면의 "다시 볼 날" — 첫 리딩이면(또는 '나중에' 뒤 다시 묻는 리딩이면) 하단 시트로 자동으로 열리고, 그 뒤엔 결과 안의 카드로만 둔다.
-// 이 시트엔 광고성 정보 수신 동의 체크칸을 두지 않는다(디자인 다듬기 /tarot/result ⑩ 운영자 11-15 — 설계 §4-2 의 체크칸을 뺌).
-// 광고 동의는 다른 묻는 순간(PushAskSheet)과 마이페이지 알림 설정에서 받는다.
-// 앱(push 지원) 안에서만 그린다. 소유자 확인은 부르는 쪽 책임. 시안: docs/superpowers/specs/assets/2026-11-06-앱-알림-시안.html ①~④
-import { useEffect, useRef, useState } from "react";
+// 결과 화면의 "다시 볼 날" — 결과 안엔 한 줄(F3: 한마디 카드 맨 아래), 누르면 달력 시트. 첫 리딩이면(또는 '나중에' 뒤 다시 묻는 리딩이면)
+// 같은 시트가 저절로 열린다(그때만 '나중에'와 질문 기록). 디자인 다듬기 /tarot/result ⑩ 운영자 11-15:
+//  - 시트는 빠른 칩(3일·1주·2주) + 우리 달력(내일~30일 뒤). 고르기 전엔 버튼이 회색 '날짜를 골라 줘'
+//  - 광고성 정보 수신 동의 체크칸은 두지 않는다 — 광고 동의는 다른 묻는 순간(PushAskSheet)과 마이페이지 알림 설정에서 받는다
+//  - '나중에'를 눌러도 줄은 남는다(가벼운 한 줄이라 — 언제든 정할 수 있게)
+// 앱(push 지원) 안에서만 그린다. 소유자 확인은 부르는 쪽 책임.
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { askAppPush, appSupportsPush } from "@/lib/app-push";
 import { postToApp } from "@/lib/app-context";
 import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
-import { revisitDateRange, type RevisitChoice } from "@/lib/push/schedule";
+import { revisitDateRange, revisitSendOn, type RevisitChoice } from "@/lib/push/schedule";
 import { fetchAsk, postAsk } from "./api";
 import Sheet from "@/components/common/Sheet";
+import Icon from "@/components/common/Icon";
 import LaterButton from "./LaterButton";
+import RevisitCalendar from "./RevisitCalendar";
 
 const CHIPS: { choice: RevisitChoice; label: string }[] = [
   { choice: "3d", label: "3일 뒤" },
@@ -23,81 +27,53 @@ const CHIPS: { choice: RevisitChoice; label: string }[] = [
 const MSG_SENT = "이 리딩은 이미 알려줬어";
 const MSG_SKIPPED = "이 리딩의 다시 볼 날은 지났어";
 
-type Mode = "loading" | "hidden" | "sheet" | "card" | "closed";
+type Mode = "loading" | "hidden" | "row";
 /** 시트가 저절로 열린 순간 — 첫 상담 끝(첫 질문) 또는 '나중에' 뒤 다음 리딩 끝(다시 묻기 ①, 설계 §4-3) */
 type SheetMoment = "first_reading_end" | "reading_end";
 
 /** "YYYY-MM-DD" → "N월 N일" (Date 변환 없이 문자열로) */
-function monthDay(sendOn: string): string {
-  const [, m, d] = sendOn.split("-");
+function monthDay(date: string): string {
+  const [, m, d] = date.split("-");
   return `${Number(m)}월 ${Number(d)}일`;
 }
 
-/** 시트·카드 위 두 줄 — 기본은 사주 결과가 쓰는 글. 타로 결과는 다시 뽑기 값을 밝힌 글을 넘긴다
- *  (디자인 다듬기 /tarot/result ⑩ W3, 운영자 11-15 — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게). 알림 문구는 그대로 중립 */
-type RevisitCopy = { title: string; sub: string; /** 시트에서만 쓰는 둘째 줄(없으면 sub) */ sheetSub?: string };
+/** 시트 제목·둘째 줄과 결과 안 한 줄 — 기본은 사주 결과가 쓰는 글. 타로 결과는 다시 뽑기 값을 밝힌 글을 넘긴다
+ *  (디자인 다듬기 /tarot/result ⑩ W3 — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게). 휴대폰 알림 문구는 그대로 중립 */
+export type RevisitCopy = { title: string; sub: string; row: string };
 const DEFAULT_COPY: RevisitCopy = {
   title: "이 고민, 언제 다시 볼까?",
-  sub: "그날 별콩이가 알려줄게.",
-  sheetSub: "그날 별콩이가 알려줄게. 알림을 켜 줘.",
+  sub: "그날 아침에 별콩이가 알려줄게.",
+  row: "이 고민, 언제 다시 볼까?",
 };
 
-/** 고른 것 — 칩("3d"·"1w"·"2w") 또는 달력에서 고른 날("YYYY-MM-DD") */
-type Pick = RevisitChoice | string;
-const isDate = (p: Pick) => /^\d{4}-\d{2}-\d{2}$/.test(p);
-
-/** 칩 줄 끝의 '날짜 고르기' — 휴대폰 기본 날짜 선택창(내일~30일 뒤). 고르면 칩 글이 그 날로 바뀐다.
- *  투명한 날짜 입력칸을 칩 위에 겹쳐 둔다 — 아이폰은 눌러서 바로 열리고, 안드로이드·PC 는 showPicker 로 연다 */
-function DateChip({ picked, disabled, className, onPick }: { picked: Pick | null; disabled: boolean; className: string; onPick: (date: string) => void }) {
-  const { min, max } = revisitDateRange(new Date());
-  return (
-    <span className={`relative ${className}`}>
-      {picked && isDate(picked) ? monthDay(picked) : "날짜 고르기"}
-      <input
-        type="date"
-        aria-label="날짜 고르기"
-        min={min}
-        max={max}
-        disabled={disabled}
-        value={picked && isDate(picked) ? picked : ""}
-        onClick={(e) => {
-          try {
-            e.currentTarget.showPicker?.();
-          } catch {
-            // 이미 열려 있거나 막힌 곳 — 아이폰은 눌러서 열린다
-          }
-        }}
-        onChange={(e) => {
-          if (e.target.value) onPick(e.target.value);
-        }}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
-      />
-    </span>
-  );
-}
-
-/** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 카드로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
- *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다 */
+/** autoOpen=false 면 첫 상담이어도 시트를 저절로 열지 않고 줄로만 둔다(위기 안내가 나간 상담 — 운영자 결정 11-06).
+ *  이때는 질문을 기록하지 않아서, 다음 보통 상담의 결과 화면에서 첫 시트가 다시 열린다.
+ *  inline 이면 부르는 쪽 카드 안 맨 아래 줄로(위에 얇은 선), 아니면 혼자 선 안쪽 칸으로 그린다 */
 export default function RevisitSheet({
   readingId,
   autoOpen = true,
   copy = DEFAULT_COPY,
+  inline = false,
 }: {
   readingId: string;
   autoOpen?: boolean;
   copy?: RevisitCopy;
+  inline?: boolean;
 }) {
   const { ready } = useAppInfo();
   const [mode, setMode] = useState<Mode>("loading");
+  // 시트 — "auto" 는 저절로 열린 질문 시트('나중에' 있음), "pick" 은 줄에서 연 시트
+  const [sheet, setSheet] = useState<"auto" | "pick" | null>(null);
   // 이번 방문에 저절로 열린 시트의 순간 — 질문 기록은 이때만. 한 번 답하면 null
   const [askMoment, setAskMoment] = useState<SheetMoment | null>(null);
   const [perm, setPerm] = useState<PushState>("undetermined");
   const [sendOn, setSendOn] = useState<string | null>(null);
-  // 이 리딩의 예약이 끝났을 때(보냄·건너뜀) 칩 대신 보일 한 줄
+  // 이 리딩의 예약이 끝났을 때(보냄·건너뜀) 줄에 보일 말
   const [done, setDone] = useState<string | null>(null);
-  // 알림 설정에서 다시 볼 날이 꺼져 있다 — 예약해도 안 간다. 칩 대신 설정 안내(설정을 저절로 켜지 않는다)
+  // 알림 설정에서 다시 볼 날이 꺼져 있다 — 예약해도 안 간다. 설정 안내(설정을 저절로 켜지 않는다)
   const [prefOff, setPrefOff] = useState(false);
-  const [picked, setPicked] = useState<Pick | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [chip, setChip] = useState<RevisitChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const busyRef = useRef(false);
@@ -132,18 +108,15 @@ export default function RevisitSheet({
         if (cancelled) return;
         setPerm(status);
         setPrefOff(rvBody.revisitPref === false);
+        setMode("row");
         const rev = rvBody.revisit;
         if (rev) {
           if (rev.status === "pending") setSendOn(rev.sendOn);
           else setDone(rev.status === "skipped" ? MSG_SKIPPED : MSG_SENT);
-          setMode("card");
           return;
         }
-        // 설정이 꺼져 있거나 위기 안내가 나간 상담이면 시트를 저절로 열지 않는다(질문도 기록하지 않는다) — 카드로만
-        if (rvBody.revisitPref === false || !autoOpen) {
-          setMode("card");
-          return;
-        }
+        // 설정이 꺼져 있거나 위기 안내가 나간 상담이면 시트를 저절로 열지 않는다(질문도 기록하지 않는다) — 줄로만
+        if (rvBody.revisitPref === false || !autoOpen) return;
         let moment: SheetMoment | null = first.ask === "push" ? "first_reading_end" : null;
         if (!moment) {
           const again = await fetchAsk("reading_end", status);
@@ -151,7 +124,7 @@ export default function RevisitSheet({
           if (again?.ask === "push") moment = "reading_end";
         }
         setAskMoment(moment);
-        setMode(moment ? "sheet" : "card");
+        if (moment) setSheet("auto");
       } catch {
         if (!cancelled) setMode("hidden");
       }
@@ -161,9 +134,15 @@ export default function RevisitSheet({
     };
   }, [ready, readingId, autoOpen]);
 
-  /** 권한 확인(필요하면 OS 창) → 예약.
-   *  카드는 칩을 누르는 즉시, 시트는 [알림 받을래] 로 부른다 — 시트에선 날짜를 안 골라도 누를 수 있다(§4-2) */
-  async function commit(choice: Pick | null) {
+  function openPick() {
+    setPicked(sendOn);
+    setChip(null);
+    setFailed(false);
+    setSheet("pick");
+  }
+
+  /** 권한 확인(필요하면 OS 창) → 예약. 시트의 [N월 N일에 알려줘] 로 부른다 */
+  async function commit(date: string) {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
@@ -184,20 +163,16 @@ export default function RevisitSheet({
         postAsk(moment, "push", state === "granted" ? "accepted" : "os_denied");
         setAskMoment(null); // 이 시트의 질문은 한 번만 기록
       }
-      if (state !== "granted") return;
-      if (choice === null) {
-        setMode("card"); // 날짜 없이 알림만 켰다 — 카드에서 언제든 고를 수 있다
-        return;
-      }
+      if (state !== "granted") return; // 시트에 '알림이 꺼져 있어' 안내가 뜬다
       const r = await fetch("/api/push/revisit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isDate(choice) ? { readingId, date: choice } : { readingId, choice }),
+        body: JSON.stringify({ readingId, date }),
       });
       if (r.status === 409) {
         setDone(MSG_SENT);
         setSendOn(null);
-        setMode("card");
+        setSheet(null);
         return;
       }
       if (!r.ok) {
@@ -206,8 +181,7 @@ export default function RevisitSheet({
       }
       const body = (await r.json()) as { sendOn: string };
       setSendOn(body.sendOn);
-      setPicked(choice);
-      setMode("card"); // 시트였다면 예약된 카드로 바뀐다
+      setSheet(null);
     } catch {
       setFailed(true);
     } finally {
@@ -216,158 +190,127 @@ export default function RevisitSheet({
     }
   }
 
-  function later() {
+  function closeSheet() {
     if (busyRef.current) return; // 예약·권한 요청 중엔 닫지 않는다
-    if (askMoment) postAsk(askMoment, "push", "later"); // '나중에' — OS 창은 띄우지 않는다(아껴 둔다, §4-2)
+    // 저절로 열린 시트를 그냥 닫으면 '나중에' — OS 창은 띄우지 않는다(아껴 둔다, §4-2)
+    if (sheet === "auto" && askMoment) postAsk(askMoment, "push", "later");
     setAskMoment(null);
-    setMode("closed");
+    setSheet(null);
   }
 
-  if (mode === "loading" || mode === "hidden") return null;
-  if (mode === "closed") return null;
+  if (mode !== "row") return null;
 
   const denied = perm === "denied";
-  const warn = (
-    <div className="card-inner mt-3 text-13 leading-relaxed">
-      알림이 꺼져 있어서 그날 못 알려줘.
-      <br />
-      <button
-        type="button"
-        onClick={() => postToApp("push.openSettings")}
-        className="btn btn-secondary btn-sm mt-2"
-      >
-        설정 열기
-      </button>
+  const now = new Date();
+  const { min, max } = revisitDateRange(now);
+  const todayKst = new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
+
+  // ── 결과 안 한 줄: 왼쪽 말 + 오른쪽 할 일
+  const action = (label: string, onClick: () => void) => (
+    <button type="button" onClick={onClick} className="flex items-center gap-0.5 text-13 font-bold text-accent shrink-0">
+      {label}
+      <Icon name="chev_r" size={14} />
+    </button>
+  );
+  let left: ReactNode;
+  let right: ReactNode = null;
+  if (done) {
+    left = <span className="text-13 text-text-light">{done}</span>;
+  } else if (prefOff) {
+    left = <span className="text-13 text-text-light">알림 설정에서 다시 볼 날이 꺼져 있어</span>;
+    right = (
+      <Link href="/mypage/notifications" className="flex items-center gap-0.5 text-13 font-bold text-accent shrink-0">
+        알림 설정
+        <Icon name="chev_r" size={14} />
+      </Link>
+    );
+  } else if (denied) {
+    left = <span className="text-13 text-text-light">알림이 꺼져 있어서 그날 못 알려줘</span>;
+    right = action("설정 열기", () => postToApp("push.openSettings"));
+  } else if (sendOn) {
+    left = <span className="text-13 font-bold text-eye-purple">{monthDay(sendOn)}에 알려줄게</span>;
+    right = action("바꾸기", openPick);
+  } else {
+    left = <span className="text-13 text-text-light">{copy.row}</span>;
+    right = action("날짜 정하기", openPick);
+  }
+  const row = (
+    <div className={`flex items-center justify-between gap-2 ${inline ? "border-t border-lilac-mid/35 mt-4 pt-3" : ""}`}>
+      {left}
+      {right}
     </div>
   );
-  const retry = failed ? <p className="mt-2 text-12 text-text-light">잘 안 됐어. 한 번 더 눌러 줄래?</p> : null;
 
-  const chipClass = (on: boolean, small: boolean) =>
-    `${small ? "px-3 py-[7px] text-12" : "px-[15px] py-[9px] text-13"} rounded-full font-bold border-[1.5px] transition-colors disabled:opacity-50 ${
-      on ? "bg-eye-purple border-eye-purple text-white" : "bg-white border-lilac-mid text-eye-purple"
-    }`;
-
-  // ── 시트(① 자동으로 열림) — 공통 시트 틀(components/common/Sheet). 예약·권한 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
-  if (mode === "sheet") {
-    return (
-      <>
-        <Sheet label="다시 볼 날" onClose={later} dismissible={!busy} z={80}>
+  return (
+    <>
+      {inline ? (
+        row
+      ) : (
+        <div className="w-full max-w-md mx-auto px-5 mt-4">
+          <div className="card-inner">{row}</div>
+        </div>
+      )}
+      {sheet && (
+        <Sheet label="다시 볼 날" onClose={closeSheet} dismissible={!busy} z={80}>
           <div className="flex flex-col items-center text-center">
-            <div className="relative w-[52px] h-[52px] mb-2">
-              <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/profile.png" alt="" className="relative w-full h-full object-contain" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/profile.png" alt="" className="w-11 h-11 object-contain mb-1.5" />
             <p className="text-17 font-black tracking-tight">{copy.title}</p>
-            <p className="text-13 text-text-light mt-1.5 leading-normal">{copy.sheetSub ?? copy.sub}</p>
+            <p className="text-13 text-text-light mt-1 leading-normal">{copy.sub}</p>
           </div>
           {denied ? (
-            warn
+            <div className="card-inner mt-4 text-13 leading-relaxed">
+              알림이 꺼져 있어서 그날 못 알려줘.
+              <br />
+              <button type="button" onClick={() => postToApp("push.openSettings")} className="btn btn-secondary btn-sm mt-2">
+                설정 열기
+              </button>
+            </div>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2 justify-center mt-[18px] mb-1.5">
+              <div className="flex gap-2 justify-center mt-4 mb-3">
                 {CHIPS.map((c) => (
                   <button
                     key={c.choice}
                     type="button"
                     disabled={busy}
-                    onClick={() => setPicked(c.choice)}
-                    className={chipClass(picked === c.choice, false)}
+                    onClick={() => {
+                      setChip(c.choice);
+                      setPicked(revisitSendOn(c.choice, new Date()));
+                    }}
+                    className={`px-3.5 py-2 rounded-full text-13 font-bold border-[1.5px] transition-colors disabled:opacity-50 ${
+                      chip === c.choice ? "bg-accent border-accent text-white" : "bg-white border-lilac-mid text-eye-purple"
+                    }`}
                   >
                     {c.label}
                   </button>
                 ))}
-                <DateChip picked={picked} disabled={busy} className={chipClass(picked !== null && isDate(picked), false)} onPick={setPicked} />
               </div>
+              <RevisitCalendar
+                today={todayKst}
+                min={min}
+                max={max}
+                value={picked}
+                disabled={busy}
+                onChange={(d) => {
+                  setChip(null);
+                  setPicked(d);
+                }}
+              />
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => void commit(picked)}
-                className="btn btn-primary btn-lg mt-4"
+                disabled={busy || !picked}
+                onClick={() => picked && void commit(picked)}
+                className="btn btn-primary btn-lg mt-3.5"
               >
-                알림 받을래
+                {picked ? `${monthDay(picked)}에 알려줘` : "날짜를 골라 줘"}
               </button>
-              {retry}
+              {failed && <p className="mt-2 text-12 text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
             </>
           )}
-          <LaterButton disabled={busy} />
+          {sheet === "auto" && <LaterButton disabled={busy} />}
         </Sheet>
-      </>
-    );
-  }
-
-  // ── 카드(②③④ 결과 화면 안)
-  return (
-    <>
-    <div className="w-full max-w-md mx-auto px-5 mt-4">
-      <div className="card-inner">
-        {done ? (
-          <p className="text-14 font-black">{done}</p>
-        ) : prefOff ? (
-          <div className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
-            <div>
-              <p className="text-14 font-black">알림 설정에서 다시 볼 날이 꺼져 있어</p>
-              <Link
-                href="/mypage/notifications"
-                className="btn btn-secondary btn-sm mt-2"
-              >
-                알림 설정
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <>
-            {sendOn ? (
-              <>
-                <p className="flex items-center gap-2 text-14 font-black">
-                  
-                  {monthDay(sendOn)}에 알려줄게
-                </p>
-                <p className="text-12 text-text-light mt-1.5">날짜 바꾸기</p>
-              </>
-            ) : (
-              <div className="flex items-center gap-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/profile.png" alt="" className="w-[34px] h-[34px] object-contain" />
-                <div>
-                  <p className="text-14 font-black">{copy.title}</p>
-                  {!denied && <p className="text-12 text-text-light mt-0.5">{copy.sub}</p>}
-                </div>
-              </div>
-            )}
-            {denied && !sendOn ? (
-              warn
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {CHIPS.map((c) => (
-                    <button
-                      key={c.choice}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void commit(c.choice)}
-                      className={chipClass(sendOn !== null && picked === c.choice, true)}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                  <DateChip
-                    picked={picked}
-                    disabled={busy}
-                    className={chipClass(sendOn !== null && picked !== null && isDate(picked), true)}
-                    onPick={(d) => void commit(d)}
-                  />
-                </div>
-                {denied && warn}
-                {retry}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+      )}
     </>
   );
 }

@@ -149,6 +149,21 @@ function TarotResultInner() {
   const redraw = isOwner
     ? redrawTarget(reading.question, reading.emotionTag)
     : { href: "/concern", pending: null };
+  // 다시 볼 날(앱·소유자만) — 한마디 카드 맨 아래 한 줄, 누르면 달력 시트(디자인 다듬기 /tarot/result ⑩ F3, 운영자 11-15).
+  // 글은 다시 뽑기 값을 밝힌다(W3) — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게
+  const revisit = (inline: boolean) =>
+    isOwner && (
+      <RevisitSheet
+        readingId={reading.id}
+        autoOpen={!reading.hasSensitive}
+        inline={inline}
+        copy={{
+          title: "언제 다시 뽑아 볼까?",
+          sub: `그날 아침에 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
+          row: "이 고민, 언제 다시 뽑아 볼까?",
+        }}
+      />
+    );
   const cards = reading.drawnCards ?? [];
   const cardsText = cards
     .map((c) => {
@@ -250,6 +265,7 @@ function TarotResultInner() {
             <p className="text-15 text-eye-purple leading-relaxed">
               <EmphasisText text={closingLine} />
             </p>
+            {revisit(true)}
           </div>
         </div>
       )}
@@ -316,17 +332,8 @@ function TarotResultInner() {
         />
       </div>
 
-      {/* 다시 볼 날 — 소유자·앱에서만. 카드는 공유 아래·'다음엔 뭐 볼래?' 위(이 결과에 속한 것 바로 뒤 — 디자인 다듬기 /tarot/result ⑩ P2, 운영자 11-15) */}
-      {isOwner && (
-        <RevisitSheet
-          readingId={reading.id}
-          autoOpen={!reading.hasSensitive}
-          copy={{
-            title: "흐름이 바뀌었는지, 며칠 뒤에 다시 뽑아 볼까?",
-            sub: `그날 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
-          }}
-        />
-      )}
+      {/* 한마디 카드가 없으면(한마디를 못 뽑은 결과) 다시 볼 날 줄은 공유 아래에 혼자 선다 */}
+      {!closingLine && revisit(false)}
 
       {/* ② 다음 — '이 고민으로 카드 다시 뽑기'를 추천 묶음 맨 위에 같은 무게로(디자인 다듬기 /tarot/result ③ M2, 운영자 11-14).
           예전엔 재충전 블록의 보라 버튼이었다. 가격 = 가장 싼 스프레드(원카드)부터. 계측은 그때와 같은 cta:"new" */}

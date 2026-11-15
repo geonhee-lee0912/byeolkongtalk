@@ -46,3 +46,19 @@ export function revisitWindow(sendOn: string, now: Date): "early" | "open" | "mi
   if (min >= CLOSE_MIN) return "missed";
   return "open";
 }
+
+/** 달력 한 달("YYYY-MM")의 칸 — 1일 앞 요일만큼 빈칸(null), 그다음 그 달 날짜("YYYY-MM-DD"). 일요일 시작 */
+export function monthCells(month: string): (string | null)[] {
+  const [y, m] = month.split("-").map(Number);
+  const lead = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells: (string | null)[] = Array(lead).fill(null);
+  for (let d = 1; d <= days; d++) cells.push(`${month}-${String(d).padStart(2, "0")}`);
+  return cells;
+}
+
+/** "YYYY-MM" 을 n 달 옮긴다 */
+export function shiftMonth(month: string, n: number): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7);
+}

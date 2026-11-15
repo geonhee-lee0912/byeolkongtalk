@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { revisitDateRange, revisitSendOn, revisitSendOnFromDate, revisitWindow } from "./schedule.ts";
+import { monthCells, revisitDateRange, revisitSendOn, revisitSendOnFromDate, revisitWindow, shiftMonth } from "./schedule.ts";
 
 test("23:50 KST 에 고르면 KST 날짜로 센다", () => {
   assert.equal(revisitSendOn("3d", new Date("2026-11-06T14:50:00Z")), "2026-11-09"); // KST 11-06 23:50
@@ -32,4 +32,18 @@ test("달력에서 고른 날 — 범위 안의 진짜 날짜만 받는다", () 
   assert.equal(revisitSendOnFromDate("2026-11-31", now), null); // 없는 날
   assert.equal(revisitSendOnFromDate("2026-11-7", now), null);
   assert.equal(revisitSendOnFromDate("내일", now), null);
+});
+
+test("달력 한 달 칸 — 1일 앞은 빈칸(null), 그다음 날짜들", () => {
+  const g = monthCells("2026-11"); // 2026-11-01 은 일요일
+  assert.equal(g[0], "2026-11-01");
+  assert.equal(g.length, 30);
+  const dec = monthCells("2026-12"); // 2026-12-01 은 화요일 → 앞에 빈칸 둘
+  assert.deepEqual(dec.slice(0, 3), [null, null, "2026-12-01"]);
+  assert.equal(dec[dec.length - 1], "2026-12-31");
+});
+
+test("달 옮기기 — 해를 넘긴다", () => {
+  assert.equal(shiftMonth("2026-12", 1), "2027-01");
+  assert.equal(shiftMonth("2027-01", -1), "2026-12");
 });
