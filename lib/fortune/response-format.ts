@@ -18,6 +18,7 @@ export function fortuneResponseFormat(
     case "daily":
       return { name: "daily_report", schema: DAILY_REPORT_SCHEMA };
     case "saju_full":
+    case "saju_2027": // 같은 틀에 기준 연도만 다르다
       return { name: "saju_full_report", schema: SAJU_FULL_REPORT_SCHEMA };
     case "monthly":
       return { name: "monthly_report", schema: MONTHLY_REPORT_SCHEMA };

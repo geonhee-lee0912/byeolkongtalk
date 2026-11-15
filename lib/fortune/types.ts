@@ -5,6 +5,7 @@ export type FortuneType =
   | "daily"
   | "monthly"
   | "saju_full"
+  | "saju_2027" // 2027년 사주 분석 — saju_full 과 같은 틀, 기준 연도만 2027
   | "tarot_daily"
   | "tarot_love"
   | "tarot_money"
