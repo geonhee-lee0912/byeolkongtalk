@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Sheet from "@/components/common/Sheet";
-import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -10,6 +9,7 @@ import { continuationPrice, fullCostFor } from "@/lib/continuation";
 import type { SpreadType } from "@/lib/tarot/spreads";
 import { fetchWallet } from "@/lib/wallet";
 import Icon from "@/components/common/Icon";
+import EmphasisText from "@/components/common/EmphasisText";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -188,20 +188,10 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal max-h-[88vh] overflow-y-auto"
     >
         <div className="px-5 pt-5 pb-6 flex flex-col">
-          {/* 헤더 */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Image src="/byeolkong-main.png" alt="별콩이" width={32} height={32} />
-              <h2 className="font-display text-17 text-eye-purple">
-                이 고민, 이어가볼까?
-              </h2>
-            </div>
-            <OverlayCloseButton
-              aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
-            >
-              <Icon name="close" size={18} />
-            </OverlayCloseButton>
+          {/* 헤더 — 닫기 ✕ 는 뺐다(바깥 누르기·앱 끌어내리기·Esc·뒤로 — 디자인 다듬기 묶음 2 후속 상담 B안, 운영자 11-15) */}
+          <div className="flex items-center gap-2 mb-3">
+            <Image src="/byeolkong-main.png" alt="별콩이" width={32} height={32} />
+            <h2 className="font-display text-17 text-eye-purple">이 고민, 이어가볼까?</h2>
           </div>
 
           {loading ? (
@@ -212,25 +202,19 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
             </p>
           ) : (
             <>
-              {/* 지난 맥락 — 다크톤 */}
+              {/* 지난 맥락 — 밤 카드 한 칸에 지난 고민 + 별콩이 정리(B안). 정리의 ** 는 강조로(그대로 보이던 결함) */}
               <div className="bg-night-card rounded-2xl p-4 border border-night-deep mb-2">
-                <div className="text-11 font-bold text-lilac-soft/70 mb-1">
-                  지난번 고민
-                </div>
-                <p className="text-13 text-cream leading-relaxed whitespace-pre-wrap">
-                  {parent.question}
-                </p>
-              </div>
-              {closing && (
-                <div className="card-inner mb-2">
-                  <div className="text-11 font-bold text-eye-purple mb-1">
-                    지난번 별콩이 정리
+                <div className="text-11 font-bold text-lilac-soft/70 mb-1">지난번 고민</div>
+                <p className="text-13 text-cream leading-relaxed whitespace-pre-wrap">{parent.question}</p>
+                {closing && (
+                  <div className="border-t border-lilac-soft/20 mt-3 pt-2.5">
+                    <div className="text-11 font-bold text-lilac-soft/70 mb-1">별콩이 정리</div>
+                    <p className="text-13 text-cream/85 leading-relaxed">
+                      <EmphasisText text={closing} tone="dark" />
+                    </p>
                   </div>
-                  <p className="text-13 text-eye-purple leading-relaxed">
-                    {closing}
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* 새 고민 (빈 칸) */}
               <label className="text-12 text-text-light mt-2">
@@ -241,7 +225,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 onChange={(e) => setConcern(e.target.value.slice(0, MAX_LEN))}
                 rows={4}
                 placeholder="오늘은 어떤 결을 이어서 풀어볼까?"
-                className="mt-1 w-full p-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-faint"
+                className="mt-1 w-full p-3 rounded-xl bg-white border border-lilac-mid/50 text-eye-purple text-14 leading-relaxed resize-none placeholder:text-text-faint"
               />
               <div className="flex justify-between text-11 text-text-light mt-1">
                 <span>{concern.length < MIN_LEN ? `최소 ${MIN_LEN}자` : " "}</span>
@@ -253,33 +237,32 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <p className="text-12 text-red-500 text-center mt-1">{error}</p>
               )}
 
-              {/* 경로 — 타로는 2개(새로 뽑기 / 같은 카드 이어서), 사주는 1개(이어서 상담) */}
+              {/* 경로 — 타로는 카드 새로 뽑기 하나(같은 카드로 이어서 40% 는 90일 5번이라 뺐다 — 운영자 11-15, 서버 deep 처리는 그대로),
+                  사주는 지난 대화를 이어서(40% 할인) 하나 */}
               {consultationType === "tarot" ? (
-                <>
-                  <button
-                    onClick={() => start("fresh")}
-                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="btn btn-primary btn-lg mt-3 disabled:cursor-not-allowed"
-                  >
-                    타로 카드 새로 뽑아 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(fullCost)})
-                  </button>
-                  <button
-                    onClick={() => start("deep")}
-                    disabled={submitting || !priceReady || concern.length < MIN_LEN}
-                    className="btn btn-secondary btn-lg mt-2 disabled:cursor-not-allowed gap-1.5"
-                  >
-                    동일한 카드로 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(deepCost)}
-                    <span className="text-11 text-accent">40% 할인</span>)
-                  </button>
-                </>
+                <button
+                  onClick={() => start("fresh")}
+                  disabled={submitting || !priceReady || concern.length < MIN_LEN}
+                  className="btn btn-primary btn-lg mt-3 disabled:cursor-not-allowed"
+                >
+                  카드 새로 뽑아 상담 ·
+                  <span className="inline-flex items-center">
+                    <Icon name="star" size={16} className="mr-0.5" />
+                    {priceText(fullCost)}
+                  </span>
+                </button>
               ) : (
                 <button
                   onClick={() => start("deep")}
                   disabled={submitting || !priceReady || concern.length < MIN_LEN}
                   className="btn btn-primary btn-lg mt-3 disabled:cursor-not-allowed"
                 >
-                  지난 대화를 이어서 상담 (<Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{priceText(deepCost)}
-                  <span className="text-11 text-white/70">40% 할인</span>)
+                  지난 대화를 이어서 상담 ·
+                  <span className="inline-flex items-center">
+                    <Icon name="star" size={16} className="mr-0.5" />
+                    {priceText(deepCost)}
+                  </span>
+                  <span className="text-11 font-bold text-accent bg-white px-1.5 py-0.5 rounded-full">40% 할인</span>
                 </button>
               )}
             </>
