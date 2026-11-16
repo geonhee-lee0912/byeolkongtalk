@@ -13,17 +13,17 @@ const line = (d: ReactNode, size: number) => (
     {d}
   </svg>
 );
-const SHARE_ICON = line(<><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></>, 18);
-const LINK_ICON = line(<><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></>, 24);
+export const SHARE_ICON = line(<><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></>, 18);
+export const LINK_ICON = line(<><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></>, 24);
 const SAVE_ICON = line(<><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></>, 24);
-const KAKAO_ICON = (
+export const KAKAO_ICON = (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
   </svg>
 );
 
-/** 시트 안 공유 칸 하나 — 누르면 시트를 닫고 그 공유를 한다 */
-function ShareOption({
+/** 시트 안 공유 칸 하나 — 누르면 시트를 닫고 그 공유를 한다(운세 결과 공유 시트도 같이 쓴다) */
+export function ShareOption({
   icon,
   label,
   circleClass,

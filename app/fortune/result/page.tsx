@@ -7,6 +7,8 @@ import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import PushMomentAsk from "@/components/push/PushMomentAsk";
+import Sheet from "@/components/common/Sheet";
+import { ShareOption, SHARE_ICON, KAKAO_ICON, LINK_ICON } from "@/components/tarot/TarotShareButtons";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import MonthlyReportView from "@/components/fortune/monthly/MonthlyReportView";
 import {
@@ -199,6 +201,7 @@ function FortuneResultInner() {
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   // 누구 사주로 본 리포트인지 — 내 리포트일 때만(공유 링크로 연 남의 결과엔 이름을 보이지 않는다)
   const [subject, setSubject] = useState<string | null>(null);
@@ -560,21 +563,21 @@ function FortuneResultInner() {
                 연애 상담으로 돌아가 이어 얘기하기
               </Link>
             )}
-            <button
-              onClick={handleKakaoShare}
-              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-15 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
-              </svg>
-              카카오톡으로 공유하기
+            {/* 공유 — '공유하기' 하나, 누르면 시트에서 카톡·링크(타로 결과와 같은 모양). 예전엔 노란 카톡 + 진보라 큰 버튼 둘.
+                디자인 다듬기 운세 결과 ⑥ S1 운영자 11-16. 운세엔 스토리용 이미지가 없어 '이미지 저장' 칸은 없다 */}
+            <button type="button" onClick={() => setShareOpen(true)} className="btn btn-secondary btn-lg gap-2">
+              {SHARE_ICON}
+              공유하기
             </button>
-            <button
-              onClick={handleShare}
-              className="btn btn-primary btn-lg"
-            >
-              링크 / 텍스트로 공유하기
-            </button>
+            {shareOpen && (
+              <Sheet label="공유하기" onClose={() => setShareOpen(false)} z={80}>
+                <p className="font-display text-17 text-eye-purple text-center mb-[22px]">어디로 공유할까?</p>
+                <div className="grid grid-cols-2">
+                  <ShareOption icon={KAKAO_ICON} label="카카오톡" circleClass="bg-[#FEE500] text-[#3C1E1E]" onPick={handleKakaoShare} />
+                  <ShareOption icon={LINK_ICON} label="링크로 공유" circleClass="bg-lilac-soft text-eye-purple" onPick={() => void handleShare()} />
+                </div>
+              </Sheet>
+            )}
             <Link
               href="/fortune"
               className="btn btn-text btn-lg"
