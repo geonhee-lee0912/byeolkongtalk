@@ -52,11 +52,11 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
       const me = await fetch("/api/auth/me", { cache: "no-store" });
       const data = me.ok ? await me.json() : null;
       if (!data?.isAuthenticated) {
-        window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+        window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
         return;
       }
     } catch {
-      window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+      window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
       return;
     }
 
@@ -137,12 +137,11 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
         onConfirm={openConfirm}
         // 🔴 cfg.href 다 — cfg.type 으로 조립하면 compat_social 이 /fortune/compat-social(하이픈)과
         //    어긋나 로그인 후 404 로 돌아온다(추천 게이트웨이 A 실사고).
-        loginNext={cfg.href}
+        //    로그인·생일 입력 뒤엔 설명이 아니라 이 사주 고르기 페이지로 돌아온다(설명과 나눴다 — 11-15).
+        loginNext={`${cfg.href}/buy`}
         product={cfg.type}
         cost={cfg.cost}
-        confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
-        showBoardDetail={false}
         reviewableByProfile={cfg.type === "monthly" ? reviewable : undefined}
         onReview={
           cfg.type === "monthly"

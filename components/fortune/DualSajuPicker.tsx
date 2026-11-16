@@ -8,6 +8,8 @@ import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import type { BirthPromptSurface } from "@/lib/analytics/birth-prompt-surface";
 import type { SajuResult } from "@/lib/saju/calc";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { ELEMENT_COLORS } from "@/lib/saju/elements";
+import Icon from "@/components/common/Icon";
 import { pickerGate, type PickerGate } from "./picker-gate";
 import { autoSlotSelf, noOneToPick } from "./dual-picker";
 
@@ -202,6 +204,7 @@ export default function DualSajuPicker({
     );
   }
 
+  const slotProfile = (id: string | null) => (id ? profiles.find((x) => x.id === id) ?? null : null);
   const slotName = (id: string | null) => {
     if (!id) return null;
     const p = profiles.find((x) => x.id === id);
@@ -231,27 +234,44 @@ export default function DualSajuPicker({
 
   return (
     <div className="w-full max-w-md mx-auto px-5">
-      {/* 두 슬롯 */}
+      {/* 두 슬롯 — 이름 위에 일주 두 글자를 가로로(바탕 = 일간 오행 색), 아래에 '신금 일간'.
+          사주 고르기의 '고른 사주' 칸과 같은 말을 쓴다(디자인 다듬기 묶음 4 H3, 운영자 11-16). 글꼴은 명식판과 같은 고딕. */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         {(["A", "B"] as const).map((slot) => {
           const id = slot === "A" ? slotA : slotB;
           const name = slotName(id);
+          const saju = slotProfile(id)?.saju ?? null;
           const isActive = active === slot;
           return (
             <button
               key={slot}
               onClick={() => setActive(slot)}
-              className={`bg-white rounded-2xl shadow-card px-4 py-5 text-center transition ${
+              className={`bg-white rounded-2xl shadow-card px-3 py-3.5 flex flex-col items-center text-center transition ${
                 isActive
                   ? "outline-2 outline-accent -outline-offset-2"
                   : ""
               }`}
             >
-              <p className="text-11 text-text-light mb-1">
+              <p className="text-11 text-text-light mb-1.5">
                 {slot === "A" ? "첫 번째 사람" : "두 번째 사람"}
               </p>
-              <p className="text-15 font-bold text-eye-purple">
+              {saju ? (
+                <span
+                  className="h-7 px-2.5 rounded-lg border border-lilac-mid/30 flex items-center text-13 font-bold leading-none"
+                  style={{ backgroundColor: ELEMENT_COLORS[saju.dayElement].bg, color: ELEMENT_COLORS[saju.dayElement].text }}
+                >
+                  {saju.pillars.day.hanja}
+                </span>
+              ) : (
+                <span className="h-7 px-2.5 rounded-lg border border-dashed border-lilac-mid/60 bg-cream flex items-center text-13 font-bold text-lilac-mid leading-none">
+                  ?
+                </span>
+              )}
+              <p className="text-15 font-bold text-eye-purple mt-1.5 max-w-full truncate">
                 {name ?? "선택 안 됨"}
+              </p>
+              <p className="text-11 text-text-light mt-0.5">
+                {saju ? `${saju.dayStem}${saju.dayElement} 일간` : name ? "생일 미입력" : "아래에서 골라줘"}
               </p>
             </button>
           );
@@ -376,21 +396,30 @@ export default function DualSajuPicker({
         </div>
       )}
 
-      <button
-        disabled={!canConfirm}
-        onClick={() => {
-          if (slotA && slotB)
-            onConfirm(
-              slotA,
-              slotB,
-              slotName(slotA) ?? "첫 번째 사람",
-              slotName(slotB) ?? "두 번째 사람"
-            );
-        }}
-        className="btn btn-primary btn-lg"
-      >
-        {confirmLabel ?? "궁합 보기"}
-      </button>
+      {/* 아래 탭 바로 위에 붙는 버튼 — 값(✦N)을 버튼에(사주 고르기와 같은 방식) */}
+      <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-5 px-5 py-3 bg-cream shadow-float-up">
+        <button
+          disabled={!canConfirm}
+          onClick={() => {
+            if (slotA && slotB)
+              onConfirm(
+                slotA,
+                slotB,
+                slotName(slotA) ?? "첫 번째 사람",
+                slotName(slotB) ?? "두 번째 사람"
+              );
+          }}
+          className="btn btn-primary btn-lg"
+        >
+          {cost != null && (
+            <span className="inline-flex items-center tabular-nums">
+              <Icon name="star" size={16} className="mr-0.5" />
+              {cost} ·
+            </span>
+          )}
+          {confirmLabel ?? "궁합 보기"}
+        </button>
+      </div>
 
       {showNewPerson && (
         <NewPersonModal

@@ -14,8 +14,7 @@ import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
 import type { ProfileItem } from "@/components/mypage/sajuShared";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
-import { ELEMENT_COLORS } from "@/lib/saju/elements";
-import { dayMasterLine } from "@/lib/saju/day-master";
+import SajuGlance from "@/components/saju/SajuGlance";
 import type { FiveElement } from "@/lib/saju/elements";
 import Icon from "@/components/common/Icon";
 
@@ -93,22 +92,7 @@ export default function MySajuRow() {
               />
               {action("바꾸기")}
             </div>
-            <div className="border-t border-lilac-mid/30 mt-3 pt-2.5">
-              {dayMasterLine(self.saju.dayStem) && (
-                <p className="text-12 text-eye-purple">{dayMasterLine(self.saju.dayStem)}</p>
-              )}
-              <div className="flex flex-wrap gap-1 mt-2">
-                {ELEMENTS.map((el) => (
-                  <span
-                    key={el}
-                    className="text-11 font-bold px-2 py-0.5 rounded-full border border-lilac-mid/40 tabular-nums"
-                    style={{ backgroundColor: ELEMENT_COLORS[el].bg, color: ELEMENT_COLORS[el].text }}
-                  >
-                    {el} {self.saju!.elementCount[el]}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <SajuGlance saju={self.saju} />
           </>
         ) : (
           <>

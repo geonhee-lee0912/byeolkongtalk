@@ -7,7 +7,18 @@ import Link from "next/link";
 import Icon from "@/components/common/Icon";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 
-export default function LandingBuyBar({ href, cost, trackType }: { href: string; cost: number; trackType: string }) {
+export default function LandingBuyBar({
+  href,
+  cost,
+  trackType,
+  label = "사주 골라서 보기",
+}: {
+  href: string;
+  cost: number;
+  trackType: string;
+  /** 궁합은 '두 사람 골라서 보기' */
+  label?: string;
+}) {
   return (
     <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] w-full max-w-md mx-auto mt-8 px-5 py-3 bg-cream shadow-float-up">
       <Link
@@ -19,7 +30,7 @@ export default function LandingBuyBar({ href, cost, trackType }: { href: string;
           <Icon name="star" size={16} className="mr-0.5" />
           {cost}
         </span>
-        · 사주 골라서 보기
+        · {label}
       </Link>
     </div>
   );
