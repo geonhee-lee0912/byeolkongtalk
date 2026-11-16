@@ -117,8 +117,9 @@ function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" =
                 boxDecorationBreak: "clone",
                 WebkitBoxDecorationBreak: "clone",
               }
-            : // design-allow: 형광펜 밑줄(기능)
-              { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
+            : // 형광펜 띠 → 글자 아래 얇은 밑줄(72~92%) — 타로 말풍선(EmphasisText)과 같게. 디자인 다듬기 운세 결과 ③ 운영자 11-16
+              // design-allow: 형광펜 밑줄(기능)
+              { background: "linear-gradient(transparent 72%, rgba(242, 215, 138, 0.5) 72%, rgba(242, 215, 138, 0.5) 92%, transparent 92%)" }
         }
       >
         {p.s}
