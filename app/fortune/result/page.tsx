@@ -47,7 +47,6 @@ import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/for
 import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
 import { shareToKakao } from "@/lib/kakao-share";
@@ -201,6 +200,8 @@ function FortuneResultInner() {
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
+  // 누구 사주로 본 리포트인지 — 내 리포트일 때만(공유 링크로 연 남의 결과엔 이름을 보이지 않는다)
+  const [subject, setSubject] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -269,6 +270,9 @@ function FortuneResultInner() {
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
       setRelationshipId(r.reading.relationshipId ?? null);
+      if (!usedPublic && r.profile) {
+        setSubject(r.profile.relation_type === "self" ? "내 사주" : r.profile.display_name ? `${r.profile.display_name} 사주` : null);
+      }
       if (r.reading.sajuData) {
         if (ft === "compat" || ft === "compat_social") {
           setCompatSaju(r.reading.sajuData as CompatSajuPair);
@@ -420,6 +424,9 @@ function FortuneResultInner() {
           timeZone: "Asia/Seoul",
         })
       : null;
+  const shortDate = createdAt
+    ? new Date(createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric", timeZone: "Asia/Seoul" })
+    : null;
   const isMonthly = ftType === "monthly";
   const isSajuFull = ftType === "saju_full";
   const isCompat = ftType === "compat" || ftType === "compat_social";
@@ -462,16 +469,20 @@ function FortuneResultInner() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-          <div className="relative w-[108px] h-[120px]">
+          {/* 맨 위 정돈(디자인 다듬기 묶음 4 결과 T1, 운영자 11-16) — 그림 조금 작게, 제목 앞 상품 그림 뺌(위 그림과 겹침),
+              제목 아래 날짜·누구 사주인지 한 줄 */}
+          <div className="relative w-[88px] h-[96px]">
             <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
             <p className="mt-2 text-12 font-medium text-accent">{dateLabel}</p>
           )}
-          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
-            <FortuneIcon type={ftType} size={26} className="inline-block object-contain" />
-            {label}
-          </h1>
+          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center">{label}</h1>
+          {!dateLabel && (shortDate || subject) && (
+            <p className="mt-1 text-12 text-text-light">
+              {[shortDate, subject && `${subject}로 본 리포트`].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       )}
 

@@ -59,9 +59,6 @@ export default function ElementChart({
           );
         })}
       </div>
-      <p className="text-11 text-text-light mt-3 leading-snug">
-        여덟 글자(사주) 안 오행의 개수야. 가장 많은 기운은 진하게, 0개는 옅게 표시했어.
-      </p>
     </div>
   );
 }

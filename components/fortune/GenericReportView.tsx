@@ -62,11 +62,7 @@ export default function GenericReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 상단 항상 노출: 요약 칩 + 오행 분포 + 도입 */}
-      {saju && (
-        <div className="-mb-1">
-          <SajuSummaryChips saju={saju} />
-        </div>
-      )}
+      {saju && <SajuSummaryChips saju={saju} />}
       {saju && <ElementChart saju={saju} />}
       {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
       <div className="card-report">
