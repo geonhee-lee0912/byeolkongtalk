@@ -266,7 +266,7 @@ export default function ConstellationView({ graph, meId }: Props) {
             })}
         </div>
       )}
-      <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "1 / 1" }}>
+      <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ aspectRatio: "1 / 1" }}>
         {focusId && (
           <button
             type="button"
@@ -292,6 +292,32 @@ export default function ConstellationView({ graph, meId }: Props) {
             if (other && other !== pivotId) setExpandedNeighborId((cur) => (cur === other ? null : other));
           }}
         />
+      </div>
+      {/* 범례 — 지도 밤 판 아래에 붙인 띠(디자인 다듬기 인연 별자리 ⑤ G2, 운영자 11-20). 별·선 색이 남색 바탕용이라
+          지도에서와 똑같이 보인다. 예전엔 지도 아래 따로 뜬 흰 카드(오행 / 선 종류 구분선)였다 */}
+      <div className="rounded-b-2xl px-3 pt-1 pb-3.5" style={{ backgroundColor: "#1F1735", color: "#CFC3E8" }}>
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-12">
+          {LEGEND.map(([label, color]) => (
+            <span key={label} className="inline-flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-12">
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.heavenly} strokeWidth="2" strokeLinecap="round" /></svg>
+            설렘
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.six} strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
+            척척
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.triad} strokeWidth="2" strokeLinecap="round" /></svg>
+            같은 결
+          </span>
+        </div>
       </div>
       {/* 지도 아래 상세 — 포커스 카드(나↔focusId) */}
       {focusId && card?.target && (
@@ -389,31 +415,6 @@ export default function ConstellationView({ graph, meId }: Props) {
           </div>
         </div>
       )}
-      {/* 범례 — 크림 박스로 대비 확보. 오행(위) / 선 종류(아래) 구분선으로 분리. */}
-      <div className="card mt-3">
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-12 text-eye-purple">
-          {LEGEND.map(([label, color]) => (
-            <span key={label} className="inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-full border border-lilac-mid/40" style={{ backgroundColor: color }} />
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-lilac-soft pt-2 text-12 text-eye-purple">
-          <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.heavenly} strokeWidth="2" strokeLinecap="round" /></svg>
-            설렘
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.six} strokeWidth="2" strokeDasharray="2 1.5" strokeLinecap="round" /></svg>
-            척척
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={BOND_COLOR.triad} strokeWidth="2" strokeLinecap="round" /></svg>
-            같은 결
-          </span>
-        </div>
-      </div>
       {ranking.length > 0 && (
         <div className="mt-4">
           <div className="mb-2 text-12 font-semibold text-eye-purple">인연 점수 높은 순</div>
