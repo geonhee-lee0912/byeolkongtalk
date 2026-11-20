@@ -126,65 +126,61 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       </section>
       )}
 
-      {/* ③ 본문 */}
+      {/* ③ 본문 — 성격·빛·그림자·연애·궁합을 흰 카드 하나에 얇은 선으로 나눠 다 펼친 채(제목 진보라 하나·글자 14).
+          예전엔 흰 카드 5장 + 제목 색 제각각. 무료 테스트라 읽는 게 목적이고 항목이 짧아 접지 않는다.
+          디자인 다듬기 사주 MBTI 결과 ④ M1 운영자 11-20 */}
       <section className="card">
-        <p className="text-15 font-bold tracking-wide text-accent mb-1.5">성격</p>
-        <MarkdownLite text={content.personality} className="text-14 leading-relaxed text-eye-purple" />
-      </section>
-
-      <div className="grid grid-cols-1 gap-2.5">
-        <section className="card">
-          <p className="text-15 font-bold tracking-wide text-[#C99A3A] mb-1.5">빛</p>
-          <MarkdownLite text={content.light} className="text-13 leading-relaxed text-eye-purple" />
-        </section>
-        <section className="card">
-          <p className="text-15 font-bold tracking-wide text-accent mb-1.5">그림자</p>
-          <MarkdownLite text={content.shadow} className="text-13 leading-relaxed text-eye-purple" />
-        </section>
-      </div>
-
-      <section className="card">
-        <p className="text-15 font-bold tracking-wide text-[#C86A8A] mb-1.5">연애</p>
-        <MarkdownLite text={content.love} className="text-14 leading-relaxed text-eye-purple" />
-      </section>
-
-      <section className="card">
-        <p className="text-15 font-bold tracking-wide text-accent mb-2">궁합</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {content.compat.fits.map((c) => {
-            const t = TYPE_CONTENT[c.code];
-            const img = characterImage(c.code);
-            return (
-              <div key={c.code} className="bg-gold-soft/25 rounded-xl px-3 py-2.5">
-                <p className="text-11 font-medium text-[#B08A2A]">잘 맞아</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
-                    <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+        {(
+          [
+            ["성격", content.personality],
+            ["빛", content.light],
+            ["그림자", content.shadow],
+            ["연애", content.love],
+          ] as const
+        ).map(([label, text], i) => (
+          <div key={label} className={i > 0 ? "mt-4 pt-4 border-t border-lilac-soft" : ""}>
+            <p className="text-15 font-bold text-eye-purple mb-1.5">{label}</p>
+            <MarkdownLite text={text} className="text-14 leading-relaxed text-eye-purple" />
+          </div>
+        ))}
+        <div className="mt-4 pt-4 border-t border-lilac-soft">
+          <p className="text-15 font-bold text-eye-purple mb-2">궁합</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {content.compat.fits.map((c) => {
+              const t = TYPE_CONTENT[c.code];
+              const img = characterImage(c.code);
+              return (
+                <div key={c.code} className="bg-gold-soft/25 rounded-xl px-3 py-2.5">
+                  <p className="text-11 font-medium text-[#B08A2A]">잘 맞아</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                      <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                    </div>
                   </div>
+                  <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
                 </div>
-                <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
-              </div>
-            );
-          })}
-          {content.compat.clashes.map((c) => {
-            const t = TYPE_CONTENT[c.code];
-            const img = characterImage(c.code);
-            return (
-              <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
-                <p className="text-11 font-medium text-accent">부딪혀</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
-                    <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+              );
+            })}
+            {content.compat.clashes.map((c) => {
+              const t = TYPE_CONTENT[c.code];
+              const img = characterImage(c.code);
+              return (
+                <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
+                  <p className="text-11 font-medium text-accent">부딪혀</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                      <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                    </div>
                   </div>
+                  <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
                 </div>
-                <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
 
