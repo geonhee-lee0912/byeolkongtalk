@@ -31,9 +31,9 @@ const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: s
   nurture: { summary: "친구가 힘들다 하면", poles: [{ p: "생", t: "일단 토닥토닥" }, { p: "단", t: "일단 팩트체크" }] },
 };
 
-// 리빌 색 키 — 문항(자아)=라일락, 사주(팔자)=골드. 카드·축별 비교에 일관 적용
-const SELF_COLOR = "#B9A7E6";
-const PALJA_COLOR = "#F2D78A";
+// 리빌 색 키 — 문항(자아)=보라, 사주(팔자)=금갈색. 흰 카드 위라 진한 쪽으로(디자인 다듬기 ⑧ V2) — 칸 바탕은 연보라·연노랑
+const SELF_COLOR = "#775CB0";
+const PALJA_COLOR = "#A87A2A";
 
 export interface ResultViewProps {
   saju?: SajuResult;
@@ -202,24 +202,24 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
         </section>
       )}
 
-      {/* ⑤ 리빌 */}
-      <div className="bg-night rounded-2xl px-4 py-5">
-        <p className="text-13 text-lilac-soft mb-3">문항으로 답한 나 <span style={{ color: SELF_COLOR }}>vs</span> 사주로 타고난 나 —</p>
+      {/* ⑤ 리빌 — 흰 카드(디자인 다듬기 사주 MBTI ⑧ V2, 운영자 11-20). 예전엔 맨 위 결과 카드에 이어 두 번째 남색 밤 카드였고
+          '타고난 나' 칸이 탁한 갈색, 첫 줄이 줄표로 끝났다. 남색은 맨 위 결과 카드 하나만 남긴다 */}
+      <div className="card">
         <div className="flex items-stretch gap-2 mb-4">
-          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(150,130,210,0.20)" }}>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center bg-lilac-soft/60">
             <p className="text-12 font-bold" style={{ color: SELF_COLOR }}>내가 답한 나</p>
-            <p className="text-11 text-accent-on-dark">문항 12개</p>
+            <p className="text-11 text-text-light">문항 12개</p>
             {selfImg && <Image src={selfImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-15 mt-0.5" style={{ color: SELF_COLOR }}>{selfContent?.character ?? self.code}</p>
-            <p className="text-11 text-lilac-mid">{self.code}</p>
+            <p className="font-display text-15 mt-0.5 text-eye-purple">{selfContent?.character ?? self.code}</p>
+            <p className="text-11 text-text-light">{self.code}</p>
           </div>
-          <div className="flex items-center text-accent-on-dark text-12 font-medium">vs</div>
-          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(242,215,138,0.40)" }}>
-            <p className="text-12 font-bold text-cream-warm">타고난 나</p>
-            <p className="text-11 text-cream-warm/70">사주 팔자</p>
+          <div className="flex items-center text-text-light text-12 font-medium">vs</div>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "#FBF3DE" }}>
+            <p className="text-12 font-bold" style={{ color: PALJA_COLOR }}>타고난 나</p>
+            <p className="text-11 text-text-light">사주 팔자</p>
             {charImg && <Image src={charImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-15 mt-0.5 text-cream-warm">{content.character}</p>
-            <p className="text-11 text-cream-warm/70">{palja.code}</p>
+            <p className="font-display text-15 mt-0.5 text-eye-purple">{content.character}</p>
+            <p className="text-11 text-text-light">{palja.code}</p>
           </div>
         </div>
 
@@ -231,30 +231,33 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
               <span className="w-4" />
               <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>사주</span>
             </span>
-            <span className="w-8" />
+            <span className="w-10" />
           </div>
           {match.perAxis.map((a) => (
-            <div
-              key={a.axis}
-              className={`flex items-center gap-2 text-12 rounded-lg px-2.5 py-1.5 ${a.agree ? "" : "bg-[#2c1f22]"}`}
-            >
-              <span className={`w-8 ${a.agree ? "text-lilac-mid" : "text-[#E0A0A0]"}`}>{AXIS_LABEL[a.axis]}</span>
+            <div key={a.axis} className="flex items-center gap-2 text-12 rounded-lg px-2.5 py-1.5">
+              <span className="w-8 text-text-light">{AXIS_LABEL[a.axis]}</span>
               <span className="flex-1 flex items-center justify-center gap-3">
                 <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>{a.selfPole}</span>
-                <span className="w-4 text-center text-accent-on-dark text-11"></span>
+                <span className="w-4" />
                 <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>{a.paljaPole}</span>
               </span>
-              <span className={`w-8 text-right ${a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}`}>{a.agree ? "일치" : "갈림"}</span>
+              <span className="w-10 text-right">
+                {a.agree ? (
+                  <span className="text-11 text-text-light">일치</span>
+                ) : (
+                  <span className="text-11 font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#FBE4E1", color: "#C2574A" }}>갈림</span>
+                )}
+              </span>
             </div>
           ))}
         </div>
 
-        <div className="text-center py-3 border-t border-b border-white/10">
-          <span className="font-display text-28 text-gold">{match.matchCount}/4</span>
-          <p className="text-15 font-medium text-cream-warm mt-0.5">{narrative.title}</p>
+        <div className="text-center py-3 border-t border-b border-lilac-soft">
+          <span className="font-display text-28 text-accent">{match.matchCount}/4</span>
+          <p className="text-15 font-bold text-eye-purple mt-0.5">{narrative.title}</p>
         </div>
         <div className="mt-3.5">
-          <MarkdownLite text={narrative.body} tone="dark" className="text-13 leading-relaxed text-lilac-soft" />
+          <MarkdownLite text={narrative.body} className="text-14 leading-relaxed text-eye-purple" />
         </div>
       </div>
 
