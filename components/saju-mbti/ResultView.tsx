@@ -56,7 +56,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
   const selfImg = characterImage(self.code);
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 pt-4 pb-10 flex flex-col gap-3 animate-fade-in" data-stage="result">
+    <div className={`w-full max-w-md mx-auto px-4 pt-4 ${shared ? "pb-10" : "pb-2"} flex flex-col gap-3 animate-fade-in`} data-stage="result">
       {shared && (
         <p className="text-center text-12 tracking-[0.14em] text-accent">누군가의 사주 MBTI 결과</p>
       )}
@@ -273,20 +273,14 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           </Link>
         </>
       ) : (
-        <div className="flex gap-2.5 mt-3">
-          <button
-            type="button"
-            onClick={onShare}
-            className="btn btn-primary btn-md flex-1"
-          >
+        // 공유가 주인공(바이럴 테스트) — 큰 주 버튼 한 줄 + 아래 글자 버튼 '테스트 다시 하기'(디자인 다듬기 사주 MBTI ⑨ U1, 운영자 11-20).
+        // 예전엔 공유 옆에 '다시' 한 글자 버튼이 붙어 무엇을 다시 하는지 몰랐다
+        <div className="flex flex-col items-center gap-1 mt-3">
+          <button type="button" onClick={onShare} className="btn btn-primary btn-lg">
             친구한테 공유하기
           </button>
-          <button
-            type="button"
-            onClick={onRestart}
-            className="btn btn-secondary btn-md"
-          >
-            다시
+          <button type="button" onClick={onRestart} className="btn btn-text btn-sm">
+            테스트 다시 하기
           </button>
         </div>
       )}
