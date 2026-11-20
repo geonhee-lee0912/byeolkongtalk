@@ -578,18 +578,8 @@ function FortuneResultInner() {
                 </div>
               </Sheet>
             )}
-            <Link
-              href="/fortune"
-              className="btn btn-text btn-lg"
-            >
-              다른 운세 보기
-            </Link>
-            <Link
-              href="/readings"
-              className="w-full py-2 text-text-light text-12 text-center"
-            >
-              내 고민톡에서 다시 보기
-            </Link>
+            {/* '다른 운세 보기'·'내 고민톡에서 다시 보기' 뺌 — 아래 탭 '사주 운세'·'마이 › 보관함'과 같은 길이라
+                공유 바로 아래 추천으로 잇는다(타로 결과와 같게). 디자인 다듬기 운세 결과 ⑦ B1 운영자 11-20 */}
           </>
         )}
       </div>
