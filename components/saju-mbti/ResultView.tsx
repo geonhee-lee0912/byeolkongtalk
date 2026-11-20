@@ -11,7 +11,7 @@ import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/c
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
-import { ElementPentagon } from "./ElementPentagon";
+import { ElementStrengthBand } from "./ElementStrengthBand";
 import { characterImage } from "@/lib/saju-mbti/character-image";
 import { MarkdownLite } from "@/lib/markdown-lite";
 
@@ -201,10 +201,8 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {!shared && saju && (
         <section className="bg-white rounded-2xl shadow-card px-2 py-4">
           <p className="text-15 font-bold tracking-wide text-accent mb-3 text-center">타고난 너의 사주 원판</p>
-          <SajuBoard saju={saju} />
-          <div className="flex justify-center mt-2">
-            <ElementPentagon dist={palja.elementDist} />
-          </div>
+          <SajuBoard saju={saju} countLabel="여덟 글자 개수" />
+          <ElementStrengthBand dist={palja.elementDist} top={palja.element} />
         </section>
       )}
 
