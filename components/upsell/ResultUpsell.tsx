@@ -36,7 +36,8 @@ export default function ResultUpsell({
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
       <p className="text-13 font-bold text-eye-purple px-1 mt-1">
-        {title ?? (variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어")}
+        {/* 운세 결과 기본 제목은 타로 결과('다음엔 뭐 볼래?')와 같은 말 — 디자인 다듬기 운세 결과 ⑧ R1 운영자 11-20 (옛 '이런 것도 있어') */}
+        {title ?? (variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "다음엔 뭐 볼래?")}
       </p>
       {cards.map((c) => (
         <Link
