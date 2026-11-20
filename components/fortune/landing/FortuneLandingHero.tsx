@@ -5,7 +5,6 @@
 // (배치 B) — 상품명·후킹이 큰 글씨로 읽혀야 하는 지면이라서.
 import Image from "next/image";
 import Link from "next/link";
-import LandingCta from "./LandingCta";
 import Icon from "@/components/common/Icon";
 
 export default function FortuneLandingHero({
@@ -14,9 +13,6 @@ export default function FortuneLandingHero({
   cardSrc,
   cost,
   chips,
-  ctaLabel,
-  ctaHref = "#buy",
-  trackType,
 }: {
   title: string;
   hook: string;
@@ -25,11 +21,8 @@ export default function FortuneLandingHero({
   /** 값(별) — 있으면 칩 맨 앞에 '✦N'(별 아이콘 + 숫자, 공통 표기) */
   cost?: number;
   chips: string[];
-  /** 없으면 위 버튼을 안 그린다 — 사주 상품 페이지는 사주 고르기가 바로 아래라 필요 없다(디자인 다듬기 묶음 4 B, 운영자 11-15) */
-  ctaLabel?: string;
-  ctaHref?: string;
-  /** 계측용 상품 키 — fortune_landing_cta_clicked 의 meta.type */
-  trackType: string;
+  // 위 버튼(ctaLabel)은 없앴다 — 시작·고르기는 전부 아래 고정 버튼(LandingBuyBar). 마지막으로 남았던 사주 MBTI 도
+  // 옮겼다(디자인 다듬기 사주 MBTI ① L1, 운영자 11-20)
 }) {
   return (
     <header className="w-full">
@@ -83,7 +76,6 @@ export default function FortuneLandingHero({
           ))}
         </div>
 
-        {ctaLabel && <LandingCta label={ctaLabel} href={ctaHref} trackType={trackType} />}
       </div>
     </header>
   );

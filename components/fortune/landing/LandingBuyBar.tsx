@@ -14,7 +14,8 @@ export default function LandingBuyBar({
   label = "사주 골라서 보기",
 }: {
   href: string;
-  cost: number;
+  /** 없으면 무료 — 사주 MBTI 는 '무료 · 테스트 시작하기'(디자인 다듬기 사주 MBTI ① L1) */
+  cost?: number;
   trackType: string;
   /** 궁합은 '두 사람 골라서 보기' */
   label?: string;
@@ -26,10 +27,14 @@ export default function LandingBuyBar({
         onClick={() => trackUiEvent("fortune_landing_cta_clicked", { meta: { type: trackType } })}
         className="btn btn-primary btn-lg"
       >
-        <span className="inline-flex items-center tabular-nums">
-          <Icon name="star" size={16} className="mr-0.5" />
-          {cost}
-        </span>
+        {cost === undefined ? (
+          <span>무료</span>
+        ) : (
+          <span className="inline-flex items-center tabular-nums">
+            <Icon name="star" size={16} className="mr-0.5" />
+            {cost}
+          </span>
+        )}
         · {label}
       </Link>
     </div>

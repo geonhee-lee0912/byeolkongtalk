@@ -27,7 +27,6 @@ export default function CompatPage() {
         cardSrc={fortuneCardSrc("compat")}
         cost={cfg.cost}
         chips={[FORTUNE_LENGTH_HINT.compat ?? "", copy.minutes].filter(Boolean)}
-        trackType="compat"
       />
       <FortuneLandingSections
         questions={copy.questions}

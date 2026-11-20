@@ -25,6 +25,7 @@ export default function FortuneLandingSections({
   sample,
   samplePreview,
   related,
+  free = false,
 }: {
   questions: string[];
   outline: string[];
@@ -32,6 +33,8 @@ export default function FortuneLandingSections({
   sample: string | null;
   samplePreview: ReactNode;
   related: FortuneType[];
+  /** 무료 테스트(사주 MBTI) — 리포트가 아니라 결과라서 '결과에 담기는 것'·'실제 결과는…'(디자인 다듬기 사주 MBTI ① L1) */
+  free?: boolean;
 }) {
   return (
     <>
@@ -48,7 +51,7 @@ export default function FortuneLandingSections({
       </Block>
 
       {/* 담기는 것은 번호 목록 — 숫자 칸(섹션 N개·분량)과 칩이 한 상자에 빽빽했다. 숫자는 제목 옆에 작게 */}
-      <Block title="리포트에 담기는 것" meta={[`${outline.length}개`, lengthHint].filter(Boolean).join(" · ")}>
+      <Block title={free ? "결과에 담기는 것" : "리포트에 담기는 것"} meta={[`${outline.length}개`, lengthHint].filter(Boolean).join(" · ")}>
         <ol className="card py-1.5">
           {outline.map((item, i) => (
             <li key={item} className={`flex items-center gap-3 py-2.5 ${i ? "border-t border-lilac-soft/70" : ""}`}>
@@ -66,7 +69,7 @@ export default function FortuneLandingSections({
           <div className="card">
             {/* 발췌는 실제 리포트와 같은 마크다운 렌더를 탄다 — 그냥 넣으면 **볼드**가 별표로 뜬다. */}
             <MarkdownLite text={sample} className="text-13 text-eye-purple leading-[1.85]" />
-            <p className="text-11 text-lilac-mid mt-2">예시 · 실제 리포트는 네 사주로 다시 쓰여</p>
+            <p className="text-11 text-lilac-mid mt-2">{free ? "예시 · 실제 결과는 네 사주로 다시 쓰여" : "예시 · 실제 리포트는 네 사주로 다시 쓰여"}</p>
           </div>
         ) : (
           <div className="card">

@@ -34,7 +34,6 @@ export default async function FortuneProductPage({
         cardSrc={fortuneCardSrc(key)}
         cost={cfg.cost}
         chips={[FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
-        trackType={type}
       />
 
       <FortuneLandingSections

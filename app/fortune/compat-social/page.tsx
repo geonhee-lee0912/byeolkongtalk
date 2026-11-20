@@ -27,7 +27,6 @@ export default function CompatSocialPage() {
         cardSrc={fortuneCardSrc("compat_social")}
         cost={cfg.cost}
         chips={[FORTUNE_LENGTH_HINT.compat_social ?? "", copy.minutes].filter(Boolean)}
-        trackType="compat_social"
       />
       <FortuneLandingSections
         questions={copy.questions}
