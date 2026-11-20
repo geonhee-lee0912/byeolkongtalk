@@ -417,13 +417,16 @@ export default function ConstellationView({ graph, meId }: Props) {
       {ranking.length > 0 && (
         <div className="mt-4">
           <div className="mb-2 text-12 font-semibold text-eye-purple">인연 점수 높은 순</div>
-          <div className="space-y-2">
+          {/* 한 카드 안 한 사람 한 줄(디자인 다듬기 인연 별자리 ⑥ K1, 운영자 11-20) — 예전엔 사람마다 큰 카드(점수 아래 '인연 점수'·
+              선 아래 칩 + 설명)라 7명에 폰 약 2.5화면이었다. 칩은 특별한 등급(깊은·하늘이 맺은)만, 사람 유형·오행 풀이는 펼친 상세 첫 줄로 */}
+          <div className="card py-1">
             {ranking.map((r, i) => {
               const open = listOpenId === r.id;
               const rowDetail = open && pivotId ? detailFor(pivotId, r.id) : null;
               const grade = inyeonGrade(r.inyeon);
+              const special = grade.tone === "high" || grade.tone === "mid";
               return (
-                <div key={r.id} className="overflow-hidden rounded-2xl bg-white shadow-card">
+                <div key={r.id} className={i ? "border-t border-lilac-soft/70" : ""}>
                   <button
                     type="button"
                     aria-expanded={open}
@@ -432,50 +435,35 @@ export default function ConstellationView({ graph, meId }: Props) {
                       setConfirmDeleteId(null);
                       resetToOverview(); // 리스트 아코디언은 지도를 전체로 되돌려 지도/리스트 상세를 배타로 유지
                     }}
-                    className="block w-full px-4 py-3 text-left transition active:scale-[0.99] hover:bg-lilac-mid/15"
+                    className="flex w-full items-center gap-2.5 py-2.5 text-left transition active:scale-[0.99]"
                   >
-                    <span className="flex items-center gap-2.5">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-12 font-medium ${rankChipClass(i)}`}>
-                        {i + 1}
-                      </span>
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-14 font-medium"
-                        style={{ backgroundColor: starColor(r.element), color: "#1F1735" }}
-                      >
-                        {r.element}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-14 font-semibold text-eye-purple">
-                          {r.name ?? "이 별"}
-                        </span>
-                        {r.dayType && (
-                          <span className="block truncate text-12 text-text-light">
-                            {r.dayType}
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-12 font-medium ${rankChipClass(i)}`}>
+                      {i + 1}
+                    </span>
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-14 font-medium"
+                      style={{ backgroundColor: starColor(r.element), color: "#1F1735" }}
+                    >
+                      {r.element}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-14 font-bold text-eye-purple">{r.name ?? "이 별"}</span>
+                        {special && (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-11 ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
+                            {grade.label}
                           </span>
                         )}
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block font-display text-17 font-bold leading-none text-eye-purple">
-                          {r.inyeon}
-                        </span>
-                        <span className="mt-0.5 block text-11 text-text-light">
-                          인연 점수
-                        </span>
-                      </span>
+                      <span className="block truncate text-12 text-text-light">{relationRole(r.relation)}</span>
                     </span>
-                    <span className="mt-2.5 block border-t border-lilac-mid/30 pt-2.5">
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                        <span className={`rounded-full px-2 py-0.5 text-12 ring-1 ring-black/[0.06] ${gradeChipClass(grade.tone)}`}>
-                          {grade.label}
-                        </span>
-                        <span className="text-12 text-eye-purple">
-                          {relationRole(r.relation)} · {elementPair(r.relation, myEl, r.element)}
-                        </span>
-                      </span>
-                    </span>
+                    <span className="shrink-0 font-display text-17 text-eye-purple">{r.inyeon}</span>
                   </button>
                   {open && rowDetail?.target && (
-                    <div ref={detailRef} className="animate-fade-in scroll-mb-20 px-4 pb-4 pt-1">
+                    <div ref={detailRef} className="animate-fade-in scroll-mb-20 pb-4 pt-1">
+                      <p className="mb-2 text-12 text-text-light">
+                        {[r.dayType, elementPair(r.relation, myEl, r.element)].filter(Boolean).join(" · ")}
+                      </p>
                       <InyeonDetail
                         target={rowDetail.target}
                         oriented={rowDetail.oriented}

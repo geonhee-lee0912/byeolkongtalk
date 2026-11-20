@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { StarGraph } from "@/lib/byeoljari/types";
@@ -30,6 +30,12 @@ export default function ByeoljariGuestPage() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const joinRef = useRef<HTMLDivElement>(null);
+
+  // 참여 칸은 지도 아래에 열리는데 버튼은 화면 아래 고정이라, 열리면 그 칸으로 데려간다(⑦ K1)
+  useEffect(() => {
+    if (showJoin) joinRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showJoin]);
 
   const load = useCallback(async () => {
     try {
@@ -83,14 +89,6 @@ export default function ByeoljariGuestPage() {
         <>
           <ConstellationView graph={state.graph} meId={meId} />
 
-          {!meId && !state.graph.viewerIsOwner && !showJoin && (
-            <button
-              onClick={() => setShowJoin(true)}
-              className="btn btn-primary btn-lg mt-4"
-            >
-              이 별자리에 내 별 놓기
-            </button>
-          )}
           {/* 주인(이미 멤버)에겐 join 대신 친구 초대(링크 복사) — 친구가 그 링크로 내 별 놓기. */}
           {(meId || state.graph.viewerIsOwner) && (
             <button
@@ -128,7 +126,7 @@ export default function ByeoljariGuestPage() {
             </button>
           )}
           {showJoin && (
-            <div className="card mt-4 space-y-2">
+            <div ref={joinRef} className="card mt-4 space-y-2 scroll-mt-20">
               <input
                 className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
                 placeholder="내 이름"
@@ -206,6 +204,16 @@ export default function ByeoljariGuestPage() {
             source="byeoljari"
             bare
           />
+
+          {/* 방문자 주 버튼은 아래 탭 위에 고정 — 예전엔 인연 목록을 다 지나 폰 4화면째에 있었다(디자인 다듬기 인연 별자리 ⑦ K1, 운영자 11-20).
+              누르면 지도 아래에 참여 칸이 열리고 그리로 스크롤한다 */}
+          {!meId && !state.graph.viewerIsOwner && !showJoin && (
+            <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 mt-6 px-4 py-3 bg-cream shadow-float-up">
+              <button type="button" onClick={() => setShowJoin(true)} className="btn btn-primary btn-lg">
+                이 별자리에 내 별 놓기
+              </button>
+            </div>
+          )}
         </>
       )}
     </main>
