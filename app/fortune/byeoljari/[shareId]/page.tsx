@@ -9,6 +9,7 @@ import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
 import { buildInviteUrl } from "@/lib/byeoljari/invite-link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import FreeToPaidCta from "@/components/upsell/FreeToPaidCta";
+import { LINK_ICON } from "@/components/tarot/TarotShareButtons";
 
 // 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
 const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
@@ -89,42 +90,6 @@ export default function ByeoljariGuestPage() {
         <>
           <ConstellationView graph={state.graph} meId={meId} />
 
-          {/* 주인(이미 멤버)에겐 join 대신 친구 초대(링크 복사) — 친구가 그 링크로 내 별 놓기. */}
-          {(meId || state.graph.viewerIsOwner) && (
-            <button
-              onClick={async () => {
-                try {
-                  const url = buildInviteUrl(window.location.origin, shareId);
-                  await navigator.clipboard.writeText(url);
-                  trackUiEvent("byeoljari_invite_clicked", { meta: { shareId } });
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
-                }
-              }}
-              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-card transition active:scale-[0.99] ${
-                copied ? "bg-[#3E9E7A]" : "bg-lilac-deep"
-              }`}
-            >
-              {copied ? (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  링크 복사됨! 친구에게 보내줘
-                </>
-              ) : (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  친구 초대하기
-                </>
-              )}
-            </button>
-          )}
           {showJoin && (
             <div ref={joinRef} className="card mt-4 space-y-2 scroll-mt-20">
               <input
@@ -205,13 +170,40 @@ export default function ByeoljariGuestPage() {
             bare
           />
 
-          {/* 방문자 주 버튼은 아래 탭 위에 고정 — 예전엔 인연 목록을 다 지나 폰 4화면째에 있었다(디자인 다듬기 인연 별자리 ⑦ K1, 운영자 11-20).
-              누르면 지도 아래에 참여 칸이 열리고 그리로 스크롤한다 */}
-          {!meId && !state.graph.viewerIsOwner && !showJoin && (
+          {/* 아래 탭 위 고정 버튼 하나 — 방문자는 '이 별자리에 내 별 놓기', 주인·멤버는 '친구 초대하기'(디자인 다듬기 인연 별자리 ⑦ K1·⑧ I1, 운영자 11-20).
+              예전엔 둘 다 목록 맨 아래였고, 초대는 다른 주 버튼보다 옅은 보라에 복사되면 버튼이 초록으로 바뀌었다 → 같은 주 버튼 + 위에 복사 알림.
+              방문자가 누르면 지도 아래 참여 칸이 열리고 그리로 스크롤한다 */}
+          {(meId || state.graph.viewerIsOwner || !showJoin) && (
             <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 mt-6 px-4 py-3 bg-cream shadow-float-up">
-              <button type="button" onClick={() => setShowJoin(true)} className="btn btn-primary btn-lg">
-                이 별자리에 내 별 놓기
-              </button>
+              {meId || state.graph.viewerIsOwner ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const url = buildInviteUrl(window.location.origin, shareId);
+                      await navigator.clipboard.writeText(url);
+                      trackUiEvent("byeoljari_invite_clicked", { meta: { shareId } });
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
+                    }
+                  }}
+                  className="btn btn-primary btn-lg gap-2"
+                >
+                  {LINK_ICON}
+                  친구 초대하기
+                </button>
+              ) : (
+                <button type="button" onClick={() => setShowJoin(true)} className="btn btn-primary btn-lg">
+                  이 별자리에 내 별 놓기
+                </button>
+              )}
+              {copied && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-float animate-fade-in">
+                  링크 복사됨! 친구에게 보내줘
+                </div>
+              )}
             </div>
           )}
         </>
