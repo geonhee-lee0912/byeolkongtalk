@@ -174,18 +174,22 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             })}
           </div>
         </div>
+        {/* 오행 질감 — 따로 떠 있던 오행 색 테두리 상자(화=빨강이라 경고처럼 보임)를 본문 카드 끝 칸으로. 제목 앞 오행 칩.
+            디자인 다듬기 사주 MBTI 결과 ⑥ E1 운영자 11-20 */}
+        <div className="mt-4 pt-4 border-t border-lilac-soft">
+          <p className="text-15 font-bold text-eye-purple mb-1.5 flex items-center gap-1.5">
+            <span
+              className="inline-flex w-6 h-6 rounded-lg items-center justify-center text-13 font-bold"
+              style={{ backgroundColor: ELEMENT_COLORS[palja.element].bg, color: ELEMENT_COLORS[palja.element].text }}
+            >
+              {palja.element}
+            </span>
+            기운이라 이렇게 변주돼
+          </p>
+          <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-14 leading-relaxed text-eye-purple" />
+        </div>
       </section>
 
-      {/* 오행 질감 */}
-      <section
-        className="card-inner"
-        style={{ borderColor: ELEMENT_COLORS[palja.element].bar }}
-      >
-        <p className="text-15 font-bold tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
-          내가 {palja.element} 기운이라 이렇게 변주돼
-        </p>
-        <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-13 leading-relaxed text-eye-purple" />
-      </section>
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
       <div className="h-px bg-lilac-mid/40 my-1" aria-hidden />
 
