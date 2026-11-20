@@ -31,13 +31,6 @@ const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: s
   nurture: { summary: "친구가 힘들다 하면", poles: [{ p: "생", t: "일단 토닥토닥" }, { p: "단", t: "일단 팩트체크" }] },
 };
 
-const AXIS_COLOR: Record<AxisKey, string> = {
-  yinYang: "#7C5FB8",
-  strength: "#C76B57",
-  wealth: "#B8862F",
-  nurture: "#3F8F87",
-};
-
 // 리빌 색 키 — 문항(자아)=라일락, 사주(팔자)=골드. 카드·축별 비교에 일관 적용
 const SELF_COLOR = "#B9A7E6";
 const PALJA_COLOR = "#F2D78A";
@@ -90,7 +83,9 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {!shared && (
       <section className="card">
         <p className="text-17 font-bold text-eye-purple mb-4">타고난 너의 4축</p>
-        <div className="flex flex-col gap-4">
+        {/* 보라 한 색 · 축마다 두 줄(제목 / 이긴 쪽 설명 + %, 아래 얇은 막대·양끝 글자). 예전엔 축마다 네 색 + 양끝 설명 줄.
+            디자인 다듬기 사주 MBTI 결과 ⑤ X2 운영자 11-20 */}
+        <div className="flex flex-col gap-3.5">
           {AXES.map((axis) => {
             const a = palja.axes[axis];
             const [front, back] = POLES[axis];
@@ -98,26 +93,23 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             const frontWins = a.pole === front;
             const domPct = frontWins ? frontPct : 100 - frontPct;
             const m = AXIS_MEANING[axis];
-            const color = AXIS_COLOR[axis];
             return (
               <div key={axis}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-13 font-bold" style={{ color }}>{AXIS_LABEL[axis]} · {m.summary}</span>
-                  <span className="text-13 font-bold tabular-nums" style={{ color }}>{domPct}%</span>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-13 font-bold text-eye-purple">{AXIS_LABEL[axis]} · {m.summary}</span>
+                  <span className="text-13 font-bold text-accent shrink-0">
+                    {m.poles[frontWins ? 0 : 1].t} <span className="tabular-nums">{domPct}%</span>
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 text-15 font-bold">
-                  <span className="w-6 text-right" style={{ color: frontWins ? color : "#C4B7DE" }}>{front}</span>
+                <div className="flex items-center gap-2 text-13 font-bold">
+                  <span className={`w-6 text-right ${frontWins ? "text-accent" : "text-[#C4B7DE]"}`}>{front}</span>
                   <div
-                    className="flex-1 h-3 rounded-full overflow-hidden flex"
+                    className="flex-1 h-2 rounded-full overflow-hidden flex"
                     style={{ background: "#EAE1F5", justifyContent: frontWins ? "flex-start" : "flex-end" }}
                   >
-                    <div className="h-full rounded-full" style={{ width: `${domPct}%`, background: color }} />
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${domPct}%` }} />
                   </div>
-                  <span className="w-6" style={{ color: !frontWins ? color : "#C4B7DE" }}>{back}</span>
-                </div>
-                <div className="flex justify-between text-12 mt-1 px-8">
-                  <span style={{ color: frontWins ? color : "#9A8CB8", fontWeight: frontWins ? 700 : 400 }}>{m.poles[0].t}</span>
-                  <span style={{ color: !frontWins ? color : "#9A8CB8", fontWeight: !frontWins ? 700 : 400 }}>{m.poles[1].t}</span>
+                  <span className={`w-6 ${!frontWins ? "text-accent" : "text-[#C4B7DE]"}`}>{back}</span>
                 </div>
               </div>
             );
