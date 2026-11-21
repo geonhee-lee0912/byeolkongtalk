@@ -11,8 +11,8 @@ import { noindexMetadata } from "@/lib/seo/metadata";
 
 export const metadata = noindexMetadata({
   title: "연애 상담",
-  description:
-    "상대를 등록하면 별콩이가 두 사람 사이를 기억해. 한 번의 풀이로 끝나지 않고 이어지는 연애 상담.",
+  // 2026-11-21 서비스 종료 — 이 라우트는 종료 안내만 보여 준다
+  description: "별콩톡 연애 상담·연애 시뮬레이션 종료 안내.",
 });
 
 export default function RelationshipLayout({

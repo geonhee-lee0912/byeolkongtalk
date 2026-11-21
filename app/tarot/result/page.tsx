@@ -54,7 +54,6 @@ interface FetchData {
     starsSpent: number;
     hasSensitive: boolean;
     createdAt: string;
-    relationshipId: string | null;
   };
   messages: MessageRow[];
 }
@@ -180,16 +179,6 @@ function TarotResultInner() {
   return (
     // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      {reading.relationshipId && (
-        <div className="w-full max-w-md mx-auto px-5 mb-4">
-          <Link
-            href="/relationship"
-            className="btn btn-secondary btn-lg"
-          >
-            연애 상담으로 돌아가 이어 얘기하기
-          </Link>
-        </div>
-      )}
 
       {/* 고민 분류 + 나의 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">

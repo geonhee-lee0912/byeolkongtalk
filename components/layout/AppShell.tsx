@@ -20,7 +20,7 @@ const HIDE_SHELL_PREFIXES: string[] = [
   "/login",
   "/admin",
   "/start",
-  "/relationship/sim",
+  // "/relationship/sim"(시뮬 몰입 화면)은 2026-11-21 서비스 종료로 종료 안내가 됐다 — 헤더·하단 탭을 다시 보인다
 ];
 
 function shouldHideShell(pathname: string): boolean {

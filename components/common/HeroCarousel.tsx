@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { type TouchEvent, useEffect, useMemo, useRef, useState } from "react";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { type Audience, type Card, visibleCards, startIndex } from "./hero-cards";
+import { type Audience, type Card, visibleCards } from "./hero-cards";
 
 const AUTO_MS = 5000; // 자동 넘김 간격
 const RESUME_MS = 8000; // 사용자 조작 후 자동 롤링 재개까지 대기
@@ -31,10 +31,11 @@ export default function HeroCarousel({ audience }: { audience: Audience | null }
     setI(idx);
   };
 
-  // 관객 확정 시 시작 카드 배치(미조작 한정) + 카드 축소 시 i 클램프
+  // 관객 확정 시 첫 카드로(미조작 한정) + 카드 축소 시 i 클램프.
+  // (기존 유저를 "sim" 카드에서 시작하던 규칙은 그 카드를 빼며 없앴다 — 2026-11-21 우리 사이·시뮬 종료)
   useEffect(() => {
     if (audience === null) return;
-    if (!touched.current) setI(startIndex(audience, cards));
+    if (!touched.current) setI(0);
     else setI((prev) => (prev >= cards.length ? cards.length - 1 : prev));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audience]);

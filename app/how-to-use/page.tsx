@@ -14,7 +14,7 @@ const PRODUCTS = [
   { icon: "/icons/fortune/tarot_counsel.webp", bg: "#FCE7EE", t: "타로톡", d: "고민을 타로로 풀어보기", href: "/" },
   { icon: "/icons/fortune/saju_full.webp", bg: "#E3F1FA", t: "사주 운세", d: "사주로 보는 나의 흐름", href: "/fortune" },
   { icon: "/icons/byeolmaru/hub.webp", bg: "#E8DEF5", t: "별마루", d: "오늘 사주·타로, 매일 무료", href: "/byeolmaru" },
-  { icon: "/icons/relationship/consult.webp", bg: "#E8DEF5", t: "연애 상담", d: "그 사람 이야기 · 연애 시뮬", href: "/relationship" },
+  // 연애 상담·연애 시뮬 칸은 서비스 종료로 뺐다(2026-11-21)
 ];
 
 export default function HowToUsePage() {
@@ -79,7 +79,7 @@ export default function HowToUsePage() {
           <h2 className="text-15 font-bold text-eye-purple mb-3">무료로 시작해</h2>
           <div className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
             <p className="text-14 text-eye-purple leading-relaxed">
-              처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
+              처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전해서 이어갈 수 있어.
             </p>
           </div>
           {/* 고민 고르기가 1단계라 홈의 고민 카드로 바로(전엔 /concern → 고른 고민 없음 → 홈으로 튕김) */}

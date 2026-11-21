@@ -202,7 +202,6 @@ function FortuneResultInner() {
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
-  const [relationshipId, setRelationshipId] = useState<string | null>(null);
   // 누구 사주로 본 리포트인지 — 내 리포트일 때만(공유 링크로 연 남의 결과엔 이름을 보이지 않는다)
   const [subject, setSubject] = useState<string | null>(null);
 
@@ -272,7 +271,6 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
-      setRelationshipId(r.reading.relationshipId ?? null);
       if (!usedPublic && r.profile) {
         setSubject(r.profile.relation_type === "self" ? "내 사주" : r.profile.display_name ? `${r.profile.display_name} 사주` : null);
       }
@@ -557,14 +555,6 @@ function FortuneResultInner() {
           </Link>
         ) : (
           <>
-            {relationshipId && (
-              <Link
-                href="/relationship"
-                className="btn btn-secondary btn-lg"
-              >
-                연애 상담으로 돌아가 이어 얘기하기
-              </Link>
-            )}
             {/* 공유 — '공유하기' 하나, 누르면 시트에서 카톡·링크(타로 결과와 같은 모양). 예전엔 노란 카톡 + 진보라 큰 버튼 둘.
                 디자인 다듬기 운세 결과 ⑥ S1 운영자 11-16. 운세엔 스토리용 이미지가 없어 '이미지 저장' 칸은 없다 */}
             <button type="button" onClick={() => setShareOpen(true)} className="btn btn-secondary btn-lg gap-2">
