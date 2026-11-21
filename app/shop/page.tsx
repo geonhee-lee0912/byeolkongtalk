@@ -263,8 +263,9 @@ function ShopContent() {
 
   return (
     <main className="flex-1 w-full">
-      <div className="max-w-md mx-auto px-5 pt-3 pb-24 animate-fade-in">
-        {/* 뒤로가기 — 결제 직후엔 토스 결제창이 history에 있어서 router.back 위험 → 홈으로 직행 */}
+      <div className="max-w-md mx-auto px-5 pt-4 pb-24 animate-fade-in">
+        {/* 뒤로가기 — 결제 직후엔 토스 결제창이 history에 있어서 router.back 위험 → 홈으로 직행.
+            앱에선 숨긴다(web-only) — 상점은 하단 탭이라 앱 머리에 '별콩 상점'이 있고 뒤로 갈 곳이 없다(디자인 다듬기 상점 ① H1, 운영자 11-21) */}
         <button
           onClick={() => {
             if (
@@ -279,7 +280,7 @@ function ShopContent() {
             }
           }}
           aria-label="뒤로 가기"
-          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
+          className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
         >
           <svg
             width="12"
@@ -297,23 +298,8 @@ function ShopContent() {
           <span>뒤로</span>
         </button>
 
-        <div className="flex justify-center mb-2">
-          <Image
-            src="/byeolkong-shop.png"
-            alt="별콩이"
-            width={96}
-            height={96}
-            priority
-          />
-        </div>
-        <h1 className="font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
-          별 충전소
-        </h1>
-        <p className="text-12 text-text-light text-center mb-5">
-          별이 있어야 별콩이랑 더 깊은 얘기 나눌 수 있어
-        </p>
-
-        {/* 현재 별 잔액 */}
+        {/* 현재 별 잔액 — 옛 머리말(큰 별콩이 그림 · 큰 제목 '별 충전소' · 설명)을 이 카드 하나로 접었다.
+            제목은 앱 머리 '별콩 상점'과 두 번이었고, 머리말이 화면 절반이라 추천 칸이 결제 버튼에 가렸다(디자인 다듬기 상점 ①② H1) */}
         <BalanceCard balance={balance} />
 
         {/* 결제 진행/결과 패널 — confirmMessage가 있을 때만 노출, 패키지/결제버튼 대체 */}
@@ -361,7 +347,8 @@ function ShopContent() {
             {firstChargeEligible && <FirstChargeBanner />}
 
             {/* 패키지 섹션 */}
-            <SectionDivider label="패키지 고르기" />
+            {/* 다른 화면과 같은 소제목(왼쪽 굵게) — 옛 가운데 줄 + 넓은 자간 '패키지 고르기'(상점 ③) */}
+            <h2 className="text-15 font-bold text-eye-purple mt-6 mb-3">얼마나 충전할까?</h2>
 
             <div className="flex flex-col gap-2.5">
               {STAR_PACKAGES.map((pkg) => (
@@ -459,8 +446,8 @@ function BalanceCard({ balance }: { balance: number | null }) {
         <StarIcon className="w-7 h-7" />
       </div>
 
-      <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-card shrink-0">
-        <StarIcon className="w-7 h-7" />
+      <div className="relative w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-card shrink-0 overflow-hidden">
+        <Image src="/byeolkong-shop.png" alt="별콩이" width={52} height={52} priority className="object-contain" />
       </div>
       <div className="relative flex-1 min-w-0">
         <p className="text-11 font-bold text-[#7A5A1F] tracking-wide">
@@ -479,6 +466,9 @@ function BalanceCard({ balance }: { balance: number | null }) {
             </span>
           </p>
         )}
+        <p className="text-12 text-[#9A7B3F] mt-0.5 leading-snug break-keep">
+          별이 있어야 별콩이랑 더 깊은 얘기 나눌 수 있어
+        </p>
       </div>
     </div>
   );
@@ -705,20 +695,6 @@ function Banner({
   return (
     <div className={`mt-3 p-3 rounded-xl text-12 text-center font-bold ${cls}`}>
       {children}
-    </div>
-  );
-}
-
-// ━━━━━━━━━━ 섹션 디바이더 ━━━━━━━━━━
-
-function SectionDivider({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 mt-7 mb-4">
-      <div className="flex-1 h-px bg-lilac-mid/30" />
-      <span className="text-11 font-bold text-text-light tracking-[0.15em]">
-        {label}
-      </span>
-      <div className="flex-1 h-px bg-lilac-mid/30" />
     </div>
   );
 }
