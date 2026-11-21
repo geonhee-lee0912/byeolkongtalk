@@ -18,7 +18,7 @@ import {
   needsDaeun,
 } from "@/lib/fortune/generic-report";
 import { parseReportCardJson, buildReportCardReport, serializeReportCardReport } from "@/lib/fortune/report-card-report";
-import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport, alignDecadeAges } from "@/lib/fortune/life-graph-report";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
@@ -626,7 +626,8 @@ export async function POST(req: NextRequest) {
         });
         return;
       }
-      storedContent = serializeLifeGraphReport(buildLifeGraphReport(ai));
+      // 10년 구간 이름표는 AI 가 아니라 대운 표에서(이름표를 틀리게 적은 실물이 있었다 — alignDecadeAges 주석)
+      storedContent = serializeLifeGraphReport(buildLifeGraphReport({ ...ai, decades: alignDecadeAges(ai.decades, saju?.daeun) }));
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {

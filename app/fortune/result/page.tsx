@@ -46,7 +46,7 @@ import {
   type GenericReport,
 } from "@/lib/fortune/generic-report";
 import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
-import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { tryParseStoredLifeGraphReport, alignDecadeAges, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
@@ -311,7 +311,9 @@ function FortuneResultInner() {
       } else if (reportCard) {
         setReportCardReport(reportCard);
       } else if (lifeGraph) {
-        setLifeGraphReport(lifeGraph);
+        // 이미 저장된 리포트도 10년 구간 이름표를 대운 표로 다시 맞춘다(AI 가 '4~13'을 '40~49'로 적은 실물 — alignDecadeAges)
+        const daeun = (r.reading.sajuData as SajuResult | null)?.daeun;
+        setLifeGraphReport({ ...lifeGraph, decades: alignDecadeAges(lifeGraph.decades, daeun) });
       } else if (generic) {
         setGenericReport(generic);
       } else {
