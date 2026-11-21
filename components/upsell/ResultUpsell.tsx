@@ -12,6 +12,7 @@ import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import { crossCards, type CrossCard } from "./cross-cards";
 import type { SpreadCategory } from "@/lib/tarot/spreads";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import BadgePill from "@/components/common/BadgePill";
 
 export default function ResultUpsell({
   variant,
@@ -64,9 +65,7 @@ export default function ResultUpsell({
               <span className="text-14 font-bold text-eye-purple">
                 {c.label}
               </span>
-              <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                {c.badge}
-              </span>
+              <BadgePill badge={c.badge} />
             </div>
             <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">
               {c.tagline}

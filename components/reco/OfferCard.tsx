@@ -5,6 +5,7 @@
 // 아이콘 칸 · 제목 + 알약 · 한 줄 설명 · ›. 별콩이 말풍선과 구분선으로 떼어 별콩이 말이 아닌 고를 거리임을 보인다.
 import type { ReactNode } from "react";
 import Icon from "@/components/common/Icon";
+import BadgePill from "@/components/common/BadgePill";
 
 export function OfferDivider() {
   return (
@@ -58,9 +59,7 @@ export default function OfferCard({
         <span className="flex-1 min-w-0">
           <span className="flex items-center gap-1.5">
             <span className={`text-14 font-bold truncate ${done ? "text-text-light" : "text-eye-purple"}`}>{title}</span>
-            {badge && !done && (
-              <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full shrink-0">{badge}</span>
-            )}
+            {badge && !done && <BadgePill badge={badge} />}
           </span>
           <span className="block text-12 text-text-light mt-0.5 leading-snug">{sub}</span>
         </span>
