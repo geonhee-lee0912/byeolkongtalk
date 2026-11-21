@@ -11,7 +11,7 @@ import Image from "next/image";
 //    이 셋을 다 받는다"를 알아야 한다. 탭별로 자기 것만 말하면 판매 면적이 1/3 로 줄었다.
 // 🔴 세 조각(그림·문구·버튼)은 **서로는** 한 덩어리로 붙인다(8 / 12px) — 예전엔 셋이 각각 떠
 //    있어 따로 노는 것처럼 보였다(사용자 지적). 이 둘을 다시 벌리지 말 것.
-// 🔴 탭 칩과의 간격 `7dvh` — 디자인 다듬기 별마루 ⑦ W1(운영자 11-21 '위쪽 여백을 줄여 가운데 느낌으로')에서 16dvh 를 줄였다.
+// 🔴 위아래 간격 `7dvh` 씩 — 디자인 다듬기 별마루 ⑦ W1(운영자 11-21 '위쪽 여백을 줄여 가운데 느낌으로 · 아래쪽에도 여유')에서 16dvh 를 줄이고 아래를 같은 값으로 맞췄다.
 //    16dvh 일 땐 덩어리 아래 '오늘 말고 더 멀리 볼래?' 목록까지 밀려 덩어리가 탭과 목록 사이 아래쪽에 떠 보였다.
 //    아래는 16dvh 시절의 기록(dvh 를 쓰는 이유는 그대로 유효하다).
 // (옛) **탭 칩과의 간격은 일부러 크게 띄운다**(2026-09-27, 사용자 결정) — 덩어리가 화면
@@ -30,7 +30,7 @@ export default function GuestLoginWall({
   next: string;
 }) {
   return (
-    <div className="mt-[7dvh] flex flex-col items-center text-center">
+    <div className="mt-[7dvh] mb-[7dvh] flex flex-col items-center text-center">
       <Image src="/byeolkong-curious.png" alt="" width={120} height={120} priority />
       {/* 🔴 `text-balance` + 폭 제한이 한 쌍이다 — 이걸 빼면 375px 에서 마지막 줄에 "어." 한
           조각만 남는다(실측). 문구를 바꿀 때 줄 모양을 다시 볼 것. */}
