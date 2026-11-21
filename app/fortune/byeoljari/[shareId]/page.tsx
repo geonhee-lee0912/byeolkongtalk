@@ -31,6 +31,7 @@ export default function ByeoljariGuestPage() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState(true); // 확인 전엔 로그인 안내를 숨겨 둔다(로그인한 사람에게 잠깐 뜨지 않게)
   const joinRef = useRef<HTMLDivElement>(null);
 
   // 참여 칸은 지도 아래에 열리는데 버튼은 화면 아래 고정이라, 열리면 그 칸으로 데려간다(⑦ K1)
@@ -50,6 +51,7 @@ export default function ByeoljariGuestPage() {
 
   useEffect(() => {
     setMeId(localStorage.getItem(`byeoljari:me:${shareId}`));
+    setLoggedIn(!!localStorage.getItem("byeolkong_user"));
     load();
   }, [shareId, load]);
 
@@ -159,12 +161,19 @@ export default function ByeoljariGuestPage() {
             </div>
           )}
 
-          <p className="mt-6 text-center text-12 text-text-light">
-            로그인하면 이 별자리를 계속 볼 수 있어. 안 하면 이 기기에서만 보여.
-          </p>
+          {/* 로그인 안내는 비로그인에게만, 로그인 링크와 한 줄로(디자인 다듬기 인연 별자리 ⑪ E1, 운영자 11-21 — 만들기 화면과 같게).
+              예전엔 로그인한 사람에게도 '로그인하면 계속 볼 수 있어' 문장이 보였다 */}
+          {!loggedIn && (
+            <p className="mt-6 text-center text-12 text-text-light">
+              로그인하면 이 별자리를 계속 볼 수 있어 ·{" "}
+              <a href={`/login?next=${encodeURIComponent(`/fortune/byeoljari/${shareId}`)}`} className="font-bold text-accent">
+                로그인하기
+              </a>
+            </p>
+          )}
           {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
           {!state.graph.viewerIsOwner && (
-            <Link href="/byeolmaru" className="mt-2 block text-center text-12 text-accent">
+            <Link href="/byeolmaru" className={`${loggedIn ? "mt-6" : "mt-2"} block text-center text-12 text-accent`}>
               별마루에서 무료로 다 보기
             </Link>
           )}
