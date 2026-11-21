@@ -1,6 +1,7 @@
 // app/api/relationship/sim/route.ts — 시뮬 세션 생성. SIM_COST 차감 + 판 reading 생성 + 프레임 고지 노트 시드.
 // Claude 호출 없음(프레임 고지는 결정적) → 동기 처리. 대화는 별도 chat 라우트.
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars, chargeStars, getStarBalance } from "@/lib/stars";
@@ -24,6 +25,9 @@ interface Body {
 }
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
 

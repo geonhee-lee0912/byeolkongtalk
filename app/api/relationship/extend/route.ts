@@ -1,5 +1,6 @@
 // app/api/relationship/extend/route.ts — 오늘 소프트캡 +5턴 (5별). 연장 횟수 제한 없음(무제한).
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { spendStars } from "@/lib/stars";
@@ -9,6 +10,9 @@ import { EXTEND_COST } from "@/lib/relationship/types";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required" }, { status: 401 });
   const body = await request.json().catch(() => null) as { relationshipId?: string } | null;

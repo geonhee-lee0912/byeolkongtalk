@@ -1,5 +1,6 @@
 // app/api/relationship/sim/chat/route.ts — 3화자 SSE. say(인형)·note(별콩이 노트) + 민감 게이트 + 디브리핑(T10).
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { streamChat, generateOnce, buildDollSystemMessage, buildSimByeolkongMessage } from "@/lib/claude";
@@ -68,6 +69,9 @@ async function loadDollConversation(supabase: ReturnType<typeof getServiceSupaba
 }
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
 
