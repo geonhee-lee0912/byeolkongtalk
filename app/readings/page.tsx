@@ -10,7 +10,6 @@ import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
 import { useScreenCache } from "@/lib/screen-cache";
 
 interface ReadingItem {
@@ -183,8 +182,10 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
   );
 }
 
-// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/후속 상담/프로필 칩/민감 표시(현행 유지).
-function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
+// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/프로필 칩/민감 표시.
+// '후속 상담' 버튼은 뺐다(디자인 다듬기 보관함 ⑥ 가, 운영자 11-22) — 08-28 타로 결과의 이어가기 입구를 뺀 뒤 9월~ 월 2건꼴이었고,
+// 타로는 정가 새 상담과 같다. 카드를 누르면 결과 화면의 '이 고민 다시 뽑기'가 같은 일을 한다. 사주 결과 화면의 이어가기는 그대로.
+function renderConsultCard(r: ReadingItem) {
   const isTarot = r.consultationType === "tarot";
   const canResume = r.ended === false && !r.resultReady;
   const href = canResume
@@ -205,12 +206,11 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
   const subtitle = subParts.join(" · ");
   const chip = profileChip(r);
   const preview = r.preview?.trim();
-  const showFollowUp = !canResume && !r.hasSensitive;
   return (
     <div key={r.id} className="relative">
       <Link
         href={href}
-        className={`card flex gap-3 items-start transition ${showFollowUp ? "pb-14" : ""}`}
+        className="card flex gap-3 items-start transition"
       >
         {isTarot ? (
           <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
@@ -258,15 +258,6 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
           </p>
         </div>
       </Link>
-      {/* '후속 상담'은 카드 오른쪽 아래 — 오른쪽 위에선 제목과 겹쳤다(보관함 ⑥ R1). 카드가 링크라 버튼은 밖에서 얹고 아래 자리를 비운다 */}
-      {showFollowUp && (
-        <button
-          onClick={() => onContinue(r.id)}
-          className="btn btn-secondary btn-sm absolute bottom-3 right-3"
-        >
-          후속 상담
-        </button>
-      )}
     </div>
   );
 }
@@ -353,7 +344,6 @@ function ReadingsPageInner() {
     // 기억해 둔 탭도 지금 있는 탭일 때만(없앤 "sim" 탭이 남아 있을 수 있다)
     return READINGS_TABS.some((x) => x.key === cached?.tab) ? cached!.tab : "tarot";
   });
-  const [continueId, setContinueId] = useState<string | null>(null);
   const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
 
   useEffect(() => {
@@ -499,14 +489,14 @@ function ReadingsPageInner() {
           <>
             {tab === "tarot" ? (
               <div className="flex flex-col gap-2">
-                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
+                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r))}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {fortune.slice(pageStart, pageEnd).map((r) =>
                   fortuneTypeFromTag(r.emotionTag)
                     ? renderReportCard(r)
-                    : renderConsultCard(r, (id) => setContinueId(id))
+                    : renderConsultCard(r)
                 )}
               </div>
             )}
@@ -552,10 +542,6 @@ function ReadingsPageInner() {
         )}
       </div>
 
-      <ContinuationModal
-        readingId={continueId}
-        onClose={() => setContinueId(null)}
-      />
     </main>
   );
 }
