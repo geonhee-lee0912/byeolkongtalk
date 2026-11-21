@@ -42,6 +42,7 @@ import {
   parseSajuFullReportJson,
   buildSajuFullReport,
   serializeSajuFullReport,
+  isSajuYearType,
 } from "@/lib/fortune/saju-full-report";
 import {
   parseCompatReportJson,
@@ -519,7 +520,7 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
-    } else if (cfg.type === "saju_full") {
+    } else if (isSajuYearType(cfg.type)) {
       let ai = parseSajuFullReportJson(report);
       let retryRaw: string | undefined;
       if (!ai) {
@@ -541,7 +542,7 @@ export async function POST(req: NextRequest) {
         });
         return;
       }
-      storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
+      storedContent = serializeSajuFullReport(buildSajuFullReport(ai, cfg.type));
     } else if (cfg.type === "compat" || cfg.type === "compat_social") {
       let ai = parseCompatReportJson(report);
       let retryRaw: string | undefined;

@@ -120,3 +120,23 @@ test("buildFortuneSystem(daily): 대상 날짜가 오늘이 아니면 사주판 
   const today = buildFortuneSystem("daily", { saju: sajuToday, reportDate: "2026-09-19", todayKst: "2026-09-19" }).dynamicPart;
   assert.match(today, /\[오늘 들어온 두 글자/);
 });
+
+// ── 연간 사주 분석(saju_full=2026 · saju_2027) ──
+// 🔴 saju_full 프롬프트는 연도 사양 리팩터(2026-11-15) 전과 한 글자도 같아야 한다 — 2026 구매자 품질 회귀 방지.
+//    리팩터 직전 문자열의 sha256. 2026 프롬프트를 일부러 고칠 때만 이 값을 갱신할 것.
+test("saju_full 프롬프트는 연도 사양 리팩터 전과 같다", async () => {
+  const { createHash } = await import("node:crypto");
+  assert.equal(
+    createHash("sha256").update(SECTION_GUIDE.saju_full).digest("hex"),
+    "e28622633f56c84f01d3a8b685d512e6ae1659c9a12043d029585380077462c4"
+  );
+});
+
+test("saju_2027 프롬프트는 2027 정미년 기준이고 2026·병오가 섞이지 않는다", () => {
+  const g = SECTION_GUIDE.saju_2027;
+  assert.ok(g.includes("기준 연도: 2027년 (정미년 / 丁未)"));
+  assert.ok(g.includes("**2027년 사주 분석**"));
+  // JSON 키 relations2026 은 스키마·파서가 쓰는 이름이라 그대로 둔다(화면엔 안 보인다)
+  const body = g.replaceAll("relations2026", "");
+  for (const bad of ["2026", "병오", "丙午"]) assert.ok(!body.includes(bad), `saju_2027 에 "${bad}" 가 남았다`);
+});
