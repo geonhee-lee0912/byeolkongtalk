@@ -1,5 +1,6 @@
 // app/api/relationship/pass/route.ts — 관계 패스 구매 (1일/3일/7일권)
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { purchasePass } from "@/lib/relationship/passes";
@@ -8,6 +9,9 @@ import { PASS_PLAN_BY_KIND, type PassKind } from "@/lib/relationship/types";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
   const body = await request.json().catch(() => null) as { relationshipId?: string; kind?: PassKind } | null;
