@@ -91,16 +91,23 @@ export default function ByeoljariGuestPage() {
           <ConstellationView graph={state.graph} meId={meId} />
 
           {showJoin && (
-            <div ref={joinRef} className="card mt-4 space-y-2 scroll-mt-20">
-              <input
-                className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
-                placeholder="내 이름"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <BirthdaySelect value={birth} onChange={setBirth} />
+            // 칸마다 굵은 이름(디자인 다듬기 인연 별자리 ⑨ J2, 운영자 11-21) — 예전엔 이름·생일 칸에 이름이 없고 관계 질문만 작은 회색이었다
+            <div ref={joinRef} className="card mt-4 flex flex-col gap-4 scroll-mt-20">
               <div>
-                <p className="mb-1 text-12 text-text-light">별자리 주인과 어떤 사이야?</p>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">이름</p>
+                <input
+                  className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
+                  placeholder="이름을 알려줄래?"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">생일</p>
+                <BirthdaySelect value={birth} onChange={setBirth} />
+              </div>
+              <div>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">별자리 주인과 어떤 사이야?</p>
                 <div className="flex flex-wrap gap-2">
                   {RELATION_ORDER.map((rt) => {
                     const on = relationType === rt;
