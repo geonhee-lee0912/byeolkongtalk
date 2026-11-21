@@ -18,6 +18,7 @@ import {
   pickDefaultPackage,
   parseNeedParam,
   firstChargeBonusPercent,
+  packageSubLine,
 } from "@/lib/recharge-default";
 import Icon from "@/components/common/Icon";
 
@@ -36,21 +37,18 @@ function StarIcon({ className }: { className?: string }) {
   );
 }
 
-// 패키지별 마케팅 메타 (뱃지/하이라이트). 별당 가격은 자동 계산.
+// 패키지별 마케팅 메타 (뱃지). 별당 가격·알뜰·보너스 줄은 lib/recharge-default 의 packageSubLine.
 type BadgeTone = "gold" | "primary" | "rose";
 type PackageMeta = {
   badge?: { label: string; tone: BadgeTone };
-  highlight?: boolean;
 };
 const PKG_META: Record<string, PackageMeta> = {
   star_10: {},
   star_30: {},
-  star_70: { badge: { label: "추천", tone: "primary" }, highlight: true },
+  star_70: { badge: { label: "추천", tone: "primary" } },
   star_150: {},
   star_300: {},
 };
-
-const BASE_PER_STAR = STAR_PACKAGES[0].price / STAR_PACKAGES[0].stars; // 10별 1000원 = 100원/별
 
 function ShopContent() {
   const searchParams = useSearchParams();
@@ -300,7 +298,7 @@ function ShopContent() {
 
         {/* 현재 별 잔액 — 옛 머리말(큰 별콩이 그림 · 큰 제목 '별 충전소' · 설명)을 이 카드 하나로 접었다.
             제목은 앱 머리 '별콩 상점'과 두 번이었고, 머리말이 화면 절반이라 추천 칸이 결제 버튼에 가렸다(디자인 다듬기 상점 ①② H1) */}
-        <BalanceCard balance={balance} />
+        <BalanceCard balance={balance} firstCharge={firstChargeEligible} />
 
         {/* 결제 진행/결과 패널 — confirmMessage가 있을 때만 노출, 패키지/결제버튼 대체 */}
         {isProcessing ? (
@@ -342,9 +340,6 @@ function ShopContent() {
               );
             })()}
             {status === "cancel" && <Banner tone="warn">결제가 취소됐어</Banner>}
-
-            {/* 첫 충전 한정 보너스 배너 — 자격 있을 때만 */}
-            {firstChargeEligible && <FirstChargeBanner />}
 
             {/* 패키지 섹션 */}
             {/* 다른 화면과 같은 소제목(왼쪽 굵게) — 옛 가운데 줄 + 넓은 자간 '패키지 고르기'(상점 ③) */}
@@ -435,9 +430,9 @@ function ShopContent() {
 
 // ━━━━━━━━━━ 별 잔액 카드 ━━━━━━━━━━
 
-function BalanceCard({ balance }: { balance: number | null }) {
+function BalanceCard({ balance, firstCharge }: { balance: number | null; firstCharge: boolean }) {
   return (
-    <div className="relative overflow-hidden p-4 rounded-2xl bg-[#FFF6E3] flex items-center gap-3">
+    <div className="relative overflow-hidden p-4 rounded-2xl bg-[#FFF6E3]">
       {/* 배경 별 데코 */}
       <div className="absolute -right-3 -top-3 opacity-25 rotate-12 pointer-events-none">
         <StarIcon className="w-16 h-16" />
@@ -446,30 +441,46 @@ function BalanceCard({ balance }: { balance: number | null }) {
         <StarIcon className="w-7 h-7" />
       </div>
 
-      <div className="relative w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-card shrink-0 overflow-hidden">
-        <Image src="/byeolkong-shop.png" alt="별콩이" width={52} height={52} priority className="object-contain" />
-      </div>
-      <div className="relative flex-1 min-w-0">
-        <p className="text-11 font-bold text-[#7A5A1F] tracking-wide">
-          지금 가진 별
-        </p>
-        {balance === null ? (
-          <span
-            className="inline-block mt-1 w-12 h-6 rounded-lg bg-[#7A5A1F]/12 animate-pulse"
-            aria-label="잔액 불러오는 중"
-          />
-        ) : (
-          <p className="text-22 font-black text-eye-purple tabular-nums leading-tight animate-fade-in">
-            {balance}
-            <span className="text-13 font-bold text-text-light ml-1">
-              별
-            </span>
+      <div className="relative flex items-center gap-3">
+        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-card shrink-0 overflow-hidden">
+          <Image src="/byeolkong-shop.png" alt="별콩이" width={52} height={52} priority className="object-contain" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-11 font-bold text-[#7A5A1F] tracking-wide">
+            지금 가진 별
           </p>
-        )}
-        <p className="text-12 text-[#9A7B3F] mt-0.5 leading-snug break-keep">
-          별이 있어야 별콩이랑 더 깊은 얘기 나눌 수 있어
-        </p>
+          {balance === null ? (
+            <span
+              className="inline-block mt-1 w-12 h-6 rounded-lg bg-[#7A5A1F]/12 animate-pulse"
+              aria-label="잔액 불러오는 중"
+            />
+          ) : (
+            <p className="text-22 font-black text-eye-purple tabular-nums leading-tight animate-fade-in">
+              {balance}
+              <span className="text-13 font-bold text-text-light ml-1">
+                별
+              </span>
+            </p>
+          )}
+          <p className="text-12 text-[#9A7B3F] mt-0.5 leading-snug break-keep">
+            별이 있어야 별콩이랑 더 깊은 얘기 나눌 수 있어
+          </p>
+        </div>
       </div>
+
+      {/* 첫 충전 보너스 — 자격 있을 때만. 옛 따로 선 노란 배너(빈 동그라미 · '드려요')를 이 카드 아랫줄로 붙였다
+          (디자인 다듬기 상점 ⑤ V2, 운영자 11-21). 칸마다 붙던 '+20%' 알약도 뺐다 — 칸엔 보너스 줄 하나 */}
+      {firstCharge && (
+        <div className="relative mt-3 pt-3 flex items-center gap-2 border-t border-dashed border-[#7A5A1F]/25">
+          <StarIcon className="w-[18px] h-[18px] shrink-0" />
+          <p className="flex-1 min-w-0 text-13 font-bold text-[#7A5A1F] break-keep">
+            첫 충전이면 별 +{firstChargeBonusPercent()}% 더 · 딱 한 번
+          </p>
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-11 font-black bg-white text-[#7A5A1F] shadow-card">
+            첫 충전
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -490,65 +501,45 @@ function PackageCard({
   showBonus?: boolean;
 }) {
   const meta = PKG_META[pkg.id] ?? {};
-  const perStar = pkg.price / pkg.stars;
-  const discountPct = Math.round((1 - perStar / BASE_PER_STAR) * 100);
-  const bonus = showBonus ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE) : 0;
+  const sub = packageSubLine(pkg, !!showBonus);
 
+  // 디자인 다듬기 상점 ④ A(운영자 11-21): 다섯 칸이 똑같던 큰 별 그림·추천 금색 점·초록 '% 더 알뜰' 알약·'+20%' 알약을 빼고
+  // '별 수 + 아랫줄 하나 | 가격 · 체크' 로. 칸 높이가 다 같아져 다섯 칸이 첫 화면에 거의 다 든다.
   return (
     <button
       type="button"
       onClick={onSelect}
       disabled={disabled}
-      className={`relative w-full flex items-center gap-4 card transition-all disabled:opacity-50 active:scale-[0.99] text-left ${
+      className={`relative w-full flex items-center gap-3 card transition-all disabled:opacity-50 active:scale-[0.99] text-left ${
         selected
           ? "outline-2 outline-accent -outline-offset-2"
           : ""
       }`}
     >
-      {/* 좌측 별 비주얼 */}
-      <div className="relative shrink-0 w-14 h-14 rounded-2xl bg-[#FFF6E3] flex items-center justify-center">
-        <StarIcon className="w-9 h-9 drop-shadow-[0_2px_3px_rgba(214,167,40,0.35)]" />
-        {meta.highlight && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gold" />
-        )}
-      </div>
-
-      {/* 중앙 정보 */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5">
           <p className="text-17 font-black text-eye-purple tabular-nums leading-none">
             {pkg.stars}
             <span className="text-12 font-bold text-text-light ml-0.5">
               별
             </span>
           </p>
-          {bonus > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-11 font-black bg-lilac-soft text-accent tracking-wide">
-              +{firstChargeBonusPercent()}%
-            </span>
-          )}
           {meta.badge && (
             <InlineBadge tone={meta.badge.tone}>{meta.badge.label}</InlineBadge>
           )}
         </div>
-        <p className="mt-1 text-13 font-bold text-eye-purple tabular-nums">
-          {pkg.price.toLocaleString()}원
-          <span className="text-11 font-medium text-text-light ml-1.5">
-            · 별당 {Math.round(perStar)}원
-          </span>
+        <p
+          className={`mt-1 text-12 tabular-nums ${
+            sub.tone === "bonus" ? "font-bold text-accent" : "text-text-light"
+          }`}
+        >
+          {sub.text}
         </p>
-        {bonus > 0 ? (
-          <p className="mt-1 text-12 font-black text-accent tabular-nums">
-            첫 충전 보너스 +{bonus}별, 총 {pkg.stars + bonus}별
-          </p>
-        ) : (
-          discountPct > 0 && (
-            <span className="inline-block mt-1.5 text-11 font-black text-[#3F7A2F] bg-[#E5F4E0] px-2 py-0.5 rounded-full tabular-nums tracking-wide">
-              {discountPct}% 더 알뜰
-            </span>
-          )
-        )}
       </div>
+
+      <p className="shrink-0 text-15 font-bold text-eye-purple tabular-nums">
+        {pkg.price.toLocaleString()}원
+      </p>
 
       {/* 우측 체크 */}
       <span
@@ -695,28 +686,6 @@ function Banner({
   return (
     <div className={`mt-3 p-3 rounded-xl text-12 text-center font-bold ${cls}`}>
       {children}
-    </div>
-  );
-}
-
-// ━━━━━━━━━━ 첫 충전 보너스 배너 ━━━━━━━━━━
-
-function FirstChargeBanner() {
-  return (
-    <div className="mt-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#FFF6E3]">
-      <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-card shrink-0">
-        <span className="text-22" aria-hidden>
-         
-        </span>
-      </div>
-      <div className="min-w-0">
-        <p className="text-14 font-black text-[#7A5A1F] leading-tight">
-          첫 충전 한정 · 별 +{firstChargeBonusPercent()}% 보너스
-        </p>
-        <p className="text-11 text-[#9A7B3F] mt-0.5 leading-snug">
-          처음 충전하면 별을 {firstChargeBonusPercent()}% 더 드려요 (딱 한 번)
-        </p>
-      </div>
     </div>
   );
 }
