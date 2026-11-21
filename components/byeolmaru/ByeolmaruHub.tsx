@@ -10,7 +10,7 @@ import { acceptReloadedCalendar } from "@/lib/byeolmaru/day-tabs";
 import { BYEOLMARU_REQUEST_TIMEOUT_MS } from "@/lib/byeolmaru/subscribe-offer";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import HubBanner from "./HubBanner";
-import TodayLead from "./TodayLead";
+import HubTodayRow from "./HubTodayRow";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
 import SectionMark from "@/components/common/SectionMark";
 import CalendarGrid, { PANEL_BG, PANEL_BORDER, PANEL_SHADOW, type GridCell } from "./CalendarGrid";
@@ -252,15 +252,23 @@ export default function ByeolmaruHub() {
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
       {/* 앱 알림 — 별마루 오늘 흐름을 처음 볼 때 한 번 묻는다(앱 알림 설계 §4-3). 물을 게 없으면 아무것도 안 그린다 */}
       <PushMomentAsk moment="byeolmaru_first" />
-      {/* 🔴 배너가 허브의 **유일한** 구독 면이다(2026-09-24). 예전엔 ①DayStrip 아래 인라인 문구
+      {/* 🔴 '오늘 나' 칸 아랫줄이 허브의 **유일한** 구독 면이다(2026-09-24 — 그땐 배너). 예전엔 ①DayStrip 아래 인라인 문구
           ②달력 밑 PremiumBlock 둘이 더 있었는데, 375×812 실측에서 셋 다 첫 화면에 들어왔다.
           판매는 "더 보고 싶다"가 생기는 자리 — 오늘 사주·오늘 타로의 PaywallCut(절단선) — 가
-          맡고, 허브는 습관 쪽만 진다(사용자 결정). **여기에 미끼 카드를 되살리지 말 것.** */}
-      <HubBanner
+          맡고, 허브는 습관 쪽만 진다(사용자 결정). **여기에 미끼 카드를 되살리지 말 것.**
+          큰 배너(HubBanner)는 디자인 다듬기 별마루 ①H3(운영자 11-21)에서 이 칸으로 바뀌었다 — 제목 '별마루'가 앱 머리와 두 번
+          나왔고, 사주 운세 탭은 같은 자리를 '내 사주' 칸으로 이미 바꿨다. 게스트 화면(EmptyMonthShell)은 아직 배너다. */}
+      <HubTodayRow
+        today={data.today}
+        todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
+        todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
+        todayTone={todayCell ? todayCell.grade.tone : null}
+        streak={attendance ? attendance.streak : null}
         entitled={data.entitled}
         trialUsed={data.trialUsed}
         subscriptionExpiresAt={data.subscriptionExpiresAt}
         trialEndsAt={data.trialEndsAt}
+        onOpenToday={() => openDay(data.today)}
         onSubscribe={nextStep}
         busy={trialStarting}
       />
@@ -300,15 +308,8 @@ export default function ByeolmaruHub() {
               🔴 `space-y-2` 를 걷어냈다 — 간격을 선의 `my-3` 이 지게 해야 위아래가 12px 로
                  대칭이 된다. space-y 를 되살리면 선 위아래에 8px 이 덧붙어 어긋난다. */}
           <div>
-            <TodayLead
-              todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
-              todayScore={todayCell ? scoreDisplay(todayCell.score) : null}
-              attendance={attendance}
-            />
-            {/* 🔴 `-mx-3` 은 위 `section` 의 `p-3` 과 한 쌍이다 — 판 패딩을 되돌려 선이 카드
-                좌우 끝까지 닿게 한다(패딩 안쪽까지만 긋는 안보다 층이 분명했다, 실물 비교).
-                판 패딩을 바꾸면 이 값도 같이 바꿔야 한다. */}
-            <div className="-mx-3 my-3 border-t border-dashed border-lilac-mid/50" />
+            {/* 판 첫 줄(TodayLead '오늘 N점 · 하루 이름 / N일 연속')과 그 아래 점선은 맨 위 '오늘 나' 칸(HubTodayRow)으로
+                올라갔다(디자인 다듬기 별마루 ①H3, 운영자 11-21) — 판엔 요일·날짜 칸만 남는다. */}
             {/* 🔴 접이식(MonthGridSection)이 사라졌다 — 그 래퍼의 존재 이유는 "접힘 클릭률로
                 폐지 여부를 답 얻는다"였는데 별마루가 prod 에 안 나가 그 실험은 시작된 적이
                 없고, seen 플래그가 **토글했을 때만** 심어져서 한 번도 안 건드린 사람에겐
