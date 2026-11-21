@@ -200,7 +200,6 @@ function FortuneResultInner() {
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [relationshipId, setRelationshipId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -268,7 +267,6 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
-      setRelationshipId(r.reading.relationshipId ?? null);
       if (r.reading.sajuData) {
         if (ft === "compat" || ft === "compat_social") {
           setCompatSaju(r.reading.sajuData as CompatSajuPair);
@@ -541,14 +539,6 @@ function FortuneResultInner() {
           </Link>
         ) : (
           <>
-            {relationshipId && (
-              <Link
-                href="/relationship"
-                className="btn btn-secondary btn-lg"
-              >
-                연애 상담으로 돌아가 이어 얘기하기
-              </Link>
-            )}
             <button
               onClick={handleKakaoShare}
               className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-15 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
