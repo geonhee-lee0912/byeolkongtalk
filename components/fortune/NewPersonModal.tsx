@@ -8,6 +8,7 @@ import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import Link from "next/link";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { profileSaveErrorMessage } from "@/components/saju/profile-save-error";
+import Icon from "@/components/common/Icon";
 
 export interface NewPersonModalProps {
   /** 새 사람 기본 관계 (지인 폼 initialRelation) */
@@ -73,12 +74,19 @@ export default function NewPersonModal({
       dismissible={!saving}
       z={100}
       backdropClassName="bg-night/50 backdrop-blur-sm"
-      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal max-h-[85vh] overflow-y-auto p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
+      panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl border border-lilac-mid/30 shadow-float-up sm:shadow-modal max-h-[85vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
     >
-        <div className="text-center mb-5">
-          <p className="font-display text-17 text-eye-purple">
-            새 사람 사주 입력
-          </p>
+        {/* 머리는 내 사주 수정·지인 창과 같게 — 왼쪽 제목 + X, 스크롤해도 위에(디자인 다듬기 새 사람 창 N1, 운영자 11-21).
+            예전엔 가운데 둥근 제목에 판 여백(p-6)이 폼 여백(px-5)과 겹쳐 입력칸이 좁았고, 맨 아래 큰 '취소' 버튼이 따로 있었다 */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
+          <h2 className="text-15 font-bold text-eye-purple">새 사람 사주 입력</h2>
+          <OverlayCloseButton
+            disabled={saving}
+            aria-label="닫기"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50 disabled:opacity-50"
+          >
+            <Icon name="close" size={18} />
+          </OverlayCloseButton>
         </div>
 
         <ProfileForm
@@ -90,7 +98,7 @@ export default function NewPersonModal({
         />
 
         {err && (
-          <div ref={errRef} role="alert" className="text-center mt-3">
+          <div ref={errRef} role="alert" className="text-center mt-3 px-5">
             <p className="text-12 text-red-500">{err}</p>
             {needLogin && (
               <Link
@@ -103,12 +111,6 @@ export default function NewPersonModal({
           </div>
         )}
 
-        <OverlayCloseButton
-          disabled={saving}
-          className="btn btn-secondary btn-lg mt-3"
-        >
-          취소
-        </OverlayCloseButton>
     </Sheet>
   );
 }
