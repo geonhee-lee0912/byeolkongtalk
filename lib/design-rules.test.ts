@@ -126,8 +126,9 @@ test("큰 버튼은 부품 클래스를 쓴다", () => {
 });
 test("카카오·애플 버튼은 규정 색을 유지한다", () => {
   const kakao = BUTTONS().filter((b) => /FEE500/.test(b.cls));
-  // 6 — 타로 결과 공유(11-14, 8→7)·운세 결과 공유(11-16, 7→6)는 '공유하기' 하나 + 시트로 바뀌어 노란 바탕이 버튼이 아니라 시트 안 동그라미에 있다
-  assert.ok(kakao.length >= 6, `카카오 버튼이 사라졌다: ${kakao.length}`);
+  // 5 — 타로 결과 공유(11-14, 8→7)·운세 결과 공유(11-16, 7→6)는 '공유하기' 하나 + 시트로 바뀌어 노란 바탕이 버튼이 아니라 시트 안 동그라미에 있다
+  //   · 별마루 비로그인 첫 화면(11-21, 6→5)은 노란 '카카오로 시작하고 내 달력 받기' 대신 맨 위 '?' 칸 한 줄(로그인 화면에서 카카오·Apple 을 고른다)
+  assert.ok(kakao.length >= 5, `카카오 버튼이 사라졌다: ${kakao.length}`);
   assert.deepEqual(kakao.filter((b) => /\bbtn-(primary|secondary|text)\b/.test(b.cls)).map(at), []);
   assert.match(readFileSync("components/auth/AppleLoginButton.tsx", "utf8"), /bg-black/);
 });

@@ -26,7 +26,7 @@ export function subscribePhase(e: EntitlementSnapshot): SubscribePhase {
   return e.trialUsed ? "post_trial" : "pre_trial";
 }
 
-/** 남은 일수(D-N) — HubBanner 칩과 체험 넛지가 같이 쓴다. 한 화면에서 두 숫자가 갈리면 안 된다.
+/** 남은 일수(D-N) — 허브 '오늘 나' 칸 칩(hub-today)과 체험 넛지가 같이 쓴다. 한 화면에서 두 숫자가 갈리면 안 된다.
  *  만료 판정이 타임스탬프 비교라 그쪽과 잣대를 맞춰 24h 블록 기준 올림이고, 최소 1이다
  *  (자격이 있다는 건 만료가 미래라는 뜻 — D-0 은 "오늘 끝"으로 읽혀 혼동된다). */
 export function daysLeft(iso: string, now: number): number {

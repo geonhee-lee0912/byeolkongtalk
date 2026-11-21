@@ -9,7 +9,7 @@ import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { acceptReloadedCalendar } from "@/lib/byeolmaru/day-tabs";
 import { BYEOLMARU_REQUEST_TIMEOUT_MS } from "@/lib/byeolmaru/subscribe-offer";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import HubBanner from "./HubBanner";
+import Icon from "@/components/common/Icon";
 import HubTodayRow from "./HubTodayRow";
 import FreeList, { buildDailyItems, buildSelfItems } from "./FreeList";
 import SectionMark from "@/components/common/SectionMark";
@@ -58,23 +58,39 @@ function emptyMonthDates(): { dates: string[]; today: string } {
   };
 }
 
+// 비로그인·생일 없음 맨 위 '?' 칸의 안쪽 — 사주 운세 탭 MySajuRow 의 '생일을 알려줘' 칸과 같은 치수.
+function GuestTop({ title, sub, action }: { title: string; sub: string; action: string }) {
+  return (
+    <>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lilac-soft text-20 font-extrabold text-accent">?</span>
+      <span className="min-w-0 flex-1">
+        <span className="block break-keep text-14 font-bold text-eye-purple">{title}</span>
+        <span className="mt-0.5 block break-keep text-12 text-text-light">{sub}</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-0.5 text-13 font-bold text-accent">
+        {action}
+        <Icon name="chev_r" size={14} />
+      </span>
+    </>
+  );
+}
+
 // 비로그인·생일 미입력 공통 껍데기(스펙 §12). 달력은 "안 칠해진 이번 달"이고, 목록은
 // "나를 알아보는 것"(MBTI·별자리)을 **위로** 올린다 — 로그인 없이 되는 유일한 2종이라 먼저
 // 맛보게 한다. 페이월은 숨긴다 — 아직 자기 달력을 받아본 적이 없는 사람에게 미끼는 광고로
 // 읽힌다(스펙 §9).
 // 🔴 예전의 키 기반 reorder(`NO_LOGIN_KEYS`)를 지웠다. 이제 두 섹션이 각자 함수라
 //    **순서만 바꾸면 되고**, 새 항목이 조용히 잘못된 쪽으로 쓸려 들어갈 길이 없다.
-function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
+function EmptyMonthShell({ top }: { top: React.ReactNode }) {
   const { dates, today } = emptyMonthDates();
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-8">
-      {/* 🔴 게스트도 배너를 본다(2026-09-24). 예전엔 여기만 옛 `<header>`(h1 + 부제)였는데, 그건
-          결정이 아니라 **누락**이었다 — EmptyMonthShell 은 P5-3(35985ab), HubBanner 는 그 뒤
-          P6-3(a11f6fa) 이라 배너가 로그인 허브에만 붙고 이쪽은 안 따라왔다.
-          🔴 `cta={false}` — 비로그인에게 체험 버튼을 띄우면 누르는 순간 startTrial 이 401 이고,
-             이 화면엔 이미 더 큰 CTA(아래 {cta})가 있다. */}
-      <HubBanner cta={false} entitled={false} trialUsed={false} />
-      <section className="space-y-3">
+      {/* 맨 위 '?' 칸 — 로그인 허브의 '오늘 나' 칸(HubTodayRow)과 같은 자리·같은 흰 카드(디자인 다듬기 별마루 ⑤⑥ G1, 운영자 11-21).
+          예전엔 큰 배너(제목 '별마루'가 앱 머리와 두 번) + 달력 아래 설명 두 줄 + 큰 버튼이었다 — 설명과 행동이 이 한 칸으로 올라왔다.
+          사주 운세 탭의 비로그인·생일 없음 칸(MySajuRow)과 같은 문법. */}
+      {top}
+      {/* `pt-2` — 로그인 허브의 달력 묶음과 같은 간격(맨 위 칸 ↔ 달력 제목) */}
+      <section className="space-y-3 pt-2">
         {/* 🔴 제목이 로그인 허브와 같은 문법이다(2026-09-27) — 월 표시가 CalendarGrid 판 안에서
             섹션 제목으로 올라가면서, 제목이 없던 이 게스트 셸은 **월 맥락을 통째로 잃을
             뻔했다**. 두 호출부가 같이 움직여야 하는 한 쌍이다. */}
@@ -86,16 +102,8 @@ function EmptyMonthShell({ cta }: { cta: React.ReactNode }) {
             잠긴 칸 하단 안내("그날이 오면 열려")는 2026-09-26 에 아예 제거됐다 — 바로 아래
             안내 문구만 남아 정확한 설명이 된다. */}
         <CalendarGrid cells={[]} lockedCells={dates.map((d) => ({ date: d }))} todayDate={today} selectedDate={today} onSelect={() => {}} />
-        {/* 🔴 한 줄("네 생일만 있으면 이 칸이 다 칠해져")에서 두 줄로 늘렸다(2026-09-27, 사용자 결정) —
-            빈 칸만 보고는 **여기 뭐가 들어오는지**를 알 수 없어서, 첫 줄이 내용물을 말하고
-            둘째 줄이 조건을 말한다. `no_profile` 상태도 같은 문장을 쓴다("생년월일만 알려주면"이
-            로그인·생일입력 양쪽에 다 참이다). */}
-        <p className="text-center text-13 leading-relaxed text-text-light">
-          이 칸 하나하나가 네 사주로 본 그날의 흐름이야.
-          <br />
-          생년월일만 알려주면 이번 달이 전부 채워져.
-        </p>
-        {cta}
+        {/* 달력 아래 설명 두 줄('이 칸 하나하나가 네 사주로 본 그날의 흐름이야 / 생년월일만 알려주면 이번 달이 전부 채워져')은
+            맨 위 '?' 칸 글귀로 옮겼다 — 내용물(칸마다 그날의 흐름)과 조건(로그인·생일)을 그 칸이 같이 말한다. */}
       </section>
       <FreeList items={buildSelfItems()} title="나를 알아보는 것" mark="self" />
       <FreeList items={buildDailyItems(null)} title="오늘 볼 것" mark="today" />
@@ -187,27 +195,22 @@ export default function ByeolmaruHub() {
   if (state.kind === "loading") return <main className="mx-auto w-full max-w-md p-6 text-center text-text-light">별마루를 펼치고 있어…</main>;
   if (state.kind === "need_login") return (
     <EmptyMonthShell
-      cta={
-        // 🔴 카카오 버튼은 저장소 공통 컨벤션을 그대로 쓴다(2026-09-27) — `#FEE500` 배경 +
-        //    `#3C1E1E` 글자 + 말풍선 아이콘 + `py-3.5`. /login·/start·공유 버튼 4곳이 이미 같은
-        //    모양이라 여기만 연보라면 "카카오로 시작"이라 써 놓고 카카오로 안 보였다.
-        //    바로 아래 `no_profile` CTA 는 카카오가 아니므로(생년월일 입력) 연보라 그대로다.
+      top={
+        // 카드 한 칸 전체가 로그인 — 로그인 화면에서 카카오·Apple 을 고른다(옛 '카카오로 시작하고 내 달력 받기' 노란 버튼도 같은 곳으로 갔다).
+        // 계측은 옛 버튼 그대로(guest_peek_clicked{login_cta}) — 클릭 추세를 잇는다.
         <Link
           href="/login?next=/byeolmaru"
           onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "login_cta", gated: true } })}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3.5 text-15 font-bold text-[#3C1E1E] transition hover:brightness-95 active:scale-[0.98]"
+          className="card flex items-center gap-3 px-4 py-3.5 transition active:scale-[0.99]"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
-          </svg>
-          카카오로 시작하고 내 달력 받기
+          <GuestTop title="로그인하면 이번 달이 채워져" sub="칸마다 네 사주로 본 그날의 흐름이 떠" action="시작" />
         </Link>
       }
     />
   );
   if (state.kind === "no_profile") return (
     <EmptyMonthShell
-      cta={
+      top={
         // 🔴 /mypage 로 보내지 않는다(2026-10-02) — /mypage 는 저장 뒤 여기로 돌려보내지 않아,
         //    광고로 온 신규 유저(가입 때 생일을 안 받는다)가 전원 길을 잃었다. 그 자리 팝업 → refresh().
         //    guest_peek_clicked{profile_cta} 는 클릭 추세를 잇기 위해 그대로 쏜다.
@@ -215,9 +218,9 @@ export default function ByeolmaruHub() {
           surface={BIRTH_PROMPT_SURFACE.byeolmaruHub}
           onClick={() => trackUiEvent("byeolmaru_guest_peek_clicked", { meta: { card: "profile_cta", gated: true } })}
           onSaved={refresh}
-          className="block w-full rounded-xl bg-lilac-deep px-4 py-3 text-center text-cream disabled:opacity-60"
+          className="card flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:scale-[0.99] disabled:opacity-60"
         >
-          생년월일 입력하기
+          <GuestTop title="생일을 알려줘" sub="한 번만 알려주면 이번 달이 다 채워져" action="등록" />
         </BirthPromptButton>
       }
     />
@@ -257,7 +260,7 @@ export default function ByeolmaruHub() {
           판매는 "더 보고 싶다"가 생기는 자리 — 오늘 사주·오늘 타로의 PaywallCut(절단선) — 가
           맡고, 허브는 습관 쪽만 진다(사용자 결정). **여기에 미끼 카드를 되살리지 말 것.**
           큰 배너(HubBanner)는 디자인 다듬기 별마루 ①H3(운영자 11-21)에서 이 칸으로 바뀌었다 — 제목 '별마루'가 앱 머리와 두 번
-          나왔고, 사주 운세 탭은 같은 자리를 '내 사주' 칸으로 이미 바꿨다. 게스트 화면(EmptyMonthShell)은 아직 배너다. */}
+          나왔고, 사주 운세 탭은 같은 자리를 '내 사주' 칸으로 이미 바꿨다. */}
       <HubTodayRow
         today={data.today}
         todayName={todayCell ? DAY_NAME[todayCell.tenGod] : null}
