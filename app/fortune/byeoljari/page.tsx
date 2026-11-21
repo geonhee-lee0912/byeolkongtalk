@@ -68,8 +68,9 @@ export default function ByeoljariCreatePage() {
 
   return (
     // w-full — body flex-col 안에서 mx-auto 가 stretch 를 무효화해 내용물 폭으로 줄어드는 것 방지([shareId] 지도 폭 출렁임과 동일 결함)
+    // 디자인 다듬기 인연 별자리 ①②③ M1(운영자 11-21): 머리 '인연 별자리'와 겹치던 큰 제목 '인연 별자리 만들기'를 빼고,
+    // 칸 이름(참여 폼 ⑨와 같게)·안내 반말, 로그인 안내 + '로그인하고 시작하기'를 비로그인에게만 한 줄로
     <main className="mx-auto w-full max-w-md px-4 py-8">
-      <h1 className="mb-2 text-center font-display text-22 text-eye-purple">인연 별자리 만들기</h1>
       <div className="mb-5 space-y-1.5 text-center text-14 text-text-light">
         <p>생일을 넣으면 네 별이 가운데 떠</p>
         <p>친구를 부르면 궁합 관계를 별자리로 볼 수 있어</p>
@@ -77,14 +78,20 @@ export default function ByeoljariCreatePage() {
       </div>
       <ConstellationPreview />
       <p className="mt-4 mb-5 text-center text-12 text-text-light">친구를 부를수록 이렇게 자라나</p>
-      <div className="space-y-3">
-        <input
-          className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
-          placeholder="내 이름"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <BirthdaySelect value={birth} onChange={setBirth} />
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="mb-1.5 text-13 font-bold text-eye-purple">이름</p>
+          <input
+            className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
+            placeholder="이름을 알려줄래?"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div>
+          <p className="mb-1.5 text-13 font-bold text-eye-purple">생일</p>
+          <BirthdaySelect value={birth} onChange={setBirth} />
+        </div>
         <label className="flex items-center gap-2 text-14 text-text-light">
           <input
             type="checkbox"
@@ -103,24 +110,21 @@ export default function ByeoljariCreatePage() {
         </button>
       </div>
       <p className="mt-3 text-11 text-text-light text-center leading-relaxed">
-        만 14세 이상만 이용할 수 있어요. 생년월일은 별자리 계산에만 쓰이고 다른
-        사람에게 보이지 않아요. 만들기를 누르면{" "}
+        만 14세 이상만 이용할 수 있어. 생년월일은 별자리 계산에만 쓰이고 다른
+        사람에게 보이지 않아. 만들기를 누르면{" "}
         <Link href="/privacy" className="underline">
           개인정보처리방침
         </Link>
-        에 동의한 것으로 간주돼요.
+        에 동의한 것으로 간주돼.
       </p>
       {!loggedIn && (
-        <a
-          href="/login?next=/fortune/byeoljari"
-          className="btn btn-text btn-lg mt-3"
-        >
-          로그인하고 시작하기
-        </a>
+        <p className="mt-4 text-center text-12 text-text-light">
+          로그인하면 이 별자리를 계속 볼 수 있어 ·{" "}
+          <a href="/login?next=/fortune/byeoljari" className="font-bold text-accent">
+            로그인하고 시작하기
+          </a>
+        </p>
       )}
-      <p className="mt-6 text-center text-12 text-text-light">
-        로그인하면 이 별자리를 영구 보관해요. 안 하면 이 기기에서만 볼 수 있어요.
-      </p>
     </main>
   );
 }
