@@ -27,8 +27,7 @@ import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
 import TrialSubscribeNudge from "./TrialSubscribeNudge";
 import SubscribeOfferShown from "./SubscribeOfferShown";
-import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
-import { trackUiEvent } from "@/lib/analytics/ui-events";
+import ByeolmaruShareButton from "./ByeolmaruShareButton";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import Icon from "@/components/common/Icon";
@@ -393,21 +392,18 @@ export default function DailyCardBlock({
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
-          function handleShare() {
-            const ok = shareToKakao({
-              title: `오늘의 카드 · ${cardNameKr}`,
-              description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
-              imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
-              // 🔴 착지 경로는 건드리지 않는다 — 파라미터만 붙인다(§10-1①). 이 블록이 허브에서 전용
-              //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
-              //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
-              //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
-              link: `${window.location.origin}/byeolmaru/day?tab=tarot&utm_source=byeolmaru_tarot&utm_medium=share`,
-              buttonTitle: "나도 뽑아보기",
-            });
-            // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.
-            trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "tarot", ok } });
-          }
+          // 공유 내용 — '공유하기' + 시트(카톡·링크·이미지, ByeolmaruShareButton)가 쓴다. 디자인 다듬기 별마루 ⑧ K2(운영자 11-21)
+          const share = {
+            title: `오늘의 카드 · ${cardNameKr}`,
+            description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
+            imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
+            // 🔴 착지 경로는 건드리지 않는다 — 파라미터만 붙인다(§10-1①). 이 블록이 허브에서 전용
+            //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
+            //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
+            //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
+            link: `${window.location.origin}/byeolmaru/day?tab=tarot&utm_source=byeolmaru_tarot&utm_medium=share`,
+            buttonTitle: "나도 뽑아보기",
+          };
 
           return (
             <>
@@ -596,16 +592,8 @@ export default function DailyCardBlock({
                 🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다
                    (OG 라우트도 카드 id 만 받아 날짜를 모른다). 사주의 cell.isToday 와 같은 규율. */}
             {date === todayKst && (
-              <button
-                onClick={handleShare}
-                disabled={!isKakaoReady()}
-                // 🔴 `mt-*` 를 주지 않는다 — 이 버튼은 fragment 를 거쳐 TarotTodayView 의
-                //    `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 이미 온다.
-                //    `mt-4` 를 얹었더니 32px 이 돼 사주(16px)보다 멀어졌다(실측).
-                className="btn btn-secondary btn-lg"
-              >
-                오늘 카드 공유하기
-              </button>
+              // 🔴 `mt-*` 를 주지 않는다 — fragment 를 거쳐 TarotTodayView 의 `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 온다.
+              <ByeolmaruShareButton kind="tarot" share={share} />
             )}
             </>
           );
