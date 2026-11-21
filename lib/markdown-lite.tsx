@@ -67,7 +67,10 @@ export function parseBlocks(text: string): Block[] {
     quote = [];
   };
 
-  for (const raw of text.split("\n")) {
+  // JSON 문자열로 받는 리포트에서 AI 가 줄을 안 바꾸고 문장 끝에 바로 "> 팁" 을 붙이는 일이 있다(dev 성적표 11-21 — '>' 가 글자로 보였다).
+  // 문장 끝(.!?…) 바로 뒤의 '>' 만 줄머리로 내린다 — "A > B" 비교·"->" 화살표는 문장 끝 뒤가 아니라 그대로 글.
+  const lines = text.replace(/([.!?…])[ \t]+>[ \t]?/g, "$1\n> ").split("\n");
+  for (const raw of lines) {
     const line = raw.trim();
     if (line === "") {
       flushPara();
