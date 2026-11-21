@@ -205,11 +205,12 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
   const subtitle = subParts.join(" · ");
   const chip = profileChip(r);
   const preview = r.preview?.trim();
+  const showFollowUp = !canResume && !r.hasSensitive;
   return (
     <div key={r.id} className="relative">
       <Link
         href={href}
-        className="card flex gap-3 items-start transition"
+        className={`card flex gap-3 items-start transition ${showFollowUp ? "pb-14" : ""}`}
       >
         {isTarot ? (
           <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
@@ -257,10 +258,11 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
           </p>
         </div>
       </Link>
-      {!canResume && !r.hasSensitive && (
+      {/* '후속 상담'은 카드 오른쪽 아래 — 오른쪽 위에선 제목과 겹쳤다(보관함 ⑥ R1). 카드가 링크라 버튼은 밖에서 얹고 아래 자리를 비운다 */}
+      {showFollowUp && (
         <button
           onClick={() => onContinue(r.id)}
-          className="btn btn-secondary btn-sm absolute top-2.5 right-2.5"
+          className="btn btn-secondary btn-sm absolute bottom-3 right-3"
         >
           후속 상담
         </button>
@@ -439,7 +441,8 @@ function ReadingsPageInner() {
 
   return (
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
+      {/* 앱에선 숨긴다(web-only) — 앱 머리 '보관함'(‹ 포함)과 겹쳤다(디자인 다듬기 보관함 ⑤ R1, 운영자 11-21). 웹은 그대로 */}
+      <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"
           className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
