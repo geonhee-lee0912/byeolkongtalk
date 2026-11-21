@@ -25,18 +25,11 @@ import {
 } from "@/lib/fortune/types";
 import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
 import AppleLoginButton from "@/components/auth/AppleLoginButton";
-import {
-  DAILY_TURN_CAP,
-  EXTEND_COST,
-  EXTEND_TURNS,
-  PASS_PLANS,
-  RELATIONSHIP_SKILL_PREVIEWS,
-} from "@/lib/relationship/types";
 import { safeInternalPath } from "@/lib/safe-internal-path";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import Icon from "@/components/common/Icon";
 
-const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love", "relationship"] as const;
+const VARIANTS = ["counsel", "daily", "tarot", "reunion", "contact", "love"] as const;
 type Variant = (typeof VARIANTS)[number];
 
 const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
@@ -46,8 +39,11 @@ const HERO_COPY: Record<Variant, { line1: string; line2: string }> = {
   reunion: { line1: "헤어진 그 사람,", line2: "아직 나를 생각할까?" },
   contact: { line1: "핸드폰만 보고 있는", line2: "너에게" },
   love: { line1: "그 사람은 지금", line2: "무슨 생각을 할까" },
-  relationship: { line1: "너의 연애,", line2: "별콩이랑 계속 이야기하자" },
 };
+
+// 종료한 상품의 옛 광고 URL → 기본 화면(counsel). 우리 사이(연애 상담)·연애 시뮬은 2026-11-21 서비스 종료.
+// 옛 광고가 v=relationship 으로 들어와도 홈으로 튕기지 않고 광고 랜딩(가입 유도·고민 목록)을 그대로 쓴다.
+const RETIRED_VARIANTS: Record<string, Variant> = { relationship: "counsel" };
 
 /** 연애 직행 variant → 하이라이트 태그 */
 const LOVE_VARIANT_TAG: Partial<Record<Variant, EmotionTag>> = {
@@ -73,8 +69,7 @@ const START_PENDING_KEY = "byeolkong:start_pending";
 
 type StartPending =
   | { kind: "emotion"; tag: EmotionTag }
-  | { kind: "fortune"; href: string }
-  | { kind: "relationship"; href: string };
+  | { kind: "fortune"; href: string };
 
 function readPending(): StartPending | null {
   try {
@@ -97,7 +92,8 @@ function StartPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   // 전용 v 파라미터 우선, utm_content 는 레거시 폴백 (기존 라이브 광고 URL 호환)
-  const variant = sp.get("v") ?? sp.get("utm_content");
+  const rawVariant = sp.get("v") ?? sp.get("utm_content");
+  const variant = (rawVariant && RETIRED_VARIANTS[rawVariant]) ?? rawVariant;
   const valid = isVariant(variant);
 
   // 광고 전용 가드 — 유효 variant 없으면 홈으로
@@ -316,14 +312,6 @@ function StartPageInner() {
           />
         )}
 
-        {variant === "relationship" && (
-          <RelationshipIntroMenu
-            onStart={() =>
-              handleSelect({ kind: "relationship", href: "/relationship" })
-            }
-          />
-        )}
-
         {variant === "daily" && (
           <>
             <p className="text-13 font-bold text-eye-purple px-1">
@@ -360,98 +348,6 @@ function StartPageInner() {
       </div>
       {welcomeOpen && <WelcomeStarsModal onStart={handleWelcomeClose} />}
     </main>
-  );
-}
-
-/** relationship variant — 우리 사이(연애 상담) 소개. S1 콜드스타트(/relationship 미등록) 내용 미러 */
-function RelationshipIntroMenu({ onStart }: { onStart: () => void }) {
-  return (
-    <>
-      {/* 배지 + 소개 */}
-      <div className="flex flex-col items-center text-center mb-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-lilac-soft/70 px-3 py-1 text-11 font-bold text-accent mb-3">
-          <span aria-hidden style={{ color: "#E48BA0" }}><Icon name="heart" size={16} /></span>
-          연애 상담
-        </span>
-        <p className="text-13 text-text-light leading-relaxed">
-          한 번 보고 끝나는 상담이 아니야. 상대를 등록하면 별콩이랑 언제든 이어서
-          대화할 수 있어, 지난 얘기를 다 기억하니까.
-        </p>
-      </div>
-
-      {/* 무엇을 할 수 있나 — 핵심은 지속 대화, 스킬은 부가 */}
-      <p className="text-13 font-bold text-eye-purple px-1">
-        별콩이는 이런 친구야
-      </p>
-      <div className="card">
-        <div className="flex items-start gap-2.5">
-          <span className="text-22 leading-none" aria-hidden><Icon name="heart" size={16} /></span>
-          <div>
-            <p className="text-14 font-bold text-eye-purple leading-snug">
-              너만의 연애 상담 친구
-            </p>
-            <p className="text-12 text-text-light mt-1 leading-relaxed">
-              설레는 것도, 서운한 것도, 어떻게 해야 할지 모를 때도 그냥 편하게
-              털어놔. 별콩이가 네 편에서 같이 고민해줄게.
-            </p>
-          </div>
-        </div>
-      </div>
-      <p className="text-12 text-text-light px-1">
-        여기에 더해, 이런 것도 꺼내 쓸 수 있어
-      </p>
-      <div className="grid grid-cols-2 gap-2.5">
-        {RELATIONSHIP_SKILL_PREVIEWS.map((s) => (
-          <div
-            key={s.label}
-            className="card"
-          >
-            <div className="mb-1.5 text-accent" aria-hidden><Icon name={s.icon} size={24} /></div>
-            <p className="text-13 font-bold text-eye-purple leading-snug">
-              {s.label}
-            </p>
-            <p className="text-11 text-text-light mt-1 leading-snug">
-              {s.tagline}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* 이용권 */}
-      <p className="text-13 font-bold text-eye-purple px-1 mt-2">이용권</p>
-      <div className="card">
-        <p className="text-13 text-text-light leading-relaxed mb-2.5">
-          패스를 켜 두면 그 기간 동안 매일 별콩이랑 연애 상담을 이어갈 수 있어.
-        </p>
-        <p className="text-13 font-bold text-eye-purple text-center">
-          {PASS_PLANS.map((p) => `${p.label} 별 ${p.cost}`).join("  ·  ")}
-        </p>
-      </div>
-
-      {/* 하루 대화 한도 — 또렷하게 (연장 무제한 명시 · 환불 분쟁 방지) */}
-      <div className="rounded-2xl border border-gold/60 bg-gold-soft/20 p-4">
-        <p className="text-14 font-bold text-eye-purple flex items-center gap-1.5">
-          하루에 얼마나 대화할 수 있어?
-        </p>
-        <p className="mt-2 text-13 text-eye-purple/90 leading-relaxed">
-          패스가 있는 동안 하루 <b>대략 {DAILY_TURN_CAP}번</b>(4천~8천 자쯤) 주고받을
-          수 있어. 웬만한 고민 하나는 그날 깊이 풀 양이야.
-        </p>
-        <p className="mt-1.5 text-12 text-text-light leading-relaxed">
-          {DAILY_TURN_CAP}번을 다 써도 {EXTEND_COST}별마다 대화 {EXTEND_TURNS}번씩{" "}
-          <b className="text-eye-purple/80">횟수 제한 없이</b> 더 이어갈 수 있고,
-          매일 자정엔 {DAILY_TURN_CAP}번이 다시 채워져.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onStart}
-        className="btn btn-primary btn-lg mt-1"
-      >
-        별콩이랑 연애 상담 시작하기
-      </button>
-    </>
   );
 }
 

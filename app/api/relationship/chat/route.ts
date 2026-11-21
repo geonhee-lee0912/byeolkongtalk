@@ -3,6 +3,7 @@
 //   별콩이 도입 스트리밍), 이후 일반 턴은 active_skill 이 있으면 판정 가이드 주입 + skill_key 태깅(캡 제외)
 //   + [SKILL_DONE] 종료(안전 턴캡). 자유대화 경로는 기존 그대로.
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import {
@@ -100,6 +101,9 @@ interface Body {
 }
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });

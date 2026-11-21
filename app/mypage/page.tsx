@@ -37,8 +37,6 @@ interface MyPageSnapshot {
   balance: number | null;
   profiles: ProfileItem[];
   relationshipProfileIds: string[];
-  relationshipCount: number;
-  relationshipPassActive: boolean;
   readings: ReadingListItem[];
   supportUnread: number;
 }
@@ -58,8 +56,6 @@ export default function MyPage() {
   const [showSelfEdit, setShowSelfEdit] = useState(false);
   const [showAcqModal, setShowAcqModal] = useState(false);
   const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>(cached?.relationshipProfileIds ?? []);
-  const [relationshipCount, setRelationshipCount] = useState(cached?.relationshipCount ?? 0);
-  const [relationshipPassActive, setRelationshipPassActive] = useState(cached?.relationshipPassActive ?? false);
   const [readings, setReadings] = useState<ReadingListItem[]>(cached?.readings ?? []);
   const [supportUnread, setSupportUnread] = useState(cached?.supportUnread ?? 0);
 
@@ -70,12 +66,10 @@ export default function MyPage() {
       balance,
       profiles,
       relationshipProfileIds,
-      relationshipCount,
-      relationshipPassActive,
       readings,
       supportUnread,
     } satisfies MyPageSnapshot);
-  }, [save, loading, me, balance, profiles, relationshipProfileIds, relationshipCount, relationshipPassActive, readings, supportUnread]);
+  }, [save, loading, me, balance, profiles, relationshipProfileIds, readings, supportUnread]);
 
   useEffect(() => {
     void (async () => {
@@ -114,9 +108,6 @@ export default function MyPage() {
           ...rels.flatMap((x) => [x.selfProfileId, x.partnerProfileId]),
         ].filter((v: unknown): v is string => typeof v === "string");
         setRelationshipProfileIds(ids);
-        setRelationshipCount(rels.length);
-        // 우리 사이 ON/OFF = 최근 관계의 활성 연애 패스 유무 (GET 이 pass 반환)
-        setRelationshipPassActive(rel.pass != null);
       }
       if (readingsRes?.readings) setReadings(readingsRes.readings as ReadingListItem[]);
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
@@ -137,13 +128,13 @@ export default function MyPage() {
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintanceCount = profiles.filter((p) => !p.isPrimary).length;
 
-  // 마이 보관함 요약 카드용 종목별 개수. relationship 은 /api/readings 에 안 실리므로
-  // (서버 .neq 필터) /api/relationship 의 relationships[] 길이를 그대로 쓴다.
+  // 마이 보관함 요약 카드용 종목별 개수. 요약 카드는 타로·사주 두 칸만 보여 준다 —
+  // sim·relationship 칸은 우리 사이·연애 시뮬 서비스 종료로 뺐다(2026-11-21). 타입 모양만 맞춘다.
   const counts: Record<ReadingCategory, number> = {
     tarot: 0,
     fortune: 0,
     sim: 0,
-    relationship: relationshipCount,
+    relationship: 0,
   };
   for (const item of readings) {
     const cat = readingCategory({
@@ -242,7 +233,7 @@ export default function MyPage() {
           <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
           보관함
         </div>
-        <StorageSummary counts={counts} relationshipPassActive={relationshipPassActive} />
+        <StorageSummary counts={counts} />
       </div>
 
       {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}

@@ -1,6 +1,7 @@
 // app/api/relationship/sim/feedback/route.ts — 인형 대사 피드백(👍/👎) → 상대 성격 personality 즉시 반영.
 // 인형은 다음 say 턴에 loadSim 이 갱신된 personality 를 재조회 → buildDollSystemMessage 가 자동 반영(별도 배선 없음).
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -15,6 +16,9 @@ const MAX_NOTE_LEN = 300;
 interface Body { simReadingId: string; kind: "up" | "down" | "trait"; note?: string }
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
 

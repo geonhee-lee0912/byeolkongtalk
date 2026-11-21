@@ -269,15 +269,15 @@ export default function Home() {
             <span className="flex-1 h-px bg-lilac-mid/40" />
           </div>
 
-          {/* 별마루 진입 — 연애 상담 카드 **위**(사용자 확정 2026-10-02). 전체 폭 가로 행이라
-              2단 그리드가 아니고, 글자 크기는 아래 연애 상담 카드와 동일하다.
+          {/* 별마루 진입 — 전체 폭 가로 행(2단 그리드 아님). 아래 있던 연애 상담 카드는 서비스
+              종료로 뺐다(2026-11-21 운영자 결정) — 아래 여백도 그 카드가 쓰던 mb-5 로.
               🔴 도달 beacon 을 같이 단다 — 홈은 스크롤 깊이를 안 재서, 이 카드가 안 눌리면
                  "안 보여서"인지 "봤는데 관심 없어서"인지 구분할 방법이 지금 없다. */}
           <HomeReachBeacon block="byeolmaru_card" />
           <Link
             href="/byeolmaru"
             onClick={() => trackUiEvent("home_byeolmaru_clicked")}
-            className="card flex items-center gap-3.5 mb-2.5 transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -305,49 +305,6 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {["오늘사주", "오늘타로", "매일무료"].map((h) => (
-                  <span
-                    key={h}
-                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
-                  >
-                    #{h}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </Link>
-
-          {/* 우리 사이(연애 상담) 진입 — 구 궁합 슬롯 대체, 라벤더 강조 + 클릭 계측 */}
-          <Link
-            href="/relationship"
-            onClick={() => trackUiEvent("home_relationship_clicked")}
-            className="card flex items-center gap-3.5 mb-5 transition-all text-left group"
-          >
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-              style={{
-                background: "#E8DEF5",
-              }}
-            >
-              <Image
-                src="/icons/relationship/consult.webp"
-                alt=""
-                width={44}
-                height={44}
-                className="object-contain group-hover:scale-110 transition-transform"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
-                별콩이와 연애 상담
-                <span className="text-11 font-bold text-text-light">
-                  무료 시작
-                </span>
-              </p>
-              <p className="text-12 text-text-light mt-0.5 leading-snug">
-                썸·연애 고민 상담하고 대화도 미리 시뮬레이션
-              </p>
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {["연애상담", "썸", "시뮬레이션"].map((h) => (
                   <span
                     key={h}
                     className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
