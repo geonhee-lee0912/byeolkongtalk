@@ -20,7 +20,7 @@ import {
   firstChargeBonusPercent,
   packageSubLine,
 } from "@/lib/recharge-default";
-import Icon from "@/components/common/Icon";
+import { shopReturnKind } from "@/lib/shop-return";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -199,7 +199,8 @@ function ShopContent() {
         setConfirmTone("fail");
         const baseMsg = data.error || "알 수 없는 오류";
         setConfirmMessage(
-          data.refunded ? `${baseMsg} (자동 환불됨)` : `결제 실패: ${baseMsg}`
+          // 제목('앗, 결제가 안 됐어')은 패널이 붙인다 — 여기엔 이유만(디자인 다듬기 상점 ⑧ 가)
+          data.refunded ? `${baseMsg} (자동 환불됨)` : baseMsg
         );
       }
     } catch {
@@ -312,34 +313,37 @@ function ShopContent() {
           />
         ) : (
           <>
-            {/* 단순 status 배너 (success/fail/cancel) */}
-            {status === "success" && (
-              <Banner tone="success">충전 완료! 별이 추가됐어 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" /></Banner>
-            )}
-            {status === "fail" && (() => {
-              const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
-              return (
-                <Banner tone="fail">
-                  {failMessage
-                    ? `결제 실패: ${failMessage}`
-                    : "결제에 실패했어. 다시 시도해볼래?"}
-                  {failCode && (
-                    <span className="block mt-1 text-11 opacity-70 font-mono">
-                      code: {failCode}
-                    </span>
-                  )}
-                  {validReturnTo && (
-                    <button
-                      onClick={() => router.replace(validReturnTo)}
-                      className="block mt-2 text-11 underline opacity-80"
-                    >
-                      대화로 돌아가기
-                    </button>
-                  )}
-                </Banner>
-              );
+            {/* 결제창에서 돌아온 결과 — 흰 카드 하나(디자인 다듬기 상점 ⑥ 가, 운영자 11-21).
+                예전 초록·빨강·갈색 띠 + 개발 코드('code: …') + 밑줄 링크를 별콩이 말투 · 연보라 한 모양으로.
+                오류 코드는 보여 주지 않는다(운영자 '코드 같은 건 빼버리자'). 토스가 준 이유 글은 그대로 둔다 */}
+            {(() => {
+              const kind = shopReturnKind(status, failCode);
+              if (kind === "success")
+                return <ReturnCard icon={<StarIcon className="w-6 h-6" />} title="별이 들어왔어!" sub="이제 별콩이랑 이어서 얘기하자" />;
+              if (kind === "cancel")
+                return <ReturnCard icon={<span className="text-17 font-black">‖</span>} title="결제를 멈췄어" sub="마음 바뀌면 언제든 다시 골라줘" />;
+              if (kind === "fail") {
+                const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
+                return (
+                  <ReturnCard
+                    icon={<span className="text-20 font-black">!</span>}
+                    title="앗, 결제가 안 됐어"
+                    sub={failMessage ? `카드사 답: ${failMessage}` : "다시 골라서 해볼래?"}
+                  >
+                    {validReturnTo && (
+                      <button
+                        type="button"
+                        onClick={() => router.replace(validReturnTo)}
+                        className="mt-3 btn btn-secondary btn-md"
+                      >
+                        하던 대화로 돌아가기
+                      </button>
+                    )}
+                  </ReturnCard>
+                );
+              }
+              return null;
             })()}
-            {status === "cancel" && <Banner tone="warn">결제가 취소됐어</Banner>}
 
             {/* 패키지 섹션 */}
             {/* 다른 화면과 같은 소제목(왼쪽 굵게) — 옛 가운데 줄 + 넓은 자간 '패키지 고르기'(상점 ③) */}
@@ -371,15 +375,13 @@ function ShopContent() {
               </Banner>
             )}
 
-            {/* 안내 카피 */}
+            {/* 안내 카피 — 반말 세 줄 · 12(디자인 다듬기 상점 ⑦ N1, 운영자 11-21). 이용 기간(1년)·환불 정책 링크는 고지라 꼭 둔다 */}
             <div className="card mt-5">
-              <p className="text-11 font-bold text-text-light tracking-wide mb-1.5">
+              <p className="text-13 font-bold text-eye-purple mb-2">
                 결제 안내
               </p>
-              <ul className="space-y-1 text-11 text-text-light leading-relaxed">
-                <li>· 토스페이먼츠로 안전하게 결제됩니다</li>
-                <li>· 카드, 토스페이, 계좌이체 등 다양한 수단 지원</li>
-                <li>· 결제 버튼을 누르면 결제창이 열립니다</li>
+              <ul className="space-y-1.5 text-12 text-text-light leading-relaxed break-keep">
+                <li>· 토스페이먼츠로 안전하게 결제돼(카드·토스페이·계좌이체)</li>
                 <li>
                   · 충전한 별은{" "}
                   <Link
@@ -388,9 +390,9 @@ function ShopContent() {
                   >
                     환불 정책
                   </Link>
-                  에 따라 처리됩니다
+                  을 따라
                 </li>
-                <li>· 위 상품의 최대 이용기간은 1년입니다</li>
+                <li>· 충전한 별은 최대 1년 동안 쓸 수 있어</li>
               </ul>
             </div>
           </>
@@ -612,8 +614,6 @@ function PaymentStatusPanel({
           background:
             tone === "success"
               ? "#FFF6E3"
-              : tone === "fail"
-              ? "rgba(244,184,200,0.18)"
               : "rgba(159,138,208,0.12)",
         }}
       >
@@ -621,19 +621,19 @@ function PaymentStatusPanel({
         {tone === "success" && (
           <StarIcon className="w-9 h-9" />
         )}
+        {/* 실패 = 결과 카드와 같은 연보라 '!'(디자인 다듬기 상점 ⑧ 가) — 예전엔 이모지를 지운 빈 분홍 동그라미 + 빨간 글 */}
         {tone === "fail" && (
-          <span className="text-28" aria-hidden>
-           
+          <span className="text-28 font-black text-accent" aria-hidden>
+            !
           </span>
         )}
       </div>
-      <p
-        className={`text-15 font-bold leading-tight ${
-          tone === "fail" ? "text-rose-500" : "text-eye-purple"
-        }`}
-      >
-        {message}
+      <p className="text-15 font-bold leading-tight text-eye-purple">
+        {tone === "fail" ? "앗, 결제가 안 됐어" : message}
       </p>
+      {tone === "fail" && message && (
+        <p className="text-12 text-text-light mt-1 break-keep">{message}</p>
+      )}
       {tone === "progress" && (
         <p className="text-11 text-text-light mt-2">잠깐만, 마무리 중이야</p>
       )}
@@ -668,21 +668,46 @@ function SpinnerDots() {
   );
 }
 
+// ━━━━━━━━━━ 결제창에서 돌아온 결과 카드 ━━━━━━━━━━
+
+function ReturnCard({
+  icon,
+  title,
+  sub,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="card mt-4">
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 rounded-full bg-lilac-soft/60 text-accent flex items-center justify-center shrink-0" aria-hidden>
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-15 font-bold text-eye-purple leading-snug">{title}</p>
+          <p className="text-12 text-text-light mt-0.5 leading-snug break-keep">{sub}</p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 // ━━━━━━━━━━ 배너 ━━━━━━━━━━
 
+// 결제창 모듈을 못 불러올 때만 남은 띠(결제 결과는 ReturnCard 로 옮겼다 — 상점 ⑥)
 function Banner({
   tone,
   children,
 }: {
-  tone: "success" | "fail" | "warn";
+  tone: "fail";
   children: React.ReactNode;
 }) {
-  const cls =
-    tone === "success"
-      ? "bg-[#E5F4E0] text-[#3F7A2F]"
-      : tone === "fail"
-      ? "bg-rose-100 text-rose-500"
-      : "bg-gold-soft/20 text-[#7A5A1F]";
+  const cls = tone === "fail" ? "bg-rose-100 text-rose-500" : "";
   return (
     <div className={`mt-3 p-3 rounded-xl text-12 text-center font-bold ${cls}`}>
       {children}
