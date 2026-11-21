@@ -79,7 +79,7 @@ test("relationship API 폴더의 POST 는 전부 위 목록에 있다 — 새 �
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = nodePath.join(dir, e.name);
       if (e.isDirectory()) walk(p);
-      else if (e.name === "route.ts" && /export async function POST\(/.test(fs.readFileSync(p, "utf8"))) {
+      else if (e.name === "route.ts" && /export\s+(?:async\s+)?(?:function|const|let)\s+POST\b|export\s*\{[^}]*\bPOST\b/.test(fs.readFileSync(p, "utf8"))) {
         const rel = nodePath.relative(root, nodePath.dirname(p)).split(nodePath.sep).join("/");
         found.push(rel ? `/api/relationship/${rel}` : "/api/relationship");
       }
