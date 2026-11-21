@@ -9,7 +9,6 @@ import { type DrawnCard, type SpreadType, SPREAD_INFO } from "@/lib/tarot/spread
 import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
-import { getSituation } from "@/lib/relationship/situations";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
 import { useScreenCache } from "@/lib/screen-cache";
@@ -21,11 +20,8 @@ interface ReadingItem {
     dayStem?: string;
     dayElement?: string;
     pillars?: { day?: { stem: string; branch: string } };
-    situationId?: string; // 시뮬(SimMeta) 판별용
-    phase?: "stage" | "debriefed"; // 시뮬(SimMeta) 판별용
   } | null;
   consultationType?: string;
-  relationshipId?: string | null;
   spreadType?: string | null;
   sajuProduct?: string | null;
   drawnCards?: DrawnCard[] | null;
@@ -40,19 +36,10 @@ interface ReadingItem {
   preview?: string | null;
 }
 
-// /api/relationship GET(P2 shape) 항목 — 이 페이지가 쓰는 필드만 선언(구조적 타입이라 초과 필드는 무해).
-interface RelationshipListItem {
-  id: string;
-  label: string;
-  status: string;
-  partner: { displayName: string } | null;
-  lastVisitedAt: string | null;
-}
-
 const READINGS_TABS = [
   { key: "tarot", label: "타로톡" },
   { key: "fortune", label: "사주·운세" },
-  { key: "sim", label: "시뮬레이션" },
+  // "시뮬레이션" 탭은 연애 시뮬 서비스 종료로 뺐다(2026-11-21). 기록은 DB 에 그대로 있다.
 ] as const;
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
@@ -79,16 +66,6 @@ const EMPTY_COPY: Record<ReadingsTab, { text: ReactNode; href: string; cta: stri
     ),
     href: "/fortune",
     cta: "운세 보러가기",
-  },
-  sim: {
-    text: (
-      <>
-        아직 연애 시뮬레이션 기록이 없어.
-        <br />인형이랑 연습을 시작해볼까?
-      </>
-    ),
-    href: "/relationship",
-    cta: "시뮬레이션 하러가기",
   },
 };
 
@@ -181,15 +158,6 @@ function sajuAvatar(r: ReadingItem) {
 /** 운세 종류별 아이콘 — 전 지면 공통 세트(webp), 아이콘 없는 종은 이모지 폴백 */
 function fortuneIcon(emotionTag: string | null | undefined, size: number) {
   return <FortuneIconByTag emotionTag={emotionTag} size={size} />;
-}
-
-/** 시뮬 아바타 — 상황 카탈로그의 이모지(situationId 매칭), 없으면 기본 🎭 */
-function simAvatar(r: ReadingItem) {
-  return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
-      <img src="/icons/relationship/sim.webp" alt="" width={30} height={30} className="object-contain" />
-    </div>
-  );
 }
 
 function EmptyState({ tab }: { tab: ReadingsTab }) {
@@ -354,45 +322,6 @@ function renderReportCard(r: ReadingItem) {
   );
 }
 
-// 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지.
-// 재진입: /relationship/sim?sim=<id> → 완료=디브리핑 재열람, 진행중=재개(무차감).
-// (재진입 인프라 = specs/2026-08-09-sim-reentry-design.md. GET·read-only·POST 미호출이라 재차감·고아판 없음.)
-function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
-  const done = r.sajuData?.phase === "debriefed";
-  const href = `/relationship/sim?sim=${r.id}`;
-  const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
-  const subParts = [formatDate(r.createdAt)];
-  if (relLabel) subParts.push(relLabel);
-  subParts.push(r.starsSpent === 0 ? "무료" : `별 ${r.starsSpent}`);
-  return (
-    <Link
-      key={r.id}
-      href={href}
-      className="card flex gap-3 items-start transition"
-    >
-      {simAvatar(r)}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-14 font-bold text-eye-purple whitespace-nowrap">
-            {r.question}
-          </span>
-          <span
-            className={[
-              "shrink-0 text-11 font-bold rounded-full px-1.5 py-0.5",
-              done ? "text-accent bg-lilac-soft" : "text-text-light bg-lilac-soft/40",
-            ].join(" ")}
-          >
-            {done ? "완료" : "진행 중"}
-          </span>
-        </div>
-        <p className="text-11 text-text-light mt-0.5 leading-snug line-clamp-2">
-          {subParts.join(" · ")}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
 export default function ReadingsPage() {
   return (
     <Suspense fallback={null}>
@@ -404,7 +333,6 @@ export default function ReadingsPage() {
 // 화면 기억(lib/screen-cache) — 결과를 보고 돌아오면 '잠시만…' 없이 보던 탭·쪽 그대로. 목록은 늘 새로 불러와 바꾼다
 interface ReadingsSnapshot {
   readings: ReadingItem[];
-  relationships: RelationshipListItem[];
   tab: ReadingsTab;
   page: number;
 }
@@ -415,33 +343,26 @@ function ReadingsPageInner() {
   const searchParams = useSearchParams();
   const { cached, save } = useScreenCache<ReadingsSnapshot>(CACHE_KEY);
   const [readings, setReadings] = useState<ReadingItem[]>(cached?.readings ?? []);
-  const [relationships, setRelationships] = useState<RelationshipListItem[]>(cached?.relationships ?? []);
   const [loading, setLoading] = useState(!cached);
   // 주소에 탭이 있으면 그게 우선, 없으면 기억해 둔 탭(쪽도 같은 탭일 때만 되살린다)
   const [tab, setTab] = useState<ReadingsTab>(() => {
     const t = searchParams.get("tab");
     if (READINGS_TABS.some((x) => x.key === t)) return t as ReadingsTab;
-    return cached?.tab ?? "tarot";
+    // 기억해 둔 탭도 지금 있는 탭일 때만(없앤 "sim" 탭이 남아 있을 수 있다)
+    return READINGS_TABS.some((x) => x.key === cached?.tab) ? cached!.tab : "tarot";
   });
   const [continueId, setContinueId] = useState<string | null>(null);
   const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
 
   useEffect(() => {
-    if (!loading) save({ readings, relationships, tab, page } satisfies ReadingsSnapshot);
-  }, [save, loading, readings, relationships, tab, page]);
+    if (!loading) save({ readings, tab, page } satisfies ReadingsSnapshot);
+  }, [save, loading, readings, tab, page]);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
       .then((x) => (x.ok ? x.json() : null))
       .catch(() => null);
     if (list?.readings) setReadings(list.readings);
-  };
-
-  const loadRelationships = async () => {
-    const data = await fetch("/api/relationship", { cache: "no-store" })
-      .then((x) => (x.ok ? x.json() : null))
-      .catch(() => null);
-    if (data?.relationships) setRelationships(data.relationships);
   };
 
   useEffect(() => {
@@ -451,7 +372,6 @@ function ReadingsPageInner() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         loadReadings(),
-        loadRelationships(),
       ]);
       if (!me?.isAuthenticated) {
         router.replace("/login?next=/readings");
@@ -461,25 +381,18 @@ function ReadingsPageInner() {
     })();
   }, [router]);
 
-  // 종목 분류(Task 1 readingCategory 공유) — 우리 사이는 /api/relationship 에서 별도로 온다.
-  const { tarot, fortune, sim } = useMemo(() => {
+  // 종목 분류(Task 1 readingCategory 공유). "sim"(연애 시뮬)은 서비스 종료로 목록에서 뺀다 — 기록은 DB 에 그대로.
+  // "relationship" 은 /api/readings 에 안 실리므로(서버 .neq 필터) 도달하지 않음.
+  const { tarot, fortune } = useMemo(() => {
     const tarot: ReadingItem[] = [];
     const fortune: ReadingItem[] = [];
-    const sim: ReadingItem[] = [];
     for (const r of readings) {
       const cat = readingCategory({ consultationType: r.consultationType, emotionTag: r.emotionTag });
       if (cat === "tarot") tarot.push(r);
-      else if (cat === "sim") sim.push(r);
       else if (cat === "fortune") fortune.push(r);
-      // "relationship" 은 /api/readings 에 안 실리므로(서버 .neq 필터) 도달하지 않음.
     }
-    return { tarot, fortune, sim };
+    return { tarot, fortune };
   }, [readings]);
-
-  const relLabelById = useMemo(
-    () => new Map(relationships.map((r) => [r.id, r.label])),
-    [relationships]
-  );
 
   // 백그라운드 생성 중인 리딩(메시지 없음)이 있으면 완료될 때까지 목록을 폴링.
   const hasGenerating = useMemo(() => fortune.some((r) => r.generating), [fortune]);
@@ -517,7 +430,6 @@ function ReadingsPageInner() {
   const counts: Record<ReadingsTab, number> = {
     tarot: tarot.length,
     fortune: fortune.length,
-    sim: sim.length,
   };
   const activeCount = counts[tab];
   const totalPages = Math.max(1, Math.ceil(activeCount / PAGE_SIZE));
@@ -586,17 +498,13 @@ function ReadingsPageInner() {
               <div className="flex flex-col gap-2">
                 {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
               </div>
-            ) : tab === "fortune" ? (
+            ) : (
               <div className="flex flex-col gap-2">
                 {fortune.slice(pageStart, pageEnd).map((r) =>
                   fortuneTypeFromTag(r.emotionTag)
                     ? renderReportCard(r)
                     : renderConsultCard(r, (id) => setContinueId(id))
                 )}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {sim.slice(pageStart, pageEnd).map((r) => renderSimCard(r, relLabelById))}
               </div>
             )}
             {totalPages > 1 && (
