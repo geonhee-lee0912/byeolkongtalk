@@ -117,7 +117,7 @@ export function crossCards(
   if (variant === "counsel") {
     // 타로톡 유저는 대개 불안·고민 상태 → 위로/정체성/재미 금지, "같은 고민을 더 파는" 결로.
     // 주제(SpreadCategory) 맞춤 사주(조사 톤·1인) + 별마루 오늘 사주(무료 리텐션, 옛 daily 대체).
-    // (또 뽑기·대화 심화는 RechargeBlock 이 이미 프라이머리로 처리)
+    // (다시 뽑기는 타로 결과가 추천 묶음 맨 위에서 따로 처리)
     const sajuType = SAJU_BY_CATEGORY[topic ?? "default"] ?? "love_self";
     const saju = pickValid([sajuType, "love_self"]) ?? FORTUNE_CONFIG.love_self;
     return [cardFromFortune(saju), BYEOLMARU_SAJU_CARD];
