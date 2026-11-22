@@ -77,14 +77,14 @@ test("두 응답의 회원번호가 다르면 throw(응답이 섞였다)", async
   await assert.rejects(verifyKakaoAccessToken("tok", "777", fakeFetch({ [INFO]: OK_INFO, [ME]: { status: 200, body: { id: 2 } } })));
 });
 
-test("닉네임이 없거나 빈 문자열이면 별콩이_{회원번호}(기존 웹 콜백과 같은 규칙)", async () => {
+test("닉네임이 없거나 빈 문자열이면 null — 여기서 회원번호로 이름을 만들지 않는다(대체 이름은 signIn)", async () => {
   for (const kakao_account of [undefined, { profile: { nickname: "" } }]) {
     const r = await verifyKakaoAccessToken(
       "tok",
       "777",
       fakeFetch({ [INFO]: { status: 200, body: { id: 5, app_id: 777 } }, [ME]: { status: 200, body: { id: 5, kakao_account } } }),
     );
-    assert.deepEqual(r, { ok: true, kakaoId: "5", nickname: "별콩이_5", profileImg: null });
+    assert.deepEqual(r, { ok: true, kakaoId: "5", nickname: null, profileImg: null });
   }
 });
 
