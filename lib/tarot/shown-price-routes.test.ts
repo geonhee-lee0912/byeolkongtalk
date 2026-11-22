@@ -1,7 +1,7 @@
 // 화면이 본 가격 대조(409 PRICE_CHANGED) — 실제 라우트(POST)를 가짜 DB 위에서 돌린다.
 // 라우트가 import 하는 supabase·session·stars·logger 를 clarifier-race.fakes.ts 로 바꿔 끼우는 방식은 clarifier-race.test.ts 와 같다.
 // 지키는 것: 가격이 어긋나면 잔액 조회·중복 방어·리딩 생성·차감 어느 것보다 먼저 409 로 끝난다(별·행이 안 움직인다 · WARN 한 줄) ·
-//          가격이 맞거나 필드가 없으면 통과한다. 사주 부모는 대조하지 않는다.
+//          가격이 맞거나 필드가 없으면 통과한다. 사주 부모는 종료돼(운영자 11-22) 가격을 보기 전에 410.
 //          "지났다"는 잔액 0 으로 두고 잔액 확인의 402 로 본다(가짜 DB 는 insert 를 흉내 내지 않는다 — 그 뒤는 이번 변경과 무관).
 // 맨 아래는 화면 쪽 계약 — expectedCost 를 싣는 세 자리(소스로 묶는다).
 import { test } from "node:test";
@@ -210,11 +210,13 @@ test("이어가기 deep — 타로 부모 + 옛 번들(필드 없음): 통과(6)
   assert.deepEqual(r.world.warns, []);
 });
 
-test("이어가기 deep — 사주 부모는 대조하지 않는다(필드 없음이든 엉뚱한 값이든 통과)", { skip }, async () => {
+test("이어가기 deep — 사주 부모는 종료: 화면 가격과 무관하게 410, 별·행이 안 움직인다", { skip }, async () => {
   for (const extra of [{}, { expectedCost: 999 }]) {
     const r = await call("continue", USER, continueBody(extra), { tables: withParent("saju", null, USER) });
-    assert.equal(r.status, 402, JSON.stringify({ extra, body: r.body }));
-    assert.equal(r.body.required, 12, JSON.stringify(extra));
+    assert.equal(r.status, 410, JSON.stringify({ extra, body: r.body }));
+    assert.equal(r.body.code, "SERVICE_CLOSED", JSON.stringify(extra));
+    assert.deepEqual(r.ops, ["select readings"], JSON.stringify(extra));
+    assert.deepEqual(r.world.spends, [], JSON.stringify(extra));
     assert.deepEqual(r.world.warns, [], JSON.stringify(extra));
   }
 });

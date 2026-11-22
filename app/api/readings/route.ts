@@ -1,4 +1,4 @@
-// readings INSERT — 사주 풀이 세션 시작 시 호출.
+// readings INSERT — 사주 풀이 세션 시작 시 호출. 🔴 사주 상담 종료(운영자 11-22)로 POST 는 첫 줄에서 410(lib/saju/closed).
 //
 // 흐름: 입력 검증 → 잔액 사전 확인 → user_profiles INSERT → readings INSERT → spendStars(20)
 //      → 실패 시 readings/profile 롤백.
@@ -20,6 +20,7 @@ import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
 import { buildPreview } from "@/lib/readings/preview";
+import { sajuConsultClosedResponse } from "@/lib/saju/closed";
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
@@ -137,6 +138,9 @@ interface ReadingPostBody {
 }
 
 export async function POST(request: NextRequest) {
+  // 세션·DB·별보다 먼저
+  const closed = sajuConsultClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) {
     return NextResponse.json(

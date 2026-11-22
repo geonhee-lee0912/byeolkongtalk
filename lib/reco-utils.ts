@@ -90,6 +90,12 @@ export const RECO_DISPLAY: Record<
   },
 };
 
+/** 대화에 카드·칩으로 붙는가 — 이어가기는 원래 안 붙고, 사주 상담은 종료돼(운영자 11-22) 옛 대화에 남은 마커도 안 붙인다. */
+export function isRecoAttachable(product: RecoProduct): boolean {
+  const target = RECO_DISPLAY[product].target;
+  return target !== "continue" && target !== "saju";
+}
+
 /** 응답 본문 내 [RECO:...] 마커 — 표시 전 반드시 strip. */
 export const RECO_MARKER_REGEX = /\[RECO:([a-z0-9_:]+)\]/gi;
 

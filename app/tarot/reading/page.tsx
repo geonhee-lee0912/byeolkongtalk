@@ -12,7 +12,7 @@ import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, isRecoAttachable, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
@@ -502,7 +502,7 @@ function TarotReadingInner() {
         setRecoAttach((existing) => {
           const updated = { ...existing };
           for (const rp of allRecoMarkers) {
-            if (rp === "continue") continue;
+            if (!isRecoAttachable(rp)) continue;
             if (updated[rp] !== undefined) continue; // 이미 등록됨
             updated[rp] = msgIdx;
           }
@@ -791,7 +791,7 @@ function TarotReadingInner() {
     for (let i = 0; i < msgs.length; i++) {
       if (msgs[i].role !== "assistant") continue;
       for (const p of parseAllRecoMarkers(msgs[i].content)) {
-        if (p === "continue") continue;
+        if (!isRecoAttachable(p)) continue;
         if (restored[p] === undefined) restored[p] = i;
       }
     }

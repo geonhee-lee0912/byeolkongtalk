@@ -11,7 +11,7 @@ import { OfferDivider } from "@/components/reco/OfferCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { stripRecoMarkers, parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { stripRecoMarkers, parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, isRecoAttachable, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
@@ -165,7 +165,7 @@ function ReadingInner() {
               for (let i = 0; i < rawMsgs.length; i++) {
                 if (rawMsgs[i].role !== "assistant") continue;
                 for (const p of parseAllRecoMarkers(rawMsgs[i].content)) {
-                  if (p === "continue") continue;
+                  if (!isRecoAttachable(p)) continue;
                   if (restored[p] === undefined) restored[p] = i;
                 }
               }
@@ -387,7 +387,7 @@ function ReadingInner() {
         setRecoAttach((existing) => {
           const updated = { ...existing };
           for (const rp of allRecoMarkers) {
-            if (rp === "continue") continue;
+            if (!isRecoAttachable(rp)) continue;
             if (updated[rp] !== undefined) continue;
             updated[rp] = msgIdx;
           }
