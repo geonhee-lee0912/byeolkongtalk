@@ -34,11 +34,23 @@ export async function POST(request: NextRequest) {
   // kakao_id 조회 → unlink. 실패 시 503 + DB 삭제 중단 (좀비 OAuth 방지)
   // 단 -101(이미 연결 없음 — 유저가 카카오 설정에서 직접 끊은 경우)은 링크가
   // 이미 없으므로 탈퇴 진행. 안 그러면 해당 유저는 영구 탈퇴 불가.
-  const { data: userRow } = await supabase
+  const { data: userRow, error: lookupErr } = await supabase
     .from("users")
     .select("kakao_id")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
+  // 조회 실패는 '행 없음'(연타·이미 삭제 — 그대로 진행)과 다르다. 연결을 못 끊은 채 지우면 좀비 OAuth 가 남는다
+  if (lookupErr) {
+    await logError(lookupErr, {
+      route: "/api/auth/withdraw",
+      userId,
+      extra: { severity: "WITHDRAW_IDENTITY_LOOKUP_FAILED" },
+    });
+    return NextResponse.json(
+      { error: "탈퇴 처리 중 문제가 생겼어. 잠시 후 다시 시도하거나 고객센터로 문의해줘" },
+      { status: 503 }
+    );
+  }
   if (userRow?.kakao_id) {
     const unlink = await unlinkKakao(userRow.kakao_id);
     if (!unlink.ok && !unlink.alreadyUnlinked) {
@@ -46,7 +58,6 @@ export async function POST(request: NextRequest) {
         route: "/api/auth/withdraw",
         userId,
         extra: {
-          kakaoId: userRow.kakao_id,
           severity: "WITHDRAW_UNLINK_FAILED",
           kakaoStatus: unlink.status ?? null,
           kakaoCode: unlink.code ?? null,
@@ -65,7 +76,7 @@ export async function POST(request: NextRequest) {
       await logInfo("Kakao already unlinked before withdraw — proceeding", {
         route: "/api/auth/withdraw",
         userId,
-        extra: { kakaoId: userRow.kakao_id },
+        extra: { step: "kakao_unlink", kakaoCode: unlink.code ?? null },
       });
     }
   }
@@ -84,14 +95,15 @@ export async function POST(request: NextRequest) {
       )
       .eq("user_id", userId)
       .maybeSingle();
-    const { error: wErr } = await supabase
+    const { error: wErr, status: wStatus } = await supabase
       .from("account_withdrawals")
       .insert({ kakao_id_hash: kakaoIdHash, ...(acq ?? {}) });
     if (wErr) {
-      await logError(wErr, {
+      // 원문엔 원장 해시가 실린다 — 이 로그는 탈퇴 뒤에도 남는다
+      await logError(new Error(`withdrawal ledger insert failed (${wErr.code || `HTTP ${wStatus}`})`), {
         route: "/api/auth/withdraw",
         userId,
-        extra: { severity: "WITHDRAWAL_LOG_FAILED" },
+        extra: { severity: "WITHDRAWAL_LOG_FAILED", dbCode: wErr.code || null },
       });
     }
   }

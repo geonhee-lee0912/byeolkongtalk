@@ -95,8 +95,7 @@ export async function GET(request: NextRequest) {
     // 2. 카카오 사용자 정보 조회
     const kakaoUser = await getKakaoUser(tokenData.access_token);
     const kakaoId = kakaoUser.id;
-    const nickname =
-      kakaoUser.kakao_account?.profile?.nickname || `별콩이_${kakaoId}`;
+    const nickname = kakaoUser.kakao_account?.profile?.nickname || null;
     const profileImg =
       kakaoUser.kakao_account?.profile?.profile_image_url || null;
 
@@ -116,21 +115,28 @@ export async function GET(request: NextRequest) {
       await supabase
         .from("users")
         .update({
-          nickname,
+          // 못 받았으면 저장된 이름 그대로
+          ...(nickname ? { nickname } : {}),
           profile_img: profileImg,
           last_login: new Date().toISOString(),
         })
         .eq("id", userId);
     } else {
-      const { data: newUser, error: insErr } = await supabase
+      // 대체 이름엔 회원번호를 넣지 않는다(화면·결제사·내 사주 이름으로 퍼진다) — 무작위라 가입 때 한 번만 만든다
+      const newNickname = nickname ?? `별콩이_${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
+      const { data: newUser, error: insErr, status: insStatus } = await supabase
         .from("users")
-        .insert({ kakao_id: kakaoId, nickname, profile_img: profileImg })
+        .insert({ kakao_id: kakaoId, nickname: newNickname, profile_img: profileImg })
         .select("id")
         .single();
       if (insErr || !newUser) {
-        await logError(insErr ?? new Error("user insert null"), {
+        // DB 오류 원문은 남기지 않는다 — details 에 회원번호·닉네임이 실린다
+        const failure = insErr
+          ? new Error(`user insert failed (${insErr.code || `HTTP ${insStatus}`})`)
+          : new Error("user insert null");
+        await logError(failure, {
           route: "/api/auth/kakao",
-          extra: { kakaoId, nickname },
+          extra: { step: "user_insert", dbCode: insErr?.code || null },
         });
         return failRedirect("user_insert_failed");
       }
@@ -211,7 +217,7 @@ export async function GET(request: NextRequest) {
       // upsert(ignoreDuplicates)가 새 row 반환 → 처음 → 지급. 이미 있으면 빈 배열 → 스킵.
       // 청구 판정 에러면 안전하게 스킵(파밍 재개 방지) + 로그.
       const kakaoIdHash = createHash("sha256").update(String(kakaoId)).digest("hex");
-      const { data: welcomeClaim, error: welcomeClaimErr } = await supabase
+      const { data: welcomeClaim, error: welcomeClaimErr, status: welcomeClaimStatus } = await supabase
         .from("bonus_claims")
         .upsert(
           { kakao_id_hash: kakaoIdHash, bonus_type: "welcome" },
@@ -219,10 +225,11 @@ export async function GET(request: NextRequest) {
         )
         .select("kakao_id_hash");
       if (welcomeClaimErr) {
-        await logError(welcomeClaimErr, {
+        // 원문엔 원장 해시가 실린다
+        await logError(new Error(`welcome claim failed (${welcomeClaimErr.code || `HTTP ${welcomeClaimStatus}`})`), {
           route: "/api/auth/kakao",
           userId,
-          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED" },
+          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED", dbCode: welcomeClaimErr.code || null },
         });
       }
       if (!welcomeClaimErr && (welcomeClaim?.length ?? 0) > 0) {
