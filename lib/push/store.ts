@@ -280,14 +280,18 @@ export const supabaseDispatchStore: DispatchStore = {
     check(error, "releaseSend");
   },
   // OS 는 보낼 때 남긴다 — 확인 전에 로그아웃하면 기기 행이 지워져 그때는 못 읽는다.
-  // 조회 실패로 던지지 않는다: 이미 나간 발송이라 티켓이 안 남으면 '안 보냄'(device_count 0)으로 읽힌다
+  // 조회 실패로 던지지도, 재시도로 기다리지도 않는다: 이미 나간 발송이라 티켓이 안 남으면 '안 보냄'(device_count 0)으로 읽힌다
   async saveTickets(sendId, tickets) {
     const db = getServiceSupabase();
     const { data, error: lookupError } = await db
       .from("push_devices")
       .select("token, platform")
-      .in("token", tickets.map((t) => t.token));
-    if (lookupError) await logWarn("push ticket platform lookup failed", { route: "cron/push-dispatch", extra: { sendId } });
+      .in("token", tickets.map((t) => t.token))
+      .retry(false);
+    // 오류 메시지는 싣지 않는다 — 토큰이 섞일 수 있다
+    if (lookupError) {
+      await logWarn("push ticket platform lookup failed", { route: "cron/push-dispatch", extra: { sendId, code: lookupError.code } });
+    }
     const platformOf = new Map((data ?? []).map((d: { token: string; platform: string }) => [d.token, d.platform]));
     const withPlatform = tickets.map((t) => ({ ...t, platform: platformOf.get(t.token) ?? null }));
     const { error } = await db
@@ -325,7 +329,9 @@ export const supabaseDispatchStore: DispatchStore = {
     check(readError, "markReceiptsChecked(read)");
     const groups = new Map<string, { kept: { platform: string | null }[]; ids: number[] }>();
     for (const row of (data ?? []) as { id: number; expo_tickets: { platform?: string | null }[] | null }[]) {
-      const kept = (row.expo_tickets ?? []).map((t) => ({ platform: t.platform ?? null }));
+      const kept = (row.expo_tickets ?? [])
+        .map((t) => ({ platform: t.platform ?? null }))
+        .sort((a, b) => String(a.platform).localeCompare(String(b.platform)));
       const key = JSON.stringify(kept);
       const group = groups.get(key) ?? { kept, ids: [] };
       group.ids.push(row.id);

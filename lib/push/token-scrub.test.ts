@@ -86,7 +86,7 @@ test("확인 처리하면 토큰·접수번호는 지우고 발송마다 제 OS 
   tables.push_sends = [send(1, [ios, android]), send(2, [android]), send(3, [ios]), send(4, [])];
   await store.markReceiptsChecked([1, 2, 3, 4]);
   assert.deepEqual(tables.push_sends.map((r) => r.expo_tickets), [
-    [{ platform: "ios" }, { platform: "android" }],
+    [{ platform: "android" }, { platform: "ios" }],
     [{ platform: "android" }],
     [{ platform: "ios" }],
     [],
@@ -140,3 +140,50 @@ for (const c of [
     assert.deepEqual(tables.push_sends[0].expo_tickets, [{ platform: "ios" }]);
   });
 }
+
+test("Expo 결과 조회가 실패해도 24시간 지난 발송은 토큰을 지우고, 안 지난 발송은 남긴다", async () => {
+  tables.push_sends = [send(1, [ios]), { ...send(2, [android]), sent_at: "2026-11-23T00:30:00.000Z" }];
+  const errors: string[] = [];
+  await dispatchRevisits(
+    new Date("2026-11-23T01:00:00Z"),
+    { ...store, dueRevisits: async () => [] },
+    { send: async () => [], receipts: async () => { throw new Error("expo down"); } },
+    (e) => errors.push(String(e)),
+    { warn: () => {} },
+  );
+  assert.deepEqual(errors, ["Error: expo down"]);
+  assert.deepEqual(tables.push_sends[0].expo_tickets, [{ platform: "ios" }]);
+  assert.deepEqual(tables.push_sends[1].expo_tickets, [android]);
+});
+
+test("OS 조회는 재시도로 티켓 저장을 늦추지 않고, 실패 코드만 남긴다", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const real = globalThis.fetch;
+  let lookups = 0;
+  let logged = "";
+  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("/push_devices")) {
+      lookups++;
+      return Response.json({ code: "PGRST002", message: "secret tok-ios" }, { status: 503 });
+    }
+    if (String(input).includes("/error_logs")) logged = String(init?.body);
+    return real(input, init);
+  });
+  tables.push_sends = [send(1, [])];
+  await store.saveTickets(1, [{ id: "t1", token: "tok-ios" }]);
+  assert.equal(lookups, 1);
+  assert.match(logged, /PGRST002/);
+  assert.doesNotMatch(logged, /tok-ios/);
+});
+
+test("같은 OS 구성은 기기 순서가 달라도 한 번에 갱신한다", async (t) => {
+  const real = globalThis.fetch;
+  let updates = 0;
+  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "PATCH") updates++;
+    return real(input, init);
+  });
+  tables.push_sends = [send(1, [ios, android]), send(2, [android, ios])];
+  await store.markReceiptsChecked([1, 2]);
+  assert.equal(updates, 1);
+});
