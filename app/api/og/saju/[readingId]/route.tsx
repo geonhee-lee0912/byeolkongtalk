@@ -8,6 +8,7 @@ import { ImageResponse } from "next/og";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripEmphasisMarks } from "@/lib/text-emphasis";
+import { FORTUNE_SENTINEL_PREFIX } from "@/lib/fortune/types";
 import { getHeaderIconDataUrl } from "@/lib/og/header-icon";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -55,11 +56,16 @@ export async function GET(
   const supabase = getServiceSupabase();
   const { data: reading } = await supabase
     .from("readings")
-    .select("saju_data, question, has_sensitive")
+    .select("saju_data, question, has_sensitive, consultation_type, emotion_tag")
     .eq("id", readingId)
     .maybeSingle();
 
-  if (!reading) {
+  // 사주 상담만 연다. 사주로 만든 운세도 종류값이 'saju' 라 표식으로 가른다(옛 종류까지 — fortuneTypeFromTag 는 못 알아봄)
+  if (
+    !reading ||
+    reading.consultation_type !== "saju" ||
+    reading.emotion_tag?.startsWith(FORTUNE_SENTINEL_PREFIX)
+  ) {
     return new Response("not_found", { status: 404 });
   }
   if (reading.has_sensitive) {
