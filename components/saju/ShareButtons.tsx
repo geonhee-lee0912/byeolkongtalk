@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
+import { stripEmphasisMarks } from "@/lib/text-emphasis";
 
 export interface ShareButtonsProps {
   readingId: string;
@@ -35,9 +36,11 @@ export default function ShareButtons({
   question,
   dayStem,
   dayElement,
-  closingLine,
+  closingLine: rawClosingLine,
   hasSensitive,
 }: ShareButtonsProps) {
+  // 공유로 나가는 한마디엔 강조 별표가 없다(운영자 11-22 시안15 A)
+  const closingLine = rawClosingLine && stripEmphasisMarks(rawClosingLine);
   const [toast, setToast] = useState<string | null>(null);
 
   if (hasSensitive) {

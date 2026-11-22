@@ -7,6 +7,7 @@
 import { ImageResponse } from "next/og";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { stripEmphasisMarks } from "@/lib/text-emphasis";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -72,7 +73,9 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   const saju = reading.saju_data as SajuResult;
-  const closingLine = extractClosingLine(messages ?? []) ?? "별콩이가 응원할게 ✨";
+  const closingLine = stripEmphasisMarks(
+    extractClosingLine(messages ?? []) ?? "별콩이가 응원할게 ✨"
+  );
 
   const font = await getFont();
 

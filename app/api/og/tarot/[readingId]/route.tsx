@@ -5,6 +5,7 @@
 import { ImageResponse } from "next/og";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { stripEmphasisMarks } from "@/lib/text-emphasis";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import { getCard } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
@@ -102,9 +103,9 @@ export async function GET(
     content:
       m.role === "assistant" ? m.content.replace(MARKER_RE, "") : m.content,
   }));
-  const closingLine =
-    extractClosingLine(cleaned, { excludeInvite: true }) ??
-    "별콩이가 응원할게 ✨";
+  const closingLine = stripEmphasisMarks(
+    extractClosingLine(cleaned, { excludeInvite: true }) ?? "별콩이가 응원할게 ✨"
+  );
   const cards = ((reading.drawn_cards as DrawnCard[]) ?? []).slice(0, 5);
   const spreadLabel =
     SPREAD_INFO[reading.spread_type as SpreadType]?.label ?? "타로 풀이";

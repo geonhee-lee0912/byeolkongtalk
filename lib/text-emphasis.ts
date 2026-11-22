@@ -6,6 +6,11 @@ export interface EmphasisSegment {
   bold: boolean;
 }
 
+/** 화면 밖으로 나가는 글(공유 글·카톡 설명·공유 그림)용 — 강조를 못 그리니 별표만 뺀다. 잘려서 짝이 없는 별표도 */
+export function stripEmphasisMarks(text: string): string {
+  return text.replace(/\*\*/g, "");
+}
+
 export function splitEmphasis(text: string): EmphasisSegment[] {
   const segments: EmphasisSegment[] = [];
   const re = /\*\*([^*\n]+)\*\*/g;
