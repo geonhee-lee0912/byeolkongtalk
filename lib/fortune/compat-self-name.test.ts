@@ -74,6 +74,9 @@ const OLD_ME = profile("old-me", SELF_NAME, false, "self"); // 옛 저장 경로
 const FRIEND = profile("friend", "민수", false, "friend");
 const PARTNER = profile("partner", "지우", false, "partner");
 
+// 작성 지시가 "첫 번째 사람"으로 적혀 있어, 이 한 줄이 없으면 글이 본인을 순번으로 부른다(운영자 결정 애플-10A, 2026-11-22)
+const callLine = (nth: string) => `${nth} 번째 사람이 이 글을 읽는 너야 — 글에서는 순번 말고 '너'로 불러.`;
+
 const post = (path: string, body: unknown) =>
   new NextRequest(`http://localhost${path}`, { method: "POST", body: JSON.stringify(body) });
 
@@ -99,6 +102,8 @@ for (const type of ["compat", "compat_social"]) {
         assert.ok(!prompt.includes(SELF_NAME), "본인 이름이 AI 입력에 실렸다");
         assert.ok(prompt.includes(`첫 번째 사람 사주판 — ${sent[0]}]`), `첫째 이름은 ${sent[0]}`);
         assert.ok(prompt.includes(`두 번째 사람 사주판 — ${sent[1]}]`), `둘째 이름은 ${sent[1]}`);
+        assert.equal(prompt.includes(callLine("첫")), sent[0] === "너", "첫째가 본인일 때만 첫째 호칭 줄");
+        assert.equal(prompt.includes(callLine("두")), sent[1] === "너", "둘째가 본인일 때만 둘째 호칭 줄");
       }
       const stored = fakes.state.readings[0].saju_data as { names: unknown };
       assert.deepEqual(stored.names, { a: a.display_name, b: b.display_name }, "화면용 저장 이름은 그대로");
@@ -125,5 +130,6 @@ test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 너", as
     assert.ok(!prompt.includes(SELF_NAME), "본인 이름이 AI 입력에 실렸다");
     assert.ok(prompt.includes("첫 번째 사람 사주판 — 너]"));
     assert.ok(prompt.includes("두 번째 사람 사주판 — 지우]"));
+    assert.ok(prompt.includes(callLine("첫")), "본인 호칭 줄");
   }
 });
