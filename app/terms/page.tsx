@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-const SHIM_DATE = "2026년 6월 22일";
+const SHIM_DATE = "별콩톡 앱 출시일(공지 후 7일이 지난 뒤)";
 
 export default function TermsPage() {
   const router = useRouter();
@@ -22,6 +22,13 @@ export default function TermsPage() {
       </h1>
       <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
+      </p>
+      {/* 변경 공지 — 출시해서 시행일을 실제 날짜로 바꿀 때 같이 내린다 */}
+      <p className="mb-6 px-3 py-2 border border-lilac-soft/60 rounded-xl text-12 text-text-light leading-[1.7]">
+        위 시행일부터 이용약관이 바뀝니다. 바뀌는 내용: Apple 로그인 추가에 따른
+        회원의 정의(제2조)와 이용계약의 체결(제4조), 회원 정보의 변경(제5조).
+        시행일 전까지는 종전 약관이 적용됩니다. 다만 시행일 전에 Apple 로그인으로
+        가입하거나 이용하는 경우에는 이용하는 때부터 바뀐 약관이 적용됩니다.
       </p>
 
       <div className="text-13 text-eye-purple leading-relaxed space-y-6">
@@ -71,8 +78,10 @@ export default function TermsPage() {
         </Article>
 
         <Article title="제5조 (회원 정보의 변경)">
-          회원은 마이페이지에서 닉네임, 프로필 사진 등 본인 정보를 열람·수정할 수
-          있습니다. 변경 사항을 회사에 정확히 알리지 않아 발생한 불이익에 대해
+          회원은 마이페이지에서 본인 정보를 열람하고 사주 정보를 수정할 수 있습니다.
+          카카오 회원이 다시 로그인하면 프로필 사진이 갱신되고, 닉네임은 카카오가 제공한
+          경우에 갱신됩니다. 그 밖의 정정은 제14조의 문의처로 요청할 수 있습니다.
+          변경 사항을 회사에 정확히 알리지 않아 발생한 불이익에 대해
           회사는 책임지지 않습니다.
         </Article>
 
