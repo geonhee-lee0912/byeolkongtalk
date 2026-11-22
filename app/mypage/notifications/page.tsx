@@ -23,7 +23,7 @@ function Toggle({ on, label, disabled, onClick }: { on: boolean; label: string; 
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`relative shrink-0 w-11 h-[26px] rounded-full transition-colors disabled:opacity-60 ${on ? "bg-eye-purple" : "bg-lilac-mid/60"}`}
+      className={`relative shrink-0 w-11 h-[26px] rounded-full transition-colors disabled:opacity-60 ${on ? "bg-accent" : "bg-lilac-mid/60"}`}
     >
       <span className={`absolute top-[3px] left-[3px] w-5 h-5 rounded-full bg-white transition-transform ${on ? "translate-x-[18px]" : ""}`} />
     </button>
@@ -127,7 +127,7 @@ export default function NotificationSettingsPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in break-keep wrap-anywhere">
       {/* 앱에선 앱 헤더(‹ + 알림 설정)와 겹쳐 숨긴다(web-only) */}
       <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
         <Link href="/mypage" className="text-12 text-text-light">

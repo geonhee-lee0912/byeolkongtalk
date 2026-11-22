@@ -27,6 +27,8 @@ test("재확인 통지 — 전송자·동의 날짜·끄는 법", () => {
   assert.ok(m.body.includes("별콩톡"));
   assert.ok(m.body.includes("2026년 11월 8일"));
   assert.ok(m.body.includes("알림 설정"));
+  // 화살표 없이 앱 안 문구(AD_CONSENT_HOW_TO_OFF)와 같은 말로 — 운영자 11-22
+  assert.ok(m.body.includes("마이의 알림 설정") && !m.body.includes("→"));
 });
 
 test("판촉 단어 찾기 — 이름 속 '별'은 빼고, 재화 '별'은 잡는다", () => {

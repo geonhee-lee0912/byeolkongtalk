@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { adMessage, AD_FOOTER, SUPPORT_CONTACT } from "./ad-templates.ts";
+import { adMessage, AD_FOOTER, resumeAdMessage, SUPPORT_CONTACT } from "./ad-templates.ts";
 
 test("광고 틀 — (광고) 로 시작, 끝에 무료 수신거부·고객센터", () => {
   const m = adMessage("오늘 흐름", "한 줄");
@@ -18,4 +18,8 @@ test("광고 틀 — (광고) 로 시작, 끝에 무료 수신거부·고객센�
 test("고객센터 연락처는 사업자 정보의 대표전화와 같은 번호(운영자 11-22) — 임시값으로 되돌아가지 않게", () => {
   assert.equal(SUPPORT_CONTACT, "0502-1924-6473");
   assert.ok(readFileSync("components/layout/BusinessInfo.tsx", "utf8").includes(SUPPORT_CONTACT));
+});
+
+test("이어가기 제목 — 좁은 폰에서 접혀도 안 잘리게 짧게(운영자 11-22 시안13 A)", () => {
+  assert.equal(resumeAdMessage().title, "(광고) 하던 이야기, 이어서 할래?");
 });

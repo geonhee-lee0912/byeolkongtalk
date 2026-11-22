@@ -27,7 +27,7 @@ export function readingPath(consultationType: string, readingId: string): string
 export function reconfirmMessage(grantedOn: string): { title: string; body: string } {
   return {
     title: "광고 수신 동의 확인 안내",
-    body: `${grantedOn}에 동의한 별콩톡 광고성 정보(앱 푸시) 수신이 계속되고 있어. 그대로 두면 계속 받고, 그만 받으려면 마이 → 알림 설정에서 끌 수 있어.`,
+    body: `${grantedOn}에 동의한 별콩톡 광고성 정보(앱 푸시) 수신이 계속되고 있어. 그대로 두면 계속 받고, 그만 받으려면 마이의 알림 설정에서 끌 수 있어.`,
   };
 }
 
