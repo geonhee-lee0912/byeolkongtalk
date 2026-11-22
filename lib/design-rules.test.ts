@@ -264,3 +264,15 @@ test("이모지를 지운 빈 줄만 남은 요소가 없다", () => {
   }
   assert.deepEqual(hits, []);
 });
+
+// 디자인 다듬기 묶음 9 ①② A(운영자 11-22) — 밝은 읽을거리엔 밤 카드·금색 버튼을 쓰지 않고, 한 화면에 주 버튼은 하나
+test("읽을거리 상담 권유: 흰 카드·진보라 버튼, 오늘의 카드는 뽑기 전엔 뽑기가·뽑은 뒤엔 상담이 주 버튼", () => {
+  const cta = readFileSync("components/seo/GuideCta.tsx", "utf8");
+  assert.doesNotMatch(cta, /bg-night-card|bg-gold/);
+  assert.match(cta, /quiet \? "btn-secondary" : "btn-primary"/);
+  const draw = readFileSync("components/seo/DailyCardDraw.tsx", "utf8");
+  assert.match(draw, /onClick=\{draw\}\s*className="btn btn-primary btn-lg/);
+  assert.match(draw, /<GuideCta[^>]*quiet=\{!drawn\}/);
+  // 오늘의 카드 페이지에 권유 칸이 따로 또 서면 두 개가 된다
+  assert.doesNotMatch(readFileSync("app/(content)/free/daily-card/page.tsx", "utf8"), /<GuideCta/);
+});
