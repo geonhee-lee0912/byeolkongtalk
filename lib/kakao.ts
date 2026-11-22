@@ -68,8 +68,9 @@ export async function unlinkKakao(
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      console.warn("unlinkKakao non-ok:", res.status, data);
       const code = typeof data?.code === "number" ? data.code : undefined;
+      // 응답 본문은 찍지 않는다 — 보낸 회원번호가 되돌아올 수 있다
+      console.warn("unlinkKakao non-ok:", res.status, code);
       return {
         ok: false,
         alreadyUnlinked: code === -101,

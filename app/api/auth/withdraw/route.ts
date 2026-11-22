@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
         route: "/api/auth/withdraw",
         userId,
         extra: {
-          kakaoId: userRow.kakao_id,
           severity: "WITHDRAW_UNLINK_FAILED",
           kakaoStatus: unlink.status ?? null,
           kakaoCode: unlink.code ?? null,
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
       await logInfo("Kakao already unlinked before withdraw — proceeding", {
         route: "/api/auth/withdraw",
         userId,
-        extra: { kakaoId: userRow.kakao_id },
+        extra: { step: "kakao_unlink", kakaoCode: unlink.code ?? null },
       });
     }
   }
@@ -84,14 +83,15 @@ export async function POST(request: NextRequest) {
       )
       .eq("user_id", userId)
       .maybeSingle();
-    const { error: wErr } = await supabase
+    const { error: wErr, status: wStatus } = await supabase
       .from("account_withdrawals")
       .insert({ kakao_id_hash: kakaoIdHash, ...(acq ?? {}) });
     if (wErr) {
-      await logError(wErr, {
+      // 원문엔 원장 해시가 실린다 — 이 로그는 탈퇴 뒤에도 남는다
+      await logError(new Error(`withdrawal ledger insert failed (${wErr.code || `HTTP ${wStatus}`})`), {
         route: "/api/auth/withdraw",
         userId,
-        extra: { severity: "WITHDRAWAL_LOG_FAILED" },
+        extra: { severity: "WITHDRAWAL_LOG_FAILED", dbCode: wErr.code || null },
       });
     }
   }
