@@ -10,16 +10,11 @@ import type { AdStatus, AskKind, AskMoment } from "@/lib/push/asks";
 import AdConsentCheck, { AD_CONSENT_CONTENTS, AD_CONSENT_HOW_TO_OFF, AD_CONSENT_LABEL } from "./AdConsentCheck";
 import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import { postAsk, setAdConsent } from "./api";
+import { askCopy } from "@/lib/push/ask-copy";
 import Sheet from "@/components/common/Sheet";
 import LaterButton from "./LaterButton";
 
-/** 순간별 질문 — 두 번째 실행은 첫 질문 시트에서 다시 볼 날만 뺀 것 */
-function copy(moment: AskMoment, kind: AskKind): { title: string; sub: string } {
-  if (moment === "birthday") return { title: "생일 아침에 운세 보내줄까?", sub: "생일 아침, 별콩이가 그날의 운세를 알려줄게." };
-  if (moment === "byeolmaru_first") return { title: "내일 아침에도 알려줄까?", sub: "아침마다 오늘의 흐름을 별콩이가 알려줄게." };
-  if (kind === "ad") return { title: "별콩이 소식도 받아볼래?", sub: "" };
-  return { title: "별콩이가 알려줘도 될까?", sub: "알려줄 일이 생기면 별콩이가 알림으로 알려줄게. 알림을 켜 줘." };
-}
+// 순간별 제목·설명은 lib/push/ask-copy(테스트)
 
 export default function PushAskSheet({
   moment,
@@ -39,7 +34,7 @@ export default function PushAskSheet({
   const [closed, setClosed] = useState(false);
   const busyRef = useRef(false);
   const answered = useRef(false);
-  const { title, sub } = copy(moment, kind);
+  const { title, sub } = askCopy(moment, kind);
 
   function close() {
     setClosed(true);
@@ -120,8 +115,10 @@ export default function PushAskSheet({
           // 광고 동의만 묻는 시트 — 이름·내용·끄는 법을 그대로 보이고, 버튼이 곧 동의다(체크칸을 한 번 더 두지 않는다)
           <div className="card-inner mt-4 text-left">
             <p className="text-13 font-bold">{AD_CONSENT_LABEL}</p>
-            <p className="text-12 text-text-light mt-1 leading-normal">{AD_CONSENT_CONTENTS}</p>
-            <p className="text-12 text-text-light mt-0.5 leading-normal">{AD_CONSENT_HOW_TO_OFF}</p>
+            <p className="text-12 text-text-light mt-1.5 leading-relaxed">
+              <span className="font-bold text-eye-purple">받을 내용</span> {AD_CONSENT_CONTENTS}
+            </p>
+            <p className="text-11 text-text-light mt-1 leading-normal">{AD_CONSENT_HOW_TO_OFF}</p>
           </div>
         )}
         <button

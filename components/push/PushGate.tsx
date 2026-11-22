@@ -248,11 +248,26 @@ export default function PushGate() {
           <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
             <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
               <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 동의 확인 안내</p>
-              <p className="mt-3 text-13 leading-relaxed">
-                별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
-              </p>
-              <p className="mt-2 text-13 text-text-light leading-relaxed">
-                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이의 알림 설정에서 끌 수 있어.
+              {/* 법정 재확인 통지에 들어갈 것(전송자·동의한 날·동의 사실·유지/철회 방법)을 표 + 한 단락으로 —
+                  예전엔 빽빽한 두 단락이었다(디자인 다듬기 알림 시트 ④, 운영자 11-22). 결과 통지 창과 같은 표 모양 */}
+              <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">전송자</dt>
+                  <dd className="font-bold">별콩톡</dd>
+                </div>
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">동의한 날</dt>
+                  <dd className="font-bold">{reconfirm.grantedOn}</dd>
+                </div>
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">내용</dt>
+                  <dd className="font-bold">광고성 정보(앱 푸시) 수신 동의</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-13 text-text-light leading-relaxed text-center break-keep">
+                계속 받으려면 그대로 두면 돼.
+                <br />
+                그만 받으려면 [수신 거부]나 마이의 알림 설정에서 끌 수 있어.
               </p>
               <button
                 type="button"
