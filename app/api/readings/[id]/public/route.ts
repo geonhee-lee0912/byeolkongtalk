@@ -1,8 +1,9 @@
 // readings 공개 조회 — 공유 링크를 받은 비로그인/비소유자가 result 를 볼 수 있게.
-// 인증/소유권 검증 없음. 단 민감(has_sensitive) 대화는 공개 차단. 프로필 PII 미반환.
+// 인증/소유권 검증 없음. 그래서 공유 결과 화면이 있는 타로 상담·운세만 연다. 민감(has_sensitive) 대화는 공개 차단. 프로필 PII 미반환.
 
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { FORTUNE_SENTINEL_PREFIX } from "@/lib/fortune/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,12 @@ export async function GET(
     .maybeSingle();
 
   if (error || !reading) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  // 공유 결과 화면이 있는 건 타로 상담·운세뿐. 운세는 표식으로 가른다(사주로 만든 운세도 종류값이 'saju', 옛 종류까지)
+  const shareable =
+    reading.consultation_type === "tarot" || reading.emotion_tag?.startsWith(FORTUNE_SENTINEL_PREFIX);
+  if (!shareable) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   // 민감 대화는 공개 조회 차단 (공유 버튼도 숨겨져 있어 일관됨)
