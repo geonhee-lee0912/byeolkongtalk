@@ -12,7 +12,7 @@
 - 애플-3 = A(운영자 11-22, 이 세션에서 직접 "애플-3A") → 약관 제5조·방침 제7조 1호·제1조 '결제 시' 반영, 알림-7B 시행일 표기(두 문서)·약관 안내 글도 같이 반영(bbf35134). 방침 안내 글은 `claude/push-privacy` HANDOFF(f2c6d3fe). 공지 7일 그대로.
 - 애플-4-1 = A(운영자 11-22, 이 세션에서 직접 "애플-4-1A"): 자동 파기를 별도 브랜치 `claude/retention-purge` 로 — **개발·dev PR 까지.** 운영 첫 삭제는 건수를 보이고 따로 go.
   - 열린 PR(둘 다 초안, base dev): geonhee-lee0912/byeolkongtalk#53(DB 함수, 889d021c) · #54(예약 작업 — env 없으면 세기만, f50534d1, Codex 재리뷰 요청). 머지 순서 #53 → Supabase success → #54.
-- **운영자 답 대기 = 애플-4-1-1**(#53 Claude 리뷰 important 2건): A(추천) 둘 다 고침 — ① 1년 지난 위기 기록의 검토 메모 사본(`admin_actions.payload.note`)도 비움(감사 행은 남김) ② 1년 넘은 상담은 오탐 처리로 공유 차단을 자동으로 풀지 않음(`app/api/admin/sensitive/[id]/review`) / B ②만 고치고 메모 사본은 남김.
+- 애플-4-1-1 = A(운영자 11-22, 이 세션에서 직접 "위 대답은 A야") → #53 에 둘 다 고침: ① 1년 지난 검토 메모 사본도 비움 ② 1년 넘은 상담은 오탐 처리로 공유 차단을 안 풂. 범위는 개발·dev PR 까지.
   - 그 뒤 애플-4-2(아래 '애플-4 조사와 제안'). 다음 = 4-3 → 8 → 운영 `APPLE_SERVICES_ID` 를 출시 전에 비울지.
 - 이름 수정은 끝: geonhee-lee0912/byeolkongtalk#44 dev 머지 → #46 운영 배포(ed355b1a, 11-22 실물 확인: Production sha · 도메인의 배포 id · /api/health). 실제 궁합 생성은 안 해 봄. 유료 QA 승인은 다 썼다.
 - 애플-11 = A(운영자가 #46 머지): 상대 이름이 "너"일 때의 호칭 오류는 dev 에서 따로 고친다 → geonhee-lee0912/byeolkongtalk#49 dev 머지됨(6bca9f9f, 운영은 다음 정식 배포 때).
