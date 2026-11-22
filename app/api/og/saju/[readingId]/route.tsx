@@ -201,8 +201,7 @@ export async function GET(
                   </div>
                 </div>
                 <div style={{ fontSize: 14, opacity: 0.7 }}>
-                  {p.stem}
-                  {p.branch}
+                  {p.stem + p.branch}
                 </div>
               </div>
             );
