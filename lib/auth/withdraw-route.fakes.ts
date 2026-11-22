@@ -6,7 +6,7 @@
 import type { NextResponse } from "next/server";
 
 type Row = Record<string, unknown>;
-type DbError = { message: string; code?: string };
+type DbError = { message: string; code?: string; details?: string };
 type Filter = [column: string, value: unknown];
 type Result = { data: unknown; error: DbError | null };
 type LogCtx = { route?: string; userId?: string | null; extra?: Record<string, unknown> };
