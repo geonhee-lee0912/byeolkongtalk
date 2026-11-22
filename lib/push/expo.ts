@@ -29,11 +29,22 @@ function headers(): Record<string, string> {
   return h;
 }
 
+/** 오류 code 만 — message·details 는 싣지 않는다(PUSH_TOO_MANY_EXPERIENCE_IDS 의 details 엔 요청한 토큰 목록이 있고, 던진 오류는 error_logs 에 남는다) */
+function errorCodes(errors: unknown): string {
+  if (!Array.isArray(errors) || errors.length === 0) return "no_error_code";
+  return errors
+    .map((e) => {
+      const code = (e as { code?: unknown } | null)?.code;
+      return typeof code === "string" ? code.slice(0, 64) : "unknown";
+    })
+    .join(",");
+}
+
 async function post(url: string, body: unknown, f: typeof fetch): Promise<{ data?: unknown; errors?: unknown[] }> {
   const res = await f(url, { method: "POST", headers: headers(), body: JSON.stringify(body) });
   const json = (await res.json().catch(() => null)) as { data?: unknown; errors?: unknown[] } | null;
   if (!res.ok || !json || (Array.isArray(json.errors) && json.errors.length > 0)) {
-    throw new Error(`expo ${url} failed: ${res.status} ${JSON.stringify(json?.errors ?? null)}`);
+    throw new Error(`expo ${url} failed: ${res.status} ${errorCodes(json?.errors)}`);
   }
   return json;
 }
