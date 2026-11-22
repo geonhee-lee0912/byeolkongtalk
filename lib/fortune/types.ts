@@ -5,6 +5,7 @@ export type FortuneType =
   | "daily"
   | "monthly"
   | "saju_full"
+  | "saju_2027" // 2027년 사주 분석 — saju_full 과 같은 틀, 기준 연도만 2027
   | "tarot_daily"
   | "tarot_love"
   | "tarot_money"
@@ -101,6 +102,18 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
     cost: 60,
     emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_full`,
     href: "/fortune/saju_full",
+    active: true,
+  },
+  // 2026-11-15 신년운세 시즌. saju_full 과 같은 틀(스키마·결과 화면), 기준 연도만 2027 정미년.
+  saju_2027: {
+    type: "saju_2027",
+    label: "2027년 사주 분석",
+    emoji: "",
+    tagline: "2027년 한 해의 흐름을 내 사주로 한 장에",
+    base: "saju",
+    cost: 60,
+    emotionTag: `${FORTUNE_SENTINEL_PREFIX}saju_2027`,
+    href: "/fortune/saju_2027",
     active: true,
   },
   // 진열대(FORTUNE_LIST)에서는 제거됨(W1 사주 진열대 재편) — 과거 reading 렌더 + fortuneTypeFromTag
@@ -367,6 +380,7 @@ export const FORTUNE_CONFIG: Record<FortuneType, FortuneConfig> = {
 export const FORTUNE_LIST: FortuneConfig[] = [
   FORTUNE_CONFIG.compat,
   FORTUNE_CONFIG.compat_social,
+  FORTUNE_CONFIG.saju_2027,
   FORTUNE_CONFIG.saju_full,
   FORTUNE_CONFIG.monthly,
   FORTUNE_CONFIG.nature_self,
@@ -391,6 +405,7 @@ export const FORTUNE_GRADIENTS: Record<FortuneType, string> = {
   daily: "#E4F6E8",
   monthly: "#FFF2D2",
   saju_full: "#FFEAC4",
+  saju_2027: "#FFEAC4",
   compat: "#FCE7EE",
   compat_social: "#FBEAF2",
   tarot_daily: "#EFEAF6",
@@ -421,6 +436,7 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
   daily: ["오늘", "하루흐름", "가볍게"],
   monthly: ["이번달", "한달흐름", "미리보기"],
   saju_full: ["신년사주", "총운", "타고난기질"],
+  saju_2027: ["2027신년", "총운", "정미년"],
   compat: ["궁합", "연애", "결혼"],
   compat_social: ["관계궁합", "케미", "친구가족"],
   tarot_daily: ["오늘", "한장", "메시지"],
@@ -450,6 +466,7 @@ export const FORTUNE_HASHTAGS: Record<FortuneType, string[]> = {
 export const FORTUNE_LENGTH_HINT: Partial<Record<FortuneType, string>> = {
   monthly: "약 5,000자",
   saju_full: "약 2만 자",
+  saju_2027: "약 2만 자",
   compat: "약 8,000자",
   compat_social: "약 6,500자",
   good_days: "약 5,000자",
@@ -492,6 +509,7 @@ export const MAX_TOKENS_BY_FORTUNE: Record<FortuneType, number> = {
   daily: 6000, // P6-2: 목표 1,800자(JSON 포함 실측 후 조정). 구 4500(실측 ~2,100 JSON) → 예산 1.25배+헤드룸. 미생성 토큰은 과금 없음.
   monthly: 9000, // 실측 ~4,829
   saju_full: 30000, // 실측 ~20,977 — 경계였던 22,000에서 상향
+  saju_2027: 30000, // saju_full 과 같은 틀
   tarot_daily: 4000,
   tarot_love: 7000,
   tarot_money: 7000,
@@ -557,6 +575,7 @@ export const FORTUNE_CATEGORY: Record<FortuneType, FortuneCategory | null> = {
   compat: "love_relation",
   compat_social: "love_relation",
   saju_full: "timing",
+  saju_2027: "timing",
   monthly: "timing",
   good_days: "timing",
   daily: "free",

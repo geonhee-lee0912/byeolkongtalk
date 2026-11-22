@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fortuneOutline, LANDING_KEYS, splitLengthHint, type LandingKey } from "./outline.ts";
+import { fortuneOutline, LANDING_KEYS, splitLengthHint, SAJU_YEAR_OUTLINE_TEMPLATE, type LandingKey } from "./outline.ts";
 import { FORTUNE_LENGTH_HINT } from "./types.ts";
 import { GENERIC_GUIDE_SPEC, SECTION_GUIDE } from "./prompt.ts";
 import { DAILY_SECTIONS } from "./daily-report.ts";
 
-test("20개 상품 전부 목차가 있고 비어있지 않다", () => {
-  assert.equal(LANDING_KEYS.length, 20);
+test("21개 상품 전부 목차가 있고 비어있지 않다", () => {
+  assert.equal(LANDING_KEYS.length, 21);
   for (const k of LANDING_KEYS) {
     const o = fortuneOutline(k);
     assert.ok(o.length > 0, `${k}: 목차가 비었다`);
@@ -37,7 +37,6 @@ test("life_full 의 손으로 적은 제목은 프롬프트 안에 실재한다"
 // 그래서 정본은 뷰 소스 파일이고, 여기서 파일을 직접 읽어 대조한다(제목을 바꾸면 테스트가 깨진다).
 // descriptive = 화면에 고정 제목이 없는 항목(데이터로 반복 렌더되거나 LLM 출력) — 대조 제외.
 const VIEW_SOURCE: Record<string, { file: string; descriptive?: string[] }> = {
-  saju_full: { file: "components/fortune/saju-full/SajuFullReportView.tsx" },
   compat: { file: "components/fortune/compat/CompatReportView.tsx" },
   compat_social: { file: "components/fortune/compat/CompatReportView.tsx" },
   monthly: {
@@ -64,6 +63,33 @@ test("렌더러가 제목을 들고 있는 종목은 뷰 소스와 대조한다"
       assert.ok(src.includes(h), `${type}: "${h}" 가 ${cfg.file} 에 없다`);
     }
   }
+});
+
+// 연간 사주 분석은 뷰가 연도 자리를 `${y}` 로 붙인다 — 틀의 `{Y}` 를 그 표기로 바꿔 뷰 소스에서 찾는다.
+test("연간 사주 분석 목차 틀은 뷰 소스와 대조된다", () => {
+  const root = new URL("../../", import.meta.url);
+  const src = readFileSync(new URL("components/fortune/saju-full/SajuFullReportView.tsx", root), "utf8");
+  for (const h of SAJU_YEAR_OUTLINE_TEMPLATE) {
+    const needle = h.replaceAll("{Y}", "${y}");
+    assert.ok(src.includes(needle), `saju 연간: "${needle}" 가 뷰에 없다`);
+  }
+});
+
+test("2026 목차는 리팩터 전과 같고, 2027 목차엔 2026 이 없다", () => {
+  assert.deepEqual(fortuneOutline("saju_full"), [
+    "타고난 기질·성격", "나의 강점·빛나는 재능", "조심할 성향·보완점", "오행 밸런스 진단",
+    "타고난 적성·어울리는 일", "2026년 큰 흐름·테마", "마음·감정 흐름", "사랑·인연",
+    "인간관계·사회", "일·커리어", "재물·금전", "건강·컨디션", "학업·자기계발", "이동·변화",
+    "가족·주변", "재물 심층", "일·커리어 심층", "연애 심층", "건강 심층",
+    "2026 상반기", "2026 하반기", "1분기 (1~3월)", "2분기 (4~6월)", "3분기 (7~9월)",
+    "4분기 (10~12월)", "전환점·변화 포인트", "놓치면 아까운 기회", "조심할 함정",
+    "2026 인연 지도", "관계 지도 확장", "올해의 성장 과제", "2026 월별 흐름",
+    "주목할 시기", "2026 행운 가이드", "2026 개운법", "오행 활용법", "셀프케어 루틴",
+    "올해 이것만은 — 실천 3가지",
+  ]);
+  const o27 = fortuneOutline("saju_2027");
+  assert.ok(o27.includes("2027 상반기"));
+  assert.ok(!o27.some((h) => h.includes("2026")));
 });
 
 test("monthly 목차는 DAILY_SECTIONS 5개 도메인을 포함한다", () => {

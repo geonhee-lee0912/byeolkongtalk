@@ -212,7 +212,13 @@ export async function dispatchRevisits(
     const pending = await store.uncheckedReceipts(new Date(now.getTime() - RECEIPT_DELAY_MS).toISOString());
     if (pending.length > 0) {
       const ids = pending.flatMap((p) => p.tickets.map((t) => t.id));
-      const byId = ids.length > 0 ? await expo.receipts(ids) : {};
+      let byId: Record<string, ExpoReceipt> = {};
+      try {
+        if (ids.length > 0) byId = await expo.receipts(ids);
+      } catch (e) {
+        // 조회가 실패해도 아래는 계속 — 24시간 지난 발송은 확인 처리해야 토큰이 기한 넘게 남지 않는다. 안 지난 건 다음 실행이 다시 본다
+        await log(e, { route: ROUTE, extra: { phase: "receipts" } });
+      }
       const dead = new Set<string>();
       // 티켓 영수증이 전부 나온 발송만 확인 표시 — 아직 안 나온 게 있으면 다음 실행이 다시 본다.
       // 단 하루가 지난 발송은 빠진 게 있어도 확인 처리한다(끝내 안 온다 — 남겨 두면 조회 상한을 막는다)

@@ -6,8 +6,8 @@ import { LANDING_KEYS, fortuneOutline } from "@/lib/fortune/outline";
 /** 텍스트 발췌 대신 결과 시각 요소를 미니 프리뷰로 보여주는 종목. */
 const VISUAL_ONLY = ["element_balance", "saju_report_card", "life_graph"];
 
-test("20개 상품 카피가 모두 있고 빈 칸이 없다", () => {
-  assert.equal(Object.keys(FORTUNE_LANDING).length, 20);
+test("21개 상품 카피가 모두 있고 빈 칸이 없다", () => {
+  assert.equal(Object.keys(FORTUNE_LANDING).length, 21);
   for (const k of LANDING_KEYS) {
     const c = FORTUNE_LANDING[k];
     assert.ok(c, `${k}: 카피 누락`);

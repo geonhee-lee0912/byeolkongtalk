@@ -66,6 +66,8 @@ const config: ExpoConfig = {
     ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
     // 알림 — 안드로이드 상태바 아이콘(흰색·투명, 카드 두 장 + 별 — 운영자 11-12) + 색은 eye-purple(흰 알림창에서 보이는 색)
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#5A3E8C" }],
+    // 안드로이드 FCM 자동 등록 끔 — 첫 토큰은 로그인 + 알림 허용 때(알림-4B, 이유는 플러그인 머리 주석)
+    "./plugins/withFcmAutoInitOff.js",
   ],
   owner: "braveshine",
   extra: {

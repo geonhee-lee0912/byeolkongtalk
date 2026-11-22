@@ -4,7 +4,8 @@ import ElementChart from "@/components/fortune/ElementChart";
 import ElementCycleDiagram from "@/components/fortune/ElementCycleDiagram";
 import YearTimeline from "@/components/fortune/YearTimeline";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
-import type { SajuFullReport } from "@/lib/fortune/saju-full-report";
+import { sajuYearSpecByYear, type SajuFullReport } from "@/lib/fortune/saju-full-report";
+import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import type { SajuResult } from "@/lib/saju/calc";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import ReportAccordion, { type AccordionItem } from "@/components/fortune/ReportAccordion";
@@ -26,7 +27,7 @@ function Chips({ items }: { items: string[] }) {
 }
 
 const G1 = "나라는 사람";
-const G2 = "2026년 총운";
+// G2(연도 총운)는 리포트의 기준 연도에 따라 달라 컴포넌트 안에서 만든다.
 const G3 = "월간 운세";
 const G4 = "행운 가이드";
 
@@ -37,6 +38,10 @@ export default function SajuFullReportView({
   report: SajuFullReport;
   saju: SajuResult | null;
 }) {
+  const y = report.yearPillar.year;
+  const G2 = `${y}년 총운`;
+  // 상품별 히어로(2026 붉은 말 · 2027 붉은 양). 그림이 없으면 기본 별콩이.
+  const heroSrc = fortuneHeroSrc(sajuYearSpecByYear(y)?.type) ?? "/byeolkong-joy.png";
   const dayElementColor = saju ? ELEMENT_COLOR[saju.dayElement] : ELEMENT_COLOR["화"];
   const opt = (cond: unknown, item: AccordionItem): AccordionItem[] => (cond ? [item] : []);
 
@@ -63,8 +68,8 @@ export default function SajuFullReportView({
     },
     { key: "aptitude", group: G1, heading: "타고난 적성·어울리는 일", body: report.self.aptitude },
 
-    // ── 2026년 총운 ──
-    { key: "flow", group: G2, heading: "2026년 큰 흐름·테마", body: report.year.flow },
+    // ── 연도 총운 ──
+    { key: "flow", group: G2, heading: `${y}년 큰 흐름·테마`, body: report.year.flow },
     { key: "mind", group: G2, heading: "마음·감정 흐름", body: report.year.mind },
     { key: "love", group: G2, heading: "사랑·인연", body: report.year.love },
     { key: "relationship", group: G2, heading: "인간관계·사회", body: report.year.relationship },
@@ -78,8 +83,8 @@ export default function SajuFullReportView({
     ...opt(report.careerDeep, { key: "careerDeep", group: G2, heading: "일·커리어 심층", body: report.careerDeep! }),
     ...opt(report.loveDeep, { key: "loveDeep", group: G2, heading: "연애 심층", body: report.loveDeep! }),
     ...opt(report.healthDeep, { key: "healthDeep", group: G2, heading: "건강 심층", body: report.healthDeep! }),
-    ...opt(report.halves, { key: "half1", group: G2, heading: "2026 상반기", body: report.halves?.first ?? "" }),
-    ...opt(report.halves, { key: "half2", group: G2, heading: "2026 하반기", body: report.halves?.second ?? "" }),
+    ...opt(report.halves, { key: "half1", group: G2, heading: `${y} 상반기`, body: report.halves?.first ?? "" }),
+    ...opt(report.halves, { key: "half2", group: G2, heading: `${y} 하반기`, body: report.halves?.second ?? "" }),
     ...opt(report.quarters, { key: "q1", group: G2, heading: "1분기 (1~3월)", body: report.quarters?.q1 ?? "" }),
     ...opt(report.quarters, { key: "q2", group: G2, heading: "2분기 (4~6월)", body: report.quarters?.q2 ?? "" }),
     ...opt(report.quarters, { key: "q3", group: G2, heading: "3분기 (7~9월)", body: report.quarters?.q3 ?? "" }),
@@ -97,7 +102,7 @@ export default function SajuFullReportView({
       heading: "조심할 함정",
       body: (report.pitfalls ?? []).map((o, i) => `${i + 1}. ${o}`).join("\n\n"),
     }),
-    ...opt(report.relations2026, { key: "relations2026", group: G2, heading: "2026 인연 지도", body: report.relations2026! }),
+    ...opt(report.relations2026, { key: "relations2026", group: G2, heading: `${y} 인연 지도`, body: report.relations2026! }),
     ...opt(report.relationsDeep, { key: "relationsDeep", group: G2, heading: "관계 지도 확장", body: report.relationsDeep! }),
     ...opt(report.mission, { key: "mission", group: G2, heading: "올해의 성장 과제", body: report.mission! }),
 
@@ -105,7 +110,7 @@ export default function SajuFullReportView({
     {
       key: "monthly",
       group: G3,
-      heading: "2026 월별 흐름",
+      heading: `${y} 월별 흐름`,
       preview: "1월부터 12월까지 달별 흐름",
       children: (
         <div className="flex flex-col">
@@ -144,7 +149,7 @@ export default function SajuFullReportView({
     {
       key: "lucky",
       group: G4,
-      heading: "2026 행운 가이드",
+      heading: `${y} 행운 가이드`,
       preview: `${report.lucky.color} · ${report.lucky.keyword}`,
       children: (
         <Chips
@@ -157,7 +162,7 @@ export default function SajuFullReportView({
         />
       ),
     },
-    ...opt(report.remedies, { key: "remedies", group: G4, heading: "2026 개운법", body: report.remedies! }),
+    ...opt(report.remedies, { key: "remedies", group: G4, heading: `${y} 개운법`, body: report.remedies! }),
     ...opt(report.elementUsage, { key: "elementUsage", group: G4, heading: "오행 활용법", body: report.elementUsage! }),
     ...opt(report.selfcare, { key: "selfcare", group: G4, heading: "셀프케어 루틴", body: report.selfcare! }),
     {
@@ -184,11 +189,11 @@ export default function SajuFullReportView({
       <div className="rounded-2xl px-5 py-6 text-white bg-night-card">
         <div className="flex justify-center mb-2">
           <div className="relative w-[78px] h-[88px]">
-            <Image src="/fortune-hero-saju_full.webp" alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+            <Image src={heroSrc} alt="별콩이" fill className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
           </div>
         </div>
         <p className="text-12 font-bold text-gold/90 text-center">
-          2026 종합운 · {report.year2026.hanja}년
+          {y} 종합운 · {report.yearPillar.hanja}년
         </p>
         <p className="mt-2 font-display text-20 font-bold text-center leading-snug">{report.theme}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
