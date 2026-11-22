@@ -338,3 +338,10 @@ test("오류 화면: 숫자 코드는 보여 주지 않고 기록에는 남긴�
     assert.match(s, /fingerprint: chunkError \? "chunk-load-error" : \(error\.digest \?\? null\)/, f);
   }
 });
+
+// 디자인 다듬기 묶음 9 ⑧(운영자 11-22 B) — 28 은 320 에서 '놓 / 쳤어', '길이 / 야'로 끊겼다
+test("오류·404 제목: 다른 화면 제목과 같은 22, 낱말 중간에서 끊지 않는다", () => {
+  for (const f of ["app/error.tsx", "app/not-found.tsx"]) {
+    assert.match(readFileSync(f, "utf8"), /<h1 className="font-display text-22 [^"]*break-keep text-balance"/, f);
+  }
+});
