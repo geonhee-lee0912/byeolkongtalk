@@ -4,7 +4,7 @@
 --   · 개인 팝업 보냄(popup_send): payload 의 targetUserId 와 제목
 --   · 개인 팝업 회수(popup_revoke): 제목 — 회원 id 가 없어 같은 팝업의 보낸 기록으로 잇는다(못 이으면 비운다)
 --   환불 사유(payment_refund)는 5년 보관하는 결제 기록에 딸린 것이라 그대로 둔다.
--- 기한이 아니라 "그 회원이 없다"가 조건이다 — 매일 도는 cron 이라 탈퇴 뒤 최대 하루.
+-- 기한이 아니라 "그 회원이 없다"가 조건이다 — 매일 도는 cron 이라, 운영에서 켠 뒤(RETENTION_PURGE=on)부터 탈퇴 뒤 최대 하루.
 -- 함수를 통째로 바꾼다 — 앞 정의(20261122010000)의 아홉 문장·안전장치는 글자 그대로다.
 --
 -- 🔴 되돌릴 수 없다. p_execute = true 일 때만 바꾸고, 그 밖(인자 없음·false·NULL)은 세기만 한다.
@@ -175,7 +175,13 @@ begin
   select count(*) into v_old_logs from expired;
 
   -- 애플-14A. 적힌 id 는 주소에서 온 글자라 대소문자를 맞춰 비교한다(현재 회원 것을 비우지 않게)
-  with expired as (
+  -- 회수는 현재 회원에게 보낸 팝업 집합을 한 번만 만들어 잇는다(행마다 다시 훑으면 제한 시간에 걸린다)
+  with live_popups as materialized (
+    select lower(s.target_id) as popup_id
+    from public.admin_actions s
+    join public.users u on u.id::text = lower(s.payload ->> 'targetUserId')
+    where s.action = 'popup_send'
+  ), expired as (
     select a.id from public.admin_actions a
     where (
         a.target_type = 'user' and a.target_id is not null
@@ -185,11 +191,7 @@ begin
         and not exists (select 1 from public.users u where u.id::text = lower(a.payload ->> 'targetUserId'))
       ) or (
         a.action = 'popup_revoke' and a.payload ->> 'broadcast' = 'false' and a.payload ? 'title'
-        and not exists (
-          select 1 from public.admin_actions s
-          join public.users u on u.id::text = lower(s.payload ->> 'targetUserId')
-          where s.action = 'popup_send' and lower(s.target_id) = lower(a.target_id)
-        )
+        and not exists (select 1 from live_popups k where k.popup_id = lower(a.target_id))
       )
   ), purged as (
     update public.admin_actions a set
