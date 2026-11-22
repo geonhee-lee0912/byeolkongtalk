@@ -3,6 +3,7 @@
 // 마지막 인자 db 는 시험에서 가짜 클라이언트를 꽂는 자리다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase";
+import { logWarn } from "@/lib/logger";
 import { computeEntitlement, getEntitlement } from "@/lib/byeolmaru/entitlement";
 import { devicesOverCap } from "./device-cap.ts";
 import type { DispatchStore } from "./dispatch.ts";
@@ -278,10 +279,20 @@ export const supabaseDispatchStore: DispatchStore = {
     const { error } = await getServiceSupabase().from("push_sends").delete().eq("id", sendId);
     check(error, "releaseSend");
   },
+  // OS 는 보낼 때 남긴다 — 확인 전에 로그아웃하면 기기 행이 지워져 그때는 못 읽는다.
+  // 조회 실패로 던지지 않는다: 이미 나간 발송이라 티켓이 안 남으면 '안 보냄'(device_count 0)으로 읽힌다
   async saveTickets(sendId, tickets) {
-    const { error } = await getServiceSupabase()
+    const db = getServiceSupabase();
+    const { data, error: lookupError } = await db
+      .from("push_devices")
+      .select("token, platform")
+      .in("token", tickets.map((t) => t.token));
+    if (lookupError) await logWarn("push ticket platform lookup failed", { route: "cron/push-dispatch", extra: { sendId } });
+    const platformOf = new Map((data ?? []).map((d: { token: string; platform: string }) => [d.token, d.platform]));
+    const withPlatform = tickets.map((t) => ({ ...t, platform: platformOf.get(t.token) ?? null }));
+    const { error } = await db
       .from("push_sends")
-      .update({ expo_tickets: tickets, device_count: tickets.length })
+      .update({ expo_tickets: withPlatform, device_count: tickets.length })
       .eq("id", sendId);
     check(error, "saveTickets");
   },
@@ -305,13 +316,26 @@ export const supabaseDispatchStore: DispatchStore = {
       tickets: r.expo_tickets ?? [],
     }));
   },
+  // 확인이 끝난 발송은 토큰·접수번호를 지우고 OS 구분만 남긴다 — [{ platform }] (운영자 2026-11-22 알림-2C).
+  // 🔴 토큰을 더 쓸 일(죽은 기기 끄기)은 이 앞에서 끝난다. 같은 모양끼리 묶어 한 번에 — OS 2종 × 기기 5대라 묶음은 몇 개뿐
   async markReceiptsChecked(sendIds) {
     if (sendIds.length === 0) return;
-    const { error } = await getServiceSupabase()
-      .from("push_sends")
-      .update({ receipt_checked_at: new Date().toISOString() })
-      .in("id", sendIds);
-    check(error, "markReceiptsChecked");
+    const db = getServiceSupabase();
+    const { data, error: readError } = await db.from("push_sends").select("id, expo_tickets").in("id", sendIds);
+    check(readError, "markReceiptsChecked(read)");
+    const groups = new Map<string, { kept: { platform: string | null }[]; ids: number[] }>();
+    for (const row of (data ?? []) as { id: number; expo_tickets: { platform?: string | null }[] | null }[]) {
+      const kept = (row.expo_tickets ?? []).map((t) => ({ platform: t.platform ?? null }));
+      const key = JSON.stringify(kept);
+      const group = groups.get(key) ?? { kept, ids: [] };
+      group.ids.push(row.id);
+      groups.set(key, group);
+    }
+    const at = new Date().toISOString();
+    for (const { kept, ids } of groups.values()) {
+      const { error } = await db.from("push_sends").update({ receipt_checked_at: at, expo_tickets: kept }).in("id", ids);
+      check(error, "markReceiptsChecked");
+    }
   },
 };
 
