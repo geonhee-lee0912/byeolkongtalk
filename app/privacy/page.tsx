@@ -12,6 +12,7 @@ const OVERSEAS_TRANSFERS = [
     country: "미국",
     items:
       "고민·대화 내용, 감정 태그, 뽑은 카드, 사주 간지·성별·나이, 궁합·연애 상담 시 입력한 이름 또는 호칭",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 상담·운세 풀이 생성",
     period: "업체 정책에 따라 최대 30일 보관 후 삭제 (모델 학습에 쓰지 않음)",
   },
@@ -19,6 +20,7 @@ const OVERSEAS_TRANSFERS = [
     to: "Anthropic, PBC (privacy@anthropic.com)",
     country: "미국",
     items: "AI 처리에 필요한 메시지 내용 (위기 표현 판정, 대화 요약 등)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 보조 처리 (위기 표현 2차 판정, 대화 요약 등)",
     period:
       "업체 정책에 따라 30일 안에 삭제 (업체 이용정책 위반으로 분류되면 최대 2년)",
@@ -27,8 +29,17 @@ const OVERSEAS_TRANSFERS = [
     to: "Vercel Inc. (privacy@vercel.com)",
     country: "미국 등",
     items: "서비스 이용 중 주고받는 정보 (요청 내용, 접속 기록)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "웹 서비스 호스팅",
     period: "위탁 계약 종료 시까지 (로그는 업체 정책에 따름)",
+  },
+  {
+    to: "Apple Inc. (https://www.apple.com/kr/legal/privacy/contact/)",
+    country: "미국 등",
+    items: "Apple 로그인 인증값, 연결 해제용 인증 토큰, 앱 구분값",
+    when: "Apple로 로그인할 때와 탈퇴할 때 회사 서버에서 암호화된 네트워크로 전송",
+    purpose: "Apple 로그인 인증 및 연결 해제",
+    period: "업체 정책에 따름",
   },
 ];
 
@@ -274,6 +285,10 @@ export default function PrivacyPage() {
                   <td className="px-2 py-1.5 border border-lilac-soft/60">㈜카카오</td>
                   <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 프로필 정보 제공</td>
                 </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">Apple Inc.</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 연결 해제</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -292,11 +307,11 @@ export default function PrivacyPage() {
                 key={t.to}
                 className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-12"
               >
-                <p className="font-bold">{t.to}</p>
+                <p className="font-bold break-words">{t.to}</p>
                 <ul className="mt-1 space-y-0.5 text-text-light">
                   <li>이전 국가: {t.country}</li>
                   <li>이전 항목: {t.items}</li>
-                  <li>이전 시기·방법: 서비스를 이용할 때마다 암호화된 네트워크로 전송</li>
+                  <li>이전 시기·방법: {t.when}</li>
                   <li>이용 목적: {t.purpose}</li>
                   <li>보관 기간: {t.period}</li>
                 </ul>
@@ -304,14 +319,17 @@ export default function PrivacyPage() {
             ))}
           </div>
           <ul className="list-disc pl-5 mt-3 space-y-1">
-            <li>회원 식별자, 카카오 닉네임, 연락처는 AI 업체에 보내지
-              않습니다. 생년월일은 날짜 그대로가 아니라 사주 간지와 나이로
-              바꿔 보냅니다.</li>
+            <li>회원 식별자, 로그인 시 받은 닉네임·이름, 연락처는 AI 업체에 보내지
+              않습니다.
+              생년월일은 날짜 그대로가 아니라 사주 간지와 나이로 바꿔
+              보냅니다.</li>
             <li><b>거부 방법·절차·효과</b>: 개인정보 보호책임자
               (oneulcard@gmail.com)에게 국외 이전 거부를 요청할 수 있습니다.
-              다만 위 이전은 AI 해석과 서비스 운영에 꼭 필요하므로, 거부하면
-              서비스를 이용할 수 없습니다. 회원 탈퇴로 저장된 정보를 모두
-              지울 수 있습니다.</li>
+              다만 OpenAI·Anthropic·Vercel로의 이전은 AI 해석과 서비스
+              운영에 꼭 필요하므로, 거부하면 서비스를 이용할 수 없습니다. Apple
+              로그인을 위한 이전은 Apple로 로그인하지 않으면 거부할 수 있으며, 이미
+              Apple로 가입한 회원이 거부하면 해당 계정으로 로그인할 수 없습니다.
+              회원 탈퇴로 저장된 정보를 모두 지울 수 있습니다.</li>
           </ul>
         </Article>
 
@@ -320,7 +338,12 @@ export default function PrivacyPage() {
             <li>회원은 마이페이지에서 본인 정보를 언제든 열람·수정할 수
               있으며, 회원 탈퇴 메뉴를 통해 모든 정보의 삭제를 요청할 수
               있습니다.</li>
-            <li>탈퇴 시 카카오 계정 연결도 함께 해제(unlink)됩니다.</li>
+            <li>탈퇴 시 카카오 계정은 연결을 해제(unlink)하고, Apple 계정은 보관
+              중인 인증 토큰으로 연결을 해제(revoke)합니다. 연결 해제에
+              실패하면(카카오 연결이 이미 해제된 경우 제외) 탈퇴가 완료되지 않으며 다시
+              시도하도록 안내합니다. 다만 보관 중인 Apple 인증 토큰 정보가 없으면 연결
+              해제 없이 탈퇴가 처리되므로, 이 경우 회원이 Apple 계정 설정에서 직접
+              연결을 해제할 수 있습니다.</li>
             <li>이메일(oneulcard@gmail.com)을 통해서도 열람·정정·삭제·처리정지
               요청이 가능합니다.</li>
           </ol>
