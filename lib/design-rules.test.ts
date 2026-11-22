@@ -322,3 +322,10 @@ test("테마 첫 그림: 낮은 배너에 자르지 않고, 바탕이 구워진 
     assert.equal(stops, hero.src.endsWith(".webp") ? 51 : 0, slug);
   }
 });
+
+// 디자인 다듬기 묶음 9 마지막(운영자 11-22 A) — 화면 글 '화살표 없음'을 읽을거리 본문(json)에도. 코드 검사는 json 을 안 본다
+test("읽을거리 본문: 화살표 글자를 쓰지 않는다", () => {
+  for (const f of ["spread-content", "tag-content", "card-content"]) {
+    assert.deepEqual(readFileSync(`data/seo/${f}.json`, "utf8").match(/[←-⇿➡]/g) ?? [], [], f);
+  }
+});
