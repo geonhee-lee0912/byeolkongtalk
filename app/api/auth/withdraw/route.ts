@@ -1,9 +1,7 @@
 // 회원 탈퇴 — 카카오 unlink + 본인 데이터 삭제 + 쿠키 정리.
 //
-// Phase 4 (b) 시점엔 stars/readings/payments 테이블이 없어서 users 만 삭제.
-// 추후 테이블 추가될 때마다 이 라우트에 삭제 단계 보강 필요:
-//   Phase 4 (c): star_balances, star_transactions, payments
-//   Phase 5: readings (transaction_id 순환 FK 끊기), messages (CASCADE)
+// 🔴 회원 데이터 삭제는 users 삭제 한 문장이 전부다 — 나머지는 FK(CASCADE / SET NULL)가 같은 트랜잭션에서 처리한다.
+// 새 표는 users FK 에 ON DELETE 를 쓰면 되고, 이 라우트에 표별 삭제를 더하지 않는다.
 
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +9,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { getSession, clearAllCookies } from "@/lib/session";
 import { unlinkKakao } from "@/lib/kakao";
 import { logError, logInfo } from "@/lib/logger";
+
+const DEADLOCK_DETECTED = "40P01";
 
 export async function POST(request: NextRequest) {
   // CSRF: Origin/Referer 가 우리 도메인인지 확인
@@ -108,20 +108,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 본인 row 삭제 — star_transactions / star_balances 는 users ON DELETE CASCADE 라
-  // users 삭제 시 자동 정리되지만, 명시적으로 먼저 비워서 의도 분명히 (감사 추적).
-  // TODO (Phase 5): readings/messages 추가 + readings.transaction_id ↔ star_transactions.reading_id
-  //                 순환 FK 끊기 단계 추가 (v1 패턴 참고)
-  await Promise.all([
-    supabase.from("star_transactions").delete().eq("user_id", userId),
-    supabase.from("star_balances").delete().eq("user_id", userId),
-  ]);
-
-  // users 삭제 — error_logs.user_id FK 는 ON DELETE SET NULL 이라 자동 처리
-  const { error: userErr } = await supabase
-    .from("users")
-    .delete()
-    .eq("id", userId);
+  // users 삭제 — 별(star_balances·star_transactions)은 CASCADE, error_logs.user_id 는 SET NULL.
+  // 별을 먼저 따로 지우지 말 것: 요청마다 따로 커밋되므로, 이 삭제가 실패하면 회원은 남고 충전한 별만 사라진다.
+  const deleteUser = () => supabase.from("users").delete().eq("id", userId);
+  let { error: userErr } = await deleteUser();
+  // 별 RPC 는 잔액→users, 이 삭제는 users→잔액 순으로 잠가 같은 순간이면 교착이다.
+  // 희생된 삭제는 통째로 롤백되고 그때 상대는 잠금을 얻어 끝나므로 한 번만 더 한다.
+  if (userErr?.code === DEADLOCK_DETECTED) ({ error: userErr } = await deleteUser());
 
   if (userErr) {
     // 여기서 실패하면 unlink 만 끝난 반쪽 탈퇴 상태 — 재시도마다 -101 info 가 반복되므로
