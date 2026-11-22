@@ -11,6 +11,7 @@ import { getCard } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { getCardImageDataUrl } from "@/lib/og/card-image";
+import { getHeaderIconDataUrl } from "@/lib/og/header-icon";
 
 export const runtime = "nodejs";
 
@@ -110,8 +111,9 @@ export async function GET(
   const spreadLabel =
     SPREAD_INFO[reading.spread_type as SpreadType]?.label ?? "타로 풀이";
 
-  const [fonts, cardImgs] = await Promise.all([
+  const [fonts, headerIcon, cardImgs] = await Promise.all([
     getFonts(),
+    getHeaderIconDataUrl("tarot"),
     Promise.all(cards.map((c) => getCardImageDataUrl(c.card_id, baseUrl))),
   ]);
 
@@ -129,6 +131,7 @@ export async function GET(
   );
   const cardH = Math.round(cardW * 1.5);
   const headerSize = isStory ? 36 : 22;
+  const headerIconSize = Math.round(headerSize * 1.75);
   const labelSize = isStory ? 24 : 14;
   const nameSize = isStory ? 26 : 15;
   const summarySize = isStory ? 38 : 22;
@@ -203,7 +206,10 @@ export async function GET(
               marginBottom: gapHeaderToCards,
             }}
           >
-            <span>🃏</span>
+            {headerIcon && (
+              // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+              <img src={headerIcon} width={headerIconSize} height={headerIconSize} />
+            )}
             <span>별콩이의 타로 풀이 · {spreadLabel}</span>
           </div>
 
