@@ -16,6 +16,7 @@ import { revokeAppleToken } from "@/lib/auth/apple";
 import { dbFailure } from "@/lib/auth/db-failure";
 
 const ROUTE = "/api/auth/withdraw";
+const DEADLOCK_DETECTED = "40P01";
 
 export async function POST(request: NextRequest) {
   // CSRF: Origin/Referer 가 우리 도메인인지 확인
@@ -168,10 +169,11 @@ export async function POST(request: NextRequest) {
 
   // users 삭제 — 별(star_balances·star_transactions)은 CASCADE, error_logs.user_id 는 SET NULL.
   // 별을 먼저 따로 지우지 말 것: 요청마다 따로 커밋되므로, 이 삭제가 실패하면 회원은 남고 충전한 별만 사라진다.
-  const { error: userErr } = await supabase
-    .from("users")
-    .delete()
-    .eq("id", userId);
+  const deleteUser = () => supabase.from("users").delete().eq("id", userId);
+  let { error: userErr } = await deleteUser();
+  // 별 RPC 는 잔액→users, 이 삭제는 users→잔액 순으로 잠가 같은 순간이면 교착이다.
+  // 희생된 삭제는 통째로 롤백되고 그때 상대는 잠금을 얻어 끝나므로 한 번만 더 한다.
+  if (userErr?.code === DEADLOCK_DETECTED) ({ error: userErr } = await deleteUser());
 
   if (userErr) {
     // 여기서 실패하면 unlink 만 끝난 반쪽 탈퇴 상태 — 재시도마다 -101 info 가 반복되므로

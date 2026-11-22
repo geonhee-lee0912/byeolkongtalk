@@ -33,6 +33,8 @@ type State = {
   acquisition: Row | null;
   withdrawalInsertError: DbError | null;
   userDeleteError: DbError | null;
+  /** 첫 users 삭제 때만 나는 오류(교착 희생 — 다시 하면 된다) */
+  userDeleteErrorOnce: DbError | null;
   kakaoUnlink: { ok: boolean; alreadyUnlinked: boolean; status?: number; code?: number };
   appleRevokeError: Error | null;
   calls: string[];
@@ -53,6 +55,7 @@ function fresh(): State {
     acquisition: null,
     withdrawalInsertError: null,
     userDeleteError: null,
+    userDeleteErrorOnce: null,
     kakaoUnlink: { ok: true, alreadyUnlinked: false },
     appleRevokeError: null,
     calls: [],
@@ -133,7 +136,9 @@ class FakeQuery implements PromiseLike<Result> {
     if (op === "delete") {
       if (!DELETABLE.has(table)) throw new Error(`withdraw-route.fakes: 예상 밖 delete — ${table}`);
       state.deletes.push({ table, filters: [...this.filters] });
-      return { data: null, error: table === "users" ? state.userDeleteError : null };
+      const once = state.userDeleteErrorOnce;
+      state.userDeleteErrorOnce = null;
+      return { data: null, error: once ?? state.userDeleteError };
     }
     if (!SELECTABLE.has(table)) throw new Error(`withdraw-route.fakes: 예상 밖 조회 — ${table}`);
     state.selects.push({ table, filters: [...this.filters] });

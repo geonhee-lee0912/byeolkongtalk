@@ -328,6 +328,34 @@ test("회원 삭제 실패 → 500, 쿠키 정리 없음, 오류 로그(dbCode) 
   assert.ok(hasLog(s, "error", { severity: "WITHDRAW_USER_DELETE_FAILED", dbCode: "23503" }));
 });
 
+// 별 RPC 는 잔액→users, users 삭제는 users→잔액(CASCADE) 순으로 잠가 동시에 오면 교착이다(운영자 결정 A).
+// Postgres 가 희생시킨 쪽은 통째로 롤백되므로 삭제만 한 번 더 한다
+test("회원 삭제가 별 처리와 교착(40P01) → 삭제만 1번 더, 200 — unlink·원장은 다시 안 하고 오류 로그도 없다", async () => {
+  const { status, body, s, USER_ID } = await withdraw((st) => {
+    st.identities = [kakaoRow()];
+    st.userDeleteErrorOnce = { message: "deadlock detected", code: "40P01" };
+  });
+  assert.equal(status, 200);
+  assert.deepEqual(body, { success: true });
+  const del = { table: "users", filters: [["id", USER_ID]] };
+  assert.deepEqual(s.deletes, [del, del]);
+  assert.equal(s.calls.filter((c) => c.startsWith("unlinkKakao:")).length, 1);
+  assert.equal(s.inserts.length, 1);
+  assert.ok(s.calls.includes("clearAllCookies"));
+  assert.deepEqual(s.logs, []);
+});
+
+test("교착이 두 번이면 더 안 한다 → 500, 쿠키 정리 없음, 오류 로그(40P01)", async () => {
+  const { status, s } = await withdraw((st) => {
+    st.identities = [kakaoRow()];
+    st.userDeleteError = { message: "deadlock detected", code: "40P01" };
+  });
+  assert.equal(status, 500);
+  assert.equal(s.deletes.length, 2);
+  assert.ok(!s.calls.includes("clearAllCookies"));
+  assert.ok(hasLog(s, "error", { severity: "WITHDRAW_USER_DELETE_FAILED", dbCode: "40P01" }));
+});
+
 test("탈퇴 원장 기록이 실패해도 탈퇴는 진행(best-effort) + 오류 로그", async () => {
   const { status, s } = await withdraw((st) => {
     st.identities = [kakaoRow()];
