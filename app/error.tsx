@@ -77,12 +77,6 @@ export default function Error({
           홈으로 돌아가기
         </Link>
       </div>
-
-      {error.digest && (
-        <p className="mt-6 text-11 text-text-light font-mono">
-          {error.digest}
-        </p>
-      )}
     </div>
   );
 }

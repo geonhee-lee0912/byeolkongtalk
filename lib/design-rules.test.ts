@@ -329,3 +329,12 @@ test("읽을거리 본문: 화살표 글자를 쓰지 않는다", () => {
     assert.deepEqual(readFileSync(`data/seo/${f}.json`, "utf8").match(/[←-⇿➡]/g) ?? [], [], f);
   }
 });
+
+// 디자인 다듬기 묶음 9 ⑦(운영자 11-22 A) — 상점 R1 과 같이 개발용 코드는 화면에 안 띄운다(기록으로만 보낸다)
+test("오류 화면: 숫자 코드는 보여 주지 않고 기록에는 남긴다", () => {
+  for (const f of ["app/error.tsx", "app/global-error.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.doesNotMatch(s, /\{\s*error\.digest/, f);
+    assert.match(s, /fingerprint: chunkError \? "chunk-load-error" : \(error\.digest \?\? null\)/, f);
+  }
+});
