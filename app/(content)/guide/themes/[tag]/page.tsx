@@ -19,6 +19,8 @@ interface TagEntry {
 }
 const CONTENT = tagContent as Record<string, TagEntry>;
 const SPREADS_PUBLISHED = spreadContent as Record<string, unknown>;
+// design-allow: 그림 양끝을 풀어 주는 가림막(색 아님)
+const HERO_EDGE = "linear-gradient(to right, transparent, black 5%, black 95%, transparent)";
 
 /** 본문이 작성된 태그만 발행 (thin page 방지 — json 에 항목 추가 = 페이지 발행) */
 export function generateStaticParams() {
@@ -87,31 +89,30 @@ export default async function ThemePage({
       </nav>
 
       {hero && (
+        // 낮은 배너(가이드 첫 화면 H3 와 같은 모양, 디자인 다듬기 묶음 9 A) — 그림은 자르지 않고,
+        // 투명 PNG 6종은 그냥 두면 떠 보여서 연보라 바탕을 깐다
         <div
-          className={[
-            "relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4",
-            // 재활용 PNG 6종은 투명 배경이라 그냥 두면 떠 보인다
-            // → 배경이 구워진 신규 WebP 4종과 톤을 맞추려고 CSS 그라데이션을 깐다
-            hero.hasBackground
-              ? null
-              : "bg-lilac-soft",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={`w-full aspect-[21/10] rounded-2xl overflow-hidden mb-4 ${hero.bg ? "" : "bg-lilac-soft"}`}
+          style={{ background: hero.bg }}
         >
-          {/* 장식 이미지 — 주제·정보는 h1 과 intro 가 전달하므로 alt 는 빈 문자열 */}
-          {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
-          <Image
-            src={hero.src}
-            alt=""
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className={hero.hasBackground ? "object-cover" : "object-contain"}
-          />
+          <div
+            className={`relative h-full ${hero.bg ? "aspect-[900/672] mx-auto" : ""}`}
+            style={hero.bg ? { maskImage: HERO_EDGE, WebkitMaskImage: HERO_EDGE } : undefined}
+          >
+            {/* 장식 이미지 — 주제·정보는 h1 과 intro 가 전달하므로 alt 는 빈 문자열 */}
+            {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
+            <Image
+              src={hero.src}
+              alt=""
+              fill
+              sizes="(max-width: 448px) 64vw, 288px"
+              className="object-contain"
+            />
+          </div>
         </div>
       )}
 
-      <h1 className="font-display text-22 text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug break-keep text-pretty">
         {entry.title}
       </h1>
       <p className="text-14 text-eye-purple/90 leading-relaxed mt-4">

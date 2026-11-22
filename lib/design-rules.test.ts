@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { classBlocks, offenders, sources } from "./design-scan";
+import { TAG_HERO } from "./seo/tag-hero";
 
 const css = () => readFileSync("app/globals.css", "utf8");
 
@@ -305,4 +306,19 @@ test("테마 글의 스프레드: 큰 버튼 대신 한 카드 목록(카드 그
   assert.match(s, /divide-y/);
   assert.match(s, /name="sparkle"/);
   assert.match(s, /\.tagline/);
+});
+
+// 디자인 다듬기 묶음 9 테마 첫 그림 A(운영자 11-22) — 가이드 첫 화면 H3 와 같은 낮은 배너
+test("테마 첫 그림: 낮은 배너에 자르지 않고, 바탕이 구워진 그림은 좌우를 그 그림의 색으로 잇는다", () => {
+  const s = readFileSync("app/(content)/guide/themes/[tag]/page.tsx", "utf8");
+  assert.match(s, /aspect-\[21\/10\]/);
+  assert.match(s, /aspect-\[900\/672\]/); // 원본 비율 그대로
+  assert.doesNotMatch(s, /object-cover|aspect-\[4\/3\]/);
+  // 앱 헤더와 다른 글이라 제목은 앱에서도 보이고, 낱말 중간에서 끊지 않는다
+  assert.match(s, /<h1 className="(?![^"]*web-only)[^"]*break-keep[^"]*text-pretty/);
+  for (const [slug, hero] of Object.entries(TAG_HERO)) {
+    // webp 4종 = 바탕이 구워진 그림(2% 간격 51색 — 새 인연의 지평선이 이어지는 간격), PNG 6종 = 투명
+    const stops = hero.bg?.match(/#[0-9a-f]{6} \d+%/g)?.length ?? 0;
+    assert.equal(stops, hero.src.endsWith(".webp") ? 51 : 0, slug);
+  }
 });
