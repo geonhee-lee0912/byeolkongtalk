@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
+import EmphasisText from "@/components/common/EmphasisText";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
@@ -173,11 +174,9 @@ function ResultPageInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
-              ❝
-            </div>
-            <div className="flex items-center gap-2 mb-2 relative">
+          {/* 타로 결과와 같은 카드(❝ 장식 뺌 · ** 는 강조 · 본문 15) — 운영자 11-22 시안14 A */}
+          <div className="bg-white rounded-2xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src="/byeolkong-cheer.png"
                 alt="별콩이"
@@ -188,8 +187,8 @@ function ResultPageInner() {
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-14 text-eye-purple leading-relaxed relative">
-              {closingLine}
+            <p className="text-15 text-eye-purple leading-relaxed">
+              <EmphasisText text={closingLine} />
             </p>
             {revisit(true)}
           </div>
