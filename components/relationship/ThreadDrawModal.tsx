@@ -11,6 +11,7 @@ import StarConfirmModal from "@/components/common/StarConfirmModal";
 import { useOverlayEntry } from "@/components/common/use-overlay-entry";
 import { SPREAD_INFO, getPositionLabels, type DrawnCard } from "@/lib/tarot/spreads";
 import type { RelationshipSkill } from "@/lib/relationship/skills";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   skill: RelationshipSkill;
@@ -97,7 +98,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="font-display text-17 font-bold text-eye-purple">
+          <h2 className="font-display text-17 text-eye-purple">
             {skill.label}
           </h2>
           <button
@@ -105,7 +106,7 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </button>
         </div>
 
@@ -135,7 +136,6 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
           cost={skill.starCost}
           balance={balance}
           loading={balance === null}
-          accent={info.accent}
           surface="relationship_skill"
           onConfirm={confirm}
           onCharge={() => router.push(`/shop?need=${skill.starCost}`)}

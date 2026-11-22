@@ -107,7 +107,8 @@ export default function PairDayDetailCard({
              사이에 그 줄이 끼는데, 라벨에 마진을 주면 칩이 있는 날만 간격이 두 번 들어간다.
              박스에 주면 인접 형제 마진이 상쇄돼(16 vs 16) 칩 유무와 상관없이 16px 로 같다. */}
       <div className="card-inner mt-4">
-        <p className="mb-2 text-11 font-bold text-text-light">너희 결 · 날짜와 무관한 고정 배경</p>
+        {/* 아래 구독 안내 칩 이름('너희 고정된 결')과 같은 말 — 디자인 다듬기 별마루 ⑨ N1(운영자 11-21, 옛 '너희 결 · 날짜와 무관한 고정 배경') */}
+        <p className="mb-2 text-11 font-bold text-text-light">너희 고정된 결</p>
 
         {/* 십신 — 서로를 어떻게 보는지. 방향이 다르므로 마주보게 둔다(한 줄 `A ↔ B` 는 누가 누구를
             그렇게 보는지가 안 보였다). */}

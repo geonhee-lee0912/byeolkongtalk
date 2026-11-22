@@ -7,6 +7,8 @@ import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import PushMomentAsk from "@/components/push/PushMomentAsk";
+import Sheet from "@/components/common/Sheet";
+import { ShareOption, SHARE_ICON, KAKAO_ICON, LINK_ICON } from "@/components/tarot/TarotShareButtons";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import MonthlyReportView from "@/components/fortune/monthly/MonthlyReportView";
 import {
@@ -45,10 +47,9 @@ import {
   type GenericReport,
 } from "@/lib/fortune/generic-report";
 import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
-import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { tryParseStoredLifeGraphReport, alignDecadeAges, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
 import { shareToKakao } from "@/lib/kakao-share";
@@ -201,6 +202,9 @@ function FortuneResultInner() {
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  // 누구 사주로 본 리포트인지 — 내 리포트일 때만(공유 링크로 연 남의 결과엔 이름을 보이지 않는다)
+  const [subject, setSubject] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -268,6 +272,9 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
+      if (!usedPublic && r.profile) {
+        setSubject(r.profile.relation_type === "self" ? "내 사주" : r.profile.display_name ? `${r.profile.display_name} 사주` : null);
+      }
       if (r.reading.sajuData) {
         if (ft === "compat" || ft === "compat_social") {
           setCompatSaju(r.reading.sajuData as CompatSajuPair);
@@ -303,7 +310,9 @@ function FortuneResultInner() {
       } else if (reportCard) {
         setReportCardReport(reportCard);
       } else if (lifeGraph) {
-        setLifeGraphReport(lifeGraph);
+        // 이미 저장된 리포트도 10년 구간 이름표를 대운 표로 다시 맞춘다(AI 가 '4~13'을 '40~49'로 적은 실물 — alignDecadeAges)
+        const daeun = (r.reading.sajuData as SajuResult | null)?.daeun;
+        setLifeGraphReport({ ...lifeGraph, decades: alignDecadeAges(lifeGraph.decades, daeun) });
       } else if (generic) {
         setGenericReport(generic);
       } else {
@@ -419,6 +428,9 @@ function FortuneResultInner() {
           timeZone: "Asia/Seoul",
         })
       : null;
+  const shortDate = createdAt
+    ? new Date(createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric", timeZone: "Asia/Seoul" })
+    : null;
   const isMonthly = ftType === "monthly";
   const isSajuFull = isSajuYearType(ftType);
   const isCompat = ftType === "compat" || ftType === "compat_social";
@@ -461,16 +473,20 @@ function FortuneResultInner() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-          <div className="relative w-[108px] h-[120px]">
+          {/* 맨 위 정돈(디자인 다듬기 묶음 4 결과 T1, 운영자 11-16) — 그림 조금 작게, 제목 앞 상품 그림 뺌(위 그림과 겹침),
+              제목 아래 날짜·누구 사주인지 한 줄 */}
+          <div className="relative w-[88px] h-[96px]">
             <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
             <p className="mt-2 text-12 font-medium text-accent">{dateLabel}</p>
           )}
-          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
-            <FortuneIcon type={ftType} size={26} className="inline-block object-contain" />
-            {label}
-          </h1>
+          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center">{label}</h1>
+          {!dateLabel && (shortDate || subject) && (
+            <p className="mt-1 text-12 text-text-light">
+              {[shortDate, subject && `${subject}로 본 리포트`].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       )}
 
@@ -540,33 +556,23 @@ function FortuneResultInner() {
           </Link>
         ) : (
           <>
-            <button
-              onClick={handleKakaoShare}
-              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-15 flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
-              </svg>
-              카카오톡으로 공유하기
+            {/* 공유 — '공유하기' 하나, 누르면 시트에서 카톡·링크(타로 결과와 같은 모양). 예전엔 노란 카톡 + 진보라 큰 버튼 둘.
+                디자인 다듬기 운세 결과 ⑥ S1 운영자 11-16. 운세엔 스토리용 이미지가 없어 '이미지 저장' 칸은 없다 */}
+            <button type="button" onClick={() => setShareOpen(true)} className="btn btn-secondary btn-lg gap-2">
+              {SHARE_ICON}
+              공유하기
             </button>
-            <button
-              onClick={handleShare}
-              className="btn btn-primary btn-lg"
-            >
-              링크 / 텍스트로 공유하기
-            </button>
-            <Link
-              href="/fortune"
-              className="btn btn-text btn-lg"
-            >
-              다른 운세 보기
-            </Link>
-            <Link
-              href="/readings"
-              className="w-full py-2 text-text-light text-12 text-center"
-            >
-              내 고민톡에서 다시 보기
-            </Link>
+            {shareOpen && (
+              <Sheet label="공유하기" onClose={() => setShareOpen(false)} z={80}>
+                <p className="font-display text-17 text-eye-purple text-center mb-[22px]">어디로 공유할까?</p>
+                <div className="grid grid-cols-2">
+                  <ShareOption icon={KAKAO_ICON} label="카카오톡" circleClass="bg-[#FEE500] text-[#3C1E1E]" onPick={handleKakaoShare} />
+                  <ShareOption icon={LINK_ICON} label="링크로 공유" circleClass="bg-lilac-soft text-eye-purple" onPick={() => void handleShare()} />
+                </div>
+              </Sheet>
+            )}
+            {/* '다른 운세 보기'·'내 고민톡에서 다시 보기' 뺌 — 아래 탭 '사주 운세'·'마이 › 보관함'과 같은 길이라
+                공유 바로 아래 추천으로 잇는다(타로 결과와 같게). 디자인 다듬기 운세 결과 ⑦ B1 운영자 11-20 */}
           </>
         )}
       </div>

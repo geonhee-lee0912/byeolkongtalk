@@ -228,7 +228,7 @@ export default function SajuFullReportView({
         )}
       </div>
 
-      {/* 접이식 섹션 (그룹 구분선 + 중간중간 별콩이) */}
+      {/* 접이식 섹션 (그룹 구분선 + 그룹마다 카드 하나) */}
       <ReportAccordion
         items={items}
         groupIcons={{

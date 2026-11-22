@@ -6,6 +6,7 @@ import { SajuMbtiFlow } from "@/components/saju-mbti/SajuMbtiFlow";
 import SajuMbtiResume from "@/components/saju-mbti/SajuMbtiResume";
 import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero";
 import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
+import LandingBuyBar from "@/components/fortune/landing/LandingBuyBar";
 import { fortuneOutline } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
 import { fortuneCardSrc } from "@/lib/fortune/hero";
@@ -80,9 +81,6 @@ export default async function SajuMbtiPage({
         hook={copy.hook}
         cardSrc={fortuneCardSrc("saju_mbti")}
         chips={["무료", "12문항", copy.minutes]}
-        ctaLabel="테스트 시작하기"
-        ctaHref="/fortune/saju-mbti?start=1"
-        trackType="saju_mbti"
       />
       <FortuneLandingSections
         questions={copy.questions}
@@ -90,7 +88,10 @@ export default async function SajuMbtiPage({
         sample={copy.sample}
         samplePreview={null}
         related={copy.related ?? []}
+        free
       />
+      {/* 시작 버튼은 다른 상품처럼 아래 고정(디자인 다듬기 사주 MBTI ① L1, 운영자 11-20) — 계측은 같은 fortune_landing_cta_clicked */}
+      <LandingBuyBar href="/fortune/saju-mbti?start=1" trackType="saju_mbti" label="테스트 시작하기" />
     </main>
   );
 }

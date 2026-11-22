@@ -34,10 +34,13 @@ export interface NextReco {
 /** 결과 카드 표시 메타 — 라벨·기본 훅 카피·진입 대상. ctaLabel = 결과 카드 버튼 문구 (없으면 label). */
 export const RECO_DISPLAY: Record<
   RecoProduct,
-  { label: string; ctaLabel?: string; defaultHook: string; target: "saju" | "tarot" | "continue" | "inchat"; sajuProduct?: string; spreadType?: string }
+  { label: string; ctaLabel?: string; defaultHook: string; target: "saju" | "tarot" | "continue" | "inchat"; sajuProduct?: string; spreadType?: string;
+    /** 대화 속 추천 카드 제목·아이콘(RecoInlineCard) — 없으면 label·반짝 아이콘 */ cardTitle?: string; iconSrc?: string }
 > = {
   "saju:good_days": {
     label: "사주 · 좋은 날",
+    cardTitle: "사주로 좋은 날 보기",
+    iconSrc: "/icons/fortune/good_days.webp",
     ctaLabel: "사주로 더 자세히 보기",
     defaultHook: "궁금했던 '그 날'의 결 — 앞으로 30일 흐름은 좋은 날 상담이 짚어줄 수 있어",
     target: "saju",
@@ -45,6 +48,8 @@ export const RECO_DISPLAY: Record<
   },
   "saju:nature": {
     label: "사주 · 타고난 결",
+    cardTitle: "사주로 타고난 결 보기",
+    iconSrc: "/icons/fortune/nature_self.webp",
     ctaLabel: "사주로 더 자세히 보기",
     defaultHook: "이 고민의 뿌리 — 타고난 흐름은 사주가 더 깊게 봐줄 수 있어",
     target: "saju",
@@ -52,6 +57,8 @@ export const RECO_DISPLAY: Record<
   },
   "saju:choice": {
     label: "사주 · 선택의 갈림길",
+    cardTitle: "사주로 갈림길 보기",
+    iconSrc: "/icons/fortune/talent_path.webp",
     ctaLabel: "사주로 더 자세히 보기",
     defaultHook: "그 선택의 결 — 갈림길은 사주 선택 상담이 같이 봐줄 수 있어",
     target: "saju",
@@ -59,6 +66,8 @@ export const RECO_DISPLAY: Record<
   },
   "tarot:relationship_5": {
     label: "타로 · 관계 스프레드",
+    cardTitle: "타로 관계 카드로 보기",
+    iconSrc: "/icons/fortune/compat.webp",
     ctaLabel: "타로로 더 자세히 보기",
     defaultHook: "그 사람 마음의 결 — 두 사람 자리를 따로 펼치는 관계 카드가 비춰줄 수 있어",
     target: "tarot",

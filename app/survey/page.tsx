@@ -109,32 +109,35 @@ export default function SurveyPage() {
   return (
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-17 font-bold text-eye-purple mb-2">별콩이의 질문</h1>
+        {/* 앱에선 위 헤더 제목(별콩이의 질문)과 겹쳐 숨긴다(web-only) */}
+        <h1 className="web-only text-17 font-bold text-eye-purple mb-2">별콩이의 질문</h1>
         <p className="text-13 text-text-light leading-relaxed mb-3">
           별콩이를 도와줘! 너의 한마디로 더 좋은 별콩이가 될 수 있으니 편하고 솔직하게 적어줘. 다 적으면 별콩별 {SURVEY_REWARD_STARS}개를 줄게~!
         </p>
         <p className="text-12 text-eye-purple bg-gold-soft/20 border border-gold/30 rounded-xl px-3 py-2 mb-6">
           매달 가장 정성들인 의견을 전달해준 친구에게 추가로 별을 보내줄거야
         </p>
-        <div className="space-y-5">
+        {/* 질문마다 흰 카드 + 안쪽 입력칸(card-inner 모양) — 디자인 다듬기 ② /survey 운영자 A안 11-12 */}
+        <div className="flex flex-col gap-3">
           {SURVEY_QUESTIONS.map((q, i) => {
             if (q.type === "multi") {
               return (
-                <div key={q.id}>
-                  <label className="block text-14 font-bold text-eye-purple mb-2">
+                <div key={q.id} className="card">
+                  <label className="block text-15 font-bold text-eye-purple mb-2">
                     {i + 1}. {q.text}
                   </label>
-                  <div className="space-y-2">
+                  {/* 체크박스 20 · 한 줄 40 — 작아서 누르기 어려웠다(디자인 다듬기 ② /survey 운영자 B안 11-12) */}
+                  <div>
                     {q.options.map((opt) => {
                       const on = contactChecked.includes(opt.id);
                       return (
                         <div key={opt.id}>
-                          <label className="flex items-center gap-2 text-13 text-eye-purple cursor-pointer">
+                          <label className="flex items-center gap-2.5 min-h-10 text-14 text-eye-purple cursor-pointer">
                             <input
                               type="checkbox"
                               checked={on}
                               onChange={() => toggleContact(opt.id)}
-                              className="h-4 w-4 accent-lilac-deep"
+                              className="h-5 w-5 shrink-0 accent-lilac-deep"
                             />
                             {opt.label}
                           </label>
@@ -145,26 +148,21 @@ export default function SurveyPage() {
                               onChange={(e) => setContactInput(opt.id, e.target.value)}
                               maxLength={MULTI_INPUT_MAX}
                               placeholder={opt.input.prompt}
-                              className="mt-1.5 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-lilac-mid/40 bg-cream-warm p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
+                              className="mt-1 mb-1.5 ml-7.5 w-[calc(100%-1.875rem)] rounded-xl border border-lilac-mid/35 bg-inner p-2.5 text-13 text-eye-purple focus:outline-none focus:border-lilac-deep"
                             />
                           )}
                         </div>
                       );
                     })}
                   </div>
-                  {!contactValid && (
-                    <div className="text-11 mt-1.5 text-text-light">
-                      하나 이상 골라줘 (직접 입력 항목은 내용도 적어줘)
-                    </div>
-                  )}
                 </div>
               );
             }
             const len = answers[i].trim().length;
             const ok = len >= SURVEY_MIN_CHARS;
             return (
-              <div key={q.id}>
-                <label className="block text-14 font-bold text-eye-purple mb-2">
+              <div key={q.id} className="card">
+                <label className="block text-15 font-bold text-eye-purple mb-2">
                   {i + 1}. {q.text}
                 </label>
                 <textarea
@@ -173,7 +171,7 @@ export default function SurveyPage() {
                     setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))
                   }
                   rows={3}
-                  className="w-full rounded-xl border border-lilac-mid/40 bg-cream-warm p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
+                  className="w-full rounded-xl border border-lilac-mid/35 bg-inner p-3 text-13 text-eye-purple resize-none focus:outline-none focus:border-lilac-deep"
                   placeholder="편하게 작성해줘"
                 />
                 <div className={`text-11 mt-1 text-right ${ok ? "text-accent" : "text-text-light"}`}>

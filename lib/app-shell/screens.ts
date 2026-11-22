@@ -20,6 +20,7 @@ const SUBS: [string, string, TabRoot][] = [
   ["/tarot/result", "타로 결과", "/"],
   ["/tarot/reading", "타로 풀이", "/"],
   ["/tarot/draw", "타로 카드 뽑기", "/"],
+  ["/tarot", "리딩 방법 고르기", "/"],
   ["/saju/result", "사주 결과", "/"],
   ["/saju/reading", "사주 풀이", "/"],
   ["/saju/concern", "사주 고민 적기", "/"],
@@ -81,4 +82,19 @@ export function nextDepth(depth: number, ev: "push" | "pop"): number {
 export function depthOnChange(depth: number, prevKey: string | null, key: string, popped: boolean): number {
   if (prevKey === null || prevKey === key) return depth;
   return nextDepth(depth, popped ? "pop" : "push");
+}
+
+/**
+ * '‹' 가 기록 뒤가 아니라 탭 첫 화면으로 가야 하는 화면 — 카드 뽑기에서 막 들어온 타로 대화(주소에 id 가 없다).
+ * 기록 뒤는 카드 뽑기라 '다시 뽑으라는' 화면처럼 보였다(디자인 다듬기 /tarot/reading 운영자 11-14: 홈으로).
+ * 보관함·결과 화면에서 id 를 들고 연 대화는 평소처럼 뒤로(보관함으로) 간다
+ */
+export function backGoesToTabRoot(pathname: string, search: string): boolean {
+  if (normalize(pathname) !== "/tarot/reading") return false;
+  return !new URLSearchParams(search).has("id");
+}
+
+/** 하단탭을 숨기는 화면 — 타로 대화만(채팅방처럼 채팅만 남긴다). 나가는 길은 헤더('‹' → 홈 · 웹은 로고). 디자인 다듬기 /tarot/reading 운영자 11-14 */
+export function hidesBottomTab(pathname: string): boolean {
+  return normalize(pathname) === "/tarot/reading";
 }

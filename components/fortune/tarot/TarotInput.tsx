@@ -158,7 +158,6 @@ export default function TarotInput({ type }: { type: FortuneType }) {
           cost={effectiveCost}
           balance={balance}
           loading={balanceLoading || submitting}
-          accent={ACCENT}
           spreadLabel={cfg.label}
           confirmLabel="확인하고 카드 보기"
           surface={RECHARGE_SOURCE.tarotReport}

@@ -1,5 +1,4 @@
 import DailyCardDraw from "@/components/seo/DailyCardDraw";
-import GuideCta from "@/components/seo/GuideCta";
 import { contentMetadata } from "@/lib/seo/metadata";
 
 export const metadata = contentMetadata({
@@ -19,10 +18,6 @@ export default function DailyCardPage() {
         가입 없이, 하루 한 장 — 오늘 너에게 온 카드의 결을 봐줄게.
       </p>
       <DailyCardDraw />
-      <GuideCta
-        tag="그냥 별콩이한테 털어놓고 싶어"
-        label="별콩이랑 더 깊게 보기"
-      />
     </div>
   );
 }

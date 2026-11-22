@@ -67,7 +67,10 @@ export function parseBlocks(text: string): Block[] {
     quote = [];
   };
 
-  for (const raw of text.split("\n")) {
+  // JSON 문자열로 받는 리포트에서 AI 가 줄을 안 바꾸고 문장 끝에 바로 "> 팁" 을 붙이는 일이 있다(dev 성적표 11-21 — '>' 가 글자로 보였다).
+  // 문장 끝(.!?…) 바로 뒤의 '>' 만 줄머리로 내린다 — "A > B" 비교·"->" 화살표는 문장 끝 뒤가 아니라 그대로 글.
+  const lines = text.replace(/([.!?…])[ \t]+>[ \t]?/g, "$1\n> ").split("\n");
+  for (const raw of lines) {
     const line = raw.trim();
     if (line === "") {
       flushPara();
@@ -101,25 +104,13 @@ export function parseBlocks(text: string): Block[] {
 function renderInline(parts: InlinePart[], key: string, tone: "light" | "dark" = "light") {
   return parts.map((p, i) =>
     p.t === "b" ? (
-      // 라이트(흰 카드): 진보라 볼드 + 골드 형광펜. 다크(별콩이 한마디 남색 카드): 형광펜은 안 보이므로
-      // 골드 볼드 텍스트로(대비 확보, 하이라이트 배경 제거).
+      // 라이트(흰 카드): 진보라 굵게 + 금색 얇은 밑줄. 다크(별콩이 한마디 남색 카드): 밝은 굵은 글자 + 같은 밑줄
+      // — 타로 말풍선·후속 창(EmphasisText light/dark)과 같게. 디자인 다듬기 운세 결과 ③(라이트)·⑤(다크, 옛 흰 상자) 운영자 11-16
       <strong
         key={`${key}-${i}`}
-        className={tone === "dark" ? "font-bold" : "font-bold text-eye-purple"}
-        style={
-          tone === "dark"
-            ? {
-                // 다크 카드: 부분 언더스트라이프는 글자가 안 보여서, 밝은 하이라이트 전체 배경 + 어두운 글자.
-                background: "rgba(255, 250, 242, 0.92)",
-                color: "#2A1F4D",
-                borderRadius: "3px",
-                padding: "1px 3px",
-                boxDecorationBreak: "clone",
-                WebkitBoxDecorationBreak: "clone",
-              }
-            : // design-allow: 형광펜 밑줄(기능)
-              { background: "linear-gradient(transparent 58%, rgba(242, 215, 138, 0.55) 58%)" }
-        }
+        className={tone === "dark" ? "font-bold text-cream" : "font-bold text-eye-purple"}
+        // design-allow: 형광펜 밑줄(기능)
+        style={{ background: "linear-gradient(transparent 72%, rgba(242, 215, 138, 0.5) 72%, rgba(242, 215, 138, 0.5) 92%, transparent 92%)" }}
       >
         {p.s}
       </strong>
@@ -151,7 +142,7 @@ export function MarkdownLite({
 }: {
   text: string;
   className?: string;
-  /** "dark" = 남색 카드(별콩이 한마디)용 — 볼드를 골드 텍스트로. */
+  /** "dark" = 남색 카드(별콩이 한마디)용 — 볼드를 밝은 글자 + 금색 얇은 밑줄로. */
   tone?: "light" | "dark";
 }) {
   const blocks = parseBlocks(text);

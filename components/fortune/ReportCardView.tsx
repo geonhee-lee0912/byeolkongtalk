@@ -1,5 +1,18 @@
+"use client";
+
+import { useState } from "react";
 import type { ReportCardReport } from "@/lib/fortune/report-card-report";
 import { MarkdownLite } from "@/lib/markdown-lite";
+import Icon from "@/components/common/Icon";
+
+/** 접힌 과목 한 줄 미리보기 — 마크다운 기호(**·==·- ·> )를 걷고 첫 줄만 */
+function firstLine(text: string): string {
+  const line = text
+    .split("\n")
+    .map((l) => l.trim())
+    .find(Boolean) ?? "";
+  return line.replace(/^[->]\s*/, "").replace(/\*\*|==/g, "");
+}
 
 // 성적표 학점 색 — 앞글자 기준(A 초록 / B 파랑 / C 골드 / D·F 로즈).
 function gradeColor(grade: string): { bg: string; fg: string } {
@@ -12,6 +25,16 @@ function gradeColor(grade: string): { bg: string; fg: string } {
 
 export default function ReportCardView({ report }: { report: ReportCardReport }) {
   const total = gradeColor(report.totalGrade);
+  // 과목 글은 접어 두고 학점·과목·첫 줄만(디자인 다듬기 운세 결과 ③ B, 운영자 11-21) — 예전엔 5과목 글이 전부 펼쳐져 폰 약 5화면.
+  // 순서(소개 글 → 성적표)는 그대로: 소개 글이 '이번 성적표의 주인공은…'으로 여는 도입부라서
+  const [open, setOpen] = useState<Set<number>>(new Set());
+  const toggle = (i: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 도입 */}
@@ -36,18 +59,25 @@ export default function ReportCardView({ report }: { report: ReportCardReport })
         <div className="flex flex-col divide-y divide-[#F0EEF4]">
           {report.scores.map((s, i) => {
             const c = gradeColor(s.grade);
+            const isOpen = open.has(i);
             return (
-              <div key={i} className="flex items-start gap-3 py-3">
-                <span
-                  className="text-15 font-black w-11 text-center py-1 rounded-lg shrink-0 tabular-nums"
-                  style={{ background: c.bg, color: c.fg }}
-                >
-                  {s.grade}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-13 font-bold text-[#4A4458]">{s.domain}</div>
-                  <MarkdownLite text={s.comment} className="text-13 text-[#4F4A5E] leading-[1.7] mt-0.5" />
-                </div>
+              <div key={i} className="py-3">
+                <button type="button" onClick={() => toggle(i)} aria-expanded={isOpen} className="flex w-full items-center gap-3 text-left">
+                  <span
+                    className="text-15 font-black w-11 text-center py-1 rounded-lg shrink-0 tabular-nums"
+                    style={{ background: c.bg, color: c.fg }}
+                  >
+                    {s.grade}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-14 font-bold text-eye-purple">{s.domain}</span>
+                    {!isOpen && <span className="block truncate text-12 text-text-light mt-0.5">{firstLine(s.comment)}</span>}
+                  </span>
+                  <Icon name="chev_d" size={16} className={`shrink-0 text-lilac-mid transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </button>
+                {isOpen && (
+                  <MarkdownLite text={s.comment} className="mt-2 pl-14 text-13 text-[#4F4A5E] leading-[1.7] animate-fade-in" />
+                )}
               </div>
             );
           })}

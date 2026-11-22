@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { MarkdownLite } from "@/lib/markdown-lite";
 import { stripHeadingEmoji, sectionPreview } from "@/lib/fortune/heading";
 
-// 접이식 섹션 카드 — 긴 리포트의 스크롤 완화용. 열림 상태는 부모(ReportAccordion)가 제어.
+// 접이식 섹션 줄 — 긴 리포트의 스크롤 완화용. 부모(ReportAccordion)의 흰 카드 하나 안에 목차 줄로 놓이고, 열림 상태도 부모가 제어.
 // 본문은 markdown 문자열(body) 또는 커스텀 노드(children) 중 하나. 접힘: 아이콘+제목+미리보기 한 줄.
 export default function CollapsibleSection({
   heading,
@@ -14,6 +14,7 @@ export default function CollapsibleSection({
   preview,
   open,
   onToggle,
+  divided,
 }: {
   heading: string;
   /** 섹션 순번(1부터) — 소제목 앞 번호 타일 */
@@ -26,17 +27,19 @@ export default function CollapsibleSection({
   preview?: string;
   open: boolean;
   onToggle: () => void;
+  /** 카드 안 둘째 줄부터 — 위에 얇은 선 */
+  divided?: boolean;
 }) {
   const title = stripHeadingEmoji(heading);
   const previewText = open ? "" : body ? sectionPreview(body) : (preview ?? "");
 
   return (
-    <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+    <div className={divided ? "border-t border-lilac-mid/25" : ""}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="w-full flex items-center gap-2.5 px-[22px] py-5 text-left"
+        className="w-full flex items-center gap-2.5 px-[22px] py-4 text-left"
       >
         <span
           className="w-7 h-7 rounded-lg bg-lilac-soft flex items-center justify-center text-13 font-extrabold text-accent shrink-0 tabular-nums"
