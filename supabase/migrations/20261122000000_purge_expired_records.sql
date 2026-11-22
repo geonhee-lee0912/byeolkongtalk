@@ -1,6 +1,6 @@
 -- 보유 기간이 지난 개인정보 파기 (운영자 결정 애플-4-1A, 2026-11-22). 개인정보처리방침 제4조·제5조의2 6호의 기간 그대로.
 --   · 탈퇴 뒤 1년: 탈퇴 기록(해시·유입 정보)은 withdrawn_at 기준, 혜택 수령 기록은 아래 조건
---   · 위기 감지 기록 1년
+--   · 위기 감지 기록 1년 + 그 기록의 검토 메모 사본(admin_actions.payload.note — 작업 기록 행은 남긴다, 애플-4-1-1A)
 --   · 접속 로그 3개월: 오류 기록은 남기고 IP·브라우저 정보만 비운다
 --
 -- 🔴 되돌릴 수 없다. p_execute = true 일 때만 지우고, 그 밖(인자 없음·false·NULL)은 세기만 한다.
@@ -30,6 +30,7 @@ declare
   v_withdrawals bigint;
   v_claims bigint;
   v_alerts bigint;
+  v_notes bigint;
   v_logs bigint;
 begin
   if exists (select 1 from public.user_identities where provider not in ('kakao', 'apple')) then
@@ -80,6 +81,23 @@ begin
   )
   select count(*) into v_alerts from expired;
 
+  -- 검토 라우트가 메모를 작업 기록에도 복사한다. 1년 안의 알림에 딸린 것만 남긴다(이미 없는 알림의 사본도 비운다)
+  with expired as (
+    select a.id from public.admin_actions a
+    where a.action = 'sensitive_review'
+      and coalesce(a.payload ->> 'note', '') <> ''
+      and not exists (
+        select 1 from public.sensitive_alerts s
+        where s.id::text = a.target_id and s.created_at >= v_year_ago
+      )
+  ), purged as (
+    update public.admin_actions a set payload = a.payload - 'note'
+    from expired e
+    where v_execute and a.id = e.id
+    returning 1
+  )
+  select count(*) into v_notes from expired;
+
   with expired as (
     select l.id from public.error_logs l
     where l.created_at < v_quarter_ago and (l.ip is not null or l.user_agent is not null)
@@ -96,6 +114,7 @@ begin
     'withdrawals', v_withdrawals,
     'bonus_claims', v_claims,
     'sensitive_alerts', v_alerts,
+    'review_notes', v_notes,
     'log_ip_ua', v_logs
   );
 end;
