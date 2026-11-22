@@ -415,8 +415,9 @@ export default function MyPage() {
               정말 떠나려고?
             </p>
             <p className="text-12 text-text-light leading-relaxed mb-3">
-              탈퇴하면 너의 사주 풀이, 별 잔액, 모든 기록이 영구적으로 삭제돼.
-              되돌릴 수 없어.
+              탈퇴하면 너의 사주 풀이, 별 잔액·사용 내역, 1:1 문의가 삭제돼. 되돌릴
+              수 없어. 환불받을 게 있으면 탈퇴 전에 신청하고 처리된 뒤에 탈퇴해 줘. 결제
+              기록처럼 남는 것은 개인정보처리방침에서 볼 수 있어.
             </p>
             <label className="flex items-center gap-2 text-12 text-text-light mb-4">
               <input
