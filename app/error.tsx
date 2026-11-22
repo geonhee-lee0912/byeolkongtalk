@@ -11,12 +11,12 @@ import {
 
 export default function Error({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
-  // 배포 스큐로 죽은 청크를 요청한 경우 — 앱 버그가 아니고 reset() 으로도 안 고쳐진다
+  // 배포 스큐로 죽은 청크를 요청한 경우 — 앱 버그가 아니고 unstable_retry() 로도 안 고쳐진다
   const chunkError = isChunkLoadError(error);
 
   useEffect(() => {
@@ -64,8 +64,9 @@ export default function Error({
       </p>
 
       <div className="flex flex-col gap-2 w-full max-w-[260px]">
+        {/* reset() 은 서버에 다시 안 물어서 서버에서 난 오류가 안 풀린다 — Next 16.2 의 다시 받기는 unstable_retry */}
         <button
-          onClick={() => (chunkError ? window.location.reload() : reset())}
+          onClick={() => (chunkError ? window.location.reload() : unstable_retry())}
           className="btn btn-primary btn-lg"
         >
           다시 시도하기

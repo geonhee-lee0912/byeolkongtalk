@@ -356,3 +356,14 @@ test("전체 오류 화면: 밝은 바탕·별콩이·제목 글꼴·홈으로, 
   // 글꼴은 한 곳에서 선언해 루트 레이아웃과 같이 쓴다(따로 선언하면 한 벌 더 받는다)
   for (const f of ["app/layout.tsx", "app/global-error.tsx"]) assert.ok(readFileSync(f, "utf8").includes('from "./fonts"'), f);
 });
+
+// 묶음 9 (10)(운영자 11-22 A) — reset 은 서버에 다시 묻지 않는다(Next 16.2). Next 를 올려 이름이 바뀌면 여기서 걸리게 문서도 같이 본다
+test("오류 화면 둘: 다시 시도는 서버에 다시 묻는다", () => {
+  for (const f of ["app/error.tsx", "app/global-error.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.ok(s.includes("window.location.reload() : unstable_retry()"), f);
+    assert.ok(!s.includes(": reset()"), f);
+  }
+  const boundary = readFileSync("node_modules/next/dist/client/components/error-boundary.js", "utf8");
+  assert.ok(boundary.includes("unstable_retry: this.unstable_retry"), "Next 가 이 이름을 더는 넘기지 않는다 — 오류 화면 두 곳을 새 이름으로");
+});

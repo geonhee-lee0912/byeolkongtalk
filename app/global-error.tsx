@@ -19,10 +19,10 @@ const BODY_FONT =
 
 export default function GlobalError({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
   const chunkError = isChunkLoadError(error);
 
@@ -106,7 +106,7 @@ export default function GlobalError({
           </p>
           <div style={{ maxWidth: 260, margin: "0 auto" }}>
             <button
-              onClick={() => (chunkError ? window.location.reload() : reset())}
+              onClick={() => (chunkError ? window.location.reload() : unstable_retry())}
               style={{
                 display: "block",
                 boxSizing: "border-box",
