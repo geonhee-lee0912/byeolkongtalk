@@ -78,9 +78,9 @@ const post = (path: string, body: unknown) =>
   new NextRequest(`http://localhost${path}`, { method: "POST", body: JSON.stringify(body) });
 
 const CASES = [
-  { title: "본인이 첫째", a: ME, b: FRIEND, sent: ["나", "민수"] },
-  { title: "본인이 둘째", a: FRIEND, b: ME, sent: ["민수", "나"] },
-  { title: "대표가 아닌 본인 행", a: FRIEND, b: OLD_ME, sent: ["민수", "나"] },
+  { title: "본인이 첫째", a: ME, b: FRIEND, sent: ["너", "민수"] },
+  { title: "본인이 둘째", a: FRIEND, b: ME, sent: ["민수", "너"] },
+  { title: "대표가 아닌 본인 행", a: FRIEND, b: OLD_ME, sent: ["민수", "너"] },
   { title: "본인이 없으면 입력한 이름 그대로", a: PARTNER, b: FRIEND, sent: ["지우", "민수"] },
 ];
 
@@ -106,7 +106,7 @@ for (const type of ["compat", "compat_social"]) {
   }
 }
 
-test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 나", async () => {
+test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 너", async () => {
   const { fakes, thread } = await load();
   fakes.reset();
   fakes.state.profiles = [ME, PARTNER];
@@ -123,7 +123,7 @@ test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 나", as
   assert.equal(fakes.state.prompts.length, 2, "첫 호출 + 파싱 실패 재시도");
   for (const prompt of fakes.state.prompts) {
     assert.ok(!prompt.includes(SELF_NAME), "본인 이름이 AI 입력에 실렸다");
-    assert.ok(prompt.includes("첫 번째 사람 사주판 — 나]"));
+    assert.ok(prompt.includes("첫 번째 사람 사주판 — 너]"));
     assert.ok(prompt.includes("두 번째 사람 사주판 — 지우]"));
   }
 });
