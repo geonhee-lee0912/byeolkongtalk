@@ -35,11 +35,11 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
     },
 
     async insertIdentity(row) {
-      const { error } = await supabase.from("user_identities").insert({ ...row, last_login_at: new Date().toISOString() });
+      const { error, status } = await supabase.from("user_identities").insert({ ...row, last_login_at: new Date().toISOString() });
       if (!error) return { ok: true };
       const duplicate = error.code === UNIQUE_VIOLATION;
       if (!duplicate) {
-        await logError(dbFailure("user identity insert", error), {
+        await logError(dbFailure("user identity insert", error, status), {
           route,
           userId: row.user_id,
           extra: { step: "user_identities_insert", provider: row.provider, dbCode: error.code || null },
@@ -49,13 +49,13 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
     },
 
     async updateIdentityOnLogin(provider, providerUserId, patch) {
-      const { error } = await supabase
+      const { error, status } = await supabase
         .from("user_identities")
         .update({ ...patch, last_login_at: new Date().toISOString() })
         .eq("provider", provider)
         .eq("provider_user_id", providerUserId);
       if (error) {
-        await logError(dbFailure("user identity update", error), {
+        await logError(dbFailure("user identity update", error, status), {
           route,
           extra: { step: "user_identities_touch", provider, dbCode: error.code || null },
         });
@@ -63,11 +63,11 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
     },
 
     async insertUser(row) {
-      const { data, error } = await supabase.from("users").insert(row).select("id").single();
+      const { data, error, status } = await supabase.from("users").insert(row).select("id").single();
       if (!error && data) return { ok: true, id: data.id as string };
       const duplicate = error?.code === UNIQUE_VIOLATION;
       if (!duplicate) {
-        await logError(error ? dbFailure("user insert", error) : new Error("user insert null"), {
+        await logError(error ? dbFailure("user insert", error, status) : new Error("user insert null"), {
           route,
           extra: { step: "user_insert", dbCode: error?.code || null },
         });
@@ -102,7 +102,7 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
       // 웰컴 별 파밍 방지: 탈퇴해도 남는 원장에 로그인 수단 해시로 1회 청구(lib/auth/identity-hash.ts — 카카오는 옛 공식과 같은 값).
       // upsert(ignoreDuplicates)가 새 row 반환 → 처음 → 지급. 이미 있으면 빈 배열 → 스킵.
       // 청구 판정 에러면 안전하게 스킵(파밍 재개 방지) + 로그.
-      const { data: welcomeClaim, error: welcomeClaimErr } = await supabase
+      const { data: welcomeClaim, error: welcomeClaimErr, status: welcomeClaimStatus } = await supabase
         .from("bonus_claims")
         .upsert(
           { kakao_id_hash: identityHashValue, bonus_type: "welcome" },
@@ -110,7 +110,7 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
         )
         .select("kakao_id_hash");
       if (welcomeClaimErr) {
-        await logError(dbFailure("welcome claim", welcomeClaimErr), {
+        await logError(dbFailure("welcome claim", welcomeClaimErr, welcomeClaimStatus), {
           route,
           userId,
           extra: { severity: "WELCOME_CLAIM_CHECK_FAILED", dbCode: welcomeClaimErr.code || null },

@@ -81,13 +81,25 @@ test("회원 만들기 중복 — 로그 없이 duplicate 로 돌려준다", asy
   assert.equal(output(), "");
 });
 
-test("응답에 코드가 없는 실패(게이트웨이 등) — 본문 없이 단계만 남는다", async (t) => {
+test("응답에 코드가 없는 실패(게이트웨이 등) — 본문 없이 단계·HTTP 상태만 남는다", async (t) => {
   const output = captureConsole(t);
   failure = { status: 502, body: { message: `upstream failed ${KAKAO_ID}` } };
   await deps().insertUser({ kakao_id: KAKAO_ID, nickname: NICKNAME, profile_img: null });
   assertNoIdentifiers(JSON.stringify(logged) + output());
-  assert.equal(logged[0].message, "user insert failed (no code)");
+  assert.equal(logged[0].message, "user insert failed (HTTP 502)");
   assert.deepEqual(logged[0].context, { step: "user_insert", dbCode: null });
+});
+
+test("네트워크 단절 — HTTP 0 으로 5xx 와 갈린다", async (t) => {
+  const output = captureConsole(t);
+  const real = globalThis.fetch;
+  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("/error_logs")) return real(input, init);
+    throw new TypeError(`fetch failed ${KAKAO_ID}`);
+  });
+  await deps().insertUser({ kakao_id: KAKAO_ID, nickname: NICKNAME, profile_img: null });
+  assertNoIdentifiers(JSON.stringify(logged) + output());
+  assert.equal(logged[0].message, "user insert failed (HTTP 0)");
 });
 
 test("로그인 수단 저장 실패 — 단계·수단·DB 코드만 남는다", async (t) => {

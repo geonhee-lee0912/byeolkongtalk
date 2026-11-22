@@ -156,11 +156,11 @@ export async function POST(request: NextRequest) {
       )
       .eq("user_id", userId)
       .maybeSingle();
-    const { error: wErr } = await supabase
+    const { error: wErr, status: wStatus } = await supabase
       .from("account_withdrawals")
       .insert({ kakao_id_hash: hash, ...(acq ?? {}) });
     if (wErr) {
-      await logError(dbFailure("withdrawal ledger insert", wErr), {
+      await logError(dbFailure("withdrawal ledger insert", wErr, wStatus), {
         route: ROUTE,
         userId,
         extra: { severity: "WITHDRAWAL_LOG_FAILED", dbCode: wErr.code || null },
