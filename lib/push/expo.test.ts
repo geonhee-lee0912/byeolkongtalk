@@ -27,6 +27,28 @@ test("최상위 errors 면 던진다", async () => {
   await assert.rejects(sendExpo([msg(1)], f));
 });
 
+// 던진 오류는 cron 이 error_logs(1년 보관)에 그대로 남긴다 — Expo 문서: PUSH_TOO_MANY_EXPERIENCE_IDS 의 details 엔 요청한 토큰 목록이 있다
+for (const status of [400, 200]) {
+  test(`최상위 errors 를 던질 때 토큰·원문은 싣지 않고 상태와 code 만(HTTP ${status})`, async () => {
+    const errors = [
+      { code: "PUSH_TOO_MANY_EXPERIENCE_IDS", message: "raw-message ExponentPushToken[aaa]", details: { "@o/app": ["ExponentPushToken[bbb]"] } },
+      { message: "code 없는 오류 ExponentPushToken[ccc]" },
+    ];
+    const f = (async () => new Response(JSON.stringify({ errors }), { status })) as typeof fetch;
+    for (const call of [() => sendExpo([msg(1)], f), () => getReceipts(["r1"], f)]) {
+      const err = await call().then(() => assert.fail("던져야 한다"), (e: Error) => e);
+      const logged = `${err.message} ${err.stack}`;
+      assert.doesNotMatch(logged, /ExponentPushToken|raw-message|@o.app/);
+      assert.match(err.message, new RegExp(`failed: ${status} PUSH_TOO_MANY_EXPERIENCE_IDS,unknown$`));
+    }
+  });
+}
+
+test("본문 없는 실패는 상태만", async () => {
+  const f = (async () => new Response("oops", { status: 502 })) as typeof fetch;
+  await assert.rejects(sendExpo([msg(1)], f), /failed: 502 no_error_code$/);
+});
+
 test("EXPO_ACCESS_TOKEN 이 있을 때만 Authorization 을 싣는다", async () => {
   const seen: Record<string, string>[] = [];
   const f = (async (_u: string, init: RequestInit) => {
