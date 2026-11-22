@@ -235,7 +235,7 @@ export default function RevisitSheet({
     right = action("날짜 정하기", openPick);
   }
   const row = (
-    <div className={`flex items-center justify-between gap-2 ${inline ? "border-t border-lilac-mid/35 mt-4 pt-3" : ""}`}>
+    <div className={`flex items-center justify-between gap-2 break-keep wrap-anywhere ${inline ? "border-t border-lilac-mid/35 mt-4 pt-3" : ""}`}>
       {left}
       {right}
     </div>
@@ -252,14 +252,14 @@ export default function RevisitSheet({
       )}
       {sheet && (
         <Sheet label="다시 볼 날" onClose={closeSheet} dismissible={!busy} z={80}>
-          <div className="flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center break-keep wrap-anywhere">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="" className="w-11 h-11 object-contain mb-1.5" />
-            <p className="font-display text-17 text-eye-purple">{copy.title}</p>
+            <p className="font-display text-17 text-eye-purple text-balance">{copy.title}</p>
             <p className="text-13 text-text-light mt-1 leading-normal">{copy.sub}</p>
           </div>
           {denied ? (
-            <div className="card-inner mt-4 text-13 leading-relaxed">
+            <div className="card-inner mt-4 text-13 leading-relaxed break-keep wrap-anywhere">
               알림이 꺼져 있어서 그날 못 알려줘.
               <br />
               <button type="button" onClick={() => postToApp("push.openSettings")} className="btn btn-secondary btn-sm mt-2">
@@ -305,7 +305,7 @@ export default function RevisitSheet({
               >
                 {picked ? `${monthDay(picked)}에 알려줘` : "날짜를 골라 줘"}
               </button>
-              {failed && <p className="mt-2 text-12 text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
+              {failed && <p className="mt-2 text-12 text-text-light text-center break-keep wrap-anywhere">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
             </>
           )}
           {sheet === "auto" && <LaterButton disabled={busy} />}

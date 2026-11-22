@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
+import EmphasisText from "@/components/common/EmphasisText";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
 import ContinuationModal from "@/components/continuation/ContinuationModal";
@@ -124,6 +125,12 @@ function ResultPageInner() {
     (m) => m.role === "assistant" && m.content.includes("[END]")
   );
 
+  // 다시 볼 날(앱) — 타로 결과와 같은 자리: 한마디 카드 맨 아래, 한마디가 없으면 공유 아래 혼자(운영자 11-22).
+  // 이 화면은 소유자만 불러온다
+  const revisit = (inline: boolean) => (
+    <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} inline={inline} />
+  );
+
   return (
     // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
@@ -167,11 +174,9 @@ function ResultPageInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
-              ❝
-            </div>
-            <div className="flex items-center gap-2 mb-2 relative">
+          {/* 타로 결과와 같은 카드(❝ 장식 뺌 · ** 는 강조 · 본문 15) — 운영자 11-22 시안14 A */}
+          <div className="bg-white rounded-2xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src="/byeolkong-cheer.png"
                 alt="별콩이"
@@ -182,9 +187,10 @@ function ResultPageInner() {
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-14 text-eye-purple leading-relaxed relative">
-              {closingLine}
+            <p className="text-15 text-eye-purple leading-relaxed">
+              <EmphasisText text={closingLine} />
             </p>
+            {revisit(true)}
           </div>
         </div>
       )}
@@ -236,9 +242,6 @@ function ResultPageInner() {
         readingId={reading.id}
       />
 
-      {/* 다시 볼 날 — 앱에서만(공유 위). 이 화면은 소유자만 불러온다 */}
-      <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />
-
       {/* ② 공유 — 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <ShareButtons
@@ -250,6 +253,8 @@ function ResultPageInner() {
           hasSensitive={reading.hasSensitive}
         />
       </div>
+
+      {!closingLine && revisit(false)}
 
       {/* ③ 무료 크로스셀 — 맨 아래 */}
       <ResultUpsell variant="counsel" />

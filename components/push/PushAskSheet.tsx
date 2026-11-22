@@ -101,19 +101,19 @@ export default function PushAskSheet({
   // 공통 시트 틀(components/common/Sheet). 요청 중엔 바깥 누르기·끌어내리기로 닫지 않는다
   return (
     <Sheet label={title} onClose={later} dismissible={!busy} z={80}>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center break-keep wrap-anywhere">
           <div className="relative w-[52px] h-[52px] mb-2">
             <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/profile.png" alt="" className="relative w-full h-full object-contain" />
           </div>
-          <p className="font-display text-17 text-eye-purple">{title}</p>
+          <p className="font-display text-17 text-eye-purple text-balance">{title}</p>
           {sub && <p className="text-13 text-text-light mt-1.5 leading-normal">{sub}</p>}
         </div>
         {kind === "push" && ad === "none" && <AdConsentCheck checked={checked} onChange={setChecked} disabled={busy} />}
         {kind === "ad" && (
           // 광고 동의만 묻는 시트 — 이름·내용·끄는 법을 그대로 보이고, 버튼이 곧 동의다(체크칸을 한 번 더 두지 않는다)
-          <div className="card-inner mt-4 text-left">
+          <div className="card-inner mt-4 text-left break-keep wrap-anywhere">
             <p className="text-13 font-bold">{AD_CONSENT_LABEL}</p>
             <p className="text-12 text-text-light mt-1.5 leading-relaxed">
               <span className="font-bold text-eye-purple">받을 내용</span> {AD_CONSENT_CONTENTS}
@@ -129,7 +129,7 @@ export default function PushAskSheet({
         >
           {kind === "ad" ? "광고성 정보 수신 동의하기" : "알림 받을래"}
         </button>
-        {failed && <p className="mt-2 text-12 text-text-light text-center">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
+        {failed && <p className="mt-2 text-12 text-text-light text-center break-keep wrap-anywhere">잘 안 됐어. 한 번 더 눌러 줄래?</p>}
         <LaterButton disabled={busy} />
     </Sheet>
   );

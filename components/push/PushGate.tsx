@@ -217,7 +217,7 @@ export default function PushGate() {
           <div className="fixed left-0 right-0 z-[70] px-4" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
             {/* 디자인 다듬기 알림 시트 ① F1(운영자 11-22): 위 자리 그대로, 연보라 테두리, 닫기 X(이모지를 지운 뒤 빈칸이었다) */}
             <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float border border-lilac-mid/40 px-3.5 py-2.5 text-13">
-              <p className="flex-1 leading-snug break-keep">{unsubMsg ?? "광고 알림이 그만 오게 할까?"}</p>
+              <p className="flex-1 leading-snug break-keep wrap-anywhere">{unsubMsg ?? "광고 알림이 그만 오게 할까?"}</p>
               {unsubToken && !unsubMsg && (
                 <button
                   type="button"
@@ -246,8 +246,8 @@ export default function PushGate() {
       {/* 공통 확인창 틀(components/common/Dialog) — 2년 재확인은 법정 통지라 버튼으로만 닫는다 */}
       {reconfirm && (
           <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
-            <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-              <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 동의 확인 안내</p>
+            <div className="w-full max-w-sm bg-cream rounded-3xl p-6 break-keep wrap-anywhere">
+              <p className="font-display text-17 text-eye-purple text-center text-balance">광고성 정보 수신 동의 확인 안내</p>
               {/* 법정 재확인 통지에 들어갈 것(전송자·동의한 날·동의 사실·유지/철회 방법)을 표 + 한 단락으로 —
                   예전엔 빽빽한 두 단락이었다(디자인 다듬기 알림 시트 ④, 운영자 11-22). 결과 통지 창과 같은 표 모양 */}
               <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
@@ -264,7 +264,7 @@ export default function PushGate() {
                   <dd className="font-bold">광고성 정보(앱 푸시) 수신 동의</dd>
                 </div>
               </dl>
-              <p className="mt-3 text-13 text-text-light leading-relaxed text-center break-keep">
+              <p className="mt-3 text-13 text-text-light leading-relaxed text-center">
                 계속 받으려면 그대로 두면 돼.
                 <br />
                 그만 받으려면 [수신 거부]나 마이의 알림 설정에서 끌 수 있어.
