@@ -4,7 +4,7 @@
 // 계약: 토큰 무효(카카오 401·-2)면 {ok:false, reason:"token_invalid"}, 다른 앱 토큰이면 {ok:false, reason:"app_mismatch", appId}.
 //       카카오 쪽 장애(-1·-7·-10 은 HTTP 400, 5xx)·이상한 응답·네트워크 오류·타임아웃(두 호출 합쳐 5초)·앱 ID 형식 오류(숫자 아님 — 숫자인데 다른 앱이면 app_mismatch)는 throw
 //       — 호출 라우트가 500 + 오류 로그로 남긴다(조용히 '무효 토큰' 으로 접히지 않게).
-export type KakaoIdentity = { kakaoId: string; nickname: string; profileImg: string | null };
+export type KakaoIdentity = { kakaoId: string; nickname: string | null; profileImg: string | null };
 export type KakaoVerifyResult =
   | ({ ok: true } & KakaoIdentity)
   | { ok: false; reason: "token_invalid" }
@@ -56,7 +56,7 @@ export async function verifyKakaoAccessToken(
   return {
     ok: true,
     kakaoId,
-    nickname: me.kakao_account?.profile?.nickname || `별콩이_${kakaoId}`,
+    nickname: me.kakao_account?.profile?.nickname || null,
     profileImg: me.kakao_account?.profile?.profile_image_url || null,
   };
 }

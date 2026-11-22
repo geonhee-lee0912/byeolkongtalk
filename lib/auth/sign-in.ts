@@ -2,12 +2,14 @@
 // 순수 오케스트레이션: DB·부수 작업은 deps 로 받는다(실 구현 lib/auth/sign-in-deps.ts, 테스트는 메모리 구현).
 // 🔴 '이미 있던 회원'이면 onNewUser(유입 기록·별 잔액·웰컴 별·CAPI)를 절대 부르지 않는다 — 웰컴 별 중복 지급 방지.
 import { identityHash, type AuthProvider } from "./identity-hash.ts";
+import { randomNickname } from "./nickname.ts";
 
 export type SignInInput = {
   provider: AuthProvider;
   /** 카카오 회원번호(문자열) / 애플 sub */
   providerUserId: string;
-  nickname: string;
+  /** null = 못 받음 — 새 회원이면 무작위 이름, 기존 회원이면 저장된 이름 그대로 */
+  nickname: string | null;
   /** 카카오 프로필 이미지. 애플은 무시한다 */
   profileImg: string | null;
   /** 애플만 — 토큰을 발급한 client_id 와 암호화한 리프레시 토큰(교환 실패면 null) */
@@ -82,7 +84,8 @@ export async function signIn(input: SignInInput, deps: SignInDeps): Promise<Sign
   // 3) 기존 회원 — 동시 가입 경합에서 진 요청도 이긴 회원으로 여기를 지난다
   //    (애플: 같은 인가 코드 이중 전송이면 한쪽만 교환에 성공한다 — 진 쪽이 토큰을 들고 있으면 남겨야 탈퇴 때 revoke 할 수 있다)
   const loginExisting = async (id: string): Promise<SignInResult> => {
-    await deps.updateUserOnLogin(id, isKakao ? { nickname: input.nickname, profile_img: input.profileImg } : {});
+    const profile = isKakao ? { ...(input.nickname ? { nickname: input.nickname } : {}), profile_img: input.profileImg } : {};
+    await deps.updateUserOnLogin(id, profile);
     await deps.updateIdentityOnLogin(provider, providerUserId, appleTouch);
     return { ok: true, userId: id, isNewUser: false };
   };
@@ -91,7 +94,7 @@ export async function signIn(input: SignInInput, deps: SignInDeps): Promise<Sign
   // 4) 신규 회원
   const created = await deps.insertUser({
     kakao_id: isKakao ? Number(providerUserId) : null,
-    nickname: input.nickname,
+    nickname: input.nickname ?? randomNickname(),
     profile_img: isKakao ? input.profileImg : null,
   });
   if (!created.ok) {
