@@ -46,7 +46,7 @@ export default async function FortuneProductPage({
       />
 
       {/* 설명과 사주 고르기를 나눴다 — 고르기는 /fortune/[type]/buy(디자인 다듬기 묶음 4, 운영자 11-15).
-          운영 30일 상품 페이지를 본 86명 중 76명이 옛 위 버튼으로 고르기 칸에 바로 건너갔다 */}
+          운영에서 상품 페이지를 본 사람 대부분이 옛 위 버튼으로 고르기 칸에 바로 건너갔다 */}
       <LandingBuyBar href={`${cfg.href}/buy`} cost={cfg.cost} trackType={type} />
     </main>
   );

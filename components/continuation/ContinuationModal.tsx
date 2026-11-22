@@ -237,7 +237,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
                 <p className="text-12 text-red-500 text-center mt-1">{error}</p>
               )}
 
-              {/* 경로 — 타로는 카드 새로 뽑기 하나(같은 카드로 이어서 40% 는 90일 5번이라 뺐다 — 운영자 11-15, 서버 deep 처리는 그대로),
+              {/* 경로 — 타로는 카드 새로 뽑기 하나(같은 카드로 이어서 40% 는 거의 안 쓰여 뺐다 — 운영자 11-15, 서버 deep 처리는 그대로),
                   사주는 지난 대화를 이어서(40% 할인) 하나 */}
               {consultationType === "tarot" ? (
                 <button

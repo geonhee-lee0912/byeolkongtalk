@@ -1,6 +1,6 @@
 // 사주 상품 — 사주 고르기 페이지. 설명 페이지(/fortune/[type])의 아래 고정 버튼으로 온다
 // (디자인 다듬기 묶음 4 페이지 나누기, 운영자 11-15 — 설명과 고르기가 한 페이지에 섞여 있던 것을 나눴다.
-// 운영 30일 상품 페이지를 본 86명 중 76명이 위 버튼으로 고르기 칸에 바로 건너갔다).
+// 운영에서 상품 페이지를 본 사람 대부분이 위 버튼으로 고르기 칸에 바로 건너갔다).
 // 맨 위에 고르는 상품 한 줄, 그 아래 '누구 사주로 볼까' + 구매 칸.
 import { redirect } from "next/navigation";
 import PurchaseReachedBeacon from "@/components/fortune/landing/PurchaseReachedBeacon";
