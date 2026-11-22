@@ -71,7 +71,7 @@ export default function RefundPage() {
           <div className="mt-3 px-4 py-3 rounded-2xl bg-cream/50 border border-lilac-soft/60">
             <p className="font-bold mb-1.5">oneulcard@gmail.com</p>
             <ul className="list-disc pl-5 space-y-0.5 text-12">
-              <li>회원 카카오 닉네임</li>
+              <li>회원 닉네임과 로그인 수단(카카오 또는 Apple)</li>
               <li>가입 이메일 (선택)</li>
               <li>결제 일시 및 금액</li>
               <li>환불 사유</li>
