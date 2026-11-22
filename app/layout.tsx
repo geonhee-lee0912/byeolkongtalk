@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
-import localFont from "next/font/local";
 import { Suspense } from "react";
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import KakaoSdkLoader from "@/components/auth/KakaoSdkLoader";
@@ -8,18 +7,13 @@ import AppShell from "@/components/layout/AppShell";
 import { appModeScript } from "@/lib/app-shell/mode";
 import MetaPixel from "@/components/analytics/MetaPixel";
 import PageViewBeacon from "@/components/analytics/PageViewBeacon";
+import { cafe24Ssurround } from "./fonts";
 import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
   subsets: ["latin"],
   weight: ["300", "400", "500", "700"],
-});
-
-const cafe24Ssurround = localFont({
-  src: "../public/fonts/Cafe24Ssurround.otf",
-  variable: "--font-cafe24",
-  display: "swap",
 });
 
 const verification: Metadata["verification"] = {};

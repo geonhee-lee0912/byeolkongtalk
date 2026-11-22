@@ -164,7 +164,6 @@ const SCENE_FILES = [
   "components/byeolmaru/CardReportView.tsx", // 줄무늬 게이지
   "components/relationship/DollAvatar.tsx", // 아바타 색
   "components/tarot/CardDrawRitual.tsx", // 카드 뽑기 의식
-  "app/global-error.tsx", // 전면 오류 화면 밤하늘
   "lib/heroGradients.ts", // 히어로 배너 밤하늘 장면
 ];
 test("카드·배너·버튼·타일에 그라데이션이 없다", () => {
@@ -344,4 +343,16 @@ test("오류·404 제목: 다른 화면 제목과 같은 22, 낱말 중간에서
   for (const f of ["app/error.tsx", "app/not-found.tsx"]) {
     assert.match(readFileSync(f, "utf8"), /<h1 className="font-display text-22 [^"]*break-keep text-balance"/, f);
   }
+});
+
+// 디자인 다듬기 묶음 9 ⑨(운영자 11-22 A) — 앱 틀까지 깨져도 오류 화면과 한 짝. 루트 레이아웃이 사라지므로 폭 메타를 직접 둔다
+test("전체 오류 화면: 밝은 바탕·별콩이·제목 글꼴·홈으로, 화면 폭 메타", () => {
+  const s = readFileSync("app/global-error.tsx", "utf8");
+  for (const color of ["#F6F5F2", "#775CB0", "#5A3E8C", "#726398"]) assert.ok(s.includes(color), color);
+  assert.doesNotMatch(s, /#E8C26A|#1F1735|linear-gradient/);
+  assert.ok(s.includes("/byeolkong-curious.png"), "별콩이");
+  assert.ok(s.includes('href="/"'), "홈으로");
+  assert.ok(s.includes('name="viewport"'), "화면 폭");
+  // 글꼴은 한 곳에서 선언해 루트 레이아웃과 같이 쓴다(따로 선언하면 한 벌 더 받는다)
+  for (const f of ["app/layout.tsx", "app/global-error.tsx"]) assert.ok(readFileSync(f, "utf8").includes('from "./fonts"'), f);
 });
