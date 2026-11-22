@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { classBlocks, offenders, sources } from "./design-scan";
 import { TAG_HERO } from "./seo/tag-hero";
 
@@ -364,6 +365,6 @@ test("오류 화면 둘: 다시 시도는 서버에 다시 묻는다", () => {
     assert.ok(s.includes("window.location.reload() : unstable_retry()"), f);
     assert.ok(!s.includes(": reset()"), f);
   }
-  const boundary = readFileSync("node_modules/next/dist/client/components/error-boundary.js", "utf8");
+  const boundary = readFileSync(createRequire(import.meta.url).resolve("next/dist/client/components/error-boundary.js"), "utf8");
   assert.ok(boundary.includes("unstable_retry: this.unstable_retry"), "Next 가 이 이름을 더는 넘기지 않는다 — 오류 화면 두 곳을 새 이름으로");
 });
