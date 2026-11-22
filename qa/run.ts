@@ -34,7 +34,7 @@ async function main() {
   const cases = collectCases(filter);
   if (!filter.product) {
     const skipped = allCases().filter(isClosedCase).length;
-    if (skipped) console.log(`[qa] 종료된 연애 상담·판정 ${skipped}개는 기본 실행에서 제외`);
+    if (skipped) console.log(`[qa] 종료된 상담(사주·연애·판정) ${skipped}개는 기본 실행에서 제외 — 돌리려면 --product=saju:<상품>|relationship|verdict`);
   }
 
   if (cases.length === 0) {

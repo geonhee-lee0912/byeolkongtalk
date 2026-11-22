@@ -5,6 +5,7 @@ import { tarotCases } from "./tarot.ts";
 import { gomintalkCases } from "./gomintalk.ts";
 import { relationshipCases, relationshipLoveCases, verdictCases } from "./relationship.ts";
 import { RELATIONSHIP_CLOSED } from "../../lib/relationship/closed.ts";
+import { SAJU_CONSULT_CLOSED } from "../../lib/saju/closed.ts";
 
 export function allCases(): Case[] {
   return [
@@ -39,8 +40,10 @@ function productMatches(c: Case, sel: string): boolean {
   }
 }
 
-/** 종료된 서비스라 만들 수도 대화할 수도 없는 케이스 — 연애 상담·판정(lib/relationship/closed). */
+/** 종료된 서비스의 케이스 — 연애 상담·판정(lib/relationship/closed)은 만들 수도 없고, 사주 상담(lib/saju/closed)은
+ *  심어서 돌릴 수는 있지만 안 보는 상품이라(운영자 11-22) 콕 집을 때만. */
 export function isClosedCase(c: Case): boolean {
+  if (c.product.kind === "saju") return SAJU_CONSULT_CLOSED;
   return RELATIONSHIP_CLOSED && (c.product.kind === "relationship" || c.product.kind === "verdict");
 }
 
