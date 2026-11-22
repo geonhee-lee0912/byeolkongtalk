@@ -17,12 +17,13 @@ import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
 import SajuGlance from "@/components/saju/SajuGlance";
 import type { FiveElement } from "@/lib/saju/elements";
 import Icon from "@/components/common/Icon";
+import { mySajuState } from "@/lib/fortune/my-saju-state";
 
 const ELEMENTS: FiveElement[] = ["목", "화", "토", "금", "수"];
 
 export default function MySajuRow() {
-  // undefined = 아직 모름(자리만 잡아 둔다), "anon" = 비로그인이 확실, null = 생일 없음
-  const [self, setSelf] = useState<ProfileItem | null | undefined | "anon">(undefined);
+  // undefined = 아직 모름(자리만 잡아 둔다), "anon" = 비로그인이 확실, null = 생일 없음, "error" = 못 불러옴(칸을 숨긴다)
+  const [self, setSelf] = useState<ProfileItem | null | undefined | "anon" | "error">(undefined);
 
   const load = useCallback(async () => {
     try {
@@ -30,16 +31,10 @@ export default function MySajuRow() {
         fetch("/api/auth/me", { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null),
         fetch("/api/profiles", { cache: "no-store" }),
       ]);
-      // 🔴 비로그인이 확실할 때만(=== false) 선물 칸 — 확인 실패면 '생일을 알려줘'(로그인 유저에게 선물을 약속하지 않게)
-      if (me?.isAuthenticated === false) {
-        setSelf("anon");
-        return;
-      }
-      const list = r.ok ? ((await r.json()).profiles as ProfileItem[] | undefined) : undefined;
-      const primary = list?.find((p) => p.isPrimary) ?? null;
-      setSelf(primary?.saju ? primary : null);
+      const list = r.ok ? (((await r.json()).profiles as ProfileItem[] | undefined) ?? null) : null;
+      setSelf(mySajuState(me?.isAuthenticated, list));
     } catch {
-      setSelf(null);
+      setSelf("error");
     }
   }, []);
 
@@ -59,6 +54,7 @@ export default function MySajuRow() {
     </BirthPromptButton>
   );
 
+  if (self === "error") return null;
   if (self === "anon") {
     return (
       <section className="w-full max-w-md mx-auto px-5 pt-4">

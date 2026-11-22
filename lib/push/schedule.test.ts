@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { monthCells, revisitDateRange, revisitSendOn, revisitSendOnFromDate, revisitWindow, shiftMonth } from "./schedule.ts";
+import { readFileSync } from "node:fs";
+import { monthCells, revisitDateRange, revisitPrefill, revisitSendOn, revisitSendOnFromDate, revisitWindow, shiftMonth } from "./schedule.ts";
 
 test("23:50 KST 에 고르면 KST 날짜로 센다", () => {
   assert.equal(revisitSendOn("3d", new Date("2026-11-06T14:50:00Z")), "2026-11-09"); // KST 11-06 23:50
@@ -46,4 +47,21 @@ test("달력 한 달 칸 — 1일 앞은 빈칸(null), 그다음 날짜들", () 
 test("달 옮기기 — 해를 넘긴다", () => {
   assert.equal(shiftMonth("2026-12", 1), "2027-01");
   assert.equal(shiftMonth("2027-01", -1), "2026-12");
+});
+
+test("달·날이 말이 안 되면 터지지 않고 null", () => {
+  const now = new Date("2026-11-06T03:00:00Z");
+  for (const d of ["2026-13-45", "2026-11-00", "2026-00-10", "2026-12-32"]) assert.equal(revisitSendOnFromDate(d, now), null, d);
+});
+
+test("'바꾸기'는 고를 수 있는 날일 때만 미리 골라 둔다 — 당일 예약은 비워 둔다", () => {
+  const now = new Date("2026-11-06T03:00:00Z");
+  assert.equal(revisitPrefill("2026-11-07", now), "2026-11-07");
+  assert.equal(revisitPrefill("2026-11-06", now), null);
+  assert.equal(revisitPrefill("2026-11-01", now), null);
+  assert.equal(revisitPrefill(null, now), null);
+});
+
+test("다시 볼 날 시트의 '바꾸기'가 revisitPrefill 을 쓴다", () => {
+  assert.match(readFileSync("components/push/RevisitSheet.tsx", "utf8"), /setPicked\(revisitPrefill\(sendOn, /);
 });

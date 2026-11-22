@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Dropdown from "@/components/common/Dropdown";
 import { lunarLeapMonth, maxBirthDay } from "@/lib/saju/lunar-table";
-import { birthTimeToBranchHour, type ProfileItem } from "@/components/mypage/sajuShared";
+import { birthTimeForSubmit, birthTimeToBranchHour, type ProfileItem } from "@/components/mypage/sajuShared";
 
 // 12지지 시간 매핑 (SajuInputForm 과 동일).
 const HOUR_BRANCHES: { label: string; hanja: string; range: string; hour: number }[] = [
@@ -46,6 +46,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
   // 비로그인·생일 없음이면 예전처럼 기본값. 불러오기 전에 사용자가 이미 고쳤으면 덮어쓰지 않는다.
   const [prefilled, setPrefilled] = useState(false);
   const touched = useRef(false);
+  const savedTime = useRef<string | null>(null);
   const touch = () => {
     touched.current = true;
   };
@@ -67,6 +68,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
         setIsLeapMonth(me.isLunarInput && me.isLeapMonth);
         const h = birthTimeToBranchHour(me.birthTime);
         setHourValue(h === null ? HOUR_UNKNOWN : String(h));
+        savedTime.current = me.birthTime;
         setPrefilled(true);
       })
       .catch(() => {});
@@ -112,8 +114,7 @@ export function BirthStage({ onDone }: { onDone: (birth: BirthValue) => void }) 
       year,
       month,
       day,
-      hour: isUnknown ? null : parseInt(hourValue, 10),
-      minute: isUnknown ? null : 0,
+      ...birthTimeForSubmit(isUnknown ? null : parseInt(hourValue, 10), savedTime.current),
       isLunar: calendar === "lunar",
       isLeapMonth: calendar === "lunar" ? isLeapMonth : false,
     });

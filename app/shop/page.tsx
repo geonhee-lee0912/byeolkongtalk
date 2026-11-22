@@ -20,7 +20,7 @@ import {
   firstChargeBonusPercent,
   packageSubLine,
 } from "@/lib/recharge-default";
-import { shopReturnKind } from "@/lib/shop-return";
+import { shopFailReason, shopReturnKind } from "@/lib/shop-return";
 
 // ━━━━━━━━━━ 별 아이콘 (인라인 SVG) ━━━━━━━━━━
 function StarIcon({ className }: { className?: string }) {
@@ -320,25 +320,30 @@ function ShopContent() {
               const kind = shopReturnKind(status, failCode);
               if (kind === "success")
                 return <ReturnCard icon={<StarIcon className="w-6 h-6" />} title="별이 들어왔어!" sub="이제 별콩이랑 이어서 얘기하자" />;
+              const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
+              const backToChat = validReturnTo && (
+                <button
+                  type="button"
+                  onClick={() => router.replace(validReturnTo)}
+                  className="mt-3 btn btn-secondary btn-md"
+                >
+                  하던 대화로 돌아가기
+                </button>
+              );
               if (kind === "cancel")
-                return <ReturnCard icon={<span className="text-17 font-black">‖</span>} title="결제를 멈췄어" sub="마음 바뀌면 언제든 다시 골라줘" />;
+                return (
+                  <ReturnCard icon={<span className="text-17 font-black">‖</span>} title="결제를 멈췄어" sub="마음 바뀌면 언제든 다시 골라줘">
+                    {backToChat}
+                  </ReturnCard>
+                );
               if (kind === "fail") {
-                const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
                 return (
                   <ReturnCard
                     icon={<span className="text-20 font-black">!</span>}
                     title="앗, 결제가 안 됐어"
-                    sub={failMessage ? `카드사 답: ${failMessage}` : "다시 골라서 해볼래?"}
+                    sub={shopFailReason(failCode, failMessage)}
                   >
-                    {validReturnTo && (
-                      <button
-                        type="button"
-                        onClick={() => router.replace(validReturnTo)}
-                        className="mt-3 btn btn-secondary btn-md"
-                      >
-                        하던 대화로 돌아가기
-                      </button>
-                    )}
+                    {backToChat}
                   </ReturnCard>
                 );
               }

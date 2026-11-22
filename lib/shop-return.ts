@@ -10,3 +10,9 @@ export function shopReturnKind(status: string | null, code: string | null): Shop
   if (status === "fail") return code === "PAY_PROCESS_CANCELED" ? "cancel" : "fail";
   return null;
 }
+
+/** 실패 카드 둘째 줄 — 토스가 준 이유. '카드사 답'은 카드사가 거절한 코드에만 붙인다(계좌이체·간편결제 실패까지 카드사 탓이 됐었다) */
+export function shopFailReason(code: string | null, message: string | null): string {
+  if (!message) return "다시 골라서 해볼래?";
+  return code?.startsWith("REJECT_CARD") ? `카드사 답: ${message}` : message;
+}

@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import { isShareCancel } from "@/lib/share-cancel";
 import Sheet from "@/components/common/Sheet";
 import { ShareOption, SHARE_ICON, KAKAO_ICON, LINK_ICON, SAVE_ICON } from "@/components/tarot/TarotShareButtons";
 
@@ -49,8 +50,9 @@ export default function ByeolmaruShareButton({ kind, share }: { kind: "saju" | "
         await navigator.share({ title: share.title, text: share.description, url: share.link });
         track("link", true);
         return;
-      } catch {
-        /* 취소 — 링크 복사로 */
+      } catch (e) {
+        if (isShareCancel(e)) return;
+        /* 그 밖의 실패 — 링크 복사로 */
       }
     }
     try {

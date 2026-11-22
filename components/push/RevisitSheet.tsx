@@ -12,7 +12,7 @@ import { askAppPush, appSupportsPush } from "@/lib/app-push";
 import { postToApp } from "@/lib/app-context";
 import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
-import { revisitDateRange, revisitSendOn, type RevisitChoice } from "@/lib/push/schedule";
+import { revisitDateRange, revisitPrefill, revisitSendOn, type RevisitChoice } from "@/lib/push/schedule";
 import { fetchAsk, postAsk } from "./api";
 import Sheet from "@/components/common/Sheet";
 import Icon from "@/components/common/Icon";
@@ -135,7 +135,7 @@ export default function RevisitSheet({
   }, [ready, readingId, autoOpen]);
 
   function openPick() {
-    setPicked(sendOn);
+    setPicked(revisitPrefill(sendOn, new Date()));
     setChip(null);
     setFailed(false);
     setSheet("pick");

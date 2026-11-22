@@ -1,8 +1,12 @@
 // 결과 화면 '이 고민 다시 뽑기' — 이 결과의 고민을 넘겨 스프레드 고르기로 보낸다.
 // 예전엔 /tarot 로만 보내 탭에 남은 마지막 고민을 썼다 — 새 탭·앱 재실행·보관함에서 연 결과에선 비어 홈으로 튕겼다
-// (디자인 다듬기 /tarot/result 운영자 '남기고 고치자' 11-14). 스프레드 고르기는 태그가 있어야 해서, 모르면 고민 적기로.
-import { normalizeEmotionTag, type PendingConsultation } from "@/lib/emotions";
+// (디자인 다듬기 /tarot/result 운영자 '남기고 고치자' 11-14). 스프레드 고르기도 고민 적기도 태그가 있어야 열려서, 모르면 홈 고민 고르기로.
+import { EMOTION_KEY } from "@/lib/consultation-entry";
+import { normalizeEmotionTag, PENDING_KEY, type PendingConsultation } from "@/lib/emotions";
 import type { CrossCard } from "@/components/upsell/cross-cards";
+
+/** 넘길 고민이 없을 때(공유로 온 남·모르는 태그) — /concern 은 태그가 없으면 홈 맨 위로 튕긴다 */
+export const PICK_CONCERN_HREF = "/#emotion-grid";
 
 export function redrawTarget(
   question: string,
@@ -10,8 +14,17 @@ export function redrawTarget(
 ): { href: string; pending: PendingConsultation | null } {
   const emotion = normalizeEmotionTag(emotionTag);
   const concern = question.trim();
-  if (!emotion || !concern) return { href: "/concern", pending: null };
+  if (!emotion || !concern) return { href: PICK_CONCERN_HREF, pending: null };
   return { href: "/tarot", pending: { emotion, concern, type: "tarot" } };
+}
+
+/** 누를 때 탭에 심을 값 — 태그도 같이 심어야 스프레드 고르기의 '고민 다시 적기'(/concern)가 홈으로 안 튕긴다 */
+export function redrawStorage(pending: PendingConsultation | null): [string, string][] {
+  if (!pending) return [];
+  return [
+    [PENDING_KEY, JSON.stringify(pending)],
+    [EMOTION_KEY, pending.emotion],
+  ];
 }
 
 // 결과 화면에선 따로 선 보라 버튼이 아니라 추천 묶음 맨 위 카드로 둔다 — 같은 무게(M2, 운영자 11-14).

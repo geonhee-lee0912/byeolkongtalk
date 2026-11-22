@@ -30,9 +30,15 @@ export function revisitDateRange(now: Date): { min: string; max: string } {
 /** 달력에서 고른 날(YYYY-MM-DD) → 보낼 날. 없는 날·범위 밖이면 null */
 export function revisitSendOnFromDate(date: string, now: Date): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  if (Number.isNaN(new Date(`${date}T00:00:00Z`).getTime())) return null; // 13월·45일 — addDays 가 터진다
   if (addDays(date, 0) !== date) return null; // 2026-11-31 같은 없는 날은 넘어가 다른 날이 된다
   const { min, max } = revisitDateRange(now);
   return date >= min && date <= max ? date : null;
+}
+
+/** '바꾸기'로 열 때 미리 골라 둘 날 — 예약일이 당일·지난 날이면 서버가 안 받으니 비워 둔다 */
+export function revisitPrefill(sendOn: string | null, now: Date): string | null {
+  return sendOn ? revisitSendOnFromDate(sendOn, now) : null;
 }
 
 /** early: 아직 / open: 지금 보낼 수 있음 / missed: 놓침(미루지 않고 건너뜀) */

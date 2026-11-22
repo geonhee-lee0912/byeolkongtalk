@@ -19,9 +19,9 @@ import { stripRecoMarkers } from "@/lib/reco-utils";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
-import { EMOTION_OPTIONS, PENDING_KEY } from "@/lib/emotions";
+import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { CONTINUATION_KEY } from "@/lib/tarot/session";
-import { redrawCard, redrawTarget } from "@/lib/tarot/redraw";
+import { PICK_CONCERN_HREF, redrawCard, redrawStorage, redrawTarget } from "@/lib/tarot/redraw";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import Icon from "@/components/common/Icon";
@@ -144,10 +144,10 @@ function TarotResultInner() {
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
   // 끊긴 대화의 '이어서 대화하기'는 뺐다 — 결과 화면에 오면 결과로 끝(디자인 다듬기 /tarot/result ⑤ 운영자 11-14, 쓰임 7%)
-  // 공유 링크로 온 남(비소유자)에게 남의 고민을 넘기지 않는다 — 자기 고민 적기로
+  // 공유 링크로 온 남(비소유자)에게 남의 고민을 넘기지 않는다 — 홈에서 자기 고민 고르기로
   const redraw = isOwner
     ? redrawTarget(reading.question, reading.emotionTag)
-    : { href: "/concern", pending: null };
+    : { href: PICK_CONCERN_HREF, pending: null };
   // 다시 볼 날(앱·소유자만) — 한마디 카드 맨 아래 한 줄, 누르면 달력 시트(디자인 다듬기 /tarot/result ⑩ F3, 운영자 11-15).
   // 글은 다시 뽑기 값을 밝힌다(W3) — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게
   const revisit = (inline: boolean) =>
@@ -336,7 +336,7 @@ function TarotResultInner() {
             trackUiEvent("result_cta_clicked", { readingId: reading.id, meta: { cta: "new" } });
             // 이 고민을 넘긴다 — 고민 적기와 같이, 남은 이어가기 표시는 지운다(새 리딩에 옛 요약이 붙지 않게)
             sessionStorage.removeItem(CONTINUATION_KEY);
-            if (redraw.pending) sessionStorage.setItem(PENDING_KEY, JSON.stringify(redraw.pending));
+            for (const [key, value] of redrawStorage(redraw.pending)) sessionStorage.setItem(key, value);
           },
         }}
       />
