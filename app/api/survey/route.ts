@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
   if (!charge.success) {
     // 저장은 성공했으나 보상 지급 실패 — 재제출은 409 로 막혀 재시도로 복구 불가.
     // 운영자가 error_logs 로 보고 수동 지급해야 하는 사고 → CRITICAL.
+    // 🔴 수동 지급도 payment_id = survey:<회원> — 응답이 파기된 뒤엔 이 값이 유일한 '이미 참여' 표시다.
     await logError(new Error("chargeStars failed after survey save"), {
       route: "/api/survey",
       userId,
