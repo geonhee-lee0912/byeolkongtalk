@@ -19,6 +19,7 @@ type PurgeResult = {
   withdrawals: number;
   bonus_claims: number;
   sensitive_alerts: number;
+  review_notes: number;
   log_ip_ua: number;
 };
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const r = data as PurgeResult;
   // 파기 기록(건수만) — 세기만 한 날과 0건인 날은 남기지 않는다
-  if (r.executed && r.withdrawals + r.bonus_claims + r.sensitive_alerts + r.log_ip_ua > 0) {
+  if (r.executed && r.withdrawals + r.bonus_claims + r.sensitive_alerts + r.review_notes + r.log_ip_ua > 0) {
     await logInfo("retention purge done", { route: ROUTE, extra: r });
   }
   return NextResponse.json(r);

@@ -37,7 +37,7 @@ function load() {
   return loaded;
 }
 
-const counts = (executed: boolean, n: number) => ({ executed, withdrawals: n, bonus_claims: n, sensitive_alerts: 0, log_ip_ua: n });
+const counts = (executed: boolean, n: number) => ({ executed, withdrawals: n, bonus_claims: n, sensitive_alerts: 0, review_notes: 0, log_ip_ua: n });
 
 type Env = { CRON_SECRET?: string; RETENTION_PURGE?: string };
 async function run(env: Env, authorization: string | null, result: typeof Fakes.state.result) {
@@ -102,6 +102,12 @@ test("지운 것이 없으면 기록을 남기지 않는다", async () => {
   const r = await run({ CRON_SECRET: SECRET, RETENTION_PURGE: "on" }, AUTH, { data: counts(true, 0), error: null });
   assert.equal(r.status, 200);
   assert.deepEqual(r.state.logs, []);
+});
+
+test("검토 메모 사본만 비운 날도 기록한다", async () => {
+  const data = { ...counts(true, 0), review_notes: 1 };
+  const r = await run({ CRON_SECRET: SECRET, RETENTION_PURGE: "on" }, AUTH, { data, error: null });
+  assert.deepEqual(r.state.logs.map((l) => l.level), ["info"]);
 });
 
 test("DB 오류는 500 + error — 조용히 성공으로 접지 않는다", async () => {
