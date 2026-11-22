@@ -15,6 +15,7 @@ import { getUserIdentities, primaryIdentity, type UserIdentity } from "@/lib/aut
 import { identityHash } from "@/lib/auth/identity-hash";
 import { decryptSecret } from "@/lib/auth/token-crypto";
 import { revokeAppleToken } from "@/lib/auth/apple";
+import { dbFailure } from "@/lib/auth/db-failure";
 
 const ROUTE = "/api/auth/withdraw";
 
@@ -60,7 +61,6 @@ export async function POST(request: NextRequest) {
           route: ROUTE,
           userId,
           extra: {
-            kakaoId: ident.providerUserId,
             severity: "WITHDRAW_UNLINK_FAILED",
             kakaoStatus: unlink.status ?? null,
             kakaoCode: unlink.code ?? null,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         await logInfo("Kakao already unlinked before withdraw — proceeding", {
           route: ROUTE,
           userId,
-          extra: { kakaoId: ident.providerUserId },
+          extra: { step: "kakao_unlink", kakaoCode: unlink.code ?? null },
         });
       }
     } else if (ident.provider === "apple") {
@@ -160,10 +160,10 @@ export async function POST(request: NextRequest) {
       .from("account_withdrawals")
       .insert({ kakao_id_hash: hash, ...(acq ?? {}) });
     if (wErr) {
-      await logError(wErr, {
+      await logError(dbFailure("withdrawal ledger insert", wErr), {
         route: ROUTE,
         userId,
-        extra: { severity: "WITHDRAWAL_LOG_FAILED" },
+        extra: { severity: "WITHDRAWAL_LOG_FAILED", dbCode: wErr.code || null },
       });
     }
   }

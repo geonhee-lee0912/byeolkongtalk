@@ -9,6 +9,7 @@ import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 import { ACQ_COOKIE, parseAcqCookie, acqFromPageView, type AcqPayload } from "@/lib/acquisition";
 import type { SignInDeps } from "./sign-in";
+import { dbFailure } from "./db-failure";
 
 const UNIQUE_VIOLATION = "23505";
 type Db = ReturnType<typeof getServiceSupabase>;
@@ -38,7 +39,11 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
       if (!error) return { ok: true };
       const duplicate = error.code === UNIQUE_VIOLATION;
       if (!duplicate) {
-        await logError(error, { route, userId: row.user_id, extra: { step: "user_identities_insert", provider: row.provider } });
+        await logError(dbFailure("user identity insert", error), {
+          route,
+          userId: row.user_id,
+          extra: { step: "user_identities_insert", provider: row.provider, dbCode: error.code || null },
+        });
       }
       return { ok: false, duplicate };
     },
@@ -49,7 +54,12 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
         .update({ ...patch, last_login_at: new Date().toISOString() })
         .eq("provider", provider)
         .eq("provider_user_id", providerUserId);
-      if (error) await logError(error, { route, extra: { step: "user_identities_touch", provider } });
+      if (error) {
+        await logError(dbFailure("user identity update", error), {
+          route,
+          extra: { step: "user_identities_touch", provider, dbCode: error.code || null },
+        });
+      }
     },
 
     async insertUser(row) {
@@ -57,9 +67,9 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
       if (!error && data) return { ok: true, id: data.id as string };
       const duplicate = error?.code === UNIQUE_VIOLATION;
       if (!duplicate) {
-        await logError(error ?? new Error("user insert null"), {
+        await logError(error ? dbFailure("user insert", error) : new Error("user insert null"), {
           route,
-          extra: { kakaoId: row.kakao_id, nickname: row.nickname },
+          extra: { step: "user_insert", dbCode: error?.code || null },
         });
       }
       return { ok: false, duplicate };
@@ -100,10 +110,10 @@ export function supabaseSignInDeps(request: NextRequest, route: string): SignInD
         )
         .select("kakao_id_hash");
       if (welcomeClaimErr) {
-        await logError(welcomeClaimErr, {
+        await logError(dbFailure("welcome claim", welcomeClaimErr), {
           route,
           userId,
-          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED" },
+          extra: { severity: "WELCOME_CLAIM_CHECK_FAILED", dbCode: welcomeClaimErr.code || null },
         });
       }
       if (!welcomeClaimErr && (welcomeClaim?.length ?? 0) > 0) {
