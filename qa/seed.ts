@@ -1,5 +1,9 @@
 // qa/seed.ts — 테스트 유저/잔액 보장 + 이전 데이터 정리 (service role).
 import { getServiceSupabase } from "../lib/supabase.ts";
+import { baseDateForKst, calcTemporalLuck } from "../lib/saju/calc.ts";
+import { kstDate } from "../lib/admin-time.ts";
+import { PROMPT_VERSION } from "../lib/prompt-version.ts";
+import type { SajuProduct } from "../lib/saju/products.ts";
 import { config } from "./config.ts";
 
 export async function ensureTestUser(): Promise<void> {
@@ -43,6 +47,38 @@ export async function cleanTestData(): Promise<void> {
   // 등록이 멱등이라 재실행 시 thread 없는 관계를 재사용해 404 가 난다.
   await db.from("relationships").delete().eq("user_id", config.TEST_USER_ID);
   await db.from("readings").delete().eq("user_id", config.TEST_USER_ID);
+}
+
+/** 사주 상담은 종료돼 POST /api/readings 가 410 이다(lib/saju/closed). 끝나지 않은 상담은 마저 할 수 있어 QA 는
+ *  그 상태를 바로 심는다 — 일회성 프로필(profile_id 없음), 오늘의 기둥 포함(닫힌 라우트가 저장하던 모양). 별은 안 깎는다. */
+export async function seedSajuReading(input: {
+  saju: unknown;
+  birthYear: number;
+  question: string;
+  emotion: string;
+  sajuProduct: SajuProduct;
+}): Promise<string> {
+  const db = getServiceSupabase();
+  const temporal = calcTemporalLuck(baseDateForKst(kstDate(new Date().toISOString())), input.birthYear, {
+    includeMonth: input.sajuProduct === "good_days",
+  });
+  const { data, error } = await db
+    .from("readings")
+    .insert({
+      user_id: config.TEST_USER_ID,
+      consultation_type: "saju",
+      question: input.question,
+      saju_data: { ...(input.saju as Record<string, unknown>), temporal },
+      emotion_tag: input.emotion,
+      saju_product: input.sajuProduct,
+      stars_spent: 0,
+      has_sensitive: false,
+      prompt_version: PROMPT_VERSION,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`[seed] 사주 상담 심기 실패: ${error?.message ?? "빈 응답"}`);
+  return data.id as string;
 }
 
 /** 관계 케이스 간 격리 — 유저당 관계 1개(unique index) 제약 때문에 각 관계/verdict
