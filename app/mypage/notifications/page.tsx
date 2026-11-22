@@ -11,7 +11,7 @@ import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
 import type { AdStatus } from "@/lib/push/asks";
 import AdConsentNotice, { type ConsentNotice } from "@/components/push/AdConsentNotice";
-import { AD_CONSENT_CONTENTS } from "@/components/push/AdConsentCheck";
+import { AD_CONSENT_CONTENTS, AdConsentUse } from "@/components/push/AdConsentCheck";
 import { setAdConsent } from "@/components/push/api";
 
 function Toggle({ on, label, disabled, onClick }: { on: boolean; label: string; disabled: boolean; onClick: () => void }) {
@@ -187,6 +187,7 @@ export default function NotificationSettingsPage() {
                   {/* 받을 내용은 체크칸·알림 질문 시트와 같은 한 곳(AD_CONSENT_CONTENTS) — 따로 적던 글이 어긋나지 않게 */}
                   {ad.status === "granted" && ad.grantedOn ? `동의일 ${ad.grantedOn}` : AD_CONSENT_CONTENTS}
                 </p>
+                <AdConsentUse />
               </div>
               <Toggle on={ad.status === "granted"} label="광고성 정보 수신 동의" disabled={busy} onClick={() => void toggleAd()} />
             </div>

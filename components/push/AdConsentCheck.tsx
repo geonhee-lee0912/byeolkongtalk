@@ -8,6 +8,23 @@ export const AD_CONSENT_LABEL = "(선택) 광고성 정보 수신 동의 (앱 �
 // 생일 아침 운세·이벤트 소식은 아직 안 보내는 2차 종류지만 미리 적어 둔 그대로 둔다. 새 광고 종류를 만들면 여기에도 더할 것
 export const AD_CONSENT_CONTENTS = "매일 아침 별 흐름 맛보기 · 하던 이야기 이어가기 · 오랜만의 안부 · 생일 아침 운세 · 이벤트 소식";
 export const AD_CONSENT_HOW_TO_OFF = "언제든 마이의 알림 설정에서 끌 수 있어";
+// 동의받을 때 알릴 것 — 쓰는 정보 · 목적 · 보관 · 거부권(운영자 11-22 알림-5-5A, 글자 그대로 — consent-copy.test.ts 가 잠근다).
+// 개인정보처리방침 제3조의 "동의를 받아 처리" 항목과 같이 고칠 것
+const AD_CONSENT_USED_INFO = "푸시 토큰 · 생년월일·태어난 시·성별 · 구독 상태 · 앱을 연 시각 · 최근 상담 시각과 종료 여부";
+const AD_CONSENT_USE_NOTE =
+  "광고 알림을 보내려고 써. 동의를 끄거나 탈퇴하면 광고에는 더 안 써(동의 기록은 탈퇴 때까지 보관). 동의 안 해도 서비스는 그대로 쓸 수 있어";
+
+/** 동의받는 세 곳(체크칸 · 광고만 묻는 시트 · 알림 설정)이 같이 쓰는 두 줄. label 안에도 들어가서 span */
+export function AdConsentUse() {
+  return (
+    <>
+      <span className="block text-11 text-text-light mt-1.5 leading-normal">
+        <span className="font-bold text-eye-purple">쓰는 정보:</span> {AD_CONSENT_USED_INFO}
+      </span>
+      <span className="block text-11 text-text-light mt-1 leading-normal">{AD_CONSENT_USE_NOTE}</span>
+    </>
+  );
+}
 
 export default function AdConsentCheck({
   checked,
@@ -33,6 +50,7 @@ export default function AdConsentCheck({
         <span className="block text-12 text-text-light mt-1.5 leading-relaxed">
           <span className="font-bold text-eye-purple">받을 내용</span> {AD_CONSENT_CONTENTS}
         </span>
+        <AdConsentUse />
         <span className="block text-11 text-text-light mt-1 leading-normal">{AD_CONSENT_HOW_TO_OFF}</span>
       </span>
     </label>

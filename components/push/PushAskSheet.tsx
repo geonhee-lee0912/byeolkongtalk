@@ -7,7 +7,7 @@
 import { useRef, useState } from "react";
 import { askAppPush } from "@/lib/app-push";
 import type { AdStatus, AskKind, AskMoment } from "@/lib/push/asks";
-import AdConsentCheck, { AD_CONSENT_CONTENTS, AD_CONSENT_HOW_TO_OFF, AD_CONSENT_LABEL } from "./AdConsentCheck";
+import AdConsentCheck, { AD_CONSENT_CONTENTS, AD_CONSENT_HOW_TO_OFF, AD_CONSENT_LABEL, AdConsentUse } from "./AdConsentCheck";
 import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import { postAsk, setAdConsent } from "./api";
 import { askCopy } from "@/lib/push/ask-copy";
@@ -118,6 +118,7 @@ export default function PushAskSheet({
             <p className="text-12 text-text-light mt-1.5 leading-relaxed">
               <span className="font-bold text-eye-purple">받을 내용</span> {AD_CONSENT_CONTENTS}
             </p>
+            <AdConsentUse />
             <p className="text-11 text-text-light mt-1 leading-normal">{AD_CONSENT_HOW_TO_OFF}</p>
           </div>
         )}
