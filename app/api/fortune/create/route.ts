@@ -22,7 +22,7 @@ import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport } fr
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
-import { promptNameFor } from "@/lib/fortune/prompt-name";
+import { promptNameFor, type PromptName } from "@/lib/fortune/prompt-name";
 import { getCard } from "@/lib/tarot/cards";
 import {
   parseTarotReportJson,
@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju: SajuResult | undefined = undefined;
   let sajuB: SajuResult | undefined = undefined;
-  let promptNames: { a: string; b: string } | undefined;
+  let promptNames: { a: PromptName; b: PromptName } | undefined;
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
   let usedProfileB: string | null = null;

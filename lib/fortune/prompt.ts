@@ -5,7 +5,7 @@ import { join } from "path";
 import type { SajuResult, DaeunPillar } from "@/lib/saju/calc";
 import type { FortuneType } from "./types";
 import { SAJU_YEAR_SPECS, type SajuYearSpec } from "./saju-full-report";
-import { SELF_PROMPT_NAME } from "./prompt-name";
+import { promptLabel, type PromptName } from "./prompt-name";
 
 let _persona: string | null = null;
 function getFortunePersona(): string {
@@ -121,7 +121,7 @@ export interface TarotDrawnForPrompt {
 interface FortuneInput {
   saju?: SajuResult;
   sajuB?: SajuResult;
-  names?: { a: string; b: string };
+  names?: { a: PromptName; b: PromptName }; // null = 본인
   tarotCards?: TarotDrawnForPrompt[];
   daeun?: DaeunPillar[]; // 평생사주·인생그래프 — 대운 10년 흐름(결정론) 주입
   /** daily 전용 — 리포트 대상 날짜(YYYY-MM-DD). 오늘이 아니면 시제 지시 줄이 붙는다. */
@@ -756,8 +756,8 @@ export function buildFortuneSystem(
   // 화면 쪽 짝은 lib/byeolmaru/report-date.ts 의 dayWordFor — lib/fortune → lib/byeolmaru 역방향
   // 의존 금지라 의도적 중복. 한쪽을 바꾸면 다른 쪽도 볼 것.
   if ((type === "compat" || type === "compat_social") && input.saju && input.sajuB) {
-    const nameA = input.names?.a ?? "첫 번째 사람";
-    const nameB = input.names?.b ?? "두 번째 사람";
+    const nameA = promptLabel(input.names?.a, "첫 번째 사람");
+    const nameB = promptLabel(input.names?.b, "두 번째 사람");
     parts.push(sajuBlock(input.saju, `첫 번째 사람 사주판 — ${nameA}`, dayWord));
     parts.push("");
     parts.push(sajuBlock(input.sajuB, `두 번째 사람 사주판 — ${nameB}`, dayWord));
@@ -806,7 +806,7 @@ export function buildFortuneSystem(
   if (type === "compat" || type === "compat_social") {
     // 작성 지시가 "첫 번째 사람"으로 적혀 있어, 이름 아닌 "너"만 주면 글이 본인을 순번으로 부른다(2026-11-22 실제 AI QA).
     // 그래서 그 지시 **뒤**에 붙인다. 본인이 없는 궁합엔 붙이지 않는다.
-    const self = input.names?.a === SELF_PROMPT_NAME ? "첫" : input.names?.b === SELF_PROMPT_NAME ? "두" : null;
+    const self = input.names?.a === null ? "첫" : input.names?.b === null ? "두" : null;
     if (self) parts.push(`${self} 번째 사람이 이 글을 읽는 너야 — 글에서는 순번 말고 '너'로 불러.`);
   }
 

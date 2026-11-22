@@ -28,6 +28,7 @@ const FAKED = [
   "session",
   "stars",
   "reading-dedupe",
+  "ratelimit",
   "relationship/closed",
   "relationship/passes",
   "logger",
@@ -73,6 +74,8 @@ const ME = profile("me", SELF_NAME, true, "self");
 const OLD_ME = profile("old-me", SELF_NAME, false, "self"); // 옛 저장 경로(/api/readings)가 남긴 '본인인데 대표가 아닌' 행
 const FRIEND = profile("friend", "민수", false, "friend");
 const PARTNER = profile("partner", "지우", false, "partner");
+const NAMED_NEO = profile("named-neo", "너", false, "friend"); // 이름이 본인 호칭과 같은 상대
+const NAMED_NEO_SPACED = profile("named-neo-spaced", " 너 ", false, "friend");
 
 // 작성 지시가 "첫 번째 사람"으로 적혀 있어, 이 한 줄이 없으면 글이 본인을 순번으로 부른다(운영자 결정 애플-10A, 2026-11-22)
 const callLine = (nth: string) => `${nth} 번째 사람이 이 글을 읽는 너야 — 글에서는 순번 말고 '너'로 불러.`;
@@ -80,15 +83,22 @@ const callLine = (nth: string) => `${nth} 번째 사람이 이 글을 읽는 너
 const post = (path: string, body: unknown) =>
   new NextRequest(`http://localhost${path}`, { method: "POST", body: JSON.stringify(body) });
 
+const [FIRST, SECOND] = ["첫 번째 사람", "두 번째 사람"];
 const CASES = [
-  { title: "본인이 첫째", a: ME, b: FRIEND, sent: ["너", "민수"] },
-  { title: "본인이 둘째", a: FRIEND, b: ME, sent: ["민수", "너"] },
-  { title: "대표가 아닌 본인 행", a: FRIEND, b: OLD_ME, sent: ["민수", "너"] },
-  { title: "본인이 없으면 입력한 이름 그대로", a: PARTNER, b: FRIEND, sent: ["지우", "민수"] },
+  { title: "본인이 첫째", a: ME, b: FRIEND, sent: ["너", "민수"], self: "첫" },
+  { title: "본인이 둘째", a: FRIEND, b: ME, sent: ["민수", "너"], self: "두" },
+  { title: "대표가 아닌 본인 행", a: FRIEND, b: OLD_ME, sent: ["민수", "너"], self: "두" },
+  { title: "본인이 없으면 입력한 이름 그대로", a: PARTNER, b: FRIEND, sent: ["지우", "민수"], self: null },
+  // 이름이 "너"여도 본인이 아니다 — 본인 자리로 읽히지 않게 그 자리엔 순번을 싣는다
+  { title: "상대 이름이 너 · 상대가 첫째", a: NAMED_NEO, b: ME, sent: [FIRST, "너"], self: "두" },
+  { title: "상대 이름이 너(앞뒤 빈칸) · 상대가 첫째", a: NAMED_NEO_SPACED, b: ME, sent: [FIRST, "너"], self: "두" },
+  { title: "상대 이름이 너 · 상대가 둘째", a: ME, b: NAMED_NEO, sent: ["너", SECOND], self: "첫" },
+  { title: "본인 없음 · 첫째 이름이 너", a: NAMED_NEO, b: FRIEND, sent: [FIRST, "민수"], self: null },
+  { title: "본인 없음 · 둘째 이름이 너", a: FRIEND, b: NAMED_NEO, sent: ["민수", SECOND], self: null },
 ];
 
 for (const type of ["compat", "compat_social"]) {
-  for (const { title, a, b, sent } of CASES) {
+  for (const { title, a, b, sent, self } of CASES) {
     test(`${type} — ${title}`, async () => {
       const { fakes, fortune } = await load();
       fakes.reset();
@@ -102,8 +112,8 @@ for (const type of ["compat", "compat_social"]) {
         assert.ok(!prompt.includes(SELF_NAME), "본인 이름이 AI 입력에 실렸다");
         assert.ok(prompt.includes(`첫 번째 사람 사주판 — ${sent[0]}]`), `첫째 이름은 ${sent[0]}`);
         assert.ok(prompt.includes(`두 번째 사람 사주판 — ${sent[1]}]`), `둘째 이름은 ${sent[1]}`);
-        assert.equal(prompt.includes(callLine("첫")), sent[0] === "너", "첫째가 본인일 때만 첫째 호칭 줄");
-        assert.equal(prompt.includes(callLine("두")), sent[1] === "너", "둘째가 본인일 때만 둘째 호칭 줄");
+        assert.equal(prompt.includes(callLine("첫")), self === "첫", "첫째가 본인일 때만 첫째 호칭 줄");
+        assert.equal(prompt.includes(callLine("두")), self === "두", "둘째가 본인일 때만 둘째 호칭 줄");
       }
       const stored = fakes.state.readings[0].saju_data as { names: unknown };
       assert.deepEqual(stored.names, { a: a.display_name, b: b.display_name }, "화면용 저장 이름은 그대로");
@@ -111,19 +121,24 @@ for (const type of ["compat", "compat_social"]) {
   }
 }
 
-test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 너", async () => {
+async function runThread(partner: typeof PARTNER) {
   const { fakes, thread } = await load();
   fakes.reset();
-  fakes.state.profiles = [ME, PARTNER];
+  fakes.state.profiles = [ME, partner];
   fakes.state.relationship = {
     id: "rel",
     user_id: "test-user",
     self_profile_id: ME.id,
-    partner_profile_id: PARTNER.id,
+    partner_profile_id: partner.id,
     thread_reading_id: "thread",
     memo: {},
   };
   await thread(post("/api/relationship/chat", { relationshipId: "rel", skillStart: "compat" }));
+  return fakes;
+}
+
+test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 너", async () => {
+  const fakes = await runThread(PARTNER);
 
   assert.equal(fakes.state.prompts.length, 2, "첫 호출 + 파싱 실패 재시도");
   for (const prompt of fakes.state.prompts) {
@@ -131,5 +146,16 @@ test("우리 사이 궁합 스킬(종료를 되돌려도) — 본인은 너", as
     assert.ok(prompt.includes("첫 번째 사람 사주판 — 너]"));
     assert.ok(prompt.includes("두 번째 사람 사주판 — 지우]"));
     assert.ok(prompt.includes(callLine("첫")), "본인 호칭 줄");
+  }
+});
+
+test("우리 사이 궁합 스킬 — 상대 이름이 너여도 본인과 구분", async () => {
+  const fakes = await runThread(NAMED_NEO);
+
+  assert.equal(fakes.state.prompts.length, 2, "첫 호출 + 파싱 실패 재시도");
+  for (const prompt of fakes.state.prompts) {
+    assert.ok(prompt.includes("첫 번째 사람 사주판 — 너]"));
+    assert.ok(prompt.includes(`두 번째 사람 사주판 — ${SECOND}]`), "상대 자리엔 순번");
+    assert.ok(prompt.includes(callLine("첫")) && !prompt.includes(callLine("두")), "본인 호칭 줄은 첫째만");
   }
 });
