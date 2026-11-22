@@ -145,7 +145,7 @@ export default function ContinuationModal({ readingId, onClose }: Props) {
       const res = await fetch("/api/readings/continue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // expectedCost = 이 버튼에 보여 준 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 PRICE_CHANGED · 사주 부모는 대조 안 함)
+        // expectedCost = 이 버튼에 보여 준 가격 — 서버가 자기 가격과 대조한다(다르면 차감 없이 409 PRICE_CHANGED · 사주 부모는 종료라 410)
         body: JSON.stringify({ previousReadingId: parent.id, mode, concern, expectedCost: cost }),
       });
       const data = await res.json().catch(() => ({}));

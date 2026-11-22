@@ -8,12 +8,9 @@ import SajuBoard from "@/components/saju/SajuBoard";
 import EmphasisText from "@/components/common/EmphasisText";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
-import RechargeBlock from "@/components/upsell/RechargeBlock";
 import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
-import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
 import type { SajuResult } from "@/lib/saju/calc";
@@ -52,7 +49,6 @@ function ResultPageInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [continueOpen, setContinueOpen] = useState(false);
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
@@ -93,10 +89,10 @@ function ResultPageInner() {
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center">
         <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
-          href="/saju"
+          href="/fortune"
           className="btn btn-primary btn-md"
         >
-          새 사주 보러가기
+          사주 운세 보러가기
         </Link>
       </main>
     );
@@ -232,16 +228,6 @@ function ResultPageInner() {
         </div>
       )}
 
-      {/* ② 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
-      <RechargeBlock
-        allowContinue={!reading.hasSensitive}
-        onContinue={() => setContinueOpen(true)}
-        newHref="/saju"
-        newLabel="새 사주 보기"
-        newCostLabel={`별 ${SAJU_READING_COST}`}
-        readingId={reading.id}
-      />
-
       {/* ② 공유 — 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <ShareButtons
@@ -260,11 +246,6 @@ function ResultPageInner() {
       <ResultUpsell variant="counsel" />
 
       <SurveyResultCard />
-
-      <ContinuationModal
-        readingId={continueOpen ? reading.id : null}
-        onClose={() => setContinueOpen(false)}
-      />
     </main>
   );
 }

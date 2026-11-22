@@ -13,6 +13,7 @@ import { continuationPrice, fullCostFor, type ContinuationMode } from "@/lib/con
 import { PROMPT_VERSION } from "@/lib/prompt-version";
 import type { SpreadType } from "@/lib/tarot/spreads";
 import { checkShownPrice, validShownPrice } from "@/lib/tarot/pricing";
+import { sajuConsultClosedResponse } from "@/lib/saju/closed";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,11 @@ export async function POST(request: NextRequest) {
   }
   if (parent.user_id !== userId) {
     return NextResponse.json({ error: "not_authorized" }, { status: 403 });
+  }
+  // 이어갈 수 있는 건 타로뿐 — 사주 상담은 종료(운영자 11-22). 대화·잔액·차감보다 먼저
+  if (parent.consultation_type !== "tarot") {
+    const closed = sajuConsultClosedResponse();
+    if (closed) return closed;
   }
   if (parent.has_sensitive) {
     return NextResponse.json({ error: "sensitive_blocked" }, { status: 403 });

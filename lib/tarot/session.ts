@@ -19,7 +19,7 @@ export interface TarotDrawResult extends TarotSpreadSelection {
 
 export const TAROT_SPREAD_KEY = "byeolkong:tarot_spread";
 export const TAROT_DRAW_KEY = "byeolkong:tarot_draw";
-/** 이어가기 표시 — 대화 화면(app/tarot/reading)·사주 시작 화면(app/(consultations)/saju/page.tsx)이 읽어 POST 에 싣고 지운다. ContinuationModal·reco-nav 와 같은 키 */
+/** 이어가기 표시 — 대화 화면(app/tarot/reading)이 읽어 POST 에 싣고 지운다. ContinuationModal·reco-nav 와 같은 키 */
 export const CONTINUATION_KEY = "byeolkong:continuation";
 
 /** 이어가기 도중 "고민 다시 적기"(스프레드 고르기 맨 위 링크)가 여는 주소 — 고민 쓰기가 이 표시를 보면 이어가기 표시를 지우지 않는다.
