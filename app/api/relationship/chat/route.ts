@@ -40,6 +40,7 @@ import {
 import { calcSaju } from "@/lib/saju/calc";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { buildFortuneSystem, FORTUNE_KICKOFF } from "@/lib/fortune/prompt";
+import { SELF_PROMPT_NAME } from "@/lib/fortune/prompt-name";
 import { MAX_TOKENS_BY_FORTUNE } from "@/lib/fortune/types";
 import { fortuneModel } from "@/lib/fortune/model";
 import { fortuneResponseFormat } from "@/lib/fortune/response-format";
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest) {
         const system = buildFortuneSystem("compat", {
           saju,
           sajuB,
-          names: { a: selfRow.display_name, b: partnerRow.display_name },
+          names: { a: SELF_PROMPT_NAME, b: partnerRow.display_name },
         });
         const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, threadReadingId, stage: "compat" } };
         let ai = parseCompatReportJson(
