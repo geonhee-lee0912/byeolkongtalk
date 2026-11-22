@@ -16,6 +16,13 @@ const THEMES = tagContent as Record<string, { title: string }>;
 const SPREADS = spreadContent as Record<string, unknown>;
 const CARDS = cardContent as Record<string, unknown>;
 
+// 히어로 그림(900×672)엔 위→아래 바탕색이 구워져 있다 — 원본 가장자리 색을 10% 높이마다 잰 값으로 좌우를 잇고,
+// 그림 양끝(글자·캐릭터 없는 14%)만 풀어 경계를 숨긴다. 그림을 바꾸면 이 값도 다시 잴 것.
+// design-allow: 그림에 구워진 바탕을 좌우로 잇는 색(장식 그라데이션 아님)
+const HERO_BG = "linear-gradient(to bottom, rgb(244 231 253) 0%, rgb(243 232 253) 10%, rgb(241 229 251) 20%, rgb(238 227 250) 30%, rgb(236 223 248) 40%, rgb(231 218 243) 50%, rgb(229 215 240) 60%, rgb(225 208 238) 70%, rgb(220 204 236) 80%, rgb(217 203 235) 90%, rgb(215 200 231) 100%)";
+// design-allow: 그림 양끝을 풀어 주는 가림막(색 아님)
+const HERO_EDGE = "linear-gradient(to right, transparent, black 14%, black 86%, transparent)";
+
 export default function GuideHome() {
   const hubs = [
     {
@@ -40,22 +47,29 @@ export default function GuideHome() {
 
   return (
     <div>
-      {/* 히어로 — 콘텐츠 존의 얼굴. 장식이므로 alt=""(정보는 h1·본문이 전달) */}
-      <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4">
-        <Image
-          src="/guide-hub-hero.webp"
-          alt=""
-          fill
-          sizes="(max-width: 448px) 100vw, 448px"
-          className="object-cover"
-          aria-hidden
-        />
+      {/* 히어로 — 콘텐츠 존의 얼굴. 장식이므로 alt=""(정보는 h1·본문이 전달).
+          화면 절반이던 4:3 → 낮은 배너, 그림은 자르지 않고 정비율로 줄여 가운데(디자인 다듬기 묶음 9 ③ H3, 운영자 11-22) */}
+      <div className="w-full aspect-[21/10] rounded-2xl overflow-hidden mb-4" style={{ background: HERO_BG }}>
+        <div
+          className="relative h-full aspect-[900/672] mx-auto"
+          style={{ maskImage: HERO_EDGE, WebkitMaskImage: HERO_EDGE }}
+        >
+          <Image
+            src="/guide-hub-hero.webp"
+            alt=""
+            fill
+            sizes="(max-width: 448px) 64vw, 288px"
+            className="object-contain"
+            aria-hidden
+          />
+        </div>
       </div>
 
-      <h1 className="font-display text-22 text-eye-purple">
+      {/* 앱에선 앱 머리 '타로 가이드'와 두 번이라 숨긴다(web-only) — 웹·검색엔 h1 그대로 */}
+      <h1 className="web-only mb-1.5 font-display text-22 text-eye-purple">
         별콩이의 타로 가이드
       </h1>
-      <p className="text-13 text-text-light mt-1.5 leading-relaxed">
+      <p className="text-13 text-text-light leading-relaxed break-keep">
         카드가 처음이어도 괜찮아 — 고민별로 무엇을 어떻게 보는지 차근차근
         정리해뒀어.
       </p>
@@ -73,7 +87,7 @@ export default function GuideHome() {
         ))}
       </div>
 
-      <h2 className="text-14 font-bold text-eye-purple mt-6 mb-2">
+      <h2 className="text-15 font-bold text-eye-purple mt-6 mb-3">
         고민별 타로 가이드
       </h2>
       <div className="flex flex-col gap-2.5">

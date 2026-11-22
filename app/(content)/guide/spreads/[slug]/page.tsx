@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import spreadContent from "@/data/seo/spread-content.json";
@@ -13,6 +12,7 @@ import {
   getSpreadDescription,
 } from "@/lib/tarot/spreads";
 import GuideCta from "@/components/seo/GuideCta";
+import SpreadDiagram from "@/components/seo/SpreadDiagram";
 import Icon from "@/components/common/Icon";
 
 interface SpreadEntry {
@@ -46,35 +46,6 @@ const SPREAD_CTA_TAG: Record<SpreadType, EmotionTag> = {
   healing_6: "그냥 별콩이한테 털어놓고 싶어",
   chakra_7: "그냥 별콩이한테 털어놓고 싶어",
 };
-
-/**
- * 스프레드별 별콩이 삽화 — 결정론적 선택.
- * 이 라우트는 generateStaticParams + dynamicParams=false 로 빌드 타임 정적 생성이라
- * 매 로드 랜덤은 클라이언트 JS 가 필요하고 하이드레이션 불일치·레이아웃 시프트를 만든다.
- * SpreadType 문자열 해시로 재활용 투명 PNG 6종 중 하나를 고정 배정해 14페이지가
- * 서로 다른 포즈를 갖게 한다(SPREAD_INFO 선언 순서를 그대로 mod 하면 인접 스프레드가
- * 같은 이미지로 몰릴 수 있어 해시로 흩뜨린다). shop(충전 유도)·saju(사주 맥락)·
- * main/hero(브랜드 대표컷)는 이 맥락에 안 맞아 제외.
- */
-const SPREAD_POSES = [
-  "/byeolkong-tarot.png",
-  "/byeolkong-focus.png",
-  "/byeolkong-curious.png",
-  "/byeolkong-listen.png",
-  "/byeolkong-joy.png",
-  "/byeolkong-cheer.png",
-] as const;
-
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
-
-const poseForSpread = (type: SpreadType) =>
-  SPREAD_POSES[hashString(type) % SPREAD_POSES.length];
 
 /** 본문이 작성된 스프레드만 발행 */
 export function generateStaticParams() {
@@ -133,19 +104,7 @@ export default async function SpreadPage({
         {info.cardCount}장 배열 · {getSpreadDescription(type, "default")}
       </p>
 
-      {/* 중간 삽화 — 페이지의 얼굴(히어로)이 아니라 본문 사이 장식이라 태그 랜딩 히어로보다
-          작게 둔다. 투명 PNG 라 태그 랜딩(hasBackground:false) 과 동일하게 라일락
-          그라데이션 컨테이너 + object-contain 로 감싼다. */}
-      <div className="relative w-36 h-36 mx-auto my-8 rounded-2xl overflow-hidden bg-lilac-soft">
-        <Image
-          src={poseForSpread(type)}
-          alt=""
-          fill
-          sizes="144px"
-          className="object-contain"
-          aria-hidden
-        />
-      </div>
+      <SpreadDiagram type={type} labels={labels} />
 
       <section className="space-y-5 text-14 text-eye-purple/90 leading-relaxed mt-5">
         <div>
@@ -158,11 +117,6 @@ export default async function SpreadPage({
           <h2 className="text-15 font-bold text-eye-purple mb-1.5">
             포지션 읽는 순서
           </h2>
-          <ol className="list-decimal list-inside space-y-1 text-13">
-            {labels.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ol>
           <p className="mt-3">{entry.howToRead}</p>
         </div>
       </section>

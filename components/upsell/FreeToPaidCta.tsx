@@ -10,14 +10,12 @@ import Icon from "@/components/common/Icon";
 
 export default function FreeToPaidCta({
   title = "네 사주, 더 깊이 볼래?",
-  subtitle,
   products,
   source,
   chat,
   bare = false,
 }: {
   title?: string;
-  subtitle?: string;
   products: FortuneType[]; // 10~40★ 사주 종목만 넘길 것
   source: string; // 계측 귀속 (mbti|byeoljari)
   /** 타로톡(대화) 카드 — 검증된 전환 엔진. 무료 유저의 저마찰 유료 진입. */
@@ -33,20 +31,13 @@ export default function FreeToPaidCta({
     <div
       className={
         bare
-          ? "w-full mt-8 flex flex-col gap-3"
-          : "w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3"
+          ? "w-full mt-6 flex flex-col gap-3"
+          : "w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-3"
       }
     >
-      {/* 결과 본문과 CTA 구분선 — 골드 별 + 라일락 헤어라인(별콩 모티프) */}
-      <div className="flex items-center gap-3 mb-1" aria-hidden>
-        <span className="h-px flex-1 bg-lilac-soft/70" />
-        
-        <span className="h-px flex-1 bg-lilac-soft/70" />
-      </div>
-      <div className="px-1">
-        <p className="text-14 font-extrabold text-eye-purple">{title}</p>
-        {subtitle && <p className="text-12 text-text-light mt-0.5">{subtitle}</p>}
-      </div>
+      {/* 제목 한 줄만 — 운세 결과 추천(ResultUpsell)과 같은 모양. 예전 구분선 + 줄표로 끊긴 부제는 뺐다
+          (디자인 다듬기 사주 MBTI ⑩ C1, 운영자 11-20 — 별자리 결과·별마루 하루 화면도 같이) */}
+      <p className="text-13 font-bold text-eye-purple px-1 mt-1">{title}</p>
       {chat && (
         <Link
           href="/"

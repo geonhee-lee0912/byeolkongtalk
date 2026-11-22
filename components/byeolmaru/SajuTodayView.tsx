@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DayCell, WeekBucket } from "@/lib/byeolmaru/calendar";
 import type { DailyReport } from "@/lib/fortune/daily-report";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
+import ByeolmaruShareButton from "./ByeolmaruShareButton";
 import { DAY_NAME } from "@/lib/byeolmaru/day-label";
 import { dayWordFor, reportDatePolicy } from "@/lib/byeolmaru/report-date";
 import { getSajuTaste } from "@/lib/byeolmaru/static-lines";
@@ -324,28 +324,20 @@ export default function SajuTodayView({
       </DayDetailCard>
       {/* 오늘 공유 — 선택 셀이 오늘일 때만(미래 날 보다 공유하면 "오늘 사주" 라벨로 다른 날이 나가는 오노출 방지). */}
       {cell.isToday ? (
-        <button
-          onClick={() => {
-            const ok = shareToKakao({
-              title: `오늘 사주 · ${DAY_NAME[cell.tenGod]}`,
-              description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
-              imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}&tg=${encodeURIComponent(cell.tenGod)}`,
-              // 🔴 착지는 **허브**다(`/byeolmaru`). 공유 링크를 받는 사람은 대부분 비사용자인데,
-              //    `/byeolmaru/saju` 는 비로그인에게 로그인 벽 한 줄뿐이라 utm 으로 재려는 바로 그
-              //    전환을 깎는다. 허브는 게스트 미리보기(EmptyMonthShell)가 있어 받아낼 화면이 있다.
-              link: `${window.location.origin}/byeolmaru?utm_source=byeolmaru_saju&utm_medium=share`,
-              buttonTitle: "나도 보러가기",
-            });
-            trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "saju", ok } });
+        // '공유하기' + 시트(카톡·링크·이미지) — 오늘 카드(DailyCardBlock)와 같은 부품. 디자인 다듬기 별마루 ⑧ K2(운영자 11-21)
+        <ByeolmaruShareButton
+          kind="saju"
+          share={{
+            title: `오늘 사주 · ${DAY_NAME[cell.tenGod]}`,
+            description: "오늘 네 하루 흐름, 별마루에서 무료로 매일 확인해봐.",
+            imageUrl: `${window.location.origin}/api/og/byeolmaru/saju?grade=${cell.grade.tone}&ganji=${encodeURIComponent(cell.ganji)}&tg=${encodeURIComponent(cell.tenGod)}`,
+            // 🔴 착지는 **허브**다(`/byeolmaru`). 공유 링크를 받는 사람은 대부분 비사용자인데,
+            //    `/byeolmaru/saju` 는 비로그인에게 로그인 벽 한 줄뿐이라 utm 으로 재려는 바로 그
+            //    전환을 깎는다. 허브는 게스트 미리보기(EmptyMonthShell)가 있어 받아낼 화면이 있다.
+            link: `${window.location.origin}/byeolmaru?utm_source=byeolmaru_saju&utm_medium=share`,
+            buttonTitle: "나도 보러가기",
           }}
-          disabled={!isKakaoReady()}
-          // 🔴 `py-2.5 text-sm` 은 바로 위 구독 CTA(PaywallCut 의 금색 버튼)와 **같은 상자**다
-          //    (2026-09-27, 사용자 요청). 예전 `py-2 text-xs` 는 34px 로 41px 짜리 CTA 아래에
-          //    혼자 납작해 보였다. 둘 중 하나를 바꿀 땐 같이 볼 것.
-          className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-14 font-medium text-accent disabled:opacity-40"
-        >
-          오늘 사주 공유하기
-        </button>
+        />
       ) : null}
       {subscribeModal}
     </div>

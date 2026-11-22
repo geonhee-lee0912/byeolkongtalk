@@ -21,7 +21,7 @@ export default function NotFound() {
         className="mb-4"
         aria-hidden
       />
-      <h1 className="font-display text-28 text-eye-purple mb-2">
+      <h1 className="font-display text-22 text-eye-purple mb-2 break-keep text-balance">
         별콩이도 못 찾는 길이야
       </h1>
       <p className="text-14 text-text-light mb-6 leading-relaxed">

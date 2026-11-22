@@ -9,30 +9,45 @@ import Link from "next/link";
 import Image from "next/image";
 import { type FortuneType } from "@/lib/fortune/types";
 import { FortuneIcon } from "@/components/fortune/FortuneIcon";
-import { crossCards } from "./cross-cards";
+import { crossCards, type CrossCard } from "./cross-cards";
 import type { SpreadCategory } from "@/lib/tarot/spreads";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
+import BadgePill from "@/components/common/BadgePill";
 
 export default function ResultUpsell({
   variant,
   topic,
+  title,
+  lead,
 }: {
   variant: "counsel" | FortuneType;
   /** 타로 주제(counsel 일 때) — 주제 맞춤 사주 크로스셀용. */
   topic?: SpreadCategory;
+  /** 묶음 제목 — 없으면 variant 기본값. */
+  title?: string;
+  /** 묶음 맨 위에 같은 모양으로 얹는 카드 — 타로 결과의 '이 고민으로 카드 다시 뽑기'(lib/tarot/redraw).
+   *  onClick 이 계측·이동 전 준비를 맡는다(크로스셀 계측은 붙지 않는다). */
+  lead?: CrossCard & { onClick: () => void };
 }) {
-  const cards = crossCards(variant, topic);
+  const cards: (CrossCard & { onClick?: () => void })[] = [
+    ...(lead ? [lead] : []),
+    ...crossCards(variant, topic),
+  ];
 
   return (
     <div className="w-full max-w-md mx-auto px-5 mt-8 flex flex-col gap-3">
       <p className="text-13 font-bold text-eye-purple px-1 mt-1">
-        {variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "이런 것도 있어"}
+        {/* 운세 결과 기본 제목은 타로 결과('다음엔 뭐 볼래?')와 같은 말 — 디자인 다듬기 운세 결과 ⑧ R1 운영자 11-20 (옛 '이런 것도 있어') */}
+        {title ?? (variant === "counsel" ? "이 고민, 사주로 뿌리부터 볼래?" : "다음엔 뭐 볼래?")}
       </p>
       {cards.map((c) => (
         <Link
           key={c.href}
           href={c.href}
-          onClick={() => trackUiEvent("result_cta_clicked", { meta: { cta: "cross_sell", product: c.href } })}
+          onClick={
+            c.onClick ??
+            (() => trackUiEvent("result_cta_clicked", { meta: { cta: "cross_sell", product: c.href } }))
+          }
           className="card flex items-center gap-3.5 transition"
         >
           <div
@@ -50,9 +65,7 @@ export default function ResultUpsell({
               <span className="text-14 font-bold text-eye-purple">
                 {c.label}
               </span>
-              <span className="text-11 font-bold text-accent bg-lilac-soft/60 px-1.5 py-0.5 rounded-full">
-                {c.badge}
-              </span>
+              <BadgePill badge={c.badge} />
             </div>
             <p className="text-12 text-text-light mt-0.5 leading-snug line-clamp-2">
               {c.tagline}

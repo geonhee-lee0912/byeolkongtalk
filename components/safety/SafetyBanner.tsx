@@ -1,6 +1,7 @@
 "use client";
 
 import type { SensitiveCategory } from "@/lib/sensitive";
+import Icon from "@/components/common/Icon";
 
 interface Hotline {
   name: string;
@@ -70,9 +71,8 @@ export default function SafetyBanner({
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-17" aria-hidden>
-           
-          </span>
+          {/* 위기 안내 머리 그림(예전 🤍) — 지운 뒤 빈칸이었다, 공용 아이콘으로(빈칸 정리 11-22) */}
+          <Icon name="heart_safe" size={18} className="text-rose-400" />
           <p className="text-14 font-bold text-eye-purple leading-tight">
             {CATEGORY_LABEL[category]}
           </p>

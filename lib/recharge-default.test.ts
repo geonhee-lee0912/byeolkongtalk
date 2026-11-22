@@ -9,6 +9,7 @@ import {
   leftoverAfter,
   parseNeedParam,
   firstChargeBonusPercent,
+  packageSubLine,
 } from "./recharge-default.ts";
 
 const SHEET = sheetPackages();
@@ -94,4 +95,14 @@ test("firstChargeBonusPercent — 상수에서 계산(배너가 다시 '1.5배' 
 
 test("시트 패키지는 판매 목록의 부분집합", () => {
   for (const id of SHEET_PACKAGE_IDS) assert.ok(STAR_PACKAGES.some((p) => p.id === id));
+});
+
+test("packageSubLine — 상점 칸 아랫줄: 보통은 별당 값·알뜰, 첫 충전이면 보너스 한 줄만(디자인 다듬기 상점 ④ A)", () => {
+  assert.deepEqual(packageSubLine(pkg("star_10"), false), { text: "별당 100원", tone: "plain" });
+  assert.deepEqual(packageSubLine(pkg("star_30"), false), { text: "별당 93원 · 7% 알뜰", tone: "plain" });
+  assert.deepEqual(packageSubLine(pkg("star_70"), false), { text: "별당 84원 · 16% 알뜰", tone: "plain" });
+  assert.deepEqual(packageSubLine(pkg("star_300"), false), { text: "별당 66원 · 34% 알뜰", tone: "plain" });
+  assert.deepEqual(packageSubLine(pkg("star_10"), true), { text: "+2별 보너스 · 총 12별", tone: "bonus" });
+  assert.deepEqual(packageSubLine(pkg("star_70"), true), { text: "+14별 보너스 · 총 84별", tone: "bonus" });
+  assert.deepEqual(packageSubLine(pkg("star_300"), true), { text: "+60별 보너스 · 총 360별", tone: "bonus" });
 });

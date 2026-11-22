@@ -60,7 +60,7 @@ test("뽑기 화면 — 풀이로 떠날 때(이동 뒤, try 안에서) 남은 �
   const code = sourceOf("app/tarot/draw/page.tsx");
   assert.match(
     code,
-    /router\.push\("\/tarot\/reading"\);\s*try\s*\{\s*clearPendingDraw\(\s*localStorage\s*\)/,
+    /router\.(?:push|replace)\("\/tarot\/reading"\);\s*try\s*\{\s*clearPendingDraw\(\s*localStorage\s*\)/,
     "광고 → /start → 뽑기로만 오는 기기는 홈을 안 거친다 — 풀이 시작 때도 지워야 고민 원문이 안 남는다"
   );
 });

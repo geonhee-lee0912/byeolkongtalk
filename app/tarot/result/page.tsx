@@ -3,14 +3,15 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import ConcernQuote from "@/components/tarot/ConcernQuote";
 import Image from "next/image";
 import ChatBubble from "@/components/tarot/ChatBubble";
+import EmphasisText from "@/components/common/EmphasisText";
 import { parseIntoBubbles } from "@/lib/tarot/bubbles";
 import TarotShareButtons from "@/components/tarot/TarotShareButtons";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
 import { EMOTION_TO_CATEGORY } from "@/lib/tarot/spreads";
 import type { EmotionTag } from "@/lib/emotions";
-import RechargeBlock from "@/components/upsell/RechargeBlock";
 import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
 import { extractClosingLine } from "@/lib/saju/closing";
@@ -19,8 +20,14 @@ import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import type { SpreadType, DrawnCard } from "@/lib/tarot/spreads";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
+import { CONTINUATION_KEY } from "@/lib/tarot/session";
+import { PICK_CONCERN_HREF, redrawCard, redrawStorage, redrawTarget } from "@/lib/tarot/redraw";
+import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { tarotPrice } from "@/lib/tarot/pricing";
 import Icon from "@/components/common/Icon";
+import Sheet from "@/components/common/Sheet";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import { replayMessages } from "@/lib/tarot/replay";
 
 export default function TarotResultPage() {
   return (
@@ -136,10 +143,26 @@ function TarotResultInner() {
     content: m.role === "assistant" ? cleanContent(m.content) : m.content,
   }));
   const closingLine = extractClosingLine(messages, { excludeInvite: true });
-  // W3: [END] 없이 증발한(stale) 리딩 — "이어서 대화하기" 보조 버튼 노출용 (strip 전 원본에서 판정)
-  const ended = data.messages.some(
-    (m) => m.role === "assistant" && m.content.includes("[END]")
-  );
+  // 끊긴 대화의 '이어서 대화하기'는 뺐다 — 결과 화면에 오면 결과로 끝(디자인 다듬기 /tarot/result ⑤ 운영자 11-14, 쓰임 7%)
+  // 공유 링크로 온 남(비소유자)에게 남의 고민을 넘기지 않는다 — 홈에서 자기 고민 고르기로
+  const redraw = isOwner
+    ? redrawTarget(reading.question, reading.emotionTag)
+    : { href: PICK_CONCERN_HREF, pending: null };
+  // 다시 볼 날(앱·소유자만) — 한마디 카드 맨 아래 한 줄, 누르면 달력 시트(디자인 다듬기 /tarot/result ⑩ F3, 운영자 11-15).
+  // 글은 다시 뽑기 값을 밝힌다(W3) — 공짜 상담처럼 보였다가 돌아와서 결제가 나오지 않게
+  const revisit = (inline: boolean) =>
+    isOwner && (
+      <RevisitSheet
+        readingId={reading.id}
+        autoOpen={!reading.hasSensitive}
+        inline={inline}
+        copy={{
+          title: "언제 다시 뽑아 볼까?",
+          sub: `그날 아침에 알려줄게. 다시 뽑기는 별 ${tarotPrice("one_card")}부터야.`,
+          row: "이 고민, 언제 다시 뽑아 볼까?",
+        }}
+      />
+    );
   const cards = reading.drawnCards ?? [];
   const cardsText = cards
     .map((c) => {
@@ -156,55 +179,26 @@ function TarotResultInner() {
   return (
     // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
     <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="web-only text-12 text-text-light">
-            ‹ 뒤로
-          </button>
-        ) : (
-          <Link href="/" className="web-only text-12 text-text-light">
-            ‹ 홈으로
-          </Link>
-        )}
-        {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
-        <div className="ml-auto text-11 text-text-light">
-          {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
-        </div>
-      </div>
 
       {/* 고민 분류 + 나의 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mb-6">
+        {/* 맨 위 — 큰 감정 아이콘 하나 + 다른 화면과 같은 제목(로고 글꼴 20) + 날짜·스프레드 한 줄(C안) — 디자인 다듬기 /tarot/result ① 운영자 11-14.
+            옛 양옆 아이콘 두 개·오른쪽 위 날짜·웹 '‹ 홈으로'(로고·아래 탭이 같은 일)는 뺐다 */}
+        {emotionIcon && (
+          <Image src={emotionIcon} alt="" width={52} height={52} className="mx-auto mb-2" />
+        )}
         {reading.emotionTag && (
-          <h1 className="text-20 font-bold text-eye-purple flex items-center justify-center gap-2 mb-7">
-            {emotionIcon && (
-              <Image
-                src={emotionIcon}
-                alt=""
-                width={36}
-                height={36}
-                className="shrink-0"
-              />
-            )}
+          <h1 className="font-display text-20 text-eye-purple text-center text-balance break-keep">
             {reading.emotionTag}
-            {emotionIcon && (
-              <Image
-                src={emotionIcon}
-                alt=""
-                width={36}
-                height={36}
-                className="shrink-0"
-              />
-            )}
           </h1>
         )}
-        <div className="card">
-          <div className="text-11 font-bold text-text-light mb-1">
-            나의 고민
-          </div>
-          <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap">
-            {reading.question}
-          </p>
-        </div>
+        <p className="text-13 text-text-light text-center mt-1 mb-4">
+          {(() => {
+            const d = new Date(reading.createdAt);
+            return `${d.getMonth() + 1}월 ${d.getDate()}일 · ${spreadLabel}`;
+          })()}
+        </p>
+        <ConcernQuote text={reading.question} />
       </div>
 
       {/* 뽑은 카드 스프레드 */}
@@ -213,9 +207,12 @@ function TarotResultInner() {
           <div className="flex flex-wrap justify-center gap-4">
             {cards.map((c, i) => {
               const card = getCard(c.card_id);
+              // 카드 이름이 먼저(굵게), 자리 이름은 아래 작게 — 옛 판은 자리 이름이 크고 카드 이름이 작았다. 정/역 글자는 뺐다(역방향은 그림이 뒤집혀 보인다).
+              // 1장이면 대화 화면 판과 같은 104×164 로 키운다 — 디자인 다듬기 /tarot/result ③ 운영자 11-14
+              const one = cards.length === 1;
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="relative w-[88px] aspect-[2/3] rounded-lg overflow-hidden border border-card-gold/50">
+                  <div className={`relative ${one ? "w-[104px] h-[164px]" : "w-[88px] aspect-[2/3]"} rounded-lg overflow-hidden border border-card-gold/50`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCardImagePath(c.card_id)}
@@ -227,13 +224,10 @@ function TarotResultInner() {
                       }}
                     />
                   </div>
-                  <span className="text-12 font-extrabold text-white leading-tight text-center max-w-[96px]">
-                    {c.label}
-                  </span>
-                  <span className="text-11 text-white/90 leading-tight text-center max-w-[96px]">
-                    {card?.name_kr}
-                    {c.direction === "reversed" ? " (역)" : ""}
-                  </span>
+                  <div className="text-center max-w-[104px]">
+                    <p className="text-14 font-bold text-white leading-tight">{card?.name_kr}</p>
+                    <p className="text-11 text-white/60 leading-tight mt-1">{c.label}</p>
+                  </div>
                 </div>
               );
             })}
@@ -244,11 +238,9 @@ function TarotResultInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-white rounded-2xl shadow-card p-5 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-44 font-serif leading-none">
-              ❝
-            </div>
-            <div className="flex items-center gap-2 mb-2 relative">
+          {/* ❝ 장식 뺌 · ** 를 대화 말풍선과 같은 강조로 · 본문 15 — 디자인 다듬기 /tarot/result ④ 운영자 A안 11-14 */}
+          <div className="bg-white rounded-2xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src="/byeolkong-cheer.png"
                 alt="별콩이"
@@ -259,24 +251,39 @@ function TarotResultInner() {
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-14 text-eye-purple leading-relaxed relative">
-              {closingLine}
+            <p className="text-15 text-eye-purple leading-relaxed">
+              <EmphasisText text={closingLine} />
             </p>
+            {revisit(true)}
           </div>
         </div>
       )}
 
-      {/* 대화 다시보기 */}
-      <div className="w-full max-w-md mx-auto px-5 mt-4">
-        <button
-          onClick={() => setShowHistory((v) => !v)}
-          className="btn btn-secondary btn-lg"
-        >
-          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
+      {/* 대화 다시보기 — 가벼운 글자 버튼, 누르면 시트(디자인 다듬기 /tarot/result ①, 운영자 11-15).
+          예전엔 연보라 큰 버튼 + 그 자리 흰 카드 펼침이라 아래 공유·다음이 대화 길이만큼 밀려 내려갔다 */}
+      <div className="w-full max-w-md mx-auto px-5 mt-2">
+        <button type="button" onClick={() => setShowHistory(true)} className="btn btn-text btn-md w-full text-14 text-text-light">
+          대화 전체 다시보기 <Icon name="chev_r" size={14} />
         </button>
-        {showHistory && (
-          <div className="card mt-3">
-            {data.messages.map((m, i) => {
+      </div>
+      {showHistory && (
+        <Sheet
+          label="대화 다시보기"
+          onClose={() => setShowHistory(false)}
+          z={80}
+          panelClassName="bg-cream rounded-t-3xl sm:rounded-3xl h-[88vh] flex flex-col"
+        >
+          <div className="flex items-center px-5 pt-1 sm:pt-5 pb-3">
+            <p className="flex-1 font-display text-17 text-eye-purple">대화 다시보기</p>
+            <OverlayCloseButton
+              aria-label="닫기"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
+            >
+              <Icon name="close" size={18} />
+            </OverlayCloseButton>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(env(safe-area-inset-bottom),24px)]">
+            {replayMessages(data.messages, reading.question).map((m, i) => {
               if (m.role === "user") {
                 return <ChatBubble key={i} role="user" content={m.content} />;
               }
@@ -299,42 +306,10 @@ function TarotResultInner() {
               );
             })}
           </div>
-        )}
-      </div>
-
-      {/* W3: 미완료(증발) 리딩 — 대화 복귀 경로 보존 */}
-      {!ended && (
-        <div className="w-full max-w-md mx-auto px-5 mt-3">
-          <Link
-            href={`/tarot/reading?id=${reading.id}`}
-            className="btn btn-secondary btn-lg"
-          >
-            이어서 대화하기
-          </Link>
-        </div>
+        </Sheet>
       )}
 
-      {/* ② 재충전 블록 — 이어가기(2.3%)는 컷, "이 고민 다시 뽑기"를 프라이머리로. 가격 = 가장 싼 스프레드(원카드)부터 */}
-      <RechargeBlock
-        allowContinue={!reading.hasSensitive}
-        showContinue={false}
-        newHref="/tarot"
-        newLabel="이 고민 다시 뽑기"
-        newDesc="스프레드 다시 골라 카드 뽑기"
-        newCostLabel={`별 ${tarotPrice("one_card")}~`}
-        readingId={reading.id}
-      />
-
-      {/* ③ 크로스셀 (궁합) — 공유 위로 */}
-      <ResultUpsell
-        variant="counsel"
-        topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
-      />
-
-      {/* 다시 볼 날 — 소유자·앱에서만(공유 위) */}
-      {isOwner && <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} />}
-
-      {/* ④ 공유 — 크로스셀 아래로 */}
+      {/* 공유 — '공유하기' 하나(누르면 시트), 다시보기 바로 아래·'다음엔 뭐 볼래?' 위(디자인 다듬기 /tarot/result ⑥, 운영자 11-14) */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <TarotShareButtons
           readingId={reading.id}
@@ -345,6 +320,26 @@ function TarotResultInner() {
           hasSensitive={reading.hasSensitive}
         />
       </div>
+
+      {/* 한마디 카드가 없으면(한마디를 못 뽑은 결과) 다시 볼 날 줄은 공유 아래에 혼자 선다 */}
+      {!closingLine && revisit(false)}
+
+      {/* ② 다음 — '이 고민으로 카드 다시 뽑기'를 추천 묶음 맨 위에 같은 무게로(디자인 다듬기 /tarot/result ③ M2, 운영자 11-14).
+          예전엔 재충전 블록의 보라 버튼이었다. 가격 = 가장 싼 스프레드(원카드)부터. 계측은 그때와 같은 cta:"new" */}
+      <ResultUpsell
+        variant="counsel"
+        topic={EMOTION_TO_CATEGORY[reading.emotionTag as EmotionTag] ?? "default"}
+        title="다음엔 뭐 볼래?"
+        lead={{
+          ...redrawCard(redraw.href, tarotPrice("one_card")),
+          onClick: () => {
+            trackUiEvent("result_cta_clicked", { readingId: reading.id, meta: { cta: "new" } });
+            // 이 고민을 넘긴다 — 고민 적기와 같이, 남은 이어가기 표시는 지운다(새 리딩에 옛 요약이 붙지 않게)
+            sessionStorage.removeItem(CONTINUATION_KEY);
+            for (const [key, value] of redrawStorage(redraw.pending)) sessionStorage.setItem(key, value);
+          },
+        }}
+      />
 
       <SurveyResultCard />
     </main>

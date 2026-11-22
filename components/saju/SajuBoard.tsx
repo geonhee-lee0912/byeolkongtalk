@@ -18,6 +18,8 @@ export interface SajuBoardProps {
   saju: SajuResult;
   // false면 오행 카운트만 노출하고 일간·음양 요약은 숨김 (마이페이지 프로필 카드용)
   showDetail?: boolean;
+  /** 오행 개수 줄 위 작은 이름표 — 같은 화면에 다른 오행 숫자가 함께 있을 때(사주 MBTI '기운 세기')만 */
+  countLabel?: string;
 }
 
 function getStemElement(stem: string): FiveElement {
@@ -37,7 +39,7 @@ function getBranchElement(branch: string): FiveElement {
   return "수"; // 자/해
 }
 
-export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
+export default function SajuBoard({ saju, showDetail = true, countLabel }: SajuBoardProps) {
   // 어드민에서 비-사주 reading(saju_data 가 SajuResult 형태가 아닌 경우 — 예: sim 의
   // today_letters 데이터)을 넘기면 elementCount 가 없어 Object.values 가 터진다.
   // 방어: SajuResult 형태(elementCount)가 아니면 렌더 생략. (모든 호출처 공통 안전망)
@@ -107,6 +109,7 @@ export default function SajuBoard({ saju, showDetail = true }: SajuBoardProps) {
 
       {/* 오행 요약 — 폭을 위 8자 판(300px)에 맞추고, 일간·음양은 아래 한 줄로 */}
       <div className="card-inner max-w-[360px] mx-auto">
+        {countLabel && <p className="text-11 text-text-light text-center mb-1.5">{countLabel}</p>}
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           {ELEMENTS.map((el) => {
             const count = saju.elementCount[el];

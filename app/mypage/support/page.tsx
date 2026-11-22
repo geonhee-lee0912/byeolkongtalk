@@ -77,7 +77,8 @@ export default function SupportListPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-17 font-bold text-eye-purple mb-3">고객센터 / 문의</h1>
+        {/* 앱에선 앱 머리 '고객센터'와 두 번이라 숨긴다(web-only, 디자인 다듬기 마이 ⑦ 운영자 11-21) */}
+        <h1 className="web-only text-17 font-bold text-eye-purple mb-3">고객센터 / 문의</h1>
         {loading ? (
           <p className="text-text-light text-13 text-center py-8">잠시만…</p>
         ) : items.length === 0 ? (

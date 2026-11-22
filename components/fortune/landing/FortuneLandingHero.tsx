@@ -5,30 +5,29 @@
 // (배치 B) — 상품명·후킹이 큰 글씨로 읽혀야 하는 지면이라서.
 import Image from "next/image";
 import Link from "next/link";
-import LandingCta from "./LandingCta";
+import Icon from "@/components/common/Icon";
 
 export default function FortuneLandingHero({
   title,
   hook,
   cardSrc,
+  cost,
   chips,
-  ctaLabel,
-  ctaHref = "#buy",
-  trackType,
 }: {
   title: string;
   hook: string;
   /** 카드 배너(4:3 원본을 16:10 으로 crop). 없으면 카드 없이 제목부터. */
   cardSrc: string | null;
+  /** 값(별) — 있으면 칩 맨 앞에 '✦N'(별 아이콘 + 숫자, 공통 표기) */
+  cost?: number;
   chips: string[];
-  ctaLabel: string;
-  ctaHref?: string;
-  /** 계측용 상품 키 — fortune_landing_cta_clicked 의 meta.type */
-  trackType: string;
+  // 위 버튼(ctaLabel)은 없앴다 — 시작·고르기는 전부 아래 고정 버튼(LandingBuyBar). 마지막으로 남았던 사주 MBTI 도
+  // 옮겼다(디자인 다듬기 사주 MBTI ① L1, 운영자 11-20)
 }) {
   return (
     <header className="w-full">
-      <div className="w-full max-w-md mx-auto px-5 pt-3">
+      {/* 앱에선 머리 ‹ 와 같은 곳이라 웹에서만(디자인 다듬기 묶음 4 — /tarot ⑤ 와 같은 방식) */}
+      <div className="web-only w-full max-w-md mx-auto px-5 pt-3">
         <Link
           href="/fortune"
           className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors"
@@ -64,6 +63,12 @@ export default function FortuneLandingHero({
         </p>
 
         <div className="flex flex-wrap gap-1.5 justify-center mt-3">
+          {cost !== undefined && (
+            <span className="inline-flex items-center text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full tabular-nums">
+              <Icon name="star" size={13} className="mr-0.5" />
+              {cost}
+            </span>
+          )}
           {chips.map((c) => (
             <span key={c} className="text-11 font-bold text-eye-purple bg-white px-2.5 py-1 rounded-full">
               {c}
@@ -71,7 +76,6 @@ export default function FortuneLandingHero({
           ))}
         </div>
 
-        <LandingCta label={ctaLabel} href={ctaHref} trackType={trackType} />
       </div>
     </header>
   );

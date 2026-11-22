@@ -7,6 +7,7 @@ import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow"
 import ChatBubble from "@/components/saju/ChatBubble";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import RecoInlineCard from "@/components/reco/RecoInlineCard";
+import { OfferDivider } from "@/components/reco/OfferCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import type { SajuResult } from "@/lib/saju/calc";
 import type { SensitiveCategory } from "@/lib/sensitive";
@@ -576,6 +577,8 @@ function ReadingInner() {
               ? (Object.entries(recoAttach) as [RecoProduct, number][])
                   .filter(([, idx]) => idx === i)
                   .map(([p]) => p)
+                  // 그리는 것만(사주엔 연장 칩만) — 구분선은 보일 카드가 있을 때만
+                  .filter((p) => !INCHAT_ONLY_PRODUCTS.includes(p) || p === "extend")
               : [];
             return (
               <div key={i}>
@@ -584,6 +587,7 @@ function ReadingInner() {
                   content={m.content}
                   isFirstInTurn={isFirstAssistantInGroup(i)}
                 />
+                {attachedProducts.length > 0 && <OfferDivider />}
                 {attachedProducts.map((product) => {
                   if (INCHAT_ONLY_PRODUCTS.includes(product)) {
                     if (product === "extend") {

@@ -16,7 +16,6 @@ import {
 import { tarotPrice } from "@/lib/tarot/pricing";
 import { fetchWallet } from "@/lib/wallet";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
-import ProgressSteps from "@/components/concern/ProgressSteps";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
@@ -87,7 +86,9 @@ export default function TarotDrawPage() {
   }
 
   const info = SPREAD_INFO[selection.spreadType];
-  const accent = info.accent;
+  // 주 버튼 보라(--color-accent) 하나 — 스프레드마다 초록·주황·분홍으로 버튼·자리·별 확인 시트 색이 바뀌던 것을 맞췄다(디자인 다듬기 ② /tarot/draw 운영자 A안 11-13).
+  // 값이 hex 인 건 CardDrawRitual 이 `${accent}55` 처럼 투명도를 붙여 쓰기 때문(CSS 변수는 못 붙인다)
+  const accent = "#775CB0";
   const cardCount = info.cardCount;
   const spreadType = selection.spreadType;
 
@@ -106,7 +107,8 @@ export default function TarotDrawPage() {
       expectedCost: price,
     };
     sessionStorage.setItem(TAROT_DRAW_KEY, JSON.stringify(payload));
-    router.push("/tarot/reading");
+    // 바꿔치기 — 기록에 카드 뽑기를 남기면 대화에서 뒤로 가기(웹 브라우저)가 '다시 뽑기' 화면으로 돌아왔다(디자인 다듬기 /tarot/reading 운영자 11-14). 앱 '‹' 는 홈으로(AppHeader)
+    router.replace("/tarot/reading");
     // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다 — 홈을 거치지 않고 들어온 기기도 정리되게(lib/tarot/pending-draw.ts).
     // 이동 뒤에 둔다 — localStorage 접근 자체가 던지는 브라우저여도 풀이 시작을 막지 않게
     try {
@@ -152,11 +154,8 @@ export default function TarotDrawPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center w-full">
-      {/* 단계 인디케이터 */}
-      <div className="mt-14 mb-8">
-        <ProgressSteps current={3} />
-      </div>
+    // 진행 단계는 뺐다(고민 적기와 같이 — 디자인 다듬기 ② 운영자 K안 11-13)
+    <main className="flex flex-1 flex-col items-center pt-5 w-full">
 
       <CardDrawRitual
         cardCount={cardCount}
@@ -168,6 +167,7 @@ export default function TarotDrawPage() {
         backLabel="리딩 방법 선택"
         onBack={() => router.push("/tarot")}
         onComplete={onDrawn}
+        pageLayout
       />
 
       {showConfirm && cost !== null && (
@@ -176,7 +176,6 @@ export default function TarotDrawPage() {
           cost={cost}
           balance={balance}
           loading={false}
-          accent={accent}
           surface={RECHARGE_SOURCE.tarotDraw}
           onConfirm={() => {
             if (pendingDrawn) goToReading(pendingDrawn, cost); // 팝업이 보여 준 가격 그대로

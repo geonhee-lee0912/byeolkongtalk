@@ -136,7 +136,8 @@ export default function Home() {
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
           id="emotion-grid"
-          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10"
+          // scroll-mt-14 — 사용법의 '별콩이랑 시작하기'(/#emotion-grid)로 올 때 고정 헤더(h-14)에 안 가리게
+          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10 scroll-mt-14"
         >
           {welcomeNudge && (
             <button
@@ -262,12 +263,8 @@ export default function Home() {
             })}
           </div>
 
-          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
-          <div className="flex items-center gap-3 mb-4" aria-hidden>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-            
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-          </div>
+          {/* 디바이더 — 연애 고민(타로) ↔ 별마루·연애 상담 경계 */}
+          <div className="h-px bg-lilac-mid/40 mb-4" aria-hidden />
 
           {/* 별마루 진입 — 전체 폭 가로 행(2단 그리드 아님). 아래 있던 연애 상담 카드는 서비스
               종료로 뺐다(2026-11-21 운영자 결정) — 아래 여백도 그 카드가 쓰던 mb-5 로.
@@ -296,7 +293,7 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-15 flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-17 flex items-center gap-1.5">
                 별마루
                 <span className="text-11 font-bold text-text-light">무료</span>
               </p>
@@ -307,7 +304,7 @@ export default function Home() {
                 {["오늘사주", "오늘타로", "매일무료"].map((h) => (
                   <span
                     key={h}
-                    className="text-11 font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>

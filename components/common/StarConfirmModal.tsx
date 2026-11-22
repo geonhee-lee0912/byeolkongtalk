@@ -13,7 +13,6 @@ export interface StarConfirmModalProps {
   cost: number;
   balance: number | null;
   loading: boolean;
-  accent: string;
   /** 미지정 시 spreadLabel 기반 기본 카피 사용 */
   title?: string;
   subtitle?: string;
@@ -38,7 +37,6 @@ export default function StarConfirmModal({
   cost,
   balance,
   loading,
-  accent,
   title,
   subtitle,
   confirmLabel,
@@ -58,6 +56,9 @@ export default function StarConfirmModal({
 
   const insufficient = balance !== null && balance < cost;
   const afterBalance = balance !== null ? balance - cost : null;
+  // 별 숫자는 세 줄 모두 별 아이콘 + 천 단위 쉼표(디자인 다듬기 ⑥ 운영자 A안 11-13 — '별 999990'·✦999965 가 섞여 있었다)
+  const n = (v: number) => v.toLocaleString("ko-KR");
+  const starIcon = <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />;
 
   // 잔액 부족 노출 계측 — Meta AddToCart 의 원천(2026-10-04, lib/analytics/ui-events.ts 참조).
   // 잔액 로딩이 끝나 "부족"이 확정된 순간 마운트당 1회. loading 중엔 balance 가 스테일일 수 있어 기다린다.
@@ -106,25 +107,27 @@ export default function StarConfirmModal({
           )}
           <div className="flex items-center justify-between py-1">
             <span className="text-text-light">필요한 별</span>
-            <span className="font-bold text-eye-purple tabular-nums"><Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}</span>
+            <span className="font-bold text-eye-purple tabular-nums">{starIcon}{n(cost)}</span>
           </div>
           <div className="flex items-center justify-between py-1">
-            <span className="text-text-light">현재 잔액</span>
+            <span className="text-text-light">지금 잔액</span>
             <span className="font-bold text-eye-purple tabular-nums">
-              {loading || balance === null ? "…" : `별 ${balance}`}
+              {loading || balance === null ? "…" : <>{starIcon}{n(balance)}</>}
             </span>
           </div>
           {!loading && afterBalance !== null && !insufficient && (
             <div className="flex items-center justify-between py-1 border-t border-lilac-mid/15 mt-1 pt-2">
               <span className="text-text-light">결제 후 잔액</span>
-              <span className="font-bold tabular-nums" style={{ color: accent }}>
-                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{afterBalance}
+              <span className="font-bold tabular-nums text-accent">
+                {starIcon}{n(afterBalance)}
               </span>
             </div>
           )}
+          {/* 모자랄 때 — 오류처럼 보이던 빨강 대신 진보라, 충전 시트와 같은 말투(디자인 다듬기 묶음 2 별 확인창 A, 운영자 11-15) */}
           {!loading && insufficient && (
-            <p className="text-12 text-red-500 font-bold text-center mt-2">
-              별이 {cost - (balance ?? 0)}개 부족해
+            <p className="text-13 text-eye-purple font-bold text-center mt-2 tabular-nums">
+              {starIcon}
+              {n(cost - (balance ?? 0))} 모자라
             </p>
           )}
         </div>
@@ -132,20 +135,15 @@ export default function StarConfirmModal({
         {/* 액션 */}
         <div className="flex flex-col gap-2.5">
           {insufficient ? (
-            <button
-              onClick={onCharge}
-              // 바탕은 스프레드 고유 색(accent) — 모양만 공용 큰 버튼
-              className="btn btn-lg text-white"
-              style={{ background: accent }}
-            >
+            // 버튼은 부르는 곳과 상관없이 공통 주 버튼 — 부르는 곳 색(연보라 2.99:1·금색 1.7:1)은 흰 글자가 안 읽혔다
+            <button onClick={onCharge} className="btn btn-primary btn-lg">
               별 충전하러 가기
             </button>
           ) : (
             <button
               onClick={onConfirm}
               disabled={loading || balance === null || busy}
-              className="btn btn-lg text-white"
-              style={{ background: accent }}
+              className="btn btn-primary btn-lg"
             >
               {confirmLabel ?? "확인하고 시작하기"}
             </button>

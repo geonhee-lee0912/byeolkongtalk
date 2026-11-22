@@ -2,6 +2,7 @@ import type { SajuResult } from "@/lib/saju/calc";
 import type { ElementRelation } from "@/lib/saju/pairing";
 import { pairRelation } from "@/lib/saju/pairing";
 import { ELEMENT_COLOR } from "@/lib/fortune/element";
+import Icon from "@/components/common/Icon";
 
 // 궁합 매칭도 — 두 사주로 관계를 결정론 요약(pairRelation). LLM 미경유.
 // 두 일간 노드 + 오행 관계 헤드라인 + 천간합(끌림)·육합(결속) 배지 + 십신 양방향 라벨.
@@ -86,9 +87,8 @@ export default function CompatMatchDiagram({
               ))}
             </div>
           ) : (
-            <span className="text-17 text-lilac-mid" aria-hidden>
-             
-            </span>
+            // 두 사람 사이 표시(예전 ↔) — 지운 뒤 빈칸이었다, 공용 아이콘으로(빈칸 정리 11-22)
+            <Icon name="heart" size={18} className="text-lilac-mid" />
           )}
         </div>
         <Node saju={b} name={names.b} />

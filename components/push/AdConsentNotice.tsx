@@ -21,7 +21,7 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
   return (
     <Dialog label="광고성 정보 수신 동의 결과 안내" role="alertdialog" dismissible={false} z={110} onClose={onClose}>
       <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-        <p className="text-17 font-black tracking-tight text-center">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
+        <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
         <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
           {noticeLines(notice).map((l) => (
             <div key={l.label} className="flex gap-3 py-0.5">

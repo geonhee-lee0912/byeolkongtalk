@@ -58,7 +58,8 @@ export default function SupportNewPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
-        <h1 className="text-17 font-bold text-eye-purple">문의하기</h1>
+        {/* 앱에선 앱 머리 '문의 남기기'와 두 번이라 숨긴다(web-only, 마이 ⑦) */}
+        <h1 className="web-only text-17 font-bold text-eye-purple">문의하기</h1>
 
         <div>
           <label className="block text-12 font-bold text-eye-purple mb-1.5">분류</label>

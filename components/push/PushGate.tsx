@@ -15,6 +15,7 @@ import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import PushAskSheet from "./PushAskSheet";
 import { fetchAsk, setAdConsent } from "./api";
 import Dialog from "@/components/common/Dialog";
+import Icon from "@/components/common/Icon";
 
 const LAUNCHES_KEY = "byeolkong_push_launches"; // 로그인한 상태로 웹뷰가 뜬 횟수(기기별)
 const COUNTED_KEY = "byeolkong_push_launch_counted"; // 이 웹뷰 수명 동안 이미 셌다
@@ -214,8 +215,9 @@ export default function PushGate() {
       {(unsubToken || unsubMsg) &&
         createPortal(
           <div className="fixed left-0 right-0 z-[70] px-4" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
-            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float px-3.5 py-2.5 text-13">
-              <p className="flex-1 leading-snug">{unsubMsg ?? "이 광고 알림을 그만 받으려면"}</p>
+            {/* 디자인 다듬기 알림 시트 ① F1(운영자 11-22): 위 자리 그대로, 연보라 테두리, 닫기 X(이모지를 지운 뒤 빈칸이었다) */}
+            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float border border-lilac-mid/40 px-3.5 py-2.5 text-13">
+              <p className="flex-1 leading-snug break-keep">{unsubMsg ?? "광고 알림이 그만 오게 할까?"}</p>
               {unsubToken && !unsubMsg && (
                 <button
                   type="button"
@@ -232,9 +234,9 @@ export default function PushGate() {
                   setUnsubToken(null);
                   setUnsubMsg(null);
                 }}
-                className="shrink-0 w-7 h-7 text-text-light"
+                className="shrink-0 w-7 h-7 flex items-center justify-center text-text-light"
               >
-               
+                <Icon name="close" size={18} />
               </button>
             </div>
           </div>,
@@ -245,12 +247,27 @@ export default function PushGate() {
       {reconfirm && (
           <Dialog label="광고성 정보 수신 동의 확인 안내" role="alertdialog" dismissible={false} z={105} onClose={() => setReconfirm(null)}>
             <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-              <p className="text-17 font-black tracking-tight text-center">광고성 정보 수신 동의 확인 안내</p>
-              <p className="mt-3 text-13 leading-relaxed">
-                별콩톡에서 알려줄게. 너는 <b>{reconfirm.grantedOn}</b>에 광고성 정보(앱 푸시) 수신에 동의했어.
-              </p>
-              <p className="mt-2 text-13 text-text-light leading-relaxed">
-                계속 받으려면 그대로 두면 되고, 그만 받으려면 아래 [수신 거부]를 누르거나 마이의 알림 설정에서 끌 수 있어.
+              <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 동의 확인 안내</p>
+              {/* 법정 재확인 통지에 들어갈 것(전송자·동의한 날·동의 사실·유지/철회 방법)을 표 + 한 단락으로 —
+                  예전엔 빽빽한 두 단락이었다(디자인 다듬기 알림 시트 ④, 운영자 11-22). 결과 통지 창과 같은 표 모양 */}
+              <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">전송자</dt>
+                  <dd className="font-bold">별콩톡</dd>
+                </div>
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">동의한 날</dt>
+                  <dd className="font-bold">{reconfirm.grantedOn}</dd>
+                </div>
+                <div className="flex gap-3 py-0.5">
+                  <dt className="shrink-0 w-[64px] text-text-light">내용</dt>
+                  <dd className="font-bold">광고성 정보(앱 푸시) 수신 동의</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-13 text-text-light leading-relaxed text-center break-keep">
+                계속 받으려면 그대로 두면 돼.
+                <br />
+                그만 받으려면 [수신 거부]나 마이의 알림 설정에서 끌 수 있어.
               </p>
               <button
                 type="button"
