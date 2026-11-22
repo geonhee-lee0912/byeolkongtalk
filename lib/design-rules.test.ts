@@ -276,3 +276,12 @@ test("읽을거리 상담 권유: 흰 카드·진보라 버튼, 오늘의 카드
   // 오늘의 카드 페이지에 권유 칸이 따로 또 서면 두 개가 된다
   assert.doesNotMatch(readFileSync("app/(content)/free/daily-card/page.tsx", "utf8"), /<GuideCta/);
 });
+
+// 디자인 다듬기 묶음 9 ③ H3(운영자 11-22 '짜르지 말고 정비율로 줄이고 좌우에 배경')
+test("가이드 첫 화면: 낮은 배너에 그림은 자르지 않고, 큰 제목은 앱에서만 숨긴다", () => {
+  const s = readFileSync("app/(content)/guide/page.tsx", "utf8");
+  assert.match(s, /aspect-\[21\/10\]/);
+  assert.match(s, /aspect-\[900\/672\]/); // 원본 비율 그대로
+  assert.doesNotMatch(s, /object-cover/);
+  assert.match(s, /<h1 className="web-only /);
+});
