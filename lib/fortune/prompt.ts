@@ -4,6 +4,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import type { SajuResult, DaeunPillar } from "@/lib/saju/calc";
 import type { FortuneType } from "./types";
+import { SELF_PROMPT_NAME } from "./prompt-name";
 
 let _persona: string | null = null;
 function getFortunePersona(): string {
@@ -792,6 +793,13 @@ export function buildFortuneSystem(
       dayWord,
     })
   );
+
+  if (type === "compat" || type === "compat_social") {
+    // 작성 지시가 "첫 번째 사람"으로 적혀 있어, 이름 아닌 "너"만 주면 글이 본인을 순번으로 부른다(2026-11-22 실제 AI QA).
+    // 그래서 그 지시 **뒤**에 붙인다. 본인이 없는 궁합엔 붙이지 않는다.
+    const self = input.names?.a === SELF_PROMPT_NAME ? "첫" : input.names?.b === SELF_PROMPT_NAME ? "두" : null;
+    if (self) parts.push(`${self} 번째 사람이 이 글을 읽는 너야 — 글에서는 순번 말고 '너'로 불러.`);
+  }
 
   return {
     staticPart: getFortunePersona(),
