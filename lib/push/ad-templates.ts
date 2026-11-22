@@ -23,7 +23,7 @@ export function morningAdMessage(flow: { name: string; line: string }): { title:
 
 /** 하던 이야기 이어가기(설계 §3 C) — 🔴 고민 내용은 넣지 않는다(잠금화면에 보인다). 재촉·불안 자극 없이 */
 export function resumeAdMessage(): { title: string; body: string } {
-  return adMessage("어제 하던 이야기, 이어서 할래?", "별콩이랑 나누던 이야기가 남아 있어. 편할 때 이어서 들려줘.");
+  return adMessage("하던 이야기, 이어서 할래?", "별콩이랑 나누던 이야기가 남아 있어. 편할 때 이어서 들려줘.");
 }
 
 /** 조용한 사람 깨우기(설계 §3 C) — 7일·14일. 탓하거나 겁주지 않는다 */
