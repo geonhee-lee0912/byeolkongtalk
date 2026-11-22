@@ -6,7 +6,7 @@
 // Vercel Cron 은 production 배포에서만 돈다 — dev 는 손으로 호출한다.
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
-import { logError, logInfo } from "@/lib/logger";
+import { logError, logInfo, logWarn } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +28,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const mode = process.env.RETENTION_PURGE;
+  // 빈칸·대문자가 섞이면 켠 줄 알고 매일 세기만 한다(/api/health 는 '있다'로 보인다)
+  if (mode && mode !== "on") await logWarn('RETENTION_PURGE is set but not "on" — count only', { route: ROUTE });
+
   const { data, error } = await getServiceSupabase().rpc("purge_expired_records", {
-    p_execute: process.env.RETENTION_PURGE === "on",
+    p_execute: mode === "on",
   });
   if (error) {
     await logError(error, { route: ROUTE });

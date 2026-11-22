@@ -83,7 +83,8 @@ for (const value of [undefined, "", "off", "true", "1", "ON", " on"]) {
     assert.equal(r.status, 200);
     assert.deepEqual(r.state.calls, [{ fn: "purge_expired_records", args: { p_execute: false } }]);
     assert.deepEqual(r.body, counts(false, 3));
-    assert.deepEqual(r.state.logs, [], "세기만 한 날은 기록을 남기지 않는다");
+    // 값이 있는데 on 이 아니면 켠 줄 알고 안 도는 것이다 — warn. 비어 있으면(꺼 둔 것) 조용히
+    assert.deepEqual(r.state.logs.map((l) => l.level), value ? ["warn"] : []);
   });
 }
 

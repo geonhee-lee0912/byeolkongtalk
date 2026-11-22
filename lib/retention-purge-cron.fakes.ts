@@ -2,7 +2,7 @@
 
 export const state = {
   calls: [] as { fn: string; args: unknown }[],
-  logs: [] as { level: "info" | "error"; what: unknown; ctx: unknown }[],
+  logs: [] as { level: "info" | "warn" | "error"; what: unknown; ctx: unknown }[],
   result: { data: null, error: null } as { data: unknown; error: { message: string; code?: string } | null },
 };
 
@@ -23,6 +23,9 @@ export function getServiceSupabase() {
 
 export async function logError(what: unknown, ctx: unknown) {
   state.logs.push({ level: "error", what, ctx });
+}
+export async function logWarn(what: unknown, ctx: unknown) {
+  state.logs.push({ level: "warn", what, ctx });
 }
 export async function logInfo(what: unknown, ctx: unknown) {
   state.logs.push({ level: "info", what, ctx });
