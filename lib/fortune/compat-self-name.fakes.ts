@@ -92,6 +92,15 @@ export async function findRecentDuplicateReading() {
   return null;
 }
 
+// ── @/lib/ratelimit ── (경우가 분당 상한보다 많다)
+export function checkRateLimit() {
+  return { ok: true, remaining: 1, resetAt: 0 };
+}
+export function getClientIp() {
+  return "test-ip";
+}
+export function maybeSweepExpired() {}
+
 // ── @/lib/relationship/closed · passes ── (종료를 되돌렸을 때도 새지 않는지 본다)
 export function relationshipClosedResponse() {
   return null;
