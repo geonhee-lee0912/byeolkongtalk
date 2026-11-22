@@ -110,6 +110,12 @@ test("검토 메모 사본만 비운 날도 기록한다", async () => {
   assert.deepEqual(r.state.logs.map((l) => l.level), ["info"]);
 });
 
+test("함수가 칸을 늘려도(4-3A) 그 칸만 지운 날을 기록한다", async () => {
+  const data = { ...counts(true, 0), usage_ids: 5 };
+  const r = await run({ CRON_SECRET: SECRET, RETENTION_PURGE: "on" }, AUTH, { data, error: null });
+  assert.deepEqual(r.state.logs.map((l) => l.level), ["info"]);
+});
+
 test("DB 오류는 500 + error — 조용히 성공으로 접지 않는다", async () => {
   const error = { message: "purge_expired_records: unknown login provider", code: "P0001" };
   const r = await run({ CRON_SECRET: SECRET, RETENTION_PURGE: "on" }, AUTH, { data: null, error });

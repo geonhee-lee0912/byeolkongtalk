@@ -13,6 +13,18 @@ import { SURVEY_REWARD_STARS } from "@/lib/constants";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// 🔴 응답 행은 1년 뒤 파기된다(애플-4-3A) — '이미 참여'는 행 + 보상 원장(survey:userId) 둘로 본다.
+//    행만 보면 1년 뒤 다시 열리는데 보상은 멱등이라 안 들어온다.
+async function hasRewardLedger(supa: ReturnType<typeof getServiceSupabase>, userId: string) {
+  const { data, error } = await supa
+    .from("star_transactions")
+    .select("id")
+    .eq("payment_id", `survey:${userId}`)
+    .limit(1)
+    .maybeSingle();
+  return { rewarded: !!data, error };
+}
+
 // 참여 자격 = 로그인 && 미참여. 결과화면 카드·설문 페이지가 이걸로 노출/차단 판정.
 export async function GET() {
   const { userId } = await getSession();
@@ -32,7 +44,19 @@ export async function GET() {
     });
     return NextResponse.json({ eligible: false, participated: false });
   }
-  const participated = !!data;
+  let participated = !!data;
+  if (!participated) {
+    const ledger = await hasRewardLedger(supa, userId);
+    if (ledger.error) {
+      await logError(ledger.error, {
+        route: "/api/survey",
+        userId,
+        extra: { severity: "SURVEY_LOOKUP_FAILED" },
+      });
+      return NextResponse.json({ eligible: false, participated: false });
+    }
+    participated = ledger.rewarded;
+  }
   return NextResponse.json({ eligible: !participated, participated });
 }
 
@@ -55,6 +79,18 @@ export async function POST(req: NextRequest) {
   }
 
   const supa = getServiceSupabase();
+  const ledger = await hasRewardLedger(supa, userId);
+  if (ledger.error) {
+    await logError(ledger.error, {
+      route: "/api/survey",
+      userId,
+      extra: { severity: "SURVEY_LOOKUP_FAILED" },
+    });
+    return NextResponse.json({ ok: false, reason: "save" }, { status: 500 });
+  }
+  if (ledger.rewarded) {
+    return NextResponse.json({ ok: false, reason: "already" }, { status: 409 });
+  }
   const { error: insertError } = await supa.from("survey_responses").insert({
     user_id: userId,
     anon_id: anonymousId ?? null,
