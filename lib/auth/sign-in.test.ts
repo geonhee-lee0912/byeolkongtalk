@@ -93,6 +93,31 @@ test("새 카카오 회원 — users(kakao_id 숫자)·로그인 수단을 만�
   assert.deepEqual(s.newUserCalls, [{ userId: "u1", hash: identityHash("kakao", "4123456789") }]);
 });
 
+test("닉네임 없는 카카오 — 가입 때 무작위 4자리로 만들고, 다시 로그인해도 그 이름 그대로, 닉네임이 오면 그때 갱신", async (t) => {
+  const { s, deps } = memory();
+  let next = 0.0042;
+  t.mock.method(Math, "random", () => next);
+  await signIn({ ...KAKAO, nickname: null }, deps);
+  assert.equal(s.users[0].nickname, "별콩이_0042");
+  next = 0.7777;
+  await signIn({ ...KAKAO, nickname: null }, deps);
+  assert.equal(s.users[0].nickname, "별콩이_0042");
+  await signIn(KAKAO, deps);
+  assert.equal(s.users[0].nickname, "별콩");
+});
+
+test("옮겨 담기 전·동시 가입에서 진 요청도 — 닉네임이 없으면 먼저 있던 이름을 지킨다", async () => {
+  const legacy = memory();
+  legacy.s.users.push({ id: "legacy", kakao_id: 4123456789, nickname: "옛", profile_img: null, logins: 0 });
+  await signIn({ ...KAKAO, nickname: null }, legacy.deps);
+  assert.equal(legacy.s.users[0].nickname, "옛");
+
+  const race = memory();
+  race.s.beforeUserInsert = () => race.s.users.push({ id: "winner", kakao_id: 4123456789, nickname: "먼저", profile_img: null, logins: 0 });
+  await signIn({ ...KAKAO, nickname: null }, race.deps);
+  assert.equal(race.s.users[0].nickname, "먼저");
+});
+
 test("다시 로그인 — 같은 회원, 닉네임·프로필 갱신, 신규 처리(웰컴 별) 없음", async () => {
   const { s, deps } = memory();
   await signIn(KAKAO, deps);

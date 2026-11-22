@@ -27,8 +27,19 @@ export const RELATION_LABEL: Record<string, string> = {
 export function birthTimeToBranchHour(t: string | null): number | null {
   if (!t) return null;
   const h = Number(t.slice(0, 2));
-  if (h === 23) return 0; // 자시 23-01 → 0
-  return h - (h % 2);
+  return (Math.floor((h + 1) / 2) % 12) * 2; // 칸은 홀수 시에 바뀐다(13시 = 미시 14) · 23시 → 자시 0
+}
+
+// 자동 채운 시진 칸을 그대로 뒀으면 저장된 시각으로 계산한다 — 칸 값(0시)으로 바꾸면 23시 출생의 다음날 일주를 잃는다.
+export function birthTimeForSubmit(
+  selected: number | null,
+  saved: string | null,
+): { hour: number | null; minute: number | null } {
+  if (selected === null) return { hour: null, minute: null };
+  if (saved && birthTimeToBranchHour(saved) === selected) {
+    return { hour: Number(saved.slice(0, 2)), minute: Number(saved.slice(3, 5)) };
+  }
+  return { hour: selected, minute: 0 };
 }
 
 // 12시진 (자시 23~01 시작). 인덱스 0 = 자시.

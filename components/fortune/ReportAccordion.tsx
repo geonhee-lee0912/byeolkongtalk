@@ -13,20 +13,17 @@ export interface AccordionItem {
   group?: string; // 그룹 라벨 — 바뀌는 지점에 구분선(saju_full 처럼 섹션 많을 때)
 }
 
-// 리포트 공용 아코디언 — 접이식 섹션 목록 + "전체 펼치기/접기" 토글 + (선택)그룹 구분선.
+// 리포트 공용 아코디언 — '자세히 보기 · N개' 제목 줄 + 모두 펼치기 + 흰 카드 하나 안의 목차 줄(누르면 그 자리에서 펼침).
+// 그룹이 있으면(saju_full) 그룹마다 구분선 + 카드 하나. 디자인 다듬기 운세 결과 ④ A2 운영자 11-16.
 // generic·monthly·compat·saju_full 이 동일 UX 로 통일해 쓴다. 상단 히어로·하단 한마디는 각 뷰가 바깥에 둔다.
-// groupIcons: 그룹 라벨 → 별콩이 일러스트 경로(구분선에 작은 아바타로 노출, 중간중간 캐릭터 배치).
+// groupIcons: 그룹 라벨 → 별콩이 일러스트 경로(구분선에 작은 아바타로 노출).
 export default function ReportAccordion({
   items,
   groupIcons,
-  accentIcon,
 }: {
   items: AccordionItem[];
   groupIcons?: Record<string, string>;
-  /** 그룹 없는 리포트용 — 목록 중간에 작은 별콩이 구분선(중간중간 캐릭터). */
-  accentIcon?: string;
 }) {
-  const accentAt = accentIcon && items.length >= 4 ? Math.floor(items.length / 2) : -1;
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
   const allOpen = items.length > 0 && openSet.size === items.length;
 
@@ -39,64 +36,61 @@ export default function ReportAccordion({
     });
   const toggleAll = () => setOpenSet(allOpen ? new Set() : new Set(items.map((i) => i.key)));
 
+  // 같은 그룹이 이어지는 묶음마다 카드 하나(그룹 없으면 전부 한 묶음)
+  const runs: { group?: string; start: number; items: AccordionItem[] }[] = [];
+  items.forEach((it, idx) => {
+    const last = runs[runs.length - 1];
+    if (last && last.group === it.group) last.items.push(it);
+    else runs.push({ group: it.group, start: idx, items: [it] });
+  });
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end -mb-1">
-        <button
-          type="button"
-          onClick={toggleAll}
-          className="btn btn-secondary btn-sm"
-        >
-          {allOpen ? "전체 접기" : "전체 펼치기"}
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between pl-1">
+        <h2 className="text-15 font-extrabold text-eye-purple">
+          자세히 보기
+          <span className="ml-1 text-12 font-semibold text-text-light tabular-nums">{items.length}개</span>
+        </h2>
+        <button type="button" onClick={toggleAll} className="btn btn-text btn-sm -mr-3.5">
+          {allOpen ? "모두 접기" : "모두 펼치기"}
         </button>
       </div>
-      {items.map((it, idx) => {
-        const showDivider = !!it.group && it.group !== (idx > 0 ? items[idx - 1].group : undefined);
-        return (
-          <div key={it.key} className="flex flex-col gap-4">
-            {accentIcon && idx === accentAt && !showDivider && (
-              <div className="flex items-center gap-2.5 my-1">
-                <span className="flex-1 h-px bg-lilac-mid/25" />
+      {runs.map((run, r) => (
+        <div key={run.start} className={`flex flex-col gap-2.5 ${r > 0 ? "mt-2" : ""}`}>
+          {run.group && (
+            <div className="flex items-center gap-2 pl-1">
+              {groupIcons?.[run.group] && (
                 <Image
-                  src={accentIcon}
+                  src={groupIcons[run.group]}
                   alt=""
-                  width={30}
-                  height={30}
-                  className="w-[30px] h-[30px] rounded-full object-cover border border-lilac-mid/30 bg-lilac-soft/40 shrink-0"
+                  width={26}
+                  height={26}
+                  className="w-[26px] h-[26px] rounded-full object-cover border border-lilac-mid/30 bg-lilac-soft/40 shrink-0"
                   aria-hidden
                 />
-                <span className="flex-1 h-px bg-lilac-mid/25" />
-              </div>
-            )}
-            {showDivider && (
-              <div className="flex items-center gap-2 mt-1">
-                {it.group && groupIcons?.[it.group] && (
-                  <Image
-                    src={groupIcons[it.group]}
-                    alt=""
-                    width={26}
-                    height={26}
-                    className="w-[26px] h-[26px] rounded-full object-cover border border-lilac-mid/30 bg-lilac-soft/40 shrink-0"
-                    aria-hidden
-                  />
-                )}
-                <span className="text-13 font-extrabold text-accent shrink-0">{it.group}</span>
-                <span className="flex-1 h-px bg-lilac-mid/25" />
-              </div>
-            )}
-            <CollapsibleSection
-              heading={it.heading}
-              index={idx + 1}
-              body={it.body}
-              preview={it.preview}
-              open={openSet.has(it.key)}
-              onToggle={() => toggle(it.key)}
-            >
-              {it.children}
-            </CollapsibleSection>
+              )}
+              <span className="text-13 font-extrabold text-accent shrink-0">{run.group}</span>
+              <span className="flex-1 h-px bg-lilac-mid/25" />
+            </div>
+          )}
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            {run.items.map((it, i) => (
+              <CollapsibleSection
+                key={it.key}
+                heading={it.heading}
+                index={run.start + i + 1}
+                body={it.body}
+                preview={it.preview}
+                open={openSet.has(it.key)}
+                onToggle={() => toggle(it.key)}
+                divided={i > 0}
+              >
+                {it.children}
+              </CollapsibleSection>
+            ))}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }

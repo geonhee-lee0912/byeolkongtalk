@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
         const system = buildFortuneSystem("compat", {
           saju,
           sajuB,
-          names: { a: selfRow.display_name, b: partnerRow.display_name },
+          names: { a: null, b: partnerRow.display_name }, // null = 본인
         });
         const logCtx = { route: "/api/relationship/chat", userId, extra: { relationshipId: rel.id, threadReadingId, stage: "compat" } };
         let ai = parseCompatReportJson(

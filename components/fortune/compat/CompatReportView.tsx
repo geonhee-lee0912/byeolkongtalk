@@ -152,7 +152,7 @@ export default function CompatReportView({
       {saju && <CompatMatchDiagram a={saju.a} b={saju.b} names={saju.names} />}
 
       {/* 접이식 섹션 */}
-      <ReportAccordion items={items} accentIcon="/byeolkong-cheer.png" />
+      <ReportAccordion items={items} />
 
       {/* 다크 별콩이의 한마디 — 항상 노출 */}
       <div className="rounded-2xl px-5 py-5 text-white bg-night-card">

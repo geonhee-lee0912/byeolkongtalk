@@ -88,12 +88,25 @@ test("신규 회원 — 카카오 회원번호·닉네임·프로필을 그대�
   assert.equal(fakes.state.depsRequest, req);
 });
 
-test("카카오 프로필이 비어 있으면 닉네임 별콩이_{회원번호}, 프로필 null", async () => {
+test("카카오 프로필이 비어 있으면 닉네임 별콩이_ + 무작위 4자리(회원번호 없음), 프로필 null", async () => {
   const { GET, fakes } = await load();
   fakes.reset();
   fakes.state.user = { id: 4123456789 };
   await GET(callback({ code: "c1", state: `${NONCE}|/` }));
-  assert.deepEqual(fakes.state.lastInsertUser, { kakao_id: 4123456789, nickname: "별콩이_4123456789", profile_img: null });
+  const { nickname, ...rest } = fakes.state.lastInsertUser!;
+  assert.match(nickname, /^별콩이_\d{4}$/);
+  assert.deepEqual(rest, { kakao_id: 4123456789, profile_img: null });
+});
+
+test("기존 회원 — 카카오가 닉네임을 안 주면(없음·빈 문자열) 저장된 닉네임은 안 건드린다", async () => {
+  const { GET, fakes } = await load();
+  for (const kakao_account of [undefined, { profile: { nickname: "" } }]) {
+    fakes.reset();
+    fakes.state.existingUserId = "old-user";
+    fakes.state.user = { id: 4123456789, kakao_account };
+    await GET(callback({ code: "c1", state: `${NONCE}|/` }));
+    assert.deepEqual(fakes.state.lastUserUpdate, { userId: "old-user", patch: { profile_img: null } });
+  }
 });
 
 test("기존 회원 — welcome 없이 login=success, 닉네임·프로필 갱신, 신규 처리(웰컴 별) 안 부름", async () => {

@@ -17,51 +17,41 @@ export default function ElementChart({
   if (!saju) return null;
 
   const counts = saju.elementCount ?? { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
-  const total = ORDER.reduce((n, e) => n + (counts[e] ?? 0), 0) || 8;
   const max = Math.max(1, ...ORDER.map((e) => counts[e] ?? 0));
 
+  // 한 줄 띠(디자인 다듬기 묶음 4 결과 O2, 운영자 11-16) — 다섯 색으로 나눈 막대 하나 + 아래 개수.
+  // 예전 다섯 줄 막대(개수·%)의 절반 높이. 0개인 기운은 띠에 없고 아래 숫자만 옅게.
   return (
     <div
       className={`card-report${className ? ` ${className}` : ""}`}
     >
-      <h3 className="text-15 font-extrabold text-accent mb-4">내 오행 분포</h3>
-      <div className="flex flex-col gap-2.5">
+      <h3 className="text-14 font-extrabold text-accent mb-3">
+        오행 분포 <span className="ml-1 text-12 font-semibold text-text-light">여덟 글자 중</span>
+      </h3>
+      <div className="flex h-3.5 gap-0.5 rounded-full overflow-hidden">
+        {ORDER.filter((e) => (counts[e] ?? 0) > 0).map((e) => (
+          <div key={e} style={{ flex: counts[e], background: ELEMENT_COLOR[e] }} />
+        ))}
+      </div>
+      <div className="flex mt-2.5">
         {ORDER.map((e) => {
           const c = counts[e] ?? 0;
-          const pct = Math.round((c / total) * 100);
           const isMax = c === max && c > 0;
-          const isZero = c === 0;
           return (
-            <div key={e} className="flex items-center gap-2.5">
-              <span
-                className={`w-11 text-13 shrink-0 ${isMax ? "font-extrabold" : "font-bold"}`}
-                style={{ color: ELEMENT_COLOR[e] }}
-              >
+            <div key={e} className={`flex-1 text-center ${c === 0 ? "opacity-40" : ""}`}>
+              <p className="text-12 font-bold" style={{ color: ELEMENT_COLOR[e] }}>
                 {LABEL[e]}
-              </span>
-              <div className="flex-1 h-5 rounded-full bg-[#F0EEF4] overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.max(4, (c / max) * 100)}%`,
-                    background: ELEMENT_COLOR[e],
-                    opacity: isZero ? 0.15 : isMax ? 1 : 0.72,
-                  }}
-                />
-              </div>
-              <span
-                className={`w-14 text-right text-12 tabular-nums shrink-0 ${isMax ? "font-extrabold" : "text-text-light"}`}
-                style={isMax ? { color: ELEMENT_COLOR[e] } : undefined}
+              </p>
+              <p
+                className="text-15 font-extrabold tabular-nums mt-px"
+                style={{ color: isMax ? ELEMENT_COLOR[e] : "#5A3E8C" }}
               >
-                {c}개 · {pct}%
-              </span>
+                {c}
+              </p>
             </div>
           );
         })}
       </div>
-      <p className="text-11 text-text-light mt-3 leading-snug">
-        여덟 글자(사주) 안 오행의 개수야. 가장 많은 기운은 진하게, 0개는 옅게 표시했어.
-      </p>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { shuffleDeck, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import { MULTI_ROW_SLOT_LAYOUTS } from "@/lib/tarot/slot-layout";
 import { appHaptic } from "@/lib/app-context";
 
 type CardDirection = "upright" | "reversed";
@@ -29,15 +30,23 @@ interface CardDrawRitualProps {
   slotLabels: string[];
   accent: string;
   ritualLabel: string; // breathing pill + section divider 표시용
-  completeLabel?: string; // direction phase 완료 버튼 라벨 (기본 "결과 보기")
+  completeLabel?: ReactNode; // direction phase 완료 버튼 라벨 (기본 "결과 보기") — 별 아이콘을 넣을 수 있게 ReactNode
   relationshipLayout?: boolean; // true면 2x2 + 중앙 5번 배치
   backLabel?: string; // pick phase 좌측 버튼 라벨 (없으면 버튼 숨김)
   onBack?: () => void;
   onComplete: (drawn: DrawnCard[]) => void;
-  /** true면 호흡 pill·섹션 디바이더·별콩이 프로필 숨김 (ClarifierSheet용 슬림 모드) */
+  /** true면 시트 안 모양(ClarifierSheet 전용): 호흡 pill·섹션 디바이더·별콩이 프로필·고르기 단계 제목을 숨기고,
+   *  버튼·얇은 막대·가운데 카드 누르면 바로 자리로는 /tarot/draw(pageLayout)와 같다. 아래 고정 버튼 띠는 안 쓴다(시트 안이라)
+   *  — 디자인 다듬기 묶음 2 카드 한 장 더 시트 B안, 운영자 11-15 */
   slim?: boolean;
   /** 이미 뽑힌 card_id 목록 — shuffleDeck 결과에서 제외 */
   excludeCardIds?: number[];
+  /**
+   * true면 한 화면 배치(/tarot/draw 전용, 디자인 다듬기 11-13 운영자 결정):
+   * 호흡 pill·디바이더·프로필 없이 제목 20/13 → 남는 위쪽 가운데에 자리 칸 → 덱·버튼은 아래에 붙인다.
+   * 3장 이하는 자리 칸 1.3배, 5장 이상은 칸 줄 사이를 좁혀 한 화면에 들어가게 한다
+   */
+  pageLayout?: boolean;
 }
 
 export default function CardDrawRitual({
@@ -52,7 +61,13 @@ export default function CardDrawRitual({
   onComplete,
   slim = false,
   excludeCardIds,
+  pageLayout = false,
 }: CardDrawRitualProps) {
+  // pageLayout 은 slim 처럼 장식(pill·디바이더·프로필)을 숨긴다
+  const bare = slim || pageLayout;
+  // 버튼·막대·가운데 누르기는 화면(pageLayout)과 시트(slim)가 같다
+  const flat = slim || pageLayout;
+  const slotScale = pageLayout && cardCount <= 3 && !relationshipLayout ? 1.3 : 1;
   const [mounted, setMounted] = useState(false);
   const [deck, setDeck] = useState<number[]>([]);
   const [isShuffling, setIsShuffling] = useState(true);
@@ -66,11 +81,11 @@ export default function CardDrawRitual({
 
   // viewport 세로가 부족한 디바이스(iPhone SE 등)에서만 하단 CTA sticky
   useEffect(() => {
-    const check = () => setIsCompact(window.innerHeight < 820);
+    const check = () => setIsCompact(!slim && window.innerHeight < 820); // 시트 안에선 아래 고정 띠를 안 쓴다
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
+  }, [slim]);
 
   // compact 디바이스 첫 진입: 덱/스크롤바/버튼이 한 화면에 보이도록 자동 스크롤
   useEffect(() => {
@@ -242,15 +257,21 @@ export default function CardDrawRitual({
     ? phase === "direction"
       ? "pb-[180px]"
       : "pb-28"
+    : pageLayout
+    ? "pb-4"
+    : slim
+    ? "pb-2"
     : "pb-16";
 
   return (
     <div
       className={`flex flex-1 flex-col items-center w-full animate-fade-in ${containerPb}`}
     >
-      <div className="w-full max-w-md mx-auto px-5">
+      <div
+        className={`w-full max-w-md mx-auto px-5 ${pageLayout ? "flex flex-1 flex-col" : ""}`}
+      >
         {/* 호흡 가이드 + 스프레드 요약 pill — slim 모드에서 숨김 */}
-        {!slim && (
+        {!bare && (
           <div className="flex justify-center mb-5">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
@@ -277,7 +298,7 @@ export default function CardDrawRitual({
         )}
 
         {/* 섹션 디바이더 — slim 모드에서 숨김 */}
-        {!slim && (
+        {!bare && (
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-lilac-soft" />
             <span className="text-11 font-bold text-text-light tracking-[0.15em]">
@@ -288,8 +309,10 @@ export default function CardDrawRitual({
         )}
 
         {/* 별콩이 + 메시지 — slim 모드에서 프로필 이미지 숨김 */}
-        <div className={`flex flex-col items-center ${slim ? "mb-3" : "mb-5"}`}>
-          {!slim && (
+        <div
+          className={`flex flex-col items-center ${pageLayout ? "" : slim ? "mb-3" : "mb-5"}`}
+        >
+          {!bare && (
             <div className="relative w-14 h-14 mb-2">
               <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -301,8 +324,11 @@ export default function CardDrawRitual({
             </div>
           )}
           {phase === "pick" ? (
+            slim ? null : (
             <>
-              <p className="font-display text-17 text-eye-purple leading-tight text-center">
+              <p
+                className={`font-display text-eye-purple text-center ${pageLayout ? "text-20 break-keep text-balance" : "text-17 leading-tight"}`}
+              >
                 {allFilled ? (
                   <>카드를 다 골랐네!</>
                 ) : cardCount > 1 && activeSlot >= 0 ? (
@@ -325,25 +351,37 @@ export default function CardDrawRitual({
                   "마음이 끌리는 카드를 골라봐"
                 )}
               </p>
-              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
+              <p
+                className={`text-text-light text-center ${pageLayout ? "text-13 mt-1" : "text-12 mt-1.5 leading-relaxed"}`}
+              >
                 {allFilled
                   ? "이제 카드 방향을 정해볼까?"
                   : "“별이 이끄는 대로, 손끝이 멈추는 그 카드로”"}
               </p>
             </>
+            )
           ) : (
             <>
-              <p className="font-display text-17 text-eye-purple leading-tight text-center">
+              <p
+                className={`font-display text-eye-purple text-center ${pageLayout ? "text-20 break-keep text-balance" : "text-17 leading-tight"}`}
+              >
                 카드 방향도 정해줄래?
               </p>
-              <p className="text-12 text-text-light mt-1.5 leading-relaxed text-center">
+              <p
+                className={`text-text-light text-center ${pageLayout ? "text-13 mt-1" : "text-12 mt-1.5 leading-relaxed"}`}
+              >
                 &ldquo;정·역에 따라 별이 전하는 결이 달라져&rdquo;
               </p>
             </>
           )}
         </div>
 
-        {/* 슬롯 */}
+        {/* 슬롯 — pageLayout 이면 제목과 덱(방향 단계는 버튼) 사이 남는 높이의 가운데 */}
+        <div
+          className={
+            pageLayout ? "flex flex-1 flex-col items-center justify-center py-5" : ""
+          }
+        >
         <SlotRow
           labels={slotLabels}
           slotCards={slotCards}
@@ -356,12 +394,15 @@ export default function CardDrawRitual({
           onToggleDirection={setDir}
           onRemove={removeCard}
           onSelectSlot={selectSlot}
+          scale={slotScale}
+          tightRows={pageLayout}
         />
+        </div>
       </div>
 
       {/* pick 단계: 가로 스와이프 덱 */}
       {phase === "pick" && (
-        <div className="w-full max-w-md mx-auto mt-6">
+        <div className={`w-full max-w-md mx-auto ${pageLayout ? "" : "mt-6"}`}>
           <HorizontalDeck
             deck={deck}
             pickedSlotByCard={pickedSlotByCard}
@@ -371,6 +412,8 @@ export default function CardDrawRitual({
             accent={accent}
             isShuffling={isShuffling}
             totalSlots={cardCount}
+            thinBar={flat}
+            onPickCenter={flat ? confirmPick : undefined}
           />
         </div>
       )}
@@ -385,7 +428,27 @@ export default function CardDrawRitual({
             : pendingCardId === null || flight !== null || activeSlot < 0;
           const stickyClass = isCompact
             ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
-            : "w-full max-w-md mx-auto px-5 mt-6";
+            : `w-full max-w-md mx-auto px-5 ${pageLayout ? "mt-3" : "mt-6"}`;
+          // pageLayout: 공통 주 버튼 하나(전체 폭) + '리딩 방법 선택'은 웹에서만 글자 버튼 — 앱에선 헤더 ‹ 와 같은 곳이라 숨김
+          // (디자인 다듬기 ⑤ 운영자 A안 11-13, /concern 의 '뒤로'와 같은 방식)
+          if (flat) {
+            return (
+              <div className={`flex flex-col gap-1 ${stickyClass}`}>
+                <button
+                  onClick={pickAction}
+                  disabled={pickDisabled}
+                  className="btn btn-primary btn-lg"
+                >
+                  {pickLabel}
+                </button>
+                {backLabel && (
+                  <button onClick={onBack} className="web-only btn btn-text btn-lg">
+                    {backLabel}
+                  </button>
+                )}
+              </div>
+            );
+          }
           return (
             <div
               className={`flex items-center justify-center gap-2 ${stickyClass}`}
@@ -413,8 +476,30 @@ export default function CardDrawRitual({
           );
         })()}
 
+      {/* direction 단계(pageLayout): 공통 주 버튼 + 글자 버튼 '카드 다시 고르기'(화면 안에서 고르기로 돌아가서 앱에서도 둔다) */}
+      {phase === "direction" && flat && (
+        <div
+          className={`flex flex-col gap-1 ${
+            isCompact
+              ? "fixed bottom-0 left-0 right-0 px-5 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-cream/92 backdrop-blur-md border-t border-lilac-soft/70 z-40"
+              : "w-full max-w-md mx-auto px-5 mt-3"
+          }`}
+        >
+          <button
+            onClick={handleComplete}
+            disabled={!canProceed}
+            className="btn btn-primary btn-lg"
+          >
+            {completeLabel ?? "결과 보기"}
+          </button>
+          <button onClick={backToPick} className="btn btn-text btn-lg">
+            카드 다시 고르기
+          </button>
+        </div>
+      )}
+
       {/* direction 단계: 완료 + 카드 다시 뽑으러 가기 (세로) */}
-      {phase === "direction" && (
+      {phase === "direction" && !flat && (
         <div
           className={`flex flex-col items-center gap-2.5 ${
             isCompact
@@ -497,6 +582,8 @@ function HorizontalDeck({
   accent,
   isShuffling,
   totalSlots,
+  thinBar = false,
+  onPickCenter,
 }: {
   deck: number[];
   pickedSlotByCard: Map<number, number>;
@@ -506,6 +593,13 @@ function HorizontalDeck({
   accent: string;
   isShuffling: boolean;
   totalSlots: number;
+  /** 번호 막대 얇게(pageLayout) */
+  thinBar?: boolean;
+  /**
+   * 가운데 카드를 누르면 바로 자리로(= 카드 선택 버튼, pageLayout). 디자인 다듬기 ④ 운영자 A안 11-13 —
+   * 가운데 카드는 이미 자동으로 고른 카드라 누르기만 하면 아무 변화가 없었다
+   */
+  onPickCenter?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [centeredIndex, setCenteredIndex] = useState(0);
@@ -667,7 +761,9 @@ function HorizontalDeck({
                   if (isShuffling) return;
                   if (suppressClickRef.current) return;
                   if (isCenter) {
-                    if (!isPicked) onTap(cardId);
+                    if (isPicked) return;
+                    if (onPickCenter && cardId === pendingCardId) onPickCenter();
+                    else onTap(cardId);
                   } else {
                     jumpTo(i);
                   }
@@ -717,6 +813,7 @@ function HorizontalDeck({
         visibleCards={visibleCards}
         centeredIndex={centeredIndex}
         onJump={(i, smooth) => jumpTo(i, smooth)}
+        thin={thinBar}
       />
     </div>
   );
@@ -732,6 +829,7 @@ function DeckScrollbar({
   visibleCards,
   centeredIndex,
   onJump,
+  thin = false,
 }: {
   accent: string;
   total: number;
@@ -740,6 +838,11 @@ function DeckScrollbar({
   visibleCards: number[];
   centeredIndex: number;
   onJump: (i: number, smooth?: boolean) => void;
+  /**
+   * 얇은 막대(/tarot/draw, 디자인 다듬기 ③ 운영자 B안 11-13): 눈금·'#번호' 말풍선 없이 얇은 줄 + 작은 동그라미 손잡이,
+   * 좌우는 아래 버튼 끝선(32px)에 맞춘다. 누르거나 끌어서 넘어가기·고른 카드 핀은 그대로
+   */
+  thin?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -767,7 +870,7 @@ function DeckScrollbar({
     .filter((m): m is { deckIdx: number; slotNum: number } => m !== null);
 
   return (
-    <div className="mt-2 px-4">
+    <div className={`mt-2 ${thin ? "px-8" : "px-4"}`}>
       {/* 뽑힌 카드 마커 행 — 트랙 위 (지도 핀 모양, 클릭하면 해당 카드로 점프) */}
       <div className="relative h-6 mb-1">
         {pickedMarkers.map(({ deckIdx, slotNum }) => (
@@ -818,10 +921,10 @@ function DeckScrollbar({
           e.currentTarget.releasePointerCapture(e.pointerId);
         }}
         onPointerCancel={() => setDragging(false)}
-        className="relative h-1.5 bg-lilac-soft rounded-full cursor-pointer touch-none select-none"
+        className={`relative ${thin ? "h-1" : "h-1.5"} bg-lilac-soft rounded-full cursor-pointer touch-none select-none`}
       >
         {/* 10장마다 눈금 */}
-        {tickPositions.map((n) => (
+        {!thin && tickPositions.map((n) => (
           <div
             key={n}
             className="absolute top-0 h-full w-[1.5px] rounded-full pointer-events-none"
@@ -844,19 +947,21 @@ function DeckScrollbar({
           />
         ))}
 
-        {/* 썸 */}
+        {/* 썸 — thin 이면 흰 테두리 동그라미(16) */}
         <div
           className="absolute top-1/2 -translate-y-1/2 rounded-full pointer-events-none"
           style={{
-            left: `calc(${ratio * 100}% - 14px)`,
-            width: 28,
-            height: 12,
+            left: `calc(${ratio * 100}% - ${thin ? 8 : 14}px)`,
+            width: thin ? 16 : 28,
+            height: thin ? 16 : 12,
             background: accent,
+            border: thin ? "3px solid #fff" : undefined,
             boxShadow: `0 2px 6px ${accent}66`,
             transition: dragging ? "none" : "left 150ms ease-out",
           }}
         >
-          {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치 */}
+          {/* 현재 번호 말풍선 — 카드에 가리지 않도록 아래쪽 위치(thin 이면 없음) */}
+          {!thin && (
           <div
             className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-lg text-11 font-black tabular-nums whitespace-nowrap"
             style={{ background: accent, color: "#fff" }}
@@ -874,11 +979,12 @@ function DeckScrollbar({
             />
             #{centeredIndex + 1}
           </div>
+          )}
         </div>
       </div>
 
       {/* 툴팁 공간 확보 */}
-      <div className="h-6" />
+      <div className={thin ? "h-2" : "h-6"} />
     </div>
   );
 }
@@ -887,13 +993,6 @@ function DeckScrollbar({
 
 const SLOT_W = 56;
 const SLOT_H = 84;
-
-// 5장(비관계) 3+2 / 6장 2x3 / 7장 3+3+1(중앙) — 행 단위 슬롯 배치
-const MULTI_ROW_SLOT_LAYOUTS: Record<number, number[][]> = {
-  5: [[0, 1, 2], [3, 4]],
-  6: [[0, 1, 2], [3, 4, 5]],
-  7: [[0, 1, 2], [3, 4, 5], [6]],
-};
 
 function SlotRow({
   labels,
@@ -907,6 +1006,8 @@ function SlotRow({
   onToggleDirection,
   onRemove,
   onSelectSlot,
+  scale = 1,
+  tightRows = false,
 }: {
   labels: string[];
   slotCards: (number | null)[];
@@ -919,6 +1020,10 @@ function SlotRow({
   onToggleDirection: (idx: number, dir: CardDirection) => void;
   onRemove: (idx: number) => void;
   onSelectSlot: (idx: number) => void;
+  /** 자리 칸 배율 — pageLayout 3장 이하 1.3 */
+  scale?: number;
+  /** 5장 이상 칸 줄 사이 좁힘(pageLayout) */
+  tightRows?: boolean;
 }) {
   const renderSlot = (i: number, horizontal?: boolean) => (
     <Slot
@@ -932,6 +1037,7 @@ function SlotRow({
       phase={phase}
       accent={accent}
       horizontal={horizontal}
+      scale={scale}
       onToggleDirection={onToggleDirection}
       onRemove={onRemove}
       onSelectSlot={onSelectSlot}
@@ -964,7 +1070,7 @@ function SlotRow({
   // 5장(비관계): 3+2 / 6장: 3+3 / 7장: 3+3+1(중앙) 피라미드
   // (5슬롯 단일 행 = 56*5 + 20*4 = 360px > 375px 뷰포트 가용폭 335px)
   const renderRows = (rows: number[][]) => (
-    <div className="flex flex-col gap-6 items-center">
+    <div className={`flex flex-col items-center ${tightRows ? "gap-3.5" : "gap-6"}`}>
       {rows.map((row, rowIdx) => (
         <div key={rowIdx} className="flex items-start gap-5 justify-center">
           {row.map((i) => renderSlot(i))}
@@ -981,7 +1087,10 @@ function SlotRow({
   return (
     <div className="flex flex-col gap-3 items-center">
       {rows.map((row, rowIdx) => (
-        <div key={rowIdx} className="flex items-start gap-6 justify-center">
+        <div
+          key={rowIdx}
+          className={`flex items-start justify-center ${scale > 1 ? "gap-8" : "gap-6"}`}
+        >
           {row.map((i) => renderSlot(i))}
         </div>
       ))}
@@ -999,6 +1108,7 @@ function Slot({
   phase,
   accent,
   horizontal,
+  scale = 1,
   onToggleDirection,
   onRemove,
   onSelectSlot,
@@ -1012,16 +1122,18 @@ function Slot({
   phase: Phase;
   accent: string;
   horizontal?: boolean;
+  scale?: number;
   onToggleDirection: (idx: number, dir: CardDirection) => void;
   onRemove: (idx: number) => void;
   onSelectSlot: (idx: number) => void;
 }) {
+  const big = scale > 1;
   const filled = cardId !== null && !isIncoming;
   const showIncomingHint = isIncoming;
   const canSelect = !filled && !isIncoming && phase === "pick";
   const isDirectionPhase = phase === "direction";
-  const boxW = horizontal ? SLOT_H : SLOT_W;
-  const boxH = horizontal ? SLOT_W : SLOT_H;
+  const boxW = (horizontal ? SLOT_H : SLOT_W) * scale;
+  const boxH = (horizontal ? SLOT_W : SLOT_H) * scale;
 
   const cardBox = (
     <div
@@ -1090,7 +1202,7 @@ function Slot({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span
-              className="text-14 font-black tabular-nums"
+              className={`${big ? "text-17" : "text-14"} font-black tabular-nums`}
               style={{ color: `${accent}90` }}
             >
               {index + 1}
@@ -1140,7 +1252,9 @@ function Slot({
   return (
     <div className="flex flex-col items-center gap-1.5" style={{ width: boxW }}>
       {isDirectionPhase && (
-        <p className="text-12 font-black text-eye-purple leading-tight text-center whitespace-nowrap">
+        <p
+          className={`${big ? "text-14" : "text-12"} font-black text-eye-purple leading-tight text-center whitespace-nowrap`}
+        >
           {label}
         </p>
       )}
@@ -1149,7 +1263,7 @@ function Slot({
 
       {!isDirectionPhase && (
         <span
-          className="text-11 font-black leading-none whitespace-nowrap"
+          className={`${big ? "text-14" : "text-11"} font-black leading-none whitespace-nowrap`}
           style={{ color: accent }}
         >
           {label}

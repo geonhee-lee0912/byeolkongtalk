@@ -18,10 +18,11 @@ import {
   needsDaeun,
 } from "@/lib/fortune/generic-report";
 import { parseReportCardJson, buildReportCardReport, serializeReportCardReport } from "@/lib/fortune/report-card-report";
-import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport, alignDecadeAges } from "@/lib/fortune/life-graph-report";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
+import { promptNameFor, type PromptName } from "@/lib/fortune/prompt-name";
 import { getCard } from "@/lib/tarot/cards";
 import {
   parseTarotReportJson,
@@ -242,7 +243,7 @@ export async function POST(req: NextRequest) {
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju: SajuResult | undefined = undefined;
   let sajuB: SajuResult | undefined = undefined;
-  let names: { a: string; b: string } | undefined;
+  let promptNames: { a: PromptName; b: PromptName } | undefined;
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
   let usedProfileB: string | null = null;
@@ -261,7 +262,7 @@ export async function POST(req: NextRequest) {
     const supabase = getServiceSupabase();
     const { data: rows } = await supabase
       .from("user_profiles")
-      .select("id, display_name, birth_date, birth_time, is_lunar_input, is_leap_month, gender")
+      .select("id, display_name, is_primary, relation_type, birth_date, birth_time, is_lunar_input, is_leap_month, gender")
       .in("id", [profileA, profileB])
       .eq("user_id", userId);
     const rowA = rows?.find((r) => r.id === profileA);
@@ -273,7 +274,8 @@ export async function POST(req: NextRequest) {
 
     saju = calcSaju(profileRowToSajuInput(rowA));
     sajuB = calcSaju(profileRowToSajuInput(rowB));
-    names = { a: rowA.display_name, b: rowB.display_name };
+    const names = { a: rowA.display_name, b: rowB.display_name }; // 화면용 — AI 에는 promptNames 만
+    promptNames = { a: promptNameFor(rowA), b: promptNameFor(rowB) };
     sajuDataToStore = { a: saju, b: sajuB, names, aId: profileA, bId: profileB };
     usedProfileId = profileA;
     usedProfileB = profileB;
@@ -396,7 +398,7 @@ export async function POST(req: NextRequest) {
 
   const systemInput =
     cfg.type === "compat" || cfg.type === "compat_social"
-      ? { saju, sajuB, names }
+      ? { saju, sajuB, names: promptNames }
       : cfg.base === "tarot"
         ? { tarotCards: tarotCardsForPrompt! }
         : needsDaeun(cfg.type) && sajuInput
@@ -627,7 +629,8 @@ export async function POST(req: NextRequest) {
         });
         return;
       }
-      storedContent = serializeLifeGraphReport(buildLifeGraphReport(ai));
+      // 10년 구간 이름표는 AI 가 아니라 대운 표에서(이름표를 틀리게 적은 실물이 있었다 — alignDecadeAges 주석)
+      storedContent = serializeLifeGraphReport(buildLifeGraphReport({ ...ai, decades: alignDecadeAges(ai.decades, saju?.daeun) }));
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {

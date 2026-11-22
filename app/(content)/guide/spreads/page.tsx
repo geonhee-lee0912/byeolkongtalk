@@ -30,11 +30,7 @@ export default function SpreadsIndex() {
         몇 장을 펼치느냐에 따라 보이는 게 달라져 — 배열별로 언제 쓰는지
         정리해뒀어.
       </p>
-      <div className="flex items-center gap-3 mt-4 mb-4" aria-hidden>
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-        
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-      </div>
+      <div className="h-px bg-lilac-mid/40 mt-4 mb-4" aria-hidden />
       <div className="flex flex-col gap-2.5">
         {published.map((t) => (
           <Link

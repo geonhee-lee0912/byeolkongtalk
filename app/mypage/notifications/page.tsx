@@ -11,6 +11,7 @@ import { useAppInfo } from "@/lib/use-app-info";
 import type { PushState } from "@/lib/app-bridge/protocol";
 import type { AdStatus } from "@/lib/push/asks";
 import AdConsentNotice, { type ConsentNotice } from "@/components/push/AdConsentNotice";
+import { AD_CONSENT_CONTENTS } from "@/components/push/AdConsentCheck";
 import { setAdConsent } from "@/components/push/api";
 
 function Toggle({ on, label, disabled, onClick }: { on: boolean; label: string; disabled: boolean; onClick: () => void }) {
@@ -165,11 +166,12 @@ export default function NotificationSettingsPage() {
                 <p className="text-14 font-bold">아침 별 흐름</p>
                 <p className="text-12 text-text-light mt-[3px] leading-normal">
                   매일 아침 별마루 오늘의 흐름을 알려줘
-                  {/* 비구독자에겐 광고로 간다 — 이 칸과 광고 동의가 둘 다 켜져야 받는다(설계 §4-6) */}
+                  {/* 비구독자에겐 광고로 간다 — 이 칸과 광고 동의가 둘 다 켜져야 받는다(설계 §4-6).
+                      세 줄로 길던 글을 한 줄로(디자인 다듬기 알림 설정 ⑩ N1, 운영자 11-22) — 뜻은 그대로 */}
                   {morning && ad.status !== "granted" && (
                     <>
                       <br />
-                      별마루 구독 중이 아니면 아래 광고성 정보 수신 동의도 켜야 받아
+                      구독 전이면 아래 광고 동의도 켜야 받아
                     </>
                   )}
                 </p>
@@ -182,7 +184,8 @@ export default function NotificationSettingsPage() {
               <div>
                 <p className="text-14 font-bold">광고성 정보 수신 동의 (앱 푸시)</p>
                 <p className="text-12 text-text-light mt-[3px] leading-normal">
-                  {ad.status === "granted" && ad.grantedOn ? `동의일 ${ad.grantedOn}` : "아침 별 흐름 맛보기 · 생일 아침 운세 · 이벤트 소식"}
+                  {/* 받을 내용은 체크칸·알림 질문 시트와 같은 한 곳(AD_CONSENT_CONTENTS) — 따로 적던 글이 어긋나지 않게 */}
+                  {ad.status === "granted" && ad.grantedOn ? `동의일 ${ad.grantedOn}` : AD_CONSENT_CONTENTS}
                 </p>
               </div>
               <Toggle on={ad.status === "granted"} label="광고성 정보 수신 동의" disabled={busy} onClick={() => void toggleAd()} />

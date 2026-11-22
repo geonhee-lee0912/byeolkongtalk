@@ -78,3 +78,21 @@ test("parseBlocks: 문단+불릿+콜아웃+문단 혼합 순서 보존", () => {
   const b = parseBlocks("도입 문장.\n- 하나\n- 둘\n> 팁\n\n다음 문단.");
   assert.deepEqual(b.map((x) => x.t), ["p", "ul", "callout", "p"]);
 });
+
+// 실제 버그(dev 성적표 11-21): JSON 문자열 안에서 AI 가 줄을 안 바꾸고 문장 끝에 바로 "> 팁" 을 붙임 → '>' 가 글자로 보였다.
+test("parseBlocks: 문장 끝 바로 뒤 ' > ' 는 콜아웃으로 끊는다", () => {
+  const b = parseBlocks("재물운은 쌓는 방식이 맞아. 작은 부수입도 좋아. > 중요한 건 꾸준히 남는 구조야.");
+  assert.deepEqual(b.map((x) => x.t), ["p", "callout"]);
+  const p = b[0];
+  assert.equal(p.t === "p" ? p.parts.map((x) => x.s).join("") : "", "재물운은 쌓는 방식이 맞아. 작은 부수입도 좋아.");
+  const c = b[1];
+  assert.equal(c.t === "callout" ? c.parts.map((x) => x.s).join("") : "", "중요한 건 꾸준히 남는 구조야.");
+});
+
+test("parseBlocks: 문장 끝이 아닌 '>' (비교·화살표)는 그대로 글", () => {
+  for (const s of ["체력 > 의지인 시기야.", "생각 -> 행동 순서로 가.", "3>2 처럼 앞서 있어."]) {
+    const b = parseBlocks(s);
+    assert.deepEqual(b.map((x) => x.t), ["p"], s);
+    assert.equal(b[0].t === "p" ? b[0].parts.map((x) => x.s).join("") : "", s);
+  }
+});

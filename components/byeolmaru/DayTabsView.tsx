@@ -188,7 +188,6 @@ export default function DayTabsView({ initialDate, initialTab }: { initialDate?:
           그대로 깊게 가는 구성이라 설득이 짧다. */}
       <FreeToPaidCta
         title="오늘 말고 더 멀리 볼래?"
-        subtitle="오늘 흐름은 무료 — 한 달 치 흐름도, 그 사람과의 결도, 지금 고민도"
         chat={{ label: "지금 고민, 타로로 뽑아볼래?", tagline: "오늘 흐름 말고 지금 걸리는 그 일, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
         products={["monthly", "compat_social"]}
         source="byeolmaru_day"

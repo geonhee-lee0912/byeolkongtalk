@@ -46,14 +46,16 @@ const config: ExpoConfig = {
   },
   android: {
     package: BUNDLE_ID,
-    // 별콩이 얼굴(앱 화면 4단계, 운영자 A안 11-09) — 배경색은 그림 가장자리 색(night 계열)과 같게 해 이음새가 안 보이게
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#201238" },
+    // 별콩이 얼굴(디자인 다듬기 ②, 운영자 B안 11-09 — 캐릭터 폭은 보이는 칸의 65%, iOS icon.png 와 같은 비율)
+    // 앞판은 투명 바탕 얼굴만, 뒤판은 iOS 와 같은 밤색 번짐. 둘 다 108dp 중 가운데 72dp 가 보이는 기준으로 만들었다
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundImage: "./assets/adaptive-icon-bg.png", backgroundColor: "#201238" },
     // 없으면 키째 뺀다(위 GOOGLE_SERVICES_FILE) — null 은 직렬화에서 {} 로 바뀐다(아래 extra 주석)
     ...(GOOGLE_SERVICES_FILE ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
   },
   plugins: [
     // 웹뷰 첫 화면이 뜰 때까지 유지(src/WebScreen.tsx 가 hideAsync)
-    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#FAF6F0" }],
+    // 흰 바탕 + 캐릭터 뒤 연보라 번짐 + '별콩톡'(운영자 11-09). 그림 바탕도 흰색이라 이음새가 없다. 폭 216 = 캐릭터 약 130pt(예전과 같은 크기)
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 216, resizeMode: "contain", backgroundColor: "#FFFFFF" }],
     // 카카오 SDK 안드로이드 저장소
     ["expo-build-properties", { android: { extraMavenRepos: ["https://devrepo.kakao.com/nexus/content/groups/public/"] } }],
     // 안드로이드 자동 백업·기기 이전에서 보안 저장소(리프레시 토큰)를 뺀다 — 백업 범위가 shared prefs 로 좁아져 웹뷰 쿠키도 안 간다.
@@ -62,8 +64,10 @@ const config: ExpoConfig = {
     // 🔴 카카오 플러그인보다 앞에 둔다 — 이유는 plugins/withKakaoOpenUrl.js 머리 주석
     "./plugins/withKakaoOpenUrl.js",
     ["@react-native-seoul/kakao-login", { kakaoAppKey: KAKAO_NATIVE_APP_KEY }],
-    // 알림 — 안드로이드 상태바 아이콘(흰색·투명) + 색은 eye-purple(흰 알림창에서 보이는 색)
+    // 알림 — 안드로이드 상태바 아이콘(흰색·투명, 카드 두 장 + 별 — 운영자 11-12) + 색은 eye-purple(흰 알림창에서 보이는 색)
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#5A3E8C" }],
+    // 안드로이드 FCM 자동 등록 끔 — 첫 토큰은 로그인 + 알림 허용 때(알림-4B, 이유는 플러그인 머리 주석)
+    "./plugins/withFcmAutoInitOff.js",
   ],
   owner: "braveshine",
   extra: {

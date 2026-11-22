@@ -5,6 +5,7 @@ import Link from "next/link";
 import AppHeader from "./AppHeader";
 import { useHeaderAccount } from "./useHeaderAccount";
 import Icon from "@/components/common/Icon";
+import HeaderActionButton from "./HeaderActionButton";
 
 export default function Header() {
   const { user, balance } = useHeaderAccount();
@@ -30,9 +31,11 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-1.5">
+          {/* 화면이 올린 버튼(지금은 타로 대화의 '결과 보기') — 잔액 왼쪽 */}
+          <HeaderActionButton />
           {user ? (
             <>
-              {/* 별 잔액 */}
+              {/* 별 잔액만 — 앱 헤더와 같게. 내 정보는 아래 '마이' 탭(얼굴·이름 알약은 뺌, 디자인 다듬기 ② 헤더 운영자 A안 11-12) */}
               <Link
                 href="/shop"
                 className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 transition-colors"
@@ -45,35 +48,11 @@ export default function Header() {
                   {balance ?? "-"}
                 </span>
               </Link>
-
-              {/* MY — 프로필 아바타 + 닉네임 */}
-              <Link
-                href="/mypage"
-                className="flex items-center gap-1.5 pl-1 pr-2.5 h-8 bg-white rounded-full border border-lilac-soft hover:border-lilac-mid/60 hover:bg-white transition-colors"
-                aria-label="내 정보"
-              >
-                <span className="relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-lilac-soft ring-1 ring-white/80">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      user.profile_img ||
-                      `https://api.dicebear.com/7.x/lorelei/svg?seed=${encodeURIComponent(
-                        user.nickname || "byeolkong"
-                      )}&backgroundColor=ede6f8,d4c7ee,c0aede,f2d78a,e8c26a`
-                    }
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </span>
-                <span className="text-12 font-bold text-eye-purple leading-none tracking-wide max-w-[80px] truncate">
-                  {user.nickname}
-                </span>
-              </Link>
             </>
           ) : (
             <Link
               href="/login"
-              className="text-14 text-text-light hover:text-eye-purple transition-colors"
+              className="flex items-center px-3 h-8 rounded-full bg-cream-warm border border-lilac-mid/40 hover:border-lilac-deep/60 text-13 font-bold text-eye-purple transition-colors"
             >
               로그인
             </Link>

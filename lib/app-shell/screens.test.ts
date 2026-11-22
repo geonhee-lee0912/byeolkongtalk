@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appScreen, depthOnChange, nextDepth } from "./screens.ts";
+import { appScreen, backGoesToTabRoot, depthOnChange, hidesBottomTab, nextDepth } from "./screens.ts";
 
 test("탭 첫 화면 5개", () => {
   assert.deepEqual(appScreen("/"), { kind: "tab", title: "타로톡" });
@@ -51,7 +51,7 @@ const SUBS: [string, string, string][] = [
   ["/survey", "별콩이의 질문", "/"],
   ["/select", "별콩톡", "/"],
   ["/saju", "별콩톡", "/"],
-  ["/tarot", "별콩톡", "/"],
+  ["/tarot", "리딩 방법 고르기", "/"], // 스프레드 고르기(디자인 다듬기 ② 운영자 11-12)
   ["/모르는-경로", "별콩톡", "/"],
 ];
 
@@ -83,4 +83,24 @@ test("depthOnChange — 첫 화면(이전 없음)·같은 주소는 그대로", 
 
 test("광고 수신거부 화면 — 하위 화면, 마이 탭", () => {
   assert.deepEqual(appScreen("/push/unsubscribe"), { kind: "sub", title: "광고 수신거부", tabRoot: "/mypage" });
+});
+
+test("카드 뽑기에서 막 들어온 타로 대화(id 없음)의 '‹' 는 기록 뒤(카드 뽑기)가 아니라 홈으로 간다(디자인 다듬기 /tarot/reading 운영자 11-14)", () => {
+  assert.equal(backGoesToTabRoot("/tarot/reading", ""), true);
+  assert.equal(backGoesToTabRoot("/tarot/reading/", ""), true);
+});
+test("보관함·결과 화면에서 id 를 들고 연 타로 대화와 다른 화면은 평소처럼 기록 뒤로", () => {
+  assert.equal(backGoesToTabRoot("/tarot/reading", "?id=abc&from=history"), false);
+  assert.equal(backGoesToTabRoot("/tarot/reading", "?id=abc"), false);
+  assert.equal(backGoesToTabRoot("/tarot/draw", ""), false);
+  assert.equal(backGoesToTabRoot("/saju/reading", ""), false);
+});
+
+test("하단탭은 타로 대화 화면에서만 숨긴다 — 결과 화면·뽑기·다른 대화는 그대로(디자인 다듬기 /tarot/reading 운영자 11-14)", () => {
+  assert.equal(hidesBottomTab("/tarot/reading"), true);
+  assert.equal(hidesBottomTab("/tarot/reading/"), true);
+  assert.equal(hidesBottomTab("/tarot/result"), false);
+  assert.equal(hidesBottomTab("/tarot/draw"), false);
+  assert.equal(hidesBottomTab("/tarot"), false);
+  assert.equal(hidesBottomTab("/saju/reading"), false);
 });

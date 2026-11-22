@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { classBlocks, offenders } from "./design-scan";
+import { classBlocks, offenders, sources } from "./design-scan";
+import { TAG_HERO } from "./seo/tag-hero";
 
 const css = () => readFileSync("app/globals.css", "utf8");
 
@@ -29,6 +30,9 @@ test("토큰 값이 스펙과 같다", () => {
     "--color-text-faint": "#978AB3",
     "--color-inner": "#FBF8FE",
     "--color-gold-wash": "#FBF1D6",
+    "--color-cream": "#F6F5F2",
+    "--color-disabled": "#E7E5E1",
+    "--color-disabled-text": "#A5A1AA",
     "--shadow-card": "0 1px 4px rgba(90, 62, 140, 0.08)",
     "--shadow-float": "0 4px 16px rgba(40, 30, 70, 0.12)",
     "--shadow-float-up": "0 -4px 16px rgba(40, 30, 70, 0.12)",
@@ -52,6 +56,13 @@ test("입력칸 16 규칙이 레이어 밖에 있다", () => {
   const before = c.slice(0, i);
   const opens = (before.match(/@layer[^{;]*\{/g) ?? []).length;
   assert.equal(opens, 0, "입력칸 규칙이 @layer 안에 있으면 text-* 유틸리티에 진다");
+});
+
+test("못 누르는 주 버튼은 흐리게가 아니라 회색 바탕·회색 글자다(디자인 다듬기 ② 운영자 B안 11-12)", () => {
+  const block = css().match(/@utility btn-primary\s*\{([\s\S]*?)\r?\n\}/)?.[1] ?? "";
+  assert.match(block, /&:disabled\s*\{[^}]*background-color:\s*var\(--color-disabled\)/);
+  assert.match(block, /&:disabled\s*\{[^}]*color:\s*var\(--color-disabled-text\)/);
+  assert.match(block, /&:disabled\s*\{[^}]*opacity:\s*1/);
 });
 
 test("부품 클래스가 있다", () => {
@@ -116,7 +127,9 @@ test("큰 버튼은 부품 클래스를 쓴다", () => {
 });
 test("카카오·애플 버튼은 규정 색을 유지한다", () => {
   const kakao = BUTTONS().filter((b) => /FEE500/.test(b.cls));
-  assert.ok(kakao.length >= 8, `카카오 버튼이 사라졌다: ${kakao.length}`);
+  // 5 — 타로 결과 공유(11-14, 8→7)·운세 결과 공유(11-16, 7→6)는 '공유하기' 하나 + 시트로 바뀌어 노란 바탕이 버튼이 아니라 시트 안 동그라미에 있다
+  //   · 별마루 비로그인 첫 화면(11-21, 6→5)은 노란 '카카오로 시작하고 내 달력 받기' 대신 맨 위 '?' 칸 한 줄(로그인 화면에서 카카오·Apple 을 고른다)
+  assert.ok(kakao.length >= 5, `카카오 버튼이 사라졌다: ${kakao.length}`);
   assert.deepEqual(kakao.filter((b) => /\bbtn-(primary|secondary|text)\b/.test(b.cls)).map(at), []);
   assert.match(readFileSync("components/auth/AppleLoginButton.tsx", "utf8"), /bg-black/);
 });
@@ -151,7 +164,6 @@ const SCENE_FILES = [
   "components/byeolmaru/CardReportView.tsx", // 줄무늬 게이지
   "components/relationship/DollAvatar.tsx", // 아바타 색
   "components/tarot/CardDrawRitual.tsx", // 카드 뽑기 의식
-  "app/global-error.tsx", // 전면 오류 화면 밤하늘
   "lib/heroGradients.ts", // 히어로 배너 밤하늘 장면
 ];
 test("카드·배너·버튼·타일에 그라데이션이 없다", () => {
@@ -216,4 +228,142 @@ test("관계 전환: + 버튼은 아바타와 같은 56px 원, 이름 칸은 11p
 test("빈 문자열 반복·양쪽 빈 조건식이 없다(정보 기호는 Icon 으로)", () => {
   // 속성 값(data-x={c ? "" : undefined})과 `?? ""` 는 정상 코드라 제외
   assert.deepEqual(offenders(/""\.repeat\(|(?<!\?)\?\s*""\s*:\s*""\s*\}|(?<!=)\{\s*\w+\s*\?\s*""\s*:\s*\w+\s*\}/), []);
+});
+// 장식 기호(✦)를 지우다 남은 '끊긴 구분선' — "선 ✦ 선" 에서 가운데만 비어 두 선 사이에 틈이 생긴다(디자인 다듬기 ② 홈에서 발견)
+test("구분선 두 개 사이가 빈 채로 남은 곳이 없다", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    if (/<span[^>\n]*\bh-px\b[^>\n]*\/>\s*\n\s*\n\s*<span[^>\n]*\bh-px\b/.test(text)) hits.push(p.replace(/\\/g, "/"));
+  }
+  assert.deepEqual(hits, []);
+});
+
+test("빈 버튼이 없다(닫기 ✕ 를 지우고 아이콘을 안 넣은 곳 — 11-12 발견, 13곳)", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(/<(OverlayCloseButton|button)\b[^>]*>\s*<\/\1>/g)) {
+      hits.push(`${p.replaceAll(String.fromCharCode(92), "/")}:${text.slice(0, m.index).split(String.fromCharCode(10)).length}`);
+    }
+  }
+  assert.deepEqual(hits, []);
+});
+
+// 이모지를 지운 자리가 '공백만 있는 줄'로 남은 요소 — 위 빈 버튼 검사는 속성 안 `=>` 의 `>` 에서 끊겨 이런 곳을 놓쳤다
+// (11-22 알림 수신거부 줄 닫기 버튼 · 위기 안내 띠 아이콘 등). 우리 사이는 서비스 종료(11-21)라 화면에 안 나와 뺀다
+test("이모지를 지운 빈 줄만 남은 요소가 없다", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const file = p.replaceAll(String.fromCharCode(92), "/");
+    if (file.includes("components/relationship/")) continue;
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(/>[ \t]*\r?\n[ \t]+\r?\n[ \t]*<\/[A-Za-z]+>/g)) {
+      hits.push(`${file}:${text.slice(0, m.index).split(String.fromCharCode(10)).length + 1}`);
+    }
+  }
+  assert.deepEqual(hits, []);
+});
+
+// 디자인 다듬기 묶음 9 ①② A(운영자 11-22) — 밝은 읽을거리엔 밤 카드·금색 버튼을 쓰지 않고, 한 화면에 주 버튼은 하나
+test("읽을거리 상담 권유: 흰 카드·진보라 버튼, 오늘의 카드는 뽑기 전엔 뽑기가·뽑은 뒤엔 상담이 주 버튼", () => {
+  const cta = readFileSync("components/seo/GuideCta.tsx", "utf8");
+  assert.doesNotMatch(cta, /bg-night-card|bg-gold/);
+  assert.match(cta, /quiet \? "btn-secondary" : "btn-primary"/);
+  const draw = readFileSync("components/seo/DailyCardDraw.tsx", "utf8");
+  assert.match(draw, /onClick=\{draw\}\s*className="btn btn-primary btn-lg/);
+  assert.match(draw, /<GuideCta[^>]*quiet=\{!drawn\}/);
+  // 오늘의 카드 페이지에 권유 칸이 따로 또 서면 두 개가 된다
+  assert.doesNotMatch(readFileSync("app/(content)/free/daily-card/page.tsx", "utf8"), /<GuideCta/);
+});
+
+// 디자인 다듬기 묶음 9 ③ H3(운영자 11-22 '짜르지 말고 정비율로 줄이고 좌우에 배경')
+test("가이드 첫 화면: 낮은 배너에 그림은 자르지 않고, 큰 제목은 앱에서만 숨긴다", () => {
+  const s = readFileSync("app/(content)/guide/page.tsx", "utf8");
+  assert.match(s, /aspect-\[21\/10\]/);
+  assert.match(s, /aspect-\[900\/672\]/); // 원본 비율 그대로
+  assert.doesNotMatch(s, /object-cover/);
+  assert.match(s, /<h1 className="web-only /);
+});
+
+// 디자인 다듬기 묶음 9 ④ S1(운영자 11-22) — 배열을 설명하는 자리엔 카드 뽑기와 같은 배치 그림
+test("스프레드 상세: 배열 그림이 카드 뽑기와 같은 배치 자료를 쓰고, 자리 이름 목록을 따로 또 두지 않는다", () => {
+  const page = readFileSync("app/(content)/guide/spreads/[slug]/page.tsx", "utf8");
+  assert.match(page, /<SpreadDiagram /);
+  assert.doesNotMatch(page, /<ol|SPREAD_POSES/);
+  for (const f of ["components/tarot/CardDrawRitual.tsx", "components/seo/SpreadDiagram.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.match(s, /from "@\/lib\/tarot\/slot-layout"/, f);
+    assert.doesNotMatch(s, /\[\[0, 1, 2\]/, `${f}: 배치를 따로 베끼지 않는다`);
+  }
+});
+
+// 디자인 다듬기 묶음 9 ⑤ T1(운영자 11-22) — 읽을거리 안 이동은 버튼이 아니라 목록 한 칸(주 버튼은 상담 권유 하나)
+test("테마 글의 스프레드: 큰 버튼 대신 한 카드 목록(카드 그림·이름·장수·한 줄 설명)", () => {
+  const s = readFileSync("app/(content)/guide/themes/[tag]/page.tsx", "utf8");
+  assert.doesNotMatch(s, /btn-secondary/);
+  assert.match(s, /divide-y/);
+  assert.match(s, /name="sparkle"/);
+  assert.match(s, /\.tagline/);
+});
+
+// 디자인 다듬기 묶음 9 테마 첫 그림 A(운영자 11-22) — 가이드 첫 화면 H3 와 같은 낮은 배너
+test("테마 첫 그림: 낮은 배너에 자르지 않고, 바탕이 구워진 그림은 좌우를 그 그림의 색으로 잇는다", () => {
+  const s = readFileSync("app/(content)/guide/themes/[tag]/page.tsx", "utf8");
+  assert.match(s, /aspect-\[21\/10\]/);
+  assert.match(s, /aspect-\[900\/672\]/); // 원본 비율 그대로
+  assert.doesNotMatch(s, /object-cover|aspect-\[4\/3\]/);
+  // 앱 헤더와 다른 글이라 제목은 앱에서도 보이고, 낱말 중간에서 끊지 않는다
+  assert.match(s, /<h1 className="(?![^"]*web-only)[^"]*break-keep[^"]*text-pretty/);
+  for (const [slug, hero] of Object.entries(TAG_HERO)) {
+    // webp 4종 = 바탕이 구워진 그림(2% 간격 51색 — 새 인연의 지평선이 이어지는 간격), PNG 6종 = 투명
+    const stops = hero.bg?.match(/#[0-9a-f]{6} \d+%/g)?.length ?? 0;
+    assert.equal(stops, hero.src.endsWith(".webp") ? 51 : 0, slug);
+  }
+});
+
+// 디자인 다듬기 묶음 9 마지막(운영자 11-22 A) — 화면 글 '화살표 없음'을 읽을거리 본문(json)에도. 코드 검사는 json 을 안 본다
+test("읽을거리 본문: 화살표 글자를 쓰지 않는다", () => {
+  for (const f of ["spread-content", "tag-content", "card-content"]) {
+    assert.deepEqual(readFileSync(`data/seo/${f}.json`, "utf8").match(/[←-⇿➡]/g) ?? [], [], f);
+  }
+});
+
+// 디자인 다듬기 묶음 9 ⑦(운영자 11-22 A) — 상점 R1 과 같이 개발용 코드는 화면에 안 띄운다(기록으로만 보낸다)
+test("오류 화면: 숫자 코드는 보여 주지 않고 기록에는 남긴다", () => {
+  for (const f of ["app/error.tsx", "app/global-error.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.doesNotMatch(s, /\{\s*error\.digest/, f);
+    assert.match(s, /fingerprint: chunkError \? "chunk-load-error" : \(error\.digest \?\? null\)/, f);
+  }
+});
+
+// 디자인 다듬기 묶음 9 ⑧(운영자 11-22 B) — 28 은 320 에서 '놓 / 쳤어', '길이 / 야'로 끊겼다
+test("오류·404 제목: 다른 화면 제목과 같은 22, 낱말 중간에서 끊지 않는다", () => {
+  for (const f of ["app/error.tsx", "app/not-found.tsx"]) {
+    assert.match(readFileSync(f, "utf8"), /<h1 className="font-display text-22 [^"]*break-keep text-balance"/, f);
+  }
+});
+
+// 디자인 다듬기 묶음 9 ⑨(운영자 11-22 A) — 앱 틀까지 깨져도 오류 화면과 한 짝. 루트 레이아웃이 사라지므로 폭 메타를 직접 둔다
+test("전체 오류 화면: 밝은 바탕·별콩이·제목 글꼴·홈으로, 화면 폭 메타", () => {
+  const s = readFileSync("app/global-error.tsx", "utf8");
+  for (const color of ["#F6F5F2", "#775CB0", "#5A3E8C", "#726398"]) assert.ok(s.includes(color), color);
+  assert.doesNotMatch(s, /#E8C26A|#1F1735|linear-gradient/);
+  assert.ok(s.includes("/byeolkong-curious.png"), "별콩이");
+  assert.ok(s.includes('href="/"'), "홈으로");
+  assert.ok(s.includes('name="viewport"'), "화면 폭");
+  // 글꼴은 한 곳에서 선언해 루트 레이아웃과 같이 쓴다(따로 선언하면 한 벌 더 받는다)
+  for (const f of ["app/layout.tsx", "app/global-error.tsx"]) assert.ok(readFileSync(f, "utf8").includes('from "./fonts"'), f);
+});
+
+// 묶음 9 (10)(운영자 11-22 A) — reset 은 서버에 다시 묻지 않는다(Next 16.2). Next 를 올려 이름이 바뀌면 여기서 걸리게 문서도 같이 본다
+test("오류 화면 둘: 다시 시도는 서버에 다시 묻는다", () => {
+  for (const f of ["app/error.tsx", "app/global-error.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.ok(s.includes("window.location.reload() : unstable_retry()"), f);
+    assert.ok(!s.includes(": reset()"), f);
+  }
+  const boundary = readFileSync("node_modules/next/dist/client/components/error-boundary.js", "utf8");
+  assert.ok(boundary.includes("unstable_retry: this.unstable_retry"), "Next 가 이 이름을 더는 넘기지 않는다 — 오류 화면 두 곳을 새 이름으로");
 });

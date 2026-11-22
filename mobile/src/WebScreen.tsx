@@ -456,7 +456,7 @@ export default function WebScreen() {
 
 // 색은 웹 디자인 토큰(cream·eye-purple) — OfflineView 와 같다
 const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: "#FAF6F0" },
+  fill: { flex: 1, backgroundColor: "#F6F5F2" }, // 웹 화면 바탕(--color-cream)과 같은 색
   cover: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(250, 246, 240, 0.94)" },
   coverText: { marginTop: 14, fontSize: 15, color: "#5A3E8C" },
 });

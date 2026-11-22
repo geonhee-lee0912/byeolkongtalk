@@ -20,7 +20,7 @@ export default function TrialSubscribeNudge({
   slot: BaitSlot;
   onSubscribe: () => void;
 }) {
-  // 렌더 중 Date.now() — HubBanner 와 같은 이유로 괜찮다(캘린더를 받은 뒤 클라에서만 그려진다).
+  // 렌더 중 Date.now() — HubTodayRow 와 같은 이유로 괜찮다(캘린더를 받은 뒤 클라에서만 그려진다).
   // D-N 은 배너 칩과 같은 함수다 — 한 사람이 두 자리에서 다른 숫자를 보면 안 된다.
   const n = daysLeft(trialEndsAt, Date.now());
   return (

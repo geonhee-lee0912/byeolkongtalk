@@ -107,6 +107,13 @@ function assertStoppedBeforeDelete(s: typeof Fakes.state) {
   assert.deepEqual(s.deletes, []);
   assert.ok(!s.calls.includes("clearAllCookies"));
 }
+/** 탈퇴 뒤에도 남는 로그 — 로그인 수단 식별자·원장 해시가 message·extra 어디에도 없다 */
+function assertNoIdentifierInLogs(s: typeof Fakes.state) {
+  const text = JSON.stringify(s.logs);
+  for (const v of [String(KAKAO_ID), kakaoLedgerHash(KAKAO_ID), APPLE_SUB, appleLedgerHash(APPLE_SUB)]) {
+    assert.ok(!text.includes(v), `로그에 남았다: ${v}`);
+  }
+}
 const hasLog = (s: typeof Fakes.state, level: string, extra: Record<string, unknown>) =>
   s.logs.some((l) => l.level === level && Object.entries(extra).every(([k, v]) => l.extra[k] === v));
 
@@ -185,7 +192,11 @@ test("카카오 unlink 실패 → 503, 원장·삭제·쿠키 정리 0, 오류 �
   assert.deepEqual(body, { error: MSG_KAKAO });
   assert.deepEqual(s.calls, ["getSession", "select:user_identities", `unlinkKakao:${KAKAO_ID}`]);
   assertStoppedBeforeDelete(s);
-  assert.ok(hasLog(s, "error", { severity: "WITHDRAW_UNLINK_FAILED", kakaoStatus: 500, kakaoCode: -1 }));
+  assertNoIdentifierInLogs(s);
+  assert.deepEqual(
+    s.logs.map((l) => l.extra),
+    [{ severity: "WITHDRAW_UNLINK_FAILED", kakaoStatus: 500, kakaoCode: -1 }],
+  );
 });
 
 test("카카오 -101(유저가 카카오 설정에서 이미 끊음) → info 남기고 탈퇴 진행 — 막으면 그 회원은 영구히 탈퇴 못 한다", async () => {
@@ -199,6 +210,9 @@ test("카카오 -101(유저가 카카오 설정에서 이미 끊음) → info �
     s.logs.map((l) => [l.level, l.message]),
     [["info", "Kakao already unlinked before withdraw — proceeding"]],
   );
+  // 남긴 직후 회원이 지워지는 로그다 — user_id 는 NULL 이 되고 extra 만 남는다
+  assertNoIdentifierInLogs(s);
+  assert.deepEqual(s.logs[0].extra, { step: "kakao_unlink", kakaoCode: -101 });
 });
 
 test("애플 회원 — 저장된 토큰을 풀어 그 토큰을 발급한 client_id 로 revoke → 원장은 'apple:' 해시 → 삭제 (카카오 unlink 없음)", async () => {
@@ -321,12 +335,20 @@ test("회원 삭제 실패 → 500, 쿠키 정리 없음, 오류 로그(dbCode) 
 test("탈퇴 원장 기록이 실패해도 탈퇴는 진행(best-effort) + 오류 로그", async () => {
   const { status, s } = await withdraw((st) => {
     st.identities = [kakaoRow()];
-    st.withdrawalInsertError = { message: "insert failed", code: "XX000" };
+    st.withdrawalInsertError = {
+      message: "insert failed",
+      code: "XX000",
+      details: `Failing row contains (${kakaoLedgerHash(KAKAO_ID)}, meta).`,
+    };
   });
   assert.equal(status, 200);
   assert.ok(s.calls.includes("delete:users"));
   assert.ok(s.calls.includes("clearAllCookies"));
-  assert.ok(hasLog(s, "error", { severity: "WITHDRAWAL_LOG_FAILED" }));
+  assertNoIdentifierInLogs(s);
+  assert.deepEqual(
+    s.logs.map((l) => [l.message, l.extra]),
+    [["withdrawal ledger insert failed (XX000)", { severity: "WITHDRAWAL_LOG_FAILED", dbCode: "XX000" }]],
+  );
 });
 
 test("로그인 수단이 하나도 없으면(이미 지워진 회원 — 연타·동시 요청) 끊기·원장 없이 삭제만, 200", async () => {

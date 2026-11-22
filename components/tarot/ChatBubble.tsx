@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import { getCard, getCardImagePath } from "@/lib/tarot/cards";
 import EmphasisText from "@/components/common/EmphasisText";
@@ -28,8 +29,9 @@ export default function ChatBubble({
 }: Props) {
   if (role === "user") {
     return (
+      // 진보라 바탕(흰 글자 8.39:1) — 옛 연보라는 2.99:1. 디자인 다듬기 /tarot/reading ⑤ 운영자 11-13
       <div className="flex justify-end mb-3 animate-fade-in">
-        <div className="selectable max-w-[82%] px-4 py-3 bg-lilac-deep text-white rounded-2xl rounded-br-sm text-16 whitespace-pre-wrap">
+        <div className="selectable max-w-[82%] px-4 py-3 bg-eye-purple text-white rounded-2xl rounded-br-sm text-16 whitespace-pre-wrap">
           {content}
         </div>
       </div>
@@ -65,30 +67,37 @@ export default function ChatBubble({
           </span>
         )}
 
-        {showCardImage && card && dc && (
-          <div className="mb-2 ml-0.5 flex items-end gap-2 w-fit animate-fade-in">
-            <div className="relative w-14 h-[88px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-card shrink-0">
-              <Image
-                src={getCardImagePath(dc.card_id)}
-                alt={card.name_kr}
-                fill
-                sizes="56px"
-                className={`object-cover ${
-                  dc.direction === "reversed" ? "rotate-180" : ""
-                }`}
-              />
-            </div>
-            <div className="text-11 leading-tight pb-1">
-              <p className="font-bold text-eye-purple">{card.name_kr}</p>
-              <p className="text-text-light mt-px whitespace-nowrap">
-                {dc.label} · {dc.direction === "upright" ? "정방향" : "역방향"}
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="card w-full text-eye-purple rounded-tl-sm text-16 whitespace-pre-wrap">
-          {(content && <EmphasisText text={content} />) || (
+          {showCardImage && card && dc && (
+            // 72×113 · 카드 이야기 첫 말풍선 안 맨 위(말풍선은 문단마다 그대로) — 디자인 다듬기 ② /tarot/reading ③④ 운영자 11-13
+            <div className="mb-3 flex items-end gap-2 animate-fade-in">
+              <div className="relative w-[72px] h-[113px] rounded-lg overflow-hidden ring-1 ring-gold/60 shadow-card shrink-0">
+                <Image
+                  src={getCardImagePath(dc.card_id)}
+                  alt={card.name_kr}
+                  fill
+                  sizes="72px"
+                  className={`object-cover ${
+                    dc.direction === "reversed" ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
+              <div className="leading-tight pb-1.5">
+                <p className="text-14 font-bold text-eye-purple">{card.name_kr}</p>
+                <p className="text-12 text-text-light mt-0.5 whitespace-nowrap">
+                  {dc.label} · {dc.direction === "upright" ? "정방향" : "역방향"}
+                </p>
+              </div>
+            </div>
+          )}
+          {/* 빈 줄 없는 줄바꿈도 한 줄(12px) 띄움 — 빈 줄은 이미 말풍선을 나눔. 디자인 다듬기 /tarot/reading ④ 운영자 11-13 */}
+          {(content &&
+            content.split("\n").map((line, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span className="block h-3" />}
+                <EmphasisText text={line} />
+              </Fragment>
+            ))) || (
             <span className="inline-flex gap-1 items-center py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lilac-deep/50 animate-pulse-soft" />
               <span
