@@ -3,26 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useScreenCache } from "@/lib/screen-cache";
-import { starTxLabel, historyDayLabel } from "@/lib/wallet-history";
+import { starTxLabel, historyDayLabel, mergeHistory, type HistoryPayment, type HistoryStarTx, type HistoryRow } from "@/lib/wallet-history";
 
-interface Payment {
-  id: string;
-  packageLabel: string;
-  stars: number;
-  amount: number;
-  status: "pending" | "completed" | "refunded";
-  paidAt: number;
-}
-
-interface StarTx {
-  id: string;
-  type: "charge" | "spend" | "bonus" | "refund";
-  typeLabel: string;
-  signedAmount: number;
-  balanceAfter: number;
-  source: string;
-  createdAt: number;
-}
+type Payment = HistoryPayment;
+type StarTx = HistoryStarTx;
 
 const PAYMENT_STATUS_LABEL: Record<Payment["status"], string> = {
   pending: "대기",
@@ -41,9 +25,7 @@ function fmtTime(ms: number): string {
 // 한 번에 보이는 줄 수 — '더 보기'로 이만큼씩 늘린다(디자인 다듬기 결제 내역 ⑧ A — 예전엔 5줄씩 페이지 번호 1~20 이 빽빽했다)
 const STEP = 20;
 
-type Row =
-  | { kind: "payment"; id: string; time: number; payment: Payment }
-  | { kind: "star"; id: string; time: number; tx: StarTx };
+type Row = HistoryRow;
 
 // 화면 기억(lib/screen-cache) — 다시 열면 '잠시만…' 대신 마지막 내역을 바로 그리고 새로 불러와 바꾼다
 interface PaymentsSnapshot {
@@ -89,14 +71,8 @@ export default function PaymentsPage() {
     .filter((p) => p.status === "completed")
     .reduce((s, p) => s + p.amount, 0);
 
-  const rows: Row[] = [
-    ...payments.map(
-      (p): Row => ({ kind: "payment", id: `p-${p.id}`, time: p.paidAt, payment: p })
-    ),
-    ...txs.map(
-      (t): Row => ({ kind: "star", id: `s-${t.id}`, time: t.createdAt, tx: t })
-    ),
-  ].sort((a, b) => b.time - a.time);
+  // 결제 줄과 그 결제의 '별 충전' 줄은 한 줄로 합친다(결제 번호로 짝 — lib/wallet-history)
+  const rows: Row[] = mergeHistory(payments, txs);
 
   // 날짜별 묶음(최신순 그대로 이어 붙인다)
   const now = Date.now();
@@ -157,14 +133,18 @@ export default function PaymentsPage() {
                     row.kind === "payment" ? (
                       <div key={row.id} className="flex items-center gap-3 px-4 py-3">
                         <div className="flex-1 min-w-0">
-                          <div className="text-14 font-bold text-eye-purple truncate">{row.payment.packageLabel}</div>
+                          <div className="text-14 font-bold text-eye-purple truncate">별 충전</div>
                           <div className="text-11 text-text-light mt-0.5 tabular-nums">
-                            {fmtTime(row.payment.paidAt)} · 결제 {PAYMENT_STATUS_LABEL[row.payment.status]} · {row.payment.stars}별
+                            {fmtTime(row.payment.paidAt)} · {row.payment.amount.toLocaleString()}원 결제{row.payment.status === "completed" ? "" : ` ${PAYMENT_STATUS_LABEL[row.payment.status]}`}
+                            {row.charge && ` · 잔액 ${row.charge.balanceAfter}별`}
                           </div>
                         </div>
-                        <div className="shrink-0 text-14 font-bold text-eye-purple tabular-nums">
-                          {row.payment.amount.toLocaleString()}원
-                        </div>
+                        {/* 별이 실제로 들어온 결제(짝 있음)만 '+N별' — 대기·환불처럼 짝이 없으면 결제 금액만 */}
+                        {row.charge ? (
+                          <div className="shrink-0 text-14 font-bold text-accent tabular-nums">+{row.charge.signedAmount}별</div>
+                        ) : (
+                          <div className="shrink-0 text-14 font-bold text-text-light tabular-nums">{row.payment.amount.toLocaleString()}원</div>
+                        )}
                       </div>
                     ) : (
                       <div key={row.id} className="flex items-center gap-3 px-4 py-3">

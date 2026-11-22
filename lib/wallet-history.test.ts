@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starTxLabel, historyDayLabel } from "./wallet-history.ts";
+import { starTxLabel, historyDayLabel, mergeHistory } from "./wallet-history.ts";
 
 test("starTxLabel — 별을 어디에 썼는지(디자인 다듬기 결제 내역 ⑨, 예전엔 전부 '사용')", () => {
   assert.equal(starTxLabel("spend", "tarot_reading"), "타로 상담");
@@ -31,4 +31,42 @@ test("historyDayLabel — 올해는 'M월 D일', 다른 해는 연도까지", ()
   const now = new Date(2026, 10, 22, 9).getTime();
   assert.equal(historyDayLabel(new Date(2026, 10, 21, 10, 59).getTime(), now), "11월 21일");
   assert.equal(historyDayLabel(new Date(2025, 11, 31, 23).getTime(), now), "2025년 12월 31일");
+});
+
+test("starTxLabel — 운세 실패 환불은 '별 돌려받음'", () => {
+  assert.equal(starTxLabel("charge", "fortune_refund_monthly"), "별 돌려받음");
+  assert.equal(starTxLabel("charge", "rel_skill_compat_refund"), "별 돌려받음");
+});
+
+const pay = (id: string, t: number, status: "pending" | "completed" | "refunded" = "completed") => ({
+  id, packageLabel: "70별 패키지", stars: 70, amount: 5900, status, paidAt: t,
+});
+const tx = (id: string, t: number, type: string, source: string, paymentId: string | null, amount = 70) => ({
+  id, type, typeLabel: "", signedAmount: type === "spend" ? -amount : amount, balanceAfter: 100, source, paymentId, createdAt: t,
+});
+
+test("mergeHistory — 결제 1번이 '결제' 줄 + '별 충전' 줄 두 줄로 보이던 것을 한 줄로(결제 번호로 짝, 운영자 11-22)", () => {
+  const rows = mergeHistory(
+    [pay("p1", 1000)],
+    [tx("t1", 1001, "charge", "pg", "p1"), tx("t2", 1002, "charge", "first_charge_bonus", null, 14), tx("t3", 2000, "spend", "tarot_reading", null, 15)],
+  );
+  assert.deepEqual(rows.map((r) => r.id), ["s-t3", "s-t2", "p-p1"]);
+  const p = rows.find((r) => r.kind === "payment");
+  assert.ok(p && p.kind === "payment" && p.charge?.id === "t1");
+  assert.equal(rows.filter((r) => r.kind === "star" && r.tx.id === "t1").length, 0);
+});
+
+test("mergeHistory — 짝 없는 결제(대기·환불)와 짝 없는 충전은 각자 그대로 남는다", () => {
+  const rows = mergeHistory(
+    [pay("p2", 500, "pending")],
+    [tx("t9", 600, "charge", "pg", "p-unknown")],
+  );
+  assert.equal(rows.length, 2);
+  const p = rows.find((r) => r.kind === "payment");
+  assert.ok(p && p.kind === "payment" && p.charge === null);
+});
+
+test("mergeHistory — 최신순", () => {
+  const rows = mergeHistory([pay("a", 100), pay("b", 300)], [tx("x", 200, "spend", "extend", null, 3)]);
+  assert.deepEqual(rows.map((r) => r.time), [300, 200, 100]);
 });

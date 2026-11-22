@@ -24,6 +24,8 @@ const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 export function starTxLabel(type: string, source: string | null): string {
   const s = source ?? "";
   if (type === "refund") return "환불";
+  // 운세·스킬이 실패해 돌려준 별(charge · fortune_refund_* / *_refund)
+  if (s.startsWith("fortune_refund_") || s.endsWith("_refund")) return "별 돌려받음";
   if (type === "bonus") return has(CHARGE_LABEL, s) ? CHARGE_LABEL[s] : "보너스";
   if (type === "spend") {
     if (has(SPEND_LABEL, s)) return SPEND_LABEL[s];
@@ -42,4 +44,51 @@ export function historyDayLabel(ms: number, nowMs: number): string {
   const d = new Date(ms);
   const md = `${d.getMonth() + 1}월 ${d.getDate()}일`;
   return d.getFullYear() === new Date(nowMs).getFullYear() ? md : `${d.getFullYear()}년 ${md}`;
+}
+
+// ── 결제 줄 + 별 충전 줄 합치기 ─────────────────────────────────────────
+// 결제 1번은 payments 한 행 + star_transactions 'charge · pg' 한 행(payment_id = payments.id)으로 남아
+// 내역에 두 줄로 보였다(운영자 11-22 '이거까지 해결'). 결제 번호로 짝지어 결제 줄 하나에 싣는다.
+// 운영 읽기 확인(11-22): 보이는 완료 결제는 전부 짝이 정확히 하나(별 수 같음 · 10분 안) — 짝 없는 건 탈퇴 익명 행뿐.
+// 짝이 없으면(대기·환불 결제, 모르는 충전) 각자 그대로 둔다 — 줄이 사라지지 않는 쪽으로 실패한다.
+export interface HistoryPayment {
+  id: string;
+  packageLabel: string;
+  stars: number;
+  amount: number;
+  status: "pending" | "completed" | "refunded";
+  paidAt: number;
+}
+export interface HistoryStarTx {
+  id: string;
+  type: string;
+  typeLabel: string;
+  signedAmount: number;
+  balanceAfter: number;
+  source: string;
+  /** 'charge · pg' 일 때만 — 짝지을 payments.id */
+  paymentId?: string | null;
+  createdAt: number;
+}
+export type HistoryRow =
+  | { kind: "payment"; id: string; time: number; payment: HistoryPayment; charge: HistoryStarTx | null }
+  | { kind: "star"; id: string; time: number; tx: HistoryStarTx };
+
+export function mergeHistory(payments: HistoryPayment[], txs: HistoryStarTx[]): HistoryRow[] {
+  const chargeByPayment = new Map<string, HistoryStarTx>();
+  for (const t of txs) {
+    if (t.type === "charge" && t.source === "pg" && t.paymentId && !chargeByPayment.has(t.paymentId)) {
+      chargeByPayment.set(t.paymentId, t);
+    }
+  }
+  const used = new Set<string>();
+  const rows: HistoryRow[] = payments.map((p) => {
+    const c = chargeByPayment.get(p.id) ?? null;
+    if (c) used.add(c.id);
+    return { kind: "payment", id: `p-${p.id}`, time: p.paidAt, payment: p, charge: c };
+  });
+  for (const t of txs) {
+    if (!used.has(t.id)) rows.push({ kind: "star", id: `s-${t.id}`, time: t.createdAt, tx: t });
+  }
+  return rows.sort((a, b) => b.time - a.time);
 }
