@@ -313,7 +313,7 @@ export default function PrivacyPage() {
 
           <div className="mt-3">
             <p className="font-bold text-13 mb-1.5">
-              3. 기록되는 정보 (익명화)
+              3. 기록되는 정보
             </p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>해당 메시지의 일부 발췌 (최대 500자)</li>
