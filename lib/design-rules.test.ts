@@ -285,3 +285,15 @@ test("가이드 첫 화면: 낮은 배너에 그림은 자르지 않고, 큰 제
   assert.doesNotMatch(s, /object-cover/);
   assert.match(s, /<h1 className="web-only /);
 });
+
+// 디자인 다듬기 묶음 9 ④ S1(운영자 11-22) — 배열을 설명하는 자리엔 카드 뽑기와 같은 배치 그림
+test("스프레드 상세: 배열 그림이 카드 뽑기와 같은 배치 자료를 쓰고, 자리 이름 목록을 따로 또 두지 않는다", () => {
+  const page = readFileSync("app/(content)/guide/spreads/[slug]/page.tsx", "utf8");
+  assert.match(page, /<SpreadDiagram /);
+  assert.doesNotMatch(page, /<ol|SPREAD_POSES/);
+  for (const f of ["components/tarot/CardDrawRitual.tsx", "components/seo/SpreadDiagram.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    assert.match(s, /from "@\/lib\/tarot\/slot-layout"/, f);
+    assert.doesNotMatch(s, /\[\[0, 1, 2\]/, `${f}: 배치를 따로 베끼지 않는다`);
+  }
+});

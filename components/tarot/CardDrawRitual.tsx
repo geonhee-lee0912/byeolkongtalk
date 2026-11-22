@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { shuffleDeck, CARD_BACK_IMAGE } from "@/lib/tarot/cards";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import { MULTI_ROW_SLOT_LAYOUTS } from "@/lib/tarot/slot-layout";
 import { appHaptic } from "@/lib/app-context";
 
 type CardDirection = "upright" | "reversed";
@@ -992,13 +993,6 @@ function DeckScrollbar({
 
 const SLOT_W = 56;
 const SLOT_H = 84;
-
-// 5장(비관계) 3+2 / 6장 2x3 / 7장 3+3+1(중앙) — 행 단위 슬롯 배치
-const MULTI_ROW_SLOT_LAYOUTS: Record<number, number[][]> = {
-  5: [[0, 1, 2], [3, 4]],
-  6: [[0, 1, 2], [3, 4, 5]],
-  7: [[0, 1, 2], [3, 4, 5], [6]],
-};
 
 function SlotRow({
   labels,
