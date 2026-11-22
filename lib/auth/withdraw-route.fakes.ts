@@ -73,7 +73,7 @@ export function reset(): void {
 // ── @/lib/supabase ──
 const SELECTABLE = new Set(["user_identities", "users", "user_acquisition"]);
 const INSERTABLE = new Set(["account_withdrawals"]);
-const DELETABLE = new Set(["star_transactions", "star_balances", "users"]);
+const DELETABLE = new Set(["users"]); // 나머지 표는 FK 가 지운다 — 라우트가 따로 지우기 시작하면 throw
 
 function project(row: Row | null, columns: string): Row | null {
   if (!row || columns.trim() === "*") return row;

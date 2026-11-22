@@ -1,9 +1,7 @@
 // 회원 탈퇴 — 로그인 수단별 연결 끊기(카카오 unlink · 애플 revoke) + 본인 데이터 삭제 + 쿠키 정리.
 //
-// Phase 4 (b) 시점엔 stars/readings/payments 테이블이 없어서 users 만 삭제.
-// 추후 테이블 추가될 때마다 이 라우트에 삭제 단계 보강 필요:
-//   Phase 4 (c): star_balances, star_transactions, payments
-//   Phase 5: readings (transaction_id 순환 FK 끊기), messages (CASCADE)
+// 🔴 회원 데이터 삭제는 users 삭제 한 문장이 전부다 — 나머지는 FK(CASCADE / SET NULL)가 같은 트랜잭션에서 처리한다.
+// 새 표는 users FK 에 ON DELETE 를 쓰면 되고, 이 라우트에 표별 삭제를 더하지 않는다.
 // 로그인 수단(user_identities)·앱 토큰(app_refresh_tokens·app_handoff_codes)은 users ON DELETE CASCADE 로 함께 지워진다.
 
 import { NextRequest, NextResponse } from "next/server";
@@ -168,16 +166,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 본인 row 삭제 — star_transactions / star_balances 는 users ON DELETE CASCADE 라
-  // users 삭제 시 자동 정리되지만, 명시적으로 먼저 비워서 의도 분명히 (감사 추적).
-  // TODO (Phase 5): readings/messages 추가 + readings.transaction_id ↔ star_transactions.reading_id
-  //                 순환 FK 끊기 단계 추가 (v1 패턴 참고)
-  await Promise.all([
-    supabase.from("star_transactions").delete().eq("user_id", userId),
-    supabase.from("star_balances").delete().eq("user_id", userId),
-  ]);
-
-  // users 삭제 — error_logs.user_id FK 는 ON DELETE SET NULL 이라 자동 처리
+  // users 삭제 — 별(star_balances·star_transactions)은 CASCADE, error_logs.user_id 는 SET NULL.
+  // 별을 먼저 따로 지우지 말 것: 요청마다 따로 커밋되므로, 이 삭제가 실패하면 회원은 남고 충전한 별만 사라진다.
   const { error: userErr } = await supabase
     .from("users")
     .delete()

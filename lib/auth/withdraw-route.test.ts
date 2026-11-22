@@ -117,7 +117,7 @@ function assertNoIdentifierInLogs(s: typeof Fakes.state) {
 const hasLog = (s: typeof Fakes.state, level: string, extra: Record<string, unknown>) =>
   s.logs.some((l) => l.level === level && Object.entries(extra).every(([k, v]) => l.extra[k] === v));
 
-test("카카오 회원 — 수단 조회 → unlink → 유입 스냅샷 → 탈퇴 원장(옛 공식 해시) → 별 → 회원 삭제 → 쿠키 정리", async () => {
+test("카카오 회원 — 수단 조회 → unlink → 유입 스냅샷 → 탈퇴 원장(옛 공식 해시) → 회원 삭제(별은 CASCADE) → 쿠키 정리", async () => {
   const { status, body, s, USER_ID } = await withdraw((st) => {
     st.identities = [kakaoRow()];
     st.acquisition = ACQ;
@@ -130,8 +130,6 @@ test("카카오 회원 — 수단 조회 → unlink → 유입 스냅샷 → 탈
     `unlinkKakao:${KAKAO_ID}`,
     "select:user_acquisition",
     "insert:account_withdrawals",
-    "delete:star_transactions",
-    "delete:star_balances",
     "delete:users",
     "clearAllCookies",
   ]);
@@ -143,8 +141,6 @@ test("카카오 회원 — 수단 조회 → unlink → 유입 스냅샷 → 탈
   assert.deepEqual(s.inserts, [{ table: "account_withdrawals", row: { kakao_id_hash: kakaoLedgerHash(KAKAO_ID), ...ACQ } }]);
   // 지우는 건 전부 이 회원 것
   assert.deepEqual(s.deletes, [
-    { table: "star_transactions", filters: [["user_id", USER_ID]] },
-    { table: "star_balances", filters: [["user_id", USER_ID]] },
     { table: "users", filters: [["id", USER_ID]] },
   ]);
   assert.deepEqual(s.logs, []);
@@ -227,8 +223,6 @@ test("애플 회원 — 저장된 토큰을 풀어 그 토큰을 발급한 clien
     "revokeApple",
     "select:user_acquisition",
     "insert:account_withdrawals",
-    "delete:star_transactions",
-    "delete:star_balances",
     "delete:users",
     "clearAllCookies",
   ]);
@@ -322,13 +316,15 @@ test("로그인 수단이 둘이면 둘 다 끊는다 — 하나라도 실패하
 });
 
 test("회원 삭제 실패 → 500, 쿠키 정리 없음, 오류 로그(dbCode) — 연결은 이미 끊겼으니 다시 누르면 -101(info)로 진행된다", async () => {
-  const { status, body, s } = await withdraw((st) => {
+  const { status, body, s, USER_ID } = await withdraw((st) => {
     st.identities = [kakaoRow()];
     st.userDeleteError = { message: "fk violation", code: "23503" };
   });
   assert.equal(status, 500);
   assert.deepEqual(body, { error: MSG_RETRY });
   assert.ok(!s.calls.includes("clearAllCookies"));
+  // 🔴 지우는 요청은 users 하나뿐 — 별을 따로 먼저 지우면 여기서 회원은 남고 충전한 별만 사라진다
+  assert.deepEqual(s.deletes, [{ table: "users", filters: [["id", USER_ID]] }]);
   assert.ok(hasLog(s, "error", { severity: "WITHDRAW_USER_DELETE_FAILED", dbCode: "23503" }));
 });
 
@@ -361,8 +357,6 @@ test("로그인 수단이 하나도 없으면(이미 지워진 회원 — 연타
     "getSession",
     "select:user_identities",
     "select:users",
-    "delete:star_transactions",
-    "delete:star_balances",
     "delete:users",
     "clearAllCookies",
   ]);
