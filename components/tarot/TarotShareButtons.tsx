@@ -192,7 +192,13 @@ export default function TarotShareButtons({
       </button>
       {open && (
         <Sheet label="공유하기" onClose={() => setOpen(false)} z={80}>
-          <p className="font-display text-17 text-eye-purple text-center mb-[22px]">어디로 공유할까?</p>
+          <p className="font-display text-17 text-eye-purple text-center mb-2">어디로 공유할까?</p>
+          {/* 보내기 전에 알린다(운영자 11-22 A) — 링크로 열리는 결과의 '대화 전체 다시보기'에 손님 말까지 다 있다. 그림엔 카드·한마디뿐 */}
+          <p className="text-13 text-text-light leading-relaxed text-center break-keep mb-[22px]">
+            카카오톡·링크로 받은 사람은
+            <br />
+            네가 쓴 말까지 대화 전체를 볼 수 있어
+          </p>
           <div className="grid grid-cols-3">
             <ShareOption
               icon={KAKAO_ICON}
