@@ -27,12 +27,12 @@ export default function SkillSheet({ skills, busyKey, onLaunch, onClose }: Skill
           <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-17 font-bold text-eye-purple">이런 것도 꺼내 쓸 수 있어</h2>
+          <h2 className="font-display text-17 text-eye-purple">이런 것도 꺼내 쓸 수 있어</h2>
           <OverlayCloseButton
             aria-label="닫기"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-           
+            <Icon name="close" size={18} />
           </OverlayCloseButton>
         </div>
         <div className="px-5 pb-2 flex flex-col gap-2">

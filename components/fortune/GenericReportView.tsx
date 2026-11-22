@@ -62,11 +62,7 @@ export default function GenericReportView({
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col gap-4">
       {/* 상단 항상 노출: 요약 칩 + 오행 분포 + 도입 */}
-      {saju && (
-        <div className="-mb-1">
-          <SajuSummaryChips saju={saju} />
-        </div>
-      )}
+      {saju && <SajuSummaryChips saju={saju} />}
       {saju && <ElementChart saju={saju} />}
       {saju && type && ELEMENT_FOCUSED.has(type) && <ElementCycleDiagram saju={saju} />}
       <div className="card-report">
@@ -80,7 +76,7 @@ export default function GenericReportView({
 
       {/* 섹션 — 길면 아코디언, 짧으면 전부 펼침 */}
       {useAccordion ? (
-        <ReportAccordion items={items} accentIcon="/byeolkong-curious.png" />
+        <ReportAccordion items={items} />
       ) : (
         report.sections.map((s, i) => <SectionCard key={i} index={i + 1} heading={s.heading} body={s.body} />)
       )}

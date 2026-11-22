@@ -179,6 +179,21 @@ test("카카오 기존 회원 — isNewUser false, 교환 코드도 신규 아�
   assert.equal(fakes.state.newUserCalls, 0);
 });
 
+test("카카오 닉네임이 없으면 — 새 회원은 별콩이_ + 무작위 4자리(회원번호 없음), 기존 회원은 닉네임을 안 건드린다", async () => {
+  const { kakao, fakes } = await load();
+  const noName = { ok: true, kakaoId: KAKAO_ID, nickname: null, profileImg: null } as const;
+  fakes.reset();
+  fakes.state.kakao = noName;
+  await kakao(kakaoReq({ accessToken: "kakao-at", platform: "ios" }));
+  assert.match(fakes.state.insertUsers[0].nickname, /^별콩이_\d{4}$/);
+
+  fakes.reset();
+  fakes.state.kakao = noName;
+  fakes.state.existingUserId = fakes.OLD_USER;
+  await kakao(kakaoReq({ accessToken: "kakao-at", platform: "ios" }));
+  assert.deepEqual(fakes.state.userUpdates, [{ userId: fakes.OLD_USER, patch: { profile_img: null } }]);
+});
+
 test("platform — ios·android 만 저장하고 그 밖(web·숫자·없음)은 null(표의 CHECK)", async () => {
   const { kakao, fakes } = await load();
   fakes.reset();

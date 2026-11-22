@@ -13,6 +13,7 @@ import {
   birthTimeToSijin,
   toInitial,
 } from "@/components/mypage/sajuShared";
+import Icon from "@/components/common/Icon";
 
 interface AcquaintanceListModalProps {
   profiles: ProfileItem[];
@@ -99,7 +100,7 @@ export default function AcquaintanceListModal({
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-             
+              <Icon name="close" size={18} />
             </OverlayCloseButton>
           </div>
 
@@ -109,11 +110,12 @@ export default function AcquaintanceListModal({
                 전체 <span className="text-text-light font-normal">{acquaintances.length}</span>
               </div>
               {!showAddAcq && !editAcqId && (
+                // 밑줄 글자 링크 → 공용 보조 버튼(디자인 다듬기 마이 ④, 운영자 11-21)
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="text-11 text-accent font-bold underline"
+                  className="btn btn-secondary btn-sm"
                 >
-                  + 지인 추가
+                  지인 추가
                 </button>
               )}
             </div>

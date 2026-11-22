@@ -193,11 +193,16 @@ export default function MyPage() {
 
   return (
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
-      {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
+      {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동).
+          남색 밤 카드 → 별콩 상점과 같은 노란 잔액 카드(디자인 다듬기 마이 ① M1, 운영자 11-21) — 같은 잔액이 화면마다 다른 모양이었다.
+          소제목도 점 + 12 → 다른 화면과 같은 왼쪽 15 굵게(마이 ②) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-night-card rounded-2xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
+        <div className="relative overflow-hidden rounded-2xl bg-[#FFF6E3] p-4">
+          <svg viewBox="0 0 24 24" className="absolute -right-3 -top-3 w-16 h-16 opacity-25 rotate-12 pointer-events-none" aria-hidden>
+            <path d="M12 1.8 15.4 8.6 22.2 12 15.4 15.4 12 22.2 8.6 15.4 1.8 12 8.6 8.6Z" fill="#E8C26A" />
+          </svg>
+          <div className="relative flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-white overflow-hidden flex items-center justify-center shadow-card shrink-0">
               {me.user.profile_img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -210,18 +215,20 @@ export default function MyPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-14 font-bold text-white truncate">
+              <div className="text-13 font-bold text-[#7A5A1F] truncate">
                 {me.user.nickname}
               </div>
-              <div className="text-20 font-bold text-gold-soft mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance ?? 0}별
+              <div className="text-22 font-black text-eye-purple tabular-nums leading-tight">
+                {balance ?? 0}
+                <span className="text-13 font-bold text-text-light ml-1">별</span>
               </div>
             </div>
             <Link
               href="/shop"
-              className="btn btn-secondary btn-sm shrink-0"
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-white px-3.5 py-1.5 text-13 font-bold text-[#7A5A1F] shadow-card active:scale-95 transition"
             >
               충전
+              <Icon name="chev_r" size={14} />
             </Link>
           </div>
         </div>
@@ -229,8 +236,7 @@ export default function MyPage() {
 
       {/* 보관함 — 종목별 요약 (한 박스 가로 4분할) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="text-12 font-bold text-eye-purple mb-3 flex items-center">
-          <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+        <div className="text-15 font-bold text-eye-purple mb-3">
           보관함
         </div>
         <StorageSummary counts={counts} />
@@ -239,8 +245,7 @@ export default function MyPage() {
       {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-12 font-bold text-eye-purple flex items-center">
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+          <div className="text-15 font-bold text-eye-purple">
             내 사주
           </div>
           {self?.saju && (
@@ -312,8 +317,7 @@ export default function MyPage() {
 
       {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="text-12 font-bold text-eye-purple mb-3 flex items-center">
-          <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+        <div className="text-15 font-bold text-eye-purple mb-3">
           계정
         </div>
         <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/15">
@@ -366,31 +370,28 @@ export default function MyPage() {
             <span className="flex-1 text-14 text-eye-purple font-medium">약관·사업자 정보</span>
             <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
+          {/* 로그아웃 — 목록 맨 아래 한 줄(디자인 다듬기 마이 ③ M1). 예전엔 화면에서 가장 센 진보라 큰 버튼이 로그아웃이었다 */}
           <button
-            onClick={() => setShowWithdrawConfirm(true)}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 p-3.5"
           >
-            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft/60 flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light" aria-hidden>
-                <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
+                <path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z" />
               </svg>
             </span>
-            <span className="flex-1 text-left text-14 text-text-light font-medium">
-              회원 탈퇴
-            </span>
-            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
+            <span className="flex-1 text-left text-14 text-eye-purple font-medium">로그아웃</span>
           </button>
         </div>
       </div>
 
-      {/* 로그아웃 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-24">
-        <div className="h-px bg-lilac-mid/30 mb-5" />
+      {/* 회원 탈퇴 — 일반 메뉴와 섞이지 않게 목록 밖 작은 회색 글(마이 ③ M1). 확인 창은 그대로 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-24 text-center">
         <button
-          onClick={handleLogout}
-          className="btn btn-primary btn-lg"
+          onClick={() => setShowWithdrawConfirm(true)}
+          className="text-12 text-text-light underline underline-offset-2"
         >
-          로그아웃
+          회원 탈퇴
         </button>
       </div>
 
@@ -414,8 +415,9 @@ export default function MyPage() {
               정말 떠나려고?
             </p>
             <p className="text-12 text-text-light leading-relaxed mb-3">
-              탈퇴하면 너의 사주 풀이, 별 잔액, 모든 기록이 영구적으로 삭제돼.
-              되돌릴 수 없어.
+              탈퇴하면 너의 사주 풀이, 별 잔액·사용 내역, 1:1 문의가 삭제돼. 되돌릴
+              수 없어. 환불받을 게 있으면 탈퇴 전에 신청하고 처리된 뒤에 탈퇴해 줘. 결제
+              기록처럼 남는 것은 개인정보처리방침에서 볼 수 있어.
             </p>
             <label className="flex items-center gap-2 text-12 text-text-light mb-4">
               <input

@@ -350,7 +350,6 @@ export default function NightStage(props: NightStageProps) {
           cost={SIM_SUGGEST_COST}
           balance={balance}
           loading={suggesting}
-          accent="#E8C26A"
           title="답변 추천 받기"
           subtitle="지금 걔한테 할 만한 말 3가지를 골라줄게"
           confirmLabel="추천 받기"

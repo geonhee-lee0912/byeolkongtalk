@@ -69,7 +69,8 @@ export default function AppPullRefresh() {
     <div
       aria-hidden
       className="fixed left-1/2 z-[45] pointer-events-none"
-      style={{ top: "env(safe-area-inset-top)", transform: `translate(-50%, ${y - 40}px)` }}
+      // 위 헤더(h-14) 바로 아래에서 나온다 — 화면 맨 위에서 나오면 헤더(z-50)에 가려 안 보였다(디자인 다듬기 ② 운영자 A안 11-12)
+      style={{ top: "calc(env(safe-area-inset-top) + 3.5rem)", transform: `translate(-50%, ${y - 40}px)` }}
     >
       <div className="w-9 h-9 rounded-full bg-cream shadow-float flex items-center justify-center">
         <span

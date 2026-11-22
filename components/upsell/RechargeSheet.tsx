@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Sheet from "@/components/common/Sheet";
-import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { STAR_PACKAGES } from "@/lib/constants";
 import {
   sheetPackages,
@@ -178,7 +177,7 @@ export default function RechargeSheet({
 
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
 
-  // 그랩바는 웹 전용 — 앱은 Sheet 손잡이(끌어내리기)
+  // 손잡이는 공통 Sheet(앱만) — 웹 전용 손잡이 막대는 뺐다(끌 수 없어서)
   return (
     <Sheet
       label="별 충전"
@@ -188,48 +187,32 @@ export default function RechargeSheet({
       backdropClassName="bg-night/50 backdrop-blur-sm"
       panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto"
     >
-        {/* 그랩바 */}
-        <div className="web-only flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
-        </div>
-
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-17 font-bold text-eye-purple">
-            별 충전하기
-          </h2>
-          <OverlayCloseButton
-            aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
-          >
-           
-          </OverlayCloseButton>
-        </div>
-
-        {/* 잔액 + 안내 */}
-        <div className="card-inner mx-5 mb-4">
-          <p className="text-13 text-eye-purple leading-relaxed">
-            별이 조금 모자라
-            {balance !== null ? (
-              <span className="font-bold"> — 지금 잔액 <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{balance}</span>
-            ) : null}
-          </p>
-          <p className="text-11 text-text-light mt-1 leading-snug">
-            충전하면 보던 자리로 바로 돌아와요
+        {/* 헤더 — 제목 + 한 줄(잔액·돌아옴). 안내 상자·웹 손잡이·닫기 ✕ 는 뺐다(디자인 다듬기 묶음 2 충전 시트 B안, 운영자 11-15).
+            닫기는 바깥 누르기·앱 끌어내리기·Esc·뒤로 */}
+        <div className="px-5 pt-5 pb-3">
+          <h2 className="font-display text-17 text-eye-purple">별 충전하기</h2>
+          <p className="text-13 text-text-light mt-0.5">
+            {balance !== null && (
+              <>
+                지금 <Icon name="star" size={14} className="inline align-[-2px] mx-0.5" />
+                {balance.toLocaleString("ko-KR")} ·{" "}
+              </>
+            )}
+            충전하면 보던 자리로 바로 돌아와
           </p>
         </div>
 
         {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
         {firstChargeEligible && (
-          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
-            <span className="text-15"><Icon name="gift" size={16} /></span>
-            <p className="text-12 font-extrabold text-eye-purple">
-              지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
+          <div className="mx-5 mb-3 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
+            <Icon name="gift" size={16} />
+            <p className="text-12 font-bold text-eye-purple">
+              첫 충전이라 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
             </p>
           </div>
         )}
 
-        {/* 패키지 목록 */}
+        {/* 패키지 목록 — 별 수·첫 충전 보너스·추천은 왼쪽, 값은 오른쪽 끝. 고른 줄은 보라 2px 테두리(동그라미 없음) */}
         <div className="px-5 flex flex-col gap-2 pb-2">
           {sheetPackages().map((pkg) => {
             const isSelected = selectedId === pkg.id;
@@ -243,6 +226,7 @@ export default function RechargeSheet({
               <button
                 key={pkg.id}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   userPickedRef.current = true;
                   setSelectedId(pkg.id);
@@ -251,64 +235,43 @@ export default function RechargeSheet({
                     meta: { source, packageId: pkg.id },
                   });
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
-                  isSelected
-                    ? "border-lilac-deep bg-lilac-soft/30 ring-2 ring-lilac-deep/20"
-                    : "border-lilac-mid/30 bg-white hover:border-lilac/70"
-                } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white text-left transition ${
+                  isSelected ? "border-2 border-accent" : "border border-lilac-mid/35 hover:border-lilac-mid/70"
+                }`}
               >
-                <span className="text-17 shrink-0"><Icon name="star" size={16} /></span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-14 font-black text-eye-purple tabular-nums">
-                    {pkg.stars}별
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center text-16 font-extrabold text-eye-purple tabular-nums">
+                      <Icon name="star" size={16} className="mr-0.5" />
+                      {pkg.stars}
+                    </span>
                     {bonus > 0 && (
-                      <span className="ml-1 text-12 font-black text-gold tabular-nums">
-                        +{bonus}
-                      </span>
+                      <span className="text-12 font-bold text-[#A7731A] tabular-nums">+{bonus} 첫 충전</span>
                     )}
                     {isRecommended && (
-                      <span className="ml-2 text-11 font-black text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
-                        추천
-                      </span>
+                      <span className="text-11 font-bold text-accent bg-lilac-soft/70 px-1.5 py-0.5 rounded-full">추천</span>
                     )}
                   </span>
-                  <span className="ml-2 text-12 text-text-light tabular-nums">
-                    {pkg.price.toLocaleString()}원
-                  </span>
                   {leftover !== null && (
-                    <span
-                      className={`block mt-0.5 text-11 tabular-nums ${
-                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light"
-                      }`}
-                    >
-                      {leftover > 0
-                        ? `충전 후 이번 판 하고도 별 ${leftover} 남아`
-                        : leftover === 0
-                        ? "충전하면 이번 판에 딱 맞아"
-                        : `별 ${-leftover} 모자라`}
+                    <span className="block mt-0.5 text-12 text-text-light tabular-nums">
+                      {leftover > 0 ? (
+                        <>
+                          충전 후 이번 판 하고도 <Icon name="star" size={13} className="inline align-[-2px] mx-0.5" />
+                          {leftover} 남아
+                        </>
+                      ) : leftover === 0 ? (
+                        "충전하면 이번 판에 딱 맞아"
+                      ) : (
+                        <>
+                          <Icon name="star" size={13} className="inline align-[-2px] mr-0.5" />
+                          {-leftover} 모자라
+                        </>
+                      )}
                     </span>
                   )}
-                </div>
-                <span
-                  className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                    isSelected ? "bg-lilac-deep" : "bg-cream border border-lilac-mid/40"
-                  }`}
-                  aria-hidden
-                >
-                  {isSelected && (
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="2.5 6.5 5 9 9.5 3.5" />
-                    </svg>
-                  )}
+                </span>
+                <span className="shrink-0 text-15 font-extrabold text-eye-purple tabular-nums">
+                  {pkg.price.toLocaleString()}원
                 </span>
               </button>
             );
@@ -328,13 +291,17 @@ export default function RechargeSheet({
             disabled={loading || !paymentReady || !selectedPkg}
             className="btn btn-primary btn-lg"
           >
-            <span><Icon name="star" size={16} /></span>
-            <span className="tabular-nums">
-              {!paymentReady && !paymentError
-                ? "잠시만, 결제 준비 중..."
-                : selectedPkg
-                ? `${selectedPkg.stars}별 · ${selectedPkg.price.toLocaleString()}원 결제하기`
-                : "패키지를 골라줘"}
+            <span className="inline-flex items-center tabular-nums">
+              {!paymentReady && !paymentError ? (
+                "잠시만, 결제 준비 중..."
+              ) : selectedPkg ? (
+                <>
+                  <Icon name="star" size={16} className="mr-0.5" />
+                  {selectedPkg.stars} · {selectedPkg.price.toLocaleString()}원 결제하기
+                </>
+              ) : (
+                "패키지를 골라줘"
+              )}
             </span>
           </button>
         </div>

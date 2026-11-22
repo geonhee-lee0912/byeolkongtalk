@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CLARIFIER_COST } from "@/lib/upsell";
-import Icon from "@/components/common/Icon";
+import OfferCard from "@/components/reco/OfferCard";
 
 export type ClarifierChipState = "idle" | "done";
 
@@ -28,41 +28,16 @@ export default function ClarifierChip({ state, onTap, onShown, disabled }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 모양은 대화 속 제안 카드 하나로(OfferCard — 디자인 다듬기 묶음 2 대화 속 칩 A안, 운영자 11-15)
   return (
-    <div className="mt-2 mb-1 max-w-xs ml-10">
-      <button
-        type="button"
-        onClick={done || disabled ? undefined : onTap}
-        disabled={done || disabled}
-        className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition text-left ${
-          done
-            ? "border-lilac-mid/30 bg-lilac-soft/40 cursor-default"
-            : disabled
-            ? "border-gold/30 bg-white opacity-60 cursor-not-allowed"
-            : "border-gold/50 bg-white hover:border-gold/80 hover:bg-gold/5 active:scale-[0.98]"
-        }`}
-      >
-        
-        <div className="flex-1 min-w-0">
-          {done ? (
-            <div className="text-12 font-bold text-text-light truncate">
-              카드를 이어서 봤어
-            </div>
-          ) : (
-            <>
-              <div className="text-12 font-bold text-eye-purple truncate">
-                카드 한 장 더 뽑기
-              </div>
-              <div className="text-11 text-text-light mt-0.5">
-                <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{CLARIFIER_COST} · 지금 대화에서 바로
-              </div>
-            </>
-          )}
-        </div>
-        {!done && (
-          <span className="text-text-light text-14 shrink-0"><Icon name="chev_r" size={16} /></span>
-        )}
-      </button>
-    </div>
+    <OfferCard
+      icon={{ src: "/icons/fortune/tarot_counsel.webp" }}
+      title={done ? "카드를 이어서 봤어" : "카드 한 장 더 뽑기"}
+      badge={`별 ${CLARIFIER_COST}`}
+      sub={done ? "지금 카드들과 같이 보고 있어" : "지금 카드들과 이어서 봐줄게"}
+      onTap={onTap}
+      disabled={disabled}
+      done={done}
+    />
   );
 }

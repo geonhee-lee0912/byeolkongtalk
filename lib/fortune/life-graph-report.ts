@@ -72,6 +72,17 @@ export function parseLifeGraphJson(raw: string): LifeGraphAI | null {
   return { intro: o.intro.trim(), decades, peak: o.peak.trim(), valley: o.valley.trim(), note: o.note.trim() };
 }
 
+/** 10년 구간 이름표를 결정론 대운 표 나이로 순서대로 다시 붙인다(구간 수가 같을 때만).
+ *  AI 가 프롬프트의 'N0~N9세' 예시를 따라 4~13세 구간을 '40~49세'로 적은 실물이 있었다(dev 11-21) —
+ *  내용은 어린 시절인데 곡선 맨 앞에 '40~49'가 찍혔다. 만들 때와 그릴 때(이미 저장된 리포트) 둘 다 거친다. */
+export function alignDecadeAges(
+  decades: LifeGraphDecade[],
+  daeun: readonly { startAge: number; endAge: number }[] | null | undefined,
+): LifeGraphDecade[] {
+  if (!daeun || daeun.length !== decades.length) return decades;
+  return decades.map((d, i) => ({ ...d, ageLabel: `${daeun[i].startAge}~${daeun[i].endAge}세` }));
+}
+
 export function buildLifeGraphReport(ai: LifeGraphAI): LifeGraphReport {
   return { v: 1, ...ai };
 }

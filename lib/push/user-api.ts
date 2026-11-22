@@ -1,5 +1,5 @@
 // 알림 설정(광고 동의 포함)·질문·다시 볼 날 예약·수신거부 핸들러 — 라우트는 세션을 읽어 여기로 넘기기만 한다.
-import { revisitSendOn, REVISIT_DAYS, type RevisitChoice } from "./schedule.ts";
+import { revisitSendOn, revisitSendOnFromDate, REVISIT_DAYS, type RevisitChoice } from "./schedule.ts";
 import type { HandlerResult } from "./devices.ts";
 import { ASK_MOMENTS, nextAsk, type AdStatus, type AskAnswer, type AskKind, type AskMoment, type AskRecord, type OsState } from "./asks.ts";
 import { koreanDate, reconfirmState } from "./consent.ts";
@@ -21,12 +21,20 @@ export async function handleRevisitPost(
   },
 ): Promise<HandlerResult> {
   if (!userId) return UNAUTH;
-  const { readingId, choice } = obj(body);
-  if (typeof choice !== "string" || !Object.hasOwn(REVISIT_DAYS, choice)) return { status: 400, body: { error: "bad_choice" } };
+  const { readingId, choice, date } = obj(body);
+  // 칩(3일·1주·2주) 또는 달력에서 고른 날(내일~30일 뒤) — 디자인 다듬기 /tarot/result ⑩ D2, 운영자 11-15
+  let sendOn: string;
+  if (typeof date === "string") {
+    const d = revisitSendOnFromDate(date, deps.now());
+    if (!d) return { status: 400, body: { error: "bad_date" } };
+    sendOn = d;
+  } else {
+    if (typeof choice !== "string" || !Object.hasOwn(REVISIT_DAYS, choice)) return { status: 400, body: { error: "bad_choice" } };
+    sendOn = revisitSendOn(choice as RevisitChoice, deps.now());
+  }
   if (typeof readingId !== "string") return { status: 403, body: { error: "forbidden" } };
   // 없는 리딩과 남의 리딩을 같게 답한다 — 존재 여부를 흘리지 않는다.
   if ((await deps.readingOwner(readingId)) !== userId) return { status: 403, body: { error: "forbidden" } };
-  const sendOn = revisitSendOn(choice as RevisitChoice, deps.now());
   if ((await deps.upsertRevisit(userId, readingId, sendOn)) === "already_sent") {
     return { status: 409, body: { error: "already_sent" } };
   }

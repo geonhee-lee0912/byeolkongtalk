@@ -19,6 +19,20 @@ export function receivedStars(pkg: StarPackage, bonusEligible: boolean): number 
   return pkg.stars + (bonusEligible ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE) : 0);
 }
 
+/** 상점 패키지 칸의 아랫줄(디자인 다듬기 상점 ④ A, 운영자 11-21).
+ *  보통은 '별당 N원 · M% 알뜰'(가장 작은 칸 대비, 알뜰이 0 이면 별당만), 첫 충전 자격이면 보너스 한 줄만 —
+ *  두 줄을 다 넣으면 칸 높이가 들쭉날쭉해져서 하나만 쓴다. 보너스 수는 receivedStars 와 같은 반올림. */
+export function packageSubLine(pkg: StarPackage, bonusEligible: boolean): { text: string; tone: "plain" | "bonus" } {
+  if (bonusEligible) {
+    const total = receivedStars(pkg, true);
+    return { text: `+${total - pkg.stars}별 보너스 · 총 ${total}별`, tone: "bonus" };
+  }
+  const base = STAR_PACKAGES[0].price / STAR_PACKAGES[0].stars;
+  const perStar = pkg.price / pkg.stars;
+  const off = Math.round((1 - perStar / base) * 100);
+  return { text: `별당 ${Math.round(perStar)}원${off > 0 ? ` · ${off}% 알뜰` : ""}`, tone: "plain" };
+}
+
 /**
  * 기본 선택 패키지 id. null = 모름/부족 아님 → 화면의 기존 기본값을 쓴다.
  * min = 부족분을 덮는 가장 작은 패키지 · 기본 = min 한 단계 위, star_70 상한, min 미만 금지.

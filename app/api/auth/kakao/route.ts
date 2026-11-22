@@ -94,8 +94,7 @@ export async function GET(request: NextRequest) {
     // 2. 카카오 사용자 정보 조회
     const kakaoUser = await getKakaoUser(tokenData.access_token);
     const kakaoId = kakaoUser.id;
-    const nickname =
-      kakaoUser.kakao_account?.profile?.nickname || `별콩이_${kakaoId}`;
+    const nickname = kakaoUser.kakao_account?.profile?.nickname || null;
     const profileImg =
       kakaoUser.kakao_account?.profile?.profile_image_url || null;
 

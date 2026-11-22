@@ -11,6 +11,7 @@ import {
   type TarotCard,
 } from "@/lib/tarot/cards";
 import { buildCardSlug } from "@/lib/seo/tarot-slugs";
+import GuideCta from "@/components/seo/GuideCta";
 
 interface Drawn {
   card: TarotCard;
@@ -96,11 +97,14 @@ export default function DailyCardDraw() {
         <button
           type="button"
           onClick={draw}
-          className="btn btn-secondary btn-lg mt-5"
+          className="btn btn-primary btn-lg mt-5"
         >
           오늘의 카드 뽑기 (무료 · 가입 없음)
         </button>
       )}
+
+      {/* 주 버튼은 한 화면에 하나 — 뽑기 전엔 뽑기, 뽑은 뒤엔 상담(묶음 9 ① A, 운영자 11-22). 뽑았는지를 알아야 해서 이 부품 안에 둔다 */}
+      <GuideCta tag="그냥 별콩이한테 털어놓고 싶어" label="별콩이랑 더 깊게 보기" quiet={!drawn} />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { requireAdminWrite, logAdminAction } from "@/lib/admin-actions";
 
 export const runtime = "nodejs";
 
+// 위기 기록은 1년 뒤 파기된다(purge_expired_records) — 그보다 오래된 상담은 '남은 알림 0'을 믿을 수 없다
+const ALERT_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requireAdminWrite(req);
   if (gate instanceof NextResponse) return gate;
@@ -34,7 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // 오탐 판정 시 리딩의 공유 차단(has_sensitive) 해제 — 단, 같은 리딩에
   // 오탐이 아닌 다른 알림이 남아 있으면 차단 유지.
-  if (actionTaken === "false_positive" && updated.reading_id) {
+  // 1년 넘은 상담(또는 만든 때를 못 읽은 상담)도 차단 유지 — 진짜 알림이 파기됐을 수 있다(애플-4-1-1A).
+  if (actionTaken === "false_positive" && updated.reading_id && (await isWithinRetention(supabase, updated.reading_id))) {
     const { count } = await supabase.from("sensitive_alerts")
       .select("id", { count: "exact", head: true })
       .eq("reading_id", updated.reading_id)
@@ -49,4 +53,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   await logAdminAction({ adminId: gate.userId, action: "sensitive_review", targetType: "sensitive_alert", targetId: id, payload: { actionTaken, note } });
   return NextResponse.json({ success: true });
+}
+
+async function isWithinRetention(supabase: ReturnType<typeof getServiceSupabase>, readingId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("readings").select("created_at").eq("id", readingId).maybeSingle();
+  if (error || !data) return false;
+  return Date.parse(data.created_at) > Date.now() - ALERT_RETENTION_MS;
 }
