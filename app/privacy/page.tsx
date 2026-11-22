@@ -362,8 +362,12 @@ export default function PrivacyPage() {
           다음 쿠키를 사용합니다.
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li><b>byeolkong_anon_id</b>: 익명 식별자 (HttpOnly, Secure, SameSite=Lax)</li>
-            <li><b>byeolkong_user_id</b>: 카카오 로그인 후 회원 식별자 (HttpOnly,
-              Secure, SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_user_id</b>: 로그인 후 회원 식별자 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_oauth_state, byeolkong_apple_state</b>: 웹 로그인 요청 위조 방지용 값, 5분간 유효 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_acq</b>: 광고·홍보 링크로 처음 방문한 때의 유입 경로(광고 클릭 식별자, UTM 등),
+              최대 30일간 유효 (SameSite=Lax)</li>
             <li><b>_fbp, _fbc</b>: Meta 광고 성과 측정 쿠키 (제8조의2 참고)</li>
           </ul>
           <p className="mt-2">
@@ -409,7 +413,8 @@ export default function PrivacyPage() {
         <Article title="제9조 (개인정보의 안전성 확보 조치)">
           <ol className="list-decimal pl-5 space-y-1">
             <li>전송 구간 암호화(HTTPS/TLS)</li>
-            <li>비밀번호 등 민감 인증 정보 미저장(카카오 OAuth 토큰만 사용)</li>
+            <li>비밀번호 미저장. 카카오 OAuth 토큰은 회사 서버에 저장하지 않으며,
+              Apple 연결 해제용 인증 토큰은 암호화(AES-256-GCM)하여 저장</li>
             <li>개인정보 처리 인원의 최소화 및 접근 권한 관리</li>
             <li>데이터베이스 접근 통제 및 정기 점검</li>
           </ol>
