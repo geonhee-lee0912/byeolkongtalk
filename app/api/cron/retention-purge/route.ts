@@ -14,14 +14,8 @@ export const maxDuration = 60;
 
 const ROUTE = "/api/cron/retention-purge";
 
-type PurgeResult = {
-  executed: boolean;
-  withdrawals: number;
-  bonus_claims: number;
-  sensitive_alerts: number;
-  review_notes: number;
-  log_ip_ua: number;
-};
+// executed + 대상별 건수. 칸은 DB 함수가 정한다(보유 기간을 더하면 칸이 는다 — 여기는 안 고쳐도 된다)
+type PurgeResult = { executed: boolean } & Record<string, number | boolean>;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -43,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   const r = data as PurgeResult;
   // 파기 기록(건수만) — 세기만 한 날과 0건인 날은 남기지 않는다
-  if (r.executed && r.withdrawals + r.bonus_claims + r.sensitive_alerts + r.review_notes + r.log_ip_ua > 0) {
+  if (r.executed && Object.values(r).some((n) => typeof n === "number" && n > 0)) {
     await logInfo("retention purge done", { route: ROUTE, extra: r });
   }
   return NextResponse.json(r);
