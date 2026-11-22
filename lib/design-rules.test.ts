@@ -297,3 +297,12 @@ test("스프레드 상세: 배열 그림이 카드 뽑기와 같은 배치 자�
     assert.doesNotMatch(s, /\[\[0, 1, 2\]/, `${f}: 배치를 따로 베끼지 않는다`);
   }
 });
+
+// 디자인 다듬기 묶음 9 ⑤ T1(운영자 11-22) — 읽을거리 안 이동은 버튼이 아니라 목록 한 칸(주 버튼은 상담 권유 하나)
+test("테마 글의 스프레드: 큰 버튼 대신 한 카드 목록(카드 그림·이름·장수·한 줄 설명)", () => {
+  const s = readFileSync("app/(content)/guide/themes/[tag]/page.tsx", "utf8");
+  assert.doesNotMatch(s, /btn-secondary/);
+  assert.match(s, /divide-y/);
+  assert.match(s, /name="sparkle"/);
+  assert.match(s, /\.tagline/);
+});
