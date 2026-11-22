@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-const SHIM_DATE = "2026년 10월 26일";
+const SHIM_DATE = "별콩톡 앱 출시일(공지 후 7일이 지난 뒤)";
 
 // 제6조의2 국외 이전 — 개인정보 보호법 제28조의8 제2항 항목(받는 곳·국가·항목·시기와 방법·목적·보관 기간).
 // AI 업체·모델이나 호스팅을 바꾸면 이 목록과 제6조 위탁 표를 같이 고칠 것.
@@ -11,7 +11,8 @@ const OVERSEAS_TRANSFERS = [
     to: "OpenAI (dsar@openai.com)",
     country: "미국",
     items:
-      "고민·대화 내용, 감정 태그, 뽑은 카드, 사주 간지·성별·나이, 궁합·연애 상담 시 입력한 이름 또는 호칭",
+      "고민·대화 내용, 감정 태그, 뽑은 카드, 사주 간지·성별·나이, 궁합·연애 상담·별마루에 쓰려고 고르거나 입력한 이름 또는 호칭",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 상담·운세 풀이 생성",
     period: "업체 정책에 따라 최대 30일 보관 후 삭제 (모델 학습에 쓰지 않음)",
   },
@@ -19,6 +20,7 @@ const OVERSEAS_TRANSFERS = [
     to: "Anthropic, PBC (privacy@anthropic.com)",
     country: "미국",
     items: "AI 처리에 필요한 메시지 내용 (위기 표현 판정, 대화 요약 등)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 보조 처리 (위기 표현 2차 판정, 대화 요약 등)",
     period:
       "업체 정책에 따라 30일 안에 삭제 (업체 이용정책 위반으로 분류되면 최대 2년)",
@@ -27,8 +29,17 @@ const OVERSEAS_TRANSFERS = [
     to: "Vercel Inc. (privacy@vercel.com)",
     country: "미국 등",
     items: "서비스 이용 중 주고받는 정보 (요청 내용, 접속 기록)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "웹 서비스 호스팅",
     period: "위탁 계약 종료 시까지 (로그는 업체 정책에 따름)",
+  },
+  {
+    to: "Apple Inc. (https://www.apple.com/kr/legal/privacy/contact/)",
+    country: "미국 등",
+    items: "Apple 로그인 인증값, 연결 해제용 인증 토큰, 앱 구분값",
+    when: "Apple로 로그인할 때와 탈퇴할 때 회사 서버에서 암호화된 네트워크로 전송",
+    purpose: "Apple 로그인 인증 및 연결 해제",
+    period: "업체 정책에 따름",
   },
 ];
 
@@ -62,8 +73,15 @@ export default function PrivacyPage() {
         <Article title="제1조 (수집하는 개인정보 항목)">
           회사는 다음 정보를 수집합니다.
           <ol className="list-decimal pl-5 space-y-1 mt-2">
-            <li><b>회원 가입 시</b>: 카카오 계정 식별자, 닉네임, 프로필 이미지
-              URL</li>
+            <li><b>카카오로 가입·로그인 시</b>: 카카오 계정 식별자, 닉네임, 프로필
+              이미지 URL</li>
+            <li><b>Apple로 가입·로그인 시</b>: Apple 계정 식별자, 이름(가입 시
+              Apple이 제공한 경우에 한하며 닉네임으로 저장), 연결 해제용 인증
+              토큰과 그 토큰을 발급한 앱 구분값. 이메일은 요청하거나 저장하지
+              않습니다.</li>
+            <li><b>앱 로그인 시</b>: 로그인 유지용 토큰과 로그인 전달용 1회용
+              코드의 해시, 각각의 발급·만료·사용·폐기 일시, 기기 운영체제
+              구분</li>
             <li><b>서비스 이용 시</b>: 입력한 고민 텍스트, 선택한 감정 태그,
               생년월일·태어난 시·성별(사주풀이), 뽑은 카드(타로), AI 대화 내용</li>
             <li><b>궁합·연애 상담 이용 시</b>: 회원이 입력한 본인과
@@ -71,8 +89,9 @@ export default function PrivacyPage() {
               관계 분류</li>
             <li><b>비회원(게스트) 무료 서비스 이용 시</b>: 표시 이름,
               생년월일, 지정한 관계 분류(예: 인연 별자리 참여)</li>
-            <li><b>결제 시</b>: 결제 수단(카드사명·일부 마스킹된 번호 등),
-              결제 일시, 결제 금액, 결제대행사(PG사) 거래 ID</li>
+            <li><b>결제 시</b>: 결제 수단(카드사명·일부 마스킹된 번호 등), 결제 일시, 결제 금액,
+              결제대행사(PG사) 거래 ID. 결제를 준비하고 결제창을 열기 위해 회원
+              식별자와 닉네임(Apple 회원은 이름일 수 있음)을 결제대행사에 전달합니다.</li>
             <li><b>자동 수집</b>: 접속 IP, 쿠키(세션/익명 식별, 광고 성과
               측정), 기기·브라우저 정보, 접속 일시, 유입 경로(광고 클릭
               식별자, UTM 등)</li>
@@ -84,7 +103,9 @@ export default function PrivacyPage() {
 
         <Article title="제2조 (개인정보 수집 방법)">
           <ol className="list-decimal pl-5 space-y-1">
-            <li>카카오 소셜 로그인 동의 절차</li>
+            <li>카카오 또는 Apple 소셜 로그인 절차. Apple 로그인 시 Apple이
+              발급한 인증값으로 본인을 확인하며, 연결 해제용 토큰의 발급과 탈퇴
+              시 연결 해제를 위해 인증값을 Apple 서버와 주고받습니다.</li>
             <li>회원 또는 비회원(게스트)이 직접 입력 (고민 텍스트, 생년월일시,
               무료 서비스 참여 정보, 채팅 메시지 등)</li>
             <li>결제 진행 시 결제대행사(PG사) 연동</li>
@@ -106,16 +127,34 @@ export default function PrivacyPage() {
           회원의 개인정보는 회원 탈퇴 시까지 보유하며, 탈퇴 시 즉시 파기합니다.
           단, 관계 법령에 따라 다음 정보는 정해진 기간 동안 보관합니다.
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>계약·청약철회 등에 관한 기록: 5년 (전자상거래법)</li>
-            <li>대금결제 및 재화 공급 기록: 5년 (전자상거래법)</li>
-            <li>소비자 불만·분쟁 처리 기록: 3년 (전자상거래법)</li>
+            <li>결제·환불 기록(결제 일시·금액·상품, 환불 여부, 결제대행사 거래 ID):
+              5년 (전자상거래법). 탈퇴 시 회원 계정과의 연결을 끊고 보관합니다.</li>
+            <li>이메일로 접수된 소비자 불만·분쟁 처리 기록: 3년 (전자상거래법)</li>
             <li>서비스 접속 로그: 3개월 (통신비밀보호법)</li>
           </ul>
+          <p className="mt-3">
+            별 충전·사용 내역, 별마루 구독 내역, 서비스 안에서 남긴 1:1 문의는 탈퇴
+            시 삭제합니다.
+          </p>
+          <p className="mt-3">
+            Apple 연결 해제용 인증 토큰은 암호화하여 보관하며, 다시 로그인해 새
+            토큰으로 교체되거나 회원이 탈퇴할 때까지 보관합니다. 앱 로그인
+            유지용 토큰은 발급 후 90일간 유효하고, 사용할 때마다 새 토큰으로
+            교체되어 그때부터 다시 90일간 유효합니다. 교체·로그아웃·만료된
+            토큰과 로그인 전달용 코드의 해시 및 일시 기록은 탈퇴 시 삭제합니다.
+          </p>
           <p className="mt-3">
             또한 부정 이용 방지(재가입 혜택 중복 수령 방지)와 서비스 통계를
             위해, 탈퇴 시 로그인 수단 식별자를 되돌릴 수 없게 바꾼 값(해시)과
             혜택 수령 기록, 가입 경로 정보(UTM 등)를 탈퇴 후 1년간 보관한 뒤
             파기합니다.
+          </p>
+          <p className="mt-3">
+            방문·이용 기록(방문한 페이지 경로, 유입 경로, 화면 이용 기록)은
+            수집일부터 1년이 지나면 회원·익명 식별자와 유입 주소를 지워 통계로만
+            남기고, 설문 응답과 오류 기록은 수집일부터 1년간 보관한 뒤
+            파기합니다. 탈퇴하면 이 기록들과 회원 계정의 연결은 끊기지만, 익명
+            식별자는 위 기간까지 남습니다.
           </p>
           <p className="mt-3 text-text-light">
             비회원(게스트)이 무료 서비스(인연 별자리 등)에서 입력한 정보(표시
@@ -258,6 +297,10 @@ export default function PrivacyPage() {
                   <td className="px-2 py-1.5 border border-lilac-soft/60">㈜카카오</td>
                   <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 프로필 정보 제공</td>
                 </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">Apple Inc.</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 연결 해제</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -276,11 +319,11 @@ export default function PrivacyPage() {
                 key={t.to}
                 className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-12"
               >
-                <p className="font-bold">{t.to}</p>
+                <p className="font-bold break-words">{t.to}</p>
                 <ul className="mt-1 space-y-0.5 text-text-light">
                   <li>이전 국가: {t.country}</li>
                   <li>이전 항목: {t.items}</li>
-                  <li>이전 시기·방법: 서비스를 이용할 때마다 암호화된 네트워크로 전송</li>
+                  <li>이전 시기·방법: {t.when}</li>
                   <li>이용 목적: {t.purpose}</li>
                   <li>보관 기간: {t.period}</li>
                 </ul>
@@ -288,23 +331,31 @@ export default function PrivacyPage() {
             ))}
           </div>
           <ul className="list-disc pl-5 mt-3 space-y-1">
-            <li>회원 식별자, 카카오 닉네임, 연락처는 AI 업체에 보내지
-              않습니다. 생년월일은 날짜 그대로가 아니라 사주 간지와 나이로
-              바꿔 보냅니다.</li>
+            <li>회원 식별자, 로그인 시 받은 닉네임·이름, 연락처는 AI 업체에 보내지
+              않습니다.
+              생년월일은 날짜 그대로가 아니라 사주 간지와 나이로 바꿔
+              보냅니다.</li>
             <li><b>거부 방법·절차·효과</b>: 개인정보 보호책임자
               (oneulcard@gmail.com)에게 국외 이전 거부를 요청할 수 있습니다.
-              다만 위 이전은 AI 해석과 서비스 운영에 꼭 필요하므로, 거부하면
-              서비스를 이용할 수 없습니다. 회원 탈퇴로 저장된 정보를 모두
-              지울 수 있습니다.</li>
+              다만 OpenAI·Anthropic·Vercel로의 이전은 AI 해석과 서비스
+              운영에 꼭 필요하므로, 거부하면 서비스를 이용할 수 없습니다. Apple
+              로그인을 위한 이전은 Apple로 로그인하지 않으면 거부할 수 있으며, 이미
+              Apple로 가입한 회원이 거부하면 해당 계정으로 로그인할 수 없습니다.
+              회원 탈퇴로 저장된 정보를 모두 지울 수 있습니다.</li>
           </ul>
         </Article>
 
         <Article title="제7조 (회원의 권리와 행사 방법)">
           <ol className="list-decimal pl-5 space-y-1">
-            <li>회원은 마이페이지에서 본인 정보를 언제든 열람·수정할 수
-              있으며, 회원 탈퇴 메뉴를 통해 모든 정보의 삭제를 요청할 수
-              있습니다.</li>
-            <li>탈퇴 시 카카오 계정 연결도 함께 해제(unlink)됩니다.</li>
+            <li>회원은 마이페이지에서 본인 정보를 열람하고 사주 정보를 수정할 수 있으며, 회원
+              탈퇴 메뉴를 통해 삭제를 요청할 수 있습니다. 탈퇴 후 보관되는 정보는 제4조를
+              따릅니다.</li>
+            <li>탈퇴 시 카카오 계정은 연결을 해제(unlink)하고, Apple 계정은 보관
+              중인 인증 토큰으로 연결을 해제(revoke)합니다. 연결 해제에
+              실패하면(카카오 연결이 이미 해제된 경우 제외) 탈퇴가 완료되지 않으며 다시
+              시도하도록 안내합니다. 다만 보관 중인 Apple 인증 토큰 정보가 없으면 연결
+              해제 없이 탈퇴가 처리되므로, 이 경우 회원이 Apple 계정 설정에서 직접
+              연결을 해제할 수 있습니다.</li>
             <li>이메일(oneulcard@gmail.com)을 통해서도 열람·정정·삭제·처리정지
               요청이 가능합니다.</li>
           </ol>
@@ -323,8 +374,12 @@ export default function PrivacyPage() {
           다음 쿠키를 사용합니다.
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li><b>byeolkong_anon_id</b>: 익명 식별자 (HttpOnly, Secure, SameSite=Lax)</li>
-            <li><b>byeolkong_user_id</b>: 카카오 로그인 후 회원 식별자 (HttpOnly,
-              Secure, SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_user_id</b>: 로그인 후 회원 식별자 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_oauth_state, byeolkong_apple_state</b>: 웹 로그인 요청 위조 방지용 값, 5분간 유효 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_acq</b>: 광고·홍보 링크로 처음 방문한 때의 유입 경로(광고 클릭 식별자, UTM 등),
+              최대 30일간 유효 (SameSite=Lax)</li>
             <li><b>_fbp, _fbc</b>: Meta 광고 성과 측정 쿠키 (제8조의2 참고)</li>
           </ul>
           <p className="mt-2">
@@ -370,7 +425,8 @@ export default function PrivacyPage() {
         <Article title="제9조 (개인정보의 안전성 확보 조치)">
           <ol className="list-decimal pl-5 space-y-1">
             <li>전송 구간 암호화(HTTPS/TLS)</li>
-            <li>비밀번호 등 민감 인증 정보 미저장(카카오 OAuth 토큰만 사용)</li>
+            <li>비밀번호 미저장. 카카오 OAuth 토큰은 회사 서버에 저장하지 않으며,
+              Apple 연결 해제용 인증 토큰은 암호화(AES-256-GCM)하여 저장</li>
             <li>개인정보 처리 인원의 최소화 및 접근 권한 관리</li>
             <li>데이터베이스 접근 통제 및 정기 점검</li>
           </ol>
