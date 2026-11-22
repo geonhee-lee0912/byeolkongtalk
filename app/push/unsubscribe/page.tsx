@@ -76,12 +76,15 @@ export default function PushUnsubscribePage() {
           </dl>
         )}
         {view.kind !== "working" && (
-          <p className="mt-4 text-13 text-text-light leading-relaxed">
-            지금 상태는 마이의 알림 설정에서 보고 바꿀 수 있어.{""}
-            <Link href="/mypage/notifications" className="underline">
-              알림 설정
+          <>
+            <p className="mt-4 text-13 text-text-light leading-relaxed">
+              지금 상태는 마이의 알림 설정에서 보고 바꿀 수 있어.
+            </p>
+            {/* 문장 끝에 붙어 있던 밑줄 링크 → 공용 보조 버튼(디자인 다듬기 수신거부 ⑪, 운영자 11-22) */}
+            <Link href="/mypage/notifications" className="mt-3 btn btn-secondary btn-md">
+              알림 설정 열기
             </Link>
-          </p>
+          </>
         )}
       </div>
       {popup && <AdConsentNotice notice={popup} onClose={() => setPopup(null)} />}
