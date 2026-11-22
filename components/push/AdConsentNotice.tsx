@@ -20,8 +20,8 @@ export default function AdConsentNotice({ notice, onClose }: { notice: ConsentNo
   // 공통 확인창 틀(components/common/Dialog) — 법정 통지라 바깥을 눌러도 닫지 않고 [확인]으로만 닫는다
   return (
     <Dialog label="광고성 정보 수신 동의 결과 안내" role="alertdialog" dismissible={false} z={110} onClose={onClose}>
-      <div className="w-full max-w-sm bg-cream rounded-3xl p-6">
-        <p className="font-display text-17 text-eye-purple text-center">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
+      <div className="w-full max-w-sm bg-cream rounded-3xl p-6 break-keep wrap-anywhere">
+        <p className="font-display text-17 text-eye-purple text-center text-balance">광고성 정보 수신 {notice.kind === "grant" ? "동의" : "거부"} 안내</p>
         <dl className="mt-4 rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed">
           {noticeLines(notice).map((l) => (
             <div key={l.label} className="flex gap-3 py-0.5">

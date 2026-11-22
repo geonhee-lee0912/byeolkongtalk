@@ -19,7 +19,7 @@ export default function AdConsentCheck({
   disabled?: boolean;
 }) {
   return (
-    <label className="card mt-4 flex items-start gap-2.5 text-left cursor-pointer">
+    <label className="card mt-4 flex items-start gap-2.5 text-left cursor-pointer break-keep wrap-anywhere">
       <input
         type="checkbox"
         checked={checked}

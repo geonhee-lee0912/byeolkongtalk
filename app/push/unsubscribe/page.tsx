@@ -82,11 +82,11 @@ export default function PushUnsubscribePage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
+    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in break-keep wrap-anywhere">
       <div className="w-full max-w-md mx-auto px-5 pt-[4dvh] flex flex-col items-center text-center">
         <Image src="/byeolkong-main.png" alt="별콩이" width={96} height={96} priority />
-        <h1 className="mt-3 font-display text-20 text-eye-purple">{copy.title}</h1>
-        <p className="mt-2 text-14 text-text-light leading-relaxed break-keep whitespace-pre-line">{copy.sub}</p>
+        <h1 className="mt-3 font-display text-20 text-eye-purple text-balance">{copy.title}</h1>
+        <p className="mt-2 text-14 text-text-light leading-relaxed whitespace-pre-line">{copy.sub}</p>
         {copy.showNotice && view.kind === "done" && view.notice && (
           <dl className="mt-5 w-full rounded-2xl bg-white border border-lilac-mid/35 px-4 py-3 text-13 leading-relaxed text-left">
             <p className="text-11 font-bold text-text-light mb-1">처리 내역</p>
