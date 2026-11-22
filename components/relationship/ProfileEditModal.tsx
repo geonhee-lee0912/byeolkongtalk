@@ -13,6 +13,7 @@ import {
   SLOT_COST,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 const STATUS_OPTIONS: RelationshipStatus[] = [
   "crush",
@@ -228,14 +229,14 @@ export default function ProfileEditModal({
       <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-17 font-bold text-eye-purple">
+            <h2 className="font-display text-17 text-eye-purple">
               {isMe ? "내 프로필 수정" : isCreate ? "누구 얘기를 해볼까?" : "관계 정보 수정"}
             </h2>
             <OverlayCloseButton
               aria-label="닫기"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-             
+              <Icon name="close" size={18} />
             </OverlayCloseButton>
           </div>
 

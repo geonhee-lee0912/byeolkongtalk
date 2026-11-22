@@ -2,9 +2,8 @@
 import { redirect } from "next/navigation";
 import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero";
 import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
-import PurchaseReachedBeacon from "@/components/fortune/landing/PurchaseReachedBeacon";
 import FortuneSamplePreview from "@/components/fortune/landing/FortuneSamplePreview";
-import FortunePurchasePanel from "@/components/fortune/FortunePurchasePanel";
+import LandingBuyBar from "@/components/fortune/landing/LandingBuyBar";
 import { FORTUNE_CONFIG, FORTUNE_LENGTH_HINT, type FortuneType } from "@/lib/fortune/types";
 import { fortuneOutline, type LandingKey } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
@@ -33,9 +32,8 @@ export default async function FortuneProductPage({
         title={cfg.label}
         hook={copy.hook}
         cardSrc={fortuneCardSrc(key)}
-        chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
-        ctaLabel="이 사주로 보기"
-        trackType={type}
+        cost={cfg.cost}
+        chips={[FORTUNE_LENGTH_HINT[type] ?? "", copy.minutes].filter(Boolean)}
       />
 
       <FortuneLandingSections
@@ -47,12 +45,9 @@ export default async function FortuneProductPage({
         related={related}
       />
 
-      <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
-        <div className="h-px bg-lilac-mid/30" />
-        <PurchaseReachedBeacon type={type} />
-        <h2 className="text-15 font-bold text-eye-purple mt-5 mb-4">누구 사주로 볼까</h2>
-      </div>
-      <FortunePurchasePanel type={type} />
+      {/* 설명과 사주 고르기를 나눴다 — 고르기는 /fortune/[type]/buy(디자인 다듬기 묶음 4, 운영자 11-15).
+          운영에서 상품 페이지를 본 사람 대부분이 옛 위 버튼으로 고르기 칸에 바로 건너갔다 */}
+      <LandingBuyBar href={`${cfg.href}/buy`} cost={cfg.cost} trackType={type} />
     </main>
   );
 }

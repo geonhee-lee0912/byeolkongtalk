@@ -11,7 +11,7 @@ import { TYPE_CONTENT, ELEMENT_MODULE, MATCH_NARRATIVE } from "@/lib/saju-mbti/c
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
-import { ElementPentagon } from "./ElementPentagon";
+import { ElementStrengthBand } from "./ElementStrengthBand";
 import { characterImage } from "@/lib/saju-mbti/character-image";
 import { MarkdownLite } from "@/lib/markdown-lite";
 
@@ -31,16 +31,9 @@ const AXIS_MEANING: Record<AxisKey, { summary: string; poles: [{ p: string; t: s
   nurture: { summary: "친구가 힘들다 하면", poles: [{ p: "생", t: "일단 토닥토닥" }, { p: "단", t: "일단 팩트체크" }] },
 };
 
-const AXIS_COLOR: Record<AxisKey, string> = {
-  yinYang: "#7C5FB8",
-  strength: "#C76B57",
-  wealth: "#B8862F",
-  nurture: "#3F8F87",
-};
-
-// 리빌 색 키 — 문항(자아)=라일락, 사주(팔자)=골드. 카드·축별 비교에 일관 적용
-const SELF_COLOR = "#B9A7E6";
-const PALJA_COLOR = "#F2D78A";
+// 리빌 색 키 — 문항(자아)=보라, 사주(팔자)=금갈색. 흰 카드 위라 진한 쪽으로(디자인 다듬기 ⑧ V2) — 칸 바탕은 연보라·연노랑
+const SELF_COLOR = "#775CB0";
+const PALJA_COLOR = "#A87A2A";
 
 export interface ResultViewProps {
   saju?: SajuResult;
@@ -63,7 +56,7 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
   const selfImg = characterImage(self.code);
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 pt-4 pb-10 flex flex-col gap-3 animate-fade-in" data-stage="result">
+    <div className={`w-full max-w-md mx-auto px-4 pt-4 ${shared ? "pb-10" : "pb-2"} flex flex-col gap-3 animate-fade-in`} data-stage="result">
       {shared && (
         <p className="text-center text-12 tracking-[0.14em] text-accent">누군가의 사주 MBTI 결과</p>
       )}
@@ -90,7 +83,9 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       {!shared && (
       <section className="card">
         <p className="text-17 font-bold text-eye-purple mb-4">타고난 너의 4축</p>
-        <div className="flex flex-col gap-4">
+        {/* 보라 한 색 · 축마다 두 줄(제목 / 이긴 쪽 설명 + %, 아래 얇은 막대·양끝 글자). 예전엔 축마다 네 색 + 양끝 설명 줄.
+            디자인 다듬기 사주 MBTI 결과 ⑤ X2 운영자 11-20 */}
+        <div className="flex flex-col gap-3.5">
           {AXES.map((axis) => {
             const a = palja.axes[axis];
             const [front, back] = POLES[axis];
@@ -98,26 +93,23 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
             const frontWins = a.pole === front;
             const domPct = frontWins ? frontPct : 100 - frontPct;
             const m = AXIS_MEANING[axis];
-            const color = AXIS_COLOR[axis];
             return (
               <div key={axis}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-13 font-bold" style={{ color }}>{AXIS_LABEL[axis]} · {m.summary}</span>
-                  <span className="text-13 font-bold tabular-nums" style={{ color }}>{domPct}%</span>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-13 font-bold text-eye-purple">{AXIS_LABEL[axis]} · {m.summary}</span>
+                  <span className="text-13 font-bold text-accent shrink-0">
+                    {m.poles[frontWins ? 0 : 1].t} <span className="tabular-nums">{domPct}%</span>
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 text-15 font-bold">
-                  <span className="w-6 text-right" style={{ color: frontWins ? color : "#C4B7DE" }}>{front}</span>
+                <div className="flex items-center gap-2 text-13 font-bold">
+                  <span className={`w-6 text-right ${frontWins ? "text-accent" : "text-[#C4B7DE]"}`}>{front}</span>
                   <div
-                    className="flex-1 h-3 rounded-full overflow-hidden flex"
+                    className="flex-1 h-2 rounded-full overflow-hidden flex"
                     style={{ background: "#EAE1F5", justifyContent: frontWins ? "flex-start" : "flex-end" }}
                   >
-                    <div className="h-full rounded-full" style={{ width: `${domPct}%`, background: color }} />
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${domPct}%` }} />
                   </div>
-                  <span className="w-6" style={{ color: !frontWins ? color : "#C4B7DE" }}>{back}</span>
-                </div>
-                <div className="flex justify-between text-12 mt-1 px-8">
-                  <span style={{ color: frontWins ? color : "#9A8CB8", fontWeight: frontWins ? 700 : 400 }}>{m.poles[0].t}</span>
-                  <span style={{ color: !frontWins ? color : "#9A8CB8", fontWeight: !frontWins ? 700 : 400 }}>{m.poles[1].t}</span>
+                  <span className={`w-6 ${!frontWins ? "text-accent" : "text-[#C4B7DE]"}`}>{back}</span>
                 </div>
               </div>
             );
@@ -126,114 +118,108 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
       </section>
       )}
 
-      {/* ③ 본문 */}
+      {/* ③ 본문 — 성격·빛·그림자·연애·궁합을 흰 카드 하나에 얇은 선으로 나눠 다 펼친 채(제목 진보라 하나·글자 14).
+          예전엔 흰 카드 5장 + 제목 색 제각각. 무료 테스트라 읽는 게 목적이고 항목이 짧아 접지 않는다.
+          디자인 다듬기 사주 MBTI 결과 ④ M1 운영자 11-20 */}
       <section className="card">
-        <p className="text-15 font-bold tracking-wide text-accent mb-1.5">성격</p>
-        <MarkdownLite text={content.personality} className="text-14 leading-relaxed text-eye-purple" />
-      </section>
-
-      <div className="grid grid-cols-1 gap-2.5">
-        <section className="card">
-          <p className="text-15 font-bold tracking-wide text-[#C99A3A] mb-1.5">빛</p>
-          <MarkdownLite text={content.light} className="text-13 leading-relaxed text-eye-purple" />
-        </section>
-        <section className="card">
-          <p className="text-15 font-bold tracking-wide text-accent mb-1.5">그림자</p>
-          <MarkdownLite text={content.shadow} className="text-13 leading-relaxed text-eye-purple" />
-        </section>
-      </div>
-
-      <section className="card">
-        <p className="text-15 font-bold tracking-wide text-[#C86A8A] mb-1.5">연애</p>
-        <MarkdownLite text={content.love} className="text-14 leading-relaxed text-eye-purple" />
-      </section>
-
-      <section className="card">
-        <p className="text-15 font-bold tracking-wide text-accent mb-2">궁합</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {content.compat.fits.map((c) => {
-            const t = TYPE_CONTENT[c.code];
-            const img = characterImage(c.code);
-            return (
-              <div key={c.code} className="bg-gold-soft/25 rounded-xl px-3 py-2.5">
-                <p className="text-11 font-medium text-[#B08A2A]">잘 맞아</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
-                    <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+        {(
+          [
+            ["성격", content.personality],
+            ["빛", content.light],
+            ["그림자", content.shadow],
+            ["연애", content.love],
+          ] as const
+        ).map(([label, text], i) => (
+          <div key={label} className={i > 0 ? "mt-4 pt-4 border-t border-lilac-soft" : ""}>
+            <p className="text-15 font-bold text-eye-purple mb-1.5">{label}</p>
+            <MarkdownLite text={text} className="text-14 leading-relaxed text-eye-purple" />
+          </div>
+        ))}
+        <div className="mt-4 pt-4 border-t border-lilac-soft">
+          <p className="text-15 font-bold text-eye-purple mb-2">궁합</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {content.compat.fits.map((c) => {
+              const t = TYPE_CONTENT[c.code];
+              const img = characterImage(c.code);
+              return (
+                <div key={c.code} className="bg-gold-soft/25 rounded-xl px-3 py-2.5">
+                  <p className="text-11 font-medium text-[#B08A2A]">잘 맞아</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                      <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                    </div>
                   </div>
+                  <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
                 </div>
-                <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
-              </div>
-            );
-          })}
-          {content.compat.clashes.map((c) => {
-            const t = TYPE_CONTENT[c.code];
-            const img = characterImage(c.code);
-            return (
-              <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
-                <p className="text-11 font-medium text-accent">부딪혀</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
-                    <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+              );
+            })}
+            {content.compat.clashes.map((c) => {
+              const t = TYPE_CONTENT[c.code];
+              const img = characterImage(c.code);
+              return (
+                <div key={c.code} className="bg-lilac-soft rounded-xl px-3 py-2.5">
+                  <p className="text-11 font-medium text-accent">부딪혀</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {img && <Image src={img} alt="" width={32} height={32} className="w-8 h-8 object-contain shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-14 font-bold text-eye-purple tracking-wide leading-none">{c.code}</p>
+                      <p className="text-11 text-text-light truncate mt-0.5">{t?.character ?? c.code}</p>
+                    </div>
                   </div>
+                  <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
                 </div>
-                <p className="text-12 leading-snug text-text-light mt-1.5">{c.reason}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+        {/* 오행 질감 — 따로 떠 있던 오행 색 테두리 상자(화=빨강이라 경고처럼 보임)를 본문 카드 끝 칸으로. 제목 앞 오행 칩.
+            디자인 다듬기 사주 MBTI 결과 ⑥ E1 운영자 11-20 */}
+        <div className="mt-4 pt-4 border-t border-lilac-soft">
+          <p className="text-15 font-bold text-eye-purple mb-1.5 flex items-center gap-1.5">
+            <span
+              className="inline-flex w-6 h-6 rounded-lg items-center justify-center text-13 font-bold"
+              style={{ backgroundColor: ELEMENT_COLORS[palja.element].bg, color: ELEMENT_COLORS[palja.element].text }}
+            >
+              {palja.element}
+            </span>
+            기운이라 이렇게 변주돼
+          </p>
+          <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-14 leading-relaxed text-eye-purple" />
         </div>
       </section>
 
-      {/* 오행 질감 */}
-      <section
-        className="card-inner"
-        style={{ borderColor: ELEMENT_COLORS[palja.element].bar }}
-      >
-        <p className="text-15 font-bold tracking-wide mb-1.5" style={{ color: ELEMENT_COLORS[palja.element].text }}>
-          내가 {palja.element} 기운이라 이렇게 변주돼
-        </p>
-        <MarkdownLite text={ELEMENT_MODULE[palja.element].texture} className="text-13 leading-relaxed text-eye-purple" />
-      </section>
       {/* 디바이더 — 유형 콘텐츠 ↔ 증거(사주 원판)+리빌 */}
-      <div className="flex items-center gap-3 my-1" aria-hidden>
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-        
-        <span className="flex-1 h-px bg-lilac-mid/40" />
-      </div>
+      <div className="h-px bg-lilac-mid/40 my-1" aria-hidden />
 
       {/* ④ 사주 원판 (공유 뷰는 생일 없어 숨김) */}
       {!shared && saju && (
         <section className="bg-white rounded-2xl shadow-card px-2 py-4">
           <p className="text-15 font-bold tracking-wide text-accent mb-3 text-center">타고난 너의 사주 원판</p>
-          <SajuBoard saju={saju} />
-          <div className="flex justify-center mt-2">
-            <ElementPentagon dist={palja.elementDist} />
-          </div>
+          <SajuBoard saju={saju} countLabel="여덟 글자 개수" />
+          <ElementStrengthBand dist={palja.elementDist} top={palja.element} />
         </section>
       )}
 
-      {/* ⑤ 리빌 */}
-      <div className="bg-night rounded-2xl px-4 py-5">
-        <p className="text-13 text-lilac-soft mb-3">문항으로 답한 나 <span style={{ color: SELF_COLOR }}>vs</span> 사주로 타고난 나 —</p>
+      {/* ⑤ 리빌 — 흰 카드(디자인 다듬기 사주 MBTI ⑧ V2, 운영자 11-20). 예전엔 맨 위 결과 카드에 이어 두 번째 남색 밤 카드였고
+          '타고난 나' 칸이 탁한 갈색, 첫 줄이 줄표로 끝났다. 남색은 맨 위 결과 카드 하나만 남긴다 */}
+      <div className="card">
         <div className="flex items-stretch gap-2 mb-4">
-          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(150,130,210,0.20)" }}>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center bg-lilac-soft/60">
             <p className="text-12 font-bold" style={{ color: SELF_COLOR }}>내가 답한 나</p>
-            <p className="text-11 text-accent-on-dark">문항 12개</p>
+            <p className="text-11 text-text-light">문항 12개</p>
             {selfImg && <Image src={selfImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-15 mt-0.5" style={{ color: SELF_COLOR }}>{selfContent?.character ?? self.code}</p>
-            <p className="text-11 text-lilac-mid">{self.code}</p>
+            <p className="font-display text-15 mt-0.5 text-eye-purple">{selfContent?.character ?? self.code}</p>
+            <p className="text-11 text-text-light">{self.code}</p>
           </div>
-          <div className="flex items-center text-accent-on-dark text-12 font-medium">vs</div>
-          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "rgba(242,215,138,0.40)" }}>
-            <p className="text-12 font-bold text-cream-warm">타고난 나</p>
-            <p className="text-11 text-cream-warm/70">사주 팔자</p>
+          <div className="flex items-center text-text-light text-12 font-medium">vs</div>
+          <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: "#FBF3DE" }}>
+            <p className="text-12 font-bold" style={{ color: PALJA_COLOR }}>타고난 나</p>
+            <p className="text-11 text-text-light">사주 팔자</p>
             {charImg && <Image src={charImg} alt="" width={48} height={48} className="w-12 h-12 object-contain mx-auto mt-0.5" />}
-            <p className="font-display text-15 mt-0.5 text-cream-warm">{content.character}</p>
-            <p className="text-11 text-cream-warm/70">{palja.code}</p>
+            <p className="font-display text-15 mt-0.5 text-eye-purple">{content.character}</p>
+            <p className="text-11 text-text-light">{palja.code}</p>
           </div>
         </div>
 
@@ -245,30 +231,33 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
               <span className="w-4" />
               <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>사주</span>
             </span>
-            <span className="w-8" />
+            <span className="w-10" />
           </div>
           {match.perAxis.map((a) => (
-            <div
-              key={a.axis}
-              className={`flex items-center gap-2 text-12 rounded-lg px-2.5 py-1.5 ${a.agree ? "" : "bg-[#2c1f22]"}`}
-            >
-              <span className={`w-8 ${a.agree ? "text-lilac-mid" : "text-[#E0A0A0]"}`}>{AXIS_LABEL[a.axis]}</span>
+            <div key={a.axis} className="flex items-center gap-2 text-12 rounded-lg px-2.5 py-1.5">
+              <span className="w-8 text-text-light">{AXIS_LABEL[a.axis]}</span>
               <span className="flex-1 flex items-center justify-center gap-3">
                 <span className="w-12 text-right font-bold" style={{ color: SELF_COLOR }}>{a.selfPole}</span>
-                <span className="w-4 text-center text-accent-on-dark text-11"></span>
+                <span className="w-4" />
                 <span className="w-12 text-left font-bold" style={{ color: PALJA_COLOR }}>{a.paljaPole}</span>
               </span>
-              <span className={`w-8 text-right ${a.agree ? "text-[#7f9a7f]" : "text-[#E07A7A] font-medium"}`}>{a.agree ? "일치" : "갈림"}</span>
+              <span className="w-10 text-right">
+                {a.agree ? (
+                  <span className="text-11 text-text-light">일치</span>
+                ) : (
+                  <span className="text-11 font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#FBE4E1", color: "#C2574A" }}>갈림</span>
+                )}
+              </span>
             </div>
           ))}
         </div>
 
-        <div className="text-center py-3 border-t border-b border-white/10">
-          <span className="font-display text-28 text-gold">{match.matchCount}/4</span>
-          <p className="text-15 font-medium text-cream-warm mt-0.5">{narrative.title}</p>
+        <div className="text-center py-3 border-t border-b border-lilac-soft">
+          <span className="font-display text-28 text-accent">{match.matchCount}/4</span>
+          <p className="text-15 font-bold text-eye-purple mt-0.5">{narrative.title}</p>
         </div>
         <div className="mt-3.5">
-          <MarkdownLite text={narrative.body} tone="dark" className="text-13 leading-relaxed text-lilac-soft" />
+          <MarkdownLite text={narrative.body} className="text-14 leading-relaxed text-eye-purple" />
         </div>
       </div>
 
@@ -287,20 +276,14 @@ export function ResultView({ saju, palja, self, match, onRestart, onShare, share
           </Link>
         </>
       ) : (
-        <div className="flex gap-2.5 mt-3">
-          <button
-            type="button"
-            onClick={onShare}
-            className="btn btn-primary btn-md flex-1"
-          >
+        // 공유가 주인공(바이럴 테스트) — 큰 주 버튼 한 줄 + 아래 글자 버튼 '테스트 다시 하기'(디자인 다듬기 사주 MBTI ⑨ U1, 운영자 11-20).
+        // 예전엔 공유 옆에 '다시' 한 글자 버튼이 붙어 무엇을 다시 하는지 몰랐다
+        <div className="flex flex-col items-center gap-1 mt-3">
+          <button type="button" onClick={onShare} className="btn btn-primary btn-lg">
             친구한테 공유하기
           </button>
-          <button
-            type="button"
-            onClick={onRestart}
-            className="btn btn-secondary btn-md"
-          >
-            다시
+          <button type="button" onClick={onRestart} className="btn btn-text btn-sm">
+            테스트 다시 하기
           </button>
         </div>
       )}

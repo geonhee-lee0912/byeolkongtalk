@@ -13,6 +13,7 @@ import { AppHistoryDepth } from "./AppHeader";
 import { useAppInfo } from "@/lib/use-app-info";
 import { overlayStack } from "@/lib/app-shell/overlay-stack";
 import { installOverlayBridge } from "@/lib/app-shell/overlay-bridge";
+import { hidesBottomTab } from "@/lib/app-shell/screens";
 
 /** Header/BottomTab 를 숨길 경로 (정확 매치 또는 prefix) */
 const HIDE_SHELL_PREFIXES: string[] = [
@@ -31,6 +32,7 @@ function shouldHideShell(pathname: string): boolean {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
   const hide = shouldHideShell(pathname);
+  const hideTab = hidesBottomTab(pathname);
   // 웹(브라우저)에선 전환을 아예 열지 않는다("none") — prop 만 바뀌어 화면이 다시 마운트되지 않는다
   const { app } = useAppInfo();
 
@@ -51,7 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div
           data-app-page
           className="flex-1 flex flex-col"
-          style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+          style={{ paddingBottom: hideTab ? "env(safe-area-inset-bottom)" : "calc(4rem + env(safe-area-inset-bottom))" }}
         >
           {children}
         </div>
@@ -60,7 +62,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <AppPullRefresh />
       <Suspense fallback={null}>
         <AppHistoryDepth />
-        <BottomTab />
+        {!hideTab && <BottomTab />}
       </Suspense>
       <UserPopupGate />
       {/* 앱 알림 — 수신거부 줄·2년 재확인 팝업·두 번째 실행 질문(앱 안에서만 일한다) */}

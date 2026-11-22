@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { welcomeWallLine } from "@/lib/fortune/welcome-copy";
-import SajuBoard from "@/components/saju/SajuBoard";
+import SajuIdentityRow, { sajuCaption } from "@/components/saju/SajuIdentityRow";
+import SajuGlance from "@/components/saju/SajuGlance";
+import Icon from "@/components/common/Icon";
 import NewPersonModal from "@/components/fortune/NewPersonModal";
 import BirthPromptButton from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
@@ -69,8 +71,6 @@ export interface FortuneSajuPickerProps {
   /** 오늘의 운세: 내 사주(primary)만 고정 노출, 목록 숨김 */
   lockPrimary?: boolean;
   nickname?: string;
-  /** 사주판 아래 일간/음양 디테일 표시 여부 (기본 true) */
-  showBoardDetail?: boolean;
   /** 사주판 아래 생년월일 줄 숨김 (상단 서브타이틀로 옮길 때) */
   hideBirthLine?: boolean;
   /** 선택된 사주의 생년월일 줄 변화 콜백 */
@@ -95,7 +95,6 @@ export default function FortuneSajuPicker({
   loading,
   lockPrimary,
   nickname,
-  showBoardDetail = true,
   hideBirthLine,
   onSelectedBirthLine,
   reviewableByProfile,
@@ -233,58 +232,11 @@ export default function FortuneSajuPicker({
 
   return (
     <div className="w-full max-w-md mx-auto px-5">
-      {/* 선택된 사주 — 8자판 + 오행 분석 */}
-      <div className="card mb-5">
-        {selected && (
-          <>
-            <div className="mb-3 px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-14 font-bold text-eye-purple">
-                  {displayName(selected)}
-                </span>
-                <span className="text-11 text-text-light">
-                  {relationBadge(selected)}
-                </span>
-              </div>
-              {!hideBirthLine && (
-                <p className="text-11 text-text-light mt-0.5">
-                  {birthLine(selected)}
-                </p>
-              )}
-            </div>
-            <div className="-mx-4">
-              {selected.saju ? (
-                <SajuBoard saju={selected.saju} showDetail={showBoardDetail} />
-              ) : selected.isPrimary ? (
-                // 🔴 내 사주는 있는데 생일이 없는 경우 — 예전엔 이 문구만 뜨고 확인 버튼이 꺼져 막다른
-                //    길이었다. 버튼은 내 사주를 PATCH 하므로 **내 사주일 때만** 단다(지인 프로필에 달면
-                //    엉뚱한 사람이 고쳐진다 — 지인은 아래 문구만 그대로).
-                <div className="py-4 text-center">
-                  <p className="text-12 text-text-light mb-3">생일을 알려주면 사주도 보여줄게</p>
-                  <BirthPromptButton
-                    surface={BIRTH_PROMPT_SURFACE.fortunePicker}
-                    loginNext={loginNext}
-                    onSaved={loadProfiles}
-                    className="btn btn-primary btn-sm"
-                  >
-                    생년월일 입력하기
-                  </BirthPromptButton>
-                </div>
-              ) : (
-                <p className="text-12 text-text-light text-center py-4">
-                  생일을 알려주면 사주도 보여줄게
-                </p>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
       {/* 사주 목록 (선택 전용) — lockPrimary 면 숨김 */}
       {!lockPrimary && (
         <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-12 font-bold text-eye-purple">사주 목록</div>
+          {/* 제목('누구 사주로 볼까')이 바로 위라 '사주 목록' 머리글은 뺐다 — 새 사람 입력만 오른쪽에 */}
+          <div className="flex justify-end mb-2">
             <button
               type="button"
               onClick={() => setShowNewPerson(true)}
@@ -376,20 +328,72 @@ export default function FortuneSajuPicker({
         </div>
       )}
 
-      <button
-        disabled={!selected || !selected.saju || !selected.birthDate || loading}
-        onClick={() => {
-          if (!selected || !selected.saju || !selected.birthDate) return;
-          const reviewId = reviewableByProfile?.[selected.id];
-          if (reviewId && onReview) onReview(reviewId);
-          else onConfirm(selected.id, displayName(selected));
-        }}
-        className="btn btn-primary btn-lg"
-      >
-        {selected && reviewableByProfile?.[selected.id]
-          ? "이번 달 운세 다시보기"
-          : confirmLabel ?? "이 사주로 운세 보기"}
-      </button>
+      {/* 고른 사주 — 큰 명식판 대신 일주 칸 + 일간 한 줄 + 오행(운세 목록 '내 사주' 칸과 같은 모양).
+          목록이 먼저, 고른 결과가 그 아래(디자인 다듬기 묶음 4 S1, 운영자 11-16 — 예전엔 큰 판이 목록 위에 있어
+          고른 결과가 고르는 칸보다 먼저 보였고, 버튼이 첫 화면 아래 탭에 걸렸다). 명식판은 결과·마이페이지에 있다. */}
+      {selected && (
+        <div className="card px-4 py-3.5 mb-5">
+          <p className="text-12 font-bold text-text-light mb-2.5">고른 사주</p>
+          {selected.saju ? (
+            <>
+              <div className="flex items-center gap-3">
+                <SajuIdentityRow
+                  saju={selected.saju}
+                  title={displayName(selected)}
+                  badge={relationBadge(selected)}
+                  caption={hideBirthLine ? `${selected.saju.dayStem}${selected.saju.dayElement} 일간` : sajuCaption(selected.saju, { birthDate: selected.birthDate, birthTime: selected.birthTime })}
+                />
+              </div>
+              <SajuGlance saju={selected.saju} />
+            </>
+          ) : selected.isPrimary ? (
+            // 🔴 내 사주는 있는데 생일이 없는 경우 — 예전엔 이 문구만 뜨고 확인 버튼이 꺼져 막다른
+            //    길이었다. 버튼은 내 사주를 PATCH 하므로 **내 사주일 때만** 단다(지인 프로필에 달면
+            //    엉뚱한 사람이 고쳐진다 — 지인은 아래 문구만 그대로).
+            <div className="py-2 text-center">
+              <p className="text-12 text-text-light mb-3">생일을 알려주면 사주도 보여줄게</p>
+              <BirthPromptButton
+                surface={BIRTH_PROMPT_SURFACE.fortunePicker}
+                loginNext={loginNext}
+                onSaved={loadProfiles}
+                className="btn btn-primary btn-sm"
+              >
+                생년월일 입력하기
+              </BirthPromptButton>
+            </div>
+          ) : (
+            <p className="text-12 text-text-light text-center py-2">생일을 알려주면 사주도 보여줄게</p>
+          )}
+        </div>
+      )}
+
+      {/* 아래 탭 바로 위에 붙는 버튼 — 값(✦N)을 버튼에(설명 페이지 고정 버튼과 같은 방식) */}
+      <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-5 px-5 py-3 bg-cream shadow-float-up">
+        <button
+          disabled={!selected || !selected.saju || !selected.birthDate || loading}
+          onClick={() => {
+            if (!selected || !selected.saju || !selected.birthDate) return;
+            const reviewId = reviewableByProfile?.[selected.id];
+            if (reviewId && onReview) onReview(reviewId);
+            else onConfirm(selected.id, displayName(selected));
+          }}
+          className="btn btn-primary btn-lg"
+        >
+          {selected && reviewableByProfile?.[selected.id]
+            ? "이번 달 운세 다시보기"
+            : (
+            <>
+              {cost != null && (
+                <span className="inline-flex items-center tabular-nums">
+                  <Icon name="star" size={16} className="mr-0.5" />
+                  {cost} ·
+                </span>
+              )}
+              {confirmLabel ?? "이 사주로 보기"}
+            </>
+          )}
+        </button>
+      </div>
 
       {showNewPerson && (
         <NewPersonModal

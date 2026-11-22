@@ -19,6 +19,8 @@ interface TagEntry {
 }
 const CONTENT = tagContent as Record<string, TagEntry>;
 const SPREADS_PUBLISHED = spreadContent as Record<string, unknown>;
+// design-allow: 그림 양끝을 풀어 주는 가림막(색 아님)
+const HERO_EDGE = "linear-gradient(to right, transparent, black 5%, black 95%, transparent)";
 
 /** 본문이 작성된 태그만 발행 (thin page 방지 — json 에 항목 추가 = 페이지 발행) */
 export function generateStaticParams() {
@@ -87,31 +89,30 @@ export default async function ThemePage({
       </nav>
 
       {hero && (
+        // 낮은 배너(가이드 첫 화면 H3 와 같은 모양, 디자인 다듬기 묶음 9 A) — 그림은 자르지 않고,
+        // 투명 PNG 6종은 그냥 두면 떠 보여서 연보라 바탕을 깐다
         <div
-          className={[
-            "relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4",
-            // 재활용 PNG 6종은 투명 배경이라 그냥 두면 떠 보인다
-            // → 배경이 구워진 신규 WebP 4종과 톤을 맞추려고 CSS 그라데이션을 깐다
-            hero.hasBackground
-              ? null
-              : "bg-lilac-soft",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={`w-full aspect-[21/10] rounded-2xl overflow-hidden mb-4 ${hero.bg ? "" : "bg-lilac-soft"}`}
+          style={{ background: hero.bg }}
         >
-          {/* 장식 이미지 — 주제·정보는 h1 과 intro 가 전달하므로 alt 는 빈 문자열 */}
-          {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
-          <Image
-            src={hero.src}
-            alt=""
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className={hero.hasBackground ? "object-cover" : "object-contain"}
-          />
+          <div
+            className={`relative h-full ${hero.bg ? "aspect-[900/672] mx-auto" : ""}`}
+            style={hero.bg ? { maskImage: HERO_EDGE, WebkitMaskImage: HERO_EDGE } : undefined}
+          >
+            {/* 장식 이미지 — 주제·정보는 h1 과 intro 가 전달하므로 alt 는 빈 문자열 */}
+            {/* priority 없음 — 첫 화면 LCP 는 h1 텍스트가 잡게 둔다(Core Web Vitals) */}
+            <Image
+              src={hero.src}
+              alt=""
+              fill
+              sizes="(max-width: 448px) 64vw, 288px"
+              className="object-contain"
+            />
+          </div>
         </div>
       )}
 
-      <h1 className="font-display text-22 text-eye-purple leading-snug">
+      <h1 className="font-display text-22 text-eye-purple leading-snug break-keep text-pretty">
         {entry.title}
       </h1>
       <p className="text-14 text-eye-purple/90 leading-relaxed mt-4">
@@ -123,16 +124,35 @@ export default async function ThemePage({
           <h2 className="text-15 font-bold text-eye-purple mt-6 mb-2">
             이 고민에 맞는 스프레드
           </h2>
-          <div className="flex flex-col gap-2">
-            {spreads.map((s) => (
-              <Link
-                key={s}
-                href={`/guide/spreads/${buildSpreadSlug(s)}`}
-                className="btn btn-secondary btn-md"
-              >
-                {SPREAD_INFO[s].label} ({SPREAD_INFO[s].cardCount}장)
-              </Link>
-            ))}
+          {/* 큰 버튼 다섯 → 한 카드 목록(디자인 다듬기 묶음 9 ⑤ T1, 운영자 11-22) — 카드 그림은 타로 고르기(SpreadPicker)와 같은 밤 뒷면을 작게 */}
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/25">
+            {spreads.map((s) => {
+              const info = SPREAD_INFO[s];
+              // 일곱 장도 58px 칸에 들어가게 많을수록 더 겹친다
+              const overlap = info.cardCount > 5 ? -16 : -13;
+              return (
+                <Link key={s} href={`/guide/spreads/${buildSpreadSlug(s)}`} className="flex items-center gap-3 px-3.5 py-3">
+                  <span className="flex w-[58px] shrink-0 items-center justify-center" aria-hidden>
+                    {Array.from({ length: info.cardCount }, (_, i) => (
+                      <span
+                        key={i}
+                        className="flex h-[33px] w-[22px] shrink-0 items-center justify-center rounded-sm border border-gold bg-night ring-1 ring-white"
+                        style={{ transform: `rotate(${(i - (info.cardCount - 1) / 2) * 6}deg)`, marginLeft: i ? overlap : 0 }}
+                      >
+                        <Icon name="sparkle" size={9} className="text-gold" />
+                      </span>
+                    ))}
+                  </span>
+                  <span className="flex-1 min-w-0 break-keep">
+                    <span className="block text-14 font-bold text-eye-purple">
+                      {info.label} <span className="text-12 leading-[21px] font-normal text-text-light whitespace-nowrap">{info.cardCount}장</span>
+                    </span>
+                    <span className="block text-12 text-text-light">{info.tagline}</span>
+                  </span>
+                  <Icon name="chev_r" size={16} className="text-text-light" />
+                </Link>
+              );
+            })}
           </div>
         </>
       )}

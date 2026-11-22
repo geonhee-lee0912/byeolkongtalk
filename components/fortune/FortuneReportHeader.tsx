@@ -81,9 +81,8 @@ export default function FortuneReportHeader({
       <div className="w-full max-w-md mx-auto px-5 mb-4 flex items-center gap-3">
         <span className="flex-1 h-px bg-lilac-mid/30" />
         {dividerStar ? (
-          <span className="text-gold text-11 leading-none" aria-hidden>
-           
-          </span>
+          // 구분선 가운데 별(예전 ✦) — 지운 뒤 빈칸이라 선이 끊겨 보였다, 공용 아이콘으로(빈칸 정리 11-22)
+          <Icon name="sparkle" size={12} className="text-gold" />
         ) : (
           <span className="text-11 font-bold text-text-light tracking-[0.15em]">
             {dividerLabel}

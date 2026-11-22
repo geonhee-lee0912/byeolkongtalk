@@ -10,8 +10,8 @@ import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface ReadingItem {
   id: string;
@@ -149,8 +149,9 @@ function sajuAvatar(r: ReadingItem) {
     );
   }
   return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
-     
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-accent">
+      {/* 이모지(🔮)를 지운 뒤 빈칸이었다 — 공용 아이콘으로(디자인 다듬기 빈칸 정리 11-22) */}
+      <Icon name="sparkle" size={22} />
     </div>
   );
 }
@@ -183,8 +184,10 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
   );
 }
 
-// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/후속 상담/프로필 칩/민감 표시(현행 유지).
-function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
+// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/프로필 칩/민감 표시.
+// '후속 상담' 버튼은 뺐다(디자인 다듬기 보관함 ⑥ 가, 운영자 11-22) — 08-28 타로 결과의 이어가기 입구를 뺀 뒤 거의 안 쓰였고,
+// 타로는 정가 새 상담과 같다. 카드를 누르면 결과 화면의 '이 고민 다시 뽑기'가 같은 일을 한다. 사주 결과 화면의 이어가기는 그대로.
+function renderConsultCard(r: ReadingItem) {
   const isTarot = r.consultationType === "tarot";
   const canResume = r.ended === false && !r.resultReady;
   const href = canResume
@@ -230,13 +233,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
               {r.emotionTag ?? "고민 상담"}
             </span>
             {r.hasSensitive && (
-              <span
-                className="shrink-0 text-11 text-rose-400"
-                role="img"
-                aria-label="민감 시그널이 감지된 대화"
-              >
-               
-              </span>
+              <Icon name="heart" size={13} className="text-rose-400" title="민감 시그널이 감지된 대화" />
             )}
             {chip && (
               <span className="shrink-0 text-11 font-bold text-accent bg-lilac-soft rounded-full px-1.5 py-0.5">
@@ -257,14 +254,6 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
           </p>
         </div>
       </Link>
-      {!canResume && !r.hasSensitive && (
-        <button
-          onClick={() => onContinue(r.id)}
-          className="btn btn-secondary btn-sm absolute top-2.5 right-2.5"
-        >
-          후속 상담
-        </button>
-      )}
     </div>
   );
 }
@@ -351,7 +340,6 @@ function ReadingsPageInner() {
     // 기억해 둔 탭도 지금 있는 탭일 때만(없앤 "sim" 탭이 남아 있을 수 있다)
     return READINGS_TABS.some((x) => x.key === cached?.tab) ? cached!.tab : "tarot";
   });
-  const [continueId, setContinueId] = useState<string | null>(null);
   const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
 
   useEffect(() => {
@@ -439,7 +427,8 @@ function ReadingsPageInner() {
 
   return (
     <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
+      {/* 앱에선 숨긴다(web-only) — 앱 머리 '보관함'(‹ 포함)과 겹쳤다(디자인 다듬기 보관함 ⑤ R1, 운영자 11-21). 웹은 그대로 */}
+      <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"
           className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
@@ -496,14 +485,14 @@ function ReadingsPageInner() {
           <>
             {tab === "tarot" ? (
               <div className="flex flex-col gap-2">
-                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
+                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r))}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {fortune.slice(pageStart, pageEnd).map((r) =>
                   fortuneTypeFromTag(r.emotionTag)
                     ? renderReportCard(r)
-                    : renderConsultCard(r, (id) => setContinueId(id))
+                    : renderConsultCard(r)
                 )}
               </div>
             )}
@@ -549,10 +538,6 @@ function ReadingsPageInner() {
         )}
       </div>
 
-      <ContinuationModal
-        readingId={continueId}
-        onClose={() => setContinueId(null)}
-      />
     </main>
   );
 }
