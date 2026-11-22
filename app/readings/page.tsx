@@ -11,6 +11,7 @@ import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
 import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface ReadingItem {
   id: string;
@@ -148,8 +149,9 @@ function sajuAvatar(r: ReadingItem) {
     );
   }
   return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-17">
-     
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-accent">
+      {/* 이모지(🔮)를 지운 뒤 빈칸이었다 — 공용 아이콘으로(디자인 다듬기 빈칸 정리 11-22) */}
+      <Icon name="sparkle" size={22} />
     </div>
   );
 }
@@ -231,13 +233,7 @@ function renderConsultCard(r: ReadingItem) {
               {r.emotionTag ?? "고민 상담"}
             </span>
             {r.hasSensitive && (
-              <span
-                className="shrink-0 text-11 text-rose-400"
-                role="img"
-                aria-label="민감 시그널이 감지된 대화"
-              >
-               
-              </span>
+              <Icon name="heart" size={13} className="text-rose-400" title="민감 시그널이 감지된 대화" />
             )}
             {chip && (
               <span className="shrink-0 text-11 font-bold text-accent bg-lilac-soft rounded-full px-1.5 py-0.5">

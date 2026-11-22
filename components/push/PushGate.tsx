@@ -15,6 +15,7 @@ import AdConsentNotice, { type ConsentNotice } from "./AdConsentNotice";
 import PushAskSheet from "./PushAskSheet";
 import { fetchAsk, setAdConsent } from "./api";
 import Dialog from "@/components/common/Dialog";
+import Icon from "@/components/common/Icon";
 
 const LAUNCHES_KEY = "byeolkong_push_launches"; // 로그인한 상태로 웹뷰가 뜬 횟수(기기별)
 const COUNTED_KEY = "byeolkong_push_launch_counted"; // 이 웹뷰 수명 동안 이미 셌다
@@ -214,8 +215,9 @@ export default function PushGate() {
       {(unsubToken || unsubMsg) &&
         createPortal(
           <div className="fixed left-0 right-0 z-[70] px-4" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
-            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float px-3.5 py-2.5 text-13">
-              <p className="flex-1 leading-snug">{unsubMsg ?? "이 광고 알림을 그만 받으려면"}</p>
+            {/* 디자인 다듬기 알림 시트 ① F1(운영자 11-22): 위 자리 그대로, 연보라 테두리, 닫기 X(이모지를 지운 뒤 빈칸이었다) */}
+            <div className="mx-auto max-w-md flex items-center gap-2 rounded-2xl bg-white shadow-float border border-lilac-mid/40 px-3.5 py-2.5 text-13">
+              <p className="flex-1 leading-snug break-keep">{unsubMsg ?? "광고 알림이 그만 오게 할까?"}</p>
               {unsubToken && !unsubMsg && (
                 <button
                   type="button"
@@ -232,9 +234,9 @@ export default function PushGate() {
                   setUnsubToken(null);
                   setUnsubMsg(null);
                 }}
-                className="shrink-0 w-7 h-7 text-text-light"
+                className="shrink-0 w-7 h-7 flex items-center justify-center text-text-light"
               >
-               
+                <Icon name="close" size={18} />
               </button>
             </div>
           </div>,

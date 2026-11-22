@@ -249,3 +249,18 @@ test("빈 버튼이 없다(닫기 ✕ 를 지우고 아이콘을 안 넣은 곳 
   }
   assert.deepEqual(hits, []);
 });
+
+// 이모지를 지운 자리가 '공백만 있는 줄'로 남은 요소 — 위 빈 버튼 검사는 속성 안 `=>` 의 `>` 에서 끊겨 이런 곳을 놓쳤다
+// (11-22 알림 수신거부 줄 닫기 버튼 · 위기 안내 띠 아이콘 등). 우리 사이는 서비스 종료(11-21)라 화면에 안 나와 뺀다
+test("이모지를 지운 빈 줄만 남은 요소가 없다", () => {
+  const hits: string[] = [];
+  for (const p of sources()) {
+    const file = p.replaceAll(String.fromCharCode(92), "/");
+    if (file.includes("components/relationship/")) continue;
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(/>[ \t]*\r?\n[ \t]+\r?\n[ \t]*<\/[A-Za-z]+>/g)) {
+      hits.push(`${file}:${text.slice(0, m.index).split(String.fromCharCode(10)).length + 1}`);
+    }
+  }
+  assert.deepEqual(hits, []);
+});
