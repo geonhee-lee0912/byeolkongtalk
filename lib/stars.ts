@@ -95,3 +95,34 @@ export async function chargeStars(
     idempotent: data.idempotent === true,
   };
 }
+
+/**
+ * 환불 회수 (스토어 환불 알림 후). 같은 paymentId 재호출 시 멱등 응답. 잔액이 모자라면 있는 만큼만 거두고 shortfall 로 알린다.
+ * paymentId 는 호출자가 `clawback:` 접두까지 붙여 넘긴다 — RPC 가 그 접두가 없으면 거절한다(래퍼는 붙이지 않는다).
+ */
+export async function clawbackStars(
+  userId: string,
+  amount: number,
+  paymentId: string
+): Promise<{ success: boolean; clawed: number; shortfall: number; balance: number; idempotent: boolean }> {
+  const supabase = getServiceSupabase();
+
+  const { data, error } = await supabase.rpc("clawback_stars", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_payment_id: paymentId,
+  });
+
+  if (error) {
+    console.error("clawbackStars error:", error);
+    return { success: false, clawed: 0, shortfall: 0, balance: 0, idempotent: false };
+  }
+
+  return {
+    success: !!data.success,
+    clawed: data.clawed ?? 0,
+    shortfall: data.shortfall ?? 0,
+    balance: data.balance_after ?? 0,
+    idempotent: data.idempotent === true,
+  };
+}
