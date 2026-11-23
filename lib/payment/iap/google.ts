@@ -5,7 +5,7 @@
 // 환불 알림(RTDN, Pub/Sub 푸시 — 스펙 §4)의 인증은 verifyGooglePushAuth: GOOGLE_PUBSUB_PUSH_EMAIL(푸시 구독의 서비스 계정) · GOOGLE_PUBSUB_AUDIENCE(구독에 적은 대상).
 // 🔴 구매 토큰은 결제 고유 번호·로그·오류 글 어디에도 넣지 않는다(그 토큰이면 누구나 구매를 조회할 수 있다).
 import { JWT, OAuth2Client } from "google-auth-library";
-import { IAP_APP_ID, type VerifiedPurchase } from "./verify";
+import { iapAppId, type VerifiedPurchase } from "./verify";
 
 const SCOPE = "https://www.googleapis.com/auth/androidpublisher";
 const API = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";
@@ -48,7 +48,7 @@ const realDeps: GoogleDeps = {
 
 /** 그런 구매가 없거나(400·404·410)·구매 완료인데 주문 id 가 없으면 null. 인증 거절·구글 장애·모르는 상태는 던진다 */
 export async function verifyGooglePurchase(productId: string, token: string, deps: GoogleDeps = realDeps): Promise<VerifiedPurchase | null> {
-  const url = `${API}/${IAP_APP_ID}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
+  const url = `${API}/${iapAppId()}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
   const accessToken = await deps.accessToken();
   let res: Response;
   try {
@@ -79,7 +79,7 @@ export async function verifyGooglePurchase(productId: string, token: string, dep
 
 /** 별을 준 구매를 소비한다(purchases.products.consume — 소비가 확인을 겸한다). 실패는 던진다 — 라우트가 warn 만 남기고 200 을 준다 */
 export async function consumeGooglePurchase(productId: string, token: string, deps: GoogleDeps = realDeps): Promise<void> {
-  const url = `${API}/${IAP_APP_ID}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}:consume`;
+  const url = `${API}/${iapAppId()}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}:consume`;
   const accessToken = await deps.accessToken();
   let res: Response;
   try {

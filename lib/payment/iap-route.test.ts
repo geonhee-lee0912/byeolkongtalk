@@ -88,7 +88,7 @@ function post(body: unknown, opts: { raw?: string } = {}): NextRequest {
     body: opts.raw ?? JSON.stringify(body),
   });
 }
-const get = () => new NextRequest(URL_IAP, { method: "GET", headers: { "x-forwarded-for": nextIp() } });
+const get = (query = "") => new NextRequest(URL_IAP + query, { method: "GET", headers: { "x-forwarded-for": nextIp() } });
 
 const TXN = "2000000000000001";
 const PURCHASE_TOKEN = "fake-purchase-token-do-not-log";
@@ -383,6 +383,45 @@ test("GET — 로그인 회원의 계정 토큰(캐시 금지) / 비로그인 40
   const anon = await GET(get());
   assert.equal(anon.status, 401);
   assert.deepEqual(await json(anon), { error: "unauthenticated" });
+});
+
+test("GET ?platform= — 그 플랫폼의 스토어 비밀값이 없으면 503 iap_not_configured(error 로그) — 손님이 돈을 내기 전에 막는다", async () => {
+  const { GET, fakes } = await setup();
+  await withEnv("APPLE_IAP_KEY_ID", undefined, async () => {
+    const ios = await GET(get("?platform=ios"));
+    assert.equal(ios.status, 503);
+    assert.deepEqual(await json(ios), { error: "iap_not_configured" });
+    const android = await GET(get("?platform=android"));
+    assert.equal(android.status, 200, "애플 값이 없어도 안드로이드는 돈다");
+    assert.deepEqual(await json(android), { accountToken: mine() });
+  });
+  await withEnv("GOOGLE_PLAY_SERVICE_ACCOUNT", undefined, async () => {
+    const android = await GET(get("?platform=android"));
+    assert.equal(android.status, 503);
+    assert.deepEqual(await json(android), { error: "iap_not_configured" });
+    assert.equal((await GET(get("?platform=ios"))).status, 200);
+  });
+  assert.ok(fakes.state.logs.some((l) => l.level === "error" && l.extra.platform === "ios"));
+  assert.ok(fakes.state.logs.some((l) => l.level === "error" && l.extra.platform === "android"));
+});
+
+test("GET — platform 이 없거나 모르는 값이면 예전처럼 계정 토큰만(스토어 값은 보지 않는다 — 옛 앱 호환)", async () => {
+  const { GET } = await setup();
+  await withEnv("APPLE_IAP_KEY_ID", undefined, async () => {
+    for (const q of ["", "?platform=web"]) {
+      const res = await GET(get(q));
+      assert.equal(res.status, 200, q);
+      assert.deepEqual(await json(res), { accountToken: mine() });
+    }
+  });
+});
+
+test("GET ?platform= 인데 비로그인 — 401 이 먼저", async () => {
+  const { GET, fakes } = await setup();
+  fakes.state.sessionUserId = null;
+  await withEnv("APPLE_IAP_KEY_ID", undefined, async () => {
+    assert.equal((await GET(get("?platform=ios"))).status, 401);
+  });
 });
 
 // ───────────────────────── 구글 소비(consume) ─────────────────────────

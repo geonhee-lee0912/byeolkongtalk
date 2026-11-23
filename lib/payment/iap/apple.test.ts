@@ -163,6 +163,20 @@ test("번들 ID·거래 id 가 다르거나 상품 id 가 없으면 null(다른 
   }
 });
 
+test("IAP_APP_ID 를 바꾸면(dev 의 .dev 앱 시험) 그 번들만 받는다 — 운영 번들 거래는 null", async () => {
+  const saved = process.env.IAP_APP_ID;
+  process.env.IAP_APP_ID = "com.byeolkongtalk.app.dev";
+  try {
+    const dev = deps({ [Environment.PRODUCTION]: payload({ bundleId: "com.byeolkongtalk.app.dev" }) });
+    assert.equal((await verifyAppleTransaction(TXN, dev.d))?.productId, "star_30");
+    const prod = deps({ [Environment.PRODUCTION]: payload() });
+    assert.equal(await verifyAppleTransaction(TXN, prod.d), null);
+  } finally {
+    if (saved === undefined) delete process.env.IAP_APP_ID;
+    else process.env.IAP_APP_ID = saved;
+  }
+});
+
 // ── 환불 알림(App Store Server Notifications v2) — 스펙 §4 ──
 // 알림이 주장하는 환경의 검증기로 서명·번들 ID·앱 ID(운영)를 확인한다. Production 검증기가 앱 ID·환경 불일치로 거절하면 Sandbox 로 한 번 더.
 // REFUND 만 처리하고, 그 안의 거래도 같은 환경 검증기로 풀어 거래 확인과 같은 결제 고유 번호(apple: / apple-sandbox:)를 만든다.

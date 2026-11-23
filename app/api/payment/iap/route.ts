@@ -23,6 +23,13 @@ const fail = (error: string, status: number) => reply({ error }, status);
 export async function GET(request: NextRequest) {
   const { userId } = await getSession();
   if (!userId) return fail("unauthenticated", 401);
+  // 앱은 스토어 결제창을 열기 전에 부른다 — ?platform= 을 주면 그 플랫폼의 스토어 비밀값도 본다(없으면 손님이 돈을 낸 뒤에야 POST 가 503).
+  // 없거나 모르는 값이면 예전처럼 계정 토큰만(옛 앱 호환)
+  const platform = parsePlatform(request.nextUrl.searchParams.get("platform"));
+  if (platform && !iapConfigured(platform)) {
+    await logError(new Error(`IAP not configured for ${platform}`), ctxFromRequest(request, { route: ROUTE, userId, extra: { platform } }));
+    return fail("iap_not_configured", 503);
+  }
   try {
     return reply({ accountToken: iapAccountToken(userId) });
   } catch (err) {
