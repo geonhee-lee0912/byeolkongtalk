@@ -8,6 +8,9 @@ import {
   APP_TAB_ROOTS,
   encodeAppToWeb,
   encodeAppToWebBack,
+  encodeAppToWebIapProducts,
+  encodeAppToWebIapResult,
+  IAP_PRODUCT_IDS,
   encodeWebToApp,
   encodeWebToAppWith,
   hasCap,
@@ -172,4 +175,105 @@ test("isAppTabRoot — 5개만, 끝 슬래시·쿼리 무시", () => {
   assert.deepEqual([...APP_TAB_ROOTS], ["/", "/fortune", "/byeolmaru", "/shop", "/mypage"]);
   for (const p of ["/", "/shop/", "/?tab=1", "/mypage#x", "/fortune"]) assert.equal(isAppTabRoot(p), true, p);
   for (const p of ["/shop/x", "/fortune/love_year", "/tarot/draw", "", "shop"]) assert.equal(isAppTabRoot(p), false, p);
+});
+
+// ── 앱 결제(iap) — 스펙 2026-11-23-앱-결제 §5 ──
+
+test("iap 상품 id 목록 = 판매 패키지 id 와 같다(서버 라우트가 STAR_PACKAGES 로 검증한다)", async () => {
+  const { STAR_PACKAGES } = await import("../constants.ts");
+  assert.deepEqual([...IAP_PRODUCT_IDS], STAR_PACKAGES.map((p) => p.id));
+});
+
+test("hasCap iap — caps 에 iap 가 있을 때만", () => {
+  assert.equal(hasCap({ version: "1.2.0", platform: "ios", caps: ["push", "ui"] }, "iap"), false);
+  assert.equal(hasCap({ version: "1.3.0", platform: "ios", caps: ["push", "ui", "iap"] }, "iap"), true);
+});
+
+test("웹→앱 iap.products 왕복 — 모르는 id 는 빠지고, 남는 게 없거나 배열이 아니면 버린다", () => {
+  assert.deepEqual(parseWebToApp(encodeWebToAppWith("iap.products", { ids: ["star_10", "star_300"] })), {
+    v: 1,
+    type: "iap.products",
+    payload: { ids: ["star_10", "star_300"] },
+  });
+  assert.deepEqual(parseWebToApp('{"v":1,"type":"iap.products","payload":{"ids":["star_10","star_9999","toString",1,"star_10"]}}'), {
+    v: 1,
+    type: "iap.products",
+    payload: { ids: ["star_10"] },
+  });
+  for (const raw of [
+    '{"v":1,"type":"iap.products","payload":{"ids":["star_9999"]}}',
+    '{"v":1,"type":"iap.products","payload":{"ids":[]}}',
+    '{"v":1,"type":"iap.products","payload":{"ids":"star_10"}}',
+    '{"v":1,"type":"iap.products","payload":{}}',
+    '{"v":1,"type":"iap.products"}',
+  ])
+    assert.equal(parseWebToApp(raw), null, raw);
+});
+
+test("웹→앱 iap.buy 왕복 — productId 는 패키지 id 만", () => {
+  assert.deepEqual(parseWebToApp(encodeWebToAppWith("iap.buy", { productId: "star_70" })), {
+    v: 1,
+    type: "iap.buy",
+    payload: { productId: "star_70" },
+  });
+  assert.deepEqual(parseWebToApp('{"v":1,"type":"iap.buy","payload":{"productId":"star_30","price":1}}'), {
+    v: 1,
+    type: "iap.buy",
+    payload: { productId: "star_30" },
+  });
+  for (const raw of [
+    '{"v":1,"type":"iap.buy","payload":{"productId":"star_9999"}}',
+    '{"v":1,"type":"iap.buy","payload":{"productId":"toString"}}',
+    '{"v":1,"type":"iap.buy","payload":{"productId":10}}',
+    '{"v":1,"type":"iap.buy","payload":{}}',
+    '{"v":2,"type":"iap.buy","payload":{"productId":"star_10"}}',
+  ])
+    assert.equal(parseWebToApp(raw), null, raw);
+});
+
+test("앱→웹 iap.products 왕복 — 모르는 id·가격이 문자열이 아닌 줄은 빠진다", () => {
+  const items = [
+    { id: "star_10", price: "₩1,000" },
+    { id: "star_70", price: "₩5,900" },
+  ];
+  assert.deepEqual(parseAppToWeb(encodeAppToWebIapProducts(items)), { v: 1, type: "iap.products", items });
+  assert.deepEqual(
+    parseAppToWeb({
+      v: 1,
+      type: "iap.products",
+      items: [{ id: "star_10", price: "₩1,000", x: 1 }, { id: "star_9999", price: "₩1" }, { id: "star_30", price: 2800 }, { id: "star_30", price: "" }, null, "x"],
+    }),
+    { v: 1, type: "iap.products", items: [{ id: "star_10", price: "₩1,000" }] },
+  );
+  // 빈 목록도 답이다(스토어가 상품을 못 줬다) — 배열이 아닐 때만 버린다
+  assert.deepEqual(parseAppToWeb({ v: 1, type: "iap.products", items: [] }), { v: 1, type: "iap.products", items: [] });
+  assert.equal(parseAppToWeb({ v: 1, type: "iap.products", items: "star_10" }), null);
+  assert.equal(parseAppToWeb({ v: 1, type: "iap.products" }), null);
+});
+
+test("앱→웹 iap.result 왕복 — 성공·실패 이유 4종, 이상한 값은 버린다", () => {
+  const ok = { productId: "star_30", ok: true as const, stars: 30, bonusStars: 6, balance: 51 };
+  assert.deepEqual(parseAppToWeb(encodeAppToWebIapResult(ok)), { v: 1, type: "iap.result", ...ok });
+  for (const reason of ["cancelled", "pending", "failed", "account_mismatch"] as const) {
+    const r = { productId: "star_10", ok: false as const, reason };
+    assert.deepEqual(parseAppToWeb(encodeAppToWebIapResult(r)), { v: 1, type: "iap.result", ...r });
+  }
+  for (const raw of [
+    { v: 1, type: "iap.result", productId: "star_9999", ok: true, stars: 1, bonusStars: 0, balance: 1 },
+    { v: 1, type: "iap.result", productId: "star_10", ok: true, stars: "10", bonusStars: 0, balance: 1 },
+    { v: 1, type: "iap.result", productId: "star_10", ok: true, stars: 10, bonusStars: 0 },
+    { v: 1, type: "iap.result", productId: "star_10", ok: true, stars: Number.NaN, bonusStars: 0, balance: 1 },
+    { v: 1, type: "iap.result", productId: "star_10", ok: false, reason: "toString" },
+    { v: 1, type: "iap.result", productId: "star_10", ok: false },
+    { v: 1, type: "iap.result", productId: "star_10", ok: "true", stars: 10, bonusStars: 0, balance: 1 },
+  ])
+    assert.equal(parseAppToWeb(raw), null, JSON.stringify(raw));
+  // 실패 답에 섞인 값은 옮기지 않는다
+  assert.deepEqual(parseAppToWeb({ v: 1, type: "iap.result", productId: "star_10", ok: false, reason: "failed", stars: 10 }), {
+    v: 1,
+    type: "iap.result",
+    productId: "star_10",
+    ok: false,
+    reason: "failed",
+  });
 });
