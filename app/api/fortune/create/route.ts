@@ -54,6 +54,7 @@ import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { fortuneResponseFormat } from "@/lib/fortune/response-format";
 import { generateOnce } from "@/lib/claude";
+import { generateWithoutOddChars } from "@/lib/odd-chars";
 import { fortuneModel } from "@/lib/fortune/model";
 import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -457,13 +458,15 @@ export async function POST(req: NextRequest) {
   };
 
   after(async () => {
+    // 깨진 글자(lib/odd-chars.ts) — 프롬프트에 든 이름·한자는 정상으로 본다
+    const fortuneKnown = (s: Parameters<typeof generateOnce>[0]) => (typeof s === "string" ? s : s.staticPart + s.dynamicPart);
     // 빈 완료(streamChat)·max_tokens 절단 경고에 route/유저/리딩 컨텍스트 주입 — "(route: 없음)" 방지
     const fortuneLogCtx = { route: "/api/fortune/create", userId, extra: { type, readingId } };
     // Claude 1회 호출 → 리포트
     let report: string;
     try {
       const system = buildFortuneSystem(cfg.type, systemInput);
-      report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+      report = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
     } catch (err) {
       await failGeneration(err, "generate");
       return;
@@ -481,7 +484,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          const retry = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseDailyReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } });
@@ -503,7 +506,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseMonthlyReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } });
@@ -528,7 +531,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseSajuFullReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } });
@@ -551,7 +554,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseCompatReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } });
@@ -575,7 +578,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseGenericReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "generic_retry" } });
@@ -598,7 +601,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseReportCardJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "report_card_retry" } });
@@ -617,7 +620,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseLifeGraphJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "life_graph_retry" } });
@@ -636,7 +639,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          const retry = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseTarotReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "tarot_retry" } });
