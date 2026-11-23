@@ -33,7 +33,7 @@ async function alreadyResult(userId: string, tid: string, route: string): Promis
   const supabase = getServiceSupabase();
   const { data: existing } = await supabase
     .from("payments")
-    .select("id, stars_given, user_id")
+    .select("id, stars_given, user_id, status")
     .eq("pg_tid", tid)
     .maybeSingle();
   if (!existing) return null;
@@ -41,7 +41,8 @@ async function alreadyResult(userId: string, tid: string, route: string): Promis
   const stars = existing.stars_given as number;
   const ownerUserId = (existing.user_id as string | null | undefined) ?? null;
 
-  if (ownerUserId === userId) {
+  // 환불된 결제는 다시 충전하지 않는다 — 앞서 충전이 실패해 있었어도(환불 회수도 그 별을 안 거뒀다, lib/payment/iap/refund.ts)
+  if (ownerUserId === userId && existing.status !== "refunded") {
     // 같은 회원의 재호출 — 결제 별 충전을 같은 결제 id 로 다시 부른다. charge_stars 는 payment_id 멱등이라
     // 이미 충전됐으면 아무것도 안 하고, 앞서 충전이 실패했으면(charge_failed) 이제 넣는다(앱 결제 재전송이 스스로 메운다).
     // 첫충전 보너스는 여기서 주지 않는다(첫 시도가 충전 실패에서 멈췄으면 보너스는 시도조차 안 됐다 — 운영자 몫)
@@ -65,7 +66,7 @@ async function alreadyResult(userId: string, tid: string, route: string): Promis
     return { kind: "already", paymentId, stars, balance: charge.balance, ownerUserId };
   }
 
-  // 다른 회원(또는 탈퇴로 주인이 지워진 결제) — 충전하지 않는다. 잔액은 부른 회원의 것
+  // 다른 회원(또는 탈퇴로 주인이 지워진 결제)·환불된 결제 — 충전하지 않는다. 잔액은 부른 회원의 것
   const { data: bal } = await supabase.from("star_balances").select("balance").eq("user_id", userId).maybeSingle();
   return {
     kind: "already",

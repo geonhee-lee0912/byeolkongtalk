@@ -120,6 +120,19 @@ test("앞서 별 충전이 실패한 결제(charge_failed)를 다시 부르면 �
   assert.equal(fakes.state.balance, 25);
 });
 
+test("환불된 결제(refunded)를 다시 부르면 — 앞서 충전이 실패해 있었어도 충전하지 않고 already(현재 잔액)", async () => {
+  const { grant, fakes } = await setup();
+  fakes.state.failSources = ["pg"];
+  await grant.grantStarPackage(input());
+  fakes.state.failSources = [];
+  fakes.state.payments[0].status = "refunded";
+  const callsBefore = fakes.state.charges.length;
+  const again = await grant.grantStarPackage(input());
+  assert.deepEqual(again, { kind: "already", paymentId: "pay-1", stars: 10, balance: 15, ownerUserId: fakes.USER_ID });
+  assert.equal(fakes.state.charges.length, callsBefore, "환불된 결제에 별을 넣으면 안 된다");
+  assert.equal(fakes.state.balance, 15);
+});
+
 test("메우기 충전도 실패하면 already 가 아니라 charge_failed(CRITICAL 로그) — 앱이 마무리하지 않게", async () => {
   const { grant, fakes } = await setup();
   fakes.state.failSources = ["pg"];

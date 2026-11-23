@@ -16,6 +16,8 @@ export type LoggedEntry = { level: "error" | "warn" | "info"; message: string; r
 
 type State = {
   payments: Row[];
+  /** 결제 별 충전 거래(star_transactions type 'charge')가 있는 결제 id — 진짜 charge_stars 가 성공했을 때만 생기는 행 자리 */
+  chargeTxs: string[];
   /** pg_tid 로 찾은 순서 */
   lookups: string[];
   lookupError: DbError | null;
@@ -40,6 +42,7 @@ type State = {
 function fresh(): State {
   return {
     payments: [],
+    chargeTxs: [],
     lookups: [],
     lookupError: null,
     updateError: null,
@@ -62,8 +65,8 @@ export function reset(): void {
   Object.assign(state, fresh());
 }
 
-/** 앱 결제 한 건 — 결제 별 10 + 첫충전 보너스 2 */
-export function seedPayment(over: Row = {}): Row {
+/** 앱 결제 한 건 — 결제 별 10 + 첫충전 보너스 2. charged:false 면 결제 별 충전 거래가 없는 결제(charge_failed 로 멈춘 결제) */
+export function seedPayment(over: Row = {}, { charged = true }: { charged?: boolean } = {}): Row {
   const row: Row = {
     id: `pay-${state.payments.length + 1}`,
     user_id: USER_ID,
@@ -78,6 +81,7 @@ export function seedPayment(over: Row = {}): Row {
     ...over,
   };
   state.payments.push(row);
+  if (charged) state.chargeTxs.push(row.id as string);
   return row;
 }
 
@@ -99,7 +103,7 @@ class FakeQuery implements PromiseLike<Result> {
   private readonly filters: [string, unknown][] = [];
 
   constructor(private readonly table: string) {
-    if (table !== "payments") throw new Error(`iap-refund.fakes: 예상 밖 표 — ${table}`);
+    if (table !== "payments" && table !== "star_transactions") throw new Error(`iap-refund.fakes: 예상 밖 표 — ${table}`);
   }
 
   select(columns = "*"): this {
@@ -132,6 +136,14 @@ class FakeQuery implements PromiseLike<Result> {
   }
 
   private run(): Result {
+    if (this.table === "star_transactions") {
+      // 읽기만 — 결제 별 충전 거래가 있는지(payment_id + type 'charge')
+      if (this.op !== "select") throw new Error("iap-refund.fakes: star_transactions 는 읽기만");
+      const paymentId = this.filters.find(([c]) => c === "payment_id")?.[1];
+      const type = this.filters.find(([c]) => c === "type")?.[1];
+      const hit = type === "charge" && typeof paymentId === "string" && state.chargeTxs.includes(paymentId);
+      return { data: hit ? { id: `tx-${paymentId}` } : null, error: null };
+    }
     if (this.op === "update") {
       if (state.updateError) return { data: null, error: state.updateError };
       state.updates.push({ ...this.row });
