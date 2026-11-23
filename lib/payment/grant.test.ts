@@ -84,8 +84,17 @@ test("같은 tid 재호출 — already(기존 stars_given·현재 잔액), 별 �
   const { grant, fakes } = await setup();
   await grant.grantStarPackage(input());
   const again = await grant.grantStarPackage(input());
-  assert.deepEqual(again, { kind: "already", paymentId: "pay-1", stars: 10, balance: 27 });
+  assert.deepEqual(again, { kind: "already", paymentId: "pay-1", stars: 10, balance: 27, ownerUserId: fakes.USER_ID });
   assert.equal(fakes.state.payments.length, 1);
+  assert.equal(fakes.state.charges.filter((c) => c.source === "pg").length, 1);
+});
+
+test("다른 회원이 같은 tid 로 재호출 — already 에 결제 주인(ownerUserId)이 실려 라우트가 막을 수 있다, 별은 주지 않는다", async () => {
+  const { grant, fakes } = await setup();
+  await grant.grantStarPackage(input());
+  const other = await grant.grantStarPackage(input({ userId: "someone-else" }));
+  assert.equal(other.kind, "already");
+  assert.equal(other.kind === "already" && other.ownerUserId, fakes.USER_ID);
   assert.equal(fakes.state.charges.filter((c) => c.source === "pg").length, 1);
 });
 
