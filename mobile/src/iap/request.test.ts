@@ -1,13 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { afterRequestPurchase } from "./request.ts";
+import { afterRequestPurchase, EMPTY_RETURN_GRACE_MS } from "./request.ts";
 
 const tx = { transactionId: "t1" };
 
-test("iOS — 반환값이 비면(구입 요청 등 승인 대기) 알림을 기다리지 않고 pending", () => {
-  assert.deepEqual(afterRequestPurchase("ios", true, null), { kind: "pending" });
-  assert.deepEqual(afterRequestPurchase("ios", true, undefined), { kind: "pending" });
-  assert.deepEqual(afterRequestPurchase("ios", true, []), { kind: "pending" });
+test("iOS — 반환값이 비면 바로 끝내지 않고 잠깐(늦게 올 취소 알림) 기다린 뒤 pending", () => {
+  const later = { kind: "pendingAfter", ms: EMPTY_RETURN_GRACE_MS };
+  assert.deepEqual(afterRequestPurchase("ios", true, null), later);
+  assert.deepEqual(afterRequestPurchase("ios", true, undefined), later);
+  assert.deepEqual(afterRequestPurchase("ios", true, []), later);
+});
+
+test("기다리는 시간은 알림 한두 번 건너올 만큼 — 웹 버튼을 오래 막지 않게 짧게", () => {
+  assert.ok(EMPTY_RETURN_GRACE_MS >= 1_000 && EMPTY_RETURN_GRACE_MS <= 2_000);
 });
 
 test("iOS — 반환값이 거래면 그 거래로 끝낸다", () => {
