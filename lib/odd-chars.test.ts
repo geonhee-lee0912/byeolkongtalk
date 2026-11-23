@@ -77,6 +77,12 @@ test("못 고치면 그 낱말만 지운다", async () => {
   }
 });
 
+test("일본어 장음 부호까지 한 토막으로 본다", async () => {
+  const r = await stream("실패에도 자책 금지 루ール: 못 했을 땐 다시 해.", 3, "틴");
+  assert.equal(r.shown, "실패에도 자책 금지 루틴: 못 했을 땐 다시 해.");
+  assert.equal(r.asked[0].token, "ール");
+});
+
 test("긴 광고가 가운데 끼면 고치지 않고 지운다", async () => {
   const r = await stream("흐름이야. 天天中彩票有人 그래서 프로젝트는 이어져.", 3, "당첨");
   assert.equal(r.shown, "흐름이야. 그래서 프로젝트는 이어져.");
