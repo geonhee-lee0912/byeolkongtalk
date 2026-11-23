@@ -2,7 +2,8 @@
 // Play Developer API purchases.products.get 응답 → VerifiedPurchase 매핑을 잠근다(purchaseState 0/1/2 · purchaseType 0 = 테스트 구매).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consumeGooglePurchase, verifyGooglePurchase, type GoogleDeps } from "./google.ts";
+import { consumeGooglePurchase, verifyGooglePurchase, verifyGooglePushAuth, type GoogleDeps, type PushAuthDeps } from "./google.ts";
+import { parseGoogleRtdn } from "./google-rtdn.ts";
 
 globalThis.fetch = (async (input: unknown) => {
   throw new Error(`google.test: 네트워크 호출 금지 — ${String(input)}`);
@@ -157,4 +158,111 @@ test("consume 실패(HTTP 4xx·5xx · 네트워크) → 던지되 오류 글에 
     assert.equal((err as { cause?: unknown }).cause, undefined);
     return true;
   });
+});
+
+// ── 환불 알림(RTDN, Pub/Sub 푸시) — 스펙 §4 ──
+// Pub/Sub 푸시는 Authorization: Bearer <구글 서명 OIDC 토큰>. 대상(audience)·서명은 라이브러리가, 보낸 서비스 계정 이메일·검증 여부는 여기서 본다.
+
+const PUSH_EMAIL = "pubsub-push@test-project.iam.gserviceaccount.com";
+const AUDIENCE = "https://dev.example.test/api/payment/iap/google/notify";
+
+async function withPushEnv<T>(fn: () => Promise<T>, env: Record<string, string | undefined> = {}): Promise<T> {
+  const next = { GOOGLE_PUBSUB_PUSH_EMAIL: PUSH_EMAIL, GOOGLE_PUBSUB_AUDIENCE: AUDIENCE, ...env };
+  const saved = Object.fromEntries(Object.keys(next).map((k) => [k, process.env[k]]));
+  for (const [k, v] of Object.entries(next)) if (v === undefined) delete process.env[k];
+  else process.env[k] = v;
+  try {
+    return await fn();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
+}
+
+function pushDeps(result: { email?: string; email_verified?: boolean } | Error) {
+  const calls: { idToken: string; audience: string }[] = [];
+  const d: PushAuthDeps = {
+    async verifyIdToken(idToken, audience) {
+      calls.push({ idToken, audience });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+  };
+  return { d, calls };
+}
+
+test("푸시 인증 — Bearer 토큰을 대상(GOOGLE_PUBSUB_AUDIENCE)으로 검증, 이메일 같고 검증됨이면 true", async () => {
+  await withPushEnv(async () => {
+    const { d, calls } = pushDeps({ email: PUSH_EMAIL, email_verified: true });
+    assert.equal(await verifyGooglePushAuth("Bearer header.payload.sig", d), true);
+    assert.deepEqual(calls, [{ idToken: "header.payload.sig", audience: AUDIENCE }]);
+  });
+});
+
+test("푸시 인증 — 다른 이메일·검증 안 됨·서명/대상 거절(던짐)·헤더 없음·Bearer 아님 → false", async () => {
+  await withPushEnv(async () => {
+    assert.equal(await verifyGooglePushAuth("Bearer t", pushDeps({ email: "someone@else.test", email_verified: true }).d), false);
+    assert.equal(await verifyGooglePushAuth("Bearer t", pushDeps({ email: PUSH_EMAIL, email_verified: false }).d), false);
+    assert.equal(await verifyGooglePushAuth("Bearer t", pushDeps({ email: PUSH_EMAIL }).d), false);
+    assert.equal(await verifyGooglePushAuth("Bearer t", pushDeps(new Error("Wrong recipient, payload audience != requiredAudience")).d), false);
+    for (const header of [null, "", "Basic abc", "Bearer ", "bearer t"]) {
+      const { d, calls } = pushDeps({ email: PUSH_EMAIL, email_verified: true });
+      assert.equal(await verifyGooglePushAuth(header, d), false, String(header));
+      assert.equal(calls.length, 0);
+    }
+  });
+});
+
+test("푸시 인증 — 설정(이메일·대상)이 없으면 던진다(라우트는 그 전에 503)", async () => {
+  await withPushEnv(
+    async () => {
+      await assert.rejects(verifyGooglePushAuth("Bearer t", pushDeps({ email: PUSH_EMAIL, email_verified: true }).d), /GOOGLE_PUBSUB/);
+    },
+    { GOOGLE_PUBSUB_AUDIENCE: undefined },
+  );
+});
+
+const pushBody = (data: unknown) => ({
+  message: { data: Buffer.from(typeof data === "string" ? data : JSON.stringify(data)).toString("base64"), messageId: "1" },
+  subscription: "projects/p/subscriptions/s",
+});
+
+test("RTDN 해석 — voidedPurchaseNotification → 주문 id", () => {
+  const note = {
+    version: "1.0",
+    packageName: "com.byeolkongtalk.app",
+    eventTimeMillis: "1760000000000",
+    voidedPurchaseNotification: { purchaseToken: TOKEN, orderId: ORDER_ID, productType: 2, refundType: 1 },
+  };
+  assert.deepEqual(parseGoogleRtdn(pushBody(note)), { kind: "voided", orderId: ORDER_ID });
+});
+
+test("RTDN 해석 — 시험 알림·다른 알림·다른 패키지 → ignored", () => {
+  assert.deepEqual(parseGoogleRtdn(pushBody({ version: "1.0", packageName: "com.byeolkongtalk.app", testNotification: { version: "1.0" } })), {
+    kind: "ignored",
+    reason: "testNotification",
+  });
+  assert.deepEqual(
+    parseGoogleRtdn(pushBody({ version: "1.0", packageName: "com.byeolkongtalk.app", oneTimeProductNotification: { notificationType: 1 } })),
+    { kind: "ignored", reason: "other" },
+  );
+  assert.deepEqual(
+    parseGoogleRtdn(pushBody({ packageName: "com.other.app", voidedPurchaseNotification: { orderId: ORDER_ID } })),
+    { kind: "ignored", reason: "package" },
+  );
+});
+
+test("RTDN 해석 — 모양이 틀림(message 없음·base64/JSON 아님·주문 id 없음) → malformed", () => {
+  for (const body of [
+    null,
+    {},
+    { message: {} },
+    { message: { data: 42 } },
+    pushBody("not json"),
+    pushBody([1, 2]),
+    pushBody({ packageName: "com.byeolkongtalk.app", voidedPurchaseNotification: { purchaseToken: TOKEN } }),
+    pushBody({ packageName: "com.byeolkongtalk.app", voidedPurchaseNotification: { orderId: "" } }),
+  ]) {
+    assert.deepEqual(parseGoogleRtdn(body), { kind: "malformed" }, JSON.stringify(body));
+  }
 });
