@@ -17,6 +17,9 @@ type State = {
   appleCalls: string[];
   google: VerifiedPurchase | null | Error;
   googleCalls: { productId: string; token: string }[];
+  /** 구글 소비 — Error 면 throw(구글 장애·이미 소비됨 자리) */
+  consumeError: Error | null;
+  consumeCalls: { productId: string; token: string }[];
   /** 지급 결과 — 없으면 정상 지급(granted) */
   grant: GrantResult | null;
   grantCalls: GrantInput[];
@@ -30,6 +33,8 @@ function fresh(): State {
     appleCalls: [],
     google: null,
     googleCalls: [],
+    consumeError: null,
+    consumeCalls: [],
     grant: null,
     grantCalls: [],
     logs: [],
@@ -63,6 +68,10 @@ export async function verifyAppleTransaction(transactionId: string): Promise<Ver
 export async function verifyGooglePurchase(productId: string, token: string): Promise<VerifiedPurchase | null> {
   state.googleCalls.push({ productId, token });
   return settle(state.google);
+}
+export async function consumeGooglePurchase(productId: string, token: string): Promise<void> {
+  state.consumeCalls.push({ productId, token });
+  if (state.consumeError) throw state.consumeError;
 }
 
 // ── @/lib/payment/grant ──

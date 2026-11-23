@@ -2,7 +2,7 @@
 // Play Developer API purchases.products.get 응답 → VerifiedPurchase 매핑을 잠근다(purchaseState 0/1/2 · purchaseType 0 = 테스트 구매).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { verifyGooglePurchase, type GoogleDeps } from "./google.ts";
+import { consumeGooglePurchase, verifyGooglePurchase, type GoogleDeps } from "./google.ts";
 
 globalThis.fetch = (async (input: unknown) => {
   throw new Error(`google.test: 네트워크 호출 금지 — ${String(input)}`);
@@ -108,6 +108,52 @@ test("네트워크 실패도 던지되 토큰·주소를 오류에 싣지 않는
   };
   await assert.rejects(verifyGooglePurchase("star_70", TOKEN, d), (err: Error) => {
     assert.ok(!err.message.includes(encodeURIComponent(TOKEN)));
+    assert.equal((err as { cause?: unknown }).cause, undefined);
+    return true;
+  });
+});
+
+// ───────────────────────── 소비(consume) ─────────────────────────
+// 스펙 §3: 별 지급 뒤 서버에서 consume(3일 안에 안 하면 구글이 자동 환불). 라우트는 실패해도 200 을 주고 warn 만 남긴다(iap-route.test.ts)
+
+function consumeDeps(res: () => Response | Promise<Response>) {
+  const calls: { url: string; method: string | undefined; auth: string | null }[] = [];
+  const d: GoogleDeps = {
+    accessToken: async () => "test-access-token",
+    fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), method: init?.method, auth: new Headers(init?.headers).get("authorization") });
+      return res();
+    }) as typeof fetch,
+  };
+  return { d, calls };
+}
+
+test("consume — POST …/products/{상품}/tokens/{토큰}:consume, 서비스 계정 토큰으로, 204 면 끝", async () => {
+  const { d, calls } = consumeDeps(() => new Response(null, { status: 204 }));
+  await consumeGooglePurchase("star_70", TOKEN, d);
+  assert.deepEqual(calls, [
+    {
+      url: `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.byeolkongtalk.app/purchases/products/star_70/tokens/${encodeURIComponent(TOKEN)}:consume`,
+      method: "POST",
+      auth: "Bearer test-access-token",
+    },
+  ]);
+  // 200 + 빈 JSON 도 성공
+  await consumeGooglePurchase("star_70", TOKEN, consumeDeps(() => Response.json({}, { status: 200 })).d);
+});
+
+test("consume 실패(HTTP 4xx·5xx · 네트워크) → 던지되 오류 글에 구매 토큰이 없다", async () => {
+  for (const status of [400, 401, 500]) {
+    await assert.rejects(consumeGooglePurchase("star_70", TOKEN, consumeDeps(() => Response.json({ error: {} }, { status })).d), (err: Error) => {
+      assert.equal(err.message, `google purchases.products.consume HTTP ${status}`);
+      return true;
+    });
+  }
+  const net = consumeDeps(() => {
+    throw new TypeError(`fetch failed ${TOKEN}`);
+  });
+  await assert.rejects(consumeGooglePurchase("star_70", TOKEN, net.d), (err: Error) => {
+    assert.ok(!err.message.includes(TOKEN) && !err.message.includes(encodeURIComponent(TOKEN)));
     assert.equal((err as { cause?: unknown }).cause, undefined);
     return true;
   });
