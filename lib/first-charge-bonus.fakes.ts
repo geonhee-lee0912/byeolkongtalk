@@ -1,7 +1,7 @@
 // first-charge-bonus.test.ts 전용 가짜 — 결제 승인(app/api/payment/confirm/route.ts)·첫충전 자격 조회(app/api/stars/first-charge-status/route.ts)가
 // import 하는 @/lib/supabase · @/lib/session · @/lib/logger · @/lib/toss · @/lib/stars · @/lib/meta-capi 자리에 이 모듈 하나가 들어간다(테스트의 resolve 훅).
 // 로그인 수단 조회(lib/auth/user-identity.ts — users.kakao_id 보충 포함)·해시·패키지 상수는 진짜가 돈다 — DB 자리만 아래 메모리 표다.
-// 라우트가 부른 순서는 state.calls 에 남는다: "getSession" · "<select|insert|upsert>:<표>" · "confirmPayment" · "cancelPayment" · "chargeStars:<source>" · "capi:<이벤트>".
+// 라우트가 부른 순서는 state.calls 에 남는다: "getSession" · "<select|insert|update|upsert>:<표>" · "confirmPayment" · "cancelPayment" · "chargeStars:<source>" · "capi:<이벤트>".
 // 조회는 select 에 적힌 칸만 돌려준다. 라우트가 여기 없는 표·동작을 쓰기 시작하면 throw 한다 — 테스트를 거기부터 늘리라는 신호.
 
 type Row = Record<string, unknown>;
@@ -74,7 +74,7 @@ function project(row: Row | null, columns: string): Row | null {
 }
 
 class FakeQuery implements PromiseLike<Result> {
-  private op: "select" | "insert" | "upsert" = "select";
+  private op: "select" | "insert" | "update" | "upsert" = "select";
   private columns = "*";
   private row: Row = {};
   private opts: unknown = undefined;
@@ -88,6 +88,11 @@ class FakeQuery implements PromiseLike<Result> {
   }
   insert(row: Row): this {
     this.op = "insert";
+    this.row = row;
+    return this;
+  }
+  update(row: Row): this {
+    this.op = "update";
     this.row = row;
     return this;
   }
@@ -125,6 +130,11 @@ class FakeQuery implements PromiseLike<Result> {
     if (op === "insert") {
       if (table !== "payments") throw new Error(`first-charge-bonus.fakes: 예상 밖 insert — ${table}`);
       return { data: { id: PAYMENT_ID }, error: null };
+    }
+    if (op === "update") {
+      // 결제 승인이 payments.bonus_stars 를 남긴다(lib/payment/grant.ts) — 이 테스트는 기록 내용이 아니라 결제 응답을 잠근다
+      if (table !== "payments") throw new Error(`first-charge-bonus.fakes: 예상 밖 update — ${table}`);
+      return { data: null, error: null };
     }
     if (op === "upsert") {
       if (table !== "bonus_claims") throw new Error(`first-charge-bonus.fakes: 예상 밖 upsert — ${table}`);
