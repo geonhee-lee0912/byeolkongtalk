@@ -80,22 +80,76 @@ test("첫 결제 — granted, 보너스 2, payments 행에 bonus_stars 2, 원장
   assert.deepEqual(fakes.state.logs, []);
 });
 
-test("같은 tid 재호출 — already(기존 stars_given·현재 잔액), 별 지급은 1회뿐", async () => {
+/** 실제로 별이 들어간 결제 별 충전(멱등 no-op 제외) */
+const appliedPg = (fakes: typeof Fakes) => fakes.state.charges.filter((c) => c.source === "pg" && !c.idempotent && !c.failed);
+
+test("같은 tid 재호출 — already(기존 stars_given·현재 잔액), 충전은 멱등 재호출이라 별은 1회뿐", async () => {
   const { grant, fakes } = await setup();
   await grant.grantStarPackage(input());
   const again = await grant.grantStarPackage(input());
   assert.deepEqual(again, { kind: "already", paymentId: "pay-1", stars: 10, balance: 27, ownerUserId: fakes.USER_ID });
   assert.equal(fakes.state.payments.length, 1);
-  assert.equal(fakes.state.charges.filter((c) => c.source === "pg").length, 1);
+  assert.equal(appliedPg(fakes).length, 1);
+  // already 경로가 같은 결제 id 로 다시 충전을 불렀다(멱등 no-op) — 앞서 충전이 실패했을 때 메우려고
+  assert.deepEqual(
+    fakes.state.charges.filter((c) => c.source === "pg").map((c) => [c.amount, c.paymentId, !!c.idempotent]),
+    [
+      [10, "pay-1", false],
+      [10, "pay-1", true],
+    ],
+  );
+  assert.equal(fakes.state.balance, 27);
+  assert.deepEqual(fakes.state.logs, []);
 });
 
-test("다른 회원이 같은 tid 로 재호출 — already 에 결제 주인(ownerUserId)이 실려 라우트가 막을 수 있다, 별은 주지 않는다", async () => {
+test("앞서 별 충전이 실패한 결제(charge_failed)를 다시 부르면 — 그때 충전해 already 로 메운다(별 1회, warn 로그)", async () => {
+  const { grant, fakes } = await setup();
+  fakes.state.failSources = ["pg"];
+  const first = await grant.grantStarPackage(input());
+  assert.deepEqual(first, { kind: "charge_failed", paymentId: "pay-1" });
+  fakes.state.failSources = [];
+  const again = await grant.grantStarPackage(input());
+  // 첫충전 보너스는 첫 시도에서 시도조차 안 했다(충전 실패에서 멈춤) — 메우기는 결제 별만
+  assert.deepEqual(again, { kind: "already", paymentId: "pay-1", stars: 10, balance: 25, ownerUserId: fakes.USER_ID });
+  assert.equal(appliedPg(fakes).length, 1);
+  assert.equal(fakes.state.balance, 25);
+  assert.ok(fakes.state.logs.some((l) => l.level === "warn" && l.extra.severity === "PAYMENT_RECONCILE_SELF_HEALED"));
+  // 세 번째 — 이번엔 멱등이라 별이 늘지 않는다
+  await grant.grantStarPackage(input());
+  assert.equal(appliedPg(fakes).length, 1);
+  assert.equal(fakes.state.balance, 25);
+});
+
+test("메우기 충전도 실패하면 already 가 아니라 charge_failed(CRITICAL 로그) — 앱이 마무리하지 않게", async () => {
+  const { grant, fakes } = await setup();
+  fakes.state.failSources = ["pg"];
+  await grant.grantStarPackage(input());
+  fakes.state.logs = [];
+  const again = await grant.grantStarPackage(input());
+  assert.deepEqual(again, { kind: "charge_failed", paymentId: "pay-1" });
+  assert.ok(fakes.state.logs.some((l) => l.level === "error" && l.extra.severity === "CRITICAL_PAYMENT_RECONCILE"));
+  assert.equal(fakes.state.balance, 15);
+});
+
+test("다른 회원이 같은 tid 로 재호출 — already 에 결제 주인(ownerUserId)이 실려 라우트가 막을 수 있다, 충전은 부르지도 않는다", async () => {
   const { grant, fakes } = await setup();
   await grant.grantStarPackage(input());
+  const callsBefore = fakes.state.charges.length;
   const other = await grant.grantStarPackage(input({ userId: "someone-else" }));
   assert.equal(other.kind, "already");
   assert.equal(other.kind === "already" && other.ownerUserId, fakes.USER_ID);
-  assert.equal(fakes.state.charges.filter((c) => c.source === "pg").length, 1);
+  assert.equal(fakes.state.charges.length, callsBefore);
+});
+
+test("다른 회원이 같은 tid 로 재호출 — 원래 주인의 충전이 실패해 있었어도 그 회원에게도 원래 주인에게도 충전하지 않는다", async () => {
+  const { grant, fakes } = await setup();
+  fakes.state.failSources = ["pg"];
+  await grant.grantStarPackage(input());
+  fakes.state.failSources = [];
+  const callsBefore = fakes.state.charges.length;
+  const other = await grant.grantStarPackage(input({ userId: "someone-else" }));
+  assert.equal(other.kind, "already");
+  assert.equal(fakes.state.charges.length, callsBefore);
 });
 
 test("동시 두 호출 — 두 번째 INSERT 가 유니크 위반(23505)이어도 granted 1 + already 1, 별은 한 번만", async () => {
@@ -105,8 +159,9 @@ test("동시 두 호출 — 두 번째 INSERT 가 유니크 위반(23505)이어�
   const kinds = [a.kind, b.kind].sort();
   assert.deepEqual(kinds, ["already", "granted"]);
   assert.equal(fakes.state.payments.length, 1);
-  assert.equal(fakes.state.charges.filter((c) => c.source === "pg").length, 1);
+  assert.equal(appliedPg(fakes).length, 1);
   assert.equal(fakes.state.charges.filter((c) => c.source === "first_charge_bonus").length, 1);
+  assert.equal(fakes.state.balance, 27);
   const already = [a, b].find((r) => r.kind === "already");
   assert.equal(already?.kind === "already" && already.stars, 10);
 });

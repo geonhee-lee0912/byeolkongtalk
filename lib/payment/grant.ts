@@ -29,7 +29,7 @@ export type GrantResult =
 // 어드민 에러 화면 연속성 — 토스 라우트가 쓰던 route 값을 그대로 쓴다
 const routeOf = (provider: GrantProvider) => (provider === "tosspayments" ? "/api/payment/confirm" : "lib/payment/grant");
 
-async function alreadyResult(userId: string, tid: string): Promise<GrantResult | null> {
+async function alreadyResult(userId: string, tid: string, route: string): Promise<GrantResult | null> {
   const supabase = getServiceSupabase();
   const { data: existing } = await supabase
     .from("payments")
@@ -37,13 +37,42 @@ async function alreadyResult(userId: string, tid: string): Promise<GrantResult |
     .eq("pg_tid", tid)
     .maybeSingle();
   if (!existing) return null;
+  const paymentId = existing.id as string;
+  const stars = existing.stars_given as number;
+  const ownerUserId = (existing.user_id as string | null | undefined) ?? null;
+
+  if (ownerUserId === userId) {
+    // 같은 회원의 재호출 — 결제 별 충전을 같은 결제 id 로 다시 부른다. charge_stars 는 payment_id 멱등이라
+    // 이미 충전됐으면 아무것도 안 하고, 앞서 충전이 실패했으면(charge_failed) 이제 넣는다(앱 결제 재전송이 스스로 메운다).
+    // 첫충전 보너스는 여기서 주지 않는다(첫 시도가 충전 실패에서 멈췄으면 보너스는 시도조차 안 됐다 — 운영자 몫)
+    const charge = await chargeStars(userId, stars, paymentId);
+    if (!charge.success) {
+      await logError(new Error("chargeStars failed on already-processed payment retry"), {
+        route,
+        userId,
+        extra: { paymentId, stars, severity: "CRITICAL_PAYMENT_RECONCILE" },
+      });
+      return { kind: "charge_failed", paymentId };
+    }
+    if (!charge.idempotent) {
+      // 앞선 CRITICAL_PAYMENT_RECONCILE 이 스스로 풀렸다 — 운영자가 손으로 또 지급하지 않게 남긴다
+      await logWarn("결제 별 충전 누락을 재호출에서 메움", {
+        route,
+        userId,
+        extra: { paymentId, stars, severity: "PAYMENT_RECONCILE_SELF_HEALED" },
+      });
+    }
+    return { kind: "already", paymentId, stars, balance: charge.balance, ownerUserId };
+  }
+
+  // 다른 회원(또는 탈퇴로 주인이 지워진 결제) — 충전하지 않는다. 잔액은 부른 회원의 것
   const { data: bal } = await supabase.from("star_balances").select("balance").eq("user_id", userId).maybeSingle();
   return {
     kind: "already",
-    paymentId: existing.id as string,
-    stars: existing.stars_given as number,
+    paymentId,
+    stars,
     balance: (bal?.balance as number | undefined) ?? 0,
-    ownerUserId: (existing.user_id as string | null | undefined) ?? null,
+    ownerUserId,
   };
 }
 
@@ -53,7 +82,7 @@ export async function grantStarPackage(input: GrantInput): Promise<GrantResult> 
   const supabase = getServiceSupabase();
 
   // 이미 처리된 결제(재시도·새로고침) — 별을 다시 주지 않는다
-  const prior = await alreadyResult(userId, tid);
+  const prior = await alreadyResult(userId, tid, route);
   if (prior) return prior;
 
   // 결제 기록 저장
@@ -74,7 +103,7 @@ export async function grantStarPackage(input: GrantInput): Promise<GrantResult> 
   if (payErr || !payment) {
     // 동시 호출 경합 — 먼저 들어간 쪽이 지급을 맡는다(pg_tid 유니크). 다시 찾아 already 로.
     if ((payErr as { code?: string } | null)?.code === "23505") {
-      const raced = await alreadyResult(userId, tid);
+      const raced = await alreadyResult(userId, tid, route);
       if (raced) return raced;
     }
     return { kind: "insert_failed", error: payErr ?? new Error("payment insert null") };
