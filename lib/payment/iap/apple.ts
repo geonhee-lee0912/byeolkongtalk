@@ -1,0 +1,92 @@
+// 애플 거래 확인 — 앱이 보낸 거래 id 로 App Store Server API(Get Transaction Info)에 직접 묻고, 돌아온 서명 거래(JWS)를
+// 애플 루트 인증서(이 폴더의 apple-root-ca-g3.cer)로 검증한다(@apple/app-store-server-library). 스펙 2026-11-23-앱-결제 §3.
+// Production 에서 먼저 찾고 없으면(4040010) Sandbox — 앱 심사자는 운영 빌드에서 샌드박스로 산다(그 거래도 별은 준다, 매출 0원).
+// 서버 비밀값: APPLE_IAP_KEY_ID · APPLE_IAP_ISSUER_ID · APPLE_IAP_PRIVATE_KEY(앱 결제 키 .p8) · APPLE_APP_ID(숫자 — Production 서명 검증에 필수)
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  APIError,
+  APIException,
+  AppStoreServerAPIClient,
+  Environment,
+  SignedDataVerifier,
+  type JWSTransactionDecodedPayload,
+  type TransactionInfoResponse,
+} from "@apple/app-store-server-library";
+import { IAP_APP_ID, type VerifiedPurchase } from "./verify";
+
+/** 라이브러리 자리 — 테스트는 네트워크 없이 이 둘을 바꿔 끼운다 */
+export type AppleDeps = {
+  getTransactionInfo(environment: Environment, transactionId: string): Promise<TransactionInfoResponse>;
+  verifyTransaction(environment: Environment, signedTransactionInfo: string): Promise<JWSTransactionDecodedPayload>;
+};
+
+// 루트 인증서는 저장소 파일 — next.config.ts 의 outputFileTracingIncludes 가 이 라우트 함수 묶음에 넣는다(process.cwd() = 프로젝트 루트)
+const ROOT_CA_PATH = join(process.cwd(), "lib/payment/iap/apple-root-ca-g3.cer");
+
+const clients = new Map<Environment, AppStoreServerAPIClient>();
+const verifiers = new Map<Environment, SignedDataVerifier>();
+
+function client(environment: Environment): AppStoreServerAPIClient {
+  let c = clients.get(environment);
+  if (!c) {
+    const { APPLE_IAP_KEY_ID: keyId, APPLE_IAP_ISSUER_ID: issuerId, APPLE_IAP_PRIVATE_KEY: pem } = process.env;
+    if (!keyId || !issuerId || !pem) throw new Error("APPLE_IAP_KEY_ID / APPLE_IAP_ISSUER_ID / APPLE_IAP_PRIVATE_KEY not set");
+    // Vercel env 에 한 줄로 넣으면 줄바꿈이 '\n' 문자열로 남는다 — 되돌린다(lib/auth/apple.ts 와 같다)
+    c = new AppStoreServerAPIClient(pem.replace(/\\n/g, "\n"), keyId, issuerId, IAP_APP_ID, environment);
+    clients.set(environment, c);
+  }
+  return c;
+}
+
+function verifier(environment: Environment): SignedDataVerifier {
+  let v = verifiers.get(environment);
+  if (!v) {
+    let appAppleId: number | undefined;
+    if (environment === Environment.PRODUCTION) {
+      appAppleId = Number(process.env.APPLE_APP_ID);
+      if (!Number.isInteger(appAppleId) || appAppleId <= 0) throw new Error("APPLE_APP_ID not set or not numeric");
+    }
+    // 온라인 확인 켬 — 인증서 폐기(OCSP)·만료를 지금 시각으로 본다
+    v = new SignedDataVerifier([readFileSync(ROOT_CA_PATH)], true, environment, IAP_APP_ID, appAppleId);
+    verifiers.set(environment, v);
+  }
+  return v;
+}
+
+const realDeps: AppleDeps = {
+  getTransactionInfo: (environment, transactionId) => client(environment).getTransactionInfo(transactionId),
+  verifyTransaction: (environment, signed) => verifier(environment).verifyAndDecodeTransaction(signed),
+};
+
+const apiErrorOf = (err: unknown): unknown => (err instanceof APIException ? err.apiError : undefined);
+
+/** 거래가 없거나(두 환경 다 4040010)·id 형식이 틀리거나·다른 앱·다른 거래면 null. 애플 장애·키 거절·서명 검증 실패는 던진다 */
+export async function verifyAppleTransaction(transactionId: string, deps: AppleDeps = realDeps): Promise<VerifiedPurchase | null> {
+  for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
+    let info: TransactionInfoResponse;
+    try {
+      info = await deps.getTransactionInfo(environment, transactionId);
+    } catch (err) {
+      const code = apiErrorOf(err);
+      if (code === APIError.TRANSACTION_ID_NOT_FOUND) continue;
+      if (code === APIError.INVALID_TRANSACTION_ID) return null;
+      throw err;
+    }
+    if (!info.signedTransactionInfo) throw new Error("apple getTransactionInfo: signedTransactionInfo missing");
+    // 서명·번들 ID·환경은 라이브러리가 확인한다(틀리면 VerificationException). 아래는 그 위의 이중 확인
+    const tx = await deps.verifyTransaction(environment, info.signedTransactionInfo);
+    if (tx.bundleId !== IAP_APP_ID || tx.transactionId !== transactionId || !tx.productId) return null;
+    const sandbox = environment === Environment.SANDBOX;
+    return {
+      store: "apple",
+      productId: tx.productId,
+      tid: (sandbox ? "apple-sandbox:" : "apple:") + transactionId,
+      sandbox,
+      accountToken: tx.appAccountToken ? tx.appAccountToken.toLowerCase() : null,
+      revoked: !!tx.revocationDate,
+      pending: false,
+    };
+  }
+  return null;
+}
