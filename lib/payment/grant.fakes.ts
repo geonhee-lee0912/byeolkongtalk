@@ -10,7 +10,8 @@ type LogCtx = { route?: string; userId?: string | null; extra?: Record<string, u
 
 export type LoggedEntry = { level: "error" | "warn"; message: string; extra: Record<string, unknown> };
 
-export const USER_ID = "2f1c7a3e-1b2c-4d5e-8f90-1234567890ab";
+/** QA봇 — 공개 저장소에 써도 되는 유일한 회원 id */
+export const USER_ID = "11111111-1111-4111-8111-111111111111";
 
 type State = {
   identities: Row[];

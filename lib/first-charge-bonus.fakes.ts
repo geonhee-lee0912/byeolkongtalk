@@ -13,8 +13,9 @@ type Charge = { success: boolean; balance: number; idempotent?: boolean };
 
 export type LoggedEntry = { level: "error" | "warn"; message: string; extra: Record<string, unknown> };
 
-export const USER_ID = "2f1c7a3e-1b2c-4d5e-8f90-1234567890ab";
-export const PAYMENT_ID = "9a8b7c6d-0000-4000-8000-000000000001";
+/** QA봇 — 공개 저장소에 써도 되는 유일한 회원 id */
+export const USER_ID = "11111111-1111-4111-8111-111111111111";
+export const PAYMENT_ID = "pay-fcb-1";
 
 type State = {
   sessionUserId: string | null;
