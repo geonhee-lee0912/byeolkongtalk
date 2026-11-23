@@ -26,3 +26,10 @@ export function iapConfigured(platform: "ios" | "android"): boolean {
   if (platform === "ios") return !!(e.APPLE_IAP_KEY_ID && e.APPLE_IAP_ISSUER_ID && e.APPLE_IAP_PRIVATE_KEY && e.APPLE_APP_ID);
   return !!e.GOOGLE_PLAY_SERVICE_ACCOUNT;
 }
+
+/** 환불 알림 라우트의 서버 비밀값 — 없으면 503. 애플은 알림 서명 검증(운영 검증기)에 앱 숫자 ID, 구글은 푸시 인증의 서비스 계정 이메일·대상 */
+export function iapNotifyConfigured(store: "apple" | "google"): boolean {
+  const e = process.env;
+  if (store === "apple") return !!e.APPLE_APP_ID;
+  return !!(e.GOOGLE_PUBSUB_PUSH_EMAIL && e.GOOGLE_PUBSUB_AUDIENCE);
+}

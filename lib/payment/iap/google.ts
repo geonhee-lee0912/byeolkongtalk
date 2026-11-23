@@ -2,8 +2,9 @@
 // 소비(consume) — 별을 준 뒤 라우트가 consumeGooglePurchase 로 서버에서 소비한다(3일 안에 소비·확인이 없으면 구글이 자동 환불).
 // 앱도 finishTransaction({isConsumable:true}) 로 한 번 더 소비하려 하니 '이미 소비됨' 오류를 견뎌야 한다(Task 7).
 // 서버 비밀값: GOOGLE_PLAY_SERVICE_ACCOUNT(서비스 계정 JSON 전체 — client_email·private_key).
+// 환불 알림(RTDN, Pub/Sub 푸시 — 스펙 §4)의 인증은 verifyGooglePushAuth: GOOGLE_PUBSUB_PUSH_EMAIL(푸시 구독의 서비스 계정) · GOOGLE_PUBSUB_AUDIENCE(구독에 적은 대상).
 // 🔴 구매 토큰은 결제 고유 번호·로그·오류 글 어디에도 넣지 않는다(그 토큰이면 누구나 구매를 조회할 수 있다).
-import { JWT } from "google-auth-library";
+import { JWT, OAuth2Client } from "google-auth-library";
 import { IAP_APP_ID, type VerifiedPurchase } from "./verify";
 
 const SCOPE = "https://www.googleapis.com/auth/androidpublisher";
@@ -88,4 +89,36 @@ export async function consumeGooglePurchase(productId: string, token: string, de
     throw new Error("google purchases.products.consume request failed");
   }
   if (!res.ok) throw new Error(`google purchases.products.consume HTTP ${res.status}`);
+}
+
+// ── 환불 알림 푸시 인증 ──
+
+/** 라이브러리 자리 — 테스트는 네트워크(구글 공개키 받기) 없이 바꿔 끼운다 */
+export type PushAuthDeps = {
+  verifyIdToken(idToken: string, audience: string): Promise<{ email?: string; email_verified?: boolean } | undefined>;
+};
+
+let oauth: OAuth2Client | null = null;
+const realPushDeps: PushAuthDeps = {
+  async verifyIdToken(idToken, audience) {
+    oauth ??= new OAuth2Client(); // 구글 공개키는 라이브러리가 받아 두고 재사용한다
+    const ticket = await oauth.verifyIdToken({ idToken, audience });
+    return ticket.getPayload();
+  },
+};
+
+/** Pub/Sub 푸시의 Authorization: Bearer <OIDC 토큰> — 구글 서명·대상·만료(라이브러리) + 보낸 서비스 계정 이메일·검증됨. 설정이 없으면 던진다(라우트는 그 전에 503) */
+export async function verifyGooglePushAuth(authorization: string | null, deps: PushAuthDeps = realPushDeps): Promise<boolean> {
+  const { GOOGLE_PUBSUB_PUSH_EMAIL: email, GOOGLE_PUBSUB_AUDIENCE: audience } = process.env;
+  if (!email || !audience) throw new Error("GOOGLE_PUBSUB_PUSH_EMAIL / GOOGLE_PUBSUB_AUDIENCE not set");
+  const m = /^Bearer (\S+)$/.exec(authorization ?? "");
+  if (!m) return false;
+  let payload: { email?: string; email_verified?: boolean } | undefined;
+  try {
+    payload = await deps.verifyIdToken(m[1], audience);
+  } catch {
+    // 서명·대상·만료 거절(라이브러리 오류 글엔 토큰이 실리기도 한다 — 버린다)
+    return false;
+  }
+  return payload?.email === email && payload.email_verified === true;
 }

@@ -2,6 +2,7 @@
 // 애플 루트 인증서(이 폴더의 apple-root-ca-g3.cer)로 검증한다(@apple/app-store-server-library). 스펙 2026-11-23-앱-결제 §3.
 // Production 에서 먼저 찾고 없으면(4040010) Sandbox — 앱 심사자는 운영 빌드에서 샌드박스로 산다(그 거래도 별은 준다, 매출 0원).
 // 서버 비밀값: APPLE_IAP_KEY_ID · APPLE_IAP_ISSUER_ID · APPLE_IAP_PRIVATE_KEY(앱 결제 키 .p8) · APPLE_APP_ID(숫자 — Production 서명 검증에 필수)
+// 환불 알림(App Store Server Notifications v2, 스펙 §4)도 같은 검증기·같은 결제 고유 번호(appleTid)로 푼다 — verifyAppleRefundNotification.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -9,10 +10,12 @@ import {
   APIException,
   AppStoreServerAPIClient,
   Environment,
+  NotificationTypeV2,
   SignedDataVerifier,
   VerificationException,
   VerificationStatus,
   type JWSTransactionDecodedPayload,
+  type ResponseBodyV2DecodedPayload,
   type TransactionInfoResponse,
 } from "@apple/app-store-server-library";
 import { IAP_APP_ID, type VerifiedPurchase } from "./verify";
@@ -61,6 +64,11 @@ const realDeps: AppleDeps = {
   verifyTransaction: (environment, signed) => verifier(environment).verifyAndDecodeTransaction(signed),
 };
 
+/** payments.pg_tid — 운영 apple:<transactionId> · 샌드박스(앱 심사자·테스트) apple-sandbox:<transactionId>. 거래 확인과 환불 알림이 같이 쓴다 */
+export function appleTid(environment: Environment, transactionId: string): string {
+  return (environment === Environment.SANDBOX ? "apple-sandbox:" : "apple:") + transactionId;
+}
+
 const apiErrorOf = (err: unknown): unknown => (err instanceof APIException ? err.apiError : undefined);
 
 // 라이브러리 오류는 super() 로 message 없이 만들어져 로거(lib/logger.ts)엔 "Error" 만 남는다 — 상태를 글로 옮긴다.
@@ -106,7 +114,7 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
     return {
       store: "apple",
       productId: tx.productId,
-      tid: (sandbox ? "apple-sandbox:" : "apple:") + transactionId,
+      tid: appleTid(environment, transactionId),
       sandbox,
       accountToken: tx.appAccountToken ? tx.appAccountToken.toLowerCase() : null,
       revoked: !!tx.revocationDate,
@@ -114,4 +122,66 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
     };
   }
   return null;
+}
+
+// ── 환불 알림 ──
+
+/** 라이브러리 자리 — 테스트는 이 둘을 바꿔 끼운다 */
+export type AppleNotifyDeps = {
+  verifyNotification(environment: Environment, signedPayload: string): Promise<ResponseBodyV2DecodedPayload>;
+  verifyTransaction(environment: Environment, signedTransactionInfo: string): Promise<JWSTransactionDecodedPayload>;
+};
+
+const realNotifyDeps: AppleNotifyDeps = {
+  verifyNotification: (environment, signed) => verifier(environment).verifyAndDecodeNotification(signed),
+  verifyTransaction: (environment, signed) => verifier(environment).verifyAndDecodeTransaction(signed),
+};
+
+/** invalid = 애플이 서명한 우리 앱 알림이 아니다(라우트 401) · ignored = REFUND 가 아닌 알림(200) · refund = 이 결제를 회수 */
+export type AppleNotification =
+  | { kind: "invalid"; reason: string }
+  | { kind: "ignored"; notificationType: string }
+  | { kind: "refund"; tid: string };
+
+// Production 검증기가 이 둘로 거절하면 샌드박스 알림일 수 있다(샌드박스엔 앱 숫자 ID 가 없어 앱 ID 불일치로 먼저 걸린다) — Sandbox 로 한 번 더.
+// 받아들이는 쪽 검증기가 서명(고정한 루트 인증서까지의 체인)·번들 ID·환경을 다 확인하므로 거래 확인과 같은 수준이다
+const TRY_SANDBOX = new Set<VerificationStatus>([VerificationStatus.INVALID_APP_IDENTIFIER, VerificationStatus.INVALID_ENVIRONMENT]);
+
+/** 알림을 검증해 환불이면 결제 고유 번호를 돌려준다. 인증서 폐기 확인 실패(RETRYABLE)·설정 오류·REFUND 인데 거래가 없거나 거래 검증 실패는 던진다(라우트 500 → 애플이 다시 보낸다) */
+export async function verifyAppleRefundNotification(signedPayload: string, deps: AppleNotifyDeps = realNotifyDeps): Promise<AppleNotification> {
+  let environment: Environment = Environment.PRODUCTION;
+  let note: ResponseBodyV2DecodedPayload;
+  try {
+    note = await deps.verifyNotification(environment, signedPayload);
+  } catch (err) {
+    if (!(err instanceof VerificationException) || !TRY_SANDBOX.has(err.status)) return notifyFailure(err);
+    environment = Environment.SANDBOX;
+    try {
+      note = await deps.verifyNotification(environment, signedPayload);
+    } catch (err2) {
+      return notifyFailure(err2);
+    }
+  }
+
+  const notificationType = note.notificationType ?? "UNKNOWN";
+  if (notificationType !== NotificationTypeV2.REFUND) return { kind: "ignored", notificationType };
+
+  const signedTx = note.data?.signedTransactionInfo;
+  if (!signedTx) throw new Error("apple REFUND notification: signedTransactionInfo missing");
+  let tx: JWSTransactionDecodedPayload;
+  try {
+    tx = await deps.verifyTransaction(environment, signedTx);
+  } catch (err) {
+    throw describeVerifyError(err);
+  }
+  if (!tx.transactionId) throw new Error("apple REFUND notification: transactionId missing");
+  return { kind: "refund", tid: appleTid(environment, tx.transactionId) };
+}
+
+/** 서명·체인·앱 불일치 = invalid. 인증서 폐기 확인을 못 함(RETRYABLE)·우리 쪽 오류는 던진다 */
+function notifyFailure(err: unknown): AppleNotification {
+  if (err instanceof VerificationException && err.status !== VerificationStatus.RETRYABLE_VERIFICATION_FAILURE) {
+    return { kind: "invalid", reason: VerificationStatus[err.status] ?? "UNKNOWN" };
+  }
+  throw describeVerifyError(err);
 }
