@@ -19,6 +19,7 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS clawback_shortfall INT;
 -- 환불로 별을 회수한다. 잔액이 모자라면 있는 만큼만 거두고 나머지는 shortfall 로 반환.
 -- 거둔 양이 0 이어도 'refund' 거래 행을 남긴다 — 그 행이 멱등 기준(payment_id UNIQUE)이다.
 -- amount 는 spend_stars 와 같이 양수로 저장, total_spent 에 합산한다.
+-- ⚠️ VOLATILE 유지(STABLE 로 바꾸지 말 것) — 잠금 뒤 재확인이 문장 단위 스냅샷에 기대고 있다.
 -- 멱등 확인은 star_balances 행 잠금(FOR UPDATE) 뒤에 한다 — 같은 환불 두 건이 직렬화되어
 -- 두 번째가 첫 번째 행을 본다. 잔액 행이 없어 잠금이 없는 경우의 동시 INSERT 는
 -- unique_violation 핸들러가 기존 행으로 멱등 응답한다(charge_stars 와 같은 방식).
@@ -44,6 +45,15 @@ BEGIN
   IF p_amount IS NULL OR p_amount <= 0 THEN
     RETURN jsonb_build_object(
       'success', false, 'reason', 'invalid_amount',
+      'clawed', 0, 'shortfall', 0, 'balance_after', 0, 'idempotent', false
+    );
+  END IF;
+
+  -- payment_id 는 'clawback:' 로 시작해야 한다. NULL 이면 유니크 인덱스가 중복을 못 막아 재시도마다 또 거두고,
+  -- 충전 행의 원본 payments.id 와 부딪히면 조용한 무동작이 된다. NULL-safe: left(NULL,9) 는 NULL 이라 IS NULL 을 먼저 본다.
+  IF p_payment_id IS NULL OR left(p_payment_id, 9) <> 'clawback:' THEN
+    RETURN jsonb_build_object(
+      'success', false, 'reason', 'invalid_payment_id',
       'clawed', 0, 'shortfall', 0, 'balance_after', 0, 'idempotent', false
     );
   END IF;
@@ -103,6 +113,14 @@ BEGIN
      WHERE st.payment_id = p_payment_id
        AND st.type = 'refund'
      LIMIT 1;
+
+    IF NOT FOUND THEN
+      -- refund 행이 아닌 다른 거래가 같은 payment_id 를 차지한 경우: 성공으로 위장하지 않는다
+      RETURN jsonb_build_object(
+        'success', false, 'reason', 'payment_id_conflict',
+        'clawed', 0, 'shortfall', 0, 'balance_after', 0, 'idempotent', false
+      );
+    END IF;
 
     RETURN jsonb_build_object(
       'success', true,
