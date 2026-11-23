@@ -69,8 +69,21 @@ function connect(): Promise<void> {
 }
 
 // 결과를 기다리는 구매 — 스토어 창은 한 번에 하나(flow.ts 도 하나만 연다)
-type Waiter = { productId: string; since: number; resolve(o: PurchaseOutcome): void; reject(e: unknown): void };
+// grace = iOS 빈 반환 뒤 늦게 올 알림을 기다리는 타이머(아래 purchase)
+type Waiter = {
+  productId: string;
+  since: number;
+  resolve(o: PurchaseOutcome): void;
+  reject(e: unknown): void;
+  grace?: ReturnType<typeof setTimeout>;
+};
 let waiting: Waiter | null = null;
+
+/** 기다리는 구매를 비운다(타이머도) — 그 구매를 끝내는 쪽만 부른다 */
+function release(w: Waiter): void {
+  if (waiting === w) waiting = null;
+  if (w.grace) clearTimeout(w.grace);
+}
 
 // iOS 에서 requestPurchase 반환값으로 끝낸 거래 — 같은 거래가 알림으로도 오면 한 번만 처리한다(아래 purchase)
 const settledByReturn = new Set<string>();
@@ -81,7 +94,7 @@ function onUpdated(p: Purchase, onStorePurchase: (s: StorePurchase) => void): vo
   const s = toStorePurchase(p);
   const w = waiting;
   if (w && p.productId === w.productId && p.transactionDate >= w.since - CLOCK_SKEW_MS) {
-    waiting = null;
+    release(w);
     w.resolve(s);
     return;
   }
@@ -91,7 +104,7 @@ function onUpdated(p: Purchase, onStorePurchase: (s: StorePurchase) => void): vo
 function onError(e: { code?: unknown; productId?: string | null }): void {
   const w = waiting;
   if (!w || (e.productId && e.productId !== w.productId)) return;
-  waiting = null;
+  release(w);
   const o = outcomeOfError(e);
   if (o) w.resolve(o);
   else w.reject(e);
@@ -121,11 +134,16 @@ export const iapStore: Pick<IapDeps, "fetchProducts" | "purchase" | "pending" | 
 
   async purchase(productId: string, accountToken: string): Promise<PurchaseOutcome> {
     await connect();
-    waiting?.reject(new Error("superseded"));
+    if (waiting) {
+      const old = waiting;
+      release(old);
+      old.reject(new Error("superseded"));
+    }
+    let me!: Waiter;
     const mine = new Promise<PurchaseOutcome>((resolve, reject) => {
-      waiting = { productId, since: Date.now(), resolve, reject };
+      me = { productId, since: Date.now(), resolve, reject };
     });
-    const me = waiting;
+    waiting = me;
     let returned: Purchase | Purchase[] | null | undefined;
     try {
       returned = await requestPurchase({
@@ -139,7 +157,7 @@ export const iapStore: Pick<IapDeps, "fetchProducts" | "purchase" | "pending" | 
       // 알림이 먼저 짝을 풀었으면 그 결과가 이미 정해졌다
       if (waiting !== me) return mine;
       // 바로 거절(취소가 알림 대신 여기로 오기도 한다)
-      waiting = null;
+      release(me);
       const o = outcomeOfError(e);
       if (o) return o;
       throw e;
@@ -147,8 +165,16 @@ export const iapStore: Pick<IapDeps, "fetchProducts" | "purchase" | "pending" | 
     // iOS 는 승인 대기(구입 요청)면 알림 없이 nil 로 끝날 수 있다 — 반환값으로도 끝낸다(request.ts)
     const after = afterRequestPurchase(Platform.OS === "ios" ? "ios" : "android", waiting === me, returned);
     if (after.kind === "wait") return mine;
-    waiting = null;
-    if (after.kind === "pending") return "pending";
+    if (after.kind === "pendingAfter") {
+      // 빈 반환이 취소 알림보다 먼저 닿을 수 있다(알림은 따로 메인 스레드를 거쳐 온다) — 잠깐 알림을 기다리고, 그래도 없으면 승인 대기
+      me.grace = setTimeout(() => {
+        if (waiting !== me) return;
+        release(me);
+        me.resolve("pending");
+      }, after.ms);
+      return mine;
+    }
+    release(me);
     const s = toStorePurchase(after.purchase);
     if (s.transactionId) settledByReturn.add(s.transactionId);
     return s;
