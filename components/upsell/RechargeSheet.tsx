@@ -17,6 +17,7 @@ import Icon from "@/components/common/Icon";
 import { useStorePurchase } from "@/components/shop/useStorePurchase";
 import TossPaymentBridge, { type TossPayment } from "@/components/shop/TossPaymentBridge";
 import { IAP_NOTICE, iapResultNotice } from "@/lib/app-iap";
+import { appHaptic } from "@/lib/app-context";
 import { safeInternalPath } from "@/lib/safe-internal-path";
 
 const SHEET_PKG_IDS = sheetPackages().map((p) => p.id);
@@ -104,6 +105,8 @@ export default function RechargeSheet({
     }
     setError(null);
     setStoreNotice(null);
+    // 앱 안에서 지난번에 가격을 못 받았으면 다시 묻는다(시트는 늘 붙어 있어 마운트 때 한 번뿐이라 '다시 열어줘' 가 빈말이 된다)
+    store.retryPrices();
     setSelectedId("star_30"); // 부족분 모르면 이 값 유지
     setRecommendedId("star_30");
     setEligibilityLoaded(false);
@@ -204,6 +207,7 @@ export default function RechargeSheet({
     });
     const r = await store.buy(pkg.id);
     if (r.ok) {
+      appHaptic("success"); // 상점 완료 화면과 같은 진동(앱 caps ui) — 토스는 상점 완료 화면을 거쳐 돌아오며 그쪽이 진동한다
       savePendingUpsell(pendingUpsell);
       window.dispatchEvent(new Event("byeolkong:balance-updated"));
       // 토스 성공과 같은 자리 — returnTo(검증), 없으면 상점 완료 화면

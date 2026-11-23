@@ -34,18 +34,26 @@ function ask<T>(win: BridgeWindow | undefined, message: string, pick: (detail: u
   });
 }
 
-/** 스토어 가격(id → 현지 통화 문자열). 시간 초과·앱 밖이면 null — 우리 상수 가격으로 대신하지 않는다(스토어 가격을 보여야 한다) */
+/** 스토어 가격(id → 현지 통화 문자열, 물은 id 만). 시간 초과·앱 밖이면 null — 우리 상수 가격으로 대신하지 않는다(스토어 가격을 보여야 한다).
+ *  앱이 답했어도 물은 id 중 하나도 가격이 없으면(스토어에 상품이 안 잡힘) null = 못 받음 — 카드가 '…' 에 멈춘 채 안내도 없게 두지 않는다 */
 export function askAppIapProducts(ids: string[], timeoutMs = 5000, win?: Window): Promise<Record<string, string> | null> {
   return ask<Record<string, string> | null>(
     bridgeWindow(win),
     encodeWebToAppWith("iap.products", { ids }),
     (detail) => {
       const msg = parseAppToWeb(detail);
-      return msg?.type === "iap.products" ? Object.fromEntries(msg.items.map((it) => [it.id, it.price])) : undefined;
+      if (msg?.type !== "iap.products") return undefined;
+      const priced = msg.items.filter((it) => ids.includes(it.id));
+      return priced.length > 0 ? Object.fromEntries(priced.map((it) => [it.id, it.price])) : null;
     },
     null,
     timeoutMs,
   );
+}
+
+/** 스토어 가격을 (다시) 물을 때인가 — 앱 안 · 아직 못 받음 · 묻는 중 아님. 충전 시트는 늘 붙어 있어 열 때마다 이걸로 거른다 */
+export function needsPriceAsk(s: { inApp: boolean; prices: Record<string, string> | null; inFlight: boolean }): boolean {
+  return s.inApp && s.prices === null && !s.inFlight;
 }
 
 let inflight: Promise<IapResult> | null = null;
