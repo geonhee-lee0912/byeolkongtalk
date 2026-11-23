@@ -10,7 +10,9 @@
 - 계획 `docs/superpowers/plans/2026-11-23-앱-결제.md`(Task 1~8) 실행 중 — 태스크마다 새 구현 에이전트 + 별도 리뷰(운영자 선택)
 - **PR 나누는 법**: 이 브랜치(`claude/app-iap`)가 작업·인계용이고 `HANDOFF.md` 를 가진다. PR 은 CI `handoff-guard` 때문에 `origin/dev` 에서 따로 딴 브랜치(`claude/app-iap-db`·`-server`·`-web`·`-app`)에 그 PR 의 코드만 옮겨 연다. PR 이 머지되면 `origin/dev` 를 이 브랜치에 merge(rebase 금지)
 - Task 1(마이그레이션) 끝 → PR #81(`claude/app-iap-db`, base dev) — `@codex review` 요청함, Claude 리뷰는 막는 결함 0(사소한 6건). **운영자 머지 대기**
-- Task 2~ 는 이 브랜치에서 진행(서버 PR 은 #81 머지·Supabase dev 체크 success·카나리아 뒤에 연다)
+- Task 2~5(서버: 공용 지급 함수 · `POST/GET /api/payment/iap` · 애플·구글 환불 알림 → 회수 · 어드민 스토어 매출 표) 구현·리뷰 끝, 이 브랜치에 커밋(`4aed4ca0..c38ccb02`). 서버 PR 은 #81 머지·Supabase dev 체크 success·카나리아 뒤에 `claude/app-iap-server` 로 연다. 어드민 실렌더 확인도 그때(새 칸이 dev DB 에 있어야 함)
+- Task 6(웹 상점·충전 시트 앱 분기) 진행 중
+- 운영자에게 물을 것(막지는 않음): TestFlight 구매는 공짜 샌드박스라 운영 앱 변형으로 시험하는 사람은 운영 계정에 별을 무료로 얻는다(₩0 결제 행). 심사용으로 정한 "샌드박스도 별 지급"의 부작용 — 외부 테스터를 안 쓰기 / 상한 / 어드민 감시 중 고르기 · 실기기 샌드박스 시험은 dev 변형(`.app.dev`)에 스토어 상품이 없어 사실상 운영 변형 + 운영 서버(배포 뒤)이거나 `.dev` 스토어 레코드를 따로 만들어야 한다 · 플레이 콘솔에서 수량 여러 개 구매가 꺼져 있는지 · `GOOGLE_PUBSUB_AUDIENCE` 는 푸시 구독 값과 정확히 같아야 한다
 - 운영자 콘솔 준비(애플 유료 앱 계약·Small Business Program·앱 결제 키 / 구글 결제 프로필·15% 구간·서비스 계정·테스터 모집)는 운영자가 진행 중
 
 ## 다음 할 일
