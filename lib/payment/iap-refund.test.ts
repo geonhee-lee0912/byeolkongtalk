@@ -140,6 +140,27 @@ test("탈퇴로 user_id NULL → 회수 없이 refunded·시각만, 회수 0 · 
   assert.equal(p.clawback_shortfall, null);
 });
 
+test("결제 별 충전이 실패했던 결제(charge_failed — 충전 거래 없음)·보너스 0 → 회수 함수를 부르지 않고 refunded·회수 0·부족 0", async () => {
+  const { refund, fakes } = await setup();
+  fakes.seedPayment({ bonus_stars: 0 }, { charged: false });
+  assert.deepEqual(await refund.refundIapPayment(APPLE_TID), { kind: "clawed", clawed: 0, shortfall: 0 });
+  assert.equal(fakes.state.clawbacks.length, 0, "주지 않은 별을 다른 별에서 거두면 안 된다");
+  assert.equal(fakes.state.balance, 20);
+  const p = fakes.state.payments[0];
+  assert.equal(p.status, "refunded");
+  assert.ok(p.refunded_at);
+  assert.equal(p.stars_clawed_back, 0);
+  assert.equal(p.clawback_shortfall, 0);
+  assert.equal(fakes.state.logs.length, 0);
+});
+
+test("충전 거래가 있으면 결제 별+보너스(12)를 그대로 거둔다", async () => {
+  const { refund, fakes } = await setup();
+  fakes.seedPayment({}, { charged: true });
+  assert.deepEqual(await refund.refundIapPayment(APPLE_TID), { kind: "clawed", clawed: 12, shortfall: 0 });
+  assert.deepEqual(fakes.state.clawbacks, [{ userId: fakes.USER_ID, amount: 12, paymentId: "clawback:pay-1" }]);
+});
+
 test("회수 실패(success:false) → 던진다, refunded 로 바꾸지 않는다(다음 재전송이 다시 시도)", async () => {
   const { refund, fakes } = await setup();
   fakes.seedPayment();
