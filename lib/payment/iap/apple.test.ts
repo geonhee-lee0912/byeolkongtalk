@@ -2,7 +2,7 @@
 // '거래 → VerifiedPurchase' 매핑과 Production → Sandbox 재시도 규칙을 잠근다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { APIError, APIException, Environment } from "@apple/app-store-server-library";
+import { APIError, APIException, Environment, VerificationException, VerificationStatus } from "@apple/app-store-server-library";
 import type { JWSTransactionDecodedPayload } from "@apple/app-store-server-library";
 import { verifyAppleTransaction, type AppleDeps } from "./apple.ts";
 
@@ -82,20 +82,60 @@ test("거래 id 형식이 틀림(4000006) → null, Sandbox 재시도 안 함", 
   assert.deepEqual(calls.lookups, [Environment.PRODUCTION]);
 });
 
-test("그 밖의 애플 오류(키 거절 401·장애 500)는 던진다 — Sandbox 로 넘어가 가리지 않는다", async () => {
-  for (const status of [401, 500]) {
-    const { d, calls } = deps({ [Environment.PRODUCTION]: new APIException(status, null, "boom") });
-    await assert.rejects(verifyAppleTransaction(TXN, d), APIException);
+// 라이브러리 오류(APIException·VerificationException)는 message 가 빈 채 만들어져 로그엔 "Error" 만 남는다 — 상태를 글로 옮겨 다시 던지는지 본다
+const noIds = (err: Error) => !err.message.includes(TXN);
+
+test("그 밖의 애플 오류(키 거절 401·장애 500)는 던진다 — Sandbox 로 넘어가 가리지 않고, 오류 글에 HTTP 상태·apiError(거래 id 는 없이)", async () => {
+  const cases: [number, number | null, string][] = [
+    [401, null, "apple getTransactionInfo HTTP 401 apiError null"],
+    [500, APIError.GENERAL_INTERNAL, `apple getTransactionInfo HTTP 500 apiError ${APIError.GENERAL_INTERNAL}`],
+  ];
+  for (const [status, apiError, message] of cases) {
+    const { d, calls } = deps({ [Environment.PRODUCTION]: new APIException(status, apiError, "boom") });
+    await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+      assert.equal(err.message, message);
+      assert.ok(noIds(err));
+      return true;
+    });
     assert.deepEqual(calls.lookups, [Environment.PRODUCTION]);
   }
 });
 
-test("서명 검증 실패는 던진다", async () => {
+test("애플 요청 자체가 실패(node-fetch FetchError — 글에 거래 id 가 든 주소가 실린다) → 주소를 버리고 오류 코드만", async () => {
+  const fetchErr = Object.assign(new Error(`request to https://api.storekit.itunes.apple.com/inApps/v1/transactions/${TXN} failed`), {
+    name: "FetchError",
+    code: "ECONNRESET",
+  });
+  const { d } = deps({ [Environment.PRODUCTION]: fetchErr });
+  await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+    assert.equal(err.message, "apple getTransactionInfo request failed ECONNRESET");
+    assert.ok(noIds(err));
+    return true;
+  });
+});
+
+test("설정 오류(키 없음 등 우리 쪽 Error)는 글 그대로 던진다", async () => {
+  const { d } = deps({ [Environment.PRODUCTION]: new Error("APPLE_IAP_KEY_ID / APPLE_IAP_ISSUER_ID / APPLE_IAP_PRIVATE_KEY not set") });
+  await assert.rejects(verifyAppleTransaction(TXN, d), /APPLE_IAP_KEY_ID .* not set/);
+});
+
+test("서명 검증 실패(VerificationException)는 상태 번호·이름을 글로 옮겨 던진다", async () => {
   const { d } = deps({ [Environment.PRODUCTION]: payload() });
   d.verifyTransaction = async () => {
-    throw new Error("VerificationException");
+    throw new VerificationException(VerificationStatus.INVALID_CERTIFICATE);
   };
-  await assert.rejects(verifyAppleTransaction(TXN, d));
+  await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+    assert.equal(err.message, `apple JWS verification failed status ${VerificationStatus.INVALID_CERTIFICATE} INVALID_CERTIFICATE`);
+    return true;
+  });
+});
+
+test("검증기 준비 실패(APPLE_APP_ID 숫자 아님 등 우리 쪽 Error)는 글 그대로 던진다", async () => {
+  const { d } = deps({ [Environment.PRODUCTION]: payload() });
+  d.verifyTransaction = async () => {
+    throw new Error("APPLE_APP_ID not set or not numeric");
+  };
+  await assert.rejects(verifyAppleTransaction(TXN, d), /APPLE_APP_ID not set or not numeric/);
 });
 
 test("signedTransactionInfo 가 비면 던진다", async () => {

@@ -10,6 +10,8 @@ import {
   AppStoreServerAPIClient,
   Environment,
   SignedDataVerifier,
+  VerificationException,
+  VerificationStatus,
   type JWSTransactionDecodedPayload,
   type TransactionInfoResponse,
 } from "@apple/app-store-server-library";
@@ -61,6 +63,24 @@ const realDeps: AppleDeps = {
 
 const apiErrorOf = (err: unknown): unknown => (err instanceof APIException ? err.apiError : undefined);
 
+// 라이브러리 오류는 super() 로 message 없이 만들어져 로거(lib/logger.ts)엔 "Error" 만 남는다 — 상태를 글로 옮긴다.
+// node-fetch FetchError 의 글엔 거래 id 가 든 요청 주소가 실려 그 글은 버리고 오류 코드만 남긴다. 우리 쪽 Error(설정 없음 등)는 그대로
+function describeLookupError(err: unknown): unknown {
+  if (err instanceof APIException) return new Error(`apple getTransactionInfo HTTP ${err.httpStatusCode} apiError ${String(err.apiError)}`);
+  if (err instanceof Error && err.name === "FetchError") {
+    const code = (err as { code?: unknown }).code;
+    return new Error(`apple getTransactionInfo request failed${typeof code === "string" ? ` ${code}` : ""}`);
+  }
+  return err;
+}
+
+function describeVerifyError(err: unknown): unknown {
+  if (err instanceof VerificationException) {
+    return new Error(`apple JWS verification failed status ${err.status} ${VerificationStatus[err.status] ?? "UNKNOWN"}`);
+  }
+  return err;
+}
+
 /** 거래가 없거나(두 환경 다 4040010)·id 형식이 틀리거나·다른 앱·다른 거래면 null. 애플 장애·키 거절·서명 검증 실패는 던진다 */
 export async function verifyAppleTransaction(transactionId: string, deps: AppleDeps = realDeps): Promise<VerifiedPurchase | null> {
   for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
@@ -71,11 +91,16 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
       const code = apiErrorOf(err);
       if (code === APIError.TRANSACTION_ID_NOT_FOUND) continue;
       if (code === APIError.INVALID_TRANSACTION_ID) return null;
-      throw err;
+      throw describeLookupError(err);
     }
     if (!info.signedTransactionInfo) throw new Error("apple getTransactionInfo: signedTransactionInfo missing");
     // 서명·번들 ID·환경은 라이브러리가 확인한다(틀리면 VerificationException). 아래는 그 위의 이중 확인
-    const tx = await deps.verifyTransaction(environment, info.signedTransactionInfo);
+    let tx: JWSTransactionDecodedPayload;
+    try {
+      tx = await deps.verifyTransaction(environment, info.signedTransactionInfo);
+    } catch (err) {
+      throw describeVerifyError(err);
+    }
     if (tx.bundleId !== IAP_APP_ID || tx.transactionId !== transactionId || !tx.productId) return null;
     const sandbox = environment === Environment.SANDBOX;
     return {
