@@ -10,3 +10,8 @@ test("RefundButton 은 pg_provider === 'tosspayments' 줄에서만 렌더된다"
   const before = src.slice(Math.max(0, i - 200), i);
   assert.match(before, /pg_provider === "tosspayments"/);
 });
+
+test("탈퇴 회원 표시는 user_id 가 없을 때만, 회원인데 shortfall NULL 이면 회수 대기", () => {
+  const src = readFileSync("app/admin/payments/page.tsx", "utf8");
+  assert.match(src, /!p\.user_id \?[\s\S]{0,80}탈퇴 회원[\s\S]{0,80}clawback_shortfall == null[\s\S]{0,120}회수 대기/);
+});
