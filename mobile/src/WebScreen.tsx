@@ -9,7 +9,16 @@ import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import * as Haptics from "expo-haptics";
-import { APP_EVENT, appUserAgentSuffix, encodeAppToWeb, encodeAppToWebBack, parseWebToApp, type PushState } from "../../lib/app-bridge/protocol.ts";
+import {
+  APP_EVENT,
+  appUserAgentSuffix,
+  encodeAppToWeb,
+  encodeAppToWebBack,
+  encodeAppToWebIapProducts,
+  encodeAppToWebIapResult,
+  parseWebToApp,
+  type PushState,
+} from "../../lib/app-bridge/protocol.ts";
 import { decideAndroidBack, iosPullEnabled, overlayAfterLoadStart } from "./ui.ts";
 import { appInfo, config } from "./config";
 import { decideNavigation, parseIntentUrl, type NavDecision } from "./linkRules.ts";
@@ -20,6 +29,9 @@ import { secureTokenStore } from "./auth/tokenStore";
 import { authApi, isAuthError, reportLoginFailure } from "./auth/api";
 import { appleNativeLogin, kakaoNativeLogin, LoginCancelled } from "./auth/nativeLogin";
 import OfflineView from "./OfflineView";
+import { createIapFlow } from "./iap/flow.ts";
+import { iapStore, listenIapStore } from "./iap/store";
+import { confirmPurchase, fetchAccountToken } from "./iap/api";
 import { pathFromNotificationResponse, UNSUBSCRIBE_ACTION } from "./push/state.ts";
 import {
   ensureAndroidChannel,
@@ -42,6 +54,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 showNotificationsInForeground();
 
 const auth = createAuthSession({ store: secureTokenStore, api: authApi, isAuthError });
+// 앱 결제 — 스토어 결제 → 서버 확인 → 마무리(규칙은 iap/flow.ts). 계정 토큰은 이 안의 메모리에만(로그아웃 때 비운다)
+const iap = createIapFlow({
+  ensureAccessToken: auth.ensureAccessToken,
+  accountToken: fetchAccountToken,
+  ...iapStore,
+  confirm: confirmPurchase,
+  warn: (m, e) => console.warn(m, e),
+});
 const UA_SUFFIX = appUserAgentSuffix(appInfo);
 /** 로그인 연타 막기 — 이 시간 안에 다시 온 로그인 시작은 버린다(같은 로그인 화면이 두 번 뜨지 않게) */
 const LOGIN_TAP_GUARD_MS = 1_000;
@@ -151,6 +171,8 @@ export default function WebScreen() {
     // reset = 이 기기 로그인이 끝났다(웹 로그아웃 없이 갱신 401·재사용·만료로 끝난 것 포함) — 이 기기 알림 묶음도 푼다.
     // 앞서 로그아웃 때 해제가 실패했어도 여기서 다시 한다. 기억한 토큰이 없으면 아무것도 안 하고 던지지 않는다. 기다리지 않는다
     if (target.kind === "reset") void unregisterPush();
+    // 결제는 됐는데 서버 확인 전에 앱이 꺼진 거래를 다시 보낸다(로그인 안 됨이면 아무것도 안 한다)
+    void iap.resumePending();
     setSource(
       target.kind === "handoff"
         ? handoff(target.code, next, "launch")
@@ -191,6 +213,9 @@ export default function WebScreen() {
     }
     return () => sub?.remove();
   }, []);
+
+  // 스토어 알림 — 기다리는 구매와 짝이 없는 거래(승인 대기가 풀림·늦게 온 결과)도 서버 확인까지
+  useEffect(() => listenIapStore((p) => void iap.handleStorePurchase(p)), []);
 
   // 앱이 떠 있을 때 들어온 딥링크
   useEffect(() => {
@@ -255,6 +280,9 @@ export default function WebScreen() {
         coveringRef.current = true;
         setCovering(true);
         const r = await auth.login(payload);
+        // 이 회원의 미완료 거래(앞서 로그인 없이 끝난 결제 등)를 보낸다. 계정 토큰은 새 액세스 토큰으로 다시 받는다
+        iap.forgetAccount();
+        void iap.resumePending();
         // 이미 알림을 허락한 기기면 이 회원으로 다시 등록한다(로그아웃 때 서버에서 지웠다). 다음 실행까지 기다리지 않게
         void syncPushToken(auth.ensureAccessToken);
         handoffLoading.current = true;
@@ -311,13 +339,16 @@ export default function WebScreen() {
     [act],
   );
 
-  /** 웹에 알림 권한 상태를 알린다 — window 의 CustomEvent(APP_EVENT). 웹은 요청마다 답 하나를 기다리니 요청마다 꼭 한 번 부른다.
-   *  🔴 상태만 싣는다 — 푸시 토큰·앱 토큰은 넘기지 않는다 */
-  const replyPushState = useCallback((state: PushState) => {
+  /** 웹에 알린다 — window 의 CustomEvent(APP_EVENT), detail = encodeAppToWeb* 가 만든 문자열 */
+  const sendToWeb = useCallback((detail: string) => {
     webRef.current?.injectJavaScript(
-      `window.dispatchEvent(new CustomEvent(${JSON.stringify(APP_EVENT)},{detail:${JSON.stringify(encodeAppToWeb(state))}}));true;`,
+      `window.dispatchEvent(new CustomEvent(${JSON.stringify(APP_EVENT)},{detail:${JSON.stringify(detail)}}));true;`,
     );
   }, []);
+
+  /** 웹에 알림 권한 상태를 알린다. 웹은 요청마다 답 하나를 기다리니 요청마다 꼭 한 번 부른다.
+   *  🔴 상태만 싣는다 — 푸시 토큰·앱 토큰은 넘기지 않는다 */
+  const replyPushState = useCallback((state: PushState) => sendToWeb(encodeAppToWeb(state)), [sendToWeb]);
 
   const onMessage = useCallback(
     (e: MessageEvent) => {
@@ -330,6 +361,7 @@ export default function WebScreen() {
           // auth.logout 은 리프레시 토큰 키만 지운다(auth/tokenStore.ts) — push_token 은 그대로라 순서가 필요 없다
           void unregisterPush();
           void auth.logout();
+          iap.forgetAccount();
           break;
         case "push.status":
           void getPushState().then(replyPushState);
@@ -353,9 +385,17 @@ export default function WebScreen() {
             : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
           ).catch(() => {});
           break;
+        case "iap.products":
+          void iap.products(msg.payload.ids).then((items) => sendToWeb(encodeAppToWebIapProducts(items)));
+          break;
+        case "iap.buy":
+          // 웹은 이 답 하나를 기다리며 다른 구매를 막는다 — iap.buy 는 어느 길로 가든 결과를 하나 돌려준다(던지지 않는다, iap/flow.ts).
+          // 🔴 계정 토큰·구매 토큰은 싣지 않는다 — 지급 결과(별·보너스·잔액)나 실패 이유만
+          void iap.buy(msg.payload.productId).then((r) => sendToWeb(encodeAppToWebIapResult(r)));
+          break;
       }
     },
-    [replyPushState],
+    [replyPushState, sendToWeb],
   );
 
   const onError = useCallback((e: ErrorEvent) => {
