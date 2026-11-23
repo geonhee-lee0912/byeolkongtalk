@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askAppIapProducts, buyInApp, iapResultNotice, IAP_NOTICE } from "./app-iap.ts";
+import { askAppIapProducts, buyInApp, iapResultNotice, IAP_NOTICE, needsPriceAsk } from "./app-iap.ts";
 import {
   APP_EVENT,
   encodeAppToWebBack,
@@ -45,6 +45,26 @@ test("가격 — 답이 없으면 시간 초과에 null, 앱 밖·연결 끊김�
   assert.equal(await askAppIapProducts(["star_10"], 5000, fakeWin({ throws: true })), null);
   assert.ok(Date.now() - t < 500);
   assert.equal(await askAppIapProducts(["star_10"], 10), null); // window 없음(node)
+});
+
+test("가격 — 앱이 답했는데 물은 id 중 하나도 가격이 없으면(빈 목록·모르는 id 만) null = 못 받음 — 카드가 '…' 에 멈추지 않게", async () => {
+  assert.equal(await askAppIapProducts(["star_10", "star_30"], 50, fakeWin({ reply: [encodeAppToWebIapProducts([])] })), null);
+  assert.equal(
+    await askAppIapProducts(["star_10"], 50, fakeWin({ reply: [encodeAppToWebIapProducts([{ id: "star_30", price: "₩2,800" }])] })),
+    null,
+  );
+  // 하나라도 있으면 받은 것(나머지 칸은 버튼이 막힌다)
+  assert.deepEqual(
+    await askAppIapProducts(["star_10", "star_30"], 50, fakeWin({ reply: [encodeAppToWebIapProducts([{ id: "star_30", price: "₩2,800" }])] })),
+    { star_30: "₩2,800" },
+  );
+});
+
+test("가격 다시 묻기 — 앱 안 · 아직 가격 없음 · 묻는 중 아님일 때만(시트를 다시 열 때 한 번)", () => {
+  assert.equal(needsPriceAsk({ inApp: true, prices: null, inFlight: false }), true);
+  assert.equal(needsPriceAsk({ inApp: true, prices: null, inFlight: true }), false, "이미 묻는 중 — 겹쳐 묻지 않는다");
+  assert.equal(needsPriceAsk({ inApp: true, prices: { star_10: "₩1,000" }, inFlight: false }), false, "받았으면 다시 안 묻는다");
+  assert.equal(needsPriceAsk({ inApp: false, prices: null, inFlight: false }), false, "앱 밖(토스)엔 묻지 않는다");
 });
 
 test("구매 — 같은 상품의 결과를 돌려준다(다른 상품의 결과·다른 신호는 이 답이 아니다)", async () => {

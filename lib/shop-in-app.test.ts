@@ -72,6 +72,27 @@ test("RechargeSheet — 스토어 성공은 pending_upsell 저장 + returnTo 로
   assert.equal([...src.matchAll(/sessionStorage\.setItem\(/g)].length, 1, "pending_upsell 저장은 한 곳(savePendingUpsell)");
 });
 
+// 상점 완료 화면(finishCharge)과 같이 — 앱 결제 성공은 돌아가기 전에 진동(앱 caps ui). 토스는 상점 완료 화면이 진동한다
+test("RechargeSheet — 스토어 성공은 돌아가기 전에 appHaptic(\"success\")", () => {
+  const src = stripComments(read("components/upsell/RechargeSheet.tsx"));
+  const start = src.indexOf("async function handleStoreCharge(");
+  const body = src.slice(start, src.indexOf("\n  }\n", start));
+  const haptic = body.indexOf('appHaptic("success")');
+  assert.ok(haptic >= 0, "성공 진동이 있다");
+  assert.ok(haptic < body.indexOf("window.location.replace("), "진동이 화면을 바꾸기 전");
+});
+
+// 시트는 읽기 화면에 늘 붙어 있어 마운트 때 한 번만 물으면, 못 받은 뒤 '다시 열어줘' 가 거짓말이 된다 — 열 때마다 다시 묻는다(못 받았을 때만, 겹치지 않게)
+test("RechargeSheet — 열릴 때 스토어 가격을 다시 묻는다(useStorePurchase.retryPrices)", () => {
+  const src = stripComments(read("components/upsell/RechargeSheet.tsx"));
+  const start = src.indexOf("useEffect(() => {\n    if (!open) {");
+  assert.ok(start >= 0, "열림 effect");
+  const effect = src.slice(start, src.indexOf("}, [open]);", start));
+  assert.match(effect, /store\.retryPrices\(\)/);
+  const hook = stripComments(read("components/shop/useStorePurchase.ts"));
+  assert.match(hook, /needsPriceAsk\(/, "다시 묻기는 needsPriceAsk 로 거른다(묻는 중·받음·앱 밖이면 안 묻는다)");
+});
+
 // 스펙 §2 — 앱에선 스토어 가격 문자열만. 우리 원화로 계산한 '별당 N원 · N% 알뜰' 은 앱에서 숨긴다(스토어 가격 단계가 다를 수 있다)
 test("상점 — 카드 아랫줄의 원화 줄은 스토어 경로에서 숨긴다", () => {
   const src = stripComments(read("app/shop/page.tsx"));
