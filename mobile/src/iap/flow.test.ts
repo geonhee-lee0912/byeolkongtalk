@@ -348,6 +348,113 @@ test("계정 토큰 받기가 실패하면 다음 구매 때 다시 받는다", 
   assert.equal((await flow.buy("star_10")).ok, true);
 });
 
+// 최종 리뷰 I3 — 앱이 앞으로 돌아올 때마다 재전송한다(구글은 소비 안 된 구매를 다시 알려 주지 않고, 3일 뒤 자동 환불). 겹치면 하나로
+test("재전송이 진행 중이면 또 불러도 같은 일 — 스토어 미완료 목록은 한 번만 묻는다", async () => {
+  const list = gate<StorePurchase[]>();
+  const { flow, calls } = setup({
+    pending: async () => {
+      calls.push("pending");
+      return list.promise;
+    },
+  });
+  const a = flow.resumePending();
+  await flush();
+  const b = flow.resumePending();
+  await flush();
+  list.resolve([ios("star_10", "t1")]);
+  await Promise.all([a, b]);
+  assert.equal(calls.filter((c) => c === "pending").length, 1);
+  assert.equal(calls.filter((c) => c.startsWith("confirm")).length, 1);
+  // 끝난 뒤엔 다시 돈다
+  await flow.resumePending();
+  assert.equal(calls.filter((c) => c === "pending").length, 2);
+});
+
+// 최종 리뷰 I4 — 안드로이드 '이미 가진 상품'(소비 안 된 지난 구매) = 재전송으로 그 구매를 서버 확인·소비하고 웹에 답한다
+test("이미 가진 상품(already_owned) — 재전송을 돌리고, 그 상품이 지급되면 ok", async () => {
+  const { flow, calls } = setup({
+    purchase: async (productId, accountToken) => {
+      calls.push(`purchase ${productId} ${accountToken}`);
+      return "already_owned";
+    },
+    pending: async () => {
+      calls.push("pending");
+      return [android("star_30", "old-tok")];
+    },
+  });
+  const r = await flow.buy("star_30");
+  assert.deepEqual(r, { productId: "star_30", ok: true, stars: 30, bonusStars: 6, balance: 41 });
+  assert.deepEqual(calls, ["token A1", "purchase star_30 acc-1", "pending", "confirm old-tok A1", "finish old-tok"]);
+});
+
+test("이미 가진 상품인데 재전송이 그 상품을 지급하지 못하면 failed(다음 구매는 다시 열린다)", async () => {
+  const { flow, calls } = setup({
+    purchase: async () => "already_owned",
+    pending: async () => {
+      calls.push("pending");
+      return [android("star_30", "old-tok")];
+    },
+    confirm: async () => err(502, "store_unreachable"),
+  });
+  assert.deepEqual(await flow.buy("star_30"), { productId: "star_30", ok: false, reason: "failed" });
+  assert.ok(calls.includes("pending"));
+  assert.ok(!calls.some((c) => c.startsWith("finish")));
+  const other = setup({ purchase: async () => "already_owned" }); // 목록에 그 상품이 없음
+  assert.deepEqual(await other.flow.buy("star_30"), { productId: "star_30", ok: false, reason: "failed" });
+});
+
+// 최종 리뷰 I2 — 서버에 스토어 비밀값이 없으면 계정 토큰 GET 이 503 → 스토어 창을 열기 전에 failed(손님이 돈을 내지 않는다)
+test("계정 토큰 받기가 503(iap_not_configured)이면 스토어 창을 열지 않고 failed", async () => {
+  const { flow, calls } = setup({
+    accountToken: async () => {
+      throw Object.assign(new Error("iap_not_configured"), { status: 503, code: "iap_not_configured" });
+    },
+  });
+  assert.deepEqual(await flow.buy("star_30"), { productId: "star_30", ok: false, reason: "failed" });
+  assert.ok(!calls.some((c) => c.startsWith("purchase") || c.startsWith("confirm")));
+});
+
+// Codex 리뷰 P2 — 스토어 창을 보는 사이 액세스 토큰이 만료될 수 있다. 서버 확인 직전에 토큰을 다시 받는다(같은 회원일 때만)
+test("구매와 서버 확인 사이에 토큰이 갱신되면 확인은 새 토큰으로", async () => {
+  const tokens = ["A1", "A2"];
+  const { flow, calls } = setup({ ensureAccessToken: async () => tokens.shift() ?? "A2" });
+  const r = await flow.buy("star_30");
+  assert.equal(r.ok, true);
+  assert.deepEqual(calls, ["token A1", "purchase star_30 acc-1", "token A2", "confirm t1 A2", "finish t1"]);
+});
+
+test("구매와 서버 확인 사이에 다른 회원이 되면 확인도 마무리도 안 한다 / 로그아웃이면 failed", async () => {
+  const tokens = ["A1", "B1"];
+  const { flow, calls } = setup({
+    ensureAccessToken: async () => tokens.shift() ?? "B1",
+    accountToken: async (access) => {
+      calls.push(`token ${access}`);
+      return access === "B1" ? "acc-2" : "acc-1";
+    },
+  });
+  assert.deepEqual(await flow.buy("star_30"), { productId: "star_30", ok: false, reason: "account_mismatch" });
+  assert.ok(!calls.some((c) => c.startsWith("confirm") || c.startsWith("finish")));
+
+  const gone = ["A1", null];
+  const out = setup({ ensureAccessToken: async () => (gone.length ? gone.shift()! : null) });
+  assert.deepEqual(await out.flow.buy("star_30"), { productId: "star_30", ok: false, reason: "failed" });
+  assert.ok(!out.calls.some((c) => c.startsWith("confirm") || c.startsWith("finish")));
+});
+
+test("재전송도 서버 확인 직전에 토큰을 다시 받는다 — 그사이 다른 회원이면 그 뒤 거래는 보내지 않는다", async () => {
+  const tokens = ["A1", "A1", "B1"];
+  const { flow, calls } = setup({
+    ensureAccessToken: async () => tokens.shift() ?? "B1",
+    accountToken: async (access) => {
+      calls.push(`token ${access}`);
+      return access === "B1" ? "acc-2" : "acc-1";
+    },
+    pending: async () => [ios("star_10", "t1"), ios("star_30", "t2")],
+  });
+  await flow.resumePending();
+  assert.deepEqual(calls, ["token A1", "confirm t1 A1", "finish t1", "token B1"]);
+});
+
 // 컨트롤러 판정 8
 test("가격 — 스토어의 현지 통화 문자열 그대로, 스토어가 안 준 상품은 뺀다", async () => {
   const { flow } = setup({
