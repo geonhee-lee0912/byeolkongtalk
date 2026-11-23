@@ -106,3 +106,11 @@ test("packageSubLine — 상점 칸 아랫줄: 보통은 별당 값·알뜰, 첫
   assert.deepEqual(packageSubLine(pkg("star_70"), true), { text: "+14별 보너스 · 총 84별", tone: "bonus" });
   assert.deepEqual(packageSubLine(pkg("star_300"), true), { text: "+60별 보너스 · 총 360별", tone: "bonus" });
 });
+
+// 앱 안(스토어 가격)에선 우리 원화로 계산한 줄을 보이지 않는다 — 스토어 가격 단계가 우리 원화와 다를 수 있다(스펙 2026-11-23-앱-결제 §2)
+test("packageSubLine — 스토어 가격이면 원화 줄은 null, 보너스 줄은 그대로", () => {
+  assert.equal(packageSubLine(pkg("star_30"), false, true), null);
+  assert.equal(packageSubLine(pkg("star_10"), false, true), null);
+  assert.deepEqual(packageSubLine(pkg("star_70"), true, true), { text: "+14별 보너스 · 총 84별", tone: "bonus" });
+  assert.deepEqual(packageSubLine(pkg("star_30"), false, false), { text: "별당 93원 · 7% 알뜰", tone: "plain" });
+});

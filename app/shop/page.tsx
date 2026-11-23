@@ -10,8 +10,8 @@ import {
   type StarPackage,
 } from "@/lib/constants";
 import { fetchWallet } from "@/lib/wallet";
-import { useTossPayment } from "@/lib/use-toss-payment";
 import { useStorePurchase } from "@/components/shop/useStorePurchase";
+import TossPaymentBridge, { type TossPayment } from "@/components/shop/TossPaymentBridge";
 import { IAP_NOTICE, iapResultNotice } from "@/lib/app-iap";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { appHaptic } from "@/lib/app-context";
@@ -91,8 +91,10 @@ function ShopContent() {
 
   // 토스 결제창 (Payment Window) 상태
   const [userId, setUserId] = useState<string | null>(null);
-  // 토스 결제는 브라우저에서만 그리는 TossPayButton 안에서 — 모듈을 못 불러오면 여기로 알린다(아래 띠)
-  const [tossError, setTossError] = useState<string | null>(null);
+  // 토스 결제 상태 — 브라우저에서만 붙는 TossPaymentBridge 가 채운다(앱 안에선 늘 null, 토스 SDK 가 안 뜬다)
+  const [toss, setToss] = useState<TossPayment | null>(null);
+  const paymentReady = toss?.paymentReady ?? false;
+  const paymentError = toss?.paymentError ?? null;
   // 앱 안 = 스토어 결제(스펙 2026-11-23-앱-결제 §5). 앱 안에선 토스 결제창·토스 안내를 그리지 않는다(애플 3.1.1)
   const store = useStorePurchase(SHOP_PKG_IDS);
   const storePath = store.channel === "store" || store.channel === "update";
@@ -266,6 +268,26 @@ function ShopContent() {
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
   const isProcessing = !!confirmMessage;
 
+  const handlePay = async () => {
+    if (!selectedPkg || !toss) return;
+    setLoading(true);
+    trackUiEvent("recharge_payment_started", {
+      meta: { source: "shop", packageId: selectedPkg.id, amountWon: selectedPkg.price },
+    });
+    try {
+      await toss.startPayment(selectedPkg);
+      // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
+    } catch (error) {
+      const err = error as { code?: string; message?: string };
+      if (err.code === "USER_CANCEL" || err.code === "STOP") {
+        return;
+      }
+      alert(err.message ?? "결제 중 오류가 발생했어. 다시 시도해줘!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 앱 안 스토어 결제 — 성공은 토스와 같은 완료 화면, 취소는 말 없이, 대기·실패는 안내 한 줄
   const handleStoreBuy = async () => {
     if (!selectedPkg || !store.inApp) return;
@@ -289,6 +311,8 @@ function ShopContent() {
 
   return (
     <main className="flex-1 w-full">
+      {/* 토스 준비(브라우저 전용, 그림 없음) — 화면 수명 동안 붙여 둔다(예전처럼 결제 진행 패널 동안에도) */}
+      {store.channel === "toss" && <TossPaymentBridge onChange={setToss} />}
       <div className="max-w-md mx-auto px-5 pt-4 pb-24 animate-fade-in">
         {/* 뒤로가기 — 결제 직후엔 토스 결제창이 history에 있어서 router.back 위험 → 홈으로 직행.
             앱에선 숨긴다(web-only) — 상점은 하단 탭이라 앱 머리에 '별콩 상점'이 있고 뒤로 갈 곳이 없다(디자인 다듬기 상점 ① H1, 운영자 11-21) */}
@@ -397,12 +421,13 @@ function ShopContent() {
                   disabled={loading || !!store.busyId}
                   showBonus={firstChargeEligible}
                   priceText={priceText(pkg)}
+                  storePrice={storePath}
                 />
               ))}
             </div>
 
             {/* 결제창 SDK 로드 실패 시 */}
-            {tossError && (
+            {paymentError && (
               <Banner tone="fail">
                 결제 모듈을 불러오지 못했어. 새로고침해줘.
               </Banner>
@@ -445,13 +470,18 @@ function ShopContent() {
         >
           <div className="max-w-md mx-auto px-5 pb-3 pt-3 pointer-events-auto">
             {store.channel === "toss" && (
-              <TossPayButton
-                pkg={selectedPkg}
-                firstChargeEligible={firstChargeEligible}
-                loading={loading}
-                setLoading={setLoading}
-                onErrorChange={setTossError}
-              />
+              <button
+                onClick={handlePay}
+                disabled={loading || !paymentReady}
+                className="btn btn-primary btn-lg"
+              >
+                <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
+                <span className="tabular-nums">
+                  {!paymentReady && !paymentError
+                    ? "잠시만, 결제 준비 중..."
+                    : payLabel(selectedPkg, firstChargeEligible, wonPrice(selectedPkg))}
+                </span>
+              </button>
             )}
             {/* 하이드레이션 첫 그림(pending)은 토스 준비 중과 같은 모양 · 앱은 스토어 가격을 받고 로그인이 확인돼야 누를 수 있다 */}
             {store.channel !== "toss" && (
@@ -478,62 +508,6 @@ function ShopContent() {
         </div>
       )}
     </main>
-  );
-}
-
-// ━━━━━━━━━━ 토스 결제 버튼(브라우저 전용) ━━━━━━━━━━
-// 🔴 앱 안에선 그리지 않는다 — useTossPayment(토스 SDK 로드)가 이 컴포넌트에만 있어야 앱에서 토스가 안 돈다(lib/shop-in-app.test.ts)
-
-function TossPayButton({
-  pkg,
-  firstChargeEligible,
-  loading,
-  setLoading,
-  onErrorChange,
-}: {
-  pkg: StarPackage;
-  firstChargeEligible: boolean;
-  loading: boolean;
-  setLoading: (v: boolean) => void;
-  onErrorChange: (e: string | null) => void;
-}) {
-  const { paymentReady, paymentError, startPayment } = useTossPayment();
-  useEffect(() => {
-    onErrorChange(paymentError);
-  }, [paymentError, onErrorChange]);
-
-  const handlePay = async () => {
-    setLoading(true);
-    trackUiEvent("recharge_payment_started", {
-      meta: { source: "shop", packageId: pkg.id, amountWon: pkg.price },
-    });
-    try {
-      await startPayment(pkg);
-      // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
-    } catch (error) {
-      const err = error as { code?: string; message?: string };
-      if (err.code === "USER_CANCEL" || err.code === "STOP") {
-        return;
-      }
-      alert(err.message ?? "결제 중 오류가 발생했어. 다시 시도해줘!");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <button
-      onClick={handlePay}
-      disabled={loading || !paymentReady}
-      className="btn btn-primary btn-lg"
-    >
-      <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
-      <span className="tabular-nums">
-        {!paymentReady && !paymentError
-          ? "잠시만, 결제 준비 중..."
-          : payLabel(pkg, firstChargeEligible, wonPrice(pkg))}
-      </span>
-    </button>
   );
 }
 
@@ -603,6 +577,7 @@ function PackageCard({
   disabled,
   showBonus,
   priceText,
+  storePrice,
 }: {
   pkg: StarPackage;
   selected: boolean;
@@ -611,9 +586,11 @@ function PackageCard({
   showBonus?: boolean;
   /** 브라우저 = 'N원' · 앱 = 스토어 가격 문자열(받기 전 '…') */
   priceText: string;
+  /** 앱 안(스토어 가격) — 우리 원화로 계산한 '별당' 줄은 숨긴다(보너스 줄은 그대로) */
+  storePrice?: boolean;
 }) {
   const meta = PKG_META[pkg.id] ?? {};
-  const sub = packageSubLine(pkg, !!showBonus);
+  const sub = packageSubLine(pkg, !!showBonus, !!storePrice);
 
   // 디자인 다듬기 상점 ④ A(운영자 11-21): 다섯 칸이 똑같던 큰 별 그림·추천 금색 점·초록 '% 더 알뜰' 알약·'+20%' 알약을 빼고
   // '별 수 + 아랫줄 하나 | 가격 · 체크' 로. 칸 높이가 다 같아져 다섯 칸이 첫 화면에 거의 다 든다.
@@ -640,13 +617,15 @@ function PackageCard({
             <InlineBadge tone={meta.badge.tone}>{meta.badge.label}</InlineBadge>
           )}
         </div>
-        <p
-          className={`mt-1 text-12 tabular-nums ${
-            sub.tone === "bonus" ? "font-bold text-accent" : "text-text-light"
-          }`}
-        >
-          {sub.text}
-        </p>
+        {sub && (
+          <p
+            className={`mt-1 text-12 tabular-nums ${
+              sub.tone === "bonus" ? "font-bold text-accent" : "text-text-light"
+            }`}
+          >
+            {sub.text}
+          </p>
+        )}
       </div>
 
       <p className="shrink-0 text-15 font-bold text-eye-purple tabular-nums">
