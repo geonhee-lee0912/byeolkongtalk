@@ -56,6 +56,8 @@ export const OPTIONAL_ENV = [
   "GOOGLE_PLAY_SERVICE_ACCOUNT",
   "GOOGLE_PUBSUB_PUSH_EMAIL",
   "GOOGLE_PUBSUB_AUDIENCE",
+  // 애플 번들 ID = 구글 패키지 이름. 비우면 운영 번들. dev(Preview)에서 .dev 앱으로 시험할 때만 com.byeolkongtalk.app.dev
+  "IAP_APP_ID",
 ] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];

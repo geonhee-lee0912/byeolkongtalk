@@ -252,6 +252,27 @@ test("RTDN 해석 — 시험 알림·다른 알림·다른 패키지 → ignored
   );
 });
 
+test("IAP_APP_ID 를 바꾸면(dev 의 .dev 앱 시험) 구매 확인 주소·RTDN 패키지 대조가 그 값을 쓴다", async () => {
+  const saved = process.env.IAP_APP_ID;
+  process.env.IAP_APP_ID = "com.byeolkongtalk.app.dev";
+  try {
+    const { d, calls } = deps(200, purchase());
+    await verifyGooglePurchase("star_70", TOKEN, d);
+    assert.ok(calls[0].url.startsWith("https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.byeolkongtalk.app.dev/purchases/"));
+    assert.deepEqual(
+      parseGoogleRtdn(pushBody({ packageName: "com.byeolkongtalk.app.dev", voidedPurchaseNotification: { orderId: ORDER_ID } })),
+      { kind: "voided", orderId: ORDER_ID },
+    );
+    assert.deepEqual(
+      parseGoogleRtdn(pushBody({ packageName: "com.byeolkongtalk.app", voidedPurchaseNotification: { orderId: ORDER_ID } })),
+      { kind: "ignored", reason: "package" },
+    );
+  } finally {
+    if (saved === undefined) delete process.env.IAP_APP_ID;
+    else process.env.IAP_APP_ID = saved;
+  }
+});
+
 test("RTDN 해석 — 모양이 틀림(message 없음·base64/JSON 아님·주문 id 없음) → malformed", () => {
   for (const body of [
     null,

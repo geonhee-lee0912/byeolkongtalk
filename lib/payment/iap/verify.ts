@@ -1,8 +1,11 @@
 // 앱 결제(애플·구글) 확인 공통 — 스토어가 말해 준 거래 모양과 설정 확인. 스펙 2026-11-23-앱-결제 §3·§7.
 import { appTokenSecretReady } from "@/lib/auth/app-token";
 
-/** 애플 번들 ID = 구글 패키지 이름 — mobile/app.config.ts 의 운영 변형(APP_VARIANT=production). 개발용 변형(.dev)의 거래는 받지 않는다 */
-export const IAP_APP_ID = "com.byeolkongtalk.app";
+/** 애플 번들 ID = 구글 패키지 이름 — 기본은 mobile/app.config.ts 의 운영 변형(APP_VARIANT=production).
+ *  IAP_APP_ID 로 바꿀 수 있다(dev Preview 에서 .dev 앱으로 시험할 때만). 한 서버는 한 앱의 거래만 받는다. 테스트가 env 를 바꿀 수 있게 부를 때마다 읽는다 */
+export function iapAppId(): string {
+  return process.env.IAP_APP_ID || "com.byeolkongtalk.app";
+}
 
 export type VerifiedPurchase = {
   store: "apple" | "google";
