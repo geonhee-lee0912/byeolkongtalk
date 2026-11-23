@@ -69,6 +69,8 @@ const config: ExpoConfig = {
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#5A3E8C" }],
     // 안드로이드 FCM 자동 등록 끔 — 첫 토큰은 로그인 + 알림 허용 때(알림-4B, 이유는 플러그인 머리 주석)
     "./plugins/withFcmAutoInitOff.js",
+    // 앱 결제(StoreKit 2 / Play Billing) — 스펙 2026-11-23-앱-결제 §3. 별 상품은 소모성이라 옵션 없이 기본값(애플·구글 스토어)
+    "expo-iap",
   ],
   owner: "braveshine",
   extra: {
