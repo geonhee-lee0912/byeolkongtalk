@@ -11,7 +11,7 @@ globalThis.fetch = (async (input: unknown) => {
 
 const TOKEN = "fake-purchase-token/with+odd=chars";
 const ORDER_ID = "GPA.0000-0000-0000-00001";
-const ACCOUNT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const ACCOUNT = "test-account-token"; // 검증 코드는 모양을 보지 않는다 — 공개 저장소라 UUID 모양을 쓰지 않는다
 
 function deps(status: number, body: unknown) {
   const calls: { url: string; auth: string | null }[] = [];
