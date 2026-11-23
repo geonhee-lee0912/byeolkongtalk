@@ -22,7 +22,7 @@ test("타로 — 모델 글은 거른 뒤에만 독백 필터(화면·저장본�
 });
 
 test("타로 — 다음 턴 입력에서도 지운다", () => {
-  assert.match(src("app/api/consultations/tarot/chat/route.ts"), /stripLeakedMonologue\(scrubOddChars\(m\.content/);
+  assert.match(src("app/api/consultations/tarot/chat/route.ts"), /scrubHistory\(body\.messages, oddKnown\)/);
 });
 
 test("운세 — 리포트 생성은 전부 거르는 길로만", () => {

@@ -48,7 +48,7 @@ function charAt(text: string, i: number): string {
 
 function knownSet(known: string): Set<string> {
   const s = new Set<string>();
-  for (const ch of known) if (LETTER_RE.test(ch) && !ALLOWED_SCRIPT_RE.test(ch)) s.add(ch);
+  for (const ch of known) if (ch === "ー" || (LETTER_RE.test(ch) && !ALLOWED_SCRIPT_RE.test(ch))) s.add(ch);
   return s;
 }
 
@@ -267,6 +267,15 @@ export function scrubOddChars(text: string, known = ""): string {
     }
   }
   return out;
+}
+
+/** 다음 턴 모델 입력용 이력 — 별콩이 답만 지운다. 바로 앞 손님 말이 다른 언어로 적어 달라는 것이었으면 그 답은 그대로 둔다(그때 거르지 않고 내보낸 답) */
+export function scrubHistory<M extends { role: string; content: string }>(messages: M[], known = ""): M[] {
+  return messages.map((m, i) => {
+    if (m.role !== "assistant") return m;
+    const asked = messages[i - 1]?.role === "user" && askedForOtherLanguage(messages[i - 1].content);
+    return asked ? m : { ...m, content: scrubOddChars(m.content, known) };
+  });
 }
 
 export function hasOddChars(text: string, known = ""): boolean {

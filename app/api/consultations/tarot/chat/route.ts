@@ -31,7 +31,7 @@ import {
 import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
 import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 import { createMonologueHoldFilter, stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
-import { askedForOtherLanguage, createOddCharFilter, scrubOddChars } from "@/lib/odd-chars";
+import { askedForOtherLanguage, createOddCharFilter, scrubHistory } from "@/lib/odd-chars";
 import { repairOddWord } from "@/lib/odd-chars-repair";
 
 export const runtime = "nodejs";
@@ -322,11 +322,12 @@ export async function POST(request: NextRequest) {
   // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
   // 여기서 role/content 만 추려 방어한다 (클라이언트 stripping 의 서버측 안전망).
   // 지난 별콩이 답에 붙어 있던 모델 독백(lib/tarot/monologue-leak.ts)도 여기서 뗀다 — 클라 사본엔 스트림으로 받은 그대로 남아 있어, 그대로 넘기면 모델이 자기 메모를 다시 읽는다
-  // 모델이 섞어 낸 깨진 글자(lib/odd-chars.ts)도 지난 답에서 지운다 — 손님 글·고민에 있는 글자는 깨진 글자로 보지 않는다
+  // 모델이 섞어 낸 깨진 글자(lib/odd-chars.ts)도 지난 답에서 지운다 — 손님 글·고민에 있는 글자는 깨진 글자로 보지 않고,
+  // 다른 언어로 적어 달라고 해서 나온 답은 그대로 둔다
   const oddKnown = [reading.question ?? "", ...body.messages.filter((m) => m.role === "user").map((m) => m.content)].join("\n");
-  const apiMessages = body.messages.map((m) => ({
+  const apiMessages = scrubHistory(body.messages, oddKnown).map((m) => ({
     role: m.role,
-    content: m.role === "assistant" ? stripLeakedMonologue(scrubOddChars(m.content, oddKnown)).text : m.content,
+    content: m.role === "assistant" ? stripLeakedMonologue(m.content).text : m.content,
   }));
 
   const encoder = new TextEncoder();

@@ -2,7 +2,7 @@
 // 문장은 지어냈거나 QA 봇 대화다(리포가 공개라 실사용자 글을 넣지 않는다).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askedForOtherLanguage, createOddCharFilter, generateWithoutOddChars, hasOddChars, scrubOddChars } from "./odd-chars.ts";
+import { askedForOtherLanguage, createOddCharFilter, generateWithoutOddChars, hasOddChars, scrubHistory, scrubOddChars } from "./odd-chars.ts";
 
 const A = "내가 보기엔 옮기는 쪽에 더 힘이 실려.";
 const SIZES = [1, 2, 3, 7, 1000];
@@ -135,6 +135,29 @@ test("정상 답은 그대로 — 간지·괄호 한자·영어·이모지·마�
 test("손님이 쓴 글자는 깨진 글자가 아니다", async () => {
   const r = await stream("さくら는 벚꽃이라는 뜻이야.", 3, null, "내 별명 さくら 뜻이 뭐야");
   assert.equal(r.shown, "さくら는 벚꽃이라는 뜻이야.");
+});
+
+test("손님이 쓴 일본어 장음 부호도 깨진 글자가 아니다", async () => {
+  const r = await stream("メアリー, 네 마음은 이해해.", 3, null, "내 이름은 メアリー야");
+  assert.equal(r.shown, "メアリー, 네 마음은 이해해.");
+  assert.equal(r.asked.length, 0);
+});
+
+test("다음 턴 입력 — 다른 언어로 적어 달라고 해서 나온 답은 지우지 않는다", () => {
+  const out = scrubHistory([
+    { role: "user", content: "일본어로 고백 한 줄 적어줘" },
+    { role: "assistant", content: "あなたが好きです。" },
+    { role: "user", content: "다음엔 이직 얘기" },
+    { role: "assistant", content: "옮기는 쪽이야. ━ 海南天天中彩票" },
+    { role: "user", content: "그 문장이 무슨 뜻이야?" },
+  ]);
+  assert.deepEqual(out.map((m) => m.content), [
+    "일본어로 고백 한 줄 적어줘",
+    "あなたが好きです。",
+    "다음엔 이직 얘기",
+    "옮기는 쪽이야.",
+    "그 문장이 무슨 뜻이야?",
+  ]);
 });
 
 test("다른 언어로 적어 달라는 말이면 거르지 않는다", () => {
