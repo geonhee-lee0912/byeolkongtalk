@@ -7,7 +7,7 @@ export default function HeroDivider() {
       aria-hidden
     >
       <div className="flex-1 h-px bg-lilac-mid/30" />
-      <span className="text-gold text-[11px] leading-none">✦</span>
+      
       <div className="flex-1 h-px bg-lilac-mid/30" />
     </div>
   );

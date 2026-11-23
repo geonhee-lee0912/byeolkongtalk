@@ -23,27 +23,27 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       <button
         type="button"
         onClick={onOpenThread}
-        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
+        className="card w-full flex items-center gap-3.5 transition text-left active:scale-[0.99]"
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "linear-gradient(135deg,#FCE7EE,#F8C9D6)" }}
+          style={{ background: "#FCE7EE" }}
         >
           <Image src="/icons/relationship/consult.webp" alt="" width={40} height={40} className="object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-[15px] font-bold text-eye-purple">연애 상담</span>
-            <span className="text-[11px] font-bold" style={{ color: GOLD }}>무료 3턴</span>
+            <span className="text-15 font-bold text-eye-purple">연애 상담</span>
+            <span className="text-11 font-bold" style={{ color: GOLD }}>무료 3턴</span>
           </div>
-          <p className="text-[12.5px] text-text-light/80 mt-1 leading-relaxed">
+          <p className="text-13 text-text-light mt-1 leading-relaxed">
             별콩이가 너의 연애 이야기를 다 기억해 줄게!
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
             {["고민상담", "걔속마음", "비밀친구"].map((h) => (
               <span
                 key={h}
-                className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
               >
                 #{h}
               </span>
@@ -56,25 +56,25 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
       <button
         type="button"
         onClick={onOpenSim}
-        className="w-full rounded-2xl p-4 border flex items-center gap-3.5 transition text-left bg-white border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] hover:border-lilac-deep/60 active:scale-[0.99]"
+        className="card w-full flex items-center gap-3.5 transition text-left active:scale-[0.99]"
       >
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "linear-gradient(135deg,#FBEAF2,#F2BFD3)" }}
+          style={{ background: "#FBEAF2" }}
         >
           <Image src="/icons/relationship/sim.webp" alt="" width={40} height={40} className="object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-[15px] font-bold text-eye-purple">연애 시뮬레이션</span>
+            <span className="text-15 font-bold text-eye-purple">연애 시뮬레이션</span>
             {count && (
               <>
                 {count.runwayLabel && (
-                  <span className="text-[11px] font-bold" style={{ color: GOLD }}>{count.runwayLabel}</span>
+                  <span className="text-11 font-bold" style={{ color: GOLD }}>{count.runwayLabel}</span>
                 )}
-                {count.runwayLabel && <span className="text-[11px] text-lilac-mid">·</span>}
+                {count.runwayLabel && <span className="text-11 text-lilac-mid">·</span>}
                 <span
-                  className="text-[11px] font-bold"
+                  className="text-11 font-bold"
                   style={{ color: GOLD, opacity: count.weeklyAvailable ? 1 : 0.4 }}
                 >
                   {count.weeklyLabel}
@@ -82,14 +82,14 @@ export default function ProductList({ onOpenThread, onOpenSim, simQuote }: Produ
               </>
             )}
           </div>
-          <p className="text-[12.5px] text-text-light/80 mt-1 leading-relaxed">
+          <p className="text-13 text-text-light mt-1 leading-relaxed">
             그 사람과의 여러 가지 상황을 연습해 봐. 이야기할수록 그 사람과 비슷하게 시뮬레이션할 수 있어!
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
             {["상황연습", "대화리허설", "보낼말찾기"].map((h) => (
               <span
                 key={h}
-                className="text-[11px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
               >
                 #{h}
               </span>

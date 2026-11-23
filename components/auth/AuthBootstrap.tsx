@@ -8,9 +8,11 @@
 //
 // 동작 위치: root layout 에 마운트되어 모든 라우트에서 한 번만 실행됨.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ACQ_COOKIE, ACQ_KEYS, buildAcqPayload } from "@/lib/acquisition";
+import { shouldShowWelcomePopup } from "@/lib/welcome-popup";
+import WelcomeStarsModal from "@/components/start/WelcomeStarsModal";
 
 const SYNC_FLAG = "byeolkong:auth-sync";
 
@@ -33,6 +35,26 @@ export default function AuthBootstrap() {
   const sp = useSearchParams();
   const pathname = usePathname();
   const handledRef = useRef(false);
+  const welcomeRef = useRef(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+
+  // 3) 가입 직후 웰컴 별 팝업 — 앱·웹 어느 화면으로 돌아와도 1회(/start 는 자기 팝업).
+  //    아래 콜백 정리가 welcome 파라미터를 지우기 전, 마운트 때의 값으로 판정한다.
+  //    재가입은 웰컴 별이 막히므로 실제 잔액을 읽어 들어왔을 때만 띄운다(lib/welcome-popup.ts).
+  useEffect(() => {
+    if (welcomeRef.current) return;
+    welcomeRef.current = true;
+    const login = sp.get("login");
+    const welcome = sp.get("welcome");
+    if (welcome !== "1") return;
+    fetch("/api/stars/balance", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { balance?: number } | null) => {
+        const balance = typeof d?.balance === "number" ? d.balance : null;
+        if (shouldShowWelcomePopup({ login, welcome, pathname, balance })) setWelcomeOpen(true);
+      })
+      .catch(() => {});
+  }, [sp, pathname]);
 
   // first-touch 유입 캡처: utm/fbclid 가 있고 아직 acq 쿠키가 없으면 1회 기록.
   // 쿠키가 이미 있으면 덮어쓰지 않음(first-touch 보존). 오가닉(파라미터 없음)은 무시.
@@ -116,11 +138,7 @@ export default function AuthBootstrap() {
         if (window.location.pathname !== pathname) return;
         // /start 는 login/welcome 파라미터를 스스로 소비·정리한다(웰컴 팝업/자동 진행).
         // 여기서 먼저 지우면 Suspense 하이드레이션 타이밍에 따라 팝업이 유실된다.
-        // /tarot/draw 도 스스로 정리한다(login/welcome/migrated/reason 을 지우고 resume 은 새로고침 복원용으로 남긴다) — 이유는 /start 와 같은 푸시 경합:
-        // 로그인 복귀한 뽑기 화면은 카드 공개 → 지갑 확인 뒤 바로 router.push("/tarot/reading") 을 내는데, 그 push 가 RSC 응답을 기다리는 동안 여기서 router.replace 가 오면
-        // Next 의 액션 큐가 대기 중인 push 를 버린다(app-router-instance.js dispatchAction — 새 navigate 가 pending 을 discarded 로 표시)
-        // → 화면이 '잠시만…' 덮개에 갇힌다(/api/auth/me 가 콜드 스타트로 늦을 때). 세션 sync·localStorage 갱신은 위에서 이미 끝났다 — 건너뛰는 건 주소 정리뿐.
-        if (pathname === "/start" || pathname === "/tarot/draw") return;
+        if (pathname === "/start") return;
         const params = new URLSearchParams(sp.toString());
         params.delete("login");
         params.delete("welcome");
@@ -131,5 +149,5 @@ export default function AuthBootstrap() {
       });
   }, [sp, pathname, router]);
 
-  return null;
+  return welcomeOpen ? <WelcomeStarsModal onStart={() => setWelcomeOpen(false)} /> : null;
 }

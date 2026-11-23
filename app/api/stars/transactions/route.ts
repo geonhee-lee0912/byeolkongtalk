@@ -21,7 +21,7 @@ export async function GET() {
   const supabase = getServiceSupabase();
   const { data, error } = await supabase
     .from("star_transactions")
-    .select("id, type, amount, balance_after, source, created_at")
+    .select("id, type, amount, balance_after, source, payment_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -38,6 +38,9 @@ export async function GET() {
     signedAmount: t.type === "spend" ? -Math.abs(t.amount) : Math.abs(t.amount),
     balanceAfter: t.balance_after,
     source: t.source,
+    // 결제 충전(pg)만 — 내역 화면이 결제 줄과 짝짓는 데 쓴다(lib/wallet-history mergeHistory, 디자인 다듬기 결제 내역 11-22).
+    // 다른 충전의 payment_id 는 내부 멱등키('first_bonus:<회원 id>' 등)라 내보내지 않는다
+    paymentId: t.type === "charge" && t.source === "pg" ? t.payment_id : null,
     createdAt: new Date(t.created_at).getTime(),
   }));
 

@@ -7,13 +7,15 @@
 //    🔴 되돌리기가 값싸다: 과거 리포트는 (user, partner, 날짜) 키라 남아 있고, 프로필도 안 지우므로
 //       예전 상대를 다시 고르면 그날 기록이 그대로 살아난다.
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import {
   RELATIONSHIP_STATUS_LABELS,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 interface WatchCandidate {
   id: string;
@@ -35,10 +37,10 @@ const LIST_PAGE_SIZE = 5;
 
 const STATUS_OPTIONS: RelationshipStatus[] = ["crush", "dating", "breakup", "onesided"];
 const STATUS_EMOJI: Record<RelationshipStatus, string> = {
-  crush: "💗",
-  dating: "💞",
-  onesided: "🌱",
-  breakup: "🥀",
+  crush: "",
+  dating: "",
+  onesided: "",
+  breakup: "",
 };
 
 export interface WatchAddModalProps {
@@ -88,25 +90,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
     };
   }, []);
 
-  // 배경 스크롤 잠금 — ProfileEditModal과 동일 패턴
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  // ESC 닫기(제출 중엔 닫기 불가) — ProfileEditModal과 동일 패턴
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !submitting) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [submitting, onClose]);
-
-  if (typeof document === "undefined") return null;
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog(처리 중엔 닫기 불가)
 
   // 🔴 별 확인 단계가 없다(2026-09-24) — 교체는 무료라 곧장 POST 한다. 예전엔 무료 슬롯이
   //    소진되면 잔액을 조회해 StarConfirmModal 을 띄웠다.
@@ -197,32 +181,31 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
   }
 
 
-  return createPortal(
-    <div
-      // z-[75] — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
+  return (
+    <Dialog
+      label="누구를 담아볼까?"
+      onClose={onClose}
+      dismissible={!busy}
+      // z 75 — 공용 StarConfirmModal(z-80)이 이 위에 떠야 확인 버튼을 누를 수 있다
       // (ThreadDrawModal과 동일 이유·동일 값. z-100으로 올리면 결제 확인이 이 모달 아래 깔려 클릭 불가해진다)
-      className="fixed inset-0 z-[75] flex items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in px-5"
-      onClick={() => !busy && onClose()}
-      role="dialog"
-      aria-modal="true"
+      z={75}
+      widthClassName="max-w-md"
+      gutterClassName="px-5"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-[17px] font-bold text-eye-purple">
+            <h2 className="font-display text-17 text-eye-purple">
               누구를 담아볼까?
             </h2>
-            <button
-              onClick={() => !busy && onClose()}
+            <OverlayCloseButton
               aria-label="닫기"
               disabled={busy}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
             >
-              ✕
-            </button>
+              <Icon name="close" size={18} />
+            </OverlayCloseButton>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -230,10 +213,10 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               type="button"
               onClick={() => setTab("pick")}
               disabled={busy}
-              className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+              className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "pick"
-                  ? "bg-lilac-deep text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  ? "bg-accent text-white"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               이미 아는 사람
@@ -242,10 +225,10 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
               type="button"
               onClick={() => setTab("register")}
               disabled={busy}
-              className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+              className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                 tab === "register"
-                  ? "bg-lilac-deep text-white"
-                  : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                  ? "bg-accent text-white"
+                  : "bg-lilac-soft text-eye-purple"
               }`}
             >
               새로 등록
@@ -255,7 +238,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
           {/* 관계칩 — pick·register 두 탭 공통(이 블록 자체가 tab 분기 밖). 담기 확정(pick 항목
               탭 / register 폼 제출) 전에 항상 노출돼, 어느 경로든 submitWatch 호출 시점엔 이미 반영돼 있다. */}
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[13px] font-bold text-eye-purple mb-1">관계 상태</legend>
+            <legend className="text-13 font-bold text-eye-purple mb-1">관계 상태</legend>
             <div className="grid grid-cols-2 gap-2">
               {STATUS_OPTIONS.map((s) => (
                 <button
@@ -266,10 +249,10 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                     trackUiEvent("byeolmaru_watch_status_set", { meta: { status: s } });
                   }}
                   disabled={busy}
-                  className={`py-2.5 rounded-xl text-[14px] font-bold transition disabled:opacity-60 ${
+                  className={`py-2.5 rounded-xl text-14 font-bold transition disabled:opacity-60 ${
                     status === s
-                      ? "bg-lilac-deep text-white"
-                      : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                      ? "bg-accent text-white"
+                      : "bg-lilac-soft text-eye-purple"
                   }`}
                 >
                   {STATUS_EMOJI[s]} {RELATIONSHIP_STATUS_LABELS[s]}
@@ -278,21 +261,21 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
             </div>
           </fieldset>
 
-          {error && <p className="text-[12px] text-red-500 text-center">{error}</p>}
+          {error && <p className="text-12 text-red-500 text-center">{error}</p>}
         </div>
 
         {tab === "pick" ? (
           <div className="px-5 pb-5 flex flex-col gap-2">
             {loadState === "loading" && (
-              <p className="text-[13px] text-text-light text-center py-4">불러오는 중…</p>
+              <p className="text-13 text-text-light text-center py-4">불러오는 중…</p>
             )}
             {loadState === "error" && (
-              <p className="text-[13px] text-text-light text-center py-4">
+              <p className="text-13 text-text-light text-center py-4">
                 지금은 목록을 못 가져왔어. 잠시 후 다시 열어줄래?
               </p>
             )}
             {loadState === "ready" && suggestions.length === 0 && (
-              <p className="text-[13px] text-text-light text-center py-4">
+              <p className="text-13 text-text-light text-center py-4">
                 아직 등록해둔 사람이 없어 — 새로 등록해볼까?
               </p>
             )}
@@ -307,7 +290,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                   {/* 🔴 목록 타이틀(2026-09-27, 사용자 요청) — 위 "관계 상태" legend 와 **같은 양식**
                       (13px bold eye-purple)이라 모달 안에서 두 묶음이 같은 리듬으로 읽힌다.
                       인원수를 같이 쓴다 — 페이지네이션이 붙는 목록이라 전체가 몇인지가 보여야 한다. */}
-                  <p className="text-[13px] font-bold text-eye-purple mb-1">
+                  <p className="text-13 font-bold text-eye-purple mb-1">
                     이미 아는 사람 <span className="font-normal text-text-light">{suggestions.length}명</span>
                   </p>
                   {paged.map((s) => (
@@ -316,7 +299,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                       type="button"
                       onClick={() => startAddFlow(s.id)}
                       disabled={busy}
-                      className="w-full px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px] font-bold text-left hover:bg-lilac-soft/40 active:scale-[0.98] transition disabled:opacity-50"
+                      className="btn btn-secondary btn-lg text-left"
                     >
                       {s.name}
                     </button>
@@ -344,8 +327,8 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                           aria-label={`${i + 1}페이지`}
                           aria-current={i === page ? "page" : undefined}
                           disabled={busy}
-                          className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
-                            i === page ? "bg-lilac-deep text-white" : "text-text-light/70 hover:bg-lilac-soft/50"
+                          className={`w-7 h-7 rounded-lg text-12 font-bold ${
+                            i === page ? "bg-accent text-white" : "text-text-light hover:bg-lilac-soft/50"
                           }`}
                         >
                           {i + 1}
@@ -370,14 +353,14 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
           </div>
         ) : registered ? (
           <div className="px-5 pb-5 flex flex-col gap-3">
-            <p className="text-[14px] text-eye-purple text-center py-2">
+            <p className="text-14 text-eye-purple text-center py-2">
               <span className="font-bold">{registered.name}</span> 등록 완료
             </p>
             <button
               type="button"
               onClick={() => startAddFlow(registered.id)}
               disabled={busy}
-              className="w-full py-2.5 rounded-xl bg-lilac-deep text-white text-[14px] font-bold disabled:opacity-50"
+              className="btn btn-primary btn-lg"
             >
               우리 오늘에 담기
             </button>
@@ -388,7 +371,7 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
                 setNewName("");
               }}
               disabled={busy}
-              className="w-full py-2 text-[13px] text-text-light disabled:opacity-50"
+              className="w-full py-2 text-13 text-text-light disabled:opacity-50"
             >
               다른 사람 등록하기
             </button>
@@ -397,14 +380,14 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
           <>
             <div className="px-5 flex flex-col gap-2 mb-4">
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] font-bold text-eye-purple mb-1">이름</legend>
+                <legend className="text-13 font-bold text-eye-purple mb-1">이름</legend>
                 <input
                   type="text"
                   value={newName}
                   maxLength={50}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="이름을 알려줄래?"
-                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14"
                 />
               </fieldset>
             </div>
@@ -420,8 +403,6 @@ export default function WatchAddModal({ onClose, onAdded }: WatchAddModalProps) 
         )}
         <div className="h-5" />
       </div>
-
-    </div>,
-    document.body
+    </Dialog>
   );
 }

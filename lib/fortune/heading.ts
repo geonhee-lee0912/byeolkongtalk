@@ -11,12 +11,11 @@ export function firstGrapheme(s: string): string {
   return [...s][0] ?? "";
 }
 
-/** heading 앞 이모지를 아이콘 타일용으로 분리. 이모지 없으면 기본 별(✦). */
-export function splitHeadingEmoji(heading: string): { emoji: string; title: string } {
+/** heading 앞 이모지를 지운 제목. 이모지 자리는 섹션 번호 타일이 대신한다(스펙 2026-11-09 §2.1). */
+export function stripHeadingEmoji(heading: string): string {
   const g = firstGrapheme(heading);
   const isEmoji = g !== "" && /\p{Extended_Pictographic}/u.test(g);
-  if (isEmoji) return { emoji: g, title: heading.slice(g.length).trim() };
-  return { emoji: "✦", title: heading };
+  return isEmoji ? heading.slice(g.length).trim() : heading;
 }
 
 /** 접힌 섹션 미리보기 한 줄 — 마크다운(볼드·불릿·콜아웃·줄바꿈) 걷어내고 첫 문장. (CSS line-clamp 로 최종 절단) */

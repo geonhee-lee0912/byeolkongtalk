@@ -248,7 +248,7 @@ export function useByeolmaruSubscribe(
     const { found, surface, rest } = takeSubscribeResume(window.location.search);
     if (!found) return;
     // 🔴 router.replace 금지(대기 중인 이동을 버린다) · state 를 null 로 덮지 말 것(첫 로드에 Next 의 __NA 가
-    //    지워져 뒤로 가기가 라우터를 못 탈 수 있다) — app/tarot/draw/page.tsx dropQueryKeys 와 같은 방식·같은 이유.
+    //    지워져 뒤로 가기가 라우터를 못 탈 수 있다) (Next 라우터의 이동 큐·history.state 사정).
     //    대가도 같다: useSearchParams() 는 이 화면을 떠날 때까지 옛 쿼리다(이 표시를 그걸로 읽는 곳은 없다).
     try {
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${rest}${window.location.hash}`);
@@ -277,7 +277,6 @@ export function useByeolmaruSubscribe(
           balance={subBalance}
           loading={subBalanceLoading}
           busy={subscribing}
-          accent="#E8C26A"
           title="별마루 구독"
           subtitle={SUBTITLE[offer.phase === "pre_trial" || offer.phase === "trial" ? offer.phase : "post_trial"]}
           confirmLabel={subscribing ? "여는 중…" : "구독하기"}
@@ -294,19 +293,28 @@ export function useByeolmaruSubscribe(
                   에선 "20별 / 30일"이 세 번째 항목의 넷째 줄처럼 붙어 읽혔다. */}
               <ul className="space-y-1 mb-6">
                 {BAIT_SLOTS.map((slot) => (
-                  <li key={slot} className="flex items-start gap-1.5 text-[13px] leading-snug">
-                    <span aria-hidden className="text-eye-purple shrink-0">✦</span>
+                  <li key={slot} className="flex items-start gap-1.5 text-13 leading-snug">
+                    
                     <span>
                       <span className="font-medium text-eye-purple">{BAIT[slot].title}</span>
-                      <span className="text-eye-purple/85 text-[12px]"> · {BAIT[slot].chips[0]}</span>
+                      <span className="text-eye-purple/85 text-12"> · {BAIT[slot].chips[0]}</span>
                     </span>
                   </li>
                 ))}
+                {/* 🔴 앱 아침 알림이 '구독 내용물'이라는 표시 — 구독자에게 정보성(광고 아님)으로 보내는 근거다
+                    (앱 알림 설계 2026-11-06 §3 B "구독 상품 설명에 이 알림들이 구독 내용이라고 적는다"). 지우지 말 것 */}
+                <li className="flex items-start gap-1.5 text-13 leading-snug">
+                  
+                  <span>
+                    <span className="font-medium text-eye-purple">아침 알림</span>
+                    <span className="text-eye-purple/85 text-12"> · 앱에서 알림을 켜면 매일 아침 오늘의 흐름을 보내줘</span>
+                  </span>
+                </li>
               </ul>
-              <p className="text-center font-display text-xl font-bold text-eye-purple">
+              <p className="text-center font-display text-20 font-bold text-eye-purple">
                 {COST}별 / {DAYS}일
               </p>
-              <p className="mt-2 text-center text-[11px] text-eye-purple/85">
+              <p className="mt-2 text-center text-11 text-eye-purple/85">
                 {offer.phase === "pre_trial" ? `체험 ${TRIAL_DAYS}일 + ${DAYS}일` : `${DAYS}일`} 지나면 그냥 끝나 — 자동으로 또 빠져나가지 않아.
               </p>
             </div>

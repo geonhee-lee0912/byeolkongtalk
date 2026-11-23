@@ -5,16 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import SajuBoard from "@/components/saju/SajuBoard";
+import EmphasisText from "@/components/common/EmphasisText";
 import ChatBubble from "@/components/saju/ChatBubble";
 import ShareButtons from "@/components/saju/ShareButtons";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
-import RechargeBlock from "@/components/upsell/RechargeBlock";
+import RevisitSheet from "@/components/push/RevisitSheet";
 import SurveyResultCard from "@/components/survey/SurveyResultCard";
-import { SAJU_READING_COST } from "@/lib/saju/constants";
 import { extractClosingLine } from "@/lib/saju/closing";
 import { stripRecoMarkers } from "@/lib/reco-utils";
 import type { SajuResult } from "@/lib/saju/calc";
+import Icon from "@/components/common/Icon";
 
 export default function ResultPage() {
   return (
@@ -49,7 +49,6 @@ function ResultPageInner() {
   const [data, setData] = useState<FetchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [continueOpen, setContinueOpen] = useState(false);
 
   // 결과 페이지에서 뒤로가기 → 진행 중이던 대화창으로는 돌아갈 수 없으니 내 고민톡으로 보낸다.
   useEffect(() => {
@@ -88,12 +87,12 @@ function ResultPageInner() {
   if (error) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 text-center">
-        <p className="text-[14px] text-text-light mb-4">{error}</p>
+        <p className="text-14 text-text-light mb-4">{error}</p>
         <Link
-          href="/saju"
-          className="px-6 py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+          href="/fortune"
+          className="btn btn-primary btn-md"
         >
-          새 사주 보러가기
+          사주 운세 보러가기
         </Link>
       </main>
     );
@@ -102,7 +101,7 @@ function ResultPageInner() {
   if (!data) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">결과 불러오는 중…</p>
+        <p className="text-text-light text-14">결과 불러오는 중…</p>
       </main>
     );
   }
@@ -122,25 +121,33 @@ function ResultPageInner() {
     (m) => m.role === "assistant" && m.content.includes("[END]")
   );
 
+  // 다시 볼 날(앱) — 타로 결과와 같은 자리: 한마디 카드 맨 아래, 한마디가 없으면 공유 아래 혼자(운영자 11-22).
+  // 이 화면은 소유자만 불러온다
+  const revisit = (inline: boolean) => (
+    <RevisitSheet readingId={reading.id} autoOpen={!reading.hasSensitive} inline={inline} />
+  );
+
   return (
-    <main className="flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
+    // selectable — 앱에서도 결과 본문은 복사할 수 있게(버튼·링크는 globals.css 가 다시 막는다)
+    <main className="selectable flex flex-1 flex-col items-center py-10 w-full animate-fade-in">
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
         {sp.get("from") === "history" ? (
-          <button onClick={() => router.back()} className="text-[12px] text-text-light/70">
+          <button onClick={() => router.back()} className="web-only text-12 text-text-light">
             ‹ 뒤로
           </button>
         ) : (
-          <Link href="/" className="text-[12px] text-text-light/70">
+          <Link href="/" className="web-only text-12 text-text-light">
             ‹ 홈으로
           </Link>
         )}
-        <div className="text-[11px] text-text-light/60">
+        {/* ml-auto — 앱에서 왼쪽(‹ 뒤로/홈으로, web-only)이 숨어도 날짜는 오른쪽에 */}
+        <div className="ml-auto text-11 text-text-light">
           {new Date(reading.createdAt).toLocaleDateString("ko-KR")}
         </div>
       </div>
 
       <div className="w-full max-w-md mx-auto px-5 mb-6 text-center">
-        <h1 className="font-display text-2xl font-bold text-eye-purple">
+        <h1 className="font-display text-22 font-bold text-eye-purple">
           별콩이와 나눈 풀이
         </h1>
       </div>
@@ -150,11 +157,11 @@ function ResultPageInner() {
 
       {/* 고민 */}
       <div className="w-full max-w-md mx-auto px-5 mt-6">
-        <div className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30">
-          <div className="text-[11px] font-bold text-text-light mb-1">
+        <div className="card">
+          <div className="text-11 font-bold text-text-light mb-1">
             그날의 고민
           </div>
-          <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap">
+          <p className="text-13 text-eye-purple leading-relaxed whitespace-pre-wrap">
             {reading.question}
           </p>
         </div>
@@ -163,24 +170,23 @@ function ResultPageInner() {
       {/* 별콩이가 전하는 한마디 */}
       {closingLine && (
         <div className="w-full max-w-md mx-auto px-5 mt-4">
-          <div className="bg-gradient-to-br from-gold-soft/30 via-lilac-soft/60 to-cream-warm rounded-2xl p-5 border border-gold-soft/40 relative overflow-hidden">
-            <div className="absolute top-2 left-3 text-gold/40 text-4xl font-serif leading-none">
-              ❝
-            </div>
-            <div className="flex items-center gap-2 mb-2 relative">
+          {/* 타로 결과와 같은 카드(❝ 장식 뺌 · ** 는 강조 · 본문 15) — 운영자 11-22 시안14 A */}
+          <div className="bg-white rounded-2xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src="/byeolkong-cheer.png"
                 alt="별콩이"
                 width={28}
                 height={28}
               />
-              <span className="text-[12px] font-bold text-eye-purple">
+              <span className="text-12 font-bold text-eye-purple">
                 별콩이가 전하는 한마디
               </span>
             </div>
-            <p className="text-[14px] text-eye-purple leading-relaxed relative">
-              {closingLine}
+            <p className="text-15 text-eye-purple leading-relaxed">
+              <EmphasisText text={closingLine} />
             </p>
+            {revisit(true)}
           </div>
         </div>
       )}
@@ -189,12 +195,12 @@ function ResultPageInner() {
       <div className="w-full max-w-md mx-auto px-5 mt-4">
         <button
           onClick={() => setShowHistory((v) => !v)}
-          className="w-full py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/30 text-[12px] font-bold text-eye-purple flex items-center justify-center gap-1"
+          className="btn btn-secondary btn-lg"
         >
-          대화 전체 다시보기 {showHistory ? "▴" : "▾"}
+          대화 전체 다시보기 <Icon name="chev_d" size={14} className={showHistory ? "rotate-180" : ""} />
         </button>
         {showHistory && (
-          <div className="mt-3 bg-cream-warm/40 rounded-2xl p-3 border border-lilac-mid/20">
+          <div className="card mt-3">
             {messages.map((m, i) => (
               <ChatBubble
                 key={i}
@@ -215,22 +221,12 @@ function ResultPageInner() {
         <div className="w-full max-w-md mx-auto px-5 mt-3">
           <Link
             href={`/saju/reading?id=${reading.id}`}
-            className="w-full py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-[12.5px] font-bold text-lilac-deep flex items-center justify-center"
+            className="btn btn-secondary btn-lg"
           >
-            💬 이어서 대화하기
+            이어서 대화하기
           </Link>
         </div>
       )}
-
-      {/* ② 재충전 블록 — 리딩 직후 매출 CTA를 앞세움 */}
-      <RechargeBlock
-        allowContinue={!reading.hasSensitive}
-        onContinue={() => setContinueOpen(true)}
-        newHref="/saju"
-        newLabel="새 사주 보기"
-        newCostLabel={`⭐${SAJU_READING_COST}`}
-        readingId={reading.id}
-      />
 
       {/* ② 공유 — 아래로 */}
       <div className="w-full max-w-md mx-auto px-5 mt-4">
@@ -244,15 +240,12 @@ function ResultPageInner() {
         />
       </div>
 
+      {!closingLine && revisit(false)}
+
       {/* ③ 무료 크로스셀 — 맨 아래 */}
       <ResultUpsell variant="counsel" />
 
       <SurveyResultCard />
-
-      <ContinuationModal
-        readingId={continueOpen ? reading.id : null}
-        onClose={() => setContinueOpen(false)}
-      />
     </main>
   );
 }

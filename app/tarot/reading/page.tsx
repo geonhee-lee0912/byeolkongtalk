@@ -7,11 +7,12 @@ import ChatBubble from "@/components/tarot/ChatBubble";
 import CardSpreadView from "@/components/tarot/CardSpreadView";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import RecoInlineCard from "@/components/reco/RecoInlineCard";
+import { OfferDivider } from "@/components/reco/OfferCard";
 import RecoConfirmModal from "@/components/reco/RecoConfirmModal";
 import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { TAROT_DRAW_KEY, type TarotDrawResult } from "@/lib/tarot/session";
 import type { SensitiveCategory } from "@/lib/sensitive";
-import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, type RecoProduct } from "@/lib/reco-utils";
+import { parseAllRecoMarkers, INCHAT_ONLY_PRODUCTS, isRecoAttachable, type RecoProduct } from "@/lib/reco-utils";
 import { setRecoSessionStorage } from "@/lib/reco-nav";
 import { chatErrorKr } from "@/lib/consultations/chat-errors";
 import { trackUiEvent, countUserTurns } from "@/lib/analytics/ui-events";
@@ -19,22 +20,23 @@ import ClarifierChip, { type ClarifierChipState } from "@/components/upsell/Clar
 import ExtendChip, { type ExtendChipState } from "@/components/upsell/ExtendChip";
 import ClarifierSheet, { type ClarifierFailure } from "@/components/upsell/ClarifierSheet";
 import PostEndOffers from "@/components/upsell/PostEndOffers";
-import TeaserUpsellCard from "@/components/upsell/TeaserUpsellCard";
 import RechargeSheet from "@/components/upsell/RechargeSheet";
 import { RECHARGE_SOURCE } from "@/lib/analytics/recharge-source";
 import { CLARIFIER_COST, EXTEND_COST } from "@/lib/upsell";
-import { SPREAD_INFO } from "@/lib/tarot/spreads";
 import { getCard } from "@/lib/tarot/cards";
 import { parseReopenHeader, stripEndFromLastAssistant, type ReopenOptions } from "@/lib/tarot/reopen";
 import { clarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 import { purchaseRequest } from "@/lib/tarot/purchase-request";
-import { useWallet } from "@/lib/use-wallet";
 import {
   END_MARKER_REGEX,
   parseIntoBubbles,
   getLatestCardIndex,
   type Bubble,
 } from "@/lib/tarot/bubbles";
+import Icon from "@/components/common/Icon";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
+import { setHeaderAction } from "@/lib/header-action";
 
 interface Message {
   role: "user" | "assistant";
@@ -46,24 +48,15 @@ interface Message {
 const TYPING_SPEED = 45;
 const THINKING_PROBABILITY = 0.2; // 새 버블 생성 전 "생각 중" pause 확률
 const DEBOUNCE_FLUSH_MS = 2000;
-const IDLE_NUDGE_1_MS = 10000;
-const IDLE_NUDGE_2_MS = 40000; // 1단계 멘트 이후 추가 대기
-const NUDGE_STAGE_1 = [
-  "어디 갔어~? 천천히 생각해도 괜찮아 :)",
-  "음, 아직 거기 있어? 별콩이 여기서 기다릴게",
-  "다른 거 하는 중이야? 돌아오면 마저 봐줄게",
-];
-const NUDGE_STAGE_2 = [
-  "별콩이 여기 있을게, 천천히 와",
-  "급할 거 없어. 마음 정리되면 다시 얘기하자",
-];
-// W3 출구 nudge — 수렴 이후 무응답 지속 시 "마무리하고 결과 보기" 제안 (로컬 멘트, API 호출 X)
-const IDLE_EXIT_MS = 60000; // 2단계 멘트 이후 출구 제안까지 추가 대기
+// 기다림 멘트는 결과 제안 하나만 — 답이 끝나고 5분 동안 말이 없으면 "결과 카드로 볼래? 더 얘기해도 돼"(로컬 멘트, API 호출 X).
+// 예전엔 10초 뒤 "어디 갔어~?"·50초 뒤 "여기 있을게"가 먼저 떴는데, 읽는 중에 재촉한다는 CS 가 많아 없앴다(운영자 11-14).
+// 결과 제안은 남긴다 — 운영 실측에서 그걸 눌러 결과로 가는 사람이 적지 않았다(말없이 떠났을 사람들)
+const IDLE_EXIT_MS = 300000;
 const EXIT_NUDGE = [
-  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기, 결과 카드로 만들어둘게 — 보고 갈래?",
-  "마음 가는 만큼만 하면 돼. 오늘 얘기는 결과 카드로 정리해둘 수 있어 — 마무리하고 볼래?",
+  "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기는 결과 카드로 정리해둘게 — 더 궁금한 게 있으면 이어서 물어봐도 되고!",
+  "마음 가는 만큼만 하면 돼. 오늘 얘기를 결과 카드로 볼 수도 있고, 이어서 더 얘기해도 좋아",
 ];
-const FINISH_PHRASE = "대화 마무리할게"; // 입력창 아래 '마무리하고 결과 보기' 버튼 경유 — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
+const FINISH_PHRASE = "대화 마무리할게"; // 헤더 '결과 보기' → 확인 창 경유(옛 입력창 아래 '마무리하고 결과 보기') — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
 // 재개 제안 없음 — 헤더·서버 값이 없을 때의 기본값(서버가 {false,false} 를 주면 그 객체를 그대로 쓴다)
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
@@ -71,42 +64,13 @@ const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
 const RESYNC_DELAY_MS = 1500;
 // [CARD:n] 버블 파싱 — result 다시보기와 공유 (lib/tarot/bubbles)
 
-// 마무리 안내 한 줄의 인라인 SVG — 저장소에 아이콘 라이브러리가 없다
-/** 4꼭지 금색 별(앱의 별 모티프) — 안내 문구 앞 */
-function HintStar() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#E8C26A" aria-hidden="true" className="shrink-0">
-      <path d="M12 2l3.4 6.6L22 12l-6.6 3.4L12 22l-3.4-6.6L2 12l6.6-3.4L12 2z" />
-    </svg>
-  );
-}
-
-/** 작은 › — 마무리하고 결과 보기 버튼 끝 */
-function ChevronRight() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
 
 export default function TarotReadingPage() {
   return (
     <Suspense
       fallback={
         <main className="flex flex-1 items-center justify-center px-5">
-          <p className="text-text-light text-sm">카드를 펼치는 중…</p>
+          <p className="text-text-light text-14">카드를 펼치는 중…</p>
         </main>
       }
     >
@@ -145,11 +109,6 @@ function TarotReadingInner() {
     category: SensitiveCategory;
     severity: number;
   } | null>(null);
-  // 위기 감지된 리딩 — "이어서 깊게"를 숨긴다(서버도 이 리딩을 부모로 한 이어가기를 400 으로 막는다).
-  // safety 배너는 유저가 닫을 수 있어(onClose → null) 그 값과 따로 둔다
-  const [hasSensitive, setHasSensitive] = useState(false);
-  // 반반 비교 그룹 — "이어서 깊게"는 메뉴판 그룹만(스펙 §9-1)
-  const wallet = useWallet("reading_end");
   // 인챗 추천 카드 — product 별 각 1개. cross-type은 RecoInlineCard, inchat 전용은 칩.
   // { [product]: messageIndex } 맵
   const [recoAttach, setRecoAttach] = useState<Partial<Record<RecoProduct, number>>>({});
@@ -170,6 +129,14 @@ function TarotReadingInner() {
   const purchasing = extendState === "loading" || clarifierPurchasing;
   // 구매 흐름 중 — 요청이 가 있거나 보조 카드 시트가 열려 있다. 이 사이엔 마무리·재전송도 막고 전송 대기 조각은 미룬다
   const inPurchaseFlow = purchasing || clarifierSheetOpen;
+  // 헤더 '결과 보기'(금색) → 확인 창 → handleFinish. 입력창 아래 마무리 줄을 대신한다 — 디자인 다듬기 /tarot/reading ⑦ 운영자 11-13
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  const finishDisabled = isStreaming || !readingId || inPurchaseFlow;
+  useEffect(() => {
+    if (isEnded || !readingId) return;
+    setHeaderAction({ label: "결과 보기", onClick: () => setFinishConfirmOpen(true), disabled: finishDisabled });
+    return () => setHeaderAction(null);
+  }, [isEnded, readingId, finishDisabled]);
   // RechargeSheet
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
   const [rechargeUpsellType, setRechargeUpsellType] = useState<"clarifier" | "extend">("extend");
@@ -197,7 +164,7 @@ function TarotReadingInner() {
   const baseHistoryRef = useRef<Message[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleStageRef = useRef(0); // 0=아직, 1=1단계 후, 2=2단계 후, 3=종료
+  const idleStageRef = useRef(0); // 0=아직, 3=결과 제안 뒤(더는 안 띄움)
   const flushPendingRef = useRef<() => void>(() => {});
   const runIdleNudgeRef = useRef<() => void>(() => {});
   // W3 출구 nudge — 출구 칩 노출 상태
@@ -230,7 +197,6 @@ function TarotReadingInner() {
             emotionTag: string | null;
             question: string;
             drawnCards: TarotDrawResult["drawnCards"] | null;
-            hasSensitive?: boolean;
           };
           const msgs = (d.messages ?? []) as Message[];
           if (!reading.drawnCards || reading.drawnCards.length === 0) {
@@ -245,7 +211,6 @@ function TarotReadingInner() {
             drawnCards: reading.drawnCards,
           });
           setReadingId(resumeId);
-          setHasSensitive(reading.hasSensitive === true);
           // 메시지가 없으면(이어가기 deep 로 갓 생성됐거나 첫 스트림 도중 이탈해 미저장)
           // 첫 풀이를 자동 생성, 있으면 대화 복원.
           if (msgs.length === 0) {
@@ -414,12 +379,7 @@ function TarotReadingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const emotionEmoji = useMemo(() => {
-    if (!draw) return "✨";
-    return (
-      EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.emoji ?? "✨"
-    );
-  }, [draw]);
+  const emotionIcon = useMemo(() => (draw ? EMOTION_OPTIONS.find((e) => e.tag === draw.emotion)?.icon : undefined), [draw]);
 
   // 컨테이너 하단 스크롤 — 쓰로틀 + 유저 전송 직후 일시정지 존중
   function scrollToBottom() {
@@ -542,7 +502,7 @@ function TarotReadingInner() {
         setRecoAttach((existing) => {
           const updated = { ...existing };
           for (const rp of allRecoMarkers) {
-            if (rp === "continue") continue;
+            if (!isRecoAttachable(rp)) continue;
             if (updated[rp] !== undefined) continue; // 이미 등록됨
             updated[rp] = msgIdx;
           }
@@ -570,7 +530,7 @@ function TarotReadingInner() {
         }
       } else {
         idleStageRef.current = 0;
-        armIdleTimer(IDLE_NUDGE_1_MS);
+        armIdleTimer(IDLE_EXIT_MS);
       }
     }, 80);
   }
@@ -631,7 +591,6 @@ function TarotReadingInner() {
           category: sCat as SensitiveCategory,
           severity: Number(sSev ?? 1),
         });
-        setHasSensitive(true);
       }
       // 강제 종료선 종료 턴이면 재개 제안 자격을 서버가 헤더로 준다 (spec §3-4) — 헤더 없음 = 해당 없음
       setReopen(parseReopenHeader(r.headers.get("X-Reopen")) ?? NO_REOPEN);
@@ -689,10 +648,14 @@ function TarotReadingInner() {
 
   function pushNudge(pool: string[]) {
     const text = pool[Math.floor(Math.random() * pool.length)];
+    // 위로 올려 앞 답을 읽는 중이면 끌어내리지 않는다 — 맨 아래 근처에 있을 때만 따라 내려간다
+    const el0 = scrollRef.current;
+    const nearBottom = !el0 || el0.scrollHeight - el0.scrollTop - el0.clientHeight < 160;
     setMessages((prev) => [
       ...prev,
       { role: "assistant", content: text, ephemeral: true },
     ]);
+    if (!nearBottom) return;
     requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
@@ -709,16 +672,7 @@ function TarotReadingInner() {
     );
     if (!assistantSpoke) return;
 
-    const stage = idleStageRef.current;
-    if (stage === 0) {
-      pushNudge(NUDGE_STAGE_1);
-      idleStageRef.current = 1;
-      armIdleTimer(IDLE_NUDGE_2_MS);
-    } else if (stage === 1) {
-      pushNudge(NUDGE_STAGE_2);
-      idleStageRef.current = 2;
-      armIdleTimer(IDLE_EXIT_MS);
-    } else if (stage === 2) {
+    if (idleStageRef.current === 0) {
       // 출구 칩 — 첫 턴부터 노출 (2026-07-26 P0-2: 1턴 만족 이탈도 결과 화면을 경유하도록
       // wrapMode 게이트 제거. 근거: 결과 미도달 47.4% + 1턴 시점 마무리 안내 0)
       idleStageRef.current = 3; // 종료 — 더는 무장하지 않음
@@ -837,7 +791,7 @@ function TarotReadingInner() {
     for (let i = 0; i < msgs.length; i++) {
       if (msgs[i].role !== "assistant") continue;
       for (const p of parseAllRecoMarkers(msgs[i].content)) {
-        if (p === "continue") continue;
+        if (!isRecoAttachable(p)) continue;
         if (restored[p] === undefined) restored[p] = i;
       }
     }
@@ -1046,23 +1000,10 @@ function TarotReadingInner() {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
-  // 맛보기 끝 "이어서 깊게" 노출 — 메뉴판 그룹 · 맛보기 · 종료 · 위기 아님(스펙 §6·§9-1). 종료 블록 JSX 와 아래 스크롤 effect 가 같이 쓴다(state 값만 쓰는 순수 계산)
-  const showTeaser =
-    isEnded && !!readingId && wallet?.menuArm === "menu" && draw?.spreadType === "one_card" && !hasSensitive;
-
-  // 카드가 하단 바를 키워 스크롤 영역이 줄어든다 — 붙는 순간 맨 아래로 내려 마지막 답이 가려지지 않게(이어하기는 지갑이 늦게 오면 이때 붙는다)
-  useEffect(() => {
-    if (!showTeaser) return;
-    requestAnimationFrame(() => {
-      const el = scrollRef.current;
-      if (el) el.scrollTo({ top: el.scrollHeight });
-    });
-  }, [showTeaser]);
-
   if (!draw) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">카드를 펼치는 중…</p>
+        <p className="text-text-light text-14">카드를 펼치는 중…</p>
       </main>
     );
   }
@@ -1071,7 +1012,8 @@ function TarotReadingInner() {
     <main
       className="flex flex-col items-stretch w-full min-h-0"
       style={{
-        height: "calc(100dvh - 3.5rem - 4rem - env(safe-area-inset-bottom))",
+        // 하단탭 없음(lib/app-shell/screens hidesBottomTab) — 헤더(3.5rem)·아래 안전 영역만 뺀다
+        height: "calc(100dvh - 3.5rem - env(safe-area-inset-bottom))",
       }}
     >
       {/* 스크롤 영역 — 고민 + 카드 스프레드 + 대화 */}
@@ -1085,43 +1027,45 @@ function TarotReadingInner() {
             />
           )}
 
-          {/* 고민 컨텍스트 — 접기/펼치기 토글, 디폴트 접힘 */}
-          <button
-            type="button"
-            onClick={() => setConcernExpanded((v) => !v)}
-            className="w-full text-left mb-4 px-4 py-3 bg-cream-warm rounded-2xl border border-lilac-mid/20 hover:border-lilac-mid/40 transition-colors"
-            aria-expanded={concernExpanded}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="text-[14px] shrink-0">{emotionEmoji}</span>
-              <span className="text-[12px] font-bold text-text-light tracking-wide shrink-0">
-                {draw.emotion}
-              </span>
-              {!concernExpanded && (
-                <span className="text-[12px] text-text-light/70 truncate flex-1 ml-1">
-                  · {draw.concern || "지금 내 흐름이 궁금해"}
-                </span>
-              )}
-              <span
-                className={`text-text-light text-[14px] shrink-0 transition-transform ml-auto ${
-                  concernExpanded ? "rotate-180" : ""
-                }`}
-              >
-                ▾
-              </span>
-            </div>
-            {concernExpanded && (
-              <p className="text-[13px] text-eye-purple leading-relaxed whitespace-pre-wrap break-words mt-2">
-                {draw.concern || "지금 내 흐름이 궁금해"}
-              </p>
-            )}
-          </button>
-
-          {/* 카드 영역 (다크 배경 + 별 파티클) */}
+          {/* 카드 영역 (다크 배경 + 별 파티클) — 맨 위에 고민 한 줄(접기/펼치기, 디폴트 접힘).
+              고민은 따로 떠 있던 연보라 상자였는데 11-09 버튼 모양이 씌워져 글이 넘쳤다 → 밤 판 안으로 합침(디자인 다듬기 ② 운영자 C안 11-13) */}
           <CardSpreadView
             drawnCards={draw.drawnCards}
             spreadType={draw.spreadType}
             activeIndex={activeCardIndex}
+            roomy
+            header={
+              <button
+                type="button"
+                onClick={() => setConcernExpanded((v) => !v)}
+                className="w-full text-left px-4 py-3"
+                aria-expanded={concernExpanded}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {emotionIcon && <img src={emotionIcon} alt="" width={18} height={18} className="shrink-0 object-contain" />}
+                  <span className="text-12 font-bold text-white/85 tracking-wide shrink-0">
+                    {draw.emotion}
+                  </span>
+                  {!concernExpanded && (
+                    <span className="text-12 text-white/60 truncate flex-1 min-w-0 ml-1">
+                      · {draw.concern || "지금 내 흐름이 궁금해"}
+                    </span>
+                  )}
+                  <span
+                    className={`text-white/60 shrink-0 transition-transform ml-auto ${
+                      concernExpanded ? "rotate-180" : ""
+                    }`}
+                  >
+                    <Icon name="chev_d" size={14} />
+                  </span>
+                </div>
+                {concernExpanded && (
+                  <p className="text-13 text-white/85 leading-relaxed whitespace-pre-wrap break-words mt-2">
+                    {draw.concern || "지금 내 흐름이 궁금해"}
+                  </p>
+                )}
+              </button>
+            }
           />
 
           {/* 대화 영역 */}
@@ -1138,7 +1082,9 @@ function TarotReadingInner() {
               // 이 메시지에 부착된 product들
               const attachedProducts = (Object.entries(recoAttach) as [RecoProduct, number][])
                 .filter(([, idx]) => idx === msgI)
-                .map(([p]) => p);
+                .map(([p]) => p)
+                // 그리는 것만 — 인챗 칩은 끝난 대화엔 안 띄운다(아래). 구분선은 보일 카드가 있을 때만
+                .filter((p) => !INCHAT_ONLY_PRODUCTS.includes(p) || (!isEnded && (p === "tarot:clarifier" || p === "extend")));
               return (
                 <div key={msgI}>
                   {bubbles.map((b, bI) => {
@@ -1156,6 +1102,7 @@ function TarotReadingInner() {
                       />
                     );
                   })}
+                  {attachedProducts.length > 0 && <OfferDivider />}
                   {attachedProducts.map((product) => {
                     if (INCHAT_ONLY_PRODUCTS.includes(product)) {
                       // 인챗 전용 칩 — 끝난 대화엔 안 띄운다(강제 종료선 재개는 하단 PostEndOffers 가 맡고, 그 밖의 종료는 구매가 400)
@@ -1224,9 +1171,9 @@ function TarotReadingInner() {
                   }}
                   // 구매 흐름 중엔 handleFinish 가 아무것도 안 한다 — 눌러서 exit_chip_clicked 만 찍히지 않게 잠근다
                   disabled={inPurchaseFlow}
-                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-[12.5px] shadow-[0_2px_8px_rgba(232,194,106,0.45)] animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-full bg-gold text-night font-bold text-13 shadow-float animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ✨ 결과 카드 보기
+                  결과 카드 보기
                 </button>
               </div>
             )}
@@ -1265,13 +1212,13 @@ function TarotReadingInner() {
 
             {error && (
               <div className="text-center mt-2">
-                <p className="text-[12px] text-red-500">{error}</p>
+                <p className="text-12 text-red-500">{error}</p>
                 {retryTurn && (
                   <button
                     type="button"
                     onClick={retrySend}
                     disabled={inPurchaseFlow}
-                    className="mt-1.5 inline-block text-[12px] font-bold text-lilac-deep underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-1.5 inline-block text-12 font-bold text-accent underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     다시 시도
                   </button>
@@ -1287,23 +1234,14 @@ function TarotReadingInner() {
         <div className="max-w-md mx-auto px-5 py-3">
           {isEnded ? (
             <div className="flex flex-col gap-2">
-              <p className="text-[12px] text-text-light text-center pb-2.5">
-                별콩이의 풀이가 마무리됐어 ✨
+              <p className="text-12 text-text-light text-center pb-2.5">
+                별콩이의 풀이가 마무리됐어
               </p>
-              {/* 맛보기 끝 "이어서 깊게" — 메뉴판 그룹만, 같은 질문의 깊게 상품을 정가로(스펙 §6·§9-1). 위기 리딩엔 없음 */}
-              {showTeaser && (
-                <TeaserUpsellCard
-                  parentReadingId={readingId}
-                  emotion={draw.emotion}
-                  concern={draw.concern}
-                  surface="reading_end"
-                />
-              )}
               <Link
                 href={readingId ? `/tarot/result?id=${readingId}` : "/mypage"}
-                className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] text-center"
+                className="btn btn-primary btn-lg"
               >
-                결과 보기 →
+                결과 보기
               </Link>
               <PostEndOffers
                 extend={reopen.extend}
@@ -1322,7 +1260,8 @@ function TarotReadingInner() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-                <div className="flex items-end gap-2">
+                {/* 카카오톡처럼 둥근 입력칸 안 오른쪽에 ↑ 전송(H안) — 디자인 다듬기 /tarot/reading ⑥ 운영자 11-14. 칸이 화면 폭을 다 써 글 쓸 자리가 넓다 */}
+                <div className="flex items-end gap-1 p-1 rounded-3xl bg-white border border-lilac-mid/55 focus-within:border-lilac-deep focus-within:ring-2 focus-within:ring-lilac-deep/30">
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -1357,43 +1296,58 @@ function TarotReadingInner() {
                     }
                     disabled={isStreaming || !readingId}
                     maxLength={500}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-lilac-mid/40 text-eye-purple text-[14px] leading-[22px] placeholder:text-text-light/50 disabled:opacity-60 resize-none scrollbar-hide focus:outline-none focus:border-lilac-deep focus:ring-2 focus:ring-lilac-deep/30"
-                    style={{ minHeight: "44px", maxHeight: "120px" }}
+                    // 16px — 아이폰은 이보다 작은 입력칸을 누르면 화면을 저절로 확대한다
+                    className="flex-1 min-w-0 pl-3.5 pr-1.5 py-[9px] bg-transparent text-eye-purple text-16 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none"
+                    style={{ minHeight: "40px", maxHeight: "120px" }}
                   />
                   <button
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
-                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로 — 흐려지면 아래 '마무리하고 결과 보기'가 화면에서 가장 강해 보인다(사용자 2026-10-04). 동작 잠금은 disabled 가 그대로 한다
-                    className="shrink-0 h-[44px] px-4 rounded-xl bg-lilac-deep text-white font-bold text-[13px] disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    aria-label="전송"
+                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로(사용자 2026-10-04 — 흐려지면 다른 것이 화면에서 가장 강해 보였다). 동작 잠금은 disabled 가 그대로 한다
+                    className="shrink-0 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center transition active:scale-[0.96] disabled:active:scale-100 disabled:cursor-not-allowed"
                   >
-                    전송
-                    <span className="text-[11px] font-normal text-white/70">
-                      {input.length}/500
-                    </span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+                    </svg>
                   </button>
                 </div>
-                {/* 시안 B — 대화 내내 안내 한 줄 + 오른쪽 작은 마무리 버튼(금색 버튼은 없앴다, spec §3-6). 버튼 라벨이 '누르면 대화가 끝난다'를 말한다.
-                    안내는 truncate(min-w-0)라 320px 에서도 버튼이 줄바꿈·넘침 없이 남는다. 하단 바는 흰 배경이라 text-light 를 쓴다 */}
-                <div className="flex items-center justify-between gap-2.5">
-                  <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-light">
-                    <HintStar />
-                    <span className="truncate">궁금한 건 이어서 물어봐도 돼</span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleFinish()}
-                    disabled={isStreaming || !readingId || inPurchaseFlow}
-                    // 색은 한 단계 낮춘 text-light(흰 바탕 4.7:1, AA 유지) — 전송 버튼보다 앞에 서지 않게(사용자 2026-10-04)
-                    className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap py-1.5 text-[12px] font-bold text-text-light disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    마무리하고 결과 보기
-                    <ChevronRight />
-                  </button>
-                </div>
+                {/* 글자 수는 끝(500)에 가까워질 때만 */}
+                {input.length >= 400 && (
+                  <p className="text-11 text-text-light text-right pr-3 -mt-1 tabular-nums">{input.length}/500</p>
+                )}
               </form>
           )}
         </div>
       </div>
+
+      {/* 헤더 '결과 보기' 확인 — 라벨이 '대화가 끝난다'를 말하지 않아 한 번 묻는다(일찍 끝내기도 줄인다) */}
+      {finishConfirmOpen && (
+        <Dialog
+          label="대화 마무리 확인"
+          onClose={() => setFinishConfirmOpen(false)}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+        >
+          <div className="bg-white rounded-2xl p-5">
+            <p className="text-16 font-bold text-eye-purple text-center">대화를 마무리하고 결과를 볼까?</p>
+            <p className="text-13 text-text-light text-center mt-1.5">지금까지 나눈 얘기를 결과 카드로 정리해 줄게</p>
+            <div className="flex gap-2 mt-5">
+              <OverlayCloseButton className="btn btn-secondary btn-md flex-1">더 물어보기</OverlayCloseButton>
+              <button
+                type="button"
+                onClick={() => {
+                  setFinishConfirmOpen(false);
+                  handleFinish();
+                }}
+                className="btn btn-primary btn-md flex-1"
+              >
+                결과 보기
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
 
       {/* 인챗 추천 확인 모달 (cross-type) */}
       <RecoConfirmModal
@@ -1409,7 +1363,6 @@ function TarotReadingInner() {
           open={clarifierSheetOpen}
           readingId={readingId}
           drawnCards={draw.drawnCards}
-          accent={SPREAD_INFO[draw.spreadType]?.accent ?? "#6B8DD6"}
           onClose={() => setClarifierSheetOpen(false)}
           onDrawn={handleClarifierDrawn}
           onPurchasingChange={setClarifierPurchasing}
@@ -1442,11 +1395,11 @@ function TarotReadingInner() {
       {pendingResumeBanner && (
         <div className="fixed top-[3.5rem] inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
           <div
-            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-lg animate-fade-in"
+            className="w-full max-w-md pointer-events-auto flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gold/40 shadow-float animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-[15px] shrink-0">⭐</span>
-            <p className="flex-1 text-[13px] font-bold text-eye-purple leading-snug">
+            <span className="text-15 shrink-0"><Icon name="star" size={16} /></span>
+            <p className="flex-1 text-13 font-bold text-eye-purple leading-snug">
               충전 완료!{" "}
               {pendingResumeBanner.type === "clarifier"
                 ? "이어서 뽑을까?"
@@ -1464,7 +1417,7 @@ function TarotReadingInner() {
                 }
               }}
               disabled={isStreaming || purchasing}
-              className="shrink-0 px-3 py-1.5 bg-lilac-deep text-white rounded-full text-[12px] font-bold hover:bg-lilac-deep/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary btn-sm shrink-0 disabled:cursor-not-allowed"
             >
               좋아
             </button>
@@ -1473,7 +1426,7 @@ function TarotReadingInner() {
                 sessionStorage.removeItem("byeolkong:pending_upsell");
                 setPendingResumeBanner(null);
               }}
-              className="shrink-0 text-[11px] text-text-light/70 hover:text-text-light"
+              className="shrink-0 text-11 text-text-light hover:text-text-light"
             >
               나중에
             </button>

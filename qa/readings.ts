@@ -1,6 +1,6 @@
-// qa/readings.ts — 사주/타로 reading을 실제 API로 생성.
+// qa/readings.ts — 타로 reading 은 실제 API 로 생성, 사주는 계산만 API 로 하고 DB 에 심는다(상담 종료로 만드는 API 가 410).
 import { postJson } from "./client.ts";
-import { resetRelationship, preseedThreadTurns } from "./seed.ts";
+import { resetRelationship, preseedThreadTurns, seedSajuReading } from "./seed.ts";
 import type { Case } from "./types.ts";
 import type { ProfileInput } from "../lib/saju/profile-input.ts";
 import { SPREAD_INFO } from "../lib/tarot/spreads.ts";
@@ -48,21 +48,15 @@ export async function createSajuReading(c: Case): Promise<CreatedReading> {
   if (calc.status !== 200 || !calc.json.saju)
     throw new Error(`[readings] calc 실패 ${calc.status}: ${JSON.stringify(calc.json)}`);
 
-  // 2) readings INSERT + 별 차감
-  const r = await postJson<{ id?: string; cost?: number; error?: string; code?: string }>(
-    "/api/readings",
-    {
-      profile,
-      save: false,
-      sajuData: calc.json.saju,
-      question: c.seedConcern,
-      emotion: c.emotion,
-      sajuProduct: c.product.sajuProduct,
-    }
-  );
-  if (r.status !== 200 || !r.json.id)
-    throw new Error(`[readings] saju 생성 실패 ${r.status}: ${JSON.stringify(r.json)}`);
-  return { readingId: r.json.id, cost: r.json.cost ?? 0 };
+  // 2) readings 에 바로 심기 — 차감 없음
+  const readingId = await seedSajuReading({
+    saju: calc.json.saju,
+    birthYear: Number(profile.birthDate.slice(0, 4)),
+    question: c.seedConcern,
+    emotion: c.emotion,
+    sajuProduct: c.product.sajuProduct,
+  });
+  return { readingId, cost: 0 };
 }
 
 export async function createTarotReading(c: Case): Promise<CreatedReading> {

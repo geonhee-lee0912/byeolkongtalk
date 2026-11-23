@@ -67,7 +67,7 @@ export default function DayDetailCard({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+    <section className="card">
       {/* 그리드에서 다른 날짜를 고르면 이 카드 내용만 바뀌고 포커스는 그대로 그리드 버튼에 남는다 —
           aria-live 없이는 스크린리더 사용자에게 "선택이 바뀌었다"는 신호가 전혀 안 갔다.
           🔴 live region 은 **무료 블록만** 감싼다(section 전체가 아니다). 아래 {children} 에는 유료
@@ -85,7 +85,7 @@ export default function DayDetailCard({
               <Image src={a.assetSrc} alt={a.animal} width={44} height={44} className="h-11 w-11 shrink-0 object-contain" />
             ) : null;
           })()}
-          <h2 className="font-display text-base text-eye-purple">
+          <h2 className="font-display text-17 text-eye-purple">
             {cell.isToday ? "오늘" : `${Number(cell.date.slice(5, 7))}월 ${Number(cell.date.slice(8, 10))}일`}
           </h2>
         </header>
@@ -99,7 +99,7 @@ export default function DayDetailCard({
                44<52 는 의도다(한 장 안이라 원본보다 작게). "왜 여기만 font-display 가 없지"로
                되돌리지 말 것 — 되돌리면 히어로가 조용히 얇아진다. */}
         <div className="mb-3 text-center">
-          <div className="text-[44px] font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
+          <div className="text-44 font-extrabold leading-none tracking-[2px] text-eye-purple">{cell.hanja}</div>
           {/* 🔴 글자색이 **그날 천간의 오행 색**이다(2026-09-27, 사용자 요청) — 줄 끝의 "· 목"을
               색으로도 한 번 더 말한다. 원천은 `lib/saju/elements.ts` 의 ELEMENT_COLORS 로,
               SajuBoard·마이페이지가 쓰는 바로 그 맵이다(여기서 새 색을 만들지 말 것).
@@ -107,7 +107,7 @@ export default function DayDetailCard({
               대비가 선다(`.bar`/`.bg` 는 면용이라 글자로 쓰면 흐려진다).
               🔴 `mt-1.5`(6px) → `mt-3`(12px) — 44px 한자 바로 밑에 6px 로 붙어 한자의
                  아랫단처럼 읽혔다(사용자 지적). */}
-          <div className="mt-3 text-[11px] font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
+          <div className="mt-3 text-11 font-bold" style={{ color: ELEMENT_COLORS[cell.element].text }}>
             {cell.ganji} · {dayWord} 들어온 기운 · {cell.element}
           </div>
         </div>
@@ -118,15 +118,15 @@ export default function DayDetailCard({
             🔴 DAY_LINE 은 여기 두지 않는다 — 아래 getSajuTaste 의 overall 문장과 결·문형이 겹친다
                (정재 "있는 걸 단단히 하는 날이야" vs overall.caution "지금 있는 걸 단단히 여미는 게 어울려").
                한 줄은 허브 히어로가 쓴다(taste 블록이 없는 자리). 뱅크마다 집은 하나씩. */}
-        <p className="text-center font-display text-2xl leading-snug text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
+        <p className="text-center font-display text-22 leading-snug text-eye-purple">{DAY_NAME[cell.tenGod]}</p>
         <div className="mb-3 mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          <span className="text-sm text-text-light">{cell.grade.label}</span>
+          <span className="text-14 text-text-light">{cell.grade.label}</span>
           <ScoreStars display={scoreDisplay(cell.score)} />
           {cell.marks.map((m) => (
             // 🔴 칩 자체가 색면인 솔리드 팔레트(MARK_CHIP) — 셀 배경과 무관하게 대비가 고정된다.
             <span
               key={m.glyph}
-              className="rounded-full px-2 py-0.5 text-[11px] font-bold"
+              className="rounded-full px-2 py-0.5 text-11 font-bold"
               style={{ background: MARK_CHIP[m.glyph].bg, color: MARK_CHIP[m.glyph].fg }}
             >
               <span aria-hidden>{m.glyph}</span> {m.label}
@@ -138,7 +138,7 @@ export default function DayDetailCard({
         {(() => {
           const t = getSajuTaste(cell.grade.tone, cell.axes, cell.relation, cell.date);
           return (
-            <div className="mb-4 space-y-2 text-sm leading-relaxed text-eye-purple">
+            <div className="mb-4 space-y-2 text-14 leading-relaxed text-eye-purple">
               {t.overall ? <p>{t.overall}</p> : null}
               {t.love ? <p><span className="font-bold">연애</span> — {t.love}</p> : null}
               {(t.work || t.money) ? <p><span className="font-bold">일·돈</span> — {[t.work, t.money].filter(Boolean).join(" ")}</p> : null}
@@ -150,7 +150,7 @@ export default function DayDetailCard({
         <ul className="space-y-2">
           {AXIS_LABEL.map(({ key, label }) => (
             <li key={key} className="flex items-center gap-3">
-              <span className="w-8 text-sm text-text-light">{label}</span>
+              <span className="w-8 text-14 text-text-light">{label}</span>
               {/* 축 값은 막대 너비로만 표현돼 스크린리더엔 안 보였다 — progressbar ARIA 로 값을 노출 */}
               <div
                 role="progressbar"
@@ -170,7 +170,7 @@ export default function DayDetailCard({
                   🔴 `tabular-nums` + 고정폭(w-8) — 안 주면 자릿수(7/45/100)에 따라 막대 끝이
                      들쭉날쭉해져 세 줄이 안 맞는다. `aria-valuenow` 가 이미 값을 말하므로
                      스크린리더 중복을 막으려 aria-hidden 으로 가린다. */}
-              <span aria-hidden className="w-8 shrink-0 text-right text-[12px] font-semibold tabular-nums text-eye-purple">
+              <span aria-hidden className="w-8 shrink-0 text-right text-12 font-semibold tabular-nums text-eye-purple">
                 {cell.axes[key]}
               </span>
             </li>

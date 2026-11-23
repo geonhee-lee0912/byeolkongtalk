@@ -31,6 +31,8 @@ import {
 import { reopenOptions, formatReopenHeader, isClarifierReopenTurn, dropEndIfPurchasedSince } from "@/lib/tarot/reopen";
 import { isClarifierSyntheticMessage } from "@/lib/tarot/clarifier-message";
 import { createMonologueHoldFilter, stripLeakedMonologue } from "@/lib/tarot/monologue-leak";
+import { askedForOtherLanguage, createOddCharFilter, scrubHistory } from "@/lib/odd-chars";
+import { repairOddWord } from "@/lib/odd-chars-repair";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -320,7 +322,10 @@ export async function POST(request: NextRequest) {
   // 이어하기로 불러온 메시지에 created_at 등 DB 필드가 붙어 넘어올 수 있어
   // 여기서 role/content 만 추려 방어한다 (클라이언트 stripping 의 서버측 안전망).
   // 지난 별콩이 답에 붙어 있던 모델 독백(lib/tarot/monologue-leak.ts)도 여기서 뗀다 — 클라 사본엔 스트림으로 받은 그대로 남아 있어, 그대로 넘기면 모델이 자기 메모를 다시 읽는다
-  const apiMessages = body.messages.map((m) => ({
+  // 모델이 섞어 낸 깨진 글자(lib/odd-chars.ts)도 지난 답에서 지운다 — 손님 글·고민에 있는 글자는 깨진 글자로 보지 않고,
+  // 다른 언어로 적어 달라고 해서 나온 답은 그대로 둔다
+  const oddKnown = [reading.question ?? "", ...body.messages.filter((m) => m.role === "user").map((m) => m.content)].join("\n");
+  const apiMessages = scrubHistory(body.messages, oddKnown).map((m) => ({
     role: m.role,
     content: m.role === "assistant" ? stripLeakedMonologue(m.content).text : m.content,
   }));
@@ -331,6 +336,13 @@ export async function POST(request: NextRequest) {
   let endFiltered = false;
   const endFilter = keepOpenTurn ? createEndMarkerFilter() : null; // 열어 두는 턴(keep-open · ⑦ 재개 직후 카드 풀이) 전용 — 이 턴엔 [END] 가 전송·저장 어디에도 남지 않게 스트림에서 지운다(spec §3-3)
   const holdFilter = createMonologueHoldFilter(); // 모델 독백 누출 — 메모일 수 있는 꼬리를 화면에 내보내기 전에 붙잡는다(lib/tarot/monologue-leak.ts)
+  // 깨진 글자 — 끝 토막은 자르고 가운데 낱말은 고친다(lib/odd-chars.ts). 독백 필터보다 앞이라 화면·저장본이 둘 다 거른 글을 기준으로 한다.
+  // 손님이 다른 언어로 적어 달라고 한 턴은 거르지 않는다
+  const oddFilter = createOddCharFilter({
+    known: oddKnown,
+    disabled: askedForOtherLanguage(lastMessage.content),
+    repair: (req) => repairOddWord(req, { route: "/api/consultations/tarot/chat", userId, extra: { readingId: reading.id } }),
+  });
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -341,12 +353,25 @@ export async function POST(request: NextRequest) {
           extra: { readingId: reading.id },
         }, CHAT_MODEL)) {
           rawChars += chunk.length;
-          const out = holdFilter.push(endFilter ? endFilter.push(chunk) : chunk);
+          const out = holdFilter.push(await oddFilter.push(endFilter ? endFilter.push(chunk) : chunk));
           if (!out) continue;
           assistantText += out;
           controller.enqueue(encoder.encode(out));
         }
-        const rest = holdFilter.push(endFilter ? endFilter.flush() : "");
+        const oddRest = await oddFilter.push(endFilter ? endFilter.flush() : "");
+        const odd = await oddFilter.flush();
+        const rest = holdFilter.push(oddRest + odd.tail);
+        if (odd.stats.cut + odd.stats.repaired + odd.stats.deleted > 0) {
+          // 글자 내용·손님 글은 남기지 않는다 — 종류별 개수만
+          void logWarn(
+            "tarot_odd_chars: 답에 섞인 깨진 글자를 거르고 보냈다",
+            ctxFromRequest(request, {
+              route: "/api/consultations/tarot/chat",
+              userId,
+              extra: { readingId: reading.id, ...odd.stats },
+            }),
+          );
+        }
         // 스트림 끝 — 붙잡아 둔 꼬리를 판별해 메모면 버리고 나머지를 보낸다. leak.text 가 저장본 기준 글이다
         const { tail, leak, input: filteredText, shownPastCut } = holdFilter.flush();
         for (const piece of [rest, tail]) {

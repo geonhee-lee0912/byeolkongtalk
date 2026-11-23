@@ -1,5 +1,6 @@
 // app/api/relationship/route.ts — 내 관계 조회 + 상대 등록
 import { NextRequest, NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError } from "@/lib/logger";
@@ -152,6 +153,9 @@ interface RegisterBody {
 }
 
 export async function POST(request: NextRequest) {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });
 

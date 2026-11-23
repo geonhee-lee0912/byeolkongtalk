@@ -1,0 +1,39 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>안쪽 칸 모양</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--cw:#FFF8F0;--ls:#E8DEF5;--l:#D4C7EE;--ld:#9F8AD0;--ink:#5A3E8C;--tl:#7A6BA0;--btn:#7E66BA}
+*{box-sizing:border-box}body{margin:0;background:#EEE8F4;color:#3b3350;font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 14px}
+.phones{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.phone{width:360px;background:var(--cream);border-radius:28px;padding:18px;border:2px solid transparent}.phone.rec{border-color:var(--ld)}
+.phone h3{margin:0 0 2px;text-align:center;color:var(--ink);font-size:15px;display:flex;justify-content:center;gap:6px;align-items:center}.r{background:var(--ink);color:#fff;font-size:11px;border-radius:999px;padding:1px 8px}
+.cap{text-align:center;font-size:12px;color:var(--tl);margin:0 0 14px}
+.c1{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(90,62,140,.08);margin-bottom:12px}
+.c1 b{color:var(--ink);font-size:16px;display:block}.c1 p{margin:2px 0 12px;color:var(--tl);font-size:13px}
+.in{border-radius:12px;padding:12px 14px;color:var(--ink);font-size:13px;margin-top:8px}
+.sheet{background:#fff;border-radius:24px;padding:18px 16px;box-shadow:0 -4px 24px rgba(31,23,53,.12)}
+.sheet b{color:#1F1735;font-size:17px;display:block;margin-bottom:10px}
+.opt{border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;color:var(--ink);font-size:15px;font-weight:700}.opt span{font-weight:400;color:var(--tl);font-size:13px}
+.sel{outline:2px solid var(--btn);outline-offset:-2px}
+.A .in,.A .opt{border:1px solid rgba(184,168,216,.45)}
+.B .in,.B .opt{background:#F5F0FB}
+.C .in,.C .opt{background:#FBF8FE;border:1px solid rgba(184,168,216,.35)}
+.D .in,.D .opt{background:var(--cw)}
+</style></head><body><div class="wrap">
+<h1>안쪽 칸 — 바탕색 대신 무엇으로 나눌까</h1>
+<p class="lead">카드 안 안내 상자와 시트 안 선택지, 두 자리에서 같이 봐요. 바닥 카드는 그림자 그대로예요.</p>
+<div class="phones">
+<div class="phone D"><h3>지난 안 — 크림 바탕</h3><p class="cap">어색하다고 하신 것</p>
+<div class="c1"><b>별마루</b><p>오늘 우리 사이 흐름</p><div class="in">오늘은 먼저 연락하기 좋은 날</div></div>
+<div class="sheet"><b>몇 장으로 볼까?</b><div class="opt sel">세 장 <span>흐름 보기</span></div><div class="opt">다섯 장 <span>자세히</span></div></div></div>
+<div class="phone A rec"><h3>A · 얇은 테두리만 <span class="r">추천</span></h3><p class="cap">바닥 카드는 그림자, 안쪽 칸은 테두리 — 규칙이 하나로 정리돼요</p>
+<div class="c1"><b>별마루</b><p>오늘 우리 사이 흐름</p><div class="in">오늘은 먼저 연락하기 좋은 날</div></div>
+<div class="sheet"><b>몇 장으로 볼까?</b><div class="opt sel">세 장 <span>흐름 보기</span></div><div class="opt">다섯 장 <span>자세히</span></div></div></div>
+<div class="phone B"><h3>B · 아주 옅은 연보라 바탕</h3><p class="cap">크림 대신 보라 계열로 — 테두리 없음</p>
+<div class="c1"><b>별마루</b><p>오늘 우리 사이 흐름</p><div class="in">오늘은 먼저 연락하기 좋은 날</div></div>
+<div class="sheet"><b>몇 장으로 볼까?</b><div class="opt sel">세 장 <span>흐름 보기</span></div><div class="opt">다섯 장 <span>자세히</span></div></div></div>
+<div class="phone C"><h3>C · 테두리 + 아주 옅은 바탕</h3><p class="cap">가장 또렷하지만 조금 무거워요</p>
+<div class="c1"><b>별마루</b><p>오늘 우리 사이 흐름</p><div class="in">오늘은 먼저 연락하기 좋은 날</div></div>
+<div class="sheet"><b>몇 장으로 볼까?</b><div class="opt sel">세 장 <span>흐름 보기</span></div><div class="opt">다섯 장 <span>자세히</span></div></div></div>
+</div></div></body></html>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Icon from "@/components/common/Icon";
 
 // 별마루 서브 라우트(saju·tarot·woori) 공통 상단 — **뒤로가기 하나만** 한다.
 // 🔴 타이틀을 뺐다(2026-09-24). font-display 24px 타이틀이 바로 아래 카드의 하루 이름(21px)과
@@ -13,7 +14,8 @@ export default function BackHeader() {
     //    Link 쪽 margin 이 아니라 여기인 이유: Link 는 inline-flex 라 세로 마진이 줄 박스
     //    계산과 얽히고, 링크에 pl 을 주면 탭 영역이 화면 왼쪽 끝까지 끌려간다. 패딩은 위치만 민다.
     // 🔴 그래서 `←` 는 더 이상 아래 탭 판 왼쪽 끝과 정렬되지 않는다 — 의도된 것이다.
-    <header className="pl-2 pt-2">
+    // 앱에선 앱 헤더(‹ + 제목)와 겹쳐 숨긴다(web-only, 스펙 2026-11-07-앱-화면 §4)
+    <header className="web-only pl-2 pt-2">
       <Link
         href="/byeolmaru"
         // 🔴 칩(연보라 알약)이 아니라 **텍스트형**이다(2026-09-27, 사용자 결정). 바로 아래 탭
@@ -24,9 +26,9 @@ export default function BackHeader() {
         //    음수 마진은 여전히 안 쓴다(2026-09-24 지적).
         // 🔴 세로 패딩(py-2)은 장식이 아니라 **탭 타깃**이다 — 13px 글자만 두면 높이가 ~18px 라
         //    손가락으로 누르기 어렵다. 빼지 말 것.
-        className="inline-flex items-center gap-1.5 py-2 pr-2 text-[13px] font-medium text-eye-purple transition hover:opacity-70 active:scale-[0.97]"
+        className="inline-flex items-center gap-1.5 py-2 pr-2 text-13 font-medium text-eye-purple transition hover:opacity-70 active:scale-[0.97]"
       >
-        <span aria-hidden className="text-[15px] leading-none">←</span>
+        <span aria-hidden className="text-15 leading-none"><Icon name="back" size={16} /></span>
         별마루
       </Link>
     </header>

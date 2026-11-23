@@ -5,7 +5,8 @@ import type { RelationshipStatus } from "./types";
 export interface SimSituation {
   id: string; // "breakup-reconnect"
   relationship: RelationshipStatus | "any"; // crush|dating|onesided|breakup|any
-  emoji: string;
+  /** 예전 화면용 이모지 — 화면에서는 더 쓰지 않는다(스펙 2026-11-09 §2.1). 어드민·QA 로그가 읽어 남겨 둠 */
+  emoji?: string;
   label: string; // "재회 연락"
   desc: string; // 카드 설명 한 줄
   dollStance: string; // 인형 초기 태도(프롬프트 주입) — "상황별 페르소나"의 본체
@@ -18,7 +19,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "crush-confess",
     relationship: "crush",
-    emoji: "💗",
     label: "고백하기",
     desc: "마음을 꺼내볼까 말까, 그 순간을 연습해",
     dollStance:
@@ -30,7 +30,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "crush-firsttext",
     relationship: "crush",
-    emoji: "📱",
     label: "먼저 연락",
     desc: "오랜만에·조심스럽게 먼저 톡 걸어보기",
     dollStance:
@@ -42,7 +41,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "dating-hurt",
     relationship: "dating",
-    emoji: "🌧️",
     label: "서운한 거 말하기",
     desc: "쌓인 서운함을 다투지 않고 꺼내는 연습",
     dollStance:
@@ -54,7 +52,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "dating-makeup",
     relationship: "dating",
-    emoji: "🕊️",
     label: "화해하기",
     desc: "싸운 직후, 먼저 손 내미는 연습",
     dollStance:
@@ -66,7 +63,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "onesided-approach",
     relationship: "onesided",
-    emoji: "🌱",
     label: "다가가기",
     desc: "친구·지인 사이에서 한 걸음 좁혀보기",
     dollStance:
@@ -78,7 +74,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "onesided-decide",
     relationship: "onesided",
-    emoji: "🎲",
     label: "고백할지 말지",
     desc: "저부담 신호로 상대 온도를 가늠해보기",
     // ⚠️ 결정형(대화 연습보다 결정 고민) — seed 를 "저부담 리허설로 마음 확인"으로 잡음.
@@ -92,7 +87,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "breakup-reconnect",
     relationship: "breakup",
-    emoji: "🔗",
     label: "재회 연락",
     desc: "헤어진 뒤 다시 연락을 건네보는 연습",
     dollStance:
@@ -104,7 +98,6 @@ export const SITUATIONS: SimSituation[] = [
   {
     id: "breakup-closure",
     relationship: "breakup",
-    emoji: "🌙",
     label: "미련·후회 정리",
     desc: "못 한 말을 마지막으로 털어놓는 자리",
     dollStance:
@@ -121,7 +114,6 @@ export const SITUATIONS: SimSituation[] = [
 export const CUSTOM_SITUATION: SimSituation = {
   id: "custom",
   relationship: "any",
-  emoji: "✍️",
   label: "직접 쓰기",
   desc: "카드에 없는 내 상황을 직접 적어볼게",
   dollStance:

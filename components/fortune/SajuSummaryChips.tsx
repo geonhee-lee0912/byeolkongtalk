@@ -14,19 +14,17 @@ export default function SajuSummaryChips({ saju }: { saju: SajuResult | null }) 
   const chips: { k: string; v: string; color?: string }[] = [
     { k: "일간", v: `${dayHanja} ${saju.dayStem}${saju.dayElement}`, color: ELEMENT_COLOR[saju.dayElement] },
     { k: "강한 기운", v: `${maxEl} ${counts[maxEl] ?? 0}개`, color: ELEMENT_COLOR[maxEl] },
-    { k: "음양", v: yy.yang > yy.yin ? "양 우세" : yy.yin > yy.yang ? "음 우세" : "음양 균형" },
+    { k: "음양", v: yy.yang > yy.yin ? "양 우세" : yy.yin > yy.yang ? "음 우세" : "균형" },
   ];
   return (
-    <div className="flex flex-wrap justify-center gap-2">
-      {chips.map((c) => (
-        <div
-          key={c.k}
-          className="flex items-center gap-1.5 bg-cream-warm border border-lilac-mid/25 rounded-2xl px-3 py-2"
-        >
-          <span className="text-[10px] font-bold text-text-light/70">{c.k}</span>
-          <span className="text-[12.5px] font-bold" style={{ color: c.color ?? "#5A3E8C" }}>
+    // 한 줄 카드 하나에 세 칸(디자인 다듬기 묶음 4 결과 T1, 운영자 11-16 — 떠 있는 카드 3개·'음양 음양 균형' 반복을 정리)
+    <div className="card flex px-1 py-2.5">
+      {chips.map((c, i) => (
+        <div key={c.k} className={`flex-1 text-center ${i > 0 ? "border-l border-lilac-mid/35" : ""}`}>
+          <p className="text-11 text-text-light">{c.k}</p>
+          <p className="text-14 font-bold mt-0.5" style={{ color: c.color ?? "#5A3E8C" }}>
             {c.v}
-          </span>
+          </p>
         </div>
       ))}
     </div>

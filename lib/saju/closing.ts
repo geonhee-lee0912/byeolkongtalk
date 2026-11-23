@@ -9,6 +9,21 @@ import { stripRecoMarkers } from "@/lib/reco-utils";
 const INVITE_PATTERN =
   /(펼치러\s*와|여기 있을|여기서 기다릴|돌아와|기다릴게|별콩이는 항상|네 곁에|언제든 다시)/;
 
+// 타로 결과 카드에 떼어 놓으면 어색한 두 가지 — 운영 표본에서 자주 보였다(디자인 다듬기 /tarot/result ④ 운영자 11-14).
+// ① 끝의 "다음엔 … 이어서 보자" 다음 상담 안내·"오늘은 여기까지 …" 마무리 문장 ② 맨 앞의 마지막 질문에 대한 대답 말투("알겠어." "응…" "ㅠㅠ")
+// 다음 상담 안내는 '이어서' 뒤에 같이 보자는 말(보자·봐·얘기·살펴…)이 온다 — "다음 주엔 연락이 이어서 올 흐름" 같은 전망은 결론이라 남긴다
+const NEXT_TIME_SENTENCE =
+  /다음(?:엔|에는|에)?\s[^.!?…]*이어서(?:[^.!?…]*\s)?(?:보자|보면|보기|볼|봐|살펴|들여다|짚|얘기|이야기|풀어|풀자|들려|나눠|나누|하자|해 ?보자)|^오늘은 여기까지/;
+const REPLY_OPENER = /^(?:(?:알겠어|응|그래|맞아|그렇구나|좋아)[.…!~,]+|[ㅠㅜ]+[.…!~]*)\s*/;
+
+function trimForCard(paragraph: string): string {
+  const sentences = paragraph.replace(REPLY_OPENER, "").split(/(?<=[.!?…])\s+/);
+  while (sentences.length > 0 && NEXT_TIME_SENTENCE.test(sentences[sentences.length - 1])) {
+    sentences.pop();
+  }
+  return sentences.join(" ").trim();
+}
+
 export function extractClosingLine(
   messages: { role: "user" | "assistant"; content: string }[],
   options?: { excludeInvite?: boolean }
@@ -32,11 +47,14 @@ export function extractClosingLine(
   if (paragraphs.length === 0) return null;
 
   // 기본은 마지막 문단. excludeInvite 면 뒤에서부터 초대 문구가 아닌 첫 문단(=요약)을 선택.
+  // 그 문단도 끝의 '다음엔 … 이어서 보자'·앞의 대답 말투를 떼고, 남는 게 없으면 앞 문단으로 간다.
   let chosen = paragraphs[paragraphs.length - 1];
   if (options?.excludeInvite) {
     for (let i = paragraphs.length - 1; i >= 0; i--) {
-      if (!INVITE_PATTERN.test(paragraphs[i])) {
-        chosen = paragraphs[i];
+      if (INVITE_PATTERN.test(paragraphs[i])) continue;
+      const trimmed = trimForCard(paragraphs[i]);
+      if (trimmed) {
+        chosen = trimmed;
         break;
       }
     }

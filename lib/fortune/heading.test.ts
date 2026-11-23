@@ -1,13 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { splitHeadingEmoji, sectionPreview } from "./heading.ts";
+import { stripHeadingEmoji, sectionPreview } from "./heading.ts";
 
-test("splitHeadingEmoji: 앞 이모지 분리", () => {
-  assert.deepEqual(splitHeadingEmoji("🌱 타고난 성격"), { emoji: "🌱", title: "타고난 성격" });
+// 리포트 소제목 앞 이모지는 지우고 번호 타일로(스펙 2026-11-09 §2.1) — 데이터 문자열은 그대로 둔다
+test("stripHeadingEmoji: 앞 이모지와 뒤 공백을 지운다", () => {
+  assert.equal(stripHeadingEmoji("🌱 타고난 기질·성격"), "타고난 기질·성격");
+  assert.equal(stripHeadingEmoji("⏰ 주목할 시기"), "주목할 시기");
 });
-
-test("splitHeadingEmoji: 이모지 없으면 기본 별", () => {
-  assert.deepEqual(splitHeadingEmoji("타고난 성격"), { emoji: "✦", title: "타고난 성격" });
+test("stripHeadingEmoji: ZWJ 이모지 시퀀스도 한 번에", () => {
+  assert.equal(stripHeadingEmoji("👩‍❤️‍👨 궁합"), "궁합");
+});
+test("stripHeadingEmoji: 이모지 없으면 그대로", () => {
+  assert.equal(stripHeadingEmoji("올해의 흐름"), "올해의 흐름");
 });
 
 test("sectionPreview: 볼드 걷어내고 첫 문장", () => {

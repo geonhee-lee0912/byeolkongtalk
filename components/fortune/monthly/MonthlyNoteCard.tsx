@@ -3,7 +3,7 @@ import { MarkdownLite } from "@/lib/markdown-lite";
 
 export default function MonthlyNoteCard({ note }: { note: string }) {
   return (
-    <div className="bg-[#211A33] rounded-3xl px-4 pt-4 pb-[17px]">
+    <div className="bg-[#211A33] rounded-2xl px-4 pt-4 pb-[17px]">
       <div className="flex items-center gap-[9px] mb-[9px]">
         <Image
           src="/byeolkong-main.png"
@@ -12,9 +12,9 @@ export default function MonthlyNoteCard({ note }: { note: string }) {
           height={32}
           className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
         />
-        <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
+        <span className="text-12 font-extrabold text-[#F5D680]">별콩이의 한마디</span>
       </div>
-      <MarkdownLite text={note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
+      <MarkdownLite text={note} tone="dark" className="text-13 leading-[1.78] text-[#ECE3FB]" />
     </div>
   );
 }

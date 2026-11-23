@@ -1,6 +1,6 @@
 // app/admin/users/page.tsx — 사용자 목록.
 import Link from "next/link";
-import { createHash } from "crypto";
+import { identityHash, type AuthProvider } from "@/lib/auth/identity-hash";
 import { getServiceSupabase } from "@/lib/supabase";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import { Pager } from "@/components/admin/Pager";
@@ -98,12 +98,34 @@ export default async function AdminUsers({
   const passCountMap = new Map<string, number>();
   for (const r of passRows) passCountMap.set(r.user_id, (passCountMap.get(r.user_id) ?? 0) + 1);
 
-  // 재가입 판별 — account_withdrawals(탈퇴 원장)에 이 유저의 kakao 해시가 있으면 과거 탈퇴 이력
+  // 로그인 수단 — 회원별 대표 1개(먼저 붙은 것). 행이 없는 회원(옮겨 담기 전 가입)은 users.kakao_id 로 보충
+  // (lib/auth/user-identity.ts 와 같은 규칙). 목록이라 회원별 조회 대신 한 번에 읽는다
+  const identityByUser = new Map<string, { provider: AuthProvider; providerUserId: string }>();
+  let identityFailed = false;
+  if (ids.length > 0) {
+    const { data: idRows, error: idError } = await supabase
+      .from("user_identities")
+      .select("user_id, provider, provider_user_id, created_at")
+      .in("user_id", ids)
+      .order("created_at", { ascending: true });
+    identityFailed = !!idError;
+    for (const r of idRows ?? []) {
+      const uid = r.user_id as string;
+      if (!identityByUser.has(uid)) {
+        identityByUser.set(uid, { provider: r.provider as AuthProvider, providerUserId: r.provider_user_id as string });
+      }
+    }
+  }
+
+  // 재가입 판별 — account_withdrawals(탈퇴 원장)에 이 유저의 로그인 수단 해시가 있으면 과거 탈퇴 이력
   const hashByUser = new Map<string, string>();
   const withdrawalHashes: string[] = [];
   for (const u of users ?? []) {
-    if (u.kakao_id) {
-      const h = createHash("sha256").update(String(u.kakao_id)).digest("hex");
+    const ident =
+      identityByUser.get(u.id) ??
+      (u.kakao_id != null ? { provider: "kakao" as const, providerUserId: String(u.kakao_id) } : null);
+    if (ident) {
+      const h = identityHash(ident.provider, ident.providerUserId);
       hashByUser.set(u.id, h);
       withdrawalHashes.push(h);
     }
@@ -137,6 +159,7 @@ export default async function AdminUsers({
       {passFailed && <LoadFailed block="연애 패스 집계(relationship_passes)" />}
       {relFailed && <LoadFailed block="관계 등록 여부(relationships)" />}
       {withdrawalFailed && <LoadFailed block="재가입 이력(account_withdrawals) — 재가입 배지가 안 붙는다" />}
+      {identityFailed && <LoadFailed block="로그인 수단(user_identities) — 애플 배지·애플 회원 재가입 배지가 안 붙는다" />}
       {usersFailed ? (
         <LoadFailed block="사용자 목록(users)" />
       ) : (
@@ -171,6 +194,9 @@ export default async function AdminUsers({
                   </td>
                   <td className="pr-3">
                     {u.nickname ?? "(없음)"}
+                    {identityByUser.get(u.id)?.provider === "apple" && (
+                      <span className="ml-1.5 inline-block text-[10px] font-bold text-white/80 bg-white/15 px-1.5 py-0.5 rounded">애플</span>
+                    )}
                     {hashByUser.has(u.id) && rejoinedHashes.has(hashByUser.get(u.id)!) && (
                       <span className="ml-1.5 inline-block text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">재가입</span>
                     )}

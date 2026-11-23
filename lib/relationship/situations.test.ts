@@ -14,7 +14,7 @@ test("스타터 8개 — 관계당 2개(any 제외)", () => {
 
 test("모든 seed 필드가 비어있지 않다 (엔진 주입 대상)", () => {
   for (const s of SITUATIONS) {
-    for (const k of ["id", "emoji", "label", "desc", "dollStance", "opening", "contextPrompt"] as const) {
+    for (const k of ["id", "label", "desc", "dollStance", "opening", "contextPrompt"] as const) {
       assert.ok((s[k] as string).trim().length > 0, `${s.id}.${k} 비어있음`);
     }
   }

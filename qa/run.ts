@@ -1,7 +1,7 @@
 // qa/run.ts — 진입점. seed → 케이스 루프 → 드라이버 → 단언+심판 → 리포트.
 import { config } from "./config.ts";
 import { ensureTestUser, cleanTestData, topUpStars } from "./seed.ts";
-import { collectCases, type CaseFilter } from "./cases/index.ts";
+import { allCases, collectCases, isClosedCase, type CaseFilter } from "./cases/index.ts";
 import { runConversation } from "./driver.ts";
 import { runAssertions } from "./evaluate/assertions.ts";
 import { judge } from "./evaluate/judge.ts";
@@ -32,6 +32,10 @@ async function main() {
   }
 
   const cases = collectCases(filter);
+  if (!filter.product) {
+    const skipped = allCases().filter(isClosedCase).length;
+    if (skipped) console.log(`[qa] 종료된 상담(사주·연애·판정) ${skipped}개는 기본 실행에서 제외 — 돌리려면 --product=saju:<상품>|relationship|verdict`);
+  }
 
   if (cases.length === 0) {
     console.error("매칭되는 케이스가 없어. --product / --case 확인.");

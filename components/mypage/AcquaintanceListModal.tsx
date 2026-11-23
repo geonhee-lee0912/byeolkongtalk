@@ -2,8 +2,9 @@
 
 // 지인 사주 팝업 — 원래 SajuProfileModal 의 "지인 사주" 파트(목록·추가/수정·케밥·삭제확인·
 // 페이지네이션)를 분리. 명식(self) 편집은 SelfSajuEditModal 이 담당.
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import { ELEMENT_COLORS } from "@/lib/saju/elements";
 import {
@@ -12,6 +13,7 @@ import {
   birthTimeToSijin,
   toInitial,
 } from "@/components/mypage/sajuShared";
+import Icon from "@/components/common/Icon";
 
 interface AcquaintanceListModalProps {
   profiles: ProfileItem[];
@@ -35,14 +37,7 @@ export default function AcquaintanceListModal({
   const [sheetId, setSheetId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 배경 스크롤 잠금
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog(목록 · 케밥 · 삭제 확인 각각 — 맨 위 하나만 닫힌다)
 
   const acquaintances = profiles.filter((p) => !p.isPrimary);
 
@@ -83,13 +78,15 @@ export default function AcquaintanceListModal({
     }
   };
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
+  return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5"
-        onClick={onClose}
+      <Dialog
+        label="지인 사주"
+        onClose={onClose}
+        z={50}
+        widthClassName="max-w-md"
+        gutterClassName="px-5"
+        backdropClassName="bg-night/50 backdrop-blur-sm"
       >
         <div
           ref={scrollRef}
@@ -98,33 +95,33 @@ export default function AcquaintanceListModal({
         >
           {/* 헤더 */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 sticky top-0 bg-cream z-10">
-            <h2 className="text-[15px] font-bold text-eye-purple">지인 사주</h2>
-            <button
-              onClick={onClose}
+            <h2 className="text-15 font-bold text-eye-purple">지인 사주</h2>
+            <OverlayCloseButton
               aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-              ✕
-            </button>
+              <Icon name="close" size={18} />
+            </OverlayCloseButton>
           </div>
 
           <div className="px-5 pb-5">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-[12px] font-bold text-eye-purple">
-                전체 <span className="text-text-light/60 font-normal">{acquaintances.length}</span>
+              <div className="text-12 font-bold text-eye-purple">
+                전체 <span className="text-text-light font-normal">{acquaintances.length}</span>
               </div>
               {!showAddAcq && !editAcqId && (
+                // 밑줄 글자 링크 → 공용 보조 버튼(디자인 다듬기 마이 ④, 운영자 11-21)
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="text-[11px] text-lilac-deep font-bold underline"
+                  className="btn btn-secondary btn-sm"
                 >
-                  + 지인 추가
+                  지인 추가
                 </button>
               )}
             </div>
 
             {(showAddAcq || editAcqId) && (
-              <div className="bg-white rounded-2xl p-4 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] mb-3">
+              <div className="card-inner mb-3">
                 <ProfileForm
                   mode="acquaintance"
                   initial={
@@ -152,7 +149,7 @@ export default function AcquaintanceListModal({
                     setShowAddAcq(false);
                     setEditAcqId(null);
                   }}
-                  className="mx-auto mt-3 block text-[12px] text-text-light/60 underline"
+                  className="mx-auto mt-3 block text-12 text-text-light underline"
                 >
                   취소
                 </button>
@@ -164,13 +161,13 @@ export default function AcquaintanceListModal({
             )}
 
             {acquaintances.length === 0 && !showAddAcq && !editAcqId ? (
-              <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] px-4 py-6">
-                <p className="text-[12px] text-text-light/70 text-center mb-3">
+              <div className="card-inner">
+                <p className="text-12 text-text-light text-center mb-3">
                   아직 함께 보는 사주가 없어. 지인 사주를 추가하면 여기에 모아서 함께 풀어볼 수 있어.
                 </p>
                 <button
                   onClick={() => setShowAddAcq(true)}
-                  className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+                  className="btn btn-primary btn-lg"
                 >
                   지인 추가하기
                 </button>
@@ -180,7 +177,7 @@ export default function AcquaintanceListModal({
                 {pagedProfiles.map((p) => (
                   <div
                     key={p.id}
-                    className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-3 flex items-center gap-3"
+                    className="card-inner flex items-center gap-3"
                   >
                     <div
                       className="shrink-0 w-11 h-11 rounded-xl border border-lilac-mid/30 flex items-center justify-center"
@@ -193,18 +190,18 @@ export default function AcquaintanceListModal({
                           : undefined
                       }
                     >
-                      <span className="text-[16px] font-bold leading-none">
+                      <span className="text-17 font-bold leading-none">
                         {p.saju ? p.saju.pillars.day.hanja : "?"}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-bold text-eye-purple truncate">
+                      <div className="text-14 font-bold text-eye-purple truncate">
                         {p.displayName}
-                        <span className="ml-1.5 text-[10px] font-bold text-text-light/70 bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
+                        <span className="ml-1.5 text-11 font-bold text-text-light bg-lilac-soft/60 rounded-full px-1.5 py-0.5">
                           {RELATION_LABEL[p.relationType] ?? "지인"}
                         </span>
                       </div>
-                      <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+                      <div className="text-11 text-text-light mt-0.5 truncate">
                         {p.saju && p.birthDate ? (
                           <>
                             {p.saju.dayStem}
@@ -221,7 +218,7 @@ export default function AcquaintanceListModal({
                     <button
                       onClick={() => setSheetId(p.id)}
                       aria-label="더보기"
-                      className="shrink-0 p-1.5 rounded-lg text-text-light/60 hover:bg-lilac-soft/50"
+                      className="shrink-0 p-1.5 rounded-lg text-text-light hover:bg-lilac-soft/50"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="5" r="1.6" />
@@ -251,10 +248,10 @@ export default function AcquaintanceListModal({
                     key={i}
                     onClick={() => setListPage(i)}
                     aria-label={`${i + 1}페이지`}
-                    className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                    className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safeListPage
-                        ? "bg-lilac-deep text-white"
-                        : "text-text-light/70 hover:bg-lilac-soft/50"
+                        ? "bg-accent text-white"
+                        : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >
                     {i + 1}
@@ -274,18 +271,19 @@ export default function AcquaintanceListModal({
             )}
           </div>
         </div>
-      </div>
+      </Dialog>
 
       {/* 지인 행 케밥 팝업 */}
       {sheetId && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-5"
-          onClick={() => setSheetId(null)}
+        <Dialog
+          label="지인 사주 메뉴"
+          onClose={() => setSheetId(null)}
+          z={60}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
         >
-          <div
-            className="bg-white rounded-2xl w-full max-w-xs p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-white rounded-2xl w-full max-w-xs p-2">
             <button
               onClick={() => {
                 setEditAcqId(sheetId);
@@ -293,7 +291,7 @@ export default function AcquaintanceListModal({
                 setSheetId(null);
                 scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="w-full py-3.5 rounded-xl text-[14px] text-eye-purple font-medium hover:bg-lilac-soft/40"
+              className="btn btn-text btn-lg"
             >
               수정
             </button>
@@ -303,35 +301,44 @@ export default function AcquaintanceListModal({
                 setDeleteAck(false);
                 setSheetId(null);
               }}
-              className="w-full py-3.5 rounded-xl text-[14px] text-rose-500 font-medium hover:bg-rose-50"
+              className="w-full py-3.5 rounded-xl text-14 text-rose-500 font-medium hover:bg-rose-50"
             >
               삭제
             </button>
-            <button
-              onClick={() => setSheetId(null)}
-              className="w-full py-3.5 rounded-xl text-[14px] text-text-light/70"
-            >
+            <OverlayCloseButton className="w-full py-3.5 rounded-xl text-14 text-text-light">
               취소
-            </button>
+            </OverlayCloseButton>
           </div>
-        </div>
+        </Dialog>
       )}
 
-      {/* 지인 삭제 확인 모달 (연애 상담 사용 중이면 경고 체크 게이트) */}
+      {/* 지인 삭제 확인 모달 (연애 상담 사용 중이면 경고 체크 게이트) — 버튼으로만 닫힌다 */}
       {deleteAcqId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-5">
+        <Dialog
+          label="지인 사주 삭제"
+          role="alertdialog"
+          dismissible={false}
+          onClose={() => {
+            setDeleteAcqId(null);
+            setDeleteAck(false);
+          }}
+          z={60}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
+        >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
-            <p className="text-[14px] font-bold text-eye-purple mb-2">지인 사주 삭제</p>
-            <p className="text-[12px] text-text-light leading-relaxed mb-4">
+            <p className="text-14 font-bold text-eye-purple mb-2">지인 사주 삭제</p>
+            <p className="text-12 text-text-light leading-relaxed mb-4">
               이 지인 사주를 삭제할까? 과거 풀이 기록은 그대로 남아.
             </p>
             {relationshipProfileIds.includes(deleteAcqId) && (
               <div className="mb-4 rounded-xl bg-gold-soft/20 border border-gold/50 p-3">
-                <p className="text-[12px] text-eye-purple leading-relaxed mb-2">
+                <p className="text-12 text-eye-purple leading-relaxed mb-2">
                   이 프로필은 &apos;연애 상담&apos;에서 사용 중이야 — 삭제하면 궁합을
                   다시 보려면 생년월일을 다시 등록해야 해.
                 </p>
-                <label className="flex items-center gap-2 text-[11.5px] text-text-light">
+                <label className="flex items-center gap-2 text-12 text-text-light">
                   <input
                     type="checkbox"
                     checked={deleteAck}
@@ -343,27 +350,20 @@ export default function AcquaintanceListModal({
               </div>
             )}
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setDeleteAcqId(null);
-                  setDeleteAck(false);
-                }}
-                className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
-              >
+              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-12">
                 취소
-              </button>
+              </OverlayCloseButton>
               <button
                 onClick={() => deleteAcquaintance(deleteAcqId)}
                 disabled={relationshipProfileIds.includes(deleteAcqId) && !deleteAck}
-                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-12 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 삭제
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
-    </>,
-    document.body
+    </>
   );
 }

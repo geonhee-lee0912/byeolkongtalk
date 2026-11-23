@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
 import { STAR_PACKAGES } from "@/lib/constants";
 import {
   sheetPackages,
@@ -10,11 +10,11 @@ import {
   receivedStars,
   firstChargeBonusPercent,
 } from "@/lib/recharge-default";
-import { fetchWallet, parseWallet } from "@/lib/wallet";
-import type { MenuArm } from "@/lib/tarot/menu-ab";
+import { fetchWallet } from "@/lib/wallet";
 import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   open: boolean;
@@ -60,8 +60,6 @@ export default function RechargeSheet({
   onClose,
 }: Props) {
   const [balance, setBalance] = useState<number | null>(balanceProp ?? null);
-  // 반반 비교 그룹 — 시트 칸이 그룹마다 다르다(메뉴판 10·30·55·70 / 옛 10·30·70). 열릴 때 읽는다
-  const [arm, setArm] = useState<MenuArm | null>(null);
   const [selectedId, setSelectedId] = useState<string>("star_30");
   const [firstChargeEligible, setFirstChargeEligible] = useState(false);
   // 자격 조회가 끝났는지 — 기본 선택은 잔액·자격이 다 정해진 뒤 한 번만 정한다
@@ -78,7 +76,6 @@ export default function RechargeSheet({
   useEffect(() => {
     if (!open) {
       // 닫힐 때 비워 둔다 — 상시 마운트 호출부(reading 화면)에서 다시 열 때 지난번 자격·잔액으로 고르지 않게
-      setArm(null);
       setEligibilityLoaded(false);
       if (balanceProp == null) setBalance(null);
       return;
@@ -103,12 +100,10 @@ export default function RechargeSheet({
       .catch(() => {})
       .finally(() => { if (alive) setEligibilityLoaded(true); });
 
-    // 잔액(prop 이 없을 때)과 반반 그룹을 함께 읽는다. 못 읽으면 스위치가 정한 비로그인 그룹(반반 중엔 옛 그룹 = 지금 prod) 칸 —
-    // 결제 준비·승인은 두 그룹 패키지를 다 받으니(lib/constants.ts STAR_PACKAGES) 결제는 그대로 된다
+    // 잔액(prop 이 없을 때)을 읽는다(lib/wallet — 실패는 wallet_fetch_failed 로 계측). 칸은 고정(sheetPackages)이라 기다리지 않는다
     if (balanceProp != null) setBalance(balanceProp);
     void fetchWallet("recharge_sheet").then((w) => {
       if (!alive) return;
-      setArm((w ?? parseWallet(null)).menuArm);
       if (balanceProp == null && w) setBalance(w.balance);
     });
 
@@ -124,33 +119,19 @@ export default function RechargeSheet({
 
   // 잔액·자격이 다 정해지면 부족분 맞춤 기본값을 한 번 적용
   useEffect(() => {
-    if (!open || !eligibilityLoaded || !arm || userPickedRef.current) return;
+    if (!open || !eligibilityLoaded || userPickedRef.current) return;
     const picked = pickDefaultPackage({
       need,
       balance,
       bonusEligible: firstChargeEligible,
-      packages: sheetPackages(arm),
+      packages: sheetPackages(),
     });
     const next = picked ?? "star_30";
     setSelectedId(next);
     setRecommendedId(next);
-  }, [open, eligibilityLoaded, arm, balance, firstChargeEligible, need]);
+  }, [open, eligibilityLoaded, balance, firstChargeEligible, need]);
 
-  // ESC + 배경 스크롤 잠금
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeSheet();
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // ESC·배경 스크롤 잠금은 공통 Sheet
 
   function closeSheet() {
     if (history.state?.sheet === "recharge") {
@@ -196,72 +177,44 @@ export default function RechargeSheet({
 
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={closeSheet}
-      role="dialog"
-      aria-modal="true"
-      aria-label="별 충전"
+  // 손잡이는 공통 Sheet(앱만) — 웹 전용 손잡이 막대는 뺐다(끌 수 없어서)
+  return (
+    <Sheet
+      label="별 충전"
+      onClose={closeSheet}
+      z={90}
+      align="bottom"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[85vh] overflow-y-auto"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 그랩바 */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
-        </div>
-
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[17px] font-bold text-eye-purple">
-            별 충전하기
-          </h2>
-          <button
-            onClick={closeSheet}
-            aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* 잔액 + 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
-          <p className="text-[13px] text-eye-purple leading-relaxed">
-            별이 조금 모자라
-            {balance !== null ? (
-              <span className="font-bold"> — 지금 잔액 ⭐{balance}</span>
-            ) : null}
-          </p>
-          <p className="text-[11px] text-text-light mt-1 leading-snug">
-            충전하면 보던 자리로 바로 돌아와요
+        {/* 헤더 — 제목 + 한 줄(잔액·돌아옴). 안내 상자·웹 손잡이·닫기 ✕ 는 뺐다(디자인 다듬기 묶음 2 충전 시트 B안, 운영자 11-15).
+            닫기는 바깥 누르기·앱 끌어내리기·Esc·뒤로 */}
+        <div className="px-5 pt-5 pb-3">
+          <h2 className="font-display text-17 text-eye-purple">별 충전하기</h2>
+          <p className="text-13 text-text-light mt-0.5">
+            {balance !== null && (
+              <>
+                지금 <Icon name="star" size={14} className="inline align-[-2px] mx-0.5" />
+                {balance.toLocaleString("ko-KR")} ·{" "}
+              </>
+            )}
+            충전하면 보던 자리로 바로 돌아와
           </p>
         </div>
 
         {/* 첫 충전 보너스 — 자격자만. 어떤 패키지든 첫 결제에 +20% */}
         {firstChargeEligible && (
-          <div className="mx-5 mb-4 -mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-soft/60 to-gold/40 border border-gold/50">
-            <span className="text-[15px]">🎁</span>
-            <p className="text-[12px] font-extrabold text-eye-purple">
-              지금 첫 충전이면 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
+          <div className="mx-5 mb-3 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-wash">
+            <Icon name="gift" size={16} />
+            <p className="text-12 font-bold text-eye-purple">
+              첫 충전이라 별 <span className="tabular-nums">+{firstChargeBonusPercent()}%</span> 더 얹어줘
             </p>
           </div>
         )}
 
-        {/* 패키지 목록 — 반반 그룹을 읽기 전엔 자리만 둔다(다른 그룹 진열이 잠깐 보였다 바뀌지 않게).
-            스켈레톤 높이(52px)는 남는 별 줄이 붙은 실제 칸(≈70px)과 달라 열린 뒤 조금 자란다 — prod 에도 있던 52→70 점프 */}
-        <div className="px-5 flex flex-col gap-2 pb-2" aria-busy={arm === null}>
-          {arm === null &&
-            [0, 1, 2].map((i) => (
-              <div
-                key={i}
-                aria-hidden
-                className="h-[52px] rounded-xl border-2 border-lilac-mid/20 bg-white/60 animate-pulse"
-              />
-            ))}
-          {arm !== null && sheetPackages(arm).map((pkg) => {
+        {/* 패키지 목록 — 별 수·첫 충전 보너스·추천은 왼쪽, 값은 오른쪽 끝. 고른 줄은 보라 2px 테두리(동그라미 없음) */}
+        <div className="px-5 flex flex-col gap-2 pb-2">
+          {sheetPackages().map((pkg) => {
             const isSelected = selectedId === pkg.id;
             const isRecommended = pkg.id === recommendedId;
             const bonus = receivedStars(pkg, firstChargeEligible) - pkg.stars;
@@ -273,6 +226,7 @@ export default function RechargeSheet({
               <button
                 key={pkg.id}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   userPickedRef.current = true;
                   setSelectedId(pkg.id);
@@ -281,64 +235,43 @@ export default function RechargeSheet({
                     meta: { source, packageId: pkg.id },
                   });
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
-                  isSelected
-                    ? "border-lilac-deep bg-lilac-soft/30 shadow-[0_0_0_2px_rgba(159,138,208,0.15)]"
-                    : "border-lilac-mid/30 bg-white hover:border-lilac/70"
-                } ${isRecommended ? "ring-1 ring-gold/40" : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white text-left transition ${
+                  isSelected ? "border-2 border-accent" : "border border-lilac-mid/35 hover:border-lilac-mid/70"
+                }`}
               >
-                <span className="text-[16px] shrink-0">⭐</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[14px] font-black text-eye-purple tabular-nums">
-                    {pkg.stars}별
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center text-16 font-extrabold text-eye-purple tabular-nums">
+                      <Icon name="star" size={16} className="mr-0.5" />
+                      {pkg.stars}
+                    </span>
                     {bonus > 0 && (
-                      <span className="ml-1 text-[12px] font-black text-gold tabular-nums">
-                        +{bonus}
-                      </span>
+                      <span className="text-12 font-bold text-[#A7731A] tabular-nums">+{bonus} 첫 충전</span>
                     )}
                     {isRecommended && (
-                      <span className="ml-2 text-[10px] font-black text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
-                        추천
-                      </span>
+                      <span className="text-11 font-bold text-accent bg-lilac-soft/70 px-1.5 py-0.5 rounded-full">추천</span>
                     )}
                   </span>
-                  <span className="ml-2 text-[12px] text-text-light tabular-nums">
-                    {pkg.price.toLocaleString()}원
-                  </span>
                   {leftover !== null && (
-                    <span
-                      className={`block mt-0.5 text-[11px] tabular-nums ${
-                        leftover >= 0 ? "text-eye-purple/80" : "text-text-light/60"
-                      }`}
-                    >
-                      {leftover > 0
-                        ? `충전 후 이번 판 하고도 ⭐${leftover} 남아`
-                        : leftover === 0
-                        ? "충전하면 이번 판에 딱 맞아"
-                        : `⭐${-leftover} 모자라`}
+                    <span className="block mt-0.5 text-12 text-text-light tabular-nums">
+                      {leftover > 0 ? (
+                        <>
+                          충전 후 이번 판 하고도 <Icon name="star" size={13} className="inline align-[-2px] mx-0.5" />
+                          {leftover} 남아
+                        </>
+                      ) : leftover === 0 ? (
+                        "충전하면 이번 판에 딱 맞아"
+                      ) : (
+                        <>
+                          <Icon name="star" size={13} className="inline align-[-2px] mr-0.5" />
+                          {-leftover} 모자라
+                        </>
+                      )}
                     </span>
                   )}
-                </div>
-                <span
-                  className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                    isSelected ? "bg-lilac-deep" : "bg-cream border border-lilac-mid/40"
-                  }`}
-                  aria-hidden
-                >
-                  {isSelected && (
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="2.5 6.5 5 9 9.5 3.5" />
-                    </svg>
-                  )}
+                </span>
+                <span className="shrink-0 text-15 font-extrabold text-eye-purple tabular-nums">
+                  {pkg.price.toLocaleString()}원
                 </span>
               </button>
             );
@@ -346,7 +279,7 @@ export default function RechargeSheet({
         </div>
 
         {(error || paymentError) && (
-          <p className="text-[12px] text-red-500 text-center px-5 mt-2 mb-1">
+          <p className="text-12 text-red-500 text-center px-5 mt-2 mb-1">
             {error ?? "결제 모듈을 불러오지 못했어. 새로고침해줘."}
           </p>
         )}
@@ -355,21 +288,23 @@ export default function RechargeSheet({
         <div className="px-5 pb-6 pt-3">
           <button
             onClick={() => void handleCharge()}
-            disabled={loading || !paymentReady || !selectedPkg || arm === null}
-            className="w-full py-3.5 bg-lilac-deep text-white rounded-full text-[14px] font-bold shadow-md hover:bg-lilac-deep/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.98]"
+            disabled={loading || !paymentReady || !selectedPkg}
+            className="btn btn-primary btn-lg"
           >
-            <span>⭐</span>
-            <span className="tabular-nums">
-              {!paymentReady && !paymentError
-                ? "잠시만, 결제 준비 중..."
-                : selectedPkg
-                ? `${selectedPkg.stars}별 · ${selectedPkg.price.toLocaleString()}원 결제하기`
-                : "패키지를 골라줘"}
+            <span className="inline-flex items-center tabular-nums">
+              {!paymentReady && !paymentError ? (
+                "잠시만, 결제 준비 중..."
+              ) : selectedPkg ? (
+                <>
+                  <Icon name="star" size={16} className="mr-0.5" />
+                  {selectedPkg.stars} · {selectedPkg.price.toLocaleString()}원 결제하기
+                </>
+              ) : (
+                "패키지를 골라줘"
+              )}
             </span>
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }

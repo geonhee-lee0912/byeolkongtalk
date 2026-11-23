@@ -1,7 +1,6 @@
-import CompatInput from "@/components/fortune/compat/CompatInput";
 import FortuneLandingHero from "@/components/fortune/landing/FortuneLandingHero";
 import FortuneLandingSections from "@/components/fortune/landing/FortuneLandingSections";
-import PurchaseReachedBeacon from "@/components/fortune/landing/PurchaseReachedBeacon";
+import LandingBuyBar from "@/components/fortune/landing/LandingBuyBar";
 import { FORTUNE_CONFIG, FORTUNE_LENGTH_HINT } from "@/lib/fortune/types";
 import { fortuneOutline } from "@/lib/fortune/outline";
 import { FORTUNE_LANDING } from "@/data/fortune/landing";
@@ -26,9 +25,8 @@ export default function CompatSocialPage() {
         title={cfg.label}
         hook={copy.hook}
         cardSrc={fortuneCardSrc("compat_social")}
-        chips={[`별 ${cfg.cost}개`, FORTUNE_LENGTH_HINT.compat_social ?? "", copy.minutes].filter(Boolean)}
-        ctaLabel="두 사람 사주로 보기"
-        trackType="compat_social"
+        cost={cfg.cost}
+        chips={[FORTUNE_LENGTH_HINT.compat_social ?? "", copy.minutes].filter(Boolean)}
       />
       <FortuneLandingSections
         questions={copy.questions}
@@ -38,12 +36,8 @@ export default function CompatSocialPage() {
         samplePreview={null}
         related={related}
       />
-      <div id="buy" className="w-full max-w-md mx-auto px-5 mt-8 scroll-mt-4">
-        <div className="h-px bg-lilac-mid/30" />
-        <PurchaseReachedBeacon type="compat_social" />
-        <h2 className="text-[14.5px] font-bold text-eye-purple mt-5 mb-4">두 사람을 골라줘</h2>
-      </div>
-      <CompatInput type="compat_social" />
+      {/* 고르기는 따로 떨어진 페이지로(사주 상품과 같은 나누기 — 디자인 다듬기 묶음 4, 11-16) */}
+      <LandingBuyBar href={`${cfg.href}/buy`} cost={cfg.cost} trackType="compat_social" label="두 사람 골라서 보기" />
     </main>
   );
 }

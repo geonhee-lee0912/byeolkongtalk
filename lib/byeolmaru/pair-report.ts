@@ -37,10 +37,10 @@ export interface PairReportBlockMeta {
  *     채워져야 하는데, 이름이 "좋은 날"이면 없는 날을 지어내거나 칩이 거짓말을 한다. "둘 사이
  *     타이밍"은 목록이 있든 없든 참이다. */
 export const PAIR_REPORT_BLOCKS = [
-  { key: "today", title: "오늘 둘 사이", icon: "🌙", sentences: 6 },
-  { key: "scene", title: "오늘 벌어질 장면", icon: "💗", sentences: 7 },
-  { key: "grain", title: "너희 고정된 결", icon: "🧭", sentences: 6 },
-  { key: "timing", title: "둘 사이 타이밍", icon: "✨", sentences: 4 },
+  { key: "today", title: "오늘 둘 사이", icon: "", sentences: 6 },
+  { key: "scene", title: "오늘 벌어질 장면", icon: "", sentences: 7 },
+  { key: "grain", title: "너희 고정된 결", icon: "", sentences: 6 },
+  { key: "timing", title: "둘 사이 타이밍", icon: "", sentences: 4 },
   { key: "note", title: "별콩이의 한마디", icon: "", sentences: 3 },
 ] as const satisfies readonly PairReportBlockMeta[];
 

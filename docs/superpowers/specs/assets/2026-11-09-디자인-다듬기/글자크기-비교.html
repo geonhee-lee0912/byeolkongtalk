@@ -1,0 +1,73 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>글자 크기 단계</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--cw:#FFF8F0;--ld:#9F8AD0;--ink:#5A3E8C;--tl:#7A6BA0;--body:#4F4A5E}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--body);font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 16px}
+section{background:#fff;border-radius:20px;border:1px solid #efe7f6;padding:18px;margin-top:16px}h2{color:var(--ink);font-size:17px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}td,th{padding:10px 8px;border-top:1px solid #f1ebf7;vertical-align:middle;text-align:left}th{font-size:12px;color:var(--tl);font-weight:500;border-top:0}
+.px{font-weight:900;color:var(--ink);white-space:nowrap}.role{font-weight:700;color:var(--ink);white-space:nowrap}.from{font-size:12px;color:var(--tl)}
+.sample{color:#3b3350}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.ph{background:var(--cw);border-radius:16px;padding:12px}.ph h4{margin:0 0 8px;color:var(--ink);font-size:13px}
+.sheet{background:#fff;border-radius:18px;padding:14px;margin-bottom:8px;box-shadow:0 2px 10px rgba(159,138,208,.08)}
+.sheet .t{font-weight:900;color:#1F1735}.sheet .d{color:var(--tl);margin-top:2px}
+.note{font-size:12.5px;color:var(--tl);margin:10px 0 0}
+</style></head><body><div class="wrap">
+<h1>글자 크기 — 33단계를 9단계로</h1>
+<p class="lead">역할마다 크기 하나씩. 0.5px 값은 가까운 위 단계로 올려요(조금 커짐). 표의 견본 글은 실제 크기예요.</p>
+
+<section><h2>다른 디자인 시스템과 견줘 보기 (원문 확인)</h2>
+<style>.cmp td,.cmp th{text-align:center;font-size:13px;padding:6px 4px}.cmp td:first-child{font-weight:900;color:var(--ink)}.y{color:var(--ink);font-weight:700}.s{color:#b9b0cc}.mine{background:#F1EBFA}.bad{background:#FDE8EE}</style>
+<table class="cmp"><tr><th>px</th><th>애플 iOS</th><th>구글 M3</th><th>당근 SEED</th><th>토스 TDS</th><th class="mine">별콩톡 안</th></tr>
+<tr><td>28</td><td class="y">Title 1</td><td class="y">Headline M</td><td class="s">큰 화면만</td><td class="s">보조</td><td class="mine y">표지</td></tr>
+<tr><td>26</td><td></td><td></td><td class="y">t10</td><td class="y">T2</td><td class="mine"></td></tr>
+<tr><td>24</td><td></td><td class="y">Headline S</td><td class="y">t9</td><td class="s">보조</td><td class="mine"></td></tr>
+<tr><td>22</td><td class="y">Title 2</td><td class="y">Title L</td><td class="y">t8</td><td class="y">T3</td><td class="mine y">화면 제목</td></tr>
+<tr><td>20</td><td class="y">Title 3</td><td></td><td class="y">t7</td><td class="y">T4</td><td class="mine y">큰 소제목</td></tr>
+<tr><td>19</td><td></td><td></td><td></td><td class="s">보조</td><td class="bad">처음 안 → 20으로</td></tr>
+<tr><td>18</td><td></td><td></td><td class="y">t6</td><td class="s">보조</td><td class="mine"></td></tr>
+<tr><td>17</td><td class="y">Headline · Body</td><td></td><td></td><td class="y">T5</td><td class="mine y">시트 제목</td></tr>
+<tr><td>16</td><td class="y">Callout</td><td class="y">Body L · Title M</td><td class="y">t5</td><td class="s">보조</td><td class="mine s">안 씀</td></tr>
+<tr><td>15</td><td class="y">Subhead</td><td></td><td></td><td class="y">T6</td><td class="mine y">주 버튼</td></tr>
+<tr><td>14</td><td></td><td class="y">Body M · Label L</td><td class="y">t4</td><td class="s">보조</td><td class="mine y">본문</td></tr>
+<tr><td>13</td><td class="y">Footnote</td><td></td><td class="y">t3</td><td class="y">T7</td><td class="mine y">작은 본문</td></tr>
+<tr><td>12</td><td class="y">Caption 1</td><td class="y">Body S · Label M</td><td class="y">t2</td><td class="s">보조</td><td class="mine y">보조</td></tr>
+<tr><td>11</td><td class="y">Caption 2 · 최소</td><td class="y">Label S</td><td class="y">t1</td><td class="s">보조(최소)</td><td class="mine y">캡션 · 최소</td></tr>
+</table>
+<p class="note">진한 글 = 그 시스템의 기본 단계, 연한 글 = 보조 단계. 0.5px 단계는 네 곳 모두 없어요.</p>
+</section>
+
+<section><h2>고친 안 — 9단계</h2>
+<table><tr><th>크기</th><th>역할</th><th>견본</th><th>지금 이 값들이 여기로</th></tr>
+<tr><td class="px">28</td><td class="role">표지</td><td class="sample" style="font-size:28px;font-weight:700;line-height:1.3">별콩이가 봐 줄게</td><td class="from">26 · 28 · 30 (광고 랜딩 큰 글)</td></tr>
+<tr><td class="px">22</td><td class="role">화면 제목</td><td class="sample" style="font-size:22px;font-weight:700;line-height:1.35">우리 사이</td><td class="from">21 · 22 · 24 (화면 맨 위 제목, 앱 헤더)</td></tr>
+<tr><td class="px">20 <small style="color:#E48BA0">←19</small></td><td class="role">큰 소제목</td><td class="sample" style="font-size:20px;font-weight:700;line-height:1.4">올해는 뿌리를 내리는 해</td><td class="from">18 · 19 · 20 (리포트 주제문, 배너 제목)</td></tr>
+<tr><td class="px">17</td><td class="role">시트·창 제목</td><td class="sample" style="font-size:17px;font-weight:900;line-height:1.4">이 고민, 언제 다시 볼까?</td><td class="from">16 · 17 (지금 시트마다 16과 17이 섞임)</td></tr>
+<tr><td class="px">15</td><td class="role">강조 본문 · 주 버튼</td><td class="sample" style="font-size:15px;font-weight:700">결과 보기</td><td class="from">14.5 · 15 · 버튼의 16</td></tr>
+<tr><td class="px">14</td><td class="role">본문</td><td class="sample" style="font-size:14px;line-height:1.75">지금 너는 먼저 손을 내밀까 망설이고 있어.</td><td class="from">13.5 · 14</td></tr>
+<tr><td class="px">13</td><td class="role">작은 본문</td><td class="sample" style="font-size:13px">카드 한 장으로 오늘 흐름을 봐요</td><td class="from">12.5 · 13</td></tr>
+<tr><td class="px">12</td><td class="role">보조</td><td class="sample" style="font-size:12px;color:var(--tl)">11월 9일 · 별 3개</td><td class="from">11.5 · 12</td></tr>
+<tr><td class="px">11</td><td class="role">캡션 · 배지</td><td class="sample" style="font-size:11px;font-weight:700;color:var(--ld)">NEW · 무료</td><td class="from">8 ~ 11</td></tr>
+</table>
+<p class="note"><b>따로 두는 것:</b> 오늘의 운세 한자·점수 같은 큰 숫자(44·52)는 그림처럼 쓰는 글자라 그대로 둬요. 반짝이 ✦ 같은 장식 글자는 C(장식 정리)에서 봐요.<br>
+<b>화면별 단계에서 확인할 곳:</b> 지금 9~10px 를 쓰는 좁은 자리(관계 전환 탭의 이름, 타로 작은 카드 이름)는 11로 키우면 넘칠 수 있어서, 그 화면을 볼 때 맞춰요.</p>
+</section>
+
+<section><h2>같은 자리, 지금과 바꾼 뒤</h2>
+<div class="pair">
+<div class="ph"><h4>지금 — 시트 제목이 창마다 달라요</h4>
+<div class="sheet"><div class="t" style="font-size:16px">패스 선택하기</div><div class="d" style="font-size:12.5px">오늘 대화를 이어 갈 패스를 골라요</div></div>
+<div class="sheet"><div class="t" style="font-size:17px">이 고민, 언제 다시 볼까?</div><div class="d" style="font-size:13px">알림으로 다시 알려 줄게</div></div>
+<div class="sheet"><div class="t" style="font-size:16px">이런 것도 꺼내 쓸 수 있어</div><div class="d" style="font-size:11.5px">대화 중에 언제든 쓸 수 있어요</div></div>
+</div>
+<div class="ph"><h4>바꾼 뒤 — 제목 17 · 설명 13</h4>
+<div class="sheet"><div class="t" style="font-size:17px">패스 선택하기</div><div class="d" style="font-size:13px">오늘 대화를 이어 갈 패스를 골라요</div></div>
+<div class="sheet"><div class="t" style="font-size:17px">이 고민, 언제 다시 볼까?</div><div class="d" style="font-size:13px">알림으로 다시 알려 줄게</div></div>
+<div class="sheet"><div class="t" style="font-size:17px">이런 것도 꺼내 쓸 수 있어</div><div class="d" style="font-size:13px">대화 중에 언제든 쓸 수 있어요</div></div>
+</div>
+</div>
+<p class="note">글자 두께(보통·굵게·아주 굵게)도 지금 섞여 있는데, 크기를 정한 뒤 버튼·카드 차례에 같이 정해요.</p>
+</section>
+</div></body></html>

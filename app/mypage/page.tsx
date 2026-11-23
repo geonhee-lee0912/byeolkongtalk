@@ -9,9 +9,16 @@ import StorageSummary from "@/components/mypage/StorageSummary";
 import SajuBoard from "@/components/saju/SajuBoard";
 import SelfSajuEditModal from "@/components/mypage/SelfSajuEditModal";
 import AcquaintanceListModal from "@/components/mypage/AcquaintanceListModal";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import { readingCategory, type ReadingCategory } from "@/lib/readings/category";
 import { clearPendingDraw } from "@/lib/tarot/pending-draw";
+import { postToApp } from "@/lib/app-context";
+import { appSupportsPush } from "@/lib/app-push";
+import { useAppInfo } from "@/lib/use-app-info";
 import { type ProfileItem } from "@/components/mypage/sajuShared";
+import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface Me {
   user: { id: string; nickname: string; profile_img: string | null } | null;
@@ -24,22 +31,45 @@ interface ReadingListItem {
   emotionTag?: string | null;
 }
 
+// 화면 기억(lib/screen-cache) — 다시 열면 '잠시만…' 대신 마지막 모습을 바로 그리고 새로 불러와 바꾼다
+interface MyPageSnapshot {
+  me: Me;
+  balance: number | null;
+  profiles: ProfileItem[];
+  relationshipProfileIds: string[];
+  readings: ReadingListItem[];
+  supportUnread: number;
+}
+const CACHE_KEY = "mypage";
+
 export default function MyPage() {
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { ready: appReady } = useAppInfo();
+  const { cached, save } = useScreenCache<MyPageSnapshot>(CACHE_KEY);
+  const [me, setMe] = useState<Me | null>(cached?.me ?? null);
+  const [balance, setBalance] = useState<number | null>(cached?.balance ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawAck, setWithdrawAck] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [profiles, setProfiles] = useState<ProfileItem[]>(cached?.profiles ?? []);
   const [showSelfEdit, setShowSelfEdit] = useState(false);
   const [showAcqModal, setShowAcqModal] = useState(false);
-  const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>([]);
-  const [relationshipCount, setRelationshipCount] = useState(0);
-  const [relationshipPassActive, setRelationshipPassActive] = useState(false);
-  const [readings, setReadings] = useState<ReadingListItem[]>([]);
-  const [supportUnread, setSupportUnread] = useState(0);
+  const [relationshipProfileIds, setRelationshipProfileIds] = useState<string[]>(cached?.relationshipProfileIds ?? []);
+  const [readings, setReadings] = useState<ReadingListItem[]>(cached?.readings ?? []);
+  const [supportUnread, setSupportUnread] = useState(cached?.supportUnread ?? 0);
+
+  useEffect(() => {
+    if (loading || !me?.user) return;
+    save({
+      me,
+      balance,
+      profiles,
+      relationshipProfileIds,
+      readings,
+      supportUnread,
+    } satisfies MyPageSnapshot);
+  }, [save, loading, me, balance, profiles, relationshipProfileIds, readings, supportUnread]);
 
   useEffect(() => {
     void (async () => {
@@ -78,9 +108,6 @@ export default function MyPage() {
           ...rels.flatMap((x) => [x.selfProfileId, x.partnerProfileId]),
         ].filter((v: unknown): v is string => typeof v === "string");
         setRelationshipProfileIds(ids);
-        setRelationshipCount(rels.length);
-        // 우리 사이 ON/OFF = 최근 관계의 활성 연애 패스 유무 (GET 이 pass 반환)
-        setRelationshipPassActive(rel.pass != null);
       }
       if (readingsRes?.readings) setReadings(readingsRes.readings as ReadingListItem[]);
       const unread = await fetch("/api/inquiries/unread-count", { cache: "no-store" })
@@ -101,13 +128,13 @@ export default function MyPage() {
   const self = profiles.find((p) => p.isPrimary) ?? null;
   const acquaintanceCount = profiles.filter((p) => !p.isPrimary).length;
 
-  // 마이 보관함 요약 카드용 종목별 개수. relationship 은 /api/readings 에 안 실리므로
-  // (서버 .neq 필터) /api/relationship 의 relationships[] 길이를 그대로 쓴다.
+  // 마이 보관함 요약 카드용 종목별 개수. 요약 카드는 타로·사주 두 칸만 보여 준다 —
+  // sim·relationship 칸은 우리 사이·연애 시뮬 서비스 종료로 뺐다(2026-11-21). 타입 모양만 맞춘다.
   const counts: Record<ReadingCategory, number> = {
     tarot: 0,
     fortune: 0,
     sim: 0,
-    relationship: relationshipCount,
+    relationship: 0,
   };
   for (const item of readings) {
     const cat = readingCategory({
@@ -119,11 +146,13 @@ export default function MyPage() {
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    // 앱 안이면 앱도 로그아웃(그 기기 토큰 폐기) — 브라우저에선 아무것도 안 한다(스펙 2026-10-12-앱-1 §5)
+    postToApp("auth.loggedOut");
     if (typeof window !== "undefined") {
       localStorage.removeItem("byeolkong_user");
       localStorage.removeItem("byeolkong_token");
       sessionStorage.removeItem("byeolkong:auth-sync");
-      // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+      // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다(공용 기기 — lib/tarot/pending-draw.ts)
       clearPendingDraw(localStorage);
     }
     router.replace("/");
@@ -136,10 +165,12 @@ export default function MyPage() {
     try {
       const r = await fetch("/api/auth/withdraw", { method: "POST" });
       if (r.ok) {
+        // 앱 안이면 앱도 로그아웃(기기 토큰 정리) — 서버 쪽 앱 토큰은 회원 삭제로 이미 지워졌다
+        postToApp("auth.loggedOut");
         if (typeof window !== "undefined") {
           localStorage.removeItem("byeolkong_user");
           localStorage.removeItem("byeolkong_token");
-          // 로그인 전 맛보기에서 저장한 고민·카드도 지운다(공용 기기 — 스펙 2026-10-11-타로-로그인전-맛보기 §10)
+          // 입구 반반 때 남은 진행 저장(고민 원문)도 지운다(공용 기기 — lib/tarot/pending-draw.ts)
           clearPendingDraw(localStorage);
         }
         router.replace("/");
@@ -155,18 +186,23 @@ export default function MyPage() {
   if (loading || !me?.user) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동) */}
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
+      {/* 프로필 헤더 — 프사·닉네임·별 잔액·충전 (결제·별 내역은 계정 블록으로 이동).
+          남색 밤 카드 → 별콩 상점과 같은 노란 잔액 카드(디자인 다듬기 마이 ① M1, 운영자 11-21) — 같은 잔액이 화면마다 다른 모양이었다.
+          소제목도 점 + 12 → 다른 화면과 같은 왼쪽 15 굵게(마이 ②) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="bg-gradient-to-br from-night-deep via-eye-purple to-lilac-deep rounded-2xl p-4 shadow-lg shadow-lilac-deep/30">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-lilac-soft overflow-hidden flex items-center justify-center ring-1 ring-white/30 shrink-0">
+        <div className="relative overflow-hidden rounded-2xl bg-[#FFF6E3] p-4">
+          <svg viewBox="0 0 24 24" className="absolute -right-3 -top-3 w-16 h-16 opacity-25 rotate-12 pointer-events-none" aria-hidden>
+            <path d="M12 1.8 15.4 8.6 22.2 12 15.4 15.4 12 22.2 8.6 15.4 1.8 12 8.6 8.6Z" fill="#E8C26A" />
+          </svg>
+          <div className="relative flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-white overflow-hidden flex items-center justify-center shadow-card shrink-0">
               {me.user.profile_img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -179,18 +215,20 @@ export default function MyPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-white truncate">
+              <div className="text-13 font-bold text-[#7A5A1F] truncate">
                 {me.user.nickname}
               </div>
-              <div className="text-[20px] font-bold text-gold-soft mt-0.5">
-                ⭐ {balance ?? 0}별
+              <div className="text-22 font-black text-eye-purple tabular-nums leading-tight">
+                {balance ?? 0}
+                <span className="text-13 font-bold text-text-light ml-1">별</span>
               </div>
             </div>
             <Link
               href="/shop"
-              className="shrink-0 px-4 py-2 rounded-xl bg-white text-eye-purple font-bold text-[12px]"
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-white px-3.5 py-1.5 text-13 font-bold text-[#7A5A1F] shadow-card active:scale-95 transition"
             >
               충전
+              <Icon name="chev_r" size={14} />
             </Link>
           </div>
         </div>
@@ -198,24 +236,22 @@ export default function MyPage() {
 
       {/* 보관함 — 종목별 요약 (한 박스 가로 4분할) */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
-        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
-          <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+        <div className="text-15 font-bold text-eye-purple mb-3">
           보관함
         </div>
-        <StorageSummary counts={counts} relationshipPassActive={relationshipPassActive} />
+        <StorageSummary counts={counts} />
       </div>
 
       {/* 내 사주 — 명식 인라인 노출, 편집·지인은 모달 */}
       <div className="w-full max-w-md mx-auto px-5 mb-7">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-[12px] font-bold text-eye-purple flex items-center">
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+          <div className="text-15 font-bold text-eye-purple">
             내 사주
           </div>
           {self?.saju && (
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold"
+              className="btn btn-secondary btn-sm shrink-0"
             >
               수정
             </button>
@@ -223,19 +259,19 @@ export default function MyPage() {
         </div>
 
         {self?.saju ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 py-4">
+          <div className="bg-white rounded-2xl shadow-card py-4">
             <SajuBoard saju={self.saju} />
           </div>
         ) : (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/20 shadow-sm shadow-lilac-deep/10 px-4 py-6 text-center">
-            <p className="text-[12px] text-text-light/70 mb-3">
+          <div className="card-report text-center">
+            <p className="text-12 text-text-light mb-3">
               {self
                 ? "생일을 알려주면 사주도 보여줄게."
                 : "아직 내 사주를 입력하지 않았어. 명식을 보려면 먼저 입력해줘."}
             </p>
             <button
               onClick={() => setShowSelfEdit(true)}
-              className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[14px]"
+              className="btn btn-primary btn-lg"
             >
               {self ? "생일 추가하기" : "내 사주 입력하기"}
             </button>
@@ -245,18 +281,18 @@ export default function MyPage() {
         {/* 지인 사주 → 팝업 */}
         <button
           onClick={() => setShowAcqModal(true)}
-          className="mt-2.5 w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)]"
+          className="card mt-2.5 w-full flex items-center gap-3"
         >
           <span
-            className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center text-[15px]"
+            className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center text-accent"
             aria-hidden
           >
-            👥
+            <Icon name="people" size={18} />
           </span>
-          <span className="flex-1 text-left text-[14px] text-eye-purple font-medium">
+          <span className="flex-1 text-left text-14 text-eye-purple font-medium">
             지인 사주 <span className="text-text-light">{acquaintanceCount}명</span>
           </span>
-          <span className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-[11px] font-bold">
+          <span className="shrink-0 px-3 py-1.5 rounded-lg bg-lilac-soft/60 text-eye-purple text-11 font-bold">
             관리
           </span>
         </button>
@@ -281,18 +317,17 @@ export default function MyPage() {
 
       {/* 계정 */}
       <div className="w-full max-w-md mx-auto px-5 mb-5">
-        <div className="text-[12px] font-bold text-eye-purple mb-3 flex items-center">
-          <span className="inline-block w-[7px] h-[7px] rounded-full bg-lilac-deep mr-1.5" aria-hidden />
+        <div className="text-15 font-bold text-eye-purple mb-3">
           계정
         </div>
-        <div className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] overflow-hidden divide-y divide-lilac-mid/15">
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-lilac-mid/15">
           <Link href="/mypage/support" className="flex items-center gap-3 p-3.5">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M12,1C7,1 3,5 3,10V17A3,3 0 0,0 6,20H9V12H5V10A7,7 0 0,1 12,3A7,7 0 0,1 19,10V12H15V20H19A3,3 0 0,0 22,17V10C22,5 17,1 12,1Z" />
               </svg>
             </span>
-            <span className="flex-1 text-[14px] text-eye-purple font-medium flex items-center gap-2">
+            <span className="flex-1 text-14 text-eye-purple font-medium flex items-center gap-2">
               고객센터 / 문의
               {supportUnread > 0 && (
                 <span className="relative flex h-2 w-2" aria-label="새 답변">
@@ -301,59 +336,90 @@ export default function MyPage() {
                 </span>
               )}
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
           <Link href="/mypage/payments" className="flex items-center gap-3 p-3.5">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                 <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
               </svg>
             </span>
-            <span className="flex-1 text-[14px] text-eye-purple font-medium">
+            <span className="flex-1 text-14 text-eye-purple font-medium">
               결제 · 별 내역
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
           </Link>
-          <button
-            onClick={() => setShowWithdrawConfirm(true)}
-            className="w-full flex items-center gap-3 p-3.5"
-          >
-            <span className="shrink-0 w-[30px] h-[30px] rounded-[9px] bg-lilac-soft/60 flex items-center justify-center">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-text-light/70" aria-hidden>
-                <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
+          {appReady && appSupportsPush() && (
+            <Link href="/mypage/notifications" className="flex items-center gap-3 p-3.5">
+              <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
+                  <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21" />
+                </svg>
+              </span>
+              <span className="flex-1 text-14 text-eye-purple font-medium">알림 설정</span>
+              <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
+            </Link>
+          )}
+          {/* 앱에서만 — 앱은 푸터를 숨기므로 약관·사업자 정보를 여기서 연다(스펙 2026-11-07-앱-화면 §9) */}
+          <Link href="/mypage/legal" className="app-only flex items-center gap-3 p-3.5">
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
               </svg>
             </span>
-            <span className="flex-1 text-left text-[14px] text-text-light/70 font-medium">
-              회원 탈퇴
+            <span className="flex-1 text-14 text-eye-purple font-medium">약관·사업자 정보</span>
+            <span className="text-text-light"><Icon name="chev_r" size={16} /></span>
+          </Link>
+          {/* 로그아웃 — 목록 맨 아래 한 줄(디자인 다듬기 마이 ③ M1). 예전엔 화면에서 가장 센 진보라 큰 버튼이 로그아웃이었다 */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 p-3.5"
+          >
+            <span className="shrink-0 w-[30px] h-[30px] rounded-lg bg-lilac-soft flex items-center justify-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
+                <path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z" />
+              </svg>
             </span>
-            <span className="text-text-light/40">›</span>
+            <span className="flex-1 text-left text-14 text-eye-purple font-medium">로그아웃</span>
           </button>
         </div>
       </div>
 
-      {/* 로그아웃 */}
-      <div className="w-full max-w-md mx-auto px-5 mb-24">
-        <div className="h-px bg-lilac-mid/30 mb-5" />
+      {/* 회원 탈퇴 — 일반 메뉴와 섞이지 않게 목록 밖 작은 회색 글(마이 ③ M1). 확인 창은 그대로 */}
+      <div className="w-full max-w-md mx-auto px-5 mb-24 text-center">
         <button
-          onClick={handleLogout}
-          className="w-full py-3 rounded-xl bg-eye-purple text-white font-bold text-[14px]"
+          onClick={() => setShowWithdrawConfirm(true)}
+          className="text-12 text-text-light underline underline-offset-2"
         >
-          로그아웃
+          회원 탈퇴
         </button>
       </div>
 
-      {/* 회원 탈퇴 확인 모달 */}
+      {/* 회원 탈퇴 확인 모달 — 버튼으로만 닫힌다. body 포털(Dialog)이라 <main> 의 fade 에 위치가 묶이지 않는다 */}
       {showWithdrawConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5">
+        <Dialog
+          label="회원 탈퇴 확인"
+          role="alertdialog"
+          dismissible={false}
+          onClose={() => {
+            setShowWithdrawConfirm(false);
+            setWithdrawAck(false);
+          }}
+          z={50}
+          widthClassName="max-w-xs"
+          gutterClassName="px-5"
+          backdropClassName="bg-night/50 backdrop-blur-sm"
+        >
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs">
-            <p className="text-[14px] font-bold text-eye-purple mb-2">
+            <p className="text-14 font-bold text-eye-purple mb-2">
               정말 떠나려고?
             </p>
-            <p className="text-[12px] text-text-light leading-relaxed mb-3">
-              탈퇴하면 너의 사주 풀이, 별 잔액, 모든 기록이 영구적으로 삭제돼.
-              되돌릴 수 없어.
+            <p className="text-12 text-text-light leading-relaxed mb-3">
+              탈퇴하면 너의 사주 풀이, 별 잔액·사용 내역, 1:1 문의가 삭제돼. 되돌릴
+              수 없어. 환불받을 게 있으면 탈퇴 전에 신청하고 처리된 뒤에 탈퇴해 줘. 결제
+              기록처럼 남는 것은 개인정보처리방침에서 볼 수 있어.
             </p>
-            <label className="flex items-center gap-2 text-[12px] text-text-light mb-4">
+            <label className="flex items-center gap-2 text-12 text-text-light mb-4">
               <input
                 type="checkbox"
                 checked={withdrawAck}
@@ -363,25 +429,19 @@ export default function MyPage() {
               위 내용에 동의해
             </label>
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowWithdrawConfirm(false);
-                  setWithdrawAck(false);
-                }}
-                className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-[12px]"
-              >
+              <OverlayCloseButton className="flex-1 py-2 rounded-xl border border-lilac-mid text-eye-purple text-12">
                 취소
-              </button>
+              </OverlayCloseButton>
               <button
                 onClick={handleWithdraw}
                 disabled={!withdrawAck || withdrawing}
-                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-12 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 탈퇴하기
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       <Footer />

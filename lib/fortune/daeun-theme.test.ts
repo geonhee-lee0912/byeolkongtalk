@@ -11,10 +11,9 @@ test("daeunTheme: 갑 일간 대운 천간별 5개 국면 테마", () => {
   assert.equal(daeunTheme("갑", "임")?.key, "인성"); // 편인(수생목)
 });
 
-test("daeunTheme: label·desc·emoji 를 갖춘다", () => {
+test("daeunTheme: label·desc 를 갖춘다", () => {
   const t = daeunTheme("갑", "무");
   assert.equal(t?.label, "결실을 거두는 때");
-  assert.equal(t?.emoji, "🌾");
   assert.equal(typeof t?.desc, "string");
   assert.ok((t?.desc.length ?? 0) > 5);
 });

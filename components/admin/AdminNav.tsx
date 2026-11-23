@@ -18,6 +18,7 @@ const GROUPS: Group[] = [
     { href: "/admin/relationship", label: "연애 상담", emoji: "💞" },
     { href: "/admin/paywall", label: "페이월", emoji: "🔒" },
     { href: "/admin/ads", label: "광고 지출", emoji: "📣" },
+    { href: "/admin/push", label: "앱 알림", emoji: "🔔" },
   ] },
   { key: "free", label: "무료 서비스", emoji: "🎁", items: [
     { href: "/admin/free/byeoljari", label: "별 인연 별자리", emoji: "✨" },

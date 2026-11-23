@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-const SHIM_DATE = "2026년 10월 26일";
+const SHIM_DATE = "별콩톡 앱 출시일(공지 후 7일이 지난 뒤)";
 
 // 제6조의2 국외 이전 — 개인정보 보호법 제28조의8 제2항 항목(받는 곳·국가·항목·시기와 방법·목적·보관 기간).
 // AI 업체·모델이나 호스팅을 바꾸면 이 목록과 제6조 위탁 표를 같이 고칠 것.
@@ -11,7 +11,8 @@ const OVERSEAS_TRANSFERS = [
     to: "OpenAI (dsar@openai.com)",
     country: "미국",
     items:
-      "고민·대화 내용, 감정 태그, 뽑은 카드, 사주 간지·성별·나이, 궁합·연애 상담 시 입력한 이름 또는 호칭",
+      "고민·대화 내용, 감정 태그, 뽑은 카드, 사주 간지·성별·나이, 궁합·연애 상담·별마루에 쓰려고 고르거나 입력한 이름 또는 호칭",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 상담·운세 풀이 생성",
     period: "업체 정책에 따라 최대 30일 보관 후 삭제 (모델 학습에 쓰지 않음)",
   },
@@ -19,6 +20,7 @@ const OVERSEAS_TRANSFERS = [
     to: "Anthropic, PBC (privacy@anthropic.com)",
     country: "미국",
     items: "AI 처리에 필요한 메시지 내용 (위기 표현 판정, 대화 요약 등)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "AI 보조 처리 (위기 표현 2차 판정, 대화 요약 등)",
     period:
       "업체 정책에 따라 30일 안에 삭제 (업체 이용정책 위반으로 분류되면 최대 2년)",
@@ -27,8 +29,41 @@ const OVERSEAS_TRANSFERS = [
     to: "Vercel Inc. (privacy@vercel.com)",
     country: "미국 등",
     items: "서비스 이용 중 주고받는 정보 (요청 내용, 접속 기록)",
+    when: "서비스를 이용할 때마다 암호화된 네트워크로 전송",
     purpose: "웹 서비스 호스팅",
     period: "위탁 계약 종료 시까지 (로그는 업체 정책에 따름)",
+  },
+  {
+    to: "Apple Inc. (https://www.apple.com/kr/legal/privacy/contact/)",
+    country: "미국 등",
+    items: "Apple 로그인 인증값, 연결 해제용 인증 토큰, 앱 구분값",
+    when: "Apple로 로그인할 때와 탈퇴할 때 회사 서버에서 암호화된 네트워크로 전송",
+    purpose: "Apple 로그인 인증 및 연결 해제",
+    period: "업체 정책에 따름",
+  },
+  {
+    to: "650 Industries, Inc. (Expo, https://expo.dev/contact)",
+    country: "미국 등",
+    items: "푸시 토큰, 앱 설치 식별자, 앱·프로젝트 식별 정보, 기기 운영체제 구분, 접속 IP, 알림 제목·내용과 종류, 알림으로 열 화면 주소(상담 식별자가 포함될 수 있음), 발송 번호, 수신거부 처리용 값",
+    when: "앱에 로그인했고 기기에서 알림이 허용된 때 토큰 발급을 위해 기기에서(한번 등록한 기기는 로그아웃 뒤에도 앱 실행 시 갱신될 수 있음), 알림 발송과 결과 확인 시 회사 서버에서 암호화된 네트워크로 전송",
+    purpose: "앱 푸시 알림 발송",
+    period: "알림 내용은 전달 중 메모리·대기열에만 보관. 토큰 등은 업체 정책상 필요한 기간",
+  },
+  {
+    to: "Google LLC (https://support.google.com/policies/contact/general_privacy_form)",
+    country: "미국 등 Google 또는 그 수탁자의 시설이 있는 국가",
+    items: "Firebase 설치 식별자, 기기 푸시 토큰, 앱 정보, 접속 IP, 알림 제목·내용과 첨부 정보",
+    when: "안드로이드 앱에 로그인했고 기기에서 알림이 허용된 때 토큰 발급을 위해 기기에서(한번 등록한 기기는 로그아웃 뒤에도 앱 실행 시 갱신될 수 있음), 알림 발송 시 Expo를 거쳐 암호화된 네트워크로 전송",
+    purpose: "안드로이드 푸시 알림 전달",
+    period: "설치 식별자는 회사가 Google에 삭제를 요청할 때까지 보관하고 요청 후 180일 안에 삭제. 그 밖은 업체 정책에 따름",
+  },
+  {
+    to: "Apple Inc. (https://www.apple.com/kr/legal/privacy/contact/)",
+    country: "미국 등",
+    items: "기기 푸시 토큰, 앱 정보, 접속 IP, 알림 제목·내용과 첨부 정보",
+    when: "아이폰 앱에 로그인했고 기기에서 알림이 허용된 때 토큰 발급을 위해 기기에서(한번 등록한 기기는 로그아웃 뒤에도 앱 실행 시 갱신될 수 있음), 알림 발송 시 Expo를 거쳐 암호화된 네트워크로 전송",
+    purpose: "아이폰 푸시 알림 전달",
+    period: "전달하지 못한 알림은 30일 이하. 그 밖은 업체 정책에 따름",
   },
 ];
 
@@ -36,23 +71,33 @@ export default function PrivacyPage() {
   const router = useRouter();
   return (
     <div className="w-full max-w-md mx-auto px-5 pt-3 pb-16 animate-fade-in">
+      {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
         개인정보처리방침
       </h1>
-      <p className="text-[11px] text-text-light text-center mb-6">
+      <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
       </p>
+      {/* 변경 공지 — 출시해서 시행일을 실제 날짜로 바꿀 때 같이 내린다 */}
+      <p className="mb-6 px-3 py-2 border border-lilac-soft/60 rounded-xl text-12 text-text-light leading-[1.7]">
+        위 시행일부터 개인정보처리방침이 바뀝니다. 바뀌는 내용: 앱 알림과 Apple 로그인에 따른
+        수집 항목·방법, 이용 목적과 처리 근거, 보관 기간, 위기 감지 기록의 이용, 처리 위탁과
+        국외 이전, 결제대행사에 전달하는 정보, 회원의 권리와 행사 방법, 광고성 정보 수신 동의와
+        철회, 탈퇴 시 연결 해제, 자동 수집, 안전성 확보 조치, 그리고 파기 절차와 방법의 신설.
+        시행일 전까지는 종전 내용이 적용됩니다. 다만 시행일 전에 앱이나 Apple 로그인을 이용하는
+        경우에는 이용하는 때부터 바뀐 내용이 적용됩니다.
+      </p>
 
-      <div className="text-[13px] text-eye-purple leading-relaxed space-y-6">
-        <p className="text-[12.5px] text-text-light leading-[1.7]">
+      <div className="text-13 text-eye-purple leading-relaxed space-y-6">
+        <p className="text-13 text-text-light leading-[1.7]">
           브레이브샤인(이하 &ldquo;회사&rdquo;, 서비스명: 별콩톡)는 「개인정보 보호법」 및 「정보통신망
           이용촉진 및 정보보호 등에 관한 법률」에 따라 회원의 개인정보를
           소중히 여기며, 다음과 같이 개인정보처리방침을 수립하여 공개합니다.
@@ -61,8 +106,15 @@ export default function PrivacyPage() {
         <Article title="제1조 (수집하는 개인정보 항목)">
           회사는 다음 정보를 수집합니다.
           <ol className="list-decimal pl-5 space-y-1 mt-2">
-            <li><b>회원 가입 시</b>: 카카오 계정 식별자, 닉네임, 프로필 이미지
-              URL</li>
+            <li><b>카카오로 가입·로그인 시</b>: 카카오 계정 식별자, 닉네임, 프로필
+              이미지 URL</li>
+            <li><b>Apple로 가입·로그인 시</b>: Apple 계정 식별자, 이름(가입 시
+              Apple이 제공한 경우에 한하며 닉네임으로 저장), 연결 해제용 인증
+              토큰과 그 토큰을 발급한 앱 구분값. 이메일은 요청하거나 저장하지
+              않습니다.</li>
+            <li><b>앱 로그인 시</b>: 로그인 유지용 토큰과 로그인 전달용 1회용
+              코드의 해시, 각각의 발급·만료·사용·폐기 일시, 기기 운영체제
+              구분</li>
             <li><b>서비스 이용 시</b>: 입력한 고민 텍스트, 선택한 감정 태그,
               생년월일·태어난 시·성별(사주풀이), 뽑은 카드(타로), AI 대화 내용</li>
             <li><b>궁합·연애 상담 이용 시</b>: 회원이 입력한 본인과
@@ -70,11 +122,22 @@ export default function PrivacyPage() {
               관계 분류</li>
             <li><b>비회원(게스트) 무료 서비스 이용 시</b>: 표시 이름,
               생년월일, 지정한 관계 분류(예: 인연 별자리 참여)</li>
-            <li><b>결제 시</b>: 결제 수단(카드사명·일부 마스킹된 번호 등),
-              결제 일시, 결제 금액, 결제대행사(PG사) 거래 ID</li>
+            <li><b>결제 시</b>: 결제 수단(카드사명·일부 마스킹된 번호 등), 결제 일시, 결제 금액,
+              결제대행사(PG사) 거래 ID. 결제를 준비하고 결제창을 열기 위해 회원
+              식별자와 닉네임(Apple 회원은 이름일 수 있음)을 결제대행사에 전달합니다.</li>
             <li><b>자동 수집</b>: 접속 IP, 쿠키(세션/익명 식별, 광고 성과
               측정), 기기·브라우저 정보, 접속 일시, 유입 경로(광고 클릭
               식별자, UTM 등)</li>
+            <li><b>앱 이용 시</b>:{" "}
+              로그인 회원이 앱을 마지막으로 연 일시</li>
+            <li><b>앱 알림 이용 시</b>:{" "}
+              푸시 토큰, 기기 운영체제 구분, 앱 버전, 기기 등록·최근 확인·중지 일시, 알림 종류별
+              설정, 알림 요청에 대한 응답과 일시, 다시 볼 날 예약(상담 식별자, 날짜, 처리 상태),
+              알림 발송 기록(종류, 광고 여부, 대상 식별값, 발송 일시, 기기 수와 운영체제 구분,
+              접수번호와 푸시 토큰, 처리 결과 확인·열람·수신거부 일시)</li>
+            <li><b>광고성 정보 수신 동의 시</b>:{" "}
+              동의·철회 상태, 최초·최근 동의 일시, 철회 일시, 동의·철회한 화면 또는 경로, 처리 결과
+              통지와 정기 확인 통지 기록</li>
           </ol>
           <p className="mt-2 text-text-light">
             ※ 다른 사람의 정보를 입력할 때는 그 사람에게 먼저 알려 주세요.
@@ -83,11 +146,17 @@ export default function PrivacyPage() {
 
         <Article title="제2조 (개인정보 수집 방법)">
           <ol className="list-decimal pl-5 space-y-1">
-            <li>카카오 소셜 로그인 동의 절차</li>
+            <li>카카오 또는 Apple 소셜 로그인 절차. Apple 로그인 시 Apple이
+              발급한 인증값으로 본인을 확인하며, 연결 해제용 토큰의 발급과 탈퇴
+              시 연결 해제를 위해 인증값을 Apple 서버와 주고받습니다.</li>
             <li>회원 또는 비회원(게스트)이 직접 입력 (고민 텍스트, 생년월일시,
               무료 서비스 참여 정보, 채팅 메시지 등)</li>
             <li>결제 진행 시 결제대행사(PG사) 연동</li>
-            <li>쿠키, 로그 등을 통한 자동 수집</li>
+            <li>
+              쿠키, 로그, 앱에 포함된 푸시 알림 도구(Expo, Firebase Cloud
+              Messaging, Apple Push Notification service) 등을 통한 자동
+              수집
+            </li>
           </ol>
         </Article>
 
@@ -98,28 +167,108 @@ export default function PrivacyPage() {
             <li>결제·환불 처리, 별(Star) 잔액 관리</li>
             <li>고객 문의 응대 및 분쟁 해결</li>
             <li>서비스 개선을 위한 통계 분석(비식별화 처리)</li>
+            <li>
+              회원이 예약한 알림, 구독 내용에 포함된 알림, 수신 동의 확인 안내의 발송. 아침 알림
+              문구는 생년월일·태어난 시·성별로 계산합니다.
+            </li>
+            <li>
+              광고성 정보 수신에 동의한 회원에 대한 광고성 앱 알림(오늘의 흐름 맛보기, 하던 이야기
+              이어가기, 재방문 안내)의 발송. 이를 위해 구독 상태, 앱을 마지막으로 연 일시, 최근
+              상담의 대화 시각과 종료 여부를 이용합니다.
+            </li>
+            <li>
+              알림 중복·과다 발송 방지, 수신거부 처리, 발송 오류 확인, 알림 열람·수신거부 통계
+            </li>
           </ol>
+          <p className="mt-3">
+            앱 알림과 관련한 개인정보의 처리 근거는 다음과 같이 구분합니다.
+          </p>
+          <p className="mt-2 font-bold">
+            [동의를 받아 처리]
+          </p>
+          <ul className="list-disc pl-5 mt-1 space-y-1">
+            <li>
+              광고성 앱 알림 발송(「개인정보 보호법」 제15조 제1항 제1호): 푸시 토큰,
+              생년월일·태어난 시·성별, 구독 상태, 앱을 마지막으로 연 일시, 최근 상담의 대화 시각과
+              종료 여부
+            </li>
+          </ul>
+          <p className="mt-2 font-bold">
+            [동의 없이 처리]
+          </p>
+          <ul className="list-disc pl-5 mt-1 space-y-1">
+            <li>
+              예약·구독 알림 제공 등 계약의 이행(같은 항 제4호): 기기 등록 정보, 알림 설정과 요청에
+              대한 응답, 다시 볼 날 예약, 생년월일·태어난 시·성별, 구독 상태, 앱을 마지막으로 연
+              일시, 발송 기록
+            </li>
+            <li>
+              정보통신망법 제50조에 따른 법령상 의무의 준수(같은 항 제2호): 광고성 정보 수신
+              동의·철회 상태와 일시, 처리 결과 통지와 정기 확인 통지 기록
+            </li>
+            <li>
+              중복·과다 발송 방지, 오류 확인, 통계, 동의 내역 증빙, 위기 상황의 광고 제외 등 회사의
+              정당한 이익(같은 항 제6호): 발송·열람·수신거부 기록, 앱을 마지막으로 연 일시,
+              동의·철회 이력과 경로, 최근 30일 안의 위기 감지 기록 유무
+            </li>
+          </ul>
         </Article>
 
         <Article title="제4조 (개인정보의 보유 및 이용 기간)">
           회원의 개인정보는 회원 탈퇴 시까지 보유하며, 탈퇴 시 즉시 파기합니다.
           단, 관계 법령에 따라 다음 정보는 정해진 기간 동안 보관합니다.
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>계약·청약철회 등에 관한 기록: 5년 (전자상거래법)</li>
-            <li>대금결제 및 재화 공급 기록: 5년 (전자상거래법)</li>
-            <li>소비자 불만·분쟁 처리 기록: 3년 (전자상거래법)</li>
+            <li>결제·환불 기록(결제 일시·금액·상품, 환불 여부, 결제대행사 거래 ID):
+              5년 (전자상거래법). 탈퇴 시 회원 계정과의 연결을 끊고 보관합니다.</li>
+            <li>이메일로 접수된 소비자 불만·분쟁 처리 기록: 3년 (전자상거래법)</li>
             <li>서비스 접속 로그: 3개월 (통신비밀보호법)</li>
           </ul>
+          <p className="mt-3">
+            별 충전·사용 내역, 별마루 구독 내역, 서비스 안에서 남긴 1:1 문의는 탈퇴
+            시 삭제합니다.
+          </p>
+          <p className="mt-3">
+            앱 알림 정보는 다음과 같이 보관합니다. 기기 등록 정보는 앱에서 로그아웃할 때 삭제를 요청해
+            지우며, 삭제되지 않았거나 사용이 중지된 기록은 탈퇴 시 파기합니다. 다시 볼 날 예약은 해당
+            상담이 삭제되거나 탈퇴하면 파기합니다. 알림 설정·응답, 발송 기록, 앱을 마지막으로 연
+            일시, 광고성 정보 수신 동의·철회·통지 기록은 탈퇴 시까지 보관하며, 동의를 철회해도 그
+            기록은 탈퇴 시까지 남습니다. 발송 기록에 담긴 푸시 토큰과 접수번호는 발송 처리 결과를
+            확인하거나 확인 기한(발송 후 24시간)이 지나면 이후 확인 작업 때 삭제하고, 그 자리에는
+            기기 운영체제 구분만 남깁니다.
+          </p>
+          <p className="mt-3">
+            Apple 연결 해제용 인증 토큰은 암호화하여 보관하며, 다시 로그인해 새
+            토큰으로 교체되거나 회원이 탈퇴할 때까지 보관합니다. 앱 로그인
+            유지용 토큰은 발급 후 90일간 유효하고, 사용할 때마다 새 토큰으로
+            교체되어 그때부터 다시 90일간 유효합니다. 교체·로그아웃·만료된
+            토큰과 로그인 전달용 코드의 해시 및 일시 기록은 탈퇴 시 삭제합니다.
+          </p>
           <p className="mt-3">
             또한 부정 이용 방지(재가입 혜택 중복 수령 방지)와 서비스 통계를
             위해, 탈퇴 시 로그인 수단 식별자를 되돌릴 수 없게 바꾼 값(해시)과
             혜택 수령 기록, 가입 경로 정보(UTM 등)를 탈퇴 후 1년간 보관한 뒤
             파기합니다.
           </p>
+          <p className="mt-3">
+            방문·이용 기록(방문한 페이지 경로, 유입 경로, 화면 이용 기록)은
+            수집일부터 1년이 지나면 회원·익명 식별자와 유입 주소를 지워 통계로만
+            남기고, 설문 응답과 오류 기록은 수집일부터 1년간 보관한 뒤
+            파기합니다. 탈퇴하면 이 기록들과 회원 계정의 연결은 끊기지만, 익명
+            식별자는 위 기간까지 남습니다.
+          </p>
           <p className="mt-3 text-text-light">
             비회원(게스트)이 무료 서비스(인연 별자리 등)에서 입력한 정보(표시
             이름·생년월일·관계 분류)는 해당 이용자 또는 별자리 소유자가
             삭제하거나, 이용자가 이메일로 삭제를 요청하는 즉시 파기합니다.
+          </p>
+          <p className="mt-3">
+            파기 절차와 방법: 회원이 탈퇴하면 계정과 그에 연결된 정보를 데이터베이스에서 지체 없이 영구
+            삭제합니다. 다만 탈퇴 뒤에도 남는 결제·위기 감지·설문·접속 및 이용·오류·AI 사용량
+            기록은 회원 계정과의 연결을 끊고, 별 조정·무료 이용권 지급·개인 안내 발송의 관리자 기록에
+            남은 회원 식별자와 사유·안내 제목은 매일 실행되는 파기 작업 때 지웁니다. 제7조에 따라
+            삭제를 요청받은 정보는 확인 후 같은 방법으로 삭제하고, 보유 기간이 끝난 정보는 이 조에서
+            정한 바에 따라 삭제하거나 식별자를 지웁니다. 데이터베이스 백업에 남은 사본은 백업 보관
+            기간이 지나면 삭제됩니다.
           </p>
         </Article>
 
@@ -143,7 +292,7 @@ export default function PrivacyPage() {
           </p>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">1. 감지 항목</p>
+            <p className="font-bold text-13 mb-1.5">1. 감지 항목</p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>자살·자해</li>
               <li>학교폭력·따돌림</li>
@@ -154,7 +303,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">2. 감지 방식</p>
+            <p className="font-bold text-13 mb-1.5">2. 감지 방식</p>
             <p className="text-text-light">
               회원이 입력한 메시지 중 위 항목에 해당할 가능성이 있는 표현을
               자동으로 분류합니다. 일상적 대화에 대한 모니터링은 수행하지
@@ -163,8 +312,8 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">
-              3. 기록되는 정보 (익명화)
+            <p className="font-bold text-13 mb-1.5">
+              3. 기록되는 정보
             </p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>해당 메시지의 일부 발췌 (최대 500자)</li>
@@ -180,17 +329,20 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">4. 이용 목적</p>
+            <p className="font-bold text-13 mb-1.5">4. 이용 목적</p>
             <ul className="list-disc pl-5 space-y-0.5 text-text-light">
               <li>회원에게 즉시 전문기관 연락처 안내 (자살예방상담전화 109 등)</li>
               <li>해당 대화의 공유·이미지 저장 자동 비활성화</li>
               <li>운영자의 안전성 검토 및 후속 조치</li>
               <li>서비스의 위기 대응 품질 개선</li>
+              <li>
+                최근 30일 안에 감지 기록이 있는 회원을 광고성 앱 알림 발송 대상에서 제외
+              </li>
             </ul>
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">
+            <p className="font-bold text-13 mb-1.5">
               5. 외부 기관 연계
             </p>
             <p className="text-text-light">
@@ -212,7 +364,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="mt-3">
-            <p className="font-bold text-[12.5px] mb-1.5">6. 보유 기간</p>
+            <p className="font-bold text-13 mb-1.5">6. 보유 기간</p>
             <p className="text-text-light">
               감지 기록은 안전성 검토 및 서비스 품질 개선을 위해 최대 1년간
               보관 후 자동 파기됩니다. 회원 탈퇴 시 즉시 익명 처리되거나
@@ -225,7 +377,7 @@ export default function PrivacyPage() {
           회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를
           위탁하고 있습니다.
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-[12px] border-collapse">
+            <table className="w-full text-12 border-collapse">
               <thead>
                 <tr className="bg-cream/60 text-left">
                   <th className="px-2 py-1.5 border border-lilac-soft/60 font-bold">수탁사</th>
@@ -257,10 +409,26 @@ export default function PrivacyPage() {
                   <td className="px-2 py-1.5 border border-lilac-soft/60">㈜카카오</td>
                   <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 프로필 정보 제공</td>
                 </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">Apple Inc.</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">소셜 로그인 인증 및 연결 해제</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">650 Industries, Inc. (Expo)</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">앱 푸시 알림 발송</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">Google LLC</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">안드로이드 푸시 알림 전달 (Firebase Cloud Messaging)</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">Apple Inc.</td>
+                  <td className="px-2 py-1.5 border border-lilac-soft/60">아이폰 푸시 알림 전달 (Apple Push Notification service)</td>
+                </tr>
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[12px] text-text-light/80">
+          <p className="mt-3 text-12 text-text-light">
             ※ 해외 업체로의 개인정보 이전은 제6조의2에서 안내합니다.
           </p>
         </Article>
@@ -272,14 +440,14 @@ export default function PrivacyPage() {
           <div className="mt-3 space-y-2">
             {OVERSEAS_TRANSFERS.map((t) => (
               <div
-                key={t.to}
-                className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-[12px]"
+                key={t.to + t.purpose} // Apple 은 로그인·알림 두 번 나온다
+                className="px-3 py-2 border border-lilac-soft/60 rounded-xl text-12"
               >
-                <p className="font-bold">{t.to}</p>
+                <p className="font-bold break-words">{t.to}</p>
                 <ul className="mt-1 space-y-0.5 text-text-light">
                   <li>이전 국가: {t.country}</li>
                   <li>이전 항목: {t.items}</li>
-                  <li>이전 시기·방법: 서비스를 이용할 때마다 암호화된 네트워크로 전송</li>
+                  <li>이전 시기·방법: {t.when}</li>
                   <li>이용 목적: {t.purpose}</li>
                   <li>보관 기간: {t.period}</li>
                 </ul>
@@ -287,23 +455,40 @@ export default function PrivacyPage() {
             ))}
           </div>
           <ul className="list-disc pl-5 mt-3 space-y-1">
-            <li>회원 식별자, 카카오 닉네임, 연락처는 AI 업체에 보내지
-              않습니다. 생년월일은 날짜 그대로가 아니라 사주 간지와 나이로
-              바꿔 보냅니다.</li>
+            <li>회원 식별자, 로그인 시 받은 닉네임·이름, 연락처는 AI 업체에 보내지
+              않습니다.
+              생년월일은 날짜 그대로가 아니라 사주 간지와 나이로 바꿔
+              보냅니다.</li>
             <li><b>거부 방법·절차·효과</b>: 개인정보 보호책임자
               (oneulcard@gmail.com)에게 국외 이전 거부를 요청할 수 있습니다.
-              다만 위 이전은 AI 해석과 서비스 운영에 꼭 필요하므로, 거부하면
-              서비스를 이용할 수 없습니다. 회원 탈퇴로 저장된 정보를 모두
-              지울 수 있습니다.</li>
+              다만 OpenAI·Anthropic·Vercel로의 이전은 AI 해석과 서비스 운영에 꼭
+              필요하므로, 거부하면 서비스를 이용할 수 없습니다. Apple 로그인을 위한 이전은
+              Apple로 로그인하지 않으면 거부할 수 있으며, 이미 Apple로 가입한 회원이 거부하면
+              해당 계정으로 로그인할 수 없습니다. 알림을 위한 Expo·Google·Apple로의 이전은
+              앱에 로그인하기 전에 기기에서 알림을 꺼 두거나 알림 허용 요청을 거절하여 거부할 수 있으며,
+              거부해도 알림 외의 서비스는 이용할 수 있습니다. 이미 등록한 기기는 알림을 꺼도 전송이
+              계속될 수 있으므로, 이를 멈추려면 앱에서 로그아웃한 뒤 앱을 삭제해야 합니다. 남은 기기
+              등록 정보의 삭제는 위 연락처로 요청할 수 있습니다. 회원 탈퇴 시 회사에 저장된 정보는
+              제4조에 따라 파기합니다.</li>
           </ul>
         </Article>
 
         <Article title="제7조 (회원의 권리와 행사 방법)">
           <ol className="list-decimal pl-5 space-y-1">
-            <li>회원은 마이페이지에서 본인 정보를 언제든 열람·수정할 수
-              있으며, 회원 탈퇴 메뉴를 통해 모든 정보의 삭제를 요청할 수
-              있습니다.</li>
-            <li>탈퇴 시 카카오 계정 연결도 함께 해제(unlink)됩니다.</li>
+            <li>회원은 마이페이지에서 본인 정보를 열람하고 사주 정보를 수정할 수 있으며, 회원
+              탈퇴 메뉴를 통해 삭제를 요청할 수 있습니다. 탈퇴 후 보관되는 정보는 제4조를
+              따릅니다.</li>
+            <li>탈퇴 시 카카오 계정은 연결을 해제(unlink)하고, Apple 계정은 보관
+              중인 인증 토큰으로 연결을 해제(revoke)합니다. 연결 해제에
+              실패하면(카카오 연결이 이미 해제된 경우 제외) 탈퇴가 완료되지 않으며 다시
+              시도하도록 안내합니다. 다만 보관 중인 Apple 인증 토큰 정보가 없으면 연결
+              해제 없이 탈퇴가 처리되므로, 이 경우 회원이 Apple 계정 설정에서 직접
+              연결을 해제할 수 있습니다.</li>
+            <li>
+              광고성 정보 수신 동의는 선택이며, 동의하지 않아도 서비스를 이용할 수 있습니다. 앱의 마이
+              &gt; 알림 설정, 광고 알림의 수신거부 버튼 또는 그 알림으로 연 화면의 수신거부 버튼으로
+              언제든 철회할 수 있고, 알림을 통한 수신거부에는 로그인이 필요하지 않습니다.
+            </li>
             <li>이메일(oneulcard@gmail.com)을 통해서도 열람·정정·삭제·처리정지
               요청이 가능합니다.</li>
           </ol>
@@ -322,8 +507,12 @@ export default function PrivacyPage() {
           다음 쿠키를 사용합니다.
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li><b>byeolkong_anon_id</b>: 익명 식별자 (HttpOnly, Secure, SameSite=Lax)</li>
-            <li><b>byeolkong_user_id</b>: 카카오 로그인 후 회원 식별자 (HttpOnly,
-              Secure, SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_user_id</b>: 로그인 후 회원 식별자 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_oauth_state, byeolkong_apple_state</b>: 웹 로그인 요청 위조 방지용 값, 5분간 유효 (HttpOnly, Secure,
+              SameSite=Lax)</li>
+            <li><b className="break-words">byeolkong_acq</b>: 광고·홍보 링크로 처음 방문한 때의 유입 경로(광고 클릭 식별자, UTM 등),
+              최대 30일간 유효 (SameSite=Lax)</li>
             <li><b>_fbp, _fbc</b>: Meta 광고 성과 측정 쿠키 (제8조의2 참고)</li>
           </ul>
           <p className="mt-2">
@@ -333,6 +522,14 @@ export default function PrivacyPage() {
           <p className="mt-2">
             회원은 브라우저 설정을 통해 쿠키를 차단할 수 있으나, 일부 기능
             이용에 제한이 있을 수 있습니다.
+          </p>
+          <p className="mt-2">
+            앱에는 푸시 알림 도구가 포함되어, 로그인했고 기기에서 알림이 허용되면 기기 푸시 토큰과 앱
+            설치 식별자를 생성·전송하며 이후 자동으로 갱신할 수 있습니다. 기기 설정에서 알림을 끄면
+            알림이 표시되지 않지만, 이미 등록된 정보의 보관이나 자동 갱신까지 멈추지는 않습니다. 자동
+            전송을 멈추려면 앱에서 로그아웃한 뒤 앱을 삭제하고, 회사에 저장된 정보의 삭제는 제7조의
+            방법으로 요청할 수 있습니다. 앱을 마지막으로 연 일시와 알림을 눌러 연 일시는 알림 설정과
+            관계없이 로그인한 상태에서 자동으로 기록되며, 로그아웃한 상태에서는 기록되지 않습니다.
           </p>
         </Article>
 
@@ -369,7 +566,8 @@ export default function PrivacyPage() {
         <Article title="제9조 (개인정보의 안전성 확보 조치)">
           <ol className="list-decimal pl-5 space-y-1">
             <li>전송 구간 암호화(HTTPS/TLS)</li>
-            <li>비밀번호 등 민감 인증 정보 미저장(카카오 OAuth 토큰만 사용)</li>
+            <li>비밀번호 미저장. 카카오 OAuth 토큰은 회사 서버에 저장하지 않으며,
+              Apple 연결 해제용 인증 토큰은 암호화(AES-256-GCM)하여 저장</li>
             <li>개인정보 처리 인원의 최소화 및 접근 권한 관리</li>
             <li>데이터베이스 접근 통제 및 정기 점검</li>
           </ol>
@@ -399,7 +597,7 @@ export default function PrivacyPage() {
           중대한 영향을 미치는 변경의 경우 30일 전 공지합니다.
         </Article>
 
-        <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">
+        <p className="text-12 text-text-light pt-6 border-t border-lilac-soft/40">
           부칙: 본 방침은 {SHIM_DATE}부터 시행됩니다.
         </p>
       </div>
@@ -416,8 +614,8 @@ function Article({
 }) {
   return (
     <section>
-      <h2 className="text-[14px] font-bold text-eye-purple mb-1.5">{title}</h2>
-      <div className="text-eye-purple/95 text-[12.5px] leading-[1.7]">
+      <h2 className="text-14 font-bold text-eye-purple mb-1.5">{title}</h2>
+      <div className="text-eye-purple/95 text-13 leading-[1.7]">
         {children}
       </div>
     </section>

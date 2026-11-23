@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import { CLARIFIER_COST } from "@/lib/upsell";
 import { purchaseRequest, type PurchaseResponse } from "@/lib/tarot/purchase-request";
 import type { DrawnCard } from "@/lib/tarot/spreads";
+import Icon from "@/components/common/Icon";
 
 /** 구매 실패 — 402(잔액 부족)는 onInsufficient 로 따로 가고 여기엔 오지 않는다 */
 export interface ClarifierFailure {
@@ -16,6 +17,9 @@ export interface ClarifierFailure {
   /** 시트가 이미 닫혀 유저가 못 본 오류 문구 — 부모가 페이지에 대신 보여 준다 */
   unseenMessage?: string;
 }
+
+// 스프레드 색 대신 주 버튼 보라 하나 — /tarot/draw 와 같다(디자인 다듬기 /tarot/draw ① A안)
+const ACCENT = "#775CB0";
 
 interface ClarifierResponse {
   error?: string;
@@ -29,7 +33,6 @@ interface Props {
   readingId: string;
   /** 이미 뽑힌 카드들 — 덱에서 제외 + POST 후 반환값으로 교체 */
   drawnCards: DrawnCard[];
-  accent: string;
   onClose: () => void;
   /** clarifier API 성공 후 호출 — 갱신된 drawnCards 와, 서버가 끝난 대화를 다시 열었는지(reopened) 전달 */
   onDrawn: (newDrawnCards: DrawnCard[], reopened: boolean) => void;
@@ -50,7 +53,6 @@ export default function ClarifierSheet({
   open,
   readingId,
   drawnCards,
-  accent,
   onClose,
   onDrawn,
   onInsufficient,
@@ -59,24 +61,17 @@ export default function ClarifierSheet({
 }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
   // 요청이 끝났을 때 시트가 아직 열려 있는지 — handleDrawComplete 의 클로저 값은 요청을 시작한 때의 것이라 쓸 수 없다
   const openRef = useRef(open);
   useEffect(() => {
     openRef.current = open;
   });
 
-  // 열릴 때 잔액 로드 + shallow history push
+  // 열릴 때 shallow history push
   useEffect(() => {
     if (!open) return;
     setError(null);
     setSubmitting(false);
-
-    // 잔액 fetch (비동기, 실패해도 무시)
-    fetch("/api/stars/balance", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setBalance(d.balance ?? 0); })
-      .catch(() => {});
 
     // shallow history — OS 백버튼으로 닫기
     history.pushState({ sheet: "clarifier" }, "");
@@ -88,19 +83,7 @@ export default function ClarifierSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // ESC + 배경 스크롤 잠금
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeSheet(); };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // ESC·배경 스크롤 잠금은 공통 Sheet
 
   function closeSheet() {
     // history 스택이 아직 우리 항목이면 정리
@@ -147,7 +130,7 @@ export default function ClarifierSheet({
       if (status === 402) {
         const bal = data.balance ?? 0;
         if (onInsufficient) onInsufficient(bal);
-        else setError(`별이 부족해. 현재 잔액: ⭐${bal}`);
+        else setError(`별이 부족해. 현재 잔액: 별 ${bal}`);
         setSubmitting(false);
         return;
       }
@@ -179,57 +162,36 @@ export default function ClarifierSheet({
 
   const excludeIds = drawnCards.map((c) => c.card_id);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={closeSheet}
-      role="dialog"
-      aria-modal="true"
-      aria-label="보조 카드 뽑기"
+  // 그랩바는 웹 전용 — 앱은 Sheet 손잡이(끌어내리기)
+  return (
+    <Sheet
+      label="보조 카드 뽑기"
+      onClose={closeSheet}
+      z={90}
+      align="bottom"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
+      panelClassName="bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-float-up max-h-[90vh] overflow-y-auto"
     >
-      <div
-        className="w-full max-w-md bg-cream rounded-t-3xl border border-lilac-mid/30 shadow-[0_-4px_24px_rgba(31,23,53,0.18)] max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 그랩바 */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-lilac-mid/40 rounded-full" />
-        </div>
-
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="font-display text-[17px] font-bold text-eye-purple">
-            카드 한 장 더 뽑기
-          </h2>
-          <button
-            onClick={closeSheet}
-            aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* 안내 */}
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl bg-cream-warm border border-lilac-mid/20">
-          <p className="text-[13px] text-eye-purple leading-relaxed">
-            마음 가는 카드 한 장만 더 골라줘
-          </p>
-          <p className="text-[11px] text-text-light mt-1 leading-snug">
-            뽑는 순간 ⭐{CLARIFIER_COST}
-            {balance !== null ? ` · 현재 잔액 ⭐${balance}` : ""}
-             · 지금 카드들과 이어서 봐줄게
-          </p>
+        {/* 헤더 — 제목 + 한 줄(무엇을·얼마). 안내 상자·두 번째 제목·잔액·닫기 ✕ 는 뺐다(디자인 다듬기 묶음 2 B안, 운영자 11-15).
+            닫기는 바깥 누르기·앱 끌어내리기·Esc·뒤로 가기. 잔액이 모자라면 누른 뒤 충전 시트로 간다(402) */}
+        <div className="px-5 pt-5 pb-3">
+          <div>
+            <h2 className="font-display text-17 text-eye-purple">카드 한 장 더 뽑기</h2>
+            <p className="text-13 text-text-light mt-0.5">
+              마음 가는 카드 한 장만 골라줘 · <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />
+              {CLARIFIER_COST}
+            </p>
+          </div>
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-3">
+          <p className="text-12 text-red-500 text-center px-5 mb-3">
             {error}
           </p>
         )}
 
         {submitting ? (
-          <div className="py-10 text-center text-text-light text-sm">
+          <div className="py-10 text-center text-text-light text-14">
             처리 중…
           </div>
         ) : (
@@ -237,15 +199,22 @@ export default function ClarifierSheet({
             slim
             cardCount={1}
             slotLabels={["+1"]}
-            accent={accent}
+            accent={ACCENT}
             ritualLabel="보조 카드"
-            completeLabel={`카드 선택 · ⭐${CLARIFIER_COST}`}
+            completeLabel={
+              <>
+                카드 선택 ·
+                <span className="inline-flex items-center">
+                  <Icon name="star" size={16} className="mr-0.5" />
+                  {CLARIFIER_COST}
+                </span>
+              </>
+            }
             excludeCardIds={excludeIds}
             onComplete={handleDrawComplete}
           />
         )}
-      </div>
-    </div>,
-    document.body
+
+    </Sheet>
   );
 }

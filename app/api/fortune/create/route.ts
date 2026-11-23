@@ -18,11 +18,11 @@ import {
   needsDaeun,
 } from "@/lib/fortune/generic-report";
 import { parseReportCardJson, buildReportCardReport, serializeReportCardReport } from "@/lib/fortune/report-card-report";
-import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { parseLifeGraphJson, buildLifeGraphReport, serializeLifeGraphReport, alignDecadeAges } from "@/lib/fortune/life-graph-report";
 import { profileRowToSajuInput } from "@/lib/saju/profile-input";
 import { FORTUNE_CONFIG, MAX_TOKENS_BY_FORTUNE, getTarotPositions, type FortuneType } from "@/lib/fortune/types";
 import { buildFortuneSystem, FORTUNE_KICKOFF, type TarotDrawnForPrompt } from "@/lib/fortune/prompt";
-import { promptNameFor } from "@/lib/fortune/prompt-name";
+import { promptNameFor, type PromptName } from "@/lib/fortune/prompt-name";
 import { getCard } from "@/lib/tarot/cards";
 import {
   parseTarotReportJson,
@@ -43,6 +43,7 @@ import {
   parseSajuFullReportJson,
   buildSajuFullReport,
   serializeSajuFullReport,
+  isSajuYearType,
 } from "@/lib/fortune/saju-full-report";
 import {
   parseCompatReportJson,
@@ -53,6 +54,7 @@ import { findTodaysDailyReadingId } from "@/lib/fortune/daily-lookup";
 import { findThisMonthMonthlyByProfile } from "@/lib/fortune/monthly-lookup";
 import { fortuneResponseFormat } from "@/lib/fortune/response-format";
 import { generateOnce } from "@/lib/claude";
+import { generateWithoutOddChars } from "@/lib/odd-chars";
 import { fortuneModel } from "@/lib/fortune/model";
 import { logError } from "@/lib/logger";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
@@ -242,7 +244,7 @@ export async function POST(req: NextRequest) {
   // 사주 기반 운세는 입력 검증 + 서버 계산 (클라 신뢰 X)
   let saju: SajuResult | undefined = undefined;
   let sajuB: SajuResult | undefined = undefined;
-  let promptNames: { a: string; b: string } | undefined;
+  let promptNames: { a: PromptName; b: PromptName } | undefined;
   let sajuInput: SajuInput | undefined;
   let usedProfileId: string | null = null;
   let usedProfileB: string | null = null;
@@ -456,13 +458,15 @@ export async function POST(req: NextRequest) {
   };
 
   after(async () => {
+    // 깨진 글자(lib/odd-chars.ts) — 프롬프트에 든 이름·한자는 정상으로 본다
+    const fortuneKnown = (s: Parameters<typeof generateOnce>[0]) => (typeof s === "string" ? s : s.staticPart + s.dynamicPart);
     // 빈 완료(streamChat)·max_tokens 절단 경고에 route/유저/리딩 컨텍스트 주입 — "(route: 없음)" 방지
     const fortuneLogCtx = { route: "/api/fortune/create", userId, extra: { type, readingId } };
     // Claude 1회 호출 → 리포트
     let report: string;
     try {
       const system = buildFortuneSystem(cfg.type, systemInput);
-      report = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+      report = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
     } catch (err) {
       await failGeneration(err, "generate");
       return;
@@ -480,7 +484,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          const retry = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseDailyReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "daily_retry" } });
@@ -502,7 +506,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseMonthlyReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "monthly_retry" } });
@@ -521,13 +525,13 @@ export async function POST(req: NextRequest) {
         return;
       }
       storedContent = serializeMonthlyReport(buildMonthlyReport(ai, saju.temporal));
-    } else if (cfg.type === "saju_full") {
+    } else if (isSajuYearType(cfg.type)) {
       let ai = parseSajuFullReportJson(report);
       let retryRaw: string | undefined;
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, { saju });
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseSajuFullReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "saju_full_retry" } });
@@ -543,14 +547,14 @@ export async function POST(req: NextRequest) {
         });
         return;
       }
-      storedContent = serializeSajuFullReport(buildSajuFullReport(ai));
+      storedContent = serializeSajuFullReport(buildSajuFullReport(ai, cfg.type));
     } else if (cfg.type === "compat" || cfg.type === "compat_social") {
       let ai = parseCompatReportJson(report);
       let retryRaw: string | undefined;
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseCompatReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "compat_retry" } });
@@ -574,7 +578,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseGenericReportJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "generic_retry" } });
@@ -597,7 +601,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseReportCardJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "report_card_retry" } });
@@ -616,7 +620,7 @@ export async function POST(req: NextRequest) {
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          retryRaw = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          retryRaw = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseLifeGraphJson(retryRaw);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "life_graph_retry" } });
@@ -628,13 +632,14 @@ export async function POST(req: NextRequest) {
         });
         return;
       }
-      storedContent = serializeLifeGraphReport(buildLifeGraphReport(ai));
+      // 10년 구간 이름표는 AI 가 아니라 대운 표에서(이름표를 틀리게 적은 실물이 있었다 — alignDecadeAges 주석)
+      storedContent = serializeLifeGraphReport(buildLifeGraphReport({ ...ai, decades: alignDecadeAges(ai.decades, saju?.daeun) }));
     } else if (cfg.base === "tarot") {
       let ai = parseTarotReportJson(report);
       if (!ai) {
         try {
           const system = buildFortuneSystem(cfg.type, systemInput);
-          const retry = await generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type));
+          const retry = await generateWithoutOddChars(() => generateOnce(system, [{ role: "user", content: FORTUNE_KICKOFF }], MAX_TOKENS_BY_FORTUNE[cfg.type], fortuneLogCtx, fortuneModel(cfg.type), fortuneResponseFormat(cfg.type)), fortuneKnown(system));
           ai = parseTarotReportJson(retry);
         } catch (err) {
           await logError(err, { route: "/api/fortune/create", userId, extra: { type, stage: "tarot_retry" } });

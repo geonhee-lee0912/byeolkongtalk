@@ -3,6 +3,7 @@
 // 커스텀 드롭다운 — 시스템 <select> 대체. 트리거·열린 목록·스크롤바까지
 // 디자인 시스템(cream/lilac 토큰)으로 통일. controlled(value/onChange) 드롭인.
 import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/common/Icon";
 
 export interface DropdownOption {
   value: string;
@@ -137,13 +138,13 @@ export default function Dropdown({
         aria-label={ariaLabel}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onTriggerKeyDown}
-        className={`w-full rounded-xl bg-cream-warm border border-lilac-mid/40 px-3 py-2.5 text-[14px] text-eye-purple flex items-center justify-between gap-1 transition disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`w-full rounded-xl bg-cream-warm border border-lilac-mid/40 px-3 py-2.5 text-14 text-eye-purple flex items-center justify-between gap-1 transition disabled:opacity-60 disabled:cursor-not-allowed ${
           className ?? ""
         }`}
       >
         <span
           className={`min-w-0 truncate text-left ${
-            selectedOption ? "" : "text-text-light/60"
+            selectedOption ? "" : "text-text-light"
           }`}
         >
           {selectedOption ? selectedOption.label : placeholder ?? ""}
@@ -154,7 +155,7 @@ export default function Dropdown({
           }`}
           aria-hidden="true"
         >
-          ▾
+          <Icon name="chev_d" size={14} />
         </span>
       </button>
 
@@ -162,7 +163,7 @@ export default function Dropdown({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute left-0 right-0 mt-1 z-50 rounded-xl bg-cream border border-lilac-mid/40 shadow-[0_8px_24px_rgba(90,62,140,0.16)] max-h-[240px] overflow-y-auto scrollbar-hover py-1"
+          className="absolute left-0 right-0 mt-1 z-50 rounded-xl bg-cream border border-lilac-mid/40 shadow-float max-h-[240px] overflow-y-auto scrollbar-hover py-1"
         >
           {options.map((opt, idx) => {
             const isSelected = opt.value === value;
@@ -178,9 +179,9 @@ export default function Dropdown({
                 }}
                 onClick={() => select(opt.value)}
                 onMouseEnter={() => setHighlighted(idx)}
-                className={`block w-full px-3 py-2.5 text-[14px] text-left cursor-pointer transition-colors ${
+                className={`block w-full px-3 py-2.5 text-14 text-left cursor-pointer transition-colors ${
                   isSelected
-                    ? "bg-lilac-soft text-lilac-deep font-bold"
+                    ? "bg-lilac-soft text-accent font-bold"
                     : isHighlighted
                       ? "bg-lilac-soft/60 text-eye-purple"
                       : "text-eye-purple hover:bg-lilac-soft/60"

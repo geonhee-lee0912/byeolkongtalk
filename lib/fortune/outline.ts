@@ -11,20 +11,40 @@ import { GENERIC_GUIDE_SPEC } from "./prompt";
 import { DAILY_SECTIONS } from "./daily-report";
 import type { FortuneType } from "./types";
 
-/** 랜딩을 가진 상품 — 활성 사주 19종 + 무료 사주 MBTI. */
+/** 랜딩을 가진 상품 — 활성 사주 20종 + 무료 사주 MBTI. */
 export type LandingKey = Exclude<
   FortuneType,
   "daily" | "good_days" | "tarot_daily" | "tarot_love" | "tarot_money" | "tarot_career" | "tarot_relation"
 > | "saju_mbti";
 
 export const LANDING_KEYS: LandingKey[] = [
-  "compat", "compat_social", "saju_full", "monthly",
+  "compat", "compat_social", "saju_2027", "saju_full", "monthly",
   "nature_self", "talent_path", "user_manual", "element_balance", "life_full",
   "love_self", "love_year", "marriage",
   "wealth_vessel", "wealth_year", "career_timing",
   "fact_bomb", "past_life", "saju_report_card", "life_graph",
   "saju_mbti",
 ];
+
+/** 연간 사주 분석(saju_full=2026 · saju_2027) 목차 틀 — `{Y}` 자리에 기준 연도.
+ *  🔴 표시 제목은 **프롬프트에 없다** — 프롬프트는 "money"·"strength" 같은 키만 주고 화면에 뜨는
+ *  제목은 SajuFullReportView 가 붙인다(그 파일의 heading 38개가 정본, 연도 자리는 `${y}`).
+ *  프롬프트 문구로 대조하면 화면에 존재하지 않는 항목("1~12월" 등)이 목차에 섞인다. */
+export const SAJU_YEAR_OUTLINE_TEMPLATE: readonly string[] = [
+  "타고난 기질·성격", "나의 강점·빛나는 재능", "조심할 성향·보완점", "오행 밸런스 진단",
+  "타고난 적성·어울리는 일", "{Y}년 큰 흐름·테마", "마음·감정 흐름", "사랑·인연",
+  "인간관계·사회", "일·커리어", "재물·금전", "건강·컨디션", "학업·자기계발", "이동·변화",
+  "가족·주변", "재물 심층", "일·커리어 심층", "연애 심층", "건강 심층",
+  "{Y} 상반기", "{Y} 하반기", "1분기 (1~3월)", "2분기 (4~6월)", "3분기 (7~9월)",
+  "4분기 (10~12월)", "전환점·변화 포인트", "놓치면 아까운 기회", "조심할 함정",
+  "{Y} 인연 지도", "관계 지도 확장", "올해의 성장 과제", "{Y} 월별 흐름",
+  "주목할 시기", "{Y} 행운 가이드", "{Y} 개운법", "오행 활용법", "셀프케어 루틴",
+  "올해 이것만은 — 실천 3가지",
+];
+
+function sajuYearOutline(year: number): string[] {
+  return SAJU_YEAR_OUTLINE_TEMPLATE.map((h) => h.replaceAll("{Y}", String(year)));
+}
 
 /** 전용 템플릿 7종 + MBTI — 손으로 적은 목차(이모지 없이). */
 const MANUAL_OUTLINE: Record<string, string[]> = {
@@ -37,20 +57,8 @@ const MANUAL_OUTLINE: Record<string, string[]> = {
     "이번 달 실천 포인트",
     "주목할 시기·챙길 점",
   ],
-  // 🔴 saju_full 의 표시 제목은 **프롬프트에 없다** — 프롬프트는 "money"·"strength" 같은 키만
-  // 주고 화면에 뜨는 제목은 SajuFullReportView 가 붙인다(그 파일의 heading 38개가 정본).
-  // 프롬프트 문구로 대조하면 화면에 존재하지 않는 항목("1~12월" 등)이 목차에 섞인다.
-  saju_full: [
-    "타고난 기질·성격", "나의 강점·빛나는 재능", "조심할 성향·보완점", "오행 밸런스 진단",
-    "타고난 적성·어울리는 일", "2026년 큰 흐름·테마", "마음·감정 흐름", "사랑·인연",
-    "인간관계·사회", "일·커리어", "재물·금전", "건강·컨디션", "학업·자기계발", "이동·변화",
-    "가족·주변", "재물 심층", "일·커리어 심층", "연애 심층", "건강 심층",
-    "2026 상반기", "2026 하반기", "1분기 (1~3월)", "2분기 (4~6월)", "3분기 (7~9월)",
-    "4분기 (10~12월)", "전환점·변화 포인트", "놓치면 아까운 기회", "조심할 함정",
-    "2026 인연 지도", "관계 지도 확장", "올해의 성장 과제", "2026 월별 흐름",
-    "주목할 시기", "2026 행운 가이드", "2026 개운법", "오행 활용법", "셀프케어 루틴",
-    "올해 이것만은 — 실천 3가지",
-  ],
+  saju_full: sajuYearOutline(2026),
+  saju_2027: sajuYearOutline(2027),
   life_full: [
     "타고난 그릇", "타고난 성격의 뿌리", "오행이 그린 인생 색", "십신으로 본 나",
     "내 사주의 특별한 기운", "인생의 큰 줄기", "타고난 복과 그릇의 크기",

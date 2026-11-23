@@ -2,7 +2,16 @@
 
 // 이미 같은 사주로 본 상품을 다시 사려 할 때 — 보관함 유도 + 재생성(force) 선택.
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Sheet from "@/components/common/Sheet";
+import Icon from "@/components/common/Icon";
+
+/** 받침 있으면 '은', 없으면 '는' — 끝이 한글이 아니면(예: '이번달 어떤 일들이?') null */
+function topicParticle(word: string): string | null {
+  const w = word.trim();
+  const c = w.charCodeAt(w.length - 1);
+  if (c < 0xac00 || c > 0xd7a3) return null;
+  return (c - 0xac00) % 28 ? "은" : "는";
+}
 
 export default function AlreadyOwnedModal({
   label,
@@ -21,42 +30,34 @@ export default function AlreadyOwnedModal({
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-t-3xl sm:rounded-3xl p-6 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <Sheet label="이미 이 사주로 봤어" onClose={onClose} z={80}>
+        {/* 제목이 한 번 말하고 글은 다음 할 일만 — 예전엔 제목('이미 이 사주로 봤어')과 첫 줄('…은(는) 이미 봤어')이 같은 말이었고
+            맨 아래 '닫기'가 하나 더 있었다(바깥 누르기·앱 끌어내리기로 닫힌다). 디자인 다듬기 '이미 산 것' 창 A1, 운영자 11-21 */}
         <div className="text-center mb-5">
-          <p className="font-display text-[17px] text-eye-purple leading-tight">이미 이 사주로 봤어</p>
-          <p className="text-[12.5px] text-text-light/85 mt-1.5 leading-relaxed">
-            같은 사주로 <b className="text-eye-purple">{label}</b>은(는) 이미 봤어.
+          <p className="font-display text-17 text-eye-purple leading-tight">
+            {topicParticle(label) ? `${label}${topicParticle(label)} 이미 봤어` : "이미 이 사주로 봤어"}
+          </p>
+          <p className="text-13 text-text-light mt-1.5 leading-relaxed">
+            같은 사주로 본 게 보관함에 있어.
             <br />
-            보관함에서 다시 볼 수 있어. 새로 뽑으면 별 {cost}개가 다시 들어.
+            새로 뽑으면 별 {cost}개가 다시 들어.
           </p>
         </div>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-1">
           <button
             onClick={onReview}
-            className="w-full py-3.5 rounded-full bg-lilac-deep text-white font-bold text-[14px] active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg"
           >
             보관함에서 보기
           </button>
           <button
             onClick={onRegenerate}
-            className="w-full py-3 rounded-full border-2 border-lilac-deep/40 text-lilac-deep font-bold text-[13px] hover:bg-lilac-deep/5 transition"
+            className="btn btn-text btn-md"
           >
-            그래도 새로 뽑기 · ⭐{cost}
-          </button>
-          <button onClick={onClose} className="w-full py-2.5 text-[13px] text-text-light">
-            닫기
+            그래도 새로 뽑기 · <Icon name="star" size={14} className="inline align-[-2px] mr-0.5" />{cost}
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Sheet>
   );
 }

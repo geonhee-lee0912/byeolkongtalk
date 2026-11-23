@@ -68,10 +68,10 @@ export const SIM_TURN_CAP = 12;
 
 /** 스킬 프리뷰 카피 — S1 콜드스타트(/relationship)와 광고 랜딩(/start?v=relationship) 공유 */
 export const RELATIONSHIP_SKILL_PREVIEWS = [
-  { emoji: "💬", label: "관계 체크인", tagline: "두 사람의 상태와 서로의 필요를 나란히" },
-  { emoji: "🔍", label: "걔 속마음", tagline: "겉모습 뒤의 진짜 속마음까지" },
-  { emoji: "💞", label: "우리 궁합", tagline: "두 사람 사주로 보는 궁합" },
-  { emoji: "⚖️", label: "싸움 잘잘못 판정", tagline: "양쪽 입장을 듣고 비율로 판정 + 화해 처방" },
+  { icon: "people", label: "관계 체크인", tagline: "두 사람의 상태와 서로의 필요를 나란히" },
+  { icon: "search", label: "걔 속마음", tagline: "겉모습 뒤의 진짜 속마음까지" },
+  { icon: "hearts2", label: "우리 궁합", tagline: "두 사람 사주로 보는 궁합" },
+  { icon: "scale", label: "싸움 잘잘못 판정", tagline: "양쪽 입장을 듣고 비율로 판정 + 화해 처방" },
 ] as const;
 
 /** MBTI 16 + 건너뛰기. 드롭다운 옵션(서버는 4글자 문자열 저장). */
