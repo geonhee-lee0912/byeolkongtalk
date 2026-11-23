@@ -45,11 +45,12 @@ function toStorePurchase(p: Purchase): StorePurchase {
 const isOurProduct = (id: string) => (IAP_PRODUCT_IDS as readonly string[]).includes(id);
 const codeOf = (e: unknown): unknown => (e && typeof e === "object" && "code" in e ? (e as { code: unknown }).code : undefined);
 
-/** 손님이 멈춤·승인 대기는 실패가 아니다 */
-function outcomeOfError(e: unknown): "cancelled" | "pending" | null {
+/** 손님이 멈춤·승인 대기는 실패가 아니다. 이미 가진 상품(구글 — 소비 안 된 지난 구매)은 flow 가 재전송으로 푼다 */
+function outcomeOfError(e: unknown): "cancelled" | "pending" | "already_owned" | null {
   const code = codeOf(e);
   if (code === ErrorCode.UserCancelled) return "cancelled";
   if (code === ErrorCode.DeferredPayment || code === ErrorCode.Pending) return "pending";
+  if (code === ErrorCode.AlreadyOwned) return "already_owned";
   return null;
 }
 

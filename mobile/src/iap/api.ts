@@ -1,13 +1,15 @@
 // 앱 결제 서버 호출 — /api/payment/iap(앱 토큰 Bearer). 스펙 2026-11-23-앱-결제 §3. 판단(마무리 여부 등)은 flow.ts.
 // 🔴 구매 토큰·계정 토큰은 로그에 남기지 않는다.
+import { Platform } from "react-native";
 import { ApiError, postJson } from "../auth/api";
 import type { ConfirmReply, StorePurchase } from "./flow.ts";
 
 const PATH = "/api/payment/iap";
 
-/** 이 회원의 스토어 계정 토큰(애플 appAccountToken · 구글 obfuscatedAccountId 에 싣는다) */
+/** 이 회원의 스토어 계정 토큰(애플 appAccountToken · 구글 obfuscatedAccountId 에 싣는다).
+ *  platform 을 실어 서버가 그 스토어의 비밀값도 본다 — 없으면 503 으로 던져 스토어 창을 열기 전에 failed(flow.ts buyOnce) */
 export async function fetchAccountToken(access: string): Promise<string> {
-  const d = await postJson(PATH, {}, access, "GET");
+  const d = await postJson(`${PATH}?platform=${Platform.OS === "ios" ? "ios" : "android"}`, {}, access, "GET");
   if (typeof d.accountToken !== "string" || !d.accountToken) throw new ApiError(500, "bad_response");
   return d.accountToken;
 }

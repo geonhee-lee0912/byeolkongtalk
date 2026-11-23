@@ -19,8 +19,9 @@ export type ConfirmReply =
   | { ok: true; stars: number; bonusStars: number; balance: number }
   | { ok: false; status: number; error: string };
 
-/** 스토어 창의 끝 — 거래 / 사용자가 닫음 / 승인 대기(애플 '구입 요청' 등 — 승인되면 스토어 알림으로 다시 온다) */
-export type PurchaseOutcome = StorePurchase | "cancelled" | "pending";
+/** 스토어 창의 끝 — 거래 / 사용자가 닫음 / 승인 대기(애플 '구입 요청' 등 — 승인되면 스토어 알림으로 다시 온다)
+ *  / 이미 가진 상품(구글 — 소비 안 된 지난 구매가 남아 같은 상품을 못 산다. 재전송으로 그 구매를 확인·소비한다) */
+export type PurchaseOutcome = StorePurchase | "cancelled" | "pending" | "already_owned";
 
 export type IapDeps = {
   /** 유효한 앱 액세스 토큰. 로그인 안 됨이면 null, 네트워크 문제면 throw (auth/session.ts) */
@@ -86,7 +87,19 @@ export function createIapFlow(deps: IapDeps, opts: { buyTimeoutMs?: number } = {
     }
   }
 
-  async function settleOnce(p: StorePurchase, access: string): Promise<Settled> {
+  // 서버 확인 직전에 액세스 토큰을 다시 받는다 — 스토어 창을 보는 사이(또는 재전송 목록을 도는 사이) 만료됐을 수 있다(auth/session.ts 는 60초 넘게 남으면 그대로 준다).
+  // 그사이 다른 회원이 됐거나 로그아웃이면 보내지도 마무리하지도 않는다(다음 실행·로그인 때 그 회원의 재전송이 다룬다)
+  async function settleOnce(p: StorePurchase, token: string): Promise<Settled> {
+    let access: string;
+    try {
+      const now = await member();
+      if (!now) return FAILED;
+      if (now.token.toLowerCase() !== token.toLowerCase()) return { ok: false, reason: "account_mismatch" };
+      access = now.access;
+    } catch (e) {
+      warn("[iap] 서버 확인 전 토큰 갱신 실패 — 다음 실행 때 다시", e);
+      return FAILED;
+    }
     let r: ConfirmReply;
     try {
       r = await deps.confirm(p, access);
@@ -113,7 +126,8 @@ export function createIapFlow(deps: IapDeps, opts: { buyTimeoutMs?: number } = {
 
   // 같은 거래가 스토어 알림·재전송·구매 결과로 동시에 와도 서버 확인·마무리는 한 번(진행 중일 때만 묶는다)
   const settling = new Map<string, Promise<Settled>>();
-  function settle(p: StorePurchase, access: string): Promise<Settled> {
+  /** token = 이 거래를 보낼 회원의 계정 토큰(확인 직전에 지금 회원과 대조한다) */
+  function settle(p: StorePurchase, token: string): Promise<Settled> {
     const id = p.platform === "ios" ? p.transactionId : p.purchaseToken;
     if (!id) {
       warn("[iap] 거래 식별자가 없다 — 보내지 않는다", null);
@@ -122,7 +136,7 @@ export function createIapFlow(deps: IapDeps, opts: { buyTimeoutMs?: number } = {
     const key = `${p.platform}:${id}`;
     const running = settling.get(key);
     if (running) return running;
-    const run = settleOnce(p, access).finally(() => settling.delete(key));
+    const run = settleOnce(p, token).finally(() => settling.delete(key));
     settling.set(key, run);
     return run;
   }
@@ -130,16 +144,22 @@ export function createIapFlow(deps: IapDeps, opts: { buyTimeoutMs?: number } = {
   /** 스토어에 남은 거래 하나 — 지금 회원의 계정 토큰이거나 토큰이 빈 거래만 보낸다(빈 것은 서버가 정한다). 다른 계정 거래는 건드리지 않는다 */
   function settleIfMine(p: StorePurchase, m: { access: string; token: string }): Promise<Settled> | null {
     if (p.accountToken !== null && p.accountToken.toLowerCase() !== m.token.toLowerCase()) return null;
-    return settle(p, m.access);
+    return settle(p, m.token);
   }
 
   async function buyOnce(productId: string): Promise<Settled> {
+    // 계정 토큰(서버 GET)이 스토어 창보다 먼저 — 서버에 스토어 설정이 없으면(503) 여기서 던져 창을 열지 않고 failed
     const m = await member();
     if (!m) return FAILED; // 앱 상점은 로그인한 사람만 결제 버튼이 있다 — 여기 오면 그사이 로그아웃
     const outcome = await deps.purchase(productId, m.token);
     if (outcome === "cancelled") return { ok: false, reason: "cancelled" };
     if (outcome === "pending") return { ok: false, reason: "pending" };
-    return settle(outcome, m.access);
+    if (outcome === "already_owned") {
+      // 소비 안 된 지난 구매 — 재전송으로 확인·소비하면 다시 살 수 있다. 그 상품이 지급되면 그 결과, 아니면 failed
+      const done = await resumeAll();
+      return done.find((d) => d.productId === productId && d.settled.ok)?.settled ?? FAILED;
+    }
+    return settle(outcome, m.token);
   }
 
   function timeout(): { promise: Promise<Settled>; clear(): void } {
@@ -184,15 +204,33 @@ export function createIapFlow(deps: IapDeps, opts: { buyTimeoutMs?: number } = {
     }
   }
 
-  /** 미완료 거래 재전송 — 앱 실행·로그인 뒤. 로그인 안 됨이면 아무것도 안 한다. 던지지 않는다 */
+  // 재전송은 한 번에 하나 — 실행·로그인·앞으로 돌아옴·'이미 가진 상품'이 겹쳐도 같은 일을 기다린다
+  let resuming: Promise<{ productId: string; settled: Settled }[]> | null = null;
+  function resumeAll(): Promise<{ productId: string; settled: Settled }[]> {
+    if (resuming) return resuming;
+    const run = (async () => {
+      const done: { productId: string; settled: Settled }[] = [];
+      try {
+        const m = await member();
+        if (!m) return done;
+        for (const p of await deps.pending()) {
+          const s = settleIfMine(p, m);
+          if (s) done.push({ productId: p.productId, settled: await s });
+        }
+      } catch (e) {
+        warn("[iap] 미완료 거래 재전송 실패 — 다음 실행 때 다시", e);
+      }
+      return done;
+    })().finally(() => {
+      if (resuming === run) resuming = null;
+    });
+    resuming = run;
+    return run;
+  }
+
+  /** 미완료 거래 재전송 — 앱 실행·로그인·앞으로 돌아올 때. 로그인 안 됨이면 아무것도 안 한다. 진행 중이면 그 일을 기다린다. 던지지 않는다 */
   async function resumePending(): Promise<void> {
-    try {
-      const m = await member();
-      if (!m) return;
-      for (const p of await deps.pending()) await settleIfMine(p, m);
-    } catch (e) {
-      warn("[iap] 미완료 거래 재전송 실패 — 다음 실행 때 다시", e);
-    }
+    await resumeAll();
   }
 
   /** 스토어 가격(현지 통화 문자열 그대로). 스토어가 안 준 상품은 뺀다. 실패면 빈 목록. 던지지 않는다 */

@@ -3,7 +3,7 @@
 // 교환 코드는 주소가 아니라 source.headers 로 싣는다(handoffSource — 서버는 주소의 code 를 보지 않는다). 헤더는 앱이 연 그 첫 요청에만
 // 실리고 웹뷰 안 이동엔 안 실린다 — 그래서 딥링크·일반 이동은 헤더 없이(plain) 열어도 남의 코드를 먹일 수 없다.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, BackHandler, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { WebView, type WebViewProps } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
 import * as SplashScreen from "expo-splash-screen";
@@ -216,6 +216,15 @@ export default function WebScreen() {
 
   // 스토어 알림 — 기다리는 구매와 짝이 없는 거래(승인 대기가 풀림·늦게 온 결과)도 서버 확인까지
   useEffect(() => listenIapStore((p) => void iap.handleStorePurchase(p)), []);
+
+  // 앞으로 돌아올 때마다 미완료 거래 재전송 — 구글은 소비 안 된 구매를 다시 알려 주지 않고 3일 뒤 자동 환불한다.
+  // 로그인 안 됨·이미 재전송 중이면 flow 가 거른다(iap/flow.ts resumePending)
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void iap.resumePending();
+    });
+    return () => sub.remove();
+  }, []);
 
   // 앱이 떠 있을 때 들어온 딥링크
   useEffect(() => {
