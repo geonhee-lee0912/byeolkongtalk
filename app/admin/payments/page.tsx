@@ -148,8 +148,10 @@ export default async function AdminPayments() {
                         {p.pg_provider !== "tosspayments" && (
                           <div className="text-[11px] text-white/50 mt-0.5">
                             회수 {p.stars_clawed_back ?? 0}
-                            {p.clawback_shortfall == null ? (
+                            {!p.user_id ? (
                               <span> · 탈퇴 회원</span>
+                            ) : p.clawback_shortfall == null ? (
+                              <span className="text-white/40"> · 회수 대기</span>
                             ) : p.clawback_shortfall > 0 ? (
                               <span className="text-amber-300"> · 덜 회수 {p.clawback_shortfall}</span>
                             ) : null}
