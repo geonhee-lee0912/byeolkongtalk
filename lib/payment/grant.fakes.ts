@@ -27,7 +27,8 @@ type State = {
   balance: number;
   /** chargeStars 가 실패를 돌려주는 source 들 */
   failSources: string[];
-  charges: { userId: string; amount: number; paymentId: string; source: string }[];
+  /** chargeStars 호출 전부 — idempotent 는 같은 payment_id 로 이미 충전돼 아무것도 안 한 호출(진짜 charge_stars 의 멱등 경로) */
+  charges: { userId: string; amount: number; paymentId: string; source: string; idempotent?: boolean; failed?: boolean }[];
   logs: LoggedEntry[];
 };
 
@@ -175,9 +176,16 @@ export async function chargeStars(
   paymentId: string,
   source: string = "pg",
 ): Promise<{ success: boolean; balance: number; idempotent?: boolean }> {
-  state.charges.push({ userId, amount, paymentId, source });
-  if (state.failSources.includes(source)) return { success: false, balance: 0 };
-  if (seenPaymentIds.has(paymentId)) return { success: true, balance: state.balance, idempotent: true };
+  const entry: State["charges"][number] = { userId, amount, paymentId, source };
+  state.charges.push(entry);
+  if (state.failSources.includes(source)) {
+    entry.failed = true;
+    return { success: false, balance: 0 };
+  }
+  if (seenPaymentIds.has(paymentId)) {
+    entry.idempotent = true;
+    return { success: true, balance: state.balance, idempotent: true };
+  }
   seenPaymentIds.add(paymentId);
   state.balance += amount;
   return { success: true, balance: state.balance, idempotent: false };
