@@ -21,7 +21,8 @@ export type GrantInput = {
 
 export type GrantResult =
   | { kind: "granted"; paymentId: string; stars: number; bonusStars: number; balance: number }
-  | { kind: "already"; paymentId: string; stars: number; balance: number }
+  /** ownerUserId = 그 결제를 받은 회원(탈퇴로 지워졌으면 null). 앱 결제 라우트가 다른 회원의 재전송을 막는 데 쓴다 — 토스는 안 본다 */
+  | { kind: "already"; paymentId: string; stars: number; balance: number; ownerUserId: string | null }
   | { kind: "insert_failed"; error: unknown }
   | { kind: "charge_failed"; paymentId: string };
 
@@ -32,7 +33,7 @@ async function alreadyResult(userId: string, tid: string): Promise<GrantResult |
   const supabase = getServiceSupabase();
   const { data: existing } = await supabase
     .from("payments")
-    .select("id, stars_given")
+    .select("id, stars_given, user_id")
     .eq("pg_tid", tid)
     .maybeSingle();
   if (!existing) return null;
@@ -42,6 +43,7 @@ async function alreadyResult(userId: string, tid: string): Promise<GrantResult |
     paymentId: existing.id as string,
     stars: existing.stars_given as number,
     balance: (bal?.balance as number | undefined) ?? 0,
+    ownerUserId: (existing.user_id as string | null | undefined) ?? null,
   };
 }
 
