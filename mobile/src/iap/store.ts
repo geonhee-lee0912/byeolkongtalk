@@ -19,6 +19,7 @@ import {
 import { Platform } from "react-native";
 import { IAP_PRODUCT_IDS, type IapPriceItem } from "../../../lib/app-bridge/protocol.ts";
 import type { IapDeps, PurchaseOutcome, StorePurchase } from "./flow.ts";
+import { afterRequestPurchase } from "./request.ts";
 
 /** 스토어가 매긴 거래 시각과 기기 시계의 어긋남 허용치 — 구매를 누르기 전 거래(옛 미완료 거래의 재전달)를 이 구매의 결과로 착각하지 않게.
  *  expo-iap 의 PURCHASE_REQUEST_CLOCK_SKEW_MS 와 같다. 착각해도 그 거래도 이 회원 것이라 서버 확인으로 가고, 진짜 결과는 짝 없는 거래로 처리된다 */
@@ -71,8 +72,12 @@ function connect(): Promise<void> {
 type Waiter = { productId: string; since: number; resolve(o: PurchaseOutcome): void; reject(e: unknown): void };
 let waiting: Waiter | null = null;
 
+// iOS 에서 requestPurchase 반환값으로 끝낸 거래 — 같은 거래가 알림으로도 오면 한 번만 처리한다(아래 purchase)
+const settledByReturn = new Set<string>();
+
 function onUpdated(p: Purchase, onStorePurchase: (s: StorePurchase) => void): void {
   if (!isOurProduct(p.productId)) return;
+  if (Platform.OS === "ios" && settledByReturn.delete((p as PurchaseIOS).transactionId || p.id)) return;
   const s = toStorePurchase(p);
   const w = waiting;
   if (w && p.productId === w.productId && p.transactionDate >= w.since - CLOCK_SKEW_MS) {
@@ -121,8 +126,9 @@ export const iapStore: Pick<IapDeps, "fetchProducts" | "purchase" | "pending" | 
       waiting = { productId, since: Date.now(), resolve, reject };
     });
     const me = waiting;
+    let returned: Purchase | Purchase[] | null | undefined;
     try {
-      await requestPurchase({
+      returned = await requestPurchase({
         type: "in-app",
         request: {
           apple: { sku: productId, appAccountToken: accountToken },
@@ -130,13 +136,22 @@ export const iapStore: Pick<IapDeps, "fetchProducts" | "purchase" | "pending" | 
         },
       });
     } catch (e) {
-      // 바로 거절(취소가 알림 대신 여기로 오기도 한다). 알림이 먼저 짝을 풀었으면 그 결과가 이미 정해졌다
-      if (waiting === me) waiting = null;
+      // 알림이 먼저 짝을 풀었으면 그 결과가 이미 정해졌다
+      if (waiting !== me) return mine;
+      // 바로 거절(취소가 알림 대신 여기로 오기도 한다)
+      waiting = null;
       const o = outcomeOfError(e);
       if (o) return o;
       throw e;
     }
-    return mine;
+    // iOS 는 승인 대기(구입 요청)면 알림 없이 nil 로 끝날 수 있다 — 반환값으로도 끝낸다(request.ts)
+    const after = afterRequestPurchase(Platform.OS === "ios" ? "ios" : "android", waiting === me, returned);
+    if (after.kind === "wait") return mine;
+    waiting = null;
+    if (after.kind === "pending") return "pending";
+    const s = toStorePurchase(after.purchase);
+    if (s.transactionId) settledByReturn.add(s.transactionId);
+    return s;
   },
 
   /** 미완료 거래 — 애플은 마무리 안 된 거래(Transaction.unfinished), 구글은 소비 안 된 구매 */
