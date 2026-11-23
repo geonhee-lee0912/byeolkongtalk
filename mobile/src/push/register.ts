@@ -10,6 +10,7 @@ import type { PushState } from "../../../lib/app-bridge/protocol.ts";
 import { postJson } from "../auth/api";
 import { appInfo } from "../config";
 import { toPushState, UNSUBSCRIBE_ACTION } from "./state.ts";
+import { createPushSync } from "./sync.ts";
 
 /** 이 기기의 Expo 푸시 토큰 — 로그아웃 때 서버에서 지울 토큰 */
 const TOKEN_KEY = "push_token";
@@ -50,27 +51,33 @@ export async function getPushState(): Promise<PushState> {
   }
 }
 
-/** Expo 토큰을 받아 서버에 이 회원 기기로 등록한다. 로그인 안 됨이면 등록하지 않는다(로그인 뒤 syncPushToken 이 한다). 던지지 않는다 */
-async function register(ensureToken: () => Promise<string | null>): Promise<void> {
-  try {
+/** 등록·해제의 순서 규칙(로그아웃 중에 끝난 등록은 스스로 지운다)은 sync.ts. 여기는 OS·서버 호출만 넣는다 */
+const pushSync = createPushSync({
+  async getExpoToken() {
     // 시뮬레이터·에뮬레이터는 푸시 토큰을 못 받는다
-    if (!Device.isDevice) return;
+    if (!Device.isDevice) return null;
     const projectId: unknown = Constants.expoConfig?.extra?.eas?.projectId;
     if (typeof projectId !== "string" || !projectId) {
       console.warn("[push] eas.projectId 가 없다 — 토큰 등록을 건너뛴다");
-      return;
+      return null;
     }
-    const access = await ensureToken();
-    if (!access) return;
     // 안드로이드는 채널을 먼저 만들어야 토큰을 받는다(Expo SDK 58 문서) — 부팅 때 만든 것과 같다(있으면 그대로)
     await ensureAndroidChannel();
-    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
-    await postJson("/api/push/devices", { token, platform: appInfo.platform, appVersion: appInfo.version }, access);
-    await SecureStore.setItemAsync(TOKEN_KEY, token, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY });
-  } catch (e) {
-    console.warn("[push] 토큰 등록 실패 — 다음 실행 때 다시", e);
-  }
-}
+    return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  },
+  post: (token, access) =>
+    postJson("/api/push/devices", { token, platform: appInfo.platform, appVersion: appInfo.version }, access).then(() => undefined),
+  del: (token) => postJson("/api/push/devices", { token }, undefined, "DELETE").then(() => undefined),
+  saved: {
+    get: () => SecureStore.getItemAsync(TOKEN_KEY),
+    set: (token) => SecureStore.setItemAsync(TOKEN_KEY, token, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY }),
+    clear: () => SecureStore.deleteItemAsync(TOKEN_KEY),
+  },
+  warn: (message, e) => console.warn(message, e),
+});
+
+/** Expo 토큰을 받아 서버에 이 회원 기기로 등록한다. 로그인 안 됨이면 등록하지 않는다(로그인 뒤 syncPushToken 이 한다). 던지지 않는다 */
+const register = (ensureToken: () => Promise<string | null>): Promise<void> => pushSync.register(ensureToken);
 
 /** 웹의 '알림 받을래' — 물을 수 있으면 OS 에 묻고, 허락이면 토큰 등록을 건다. 결과 권한 상태를 돌려준다(던지지 않는다).
  *  다시 못 묻는 거부(denied)는 OS 창을 띄우지 않는다 — 웹이 설정 열기로 안내한다 */
@@ -100,16 +107,10 @@ export async function syncPushToken(ensureToken: () => Promise<string | null>): 
   }
 }
 
-/** 로그아웃 — 기억한 토큰을 서버에서 지운다(로그인 없이 받는 라우트). 실패해도 던지지 않는다 — 기억한 토큰은 남겨 두고 다음 로그인 때 새 회원으로 덮인다 */
-export async function unregisterPush(): Promise<void> {
-  try {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
-    if (!token) return;
-    await postJson("/api/push/devices", { token }, undefined, "DELETE");
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-  } catch (e) {
-    console.warn("[push] 토큰 해제 실패", e);
-  }
+/** 로그아웃 — 기억한 토큰을 서버에서 지운다(로그인 없이 받는 라우트). 진행 중인 등록은 기다리지 않는다 — 그 등록은 끝난 뒤 스스로 지운다(sync.ts).
+ *  실패해도 던지지 않는다 — 기억한 토큰은 남겨 두고 다음 로그아웃·reset 때 다시 지운다 */
+export function unregisterPush(): Promise<void> {
+  return pushSync.unregister();
 }
 
 /** 안드로이드 8+ 는 채널이 있어야 알림이 뜬다. 13+ 의 권한 창도 채널이 하나는 있어야 뜬다(Expo 문서) — 부팅 때 만든다(있으면 그대로).
