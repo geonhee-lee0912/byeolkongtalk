@@ -52,7 +52,7 @@ async function setup() {
 }
 
 const input = (over: Partial<Parameters<typeof GrantModule.grantStarPackage>[0]> = {}) => ({
-  userId: "2f1c7a3e-1b2c-4d5e-8f90-1234567890ab",
+  userId: "11111111-1111-4111-8111-111111111111", // QA봇 — fakes.USER_ID 와 같다
   pkg: PKG_10,
   provider: "tosspayments" as const,
   tid: "tgen_aaa",

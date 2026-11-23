@@ -11,7 +11,7 @@ globalThis.fetch = (async (input: unknown) => {
 }) as typeof fetch;
 
 const TXN = "2000000000000001";
-const TOKEN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const TOKEN = "test-app-account-token"; // 검증 코드는 모양을 보지 않는다 — 공개 저장소라 UUID 모양을 쓰지 않는다
 
 const payload = (over: Partial<JWSTransactionDecodedPayload> = {}): JWSTransactionDecodedPayload => ({
   transactionId: TXN,
