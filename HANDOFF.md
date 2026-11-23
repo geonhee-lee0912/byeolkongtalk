@@ -6,23 +6,31 @@
 앱(웹뷰) 안의 별 충전을 스토어 결제로 바꿔 애플·구글 제출을 막는 결제 문제를 없앤다. 웹 브라우저는 토스 그대로.
 
 ## 지금 상태
-- 운영자 결정 끝: 직접 구현 · 가격 웹과 같게 · 환불 회수는 남은 만큼만
-- 계획 `docs/superpowers/plans/2026-11-23-앱-결제.md`(Task 1~8) 실행 중 — 태스크마다 새 구현 에이전트 + 별도 리뷰(운영자 선택)
-- **PR 나누는 법**: 이 브랜치(`claude/app-iap`)가 작업·인계용이고 `HANDOFF.md` 를 가진다. PR 은 CI `handoff-guard` 때문에 `origin/dev` 에서 따로 딴 브랜치(`claude/app-iap-db`·`-server`·`-web`·`-app`)에 그 PR 의 코드만 옮겨 연다. PR 이 머지되면 `origin/dev` 를 이 브랜치에 merge(rebase 금지)
-- Task 1(마이그레이션) 끝 → PR #81(`claude/app-iap-db`, base dev) — `@codex review` 요청함, Claude 리뷰는 막는 결함 0(사소한 6건). **운영자 머지 대기**
-- Task 2~5(서버: 공용 지급 함수 · `POST/GET /api/payment/iap` · 애플·구글 환불 알림 → 회수 · 어드민 스토어 매출 표) 구현·리뷰 끝, 이 브랜치에 커밋(`4aed4ca0..c38ccb02`). 서버 PR 은 #81 머지·Supabase dev 체크 success·카나리아 뒤에 `claude/app-iap-server` 로 연다. 어드민 실렌더 확인도 그때(새 칸이 dev DB 에 있어야 함)
-- Task 6(웹 상점·충전 시트 앱 분기) 진행 중
-- 운영자에게 물을 것(막지는 않음): TestFlight 구매는 공짜 샌드박스라 운영 앱 변형으로 시험하는 사람은 운영 계정에 별을 무료로 얻는다(₩0 결제 행). 심사용으로 정한 "샌드박스도 별 지급"의 부작용 — 외부 테스터를 안 쓰기 / 상한 / 어드민 감시 중 고르기 · 실기기 샌드박스 시험은 dev 변형(`.app.dev`)에 스토어 상품이 없어 사실상 운영 변형 + 운영 서버(배포 뒤)이거나 `.dev` 스토어 레코드를 따로 만들어야 한다 · 플레이 콘솔에서 수량 여러 개 구매가 꺼져 있는지 · `GOOGLE_PUBSUB_AUDIENCE` 는 푸시 구독 값과 정확히 같아야 한다
-- 운영자 콘솔 준비(애플 유료 앱 계약·Small Business Program·앱 결제 키 / 구글 결제 프로필·15% 구간·서비스 계정·테스터 모집)는 운영자가 진행 중
+- 계획 `docs/superpowers/plans/2026-11-23-앱-결제.md` Task 1~7 코드 끝(태스크마다 구현 + 별도 리뷰). Task 8(실기기) 남음
+- **PR 나누는 법**: 이 브랜치(`claude/app-iap`)가 작업·인계용이고 `HANDOFF.md` 를 가진다. PR 은 CI `handoff-guard` 때문에 `origin/dev` 에서 딴 브랜치에 그 PR 코드만 옮겨 연다. 머지되면 `origin/dev` 를 이 브랜치에 merge(rebase 금지)
+- PR 현황
+  - #81 DB(회수 함수·결제 칸·매출 집계) — 머지 · dev 적용 · 카나리아 통과(anon 401 · 남은 만큼만 회수 · 멱등 · 형식 틀린 id 거절)
+  - #83 서버(공용 지급 · `GET/POST /api/payment/iap` · 애플·구글 환불 알림 · 어드민 스토어 매출) — 머지. **단 Codex P1 수정 2커밋이 머지 1초 뒤에 올라가 빠졌다 → #86 으로 따로 올림(머지 대기)**
+  - #86 #83 후속(환불은 실제로 준 별만 회수 · 환불된 결제엔 재충전 안 함 · 테스트 UUID) — 머지 대기. 스토어 비밀값을 넣기 전에 머지돼 있어야 한다(지금은 비밀값이 없어 해당 라우트가 503 — 영향 0)
+  - #84 웹(앱 안 상점·충전 시트 → 스토어 결제, 브라우저는 토스 그대로) — 머지 대기
+  - #85 앱(expo-iap · 구매 흐름 · 미완료 거래 재전송) — #84 위에 쌓음(base `claude/app-iap-web`), 머지 대기
+- 전체 브랜치 최종 리뷰 진행 중
 
 ## 다음 할 일
-1. [어디서든] #81 머지 뒤 Supabase dev 체크 success 확인 → 카나리아: anon 키로 `rpc/clawback_stars`·`rpc/admin_store_revenue` POST(정확한 인자) → 401 / 서비스 키 임시 스크립트로 QA봇 잔액 5 → `clawback_stars(…, 8, 'clawback:canary-1')` → `{clawed 5, shortfall 3, balance_after 0}` → 다시 → `idempotent true`. (dev Management API 키는 읽기 전용이라 트랜잭션 안 시험은 안 된다 — 카나리아가 함수 본문 첫 실행)
-2. [어디서든] Task 2~5 서버 PR → Task 6 웹 PR
-3. [로컬에서] Task 7 앱(첫 단계가 expo-iap SDK 58 관문) → Task 8 실기기 샌드박스
-- 리뷰에서 넘겨받은 것(Task 4 에서 처리): 별 내역 화면이 `refund` 를 +N 으로 보인다(`app/api/stars/transactions/route.ts`·`lib/wallet-history.ts`) — 회수는 음수로, 0 짜리 표시 행은 숨김 / 멱등 재호출의 shortfall 은 덮어쓰지 않기
+1. [어디서든] #86 → #84 → #85 머지(운영자) · 각 PR 의 Codex 리뷰 지적 처리
+2. [로컬에서] Task 8 실기기 — 운영자: 두 스토어에 소모성 상품 5개(ID = 패키지 id, 가격 웹과 같게) · 애플 샌드박스 테스터 · 구글 라이선스 테스터 · 애플 서버 알림 v2 URL · 구글 RTDN Pub/Sub 푸시 구독(인증 켬) · Vercel env 7개(`APPLE_IAP_KEY_ID`·`APPLE_IAP_ISSUER_ID`·`APPLE_IAP_PRIVATE_KEY`·`APPLE_APP_ID`·`GOOGLE_PLAY_SERVICE_ACCOUNT`·`GOOGLE_PUBSUB_PUSH_EMAIL`·`GOOGLE_PUBSUB_AUDIENCE`) · EAS 개발용 빌드 1회. 확인표는 #85 본문 8줄(첫 줄 = 가격 5개가 뜨는지 = expo-iap SDK 58 관문)
+3. 끝나면 HANDOFF 삭제 · ROADMAP '끝남'
+
+## 운영자가 정할 것 (작업은 안 막음)
+- **TestFlight·라이선스 테스터 무료 별**: "샌드박스도 별 지급"(심사자 구매용) 때문에 운영 앱으로 시험하는 사람은 운영 계정에 별을 무료로 얻는다(₩0 행). 외부 테스터 안 쓰기 / 운영 계정 샌드박스 지급 상한·허용 목록 / 어드민 감시 중 하나 — 운영 비밀값을 넣기 전에(#83 Codex 보안 P2 와 같은 건)
+- **실기기 시험 자리**: dev 앱 변형(`.app.dev`)엔 스토어 상품이 없다 → 운영 변형 + 운영 서버(배포 뒤)로 하거나 `.dev` 스토어 레코드를 따로 만든다. 서버는 운영 번들 ID(`com.byeolkongtalk.app`)만 받는다
+- 플레이 콘솔에서 한 번에 여러 개 구매가 꺼져 있는지 · `GOOGLE_PUBSUB_AUDIENCE` 는 푸시 구독 값과 정확히 같게
+- 손으로 별을 메울 때(`CRITICAL_PAYMENT_RECONCILE`) 먼저 `PAYMENT_RECONCILE_SELF_HEALED` 가 있는지 볼 것
+- 운영 배포 순서: 웹(#84)이 운영에 나가면 `iap` 를 가진 앱 빌드 전까지 앱 안 충전이 막힌다(지금 출시 앱 없음 — 앱 결제 빌드와 같이)
+- `npx expo-doctor` 가 다른 패키지 15개 버전 뒤처짐을 알린다(원래 있던 것) — 빌드 전에 맞출지
 
 ## 확인 못 한 것
-- `clawback_stars` 본문 실행(카나리아 전) · 애플 원화 가격 단계에 ₩2,800·₩11,000 이 있는지 · 한국 구글 수수료 15% 체계 · `expo-iap` 의 Expo SDK 58 호환
+- 진짜 애플·구글 응답으로 한 번도 안 돌렸다(비밀값·상품 없음) · expo-iap 의 SDK 58 실빌드 · 애플 원화 가격 단계(₩2,800·₩11,000) · 구글 라이선스 테스터 구매에 orderId 가 늘 있는지 · iOS 취소 알림이 1.5초 안에 오는지 · iOS 미완료 소모성 거래가 `getPendingTransactionsIOS` 로 오는지
 
 ## 건드리면 안 되는 것
 - 웹 브라우저의 토스 결제 흐름·별 패키지 상수 값 · 웹 어드민 토스 환불의 별 처리(범위 밖)
