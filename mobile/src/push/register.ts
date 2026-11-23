@@ -107,7 +107,8 @@ export async function syncPushToken(ensureToken: () => Promise<string | null>): 
   }
 }
 
-/** 로그아웃 — 기억한 토큰을 서버에서 지운다(로그인 없이 받는 라우트). 진행 중인 등록은 기다리지 않는다 — 그 등록은 끝난 뒤 스스로 지운다(sync.ts).
+/** 로그아웃 — 기억한 토큰을 서버에서 지운다(로그인 없이 받는 라우트). 이미 서버로 보낸 등록 뒤에 서고(요청 시간 제한 안), Expo 토큰을 기다리는
+ *  등록은 기다리지 않는다 — 그 등록은 서버에 보내지 않거나 보낸 뒤 스스로 지운다(sync.ts).
  *  실패해도 던지지 않는다 — 기억한 토큰은 남겨 두고 다음 로그아웃·reset 때 다시 지운다 */
 export function unregisterPush(): Promise<void> {
   return pushSync.unregister();

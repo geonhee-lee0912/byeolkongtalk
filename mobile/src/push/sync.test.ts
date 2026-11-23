@@ -87,9 +87,9 @@ test("서버 등록 중에 로그아웃하면 등록이 끝난 뒤 그 토큰을
   });
   const reg = s.sync.register(async () => "A1");
   await flush();
-  await s.sync.unregister();
+  const out = s.sync.unregister(); // 이미 보낸 등록 뒤에 선다
   posting.resolve();
-  await reg;
+  await Promise.all([reg, out]);
   assert.equal(server.size, 0);
   assert.equal(s.saved(), null);
 });
@@ -111,11 +111,38 @@ test("토큰을 기억하는 중에 로그아웃해도 그 토큰을 지운다",
   });
   const reg = s.sync.register(async () => "A1");
   await flush();
-  await s.sync.unregister(); // 아직 기억 전이라 지울 게 없다
+  const out = s.sync.unregister();
   saving.resolve();
-  await reg;
+  await Promise.all([reg, out]);
   assert.equal(s.server.size, 0);
   assert.equal(saved, null);
+});
+
+test("A 등록 응답이 늦는 사이 로그아웃 → B 로 다시 로그인해도, A 의 뒤늦은 정리가 B 등록을 지우지 않는다", async () => {
+  const aPosting = gate<void>();
+  const owner = new Map<string, string>(); // 기기 토큰 → 서버에 등록된 회원(앱 토큰)
+  const order: string[] = [];
+  const s = setup({
+    post: async (token, access) => {
+      owner.set(token, access); // 서버엔 바로 반영
+      order.push(`post ${access}`);
+      if (access === "A") await aPosting.promise; // 응답만 늦다
+    },
+    del: async (token) => {
+      owner.delete(token);
+      order.push("del");
+    },
+  });
+  const a = s.sync.register(async () => "A");
+  await flush();
+  const out = s.sync.unregister();
+  const b = s.sync.register(async () => "B");
+  await flush();
+  aPosting.resolve();
+  await Promise.all([a, out, b]);
+  assert.equal(owner.get("T1"), "B");
+  assert.equal(s.saved(), "T1");
+  assert.equal(order.at(-1), "post B");
 });
 
 test("로그아웃 뒤 다시 로그인하면 새 등록은 그대로 된다", async () => {
@@ -138,12 +165,12 @@ test("뒤늦게 지우는 게 실패하면 기억한 토큰을 남긴다(다음 
   });
   const reg = s.sync.register(async () => "A1");
   await flush();
-  await s.sync.unregister();
+  const out = s.sync.unregister();
   posting.resolve();
-  await reg;
+  await Promise.all([reg, out]);
   assert.equal(s.saved(), "T1");
-  // 로그아웃 때는 기억한 토큰이 아직 없어 지울 게 없었다 — 경고는 뒤늦은 지우기 실패 1번
-  assert.equal(warned.length, 1);
+  // 뒤늦은 지우기 실패 + 그 뒤에 선 해제도 같은 토큰을 다시 지우려다 실패
+  assert.equal(warned.length, 2);
 });
 
 test("로그아웃 — 기억한 토큰만 서버에서 지우고, 실패하면 기억을 남긴다. 던지지 않는다", async () => {
