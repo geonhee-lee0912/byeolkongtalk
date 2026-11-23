@@ -1,6 +1,7 @@
 // 앱 결제 확인 — 앱(StoreKit 2 / Play Billing)이 결제를 마친 뒤 거래 식별자를 앱 토큰과 함께 보낸다. 스펙 2026-11-23-앱-결제 §3.
 // 서버가 권위: 앱이 보낸 건 거래 id(애플)·구매 토큰(구글)뿐이고, 상품·계정 토큰·상태는 스토어에 직접 물어 본 값만 믿는다.
 // 앱은 ok(지급·already) 또는 revoked 일 때만 거래를 마무리(finish)한다 — 나머지 실패는 다음 실행 때 다시 보낸다(멱등 = payments.pg_tid 유니크).
+// 구글은 ok 를 줄 때 서버가 먼저 소비(consume)한다 — 앱의 finishTransaction 은 '이미 소비됨' 오류를 견뎌야 한다(Task 7).
 // GET = 이 회원의 스토어 계정 토큰(앱이 결제 때 싣는다). 손님 취소는 이 라우트에 오지 않는다(앱이 조용히 닫는다).
 // 🔴 구매 토큰은 로그에 남기지 않는다.
 import { NextResponse, type NextRequest } from "next/server";
@@ -10,7 +11,7 @@ import { STAR_PACKAGES } from "@/lib/constants";
 import { grantStarPackage } from "@/lib/payment/grant";
 import { iapAccountToken } from "@/lib/payment/iap/account-token";
 import { verifyAppleTransaction } from "@/lib/payment/iap/apple";
-import { verifyGooglePurchase } from "@/lib/payment/iap/google";
+import { consumeGooglePurchase, verifyGooglePurchase } from "@/lib/payment/iap/google";
 import { iapConfigured, type VerifiedPurchase } from "@/lib/payment/iap/verify";
 import { noStore, parsePlatform, rateLimited, readJson, str } from "@/lib/auth/app-route";
 
@@ -90,21 +91,34 @@ export async function POST(request: NextRequest) {
     tid: purchase.tid,
     amountWon: purchase.sandbox ? 0 : pkg.price,
   });
+  // 구글은 별을 준 뒤(200 을 줄 때만) 서버에서 소비한다(스펙 §3 — 3일 안에 안 하면 자동 환불). 실패해도 별은 이미 들어갔으니 warn 만 —
+  // 앱의 finishTransaction 이 한 번 더 소비를 시도하고, 그래도 못 하면 다음 재전송(already)에서 다시 소비한다
+  const consumeIfGoogle = async () => {
+    if (platform !== "android") return;
+    try {
+      await consumeGooglePurchase(productId, purchaseToken);
+    } catch (err) {
+      await logWarn(`Google consume failed: ${err instanceof Error ? err.message : "unknown"}`, logCtx({ store: "google", step: "consume" }));
+    }
+  };
+
   switch (grant.kind) {
     case "granted":
+      await consumeIfGoogle();
       return reply({ ok: true, stars: grant.stars, bonusStars: grant.bonusStars, balance: grant.balance, already: false });
     case "already":
-      // 이미 다른 회원이 받은 거래(계정 토큰이 비어 위 대조를 지나온 경우) — 별은 원래 주인에게만
+      // 이미 다른 회원이 받은 거래(계정 토큰이 비어 위 대조를 지나온 경우) — 별은 원래 주인에게만. 소비도 안 한다
       if (grant.ownerUserId !== null && grant.ownerUserId !== userId) {
         await logWarn("IAP transaction already granted to another member", logCtx({ store: purchase.store }));
         return fail("account_mismatch", 409);
       }
+      await consumeIfGoogle();
       return reply({ ok: true, stars: grant.stars, bonusStars: 0, balance: grant.balance, already: true });
     case "insert_failed":
       await logError(grant.error, logCtx({ step: "payment_insert", store: purchase.store }));
       return fail("grant_failed", 500);
     case "charge_failed":
-      // 결제 기록은 남았고 지급 함수가 CRITICAL_PAYMENT_RECONCILE 로그를 남겼다(운영자 수동 지급)
+      // 결제 기록은 남았고 지급 함수가 CRITICAL_PAYMENT_RECONCILE 로그를 남겼다. 다음 재전송의 already 경로가 충전을 다시 시도한다(grant.ts)
       return fail("grant_failed", 500);
   }
 }

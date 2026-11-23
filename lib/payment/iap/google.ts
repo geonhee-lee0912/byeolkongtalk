@@ -1,5 +1,6 @@
 // 구글 구매 확인 — 앱이 보낸 구매 토큰으로 Google Play Developer API purchases.products.get 에 직접 묻는다(서비스 계정). 스펙 2026-11-23-앱-결제 §3.
-// 소비(consume)는 여기서 하지 않는다 — 서버가 ok 를 준 뒤 앱이 finishTransaction({isConsumable:true}) 로 소비한다(Task 7).
+// 소비(consume) — 별을 준 뒤 라우트가 consumeGooglePurchase 로 서버에서 소비한다(3일 안에 소비·확인이 없으면 구글이 자동 환불).
+// 앱도 finishTransaction({isConsumable:true}) 로 한 번 더 소비하려 하니 '이미 소비됨' 오류를 견뎌야 한다(Task 7).
 // 서버 비밀값: GOOGLE_PLAY_SERVICE_ACCOUNT(서비스 계정 JSON 전체 — client_email·private_key).
 // 🔴 구매 토큰은 결제 고유 번호·로그·오류 글 어디에도 넣지 않는다(그 토큰이면 누구나 구매를 조회할 수 있다).
 import { JWT } from "google-auth-library";
@@ -73,4 +74,18 @@ export async function verifyGooglePurchase(productId: string, token: string, dep
     revoked: state === 1,
     pending: state === 2,
   };
+}
+
+/** 별을 준 구매를 소비한다(purchases.products.consume — 소비가 확인을 겸한다). 실패는 던진다 — 라우트가 warn 만 남기고 200 을 준다 */
+export async function consumeGooglePurchase(productId: string, token: string, deps: GoogleDeps = realDeps): Promise<void> {
+  const url = `${API}/${IAP_APP_ID}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}:consume`;
+  const accessToken = await deps.accessToken();
+  let res: Response;
+  try {
+    res = await deps.fetch(url, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  } catch {
+    // 원래 오류(주소 = 구매 토큰이 실릴 수 있다)는 버린다
+    throw new Error("google purchases.products.consume request failed");
+  }
+  if (!res.ok) throw new Error(`google purchases.products.consume HTTP ${res.status}`);
 }

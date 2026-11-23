@@ -384,3 +384,65 @@ test("GET — 로그인 회원의 계정 토큰(캐시 금지) / 비로그인 40
   assert.equal(anon.status, 401);
   assert.deepEqual(await json(anon), { error: "unauthenticated" });
 });
+
+// ───────────────────────── 구글 소비(consume) ─────────────────────────
+// 스펙 §3: 별 지급 뒤 서버에서 consume. 200 을 줄 때만 하고, 실패해도 200(warn) — 별은 이미 들어갔다
+
+test("구글 지급 성공 — 서버가 소비한다(같은 상품·토큰) / 애플은 소비 없음", async () => {
+  const { POST, fakes } = await setup();
+  fakes.state.google = googlePurchase();
+  assert.equal((await POST(post(androidBody()))).status, 200);
+  assert.deepEqual(fakes.state.consumeCalls, [{ productId: "star_10", token: PURCHASE_TOKEN }]);
+  fakes.state.apple = applePurchase();
+  assert.equal((await POST(post(iosBody()))).status, 200);
+  assert.equal(fakes.state.consumeCalls.length, 1);
+  assert.deepEqual(fakes.state.logs, []);
+});
+
+test("소비 실패 — 그래도 200(별은 이미 줬다) + warn, 로그에 구매 토큰 없음", async () => {
+  const { POST, fakes } = await setup();
+  fakes.state.google = googlePurchase();
+  fakes.state.consumeError = new Error("google purchases.products.consume HTTP 500");
+  const res = await POST(post(androidBody()));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await json(res), { ok: true, stars: 10, bonusStars: 2, balance: 27, already: false });
+  assert.equal(fakes.state.consumeCalls.length, 1);
+  assert.deepEqual(fakes.state.logs.map((l) => l.level), ["warn"]);
+  assert.ok(!JSON.stringify(fakes.state.logs).includes(PURCHASE_TOKEN));
+});
+
+test("already(같은 회원·주인 지워짐) — 200 이니 소비한다 / 다른 회원의 거래 — 409, 소비 안 함", async () => {
+  const { POST, fakes } = await setup();
+  fakes.state.google = googlePurchase();
+  fakes.state.grant = { kind: "already", paymentId: "pay-1", stars: 10, balance: 27, ownerUserId: fakes.USER_ID };
+  assert.equal((await POST(post(androidBody()))).status, 200);
+  fakes.state.grant = { kind: "already", paymentId: "pay-1", stars: 10, balance: 27, ownerUserId: null };
+  assert.equal((await POST(post(androidBody()))).status, 200);
+  assert.equal(fakes.state.consumeCalls.length, 2);
+  fakes.state.google = googlePurchase({ accountToken: null });
+  fakes.state.grant = { kind: "already", paymentId: "pay-1", stars: 10, balance: 3, ownerUserId: "someone-else" };
+  assert.equal((await POST(post(androidBody()))).status, 409);
+  assert.equal(fakes.state.consumeCalls.length, 2);
+});
+
+test("200 이 아닌 길(계정 불일치 409 · 대기 402 · 취소 409 · 상품 불일치 400 · 거래 없음 400 · 장애 502 · 지급 실패 500)엔 소비하지 않는다", async () => {
+  const { POST, fakes } = await setup();
+  const cases: [Partial<VerifiedPurchase> | null | Error, number][] = [
+    [{ accountToken: iapAccountToken("someone-else") }, 409],
+    [{ pending: true }, 402],
+    [{ revoked: true }, 409],
+    [{ productId: "star_300" }, 400],
+    [null, 400],
+    [new Error("google down"), 502],
+  ];
+  for (const [over, status] of cases) {
+    fakes.state.google = over === null || over instanceof Error ? over : googlePurchase(over);
+    assert.equal((await POST(post(androidBody()))).status, status, JSON.stringify(over));
+  }
+  fakes.state.google = googlePurchase();
+  for (const grant of [{ kind: "insert_failed", error: new Error("db") }, { kind: "charge_failed", paymentId: "pay-1" }] as const) {
+    fakes.state.grant = grant;
+    assert.equal((await POST(post(androidBody()))).status, 500);
+  }
+  assert.deepEqual(fakes.state.consumeCalls, []);
+});
