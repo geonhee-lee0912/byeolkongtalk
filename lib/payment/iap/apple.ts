@@ -18,7 +18,7 @@ import {
   type ResponseBodyV2DecodedPayload,
   type TransactionInfoResponse,
 } from "@apple/app-store-server-library";
-import { IAP_APP_ID, type VerifiedPurchase } from "./verify";
+import { iapAppId, type VerifiedPurchase } from "./verify";
 
 /** 라이브러리 자리 — 테스트는 네트워크 없이 이 둘을 바꿔 끼운다 */
 export type AppleDeps = {
@@ -29,23 +29,26 @@ export type AppleDeps = {
 // 루트 인증서는 저장소 파일 — next.config.ts 의 outputFileTracingIncludes 가 이 라우트 함수 묶음에 넣는다(process.cwd() = 프로젝트 루트)
 const ROOT_CA_PATH = join(process.cwd(), "lib/payment/iap/apple-root-ca-g3.cer");
 
-const clients = new Map<Environment, AppStoreServerAPIClient>();
-const verifiers = new Map<Environment, SignedDataVerifier>();
+// 앱 ID(IAP_APP_ID)가 다르면 다른 클라이언트·검증기 — 캐시 키에 같이 넣는다
+const clients = new Map<string, AppStoreServerAPIClient>();
+const verifiers = new Map<string, SignedDataVerifier>();
 
 function client(environment: Environment): AppStoreServerAPIClient {
-  let c = clients.get(environment);
+  const appId = iapAppId();
+  let c = clients.get(`${environment}|${appId}`);
   if (!c) {
     const { APPLE_IAP_KEY_ID: keyId, APPLE_IAP_ISSUER_ID: issuerId, APPLE_IAP_PRIVATE_KEY: pem } = process.env;
     if (!keyId || !issuerId || !pem) throw new Error("APPLE_IAP_KEY_ID / APPLE_IAP_ISSUER_ID / APPLE_IAP_PRIVATE_KEY not set");
     // Vercel env 에 한 줄로 넣으면 줄바꿈이 '\n' 문자열로 남는다 — 되돌린다(lib/auth/apple.ts 와 같다)
-    c = new AppStoreServerAPIClient(pem.replace(/\\n/g, "\n"), keyId, issuerId, IAP_APP_ID, environment);
-    clients.set(environment, c);
+    c = new AppStoreServerAPIClient(pem.replace(/\\n/g, "\n"), keyId, issuerId, appId, environment);
+    clients.set(`${environment}|${appId}`, c);
   }
   return c;
 }
 
 function verifier(environment: Environment): SignedDataVerifier {
-  let v = verifiers.get(environment);
+  const appId = iapAppId();
+  let v = verifiers.get(`${environment}|${appId}`);
   if (!v) {
     let appAppleId: number | undefined;
     if (environment === Environment.PRODUCTION) {
@@ -53,8 +56,8 @@ function verifier(environment: Environment): SignedDataVerifier {
       if (!Number.isInteger(appAppleId) || appAppleId <= 0) throw new Error("APPLE_APP_ID not set or not numeric");
     }
     // 온라인 확인 켬 — 인증서 폐기(OCSP)·만료를 지금 시각으로 본다
-    v = new SignedDataVerifier([readFileSync(ROOT_CA_PATH)], true, environment, IAP_APP_ID, appAppleId);
-    verifiers.set(environment, v);
+    v = new SignedDataVerifier([readFileSync(ROOT_CA_PATH)], true, environment, appId, appAppleId);
+    verifiers.set(`${environment}|${appId}`, v);
   }
   return v;
 }
@@ -109,7 +112,7 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
     } catch (err) {
       throw describeVerifyError(err);
     }
-    if (tx.bundleId !== IAP_APP_ID || tx.transactionId !== transactionId || !tx.productId) return null;
+    if (tx.bundleId !== iapAppId() || tx.transactionId !== transactionId || !tx.productId) return null;
     const sandbox = environment === Environment.SANDBOX;
     return {
       store: "apple",
