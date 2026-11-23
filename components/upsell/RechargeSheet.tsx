@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Sheet from "@/components/common/Sheet";
-import { STAR_PACKAGES } from "@/lib/constants";
+import { STAR_PACKAGES, type StarPackage } from "@/lib/constants";
 import {
   sheetPackages,
   pickDefaultPackage,
@@ -15,6 +15,10 @@ import { useTossPayment } from "@/lib/use-toss-payment";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import type { RechargeSource } from "@/lib/analytics/recharge-source";
 import Icon from "@/components/common/Icon";
+import { useStorePurchase } from "@/components/shop/useStorePurchase";
+import { IAP_NOTICE, iapResultNotice } from "@/lib/app-iap";
+
+const SHEET_PKG_IDS = sheetPackages().map((p) => p.id);
 
 interface Props {
   open: boolean;
@@ -70,7 +74,12 @@ export default function RechargeSheet({
   const userPickedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { paymentReady, paymentError, startPayment } = useTossPayment();
+  // 토스 결제는 브라우저에서만 그리는 TossChargeButton 안에서 — 모듈을 못 불러오면 여기로 알린다
+  const [tossError, setTossError] = useState<string | null>(null);
+  // 앱 안 = 스토어 결제(스펙 2026-11-23-앱-결제 §5). 앱 안에선 토스 결제창을 그리지 않는다(애플 3.1.1)
+  const store = useStorePurchase(SHEET_PKG_IDS);
+  const storePath = store.channel === "store" || store.channel === "update";
+  const [storeNotice, setStoreNotice] = useState<string | null>(null);
 
   // 열릴 때 잔액 조회 + shallow history
   useEffect(() => {
@@ -81,6 +90,7 @@ export default function RechargeSheet({
       return;
     }
     setError(null);
+    setStoreNotice(null);
     setSelectedId("star_30"); // 부족분 모르면 이 값 유지
     setRecommendedId("star_30");
     setEligibilityLoaded(false);
@@ -141,41 +151,38 @@ export default function RechargeSheet({
     }
   }
 
-  async function handleCharge() {
+  // 앱 안 스토어 결제 — 페이지 이동이 없어 pending_upsell·returnTo 는 쓰지 않는다.
+  // 성공 = 시트 닫기 + 잔액 갱신 알림 · 취소 = 말 없이 · 대기·실패 = 안내 한 줄
+  async function handleStoreCharge() {
     const pkg = STAR_PACKAGES.find((p) => p.id === selectedId);
-    if (!pkg || !paymentReady || loading) return;
-    setLoading(true);
+    if (!pkg || !store.inApp || store.busyId) return;
     setError(null);
+    setStoreNotice(null);
     trackUiEvent("recharge_payment_started", {
       readingId: pendingUpsell?.readingId,
-      meta: { source, packageId: pkg.id, amountWon: pkg.price },
+      meta: { source, packageId: pkg.id, amountWon: pkg.price, via: "iap" },
     });
-
-    // 결제 시작 전 pending_upsell 저장
-    if (pendingUpsell) {
-      sessionStorage.setItem(
-        "byeolkong:pending_upsell",
-        JSON.stringify(pendingUpsell)
-      );
-    }
-
-    try {
-      await startPayment(pkg, { returnTo });
-      // requestPayment 는 토스 결제창으로 전체 페이지 전환하므로 여기까지 오지 않음.
-      // USER_CANCEL/STOP 은 false 반환(예외 없음). 네트워크 에러만 throw.
-    } catch (err) {
-      // 결제 시작 실패 — pending_upsell 롤백
-      sessionStorage.removeItem("byeolkong:pending_upsell");
-      const e = err as { message?: string };
-      setError(e.message ?? "결제 시작에 실패했어. 다시 시도해줄래?");
-    } finally {
-      setLoading(false);
+    const r = await store.buy(pkg.id);
+    if (r.ok) {
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+      closeSheet();
+    } else {
+      setStoreNotice(iapResultNotice(r));
     }
   }
 
   if (!open || typeof document === "undefined") return null;
 
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
+  const priceText = (pkg: StarPackage) => (storePath ? store.prices?.[pkg.id] ?? "…" : `${pkg.price.toLocaleString()}원`);
+  const storeLine =
+    store.channel === "update"
+      ? IAP_NOTICE.update
+      : store.channel === "store" && store.pricesFailed
+      ? IAP_NOTICE.pricesUnavailable
+      : storePath
+      ? storeNotice
+      : null;
 
   // 손잡이는 공통 Sheet(앱만) — 웹 전용 손잡이 막대는 뺐다(끌 수 없어서)
   return (
@@ -271,40 +278,147 @@ export default function RechargeSheet({
                   )}
                 </span>
                 <span className="shrink-0 text-15 font-extrabold text-eye-purple tabular-nums">
-                  {pkg.price.toLocaleString()}원
+                  {priceText(pkg)}
                 </span>
               </button>
             );
           })}
         </div>
 
-        {(error || paymentError) && (
+        {(error || tossError) && (
           <p className="text-12 text-red-500 text-center px-5 mt-2 mb-1">
             {error ?? "결제 모듈을 불러오지 못했어. 새로고침해줘."}
           </p>
         )}
 
+        {/* 앱 안 결제 안내(업데이트 필요·가격 못 받음·승인 대기·실패) — 웹 결제를 가리키지 않는다 */}
+        {storeLine && (
+          <p className="text-12 text-text-light text-center px-5 mt-2 mb-1 break-keep">{storeLine}</p>
+        )}
+
         {/* CTA */}
         <div className="px-5 pb-6 pt-3">
-          <button
-            onClick={() => void handleCharge()}
-            disabled={loading || !paymentReady || !selectedPkg}
-            className="btn btn-primary btn-lg"
-          >
-            <span className="inline-flex items-center tabular-nums">
-              {!paymentReady && !paymentError ? (
-                "잠시만, 결제 준비 중..."
-              ) : selectedPkg ? (
-                <>
-                  <Icon name="star" size={16} className="mr-0.5" />
-                  {selectedPkg.stars} · {selectedPkg.price.toLocaleString()}원 결제하기
-                </>
-              ) : (
-                "패키지를 골라줘"
-              )}
-            </span>
-          </button>
+          {store.channel === "toss" && (
+            <TossChargeButton
+              pkg={selectedPkg}
+              returnTo={returnTo}
+              pendingUpsell={pendingUpsell}
+              source={source}
+              loading={loading}
+              setLoading={setLoading}
+              setError={setError}
+              onErrorChange={setTossError}
+            />
+          )}
+          {/* 하이드레이션 첫 그림(pending)은 토스 준비 중과 같은 모양 · 앱은 스토어 가격을 받고 로그인이 확인돼야 누를 수 있다 */}
+          {store.channel !== "toss" && (
+            <button
+              onClick={() => void handleStoreCharge()}
+              disabled={
+                !selectedPkg ||
+                !store.inApp ||
+                !store.prices?.[selectedPkg.id] ||
+                store.signedIn !== true ||
+                !!store.busyId
+              }
+              className="btn btn-primary btn-lg"
+            >
+              <span className="inline-flex items-center tabular-nums">
+                {store.channel === "pending" ? (
+                  "잠시만, 결제 준비 중..."
+                ) : selectedPkg ? (
+                  <>
+                    <Icon name="star" size={16} className="mr-0.5" />
+                    {selectedPkg.stars} · {priceText(selectedPkg)} 결제하기
+                  </>
+                ) : (
+                  "패키지를 골라줘"
+                )}
+              </span>
+            </button>
+          )}
         </div>
     </Sheet>
+  );
+}
+
+/**
+ * 토스 결제 버튼(브라우저 전용).
+ * 🔴 앱 안에선 그리지 않는다 — useTossPayment(토스 SDK 로드)가 이 컴포넌트에만 있어야 앱에서 토스가 안 돈다(lib/shop-in-app.test.ts)
+ */
+function TossChargeButton({
+  pkg,
+  returnTo,
+  pendingUpsell,
+  source,
+  loading,
+  setLoading,
+  setError,
+  onErrorChange,
+}: {
+  pkg: StarPackage | undefined;
+  returnTo: string;
+  pendingUpsell: Props["pendingUpsell"];
+  source: RechargeSource;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+  setError: (e: string | null) => void;
+  onErrorChange: (e: string | null) => void;
+}) {
+  const { paymentReady, paymentError, startPayment } = useTossPayment();
+  useEffect(() => {
+    onErrorChange(paymentError);
+  }, [paymentError, onErrorChange]);
+
+  async function handleCharge() {
+    if (!pkg || !paymentReady || loading) return;
+    setLoading(true);
+    setError(null);
+    trackUiEvent("recharge_payment_started", {
+      readingId: pendingUpsell?.readingId,
+      meta: { source, packageId: pkg.id, amountWon: pkg.price },
+    });
+
+    // 결제 시작 전 pending_upsell 저장
+    if (pendingUpsell) {
+      sessionStorage.setItem(
+        "byeolkong:pending_upsell",
+        JSON.stringify(pendingUpsell)
+      );
+    }
+
+    try {
+      await startPayment(pkg, { returnTo });
+      // requestPayment 는 토스 결제창으로 전체 페이지 전환하므로 여기까지 오지 않음.
+      // USER_CANCEL/STOP 은 false 반환(예외 없음). 네트워크 에러만 throw.
+    } catch (err) {
+      // 결제 시작 실패 — pending_upsell 롤백
+      sessionStorage.removeItem("byeolkong:pending_upsell");
+      const e = err as { message?: string };
+      setError(e.message ?? "결제 시작에 실패했어. 다시 시도해줄래?");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={() => void handleCharge()}
+      disabled={loading || !paymentReady || !pkg}
+      className="btn btn-primary btn-lg"
+    >
+      <span className="inline-flex items-center tabular-nums">
+        {!paymentReady && !paymentError ? (
+          "잠시만, 결제 준비 중..."
+        ) : pkg ? (
+          <>
+            <Icon name="star" size={16} className="mr-0.5" />
+            {pkg.stars} · {pkg.price.toLocaleString()}원 결제하기
+          </>
+        ) : (
+          "패키지를 골라줘"
+        )}
+      </span>
+    </button>
   );
 }

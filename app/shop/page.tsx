@@ -11,6 +11,8 @@ import {
 } from "@/lib/constants";
 import { fetchWallet } from "@/lib/wallet";
 import { useTossPayment } from "@/lib/use-toss-payment";
+import { useStorePurchase } from "@/components/shop/useStorePurchase";
+import { IAP_NOTICE, iapResultNotice } from "@/lib/app-iap";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import { appHaptic } from "@/lib/app-context";
 import { safeInternalPath } from "@/lib/safe-internal-path";
@@ -50,6 +52,18 @@ const PKG_META: Record<string, PackageMeta> = {
   star_300: {},
 };
 
+const SHOP_PKG_IDS = STAR_PACKAGES.map((p) => p.id);
+
+/** 브라우저(토스) 가격 표기 */
+const wonPrice = (pkg: StarPackage) => `${pkg.price.toLocaleString()}원`;
+
+/** 결제 버튼 글 — 가격 표기만 경로마다 다르다(브라우저 = 우리 원화 / 앱 = 스토어 가격 문자열) */
+function payLabel(pkg: StarPackage, firstChargeEligible: boolean, price: string): string {
+  return firstChargeEligible
+    ? `${pkg.stars + Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE)}별 받기 · ${price}`
+    : `${pkg.stars}별 · ${price} 결제하기`;
+}
+
 function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -77,7 +91,12 @@ function ShopContent() {
 
   // 토스 결제창 (Payment Window) 상태
   const [userId, setUserId] = useState<string | null>(null);
-  const { paymentReady, paymentError, startPayment } = useTossPayment();
+  // 토스 결제는 브라우저에서만 그리는 TossPayButton 안에서 — 모듈을 못 불러오면 여기로 알린다(아래 띠)
+  const [tossError, setTossError] = useState<string | null>(null);
+  // 앱 안 = 스토어 결제(스펙 2026-11-23-앱-결제 §5). 앱 안에선 토스 결제창·토스 안내를 그리지 않는다(애플 3.1.1)
+  const store = useStorePurchase(SHOP_PKG_IDS);
+  const storePath = store.channel === "store" || store.channel === "update";
+  const [storeNotice, setStoreNotice] = useState<string | null>(null);
 
   // 결제 완료 후 뒤로가기 인터셉트용 sentinel 추적
   const sentinelPushedRef = useRef(false);
@@ -155,6 +174,35 @@ function ShopContent() {
   }
   const confirmStartedRef = useRef(false);
 
+  // 충전 완료 화면 — 토스 승인(아래 confirmPayment)과 앱 스토어 결제가 같이 쓴다
+  const finishCharge = useCallback(
+    (data: { stars: number; bonusStars: number; alreadyProcessed?: boolean }) => {
+      setConfirmTone("success");
+      appHaptic("success"); // 충전 완료(이미 처리된 결제여도 사용자가 보는 건 완료 화면) — 앱 caps ui, 스펙 §5 ⑥
+      setConfirmMessage(
+        data.alreadyProcessed
+          ? "이미 처리된 결제야"
+          : data.bonusStars > 0
+          ? `${data.stars}별 + 보너스 ${data.bonusStars}별 = ${
+              data.stars + data.bonusStars
+            }별 충전 완료!`
+          : `${data.stars}별 충전 완료!`
+      );
+      fetchBalance();
+      // 헤더 잔액 칩도 같은 이벤트로 갱신 (Header 가 listen)
+      window.dispatchEvent(new Event("byeolkong:balance-updated"));
+
+      // returnTo 쿼리 있으면 — 검증 후 대화로 복귀 (토스트 없이)
+      const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
+      if (validReturnTo && !data.alreadyProcessed) {
+        setTimeout(() => router.replace(validReturnTo), 1200);
+      } else {
+        setTimeout(() => router.replace("/shop?status=success"), 1500);
+      }
+    },
+    [router, fetchBalance, searchParams]
+  );
+
   // 결제 승인 처리 (successUrl redirect 후)
   const confirmPayment = useCallback(async () => {
     const pending = pendingConfirmRef.current;
@@ -171,29 +219,7 @@ function ShopContent() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setConfirmTone("success");
-        appHaptic("success"); // 충전 완료(이미 처리된 결제여도 사용자가 보는 건 완료 화면) — 앱 caps ui, 스펙 §5 ⑥
-        setConfirmMessage(
-          data.alreadyProcessed
-            ? "이미 처리된 결제야"
-            : data.bonusStars > 0
-            ? `${data.stars}별 + 보너스 ${data.bonusStars}별 = ${
-                data.stars + data.bonusStars
-              }별 충전 완료!`
-            : `${data.stars}별 충전 완료!`
-        );
-        fetchBalance();
-        // 헤더 잔액 칩도 같은 이벤트로 갱신 (Header 가 listen)
-        window.dispatchEvent(new Event("byeolkong:balance-updated"));
-
-        // returnTo 쿼리 있으면 — 검증 후 대화로 복귀 (토스트 없이)
-        const validReturnTo = safeInternalPath(searchParams.get("returnTo"));
-        if (validReturnTo && !data.alreadyProcessed) {
-          setTimeout(() => router.replace(validReturnTo), 1200);
-        } else {
-          setTimeout(() => router.replace("/shop?status=success"), 1500);
-        }
+        finishCharge(await res.json());
       } else {
         const data = await res.json().catch(() => ({}));
         setConfirmTone("fail");
@@ -209,7 +235,7 @@ function ShopContent() {
     } finally {
       setLoading(false);
     }
-  }, [router, fetchBalance]);
+  }, [finishCharge]);
 
   useEffect(() => {
     if (!pendingConfirmRef.current || confirmStartedRef.current) return;
@@ -240,25 +266,26 @@ function ShopContent() {
   const selectedPkg = STAR_PACKAGES.find((p) => p.id === selectedId);
   const isProcessing = !!confirmMessage;
 
-  const handlePay = async () => {
-    if (!selectedPkg) return;
-    setLoading(true);
+  // 앱 안 스토어 결제 — 성공은 토스와 같은 완료 화면, 취소는 말 없이, 대기·실패는 안내 한 줄
+  const handleStoreBuy = async () => {
+    if (!selectedPkg || !store.inApp) return;
+    setStoreNotice(null);
     trackUiEvent("recharge_payment_started", {
-      meta: { source: "shop", packageId: selectedPkg.id, amountWon: selectedPkg.price },
+      meta: { source: "shop", packageId: selectedPkg.id, amountWon: selectedPkg.price, via: "iap" },
     });
-    try {
-      await startPayment(selectedPkg);
-      // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
-    } catch (error) {
-      const err = error as { code?: string; message?: string };
-      if (err.code === "USER_CANCEL" || err.code === "STOP") {
-        return;
-      }
-      alert(err.message ?? "결제 중 오류가 발생했어. 다시 시도해줘!");
-    } finally {
-      setLoading(false);
-    }
+    const r = await store.buy(selectedPkg.id);
+    if (r.ok) finishCharge(r);
+    else setStoreNotice(iapResultNotice(r));
   };
+  const storeLine =
+    store.channel === "update"
+      ? IAP_NOTICE.update
+      : store.channel === "store" && store.pricesFailed
+      ? IAP_NOTICE.pricesUnavailable
+      : storePath
+      ? storeNotice
+      : null;
+  const priceText = (pkg: StarPackage) => (storePath ? store.prices?.[pkg.id] ?? "…" : wonPrice(pkg));
 
   return (
     <main className="flex-1 w-full">
@@ -367,17 +394,23 @@ function ShopContent() {
                       meta: { source: "shop", packageId: pkg.id },
                     });
                   }}
-                  disabled={loading}
+                  disabled={loading || !!store.busyId}
                   showBonus={firstChargeEligible}
+                  priceText={priceText(pkg)}
                 />
               ))}
             </div>
 
             {/* 결제창 SDK 로드 실패 시 */}
-            {paymentError && (
+            {tossError && (
               <Banner tone="fail">
                 결제 모듈을 불러오지 못했어. 새로고침해줘.
               </Banner>
+            )}
+
+            {/* 앱 안 결제 안내(업데이트 필요·가격 못 받음·승인 대기·실패) — 웹 결제를 가리키지 않는다 */}
+            {storeLine && (
+              <p className="mt-3 text-12 text-text-light text-center leading-relaxed break-keep">{storeLine}</p>
             )}
 
             {/* 안내 카피 — 반말 세 줄 · 12(디자인 다듬기 상점 ⑦ N1, 운영자 11-21). 이용 기간(1년)·환불 정책 링크는 고지라 꼭 둔다 */}
@@ -386,7 +419,7 @@ function ShopContent() {
                 결제 안내
               </p>
               <ul className="space-y-1.5 text-12 text-text-light leading-relaxed break-keep">
-                <li>· 토스페이먼츠로 안전하게 결제돼(카드·토스페이·계좌이체)</li>
+                <li className="web-only">· 토스페이먼츠로 안전하게 결제돼(카드·토스페이·계좌이체)</li>
                 <li>
                   · 충전한 별은{" "}
                   <Link
@@ -411,27 +444,96 @@ function ShopContent() {
           style={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
         >
           <div className="max-w-md mx-auto px-5 pb-3 pt-3 pointer-events-auto">
-            <button
-              onClick={handlePay}
-              disabled={loading || !paymentReady}
-              className="btn btn-primary btn-lg"
-            >
-              <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
-              <span className="tabular-nums">
-                {!paymentReady && !paymentError
-                  ? "잠시만, 결제 준비 중..."
-                  : firstChargeEligible
-                  ? `${
-                      selectedPkg.stars +
-                      Math.round(selectedPkg.stars * FIRST_CHARGE_BONUS_RATE)
-                    }별 받기 · ${selectedPkg.price.toLocaleString()}원`
-                  : `${selectedPkg.stars}별 · ${selectedPkg.price.toLocaleString()}원 결제하기`}
-              </span>
-            </button>
+            {store.channel === "toss" && (
+              <TossPayButton
+                pkg={selectedPkg}
+                firstChargeEligible={firstChargeEligible}
+                loading={loading}
+                setLoading={setLoading}
+                onErrorChange={setTossError}
+              />
+            )}
+            {/* 하이드레이션 첫 그림(pending)은 토스 준비 중과 같은 모양 · 앱은 스토어 가격을 받고 로그인이 확인돼야 누를 수 있다 */}
+            {store.channel !== "toss" && (
+              <button
+                onClick={() => void handleStoreBuy()}
+                disabled={
+                  loading ||
+                  !store.inApp ||
+                  !store.prices?.[selectedPkg.id] ||
+                  store.signedIn !== true ||
+                  !!store.busyId
+                }
+                className="btn btn-primary btn-lg"
+              >
+                <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
+                <span className="tabular-nums">
+                  {store.channel === "pending"
+                    ? "잠시만, 결제 준비 중..."
+                    : payLabel(selectedPkg, firstChargeEligible, priceText(selectedPkg))}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}
     </main>
+  );
+}
+
+// ━━━━━━━━━━ 토스 결제 버튼(브라우저 전용) ━━━━━━━━━━
+// 🔴 앱 안에선 그리지 않는다 — useTossPayment(토스 SDK 로드)가 이 컴포넌트에만 있어야 앱에서 토스가 안 돈다(lib/shop-in-app.test.ts)
+
+function TossPayButton({
+  pkg,
+  firstChargeEligible,
+  loading,
+  setLoading,
+  onErrorChange,
+}: {
+  pkg: StarPackage;
+  firstChargeEligible: boolean;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+  onErrorChange: (e: string | null) => void;
+}) {
+  const { paymentReady, paymentError, startPayment } = useTossPayment();
+  useEffect(() => {
+    onErrorChange(paymentError);
+  }, [paymentError, onErrorChange]);
+
+  const handlePay = async () => {
+    setLoading(true);
+    trackUiEvent("recharge_payment_started", {
+      meta: { source: "shop", packageId: pkg.id, amountWon: pkg.price },
+    });
+    try {
+      await startPayment(pkg);
+      // requestPayment 는 결제창으로 전체 페이지 전환 — 이 이후는 실행 안 됨
+    } catch (error) {
+      const err = error as { code?: string; message?: string };
+      if (err.code === "USER_CANCEL" || err.code === "STOP") {
+        return;
+      }
+      alert(err.message ?? "결제 중 오류가 발생했어. 다시 시도해줘!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handlePay}
+      disabled={loading || !paymentReady}
+      className="btn btn-primary btn-lg"
+    >
+      <StarIcon className="w-[18px] h-[18px] drop-shadow-[0_1px_0_rgba(0,0,0,0.15)]" />
+      <span className="tabular-nums">
+        {!paymentReady && !paymentError
+          ? "잠시만, 결제 준비 중..."
+          : payLabel(pkg, firstChargeEligible, wonPrice(pkg))}
+      </span>
+    </button>
   );
 }
 
@@ -500,12 +602,15 @@ function PackageCard({
   onSelect,
   disabled,
   showBonus,
+  priceText,
 }: {
   pkg: StarPackage;
   selected: boolean;
   onSelect: () => void;
   disabled?: boolean;
   showBonus?: boolean;
+  /** 브라우저 = 'N원' · 앱 = 스토어 가격 문자열(받기 전 '…') */
+  priceText: string;
 }) {
   const meta = PKG_META[pkg.id] ?? {};
   const sub = packageSubLine(pkg, !!showBonus);
@@ -545,7 +650,7 @@ function PackageCard({
       </div>
 
       <p className="shrink-0 text-15 font-bold text-eye-purple tabular-nums">
-        {pkg.price.toLocaleString()}원
+        {priceText}
       </p>
 
       {/* 우측 체크 */}
