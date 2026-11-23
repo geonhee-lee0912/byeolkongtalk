@@ -81,7 +81,7 @@ export default function SimDebrief({
       <StageFrame stage>
         <div className="min-h-dvh flex flex-col items-center justify-center gap-3 text-cream-warm">
           <span className="inline-block w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
-          <p className="text-lilac text-sm">별콩이가 오늘 무대를 정리하고 있어…</p>
+          <p className="text-lilac text-14">별콩이가 오늘 무대를 정리하고 있어…</p>
         </div>
       </StageFrame>
     );
@@ -122,33 +122,33 @@ export default function SimDebrief({
   return (
     <div className="min-h-dvh bg-gradient-to-b from-night to-night-deep text-cream-warm animate-fade-in">
       <div className="px-5 py-8 max-w-lg mx-auto">
-        <h1 className="font-display text-xl text-cream-warm text-center mb-6">오늘 무대, 정리해볼게</h1>
-        <div className="rounded-2xl bg-night/50 border border-lilac-mid/25 p-5 whitespace-pre-wrap leading-relaxed text-[15px] text-cream-warm/95">
+        <h1 className="font-display text-20 text-cream-warm text-center mb-6">오늘 무대, 정리해볼게</h1>
+        <div className="rounded-2xl bg-night/50 border border-lilac-mid/25 p-5 whitespace-pre-wrap leading-relaxed text-15 text-cream-warm/95">
           {renderMd(debrief)}
         </div>
         {sendMessage && (
           <div className="mt-4 rounded-2xl border border-gold/50 bg-gold/10 p-4">
-            <div className="text-gold-soft text-[12px] font-bold mb-1.5">💌 이 사람에게 보낼 말</div>
-            <p className="text-cream-warm text-[15px] leading-relaxed">{sendMessage}</p>
-            <button onClick={copySend} className="mt-3 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-sm">{copied ? "복사됐어 ✓" : "보낼 말 복사하기"}</button>
+            <div className="text-gold-soft text-12 font-bold mb-1.5">이 사람에게 보낼 말</div>
+            <p className="text-cream-warm text-15 leading-relaxed">{sendMessage}</p>
+            <button onClick={copySend} className="btn btn-primary btn-lg mt-3">{copied ? "복사됐어" : "보낼 말 복사하기"}</button>
           </div>
         )}
         {portrait.trim() && (
           <div className="mt-4 rounded-2xl border border-lilac-mid/30 bg-night/40 p-4">
-            <div className="text-lilac text-[12px] font-bold mb-2">🖼️ 별콩이가 알아가는 초상화</div>
+            <div className="text-lilac text-12 font-bold mb-2">별콩이가 알아가는 초상화</div>
             <ul className="space-y-1.5">
               {portrait.split("\n").map((line, i) => {
                 const t = line.replace(/^·\s*/, "").trim();
-                return t ? <li key={i} className="text-cream-warm/90 text-[14px] leading-relaxed">· {t}</li> : null;
+                return t ? <li key={i} className="text-cream-warm/90 text-14 leading-relaxed">· {t}</li> : null;
               })}
             </ul>
           </div>
         )}
         {!readOnly && (
           <div className="mt-3 rounded-2xl border border-lilac-mid/20 bg-night/30 p-4">
-            <div className="text-lilac text-[12px] mb-2">걔는 사실 이런 사람이야 — 적을수록 인형이 더 걔처럼 돼</div>
+            <div className="text-lilac text-12 mb-2">걔는 사실 이런 사람이야 — 적을수록 인형이 더 걔처럼 돼</div>
             {traitDone ? (
-              <p className="text-gold-soft text-[13px]">초상화에 더했어, 고마워 ✓</p>
+              <p className="text-gold-soft text-13">초상화에 더했어, 고마워</p>
             ) : (
               <>
                 <textarea
@@ -157,12 +157,12 @@ export default function SimDebrief({
                   maxLength={300}
                   rows={2}
                   placeholder="예: 표현은 서툴러도 좋으면 바로 티가 나"
-                  className="w-full rounded-xl bg-night/60 border border-lilac-mid/25 p-2.5 text-[14px] text-cream-warm placeholder:text-lilac/50 resize-none"
+                  className="w-full rounded-xl bg-night/60 border border-lilac-mid/25 p-2.5 text-14 text-cream-warm placeholder:text-lilac/50 resize-none"
                 />
                 <button
                   disabled={traitSaving || !traitInput.trim()}
                   onClick={saveTrait}
-                  className="mt-2 w-full rounded-xl py-2.5 bg-lilac-deep text-white font-bold text-sm disabled:opacity-40"
+                  className="btn btn-primary btn-lg mt-2"
                 >
                   {traitSaving ? "저장 중…" : "초상화에 더하기"}
                 </button>
@@ -170,7 +170,7 @@ export default function SimDebrief({
             )}
           </div>
         )}
-        <button onClick={() => router.push("/relationship")} className="mt-6 w-full rounded-xl py-3 bg-cream-warm text-eye-purple font-bold hover:bg-white transition-colors">별콩이랑 더 얘기하기 →</button>
+        <button onClick={() => router.push("/relationship")} className="btn btn-secondary btn-lg mt-6">별콩이랑 더 얘기하기</button>
       </div>
     </div>
   );

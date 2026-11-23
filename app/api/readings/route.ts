@@ -1,4 +1,4 @@
-// readings INSERT — 사주 풀이 세션 시작 시 호출.
+// readings INSERT — 사주 풀이 세션 시작 시 호출. 🔴 사주 상담 종료(운영자 11-22)로 POST 는 첫 줄에서 410(lib/saju/closed).
 //
 // 흐름: 입력 검증 → 잔액 사전 확인 → user_profiles INSERT → readings INSERT → spendStars(20)
 //      → 실패 시 readings/profile 롤백.
@@ -19,39 +19,8 @@ import { EMOTION_OPTIONS } from "@/lib/emotions";
 import { validateProfile, type ProfileInput } from "@/lib/saju/profile-input";
 import { fortuneTypeFromTag } from "@/lib/fortune/types";
 import { PROMPT_VERSION } from "@/lib/prompt-version";
-
-// 운세/궁합 등 리포트형 리딩은 messages.content 에 JSON 구조체(v:1)로 저장된다.
-// JSON 이면 읽을 수 있는 텍스트 필드만 뽑고, 아니면(타로 상담 채팅 등) 원문 그대로 쓴다.
-function extractReportText(content: string): string | null {
-  const trimmed = content.trimStart();
-  if (!trimmed.startsWith("{")) return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    return null;
-  }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const o = parsed as Record<string, unknown>;
-  for (const key of ["summary", "theme", "headline", "intro", "advice"]) {
-    const v = o[key];
-    if (typeof v === "string" && v.trim().length > 0) return v.trim();
-  }
-  return null;
-}
-
-// 별콩이 답변 도입부 미리보기용 — 리포트는 텍스트 필드 추출, 카드/종료 마커 제거 후 절단.
-function buildPreview(content: string): string {
-  const base = extractReportText(content) ?? content;
-  const cleaned = base
-    .replace(/\[CARD:\d+\]/g, "")
-    .replace(/\[END\]/g, "")
-    .replace(/\[RECO:[a-z0-9_:]+\]/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const chars = [...cleaned];
-  return chars.length > 90 ? chars.slice(0, 90).join("") + "…" : cleaned;
-}
+import { buildPreview } from "@/lib/readings/preview";
+import { sajuConsultClosedResponse } from "@/lib/saju/closed";
 
 const VALID_EMOTIONS = EMOTION_OPTIONS.map((o) => o.tag) as string[];
 
@@ -169,6 +138,9 @@ interface ReadingPostBody {
 }
 
 export async function POST(request: NextRequest) {
+  // 세션·DB·별보다 먼저
+  const closed = sajuConsultClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId) {
     return NextResponse.json(

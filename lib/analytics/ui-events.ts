@@ -265,6 +265,10 @@ export const UI_EVENTS = [
   "teaser_upsell_shown",
   /** "이어서 깊게" 탭 — meta:{surface, deepProduct} */
   "teaser_upsell_clicked",
+  /** 입구 반반(2026-10-25~11-07)은 끝났다 — 판정: 옛 흐름(먼저 로그인) 고정. 새 흐름 코드는 걷어냈고, 아래 이름들은 쌓인 데이터와
+   *  판정·감시 SQL(scripts/entry-ab-*.sql)을 읽으려고 남긴다. 지금도 찍히는 건 home_tag_clicked(flow old|member 만, armKnown 없음)·
+   *  login_kakao_clicked·login_apple_clicked(surface login_page|start_page)·concern_safety_banner_shown 뿐이다.
+   *  아래 설명은 실험 때 기준이다. */
   /** 홈 태그 탭 — meta:{tag, flow:"new"|"old"|"member", armKnown}. 입구 반반(spec 2026-10-11-타로-로그인전-맛보기 §6).
    *  flow = 실제로 탄 흐름(새 흐름 그룹이어도 지갑 응답 전에 누르면 old) — 배정은 anon_id 끝 글자로 SQL 에서 가른다.
    *  armKnown=false = 지갑 응답 전에 눌렀다 — 비로그인(flow old)이면 홈이 그룹을 모른 채 옛 흐름(로그인 먼저)으로 보낸 것이다.
@@ -283,6 +287,10 @@ export const UI_EVENTS = [
    *  login_page = 옛 로그인 화면(/login) — 화면 변화 없이 측정만. '버튼 안 누름 vs 카카오 화면 이탈'을 처음으로 가른다
    *  login_page 에만 next = 로그인 뒤 갈 경로(쿼리·해시를 뗀 경로 부분 · next 가 없으면 "/" · 영숫자·/·_·- 밖이거나 40자를 넘으면 "other") — 어느 로그인 벽에서 눌렀는지 가른다 */
   "login_kakao_clicked",
+  /** 애플 로그인 버튼 탭 — meta:{surface:"login_page"|"start_page"|"draw_sheet", spread?, next?}
+   *  버튼 노출: 웹=스위치(APPLE_LOGIN_WEB) · iOS 앱=늘 · 안드로이드 앱=숨김(lib/auth/apple-login-flag.ts). iOS 앱에선 앱이 이동을 가로채 네이티브 로그인을 띄운다
+   *  ⚠️ start_page 는 짝이 없다 — /start 카카오 버튼엔 login_kakao_clicked 가 없다. 앱/웹은 meta 로 못 가른다 — anon_id 로 page_views.browser_env='app' 과 이어 가른다 */
+  "login_apple_clicked",
   /** 로그인 창 '나중에 할래'·바깥 탭·Esc — meta:{spread} */
   "login_sheet_dismissed",
   /** 로그인 실패로 뽑기 화면에 돌아옴 — meta:{reason}(콜백 failRedirect 의 reason)

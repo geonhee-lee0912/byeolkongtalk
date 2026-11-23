@@ -1,0 +1,128 @@
+"use client";
+
+// 앱 화면 전환 방향을 <html data-nav> 에 적는다 — 화면에 아무것도 그리지 않는다. 앱 안에서만 리스너를 붙인다.
+// 링크 클릭(캡처 단계 — Next Link 의 이동보다 먼저)·기록 뒤로(popstate — Next 의 트랜지션보다 먼저)에 값을 넣고, 화면이 바뀐 뒤 지운다.
+// 값이 없으면 app/globals.css 가 애니메이션을 끈다. 판정은 lib/app-shell/nav-direction.ts. 스펙 2026-11-07-앱-화면 §6
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useAppInfo } from "@/lib/use-app-info";
+import { navKindForClick, navKindForPopstate, takeBackButton, type NavKind } from "@/lib/app-shell/nav-direction";
+
+/** 화면이 바뀐 뒤 data-nav 를 지우기까지 — 전환 애니메이션(최대 0.54초, 아이폰)이 끝날 만큼. 도중에 지우면 그 움직임의 CSS 가 풀려 화면이 튄다 */
+const CLEAR_AFTER_NAV_MS = 800;
+/** 값을 넣었는데 화면이 안 바뀌었을 때(이동이 막힌 링크 등) 지우기까지 — 남아 있으면 다음 화면 안 트랜지션이 미끄러진다 */
+const CLEAR_IF_STUCK_MS = 1_500;
+
+let clearTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleClear(ms: number) {
+  if (clearTimer) clearTimeout(clearTimer);
+  clearTimer = setTimeout(() => {
+    delete document.documentElement.dataset.nav;
+    clearTimer = null;
+  }, ms);
+}
+
+function setNav(kind: NavKind, clearMs: number = CLEAR_IF_STUCK_MS) {
+  document.documentElement.dataset.nav = kind;
+  scheduleClear(clearMs);
+}
+
+// ‹ 뒤로 가기 전환 — 브라우저 전환(View Transitions)으로는 못 한다(2026-11-07 크롬 실측 두 가지: React 는 popstate 이동에
+// <ViewTransition> 을 걸지 않고, 직접 연 전환도 그 안에서 기록 이동(history.back)이 일어나면 "invalid state" 로 중단된다).
+// 그래서 지금 화면을 복제한 덮개를 위에 두고 뒤로 간 뒤 덮개를 밀어낸다 — 아이폰은 오른쪽으로 빠지며 아래 화면이 왼쪽 1/3 에서
+// 밝아지며 들어오고, 안드로이드는 덮개가 아래로 가라앉으며 사라진다. 덮개는 헤더(z-50)·탭바(z-40) 아래(z-39)라 둘은 그대로 있다.
+// 🔴 안드로이드 하드웨어 뒤로는 앱이 웹뷰 goBack 을 바로 불러 이 길을 못 탄다 — 4단계에서 앱이 웹에 뒤로를 청하게 바꾼다
+// 아이폰 값은 globals.css 의 아이폰 전환과 같다(0.54초·같은 곡선) — 바꿀 땐 둘 다
+const IOS_MS = 540;
+const IOS_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+export function runBackTransition(goBack: () => void): void {
+  const page = document.querySelector<HTMLElement>("[data-app-page]");
+  const platform = document.documentElement.getAttribute("data-platform");
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!page || !platform || reduce || typeof page.animate !== "function") {
+    goBack();
+    return;
+  }
+  const rect = page.getBoundingClientRect();
+  const layer = document.createElement("div");
+  layer.setAttribute("aria-hidden", "true");
+  layer.style.cssText = "position:fixed;inset:0;z-index:39;overflow:hidden;pointer-events:none;";
+  const clone = page.cloneNode(true) as HTMLElement;
+  clone.removeAttribute("data-app-page");
+  clone.classList.add("app-back-clone"); // 복제로 다시 도는 등장 애니메이션 끄기(globals.css)
+  const bodyBg = getComputedStyle(document.body);
+  // 높이도 원본만큼 — 절대 위치라 flex-1 이 풀려 내용 높이로 줄면 그 아래로 돌아간 화면이 먼저 드러나 이음매가 보인다
+  clone.style.cssText += `;position:absolute;left:0;top:${rect.top}px;width:${rect.width}px;min-height:${rect.height}px;margin:0;` +
+    `background:${bodyBg.backgroundColor} ${bodyBg.backgroundImage};background-attachment:fixed;` +
+    (platform === "ios" ? "box-shadow:-8px 0 24px rgba(31,23,53,0.18);" : "");
+  layer.appendChild(clone);
+  document.body.appendChild(layer);
+  // 아이폰 헤더 — 지금 헤더를 복제해 진짜 헤더(z-50) 위에 두고 서서히 지운다. 그 밑에서 새 헤더가 드러나 이전 → 새 헤더가 화면과 같은
+  // 0.54초에 걸쳐 바뀐다(들어가기는 globals.css 의 app-header 교차 페이드). 복제는 전환 이름을 끈다 — 같은 이름이 둘이면 그 사이 다른
+  // 화면 이동의 전환이 통째로 건너뛰어진다
+  const header = platform === "ios" ? document.querySelector<HTMLElement>("header.app-only") : null;
+  let headerClone: HTMLElement | null = null;
+  if (header) {
+    const hr = header.getBoundingClientRect();
+    headerClone = header.cloneNode(true) as HTMLElement;
+    headerClone.setAttribute("aria-hidden", "true");
+    headerClone.classList.add("app-back-clone");
+    headerClone.style.cssText += `;position:fixed;left:${hr.left}px;top:${hr.top}px;width:${hr.width}px;height:${hr.height}px;margin:0;z-index:51;pointer-events:none;view-transition-name:none;`;
+    document.body.appendChild(headerClone);
+  }
+  goBack();
+  const done = () => {
+    layer.remove();
+    headerClone?.remove();
+  };
+  if (platform === "ios") {
+    clone.animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], { duration: IOS_MS, easing: IOS_EASE, fill: "forwards" }).onfinish = done;
+    page.animate([{ transform: "translateX(-30%)", filter: "brightness(0.82)" }, { transform: "none", filter: "none" }], { duration: IOS_MS, easing: IOS_EASE });
+    headerClone?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: IOS_MS, easing: IOS_EASE, fill: "forwards" });
+  } else {
+    // 가라앉는 건 0.3초, 옅어지는 건 마지막 0.1초만 — 오래 반투명이면 두 화면이 겹쳐 보인다(2026-11-07 실기기)
+    clone.animate([{ transform: "none" }, { transform: "translateY(8%)" }], { duration: 300, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" }).onfinish = done;
+    clone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, delay: 200, fill: "forwards" });
+  }
+  setTimeout(done, 1_000); // 애니메이션이 끝나지 못해도(탭 전환으로 멈춤 등) 덮개는 반드시 걷는다
+}
+
+export default function AppNavDirection() {
+  const { app } = useAppInfo();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!app) return;
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a) return;
+      const url = new URL(a.href, location.href);
+      const kind = navKindForClick({
+        sameOrigin: url.origin === location.origin,
+        target: a.getAttribute("target"),
+        download: a.hasAttribute("download"),
+        modified: e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0,
+        navAttr: a.getAttribute("data-nav"),
+        // 경로가 같으면(쿼리만 다른 같은 화면 안 탭) 새 화면으로 미끄러지지 않는다
+        samePath: url.pathname === location.pathname,
+      });
+      if (kind) setNav(kind);
+    };
+    // popstate 이동은 Next·React 가 이 리스너보다 먼저 동기로 그려 pathname 효과가 이미 지나갔다 — 짧게 지운다
+    const onPop = () => setNav(navKindForPopstate(app.platform, takeBackButton()), CLEAR_AFTER_NAV_MS);
+    document.addEventListener("click", onClick, true);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, [app]);
+
+  useEffect(() => {
+    if (document.documentElement.dataset.nav) scheduleClear(CLEAR_AFTER_NAV_MS);
+  }, [pathname]);
+
+  return null;
+}

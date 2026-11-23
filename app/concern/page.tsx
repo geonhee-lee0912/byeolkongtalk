@@ -4,25 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { createPortal } from "react-dom";
 import {
   EMOTION_OPTIONS,
   EMOTION_GRADIENTS,
-  LOVE_TAGS,
-  OTHER_TAGS,
   PENDING_KEY,
   normalizeEmotionTag,
-  type EmotionOption,
   type EmotionTag,
   type PendingConsultation,
 } from "@/lib/emotions";
 import { CONTINUATION_KEY, isConcernRewrite } from "@/lib/tarot/session";
-import ProgressSteps from "@/components/concern/ProgressSteps";
 import SafetyBanner from "@/components/safety/SafetyBanner";
 import { concernSafetyMatch } from "@/lib/sensitive-patterns";
-import { ENTRY_FLOW_KEY } from "@/lib/tarot/entry-ab";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { isLoggedInClient } from "@/lib/consultation-entry";
 
 const MIN_LEN = 10;
 const MAX_LEN = 200;
@@ -34,9 +27,6 @@ export default function ConcernPage() {
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
   const [concern, setConcern] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  // 새 흐름(로그인 전 맛보기)으로 온 비로그인 — 홈이 심은 표시. 안내 한 줄이 이 방문자에게만 뜬다(스펙 2026-10-11 §3 ①). 위기 배너는 모두에게(§5-5)
-  const [entryNew, setEntryNew] = useState(false);
   // 위기 배너 노출 계측 — 같은 분류·강도는 한 번만
   const bannerSeen = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -59,8 +49,6 @@ export default function ConcernPage() {
     }
     // 구 태그(v2)·낯선 문자열도 정규화해서 흐름을 계속 이어간다
     setEmotion(normalizeEmotionTag(stored) ?? DEFAULT_TAG);
-    // 새 흐름 표시는 로그인 뒤에도 같은 탭에 남는다 — 회원에겐 안내·위기 배너를 안 띄운다(홈과 같은 로그인 판정)
-    setEntryNew(sessionStorage.getItem(ENTRY_FLOW_KEY) === "new" && !isLoggedInClient());
 
     // /tarot에서 뒤로 돌아온 경우: 기 입력한 고민 복원
     const raw = sessionStorage.getItem(PENDING_KEY);
@@ -77,7 +65,7 @@ export default function ConcernPage() {
   if (!emotion) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -90,12 +78,6 @@ export default function ConcernPage() {
   // 위기 신호(정규식 확신 high) — 고민을 쓰는 그 자리에서 상담 전화를. 진행은 막지 않는다.
   // 모두에게(회원·옛 흐름 포함 — 사용자 결정 2026-10-11): high 정규식을 권장안으로 고쳐 연애 어휘 오탐('약속…먹고'·'재회에 목매' 등)을 걷어낸 뒤 넓혔다(lib/sensitive-patterns)
   const safety = concernSafetyMatch(concern);
-
-  const handleSelectTag = (tag: EmotionTag) => {
-    setEmotion(tag);
-    sessionStorage.setItem("byeolkong:emotion", tag);
-    setTagSheetOpen(false);
-  };
 
   const handleNext = () => {
     if (concern.length < MIN_LEN) {
@@ -118,43 +100,47 @@ export default function ConcernPage() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col items-center pt-14 pb-8 w-full animate-fade-in">
-        {/* 진행 단계 */}
-        <div className="mb-8">
-          <ProgressSteps current={1} />
+      {/* 진행 단계(고민·운세 선택·카드 뽑기)는 뺐다 — 2단계였던 /select 가 07-17 에 없어진 뒤로 1·3단계에만 남아 끊겨 보였다.
+          화면 위치는 앱 헤더 제목이 알려 준다(디자인 다듬기 ② 운영자 K안 11-13) */}
+      <main className="flex flex-1 flex-col items-center pt-5 pb-8 w-full animate-fade-in">
+
+        {/* 제목 — 고민 적기·리딩 방법 고르기·카드 뽑기 세 화면이 같은 자리·크기(20/13)로 시작한다(디자인 다듬기 ② 운영자 X안 11-13) */}
+        <div className="w-full max-w-md mx-auto px-5 mb-5 flex flex-col items-center">
+          <h1 className="font-display text-20 text-eye-purple text-center">
+            어떤 고민이야?
+          </h1>
+          <p className="text-13 text-text-light text-center mt-1">
+            편하게 말해줘. 별콩이가 들어볼게
+          </p>
         </div>
 
-        {/* 감정 컨텍스트 칩 — 탭하면 태그 변경 */}
+        {/* 고른 고민 — 보여 주기만(바꾸려면 뒤로 → 홈에서 다시 고른다. '바꾸기'·고르기 창은 운영자 결정으로 뺌 11-12) */}
         {option && (
           <div className="w-full max-w-md mx-auto px-5 mb-5">
-            <button
-              type="button"
-              onClick={() => setTagSheetOpen(true)}
-              className="w-full flex flex-col items-center gap-1.5 px-5 py-3 bg-white/85 backdrop-blur-sm rounded-2xl border border-lilac-soft/70 shadow-[0_1px_4px_rgba(90,62,140,0.05)] hover:border-lilac-deep/40 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
-                  style={{ background: EMOTION_GRADIENTS[emotion] }}
-                  aria-hidden
-                >
-                  <Image
-                    src={option.icon}
-                    alt=""
-                    width={18}
-                    height={18}
-                    className="object-contain"
-                  />
-                </span>
-                <span className="font-bold text-eye-purple text-[13px]">
+            {/* 홈에서 누른 고민 카드가 따라온 모양 — 흰 카드 한 줄(디자인 다듬기 ② /concern 운영자 A안 11-12) */}
+            <div className="card w-full flex items-center gap-3 p-3">
+              <span
+                className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={{ background: EMOTION_GRADIENTS[emotion] }}
+                aria-hidden
+              >
+                <Image
+                  src={option.icon}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="object-contain"
+                />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-eye-purple text-15 leading-snug">
                   {option.tag}
                 </span>
-                <span className="text-text-light/50 text-[11px]">변경</span>
-              </div>
-              <p className="text-[11px] text-text-light/80 text-center leading-relaxed">
-                {option.description}
-              </p>
-            </button>
+                <span className="block text-12 text-text-light mt-0.5 leading-snug">
+                  {option.description}
+                </span>
+              </span>
+            </div>
           </div>
         )}
 
@@ -164,88 +150,76 @@ export default function ConcernPage() {
             className="relative rounded-2xl border border-lilac-deep/30 overflow-hidden"
             style={{
               background:
-                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)",
+                "linear-gradient(180deg, #16122E 0%, #241C49 45%, #382C6B 100%)", // design-allow: 고민 화면 밤하늘 채팅창(스펙 §2.8 장면)
               boxShadow:
                 "0 4px 20px rgba(30,22,53,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
           >
-            {/* 헤더 — 별콩이 프로필 바 */}
+            {/* 위 바 — 카톡 대화방 이름처럼 얇게(작은 얼굴 + 이름). 디자인 다듬기 ② /concern 운영자 K1안 11-12 */}
             <div
-              className="relative z-10 flex items-center gap-2.5 px-4 py-3 border-b border-white/15"
+              className="relative z-10 flex items-center gap-2 px-4 py-2.5"
               style={{ background: "#4A3877" }}
             >
-              <span className="relative w-9 h-9 flex-shrink-0">
+              <span className="relative w-7 h-7 flex-shrink-0">
                 <Image
                   src="/profile.png"
-                  alt="별콩이"
+                  alt=""
                   fill
-                  sizes="36px"
+                  sizes="28px"
                   className="rounded-full object-cover"
                 />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#4A3877]" />
               </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-white leading-tight">
-                  별콩이
-                </p>
-                <p className="text-[11px] text-white/60 leading-snug mt-0.5">
-                  고민이 있는 날에도, 괜히 마음이 궁금한 날에도 별콩이는 여기 있어
-                </p>
-              </div>
+              <p className="text-15 font-bold text-white">별콩이</p>
             </div>
 
             {/* 별 파티클 */}
             <div className="absolute inset-0 pointer-events-none" aria-hidden>
-              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full animate-star-twinkle" />
+              <div className="absolute top-[26%] left-[12%] w-1 h-1 bg-gold/60 rounded-full" />
               <div
-                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full animate-star-twinkle"
+                className="absolute top-[34%] right-[16%] w-1.5 h-1.5 bg-gold-soft/50 rounded-full"
                 style={{ animationDelay: "0.5s" }}
               />
               <div
-                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full animate-star-twinkle"
+                className="absolute top-[50%] left-[20%] w-1 h-1 bg-white/40 rounded-full"
                 style={{ animationDelay: "0.3s" }}
               />
               <div
-                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full animate-star-twinkle"
+                className="absolute top-[44%] right-[10%] w-1 h-1 bg-gold/40 rounded-full"
                 style={{ animationDelay: "0.9s" }}
               />
               <div
-                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full animate-star-twinkle"
+                className="absolute top-[64%] right-[26%] w-1 h-1 bg-lilac/50 rounded-full"
                 style={{ animationDelay: "0.2s" }}
               />
               <div
-                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full animate-star-twinkle"
+                className="absolute top-[70%] left-[16%] w-1 h-1 bg-gold-soft/40 rounded-full"
                 style={{ animationDelay: "1.2s" }}
               />
-              <div className="absolute top-1/3 -right-10 w-48 h-48 bg-lilac/10 rounded-full blur-3xl" />
-              <div className="absolute top-2/3 -left-10 w-40 h-40 bg-gold/[0.05] rounded-full blur-3xl" />
             </div>
 
-            <div className="relative px-3.5 pt-5 pb-5 flex flex-col gap-3.5">
-              {/* 별콩이 인사 말풍선 */}
-              <div className="flex self-end max-w-[88%]">
-                <div
-                  className="relative rounded-2xl rounded-br-md px-4 py-3"
-                  style={{
-                    background: "#FBE89E",
-                    boxShadow: "0 2px 10px rgba(232,194,106,0.35)",
-                  }}
-                >
-                  <p className="text-[14px] font-bold text-eye-purple leading-tight">
-                    어떤 고민이야?
-                  </p>
-                  <p className="text-[12px] text-eye-purple/85 mt-1 leading-relaxed">
-                    편하게 말해줘. 별콩이가 들어볼게 ❤️
-                  </p>
+            <div className="relative pt-9 flex flex-col">
+              {/* 별콩이 말 — 카톡처럼 왼쪽 프사 + 이름 + 흰 말풍선(실제 대화 화면의 별콩이 말과 같은 쪽) */}
+              <div className="flex items-start gap-2 self-start max-w-[86%] px-3.5">
+                <span className="relative w-10 h-10 flex-shrink-0 rounded-2xl overflow-hidden bg-white">
+                  <Image src="/profile.png" alt="별콩이" fill sizes="40px" className="object-cover" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-12 text-accent-on-dark mb-1 ml-0.5">별콩이</p>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                    <p className="text-14 font-bold text-eye-purple leading-tight">
+                      무슨 일이 있었어?
+                    </p>
+                    <p className="text-12 text-text-light mt-1 leading-relaxed">
+                      천천히, 생각나는 대로 적어줘
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* 사용자 입력 */}
-              <div className="flex self-end w-full">
-                <div
-                  className="relative flex-1 bg-white rounded-2xl rounded-bl-md overflow-hidden focus-within:ring-2 focus-within:ring-lilac-deep/50 transition-all"
-                  style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.18)" }}
-                >
+              {/* 입력칸 — 카톡 메시지 입력창처럼 판 아래에 끝까지 붙는다. 밤 판을 넉넉히(mt-21) 두고 입력칸은 160px(운영자 X안 11-13) */}
+              <div className="flex w-full mt-21">
+                <div className="relative flex-1 bg-white focus-within:ring-2 focus-within:ring-inset focus-within:ring-lilac-deep/50 transition-all">
                   <textarea
                     value={concern}
                     onChange={(e) => {
@@ -253,10 +227,10 @@ export default function ConcernPage() {
                       if (error) setError(null);
                     }}
                     placeholder="요즘 마음에 남는 일을 솔직하게 적어줘.&#10;상황, 사람, 내 마음... 뭐든 좋아"
-                    className="w-full h-36 px-4 pt-3.5 pb-1.5 bg-transparent text-[14px] text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-light/40"
+                    className="w-full h-40 px-4 pt-3.5 pb-1.5 bg-transparent text-14 text-eye-purple leading-relaxed resize-none focus:outline-none placeholder:text-text-faint"
                   />
-                  <div className="flex justify-between items-center px-4 pb-2.5 text-[11px]">
-                    <span className="text-text-light/70">
+                  <div className="flex justify-between items-center px-4 pb-2.5 text-11">
+                    <span className="text-text-light">
                       구체적일수록 더 깊은 대화가 가능해
                     </span>
                     <span
@@ -265,7 +239,7 @@ export default function ConcernPage() {
                           ? "text-red-500"
                           : concern.length >= MAX_LEN * 0.85
                           ? "text-gold"
-                          : "text-text-light/60"
+                          : "text-text-light"
                       }`}
                     >
                       {concern.length} / {MAX_LEN}
@@ -284,7 +258,7 @@ export default function ConcernPage() {
         )}
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 max-w-md mb-3">
+          <p className="text-12 text-red-500 text-center px-5 max-w-md mb-3">
             {error}
           </p>
         )}
@@ -293,142 +267,21 @@ export default function ConcernPage() {
           <button
             onClick={handleNext}
             disabled={!canProceed}
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] hover:bg-lilac-deep/90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            className="btn btn-primary btn-lg disabled:cursor-not-allowed"
           >
             {concern.length < MIN_LEN
               ? `${MIN_LEN}자 이상 적어줘`
               : "타로 카드 뽑으러 가기"}
           </button>
-          {entryNew && (
-            <p className="text-[11.5px] text-text-light/80 text-center">
-              풀이는 카카오로 3초 시작하면 바로 볼 수 있어
-            </p>
-          )}
+          {/* 앱에선 위 헤더 ‹ 와 겹쳐 숨긴다(web-only) — 디자인 다듬기 ② /concern 운영자 A안 11-12 */}
           <Link
             href="/"
-            className="w-full py-4 bg-transparent hover:bg-lilac-deep/5 text-lilac-deep rounded-2xl font-bold text-[15px] text-center border-2 border-lilac-deep/40 hover:border-lilac-deep/60 transition-colors"
+            className="web-only btn btn-text btn-lg"
           >
             뒤로
           </Link>
         </div>
       </main>
-
-      {tagSheetOpen && (
-        <EmotionTagSheet
-          current={emotion}
-          onSelect={handleSelectTag}
-          onClose={() => setTagSheetOpen(false)}
-        />
-      )}
     </>
-  );
-}
-
-/** 감정 컨텍스트 칩 탭 → 태그 변경 바텀시트 (연애 6 + 비연애 4) */
-function EmotionTagSheet({
-  current,
-  onSelect,
-  onClose,
-}: {
-  current: EmotionTag;
-  onSelect: (tag: EmotionTag) => void;
-  onClose: () => void;
-}) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  const loveOptions = EMOTION_OPTIONS.filter((o) => LOVE_TAGS.includes(o.tag));
-  const otherOptions = EMOTION_OPTIONS.filter((o) => OTHER_TAGS.includes(o.tag));
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center px-5 bg-night/70 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="고민 태그 변경"
-    >
-      <div
-        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[72vh] overflow-y-auto scrollbar-hover"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
-            어떤 고민이야?
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="px-5 pb-6">
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
-            연애 고민
-          </p>
-          <div className="flex flex-col gap-2 mb-4">
-            {loveOptions.map((option) => (
-              <TagSheetItem
-                key={option.tag}
-                option={option}
-                active={option.tag === current}
-                onClick={() => onSelect(option.tag)}
-              />
-            ))}
-          </div>
-
-          <p className="text-[11.5px] font-bold text-text-light/70 mb-2">
-            다른 고민
-          </p>
-          <div className="flex flex-col gap-2">
-            {otherOptions.map((option) => (
-              <TagSheetItem
-                key={option.tag}
-                option={option}
-                active={option.tag === current}
-                onClick={() => onSelect(option.tag)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-function TagSheetItem({
-  option,
-  active,
-  onClick,
-}: {
-  option: EmotionOption;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={`w-full flex items-center gap-3 p-3 rounded-2xl bg-white/90 text-left transition-all border ${
-        active ? "border-2 border-lilac-deep bg-lilac-soft/30" : "border-lilac-soft/70"
-      }`}
-    >
-      <span
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-        style={{ background: EMOTION_GRADIENTS[option.tag] }}
-        aria-hidden
-      >
-        <Image src={option.icon} alt="" width={28} height={28} className="object-contain" />
-      </span>
-      <span className="flex-1 min-w-0 font-bold text-eye-purple text-[13.5px] leading-snug">
-        {option.tag}
-      </span>
-    </button>
   );
 }

@@ -2,11 +2,14 @@
 // 1200×630 (카카오 권장 비율). 다크 그라데이션 + 4기둥 한자 + 별콩이 한마디 + 워터마크.
 //
 // 폰트는 Pretendard CDN 에서 fetch — 모듈 레벨 캐싱으로 cold start 외엔 IO 없음.
-// 카드 이미지 / 별콩이 캐릭터 png 는 일단 텍스트 / 별 파티클로 대체 (sharp 미설치)
+// 별콩이 캐릭터 png 는 일단 텍스트 / 별 파티클로 대체. 머리 그림은 lib/og/header-icon
 
 import { ImageResponse } from "next/og";
 import { getServiceSupabase } from "@/lib/supabase";
 import { extractClosingLine } from "@/lib/saju/closing";
+import { stripEmphasisMarks } from "@/lib/text-emphasis";
+import { FORTUNE_SENTINEL_PREFIX } from "@/lib/fortune/types";
+import { getHeaderIconDataUrl } from "@/lib/og/header-icon";
 import { checkRateLimit, getClientIp, maybeSweepExpired } from "@/lib/ratelimit";
 import type { SajuResult } from "@/lib/saju/calc";
 
@@ -53,11 +56,16 @@ export async function GET(
   const supabase = getServiceSupabase();
   const { data: reading } = await supabase
     .from("readings")
-    .select("saju_data, question, has_sensitive")
+    .select("saju_data, question, has_sensitive, consultation_type, emotion_tag")
     .eq("id", readingId)
     .maybeSingle();
 
-  if (!reading) {
+  // 사주 상담만 연다. 사주로 만든 운세도 종류값이 'saju' 라 표식으로 가른다(옛 종류까지 — fortuneTypeFromTag 는 못 알아봄)
+  if (
+    !reading ||
+    reading.consultation_type !== "saju" ||
+    reading.emotion_tag?.startsWith(FORTUNE_SENTINEL_PREFIX)
+  ) {
     return new Response("not_found", { status: 404 });
   }
   if (reading.has_sensitive) {
@@ -72,9 +80,11 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   const saju = reading.saju_data as SajuResult;
-  const closingLine = extractClosingLine(messages ?? []) ?? "별콩이가 응원할게 ✨";
+  const closingLine = stripEmphasisMarks(
+    extractClosingLine(messages ?? []) ?? "별콩이가 응원할게 ✨"
+  );
 
-  const font = await getFont();
+  const [font, headerIcon] = await Promise.all([getFont(), getHeaderIconDataUrl("saju")]);
 
   return new ImageResponse(
     (
@@ -123,11 +133,14 @@ export async function GET(
             alignItems: "center",
             gap: 12,
             fontSize: 22,
-            opacity: 0.7,
+            opacity: 0.95,
             marginBottom: 10,
           }}
         >
-          <span style={{ color: "#E8C26A" }}>✨</span>
+          {headerIcon && (
+            // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+            <img src={headerIcon} width={40} height={40} />
+          )}
           <span>별콩이의 사주 풀이</span>
         </div>
 
@@ -194,8 +207,7 @@ export async function GET(
                   </div>
                 </div>
                 <div style={{ fontSize: 14, opacity: 0.7 }}>
-                  {p.stem}
-                  {p.branch}
+                  {p.stem + p.branch}
                 </div>
               </div>
             );

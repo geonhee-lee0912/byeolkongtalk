@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import DualSajuPicker from "@/components/fortune/DualSajuPicker";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
@@ -52,11 +51,11 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       const me = await fetch("/api/auth/me", { cache: "no-store" });
       const data = me.ok ? await me.json() : null;
       if (!data?.isAuthenticated) {
-        window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+        window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
         return;
       }
     } catch {
-      window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+      window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
       return;
     }
 
@@ -134,25 +133,26 @@ export default function CompatInput({ type }: { type: CompatKind }) {
     type === "compat_social" ? BIRTH_PROMPT_SURFACE.compatSocialPicker : BIRTH_PROMPT_SURFACE.compatPicker;
 
   return (
-    <main className="flex flex-1 flex-col items-center pb-10 w-full animate-fade-in">
+    // 궁합 고르기 페이지(/fortune/compat{,-social}/buy)의 <main> 안에 들어간다 — 설명과 나눴다(디자인 다듬기 묶음 4, 11-16)
+    <div className="w-full">
       <DualSajuPicker
         onConfirm={openConfirm}
         confirmLabel="궁합 보기"
         loading={balanceLoading && pending !== null}
         newPersonRelation={newPersonRelation}
-        loginNext={cfg.href}
+        loginNext={`${cfg.href}/buy`} // 로그인·생일 입력 뒤 이 고르기 페이지로
         birthSurface={birthSurface}
         cost={cfg.cost}
       />
 
       {error && (
-        <div className="mt-4 text-center px-5 max-w-md">
-          <p className="text-[12px] text-red-500">{error}</p>
+        <div className="mt-4 text-center px-5 max-w-md mx-auto">
+          <p className="text-12 text-red-500">{error}</p>
           {needCharge && (
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>
@@ -160,21 +160,11 @@ export default function CompatInput({ type }: { type: CompatKind }) {
         </div>
       )}
 
-      <div className="w-full max-w-md mx-auto px-5 mt-3">
-        <Link
-          href="/fortune"
-          className="block w-full py-3.5 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 active:scale-[0.98] transition"
-        >
-          다른 운세 보기
-        </Link>
-      </div>
-
       {pending && (
         <StarConfirmModal
           cost={cfg.cost}
           balance={balance}
           loading={balanceLoading}
-          accent="#9F8AD0"
           title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 궁합 보기"
@@ -191,7 +181,7 @@ export default function CompatInput({ type }: { type: CompatKind }) {
       {rechargeSheetOpen && (
         <RechargeSheet
           open
-          returnTo={cfg.href}
+          returnTo={`${cfg.href}/buy`}
           need={cfg.cost}
           balance={balance}
           source={RECHARGE_SOURCE.compat}
@@ -217,6 +207,6 @@ export default function CompatInput({ type }: { type: CompatKind }) {
           onClose={() => setAlreadyOwned(null)}
         />
       )}
-    </main>
+    </div>
   );
 }

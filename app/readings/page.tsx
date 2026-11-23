@@ -9,9 +9,9 @@ import { type DrawnCard, type SpreadType, SPREAD_INFO } from "@/lib/tarot/spread
 import { getCard } from "@/lib/tarot/cards";
 import { SAJU_PRODUCT_INFO, isSajuProduct } from "@/lib/saju/products";
 import { readingCategory } from "@/lib/readings/category";
-import { getSituation } from "@/lib/relationship/situations";
 import { FortuneIconByTag } from "@/components/fortune/FortuneIcon";
-import ContinuationModal from "@/components/continuation/ContinuationModal";
+import { useScreenCache } from "@/lib/screen-cache";
+import Icon from "@/components/common/Icon";
 
 interface ReadingItem {
   id: string;
@@ -20,11 +20,8 @@ interface ReadingItem {
     dayStem?: string;
     dayElement?: string;
     pillars?: { day?: { stem: string; branch: string } };
-    situationId?: string; // 시뮬(SimMeta) 판별용
-    phase?: "stage" | "debriefed"; // 시뮬(SimMeta) 판별용
   } | null;
   consultationType?: string;
-  relationshipId?: string | null;
   spreadType?: string | null;
   sajuProduct?: string | null;
   drawnCards?: DrawnCard[] | null;
@@ -39,19 +36,10 @@ interface ReadingItem {
   preview?: string | null;
 }
 
-// /api/relationship GET(P2 shape) 항목 — 이 페이지가 쓰는 필드만 선언(구조적 타입이라 초과 필드는 무해).
-interface RelationshipListItem {
-  id: string;
-  label: string;
-  status: string;
-  partner: { displayName: string } | null;
-  lastVisitedAt: string | null;
-}
-
 const READINGS_TABS = [
   { key: "tarot", label: "타로톡" },
   { key: "fortune", label: "사주·운세" },
-  { key: "sim", label: "시뮬레이션" },
+  // "시뮬레이션" 탭은 연애 시뮬 서비스 종료로 뺐다(2026-11-21). 기록은 DB 에 그대로 있다.
 ] as const;
 
 type ReadingsTab = (typeof READINGS_TABS)[number]["key"];
@@ -78,16 +66,6 @@ const EMPTY_COPY: Record<ReadingsTab, { text: ReactNode; href: string; cta: stri
     ),
     href: "/fortune",
     cta: "운세 보러가기",
-  },
-  sim: {
-    text: (
-      <>
-        아직 연애 시뮬레이션 기록이 없어.
-        <br />인형이랑 연습을 시작해볼까?
-      </>
-    ),
-    href: "/relationship",
-    cta: "시뮬레이션 하러가기",
   },
 };
 
@@ -171,8 +149,9 @@ function sajuAvatar(r: ReadingItem) {
     );
   }
   return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
-      🔮
+    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-accent">
+      {/* 이모지(🔮)를 지운 뒤 빈칸이었다 — 공용 아이콘으로(디자인 다듬기 빈칸 정리 11-22) */}
+      <Icon name="sparkle" size={22} />
     </div>
   );
 }
@@ -182,20 +161,10 @@ function fortuneIcon(emotionTag: string | null | undefined, size: number) {
   return <FortuneIconByTag emotionTag={emotionTag} size={size} />;
 }
 
-/** 시뮬 아바타 — 상황 카탈로그의 이모지(situationId 매칭), 없으면 기본 🎭 */
-function simAvatar(r: ReadingItem) {
-  const emoji = getSituation(r.sajuData?.situationId ?? "")?.emoji ?? "🎭";
-  return (
-    <div aria-hidden="true" className="shrink-0 self-center w-12 h-12 rounded-xl bg-lilac-soft/50 flex items-center justify-center text-[18px]">
-      {emoji}
-    </div>
-  );
-}
-
 function EmptyState({ tab }: { tab: ReadingsTab }) {
   const c = EMPTY_COPY[tab];
   return (
-    <div className="bg-white rounded-2xl p-6 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] text-center">
+    <div className="card-report text-center">
       <Image
         src="/byeolkong-curious.png"
         alt=""
@@ -204,10 +173,10 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
         className="mx-auto mb-3"
         aria-hidden
       />
-      <p className="text-[13px] text-text-light leading-relaxed">{c.text}</p>
+      <p className="text-13 text-text-light leading-relaxed">{c.text}</p>
       <Link
         href={c.href}
-        className="mt-3 inline-block px-5 py-2 rounded-xl bg-lilac-deep text-white text-[12px] font-bold"
+        className="btn btn-primary btn-sm mt-3"
       >
         {c.cta}
       </Link>
@@ -215,8 +184,10 @@ function EmptyState({ tab }: { tab: ReadingsTab }) {
   );
 }
 
-// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/후속 상담/프로필 칩/민감 표시(현행 유지).
-function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
+// 타로 + (사주·운세 안의) 사주 상담 스타일 카드 — 완료/이어하기/프로필 칩/민감 표시.
+// '후속 상담' 버튼은 뺐다(디자인 다듬기 보관함 ⑥ 가, 운영자 11-22) — 08-28 타로 결과의 이어가기 입구를 뺀 뒤 거의 안 쓰였고,
+// 타로는 정가 새 상담과 같다. 카드를 누르면 결과 화면의 '이 고민 다시 뽑기'가 같은 일을 한다. 사주 결과 화면의 이어가기는 그대로.
+function renderConsultCard(r: ReadingItem) {
   const isTarot = r.consultationType === "tarot";
   const canResume = r.ended === false && !r.resultReady;
   const href = canResume
@@ -241,7 +212,7 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
     <div key={r.id} className="relative">
       <Link
         href={href}
-        className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
+        className="card flex gap-3 items-start transition"
       >
         {isTarot ? (
           <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-lilac-soft overflow-hidden">
@@ -258,45 +229,31 @@ function renderConsultCard(r: ReadingItem, onContinue: (id: string) => void) {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
+            <span className="text-14 font-bold text-eye-purple whitespace-nowrap">
               {r.emotionTag ?? "고민 상담"}
             </span>
             {r.hasSensitive && (
-              <span
-                className="shrink-0 text-[11px] text-rose-400"
-                role="img"
-                aria-label="민감 시그널이 감지된 대화"
-              >
-                🤍
-              </span>
+              <Icon name="heart" size={13} className="text-rose-400" title="민감 시그널이 감지된 대화" />
             )}
             {chip && (
-              <span className="shrink-0 text-[10px] font-bold text-lilac-deep bg-lilac-soft rounded-full px-1.5 py-0.5">
+              <span className="shrink-0 text-11 font-bold text-accent bg-lilac-soft rounded-full px-1.5 py-0.5">
                 {chip}
               </span>
             )}
             {canResume && (
-              <span className="shrink-0 text-[10px] font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
+              <span className="shrink-0 text-11 font-bold text-white bg-lilac-deep rounded-full px-1.5 py-0.5">
                 이어하기
               </span>
             )}
           </div>
-          <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
+          <p className="text-11 text-text-light mt-0.5 leading-snug line-clamp-2">
             {subtitle}
           </p>
-          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light mt-1 leading-snug line-clamp-2">
             {preview || (r.generating ? "별콩이가 답을 준비하고 있어…" : r.question)}
           </p>
         </div>
       </Link>
-      {!canResume && !r.hasSensitive && (
-        <button
-          onClick={() => onContinue(r.id)}
-          className="absolute top-2.5 right-2.5 text-[10px] font-bold text-lilac-deep bg-lilac-soft/80 hover:bg-lilac-soft rounded-full px-2 py-1 transition"
-        >
-          후속 상담
-        </button>
-      )}
     </div>
   );
 }
@@ -309,16 +266,16 @@ function renderReportCard(r: ReadingItem) {
     return (
       <div
         key={r.id}
-        className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-gradient-to-br from-night to-night-deep"
+        className="rounded-2xl p-3.5 border border-gold/30 flex items-center gap-3 bg-night-card"
       >
-        <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-[18px]">
+        <div className="w-10 h-10 rounded-lg bg-gold/15 flex items-center justify-center text-17">
           {fortuneIcon(r.emotionTag, 24)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] text-gold-soft font-medium line-clamp-1">
+          <div className="text-13 text-gold-soft font-medium line-clamp-1">
             {genLabel}
           </div>
-          <div className="text-[11px] text-cream/60 mt-1 flex items-center gap-1.5">
+          <div className="text-11 text-cream/60 mt-1 flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
             별콩이가 리포트를 만들고 있어…
           </div>
@@ -330,64 +287,25 @@ function renderReportCard(r: ReadingItem) {
     <Link
       key={r.id}
       href={`/fortune/result?id=${r.id}&from=history`}
-      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex items-start gap-3 hover:border-lilac-deep/50 transition"
+      className="card flex items-start gap-3 transition"
     >
-      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-[18px]">
+      <div className="shrink-0 self-center w-12 h-12 rounded-xl bg-gold-soft/30 flex items-center justify-center text-17">
         {fortuneIcon(r.emotionTag, 24)}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] text-eye-purple line-clamp-1 font-medium">
+        <div className="text-13 text-eye-purple line-clamp-1 font-medium">
           {r.question}
         </div>
-        <div className="text-[11px] text-text-light/70 mt-0.5 flex items-center gap-1.5">
+        <div className="text-11 text-text-light mt-0.5 flex items-center gap-1.5">
           <span>{formatDate(r.createdAt)}</span>
           <span>·</span>
-          <span>{r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`}</span>
+          <span>{r.starsSpent === 0 ? "무료" : `별 ${r.starsSpent}`}</span>
         </div>
         {r.preview?.trim() && (
-          <p className="text-[11.5px] text-text-light/80 mt-1 leading-snug line-clamp-2">
+          <p className="text-12 text-text-light mt-1 leading-snug line-clamp-2">
             {r.preview.trim()}
           </p>
         )}
-      </div>
-    </Link>
-  );
-}
-
-// 시뮬 카드 — 완료(debriefed)="완료"/진행중(stage)="진행 중" 배지.
-// 재진입: /relationship/sim?sim=<id> → 완료=디브리핑 재열람, 진행중=재개(무차감).
-// (재진입 인프라 = specs/2026-08-09-sim-reentry-design.md. GET·read-only·POST 미호출이라 재차감·고아판 없음.)
-function renderSimCard(r: ReadingItem, relLabelById: Map<string, string>) {
-  const done = r.sajuData?.phase === "debriefed";
-  const href = `/relationship/sim?sim=${r.id}`;
-  const relLabel = r.relationshipId ? relLabelById.get(r.relationshipId) : undefined;
-  const subParts = [formatDate(r.createdAt)];
-  if (relLabel) subParts.push(relLabel);
-  subParts.push(r.starsSpent === 0 ? "무료" : `⭐ ${r.starsSpent}`);
-  return (
-    <Link
-      key={r.id}
-      href={href}
-      className="bg-white rounded-2xl p-3.5 border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.08)] flex gap-3 items-start hover:border-lilac-deep/50 transition"
-    >
-      {simAvatar(r)}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13.5px] font-bold text-eye-purple whitespace-nowrap">
-            {r.question}
-          </span>
-          <span
-            className={[
-              "shrink-0 text-[10px] font-bold rounded-full px-1.5 py-0.5",
-              done ? "text-lilac-deep bg-lilac-soft" : "text-text-light/70 bg-lilac-soft/40",
-            ].join(" ")}
-          >
-            {done ? "완료" : "진행 중"}
-          </span>
-        </div>
-        <p className="text-[10px] text-text-light/60 mt-0.5 leading-snug line-clamp-2">
-          {subParts.join(" · ")}
-        </p>
       </div>
     </Link>
   );
@@ -401,31 +319,38 @@ export default function ReadingsPage() {
   );
 }
 
+// 화면 기억(lib/screen-cache) — 결과를 보고 돌아오면 '잠시만…' 없이 보던 탭·쪽 그대로. 목록은 늘 새로 불러와 바꾼다
+interface ReadingsSnapshot {
+  readings: ReadingItem[];
+  tab: ReadingsTab;
+  page: number;
+}
+const CACHE_KEY = "readings";
+
 function ReadingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [readings, setReadings] = useState<ReadingItem[]>([]);
-  const [relationships, setRelationships] = useState<RelationshipListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { cached, save } = useScreenCache<ReadingsSnapshot>(CACHE_KEY);
+  const [readings, setReadings] = useState<ReadingItem[]>(cached?.readings ?? []);
+  const [loading, setLoading] = useState(!cached);
+  // 주소에 탭이 있으면 그게 우선, 없으면 기억해 둔 탭(쪽도 같은 탭일 때만 되살린다)
   const [tab, setTab] = useState<ReadingsTab>(() => {
     const t = searchParams.get("tab");
-    return READINGS_TABS.some((x) => x.key === t) ? (t as ReadingsTab) : "tarot";
+    if (READINGS_TABS.some((x) => x.key === t)) return t as ReadingsTab;
+    // 기억해 둔 탭도 지금 있는 탭일 때만(없앤 "sim" 탭이 남아 있을 수 있다)
+    return READINGS_TABS.some((x) => x.key === cached?.tab) ? cached!.tab : "tarot";
   });
-  const [continueId, setContinueId] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => (cached && cached.tab === tab ? cached.page : 0));
+
+  useEffect(() => {
+    if (!loading) save({ readings, tab, page } satisfies ReadingsSnapshot);
+  }, [save, loading, readings, tab, page]);
 
   const loadReadings = async () => {
     const list = await fetch("/api/readings", { cache: "no-store" })
       .then((x) => (x.ok ? x.json() : null))
       .catch(() => null);
     if (list?.readings) setReadings(list.readings);
-  };
-
-  const loadRelationships = async () => {
-    const data = await fetch("/api/relationship", { cache: "no-store" })
-      .then((x) => (x.ok ? x.json() : null))
-      .catch(() => null);
-    if (data?.relationships) setRelationships(data.relationships);
   };
 
   useEffect(() => {
@@ -435,7 +360,6 @@ function ReadingsPageInner() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null),
         loadReadings(),
-        loadRelationships(),
       ]);
       if (!me?.isAuthenticated) {
         router.replace("/login?next=/readings");
@@ -445,25 +369,18 @@ function ReadingsPageInner() {
     })();
   }, [router]);
 
-  // 종목 분류(Task 1 readingCategory 공유) — 우리 사이는 /api/relationship 에서 별도로 온다.
-  const { tarot, fortune, sim } = useMemo(() => {
+  // 종목 분류(Task 1 readingCategory 공유). "sim"(연애 시뮬)은 서비스 종료로 목록에서 뺀다 — 기록은 DB 에 그대로.
+  // "relationship" 은 /api/readings 에 안 실리므로(서버 .neq 필터) 도달하지 않음.
+  const { tarot, fortune } = useMemo(() => {
     const tarot: ReadingItem[] = [];
     const fortune: ReadingItem[] = [];
-    const sim: ReadingItem[] = [];
     for (const r of readings) {
       const cat = readingCategory({ consultationType: r.consultationType, emotionTag: r.emotionTag });
       if (cat === "tarot") tarot.push(r);
-      else if (cat === "sim") sim.push(r);
       else if (cat === "fortune") fortune.push(r);
-      // "relationship" 은 /api/readings 에 안 실리므로(서버 .neq 필터) 도달하지 않음.
     }
-    return { tarot, fortune, sim };
+    return { tarot, fortune };
   }, [readings]);
-
-  const relLabelById = useMemo(
-    () => new Map(relationships.map((r) => [r.id, r.label])),
-    [relationships]
-  );
 
   // 백그라운드 생성 중인 리딩(메시지 없음)이 있으면 완료될 때까지 목록을 폴링.
   const hasGenerating = useMemo(() => fortune.some((r) => r.generating), [fortune]);
@@ -493,7 +410,7 @@ function ReadingsPageInner() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">잠시만…</p>
+        <p className="text-text-light text-14">잠시만…</p>
       </main>
     );
   }
@@ -501,7 +418,6 @@ function ReadingsPageInner() {
   const counts: Record<ReadingsTab, number> = {
     tarot: tarot.length,
     fortune: fortune.length,
-    sim: sim.length,
   };
   const activeCount = counts[tab];
   const totalPages = Math.max(1, Math.ceil(activeCount / PAGE_SIZE));
@@ -510,11 +426,12 @@ function ReadingsPageInner() {
   const pageEnd = pageStart + PAGE_SIZE;
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
-      <div className="w-full max-w-md mx-auto px-5 mb-4">
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
+      {/* 앱에선 숨긴다(web-only) — 앱 머리 '보관함'(‹ 포함)과 겹쳤다(디자인 다듬기 보관함 ⑤ R1, 운영자 11-21). 웹은 그대로 */}
+      <div className="web-only w-full max-w-md mx-auto px-5 mb-4">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+          className="inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
         >
           <svg
             width="12"
@@ -531,8 +448,8 @@ function ReadingsPageInner() {
           </svg>
           <span>뒤로</span>
         </Link>
-        <h1 className="text-[18px] font-bold text-eye-purple">내 상담 보관함</h1>
-        <p className="text-[12px] text-text-light/70 mt-1">
+        <h1 className="text-17 font-bold text-eye-purple">내 상담 보관함</h1>
+        <p className="text-12 text-text-light mt-1">
           별콩이와 나눈 상담과 운세를 다시 볼 수 있어
         </p>
       </div>
@@ -548,13 +465,13 @@ function ReadingsPageInner() {
                 onClick={() => switchTab(t.key)}
                 aria-pressed={tab === t.key}
                 className={[
-                  "shrink-0 text-[13px] font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
+                  "shrink-0 text-13 font-bold px-4 py-1.5 rounded-full whitespace-nowrap transition",
                   tab === t.key
-                    ? "bg-eye-purple text-white"
+                    ? "bg-accent text-white"
                     : "bg-white border border-lilac-soft text-text-light",
                 ].join(" ")}
               >
-                {t.label} {count > 0 && <span className="text-[12px]">{count}</span>}
+                {t.label} {count > 0 && <span className="text-12">{count}</span>}
               </button>
             );
           })}
@@ -568,19 +485,15 @@ function ReadingsPageInner() {
           <>
             {tab === "tarot" ? (
               <div className="flex flex-col gap-2">
-                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r, (id) => setContinueId(id)))}
+                {tarot.slice(pageStart, pageEnd).map((r) => renderConsultCard(r))}
               </div>
-            ) : tab === "fortune" ? (
+            ) : (
               <div className="flex flex-col gap-2">
                 {fortune.slice(pageStart, pageEnd).map((r) =>
                   fortuneTypeFromTag(r.emotionTag)
                     ? renderReportCard(r)
-                    : renderConsultCard(r, (id) => setContinueId(id))
+                    : renderConsultCard(r)
                 )}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {sim.slice(pageStart, pageEnd).map((r) => renderSimCard(r, relLabelById))}
               </div>
             )}
             {totalPages > 1 && (
@@ -600,10 +513,10 @@ function ReadingsPageInner() {
                     key={i}
                     onClick={() => setPage(i)}
                     aria-label={`${i + 1}페이지`}
-                    className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                    className={`w-7 h-7 rounded-lg text-12 font-bold ${
                       i === safePage
-                        ? "bg-lilac-deep text-white"
-                        : "text-text-light/70 hover:bg-lilac-soft/50"
+                        ? "bg-accent text-white"
+                        : "text-text-light hover:bg-lilac-soft/50"
                     }`}
                   >
                     {i + 1}
@@ -625,10 +538,6 @@ function ReadingsPageInner() {
         )}
       </div>
 
-      <ContinuationModal
-        readingId={continueId}
-        onClose={() => setContinueId(null)}
-      />
     </main>
   );
 }

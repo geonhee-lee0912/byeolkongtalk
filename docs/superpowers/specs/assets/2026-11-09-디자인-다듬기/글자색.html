@@ -1,0 +1,56 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>글자색 대비</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--ld:#9F8AD0;--ink:#5A3E8C;--tl:#7A6BA0}
+*{box-sizing:border-box}body{margin:0;background:#EEE8F4;color:#3b3350;font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 14px}
+section{background:#fff;border-radius:20px;padding:18px;margin-top:16px}h2{color:var(--ink);font-size:17px;margin:0 0 10px}
+table{border-collapse:collapse;width:100%}td,th{padding:9px 8px;border-top:1px solid #f1ebf7;text-align:left;font-size:13px;vertical-align:middle}th{color:var(--tl);font-weight:500;border-top:0;font-size:12px}
+.n{font-weight:900;color:var(--ink);white-space:nowrap}.ok{color:#2E8B57;font-weight:700}.ng{color:#C0392B;font-weight:700}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+.phones{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.phone{width:360px;background:var(--cream);border-radius:28px;padding:18px}
+.phone h3{margin:0 0 12px;text-align:center;color:var(--ink);font-size:15px}
+.c1{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(90,62,140,.08);margin-bottom:12px}
+.chip{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;background:#F1EBFA;margin-bottom:6px}
+.t{font-size:16px;font-weight:700;color:#5A3E8C;display:block}.d{font-size:13px;display:block;margin-top:2px}.m{font-size:12px;display:block;margin-top:6px}
+.note{font-size:12.5px;color:var(--tl);margin:10px 0 0}
+</style></head><body><div class="wrap">
+<h1>글자색 — 흐린 글자가 너무 흐려요</h1>
+<p class="lead">밝은 바탕(크림·흰) 위 글자만 계산했어요. 기준은 웹 접근성 4.5 : 1 (작은 글자).</p>
+
+<section><h2>지금</h2>
+<table><tr><th>글자색</th><th>쓰는 곳</th><th>자리 수</th><th>크림 위 대비</th></tr>
+<tr><td class="n"><span class="sw" style="background:#5A3E8C"></span>진보라</td><td>제목·본문</td><td>431</td><td class="ok">7.8</td></tr>
+<tr><td class="n"><span class="sw" style="background:#7A6BA0"></span>보조 회보라</td><td>설명·날짜</td><td>318</td><td class="ng">4.4 (아슬아슬 미달)</td></tr>
+<tr><td class="n"><span class="sw" style="background:#7A6BA0;opacity:.6"></span>보조 회보라를 투명하게 (40~90%)</td><td>더 흐린 설명·메타</td><td>약 200</td><td class="ng">2.3 ~ 3.9</td></tr>
+<tr><td class="n"><span class="sw" style="background:#9F8AD0"></span>연보라</td><td>칩·라벨·강조 글자</td><td>145</td><td class="ng">2.8</td></tr>
+</table>
+</section>
+
+<section><h2>제안 — 글자색 4개로</h2>
+<table><tr><th>글자색</th><th>쓰는 곳</th><th>크림 위</th><th>흰 위</th></tr>
+<tr><td class="n"><span class="sw" style="background:#5A3E8C"></span>진보라 (그대로)</td><td>제목·본문</td><td class="ok">7.8</td><td class="ok">8.4</td></tr>
+<tr><td class="n"><span class="sw" style="background:#726398"></span>보조 #726398 (지금보다 한 톤 진하게)</td><td>설명·날짜·메타 — <b>투명도 글자 약 200곳도 전부 이 색으로</b></td><td class="ok">4.9</td><td class="ok">5.3</td></tr>
+<tr><td class="n"><span class="sw" style="background:#775CB0"></span>강조 보라 #775CB0</td><td>칩·라벨·강조 글자 (지금 연보라 글자 145곳)</td><td class="ok">5.0</td><td class="ok">5.3</td></tr>
+<tr><td class="n"><span class="sw" style="background:#978AB3"></span>흐린 글자 #978AB3</td><td>입력 전 안내 글자·못 누르는 상태만</td><td>3.0</td><td>3.2</td></tr>
+</table>
+<p class="note"><b>버튼 보라와 묶기:</b> 강조 보라 #775CB0 를 주 버튼 색으로도 쓰면 보라가 하나로 정리돼요. 앞에서 정한 #7E66BA 보다 아주 조금 진해요(흰 글자 대비 4.7 → 5.3).<br>
+연보라 #9F8AD0 은 글자가 아닌 곳(아이콘·테두리·장식)에만 남아요. 밤 배경 위 글자(골드·연보라)는 이번 계산에서 빠졌고 화면별 단계에서 봐요.</p>
+</section>
+
+<section><h2>같은 카드, 지금과 바꾼 뒤</h2>
+<div class="phones">
+<div class="phone"><h3>지금</h3>
+<div class="c1"><span class="chip" style="color:#9F8AD0">연애</span><span class="t">그 사람 마음 보기</span><span class="d" style="color:#7A6BA0">세 장으로 지금 흐름을 봐요</span><span class="m" style="color:rgba(122,107,160,.7)">11월 7일 · 별 3개</span></div>
+<div class="c1"><span class="chip" style="color:#9F8AD0">사주</span><span class="t">올해 운세</span><span class="d" style="color:#7A6BA0">한 해 흐름을 열두 달로</span><span class="m" style="color:rgba(122,107,160,.6)">지난번에 본 결과 있음</span></div>
+</div>
+<div class="phone"><h3>바꾼 뒤</h3>
+<div class="c1"><span class="chip" style="color:#775CB0">연애</span><span class="t">그 사람 마음 보기</span><span class="d" style="color:#726398">세 장으로 지금 흐름을 봐요</span><span class="m" style="color:#726398">11월 7일 · 별 3개</span></div>
+<div class="c1"><span class="chip" style="color:#775CB0">사주</span><span class="t">올해 운세</span><span class="d" style="color:#726398">한 해 흐름을 열두 달로</span><span class="m" style="color:#726398">지난번에 본 결과 있음</span></div>
+</div>
+</div>
+<p class="note">설명과 메타가 같은 색이 되는 대신 크기(13 · 12)로 구분돼요.</p>
+</section>
+</div></body></html>

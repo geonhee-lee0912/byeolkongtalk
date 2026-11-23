@@ -1,6 +1,7 @@
 // app/admin/users/[id]/page.tsx — 사용자 상세.
 import Link from "next/link";
-import { createHash } from "crypto";
+import { identityHash } from "@/lib/auth/identity-hash";
+import { getUserIdentities, primaryIdentity, type UserIdentity } from "@/lib/auth/user-identity";
 import { getServiceSupabase } from "@/lib/supabase";
 import { UserActions } from "@/components/admin/UserActions";
 import { PopupSend } from "@/components/admin/PopupSend";
@@ -38,16 +39,20 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   ]);
   if (!user.data) notFound();
 
-  // 이 카카오의 과거 탈퇴 횟수 (재가입 유저 판별) — account_withdrawals 는 탈퇴해도 남는 원장
+  // 로그인 수단과 그 수단의 과거 탈퇴 횟수 (재가입 유저 판별) — account_withdrawals 는 탈퇴해도 남는 원장
+  let identity: UserIdentity | null = null;
+  let identityFailed = false;
+  try {
+    identity = primaryIdentity(await getUserIdentities(id));
+  } catch {
+    identityFailed = true;
+  }
   let withdrawalCount = 0;
-  if (user.data.kakao_id) {
-    const kakaoIdHash = createHash("sha256")
-      .update(String(user.data.kakao_id))
-      .digest("hex");
+  if (identity) {
     const { count } = await supabase
       .from("account_withdrawals")
       .select("id", { count: "exact", head: true })
-      .eq("kakao_id_hash", kakaoIdHash);
+      .eq("kakao_id_hash", identityHash(identity.provider, identity.providerUserId));
     withdrawalCount = count ?? 0;
   }
 
@@ -81,7 +86,8 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
         <div className="rounded bg-white/5 p-3">리딩 수: <b>{(readings.data ?? []).length}</b></div>
         <div className="rounded bg-white/5 p-3">웰컴 별: <b>{welcomeBonus ? `지급 (${welcomeBonus.amount}별)` : "미지급"}</b></div>
         <div className="rounded bg-white/5 p-3">첫 충전 보너스: <b>{firstChargeBonus ? `지급 (${firstChargeBonus.amount}별)` : "미지급"}</b></div>
-        <div className="rounded bg-white/5 p-3">과거 탈퇴: <b>{withdrawalCount}회</b>{withdrawalCount > 0 ? " · 재가입 유저" : ""}</div>
+        <div className="rounded bg-white/5 p-3">과거 탈퇴: <b>{identityFailed ? "—" : `${withdrawalCount}회`}</b>{withdrawalCount > 0 ? " · 재가입 유저" : ""}</div>
+        <div className="rounded bg-white/5 p-3">로그인: <b>{identityFailed ? "—" : identity?.provider === "apple" ? "애플" : identity ? "카카오" : "없음"}</b></div>
       </div>
       <div>
         <div className="text-sm text-white/60 mb-2">생일 프로필 ({(profiles.data ?? []).length})</div>

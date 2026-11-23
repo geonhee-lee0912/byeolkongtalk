@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { appHaptic } from "@/lib/app-context";
 
 type TabKey = "consult" | "fortune" | "byeolmaru" | "shop" | "me";
 
@@ -120,18 +121,12 @@ export default function BottomTab() {
       aria-label="주요 메뉴"
     >
       <div className="max-w-md mx-auto h-16 flex items-stretch px-1">
-        {TABS.map((tab, i) => {
+        {TABS.map((tab) => {
           const active = fromHistory
             ? tab.key === "me"
             : isActive(pathname, tab);
           return (
             <Fragment key={tab.key}>
-              {i > 0 && (
-                <span
-                  className="my-3 w-px self-stretch bg-lilac-soft/70"
-                  aria-hidden
-                />
-              )}
               <Link
                 href={tab.href}
                 className={[
@@ -141,14 +136,27 @@ export default function BottomTab() {
                     : "text-text-light hover:text-eye-purple",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
+                data-nav="tab"
+                onClick={(e) => {
+                  // 지금 탭을 다시 누르면 맨 위로(앱 관례 — 스펙 2026-11-07-앱-화면 §5 ⑤). 웹도 같은 동작
+                  if (active && pathname === tab.href) {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                  // 다른 탭으로 옮길 때만 가볍게 진동(앱 caps ui) — 스펙 §5 ⑥
+                  if (!active) appHaptic("light");
+                }}
               >
-                {/* 선택 탭: 아이콘+라벨을 라일락 pill 로 함께 감싼다. 패딩은 항상 유지해 레이아웃 고정. */}
-                <span
-                  className={[
-                    "w-full flex flex-col items-center justify-center gap-1 rounded-2xl py-1.5 transition-colors",
-                    active ? "bg-lilac-soft" : "",
-                  ].join(" ")}
-                >
+                {/* 선택 탭: 아이콘 뒤에만 작은 라일락 알약, 나머지 탭 아이콘은 연하게(디자인 다듬기 ② 공통 틀 운영자 C안 11-12).
+                    알약 칸은 항상 그려 두고 바탕색만 바꿔 레이아웃을 고정한다. */}
+                <span className="w-full flex flex-col items-center justify-center gap-1 py-1.5">
+                  <span
+                    className={[
+                      "flex items-center justify-center w-13 h-7 rounded-full transition-colors",
+                      // design-allow: 이 칸엔 아이콘(svg)만 있다 — lilac-deep 은 글자 아닌 곳에 쓰는 색(라벨 글자는 아래 text-light)
+                      active ? "bg-lilac-soft" : "text-lilac-deep",
+                    ].join(" ")}
+                  >
                   <span className="relative">
                     <svg
                       className={ICON_CLASS}
@@ -181,9 +189,10 @@ export default function BottomTab() {
                       </span>
                     )}
                   </span>
+                  </span>
                   <span
                     className={[
-                      "text-[10.5px] leading-none tracking-tight",
+                      "text-11 leading-none tracking-tight",
                       active ? "font-bold" : "font-medium",
                     ].join(" ")}
                   >

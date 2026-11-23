@@ -22,14 +22,15 @@ import { BYEOLMARU_SUBSCRIPTION } from "@/lib/byeolmaru/constants";
 import type { SubscribeSurface } from "@/lib/byeolmaru/subscribe-offer";
 import type { DrawnCard } from "@/lib/tarot/spreads";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
+import { OverlayEntry } from "@/components/common/use-overlay-entry";
 import CardReportView, { CardGaugeView } from "./CardReportView";
 import PaywallCut from "./PaywallCut";
 import TrialSubscribeNudge from "./TrialSubscribeNudge";
 import SubscribeOfferShown from "./SubscribeOfferShown";
-import { shareToKakao, isKakaoReady } from "@/lib/kakao-share";
-import { trackUiEvent } from "@/lib/analytics/ui-events";
+import ByeolmaruShareButton from "./ByeolmaruShareButton";
 import BirthPromptButton, { reloadAfterSave } from "@/components/saju/BirthPromptButton";
 import { BIRTH_PROMPT_SURFACE } from "@/lib/analytics/birth-prompt-surface";
+import Icon from "@/components/common/Icon";
 
 interface DailyCard {
   cardId: number;
@@ -226,25 +227,9 @@ export default function DailyCardBlock({
   //    없어, 오늘 열어둔 의식이 `?date=지난날` 로 돌아가도 그대로 살아남는다(뒤로가기가 그 경로다).
   //    그러면 POST 는 서버 오늘로 저장하는데 화면은 "그날의 카드"라고 말해 — 소급으로 뽑은 것처럼
   //    보인다(스펙 §4 "그때 받은 것만" 위반). 선언적으로 잠근다.
-  //    🔴 잠금 effect 와 포털 중 **하나만** 잠그면 안 된다: 포털만 닫으면 ritualOpen 이 true 라
-  //       이 effect 의 cleanup 이 안 돌아 body overflow:hidden 이 남는다(다이얼로그 없이 스크롤 먹통).
+  //    🔴 잠금과 포털이 따로 놀면 안 된다: 포털만 닫히고 잠금이 남으면 다이얼로그 없이 스크롤 먹통이 된다.
+  //       그래서 잠금(겹창 스택의 OverlayEntry)을 포털 **안에** 같이 그린다 — 포털이 사라지면 잠금도 풀린다.
   const ritualVisible = ritualOpen && date === todayKst;
-
-  // 배경 스크롤 잠금 + ESC 닫기 — WatchAddModal 과 동일 패턴(저장 중엔 닫기 불가).
-  useEffect(() => {
-    if (!ritualVisible) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) closeRitual();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ritualVisible, saving]);
 
   function openRitual() {
     // 🔴 소급 뽑기 금지 — POST 는 언제나 **오늘**로 저장한다(스펙 §4 "그때 받은 것만").
@@ -360,14 +345,14 @@ export default function DailyCardBlock({
       {/* 🔴 날짜 정합까지 본다 — 아래 drawn 분기와 같은 가드다. 없으면 날짜가 바뀐 한 프레임 동안
           **지난 날짜의 "안 뽑았어" 안내가 새 날짜 헤더 밑에** 그대로 남는다. */}
       {state.kind === "none" && state.date === date && (
-        <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
-          <h2 className="mb-2 font-display text-base text-eye-purple">{dayLabel}의 카드</h2>
+        <section className="card">
+          <h2 className="mb-2 font-display text-17 text-eye-purple">{dayLabel}의 카드</h2>
           {date === todayKst ? (
             <>
-              <p className="mb-3 text-sm text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
+              <p className="mb-3 text-14 text-text-light">오늘 하루, 카드 한 장으로 가볍게 짚어볼까?</p>
               <button
                 onClick={openRitual}
-                className="w-full rounded-xl py-2.5 text-sm font-bold text-white"
+                className="w-full rounded-xl py-2.5 text-14 font-bold text-white"
                 style={{ background: RITUAL_ACCENT }}
               >
                 오늘의 카드 뽑기
@@ -377,9 +362,9 @@ export default function DailyCardBlock({
             // 🔴 지난 날 소급 뽑기는 하지 않는다(스펙 §4 "그때 받은 것만"). 미래는 아직 안 온 날이다.
             //    이 CTA 게이트만으로는 부족하다 — 쿼리 변경엔 재마운트가 없어, 오늘 연 의식이
             //    이 링크를 거쳐 뒤로가기로 돌아와도 살아남는다. 포털도 `ritualVisible` 로 같이 잠근다.
-            <p className="text-sm text-text-light">
+            <p className="text-14 text-text-light">
               {date < todayKst ? "그날은 카드를 안 뽑았어." : "카드는 그날 뽑는 거야."}{" "}
-              <Link href="/byeolmaru/day?tab=tarot" className="text-lilac-deep underline">오늘 카드 뽑으러 가기 →</Link>
+              <Link href="/byeolmaru/day?tab=tarot" className="text-accent underline">오늘 카드 뽑으러 가기</Link>
             </p>
           )}
         </section>
@@ -407,25 +392,22 @@ export default function DailyCardBlock({
           // tarotCard 의 non-null narrowing 이 아래 nested 함수 클로저까지 이어지지 않아 별도 캡처.
           const cardNameKr = tarotCard.name_kr;
 
-          function handleShare() {
-            const ok = shareToKakao({
-              title: `오늘의 카드 · ${cardNameKr}`,
-              description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
-              imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
-              // 🔴 착지 경로는 건드리지 않는다 — 파라미터만 붙인다(§10-1①). 이 블록이 허브에서 전용
-              //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
-              //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
-              //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
-              link: `${window.location.origin}/byeolmaru/day?tab=tarot&utm_source=byeolmaru_tarot&utm_medium=share`,
-              buttonTitle: "나도 뽑아보기",
-            });
-            // 결과(ok) 를 실어 성공 공유와 SDK 미준비 무음실패를 구분 — Loop2 바이럴 지표 정직.
-            trackUiEvent("byeolmaru_share_clicked", { meta: { kind: "tarot", ok } });
-          }
+          // 공유 내용 — '공유하기' + 시트(카톡·링크·이미지, ByeolmaruShareButton)가 쓴다. 디자인 다듬기 별마루 ⑧ K2(운영자 11-21)
+          const share = {
+            title: `오늘의 카드 · ${cardNameKr}`,
+            description: "별마루에서 오늘 카드 한 장 뽑아봐 — 무료로 매일.",
+            imageUrl: `${window.location.origin}/api/og/byeolmaru/tarot?card=${drawnCard.cardId}&rev=${drawnCard.reversed ? 1 : 0}`,
+            // 🔴 착지 경로는 건드리지 않는다 — 파라미터만 붙인다(§10-1①). 이 블록이 허브에서 전용
+            //    라우트로 이전돼 허브엔 카드 섹션이 없다: /byeolmaru 로 바꾸면 수신자가 카드를 못
+            //    보고, 그건 utm 이 재려는 바로 그 첫 칸을 깎는다(사주 쪽 788136d 의 교훈).
+            //    비로그인 수신자용 보조 링크("별마루 먼저 둘러보기")는 이 화면에 이미 있다.
+            link: `${window.location.origin}/byeolmaru/day?tab=tarot&utm_source=byeolmaru_tarot&utm_medium=share`,
+            buttonTitle: "나도 뽑아보기",
+          };
 
           return (
             <>
-            <section className="rounded-2xl bg-white border border-lilac-mid/20 shadow-[0_8px_30px_rgba(40,30,70,0.08)] p-4">
+            <section className="card">
               {/* 🔴 위 "카드 없음" 분기와 **같은 값**을 쓴다 — 날짜 축이 열린 뒤로 "오늘의 카드"는
                   지난 날에서 거짓말이 된다. 상단 BackHeader 가 날짜를 지던 시절엔 dayWord("그날")로
                   충분했지만, 타이틀이 사라져 이제 여기가 유일한 날짜 표기다. */}
@@ -434,7 +416,7 @@ export default function DailyCardBlock({
                   분기(아직 안 뽑음)는 그대로 둔다. 거기에 같은 문구를 쓰면 거짓이 된다.
                   🔴 `네가` 다 — 저장소 표준이다(saju-taste 본문 "네가 정하기 나름인 날이지" 등).
                      구어 "너가"로 바꾸지 말 것. */}
-              <h2 className="mb-3 font-display text-base text-eye-purple">네가 뽑은 {dayLabel}의 카드</h2>
+              <h2 className="mb-3 font-display text-17 text-eye-purple">네가 뽑은 {dayLabel}의 카드</h2>
 
               {/* 🔴 live region 은 **무료 구간만** 감싼다(section 전체가 아니다) — DayDetailCard 가
                   Task 6 에서 내린 것과 같은 판단이다. 아래 자격 삼항에는 유료 리포트(~1,800자)가
@@ -450,7 +432,7 @@ export default function DailyCardBlock({
                      확인한 적은 없으니 "그래서 안 읽힌다"로 단정하지도 말 것. */}
               <div aria-live="polite">
                 <div className="flex flex-col items-center text-center">
-                  <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-md">
+                  <div className="relative h-[187px] w-[110px] overflow-hidden rounded-lg shadow-card">
                     <Image
                       src={getCardImagePath(drawnCard.cardId)}
                       alt={tarotCard.name_kr}
@@ -459,16 +441,16 @@ export default function DailyCardBlock({
                       className={`object-cover ${reversed ? "rotate-180" : ""}`}
                     />
                   </div>
-                  <p className="mt-2 font-display text-[15px] text-eye-purple">
-                    {tarotCard.name_kr} <span className="text-xs text-text-light">· {orientLabel}</span>
+                  <p className="mt-2 font-display text-15 text-eye-purple">
+                    {tarotCard.name_kr} <span className="text-12 text-text-light">· {orientLabel}</span>
                   </p>
                   {/* 🔴 쉼표 나열 한 줄 → 칩(2026-09-27, 사용자 요청). 키워드는 문장이 아니라
                       **낱개 항목**이라 나열문으로 두면 아래 taste 본문과 결이 섞였다.
-                      칩 모양은 같은 화면 FreeList 해시태그 칩(`bg-lilac-soft/60` + `text-lilac-deep`)
+                      칩 모양은 같은 화면 FreeList 해시태그 칩(`bg-lilac-soft/60` + `text-accent`)
                       을 그대로 쓴다 — 별마루 안에서 새 칩 문법을 만들지 않는다. */}
                   <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
                     {kwList.map((k) => (
-                      <li key={k} className="rounded-full bg-lilac-soft/60 px-2.5 py-1 text-[11px] font-bold text-lilac-deep">
+                      <li key={k} className="rounded-full bg-lilac-soft/60 px-2.5 py-1 text-11 font-bold text-accent">
                         {k}
                       </li>
                     ))}
@@ -485,14 +467,14 @@ export default function DailyCardBlock({
                        카드 행이 없어 state.kind 가 "none" 으로 떨어진다(POST 는 언제나 오늘로 저장).
                        그래서 2분기(`date !== todayKst`)로 충분하다. */}
                 {framed && (
-                  <p className="mt-3 text-xs text-text-light">그날 이 카드를 뽑았을 때 별콩이가 건넨 말이야.</p>
+                  <p className="mt-3 text-12 text-text-light">그날 이 카드를 뽑았을 때 별콩이가 건넨 말이야.</p>
                 )}
                 {/* 무료 taste — 🔴 자격 여부와 무관하게 **항상** 그린다(§5-3①). 유료 프롬프트가 카드
                     상징 재설명을 금지하므로, 이게 없으면 돈 낸 사람만 "이 카드가 어떤 카드인지"를
                     키워드 말고는 못 읽는다. 사주 쪽(DayDetailCard)과 같은 동작이다.
                     🔴 상단 간격이 framed 에 걸린다 — 프레이밍 줄과 둘 다 mt-3 이면 한 덩어리로
                        읽혀야 할 둘 사이가 벌어진다(그 줄은 이 문단의 머리말이다). */}
-                <p className={`${framed ? "mt-1.5" : "mt-3"} text-sm leading-relaxed text-eye-purple`}>{taste}</p>
+                <p className={`${framed ? "mt-1.5" : "mt-3"} text-14 leading-relaxed text-eye-purple`}>{taste}</p>
 
                 {/* 게이지 — 절단선 **위**(무료). 룰 100%·원가 0이라 §5 경계 원칙에 걸리지 않는다(§5-3②). */}
                 {gauge && <CardGaugeView gauge={gauge} reversed={reversed} dayWord={dayWord} />}
@@ -503,15 +485,15 @@ export default function DailyCardBlock({
                     기존과 같은 자리에 뜨고(그 경우 위 taste·게이지 바로 아래가 곧 이 줄이다),
                     비자격자에게는 절단선 **앞**에 뜬다 — 유료가 파는 것의 전제 조건이라 그 순서가 맞다. */}
                 {narrativeBlocked === "no_profile" && (
-                  <p className="mt-2 text-xs leading-relaxed text-text-light">
+                  <p className="mt-2 text-12 leading-relaxed text-text-light">
                     생년월일을 알려주면 이 카드를 네 사주에 얹어서 더 깊이 풀어줄게.{" "}
                     {/* 🔴 저장 뒤 새로 불러온다 — 날짜 상세 3탭 공통(스펙 §3). */}
                     <BirthPromptButton
                       surface={BIRTH_PROMPT_SURFACE.byeolmaruDayTarot}
                       onSaved={reloadAfterSave}
-                      className="text-lilac-deep underline disabled:opacity-60"
+                      className="text-accent underline disabled:opacity-60"
                     >
-                      생년월일 입력하기 →
+                      생년월일 입력하기
                     </BirthPromptButton>
                   </p>
                 )}
@@ -525,7 +507,7 @@ export default function DailyCardBlock({
                   '체험 후 구독 버튼'이 비치고 구독 선택지 노출(post_trial)이 잘못 찍힌다 — 다른 탭에서 체험을 시작해
                   이 탭(숨김)이 새 자격을 받을 때도 같다(SajuTodayView 와 같은 게이트). */}
               {narrativeLoading || (locked && lockedUnder !== entitled) ? (
-                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                   별콩이가 카드를 네 사주 위에 얹는 중…
                 </p>
               ) : report ? (
@@ -547,7 +529,7 @@ export default function DailyCardBlock({
                        거짓말이 된다(그 컴포넌트는 마운트만으로 gate_shown 을 찍어 분모도 오염시킨다).
                        gate_shown 은 그래서 없고, 구독 버튼이 뜰 때만 구독 선택지 노출(surface kept_report)을 찍는다. */
                     <div className="mt-4 border-t border-lilac-mid/20 pt-3 text-center">
-                      <p className="text-xs text-text-light">
+                      <p className="text-12 text-text-light">
                         지금은 구독 중이 아니야. {dayWord} 받은 글은 계속 볼 수 있어 — 새 글은 구독해야 볼 수 있어.
                       </p>
                       {trialUsed ? (
@@ -555,7 +537,7 @@ export default function DailyCardBlock({
                           <SubscribeOfferShown surface="kept_report" phase="post_trial" slot="tarot_rich" />
                           <button
                             onClick={() => onSubscribe("kept_report", "tarot_rich")}
-                            className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night"
+                            className="mt-2 w-full rounded-xl bg-gold py-2 text-12 font-bold text-night"
                           >
                             구독하고 매일 보기 · {BYEOLMARU_SUBSCRIPTION.cost}별 / {BYEOLMARU_SUBSCRIPTION.days}일
                           </button>
@@ -564,7 +546,7 @@ export default function DailyCardBlock({
                         <button
                           onClick={() => onStartTrial("tarot_rich")}
                           disabled={trialBusy}
-                          className="mt-2 w-full rounded-xl bg-gold py-2 text-xs font-bold text-night disabled:opacity-60"
+                          className="mt-2 w-full rounded-xl bg-gold py-2 text-12 font-bold text-night disabled:opacity-60"
                         >
                           {trialBusy ? "여는 중…" : "3일 무료로 열어보기"}
                         </button>
@@ -573,7 +555,7 @@ export default function DailyCardBlock({
                   )}
                 </>
               ) : notGenerated ? (
-                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-sm text-text-light">
+                <p className="mt-4 border-t border-lilac-mid/20 pt-4 text-center text-14 text-text-light">
                   그날은 리포트를 안 받았어.
                   <br />
                   지난 날은 그때 받은 것만 보여줄 수 있어.
@@ -598,28 +580,20 @@ export default function DailyCardBlock({
                   />
               ) : null}
               {narrativeFailed && (
-                <p className="mt-2 text-xs leading-relaxed text-text-light">
+                <p className="mt-2 text-12 leading-relaxed text-text-light">
                   별콩이가 잠깐 숨 고르는 중이야. 조금 뒤에 다시 와줄래?
                 </p>
               )}
 
             </section>
             {/* 🔴 공유 버튼은 카드 **밖**이다(2026-09-27) — 사주(SajuTodayView)와 자리·양식을
-                맞췄다. 예전엔 카드 안 `py-2 text-xs` 라 같은 기능이 두 탭에서 다른 크기·다른
+                맞췄다. 예전엔 카드 안 `py-2 text-12` 라 같은 기능이 두 탭에서 다른 크기·다른
                 층으로 보였다. 카드가 흰색이 되면서 안에 두면 흰 버튼이 흰 판에 묻히기도 한다.
                 🔴 오늘만 — 지난 날을 보다 공유하면 "오늘의 카드" 라벨로 다른 날 카드가 나간다
                    (OG 라우트도 카드 id 만 받아 날짜를 모른다). 사주의 cell.isToday 와 같은 규율. */}
             {date === todayKst && (
-              <button
-                onClick={handleShare}
-                disabled={!isKakaoReady()}
-                // 🔴 `mt-*` 를 주지 않는다 — 이 버튼은 fragment 를 거쳐 TarotTodayView 의
-                //    `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 이미 온다.
-                //    `mt-4` 를 얹었더니 32px 이 돼 사주(16px)보다 멀어졌다(실측).
-                className="w-full rounded-xl border border-lilac-mid/40 bg-white py-2.5 text-sm font-medium text-lilac-deep disabled:opacity-40"
-              >
-                오늘 카드 공유하기
-              </button>
+              // 🔴 `mt-*` 를 주지 않는다 — fragment 를 거쳐 TarotTodayView 의 `space-y-4` 직계 자식으로 평탄화되므로 간격 16px 은 거기서 온다.
+              <ByeolmaruShareButton kind="tarot" share={share} />
             )}
             </>
           );
@@ -633,25 +607,27 @@ export default function DailyCardBlock({
             aria-modal="true"
             aria-label="오늘의 카드 뽑기"
           >
+            {/* 배경 스크롤 잠금 + ESC(저장 중엔 닫기 불가) — 전체 화면 무대라 Sheet·Dialog 대신 스택만 */}
+            <OverlayEntry close={closeRitual} dismissible={!saving} z={75} />
             <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-2">
-              <h2 className="font-display text-[15px] font-bold text-eye-purple">오늘의 카드</h2>
+              <h2 className="font-display text-15 font-bold text-eye-purple">오늘의 카드</h2>
               <button
                 onClick={closeRitual}
                 aria-label="닫기"
                 disabled={saving}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-text-light/70 hover:bg-lilac-soft/50 disabled:opacity-40"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-text-light hover:bg-lilac-soft/50 disabled:opacity-40"
               >
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </div>
 
             {saveError ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-5 text-center">
-                <p className="text-sm text-text-light">카드를 저장하지 못했어. 다시 시도해줄래?</p>
+                <p className="text-14 text-text-light">카드를 저장하지 못했어. 다시 시도해줄래?</p>
                 <button
                   onClick={() => pendingDraw && void saveDraw(pendingDraw.cardId, pendingDraw.reversed)}
                   disabled={saving}
-                  className="rounded-full px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+                  className="rounded-full px-5 py-2 text-14 font-bold text-white disabled:opacity-50"
                   style={{ background: RITUAL_ACCENT }}
                 >
                   다시 시도

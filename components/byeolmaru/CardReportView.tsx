@@ -21,7 +21,7 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
   const plus = sign > 0;
   return (
     <li className="flex items-center gap-3">
-      <span className="w-8 text-sm text-text-light">{label}</span>
+      <span className="w-8 text-14 text-text-light">{label}</span>
       <div
         role="progressbar"
         aria-valuenow={final}
@@ -57,7 +57,7 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
         // 막대는 금색 유지, 숫자만 본문색(eye-purple)으로 올린다. magnitude 는 hi-lo(클램프 후 실제
         // 막대 폭) — raw axis.delta 를 쓰면 클램프 시 막대와 라벨이 어긋난다(gaugeSpan 이 정본).
         // 부호는 sign 에서(hi-lo 는 항상 ≥0).
-        <span className="w-8 text-right text-[11px] font-bold text-eye-purple">
+        <span className="w-8 text-right text-11 font-bold text-eye-purple">
           {plus ? "+" : "−"}{hi - lo}
         </span>
       ) : (
@@ -76,13 +76,13 @@ function GaugeBar({ label, axis }: { label: string; axis: GaugeAxis }) {
  *     호출부는 report-date.ts 의 dayWordFor 를 쓴다(삼항을 새로 적지 말 것 — 그 말의 단일 원천이다). */
 export function CardGaugeView({ gauge, reversed, dayWord }: { gauge: CardGauge; reversed: boolean; dayWord: "오늘" | "그날" }) {
   return (
-    <section aria-label={`${dayWord} 흐름 게이지`} className="mt-3 rounded-2xl bg-white/70 p-3">
+    <section aria-label={`${dayWord} 흐름 게이지`} className="card mt-3">
       <ul className="space-y-2">
         {AXES.map(({ key, label }) => (
           <GaugeBar key={key} label={label} axis={gauge[key]} />
         ))}
       </ul>
-      <p className="mt-2 text-[11px] text-text-light">
+      <p className="mt-2 text-11 text-text-light">
         연보라 = {dayWord} 사주 흐름 · <span style={{ color: GOLD }}>금색</span> = 이 카드가 {reversed ? "살짝 덜어낸" : "살짝 더한"} 것
       </p>
     </section>
@@ -98,10 +98,9 @@ export default function CardReportView({ report }: { report: CardReport }) {
       {bodyBlocks.map((meta) => (
         <div key={meta.key} className="pt-[17px] mt-[17px] border-t border-[#F0EEF4]">
           <div className="flex items-center gap-[7px] mb-1.5">
-            <span className="text-[13px] opacity-85">{meta.icon}</span>
-            <span className="text-[12.5px] font-extrabold text-[#4A4458]">{meta.title}</span>
+            <span className="text-13 font-extrabold text-[#4A4458]">{meta.title}</span>
           </div>
-          <MarkdownLite text={report.blocks[meta.key]} className="text-[13px] leading-[1.85] text-[#4F4A5E]" />
+          <MarkdownLite text={report.blocks[meta.key]} className="text-16 text-[#4F4A5E]" />
         </div>
       ))}
 
@@ -115,9 +114,9 @@ export default function CardReportView({ report }: { report: CardReport }) {
             height={32}
             className="w-8 h-8 rounded-full object-cover border-[1.5px] border-[#4A3D6B] bg-[#3A2F55]"
           />
-          <span className="text-[12px] font-extrabold text-[#F5D680]">별콩이의 한마디</span>
+          <span className="text-12 font-extrabold text-[#F5D680]">별콩이의 한마디</span>
         </div>
-        <MarkdownLite text={report.blocks.note} tone="dark" className="text-[13px] leading-[1.78] text-[#ECE3FB]" />
+        <MarkdownLite text={report.blocks.note} tone="dark" className="text-16 text-[#ECE3FB]" />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { getUserIdentities, primaryIdentity } from "@/lib/auth/user-identity";
+import { identityHash } from "@/lib/auth/identity-hash";
 import { cancelPayment, confirmPayment, TossPaymentError } from "@/lib/toss";
 import { chargeStars } from "@/lib/stars";
 import { getServiceSupabase } from "@/lib/supabase";
@@ -223,29 +224,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ━━ 첫 충전 보너스 파밍 방지: kakao 해시 원장에 'first_charge' 1회 청구.
+    // ━━ 첫 충전 보너스 파밍 방지: 로그인 수단 해시 원장에 'first_charge' 1회 청구(lib/auth/identity-hash.ts — 카카오는 옛 공식과 같은 값).
     // 탈퇴→재가입해도 1인 1회. 청구가 처음일 때만 지급(payments count 대신 원장이 권위).
     let bonusStars = 0;
     let bonusBalance: number | null = null;
     if (charge.success) {
-      const { data: chargerRow, error: chargerErr } = await supabase
-        .from("users")
-        .select("kakao_id")
-        .eq("id", userId)
-        .single();
-      if (chargerErr || !chargerRow?.kakao_id) {
-        await logError(chargerErr ?? new Error("kakao_id lookup failed for first bonus"), {
+      let chargerHash: string | null = null;
+      let lookupErr: unknown = null;
+      try {
+        const primary = primaryIdentity(await getUserIdentities(userId));
+        if (primary) chargerHash = identityHash(primary.provider, primary.providerUserId);
+      } catch (err) {
+        lookupErr = err;
+      }
+      if (!chargerHash) {
+        // severity 이름은 어드민 필터 연속성 때문에 그대로 둔다(이제 카카오만이 아니라 로그인 수단 조회)
+        await logError(lookupErr ?? new Error("identity lookup failed for first bonus"), {
           route: "/api/payment/confirm",
           userId,
           extra: { paymentId: payment.id, severity: "FIRST_BONUS_KAKAO_LOOKUP_FAILED" },
         });
       } else {
-        // kakao_id(BIGINT)는 안전정수 범위(~10자리)라 양 라우트 모두 JS number → 문자열화 → 해시 일치
-        const kakaoIdHash = createHash("sha256").update(String(chargerRow.kakao_id)).digest("hex");
         const { data: firstChargeClaim, error: claimErr } = await supabase
           .from("bonus_claims")
           .upsert(
-            { kakao_id_hash: kakaoIdHash, bonus_type: "first_charge" },
+            { kakao_id_hash: chargerHash, bonus_type: "first_charge" },
             { onConflict: "kakao_id_hash,bonus_type", ignoreDuplicates: true }
           )
           .select("kakao_id_hash");

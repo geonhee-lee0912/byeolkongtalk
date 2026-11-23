@@ -55,7 +55,7 @@ export default function FortuneGeneratingScreen({
     <main className="flex flex-1 flex-col items-center justify-center w-full px-5 animate-fade-in">
       <div className="w-full max-w-md mx-auto flex flex-col items-center">
         <div className="relative w-28 h-28 mb-6">
-          <div className="absolute inset-0 bg-gold/25 rounded-full blur-2xl scale-110 animate-pulse-soft" />
+          <div className="absolute inset-0 bg-gold/30 rounded-full blur-lg scale-110 animate-pulse-soft" />
           <Image
             src="/byeolkong-focus.png"
             alt="별콩이"
@@ -66,7 +66,7 @@ export default function FortuneGeneratingScreen({
           />
         </div>
 
-        <h1 className="font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
+        <h1 className="font-display text-22 font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
           {type ? (
             <FortuneIcon type={type} size={26} className="inline-block object-contain" />
           ) : emoji ? (
@@ -74,10 +74,10 @@ export default function FortuneGeneratingScreen({
           ) : null}
           {label}
         </h1>
-        <p className="mt-2 text-[13px] text-text-light text-center leading-relaxed">
+        <p className="mt-2 text-13 text-text-light text-center leading-relaxed">
           별콩이가 너의 운세를 펼치고 있어.
           <br />
-          조금만 기다려줘 ✨
+          조금만 기다려줘
         </p>
 
         {/* 로딩바 */}
@@ -88,7 +88,7 @@ export default function FortuneGeneratingScreen({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-3 text-[12px] text-text-light/80 text-center transition-opacity">
+          <p className="mt-3 text-12 text-text-light text-center transition-opacity">
             {steps[step]}
           </p>
         </div>

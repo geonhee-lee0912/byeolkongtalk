@@ -4,6 +4,8 @@ import { sajuCases } from "./saju.ts";
 import { tarotCases } from "./tarot.ts";
 import { gomintalkCases } from "./gomintalk.ts";
 import { relationshipCases, relationshipLoveCases, verdictCases } from "./relationship.ts";
+import { RELATIONSHIP_CLOSED } from "../../lib/relationship/closed.ts";
+import { SAJU_CONSULT_CLOSED } from "../../lib/saju/closed.ts";
 
 export function allCases(): Case[] {
   return [
@@ -38,9 +40,18 @@ function productMatches(c: Case, sel: string): boolean {
   }
 }
 
+/** 종료된 서비스의 케이스 — 연애 상담·판정(lib/relationship/closed)은 만들 수도 없고, 사주 상담(lib/saju/closed)은
+ *  심어서 돌릴 수는 있지만 안 보는 상품이라(운영자 11-22) 콕 집을 때만. */
+export function isClosedCase(c: Case): boolean {
+  if (c.product.kind === "saju") return SAJU_CONSULT_CLOSED;
+  return RELATIONSHIP_CLOSED && (c.product.kind === "relationship" || c.product.kind === "verdict");
+}
+
 export function collectCases(f: CaseFilter): Case[] {
   let cs = allCases();
   if (f.product) cs = cs.filter((c) => productMatches(c, f.product!));
+  // 닫힌 케이스는 기본 실행에서 뺀다 — --product 로 콕 집으면 그대로
+  else cs = cs.filter((c) => !isClosedCase(c));
   if (f.caseKey) {
     const keys = f.caseKey.split(",").map((s) => s.trim()).filter(Boolean);
     cs = cs.filter((c) => keys.some((k) => c.id.includes(k)));

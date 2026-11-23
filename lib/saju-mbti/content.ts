@@ -231,7 +231,7 @@ export const TYPE_CONTENT: Record<Code16, TypeContent> = {
     hanja: "陽柔財生",
     character: "제비",
     memeSubtitle: `발이 넓다 못해 온 동네 소식통.
-이거 어디서 구함? → 제비한테 물어보면 됨.
+이거 어디서 구함? 제비한테 물어보면 됨.
 인맥이 곧 재산.`,
     oneLiner: `여기저기 가볍게 오가며 실리와 인연을 나르는,
 붙임성 좋은 마당발.`,

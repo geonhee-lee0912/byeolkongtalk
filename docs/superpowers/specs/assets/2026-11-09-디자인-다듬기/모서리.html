@@ -1,0 +1,59 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>모서리 단계</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--cream:#FAF6F0;--cw:#FFF8F0;--l:#D4C7EE;--ld:#9F8AD0;--lm:#B8A8D8;--ink:#5A3E8C;--tl:#7A6BA0;--night:#1F1735}
+*{box-sizing:border-box}body{margin:0;background:#EEE8F4;color:#3b3350;font:14px/1.6 "Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{color:var(--ink);font-size:22px;margin:0 0 4px}.lead{color:var(--tl);margin:0 0 14px}
+section{background:#fff;border-radius:20px;padding:18px;margin-top:16px}h2{color:var(--ink);font-size:17px;margin:0 0 10px}
+table{border-collapse:collapse;width:100%}td,th{padding:8px;border-top:1px solid #f1ebf7;text-align:left;font-size:13px;vertical-align:middle}th{color:var(--tl);font-weight:500;border-top:0;font-size:12px}
+.n{font-weight:900;color:var(--ink);white-space:nowrap}.us{background:#F1EBFA}.sw{width:44px;height:30px;background:var(--l)}
+.phones{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.phone{width:375px;background:var(--cream);border-radius:28px;padding:14px 16px 0;border:1px solid #e3d9f0;overflow:hidden;position:relative;height:640px}
+.phone h3{margin:0 0 10px;text-align:center;color:var(--ink);font-size:15px}
+.card{background:#fff;padding:16px;box-shadow:0 2px 10px rgba(159,138,208,.08);margin-bottom:12px}
+.card b{color:var(--ink);font-size:16px}.card p{margin:4px 0 12px;color:var(--tl);font-size:13px}
+.btn{display:block;width:100%;border:0;background:var(--ld);color:#fff;font:700 15px "Noto Sans KR";padding:13px}
+.chips{display:flex;gap:6px;margin-bottom:12px}.chip{font-size:12px;font-weight:700;color:var(--ld);background:#F1EBFA;border-radius:999px;padding:4px 10px}
+.tile{width:40px;height:40px;background:#EADFF2;display:inline-flex;align-items:center;justify-content:center;color:var(--ink);font-weight:900;margin-right:10px;vertical-align:middle}
+.b{padding:11px 15px;background:var(--cw);color:var(--ink);border:1px solid rgba(184,168,216,.2);font-size:15px;margin-bottom:10px;max-width:88%}
+.u{margin-left:auto;padding:11px 15px;background:var(--ld);color:#fff;font-size:15px;margin-bottom:10px;max-width:70%;width:fit-content}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;padding:18px 16px 20px;box-shadow:0 -8px 30px rgba(40,30,70,.12)}
+.sheet b{color:#1F1735;font-size:17px}.sheet p{margin:2px 0 12px;color:var(--tl);font-size:13px}
+.inp{border:1px solid #e3d9f0;padding:10px 14px;color:#a99cc4;font-size:15px;margin-bottom:10px}
+.note{font-size:12.5px;color:var(--tl);margin:10px 0 0}
+</style></head><body><div class="wrap">
+<h1>모서리 — 20여 가지를 4단계 + 둥근 끝으로</h1>
+<p class="lead">원칙 하나: <b>안에 든 것은 바깥보다 덜 둥글게</b>(시트 24 › 카드 16 › 버튼·입력칸 12 › 작은 타일 8).</p>
+
+<section><h2>제안 · 다른 시스템과 견줘 보기 (원문 토큰)</h2>
+<table><tr><th>단계</th><th>쓰는 곳</th><th>구글 M3</th><th>당근 SEED</th><th>지금 별콩톡</th></tr>
+<tr><td class="n">8</td><td>작은 타일·배지 칸·작은 썸네일</td><td>small 8</td><td>r2 8 (작은 버튼)</td><td>lg 8 · 6 · 9 · 4 섞임</td></tr>
+<tr class="us"><td class="n">12</td><td>버튼 · 입력칸 · 카드 안의 칸</td><td>medium 12</td><td>r3 12 (큰 버튼)</td><td>버튼 59곳이 12 · 19곳 16 · 19곳 알약</td></tr>
+<tr><td class="n">16</td><td>카드 · 말풍선</td><td>large 16</td><td>r4 16</td><td>카드 138곳 16 · 39곳 12 · 25곳 24</td></tr>
+<tr class="us"><td class="n">24</td><td>시트 · 확인창 · 화면 큰 배너</td><td>extra-large 28</td><td>r6 24 (바텀시트)</td><td>시트 24 (이미 공용 틀)</td></tr>
+<tr><td class="n">끝까지</td><td>칩 · 배지 · 아바타 · 토글</td><td>full</td><td>full</td><td>그대로</td></tr>
+</table>
+<p class="note">말풍선 꼬리 쪽 모서리만 4로 따로(지금 6). 토스는 모서리 값을 문서에 공개하지 않아 비교에서 뺐어요. 애플도 고정 토큰을 두지 않아요.</p>
+</section>
+
+<section><h2>바꾼 뒤 한 화면에 모아 보면</h2>
+<div class="phones">
+<div class="phone"><h3>버튼 = 둥근 네모 12 (추천)</h3>
+<div class="chips"><span class="chip">연애</span><span class="chip">재물</span><span class="chip">오늘</span></div>
+<div class="card" style="border-radius:16px"><span class="tile" style="border-radius:8px">3</span><b>오늘의 타로</b><p>카드 한 장으로 오늘 흐름을 봐요</p><button class="btn" style="border-radius:12px">카드 뽑기</button></div>
+<div class="u" style="border-radius:16px 16px 4px 16px">마음이 식은 걸까?</div>
+<div class="b" style="border-radius:4px 16px 16px 16px">서로 속도를 재고 있는 쪽에 가까워.</div>
+<div class="sheet" style="border-radius:24px 24px 0 0"><b>이 고민, 언제 다시 볼까?</b><p>알림으로 다시 알려 줄게</p><div class="inp" style="border-radius:12px">날짜 고르기</div><button class="btn" style="border-radius:12px">알림 받기</button></div>
+</div>
+<div class="phone"><h3>버튼 = 알약</h3>
+<div class="chips"><span class="chip">연애</span><span class="chip">재물</span><span class="chip">오늘</span></div>
+<div class="card" style="border-radius:16px"><span class="tile" style="border-radius:8px">3</span><b>오늘의 타로</b><p>카드 한 장으로 오늘 흐름을 봐요</p><button class="btn" style="border-radius:999px">카드 뽑기</button></div>
+<div class="u" style="border-radius:16px 16px 4px 16px">마음이 식은 걸까?</div>
+<div class="b" style="border-radius:4px 16px 16px 16px">서로 속도를 재고 있는 쪽에 가까워.</div>
+<div class="sheet" style="border-radius:24px 24px 0 0"><b>이 고민, 언제 다시 볼까?</b><p>알림으로 다시 알려 줄게</p><div class="inp" style="border-radius:999px">날짜 고르기</div><button class="btn" style="border-radius:999px">알림 받기</button></div>
+</div>
+</div>
+<p class="note">알약은 구글 M3 기본이고, 둥근 네모는 당근·지금 별콩톡 대부분이에요. 알약으로 가면 버튼 약 80곳의 인상이 바뀌어요.</p>
+</section>
+</div></body></html>

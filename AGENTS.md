@@ -8,7 +8,40 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 
 > ⚠️ **이 문서는 "지금 코드를 만질 때 필요한 것"만 담는다.** Phase 0~5 진행 로그·세션별 완료 기록·역사적 트러블슈팅은 `docs/AGENTS-archive-2026-07-27.md` 로 이관했다(2026-07-27 압축, 30,628자 → 이 파일. 모든 세션에 자동 로드돼 ~26k 토큰을 먹던 문제).
 > **아카이브가 필요하면 Grep 으로 섹션만 — 전문 Read 금지.**
-> 진행 중 작업·판정 스케줄은 이 문서가 아니라 메모리 `w1-w7-work-queue` 가 관리한다. **이 문서에 진행 로그를 append 하지 말 것** — 그게 30k 로 불어난 원인이다.
+> 진행 중 작업은 **아직 합쳐지지 않은 브랜치와 그 안의 `HANDOFF.md`** 가, 할 일 순서는 `ROADMAP.md` 가 관리한다(`scripts/agent/start.sh` 가 둘을 함께 찍는다). 판정·분석 일정(숫자 포함)은 회사 레포 `ROADMAP.md`. **이 문서에 진행 로그를 append 하지 말 것** — 그게 30k 로 불어난 원인이다.
+
+## 공통 규칙
+
+> 모든 서비스 레포의 이 절은 같은 글이다 — 고칠 땐 다른 서비스 레포의 같은 절도 함께 고친다. Claude Code 는 `CLAUDE.md`(`@AGENTS.md`)로, Codex 는 이 파일을 직접 읽는다. 사업 맥락·결정 기록·사례는 비공개 저장소 `geonhee-lee0912/braveshine-company`(기획·판정 때만 연다 — 코드 일은 이 파일로 충분해야 한다).
+
+- **역할** — 이 서비스를 맡은 플랫폼(Claude 또는 Codex)이 기획·디자인·개발을 다 한다. 리뷰만 반대 플랫폼이 한다. 사용량 때문에 다른 플랫폼이 잠시 이어받아도 규칙은 같다. 어느 도구도 다른 도구를 일꾼으로 부르지 않는다(`codex exec`·Claude 호출 금지). PR 에 리뷰를 청하는 `@codex review` 댓글은 예외.
+- **리뷰는 PR 을 만든 쪽의 반대편** — 서비스가 아니라 작성자 기준. 작업 브랜치 머리로 만든 쪽을 표시한다(`claude/…`·`codex/…`). Claude 가 만든 PR 은 연 뒤 `@codex review` 댓글, Codex 가 만든 PR 은 Claude 리뷰를 명시 호출(`/code-review <PR>`). 같은 플랫폼의 리뷰는 반대편 리뷰가 아니고, 봇 리뷰는 승인이 아니다. 승인·머지는 운영자. 되돌리기 어려운 일(DB·결제·별·로그인·탈퇴·페르소나 코어·dev→main)의 PR 은 작성자가 누구든 Claude `/code-review <PR>` 도 한 번 더 돌린다 — Codex 자동 리뷰 측정(10-31, 결함 2개 중 1개)에서 조용히 지나가는 경계 결함을 놓쳤다.
+- **운영자 승인이 필요한 일**(결과물을 들고 와서 묻는다) — ①돈이 나가는 일(금액·이유·기대 효과 한 줄) ②사용자에게 보이는 운영 배포(미리보기·바뀐 점 3줄·되돌리는 법, 운영자가 "go" 할 때만) ③밖으로 나가는 것(광고·공지·SNS·이메일 — 실물) ④되돌리기 어려운 일(DB 구조·삭제, 결제·로그인, 약관 — 위험 설명 + 반대편 리뷰). 승인 없이 하는 일: 개발, dev 배포·미리보기, 리뷰, 분석·보고서, 이슈 정리, 문서.
+- **결정** — 범위 축소·연기·분석 결론·구현 방향은 혼자 정하지 않는다. 결정 카드로 하나씩 묻는다: 결과물, 고를 안, 추천, 한 줄 답("지금 바빠"도 답이다 — 그러면 상관없는 일을 먼저). 기다리는 동안 작업은 브랜치에 push 해 둔다. 운영자가 드롭한 항목을 되살리지 않고, 정한 방향에 "검증 먼저" 관문을 끼우지 않는다.
+- **절대 금지** — `main` 직접 push·머지 · 운영 DB 쓰기와 운영 콘솔·결제·광고 계정 조작(운영 데이터는 읽기 전용 스크립트로만, 쓰기는 SQL 을 만들어 운영자에게) · 키·풀 UUID·사용자 식별자를 코드·문서·PR·대화에 쓰기(공개 저장소) · Vercel·Supabase 프로젝트 연결 변경 · 공유 워킹 트리에서 `git add -A`·`git commit --amend`·패키지 매니저 설치 명령 직접 실행(의존성은 `scripts/agent/init.sh` 만).
+- **범위** — 가정을 말하고, 모르면 묻는다. 요청 밖 코드를 고치지 않는다. 가장 단순한 해법부터.
+- **판정** — "문제다" 전에 반증을 시도하고 확인됨/유력/의심을 붙인다. 실패가 조용한 변경(권한·설정·배포·네트워크)은 설정을 읽어 판정하지 말고 실물로 호출한다. 못 돌린 것은 미확인이라고 쓴다.
+- **일의 단위** — 브랜치 하나 = 일 하나 = `HANDOFF.md` 하나. 기본 브랜치에서 `claude/…`·`codex/…` 브랜치를 따고 루트에 `HANDOFF.md`(제목은 `ROADMAP.md` "다음"의 그 줄과 같은 문구 · 마지막 갱신과 자리 · 목표 · 지금 상태 · 다음 할 일[어디서든|로컬에서] · 확인 못 한 것 · 건드리면 안 되는 것). 멈출 때마다 갱신해 같은 브랜치에 푸시한다 — 그 커밋이 인계다. 끝나면 마지막 커밋에서 `HANDOFF.md` 를 지우고 `ROADMAP.md` 의 줄을 "끝남"으로 옮긴 뒤 PR. 플랫폼 전용 표현(슬래시 명령·스킬·"메모리 참고")은 쓰지 않는다 — 다른 도구가 읽는다. 서비스 저장소는 공개라 `HANDOFF.md`·`ROADMAP.md`·PR 에 사업 숫자를 쓰지 않는다 — 숫자가 든 상태는 회사 레포로.
+- **시작·종료** — 시작은 `scripts/agent/start.sh`(fetch·빨리감기·합쳐진 로컬 브랜치 삭제·로드맵 "다음"과 진행 중 브랜치의 HANDOFF 출력) → 브랜치 선택(클라우드 세션은 자동으로 만든 브랜치나 기본 브랜치에서 열릴 수 있다 — 이어받을 브랜치가 있으면 `git fetch origin <b> && git switch <b> && git pull --ff-only` 로 옮긴 뒤 시작하고, 자동 브랜치는 푸시하지 않는다; 실행 권한이 없으면 `bash scripts/agent/…` 로) → `HANDOFF.md` 를 끝까지 읽고 "지금 상태"를 **실행으로 재확인**(적힌 것과 다르면 그 차이를 먼저 적는다) → "자리" 줄을 이 자리로 고쳐 커밋·푸시(이게 잠금) → `scripts/agent/init.sh`. 종료는 커밋 안 된 변경 0(미완성은 `wip:`) → `HANDOFF.md` 갱신·커밋·푸시 → `scripts/agent/stop.sh` 가 통과. 로컬에서 끄기 전·클라우드 세션을 멈추기 전·도구를 바꾸기 전 전부 같다. 워크트리의 브랜치도 같다.
+- **자리·도구 옮기기** — 한 브랜치는 한 번에 한 자리에서만(`HANDOFF.md` "자리" 줄이 잠금, 병렬은 브랜치를 따로). 당기기는 `--ff-only` 만, 안 되면 멈추고 운영자에게. 강제 푸시·rebase 금지. 클라우드엔 `.env.local`·브라우저·운영 데이터·모바일 빌드가 없다 — 그걸 쓰는 할 일은 `[로컬에서]`, 클라우드 세션은 건너뛴다. 도구를 바꾸면 상대의 기억은 없다고 전제하고 `HANDOFF.md` 만 믿는다. 옮겨 가며 만든 PR 은 마지막으로 많이 짠 쪽을 작성자로 보고 브랜치 머리를 맞춘다(어려우면 PR 본문 첫 줄에 "작성: Codex"). 전환은 운영자가 한다("정리해 둬" → "이어서 해").
+- **커밋·PR** — 메시지는 파일로(`git commit -F <파일> -- <경로>`), 제목 다음 줄은 비운다. 커밋 전 diff 에서 키·UUID·식별자를 훑는다. PR 은 "어디에 영향이 가는지"를 먼저 쓴다(`.github/pull_request_template.md`). 화면 일은 승인한 시안을 정답으로 삼고 정답과 실제를 나란히 찍어(폰·PC 폭) 붙인다.
+- **답** — 한국어. 결론 먼저, 짧게. 확인 못 한 것은 맨 앞에. 숫자는 근거와 함께. 운영자는 코드를 읽지 않는다 — 결과물로 보고하고, 운영자 몫의 다음 할 일은 어디서 무엇을 하는지 구체적으로. 다단계 작업은 단계마다 완료 현황을 표시한다.
+
+## 명령 (두 플랫폼·로컬·클라우드 공통)
+
+- **작업 시작**: `scripts/agent/start.sh` → 브랜치 선택(새 일이면 `git switch -c claude/<일> origin/dev`) → `HANDOFF.md` → `scripts/agent/init.sh`. PR 은 base `dev` — dev 에 직접 커밋하지 않는다(교차 리뷰는 PR 이 있어야 한다). `main` 은 운영 배포 PR 만(`docs/agent/deploy.md`)
+- **작업 종료**: `HANDOFF.md` 갱신 → 커밋·푸시 → `scripts/agent/stop.sh`
+- **세션 시작 1회**: `scripts/agent/init.sh` — 키가 있으면 dev 리소스인지 확인(없으면 클라우드 기본 환경으로 통과) · 빈 `.env.local` · 필요할 때만 `npm ci` · 필수 키 이름 확인(값은 출력 안 함). Node 는 `.nvmrc`(24, CI 와 같음)
+- 타입: `npx tsc --noEmit --incremental false`
+- 테스트(vitest 아님, CI 와 동일): `node --import tsx --test $(find . -name "*.test.ts" -not -path "./node_modules/*" -not -path "./qa/*" -not -path "./mobile/node_modules/*")`
+- 빌드: `npx next build` — `Failed to fetch ... Google Fonts` 면 `.next` 를 지우지 말고 재시도. 라우트 표에 `ƒ Proxy` 가 있어야 한다
+- dev 서버: `npm run dev`(:3000, 백그라운드). 페르소나 수정 뒤엔 재시작
+- QA: `npm run qa -- --case=<id>` — dev 서버 필요, dev DB 의 QA봇 **[로컬에서]**
+- 화면 확인: `scripts/agent/shot.sh http://localhost:3000/<경로> /tmp/a.png [유저UUID]` 후 이미지를 직접 본다. QA봇 = `11111111-1111-4111-8111-111111111111`. playwright 가 깔린 폴더가 필요하다(`BK_PLAYWRIGHT_DIR`, 로컬 전용)
+- 어드민 화면: 키를 환경에 두지 말고 그 명령에만 — `ADMIN_USER_IDS=<uuid> npm run dev`
+- 운영 배포: 운영자가 "prod 배포하자"고 할 때만, `docs/agent/deploy.md` 절차대로(점검은 `scripts/agent/deploy-check.sh <ref>`)
+- 네트워크 판정은 샌드박스 `curl` 상태코드가 아니라 앱과 같은 Node `fetch` 로
+- GitHub: 클라우드 세션에선 `gh pr`·`gh issue`(GraphQL)가 막힌다 — `gh api repos/geonhee-lee0912/byeolkongtalk/...` REST 로
 
 ## 기술 스택
 
@@ -16,7 +49,7 @@ This version (Next.js 16) has breaking changes — APIs, conventions, and file s
 - Styling: **Tailwind CSS v4** (`@theme` 토큰, CSS-only — `tailwind.config.ts` 없음)
 - Fonts: Noto Sans KR(본문) + Cafe24Ssurround(`--font-display`, 타이틀)
 - DB: Supabase (PostgreSQL) — Branching with Git sync
-- Auth: 카카오 OAuth + 익명 식별자 + httpOnly 쿠키 세션
+- Auth: 카카오·애플 로그인(`user_identities`) + 익명 식별자 + httpOnly 쿠키 세션 + 앱 토큰(`Authorization: Bearer`, 앱 쪽 호출용)
 - Payment: 토스페이먼츠 (결제창 / API 개별 연동)
 - AI: Claude API (`claude-sonnet-5`, SSE 스트리밍) + haiku(요약·민감 2차 판정)
 - 사주 계산: `manseryeok`(결정적 계산) + Claude(해석만)
@@ -39,67 +72,20 @@ components/
   consultations/ · relationship/ · admin/ · layout/ · safety/ · reco/ · common/
 data/persona/          # 코어 + 도메인별 system prompt
 supabase/migrations/   # <timestamp>_<name>.sql — GitHub 연동으로 자동 적용
+mobile/                # Expo SDK 58 앱(웹뷰 껍데기) — 설정 정본은 app.config.ts(app.json 을 만들면 무시된다). Expo API 는 학습 기억 말고 버전 문서(docs.expo.dev/versions/v58.0.0)로. 루트 tsconfig 에서 제외(.vercelignore 도 있으나 Git 배포 적용은 미확정). 웹과 공유하는 건 lib/app-bridge 뿐. mobile/src 의 순수 모듈 테스트는 루트 CI 가 같이 돌린다 — react-native·expo import 금지(CI 엔 mobile/node_modules 가 없다)
 docs/superpowers/{specs,plans}/
 ```
-
-## 디자인 시스템
-
-`app/globals.css` `@theme` 블록이 정본.
-
-| 키 | HEX | 용도 |
-|---|---|---|
-| `cream` / `cream-warm` | `#FAF6F0` / `#FFF8F0` | 메인 배경 / 카드·패널 |
-| `lilac-soft` / `lilac` / `lilac-mid` / `lilac-deep` | `#E8DEF5` / `#D4C7EE` / `#B8A8D8` / `#9F8AD0` | 보조배경·hover / 강조 / 보더 / 액티브 |
-| `gold` / `gold-soft` | `#E8C26A` / `#F2D78A` | 포인트(별·CTA) / 글로우 |
-| `eye-purple` / `text-light` | `#5A3E8C` / `#7A6BA0` | 본문 / 보조 텍스트 |
-| `night` / `night-deep` | `#1F1735` / `#2A1F4D` | 다크 영역(사주판) |
-
-- 그라데이션: 메인 배경 `cream`→`lilac-soft`(html) / 다크 영역 `night`→`night-deep` + 금색 별 파티클
-- 애니메이션: `animate-float`(3s) · `animate-star-twinkle`(2.5s) · `animate-fade-in`(0.5s)
-- 모티프: 4·8꼭지 별(액센트·로딩·구분선) · 구름/물결(섹션 배경) · 금테+태슬(유료 카드) · `rounded-2xl` 이상 기본
-- 오행 색상은 별콩이 톤(전통 채도와 다름) — `components/saju/SajuBoard` 의 `ELEMENT_COLORS`. 일관 유지
 
 ## 별콩이 페르소나
 
 **구조**: `data/persona/byeolkong_core.md` 가 화법·위기 안전망·금지표현의 **단일 원천**이고, `byeolkong_{saju,tarot,fortune,relationship,relationship_draw,verdict_inthread}.md` 가 도메인별로 얹힌다.
-⚠️ **코어 편집 = 전 종목 전역 변경** → 광범위 회귀 QA 필수. 위기 안전망·금지표현을 도메인 파일로 복사하지 말 것(드리프트 사고 방지).
-
-- 정체성: 따뜻함 + 차분함 + 신비로움 + 약간의 장난기. 판단하지 않고 단정 짓지 않는다
-- 화법: ①**단정적 예언 금지**("~할 가능성이 있어", "이런 흐름이 보여") ②흐름·가능성·선택 3키워드 ③불안 자극·운명론적 협박 금지 ④장난기는 한 턴에 한 번 ⑤따뜻한 마무리 ⑥위기 시 페르소나 내려놓고 hotline 우선
-- 1인칭 `별콩이는`/`나는`, 2인칭 `너`(반말). 호칭은 `users.nickname`
-- 화법 v3 = 답 먼저 · 소신형("내가 보기엔") · 부정은 완곡+출구 · 관찰형 훅 · **매턴 질문 금지**(2연속 질문 마무리 금지). `computeTurnSignals` 가 직전 턴 신호로 동적 경고 주입
-- 프롬프트는 정적 블록을 `cache_control: ephemeral` + `ttl:"1h"` 로 마킹(입력비 ~35%↓). turn-specific 데이터는 user 메시지에 동적 주입
-- ⚠️ **심문 피로 판정은 LLM judge 를 믿지 말 것** — Sonnet judge 가 "질문=심문" 프라이어로 과대평가한다. 신뢰할 신호는 객관 단언 `no_consecutive_question_close`
-- ⚠️ **페르소나 규칙을 조이면 반대편 과잉으로 튄다**(회피구↔확언). 케이스당 n=1 이라 조정은 1회로 끊고 실데이터로 판단
-
-## 현재 사용자 흐름
-
-- `/` 홈 → 연애 존 6태그(`LOVE_TAGS`) + 궁합 크로스링크 + 비연애 4태그(`OTHER_TAGS`)
-- 태그 → 로그인 가드 → `/concern`(감정 칩 + 고민 10~200자) → **타로 직행**(사주/타로 picker 없음)
-- `/tarot`(태그별 큐레이션 5, `TAG_SPREADS`) → `/tarot/draw` → `/tarot/reading`(SSE → `[END]` → 결과/공유)
-- **사주는 상담 진입 폐쇄** — `/select` 는 `/concern` 리다이렉트 스텁(구 링크 하위호환). `/saju*` 는 기존 reading 열람·resume 전용. 새 사주 수요는 `/fortune` **one-shot 리포트**가 받는다
-- `/relationship` "연애 상담" — 지속 대화형 스레드(종결 없음). 미등록=콜드스타트+상대등록 / 등록=스레드
-- 이어가기: 완료 reading 참조 새 reading(`/api/readings/continue`, `previous_reading_id`+`continuation_mode`). deep = 정가×0.6. UI 는 `ContinuationModal`(타로만 fresh 버튼 있음, 사주는 deep 단일)
-- 레이아웃 (`components/layout/`): `AppShell` 이 pathname 기반(`/login` 제외) `Header`+`BottomTab` 자동 부착(`pb-20`). **BottomTab 5탭** (라벨은 `BottomTab.tsx` 의 `TABS` 가 정본) = 타로톡`/` · 사주 운세`/fortune` · **별마루`/byeolmaru`** · 별콩 상점`/shop` · 마이`/mypage`. 보관함`/readings` 는 마이에서 진입(`?from=history` 시 마이 탭 하이라이트).
-  - 🔴 **`우리 사이` 탭은 2026-09-04 제거됨 → 그 자리가 별마루**(`c34a4cf`). `/relationship` 페이지·코드는 **살아 있고** 진입점만 별마루 안 슬롯으로 옮겼다 — 스레드는 죽었지만(8월 85건 중 무료 3턴 통과 0명·별 소모 0) **상대 등록의 64.6%(월 84건)가 이 경로**라 끊으면 별마루 "우리 오늘"의 연료가 마른다. → **2026-09-06 `/relationship` 진입점을 홈 고정 카드('별콩이와 연애 상담', 구 궁합 슬롯)로 이동**하고 별마루 탭 `matchPrefixes` 에서 `/relationship` 을 **제거**했다. 이제 `/relationship` 은 어떤 하단탭도 활성이 아니다(홈에서 진입하는데 3탭이 켜지는 게 어색). 진입은 홈 고정 카드 + 캐러셀 sim. 근거·판정 = `specs/2026-08-31-별마루-리텐션허브-design.md` §7-b
-  - `Footer` 는 **홈과 마이페이지에서만**(마이페이지는 로그인 게이트 뒤라 크롤러가 보는 건 사실상 홈 하나 — SEO 상 중요)
-
-## 현행 prod 상태 (기준 2026-07-27)
-
-- **재화 정본 — 가격은 코드 상수가 정본이다. 문서 숫자와 어긋나면 코드를 믿을 것.**
-  웰컴 20별(`WELCOME_BONUS_STARS`) · 첫충전 +20%(`FIRST_CHARGE_BONUS_RATE`) · 연애 패스 30/60/100(`PASS_PLANS`) + 무료 인트로 3턴(`FREE_INTRO_TURNS`) · 소프트캡 20턴/일 + 5별=+5턴(무제한) · 사주 20(`SAJU_READING_COST`)
-- **우리 사이 스킬 4종 = 스레드 내부 실행** (`lib/relationship/skills.ts` `RELATIONSHIP_SKILLS`) — 관계체크인 45 / 걔속마음 40 / 우리궁합 40 / 싸움판정 30. 별도 라우트·화면 없음(`lib/relationship/{draw,compat}-thread.ts` + `ThreadDrawModal`/`ThreadCompatCard`/`ThreadCardStrip`). 칩 UI 는 입력창 ⚡ `SkillSheet`. 스킬은 활성 패스 필요
-- **관계 기억** = 최근 24메시지 원문 + 초과분 haiku 델타 요약(`rolling_summary`/`summarized_msg_count` 커서, `lib/relationship/memory.ts`). 최근창은 항상 user 발화로 시작(Anthropic 규칙)
-- **민감 감지**: 회색지대는 **스트림 시작 전 haiku 2차 판정을 await**(~1초, 3초 타임아웃 시 regex 폴백). regex high 는 즉시 확정. 패턴은 `lib/sensitive-patterns.ts` PATTERNS(고민 쓰기 화면도 쓰는 순수 모듈 — import 0 계약 테스트), hotline 은 `components/safety/SafetyBanner.tsx` `HOTLINES`. `has_sensitive=true` 면 공유 차단 + OG 라우트 403
-- **위기 대화는 서버측 강제 종료 없음** — `has_sensitive` 면 abs-cap `[END]` 억제(안전 > 비용). rate-limit 20/분은 유지
-- **타로 프리미엄(5장+)**: 첫 풀이 3라벨 골격(🃏💫🔗) + 카드당 6~7문장 + `[CARD:n]` 마커 선행 강제. 수렴 임계치는 카드 수 기준(`WRAP_THRESHOLDS`)
-- **next_reco 중단** — haiku 태깅 off + 결과 화면 추천 카드 제거. **인챗 칩(clarifier·extend·이어가기)과 `components/reco/RecoInlineCard` 는 생존**
-- **계측**: `page_views` + `/api/pv` + `/admin/traffic` · 탈퇴 시 utm 스냅샷 보존 · `PROMPT_VERSION`(`lib/prompt-version.ts`) 코호트
-- ⚠️ **`[END]` → 결과는 자동 이동이 아니라 수동 [결과 보기 →] 버튼**. `result_viewed_at` 은 사실상 **"버튼을 눌렀나"**를 잰다. 🚫 **자동 이동은 2026-07-31 기각** — 유저 통제를 뺏고, 게다가 이 지표가 "종료 도달"과 같아져 **정의상 소멸**한다. 미열람의 본체는 어차피 **종료 동작 자체를 안 하는 53%** 쪽이다 — `specs/2026-07-26-unviewed-results-findings.md` 를 그 축으로 재검토할 것
-- 🗑️ **측정 창 규율(수익성 판정 사이클) 폐기 (2026-07-31)** — 광고 배급 붕괴로 관측 창이 오염돼 사이클이 깨졌다. day 0·d4~d28 캘린더·배포 슬롯 규율 전부 삭제. 다음 로드맵은 새로 짠다. 실측 판독과 판독 도구(`scripts/cycle-snapshot-*.sql`)는 살아 있다 — 메모리 `w1-w7-work-queue`
+⚠️ **코어 편집 = 전 종목 전역 변경** → 광범위 회귀 QA 필수(`[로컬에서]`). 위기 안전망·금지표현을 도메인 파일로 복사하지 말 것(드리프트 사고 방지). 화법·judge·캐시 규칙은 `docs/agent/persona.md`.
 
 ## 코딩 규칙
 
+- 🔴 **로그인 수단은 `user_identities` 가 정본** — `users.kakao_id` 를 직접 읽지 말 것(애플 회원은 NULL). 회원의 수단·해시는 `lib/auth/user-identity.ts`·`identity-hash.ts`(카카오 해시 = 옛 원장 공식 그대로 — 바꾸면 웰컴 별 재수령), 가입·로그인은 `lib/auth/sign-in.ts` 하나로(신규 처리·웰컴 별 1회가 거기 있다). `getSession()` 은 `Authorization` 이 Bearer 방식이면(앱 토큰 — 비었거나 틀려도) 토큰만 본다 — 실패면 비로그인, 회원·익명 쿠키 폴백 없음(규칙 `lib/auth/session-resolve.ts` · 연결부 잠금 `lib/session.test.ts`)
+- 🔴 **마이그레이션과 그걸 읽는 코드는 따로 올린다** — 표가 생기기 전에 코드가 뜨면 그 몇 분 동안 로그인이 깨진다(앱 ① `user_identities`). 마이그레이션 커밋만 먼저 push → Supabase 체크 success → 나머지. prod 머지도 같은 순서
+- 🔴 **웹에서 세션을 끝내는 곳은 앱에도 알린다** — `/api/auth/logout`·`/api/auth/withdraw` 를 부르면 `postToApp("auth.loggedOut")` 도(웹 쿠키만 지우면 앱이 토큰을 들고 있다가 다음 실행 때 조용히 다시 로그인시킨다). 지금은 마이페이지 둘뿐이고 `lib/app-context.test.ts` 의 배선 계약이 잠근다 — 새 곳을 만들면 그 테스트도 고칠 것
 - Server Components 기본, Client Components 는 인터랙션 필요 시만. 함수형 + hooks
 - Tailwind v4 기본(`@theme` 토큰 확장). 복잡 애니메이션만 `globals.css`
 - Next 16 의 `cookies()` 는 async → **`await getSession()` 필수**
@@ -110,7 +96,8 @@ docs/superpowers/{specs,plans}/
 - 🔴 **DB 권한 기본값 (2026-07-29 정리) — 바꿀 일이 생기면 이 함정 2개를 먼저 읽을 것**
   - **직접 grant vs PUBLIC 은 별개다.** Supabase 의 `ALTER DEFAULT PRIVILEGES` 가 신규 객체에 `anon`·`authenticated` **직접 grant** 를 붙인다. `REVOKE … FROM PUBLIC` 만으로는 그게 안 지워진다. (이게 별·결제 RPC 3개가 열려 있던 원인 — `20260729010000`)
   - **per-schema 기본권한은 전역 설정에 *추가*만 가능하고 제거는 못 한다.** `ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` 은 **Postgres 문서가 직접 "no effect" 예시로 드는 명령**이다. 함수의 PUBLIC EXECUTE 는 전역 기본값이라 `IN SCHEMA` 를 빼야 빠진다(`20260729040000`). 테이블은 내장 PUBLIC 기본값이 없어 per-schema 회수로 충분하다
-  - 현재 상태: 전역 `f {postgres, service_role}` · public `TBL/FN {postgres, service_role}`. 즉 **새 테이블은 `ENABLE RLS` 를 깜빡해도 anon 이 못 만진다**
+  - 현재 상태: 전역 `f {postgres, service_role}` · public `TBL/FN/SEQ {postgres, service_role}`(SEQ 는 `20261021010000`). 즉 **새 테이블은 `ENABLE RLS` 를 깜빡해도 anon 이 못 만진다**
+  - 🔴 **새 테이블은 같은 마이그레이션에 `GRANT SELECT, INSERT, UPDATE, DELETE ON public.<표> TO service_role;` 을 직접 쓴다**(시퀀스를 따로 만들면 `GRANT USAGE, SELECT, UPDATE ON SEQUENCE … TO service_role`). Supabase 가 2026-10-30 부터 신규 테이블 자동 권한을 끊는다 — 기본 권한에 기대면 마이그레이션은 성공하고 첫 호출에서 permission denied 가 난다(빌드·테스트로 못 잡음). anon·authenticated 에는 주지 않는다. 기존 테이블은 `20261021000000` 이 일괄 명시
   - ⚠️ **카탈로그만 보고 판정하지 말 것.** 두 번 다 설정은 바뀐 것처럼 보였고 실제로는 안 먹었다. **카나리아**(RLS 안 켠 임시 테이블 + 임시 함수)를 만들어 **anon 키로 실제 HTTP 호출**해 401 을 확인하고 지울 것 — `20260729020000`~`050000` 이 그 절차다
 - 사주 계산은 `lib/saju/calc.ts` 의 `calcSaju(input)` 만. tyme4ts 직접 호출 금지(wrapper 가 한자→한글 매핑+정규화+JSONB 직렬화 책임). 절기 기준(입춘 년주·절기 월주)·야자시(23시=다음날 일주). 시간 모름 = `hour: null` → 자정 계산 + `hourKnown:false` 마킹 (구 manseryeok 은 년주 입춘무시·월주 절기버그로 2026-08-23 교체)
   - 🔴 **음력→양력은 KASI 표(`lib/saju/lunar-table.ts` `lunarToSolar`)가 정본** — tyme4ts 음력(`LunarHour`·`LunarDay`)은 중국 농력이라 1900~2049 중 64개월(2012·2017 윤달 포함)이 한국과 다르다. 음력 입력을 tyme4ts 로 변환하지 말 것 (`specs/2026-10-02-음력-KASI-대조-findings.md`)
@@ -139,6 +126,7 @@ docs/superpowers/{specs,plans}/
 
 ## 운영 함정 (실사고 기록)
 
+- proxy 익명 쿠키 발급은 교차 사이트 POST 를 받는 경로에서 뺀다(지금 `/api/auth/apple/callback`) — Lax 쿠키가 안 실려 '없음'으로 보이지만 새로 심으면 기존 anon 을 덮어쓴다(가입 뒤 지도 승계·유입 복구·입구 반반 그룹이 끊김). 이런 경로를 새로 만들면 같은 예외와 `proxy.test.ts` 한 줄을 더할 것
 - **어드민 가드**: 페이지 자체 가드는 `relationship-readings` 하나뿐 — **나머지 14화면은 `proxy.ts` 가 유일한 문**(데이터는 `/api/admin/*` 개별 `requireAdmin` 으로 이중 보호). proxy 를 건드릴 때 이 사실을 기억할 것
 - **날짜 기준 = 전부 KST 자정** (2026-07-31 통일, `20260731000000`). 이전엔 `/admin`·`/admin/traffic` 만 오전 10시 롤오버라 같은 "오늘"이 화면마다 다른 날을 뜻했다 — 실측 왜곡이 컸다(07-25 UV 10시 63 vs 자정 27 = 2.3배). 버킷의 단일 원천은 `lib/admin-time.ts` 의 `kstDate`(3함수만 존재, 계약은 `lib/admin-time.test.ts` 가 지킴) / SQL 은 `(created_at at time zone 'UTC' + interval '9 hours')::date` — **`at time zone 'UTC'` 를 빼면 캐스트가 세션 TimeZone 에 좌우된다**
   - ⚠️ **한 화면에 UV 정의가 2개다**(의도된 것): `/admin/traffic` 의 일별 추세 UV = **페이지뷰 귀속**(PV 와 짝) / 방문자 구성 UV = **세션 시작 귀속**(30분 갭, `SESSION_GAP`). 실측 차이 하루 최대 1명. 같은 값으로 기대하지 말 것
@@ -154,13 +142,25 @@ docs/superpowers/{specs,plans}/
 - **prod 쓰기 작업은 항상 사용자 손** — `scripts/run-prod-query.mjs` 는 `read_only:true` 고정
 - **QA**: 별콩이 검증은 QA 하네스로 자체 수행(`.env.local` 로 충분). ⚠️**페르소나 수정 후 dev 서버 재시작 필수**(모듈 캐시)
 
-## 보류된 부채
+## Review guidelines
 
-- ✅ **`middleware.ts` → `proxy.ts` 전환 완료 (2026-07-31)**. Next 16 은 루트 `proxy.ts` + `export function proxy(req)` 를 쓴다(`config` 는 그대로 · 문서 `node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`). 코드모드 대신 수동 rename — 병렬 작업 중 리포 전체 코드모드가 위험했고, 실제 변경이 파일명+함수명뿐이라 얻는 게 없었다.
-  ⚠️ **이 전환은 조용히 실패한다** — 인식이 안 되면 크래시 없이 anon 쿠키 미발급(계측 전체 오염) + `/admin` 페이지 가드 소실. 그래서 검증 3종이 필수다: ①빌드 라우트 표에 `ƒ Proxy` 가 뜨는가 ②새 시크릿 창에서 anon 쿠키 발급 ③토큰 없이 `/admin` → 리다이렉트
+반대편 리뷰(Codex 의 GitHub 자동 리뷰 포함)는 이 절을 따른다. 리뷰는 한국어로 쓴다.
+
+- **되돌리기 어려운 일인지 첫 줄에 적는다.** 아래에 닿으면 해당 — 머지 전에 반대편 리뷰 + 운영자 승인: `supabase/migrations/`·RPC 권한 / 별 잔액·결제(`lib/stars.ts`·`app/api/stars/`·`app/api/payment{,s}/`) / 로그인·세션·탈퇴(`lib/auth/`·`app/api/auth/`·`proxy.ts`) / 페르소나 코어(`data/persona/byeolkong_core.md`) / dev→main 정식 머지.
+- 키·풀 UUID·사용자 식별자가 diff 에 있으면 가장 먼저 지적한다(공개 저장소).
+- 우선 볼 함정(위 "코딩 규칙"·"운영 함정"): 마이그레이션과 그걸 읽는 코드를 한 PR 에 섞음 · 새 `SECURITY DEFINER` RPC 의 REVOKE 3종 누락 · 새 테이블의 service_role GRANT 누락 · `users(id)` FK 의 ON DELETE 누락 · 어드민 집계에서 원본 행을 앱으로 끌어옴(`.limit` 은 Max rows 에 조용히 잘림) · SQL 날짜식에서 `at time zone 'UTC'` 누락 · `[RECO:…]` 마커를 정규식으로 직접 캐스팅 · 페이지 metadata 의 `openGraph`·`twitter` 부분 덮어쓰기 · 웹 로그아웃·탈퇴에서 `postToApp("auth.loggedOut")` 누락 · `users.kakao_id` 직접 읽기 · 별 잔액 RPC 직접 호출.
+- 테스트·빌드 통과를 안전의 증거로 보지 않는다 — 이 저장소의 큰 사고들은 둘 다 통과하고 운영까지 갔다. 조용히 실패하는 경로(권한·잘림·캐스트·설정)를 본다.
 
 ## 관련
 
 - 아카이브: `docs/AGENTS-archive-2026-07-27.md`(Phase 로그·세션 기록·역사적 트러블슈팅) · `docs/superpowers/2026-07-27-work-queue-archive.md`(W1~W7 실행 로그)
 - 설계·플랜 원장: `docs/superpowers/{specs,plans}/`
 - v1 (sunset 예정, 인프라 패턴 참고용): https://github.com/geonhee-lee0912/tarot-friend
+
+## 더 읽을 것 (그 영역을 만질 때만)
+
+- 재화·상품·prod 상태, 완료된 전환 기록: `docs/agent/product-state.md`
+- 화면·라우트·하단탭 흐름: `docs/agent/user-flow.md`
+- 디자인 토큰·모티프: `docs/agent/design-system.md`
+- 별콩이 화법·judge·프롬프트 캐시 규칙: `docs/agent/persona.md`
+- 운영 배포 절차: `docs/agent/deploy.md`

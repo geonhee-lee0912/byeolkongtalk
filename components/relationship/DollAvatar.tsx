@@ -30,7 +30,7 @@ export default function DollAvatar({ kind, status, imageUrl, name, size = 44 }: 
         }}
       >
         <span style={{ fontSize: glyphSize }} aria-hidden>
-          🧸
+         
         </span>
       </div>
     );
@@ -56,7 +56,7 @@ export default function DollAvatar({ kind, status, imageUrl, name, size = 44 }: 
       style={{ ...boxStyle, background: "#E8C26A" }}
     >
       <span style={{ fontSize: glyphSize, color: "#1F1735" }} className="font-bold" aria-hidden>
-        {initial || "🙂"}
+        {initial || ""}
       </span>
     </div>
   );

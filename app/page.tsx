@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   EMOTION_OPTIONS,
@@ -19,33 +19,21 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { type Audience, resolveAudience } from "@/components/common/hero-cards";
 import { WELCOME_BONUS_STARS } from "@/lib/constants";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
-import { getMenu } from "@/lib/tarot/menu";
-import { homeMenuLine } from "@/lib/tarot/menu-price";
-import { useWallet } from "@/lib/use-wallet";
 import SectionMark from "@/components/common/SectionMark";
-import { ENTRY_FLOW_KEY, entryFeaturesOn, isNewFlowGuest } from "@/lib/tarot/entry-ab";
-import { clearPendingDraw, loadPendingDraw, resumeHref } from "@/lib/tarot/pending-draw";
+import { clearPendingDraw } from "@/lib/tarot/pending-draw";
+import { RESUME_BANNER_KEY, RESUME_BANNER_MAX_VIEWS, takeBannerView } from "@/lib/home-banner-views";
+import Icon from "@/components/common/Icon";
 
 export default function Home() {
   const router = useRouter();
   const [hasResumable, setHasResumable] = useState(false);
   const [welcomeNudge, setWelcomeNudge] = useState(false);
   const [audience, setAudience] = useState<Audience | null>(null);
-  // 큰 카드 한 줄 — 메뉴판 그룹 로그인 유저만(비로그인·옛 그룹은 지금 홈 그대로, 스펙 §9-1)
-  const wallet = useWallet("home");
-  // 로그인 전 맛보기 — 저장된 판이 있으면(7일 안) '아까 뽑은 카드' 한 줄(스펙 2026-10-11 §3 ⑥).
-  // 스위치(entryFeaturesOn)에 묶는다 — 켰다가 되돌려도 남은 저장 때문에 줄이 남으면 안 된다(뽑기 화면은 스위치가 꺼지면 복원하지 않아, 눌러도 이어지지 않는다). ENTRY_AB='old' 동안엔 늘 false 다
-  // 꺼져 있으면 읽지 않고 지운다 — 안 읽고 안 지우면 켰다가 되돌린 기기(롤백 · 판정에서 옛 흐름 승)에 그동안 저장된 고민 원문이 복원도 못 한 채 무기한 남는다
-  // (7일 만료는 loadPendingDraw 가 하는데 꺼져 있으면 아무도 안 부른다 — 스펙 §10 '최대 7일'과 어긋난다). 옛 흐름의 보통 방문엔 지울 키가 없어 화면은 그대로다.
-  // 스위치 'old'(지금 prod)에서도 도는 줄이라 localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다 — 그땐 이어가기 줄만 안 뜬다
-  const [pendingDraw, setPendingDraw] = useState(false);
+  // 입구 반반 때 새 흐름 기기에 남은 진행 저장(고민 원문)을 지운다 — 읽어 줄 코드가 없어 안 지우면 무기한 남는다(lib/tarot/pending-draw.ts).
+  // 보통 방문엔 지울 키가 없어 화면은 그대로다. localStorage 접근 자체가 던지는 브라우저(저장소 차단)여도 홈이 죽지 않게 try 안에 둔다
   useEffect(() => {
     try {
-      if (!entryFeaturesOn()) {
-        clearPendingDraw(localStorage);
-        return;
-      }
-      setPendingDraw(loadPendingDraw(localStorage) !== null);
+      clearPendingDraw(localStorage);
     } catch {
       // noop
     }
@@ -54,6 +42,7 @@ export default function Home() {
   // 이어할 수 있는 (미종료) 타로 대화가 있는지 확인 → 상단 배너 노출.
   // AuthBootstrap 이 세션 sync 를 마치면(byeolkong:user-updated) 재계산 —
   // 로그인 직후 새로고침 없이 배너가 따라오게.
+  const resumeView = useRef<{ id: string; show: boolean } | null>(null);
   useEffect(() => {
     const load = async () => {
       try {
@@ -61,17 +50,26 @@ export default function Home() {
           .then((x) => (x.ok ? x.json() : null))
           .catch(() => null);
         const readings = (list?.readings ?? []) as Array<{
+          id: string;
           consultationType?: string;
           emotionTag?: string | null;
           ended?: boolean;
         }>;
-        const resumable = readings.some(
+        // 목록은 최신순 — 가장 최근의 끝나지 않은 대화를 기준으로 센다
+        const resumable = readings.find(
           (r) =>
             r.consultationType === "tarot" &&
             !fortuneTypeFromTag(r.emotionTag ?? null) &&
             r.ended === false
         );
-        setHasResumable(resumable);
+        // 로그인 동기화 뒤 이 함수가 다시 돌아도 한 번 방문에 한 번만 센다
+        if (resumable && resumeView.current?.id !== resumable.id) {
+          resumeView.current = {
+            id: resumable.id,
+            show: takeBannerView(() => localStorage, RESUME_BANNER_KEY, resumable.id, RESUME_BANNER_MAX_VIEWS),
+          };
+        }
+        setHasResumable(!!resumable && resumeView.current?.show === true);
 
         // 웰컴 넛지: 로그인했는데 리딩이 하나도 없는 유저 (광고 가입 후 이탈 재방문 등)
         let loggedIn = false;
@@ -112,16 +110,9 @@ export default function Home() {
     } catch {
       user = null;
     }
-    // 입구 반반(스펙 2026-10-11-타로-로그인전-맛보기 §5-1) — 새 흐름 그룹 비로그인은 로그인 없이 고민 쓰기로.
-    // 그룹을 아직 못 받았으면(지갑 응답 전·실패) 옛 흐름 — 분석은 배정(anon_id) 기준이고 노출 어긋남은 armKnown 으로 잰다
-    const flow: "member" | "new" | "old" = user ? "member" : isNewFlowGuest(wallet) ? "new" : "old";
-    trackUiEvent("home_tag_clicked", { meta: { tag, flow, armKnown: wallet !== null } });
-    try {
-      if (flow === "new") sessionStorage.setItem(ENTRY_FLOW_KEY, "new");
-      else sessionStorage.removeItem(ENTRY_FLOW_KEY);
-    } catch {
-      // noop — 안내 한 줄만 안 뜬다
-    }
+    // 비로그인은 먼저 로그인 — 돌아오면 고민 쓰기로(입구 반반 판정 2026-11-07: 옛 흐름 고정)
+    const flow: "member" | "old" = user ? "member" : "old";
+    trackUiEvent("home_tag_clicked", { meta: { tag, flow } });
     if (flow === "old") {
       router.push(`/login?next=${encodeURIComponent("/concern")}`);
       return;
@@ -145,7 +136,8 @@ export default function Home() {
         {/* ━━━ 고민 카테고리 ━━━ */}
         <section
           id="emotion-grid"
-          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10"
+          // scroll-mt-14 — 사용법의 '별콩이랑 시작하기'(/#emotion-grid)로 올 때 고정 헤더(h-14)에 안 가리게
+          className="w-full max-w-md mx-auto px-4 pt-7 pb-8 relative z-10 scroll-mt-14"
         >
           {welcomeNudge && (
             <button
@@ -154,57 +146,40 @@ export default function Home() {
                   .getElementById("emotion-grid")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
-              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-gold-soft/80 to-gold/50 border border-gold/50 text-left shadow-[0_4px_18px_rgba(232,194,106,0.25)] animate-fade-in"
+              className="w-full flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gold-wash text-left animate-fade-in"
             >
-              <span className="text-[20px] shrink-0">⭐</span>
+              <span className="text-20 shrink-0"><Icon name="star" size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-eye-purple leading-tight">
+                <p className="text-13 font-bold text-eye-purple leading-tight">
                   웰컴 별 {WELCOME_BONUS_STARS}개가 기다리고 있어
                 </p>
-                <p className="text-[11.5px] text-eye-purple/75 mt-0.5 leading-tight">
+                <p className="text-12 text-eye-purple/75 mt-0.5 leading-tight">
                   아래에서 첫 고민을 골라봐 · 운세 리포트는 하단 사주
                   탭에서!
                 </p>
               </div>
-              <span className="text-eye-purple/60 text-[16px] shrink-0">↓</span>
+              <Icon name="chev_d" size={16} className="text-eye-purple/60" />
             </button>
           )}
           {hasResumable && (
             <Link
               href="/readings"
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-lilac-deep to-eye-purple text-white shadow-[0_4px_18px_rgba(90,62,140,0.18)] animate-fade-in"
+              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-night-card text-white shadow-float animate-fade-in"
             >
-              <span className="text-[20px] shrink-0">💬</span>
+              <span className="text-20 shrink-0"><Icon name="bubble" size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold leading-tight">
+                <p className="text-13 font-bold leading-tight">
                   이어서 나눌 수 있는 대화가 있어
                 </p>
-                <p className="text-[11.5px] text-white/80 mt-0.5 leading-tight">
+                <p className="text-12 text-white/80 mt-0.5 leading-tight">
                   내 고민톡에서 별콩이와 다시 이야기해볼까?
                 </p>
               </div>
-              <span className="text-white/70 text-[16px] shrink-0">›</span>
-            </Link>
-          )}
-          {pendingDraw && (
-            <Link
-              href={resumeHref("home")}
-              className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-white/90 border-2 border-gold/60 shadow-[0_4px_18px_rgba(232,194,106,0.2)] animate-fade-in"
-            >
-              <span className="text-[20px] shrink-0">🃏</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-eye-purple leading-tight">
-                  아까 뽑은 카드가 기다리고 있어
-                </p>
-                <p className="text-[11.5px] text-text-light mt-0.5 leading-tight">
-                  이어서 볼래?
-                </p>
-              </div>
-              <span className="text-eye-purple/60 text-[16px] shrink-0">›</span>
+              <span className="text-white/70 text-17 shrink-0"><Icon name="chev_r" size={16} /></span>
             </Link>
           )}
 
-          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
+          <p className="text-15 text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <SectionMark kind="love" /> 연애 고민
           </p>
 
@@ -212,12 +187,11 @@ export default function Home() {
           <div className="flex flex-col gap-2.5 mb-3">
             {highlightOptions.slice(0, 2).map((option) => {
               const gradient = EMOTION_GRADIENTS[option.tag];
-              const menuLine = homeMenuLine({ wallet, count: getMenu(option.tag).length });
               return (
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-3.5 p-3.5 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="card flex items-center gap-3.5 transition-all text-left group"
                 >
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -232,27 +206,22 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-eye-purple text-[16px]">
+                    <p className="font-bold text-eye-purple text-17">
                       {option.tag}
                     </p>
-                    <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+                    <p className="text-12 text-text-light mt-0.5 leading-snug">
                       {option.description}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {option.hashtags.slice(0, 3).map((h) => (
                         <span
                           key={h}
-                          className="text-[10.5px] font-bold text-lilac-deep bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                          className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                         >
                           #{h}
                         </span>
                       ))}
                     </div>
-                    {menuLine && (
-                      <span className="inline-block mt-2 rounded-full border border-gold bg-white px-2.5 py-0.5 text-[10.5px] font-bold text-eye-purple">
-                        {menuLine}
-                      </span>
-                    )}
                   </div>
                 </button>
               );
@@ -266,7 +235,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/90 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -281,10 +250,10 @@ export default function Home() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                    <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>
@@ -294,29 +263,25 @@ export default function Home() {
             })}
           </div>
 
-          {/* 디바이더 — 연애 고민(타로) ↔ 궁합(사주) 경계 */}
-          <div className="flex items-center gap-3 mb-4" aria-hidden>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-            <span className="text-gold text-[11px]">✦</span>
-            <span className="flex-1 h-px bg-lilac-mid/40" />
-          </div>
+          {/* 디바이더 — 연애 고민(타로) ↔ 별마루·연애 상담 경계 */}
+          <div className="h-px bg-lilac-mid/40 mb-4" aria-hidden />
 
-          {/* 별마루 진입 — 연애 상담 카드 **위**(사용자 확정 2026-10-02). 전체 폭 가로 행이라
-              2단 그리드가 아니고, 글자 크기는 아래 연애 상담 카드와 동일하다.
+          {/* 별마루 진입 — 전체 폭 가로 행(2단 그리드 아님). 아래 있던 연애 상담 카드는 서비스
+              종료로 뺐다(2026-11-21 운영자 결정) — 아래 여백도 그 카드가 쓰던 mb-5 로.
               🔴 도달 beacon 을 같이 단다 — 홈은 스크롤 깊이를 안 재서, 이 카드가 안 눌리면
                  "안 보여서"인지 "봤는데 관심 없어서"인지 구분할 방법이 지금 없다. */}
           <HomeReachBeacon block="byeolmaru_card" />
           <Link
             href="/byeolmaru"
             onClick={() => trackUiEvent("home_byeolmaru_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-2.5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
+            className="card flex items-center gap-3.5 mb-5 transition-all text-left group"
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
                 // 🔴 금색(FORTUNE_GRADIENTS.daily)을 쓰면 안 된다 — 이 아이콘은 크림색 마루라
                 //    금색 타일 위에서 대비가 사라져 형태가 뭉개진다(56px 실측 확인). 라일락이어야 읽힌다.
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+                background: "#E8DEF5",
               }}
             >
               <Image
@@ -328,61 +293,18 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
+              <p className="font-bold text-eye-purple text-17 flex items-center gap-1.5">
                 별마루
-                <span className="text-[11px] font-bold text-text-light">무료</span>
+                <span className="text-11 font-bold text-text-light">무료</span>
               </p>
-              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
+              <p className="text-12 text-text-light mt-0.5 leading-snug">
                 오늘 사주랑 오늘 타로, 매일 무료로 확인해봐
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {["오늘사주", "오늘타로", "매일무료"].map((h) => (
                   <span
                     key={h}
-                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
-                  >
-                    #{h}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </Link>
-
-          {/* 우리 사이(연애 상담) 진입 — 구 궁합 슬롯 대체, 라벤더 강조 + 클릭 계측 */}
-          <Link
-            href="/relationship"
-            onClick={() => trackUiEvent("home_relationship_clicked")}
-            className="flex items-center gap-3.5 p-3.5 mb-5 bg-white rounded-2xl border border-lilac-mid/60 hover:border-lilac-mid transition-all text-left group"
-          >
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
-              }}
-            >
-              <Image
-                src="/icons/relationship/consult.webp"
-                alt=""
-                width={44}
-                height={44}
-                className="object-contain group-hover:scale-110 transition-transform"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-eye-purple text-[15px] flex items-center gap-1.5">
-                별콩이와 연애 상담
-                <span className="text-[11px] font-bold text-text-light">
-                  무료 시작
-                </span>
-              </p>
-              <p className="text-[12px] text-text-light mt-0.5 leading-snug">
-                썸·연애 고민 상담하고 대화도 미리 시뮬레이션
-              </p>
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {["연애상담", "썸", "시뮬레이션"].map((h) => (
-                  <span
-                    key={h}
-                    className="text-[10.5px] font-bold text-eye-purple bg-lilac-soft/60 px-2 py-0.5 rounded-full"
+                    className="text-11 font-bold text-accent bg-lilac-soft/60 px-2 py-0.5 rounded-full"
                   >
                     #{h}
                   </span>
@@ -392,7 +314,7 @@ export default function Home() {
           </Link>
 
           {/* 다른 고민 */}
-          <p className="text-[15px] text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
+          <p className="text-15 text-eye-purple font-bold mb-3 px-1 flex items-center gap-1.5">
             <SectionMark kind="other" /> 다른 고민
           </p>
 
@@ -404,7 +326,7 @@ export default function Home() {
                 <button
                   key={option.tag}
                   onClick={() => handleSelect(option.tag)}
-                  className="flex items-center gap-2.5 p-3 bg-white/80 rounded-2xl border border-lilac-soft hover:border-lilac-deep/40 transition-all text-left group"
+                  className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-2.5 transition-all text-left group"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -419,10 +341,10 @@ export default function Home() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-eye-purple text-[13.5px] leading-tight truncate">
+                    <p className="font-bold text-eye-purple text-14 leading-tight truncate">
                       {label}
                     </p>
-                    <p className="mt-[3px] text-[11px] font-bold text-lilac-deep truncate">
+                    <p className="mt-[3px] text-11 font-bold text-accent truncate">
                       #{option.hashtags[0]}
                       {option.hashtags[1] ? ` · ${option.hashtags[1]}` : ""}
                     </p>

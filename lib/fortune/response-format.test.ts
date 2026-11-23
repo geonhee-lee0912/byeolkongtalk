@@ -33,6 +33,9 @@ describe("fortuneResponseFormat", () => {
     assert.equal(rf!.name, "daily_report");
     assert.equal((rf!.schema as { type: string }).type, "object");
   });
+  it("saju_2027 은 saju_full 과 같은 스키마 — 같은 틀에 연도만 다르다", () => {
+    assert.deepEqual(fortuneResponseFormat("saju_2027"), fortuneResponseFormat("saju_full"));
+  });
   it("good_days(마크다운)·tarot(비활성)은 undefined", () => {
     for (const t of ["good_days", "tarot_daily", "tarot_love", "tarot_money", "tarot_career", "tarot_relation"] as const) {
       assert.equal(fortuneResponseFormat(t), undefined);

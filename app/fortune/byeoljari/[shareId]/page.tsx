@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { StarGraph } from "@/lib/byeoljari/types";
@@ -9,6 +9,7 @@ import { RELATION_TYPE_LABEL } from "@/lib/byeoljari/display";
 import { buildInviteUrl } from "@/lib/byeoljari/invite-link";
 import { trackUiEvent } from "@/lib/analytics/ui-events";
 import FreeToPaidCta from "@/components/upsell/FreeToPaidCta";
+import { LINK_ICON } from "@/components/tarot/TarotShareButtons";
 
 // 관계분류 칩 순서 — display.ts 단일 원천(드리프트 방지, ConstellationView 와 동일 관례).
 const RELATION_ORDER = Object.keys(RELATION_TYPE_LABEL);
@@ -30,6 +31,13 @@ export default function ByeoljariGuestPage() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState(true); // 확인 전엔 로그인 안내를 숨겨 둔다(로그인한 사람에게 잠깐 뜨지 않게)
+  const joinRef = useRef<HTMLDivElement>(null);
+
+  // 참여 칸은 지도 아래에 열리는데 버튼은 화면 아래 고정이라, 열리면 그 칸으로 데려간다(⑦ K1)
+  useEffect(() => {
+    if (showJoin) joinRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showJoin]);
 
   const load = useCallback(async () => {
     try {
@@ -43,6 +51,7 @@ export default function ByeoljariGuestPage() {
 
   useEffect(() => {
     setMeId(localStorage.getItem(`byeoljari:me:${shareId}`));
+    setLoggedIn(!!localStorage.getItem("byeolkong_user"));
     load();
   }, [shareId, load]);
 
@@ -83,61 +92,24 @@ export default function ByeoljariGuestPage() {
         <>
           <ConstellationView graph={state.graph} meId={meId} />
 
-          {!meId && !state.graph.viewerIsOwner && !showJoin && (
-            <button
-              onClick={() => setShowJoin(true)}
-              className="mt-4 w-full rounded-xl bg-lilac-deep py-3 text-white"
-            >
-              이 별자리에 내 별 놓기
-            </button>
-          )}
-          {/* 주인(이미 멤버)에겐 join 대신 친구 초대(링크 복사) — 친구가 그 링크로 내 별 놓기. */}
-          {(meId || state.graph.viewerIsOwner) && (
-            <button
-              onClick={async () => {
-                try {
-                  const url = buildInviteUrl(window.location.origin, shareId);
-                  await navigator.clipboard.writeText(url);
-                  trackUiEvent("byeoljari_invite_clicked", { meta: { shareId } });
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
-                }
-              }}
-              className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-white shadow-sm transition active:scale-[0.99] ${
-                copied ? "bg-[#3E9E7A]" : "bg-lilac-deep"
-              }`}
-            >
-              {copied ? (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  링크 복사됨! 친구에게 보내줘
-                </>
-              ) : (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  친구 초대하기
-                </>
-              )}
-            </button>
-          )}
           {showJoin && (
-            <div className="mt-4 space-y-2 rounded-2xl bg-cream-warm p-4">
-              <input
-                className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
-                placeholder="내 이름"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <BirthdaySelect value={birth} onChange={setBirth} />
+            // 칸마다 굵은 이름(디자인 다듬기 인연 별자리 ⑨ J2, 운영자 11-21) — 예전엔 이름·생일 칸에 이름이 없고 관계 질문만 작은 회색이었다
+            <div ref={joinRef} className="card mt-4 flex flex-col gap-4 scroll-mt-20">
               <div>
-                <p className="mb-1 text-xs text-text-light">별자리 주인과 어떤 사이야?</p>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">이름</p>
+                <input
+                  className="w-full rounded-lg border border-lilac bg-white px-3 py-2"
+                  placeholder="이름을 알려줄래?"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">생일</p>
+                <BirthdaySelect value={birth} onChange={setBirth} />
+              </div>
+              <div>
+                <p className="mb-1.5 text-13 font-bold text-eye-purple">별자리 주인과 어떤 사이야?</p>
                 <div className="flex flex-wrap gap-2">
                   {RELATION_ORDER.map((rt) => {
                     const on = relationType === rt;
@@ -149,8 +121,8 @@ export default function ByeoljariGuestPage() {
                         onClick={() => setRelationType(rt)}
                         className={
                           on
-                            ? "rounded-full bg-lilac-deep px-3 py-1 text-xs text-white"
-                            : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-xs text-text-light"
+                            ? "rounded-full bg-accent px-3 py-1 text-12 text-white"
+                            : "rounded-full border border-lilac-soft bg-white px-3 py-1 text-12 text-text-light"
                         }
                       >
                         {RELATION_TYPE_LABEL[rt]}
@@ -159,7 +131,7 @@ export default function ByeoljariGuestPage() {
                   })}
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm text-text-light">
+              <label className="flex items-center gap-2 text-14 text-text-light">
                 <input
                   type="checkbox"
                   checked={namePublic}
@@ -169,16 +141,16 @@ export default function ByeoljariGuestPage() {
                 별자리에 내 이름 보이기
               </label>
               {joinError && (
-                <p className="text-[12px] text-red-500 text-center">{joinError}</p>
+                <p className="text-12 text-red-500 text-center">{joinError}</p>
               )}
               <button
                 disabled={busy || !name || !birth}
                 onClick={join}
-                className="w-full rounded-xl bg-lilac-deep py-3 text-white disabled:opacity-50"
+                className="btn btn-primary btn-lg"
               >
                 내 별 놓기
               </button>
-              <p className="text-[11px] text-text-light/70 text-center leading-relaxed">
+              <p className="text-11 text-text-light text-center leading-relaxed">
                 만 14세 이상만 참여할 수 있어. 생년월일은 별자리 계산에만 쓰이고
                 다른 사람에게 보이지 않아. 내 별을 놓으면{" "}
                 <Link href="/privacy" className="underline">
@@ -189,24 +161,67 @@ export default function ByeoljariGuestPage() {
             </div>
           )}
 
-          <p className="mt-6 text-center text-xs text-text-light">
-            로그인하면 이 별자리를 계속 볼 수 있어. 안 하면 이 기기에서만 보여.
-          </p>
+          {/* 로그인 안내는 비로그인에게만, 로그인 링크와 한 줄로(디자인 다듬기 인연 별자리 ⑪ E1, 운영자 11-21 — 만들기 화면과 같게).
+              예전엔 로그인한 사람에게도 '로그인하면 계속 볼 수 있어' 문장이 보였다 */}
+          {!loggedIn && (
+            <p className="mt-6 text-center text-12 text-text-light">
+              로그인하면 이 별자리를 계속 볼 수 있어 ·{" "}
+              <a href={`/login?next=${encodeURIComponent(`/fortune/byeoljari/${shareId}`)}`} className="font-bold text-accent">
+                로그인하기
+              </a>
+            </p>
+          )}
           {/* 방문자(공유로 들어온 사람)에게만 별마루 유도 — 주인은 자기 별자리라 CTA 불필요(형제 버튼과 동일 가드). */}
           {!state.graph.viewerIsOwner && (
-            <Link href="/byeolmaru" className="mt-2 block text-center text-xs text-lilac-deep">
-              별마루에서 무료로 다 보기 →
+            <Link href="/byeolmaru" className={`${loggedIn ? "mt-6" : "mt-2"} block text-center text-12 text-accent`}>
+              별마루에서 무료로 다 보기
             </Link>
           )}
 
           <FreeToPaidCta
             title="이 인연, 더 깊이 볼래?"
-            subtitle="별자리는 시작 — 궁합·연애 사주도, 지금 마음은 타로로"
             chat={{ label: "이 관계, 타로로 물어볼래?", tagline: "지금 그 사람 마음이 궁금하면, 타로 카드 뽑아 별콩이랑 바로 상담해봐" }}
             products={["love_self", "compat"]}
             source="byeoljari"
             bare
           />
+
+          {/* 아래 탭 위 고정 버튼 하나 — 방문자는 '이 별자리에 내 별 놓기', 주인·멤버는 '친구 초대하기'(디자인 다듬기 인연 별자리 ⑦ K1·⑧ I1, 운영자 11-20).
+              예전엔 둘 다 목록 맨 아래였고, 초대는 다른 주 버튼보다 옅은 보라에 복사되면 버튼이 초록으로 바뀌었다 → 같은 주 버튼 + 위에 복사 알림.
+              방문자가 누르면 지도 아래 참여 칸이 열리고 그리로 스크롤한다 */}
+          {(meId || state.graph.viewerIsOwner || !showJoin) && (
+            <div className="sticky z-30 bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 mt-6 px-4 py-3 bg-cream shadow-float-up">
+              {meId || state.graph.viewerIsOwner ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const url = buildInviteUrl(window.location.origin, shareId);
+                      await navigator.clipboard.writeText(url);
+                      trackUiEvent("byeoljari_invite_clicked", { meta: { shareId } });
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      /* clipboard 권한 실패 시 무시 — 사용자가 주소창에서 직접 복사 */
+                    }
+                  }}
+                  className="btn btn-primary btn-lg gap-2"
+                >
+                  {LINK_ICON}
+                  친구 초대하기
+                </button>
+              ) : (
+                <button type="button" onClick={() => setShowJoin(true)} className="btn btn-primary btn-lg">
+                  이 별자리에 내 별 놓기
+                </button>
+              )}
+              {copied && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-2 rounded-lg bg-night text-white text-12 whitespace-nowrap shadow-float animate-fade-in">
+                  링크 복사됨! 친구에게 보내줘
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </main>

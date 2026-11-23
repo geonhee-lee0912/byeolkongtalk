@@ -7,7 +7,7 @@
 
 @theme {
   /* 컬러 — 크림빛 몸 / 연보라 구름 / 금색 별 */
-  --color-cream: #FAF6F0;
+  --color-cream: #F6F5F2; /* 화면 바탕 — 이름은 cream 이지만 값은 따뜻한 회색(디자인 다듬기 ② 운영자 D안 11-12, 옛 크림). 시트·헤더·탭도 이 색 */
   --color-cream-warm: #FFF8F0;
   --color-lilac-soft: #E8DEF5;
   --color-lilac: #D4C7EE;
@@ -16,19 +16,107 @@
   --color-gold: #E8C26A;
   --color-gold-soft: #F2D78A;
   --color-eye-purple: #5A3E8C;
-  --color-text-light: #7A6BA0;
+  /* 글자색 4개(스펙 2026-11-09 §2.5) — 밝은 바탕에서 4.5:1 이상. 투명도 글자(text-text-light/70 등)는 쓰지 않는다 */
+  --color-text-light: #726398;
+  --color-accent: #775CB0; /* 강조 글자·칩·주 버튼 바탕 */
+  --color-accent-on-dark: #9F8AD0; /* 밤 바탕 위 강조 글자(lilac-deep 과 같은 색) */
+  --color-text-faint: #978AB3; /* 입력 전 안내·못 누르는 상태만 */
+  --color-inner: #FBF8FE; /* 안쪽 칸 바탕 */
+  --color-gold-wash: #FBF1D6; /* 골드 안내 배너 바탕 */
+  --color-disabled: #E7E5E1; /* 못 누르는 주 버튼 바탕 */
+  --color-disabled-text: #A5A1AA; /* 못 누르는 주 버튼 글자 */
   --color-night: #1F1735;
   --color-night-deep: #2A1F4D;
+
+  /* 글자 크기 10단계 + 큰 숫자(스펙 §2.2). rem 이지만 html 을 16px 로 고정해 기기·브라우저 글자 설정과 무관 */
+  --text-11: 0.6875rem;
+  --text-11--line-height: 1rem;
+  --text-12: 0.75rem;
+  --text-12--line-height: 1.125rem;
+  --text-13: 0.8125rem;
+  --text-13--line-height: 1.25rem;
+  --text-14: 0.875rem;
+  --text-14--line-height: 1.3125rem;
+  --text-15: 0.9375rem;
+  --text-15--line-height: 1.375rem;
+  --text-16: 1rem; /* 읽는 본문 — 상담 말풍선·리포트 본문 */
+  --text-16--line-height: 1.625rem;
+  --text-17: 1.0625rem;
+  --text-17--line-height: 1.5rem;
+  --text-20: 1.25rem;
+  --text-20--line-height: 1.75rem;
+  --text-22: 1.375rem;
+  --text-22--line-height: 1.875rem;
+  --text-28: 1.75rem;
+  --text-28--line-height: 2.25rem;
+  --text-44: 2.75rem;
+  --text-44--line-height: 1;
+  --text-52: 3.25rem;
+  --text-52--line-height: 1;
+
+  /* 그림자 3단계(스펙 §2.4) — 높이 뜬 것일수록 진하게. 바텀시트는 그림자 없이 뒤 막으로 */
+  --shadow-card: 0 1px 4px rgba(90, 62, 140, 0.08);
+  --shadow-float: 0 4px 16px rgba(40, 30, 70, 0.12);
+  --shadow-float-up: 0 -4px 16px rgba(40, 30, 70, 0.12);
+  --shadow-modal: 0 8px 32px rgba(31, 23, 53, 0.25);
 
   /* 폰트 — Noto Sans KR (본문) / Cafe24 Ssurround (디스플레이/타이틀) */
   --font-sans: var(--font-noto-sans-kr), system-ui, sans-serif;
   --font-display: var(--font-cafe24), var(--font-noto-sans-kr), system-ui, sans-serif;
 }
 
-/* 메인 배경 — 크림 → 연보라 그라데이션 (별콩이 외형 톤) */
+/* ─────────────────────────────────────────────
+   공용 부품(스펙 2026-11-09 §2.6·§2.7) — <button>·<Link>·<a> 어디에나 붙인다
+   버튼: btn + 종류(btn-primary|btn-secondary|btn-text) + 크기(btn-lg|btn-md|btn-sm)
+   카드: card(크림 위 바닥 카드) · card-report(글 많은 리포트) · card-inner(카드·시트 안 칸) · card-night(밤 카드)
+   ───────────────────────────────────────────── */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-15 transition active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+}
+@utility btn-primary {
+  @apply bg-accent text-white;
+  /* 못 누를 때는 흐리게(진보라 40%)가 아니라 회색 — 흐린 진보라가 바탕과 섞여 탁해 보였다(디자인 다듬기 ② 운영자 B안 11-12) */
+  &:disabled {
+    opacity: 1;
+    background-color: var(--color-disabled);
+    color: var(--color-disabled-text);
+  }
+}
+@utility btn-secondary {
+  @apply bg-lilac-soft text-eye-purple;
+}
+@utility btn-text {
+  @apply bg-transparent text-eye-purple;
+}
+@utility btn-lg {
+  @apply h-13 w-full px-5;
+}
+@utility btn-md {
+  @apply h-11 px-[18px];
+}
+@utility btn-sm {
+  @apply h-9 px-3.5 text-13;
+}
+@utility card {
+  @apply bg-white rounded-2xl shadow-card p-4;
+}
+@utility card-report {
+  @apply bg-white rounded-2xl shadow-card p-5;
+}
+@utility card-inner {
+  @apply bg-inner border border-lilac-mid/35 rounded-xl p-3;
+}
+@utility bg-night-card {
+  background: linear-gradient(140deg, #2A1F4D, #1F1735);
+}
+@utility card-night {
+  @apply bg-night-card rounded-2xl p-4 text-cream-warm;
+}
+
+/* 화면 바탕 — 단색(옛 크림→연보라 세로 그라데이션은 아래쪽이 연보라 버튼·칩을 묻고 헤더·탭과 띠가 져서 뺐다, 11-12) */
 html {
-  background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-lilac-soft) 100%);
-  background-attachment: fixed;
+  font-size: 16px; /* 글자 고정(스펙 §2.2) — 기기·브라우저 글자 설정과 무관. 나중에 켤 땐 여기 */
+  background: var(--color-cream);
   min-height: 100%;
 }
 
@@ -147,4 +235,245 @@ body {
 }
 .scrollbar-hover-x:hover::-webkit-scrollbar-thumb {
   background: rgba(159, 138, 208, 0.45);
+}
+
+/* iOS 는 16px 미만 입력칸을 누르면 화면을 확대한다. 레이어 밖 규칙이라 text-[14px] 같은 유틸리티보다 우선한다 */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* 앱 모드 — 웹·앱이 다른 부분은 둘 다 그려 두고 하나를 숨긴다. data-app 은 루트 레이아웃 첫 스크립트가 붙인다(lib/app-shell/mode.ts).
+   스펙 docs/superpowers/specs/2026-11-07-앱-화면-design.md §3 */
+html[data-app] .web-only {
+  display: none !important;
+}
+html:not([data-app]) .app-only {
+  display: none !important;
+}
+
+/* 앱 작은 동작(스펙 §5 ①③) — 앱에서만. 글자 선택은 기본으로 막고 상담 답변·리포트 본문(.selectable)과 입력칸만 연다.
+   🔴 입력칸을 풀어 두지 않으면 아이폰에서 타이핑·커서 이동이 안 된다 */
+html[data-app] body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html[data-app] .selectable,
+html[data-app] .selectable *,
+html[data-app] input,
+html[data-app] textarea,
+html[data-app] [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+  /* touch-callout 은 상속된다 — 풀지 않으면 아이폰에서 복사·붙여넣기 메뉴가 안 뜬다 */
+  -webkit-touch-callout: default;
+}
+/* 복사 허용 영역 안이라도 버튼·링크는 길게 눌러 글자가 잡히지 않게 */
+html[data-app] .selectable :is(a, button, [role="button"]),
+html[data-app] .selectable :is(a, button, [role="button"]) * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+html[data-app] * {
+  -webkit-tap-highlight-color: transparent;
+}
+/* 누르는 동안 살짝 작아지고 옅어진다 — 하단 탭바는 통째로 줄지 않게 뺀다 */
+html[data-app] :is(a, button, [role="button"]):not(nav[aria-label="주요 메뉴"] *):active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* 앱 화면 전환 — OS별 쌓기 흉내(스펙 §6). 방향은 html[data-nav](components/layout/AppNavDirection.tsx), 페이지 묶음은 .app-nav(AppShell).
+   헤더·탭바는 따로 이름을 줘 페이지 그림이 그 위로 지나가지 않게 하고, 움직이지 않는다. */
+html[data-app] header.app-only {
+  view-transition-name: app-header;
+}
+/* 화면 묶음은 불투명하게 — 배경이 없으면 전환 중 들어오는 화면 틈으로 아래 화면이 비친다(2026-11-07 아이폰 실기기). 바탕(html)과 같은 색 */
+html[data-app] [data-app-page] {
+  background: var(--color-cream);
+}
+/* ‹ 뒤로 전환의 복제본(AppNavDirection runBackTransition) — 복제하면 페이지 등장 애니메이션(fade-in 등)이 처음부터 다시 돌아 빈 장처럼 보인다 */
+.app-back-clone,
+.app-back-clone * {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-app] nav[aria-label="주요 메뉴"] {
+  view-transition-name: app-tabbar;
+}
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(app-header),
+::view-transition-old(app-header),
+::view-transition-new(app-header),
+::view-transition-group(app-tabbar),
+::view-transition-old(app-tabbar),
+::view-transition-new(app-tabbar),
+::view-transition-group(.app-nav) {
+  animation: none;
+}
+/* 웹(브라우저)·방향 없음·탭 바꾸기·아이폰 손가락 뒤로 가기 — 움직이지 않는다 */
+html:not([data-app])::view-transition-old(*),
+html:not([data-app])::view-transition-new(*),
+html:not([data-nav])::view-transition-old(.app-nav),
+html:not([data-nav])::view-transition-new(.app-nav),
+html:is([data-nav="tab"], [data-nav="none"])::view-transition-old(.app-nav),
+html:is([data-nav="tab"], [data-nav="none"])::view-transition-new(.app-nav) {
+  animation: none;
+}
+@keyframes app-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes app-out-left {
+  to {
+    transform: translateX(-30%);
+    filter: brightness(0.82);
+  }
+}
+@keyframes app-in-left {
+  from {
+    transform: translateX(-30%);
+    filter: brightness(0.82);
+  }
+}
+@keyframes app-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes app-rise {
+  from {
+    transform: translateY(8%);
+  }
+}
+@keyframes app-appear {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes app-vanish {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes app-sink-out {
+  to {
+    transform: translateY(8%);
+    opacity: 0;
+  }
+}
+@keyframes app-hold {
+  to {
+    opacity: 1;
+  }
+}
+/* 아이폰 — 0.54초 · 천천히 출발해 부드럽게 멈추는 곡선(Ionic 의 iOS 화면 전환 값). 0.35초 앞쏠림 곡선은 실기기에서 "너무 빨라 어색"(2026-11-08) */
+html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-new(.app-nav) {
+  animation: app-in-right 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="forward"]::view-transition-old(.app-nav) {
+  animation: app-out-left 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="back"]::view-transition-old(.app-nav) {
+  z-index: 1;
+  animation: app-out-right 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"][data-nav="back"]::view-transition-new(.app-nav) {
+  animation: app-in-left 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+/* 아이폰 헤더 — 화면과 같은 0.54초에 걸쳐 이전 헤더가 스르르 사라지고 새 헤더가 나타난다. 한순간에 바뀌면 맨 위에서 오갈 때
+   바로 밑에서 움직이는 화면과 따로 놀아 어색했다(2026-11-08 실기기). ‹ 뒤로는 AppNavDirection runBackTransition 이 같은 값으로 한다 */
+html[data-app][data-platform="ios"]:is([data-nav="forward"], [data-nav="back"])::view-transition-old(app-header) {
+  animation: app-vanish 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+html[data-app][data-platform="ios"]:is([data-nav="forward"], [data-nav="back"])::view-transition-new(app-header) {
+  animation: app-appear 0.54s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+/* 안드로이드 — 떠오르는 움직임은 0.3초, 진해지는 건 0.1초만(오래 반투명이면 두 화면이 겹쳐 보인다 — 2026-11-07 실기기) */
+html[data-app][data-platform="android"][data-nav="forward"]::view-transition-new(.app-nav) {
+  animation:
+    app-rise 0.3s cubic-bezier(0.2, 0, 0, 1) both,
+    app-appear 0.1s linear both;
+}
+html[data-app][data-platform="android"][data-nav="forward"]::view-transition-old(.app-nav) {
+  animation: app-hold 0.3s both;
+}
+html[data-app][data-platform="android"][data-nav="back"]::view-transition-old(.app-nav) {
+  z-index: 1;
+  animation: app-sink-out 0.3s cubic-bezier(0.3, 0, 0.8, 0.15) both;
+}
+html[data-app][data-platform="android"][data-nav="back"]::view-transition-new(.app-nav) {
+  animation: app-hold 0.3s both;
+}
+/* 올라오기는 backwards — 끝나면 애니메이션이 빠져 끌기의 인라인 transform 이 바로 먹는다(fill both 면 끝난 뒤에도 남아 WebKit 에서 끌기가 안 따라올 수 있다, 최종 리뷰 #2). 내려가기는 both(끌어내린 자리에서 출발).
+   공통 시트(components/common/Sheet.tsx) — 앱에서만 판이 아래에서 올라오고, 닫을 때(data-closing) 내려가며 뒤 배경이 옅어진다.
+   웹은 겉(.sheet-root)의 animate-fade-in 그대로. 값: 아이폰 0.4초 올라오기 / 0.25초 내려가기, 안드로이드 0.3초 / 0.2초(Sheet.tsx EXIT_MS 와 같다) */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-dim-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-dim-out {
+  to {
+    opacity: 0;
+  }
+}
+html[data-app] .sheet-root {
+  animation: none;
+}
+/* 닫히는 동안(내려가는 0.2~0.25초)엔 누르기가 판에 닿지 않는다 — 나중에 연타의 두 번째 탭이 내려오던 버튼·체크칸을 누르던 것(최종 리뷰 #1).
+   배경막은 계속 누르기를 받아 삼킨다(이미 닫는 중이라 아무 일 없음) — 겉 전체를 막으면 뒤 화면 하단 탭까지 눌렸다(Codex #38) */
+.sheet-root[data-closing] .sheet-panel {
+  pointer-events: none;
+}
+html[data-app][data-platform="ios"] .sheet-backdrop {
+  animation: sheet-dim-in 0.4s ease-out backwards;
+}
+html[data-app][data-platform="ios"] .sheet-panel {
+  animation: sheet-up 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
+html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-backdrop {
+  animation: sheet-dim-out 0.25s ease-in both;
+}
+html[data-app][data-platform="ios"] .sheet-root[data-closing] .sheet-panel {
+  animation: sheet-down 0.25s ease-in both;
+}
+html[data-app][data-platform="android"] .sheet-backdrop {
+  animation: sheet-dim-in 0.3s ease-out backwards;
+}
+html[data-app][data-platform="android"] .sheet-panel {
+  animation: sheet-up 0.3s cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+html[data-app][data-platform="android"] .sheet-root[data-closing] .sheet-backdrop {
+  animation: sheet-dim-out 0.2s ease-in both;
+}
+html[data-app][data-platform="android"] .sheet-root[data-closing] .sheet-panel {
+  animation: sheet-down 0.2s ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  html[data-app] .sheet-backdrop,
+  html[data-app] .sheet-panel {
+    animation: none !important;
+  }
 }

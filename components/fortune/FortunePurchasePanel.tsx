@@ -52,11 +52,11 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
       const me = await fetch("/api/auth/me", { cache: "no-store" });
       const data = me.ok ? await me.json() : null;
       if (!data?.isAuthenticated) {
-        window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+        window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
         return;
       }
     } catch {
-      window.location.href = "/login?next=" + encodeURIComponent(cfg.href);
+      window.location.href = "/login?next=" + encodeURIComponent(`${cfg.href}/buy`);
       return;
     }
 
@@ -137,12 +137,11 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
         onConfirm={openConfirm}
         // 🔴 cfg.href 다 — cfg.type 으로 조립하면 compat_social 이 /fortune/compat-social(하이픈)과
         //    어긋나 로그인 후 404 로 돌아온다(추천 게이트웨이 A 실사고).
-        loginNext={cfg.href}
+        //    로그인·생일 입력 뒤엔 설명이 아니라 이 사주 고르기 페이지로 돌아온다(설명과 나눴다 — 11-15).
+        loginNext={`${cfg.href}/buy`}
         product={cfg.type}
         cost={cfg.cost}
-        confirmLabel="이 사주로 운세 보기"
         loading={balanceLoading && pendingProfileId !== null}
-        showBoardDetail={false}
         reviewableByProfile={cfg.type === "monthly" ? reviewable : undefined}
         onReview={
           cfg.type === "monthly"
@@ -153,12 +152,12 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
 
       {error && (
         <div className="mt-4 text-center px-5 max-w-md">
-          <p className="text-[12px] text-red-500">{error}</p>
+          <p className="text-12 text-red-500">{error}</p>
           {needCharge && (
             <button
               type="button"
               onClick={() => setRechargeSheetOpen(true)}
-              className="mt-1 inline-block text-[12px] text-lilac-deep underline"
+              className="mt-1 inline-block text-12 text-accent underline"
             >
               별 충전하기
             </button>
@@ -171,7 +170,6 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
           cost={cfg.cost}
           balance={balance}
           loading={balanceLoading}
-          accent="#9F8AD0"
           title={`별 ${cfg.cost}개로 ${cfg.label} 볼까?`}
           subtitle={`${cfg.label} 리포트가 바로 만들어져`}
           confirmLabel="확인하고 운세 보기"
@@ -188,7 +186,7 @@ export default function FortunePurchasePanel({ type }: { type: FortuneType }) {
       {rechargeSheetOpen && (
         <RechargeSheet
           open
-          returnTo={cfg.href}
+          returnTo={`${cfg.href}/buy`} // 충전 뒤엔 사주 고르기 페이지로(설명과 나눴다 — 11-15)
           need={cfg.cost}
           balance={balance}
           source={RECHARGE_SOURCE.fortunePurchase}

@@ -11,12 +11,12 @@ import {
 
 export default function Error({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
-  // 배포 스큐로 죽은 청크를 요청한 경우 — 앱 버그가 아니고 reset() 으로도 안 고쳐진다
+  // 배포 스큐로 죽은 청크를 요청한 경우 — 앱 버그가 아니고 unstable_retry() 로도 안 고쳐진다
   const chunkError = isChunkLoadError(error);
 
   useEffect(() => {
@@ -54,35 +54,30 @@ export default function Error({
         className="mb-4"
         aria-hidden
       />
-      <h1 className="font-display text-[28px] text-eye-purple mb-2">
+      <h1 className="font-display text-22 text-eye-purple mb-2 break-keep text-balance">
         별콩이가 잠깐 별을 놓쳤어
       </h1>
-      <p className="text-[14px] text-text-light mb-6 leading-relaxed">
+      <p className="text-14 text-text-light mb-6 leading-relaxed">
         하늘이 잠시 흐려졌나봐.
         <br />
         다시 한 번 시도해줄래?
       </p>
 
       <div className="flex flex-col gap-2 w-full max-w-[260px]">
+        {/* reset() 은 서버에 다시 안 물어서 서버에서 난 오류가 안 풀린다 — Next 16.2 의 다시 받기는 unstable_retry */}
         <button
-          onClick={() => (chunkError ? window.location.reload() : reset())}
-          className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[14px] hover:bg-lilac-deep/90 transition"
+          onClick={() => (chunkError ? window.location.reload() : unstable_retry())}
+          className="btn btn-primary btn-lg"
         >
           다시 시도하기
         </button>
         <Link
           href="/"
-          className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] hover:bg-lilac-deep/5 transition"
+          className="btn btn-text btn-lg"
         >
           홈으로 돌아가기
         </Link>
       </div>
-
-      {error.digest && (
-        <p className="mt-6 text-[11px] text-text-light/50 font-mono">
-          {error.digest}
-        </p>
-      )}
     </div>
   );
 }

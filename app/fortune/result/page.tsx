@@ -6,6 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { fortuneTypeFromTag, FORTUNE_CONFIG, type FortuneType } from "@/lib/fortune/types";
 import ResultUpsell from "@/components/upsell/ResultUpsell";
+import PushMomentAsk from "@/components/push/PushMomentAsk";
+import Sheet from "@/components/common/Sheet";
+import { ShareOption, SHARE_ICON, KAKAO_ICON, LINK_ICON } from "@/components/tarot/TarotShareButtons";
 import DailyReportCard from "@/components/fortune/DailyReportCard";
 import MonthlyReportView from "@/components/fortune/monthly/MonthlyReportView";
 import {
@@ -19,6 +22,7 @@ import {
 } from "@/lib/fortune/monthly-report";
 import {
   tryParseStoredSajuFullReport,
+  isSajuYearType,
   type SajuFullReport,
 } from "@/lib/fortune/saju-full-report";
 import {
@@ -43,10 +47,9 @@ import {
   type GenericReport,
 } from "@/lib/fortune/generic-report";
 import { tryParseStoredReportCardReport, type ReportCardReport } from "@/lib/fortune/report-card-report";
-import { tryParseStoredLifeGraphReport, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
+import { tryParseStoredLifeGraphReport, alignDecadeAges, type LifeGraphReport } from "@/lib/fortune/life-graph-report";
 import { fortuneHeroSrc } from "@/lib/fortune/hero";
 import { MarkdownLite } from "@/lib/markdown-lite";
-import { FortuneIcon } from "@/components/fortune/FortuneIcon";
 import FortuneGeneratingScreen from "@/components/fortune/FortuneGeneratingScreen";
 import type { SajuResult } from "@/lib/saju/calc";
 import { shareToKakao } from "@/lib/kakao-share";
@@ -126,14 +129,14 @@ function buildSajuFullShareText(r: SajuFullReport, label: string, url: string): 
   const months = r.monthly.map((m) => `${m.month}월: ${m.body}`).join("\n");
   return (
     `[별콩 운세] ${label}\n` +
-    `${r.year2026.hanja}년 · ${r.theme}\n` +
+    `${r.yearPillar.hanja}년 · ${r.theme}\n` +
     `${r.summary}\n\n` +
     `🍀 행운: ${r.lucky.color} · ${r.lucky.direction} · ${r.lucky.months} · ${r.lucky.keyword}\n\n` +
     `[나라는 사람]\n${r.self.nature}\n\n${r.self.strength}\n\n${r.self.caution}\n\n` +
     `오행 밸런스: ${r.self.balance.lack}\n적성: ${r.self.aptitude}\n\n` +
-    `[2026년 총운]\n큰 흐름: ${r.year.flow}\n마음: ${r.year.mind}\n사랑: ${r.year.love}\n` +
+    `[${r.yearPillar.year}년 총운]\n큰 흐름: ${r.year.flow}\n마음: ${r.year.mind}\n사랑: ${r.year.love}\n` +
     `관계: ${r.year.relationship}\n일: ${r.year.career}\n재물: ${r.year.wealth}\n건강: ${r.year.health}\n\n` +
-    (r.relations2026 ? `[2026 인연 지도]\n${r.relations2026}\n\n` : "") +
+    (r.relations2026 ? `[${r.yearPillar.year} 인연 지도]\n${r.relations2026}\n\n` : "") +
     (r.mission ? `[올해의 성장 과제]\n${r.mission}\n\n` : "") +
     `[월별 흐름]\n${months}\n\n` +
     `[주목할 시기]\n흐름 좋은 달: ${r.timing.good}\n점검할 달: ${r.timing.caution}\n\n` +
@@ -183,7 +186,7 @@ function FortuneResultInner() {
   const [error, setError] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [label, setLabel] = useState("별콩 운세");
-  const [emoji, setEmoji] = useState("🌤️");
+  const [emoji, setEmoji] = useState("");
   const [ftType, setFtType] = useState<FortuneType | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
@@ -199,7 +202,9 @@ function FortuneResultInner() {
   const [sajuData, setSajuData] = useState<SajuResult | null>(null);
   const [compatSaju, setCompatSaju] = useState<CompatSajuPair | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [relationshipId, setRelationshipId] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  // 누구 사주로 본 리포트인지 — 내 리포트일 때만(공유 링크로 연 남의 결과엔 이름을 보이지 않는다)
+  const [subject, setSubject] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -267,7 +272,9 @@ function FortuneResultInner() {
         setEmoji(FORTUNE_CONFIG[ft].emoji);
       }
       if (r.reading.createdAt) setCreatedAt(r.reading.createdAt);
-      setRelationshipId(r.reading.relationshipId ?? null);
+      if (!usedPublic && r.profile) {
+        setSubject(r.profile.relation_type === "self" ? "내 사주" : r.profile.display_name ? `${r.profile.display_name} 사주` : null);
+      }
       if (r.reading.sajuData) {
         if (ft === "compat" || ft === "compat_social") {
           setCompatSaju(r.reading.sajuData as CompatSajuPair);
@@ -277,7 +284,7 @@ function FortuneResultInner() {
       }
       const daily = ft === "daily" ? tryParseStoredDailyReport(report) : null;
       const monthly = ft === "monthly" ? tryParseStoredMonthlyReport(report) : null;
-      const sajuFull = ft === "saju_full" ? tryParseStoredSajuFullReport(report) : null;
+      const sajuFull = isSajuYearType(ft) ? tryParseStoredSajuFullReport(report) : null;
       const compat =
         ft === "compat" || ft === "compat_social"
           ? tryParseStoredCompatReport(report)
@@ -303,7 +310,9 @@ function FortuneResultInner() {
       } else if (reportCard) {
         setReportCardReport(reportCard);
       } else if (lifeGraph) {
-        setLifeGraphReport(lifeGraph);
+        // 이미 저장된 리포트도 10년 구간 이름표를 대운 표로 다시 맞춘다(AI 가 '4~13'을 '40~49'로 적은 실물 — alignDecadeAges)
+        const daeun = (r.reading.sajuData as SajuResult | null)?.daeun;
+        setLifeGraphReport({ ...lifeGraph, decades: alignDecadeAges(lifeGraph.decades, daeun) });
       } else if (generic) {
         setGenericReport(generic);
       } else {
@@ -419,8 +428,11 @@ function FortuneResultInner() {
           timeZone: "Asia/Seoul",
         })
       : null;
+  const shortDate = createdAt
+    ? new Date(createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric", timeZone: "Asia/Seoul" })
+    : null;
   const isMonthly = ftType === "monthly";
-  const isSajuFull = ftType === "saju_full";
+  const isSajuFull = isSajuYearType(ftType);
   const isCompat = ftType === "compat" || ftType === "compat_social";
   const isTarot = ftType ? FORTUNE_CONFIG[ftType].base === "tarot" : false;
   const isTarotDaily = ftType === "tarot_daily";
@@ -441,7 +453,7 @@ function FortuneResultInner() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center px-5">
-        <p className="text-text-light text-sm">별콩이가 운세를 펼치는 중…</p>
+        <p className="text-text-light text-14">별콩이가 운세를 펼치는 중…</p>
       </main>
     );
   }
@@ -449,8 +461,8 @@ function FortuneResultInner() {
   if (error) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-5 gap-3">
-        <p className="text-text-light text-sm">운세를 찾을 수 없어.</p>
-        <Link href="/fortune" className="text-lilac-deep text-sm font-bold underline">
+        <p className="text-text-light text-14">운세를 찾을 수 없어.</p>
+        <Link href="/fortune" className="text-accent text-14 font-bold underline">
           별콩 운세로 돌아가기
         </Link>
       </main>
@@ -461,19 +473,25 @@ function FortuneResultInner() {
     <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
       {!((isDaily && dailyReport) || (isMonthly && monthlyReport) || (isSajuFull && sajuFullReport) || (isCompat && compatReport) || (isTarot && tarotReport)) && (
         <div className="w-full max-w-md mx-auto px-5 flex flex-col items-center mb-5">
-          <div className="relative w-[108px] h-[120px]">
+          {/* 맨 위 정돈(디자인 다듬기 묶음 4 결과 T1, 운영자 11-16) — 그림 조금 작게, 제목 앞 상품 그림 뺌(위 그림과 겹침),
+              제목 아래 날짜·누구 사주인지 한 줄 */}
+          <div className="relative w-[88px] h-[96px]">
             <Image src={fortuneHeroSrc(ftType) ?? "/byeolkong-joy.png"} alt="별콩이" fill className="object-contain" />
           </div>
           {dateLabel && (
-            <p className="mt-2 text-[12px] font-medium text-lilac-deep">{dateLabel}</p>
+            <p className="mt-2 text-12 font-medium text-accent">{dateLabel}</p>
           )}
-          <h1 className="mt-1 font-display text-[22px] font-bold text-eye-purple text-center flex items-center justify-center gap-1.5">
-            <FortuneIcon type={ftType} size={26} className="inline-block object-contain" />
-            {label}
-          </h1>
+          <h1 className="mt-1 font-display text-22 font-bold text-eye-purple text-center">{label}</h1>
+          {!dateLabel && (shortDate || subject) && (
+            <p className="mt-1 text-12 text-text-light">
+              {[shortDate, subject && `${subject}로 본 리포트`].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       )}
 
+      {/* 앱에서도 리포트 본문은 복사할 수 있게(selectable). contents — 레이아웃에 상자를 더하지 않는다 */}
+      <div className="selectable contents">
       {isDaily && dailyReport ? (
         <DailyReportCard report={dailyReport} dateLabel={dateLabel} />
       ) : isMonthly && monthlyReport ? (
@@ -501,12 +519,12 @@ function FortuneResultInner() {
         />
       ) : isDaily ? (
         <div className="w-full max-w-md mx-auto px-5">
-          <div className="bg-cream-warm rounded-2xl px-5 py-6 border border-lilac-mid/30">
+          <div className="card-report">
             {sections.map((s, j) => (
               <MarkdownLite
                 key={j}
                 text={s.body}
-                className="text-[14.5px] text-text leading-[1.9] [&:not(:first-child)]:mt-4"
+                className="text-15 text-text leading-[1.9] [&:not(:first-child)]:mt-4"
               />
             ))}
           </div>
@@ -516,76 +534,61 @@ function FortuneResultInner() {
           {sections.map((s, i) => (
             <div
               key={i}
-              className="bg-cream-warm rounded-2xl p-4 border border-lilac-mid/30"
+              className="card"
             >
               {s.title && (
-                <h2 className="text-[14px] font-bold text-lilac-deep mb-2">{s.title}</h2>
+                <h2 className="text-14 font-bold text-accent mb-2">{s.title}</h2>
               )}
-              <MarkdownLite text={s.body} className="text-[13.5px] text-text leading-relaxed" />
+              <MarkdownLite text={s.body} className="text-14 text-text leading-relaxed" />
             </div>
           ))}
         </div>
       )}
+      </div>
 
       <div className="w-full max-w-md mx-auto px-5 mt-6 flex flex-col gap-2.5">
         {isPublic ? (
           <Link
             href="/login"
-            className="w-full py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px] text-center hover:bg-lilac-deep/90 active:scale-[0.98] transition"
+            className="btn btn-primary btn-lg"
           >
             로그인하고 오늘의 운세 무료로 보기
           </Link>
         ) : (
           <>
-            {relationshipId && (
-              <Link
-                href="/relationship"
-                className="w-full py-3.5 rounded-xl bg-white border border-lilac-mid/40 text-lilac-deep font-bold text-[15px] text-center hover:bg-lilac-soft/30 active:scale-[0.98] transition"
-              >
-                💬 연애 상담으로 돌아가 이어 얘기하기
-              </Link>
+            {/* 공유 — '공유하기' 하나, 누르면 시트에서 카톡·링크(타로 결과와 같은 모양). 예전엔 노란 카톡 + 진보라 큰 버튼 둘.
+                디자인 다듬기 운세 결과 ⑥ S1 운영자 11-16. 운세엔 스토리용 이미지가 없어 '이미지 저장' 칸은 없다 */}
+            <button type="button" onClick={() => setShareOpen(true)} className="btn btn-secondary btn-lg gap-2">
+              {SHARE_ICON}
+              공유하기
+            </button>
+            {shareOpen && (
+              <Sheet label="공유하기" onClose={() => setShareOpen(false)} z={80}>
+                <p className="font-display text-17 text-eye-purple text-center mb-[22px]">어디로 공유할까?</p>
+                <div className="grid grid-cols-2">
+                  <ShareOption icon={KAKAO_ICON} label="카카오톡" circleClass="bg-[#FEE500] text-[#3C1E1E]" onPick={handleKakaoShare} />
+                  <ShareOption icon={LINK_ICON} label="링크로 공유" circleClass="bg-lilac-soft text-eye-purple" onPick={() => void handleShare()} />
+                </div>
+              </Sheet>
             )}
-            <button
-              onClick={handleKakaoShare}
-              className="w-full py-3.5 rounded-xl bg-[#FEE500] text-[#3C1E1E] font-bold text-[15px] flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.8L5.4 22l4.6-2.5c.7.1 1.4.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
-              </svg>
-              카카오톡으로 공유하기
-            </button>
-            <button
-              onClick={handleShare}
-              className="w-full py-3 rounded-xl bg-lilac-deep text-white font-bold text-[13px] hover:bg-lilac-deep/90 active:scale-[0.98] transition"
-            >
-              링크 / 텍스트로 공유하기
-            </button>
-            <Link
-              href="/fortune"
-              className="w-full py-3 rounded-xl border border-lilac-deep/40 text-lilac-deep font-bold text-[14px] text-center hover:bg-lilac-deep/5 transition"
-            >
-              다른 운세 보기
-            </Link>
-            <Link
-              href="/readings"
-              className="w-full py-2 text-text-light/70 text-[12px] text-center"
-            >
-              내 고민톡에서 다시 보기
-            </Link>
+            {/* '다른 운세 보기'·'내 고민톡에서 다시 보기' 뺌 — 아래 탭 '사주 운세'·'마이 › 보관함'과 같은 길이라
+                공유 바로 아래 추천으로 잇는다(타로 결과와 같게). 디자인 다듬기 운세 결과 ⑦ B1 운영자 11-20 */}
           </>
         )}
       </div>
 
+      {/* 앱 알림 — 사주를 처음 볼 때 한 번 묻는다(앱 알림 설계 §4-3 ②). 내 리포트·사주 기반일 때만 */}
+      {!isPublic && ftType && !isTarot && <PushMomentAsk moment="birthday" />}
       {!isPublic && ftType && <ResultUpsell variant={ftType} />}
 
       {!isPublic && <SurveyResultCard />}
 
-      <p className="mt-5 text-[11px] text-text-light/45 text-center px-8 leading-relaxed">
-        운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어 ✨
+      <p className="mt-5 text-11 text-text-light text-center px-8 leading-relaxed">
+        운세는 정해진 미래가 아니라 흐름과 가능성이야. 선택은 늘 너에게 있어
       </p>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-[12px] px-4 py-2 rounded-full shadow-lg z-50">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-eye-purple text-white text-12 px-4 py-2 rounded-full shadow-float z-50">
           {toast}
         </div>
       )}
@@ -598,7 +601,7 @@ export default function FortuneResultPage() {
     <Suspense
       fallback={
         <main className="flex flex-1 items-center justify-center px-5">
-          <p className="text-text-light text-sm">잠시만…</p>
+          <p className="text-text-light text-14">잠시만…</p>
         </main>
       }
     >

@@ -51,7 +51,7 @@ const MARKS: Record<SectionMarkKind, { className: string; style?: React.CSSPrope
   },
   // 구름 + 별 구멍 — 고민
   other: {
-    className: "text-lilac-deep",
+    className: "text-accent",
     body: (
       <path
         fillRule="evenodd"
@@ -84,7 +84,7 @@ const MARKS: Record<SectionMarkKind, { className: string; style?: React.CSSPrope
   // 선물상자 + 별 리본 — "매일 무료로 열리는 것"
   // 🔴 뚜껑·몸통 두께는 실측으로 올린 값이다. 처음엔 얇은 띠였는데 16px 에서 사라졌다.
   today: {
-    className: "text-lilac-deep",
+    className: "text-accent",
     body: (
       <>
         <path d="M12 2.8l-1 2.4-2.4 1 2.4 1 1 2.4 1-2.4 2.4-1-2.4-1Z" />
@@ -95,7 +95,7 @@ const MARKS: Record<SectionMarkKind, { className: string; style?: React.CSSPrope
   },
   // 별 열쇠 — "나를 여는 열쇠". 도구함 아이콘 talent_path(별열쇠)와 같은 계열
   self: {
-    className: "text-lilac-deep",
+    className: "text-accent",
     body: (
       <>
         <path

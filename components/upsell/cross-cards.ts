@@ -37,15 +37,16 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
   wealth_year: ["wealth_vessel", "career_timing"],
   career_timing: ["talent_path", "wealth_year"],
   monthly: ["wealth_year", "love_year"],
+  saju_2027: ["life_full", "monthly"],
   saju_full: ["life_full", "monthly"],
-  life_full: ["saju_full", "life_graph"],
+  life_full: ["saju_2027", "life_graph"],
   compat: ["love_self", "compat_social"],
   compat_social: ["user_manual", "compat"],
   good_days: ["monthly", "wealth_year"],
   fact_bomb: ["past_life", "saju_report_card"],
   past_life: ["fact_bomb", "life_graph"],
   saju_report_card: ["fact_bomb", "life_full"],
-  life_graph: ["life_full", "saju_full"],
+  life_graph: ["life_full", "saju_2027"],
   daily: ["love_self", "monthly"],
 };
 
@@ -53,7 +54,7 @@ export const RELATED_SAJU: Partial<Record<FortuneType, FortuneType[]>> = {
 // FortuneConfig 가 아니라 수동 CrossCard(별마루는 FortuneType 이 아님). 민트=무료 톤.
 const BYEOLMARU_SAJU_CARD: CrossCard = {
   href: "/byeolmaru",
-  emoji: "🗓", // iconSrc 가 있으면 안 쓰인다 — 아이콘 파일이 사라졌을 때의 폴백으로만 둔다
+  emoji: "", // iconSrc 가 있으면 안 쓰인다 — 아이콘 파일이 사라졌을 때의 폴백으로만 둔다
   iconSrc: "/icons/byeolmaru/hub.webp",
   // 라벨은 목적지와 맞춘다 — href 가 허브(/byeolmaru)인데 "오늘 사주"라고 부르면 한 칸 어긋난다
   // (오늘 사주 본문은 /byeolmaru/day 라 한 번 더 눌러야 나온다). 대신 잃는 구체성은 태그라인이
@@ -72,7 +73,7 @@ const BYEOLMARU_SAJU_CARD: CrossCard = {
   badge: "무료",
   // 🔴 FORTUNE_GRADIENTS.daily(금색)를 쓰면 안 된다 — 이 아이콘은 크림색 마루라 금색 타일
   //    위에서 대비가 사라져 형태가 뭉개진다(56px 실측). 홈 카드와 같은 라일락으로 맞춘다.
-  gradient: "linear-gradient(135deg, #E8DEF5 0%, #D4C7EE 100%)",
+  gradient: "#E8DEF5",
 };
 
 export interface CrossCard {
@@ -95,7 +96,7 @@ function cardFromFortune(f: FortuneConfig): CrossCard {
     fortuneType: f.type,
     label: f.label,
     tagline: f.tagline,
-    badge: f.cost === 0 ? "무료" : `⭐ ${f.cost}`,
+    badge: f.cost === 0 ? "무료" : `별 ${f.cost}`,
     gradient: FORTUNE_GRADIENTS[f.type],
   };
 }
@@ -116,7 +117,7 @@ export function crossCards(
   if (variant === "counsel") {
     // 타로톡 유저는 대개 불안·고민 상태 → 위로/정체성/재미 금지, "같은 고민을 더 파는" 결로.
     // 주제(SpreadCategory) 맞춤 사주(조사 톤·1인) + 별마루 오늘 사주(무료 리텐션, 옛 daily 대체).
-    // (또 뽑기·대화 심화는 RechargeBlock 이 이미 프라이머리로 처리)
+    // (다시 뽑기는 타로 결과가 추천 묶음 맨 위에서 따로 처리)
     const sajuType = SAJU_BY_CATEGORY[topic ?? "default"] ?? "love_self";
     const saju = pickValid([sajuType, "love_self"]) ?? FORTUNE_CONFIG.love_self;
     return [cardFromFortune(saju), BYEOLMARU_SAJU_CARD];
@@ -137,12 +138,12 @@ export function crossCards(
   return [
     {
       href: "/",
-      emoji: "🃏",
+      emoji: "",
       iconSrc: "/icons/fortune/tarot_counsel.webp",
       label: "타로로 고민 상담",
       tagline: "리포트로 다 못 짚은 지금 이 고민, 타로 카드 뽑아 별콩이랑 바로 상담해봐",
       badge: "타로",
-      gradient: "linear-gradient(135deg, #EFEAF6 0%, #DACFEC 100%)",
+      gradient: "#EFEAF6",
     },
     cardFromFortune(next),
   ];

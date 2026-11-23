@@ -8,11 +8,13 @@ const STEPS = [
   { n: 3, t: "결과 받고 이어가기", d: "흐름과 가능성을 받아보고, 더 궁금하면 계속 이어가면 돼." },
 ];
 
+// 지금 탭·홈 카드와 같은 이름·그림, 누르면 그곳으로(디자인 다듬기 ② /how-to-use 운영자 A안 11-12).
+// 그림 칸 바탕은 홈과 같은 구역 색(연애 분홍 · 별마루·상담 연보라) · 사주는 하늘
 const PRODUCTS = [
-  { e: "🃏", t: "타로톡", d: "고민을 타로로 풀어보기" },
-  { e: "🔮", t: "별콩 운세", d: "사주로 보는 나의 흐름" },
-  { e: "💬", t: "연애 상담", d: "그 사람 이야기를 계속" },
-  { e: "🎭", t: "연애 시뮬", d: "그 사람과 상황 연습" },
+  { icon: "/icons/fortune/tarot_counsel.webp", bg: "#FCE7EE", t: "타로톡", d: "고민을 타로로 풀어보기", href: "/" },
+  { icon: "/icons/fortune/saju_full.webp", bg: "#E3F1FA", t: "사주 운세", d: "사주로 보는 나의 흐름", href: "/fortune" },
+  { icon: "/icons/byeolmaru/hub.webp", bg: "#E8DEF5", t: "별마루", d: "오늘 사주·타로, 매일 무료", href: "/byeolmaru" },
+  // 연애 상담·연애 시뮬 칸은 서비스 종료로 뺐다(2026-11-21)
 ];
 
 export default function HowToUsePage() {
@@ -28,23 +30,23 @@ export default function HowToUsePage() {
             className="mx-auto rounded-full bg-cream-warm object-cover"
             priority
           />
-          <h1 className="mt-4 text-xl font-bold text-eye-purple">별콩이가 처음이야?</h1>
-          <p className="mt-2 text-[14px] text-text-light leading-relaxed">
+          <h1 className="mt-4 text-20 font-bold text-eye-purple">별콩이가 처음이야?</h1>
+          <p className="mt-2 text-14 text-text-light leading-relaxed">
             별콩이는 별의 수호자야. 타로와 사주로 네 마음의 흐름을 함께 읽어주는 친구지. 어떻게 노는지 알려줄게!
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-3">이렇게 시작해</h2>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">이렇게 시작해</h2>
           <div className="space-y-3">
             {STEPS.map((s) => (
-              <div key={s.n} className="flex gap-3 rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac-deep text-white text-[13px] font-bold">
+              <div key={s.n} className="card flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac-deep text-white text-13 font-bold">
                   {s.n}
                 </span>
                 <div>
-                  <p className="text-[14px] font-bold text-eye-purple">{s.t}</p>
-                  <p className="mt-0.5 text-[13px] text-text-light leading-snug">{s.d}</p>
+                  <p className="text-14 font-bold text-eye-purple">{s.t}</p>
+                  <p className="mt-0.5 text-13 text-text-light leading-snug">{s.d}</p>
                 </div>
               </div>
             ))}
@@ -52,30 +54,39 @@ export default function HowToUsePage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-bold text-eye-purple mb-3">뭘 할 수 있어</h2>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">뭘 할 수 있어</h2>
           <div className="grid grid-cols-2 gap-3">
             {PRODUCTS.map((p) => (
-              <div key={p.t} className="rounded-2xl bg-cream-warm border border-lilac-soft/50 p-4">
-                <div className="text-2xl">{p.e}</div>
-                <p className="mt-1.5 text-[13.5px] font-bold text-eye-purple">{p.t}</p>
-                <p className="mt-0.5 text-[12px] text-text-light leading-snug">{p.d}</p>
-              </div>
+              <Link key={p.t} href={p.href} className="card flex flex-col gap-2.5">
+                <span
+                  className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
+                  style={{ background: p.bg }}
+                  aria-hidden
+                >
+                  <Image src={p.icon} alt="" width={38} height={38} className="object-contain" />
+                </span>
+                <span>
+                  <span className="block text-15 font-bold text-eye-purple">{p.t}</span>
+                  <span className="block mt-0.5 text-12 text-text-light leading-snug">{p.d}</span>
+                </span>
+              </Link>
             ))}
           </div>
         </section>
 
-        <section className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
-          <p className="text-[13.5px] text-eye-purple leading-relaxed">
-            🌟 처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전이나 패스로 이어갈 수 있어.
-          </p>
+        {/* 무료 별 안내에도 소제목을 달고, 버튼은 안내 바로 아래로(섹션 간격 32 대신 20) — 디자인 다듬기 ② 운영자 11-12 */}
+        <section>
+          <h2 className="text-15 font-bold text-eye-purple mb-3">무료로 시작해</h2>
+          <div className="rounded-2xl bg-gold-soft/20 border border-gold/30 p-4">
+            <p className="text-14 text-eye-purple leading-relaxed">
+              처음 오면 <b>별콩별 {WELCOME_BONUS_STARS}개</b>를 선물로 줘. 무료로 시작하고, 더 깊게 보고 싶으면 충전해서 이어갈 수 있어.
+            </p>
+          </div>
+          {/* 고민 고르기가 1단계라 홈의 고민 카드로 바로(전엔 /concern → 고른 고민 없음 → 홈으로 튕김) */}
+          <Link href="/#emotion-grid" className="mt-5 btn btn-primary btn-lg">
+            별콩이랑 시작하기
+          </Link>
         </section>
-
-        <Link
-          href="/concern"
-          className="block w-full text-center py-3.5 rounded-xl bg-lilac-deep text-white font-bold text-[15px]"
-        >
-          별콩이랑 시작하기
-        </Link>
       </div>
     </main>
   );

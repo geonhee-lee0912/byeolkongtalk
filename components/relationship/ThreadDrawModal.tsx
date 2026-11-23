@@ -8,8 +8,10 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import CardDrawRitual from "@/components/tarot/CardDrawRitual";
 import StarConfirmModal from "@/components/common/StarConfirmModal";
+import { useOverlayEntry } from "@/components/common/use-overlay-entry";
 import { SPREAD_INFO, getPositionLabels, type DrawnCard } from "@/lib/tarot/spreads";
 import type { RelationshipSkill } from "@/lib/relationship/skills";
+import Icon from "@/components/common/Icon";
 
 interface Props {
   skill: RelationshipSkill;
@@ -34,18 +36,8 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ESC + 배경 스크롤 잠금
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeModal(); };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ESC + 배경 스크롤 잠금 — 겹창 스택(모양이 Sheet·Dialog 에 안 맞아 스택만). 뽑기 처리 중엔 ESC 로 안 닫힌다
+  useOverlayEntry(() => closeModal(), !submitting, 75);
 
   function closeModal() {
     if (submitting) return;
@@ -93,34 +85,37 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
   return createPortal(
     <div
       className="fixed inset-0 z-[75] flex items-stretch justify-center bg-night/70 backdrop-blur-sm p-3 animate-fade-in"
-      onClick={closeModal}
+      // 배경 자체를 눌렀을 때만 — 안에 그리는 별 확인 시트의 클릭이 React 트리로 번져 와도 닫지 않는다
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeModal();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={`${skill.label} 카드 뽑기`}
     >
       <div
-        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.28)] overflow-y-auto"
+        className="w-full max-w-md bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="font-display text-[16px] font-bold text-eye-purple">
-            {skill.emoji} {skill.label}
+          <h2 className="font-display text-17 text-eye-purple">
+            {skill.label}
           </h2>
           <button
             onClick={closeModal}
             aria-label="닫기"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
           >
-            ✕
+            <Icon name="close" size={18} />
           </button>
         </div>
 
         {error && (
-          <p className="text-[12px] text-red-500 text-center px-5 mb-2">{error}</p>
+          <p className="text-12 text-red-500 text-center px-5 mb-2">{error}</p>
         )}
 
         {submitting ? (
-          <div className="py-16 text-center text-text-light text-sm">
+          <div className="py-16 text-center text-text-light text-14">
             별콩이가 카드를 펼치는 중…
           </div>
         ) : (
@@ -141,7 +136,6 @@ export default function ThreadDrawModal({ skill, onSubmit, onClose }: Props) {
           cost={skill.starCost}
           balance={balance}
           loading={balance === null}
-          accent={info.accent}
           surface="relationship_skill"
           onConfirm={confirm}
           onCharge={() => router.push(`/shop?need=${skill.starCost}`)}

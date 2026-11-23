@@ -1,5 +1,6 @@
 // app/api/relationship/slot/route.ts — 관계 슬롯 구매(2번째 상대부터)
 import { NextResponse } from "next/server";
+import { relationshipClosedResponse } from "@/lib/relationship/closed";
 import { getSession } from "@/lib/session";
 import { purchaseSlot, getSlotInfo } from "@/lib/relationship/slots";
 
@@ -16,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST() {
+  // 2026-11-21 서비스 종료 — 세션·DB·별 차감보다 먼저 거절(lib/relationship/closed.ts)
+  const closed = relationshipClosedResponse();
+  if (closed) return closed;
   const { userId } = await getSession();
   if (!userId)
     return NextResponse.json({ error: "Login required", code: "LOGIN_REQUIRED" }, { status: 401 });

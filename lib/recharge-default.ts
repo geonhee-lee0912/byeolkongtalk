@@ -3,26 +3,34 @@
 // 기본값은 그 최소 패키지의 한 단계 위(star_70 상한, 단 최소보다 작아지지 않음). star_10 은 숨기지 않는다.
 // 스펙: docs/superpowers/specs/2026-10-05-잔액맞춤-충전기본값-design.md
 import { FIRST_CHARGE_BONUS_RATE, STAR_PACKAGES, type StarPackage } from "./constants.ts";
-import type { MenuArm } from "./tarot/menu-ab.ts";
 
 /** 기본 선택 상한 — 이보다 크게 기본으로 고르지 않는다(못 덮을 때 제외). */
 const DEFAULT_CAP_ID = "star_70";
 
-/** 그 자리 충전 시트(RechargeSheet)의 칸 — 저·중가만(큰 칸은 /shop 전용).
- *  메뉴판 그룹 10·30·55·70(55 = 깊게 한 판) / 옛 그룹 10·30·70(지금 prod 그대로). 스펙 §7 · §9-1 */
-export const SHEET_PACKAGE_IDS: Record<MenuArm, readonly string[]> = {
-  menu: ["star_10", "star_30", "star_55", "star_70"],
-  legacy: ["star_10", "star_30", "star_70"],
-};
+/** 그 자리 충전 시트의 저·중가 패키지. 큰 패키지는 상점 전용. */
+export const SHEET_PACKAGE_IDS: readonly string[] = ["star_10", "star_30", "star_70"];
 
-/** 그 그룹의 시트 칸(별 수 오름차순) */
-export function sheetPackages(arm: MenuArm): StarPackage[] {
-  return STAR_PACKAGES.filter((p) => SHEET_PACKAGE_IDS[arm].includes(p.id));
+export function sheetPackages(): StarPackage[] {
+  return STAR_PACKAGES.filter((p) => SHEET_PACKAGE_IDS.includes(p.id));
 }
 
 /** 결제하면 실제로 받는 별. 보너스 반올림은 화면 표시(RechargeSheet·/shop)와 같은 Math.round. */
 export function receivedStars(pkg: StarPackage, bonusEligible: boolean): number {
   return pkg.stars + (bonusEligible ? Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE) : 0);
+}
+
+/** 상점 패키지 칸의 아랫줄(디자인 다듬기 상점 ④ A, 운영자 11-21).
+ *  보통은 '별당 N원 · M% 알뜰'(가장 작은 칸 대비, 알뜰이 0 이면 별당만), 첫 충전 자격이면 보너스 한 줄만 —
+ *  두 줄을 다 넣으면 칸 높이가 들쭉날쭉해져서 하나만 쓴다. 보너스 수는 receivedStars 와 같은 반올림. */
+export function packageSubLine(pkg: StarPackage, bonusEligible: boolean): { text: string; tone: "plain" | "bonus" } {
+  if (bonusEligible) {
+    const total = receivedStars(pkg, true);
+    return { text: `+${total - pkg.stars}별 보너스 · 총 ${total}별`, tone: "bonus" };
+  }
+  const base = STAR_PACKAGES[0].price / STAR_PACKAGES[0].stars;
+  const perStar = pkg.price / pkg.stars;
+  const off = Math.round((1 - perStar / base) * 100);
+  return { text: `별당 ${Math.round(perStar)}원${off > 0 ? ` · ${off}% 알뜰` : ""}`, tone: "plain" };
 }
 
 /**

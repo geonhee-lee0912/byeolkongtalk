@@ -3,8 +3,9 @@
 // 나·상대 공통 프로필 편집 모달(P2 파일 허브) — 기존 RelationshipEditModal(상대 전용,
 // 바텀시트)의 일반화. target="me"면 self 프로필을, 관계 객체면 호칭·상태+상대
 // 프로필을 편집한다. 항상 중앙 모달(바텀시트 ❌ — 피커 겹침 회피, spec §P2).
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
+import Dialog from "@/components/common/Dialog";
+import OverlayCloseButton from "@/components/common/OverlayCloseButton";
 import ProfileForm, { type ProfilePayload } from "@/components/saju/ProfileForm";
 import type { SajuInputFormInitial } from "@/components/saju/SajuInputForm";
 import {
@@ -12,6 +13,7 @@ import {
   SLOT_COST,
   type RelationshipStatus,
 } from "@/lib/relationship/types";
+import Icon from "@/components/common/Icon";
 
 const STATUS_OPTIONS: RelationshipStatus[] = [
   "crush",
@@ -79,25 +81,7 @@ export default function ProfileEditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 배경 스크롤 잠금 — 마운트 동안 유지
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  // ESC 닫기 (저장 진행 중엔 닫기 불가) — saving 최신값을 반영해야 하므로 deps에 포함
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [saving, onClose]);
-
-  if (typeof document === "undefined") return null;
+  // 배경 스크롤 잠금·ESC 는 공통 Dialog(저장 중엔 닫기 불가)
 
   const trimmedLabel = label.trim();
   const labelValid = trimmedLabel.length >= 1 && trimmedLabel.length <= 50;
@@ -232,33 +216,32 @@ export default function ProfileEditModal({
   const sajuInitial = toSajuInitial(initial);
   const defaultSelfName = isMe ? initial?.displayName : trimmedLabel;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-night/75 backdrop-blur-md animate-fade-in px-5"
-      onClick={() => !saving && onClose()}
-      role="dialog"
-      aria-modal="true"
+  return (
+    <Dialog
+      label={isMe ? "내 프로필 수정" : isCreate ? "누구 얘기를 해볼까?" : "관계 정보 수정"}
+      onClose={onClose}
+      dismissible={!saving}
+      z={100}
+      widthClassName="max-w-md"
+      gutterClassName="px-5"
+      backdropClassName="bg-night/50 backdrop-blur-sm"
     >
-      <div
-        className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-[0_8px_32px_rgba(31,23,53,0.25)] max-h-[88vh] overflow-y-auto scrollbar-hide"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md mx-auto bg-cream rounded-3xl border border-lilac-mid/30 shadow-modal max-h-[88vh] overflow-y-auto scrollbar-hide">
         <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-[17px] font-bold text-eye-purple">
+            <h2 className="font-display text-17 text-eye-purple">
               {isMe ? "내 프로필 수정" : isCreate ? "누구 얘기를 해볼까?" : "관계 정보 수정"}
             </h2>
-            <button
-              onClick={onClose}
+            <OverlayCloseButton
               aria-label="닫기"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light/70 hover:bg-lilac-soft/50"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:bg-lilac-soft/50"
             >
-              ✕
-            </button>
+              <Icon name="close" size={18} />
+            </OverlayCloseButton>
           </div>
 
           {isCreate && (
-            <p className="text-[12px] text-text-light -mt-1 leading-relaxed">
+            <p className="text-12 text-text-light -mt-1 leading-relaxed">
               아는 만큼만 — 몰라도 시작할 수 있어
             </p>
           )}
@@ -266,7 +249,7 @@ export default function ProfileEditModal({
           {(rel || isCreate) && (
             <>
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] font-bold text-eye-purple mb-1">
+                <legend className="text-13 font-bold text-eye-purple mb-1">
                   호칭
                 </legend>
                 <input
@@ -274,12 +257,12 @@ export default function ProfileEditModal({
                   value={label}
                   maxLength={50}
                   onChange={(e) => setLabel(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-[14px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-cream-warm border border-lilac-mid/40 text-eye-purple text-14"
                 />
               </fieldset>
 
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] font-bold text-eye-purple mb-1">
+                <legend className="text-13 font-bold text-eye-purple mb-1">
                   관계 상태
                 </legend>
                 <div className="grid grid-cols-2 gap-2">
@@ -288,10 +271,10 @@ export default function ProfileEditModal({
                       key={s}
                       type="button"
                       onClick={() => setStatus(s)}
-                      className={`py-2.5 rounded-xl text-[14px] font-bold transition ${
+                      className={`py-2.5 rounded-xl text-14 font-bold transition ${
                         status === s
-                          ? "bg-lilac-deep text-white"
-                          : "bg-cream-warm text-text-light border border-lilac-mid/40"
+                          ? "bg-accent text-white"
+                          : "bg-lilac-soft text-eye-purple"
                       }`}
                     >
                       {RELATIONSHIP_STATUS_LABELS[s]}
@@ -303,7 +286,7 @@ export default function ProfileEditModal({
           )}
 
           {error && (
-            <p className="text-[12px] text-red-500 text-center">{error}</p>
+            <p className="text-12 text-red-500 text-center">{error}</p>
           )}
         </div>
 
@@ -320,7 +303,6 @@ export default function ProfileEditModal({
         />
         <div className="h-5" />
       </div>
-    </div>,
-    document.body
+    </Dialog>
   );
 }

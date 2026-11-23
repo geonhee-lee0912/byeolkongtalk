@@ -7,6 +7,7 @@ import {
   INQUIRY_CATEGORY_ICON,
   type InquiryCategory,
 } from "@/lib/inquiries";
+import { useScreenCache } from "@/lib/screen-cache";
 
 interface InquiryListItem {
   id: string;
@@ -26,10 +27,18 @@ function fmtDate(iso: string): string {
 
 const PAGE_SIZE = 5;
 
+// 화면 기억(lib/screen-cache) — 문의를 보고 돌아오면 '잠시만…' 대신 마지막 목록을 바로 그리고 새로 불러와 바꾼다(답변 읽음 표시 등)
+const CACHE_KEY = "mypage/support";
+
 export default function SupportListPage() {
-  const [items, setItems] = useState<InquiryListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { cached, save } = useScreenCache<InquiryListItem[]>(CACHE_KEY);
+  const [items, setItems] = useState<InquiryListItem[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (!loading) save(items);
+  }, [save, loading, items]);
 
   useEffect(() => {
     void (async () => {
@@ -50,16 +59,17 @@ export default function SupportListPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center py-8 w-full animate-fade-in">
+    <main className={`flex flex-1 flex-col items-center py-8 w-full ${cached ? "" : "animate-fade-in"}`}>
       <div className="w-full max-w-md mx-auto px-5 mb-5 flex items-center justify-between">
-        <Link href="/mypage" className="text-[12px] text-text-light/70">
+        {/* 앱에선 앱 헤더의 ‹ 와 겹쳐 숨긴다(web-only) */}
+        <Link href="/mypage" className="web-only text-12 text-text-light">
           ‹ 내 정보
         </Link>
         {/* 빈 상태에선 목록 안 "첫 문의 작성하기" 버튼과 중복 → 숨김 */}
         {!loading && items.length > 0 && (
           <Link
             href="/mypage/support/new"
-            className="px-3 py-1.5 rounded-xl bg-lilac-deep text-white font-bold text-[12px]"
+            className="btn btn-primary btn-sm"
           >
             문의하기
           </Link>
@@ -67,17 +77,18 @@ export default function SupportListPage() {
       </div>
 
       <div className="w-full max-w-md mx-auto px-5">
-        <h1 className="text-[16px] font-bold text-eye-purple mb-3">고객센터 / 문의</h1>
+        {/* 앱에선 앱 머리 '고객센터'와 두 번이라 숨긴다(web-only, 디자인 다듬기 마이 ⑦ 운영자 11-21) */}
+        <h1 className="web-only text-17 font-bold text-eye-purple mb-3">고객센터 / 문의</h1>
         {loading ? (
-          <p className="text-text-light text-[13px] text-center py-8">잠시만…</p>
+          <p className="text-text-light text-13 text-center py-8">잠시만…</p>
         ) : items.length === 0 ? (
-          <div className="bg-cream-warm rounded-2xl border border-lilac-mid/30 px-4 py-8 text-center">
-            <p className="text-[13px] text-text-light/70 mb-4">
+          <div className="bg-white rounded-2xl shadow-card px-4 py-8 text-center">
+            <p className="text-13 text-text-light mb-4">
               아직 보낸 문의가 없어. 불편한 점이나 궁금한 게 있으면 별콩이에게 알려줘.
             </p>
             <Link
               href="/mypage/support/new"
-              className="inline-block px-4 py-2.5 rounded-xl bg-lilac-deep text-white font-bold text-[13px]"
+              className="btn btn-primary btn-md"
             >
               첫 문의 작성하기
             </Link>
@@ -91,15 +102,15 @@ export default function SupportListPage() {
                 <Link
                   key={it.id}
                   href={`/mypage/support/${it.id}`}
-                  className="bg-white rounded-2xl border border-lilac-mid/20 shadow-[0_2px_10px_rgba(159,138,208,0.07)] p-3 flex items-center gap-3"
+                  className="card flex items-center gap-3"
                 >
                   <div className="shrink-0 w-11 h-11 rounded-xl bg-lilac-soft flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-lilac-deep" aria-hidden>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
                       <path d={INQUIRY_CATEGORY_ICON[it.category]} />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-bold text-eye-purple flex items-center gap-1.5">
+                    <div className="text-14 font-bold text-eye-purple flex items-center gap-1.5">
                       <span className="truncate">{it.title}</span>
                       {unread && (
                         <span
@@ -108,15 +119,15 @@ export default function SupportListPage() {
                         />
                       )}
                     </div>
-                    <div className="text-[11px] text-text-light/70 mt-0.5 truncate">
+                    <div className="text-11 text-text-light mt-0.5 truncate">
                       {INQUIRY_CATEGORIES[it.category]} · {fmtDate(it.created_at)}
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg ${
+                    className={`shrink-0 text-11 font-bold px-2 py-1 rounded-lg ${
                       it.status === "answered"
-                        ? "bg-lilac-soft text-lilac-deep"
-                        : "bg-cream text-text-light/70"
+                        ? "bg-lilac-soft text-accent"
+                        : "bg-cream text-text-light"
                     }`}
                   >
                     {it.status === "answered" ? "답변 완료" : "답변 대기"}
@@ -142,10 +153,10 @@ export default function SupportListPage() {
                   key={i}
                   onClick={() => goPage(i)}
                   aria-label={`${i + 1}페이지`}
-                  className={`w-7 h-7 rounded-lg text-[12px] font-bold ${
+                  className={`w-7 h-7 rounded-lg text-12 font-bold ${
                     i === safePage
-                      ? "bg-lilac-deep text-white"
-                      : "text-text-light/70 hover:bg-lilac-soft/50"
+                      ? "bg-accent text-white"
+                      : "text-text-light hover:bg-lilac-soft/50"
                   }`}
                 >
                   {i + 1}

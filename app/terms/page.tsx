@@ -2,28 +2,36 @@
 
 import { useRouter } from "next/navigation";
 
-const SHIM_DATE = "2026년 6월 22일";
+const SHIM_DATE = "별콩톡 앱 출시일(공지 후 7일이 지난 뒤)";
 
 export default function TermsPage() {
   const router = useRouter();
   return (
     <div className="w-full max-w-md mx-auto px-5 pt-3 pb-16 animate-fade-in">
+      {/* 앱에선 앱 헤더(‹ + 제목)와 겹쳐 뒤로 버튼·제목을 숨긴다(web-only) */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light/70 hover:text-lilac-deep transition-colors mb-2"
+        className="web-only inline-flex items-center gap-1 text-11 font-medium text-text-light hover:text-accent transition-colors mb-2"
       >
         <ArrowLeft />
         <span>뒤로</span>
       </button>
 
-      <h1 className="font-display text-[28px] text-eye-purple text-center mb-1 tracking-wide">
+      <h1 className="web-only font-display text-28 text-eye-purple text-center mb-1 tracking-wide">
         이용약관
       </h1>
-      <p className="text-[11px] text-text-light text-center mb-6">
+      <p className="text-11 text-text-light text-center mb-6">
         시행일: {SHIM_DATE}
       </p>
+      {/* 변경 공지 — 출시해서 시행일을 실제 날짜로 바꿀 때 같이 내린다 */}
+      <p className="mb-6 px-3 py-2 border border-lilac-soft/60 rounded-xl text-12 text-text-light leading-[1.7]">
+        위 시행일부터 이용약관이 바뀝니다. 바뀌는 내용: Apple 로그인 추가에 따른
+        회원의 정의(제2조)와 이용계약의 체결(제4조), 회원 정보의 변경(제5조), 위기 상황 기록(제11조의2), 탈퇴 시 삭제되는 정보(제12조).
+        시행일 전까지는 종전 약관이 적용됩니다. 다만 시행일 전에 Apple 로그인으로
+        가입하거나 이용하는 경우에는 이용하는 때부터 바뀐 약관이 적용됩니다.
+      </p>
 
-      <div className="text-[13px] text-eye-purple leading-relaxed space-y-6">
+      <div className="text-13 text-eye-purple leading-relaxed space-y-6">
         <Article title="제1조 (목적)">
           이 약관은 브레이브샤인(이하 &ldquo;회사&rdquo;)이 운영하는 AI 사주·타로
           상담 서비스 &lsquo;별콩톡&rsquo;(이하 &ldquo;서비스&rdquo;)을 이용함에
@@ -35,8 +43,8 @@ export default function TermsPage() {
           <ol className="list-decimal pl-5 space-y-1">
             <li>&ldquo;서비스&rdquo;란 회사가 제공하는 AI 기반 사주풀이 및 타로
               카드 해석, 상담 대화, 결과 저장 및 공유 기능 일체를 의미합니다.</li>
-            <li>&ldquo;회원&rdquo;이란 카카오 계정으로 본 서비스에 가입하여
-              이용하는 자를 말합니다.</li>
+            <li>&ldquo;회원&rdquo;이란 카카오 계정 또는 Apple 계정으로 본
+              서비스에 가입하여 이용하는 자를 말합니다.</li>
             <li>&ldquo;별&rdquo;이란 서비스 내에서 사주·타로 리딩에 사용되는
               디지털 재화로, 결제 또는 회사가 제공하는 무료 정책에 따라
               지급됩니다.</li>
@@ -58,9 +66,10 @@ export default function TermsPage() {
         </Article>
 
         <Article title="제4조 (이용계약의 체결)">
-          이용계약은 회원이 카카오 로그인으로 가입을 신청하고 회사가 이를
-          승낙함으로써 성립합니다. 회사는 다음 각 호에 해당하는 경우 가입을
-          제한할 수 있습니다.
+          이용계약은 회원이 카카오 로그인 또는 Apple 로그인으로 가입을 신청하고
+          회사가 이를 승낙함으로써 성립합니다. 제공되는 로그인 수단은 이용
+          환경(웹·앱, 기기 운영체제)에 따라 다를 수 있습니다. 회사는 다음 각 호에
+          해당하는 경우 가입을 제한할 수 있습니다.
           <ol className="list-decimal pl-5 space-y-1 mt-2">
             <li>가입 신청자가 본 약관 위반으로 자격을 상실한 적이 있는 경우</li>
             <li>허위 정보를 기재하거나 타인의 정보를 도용한 경우</li>
@@ -69,8 +78,10 @@ export default function TermsPage() {
         </Article>
 
         <Article title="제5조 (회원 정보의 변경)">
-          회원은 마이페이지에서 닉네임, 프로필 사진 등 본인 정보를 열람·수정할 수
-          있습니다. 변경 사항을 회사에 정확히 알리지 않아 발생한 불이익에 대해
+          회원은 마이페이지에서 본인 정보를 열람하고 사주 정보를 수정할 수 있습니다.
+          카카오 회원이 다시 로그인하면 프로필 사진이 갱신되고, 닉네임은 카카오가 제공한
+          경우에 갱신됩니다. 그 밖의 정정은 제14조의 문의처로 요청할 수 있습니다.
+          변경 사항을 회사에 정확히 알리지 않아 발생한 불이익에 대해
           회사는 책임지지 않습니다.
         </Article>
 
@@ -127,7 +138,7 @@ export default function TermsPage() {
           별 결제에 대한 환불 가능·불가 조건, 환불 절차 및 처리 기간은 별도의{" "}
           <a
             href="/refund"
-            className="text-lilac-deep underline underline-offset-2"
+            className="text-accent underline underline-offset-2"
           >
             환불정책
           </a>
@@ -180,8 +191,8 @@ export default function TermsPage() {
             <li>위기 시그널이 감지되면 서비스는 즉시 화면에 전문기관 연락처를
               표시하며, 해당 대화는 공유·이미지 저장 기능이 자동으로
               비활성화됩니다.</li>
-            <li>감지된 사실은 회원의 안전과 운영자 검토를 위해 <b>익명화된
-              형태</b>로 기록될 수 있으며, 자세한 내용은 개인정보처리방침
+            <li>감지된 사실은 회원의 안전과 운영자 검토를 위해 <b>회원 식별자와
+              함께</b> 기록될 수 있으며, 자세한 내용은 개인정보처리방침
               제5조의2(위기 시그널 감지 시 처리)에서 확인할 수 있습니다.</li>
             <li>운영자는 심각도가 매우 높다고 판단되는 경우(예: 즉시적인
               자해·타해 위험), 회원 보호와 공익적 사유에 한해 관련 법령이
@@ -195,7 +206,8 @@ export default function TermsPage() {
         <Article title="제12조 (계약 해지 및 이용 제한)">
           <ol className="list-decimal pl-5 space-y-1">
             <li>회원은 마이페이지의 회원 탈퇴 메뉴를 통해 언제든 계약을 해지할
-              수 있습니다. 탈퇴 시 회원 정보 및 리딩 기록은 즉시 삭제되며,
+              수 있습니다. 탈퇴 시 회원 정보 및 리딩 기록은 개인정보처리방침에 따라 보관되는 것을
+              제외하고 즉시 삭제되며,
               잔여 별은 환불정책의 환불 가능 조건을 충족하는 경우에 한하여
               환불 가능합니다.</li>
             <li>회사는 회원이 본 약관 또는 관련 법령을 위반하는 경우, 사전
@@ -218,7 +230,7 @@ export default function TermsPage() {
           <p>대표전화: 0502-1924-6473</p>
         </Article>
 
-        <p className="text-[12px] text-text-light pt-6 border-t border-lilac-soft/40">
+        <p className="text-12 text-text-light pt-6 border-t border-lilac-soft/40">
           부칙: 본 약관은 {SHIM_DATE}부터 시행됩니다.
         </p>
       </div>
@@ -235,8 +247,8 @@ function Article({
 }) {
   return (
     <section>
-      <h2 className="text-[14px] font-bold text-eye-purple mb-1.5">{title}</h2>
-      <div className="text-eye-purple/95 text-[12.5px] leading-[1.7]">
+      <h2 className="text-14 font-bold text-eye-purple mb-1.5">{title}</h2>
+      <div className="text-eye-purple/95 text-13 leading-[1.7]">
         {children}
       </div>
     </section>

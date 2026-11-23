@@ -33,7 +33,7 @@ export default function CurrentPartner({
     return (
       <button
         onClick={onChange}
-        className="w-full rounded-xl border border-dashed border-gold px-3 py-2.5 text-sm font-medium text-eye-purple/80"
+        className="w-full rounded-xl border border-dashed border-gold px-3 py-2.5 text-14 font-medium text-eye-purple/80"
       >
         ＋ 인연 걸어두기
       </button>
@@ -42,17 +42,17 @@ export default function CurrentPartner({
 
   const color = partner.status ? DOLL_COLORS[partner.status][0] : "#B8A8D8";
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-lilac-soft bg-white/60 px-3 py-2.5">
+    <div className="card flex items-center gap-2.5">
       <span
         aria-hidden
         className="h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ background: color }}
       />
       <div className="min-w-0 flex-1">
-        <span className="text-sm font-bold text-eye-purple">{partner.name}</span>
+        <span className="text-14 font-bold text-eye-purple">{partner.name}</span>
         {partner.status && (
           <span
-            className="ml-1.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-bold text-night"
+            className="ml-1.5 rounded-full px-1.5 py-0.5 text-11 font-bold text-night"
             style={{ background: color }}
           >
             {RELATIONSHIP_STATUS_LABELS[partner.status]}
@@ -63,7 +63,7 @@ export default function CurrentPartner({
           삭제 전용 버튼을 두면 그 되돌림 가능성이 안 보인다(그리고 이 화면엔 지울 이유가 없다). */}
       <button
         onClick={onChange}
-        className="shrink-0 rounded-lg border border-lilac-mid/60 px-2.5 py-1 text-[12px] font-semibold text-lilac-deep transition active:scale-95"
+        className="shrink-0 rounded-lg border border-lilac-mid/60 px-2.5 py-1 text-12 font-semibold text-accent transition active:scale-95"
       >
         바꾸기
       </button>
