@@ -95,11 +95,15 @@ export function supabaseAppSessionStore(): AppSessionStore {
       const r = state.refresh.find((x) => x.token_hash === tokenHash);
       return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
     },
-    async listFamily(familyId) {
-      enter("listFamily");
+    async hasRotationAfter(fid, rotatedAtIso) {
+      enter("hasRotationAfter");
+      return state.refresh.some((x) => x.family_id === fid && x.rotated_at !== null && Date.parse(x.rotated_at) > Date.parse(rotatedAtIso));
+    },
+    async listLiveRefresh(fid) {
+      enter("listLiveRefresh");
       return state.refresh
-        .filter((x) => x.family_id === familyId)
-        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, rotated_at: x.rotated_at, revoked_at: x.revoked_at }));
+        .filter((x) => x.family_id === fid && !x.rotated_at && !x.revoked_at)
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform }));
     },
     async revokeUnusedRefresh(tokenHash, nowIso) {
       enter("revokeUnusedRefresh");

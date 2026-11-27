@@ -48,19 +48,29 @@ export function supabaseAppSessionStore(): AppSessionStore {
           }
         : null;
     },
-    async listFamily(familyId) {
-      // 한 묶음 = 한 기기의 교체 사슬(90일 안 교체 횟수만큼) — Max rows 상한보다 훨씬 작다
+    async hasRotationAfter(familyId, rotatedAtIso) {
+      // 교체 행은 지워지지 않아 오래 쓴 기기의 묶음은 Max rows(1000)를 넘는다 — 묶음 전체를 읽지 않고 1행만 묻는다
       const { data, error } = await db
         .from("app_refresh_tokens")
-        .select("token_hash, user_id, platform, rotated_at, revoked_at")
-        .eq("family_id", familyId);
+        .select("token_hash")
+        .eq("family_id", familyId)
+        .gt("rotated_at", rotatedAtIso)
+        .limit(1);
+      if (error) throw error;
+      return (data ?? []).length > 0;
+    },
+    async listLiveRefresh(familyId) {
+      const { data, error } = await db
+        .from("app_refresh_tokens")
+        .select("token_hash, user_id, platform")
+        .eq("family_id", familyId)
+        .is("rotated_at", null)
+        .is("revoked_at", null);
       if (error) throw error;
       return (data ?? []).map((x) => ({
         token_hash: x.token_hash as string,
         user_id: x.user_id as string,
         platform: (x.platform as Platform | null) ?? null,
-        rotated_at: (x.rotated_at as string | null) ?? null,
-        revoked_at: (x.revoked_at as string | null) ?? null,
       }));
     },
     async revokeUnusedRefresh(tokenHash, nowIso) {

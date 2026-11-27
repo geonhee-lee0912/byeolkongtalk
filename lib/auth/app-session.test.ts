@@ -48,10 +48,13 @@ function memoryStore() {
       const r = refresh.find((x) => x.token_hash === h);
       return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
     },
-    async listFamily(fid) {
+    async hasRotationAfter(fid, rotatedAtIso) {
+      return refresh.some((x) => x.family_id === fid && x.rotated_at !== null && Date.parse(x.rotated_at) > Date.parse(rotatedAtIso));
+    },
+    async listLiveRefresh(fid) {
       return refresh
-        .filter((x) => x.family_id === fid)
-        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, rotated_at: x.rotated_at, revoked_at: x.revoked_at }));
+        .filter((x) => x.family_id === fid && !x.rotated_at && !x.revoked_at)
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform }));
     },
     async revokeUnusedRefresh(h, nowIso) {
       const r = refresh.find((x) => x.token_hash === h && !x.rotated_at && !x.revoked_at);
@@ -196,8 +199,8 @@ test("복구 경합 — 묶음을 읽은 뒤 폐기 직전에 새 토큰이 쓰�
   if (!r1.ok) return;
   const racing: AppSessionStore = {
     ...store,
-    async listFamily(fid) {
-      const rows = await store.listFamily(fid);
+    async listLiveRefresh(fid) {
+      const rows = await store.listLiveRefresh(fid);
       // 읽은 직후 정상 기기가 새 토큰을 쓴다
       await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 59_000 });
       return rows;
@@ -205,6 +208,28 @@ test("복구 경합 — 묶음을 읽은 뒤 폐기 직전에 새 토큰이 쓰�
   };
   assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "reused" });
   assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
+});
+
+test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 복구하면, 진 쪽은 invalid 만(묶음 폐기 없음) — 이긴 쪽 토큰이 이어진다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  let winner: Awaited<ReturnType<typeof rotateRefreshToken>> | null = null;
+  const racing: AppSessionStore = {
+    ...store,
+    async listLiveRefresh(fid) {
+      const rows = await store.listLiveRefresh(fid);
+      // 읽은 직후 같은 옛 토큰의 다른 요청이 먼저 복구한다
+      winner = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
+      return rows;
+    },
+  };
+  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "invalid" });
+  const w = winner as Awaited<ReturnType<typeof rotateRefreshToken>> | null;
+  assert.equal(w?.ok && w.recovered, true);
+  if (!w?.ok) return;
+  assert.equal((await rotateRefreshToken(store, w.tokens.refreshToken, { now: T0 + 61_000 })).ok, true);
+  assert.ok(refresh.some((r) => !r.revoked_at));
 });
 
 test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
