@@ -7,7 +7,7 @@ import type { AppSessionStore, Platform } from "./app-session.ts";
 type LogCtx = { route?: string; userId?: string | null; extra?: Record<string, unknown> };
 
 export type LoggedEntry = {
-  level: "error" | "warn";
+  level: "error" | "warn" | "info";
   message: string;
   route: string | undefined;
   userId: string | null | undefined;
@@ -59,6 +59,9 @@ export async function logError(err: unknown, ctx: LogCtx = {}) {
 export async function logWarn(message: string, ctx: LogCtx = {}) {
   state.logs.push({ level: "warn", message, route: ctx.route, userId: ctx.userId, extra: ctx.extra ?? {} });
 }
+export async function logInfo(message: string, ctx: LogCtx = {}) {
+  state.logs.push({ level: "info", message, route: ctx.route, userId: ctx.userId, extra: ctx.extra ?? {} });
+}
 export function ctxFromRequest(_req: Request, base: LogCtx = {}): LogCtx {
   return base;
 }
@@ -90,7 +93,25 @@ export function supabaseAppSessionStore(): AppSessionStore {
     async findRefresh(tokenHash) {
       enter("findRefresh");
       const r = state.refresh.find((x) => x.token_hash === tokenHash);
-      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at } : null;
+      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
+    },
+    async listFamily(familyId) {
+      enter("listFamily");
+      return state.refresh
+        .filter((x) => x.family_id === familyId)
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, rotated_at: x.rotated_at, revoked_at: x.revoked_at }));
+    },
+    async revokeUnusedRefresh(tokenHash, nowIso) {
+      enter("revokeUnusedRefresh");
+      const r = state.refresh.find((x) => x.token_hash === tokenHash && !x.rotated_at && !x.revoked_at);
+      if (!r) return false;
+      r.revoked_at = nowIso;
+      return true;
+    },
+    async unrevokeRefresh(tokenHash, revokedAtIso) {
+      enter("unrevokeRefresh");
+      const r = state.refresh.find((x) => x.token_hash === tokenHash && x.revoked_at === revokedAtIso);
+      if (r) r.revoked_at = null;
     },
     async revokeFamily(familyId, nowIso) {
       enter("revokeFamily");

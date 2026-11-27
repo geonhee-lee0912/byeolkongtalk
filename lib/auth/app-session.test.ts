@@ -46,7 +46,22 @@ function memoryStore() {
     },
     async findRefresh(h) {
       const r = refresh.find((x) => x.token_hash === h);
-      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at } : null;
+      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
+    },
+    async listFamily(fid) {
+      return refresh
+        .filter((x) => x.family_id === fid)
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, rotated_at: x.rotated_at, revoked_at: x.revoked_at }));
+    },
+    async revokeUnusedRefresh(h, nowIso) {
+      const r = refresh.find((x) => x.token_hash === h && !x.rotated_at && !x.revoked_at);
+      if (!r) return false;
+      r.revoked_at = nowIso;
+      return true;
+    },
+    async unrevokeRefresh(h, revokedAtIso) {
+      const r = refresh.find((x) => x.token_hash === h && x.revoked_at === revokedAtIso);
+      if (r) r.revoked_at = null;
     },
     async revokeFamily(fid, nowIso) {
       for (const r of refresh) if (r.family_id === fid && !r.revoked_at) r.revoked_at = nowIso;
@@ -94,16 +109,120 @@ test("교체 — 새 토큰은 같은 묶음, 옛 토큰은 교체 표시", asyn
   assert.deepEqual(Object.keys(r.tokens).sort(), ["accessExpiresAt", "accessExpiresIn", "accessToken", "refreshToken"]);
 });
 
-test("재사용 — 교체된 옛 토큰이 10초 뒤 다시 오면 묶음 전체를 폐기한다(새 토큰도 못 씀)", async () => {
+test("재사용 — 새 토큰이 이미 쓰였는데 교체된 옛 토큰이 10초 뒤 다시 오면 묶음 전체를 폐기한다(최신 토큰도 못 씀)", async () => {
   const { store } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
   assert.equal(r1.ok, true);
+  if (!r1.ok) return;
+  const r2 = await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 5000 });
+  assert.equal(r2.ok, true);
+  if (!r2.ok) return;
   const reuse = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 20_000 });
   assert.deepEqual(reuse, { ok: false, reason: "reused" });
-  if (!r1.ok) return;
-  const afterRevoke = await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 21_000 });
+  const afterRevoke = await rotateRefreshToken(store, r2.tokens.refreshToken, { now: T0 + 21_000 });
   assert.deepEqual(afterRevoke, { ok: false, reason: "invalid" });
+});
+
+// 앱이 교체 요청을 보낸 뒤 응답을 받기 전에 꺼지면, 서버엔 새 토큰이 생겼는데 기기엔 옛 토큰만 남는다(dev 11-25 실사례).
+// 새 토큰이 한 번도 안 쓰였으면 탈취가 아니라 응답 유실로 보고, 안 쓰인 새 토큰만 폐기하고 다시 발급한다(운영자 11-28 B안)
+test("응답 유실 — 새 토큰이 안 쓰인 채 옛 토큰이 10초 뒤 다시 오면, 안 쓰인 새 토큰만 폐기하고 같은 묶음으로 다시 발급한다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "android", { now: T0 });
+  const lost = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(lost.ok, true);
+  if (!lost.ok) return;
+  const again = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 8 * 24 * 60 * 60 * 1000 });
+  assert.equal(again.ok, true);
+  if (!again.ok) return;
+  assert.equal(again.recovered, true);
+  assert.equal(again.userId, USER);
+  assert.equal(await verifyAccessToken(again.tokens.accessToken, { nowSec: (T0 + 8 * 24 * 60 * 60 * 1000) / 1000 + 10 }), USER);
+  assert.deepEqual(Object.keys(again.tokens).sort(), ["accessExpiresAt", "accessExpiresIn", "accessToken", "refreshToken"]);
+  // 받지 못한 새 토큰은 폐기, 새로 준 토큰은 같은 묶음·같은 기기 종류, 묶음은 살아 있다
+  const lostRow = refresh.find((r) => r.token_hash === hashSecretToken(lost.tokens.refreshToken))!;
+  assert.ok(lostRow.revoked_at);
+  const fresh = refresh.find((r) => r.token_hash === hashSecretToken(again.tokens.refreshToken))!;
+  assert.equal(fresh.family_id, refresh[0].family_id);
+  assert.equal(fresh.platform, "android");
+  assert.equal(fresh.revoked_at, null);
+  assert.deepEqual(await rotateRefreshToken(store, lost.tokens.refreshToken, { now: T0 + 8 * 24 * 60 * 60 * 1000 + 1000 }), { ok: false, reason: "invalid" });
+  const next = await rotateRefreshToken(store, again.tokens.refreshToken, { now: T0 + 8 * 24 * 60 * 60 * 1000 + 2000 });
+  assert.equal(next.ok && next.recovered, false);
+});
+
+test("응답 유실이 거듭되면 거듭 복구한다 — 복구로 준 토큰도 안 쓰였으면 옛 토큰으로 또 받는다", async () => {
+  const { store } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const a = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
+  assert.equal(a.ok && a.recovered, true);
+  const b = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 120_000 });
+  assert.equal(b.ok && b.recovered, true);
+  if (!a.ok || !b.ok) return;
+  assert.deepEqual(await rotateRefreshToken(store, a.tokens.refreshToken, { now: T0 + 121_000 }), { ok: false, reason: "invalid" });
+  assert.equal((await rotateRefreshToken(store, b.tokens.refreshToken, { now: T0 + 122_000 })).ok, true);
+});
+
+test("복구로 받은 토큰을 쓴 뒤에 옛 토큰이 오면 재사용 — 묶음 전체 폐기", async () => {
+  const { store } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const rec = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
+  assert.equal(rec.ok, true);
+  if (!rec.ok) return;
+  const used = await rotateRefreshToken(store, rec.tokens.refreshToken, { now: T0 + 61_000 });
+  assert.equal(used.ok, true);
+  if (!used.ok) return;
+  assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 120_000 }), { ok: false, reason: "reused" });
+  assert.deepEqual(await rotateRefreshToken(store, used.tokens.refreshToken, { now: T0 + 121_000 }), { ok: false, reason: "invalid" });
+});
+
+test("응답 유실이어도 옛 토큰이 만료됐으면 invalid — 다시 발급하지 않고 묶음도 폐기하지 않는다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const late = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 91 * 24 * 60 * 60 * 1000 });
+  assert.deepEqual(late, { ok: false, reason: "invalid" });
+  assert.equal(refresh.length, 2);
+  assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
+});
+
+test("복구 경합 — 묶음을 읽은 뒤 폐기 직전에 새 토큰이 쓰이면(조건부 폐기 0행) 재사용으로 본다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(r1.ok, true);
+  if (!r1.ok) return;
+  const racing: AppSessionStore = {
+    ...store,
+    async listFamily(fid) {
+      const rows = await store.listFamily(fid);
+      // 읽은 직후 정상 기기가 새 토큰을 쓴다
+      await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 59_000 });
+      return rows;
+    },
+  };
+  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "reused" });
+  assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
+});
+
+test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(r1.ok, true);
+  if (!r1.ok) return;
+  const flaky: AppSessionStore = {
+    ...store,
+    insertRefresh: async () => {
+      throw new Error("db blip");
+    },
+  };
+  await assert.rejects(rotateRefreshToken(flaky, t.refreshToken, { now: T0 + 60_000 }), /db blip/);
+  assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
+  const retry = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 120_000 });
+  assert.equal(retry.ok && retry.recovered, true);
 });
 
 test("재사용 유예 — 교체 직후(10초 안) 같은 토큰이 또 오면 거절만 하고 묶음은 살린다(이중 전송)", async () => {
@@ -117,15 +236,29 @@ test("재사용 유예 — 교체 직후(10초 안) 같은 토큰이 또 오면 
   assert.equal(next.ok, true);
 });
 
-test("재사용 경계 — 교체 뒤 정확히 10초까지는 유예(묶음 유지), 10.001초부터 재사용(묶음 폐기)", async () => {
+test("재사용 경계 — 새 토큰이 쓰인 뒤라도 교체 뒤 정확히 10초까지는 유예(묶음 유지), 10.001초부터 재사용(묶음 폐기)", async () => {
   for (const [dt, reason, latestOk] of [[10_000, "invalid", true], [10_001, "reused", false]] as const) {
     const { store } = memoryStore();
     const t = await issueAppTokens(store, USER, "ios", { now: T0 });
     const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
     assert.equal(r1.ok, true);
     if (!r1.ok) return;
+    const r2 = await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 1500 });
+    assert.equal(r2.ok, true);
+    if (!r2.ok) return;
     assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 + dt }), { ok: false, reason }, `+${dt}ms`);
-    assert.equal((await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 1000 + dt + 1 })).ok, latestOk, `+${dt}ms 최신 토큰`);
+    assert.equal((await rotateRefreshToken(store, r2.tokens.refreshToken, { now: T0 + 1000 + dt + 1 })).ok, latestOk, `+${dt}ms 최신 토큰`);
+  }
+});
+
+test("응답 유실 경계 — 새 토큰이 안 쓰였으면 10초까지는 거절만(이중 전송), 10.001초부터 복구", async () => {
+  for (const [dt, recovered] of [[10_000, false], [10_001, true]] as const) {
+    const { store } = memoryStore();
+    const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+    await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+    const r = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 + dt });
+    if (recovered) assert.equal(r.ok && r.recovered, true, `+${dt}ms`);
+    else assert.deepEqual(r, { ok: false, reason: "invalid" }, `+${dt}ms`);
   }
 });
 
@@ -144,7 +277,10 @@ test("기기마다 묶음이 따로 — 한 기기의 재사용 폐기가 같은
   const phone = await issueAppTokens(store, USER, "ios", { now: T0 });
   const tablet = await issueAppTokens(store, USER, "android", { now: T0 });
   assert.notEqual(phone.familyId, tablet.familyId);
-  await rotateRefreshToken(store, phone.refreshToken, { now: T0 + 1000 });
+  const p1 = await rotateRefreshToken(store, phone.refreshToken, { now: T0 + 1000 });
+  assert.equal(p1.ok, true);
+  if (!p1.ok) return;
+  await rotateRefreshToken(store, p1.tokens.refreshToken, { now: T0 + 2000 });
   assert.deepEqual(await rotateRefreshToken(store, phone.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "reused" });
   assert.equal((await rotateRefreshToken(store, tablet.refreshToken, { now: T0 + 61_000 })).ok, true);
 });

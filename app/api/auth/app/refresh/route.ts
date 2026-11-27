@@ -1,7 +1,9 @@
-// 앱 토큰 갱신 — 리프레시 토큰을 새것으로 교체한다. 재사용(교체된 토큰이 10초 뒤 다시 옴)이면 그 기기 묶음을 폐기하고 401.
+// 앱 토큰 갱신 — 리프레시 토큰을 새것으로 교체한다. 교체된 옛 토큰이 10초 뒤 다시 오면:
+// 그 교체로 만든 새 토큰이 한 번도 안 쓰였으면 응답 유실(앱이 응답 전에 꺼짐)로 보고 다시 발급(200 + info),
+// 이미 쓰였으면 재사용(탈취 가능성)으로 보고 그 기기 묶음을 폐기하고 401(운영자 11-28 B안 · lib/auth/app-session.ts).
 // 앱은 401 이면 기기 토큰을 지우고 로그아웃 상태로 연다. 스펙 2026-10-12-앱-1 §7-4.
 import { NextResponse, type NextRequest } from "next/server";
-import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
+import { logError, logInfo, logWarn, ctxFromRequest } from "@/lib/logger";
 import { rotateRefreshToken } from "@/lib/auth/app-session";
 import { supabaseAppSessionStore } from "@/lib/auth/app-session-store";
 import { appTokenNotConfigured, noStore, rateLimited, readJson, str } from "@/lib/auth/app-route";
@@ -25,6 +27,10 @@ export async function POST(request: NextRequest) {
         await logWarn("App refresh token reused — device family revoked", ctxFromRequest(request, { route: ROUTE }));
       }
       return NextResponse.json({ error: r.reason }, { status: 401 });
+    }
+    if (r.recovered) {
+      // 빈도 관측용 — 늘면 앱이 갱신 응답을 자주 못 받는다는 뜻(시간 제한·실행 직후 종료)
+      await logInfo("App refresh response lost — reissued", ctxFromRequest(request, { route: ROUTE, userId: r.userId }));
     }
     return noStore(NextResponse.json(r.tokens));
   } catch (err) {

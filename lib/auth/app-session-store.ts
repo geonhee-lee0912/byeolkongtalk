@@ -35,7 +35,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
     async findRefresh(tokenHash) {
       const { data, error } = await db
         .from("app_refresh_tokens")
-        .select("family_id, rotated_at, revoked_at")
+        .select("family_id, rotated_at, revoked_at, expires_at")
         .eq("token_hash", tokenHash)
         .maybeSingle();
       if (error) throw error;
@@ -44,8 +44,44 @@ export function supabaseAppSessionStore(): AppSessionStore {
             family_id: data.family_id as string,
             rotated_at: (data.rotated_at as string | null) ?? null,
             revoked_at: (data.revoked_at as string | null) ?? null,
+            expires_at: data.expires_at as string,
           }
         : null;
+    },
+    async listFamily(familyId) {
+      // 한 묶음 = 한 기기의 교체 사슬(90일 안 교체 횟수만큼) — Max rows 상한보다 훨씬 작다
+      const { data, error } = await db
+        .from("app_refresh_tokens")
+        .select("token_hash, user_id, platform, rotated_at, revoked_at")
+        .eq("family_id", familyId);
+      if (error) throw error;
+      return (data ?? []).map((x) => ({
+        token_hash: x.token_hash as string,
+        user_id: x.user_id as string,
+        platform: (x.platform as Platform | null) ?? null,
+        rotated_at: (x.rotated_at as string | null) ?? null,
+        revoked_at: (x.revoked_at as string | null) ?? null,
+      }));
+    },
+    async revokeUnusedRefresh(tokenHash, nowIso) {
+      const { data, error } = await db
+        .from("app_refresh_tokens")
+        .update({ revoked_at: nowIso })
+        .eq("token_hash", tokenHash)
+        .is("rotated_at", null)
+        .is("revoked_at", null)
+        .select("token_hash")
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
+    },
+    async unrevokeRefresh(tokenHash, revokedAtIso) {
+      const { error } = await db
+        .from("app_refresh_tokens")
+        .update({ revoked_at: null })
+        .eq("token_hash", tokenHash)
+        .eq("revoked_at", revokedAtIso);
+      if (error) throw error;
     },
     async revokeFamily(familyId, nowIso) {
       const { error } = await db

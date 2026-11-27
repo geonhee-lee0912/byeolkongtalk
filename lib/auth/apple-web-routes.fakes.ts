@@ -147,6 +147,9 @@ export function supabaseAppSessionStore(): AppSessionStore {
     claimRefresh: unexpected("claimRefresh"),
     releaseRefresh: unexpected("releaseRefresh"),
     findRefresh: unexpected("findRefresh"),
+    listFamily: unexpected("listFamily"),
+    revokeUnusedRefresh: unexpected("revokeUnusedRefresh"),
+    unrevokeRefresh: unexpected("unrevokeRefresh"),
     revokeFamily: unexpected("revokeFamily"),
     claimHandoff: unexpected("claimHandoff"),
   };

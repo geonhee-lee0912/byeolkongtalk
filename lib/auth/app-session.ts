@@ -16,7 +16,13 @@ export interface AppSessionStore {
   claimRefresh(tokenHash: string, nowIso: string): Promise<{ user_id: string; family_id: string; platform: Platform | null } | null>;
   /** claimRefresh 되돌리기 — rotated_at 이 그 claim 이 남긴 값일 때만 비운다(새 토큰을 못 만들었을 때 옛 토큰을 살려 둔다) */
   releaseRefresh(tokenHash: string, rotatedAtIso: string): Promise<void>;
-  findRefresh(tokenHash: string): Promise<{ family_id: string; rotated_at: string | null; revoked_at: string | null } | null>;
+  findRefresh(tokenHash: string): Promise<{ family_id: string; rotated_at: string | null; revoked_at: string | null; expires_at: string } | null>;
+  /** 한 기기 묶음의 모든 토큰 — 응답 유실 판정용(묶음 안에 그보다 늦은 교체가 있는지, 살아 있는 새 토큰이 무엇인지) */
+  listFamily(familyId: string): Promise<{ token_hash: string; user_id: string; platform: Platform | null; rotated_at: string | null; revoked_at: string | null }[]>;
+  /** 원자적: 교체·폐기 전인 그 토큰만 revoked_at=now 로 표시한다. 표시했으면 true(그 사이 쓰였거나 폐기됐으면 false) */
+  revokeUnusedRefresh(tokenHash: string, nowIso: string): Promise<boolean>;
+  /** revokeUnusedRefresh 되돌리기 — revoked_at 이 그 폐기가 남긴 값일 때만 비운다(다시 발급을 못 했을 때) */
+  unrevokeRefresh(tokenHash: string, revokedAtIso: string): Promise<void>;
   revokeFamily(familyId: string, nowIso: string): Promise<void>;
   insertHandoff(row: { code_hash: string; user_id: string; is_new_user: boolean; expires_at: string }): Promise<void>;
   /** 원자적: 안 쓰였고 만료 전이면 used_at=now 로 표시하고 돌려준다. 아니면 null */
@@ -46,8 +52,9 @@ export async function issueAppTokens(
   return { accessToken: token, accessExpiresAt: expiresAt, accessExpiresIn: ACCESS_TTL_SEC, refreshToken, familyId };
 }
 
+/** recovered = 응답 유실 복구로 다시 발급했다(라우트가 빈도 관측용으로 기록한다) */
 export type RotateResult =
-  | { ok: true; userId: string; tokens: AppTokens }
+  | { ok: true; userId: string; tokens: AppTokens; recovered: boolean }
   | { ok: false; reason: "invalid" | "reused" };
 
 export async function rotateRefreshToken(
@@ -61,12 +68,15 @@ export async function rotateRefreshToken(
   const claimed = await store.claimRefresh(hash, nowIso);
   if (!claimed) {
     const row = await store.findRefresh(hash);
-    if (row?.rotated_at && !row.revoked_at && now - Date.parse(row.rotated_at) > REUSE_GRACE_MS) {
-      // 이미 교체된 토큰이 다시 왔다 — 탈취 가능성. 그 기기 묶음을 전부 폐기한다
-      await store.revokeFamily(row.family_id, nowIso);
-      return { ok: false, reason: "reused" };
+    if (!row?.rotated_at || row.revoked_at || now - Date.parse(row.rotated_at) <= REUSE_GRACE_MS) {
+      return { ok: false, reason: "invalid" };
     }
-    return { ok: false, reason: "invalid" };
+    // 이미 교체된 토큰이 10초 뒤에 다시 왔다. 그 교체로 만든 새 토큰이 한 번도 안 쓰였으면 앱이 응답을 받기 전에 꺼진 것으로 본다(운영자 11-28)
+    const recovered = await reissueAfterLostResponse(store, row, now, nowIso);
+    if (recovered) return recovered;
+    // 새 토큰이 이미 쓰였다 — 탈취 가능성. 그 기기 묶음을 전부 폐기한다
+    await store.revokeFamily(row.family_id, nowIso);
+    return { ok: false, reason: "reused" };
   }
   const t = await issueAppTokens(store, claimed.user_id, claimed.platform, { now, familyId: claimed.family_id }).catch(async (err: unknown) => {
     // 옛 토큰만 소모하고 새 토큰을 못 줬다(DB 순간 오류·서명 비밀값 설정 오류) — 그대로 두면 앱의 다음 시도가 invalid/reused 로
@@ -78,6 +88,42 @@ export async function rotateRefreshToken(
     ok: true,
     userId: claimed.user_id,
     tokens: { accessToken: t.accessToken, accessExpiresAt: t.accessExpiresAt, accessExpiresIn: t.accessExpiresIn, refreshToken: t.refreshToken },
+    recovered: false,
+  };
+}
+
+/**
+ * 응답 유실 복구 — 옛 토큰(row)이 묶음의 마지막 교체이고(뒤에 교체된 토큰 없음 = 새 토큰이 한 번도 안 쓰였다) 아직 만료 전이면,
+ * 살아 있는 안 쓰인 새 토큰을 조건부로 폐기하고 같은 묶음으로 다시 발급한다. 새 토큰이 이미 쓰였으면 null(호출부가 재사용으로 처리한다).
+ * 안 쓰였는데 옛 토큰이 만료됐으면 invalid.
+ * 폐기 직전에 그 새 토큰이 쓰였으면 조건부 폐기가 0행이라 null — 재사용으로 간다.
+ */
+async function reissueAfterLostResponse(
+  store: AppSessionStore,
+  row: { family_id: string; rotated_at: string | null; expires_at: string },
+  now: number,
+  nowIso: string,
+): Promise<RotateResult | null> {
+  if (!row.rotated_at) return null;
+  const rotatedAt = Date.parse(row.rotated_at);
+  const family = await store.listFamily(row.family_id);
+  if (family.some((x) => x.rotated_at && Date.parse(x.rotated_at) > rotatedAt)) return null;
+  // 새 토큰은 안 쓰였지만 옛 토큰 자체가 만료됐다 — 다시 발급하지 않는다(탈취 근거도 없어 묶음은 그대로, 앱은 다시 로그인)
+  if (Date.parse(row.expires_at) <= now) return { ok: false, reason: "invalid" };
+  const live = family.filter((x) => !x.rotated_at && !x.revoked_at);
+  if (live.length !== 1) return null;
+  const unused = live[0];
+  if (!(await store.revokeUnusedRefresh(unused.token_hash, nowIso))) return null;
+  const t = await issueAppTokens(store, unused.user_id, unused.platform, { now, familyId: row.family_id }).catch(async (err: unknown) => {
+    // 다시 발급을 못 했다 — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다)
+    await store.unrevokeRefresh(unused.token_hash, nowIso).catch(() => {});
+    throw err;
+  });
+  return {
+    ok: true,
+    userId: unused.user_id,
+    tokens: { accessToken: t.accessToken, accessExpiresAt: t.accessExpiresAt, accessExpiresIn: t.accessExpiresIn, refreshToken: t.refreshToken },
+    recovered: true,
   };
 }
 
