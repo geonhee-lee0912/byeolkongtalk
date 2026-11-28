@@ -7,6 +7,8 @@ import LoadFailed from "@/components/admin/LoadFailed";
 import { Stat, Delta } from "@/components/admin/Stat";
 import { routeLabel } from "@/lib/analytics/route-labels";
 import { pickTodayYesterday, pickTodayVisitorMix } from "@/lib/analytics/traffic";
+import type { PlatformCounts } from "@/lib/admin/platform";
+import { PLATFORM_NOTE } from "@/components/admin/daily/PlatformTable";
 import type {
   TrafficPoint,
   BotShare,
@@ -50,6 +52,7 @@ export default async function TrafficPage() {
   // 실패 단위도 라우트 하나다. 실패하면 아래 `?? []`·`?? 0` 폴백이 0·빈 표로 위장하므로 막는다.
   const failed = data === null;
   const trend: TrafficPoint[] = data?.trend ?? [];
+  const platform: ({ date: string } & PlatformCounts)[] = data?.platform ?? [];
   const bot: BotShare = data?.bot ?? { totalPv: 0, botPv: 0, botPct: 0 };
   const routes: WithToday<RouteRow>[] = data?.routes ?? [];
   const auth: WithToday<AuthSplitRow>[] = data?.auth ?? [];
@@ -126,8 +129,48 @@ export default async function TrafficPage() {
             series={[
               { label: "UV", color: "#E8C26A", values: trend.map((p) => p.uv) },
               { label: "PV", color: "#B8A8D8", values: trend.map((p) => p.pv) },
+              { label: "앱 UV", color: "#7FD1B9", values: platform.map((p) => p.uvApp) },
             ]}
           />
+        )}
+        {!failed && (
+          <>
+            <div className="overflow-x-auto mt-4">
+              <table className="w-full text-[13px] whitespace-nowrap md:max-w-2xl">
+                <thead className="text-white/50 text-left">
+                  <tr>
+                    <th className="py-1">날짜</th>
+                    <th>UV 앱</th>
+                    <th>UV 웹</th>
+                    <th className="border-l border-white/15 pl-2">PV 앱</th>
+                    <th>PV 웹</th>
+                    <th className="border-l border-white/15 pl-2">가입 앱</th>
+                    <th>가입 웹</th>
+                    <th>가입 모름</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* 최신순 · 최근 14일 — 아래 방문자 구성 표와 같은 관행 */}
+                  {[...platform]
+                    .reverse()
+                    .slice(0, 14)
+                    .map((p) => (
+                      <tr key={p.date} className="border-t border-white/10">
+                        <td className="py-1.5 tabular-nums">{p.date.slice(5)}</td>
+                        <td className="tabular-nums">{p.uvApp.toLocaleString()}</td>
+                        <td className="tabular-nums">{p.uvWeb.toLocaleString()}</td>
+                        <td className="border-l border-white/15 pl-2 tabular-nums">{p.pvApp.toLocaleString()}</td>
+                        <td className="tabular-nums">{p.pvWeb.toLocaleString()}</td>
+                        <td className="border-l border-white/15 pl-2 tabular-nums">{p.signupsApp.toLocaleString()}</td>
+                        <td className="tabular-nums">{p.signupsWeb.toLocaleString()}</td>
+                        <td className="tabular-nums">{p.signupsUnknown.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-white/30 mt-2">표는 최근 14일 · {PLATFORM_NOTE}</p>
+          </>
         )}
       </section>
 
