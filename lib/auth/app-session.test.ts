@@ -327,6 +327,26 @@ test("복구 도중 로그아웃이 끝났으면 — 발급이 성공해도 그 
   assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
 });
 
+test("복구 저장이 실제로는 됐는데 오류로 끝나면(응답 끊김) — 다시 시도는 재사용이 아니라 복구, 안 쓰인 토큰이 여럿이어도 전부 폐기하고 하나만 준다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const committedThenFailed: AppSessionStore = {
+    ...store,
+    insertRefresh: async (row) => {
+      await store.insertRefresh(row);
+      throw new Error("connection reset");
+    },
+  };
+  await assert.rejects(rotateRefreshToken(committedThenFailed, t.refreshToken, { now: T0 + 60_000 }), /connection reset/);
+  assert.equal(refresh.filter((r) => !r.rotated_at && !r.revoked_at).length, 2);
+  const retry = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 120_000 });
+  assert.equal(retry.ok && retry.recovered, true);
+  if (!retry.ok) return;
+  const live = refresh.filter((r) => !r.rotated_at && !r.revoked_at);
+  assert.deepEqual(live.map((r) => r.token_hash), [hashSecretToken(retry.tokens.refreshToken)]);
+});
+
 test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });

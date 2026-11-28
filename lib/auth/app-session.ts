@@ -99,7 +99,7 @@ export async function rotateRefreshToken(
 
 /**
  * 응답 유실 복구 — 옛 토큰(row)이 묶음의 마지막 교체이고(뒤에 교체된 토큰 없음 = 새 토큰이 한 번도 안 쓰였다) 아직 만료 전이면,
- * 살아 있는 안 쓰인 새 토큰을 조건부로 폐기하고 같은 묶음으로 다시 발급한다. 새 토큰이 쓰였으면 null(호출부가 재사용으로 처리한다).
+ * 살아 있는 안 쓰인 새 토큰(보통 1개, 오류로 끝난 저장이 남긴 것까지 전부)을 조건부로 폐기하고 같은 묶음으로 하나만 다시 발급한다. 새 토큰이 쓰였으면 null(호출부가 재사용으로 처리한다).
  * 겹친 요청(같은 옛 토큰으로 다른 복구가 진행 중이거나 막 끝남)은 retry, 옛 토큰 만료는 invalid — 둘 다 묶음은 건드리지 않는다.
  * '안 쓰였다' 확인은 조건부 폐기 뒤에 한 번 더 한다 — 첫 확인과 폐기 사이에 정상 기기가 새 토큰을 써 또 교체했으면
  * 폐기한 것은 정상 기기의 최신 토큰이다. 그때는 재사용으로 간다(폐기 뒤엔 그 토큰이 교체될 수 없어 두 번째 확인이 확정이다).
@@ -120,26 +120,35 @@ async function reissueAfterLostResponse(
   const live = await store.listLiveRefresh(row.family_id);
   // 0개 = 다른 복구가 새 토큰을 폐기하고 아직 발급 전이거나 로그아웃 중 — 지금은 지킬 토큰이 없다(로그아웃이었으면 다음 시도가 invalid)
   if (live.length === 0) return { ok: false, reason: "retry" };
-  if (live.length !== 1) return null;
-  const unused = live[0];
   // 10초 안에 발급된 토큰 = 같은 옛 토큰으로 막 끝난 복구가 준 것(유실된 새 토큰은 옛 토큰 교체 때 = 10초보다 전에 발급됐다) — 겹친 요청은 거절만.
   // 발급 시각은 만료 - 90일(issueAppTokens 가 같은 서버 시각으로 정한다)
-  if (now - (Date.parse(unused.expires_at) - REFRESH_TTL_MS) <= REUSE_GRACE_MS) return { ok: false, reason: "retry" };
-  if (!(await store.revokeUnusedRefresh(unused.token_hash, nowIso))) {
-    const after = await store.findRefresh(unused.token_hash);
-    return after?.rotated_at ? null : { ok: false, reason: "retry" };
-  }
+  if (live.some((x) => now - (Date.parse(x.expires_at) - REFRESH_TTL_MS) <= REUSE_GRACE_MS)) return { ok: false, reason: "retry" };
+  // 안 쓰인 토큰이 여럿일 수 있다(저장은 됐는데 응답이 끊겨 오류로 끝난 복구·교체가 남긴 것) — 전부 폐기하고 하나만 준다
+  const revoked: string[] = [];
+  // 실패하면 폐기한 것을 되살려 다음 시도가 같은 복구를 하게 한다. 되살린 뒤 로그아웃 여부를 본다 — 되살리기 전에 끝난 로그아웃이면 다시 폐기,
+  // 뒤에 오는 로그아웃은 되살린 토큰까지 표시한다(되살리기 실패는 삼킨다)
+  const restore = async () => {
+    await (async () => {
+      for (const h of revoked) await store.unrevokeRefresh(h, nowIso);
+      if ((await store.findRefresh(oldHash))?.revoked_at) for (const h of revoked) await store.revokeUnusedRefresh(h, nowIso);
+    })().catch(() => {});
+  };
   let t: AppTokens;
   try {
+    for (const x of live) {
+      if (await store.revokeUnusedRefresh(x.token_hash, nowIso)) {
+        revoked.push(x.token_hash);
+        continue;
+      }
+      // 0행 — 그 사이 쓰였으면 재사용(호출부가 묶음을 폐기한다), 다른 복구·로그아웃이 먼저 폐기했으면 retry
+      if ((await store.findRefresh(x.token_hash))?.rotated_at) return null;
+      await restore();
+      return { ok: false, reason: "retry" };
+    }
     if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
-    t = await issueAppTokens(store, unused.user_id, unused.platform, { now, familyId: row.family_id });
+    t = await issueAppTokens(store, live[0].user_id, live[0].platform, { now, familyId: row.family_id });
   } catch (err) {
-    // 재확인이나 다시 발급을 못 했다(DB 순간 오류) — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다).
-    // 되살린 뒤 로그아웃 여부를 본다 — 되살리기 전에 끝난 로그아웃이면 다시 폐기, 뒤에 오는 로그아웃은 되살린 토큰까지 표시한다
-    await (async () => {
-      await store.unrevokeRefresh(unused.token_hash, nowIso);
-      if ((await store.findRefresh(oldHash))?.revoked_at) await store.revokeUnusedRefresh(unused.token_hash, nowIso);
-    })().catch(() => {});
+    await restore();
     throw err;
   }
   // 발급 중에 로그아웃이 끝났으면 방금 만든 토큰도 폐기한다(확인이 실패하면 발급을 그대로 돌려준다 — 드문 경합보다 DB 순간 오류로 로그아웃시키는 쪽이 나쁘다)
@@ -150,7 +159,7 @@ async function reissueAfterLostResponse(
   }
   return {
     ok: true,
-    userId: unused.user_id,
+    userId: live[0].user_id,
     tokens: { accessToken: t.accessToken, accessExpiresAt: t.accessExpiresAt, accessExpiresIn: t.accessExpiresIn, refreshToken: t.refreshToken },
     recovered: true,
   };
