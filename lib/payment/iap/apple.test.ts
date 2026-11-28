@@ -118,9 +118,32 @@ test("Production 401 · Sandbox 에 없음 → '없음'(null)이 아니라 원�
   assert.deepEqual(calls.lookups, [Environment.PRODUCTION, Environment.SANDBOX]);
 });
 
-test("Production 401 · Sandbox 도 401(키 자체가 틀림) → 401 을 던진다", async () => {
+test("Production 401 · Sandbox 도 401(키 자체가 틀림) → 두 401 을 다 글에 남겨 던진다", async () => {
   const { d } = deps({ [Environment.PRODUCTION]: prod401(), [Environment.SANDBOX]: prod401() });
-  await assert.rejects(verifyAppleTransaction(TXN, d), /HTTP 401/);
+  await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+    assert.equal(err.message, "apple getTransactionInfo HTTP 401 apiError null · sandbox: apple getTransactionInfo HTTP 401 apiError null");
+    return true;
+  });
+});
+
+test("Production 401 · Sandbox 장애(500) → 운영 401 이 묻히지 않게 둘 다 글에", async () => {
+  const { d } = deps({ [Environment.PRODUCTION]: prod401(), [Environment.SANDBOX]: new APIException(500, APIError.GENERAL_INTERNAL, "boom") });
+  await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+    assert.equal(err.message, `apple getTransactionInfo HTTP 401 apiError null · sandbox: apple getTransactionInfo HTTP 500 apiError ${APIError.GENERAL_INTERNAL}`);
+    assert.ok(noIds(err));
+    return true;
+  });
+});
+
+test("Production 401 · Sandbox 가 id 형식 틀림(4000006) → null 이 아니라 운영 401 을 던진다(키 고장 신호 유지)", async () => {
+  const { d } = deps({
+    [Environment.PRODUCTION]: prod401(),
+    [Environment.SANDBOX]: new APIException(400, APIError.INVALID_TRANSACTION_ID, "Invalid transaction id."),
+  });
+  await assert.rejects(verifyAppleTransaction(TXN, d), (err: Error) => {
+    assert.equal(err.message, "apple getTransactionInfo HTTP 401 apiError null");
+    return true;
+  });
 });
 
 test("Sandbox 의 401 은 더 넘어갈 곳이 없다 — Production 에 없음 · Sandbox 401 이면 던진다", async () => {

@@ -92,6 +92,14 @@ function describeVerifyError(err: unknown): unknown {
   return err;
 }
 
+/** Production 401 을 앞에 둔 오류 글 — Sandbox 오류가 있으면 뒤에 붙인다(거래 id 는 describeLookupError 가 이미 뺐다) */
+function withProductionUnauthorized(productionErr: unknown, sandboxErr: unknown): Error {
+  const head = String((describeLookupError(productionErr) as Error).message);
+  if (sandboxErr === null) return new Error(head);
+  const tail = describeLookupError(sandboxErr);
+  return new Error(`${head} · sandbox: ${tail instanceof Error ? tail.message : String(tail)}`);
+}
+
 /** 거래가 없거나(두 환경 다 4040010)·id 형식이 틀리거나·다른 앱·다른 거래면 null. 애플 장애·키 거절·서명 검증 실패는 던진다 */
 export async function verifyAppleTransaction(transactionId: string, deps: AppleDeps = realDeps): Promise<VerifiedPurchase | null> {
   // 첫 출시 전 앱은 키가 맞아도 Production 창구가 401 을 준다(2026-11-28 TestFlight 실측: 같은 키로 Production 401 · Sandbox 4040010).
@@ -104,11 +112,13 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
     } catch (err) {
       const code = apiErrorOf(err);
       if (code === APIError.TRANSACTION_ID_NOT_FOUND) continue;
-      if (code === APIError.INVALID_TRANSACTION_ID) return null;
       if (environment === Environment.PRODUCTION && err instanceof APIException && err.httpStatusCode === 401) {
         productionUnauthorized = err;
         continue;
       }
+      // Production 401 뒤의 Sandbox 실패는 그 401 을 같이 남긴다 — 키 고장이 'id 형식 틀림'·Sandbox 장애에 묻히지 않게
+      if (productionUnauthorized) throw withProductionUnauthorized(productionUnauthorized, code === APIError.INVALID_TRANSACTION_ID ? null : err);
+      if (code === APIError.INVALID_TRANSACTION_ID) return null;
       throw describeLookupError(err);
     }
     if (!info.signedTransactionInfo) throw new Error("apple getTransactionInfo: signedTransactionInfo missing");
