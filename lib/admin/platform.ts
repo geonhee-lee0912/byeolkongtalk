@@ -65,3 +65,22 @@ export function periodPayerLines(rows: Record<string, unknown>[]): {
   );
   return { rows: lines, total };
 }
+
+/** 트래픽 API 용 — 이 RPC 실패는 앱/웹 표만 실패로 둔다(화면의 다른 지표까지 끌고 가지 않는다). */
+export function platformDailyResult(
+  res: { data: unknown; error: unknown },
+  dates: string[],
+): { rows: ({ date: string } & PlatformCounts)[]; failed: boolean } {
+  if (res.error) return { rows: [], failed: true };
+  return { rows: platformDailyRows((res.data ?? []) as Record<string, unknown>[], dates), failed: false };
+}
+
+/** "그 기간 실제 결제자" 날짜 표시 — 결제율 성숙 7일과 같은 오늘-8 ~ 오늘-2 (KST 날짜 YYYY-MM-DD 입력). */
+export function payersWindowLabel(todayKst: string): string {
+  const shift = (days: number) => {
+    const d = new Date(`${todayKst}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - days);
+    return d.toISOString().slice(5, 10);
+  };
+  return `${shift(8)} ~ ${shift(2)}`;
+}

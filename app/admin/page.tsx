@@ -405,7 +405,9 @@ export default async function AdminDashboard() {
         ) : (
           <PayRateTable today={D.payRate.today} yesterday={D.payRate.yesterday} mature7={D.payRate.mature7} />
         )}
-        <h3 className="text-sm text-white/60 mt-5 mb-3">그 기간 실제 결제자</h3>
+        <h3 className="text-sm text-white/60 mt-5 mb-3">
+          그 기간 실제 결제자 <span className="text-white/35">({D.periodPayers.windowLabel} 결제)</span>
+        </h3>
         {D.periodPayers.failed ? (
           <LoadFailed block="실제 결제자(admin_period_payers)" />
         ) : (

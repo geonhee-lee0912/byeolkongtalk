@@ -53,6 +53,7 @@ export default async function TrafficPage() {
   const failed = data === null;
   const trend: TrafficPoint[] = data?.trend ?? [];
   const platform: ({ date: string } & PlatformCounts)[] = data?.platform ?? [];
+  const platformFailed: boolean = data?.platformFailed ?? false;
   const bot: BotShare = data?.bot ?? { totalPv: 0, botPv: 0, botPct: 0 };
   const routes: WithToday<RouteRow>[] = data?.routes ?? [];
   const auth: WithToday<AuthSplitRow>[] = data?.auth ?? [];
@@ -129,11 +130,13 @@ export default async function TrafficPage() {
             series={[
               { label: "UV", color: "#E8C26A", values: trend.map((p) => p.uv) },
               { label: "PV", color: "#B8A8D8", values: trend.map((p) => p.pv) },
-              { label: "앱 UV", color: "#7FD1B9", values: platform.map((p) => p.uvApp) },
+              // 앱/웹 조회가 실패하면 빈 값으로 0 선을 그리지 않고 선을 뺀다
+              ...(platformFailed ? [] : [{ label: "앱 UV", color: "#7FD1B9", values: platform.map((p) => p.uvApp) }]),
             ]}
           />
         )}
-        {!failed && (
+        {!failed && platformFailed && <LoadFailed block="앱/웹(admin_platform_daily)" className="mt-4" />}
+        {!failed && !platformFailed && (
           <>
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-[13px] whitespace-nowrap md:max-w-2xl">

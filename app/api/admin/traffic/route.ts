@@ -23,7 +23,7 @@ import {
   type TrafficPoint,
   type VisitorMixRow,
 } from "@/lib/analytics/traffic";
-import { platformDailyRows } from "@/lib/admin/platform";
+import { platformDailyResult } from "@/lib/admin/platform";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,7 +62,8 @@ export async function GET(req: NextRequest) {
     supa.rpc("admin_platform_daily", { p_since: since, p_exclude }),
   ]);
 
-  const failed = [trend, mix, routes, auth, variants, contents, bot, platform].find((r) => r.error);
+  // admin_platform_daily 는 빼 둔다 — 그 표 하나 때문에 화면 전체가 실패로 바뀌지 않게(아래 platformFailed).
+  const failed = [trend, mix, routes, auth, variants, contents, bot].find((r) => r.error);
   if (failed) {
     return NextResponse.json({ error: "query_failed" }, { status: 500 });
   }
@@ -132,7 +133,10 @@ export async function GET(req: NextRequest) {
     bot: { totalPv, botPv, botPct: totalPv ? Math.round((botPv / totalPv) * 1000) / 10 : 0 },
     trend: trendAxis,
     // 앱/웹 — 추세와 같은 날짜 축(활동 없는 날 0). 정의는 admin_platform_daily 마이그레이션 머리말.
-    platform: platformDailyRows((platform.data ?? []) as Record<string, unknown>[], trendAxis.map((p) => p.date)),
+    ...(() => {
+      const r = platformDailyResult(platform, trendAxis.map((p) => p.date));
+      return { platform: r.rows, platformFailed: r.failed };
+    })(),
     // 방문자 구성은 축을 채우지 않는다 — 수집 전 날짜를 0 으로 채우면 "그날 방문자 0" 과
     // "그날은 아직 수집 전" 이 구분되지 않아 재방문율이 0 으로 희석된다.
     visitorMix: buildVisitorMix(mixRows),

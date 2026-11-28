@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { platformCounts, platformDailyRows, periodPayerLines, PAYER_SEGMENTS } from "./platform.ts";
+import { platformCounts, platformDailyRows, platformDailyResult, periodPayerLines, payersWindowLabel, PAYER_SEGMENTS } from "./platform.ts";
 
 test("platformCounts 문자열 숫자 변환·빈 행 0", () => {
   const c = platformCounts({ uv_app: "3", won_toss: "4900" });
@@ -49,4 +49,18 @@ test("periodPayerLines 모르는 분류 무시 — 프로토타입 키 포함", 
   ]);
   assert.equal(rows.length, PAYER_SEGMENTS.length);
   assert.deepEqual(total, { people: 0, payments: 0, won: 0 });
+});
+
+test("platformDailyResult RPC 실패는 표만 실패 — rows 빈 배열 + failed", () => {
+  const r = platformDailyResult({ data: null, error: { message: "function does not exist" } }, ["2026-11-01"]);
+  assert.equal(r.failed, true);
+  assert.deepEqual(r.rows, []);
+  const ok = platformDailyResult({ data: [{ d: "2026-11-01", uv_app: 1 }], error: null }, ["2026-11-01"]);
+  assert.equal(ok.failed, false);
+  assert.equal(ok.rows[0].uvApp, 1);
+});
+
+test("payersWindowLabel — 결제율 성숙 7일과 같은 날짜(오늘-8 ~ 오늘-2), 월 경계", () => {
+  assert.equal(payersWindowLabel("2026-11-28"), "11-20 ~ 11-26");
+  assert.equal(payersWindowLabel("2026-12-03"), "11-25 ~ 12-01");
 });
