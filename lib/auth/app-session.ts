@@ -74,7 +74,7 @@ export async function rotateRefreshToken(
       return { ok: false, reason: "invalid" };
     }
     // 이미 교체된 토큰이 10초 뒤에 다시 왔다. 그 교체로 만든 새 토큰이 한 번도 안 쓰였으면 앱이 응답을 받기 전에 꺼진 것으로 본다(운영자 11-28)
-    const recovered = await reissueAfterLostResponse(store, row, now, nowIso);
+    const recovered = await reissueAfterLostResponse(store, hash, row, now, nowIso);
     if (recovered) return recovered;
     // 새 토큰이 이미 쓰였다 — 탈취 가능성. 그 기기 묶음을 전부 폐기한다
     await store.revokeFamily(row.family_id, nowIso);
@@ -100,9 +100,12 @@ export async function rotateRefreshToken(
  * 겹친 요청(같은 옛 토큰으로 다른 복구가 진행 중이거나 막 끝남)·로그아웃 중·옛 토큰 만료는 invalid — 묶음은 건드리지 않는다.
  * '안 쓰였다' 확인은 조건부 폐기 뒤에 한 번 더 한다 — 첫 확인과 폐기 사이에 정상 기기가 새 토큰을 써 또 교체했으면
  * 폐기한 것은 정상 기기의 최신 토큰이다. 그때는 재사용으로 간다(폐기 뒤엔 그 토큰이 교체될 수 없어 두 번째 확인이 확정이다).
+ * 그 기기의 로그아웃(묶음 폐기)이 복구 도중에 끝났으면 로그아웃이 이긴다 — 옛 토큰(oldHash) 행의 폐기 표시로 알아본다
+ * (로그아웃은 폐기 안 된 행만 표시하므로 이미 폐기한 새 토큰엔 흔적이 안 남는다).
  */
 async function reissueAfterLostResponse(
   store: AppSessionStore,
+  oldHash: string,
   row: { family_id: string; rotated_at: string | null; expires_at: string },
   now: number,
   nowIso: string,
@@ -128,9 +131,19 @@ async function reissueAfterLostResponse(
     if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
     t = await issueAppTokens(store, unused.user_id, unused.platform, { now, familyId: row.family_id });
   } catch (err) {
-    // 재확인이나 다시 발급을 못 했다(DB 순간 오류) — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다)
-    await store.unrevokeRefresh(unused.token_hash, nowIso).catch(() => {});
+    // 재확인이나 다시 발급을 못 했다(DB 순간 오류) — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다).
+    // 되살린 뒤 로그아웃 여부를 본다 — 되살리기 전에 끝난 로그아웃이면 다시 폐기, 뒤에 오는 로그아웃은 되살린 토큰까지 표시한다
+    await (async () => {
+      await store.unrevokeRefresh(unused.token_hash, nowIso);
+      if ((await store.findRefresh(oldHash))?.revoked_at) await store.revokeUnusedRefresh(unused.token_hash, nowIso);
+    })().catch(() => {});
     throw err;
+  }
+  // 발급 중에 로그아웃이 끝났으면 방금 만든 토큰도 폐기한다(확인이 실패하면 발급을 그대로 돌려준다 — 드문 경합보다 DB 순간 오류로 로그아웃시키는 쪽이 나쁘다)
+  const loggedOut = await store.findRefresh(oldHash).then((r) => Boolean(r?.revoked_at)).catch(() => false);
+  if (loggedOut) {
+    await store.revokeFamily(row.family_id, nowIso);
+    return { ok: false, reason: "invalid" };
   }
   return {
     ok: true,

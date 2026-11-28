@@ -293,6 +293,40 @@ test("폐기 뒤 재확인 조회가 실패해도(DB 순간 오류) 폐기한 �
   assert.equal(retry.ok && retry.recovered, true);
 });
 
+test("복구 도중 로그아웃이 끝났으면 — 발급이 실패해도 폐기한 토큰을 되살리지 않는다(로그아웃이 그대로)", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const lost = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(lost.ok, true);
+  if (!lost.ok) return;
+  const racing: AppSessionStore = {
+    ...store,
+    insertRefresh: async () => {
+      // 폐기 직후 같은 기기 묶음의 로그아웃이 끝나고, 새 토큰 저장은 실패한다
+      await revokeByRefreshToken(store, t.refreshToken, { now: T0 + 59_000 });
+      throw new Error("db blip");
+    },
+  };
+  await assert.rejects(rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), /db blip/);
+  assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
+  assert.deepEqual(await rotateRefreshToken(store, lost.tokens.refreshToken, { now: T0 + 61_000 }), { ok: false, reason: "invalid" });
+});
+
+test("복구 도중 로그아웃이 끝났으면 — 발급이 성공해도 그 토큰은 못 쓰고 invalid", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const racing: AppSessionStore = {
+    ...store,
+    insertRefresh: async (row) => {
+      await revokeByRefreshToken(store, t.refreshToken, { now: T0 + 59_000 });
+      await store.insertRefresh(row);
+    },
+  };
+  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "invalid" });
+  assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
+});
+
 test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
