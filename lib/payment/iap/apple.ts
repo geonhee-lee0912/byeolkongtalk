@@ -1,6 +1,6 @@
 // 애플 거래 확인 — 앱이 보낸 거래 id 로 App Store Server API(Get Transaction Info)에 직접 묻고, 돌아온 서명 거래(JWS)를
 // 애플 루트 인증서(이 폴더의 apple-root-ca-g3.cer)로 검증한다(@apple/app-store-server-library). 스펙 2026-11-23-앱-결제 §3.
-// Production 에서 먼저 찾고 없으면(4040010) Sandbox — 앱 심사자는 운영 빌드에서 샌드박스로 산다(그 거래도 별은 준다, 매출 0원).
+// Production 에서 먼저 찾고 없으면(4040010)·출시 전이라 401 이면 Sandbox — 앱 심사자는 운영 빌드에서 샌드박스로 산다(그 거래도 별은 준다, 매출 0원).
 // 서버 비밀값: APPLE_IAP_KEY_ID · APPLE_IAP_ISSUER_ID · APPLE_IAP_PRIVATE_KEY(앱 결제 키 .p8) · APPLE_APP_ID(숫자 — Production 서명 검증에 필수)
 // 환불 알림(App Store Server Notifications v2, 스펙 §4)도 같은 검증기·같은 결제 고유 번호(appleTid)로 푼다 — verifyAppleRefundNotification.
 import { readFileSync } from "node:fs";
@@ -94,6 +94,9 @@ function describeVerifyError(err: unknown): unknown {
 
 /** 거래가 없거나(두 환경 다 4040010)·id 형식이 틀리거나·다른 앱·다른 거래면 null. 애플 장애·키 거절·서명 검증 실패는 던진다 */
 export async function verifyAppleTransaction(transactionId: string, deps: AppleDeps = realDeps): Promise<VerifiedPurchase | null> {
+  // 첫 출시 전 앱은 키가 맞아도 Production 창구가 401 을 준다(2026-11-28 TestFlight 실측: 같은 키로 Production 401 · Sandbox 4040010).
+  // 심사자·TestFlight 결제는 Sandbox 거래라 Sandbox 에 한 번 더 묻는다. Sandbox 에도 없으면 이 401 을 던진다(출시 뒤 진짜 키 고장을 '없음'으로 가리지 않게)
+  let productionUnauthorized: unknown = null;
   for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
     let info: TransactionInfoResponse;
     try {
@@ -102,6 +105,10 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
       const code = apiErrorOf(err);
       if (code === APIError.TRANSACTION_ID_NOT_FOUND) continue;
       if (code === APIError.INVALID_TRANSACTION_ID) return null;
+      if (environment === Environment.PRODUCTION && err instanceof APIException && err.httpStatusCode === 401) {
+        productionUnauthorized = err;
+        continue;
+      }
       throw describeLookupError(err);
     }
     if (!info.signedTransactionInfo) throw new Error("apple getTransactionInfo: signedTransactionInfo missing");
@@ -124,6 +131,7 @@ export async function verifyAppleTransaction(transactionId: string, deps: AppleD
       pending: false,
     };
   }
+  if (productionUnauthorized) throw describeLookupError(productionUnauthorized);
   return null;
 }
 
