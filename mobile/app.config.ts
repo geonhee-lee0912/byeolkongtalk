@@ -46,9 +46,9 @@ const config: ExpoConfig = {
   },
   android: {
     package: BUNDLE_ID,
-    // 별콩이 얼굴(디자인 다듬기 ②, 운영자 B안 11-09 — 캐릭터 폭은 보이는 칸의 65%, iOS icon.png 와 같은 비율)
-    // 앞판은 투명 바탕 얼굴만, 뒤판은 iOS 와 같은 밤색 번짐. 둘 다 108dp 중 가운데 72dp 가 보이는 기준으로 만들었다
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundImage: "./assets/adaptive-icon-bg.png", backgroundColor: "#201238" },
+    // 금별 말풍선 로고(웹 파비콘 app/icon.png 와 같은 모양) + 크림→라벤더 바탕(운영자 11-28, 별콩이 얼굴 아이콘을 바꿈)
+    // 앞판은 투명 바탕 로고만(폭 55%), 뒤판은 iOS icon.png 와 같은 크림 번짐. 108dp 중 가운데 72dp 가 보이는 기준
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundImage: "./assets/adaptive-icon-bg.png", backgroundColor: "#EFE6F3" },
     // 없으면 키째 뺀다(위 GOOGLE_SERVICES_FILE) — null 은 직렬화에서 {} 로 바뀐다(아래 extra 주석)
     ...(GOOGLE_SERVICES_FILE ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
   },
