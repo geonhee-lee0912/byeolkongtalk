@@ -29,6 +29,8 @@ import { AlertStrip } from "@/components/admin/daily/AlertStrip";
 import { SurveyInbox } from "@/components/admin/daily/SurveyInbox";
 import { PaymentsToday } from "@/components/admin/daily/PaymentsToday";
 import { PayRateTable } from "@/components/admin/daily/PayRateTable";
+import { PeriodPayersTable } from "@/components/admin/daily/PeriodPayersTable";
+import { PlatformTable } from "@/components/admin/daily/PlatformTable";
 import { SubscriptionRow } from "@/components/admin/daily/SubscriptionRow";
 import { CreativeTable } from "@/components/admin/daily/CreativeTable";
 import { loadDaily } from "@/lib/admin/daily-load";
@@ -386,13 +388,28 @@ export default async function AdminDashboard() {
       </section>
 
       <section>
+        <h2 className="text-sm text-white/60 mb-3">앱 / 웹</h2>
+        {D.platform.failed ? (
+          <LoadFailed block="앱/웹(admin_platform_summary)" />
+        ) : (
+          <PlatformTable today={D.platform.today} yesterday={D.platform.yesterday} last7={D.platform.last7} />
+        )}
+      </section>
+
+      <section>
         <h2 className="text-sm text-white/60 mb-3">
-          결제율 <span className="text-white/35">(가입 후 48시간 안 결제 · 전체 유입)</span>
+          결제율 <span className="text-white/35">(신규 가입 후 48시간 안 첫 결제 · 전체 유입)</span>
         </h2>
         {D.payRate.failed ? (
           <LoadFailed block="결제율(admin_pay_rate)" />
         ) : (
           <PayRateTable today={D.payRate.today} yesterday={D.payRate.yesterday} mature7={D.payRate.mature7} />
+        )}
+        <h3 className="text-sm text-white/60 mt-5 mb-3">그 기간 실제 결제자</h3>
+        {D.periodPayers.failed ? (
+          <LoadFailed block="실제 결제자(admin_period_payers)" />
+        ) : (
+          <PeriodPayersTable rows={D.periodPayers.rows} total={D.periodPayers.total} />
         )}
       </section>
 

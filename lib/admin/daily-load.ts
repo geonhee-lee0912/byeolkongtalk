@@ -7,6 +7,7 @@ import { startOfTodayKstIso, daysAgoKstIso } from "@/lib/admin-time";
 import { addDays, kstToday } from "@/lib/ads/meta-insights";
 import { CREATIVE_ALIASES, canonicalCreative } from "@/lib/analytics/creative-alias";
 import { adSyncAlert, filterActiveCreatives, nonAdSignups, payRateLines, sumSpendClicksByCreative, summarizeSpends, type PayRateDay } from "./daily";
+import { platformCounts, periodPayerLines } from "./platform";
 
 // 접힌 블록이라 미확인을 거의 다 보여준다(하루 ~1건). 넘치면 가장 오래된 것부터 이만큼 — 아래 주석.
 export const SURVEY_SHOW = 30;
@@ -34,7 +35,8 @@ export async function loadDaily() {
   const win7 = daysAgoKstIso(6); // 오늘 포함 7일 — 1층 다른 블록과 같은 창
 
   // ── 1차 병렬: 마커 · 오늘 결제 · 결제율 · 구독 · 소재 · 클릭 · 동기화 ──
-  const [markerRes, payRes, rateRes, subTodayRes, sub7Res, funnelRes, clickRes, syncLatestRes, syncOkRes] =
+  const [markerRes, payRes, rateRes, subTodayRes, sub7Res, funnelRes, clickRes, syncLatestRes, syncOkRes,
+    platTodayRes, platYesterdayRes, plat7Res, payersRes] =
     await Promise.all([
       supa.from("admin_seen_markers").select("seen_until").eq("key", "survey").maybeSingle(),
       supa.from("payments")
@@ -50,6 +52,12 @@ export async function loadDaily() {
         .limit(CLICK_ROWS_LIMIT),
       supa.from("ad_sync_runs").select("ok, error").order("started_at", { ascending: false }).limit(1),
       supa.from("ad_sync_runs").select("finished_at, active_creatives").eq("ok", true).order("finished_at", { ascending: false }).limit(1),
+      // 앱/웹 — 오늘 · 어제 · 최근 7일(오늘 포함, win7)
+      supa.rpc("admin_platform_summary", { p_since: today, p_until: null, p_exclude }),
+      supa.rpc("admin_platform_summary", { p_since: daysAgoKstIso(1), p_until: today, p_exclude }),
+      supa.rpc("admin_platform_summary", { p_since: win7, p_until: null, p_exclude }),
+      // 그 기간 실제 결제자 — 결제율 "성숙 7일"(가입일 오늘-8 ~ 오늘-2)과 같은 날짜, 단 결제한 날 기준
+      supa.rpc("admin_period_payers", { p_since: daysAgoKstIso(8), p_until: daysAgoKstIso(1), p_exclude }),
     ]);
 
   // ── 새 설문 (마커 이후 · 마커 없으면 최근 7일) ──
@@ -157,6 +165,13 @@ export async function loadDaily() {
       totalWon: todayPayments.reduce((a, p) => a + p.amount_won, 0),
     },
     payRate: { failed: Boolean(rateRes.error), ...payRateLines(rateRows, todayKst) },
+    periodPayers: { failed: Boolean(payersRes.error), ...periodPayerLines((payersRes.data ?? []) as Record<string, unknown>[]) },
+    platform: {
+      failed: Boolean(platTodayRes.error || platYesterdayRes.error || plat7Res.error),
+      today: platformCounts(((platTodayRes.data ?? []) as Record<string, unknown>[])[0]),
+      yesterday: platformCounts(((platYesterdayRes.data ?? []) as Record<string, unknown>[])[0]),
+      last7: platformCounts(((plat7Res.data ?? []) as Record<string, unknown>[])[0]),
+    },
     subscription: {
       failed: Boolean(subTodayRes.error || sub7Res.error),
       today: subOf(subTodayRes), last7: subOf(sub7Res),
