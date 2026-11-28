@@ -93,11 +93,12 @@ test("RechargeSheet — 열릴 때 스토어 가격을 다시 묻는다(useStore
   assert.match(hook, /needsPriceAsk\(/, "다시 묻기는 needsPriceAsk 로 거른다(묻는 중·받음·앱 밖이면 안 묻는다)");
 });
 
-// 스펙 §2 — 앱에선 스토어 가격 문자열만. 우리 원화로 계산한 '별당 N원 · N% 알뜰' 은 앱에서 숨긴다(스토어 가격 단계가 다를 수 있다)
-test("상점 — 카드 아랫줄의 원화 줄은 스토어 경로에서 숨긴다", () => {
+// 운영자 11-28: 한국만 서비스하니 앱 상점 카드도 웹처럼 '별당 N원 · N% 알뜰' 을 보인다(앱 스토어 가격도 웹과 같은 원화 — 11-28 TestFlight 결제창 ₩1,000 확인).
+// 원래 스펙 §2 는 스토어 가격 단계가 다를 수 있어 앱에서 숨겼다 — 해외 판매를 열면 다시 볼 것
+test("상점 — 카드 아랫줄은 앱·웹 같은 줄(스토어 경로라고 숨기지 않는다)", () => {
   const src = stripComments(read("app/shop/page.tsx"));
-  assert.match(src, /packageSubLine\(pkg, !!showBonus, !!storePrice\)/);
-  assert.match(src, /storePrice=\{storePath\}/);
+  assert.match(src, /packageSubLine\(pkg, !!showBonus\)/);
+  assert.doesNotMatch(src, /storePrice/);
   // 시트 칸엔 원화 계산 줄이 없다(별 수·보너스·남는 별만) — 가격은 priceText 하나
   const sheet = stripComments(read("components/upsell/RechargeSheet.tsx"));
   assert.doesNotMatch(sheet, /packageSubLine|별당/);

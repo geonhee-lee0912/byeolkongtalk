@@ -421,7 +421,6 @@ function ShopContent() {
                   disabled={loading || !!store.busyId}
                   showBonus={firstChargeEligible}
                   priceText={priceText(pkg)}
-                  storePrice={storePath}
                 />
               ))}
             </div>
@@ -577,7 +576,6 @@ function PackageCard({
   disabled,
   showBonus,
   priceText,
-  storePrice,
 }: {
   pkg: StarPackage;
   selected: boolean;
@@ -586,11 +584,9 @@ function PackageCard({
   showBonus?: boolean;
   /** 브라우저 = 'N원' · 앱 = 스토어 가격 문자열(받기 전 '…') */
   priceText: string;
-  /** 앱 안(스토어 가격) — 우리 원화로 계산한 '별당' 줄은 숨긴다(보너스 줄은 그대로) */
-  storePrice?: boolean;
 }) {
   const meta = PKG_META[pkg.id] ?? {};
-  const sub = packageSubLine(pkg, !!showBonus, !!storePrice);
+  const sub = packageSubLine(pkg, !!showBonus);
 
   // 디자인 다듬기 상점 ④ A(운영자 11-21): 다섯 칸이 똑같던 큰 별 그림·추천 금색 점·초록 '% 더 알뜰' 알약·'+20%' 알약을 빼고
   // '별 수 + 아랫줄 하나 | 가격 · 체크' 로. 칸 높이가 다 같아져 다섯 칸이 첫 화면에 거의 다 든다.
