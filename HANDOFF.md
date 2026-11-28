@@ -1,6 +1,6 @@
 # 앱 결제 — 앱 안 별 충전을 애플·구글 결제로(소모성 5종 · 서버 검증 · 환불은 남은 만큼만 회수 · 앱 안 토스 숨김). 스토어 제출의 선행 조건. 스펙 `docs/superpowers/specs/2026-11-23-앱-결제-design.md`
 
-- 마지막 갱신: 2026-11-27 · 자리: 로컬(Claude, 워크트리 `.claude/worktrees/zen-hellman-6b8f50`)
+- 마지막 갱신: 2026-11-28 · 자리: 로컬(Claude, 세션 tarot-share-notice 에서 결정만 기록 — 코드 작업은 이 워크트리)
 
 ## 목표
 앱(웹뷰) 안의 별 충전을 스토어 결제로 바꿔 애플·구글 제출을 막는 결제 문제를 없앤다. 웹 브라우저는 토스 그대로.
@@ -15,8 +15,8 @@
 2. 확인표가 다 채워지면 HANDOFF 삭제 · ROADMAP "다음" 1번을 "끝남"으로 옮기는 마지막 커밋 → PR
 
 ## 운영자가 정할 것 (작업은 안 막음)
-- **TestFlight·라이선스 테스터 무료 별**: "샌드박스도 별 지급"(심사자 구매용) 때문에 운영 앱으로 시험하는 사람은 운영 계정에 별을 무료로 얻는다(₩0 행). 외부 테스터 안 쓰기 / 운영 계정 샌드박스 지급 상한·허용 목록 / 어드민 감시 중 하나 — 운영 비밀값을 넣기 전에(#83 Codex 보안 P2 와 같은 건)
-- ✅ **실기기 시험 자리 = (a) dev + 아이폰 `preview` 빌드**(운영자 11-27). Vercel Preview `IAP_APP_ID=com.byeolkongtalk.app.dev` + `.dev` 애플 앱 레코드·상품 5개·그 앱의 숫자 `APPLE_APP_ID`(샌드박스만 써도 `iapConfigured` 가 요구) + 앱 결제 키 3개. dev 는 Vercel 접근 보호 뒤라 애플 샌드박스 알림 주소에 보호 우회값 쿼리. 구글은 D-U-N-S 뒤 같은 방식(Pub/Sub audience 를 `GOOGLE_PUBSUB_AUDIENCE` 와 같게). 시험은 Xcode StoreKit 설정 파일 말고 샌드박스 계정으로(로컬 거래는 서버 API 에 없다). `preview` 는 등록 기기 전용 배포라 TestFlight 엔 못 올린다 — 여럿이 보려면 dev 주소 + 스토어 서명 빌드 종류를 eas.json 에 따로(내부 테스터만: 빌드에 dev 보호 우회값이 든다)
+- ✅ **TestFlight·라이선스 테스터 무료 별** = 외부 테스터 안 씀(운영자 11-28). 상한·허용 목록 코드는 안 만든다. 시험은 운영자 본인 계정으로
+- ✅ **실기기 시험 자리 = (b) 운영 + 아이폰 `production` 빌드 → TestFlight(내부 테스터)**(운영자 11-28 — 11-27 의 (a) dev 를 바꿈). 11-28 운영 배포(`ceab51d5`)로 결제 코드·마이그레이션이 운영에 있고, Vercel Production 에 애플 결제 env 4개(`APPLE_IAP_*` 3·`APPLE_APP_ID`)·App Store 서버 알림 v2(프로덕션·샌드박스 둘 다 운영 주소) 들어감, 상품 5개는 운영 앱 레코드에 "제출 준비 중". `IAP_APP_ID` 는 비움. 남은 선행: EAS production 환경 `KAKAO_NATIVE_APP_KEY`(운영 카카오 앱) + 운영 카카오 앱 iOS 플랫폼 등록 · 첫 production 빌드는 애플 인증서 설정이 대화형이라 운영자 터미널에서
 - 샌드박스·라이선스 테스터의 ₩0 결제가 어드민 '결제자' 지표에 섞일 수 있다(의심) — 위 TestFlight 결정과 같이
 - 플레이 콘솔에서 한 번에 여러 개 구매가 꺼져 있는지 · `GOOGLE_PUBSUB_AUDIENCE` 는 푸시 구독 값과 정확히 같게
 - 손으로 별을 메울 때(`CRITICAL_PAYMENT_RECONCILE`) 먼저 `PAYMENT_RECONCILE_SELF_HEALED` 가 있는지 볼 것
