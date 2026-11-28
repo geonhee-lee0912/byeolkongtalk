@@ -172,7 +172,7 @@ test("갱신 거절은 전부 401 invalid(앱이 기기 토큰을 지운다) —
   assert.deepEqual(logLines(fakes), []);
 });
 
-test("재사용 — 교체 10초 안의 같은 토큰은 401 invalid(경고·폐기 없음), 새 토큰이 쓰인 뒤 10초 넘어 오면 401 reused + 경고 1건(원문 없음)·그 묶음 전체 폐기, 다른 기기는 그대로", async () => {
+test("재사용 — 교체 10초 안의 같은 토큰은 409 retry(경고·폐기 없음), 새 토큰이 쓰인 뒤 10초 넘어 오면 401 reused + 경고 1건(원문 없음)·그 묶음 전체 폐기, 다른 기기는 그대로", async () => {
   const { refresh, fakes } = await load();
   fakes.reset();
   const store = fakes.supabaseAppSessionStore();
@@ -182,9 +182,10 @@ test("재사용 — 교체 10초 안의 같은 토큰은 401 invalid(경고·폐
   assert.equal(r1.status, 200);
   const second = ((await r1.json()) as { refreshToken: string }).refreshToken;
 
+  // 교체 10초 안의 같은 토큰 = 이중 전송·갱신 중 꺼졌다 바로 다시 켬 — 409 retry(앱 isAuthError 가 아니라 기기 토큰을 지킨다)
   const dup = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
-  assert.equal(dup.status, 401);
-  assert.deepEqual(await dup.json(), { error: "invalid" });
+  assert.equal(dup.status, 409);
+  assert.deepEqual(await dup.json(), { error: "retry" });
   assert.deepEqual(logLines(fakes), []);
 
   // 정상 기기가 새 토큰을 한 번 쓴다 — 이제 옛 토큰이 오면 응답 유실이 아니라 재사용이다

@@ -210,7 +210,7 @@ test("복구 경합 — 묶음을 읽은 뒤 폐기 직전에 새 토큰이 쓰�
   assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
 });
 
-test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 복구하면, 진 쪽은 invalid 만(묶음 폐기 없음) — 이긴 쪽 토큰이 이어진다", async () => {
+test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 복구하면, 진 쪽은 retry 만(앱이 토큰을 지키고 다시 시도, 묶음 폐기 없음) — 이긴 쪽 토큰이 이어진다", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
@@ -224,7 +224,7 @@ test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 
       return rows;
     },
   };
-  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "invalid" });
+  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "retry" });
   const w = winner as Awaited<ReturnType<typeof rotateRefreshToken>> | null;
   assert.equal(w?.ok && w.recovered, true);
   if (!w?.ok) return;
@@ -232,23 +232,23 @@ test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 
   assert.ok(refresh.some((r) => !r.revoked_at));
 });
 
-test("겹친 복구 — 앞 복구가 새 토큰을 폐기하고 아직 발급 전이라 살아 있는 토큰이 0개로 보이면 invalid 만(묶음 폐기 없음)", async () => {
+test("겹친 복구 — 앞 복구가 새 토큰을 폐기하고 아직 발급 전이라 살아 있는 토큰이 0개로 보이면 retry 만(묶음 폐기 없음)", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
   const midway: AppSessionStore = { ...store, listLiveRefresh: async () => [] };
-  assert.deepEqual(await rotateRefreshToken(midway, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "invalid" });
+  assert.deepEqual(await rotateRefreshToken(midway, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "retry" });
   assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
 });
 
-test("겹친 복구 — 앞 복구가 발급까지 끝낸 뒤 10초 안에 같은 옛 토큰이 또 오면 invalid 만 — 앞 복구가 준 토큰을 폐기하지 않는다", async () => {
+test("겹친 복구 — 앞 복구가 발급까지 끝낸 뒤 10초 안에 같은 옛 토큰이 또 오면(복구 응답도 못 받고 다시 켬) retry 만 — 앱은 옛 토큰을 지키고, 앞 복구가 준 토큰을 폐기하지 않는다", async () => {
   const { store } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
   const first = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
   assert.equal(first.ok && first.recovered, true);
   if (!first.ok) return;
-  assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 65_000 }), { ok: false, reason: "invalid" });
+  assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 65_000 }), { ok: false, reason: "retry" });
   assert.equal((await rotateRefreshToken(store, first.tokens.refreshToken, { now: T0 + 66_000 })).ok, true);
 });
 
@@ -345,19 +345,19 @@ test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되�
   assert.equal(retry.ok && retry.recovered, true);
 });
 
-test("재사용 유예 — 교체 직후(10초 안) 같은 토큰이 또 오면 거절만 하고 묶음은 살린다(이중 전송)", async () => {
+test("재사용 유예 — 교체 직후(10초 안) 같은 토큰이 또 오면 retry 로 거절만 하고 묶음은 살린다(이중 전송·갱신 중 꺼졌다 바로 다시 켬 — 앱은 토큰을 지킨다)", async () => {
   const { store } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
   const dup = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 3000 });
-  assert.deepEqual(dup, { ok: false, reason: "invalid" });
+  assert.deepEqual(dup, { ok: false, reason: "retry" });
   if (!r1.ok) return;
   const next = await rotateRefreshToken(store, r1.tokens.refreshToken, { now: T0 + 4000 });
   assert.equal(next.ok, true);
 });
 
-test("재사용 경계 — 새 토큰이 쓰인 뒤라도 교체 뒤 정확히 10초까지는 유예(묶음 유지), 10.001초부터 재사용(묶음 폐기)", async () => {
-  for (const [dt, reason, latestOk] of [[10_000, "invalid", true], [10_001, "reused", false]] as const) {
+test("재사용 경계 — 새 토큰이 쓰인 뒤라도 교체 뒤 정확히 10초까지는 유예(retry, 묶음 유지), 10.001초부터 재사용(묶음 폐기)", async () => {
+  for (const [dt, reason, latestOk] of [[10_000, "retry", true], [10_001, "reused", false]] as const) {
     const { store } = memoryStore();
     const t = await issueAppTokens(store, USER, "ios", { now: T0 });
     const r1 = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
@@ -371,14 +371,14 @@ test("재사용 경계 — 새 토큰이 쓰인 뒤라도 교체 뒤 정확히 1
   }
 });
 
-test("응답 유실 경계 — 새 토큰이 안 쓰였으면 10초까지는 거절만(이중 전송), 10.001초부터 복구", async () => {
+test("응답 유실 경계 — 새 토큰이 안 쓰였으면 10초까지는 retry 로 거절만(이중 전송), 10.001초부터 복구", async () => {
   for (const [dt, recovered] of [[10_000, false], [10_001, true]] as const) {
     const { store } = memoryStore();
     const t = await issueAppTokens(store, USER, "ios", { now: T0 });
     await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
     const r = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 + dt });
     if (recovered) assert.equal(r.ok && r.recovered, true, `+${dt}ms`);
-    else assert.deepEqual(r, { ok: false, reason: "invalid" }, `+${dt}ms`);
+    else assert.deepEqual(r, { ok: false, reason: "retry" }, `+${dt}ms`);
   }
 });
 
@@ -414,7 +414,7 @@ test("동시 갱신 — 같은 토큰으로 두 요청이 겹치면 하나만 �
   ]);
   assert.equal([a, b].filter((r) => r.ok).length, 1);
   // 진 쪽은 유예 안이라 거절만 — 묶음은 살아 있어 이긴 쪽 토큰이 계속 돈다
-  assert.deepEqual([a, b].find((r) => !r.ok), { ok: false, reason: "invalid" });
+  assert.deepEqual([a, b].find((r) => !r.ok), { ok: false, reason: "retry" });
   const winner = [a, b].find((r) => r.ok);
   if (!winner?.ok) return;
   assert.equal((await rotateRefreshToken(store, winner.tokens.refreshToken, { now: T0 + 2000 })).ok, true);
