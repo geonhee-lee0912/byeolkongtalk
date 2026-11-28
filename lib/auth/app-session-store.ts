@@ -62,7 +62,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
     async listLiveRefresh(familyId) {
       const { data, error } = await db
         .from("app_refresh_tokens")
-        .select("token_hash, user_id, platform")
+        .select("token_hash, user_id, platform, expires_at")
         .eq("family_id", familyId)
         .is("rotated_at", null)
         .is("revoked_at", null);
@@ -71,6 +71,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
         token_hash: x.token_hash as string,
         user_id: x.user_id as string,
         platform: (x.platform as Platform | null) ?? null,
+        expires_at: x.expires_at as string,
       }));
     },
     async revokeUnusedRefresh(tokenHash, nowIso) {

@@ -103,7 +103,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
       enter("listLiveRefresh");
       return state.refresh
         .filter((x) => x.family_id === fid && !x.rotated_at && !x.revoked_at)
-        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform }));
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, expires_at: x.expires_at }));
     },
     async revokeUnusedRefresh(tokenHash, nowIso) {
       enter("revokeUnusedRefresh");

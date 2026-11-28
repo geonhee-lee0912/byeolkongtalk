@@ -54,7 +54,7 @@ function memoryStore() {
     async listLiveRefresh(fid) {
       return refresh
         .filter((x) => x.family_id === fid && !x.rotated_at && !x.revoked_at)
-        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform }));
+        .map((x) => ({ token_hash: x.token_hash, user_id: x.user_id, platform: x.platform, expires_at: x.expires_at }));
     },
     async revokeUnusedRefresh(h, nowIso) {
       const r = refresh.find((x) => x.token_hash === h && !x.rotated_at && !x.revoked_at);
@@ -230,6 +230,49 @@ test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 
   if (!w?.ok) return;
   assert.equal((await rotateRefreshToken(store, w.tokens.refreshToken, { now: T0 + 61_000 })).ok, true);
   assert.ok(refresh.some((r) => !r.revoked_at));
+});
+
+test("겹친 복구 — 앞 복구가 새 토큰을 폐기하고 아직 발급 전이라 살아 있는 토큰이 0개로 보이면 invalid 만(묶음 폐기 없음)", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const midway: AppSessionStore = { ...store, listLiveRefresh: async () => [] };
+  assert.deepEqual(await rotateRefreshToken(midway, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "invalid" });
+  assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
+});
+
+test("겹친 복구 — 앞 복구가 발급까지 끝낸 뒤 10초 안에 같은 옛 토큰이 또 오면 invalid 만 — 앞 복구가 준 토큰을 폐기하지 않는다", async () => {
+  const { store } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const first = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
+  assert.equal(first.ok && first.recovered, true);
+  if (!first.ok) return;
+  assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 65_000 }), { ok: false, reason: "invalid" });
+  assert.equal((await rotateRefreshToken(store, first.tokens.refreshToken, { now: T0 + 66_000 })).ok, true);
+});
+
+test("복구 경합 — 첫 확인 뒤 정상 기기가 새 토큰을 써 또 교체하면(옛 토큰 → B 사용 → C), 옛 토큰으로 C 를 빼앗지 못하고 재사용으로 본다", async () => {
+  const { store, refresh } = memoryStore();
+  const a = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const b = await rotateRefreshToken(store, a.refreshToken, { now: T0 + 1000 });
+  assert.equal(b.ok, true);
+  if (!b.ok) return;
+  let c: Awaited<ReturnType<typeof rotateRefreshToken>> | null = null;
+  let calls = 0;
+  const racing: AppSessionStore = {
+    ...store,
+    async hasRotationAfter(fid, iso) {
+      const r = await store.hasRotationAfter(fid, iso);
+      // 첫 확인이 '안 쓰였다'를 본 직후 정상 기기가 B 를 C 로 교체한다(C 의 발급 시각은 10초 유예 밖으로 — 폐기 뒤 두 번째 확인이 잡아야 한다)
+      if (calls++ === 0) c = await rotateRefreshToken(store, b.tokens.refreshToken, { now: T0 + 40_000 });
+      return r;
+    },
+  };
+  assert.deepEqual(await rotateRefreshToken(racing, a.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "reused" });
+  const cr = c as Awaited<ReturnType<typeof rotateRefreshToken>> | null;
+  assert.equal(cr?.ok, true);
+  assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
 });
 
 test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {

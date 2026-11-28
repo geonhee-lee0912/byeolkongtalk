@@ -220,8 +220,10 @@ test("응답 유실 — 새 토큰을 한 번도 안 쓴 기기가 10초 넘어 
   assert.equal(r1.status, 200);
   const lost = ((await r1.json()) as { refreshToken: string }).refreshToken;
 
-  // 교체가 11초 전이었던 것으로 돌린다 — 앱은 그 응답을 못 받았다
+  // 교체가 11초 전이었던 것으로 돌린다(교체 시각 = 새 토큰 발급 시각이라 새 토큰의 만료도 같이) — 앱은 그 응답을 못 받았다
   fakes.state.refresh.find((r) => r.token_hash === hashSecretToken(phone.refreshToken))!.rotated_at = new Date(Date.now() - 11_000).toISOString();
+  const lostRow = fakes.state.refresh.find((r) => r.token_hash === hashSecretToken(lost))!;
+  lostRow.expires_at = new Date(Date.parse(lostRow.expires_at) - 11_000).toISOString();
   const again = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
   assert.equal(again.status, 200);
   assert.equal(again.headers.get("cache-control"), (await refresh(refreshReq({ refreshToken: tablet.refreshToken }))).headers.get("cache-control"));
