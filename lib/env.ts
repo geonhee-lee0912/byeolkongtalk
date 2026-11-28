@@ -47,6 +47,17 @@ export const OPTIONAL_ENV = [
   "APPLE_BUNDLE_ID",
   "APPLE_SERVICES_ID",
   "APPLE_TOKEN_ENC_KEY",
+  // 앱 결제(스펙 2026-11-23-앱-결제 §7) — 없어도 웹·토스 결제는 돈다. 확인 라우트 503 iap_not_configured: 애플 4개(iOS)·GOOGLE_PLAY_SERVICE_ACCOUNT(안드로이드) 중 그 플랫폼 것만.
+  // APPLE_APP_ID 는 앱의 숫자 ID(운영 거래 서명 검증에 필수), GOOGLE_PLAY_SERVICE_ACCOUNT 는 서비스 계정 JSON 전체. PUBSUB 2개는 구글 환불 알림 인증
+  "APPLE_IAP_KEY_ID",
+  "APPLE_IAP_ISSUER_ID",
+  "APPLE_IAP_PRIVATE_KEY",
+  "APPLE_APP_ID",
+  "GOOGLE_PLAY_SERVICE_ACCOUNT",
+  "GOOGLE_PUBSUB_PUSH_EMAIL",
+  "GOOGLE_PUBSUB_AUDIENCE",
+  // 애플 번들 ID = 구글 패키지 이름. 비우면 운영 번들. dev(Preview)에서 .dev 앱으로 시험할 때만 com.byeolkongtalk.app.dev
+  "IAP_APP_ID",
 ] as const;
 
 export type RequiredEnvKey = (typeof REQUIRED_ENV)[number];

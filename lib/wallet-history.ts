@@ -39,6 +39,16 @@ export function starTxLabel(type: string, source: string | null): string {
   return has(CHARGE_LABEL, s) ? CHARGE_LABEL[s] : "별 받음";
 }
 
+/** 내역에 보일 별 수(부호 포함) — 사용(spend)과 앱 결제 환불 회수(refund — clawback_stars 가 거둔 양을 양수로 남긴다)는 빠진 별, 나머지는 들어온 별 */
+export function starTxSignedAmount(type: string, amount: number): number {
+  return type === "spend" || type === "refund" ? -Math.abs(amount) : Math.abs(amount);
+}
+
+/** 내역에서 뺄 줄 — 거둔 게 0 인 환불 행(잔액이 0 일 때의 환불 · 회수 멱등 기준 행)은 '-0 환불'로 보일 뿐이다 */
+export function isHiddenStarTx(type: string, amount: number): boolean {
+  return type === "refund" && amount === 0;
+}
+
 /** 묶음 제목 — 올해면 'M월 D일', 다른 해면 'YYYY년 M월 D일'(기기 시간대 — 줄의 시각 표기와 같은 기준) */
 export function historyDayLabel(ms: number, nowMs: number): string {
   const d = new Date(ms);

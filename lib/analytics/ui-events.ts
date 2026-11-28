@@ -15,6 +15,8 @@ export const UI_EVENTS = [
   "exit_chip_shown",
   /** 출구 칩 탭 */
   "exit_chip_clicked",
+  /** 타로 대화 화면 하단 '대화 마무리하고 결과 보기' 링크 탭. meta:{surface:"tarot", turns} — 2026-11-28~ */
+  "finish_link_clicked",
   /** 사주 운세 탭 카테고리 칩 선택 — meta.category 에 love_relation|timing|free */
   "fortune_chip_clicked",
   /** 홈 히어로 캐러셀 배너 클릭 — meta.slot 에 카드 id(intro|charge|gonghap|sim|survey|pass) */

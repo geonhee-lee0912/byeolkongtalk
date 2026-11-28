@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get("status"); // pending|completed|refunded|null
   const supabase = getServiceSupabase();
   let query = supabase.from("payments")
-    .select("id, user_id, pg_tid, amount_won, stars_given, package_type, status, created_at")
+    .select("id, user_id, pg_tid, pg_provider, amount_won, stars_given, bonus_stars, package_type, status, created_at, refunded_at, stars_clawed_back, clawback_shortfall")
     .order("created_at", { ascending: false }).limit(50);
   if (status) query = query.eq("status", status);
   const { data } = await query;

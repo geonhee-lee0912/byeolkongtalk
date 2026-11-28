@@ -5,6 +5,7 @@ import { waitUntil } from "@vercel/functions";
 import { logError } from "./logger";
 import { getServiceSupabase } from "./supabase";
 import { fbcFromAcquisition } from "./acquisition";
+import { parseAppUserAgent } from "./app-bridge/protocol";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
@@ -26,6 +27,8 @@ type CapiEventParams = {
   clientIp?: string | null;
   userAgent?: string | null;
   sourceUrl?: string;
+  /** 앱(웹뷰·앱 서버 호출)에서 온 요청 — 보내지 않는다(capiSignalsFromRequest 가 채운다) */
+  fromApp?: boolean;
 };
 
 // fire-and-forget 호출용 — waitUntil 로 응답 반환 후에도 전송 완료까지 인스턴스 유지.
@@ -33,6 +36,8 @@ type CapiEventParams = {
 //  TypeError: fetch failed + 전환 이벤트 유실이 발생)
 export function sendCapiEvent(params: CapiEventParams): void {
   if (!PIXEL_ID || !ACCESS_TOKEN) return; // 미설정 시 no-op (dev 안전)
+  // 앱 안에서는 광고 측정 이벤트를 보내지 않는다 — 애플 기준 ATT 없는 '추적'(5.1.2). 웹 브라우저만 보낸다(운영자 결정 2026-11-23)
+  if (params.fromApp) return;
   waitUntil(deliverCapiEvent(params));
 }
 
@@ -107,12 +112,25 @@ async function deliverCapiEvent(params: CapiEventParams): Promise<void> {
   }
 }
 
-/** 요청에서 CAPI 매칭용 신호 추출 (fbp/fbc 쿠키 + IP + UA) */
+/** 앱에서 온 요청인지 — 웹뷰(UA 꼬리 ByeolkongApp) · 앱 로그인 라우트(/api/auth/app/ — 앱의 네이티브 요청엔 UA 꼬리가 없다) ·
+ *  앱 토큰(Authorization Bearer — 앱만 쓴다, lib/auth/session-resolve.ts) */
+function isAppRequest(request: Request): boolean {
+  if (parseAppUserAgent(request.headers.get("user-agent"))) return true;
+  if (/^bearer\s/i.test(request.headers.get("authorization") ?? "")) return true;
+  try {
+    return new URL(request.url).pathname.startsWith("/api/auth/app/");
+  } catch {
+    return false;
+  }
+}
+
+/** 요청에서 CAPI 매칭용 신호 추출 (fbp/fbc 쿠키 + IP + UA) + 앱 요청 표시(앱이면 sendCapiEvent 가 보내지 않는다) */
 export function capiSignalsFromRequest(request: Request): {
   fbp: string | null;
   fbc: string | null;
   clientIp: string | null;
   userAgent: string | null;
+  fromApp: boolean;
 } {
   const cookie = request.headers.get("cookie") ?? "";
   const pick = (name: string) =>
@@ -123,5 +141,6 @@ export function capiSignalsFromRequest(request: Request): {
     clientIp:
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     userAgent: request.headers.get("user-agent"),
+    fromApp: isAppRequest(request),
   };
 }
