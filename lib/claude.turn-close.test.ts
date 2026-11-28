@@ -46,50 +46,42 @@ test("computeTurnClose — 발화가 직전보다 20자 이상 길어지면 ask"
   );
 });
 
-test("computeTurnClose — 첫 풀이인데 고민이 40자 미만이면 ask (C1 대응)", () => {
-  assert.equal(
-    computeTurnClose({
-      ...base,
-      prevUserText: null,
-      currentUserText: "재결합 가능할까요",
-      isFirstTurn: true,
-      questionLen: 11,
-    }),
-    "ask",
-  );
-});
-
-test("computeTurnClose — 첫 풀이는 고민이 길면 물음표가 있어도 ask 아님 (프로덕션 형태)", () => {
-  // 프로덕션에서 첫 턴의 currentUserText 는 고민 본문 그 자체다 — 둘이 같은 문자열이다.
-  // 고민 끝의 물음표로 ask 가 뜨면 §6('첫 풀이는 디테일 질문으로 닫지 마')이 무력해진다.
-  const concern =
-    "세 달 전에 헤어진 남자친구가 있는데 아직 연락은 하고 지내. 다시 만날 수 있을까요?";
-  assert.equal(
-    computeTurnClose({
-      ...base,
-      prevUserText: null,
-      currentUserText: concern,
-      isFirstTurn: true,
-      questionLen: concern.length,
-    }),
-    "invite",
-  );
-});
-
-test("computeTurnClose — 첫 풀이 짧은 고민은 물음표 유무와 무관하게 ask", () => {
-  for (const concern of ["재결합 가능할까요?", "재결합 될까", "언제 연락 올까"]) {
+test("computeTurnClose — 첫 풀이는 고민 길이·물음표와 무관하게 ask (2026-11-28)", () => {
+  // invite("나중에 ~하면 들려줘")로 닫은 첫 풀이가 작별 인사로 읽혀 이탈이 높았다 → 첫 풀이는 늘 ask.
+  const long =
+    "세 달 전에 헤어진 남자친구가 있는데 아직 연락은 하고 지내. 그런데 요즘 답장이 점점 늦어지고 짧아져서 마음이 불안해. 다시 만날 수 있을까요?";
+  for (const concern of ["재결합 가능할까요?", "재결합 될까", "언제 연락 올까", long, long.replace("?", "")]) {
     assert.equal(
       computeTurnClose({
         ...base,
         prevUserText: null,
         currentUserText: concern,
         isFirstTurn: true,
-        questionLen: concern.length,
       }),
       "ask",
-      `짧은 고민 "${concern}" 이 ask 가 아님`,
+      `첫 풀이 고민 "${concern.slice(0, 12)}…" 이 ask 가 아님`,
     );
   }
+});
+
+test("computeTurnClose — 첫 풀이 ask 뒤 유저가 답하면 다음 턴은 질문 2연속 금지로 invite", () => {
+  // 첫 풀이를 늘 질문으로 닫아도 '심문 2연속'은 생기지 않아야 한다
+  assert.equal(
+    computeTurnClose({
+      ...base,
+      currentUserText: "응 아직 연락은 가끔 해. 근데 먼저 오는 건 거의 없어. 그래서 더 불안해?",
+      lastTurnEndedWithQuestion: true,
+      isFirstTurn: false,
+    }),
+    "invite",
+  );
+});
+
+test("computeTurnClose — 첫 풀이도 수렴·단답 조건이면 settle 이 우선", () => {
+  assert.equal(
+    computeTurnClose({ ...base, prevUserText: null, isFirstTurn: true, wrapMode: "converge" }),
+    "settle",
+  );
 });
 
 test("computeTurnClose — 후속 턴에서는 물음표 게이트가 그대로 산다", () => {
@@ -158,7 +150,6 @@ test("computeTurnClose — 첫 풀이 고민이 0자여도 ask (가장 극단적
       prevUserText: null,
       currentUserText: "그냥 그래",
       isFirstTurn: true,
-      questionLen: 0,
     }),
     "ask",
   );
@@ -283,11 +274,10 @@ test("computeTurnSignals — ctx 를 주면 turnClose 에 반영된다", () => {
   );
 });
 
-test("computeTurnSignals — 첫 턴 짧은 고민은 ask", () => {
+test("computeTurnSignals — 첫 턴은 ask", () => {
   const s = computeTurnSignals([], "재결합 가능할까요", {
     wrapMode: "free",
     isFirstTurn: true,
-    questionLen: 11,
   });
   assert.equal(s.turnClose, "ask");
 });

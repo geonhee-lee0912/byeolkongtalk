@@ -222,7 +222,6 @@ export async function POST(request: NextRequest) {
   const turnSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, {
     wrapMode,
     isFirstTurn: assistantTurnsSoFar === 0,
-    questionLen: (reading.question ?? "").trim().length,
   });
 
   const systemMessage = buildSystemMessage({

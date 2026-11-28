@@ -106,8 +106,6 @@ export interface TurnCloseCtx {
   wrapMode?: WrapMode;
   /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
   isFirstTurn?: boolean;
-  /** readings.question 길이 */
-  questionLen?: number;
 }
 
 /** DB 메시지 + 이번 유저 발화로 TurnSignals 계산 (chat 라우트 공용) */
@@ -184,7 +182,6 @@ export function computeTurnSignals(
     userShortStreak,
     wrapMode: ctx?.wrapMode,
     isFirstTurn: ctx?.isFirstTurn,
-    questionLen: ctx?.questionLen,
   });
 
   return { lastTurnEndedWithQuestion, userShortStreak, turnClose };
@@ -212,15 +209,11 @@ export interface TurnCloseInput {
   wrapMode?: WrapMode;
   /** 첫 풀이 턴인가 (assistantTurnsSoFar === 0) */
   isFirstTurn?: boolean;
-  /** readings.question 길이 — 짧은 고민은 일반론을 부르고 1턴 이탈 17% 로 이어진다 */
-  questionLen?: number;
 }
 
-/** 첫 고민이 이보다 짧으면 첫 풀이에서 디테일 하나를 청해도 된다 (실측: 40자 미만 1턴 이탈 17% vs 70자+ 5%) */
-const SHORT_CONCERN_LEN = 40;
 /**
  * 직전 발화 대비 이만큼 길어지면 유저가 다시 붙은 것으로 본다.
- * ⚠️ 실측 근거 없는 임의값 — SHORT_CONCERN_LEN 과 달리 데이터로 잡은 수가 아니다.
+ * ⚠️ 실측 근거 없는 임의값 — 데이터로 잡은 수가 아니다.
  * 배포 후 messages.turn_close × 다음 턴 생존 교차로 재조정할 것.
  */
 const RE_ENGAGE_GROWTH = 20;
@@ -236,21 +229,14 @@ export function computeTurnClose(i: TurnCloseInput): TurnClose {
   const prev = i.prevUserText === null ? null : i.prevUserText.trim();
   const grew =
     prev !== null && prev.length > 0 && cur.length - prev.length >= RE_ENGAGE_GROWTH;
-  // questionLen === 0(공백만 적고 넘어온 고민)도 포함한다 — 판을 볼 재료가 가장 없는
-  // 극단이라 오히려 디테일을 청해야 한다. undefined(컨텍스트 미전달)만 걸러낸다.
-  const shortConcernFirstTurn =
-    i.isFirstTurn === true &&
-    i.questionLen !== undefined &&
-    i.questionLen < SHORT_CONCERN_LEN;
-
-  // 🔴 첫 풀이 턴에서는 물음표·성장 게이트를 쓰지 않는다.
-  // 프로덕션에서 첫 턴의 currentUserText 는 유저가 쓴 고민 본문 그 자체다
-  // (클라가 concern 을 그대로 첫 메시지로 보낸다). 고민 끝의 물음표는
-  // "지금 되물어달라"는 신호가 아니라 그냥 고민의 어법이다.
-  // 여기서 ask 를 주면 재료가 충분한 긴 고민(40자 이상 = 69%)에도 첫 풀이를
-  // 되묻기로 닫게 되고, 그건 코어 §6 이 막으려던 '첫 답변 직후 심문 2연속'이다.
-  const askable =
-    i.isFirstTurn === true ? shortConcernFirstTurn : /[?？]/.test(cur) || grew;
+  // 🔴 첫 풀이 턴은 고민 길이와 무관하게 ask (2026-11-28 운영 판독, 숫자는 회사 저장소).
+  // 예전엔 고민이 짧을 때만 ask 였고 나머지는 invite 였다. 그런데 invite 로 닫은
+  // 첫 풀이("나중에 ~하면 들려줘")는 사실상 작별 인사로 읽혀 첫 풀이 뒤 이탈이 눈에 띄게
+  // 높았다 — 길이 경계 바로 아래(ask)와 위(invite)에서만 갈렸고, 이 규칙 도입 전엔
+  // 같은 경계에서 차이가 없었다. '심문 2연속'은 다음 턴의 질문 2연속 금지
+  // (아래 lastTurnEndedWithQuestion 강등)가 막는다.
+  // 첫 턴의 물음표·성장 게이트는 여전히 쓰지 않는다 — 첫 턴 currentUserText 는 고민 본문이다.
+  const askable = i.isFirstTurn === true ? true : /[?？]/.test(cur) || grew;
   if (!askable) return "invite";
 
   // 질문 2연속 금지는 유지 — 상한을 invite 로 강등 (원 진단에도 있던 규칙)
@@ -270,7 +256,7 @@ export function computeTurnClose(i: TurnCloseInput): TurnClose {
 const TURN_CLOSE_GUIDE: Record<TurnClose, string> = {
   ask: "- **턴 마무리 상태: `질문`** — 이번 턴은 §턴 마무리의 ①(구체 질문)으로 닫아. 유저가 방금 준 정보를 먼저 받아 안고(받아 안은 뒤의 질문은 심문이 아니야), 그 정보에 이어지는 구체 질문 **하나**를 얹어. 판과 무관한 막연한 질문은 금지. 정말 더 물을 게 없을 때만 ②③④ 로 내려 — 그건 예외지 기본값이 아니야. ① 보다 위는 없어.",
   invite:
-    "- **턴 마무리 상태: `여지`** — 이번 턴은 물음표 없이 ②(다음 볼거리 예고)로 닫아. **답을 요구하지 않는 게 아니라, 답하고 싶어지게 여는 고리야**: \"약속 날짜 정해지면 어떻게 됐는지 들려줘. 그거 들으면 흐름이 더 또렷해져.\" / \"뭐가 제일 지치게 만들었는지, 그 얘기까지 들으면 이 결이 어디서 꼬였는지도 짚어줄 수 있어.\" 물음표만 안 쓰면 돼. 카드를 한 장 더 펼치자거나 사주를 새로 보자는 **제안 자체는 도메인 규칙을 따라** — 여기서 먼저 꺼내지 마. (③④ 로 내려도 돼 — ①(질문)로는 못 올려.)",
+    "- **턴 마무리 상태: `여지`** — 이번 턴은 물음표 없이 ②(다음 볼거리 예고)로 닫아. **답을 요구하지 않는 게 아니라, 답하고 싶어지게 여는 고리야**: \"약속 날짜 정해지면 어떻게 됐는지 들려줘. 그거 들으면 흐름이 더 또렷해져.\" / \"뭐가 제일 지치게 만들었는지, 그 얘기까지 들으면 이 결이 어디서 꼬였는지도 짚어줄 수 있어.\" (예시는 뜻만 — 문장은 이 대화 내용으로 새로 써.) 물음표만 안 쓰면 돼. 카드를 한 장 더 펼치자거나 사주를 새로 보자는 **제안 자체는 도메인 규칙을 따라** — 여기서 먼저 꺼내지 마. (③④ 로 내려도 돼 — ①(질문)로는 못 올려.)",
   settle:
     "- **턴 마무리 상태: `정리`** — 이번 턴은 ③(소신 정리+여백)이나 ④(공감으로 열어두기)로 닫아. **여기가 제일 아래야 — ①(질문)도 ②(다음 볼거리 예고)도 쓰지 마.** 되묻기는 물론이고 \"궁금하면 그 얘기도 꺼내줄게\" 같은 예고성 고리도 이번 턴엔 열지 마. 유저는 지금 받아주는 마무리가 필요해.",
 };
@@ -805,7 +791,7 @@ export function buildTarotSystemMessage(ctx: TarotReadingContext): {
 
   const convergeOpenGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}) — 종합 톤\n\n지금까지 나눈 얘기와 카드를 한 번 종합해서 핵심을 짚는 톤으로 답해. 새 주제는 벌이지 말고 지금 카드 안에서 — 다만 별콩이가 먼저 꼬리질문을 몰지 않을 뿐, 유저가 더 파고들면 충분히 받아줘. 대화를 끊고 밀어내는 인상은 금지.\n\n**톤 가이드:**\n- "결국 이 카드들이 보여주는 핵심은…", "지금까지 풀어낸 걸 한 줄로 묶으면…" 같이 정리·강조\n- 사용자가 이미 꺼낸 핵심 한 가닥을 다시 짚어주기 (새 분석 X)\n- 별콩이가 먼저 새 질문을 몰아붙이진 않기(심문 방지) — 유저가 물으면 충분히 답하고, 카드 결로 관찰형 훅 한 줄 정도는 열어둬도 좋아 (대화를 열어둔 채 정리)\n- [END] 절대 X (아직 hardcap 아님)\n\n**⚠️ 사용자 마무리 시그널 감지 시 즉시 askBonus 톤으로 전환** (아래 §사용자 마무리 시그널).\n\n**금지 표현 (절벽감 유발):** "감사", "마지막 질문", "여기서 멈출까", "끝낼까".`;
 
-  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 카드 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "카드는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - "여기까지 온 것만으로도 그림은 꽤 잡혔어. 더 깊이 보고 싶은 매듭이 있으면 편하게 이어가도 좋아." (멈춤 유도가 아니라 이어감 초대 — 유저 통제권은 유지, 강요 금지)\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- 새 질문 X. [END] 절대 X (다음 턴 hardcap에서 자동 종료).${ctx.extendAvailable ? `\n- 이번 턴에 "여기서 정리해도 되고, 더 풀고 싶으면 이어서 볼 수도 있어" 결의 한 문장을 자연스럽게 녹이고, 응답 맨 끝에 [RECO:extend] 마커를 단독 줄로 붙여. 가격·별·결제 언급 금지 — 확장 가능성만.` : ""}\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
+  const convergeLastGuide = `\n\n## 수렴 모드 (턴 ${upcomingTurn}/${absCap}, 마지막 수렴 턴) — 적용·응원 톤 + 출구 문구\n\n다음 턴은 hardcap이라 강제 종료가 와. 이번 턴은 그 전에 사용자가 자연스럽게 마무리할 수 있도록 부드럽게 닫아가는 톤.\n\n**톤 가이드:**\n- 카드 메시지를 일상에 어떻게 적용할지 짧게 / 응원·자율성 인정 ("뭐가 됐든 너답게 해보면 돼", "카드는 거들 뿐이야")\n- 응답 후반에 **출구 문구 한 줄** 포함:\n  - 뜻: "오늘 본 그림이 이만큼 잡혔다 + 더 보고 싶은 게 있으면 이어가도 된다". **정해진 문장으로 쓰지 말고 매번 이 대화에서 나온 고민·카드를 넣어 새로 써** — 같은 출구 문장이 매번 똑같이 나오면 기계처럼 읽히고 '이제 그만'으로 들려. (멈춤 유도가 아니라 이어감 초대 — 유저 통제권은 유지, 강요 금지)\n- 단, 직전 사용자 발화가 미해결 확답/시기 질문이면 출구 문구보다 §"언제·될까·얼마나" 방향 답을 먼저.\n- 새 질문 X. [END] 절대 X (다음 턴 hardcap에서 자동 종료).${ctx.extendAvailable ? `\n- 이번 턴에 "여기서 정리해도 되고, 더 풀고 싶으면 이어서 볼 수도 있어" 결의 한 문장을 자연스럽게 녹이고, 응답 맨 끝에 [RECO:extend] 마커를 단독 줄로 붙여. 가격·별·결제 언급 금지 — 확장 가능성만.` : ""}\n\n**⚠️ 사용자 마무리 시그널 감지 시 askBonus 톤으로 즉시 전환**.\n\n**금지 표현:** "감사", "마지막 질문 하나", "오늘은 여기까지".`;
 
   const userSignalGuide =
     mode === "converge"

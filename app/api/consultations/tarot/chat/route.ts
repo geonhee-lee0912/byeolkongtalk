@@ -213,7 +213,6 @@ export async function POST(request: NextRequest) {
   const userTurn = classifyUserTurn(lastMessage.content);
   const signalCtx = {
     isFirstTurn: assistantTurnsSoFar === 0,
-    questionLen: (reading.question ?? "").trim().length,
   };
   // 실제 wrapMode 로 먼저 계산 — keep-open 판정(⑥)이 쓰는 lastTurnEndedWithQuestion 은 과거 메시지만 보므로 wrapMode 와 무관하다
   const baseSignals = computeTurnSignals(pastMessages ?? [], lastMessage.content, { wrapMode, ...signalCtx });

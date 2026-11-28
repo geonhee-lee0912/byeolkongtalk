@@ -513,7 +513,7 @@ test("capTurnCloseBeforeAbsCap — ⑦ 턴(보조 카드로 다시 연 카드 �
     { role: "user", content: "네" },
     { role: "assistant", content: "그 흐름은 아직 열려 있어." },
   ];
-  const signals = computeTurnSignals(past, clarifierSyntheticMessage("'컵 2' (정방향)"), { wrapMode: "free", isFirstTurn: false, questionLen: 30 });
+  const signals = computeTurnSignals(past, clarifierSyntheticMessage("'컵 2' (정방향)"), { wrapMode: "free", isFirstTurn: false });
   assert.equal(signals.turnClose, "ask", "캡 전 — 이게 ask 여야 이 테스트가 의미 있다");
   const eff = effectiveWrapThresholds("two_card", 4, 1);
   assert.ok(eff);
@@ -530,7 +530,7 @@ test("capTurnCloseBeforeAbsCap — ⑥ 턴(별콩이가 질문한 직후의 답 
     { role: "assistant", content: "그 흐름은 아직 열려 있어. 마지막으로 연락한 게 언제쯤이야?" },
   ];
   const answer = "일주일 전쯤 마지막으로 연락이 왔고 그 뒤론 서로 말이 없어"; // 직전 유저 말보다 20자 넘게 길어 '다시 붙었다'
-  const signals = computeTurnSignals(past, answer, { wrapMode: "free", isFirstTurn: false, questionLen: 30 });
+  const signals = computeTurnSignals(past, answer, { wrapMode: "free", isFirstTurn: false });
   assert.equal(signals.lastTurnEndedWithQuestion, true);
   assert.equal(signals.turnClose, "invite", "캡 전 — 이게 invite 여야 이 테스트가 의미 있다");
   // 라우트가 이 턴을 여는 이유와 같다: 질문 직후의 답은 마무리 신호가 아니다
