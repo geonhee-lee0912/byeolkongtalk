@@ -118,3 +118,8 @@ test("UI_EVENTS — 입구 반반(로그인 전 맛보기) 이벤트 10종", () 
 test("UI_EVENTS — 애플 로그인 버튼 이벤트(앱 ①)", () => {
   assert.equal(isUiEvent("login_apple_clicked"), true);
 });
+
+// 2026-11-28 타로 대화 화면 하단 '대화 마무리하고 결과 보기' 링크 — 누름 기록. 없으면 /api/event 가 버려 링크를 안 누른 것처럼 보인다
+test("UI_EVENTS — 타로 마무리 링크 누름(finish_link_clicked)이 등록돼 있다", () => {
+  assert.equal(isUiEvent("finish_link_clicked"), true);
+});
