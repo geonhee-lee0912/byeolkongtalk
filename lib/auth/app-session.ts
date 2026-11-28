@@ -123,12 +123,15 @@ async function reissueAfterLostResponse(
     const after = await store.findRefresh(unused.token_hash);
     return after?.rotated_at ? null : { ok: false, reason: "invalid" };
   }
-  if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
-  const t = await issueAppTokens(store, unused.user_id, unused.platform, { now, familyId: row.family_id }).catch(async (err: unknown) => {
-    // 다시 발급을 못 했다 — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다)
+  let t: AppTokens;
+  try {
+    if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
+    t = await issueAppTokens(store, unused.user_id, unused.platform, { now, familyId: row.family_id });
+  } catch (err) {
+    // 재확인이나 다시 발급을 못 했다(DB 순간 오류) — 폐기한 새 토큰을 되살려 다음 시도가 같은 복구를 하게 한다(되살리기 실패는 삼키고 원래 오류를 올린다)
     await store.unrevokeRefresh(unused.token_hash, nowIso).catch(() => {});
     throw err;
-  });
+  }
   return {
     ok: true,
     userId: unused.user_id,

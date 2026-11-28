@@ -275,6 +275,24 @@ test("복구 경합 — 첫 확인 뒤 정상 기기가 새 토큰을 써 또 �
   assert.equal(refresh.filter((r) => !r.revoked_at).length, 0);
 });
 
+test("폐기 뒤 재확인 조회가 실패해도(DB 순간 오류) 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  let calls = 0;
+  const flaky: AppSessionStore = {
+    ...store,
+    async hasRotationAfter(fid, iso) {
+      if (calls++ === 1) throw new Error("db blip");
+      return store.hasRotationAfter(fid, iso);
+    },
+  };
+  await assert.rejects(rotateRefreshToken(flaky, t.refreshToken, { now: T0 + 60_000 }), /db blip/);
+  assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
+  const retry = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 120_000 });
+  assert.equal(retry.ok && retry.recovered, true);
+});
+
 test("복구 중 새 토큰 발급이 실패하면 폐기한 새 토큰을 되살린다 — 다시 시도하면 복구된다", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
