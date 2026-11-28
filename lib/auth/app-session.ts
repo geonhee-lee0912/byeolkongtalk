@@ -16,7 +16,14 @@ export interface AppSessionStore {
   claimRefresh(tokenHash: string, nowIso: string): Promise<{ user_id: string; family_id: string; platform: Platform | null } | null>;
   /** claimRefresh 되돌리기 — rotated_at 이 그 claim 이 남긴 값일 때만 비운다(새 토큰을 못 만들었을 때 옛 토큰을 살려 둔다) */
   releaseRefresh(tokenHash: string, rotatedAtIso: string): Promise<void>;
-  findRefresh(tokenHash: string): Promise<{ family_id: string; rotated_at: string | null; revoked_at: string | null; expires_at: string } | null>;
+  findRefresh(tokenHash: string): Promise<{
+    family_id: string;
+    user_id: string;
+    platform: Platform | null;
+    rotated_at: string | null;
+    revoked_at: string | null;
+    expires_at: string;
+  } | null>;
   /** 응답 유실 판정 ① — 그 묶음에 이 시각보다 늦게 교체된 토큰이 있나(= 뒤의 새 토큰이 쓰였다). 묶음 전체를 읽지 않는다(교체 행은 지워지지 않아 Max rows 에 잘린다) */
   hasRotationAfter(familyId: string, rotatedAtIso: string): Promise<boolean>;
   /** 응답 유실 판정 ② — 그 묶음의 살아 있는(교체·폐기 전) 토큰. 정상이면 1개 */
@@ -109,7 +116,7 @@ export async function rotateRefreshToken(
 async function reissueAfterLostResponse(
   store: AppSessionStore,
   oldHash: string,
-  row: { family_id: string; rotated_at: string | null; expires_at: string },
+  row: { family_id: string; user_id: string; platform: Platform | null; rotated_at: string | null; expires_at: string },
   now: number,
   nowIso: string,
 ): Promise<RotateResult | null> {
@@ -117,36 +124,35 @@ async function reissueAfterLostResponse(
   if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
   // 새 토큰은 안 쓰였지만 옛 토큰 자체가 만료됐다 — 다시 발급하지 않는다(탈취 근거도 없어 묶음은 그대로, 앱은 다시 로그인)
   if (Date.parse(row.expires_at) <= now) return { ok: false, reason: "invalid" };
+  // 0개(다른 복구가 폐기만 하고 발급 전·이전 실패의 잔재)여도 폐기할 것 없이 새로 발급한다 — 옛 토큰이 유효하고 뒤 교체가 없으니 같은 판정이고,
+  // retry 로 돌려보내면 잔재 상태에서 영구히 갇힌다. 로그아웃 중이었으면 아래 발급 뒤 확인이 잡는다
   const live = await store.listLiveRefresh(row.family_id);
-  // 0개 = 다른 복구가 새 토큰을 폐기하고 아직 발급 전이거나 로그아웃 중 — 지금은 지킬 토큰이 없다(로그아웃이었으면 다음 시도가 invalid)
-  if (live.length === 0) return { ok: false, reason: "retry" };
   // 10초 안에 발급된 토큰 = 같은 옛 토큰으로 막 끝난 복구가 준 것(유실된 새 토큰은 옛 토큰 교체 때 = 10초보다 전에 발급됐다) — 겹친 요청은 거절만.
   // 발급 시각은 만료 - 90일(issueAppTokens 가 같은 서버 시각으로 정한다)
   if (live.some((x) => now - (Date.parse(x.expires_at) - REFRESH_TTL_MS) <= REUSE_GRACE_MS)) return { ok: false, reason: "retry" };
   // 안 쓰인 토큰이 여럿일 수 있다(저장은 됐는데 응답이 끊겨 오류로 끝난 복구·교체가 남긴 것) — 전부 폐기하고 하나만 준다
-  const revoked: string[] = [];
+  // 폐기를 시도한 것은 결과와 상관없이 모은다 — 폐기가 반영된 뒤 응답만 끊겨 오류가 나도 되살릴 수 있게(되살리기는 이 요청이 남긴 폐기 시각일 때만 먹는다)
+  const attempted: string[] = [];
   // 실패하면 폐기한 것을 되살려 다음 시도가 같은 복구를 하게 한다. 되살린 뒤 로그아웃 여부를 본다 — 되살리기 전에 끝난 로그아웃이면 다시 폐기,
   // 뒤에 오는 로그아웃은 되살린 토큰까지 표시한다(되살리기 실패는 삼킨다)
   const restore = async () => {
     await (async () => {
-      for (const h of revoked) await store.unrevokeRefresh(h, nowIso);
-      if ((await store.findRefresh(oldHash))?.revoked_at) for (const h of revoked) await store.revokeUnusedRefresh(h, nowIso);
+      for (const h of attempted) await store.unrevokeRefresh(h, nowIso);
+      if ((await store.findRefresh(oldHash))?.revoked_at) for (const h of attempted) await store.revokeUnusedRefresh(h, nowIso);
     })().catch(() => {});
   };
   let t: AppTokens;
   try {
     for (const x of live) {
-      if (await store.revokeUnusedRefresh(x.token_hash, nowIso)) {
-        revoked.push(x.token_hash);
-        continue;
-      }
+      attempted.push(x.token_hash);
+      if (await store.revokeUnusedRefresh(x.token_hash, nowIso)) continue;
       // 0행 — 그 사이 쓰였으면 재사용(호출부가 묶음을 폐기한다), 다른 복구·로그아웃이 먼저 폐기했으면 retry
       if ((await store.findRefresh(x.token_hash))?.rotated_at) return null;
       await restore();
       return { ok: false, reason: "retry" };
     }
     if (await store.hasRotationAfter(row.family_id, row.rotated_at)) return null;
-    t = await issueAppTokens(store, live[0].user_id, live[0].platform, { now, familyId: row.family_id });
+    t = await issueAppTokens(store, row.user_id, row.platform, { now, familyId: row.family_id });
   } catch (err) {
     await restore();
     throw err;
@@ -159,7 +165,7 @@ async function reissueAfterLostResponse(
   }
   return {
     ok: true,
-    userId: live[0].user_id,
+    userId: row.user_id,
     tokens: { accessToken: t.accessToken, accessExpiresAt: t.accessExpiresAt, accessExpiresIn: t.accessExpiresIn, refreshToken: t.refreshToken },
     recovered: true,
   };

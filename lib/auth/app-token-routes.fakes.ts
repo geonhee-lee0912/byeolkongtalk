@@ -93,7 +93,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
     async findRefresh(tokenHash) {
       enter("findRefresh");
       const r = state.refresh.find((x) => x.token_hash === tokenHash);
-      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
+      return r ? { family_id: r.family_id, user_id: r.user_id, platform: r.platform, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
     },
     async hasRotationAfter(fid, rotatedAtIso) {
       enter("hasRotationAfter");

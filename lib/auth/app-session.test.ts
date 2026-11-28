@@ -46,7 +46,7 @@ function memoryStore() {
     },
     async findRefresh(h) {
       const r = refresh.find((x) => x.token_hash === h);
-      return r ? { family_id: r.family_id, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
+      return r ? { family_id: r.family_id, user_id: r.user_id, platform: r.platform, rotated_at: r.rotated_at, revoked_at: r.revoked_at, expires_at: r.expires_at } : null;
     },
     async hasRotationAfter(fid, rotatedAtIso) {
       return refresh.some((x) => x.family_id === fid && x.rotated_at !== null && Date.parse(x.rotated_at) > Date.parse(rotatedAtIso));
@@ -232,13 +232,33 @@ test("겹친 복구 — 같은 옛 토큰 요청 둘이 겹쳐 하나가 먼저 
   assert.ok(refresh.some((r) => !r.revoked_at));
 });
 
-test("겹친 복구 — 앞 복구가 새 토큰을 폐기하고 아직 발급 전이라 살아 있는 토큰이 0개로 보이면 retry 만(묶음 폐기 없음)", async () => {
+test("살아 있는 토큰이 0개로 보이면(앞 복구가 폐기만 하고 발급 전 등) — 묶음을 폐기하지 않고 새로 발급한다(영구히 retry 에 갇히지 않게)", async () => {
   const { store, refresh } = memoryStore();
   const t = await issueAppTokens(store, USER, "ios", { now: T0 });
   await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
   const midway: AppSessionStore = { ...store, listLiveRefresh: async () => [] };
-  assert.deepEqual(await rotateRefreshToken(midway, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "retry" });
-  assert.equal(refresh.filter((r) => r.revoked_at).length, 0);
+  const r = await rotateRefreshToken(midway, t.refreshToken, { now: T0 + 60_000 });
+  assert.equal(r.ok && r.recovered, true);
+  if (!r.ok) return;
+  assert.equal(refresh.filter((x) => x.revoked_at).length, 0);
+  assert.equal((await rotateRefreshToken(store, r.tokens.refreshToken, { now: T0 + 61_000 })).ok, true);
+});
+
+test("폐기는 반영됐는데 응답이 끊겨 오류로 끝나면 — 그 토큰도 되살린다, 다음 시도는 복구", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  const flaky: AppSessionStore = {
+    ...store,
+    revokeUnusedRefresh: async (h, iso) => {
+      await store.revokeUnusedRefresh(h, iso);
+      throw new Error("connection reset");
+    },
+  };
+  await assert.rejects(rotateRefreshToken(flaky, t.refreshToken, { now: T0 + 60_000 }), /connection reset/);
+  assert.equal(refresh.filter((x) => x.revoked_at).length, 0);
+  const retry = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 86_400_000 });
+  assert.equal(retry.ok && retry.recovered, true);
 });
 
 test("겹친 복구 — 앞 복구가 발급까지 끝낸 뒤 10초 안에 같은 옛 토큰이 또 오면(복구 응답도 못 받고 다시 켬) retry 만 — 앱은 옛 토큰을 지키고, 앞 복구가 준 토큰을 폐기하지 않는다", async () => {

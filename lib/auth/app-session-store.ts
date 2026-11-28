@@ -35,13 +35,15 @@ export function supabaseAppSessionStore(): AppSessionStore {
     async findRefresh(tokenHash) {
       const { data, error } = await db
         .from("app_refresh_tokens")
-        .select("family_id, rotated_at, revoked_at, expires_at")
+        .select("family_id, user_id, platform, rotated_at, revoked_at, expires_at")
         .eq("token_hash", tokenHash)
         .maybeSingle();
       if (error) throw error;
       return data
         ? {
             family_id: data.family_id as string,
+            user_id: data.user_id as string,
+            platform: (data.platform as Platform | null) ?? null,
             rotated_at: (data.rotated_at as string | null) ?? null,
             revoked_at: (data.revoked_at as string | null) ?? null,
             expires_at: data.expires_at as string,
