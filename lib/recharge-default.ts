@@ -22,17 +22,12 @@ export function receivedStars(pkg: StarPackage, bonusEligible: boolean): number 
 /** 상점 패키지 칸의 아랫줄(디자인 다듬기 상점 ④ A, 운영자 11-21).
  *  보통은 '별당 N원 · M% 알뜰'(가장 작은 칸 대비, 알뜰이 0 이면 별당만), 첫 충전 자격이면 보너스 한 줄만 —
  *  두 줄을 다 넣으면 칸 높이가 들쭉날쭉해져서 하나만 쓴다. 보너스 수는 receivedStars 와 같은 반올림.
- *  storePrice = 앱 안(스토어 가격 문자열) — 우리 원화로 계산한 별당 줄은 null(스토어 가격 단계가 다를 수 있다, 스펙 2026-11-23-앱-결제 §2) */
-export function packageSubLine(
-  pkg: StarPackage,
-  bonusEligible: boolean,
-  storePrice = false
-): { text: string; tone: "plain" | "bonus" } | null {
+ *  앱 안(스토어 가격)에서도 같은 줄 — 한국만 서비스하고 스토어 원화 가격이 웹과 같다(운영자 11-28. 해외 판매를 열면 다시 볼 것) */
+export function packageSubLine(pkg: StarPackage, bonusEligible: boolean): { text: string; tone: "plain" | "bonus" } {
   if (bonusEligible) {
     const total = receivedStars(pkg, true);
     return { text: `+${total - pkg.stars}별 보너스 · 총 ${total}별`, tone: "bonus" };
   }
-  if (storePrice) return null;
   const base = STAR_PACKAGES[0].price / STAR_PACKAGES[0].stars;
   const perStar = pkg.price / pkg.stars;
   const off = Math.round((1 - perStar / base) * 100);
