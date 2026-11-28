@@ -99,6 +99,10 @@ export function supabaseAppSessionStore(): AppSessionStore {
       enter("hasRotationAfter");
       return state.refresh.some((x) => x.family_id === fid && x.rotated_at !== null && Date.parse(x.rotated_at) > Date.parse(rotatedAtIso));
     },
+    async hasRevokeAfter(fid, sinceIso) {
+      enter("hasRevokeAfter");
+      return state.refresh.some((x) => x.family_id === fid && x.revoked_at !== null && Date.parse(x.revoked_at) > Date.parse(sinceIso));
+    },
     async listLiveRefresh(fid) {
       enter("listLiveRefresh");
       return state.refresh

@@ -51,6 +51,9 @@ function memoryStore() {
     async hasRotationAfter(fid, rotatedAtIso) {
       return refresh.some((x) => x.family_id === fid && x.rotated_at !== null && Date.parse(x.rotated_at) > Date.parse(rotatedAtIso));
     },
+    async hasRevokeAfter(fid, sinceIso) {
+      return refresh.some((x) => x.family_id === fid && x.revoked_at !== null && Date.parse(x.revoked_at) > Date.parse(sinceIso));
+    },
     async listLiveRefresh(fid) {
       return refresh
         .filter((x) => x.family_id === fid && !x.rotated_at && !x.revoked_at)
@@ -242,6 +245,40 @@ test("살아 있는 토큰이 0개로 보이면(앞 복구가 폐기만 하고 �
   if (!r.ok) return;
   assert.equal(refresh.filter((x) => x.revoked_at).length, 0);
   assert.equal((await rotateRefreshToken(store, r.tokens.refreshToken, { now: T0 + 61_000 })).ok, true);
+});
+
+test("같은 밀리초의 겹친 복구 — 폐기에 진 요청이 이긴 요청의 폐기를 되살리지 않는다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const lost = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(lost.ok, true);
+  if (!lost.ok) return;
+  let winner: Awaited<ReturnType<typeof rotateRefreshToken>> | null = null;
+  const racing: AppSessionStore = {
+    ...store,
+    async listLiveRefresh(fid) {
+      const rows = await store.listLiveRefresh(fid);
+      winner = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 });
+      return rows;
+    },
+  };
+  assert.deepEqual(await rotateRefreshToken(racing, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "retry" });
+  const w = winner as Awaited<ReturnType<typeof rotateRefreshToken>> | null;
+  assert.equal(w?.ok && w.recovered, true);
+  assert.equal(refresh.filter((r) => !r.rotated_at && !r.revoked_at).length, 1);
+  assert.deepEqual(await rotateRefreshToken(store, lost.tokens.refreshToken, { now: T0 + 61_000 }), { ok: false, reason: "invalid" });
+});
+
+test("겹친 복구 — 앞 복구가 폐기만 하고 발급 전이라 살아 있는 토큰이 0개로 보이면(10초 안 폐기가 있음) retry — 둘 다 발급하지 않는다", async () => {
+  const { store, refresh } = memoryStore();
+  const t = await issueAppTokens(store, USER, "ios", { now: T0 });
+  const lost = await rotateRefreshToken(store, t.refreshToken, { now: T0 + 1000 });
+  assert.equal(lost.ok, true);
+  if (!lost.ok) return;
+  // 앞 복구가 방금 폐기만 했다
+  assert.equal(await store.revokeUnusedRefresh(hashSecretToken(lost.tokens.refreshToken), new Date(T0 + 59_500).toISOString()), true);
+  assert.deepEqual(await rotateRefreshToken(store, t.refreshToken, { now: T0 + 60_000 }), { ok: false, reason: "retry" });
+  assert.equal(refresh.length, 2);
 });
 
 test("폐기는 반영됐는데 응답이 끊겨 오류로 끝나면 — 그 토큰도 되살린다, 다음 시도는 복구", async () => {

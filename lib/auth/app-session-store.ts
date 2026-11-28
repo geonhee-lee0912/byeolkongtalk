@@ -61,6 +61,16 @@ export function supabaseAppSessionStore(): AppSessionStore {
       if (error) throw error;
       return (data ?? []).length > 0;
     },
+    async hasRevokeAfter(familyId, sinceIso) {
+      const { data, error } = await db
+        .from("app_refresh_tokens")
+        .select("token_hash")
+        .eq("family_id", familyId)
+        .gt("revoked_at", sinceIso)
+        .limit(1);
+      if (error) throw error;
+      return (data ?? []).length > 0;
+    },
     async listLiveRefresh(familyId) {
       const { data, error } = await db
         .from("app_refresh_tokens")

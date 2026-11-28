@@ -148,6 +148,7 @@ export function supabaseAppSessionStore(): AppSessionStore {
     releaseRefresh: unexpected("releaseRefresh"),
     findRefresh: unexpected("findRefresh"),
     hasRotationAfter: unexpected("hasRotationAfter"),
+    hasRevokeAfter: unexpected("hasRevokeAfter"),
     listLiveRefresh: unexpected("listLiveRefresh"),
     revokeUnusedRefresh: unexpected("revokeUnusedRefresh"),
     unrevokeRefresh: unexpected("unrevokeRefresh"),
