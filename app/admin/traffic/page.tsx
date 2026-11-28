@@ -139,7 +139,7 @@ export default async function TrafficPage() {
         {!failed && !platformFailed && (
           <>
             <div className="overflow-x-auto mt-4">
-              <table className="w-full text-[13px] whitespace-nowrap md:max-w-2xl">
+              <table className="w-full text-[13px] whitespace-nowrap md:max-w-2xl [&_th]:pr-3 [&_td]:pr-3">
                 <thead className="text-white/50 text-left">
                   <tr>
                     <th className="py-1">날짜</th>
