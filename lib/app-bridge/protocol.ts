@@ -1,6 +1,7 @@
 // 웹 ↔ 앱(React Native 웹뷰) 약속 — 웹과 앱이 같이 쓰는 단일 원천. 의존성 0(next·react·react-native import 금지).
 // 앱은 Metro watchFolders 로 이 파일을 그대로 가져간다(mobile/metro.config.js). 스펙 2026-10-12-앱-1 §5.
 // 🔴 앱 토큰은 어떤 메시지로도 웹에 넘기지 않는다. 결제(②)·알림(③) 메시지는 그 단계에서 여기에 더한다.
+// 앱 결제(iap.*)는 스펙 2026-11-23-앱-결제 §5 — 웹은 스토어 가격을 묻고 구매를 부탁만 한다(서버 확인 POST /api/payment/iap 는 앱이 부른다).
 
 /** 메시지 형식 버전. 🔴 올리지 말 것 — 웹은 늘 현장의 옛 앱보다 새것이라, 올리는 순간 옛 앱이 auth.loggedOut 까지 전부 버린다.
  *  형식을 바꿔야 하면 새 type 을 더한다(옛 앱은 모르는 type 만 버린다) */
@@ -16,8 +17,10 @@ export type AppPlatform = "ios" | "android";
 export type AppInfo = { version: string; platform: AppPlatform; caps?: string[] };
 
 /** 앱이 가진 기능 표시 — caps 가 없는 옛 앱은 아무 기능도 없는 것으로 본다.
- *  push = 알림 메시지(push.*) · ui = 화면 메시지(ui.* — 겹창 열림·뒤로 버튼·진동·새로고침, 스펙 2026-11-07-앱-화면 §7) */
-export function hasCap(info: AppInfo | null, cap: "push" | "ui"): boolean {
+ *  push = 알림 메시지(push.*) · ui = 화면 메시지(ui.* — 겹창 열림·뒤로 버튼·진동·새로고침, 스펙 2026-11-07-앱-화면 §7)
+ *  iap = 앱 결제 메시지(iap.* — 스토어 가격·구매, 스펙 2026-11-23-앱-결제 §5) */
+export type AppCap = "push" | "ui" | "iap";
+export function hasCap(info: AppInfo | null, cap: AppCap): boolean {
   return !!info && Array.isArray(info.caps) && info.caps.includes(cap);
 }
 
@@ -27,12 +30,35 @@ const PLAIN_WEB_TO_APP_TYPES = ["auth.loggedOut", "push.status", "push.request",
 export type PlainWebToAppType = (typeof PLAIN_WEB_TO_APP_TYPES)[number];
 export type HapticKind = "light" | "success";
 const HAPTIC_KINDS = ["light", "success"] as const;
-export type WebToAppPayloads = { "ui.overlay": { open: boolean }; "ui.haptic": { kind: HapticKind } };
+
+/** 스토어 상품 id = 판매 패키지 id(lib/constants.ts STAR_PACKAGES — 의존성 0 이라 여기 따로 적고 protocol.test.ts 가 같음을 잠근다).
+ *  🔴 스토어 콘솔에 등록한 상품 id 와 같아야 한다 — 바꾸면 현장의 앱이 그 상품을 못 산다 */
+export const IAP_PRODUCT_IDS = ["star_10", "star_30", "star_70", "star_150", "star_300"] as const;
+export type IapProductId = (typeof IAP_PRODUCT_IDS)[number];
+function isIapProductId(v: unknown): v is IapProductId {
+  return (IAP_PRODUCT_IDS as readonly unknown[]).includes(v);
+}
+/** 구매 실패 이유 — cancelled = 사용자가 멈춤 · pending = 승인 대기(가족 승인 등) · failed = 그 밖 · account_mismatch = 산 계정과 로그인 회원이 다름 */
+export type IapFailReason = "cancelled" | "pending" | "failed" | "account_mismatch";
+const IAP_FAIL_REASONS = ["cancelled", "pending", "failed", "account_mismatch"] as const;
+/** 앱이 웹에 돌려주는 구매 결과(성공이면 서버가 지급한 별·보너스·지급 뒤 잔액) */
+export type IapResult =
+  | { productId: string; ok: true; stars: number; bonusStars: number; balance: number }
+  | { productId: string; ok: false; reason: IapFailReason };
+
+export type WebToAppPayloads = {
+  "ui.overlay": { open: boolean };
+  "ui.haptic": { kind: HapticKind };
+  "iap.products": { ids: string[] };
+  "iap.buy": { productId: string };
+};
 export type WebToAppType = PlainWebToAppType | keyof WebToAppPayloads;
 export type WebToAppMessage =
   | { v: typeof BRIDGE_VERSION; type: PlainWebToAppType; payload: Record<string, never> }
   | { v: typeof BRIDGE_VERSION; type: "ui.overlay"; payload: WebToAppPayloads["ui.overlay"] }
-  | { v: typeof BRIDGE_VERSION; type: "ui.haptic"; payload: WebToAppPayloads["ui.haptic"] };
+  | { v: typeof BRIDGE_VERSION; type: "ui.haptic"; payload: WebToAppPayloads["ui.haptic"] }
+  | { v: typeof BRIDGE_VERSION; type: "iap.products"; payload: { ids: IapProductId[] } }
+  | { v: typeof BRIDGE_VERSION; type: "iap.buy"; payload: { productId: IapProductId } };
 
 /** 앱의 탭 첫 화면 5개 — 웹 헤더(lib/app-shell/screens.ts)와 앱의 당겨서 새로고침(mobile/src/ui.ts)이 같이 쓴다 */
 export const APP_TAB_ROOTS = ["/", "/fortune", "/byeolmaru", "/shop", "/mypage"] as const;
@@ -79,7 +105,7 @@ export function encodeWebToApp(type: PlainWebToAppType): string {
   return JSON.stringify(msg);
 }
 
-/** 값을 싣는 메시지(ui.overlay·ui.haptic) */
+/** 값을 싣는 메시지(ui.overlay·ui.haptic·iap.products·iap.buy) */
 export function encodeWebToAppWith<T extends keyof WebToAppPayloads>(type: T, payload: WebToAppPayloads[T]): string {
   return JSON.stringify({ v: BRIDGE_VERSION, type, payload });
 }
@@ -102,6 +128,16 @@ export function parseWebToApp(raw: string): WebToAppMessage | null {
       const kind = HAPTIC_KINDS.find((k) => k === p?.kind);
       return kind ? { v: BRIDGE_VERSION, type: "ui.haptic", payload: { kind } } : null;
     }
+    if (m.type === "iap.products") {
+      // 패키지 id 집합 안의 것만, 겹치지 않게 — 남는 게 없으면 버린다
+      if (!Array.isArray(p?.ids)) return null;
+      const ids = IAP_PRODUCT_IDS.filter((id) => (p.ids as unknown[]).includes(id));
+      return ids.length ? { v: BRIDGE_VERSION, type: "iap.products", payload: { ids } } : null;
+    }
+    if (m.type === "iap.buy") {
+      const productId = IAP_PRODUCT_IDS.find((id) => id === p?.productId);
+      return productId ? { v: BRIDGE_VERSION, type: "iap.buy", payload: { productId } } : null;
+    }
     return null;
   } catch {
     return null;
@@ -113,10 +149,14 @@ const PUSH_STATES = ["granted", "denied", "undetermined"] as const;
 
 /** 앱이 웹에 알릴 때 window 에 쏘는 CustomEvent 이름 (detail = encodeAppToWeb 이 만든 문자열) */
 export const APP_EVENT = "byeolkong:app";
-/** push.state = 알림 권한 답 · ui.back = 안드로이드 뒤로 버튼이 눌렸고 겹창이 열려 있다(웹이 맨 위를 닫는다) */
+/** push.state = 알림 권한 답 · ui.back = 안드로이드 뒤로 버튼이 눌렸고 겹창이 열려 있다(웹이 맨 위를 닫는다)
+ *  iap.products = 스토어 가격(현지 통화 문자열 그대로) · iap.result = 구매 결과 */
+export type IapPriceItem = { id: string; price: string };
 export type AppToWebMessage =
   | { v: typeof BRIDGE_VERSION; type: "push.state"; state: PushState }
-  | { v: typeof BRIDGE_VERSION; type: "ui.back" };
+  | { v: typeof BRIDGE_VERSION; type: "ui.back" }
+  | { v: typeof BRIDGE_VERSION; type: "iap.products"; items: IapPriceItem[] }
+  | ({ v: typeof BRIDGE_VERSION; type: "iap.result" } & IapResult);
 
 export function encodeAppToWeb(state: PushState): string {
   const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "push.state", state };
@@ -128,12 +168,54 @@ export function encodeAppToWebBack(): string {
   return JSON.stringify(msg);
 }
 
+export function encodeAppToWebIapProducts(items: IapPriceItem[]): string {
+  const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "iap.products", items };
+  return JSON.stringify(msg);
+}
+
+export function encodeAppToWebIapResult(r: IapResult): string {
+  const msg: AppToWebMessage = { v: BRIDGE_VERSION, type: "iap.result", ...r };
+  return JSON.stringify(msg);
+}
+
+/** 가격 문자열 길이 상한 — 화면에 그대로 찍는 값이라 이상하게 긴 값은 버린다 */
+const MAX_PRICE_LEN = 32;
+
+function parseIapProducts(items: unknown): AppToWebMessage | null {
+  if (!Array.isArray(items)) return null;
+  const out: IapPriceItem[] = [];
+  for (const it of items) {
+    if (!it || typeof it !== "object") continue;
+    const o = it as Record<string, unknown>;
+    const id = IAP_PRODUCT_IDS.find((x) => x === o.id);
+    if (id && typeof o.price === "string" && o.price.length > 0 && o.price.length <= MAX_PRICE_LEN) out.push({ id, price: o.price });
+  }
+  return { v: BRIDGE_VERSION, type: "iap.products", items: out };
+}
+
+function parseIapResult(m: Record<string, unknown>): AppToWebMessage | null {
+  if (!isIapProductId(m.productId)) return null;
+  const productId: string = m.productId;
+  if (m.ok === true) {
+    const { stars, bonusStars, balance } = m;
+    if (![stars, bonusStars, balance].every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+    return { v: BRIDGE_VERSION, type: "iap.result", productId, ok: true, stars: stars as number, bonusStars: bonusStars as number, balance: balance as number };
+  }
+  if (m.ok === false) {
+    const reason = IAP_FAIL_REASONS.find((r) => r === m.reason);
+    return reason ? { v: BRIDGE_VERSION, type: "iap.result", productId, ok: false, reason } : null;
+  }
+  return null;
+}
+
 /** 웹이 받은 값(JSON 문자열 또는 이미 읽힌 객체) → 아는 메시지면 새로 만든 객체, 아니면 null */
 export function parseAppToWeb(raw: unknown): AppToWebMessage | null {
   try {
     const m = (typeof raw === "string" ? JSON.parse(raw) : raw) as Record<string, unknown> | null;
     if (!m || typeof m !== "object" || m.v !== BRIDGE_VERSION) return null;
     if (m.type === "ui.back") return { v: BRIDGE_VERSION, type: "ui.back" };
+    if (m.type === "iap.products") return parseIapProducts(m.items);
+    if (m.type === "iap.result") return parseIapResult(m);
     if (m.type !== "push.state") return null;
     const state = (PUSH_STATES as readonly unknown[]).find((s) => s === m.state) as PushState | undefined;
     return state ? { v: BRIDGE_VERSION, type: "push.state", state } : null;

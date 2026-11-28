@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starTxLabel, historyDayLabel, mergeHistory } from "./wallet-history.ts";
+import { starTxLabel, historyDayLabel, mergeHistory, starTxSignedAmount, isHiddenStarTx } from "./wallet-history.ts";
 
 test("starTxLabel — 별을 어디에 썼는지(디자인 다듬기 결제 내역 ⑨, 예전엔 전부 '사용')", () => {
   assert.equal(starTxLabel("spend", "tarot_reading"), "타로 상담");
@@ -69,4 +69,20 @@ test("mergeHistory — 짝 없는 결제(대기·환불)와 짝 없는 충전은
 test("mergeHistory — 최신순", () => {
   const rows = mergeHistory([pay("a", 100), pay("b", 300)], [tx("x", 200, "spend", "extend", null, 3)]);
   assert.deepEqual(rows.map((r) => r.time), [300, 200, 100]);
+});
+
+test("starTxSignedAmount — 사용·환불 회수는 빠진 별(음수), 나머지는 들어온 별(양수)", () => {
+  assert.equal(starTxSignedAmount("spend", 5), -5);
+  // 앱 결제 환불 회수(clawback_stars)는 'refund' 행에 거둔 양을 양수로 남긴다 — 내역엔 빠진 별로
+  assert.equal(starTxSignedAmount("refund", 12), -12);
+  assert.equal(starTxSignedAmount("charge", 10), 10);
+  assert.equal(starTxSignedAmount("bonus", 2), 2);
+  assert.equal(starTxSignedAmount("charge", -3), 3);
+});
+
+test("isHiddenStarTx — 거둔 게 0 인 환불 행(멱등 기준 행, 잔액 0 일 때 환불)은 내역에 안 보인다", () => {
+  assert.equal(isHiddenStarTx("refund", 0), true);
+  assert.equal(isHiddenStarTx("refund", 3), false);
+  assert.equal(isHiddenStarTx("charge", 0), false);
+  assert.equal(isHiddenStarTx("spend", 0), false);
 });

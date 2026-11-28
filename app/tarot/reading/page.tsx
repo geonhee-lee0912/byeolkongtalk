@@ -34,9 +34,6 @@ import {
   type Bubble,
 } from "@/lib/tarot/bubbles";
 import Icon from "@/components/common/Icon";
-import Dialog from "@/components/common/Dialog";
-import OverlayCloseButton from "@/components/common/OverlayCloseButton";
-import { setHeaderAction } from "@/lib/header-action";
 
 interface Message {
   role: "user" | "assistant";
@@ -56,7 +53,7 @@ const EXIT_NUDGE = [
   "오늘은 여기까지 해도 충분해. 지금까지 나눈 얘기는 결과 카드로 정리해둘게 — 더 궁금한 게 있으면 이어서 물어봐도 되고!",
   "마음 가는 만큼만 하면 돼. 오늘 얘기를 결과 카드로 볼 수도 있고, 이어서 더 얘기해도 좋아",
 ];
-const FINISH_PHRASE = "대화 마무리할게"; // 헤더 '결과 보기' → 확인 창 경유(옛 입력창 아래 '마무리하고 결과 보기') — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
+const FINISH_PHRASE = "대화 마무리할게"; // 입력칸 아래 '대화 마무리하고 결과 보기' 링크 경유 — 골드 버튼 시절과 같은 문구라 '마무리 버튼 누름' 지표가 이어진다(spec 2026-10-04 §3-6)
 const FINISH_PHRASE_EXIT = "오늘은 여기서 마무리할게"; // 출구 칩 경유 (계측 구분용)
 // 재개 제안 없음 — 헤더·서버 값이 없을 때의 기본값(서버가 {false,false} 를 주면 그 객체를 그대로 쓴다)
 const NO_REOPEN: ReopenOptions = { extend: false, clarifier: false };
@@ -129,14 +126,9 @@ function TarotReadingInner() {
   const purchasing = extendState === "loading" || clarifierPurchasing;
   // 구매 흐름 중 — 요청이 가 있거나 보조 카드 시트가 열려 있다. 이 사이엔 마무리·재전송도 막고 전송 대기 조각은 미룬다
   const inPurchaseFlow = purchasing || clarifierSheetOpen;
-  // 헤더 '결과 보기'(금색) → 확인 창 → handleFinish. 입력창 아래 마무리 줄을 대신한다 — 디자인 다듬기 /tarot/reading ⑦ 운영자 11-13
-  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  // 입력칸 아래 '대화 마무리하고 결과 보기' 링크 → 바로 handleFinish(확인 창 없음 — 문구가 '끝난다'를 말한다).
+  // 11-13 헤더 금색 알약 + 확인 창으로 옮긴 뒤 손님이 직접 끝내는 비율이 크게 줄어 아래로 되돌렸다(운영자 11-28, PC 카톡형)
   const finishDisabled = isStreaming || !readingId || inPurchaseFlow;
-  useEffect(() => {
-    if (isEnded || !readingId) return;
-    setHeaderAction({ label: "결과 보기", onClick: () => setFinishConfirmOpen(true), disabled: finishDisabled });
-    return () => setHeaderAction(null);
-  }, [isEnded, readingId, finishDisabled]);
   // RechargeSheet
   const [rechargeSheetOpen, setRechargeSheetOpen] = useState(false);
   const [rechargeUpsellType, setRechargeUpsellType] = useState<"clarifier" | "extend">("extend");
@@ -1260,8 +1252,8 @@ function TarotReadingInner() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-                {/* 카카오톡처럼 둥근 입력칸 안 오른쪽에 ↑ 전송(H안) — 디자인 다듬기 /tarot/reading ⑥ 운영자 11-14. 칸이 화면 폭을 다 써 글 쓸 자리가 넓다 */}
-                <div className="flex items-end gap-1 p-1 rounded-3xl bg-white border border-lilac-mid/55 focus-within:border-lilac-deep focus-within:ring-2 focus-within:ring-lilac-deep/30">
+                {/* PC 카톡처럼 위는 입력칸, 아래 줄은 마무리 링크 + 전송(운영자 11-28). 칸이 화면 폭을 다 써 글 쓸 자리가 넓다 */}
+                <div className="flex">
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -1297,19 +1289,36 @@ function TarotReadingInner() {
                     disabled={isStreaming || !readingId}
                     maxLength={500}
                     // 16px — 아이폰은 이보다 작은 입력칸을 누르면 화면을 저절로 확대한다
-                    className="flex-1 min-w-0 pl-3.5 pr-1.5 py-[9px] bg-transparent text-eye-purple text-16 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none"
-                    style={{ minHeight: "40px", maxHeight: "120px" }}
+                    className="flex-1 min-w-0 px-1 py-1 bg-transparent text-eye-purple text-16 leading-[22px] placeholder:text-text-faint disabled:opacity-60 resize-none scrollbar-hide focus:outline-none"
+                    style={{ minHeight: "44px", maxHeight: "120px" }}
                   />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // 발사 후 망각 — 실패해도 마무리를 막지 않는다
+                      trackUiEvent("finish_link_clicked", {
+                        readingId,
+                        meta: { surface: "tarot", turns: countUserTurns(messages) },
+                      });
+                      handleFinish();
+                    }}
+                    // 답하는 중·구매 흐름 중엔 handleFinish 가 아무것도 안 한다 — 눌러서 기록만 찍히지 않게 잠근다
+                    disabled={finishDisabled}
+                    className="inline-flex items-center gap-1 h-8 text-text-light font-bold text-12 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Icon name="sparkle" size={13} className="text-gold" />
+                    대화 마무리하고 결과 보기
+                    <Icon name="chev_r" size={14} />
+                  </button>
                   <button
                     type="submit"
                     disabled={isStreaming || !input.trim() || !readingId || purchasing}
-                    aria-label="전송"
-                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로(사용자 2026-10-04 — 흐려지면 다른 것이 화면에서 가장 강해 보였다). 동작 잠금은 disabled 가 그대로 한다
-                    className="shrink-0 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center transition active:scale-[0.96] disabled:active:scale-100 disabled:cursor-not-allowed"
+                    // 비활성(빈 입력·답변 중)이어도 색은 늘 활성 그대로(사용자 2026-10-04 · 11-28 다시 확인). 동작 잠금은 disabled 가 그대로 한다
+                    className="shrink-0 h-8 px-4 rounded-lg bg-accent text-white font-bold text-13 transition active:scale-[0.96] disabled:active:scale-100 disabled:cursor-not-allowed"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
-                    </svg>
+                    전송
                   </button>
                 </div>
                 {/* 글자 수는 끝(500)에 가까워질 때만 */}
@@ -1320,34 +1329,6 @@ function TarotReadingInner() {
           )}
         </div>
       </div>
-
-      {/* 헤더 '결과 보기' 확인 — 라벨이 '대화가 끝난다'를 말하지 않아 한 번 묻는다(일찍 끝내기도 줄인다) */}
-      {finishConfirmOpen && (
-        <Dialog
-          label="대화 마무리 확인"
-          onClose={() => setFinishConfirmOpen(false)}
-          widthClassName="max-w-xs"
-          gutterClassName="px-5"
-        >
-          <div className="bg-white rounded-2xl p-5">
-            <p className="text-16 font-bold text-eye-purple text-center">대화를 마무리하고 결과를 볼까?</p>
-            <p className="text-13 text-text-light text-center mt-1.5">지금까지 나눈 얘기를 결과 카드로 정리해 줄게</p>
-            <div className="flex gap-2 mt-5">
-              <OverlayCloseButton className="btn btn-secondary btn-md flex-1">더 물어보기</OverlayCloseButton>
-              <button
-                type="button"
-                onClick={() => {
-                  setFinishConfirmOpen(false);
-                  handleFinish();
-                }}
-                className="btn btn-primary btn-md flex-1"
-              >
-                결과 보기
-              </button>
-            </div>
-          </div>
-        </Dialog>
-      )}
 
       {/* 인챗 추천 확인 모달 (cross-type) */}
       <RecoConfirmModal

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserIdentities, primaryIdentity } from "@/lib/auth/user-identity";
-import { identityHash } from "@/lib/auth/identity-hash";
 import { cancelPayment, confirmPayment, TossPaymentError } from "@/lib/toss";
-import { chargeStars } from "@/lib/stars";
+import { grantStarPackage } from "@/lib/payment/grant";
 import { getServiceSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { logError, logWarn, ctxFromRequest } from "@/lib/logger";
-import { STAR_PACKAGES, FIRST_CHARGE_BONUS_RATE } from "@/lib/constants";
+import { STAR_PACKAGES } from "@/lib/constants";
 import { sendCapiEvent, capiSignalsFromRequest } from "@/lib/meta-capi";
 
 // 개별 결제 실패가 아니라 상점 계정/키/설정 자체가 막힌 상태 — 전 유저 결제 불능.
@@ -148,22 +146,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 결제 기록 저장
-    const { data: payment, error: payErr } = await supabase
-      .from("payments")
-      .insert({
-        user_id: userId,
-        pg_provider: "tosspayments",
-        pg_tid: paymentKey,
-        amount_won: amount,
-        stars_given: pkg.stars,
-        package_type: pkg.id,
-        status: "completed",
-      })
-      .select("id")
-      .single();
+    // 결제 기록 → 별 충전 → 첫충전 보너스 (토스·앱 스토어 결제 공용 — lib/payment/grant.ts)
+    const grant = await grantStarPackage({
+      userId,
+      pkg,
+      provider: "tosspayments",
+      tid: paymentKey,
+      amountWon: amount,
+    });
 
-    if (payErr || !payment) {
+    if (grant.kind === "insert_failed") {
       // 토스에는 이미 승인된 결제 → 자동 환불 시도해서 반쪽 결제 사고 방지
       let refundOk = false;
       try {
@@ -182,7 +174,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      await logError(payErr ?? new Error("payment insert null"), {
+      await logError(grant.error, {
         route: "/api/payment/confirm",
         userId,
         extra: {
@@ -207,90 +199,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 별 충전
-    const charge = await chargeStars(userId, pkg.stars, payment.id);
-    if (!charge.success) {
-      // 결제는 성공했으나 별 충전 실패 — 운영자 즉시 개입 필요한 사고
-      await logError(new Error("chargeStars failed after payment"), {
-        route: "/api/payment/confirm",
-        userId,
-        extra: {
-          paymentId: payment.id,
-          paymentKey,
-          stars: pkg.stars,
-          packageType: pkg.id,
-          severity: "CRITICAL_PAYMENT_RECONCILE",
-        },
+    // 동시 중복 confirm(레이스) — 승자 요청이 이미 지급했다. 멱등 성공으로 응답.
+    if (grant.kind === "already") {
+      return NextResponse.json({
+        success: true,
+        alreadyProcessed: true,
+        stars: grant.stars,
+        bonusStars: 0,
+        balance: grant.balance,
+        paymentKey,
       });
     }
 
-    // ━━ 첫 충전 보너스 파밍 방지: 로그인 수단 해시 원장에 'first_charge' 1회 청구(lib/auth/identity-hash.ts — 카카오는 옛 공식과 같은 값).
-    // 탈퇴→재가입해도 1인 1회. 청구가 처음일 때만 지급(payments count 대신 원장이 권위).
-    let bonusStars = 0;
-    let bonusBalance: number | null = null;
-    if (charge.success) {
-      let chargerHash: string | null = null;
-      let lookupErr: unknown = null;
-      try {
-        const primary = primaryIdentity(await getUserIdentities(userId));
-        if (primary) chargerHash = identityHash(primary.provider, primary.providerUserId);
-      } catch (err) {
-        lookupErr = err;
-      }
-      if (!chargerHash) {
-        // severity 이름은 어드민 필터 연속성 때문에 그대로 둔다(이제 카카오만이 아니라 로그인 수단 조회)
-        await logError(lookupErr ?? new Error("identity lookup failed for first bonus"), {
-          route: "/api/payment/confirm",
-          userId,
-          extra: { paymentId: payment.id, severity: "FIRST_BONUS_KAKAO_LOOKUP_FAILED" },
-        });
-      } else {
-        const { data: firstChargeClaim, error: claimErr } = await supabase
-          .from("bonus_claims")
-          .upsert(
-            { kakao_id_hash: chargerHash, bonus_type: "first_charge" },
-            { onConflict: "kakao_id_hash,bonus_type", ignoreDuplicates: true }
-          )
-          .select("kakao_id_hash");
-        if (claimErr) {
-          await logError(claimErr, {
-            route: "/api/payment/confirm",
-            userId,
-            extra: { paymentId: payment.id, severity: "FIRST_BONUS_CLAIM_CHECK_FAILED" },
-          });
-        }
-        if (!claimErr && (firstChargeClaim?.length ?? 0) > 0) {
-          bonusStars = Math.round(pkg.stars * FIRST_CHARGE_BONUS_RATE);
-          const bonus = await chargeStars(
-            userId,
-            bonusStars,
-            `first_bonus:${userId}`,
-            "first_charge_bonus"
-          );
-          if (!bonus.success) {
-            // 원장은 이미 청구됨(위 upsert) → 재시도해도 스킵되어 유료 유저가 보너스를
-            // 영구히 잃음. 재시도로 복구 불가라 운영자 수동 지급 필요 → CRITICAL.
-            await logError(new Error("first charge bonus grant failed after ledger claim"), {
-              route: "/api/payment/confirm",
-              userId,
-              extra: { paymentId: payment.id, bonusStars, severity: "CRITICAL_FIRST_BONUS_LOST" },
-            });
-            bonusStars = 0;
-          } else if (bonus.idempotent) {
-            bonusStars = 0; // 이미 받은 적 있음(레이스/재시도)
-          } else {
-            bonusBalance = bonus.balance; // 보너스까지 반영된 권위 잔액
-          }
-        }
-      }
-    }
+    // 별 충전 실패(charge_failed)는 grant 가 CRITICAL_PAYMENT_RECONCILE 로 이미 로그를 남겼다 — 응답은 예전 그대로 성공(balance 0)
+    const paymentId = grant.paymentId;
+    const bonusStars = grant.kind === "granted" ? grant.bonusStars : 0;
+    const balance = grant.kind === "granted" ? grant.balance : 0;
 
     // Meta CAPI 구매 전환. eventId=purchase:{paymentId} 로 중복 제거, value=원화.
     const signals = capiSignalsFromRequest(request);
     void sendCapiEvent({
       eventName: "Purchase",
       userId,
-      eventId: `purchase:${payment.id}`,
+      eventId: `purchase:${paymentId}`,
       value: amount,
       ...signals,
     });
@@ -299,7 +230,7 @@ export async function POST(request: NextRequest) {
       success: true,
       stars: pkg.stars,
       bonusStars,
-      balance: bonusBalance ?? charge.balance,
+      balance,
       paymentKey: paymentResult.paymentKey,
     });
   } catch (error) {

@@ -138,7 +138,7 @@ docs/superpowers/{specs,plans}/
 - **OAuth**: state 32hex nonce 를 `byeolkong_oauth_state` 쿠키에 5분 TTL → 콜백에서 일치 검증 + 1회용 삭제 + open redirect 방지. 쿠키/storage prefix 는 전부 `byeolkong_`. ADMIN_USER_IDS 매칭 시 `byeolkong_admin_token`(HMAC) 동시 발급
 - **회원 탈퇴**: 카카오 unlink 실패 시 503 + DB 삭제 중단(좀비 OAuth 방지). `users` CASCADE 체인이 profiles→readings→messages / relationships / passes 를 자동 정리. `star_transactions.reading_id` 만 SET NULL(audit 유지)
 - **KOE006/KOE101 트라이아지**: 카카오 콘솔에서 ①Redirect URI 등록 ②Web 도메인 등록(**①과 별개 화면**) ③Client Secret 활성화 ④Vercel env 추가 후 **redeploy**
-- **`/admin/errors` 의 "설계된 정상 신호"** 가 있다 — 중복차단 warn·카카오 -101 info 등. 전부 버그로 보지 말 것
+- **`/admin/errors` 의 "설계된 정상 신호"** 가 있다 — 중복차단 warn·카카오 -101 info · 앱 결제 환불 `iap refund shortfall` warn(남은 별보다 많이 환불됨) 등. 전부 버그로 보지 말 것
 - **prod 쓰기 작업은 항상 사용자 손** — `scripts/run-prod-query.mjs` 는 `read_only:true` 고정
 - **QA**: 별콩이 검증은 QA 하네스로 자체 수행(`.env.local` 로 충분). ⚠️**페르소나 수정 후 dev 서버 재시작 필수**(모듈 캐시)
 

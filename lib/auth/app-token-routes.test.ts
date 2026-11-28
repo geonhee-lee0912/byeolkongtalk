@@ -172,7 +172,7 @@ test("갱신 거절은 전부 401 invalid(앱이 기기 토큰을 지운다) —
   assert.deepEqual(logLines(fakes), []);
 });
 
-test("재사용 — 교체 10초 안의 같은 토큰은 401 invalid(경고·폐기 없음), 10초 뒤면 401 reused + 경고 1건(원문 없음)·그 묶음 전체 폐기, 다른 기기는 그대로", async () => {
+test("재사용 — 교체 10초 안의 같은 토큰은 409 retry(경고·폐기 없음), 새 토큰이 쓰인 뒤 10초 넘어 오면 401 reused + 경고 1건(원문 없음)·그 묶음 전체 폐기, 다른 기기는 그대로", async () => {
   const { refresh, fakes } = await load();
   fakes.reset();
   const store = fakes.supabaseAppSessionStore();
@@ -180,12 +180,18 @@ test("재사용 — 교체 10초 안의 같은 토큰은 401 invalid(경고·폐
   const tablet = await issueAppTokens(store, USER, "android");
   const r1 = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
   assert.equal(r1.status, 200);
-  const latest = ((await r1.json()) as { refreshToken: string }).refreshToken;
+  const second = ((await r1.json()) as { refreshToken: string }).refreshToken;
 
+  // 교체 10초 안의 같은 토큰 = 이중 전송·갱신 중 꺼졌다 바로 다시 켬 — 409 retry(앱 isAuthError 가 아니라 기기 토큰을 지킨다)
   const dup = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
-  assert.equal(dup.status, 401);
-  assert.deepEqual(await dup.json(), { error: "invalid" });
+  assert.equal(dup.status, 409);
+  assert.deepEqual(await dup.json(), { error: "retry" });
   assert.deepEqual(logLines(fakes), []);
+
+  // 정상 기기가 새 토큰을 한 번 쓴다 — 이제 옛 토큰이 오면 응답 유실이 아니라 재사용이다
+  const r2 = await refresh(refreshReq({ refreshToken: second }));
+  assert.equal(r2.status, 200);
+  const latest = ((await r2.json()) as { refreshToken: string }).refreshToken;
 
   // 교체가 11초 전이었던 것으로 돌린다(라우트는 서버 시계를 쓴다)
   fakes.state.refresh.find((r) => r.token_hash === hashSecretToken(phone.refreshToken))!.rotated_at = new Date(Date.now() - 11_000).toISOString();
@@ -196,13 +202,45 @@ test("재사용 — 교체 10초 안의 같은 토큰은 401 invalid(경고·폐
     ["warn", "App refresh token reused — device family revoked", R_REFRESH],
   ]);
   const logged = JSON.stringify(fakes.state.logs);
-  for (const secret of [phone.refreshToken, latest, hashSecretToken(phone.refreshToken)]) assert.ok(!logged.includes(secret));
+  for (const secret of [phone.refreshToken, second, latest, hashSecretToken(phone.refreshToken)]) assert.ok(!logged.includes(secret));
 
   const afterRevoke = await refresh(refreshReq({ refreshToken: latest }));
   assert.equal(afterRevoke.status, 401);
   assert.deepEqual(await afterRevoke.json(), { error: "invalid" });
   assert.equal(fakes.state.logs.length, 1); // 폐기된 묶음은 또 세지 않는다
   assert.equal((await refresh(refreshReq({ refreshToken: tablet.refreshToken }))).status, 200);
+});
+
+test("응답 유실 — 새 토큰을 한 번도 안 쓴 기기가 10초 넘어 옛 토큰을 보내면 200 + 앱이 읽는 4칸, 경고 없이 info 1건(원문 없음), 안 쓰인 새 토큰은 401 invalid, 다시 받은 토큰은 이어진다", async () => {
+  const { refresh, fakes } = await load();
+  fakes.reset();
+  const store = fakes.supabaseAppSessionStore();
+  const phone = await issueAppTokens(store, USER, "android");
+  const tablet = await issueAppTokens(store, USER, "ios");
+  const r1 = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
+  assert.equal(r1.status, 200);
+  const lost = ((await r1.json()) as { refreshToken: string }).refreshToken;
+
+  // 교체가 11초 전이었던 것으로 돌린다(교체 시각 = 새 토큰 발급 시각이라 새 토큰의 만료도 같이) — 앱은 그 응답을 못 받았다
+  fakes.state.refresh.find((r) => r.token_hash === hashSecretToken(phone.refreshToken))!.rotated_at = new Date(Date.now() - 11_000).toISOString();
+  const lostRow = fakes.state.refresh.find((r) => r.token_hash === hashSecretToken(lost))!;
+  lostRow.expires_at = new Date(Date.parse(lostRow.expires_at) - 11_000).toISOString();
+  const again = await refresh(refreshReq({ refreshToken: phone.refreshToken }));
+  assert.equal(again.status, 200);
+  assert.equal(again.headers.get("cache-control"), (await refresh(refreshReq({ refreshToken: tablet.refreshToken }))).headers.get("cache-control"));
+  const body = (await again.json()) as { accessToken: string; refreshToken: string };
+  assert.deepEqual(Object.keys(body).sort(), REFRESH_KEYS);
+  assert.equal(await verifyAccessToken(body.accessToken), USER);
+  assert.deepEqual(logLines(fakes), [["info", "App refresh response lost — reissued", R_REFRESH]]);
+  const logged = JSON.stringify(fakes.state.logs);
+  for (const secret of [phone.refreshToken, lost, body.refreshToken, hashSecretToken(phone.refreshToken), hashSecretToken(lost)]) assert.ok(!logged.includes(secret));
+
+  const lostRes = await refresh(refreshReq({ refreshToken: lost }));
+  assert.equal(lostRes.status, 401);
+  assert.deepEqual(await lostRes.json(), { error: "invalid" });
+  const next = await refresh(refreshReq({ refreshToken: body.refreshToken }));
+  assert.equal(next.status, 200);
+  assert.equal(fakes.state.logs.length, 1);
 });
 
 test("갱신 중 DB 오류는 500 internal + 오류 로그(앱은 토큰을 지킨다) — 401 로 접지 않는다, 옛 토큰은 되살아나 다음 시도가 성공한다", async () => {

@@ -21,12 +21,12 @@ export class ApiError extends Error {
 export const isAuthError = (e: unknown) =>
   e instanceof ApiError && e.status === 401 && (e.code === "invalid" || e.code === "reused");
 
-/** 우리 서버 JSON 호출 — 인증 라우트와 알림 기기 등록·해제(push/register.ts)가 같이 쓴다 */
+/** 우리 서버 JSON 호출 — 인증 라우트와 알림 기기 등록·해제(push/register.ts)·앱 결제(iap/api.ts)가 같이 쓴다. GET 은 본문을 싣지 않는다 */
 export async function postJson(
   path: string,
   body: Record<string, unknown>,
   accessToken?: string,
-  method: "POST" | "DELETE" = "POST",
+  method: "POST" | "DELETE" | "GET" = "POST",
 ): Promise<Record<string, unknown>> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -38,7 +38,7 @@ export async function postJson(
     const res = await fetch(`${config.baseUrl}${path}`, {
       method,
       headers,
-      body: JSON.stringify(body),
+      body: method === "GET" ? undefined : JSON.stringify(body),
       signal: ctrl.signal,
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;

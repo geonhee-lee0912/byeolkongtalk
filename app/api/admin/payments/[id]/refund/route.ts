@@ -18,8 +18,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const supabase = getServiceSupabase();
   const { data: pay } = await supabase.from("payments")
-    .select("id, pg_tid, status").eq("id", id).single();
+    .select("id, pg_tid, pg_provider, status").eq("id", id).single();
   if (!pay) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // 스토어(애플/구글) 결제는 토스로 취소할 수 없다 — 토스 호출 전에 막는다
+  if (pay.pg_provider !== "tosspayments") return NextResponse.json({ error: "not_refundable" }, { status: 409 });
   if (pay.status === "refunded") return NextResponse.json({ success: true, idempotent: true });
   if (pay.status !== "completed" || !pay.pg_tid) {
     return NextResponse.json({ error: "not_refundable" }, { status: 409 });
